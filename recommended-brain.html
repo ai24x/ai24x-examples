@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>推荐方案：SVG科技大脑 - AI24X</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0a0a;
+            color: white;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        
+        h1 {
+            color: #00d4ff;
+            font-size: 2.8rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .subtitle {
+            color: #94a3b8;
+            font-size: 1.3rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .hero-demo {
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(0, 212, 255, 0.2);
+            border-radius: 24px;
+            padding: 50px;
+            margin-bottom: 50px;
+            text-align: center;
+        }
+        
+        .demo-title {
+            color: white;
+            font-size: 1.8rem;
+            margin-bottom: 30px;
+        }
+        
+        .hero-preview-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 60px;
+            flex-wrap: wrap;
+            margin-bottom: 40px;
+        }
+        
+        .hero-text-side {
+            flex: 1;
+            min-width: 300px;
+            text-align: left;
+        }
+        
+        .hero-text-side h2 {
+            color: white;
+            font-size: 2.2rem;
+            margin-bottom: 20px;
+            line-height: 1.3;
+        }
+        
+        .hero-text-side p {
+            color: #cbd5e0;
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 14px 28px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1rem;
+        }
+        
+        .btn-primary {
+            background: #00d4ff;
+            color: black;
+            border: 2px solid #00d4ff;
+        }
+        
+        .btn-primary:hover {
+            background: transparent;
+            color: #00d4ff;
+            transform: translateY(-2px);
+        }
+        
+        .btn-outline {
+            background: transparent;
+            color: #00d4ff;
+            border: 2px solid #00d4ff;
+        }
+        
+        .btn-outline:hover {
+            background: #00d4ff;
+            color: black;
+            transform: translateY(-2px);
+        }
+        
+        .svg-brain-container {
+            flex-shrink: 0;
+        }
+        
+        .svg-brain {
+            width: 250px;
+            height: 250px;
+            filter: drop-shadow(0 0 30px rgba(0, 212, 255, 0.5));
+            transition: all 0.5s;
+        }
+        
+        .svg-brain:hover {
+            filter: drop-shadow(0 0 50px rgba(0, 212, 255, 0.8));
+            transform: scale(1.05);
+        }
+        
+        .features-section {
+            margin-bottom: 60px;
+        }
+        
+        .section-title {
+            color: #00d4ff;
+            font-size: 2rem;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            transition: transform 0.3s, border-color 0.3s;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: #00d4ff;
+        }
+        
+        .feature-icon {
+            font-size: 2.5rem;
+            color: #00d4ff;
+            margin-bottom: 20px;
+        }
+        
+        .feature-title {
+            color: white;
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+        }
+        
+        .feature-description {
+            color: #cbd5e0;
+        }
+        
+        .code-section {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 50px;
+        }
+        
+        .code-title {
+            color: #00d4ff;
+            font-size: 1.6rem;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .code-block {
+            background: #1a1a1a;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 25px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        
+        .code-comment {
+            color: #6b7280;
+        }
+        
+        .code-tag {
+            color: #f87171;
+        }
+        
+        .code-attr {
+            color: #60a5fa;
+        }
+        
+        .code-value {
+            color: #34d399;
+        }
+        
+        .code-content {
+            color: #d1d5db;
+        }
+        
+        .implementation-steps {
+            background: rgba(46, 213, 115, 0.1);
+            border: 2px solid #2ed573;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 50px;
+        }
+        
+        .implementation-steps h3 {
+            color: #2ed573;
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .steps-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .steps-list li {
+            color: #cbd5e0;
+            margin-bottom: 20px;
+            padding-left: 40px;
+            position: relative;
+            font-size: 1.1rem;
+        }
+        
+        .steps-list li:before {
+            content: counter(step);
+            counter-increment: step;
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 30px;
+            height: 30px;
+            background: #2ed573;
+            color: black;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .steps-list {
+            counter-reset: step;
+        }
+        
+        .action-buttons {
+            text-align: center;
+            margin-top: 50px;
+        }
+        
+        .action-buttons .btn {
+            padding: 16px 40px;
+            font-size: 1.1rem;
+            margin: 0 10px;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 40px 0;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .comparison-table th {
+            background: rgba(0, 212, 255, 0.2);
+            color: white;
+            padding: 20px;
+            text-align: left;
+            font-size: 1.1rem;
+        }
+        
+        .comparison-table td {
+            padding: 18px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: #cbd5e0;
+        }
+        
+        .comparison-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .comparison-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .advantage {
+            color: #2ed573;
+            font-weight: bold;
+        }
+        
+        .disadvantage {
+            color: #f87171;
+        }
+        
+        .color-variants {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+            margin: 40px 0;
+        }
+        
+        .color-variant {
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        
+        .color-variant:hover {
+            transform: translateY(-5px);
+        }
+        
+        .color-brain {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 10px;
+        }
+        
+        .color-name {
+            color: #cbd5e0;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .hero-preview-container {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .hero-text-side {
+                text-align: center;
+            }
+            
+            .btn-group {
+                justify-content: center;
+            }
+            
+            .svg-brain {
+                width: 200px;
+                height: 200px;
+            }
+            
+            h1 {
+                font-size: 2.2rem;
+                flex-direction: column;
+            }
+            
+            .color-variants {
+                gap: 20px;
+            }
+            
+            .color-brain {
+                width: 80px;
+                height: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>
+                <span>🌟 推荐方案</span>
+                <span style="color: white;">SVG科技大脑</span>
+            </h1>
+            <p class="subtitle">专为AI24X首页设计的自定义SVG大脑图标，结合科技感、美观性和高性能</p>
+        </header>
+        
+        <!-- Hero区域演示 -->
+        <section class="hero-demo">
+            <h2 class="demo-title">在首页的实际效果预览</h2>
+            <div class="hero-preview-container">
+                <div class="hero-text-side">
+                    <h2>发现AI未来，就在AI24X</h2>
+                    <p>AI24X聚焦人工智能产业，通过专业筛选和精细化运营，帮助优秀AI项目实现24小时不间断的价值创造和收入增长</p>
+                    <div class="btn-group">
+                        <a href="#" class="btn btn-primary">
+                            <i class="fas fa-search"></i> 探索工具库
+                        </a>
+                        <a href="#" class="btn btn-outline">
+                            <i class="fas fa-list"></i> 浏览分类
+                        </a>
+                    </div>
+                </div>
+                <div class="svg-brain-container">
+                    <svg class="svg-brain" viewBox="0 0 100 100" id="mainBrain">
+                        <defs>
+                            <linearGradient id="brainGradientMain" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#00d4ff" />
+                                <stop offset="50%" stop-color="#0099ff" />
+                                <stop offset="100%" stop-color="#0066ff" />
+                            </linearGradient>
+                            <filter id="glowMain">
+                                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                                <feMerge>
+                                    <feMergeNode in="coloredBlur"/>
+                                    <feMergeNode in="SourceGraphic"/>
+                                </feMerge>
+                            </filter>
+                            <radialGradient id="highlight" cx="30%" cy="30%" r="50%">
+                                <stop offset="0%" stop-color="white" stop-opacity="0.4" />
+                                <stop offset="100%" stop-color="white" stop-opacity="0" />
+                            </radialGradient>
+                        </defs>
+                        
+                        <!-- 大脑主体 -->
+                        <path d="M50,20 C60,15 75,18 80,30 C85,42 82,55 75,65 C68,75 55,80 50,85 C45,80 32,75 25,65 C18,55 15,42 20,30 C25,18 40,15 50,20 Z" 
+                              fill="url(#brainGradientMain)" filter="url(#glowMain)" />
+                        
+                        <!-- 高光效果 -->
+                        <ellipse cx="35" cy="35" rx="15" ry="10" fill="url(#highlight)" opacity="0.6" />
+                        
+                        <!-- 细节节点 -->
+                        <circle cx="45" cy="40" r="3" fill="white" opacity="0.9" />
+                        <circle cx="40" cy="55" r="3" fill="white" opacity="0.9" />
+                        <circle cx="60" cy="55" r="3" fill="white" opacity="0.9" />
+                        <circle cx="55" cy="40" r="3" fill="white" opacity="0.9" />
+                        
+                        <!-- 连接线 -->
+                        <path d="M45,40 L40,55 M55,40 L60,55 M50,30 L50,40" 
+                              stroke="white" stroke-width="1" stroke-linecap="round" opacity="0.7" />
+                        
+                        <!-- 科技感装饰 -->
+                        <path d="M30,50 Q40,45 50,50 T70,50" 
+                              stroke="#00d4ff" stroke-width="1.5" fill="none" stroke-dasharray="3,3" opacity="0.5" />
+                        <path d="M30,60 Q40,55 50,60 T70,60" 
+                              stroke="#00d4ff" stroke-width="1.5" fill="none" stroke-dasharray="3,3" opacity="0.5" />
+                    </svg>
+                </div>
+            </div>
+            
+            <p style="color: #94a3b8; font-size: 1rem; max-width: 800px; margin: 0 auto;">
+                悬停在大脑图标上可以看到发光效果，点击下方颜色变体可以预览不同配色
+            </p>
+            
+            <!-- 颜色变体 -->
+            <div class="color-variants">
+                <div class="color-variant" onclick="changeColor('blue')">
+                    <svg class="color-brain" viewBox="0 0 100 100">
+                        <defs>
+                            <linearGradient id="gradBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#00d4ff" />
+                                <stop offset="100%" stop-color="#0099ff" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M50,20 C60,15 75,18 80,30 C85,42 82,55 75,65 C68,75 55,80 50,85 C45,80 32,75 25,65 C18,55 15,42 20,30 C25,18 40,15 50,20 Z" 
+                              fill="url(#gradBlue)" />
+                        <circle cx="45" cy="40" r="3" fill="white" />
+                        <circle cx="55" cy="40" r="3" fill="white" />
+                    </svg>
+                    <div class="color-name">科技蓝</div>
+                </div>
+                
+                <div class="color-variant" onclick="changeColor('purple')">
+                    <svg class="color-brain" viewBox="0 0 100 100">
+                        <defs>
+                            <linearGradient id="gradPurple" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#9d4edd" />
+                                <stop offset="100%" stop-color="#560bad" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M50,20 C60,15 75,18 80,30 C85,42 82,55 75,65 C68,75 55,80 50,85 C45,80 32,75 25,65 C18,55 15,42 20,30 C25,18 40,15 50,20 Z" 
+                              fill="url(#gradPurple)" />
+                        <circle cx="45" cy="40" r="3" fill="white" />
+                        <circle cx="55" cy="40" r="3" fill="white" />
+                    </svg>
+                    <div class="color-name">神秘紫</div

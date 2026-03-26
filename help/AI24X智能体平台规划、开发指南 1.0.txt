@@ -1,0 +1,594 @@
+🎯 核心理念
+"一人指挥，多AI执行，智能渐进，无限扩展"
+
+📋 第一部分：战略规划
+1.1 核心策略
+"智能渐进迁移"三阶段：
+
+紧急上线（第1-7天）：现有系统优化上线验证
+新架构开发（第8-60天）：现代化架构并行开发
+智能迁移（第61-90天）：平滑迁移到新架构
+1.2 四主机战略分工
+你的电脑（指挥中心）:
+  - 角色: 架构师 + CEO + 指挥官
+  - 任务: 战略决策、架构设计、代码审查
+  
+副脑01（42.192.1.93）:
+  - 角色: 开发AI主机
+  - 任务: 代码开发、数据库管理
+  
+副脑02（123.207.199.238）:
+  - 角色: 测试运维主机
+  - 任务: 测试、部署、监控
+  
+副脑04（新加坡主机）:
+  - 角色: 国际网关
+  - 任务: CDN、国际流量、备份
+1.3 时间线总览
+时间轴:
+  第1-7天: 紧急上线阶段
+  第8-30天: 新架构框架开发
+  第31-60天: 核心功能迁移准备
+  第61-90天: 智能迁移完成
+🚀 第二部分：紧急上线阶段（第1-7天）
+2.1 第1天剩余任务（3月17日 18:30-20:00）
+# 任务清单
+1. 创建支付占位页面（payment.html）
+2. 关联GitHub仓库并首次提交
+3. 基础安全配置
+4. 制定明日详细计划
+
+# 具体操作:
+cd "C:\AI24X\OpenClaw\web\ai24x-website\"
+cp signup.html payment.html
+# 修改payment.html为支付占位页面
+2.2 第2-3天（3月18-19日）
+# 核心任务
+1. 功能测试和性能优化
+2. 部署上线（国内服务器）
+3. 基础监控配置
+4. 新加坡主机基础配置
+
+# 检查点:
+- 网站可访问: http://localhost:3000/
+- 监控运行: http://localhost:9090
+- 新加坡节点工作: 测试国际访问
+2.3 第4-7天（3月20-23日）
+# 运营准备
+1. 收集早期用户反馈
+2. 优化用户体验
+3. 准备营销材料
+4. 建立用户支持渠道
+🏗️ 第三部分：新架构开发阶段（第8-60天）
+3.1 目录结构规范
+C:\AI24X\OpenClaw\web\ai24x-website\
+├── platform\                    # 新架构开发目录
+│   ├── apps\                   # Next.js应用
+│   ├── packages\               # 共享包
+│   └── migrations\             # 迁移脚本
+├── api\                        # 现有API
+├── data\                       # 现有数据库
+├── scripts\                    # 运维脚本
+└── 其他现有目录...
+3.2 开发里程碑
+第8-30天（3月24日-4月15日）:
+  - 设计Next.js + 微服务架构
+  - 实现用户系统（新架构）
+  - 建立数据同步层（旧→新）
+  - 自动化测试框架
+
+第31-45天（4月16日-4月30日）:
+  - 支付系统迁移（新架构）
+  - AI工具系统迁移准备
+  - 性能基准测试
+  - 安全审计
+
+第46-60天（5月1日-5月15日）:
+  - 并行运行测试
+  - A/B测试验证
+  - 用户验收测试
+  - 迁移脚本完善
+🔄 第四部分：智能迁移阶段（第61-90天）
+4.1 流量切换策略
+# 智能流量路由（示例）
+split_clients "${remote_addr}" $variant {
+    10% new_system;  # 第1周: 10%到新系统
+    30% new_system;  # 第2周: 30%到新系统
+    50% new_system;  # 第3周: 50%到新系统
+    70% new_system;  # 第4周: 70%到新系统
+    100% new_system; # 第5周: 100%到新系统
+}
+4.2 迁移检查点
+第61-75天（5月16日-5月30日）:
+  - 10%流量切换到新系统
+  - 监控性能和用户体验
+  - 根据反馈优化
+  - 逐步增加切换比例
+
+第76-90天（5月31日-6月14日）:
+  - 100%流量切换到新系统
+  - 数据最终同步
+  - 旧系统下线
+  - 迁移总结和优化
+🖥️ 第五部分：一人操作管理指南
+5.1 每日操作流程
+🌅 早上8:00 - 启动检查（10分钟）
+./scripts/check-all-hosts.sh      # 检查所有主机
+curl -I http://localhost:3000/    # 检查网站
+打开监控面板: http://localhost:9090  # 查看告警
+🕙 上午10:00 - 任务分发（15分钟）
+# 任务格式模板
+任务ID: TASK-日期-序号
+负责人: AI-01/AI-02/AI-03
+优先级: P0(紧急)/P1(重要)/P2(普通)
+验收标准: 明确可验证
+
+# 分发任务
+./scripts/assign-task.sh "AI-01" "开发支付页面"
+🍽️ 中午12:00 - 进度检查（5分钟）
+./scripts/show-progress.sh  # 查看任务进度
+# 处理阻塞问题，调整优先级
+🕒 下午15:00 - 代码审查（30分钟）
+git log --oneline --since="8 hours ago"  # 查看AI提交
+# 审查要点: 安全性、性能、规范、测试
+🌇 下午18:00 - 结果验收（20分钟）
+./scripts/accept-task.sh "TASK-0317-01"  # 验收任务
+npm test                                # 运行测试
+./scripts/deploy-test.sh                # 部署测试
+🌃 晚上20:00 - 每日总结（15分钟）
+./scripts/generate-daily-report.sh  # 生成日报
+cat tasks/tomorrow-tasks.md         # 查看明日计划
+./scripts/backup-daily.sh           # 备份数据
+5.2 四主机操作命令
+你的电脑（指挥中心）
+./start-work.sh          # 开始工作
+./check-status.sh        # 检查所有状态
+./deploy-production.sh   # 生产部署
+./emergency-rollback.sh  # 紧急回滚
+副脑01（开发主机）
+ssh dev@42.192.1.93
+cd /app/ai24x
+git pull origin develop  # 拉取最新代码
+npm install              # 安装依赖
+npm run dev              # 启动开发
+副脑02（测试主机）
+ssh test@123.207.199.238
+cd /app/ai24x-test
+./run-all-tests.sh       # 运行所有测试
+./deploy-staging.sh      # 部署预生产
+新加坡主机
+ssh sg@新加坡IP
+sudo systemctl status nginx    # 检查Nginx
+sudo tail -f /var/log/nginx/access.log  # 查看日志
+./update-cdn-cache.sh          # 更新CDN缓存
+5.3 常用脚本说明
+一键启动脚本
+# start-all.sh
+#!/bin/bash
+echo "启动AI24X平台所有服务..."
+./scripts/start-database.sh
+./scripts/start-backend.sh  
+./scripts/start-frontend.sh
+./scripts/start-monitor.sh
+echo "所有服务启动完成！"
+健康检查脚本
+# health-check.sh
+#!/bin/bash
+echo "=== 系统健康检查 ==="
+echo "1. 检查数据库..." && curl http://localhost:27017/
+echo "2. 检查后端API..." && curl http://localhost:3000/api/health
+echo "3. 检查前端..." && curl http://localhost:3000/
+echo "4. 检查监控..." && curl http://localhost:9090
+echo "=== 检查完成 ==="
+备份脚本
+# backup-all.sh
+#!/bin/bash
+BACKUP_DIR="/backup/$(date +%Y%m%d)"
+mkdir -p $BACKUP_DIR
+mongodump --out $BACKUP_DIR/db          # 备份数据库
+git bundle create $BACKUP_DIR/code.bundle --all  # 备份代码
+cp -r config/ $BACKUP_DIR/config        # 备份配置
+echo "备份完成: $BACKUP_DIR"
+📊 第六部分：监控与告警
+6.1 监控面板
+综合监控: http://localhost:3000/admin/monitor
+业务监控: http://localhost:3000/admin/business  
+技术监控: http://localhost:9090 (Prometheus)
+6.2 关键监控指标
+技术指标:
+  - 服务器状态: CPU/内存/磁盘
+  - 网站可用性: 响应时间<2秒
+  - 错误率: <0.1%
+  - 数据库性能: 查询时间<100ms
+
+业务指标:
+  - 用户增长: 日新增用户
+  - 活跃用户: DAU/MAU
+  - 付费转化: 转化率>5%
+  - 用户留存: >40%
+6.3 告警阈值
+# monitor-alerts.sh 监控脚本
+CPU=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}')
+if (( $(echo "$CPU > 80" | bc -l) )); then
+    echo "警告: CPU使用率过高: $CPU%"
+fi
+🚨 第七部分：紧急情况处理
+7.1 网站无法访问
+# 处理步骤:
+1. systemctl status ai24x-server  # 检查服务
+2. tail -100 /var/log/ai24x/error.log  # 查看日志
+3. systemctl restart ai24x-server  # 重启服务
+4. ./scripts/rollback.sh previous  # 回滚版本
+7.2 数据库问题
+# 处理步骤:
+1. mongosh --eval "db.adminCommand('ping')"  # 检查连接
+2. tail -100 /var/log/mongodb/mongod.log  # 查看日志
+3. mongosh --eval "db.repairDatabase()"  # 修复数据库
+4. ./scripts/restore-database.sh latest  # 从备份恢复
+7.3 安全攻击
+# 处理步骤:
+1. ufw enable && ufw deny all && ufw allow from your_ip  # 启用防火墙
+2. tail -100 /var/log/nginx/access.log | grep -v "200"  # 查看攻击日志
+3. ./scripts/block-ip.sh attacker_ip  # 封禁IP
+4. ./scripts/notify-users.sh "安全维护中"  # 通知用户
+7.4 数据丢失
+# 处理步骤:
+1. systemctl stop ai24x-server  # 停止写入
+2. ./scripts/restore-from-backup.sh  # 从备份恢复
+3. ./scripts/verify-data.sh  # 验证数据
+4. systemctl start ai24x-server  # 恢复服务
+📈 第八部分：每周管理流程
+8.1 周一：计划周
+# 制定本周目标
+echo "本周目标:" > weekly-plan.md
+echo "1. 完成支付系统迁移" >> weekly-plan.md
+echo "2. 优化性能到<2秒" >> weekly-plan.md
+echo "3. 增加用户100人" >> weekly-plan.md
+
+# 分配任务给AI
+./scripts/create-weekly-tasks.sh
+8.2 周三：检查日
+# 检查进度
+./scripts/check-progress.sh
+
+# 解决问题
+# 处理阻塞任务，调整资源分配
+
+# 调整计划
+# 根据实际情况调整后半周计划
+8.3 周五：总结日
+# 生成周报
+./scripts/generate-weekly-report.sh
+
+# 验收成果
+# 验收本周完成的任务，测试新功能
+
+# 备份周数据
+./scripts/weekly-backup.sh
+
+# 制定下周计划
+./scripts/plan-next-week.sh
+🎯 第九部分：你的核心工作
+9.1 每日工作分配
+战略决策（1小时）:
+  - 产品方向是否正确？
+  - 技术架构是否需要调整？
+  - 资源分配是否合理？
+  - 风险是否可控？
+
+架构设计（2小时）:
+  - 设计新功能架构
+  - 审查AI设计的方案
+  - 制定技术标准
+  - 优化系统架构
+
+代码审查（1小时）:
+  - 安全性: 有无安全漏洞？
+  - 性能: 是否影响系统性能？
+  - 可维护性: 代码是否清晰？
+  - 测试: 是否有足够测试？
+
+团队管理（1小时）:
+  - 分配任务给AI
+  - 检查任务进度
+  - 解决AI遇到的问题
+  - 优化工作流程
+
+业务运营（1小时）:
+  - 分析用户数据
+  - 收集用户反馈
+  - 制定运营策略
+  - 优化用户体验
+9.2 检查清单系统
+每日检查清单
+## 早上检查
+- [ ] 所有主机在线
+- [ ] 网站可访问
+- [ ] 监控正常
+- [ ] 无紧急告警
+
+## 中午检查  
+- [ ] 任务进度正常
+- [ ] 无阻塞问题
+- [ ] 代码审查完成
+- [ ] 测试通过
+
+## 晚上检查
+- [ ] 当日任务完成
+- [ ] 数据备份完成
+- [ ] 日报生成
+- [ ] 明日计划就绪
+每周检查清单
+## 周一
+- [ ] 制定本周计划
+- [ ] 分配周任务
+- [ ] 检查资源状态
+
+## 周三
+- [ ] 检查周进度
+- [ ] 解决阻塞问题
+- [ ] 调整计划
+
+## 周五
+- [ ] 验收周成果
+- [ ] 生成周报
+- [ ] 制定下周计划
+- [ ] 备份周数据
+🚀 第十部分：快速开始指南
+10.1 环境准备
+# 1. 创建主目录
+mkdir -p C:\AI24X\OpenClaw\web\ai24x-website
+
+# 2. 克隆代码（如果已有）
+git clone 你的仓库地址 C:\AI24X\OpenClaw\web\ai24x-website
+
+# 3. 安装依赖
+cd C:\AI24X\OpenClaw\web\ai24x-website
+npm install
+10.2 配置主机
+# 1. 配置你的电脑（主控）
+./scripts/setup-master.sh
+
+# 2. 配置开发主机
+ssh dev@42.192.1.93 "./scripts/setup-dev.sh"
+
+# 3. 配置测试主机  
+ssh test@123.207.199.238 "./scripts/setup-test.sh"
+
+# 4. 配置新加坡主机
+ssh sg@新加坡IP "./scripts/setup-sg.sh"
+10.3 启动系统
+# 1. 启动所有服务
+./start-all.sh
+
+# 2. 检查状态
+./health-check.sh
+
+# 3. 访问网站
+打开浏览器访问: http://localhost:3000/
+10.4 开始工作
+# 1. 查看今日任务
+cat tasks/today.md
+
+# 2. 分配任务给AI
+./scripts/assign-tasks.sh
+
+# 3. 开始监控
+打开监控面板: http://localhost:3000/admin/monitor
+💡 第十一部分：高效工作技巧
+11.1 批量操作
+# 同时操作多台主机
+./scripts/run-on-all-hosts.sh "apt update && apt upgrade -y"
+11.2 自动化决策
+# 让AI辅助决策
+./scripts/ai-decide.sh "是否应该优化数据库索引？"
+11.3 模板化任务
+# 使用任务模板
+cp tasks/templates/feature-task.md tasks/TASK-0317-01.md
+# 修改模板中的具体内容
+11.4 快速故障恢复
+# 一键恢复脚本
+./scripts/emergency-recovery.sh
+# 自动: 停止问题服务 → 恢复备份 → 重启服务 → 验证结果
+📋 第十二部分：成功指标
+12.1 技术成功指标
+第7天（3月23日）:
+  - 网站上线运行
+  - 基础监控就绪
+  - 新加坡节点工作
+  
+第30天（4月15日）:
+  - 新架构核心框架完成
+  - 数据同步层就绪
+  - 自动化测试覆盖率>70%
+  
+第60天（5月15日）:
+  - 核心功能迁移准备完成
+  - 并行运行验证通过
+  - 性能基准达标
+  
+第90天（6月14日）:
+  - 100%迁移完成
+  - 旧系统下线
+  - 新系统稳定运行
+12.2 商业成功指标
+第30天:
+  - 早期用户: 100+
+  - 用户反馈: 收集并分析
+  - 收入验证: 开始测试支付
+  
+第60天:
+  - 活跃用户: 500+
+  - 付费用户: 开始出现
+  - 用户留存: >40%
+  
+第90天:
+  - 用户数: 1000+
+  - 月收入: 开始产生
+  - 产品市场匹配: 初步验证
+🚨 第十三部分：风险控制
+13.1 技术风险
+迁移数据丢失:
+  应对: 双重备份 + 增量同步 + 数据验证
+  
+新系统性能问题:
+  应对: 渐进流量切换 + 实时监控 + 快速回滚
+  
+用户体验下降:
+  应对: A/B测试 + 用户反馈 + 快速优化
+13.2 执行风险
+时间延误:
+  应对: 每周评估进度 + 优先级调整
+  
+资源不足:
+  应对: AI自动化补充 + 聚焦核心功能
+  
+需求变化:
+  应对: 敏捷开发 + 小步快跑
+🎯 第十四部分：成功秘诀
+14.1 保持简单
+一个任务一个文件
+一个命令一个功能
+一个脚本一个用途
+14.2 自动化一切
+能自动化的绝不手动
+能脚本化的绝不记忆
+能模板化的绝不重复
+14.3 持续改进
+每天优化一个流程
+每周改进一个工具
+每月升级一个系统
+14.4 风险控制
+重要操作前先备份
+生产变更前先测试
+不确定时先小范围试
+📁 第十五部分：文件清单
+15.1 必须创建的文件
+C:\AI24X\OpenClaw\web\ai24x-website\
+├── scripts\                    # 脚本目录
+│   ├── start-all.sh           # 一键启动
+│   ├── health-check.sh        # 健康检查
+│   ├── backup-all.sh          # 全量备份
+│   ├── monitor-alerts.sh      # 监控告警
+│   └── emergency-recovery.sh  # 紧急恢复
+├── tasks\                     # 任务管理
+│   ├── today.md              # 今日任务
+│   ├── templates\            # 任务模板
+│   └── completed\            # 已完成任务
+├── docs\                     # 文档
+│   ├── 本指南.md            # 本文件
+│   ├── 架构设计.md          # 技术架构
+│   └── 操作手册.md          # 用户手册
+└── logs\                     # 日志目录
+    ├── daily\                # 日报
+    ├── weekly\               # 周报
+    └── errors\               # 错误日志
+15.2 监控配置文件
+监控配置:
+  - prometheus.yml          # Prometheus配置
+  - grafana-dashboards/     # Grafana仪表板
+  - alert-rules.yml         # 告警规则
+  - nginx.conf              # Nginx配置
+🚀 第十六部分：立即行动清单
+16.1 今晚任务（3月17日 18:30-20:00）
+# 1. 创建支付占位页面
+cd "C:\AI24X\OpenClaw\web\ai24x-website\"
+cp signup.html payment.html
+# 编辑payment.html，添加支付占位内容
+
+# 2. 关联GitHub仓库
+git init
+git remote add origin https://github.com/你的用户名/ai24x-platform.git
+git add .
+git commit -m "feat: 初始提交 - AI24X平台基础"
+git push -u origin develop
+
+# 3. 创建基础脚本目录
+mkdir -p scripts tasks docs logs
+16.2 明日计划（3月18日）
+# 早上任务（8:00-10:00）:
+1. 测试现有系统功能
+2. 配置基础监控
+3. 连接新加坡主机
+
+# 下午任务（14:00-18:00）:
+1. 部署上线测试
+2. 创建用户反馈渠道
+3. 制定详细周计划
+16.3 第一周目标
+技术目标:
+  - 网站稳定运行
+  - 基础监控就绪
+  - 四主机协同工作
+  
+业务目标:
+  - 获取第一批用户（10-20人）
+  - 收集用户反馈
+  - 验证核心功能价值
+  
+管理目标:
+  - 建立每日工作流程
+  - 优化AI任务分配
+  - 完善监控告警
+📞 第十七部分：支持与帮助
+17.1 遇到问题怎么办？
+# 1. 查看日志
+tail -100 /var/log/ai24x/error.log
+
+# 2. 检查监控
+打开: http://localhost:3000/admin/monitor
+
+# 3. 使用诊断脚本
+./scripts/diagnose-problem.sh
+
+# 4. 查阅本指南
+# 查看相关章节解决问题
+
+# 5. 联系支持（如果需要）
+# 记录问题详情，寻求帮助
+17.2 常见问题解答
+Q: 网站无法访问？
+A: 运行 ./scripts/emergency-recovery.sh
+
+Q: 数据库连接失败？
+A: 检查MongoDB服务状态，运行 mongosh --eval "db.adminCommand('ping')"
+
+Q: AI任务没有执行？
+A: 检查AI主机连接，运行 ./scripts/check-all-hosts.sh
+
+Q: 监控数据不显示？
+A: 检查Prometheus和Grafana服务状态
+17.3 版本更新
+# 更新本指南
+git pull origin main  # 拉取最新版本
+# 查看更新日志
+cat CHANGELOG.md
+
+# 更新系统
+./scripts/update-system.sh
+🎉 完成！AI24X智能体平台规划、开发指南 1.0版
+最后检查清单：
+理解了三阶段迁移策略
+掌握了四主机分工方案
+熟悉了每日操作流程
+知道了紧急情况处理方法
+准备好了立即开始行动
+你的下一步：
+立即开始：执行今晚任务清单
+每日坚持：按照操作流程工作
+每周总结：检查进度，调整计划
+持续优化：基于反馈改进系统
+成功的关键：
+坚持执行：按计划每天推进
+灵活调整：根据实际情况优化
+风险控制：重要操作前备份
+持续学习：从实践中总结经验
+现在，开始你的AI24X平台建设之旅吧！ 🚀
+
+有任何问题，随时查阅本指南或寻求帮助。祝你成功！ 🎯
+
+文档版本: 1.0版
+生成时间: 2026-03-17 18:35
+适用对象: AI24X平台一人管理团队
+核心使命: 建立可扩展、可维护、高效的AI驱动平台
+更新频率: 每月审查更新，根据实践经验优化

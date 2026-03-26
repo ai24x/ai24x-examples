@@ -1,0 +1,47 @@
+# 依赖目录
+node_modules/
+.vscode/
+.idea/
+
+# 日志文件
+*.log
+logs/
+
+# 备份文件
+backups/
+*.backup*
+*-backup*
+
+# 临时文件
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# 配置文件（包含敏感信息）
+.env
+*.env
+config.local.*
+deploy-token.txt
+
+# 测试文件
+test-*
+*-test.*
+
+# 特定排除
+website-manager.bat
+ai24x-website-permanent.bat
+start-website-no-conflict.bat
+pm2.config.js
+server-3000-fixed.js
+server-3000.js
+server-clean-fixed-new.js
+server-no-conflict.js
+tools-index.html bbbb
+
+# 同步相关临时文件
+SYNC_LOG.txt
+MIGRATION_*.md
+PAUSE_REPORT_*.md
+START_REPORT_*.md
+# RANKINGS_TEST_REPORT.md  # 注释掉，允许推送测试报告

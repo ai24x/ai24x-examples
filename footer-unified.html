@@ -1,0 +1,225 @@
+<!-- 
+ * footer-unified.html - 统一底部
+ * 版本: 1.0.0
+ * 创建时间: 2026-03-19
+ * 功能: 网站统一底部组件
+ -->
+
+<footer class="site-footer">
+    <div class="footer-container">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3 class="footer-title">AI24X</h3>
+                <p class="footer-description">
+                    领先的AI工具平台，为您提供最先进的AI解决方案和工具。
+                </p>
+                <div class="footer-social">
+                    <a href="#" class="social-link" aria-label="GitHub">
+                        <i class="fa fa-github"></i>
+                    </a>
+                    <a href="#" class="social-link" aria-label="Twitter">
+                        <i class="fa fa-twitter"></i>
+                    </a>
+                    <a href="#" class="social-link" aria-label="LinkedIn">
+                        <i class="fa fa-linkedin"></i>
+                    </a>
+                    <a href="#" class="social-link" aria-label="Discord">
+                        <i class="fa fa-discord"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="footer-section">
+                <h4 class="footer-subtitle">产品</h4>
+                <ul class="footer-links">
+                    <li><a href="/tools">AI工具库</a></li>
+                    <li><a href="/tutorials">教程中心</a></li>
+                    <li><a href="/custom">定制服务</a></li>
+                    <li><a href="/pricing">价格方案</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-section">
+                <h4 class="footer-subtitle">资源</h4>
+                <ul class="footer-links">
+                    <li><a href="/docs">文档中心</a></li>
+                    <li><a href="/blog">技术博客</a></li>
+                    <li><a href="/api">API接口</a></li>
+                    <li><a href="/support">技术支持</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-section">
+                <h4 class="footer-subtitle">关于我们</h4>
+                <ul class="footer-links">
+                    <li><a href="/about">公司介绍</a></li>
+                    <li><a href="/team">团队介绍</a></li>
+                    <li><a href="/careers">加入我们</a></li>
+                    <li><a href="/contact">联系我们</a></li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <div class="footer-copyright">
+                <p>&copy; 2026 AI24X. 保留所有权利。</p>
+            </div>
+            <div class="footer-legal">
+                <a href="/privacy">隐私政策</a>
+                <span class="separator">|</span>
+                <a href="/terms">服务条款</a>
+                <span class="separator">|</span>
+                <a href="/cookies">Cookie政策</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<style>
+    /* 底部样式 */
+    .site-footer {
+        background: #f8f9fa;
+        border-top: 1px solid #eaeaea;
+        padding: 40px 0 20px;
+        margin-top: 60px;
+    }
+    
+    .footer-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+    }
+    
+    .footer-content {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 40px;
+        margin-bottom: 40px;
+    }
+    
+    .footer-section {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .footer-title {
+        font-size: 1.5rem;
+        color: #333;
+        margin-bottom: 15px;
+        font-weight: 600;
+    }
+    
+    .footer-description {
+        color: #666;
+        line-height: 1.6;
+        margin-bottom: 20px;
+        font-size: 0.95rem;
+    }
+    
+    .footer-social {
+        display: flex;
+        gap: 15px;
+    }
+    
+    .social-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        background: #e9ecef;
+        border-radius: 50%;
+        color: #666;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+    
+    .social-link:hover {
+        background: #007bff;
+        color: white;
+        transform: translateY(-2px);
+    }
+    
+    .footer-subtitle {
+        font-size: 1.1rem;
+        color: #333;
+        margin-bottom: 15px;
+        font-weight: 600;
+    }
+    
+    .footer-links {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .footer-links li {
+        margin-bottom: 10px;
+    }
+    
+    .footer-links a {
+        color: #666;
+        text-decoration: none;
+        transition: color 0.3s ease;
+        font-size: 0.95rem;
+    }
+    
+    .footer-links a:hover {
+        color: #007bff;
+    }
+    
+    .footer-bottom {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 20px;
+        border-top: 1px solid #eaeaea;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+    
+    .footer-copyright p {
+        color: #666;
+        font-size: 0.9rem;
+        margin: 0;
+    }
+    
+    .footer-legal {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .footer-legal a {
+        color: #666;
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: color 0.3s ease;
+    }
+    
+    .footer-legal a:hover {
+        color: #007bff;
+    }
+    
+    .separator {
+        color: #ccc;
+    }
+    
+    /* 响应式设计 */
+    @media (max-width: 768px) {
+        .footer-content {
+            grid-template-columns: 1fr;
+            gap: 30px;
+        }
+        
+        .footer-bottom {
+            flex-direction: column;
+            text-align: center;
+            gap: 15px;
+        }
+        
+        .footer-legal {
+            justify-content: center;
+        }
+    }
+</style>

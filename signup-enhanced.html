@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>注册 - AI24X</title>
+    <!-- 统一CSS文件（与首页完全一致） -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="header-unified.css">
+    <link rel="stylesheet" href="header-fix.css">
+    <link rel="stylesheet" href="spacing-unified.css">
+    <link rel="stylesheet" href="mobile-fix.css">
+    <link rel="stylesheet" href="font-awesome-local.css">
+    <link rel="stylesheet" href="fonts-local.css">
+    <link rel="stylesheet" href="/css/auth.css">
+    <style>
+        /* 验证码相关样式 */
+        .verification-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        
+        .verification-input-group .form-input {
+            flex: 1;
+        }
+        
+        .verification-input-group .btn {
+            white-space: nowrap;
+            min-width: 100px;
+        }
+        
+        .verification-timer {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 5px;
+        }
+        
+        .verification-timer i {
+            font-size: 10px;
+        }
+        
+        /* 防机器人验证 */
+        .captcha-container {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .captcha-question {
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .captcha-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .captcha-option {
+            padding: 8px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .captcha-option:hover {
+            background: rgba(0, 212, 255, 0.2);
+        }
+        
+        .captcha-option.selected {
+            background: rgba(0, 212, 255, 0.3);
+            border: 1px solid rgba(0, 212, 255, 0.5);
+        }
+        
+        /* 注册限制提示 */
+        .registration-limit {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 5px;
+        }
+        
+        /* 加载状态 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .loading-content {
+            text-align: center;
+            color: white;
+        }
+        
+        .loading-spinner {
+            font-size: 40px;
+            margin-bottom: 20px;
+            color: #00d4ff;
+        }
+    </style>
+</head>
+<body>
+    <!-- 加载遮罩 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
+            </div>
+            <p id="loadingText">处理中...</p>
+        </div>
+    </div>
+
+    <!-- 统一头部导航 -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <a href="/">
+                        <img src="images/logo.png" alt="AI24X Logo">
+                        <span class="logo-text">AI24X</span>
+                    </a>
+                </div>
+                <nav class="main-nav">
+                    <ul>
+                        <li><a href="/"><i class="fas fa-home"></i> 首页</a></li>
+                        <li><a href="/tools"><i class="fas fa-tools"></i> AI工具库</a></li>
+                        <li><a href="/tutorials"><i class="fas fa-graduation-cap"></i> 热门教程</a></li>
+                        <li><a href="/custom"><i class="fas fa-cogs"></i> 定制开发</a></li>
+                        <li><a href="/login" class="btn-login"><i class="fas fa-sign-in-alt"></i> 登录</a></li>
+                        <li><a href="/signup" class="btn-signup active"><i class="fas fa-user-plus"></i> 注册</a></li>
+                    </ul>
+                </nav>
+                <button class="mobile-menu-btn">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主内容 -->
+    <main class="auth-main">
+        <div class="auth-container">
+            <div class="auth-card">
+                <div class="auth-header">
+                    <h1><i class="fas fa-user-plus"></i> 创建账户</h1>
+                    <p>加入AI24X，发现AI未来</p>
+                </div>
+                
+                <div class="auth-body">
+                    <form id="signupForm">
+                        <!-- 用户名 -->
+                        <div class="form-group">
+                            <label for="username">用户名</label>
+                            <input type="text" id="username" name="username" class="form-input" placeholder="输入用户名（3-20位字母数字）" required>
+                            <div class="error-message" id="usernameError"></div>
+                            <div class="registration-limit">用户名一旦创建不可更改</div>
+                        </div>
+                        
+                        <!-- 邮箱地址 -->
+                        <div class="form-group">
+                            <label for="email">邮箱地址</label>
+                            <input type="email" id="email" name="email" class="form-input" placeholder="输入有效的邮箱地址" required>
+                            <div class="error-message" id="emailError"></div>
+                            <div class="registration-limit">每个邮箱只能注册一个账户</div>
+                        </div>
+                        
+                        <!-- 邮箱验证码 -->
+                        <div class="form-group" id="verificationCodeGroup">
+                            <label for="verificationCode">邮箱验证码</label>
+                            <div class="verification-input-group">
+                                <input type="text" id="verificationCode" name="verificationCode" class="form-input" placeholder="输入6位验证码" maxlength="6" required>
+                                <button type="button" id="sendCodeBtn" class="btn btn-outline">发送验证码</button>
+                            </div>
+                            <div class="error-message" id="verificationCodeError"></div>
+                            <div class="verification-timer" id="verificationTimer">
+                                <i class="fas fa-clock"></i>
+                                <span id="timerText">点击发送验证码</span>
+                            </div>
+                        </div>
+                        
+                        <!-- 密码 -->
+                        <div class="form-group">
+                            <label for="password">密码</label>
+                            <div class="password-input-group">
+                                <input type="password" id="password" name="password" class="form-input" placeholder="输入密码（至少8位）" required>
+                                <button type="button" id="togglePassword" class="password-toggle">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="error-message" id="passwordError"></div>
+                            
+                            <!-- 密码强度指示器 -->
+                            <div class="password-strength-container">
+                                <div class="password-strength-bar">
+                                    <div class="password-strength-fill" id="strengthBar"></div>
+                                </div>
+                                <div class="password-strength-text" id="strengthText">密码强度：弱</div>
+                            </div>
+                            
+                            <!-- 密码要求 -->
+                            <div class="password-hints">
+                                <div class="hint-item" id="hintLength"><i class="fas fa-circle"></i> 至少8个字符</div>
+                                <div class="hint-item" id="hintLowercase"><i class="fas fa-circle"></i> 包含小写字母</div>
+                                <div class="hint-item" id="hintUppercase"><i class="fas fa-circle"></i> 包含大写字母</div>
+                                <div class="hint-item" id="hintNumber"><i class="fas fa-circle"></i> 包含数字</div>
+                                <div class="hint-item" id="hintSpecial"><i class="fas fa-circle"></i> 包含特殊字符</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 确认密码 -->
+                        <div class="form-group">
+                            <label for="confirmPassword">确认密码</label>
+                            <div class="password-input-group">
+                                <input type="password" id="confirmPassword" name="confirmPassword" class="form-input" placeholder="再次输入密码" required>
+                                <button type="button" id="toggleConfirmPassword" class="password-toggle">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="error-message" id="confirmPasswordError"></div>
+                        </div>
+                        
+                        <!-- 防机器人验证 -->
+                        <div class="captcha-container" id="captchaContainer">
+                            <div class="captcha-question" id="captchaQuestion">请选择所有包含 <span id="captchaTarget">猫</span> 的图片：</div>
+                            <div class="captcha-options" id="captchaOptions">
+                                <!-- 动态生成验证选项 -->
+                            </div>
+                            <div class="error-message" id="captchaError"></div>
+                        </div>
+                        
+                        <!-- 服务条款 -->
+                        <div class="form-group terms-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="terms" name="terms" required>
+                                <span class="checkbox-custom"></span>
+                                <span class="checkbox-text">我已阅读并同意 <a href="/terms" target="_blank">服务条款</a> 和 <a href="/privacy" target="_blank">隐私政策</a></span>
+                            </label>
+                            <div class="error-message" id="termsError"></div>
+                        </div>
+                        
+                        <!-- 提交按钮 -->
+                        <button type="submit" class="auth-button btn btn-primary btn-block" id="submitBtn">
+                            <i class="fas fa-user-plus"></i> 创建账户
+                        </button>
+                        
+                        <!-- 成功消息 -->
+                        <div class="success-message" id="successMessage" style="display: none;"></div>
+                    </form>
+                    
+                    <!-- 已有账户 -->
+                    <div class="auth-footer">
+                        <p>已有账户？ <a href="/login">立即登录</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 统一底部 -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-logo">
+                        <img src="images/logo.png" alt="AI24X Logo">
+                        <span class="logo-text">AI24X</span>
+                    </div>
+                    <p class="footer-description">
+                        发现AI未来，就在AI24X<br>
+                        帮助优秀AI项目实现24小时不间断的价值创造和收入增长
+                    </p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>快速链接</h3>
+                    <ul class="footer-links">
+                        <li><a href="/">首页</a></li>
+                        <li><a href="/tools">AI工具库</a></li>
+                        <li><a href="/tutorials">热门教程</a></li>
+                        <li><a href="/custom">定制开发</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>支持</h3>
+                    <ul class="footer-links">
+                        <li><a href="/help">帮助中心</a></li>
+                        <li><a href="/contact">联系我们</a></li>
+                        <li><a href="/faq">常见问题</a></li>
+                        <li><a href="/feedback">意见反馈</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>关注我们</h3>
+                    <div class="social-links">
+                        <a href="#" class="social-link"><i class="fab fa-weixin"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-weibo"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-github"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 AI24X. 保留所有权利</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="js/signup-enhanced-security.js"></script>
+    <script>
+        // 移动端菜单
+        document.querySelector('.mobile-menu-btn').addEventListener('click', function() {
+            const mainNav = document.querySelector('.main-nav');
+            mainNav.classList.toggle('active');
+            this.innerHTML = mainNav.classList.contains('active') 
+                ? '<i class="fas fa-times"></i>' 
+                : '<i class="fas fa-bars"></i>';
+        });
+        
+        // 密码显示/隐藏切换
+        document.getElementById('togglePassword').addEventListener('click', function() {
+            const passwordInput = document.getElementById('password');
+            const icon = this.querySelector('i');
+            passwordInput.type = passwordInput.type === 'password' ? 'text' : 'password';
+            icon.className = passwordInput.type === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
+        });
+        
+        document.getElementById('toggleConfirmPassword').addEventListener('click', function() {
+            const confirmPasswordInput = document.getElementById('confirmPassword');
+            const icon = this.querySelector('i');
+            confirmPasswordInput.type = confirmPasswordInput.type === 'password' ? 'text' : 'password';
+            icon.className = confirmPasswordInput.type === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
+        });
+    </script>
+</body>
+</html>

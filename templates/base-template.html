@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{page_title}} - AI24X</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="header-unified.css">
+    <link rel="stylesheet" href="spacing-unified.css">
+    <link rel="stylesheet" href="mobile-fix.css">
+    {{extra_css}}
+</head>
+<body class="{{page_class}}">
+    <!-- 统一头部 -->
+    {{header}}
+
+    <!-- 页面内容 -->
+    <main class="{{main_class}}">
+        {{content}}
+    </main>
+
+    <!-- 统一底部 -->
+    {{footer}}
+
+    <!-- 页面特定脚本 -->
+    {{page_scripts}}
+    
+    <!-- 通用脚本 -->
+    <script>
+        // 移动端菜单切换
+        document.querySelector('.mobile-menu-btn')?.addEventListener('click', function() {
+            document.querySelector('.main-nav')?.classList.toggle('active');
+        });
+        
+        // 搜索功能
+        document.querySelector('.search-btn')?.addEventListener('click', function() {
+            const searchInput = document.querySelector('#globalSearch');
+            if (searchInput?.value.trim()) {
+                // 搜索逻辑
+                console.log('搜索:', searchInput.value);
+            }
+        });
+    </script>
+</body>
+</html>

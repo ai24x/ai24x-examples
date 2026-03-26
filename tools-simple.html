@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI工具库 - AI24X</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* 极简工具页面样式 - 与主站统一 */
+        .tools-container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        
+        .tools-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .tools-header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #00d4ff, #0099ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+        }
+        
+        .tools-header p {
+            color: #a0aec0;
+            font-size: 1.1rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .search-box {
+            max-width: 600px;
+            margin: 30px auto;
+            position: relative;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            border-radius: 10px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .search-box input:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+            background: rgba(255, 255, 255, 0.08);
+        }
+        
+        .search-box button {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #00d4ff;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+        
+        .tools-stats {
+            text-align: center;
+            margin: 20px 0;
+            color: #a0aec0;
+            font-size: 0.9rem;
+        }
+        
+        .tools-stats span {
+            color: #00d4ff;
+            font-weight: bold;
+        }
+        
+        /* 工具网格 */
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+            margin: 40px 0;
+        }
+        
+        .tool-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 212, 255, 0.1);
+            border-radius: 12px;
+            padding: 25px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .tool-card:hover {
+            transform: translateY(-5px);
+            border-color: #00d4ff;
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .tool-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #00d4ff, #0099ff);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .tool-card:hover::before {
+            opacity: 1;
+        }
+        
+        .tool-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #00d4ff, #0099ff);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            color: white;
+            font-size: 1.5rem;
+        }
+        
+        .tool-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 10px;
+        }
+        
+        .tool-description {
+            color: #a0aec0;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 15px;
+            min-height: 60px;
+        }
+        
+        .tool-category {
+            display: inline-block;
+            background: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 15px;
+        }
+        
+        .tool-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .tool-tag {
+            background: rgba(255, 255, 255, 0.05);
+            color: #a0aec0;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+        }
+        
+        .tool-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 15px;
+        }
+        
+        .tool-rating {
+            color: #fbbf24;
+            font-size: 0.9rem;
+        }
+        
+        .tool-link {
+            color: #00d4ff;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        
+        .tool-link:hover {
+            color: #0099ff;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .tools-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                gap: 20px;
+            }
+            
+            .tools-header h1 {
+                font-size: 2rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .tools-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .tools-header h1 {
+                font-size: 1.8rem;
+            }
+        }
+        
+        /* 加载状态 */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #a0aec0;
+            grid-column: 1 / -1;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(0, 212, 255, 0.1);
+            border-radius: 50%;
+            border-top-color: #00d4ff;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 15px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- 使用主站相同的头部 -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <a href="/">
+                        <i class="fas fa-robot"></i>
+                        <span>AI24X</span>
+                    </a>
+                </div>
+                
+                <nav class="main-nav">
+                    <ul>
+                        <li><a href="/"><i class="fas fa-home"></i> 首页</a></li>
+                        <li><a href="/tools" class="active"><i class="fas fa-tools"></i> AI工具库</a></li>
+                        <li><a href="/categories"><i class="fas fa-th-large"></i> 分类</a></li>
+                        <li><a href="/collections"><i class="fas fa-bookmark"></i> 收藏</a></li>
+                        <li><a href="/about"><i class="fas fa-info-circle"></i> 关于</a></li>
+                    </ul>
+                </nav>
+                
+                <div class="header-actions">
+                    <div class="search-box">
+                        <input type="text" placeholder="搜索工具...">
+                        <button class="search-btn">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="auth-buttons">
+                        <a href="/login" class="btn btn-outline">登录</a>
+                        <a href="/register" class="btn btn-primary">注册</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="tools-container">
+        <div class="tools-header">
+            <h1>AI工具库</h1>
+            <p>探索精选的AI工具，涵盖文本生成、图像创作、编程辅助等多个领域</p>
+            
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="搜索工具名称、功能或描述...">
+                <button id="searchBtn">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+            
+            <div class="tools-stats">
+                共找到 <span id="totalTools">0</span> 个工具，显示 <span id="toolsCount">0</span> 个
+            </div>
+        </div>
+        
+        <div class="tools-grid" id="toolsGrid">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <p>正在加载AI工具数据...</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // 简化的工具数据生成函数
+        function generateAIToolsData() {
+            return [
+                {
+                    id: 1,
+                    name: "ChatGPT",
+                    description: "OpenAI开发的对话式AI助手，支持文本生成、代码编写、问题解答等",
+                    category: "文本生成",
+                    tags: ["对话", "写作", "编程"],
+                    icon: "fas fa-comments",
+                    rating: 4.9,
+                    link: "https://chat.openai.com"
+                },
+                {
+                    id: 2,
+                    name: "Midjourney",
+                    description: "AI图像生成工具，通过文本描述创建高质量的艺术作品和图像",
+                    category: "图像创作",
+                    tags: ["艺术", "设计", "创意"],
+                    icon: "fas fa-palette",
+                    rating: 4.8,
+                    link: "https://www.midjourney.com"
+                },
+                {
+                    id: 3,
+                    name: "GitHub Copilot",
+                    description: "AI编程助手，在编写代码时提供智能建议和自动补全",
+                    category: "编程辅助",
+                    tags: ["开发", "代码", "效率"],
+                    icon: "fas fa-code",
+                    rating: 4.7,
+                    link: "https://github.com/features/copilot"
+                },
+                {
+                    id: 4,
+                    name: "Notion AI",
+                    description: "智能笔记和工作空间，集成AI写作和内容整理功能",
+                    category: "生产力",
+                    tags: ["笔记", "写作", "组织"],
+                    icon: "fas fa-sticky-note",
+                    rating: 4.6,
+                    link: "https://www.notion.so/product/ai"
+                },
+                {
+                    id: 5,
+                    name: "Runway ML",
+                    description: "创意AI工具集，支持视频编辑、图像生成和3D建模",
+                    category: "多媒体",
+                    tags: ["视频", "创意", "设计"],
+                    icon: "fas fa-film",
+                    rating: 4.5,
+                    link: "https://runwayml.com"
+                },
+                {
+                    id: 6,
+                    name: "Grammarly",
+                    description: "AI写作助手，检查语法错误、优化表达风格",
+                    category: "写作辅助",
+                    tags: ["语法", "写作", "校对"],
+                    icon: "fas fa-spell-check",
+                    rating: 4.7,
+                    link: "https://www.grammarly.com"
+                },
+                {
+                    id: 7,
+                    name: "DALL-E",
+                    description: "OpenAI的图像生成模型，根据文本描述创建逼真图像",
+                    category: "图像创作",
+                    tags: ["AI绘画", "创意", "设计"],
+                    icon: "fas fa-image",
+                    rating: 4.8,
+                    link: "https://openai.com/dall-e-2"
+                },
+                {
+                    id: 8,
+                    name: "Hugging Face",
+                    description: "AI模型和数据集平台，提供各种预训练模型",
+                    category: "开发工具",
+                    tags: ["机器学习", "模型", "开源"],
+                    icon: "fas fa-brain",
+                    rating: 4.6,
+                    link: "https://huggingface.co"
+                }
+            ];
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 AI工具库页面初始化...');
+            
+            // 生成工具数据
+            const tools = generateAIToolsData();
+            
+            // 获取DOM元素
+            const toolsGrid = document.getElementById('toolsGrid');
+            const totalTools = document.getElementById('totalTools');
+            const toolsCount = document.getElementById('toolsCount');
+            const searchInput = document.getElementById('searchInput');
+            const searchBtn = document.getElementById('searchBtn');
+            
+            // 清空加载状态
+            toolsGrid.innerHTML = '';
+            
+            // 渲染工具卡片
+            tools.forEach(tool => {
+                const card = document.createElement('div');
+                card.className = 'tool-card';
+                card.innerHTML = `
+                    <div class="tool-icon">
+                        <i class="${tool.icon}"></i>
+                    </div>
+                    <h3 class="tool-title">${tool.name}</h3>
+                    <div class="tool-description">${tool.description}</div>
+                    <div class="tool-category">${tool.category}</div>
+                    <div class="tool-tags">
+                        ${tool.tags.map(tag => `<span class="tool-tag">${tag}</span>`).join('')}
+                    </div>
+                    <div class="tool-footer">
+                        <div class="tool-rating">
+                            <i class="fas fa-star"></i> ${tool.rating}
+                        </div>
+                        <a href="${tool.link}" target="_blank" class="tool-link">
+                            访问网站 <i class="fas fa-external-link-alt"></i>
+                        </a>
+                    </div>
+                `;
+                toolsGrid.appendChild(card);
+            });
+            
+            // 更新统计信息
+            totalTools.textContent = tools.length;
+            toolsCount.textContent = tools.length;
+            
+            console.log(`✅ 成功加载 ${tools.length} 个AI工具`);
+            
+            // 搜索功能
+            function performSearch() {
+                const searchTerm = searchInput.value.toLowerCase().trim();
+                const cards = document.querySelectorAll('.tool-card');
+                let visibleCount = 0;
+                
+                cards.forEach(card => {
+                    const title = card.querySelector('.tool-title').textContent.toLowerCase();
+                    const description = card.querySelector('.tool-description').textContent.toLowerCase();
+                    const category = card.querySelector('.tool-category').textContent.toLowerCase();
+                    const tags = Array.from(card.querySelectorAll('.tool-tag')).map(tag => tag.textContent.toLowerCase());
+                    
+                    const matches = title.includes(searchTerm) || 
+                                   description.includes(searchTerm) || 
+                                   category.includes(searchTerm) ||
+                                   tags.some(tag => tag.includes(searchTerm));
+                    
+                    card.style.display = matches ? 'block' : 'none';
+                    if (matches) visibleCount++;
+                });
+                
+                toolsCount.textContent = visibleCount;
+            }
+            
+            // 绑定搜索事件
+            searchBtn.addEventListener('click', performSearch);
+            searchInput.addEventListener('keyup', function(event) {
+                if (event.key === 'Enter') {
+                    performSearch();
+                }
+            });
+            
+            // 输入时实时搜索（防抖）
+            let searchTimeout;
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(performSearch, 300);
+            });
+        });
+
+        // 暴露函数到全局作用域
+        window.generateAIToolsData = generateAIToolsData;
+    </script>
+    
+    <!-- 加载Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</body>
+</html>

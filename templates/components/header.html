@@ -1,0 +1,39 @@
+<header class="header">
+    <div class="container">
+        <div class="header-content">
+            <div class="logo">
+                <a href="/">
+                    <i class="fas fa-robot"></i>
+                    <span>AI24X</span>
+                </a>
+            </div>
+            
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="/" class="nav-link {{#if active_home}}active{{/if}}"><i class="fas fa-home"></i> <span class="nav-text">首页</span></a></li>
+                    <li><a href="/tools" class="nav-link {{#if active_tools}}active{{/if}}"><i class="fas fa-tools"></i> <span class="nav-text">AI工具库</span></a></li>
+                    <li><a href="/tutorials" class="nav-link {{#if active_tutorials}}active{{/if}}"><i class="fas fa-chart-line"></i> <span class="nav-text">热门教程</span></a></li>
+                    <li><a href="/custom" class="nav-link {{#if active_custom}}active{{/if}}"><i class="fas fa-cogs"></i> <span class="nav-text">定制开发</span></a></li>
+                </ul>
+            </nav>
+            
+            <div class="header-actions">
+                <div class="search-box">
+                    <input type="text" placeholder="搜索..." id="globalSearch">
+                    <button class="search-btn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+                
+                <div class="auth-buttons">
+                    <a href="/login" class="btn btn-outline"><i class="fas fa-sign-in-alt"></i> 登录</a>
+                    <a href="/signup" class="btn btn-primary"><i class="fas fa-user-plus"></i> 注册</a>
+                </div>
+                
+                <button class="mobile-menu-btn">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</header>

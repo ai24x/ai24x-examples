@@ -1,0 +1,150 @@
+/* 
+ * spacing-unified.css - 统一间距样式
+ * 版本: 1.0.0
+ * 创建时间: 2026-03-19
+ * 功能: 提供统一的间距、边距、内边距样式
+ */
+
+/* 基础间距变量 */
+:root {
+    /* 间距单位 */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 32px;
+    --space-xxl: 48px;
+    
+    /* 边距 */
+    --margin-xs: var(--space-xs);
+    --margin-sm: var(--space-sm);
+    --margin-md: var(--space-md);
+    --margin-lg: var(--space-lg);
+    --margin-xl: var(--space-xl);
+    --margin-xxl: var(--space-xxl);
+    
+    /* 内边距 */
+    --padding-xs: var(--space-xs);
+    --padding-sm: var(--space-sm);
+    --padding-md: var(--space-md);
+    --padding-lg: var(--space-lg);
+    --padding-xl: var(--space-xl);
+    --padding-xxl: var(--space-xxl);
+    
+    /* 容器间距 */
+    --container-padding: var(--space-lg);
+    --section-spacing: var(--space-xxl);
+    --card-spacing: var(--space-md);
+}
+
+/* 通用间距类 */
+.m-0 { margin: 0 !important; }
+.mt-0 { margin-top: 0 !important; }
+.mr-0 { margin-right: 0 !important; }
+.mb-0 { margin-bottom: 0 !important; }
+.ml-0 { margin-left: 0 !important; }
+
+.m-xs { margin: var(--space-xs) !important; }
+.mt-xs { margin-top: var(--space-xs) !important; }
+.mr-xs { margin-right: var(--space-xs) !important; }
+.mb-xs { margin-bottom: var(--space-xs) !important; }
+.ml-xs { margin-left: var(--space-xs) !important; }
+
+.m-sm { margin: var(--space-sm) !important; }
+.mt-sm { margin-top: var(--space-sm) !important; }
+.mr-sm { margin-right: var(--space-sm) !important; }
+.mb-sm { margin-bottom: var(--space-sm) !important; }
+.ml-sm { margin-left: var(--space-sm) !important; }
+
+.m-md { margin: var(--space-md) !important; }
+.mt-md { margin-top: var(--space-md) !important; }
+.mr-md { margin-right: var(--space-md) !important; }
+.mb-md { margin-bottom: var(--space-md) !important; }
+.ml-md { margin-left: var(--space-md) !important; }
+
+.m-lg { margin: var(--space-lg) !important; }
+.mt-lg { margin-top: var(--space-lg) !important; }
+.mr-lg { margin-right: var(--space-lg) !important; }
+.mb-lg { margin-bottom: var(--space-lg) !important; }
+.ml-lg { margin-left: var(--space-lg) !important; }
+
+.m-xl { margin: var(--space-xl) !important; }
+.mt-xl { margin-top: var(--space-xl) !important; }
+.mr-xl { margin-right: var(--space-xl) !important; }
+.mb-xl { margin-bottom: var(--space-xl) !important; }
+.ml-xl { margin-left: var(--space-xl) !important; }
+
+/* 内边距类 */
+.p-0 { padding: 0 !important; }
+.pt-0 { padding-top: 0 !important; }
+.pr-0 { padding-right: 0 !important; }
+.pb-0 { padding-bottom: 0 !important; }
+.pl-0 { padding-left: 0 !important; }
+
+.p-xs { padding: var(--space-xs) !important; }
+.pt-xs { padding-top: var(--space-xs) !important; }
+.pr-xs { padding-right: var(--space-xs) !important; }
+.pb-xs { padding-bottom: var(--space-xs) !important; }
+.pl-xs { padding-left: var(--space-xs) !important; }
+
+.p-sm { padding: var(--space-sm) !important; }
+.pt-sm { padding-top: var(--space-sm) !important; }
+.pr-sm { padding-right: var(--space-sm) !important; }
+.pb-sm { padding-bottom: var(--space-sm) !important; }
+.pl-sm { padding-left: var(--space-sm) !important; }
+
+.p-md { padding: var(--space-md) !important; }
+.pt-md { padding-top: var(--space-md) !important; }
+.pr-md { padding-right: var(--space-md) !important; }
+.pb-md { padding-bottom: var(--space-md) !important; }
+.pl-md { padding-left: var(--space-md) !important; }
+
+.p-lg { padding: var(--space-lg) !important; }
+.pt-lg { padding-top: var(--space-lg) !important; }
+.pr-lg { padding-right: var(--space-lg) !important; }
+.pb-lg { padding-bottom: var(--space-lg) !important; }
+.pl-lg { padding-left: var(--space-lg) !important; }
+
+.p-xl { padding: var(--space-xl) !important; }
+.pt-xl { padding-top: var(--space-xl) !important; }
+.pr-xl { padding-right: var(--space-xl) !important; }
+.pb-xl { padding-bottom: var(--space-xl) !important; }
+.pl-xl { padding-left: var(--space-xl) !important; }
+
+/* 容器间距 */
+.container-spacing {
+    padding: var(--container-padding);
+}
+
+.section-spacing {
+    margin-bottom: var(--section-spacing);
+}
+
+.card-spacing {
+    padding: var(--card-spacing);
+}
+
+/* 响应式间距 */
+@media (max-width: 768px) {
+    :root {
+        --container-padding: var(--space-md);
+        --section-spacing: var(--space-xl);
+        --card-spacing: var(--space-sm);
+    }
+    
+    .mobile-m-sm { margin: var(--space-sm) !important; }
+    .mobile-p-sm { padding: var(--space-sm) !important; }
+}
+
+/* 布局间距 */
+.flex-gap-xs { gap: var(--space-xs); }
+.flex-gap-sm { gap: var(--space-sm); }
+.flex-gap-md { gap: var(--space-md); }
+.flex-gap-lg { gap: var(--space-lg); }
+.flex-gap-xl { gap: var(--space-xl); }
+
+.grid-gap-xs { gap: var(--space-xs); }
+.grid-gap-sm { gap: var(--space-sm); }
+.grid-gap-md { gap: var(--space-md); }
+.grid-gap-lg { gap: var(--space-lg); }
+.grid-gap-xl { gap: var(--space-xl); }
