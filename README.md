@@ -10,7 +10,7 @@ AI24X Token 聚合平台（Token Freedom）是一个全球AI人共创的Token自
 - 部署：Docker + Nginx
 - 支付：PayPal
 
-## 目录结构
+## 目录结构（按最新规范）
 ```
 ai24x01/
 ├── api/          # 后端接口 (副脑01负责)
