@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI24X Token 聚合平台 - Token 自由</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="logo">
+                <i class="fas fa-robot"></i>
+                <span>AI24X Token</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html" class="active"><i class="fas fa-home"></i> 首页</a></li>
+                <li><a href="login.html"><i class="fas fa-sign-in-alt"></i> 登录</a></li>
+                <li><a href="register.html"><i class="fas fa-user-plus"></i> 注册</a></li>
+                <li><a href="#features"><i class="fas fa-star"></i> 功能</a></li>
+                <li><a href="#pricing"><i class="fas fa-tags"></i> 定价</a></li>
+                <li><a href="#contact"><i class="fas fa-envelope"></i> 联系</a></li>
+            </ul>
+            <div class="nav-actions">
+                <a href="login.html" class="btn btn-outline">登录</a>
+                <a href="register.html" class="btn btn-primary">免费注册</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 英雄区域 -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="hero-title">AI24X Token 聚合平台</h1>
+                <h2 class="hero-subtitle">Token 自由 · 全球 AI 人共创</h2>
+                <p class="hero-description">
+                    全球首个 AI 人共创的 Token 自由平台。一键接入主流 AI 模型，智能路由，按需计费，二级推荐返利，让 Token 使用更自由、更高效。
+                </p>
+                <div class="hero-actions">
+                    <a href="register.html" class="btn btn-primary btn-large">
+                        <i class="fas fa-rocket"></i> 立即开始
+                    </a>
+                    <a href="#features" class="btn btn-outline btn-large">
+                        <i class="fas fa-play-circle"></i> 观看演示
+                    </a>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <i class="fas fa-bolt"></i>
+                        <span class="stat-number">10+</span>
+                        <span class="stat-label">主流模型</span>
+                    </div>
+                    <div class="stat">
+                        <i class="fas fa-users"></i>
+                        <span class="stat-number">24/7</span>
+                        <span class="stat-label">全天服务</span>
+                    </div>
+                    <div class="stat">
+                        <i class="fas fa-chart-line"></i>
+                        <span class="stat-number">85%</span>
+                        <span class="stat-label">成本节省</span>
+                    </div>
+                    <div class="stat">
+                        <i class="fas fa-shield-alt"></i>
+                        <span class="stat-number">100%</span>
+                        <span class="stat-label">数据安全</span>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-image">
+                <div class="platform-preview">
+                    <div class="preview-header">
+                        <div class="preview-dots">
+                            <span class="dot red"></span>
+                            <span class="dot yellow"></span>
+                            <span class="dot green"></span>
+                        </div>
+                        <div class="preview-title">AI24X Token 控制台</div>
+                    </div>
+                    <div class="preview-content">
+                        <div class="preview-item">
+                            <i class="fas fa-key"></i>
+                            <span>API Key 管理</span>
+                            <span class="preview-status active">已激活</span>
+                        </div>
+                        <div class="preview-item">
+                            <i class="fas fa-bolt"></i>
+                            <span>实时 Token 消耗</span>
+                            <span class="preview-value">1,234</span>
+                        </div>
+                        <div class="preview-item">
+                            <i class="fas fa-wallet"></i>
+                            <span>账户余额</span>
+                            <span class="preview-value">$50.00</span>
+                        </div>
+                        <div class="preview-item">
+                            <i class="fas fa-share-alt"></i>
+                            <span>推荐返利</span>
+                            <span class="preview-value">$12.50</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 核心功能 -->
+    <section id="features" class="features">
+        <div class="container">
+            <h2 class="section-title">核心功能</h2>
+            <p class="section-subtitle">一站式 AI Token 管理解决方案</p>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-plug"></i>
+                    </div>
+                    <h3 class="feature-title">统一接口</h3>
+                    <p class="feature-description">
+                        唯一接口 <code>/v1/chat/run</code>，自动区分免费/VIP通道，兼容所有主流 AI 模型。
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-route"></i>
+                    </div>
+                    <h3 class="feature-title">智能路由</h3>
+                    <p class="feature-description">
+                        根据模型可用性、响应速度、成本自动选择最优路由，提升调用成功率。
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-calculator"></i>
+                    </div>
+                    <h3 class="feature-title">精准计费</h3>
+                    <p class="feature-description">
+                        按实际 Token 消耗计费，实时余额监控，余额不足自动拦截，消费透明。
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-user-friends"></i>
+                    </div>
+                    <h3 class="feature-title">C2C 共享</h3>
+                    <p class="feature-description">
+                        个人 API Key 安全上传共享，按实际消耗结算，Key 所有者获得 70% 分成。
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-gift"></i>
+                    </div>
+                    <h3 class="feature-title">二级返利</h3>
+                    <p class="feature-description">
+                        二级推荐返利体系（10% + 2%），推广即可获得持续收益，可消费可提现。
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3 class="feature-title">三层风控</h3>
+                    <p class="feature-description">
+                        新用户额度限制、IP频率熔断、单日最大消耗设置，保障平台安全稳定。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 支持的模型 -->
+    <section class="models">
+        <div class="container">
+            <h2 class="section-title">支持的 AI 模型</h2>
+            <p class="section-subtitle">一站式接入主流 AI 服务</p>
+            
+            <div class="models-grid">
+                <div class="model-card">
+                    <div class="model-logo deepseek">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h3 class="model-name">DeepSeek</h3>
+                    <p class="model-desc">高性能中文优化模型</p>
+                </div>
+                
+                <div class="model-card">
+                    <div class="model-logo openai">
+                        <i class="fab fa-openai"></i>
+                    </div>
+                    <h3 class="model-name">硅基流动</h3>
+                    <p class="model-desc">国内优质替代方案</p>
+                </div>
+                
+                <div class="model-card">
+                    <div class="model-logo baidu">
+                        <i class="fas fa-cloud"></i>
+                    </div>
+                    <h3 class="model-name">百度千帆</h3>
+                    <p class="model-desc">企业级AI服务</p>
+                </div>
+                
+                <div class="model-card">
+                    <div class="model-logo aliyun">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <h3 class="model-name">阿里通义</h3>
+                    <p class="model-desc">阿里云AI能力</p>
+                </div>
+                
+                <div class="model-card">
+                    <div class="model-logo doubao">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h3 class="model-name">豆包</h3>
+                    <p class="model-desc">字节跳动AI助手</p>
+                </div>
+                
+                <div class="model-card">
+                    <div class="model-logo more">
+                        <i class="fas fa-plus"></i>
+                    </div>
+                    <h3 class="model-name">更多模型</h3>
+                    <p class="model-desc">持续接入中</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="logo">
+                        <i class="fas fa-robot"></i>
+                        <span>AI24X Token</span>
+                    </div>
+                    <p class="footer-description">
+                        全球 AI 人共创的 Token 自由平台<br>
+                        Token Freedom · AI Human Co-creation
+                    </p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-github"></i></a>
+                        <a href="#"><i class="fab fa-discord"></i></a>
+                        <a href="#"><i class="fab fa-telegram"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                    </div>
+                </div>
+                
+                <div class="footer-section">
+                    <h3 class="footer-title">产品</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">功能特性</a></li>
+                        <li><a href="#">定价方案</a></li>
+                        <li><a href="#">API 文档</a></li>
+                        <li><a href="#">更新日志</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h3 class="footer-title">资源</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">开发文档</a></li>
+                        <li><a href="#">使用教程</a></li>
+                        <li><a href="#">常见问题</a></li>
+                        <li><a href="#">社区论坛</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h3 class="footer-title">法律</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">服务条款</a></li>
+                        <li><a href="#">隐私政策</a></li>
+                        <li><a href="#">Cookie 政策</a></li>
+                        <li><a href="#">合规声明</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h3 class="footer-title">联系我们</h3>
+                    <ul class="footer-links">
+                        <li><i class="fas fa-envelope"></i> support@ai24x.com</li>
+                        <li><i class="fas fa-globe"></i> https://ai24x.com</li>
+                        <li><i class="fas fa-map-marker-alt"></i> 新加坡数据中心</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p class="copyright">
+                    &copy; 2026 AI24X Token 聚合平台. 保留所有权利. 
+                    <span class="powered-by">Powered by AI24X — Token Free</span>
+                </p>
+                <p class="footer-note">
+                    所有线上服务仅部署新加坡，保障数据安全与合规性。
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - AI24X Token 聚合平台</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/auth.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="logo">
+                <i class="fas fa-robot"></i>
+                <span>AI24X Token</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html"><i class="fas fa-home"></i> 首页</a></li>
+                <li><a href="login.html" class="active"><i class="fas fa-sign-in-alt"></i> 登录</a></li>
+                <li><a href="register.html"><i class="fas fa-user-plus"></i> 注册</a></li>
+                <li><a href="index.html#features"><i class="fas fa-star"></i> 功能</a></li>
+                <li><a href="index.html#pricing"><i class="fas fa-tags"></i> 定价</a></li>
+            </ul>
+            <div class="nav-actions">
+                <a href="register.html" class="btn btn-primary">免费注册</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 登录主内容 -->
+    <main class="auth-container">
+        <div class="container">
+            <div class="auth-wrapper">
+                <!-- 左侧：登录表单 -->
+                <div class="auth-form-container">
+                    <div class="auth-header">
+                        <h1 class="auth-title">欢迎回来</h1>
+                        <p class="auth-subtitle">登录您的 AI24X Token 账户</p>
+                    </div>
+                    
+                    <form id="loginForm" class="auth-form">
+                        <div class="form-group">
+                            <label for="email" class="form-label">
+                                <i class="fas fa-envelope"></i> 邮箱地址
+                            </label>
+                            <input type="email" id="email" name="email" class="form-input" 
+                                   placeholder="请输入您的邮箱" required>
+                            <div class="form-error" id="emailError"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="password" class="form-label">
+                                <i class="fas fa-lock"></i> 密码
+                            </label>
+                            <div class="password-input-group">
+                                <input type="password" id="password" name="password" class="form-input" 
+                                       placeholder="请输入密码" required>
+                                <button type="button" class="password-toggle" id="togglePassword">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="form-error" id="passwordError"></div>
+                        </div>
+                        
+                        <div class="form-options">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="remember" name="remember">
+                                <span class="checkbox-custom"></span>
+                                <span class="checkbox-text">记住我</span>
+                            </label>
+                            <a href="forgot-password.html" class="forgot-password">
+                                忘记密码？
+                            </a>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-block btn-large" id="loginBtn">
+                            <i class="fas fa-sign-in-alt"></i> 登录
+                        </button>
+                        
+                        <div class="auth-divider">
+                            <span>或</span>
+                        </div>
+                        
+                        <div class="social-login">
+                            <button type="button" class="btn btn-social btn-github">
+                                <i class="fab fa-github"></i> GitHub 登录
+                            </button>
+                            <button type="button" class="btn btn-social btn-google">
+                                <i class="fab fa-google"></i> Google 登录
+                            </button>
+                        </div>
+                        
+                        <div class="auth-footer">
+                            <p>
+                                还没有账户？ 
+                                <a href="register.html" class="auth-link">立即注册</a>
+                            </p>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- 右侧：平台特色 -->
+                <div class="auth-features">
+                    <div class="features-card">
+                        <h2 class="features-title">为什么选择 AI24X Token？</h2>
+                        
+                        <div class="feature-item">
+                            <div class="feature-icon">
+                                <i class="fas fa-bolt"></i>
+                            </div>
+                            <div class="feature-content">
+                                <h3>统一接口调用</h3>
+                                <p>一个接口对接所有主流 AI 模型，无需切换不同平台。</p>
+                            </div>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <div class="feature-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div class="feature-content">
+                                <h3>智能成本优化</h3>
+                                <p>按 Token 精准计费，自动选择最优模型，节省 30%+ 成本。</p>
+                            </div>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <div class="feature-icon">
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <div class="feature-content">
+                                <h3>企业级安全</h3>
+                                <p>数据加密存储，API Key 安全管理，合规审计日志。</p>
+                            </div>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <div class="feature-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="feature-content">
+                                <h3>团队协作</h3>
+                                <p>多成员权限管理，使用量监控，团队成本分析。</p>
+                            </div>
+                        </div>
+                        
+                        <div class="stats-preview">
+                            <div class="stat">
+                                <div class="stat-number">10,000+</div>
+                                <div class="stat-label">开发者信任</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-number">99.9%</div>
+                                <div class="stat-label">服务可用性</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-number">24/7</div>
+                                <div class="stat-label">技术支持</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="logo">
+                        <i class="fas fa-robot"></i>
+                        <span>AI24X Token</span>
+                    </div>
+                    <p class="footer-description">
+                        全球 AI 人共创的 Token 自由平台<br>
+                        Token Freedom · AI Human Co-creation
+                    </p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3 class="footer-title">帮助</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">登录问题</a></li>
+                        <li><a href="#">账户安全</a></li>
+                        <li><a href="#">API 文档</a></li>
+                        <li><a href="#">联系我们</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h3 class="footer-title">法律</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">服务条款</a></li>
+                        <li><a href="#">隐私政策</a></li>
+                        <li><a href="#">使用协议</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p class="copyright">
+                    &copy; 2026 AI24X Token 聚合平台. 保留所有权利.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 脚本 -->
+    <script src="js/main.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+</html>
