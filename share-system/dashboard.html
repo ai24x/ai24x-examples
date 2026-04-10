@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI24X - 个人中心</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="css/share-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <a href="../index.html">
+                    <span class="brand-icon">🤖</span>
+                    <span class="brand-text">AI24X</span>
+                </a>
+            </div>
+            <div class="nav-menu">
+                <a href="../index.html" class="nav-link"><i class="fas fa-home"></i> 首页</a>
+                <a href="../tools.html" class="nav-link"><i class="fas fa-tools"></i> 工具库</a>
+                <a href="../tutorials/index.html" class="nav-link"><i class="fas fa-graduation-cap"></i> 教程</a>
+                <a href="dashboard.html" class="nav-link active"><i class="fas fa-user"></i> 个人中心</a>
+                <a href="../login.html" class="nav-link"><i class="fas fa-sign-out-alt"></i> 退出</a>
+            </div>
+            <div class="nav-mobile-toggle">
+                <i class="fas fa-bars"></i>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main class="dashboard-container">
+        <div class="dashboard-header">
+            <h1><i class="fas fa-user-circle"></i> 个人中心</h1>
+            <p class="dashboard-subtitle">管理您的账户、邀请好友、查看统计</p>
+        </div>
+
+        <div class="dashboard-grid">
+            <!-- 左侧：用户信息 -->
+            <div class="dashboard-sidebar">
+                <div class="user-card">
+                    <div class="user-avatar">
+                        <i class="fas fa-user-astronaut"></i>
+                    </div>
+                    <div class="user-info">
+                        <h3 class="user-name" id="userName">AI24X用户</h3>
+                        <p class="user-email" id="userEmail">user@example.com</p>
+                        <div class="user-stats">
+                            <div class="stat-item">
+                                <span class="stat-value" id="inviteCount">0</span>
+                                <span class="stat-label">邀请好友</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value" id="shareCount">0</span>
+                                <span class="stat-label">分享次数</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value" id="rewardPoints">0</span>
+                                <span class="stat-label">奖励积分</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-menu">
+                    <a href="#invite-section" class="menu-item active">
+                        <i class="fas fa-share-alt"></i> 邀请好友
+                    </a>
+                    <a href="#stats-section" class="menu-item">
+                        <i class="fas fa-chart-line"></i> 数据统计
+                    </a>
+                    <a href="#rewards-section" class="menu-item">
+                        <i class="fas fa-gift"></i> 奖励中心
+                    </a>
+                    <a href="#settings-section" class="menu-item">
+                        <i class="fas fa-cog"></i> 账户设置
+                    </a>
+                </div>
+            </div>
+
+            <!-- 右侧：主要内容 -->
+            <div class="dashboard-content">
+                <!-- 邀请好友板块 -->
+                <section id="invite-section" class="dashboard-section active">
+                    <div class="section-header">
+                        <h2><i class="fas fa-share-alt"></i> 邀请好友</h2>
+                        <p class="section-subtitle">邀请好友加入AI24X，双方都能获得奖励</p>
+                    </div>
+
+                    <div class="invite-card">
+                        <div class="invite-header">
+                            <h3>您的专属邀请码</h3>
+                            <div class="invite-badge">专属</div>
+                        </div>
+                        
+                        <div class="invite-code-container">
+                            <div class="invite-code-display" id="inviteCodeDisplay">
+                                <span class="code-prefix">AI24X-</span>
+                                <span class="code-main" id="inviteCodeMain">XXXX-XXXX</span>
+                            </div>
+                            <button class="btn-copy" id="copyInviteCodeBtn" data-tooltip="点击复制">
+                                <i class="fas fa-copy"></i> 复制
+                            </button>
+                        </div>
+
+                        <div class="invite-expiry">
+                            <i class="fas fa-infinity"></i> 永久有效
+                        </div>
+
+                        <div class="invite-stats">
+                            <div class="invite-stat">
+                                <span class="stat-icon"><i class="fas fa-user-plus"></i></span>
+                                <span class="stat-text">已邀请: <strong id="invitedCount">0</strong> 人</span>
+                            </div>
+                            <div class="invite-stat">
+                                <span class="stat-icon"><i class="fas fa-mouse-pointer"></i></span>
+                                <span class="stat-text">链接点击: <strong id="linkClicks">0</strong> 次</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="share-methods">
+                        <h3>分享方式</h3>
+                        <div class="share-buttons">
+                            <button class="share-btn share-link" id="shareLinkBtn">
+                                <i class="fas fa-link"></i>
+                                <span>复制分享链接</span>
+                            </button>
+                            <button class="share-btn share-wechat" id="shareWechatBtn">
+                                <i class="fab fa-weixin"></i>
+                                <span>分享到微信</span>
+                            </button>
+                            <button class="share-btn share-qq" id="shareQQBtn">
+                                <i class="fab fa-qq"></i>
+                                <span>分享到QQ</span>
+                            </button>
+                            <button class="share-btn share-weibo" id="shareWeiboBtn">
+                                <i class="fab fa-weibo"></i>
+                                <span>分享到微博</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="invite-benefits">
+                        <h3><i class="fas fa-gift"></i> 邀请奖励</h3>
+                        <div class="benefits-grid">
+                            <div class="benefit-card">
+                                <div class="benefit-icon">
+                                    <i class="fas fa-user-plus"></i>
+                                </div>
+                                <h4>邀请好友</h4>
+                                <p>每成功邀请1位好友注册</p>
+                                <div class="benefit-reward">+100积分</div>
+                            </div>
+                            <div class="benefit-card">
+                                <div class="benefit-icon">
+                                    <i class="fas fa-star"></i>
+                                </div>
+                                <h4>好友活跃</h4>
+                                <p>好友使用AI工具超过10次</p>
+                                <div class="benefit-reward">+50积分</div>
+                            </div>
+                            <div class="benefit-card">
+                                <div class="benefit-icon">
+                                    <i class="fas fa-crown"></i>
+                                </div>
+                                <h4>等级提升</h4>
+                                <p>邀请满5人升级VIP</p>
+                                <div class="benefit-reward">VIP特权</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 数据统计板块 -->
+                <section id="stats-section" class="dashboard-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-chart-line"></i> 数据统计</h2>
+                        <p class="section-subtitle">查看您的邀请和分享数据</p>
+                    </div>
+                    <div class="stats-placeholder">
+                        <i class="fas fa-chart-bar"></i>
+                        <h3>统计功能开发中</h3>
+                        <p>详细的数据统计图表即将上线</p>
+                    </div>
+                </section>
+
+                <!-- 奖励中心板块 -->
+                <section id="rewards-section" class="dashboard-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-gift"></i> 奖励中心</h2>
+                        <p class="section-subtitle">兑换您的积分奖励</p>
+                    </div>
+                    <div class="rewards-placeholder">
+                        <i class="fas fa-gifts"></i>
+                        <h3>奖励中心开发中</h3>
+                        <p>积分兑换和奖励系统即将上线</p>
+                    </div>
+                </section>
+
+                <!-- 账户设置板块 -->
+                <section id="settings-section" class="dashboard-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-cog"></i> 账户设置</h2>
+                        <p class="section-subtitle">管理您的账户信息</p>
+                    </div>
+                    <div class="settings-placeholder">
+                        <i class="fas fa-user-cog"></i>
+                        <h3>账户设置开发中</h3>
+                        <p>个人信息和安全设置即将上线</p>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- 通知弹窗 -->
+    <div id="notification" class="notification">
+        <div class="notification-content">
+            <i class="fas fa-check-circle"></i>
+            <span id="notificationText">操作成功！</span>
+        </div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>AI24X</h3>
+                <p>让AI技术触手可及</p>
+            </div>
+            <div class="footer-section">
+                <h3>快速链接</h3>
+                <a href="../index.html">首页</a>
+                <a href="../tools.html">AI工具库</a>
+                <a href="../tutorials/index.html">使用教程</a>
+                <a href="dashboard.html">个人中心</a>
+            </div>
+            <div class="footer-section">
+                <h3>联系我们</h3>
+                <p>support@ai24x.com</p>
+                <div class="social-links">
+                    <a href="#"><i class="fab fa-weixin"></i></a>
+                    <a href="#"><i class="fab fa-qq"></i></a>
+                    <a href="#"><i class="fab fa-weibo"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 AI24X. 保留所有权利。</p>
+        </div>
+    </footer>
+
+    <!-- 脚本 -->
+    <script src="js/invite-generator.js"></script>
+    <script src="js/share-manager.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI工具库 - AI24X</title>
+    
+    <!-- 允许内联脚本的CSP策略 -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline';
+        style-src 'self' 'unsafe-inline';
+        font-src 'self';
+        img-src 'self' data:;
+    ">
+    
+    <!-- 外部样式 -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="header-unified.css">
+    <link rel="stylesheet" href="header-fix.css">
+    <link rel="stylesheet" href="spacing-unified.css">
+    <link rel="stylesheet" href="mobile-fix.css">
+    <link rel="stylesheet" href="font-awesome-local.css">
+    
+    <style>
+        /* 工具页面专用样式 */
+        :root {
+            --container-max-width: 1200px;
+            --mobile-breakpoint: 768px;
+            --tablet-breakpoint: 1024px;
+        }
+        
+        .tools-container {
+            max-width: var(--container-max-width);
+            margin: 40px auto;
+            padding: 0 20px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .tools-header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        
+        .tools-header h1 {
+            font-size: 2.8rem;
+            background: linear-gradient(90deg, #00d4ff, #0099ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+        }
+        
+        .tools-header p {
+            color: #a0aec0;
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto 30px;
+            line-height: 1.6;
+        }
+        
+        /* 搜索框 */
+        .search-box {
+            max-width: 600px;
+            margin: 30px auto;
+            position: relative;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50px;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        
+        .search-box input:focus {
+            border-color: #00d4ff;
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+        }
+        
+        .search-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            color: #a0aec0;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 10px;
+        }
+        
+        /* 统计信息 */
+        .tools-stats {
+            color: #a0aec0;
+            font-size: 1rem;
+            margin-top: 20px;
+        }
+        
+        .tools-stats span {
+            color: #00d4ff;
+            font-weight: 600;
+        }
+        
+        /* 工具网格 */
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        /* 工具卡片 */
+        .tool-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.8));
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 25px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .tool-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0, 212, 255, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .tool-icon {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: #00d4ff;
+        }
+        
+        .tool-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 10px;
+        }
+        
+        .tool-description {
+            color: #a0aec0;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            min-height: 60px;
+        }
+        
+        .tool-category {
+            display: inline-block;
+            background: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 15px;
+        }
+        
+        .tool-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .tool-tag {
+            background: rgba(255, 255, 255, 0.05);
+            color: #a0aec0;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+        }
+        
+        .tool-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 15px;
+        }
+        
+        .tool-rating {
+            color: #fbbf24;
+            font-size: 0.9rem;
+        }
+        
+        .tool-link {
+            color: #00d4ff;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        
+        .tool-link:hover {
+            color: #0099ff;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .tools-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                gap: 20px;
+            }
+            
+            .tools-header h1 {
+                font-size: 2rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .tools-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .tools-header h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body class="tools-page">
+    <!-- 头部导航区域 -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <a href="/">
+                        <i class="fas fa-robot"></i>
+                        <span>AI24X</span>
+                    </a>
+                </div>
+                
+                <nav class="main-nav">
+                    <ul>
+                        <li><a href="/" class="nav-link"><i class="fas fa-home"></i> <span class="nav-text">首页</span></a></li>
+                        <li><a href="/tools" class="nav-link active"><i class="fas fa-tools"></i> <span class="nav-text">AI工具库</span></a></li>
+                        <li><a href="/tutorials" class="nav-link"><i class="fas fa-chart-line"></i> <span class="nav-text">热门教程</span></a></li>
+                        <li><a href="/custom" class="nav-link"><i class="fas fa-cogs"></i> <span class="nav-text">定制开发</span></a></li>
+                    </ul>
+                </nav>
+                
+                <div class="header-actions">
+                    <form class="search-box" action="/tools" method="get">
+                        <input type="text" placeholder="搜索AI工具..." id="globalSearch" name="search">
+                        <button type="submit" class="search-btn"><i class="fas fa-search"></i></button>
+                    </form>
+                    <div class="auth-buttons">
+                        <a href="/login" class="btn btn-outline"><i class="fas fa-sign-in-alt"></i> 登录</a>
+                        <a href="/signup" class="btn btn-primary"><i class="fas fa-user-plus"></i> 注册</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主内容区域 -->
+    <main class="main-content">
+        <div class="tools-container">
+            <div class="tools-header">
+                <h1>AI工具库</h1>
+                <p>探索精选AI工具，涵盖文本生成、图像创作、编程辅助、对话交互等多个领域</p>
+                
+                <form class="search-box" id="mainSearchForm">
+                    <input type="text" id="searchInput" placeholder="搜索工具名称、功能或描述..." name="search">
+                    <button type="submit" id="searchBtn" class="search-btn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+                
+                <div class="tools-stats">
+                    找到 <span id="totalTools">8</span> 个工具，显示 <span id="toolsCount">8</span> 个
+                </div>
+            </div>
+            
+            <div class="tools-grid" id="toolsGrid">
+                <!-- 工具卡片将通过JavaScript动态生成 -->
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚区域 -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <i class="fas fa-robot"></i>
+                    <span>AI24X</span>
+                </div>
+                <div class="footer-links">
+                    <a href="/about">关于我们</a>
+                    <a href="/contact">联系我们</a>
+                    <a href="/privacy">隐私政策</a>
+                    <a href="/terms">服务条款</a>
+                </div>
+                <div class="footer-copyright">
+                    © 2026 AI24X. 保留所有权利。
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // AI工具数据
+        const aiTools = [
+            {
+                id: 1,
+                name: "ChatGPT",
+                description: "OpenAI开发的对话式AI助手，支持文本生成、代码编写、问答对话",
+                category: "文本生成",
+                tags: ["对话", "写作", "编程"],
+                icon: "fas fa-comments",
+                rating: 4.9,
+                link: "https://chat.openai.com"
+            },
+            {
+                id: 2,
+                name: "Midjourney",
+                description: "AI图像生成工具，通过文本提示创作高质量艺术作品",
+                category: "图像创作",
+                tags: ["艺术", "设计", "创意"],
+                icon: "fas fa-image",
+                rating: 4.8,
+                link: "https://www.midjourney.com"
+            },
+            {
+                id: 3,
+                name: "GitHub Copilot",
+                description: "AI编程助手，在编写代码时提供智能建议和自动补全",
+                category: "编程辅助",
+                tags: ["开发", "代码", "效率"],
+                icon: "fas fa-code",
+                rating: 4.7,
+                link: "https://github.com/features/copilot"
+            },
+            {
+                id: 4,
+                name: "DALL-E 3",
+                description: "OpenAI的图像生成模型，根据文本提示创建逼真图像",
+                category: "图像创作",
+                tags: ["AI绘画", "创意", "设计"],
+                icon: "fas fa-image",
+                rating: 4.8,
+                link: "https://openai.com/dall-e-3"
+            },
+            {
+                id: 5,
+                name: "Claude",
+                description: "Anthropic开发的AI助手，专注于安全有益的对话",
+                category: "文本生成",
+                tags: ["对话", "写作", "分析"],
+                icon: "fas fa-brain",
+                rating: 4.7,
+                link: "https://claude.ai"
+            },
+            {
+                id: 6,
+                name: "Stable Diffusion",
+                description: "开源文本到图像生成模型，支持本地部署和自定义训练",
+                category: "图像创作",
+                tags: ["开源", "本地", "自定义"],
+                icon: "fas fa-cogs",
+                rating: 4.6,
+                link: "https://stability.ai"
+            },
+            {
+                id: 7,
+                name: "Notion AI",
+                description: "集成在Notion中的AI助手，用于写作和头脑风暴",
+                category: "生产力",
+                tags: ["笔记", "写作", "组织"],
+                icon: "fas fa-book",
+                rating: 4.5,
+                link: "https://www.notion.so/product/ai"
+            },
+            {
+                id: 8,
+                name: "Grammarly",
+                description: "AI写作助手，检查语法、拼写和写作风格",
+                category: "写作辅助",
+                tags: ["语法", "校对", "写作"],
+                icon: "fas fa-check",
+                rating: 4.7,
+                link: "https://www.grammarly.com"
+            }
+        ];
+
+        // 页面初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('AI工具库页面初始化...');
+            
+            // 获取DOM元素
+            const toolsGrid = document.getElementById('toolsGrid');
+            const totalTools = document.getElementById('totalTools');
+            const toolsCount = document.getElementById('toolsCount');
+            const searchInput = document.getElementById('searchInput');
+            const searchBtn = document.getElementById('searchBtn');
+            const globalSearch = document.getElementById('globalSearch');
+            const globalSearchBtn = document.querySelector('.header-actions .search-btn');
+            
+            // 渲染工具卡片
+            function renderTools(tools) {
+                toolsGrid.innerHTML = '';
+                
+                tools.forEach(tool => {
+                    const card = document.createElement('div');
+                    card.className = 'tool-card';
+                    card.innerHTML = `
+                        <div class="tool-icon">
+                            <i class="${tool.icon}"></i>
+                        </div>
+                        <div class="tool-title">${tool.name}</div>
+                        <div class="tool-description">${tool.description}</div>
+                        <div class="tool-category">${tool.category}</div>
+                        <div class="tool-tags">
+                            ${tool.tags.map(tag => `<span class="tool-tag">${tag}</span>`).join('')}
+                        </div>
+                        <div class="tool-footer">
+                            <div class="tool-rating">
+                                ${'★'.repeat(Math.floor(tool.rating))}${tool.rating.toFixed(1)}
+                            </div>
+                            <a href="${tool.link}" target="_blank" class="tool-link">
+                                访问工具 <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </div>
+                    `;
+                    toolsGrid.appendChild(card);
+                });
+            }
+            
+            // 初始渲染
+            renderTools(aiTools);
+            
+            // 搜索功能
+            function performSearch() {
+                const searchTerm = searchInput.value.toLowerCase().trim();
+                const cards = document.querySelectorAll('.tool-card');
+                let visibleCount = 0;
+                
+                cards.forEach(card => {
+                    const title = card.querySelector('.tool-title').textContent.toLowerCase();
+                    const description = card.querySelector('.tool-description').textContent.toLowerCase();
+                    const category = card.querySelector('.tool-category').textContent.toLowerCase();
+                    const tags = Array.from(card.querySelectorAll('.tool-tag')).map(tag => tag.textContent.toLowerCase());
+                    
+                    const matches = title.includes(searchTerm) || 
+                                   description.includes(searchTerm) || 
+                                   category.includes(searchTerm) ||
+                                   tags.some(tag => tag.includes(searchTerm));
+                    
+                    card.style.display = matches ? 'block' : 'none';
+                    if (matches) visibleCount++;
+                });
+                
+                toolsCount.textContent = visibleCount;
+                
+                // 更新URL（如果搜索词不为空）
+                if (searchTerm) {
+                    const newUrl = new URL(window.location);
+                    newUrl.searchParams.set('search', searchTerm);
+                    window.history.pushState({}, '', newUrl);
+                } else {
+                    // 清空搜索参数
+                    const newUrl = new URL(window.location);
+                    newUrl.searchParams.delete('search');
+                    window.history.pushState({}, '', newUrl);
+                }
+                
+                // 同步头部搜索框
+                if (globalSearch) {
+                    globalSearch.value = searchTerm;
+                }
+            }
+            
+            // 绑定搜索事件
+            const mainSearchForm = document.getElementById('mainSearchForm');
+            if (mainSearchForm) {
+                mainSearchForm.addEventListener('submit', function(event) {
+                    event.preventDefault();
+                    performSearch();
+                });
+            }
+            
+            searchBtn.addEventListener('click', function(event) {
+                event.preventDefault();
+                performSearch();
+            });
+            
+            searchInput.addEventListener('keyup', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    performSearch();
+                }
+            });
+            
+            // 输入时实时搜索（防抖）
+            let searchTimeout;
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(performSearch, 300);
+            });
+            
+            // 头部搜索框事件处理
+            if (globalSearch && globalSearchBtn) {
+                // 阻止form默认提交，使用JavaScript处理
+                const searchForm = globalSearch.closest('form');
+                if (searchForm) {
+                    searchForm.addEventListener('submit', function(event) {
+                        event.preventDefault();
+                        const searchTerm = globalSearch.value.trim();
+                        if (searchTerm) {
+                            // 更新页面搜索框
+                            searchInput.value = searchTerm;
+                            // 执行搜索
+                            performSearch();
+                            // 更新URL（不刷新页面）
+                            const newUrl = new URL(window.location);
+                            newUrl.searchParams.set('search', searchTerm);
+                            window.history.pushState({}, '', newUrl);
+                        }
+                    });
+                }
+                
+                // 头部搜索框回车键
+                globalSearch.addEventListener('keyup', function(event) {
+                    if (event.key === 'Enter') {
+                        const searchTerm = globalSearch.value.trim();
+                        if (searchTerm) {
+                            searchInput.value = searchTerm;
+                            performSearch();
+                            // 更新URL
+                            const newUrl = new URL(window.location);
+                            newUrl.searchParams.set('search', searchTerm);
+                            window.history.pushState({}, '', newUrl);
+                        }
+                    }
+                });
+            }
+            
+            // 检查URL参数并自动搜索
+            function checkUrlParams() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const searchParam = urlParams.get('search');
+                if (searchParam) {
+                    // 设置搜索框值
+                    searchInput.value = searchParam;
+                    if (globalSearch) {
+                        globalSearch.value = searchParam;
+                    }
+                    // 执行搜索
+                    performSearch();
+                }
+            }
+            
+            // 页面加载时检查URL参数
+            checkUrlParams();
+        });
+    </script>
+</body>
+</html>

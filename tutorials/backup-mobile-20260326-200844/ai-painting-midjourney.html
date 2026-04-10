@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI绘画入门：从零开始使用Midjourney - AI24X教程</title>
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../header-unified.css">
+    <link rel="stylesheet" href="../header-fix.css">
+    <link rel="stylesheet" href="../spacing-unified.css">
+    <link rel="stylesheet" href="../mobile-fix.css">
+    <link rel="stylesheet" href="../font-awesome-local.css">
+    <link rel="stylesheet" href="../fonts-local.css">
+    <style>
+        .tutorial-detail-container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        
+        .back-to-tutorials {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: #00d4ff;
+            text-decoration: none;
+            margin-bottom: 30px;
+        }
+        
+        .tutorial-content {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 212, 255, 0.1);
+            border-radius: 16px;
+            padding: 40px;
+            line-height: 1.7;
+        }
+        
+        .tutorial-content h2 {
+            color: #00d4ff;
+            font-size: 1.8rem;
+            margin: 30px 0 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(0, 212, 255, 0.2);
+        }
+        
+        .tutorial-content h3 {
+            color: white;
+            font-size: 1.4rem;
+            margin: 25px 0 10px;
+        }
+        
+        .tutorial-content p {
+            color: #cbd5e0;
+            margin-bottom: 15px;
+        }
+        
+        .tutorial-content ul, .tutorial-content ol {
+            color: #cbd5e0;
+            margin: 15px 0 15px 20px;
+        }
+        
+        .tutorial-content li {
+            margin-bottom: 8px;
+        }
+        
+        .tutorial-content code {
+            background: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .tutorial-content pre {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+        
+        .prompt-example {
+            background: rgba(46, 213, 115, 0.1);
+            border: 1px solid rgba(46, 213, 115, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .prompt-example h4 {
+            color: #2ed573;
+            margin-bottom: 10px;
+        }
+        
+        .parameter-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        .parameter-table th {
+            background: rgba(0, 212, 255, 0.2);
+            color: white;
+            padding: 12px;
+            text-align: left;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+        
+        .parameter-table td {
+            padding: 10px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #cbd5e0;
+        }
+        
+        .parameter-table tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.02);
+        }
+    </style>
+</head>
+<body class="tutorial-page">
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <a href="/">
+                        <i class="fas fa-robot"></i>
+                        <span>AI24X</span>
+                    </a>
+                </div>
+                
+                <nav class="main-nav">
+                    <ul>
+                        <li><a href="/" class="nav-link"><i class="fas fa-home"></i> <span class="nav-text">首页</span></a></li>
+                        <li><a href="/tools" class="nav-link"><i class="fas fa-tools"></i> <span class="nav-text">AI工具库</span></a></li>
+                        <li><a href="/rankings" class="nav-link"><i class="fas fa-chart-bar"></i> <span class="nav-text">实时排行</span></a></li>
+                        <li><a href="/tutorials" class="nav-link"><i class="fas fa-chart-line"></i> <span class="nav-text">热门教程</span></a></li>
+                        <li><a href="/custom" class="nav-link"><i class="fas fa-cogs"></i> <span class="nav-text">定制开发</span></a></li>
+                    </ul>
+                </nav>
+                
+                <div class="header-actions">
+                    <div class="auth-buttons">
+                        <a href="/login" class="btn btn-outline"><i class="fas fa-sign-in-alt"></i> 登录</a>
+                        <a href="/signup" class="btn btn-primary"><i class="fas fa-user-plus"></i> 注册</a>
+                    </div>
+                    <button class="mobile-menu-btn">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="tutorial-detail-container">
+        <a href="/tutorials" class="back-to-tutorials">
+            <i class="fas fa-arrow-left"></i> 返回教程列表
+        </a>
+        
+        <div class="tutorial-header">
+            <h1>AI绘画入门：从零开始使用Midjourney</h1>
+            <div class="tutorial-meta">
+                <span><i class="fas fa-clock"></i> 阅读时间：15分钟</span>
+                <span><i class="fas fa-user"></i> 作者：AI专家</span>
+                <span><i class="fas fa-calendar"></i> 发布日期：2026-03-10</span>
+                <span><i class="fas fa-tag"></i> 分类：图像工具</span>
+                <span><i class="fas fa-star"></i> 难度：初级</span>
+            </div>
+        </div>
+        
+        <div class="tutorial-content">
+            <h2>什么是Midjourney？</h2>
+            <p>Midjourney是一款基于人工智能的图像生成工具，能够根据文本描述（提示词）创建高质量的图像。它通过Discord平台提供服务，用户可以在聊天频道中与AI机器人交互来生成图像。</p>
+            
+            <h2>快速开始</h2>
+            
+            <h3>1. 注册与安装</h3>
+            <ol>
+                <li>访问 <a href="https://www.midjourney.com" target="_blank">Midjourney官网</a></li>
+                <li>点击"Join the Beta"加入测试</li>
+                <li>使用Discord账号登录</li>
+                <li>接受Midjourney机器人邀请</li>
+                <li>加入官方服务器或创建自己的服务器</li>
+            </ol>
+            
+            <h3>2. 基本命令</h3>
+            <pre><code>/imagine [提示词]      # 生成图像
+/settings            # 查看和修改设置
+/info                # 查看账户信息
+/help                # 获取帮助
+/subscribe           # 订阅服务</code></pre>
+            
+            <h2>提示词技巧</h2>
+            
+            <h3>基础提示词结构</h3>
+            <div class="prompt-example">
+                <h4>示例：基本提示词</h4>
+                <code>/imagine a beautiful sunset over mountains, digital art, vibrant colors</code>
+                <p>翻译：想象一幅美丽的山脉日落，数字艺术，鲜艳的色彩</p>
+            </div>
+            
+            <h3>提示词组成要素</h3>
+            <table class="parameter-table">
+                <thead>
+                    <tr>
+                        <th>要素</th>
+                        <th>描述</th>
+                        <th>示例</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>主体</strong></td>
+                        <td>图像的主要对象</td>
+                        <td>a cat, a castle, a spaceship</td>
+                    </tr>
+                    <tr>
+                        <td><strong>风格</strong></td>
+                        <td>艺术风格或媒介</td>
+                        <td>digital art, oil painting, pencil sketch</td>
+                    </tr>
+                    <tr>
+                        <td><strong>细节</strong></td>
+                        <td>具体特征和细节</td>
+                        <td>detailed, intricate, photorealistic</td>
+                    </tr>
+                    <tr>
+                        <td><strong>氛围</strong></td>
+                        <td>情绪和氛围</td>
+                        <td>mysterious, joyful, serene</td>
+                    </tr>
+                    <tr>
+                        <td><strong>光照</strong></td>
+                        <td>光线效果</td>
+                        <td>cinematic lighting, golden hour, neon glow</td>
+                    </tr>
+                    <tr>
+                        <td><strong>视角</strong></td>
+                        <td>拍摄角度</td>
+                        <td>close-up, aerial view, wide shot</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h3>高级提示词技巧</h3>
+            
+            <h4>1. 权重控制</h4>
+            <p>使用双冒号<code>::</code>控制不同元素的权重：</p>
+            <div class="prompt-example">
+                <h4>示例：权重控制</h4>
+                <code>/imagine cat::2 sleeping::1 on a windowsill::0.5, cozy room</code>
+                <p>猫的权重是2，睡觉的权重是1，窗台的权重是0.5</p>
+            </div>
+            
+            <h4>2. 否定提示</h4>
+            <p>使用<code>--no</code>排除不想要的元素：</p>
+            <div class="prompt-example">
+                <h4>示例：排除元素</h4>
+                <code>/imagine a beautiful landscape --no people, buildings, cars</code>
+                <p>生成没有人物、建筑和汽车的风景</p>
+            </div>
+            
+            <h4>3. 混合风格</h4>
+            <div class="prompt-example">
+                <h4>示例：风格混合</h4>
+                <code>/imagine cyberpunk city in the style of Van Gogh and Studio Ghibli</code>
+                <p>梵高风格+吉卜力工作室风格的赛博朋克城市</p>
+            </div>
+            
+            <h2>参数设置</h2>
+            
+            <h3>常用参数</h3>
+            <table class="parameter-table">
+                <thead>
+                    <tr>
+                        <th>参数</th>
+                        <th>描述</th>
+                        <th>示例</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>--ar</code></td>
+                        <td>宽高比</td>
+                        <td>--ar 16:9, --ar 1:1, --ar 2:3</td>
+                    </tr>
+                    <tr>
+                        <td><code>--chaos</code></td>
+                        <td>随机性 (0-100)</td>
+                        <td>--chaos 50 (更多变化)</td>
+                    </tr>
+                    <tr>
+                        <td><code>--quality</code></td>
+                        <td>质量 (.25, .5, 1, 2)</td>
+                        <td>--quality 2 (最高质量)</td>
+                    </tr>
+                    <tr>
+                        <td><code>--seed</code></td>
+                        <td>随机种子</td>
+                        <td>--seed 12345 (可重复结果)</td>
+                    </tr>
+                    <tr>
+                        <td><code>--stylize</code></td>
+                        <td>风格化 (0-1000)</td>
+                        <td>--stylize 750 (默认)</td>
+                    </tr>
+                    <tr>
+                        <td><code>--version</code></td>
+                        <td>模型版本</td>
+                        <td>--v 6.0 (使用v6模型)</td>
+                    </tr>
+                    <tr>
+                        <td><code>--niji</code></td>
+                        <td>动漫风格</td>
+                        <td>--niji 6 (动漫模式)</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h3>参数使用示例</h3>
+            <div class="prompt-example">
+                <h4>完整示例</h4>
+                <code>/imagine a majestic dragon flying over ancient ruins, fantasy art, detailed scales, glowing eyes, epic lighting, cinematic, --ar 16:9 --chaos 30 --quality 2 --stylize 800</code>
+            </div>
+            
+            <h2>图像处理技巧</h2>
+            
+            <h3>1. 图像放大</h3>
+            <p>生成图像后，可以使用U按钮放大特定图像：</p>
+            <ul>
+                <li><strong>U1-U4</strong>: 放大对应的图像</li>
+                <li><strong>V1-V4</strong>: 基于对应图像生成变体</li>
+                <li><strong>🔄</strong>: 重新生成</li>
+                <li><strong>📋</strong>: 复制提示词</li>
+            </ul>
+            
+            <h3>2. 图像变体</h3>
+            <p>使用V按钮创建图像变体：</p>
+            <div class="prompt-example">
+                <h4>变体提示词调整</h4>
+                <code>/imagine [原提示词] --seed 12345 --variation 0.3</code>
+                <p>基于相同种子创建30%变化的变体</p>
+            </div>
+            
+            <h3>3. 图像混合</h3>
+            <p>使用<code>/blend</code>命令混合多张图像：</p>
+            <pre><code>/blend
+# 上传2-5张图像
+# 设置维度（可选）
+# 生成混合结果</code></pre>
+            
+            <h2>实用工作流程</h2>
+            
+            <h3>1. 概念设计流程</h3>
+            <ol>
+                <li><strong>头脑风暴</strong>: 列出关键词和概念</li>
+                <li><strong>草图生成</strong>: 使用简单提示词生成初步概念</li>
+                <li><strong>迭代优化</strong>: 基于结果调整提示词</li>
+                <li><strong>风格探索</strong>: 尝试不同艺术风格</li>
+                <li><strong>最终细化</strong>: 添加细节和调整参数</li>
+            </ol>
+            
+            <h3>2. 商业设计流程</h3>
+            <div class="prompt-example">
+                <h4>产品设计示例</h4>
+                <code>/imagine modern minimalist coffee mug design, white ceramic, clean lines, subtle texture, product photography, studio lighting, on marble surface, --ar 3:4 --style raw</code>
+            </div>
+            
+            <h3>3. 角色设计流程</h3>
+            <div class="prompt-example">
+                <h4>角色设计示例</h4>
+                <code>/imagine fantasy elf warrior character design, detailed armor, glowing runes, flowing hair, determined expression, full body, dynamic pose, concept art, --ar 2:3 --niji</code>
+            </div>
+            
+            <h2>高级技巧</h2>
+            
+            <h3>1. 提示词工程</h3>
+            <ul>
+                <li><strong>使用具体名词</strong>: "ancient oak tree" 比 "tree" 更好</li>
+                <li><strong>添加情感词汇</strong>: "serene, peaceful, tranquil"</li>
+                <li><strong>指定艺术运动</strong>: "art nouveau, surrealism, impressionism"</li>
+                <li><strong>引用艺术家</strong>: "in the style of Hayao Miyazaki"</li>
+                <li><strong>使用技术术语</strong>: "bokeh effect, depth of field, rim lighting"</li>
+            </ul>
+            
+            <h3>2. 参数组合策略</h3>
+            <pre><code># 高质量商业作品
+--quality 2 --stylize 1000 --ar 3:2 --style raw
+
+# 创意探索
+--chaos 70 --stylize 500 --ar 1:1
+
+# 动漫风格
+--niji 6 --stylize 600 --ar 9:16</code></pre>
+            
+            <h3>3.

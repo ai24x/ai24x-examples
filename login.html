@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>登录 - AI24X</title>
+    
+    <!-- 统一CSS文件（与首页完全一致） -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="header-unified.css">
+    <link rel="stylesheet" href="header-fix.css">
+    <link rel="stylesheet" href="spacing-unified.css">
+    <link rel="stylesheet" href="mobile-fix.css">
+    <link rel="stylesheet" href="font-awesome-local.css">
+    <link rel="stylesheet" href="fonts-local.css">
+    <link rel="stylesheet" href="/css/auth.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    
+    <style>
+        /* 使用系统字体替代Google Fonts */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <!-- 头部导航区域 -->
+    <!-- 统一头部导航（与首页完全一致） -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <a href="/">
+                        <i class="fas fa-robot"></i>
+                        <span>AI24X</span>
+                    </a>
+                </div>
+                
+                <nav class="main-nav">
+                    <ul>
+                        <li><a href="/" class="nav-link"><i class="fas fa-home"></i> <span class="nav-text">首页</span></a></li>
+                        <li><a href="/tools" class="nav-link"><i class="fas fa-tools"></i> <span class="nav-text">AI工具库</span></a></li>
+                        <li><a href="/rankings" class="nav-link"><i class="fas fa-chart-bar"></i> <span class="nav-text">实时排行</span></a></li>
+                        <li><a href="/tutorials" class="nav-link"><i class="fas fa-chart-line"></i> <span class="nav-text">热门教程</span></a></li>
+                        <li><a href="/custom" class="nav-link"><i class="fas fa-cogs"></i> <span class="nav-text">定制开发</span></a></li>
+                    </ul>
+                </nav>
+                
+                <div class="header-actions">
+                    <div class="auth-buttons">
+                        <a href="/login" class="btn btn-outline"><i class="fas fa-sign-in-alt"></i> 登录</a>
+                        <a href="/signup" class="btn btn-primary"><i class="fas fa-user-plus"></i> 注册</a>
+                    </div>
+                    <button class="mobile-menu-btn">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主内容 -->
+    <main class="auth-main">
+        <div class="container">
+            <div class="auth-container">
+                <div class="auth-card">
+                    <div class="auth-header">
+                        <h1 class="auth-title">欢迎回来</h1>
+                        <p class="auth-subtitle">登录您的AI24X账户，探索更多AI工具</p>
+                    </div>
+                    
+                    <form id="loginForm" class="auth-form">
+                        <div class="form-group">
+                            <label for="email" class="form-label">邮箱地址</label>
+                            <div class="input-group">
+                                <i class="fas fa-envelope input-icon"></i>
+                                <input type="email" id="email" name="email" class="form-input" placeholder="请输入您的邮箱" required>
+                            </div>
+                            <div class="error-message" id="emailError"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="password" class="form-label">密码</label>
+                            <div class="input-group">
+                                <i class="fas fa-lock input-icon"></i>
+                                <input type="password" id="password" name="password" class="form-input" placeholder="请输入您的密码" required>
+                                <button type="button" class="password-toggle" id="togglePassword">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="error-message" id="passwordError"></div>
+                        </div>
+                        
+                        <div class="form-options">
+                            <div class="remember-me">
+                                <input type="checkbox" id="rememberMe" name="rememberMe">
+                                <label for="rememberMe">记住我</label>
+                            </div>
+                            <a href="/forgot-password" class="forgot-password">忘记密码？</a>
+                        </div>
+                        
+                        <button type="submit" class="auth-button primary-button">
+                            <i class="fas fa-sign-in-alt"></i>
+                            登录
+                        </button>
+                        
+                        <div class="success-message" id="successMessage"></div>
+                        <div class="welcome-message" id="welcomeMessage"></div>
+                    </form>
+                    
+                    <div class="auth-divider">
+                        <span>或使用以下方式登录</span>
+                    </div>
+                    
+                    <div class="social-auth">
+                        <button type="button" class="social-button google-button">
+                            <i class="fab fa-google"></i>
+                            Google
+                        </button>
+                        <button type="button" class="social-button github-button">
+                            <i class="fab fa-github"></i>
+                            GitHub
+                        </button>
+                    </div>
+                    
+                    <div class="auth-footer">
+                        还没有账户？ <a href="/signup">立即注册</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 统一底部 -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-logo">
+                        <i class="fas fa-robot"></i>
+                        <span>AI24X</span>
+                    </div>
+                    <p class="footer-description">
+                        聚焦人工智能产业，帮助优秀AI项目实现24小时不间断的价值创造
+                    </p>
+                </div>
+                <div class="footer-section">
+                    <h3>快速链接</h3>
+                    <ul class="footer-links">
+                        <li><a href="/">首页</a></li>
+                        <li><a href="/tools">AI工具库</a></li>
+                        <li><a href="/tutorials">热门教程</a></li>
+                        <li><a href="/custom">定制开发</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>支持</h3>
+                    <ul class="footer-links">
+                        <li><a href="/help">帮助中心</a></li>
+                        <li><a href="/contact">联系我们</a></li>
+                        <li><a href="/privacy">隐私政策</a></li>
+                        <li><a href="/terms">服务条款</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>关注我们</h3>
+                    <div class="social-links">
+                        <a href="#" class="social-link"><i class="fab fa-weibo"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-weixin"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-github"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 AI24X. 保留所有权利</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // 密码显示/隐藏切换
+        document.getElementById('togglePassword').addEventListener('click', function() {
+            const passwordInput = document.getElementById('password');
+            const icon = this.querySelector('i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                passwordInput.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        });
+        
+        // 检查URL参数，显示注册成功消息
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('registered') === 'true') {
+            const welcomeMsg = document.getElementById('welcomeMessage');
+            if (welcomeMsg) {
+                welcomeMsg.style.display = 'block';
+                welcomeMsg.textContent = '注册成功！请使用您的账户登录。';
+            }
+        }
+        
+        // 表单提交
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            
+            // 简单验证
+            if (!email) {
+                alert('请输入邮箱地址');
+                return;
+            }
+            
+            if (!password) {
+                alert('请输入密码');
+                return;
+            }
+            
+            // 显示加载状态
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 登录中...';
+            submitBtn.disabled = true;
+            
+            // 模拟网络延迟
+            setTimeout(() => {
+                try {
+                    // 从localStorage获取用户数据
+                    const users = JSON.parse(localStorage.getItem('ai24x_users') || '[]');
+                    const user = users.find(u => u.email === email && u.password === btoa(password));
+                    
+                    if (user) {
+                        // 登录成功
+                        localStorage.setItem('ai24x_logged_in', 'true');
+                        localStorage.setItem('ai24x_username', user.username);
+                        localStorage.setItem('ai24x_email', user.email);
+                        localStorage.setItem('ai24x_user_id', user.id);
+                        
+                        // 显示成功消息
+                        const successMsg = document.getElementById('successMessage');
+                        if (successMsg) {
+                            successMsg.textContent = '登录成功！正在跳转到用户中心...';
+                            successMsg.style.color = '#2ed573';
+                            successMsg.style.display = 'block';
+                        }
+                        
+                        // 2秒后跳转
+                        setTimeout(() => {
+                            window.location.href = '/user-center';
+                        }, 2000);
+                        
+                    } else {
+                        // 登录失败
+                        alert('邮箱或密码错误，请重试');
+                        submitBtn.innerHTML = originalText;
+                        submitBtn.disabled = false;
+                    }
+                    
+                } catch (error) {
+                    console.error('登录失败:', error);
+                    alert('登录失败，请稍后重试');
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                }
+            }, 1000);
+        });
+        
+        // 搜索功能
+        document.querySelector('.search-button').addEventListener('click', function() {
+            const searchInput = document.querySelector('.search-input');
+            const query = searchInput.value.trim();
+            if (query) {
+                window.location.href = `/tools?search=${encodeURIComponent(query)}`;
+            }
+        });
+        
+        document.querySelector('.search-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const query = this.value.trim();
+                if (query) {
+                    window.location.href = `/tools?search=${encodeURIComponent(query)}`;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

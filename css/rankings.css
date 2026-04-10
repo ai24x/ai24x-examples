@@ -1,0 +1,553 @@
+/* 实时排行页面样式 */
+
+/* 页面主容器 */
+.rankings-main {
+    padding: 40px 0 80px;
+    min-height: calc(100vh - 160px);
+    background: linear-gradient(135deg, #0a0a0f 0%, #0f1a2a 100%);
+}
+
+/* 页面标题 */
+.page-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.page-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: linear-gradient(90deg, #00d4ff, #00a8ff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 10px;
+}
+
+.page-header .page-subtitle {
+    font-size: 1.1rem;
+    color: #a0a0c0;
+    opacity: 0.9;
+}
+
+/* 时间筛选器 */
+.time-filter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 212, 255, 0.1);
+}
+
+.filter-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.filter-btn {
+    padding: 8px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    color: #fff;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.filter-btn:hover {
+    background: rgba(0, 212, 255, 0.2);
+    border-color: #00d4ff;
+}
+
+.filter-btn.active {
+    background: linear-gradient(90deg, #00d4ff, #00a8ff);
+    border-color: transparent;
+    color: #000;
+    font-weight: 600;
+}
+
+.last-update {
+    color: #a0a0c0;
+    font-size: 0.9rem;
+}
+
+.last-update i {
+    margin-right: 5px;
+    color: #00d4ff;
+}
+
+/* 排行榜容器 */
+.rankings-container {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+}
+
+/* 总榜样式 */
+.ranking-section {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 30px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 212, 255, 0.1);
+}
+
+.ranking-section h2 {
+    font-size: 1.8rem;
+    margin-bottom: 25px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ranking-section h2 i {
+    color: #00d4ff;
+}
+
+.ranking-table {
+    overflow-x: auto;
+}
+
+.ranking-header {
+    display: grid;
+    grid-template-columns: 80px 1fr 100px 120px 100px;
+    gap: 20px;
+    padding: 15px 20px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: #a0a0c0;
+}
+
+.ranking-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.ranking-item {
+    display: grid;
+    grid-template-columns: 80px 1fr 100px 120px 100px;
+    gap: 20px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    align-items: center;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.ranking-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(0, 212, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.ranking-item.top-3 {
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(0, 168, 255, 0.05));
+    border-color: rgba(0, 212, 255, 0.3);
+}
+
+.rank-col {
+    font-size: 1.2rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.rank-col.top-1 {
+    color: #ffd700;
+}
+
+.rank-col.top-2 {
+    color: #c0c0c0;
+}
+
+.rank-col.top-3 {
+    color: #cd7f32;
+}
+
+.tool-col {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.tool-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #00d4ff, #00a8ff);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.tool-info {
+    flex: 1;
+}
+
+.tool-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 5px;
+}
+
+.tool-category {
+    font-size: 0.85rem;
+    color: #a0a0c0;
+}
+
+.trend-col {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: 600;
+}
+
+.trend-col.rising {
+    color: #00ff88;
+}
+
+.trend-col.falling {
+    color: #ff4444;
+}
+
+.trend-col.stable {
+    color: #a0a0c0;
+}
+
+.score-col {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #00d4ff;
+}
+
+.change-col {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: 600;
+}
+
+.change-col.up {
+    color: #00ff88;
+}
+
+.change-col.down {
+    color: #ff4444;
+}
+
+.change-col.new {
+    color: #ffd700;
+}
+
+/* 分类排行榜 */
+.category-rankings {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 25px;
+}
+
+.category-section {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 25px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 212, 255, 0.1);
+}
+
+.category-section h3 {
+    font-size: 1.4rem;
+    margin-bottom: 20px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.category-section h3 i {
+    color: #00d4ff;
+}
+
+.category-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.category-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.category-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateX(5px);
+}
+
+.category-rank {
+    width: 30px;
+    height: 30px;
+    background: rgba(0, 212, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #00d4ff;
+}
+
+.category-item.top-3 .category-rank {
+    background: linear-gradient(135deg, #00d4ff, #00a8ff);
+    color: #000;
+}
+
+.category-tool {
+    flex: 1;
+}
+
+.category-tool-name {
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 3px;
+}
+
+.category-tool-score {
+    font-size: 0.85rem;
+    color: #a0a0c0;
+}
+
+/* 趋势分析 */
+.trend-analysis {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 30px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 212, 255, 0.1);
+}
+
+.trend-analysis h2 {
+    font-size: 1.8rem;
+    margin-bottom: 25px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.trend-analysis h2 i {
+    color: #00d4ff;
+}
+
+.trend-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.trend-card {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    padding: 25px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.trend-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(0, 212, 255, 0.2);
+    transform: translateY(-3px);
+}
+
+.trend-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.trend-icon.rising {
+    background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 255, 136, 0.1));
+    color: #00ff88;
+}
+
+.trend-icon.new {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 215, 0, 0.1));
+    color: #ffd700;
+}
+
+.trend-icon.stable {
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 168, 255, 0.1));
+    color: #00d4ff;
+}
+
+.trend-info {
+    flex: 1;
+}
+
+.trend-info h4 {
+    font-size: 1.1rem;
+    color: #fff;
+    margin-bottom: 8px;
+}
+
+.trend-tool {
+    font-weight: 600;
+    color: #00d4ff;
+    margin-bottom: 5px;
+}
+
+.trend-change {
+    font-size: 0.9rem;
+    color: #a0a0c0;
+}
+
+/* 数据说明 */
+.data-explanation {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 30px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 212, 255, 0.1);
+}
+
+.data-explanation h3 {
+    font-size: 1.4rem;
+    margin-bottom: 20px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.data-explanation h3 i {
+    color: #00d4ff;
+}
+
+.data-explanation ul {
+    list-style: none;
+    padding: 0;
+}
+
+.data-explanation li {
+    margin-bottom: 12px;
+    padding-left: 25px;
+    position: relative;
+    color: #a0a0c0;
+    line-height: 1.6;
+}
+
+.data-explanation li:before {
+    content: "•";
+    color: #00d4ff;
+    position: absolute;
+    left: 0;
+    font-size: 1.2rem;
+}
+
+.data-explanation li strong {
+    color: #fff;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .rankings-main {
+        padding: 30px 0 60px;
+    }
+    
+    .page-header h1 {
+        font-size: 2rem;
+    }
+    
+    .time-filter {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+    
+    .filter-buttons {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .ranking-header {
+        grid-template-columns: 60px 1fr 80px 100px 80px;
+        gap: 10px;
+        padding: 12px 15px;
+        font-size: 0.9rem;
+    }
+    
+    .ranking-item {
+        grid-template-columns: 60px 1fr 80px 100px 80px;
+        gap: 10px;
+        padding: 15px;
+    }
+    
+    .tool-icon {
+        width: 35px;
+        height: 35px;
+        font-size: 1rem;
+    }
+    
+    .tool-name {
+        font-size: 1rem;
+    }
+    
+    .score-col {
+        font-size: 1.1rem;
+    }
+    
+    .category-rankings {
+        grid-template-columns: 1fr;
+    }
+    
+    .trend-cards {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .ranking-header {
+        grid-template-columns: 50px 1fr 70px 90px 70px;
+        font-size: 0.8rem;
+    }
+    
+    .ranking-item {
+        grid-template-columns: 50px 1fr 70px 90px 70px;
+        font-size: 0.9rem;
+    }
+    
+    .tool-icon {
+        width: 30px;
+        height: 30px;
+        font-size: 0.9rem;
+    }
+    
+    .tool-name {
+        font-size: 0.9rem;
+    }
+    
+    .score-col {
+        font-size: 1rem;
+    }
+}

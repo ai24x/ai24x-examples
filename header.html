@@ -1,0 +1,54 @@
+<!-- 统一头部导航 -->
+<header class="header">
+    <div class="container">
+        <div class="header-content">
+            <div class="logo">
+                <a href="/">
+                    <i class="fas fa-robot"></i>
+                    <span>AI24X</span>
+                </a>
+            </div>
+            
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="/" class="nav-link" data-page="home"><i class="fas fa-home"></i> <span class="nav-text">首页</span></a></li>
+                    <li><a href="/tools" class="nav-link" data-page="tools"><i class="fas fa-tools"></i> <span class="nav-text">AI工具库</span></a></li>
+                    <li><a href="/rankings" class="nav-link" data-page="rankings"><i class="fas fa-chart-bar"></i> <span class="nav-text">实时排行</span></a></li>
+                    <li><a href="/tutorials" class="nav-link" data-page="tutorials"><i class="fas fa-chart-line"></i> <span class="nav-text">热门教程</span></a></li>
+                    <li><a href="/custom" class="nav-link" data-page="custom"><i class="fas fa-cogs"></i> <span class="nav-text">定制开发</span></a></li>
+                </ul>
+            </nav>
+            
+            <div class="header-actions">
+                <div class="auth-buttons">
+                    <a href="/login" class="btn btn-outline"><i class="fas fa-sign-in-alt"></i> 登录</a>
+                    <a href="/signup" class="btn btn-primary"><i class="fas fa-user-plus"></i> 注册</a>
+                </div>
+                <button class="mobile-menu-btn">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<script>
+// 头部导航激活状态设置
+document.addEventListener('DOMContentLoaded', function() {
+    // 获取当前页面路径
+    const currentPath = window.location.pathname;
+    const currentPage = currentPath === '/' ? 'home' : currentPath.replace('/', '').split('.')[0];
+    
+    // 移除所有导航链接的active类
+    const navLinks = document.querySelectorAll('.nav-link');
+    navLinks.forEach(link => {
+        link.classList.remove('active');
+    });
+    
+    // 为当前页面添加active类
+    const currentLink = document.querySelector(`.nav-link[data-page="${currentPage}"]`);
+    if (currentLink) {
+        currentLink.classList.add('active');
+    }
+});
+</script>

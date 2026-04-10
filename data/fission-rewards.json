@@ -1,0 +1,12 @@
+{
+  "31f13d012ad1f200": {
+    "id": "31f13d012ad1f200",
+    "userId": "test_user_001",
+    "points": 53,
+    "reason": "邀请新用户 test_new_user_001",
+    "relationId": "9eaf457a13672d30",
+    "awardedAt": "2026-03-08T06:27:32.559Z",
+    "status": "awarded",
+    "type": "fission"
+  }
+}

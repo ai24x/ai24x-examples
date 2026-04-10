@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OpenClaw技能开发：从零创建自定义AI技能 - AI24X教程</title>
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../header-unified.css">
+    <link rel="stylesheet" href="../header-fix.css">
+    <link rel="stylesheet" href="../spacing-unified.css">
+    <link rel="stylesheet" href="../mobile-fix.css">
+    <link rel="stylesheet" href="../font-awesome-local.css">
+    <link rel="stylesheet" href="../fonts-local.css">
+    <style>
+        .tutorial-detail-container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        
+        .back-to-tutorials {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: #00d4ff;
+            text-decoration: none;
+            margin-bottom: 30px;
+        }
+        
+        .tutorial-content {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 212, 255, 0.1);
+            border-radius: 16px;
+            padding: 40px;
+            line-height: 1.7;
+        }
+        
+        .tutorial-content h2 {
+            color: #00d4ff;
+            font-size: 1.8rem;
+            margin: 30px 0 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(0, 212, 255, 0.2);
+        }
+        
+        .tutorial-content h3 {
+            color: white;
+            font-size: 1.4rem;
+            margin: 25px 0 10px;
+        }
+        
+        .tutorial-content p {
+            color: #cbd5e0;
+            margin-bottom: 15px;
+        }
+        
+        .tutorial-content ul, .tutorial-content ol {
+            color: #cbd5e0;
+            margin: 15px 0 15px 20px;
+        }
+        
+        .tutorial-content li {
+            margin-bottom: 8px;
+        }
+        
+        .tutorial-content code {
+            background: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .tutorial-content pre {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+        
+        .tutorial-content pre code {
+            background: none;
+            color: #cbd5e0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body class="tutorial-page">
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <a href="/">
+                        <i class="fas fa-robot"></i>
+                        <span>AI24X</span>
+                    </a>
+                </div>
+                
+                <nav class="main-nav">
+                    <ul>
+                        <li><a href="/" class="nav-link"><i class="fas fa-home"></i> <span class="nav-text">首页</span></a></li>
+                        <li><a href="/tools" class="nav-link"><i class="fas fa-tools"></i> <span class="nav-text">AI工具库</span></a></li>
+                        <li><a href="/tutorials" class="nav-link active"><i class="fas fa-chart-line"></i> <span class="nav-text">热门教程</span></a></li>
+                        <li><a href="/custom" class="nav-link"><i class="fas fa-cogs"></i> <span class="nav-text">定制开发</span></a></li>
+                    </ul>
+                </nav>
+                
+                <div class="header-actions">
+                    <div class="auth-buttons">
+                        <a href="/login" class="btn btn-outline"><i class="fas fa-sign-in-alt"></i> 登录</a>
+                        <a href="/signup" class="btn btn-primary"><i class="fas fa-user-plus"></i> 注册</a>
+                    </div>
+                    <button class="mobile-menu-btn">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="tutorial-detail-container">
+        <a href="/tutorials" class="back-to-tutorials">
+            <i class="fas fa-arrow-left"></i> 返回教程列表
+        </a>
+        
+        <div class="tutorial-header">
+            <h1>OpenClaw技能开发：从零创建自定义AI技能</h1>
+            <div class="tutorial-meta">
+                <span><i class="fas fa-clock"></i> 阅读时间：30分钟</span>
+                <span><i class="fas fa-user"></i> 作者：AI24X团队</span>
+                <span><i class="fas fa-calendar"></i> 发布日期：2026-03-21</span>
+                <span><i class="fas fa-tag"></i> 分类：OpenClaw</span>
+                <span><i class="fas fa-star"></i> 难度：中级</span>
+            </div>
+        </div>
+        
+        <div class="tutorial-content">
+            <h2>什么是OpenClaw技能？</h2>
+            <p>OpenClaw技能是扩展AI助手功能的核心模块。每个技能都是一个独立的插件，可以为AI助手添加新的能力，如搜索网页、读取文件、计算数学等。</p>
+            
+            <h2>技能开发基础</h2>
+            
+            <h3>技能文件结构</h3>
+            <p>一个标准的OpenClaw技能包含以下文件：</p>
+            <pre><code>my-skill/
+├── SKILL.md          # 技能说明文档
+├── index.js          # 技能主逻辑
+├── config.json       # 技能配置
+├── package.json      # 依赖管理
+└── README.md         # 使用说明</code></pre>
+            
+            <h3>创建新技能</h3>
+            <p>使用OpenClaw CLI创建新技能：</p>
+            <pre><code># 创建新技能目录
+mkdir my-weather-skill
+cd my-weather-skill
+
+# 初始化技能
+openclaw skill init --name="weather-skill" --description="天气查询技能"</code></pre>
+            
+            <h2>技能开发实战</h2>
+            
+            <h3>1. 创建天气查询技能</h3>
+            <p>创建 <code>index.js</code> 文件：</p>
+            <pre><code>// 天气查询技能
+module.exports = {
+    name: 'weather',
+    description: '查询城市天气',
+    
+    // 技能配置
+    config: {
+        apiKey: process.env.WEATHER_API_KEY,
+        baseUrl: 'https://api.weather.com'
+    },
+    
+    // 技能执行函数
+    execute: async function(params, context) {
+        const { city } = params;
+        
+        if (!city) {
+            return { error: '请提供城市名称' };
+        }
+        
+        try {
+            // 调用天气API
+            const response = await fetch(`${this.config.baseUrl}/weather?city=${city}&key=${this.config.apiKey}`);
+            const data = await response.json();
+            
+            return {
+                city: data.city,
+                temperature: data.temp,
+                condition: data.condition,
+                humidity: data.humidity,
+                windSpeed: data.wind_speed
+            };
+        } catch (error) {
+            return { error: '天气查询失败: ' + error.message };
+        }
+    },
+    
+    // 技能参数定义
+    parameters: {
+        city: {
+            type: 'string',
+            description: '城市名称',
+            required: true
+        }
+    }
+};</code></pre>
+            
+            <h3>2. 配置技能</h3>
+            <p>创建 <code>config.json</code> 文件：</p>
+            <pre><code>{
+    "name": "weather-skill",
+    "version": "1.0.0",
+    "description": "OpenClaw天气查询技能",
+    "author": "AI24X团队",
+    "license": "MIT",
+    "dependencies": {
+        "node-fetch": "^3.0.0"
+    },
+    "openclaw": {
+        "minVersion": "1.0.0",
+        "category": "utility",
+        "tags": ["weather", "api", "utility"]
+    }
+}</code></pre>
+            
+            <h3>3. 编写技能文档</h3>
+            <p>创建 <code>SKILL.md</code> 文件：</p>
+            <pre><code># 天气查询技能
+
+## 功能描述
+查询指定城市的天气信息，包括温度、湿度、天气状况等。
+
+## 使用方法
+```javascript
+// 在OpenClaw中使用
+const weather = await openclaw.skills.weather.execute({ city: '北京' });
+```
+
+## 参数说明
+- `city` (必填): 城市名称，如"北京"、"上海"
+
+## 返回结果
+```json
+{
+    "city": "北京",
+    "temperature": 22,
+    "condition": "晴朗",
+    "humidity": 65,
+    "windSpeed": 12
+}
+```
+
+## 环境变量
+- `WEATHER_API_KEY`: 天气API密钥</code></pre>
+            
+            <h2>技能测试与调试</h2>
+            
+            <h3>本地测试</h3>
+            <pre><code># 安装依赖
+npm install
+
+# 运行测试
+npm test
+
+# 调试技能
+openclaw skill debug ./my-weather-skill</code></pre>
+            
+            <h3>集成测试</h3>
+            <pre><code>// 测试脚本
+const weatherSkill = require('./index.js');
+
+async function testSkill() {
+    const result = await weatherSkill.execute({ city: '北京' }, {});
+    console.log('测试结果:', result);
+}
+
+testSkill();</code></pre>
+            
+            <h2>技能发布</h2>
+            
+            <h3>1. 打包技能</h3>
+            <pre><code># 创建技能包
+openclaw skill pack my-weather-skill
+
+# 输出: my-weather-skill.opks (OpenClaw技能包)</code></pre>
+            
+            <h3>2. 发布到技能市场</h3>
+            <pre><code># 登录OpenClaw开发者账户
+openclaw login
+
+# 发布技能
+openclaw skill publish my-weather-skill.opks
+
+# 设置技能可见性
+openclaw skill set-visibility my-weather-skill public</code></pre>
+            
+            <h3>3. 安装使用</h3>
+            <pre><code># 用户安装技能
+openclaw skill install weather-skill
+
+# 在OpenClaw中使用
+openclaw ask "北京天气怎么样"</code></pre>
+            
+            <h2>最佳实践</h2>
+            
+            <h3>1. 错误处理</h3>
+            <p>始终包含完善的错误处理：</p>
+            <pre><code>execute: async function(params, context) {
+    try {
+        // 业务逻辑
+    } catch (error) {
+        console.error('技能执行错误:', error);
+        return {
+            error: '技能执行失败',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        };
+    }
+}</code></pre>
+            
+            <h3>2. 参数验证</h3>
+            <pre><code>// 验证必填参数
+if (!params.city) {
+    return { error: '城市参数不能为空' };
+}
+
+// 验证参数类型
+if (typeof params.city !== 'string') {
+    return { error: '城市参数必须是字符串' };
+}</code></pre>
+            
+            <h3>3. 性能优化</h3>
+            <ul>
+                <li>使用缓存减少API调用</li>
+                <li>批量处理相似请求</li>
+                <li>设置合理的超时时间</li>
+                <li>监控技能性能指标</li>
+            </ul>
+            
+            <h2>常见问题</h2>
+            
+            <h3>Q: 技能如何获取用户上下文？</h3>
+            <p>A: 通过 <code>context</code> 参数获取：</p>
+            <pre><code>execute: async function(params, context) {
+    const userId = context.userId;
+    const sessionId = context.sessionId;
+    // 使用上下文信息
+}</code></pre>
+            
+            <h3>Q: 技能可以调用其他技能吗？</h3>
+            <p>A: 可以，通过技能组合实现复杂功能：</p>
+            <pre><code>// 在技能中调用其他技能
+const searchResult = await context.skills.webSearch.execute({ query: '天气API' });
+const translation = await context.skills.translator.execute({ text: searchResult, targetLang: 'zh' });</code></pre>
+            
+            <h3>Q: 如何更新已发布的技能？</h3>
+            <p>A: 更新版本号后重新发布：</p>
+            <pre><code># 更新package.json中的版本号
+"version": "1.0.1"
+
+# 重新打包发布
+openclaw skill pack my-weather-skill
+openclaw skill publish my-weather-skill.opks --update</code></pre>
+            
+            <h2>下一步学习</h2>
+            <p>掌握了基础技能开发后，建议继续学习：</p>
+            <ul>
+                <li>高级技能架构设计</li>
+                <li>技能性能监控</li>
+                <li>技能安全最佳实践</li>
+                <li>技能市场推广</li>
+            </ul>
+            
+            <p>希望本教程能帮助你快速上手OpenClaw技能开发。开始创建你的第一个技能吧！</p>
+        </div>
+        
+        <div class="tutorial-navigation">
+            <a href="/tutorials/openclaw-lan-deployment" class="btn btn-primary">
+                下一篇：OpenClaw局域网部署指南 <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-logo">
+                        <i class="fas fa-robot"></i>
+                        <span>AI24X</span>
+                    </div>
+                    <p class="footer-description">
+                        聚焦人工智能产业，帮助优秀AI项目实现24小时不间断的价值创造
+                    </p>
+                </div>
+                <div class="footer-section">
+                    <h3>快速链接</h3>
+                    <ul class="footer-links">
+                        <li><a href="/">首页</a></li>
+                        <li><a href="/tools">AI工具库</a></li>
+                        <li><a href="/tutorials">热门教程</a></li>
+                        <li><a href="/custom">定制开发</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>支持</h3>
+                    <ul class="footer-links">
+                        <li><a href="/help">帮助中心</a></li>
+                        <li><a href="/contact">联系我们</a></li>
+                        <li><a href="/privacy">隐私政策</a></li>
+                        <li><a href="/terms">服务条款</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 AI24X. 保留所有权利.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.querySelector('.mobile-menu-btn').addEventListener('click', function() {
+            document.querySelector('.main-nav').classList.toggle('active');
+        });
+    </script>
+</body>
+</html>

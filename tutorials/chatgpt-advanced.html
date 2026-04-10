@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ChatGPT高级使用技巧 - AI24X教程</title>
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../header-unified.css">
+    <link rel="stylesheet" href="../header-fix.css">
+    <link rel="stylesheet" href="../spacing-unified.css">
+    <link rel="stylesheet" href="../mobile-fix.css">
+    <link rel="stylesheet" href="../font-awesome-local.css">
+    <link rel="stylesheet" href="../fonts-local.css">
+    <style>
+        .tutorial-detail-container { max-width: 800px; margin: 40px auto; padding: 0 20px; }
+        .back-to-tutorials { display: inline-flex; align-items: center; gap: 10px; color: #00d4ff; text-decoration: none; margin-bottom: 30px; }
+        .tutorial-content { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(0, 212, 255, 0.1); border-radius: 16px; padding: 40px; line-height: 1.7; }
+        .tutorial-content h2 { color: #00d4ff; font-size: 1.8rem; margin: 30px 0 15px; padding-bottom: 10px; border-bottom: 2px solid rgba(0, 212, 255, 0.2); }
+        .tutorial-content h3 { color: white; font-size: 1.4rem; margin: 25px 0 10px; }
+        .tutorial-content p { color: #cbd5e0; margin-bottom: 15px; }
+        .tutorial-content ul, .tutorial-content ol { color: #cbd5e0; margin: 15px 0 15px 20px; }
+        .tutorial-content li { margin-bottom: 8px; }
+        .tutorial-content code { background: rgba(0, 212, 255, 0.1); color: #00d4ff; padding: 2px 8px; border-radius: 4px; font-family: 'Courier New', monospace; }
+        .tutorial-content pre { background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(0, 212, 255, 0.2); border-radius: 8px; padding: 20px; margin: 20px 0; overflow-x: auto; }
+        .tip-box { background: rgba(46, 213, 115, 0.1); border: 1px solid rgba(46, 213, 115, 0.3); border-radius: 12px; padding: 20px; margin: 20px 0; }
+        .tip-box h4 { color: #2ed573; margin-bottom: 10px; }
+    
+        @media (max-width: 768px) {
+            .tutorial-header h1 {
+                font-size: 1.8rem;
+                line-height: 1.3;
+                margin-bottom: 15px;
+            }
+            
+            .tutorial-meta {
+                flex-direction: column;
+                gap: 10px;
+                font-size: 0.9rem;
+            }
+            
+            .tutorial-meta span {
+                margin-left: 0 !important;
+            }
+            
+            .tutorial-content {
+                padding: 20px;
+                border-radius: 12px;
+            }
+            
+            .tutorial-content h2 {
+                font-size: 1.5rem;
+                margin: 25px 0 12px;
+            }
+            
+            .tutorial-content h3 {
+                font-size: 1.2rem;
+                margin: 20px 0 10px;
+            }
+            
+            .tutorial-content p {
+                font-size: 1rem;
+                line-height: 1.6;
+            }
+            
+            .tutorial-content ul,
+            .tutorial-content ol {
+                margin-left: 15px;
+                padding-left: 5px;
+            }
+            
+            .tutorial-content li {
+                margin-bottom: 6px;
+                font-size: 0.95rem;
+            }
+            
+            .tutorial-content pre {
+                padding: 15px;
+                font-size: 0.9rem;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .tutorial-content code {
+                font-size: 0.9rem;
+                padding: 2px 6px;
+            }
+            
+            .tool-comparison {
+                padding: 15px;
+                margin: 15px 0;
+            }
+            
+            .tutorial-navigation .btn {
+                width: 100%;
+                text-align: center;
+                padding: 12px;
+                font-size: 1rem;
+            }
+            
+            .back-to-tutorials {
+                font-size: 0.95rem;
+                padding: 8px 0;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .tutorial-header h1 {
+                font-size: 1.6rem;
+            }
+            
+            .tutorial-content {
+                padding: 15px;
+            }
+            
+            .tutorial-content h2 {
+                font-size: 1.3rem;
+            }
+            
+            .tutorial-content h3 {
+                font-size: 1.1rem;
+            }
+            
+            .tutorial-content pre {
+                padding: 12px;
+                font-size: 0.85rem;
+            }
+        }
+        
+        /* 横屏优化 */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .tutorial-header h1 {
+                font-size: 1.7rem;
+            }
+            
+            .tutorial-content {
+                padding: 15px 20px;
+            }
+        }
+    </style>
+</head>
+<body class="tutorial-page">
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo"><a href="/"><i class="fas fa-robot"></i><span>AI24X</span></a></div>
+                <nav class="main-nav">
+                    <ul>
+                        <li><a href="/" class="nav-link"><i class="fas fa-home"></i> <span class="nav-text">首页</span></a></li>
+                        <li><a href="/tools" class="nav-link"><i class="fas fa-tools"></i> <span class="nav-text">AI工具库</span></a></li>
+                        <li><a href="/rankings" class="nav-link"><i class="fas fa-chart-bar"></i> <span class="nav-text">实时排行</span></a></li>
+                        <li><a href="/tutorials" class="nav-link"><i class="fas fa-chart-line"></i> <span class="nav-text">热门教程</span></a></li>
+                        <li><a href="/custom" class="nav-link"><i class="fas fa-cogs"></i> <span class="nav-text">定制开发</span></a></li>
+                    </ul>
+                </nav>
+                <div class="header-actions">
+                    <div class="auth-buttons">
+                        <a href="/login" class="btn btn-outline"><i class="fas fa-sign-in-alt"></i> 登录</a>
+                        <a href="/signup" class="btn btn-primary"><i class="fas fa-user-plus"></i> 注册</a>
+                    </div>
+                    <button class="mobile-menu-btn"><i class="fas fa-bars"></i></button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="tutorial-detail-container">
+        <a href="/tutorials" class="back-to-tutorials"><i class="fas fa-arrow-left"></i> 返回教程列表</a>
+        
+        <div class="tutorial-header">
+            <h1>ChatGPT高级使用技巧</h1>
+            <div class="tutorial-meta">
+                <span><i class="fas fa-clock"></i> 阅读时间：20分钟</span>
+                <span><i class="fas fa-user"></i> 作者：AI专家</span>
+                <span><i class="fas fa-calendar"></i> 发布日期：2026-03-09</span>
+                <span><i class="fas fa-tag"></i> 分类：文本工具</span>
+                <span><i class="fas fa-star"></i> 难度：中级</span>
+            </div>
+        </div>
+        
+        <div class="tutorial-content">
+            <h2>自定义指令系统</h2>
+            <p>ChatGPT的自定义指令功能允许你设置永久性的提示，让AI记住你的偏好和工作方式。</p>
+            
+            <div class="tip-box">
+                <h4>自定义指令示例</h4>
+                <pre><code>关于我：
+- 我是一名软件开发者
+- 喜欢简洁直接的答案
+- 需要代码示例时使用Python
+- 偏好技术性解释
+
+回答方式：
+- 使用中文回答
+- 提供实际可执行的代码
+- 包含错误处理
+- 给出性能考虑
+- 分步骤解释复杂概念</code></pre>
+            </div>
+            
+            <h3>专业角色设定</h3>
+            <pre><code>你是一位资深软件架构师，拥有15年全栈开发经验。
+请以架构师的视角分析问题，考虑：
+1. 系统可扩展性
+2. 性能优化
+3. 安全最佳实践
+4. 团队协作效率
+5. 长期维护成本</code></pre>
+            
+            <h2>高级提示工程</h2>
+            
+            <h3>1. 结构化输出</h3>
+            <pre><code>请分析这个需求并提供：
+## 技术方案
+- 架构设计
+- 技术选型
+- 数据流程
+
+## 实施步骤
+1. 第一阶段
+2. 第二阶段
+3. 第三阶段
+
+## 风险评估
+- 技术风险
+- 时间风险
+- 成本风险
+
+## 成功指标
+- 性能指标
+- 用户体验
+- 业务价值</code></pre>
+            
+            <h3>2. 思维链提示</h3>
+            <pre><code>让我们一步步思考这个问题：
+
+第一步：理解问题核心
+- 用户真正需要什么？
+- 有哪些约束条件？
+- 期望的输出是什么？
+
+第二步：分析解决方案
+- 有哪些可行方案？
+- 每个方案的优缺点？
+- 推荐哪个方案？为什么？
+
+第三步：详细实施
+- 具体步骤是什么？
+- 需要哪些资源？
+- 可能遇到什么困难？
+
+第四步：验证结果
+- 如何测试方案？
+- 如何衡量成功？
+- 如何持续改进？</code></pre>
+            
+            <h2>API集成技巧</h2>
+            
+            <h3>1. 批量处理优化</h3>
+            <pre><code>import openai
+from concurrent.futures import ThreadPoolExecutor
+
+def process_batch(texts, batch_size=10):
+    """批量处理文本"""
+    results = []
+    
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = []
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i:i+batch_size]
+            future = executor.submit(process_single_batch, batch)
+            futures.append(future)
+        
+        for future in futures:
+            results.extend(future.result())
+    
+    return results
+
+def process_single_batch(batch):
+    """处理单个批次"""
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "你是一个文本分析专家"},
+            {"role": "user", "content": f"分析这些文本：{batch}"}
+        ],
+        temperature=0.3,
+        max_tokens=500
+    )
+    return parse_response(response)</code></pre>
+            
+            <h3>2. 流式响应处理</h3>
+            <pre><code>import openai
+
+def stream_response(prompt):
+    """流式获取响应"""
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": prompt}],
+        stream=True,
+        temperature=0.7,
+        max_tokens=2000
+    )
+    
+    full_response = ""
+    for chunk in response:
+        if chunk.choices[0].delta.get("content"):
+            content = chunk.choices[0].delta.content
+            print(content, end="", flush=True)
+            full_response += content
+    
+    return full_response
+
+# 使用示例
+stream_response("写一篇关于人工智能未来的文章")</code></pre>
+            
+            <h2>工作流自动化</h2>
+            
+            <h3>1. 文档处理流水线</h3>
+            <pre><code># 文档处理自动化脚本
+import os
+import openai
+from pathlib import Path
+
+class DocumentProcessor:
+    def __init__(self, api_key):
+        openai.api_key = api_key
+        
+    def process_document(self, file_path):
+        """处理单个文档"""
+        content = self.read_file(file_path)
+        
+        # 分析文档
+        analysis = self.analyze_content(content)
+        
+        # 生成摘要
+        summary = self.generate_summary(content)
+        
+        # 提取关键点
+        key_points = self.extract_key_points(content)
+        
+        # 生成改进建议
+        suggestions = self.generate_suggestions(content)
+        
+        return {
+            "analysis": analysis,
+            "summary": summary,
+            "key_points": key_points,
+            "suggestions": suggestions
+        }
+    
+    def analyze_content(self, content):
+        """分析文档内容"""
+        prompt = f"""分析以下文档：
+        
+        {content[:2000]}
+        
+        请提供：
+        1. 文档类型
+        2. 主要话题
+        3. 目标读者
+        4. 写作风格
+        5. 改进建议"""
+        
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3
+        )
+        
+        return response.choices[0].message.content</code></pre>
+            
+            <h3>2. 代码审查助手</h3>
+            <pre><code># 代码审查自动化
+def code_review(code, language="python"):
+    """自动代码审查"""
+    prompt = f"""请审查以下{language}代码：
+    
+    ```{language}
+    {code}
+    ```
+    
+    请提供：
+    1. 代码质量评分（1-10分）
+    2. 潜在问题
+    3. 性能优化建议
+    4. 安全风险
+    5. 最佳实践建议
+    6. 重构建议"""
+    
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.2
+    )
+    
+    return response.choices[0].message.content
+
+# 使用示例
+python_code = """
+def calculate_average(numbers):
+    total = 0
+    for num in numbers:
+        total += num
+    return total / len(numbers)
+"""
+
+review_result = code_review(python_code)
+print(review_result)</code></pre>
+            
+            <h2>性能优化</h2>
+            
+            <h3>1. Token使用优化</h3>
+            <ul>
+                <li><strong>压缩提示</strong>: 移除冗余词汇，保持简洁</li>
+                <li><strong>分批处理</strong>: 大任务分解为小任务</li>
+                <li><strong>缓存结果</strong>: 重复查询使用缓存</li>
+                <li><strong>设置max_tokens</strong>: 根据需求限制响应长度</li>
+            </ul>
+            
+            <h3>2. 成本控制策略</h3>
+            <pre><code># 成本监控器
+class CostMonitor:
+    def __init__(self, budget=100):
+        self.budget = budget
+        self.used = 0
+        self.requests = []
+        
+    def can_make_request(self, estimated_cost):
+        """检查是否超出预算"""
+        return self.used + estimated_cost <= self.budget
+    
+    def record_request(self, tokens_used, cost):
+        """记录请求信息"""
+        self.used += cost
+        self.requests.append({
+            "tokens": tokens_used,
+            "cost": cost,
+            "timestamp": datetime.now()
+        })
+        
+    def get_cost_report(self):
+        """生成成本报告"""
+        return {
+            "total_used": self.used,
+            "remaining": self.budget - self.used,
+            "request_count": len(self.requests),
+            "avg_cost_per_request": self.used / len(self.requests) if self.requests else 0
+        }</code></pre>
+            
+            <h2>高级应用场景</h2>
+            
+            <h3>1. 多轮对话管理</h3>
+            <pre><code>class ConversationManager:
+    def __init__(self):
+        self.history = []
+        self.context_window = 10  # 保留最近10轮对话
+        
+    def add_message(self, role, content):
+        """添加消息到历史"""
+        self.history.append({"role": role, "content": content})
+        
+        # 保持上下文窗口大小
+        if len(self.history) > self.context_window * 2:
+            self.history = self.history[-self.context_window * 2:]
+    
+    def get_context(self):
+        """获取对话上下文"""
+        return self.history.copy()
+    
+    def summarize_context(self):
+        """总结长对话"""
+        if len(self.history) < 5:
+            return self.history
+        
+        summary_prompt = "请总结以下对话的主要内容：\n\n"
+        for msg in self.history:
+            summary_prompt += f"{msg['role']}: {msg['content']}\n"
+        
+        # 调用ChatGPT生成摘要
+        summary = self.call_chatgpt(summary_prompt)
+        
+        # 用摘要替换旧历史
+        self.history = [
+            {"role": "system", "content": "对话摘要：" + summary},
+            self.history[-1]  # 保留最后一条消息
+        ]
+        
+        return self.history</code></pre>
+            
+            <h3>2. 知识库增强</h3>
+            <pre><code># RAG（检索增强生成）实现
+class KnowledgeBaseAssistant:
+    def __init__(self, knowledge_base):
+        self.knowledge_base = knowledge_base  # 向量数据库
+        
+    def answer_with_context(self, question):
+        """基于知识库回答问题"""
+        # 1. 从知识库检索相关文档
+        relevant_docs = self.retrieve_relevant_docs(question)
+        
+        # 2. 构建增强提示
+        context = "\n".join([doc["content"] for doc in relevant_docs[:3]])
+        
+        prompt = f"""基于以下信息回答问题：
+        
+        相关信息：
+        {context}
+        
+        问题：{question}
+        
+        要求：
+        1. 基于提供的信息回答
+        2. 如果信息不足，明确说明
+        3. 引用信息来源
+        4. 保持客观准确"""
+        
+        # 3. 调用ChatGPT
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1
+        )
+        
+        return response.choices[0].message.content</code></pre>
+            
+            <h2>最佳实践总结</h2>
+            
+            <div class="tip-box">
+                <h4>效率提升技巧</h4>
+                <ul>
+                    <li><strong>明确目标</strong>: 每次对话聚焦一个主题</li>
+                    <li><strong>提供上下文</strong>: 给出足够的背景信息</li>
+                    <li><strong>分步骤请求</strong>: 复杂任务分解为多个简单请求</li>
+                    <li><strong>使用模板</strong>: 创建可复用的提示模板</li>
+                    <li><strong>监控质量</strong>: 定期评估回答质量</li>
+                </ul>
+            </div>
+            
+            <p>掌握这些高级技巧，你将能充分发挥ChatGPT的潜力，大幅提升工作效率和创造力。</p>
+        </div>
+        
+        <div class="tutorial-navigation">
+            <a href="/tutorials/ai-code-assistant" class="btn btn-primary">
+                下一篇：AI代码助手使用指南 <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-logo"><i class="fas fa-robot"></i><span>AI24X</
+

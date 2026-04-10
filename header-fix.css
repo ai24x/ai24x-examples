@@ -1,0 +1,62 @@
+/* 头部搜索框垂直对齐修复 */
+
+/* 确保头部操作区域容器有固定高度 */
+.header-actions {
+    height: 38px !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+/* 确保搜索框容器与按钮高度一致 */
+.header-actions .search-box {
+    height: 38px !important;
+    display: flex !important;
+    align-items: center !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+/* 搜索框输入框精确对齐 */
+.header-actions .search-box input {
+    height: 38px !important;
+    line-height: 1 !important;
+    padding: 10px 20px !important;
+    margin: 0 !important;
+    vertical-align: middle !important;
+}
+
+/* 搜索按钮精确对齐 */
+.header-actions .search-box .search-btn {
+    height: 24px !important;
+    width: 24px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* 认证按钮精确对齐 */
+.auth-buttons {
+    display: flex !important;
+    align-items: center !important;
+    height: 38px !important;
+}
+
+.auth-buttons .btn {
+    height: 38px !important;
+    line-height: 1 !important;
+    padding: 10px 20px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    vertical-align: middle !important;
+}
+
+.auth-buttons .btn i {
+    line-height: 1 !important;
+    vertical-align: middle !important;
+}

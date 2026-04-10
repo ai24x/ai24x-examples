@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI24X - 发现AI未来，就在AI24X</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- 头部导航区域 -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <a href="/">
+                        <i class="fas fa-robot"></i>
+                        <span>AI24X</span>
+                    </a>
+                </div>
+                
+                <nav class="main-nav">
+                    <ul>
+                        <li><a href="/" class="nav-link active"><i class="fas fa-home"></i> <span class="nav-text">首页</span></a></li>
+                        <li><a href="/tools" class="nav-link"><i class="fas fa-tools"></i> <span class="nav-text">AI工具库</span></a></li>
+                        <li><a href="/rankings" class="nav-link"><i class="fas fa-chart-line"></i> <span class="nav-text">热门排行</span></a></li>
+                        <li><a href="/tutorials" class="nav-link"><i class="fas fa-graduation-cap"></i> <span class="nav-text">教程</span></a></li>
+                        <li><a href="/custom" class="nav-link"><i class="fas fa-cogs"></i> <span class="nav-text">定制</span></a></li>
+                    </ul>
+                </nav>
+                
+                <div class="header-actions">
+                    <div class="search-box">
+                        <input type="text" placeholder="搜索AI工具..." id="globalSearch">
+                        <button class="search-btn"><i class="fas fa-search"></i></button>
+                    </div>
+                    <div class="auth-buttons">
+                        <a href="/login" class="btn btn-outline"><i class="fas fa-sign-in-alt"></i> 登录</a>
+                        <a href="/signup" class="btn btn-primary"><i class="fas fa-user-plus"></i> 注册</a>
+                    </div>
+                    <button class="mobile-menu-btn">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要内容区域 -->
+    <main class="main-content">
+        <section class="hero">
+            <div class="container">
+                <div class="hero-content">
+                    <h1>发现AI未来，就在AI24X</h1>
+                    <p>AI24X聚焦人工智能产业，通过专业筛选和精细化运营，帮助优秀AI项目实现24小时不间断的价值创造和收入增长</p>
+                    <div class="hero-actions">
+                        <a href="/tools" class="btn btn-primary btn-large">探索工具库</a>
+                        <a href="/categories" class="btn btn-outline btn-large">浏览分类</a>
+                    </div>
+                </div>
+                <div class="hero-image">
+                    <i class="fas fa-brain"></i>
+                </div>
+            </div>
+        </section>
+
+        <section class="features">
+            <div class="container">
+                <h2 class="section-title">核心功能</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <h3>智能搜索</h3>
+                        <p>快速找到您需要的AI工具，支持关键词、分类、价格等多维度筛选</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <h3>实时排行</h3>
+                        <p>基于用户评价和使用数据，为您推荐最受欢迎的AI工具</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-lightbulb"></i>
+                        </div>
+                        <h3>个性推荐</h3>
+                        <p>根据您的使用习惯和需求，推荐最适合的AI工具</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <h3>详细教程</h3>
+                        <p>提供丰富的使用教程和最佳实践，帮助您快速上手</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="popular-tools">
+            <div class="container">
+                <h2 class="section-title">🔥 热门AI工具</h2>
+                <div class="tools-grid">
+                    <div class="tool-card">
+                        <div class="tool-header">
+                            <div class="tool-icon">
+                                <i class="fas fa-paint-brush"></i>
+                            </div>
+                            <div class="tool-info">
+                                <h3>Midjourney</h3>
+                                <span class="tool-category">图像生成</span>
+                            </div>
+                        </div>
+                        <p class="tool-description">先进的AI图像生成工具，支持文本到图像转换</p>
+                        <div class="tool-tags">
+                            <span class="tag">AI绘画</span>
+                            <span class="tag">创意设计</span>
+                        </div>
+                        <div class="tool-footer">
+                            <span class="tool-price">💰 付费</span>
+                            <a href="#" class="tool-link">探索 →</a>
+                        </div>
+                    </div>
+                    <div class="tool-card">
+                        <div class="tool-header">
+                            <div class="tool-icon">
+                                <i class="fas fa-comments"></i>
+                            </div>
+                            <div class="tool-info">
+                                <h3>ChatGPT</h3>
+                                <span class="tool-category">对话AI</span>
+                            </div>
+                        </div>
+                        <p class="tool-description">强大的对话式AI助手，支持多种任务和创意写作</p>
+                        <div class="tool-tags">
+                            <span class="tag">对话</span>
+                            <span class="tag">写作</span>
+                            <span class="tag">编程</span>
+                        </div>
+                        <div class="tool-footer">
+                            <span class="tool-price">💰 免费/付费</span>
+                            <a href="#" class="tool-link">探索 →</a>
+                        </div>
+                    </div>
+                    <div class="tool-card">
+                        <div class="tool-header">
+                            <div class="tool-icon">
+                                <i class="fas fa-code"></i>
+                            </div>
+                            <div class="tool-info">
+                                <h3>GitHub Copilot</h3>
+                                <span class="tool-category">编程辅助</span>
+                            </div>
+                        </div>
+                        <p class="tool-description">AI编程助手，提供智能代码建议和自动补全</p>
+                        <div class="tool-tags">
+                            <span class="tag">开发</span>
+                            <span class="tag">代码</span>
+                            <span class="tag">效率</span>
+                        </div>
+                        <div class="tool-footer">
+                            <span class="tool-price">💰 付费</span>
+                            <a href="#" class="tool-link">探索 →</a>
+                        </div>
+                    </div>
+                    <div class="tool-card">
+                        <div class="tool-header">
+                            <div class="tool-icon">
+                                <i class="fas fa-image"></i>
+                            </div>
+                            <div class="tool-info">
+                                <h3>DALL-E</h3>
+                                <span class="tool-category">图像生成</span>
+                            </div>
+                        </div>
+                        <p class="tool-description">OpenAI的图像生成模型，根据文本描述创建逼真图像</p>
+                        <div class="tool-tags">
+                            <span class="tag">AI绘画</span>
+                            <span class="tag">创意</span>
+                        </div>
+                        <div class="tool-footer">
+                            <span class="tool-price">💰 付费</span>
+                            <a href="#" class="tool-link">探索 →</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="section-actions">
+                    <a href="/tools" class="btn btn-primary">查看所有工具</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="cta">
+            <div class="container">
+                <div class="cta-content">
+                    <h2>立即开始您的AI之旅</h2>
+                    <p>加入AI24X，探索3000+款AI工具，提升您的工作效率和创造力</p>
+                    <div class="cta-actions">
+                        <a href="/register" class="btn btn-primary btn-large">免费注册</a>
+                        <a href="/tools" class="btn btn-outline btn-large">浏览工具</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-logo">
+                        <i class="fas fa-robot"></i>
+                        <span>AI24X</span>
+                    </div>
+                    <p class="footer-description">
+                        聚焦人工智能产业，帮助优秀AI项目实现24小时不间断的价值创造
+                    </p>
+                </div>
+                <div class="footer-section">
+                    <h3>快速链接</h3>
+                    <ul class="footer-links">
+                        <li><a href="/">首页</a></li>
+                        <li><a href="/tools">AI工具库</a></li>
+                        <li><a href="/rankings">热门排行</a></li>
+                        <li><a href="/tutorials">教程</a></li>
+                        <li><a href="/custom">定制</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>支持</h3>
+                    <ul class="footer-links">
+                        <li><a href="/help">帮助中心</a></li>
+                        <li><a href="/contact">联系我们</a></li>
+                        <li><a href="/privacy">隐私政策</a></li>
+                        <li><a href="/terms">服务条款</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>关注我们</h3>
+                    <div class="social-links">
+                        <a href="#" class="social-link"><i class="fab fa-weibo"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-weixin"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-github"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 AI24X. 保留所有权利.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 头部导航功能 -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 设置当前页面激活状态
+        const navLinks = document.querySelectorAll('.nav-link');
+        navLinks.forEach(link => {
+            if (link.getAttribute('href') === '/') {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+        
+        // 全局搜索功能
+        const globalSearch = document.getElementById('globalSearch');
+        const searchBtn = document.querySelector('.header-actions .search-btn');
+        
+        if (globalSearch && searchBtn) {
+            function performGlobalSearch() {
+                const query = globalSearch.value.trim();
+                if (query) {
+                    window.location.href = `/tools?search=${encodeURIComponent(query)}`;
+                }
+            }
+            
+            searchBtn.addEventListener('click', performGlobalSearch);
+            globalSearch.addEventListener('keyup', function(event) {
+                if (event.key === 'Enter') {
+                    performGlobalSearch();
+                }
+            });
+        }
+        
+        // 移动端菜单切换
+        const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+        const mainNav = document.querySelector('.main-nav');
+        
+        if (mobileMenuBtn && mainNav) {
+            mobileMenuBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                mainNav.classList.toggle('active');
+                mobileMenuBtn.innerHTML = mainNav.classList.contains('active') 
+                    ? '<i class="fas fa-times"></i>' 
+                    : '<i class="fas fa-bars"></i>';
+            });
+            
+            // 点击外部关闭菜单
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.main-nav') && !e.target.closest('.mobile-menu-btn')) {
+                    mainNav.classList.remove('active');
+                    mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
+                }
+            });
+            
+            // ESC键关闭菜单
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && mainNav.classList.contains('active')) {
+                    mainNav.classList.remove('active');
+                    mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
+                }
+            });
+        }
+        
+        // 窗口大小变化时重置菜单
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                const mainNav = document.querySelector('.main-nav');
+                const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+                
+                if (mainNav) {
+                    mainNav.classList.remove('active');
+                }
+                
+                if (mobileMenuBtn) {
+                    mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
+                }
+            }
+        });
+    });
+    </script>
+</body>
+</html>
