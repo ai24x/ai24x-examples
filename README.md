@@ -1,68 +1,103 @@
-# AI24X 网站服务器
+# AI24X Token 聚合平台
 
-## 🚀 快速启动
+## 项目概述
+AI24X Token 聚合平台（Token Freedom）是一个全球AI人共创的Token自由平台。
 
-### 方法1：一键启动（推荐）
-双击运行 `start-server.bat`
+## 技术栈
+- 后端：FastAPI + Python
+- 数据库：PostgreSQL 15
+- 前端：纯 HTML/CSS/JS
+- 部署：Docker + Nginx
+- 支付：PayPal
 
-### 方法2：自动启动服务（开机自启）
-1. 右键点击 `auto-start-service.bat`
-2. 选择"以管理员身份运行"
-3. 系统登录时会自动启动网站服务
-
-### 方法3：PowerShell监控服务
-```powershell
-# 以管理员身份运行PowerShell
-powershell -ExecutionPolicy Bypass -File monitor-service.ps1
+## 目录结构
+```
+ai24x01/
+├── api/          # 后端接口 (副脑01负责)
+│   ├── main.py              # FastAPI主程序
+│   ├── config.py            # 配置管理
+│   ├── models.py            # 数据模型
+│   ├── schemas.py           # Pydantic模型
+│   ├── services.py          # 业务逻辑
+│   ├── database.py          # 数据库连接
+│   ├── requirements.txt     # Python依赖
+│   ├── .env.example         # 环境变量示例
+│   ├── docker-compose.yml   # Docker配置
+│   ├── deploy.ps1           # Windows部署脚本
+│   ├── deploy.sh            # Linux部署脚本
+│   └── test_api.py          # API测试
+├── web/          # 前端网站 (副脑02负责)
+│   ├── index.html           # 网站首页
+│   ├── login.html           # 登录页面
+│   ├── register.html        # 注册页面
+│   ├── css/style.css        # 样式文件
+│   └── js/main.js           # JavaScript逻辑
+├── db/           # 数据库 (副脑04负责)
+│   ├── schema.sql           # 表结构SQL
+│   ├── connection.txt       # 数据库连接信息
+│   └── setup.sh             # 数据库初始化脚本
+├── config/       # 项目配置 (主脑负责)
+│   ├── .env.example         # 环境变量示例
+│   └── requirements.txt     # 基础依赖
+├── scripts/      # 运维脚本 (副脑03/04负责)
+│   ├── deploy/              # 部署脚本
+│   ├── monitor/             # 监控脚本
+│   └── backup/              # 备份脚本
+└── docs/         # 项目文档 (主脑负责)
+    ├── api/                 # API文档
+    ├── deployment/          # 部署文档
+    └── user-guide/          # 用户指南
 ```
 
-## 📍 访问地址
-- 主网站：http://localhost:3000
-- 健康检查：http://localhost:3000/health
-- 工具页面：http://localhost:3000/tools
-- 排名页面：http://localhost:3000/rankings
+## 核心功能
+1. **用户系统**：注册/登录/控制台
+2. **API管理**：API Key创建/管理/权限
+3. **唯一接口**：`/v1/chat/run` 免费/VIP自动分流
+4. **计费系统**：按Token计费 + 余额不足拦截
+5. **支付系统**：PayPal充值 + 订单/分成/提现
+6. **推荐系统**：二级推荐返利 (10% + 2%)
 
-## 🔧 技术栈
-- **前端**: HTML5, CSS3, JavaScript
-- **服务器**: Node.js + Express
-- **端口**: 3000
+## 快速开始
 
-## 🛠️ 故障排除
-
-### 问题1：端口3000被占用
+### 1. 数据库启动
 ```bash
-# 停止占用端口的进程
-netstat -ano | findstr :3000
-taskkill /F /PID [进程ID]
+cd db
+docker compose up -d
 ```
 
-### 问题2：Node.js未安装
-1. 访问 https://nodejs.org/
-2. 下载并安装LTS版本
-3. 重启电脑
-
-### 问题3：依赖安装失败
+### 2. 后端启动
 ```bash
-# 清除npm缓存
-npm cache clean --force
-
-# 重新安装依赖
-rm -rf node_modules package-lock.json
-npm install
+cd ../api
+python -m venv .venv
+.\.venv\Scripts\activate  # Windows
+pip install -r requirements.txt
+copy .env.example .env    # 配置环境变量
+python main.py
 ```
 
-## 📊 监控功能
-- 自动健康检查（每30秒）
-- 崩溃自动重启（最多3次）
-- 内存使用监控
-- 运行时间统计
+### 3. 前端访问
+直接打开 `web/index.html` 或使用本地服务器：
+```bash
+cd web
+python -m http.server 8000
+```
 
-## 🎯 开发说明
-当前版本为静态网站MVP，后续将升级为：
-1. React + TypeScript 前端
-2. 完整的AI工具数据库
-3. 用户认证系统
-4. 实时排名功能
+## API接口
+- 唯一接口：`POST /v1/chat/run`
+- 文档地址：`http://localhost:8000/docs` (启动后)
 
-## 📞 支持
-如有问题，请检查 `service-monitor.log` 日志文件
+## 开发规范
+1. **目录规范**：严格按上述结构存放文件
+2. **代码规范**：中文注释，英文标识
+3. **提交规范**：清晰描述修改内容
+4. **测试规范**：所有功能必须测试
+
+## 分工负责
+- **主脑**：整体架构、目录规划、权限管理
+- **副脑01**：`api/` 全部后端接口开发
+- **副脑02**：`web/` 全部前端页面开发
+- **副脑03**：`scripts/` 国内运维脚本
+- **副脑04**：`db/` 数据库 + 新加坡服务
+
+## 许可证
+AI24X Token 聚合平台 - 版权所有
