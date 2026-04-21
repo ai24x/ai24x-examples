@@ -3,9 +3,19 @@ node_modules/
 .vscode/
 .idea/
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+.eggs/
+
 # 日志文件
 *.log
 logs/
+pm2-*.log
 
 # 备份文件
 backups/
@@ -17,6 +27,10 @@ backups/
 *.temp
 .DS_Store
 Thumbs.db
+*.db
+*.sqlite
+*.sqlite3
+*.zip
 
 # 配置文件（包含敏感信息）
 .env
@@ -37,7 +51,7 @@ server-3000-fixed.js
 server-3000.js
 server-clean-fixed-new.js
 server-no-conflict.js
-tools-index.html bbbb
+tools-index.html
 
 # 同步相关临时文件
 SYNC_LOG.txt

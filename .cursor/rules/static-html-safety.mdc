@@ -1,0 +1,37 @@
+---
+description: Static HTML safety (encoding + <head> integrity) to prevent "no CSS UI" outages
+alwaysApply: true
+---
+
+# 静态站点 HTML 安全规范（防“有文字没样式”事故）
+
+适用范围：`web/*.html`、`p/*/web/*.html` 等静态页面（尤其是 `index.html`）。
+
+## 1) 禁止用会改编码的方式写 HTML
+
+- **不要**用默认行为可能写成 UTF-16 的写文件方式去批量替换/覆盖 HTML（例如某些 PowerShell 写文件命令的默认编码）。
+- 约定：HTML 文件应为 **UTF-8**（推荐 **无 BOM**）。
+
+## 2) 改 `<head>` 必做的“闭合性”检查
+
+任何涉及 `<head>` 的改动（`<meta>`、`<title>`、`<link>`、`<script>`）都必须确保：
+
+- 每个 `<meta ... />`、`<link ... />` **引号闭合**、标签闭合
+- 不允许出现缺失的 `"` 或 `>`，避免浏览器把后续 `<link rel="stylesheet"...>` 吞掉导致 **CSS 不加载**
+
+## 3) 最小回归自检（改完就做）
+
+在本机用浏览器打开首页后，按 F12：
+
+- **Network**：确认 `css/base.css` 与主题 CSS（如 `css/themes/theme-blue.css`）为 **200/304**
+- **Elements**：确认 `<head>` 中存在预期的 `<link rel="stylesheet" ...>`
+- 如发现“页面纯文本/无样式”：优先怀疑 **`<head>` 标签未闭合** 或 **文件编码异常**
+
+## 4) 修复优先级
+
+当出现“主站无样式”时，优先排查顺序：
+
+- `web/index.html` 的 `<head>` 是否有破坏（meta/title/link 是否闭合）
+- HTML 编码是否被写成 UTF-16 / 异常 BOM
+- 再检查静态资源路径与服务端返回码
+

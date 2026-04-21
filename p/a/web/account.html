@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow,noarchive" />
+  <title>用户中心 · AI 行情官｜灯塔版（1.01）</title>
+  <meta name="description" content="AI 行情官｜灯塔版 用户中心：配额、VIP、邀请码与绑定（注册与登录在首页）。" />
+  <link rel="icon" href="data:," />
+  <script>
+    (function () {
+      try {
+        var k = "ai24x_a_theme";
+        var t = String(localStorage.getItem(k) || "").trim() || "calm";
+        document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/tool.css" />
+  <style>
+    .auth-card-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;max-width:440px;}
+    @media (max-width:520px){ .auth-card-grid{ grid-template-columns: 1fr; } }
+    .auth-card{
+      display:block;padding:12px 14px;border-radius:14px;border:1px solid var(--border);
+      background:var(--panel2);text-decoration:none;color:inherit;
+    }
+    .auth-card.is-selected{border-color:rgba(96,165,250,.55);background:rgba(96,165,250,.12);}
+    .auth-card .t{font-weight:900;font-size:13px;}
+    .auth-card .d{margin-top:4px;font-size:12px;color:var(--muted);line-height:1.45;}
+    .user-bar{margin-top:12px;display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;align-items:center;}
+    .account-identity{
+      margin: 0 0 14px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--text);
+    }
+    .pw-modal{
+      position:fixed; inset:0; z-index:200;
+      background:rgba(0,0,0,.48);
+      display:flex; align-items:center; justify-content:center;
+      padding:16px;
+    }
+    .pw-modal[hidden]{ display:none !important; }
+    .pw-modal-panel{
+      width:100%; max-width:420px;
+      border-radius:14px; border:1px solid var(--border);
+      background:var(--panel); padding:16px 16px 14px;
+      box-shadow: var(--shadow-md);
+    }
+    .pw-modal-panel h2{ margin:0 0 8px; font-size:15px; font-weight:900; }
+    .pw-modal-panel .sub{ margin:0 0 12px; font-size:12px; color:var(--muted); line-height:1.45; }
+    .pw-field{ display:block; margin-bottom:10px; font-size:12px; color:var(--muted); }
+    .pw-field input, .pw-field select{
+      display:block; width:100%; margin-top:4px; box-sizing:border-box;
+      padding:8px 10px; border-radius:10px; border:1px solid var(--border);
+      background:var(--panel2); color:var(--text); font-size:14px;
+    }
+    .pw-actions{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; margin-top:14px; }
+  </style>
+</head>
+<body>
+  <header class="site-header" id="site-header"></header>
+  <main class="page-main">
+  <div class="wrap">
+
+    <section class="card" id="session-card">
+      <h1>用户中心</h1>
+
+      <div id="account-identity" class="account-identity" hidden>
+        <div id="acct-line">当前账号：—</div>
+      </div>
+
+      <div id="auth-guest">
+        <p class="sub" style="margin:0 0 12px;">您还未登录。注册与登录请在首页完成。</p>
+        <div class="auth-card-grid">
+          <a class="auth-card is-selected" href="./index.html?mode=register&amp;ch=phone">
+            <div class="t">去首页注册</div>
+            <div class="d">手机验证码注册与登录均在首页完成。</div>
+          </a>
+          <a class="auth-card" href="./index.html?mode=login&amp;ch=phone">
+            <div class="t">去首页登录</div>
+            <div class="d">使用已有账号与密码</div>
+          </a>
+        </div>
+        <p class="sub" style="margin:12px 0 0;">
+          <button class="btn" type="button" id="btn-forget-guest">忘记密码</button>
+          <span style="color:var(--muted); font-size:12px;">（短信验证码重置）</span>
+        </p>
+      </div>
+
+      <div class="status" id="status" style="margin-top:10px;"></div>
+
+      <div id="auth-user" hidden>
+        <div class="hint">免费：10/天 + 50/周　VIP：150/天 + 500/周　（指数白名单与去重规则见文档）</div>
+        <div class="kv" id="quota-kv" hidden>
+          <span>今日剩余 <b id="q-day">-</b></span>
+          <span>本周剩余 <b id="q-week">-</b></span>
+          <span>套餐 <b id="q-plan">-</b></span>
+        </div>
+        <div class="user-bar">
+          <button class="btn" id="btn-bind-phone" type="button" hidden>绑定手机</button>
+          <button class="btn" id="btn-forget-user" type="button">忘记密码</button>
+          <button class="btn primary" id="btn-change-pw" type="button">修改密码</button>
+          <button class="btn" id="btn-logout" type="button">退出</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="vip">
+      <h1>开通 VIP</h1>
+      <p><strong>微信扫码支付</strong>，成功后自动生效；未更新点「刷新配额」。<strong>体验 ¥9.9</strong>（7 天、限购 1 次）／月卡 ¥99／年卡 ¥999。</p>
+      <div class="btns">
+        <button class="btn primary" id="btn-vip-trial" type="button">微信支付 · 体验卡 ¥9.9</button>
+        <button class="btn" id="btn-vip" type="button">微信支付 · 月卡 ¥99</button>
+        <button class="btn" id="btn-vip-year" type="button">微信支付 · 年卡 ¥999</button>
+        <button class="btn" id="btn-vip-refresh" type="button">刷新配额</button>
+        <a class="btn" href="./demo.html?from=vip">去行情页</a>
+      </div>
+      <div class="status" id="vip-pay-status" style="margin-top:10px"></div>
+      <div id="vip-qr-wrap" hidden style="margin-top:14px; text-align:center;">
+        <div class="hint" style="margin-bottom:8px">请使用 <b>微信</b> 扫一扫完成支付</div>
+        <img id="vip-qr-img" alt="微信支付二维码" width="220" height="220" style="display:inline-block; border-radius:12px; border:1px solid var(--border); background:#fff; padding:8px;" />
+        <div class="hint" style="margin-top:8px; font-size:12px;">商户单号 <code id="vip-out-trade" style="font-size:11px; word-break:break-all;"></code></div>
+        <div class="row" style="justify-content:center; margin-top:10px; flex-wrap:wrap;">
+          <input id="vip-code-url" type="text" readonly style="max-width:420px; flex:1; min-width:200px;" />
+          <button class="btn" type="button" id="btn-copy-paylink">复制付款链接</button>
+        </div>
+      </div>
+      <div class="hint" style="margin-top:10px">若二维码无法显示，请点「复制付款链接」，在微信内打开完成支付。</div>
+    </section>
+
+    <section class="card" id="invite">
+      <h1>邀请获取次数</h1>
+      <p>邀请链接指向<strong>首页注册</strong>，好友打开后邀请码会自动填入（也可手动修改）。已注册用户也可在下方填写好友邀请码绑定（仅一次）。</p>
+      <p class="sub" style="margin:8px 0 0;">
+        奖励口径：好友完成<strong>首次有效查询</strong>后发放——你当周 +<strong>100</strong> 次（周封顶 <strong>500</strong>），好友当周 +<strong>50</strong> 次。
+      </p>
+      <div class="row">
+        <button class="btn primary" id="btn-my-invite" type="button">获取我的邀请码</button>
+        <input id="invite-code" type="text" placeholder="我的邀请码" readonly />
+        <button class="btn" id="btn-copy-invite" type="button" disabled>复制</button>
+      </div>
+      <div class="row">
+        <input id="invite-link" type="text" placeholder="邀请链接（自动带邀请码）" readonly />
+        <button class="btn" id="btn-copy-invite-link" type="button" disabled>复制链接</button>
+      </div>
+      <div class="status" id="invite-status"></div>
+      <div class="row" style="margin-top:10px">
+        <input id="invite-bind-code" type="text" placeholder="填好友邀请码（仅绑定一次）" />
+        <button class="btn primary" id="btn-bind-invite" type="button">绑定邀请码</button>
+      </div>
+      <div class="hint" id="invite-records-hint" style="display:none"></div>
+      <div style="margin-top:10px; overflow:auto;">
+        <table id="invite-table" style="display:none; width:100%; border-collapse: collapse; font-size: 12px;">
+          <thead>
+            <tr>
+              <th style="width:170px; text-align:left; padding:10px 8px; border-bottom:1px solid var(--border); color: var(--muted); font-weight:600;">时间</th>
+              <th style="text-align:left; padding:10px 8px; border-bottom:1px solid var(--border); color: var(--muted); font-weight:600;">好友</th>
+              <th style="width:90px; text-align:left; padding:10px 8px; border-bottom:1px solid var(--border); color: var(--muted); font-weight:600;">激活</th>
+              <th style="width:110px; text-align:left; padding:10px 8px; border-bottom:1px solid var(--border); color: var(--muted); font-weight:600;">奖励次数</th>
+            </tr>
+          </thead>
+          <tbody id="invite-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+  </main>
+  <footer class="site-footer" id="site-footer"></footer>
+
+  <div id="pw-modal-change" class="pw-modal" hidden>
+    <div class="pw-modal-panel">
+      <h2>修改密码</h2>
+      <p class="sub">修改成功后将以新 token 保持登录状态。</p>
+      <label class="pw-field">当前密码
+        <input id="pw-ch-old" type="password" autocomplete="current-password" />
+      </label>
+      <label class="pw-field">新密码（至少 6 位）
+        <input id="pw-ch-new" type="password" autocomplete="new-password" />
+      </label>
+      <label class="pw-field">确认新密码
+        <input id="pw-ch-new2" type="password" autocomplete="new-password" />
+      </label>
+      <div class="status" id="pw-ch-status"></div>
+      <div class="pw-actions">
+        <button type="button" class="btn" data-pw-close="pw-modal-change">取消</button>
+        <button type="button" class="btn primary" id="pw-ch-submit">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="pw-modal-forget" class="pw-modal" hidden>
+    <div class="pw-modal-panel">
+      <h2>忘记密码</h2>
+      <p class="sub">向手机号发送短信验证码（用途为「重置密码」），验证后设置新密码。</p>
+      <label class="pw-field" id="forget-ident-wrap"><span id="forget-ident-label">手机号</span>
+        <input id="pw-fg-ident" type="text" autocomplete="username" />
+      </label>
+      <label class="pw-field">验证码
+        <div class="row" style="gap:8px; align-items:center; margin-top:4px;">
+          <input id="pw-fg-code" type="text" inputmode="numeric" maxlength="8" style="flex:1; min-width:0;" />
+          <button type="button" class="btn" id="pw-fg-send">发送验证码</button>
+        </div>
+        <div id="fg-sms-captcha-wrap" style="margin-top:10px;" hidden>
+          <div class="muted small" style="margin-bottom:6px;">为防止短信被盗刷，请先完成图形码验证。</div>
+          <div id="fg-sms-captcha-box"></div>
+        </div>
+      </label>
+      <label class="pw-field">新密码（至少 6 位）
+        <input id="pw-fg-new" type="password" autocomplete="new-password" />
+      </label>
+      <label class="pw-field">确认新密码
+        <input id="pw-fg-new2" type="password" autocomplete="new-password" />
+      </label>
+      <div class="status" id="pw-fg-status"></div>
+      <div class="pw-actions">
+        <button type="button" class="btn" data-pw-close="pw-modal-forget">取消</button>
+        <button type="button" class="btn primary" id="pw-fg-submit">重置并登录</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="pw-modal-bind-phone" class="pw-modal" hidden>
+    <div class="pw-modal-panel">
+      <h2>绑定手机</h2>
+      <p class="sub">绑定后可用于找回密码与安全验证。</p>
+      <label class="pw-field">手机号
+        <input id="bind-phone" type="tel" autocomplete="tel" placeholder="11 位数字" />
+      </label>
+      <label class="pw-field">短信验证码
+        <div class="row" style="gap:8px; align-items:center;">
+          <input id="bind-phone-code" type="text" inputmode="numeric" placeholder="6 位数字" maxlength="16" style="flex:1; min-width:160px;" />
+          <button type="button" class="btn" id="btn-bind-phone-send">发送验证码</button>
+        </div>
+        <div id="bind-sms-captcha-wrap" style="margin-top:10px;" hidden>
+          <div class="muted small" style="margin-bottom:6px;">为防止短信被盗刷，请先完成图形码验证。</div>
+          <div id="bind-sms-captcha-box"></div>
+        </div>
+      </label>
+      <div class="status" id="bind-phone-status"></div>
+      <div class="pw-actions">
+        <button type="button" class="btn" data-pw-close="pw-modal-bind-phone">取消</button>
+        <button type="button" class="btn primary" id="btn-bind-phone-save">确认绑定</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/shell.js"></script>
+  <script>
+    try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("account"); } catch (e) {}
+  </script>
+  <script>
+    (function () {
+      var TOKEN_KEY = "ai24x_a_token";
+
+      // Service Worker 注册已统一在 `js/shell.js` 处理（避免多处重复注册与连环刷新）。
+
+      function apiBase() {
+        try {
+          var host = String(location.hostname || "");
+          var port = String(location.port || "");
+          if ((host === "127.0.0.1" || host === "localhost") && port === "18001") return "http://127.0.0.1:18031";
+        } catch (e) {}
+        return "";
+      }
+
+      function $(id) { return document.getElementById(id); }
+
+      var base = apiBase();
+      // Reserved: SMS captcha (anti-abuse), default disabled via backend config.
+      var smsCaptchaCfg = { enabled: false, provider: null, turnstile_site_key: null };
+      var smsCaptchaToken = "";
+      var smsCaptchaWidgetId = null;
+      var smsCaptchaBoxEl = null;
+      var smsCaptchaWrapEl = null;
+      var fgSmsCaptchaWrap = $("fg-sms-captcha-wrap");
+      var fgSmsCaptchaBox = $("fg-sms-captcha-box");
+      var bindSmsCaptchaWrap = $("bind-sms-captcha-wrap");
+      var bindSmsCaptchaBox = $("bind-sms-captcha-box");
+
+      function loadScriptOnce(src, cb) {
+        try {
+          if (document.querySelector('script[data-src="' + src + '"]')) { cb && cb(); return; }
+          var s = document.createElement("script");
+          s.src = src;
+          s.async = true;
+          s.defer = true;
+          s.setAttribute("data-src", src);
+          s.onload = function () { cb && cb(); };
+          s.onerror = function () { cb && cb(new Error("load fail")); };
+          document.head.appendChild(s);
+        } catch (e) { cb && cb(e); }
+      }
+
+      function smsCaptchaSetTarget(boxEl, wrapEl) {
+        smsCaptchaBoxEl = boxEl || null;
+        smsCaptchaWrapEl = wrapEl || null;
+        if (fgSmsCaptchaWrap) fgSmsCaptchaWrap.hidden = true;
+        if (bindSmsCaptchaWrap) bindSmsCaptchaWrap.hidden = true;
+        if (smsCaptchaWrapEl) smsCaptchaWrapEl.hidden = true;
+        smsCaptchaMaybeShow();
+      }
+
+      function smsCaptchaMaybeShow(forceShow) {
+        if (!smsCaptchaWrapEl || !smsCaptchaBoxEl) return;
+        var show = !!(smsCaptchaCfg && smsCaptchaCfg.enabled) && !!forceShow;
+        smsCaptchaWrapEl.hidden = !show;
+        if (!show) return;
+        if (!smsCaptchaCfg.turnstile_site_key) return;
+        // If widget was rendered into another box, reset and re-render.
+        if (smsCaptchaWidgetId !== null && smsCaptchaBoxEl && smsCaptchaBoxEl.childNodes && smsCaptchaBoxEl.childNodes.length === 0) {
+          smsCaptchaWidgetId = null;
+          smsCaptchaToken = "";
+        }
+        if (smsCaptchaWidgetId !== null) return;
+        loadScriptOnce("https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit", function () {
+          if (!window.turnstile || !smsCaptchaBoxEl) return;
+          try {
+            smsCaptchaBoxEl.innerHTML = "";
+            smsCaptchaWidgetId = window.turnstile.render(smsCaptchaBoxEl, {
+              sitekey: smsCaptchaCfg.turnstile_site_key,
+              callback: function (t) { smsCaptchaToken = String(t || ""); },
+              "expired-callback": function () { smsCaptchaToken = ""; },
+              "error-callback": function () { smsCaptchaToken = ""; },
+            });
+          } catch (e) {}
+        });
+      }
+
+      function loadSmsCaptchaCfg() {
+        fetch((base || "") + "/api/public/sms_captcha", { method: "GET" })
+          .then(function (r) { return r.ok ? r.json() : { enabled: false }; })
+          .then(function (d) {
+            if (d && d.enabled && d.provider === "turnstile" && d.turnstile_site_key) {
+              smsCaptchaCfg = { enabled: true, provider: "turnstile", turnstile_site_key: String(d.turnstile_site_key) };
+            } else {
+              smsCaptchaCfg = { enabled: false, provider: null, turnstile_site_key: null };
+            }
+          })
+          .catch(function () { smsCaptchaCfg = { enabled: false, provider: null, turnstile_site_key: null }; });
+      }
+      var statusEl = $("status");
+      var quotaKv = $("quota-kv");
+      var qDay = $("q-day");
+      var qWeek = $("q-week");
+      var qPlan = $("q-plan");
+      var btnLogout = $("btn-logout");
+      var btnBindPhone = $("btn-bind-phone");
+      var authGuest = $("auth-guest");
+      var authUser = $("auth-user");
+      var accountIdentity = $("account-identity");
+      var acctLine = $("acct-line");
+      var inviteStatusEl = $("invite-status");
+      function setInviteStatus(s) {
+        if (inviteStatusEl) inviteStatusEl.textContent = s || "";
+      }
+
+      function setStatus(s) {
+        if (statusEl) statusEl.textContent = s || "";
+      }
+
+      function tokenGet() {
+        try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (e) { return ""; }
+      }
+      function tokenSet(t) {
+        try { localStorage.setItem(TOKEN_KEY, t || ""); } catch (e) {}
+      }
+      function tokenClear() {
+        try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
+      }
+
+      function apiFetch(path, opt) {
+        opt = opt || {};
+        opt.headers = opt.headers || {};
+        var t = tokenGet();
+        if (t) opt.headers.Authorization = "Bearer " + t;
+        return fetch((base || "") + path, opt).then(function (r) {
+          return r.text().then(function (txt) {
+            var j = null;
+            try {
+              j = txt ? JSON.parse(txt) : null;
+            } catch (e0) {
+              j = null;
+            }
+            if (!r.ok) {
+              var detail = "";
+              if (j && j.detail != null) {
+                detail = typeof j.detail === "string" ? j.detail : (function () {
+                  try { return JSON.stringify(j.detail); } catch (e1) { return ""; }
+                })();
+              }
+              var err = new Error(detail || txt || ("HTTP " + r.status));
+              try { err.status = r.status; } catch (e2) {}
+              throw err;
+            }
+            if (j == null && txt) {
+              try { j = JSON.parse(txt); } catch (e3) { throw new Error("响应不是 JSON"); }
+            }
+            return j;
+          });
+        });
+      }
+
+      function readInviteFromUrl() {
+        try {
+          var sp = new URLSearchParams(String(location.search || "").replace(/^\?/, ""));
+          var v = sp.get("i") || sp.get("invite") || sp.get("inv") || sp.get("ref") || "";
+          v = String(v || "").trim();
+          if (v) return v.toUpperCase();
+        } catch (e) {}
+        return "";
+      }
+
+      function maskPhoneLabel(p) {
+        p = String(p != null ? p : "").trim();
+        if (p.length >= 11 && /^\d+$/.test(p)) return p.slice(0, 3) + "****" + p.slice(-4);
+        return "未绑定";
+      }
+      function accountLineText(u) {
+        u = u || {};
+        return "当前账号：手机 " + maskPhoneLabel(u.phone);
+      }
+
+      function setAccountIdentityVisible(on) {
+        if (!accountIdentity) return;
+        accountIdentity.hidden = !on;
+        if (!on && acctLine) acctLine.textContent = "当前账号：—";
+      }
+
+      function applyUserIdentity(u) {
+        if (acctLine) acctLine.textContent = accountLineText(u || {});
+      }
+
+      function pwModalOpen(id) {
+        var el = $(id);
+        if (el) el.hidden = false;
+      }
+      function pwModalClose(id) {
+        var el = $(id);
+        if (el) el.hidden = true;
+      }
+
+      function normalizeErrMsg(e) {
+        var m = e && e.message ? String(e.message) : "";
+        m = (m || "").trim();
+        if (!m) return "请求失败";
+        if (m.indexOf("手机号/邮箱或密码错误") >= 0 || m.indexOf("手机号或密码错误") >= 0 || m.indexOf("邮箱或密码错误") >= 0) {
+          return "手机号或密码错误，请检查后重试。";
+        }
+        if (m && m.charAt(0) === "{") {
+          try {
+            var j = JSON.parse(m);
+            if (j && j.detail != null) return typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail);
+          } catch (e0) {
+            // Python dict str: {'error': 'xx', 'code': '401', 'request_id': None}
+            var pe = m.match(/\b'error'\s*:\s*'((?:[^'\\]|\\.)*)'/);
+            if (pe && pe[1]) return pe[1].trim();
+            pe = m.match(/\b"error"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+            if (pe && pe[1]) return pe[1].trim();
+          }
+        }
+        return m || "请求失败";
+      }
+
+      function forgetSyncCh() {
+        var lab = $("forget-ident-label");
+        var inp = $("pw-fg-ident");
+        if (lab) lab.textContent = "手机号";
+        if (inp) {
+          inp.placeholder = "11 位数字";
+          inp.setAttribute("type", "tel");
+        }
+        try {
+          if (smsCaptchaWrapEl === fgSmsCaptchaWrap) {
+            smsCaptchaMaybeShow(true);
+          }
+        } catch (e2) {}
+      }
+
+      function refreshMe() {
+        var t = tokenGet();
+        if (!t) {
+          if (authGuest) authGuest.hidden = false;
+          if (authUser) authUser.hidden = true;
+          quotaKv.hidden = true;
+          setAccountIdentityVisible(false);
+          if (btnBindPhone) btnBindPhone.hidden = true;
+          setStatus("");
+          return;
+        }
+        if (authGuest) authGuest.hidden = true;
+        if (authUser) authUser.hidden = false;
+        setAccountIdentityVisible(false);
+        setStatus("加载账户信息…");
+        apiFetch("/api/me", { cache: "no-store" })
+          .then(function (d) {
+            try {
+              var u = d && d.user ? d.user : null;
+              applyUserIdentity(u);
+              setAccountIdentityVisible(true);
+              try {
+                var need = !(u && u.phone && String(u.phone || "").trim());
+                if (btnBindPhone) btnBindPhone.hidden = !need;
+              } catch (eB) {}
+            } catch (eU) {}
+            var q = d && d.quota ? d.quota : null;
+            if (!q) throw new Error("no quota");
+            quotaKv.hidden = false;
+            qDay.textContent = String(q.remaining_day);
+            qWeek.textContent = String(q.remaining_week != null ? q.remaining_week : q.remaining_month);
+            qPlan.textContent = String(q.plan || "-");
+            setStatus("");
+            tryAutoInviteBind();
+            try {
+              reloadInviteRecords();
+            } catch (eR) {}
+          })
+          .catch(function (e) {
+            var s = (e && (e.status != null)) ? Number(e.status) : null;
+            var msg = (e && e.message) ? String(e.message) : "";
+            var isAuthErr = (s === 401 || s === 403) || msg.indexOf("HTTP 401") >= 0 || msg.indexOf("HTTP 403") >= 0;
+            if (isAuthErr) {
+              tokenClear();
+              if (authGuest) authGuest.hidden = false;
+              if (authUser) authUser.hidden = true;
+              quotaKv.hidden = true;
+              setAccountIdentityVisible(false);
+              setStatus("登录已失效，请重新登录。");
+              return;
+            }
+            quotaKv.hidden = true;
+            setAccountIdentityVisible(false);
+            setStatus("账户信息加载失败，请刷新重试。");
+          });
+      }
+
+      function inviteMyCode() {
+        return apiFetch("/api/invite/my_code", { cache: "no-store" });
+      }
+
+      function inviteSummary() {
+        return apiFetch("/api/invite/summary", { cache: "no-store" });
+      }
+
+      function inviteList() {
+        return apiFetch("/api/invite/list?limit=50", { cache: "no-store" });
+      }
+
+      function inviteBind(code) {
+        return apiFetch("/api/invite/bind", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: String(code || "") }),
+        });
+      }
+
+      var bindInput = $("invite-bind-code");
+
+      function tryAutoInviteBind() {
+        var ic = readInviteFromUrl();
+        if (!ic || !tokenGet()) return;
+        try {
+          if (bindInput) bindInput.value = ic;
+        } catch (e0) {}
+        setInviteStatus("正在绑定邀请码…");
+        inviteBind(ic)
+          .then(function () {
+            setInviteStatus("邀请码已绑定。");
+          })
+          .catch(function () {
+            setInviteStatus("邀请码绑定失败，请核对或是否已绑定。");
+          })
+          .finally(function () {
+            try {
+              reloadInviteRecords();
+            } catch (e1) {}
+          });
+      }
+
+      var vipPayStatusEl = $("vip-pay-status");
+      var vipQrWrap = $("vip-qr-wrap");
+      var vipQrImg = $("vip-qr-img");
+      var vipOutTrade = $("vip-out-trade");
+      var vipCodeUrl = $("vip-code-url");
+      var btnCopyPaylink = $("btn-copy-paylink");
+      var btnVipRefresh = $("btn-vip-refresh");
+      var vipPollTimer = null;
+      var quotaSnapshotBeforePay = null;
+
+      function setVipPayStatus(s) {
+        if (vipPayStatusEl) vipPayStatusEl.textContent = s || "";
+      }
+
+      function stopVipPoll() {
+        if (vipPollTimer) {
+          try { clearInterval(vipPollTimer); } catch (e) {}
+          vipPollTimer = null;
+        }
+      }
+
+      function quotaImproved(prev, cur) {
+        if (!cur) return false;
+        var pv = prev && prev.plan ? String(prev.plan) : "";
+        var cv = cur.plan ? String(cur.plan) : "";
+        var vipNow = cv === "vip_month" || cv === "vip_year_999" || cv === "vip_trial_99";
+        if (!vipNow) return false;
+        if (pv !== "vip_month" && pv !== "vip_year_999" && pv !== "vip_trial_99") return true;
+        var e0 = prev && prev.expires_at != null ? Number(prev.expires_at) : 0;
+        var e1 = cur.expires_at != null ? Number(cur.expires_at) : 0;
+        return e1 > e0;
+      }
+
+      function startVipPoll() {
+        stopVipPoll();
+        var prev = quotaSnapshotBeforePay;
+        var n = 0;
+        vipPollTimer = setInterval(function () {
+          n += 1;
+          if (n > 120) {
+            stopVipPoll();
+            setVipPayStatus("长时间未检测到支付结果：若已付款，请点「刷新配额」或稍后重试。");
+            return;
+          }
+          apiFetch("/api/me", { cache: "no-store" })
+            .then(function (d) {
+              var q = d && d.quota ? d.quota : null;
+              if (quotaImproved(prev, q)) {
+                stopVipPoll();
+                setVipPayStatus("支付已生效，配额已更新。");
+                refreshMe();
+              }
+            })
+            .catch(function () {});
+        }, 3000);
+      }
+
+      function showVipQr(d) {
+        var url = d && d.code_url ? String(d.code_url) : "";
+        var otn = d && d.out_trade_no ? String(d.out_trade_no) : "";
+        if (!url) return;
+        if (vipOutTrade) vipOutTrade.textContent = otn;
+        if (vipCodeUrl) vipCodeUrl.value = url;
+        if (vipQrImg) {
+          vipQrImg.src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=" + encodeURIComponent(url);
+          vipQrImg.onerror = function () {
+            setVipPayStatus("二维码图片加载失败：请使用下方「复制付款链接」。");
+          };
+        }
+        if (vipQrWrap) vipQrWrap.hidden = false;
+        try { location.hash = "#vip"; } catch (e) {}
+      }
+
+      function startWechatNative(plan) {
+        if (!tokenGet()) {
+          setVipPayStatus("请先登录后再开通 VIP。");
+          setStatus("请先登录后再开通 VIP。");
+          try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) { window.scrollTo(0, 0); }
+          return;
+        }
+        stopVipPoll();
+        if (vipQrWrap) vipQrWrap.hidden = true;
+        setVipPayStatus("正在创建订单…");
+        apiFetch("/api/me", { cache: "no-store" })
+          .then(function (d) {
+            quotaSnapshotBeforePay = d && d.quota ? d.quota : null;
+            return apiFetch("/api/billing/wechat/native", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ plan: plan }),
+            });
+          })
+          .then(function (d) {
+            var af = d && d.amount_fen != null ? Number(d.amount_fen) : 0;
+            var pf = d && d.priced_amount_fen != null ? Number(d.priced_amount_fen) : af;
+            var hint =
+              "请使用微信扫码支付。支付完成后本页会自动检测（约每 3 秒）。";
+            if (pf !== af && pf > 0) {
+              hint =
+                "请使用微信扫码支付；应付金额以微信收银台显示为准。支付完成后本页会自动检测（约每 3 秒）。";
+            }
+            setVipPayStatus(hint);
+            showVipQr(d);
+            startVipPoll();
+          })
+          .catch(function (e) {
+            var msg = e && e.message ? String(e.message) : "下单失败";
+            setVipPayStatus(msg);
+          });
+      }
+
+      var btnVipTrial = $("btn-vip-trial");
+      if (btnVipTrial) {
+        btnVipTrial.addEventListener("click", function () {
+          startWechatNative("vip_trial_99");
+        });
+      }
+      var btnVip = $("btn-vip");
+      if (btnVip) {
+        btnVip.addEventListener("click", function () {
+          startWechatNative("vip_month");
+        });
+      }
+      var btnVipYear = $("btn-vip-year");
+      if (btnVipYear) {
+        btnVipYear.addEventListener("click", function () {
+          startWechatNative("vip_year_999");
+        });
+      }
+      if (btnVipRefresh) {
+        btnVipRefresh.addEventListener("click", function () {
+          setVipPayStatus("");
+          refreshMe();
+        });
+      }
+      if (btnCopyPaylink) {
+        btnCopyPaylink.addEventListener("click", function () {
+          var s = vipCodeUrl ? String(vipCodeUrl.value || "") : "";
+          if (!s) {
+            setVipPayStatus("暂无付款链接，请先发起支付。");
+            return;
+          }
+          copyText(s)
+            .then(function () { setVipPayStatus("已复制付款链接，可发到微信内打开。"); })
+            .catch(function () { setVipPayStatus("复制失败，请手动选择输入框内链接复制。"); });
+        });
+      }
+
+      function copyText(s) {
+        s = String(s || "");
+        if (!s) return Promise.reject(new Error("empty"));
+        if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+          return navigator.clipboard.writeText(s);
+        }
+        var ta = document.createElement("textarea");
+        ta.value = s;
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand("copy");
+          return Promise.resolve();
+        } finally {
+          document.body.removeChild(ta);
+        }
+      }
+
+      function fmtTs(ts){
+        if(!ts) return '—';
+        try{
+          var d = new Date(Number(ts)*1000);
+          var p = function(n){ return (n<10?'0':'')+n; };
+          return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+        }catch(e){ return String(ts); }
+      }
+
+      function makeInviteLink(code) {
+        code = String(code || "").trim().toUpperCase();
+        if (!code) return "";
+        try {
+          return new URL("./index.html?i=" + encodeURIComponent(code), String(location.href)).toString();
+        } catch (e) {
+          return "./index.html?i=" + encodeURIComponent(code);
+        }
+      }
+
+      function reloadInviteRecords(){
+        if(!tokenGet()) return;
+        var hint = $("invite-records-hint");
+        var table = $("invite-table");
+        var tbody = $("invite-tbody");
+        if(hint) hint.style.display = "none";
+        if(table) table.style.display = "none";
+        if(tbody) tbody.innerHTML = "";
+        inviteSummary().then(function(d){
+          var s = d && d.summary ? d.summary : null;
+          if(!s) return;
+          if(hint){
+            hint.style.display = "";
+            hint.textContent = "我的邀请：已邀请 " + s.total + " 人，已激活 " + s.activated + " 人，已发放 " + s.rewarded + " 笔奖励。";
+          }
+        }).catch(function(){});
+        inviteList().then(function(d){
+          var items = (d && d.items) ? d.items : [];
+          if(!items || !items.length) return;
+          if(table) table.style.display = "";
+          items.forEach(function(it){
+            var tr = document.createElement("tr");
+            var amt = 0;
+            try { amt = Number(it.reward_amount != null ? it.reward_amount : 0) || 0; } catch (eAmt) { amt = 0; }
+            var rewardTxt = (amt > 0) ? ("+" + String(Math.floor(amt)) + " 次") : (it.rewarded ? "已发" : "待发");
+            tr.innerHTML =
+              "<td style='padding:10px 8px; border-bottom:1px solid var(--border);'>"+fmtTs(it.created_at)+"</td>"+
+              "<td style='padding:10px 8px; border-bottom:1px solid var(--border);'>"+String(it.invitee||"")+"</td>"+
+              "<td style='padding:10px 8px; border-bottom:1px solid var(--border);'>"+(it.activated ? "是" : "否")+"</td>"+
+              "<td style='padding:10px 8px; border-bottom:1px solid var(--border);'>"+rewardTxt+"</td>";
+            tbody.appendChild(tr);
+          });
+        }).catch(function(){});
+      }
+
+      function logout() {
+        tokenClear();
+        if (authGuest) authGuest.hidden = false;
+        if (authUser) authUser.hidden = true;
+        quotaKv.hidden = true;
+        setAccountIdentityVisible(false);
+        setStatus("已退出。");
+        // Ensure all derived UI state is refreshed immediately.
+        try { refreshMe(); } catch (e) {}
+      }
+
+      if (btnLogout) btnLogout.addEventListener("click", logout);
+
+      ["pw-modal-change", "pw-modal-forget"].forEach(function (mid) {
+        var m = $(mid);
+        if (m) {
+          m.addEventListener("click", function (ev) {
+            if (ev.target === m) pwModalClose(mid);
+          });
+        }
+      });
+      try {
+        document.querySelectorAll("button[data-pw-close]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            pwModalClose(b.getAttribute("data-pw-close"));
+          });
+        });
+      } catch (ePc) {}
+      function openForgetModal() {
+        var st = $("pw-fg-status");
+        if (st) st.textContent = "";
+        forgetSyncCh();
+        smsCaptchaSetTarget(fgSmsCaptchaBox, fgSmsCaptchaWrap);
+        try {
+          smsCaptchaMaybeShow(true);
+        } catch (e0) {}
+        pwModalOpen("pw-modal-forget");
+      }
+      var bfg = $("btn-forget-guest");
+      if (bfg) bfg.addEventListener("click", openForgetModal);
+      var bfu = $("btn-forget-user");
+      if (bfu) bfu.addEventListener("click", openForgetModal);
+
+      var btnChangePw = $("btn-change-pw");
+
+      function bindPhoneModalOpen() {
+        var st = $("bind-phone-status");
+        if (st) st.textContent = "";
+        var inp = $("bind-phone");
+        if (inp) inp.value = "";
+        var c = $("bind-phone-code");
+        if (c) c.value = "";
+        smsCaptchaSetTarget(bindSmsCaptchaBox, bindSmsCaptchaWrap);
+        smsCaptchaMaybeShow(true);
+        pwModalOpen("pw-modal-bind-phone");
+      }
+      if (btnBindPhone) btnBindPhone.addEventListener("click", bindPhoneModalOpen);
+
+      function bindPhoneSendCode() {
+        var phone = String(($("bind-phone") && $("bind-phone").value) || "").trim().replace(/\\s/g, "");
+        var st = $("bind-phone-status");
+        if (!/^1\d{10}$/.test(phone)) {
+          if (st) st.textContent = "请填写 11 位手机号";
+          return;
+        }
+        if (smsCaptchaCfg && smsCaptchaCfg.enabled && !String(smsCaptchaToken || "").trim()) {
+          if (st) st.textContent = "请先完成图形码验证。";
+          smsCaptchaSetTarget(bindSmsCaptchaBox, bindSmsCaptchaWrap);
+          smsCaptchaMaybeShow(true);
+          return;
+        }
+        if (st) st.textContent = "发送验证码…";
+        apiFetch("/api/auth/sms/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mobile: phone, purpose: "bind", captcha_token: (smsCaptchaCfg && smsCaptchaCfg.enabled) ? String(smsCaptchaToken || "") : undefined }),
+        })
+          .then(function () {
+            if (st) st.textContent = "验证码已发送，请查收短信。";
+          })
+          .catch(function (e) {
+            if (st) st.textContent = normalizeErrMsg(e);
+          });
+      }
+      var bps = $("btn-bind-phone-send");
+      if (bps) bps.addEventListener("click", bindPhoneSendCode);
+
+      function bindPhoneSave() {
+        var phone = String(($("bind-phone") && $("bind-phone").value) || "").trim().replace(/\\s/g, "");
+        var code = String(($("bind-phone-code") && $("bind-phone-code").value) || "").trim();
+        var st = $("bind-phone-status");
+        if (!/^1\d{10}$/.test(phone)) { if (st) st.textContent = "请填写 11 位手机号"; return; }
+        if (!code) { if (st) st.textContent = "请填写短信验证码"; return; }
+        if (st) st.textContent = "绑定中…";
+        apiFetch("/api/auth/phone/bind", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: phone, sms_code: code }),
+        })
+          .then(function (d) {
+            var tok = d && d.token ? String(d.token) : "";
+            if (tok) tokenSet(tok);
+            pwModalClose("pw-modal-bind-phone");
+            setStatus("绑定成功。");
+            refreshMe();
+          })
+          .catch(function (e) {
+            if (st) st.textContent = normalizeErrMsg(e);
+          });
+      }
+      var bpb = $("btn-bind-phone-save");
+      if (bpb) bpb.addEventListener("click", bindPhoneSave);
+      if (btnChangePw) {
+        btnChangePw.addEventListener("click", function () {
+          if (!tokenGet()) {
+            setStatus("请先登录后再修改密码。");
+            return;
+          }
+          var stc = $("pw-ch-status");
+          if (stc) stc.textContent = "";
+          pwModalOpen("pw-modal-change");
+        });
+      }
+
+      var pwFgSend = $("pw-fg-send");
+      if (pwFgSend) {
+        pwFgSend.addEventListener("click", function () {
+          var stf = $("pw-fg-status");
+          function setF(s) {
+            if (stf) stf.textContent = s || "";
+          }
+          var idv = $("pw-fg-ident") ? String($("pw-fg-ident").value || "").trim() : "";
+          if (!idv) {
+            setF("请输入手机号。");
+            return;
+          }
+          pwFgSend.disabled = true;
+          setF("发送中…");
+          var url = "/api/auth/sms/send";
+          if (smsCaptchaCfg && smsCaptchaCfg.enabled && !String(smsCaptchaToken || "").trim()) {
+            setF("请先完成图形码验证。");
+            pwFgSend.disabled = false;
+            smsCaptchaSetTarget(fgSmsCaptchaBox, fgSmsCaptchaWrap);
+            smsCaptchaMaybeShow(true);
+            return;
+          }
+          var body = JSON.stringify({ mobile: idv, purpose: "reset", captcha_token: (smsCaptchaCfg && smsCaptchaCfg.enabled) ? String(smsCaptchaToken || "") : undefined });
+          fetch((base || "") + url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: body,
+          })
+            .then(function (r) {
+              return r.text().then(function (txt) {
+                if (!r.ok) throw new Error(txt || ("HTTP " + r.status));
+                try {
+                  return txt ? JSON.parse(txt) : {};
+                } catch (e1) {
+                  return {};
+                }
+              });
+            })
+            .then(function (d) {
+              setF((d && d.message) ? String(d.message) : "验证码已发送。");
+            })
+            .catch(function (e) {
+              setF(normalizeErrMsg(e) || "发送失败。");
+            })
+            .finally(function () {
+              pwFgSend.disabled = false;
+            });
+        });
+      }
+
+      var pwFgSubmit = $("pw-fg-submit");
+      if (pwFgSubmit) {
+        pwFgSubmit.addEventListener("click", function () {
+          var stf = $("pw-fg-status");
+          function setF(s) {
+            if (stf) stf.textContent = s || "";
+          }
+          var idv = $("pw-fg-ident") ? String($("pw-fg-ident").value || "").trim() : "";
+          var code = $("pw-fg-code") ? String($("pw-fg-code").value || "").trim() : "";
+          var n1 = $("pw-fg-new") ? String($("pw-fg-new").value || "") : "";
+          var n2 = $("pw-fg-new2") ? String($("pw-fg-new2").value || "") : "";
+          if (!idv || !code) {
+            setF("请填写手机号与验证码。");
+            return;
+          }
+          if (!n1 || n1.length < 6) {
+            setF("新密码至少 6 位。");
+            return;
+          }
+          if (n1 !== n2) {
+            setF("两次输入的新密码不一致。");
+            return;
+          }
+          var payload = { new_password: n1, phone: idv, sms_code: code };
+          pwFgSubmit.disabled = true;
+          setF("提交中…");
+          fetch((base || "") + "/api/auth/password/reset", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          })
+            .then(function (r) {
+              return r.text().then(function (txt) {
+                var j = null;
+                try {
+                  j = txt ? JSON.parse(txt) : null;
+                } catch (e0) {
+                  j = null;
+                }
+                if (!r.ok) {
+                  var detail = "";
+                  if (j && j.detail != null) {
+                    detail =
+                      typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail);
+                  }
+                  throw new Error(detail || txt || ("HTTP " + r.status));
+                }
+                return j;
+              });
+            })
+            .then(function (d) {
+              var tok = d && d.token ? String(d.token) : "";
+              if (tok) tokenSet(tok);
+              setF("已重置。");
+              pwModalClose("pw-modal-forget");
+              refreshMe();
+              setStatus("密码已重置并已登录。");
+            })
+            .catch(function (e) {
+              setF(normalizeErrMsg(e) || "重置失败。");
+            })
+            .finally(function () {
+              pwFgSubmit.disabled = false;
+            });
+        });
+      }
+
+      var pwChSubmit = $("pw-ch-submit");
+      if (pwChSubmit) {
+        pwChSubmit.addEventListener("click", function () {
+          var stc = $("pw-ch-status");
+          function setC(s) {
+            if (stc) stc.textContent = s || "";
+          }
+          if (!tokenGet()) {
+            setC("请先登录。");
+            return;
+          }
+          var oldP = $("pw-ch-old") ? String($("pw-ch-old").value || "") : "";
+          var n1 = $("pw-ch-new") ? String($("pw-ch-new").value || "") : "";
+          var n2 = $("pw-ch-new2") ? String($("pw-ch-new2").value || "") : "";
+          if (!oldP) {
+            setC("请填写当前密码。");
+            return;
+          }
+          if (!n1 || n1.length < 6) {
+            setC("新密码至少 6 位。");
+            return;
+          }
+          if (n1 !== n2) {
+            setC("两次新密码不一致。");
+            return;
+          }
+          pwChSubmit.disabled = true;
+          setC("保存中…");
+          apiFetch("/api/auth/password/change", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ old_password: oldP, new_password: n1 }),
+          })
+            .then(function (d) {
+              var tok = d && d.token ? String(d.token) : "";
+              if (tok) tokenSet(tok);
+              pwModalClose("pw-modal-change");
+              ["pw-ch-old", "pw-ch-new", "pw-ch-new2"].forEach(function (id) {
+                var el = $(id);
+                if (el) el.value = "";
+              });
+              setC("");
+              refreshMe();
+              setStatus("密码已修改。");
+            })
+            .catch(function (e) {
+              setC(normalizeErrMsg(e) || "修改失败。");
+            })
+            .finally(function () {
+              pwChSubmit.disabled = false;
+            });
+        });
+      }
+
+      var btnMyInvite = $("btn-my-invite");
+      var inviteInput = $("invite-code");
+      var btnCopyInvite = $("btn-copy-invite");
+      var inviteLinkInput = $("invite-link");
+      var btnCopyInviteLink = $("btn-copy-invite-link");
+      var btnBind = $("btn-bind-invite");
+      if (btnMyInvite) {
+        btnMyInvite.addEventListener("click", function () {
+          setInviteStatus("处理中…");
+          if (!tokenGet()) {
+            setInviteStatus("请先登录后再获取邀请码。");
+            setStatus("请先登录后再获取邀请码。");
+            try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) { window.scrollTo(0, 0); }
+            return;
+          }
+          var oldText = btnMyInvite.textContent;
+          btnMyInvite.disabled = true;
+          btnMyInvite.textContent = "获取中…";
+          setStatus("生成邀请码…");
+          setInviteStatus("");
+          inviteMyCode()
+            .then(function (d) {
+              var code = d && d.code ? String(d.code) : "";
+              if (inviteInput) inviteInput.value = code;
+              if (btnCopyInvite) btnCopyInvite.disabled = !code;
+              var link = makeInviteLink(code);
+              if (inviteLinkInput) inviteLinkInput.value = link;
+              if (btnCopyInviteLink) btnCopyInviteLink.disabled = !link;
+              setStatus(code ? "邀请码已生成。" : "生成失败，请重试。");
+              setInviteStatus(code ? "已生成，可复制发给朋友。" : "生成失败，请重试。");
+            })
+            .catch(function () {
+              setStatus("获取邀请码失败，请稍后重试。");
+              setInviteStatus("获取失败，请稍后重试。");
+            })
+            .finally(function () {
+              btnMyInvite.disabled = false;
+              btnMyInvite.textContent = oldText;
+            });
+        });
+      }
+      if (btnCopyInvite) {
+        btnCopyInvite.addEventListener("click", function () {
+          var code = inviteInput ? inviteInput.value : "";
+          copyText(code)
+            .then(function () {
+              setStatus("已复制邀请码。");
+              setInviteStatus("已复制。");
+            })
+            .catch(function () {
+              setStatus("复制失败，请手动选择复制。");
+              setInviteStatus("复制失败，请手动选择复制。");
+            });
+        });
+      }
+      if (btnCopyInviteLink) {
+        btnCopyInviteLink.addEventListener("click", function () {
+          var link = inviteLinkInput ? inviteLinkInput.value : "";
+          copyText(link)
+            .then(function () { setStatus("已复制邀请链接。"); setInviteStatus("已复制邀请链接。"); })
+            .catch(function () { setStatus("复制失败，请手动选择复制。"); setInviteStatus("复制失败，请手动选择复制。"); });
+        });
+      }
+      if (btnBind) {
+        btnBind.addEventListener("click", function () {
+          var code = bindInput ? String(bindInput.value || "").trim() : "";
+          if (!tokenGet()) {
+            setInviteStatus("请先登录后再绑定邀请码。");
+            setStatus("请先登录后再绑定邀请码。");
+            try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) { window.scrollTo(0, 0); }
+            return;
+          }
+          if (!code) {
+            setInviteStatus("请输入好友邀请码。");
+            return;
+          }
+          btnBind.disabled = true;
+          setInviteStatus("绑定中…");
+          inviteBind(code)
+            .then(function () { setInviteStatus("绑定成功。欢迎加入。"); })
+            .catch(function () { setInviteStatus("绑定失败：请检查邀请码是否正确（或已绑定过）。"); })
+            .finally(function () { btnBind.disabled = false; });
+        });
+      }
+
+      try {
+        window.addEventListener("beforeunload", function () {
+          stopVipPoll();
+        });
+      } catch (e) {}
+
+      try { loadSmsCaptchaCfg(); } catch (e0) {}
+      refreshMe();
+      reloadInviteRecords();
+      try {
+        var fh0 = String(location.hash || "").replace(/^#/, "").split(/[?&]/)[0];
+        if (fh0 === "forgot") {
+          window.setTimeout(function () {
+            try {
+              openForgetModal();
+            } catch (eH0) {}
+          }, 200);
+        }
+      } catch (eHash0) {}
+    })();
+  </script>
+</body>
+</html>
+

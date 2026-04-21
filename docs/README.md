@@ -1,126 +1,41 @@
-# AI24X Token聚合平台 - 标准化目录结构
+# AI24X 文档索引
 
-## 📁 目录结构（永久固定）
+仓库文档与 **《AI24X・Token 自由规划 1.0》** 对齐：单仓、`api/` + `web/` + `db/`，生产以新加坡为准（见规划文档）。
 
-```
-ai24x01/  (本地目录) = token-platform/ (Gitee线上目录)
-├── api/     后端接口代码
-├── web/     前端页面代码
-├── db/      数据库SQL文件
-├── config/  配置文件
-├── scripts/ 部署脚本
-└── docs/    项目文档
-```
+## 必读
 
-## 🚨 重要规则
+| 文档 | 说明 |
+|------|------|
+| [AI24X-Token自由规划-1.0.md](./AI24X-Token自由规划-1.0.md) | 顶层规划：副脑分工、发布流水线、MVP、生态与链上原则；**§17～§19** 商业战略（含 §17.7 双轨增长）、一期国内/二期国际供货商与 API 接入方案（1.0.6） |
+| [副脑统一操作手册.md](./副脑统一操作手册.md) | Git 流程与目录规范（**访问令牌等敏感信息勿提交到公开仓库**） |
+| [文档规则-唯一口径与归档.md](./文档规则-唯一口径与归档.md) | **永久规则**：`docs/` 根目录只保留现行口径；重复/过时一律进 `docs/archive/obsolete/`（只存档，不触发规划开发） |
+| [MVP-测试与联调.md](./MVP-测试与联调.md) | 本地与预发布：数据库、API、控制台首版测试步骤 |
+| [账号注册登录-首期设计.md](./账号注册登录-首期设计.md) | 主站：手机/邮箱注册登录、找回密码、腾讯云短信与邮件配置；**需业务方配合项见文档 §8** |
+| [training/README.md](./training/README.md) | **主脑实训子目录**：学习路线、任务清单、复盘模板；索引内链各篇（与规划 §11 对齐） |
+| [站点与子项目规划.md](./站点与子项目规划.md) | **主站 + API + 子项目池（p/）** 的统一规划：`www / api / a` 子域分层、扩展方式与阶段路线；含 **国际站（intl）** 的同代码分环境、分库与域名/端口建议（§7） |
+| [../memory/README.md](../memory/README.md) | 工作记忆：关键决策、进度、下一步（用于快速续接） |
 
-1. **结构必须一致**：不许自建顶层目录，不许乱改结构
-2. **操作流程**：
-   ```bash
-   git pull → 开发 → git add → commit → push
-   ```
-3. **本地目录**：ai24x01
-4. **线上目录**：token-platform
+## 部署与运维
 
-## 🔄 标准操作流程
+| 文档 | 说明 |
+|------|------|
+| [部署-域名与反向代理示例.md](./部署-域名与反向代理示例.md) | `www / api / a` 子域分层与反向代理落地示例 |
+| [部署-PM2统一进程管理.md](./部署-PM2统一进程管理.md) | 副脑03 推荐：用 PM2 统一管理后端进程（自启/重启/日志） |
+| [部署-副脑01-预演到副脑03-生产发布流程（Windows）.md](./部署-副脑01-预演到副脑03-生产发布流程（Windows）.md) | 预演→生产闭环：副脑01→副脑03/04，rc/prod tag、部署顺序、验收与回滚（统一路径 `C:\\ai24x01`） |
+| [PORTS.md](./PORTS.md) | **端口统一规划**：生产/本地端口池 + Nginx/PM2 固定映射（避免到处改端口）；本地一键启动（`ecosystem.local.config.js`）也在这里 |
+| [备份-日常方案.md](./备份-日常方案.md) | 日常备份：范围、频率、保留、异地与恢复校验（先说明，后续补脚本） |
+| [AI行情官-数据库与回滚方案.md](./AI行情官-数据库与回滚方案.md) | AI 行情官｜灯塔版（1.01）：SQLite→PostgreSQL 上线前升级与 **1 分钟回滚**方案（含备份与演练清单） |
+| [AI行情官-统一主方案-按阶段按步骤.md](./AI行情官-统一主方案-按阶段按步骤.md) | AI 行情官｜灯塔版（1.01）：统一主方案（按阶段/按步骤）+ 引用三张方案卡片 |
+| [AI行情官-方案卡片-Windows裸机PG+PM2Nginx.md](./AI行情官-方案卡片-Windows裸机PG+PM2Nginx.md) | 方案卡片：Windows 裸机 PostgreSQL + PM2/Nginx（最稳新人版） |
+| [AI行情官-方案卡片-发布总流程最精简不出错.md](./AI行情官-方案卡片-发布总流程最精简不出错.md) | 方案卡片：发布总流程（最精简/最快/不出错） |
+| [AI行情官-方案卡片-3台Windows小白流程化回滚.md](./AI行情官-方案卡片-3台Windows小白流程化回滚.md) | 方案卡片：3 台 Windows + 小白 + 流程化回滚（OpenClaw 任务包口径） |
+| [../p/a/docs/README.md](../p/a/docs/README.md) | AI 行情官｜灯塔版（1.01）（`a.ai24x.com`）子项目文档索引（含联调脚本入口） |
 
-### 1. 首次克隆（只做1次）
-```bash
-git clone https://gitee.com/ai24x/ai24x-website.git ai24x01
-cd ai24x01
-```
+## 归档
 
-### 2. 每次开发前（防冲突）
-```bash
-cd ai24x01
-git pull
-```
+历史报告与一次性修复记录见 [archive/README.md](./archive/README.md)。
 
-### 3. 开发完成后上传
-```bash
-cd ai24x01
-git add .
-git commit -m "更新token-platform"
-git push
-```
+另：
 
-## 📌 固定配置
-- **Gitee仓库**: https://gitee.com/ai24x/ai24x-website.git
-- **访问令牌**: 8d6d649284a6ee802f3360388053fa0b
-- **本地目录**: ai24x01
-- **线上目录**: token-platform
-
----
-
-**@all 副脑注意**：必须严格执行此目录结构和操作流程！
-
----
-
-# AI24X 网站服务器（原有内容保留）
-
-## 🚀 快速启动
-
-### 方法1：一键启动（推荐）
-双击运行 `start-server.bat`
-
-### 方法2：自动启动服务（开机自启）
-1. 右键点击 `auto-start-service.bat`
-2. 选择"以管理员身份运行"
-3. 系统登录时会自动启动网站服务
-
-### 方法3：PowerShell监控服务
-```powershell
-# 以管理员身份运行PowerShell
-powershell -ExecutionPolicy Bypass -File monitor-service.ps1
-```
-
-## 📍 访问地址
-- 主网站：http://localhost:3000
-- 健康检查：http://localhost:3000/health
-- 工具页面：http://localhost:3000/tools
-- 排名页面：http://localhost:3000/rankings
-
-## 🔧 技术栈
-- **前端**: HTML5, CSS3, JavaScript
-- **服务器**: Node.js + Express
-- **端口**: 3000
-
-## 🛠️ 故障排除
-
-### 问题1：端口3000被占用
-```bash
-# 停止占用端口的进程
-netstat -ano | findstr :3000
-taskkill /F /PID [进程ID]
-```
-
-### 问题2：Node.js未安装
-1. 访问 https://nodejs.org/
-2. 下载并安装LTS版本
-3. 重启电脑
-
-### 问题3：依赖安装失败
-```bash
-# 清除npm缓存
-npm cache clean --force
-
-# 重新安装依赖
-rm -rf node_modules package-lock.json
-npm install
-```
-
-## 📊 监控功能
-- 自动健康检查（每30秒）
-- 崩溃自动重启（最多3次）
-- 内存使用监控
-- 运行时间统计
-
-## 🎯 开发说明
-当前版本为静态网站MVP，后续将升级为：
-1. React + TypeScript 前端
-2. 完整的AI工具数据库
-3. 用户认证系统
-4. 实时排名功能
-
-## 📞 支持
-如有问题，请检查 `service-monitor.log` 日志文件
+- 旧环境/旧流程的阶段性文档：`archive/obsolete/`
+- 历史文件名兼容入口：`_compat/README.md`

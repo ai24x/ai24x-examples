@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="AI24X 用户控制台：查看用量、管理 API Key 与账户信息。" />
+  <title>用户控制台 · AI24X</title>
+  <link rel="stylesheet" href="css/base.css?v=20260421a" />
+  <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260421a" data-base="css/themes/" />
+</head>
+<body data-page="console" class="theme-blue">
+  <header class="site-header" id="site-header"></header>
+  <main class="page-main">
+    <section class="hero hero-surface section-tight">
+      <div class="container">
+        <h1 data-i18n="page.console.title"></h1>
+        <p class="lead" data-i18n="page.console.sub"></p>
+        <p class="callout mt-2" data-i18n-html="page.console.authBanner"></p>
+        <p class="callout mt-2" data-i18n-html="page.console.hint"></p>
+      </div>
+    </section>
+    <section class="section">
+      <div class="container">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label" data-i18n="page.console.stat.balance"></div>
+            <div class="stat-value" id="stat-balance">--</div>
+            <div class="stat-sub" data-i18n="page.console.stat.balance.sub"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label" data-i18n="page.console.stat.calls"></div>
+            <div class="stat-value" id="stat-calls">--</div>
+            <div class="stat-sub" data-i18n="page.console.stat.calls.sub"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label" data-i18n="page.console.stat.keys"></div>
+            <div class="stat-value" id="stat-keys">--</div>
+            <div class="stat-sub" data-i18n="page.console.stat.keys.sub"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label" data-i18n="page.console.stat.referrals"></div>
+            <div class="stat-value" id="stat-referrals">--</div>
+            <div class="stat-sub" data-i18n="page.console.stat.referrals.sub"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="container grid-2">
+        <div class="card">
+          <h3 class="mt-0" data-i18n="page.console.account.title"></h3>
+          <ul class="list-clean">
+            <li class="list-item">
+              <span data-i18n="page.console.account.user"></span>
+              <span id="acct-user">--</span>
+            </li>
+            <li class="list-item">
+              <span data-i18n="page.console.account.phone"></span>
+              <span id="acct-phone">--</span>
+            </li>
+            <li class="list-item">
+              <span data-i18n="page.console.account.plan"></span>
+              <span id="acct-plan">--</span>
+            </li>
+          </ul>
+          <div class="card-actions">
+            <a class="btn" href="login.html" data-i18n="nav.login"></a>
+            <a class="btn" href="register.html" data-i18n="nav.register"></a>
+            <a class="btn btn-primary" href="pricing.html" data-i18n="page.console.actions.upgrade"></a>
+            <a class="btn" href="refer.html" data-i18n="page.console.actions.refer"></a>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="mt-0" data-i18n="page.console.apisettings.title"></h3>
+          <p data-i18n="page.console.apisettings.sub"></p>
+          <div class="form-group mt-2">
+            <label data-i18n="page.console.apiurl"></label>
+            <input type="url" class="input" id="api-base" placeholder="https://api.ai24x.com" />
+          </div>
+          <div class="form-group">
+            <label data-i18n="page.console.apikey"></label>
+            <input type="password" class="input" id="api-key" placeholder="sk-..." autocomplete="off" />
+          </div>
+          <div class="card-actions">
+            <button type="button" class="btn btn-primary" id="btn-save-api" data-i18n="page.console.save"></button>
+            <button type="button" class="btn" id="btn-refresh" data-i18n="page.console.actions.refresh"></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="container grid-2">
+        <div class="card">
+          <h3 class="mt-0" data-i18n="page.console.keys.title"></h3>
+          <p data-i18n="page.console.keys.sub"></p>
+          <div class="api-key-display" id="apiKeyDisplay">--</div>
+          <div class="card-actions">
+            <button type="button" class="btn" id="btn-copy-key" data-i18n="page.console.keys.copy"></button>
+            <button type="button" class="btn btn-primary" id="btn-create-key" data-i18n="page.console.keys.create"></button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="mt-0" data-i18n="page.console.activity.title"></h3>
+          <p data-i18n="page.console.activity.sub"></p>
+          <ul class="list-clean" id="activityList">
+            <li class="list-item">
+              <span data-i18n="page.console.activity.item1"></span>
+              <span> </span>
+            </li>
+            <li class="list-item">
+              <span data-i18n="page.console.activity.item2"></span>
+              <span> </span>
+            </li>
+            <li class="list-item">
+              <span data-i18n="page.console.activity.item3"></span>
+              <span> </span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer" id="site-footer"></footer>
+  <script src="config/locales.js?v=20260421a"></script>
+  <script src="js/api.js?v=20260421a"></script>
+  <script src="js/i18n.js?v=20260421a"></script>
+  <script src="js/shell.js?v=20260421a"></script>
+  <script src="js/app.js?v=20260421a"></script>
+  <script>
+    function fmtMoney(v) {
+      var n = Number(v);
+      if (!isFinite(n)) return "--";
+      return n.toFixed(2);
+    }
+
+    async function refreshAll() {
+      var phEl = document.getElementById("acct-phone");
+      document.getElementById("stat-balance").textContent = "--";
+      document.getElementById("stat-calls").textContent = "--";
+      document.getElementById("stat-keys").textContent = "--";
+      document.getElementById("stat-referrals").textContent = "--";
+      document.getElementById("acct-user").textContent = "--";
+      if (phEl) phEl.textContent = "--";
+      document.getElementById("acct-plan").textContent = "--";
+      document.getElementById("apiKeyDisplay").textContent = "--";
+
+      try {
+        var ui = await AI24X_API.userInfo();
+        if (ui && (ui.email || ui.user_id || ui.id)) {
+          document.getElementById("acct-user").textContent =
+            ui.email || ui.user_id || ui.id;
+        }
+        if (phEl) {
+          var p = ui && (ui.phone || ui.mobile || ui.phone_number);
+          phEl.textContent = p
+            ? String(p)
+            : window.AI24X_I18N
+              ? AI24X_I18N.t("page.console.phoneUnset")
+              : "--";
+        }
+        if (ui && (ui.plan || ui.tier)) {
+          document.getElementById("acct-plan").textContent = ui.plan || ui.tier;
+        }
+        if (ui && (ui.calls_today != null || ui.calls != null)) {
+          document.getElementById("stat-calls").textContent = String(
+            ui.calls_today != null ? ui.calls_today : ui.calls
+          );
+        }
+      } catch (e) {}
+
+      try {
+        var bal = await AI24X_API.billingBalance();
+        var v = bal && (bal.balance != null ? bal.balance : bal.amount);
+        if (v != null) document.getElementById("stat-balance").textContent = fmtMoney(v);
+      } catch (e) {}
+
+      try {
+        var keys = await AI24X_API.keysList();
+        if (Array.isArray(keys)) {
+          document.getElementById("stat-keys").textContent = String(keys.length);
+          if (keys[0] && (keys[0].key || keys[0].api_key || keys[0].token)) {
+            document.getElementById("apiKeyDisplay").textContent =
+              keys[0].key || keys[0].api_key || keys[0].token;
+          }
+        } else if (keys && Array.isArray(keys.items)) {
+          document.getElementById("stat-keys").textContent = String(keys.items.length);
+          if (keys.items[0] && (keys.items[0].key || keys.items[0].api_key || keys.items[0].token)) {
+            document.getElementById("apiKeyDisplay").textContent =
+              keys.items[0].key || keys.items[0].api_key || keys.items[0].token;
+          }
+        }
+      } catch (e) {}
+
+      try {
+        var r = await AI24X_API.referralsSummary();
+        var c = r && (r.count != null ? r.count : r.users);
+        if (c != null) document.getElementById("stat-referrals").textContent = String(c);
+      } catch (e) {}
+    }
+
+    function saveSettings() {
+      var b = document.getElementById("api-base").value.trim();
+      var k = document.getElementById("api-key").value.trim();
+      if (b) AI24X_API.setBase(b);
+      else AI24X_API.setBase("");
+      if (k) AI24X_API.setApiKey(k);
+      else AI24X_API.setApiKey("");
+    }
+
+    function copyText(text) {
+      if (!text || text === "--") return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).catch(function () {});
+      }
+    }
+
+    document.getElementById("btn-save-api").addEventListener("click", function () {
+      saveSettings();
+      refreshAll();
+    });
+    document.getElementById("btn-refresh").addEventListener("click", function () {
+      refreshAll();
+    });
+    document.getElementById("btn-copy-key").addEventListener("click", function () {
+      copyText(document.getElementById("apiKeyDisplay").textContent);
+    });
+    document.getElementById("btn-create-key").addEventListener("click", function () {
+      AI24X_API.keysCreate({}).then(refreshAll).catch(function () { refreshAll(); });
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+      document.getElementById("api-base").value = AI24X_API.getBase();
+      document.getElementById("api-key").value = AI24X_API.getApiKey();
+      refreshAll();
+    });
+  </script>
+</body>
+</html>

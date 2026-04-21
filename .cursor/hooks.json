@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": ".cursor/hooks/session-init.cmd",
+        "timeout": 10
+      }
+    ],
+    "subagentStop": [
+      {
+        "command": ".cursor/hooks/subagent-stop.cmd",
+        "timeout": 10,
+        "failClosed": false
+      }
+    ]
+  }
+}
+

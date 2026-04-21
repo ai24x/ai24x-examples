@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+  <title>海王 · 山海渔 · 仓库</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="css/demo2.css" />
+</head>
+<body class="style-young page">
+  <div class="pageWrap">
+    <div class="pageHead">
+      <div>
+        <div class="pageTitle">🎒 仓库</div>
+        <div class="pageSub">把鱼获回收换金币，再去升级道具与解锁钓场</div>
+      </div>
+      <button class="miniBtn" id="btnBack">返回垂钓</button>
+    </div>
+
+    <div class="card bagSummary">
+      <div class="row">
+        <div class="pill">💰 金币 <b id="coin">0</b></div>
+        <div class="pill">⭐ 阅历 <b id="score">0</b></div>
+        <div class="pill">🐟 鱼种 <b id="kinds">0</b></div>
+        <div class="pill">📦 总数 <b id="total">0</b></div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="miniBtn primary" id="btnSellAll">一键回收（全部）</button>
+      </div>
+    </div>
+
+    <div class="card bagList" id="list"></div>
+  </div>
+
+  <script src="js/bag.js"></script>
+</body>
+</html>
+

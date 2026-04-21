@@ -1,0 +1,12 @@
+/* p/a theme: modern cards */
+body.theme-cards {
+  --bg: #f0f2f5;
+  --panel: #ffffff;
+  --border: #e5e7eb;
+  --text: #111827;
+  --muted: #6b7280;
+  --accent: #4f46e5;
+  --warn: #b45309;
+  --shadow-md: 0 20px 50px rgba(17, 24, 39, 0.08);
+}
+

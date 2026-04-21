@@ -25,5 +25,6 @@ def get_db():
 
 # Initialize database
 def init_db():
-    from models import Base
+    from models import AuthUser, Base  # noqa: F401 — register metadata
+
     Base.metadata.create_all(bind=engine)

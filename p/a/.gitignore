@@ -1,0 +1,40 @@
+## OS / Editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+## Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+## Virtualenv
+.venv/
+venv/
+ENV/
+env/
+
+## Local data / secrets
+**/.env
+**/.env.*
+!**/.env.example
+api/server/data/
+*.db
+*.sqlite
+*.sqlite3
+
+## Build / artifacts
+dist/
+build/
+artifacts/
+
+## Vendor download state
+scripts/.vendor_download_state.json

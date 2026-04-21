@@ -1,0 +1,103 @@
+/**
+ * AI24X — PM2 local dev config (Windows-friendly).
+ *
+ * Local port convention:
+ * - AI股秘书静态（p/a/web）: 18001
+ * - 山海渔 Fisher 网页联调（p/fisher/web）: 18002
+ * - AI股秘书 API（p/a/api/server）: 18031
+ * - 山海渔 Fisher API（p/fisher/api/server）: 18041
+ *
+ * Notes:
+ * - This file is for local development; production uses `ecosystem.config.cjs`.
+ * - On Windows, `python` should resolve to your installed Python.
+ */
+module.exports = {
+  apps: [
+    {
+      name: "core-8000",
+      cwd: "./api",
+      script: "python",
+      windowsHide: true,
+      // Run uvicorn directly (no reload) to avoid WatchFiles/WinError issues.
+      args: "-m uvicorn main:app --host 0.0.0.0 --port 8000",
+      autorestart: true,
+      max_memory_restart: "900M",
+      env: {
+        PYTHONUNBUFFERED: "1",
+        SKIP_DB_INIT: "0",
+        // Local auth DB (SQLite) — avoids Postgres/encoding issues on Windows.
+        DATABASE_URL: "sqlite:///./data/api_auth.db",
+        API_WORKERS: "1",
+        AI24X_ENV: "dev",
+      },
+      out_file: "./logs/pm2-core-out.log",
+      error_file: "./logs/pm2-core-err.log",
+      log_date_format: "YYYY-MM-DD HH:mm:ss",
+    },
+    {
+      name: "a-web-18001",
+      cwd: "./p/a/web",
+      script: "python",
+      windowsHide: true,
+      args: "-m http.server 18001",
+      autorestart: true,
+      max_memory_restart: "200M",
+      env: {
+        PYTHONUNBUFFERED: "1",
+      },
+      out_file: "./logs/pm2-a-web-out.log",
+      error_file: "./logs/pm2-a-web-err.log",
+      log_date_format: "YYYY-MM-DD HH:mm:ss",
+    },
+    {
+      name: "fisher-web-18002",
+      cwd: "./p/fisher/web",
+      script: "python",
+      windowsHide: true,
+      args: "-m http.server 18002",
+      autorestart: true,
+      max_memory_restart: "120M",
+      env: {
+        PYTHONUNBUFFERED: "1",
+      },
+      out_file: "./logs/pm2-fisher-web-out.log",
+      error_file: "./logs/pm2-fisher-web-err.log",
+      log_date_format: "YYYY-MM-DD HH:mm:ss",
+    },
+    {
+      name: "a-api-18031",
+      cwd: "./p/a/api/server",
+      script: "python",
+      windowsHide: true,
+      // Note: avoid `--reload` on Windows (it may spawn extra console windows).
+      // When you change backend code, run: `pm2 restart a-api-18031`
+      args: "-m uvicorn app.main:app --host 127.0.0.1 --port 18031",
+      autorestart: true,
+      max_memory_restart: "600M",
+      env: {
+        PYTHONUNBUFFERED: "1",
+        AI24X_ENV: "dev",
+      },
+      out_file: "./logs/pm2-a-api-out.log",
+      error_file: "./logs/pm2-a-api-err.log",
+      log_date_format: "YYYY-MM-DD HH:mm:ss",
+    },
+    {
+      name: "fisher-api-18041",
+      cwd: "./p/fisher/api/server",
+      script: "python",
+      windowsHide: true,
+      args: "-m uvicorn app.main:app --host 127.0.0.1 --port 18041",
+      autorestart: true,
+      max_memory_restart: "400M",
+      env: {
+        PYTHONUNBUFFERED: "1",
+        FISHER_ENV: "dev",
+      },
+      out_file: "./logs/pm2-fisher-api-out.log",
+      error_file: "./logs/pm2-fisher-api-err.log",
+      log_date_format: "YYYY-MM-DD HH:mm:ss",
+    },
+  ],
+};
+

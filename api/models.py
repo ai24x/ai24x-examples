@@ -76,3 +76,20 @@ class RateLimit(Base):
     window_start = Column(DateTime(timezone=True), nullable=False)
     window_end = Column(DateTime(timezone=True), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class AuthUser(Base):
+    """
+    终端用户账号（手机/邮箱 + 密码），供 www、a 子域等共用。
+    与 chat 网关用的 `User`（api_key 计次）表分离。
+    """
+
+    __tablename__ = "auth_users"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    phone = Column(String(20), unique=True, nullable=True, index=True)
+    email = Column(String(255), unique=True, nullable=True, index=True)
+    password_hash = Column(String(255), nullable=False)
+    phone_verified_at = Column(DateTime(timezone=True), nullable=True)
+    email_verified_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
