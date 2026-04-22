@@ -22,7 +22,9 @@
       '<nav class="nav-main" id="nav-main" aria-label="Main">' +
       nav("index.html", "首页", "index") +
       nav("demo.html", "行情", "demo") +
+      nav("partner.html", "代理", "partner") +
       nav("account.html", "我的", "account") +
+      nav("feedback.html", "反馈", "feedback") +
       "</nav>" +
       '<div class="header-actions">' +
       '<select id="theme-select" class="select-mini" aria-label="Theme">' +
@@ -42,7 +44,7 @@
       '<div class="container">' +
       '<div class="footer-grid">' +
       '<div class="footer-col">' +
-      '<div class="footer-title">AI24X · AI 行情官｜灯塔版（1.01） V1.0</div>' +
+      '<div class="footer-title">AI24X · AI 行情官｜灯塔版（V1.01）</div>' +
       '<div class="mt-2">行情与指标，一目了然</div>' +
       '<div class="mt-2" style="font-size:12px; opacity:.85">仅供学习研究，不构成投资建议；投资有风险，决策需谨慎。</div>' +
       "</div>" +
@@ -50,11 +52,13 @@
       '<div class="footer-title">产品</div>' +
       '<a href="demo.html">行情与信号</a>' +
       '<a href="account.html">用户中心</a>' +
+      '<a href="feedback.html">意见反馈</a>' +
       "</div>" +
       '<div class="footer-col">' +
       '<div class="footer-title">服务</div>' +
       '<a href="account.html#vip">开通 VIP</a>' +
       '<a href="account.html#invite">邀请奖励</a>' +
+      '<a href="partner.html">代理合作</a>' +
       "</div>" +
       '<div class="footer-col">' +
       '<div class="footer-title">合规</div>' +

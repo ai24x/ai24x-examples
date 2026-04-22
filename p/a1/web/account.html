@@ -169,6 +169,24 @@
         </table>
       </div>
     </section>
+
+    <section class="card" id="agent">
+      <h1>代理与返佣</h1>
+      <p class="sub" style="margin:0 0 8px;">年卡 ¥999 可获得普通代理资格；返佣与结算规则以平台政策为准。</p>
+
+      <div class="kv" id="agent-kv" hidden>
+        <span>代理身份 <b id="agent-level">-</b></span>
+        <span>可提现(元) <b id="agent-withdrawable">-</b></span>
+        <span>已结算(元) <b id="agent-paid">-</b></span>
+      </div>
+
+      <div class="row" style="margin-top:10px; flex-wrap:wrap;">
+        <button class="btn" type="button" id="btn-agent-refresh">刷新</button>
+        <button class="btn" type="button" id="btn-agent-setacct">设置收款信息</button>
+        <button class="btn primary" type="button" id="btn-agent-withdraw">申请提现</button>
+      </div>
+      <div class="status" id="agent-status" style="margin-top:10px;"></div>
+    </section>
   </div>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
@@ -250,6 +268,42 @@
     </div>
   </div>
 
+  <div id="pw-modal-agent-acct" class="pw-modal" hidden>
+    <div class="pw-modal-panel">
+      <h2>收款信息</h2>
+      <p class="sub">用于提现打款核对。当前仅支持支付宝。</p>
+      <label class="pw-field">支付宝账号
+        <input id="agent-acct-no" type="text" autocomplete="off" placeholder="手机号或邮箱" />
+      </label>
+      <label class="pw-field">姓名（支付宝实名）
+        <input id="agent-acct-name" type="text" autocomplete="name" placeholder="请输入真实姓名" />
+      </label>
+      <label class="pw-field">手机号
+        <input id="agent-acct-phone" type="tel" autocomplete="tel" placeholder="11 位数字" />
+      </label>
+      <div class="status" id="agent-acct-status"></div>
+      <div class="pw-actions">
+        <button type="button" class="btn" data-pw-close="pw-modal-agent-acct">取消</button>
+        <button type="button" class="btn primary" id="btn-agent-acct-save">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="pw-modal-agent-withdraw" class="pw-modal" hidden>
+    <div class="pw-modal-panel">
+      <h2>申请提现</h2>
+      <p class="sub">提交后将进入审核流程。实际打款以审核结果为准。</p>
+      <label class="pw-field">备注（可选）
+        <input id="agent-withdraw-note" type="text" autocomplete="off" placeholder="例如：本周结算" />
+      </label>
+      <div class="status" id="agent-withdraw-status"></div>
+      <div class="pw-actions">
+        <button type="button" class="btn" data-pw-close="pw-modal-agent-withdraw">取消</button>
+        <button type="button" class="btn primary" id="btn-agent-withdraw-submit">提交申请</button>
+      </div>
+    </div>
+  </div>
+
   <script src="js/shell.js"></script>
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("account"); } catch (e) {}
@@ -282,6 +336,23 @@
       var fgSmsCaptchaBox = $("fg-sms-captcha-box");
       var bindSmsCaptchaWrap = $("bind-sms-captcha-wrap");
       var bindSmsCaptchaBox = $("bind-sms-captcha-box");
+
+      var agentKv = $("agent-kv");
+      var agentLevelEl = $("agent-level");
+      var agentWithdrawableEl = $("agent-withdrawable");
+      var agentPaidEl = $("agent-paid");
+      var agentStatusEl = $("agent-status");
+      var btnAgentRefresh = $("btn-agent-refresh");
+      var btnAgentSetAcct = $("btn-agent-setacct");
+      var btnAgentWithdraw = $("btn-agent-withdraw");
+      var agentAcctNo = $("agent-acct-no");
+      var agentAcctName = $("agent-acct-name");
+      var agentAcctPhone = $("agent-acct-phone");
+      var agentAcctStatus = $("agent-acct-status");
+      var btnAgentAcctSave = $("btn-agent-acct-save");
+      var agentWithdrawNote = $("agent-withdraw-note");
+      var agentWithdrawStatus = $("agent-withdraw-status");
+      var btnAgentWithdrawSubmit = $("btn-agent-withdraw-submit");
 
       function loadScriptOnce(src, cb) {
         try {
@@ -449,6 +520,10 @@
         var m = e && e.message ? String(e.message) : "";
         m = (m || "").trim();
         if (!m) return "请求失败";
+        if (m === "no_withdrawable") return "暂无可提现金额（或金额不足）。";
+        if (m === "missing_payout_account") return "请先设置收款信息，再申请提现。";
+        if (m === "invalid_phone") return "手机号格式不正确，请填写 11 位数字。";
+        if (m === "missing_account") return "请完整填写收款信息后再保存。";
         if (m === "Failed to fetch" || /NetworkError/i.test(m) || /fetch/i.test(m) && /failed/i.test(m)) {
           return "网络或服务暂时不可用，请稍后重试。";
         }
@@ -551,6 +626,151 @@
             quotaKv.hidden = true;
             setAccountIdentityVisible(false);
             setStatus("账户信息加载失败，请刷新重试。");
+          });
+      }
+
+      function fmtFen(v) {
+        try {
+          var n = Number(v || 0);
+          if (!isFinite(n)) n = 0;
+          return String(Math.round(n));
+        } catch (e) {
+          return "0";
+        }
+      }
+
+      function fmtFenYuanStr(fen) {
+        try {
+          var n = Number(fen || 0);
+          if (!isFinite(n)) n = 0;
+          return (n / 100).toFixed(2);
+        } catch (e) {
+          return "0.00";
+        }
+      }
+
+      function agentRefresh() {
+        if (!agentStatusEl) return;
+        if (!tokenGet()) {
+          agentStatusEl.textContent = "请先登录后查看。";
+          return;
+        }
+        agentStatusEl.textContent = "加载中…";
+        apiFetch("/api/agent/overview", { cache: "no-store" })
+          .then(function (d) {
+            if (!d || !d.ok) throw new Error((d && d.detail) || "加载失败");
+            var ag = d.agent || null;
+            var lvl = ag && ag.level ? String(ag.level) : "";
+            if (!lvl) lvl = "—";
+            if (agentLevelEl) agentLevelEl.textContent = lvl;
+            if (agentWithdrawableEl) agentWithdrawableEl.textContent = fmtFenYuanStr(d.withdrawable_fen);
+            var paid = 0;
+            try { paid = d && d.commission_sum_fen && d.commission_sum_fen.paid != null ? Number(d.commission_sum_fen.paid) : 0; } catch (e0) {}
+            if (agentPaidEl) agentPaidEl.textContent = fmtFenYuanStr(paid);
+            if (agentKv) agentKv.hidden = false;
+            agentStatusEl.textContent = "";
+          })
+          .catch(function (e) {
+            agentStatusEl.textContent = normalizeErrMsg(e) || "加载失败。";
+          });
+      }
+
+      function agentSetAccount() {
+        if (!tokenGet()) {
+          if (agentStatusEl) agentStatusEl.textContent = "请先登录。";
+          return;
+        }
+        if (agentAcctStatus) agentAcctStatus.textContent = "读取中…";
+        if (agentAcctNo) agentAcctNo.value = "";
+        if (agentAcctName) agentAcctName.value = "";
+        if (agentAcctPhone) agentAcctPhone.value = "";
+        pwModalOpen("pw-modal-agent-acct");
+        apiFetch("/api/agent/payout_account", { cache: "no-store" })
+          .then(function (d) {
+            if (!d || !d.ok) throw new Error((d && d.detail) || "读取失败");
+            var a = d.payout_account || null;
+            if (!a) {
+              if (agentAcctStatus) agentAcctStatus.textContent = "请填写并保存。";
+              return;
+            }
+            try { if (agentAcctNo) agentAcctNo.value = String(a.account_no || ""); } catch (e0) {}
+            try { if (agentAcctName) agentAcctName.value = String(a.account_name || ""); } catch (e1) {}
+            try { if (agentAcctPhone) agentAcctPhone.value = String(a.phone || ""); } catch (e2) {}
+            if (agentAcctStatus) agentAcctStatus.textContent = "已读取上次信息，可直接修改后保存。";
+          })
+          .catch(function (e) {
+            var msg = normalizeErrMsg(e) || "";
+            if (agentAcctStatus) agentAcctStatus.textContent = msg ? ("读取失败：" + msg + "。你仍可直接填写并保存。") : "读取失败。你仍可直接填写并保存。";
+          });
+      }
+
+      function agentSaveAccountFromModal() {
+        if (!tokenGet()) {
+          if (agentAcctStatus) agentAcctStatus.textContent = "请先登录。";
+          return;
+        }
+        var ch = "alipay";
+        var no = (agentAcctNo && agentAcctNo.value ? String(agentAcctNo.value) : "").trim();
+        var name = (agentAcctName && agentAcctName.value ? String(agentAcctName.value) : "").trim();
+        var ph = (agentAcctPhone && agentAcctPhone.value ? String(agentAcctPhone.value) : "").trim();
+        if (!no || !name || !ph) {
+          if (agentAcctStatus) agentAcctStatus.textContent = "请把三项都填写完整。";
+          return;
+        }
+        var phDigits = ph.replace(/\D/g, "");
+        if (phDigits.length !== 11) {
+          if (agentAcctStatus) agentAcctStatus.textContent = "手机号请填写 11 位数字。";
+          return;
+        }
+        if (agentAcctStatus) agentAcctStatus.textContent = "保存中…";
+        apiFetch("/api/agent/payout_account", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ channel: ch, account_name: name, account_no: no, phone: phDigits }),
+        })
+          .then(function (d) {
+            if (!d || !d.ok) throw new Error((d && d.detail) || "保存失败");
+            if (agentAcctStatus) agentAcctStatus.textContent = "已保存。";
+            pwModalClose("pw-modal-agent-acct");
+            if (agentStatusEl) agentStatusEl.textContent = "已保存收款信息。";
+            agentRefresh();
+          })
+          .catch(function (e) {
+            if (agentAcctStatus) agentAcctStatus.textContent = normalizeErrMsg(e) || "保存失败。";
+          });
+      }
+
+      function agentWithdraw() {
+        if (!tokenGet()) {
+          if (agentStatusEl) agentStatusEl.textContent = "请先登录。";
+          return;
+        }
+        if (agentWithdrawStatus) agentWithdrawStatus.textContent = "";
+        if (agentWithdrawNote) agentWithdrawNote.value = "";
+        pwModalOpen("pw-modal-agent-withdraw");
+      }
+
+      function agentWithdrawSubmit() {
+        if (!tokenGet()) {
+          if (agentWithdrawStatus) agentWithdrawStatus.textContent = "请先登录。";
+          return;
+        }
+        var note = (agentWithdrawNote && agentWithdrawNote.value) ? String(agentWithdrawNote.value || "").trim() : "";
+        if (agentWithdrawStatus) agentWithdrawStatus.textContent = "提交中…";
+        apiFetch("/api/agent/payout/request", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ note: note || "" }),
+        })
+          .then(function (d) {
+            if (!d || !d.ok) throw new Error((d && d.detail) || "提交失败");
+            if (agentWithdrawStatus) agentWithdrawStatus.textContent = "已提交。";
+            pwModalClose("pw-modal-agent-withdraw");
+            if (agentStatusEl) agentStatusEl.textContent = "已提交提现申请，等待审核。";
+            agentRefresh();
+          })
+          .catch(function (e) {
+            if (agentWithdrawStatus) agentWithdrawStatus.textContent = normalizeErrMsg(e) || "提交失败。";
           });
       }
 
@@ -692,11 +912,24 @@
           .then(function (d) {
             var af = d && d.amount_fen != null ? Number(d.amount_fen) : 0;
             var pf = d && d.priced_amount_fen != null ? Number(d.priced_amount_fen) : af;
+            var ay = d && d.amount_yuan_display ? String(d.amount_yuan_display) : "";
+            var py = d && d.priced_amount_yuan_display ? String(d.priced_amount_yuan_display) : "";
             var hint =
               "请使用微信扫码支付。支付完成后本页会自动检测（约每 3 秒）。";
             if (pf !== af && pf > 0) {
               hint =
                 "请使用微信扫码支付；应付金额以微信收银台显示为准。支付完成后本页会自动检测（约每 3 秒）。";
+            }
+            if (ay) {
+              hint = "请使用微信扫码支付（实收 ¥" + ay + "）。支付完成后本页会自动检测（约每 3 秒）。";
+              if (py && py !== ay) {
+                hint =
+                  "请使用微信扫码支付（标价 ¥" +
+                  py +
+                  "，联调实收 ¥" +
+                  ay +
+                  "；以微信收银台显示为准）。支付完成后本页会自动检测（约每 3 秒）。";
+              }
             }
             setVipPayStatus(hint);
             showVipQr(d);
@@ -831,8 +1064,13 @@
       }
 
       if (btnLogout) btnLogout.addEventListener("click", logout);
+      if (btnAgentRefresh) btnAgentRefresh.addEventListener("click", agentRefresh);
+      if (btnAgentSetAcct) btnAgentSetAcct.addEventListener("click", agentSetAccount);
+      if (btnAgentWithdraw) btnAgentWithdraw.addEventListener("click", agentWithdraw);
+      if (btnAgentAcctSave) btnAgentAcctSave.addEventListener("click", agentSaveAccountFromModal);
+      if (btnAgentWithdrawSubmit) btnAgentWithdrawSubmit.addEventListener("click", agentWithdrawSubmit);
 
-      ["pw-modal-change", "pw-modal-forget"].forEach(function (mid) {
+      ["pw-modal-change", "pw-modal-forget", "pw-modal-agent-acct", "pw-modal-agent-withdraw"].forEach(function (mid) {
         var m = $(mid);
         if (m) {
           m.addEventListener("click", function (ev) {
@@ -1208,6 +1446,7 @@
       try { loadSmsCaptchaCfg(); } catch (e0) {}
       refreshMe();
       reloadInviteRecords();
+      try { agentRefresh(); } catch (e0) {}
       try {
         var fh0 = String(location.hash || "").replace(/^#/, "").split(/[?&]/)[0];
         if (fh0 === "forgot") {

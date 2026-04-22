@@ -1333,6 +1333,13 @@ def _billing_charge_amount_fen(catalog_fen: int) -> int:
     return int(catalog_fen)
 
 
+def _fen_to_yuan_display(fen: int) -> str:
+    try:
+        return f"{(int(fen) / 100.0):.2f}"
+    except Exception:
+        return "0.00"
+
+
 @app.post("/api/billing/wechat/native", response_model=PayNativeOut)
 async def billing_wechat_native(body: PayNativeIn, user_id: int = Depends(get_current_user_id)) -> PayNativeOut:
     wx_cfg = resolve_wechat_pay()
@@ -1381,6 +1388,8 @@ async def billing_wechat_native(body: PayNativeIn, user_id: int = Depends(get_cu
         code_url=code_url,
         amount_fen=charge_fen,
         priced_amount_fen=priced_fen,
+        amount_yuan_display=_fen_to_yuan_display(charge_fen),
+        priced_amount_yuan_display=_fen_to_yuan_display(priced_fen),
         plan=plan_norm,
     )
 

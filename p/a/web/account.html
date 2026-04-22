@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex,nofollow,noarchive" />
-  <title>用户中心 · AI 行情官｜灯塔版（1.01）</title>
-  <meta name="description" content="AI 行情官｜灯塔版 用户中心：配额、VIP、邀请码与绑定（注册与登录在首页）。" />
+  <title>用户中心 · AI24X · AI 行情官｜灯塔版（V1.01）</title>
+  <meta name="description" content="AI24X · AI 行情官｜灯塔版（V1.01）用户中心：配额、VIP、邀请码与绑定（注册与登录在首页）。" />
   <link rel="icon" href="data:," />
   <script>
     (function () {
@@ -677,11 +677,24 @@
           .then(function (d) {
             var af = d && d.amount_fen != null ? Number(d.amount_fen) : 0;
             var pf = d && d.priced_amount_fen != null ? Number(d.priced_amount_fen) : af;
+            var ay = d && d.amount_yuan_display ? String(d.amount_yuan_display) : "";
+            var py = d && d.priced_amount_yuan_display ? String(d.priced_amount_yuan_display) : "";
             var hint =
               "请使用微信扫码支付。支付完成后本页会自动检测（约每 3 秒）。";
             if (pf !== af && pf > 0) {
               hint =
                 "请使用微信扫码支付；应付金额以微信收银台显示为准。支付完成后本页会自动检测（约每 3 秒）。";
+            }
+            if (ay) {
+              hint = "请使用微信扫码支付（实收 ¥" + ay + "）。支付完成后本页会自动检测（约每 3 秒）。";
+              if (py && py !== ay) {
+                hint =
+                  "请使用微信扫码支付（标价 ¥" +
+                  py +
+                  "，联调实收 ¥" +
+                  ay +
+                  "；以微信收银台显示为准）。支付完成后本页会自动检测（约每 3 秒）。";
+              }
             }
             setVipPayStatus(hint);
             showVipQr(d);

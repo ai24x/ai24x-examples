@@ -42,7 +42,7 @@
       '<div class="container">' +
       '<div class="footer-grid">' +
       '<div class="footer-col">' +
-      '<div class="footer-title">AI24X · AI 行情官｜灯塔版（1.01） V0</div>' +
+      '<div class="footer-title">AI24X · AI 行情官｜灯塔版（V1.01） V0</div>' +
       '<div class="mt-2">行情与指标，一目了然</div>' +
       '<div class="mt-2" style="font-size:12px; opacity:.85">仅供学习研究，不构成投资建议；投资有风险，决策需谨慎。</div>' +
       "</div>" +

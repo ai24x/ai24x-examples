@@ -8,7 +8,7 @@
 (() => {
   "use strict";
 
-  const CACHE_VERSION = "ai24x-a1-static-v5";
+  const CACHE_VERSION = "ai24x-a1-static-v15";
   const CACHE_NAME = CACHE_VERSION;
 
   /** @param {string} p */
@@ -35,6 +35,8 @@
           urlFromScope("index.html"),
           urlFromScope("account.html"),
           urlFromScope("demo.html"),
+          urlFromScope("partner.html"),
+          urlFromScope("feedback.html"),
           // p/a base styles + shared chrome
           urlFromScope("css/base.css"),
           urlFromScope("css/tool.css"),
@@ -85,6 +87,31 @@
     event.respondWith(
       (async () => {
         const cache = await caches.open(CACHE_NAME);
+        const url = new URL(req.url);
+        const isLocal = url.origin === self.location.origin;
+
+        // Critical chrome assets should be network-first so nav updates take effect immediately
+        // (avoid "need F5 twice" after deployments).
+        try {
+          const p = url.pathname || "";
+          if (
+            isLocal &&
+            (p.endsWith("/js/shell.js") ||
+              p.endsWith("/partner.html") ||
+              p.endsWith("/index.html") ||
+              p.endsWith("/account.html") ||
+              p.endsWith("/demo.html"))
+          ) {
+            try {
+              const resp = await fetch(req, { cache: "no-store" });
+              if (resp && resp.ok) cache.put(req, resp.clone()).catch(() => {});
+              return resp;
+            } catch {
+              const cachedCritical = await cache.match(req, { ignoreSearch: true });
+              if (cachedCritical) return cachedCritical;
+            }
+          }
+        } catch {}
 
         // Navigations/HTML: network-first to avoid stale UI; fallback to cache when offline.
         const accept = req.headers.get("accept") || "";
@@ -92,7 +119,6 @@
         if (isHtml) {
           try {
             const resp = await fetch(req, { cache: "no-store" });
-            const url = new URL(req.url);
             if (resp.ok && url.origin === self.location.origin) {
               cache.put(req, resp.clone()).catch(() => {});
             }
@@ -109,8 +135,6 @@
         // Static assets: stale-while-revalidate (avoid "must hard refresh" issues)
         // Do NOT ignore search for assets: allow cache-busting when needed.
         const cached = await cache.match(req);
-        const url = new URL(req.url);
-        const isLocal = url.origin === self.location.origin;
 
         if (cached) {
           // Update in background

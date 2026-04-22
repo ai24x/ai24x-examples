@@ -115,6 +115,15 @@ class InviteBindIn(BaseModel):
     code: str = Field(min_length=3, max_length=32)
 
 
+class FeedbackCreateIn(BaseModel):
+    """用户反馈工单（须登录）；分类与后台 `user_feedback.category` 对齐。"""
+
+    category: str = Field(min_length=2, max_length=32)
+    title: str = Field(default="", max_length=200)
+    body: str = Field(min_length=5, max_length=8000)
+    contact: str = Field(default="", max_length=200)
+
+
 class PayNativeIn(BaseModel):
     """下单套餐：与 quota.plan 口径一致（体验 / 月 / 年）。"""
 
@@ -124,7 +133,11 @@ class PayNativeIn(BaseModel):
 class PayNativeOut(BaseModel):
     out_trade_no: str
     code_url: str
+    # 真值：用于对账/返佣/日志
     amount_fen: int
     priced_amount_fen: int
+    # 展示：用于前台/后台避免看错（字符串，已按 2 位小数格式化）
+    amount_yuan_display: str
+    priced_amount_yuan_display: str
     plan: str
 

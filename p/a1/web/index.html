@@ -876,6 +876,28 @@
         });
       }
 
+      function safePostLoginNextPath() {
+        try {
+          var sp = new URLSearchParams(String(location.search || "").replace(/^\?/, ""));
+          var raw = String(sp.get("next") || "").trim();
+          if (!raw) return "";
+          if (raw.indexOf("//") === 0 || raw.indexOf("\\") === 0) return "";
+          var u = new URL(raw, location.href);
+          if (u.origin !== location.origin) return "";
+          var path = String(u.pathname || "");
+          if (path.indexOf("..") >= 0) return "";
+          var leaf = path.split("/").pop() || "";
+          var allow = { "feedback.html": 1, "account.html": 1, "demo.html": 1, "partner.html": 1, "index.html": 1 };
+          if (!allow[leaf]) return "";
+          var qs = new URLSearchParams(u.search || "");
+          qs.delete("next");
+          var qstr = qs.toString();
+          return leaf + (qstr ? "?" + qstr : "") + String(u.hash || "");
+        } catch (eN) {
+          return "";
+        }
+      }
+
       function submitAuth() {
         authMode = readAuthMode();
         var idv = (identEl && identEl.value) ? String(identEl.value).trim() : "";
@@ -907,6 +929,22 @@
             if (!d || !d.token) throw new Error("no token");
             tokenSet(d.token);
             setStatus(authMode === "register" ? "注册成功。" : "登录成功。");
+            var nextPath = safePostLoginNextPath();
+            if (nextPath) {
+              var ic0 = readInviteForBind();
+              var go = function () {
+                try { location.replace(nextPath); } catch (eG) { location.href = nextPath; }
+              };
+              if (ic0) {
+                inviteBind(ic0)
+                  .then(function () { setStatus("邀请码已绑定。"); })
+                  .catch(function () { setStatus("邀请码绑定失败，可在用户中心再试。"); })
+                  .finally(go);
+              } else {
+                go();
+              }
+              return;
+            }
             refreshMe();
             var ic = readInviteForBind();
             if (ic) {

@@ -45,6 +45,7 @@ from .signals import build_signals_v3, candles_from_tencent_like_pack
 from .schemas import (
     AdminLoginIn,
     AdminOtpSendIn,
+    FeedbackCreateIn,
     InviteBindIn,
     LoginIn,
     LoginOut,
@@ -457,6 +458,38 @@ def admin_users(q: str = "", limit: int = 50, offset: int = 0, _: bool = Depends
     return db.admin_list_users(q=q, limit=limit, offset=offset)
 
 
+@app.get("/api/admin/feedback")
+def admin_feedback_list(
+    status: str = "",
+    category: str = "",
+    q: str = "",
+    limit: int = 50,
+    offset: int = 0,
+    _: bool = Depends(require_admin),
+) -> dict:
+    return db.admin_list_feedback(status=status, category=category, q=q, limit=limit, offset=offset)
+
+
+@app.post("/api/admin/feedback/reply")
+def admin_feedback_reply_route(body: dict, _: bool = Depends(require_admin)) -> dict:
+    try:
+        fid = int(body.get("id") or 0)
+        reply = str(body.get("reply") if body.get("reply") is not None else "")
+        status = str(body.get("status") or "replied")
+        replied_by = str(body.get("replied_by") or "")
+        return db.admin_feedback_reply(fid, reply=reply, status=status, replied_by=replied_by)
+    except ValueError as e:
+        code = str(e)
+        msg = {
+            "invalid_id": "工单 ID 无效",
+            "not_found": "工单不存在",
+            "invalid_status": "状态仅支持 replied / closed",
+            "reply_required": "「已回复」须填写回复内容",
+            "reply_too_long": "回复过长",
+        }.get(code, code)
+        raise HTTPException(status_code=400, detail=msg)
+
+
 @app.get("/api/admin/pay_orders")
 def admin_pay_orders(
     user_id: int = 0,
@@ -515,6 +548,50 @@ def admin_pay_orders_export(
     )
 
 
+@app.get("/api/admin/payout_requests_export_alipay")
+def admin_payout_requests_export_alipay(
+    status: str = "",
+    cap: int = 5000,
+    mark: int = 1,
+    mark_note: str = "alipay_batch",
+    _: bool = Depends(require_admin),
+) -> Response:
+    """导出「提现申请」为支付宝批量转账 CSV（UTF-8 BOM，便于 Excel）；默认导出 approved。"""
+    rows = db.admin_export_payout_requests_alipay_rows(
+        status=status,
+        cap=cap,
+        mark_exported=bool(int(mark or 0) == 1),
+        exported_note=str(mark_note or "alipay_batch"),
+    )
+    # Fieldnames order matters for finance copy/paste.
+    fieldnames = [
+        "收款方账号",
+        "收款方姓名",
+        "转账金额(元)",
+        "备注",
+        "手机号",
+        "申请ID",
+        "用户ID",
+        "渠道",
+        "申请时间",
+        "打款流水",
+    ]
+    buf = io.StringIO()
+    w = csv.DictWriter(buf, fieldnames=fieldnames, extrasaction="ignore")
+    w.writeheader()
+    for r in rows:
+        w.writerow({k: r.get(k, "") for k in fieldnames})
+    body = "\ufeff" + buf.getvalue()
+    return Response(
+        content=body.encode("utf-8"),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": 'attachment; filename="alipay_batch.csv"',
+            "Cache-Control": "no-store",
+        },
+    )
+
+
 @app.get("/api/admin/commissions")
 def admin_commissions(
     status: str = "",
@@ -550,6 +627,80 @@ def admin_commissions_generate_for_order(body: dict, _: bool = Depends(require_a
     out_trade_no = str(body.get("out_trade_no") or "")
     try:
         return db.commission_generate_for_order(out_trade_no)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/agent/overview")
+def agent_overview(user_id: int = Depends(get_current_user_id)) -> dict:
+    try:
+        return db.agent_commission_overview(int(user_id))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/agent/commissions")
+def agent_commissions(
+    status: str = "",
+    limit: int = 50,
+    offset: int = 0,
+    user_id: int = Depends(get_current_user_id),
+) -> dict:
+    try:
+        return db.agent_list_commissions(int(user_id), status=status, limit=limit, offset=offset)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/agent/payout_account")
+def agent_payout_account(body: dict, user_id: int = Depends(get_current_user_id)) -> dict:
+    try:
+        return db.agent_set_payout_account(
+            user_id=int(user_id),
+            channel=str(body.get("channel") or ""),
+            account_name=str(body.get("account_name") or ""),
+            account_no=str(body.get("account_no") or ""),
+            phone=str(body.get("phone") or ""),
+            qr_image=str(body.get("qr_image") or ""),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/agent/payout_account")
+def agent_payout_account_get(user_id: int = Depends(get_current_user_id)) -> dict:
+    return db.agent_get_payout_account_full(int(user_id))
+
+
+@app.post("/api/agent/payout/request")
+def agent_payout_request(body: dict, user_id: int = Depends(get_current_user_id)) -> dict:
+    try:
+        amount = body.get("amount_fen", None)
+        amount2 = None if amount is None else int(amount)
+        return db.agent_create_payout_request(int(user_id), amount_fen=amount2, note=str(body.get("note") or ""))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/admin/payout_requests")
+def admin_payout_requests(
+    status: str = "",
+    user_id: int = 0,
+    limit: int = 50,
+    offset: int = 0,
+    _: bool = Depends(require_admin),
+) -> dict:
+    return db.admin_list_payout_requests(status=status, user_id=int(user_id or 0), limit=limit, offset=offset)
+
+
+@app.post("/api/admin/payout_requests/set_status")
+def admin_payout_requests_set_status(body: dict, _: bool = Depends(require_admin)) -> dict:
+    try:
+        rid = int(body.get("id") or 0)
+        st = str(body.get("status") or "")
+        note = str(body.get("note") or "")
+        tref = str(body.get("transfer_ref") or "")
+        return db.admin_payout_request_set_status(rid, status=st, note=note, transfer_ref=tref)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -1110,6 +1261,67 @@ def bind_email(request: Request, body: dict) -> LoginOut:
     return LoginOut(token=data["token"], user=data.get("user", {}))
 
 
+@app.get("/api/feedback/categories")
+def feedback_categories() -> dict:
+    """反馈分类（前端与公开接口共用，无需登录）。"""
+    return {"items": db.feedback_category_labels()}
+
+
+@app.post("/api/feedback")
+def feedback_submit(
+    request: Request,
+    body: FeedbackCreateIn,
+    user_id: int = Depends(get_current_user_id),
+) -> dict:
+    # 内存桶：单进程内先挡 burst；跨进程以 DB 计数为准
+    _rate_limit(
+        f"feedback_submit_ip:{_client_ip(request)}",
+        limit=80,
+        window_s=3600,
+    )
+    _rate_limit(f"feedback_submit:{user_id}", limit=6, window_s=3600)
+    try:
+        return db.feedback_create(
+            int(user_id),
+            category=body.category,
+            title=body.title,
+            body=body.body,
+            contact=body.contact,
+        )
+    except ValueError as e:
+        code = str(e)
+        msg = {
+            "invalid_user": "用户无效",
+            "invalid_category": "请选择有效的反馈类型",
+            "body_too_short": "请至少填写 5 个字的详细描述",
+            "body_too_long": "正文过长，请精简后重试",
+            "feedback_hourly_cap": "本小时反馈次数已达上限，请稍后再试",
+            "feedback_daily_cap": "今日反馈次数已达上限，请明天再试或合并为一条描述",
+            "feedback_new_hourly_cap": "新账号本小时反馈次数已达上限，请稍后再试",
+            "feedback_new_daily_cap": "新账号今日反馈次数已达上限，请明天再试",
+        }.get(code, code)
+        if code in (
+            "feedback_hourly_cap",
+            "feedback_daily_cap",
+            "feedback_new_hourly_cap",
+            "feedback_new_daily_cap",
+        ):
+            raise HTTPException(status_code=429, detail=msg)
+        raise HTTPException(status_code=400, detail=msg)
+
+
+@app.get("/api/feedback/mine")
+def feedback_mine(
+    request: Request,
+    limit: int = 30,
+    offset: int = 0,
+    user_id: int = Depends(get_current_user_id),
+) -> dict:
+    _rate_limit(f"feedback_mine:{user_id}", limit=120, window_s=60)
+    _rate_limit(f"feedback_mine_ip:{_client_ip(request)}", limit=200, window_s=60)
+    return db.feedback_list_for_user(int(user_id), limit=limit, offset=offset)
+
+
 @app.get("/api/me")
 def me(user_id: int = Depends(get_current_user_id)) -> dict:
     db.downgrade_expired_vip_plan(int(user_id))
@@ -1463,6 +1675,13 @@ def _billing_charge_amount_fen(catalog_fen: int) -> int:
     return int(catalog_fen)
 
 
+def _fen_to_yuan_display(fen: int) -> str:
+    try:
+        return f"{(int(fen) / 100.0):.2f}"
+    except Exception:
+        return "0.00"
+
+
 @app.post("/api/billing/wechat/native", response_model=PayNativeOut)
 async def billing_wechat_native(body: PayNativeIn, user_id: int = Depends(get_current_user_id)) -> PayNativeOut:
     wx_cfg = resolve_wechat_pay()
@@ -1511,6 +1730,8 @@ async def billing_wechat_native(body: PayNativeIn, user_id: int = Depends(get_cu
         code_url=code_url,
         amount_fen=charge_fen,
         priced_amount_fen=priced_fen,
+        amount_yuan_display=_fen_to_yuan_display(charge_fen),
+        priced_amount_yuan_display=_fen_to_yuan_display(priced_fen),
         plan=plan_norm,
     )
 

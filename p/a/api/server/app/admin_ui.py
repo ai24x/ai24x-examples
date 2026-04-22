@@ -525,7 +525,8 @@ def admin_app_html(admin_base: str) -> str:
                       <th style="width:72px;"><span class="th-cn">订单 id</span><span class="th-en">id</span></th>
                       <th style="width:96px;"><span class="th-cn">用户</span><span class="th-en">userId</span></th>
                       <th style="width:120px;"><span class="th-cn">套餐</span><span class="th-en">plan</span></th>
-                      <th style="width:88px;"><span class="th-cn">金额(元)</span><span class="th-en">amount</span></th>
+                      <th style="width:88px;"><span class="th-cn">实收(元)</span><span class="th-en">amount</span></th>
+                      <th style="width:96px;"><span class="th-cn">实收(分)</span><span class="th-en">amount_fen</span></th>
                       <th style="width:88px;"><span class="th-cn">状态</span><span class="th-en">status</span></th>
                       <th style="width:72px;"><span class="th-cn">渠道</span><span class="th-en">channel</span></th>
                       <th style="width:72px;"><span class="th-cn">码</span><span class="th-en">qr</span></th>
@@ -587,8 +588,10 @@ def admin_app_html(admin_base: str) -> str:
                         <th style="width:170px;"><span class="th-cn">订单号</span><span class="th-en">out_trade_no</span></th>
                         <th style="width:96px;"><span class="th-cn">代理</span><span class="th-en">agent</span></th>
                         <th style="width:96px;"><span class="th-cn">买家</span><span class="th-en">buyer</span></th>
+                        <th style="width:110px;"><span class="th-cn">金额(元)</span><span class="th-en">amount_yuan</span></th>
                         <th style="width:110px;"><span class="th-cn">金额(分)</span><span class="th-en">amount_fen</span></th>
                         <th style="width:88px;"><span class="th-cn">比例</span><span class="th-en">rate</span></th>
+                        <th style="width:110px;"><span class="th-cn">返佣(元)</span><span class="th-en">commission_yuan</span></th>
                         <th style="width:110px;"><span class="th-cn">返佣(分)</span><span class="th-en">commission_fen</span></th>
                         <th style="width:170px;"><span class="th-cn">可结算</span><span class="th-en">eligible_at</span></th>
                       </tr>
@@ -972,7 +975,7 @@ def admin_app_html(admin_base: str) -> str:
       }
       function removeClass(el, cls){
         try{
-          var parts = String(el.className || '').split(/\s+/).filter(function(x){ return x && x !== cls; });
+          var parts = String(el.className || '').split(/\\s+/).filter(function(x){ return x && x !== cls; });
           el.className = parts.join(' ');
         }catch(e){}
       }
@@ -1093,6 +1096,7 @@ def admin_app_html(admin_base: str) -> str:
             '<td class="mono">'+esc(it.user_id)+'</td>'+
             '<td class="mono">'+esc(it.plan)+'</td>'+
             '<td class="mono">'+esc(fmtFenYuan(it.amount_fen))+'</td>'+
+            '<td class="mono">'+esc(it.amount_fen)+'</td>'+
             '<td>'+esc(it.status)+'</td>'+
             '<td class="mono">'+esc(it.channel)+'</td>'+
             '<td class="mono">'+(it.has_code_url ? '有' : '—')+'</td>'+
@@ -1200,8 +1204,10 @@ def admin_app_html(admin_base: str) -> str:
             '<td class="mono" style="max-width:220px;word-break:break-all;">'+esc(it.out_trade_no)+'</td>'+
             '<td class="mono">'+esc(it.agent_user_id)+'</td>'+
             '<td class="mono">'+esc(it.buyer_user_id)+'</td>'+
+            '<td class="mono">'+esc(fmtFenYuan(it.amount_fen))+'</td>'+
             '<td class="mono">'+esc(it.amount_fen)+'</td>'+
             '<td class="mono">'+esc(it.rate)+'</td>'+
+            '<td class="mono">'+esc(fmtFenYuan(it.commission_fen))+'</td>'+
             '<td class="mono">'+esc(it.commission_fen)+'</td>'+
             '<td class="mono">'+esc(fmtTs(it.eligible_at))+'</td>';
           body.appendChild(tr);
@@ -1302,7 +1308,7 @@ def admin_app_html(admin_base: str) -> str:
           function fmtMd(td){
             try{
               td = String(td||'').trim();
-              if(td.length===8 && /^\d+$/.test(td)){
+              if(td.length===8 && /^\\d+$/.test(td)){
                 var m = parseInt(td.slice(4,6),10)||0;
                 var da = parseInt(td.slice(6,8),10)||0;
                 if(m>0 && da>0) return m+'月'+da+'日';

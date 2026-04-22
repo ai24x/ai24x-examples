@@ -261,6 +261,10 @@ def admin_app_html(admin_base: str) -> str:
           用户与配额
           <span class="subt">查询用户、改套餐与剩余次数、看流水</span>
         </button>
+        <button type="button" class="nav-item" data-panel="p-feedback">
+          用户反馈
+          <span class="subt">工单列表、统一回复与关闭</span>
+        </button>
 
         <div class="nav-group-title">收入与安全 · 敏感</div>
         <button type="button" class="nav-item" data-panel="p-wechat">
@@ -274,6 +278,10 @@ def admin_app_html(admin_base: str) -> str:
         <button type="button" class="nav-item" data-panel="p-commission">
           代理与返佣
           <span class="subt">年 VIP 赠普通代理；20% 返佣台账（T+7 人工结算）</span>
+        </button>
+        <button type="button" class="nav-item" data-panel="p-payout">
+          提现申请
+          <span class="subt">审核、打款记录、备注与流水号</span>
         </button>
         <button type="button" class="nav-item" data-panel="p-sms">
           短信与统一身份
@@ -448,6 +456,83 @@ def admin_app_html(admin_base: str) -> str:
             </div>
           </section>
 
+          <section class="panel-page" id="p-feedback">
+            <div class="card" id="sec-feedback">
+              <div class="row">
+                <span class="pill">用户反馈</span>
+                <span class="muted small">登录用户提交的工单（表 user_feedback）；与前台「反馈」页联动，回复后用户可在「我的工单」查看</span>
+                <button type="button" id="btnFbLoad">刷新</button>
+              </div>
+              <div class="row" style="margin-top:12px; flex-wrap:wrap; gap:10px;">
+                <label>关键词 <input id="fbQ" class="mono" style="width:200px;" placeholder="标题 / 正文 / 用户 ID / 手机 / 邮箱" /></label>
+                <label>状态
+                  <select id="fbStatus">
+                    <option value="">全部</option>
+                    <option value="open">待处理 open</option>
+                    <option value="replied">已回复 replied</option>
+                    <option value="closed">已关闭 closed</option>
+                  </select>
+                </label>
+                <label>分类
+                  <select id="fbCat">
+                    <option value="">全部</option>
+                    <option value="suggestion">建议</option>
+                    <option value="bug">Bug / 错误</option>
+                    <option value="billing">会员与支付</option>
+                    <option value="account">账号与安全</option>
+                    <option value="data">行情与数据</option>
+                    <option value="agent">代理合作</option>
+                    <option value="other">其它</option>
+                    <option value="data_signal">行情与数据（旧 slug）</option>
+                  </select>
+                </label>
+                <label>每页 <input id="fbLimit" type="number" min="10" max="200" step="10" value="50" style="width:64px;" /></label>
+                <button type="button" id="btnFbPrev">上一页</button>
+                <button type="button" id="btnFbNext">下一页</button>
+                <span class="muted small mono" id="fbMeta">—</span>
+              </div>
+              <div style="margin-top:12px; overflow:auto;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:72px;"><span class="th-cn">ID</span><span class="th-en">id</span></th>
+                      <th style="width:88px;"><span class="th-cn">用户</span><span class="th-en">userId</span></th>
+                      <th style="width:120px;"><span class="th-cn">分类</span><span class="th-en">category</span></th>
+                      <th style="width:88px;"><span class="th-cn">状态</span><span class="th-en">status</span></th>
+                      <th><span class="th-cn">标题 / 摘要</span><span class="th-en">title</span></th>
+                      <th style="width:160px;"><span class="th-cn">创建</span><span class="th-en">created</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="fbBody"></tbody>
+                </table>
+              </div>
+              <div class="card" style="margin-top:12px;">
+                <div class="row">
+                  <span class="pill">选中工单</span>
+                  <span id="fbSelMeta" class="mono muted">—</span>
+                </div>
+                <div id="fbDetail" class="msg small" style="margin-top:10px; line-height:1.65;"></div>
+                <div class="row" style="margin-top:10px;">
+                  <label style="flex:1; min-width:240px;">管理员回复（用户可见）
+                    <textarea id="fbReply" rows="5" style="width:100%; font-size:13px; margin-top:4px;" placeholder="填写对用户展示的回复；选择「关闭」时可留空以保留原回复"></textarea>
+                  </label>
+                </div>
+                <div class="row" style="margin-top:10px; flex-wrap:wrap; gap:10px; align-items:center;">
+                  <label>标记
+                    <select id="fbReplyStatus">
+                      <option value="replied">已回复（replied）</option>
+                      <option value="closed">关闭（closed）</option>
+                    </select>
+                  </label>
+                  <label>署名
+                    <input id="fbReplyBy" placeholder="选填，默认「管理员」" style="width:160px;" />
+                  </label>
+                  <button type="button" id="btnFbSubmitReply">保存</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <section class="panel-page" id="p-wechat">
             <div class="card" id="sec-wechat">
               <div id="wxCurrentSummary" class="msg small" style="margin:0 0 12px; line-height:1.65; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--panel2);"></div>
@@ -525,7 +610,8 @@ def admin_app_html(admin_base: str) -> str:
                       <th style="width:72px;"><span class="th-cn">订单 id</span><span class="th-en">id</span></th>
                       <th style="width:96px;"><span class="th-cn">用户</span><span class="th-en">userId</span></th>
                       <th style="width:120px;"><span class="th-cn">套餐</span><span class="th-en">plan</span></th>
-                      <th style="width:88px;"><span class="th-cn">金额(元)</span><span class="th-en">amount</span></th>
+                      <th style="width:88px;"><span class="th-cn">实收(元)</span><span class="th-en">amount</span></th>
+                      <th style="width:96px;"><span class="th-cn">实收(分)</span><span class="th-en">amount_fen</span></th>
                       <th style="width:88px;"><span class="th-cn">状态</span><span class="th-en">status</span></th>
                       <th style="width:72px;"><span class="th-cn">渠道</span><span class="th-en">channel</span></th>
                       <th style="width:72px;"><span class="th-cn">码</span><span class="th-en">qr</span></th>
@@ -587,8 +673,10 @@ def admin_app_html(admin_base: str) -> str:
                         <th style="width:170px;"><span class="th-cn">订单号</span><span class="th-en">out_trade_no</span></th>
                         <th style="width:96px;"><span class="th-cn">代理</span><span class="th-en">agent</span></th>
                         <th style="width:96px;"><span class="th-cn">买家</span><span class="th-en">buyer</span></th>
+                        <th style="width:110px;"><span class="th-cn">金额(元)</span><span class="th-en">amount_yuan</span></th>
                         <th style="width:110px;"><span class="th-cn">金额(分)</span><span class="th-en">amount_fen</span></th>
                         <th style="width:88px;"><span class="th-cn">比例</span><span class="th-en">rate</span></th>
+                        <th style="width:110px;"><span class="th-cn">返佣(元)</span><span class="th-en">commission_yuan</span></th>
                         <th style="width:110px;"><span class="th-cn">返佣(分)</span><span class="th-en">commission_fen</span></th>
                         <th style="width:170px;"><span class="th-cn">可结算</span><span class="th-en">eligible_at</span></th>
                       </tr>
@@ -596,11 +684,19 @@ def admin_app_html(admin_base: str) -> str:
                     <tbody id="eligibleBody"></tbody>
                   </table>
                 </div>
-                <div class="row" style="margin-top:12px; flex-wrap:wrap; gap:10px;">
-                  <label>代理ID <input id="paidAgentId" class="mono" placeholder="agent_user_id" style="width:160px;" /></label>
-                  <label>备注 <input id="paidNote" placeholder="转账流水/备注（可选）" style="min-width:260px;" /></label>
-                  <button type="button" id="btnMarkPaid">标记已打款</button>
-                </div>
+                <details style="margin-top:12px;">
+                  <summary class="muted small" style="cursor:pointer; user-select:none;">
+                    旧流程（不推荐）：直接把「待结算返佣」标记为已打款
+                  </summary>
+                  <div class="msg small" style="margin-top:10px;">
+                    建议优先使用左侧「提现申请」面板：有申请ID、可导出批量表、可追踪流水，避免重复打款。
+                  </div>
+                  <div class="row" style="margin-top:10px; flex-wrap:wrap; gap:10px;">
+                    <label>代理ID <input id="paidAgentId" class="mono" placeholder="agent_user_id" style="width:160px;" /></label>
+                    <label>备注 <input id="paidNote" placeholder="转账流水/备注（可选）" style="min-width:260px;" /></label>
+                    <button type="button" id="btnMarkPaid">旧流程：标记已打款</button>
+                  </div>
+                </details>
               </div>
 
               <div class="card" style="margin-top:12px;">
@@ -612,6 +708,79 @@ def admin_app_html(admin_base: str) -> str:
                   <input id="regenOutTradeNo" class="mono" placeholder="out_trade_no" style="min-width:320px;" />
                   <button type="button" id="btnRegenCommission">生成返佣</button>
                 </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel-page" id="p-payout">
+            <div class="card" id="sec-payout">
+              <div class="row">
+                <span class="pill">提现申请（MVP）</span>
+                <span class="muted small">流程建议：先「通过」→ 实际打款后点「打款完成」；如不通过则「驳回」</span>
+                <button type="button" id="btnLoadPayoutReq">刷新</button>
+                <button type="button" id="btnExportPayoutAlipay">导出支付宝批量表</button>
+              </div>
+              <div class="field-row" style="margin-top:12px;">
+                <div class="field" style="min-width:200px;">
+                  <span class="lbl">筛选状态</span>
+                  <select id="payoutStatus">
+                    <option value="">全部</option>
+                    <option value="pending">待处理</option>
+                    <option value="approved">已通过</option>
+                    <option value="paid">已打款</option>
+                    <option value="rejected">已驳回</option>
+                  </select>
+                </div>
+                <div class="field" style="min-width:220px;">
+                  <span class="lbl">用户 ID（可选）</span>
+                  <input id="payoutUserId" class="mono" placeholder="user_id" style="min-width:160px;" />
+                </div>
+                <div class="field" style="min-width:200px;">
+                  <span class="lbl">每页数量</span>
+                  <input id="payoutLimit" class="mono" value="50" style="width:120px;" />
+                </div>
+                <div class="field" style="flex:1; min-width:260px;">
+                  <span class="lbl">操作备注（可选）</span>
+                  <input id="payoutNote" placeholder="例如：已核对账号；或驳回原因" style="width:100%;" />
+                </div>
+                <div class="field" style="flex:1; min-width:240px;">
+                  <span class="lbl">打款流水号（可选）</span>
+                  <input id="payoutTransferRef" class="mono" placeholder="支付宝流水号/批次号" style="width:100%;" />
+                </div>
+                <div class="field" style="min-width:220px;">
+                  <span class="lbl">导出后标记</span>
+                  <select id="payoutExportMark">
+                    <option value="1">标记为「已导出」</option>
+                    <option value="0">不标记</option>
+                  </select>
+                </div>
+              </div>
+              <div class="row" style="margin-top:10px; flex-wrap:wrap;">
+                <span id="payoutMeta" class="muted small"></span>
+                <div style="flex:1"></div>
+                <button type="button" id="btnPayoutPrev">上一页</button>
+                <button type="button" id="btnPayoutNext">下一页</button>
+              </div>
+              <div style="margin-top:12px; overflow:auto;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:70px;"><span class="th-cn">申请ID</span><span class="th-en">id</span></th>
+                      <th style="width:90px;"><span class="th-cn">用户</span><span class="th-en">user</span></th>
+                      <th style="width:96px;"><span class="th-cn">金额(元)</span><span class="th-en">amount</span></th>
+                      <th style="width:92px;"><span class="th-cn">状态</span><span class="th-en">status</span></th>
+                      <th style="width:92px;"><span class="th-cn">已导出</span><span class="th-en">exported</span></th>
+                      <th style="width:92px;"><span class="th-cn">渠道</span><span class="th-en">channel</span></th>
+                      <th><span class="th-cn">收款信息</span><span class="th-en">account</span></th>
+                      <th style="width:160px;"><span class="th-cn">申请时间</span><span class="th-en">created</span></th>
+                      <th style="width:160px;"><span class="th-cn">更新时间</span><span class="th-en">updated</span></th>
+                      <th style="width:160px;"><span class="th-cn">打款流水</span><span class="th-en">transfer</span></th>
+                      <th style="width:260px;"><span class="th-cn">备注</span><span class="th-en">note</span></th>
+                      <th style="width:240px;"><span class="th-cn">操作</span><span class="th-en">actions</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="payoutBody"></tbody>
+                </table>
               </div>
             </div>
           </section>
@@ -972,7 +1141,7 @@ def admin_app_html(admin_base: str) -> str:
       }
       function removeClass(el, cls){
         try{
-          var parts = String(el.className || '').split(/\s+/).filter(function(x){ return x && x !== cls; });
+          var parts = String(el.className || '').split(/\\s+/).filter(function(x){ return x && x !== cls; });
           el.className = parts.join(' ');
         }catch(e){}
       }
@@ -1045,8 +1214,115 @@ def admin_app_html(admin_base: str) -> str:
       var currentUserId = null;
       var ordOffset = 0;
       var ordLastTotal = 0;
+      var fbOffset = 0;
+      var fbLastTotal = 0;
+      var fbSelected = null;
 
       function setStatus(s){ $('status').textContent = s; }
+
+      function fbPageLimit(){
+        var lim = parseInt($('fbLimit').value, 10);
+        if(isNaN(lim) || lim < 10) lim = 50;
+        if(lim > 200) lim = 200;
+        return lim;
+      }
+      function fbFilterQuery(){
+        var qs = '';
+        var st = ($('fbStatus').value || '').trim();
+        var cat = ($('fbCat').value || '').trim();
+        var sq = ($('fbQ') && $('fbQ').value) ? String($('fbQ').value).trim() : '';
+        if(st) qs += '&status='+encodeURIComponent(st);
+        if(cat) qs += '&category='+encodeURIComponent(cat);
+        if(sq) qs += '&q='+encodeURIComponent(sq);
+        return qs;
+      }
+      function fbCatLabel(c){
+        var m = {
+          suggestion:'建议',
+          bug:'Bug/错误',
+          billing:'会员与支付',
+          account:'账号与安全',
+          data:'行情与数据',
+          data_signal:'行情与数据(旧)',
+          agent:'代理合作',
+          other:'其它'
+        };
+        return m[c] || c || '—';
+      }
+      function renderFbDetail(it){
+        if(!it){
+          $('fbSelMeta').textContent = '—';
+          $('fbDetail').innerHTML = '';
+          if($('fbReply')) $('fbReply').value = '';
+          return;
+        }
+        var uid = it.user_id;
+        var ph = it.user_phone || '';
+        var em = it.user_email || '';
+        $('fbSelMeta').textContent = '#'+it.id+' · user '+uid+' · '+fbCatLabel(it.category)+' · '+String(it.status||'');
+        var parts = [];
+        parts.push('<div><strong>用户</strong> ID '+esc(uid)+(ph?' · 手机 '+esc(ph):'')+(em?' · 邮箱 '+esc(em):'')+'</div>');
+        parts.push('<div style="margin-top:8px;"><strong>标题</strong> '+esc(it.title||'（无）')+'</div>');
+        parts.push('<div style="margin-top:8px; white-space:pre-wrap;"><strong>描述</strong><br/>'+esc(it.body||'')+'</div>');
+        if((it.contact||'').trim()) parts.push('<div style="margin-top:8px;"><strong>用户留联</strong> '+esc(it.contact)+'</div>');
+        if((it.admin_reply||'').trim()) parts.push('<div style="margin-top:10px; padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--panel2);"><strong>当前回复</strong>（'+esc(it.replied_by||'')+' · '+esc(fmtTs(it.replied_at||0))+'）<br/><span style="white-space:pre-wrap;">'+esc(it.admin_reply)+'</span></div>');
+        $('fbDetail').innerHTML = parts.join('');
+        if($('fbReply')) $('fbReply').value = String(it.admin_reply||'');
+      }
+      async function loadFeedbackAdmin(reselectId){
+        var lim = fbPageLimit();
+        var qs = '?limit='+encodeURIComponent(String(lim))+'&offset='+encodeURIComponent(String(fbOffset))+fbFilterQuery();
+        setStatus('正在加载用户反馈…');
+        var d = await api('/api/admin/feedback'+qs);
+        fbLastTotal = parseInt(d.total, 10) || 0;
+        $('fbMeta').textContent = '共 '+fbLastTotal+' 条 · offset '+(d.offset!=null?d.offset:fbOffset)+' · limit '+(d.limit!=null?d.limit:lim);
+        var body = $('fbBody');
+        body.innerHTML = '';
+        var wantId = reselectId != null ? reselectId : (fbSelected && fbSelected.id);
+        var hit = null;
+        (d.items || []).forEach(function(it){
+          var tr = document.createElement('tr');
+          tr.style.cursor = 'pointer';
+          var tit = String(it.title||'').trim();
+          var sum = tit || (String(it.body||'').slice(0, 48) + (String(it.body||'').length > 48 ? '…' : ''));
+          tr.innerHTML =
+            '<td class="mono">'+esc(it.id)+'</td>'+
+            '<td class="mono">'+esc(it.user_id)+'</td>'+
+            '<td class="mono">'+esc(fbCatLabel(it.category))+'</td>'+
+            '<td>'+esc(it.status)+'</td>'+
+            '<td style="max-width:360px;word-break:break-word;">'+esc(sum)+'</td>'+
+            '<td class="mono">'+esc(fmtTs(it.created_at))+'</td>';
+          tr.addEventListener('click', function(){
+            fbSelected = it;
+            renderFbDetail(it);
+          });
+          body.appendChild(tr);
+          if(wantId != null && String(it.id) === String(wantId)) hit = it;
+        });
+        if(hit){
+          fbSelected = hit;
+          renderFbDetail(hit);
+        }
+        setStatus('用户反馈列表已更新');
+      }
+      async function submitFeedbackReply(){
+        if(!fbSelected || !fbSelected.id){
+          setStatus('请先在表格中选择一条工单');
+          return;
+        }
+        var sid = fbSelected.id;
+        var reply = ($('fbReply').value || '').trim();
+        var st = ($('fbReplyStatus').value || 'replied').trim();
+        var by = ($('fbReplyBy').value || '').trim();
+        setStatus('正在保存回复…');
+        await api('/api/admin/feedback/reply', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ id: sid, reply: reply, status: st, replied_by: by })
+        });
+        setStatus('已保存');
+        await loadFeedbackAdmin(sid);
+      }
 
       function ordPageLimit(){
         var lim = parseInt($('ordLimit').value, 10);
@@ -1093,6 +1369,7 @@ def admin_app_html(admin_base: str) -> str:
             '<td class="mono">'+esc(it.user_id)+'</td>'+
             '<td class="mono">'+esc(it.plan)+'</td>'+
             '<td class="mono">'+esc(fmtFenYuan(it.amount_fen))+'</td>'+
+            '<td class="mono">'+esc(it.amount_fen)+'</td>'+
             '<td>'+esc(it.status)+'</td>'+
             '<td class="mono">'+esc(it.channel)+'</td>'+
             '<td class="mono">'+(it.has_code_url ? '有' : '—')+'</td>'+
@@ -1200,8 +1477,10 @@ def admin_app_html(admin_base: str) -> str:
             '<td class="mono" style="max-width:220px;word-break:break-all;">'+esc(it.out_trade_no)+'</td>'+
             '<td class="mono">'+esc(it.agent_user_id)+'</td>'+
             '<td class="mono">'+esc(it.buyer_user_id)+'</td>'+
+            '<td class="mono">'+esc(fmtFenYuan(it.amount_fen))+'</td>'+
             '<td class="mono">'+esc(it.amount_fen)+'</td>'+
             '<td class="mono">'+esc(it.rate)+'</td>'+
+            '<td class="mono">'+esc(fmtFenYuan(it.commission_fen))+'</td>'+
             '<td class="mono">'+esc(it.commission_fen)+'</td>'+
             '<td class="mono">'+esc(fmtTs(it.eligible_at))+'</td>';
           body.appendChild(tr);
@@ -1213,7 +1492,7 @@ def admin_app_html(admin_base: str) -> str:
         var uid = parseInt($('paidAgentId').value, 10);
         if(!uid || uid <= 0){ setStatus('请填写 agent_user_id'); return; }
         var note = String($('paidNote').value || '').trim();
-        setStatus('正在标记已打款…');
+        setStatus('正在执行旧流程：标记已打款…');
         var r = await api('/api/admin/commissions/mark_paid', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({agent_user_id: uid, note: note})});
         setStatus('已标记：'+r.count+' 笔 · 合计 '+fmtFenYuan(r.total_fen)+' 元');
         await loadEligibleCommissions();
@@ -1227,6 +1506,130 @@ def admin_app_html(admin_base: str) -> str:
         if(r && r.skipped) setStatus('已跳过：'+(r.reason||'skipped'));
         else setStatus('已处理：inserted='+(r.inserted?'1':'0'));
         await loadEligibleCommissions();
+      }
+
+      var payoutOffset = 0;
+      var payoutLastTotal = 0;
+
+      function payoutPageLimit(){
+        var lim = parseInt($('payoutLimit').value, 10);
+        if(isNaN(lim) || lim < 10) lim = 50;
+        if(lim > 200) lim = 200;
+        return lim;
+      }
+
+      function payoutFilterQuery(){
+        var st = String(($('payoutStatus') && $('payoutStatus').value) || '').trim().toLowerCase();
+        var uid = parseInt(($('payoutUserId') && $('payoutUserId').value) || '0', 10);
+        if(isNaN(uid) || uid < 0) uid = 0;
+        var qs = '';
+        if(st) qs += '&status='+encodeURIComponent(st);
+        if(uid) qs += '&user_id='+encodeURIComponent(String(uid));
+        return qs;
+      }
+
+      function parseAccountSnapshot(s){
+        try{
+          if(!s) return null;
+          if(typeof s === 'object') return s;
+          var t = String(s);
+          if(!t) return null;
+          return JSON.parse(t);
+        }catch(e){
+          return null;
+        }
+      }
+
+      function renderAccountSnap(snap){
+        if(!snap) return '—';
+        var ch = String(snap.channel||'');
+        var name = String(snap.account_name||'');
+        var no = String(snap.account_no_masked||'');
+        var ph = String(snap.phone||'');
+        var parts = [];
+        if(ch) parts.push('渠道：'+ch);
+        if(name) parts.push('姓名：'+name);
+        if(no) parts.push('账号：'+no);
+        if(ph) parts.push('手机：'+ph);
+        return parts.length ? parts.join(' · ') : '—';
+      }
+
+      async function loadPayoutRequests(){
+        var lim = payoutPageLimit();
+        var qs = '?limit='+encodeURIComponent(String(lim))+'&offset='+encodeURIComponent(String(payoutOffset))+payoutFilterQuery();
+        setStatus('正在加载提现申请…');
+        var d = await api('/api/admin/payout_requests'+qs);
+        payoutLastTotal = (d && d.total != null) ? (parseInt(d.total, 10) || 0) : payoutLastTotal;
+        if($('payoutMeta')) $('payoutMeta').textContent = 'offset '+(d.offset||0)+' · limit '+(d.limit||lim);
+        var body = $('payoutBody');
+        body.innerHTML = '';
+        (d.items || []).forEach(function(it){
+          var tr = document.createElement('tr');
+          var snap = parseAccountSnapshot(it.account_snapshot);
+          var expTxt = (it.exported_at != null && String(it.exported_at)) ? ('是' + (it.exported_note ? ('（'+esc(it.exported_note)+'）') : '')) : '—';
+          var actHtml =
+            '<button type="button" data-act="approve" data-id="'+esc(it.id)+'">通过</button> ' +
+            '<button type="button" data-act="paid" data-id="'+esc(it.id)+'">打款完成</button> ' +
+            '<button type="button" data-act="reject" data-id="'+esc(it.id)+'">驳回</button>';
+          tr.innerHTML =
+            '<td class="mono">'+esc(it.id)+'</td>'+
+            '<td class="mono">'+esc(it.user_id)+'</td>'+
+            '<td class="mono">'+esc(fmtFenYuan(it.amount_fen))+'</td>'+
+            '<td>'+esc(it.status)+'</td>'+
+            '<td>'+expTxt+'</td>'+
+            '<td class="mono">'+esc(it.channel||'')+'</td>'+
+            '<td style="max-width:420px;word-break:break-all;">'+esc(renderAccountSnap(snap))+'</td>'+
+            '<td class="mono">'+esc(fmtTs(it.created_at))+'</td>'+
+            '<td class="mono">'+esc(fmtTs(it.updated_at))+'</td>'+
+            '<td class="mono" style="max-width:220px;word-break:break-all;">'+esc(it.transfer_ref||'')+'</td>'+
+            '<td style="max-width:320px;word-break:break-all;">'+esc(it.note||'')+'</td>'+
+            '<td>'+actHtml+'</td>';
+          tr.querySelectorAll('button[data-act]').forEach(function(btn){
+            btn.addEventListener('click', async function(){
+              var rid = parseInt(btn.getAttribute('data-id')||'0', 10) || 0;
+              var act = String(btn.getAttribute('data-act')||'').trim();
+              if(!rid){ setStatus('请求 ID 无效'); return; }
+              var st = (act === 'approve') ? 'approved' : (act === 'paid') ? 'paid' : (act === 'reject') ? 'rejected' : '';
+              if(!st){ setStatus('未知操作'); return; }
+              var note = String(($('payoutNote') && $('payoutNote').value) || '').trim();
+              var tref = String(($('payoutTransferRef') && $('payoutTransferRef').value) || '').trim();
+              setStatus('正在更新申请 '+rid+'…');
+              await api('/api/admin/payout_requests/set_status', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id: rid, status: st, note: note, transfer_ref: tref})});
+              setStatus('已更新：'+rid+' → '+st);
+              await loadPayoutRequests();
+            });
+          });
+          body.appendChild(tr);
+        });
+        setStatus('提现申请已加载，本页 '+((d.items||[]).length)+' 条');
+      }
+
+      async function exportPayoutAlipayCsv(){
+        var st = String(($('payoutStatus') && $('payoutStatus').value) || '').trim();
+        var mark = String(($('payoutExportMark') && $('payoutExportMark').value) || '1').trim();
+        var qs = '?cap=5000';
+        if(st) qs += '&status=' + encodeURIComponent(st);
+        qs += '&mark=' + encodeURIComponent(mark);
+        qs += '&mark_note=' + encodeURIComponent('alipay_batch');
+        var headers = Object.assign({ 'Accept': 'text/csv' }, extraAdminHeaders());
+        setStatus('正在导出支付宝批量表…');
+        var r = await fetch('/api/admin/payout_requests_export_alipay'+qs, { credentials: 'include', headers: headers });
+        if(r.status === 401){
+          var dest = ADMIN_BASE + '/login?next=' + encodeURIComponent(location.pathname + location.search + location.hash);
+          location.href = dest;
+          throw new Error('Unauthorized');
+        }
+        if(!r.ok){
+          var t = await r.text().catch(function(){ return ''; });
+          throw new Error('HTTP '+r.status+' '+t);
+        }
+        var blob = await r.blob();
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'alipay_batch.csv';
+        a.click();
+        URL.revokeObjectURL(a.href);
+        setStatus('已下载 alipay_batch.csv（默认导出「已通过」，可在筛选里切换状态；最多 5000 条）');
       }
 
       async function runHotspotsTest(){
@@ -1302,7 +1705,7 @@ def admin_app_html(admin_base: str) -> str:
           function fmtMd(td){
             try{
               td = String(td||'').trim();
-              if(td.length===8 && /^\d+$/.test(td)){
+              if(td.length===8 && /^\\d+$/.test(td)){
                 var m = parseInt(td.slice(4,6),10)||0;
                 var da = parseInt(td.slice(6,8),10)||0;
                 if(m>0 && da>0) return m+'月'+da+'日';
@@ -1435,6 +1838,10 @@ def admin_app_html(admin_base: str) -> str:
         if(id === 'p-users'){
           loadUsers().catch(function(e){ setStatus('用户列表：'+e.message); });
         }
+        if(id === 'p-feedback'){
+          fbOffset = 0;
+          loadFeedbackAdmin().catch(function(e){ setStatus('用户反馈：'+e.message); });
+        }
         if(id === 'p-orders'){
           ordOffset = 0;
           loadPayOrders().catch(function(e){ setStatus('订单：'+e.message); });
@@ -1455,6 +1862,10 @@ def admin_app_html(admin_base: str) -> str:
         if(id === 'p-commission'){
           loadCommissionCfg().catch(function(e){ setStatus('返佣配置读取失败：'+e.message); });
           loadEligibleCommissions().catch(function(e){ setStatus('待结算读取失败：'+e.message); });
+        }
+        if(id === 'p-payout'){
+          payoutOffset = 0;
+          loadPayoutRequests().catch(function(e){ setStatus('提现申请：'+e.message); });
         }
         if(id === 'p-hotspots-test'){
           // manual run only
@@ -1984,10 +2395,30 @@ def admin_app_html(admin_base: str) -> str:
           try{ await loadEligibleCommissions(); }catch(e){ setStatus('刷新待结算失败：'+e.message); }
         });
         if($('btnMarkPaid')) $('btnMarkPaid').addEventListener('click', async function(){
-          try{ await markAgentPaid(); }catch(e){ setStatus('标记已打款失败：'+e.message); }
+          try{ await markAgentPaid(); }catch(e){ setStatus('旧流程执行失败：'+e.message); }
         });
         if($('btnRegenCommission')) $('btnRegenCommission').addEventListener('click', async function(){
           try{ await regenCommissionForOrder(); }catch(e){ setStatus('补单失败：'+e.message); }
+        });
+        if($('btnLoadPayoutReq')) $('btnLoadPayoutReq').addEventListener('click', async function(){
+          try{ payoutOffset = 0; await loadPayoutRequests(); }catch(e){ setStatus('刷新提现申请失败：'+e.message); }
+        });
+        if($('btnExportPayoutAlipay')) $('btnExportPayoutAlipay').addEventListener('click', async function(){
+          try{ await exportPayoutAlipayCsv(); }catch(e){ setStatus('导出失败：'+e.message); }
+        });
+        if($('btnPayoutPrev')) $('btnPayoutPrev').addEventListener('click', async function(){
+          try{
+            var lim = payoutPageLimit();
+            payoutOffset = Math.max(0, payoutOffset - lim);
+            await loadPayoutRequests();
+          }catch(e){ setStatus('加载失败：'+e.message); }
+        });
+        if($('btnPayoutNext')) $('btnPayoutNext').addEventListener('click', async function(){
+          try{
+            var lim = payoutPageLimit();
+            payoutOffset = payoutOffset + lim;
+            await loadPayoutRequests();
+          }catch(e){ setStatus('加载失败：'+e.message); }
         });
         if($('btnRunHotspotsTest')) $('btnRunHotspotsTest').addEventListener('click', async function(){
           try{ await runHotspotsTest(); }catch(e){ setStatus('热点测试失败：'+e.message); }
@@ -2004,6 +2435,27 @@ def admin_app_html(admin_base: str) -> str:
         // 诊断工具已移除（避免界面出现接口/代码字段名）
         $('btnLoadMarket').addEventListener('click', async function(){
           try{ await loadMarket(); }catch(e){ setStatus('刷新行情路由失败：'+e.message); }
+        });
+        if($('btnFbLoad')) $('btnFbLoad').addEventListener('click', function(){
+          fbOffset = 0;
+          loadFeedbackAdmin().catch(function(e){ setStatus('用户反馈：'+e.message); });
+        });
+        if($('btnFbPrev')) $('btnFbPrev').addEventListener('click', function(){
+          try{
+            var lim = fbPageLimit();
+            fbOffset = Math.max(0, fbOffset - lim);
+            loadFeedbackAdmin().catch(function(e){ setStatus('用户反馈：'+e.message); });
+          }catch(e){ setStatus('用户反馈翻页失败：'+e.message); }
+        });
+        if($('btnFbNext')) $('btnFbNext').addEventListener('click', function(){
+          try{
+            var lim = fbPageLimit();
+            if(fbOffset + lim < fbLastTotal) fbOffset += lim;
+            loadFeedbackAdmin().catch(function(e){ setStatus('用户反馈：'+e.message); });
+          }catch(e){ setStatus('用户反馈翻页失败：'+e.message); }
+        });
+        if($('btnFbSubmitReply')) $('btnFbSubmitReply').addEventListener('click', function(){
+          submitFeedbackReply().catch(function(e){ setStatus('保存回复失败：'+e.message); });
         });
         $('btnSearch').addEventListener('click', loadUsers);
         $('btnReloadLedger').addEventListener('click', loadLedger);
