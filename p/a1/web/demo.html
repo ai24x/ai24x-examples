@@ -1221,10 +1221,10 @@
   var API_BASE = (function () {
     try {
       // email-first auth backend (local dev)
-      if (String(location.protocol || '') === 'file:') return 'http://127.0.0.1:18033';
+      if (String(location.protocol || '') === 'file:') return 'http://127.0.0.1:18011';
       var host = String(location.hostname || '');
       var port = String(location.port || '');
-      if ((host === '127.0.0.1' || host === 'localhost') && port === '18003') return 'http://127.0.0.1:18033';
+      if ((host === '127.0.0.1' || host === 'localhost') && port === '18001') return 'http://127.0.0.1:18011';
     } catch (e) {}
     return '';
   })();
@@ -1678,14 +1678,14 @@
 
     return doFetch(API_BASE).catch(function (e) {
       var msg = e && (e.message || String(e)) ? String(e.message || String(e)) : '';
-      // Local static server (18003) expects API on 18033; if user forgot to start API, fetch fails as "Failed to fetch".
+      // Local static server (18001) expects API on 18011; if user forgot to start API, fetch fails as "Failed to fetch".
       try {
         var host = String(location.hostname || '');
         var port = String(location.port || '');
         var isLocal = host === '127.0.0.1' || host === 'localhost';
         var base = String(API_BASE || '');
-        if (isLocal && port === '18003' && (!base || base === '') && msg.indexOf('Failed to fetch') >= 0) {
-          return doFetch('http://127.0.0.1:18033');
+        if (isLocal && port === '18001' && (!base || base === '') && msg.indexOf('Failed to fetch') >= 0) {
+          return doFetch('http://127.0.0.1:18011');
         }
       } catch (e0) {}
       if (String(msg || '').trim() === 'Failed to fetch') diagnoseFetchFailure();
@@ -2072,7 +2072,7 @@
         // JSONP 依赖能加载跨站脚本；优先用于本地预览（与早期单页 file:// 行为一致）
         var h = (location && location.hostname) || '';
         var p = (location && location.port) || '';
-        return h === '127.0.0.1' || h === 'localhost' || p === '18003';
+        return h === '127.0.0.1' || h === 'localhost' || p === '18001';
       } catch (e) {
         return false;
       }
@@ -2961,11 +2961,11 @@
   }
 
     async function suggestRows(keyword) {
-    function isLocalStatic18003() {
+    function isLocalStatic18001() {
       try {
         var host = String(location.hostname || '');
         var port = String(location.port || '');
-        return (host === '127.0.0.1' || host === 'localhost') && port === '18003';
+        return (host === '127.0.0.1' || host === 'localhost') && port === '18001';
       } catch (e) {
         return false;
       }
@@ -3053,6 +3053,29 @@
       return '<b>网络请求失败</b>：正在自动诊断…';
     }
     return '';
+  }
+
+  function prettyErrText(m) {
+    var mm = String(m || '').trim();
+    if (!mm) return '';
+    if (mm === 'Failed to fetch' || /NetworkError/i.test(mm) || (/fetch/i.test(mm) && /failed/i.test(mm))) {
+      return '网络或服务暂时不可用，请稍后重试。';
+    }
+    try {
+      var pe = mm.match(/\b'error'\s*:\s*'((?:[^'\\]|\\.)*)'/);
+      if (pe && pe[1]) return pe[1].trim();
+      pe = mm.match(/\b"error"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      if (pe && pe[1]) return pe[1].trim();
+      pe = mm.match(/\b'detail'\s*:\s*'((?:[^'\\]|\\.)*)'/);
+      if (pe && pe[1]) return pe[1].trim();
+      pe = mm.match(/\b"detail"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      if (pe && pe[1]) return pe[1].trim();
+    } catch (e0) {}
+    try {
+      mm = mm.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    } catch (e1) {}
+    if (mm.indexOf('该手机号已注册') >= 0) return '该手机号已注册，请直接登录或找回密码。';
+    return mm;
   }
 
   function safeHtml(s) {
@@ -3881,7 +3904,7 @@
         }
         var nice = prettyFetchError(m);
         if (nice) setLoadError(nice);
-        statusEl.textContent = '加载失败：' + m;
+        statusEl.textContent = '加载失败：' + (prettyErrText(m) || m);
         statusEl.className = '';
         setSoftLoading(false);
       });
@@ -3999,7 +4022,7 @@
               }
               var nice = prettyFetchError(m);
               if (nice) setLoadError(nice);
-              statusEl.textContent = '加载失败：' + m;
+              statusEl.textContent = '加载失败：' + (prettyErrText(m) || m);
               currentSecid = null;
               periodTabsEl.classList.add('disabled');
               disposeChart();
@@ -4020,7 +4043,7 @@
       }
       var nice = prettyFetchError(m);
       if (nice) setLoadError(nice);
-      statusEl.textContent = '加载失败：' + m;
+      statusEl.textContent = '加载失败：' + (prettyErrText(m) || m);
       statusEl.className = '';
       currentSecid = null;
       periodTabsEl.classList.add('disabled');
@@ -4054,7 +4077,7 @@
               btnSearch.disabled = false;
               return;
             }
-            statusEl.textContent = '加载失败：' + m;
+            statusEl.textContent = '加载失败：' + (prettyErrText(m) || m);
             statusEl.className = '';
             currentSecid = null;
             periodTabsEl.classList.add('disabled');
@@ -4236,7 +4259,7 @@
       if (m === 'Failed to fetch') {
         statusEl.textContent = '网络请求失败：请检查网络或代理设置（离线时 K 线无法加载）。';
       } else {
-        statusEl.textContent = '上证指数默认加载失败：' + m;
+        statusEl.textContent = '上证指数默认加载失败：' + (prettyErrText(m) || m);
       }
       statusEl.className = '';
     }).finally(function () {

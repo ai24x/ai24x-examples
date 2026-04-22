@@ -150,9 +150,8 @@
     "page.console.activity.item2": "充值/续期：查看订单与到账",
     "page.console.activity.item3": "推荐返利：查看邀请与收益",
     "auth.login.title": "登录",
-    "auth.login.sub": "默认使用手机号与密码；可切换到邮箱与密码。",
-    "auth.login.modeBanner":
-      "<strong>手机号</strong> 与 <strong>邮箱</strong> 均可登录：下方点选「手机号」或「邮箱」，再输入密码。",
+    "auth.login.sub": "欢迎回来。",
+    "auth.login.modeBanner": "",
     "auth.tab.phone": "手机号",
     "auth.tab.email": "邮箱",
     "auth.login.phone": "手机号",
@@ -171,9 +170,8 @@
       "<a href=\"login.html\">登录</a> · <a href=\"register.html\">注册</a>",
     "auth.closed.registerSmsHint": "短信验证码将在主站开放后启用。",
     "auth.register.title": "注册",
-    "auth.register.sub": "默认使用手机号与密码注册；可切换到邮箱与密码。",
-    "auth.register.modeBanner":
-      "<strong>手机号注册</strong>：先填手机号 → 点「获取验证码」→ 填 6 位短信码 → 设密码。<strong>邮箱注册</strong>：切换到「邮箱」后填写（邮件验证流程将后续接入）。",
+    "auth.register.sub": "创建账号，开始使用。",
+    "auth.register.modeBanner": "",
     "auth.register.email": "邮箱",
     "auth.register.password": "密码",
     "auth.register.submit": "注册",

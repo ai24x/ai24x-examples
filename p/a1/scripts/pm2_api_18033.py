@@ -11,7 +11,7 @@ def main() -> None:
     # ensure relative paths (like ./data/*.db) behave same as manual cd into api/server
     os.chdir(api_dir)
     sys.path.insert(0, api_dir)
-    uvicorn.run("app.main:app", host="127.0.0.1", port=18033, reload=False)
+    uvicorn.run("app.main:app", host="127.0.0.1", port=18011, reload=False)
 
 
 if __name__ == "__main__":

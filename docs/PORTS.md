@@ -2,6 +2,15 @@
 
 目标：让 OpenClaw/实例管理/反代配置“只改一处”，避免端口到处改来改去。
 
+### 0) 核心原则（唯一口径）
+
+- **对外只开放**：`80/443`（HTTPS 走 443），由 Nginx 接管
+- **对内固定端口池**：服务只监听 `127.0.0.1`，由 Nginx 反代到对应端口
+- **子项目端口双段**：
+  - 前端：`1800x`
+  - 后端/管理：`1801x`
+  - 例：`a1` → 前端 `18001`，后端/管理 `18011`；`fisher` → 前端 `18002`，后端/管理 `18012`
+
 ### 1) 生产端口池（8000+，建议固定）
 
 | 服务 | 域名 | 进程管理 | 监听地址 | 端口 | 备注 |
@@ -30,38 +39,40 @@
 
 | 服务 | 端口 | 说明 |
 |---|---:|---|
-| AI 行情官｜灯塔版（1.01）静态（p/a） | **18001** | `p/a/scripts/serve.cmd` |
-| 山海渔 Fisher 网页联调 Demo（p/fisher） | **18002** | `p/fisher/scripts/serve_web.cmd`（或 PM2 `fisher-web-18002`） |
-| AI 行情官｜灯塔版（1.01） API（p/a） | **18031** | `p/a/scripts/start_api.cmd`，健康检查：`/health` |
-| 山海渔 Fisher API（p/fisher） | **18041** | `p/fisher/scripts/start_api.cmd`（或 PM2 `fisher-api-18041`），健康检查：`/health` |
-| 主站 API+静态（api/ 挂载 web/） | **8000** | `start_local.bat`（本地可用 `SKIP_DB_INIT=true` 免 Postgres） |
+| 主站（Token自由）API | **8000** | PM2：`core-8000`（含 `/docs`）；对外统一走 Nginx `80/443` |
+| AI 行情官 V1.0（a1）前端（p/a1/web） | **18001** | PM2：`a1-web-18001` |
+| AI 行情官 V1.0（a1）后端/管理（p/a1/api/server） | **18011** | PM2：`a1-api-18011`（含 `/api/*`、`/docs`、管理后台） |
+| 山海渔 Fisher（预留）前端（p/fisher/web） | **18002** | 预留：`fisher-web-18002` |
+| 山海渔 Fisher（预留）后端/管理（p/fisher/api/server） | **18012** | 预留：`fisher-api-18012` |
+
+> 兼容说明：旧版 `p/a` 的 `18001/18031` 属于历史口径；现在以 `p/a1`（V1.0）为准。
 
 ### 2.1 常用访问网址（开发/联调最常用）
 
 本地（开发机）：
 
-- AI 行情官｜灯塔版（1.01）前端（静态页）：`http://127.0.0.1:18001/`
-- AI 行情官｜灯塔版（1.01）后端 API：`http://127.0.0.1:18031/`
-  - 健康检查：`http://127.0.0.1:18031/health`
-  - API 文档（Swagger）：`http://127.0.0.1:18031/docs`
-  - 根路径 JSON（含当前管理台路径）：`http://127.0.0.1:18031/`
-  - 管理后台登录（默认挂载，以 `.env` 的 `AI24X_ADMIN_MOUNT_PATH` 为准）：`http://127.0.0.1:18031/admin20260501/login`
-  - 行情状态（需 AdminKey）：`http://127.0.0.1:18031/api/status/market-data`
+- 主站（Token自由）API：`http://127.0.0.1:8000/`（Docs：`/docs`）
+- AI 行情官 V1.0（a1）前端：`http://127.0.0.1:18001/`
+  - 首页：`http://127.0.0.1:18001/index.html`
+  - 行情页：`http://127.0.0.1:18001/demo.html`
+- AI 行情官 V1.0（a1）后端/管理：`http://127.0.0.1:18011/`
+  - 健康检查：`http://127.0.0.1:18011/health`
+  - API 文档：`http://127.0.0.1:18011/docs`
+  - 行情状态（需 AdminKey）：`http://127.0.0.1:18011/api/status/market-data`
 
 生产（服务器，对外域名）：
 
-- AI 行情官｜灯塔版（1.01）前端：`https://a.ai24x.com/`
-- AI 行情官｜灯塔版（1.01）后端（同域反代）：
-  - API：`https://a.ai24x.com/api/`
-  - API 文档（Swagger）：`https://a.ai24x.com/docs`
-  - 管理后台登录（须与线上 `AI24X_ADMIN_MOUNT_PATH`、Nginx 一致）：`https://a.ai24x.com/admin20260501/login`（或先访问站点根下 API 根路径 JSON 看 `admin_login`）
-  - 健康检查：`https://a.ai24x.com/health`
-  - 行情状态（需 AdminKey）：`https://a.ai24x.com/api/status/market-data`
+- AI 行情官 V1.0（a1）前端：`https://a1.ai24x.com/`
+- AI 行情官 V1.0（a1）后端（同域反代）：
+  - API：`https://a1.ai24x.com/api/`
+  - API 文档：`https://a1.ai24x.com/docs`
+  - 健康检查：`https://a1.ai24x.com/health`
+  - 行情状态（需 AdminKey）：`https://a1.ai24x.com/api/status/market-data`
 
 说明：
 
 - 管理后台与状态接口使用 `X-Admin-Key` 鉴权，对外部署时建议仅管理员可访问或加额外限制（IP 白名单/基础认证等）。
-- `p/a/web/index.html` 在本地运行于 `127.0.0.1:18001` 时，会自动把 API 指向 `127.0.0.1:18031`（便于联调）。
+- `p/a1/web/*.html` 在本地运行于 `127.0.0.1:18001` 时，会自动把 API 指向 `127.0.0.1:18011`（便于联调）。
 
 ### 2.2 AI 行情官｜灯塔版（1.01）：后台配置怎么填（简要）
 
@@ -96,6 +107,10 @@
 
 ### 3) Nginx 反代固定映射（同域最省心）
 
+- `a1.ai24x.com/` → `http://127.0.0.1:18001/`
+- `a1.ai24x.com/api/*` → `http://127.0.0.1:18011/api/*`
+- `a1.ai24x.com/docs` → `http://127.0.0.1:18011/docs`
+
 - `a.ai24x.com/` → 静态目录：`p/a/web/`
 - `a.ai24x.com/api/*` → `http://127.0.0.1:8001/api/*`
 - `a.ai24x.com/docs` → `http://127.0.0.1:8001/docs`
@@ -127,28 +142,28 @@ intl 建议命名（避免与 cn 混淆）：
 | PM2 进程名 | 端口 | 常用访问 |
 |---|---:|---|
 | `core-8000` | **8000** | `http://127.0.0.1:8000/`（健康：`/health`，Docs：`/docs`） |
-| `a-web-18001` | **18001** | `http://127.0.0.1:18001/` |
-| `a-api-18031` | **18031** | `http://127.0.0.1:18031/`（健康：`/health`，根路径 JSON 含后台入口，Docs：`/docs`） |
+| `a1-web-18001` | **18001** | `http://127.0.0.1:18001/` |
+| `a1-api-18011` | **18011** | `http://127.0.0.1:18011/`（健康：`/health`，Docs：`/docs`） |
 
 ```powershell
 cd "E:\AI24X\ai24x-website\ai24x01"
 pm2 start ecosystem.local.config.js
 pm2 status
 pm2 logs core-8000
-pm2 logs a-api-18031
-pm2 logs a-web-18001
+pm2 logs a1-api-18011
+pm2 logs a1-web-18001
 ```
 
 常用：
 
-- 重启 API：`pm2 restart a-api-18031`
-- 停止全部：`pm2 stop a-api-18031 a-web-18001`
-- 删除进程：`pm2 delete a-api-18031 a-web-18001`
-- 全部停止/删除（含主站）：`pm2 stop core-8000 a-api-18031 a-web-18001` / `pm2 delete core-8000 a-api-18031 a-web-18001`
+- 重启 API：`pm2 restart a1-api-18011`
+- 停止全部：`pm2 stop a1-api-18011 a1-web-18001`
+- 删除进程：`pm2 delete a1-api-18011 a1-web-18001`
+- 全部停止/删除（含主站）：`pm2 stop core-8000 a1-api-18011 a1-web-18001` / `pm2 delete core-8000 a1-api-18011 a1-web-18001`
 
 说明：
 
-- `core-8000`：主站 + AI24X 统一 API（本地 `8000`，等价于 `start_local.bat` 的效果，默认 `SKIP_DB_INIT=1`）
-- `a-web-18001`：AI 行情官｜灯塔版（1.01）静态页（本地 `18001`）
-- `a-api-18031`：AI 行情官｜灯塔版（1.01）后端 API（本地 `18031`，健康检查：`/health`）
+- `core-8000`：主站 + AI24X 统一 API（本地 `8000`）
+- `a1-web-18001`：AI 行情官 V1.0（a1）静态页（本地 `18001`）
+- `a1-api-18011`：AI 行情官 V1.0（a1）后端/管理（本地 `18011`）
 

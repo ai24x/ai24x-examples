@@ -499,7 +499,7 @@
         try {
           var host = String(location.hostname || "");
           var port = String(location.port || "");
-          if ((host === "127.0.0.1" || host === "localhost") && port === "18003") return "http://127.0.0.1:18033";
+          if ((host === "127.0.0.1" || host === "localhost") && port === "18001") return "http://127.0.0.1:18011";
         } catch (e) {}
         return "";
       }
@@ -656,7 +656,19 @@
         if (m.indexOf("手机号/邮箱或密码错误") >= 0 || m.indexOf("手机号或密码错误") >= 0 || m.indexOf("邮箱或密码错误") >= 0) {
           return "手机号或密码错误，请检查后重试。";
         }
-        // If backend returned JSON, try to extract detail / error / message.
+        // If backend returned JSON-ish content (including python str(dict)), try to extract detail / error / message.
+        // Some upstream responses may prepend extra text before the dict, so we also try regex extraction on full string.
+        {
+          var pe0 = m.match(/\b'error'\s*:\s*'((?:[^'\\]|\\.)*)'/);
+          if (pe0 && pe0[1]) m = pe0[1].trim();
+          pe0 = m.match(/\b"error"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+          if (pe0 && pe0[1]) m = pe0[1].trim();
+          pe0 = m.match(/\b'detail'\s*:\s*'((?:[^'\\]|\\.)*)'/);
+          if (pe0 && pe0[1]) m = pe0[1].trim();
+          pe0 = m.match(/\b"detail"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+          if (pe0 && pe0[1]) m = pe0[1].trim();
+        }
+
         if (m[0] === "{" || m[0] === "[") {
           try {
             var j = JSON.parse(m);
@@ -686,6 +698,7 @@
         try {
           m = m.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
         } catch (e2) {}
+        if (m.indexOf("该手机号已注册") >= 0) return "该手机号已注册，请直接登录或找回密码。";
         return m;
       }
 

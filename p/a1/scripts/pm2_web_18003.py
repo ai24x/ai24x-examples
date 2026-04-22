@@ -12,9 +12,9 @@ class _Handler(SimpleHTTPRequestHandler):
 def main() -> None:
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "web"))
     host = "0.0.0.0"
-    port = 18003
+    port = 18001
     httpd = ThreadingHTTPServer((host, port), lambda *a, **k: _Handler(*a, directory=root, **k))
-    print(f"[a2-web] serving {root} on http://{host}:{port}", flush=True)
+    print(f"[a1-web] serving {root} on http://{host}:{port}", flush=True)
     httpd.serve_forever()
 
 

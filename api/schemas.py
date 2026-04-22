@@ -83,7 +83,7 @@ class SmsSendRequest(BaseModel):
     """联调发送短信验证码（内容按模板拼验证码；须与 106 平台审核文案一致）。"""
 
     mobile: str = Field(..., min_length=10, max_length=20, description="手机号，国内建议 11 位")
-    purpose: Literal["register", "login", "reset", "test"] = Field(
+    purpose: Literal["register", "login", "reset", "bind", "test"] = Field(
         default="test", description="用途（当前仅影响日志，模板共用）"
     )
     # 子站管理端 admin_config 下发时可选；须与主站 SMS_INTERNAL_KEY 一致；非空字段覆盖本机 .env

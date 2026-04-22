@@ -294,7 +294,7 @@ async def shutdown_event():
 
 # —— 短信：106 网关（联调；生产务必配置 SMS_INTERNAL_KEY）——
 @app.post("/v1/auth/sms/send", response_model=SmsSendResponse)
-async def auth_sms_send(request: Request, body: SmsSendRequest):
+async def auth_sms_send(request: Request, body: SmsSendRequest, db: Session = Depends(get_db)):
     if not settings.sms_106_enabled:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -325,6 +325,12 @@ async def auth_sms_send(request: Request, body: SmsSendRequest):
     mob = normalize_mobile(body.mobile)
     if len(mob) != 11 or not mob.isdigit():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="手机号格式不正确（需 11 位国内号）")
+
+    # Register flow: fail fast if the phone is already taken to avoid wasting SMS.
+    # (User explicitly requested this behavior.)
+    if (body.purpose or "").strip().lower() == "register":
+        if get_by_phone(db, mob):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="该手机号已注册")
 
     ip = client_ip(request)
     ok_abuse, abuse_msg = check_before_send(

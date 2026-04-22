@@ -264,7 +264,7 @@
         try {
           var host = String(location.hostname || "");
           var port = String(location.port || "");
-          if ((host === "127.0.0.1" || host === "localhost") && port === "18003") return "http://127.0.0.1:18033";
+          if ((host === "127.0.0.1" || host === "localhost") && port === "18001") return "http://127.0.0.1:18011";
         } catch (e) {}
         return "";
       }
@@ -449,6 +449,9 @@
         var m = e && e.message ? String(e.message) : "";
         m = (m || "").trim();
         if (!m) return "请求失败";
+        if (m === "Failed to fetch" || /NetworkError/i.test(m) || /fetch/i.test(m) && /failed/i.test(m)) {
+          return "网络或服务暂时不可用，请稍后重试。";
+        }
         if (m.indexOf("手机号/邮箱或密码错误") >= 0 || m.indexOf("手机号或密码错误") >= 0 || m.indexOf("邮箱或密码错误") >= 0) {
           return "手机号或密码错误，请检查后重试。";
         }
@@ -471,6 +474,11 @@
         if (pe && pe[1]) return pe[1].trim();
         pe = m.match(/\b"error"\s*:\s*"((?:[^"\\]|\\.)*)"/);
         if (pe && pe[1]) return pe[1].trim();
+        pe = m.match(/\b'detail'\s*:\s*'((?:[^'\\]|\\.)*)'/);
+        if (pe && pe[1]) return pe[1].trim();
+        pe = m.match(/\b"detail"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+        if (pe && pe[1]) return pe[1].trim();
+        if (m.indexOf("该手机号已注册") >= 0) return "该手机号已注册，请直接登录或找回密码。";
         return m || "请求失败";
       }
 
