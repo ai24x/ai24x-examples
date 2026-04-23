@@ -66,11 +66,11 @@ pm2 logs
 停止/重启：
 
 ```bash
-pm2 stop ai24x-a-api
-pm2 restart ai24x-a-api
+pm2 stop a-api-8001
+pm2 restart a-api-8001
 
-pm2 stop ai24x-core-api
-pm2 restart ai24x-core-api
+pm2 stop core-api-8002
+pm2 restart core-api-8002
 ```
 
 ### 4) 开机自启（必须做）

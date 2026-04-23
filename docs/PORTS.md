@@ -9,7 +9,7 @@
 - **子项目端口双段**：
   - 前端：`1800x`
   - 后端/管理：`1801x`
-  - 例：`a1` → 前端 `18001`，后端/管理 `18011`；`fisher` → 前端 `18002`，后端/管理 `18012`
+  - 例：`a1` → 前端 `18001`，后端/管理 `18011`；`fisher` → 前端 `18002`，后端 API `18041`（`ecosystem.local.cjs`：`fisher-api-18041`；数据库 PostgreSQL，见 `p/fisher/api/server/.env.example`）
 
 ### 1) 生产端口池（8000+，建议固定）
 
@@ -42,8 +42,8 @@
 | 主站（Token自由）API | **8000** | PM2：`core-8000`（含 `/docs`）；对外统一走 Nginx `80/443` |
 | AI 行情官 V1.0（a1）前端（p/a1/web） | **18001** | PM2：`a1-web-18001` |
 | AI 行情官 V1.0（a1）后端/管理（p/a1/api/server） | **18011** | PM2：`a1-api-18011`（含 `/api/*`、`/docs`、管理后台） |
-| 山海渔 Fisher（预留）前端（p/fisher/web） | **18002** | 预留：`fisher-web-18002` |
-| 山海渔 Fisher（预留）后端/管理（p/fisher/api/server） | **18012** | 预留：`fisher-api-18012` |
+| 山海渔 Fisher 前端（p/fisher/web） | **18002** | PM2：`fisher-web-18002` |
+| 山海渔 Fisher API（p/fisher/api/server） | **18041** | PM2：`fisher-api-18041`；**PostgreSQL**（`FISHER_DATABASE_URL`） |
 
 > 兼容说明：旧版 `p/a` 的 `18001/18031` 属于历史口径；现在以 `p/a1`（V1.0）为准。
 
@@ -59,6 +59,8 @@
   - 健康检查：`http://127.0.0.1:18011/health`
   - API 文档：`http://127.0.0.1:18011/docs`
   - 行情状态（需 AdminKey）：`http://127.0.0.1:18011/api/status/market-data`
+- 山海渔 Fisher 前端（H5 主站）：`http://127.0.0.1:18002/index.html`
+- 山海渔 Fisher API：`http://127.0.0.1:18041/`（健康：`/health`，Docs：`/docs`；**需本机 PostgreSQL 已建库**）
 
 生产（服务器，对外域名）：
 
@@ -121,8 +123,8 @@
 
 见仓库根目录 `ecosystem.config.cjs`：
 
-- `ai24x-a-api` → 8001
-- `ai24x-core-api` → 8002
+- `a-api-8001` → 8001
+- `core-api-8002` → 8002
 
 intl 建议命名（避免与 cn 混淆）：
 
@@ -144,6 +146,8 @@ intl 建议命名（避免与 cn 混淆）：
 | `core-8000` | **8000** | `http://127.0.0.1:8000/`（健康：`/health`，Docs：`/docs`） |
 | `a1-web-18001` | **18001** | `http://127.0.0.1:18001/` |
 | `a1-api-18011` | **18011** | `http://127.0.0.1:18011/`（健康：`/health`，Docs：`/docs`） |
+| `fisher-web-18002` | **18002** | `http://127.0.0.1:18002/index.html` |
+| `fisher-api-18041` | **18041** | `http://127.0.0.1:18041/docs`（PostgreSQL + `FISHER_DATABASE_URL`） |
 
 ```powershell
 cd "E:\AI24X\ai24x-website\ai24x01"
@@ -152,11 +156,14 @@ pm2 status
 pm2 logs core-8000
 pm2 logs a1-api-18011
 pm2 logs a1-web-18001
+pm2 logs fisher-api-18041
+pm2 logs fisher-web-18002
 ```
 
 常用：
 
 - 重启 API：`pm2 restart a1-api-18011`
+- 重启 Fisher API：`pm2 restart fisher-api-18041`（需本机 PostgreSQL）
 - 停止全部：`pm2 stop a1-api-18011 a1-web-18001`
 - 删除进程：`pm2 delete a1-api-18011 a1-web-18001`
 - 全部停止/删除（含主站）：`pm2 stop core-8000 a1-api-18011 a1-web-18001` / `pm2 delete core-8000 a1-api-18011 a1-web-18001`
@@ -166,4 +173,6 @@ pm2 logs a1-web-18001
 - `core-8000`：主站 + AI24X 统一 API（本地 `8000`）
 - `a1-web-18001`：AI 行情官 V1.0（a1）静态页（本地 `18001`）
 - `a1-api-18011`：AI 行情官 V1.0（a1）后端/管理（本地 `18011`）
+- `fisher-web-18002`：山海渔 H5（本地 `18002`）
+- `fisher-api-18041`：山海渔 API（本地 `18041`，**PostgreSQL**）
 

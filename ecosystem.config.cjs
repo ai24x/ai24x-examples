@@ -12,7 +12,7 @@
 module.exports = {
   apps: [
     {
-      name: "ai24x-a-api",
+      name: "a-api-8001",
       cwd: "./p/a/api/server",
       script: "python3",
       args: "-m uvicorn app.main:app --host 127.0.0.1 --port 8001",
@@ -27,7 +27,7 @@ module.exports = {
       log_date_format: "YYYY-MM-DD HH:mm:ss",
     },
     {
-      name: "ai24x-core-api",
+      name: "core-api-8002",
       cwd: "./api",
       script: "python3",
       args: "-m uvicorn main:app --host 127.0.0.1 --port 8002",

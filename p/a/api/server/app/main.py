@@ -1017,7 +1017,7 @@ def login(body: LoginIn) -> LoginOut:
     if not body.email or not body.code:
         raise HTTPException(
             status_code=400,
-            detail="请使用手机号/邮箱+密码登录（需配置 AI24X_IDENTITY_API_BASE），或邮箱+验证码（仅开发回退）",
+            detail="手机号或邮箱不存在，或密码错误。",
         )
     if settings.env != "prod":
         if body.code != "1234":

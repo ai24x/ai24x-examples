@@ -5,8 +5,9 @@ from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 
-# Resolve relative SQLite paths against this package directory so cwd/PM2 cwd mismatches
-# do not point at a different (possibly empty) file than `api/data/*.db`.
+# NOTE: We standardize on PostgreSQL in all environments.
+# SQLite support was previously used for quick local runs but is now forbidden
+# to prevent "works on my machine" drift and sub-brain configuration mistakes.
 _API_ROOT = Path(__file__).resolve().parent
 
 
@@ -29,6 +30,8 @@ class Settings(BaseSettings):
             u = make_url(s)
         except Exception:
             return s
+        if u.drivername == "sqlite":
+            raise ValueError("SQLite is disabled. Use PostgreSQL DATABASE_URL (postgresql://...)")
         if u.drivername != "sqlite":
             return s
         db = u.database

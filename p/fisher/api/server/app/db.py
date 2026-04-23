@@ -2,41 +2,18 @@ from __future__ import annotations
 
 import json
 from collections.abc import Generator
-from pathlib import Path
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from .config import settings
 from .models import Base, Player
 
-
-def _ensure_sqlite_dir(url: str) -> None:
-    if url.startswith("sqlite:///"):
-        path = url.replace("sqlite:///", "", 1)
-        if path and path != ":memory:":
-            p = Path(path)
-            if not p.is_absolute():
-                p = Path.cwd() / p
-            p.parent.mkdir(parents=True, exist_ok=True)
-
-
-_ensure_sqlite_dir(settings.database_url)
-
-connect_args = {}
-if settings.database_url.startswith("sqlite"):
-    connect_args["check_same_thread"] = False
-
-engine = create_engine(settings.database_url, connect_args=connect_args)
+engine = create_engine(
+    settings.database_url,
+    pool_pre_ping=True,
+)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
-
-
-@event.listens_for(engine, "connect")
-def _sqlite_pragma(dbapi_connection, connection_record):  # noqa: ARG001
-    if settings.database_url.startswith("sqlite"):
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
 
 
 def init_db() -> None:

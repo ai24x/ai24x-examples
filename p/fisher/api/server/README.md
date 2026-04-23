@@ -1,6 +1,19 @@
 # 山海渔 · Fisher API（最小真源）
 
-本地默认 **SQLite**：`./data/fisher.db`（相对本目录工作路径）。生产可改 `FISHER_DATABASE_URL` 为 PostgreSQL。
+数据库 **仅支持 PostgreSQL**（`FISHER_DATABASE_URL`，驱动：`psycopg2` + SQLAlchemy `postgresql+psycopg2://...`）。不再使用 SQLite，避免与预发/生产环境漂移。
+
+## 本机准备数据库（一次）
+
+在已安装 PostgreSQL 的前提下，示例（按你的本机 `psql` 路径与管理员用户调整）：
+
+亦可直接用仓库脚本（需按本机 `psql` 管理员账户执行）：`p/fisher/scripts/bootstrap_fisher_pg.sql`
+
+```sql
+CREATE USER fisher WITH PASSWORD 'fisher';
+CREATE DATABASE fisher OWNER fisher;
+```
+
+`.env` 中 `FISHER_DATABASE_URL` 与库名/用户/口令一致。首次启动会 `create_all` 建表。
 
 ## 启动（Windows / PowerShell）
 
@@ -10,7 +23,7 @@ py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 copy .env.example .env
-# 编辑 .env：至少改 FISHER_JWT_SECRET
+# 编辑 .env：FISHER_DATABASE_URL、FISHER_JWT_SECRET
 py -m uvicorn app.main:app --host 127.0.0.1 --port 18041 --reload
 ```
 

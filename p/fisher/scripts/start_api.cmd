@@ -8,6 +8,8 @@ pushd "%~dp0..\api\server" || (
 
 echo.
 echo 山海渔 Fisher API  本地开发
+echo   需 PostgreSQL；连接串 FISHER_DATABASE_URL（见 api\server\.env.example）
+echo   可执行 scripts\bootstrap_fisher_pg.sql 建库/用户
 echo   Docs:   http://127.0.0.1:18041/docs
 echo   Health: http://127.0.0.1:18041/health
 echo.

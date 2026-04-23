@@ -116,10 +116,17 @@ class Settings:
 
 
 def load_settings() -> Settings:
-    load_dotenv(override=False)
+    # In Windows/PM2 deployments, the process may inherit stale global env vars.
+    # We prefer the per-service `.env` next to `api/server` as the single source of truth.
+    load_dotenv(override=True)
+    db_kind = str(os.getenv("AI24X_DB_KIND", "pgsql")).strip().lower()
+    if db_kind in ("sqlite", "sqlite3"):
+        raise RuntimeError("SQLite is disabled. Set AI24X_DB_KIND=pgsql and configure AI24X_DATABASE_URL.")
+    if db_kind not in ("pg", "pgsql", "postgres", "postgresql"):
+        raise RuntimeError(f"Unsupported AI24X_DB_KIND={db_kind!r}. Only pgsql is allowed.")
     return Settings(
         env=os.getenv("AI24X_ENV", "dev"),
-        db_kind=str(os.getenv("AI24X_DB_KIND", "sqlite")).strip().lower(),
+        db_kind=db_kind,
         database_url=str(os.getenv("AI24X_DATABASE_URL", "")).strip(),
         db_path=os.getenv("AI24X_DB_PATH", "./data/ai24x.db"),
         jwt_secret=os.getenv("AI24X_JWT_SECRET", "change-me"),

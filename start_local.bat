@@ -4,12 +4,12 @@ cd /d "%~dp0"
 
 echo Starting AI24X via PM2...
 echo - core-8000    : http://localhost:8000/
-echo - a-web-18001  : http://localhost:18001/
-echo - a-api-18031  : http://localhost:18031/
+echo - a1-web-18001 : http://localhost:18001/
+echo - a1-api-18011 : http://localhost:18011/
 echo.
 
 rem Use PM2 to manage all local services (Windows-friendly config).
-rem Default: allow running without local PostgreSQL.
+rem Standardized: PostgreSQL only (configure api/.env and p/a1/api/server/.env).
 pm2 start ecosystem.local.config.js
 
 rem Persist current process list for auto-resurrect (optional but recommended).
@@ -28,7 +28,7 @@ echo Tips:
 echo   pm2 status
 echo   pm2 logs core-8000
 echo   pm2 restart core-8000
-echo   pm2 stop core-8000 a-web-18001 a-api-18031
+echo   pm2 stop core-8000 a1-web-18001 a1-api-18011
 echo.
 
 echo.

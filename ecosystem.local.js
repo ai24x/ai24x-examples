@@ -24,14 +24,45 @@ module.exports = {
       max_memory_restart: "900M",
       env: {
         PYTHONUNBUFFERED: "1",
+        // Standardized: PostgreSQL only. Use `api/.env` for DATABASE_URL.
         SKIP_DB_INIT: "0",
-        // Local auth DB (SQLite) — avoids Postgres/encoding issues on Windows.
-        DATABASE_URL: "sqlite:///./data/api_auth.db",
         API_WORKERS: "1",
         AI24X_ENV: "dev",
       },
       out_file: "./logs/pm2-core-out.log",
       error_file: "./logs/pm2-core-err.log",
+      log_date_format: "YYYY-MM-DD HH:mm:ss",
+    },
+    // a1 (current) — static + api
+    {
+      name: "a1-web-18001",
+      cwd: "./p/a1/web",
+      script: "python",
+      windowsHide: true,
+      args: "-m http.server 18001",
+      autorestart: true,
+      max_memory_restart: "200M",
+      env: {
+        PYTHONUNBUFFERED: "1",
+      },
+      out_file: "./logs/pm2-a1-web-out.log",
+      error_file: "./logs/pm2-a1-web-err.log",
+      log_date_format: "YYYY-MM-DD HH:mm:ss",
+    },
+    {
+      name: "a1-api-18011",
+      cwd: "./p/a1/api/server",
+      script: "python",
+      windowsHide: true,
+      args: "-m uvicorn app.main:app --host 127.0.0.1 --port 18011",
+      autorestart: true,
+      max_memory_restart: "650M",
+      env: {
+        PYTHONUNBUFFERED: "1",
+        AI24X_ENV: "dev",
+      },
+      out_file: "./logs/pm2-a1-api-out.log",
+      error_file: "./logs/pm2-a1-api-err.log",
       log_date_format: "YYYY-MM-DD HH:mm:ss",
     },
     {
@@ -93,6 +124,8 @@ module.exports = {
       env: {
         PYTHONUNBUFFERED: "1",
         FISHER_ENV: "dev",
+        FISHER_DATABASE_URL:
+          "postgresql+psycopg2://fisher:fisher@127.0.0.1:5432/fisher",
       },
       out_file: "./logs/pm2-fisher-api-out.log",
       error_file: "./logs/pm2-fisher-api-err.log",

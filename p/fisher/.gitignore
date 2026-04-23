@@ -6,7 +6,7 @@ node_modules/
 .DS_Store
 Thumbs.db
 
-# Fisher API（本地 SQLite 与虚拟环境）
+# Fisher API（虚拟环境、遗留本地 SQLite 文件；真源为 PostgreSQL）
 **/api/server/.venv/
 **/api/server/**/__pycache__/
 **/api/server/data/*.db

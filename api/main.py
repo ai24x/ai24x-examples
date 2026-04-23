@@ -22,6 +22,7 @@ from schemas import (
     AuthTokenResponse,
     AdminPasswordSetBody,
     AdminUserContactSetBody,
+    AdminUserBootstrapBody,
     ChatRequest,
     ChatResponse,
     ErrorResponse,
@@ -727,6 +728,67 @@ async def admin_user_contact_set(
         token=token,
         user={"id": int(u.id), "email": u.email or "", "phone": u.phone or ""},
     )
+
+
+@app.get("/v1/admin/users/lookup")
+async def admin_user_lookup(
+    request: Request,
+    phone: str = "",
+    email: str = "",
+    db: Session = Depends(get_db),
+):
+    """Lookup auth user by phone/email; requires X-SMS-Internal-Key."""
+    if not (settings.sms_internal_key or "").strip():
+        raise HTTPException(status_code=503, detail="SMS_INTERNAL_KEY not configured.")
+    if (request.headers.get("X-SMS-Internal-Key") or "").strip() != (
+        settings.sms_internal_key or ""
+    ).strip():
+        raise HTTPException(status_code=403, detail="Forbidden")
+    p = (phone or "").strip()
+    e = (email or "").strip().lower()
+    if not p and not e:
+        raise HTTPException(status_code=400, detail="phone or email required")
+    q = db.query(AuthUser)
+    u = None
+    if p:
+        u = q.filter(AuthUser.phone == p).first()
+    if u is None and e:
+        u = q.filter(AuthUser.email == e).first()
+    if u is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"ok": True, "user": {"id": int(u.id), "email": u.email or "", "phone": u.phone or ""}}
+
+
+@app.post("/v1/admin/users/bootstrap", response_model=AuthTokenResponse)
+async def admin_user_bootstrap(
+    request: Request,
+    body: AdminUserBootstrapBody,
+    db: Session = Depends(get_db),
+):
+    """Create user if missing (phone/email) and set password; requires X-SMS-Internal-Key."""
+    if not (settings.sms_internal_key or "").strip():
+        raise HTTPException(status_code=503, detail="SMS_INTERNAL_KEY not configured.")
+    if (request.headers.get("X-SMS-Internal-Key") or "").strip() != (
+        settings.sms_internal_key or ""
+    ).strip():
+        raise HTTPException(status_code=403, detail="Forbidden")
+    try:
+        if body.phone:
+            u = get_by_phone(db, body.phone) or create_user_phone(db, body.phone, body.new_password)
+        else:
+            u = get_by_email(db, body.email or "") or create_user_email(db, body.email or "", body.new_password)
+        # Ensure password matches requested one even if user existed.
+        u = admin_set_password(db, user_id=int(u.id), new_password=body.new_password)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    token = create_auth_access_token(
+        user_id=int(u.id),
+        email=u.email,
+        phone=u.phone,
+        secret=settings.secret_key,
+        expire_days=int(settings.auth_jwt_expire_days),
+    )
+    return AuthTokenResponse(token=token, user={"id": int(u.id), "email": u.email or "", "phone": u.phone or ""})
 
 
 @app.get("/v1/keys")

@@ -21,8 +21,7 @@
 | 路径 | 用途 |
 |------|------|
 | `miniprogram/` | 微信原生小程序（开发者工具打开本目录） |
-| `api/server/` | Fisher 自建后端（真源）；**本地默认端口 `18041`** |
-| `api/server/data/` | SQLite 文件目录（`fisher.db` 由运行时创建，已 `.gitignore`） |
+| `api/server/` | Fisher 自建后端（真源），**本地默认端口 `18041`**；数据库 **PostgreSQL**（`FISHER_DATABASE_URL`，见 `api/server/.env.example`） |
 | `web/` | H5 主站 `index.html`（海王·山海渔）；`bag.html` 仓库；旧联调封存 `archive/history-legacy.html`；本地默认 `18002` |
 | `docs/` | 架构、数值、合规与版本记录 |
 | `scripts/` | 启动脚本（`start_api.cmd`） |

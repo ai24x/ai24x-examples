@@ -100,12 +100,12 @@ New-Item -ItemType Directory -Force -Path (Split-Path $out) | Out-Null
 
 ### 2.4 重启后端（PM2）
 
-> 进程名以实际 PM2 配置为准（建议 `ai24x-a-api`）。
+> 进程名以实际 PM2 配置为准（生产唯一口径建议 `a-api-8001`）。
 
 ```powershell
 Set-Location C:\ai24x01
 pm2 list
-pm2 restart ai24x-a-api
+pm2 restart a-api-8001
 pm2 save
 ```
 
@@ -127,7 +127,7 @@ pm2 save
 
 ```powershell
 Set-Location C:\ai24x01
-pm2 logs ai24x-a-api --lines 200
+pm2 logs a-api-8001 --lines 200
 ```
 
 ---
@@ -140,7 +140,7 @@ pm2 logs ai24x-a-api --lines 200
 Set-Location C:\ai24x01
 git fetch --tags
 git checkout <LAST_GOOD_TAG>
-pm2 restart ai24x-a-api
+pm2 restart a-api-8001
 ```
 
 验收：`/health`、`/docs`、登录、`demo.html` 查询。
@@ -157,7 +157,7 @@ AI24X_DB_PATH=./data/ai24x.db
 然后：
 
 ```powershell
-pm2 restart ai24x-a-api
+pm2 restart a-api-8001
 ```
 
 验收：`/health`、`/docs`、登录、`demo.html` 查询。

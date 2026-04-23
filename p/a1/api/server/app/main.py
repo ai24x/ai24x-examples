@@ -8,6 +8,7 @@ import re
 import string
 import time
 from typing import Optional
+from urllib.parse import quote
 
 import httpx
 from fastapi import Cookie, Depends, FastAPI, Header, HTTPException, Request
@@ -209,7 +210,11 @@ def _identity_get(path: str) -> dict:
     url = f"{base}{path}"
     headers: dict[str, str] = {}
     p = path.rstrip("/") or "/"
-    if (p.endswith("/sms/diagnostics") or p.startswith("/v1/admin/sms/")) and cfg.sms_internal_key:
+    if (
+        p.endswith("/sms/diagnostics")
+        or p.startswith("/v1/admin/sms/")
+        or p.startswith("/v1/admin/users/")
+    ) and cfg.sms_internal_key:
         headers["X-SMS-Internal-Key"] = cfg.sms_internal_key
     try:
         with httpx.Client(timeout=15.0) as client:
@@ -228,6 +233,26 @@ def _identity_get(path: str) -> dict:
     if "json" not in ct:
         raise HTTPException(status_code=502, detail="Identity API returned non-JSON")
     return r.json()
+
+
+def _identity_lookup_user_id(*, phone: str = "", email: str = "") -> int | None:
+    """Best-effort lookup identity auth_users.id for admin sync."""
+    cfg = resolve_identity()
+    if not identity_configured():
+        return None
+    if not (cfg.sms_internal_key or "").strip():
+        return None
+    p = (phone or "").strip()
+    e = (email or "").strip().lower()
+    if not p and not e:
+        return None
+    try:
+        data = _identity_get(f"/v1/admin/users/lookup?phone={quote(p)}&email={quote(e)}")
+        u = data.get("user") if isinstance(data, dict) else None
+        uid = int((u or {}).get("id") or 0)
+        return uid if uid > 0 else None
+    except Exception:
+        return None
 
 
 def _cors_list(v: str) -> list[str]:
@@ -261,6 +286,11 @@ def _startup() -> None:
 @app.get("/health")
 def health() -> dict:
     return {"ok": True, "ts": int(time.time())}
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon() -> Response:
+    return Response(status_code=204)
 
 
 def _client_ip(request: Request) -> str:
@@ -848,16 +878,41 @@ def admin_user_basic_update(user_id: int, body: dict, _: bool = Depends(require_
             email = body.get("email")
             phone = body.get("phone")
             if (cfg.sms_internal_key or "").strip():
-                _identity_post(
-                    "/v1/admin/users/contact/set",
-                    {"user_id": int(user_id), "email": email, "phone": phone},
-                    extra_headers={"X-SMS-Internal-Key": cfg.sms_internal_key},
+                # Resolve identity user_id by current local contact (best-effort).
+                cur = db.admin_get_user(int(user_id))
+                cur_u = (cur or {}).get("user") if isinstance(cur, dict) else None
+                id_uid = _identity_lookup_user_id(
+                    phone=str((cur_u or {}).get("phone") or ""),
+                    email=str((cur_u or {}).get("email") or ""),
                 )
+                if id_uid:
+                    # Identity 侧要求「手机号/邮箱二选一」；但管理台允许两者都维护，所以这里拆成两次同步。
+                    has_email = bool(str(email or "").strip())
+                    has_phone = bool(str(phone or "").strip())
+                    if has_phone:
+                        _identity_post(
+                            "/v1/admin/users/contact/set",
+                            {"user_id": int(id_uid), "phone": phone},
+                            extra_headers={"X-SMS-Internal-Key": cfg.sms_internal_key},
+                        )
+                    if has_email:
+                        _identity_post(
+                            "/v1/admin/users/contact/set",
+                            {"user_id": int(id_uid), "email": email},
+                            extra_headers={"X-SMS-Internal-Key": cfg.sms_internal_key},
+                        )
         return db.admin_update_user_basic(int(user_id), email=body.get("email"), phone=body.get("phone"))
     except ValueError as e:
         # keep user-friendly; do not leak DB error details
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception:
+    except HTTPException:
+        # Bubble up identity sync errors (404/403/etc) instead of hiding them.
+        raise
+    except Exception as e:
+        logging.getLogger(__name__).exception("admin_user_basic_update failed")
+        env = str(settings.env or "").strip().lower()
+        if env not in ("prod", "production"):
+            raise HTTPException(status_code=400, detail=f"{type(e).__name__}: {e}")
         raise HTTPException(status_code=400, detail="Invalid request")
 
 
@@ -875,11 +930,46 @@ def admin_user_password_set(user_id: int, body: dict, _: bool = Depends(require_
     cfg = resolve_identity()
     if not (cfg.sms_internal_key or "").strip():
         raise HTTPException(status_code=503, detail="未配置 sms_internal_key，无法执行管理员强制改密")
-    data = _identity_post(
-        "/v1/admin/users/password/set",
-        {"user_id": int(user_id), "new_password": npw},
-        extra_headers={"X-SMS-Internal-Key": cfg.sms_internal_key},
-    )
+    try:
+        cur = db.admin_get_user(int(user_id))
+        cur_u = (cur or {}).get("user") if isinstance(cur, dict) else None
+        cur_phone = str((cur_u or {}).get("phone") or "")
+        cur_email = str((cur_u or {}).get("email") or "")
+        id_uid = _identity_lookup_user_id(phone=cur_phone, email=cur_email)
+        if not id_uid:
+            # Local/dev: the account may exist only in p/a1 DB. Bootstrap it into identity, then set password.
+            _identity_post(
+                "/v1/admin/users/bootstrap",
+                (
+                    {"phone": cur_phone, "new_password": npw}
+                    if (cur_phone or "").strip()
+                    else {"email": (cur_email or "").strip().lower(), "new_password": npw}
+                ),
+                extra_headers={"X-SMS-Internal-Key": cfg.sms_internal_key},
+            )
+            id_uid = _identity_lookup_user_id(phone=cur_phone, email=cur_email)
+        if not id_uid:
+            raise HTTPException(status_code=404, detail="Identity 用户不存在：请先让该用户在主站完成一次注册/登录后再改密")
+        data = _identity_post(
+            "/v1/admin/users/password/set",
+            {"user_id": int(id_uid), "new_password": npw},
+            extra_headers={"X-SMS-Internal-Key": cfg.sms_internal_key},
+        )
+    except HTTPException as e:
+        # Most common local/dev footgun: p/a1 uses one DB, identity(core) uses another DB,
+        # so the same numeric user_id doesn't exist upstream.
+        d = str(getattr(e, "detail", "") or "")
+        if (
+            e.status_code in (400, 404)
+            and ("用户不存在" in d or "user not found" in d.lower())
+            and not d.startswith("Identity 用户不存在：")
+        ):
+            base = (cfg.identity_api_base or "").strip()
+            raise HTTPException(
+                status_code=404,
+                detail=f"Identity 用户不存在：p/a1 的 user_id={int(user_id)} 与 Identity 用户表不一致。请检查 AI24X_IDENTITY_API_BASE={base!r} 指向的主站是否使用同一套数据库/同一批用户数据。",
+            )
+        raise
     # Do not return token to admin UI; only indicate success.
     return {"ok": True, "user": data.get("user", {})}
 
@@ -1161,7 +1251,7 @@ def login(body: LoginIn) -> LoginOut:
     if not body.email or not body.code:
         raise HTTPException(
             status_code=400,
-            detail="请使用手机号/邮箱+密码登录（需配置 AI24X_IDENTITY_API_BASE），或邮箱+验证码（仅开发回退）",
+            detail="手机号或邮箱不存在，或密码错误。",
         )
     if settings.env != "prod":
         if body.code != "1234":

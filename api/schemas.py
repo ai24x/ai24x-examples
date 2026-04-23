@@ -283,3 +283,21 @@ class AdminUserContactSetBody(BaseModel):
         if bool(p) == bool(e):
             raise ValueError("请只填写手机号或邮箱之一")
         return self
+
+
+class AdminUserBootstrapBody(BaseModel):
+    """管理员：若用户不存在则创建，并设置密码（仅内部调用；需 X-SMS-Internal-Key）。"""
+
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    new_password: str = Field(..., min_length=6, max_length=128)
+
+    @model_validator(mode="after")
+    def one_channel(self) -> "AdminUserBootstrapBody":
+        p = (self.phone or "").strip() or None
+        e = (self.email or "").strip().lower() or None
+        self.phone = p
+        self.email = e
+        if bool(p) == bool(e):
+            raise ValueError("请只提供 phone 或 email 之一")
+        return self
