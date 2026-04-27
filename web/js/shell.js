@@ -45,7 +45,6 @@
       nav("index.html", "nav.home", "index") +
       nav("product.html", "nav.product", "product") +
       nav("pricing.html", "nav.pricing", "pricing") +
-      nav("refer.html", "nav.refer", "refer") +
       nav("docs.html", "nav.docs", "docs") +
       nav("console.html", "nav.console", "console") +
       nav("login.html", "nav.login", "login") +

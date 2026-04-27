@@ -24,6 +24,7 @@
       nav("demo.html", "行情", "demo") +
       nav("account.html", "我的", "account") +
       nav("partner.html", "伙伴", "partner") +
+      nav("feedback.html", "反馈", "feedback") +
       "</nav>" +
       '<div class="header-actions">' +
       '<select id="theme-select" class="select-mini" aria-label="Theme">' +
@@ -165,6 +166,7 @@
       nav("demo.html", "行情", "demo"),
       nav("account.html", "我的", "account"),
       nav("partner.html", "伙伴", "partner"),
+      nav("feedback.html", "反馈", "feedback"),
     ]);
     var actions = _el("div", { class: "header-actions" }, []);
     var sel = _el("select", { id: "theme-select", class: "select-mini", "aria-label": "Theme" }, [
