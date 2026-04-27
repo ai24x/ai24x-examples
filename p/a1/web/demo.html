@@ -38,7 +38,7 @@
     (function () {
       try {
         var k = "ai24x_a_theme";
-        var t = String(localStorage.getItem(k) || "").trim() || "calm";
+        var t = String(localStorage.getItem(k) || "").trim() || "light";
         document.documentElement.setAttribute("data-theme", t);
       } catch (e) {}
     })();
@@ -3289,11 +3289,11 @@
   (function initThemeUnified() {
     try {
       var k = 'ai24x_a_theme';
-      var saved = 'calm';
+      var saved = 'light';
       try {
-        if (typeof localStorage !== 'undefined') saved = localStorage.getItem(k) || 'calm';
+        if (typeof localStorage !== 'undefined') saved = localStorage.getItem(k) || 'light';
       } catch (e0) {}
-      saved = String(saved || '').trim() || 'calm';
+      saved = String(saved || '').trim() || 'light';
       if (themeSelectEl) themeSelectEl.value = saved;
       if (window.AI24X_A_SHELL && window.AI24X_A_SHELL.applyTheme) {
         window.AI24X_A_SHELL.applyTheme(saved);

@@ -28,9 +28,9 @@
       "</nav>" +
       '<div class="header-actions">' +
       '<select id="theme-select" class="select-mini" aria-label="Theme">' +
-      '<option value="calm">深蓝（默认）</option>' +
+      '<option value="calm">深蓝</option>' +
       '<option value="dark">深黑</option>' +
-      '<option value="light">蓝白</option>' +
+      '<option value="light">蓝白（默认）</option>' +
       "</select>" +
       '<a class="btn btn-ghost" href="account.html">登录/续期</a>' +
       '<a class="btn btn-primary" href="account.html#vip">开通 VIP</a>' +
@@ -86,11 +86,11 @@
         var k = "ai24x_a_theme";
         var cur = "";
         try { cur = localStorage.getItem(k) || ""; } catch (e0) {}
-        cur = String(cur || "").trim() || "calm";
+        cur = String(cur || "").trim() || "light";
         sel.value = cur;
         applyTheme(cur);
         sel.addEventListener("change", function () {
-          var v = String(sel.value || "calm").trim() || "calm";
+          var v = String(sel.value || "light").trim() || "light";
           try { localStorage.setItem(k, v); } catch (e1) {}
           applyTheme(v);
         });
@@ -118,7 +118,7 @@
 
   function applyTheme(t) {
     try {
-      t = String(t || "").trim() || "calm";
+      t = String(t || "").trim() || "light";
       document.documentElement.setAttribute("data-theme", t);
     } catch (e) {}
   }
@@ -170,9 +170,9 @@
     ]);
     var actions = _el("div", { class: "header-actions" }, []);
     var sel = _el("select", { id: "theme-select", class: "select-mini", "aria-label": "Theme" }, [
-      _el("option", { value: "calm", text: "深蓝（默认）" }),
+      _el("option", { value: "calm", text: "深蓝" }),
       _el("option", { value: "dark", text: "深黑" }),
-      _el("option", { value: "light", text: "蓝白" }),
+      _el("option", { value: "light", text: "蓝白（默认）" }),
     ]);
     actions.appendChild(sel);
     actions.appendChild(_el("a", { class: "btn btn-ghost", href: "account.html" }, ["登录/续期"]));
