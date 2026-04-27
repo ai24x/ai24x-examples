@@ -61,6 +61,31 @@
       background:var(--panel2); color:var(--text); font-size:14px;
     }
     .pw-actions{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; margin-top:14px; }
+
+    /* VIP plans: subtle color layering */
+    .vip-plan{
+      border-width: 1px !important;
+      transition: transform .12s ease, filter .12s ease, box-shadow .12s ease, border-color .12s ease;
+    }
+    .vip-plan:hover{ transform: translateY(-1px); }
+    .vip-plan:active{ transform: translateY(0); }
+    .vip-plan.is-selected{
+      box-shadow: 0 10px 22px rgba(96,165,250,.18);
+      border-color: rgba(96,165,250,.55) !important;
+      filter: brightness(1.02);
+    }
+    .vip-trial{
+      background: linear-gradient(135deg, rgba(34,211,238,.16), rgba(96,165,250,.10)) !important;
+      border-color: rgba(34,211,238,.28) !important;
+    }
+    .vip-month{
+      background: linear-gradient(135deg, rgba(167,139,250,.16), rgba(96,165,250,.10)) !important;
+      border-color: rgba(167,139,250,.28) !important;
+    }
+    .vip-year{
+      background: linear-gradient(135deg, rgba(251,191,36,.20), rgba(245,158,11,.10)) !important;
+      border-color: rgba(251,191,36,.30) !important;
+    }
   </style>
 </head>
 <body>
@@ -115,9 +140,9 @@
       <h1>开通 VIP</h1>
       <p><strong>微信扫码支付</strong>，成功后自动生效；未更新点「刷新配额」。<strong>体验 ¥9.9</strong>（7 天、限购 1 次）／月卡 ¥99／年卡 ¥999。</p>
       <div class="btns">
-        <button class="btn primary" id="btn-vip-trial" type="button">微信支付 · 体验卡 ¥9.9</button>
-        <button class="btn" id="btn-vip" type="button">微信支付 · 月卡 ¥99</button>
-        <button class="btn" id="btn-vip-year" type="button">微信支付 · 年卡 ¥999</button>
+        <button class="btn vip-plan vip-trial is-selected" id="btn-vip-trial" type="button">微信支付 · 体验卡 ¥9.9</button>
+        <button class="btn vip-plan vip-month" id="btn-vip" type="button">微信支付 · 月卡 ¥99</button>
+        <button class="btn vip-plan vip-year" id="btn-vip-year" type="button">微信支付 · 年卡 ¥999</button>
         <button class="btn" id="btn-vip-refresh" type="button">刷新配额</button>
         <a class="btn" href="./demo.html?from=vip">去行情页</a>
       </div>
@@ -603,6 +628,14 @@
         }
       }
 
+      function vipCollapseAfterSuccess(){
+        try{ if (vipQrWrap) vipQrWrap.hidden = true; }catch(e){}
+        try{ if (vipOutTrade) vipOutTrade.textContent = ""; }catch(e2){}
+        try{ if (vipCodeUrl) vipCodeUrl.value = ""; }catch(e3){}
+        try{ if (btnCopyPaylink) btnCopyPaylink.disabled = true; }catch(e4){}
+        try{ quotaSnapshotBeforePay = null; }catch(e6){}
+      }
+
       function quotaImproved(prev, cur) {
         if (!cur) return false;
         var pv = prev && prev.plan ? String(prev.plan) : "";
@@ -632,6 +665,7 @@
               if (quotaImproved(prev, q)) {
                 stopVipPoll();
                 setVipPayStatus("支付已生效，配额已更新。");
+                vipCollapseAfterSuccess();
                 refreshMe();
               }
             })

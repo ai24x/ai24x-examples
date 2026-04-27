@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 
 _COMMON_CSS = """
       :root {
@@ -22,14 +23,54 @@ _COMMON_CSS = """
       label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 6px; }
       input, select, textarea { background: var(--panel2); border: 1px solid var(--border); color: var(--text); padding: 8px 10px; border-radius: 10px; }
       button { background: var(--panel2); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 10px; cursor: pointer; }
-      button:hover { border-color: var(--pri); }
+      button:hover { border-color: rgba(96,165,250,0.70); background: rgba(96,165,250,0.06); }
       button:active { transform: translateY(0.5px); }
       button[disabled] { opacity: 0.55; cursor: not-allowed; }
-      /* Admin UI: slightly color "load/save" actions without changing HTML */
-      button[id^="btnLoad"] { background: rgba(96,165,250,0.06); border-color: rgba(96,165,250,0.28); }
-      button[id^="btnLoad"]:hover { background: rgba(96,165,250,0.10); border-color: rgba(96,165,250,0.45); }
-      button[id^="btnSave"] { background: rgba(52,211,153,0.10); border-color: rgba(52,211,153,0.38); }
-      button[id^="btnSave"]:hover { background: rgba(52,211,153,0.16); border-color: rgba(52,211,153,0.55); }
+      button[disabled]:hover { border-color: var(--border); background: var(--panel2); }
+
+      /* Admin UI: make "application buttons" brighter and more clickable */
+      button[id^="btnSave"],
+      button[id^="btnApply"],
+      button[id^="btnRun"],
+      button[id^="btnSubmit"] {
+        background: rgba(52,211,153,0.14);
+        border-color: rgba(52,211,153,0.48);
+        color: #eafff7;
+      }
+      button[id^="btnSave"]:hover,
+      button[id^="btnApply"]:hover,
+      button[id^="btnRun"]:hover,
+      button[id^="btnSubmit"]:hover {
+        background: rgba(52,211,153,0.20);
+        border-color: rgba(52,211,153,0.70);
+      }
+
+      button[id^="btnLoad"],
+      button[id^="btnReload"],
+      button[id^="btnExport"],
+      button[id^="btnSearch"] {
+        background: rgba(96,165,250,0.10);
+        border-color: rgba(96,165,250,0.45);
+        color: #eef6ff;
+      }
+      button[id^="btnLoad"]:hover,
+      button[id^="btnReload"]:hover,
+      button[id^="btnExport"]:hover,
+      button[id^="btnSearch"]:hover {
+        background: rgba(96,165,250,0.16);
+        border-color: rgba(96,165,250,0.75);
+      }
+
+      /* danger buttons stay obvious */
+      button.danger {
+        background: rgba(251,113,133,0.10);
+        border-color: rgba(251,113,133,0.45);
+        color: #fff1f2;
+      }
+      button.danger:hover {
+        background: rgba(251,113,133,0.16);
+        border-color: rgba(251,113,133,0.75);
+      }
       .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; border: 1px solid var(--border); background: var(--panel2); }
       .pill.ok { color: var(--ok); }
       .pill.bad { color: var(--bad); }
@@ -206,6 +247,10 @@ def admin_login_html(admin_base: str, *, otp_required: bool = False) -> str:
 
 
 def admin_app_html(admin_base: str) -> str:
+    try:
+        build = str(int(os.path.getmtime(__file__)))
+    except Exception:
+        build = "0"
     s = (
         """<!doctype html>
 <html lang="zh-CN">
@@ -213,6 +258,23 @@ def admin_app_html(admin_base: str) -> str:
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AI24X 管理后台</title>
+    <script>
+      // Admin UI cache-bust: avoid requiring hard refresh after updates.
+      (function(){
+        try{
+          var BUILD = "__ADMIN_UI_BUILD__";
+          var k = "ai24x_admin_ui_build";
+          var old = String(localStorage.getItem(k) || "");
+          if(old !== BUILD){
+            localStorage.setItem(k, BUILD);
+            var sep = (location.search && location.search.indexOf("?") === 0) ? "&" : "?";
+            var q = (location.search || "");
+            if(q.indexOf("ui_build=") >= 0) return;
+            location.replace(location.pathname + q + sep + "ui_build=" + encodeURIComponent(BUILD) + (location.hash || ""));
+          }
+        }catch(e){}
+      })();
+    </script>
     <style>"""
         + _COMMON_CSS
         + """
@@ -227,6 +289,28 @@ def admin_app_html(admin_base: str) -> str:
         font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em;
         margin: 14px 0 6px; padding-left: 8px;
       }
+      .nav-group { margin-top: 10px; }
+      .nav-l1 {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 10px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: rgba(96,165,250,.06);
+        color: var(--text);
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .nav-l1:hover { background: rgba(96,165,250,.10); }
+      .nav-l1.active { border-color: rgba(96,165,250,.55); background: rgba(96,165,250,.12); }
+      .nav-l1 .chev { opacity: .7; transition: transform .12s ease; }
+      .nav-group.is-collapsed .nav-l1 .chev { transform: rotate(-90deg); }
+      /* 子菜单不在左侧展开，统一渲染到右侧子导航栏 */
+      .nav-l2 { display: none; }
       .nav-item {
         display: block; width: 100%; text-align: left; padding: 10px 12px; border-radius: 10px;
         border: 1px solid transparent; background: transparent; color: var(--text); cursor: pointer; font-size: 13px;
@@ -240,6 +324,33 @@ def admin_app_html(admin_base: str) -> str:
         background: var(--panel); position: sticky; top: 0; z-index: 3;
       }
       .main-top .msg { display: inline; margin: 0 0 0 8px; vertical-align: middle; }
+      .subnav {
+        margin-top: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+      .subnav-item{
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: var(--panel2);
+        color: var(--text);
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .subnav-item:hover{ border-color: rgba(96,165,250,.45); }
+      .subnav-item.active{
+        border-color: rgba(96,165,250,.55);
+        background: rgba(96,165,250,.12);
+        color: var(--pri);
+      }
+      .subnav-item .subt{ font-size: 11px; font-weight: 500; color: var(--muted); }
       .main-scroll { flex: 1; overflow: auto; padding: 16px 16px 32px; }
       .panel-page { display: none; }
       .panel-page.active { display: block; }
@@ -256,57 +367,105 @@ def admin_app_html(admin_base: str) -> str:
           左侧按「使用频率 / 业务重要性 / 敏感配置」分区。请在可信网络环境下操作并妥善保管敏感信息。
         </div>
 
-        <div class="nav-group-title">日常运维 · 高频</div>
-        <button type="button" class="nav-item active" data-panel="p-users">
-          用户与配额
-          <span class="subt">查询用户、改套餐与剩余次数、看流水</span>
-        </button>
-        <button type="button" class="nav-item" data-panel="p-feedback">
-          用户反馈
-          <span class="subt">工单列表、统一回复与关闭</span>
-        </button>
+        <div class="nav-group" data-group="g-users">
+          <button type="button" class="nav-l1" data-group-btn="g-users">
+            <span>用户与运营</span><span class="chev">▾</span>
+          </button>
+          <div class="nav-l2">
+            <button type="button" class="nav-item active" data-panel="p-users">
+              用户与配额
+              <span class="subt">查询用户、改套餐与剩余次数、看流水</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-feedback">
+              用户反馈
+              <span class="subt">工单列表、统一回复与关闭</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-notices">
+              通告管理
+              <span class="subt">公告发布、置顶与定向</span>
+            </button>
+          </div>
+        </div>
 
-        <div class="nav-group-title">收入与安全 · 敏感</div>
-        <button type="button" class="nav-item" data-panel="p-wechat">
-          微信支付
-          <span class="subt">商户号、证书与通知地址</span>
-        </button>
-        <button type="button" class="nav-item" data-panel="p-orders">
-          VIP 订单
-          <span class="subt">pay_orders：状态、金额、微信单号</span>
-        </button>
-        <button type="button" class="nav-item" data-panel="p-commission">
-          代理与返佣
-          <span class="subt">年 VIP 赠普通代理；20% 返佣台账（T+7 人工结算）</span>
-        </button>
-        <button type="button" class="nav-item" data-panel="p-payout">
-          提现申请
-          <span class="subt">审核、打款记录、备注与流水号</span>
-        </button>
-        <button type="button" class="nav-item" data-panel="p-sms">
-          短信与统一身份
-          <span class="subt">主站转发、腾讯短信占位</span>
-        </button>
+        <div class="nav-group" data-group="g-pay">
+          <button type="button" class="nav-l1" data-group-btn="g-pay">
+            <span>支付与订单</span><span class="chev">▾</span>
+          </button>
+          <div class="nav-l2">
+            <button type="button" class="nav-item" data-panel="p-orders">
+              VIP 订单
+              <span class="subt">pay_orders：状态、金额、微信单号</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-wechat">
+              微信支付
+              <span class="subt">商户号、证书与通知地址</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-alipay">
+              支付宝支付
+              <span class="subt">AppID、私钥、公钥与回调</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-billing">
+              VIP 套餐与定价
+              <span class="subt">名称、标价与联调小额实扣</span>
+            </button>
+          </div>
+        </div>
 
-        <div class="nav-group-title">行情与数据 · 运维</div>
-        <button type="button" class="nav-item" data-panel="p-market">
-          行情路由监控
-          <span class="subt">TuShare / 公共源命中情况</span>
-        </button>
-        <button type="button" class="nav-item" data-panel="p-hotspots-test">
-          热点测试页
-          <span class="subt">TuShare THS 指数抽样排行（仅测试用）</span>
-        </button>
-        <button type="button" class="nav-item" data-panel="p-data">
-          数据源开关
-          <span class="subt">付费源开关、令牌与优先级</span>
-        </button>
+        <div class="nav-group" data-group="g-settle">
+          <button type="button" class="nav-l1" data-group-btn="g-settle">
+            <span>伙伴与结算</span><span class="chev">▾</span>
+          </button>
+          <div class="nav-l2">
+            <button type="button" class="nav-item" data-panel="p-agent">
+              伙伴与邀请
+              <span class="subt">排行榜 + 伙伴详情（树/订单/返佣/提现摘要）</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-commission">
+              伙伴与返佣
+              <span class="subt">支持多层推荐返佣；台账记录（T+N 到期后可提现，人工审核打款）</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-payout">
+              提现申请
+              <span class="subt">审核、打款记录、备注与流水号</span>
+            </button>
+          </div>
+        </div>
 
-        <div class="nav-group-title">系统配置</div>
-        <button type="button" class="nav-item" data-panel="p-system">
-          系统与安全开关
-          <span class="subt">管理登录与邀请奖励等全站规则</span>
-        </button>
+        <div class="nav-group" data-group="g-ops">
+          <button type="button" class="nav-l1" data-group-btn="g-ops">
+            <span>行情与数据</span><span class="chev">▾</span>
+          </button>
+          <div class="nav-l2">
+            <button type="button" class="nav-item" data-panel="p-market">
+              行情路由监控
+              <span class="subt">TuShare / 公共源命中情况</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-hotspots-test">
+              热点测试页
+              <span class="subt">TuShare THS 指数抽样排行（仅测试用）</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-data">
+              数据源开关
+              <span class="subt">付费源开关、令牌与优先级</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="nav-group" data-group="g-system">
+          <button type="button" class="nav-l1" data-group-btn="g-system">
+            <span>系统配置</span><span class="chev">▾</span>
+          </button>
+          <div class="nav-l2">
+            <button type="button" class="nav-item" data-panel="p-sms">
+              短信与统一身份
+              <span class="subt">主站转发、腾讯短信占位</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-system">
+              系统与安全开关
+              <span class="subt">管理登录与邀请奖励等全站规则</span>
+            </button>
+          </div>
+        </div>
 
         <div style="flex:1"></div>
         <button type="button" class="nav-item" id="btnLogout" style="margin-top:8px;border-color:var(--border);">
@@ -319,6 +478,7 @@ def admin_app_html(admin_base: str) -> str:
         <div class="main-top">
           <span class="pill">操作状态</span>
           <span id="status" class="msg">正在校验登录…</span>
+          <div class="subnav" id="subnav" aria-label="子菜单"></div>
         </div>
         <div class="main-scroll">
 
@@ -408,6 +568,42 @@ def admin_app_html(admin_base: str) -> str:
                     <input id="adminNewPw" type="password" placeholder="至少 6 位（不回显原密码）" style="min-width:240px;" />
                   </div>
                   <div class="msg small muted">提示：会立即覆盖用户密码；请谨慎操作并通知用户重新登录。</div>
+                </div>
+                <div class="card" style="margin-top:12px;">
+                  <div class="row">
+                    <span class="pill">充值 / 重置账号（测试用）</span>
+                    <span class="muted small">清理测试数据，用于重复走邀请码/激活/支付/返佣链路（保留 user_id）</span>
+                    <button id="btnOpenReset" type="button">展开</button>
+                    <button id="btnRunReset" type="button" class="danger" disabled>执行重置</button>
+                  </div>
+                  <div class="msg small muted" style="margin-top:8px; line-height:1.6;">
+                    说明：执行会写入「运维操作记录」action=<code class="mono">user:reset</code>。生产环境默认禁用（需显式开关）。
+                  </div>
+                  <div id="resetBox" hidden style="margin-top:10px;">
+                    <div class="row" style="flex-wrap:wrap; gap:10px; align-items:center;">
+                      <label><input type="checkbox" id="rs_invite" checked /> 清空邀请码绑定</label>
+                      <label><input type="checkbox" id="rs_quota" checked /> 重置配额到默认 free</label>
+                      <label><input type="checkbox" id="rs_ledger" checked /> 清空扣次流水</label>
+                      <label><input type="checkbox" id="rs_orders" checked /> 清空支付订单</label>
+                      <label><input type="checkbox" id="rs_reward" checked /> 清空邀请奖励流水</label>
+                      <label><input type="checkbox" id="rs_comm" checked /> 清空返佣台账</label>
+                    </div>
+                    <div class="row" style="margin-top:10px; flex-wrap:wrap; gap:10px; align-items:center;">
+                      <label>备注</label>
+                      <input id="rs_note" placeholder="选填：为何重置" style="min-width:280px;" />
+                      <span class="muted small">提示：先点击“展开”，确认勾选项，再点击“执行重置”。</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="card" style="margin-top:12px;">
+                  <div class="row">
+                    <span class="pill">伙伴与邀请（快捷入口）</span>
+                    <span class="muted small">已迁移到「伙伴与结算 → 伙伴与邀请」。这里仅提供一键跳转到详情页。</span>
+                  </div>
+                  <div class="row" style="margin-top:10px; flex-wrap:wrap; gap:10px; align-items:center;">
+                    <button id="btnOpenAgentFromCur" type="button" onclick="openAgentFromCurrentUser()">打开当前用户的伙伴详情</button>
+                    <span class="muted small mono" id="treeMeta">提示：先在左侧列表选择一个用户。</span>
+                  </div>
                 </div>
                 <div class="card" style="margin-top:12px;">
                   <div class="row">
@@ -533,6 +729,81 @@ def admin_app_html(admin_base: str) -> str:
             </div>
           </section>
 
+          <section class="panel-page" id="p-notices">
+            <div class="card" id="sec-notices">
+              <div class="row">
+                <span class="pill">通告管理</span>
+                <span class="muted small">发布系统公告/活动说明/结算规则；支持置顶与定向（指定用户/按伙伴等级）</span>
+                <button type="button" id="btnLoadNotices">刷新</button>
+                <button type="button" id="btnCreateNotice">发布</button>
+              </div>
+              <div class="field-row" style="margin-top:12px; flex-wrap:wrap;">
+                <div class="field" style="min-width:220px; flex:1;">
+                  <span class="lbl">标题</span><span class="sub">title</span>
+                  <input id="nt_title" placeholder="例如：结算规则调整 / 系统升级通知" style="width:100%;" />
+                </div>
+              </div>
+              <div class="field-row" style="margin-top:10px; flex-wrap:wrap;">
+                <div class="field" style="min-width:240px;">
+                  <span class="lbl">范围</span><span class="sub">scope</span>
+                  <select id="nt_scope">
+                    <option value="all">全体（all）</option>
+                    <option value="agent_level">按伙伴等级（agent_level）</option>
+                    <option value="user">指定用户（user）</option>
+                  </select>
+                </div>
+                <div class="field" style="min-width:220px;">
+                  <span class="lbl">目标用户ID</span><span class="sub">target_user_id</span>
+                  <input id="nt_target_user_id" type="number" min="0" step="1" placeholder="scope=user 时填" style="width:160px;" />
+                </div>
+                <div class="field" style="min-width:240px;">
+                  <span class="lbl">目标等级</span><span class="sub">target_agent_level</span>
+                  <select id="nt_target_agent_level">
+                    <option value="">（空）</option>
+                    <option value="starter">starter（入门）</option>
+                    <option value="growth">growth（成长）</option>
+                    <option value="pro">pro（专业）</option>
+                  </select>
+                </div>
+                <div class="field" style="min-width:220px;">
+                  <span class="lbl">置顶</span><span class="sub">pinned</span>
+                  <select id="nt_pinned">
+                    <option value="0">否（0）</option>
+                    <option value="1">是（1）</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field-row" style="margin-top:10px;">
+                <div class="field" style="min-width:100%;">
+                  <span class="lbl">正文</span><span class="sub">body</span>
+                  <textarea id="nt_body" rows="5" style="width:100%; font-family: ui-sans-serif, system-ui; font-size: 13px;" placeholder="建议包含：时间范围/规则/客服入口"></textarea>
+                </div>
+              </div>
+              <div class="msg small muted" style="margin-top:8px;">
+                提示：scope=agent_level 会匹配用户当前有效伙伴等级；scope=user 仅对该 user_id 可见。下线请把 status 设为 archived。
+              </div>
+              <div style="margin-top:12px; overflow:auto;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:72px;"><span class="th-cn">ID</span><span class="th-en">id</span></th>
+                      <th style="width:80px;"><span class="th-cn">状态</span><span class="th-en">status</span></th>
+                      <th style="width:60px;"><span class="th-cn">置顶</span><span class="th-en">pin</span></th>
+                      <th style="width:120px;"><span class="th-cn">范围</span><span class="th-en">scope</span></th>
+                      <th><span class="th-cn">标题</span><span class="th-en">title</span></th>
+                      <th style="width:170px;"><span class="th-cn">时间</span><span class="th-en">created</span></th>
+                      <th style="width:220px;"><span class="th-cn">操作</span><span class="th-en">ops</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="nt_tbody"></tbody>
+                </table>
+              </div>
+              <div class="msg small muted" style="margin-top:8px;">
+                说明：MVP 支持发布/置顶/下线与定向；已读状态在用户端自动记录。
+              </div>
+            </div>
+          </section>
+
           <section class="panel-page" id="p-wechat">
             <div class="card" id="sec-wechat">
               <div id="wxCurrentSummary" class="msg small" style="margin:0 0 12px; line-height:1.65; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--panel2);"></div>
@@ -572,6 +843,165 @@ def admin_app_html(admin_base: str) -> str:
             </div>
           </section>
 
+          <section class="panel-page" id="p-alipay">
+            <div class="card" id="sec-alipay">
+              <div id="aliCurrentSummary" class="msg small" style="margin:0 0 12px; line-height:1.65; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--panel2);"></div>
+              <div class="row">
+                <span class="pill">支付宝 H5（WAP）</span>
+                <span class="muted small">保存后立即生效；私钥不回显明文，需更新时重新填写</span>
+                <button type="button" id="btnLoadAlipay">读取</button>
+                <button type="button" id="btnSaveAlipay">保存</button>
+              </div>
+              <div class="field-row" style="margin-top:10px;">
+                <div class="field"><span class="lbl">AppID</span><input id="ali_alipay_app_id" class="mono" style="min-width:240px;" placeholder="2088..." /></div>
+                <div class="field" style="flex:1; min-width:280px;"><span class="lbl">网关</span><input id="ali_alipay_gateway" class="mono" style="width:100%;" placeholder="https://openapi.alipay.com/gateway.do" /></div>
+              </div>
+              <div class="field-row">
+                <div class="field" style="flex:1; min-width:320px;"><span class="lbl">异步回调 notify_url</span><input id="ali_alipay_notify_url" style="width:100%;" placeholder="https://域名/api/billing/alipay/notify" /></div>
+                <div class="field" style="flex:1; min-width:320px;"><span class="lbl">同步跳转 return_url</span><input id="ali_alipay_return_url" style="width:100%;" placeholder="https://域名/account.html" /></div>
+              </div>
+              <div class="field-row">
+                <div class="field" style="flex:1; min-width:320px;"><span class="lbl">商户私钥文件路径</span><input id="ali_alipay_merchant_private_key_path" class="mono" style="width:100%;" placeholder="绝对路径（推荐生产）" /></div>
+              </div>
+              <div class="field-row">
+                <div class="field" style="flex:1; min-width:100%;">
+                  <span class="lbl">支付宝公钥（验签用）</span>
+                  <textarea id="ali_alipay_public_key" rows="5" style="width:100%; font-family:ui-monospace,monospace; font-size:11px;" placeholder="-----BEGIN PUBLIC KEY----- ..."></textarea>
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field" style="flex:1; min-width:100%;">
+                  <span class="lbl">商户私钥 PEM（可选，与路径二选一）</span>
+                  <textarea id="ali_alipay_merchant_private_key_pem" rows="4" style="width:100%; font-family:ui-monospace,monospace; font-size:11px;" placeholder="可选：整段粘贴商户私钥 PEM；留空不修改已存私钥"></textarea>
+                </div>
+              </div>
+              <div class="msg small muted" style="margin-top:8px;">留空表示不修改现有配置；敏感项填了才会更新。正式环境网关通常为 https://openapi.alipay.com/gateway.do。</div>
+            </div>
+          </section>
+
+          <section class="panel-page" id="p-billing">
+            <div class="card" id="sec-billing">
+              <div class="row">
+                <span class="pill">VIP 套餐与定价</span>
+                <span class="muted small">写入 admin_config；用于测试/促销临时调整；保存后立即影响下单金额与订单标题</span>
+                <button type="button" id="btnLoadBilling">读取</button>
+                <button type="button" id="btnSaveBilling">保存</button>
+              </div>
+              <div class="field-row" style="margin-top:10px; flex-wrap:wrap;">
+                <div class="field" style="min-width:220px;">
+                  <span class="lbl">体验卡名称</span><span class="sub">vip_title_trial</span>
+                  <input id="bill_vip_title_trial" placeholder="AI24X VIP体验卡" style="min-width:220px;" />
+                </div>
+                <div class="field" style="min-width:220px;">
+                  <span class="lbl">月卡名称</span><span class="sub">vip_title_month</span>
+                  <input id="bill_vip_title_month" placeholder="AI24X VIP月会员" style="min-width:220px;" />
+                </div>
+                <div class="field" style="min-width:220px;">
+                  <span class="lbl">年卡名称</span><span class="sub">vip_title_year</span>
+                  <input id="bill_vip_title_year" placeholder="AI24X VIP年会员" style="min-width:220px;" />
+                </div>
+              </div>
+              <div class="field-row" style="margin-top:10px; flex-wrap:wrap;">
+                <div class="field" style="min-width:220px;">
+                  <span class="lbl">体验卡标价(分)</span><span class="sub">price_vip_trial_fen</span>
+                  <input id="bill_price_vip_trial_fen" class="mono" type="number" min="1" step="1" placeholder="990" style="width:160px;" />
+                </div>
+                <div class="field" style="min-width:220px;">
+                  <span class="lbl">月卡标价(分)</span><span class="sub">price_vip_month_fen</span>
+                  <input id="bill_price_vip_month_fen" class="mono" type="number" min="1" step="1" placeholder="9900" style="width:160px;" />
+                </div>
+                <div class="field" style="min-width:220px;">
+                  <span class="lbl">年卡标价(分)</span><span class="sub">price_vip_year_fen</span>
+                  <input id="bill_price_vip_year_fen" class="mono" type="number" min="1" step="1" placeholder="99900" style="width:160px;" />
+                </div>
+              </div>
+              <div class="field-row" style="margin-top:10px; flex-wrap:wrap;">
+                <div class="field" style="min-width:240px;">
+                  <span class="lbl">非 prod 小额实扣开关</span><span class="sub">billing_dev_real_pay</span>
+                  <select id="bill_billing_dev_real_pay">
+                    <option value="">默认（跟随 .env）</option>
+                    <option value="0">关闭（0）</option>
+                    <option value="1">开启（1，仅非 prod 生效）</option>
+                  </select>
+                </div>
+                <div class="field" style="min-width:220px;">
+                  <span class="lbl">非 prod 实扣金额(分)</span><span class="sub">billing_dev_amount_fen</span>
+                  <input id="bill_billing_dev_amount_fen" class="mono" type="number" min="1" step="1" placeholder="10" style="width:160px;" />
+                </div>
+              </div>
+              <div class="field-row" style="margin-top:10px; flex-wrap:wrap;">
+                <div class="field" style="min-width:240px;">
+                  <span class="lbl">用户端开启微信支付</span><span class="sub">billing_pay_wechat_enabled</span>
+                  <select id="bill_billing_pay_wechat_enabled">
+                    <option value="">默认（开启）</option>
+                    <option value="1">开启（1）</option>
+                    <option value="0">关闭（0）</option>
+                  </select>
+                </div>
+                <div class="field" style="min-width:240px;">
+                  <span class="lbl">用户端开启支付宝</span><span class="sub">billing_pay_alipay_enabled</span>
+                  <select id="bill_billing_pay_alipay_enabled">
+                    <option value="">默认（开启）</option>
+                    <option value="1">开启（1）</option>
+                    <option value="0">关闭（0）</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field-row" style="margin-top:12px; flex-wrap:wrap;">
+                <div class="field" style="min-width:220px;">
+                  <span class="lbl">成长档名称</span><span class="sub">agent_title_growth</span>
+                  <input id="bill_agent_title_growth" placeholder="伙伴计划 · 成长档" style="min-width:220px;" />
+                </div>
+                <div class="field" style="min-width:220px;">
+                  <span class="lbl">成长档标价(分)</span><span class="sub">price_agent_growth_fen</span>
+                  <input id="bill_price_agent_growth_fen" class="mono" type="number" min="1" step="1" placeholder="29900" style="width:160px;" />
+                </div>
+                <div class="field" style="min-width:240px;">
+                  <span class="lbl">开放成长档升级</span><span class="sub">agent_upgrade_growth_enabled</span>
+                  <select id="bill_agent_upgrade_growth_enabled">
+                    <option value="">默认（开启）</option>
+                    <option value="1">开启（1）</option>
+                    <option value="0">关闭（0）</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field-row" style="margin-top:10px; flex-wrap:wrap;">
+                <div class="field" style="min-width:220px;">
+                  <span class="lbl">专业档名称</span><span class="sub">agent_title_pro</span>
+                  <input id="bill_agent_title_pro" placeholder="伙伴计划 · 专业档" style="min-width:220px;" />
+                </div>
+                <div class="field" style="min-width:220px;">
+                  <span class="lbl">专业档标价(分)</span><span class="sub">price_agent_pro_fen</span>
+                  <input id="bill_price_agent_pro_fen" class="mono" type="number" min="1" step="1" placeholder="99900" style="width:160px;" />
+                </div>
+                <div class="field" style="min-width:240px;">
+                  <span class="lbl">开放专业档升级</span><span class="sub">agent_upgrade_pro_enabled</span>
+                  <select id="bill_agent_upgrade_pro_enabled">
+                    <option value="">默认（开启）</option>
+                    <option value="1">开启（1）</option>
+                    <option value="0">关闭（0）</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field-row" style="margin-top:10px; flex-wrap:wrap;">
+                <div class="field" style="min-width:360px;">
+                  <span class="lbl">升级档订单参与返佣</span><span class="sub">agent_upgrade_commission_enabled</span>
+                  <select id="bill_agent_upgrade_commission_enabled">
+                    <option value="">默认（关闭）</option>
+                    <option value="1">开启（1）</option>
+                    <option value="0">关闭（0）</option>
+                  </select>
+                </div>
+                <div class="msg small muted" style="margin-top:6px;">
+                  说明：关闭时，用户购买「成长/专业」升级档不会生成佣金流水；VIP 订单不受影响。
+                </div>
+              </div>
+              <div class="msg small muted" style="margin-top:8px;">
+                说明：这里的“标价”会进入订单（后台展示/对账）。若开启“非 prod 小额实扣”，下单时真实扣款金额会被替换为该小额（仅联调用，线上务必关闭）。
+              </div>
+            </div>
+          </section>
+
           <section class="panel-page" id="p-orders">
             <div class="card" id="sec-orders">
               <div class="row">
@@ -586,16 +1016,18 @@ def admin_app_html(admin_base: str) -> str:
                 <label>状态
                   <select id="ordStatus" title="订单状态">
                     <option value="">全部</option>
-                    <option value="pending">pending（待支付）</option>
-                    <option value="paid">paid（已支付）</option>
+                    <option value="pending">待支付（pending）</option>
+                    <option value="paid">已支付（paid）</option>
                   </select>
                 </label>
                 <label>套餐
                   <select id="ordPlan">
                     <option value="">全部</option>
-                    <option value="vip_month">vip_month</option>
-                    <option value="vip_year_999">vip_year_999</option>
-                    <option value="vip_trial_99">vip_trial_99</option>
+                    <option value="vip_trial_99">VIP 体验卡（vip_trial_99）</option>
+                    <option value="vip_month">VIP 月卡（vip_month）</option>
+                    <option value="vip_year_999">VIP 年卡（vip_year_999）</option>
+                    <option value="agent_growth">伙伴升级·成长（agent_growth）</option>
+                    <option value="agent_pro">伙伴升级·专业（agent_pro）</option>
                   </select>
                 </label>
                 <label>每页 <input id="ordLimit" type="number" min="10" max="200" step="10" value="50" style="width:64px;" /></label>
@@ -627,11 +1059,86 @@ def admin_app_html(admin_base: str) -> str:
             </div>
           </section>
 
+          <section class="panel-page" id="p-agent">
+            <div class="card">
+              <div class="row">
+                <span class="pill">伙伴与邀请</span>
+                <span class="muted small">方案A：独立页。排行榜默认按「直推人数」排序；详情页可加载树与汇总指标。</span>
+              </div>
+              <div class="row" style="margin-top:12px; flex-wrap:wrap; gap:10px;">
+                <label>排行榜口径
+                  <select id="agentRankMetric">
+                    <option value="direct_invites">直推人数</option>
+                    <option value="activated_direct">直推激活</option>
+                    <option value="paid_amount_direct_fen">直推订单额</option>
+                    <option value="paid_orders_direct">直推付费单数</option>
+                    <option value="commission_pending_fen">待结算返佣(分)</option>
+                    <option value="commission_paid_fen">已结算返佣(分)</option>
+                  </select>
+                </label>
+                <label>每页 <input id="agentRankLimit" type="number" min="10" max="200" step="10" value="50" style="width:64px;" /></label>
+                <button type="button" id="btnAgentRankLoad">刷新排行榜</button>
+                <button type="button" id="btnAgentRankPrev">上一页</button>
+                <button type="button" id="btnAgentRankNext">下一页</button>
+                <span class="muted small mono" id="agentRankMeta">—</span>
+              </div>
+              <div style="margin-top:12px; overflow:auto;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:96px;"><span class="th-cn">用户</span><span class="th-en">userId</span></th>
+                      <th style="width:140px;"><span class="th-cn">身份</span><span class="th-en">masked</span></th>
+                      <th style="width:96px;"><span class="th-cn">直推</span><span class="th-en">direct</span></th>
+                      <th style="width:96px;"><span class="th-cn">激活</span><span class="th-en">activated</span></th>
+                      <th style="width:120px;"><span class="th-cn">直推订单额(元)</span><span class="th-en">paid_yuan</span></th>
+                      <th style="width:96px;"><span class="th-cn">直推单数</span><span class="th-en">paid_orders</span></th>
+                      <th style="width:120px;"><span class="th-cn">待结算(元)</span><span class="th-en">pending_yuan</span></th>
+                      <th style="width:120px;"><span class="th-cn">已结算(元)</span><span class="th-en">paid_comm_yuan</span></th>
+                      <th style="width:96px;"><span class="th-cn">操作</span><span class="th-en">action</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="agentRankBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card" style="margin-top:12px;">
+              <div class="row">
+                <span class="pill">伙伴详情</span>
+                <span class="muted small">输入伙伴 user_id：展示汇总（订单/返佣/提现）+ 邀请树（BFS）。</span>
+              </div>
+              <div class="row" style="margin-top:12px; flex-wrap:wrap; gap:10px;">
+                <label>伙伴 user_id <input id="agentDetailUserId" type="number" min="1" step="1" placeholder="例如 10001" style="width:120px;" /></label>
+                <label>深度 <input id="agentDetailDepth" type="number" min="1" max="6" step="1" value="3" style="width:64px;" /></label>
+                <label>limit <input id="agentDetailLimit" type="number" min="50" max="2000" step="50" value="300" style="width:80px;" /></label>
+                <button type="button" id="btnAgentDetailLoad">加载详情</button>
+              </div>
+              <div class="msg small" id="agentDetailSummary" style="margin-top:10px;">—</div>
+              <div style="margin-top:12px; overflow:auto;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:96px;"><span class="th-cn">用户</span><span class="th-en">userId</span></th>
+                      <th style="width:140px;"><span class="th-cn">身份</span><span class="th-en">masked</span></th>
+                      <th style="width:72px;"><span class="th-cn">激活</span><span class="th-en">act</span></th>
+                      <th style="width:88px;"><span class="th-cn">直推</span><span class="th-en">direct</span></th>
+                      <th style="width:96px;"><span class="th-cn">付费单</span><span class="th-en">paid</span></th>
+                      <th style="width:120px;"><span class="th-cn">订单额(元)</span><span class="th-en">amount</span></th>
+                      <th style="width:120px;"><span class="th-cn">待结算(元)</span><span class="th-en">pending</span></th>
+                      <th style="width:120px;"><span class="th-cn">已结算(元)</span><span class="th-en">paid_comm</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="agentTreeBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
           <section class="panel-page" id="p-commission">
             <div class="card" id="sec-commission">
               <div class="row">
-                <span class="pill">代理与返佣（MVP）</span>
-                <span class="muted small">返佣仅针对 <code class="mono">vip_year_999</code>；默认不退款；先人工结算</span>
+                <span class="pill">代理与返佣</span>
+                <span class="muted small">支持三级推荐：同一订单可生成多条返佣台账（不同 depth）；默认不退款；先人工结算</span>
               </div>
 
               <div class="card" style="margin-top:12px;">
@@ -649,8 +1156,28 @@ def admin_app_html(admin_base: str) -> str:
                     </select>
                   </div>
                   <div class="field" style="min-width:220px;">
-                    <span class="lbl">普通代理返佣比例</span><span class="sub">agent_commission_rate_normal</span>
-                    <input id="cfgCommRate" class="mono" placeholder="0.20" style="min-width:160px;" />
+                    <span class="lbl">直推返佣比例</span><span class="sub">agent_commission_rate_l1</span>
+                    <input id="cfgCommRateL1" class="mono" placeholder="0.20" style="min-width:160px;" />
+                  </div>
+                  <div class="field" style="min-width:220px;">
+                    <span class="lbl">间推返佣比例</span><span class="sub">agent_commission_rate_l2</span>
+                    <input id="cfgCommRateL2" class="mono" placeholder="0.05" style="min-width:160px;" />
+                  </div>
+                  <div class="field" style="min-width:220px;">
+                    <span class="lbl">团队返佣比例</span><span class="sub">agent_commission_rate_l3</span>
+                    <input id="cfgCommRateL3" class="mono" placeholder="0.02" style="min-width:160px;" />
+                  </div>
+                  <div class="field" style="min-width:220px;">
+                    <span class="lbl">团队返佣门槛</span><span class="sub">agent_commission_l3_min_level</span>
+                    <select id="cfgCommL3MinLevel">
+                      <option value="starter">入门（starter，无门槛）</option>
+                      <option value="growth">成长（growth，默认）</option>
+                      <option value="pro">专业（pro）</option>
+                    </select>
+                  </div>
+                  <div class="field" style="min-width:220px;">
+                    <span class="lbl">总比例上限</span><span class="sub">agent_commission_rate_cap_total</span>
+                    <input id="cfgCommCapTotal" class="mono" placeholder="0.30" style="min-width:160px;" />
                   </div>
                   <div class="field" style="min-width:220px;">
                     <span class="lbl">结算延迟（天）</span><span class="sub">agent_settle_delay_days</span>
@@ -672,6 +1199,7 @@ def admin_app_html(admin_base: str) -> str:
                         <th style="width:72px;"><span class="th-cn">ID</span><span class="th-en">id</span></th>
                         <th style="width:170px;"><span class="th-cn">订单号</span><span class="th-en">out_trade_no</span></th>
                         <th style="width:96px;"><span class="th-cn">代理</span><span class="th-en">agent</span></th>
+                        <th style="width:66px;"><span class="th-cn">层级</span><span class="th-en">depth</span></th>
                         <th style="width:96px;"><span class="th-cn">买家</span><span class="th-en">buyer</span></th>
                         <th style="width:110px;"><span class="th-cn">金额(元)</span><span class="th-en">amount_yuan</span></th>
                         <th style="width:110px;"><span class="th-cn">金额(分)</span><span class="th-en">amount_fen</span></th>
@@ -1075,6 +1603,16 @@ def admin_app_html(admin_base: str) -> str:
                     <option value="1">开启（公网生产建议）</option>
                   </select>
                 </div>
+                <div class="field" style="min-width:220px;">
+                  <span class="lbl">free 默认每日配额</span>
+                  <span class="sub">free_daily_cap（留空=使用 .env 默认）</span>
+                  <input id="sysFreeDailyCap" class="mono" placeholder="10" style="min-width:120px;" />
+                </div>
+                <div class="field" style="min-width:220px;">
+                  <span class="lbl">free 默认每周配额</span>
+                  <span class="sub">free_weekly（留空=使用 .env 默认）</span>
+                  <input id="sysFreeWeekly" class="mono" placeholder="50" style="min-width:120px;" />
+                </div>
               </div>
 
               <div class="card" style="margin-top:12px;">
@@ -1305,6 +1843,120 @@ def admin_app_html(admin_base: str) -> str:
         }
         setStatus('用户反馈列表已更新');
       }
+
+      function ntScope(){
+        try{ return String(($('nt_scope').value||'all')).trim(); }catch(e){ return 'all'; }
+      }
+      var ntEditingId = null;
+      function ntResetForm(){
+        ntEditingId = null;
+        try{ $('nt_title').value=''; $('nt_body').value=''; }catch(e){}
+        try{ $('nt_scope').value='all'; }catch(e2){}
+        try{ $('nt_target_user_id').value=''; }catch(e3){}
+        try{ $('nt_target_agent_level').value=''; }catch(e4){}
+        try{ $('nt_pinned').value='0'; }catch(e5){}
+        try{
+          var btn = $('btnCreateNotice');
+          if(btn) btn.textContent = '发布';
+        }catch(e6){}
+      }
+      async function loadNoticesAdmin(){
+        setStatus('正在加载通告…');
+        var d = await api('/api/admin/notices?limit=80&offset=0');
+        var body = $('nt_tbody');
+        if(body) body.innerHTML = '';
+        (d.items || []).forEach(function(it){
+          var tr = document.createElement('tr');
+          var pin = it.pinned ? '1' : '0';
+          var ops =
+            '<button type="button" data-act="pin" data-id="'+esc(it.id)+'" data-pin="'+(it.pinned?'0':'1')+'">'+(it.pinned?'取消置顶':'置顶')+'</button> '+
+            '<button type="button" data-act="st" data-id="'+esc(it.id)+'" data-st="'+(it.status==='active'?'archived':'active')+'">'+(it.status==='active'?'下线':'上线')+'</button> '+
+            '<button type="button" data-act="edit" data-id="'+esc(it.id)+'">编辑</button>';
+          tr.innerHTML =
+            '<td class="mono">'+esc(it.id)+'</td>'+
+            '<td>'+esc(it.status||'')+'</td>'+
+            '<td class="mono">'+esc(pin)+'</td>'+
+            '<td class="mono">'+esc(it.scope||'')+'</td>'+
+            '<td style="max-width:420px; word-break:break-word;">'+esc(it.title||'')+'</td>'+
+            '<td class="mono">'+esc(fmtTs(it.created_at||0))+'</td>'+
+            '<td>'+ops+'</td>';
+          tr.querySelectorAll('button[data-act]').forEach(function(b){
+            b.addEventListener('click', async function(){
+              try{
+                var id = parseInt(b.getAttribute('data-id')||'0', 10) || 0;
+                if(b.getAttribute('data-act') === 'edit'){
+                  ntEditingId = id;
+                  try{ $('nt_title').value = String(it.title||''); }catch(e0){}
+                  try{ $('nt_body').value = String(it.body||''); }catch(e1){}
+                  try{ $('nt_scope').value = String(it.scope||'all'); }catch(e2){}
+                  try{ $('nt_target_user_id').value = (it.target_user_id!=null?String(it.target_user_id):''); }catch(e3){}
+                  try{ $('nt_target_agent_level').value = String(it.target_agent_level||''); }catch(e4){}
+                  try{ $('nt_pinned').value = it.pinned ? '1' : '0'; }catch(e5){}
+                  try{
+                    var btn = $('btnCreateNotice');
+                    if(btn) btn.textContent = '保存修改';
+                  }catch(e6){}
+                  setStatus('已进入编辑模式：#'+id+'（修改后点「保存修改」）');
+                  return;
+                }
+                if(b.getAttribute('data-act') === 'pin'){
+                  var p = String(b.getAttribute('data-pin')||'0');
+                  await api('/api/admin/notices/pin', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({notice_id:id, pinned:p})});
+                }else{
+                  var st = String(b.getAttribute('data-st')||'');
+                  await api('/api/admin/notices/set_status', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({notice_id:id, status:st})});
+                }
+                await loadNoticesAdmin();
+                setStatus('已更新通告');
+              }catch(e){ setStatus('操作失败：'+e.message); }
+            });
+          });
+          body && body.appendChild(tr);
+        });
+        setStatus('通告列表已更新');
+      }
+      async function createNoticeAdmin(){
+        var title = String(($('nt_title').value||'')).trim();
+        var body = String(($('nt_body').value||'')).trim();
+        var scope = ntScope();
+        var tu = String(($('nt_target_user_id').value||'')).trim();
+        var al = String(($('nt_target_agent_level').value||'')).trim();
+        var pin = String(($('nt_pinned').value||'0')).trim();
+        if(ntEditingId){
+          setStatus('保存修改中…');
+          await api('/api/admin/notices/update', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+              notice_id: ntEditingId,
+              title:title,
+              body:body,
+              scope:scope,
+              target_user_id: tu ? parseInt(tu,10) : null,
+              target_agent_level: al,
+              pinned: pin
+            })
+          });
+          ntResetForm();
+        }else{
+          setStatus('发布中…');
+          await api('/api/admin/notices/create', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+              title:title,
+              body:body,
+              scope:scope,
+              target_user_id: tu ? parseInt(tu,10) : null,
+              target_agent_level: al,
+              pinned: pin
+            })
+          });
+          try{ $('nt_title').value=''; $('nt_body').value=''; }catch(e){}
+        }
+        await loadNoticesAdmin();
+        setStatus(ntEditingId ? '通告已更新' : '通告已发布');
+      }
       async function submitFeedbackReply(){
         if(!fbSelected || !fbSelected.id){
           setStatus('请先在表格中选择一条工单');
@@ -1337,6 +1989,25 @@ def admin_app_html(admin_base: str) -> str:
         return (n / 100).toFixed(2);
       }
 
+      function ordStatusZh(st){
+        st = String(st||'').trim().toLowerCase();
+        if(st === 'pending') return '待支付';
+        if(st === 'paid') return '已支付';
+        if(st === 'failed') return '失败';
+        if(st === 'canceled' || st === 'cancelled') return '已取消';
+        return st || '—';
+      }
+      function ordPlanZh(p){
+        p = String(p||'').trim();
+        if(p === 'vip_trial_99') return 'VIP 体验卡';
+        if(p === 'vip_month') return 'VIP 月卡';
+        if(p === 'vip_year_999') return 'VIP 年卡';
+        if(p === 'agent_growth') return '伙伴升级·成长';
+        if(p === 'agent_pro') return '伙伴升级·专业';
+        if(p === 'free') return '免费';
+        return p || '—';
+      }
+
       function ordFilterQuery(){
         var uid = parseInt($('ordUserId').value, 10);
         if(isNaN(uid) || uid < 0) uid = 0;
@@ -1367,10 +2038,10 @@ def admin_app_html(admin_base: str) -> str:
           tr.innerHTML =
             '<td class="mono">'+esc(it.id)+'</td>'+
             '<td class="mono">'+esc(it.user_id)+'</td>'+
-            '<td class="mono">'+esc(it.plan)+'</td>'+
+            '<td class="mono">'+esc(ordPlanZh(it.plan))+'<span class="muted small">（'+esc(it.plan||'')+'）</span></td>'+
             '<td class="mono">'+esc(fmtFenYuan(it.amount_fen))+'</td>'+
             '<td class="mono">'+esc(it.amount_fen)+'</td>'+
-            '<td>'+esc(it.status)+'</td>'+
+            '<td>'+esc(ordStatusZh(it.status))+'<span class="muted small">（'+esc(it.status||'')+'）</span></td>'+
             '<td class="mono">'+esc(it.channel)+'</td>'+
             '<td class="mono">'+(it.has_code_url ? '有' : '—')+'</td>'+
             '<td class="mono">'+esc(fmtTs(it.created_at))+'</td>'+
@@ -1418,7 +2089,11 @@ def admin_app_html(admin_base: str) -> str:
         var d = await api('/api/admin/config');
         var it = d.items || {};
         $('cfgCommEnabled').value = (it.agent_commission_enabled != null && String(it.agent_commission_enabled).trim() !== '') ? String(it.agent_commission_enabled).trim() : '1';
-        $('cfgCommRate').value = (it.agent_commission_rate_normal != null) ? String(it.agent_commission_rate_normal) : '';
+        if($('cfgCommRateL1')) $('cfgCommRateL1').value = (it.agent_commission_rate_l1 != null) ? String(it.agent_commission_rate_l1) : ((it.agent_commission_rate_normal != null) ? String(it.agent_commission_rate_normal) : '');
+        if($('cfgCommRateL2')) $('cfgCommRateL2').value = (it.agent_commission_rate_l2 != null) ? String(it.agent_commission_rate_l2) : '';
+        if($('cfgCommRateL3')) $('cfgCommRateL3').value = (it.agent_commission_rate_l3 != null) ? String(it.agent_commission_rate_l3) : '';
+        try{ if($('cfgCommL3MinLevel')) $('cfgCommL3MinLevel').value = String(it.agent_commission_l3_min_level || 'growth'); }catch(e0){}
+        if($('cfgCommCapTotal')) $('cfgCommCapTotal').value = (it.agent_commission_rate_cap_total != null) ? String(it.agent_commission_rate_cap_total) : '';
         $('cfgCommDelayDays').value = (it.agent_settle_delay_days != null) ? String(it.agent_settle_delay_days) : '';
       }
 
@@ -1453,11 +2128,19 @@ def admin_app_html(admin_base: str) -> str:
 
       async function saveCommissionCfg(){
         var en = String($('cfgCommEnabled').value || '1').trim();
-        var rt = String($('cfgCommRate').value || '').trim();
+        var rt1 = String(($('cfgCommRateL1') && $('cfgCommRateL1').value) || '').trim();
+        var rt2 = String(($('cfgCommRateL2') && $('cfgCommRateL2').value) || '').trim();
+        var rt3 = String(($('cfgCommRateL3') && $('cfgCommRateL3').value) || '').trim();
+        var l3min = String(($('cfgCommL3MinLevel') && $('cfgCommL3MinLevel').value) || '').trim();
+        var cap = String(($('cfgCommCapTotal') && $('cfgCommCapTotal').value) || '').trim();
         var dd = String($('cfgCommDelayDays').value || '').trim();
         var tasks = [];
         tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'agent_commission_enabled', value: en})}));
-        if(rt !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'agent_commission_rate_normal', value: rt})}));
+        if(rt1 !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'agent_commission_rate_l1', value: rt1})}));
+        if(rt2 !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'agent_commission_rate_l2', value: rt2})}));
+        if(rt3 !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'agent_commission_rate_l3', value: rt3})}));
+        if(l3min !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'agent_commission_l3_min_level', value: l3min})}));
+        if(cap !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'agent_commission_rate_cap_total', value: cap})}));
         if(dd !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'agent_settle_delay_days', value: dd})}));
         setStatus('正在保存返佣配置…');
         await Promise.all(tasks);
@@ -1476,6 +2159,7 @@ def admin_app_html(admin_base: str) -> str:
             '<td class="mono">'+esc(it.id)+'</td>'+
             '<td class="mono" style="max-width:220px;word-break:break-all;">'+esc(it.out_trade_no)+'</td>'+
             '<td class="mono">'+esc(it.agent_user_id)+'</td>'+
+            '<td class="mono">'+esc(it.level_depth||1)+'</td>'+
             '<td class="mono">'+esc(it.buyer_user_id)+'</td>'+
             '<td class="mono">'+esc(fmtFenYuan(it.amount_fen))+'</td>'+
             '<td class="mono">'+esc(it.amount_fen)+'</td>'+
@@ -1832,6 +2516,14 @@ def admin_app_html(admin_base: str) -> str:
             if(b.getAttribute('data-panel') === id) addClass(b, 'active');
             else removeClass(b, 'active');
           }
+          // Update URL hash without triggering anchor scroll (prevents sidebar "drift").
+          try{
+            var h = String(id||'').replace(/^#/,'');
+            history.replaceState(null, '', location.pathname + location.search + (h ? ('#'+h) : ''));
+          }catch(e3){}
+          try{
+            if(window.__ai24x_admin_syncSubnavActive) window.__ai24x_admin_syncSubnavActive();
+          }catch(e4){}
         }catch(e){
           try{ setStatus('切换菜单失败：'+(e && e.message ? e.message : String(e))); }catch(e2){}
         }
@@ -1841,6 +2533,9 @@ def admin_app_html(admin_base: str) -> str:
         if(id === 'p-feedback'){
           fbOffset = 0;
           loadFeedbackAdmin().catch(function(e){ setStatus('用户反馈：'+e.message); });
+        }
+        if(id === 'p-notices'){
+          loadNoticesAdmin().catch(function(e){ setStatus('通告：'+e.message); });
         }
         if(id === 'p-orders'){
           ordOffset = 0;
@@ -1852,6 +2547,9 @@ def admin_app_html(admin_base: str) -> str:
         }
         if(id === 'p-wechat'){
           loadWechat().catch(function(e){ setStatus('微信支付配置：'+e.message); });
+        }
+        if(id === 'p-alipay'){
+          loadAlipay().catch(function(e){ setStatus('支付宝支付配置：'+e.message); });
         }
         if(id === 'p-sms'){
           loadSms().catch(function(e){ setStatus('短信配置：'+e.message); });
@@ -1867,10 +2565,140 @@ def admin_app_html(admin_base: str) -> str:
           payoutOffset = 0;
           loadPayoutRequests().catch(function(e){ setStatus('提现申请：'+e.message); });
         }
+        if(id === 'p-agent'){
+          agentRankOffset = 0;
+          loadAgentRank().catch(function(e){ setStatus('代理与邀请：'+e.message); });
+        }
         if(id === 'p-hotspots-test'){
           // manual run only
         }
         try{ history.replaceState(null, '', '#'+id); }catch(e){}
+      }
+
+      var agentRankOffset = 0;
+      var agentRankLastTotal = 0;
+
+      function fenToYuanStr(fen){
+        try{
+          var f = Number(fen||0);
+          return (f/100).toFixed(2);
+        }catch(e){ return '0.00'; }
+      }
+
+      async function loadAgentRank(){
+        var metric = $('agentRankMetric') ? String($('agentRankMetric').value||'direct_invites') : 'direct_invites';
+        var lim = $('agentRankLimit') ? parseInt($('agentRankLimit').value,10) : 50;
+        if(isNaN(lim) || lim < 10) lim = 50;
+        if(lim > 200) lim = 200;
+        setStatus('正在加载代理排行榜…');
+        var d = await api('/api/admin/agent/rank?metric='+encodeURIComponent(metric)+'&limit='+encodeURIComponent(lim)+'&offset='+encodeURIComponent(agentRankOffset));
+        var items = (d && d.items) ? d.items : [];
+        agentRankLastTotal = items.length;
+        var body = $('agentRankBody');
+        if(body) body.innerHTML = '';
+        items.forEach(function(it){
+          var uid = it.user_id || 0;
+          var who = it.phone_masked || it.email_masked || '';
+          var tr = document.createElement('tr');
+          tr.innerHTML =
+            '<td class="mono">'+esc(uid)+'</td>'+
+            '<td class="mono">'+esc(who)+'</td>'+
+            '<td class="mono">'+esc(it.direct_invites||0)+'</td>'+
+            '<td class="mono">'+esc(it.activated_direct||0)+'</td>'+
+            '<td class="mono">'+esc(fenToYuanStr(it.paid_amount_direct_fen||0))+'</td>'+
+            '<td class="mono">'+esc(it.paid_orders_direct||0)+'</td>'+
+            '<td class="mono">'+esc(fenToYuanStr(it.commission_pending_fen||0))+'</td>'+
+            '<td class="mono">'+esc(fenToYuanStr(it.commission_paid_fen||0))+'</td>'+
+            '<td><button type="button" class="btn-mini" data-agent-open="'+esc(uid)+'">打开</button></td>';
+          if(body) body.appendChild(tr);
+        });
+        if($('agentRankMeta')) $('agentRankMeta').textContent = 'offset='+agentRankOffset+' · count='+agentRankLastTotal+' · metric='+metric;
+        try{
+          Array.prototype.slice.call(qsa('#agentRankBody button[data-agent-open]') || []).forEach(function(b){
+            b.onclick = function(){
+              var uid = parseInt(b.getAttribute('data-agent-open')||'0',10);
+              if($('agentDetailUserId')) $('agentDetailUserId').value = String(uid||'');
+              showPanel('p-agent');
+              loadAgentDetail().catch(function(e){ setStatus('代理详情：'+e.message); });
+            };
+          });
+        }catch(e){}
+        setStatus('代理排行榜已刷新');
+      }
+
+      async function loadAgentDetail(){
+        var uid = $('agentDetailUserId') ? parseInt($('agentDetailUserId').value,10) : 0;
+        if(isNaN(uid) || uid <= 0) throw new Error('请输入代理 user_id');
+        var depth = $('agentDetailDepth') ? parseInt($('agentDetailDepth').value,10) : 3;
+        if(isNaN(depth) || depth < 1) depth = 3;
+        if(depth > 6) depth = 6;
+        var lim = $('agentDetailLimit') ? parseInt($('agentDetailLimit').value,10) : 300;
+        if(isNaN(lim) || lim < 50) lim = 300;
+        if(lim > 2000) lim = 2000;
+        setStatus('正在加载代理详情…');
+        var d = await api('/api/admin/agent/detail?user_id='+encodeURIComponent(uid)+'&depth='+encodeURIComponent(depth)+'&limit='+encodeURIComponent(lim));
+        var sum = (d && d.summary) ? d.summary : {};
+        var st = (d && d.agent_status) ? d.agent_status : null;
+        if($('agentDetailSummary')){
+          var lvl0 = st && st.level ? String(st.level) : '';
+          var locked = st && st.tier_locked ? true : false;
+          var lvl = lvl0;
+          if(lvl === 'normal' || lvl === 'starter' || !lvl) lvl = 'starter';
+          if(lvl === 'senior') lvl = 'growth';
+          if(lvl === 'gold') lvl = 'pro';
+          $('agentDetailSummary').innerHTML =
+            '<div><b>成长等级</b>：<span class="mono">'+esc(lvl||'starter')+'</span>'+(locked?' <span class="pill" style="margin-left:6px;">locked</span>':'')+'</div>'+
+            '<div><b>直推订单额</b>：<span class="mono">'+esc(fenToYuanStr(sum.paid_amount_direct_fen||0))+'</span> 元（'+esc(sum.paid_orders_direct||0)+' 单）</div>'+
+            '<div><b>返佣</b>：待结算 <span class="mono">'+esc(fenToYuanStr(sum.commission_pending_fen||0))+'</span> 元 · 已申请 <span class="mono">'+esc(fenToYuanStr(sum.commission_requested_fen||0))+'</span> 元 · 已打款 <span class="mono">'+esc(fenToYuanStr(sum.commission_paid_fen||0))+'</span> 元</div>'+
+            '<div><b>提现申请</b>：pending <span class="mono">'+esc(fenToYuanStr(sum.payout_pending_fen||0))+'</span> 元 · approved <span class="mono">'+esc(fenToYuanStr(sum.payout_approved_fen||0))+'</span> 元 · paid <span class="mono">'+esc(fenToYuanStr(sum.payout_paid_fen||0))+'</span> 元</div>'+
+            '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">'+
+              '<label class="muted small">设置等级 '+
+                '<select id="agentTierLevel" style="margin-left:6px;">'+
+                  '<option value="starter">starter</option>'+
+                  '<option value="growth">growth</option>'+
+                  '<option value="pro">pro</option>'+
+                '</select>'+
+              '</label>'+
+              '<label class="muted small"><input type="checkbox" id="agentTierLocked" '+(locked?'checked':'')+' /> locked</label>'+
+              '<button type="button" class="btn-mini" id="btnAgentTierSave">保存</button>'+
+            '</div>';
+          try{
+            var sel = document.getElementById('agentTierLevel');
+            if(sel) sel.value = (lvl||'starter');
+            var btn = document.getElementById('btnAgentTierSave');
+            if(btn){
+              btn.onclick = async function(){
+                try{
+                  var lv = document.getElementById('agentTierLevel') ? String(document.getElementById('agentTierLevel').value||'starter') : 'starter';
+                  var lk = document.getElementById('agentTierLocked') && document.getElementById('agentTierLocked').checked ? 1 : 0;
+                  setStatus('正在保存等级/锁定…');
+                  await api('/api/admin/agent/tier_set', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({user_id: uid, level: lv, locked: lk, note: 'admin_ui'})});
+                  await loadAgentDetail();
+                  setStatus('已保存。');
+                }catch(e){ setStatus('保存失败：'+(e&&e.message?e.message:String(e||''))); }
+              };
+            }
+          }catch(e0){}
+        }
+        var tree = (d && d.tree) ? d.tree : {};
+        var nodes = tree.nodes || [];
+        var body = $('agentTreeBody');
+        if(body) body.innerHTML = '';
+        nodes.forEach(function(n){
+          var who = n.phone_masked || n.email_masked || '';
+          var tr = document.createElement('tr');
+          tr.innerHTML =
+            '<td class="mono">'+esc(n.user_id||0)+'</td>'+
+            '<td class="mono">'+esc(who)+'</td>'+
+            '<td class="mono">'+esc(n.activated ? 'Y':'')+'</td>'+
+            '<td class="mono">'+esc(n.direct_invites||0)+'</td>'+
+            '<td class="mono">'+esc(n.paid_orders||0)+'</td>'+
+            '<td class="mono">'+esc(fenToYuanStr(n.paid_amount_fen||0))+'</td>'+
+            '<td class="mono">'+esc(fenToYuanStr(n.commission_pending_fen||0))+'</td>'+
+            '<td class="mono">'+esc(fenToYuanStr(n.commission_paid_fen||0))+'</td>';
+          if(body) body.appendChild(tr);
+        });
+        setStatus('代理详情已刷新');
       }
 
       async function loadSystem(){
@@ -1880,12 +2708,16 @@ def admin_app_html(admin_base: str) -> str:
         var on = (v === '1' || v === 'true' || v === 'yes' || v === 'on');
         var sel = $('sysAdminOtpEnabled');
         if(sel) sel.value = on ? '1' : '0';
+        if($('sysFreeDailyCap')) $('sysFreeDailyCap').value = (it.free_daily_cap != null) ? String(it.free_daily_cap) : '';
+        if($('sysFreeWeekly')) $('sysFreeWeekly').value = (it.free_weekly != null) ? String(it.free_weekly) : '';
         var sum = $('sysCurrentSummary');
         if(sum){
           sum.innerHTML =
             '<div class="card-title" style="margin-bottom:6px;">当前配置</div>' +
             renderItemsSummary(it, [
               {label:'管理登录短信 OTP', key:'admin_browser_otp_enabled'},
+              {label:'free 默认每日配额', key:'free_daily_cap'},
+              {label:'free 默认每周配额', key:'free_weekly'},
               {label:'付费数据源开关', key:'paid_provider'},
               {label:'请求顺序', key:'paid_provider_priority'},
               {label:'实时 K 线开关', key:'tushare_use_rt_k'},
@@ -1901,9 +2733,16 @@ def admin_app_html(admin_base: str) -> str:
       async function saveSystem(){
         var sel = $('sysAdminOtpEnabled');
         var v = sel ? String(sel.value || '0') : '0';
+        var fd = String(($('sysFreeDailyCap') && $('sysFreeDailyCap').value) || '').trim();
+        var fw = String(($('sysFreeWeekly') && $('sysFreeWeekly').value) || '').trim();
         setStatus('正在保存系统配置…');
-        await api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'admin_browser_otp_enabled', value: v})});
-        setStatus('已保存。若改了管理 OTP 开关，请新开标签打开「登录页」验证（或通知他人重新登录）。');
+        var tasks = [];
+        tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'admin_browser_otp_enabled', value: v})}));
+        // free defaults (blank = delete override -> fallback to .env)
+        tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'free_daily_cap', value: fd})}));
+        tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'free_weekly', value: fw})}));
+        await Promise.all(tasks);
+        setStatus('已保存。free 默认配额将用于新用户初始化与“重置到默认 free”。');
       }
 
       async function loadUsers(){
@@ -1942,6 +2781,7 @@ def admin_app_html(admin_base: str) -> str:
         $('opsBody').innerHTML = '';
         $('userMeta').textContent = '正在加载用户详情…';
         $('quotaMeta').textContent = '—';
+        if($('treeRootId')) $('treeRootId').value = String(uid);
         if($('editEmail')) $('editEmail').value = '';
         if($('editPhone')) $('editPhone').value = '';
         $('setRemainingDay').value = '';
@@ -1951,6 +2791,11 @@ def admin_app_html(admin_base: str) -> str:
         $('opNote').value = '';
         $('setPlan').value = '';
         if($('btnApplyQuota')) $('btnApplyQuota').disabled = false;
+        try{
+          if($('resetBox')) $('resetBox').hidden = true;
+          if($('btnOpenReset')) $('btnOpenReset').textContent = '展开';
+          if($('btnRunReset')) $('btnRunReset').disabled = true;
+        }catch(e0){}
 
         var d = await api('/api/admin/user/'+encodeURIComponent(uid));
         var u = d.user || {};
@@ -1972,6 +2817,7 @@ def admin_app_html(admin_base: str) -> str:
         }
         await loadLedger();
         await loadOps();
+        resetUiSync();
       }
 
       async function saveUserBasic(){
@@ -2007,12 +2853,31 @@ def admin_app_html(admin_base: str) -> str:
         var d = await api('/api/admin/quota_ledger?user_id='+encodeURIComponent(currentUserId)+'&limit=50');
         var body = $('ledgerBody');
         body.innerHTML = '';
+        function secidPretty(secid){
+          var s = secid == null ? '' : String(secid).trim();
+          if(!s) return '';
+          // Known indices shortcuts
+          if(s === '1.000001') return '上证指数（1.000001）';
+          if(s === '0.399001') return '深证成指（0.399001）';
+          if(s === '0.399006') return '创业板指（0.399006）';
+          if(s === '0.899050') return '北证50（0.899050）';
+          // Generic secid market mapping: 1.x = SH, 0.0/0.3 = SZ, 0.899 = BJ
+          var m = s.match(/^(\d+)\.(\d{3,})$/);
+          if(!m) return s;
+          var mk = m[1];
+          var code = m[2];
+          var tag = mk === '1' ? 'SH' : 'SZ';
+          try{
+            if(s.indexOf('0.899') === 0) tag = 'BJ';
+          }catch(e){}
+          return tag + code + '（' + s + '）';
+        }
         (d.items||[]).forEach(function(it){
           var tr=document.createElement('tr');
           tr.innerHTML =
             '<td class="mono">'+esc(it.id)+'</td>'+
             '<td class="mono">'+esc(fmtTs(it.consumed_at))+'</td>'+
-            '<td class="mono">'+esc(it.secid)+'</td>'+
+            '<td class="mono">'+esc(secidPretty(it.secid))+'</td>'+
             '<td>'+esc(it.period)+'</td>'+
             '<td>'+esc(it.result)+'</td>';
           body.appendChild(tr);
@@ -2035,6 +2900,80 @@ def admin_app_html(admin_base: str) -> str:
             '<td>'+esc(it.note||'')+'</td>';
           body.appendChild(tr);
         });
+      }
+
+      function fmtFenYuan(fen){
+        try{
+          var n = Number(fen||0);
+          if(!isFinite(n)) n = 0;
+          return (n/100).toFixed(2);
+        }catch(e){ return '0.00'; }
+      }
+
+      function resetUiSync(){
+        try{
+          var rb = $('resetBox');
+          var run = $('btnRunReset');
+          if(run) run.disabled = !currentUserId || !(rb && !rb.hidden);
+        }catch(e){}
+      }
+
+      function openResetBox(){
+        if(!currentUserId){ setStatus('请先选择一个用户'); return; }
+        var rb = $('resetBox');
+        if(!rb) return;
+        rb.hidden = !rb.hidden;
+        var btn = $('btnOpenReset');
+        if(btn) btn.textContent = rb.hidden ? '展开' : '收起';
+        resetUiSync();
+      }
+
+      async function runReset(){
+        if(!currentUserId) return;
+        var rb = $('resetBox');
+        if(!rb || rb.hidden){ setStatus('请先点击“展开”确认重置范围'); return; }
+        var body = {
+          invite_binding: !!($('rs_invite') && $('rs_invite').checked),
+          quota_reset: !!($('rs_quota') && $('rs_quota').checked),
+          quota_ledger: !!($('rs_ledger') && $('rs_ledger').checked),
+          pay_orders: !!($('rs_orders') && $('rs_orders').checked),
+          reward_ledger: !!($('rs_reward') && $('rs_reward').checked),
+          commission_ledger: !!($('rs_comm') && $('rs_comm').checked),
+          note: String(($('rs_note') && $('rs_note').value) ? $('rs_note').value : '').trim()
+        };
+        var ok = false;
+        try{
+          ok = window.confirm('确认重置用户 '+String(currentUserId)+'？\\n\\n将清理：'+
+            (body.invite_binding?'邀请码绑定、':'')+
+            (body.quota_reset?'配额、':'')+
+            (body.quota_ledger?'扣次流水、':'')+
+            (body.pay_orders?'支付订单、':'')+
+            (body.reward_ledger?'邀请奖励、':'')+
+            (body.commission_ledger?'返佣台账、':'')+
+            '。');
+        }catch(e){ ok = true; }
+        if(!ok) return;
+        setStatus('正在执行重置…');
+        await api('/api/admin/user/'+encodeURIComponent(currentUserId)+'/reset', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(body)
+        });
+        await selectUser(currentUserId);
+        setStatus('已重置账号数据。');
+      }
+
+      async function openAgentFromCurrentUser(){
+        try{ setStatus('正在打开代理详情…'); }catch(e){}
+        if(!currentUserId){ setStatus('请先在左侧列表选择一个用户'); return; }
+        try{
+          // switch to new agent page
+          showPanel('p-agent');
+          if($('agentDetailUserId')) $('agentDetailUserId').value = String(currentUserId);
+          await loadAgentDetail();
+        }catch(e){
+          setStatus('打开代理详情失败：' + (e && e.message ? e.message : String(e||'')));
+        }
       }
 
       async function applyQuota(){
@@ -2143,6 +3082,124 @@ def admin_app_html(admin_base: str) -> str:
         await Promise.all(tasks);
         setStatus('微信支付配置已写入数据库');
         await loadWechat();
+      }
+
+      async function loadAlipay(){
+        var d = await api('/api/admin/config');
+        var it = d.items || {};
+        function put(k, elId){
+          var el = $(elId);
+          if(!el) return;
+          var v = it[k];
+          if(v === undefined || v === null) { el.value = ''; return; }
+          if(String(v) === '***') { el.value = ''; return; }
+          el.value = String(v);
+        }
+        put('alipay_app_id','ali_alipay_app_id');
+        put('alipay_gateway','ali_alipay_gateway');
+        put('alipay_notify_url','ali_alipay_notify_url');
+        put('alipay_return_url','ali_alipay_return_url');
+        put('alipay_merchant_private_key_path','ali_alipay_merchant_private_key_path');
+        put('alipay_public_key','ali_alipay_public_key');
+        $('ali_alipay_merchant_private_key_pem').value = '';
+        var s = $('aliCurrentSummary');
+        if(s){
+          s.innerHTML =
+            '<div class="card-title" style="margin-bottom:6px;">当前配置</div>' +
+            renderItemsSummary(it, [
+              {label:'AppID', key:'alipay_app_id'},
+              {label:'网关', key:'alipay_gateway'},
+              {label:'notify_url', key:'alipay_notify_url'},
+              {label:'return_url', key:'alipay_return_url'},
+              {label:'私钥路径', key:'alipay_merchant_private_key_path'},
+              {label:'公钥', key:'alipay_public_key'},
+              {label:'私钥 PEM', key:'alipay_merchant_private_key_pem'},
+            ]) +
+            '<p class="muted small" style="margin:10px 0 0;">敏感项已保存时不会在页面显示；需要更新时在下方表单填写后保存。</p>';
+        }
+      }
+
+      async function saveAlipay(){
+        var tasks = [];
+        var simple = [
+          'alipay_app_id',
+          'alipay_gateway',
+          'alipay_notify_url',
+          'alipay_return_url',
+          'alipay_merchant_private_key_path',
+          'alipay_public_key'
+        ];
+        simple.forEach(function(k){
+          var el = $('ali_'+k);
+          var v = el ? String(el.value||'').trim() : '';
+          tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:k, value:v})}));
+        });
+        var pem = String($('ali_alipay_merchant_private_key_pem').value||'').trim();
+        tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'alipay_merchant_private_key_pem', value:pem})}));
+        setStatus('正在保存支付宝支付配置…');
+        await Promise.all(tasks);
+        setStatus('支付宝支付配置已写入数据库');
+        await loadAlipay();
+      }
+
+      async function loadBilling(){
+        var d = await api('/api/admin/config');
+        var it = d.items || {};
+        function put(key, elId){
+          var el = $(elId);
+          if(!el) return;
+          var v = it[key];
+          if(v === undefined || v === null) { el.value = ''; return; }
+          if(String(v) === '***') { el.value = ''; return; }
+          el.value = String(v);
+        }
+        put('vip_title_trial','bill_vip_title_trial');
+        put('vip_title_month','bill_vip_title_month');
+        put('vip_title_year','bill_vip_title_year');
+        put('price_vip_trial_fen','bill_price_vip_trial_fen');
+        put('price_vip_month_fen','bill_price_vip_month_fen');
+        put('price_vip_year_fen','bill_price_vip_year_fen');
+        put('billing_dev_real_pay','bill_billing_dev_real_pay');
+        put('billing_dev_amount_fen','bill_billing_dev_amount_fen');
+        put('billing_pay_wechat_enabled','bill_billing_pay_wechat_enabled');
+        put('billing_pay_alipay_enabled','bill_billing_pay_alipay_enabled');
+        put('agent_title_growth','bill_agent_title_growth');
+        put('price_agent_growth_fen','bill_price_agent_growth_fen');
+        put('agent_upgrade_growth_enabled','bill_agent_upgrade_growth_enabled');
+        put('agent_title_pro','bill_agent_title_pro');
+        put('price_agent_pro_fen','bill_price_agent_pro_fen');
+        put('agent_upgrade_pro_enabled','bill_agent_upgrade_pro_enabled');
+        put('agent_upgrade_commission_enabled','bill_agent_upgrade_commission_enabled');
+      }
+
+      async function saveBilling(){
+        var tasks = [];
+        function post(key, elId){
+          var el = $(elId);
+          var v = el ? String(el.value||'').trim() : '';
+          tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:key, value:v})}));
+        }
+        post('vip_title_trial','bill_vip_title_trial');
+        post('vip_title_month','bill_vip_title_month');
+        post('vip_title_year','bill_vip_title_year');
+        post('price_vip_trial_fen','bill_price_vip_trial_fen');
+        post('price_vip_month_fen','bill_price_vip_month_fen');
+        post('price_vip_year_fen','bill_price_vip_year_fen');
+        post('billing_dev_real_pay','bill_billing_dev_real_pay');
+        post('billing_dev_amount_fen','bill_billing_dev_amount_fen');
+        post('billing_pay_wechat_enabled','bill_billing_pay_wechat_enabled');
+        post('billing_pay_alipay_enabled','bill_billing_pay_alipay_enabled');
+        post('agent_title_growth','bill_agent_title_growth');
+        post('price_agent_growth_fen','bill_price_agent_growth_fen');
+        post('agent_upgrade_growth_enabled','bill_agent_upgrade_growth_enabled');
+        post('agent_title_pro','bill_agent_title_pro');
+        post('price_agent_pro_fen','bill_price_agent_pro_fen');
+        post('agent_upgrade_pro_enabled','bill_agent_upgrade_pro_enabled');
+        post('agent_upgrade_commission_enabled','bill_agent_upgrade_commission_enabled');
+        setStatus('正在保存套餐与定价…');
+        await Promise.all(tasks);
+        setStatus('套餐与定价已写入数据库（下单立即生效）');
+        await loadBilling();
       }
 
       async function loadSms(){
@@ -2300,12 +3357,112 @@ def admin_app_html(admin_base: str) -> str:
       }
 
       async function boot(){
+        var NAV_ACTIVE_GROUP_KEY = 'ai24x_admin_nav_active_group';
+        function qsaLocal(sel){ try{ return Array.prototype.slice.call(document.querySelectorAll(sel)); }catch(e){ return []; } }
+        function getGroupForPanel(panelId){
+          try{
+            var btn = document.querySelector('.nav-item[data-panel="'+panelId+'"]');
+            if(!btn) return '';
+            var g = btn.closest && btn.closest('.nav-group');
+            return g ? String(g.getAttribute('data-group') || '') : '';
+          }catch(e){ return ''; }
+        }
+        function groupDefaultPanel(groupId){
+          // Pick the most frequently used panel per group.
+          groupId = String(groupId || '');
+          var pref = {
+            'g-users': 'p-users',
+            'g-billing': 'p-orders',
+            'g-agent': 'p-agent',
+            'g-sms': 'p-sms',
+            'g-system': 'p-system',
+            'g-market': 'p-market',
+          };
+          var pid = pref[groupId] || '';
+          if(pid && document.getElementById(pid)) return pid;
+          // Fallback: first subnav item in that group.
+          try{
+            var g = document.querySelector('.nav-group[data-group="'+groupId+'"]');
+            if(!g) return 'p-users';
+            var first = g.querySelector && g.querySelector('.nav-item[data-panel]');
+            var p2 = first ? String(first.getAttribute('data-panel') || '') : '';
+            if(p2 && document.getElementById(p2)) return p2;
+          }catch(e){}
+          return 'p-users';
+        }
+        function setActiveGroup(groupId){
+          groupId = String(groupId || '');
+          qsaLocal('.nav-l1[data-group-btn]').forEach(function(h){
+            h.classList.toggle('active', h.getAttribute('data-group-btn') === groupId);
+          });
+          try{ localStorage.setItem(NAV_ACTIVE_GROUP_KEY, groupId); }catch(e){}
+          renderSubnav(groupId);
+          // Auto-enter a default panel for this group to avoid "click twice".
+          try{
+            var act = document.querySelector('.panel-page.active');
+            var cur = act ? String(act.id || '') : '';
+            if(getGroupForPanel(cur) !== groupId){
+              showPanel(groupDefaultPanel(groupId));
+            }
+          }catch(e){}
+        }
+        function renderSubnav(groupId){
+          var box = document.getElementById('subnav');
+          if(!box) return;
+          box.innerHTML = '';
+          var g = document.querySelector('.nav-group[data-group="'+groupId+'"]');
+          if(!g) return;
+          var items = (g.querySelectorAll && g.querySelectorAll('.nav-item[data-panel]')) ? Array.prototype.slice.call(g.querySelectorAll('.nav-item[data-panel]')) : [];
+          items.forEach(function(src){
+            var pid = String(src.getAttribute('data-panel') || '');
+            var title = (src.childNodes && src.childNodes.length) ? String(src.childNodes[0].textContent || '').trim() : (src.textContent || '').trim();
+            var subtEl = src.querySelector ? src.querySelector('.subt') : null;
+            var subt = subtEl ? String(subtEl.textContent || '').trim() : '';
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'subnav-item';
+            b.setAttribute('data-panel', pid);
+            b.innerHTML = '<span>'+esc(title)+'</span>' + (subt ? '<span class="subt">'+esc(subt)+'</span>' : '');
+            b.onclick = function(){
+              try{ showPanel(pid); }catch(e){ setStatus('切换失败：'+(e && e.message ? e.message : String(e))); }
+            };
+            box.appendChild(b);
+          });
+          syncSubnavActive();
+        }
+        function syncSubnavActive(){
+          var cur = '';
+          try{
+            var act = document.querySelector('.panel-page.active');
+            cur = act ? String(act.id || '') : '';
+          }catch(e){}
+          qsaLocal('#subnav .subnav-item[data-panel]').forEach(function(b){
+            b.classList.toggle('active', b.getAttribute('data-panel') === cur);
+          });
+        }
+        try{
+          window.__ai24x_admin_syncSubnavActive = syncSubnavActive;
+          window.__ai24x_admin_getGroupForPanel = getGroupForPanel;
+          window.__ai24x_admin_setActiveGroup = setActiveGroup;
+        }catch(e0){}
+        function initMainNav(){
+          qsaLocal('.nav-l1[data-group-btn]').forEach(function(h){
+            h.addEventListener('click', function(){
+              var gid = h.getAttribute('data-group-btn');
+              setActiveGroup(gid);
+            });
+          });
+        }
+        initMainNav();
         var navBtns = qsa('.nav-item[data-panel]');
         for(var i=0;i<navBtns.length;i++){
           (function(btn){
             try{
               btn.onclick = function(){
-                try{ showPanel(btn.getAttribute('data-panel')); }catch(e){ setStatus('切换失败：'+(e && e.message ? e.message : String(e))); }
+                try{
+                  var pid = btn.getAttribute('data-panel');
+                  showPanel(pid);
+                }catch(e){ setStatus('切换失败：'+(e && e.message ? e.message : String(e))); }
               };
             }catch(e){}
           })(navBtns[i]);
@@ -2328,8 +3485,15 @@ def admin_app_html(admin_base: str) -> str:
           return;
         }
         var hash = (location.hash||'').replace(/^#/,'');
-        if(hash && document.getElementById(hash)) showPanel(hash);
-        else showPanel('p-users');
+        var firstPanel = (hash && document.getElementById(hash)) ? hash : 'p-users';
+        showPanel(firstPanel);
+        var gid0 = getGroupForPanel(firstPanel);
+        if(!gid0){
+          try{ gid0 = String(localStorage.getItem(NAV_ACTIVE_GROUP_KEY) || ''); }catch(e){ gid0 = ''; }
+        }
+        if(!gid0) gid0 = 'g-users';
+        setActiveGroup(gid0);
+        syncSubnavActive();
 
         $('btnLogout').addEventListener('click', async function(){
           try{
@@ -2365,6 +3529,18 @@ def admin_app_html(admin_base: str) -> str:
         $('btnSaveWechat').addEventListener('click', async function(){
           try{ await saveWechat(); }catch(e){ setStatus('保存微信支付失败：'+e.message); }
         });
+        if($('btnLoadAlipay')) $('btnLoadAlipay').addEventListener('click', async function(){
+          try{ await loadAlipay(); setStatus('已读取支付宝支付配置'); }catch(e){ setStatus('读取失败：'+e.message); }
+        });
+        if($('btnSaveAlipay')) $('btnSaveAlipay').addEventListener('click', async function(){
+          try{ await saveAlipay(); }catch(e){ setStatus('保存支付宝支付失败：'+e.message); }
+        });
+        if($('btnLoadBilling')) $('btnLoadBilling').addEventListener('click', async function(){
+          try{ await loadBilling(); setStatus('已读取套餐与定价'); }catch(e){ setStatus('读取套餐与定价失败：'+e.message); }
+        });
+        if($('btnSaveBilling')) $('btnSaveBilling').addEventListener('click', async function(){
+          try{ await saveBilling(); }catch(e){ setStatus('保存套餐与定价失败：'+e.message); }
+        });
         $('btnLoadOrders').addEventListener('click', async function(){
           try{ ordOffset = 0; await loadPayOrders(); }catch(e){ setStatus('加载订单失败：'+e.message); }
         });
@@ -2384,6 +3560,28 @@ def admin_app_html(admin_base: str) -> str:
             if(ordOffset + lim < ordLastTotal) ordOffset += lim;
             await loadPayOrders();
           }catch(e){ setStatus('加载订单失败：'+e.message); }
+        });
+        if($('btnAgentRankLoad')) $('btnAgentRankLoad').addEventListener('click', async function(){
+          try{ agentRankOffset = 0; await loadAgentRank(); }catch(e){ setStatus('加载代理排行榜失败：'+e.message); }
+        });
+        if($('btnAgentRankPrev')) $('btnAgentRankPrev').addEventListener('click', async function(){
+          try{
+            var lim = parseInt($('agentRankLimit').value, 10);
+            if(isNaN(lim) || lim < 10) lim = 50;
+            agentRankOffset = Math.max(0, agentRankOffset - lim);
+            await loadAgentRank();
+          }catch(e){ setStatus('加载代理排行榜失败：'+e.message); }
+        });
+        if($('btnAgentRankNext')) $('btnAgentRankNext').addEventListener('click', async function(){
+          try{
+            var lim = parseInt($('agentRankLimit').value, 10);
+            if(isNaN(lim) || lim < 10) lim = 50;
+            agentRankOffset = agentRankOffset + lim;
+            await loadAgentRank();
+          }catch(e){ setStatus('加载代理排行榜失败：'+e.message); }
+        });
+        if($('btnAgentDetailLoad')) $('btnAgentDetailLoad').addEventListener('click', async function(){
+          try{ await loadAgentDetail(); }catch(e){ setStatus('加载代理详情失败：'+e.message); }
         });
         if($('btnLoadCommissionCfg')) $('btnLoadCommissionCfg').addEventListener('click', async function(){
           try{ await loadCommissionCfg(); setStatus('已读取返佣配置'); }catch(e){ setStatus('读取返佣配置失败：'+e.message); }
@@ -2457,10 +3655,25 @@ def admin_app_html(admin_base: str) -> str:
         if($('btnFbSubmitReply')) $('btnFbSubmitReply').addEventListener('click', function(){
           submitFeedbackReply().catch(function(e){ setStatus('保存回复失败：'+e.message); });
         });
+        if($('btnLoadNotices')) $('btnLoadNotices').addEventListener('click', function(){
+          loadNoticesAdmin().catch(function(e){ setStatus('通告：'+e.message); });
+        });
+        if($('btnCreateNotice')) $('btnCreateNotice').addEventListener('click', function(){
+          createNoticeAdmin().catch(function(e){ setStatus('发布失败：'+e.message); });
+        });
         $('btnSearch').addEventListener('click', loadUsers);
         $('btnReloadLedger').addEventListener('click', loadLedger);
         $('btnReloadOps').addEventListener('click', loadOps);
         $('btnApplyQuota').addEventListener('click', applyQuota);
+        if($('btnOpenReset')) $('btnOpenReset').addEventListener('click', function(){
+          try{ openResetBox(); }catch(e){ setStatus('打开重置面板失败：'+(e && e.message ? e.message : String(e))); }
+        });
+        if($('btnRunReset')) $('btnRunReset').addEventListener('click', function(){
+          runReset().catch(function(e){ setStatus('重置失败：'+e.message); });
+        });
+        if($('btnOpenAgentFromCur')) $('btnOpenAgentFromCur').addEventListener('click', function(){
+          openAgentFromCurrentUser();
+        });
         if($('btnSaveUserBasic')) $('btnSaveUserBasic').addEventListener('click', function(){
           saveUserBasic().catch(function(e){ setStatus('保存基础信息失败：'+e.message); });
         });
@@ -2474,4 +3687,4 @@ def admin_app_html(admin_base: str) -> str:
   </body>
 </html>"""
     )
-    return s.replace("__ADMIN_BASE_JS__", json.dumps(admin_base, ensure_ascii=False))
+    return s.replace("__ADMIN_BASE_JS__", json.dumps(admin_base, ensure_ascii=False)).replace("__ADMIN_UI_BUILD__", build)

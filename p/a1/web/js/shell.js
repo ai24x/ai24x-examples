@@ -22,8 +22,8 @@
       '<nav class="nav-main" id="nav-main" aria-label="Main">' +
       nav("index.html", "首页", "index") +
       nav("demo.html", "行情", "demo") +
-      nav("partner.html", "代理", "partner") +
       nav("account.html", "我的", "account") +
+      nav("partner.html", "伙伴", "partner") +
       nav("feedback.html", "反馈", "feedback") +
       "</nav>" +
       '<div class="header-actions">' +
@@ -46,7 +46,6 @@
       '<div class="footer-col">' +
       '<div class="footer-title">AI24X · AI 行情官｜灯塔版（V1.01）</div>' +
       '<div class="mt-2">行情与指标，一目了然</div>' +
-      '<div class="mt-2" style="font-size:12px; opacity:.85">仅供学习研究，不构成投资建议；投资有风险，决策需谨慎。</div>' +
       "</div>" +
       '<div class="footer-col">' +
       '<div class="footer-title">产品</div>' +
@@ -58,7 +57,7 @@
       '<div class="footer-title">服务</div>' +
       '<a href="account.html#vip">开通 VIP</a>' +
       '<a href="account.html#invite">邀请奖励</a>' +
-      '<a href="partner.html">代理合作</a>' +
+      '<a href="partner.html">伙伴合作</a>' +
       "</div>" +
       '<div class="footer-col">' +
       '<div class="footer-title">合规</div>' +
@@ -102,7 +101,8 @@
     try {
       if (!global.__AI24X_A_SW_INSTALLED && "serviceWorker" in navigator && String(location.protocol || "") !== "file:") {
         global.__AI24X_A_SW_INSTALLED = true;
-        navigator.serviceWorker.register("./sw.js", { scope: "./", updateViaCache: "none" }).then(function (reg) {
+        // Cache-bust SW URL so deployments don't require Ctrl+F5.
+        navigator.serviceWorker.register("./sw.js?v=16", { scope: "./", updateViaCache: "none" }).then(function (reg) {
           try {
             reg.update && reg.update();
             if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
@@ -122,11 +122,113 @@
     } catch (e) {}
   }
 
+  function _el(tag, attrs, children) {
+    var node = document.createElement(tag);
+    attrs = attrs || {};
+    Object.keys(attrs).forEach(function (k) {
+      var v = attrs[k];
+      if (v == null) return;
+      if (k === "class") node.className = String(v);
+      else if (k === "text") node.textContent = String(v);
+      else if (k === "html") node.innerHTML = String(v);
+      else node.setAttribute(k, String(v));
+    });
+    (children || []).forEach(function (c) {
+      if (c == null) return;
+      if (typeof c === "string") node.appendChild(document.createTextNode(c));
+      else node.appendChild(c);
+    });
+    return node;
+  }
+
+  function headerDom(active) {
+    function nav(href, label, id) {
+      return _el(
+        "a",
+        { href: href, class: active === id ? "is-active" : "" },
+        [String(label)]
+      );
+    }
+
+    var wrap = _el("div", { class: "container header-inner" }, []);
+    var brand = _el("a", { class: "brand", href: "index.html", "aria-label": "AI24X" }, [
+      _el("span", { class: "brand-mark", text: "AI" }),
+      _el("span", { text: "AI 行情官｜灯塔版" }),
+    ]);
+    var toggle = _el(
+      "button",
+      { type: "button", class: "menu-toggle", id: "menu-toggle", "aria-label": "Menu", "aria-expanded": "false" },
+      [_el("span", {}, [])]
+    );
+    var navMain = _el("nav", { class: "nav-main", id: "nav-main", "aria-label": "Main" }, [
+      nav("index.html", "首页", "index"),
+      nav("demo.html", "行情", "demo"),
+      nav("account.html", "我的", "account"),
+      nav("partner.html", "伙伴", "partner"),
+      nav("feedback.html", "反馈", "feedback"),
+    ]);
+    var actions = _el("div", { class: "header-actions" }, []);
+    var sel = _el("select", { id: "theme-select", class: "select-mini", "aria-label": "Theme" }, [
+      _el("option", { value: "calm", text: "深蓝（默认）" }),
+      _el("option", { value: "dark", text: "深黑" }),
+      _el("option", { value: "light", text: "蓝白" }),
+    ]);
+    actions.appendChild(sel);
+    actions.appendChild(_el("a", { class: "btn btn-ghost", href: "account.html" }, ["登录/续期"]));
+    actions.appendChild(_el("a", { class: "btn btn-primary", href: "account.html#vip" }, ["开通 VIP"]));
+
+    wrap.appendChild(brand);
+    wrap.appendChild(toggle);
+    wrap.appendChild(navMain);
+    wrap.appendChild(actions);
+    return wrap;
+  }
+
+  function footerDom() {
+    var wrap = _el("div", { class: "container" }, []);
+    var grid = _el("div", { class: "footer-grid" }, []);
+
+    var c1 = _el("div", { class: "footer-col" }, [
+      _el("div", { class: "footer-title", text: "AI24X · AI 行情官｜灯塔版（V1.01）" }),
+      _el("div", { class: "mt-2", text: "行情与指标，一目了然" }),
+    ]);
+    var c2 = _el("div", { class: "footer-col" }, [
+      _el("div", { class: "footer-title", text: "产品" }),
+      _el("a", { href: "demo.html", text: "行情与信号" }),
+      _el("a", { href: "account.html", text: "用户中心" }),
+      _el("a", { href: "feedback.html", text: "意见反馈" }),
+    ]);
+    var c3 = _el("div", { class: "footer-col" }, [
+      _el("div", { class: "footer-title", text: "服务" }),
+      _el("a", { href: "account.html#vip", text: "开通 VIP" }),
+      _el("a", { href: "account.html#invite", text: "邀请奖励" }),
+      _el("a", { href: "partner.html", text: "伙伴合作" }),
+    ]);
+    var c4 = _el("div", { class: "footer-col" }, [
+      _el("div", { class: "footer-title", text: "合规" }),
+      _el("a", { href: "https://beian.miit.gov.cn/", target: "_blank", rel: "noopener", text: "浙ICP备10040624号-7" }),
+    ]);
+
+    grid.appendChild(c1);
+    grid.appendChild(c2);
+    grid.appendChild(c3);
+    grid.appendChild(c4);
+    wrap.appendChild(grid);
+    wrap.appendChild(_el("div", { class: "footer-bottom", text: "© 2026 AI24X" }));
+    return wrap;
+  }
+
   function mount(activePage) {
     var h = document.getElementById("site-header");
     var f = document.getElementById("site-footer");
-    if (h) h.innerHTML = headerHtml(activePage);
-    if (f) f.innerHTML = footerHtml();
+    if (h) {
+      try { h.textContent = ""; } catch (e0) {}
+      h.appendChild(headerDom(activePage));
+    }
+    if (f) {
+      try { f.textContent = ""; } catch (e1) {}
+      f.appendChild(footerDom());
+    }
     bindChrome();
   }
 

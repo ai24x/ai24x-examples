@@ -227,6 +227,28 @@ def admin_app_html(admin_base: str) -> str:
         font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em;
         margin: 14px 0 6px; padding-left: 8px;
       }
+      .nav-group { margin-top: 10px; }
+      .nav-l1 {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 10px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: rgba(96,165,250,.06);
+        color: var(--text);
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .nav-l1:hover { background: rgba(96,165,250,.10); }
+      .nav-l1.active { border-color: rgba(96,165,250,.55); background: rgba(96,165,250,.12); }
+      .nav-l1 .chev { opacity: .7; transition: transform .12s ease; }
+      .nav-group.is-collapsed .nav-l1 .chev { transform: rotate(-90deg); }
+      /* 子菜单不在左侧展开，统一渲染到右侧子导航栏 */
+      .nav-l2 { display: none; }
       .nav-item {
         display: block; width: 100%; text-align: left; padding: 10px 12px; border-radius: 10px;
         border: 1px solid transparent; background: transparent; color: var(--text); cursor: pointer; font-size: 13px;
@@ -240,6 +262,33 @@ def admin_app_html(admin_base: str) -> str:
         background: var(--panel); position: sticky; top: 0; z-index: 3;
       }
       .main-top .msg { display: inline; margin: 0 0 0 8px; vertical-align: middle; }
+      .subnav {
+        margin-top: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+      .subnav-item{
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: var(--panel2);
+        color: var(--text);
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .subnav-item:hover{ border-color: rgba(96,165,250,.45); }
+      .subnav-item.active{
+        border-color: rgba(96,165,250,.55);
+        background: rgba(96,165,250,.12);
+        color: var(--pri);
+      }
+      .subnav-item .subt{ font-size: 11px; font-weight: 500; color: var(--muted); }
       .main-scroll { flex: 1; overflow: auto; padding: 16px 16px 32px; }
       .panel-page { display: none; }
       .panel-page.active { display: block; }
@@ -256,49 +305,81 @@ def admin_app_html(admin_base: str) -> str:
           左侧按「使用频率 / 业务重要性 / 敏感配置」分区。请在可信网络环境下操作并妥善保管敏感信息。
         </div>
 
-        <div class="nav-group-title">日常运维 · 高频</div>
-        <button type="button" class="nav-item active" data-panel="p-users">
-          用户与配额
-          <span class="subt">查询用户、改套餐与剩余次数、看流水</span>
-        </button>
+        <div class="nav-group" data-group="g-users">
+          <button type="button" class="nav-l1" data-group-btn="g-users">
+            <span>用户与运营</span><span class="chev">▾</span>
+          </button>
+          <div class="nav-l2">
+            <button type="button" class="nav-item active" data-panel="p-users">
+              用户与配额
+              <span class="subt">查询用户、改套餐与剩余次数、看流水</span>
+            </button>
+          </div>
+        </div>
 
-        <div class="nav-group-title">收入与安全 · 敏感</div>
-        <button type="button" class="nav-item" data-panel="p-wechat">
-          微信支付
-          <span class="subt">商户号、证书与通知地址</span>
-        </button>
-        <button type="button" class="nav-item" data-panel="p-orders">
-          VIP 订单
-          <span class="subt">pay_orders：状态、金额、微信单号</span>
-        </button>
-        <button type="button" class="nav-item" data-panel="p-commission">
-          代理与返佣
-          <span class="subt">年 VIP 赠普通代理；20% 返佣台账（T+7 人工结算）</span>
-        </button>
-        <button type="button" class="nav-item" data-panel="p-sms">
-          短信与统一身份
-          <span class="subt">主站转发、腾讯短信占位</span>
-        </button>
+        <div class="nav-group" data-group="g-pay">
+          <button type="button" class="nav-l1" data-group-btn="g-pay">
+            <span>支付与订单</span><span class="chev">▾</span>
+          </button>
+          <div class="nav-l2">
+            <button type="button" class="nav-item" data-panel="p-wechat">
+              微信支付
+              <span class="subt">商户号、证书与通知地址</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-orders">
+              VIP 订单
+              <span class="subt">pay_orders：状态、金额、微信单号</span>
+            </button>
+          </div>
+        </div>
 
-        <div class="nav-group-title">行情与数据 · 运维</div>
-        <button type="button" class="nav-item" data-panel="p-market">
-          行情路由监控
-          <span class="subt">TuShare / 公共源命中情况</span>
-        </button>
-        <button type="button" class="nav-item" data-panel="p-hotspots-test">
-          热点测试页
-          <span class="subt">TuShare THS 指数抽样排行（仅测试用）</span>
-        </button>
-        <button type="button" class="nav-item" data-panel="p-data">
-          数据源开关
-          <span class="subt">付费源开关、令牌与优先级</span>
-        </button>
+        <div class="nav-group" data-group="g-settle">
+          <button type="button" class="nav-l1" data-group-btn="g-settle">
+            <span>代理与结算</span><span class="chev">▾</span>
+          </button>
+          <div class="nav-l2">
+            <button type="button" class="nav-item" data-panel="p-commission">
+              代理与返佣
+              <span class="subt">年 VIP 赠普通代理；20% 返佣台账（T+7 人工结算）</span>
+            </button>
+          </div>
+        </div>
 
-        <div class="nav-group-title">系统配置</div>
-        <button type="button" class="nav-item" data-panel="p-system">
-          系统与安全开关
-          <span class="subt">管理登录与邀请奖励等全站规则</span>
-        </button>
+        <div class="nav-group" data-group="g-ops">
+          <button type="button" class="nav-l1" data-group-btn="g-ops">
+            <span>行情与数据</span><span class="chev">▾</span>
+          </button>
+          <div class="nav-l2">
+            <button type="button" class="nav-item" data-panel="p-market">
+              行情路由监控
+              <span class="subt">TuShare / 公共源命中情况</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-hotspots-test">
+              热点测试页
+              <span class="subt">TuShare THS 指数抽样排行（仅测试用）</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-data">
+              数据源开关
+              <span class="subt">付费源开关、令牌与优先级</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="nav-group" data-group="g-system">
+          <button type="button" class="nav-l1" data-group-btn="g-system">
+            <span>系统配置</span><span class="chev">▾</span>
+          </button>
+          <div class="nav-l2">
+            <button type="button" class="nav-item" data-panel="p-sms">
+              短信与统一身份
+              <span class="subt">主站转发、腾讯短信占位</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-system">
+              系统与安全开关
+              <span class="subt">管理登录与邀请奖励等全站规则</span>
+            </button>
+          </div>
+        </div>
 
         <div style="flex:1"></div>
         <button type="button" class="nav-item" id="btnLogout" style="margin-top:8px;border-color:var(--border);">
@@ -311,6 +392,7 @@ def admin_app_html(admin_base: str) -> str:
         <div class="main-top">
           <span class="pill">操作状态</span>
           <span id="status" class="msg">正在校验登录…</span>
+          <div class="subnav" id="subnav" aria-label="子菜单"></div>
         </div>
         <div class="main-scroll">
 
@@ -545,8 +627,8 @@ def admin_app_html(admin_base: str) -> str:
           <section class="panel-page" id="p-commission">
             <div class="card" id="sec-commission">
               <div class="row">
-                <span class="pill">代理与返佣（MVP）</span>
-                <span class="muted small">返佣仅针对 <code class="mono">vip_year_999</code>；默认不退款；先人工结算</span>
+                <span class="pill">代理与返佣</span>
+                <span class="muted small">支持三级推荐：同一订单可生成多条返佣台账（不同 depth）；默认不退款；先人工结算</span>
               </div>
 
               <div class="card" style="margin-top:12px;">
@@ -564,8 +646,20 @@ def admin_app_html(admin_base: str) -> str:
                     </select>
                   </div>
                   <div class="field" style="min-width:220px;">
-                    <span class="lbl">普通代理返佣比例</span><span class="sub">agent_commission_rate_normal</span>
-                    <input id="cfgCommRate" class="mono" placeholder="0.20" style="min-width:160px;" />
+                    <span class="lbl">直推返佣比例</span><span class="sub">agent_commission_rate_l1</span>
+                    <input id="cfgCommRateL1" class="mono" placeholder="0.20" style="min-width:160px;" />
+                  </div>
+                  <div class="field" style="min-width:220px;">
+                    <span class="lbl">间推返佣比例</span><span class="sub">agent_commission_rate_l2</span>
+                    <input id="cfgCommRateL2" class="mono" placeholder="0.05" style="min-width:160px;" />
+                  </div>
+                  <div class="field" style="min-width:220px;">
+                    <span class="lbl">团队返佣比例</span><span class="sub">agent_commission_rate_l3</span>
+                    <input id="cfgCommRateL3" class="mono" placeholder="0.02" style="min-width:160px;" />
+                  </div>
+                  <div class="field" style="min-width:220px;">
+                    <span class="lbl">总比例上限</span><span class="sub">agent_commission_rate_cap_total</span>
+                    <input id="cfgCommCapTotal" class="mono" placeholder="0.30" style="min-width:160px;" />
                   </div>
                   <div class="field" style="min-width:220px;">
                     <span class="lbl">结算延迟（天）</span><span class="sub">agent_settle_delay_days</span>
@@ -587,6 +681,7 @@ def admin_app_html(admin_base: str) -> str:
                         <th style="width:72px;"><span class="th-cn">ID</span><span class="th-en">id</span></th>
                         <th style="width:170px;"><span class="th-cn">订单号</span><span class="th-en">out_trade_no</span></th>
                         <th style="width:96px;"><span class="th-cn">代理</span><span class="th-en">agent</span></th>
+                        <th style="width:66px;"><span class="th-cn">层级</span><span class="th-en">depth</span></th>
                         <th style="width:96px;"><span class="th-cn">买家</span><span class="th-en">buyer</span></th>
                         <th style="width:110px;"><span class="th-cn">金额(元)</span><span class="th-en">amount_yuan</span></th>
                         <th style="width:110px;"><span class="th-cn">金额(分)</span><span class="th-en">amount_fen</span></th>
@@ -1145,7 +1240,10 @@ def admin_app_html(admin_base: str) -> str:
         var d = await api('/api/admin/config');
         var it = d.items || {};
         $('cfgCommEnabled').value = (it.agent_commission_enabled != null && String(it.agent_commission_enabled).trim() !== '') ? String(it.agent_commission_enabled).trim() : '1';
-        $('cfgCommRate').value = (it.agent_commission_rate_normal != null) ? String(it.agent_commission_rate_normal) : '';
+        if($('cfgCommRateL1')) $('cfgCommRateL1').value = (it.agent_commission_rate_l1 != null) ? String(it.agent_commission_rate_l1) : ((it.agent_commission_rate_normal != null) ? String(it.agent_commission_rate_normal) : '');
+        if($('cfgCommRateL2')) $('cfgCommRateL2').value = (it.agent_commission_rate_l2 != null) ? String(it.agent_commission_rate_l2) : '';
+        if($('cfgCommRateL3')) $('cfgCommRateL3').value = (it.agent_commission_rate_l3 != null) ? String(it.agent_commission_rate_l3) : '';
+        if($('cfgCommCapTotal')) $('cfgCommCapTotal').value = (it.agent_commission_rate_cap_total != null) ? String(it.agent_commission_rate_cap_total) : '';
         $('cfgCommDelayDays').value = (it.agent_settle_delay_days != null) ? String(it.agent_settle_delay_days) : '';
       }
 
@@ -1180,11 +1278,17 @@ def admin_app_html(admin_base: str) -> str:
 
       async function saveCommissionCfg(){
         var en = String($('cfgCommEnabled').value || '1').trim();
-        var rt = String($('cfgCommRate').value || '').trim();
+        var rt1 = String(($('cfgCommRateL1') && $('cfgCommRateL1').value) || '').trim();
+        var rt2 = String(($('cfgCommRateL2') && $('cfgCommRateL2').value) || '').trim();
+        var rt3 = String(($('cfgCommRateL3') && $('cfgCommRateL3').value) || '').trim();
+        var cap = String(($('cfgCommCapTotal') && $('cfgCommCapTotal').value) || '').trim();
         var dd = String($('cfgCommDelayDays').value || '').trim();
         var tasks = [];
         tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'agent_commission_enabled', value: en})}));
-        if(rt !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'agent_commission_rate_normal', value: rt})}));
+        if(rt1 !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'agent_commission_rate_l1', value: rt1})}));
+        if(rt2 !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'agent_commission_rate_l2', value: rt2})}));
+        if(rt3 !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'agent_commission_rate_l3', value: rt3})}));
+        if(cap !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'agent_commission_rate_cap_total', value: cap})}));
         if(dd !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'agent_settle_delay_days', value: dd})}));
         setStatus('正在保存返佣配置…');
         await Promise.all(tasks);
@@ -1203,6 +1307,7 @@ def admin_app_html(admin_base: str) -> str:
             '<td class="mono">'+esc(it.id)+'</td>'+
             '<td class="mono" style="max-width:220px;word-break:break-all;">'+esc(it.out_trade_no)+'</td>'+
             '<td class="mono">'+esc(it.agent_user_id)+'</td>'+
+            '<td class="mono">'+esc(it.level_depth||1)+'</td>'+
             '<td class="mono">'+esc(it.buyer_user_id)+'</td>'+
             '<td class="mono">'+esc(fmtFenYuan(it.amount_fen))+'</td>'+
             '<td class="mono">'+esc(it.amount_fen)+'</td>'+
@@ -1895,12 +2000,76 @@ def admin_app_html(admin_base: str) -> str:
       }
 
       async function boot(){
+        var NAV_ACTIVE_GROUP_KEY = 'ai24x_admin_nav_active_group';
+        function qsaLocal(sel){ try{ return Array.prototype.slice.call(document.querySelectorAll(sel)); }catch(e){ return []; } }
+        function getGroupForPanel(panelId){
+          try{
+            var btn = document.querySelector('.nav-item[data-panel="'+panelId+'"]');
+            if(!btn) return '';
+            var g = btn.closest && btn.closest('.nav-group');
+            return g ? String(g.getAttribute('data-group') || '') : '';
+          }catch(e){ return ''; }
+        }
+        function setActiveGroup(groupId){
+          groupId = String(groupId || '');
+          qsaLocal('.nav-l1[data-group-btn]').forEach(function(h){
+            h.classList.toggle('active', h.getAttribute('data-group-btn') === groupId);
+          });
+          try{ localStorage.setItem(NAV_ACTIVE_GROUP_KEY, groupId); }catch(e){}
+          renderSubnav(groupId);
+        }
+        function renderSubnav(groupId){
+          var box = document.getElementById('subnav');
+          if(!box) return;
+          box.innerHTML = '';
+          var g = document.querySelector('.nav-group[data-group="'+groupId+'"]');
+          if(!g) return;
+          var items = (g.querySelectorAll && g.querySelectorAll('.nav-item[data-panel]')) ? Array.prototype.slice.call(g.querySelectorAll('.nav-item[data-panel]')) : [];
+          items.forEach(function(src){
+            var pid = String(src.getAttribute('data-panel') || '');
+            var title = (src.childNodes && src.childNodes.length) ? String(src.childNodes[0].textContent || '').trim() : (src.textContent || '').trim();
+            var subtEl = src.querySelector ? src.querySelector('.subt') : null;
+            var subt = subtEl ? String(subtEl.textContent || '').trim() : '';
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'subnav-item';
+            b.setAttribute('data-panel', pid);
+            b.innerHTML = '<span>'+esc(title)+'</span>' + (subt ? '<span class="subt">'+esc(subt)+'</span>' : '');
+            b.onclick = function(){
+              try{ showPanel(pid); }catch(e){ setStatus('切换失败：'+(e && e.message ? e.message : String(e))); }
+            };
+            box.appendChild(b);
+          });
+          syncSubnavActive();
+        }
+        function syncSubnavActive(){
+          var cur = '';
+          try{
+            var act = document.querySelector('.panel-page.active');
+            cur = act ? String(act.id || '') : '';
+          }catch(e){}
+          qsaLocal('#subnav .subnav-item[data-panel]').forEach(function(b){
+            b.classList.toggle('active', b.getAttribute('data-panel') === cur);
+          });
+        }
+        function initMainNav(){
+          qsaLocal('.nav-l1[data-group-btn]').forEach(function(h){
+            h.addEventListener('click', function(){
+              var gid = h.getAttribute('data-group-btn');
+              setActiveGroup(gid);
+            });
+          });
+        }
+        initMainNav();
         var navBtns = qsa('.nav-item[data-panel]');
         for(var i=0;i<navBtns.length;i++){
           (function(btn){
             try{
               btn.onclick = function(){
-                try{ showPanel(btn.getAttribute('data-panel')); }catch(e){ setStatus('切换失败：'+(e && e.message ? e.message : String(e))); }
+                try{
+                  var pid = btn.getAttribute('data-panel');
+                  showPanel(pid);
+                }catch(e){ setStatus('切换失败：'+(e && e.message ? e.message : String(e))); }
               };
             }catch(e){}
           })(navBtns[i]);
@@ -1923,8 +2092,15 @@ def admin_app_html(admin_base: str) -> str:
           return;
         }
         var hash = (location.hash||'').replace(/^#/,'');
-        if(hash && document.getElementById(hash)) showPanel(hash);
-        else showPanel('p-users');
+        var firstPanel = (hash && document.getElementById(hash)) ? hash : 'p-users';
+        showPanel(firstPanel);
+        var gid0 = getGroupForPanel(firstPanel);
+        if(!gid0){
+          try{ gid0 = String(localStorage.getItem(NAV_ACTIVE_GROUP_KEY) || ''); }catch(e){ gid0 = ''; }
+        }
+        if(!gid0) gid0 = 'g-users';
+        setActiveGroup(gid0);
+        syncSubnavActive();
 
         $('btnLogout').addEventListener('click', async function(){
           try{

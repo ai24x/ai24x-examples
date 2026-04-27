@@ -114,6 +114,15 @@ class Settings:
     billing_dev_real_pay: bool
     billing_dev_amount_fen: int
 
+    # Alipay WAP (H5)
+    alipay_app_id: str
+    alipay_gateway: str
+    alipay_notify_url: str
+    alipay_return_url: str
+    alipay_merchant_private_key_path: str
+    alipay_merchant_private_key_pem: str
+    alipay_public_key: str
+
 
 def load_settings() -> Settings:
     # In Windows/PM2 deployments, the process may inherit stale global env vars.
@@ -181,6 +190,13 @@ def load_settings() -> Settings:
         in ("1", "true", "True", "yes", "YES")
         and str(os.getenv("AI24X_ENV", "dev")).strip().lower() != "prod",
         billing_dev_amount_fen=_to_int(os.getenv("AI24X_BILLING_DEV_AMOUNT_FEN"), 10),
+        alipay_app_id=str(os.getenv("AI24X_ALIPAY_APP_ID", "")).strip(),
+        alipay_gateway=str(os.getenv("AI24X_ALIPAY_GATEWAY", "https://openapi.alipay.com/gateway.do")).strip(),
+        alipay_notify_url=str(os.getenv("AI24X_ALIPAY_NOTIFY_URL", "")).strip(),
+        alipay_return_url=str(os.getenv("AI24X_ALIPAY_RETURN_URL", "")).strip(),
+        alipay_merchant_private_key_path=str(os.getenv("AI24X_ALIPAY_MERCHANT_PRIVATE_KEY_PATH", "")).strip(),
+        alipay_merchant_private_key_pem=str(os.getenv("AI24X_ALIPAY_MERCHANT_PRIVATE_KEY_PEM", "")).strip(),
+        alipay_public_key=str(os.getenv("AI24X_ALIPAY_PUBLIC_KEY", "")).strip(),
     )
 
 

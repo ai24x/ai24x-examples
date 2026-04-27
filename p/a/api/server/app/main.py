@@ -1166,10 +1166,28 @@ def invite_bind(body: InviteBindIn, user_id: int = Depends(get_current_user_id))
         inviter_id = int(inviter["user_id"])
         if inviter_id == user_id:
             raise HTTPException(status_code=400, detail="不能绑定自己的邀请码")
-        conn.execute(
-            "INSERT INTO invite_relations(invitee_id, inviter_id, created_at) VALUES (?, ?, ?)",
-            (user_id, inviter_id, now),
-        )
+        # Cache up to 3-level ancestor chain at bind-time.
+        l1 = inviter_id
+        l2 = None
+        l3 = None
+        try:
+            chain = db._invite_chain_for_user_in_conn(conn, inviter_id)  # type: ignore[attr-defined]
+            l2 = chain[0]
+            l3 = chain[1]
+        except Exception:
+            l2 = None
+            l3 = None
+        depth = 1 + (1 if l2 else 0) + (1 if l3 else 0)
+        try:
+            conn.execute(
+                "INSERT INTO invite_relations(invitee_id, inviter_id, inviter_l1_id, inviter_l2_id, inviter_l3_id, depth, updated_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (user_id, inviter_id, l1, l2, l3, int(depth), now, now),
+            )
+        except Exception:
+            conn.execute(
+                "INSERT INTO invite_relations(invitee_id, inviter_id, created_at) VALUES (?, ?, ?)",
+                (user_id, inviter_id, now),
+            )
         # MVP 发奖策略：绑定成功后不直接发，等“首次有效查询”触发更抗刷（阶段1先留接口位）
         return {"ok": True, "bound": True}
 

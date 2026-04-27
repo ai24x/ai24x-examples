@@ -12,10 +12,11 @@ from urllib.parse import quote
 
 import httpx
 from fastapi import Cookie, Depends, FastAPI, Header, HTTPException, Request
+from fastapi.responses import PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 
-from . import db, wechat_v3
+from . import alipay_wap, db, wechat_v3
 from .admin_baseline import log_admin_security_baseline
 from .admin_auth import COOKIE_NAME, SESSION_TTL_S, admin_key_matches, issue_admin_session, verify_admin_session
 from .admin_otp import (
@@ -28,7 +29,7 @@ from .admin_otp import (
     is_phone_allowed_for_admin_otp,
     normalize_admin_phone,
 )
-from .billing_runtime import identity_configured, resolve_identity, resolve_wechat_pay
+from .billing_runtime import identity_configured, resolve_alipay, resolve_billing, resolve_identity, resolve_wechat_pay
 from .auth import create_token, get_current_user_id, get_optional_user_id, parse_token
 from .config import settings
 from .admin_ui import admin_app_html, admin_login_html
@@ -54,6 +55,8 @@ from .schemas import (
     PasswordResetIn,
     PayNativeIn,
     PayNativeOut,
+    PayWapIn,
+    PayWapOut,
     QuotaConsumeIn,
     QuotaConsumeOut,
     RegisterIn,
@@ -63,7 +66,19 @@ from .schemas import (
 )
 
 
-app = FastAPI(title="AI24X 股票查询助手 API", version="0.1.0")
+app = FastAPI(
+    title="AI24X 股票查询助手 API",
+    version="0.1.0",
+    docs_url=None if str(settings.env or "").strip().lower() in ("prod", "production") else "/docs",
+    redoc_url=None if str(settings.env or "").strip().lower() in ("prod", "production") else "/redoc",
+    openapi_url=None if str(settings.env or "").strip().lower() in ("prod", "production") else "/openapi.json",
+)
+
+def _is_prod() -> bool:
+    try:
+        return str(settings.env or "").strip().lower() in ("prod", "production")
+    except Exception:
+        return False
 
 
 @app.middleware("http")
@@ -78,6 +93,27 @@ async def _collapse_duplicate_path_slashes(request: Request, call_next):
             if isinstance(raw, (bytes, bytearray)):
                 request.scope["raw_path"] = fixed.encode()
     return await call_next(request)
+
+@app.middleware("http")
+async def _security_headers_mw(request: Request, call_next):
+    """Defense-in-depth security headers (prod should also set at Nginx)."""
+    resp = await call_next(request)
+    try:
+        resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+        resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+        resp.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+    except Exception:
+        pass
+    try:
+        # Only force HSTS when we are actually behind HTTPS (usually via Nginx).
+        if _is_prod():
+            xfp = str(request.headers.get("x-forwarded-proto") or "").lower()
+            if xfp == "https" or str(request.url.scheme or "").lower() == "https":
+                resp.headers.setdefault("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
+    except Exception:
+        pass
+    return resp
 
 
 # in-memory rate limit buckets (single-process MVP)
@@ -314,7 +350,11 @@ def require_admin(
     raise HTTPException(status_code=401, detail="Invalid admin key")
 
 
-_NO_STORE = {"Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache"}
+_NO_STORE = {
+    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+    "Pragma": "no-cache",
+    "Expires": "0",
+}
 
 # 浏览器管理台挂载路径（默认 /admin20260501，对齐宣发 2026-05-01）；见 AI24X_ADMIN_MOUNT_PATH
 _ADMIN_BASE = str(settings.admin_mount_path)
@@ -322,30 +362,8 @@ _ADMIN_BASE = str(settings.admin_mount_path)
 
 @app.get("/", include_in_schema=False)
 def root_landing() -> dict:
-    """根路径说明：避免只打开 http://host:port/ 时误以为服务未启动；并给出当前管理台真实路径。"""
-    return {
-        "ok": True,
-        "service": "ai24x-p-a-api",
-        "hint": "若管理页 404，请确认本进程为 p/a/api/server 的 uvicorn，并已重启；路径以 AI24X_ADMIN_MOUNT_PATH 为准。",
-        "paths": {
-            "health": "/health",
-            "docs": "/docs",
-            "admin_mount": _ADMIN_BASE,
-            "admin_login": f"{_ADMIN_BASE}/login",
-            "admin_app": _ADMIN_BASE,
-            "admin_otp_send": "/api/admin/otp/send",
-            "admin_otp_required": admin_browser_otp_required(),
-            "admin_browser_otp_feature_enabled": admin_browser_otp_feature_enabled(),
-            **(
-                {
-                    "admin_login_compat": "/admin/login",
-                    "admin_app_compat": "/admin",
-                }
-                if _ADMIN_BASE.rstrip("/") != "/admin"
-                else {}
-            ),
-        },
-    }
+    """Root endpoint: do not leak admin mount path or security posture."""
+    return {"ok": True, "service": "ai24x-p-a-api"}
 
 
 def _admin_login_html_response(browser_base: str, otp_required: bool | None = None) -> HTMLResponse:
@@ -1011,9 +1029,107 @@ def admin_user_quota_adjust(user_id: int, body: dict, _: bool = Depends(require_
         raise HTTPException(status_code=400, detail="Invalid request")
 
 
+@app.post("/api/admin/user/{user_id}/reset")
+def admin_user_reset(user_id: int, body: dict, _: bool = Depends(require_admin)) -> dict:
+    """
+    测试用：重置账号数据（保留 user_id），用于重复走邀请码/激活/支付/返佣链路。
+    生产环境默认禁止；可通过 admin_config 显式开启。
+    """
+    env = str(getattr(settings, "env", "") or "").strip().lower()
+    if env == "prod":
+        v = (db.admin_config_get("admin_user_reset_enabled") or "").strip().lower()
+        if v not in ("1", "true", "yes", "on"):
+            raise HTTPException(status_code=403, detail="生产环境禁止重置账号（admin_user_reset_enabled 未开启）")
+
+    try:
+        return db.admin_user_reset(
+            int(user_id),
+            actor="admin",
+            invite_binding=bool(body.get("invite_binding")),
+            quota_reset=bool(body.get("quota_reset")),
+            quota_ledger=bool(body.get("quota_ledger")),
+            pay_orders=bool(body.get("pay_orders")),
+            reward_ledger=bool(body.get("reward_ledger")),
+            commission_ledger=bool(body.get("commission_ledger")),
+            note=str(body.get("note") or ""),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e)[:200])
+
+
 @app.get("/api/admin/quota_ledger")
 def admin_quota_ledger(user_id: int, limit: int = 50, _: bool = Depends(require_admin)) -> dict:
     return db.admin_list_quota_ledger(user_id=user_id, limit=limit)
+
+
+@app.get("/api/admin/invite/tree")
+def admin_invite_tree(
+    root_user_id: int,
+    depth: int = 2,
+    limit: int = 200,
+    _: bool = Depends(require_admin),
+) -> dict:
+    try:
+        return db.admin_invite_tree(int(root_user_id), depth=int(depth), limit=int(limit))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e)[:200])
+
+
+@app.get("/api/admin/agent/rank")
+def admin_agent_rank(
+    metric: str = "direct_invites",
+    limit: int = 50,
+    offset: int = 0,
+    _: bool = Depends(require_admin),
+) -> dict:
+    try:
+        return {"ok": True, **db.admin_agent_rank(metric=str(metric or ""), limit=int(limit), offset=int(offset))}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e)[:200])
+
+
+@app.get("/api/admin/agent/detail")
+def admin_agent_detail(
+    user_id: int,
+    depth: int = 3,
+    limit: int = 300,
+    _: bool = Depends(require_admin),
+) -> dict:
+    try:
+        return db.admin_agent_detail(user_id=int(user_id), depth=int(depth), limit=int(limit))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e)[:200])
+
+
+@app.post("/api/admin/agent/tier_set")
+def admin_agent_tier_set(body: dict, _: bool = Depends(require_admin)) -> dict:
+    try:
+        uid = int(body.get("user_id") or 0)
+        level = body.get("level", None)
+        locked = body.get("locked", None)
+        note = str(body.get("note") or "")
+        return db.admin_agent_tier_set(user_id=uid, level=level, locked=locked, note=note)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e)[:200])
+
+
+@app.get("/api/admin/agent/rank")
+def admin_agent_rank(
+    metric: str = "direct_invites",
+    limit: int = 50,
+    offset: int = 0,
+    _: bool = Depends(require_admin),
+) -> dict:
+    try:
+        return {"ok": True, **db.admin_agent_rank(metric=str(metric or ""), limit=int(limit), offset=int(offset))}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e)[:200])
 
 
 @app.get("/api/admin/ops_ledger")
@@ -1029,6 +1145,7 @@ def admin_config_get(_: bool = Depends(require_admin)) -> dict:
         "tushare_token",
         "wechat_api_v3_key",
         "wechat_mch_private_key_pem",
+        "alipay_merchant_private_key_pem",
         "sms_internal_key",
         "sms_captcha_turnstile_secret_key",
         "sms_tencent_secret_id",
@@ -1412,6 +1529,113 @@ def feedback_mine(
     return db.feedback_list_for_user(int(user_id), limit=limit, offset=offset)
 
 
+@app.get("/api/notices")
+def notices_list(
+    limit: int = 20,
+    offset: int = 0,
+    unread_only: int = 0,
+    user_id: int = Depends(get_current_user_id),
+) -> dict:
+    try:
+        return db.notices_list_for_user(int(user_id), limit=int(limit), offset=int(offset), unread_only=bool(int(unread_only or 0) == 1))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e)[:200])
+
+
+@app.post("/api/notices/read")
+def notices_mark_read(body: dict, user_id: int = Depends(get_current_user_id)) -> dict:
+    try:
+        nid = int(body.get("notice_id") or 0)
+        return db.notice_mark_read(int(user_id), int(nid))
+    except ValueError as e:
+        code = str(e)
+        msg = {"invalid_notice_id": "通告 ID 无效"}.get(code, code)
+        raise HTTPException(status_code=400, detail=msg)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e)[:200])
+
+
+@app.get("/api/admin/notices")
+def admin_notices(status: str = "", limit: int = 50, offset: int = 0, _: bool = Depends(require_admin)) -> dict:
+    return db.admin_notice_list(status=status, limit=int(limit), offset=int(offset))
+
+
+@app.post("/api/admin/notices/create")
+def admin_notices_create(body: dict, _: bool = Depends(require_admin)) -> dict:
+    try:
+        return db.admin_notice_create(
+            title=str(body.get("title") or ""),
+            body=str(body.get("body") or ""),
+            scope=str(body.get("scope") or "all"),
+            target_user_id=(int(body.get("target_user_id")) if body.get("target_user_id") not in (None, "", 0, "0") else None),
+            target_agent_level=str(body.get("target_agent_level") or ""),
+            pinned=bool(body.get("pinned")),
+            starts_at=(int(body.get("starts_at")) if body.get("starts_at") not in (None, "", 0, "0") else None),
+            ends_at=(int(body.get("ends_at")) if body.get("ends_at") not in (None, "", 0, "0") else None),
+            created_by="admin",
+        )
+    except ValueError as e:
+        code = str(e)
+        msg = {
+            "title_body_required": "请填写标题与正文",
+            "invalid_scope": "scope 仅支持 all / user / agent_level",
+            "target_user_required": "scope=user 需要 target_user_id",
+            "target_agent_level_required": "scope=agent_level 需要 target_agent_level=starter/growth/pro",
+        }.get(code, code)
+        raise HTTPException(status_code=400, detail=msg)
+
+
+@app.post("/api/admin/notices/set_status")
+def admin_notices_set_status(body: dict, _: bool = Depends(require_admin)) -> dict:
+    try:
+        nid = int(body.get("notice_id") or 0)
+        st = str(body.get("status") or "")
+        return db.admin_notice_set_status(int(nid), st)
+    except ValueError as e:
+        code = str(e)
+        msg = {"invalid_notice_id": "通告 ID 无效", "invalid_status": "status 仅支持 active/archived"}.get(code, code)
+        raise HTTPException(status_code=400, detail=msg)
+
+
+@app.post("/api/admin/notices/pin")
+def admin_notices_pin(body: dict, _: bool = Depends(require_admin)) -> dict:
+    try:
+        nid = int(body.get("notice_id") or 0)
+        pinned = bool(int(body.get("pinned") or 0) == 1) if body.get("pinned") is not None else bool(body.get("pinned"))
+        return db.admin_notice_pin(int(nid), bool(pinned))
+    except ValueError as e:
+        code = str(e)
+        msg = {"invalid_notice_id": "通告 ID 无效"}.get(code, code)
+        raise HTTPException(status_code=400, detail=msg)
+
+
+@app.post("/api/admin/notices/update")
+def admin_notices_update(body: dict, _: bool = Depends(require_admin)) -> dict:
+    try:
+        nid = int(body.get("notice_id") or 0)
+        return db.admin_notice_update(
+            int(nid),
+            title=str(body.get("title") or ""),
+            body=str(body.get("body") or ""),
+            scope=str(body.get("scope") or "all"),
+            target_user_id=(int(body.get("target_user_id")) if body.get("target_user_id") not in (None, "", 0, "0") else None),
+            target_agent_level=str(body.get("target_agent_level") or ""),
+            pinned=bool(body.get("pinned")),
+            starts_at=(int(body.get("starts_at")) if body.get("starts_at") not in (None, "", 0, "0") else None),
+            ends_at=(int(body.get("ends_at")) if body.get("ends_at") not in (None, "", 0, "0") else None),
+        )
+    except ValueError as e:
+        code = str(e)
+        msg = {
+            "invalid_notice_id": "通告 ID 无效",
+            "title_body_required": "请填写标题与正文",
+            "invalid_scope": "scope 仅支持 all / user / agent_level",
+            "target_user_required": "scope=user 需要 target_user_id",
+            "target_agent_level_required": "scope=agent_level 需要 target_agent_level=starter/growth/pro",
+        }.get(code, code)
+        raise HTTPException(status_code=400, detail=msg)
+
+
 @app.get("/api/me")
 def me(user_id: int = Depends(get_current_user_id)) -> dict:
     db.downgrade_expired_vip_plan(int(user_id))
@@ -1480,10 +1704,30 @@ def invite_bind(body: InviteBindIn, user_id: int = Depends(get_current_user_id))
         inviter_id = int(inviter["user_id"])
         if inviter_id == user_id:
             raise HTTPException(status_code=400, detail="不能绑定自己的邀请码")
-        conn.execute(
-            "INSERT INTO invite_relations(invitee_id, inviter_id, created_at) VALUES (?, ?, ?)",
-            (user_id, inviter_id, now),
-        )
+        # Cache up to 3-level ancestor chain at bind-time to keep paid-order attribution stable and fast.
+        l1 = inviter_id
+        l2 = None
+        l3 = None
+        try:
+            chain = db._invite_chain_for_user_in_conn(conn, inviter_id)  # type: ignore[attr-defined]
+            # chain returns (l1,l2,l3) for inviter as an invitee; shift it up by one.
+            l2 = chain[0]
+            l3 = chain[1]
+        except Exception:
+            l2 = None
+            l3 = None
+        depth = 1 + (1 if l2 else 0) + (1 if l3 else 0)
+        try:
+            conn.execute(
+                "INSERT INTO invite_relations(invitee_id, inviter_id, inviter_l1_id, inviter_l2_id, inviter_l3_id, depth, updated_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (user_id, inviter_id, l1, l2, l3, int(depth), now, now),
+            )
+        except Exception:
+            # Fallback for very old schema: keep minimal relation.
+            conn.execute(
+                "INSERT INTO invite_relations(invitee_id, inviter_id, created_at) VALUES (?, ?, ?)",
+                (user_id, inviter_id, now),
+            )
         # MVP 发奖策略：绑定成功后不直接发，等“首次有效查询”触发更抗刷（阶段1先留接口位）
         return {"ok": True, "bound": True}
 
@@ -1744,24 +1988,94 @@ def api_market_data_status(_: bool = Depends(require_admin)) -> dict:
     return market_data_status()
 
 
+@app.get("/api/public/billing/plans")
+def public_billing_plans() -> dict:
+    """
+    给静态前端展示用的套餐信息（名称/标价）。
+
+    注意：这不是支付接口；真实下单金额仍由后端下单时计算并校验。
+    """
+    b = resolve_billing()
+    return {
+        "ok": True,
+        "pay_methods": {
+            "wechat_enabled": bool(getattr(b, "billing_pay_wechat_enabled", True)),
+            "alipay_enabled": bool(getattr(b, "billing_pay_alipay_enabled", True)),
+        },
+        "plans": {
+            "vip_trial_99": {
+                "title": str(getattr(b, "vip_title_trial", "AI24X VIP体验卡") or "AI24X VIP体验卡"),
+                "price_fen": int(getattr(b, "price_vip_trial_fen", settings.price_vip_trial_fen)),
+            },
+            "vip_month": {
+                "title": str(getattr(b, "vip_title_month", "AI24X VIP月会员") or "AI24X VIP月会员"),
+                "price_fen": int(getattr(b, "price_vip_month_fen", settings.price_vip_month_fen)),
+            },
+            "vip_year_999": {
+                "title": str(getattr(b, "vip_title_year", "AI24X VIP年会员") or "AI24X VIP年会员"),
+                "price_fen": int(getattr(b, "price_vip_year_fen", settings.price_vip_year_fen)),
+            },
+            **(
+                {
+                    "agent_growth": {
+                        "title": str(getattr(b, "agent_title_growth", "伙伴计划 · 成长档") or "伙伴计划 · 成长档"),
+                        "price_fen": int(getattr(b, "price_agent_growth_fen", 29900)),
+                    }
+                }
+                if bool(getattr(b, "agent_upgrade_growth_enabled", True))
+                else {}
+            ),
+            **(
+                {
+                    "agent_pro": {
+                        "title": str(getattr(b, "agent_title_pro", "伙伴计划 · 专业档") or "伙伴计划 · 专业档"),
+                        "price_fen": int(getattr(b, "price_agent_pro_fen", 99900)),
+                    }
+                }
+                if bool(getattr(b, "agent_upgrade_pro_enabled", True))
+                else {}
+            ),
+        },
+    }
+
+
+@app.get("/api/public/invite/config")
+def public_invite_config() -> dict:
+    """Public invite reward config for frontend display (no auth)."""
+    try:
+        return {"ok": True, **(db.invite_cfg_effective() or {})}
+    except Exception:
+        return {"ok": True, "invite_reward_inviter_weekly": 0, "invite_reward_invitee_weekly": 0, "invite_weekly_cap": 0}
+
+
 def _billing_normalize_plan(plan: str) -> tuple[str, int]:
+    b = resolve_billing()
     p = (plan or "").strip().lower()
     if p in ("vip_month", "month", "monthly", "vip"):
-        return "vip_month", int(settings.price_vip_month_fen)
+        return "vip_month", int(getattr(b, "price_vip_month_fen", settings.price_vip_month_fen))
     if p in ("vip_year_999", "vip_year", "year", "yearly"):
-        return "vip_year_999", int(settings.price_vip_year_fen)
+        return "vip_year_999", int(getattr(b, "price_vip_year_fen", settings.price_vip_year_fen))
     if p in ("vip_trial_99", "vip_trial", "trial", "trial_99"):
-        return "vip_trial_99", int(settings.price_vip_trial_fen)
+        return "vip_trial_99", int(getattr(b, "price_vip_trial_fen", settings.price_vip_trial_fen))
+    if p in ("agent_growth", "growth", "agent_g"):
+        if not bool(getattr(b, "agent_upgrade_growth_enabled", True)):
+            raise HTTPException(status_code=503, detail="成长档升级暂未开放")
+        return "agent_growth", int(getattr(b, "price_agent_growth_fen", 29900))
+    if p in ("agent_pro", "pro", "agent_p"):
+        if not bool(getattr(b, "agent_upgrade_pro_enabled", True)):
+            raise HTTPException(status_code=503, detail="专业档升级暂未开放")
+        return "agent_pro", int(getattr(b, "price_agent_pro_fen", 99900))
     raise HTTPException(
         status_code=400,
-        detail="不支持的套餐：vip_trial_99 / vip_month / vip_year_999",
+        detail="不支持的套餐：vip_trial_99 / vip_month / vip_year_999 / agent_growth / agent_pro",
     )
 
 
 def _billing_charge_amount_fen(catalog_fen: int) -> int:
     """非 prod 可开启真实小额扣款用于联调。"""
-    if settings.billing_dev_real_pay:
-        return max(1, int(settings.billing_dev_amount_fen))
+    b = resolve_billing()
+    if bool(getattr(b, "billing_dev_real_pay", False)):
+        return max(1, int(getattr(b, "billing_dev_amount_fen", settings.billing_dev_amount_fen)))
     return int(catalog_fen)
 
 
@@ -1772,9 +2086,19 @@ def _fen_to_yuan_display(fen: int) -> str:
         return "0.00"
 
 
+def _yuan_str_from_fen(fen: int) -> str:
+    try:
+        return f"{(int(fen) / 100.0):.2f}"
+    except Exception:
+        return "0.00"
+
+
 @app.post("/api/billing/wechat/native", response_model=PayNativeOut)
 async def billing_wechat_native(body: PayNativeIn, user_id: int = Depends(get_current_user_id)) -> PayNativeOut:
     wx_cfg = resolve_wechat_pay()
+    b = resolve_billing()
+    if not bool(getattr(b, "billing_pay_wechat_enabled", True)):
+        raise HTTPException(status_code=503, detail="微信支付已关闭")
     if not wechat_v3.wechat_pay_configured(wx_cfg):
         raise HTTPException(
             status_code=503,
@@ -1789,11 +2113,15 @@ async def billing_wechat_native(body: PayNativeIn, user_id: int = Depends(get_cu
     charge_fen = _billing_charge_amount_fen(priced_fen)
     out_trade_no = db.pay_mk_out_trade_no(int(user_id))
     if plan_norm == "vip_month":
-        desc = "AI24X VIP月会员"
+        desc = str(getattr(b, "vip_title_month", "AI24X VIP月会员") or "AI24X VIP月会员")
     elif plan_norm == "vip_year_999":
-        desc = "AI24X VIP年会员"
+        desc = str(getattr(b, "vip_title_year", "AI24X VIP年会员") or "AI24X VIP年会员")
+    elif plan_norm == "vip_trial_99":
+        desc = str(getattr(b, "vip_title_trial", "AI24X VIP体验卡") or "AI24X VIP体验卡")
+    elif plan_norm == "agent_growth":
+        desc = str(getattr(b, "agent_title_growth", "伙伴计划 · 成长档") or "伙伴计划 · 成长档")
     else:
-        desc = "AI24X VIP体验卡"
+        desc = str(getattr(b, "agent_title_pro", "伙伴计划 · 专业档") or "伙伴计划 · 专业档")
     db.pay_order_create(
         int(user_id),
         out_trade_no=out_trade_no,
@@ -1845,4 +2173,148 @@ async def billing_wechat_notify(request: Request) -> JSONResponse:
     if not r.get("ok"):
         return JSONResponse(status_code=200, content={"code": "FAIL", "message": str(r.get("error") or "fulfill_failed")})
     return JSONResponse(status_code=200, content={"code": "SUCCESS", "message": "成功"})
+
+
+@app.post("/api/billing/wechat/query_and_fulfill")
+async def billing_wechat_query_and_fulfill(body: dict, user_id: int = Depends(get_current_user_id)) -> dict:
+    """
+    兜底：当微信 notify 因网络/配置原因未到达时，前端可带 out_trade_no 主动查询并补发开通。
+    - 仅允许查询自己的订单
+    - 若 trade_state=SUCCESS 则尝试 fulfill（幂等）
+    """
+    wx_cfg = resolve_wechat_pay()
+    otn = str((body or {}).get("out_trade_no") or "").strip()
+    if not otn:
+        raise HTTPException(status_code=400, detail="missing out_trade_no")
+
+    row = db.pay_order_get_by_out_trade_no(otn)
+    if not row:
+        raise HTTPException(status_code=404, detail="order_not_found")
+    if int(row.get("user_id") or 0) != int(user_id):
+        raise HTTPException(status_code=403, detail="forbidden")
+    if str(row.get("channel") or "") != "wechat":
+        raise HTTPException(status_code=400, detail="not_wechat_order")
+
+    if str(row.get("status") or "") == "paid":
+        return {"ok": True, "status": "paid", "duplicate": True}
+
+    try:
+        txn = await wechat_v3.query_transaction_by_out_trade_no(wx_cfg, out_trade_no=otn)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e)[:400]) from e
+
+    trade_state = str(txn.get("trade_state") or "").strip()
+    if trade_state != "SUCCESS":
+        return {"ok": True, "status": "pending", "trade_state": trade_state}
+
+    transaction_id = str(txn.get("transaction_id") or "").strip()
+    amount = txn.get("amount") if isinstance(txn.get("amount"), dict) else {}
+    total = int((amount or {}).get("total") or 0)
+    r = db.pay_order_try_fulfill_wechat(otn, transaction_id, total)
+    if not r.get("ok"):
+        raise HTTPException(status_code=409, detail=str(r.get("error") or "fulfill_failed"))
+    return {"ok": True, "status": "paid", "duplicate": bool(r.get("duplicate"))}
+
+
+@app.post("/api/billing/alipay/wap", response_model=PayWapOut)
+async def billing_alipay_wap(body: PayWapIn, user_id: int = Depends(get_current_user_id)) -> PayWapOut:
+    ali_cfg = resolve_alipay()
+    b = resolve_billing()
+    if not bool(getattr(b, "billing_pay_alipay_enabled", True)):
+        raise HTTPException(status_code=503, detail="支付宝支付已关闭")
+    if not alipay_wap.alipay_configured(ali_cfg):
+        raise HTTPException(
+            status_code=503,
+            detail="支付宝未配置：请设置 ALIPAY_APP_ID / 公钥 / 商户私钥 / NOTIFY_URL（及可选 RETURN_URL）",
+        )
+
+    plan_norm, priced_fen = _billing_normalize_plan(body.plan)
+    if plan_norm == "vip_trial_99" and db.pay_user_has_paid_trial(int(user_id)):
+        raise HTTPException(status_code=400, detail="体验卡每位用户限购 1 次，您已购买过。")
+
+    charge_fen = _billing_charge_amount_fen(priced_fen)
+    out_trade_no = db.pay_mk_out_trade_no(int(user_id))
+    if plan_norm == "vip_month":
+        subj = str(getattr(b, "vip_title_month", "AI24X VIP月会员") or "AI24X VIP月会员")
+    elif plan_norm == "vip_year_999":
+        subj = str(getattr(b, "vip_title_year", "AI24X VIP年会员") or "AI24X VIP年会员")
+    elif plan_norm == "vip_trial_99":
+        subj = str(getattr(b, "vip_title_trial", "AI24X VIP体验卡") or "AI24X VIP体验卡")
+    elif plan_norm == "agent_growth":
+        subj = str(getattr(b, "agent_title_growth", "伙伴计划 · 成长档") or "伙伴计划 · 成长档")
+    else:
+        subj = str(getattr(b, "agent_title_pro", "伙伴计划 · 专业档") or "伙伴计划 · 专业档")
+
+    db.pay_order_create(
+        int(user_id),
+        out_trade_no=out_trade_no,
+        plan=plan_norm,
+        amount_fen=charge_fen,
+        channel="alipay_wap",
+        code_url=None,
+    )
+
+    try:
+        pay_url = alipay_wap.build_wap_pay_url(
+            ali_cfg,
+            out_trade_no=out_trade_no,
+            subject=subj,
+            total_amount_yuan=_yuan_str_from_fen(charge_fen),
+            return_url=(str(getattr(ali_cfg, "alipay_return_url", "") or "").strip() or None),
+        )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e)[:800]) from e
+
+    db.pay_order_attach_code_url(out_trade_no, pay_url)
+    return PayWapOut(
+        out_trade_no=out_trade_no,
+        pay_url=pay_url,
+        amount_fen=charge_fen,
+        priced_amount_fen=priced_fen,
+        amount_yuan_display=_fen_to_yuan_display(charge_fen),
+        priced_amount_yuan_display=_fen_to_yuan_display(priced_fen),
+        plan=plan_norm,
+    )
+
+
+@app.post("/api/billing/alipay/notify")
+async def billing_alipay_notify(request: Request) -> PlainTextResponse:
+    ali_cfg = resolve_alipay()
+    form = await request.form()
+    data = {str(k): str(v) for k, v in form.items()}
+
+    ok, _err = alipay_wap.verify_notify(ali_cfg, form=data)
+    if not ok:
+        return PlainTextResponse("fail", status_code=200)
+
+    trade_status = (data.get("trade_status") or "").strip()
+    if trade_status not in ("TRADE_SUCCESS", "TRADE_FINISHED"):
+        return PlainTextResponse("success", status_code=200)
+
+    out_trade_no = (data.get("out_trade_no") or "").strip()
+    trade_no = (data.get("trade_no") or "").strip()
+    total_amount = (data.get("total_amount") or "").strip()
+    try:
+        fen = int(round(float(total_amount) * 100.0))
+    except Exception:
+        return PlainTextResponse("fail", status_code=200)
+
+    r = db.pay_order_try_fulfill_alipay(out_trade_no, trade_no, fen)
+    if not r.get("ok"):
+        if r.get("error") in ("order_already_paid",):
+            return PlainTextResponse("success", status_code=200)
+        return PlainTextResponse("fail", status_code=200)
+    return PlainTextResponse("success", status_code=200)
+
+
+@app.get("/api/admin/user/{user_id}/quota_status")
+def admin_user_quota_status(user_id: int, _: bool = Depends(require_admin)) -> dict:
+    """
+    后台兜底：即使用户未出现在 admin 列表/未同步 contacts，也能按 user_id 查询 quota/VIP 状态。
+    """
+    try:
+        db.downgrade_expired_vip_plan(int(user_id))
+    except Exception:
+        pass
+    return {"ok": True, "user_id": int(user_id), "quota": db.get_quota_status(int(user_id))}
 

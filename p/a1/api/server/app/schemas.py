@@ -141,3 +141,21 @@ class PayNativeOut(BaseModel):
     priced_amount_yuan_display: str
     plan: str
 
+
+class PayWapIn(BaseModel):
+    """支付宝 H5 下单：与 quota.plan 口径一致（体验 / 月 / 年）。"""
+
+    plan: str = Field(min_length=6, max_length=32)
+
+
+class PayWapOut(BaseModel):
+    out_trade_no: str
+    pay_url: str
+    # 真值：用于对账/返佣/日志
+    amount_fen: int
+    priced_amount_fen: int
+    # 展示：用于前台/后台避免看错（字符串，已按 2 位小数格式化）
+    amount_yuan_display: str
+    priced_amount_yuan_display: str
+    plan: str
+

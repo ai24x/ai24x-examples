@@ -44,13 +44,59 @@
     @media (min-width: 981px){
       .hero-copy{ min-width: 340px; }
     }
-    .hero-copy h1{ font-size: 18px; margin: 0 0 8px; }
+    .hero-head{
+      display:flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 0 0 8px;
+    }
+    .hero-copy h1{ font-size: 18px; margin: 0; }
+    .gold-chip{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      color: rgba(24,18,6,.95);
+      background: linear-gradient(135deg, rgba(251,191,36,.95), rgba(250,204,21,.92));
+      border: 1px solid rgba(251,191,36,.45);
+      box-shadow: 0 8px 18px rgba(251,191,36,.18);
+      white-space: nowrap;
+      text-decoration: none;
+    }
+    .vip-cta{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      text-decoration: none;
+      color: rgba(24,18,6,.98);
+      background: linear-gradient(135deg, rgba(255,214,102,1), rgba(251,191,36,.95));
+      border: 1px solid rgba(251,191,36,.55);
+      box-shadow: 0 10px 20px rgba(251,191,36,.22);
+    }
+    .vip-cta:hover{ filter: brightness(1.03); transform: translateY(-1px); }
+    .vip-cta:active{ transform: translateY(0); filter: brightness(0.98); }
+    .vip-cta .dot{
+      width: 6px; height: 6px; border-radius: 999px;
+      background: rgba(255,255,255,.85);
+      box-shadow: 0 0 0 3px rgba(255,255,255,.22);
+    }
     .hero-copy p{ margin: 0; }
     .hero-art{
       flex: 0 0 auto;
       width: 1040px;
       max-width: 100%;
-      min-height: 420px;
+      height: clamp(260px, 36vw, 420px);
+      aspect-ratio: 1040 / 420;
       border: 1px solid var(--border);
       background: var(--panel2);
       border-radius: 14px;
@@ -64,6 +110,9 @@
     @media (max-width: 980px){
       .hero-art{ width: 100%; max-width: 100%; }
       .hero-split{ flex-direction: column; }
+    }
+    @media (max-width: 520px){
+      .hero-art{ height: clamp(220px, 56vw, 340px); }
     }
 
     .feature-list{
@@ -260,7 +309,12 @@
         <section class="card">
           <div class="hero-split">
             <div class="hero-copy">
-              <h1>AI 行情官｜灯塔版（1.01）</h1>
+              <div class="hero-head">
+                <h1>AI 行情官｜灯塔版（1.01）</h1>
+                <div style="display:flex; gap:8px; align-items:center;">
+                  <a class="vip-cta" href="./demo.html?from=home"><span class="dot"></span>行情查询</a>
+                </div>
+              </div>
               <p>AI24X 旗下智能行情分析工具，专注 K 线形态、均线系统与技术指标的信号参考与可视化展示。仅提供客观行情数据与技术分析参考，供学习研究使用，不构成任何投资建议。</p>
             </div>
             <div class="hero-art" id="hero-art" aria-hidden="true">
@@ -350,16 +404,16 @@
 
           <div class="feature-list" aria-label="产品要点">
             <div class="feature">
-              <div class="t">灯塔提示</div>
-              <div class="p">用更清晰的信号与结构，辅助你做中线节奏判断。</div>
+              <div class="t">AI灯塔信号</div>
+              <div class="p">把海量行情压缩成“可执行的要点”：趋势结构、关键价位与风险提示，先把关键信息看清。</div>
             </div>
             <div class="feature">
-              <div class="t">同域调用</div>
-              <div class="p">页面与服务同子域部署，访问更稳定、体验更顺滑。</div>
+              <div class="t">AI辅助研判</div>
+              <div class="p">用系统化视角帮你“补齐盲区”：多周期对照、指标联动与信号解读，让判断更有依据。</div>
             </div>
             <div class="feature">
-              <div class="t">稳态优先</div>
-              <div class="p">缓存 + 去重 + 熔断，优先保证可用与一致的体验。</div>
+              <div class="t">稳态引擎</div>
+              <div class="p">面向实战的稳定性：同域部署、缓存加速与保护机制，高峰期也能保持响应与连续体验。</div>
             </div>
           </div>
 

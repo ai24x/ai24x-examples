@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex,nofollow,noarchive" />
   <title>AI 行情官｜灯塔版（1.01）</title>
+  <meta name="description" content="AI24X 行情查询：趋势结构/关键位/风险提示，一页看清（学习交流，不构成任何建议）。" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="AI24X" />
+  <meta property="og:title" content="AI24X 行情查询" />
+  <meta property="og:description" content="趋势结构/关键位/风险提示，一页看清（学习交流，不构成任何建议）。" />
+  <meta property="og:image" content="./img/share-preview.svg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" href="data:," />
   <link rel="stylesheet" href="css/base.css" />
   <link rel="stylesheet" href="css/tool.css" />
@@ -252,6 +261,80 @@
       opacity: 0.5;
       cursor: not-allowed;
     }
+    /* Share CTA: align with homepage "行情查询" button (vip-cta vibe) */
+    .search-row #btn-share{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 20px; /* keep identical height/shape with #btn-search */
+      border-radius: 6px; /* keep identical shape with #btn-search */
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      color: rgba(24,18,6,.98);
+      background: linear-gradient(135deg, rgba(255,214,102,1), rgba(251,191,36,.95));
+      border: 1px solid rgba(251,191,36,.55);
+      box-shadow: 0 10px 20px rgba(251,191,36,.22);
+    }
+    .search-row #btn-share:hover{
+      filter: brightness(1.03);
+      transform: translateY(-1px);
+    }
+    .search-row #btn-share:active{
+      transform: translateY(0);
+      filter: brightness(0.98);
+    }
+    .search-row #btn-share .dot{
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.88);
+      box-shadow: 0 0 0 3px rgba(255,255,255,.22);
+      flex: 0 0 auto;
+    }
+
+    /* Share overlay: ensure fixed centered modal (avoid "drifting" to bottom) */
+    #share-overlay.pw-modal{
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px 14px;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      overflow: auto;
+    }
+    #share-overlay.pw-modal[hidden]{ display: none !important; }
+    #share-overlay .pw-modal-panel{
+      width: min(560px, calc(100vw - 28px));
+      max-width: 560px;
+      margin: auto;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(18, 22, 29, 0.96);
+      box-shadow: 0 18px 50px rgba(0,0,0,0.55);
+      color: var(--text);
+      padding: 14px 14px 12px;
+      box-sizing: border-box;
+    }
+    #share-overlay .pw-modal-panel .btn{
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      cursor: pointer;
+    }
+    #share-overlay .pw-modal-panel .btn.primary{
+      background: rgba(251,191,36,0.92);
+      border-color: rgba(251,191,36,0.65);
+      color: rgba(24,18,6,.98);
+      font-weight: 900;
+    }
     .sample-chips {
       display: flex;
       flex-wrap: wrap;
@@ -388,7 +471,7 @@
       background: var(--border);
       flex-shrink: 0;
     }
-    /* 与 K 线标记一致：小圆点 + 箭头（买向上，卖/险/高向下） */
+    /* 与 K 线标记一致：小圆点 + 箭头（B 向上，S/险/顶向下） */
     .quote-title .qt-pair {
       display: inline-flex;
       flex-direction: row;
@@ -464,8 +547,8 @@
     }
     .quote-title .qt-c-buy {
       color: #ff3d5c;
-      font-weight: 700;
-      text-shadow: 0 0 10px rgba(255, 61, 92, 0.55);
+      font-weight: 900;
+      text-shadow: 0 0 12px rgba(255, 61, 92, 0.65);
     }
     .quote-title .qt-c-bottom {
       color: #38bdf8;
@@ -479,8 +562,8 @@
     }
     .quote-title .qt-c-sell {
       color: #00e68a;
-      font-weight: 700;
-      text-shadow: 0 0 10px rgba(0, 230, 138, 0.45);
+      font-weight: 900;
+      text-shadow: 0 0 12px rgba(0, 230, 138, 0.55);
     }
     .quote-title .qt-c-risk {
       color: #ffb300;
@@ -489,8 +572,8 @@
     }
     .quote-title .qt-c-high {
       color: #ff0090;
-      font-weight: 700;
-      text-shadow: 0 0 10px rgba(255, 0, 144, 0.5);
+      font-weight: 900;
+      text-shadow: 0 0 12px rgba(255, 0, 144, 0.60);
     }
     .quote-title .qt-band {
       flex-shrink: 0;
@@ -1087,11 +1170,45 @@
         min-height: 240px;
       }
     }
+
+    /* Compliance disclaimer (always visible, non-blocking) */
+    .disclaimer-bar{
+      margin: 0 0 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(251, 191, 36, 0.55);
+      background: linear-gradient(90deg, rgba(251, 191, 36, 0.22), rgba(245, 158, 11, 0.12));
+      color: rgba(11, 18, 32, 0.90);
+      font-size: 13px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .disclaimer-bar b{ font-weight: 900; color: #92400e; }
+    .disclaimer-bar .x{
+      border: 1px solid rgba(17,24,39,.18);
+      background: rgba(255,255,255,.65);
+      color: #0b1220;
+      border-radius: 999px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-weight: 900;
+      font-size: 12px;
+      line-height: 1;
+      flex: 0 0 auto;
+    }
+    .disclaimer-bar .x:hover{ background: rgba(255,255,255,.85); }
   </style>
 </head>
 <body>
   <header class="site-header" id="site-header"></header>
   <main class="wrap page-main">
+    <div class="disclaimer-bar" id="disclaimer-bar" role="note" aria-label="风险提示">
+      <span>【<b>内容仅供学习交流，不构成任何建议</b>】</span>
+      <button type="button" class="x" id="disclaimer-close">我知道了</button>
+    </div>
     <div class="top-alert" id="top-alert" role="status" aria-live="polite">
       <span class="icon" aria-hidden="true">!</span>
       <span class="msg" id="top-alert-msg">
@@ -1137,6 +1254,7 @@
       <div class="search-row">
         <input type="text" id="stock-query" placeholder="代码或简称，例如 600519 / 上证指数" autocomplete="off" />
         <button type="button" id="btn-search">查询</button>
+        <button type="button" id="btn-share" title="分享当前页面"><span class="dot" aria-hidden="true"></span>分享</button>
         <div id="quote-status" class="ok" role="status"></div>
       </div>
       <div class="sample-chips" aria-label="快捷填入示例">
@@ -1154,9 +1272,9 @@
         <div id="chart-wrap"></div>
         <div class="signal-legend" aria-label="K 线信号颜色说明">
           <span class="sig-item"><i class="sig-dot sig-absorb" aria-hidden="true"></i>小底（提前关注）</span>
-          <span class="sig-item"><i class="sig-dot sig-bottom" aria-hidden="true"></i>底（潜伏）</span>
-          <span class="sig-item"><i class="sig-dot sig-buy" aria-hidden="true"></i>买（看多）</span>
-          <span class="sig-item"><i class="sig-dot sig-sell" aria-hidden="true"></i>卖（看空）</span>
+          <span class="sig-item"><i class="sig-dot sig-bottom" aria-hidden="true"></i>底（低位关注）</span>
+          <span class="sig-item"><i class="sig-dot sig-buy" aria-hidden="true"></i>B（偏强）</span>
+          <span class="sig-item"><i class="sig-dot sig-sell" aria-hidden="true"></i>S（偏弱）</span>
           <span class="sig-item"><i class="sig-dot sig-risk" aria-hidden="true"></i>险（关注风险）</span>
           <span class="sig-item"><i class="sig-dot sig-high" aria-hidden="true"></i>顶（警惕高位）</span>
         </div>
@@ -1169,26 +1287,26 @@
         <div class="chart-tooltip" id="chart-tooltip" hidden role="tooltip"></div>
       </div>
       <aside class="usage-hint" id="tips" aria-label="雷神标注使用要领">
-        <p class="usage-hint-title">使用要领（非投资建议）</p>
+        <p class="usage-hint-title">使用要领（学习交流）</p>
         <div class="combo-tip" role="note">
           <strong>组合信号：</strong>
-          低位「底 + 买」= <strong>机会</strong>；中位「险 + 卖」= <strong>控仓</strong>；高位「卖 + 顶」= <strong>风险</strong>；
+          低位「底 + B」= <strong>关注</strong>；中位「险 + S」= <strong>谨慎</strong>；高位「S + 顶」= <strong>风险</strong>；
           <span class="combo-tip-sub">频率越高趋势越强。</span>
         </div>
         <ul>
-          <li><strong>底系列</strong>（小底、底1、底2）：偏<strong>潜伏</strong>。适合<strong>盯住、等确认</strong>与<strong>低吸、分批</strong>。</li>
-          <li><strong>买1、买2</strong>：偏<strong>看多</strong>。适合<strong>顺势、跟随</strong>。</li>
-          <li><strong>险1、险2</strong>（尤其险2）：偏<strong>高位或结构承压</strong>，注意<strong>控仓</strong>。</li>
-          <li><strong>卖1、卖2</strong> 与 <strong>风险</strong> 若<strong>频繁、密集</strong>：偏<strong>看空</strong>，宜<strong>减仓或离场</strong>。</li>
-          <li>须<strong>结合其它指标</strong>；<strong>低位侧重买点、高位侧重卖点</strong>；风格以<strong>中线波段</strong>为主。</li>
+          <li><strong>底系列</strong>（小底、底1、底2）：偏<strong>低位关注</strong>。适合<strong>盯住、等确认</strong>与<strong>分段观察</strong>。</li>
+          <li><strong>B1、B2</strong>：偏<strong>强</strong>。适合<strong>顺势、跟随</strong>与<strong>观察结构是否延续</strong>。</li>
+          <li><strong>险1、险2</strong>（尤其险2）：偏<strong>高位或结构承压</strong>，建议<strong>谨慎</strong>。</li>
+          <li><strong>S1、S2</strong> 与 <strong>风险</strong> 若<strong>频繁、密集</strong>：偏<strong>弱</strong>，建议<strong>谨慎回避</strong>。</li>
+          <li>须<strong>结合其它指标</strong>；<strong>低位侧重确认、高位侧重风险</strong>；风格以<strong>中线波段</strong>为主。</li>
         </ul>
-        <p class="usage-hint-note">K 线缩写：小底、底1/2、买1/2、卖1/2、险1/2、顶2；颜色与图例一致。</p>
+        <p class="usage-hint-note">K 线缩写：小底、底1/2、B1/2、S1/2、险1/2、顶2；颜色与图例一致。B/S 为信号标记（偏强/偏弱），用于学习交流。</p>
       </aside>
     </section>
 
     <div class="hint" style="margin-top:12px">
       行情与指标，一目了然
-      <span style="margin-left:10px; opacity:.85">仅供学习研究，不构成投资建议；投资有风险，决策需谨慎。</span>
+      <span style="margin-left:10px; opacity:.85">内容仅供学习交流，不构成任何建议；请自行判断。</span>
     </div>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
@@ -1694,6 +1812,37 @@
   }
 
   var AUTH_TOKEN_KEY = 'ai24x_a_token';
+  var __planTitleMap = null;
+  var __lastQuotaPlanCode = '';
+
+  function __planTitle(planCode) {
+    var p = String(planCode || '').trim();
+    if (!p) return '-';
+    try {
+      if (__planTitleMap && __planTitleMap[p]) return String(__planTitleMap[p]);
+    } catch (e) {}
+    return p;
+  }
+
+  function __loadBillingPlans() {
+    return fetch(API_BASE + '/api/public/billing/plans', { method: 'GET', cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.ok || !d.plans) return;
+        __planTitleMap = {};
+        try {
+          Object.keys(d.plans).forEach(function (k) {
+            var it = d.plans[k] || {};
+            __planTitleMap[k] = String(it.title || k);
+          });
+        } catch (e) {}
+        try {
+          var qp = document.getElementById('q-plan');
+          if (qp && __lastQuotaPlanCode) qp.textContent = __planTitle(__lastQuotaPlanCode);
+        } catch (e2) {}
+      })
+      .catch(function () {});
+  }
 
   function setQuotaPill(q) {
     try {
@@ -1708,10 +1857,14 @@
       }
       qd.textContent = String(q.remaining_day != null ? q.remaining_day : '-');
       qw.textContent = String(q.remaining_week != null ? q.remaining_week : q.remaining_month != null ? q.remaining_month : '-');
-      qp.textContent = String(q.plan || '-');
+      try { __lastQuotaPlanCode = String(q.plan || '').trim(); } catch (e0) { __lastQuotaPlanCode = ''; }
+      qp.textContent = __planTitle(__lastQuotaPlanCode || '-');
       kv.hidden = false;
     } catch (e) {}
   }
+
+  // Non-blocking: load plan titles for display.
+  __loadBillingPlans();
 
   (function initTopbarState() {
     try {
@@ -1846,7 +1999,11 @@
             // 扣次失败不影响展示（但后续应在后端日志排查）
             return null;
           })
-          .then(function () {
+          .then(function (qr) {
+            // Update quota pill immediately after a successful consume.
+            try {
+              if (qr && qr.quota) setQuotaPill(qr.quota);
+            } catch (e0) {}
             return data;
           });
       });
@@ -3310,7 +3467,7 @@
   var LS_COL_SELL = '#00e68a';
   var LS_COL_RISK = '#ffb300';
   var LS_COL_HIGH = '#ff0090';
-  /** 短周期 5/10/20 衍生「底」提示，与雷神买信号独立 */
+  /** 短周期 5/10/20 衍生「底」提示，与雷神 B 信号独立 */
   var LS_COL_BOTTOM = '#38bdf8';
   /** 底候（小底）：更早、更弱的提示 */
   var LS_COL_BOTTOM_HINT = '#22c55e';
@@ -3566,23 +3723,23 @@
       '<span class="qt-item-label">关注</span></span>' +
       '<span class="qt-sep-dot" aria-hidden="true">·</span>' +
       '<span class="qt-item">' +
-      qtIconPair('bottom', '底', 'qt-c-bottom') +
-      '<span class="qt-item-label">潜伏</span></span>' +
+      qtIconPair('bottom', '【底】', 'qt-c-bottom') +
+      '<span class="qt-item-label">低位关注</span></span>' +
       '<span class="qt-sep-dot" aria-hidden="true">·</span>' +
       '<span class="qt-item">' +
-      qtIconPair('buy', '买', 'qt-c-buy') +
-      '<span class="qt-item-label">看多</span></span>' +
+      qtIconPair('buy', '𝐁', 'qt-c-buy') +
+      '<span class="qt-item-label">偏强</span></span>' +
       '<span class="qt-sep-dot" aria-hidden="true">·</span>' +
       '<span class="qt-item">' +
       qtIconPair('risk', '险', 'qt-c-risk') +
-      '<span class="qt-item-label">控仓</span></span>' +
+      '<span class="qt-item-label">谨慎</span></span>' +
       '<span class="qt-sep-dot" aria-hidden="true">·</span>' +
       '<span class="qt-item">' +
-      qtIconPair('sell', '卖', 'qt-c-sell') +
-      '<span class="qt-item-label">看空</span></span>' +
+      qtIconPair('sell', '𝐒', 'qt-c-sell') +
+      '<span class="qt-item-label">偏弱</span></span>' +
       '<span class="qt-sep-dot" aria-hidden="true">·</span>' +
       '<span class="qt-item">' +
-      qtIconPair('high', '顶', 'qt-c-high') +
+      qtIconPair('high', '【顶】', 'qt-c-high') +
       '<span class="qt-item-label">预警</span></span>' +
       '</div>' +
       '<span class="qt-use-vrule" aria-hidden="true"></span>' +
@@ -3603,6 +3760,45 @@
     }
   }
 
+  // 风控展示层：把后端信号文本收敛为更中性、平台更友好的口径（不改算法，只改展示）
+  function normalizeSignalText(s) {
+    s = s == null ? '' : String(s);
+    if (!s) return s;
+    // keep short, deterministic replacements
+    s = s.replace(/看多/g, '偏强');
+    s = s.replace(/看空/g, '偏弱');
+    s = s.replace(/控仓/g, '谨慎');
+    s = s.replace(/潜伏/g, '低位关注');
+    s = s.replace(/机会/g, '关注');
+    s = s.replace(/低吸/g, '分段观察');
+    s = s.replace(/减仓/g, '谨慎');
+    s = s.replace(/离场/g, '回避');
+    // 买/卖 -> B/S（先处理带数字的常见缩写）
+    s = s.replace(/买([12])/g, 'B$1');
+    s = s.replace(/卖([12])/g, 'S$1');
+    // then any remaining standalone chars
+    s = s.replace(/买/g, 'B');
+    s = s.replace(/卖/g, 'S');
+    // Make key markers more visible on canvas (CSS doesn't apply to series markers text).
+    // Use Unicode bold letters for B/S, and bracket for 顶 to increase visual weight.
+    try {
+      s = s.replace(/\bB([12])?\b/g, '𝐁$1');
+      s = s.replace(/\bS([12])?\b/g, '𝐒$1');
+    } catch (e0) {}
+    try {
+      // 底 / 底2 (but keep 小底 unchanged)
+      var tok = '__AI24X_XIAODI__';
+      s = s.replace(/小底/g, tok);
+      s = s.replace(/底([12])?/g, '【底】$1');
+      s = s.replace(new RegExp(tok, 'g'), '小底');
+    } catch (eB) {}
+    try {
+      // 顶 / 顶2
+      s = s.replace(/顶([12])?/g, '【顶】$1');
+    } catch (e1) {}
+    return s;
+  }
+
   /**
    * 主图 K 线唯一管道：当前周期 rows → 蜡烛 + 量。蜡烛图、均线、雷神标记、十字光标均共用此结果，
    * 不得对 K 线另起一套计算。
@@ -3618,6 +3814,25 @@
     var pack = result.pack;
     var key = result.tencentKey;
     var rows = pack[meta.arrKey];
+    try {
+      // Best-effort: update share title/description for browsers that honor dynamic meta.
+      // (Some share crawlers won't execute JS; static og:* meta above remains the fallback.)
+      var nm = '';
+      try { nm = String((result && result.name) || (quoteDisplayHint && quoteDisplayHint.name) || '').trim(); } catch (e0) { nm = ''; }
+      if (!nm) {
+        try { nm = String(inputEl && inputEl.value ? inputEl.value : '').trim(); } catch (e1) { nm = ''; }
+      }
+      var perZh = (period === 'week' ? '周线' : period === 'month' ? '月线' : '日线');
+      var t = (nm ? (nm + ' · ' + perZh + '｜AI24X 行情查询') : ('AI24X 行情查询 · ' + perZh));
+      document.title = t;
+      var desc = '趋势结构/关键位/风险提示，一页看清（学习交流，不构成任何建议）。';
+      var mt = document.querySelector('meta[property="og:title"]');
+      var md = document.querySelector('meta[property="og:description"]');
+      var mdesc = document.querySelector('meta[name="description"]');
+      if (mt) mt.setAttribute('content', t);
+      if (md) md.setAttribute('content', desc);
+      if (mdesc) mdesc.setAttribute('content', desc);
+    } catch (eMeta) {}
     if (!rows || !rows.length) {
       disposeChart();
       var stbEmpty = document.getElementById('short-term-bar');
@@ -3705,10 +3920,26 @@
       .then(function (sd) {
         try {
           var mk = sd && sd.data && sd.data.markers ? sd.data.markers : [];
+          try {
+            if (mk && mk.length) {
+              mk = mk.map(function (m) {
+                if (!m) return m;
+                var mm = {};
+                try { for (var k in m) mm[k] = m[k]; } catch (e0) { mm = m; }
+                if (mm && mm.text != null) mm.text = normalizeSignalText(mm.text);
+                return mm;
+              });
+            }
+          } catch (eMkN) {}
           if (series && typeof series.setMarkers === 'function') {
             series.setMarkers(mk || []);
           }
           var lbs = sd && sd.data && sd.data.bar_labels ? sd.data.bar_labels : null;
+          try {
+            if (lbs && lbs.length) {
+              lbs = lbs.map(function (x) { return normalizeSignalText(x); });
+            }
+          } catch (eLbN) {}
           try {
             setupChartTooltip(chart, series, mainChartCandles, mainChartVols, lbs, null);
           } catch (eLb) {}
@@ -3804,6 +4035,61 @@
   }
 
   var LAST_QUERY_KEY = 'ai24x_a_last_query';
+  var GUEST_VIEWS_KEY_PREFIX = 'ai24x_demo_guest_views_day_';
+  var GUEST_VIEWS_MAX_PER_DAY = 3;
+
+  function isAuthed() {
+    try {
+      var t = '';
+      if (typeof localStorage !== 'undefined') t = localStorage.getItem(AUTH_TOKEN_KEY) || '';
+      return !!String(t || '').trim();
+    } catch (e) {}
+    return false;
+  }
+
+  function guestViewsKeyToday() {
+    try {
+      var d = new Date();
+      function p2(n) { return (n < 10 ? '0' : '') + n; }
+      var k = d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate());
+      return GUEST_VIEWS_KEY_PREFIX + k;
+    } catch (e) {
+      return GUEST_VIEWS_KEY_PREFIX + 'unknown';
+    }
+  }
+
+  function guestViewsGet() {
+    try {
+      if (typeof localStorage === 'undefined') return 0;
+      var v = parseInt(localStorage.getItem(guestViewsKeyToday()) || '0', 10);
+      return isNaN(v) || v < 0 ? 0 : v;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  function guestViewsInc() {
+    try {
+      if (typeof localStorage === 'undefined') return;
+      var cur = guestViewsGet();
+      localStorage.setItem(guestViewsKeyToday(), String(cur + 1));
+    } catch (e) {}
+  }
+
+  function guestViewsCanUse() {
+    return guestViewsGet() < GUEST_VIEWS_MAX_PER_DAY;
+  }
+
+  function showGuestLimitUpsell() {
+    var used = guestViewsGet();
+    var txt =
+      '游客免登录查看已达上限（今日 ' +
+      used +
+      '/' +
+      GUEST_VIEWS_MAX_PER_DAY +
+      ' 次）。请先登录/注册后继续使用，并可绑定参考码获取更多次数。';
+    showQuotaUpsell(txt);
+  }
 
   function setUrlState(secid, period) {
     try {
@@ -3830,6 +4116,188 @@
     }
   }
 
+  function copyText(s) {
+    s = String(s || "");
+    if (!s) return Promise.reject(new Error("empty"));
+    if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(s);
+    }
+    var ta = document.createElement("textarea");
+    ta.value = s;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand("copy");
+      return Promise.resolve();
+    } finally {
+      document.body.removeChild(ta);
+    }
+  }
+
+  function sharePayload() {
+    var t = "";
+    try {
+      if (quoteTitleEl) t = String(quoteTitleEl.textContent || "").trim();
+    } catch (e) {}
+    var title = t ? ("AI24X 行情查询 · " + t) : "AI24X 行情查询";
+    var url = "";
+    try { url = String(location.href); } catch (e2) { url = ""; }
+    var compliance = "【内容仅供学习交流，不构成任何建议】";
+    var text =
+      (t ? (t + "｜") : "") +
+      "一键看趋势结构/关键位/风险提示（忙的时候快速看重点）。\n" +
+      "打开直接看：" + url + "\n" +
+      compliance;
+    var period = "";
+    try { period = String(currentPeriod || (readUrlState() ? readUrlState().period : '') || 'day'); } catch (eP) { period = 'day'; }
+    return { title: title, text: text, url: url, compliance: compliance, quote: t, period: period, invite_code: "" };
+  }
+
+  // Share modal (templates + QR)
+  var shareOverlay = null;
+  var btnShareClose = null;
+  var shareTpl = null;
+  var shareTextEl = null;
+  var shareQr = null;
+  var btnShareCopyText = null;
+  var btnShareCopyLink = null;
+  var shareStatusEl = null;
+  var shareMetaEl = null;
+
+  function shareOverlayOpen() {
+    try { if (shareOverlay) shareOverlay.hidden = false; } catch (e) {}
+    try { document.body && (document.body.style.overflow = 'hidden'); } catch (e2) {}
+  }
+  function shareOverlayClose() {
+    try { if (shareOverlay) shareOverlay.hidden = true; } catch (e) {}
+    try { document.body && (document.body.style.overflow = ''); } catch (e2) {}
+  }
+  function setShareStatus(s) { try { if (shareStatusEl) shareStatusEl.textContent = String(s || ""); } catch (e) {} }
+
+  function shareBuildText(kind, p) {
+    var url = String(p && p.url ? p.url : "").trim();
+    var q = String(p && p.quote ? p.quote : "").trim();
+    var inv = String(p && p.invite_code ? p.invite_code : "").trim();
+    var head = q ? ("AI24X 行情查询 · " + q) : "AI24X 行情查询";
+    var compliance = "【内容仅供学习交流，不构成任何建议】";
+    if (kind === "group") {
+      return (
+        head + "\n" +
+        "趋势结构/关键位/风险提示，一页看清（学习交流）。\n" +
+        (inv ? ("参考码：" + inv + "\n") : "") +
+        "链接：" + url + "\n" +
+        "免登录可看有限次数；想长期使用建议注册并绑定参考码。\n" +
+        compliance
+      );
+    }
+    if (kind === "moments") {
+      return (
+        (q ? (q + "｜") : "") +
+        "趋势结构/关键位/风险提示，一页看清（学习交流）。\n" +
+        (inv ? ("参考码：" + inv + "\n") : "") +
+        "链接：" + url + "\n" +
+        compliance
+      );
+    }
+    // dm
+    return (
+      head + "\n" +
+      "趋势结构/关键位/风险提示，一页看清（学习交流）。\n" +
+      (inv ? ("参考码：" + inv + "\n") : "") +
+      "链接：" + url + "\n" +
+      compliance
+    );
+  }
+
+  function buildShareUrlWithInvite(url, code) {
+    try {
+      var u = new URL(String(url || ''), String(location.href));
+      var c = String(code || '').trim().toUpperCase();
+      if (c) u.searchParams.set('i', c);
+      return u.toString();
+    } catch (e) {
+      return String(url || '');
+    }
+  }
+
+  function fetchMyInviteCode() {
+    if (!isAuthed()) return Promise.resolve("");
+    return fetch(API_BASE + "/api/invite/my_code", { method: "GET", cache: "no-store", headers: authHeaders() })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        var c = d && d.code ? String(d.code || "").trim().toUpperCase() : "";
+        return c;
+      })
+      .catch(function () { return ""; });
+  }
+
+  function shareRender(p) {
+    var kind = "dm";
+    try { kind = shareTpl ? String(shareTpl.value || "dm") : "dm"; } catch (e) {}
+    var txt = shareBuildText(kind, p);
+    try { if (shareTextEl) shareTextEl.value = txt; } catch (e2) {}
+  }
+
+  function doShare() {
+    var p = sharePayload();
+    if (!shareOverlay) {
+      try {
+        shareOverlay = document.getElementById("share-overlay");
+        btnShareClose = document.getElementById("btn-share-close");
+        shareTpl = document.getElementById("share-template");
+        shareTextEl = document.getElementById("share-text");
+        shareQr = document.getElementById("share-qr");
+        btnShareCopyText = document.getElementById("btn-share-copy-text");
+        btnShareCopyLink = document.getElementById("btn-share-copy-link");
+        shareStatusEl = document.getElementById("share-status");
+        shareMetaEl = document.getElementById("share-meta");
+
+        if (btnShareClose) btnShareClose.addEventListener("click", shareOverlayClose);
+        if (shareOverlay) {
+          shareOverlay.addEventListener("click", function (ev) {
+            if (ev.target === shareOverlay) shareOverlayClose();
+          });
+        }
+        if (shareTpl) shareTpl.addEventListener("change", function () { shareRender(p); });
+        if (btnShareCopyText) btnShareCopyText.addEventListener("click", function () {
+          var txt = shareTextEl ? String(shareTextEl.value || "") : "";
+          copyText(txt)
+            .then(function () { setShareStatus("已复制文案"); })
+            .catch(function () { setShareStatus("复制失败"); });
+        });
+        if (btnShareCopyLink) btnShareCopyLink.addEventListener("click", function () {
+          copyText(p.url)
+            .then(function () { setShareStatus("已复制链接"); })
+            .catch(function () { setShareStatus("复制失败"); });
+        });
+      } catch (e0) {}
+    }
+    setShareStatus("准备分享内容…");
+    fetchMyInviteCode().then(function (code) {
+      try {
+        if (code) {
+          p.invite_code = code;
+          p.url = buildShareUrlWithInvite(p.url, code);
+        }
+      } catch (e0) {}
+      try {
+        if (shareQr) shareQr.src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=" + encodeURIComponent(p.url);
+      } catch (e1) {}
+      shareRender(p);
+      shareOverlayOpen();
+      try {
+        if (shareMetaEl) {
+          var used = guestViewsGet();
+          var guestTip = "游客免登录：今日已用 " + used + "/" + GUEST_VIEWS_MAX_PER_DAY + " 次";
+          shareMetaEl.textContent = code ? ("参考码 " + code + " · " + guestTip) : (guestTip + "；登录后可生成专属参考码");
+        }
+      } catch (eM) {}
+      setShareStatus(code ? ("参考码 " + code + " 已加入分享") : "提示：登录后可生成专属参考码");
+    });
+  }
+
   function saveLastQuery(secid, period, hint) {
     try {
       var o = {
@@ -3844,6 +4312,20 @@
   }
 
   function loadBySecid(secid, displayHint, opts) {
+    opts = opts || {};
+    try {
+      if (opts.consume == null) opts.consume = true;
+      if (opts.guest_count == null) opts.guest_count = !!opts.consume;
+    } catch (e0) {}
+
+    // Guest mode: allow view without login, but limit by day count.
+    if (!isAuthed()) {
+      if (opts.guest_count && !guestViewsCanUse()) {
+        showGuestLimitUpsell();
+        return Promise.reject(new Error('guest_limit'));
+      }
+      opts = Object.assign({}, opts, { consume: false });
+    }
     currentSecid = secid;
     quoteDisplayHint =
       displayHint && displayHint.name
@@ -3869,6 +4351,9 @@
     return loadTencentFqPack(secid, currentPeriod, opts).then(function (res) {
       periodTabsEl.classList.remove('disabled');
       renderPack(res);
+      try {
+        if (!isAuthed() && opts && opts.guest_count) guestViewsInc();
+      } catch (eG) {}
       // Persist the last successful query for refresh continuity.
       saveLastQuery(secid, currentPeriod, quoteDisplayHint);
       setUrlState(secid, currentPeriod);
@@ -3891,9 +4376,15 @@
     setLoadError('');
     setSoftLoading(true);
     showOfflineHintIfNeeded();
-    return loadTencentFqPack(currentSecid, currentPeriod, { consume: true })
+    if (!isAuthed() && !guestViewsCanUse()) {
+      showGuestLimitUpsell();
+      setSoftLoading(false);
+      return Promise.resolve();
+    }
+    return loadTencentFqPack(currentSecid, currentPeriod, isAuthed() ? { consume: true } : { consume: false })
       .then(function (res) {
         renderPack(res);
+        try { if (!isAuthed()) guestViewsInc(); } catch (eG) {}
       })
       .catch(function (e) {
         var m = e && (e.message || String(e)) ? String(e.message || String(e)) : '';
@@ -4268,8 +4759,60 @@
       }
     });
   }
+  try {
+    var btnShare = document.getElementById("btn-share");
+    if (btnShare) btnShare.addEventListener("click", doShare);
+  } catch (eS) {}
   loadDefaultShanghaiIndex();
 })();
+  </script>
+
+  <div id="share-overlay" class="pw-modal" hidden>
+    <div class="pw-modal-panel" style="max-width:560px;">
+      <h2 style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <span>一键分享</span>
+        <button class="btn" type="button" id="btn-share-close">关闭</button>
+      </h2>
+      <p class="sub" style="margin:0 0 10px;">
+        选模板复制即可，适合微信/群聊转发。
+      </p>
+      <div class="muted small" id="share-meta" style="margin:-6px 0 10px;">
+        游客免登录：每日可看 3 次；登录后可生成专属参考码
+      </div>
+      <div class="row" style="gap:10px; flex-wrap:wrap; align-items:center;">
+        <select id="share-template">
+          <option value="dm">私聊</option>
+          <option value="group">群聊</option>
+          <option value="moments">朋友圈</option>
+        </select>
+        <button class="btn primary" type="button" id="btn-share-copy-text">复制文案</button>
+        <button class="btn" type="button" id="btn-share-copy-link">复制链接</button>
+        <span class="muted small" id="share-status"></span>
+      </div>
+      <textarea id="share-text" rows="6" style="margin-top:10px; width:100%; font-family: ui-monospace, monospace; font-size: 12px;"></textarea>
+      <div style="margin-top:12px; text-align:center;">
+        <div class="muted small" style="margin-bottom:8px;">二维码（微信内可直接扫一扫/长按识别）</div>
+        <img id="share-qr" alt="分享二维码" width="220" height="220" style="display:inline-block; border-radius:12px; border:1px solid var(--border); background:#fff; padding:8px;" />
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      try {
+        var k = "ai24x_demo_disclaimer_ack_v1";
+        var bar = document.getElementById("disclaimer-bar");
+        var btn = document.getElementById("disclaimer-close");
+        if (!bar) return;
+        var ack = "";
+        try { ack = String(localStorage.getItem(k) || ""); } catch (e) {}
+        if (ack === "1") { bar.style.display = "none"; return; }
+        if (btn) btn.addEventListener("click", function () {
+          try { localStorage.setItem(k, "1"); } catch (e2) {}
+          bar.style.display = "none";
+        });
+      } catch (e3) {}
+    })();
   </script>
 </body>
 </html>

@@ -26,9 +26,27 @@ _PRIV_KEY_PEM: str | None = None
 _PRIV_KEY_PATH: str | None = None
 
 
+def _normalize_pem(text: Any) -> str:
+    """
+    Normalize PEM text copied from consoles/admin UI.
+    - Accept single-line text containing literal "\\n"
+    - Normalize CRLF to LF
+    """
+    try:
+        s = str(text or "").strip()
+    except Exception:
+        s = ""
+    if not s:
+        return ""
+    if "\\n" in s and "-----BEGIN" in s and "\n" not in s:
+        s = s.replace("\\n", "\n")
+    s = s.replace("\r\n", "\n").replace("\r", "\n").strip()
+    return s
+
+
 def merchant_private_key_pem(s: Any) -> str:
     """优先使用库内 PEM 文本，否则读 apiclient_key 路径。"""
-    inline = (getattr(s, "wechat_mch_private_key_pem", None) or "").strip()
+    inline = _normalize_pem(getattr(s, "wechat_mch_private_key_pem", None) or "")
     if inline:
         return inline
     path = str(getattr(s, "wechat_mch_private_key_path", "") or "").strip()
@@ -54,13 +72,22 @@ def _load_private_key_pem(path: str) -> str:
     if _PRIV_KEY_PEM and _PRIV_KEY_PATH == path:
         return _PRIV_KEY_PEM
     with open(path, "r", encoding="utf-8") as f:
-        _PRIV_KEY_PEM = f.read()
+        _PRIV_KEY_PEM = _normalize_pem(f.read())
     _PRIV_KEY_PATH = path
     return _PRIV_KEY_PEM
 
 
 def _sign_authorization(private_key_pem: str, message: str) -> str:
-    key = serialization.load_pem_private_key(private_key_pem.encode("utf-8"), password=None)
+    pem = _normalize_pem(private_key_pem)
+    if not pem or "-----BEGIN" not in pem:
+        raise RuntimeError("invalid_wechat_private_key_pem: missing PEM header/footer")
+    try:
+        key = serialization.load_pem_private_key(pem.encode("utf-8"), password=None)
+    except Exception as e:
+        raise RuntimeError(
+            "invalid_wechat_private_key_pem: Unable to load PEM file (often caused by missing header/footer, "
+            "wrong key type, or pasting a single-line string with literal \\n)."
+        ) from e
     sig = key.sign(message.encode("utf-8"), padding.PKCS1v15(), hashes.SHA256())
     return base64.b64encode(sig).decode("ascii")
 
@@ -191,6 +218,39 @@ async def native_create_order(
         payload = {"raw": r.text}
     if r.status_code >= 400:
         raise RuntimeError(f"wechat native error {r.status_code}: {payload}")
+    return payload
+
+
+async def query_transaction_by_out_trade_no(s: Any, *, out_trade_no: str) -> dict[str, Any]:
+    """
+    主动查询微信订单状态（兜底：notify 未达时可用）。
+
+    返回字段通常包含 trade_state / transaction_id / out_trade_no / amount 等。
+    """
+    if not wechat_pay_configured(s):
+        raise RuntimeError("WeChat Pay is not configured")
+    otn = str(out_trade_no or "").strip()
+    if not otn:
+        raise ValueError("missing out_trade_no")
+
+    path = f"/v3/pay/transactions/out-trade-no/{otn}?mchid={s.wechat_mch_id}"
+    url = f"{s.wechat_pay_host}{path}"
+    pem = merchant_private_key_pem(s)
+    auth = _build_auth_header(s.wechat_mch_id, s.wechat_mch_serial_no, pem, "GET", path, "")
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        r = await client.get(
+            url,
+            headers={
+                "Authorization": auth,
+                "Accept": "application/json",
+            },
+        )
+    try:
+        payload = r.json()
+    except Exception:
+        payload = {"raw": r.text}
+    if r.status_code >= 400:
+        raise RuntimeError(f"wechat query error {r.status_code}: {payload}")
     return payload
 
 

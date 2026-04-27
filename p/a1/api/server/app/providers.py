@@ -2674,6 +2674,14 @@ async def _fetch_tx_kline_core(
             if r is not None and _tencent_payload_has_rows(r):
                 return r
             if r is not None and not _tencent_payload_has_rows(r):
+                # Treat "not ready / misconfigured" paid provider as a soft-fail:
+                # continue falling back to public sources and avoid returning a misleading error.
+                try:
+                    msg = str(r.get("msg") or "").strip()
+                    if "暂未就绪" in msg or "token" in msg.lower():
+                        continue
+                except Exception:
+                    pass
                 last_err = r
         elif src == "tencent":
             r = await _try_tencent()

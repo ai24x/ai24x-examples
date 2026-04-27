@@ -184,6 +184,11 @@ def init_db() -> None:
                 CREATE TABLE IF NOT EXISTS invite_relations (
                   invitee_id BIGINT PRIMARY KEY,
                   inviter_id BIGINT NOT NULL,
+                  inviter_l1_id BIGINT,
+                  inviter_l2_id BIGINT,
+                  inviter_l3_id BIGINT,
+                  depth INTEGER NOT NULL DEFAULT 1,
+                  updated_at BIGINT NOT NULL DEFAULT 0,
                   created_at BIGINT NOT NULL
                 );
                 """
@@ -221,6 +226,9 @@ def init_db() -> None:
             # - ledgers: frequent per-user queries by time
             # - cache: enable future cleanup by expire_ts
             conn.execute("CREATE INDEX IF NOT EXISTS idx_invite_relations_inviter_id ON invite_relations(inviter_id);")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_invite_relations_l1 ON invite_relations(inviter_l1_id);")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_invite_relations_l2 ON invite_relations(inviter_l2_id);")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_invite_relations_l3 ON invite_relations(inviter_l3_id);")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_quota_ledger_user_time ON quota_ledger(user_id, consumed_at DESC);")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_reward_ledger_inviter_time ON reward_ledger(inviter_id, created_at DESC);")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_reward_ledger_inviter_type_time ON reward_ledger(inviter_id, reward_type, created_at DESC);")
@@ -276,6 +284,11 @@ def init_db() -> None:
                 CREATE TABLE IF NOT EXISTS invite_relations (
                   invitee_id INTEGER PRIMARY KEY,
                   inviter_id INTEGER NOT NULL,
+                  inviter_l1_id INTEGER,
+                  inviter_l2_id INTEGER,
+                  inviter_l3_id INTEGER,
+                  depth INTEGER NOT NULL DEFAULT 1,
+                  updated_at INTEGER NOT NULL DEFAULT 0,
                   created_at INTEGER NOT NULL,
                   FOREIGN KEY(invitee_id) REFERENCES users(id),
                   FOREIGN KEY(inviter_id) REFERENCES users(id)
@@ -312,6 +325,12 @@ def init_db() -> None:
                 );
                 """
             )
+
+        # Backfill invite ancestor cache (best-effort; idempotent).
+        try:
+            _invite_backfill_ancestors_in_conn(conn)
+        except Exception:
+            pass
 
         # Market data cache (MVP): persist successful K-line payloads for resilience across restarts.
         conn.execute(
@@ -490,6 +509,90 @@ def init_db() -> None:
             except Exception:
                 pass
 
+        # Hard migration for legacy commission_ledger UNIQUE(out_trade_no): rebuild (sqlite) or drop constraint (pg).
+        try:
+            if _is_pg():
+                try:
+                    conn.execute("ALTER TABLE commission_ledger DROP CONSTRAINT IF EXISTS commission_ledger_out_trade_no_key;")
+                except Exception:
+                    pass
+                conn.execute("ALTER TABLE commission_ledger ADD COLUMN IF NOT EXISTS level_depth INTEGER NOT NULL DEFAULT 1;")
+                conn.execute("ALTER TABLE commission_ledger ADD COLUMN IF NOT EXISTS rule_version TEXT NOT NULL DEFAULT 'v1';")
+                conn.execute("ALTER TABLE commission_ledger ADD COLUMN IF NOT EXISTS rate_source TEXT NOT NULL DEFAULT 'base';")
+                conn.execute("ALTER TABLE commission_ledger ADD COLUMN IF NOT EXISTS calc_meta TEXT NOT NULL DEFAULT '{}';")
+                conn.execute("ALTER TABLE commission_ledger ADD COLUMN IF NOT EXISTS request_id BIGINT;")
+                conn.execute(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS uq_commission_ledger_otn_agent_depth ON commission_ledger(out_trade_no, agent_user_id, level_depth);"
+                )
+            else:
+                cols = [r["name"] for r in conn.execute("PRAGMA table_info(commission_ledger)").fetchall()]
+                has_depth = "level_depth" in cols
+                legacy_unique = False
+                try:
+                    idxs = conn.execute("PRAGMA index_list(commission_ledger)").fetchall()
+                    for it in idxs or []:
+                        name = str(it["name"] or "")
+                        unique = int(it["unique"] or 0)
+                        if unique == 1 and "out_trade_no" in name:
+                            legacy_unique = True
+                            break
+                except Exception:
+                    legacy_unique = False
+                if (not has_depth) or legacy_unique:
+                    conn.execute(
+                        """
+                        CREATE TABLE IF NOT EXISTS commission_ledger__v2 (
+                          id INTEGER PRIMARY KEY AUTOINCREMENT,
+                          out_trade_no TEXT NOT NULL,
+                          agent_user_id INTEGER NOT NULL,
+                          level_depth INTEGER NOT NULL DEFAULT 1,
+                          buyer_user_id INTEGER NOT NULL,
+                          plan TEXT NOT NULL,
+                          amount_fen INTEGER NOT NULL,
+                          rate REAL NOT NULL,
+                          commission_fen INTEGER NOT NULL,
+                          rule_version TEXT NOT NULL DEFAULT 'v1',
+                          rate_source TEXT NOT NULL DEFAULT 'base',
+                          calc_meta TEXT NOT NULL DEFAULT '{}',
+                          eligible_at INTEGER NOT NULL,
+                          status TEXT NOT NULL DEFAULT 'pending',
+                          request_id INTEGER,
+                          paid_at INTEGER,
+                          paid_note TEXT NOT NULL DEFAULT '',
+                          created_at INTEGER NOT NULL,
+                          updated_at INTEGER NOT NULL,
+                          FOREIGN KEY(agent_user_id) REFERENCES users(id),
+                          FOREIGN KEY(buyer_user_id) REFERENCES users(id),
+                          UNIQUE(out_trade_no, agent_user_id, level_depth)
+                        );
+                        """
+                    )
+                    try:
+                        conn.execute(
+                            """
+                            INSERT OR IGNORE INTO commission_ledger__v2(
+                              id, out_trade_no, agent_user_id, level_depth, buyer_user_id, plan, amount_fen, rate, commission_fen,
+                              eligible_at, status, request_id, paid_at, paid_note, created_at, updated_at
+                            )
+                            SELECT
+                              id, out_trade_no, agent_user_id, 1 AS level_depth, buyer_user_id, plan, amount_fen, rate, commission_fen,
+                              eligible_at, status, NULL AS request_id, paid_at, paid_note, created_at, updated_at
+                            FROM commission_ledger;
+                            """
+                        )
+                    except Exception:
+                        pass
+                    conn.execute("DROP TABLE IF EXISTS commission_ledger;")
+                    conn.execute("ALTER TABLE commission_ledger__v2 RENAME TO commission_ledger;")
+                    try:
+                        conn.execute("CREATE INDEX IF NOT EXISTS idx_commission_ledger_agent_status_eligible ON commission_ledger(agent_user_id, status, eligible_at);")
+                        conn.execute("CREATE INDEX IF NOT EXISTS idx_commission_ledger_status_eligible ON commission_ledger(status, eligible_at);")
+                        conn.execute("CREATE INDEX IF NOT EXISTS idx_commission_ledger_out_trade_no ON commission_ledger(out_trade_no);")
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
         # Agent status (reserved): normal/senior/gold; currently MVP uses normal only.
         if _is_pg():
             conn.execute(
@@ -498,6 +601,9 @@ def init_db() -> None:
                   user_id BIGINT PRIMARY KEY,
                   level TEXT NOT NULL,
                   expires_at BIGINT,
+                  tier_points BIGINT NOT NULL DEFAULT 0,
+                  tier_updated_at BIGINT NOT NULL DEFAULT 0,
+                  tier_locked INTEGER NOT NULL DEFAULT 0,
                   updated_at BIGINT NOT NULL
                 );
                 """
@@ -511,6 +617,9 @@ def init_db() -> None:
                   user_id INTEGER PRIMARY KEY,
                   level TEXT NOT NULL,
                   expires_at INTEGER,
+                  tier_points INTEGER NOT NULL DEFAULT 0,
+                  tier_updated_at INTEGER NOT NULL DEFAULT 0,
+                  tier_locked INTEGER NOT NULL DEFAULT 0,
                   updated_at INTEGER NOT NULL,
                   FOREIGN KEY(user_id) REFERENCES users(id)
                 );
@@ -522,58 +631,106 @@ def init_db() -> None:
             except Exception:
                 pass
 
-        # Commission ledger (MVP): manual settlement; refunds/auto-payout are reserved but disabled by default.
+        # Commission ledger (multi-level): manual settlement; refunds/auto-payout are reserved but disabled by default.
         if _is_pg():
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS commission_ledger (
                   id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-                  out_trade_no TEXT NOT NULL UNIQUE,
+                  out_trade_no TEXT NOT NULL,
                   agent_user_id BIGINT NOT NULL,
+                  level_depth INTEGER NOT NULL DEFAULT 1,
                   buyer_user_id BIGINT NOT NULL,
                   plan TEXT NOT NULL,
                   amount_fen BIGINT NOT NULL,
                   rate NUMERIC NOT NULL,
                   commission_fen BIGINT NOT NULL,
+                  rule_version TEXT NOT NULL DEFAULT 'v1',
+                  rate_source TEXT NOT NULL DEFAULT 'base',
+                  calc_meta TEXT NOT NULL DEFAULT '{}',
                   eligible_at BIGINT NOT NULL,
                   status TEXT NOT NULL DEFAULT 'pending',
+                  request_id BIGINT,
                   paid_at BIGINT,
                   paid_note TEXT NOT NULL DEFAULT '',
                   created_at BIGINT NOT NULL,
-                  updated_at BIGINT NOT NULL
+                  updated_at BIGINT NOT NULL,
+                  UNIQUE(out_trade_no, agent_user_id, level_depth)
                 );
                 """
             )
             conn.execute("CREATE INDEX IF NOT EXISTS idx_commission_ledger_agent_status_eligible ON commission_ledger(agent_user_id, status, eligible_at);")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_commission_ledger_status_eligible ON commission_ledger(status, eligible_at);")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_commission_ledger_out_trade_no ON commission_ledger(out_trade_no);")
         else:
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS commission_ledger (
                   id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  out_trade_no TEXT NOT NULL UNIQUE,
+                  out_trade_no TEXT NOT NULL,
                   agent_user_id INTEGER NOT NULL,
+                  level_depth INTEGER NOT NULL DEFAULT 1,
                   buyer_user_id INTEGER NOT NULL,
                   plan TEXT NOT NULL,
                   amount_fen INTEGER NOT NULL,
                   rate REAL NOT NULL,
                   commission_fen INTEGER NOT NULL,
+                  rule_version TEXT NOT NULL DEFAULT 'v1',
+                  rate_source TEXT NOT NULL DEFAULT 'base',
+                  calc_meta TEXT NOT NULL DEFAULT '{}',
                   eligible_at INTEGER NOT NULL,
                   status TEXT NOT NULL DEFAULT 'pending',
+                  request_id INTEGER,
                   paid_at INTEGER,
                   paid_note TEXT NOT NULL DEFAULT '',
                   created_at INTEGER NOT NULL,
                   updated_at INTEGER NOT NULL,
                   FOREIGN KEY(agent_user_id) REFERENCES users(id),
                   FOREIGN KEY(buyer_user_id) REFERENCES users(id)
+                  ,
+                  UNIQUE(out_trade_no, agent_user_id, level_depth)
                 );
                 """
             )
             try:
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_commission_ledger_agent_status_eligible ON commission_ledger(agent_user_id, status, eligible_at);")
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_commission_ledger_status_eligible ON commission_ledger(status, eligible_at);")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_commission_ledger_out_trade_no ON commission_ledger(out_trade_no);")
             except Exception:
                 pass
+
+        # Soft-migration: ensure ancestor cache & tier fields exist.
+        try:
+            if _is_pg():
+                conn.execute("ALTER TABLE invite_relations ADD COLUMN IF NOT EXISTS inviter_l1_id BIGINT;")
+                conn.execute("ALTER TABLE invite_relations ADD COLUMN IF NOT EXISTS inviter_l2_id BIGINT;")
+                conn.execute("ALTER TABLE invite_relations ADD COLUMN IF NOT EXISTS inviter_l3_id BIGINT;")
+                conn.execute("ALTER TABLE invite_relations ADD COLUMN IF NOT EXISTS depth INTEGER NOT NULL DEFAULT 1;")
+                conn.execute("ALTER TABLE invite_relations ADD COLUMN IF NOT EXISTS updated_at BIGINT NOT NULL DEFAULT 0;")
+                conn.execute("ALTER TABLE agent_status ADD COLUMN IF NOT EXISTS tier_points BIGINT NOT NULL DEFAULT 0;")
+                conn.execute("ALTER TABLE agent_status ADD COLUMN IF NOT EXISTS tier_updated_at BIGINT NOT NULL DEFAULT 0;")
+                conn.execute("ALTER TABLE agent_status ADD COLUMN IF NOT EXISTS tier_locked INTEGER NOT NULL DEFAULT 0;")
+            else:
+                cols = [r["name"] for r in conn.execute("PRAGMA table_info(invite_relations)").fetchall()]
+                if "inviter_l1_id" not in cols:
+                    conn.execute("ALTER TABLE invite_relations ADD COLUMN inviter_l1_id INTEGER")
+                if "inviter_l2_id" not in cols:
+                    conn.execute("ALTER TABLE invite_relations ADD COLUMN inviter_l2_id INTEGER")
+                if "inviter_l3_id" not in cols:
+                    conn.execute("ALTER TABLE invite_relations ADD COLUMN inviter_l3_id INTEGER")
+                if "depth" not in cols:
+                    conn.execute("ALTER TABLE invite_relations ADD COLUMN depth INTEGER NOT NULL DEFAULT 1")
+                if "updated_at" not in cols:
+                    conn.execute("ALTER TABLE invite_relations ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0")
+                cols2 = [r["name"] for r in conn.execute("PRAGMA table_info(agent_status)").fetchall()]
+                if "tier_points" not in cols2:
+                    conn.execute("ALTER TABLE agent_status ADD COLUMN tier_points INTEGER NOT NULL DEFAULT 0")
+                if "tier_updated_at" not in cols2:
+                    conn.execute("ALTER TABLE agent_status ADD COLUMN tier_updated_at INTEGER NOT NULL DEFAULT 0")
+                if "tier_locked" not in cols2:
+                    conn.execute("ALTER TABLE agent_status ADD COLUMN tier_locked INTEGER NOT NULL DEFAULT 0")
+        except Exception:
+            pass
 
 
 def _day_key(ts: Optional[int] = None) -> str:
@@ -1872,12 +2029,70 @@ def _agent_commission_enabled() -> bool:
 
 
 def _agent_commission_rate_normal() -> float:
-    r = float(_cfg_float("agent_commission_rate_normal", 0.20))
-    if r < 0:
-        r = 0.0
-    if r > 0.9:
-        r = 0.9
-    return r
+    # Backward-compatible alias for L1 rate.
+    return float(_agent_commission_rate_l1())
+
+
+def _clamp_rate(r: float) -> float:
+    try:
+        rr = float(r)
+    except Exception:
+        rr = 0.0
+    if rr < 0.0:
+        rr = 0.0
+    if rr > 0.9:
+        rr = 0.9
+    return float(rr)
+
+
+def _agent_commission_rate_l1() -> float:
+    v = _cfg_float("agent_commission_rate_l1", _cfg_float("agent_commission_rate_normal", 0.20))
+    return _clamp_rate(float(v))
+
+
+def _agent_commission_rate_l2() -> float:
+    v = _cfg_float("agent_commission_rate_l2", 0.05)
+    return _clamp_rate(float(v))
+
+
+def _agent_commission_rate_l3() -> float:
+    v = _cfg_float("agent_commission_rate_l3", 0.02)
+    return _clamp_rate(float(v))
+
+
+def _agent_commission_rate_cap_total() -> float:
+    v = _cfg_float("agent_commission_rate_cap_total", 0.30)
+    return _clamp_rate(float(v))
+
+
+def _agent_commission_rates_effective() -> dict[str, float]:
+    l1 = _agent_commission_rate_l1()
+    l2 = _agent_commission_rate_l2()
+    l3 = _agent_commission_rate_l3()
+    cap = _agent_commission_rate_cap_total()
+    s = float(l1 + l2 + l3)
+    if cap > 0 and s > cap:
+        k = cap / s if s > 0 else 0.0
+        l1, l2, l3 = float(l1 * k), float(l2 * k), float(l3 * k)
+    return {"l1": float(l1), "l2": float(l2), "l3": float(l3), "cap_total": float(cap)}
+
+
+def _agent_tier_enabled() -> bool:
+    return bool(_cfg_int("agent_tier_enabled", 1) == 1)
+
+
+def _agent_tier_window_days() -> int:
+    d = int(_cfg_int("agent_tier_window_days", 30))
+    return max(7, min(d, 180))
+
+
+def _agent_tier_thresholds() -> dict[str, int]:
+    return {
+        "growth_team_gmv_fen": int(_cfg_int("agent_tier_growth_team_gmv_fen", 3000 * 100)),
+        "growth_active_direct": int(_cfg_int("agent_tier_growth_active_direct", 3)),
+        "pro_team_gmv_fen": int(_cfg_int("agent_tier_pro_team_gmv_fen", 20000 * 100)),
+        "pro_active_direct": int(_cfg_int("agent_tier_pro_active_direct", 10)),
+    }
 
 
 def _agent_settle_delay_days() -> int:
@@ -1885,11 +2100,97 @@ def _agent_settle_delay_days() -> int:
     return max(0, min(d, 90))
 
 
+def _invite_chain_for_user_in_conn(conn: Any, user_id: int) -> tuple[int | None, int | None, int | None]:
+    uid = int(user_id)
+    try:
+        row = conn.execute(
+            "SELECT inviter_id, inviter_l1_id, inviter_l2_id, inviter_l3_id FROM invite_relations WHERE invitee_id=?",
+            (uid,),
+        ).fetchone()
+        if not row:
+            return (None, None, None)
+        l1 = row["inviter_l1_id"] if row["inviter_l1_id"] is not None else row["inviter_id"]
+        l2 = row["inviter_l2_id"]
+        l3 = row["inviter_l3_id"]
+        l1i = int(l1) if l1 is not None else None
+        l2i = int(l2) if l2 is not None else None
+        l3i = int(l3) if l3 is not None else None
+        return (l1i, l2i, l3i)
+    except Exception:
+        pass
+    l1 = None
+    l2 = None
+    l3 = None
+    try:
+        r1 = conn.execute("SELECT inviter_id FROM invite_relations WHERE invitee_id=?", (uid,)).fetchone()
+        if r1 and r1["inviter_id"] is not None:
+            l1 = int(r1["inviter_id"])
+        if l1:
+            r2 = conn.execute("SELECT inviter_id FROM invite_relations WHERE invitee_id=?", (l1,)).fetchone()
+            if r2 and r2["inviter_id"] is not None:
+                l2 = int(r2["inviter_id"])
+        if l2:
+            r3 = conn.execute("SELECT inviter_id FROM invite_relations WHERE invitee_id=?", (l2,)).fetchone()
+            if r3 and r3["inviter_id"] is not None:
+                l3 = int(r3["inviter_id"])
+    except Exception:
+        return (l1, l2, l3)
+    return (l1, l2, l3)
+
+
+def _invite_backfill_ancestors_in_conn(conn: Any) -> None:
+    now = int(time.time())
+    try:
+        rows = conn.execute("SELECT invitee_id, inviter_id FROM invite_relations").fetchall()
+    except Exception:
+        return
+    for r in rows or []:
+        try:
+            invitee_id = int(r["invitee_id"])
+            inviter_id = int(r["inviter_id"])
+        except Exception:
+            continue
+        l1 = inviter_id
+        l2 = None
+        l3 = None
+        seen = {invitee_id, inviter_id}
+        try:
+            rr = conn.execute("SELECT inviter_id FROM invite_relations WHERE invitee_id=?", (inviter_id,)).fetchone()
+            if rr and rr["inviter_id"] is not None:
+                v2 = int(rr["inviter_id"])
+                if v2 not in seen:
+                    l2 = v2
+                    seen.add(v2)
+        except Exception:
+            l2 = None
+        try:
+            if l2:
+                rr = conn.execute("SELECT inviter_id FROM invite_relations WHERE invitee_id=?", (l2,)).fetchone()
+                if rr and rr["inviter_id"] is not None:
+                    v3 = int(rr["inviter_id"])
+                    if v3 not in seen:
+                        l3 = v3
+        except Exception:
+            l3 = None
+        depth = 1 + (1 if l2 else 0) + (1 if l3 else 0)
+        try:
+            conn.execute(
+                """
+                UPDATE invite_relations
+                SET inviter_l1_id=?, inviter_l2_id=?, inviter_l3_id=?, depth=?, updated_at=?
+                WHERE invitee_id=?
+                """,
+                (l1, l2, l3, int(depth), now, invitee_id),
+            )
+        except Exception:
+            pass
+
+
 def agent_get_status(user_id: int) -> dict[str, Any] | None:
     uid = int(user_id)
     with connect() as conn:
         row = conn.execute(
-            "SELECT user_id, level, expires_at, updated_at FROM agent_status WHERE user_id=?",
+            "SELECT user_id, level, expires_at, tier_points, tier_updated_at, tier_locked, updated_at FROM agent_status WHERE user_id=?",
             (uid,),
         ).fetchone()
         if not row:
@@ -1898,6 +2199,9 @@ def agent_get_status(user_id: int) -> dict[str, Any] | None:
             "user_id": int(row["user_id"]),
             "level": str(row["level"]),
             "expires_at": int(row["expires_at"]) if row["expires_at"] is not None else None,
+            "tier_points": int(_row_get(row, "tier_points") or 0),
+            "tier_updated_at": int(_row_get(row, "tier_updated_at") or 0),
+            "tier_locked": bool(int(_row_get(row, "tier_locked") or 0) == 1),
             "updated_at": int(row["updated_at"]),
         }
 
@@ -1907,7 +2211,8 @@ def _agent_is_active_in_conn(conn: Any, user_id: int, now: int) -> bool:
     row = conn.execute("SELECT level, expires_at FROM agent_status WHERE user_id=?", (uid,)).fetchone()
     if not row:
         return False
-    if str(row["level"] or "").strip().lower() not in ("normal", "senior", "gold"):
+    lvl = str(row["level"] or "").strip().lower()
+    if lvl not in ("normal", "senior", "gold", "starter", "growth", "pro"):
         return False
     exp = row["expires_at"]
     if exp is None:
@@ -1952,6 +2257,7 @@ def _commission_insert_in_conn(
     *,
     out_trade_no: str,
     agent_user_id: int,
+    level_depth: int = 1,
     buyer_user_id: int,
     plan: str,
     amount_fen: int,
@@ -1959,29 +2265,45 @@ def _commission_insert_in_conn(
     commission_fen: int,
     eligible_at: int,
     now: int,
+    rule_version: str = "v1",
+    rate_source: str = "base",
+    calc_meta: str = "{}",
 ) -> bool:
     """Return True if inserted, False if already exists (idempotent)."""
     otn = str(out_trade_no or "").strip()
     if not otn:
         return False
+    depth = int(level_depth or 1)
+    if depth < 1:
+        depth = 1
+    if depth > 3:
+        depth = 3
+    rv = str(rule_version or "v1").strip()[:20] or "v1"
+    rs = str(rate_source or "base").strip()[:20] or "base"
+    cm = str(calc_meta or "{}")
     if _is_pg():
         row = conn.execute(
             """
             INSERT INTO commission_ledger(
-              out_trade_no, agent_user_id, buyer_user_id, plan, amount_fen, rate, commission_fen,
+              out_trade_no, agent_user_id, level_depth, buyer_user_id, plan, amount_fen, rate, commission_fen,
+              rule_version, rate_source, calc_meta,
               eligible_at, status, paid_at, paid_note, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', NULL, '', ?, ?)
-            ON CONFLICT (out_trade_no) DO NOTHING
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NULL, '', ?, ?)
+            ON CONFLICT (out_trade_no, agent_user_id, level_depth) DO NOTHING
             RETURNING out_trade_no
             """,
             (
                 otn,
                 int(agent_user_id),
+                int(depth),
                 int(buyer_user_id),
                 str(plan),
                 int(amount_fen),
                 float(rate),
                 int(commission_fen),
+                rv,
+                rs,
+                cm,
                 int(eligible_at),
                 int(now),
                 int(now),
@@ -1991,24 +2313,86 @@ def _commission_insert_in_conn(
     conn.execute(
         """
         INSERT OR IGNORE INTO commission_ledger(
-          out_trade_no, agent_user_id, buyer_user_id, plan, amount_fen, rate, commission_fen,
+          out_trade_no, agent_user_id, level_depth, buyer_user_id, plan, amount_fen, rate, commission_fen,
+          rule_version, rate_source, calc_meta,
           eligible_at, status, paid_at, paid_note, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', NULL, '', ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NULL, '', ?, ?)
         """,
         (
             otn,
             int(agent_user_id),
+            int(depth),
             int(buyer_user_id),
             str(plan),
             int(amount_fen),
             float(rate),
             int(commission_fen),
+            rv,
+            rs,
+            cm,
             int(eligible_at),
             int(now),
             int(now),
         ),
     )
     return True
+
+
+def _agent_calc_meta_json(*, buyer_id: int, chain: tuple[int | None, int | None, int | None]) -> str:
+    try:
+        return json.dumps(
+            {"buyer_user_id": int(buyer_id), "chain": {"l1": chain[0], "l2": chain[1], "l3": chain[2]}},
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+    except Exception:
+        return "{}"
+
+
+def _commission_generate_for_paid_order_in_conn(conn: Any, *, out_trade_no: str, buyer_id: int, plan: str, amount_fen: int, paid_at: int, now: int) -> None:
+    if not _agent_commission_enabled():
+        return
+    chain = _invite_chain_for_user_in_conn(conn, buyer_id)
+    rates = _agent_commission_rates_effective()
+    meta = _agent_calc_meta_json(buyer_id=buyer_id, chain=chain)
+    delay_days = _agent_settle_delay_days()
+    eligible_at = int((paid_at or now) + delay_days * 86400)
+
+    pairs: list[tuple[int, int, float]] = []
+    if chain[0]:
+        pairs.append((1, int(chain[0]), float(rates["l1"])))
+    if chain[1]:
+        pairs.append((2, int(chain[1]), float(rates["l2"])))
+    if chain[2]:
+        pairs.append((3, int(chain[2]), float(rates["l3"])))
+
+    for depth, agent_uid, rate in pairs:
+        if agent_uid <= 0 or rate <= 0:
+            continue
+        try:
+            if not _agent_is_active_in_conn(conn, int(agent_uid), now):
+                continue
+        except Exception:
+            continue
+        commission_fen = int(round(float(amount_fen) * float(rate)))
+        if commission_fen <= 0:
+            continue
+        _commission_insert_in_conn(
+            conn,
+            out_trade_no=str(out_trade_no),
+            agent_user_id=int(agent_uid),
+            level_depth=int(depth),
+            buyer_user_id=int(buyer_id),
+            plan=str(plan),
+            amount_fen=int(amount_fen),
+            rate=float(rate),
+            commission_fen=int(commission_fen),
+            eligible_at=int(eligible_at),
+            now=int(now),
+            rule_version="v2",
+            rate_source="base",
+            calc_meta=meta,
+        )
 
 
 def commission_generate_for_order(out_trade_no: str) -> dict[str, Any]:
@@ -2024,46 +2408,22 @@ def commission_generate_for_order(out_trade_no: str) -> dict[str, Any]:
         if str(row["status"]) != "paid":
             raise ValueError("order_not_paid")
         plan = str(row["plan"])
-        if plan != "vip_year_999":
-            return {"ok": True, "skipped": True, "reason": "plan_not_commissioned"}
         buyer_id = int(row["user_id"])
-        inviter_id = None
-        try:
-            rel = conn.execute(
-                "SELECT inviter_id FROM invite_relations WHERE invitee_id=?",
-                (buyer_id,),
-            ).fetchone()
-            if rel and rel["inviter_id"] is not None:
-                inviter_id = int(rel["inviter_id"])
-        except Exception:
-            inviter_id = None
-        if not inviter_id:
-            return {"ok": True, "skipped": True, "reason": "no_inviter"}
         if not _agent_commission_enabled():
             return {"ok": True, "skipped": True, "reason": "commission_disabled"}
-        if not _agent_is_active_in_conn(conn, inviter_id, now):
-            return {"ok": True, "skipped": True, "reason": "inviter_not_active_agent"}
-        rate = _agent_commission_rate_normal()
         amount_fen = int(row["amount_fen"])
-        commission_fen = int(round(float(amount_fen) * float(rate)))
-        delay_days = _agent_settle_delay_days()
-        eligible_at = int((row["paid_at"] or now) + delay_days * 86400)
-        inserted = _commission_insert_in_conn(
+        paid_at = int(row["paid_at"] or now)
+        _commission_generate_for_paid_order_in_conn(
             conn,
             out_trade_no=otn,
-            agent_user_id=inviter_id,
-            buyer_user_id=buyer_id,
-            plan=plan,
-            amount_fen=amount_fen,
-            rate=rate,
-            commission_fen=commission_fen,
-            eligible_at=eligible_at,
-            now=now,
+            buyer_id=int(buyer_id),
+            plan=str(plan),
+            amount_fen=int(amount_fen),
+            paid_at=int(paid_at),
+            now=int(now),
         )
         return {
             "ok": True,
-            "inserted": bool(inserted),
-            "agent_user_id": int(inviter_id),
             "buyer_user_id": int(buyer_id),
         }
 
@@ -2101,8 +2461,9 @@ def admin_list_commissions(
     with connect() as conn:
         rows = conn.execute(
             f"""
-            SELECT id, out_trade_no, agent_user_id, buyer_user_id, plan, amount_fen, rate, commission_fen,
-                   eligible_at, status, paid_at, paid_note, created_at, updated_at
+            SELECT id, out_trade_no, agent_user_id, level_depth, buyer_user_id, plan, amount_fen, rate, commission_fen,
+                   rule_version, rate_source, calc_meta,
+                   eligible_at, status, request_id, paid_at, paid_note, created_at, updated_at
             FROM commission_ledger
             {where}
             ORDER BY id DESC
@@ -2117,11 +2478,15 @@ def admin_list_commissions(
                     "id": int(r["id"]),
                     "out_trade_no": str(r["out_trade_no"]),
                     "agent_user_id": int(r["agent_user_id"]),
+                    "level_depth": int(r["level_depth"] or 1),
                     "buyer_user_id": int(r["buyer_user_id"]),
                     "plan": str(r["plan"]),
                     "amount_fen": int(r["amount_fen"]),
                     "rate": float(r["rate"]),
                     "commission_fen": int(r["commission_fen"]),
+                    "rule_version": str(_row_get(r, "rule_version") or "v1"),
+                    "rate_source": str(_row_get(r, "rate_source") or "base"),
+                    "request_id": int(r["request_id"]) if _row_get(r, "request_id") is not None else None,
                     "eligible_at": int(r["eligible_at"]),
                     "status": str(r["status"]),
                     "paid_at": int(r["paid_at"]) if r["paid_at"] is not None else None,
@@ -2365,9 +2730,9 @@ def _fulfill_paid_plan_in_conn(conn: Any, user_id: int, raw_plan: str, note: str
         "daily_used": nu_d,
         "expires_at": new_exp,
     }
-    # Gift agent status for VIP year (MVP): buying vip_year_999 grants normal agent with same expiry.
+    # Gift agent status for VIP year: buying vip_year_999 grants starter agent with same expiry.
     if np == "vip_year_999":
-        _agent_upsert_in_conn(conn, uid, "normal", int(new_exp), now)
+        _agent_upsert_in_conn(conn, uid, "starter", int(new_exp), now)
     conn.execute(
         """
         INSERT INTO admin_ops_ledger(user_id, actor, action, before_json, after_json, note, created_at)
@@ -2427,28 +2792,19 @@ def pay_order_try_fulfill_wechat(out_trade_no: str, transaction_id: str, amount_
             ("paid", txid, now, inviter_id, now, otn),
         )
 
-        # Commission (MVP): vip_year_999 only; manual settlement; idempotent insert on out_trade_no.
-        if plan == "vip_year_999" and inviter_id and _agent_commission_enabled():
-            try:
-                if _agent_is_active_in_conn(conn, int(inviter_id), now):
-                    rate = _agent_commission_rate_normal()
-                    commission_fen = int(round(float(amount_fen) * float(rate)))
-                    eligible_at = int(now + _agent_settle_delay_days() * 86400)
-                    _commission_insert_in_conn(
-                        conn,
-                        out_trade_no=otn,
-                        agent_user_id=int(inviter_id),
-                        buyer_user_id=uid,
-                        plan=plan,
-                        amount_fen=int(amount_fen),
-                        rate=rate,
-                        commission_fen=commission_fen,
-                        eligible_at=eligible_at,
-                        now=now,
-                    )
-            except Exception:
-                # Never fail payment fulfill due to commission; admin can regenerate later.
-                pass
+        # Commission (multi-level): best-effort; never fail payment due to commission.
+        try:
+            _commission_generate_for_paid_order_in_conn(
+                conn,
+                out_trade_no=otn,
+                buyer_id=int(uid),
+                plan=str(plan),
+                amount_fen=int(amount_fen),
+                paid_at=int(now),
+                now=int(now),
+            )
+        except Exception:
+            pass
 
     return {"ok": True, "duplicate": False}
 

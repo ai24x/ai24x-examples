@@ -42,6 +42,96 @@ def resolve_wechat_pay() -> SimpleNamespace:
     )
 
 
+def resolve_alipay() -> SimpleNamespace:
+    """合并 DB 与 .env，供支付宝 WAP 下单与回调验签。"""
+    m = _items()
+
+    def p(key: str, fallback: str) -> str:
+        v = (m.get(key) or "").strip()
+        return v if v else str(fallback or "").strip()
+
+    return SimpleNamespace(
+        env=settings.env,
+        alipay_app_id=p("alipay_app_id", settings.alipay_app_id),
+        alipay_gateway=p("alipay_gateway", settings.alipay_gateway) or "https://openapi.alipay.com/gateway.do",
+        alipay_notify_url=p("alipay_notify_url", settings.alipay_notify_url),
+        alipay_return_url=p("alipay_return_url", settings.alipay_return_url),
+        alipay_merchant_private_key_path=p(
+            "alipay_merchant_private_key_path",
+            settings.alipay_merchant_private_key_path,
+        ),
+        alipay_merchant_private_key_pem=(m.get("alipay_merchant_private_key_pem") or "").strip(),
+        alipay_public_key=p("alipay_public_key", settings.alipay_public_key),
+    )
+
+
+def resolve_billing() -> SimpleNamespace:
+    """
+    会员套餐与计费相关的运行时配置：允许 admin_config 临时覆盖 .env，用于测试/促销。
+
+    Keys:
+    - price_vip_trial_fen / price_vip_month_fen / price_vip_year_fen
+    - vip_title_trial / vip_title_month / vip_title_year
+    - price_agent_growth_fen / price_agent_pro_fen
+    - agent_title_growth / agent_title_pro
+    - agent_upgrade_growth_enabled / agent_upgrade_pro_enabled
+    - billing_dev_real_pay / billing_dev_amount_fen（非 prod 才生效）
+    - billing_pay_wechat_enabled / billing_pay_alipay_enabled
+    """
+    m = _items()
+
+    def p_int(key: str, fallback: int) -> int:
+        v = (m.get(key) or "").strip()
+        if v == "":
+            return int(fallback)
+        try:
+            return int(float(v))
+        except Exception:
+            return int(fallback)
+
+    def p_str(key: str, fallback: str) -> str:
+        v = (m.get(key) or "").strip()
+        return v if v else str(fallback or "").strip()
+
+    def p_bool_default_on(key: str) -> bool:
+        v = (m.get(key) or "").strip().lower()
+        if v in ("0", "false", "no", "off"):
+            return False
+        if v in ("1", "true", "yes", "on"):
+            return True
+        return True
+
+    # Only allow dev real-pay in non-prod; same behavior as settings.
+    dev_real_pay_raw = (m.get("billing_dev_real_pay") or "").strip().lower()
+    if dev_real_pay_raw in ("1", "true", "yes", "on"):
+        dev_real_pay = str(settings.env).strip().lower() != "prod"
+    elif dev_real_pay_raw in ("0", "false", "no", "off"):
+        dev_real_pay = False
+    else:
+        dev_real_pay = bool(settings.billing_dev_real_pay)
+
+    return SimpleNamespace(
+        env=settings.env,
+        price_vip_month_fen=p_int("price_vip_month_fen", int(settings.price_vip_month_fen)),
+        price_vip_year_fen=p_int("price_vip_year_fen", int(settings.price_vip_year_fen)),
+        price_vip_trial_fen=p_int("price_vip_trial_fen", int(settings.price_vip_trial_fen)),
+        vip_title_month=p_str("vip_title_month", "AI24X VIP月会员"),
+        vip_title_year=p_str("vip_title_year", "AI24X VIP年会员"),
+        vip_title_trial=p_str("vip_title_trial", "AI24X VIP体验卡"),
+        # Agent tier paid upgrades (default: enabled; titles/prices can be overridden in admin_config).
+        price_agent_growth_fen=p_int("price_agent_growth_fen", 29900),
+        price_agent_pro_fen=p_int("price_agent_pro_fen", 99900),
+        agent_title_growth=p_str("agent_title_growth", "伙伴计划 · 成长档"),
+        agent_title_pro=p_str("agent_title_pro", "伙伴计划 · 专业档"),
+        agent_upgrade_growth_enabled=bool(p_bool_default_on("agent_upgrade_growth_enabled")),
+        agent_upgrade_pro_enabled=bool(p_bool_default_on("agent_upgrade_pro_enabled")),
+        billing_dev_real_pay=bool(dev_real_pay),
+        billing_dev_amount_fen=p_int("billing_dev_amount_fen", int(settings.billing_dev_amount_fen)),
+        billing_pay_wechat_enabled=bool(p_bool_default_on("billing_pay_wechat_enabled")),
+        billing_pay_alipay_enabled=bool(p_bool_default_on("billing_pay_alipay_enabled")),
+    )
+
+
 def resolve_identity() -> SimpleNamespace:
     """主站转发短信/邮箱与内部密钥；腾讯短信字段仅占位。"""
     m = _items()

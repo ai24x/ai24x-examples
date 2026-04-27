@@ -61,6 +61,148 @@
       background:var(--panel2); color:var(--text); font-size:14px;
     }
     .pw-actions{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; margin-top:14px; }
+
+    /* VIP plans: subtle color layering */
+    .vip-plan{
+      border-width: 1px !important;
+      transition: transform .12s ease, filter .12s ease, box-shadow .12s ease, border-color .12s ease;
+    }
+    .vip-plan:hover{ transform: translateY(-1px); }
+    .vip-plan:active{ transform: translateY(0); }
+    .vip-plan.is-selected{
+      box-shadow: 0 10px 22px rgba(96,165,250,.18);
+      border-color: rgba(96,165,250,.55) !important;
+      filter: brightness(1.02);
+    }
+    .vip-trial{
+      background: linear-gradient(135deg, rgba(34,211,238,.16), rgba(96,165,250,.10)) !important;
+      border-color: rgba(34,211,238,.28) !important;
+    }
+    .vip-month{
+      background: linear-gradient(135deg, rgba(167,139,250,.16), rgba(96,165,250,.10)) !important;
+      border-color: rgba(167,139,250,.28) !important;
+    }
+    .vip-year{
+      background: linear-gradient(135deg, rgba(251,191,36,.20), rgba(245,158,11,.10)) !important;
+      border-color: rgba(251,191,36,.30) !important;
+    }
+
+    /* Pay overlay (VIP + partner upgrade) */
+    .pay-overlay{
+      position: fixed; inset: 0; z-index: 220;
+      background: rgba(0,0,0,.52);
+      display: flex; align-items: center; justify-content: center;
+      padding: 16px;
+    }
+    .pay-overlay[hidden]{ display:none !important; }
+    .pay-panel{
+      width: 100%;
+      max-width: 520px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      box-shadow: var(--shadow-md);
+      padding: 14px 14px 12px;
+    }
+    .pay-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .pay-head .t{ font-size:14px; font-weight:900; }
+    .pay-close{ border:1px solid var(--border); background: var(--panel2); color: var(--text); border-radius: 10px; padding: 6px 10px; cursor:pointer; }
+    .pay-body{ margin-top: 10px; text-align:center; }
+    .pay-foot{ margin-top: 10px; }
+    .pay-foot .row{ justify-content:center; }
+
+    /* Pay result overlay (success / fail / warn) */
+    .pay-result-panel{ max-width: 560px; }
+    .pay-result-head{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      margin-bottom: 6px;
+    }
+    .pay-result-title{
+      display:flex; align-items:center; gap:10px;
+      font-size: 16px; font-weight: 900;
+    }
+    .pay-result-icon{
+      width: 34px; height: 34px;
+      display:inline-flex; align-items:center; justify-content:center;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      font-weight: 900;
+      flex: 0 0 auto;
+    }
+    .pay-result-panel.is-ok{
+      border-color: rgba(52,211,153,.38);
+      box-shadow: 0 14px 30px rgba(52,211,153,.10);
+    }
+    .pay-result-panel.is-ok .pay-result-icon{
+      border-color: rgba(52,211,153,.55);
+      background: rgba(52,211,153,.12);
+    }
+    .pay-result-panel.is-bad{
+      border-color: rgba(251,113,133,.38);
+      box-shadow: 0 14px 30px rgba(251,113,133,.10);
+    }
+    .pay-result-panel.is-bad .pay-result-icon{
+      border-color: rgba(251,113,133,.55);
+      background: rgba(251,113,133,.12);
+    }
+    .pay-result-panel.is-warn{
+      border-color: rgba(251,191,36,.38);
+      box-shadow: 0 14px 30px rgba(251,191,36,.10);
+    }
+    .pay-result-panel.is-warn .pay-result-icon{
+      border-color: rgba(251,191,36,.55);
+      background: rgba(251,191,36,.12);
+    }
+    .pay-result-kv{
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      font-size: 12px;
+      line-height: 1.55;
+      word-break: break-all;
+    }
+
+    /* Notice highlight */
+    .notice-bar{
+      margin-top: 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(251,191,36,.35);
+      background: linear-gradient(135deg, rgba(251,191,36,.18), rgba(96,165,250,.10));
+      padding: 10px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .notice-bar .left{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .notice-badge{
+      display:inline-flex; align-items:center; gap:6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(251,191,36,.45);
+      background: rgba(251,191,36,.14);
+      font-weight: 900;
+      font-size: 12px;
+      color: var(--text);
+    }
+    .notice-dot{
+      width:8px; height:8px; border-radius:999px;
+      background:#f59e0b;
+      box-shadow: 0 0 0 3px rgba(245,158,11,.18);
+    }
+    .notice-unread{
+      display:inline-flex; align-items:center; justify-content:center;
+      min-width: 20px; height: 20px; padding: 0 6px;
+      border-radius: 999px;
+      background: rgba(239,68,68,.15);
+      border: 1px solid rgba(239,68,68,.35);
+      color: var(--text);
+      font-weight: 900;
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
@@ -97,7 +239,17 @@
 
       <div id="auth-user" hidden>
         <div class="hint">免费：10/天 + 50/周　VIP：150/天 + 500/周　（指数白名单与去重规则见文档）</div>
-        <div class="kv" id="quota-kv" hidden>
+        <div class="notice-bar" id="notice-bar" hidden>
+          <div class="left">
+            <span class="notice-badge"><span class="notice-dot"></span>系统通告</span>
+            <span class="muted small" id="notice-preview">—</span>
+          </div>
+          <div class="row" style="gap:10px; align-items:center; margin:0;">
+            <span class="notice-unread" title="未读条数"><span id="notice-unread">0</span></span>
+            <button class="btn primary" type="button" id="btn-notices">查看</button>
+          </div>
+        </div>
+        <div class="kv" id="quota-kv" hidden style="display:none">
           <span>今日剩余 <b id="q-day">-</b></span>
           <span>本周剩余 <b id="q-week">-</b></span>
           <span>套餐 <b id="q-plan">-</b></span>
@@ -113,33 +265,73 @@
 
     <section class="card" id="vip">
       <h1>开通 VIP</h1>
-      <p><strong>微信扫码支付</strong>，成功后自动生效；未更新点「刷新配额」。<strong>体验 ¥9.9</strong>（7 天、限购 1 次）／月卡 ¥99／年卡 ¥999。</p>
-      <div class="btns">
-        <button class="btn primary" id="btn-vip-trial" type="button">微信支付 · 体验卡 ¥9.9</button>
-        <button class="btn" id="btn-vip" type="button">微信支付 · 月卡 ¥99</button>
-        <button class="btn" id="btn-vip-year" type="button">微信支付 · 年卡 ¥999</button>
+      <p>选择套餐并支付，成功后自动生效；如未更新可点「刷新配额」。</p>
+      <p class="sub" style="margin:8px 0 0;">
+        除次数外，VIP 将获得更稳定的数据源优先级与更好的高峰期体验（以实际可用为准）。
+      </p>
+      <div class="muted small" id="vip-expiry" style="margin-top:6px;">VIP 到期：—</div>
+      <div class="row" style="flex-wrap:wrap; gap:10px; align-items:center;">
+        <span class="pill">1）选择套餐</span>
+        <button class="btn vip-plan vip-trial is-selected" id="vip-plan-trial" type="button">体验卡</button>
+        <button class="btn vip-plan vip-month" id="vip-plan-month" type="button">月卡</button>
+        <button class="btn vip-plan vip-year" id="vip-plan-year" type="button">年卡</button>
+      </div>
+      <div class="row" style="margin-top:10px; flex-wrap:wrap; gap:10px; align-items:center;">
+        <span class="pill">2）选择支付方式</span>
+        <button class="btn" id="vip-pay-wechat" type="button" disabled>微信支付</button>
+        <button class="btn" id="vip-pay-alipay" type="button" disabled>支付宝</button>
         <button class="btn" id="btn-vip-refresh" type="button">刷新配额</button>
         <a class="btn" href="./demo.html?from=vip">去行情页</a>
       </div>
+      <div class="hint" id="vip-choice-hint" style="margin-top:10px;"></div>
       <div class="status" id="vip-pay-status" style="margin-top:10px"></div>
-      <div id="vip-qr-wrap" hidden style="margin-top:14px; text-align:center;">
-        <div class="hint" style="margin-bottom:8px">请使用 <b>微信</b> 扫一扫完成支付</div>
-        <img id="vip-qr-img" alt="微信支付二维码" width="220" height="220" style="display:inline-block; border-radius:12px; border:1px solid var(--border); background:#fff; padding:8px;" />
-        <div class="hint" style="margin-top:8px; font-size:12px;">商户单号 <code id="vip-out-trade" style="font-size:11px; word-break:break-all;"></code></div>
-        <div class="row" style="justify-content:center; margin-top:10px; flex-wrap:wrap;">
-          <input id="vip-code-url" type="text" readonly style="max-width:420px; flex:1; min-width:200px;" />
-          <button class="btn" type="button" id="btn-copy-paylink">复制付款链接</button>
+    </section>
+
+    <div id="pay-overlay" class="pay-overlay" hidden>
+      <div class="pay-panel" role="dialog" aria-modal="true" aria-label="支付二维码">
+        <div class="pay-head">
+          <div class="t" id="pay-title">请扫码完成支付</div>
+          <button class="pay-close" type="button" id="btn-pay-close">关闭</button>
+        </div>
+        <div class="pay-body">
+          <div class="hint" id="pay-hint" style="margin-bottom:8px">请使用 <b>微信</b> 扫一扫完成支付</div>
+          <img id="vip-qr-img" alt="微信支付二维码" width="220" height="220" style="display:inline-block; border-radius:12px; border:1px solid var(--border); background:#fff; padding:8px;" />
+          <div class="hint" style="margin-top:8px; font-size:12px;">订单号 <code id="vip-out-trade" style="font-size:11px; word-break:break-all;"></code></div>
+        </div>
+        <div class="pay-foot">
+          <div class="row" style="justify-content:center; margin-top:10px; flex-wrap:wrap;">
+            <input id="vip-code-url" type="text" readonly style="max-width:420px; flex:1; min-width:200px;" />
+            <button class="btn" type="button" id="btn-copy-paylink">复制付款链接</button>
+          </div>
+          <div class="hint" style="margin-top:10px; font-size:12px;">
+            支付完成后本页会自动检测；如未更新可点上方「刷新配额」或在伙伴计划里点「刷新」。
+          </div>
         </div>
       </div>
-      <div class="hint" style="margin-top:10px">若二维码无法显示，请点「复制付款链接」，在微信内打开完成支付。</div>
-    </section>
+    </div>
+
+    <div id="pay-result-overlay" class="pw-modal" hidden>
+      <div id="pay-result-panel" class="pw-modal-panel pay-result-panel" role="dialog" aria-modal="true" aria-label="支付结果提示">
+        <div class="pay-result-head">
+          <div class="pay-result-title">
+            <span class="pay-result-icon" id="pay-result-icon">✓</span>
+            <span id="pay-result-title">支付结果</span>
+          </div>
+          <button class="btn" type="button" id="btn-pay-result-close">关闭</button>
+        </div>
+        <div class="sub" id="pay-result-sub">—</div>
+        <div class="pay-result-kv" id="pay-result-detail" style="display:none"></div>
+        <div class="pw-actions" style="margin-top:12px;">
+          <a class="btn" href="./demo.html?from=pay">去行情页</a>
+          <button type="button" class="btn primary" id="btn-pay-result-refresh">刷新配额</button>
+        </div>
+      </div>
+    </div>
 
     <section class="card" id="invite">
       <h1>邀请获取次数</h1>
-      <p>邀请链接指向<strong>首页注册</strong>，好友打开后邀请码会自动填入（也可手动修改）。已注册用户也可在下方填写好友邀请码绑定（仅一次）。</p>
-      <p class="sub" style="margin:8px 0 0;">
-        奖励口径：好友完成<strong>首次有效查询</strong>后发放——你当周 +<strong>100</strong> 次（周封顶 <strong>500</strong>），好友当周 +<strong>50</strong> 次。
-      </p>
+      <p>把邀请链接发给朋友即可。对方打开后邀请码会自动带上（也可手动改）。已注册用户也可在下方绑定好友邀请码（仅一次）。</p>
+      <p class="sub" style="margin:8px 0 0;" id="invite-reward-tip">奖励规则加载中…</p>
       <div class="row">
         <button class="btn primary" id="btn-my-invite" type="button">获取我的邀请码</button>
         <input id="invite-code" type="text" placeholder="我的邀请码" readonly />
@@ -149,13 +341,21 @@
         <input id="invite-link" type="text" placeholder="邀请链接（自动带邀请码）" readonly />
         <button class="btn" id="btn-copy-invite-link" type="button" disabled>复制链接</button>
       </div>
+      <div class="row" style="margin-top:10px; flex-wrap:wrap; gap:10px; align-items:center;">
+        <button class="btn primary" id="btn-share-invite" type="button">一键分享</button>
+        <span class="muted small">优先调起系统分享；不支持时会复制链接。</span>
+      </div>
       <div class="status" id="invite-status"></div>
       <div class="row" style="margin-top:10px">
         <input id="invite-bind-code" type="text" placeholder="填好友邀请码（仅绑定一次）" />
         <button class="btn primary" id="btn-bind-invite" type="button">绑定邀请码</button>
       </div>
       <div class="hint" id="invite-records-hint" style="display:none"></div>
-      <div style="margin-top:10px; overflow:auto;">
+      <div class="row" style="margin-top:10px; gap:10px; align-items:center; flex-wrap:wrap;">
+        <button class="btn" type="button" id="btn-invite-toggle" disabled>展开邀请记录</button>
+        <span class="muted small">邀请多时会自动收纳，避免页面过长。</span>
+      </div>
+      <div id="invite-table-wrap" style="margin-top:10px; overflow:auto; max-height:280px;">
         <table id="invite-table" style="display:none; width:100%; border-collapse: collapse; font-size: 12px;">
           <thead>
             <tr>
@@ -171,22 +371,138 @@
     </section>
 
     <section class="card" id="agent">
-      <h1>代理与返佣</h1>
-      <p class="sub" style="margin:0 0 8px;">年卡 ¥999 可获得普通代理资格；返佣与结算规则以平台政策为准。</p>
+      <h1>伙伴计划（支持研发）</h1>
+      <p class="sub" style="margin:0 0 6px;">
+        选择档位并支付，成功后自动生效；可随时在本页查看到期与结算数据。
+      </p>
+      <div class="muted small" id="agent-expiry" style="margin:0 0 6px;">伙伴到期：—</div>
+      <details class="muted small" style="margin:0 0 6px;">
+        <summary style="cursor:pointer; user-select:none;">展开说明</summary>
+        <div style="margin-top:6px; line-height:1.7;">
+          <div>通过「伙伴档位」支持研发与数据成本，获得更完善的协作服务与结算权益。</div>
+          <div>分享与合作产生的回馈将进入「待结算 / 已结算」。展示为历史数据，不构成收益承诺，以实际结算为准。</div>
+          <div id="agent-comm-hint" style="margin-top:6px;">规则：直推/间推回馈按后台比例生成；团队回馈需要达到一定伙伴等级（由后台设置）才生效。</div>
+          <div id="agent-tier-desc" style="margin-top:6px;">
+            <div><b>成长档</b>：适合个人分享与支持研发，提供基础协作权益。</div>
+            <div><b>专业档</b>：适合团队/社群协作，可解锁「团队回馈」资格（以当前页面规则为准）。</div>
+          </div>
+        </div>
+      </details>
 
       <div class="kv" id="agent-kv" hidden>
-        <span>代理身份 <b id="agent-level">-</b></span>
+        <span>成长等级 <b id="agent-level">-</b></span>
+        <span>直推成交(单) <b id="agent-direct-orders">-</b></span>
+        <span>团队规模 <b id="agent-team-size">-</b></span>
+        <span>团队成交额(元) <b id="agent-team-amount">-</b></span>
+        <span>预估回馈(元) <b id="agent-est">-</b></span>
         <span>可提现(元) <b id="agent-withdrawable">-</b></span>
         <span>已结算(元) <b id="agent-paid">-</b></span>
       </div>
+      <div class="hint" id="agent-tier-hint" style="margin-top:10px; display:none;"></div>
+
+      <div class="row" style="margin-top:10px; flex-wrap:wrap; gap:10px; align-items:center;">
+        <span class="pill">1）选择档位</span>
+        <button class="btn vip-plan vip-month" type="button" id="btn-agent-upg-growth" disabled>成长档</button>
+        <button class="btn vip-plan vip-year" type="button" id="btn-agent-upg-pro" disabled>专业档</button>
+      </div>
+      <div class="row" style="margin-top:10px; flex-wrap:wrap; gap:10px; align-items:center;">
+        <span class="pill">2）选择支付方式</span>
+        <button class="btn" type="button" id="agent-pay-wechat" disabled>微信支付</button>
+        <button class="btn" type="button" id="agent-pay-alipay" disabled>支付宝</button>
+        <span class="muted small">支付成功后将自动生效；如未更新可点「刷新」。</span>
+      </div>
+      <div class="hint" id="agent-choice-hint" style="margin-top:10px;"></div>
 
       <div class="row" style="margin-top:10px; flex-wrap:wrap;">
         <button class="btn" type="button" id="btn-agent-refresh">刷新</button>
         <button class="btn" type="button" id="btn-agent-setacct">设置收款信息</button>
         <button class="btn primary" type="button" id="btn-agent-withdraw">申请提现</button>
+        <span class="muted small" id="agent-settle-cycle" style="align-self:center;">提现结算：—</span>
       </div>
       <div class="status" id="agent-status" style="margin-top:10px;"></div>
+
+      <div style="margin-top:14px; overflow:auto;">
+        <div class="row" style="gap:10px; align-items:center; flex-wrap:wrap;">
+          <span class="pill">回馈明细</span>
+          <select id="agent-comm-filter">
+            <option value="">全部</option>
+            <option value="eligible">待结算</option>
+            <option value="paid">已结算</option>
+          </select>
+          <button class="btn" type="button" id="btn-agent-comm-refresh">刷新明细</button>
+          <span class="muted small">支持 VIP 与升级订单；以实际结算为准。</span>
+        </div>
+        <table id="agent-comm-table" style="margin-top:10px; display:none; width:100%; border-collapse:collapse; font-size:12px;">
+          <thead>
+            <tr>
+              <th style="width:170px; text-align:left; padding:10px 8px; border-bottom:1px solid var(--border); color:var(--muted); font-weight:600;">时间</th>
+              <th style="width:120px; text-align:left; padding:10px 8px; border-bottom:1px solid var(--border); color:var(--muted); font-weight:600;">来源套餐</th>
+              <th style="width:140px; text-align:left; padding:10px 8px; border-bottom:1px solid var(--border); color:var(--muted); font-weight:600;">好友</th>
+              <th style="width:90px; text-align:left; padding:10px 8px; border-bottom:1px solid var(--border); color:var(--muted); font-weight:600;">状态</th>
+              <th style="width:110px; text-align:left; padding:10px 8px; border-bottom:1px solid var(--border); color:var(--muted); font-weight:600;">金额(元)</th>
+              <th style="text-align:left; padding:10px 8px; border-bottom:1px solid var(--border); color:var(--muted); font-weight:600;">备注</th>
+            </tr>
+          </thead>
+          <tbody id="agent-comm-tbody"></tbody>
+        </table>
+        <div class="hint" id="agent-comm-hint" style="margin-top:8px; display:none;"></div>
+      </div>
     </section>
+  </div>
+
+  <div id="pay-confirm-overlay" class="pw-modal" hidden>
+    <div class="pw-modal-panel" style="max-width:520px;" role="dialog" aria-modal="true" aria-label="确认购买">
+      <h2 id="pay-confirm-title">确认购买</h2>
+      <p class="sub" id="pay-confirm-sub">—</p>
+      <div class="row" style="margin-top:12px; justify-content:flex-end; flex-wrap:wrap; gap:10px;">
+        <button type="button" class="btn" id="btn-pay-confirm-cancel">取消</button>
+        <button type="button" class="btn primary" id="btn-pay-confirm-ok">继续支付</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="notice-overlay" class="pw-modal" hidden>
+    <div class="pw-modal-panel" style="max-width:560px;">
+      <h2 style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <span>系统通告</span>
+        <button class="btn" type="button" id="btn-notice-close">关闭</button>
+      </h2>
+      <p class="sub" style="margin:0 0 10px;">通告会按需要对全体或特定伙伴展示。</p>
+      <div class="row" style="gap:10px; flex-wrap:wrap; align-items:center;">
+        <button class="btn" type="button" id="btn-notice-refresh">刷新</button>
+        <button class="btn" type="button" id="btn-notice-markall">全部标为已读</button>
+        <span class="muted small">未读 <b id="notice-unread2">0</b></span>
+      </div>
+      <div id="notice-list" style="margin-top:10px; max-height:360px; overflow:auto;"></div>
+      <div class="status" id="notice-status" style="margin-top:10px;"></div>
+    </div>
+  </div>
+
+  <div id="share-overlay" class="pw-modal" hidden>
+    <div class="pw-modal-panel" style="max-width:560px;">
+      <h2 style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <span id="share-title">一键分享</span>
+        <button class="btn" type="button" id="btn-share-close">关闭</button>
+      </h2>
+      <p class="sub" style="margin:0 0 10px;">
+        直接选模板复制即可，适合微信/群聊转发。
+      </p>
+      <div class="row" style="gap:10px; flex-wrap:wrap; align-items:center;">
+        <select id="share-template">
+          <option value="dm">私聊</option>
+          <option value="group">群聊</option>
+          <option value="moments">朋友圈</option>
+        </select>
+        <button class="btn primary" type="button" id="btn-share-copy-text">复制文案</button>
+        <button class="btn" type="button" id="btn-share-copy-link">复制链接</button>
+        <span class="muted small" id="share-status"></span>
+      </div>
+      <textarea id="share-text" rows="6" style="margin-top:10px; width:100%; font-family: ui-monospace, monospace; font-size: 12px;"></textarea>
+      <div style="margin-top:12px; text-align:center;">
+        <div class="muted small" style="margin-bottom:8px;">二维码（微信内可直接扫一扫/长按识别）</div>
+        <img id="share-qr" alt="分享二维码" width="220" height="220" style="display:inline-block; border-radius:12px; border:1px solid var(--border); background:#fff; padding:8px;" />
+      </div>
+    </div>
   </div>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
@@ -292,13 +608,18 @@
   <div id="pw-modal-agent-withdraw" class="pw-modal" hidden>
     <div class="pw-modal-panel">
       <h2>申请提现</h2>
-      <p class="sub">提交后将进入审核流程。实际打款以审核结果为准。</p>
+      <p class="sub" id="agent-withdraw-tip">提交后将进入审核流程。可提现金额以“待结算已到期”为准。</p>
+      <div class="hint" id="agent-withdraw-meta" style="margin:8px 0 10px;"></div>
+      <label class="pw-field">提现金额（元）
+        <input id="agent-withdraw-amount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="留空=全部可提现" />
+      </label>
       <label class="pw-field">备注（可选）
         <input id="agent-withdraw-note" type="text" autocomplete="off" placeholder="例如：本周结算" />
       </label>
       <div class="status" id="agent-withdraw-status"></div>
       <div class="pw-actions">
         <button type="button" class="btn" data-pw-close="pw-modal-agent-withdraw">取消</button>
+        <button type="button" class="btn" id="btn-agent-withdraw-all">全部可提现</button>
         <button type="button" class="btn primary" id="btn-agent-withdraw-submit">提交申请</button>
       </div>
     </div>
@@ -339,20 +660,36 @@
 
       var agentKv = $("agent-kv");
       var agentLevelEl = $("agent-level");
+      var agentDirectOrdersEl = $("agent-direct-orders");
+      var agentTeamSizeEl = $("agent-team-size");
+      var agentTeamAmountEl = $("agent-team-amount");
+      var agentEstEl = $("agent-est");
       var agentWithdrawableEl = $("agent-withdrawable");
       var agentPaidEl = $("agent-paid");
       var agentStatusEl = $("agent-status");
+      var agentTierHintEl = $("agent-tier-hint");
       var btnAgentRefresh = $("btn-agent-refresh");
       var btnAgentSetAcct = $("btn-agent-setacct");
       var btnAgentWithdraw = $("btn-agent-withdraw");
+      var btnAgentUpgGrowth = $("btn-agent-upg-growth");
+      var btnAgentUpgPro = $("btn-agent-upg-pro");
+      var agentPlanSelected = "";
       var agentAcctNo = $("agent-acct-no");
       var agentAcctName = $("agent-acct-name");
       var agentAcctPhone = $("agent-acct-phone");
       var agentAcctStatus = $("agent-acct-status");
       var btnAgentAcctSave = $("btn-agent-acct-save");
+      var agentWithdrawTip = $("agent-withdraw-tip");
+      var agentSettleCycleEl = $("agent-settle-cycle");
+      var agentWithdrawMeta = $("agent-withdraw-meta");
+      var agentWithdrawAmount = $("agent-withdraw-amount");
       var agentWithdrawNote = $("agent-withdraw-note");
       var agentWithdrawStatus = $("agent-withdraw-status");
+      var btnAgentWithdrawAll = $("btn-agent-withdraw-all");
       var btnAgentWithdrawSubmit = $("btn-agent-withdraw-submit");
+      var agentLastOverview = null;
+      var vipExpiryEl = $("vip-expiry");
+      var agentExpiryEl = $("agent-expiry");
 
       function loadScriptOnce(src, cb) {
         try {
@@ -416,10 +753,30 @@
           .catch(function () { smsCaptchaCfg = { enabled: false, provider: null, turnstile_site_key: null }; });
       }
       var statusEl = $("status");
+      var btnNotices = $("btn-notices");
+      var noticeUnreadEl = $("notice-unread");
+      var noticeUnreadEl2 = $("notice-unread2");
+      var noticeBar = $("notice-bar");
+      var noticePreview = $("notice-preview");
+      var noticeOverlay = $("notice-overlay");
+      var btnNoticeClose = $("btn-notice-close");
+      var btnNoticeRefresh = $("btn-notice-refresh");
+      var btnNoticeMarkAll = $("btn-notice-markall");
+      var noticeList = $("notice-list");
+      var noticeStatus = $("notice-status");
       var quotaKv = $("quota-kv");
       var qDay = $("q-day");
       var qWeek = $("q-week");
       var qPlan = $("q-plan");
+      var billingPlans = null;
+      var planTitleMap = null;
+      var lastQuotaPlanCode = "";
+      var lastQuotaExpiresAt = null;
+      var payMethods = { wechat_enabled: true, alipay_enabled: true };
+      var vipChoiceHintEl = $("vip-choice-hint");
+      var vipPlanSelected = "";
+      var agentPlanSelected = "";
+      var agentChoiceHintEl = $("agent-choice-hint");
       var btnLogout = $("btn-logout");
       var btnBindPhone = $("btn-bind-phone");
       var authGuest = $("auth-guest");
@@ -427,12 +784,214 @@
       var accountIdentity = $("account-identity");
       var acctLine = $("acct-line");
       var inviteStatusEl = $("invite-status");
+      var btnInviteToggle = $("btn-invite-toggle");
+      var inviteTableWrap = $("invite-table-wrap");
+      var inviteTableCollapsed = true;
       function setInviteStatus(s) {
         if (inviteStatusEl) inviteStatusEl.textContent = s || "";
       }
 
       function setStatus(s) {
-        if (statusEl) statusEl.textContent = s || "";
+        try{
+          if (!statusEl) return;
+          var t = String(s || "");
+          statusEl.textContent = t;
+          // Avoid an "empty line" when no status.
+          statusEl.style.display = t ? "" : "none";
+        }catch(e){}
+      }
+      function setNoticeStatus(s){
+        if(noticeStatus) noticeStatus.textContent = s || "";
+      }
+
+      function fmtYuanFromFen(fen) {
+        try {
+          var n = Number(fen || 0);
+          if (!isFinite(n)) n = 0;
+          return (n / 100).toFixed(2);
+        } catch (e) {
+          return "0.00";
+        }
+      }
+
+      function planTitle(planCode) {
+        var p = String(planCode || "").trim();
+        if (!p) return "-";
+        try {
+          if (planTitleMap && planTitleMap[p]) return String(planTitleMap[p]);
+        } catch (e) {}
+        return p;
+      }
+
+      function applyVipButtonsText() {
+        if (!billingPlans) return;
+        function setBtn(id, s) { try { var el = $(id); if (el) el.textContent = s; } catch (e) {} }
+        try {
+          var t = billingPlans.vip_trial_99 || {};
+          var m = billingPlans.vip_month || {};
+          var y = billingPlans.vip_year_999 || {};
+          var tTitle = String(t.title || "体验卡");
+          var mTitle = String(m.title || "月卡");
+          var yTitle = String(y.title || "年卡");
+          var tY = fmtYuanFromFen(t.price_fen);
+          var mY = fmtYuanFromFen(m.price_fen);
+          var yY = fmtYuanFromFen(y.price_fen);
+          setBtn("vip-plan-trial", tTitle + " ¥" + tY);
+          setBtn("vip-plan-month", mTitle + " ¥" + mY);
+          setBtn("vip-plan-year", yTitle + " ¥" + yY);
+        } catch (e2) {}
+      }
+
+      function setVipChoiceHint(s) {
+        if (vipChoiceHintEl) vipChoiceHintEl.textContent = s || "";
+      }
+
+      function syncVipChoiceUi() {
+        var btnTrial = $("vip-plan-trial");
+        var btnMonth = $("vip-plan-month");
+        var btnYear = $("vip-plan-year");
+        try { if (btnTrial) btnTrial.classList.toggle("is-selected", vipPlanSelected === "vip_trial_99"); } catch (e0) {}
+        try { if (btnMonth) btnMonth.classList.toggle("is-selected", vipPlanSelected === "vip_month"); } catch (e1) {}
+        try { if (btnYear) btnYear.classList.toggle("is-selected", vipPlanSelected === "vip_year_999"); } catch (e2) {}
+
+        var canPay = !!vipPlanSelected;
+        var we = $("vip-pay-wechat");
+        var al = $("vip-pay-alipay");
+        if (we) we.disabled = !(canPay && payMethods.wechat_enabled);
+        if (al) al.disabled = !(canPay && payMethods.alipay_enabled);
+
+        if (!vipPlanSelected) {
+          setVipChoiceHint("先选套餐再选支付；如二维码失败可复制付款链接。");
+          return;
+        }
+        var title = planTitle(vipPlanSelected);
+        try{
+          var now = Math.floor(Date.now() / 1000);
+          var curPlan = String(lastQuotaPlanCode || "").trim();
+          var curExp = lastQuotaExpiresAt != null ? Number(lastQuotaExpiresAt) : NaN;
+          var active = !!curExp && isFinite(curExp) && curExp > now;
+          if (!active) {
+            setVipChoiceHint("已选择：" + title + "。将立即开通，并从现在开始计算有效期。");
+          } else if (curPlan === vipPlanSelected) {
+            setVipChoiceHint("已选择：" + title + "。当前有效期内续费将自动顺延。");
+          } else {
+            setVipChoiceHint("已选择：" + title + "。将立即升级，并从现在开始按新套餐计算有效期。");
+          }
+        }catch(eH){
+          setVipChoiceHint("已选择：" + title + "。请选择支付方式（如二维码失败可复制付款链接）。");
+        }
+      }
+
+      function syncAgentChoiceUi() {
+        var btnG = $("btn-agent-upg-growth");
+        var btnP = $("btn-agent-upg-pro");
+        try { if (btnG) btnG.classList.toggle("is-selected", agentPlanSelected === "agent_growth"); } catch (e0) {}
+        try { if (btnP) btnP.classList.toggle("is-selected", agentPlanSelected === "agent_pro"); } catch (e1) {}
+
+        var we = $("agent-pay-wechat");
+        var al = $("agent-pay-alipay");
+        var canPay = !!agentPlanSelected;
+        if (we) we.disabled = !(canPay && payMethods.wechat_enabled);
+        if (al) al.disabled = !(canPay && payMethods.alipay_enabled);
+
+        try{
+          // If already pro and still active, do not allow purchasing growth tier (avoid confusion).
+          var now0 = Math.floor(Date.now() / 1000);
+          var curLvl0 = "";
+          var curExp0 = NaN;
+          try{
+            curLvl0 = agentLastOverview && agentLastOverview.agent && agentLastOverview.agent.level ? String(agentLastOverview.agent.level || "") : "";
+            curExp0 = agentLastOverview && agentLastOverview.agent && agentLastOverview.agent.expires_at != null ? Number(agentLastOverview.agent.expires_at) : NaN;
+          }catch(e00){}
+          var active0 = !!curExp0 && isFinite(curExp0) && curExp0 > now0;
+          var rank0 = function(l){ l=String(l||"").trim().toLowerCase(); if(l==="gold")l="pro"; if(l==="senior")l="growth"; if(l==="normal")l="starter"; if(l==="pro")return 30; if(l==="growth")return 20; if(l==="starter")return 10; return 0; };
+          if (btnG) btnG.disabled = !((payMethods.wechat_enabled || payMethods.alipay_enabled)) || (active0 && rank0(curLvl0) >= 30);
+          if (active0 && rank0(curLvl0) >= 30 && agentPlanSelected === "agent_growth") agentPlanSelected = "";
+
+          if (!agentChoiceHintEl) return;
+          if (!agentPlanSelected) {
+            agentChoiceHintEl.textContent = (active0 && rank0(curLvl0) >= 30) ? "你当前为专业档，成长档无需再购买。" : "先选档位再选支付方式。";
+            return;
+          }
+          var title = planTitle(agentPlanSelected);
+          var now = Math.floor(Date.now() / 1000);
+          var curLvl = "";
+          var curExp = NaN;
+          try{
+            curLvl = agentLastOverview && agentLastOverview.agent && agentLastOverview.agent.level ? String(agentLastOverview.agent.level || "") : "";
+            curExp = agentLastOverview && agentLastOverview.agent && agentLastOverview.agent.expires_at != null ? Number(agentLastOverview.agent.expires_at) : NaN;
+          }catch(e0){}
+          var active = !!curExp && isFinite(curExp) && curExp > now;
+          var tgtLvl = agentPlanSelected === "agent_pro" ? "pro" : agentPlanSelected === "agent_growth" ? "growth" : "";
+          var rank = function(l){ l=String(l||"").trim().toLowerCase(); if(l==="gold")l="pro"; if(l==="senior")l="growth"; if(l==="normal")l="starter"; if(l==="pro")return 30; if(l==="growth")return 20; if(l==="starter")return 10; return 0; };
+          if (!active) {
+            agentChoiceHintEl.textContent = "已选择：" + title + "。将立即开通，并从现在开始计算有效期。";
+          } else if (rank(curLvl) >= rank(tgtLvl)) {
+            agentChoiceHintEl.textContent = "已选择：" + title + "。当前有效期内续费将自动顺延。";
+          } else {
+            agentChoiceHintEl.textContent = "已选择：" + title + "。将立即升级，并从现在开始按新档位计算有效期。";
+          }
+        }catch(e2){}
+      }
+
+      function loadInviteRewardTip(){
+        var el = $("invite-reward-tip");
+        if(!el) return;
+        fetch((base || "") + "/api/public/invite/config", { method:"GET", cache:"no-store" })
+          .then(function(r){ return r.ok ? r.json() : null; })
+          .then(function(d){
+            if(!d || !d.ok) throw new Error("bad");
+            var iw = Number(d.invite_reward_inviter_weekly || 0) || 0;
+            var id = Number(d.invite_reward_inviter_daily || 0) || 0;
+            var s = "邀请奖励：好友首次有效查询后到账（你 +" + String(id) + "/日，+" + String(iw) + "/周）。";
+            el.textContent = s;
+          })
+          .catch(function(){
+            el.textContent = "邀请奖励：以系统实际发放为准。";
+          });
+      }
+
+      function loadBillingPlans() {
+        return fetch((base || "") + "/api/public/billing/plans", { method: "GET", cache: "no-store" })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (d) {
+            if (!d || !d.ok || !d.plans) return;
+            try {
+              if (d.pay_methods) {
+                payMethods = {
+                  wechat_enabled: d.pay_methods.wechat_enabled !== false,
+                  alipay_enabled: d.pay_methods.alipay_enabled !== false,
+                };
+              }
+            } catch (ePM) {}
+            billingPlans = d.plans || null;
+            planTitleMap = {};
+            try {
+              Object.keys(billingPlans).forEach(function (k) {
+                var it = billingPlans[k] || {};
+                planTitleMap[k] = String(it.title || k);
+              });
+            } catch (e) {}
+            applyVipButtonsText();
+            try {
+              if (btnAgentUpgGrowth && billingPlans && billingPlans.agent_growth) {
+                btnAgentUpgGrowth.textContent = planTitle("agent_growth") + " ¥" + fmtYuanFromFen(billingPlans.agent_growth.price_fen);
+                btnAgentUpgGrowth.disabled = !(payMethods.wechat_enabled || payMethods.alipay_enabled);
+              }
+            } catch (eG) {}
+            try {
+              if (btnAgentUpgPro && billingPlans && billingPlans.agent_pro) {
+                btnAgentUpgPro.textContent = planTitle("agent_pro") + " ¥" + fmtYuanFromFen(billingPlans.agent_pro.price_fen);
+                btnAgentUpgPro.disabled = !(payMethods.wechat_enabled || payMethods.alipay_enabled);
+              }
+            } catch (eP) {}
+            try {
+              if (qPlan && lastQuotaPlanCode) qPlan.textContent = planTitle(lastQuotaPlanCode);
+            } catch (e3) {}
+            syncVipChoiceUi();
+            syncAgentChoiceUi();
+          })
+          .catch(function () {});
       }
 
       function tokenGet() {
@@ -443,6 +1002,94 @@
       }
       function tokenClear() {
         try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
+      }
+
+      function noticeOverlayOpen(){
+        try{ if(noticeOverlay) noticeOverlay.hidden = false; }catch(e){}
+      }
+      function noticeOverlayClose(){
+        try{ if(noticeOverlay) noticeOverlay.hidden = true; }catch(e){}
+      }
+      function setUnread(n){
+        try{
+          var v = String(n != null ? n : 0);
+          if(noticeUnreadEl) noticeUnreadEl.textContent = v;
+          if(noticeUnreadEl2) noticeUnreadEl2.textContent = v;
+        }catch(e){}
+      }
+      function noticesRender(items){
+        if(!noticeList) return;
+        noticeList.innerHTML = "";
+        (items||[]).forEach(function(it){
+          var box = document.createElement("div");
+          box.style.border = "1px solid var(--border)";
+          box.style.background = "var(--panel2)";
+          box.style.borderRadius = "12px";
+          box.style.padding = "10px 12px";
+          box.style.marginBottom = "10px";
+          var badge = it.pinned ? "置顶" : (it.read ? "已读" : "未读");
+          box.innerHTML =
+            "<div style='display:flex; align-items:center; justify-content:space-between; gap:10px;'>" +
+              "<div style='font-weight:900; font-size:13px;'>" + String(it.title||"") + "</div>" +
+              "<div class='muted small mono'>" + badge + "</div>" +
+            "</div>" +
+            "<div class='muted small mono' style='margin-top:6px;'>" + fmtTs(it.created_at||0) + "</div>" +
+            "<div style='margin-top:8px; white-space:pre-wrap; font-size:13px; line-height:1.55;'>" + String(it.body||"") + "</div>" +
+            "<div class='row' style='margin-top:10px; justify-content:flex-end;'>" +
+              (it.read ? "" : ("<button class='btn' type='button' data-nid='"+String(it.id)+"'>标为已读</button>")) +
+            "</div>";
+          box.querySelectorAll("button[data-nid]").forEach(function(b){
+            b.addEventListener("click", function(){
+              var nid = parseInt(String(b.getAttribute("data-nid")||"0"), 10) || 0;
+              if(!nid) return;
+              apiFetch("/api/notices/read", {method:"POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({notice_id:nid})})
+                .then(function(){ loadNotices(); })
+                .catch(function(e){ setNoticeStatus(normalizeErrMsg(e) || "操作失败"); });
+            });
+          });
+          noticeList.appendChild(box);
+        });
+      }
+      function loadNotices(){
+        if(!tokenGet()){
+          setUnread(0);
+          try{ if(noticeBar) noticeBar.hidden = true; }catch(e0){}
+          return;
+        }
+        setNoticeStatus("加载中…");
+        apiFetch("/api/notices?limit=20&offset=0", {cache:"no-store"})
+          .then(function(d){
+            if(!d || !d.ok) throw new Error((d && d.detail) || "加载失败");
+            setUnread(d.unread || 0);
+            try{
+              if(noticeBar) noticeBar.hidden = false;
+              var items = d.items || [];
+              var top = items && items.length ? items[0] : null;
+              if(noticePreview) noticePreview.textContent = top ? String(top.title || "—") : "暂无通告";
+            }catch(eP){}
+            noticesRender(d.items || []);
+            setNoticeStatus("");
+            // Do NOT auto-open notices. Only show the bar and unread count; user opens manually.
+          })
+          .catch(function(e){
+            setNoticeStatus(normalizeErrMsg(e) || "加载失败");
+          });
+      }
+      function noticeMarkAll(){
+        if(!tokenGet()) return;
+        // 逐条标记为已读（少量通告时足够用；避免误操作一键全清）。
+        setNoticeStatus("处理中…");
+        apiFetch("/api/notices?limit=50&offset=0&unread_only=1", {cache:"no-store"})
+          .then(function(d){
+            var items = (d && d.items) ? d.items : [];
+            var ps = [];
+            items.forEach(function(it){
+              if(it && it.id) ps.push(apiFetch("/api/notices/read", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({notice_id:it.id})}));
+            });
+            return Promise.all(ps);
+          })
+          .then(function(){ loadNotices(); setNoticeStatus("已全部标为已读"); })
+          .catch(function(e){ setNoticeStatus(normalizeErrMsg(e) || "操作失败"); });
       }
 
       function apiFetch(path, opt) {
@@ -520,6 +1167,7 @@
         var m = e && e.message ? String(e.message) : "";
         m = (m || "").trim();
         if (!m) return "请求失败";
+        if (m === "higher_tier_active") return "你当前档位更高，无法购买更低档位。";
         if (m === "no_withdrawable") return "暂无可提现金额（或金额不足）。";
         if (m === "missing_payout_account") return "请先设置收款信息，再申请提现。";
         if (m === "invalid_phone") return "手机号格式不正确，请填写 11 位数字。";
@@ -581,10 +1229,17 @@
           setAccountIdentityVisible(false);
           if (btnBindPhone) btnBindPhone.hidden = true;
           setStatus("");
+          try{ loadNotices(); }catch(eN){}
           return;
         }
         if (authGuest) authGuest.hidden = true;
         if (authUser) authUser.hidden = false;
+        // Notices should not depend on /api/me success; fetch immediately for a stable top reminder.
+        try{
+          if(noticeBar) noticeBar.hidden = false;
+          if(noticePreview) noticePreview.textContent = "加载通告…";
+          loadNotices();
+        }catch(eN2){}
         setAccountIdentityVisible(false);
         setStatus("加载账户信息…");
         apiFetch("/api/me", { cache: "no-store" })
@@ -600,10 +1255,34 @@
             } catch (eU) {}
             var q = d && d.quota ? d.quota : null;
             if (!q) throw new Error("no quota");
-            quotaKv.hidden = false;
+            quotaKv.hidden = true;
             qDay.textContent = String(q.remaining_day);
             qWeek.textContent = String(q.remaining_week != null ? q.remaining_week : q.remaining_month);
-            qPlan.textContent = String(q.plan || "-");
+            try { lastQuotaPlanCode = String(q.plan || "").trim(); } catch (e0) { lastQuotaPlanCode = ""; }
+            try { lastQuotaExpiresAt = (q.expires_at != null ? Number(q.expires_at) : null); } catch (eE) { lastQuotaExpiresAt = null; }
+            qPlan.textContent = planTitle(lastQuotaPlanCode || "-");
+            try{
+              if(vipExpiryEl){
+                var now = Math.floor(Date.now()/1000);
+                var t = (lastQuotaExpiresAt != null) ? Number(lastQuotaExpiresAt) : NaN;
+                if(t && isFinite(t) && t > now){
+                  vipExpiryEl.textContent = "VIP 到期：" + fmtDateYmd(t);
+                }else if(t && isFinite(t) && t > 0){
+                  vipExpiryEl.textContent = "VIP 到期：已到期（" + fmtDateYmd(t) + "）";
+                }else{
+                  vipExpiryEl.textContent = "VIP 到期：未开通";
+                }
+              }
+            }catch(eX){}
+            try {
+              if (acctLine) {
+                acctLine.innerHTML =
+                  String(accountLineText(u || {})) +
+                  " ｜ 今日剩余 <b style='color:var(--pri)'>" + String(q.remaining_day) + "</b>" +
+                  " ｜ 本周剩余 <b style='color:var(--pri)'>" + String(q.remaining_week != null ? q.remaining_week : q.remaining_month) + "</b>" +
+                  " ｜ 套餐 <b style='color:var(--text)'>" + String(planTitle(lastQuotaPlanCode || "-")) + "</b>";
+              }
+            } catch (eL) {}
             setStatus("");
             tryAutoInviteBind();
             try {
@@ -629,6 +1308,9 @@
           });
       }
 
+      // Load billing plan titles/prices for display (non-blocking).
+      loadBillingPlans();
+
       function fmtFen(v) {
         try {
           var n = Number(v || 0);
@@ -653,22 +1335,90 @@
         if (!agentStatusEl) return;
         if (!tokenGet()) {
           agentStatusEl.textContent = "请先登录后查看。";
+          try{ if(agentExpiryEl) agentExpiryEl.textContent = "伙伴到期：—"; }catch(e0){}
+          try{ if(agentSettleCycleEl) agentSettleCycleEl.textContent = "提现结算：—"; }catch(e0){}
           return;
         }
+        try{
+          // show last known value immediately to avoid seeing "—" during refresh
+          if(agentSettleCycleEl && agentLastOverview && agentLastOverview.settle_delay_days != null){
+            var d0 = Number(agentLastOverview.settle_delay_days);
+            var t0 = (!isFinite(d0)) ? "" : ("T+" + String(Math.max(0, Math.floor(d0))));
+            if(t0) agentSettleCycleEl.textContent = "提现结算：" + t0;
+          } else if(agentSettleCycleEl){
+            agentSettleCycleEl.textContent = "提现结算：加载中…";
+          }
+        }catch(e00){}
         agentStatusEl.textContent = "加载中…";
+        try {
+          if (agentTierHintEl) {
+            agentTierHintEl.style.display = "none";
+            agentTierHintEl.textContent = "";
+          }
+        } catch (e0) {}
         apiFetch("/api/agent/overview", { cache: "no-store" })
           .then(function (d) {
             if (!d || !d.ok) throw new Error((d && d.detail) || "加载失败");
+            agentLastOverview = d || null;
             var ag = d.agent || null;
-            var lvl = ag && ag.level ? String(ag.level) : "";
-            if (!lvl) lvl = "—";
-            if (agentLevelEl) agentLevelEl.textContent = lvl;
+            var tier = d.tier || {};
+            try{
+              if(agentExpiryEl){
+                var now = Math.floor(Date.now()/1000);
+                // backend overview returns expiry on agent_status (`agent.expires_at`); `tier` is evaluation-only.
+                var t = NaN;
+                try{
+                  if(tier && tier.expires_at != null) t = Number(tier.expires_at);
+                  else if(ag && ag.expires_at != null) t = Number(ag.expires_at);
+                }catch(eT){}
+                if(t && isFinite(t) && t > now){
+                  agentExpiryEl.textContent = "伙伴到期：" + fmtDateYmd(t);
+                }else if(t && isFinite(t) && t > 0){
+                  agentExpiryEl.textContent = "伙伴到期：已到期（" + fmtDateYmd(t) + "）";
+                }else{
+                  agentExpiryEl.textContent = "伙伴到期：未开通";
+                }
+              }
+            }catch(eX){}
+            var lvl0 = (tier && tier.level) ? String(tier.level) : (ag && ag.level ? String(ag.level) : "");
+            var lvl = String(lvl0 || "");
+            if (lvl === "normal" || lvl === "starter" || !lvl) lvl = "入门";
+            if (lvl === "senior" || lvl === "growth") lvl = "成长";
+            if (lvl === "gold" || lvl === "pro") lvl = "专业";
+            if (agentLevelEl) agentLevelEl.textContent = lvl || "—";
+            if (agentDirectOrdersEl) agentDirectOrdersEl.textContent = String(d.direct_paid_orders != null ? d.direct_paid_orders : 0);
+            if (agentTeamSizeEl) agentTeamSizeEl.textContent = String(d.team_size != null ? d.team_size : 0);
+            if (agentTeamAmountEl) agentTeamAmountEl.textContent = fmtFenYuanStr(d.team_paid_amount_fen);
             if (agentWithdrawableEl) agentWithdrawableEl.textContent = fmtFenYuanStr(d.withdrawable_fen);
+            var pend = 0, req = 0;
+            try { pend = d && d.commission_sum_fen && d.commission_sum_fen.pending != null ? Number(d.commission_sum_fen.pending) : 0; } catch (eP) { pend = 0; }
+            try { req = d && d.commission_sum_fen && d.commission_sum_fen.requested != null ? Number(d.commission_sum_fen.requested) : 0; } catch (eR) { req = 0; }
+            if (agentEstEl) agentEstEl.textContent = fmtFenYuanStr(pend + req);
             var paid = 0;
             try { paid = d && d.commission_sum_fen && d.commission_sum_fen.paid != null ? Number(d.commission_sum_fen.paid) : 0; } catch (e0) {}
             if (agentPaidEl) agentPaidEl.textContent = fmtFenYuanStr(paid);
             if (agentKv) agentKv.hidden = false;
             agentStatusEl.textContent = "";
+            try{
+              var days2 = d && d.settle_delay_days != null ? Number(d.settle_delay_days) : null;
+              if(days2 == null || !isFinite(days2)) days2 = 7;
+              var t7 = "T+" + String(Math.max(0, Math.floor(days2)));
+              if(agentSettleCycleEl) agentSettleCycleEl.textContent = "提现结算：" + t7;
+            }catch(eT){}
+            try {
+              if (agentTierHintEl && tier && (tier.window_days || tier.target)) {
+                var locked = !!tier.locked;
+                var w = tier.window_days || "";
+                var gmv = (tier.team_gmv_fen != null) ? fmtFenYuanStr(tier.team_gmv_fen) : "";
+                var ad = (tier.active_direct != null) ? String(tier.active_direct) : "";
+                var tname = tier.target ? (String(tier.target) === "pro" ? "专业" : (String(tier.target) === "growth" ? "成长" : "入门")) : "";
+                agentTierHintEl.textContent =
+                  "成长参考（近 " + String(w) + " 天）：团队成交额 " + String(gmv) + " 元 · 活跃直推 " + String(ad) + " 人"
+                  + (tname ? (" · 预计等级 " + tname) : "")
+                  + (locked ? "（已锁定，需管理员处理）" : "");
+                agentTierHintEl.style.display = "block";
+              }
+            } catch (e2) {}
           })
           .catch(function (e) {
             agentStatusEl.textContent = normalizeErrMsg(e) || "加载失败。";
@@ -747,6 +1497,19 @@
         }
         if (agentWithdrawStatus) agentWithdrawStatus.textContent = "";
         if (agentWithdrawNote) agentWithdrawNote.value = "";
+        if (agentWithdrawAmount) agentWithdrawAmount.value = "";
+        try{
+          var wd = agentLastOverview && agentLastOverview.withdrawable_fen != null ? Number(agentLastOverview.withdrawable_fen) : null;
+          var days = agentLastOverview && agentLastOverview.settle_delay_days != null ? Number(agentLastOverview.settle_delay_days) : null;
+          var wdY = (wd == null || !isFinite(wd)) ? "" : fmtFenYuanStr(wd);
+          var t7 = (days == null || !isFinite(days)) ? "" : ("T+" + String(Math.max(0, Math.floor(days))));
+          if(agentWithdrawTip){
+            agentWithdrawTip.textContent = "提交后将进入审核流程。" + (t7 ? (" 回馈一般在 " + t7 + " 后进入可提现（以实际为准）。") : "");
+          }
+          if(agentWithdrawMeta){
+            agentWithdrawMeta.textContent = "当前可提现：" + (wdY ? ("¥" + wdY) : "—") + "（仅统计已到期的待结算回馈）。";
+          }
+        }catch(eMeta){}
         pwModalOpen("pw-modal-agent-withdraw");
       }
 
@@ -756,11 +1519,21 @@
           return;
         }
         var note = (agentWithdrawNote && agentWithdrawNote.value) ? String(agentWithdrawNote.value || "").trim() : "";
+        var amtFen = null;
+        try{
+          var s = (agentWithdrawAmount && agentWithdrawAmount.value != null) ? String(agentWithdrawAmount.value || "").trim() : "";
+          if(s){
+            var n = Number(s);
+            if(isFinite(n) && n > 0){
+              amtFen = Math.round(n * 100);
+            }
+          }
+        }catch(eAmt){}
         if (agentWithdrawStatus) agentWithdrawStatus.textContent = "提交中…";
         apiFetch("/api/agent/payout/request", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ note: note || "" }),
+          body: JSON.stringify({ note: note || "", amount_fen: amtFen }),
         })
           .then(function (d) {
             if (!d || !d.ok) throw new Error((d && d.detail) || "提交失败");
@@ -818,7 +1591,10 @@
       }
 
       var vipPayStatusEl = $("vip-pay-status");
-      var vipQrWrap = $("vip-qr-wrap");
+      var payOverlay = $("pay-overlay");
+      var payTitleEl = $("pay-title");
+      var payHintEl = $("pay-hint");
+      var btnPayClose = $("btn-pay-close");
       var vipQrImg = $("vip-qr-img");
       var vipOutTrade = $("vip-out-trade");
       var vipCodeUrl = $("vip-code-url");
@@ -826,9 +1602,69 @@
       var btnVipRefresh = $("btn-vip-refresh");
       var vipPollTimer = null;
       var quotaSnapshotBeforePay = null;
+      var agentSnapshotBeforePay = null;
+      var vipLastOutTradeNo = "";
+      var vipLastPlan = "";
+      var vipTimeoutPopupArmed = false;
+
+      var payResultOverlay = $("pay-result-overlay");
+      var payResultPanel = $("pay-result-panel");
+      var payResultIcon = $("pay-result-icon");
+      var payResultTitle = $("pay-result-title");
+      var payResultSub = $("pay-result-sub");
+      var payResultDetail = $("pay-result-detail");
+      var btnPayResultClose = $("btn-pay-result-close");
+      var btnPayResultRefresh = $("btn-pay-result-refresh");
 
       function setVipPayStatus(s) {
         if (vipPayStatusEl) vipPayStatusEl.textContent = s || "";
+      }
+
+      function fmtTsLocal(ts) {
+        if (!ts) return "";
+        try {
+          var d = new Date(Number(ts) * 1000);
+          var p = function (n) { return (n < 10 ? "0" : "") + n; };
+          return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+        } catch (e) {
+          return "";
+        }
+      }
+
+      function vipSuccessMessage(q) {
+        q = q || {};
+        var title = planTitle(q.plan || "");
+        var exp = "";
+        try {
+          var t = q && q.expires_at != null ? Number(q.expires_at) : 0;
+          if (t > 0) exp = fmtTsLocal(t);
+        } catch (e0) {}
+        var day = (q && q.remaining_day != null) ? String(q.remaining_day) : "—";
+        var week = (q && (q.remaining_week != null ? q.remaining_week : q.remaining_month != null ? q.remaining_month : null));
+        week = (week != null) ? String(week) : "—";
+        var s = "支付成功：已开通「" + (title || "VIP") + "」。";
+        if (exp) s += " 到期时间 " + exp + "。";
+        s += " 当前剩余：今日 " + day + " / 本周 " + week + "。";
+        s += " 可直接去行情页使用，或点「刷新配额」再次确认。";
+        return s;
+      }
+
+      function agentSuccessMessage(tier) {
+        tier = tier || {};
+        var lvl0 = (tier && tier.level) ? String(tier.level) : "";
+        var lvl = String(lvl0 || "");
+        if (lvl === "normal" || lvl === "starter" || !lvl) lvl = "入门";
+        if (lvl === "senior" || lvl === "growth") lvl = "成长";
+        if (lvl === "gold" || lvl === "pro") lvl = "专业";
+        var exp = "";
+        try {
+          var t = tier && tier.expires_at != null ? Number(tier.expires_at) : 0;
+          if (t > 0) exp = fmtTsLocal(t);
+        } catch (e0) {}
+        var s = "支付成功：已升级为「" + (lvl || "—") + "」。";
+        if (exp) s += " 到期时间 " + exp + "。";
+        s += " 你可以继续在「伙伴计划（支持研发）」查看数据变化。";
+        return s;
       }
 
       function stopVipPoll() {
@@ -836,6 +1672,115 @@
           try { clearInterval(vipPollTimer); } catch (e) {}
           vipPollTimer = null;
         }
+      }
+
+      function payResultOpen(kind, title, subText, detailText){
+        kind = String(kind||"ok");
+        try{
+          if(payResultPanel){
+            payResultPanel.className = "pw-modal-panel pay-result-panel " + (kind==="bad"?"is-bad": kind==="warn"?"is-warn":"is-ok");
+          }
+          if(payResultIcon){
+            payResultIcon.textContent = (kind==="bad") ? "!" : (kind==="warn" ? "!" : "✓");
+          }
+          if(payResultTitle) payResultTitle.textContent = String(title || "支付结果");
+          if(payResultSub) payResultSub.textContent = String(subText || "");
+          if(payResultDetail){
+            var dt = String(detailText || "").trim();
+            if(dt){
+              payResultDetail.style.display = "block";
+              payResultDetail.textContent = dt;
+            }else{
+              payResultDetail.style.display = "none";
+              payResultDetail.textContent = "";
+            }
+          }
+          if(payResultOverlay) payResultOverlay.hidden = false;
+        }catch(e){}
+      }
+      function payResultClose(){
+        try{ if(payResultOverlay) payResultOverlay.hidden = true; }catch(e){}
+      }
+
+      // Generic confirm dialog for renew/upgrade (VIP + Partner plans).
+      var payConfirmOverlay = $("pay-confirm-overlay");
+      var payConfirmTitle = $("pay-confirm-title");
+      var payConfirmSub = $("pay-confirm-sub");
+      var btnPayConfirmCancel = $("btn-pay-confirm-cancel");
+      var btnPayConfirmOk = $("btn-pay-confirm-ok");
+      var __payConfirmResolve = null;
+
+      function payConfirmClose(){
+        try{ if(payConfirmOverlay) payConfirmOverlay.hidden = true; }catch(e){}
+        try{ __payConfirmResolve = null; }catch(e2){}
+      }
+      function payConfirmOpen(title, sub){
+        return new Promise(function(resolve){
+          __payConfirmResolve = resolve;
+          try{ if(payConfirmTitle) payConfirmTitle.textContent = String(title||"确认购买"); }catch(e){}
+          try{ if(payConfirmSub) payConfirmSub.textContent = String(sub||""); }catch(e2){}
+          try{ if(payConfirmOverlay) payConfirmOverlay.hidden = false; }catch(e3){}
+        });
+      }
+      try{
+        if(btnPayConfirmCancel) btnPayConfirmCancel.addEventListener("click", function(){
+          try{ __payConfirmResolve && __payConfirmResolve(false); }catch(e){}
+          payConfirmClose();
+        });
+        if(btnPayConfirmOk) btnPayConfirmOk.addEventListener("click", function(){
+          try{ __payConfirmResolve && __payConfirmResolve(true); }catch(e){}
+          payConfirmClose();
+        });
+        if(payConfirmOverlay){
+          payConfirmOverlay.addEventListener("click", function(ev){
+            if(ev.target === payConfirmOverlay){
+              try{ __payConfirmResolve && __payConfirmResolve(false); }catch(e){}
+              payConfirmClose();
+            }
+          });
+        }
+      }catch(e0){}
+
+      function fmtDateYmd(tsSec){
+        try{
+          var d = new Date(Number(tsSec)*1000);
+          var p = function(n){ return (n<10?'0':'')+n; };
+          return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());
+        }catch(e){ return ''; }
+      }
+      function planPeriodSec(plan){
+        plan = String(plan||'').trim();
+        if(plan === 'vip_month') return 30*86400;
+        if(plan === 'vip_year_999') return 365*86400;
+        if(plan === 'vip_trial_99') return 7*86400;
+        if(plan === 'agent_growth' || plan === 'agent_pro') return 365*86400;
+        return 0;
+      }
+
+      function payOverlayOpen(title, hintHtml){
+        try{
+          if (payTitleEl) payTitleEl.textContent = String(title || "请扫码完成支付");
+          if (payHintEl) payHintEl.innerHTML = String(hintHtml || "请使用 <b>微信</b> 扫一扫完成支付");
+        }catch(e){}
+        try{ vipTimeoutPopupArmed = true; }catch(e0){}
+        try{ if (payOverlay) payOverlay.hidden = false; }catch(e2){}
+      }
+      function payOverlayClose(){
+        try{ if (payOverlay) payOverlay.hidden = true; }catch(e){}
+        // User closed the QR window: stop polling and do not pop timeout modal later.
+        try{ vipTimeoutPopupArmed = false; }catch(e0){}
+        try{ stopVipPoll(); }catch(e1){}
+      }
+
+      function vipCollapseAfterSuccess(){
+        try{ payOverlayClose(); }catch(e){}
+        try{ if (vipOutTrade) vipOutTrade.textContent = ""; }catch(e2){}
+        try{ if (vipCodeUrl) vipCodeUrl.value = ""; }catch(e3){}
+        try{ if (btnCopyPaylink) btnCopyPaylink.disabled = true; }catch(e4){}
+        try{ vipLastOutTradeNo = ""; }catch(e5){}
+        try{ quotaSnapshotBeforePay = null; }catch(e6){}
+        try{ agentSnapshotBeforePay = null; }catch(e7){}
+        try{ vipLastPlan = ""; }catch(e8){}
       }
 
       function quotaImproved(prev, cur) {
@@ -850,6 +1795,20 @@
         return e1 > e0;
       }
 
+      function agentImproved(prev, cur) {
+        if (!cur) return false;
+        try {
+          var e0 = prev && prev.expires_at != null ? Number(prev.expires_at) : 0;
+          var e1 = cur && cur.expires_at != null ? Number(cur.expires_at) : 0;
+          var l0 = prev && prev.level ? String(prev.level) : "";
+          var l1 = cur && cur.level ? String(cur.level) : "";
+          if (l1 && l1 !== l0) return true;
+          return e1 > e0;
+        } catch (e) {
+          return false;
+        }
+      }
+
       function startVipPoll() {
         stopVipPoll();
         var prev = quotaSnapshotBeforePay;
@@ -858,19 +1817,65 @@
           n += 1;
           if (n > 120) {
             stopVipPoll();
-            setVipPayStatus("长时间未检测到支付结果：若已付款，请点「刷新配额」或稍后重试。");
+            var tmsg = "长时间未检测到支付结果。若你已付款，请点「刷新配额」或稍后再试。";
+            setVipPayStatus(tmsg);
+            try{
+              // Only interrupt user when QR window is still open.
+              var overlayOpen = !!(payOverlay && payOverlay.hidden === false);
+              if (overlayOpen && vipTimeoutPopupArmed) {
+                payResultOpen("warn", "未检测到支付结果", tmsg, vipLastOutTradeNo ? ("订单号：" + vipLastOutTradeNo) : "");
+              }
+            }catch(e0){}
             return;
           }
-          apiFetch("/api/me", { cache: "no-store" })
-            .then(function (d) {
-              var q = d && d.quota ? d.quota : null;
-              if (quotaImproved(prev, q)) {
-                stopVipPoll();
-                setVipPayStatus("支付已生效，配额已更新。");
-                refreshMe();
-              }
-            })
-            .catch(function () {});
+          var p0 = Promise.resolve();
+          // WeChat notify 兜底：主动 query 并补发开通（忽略错误）
+          if (vipLastOutTradeNo) {
+            p0 = apiFetch("/api/billing/wechat/query_and_fulfill", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ out_trade_no: vipLastOutTradeNo }),
+            }).catch(function () {});
+          }
+          var isAgentPay = String(vipLastPlan || "").indexOf("agent_") === 0;
+          if (isAgentPay) {
+            var prevA = agentSnapshotBeforePay;
+            p0.then(function () { return apiFetch("/api/agent/overview", { cache: "no-store" }); })
+              .then(function (d) {
+                var ag = d && d.agent ? d.agent : null;
+                var tier0 = d && d.tier ? d.tier : null;
+                // `tier` is evaluation info and may not contain expires_at; use agent_status fields for fulfillment detection.
+                var tier = {
+                  level: (ag && ag.level != null) ? ag.level : (tier0 && tier0.level != null ? tier0.level : ""),
+                  expires_at: (ag && ag.expires_at != null) ? ag.expires_at : (tier0 && tier0.expires_at != null ? tier0.expires_at : null),
+                };
+                if (agentImproved(prevA, tier)) {
+                  stopVipPoll();
+                  try { payOverlayClose(); } catch (eX) {}
+                  var msgA = agentSuccessMessage(tier);
+                  setVipPayStatus(msgA);
+                  payResultOpen("ok", "升级成功", msgA, vipLastOutTradeNo ? ("订单号：" + vipLastOutTradeNo) : "");
+                  vipCollapseAfterSuccess();
+                  try { agentRefresh(); } catch (e0) {}
+                }
+              })
+              .catch(function () {});
+          } else {
+            p0.then(function () { return apiFetch("/api/me", { cache: "no-store" }); })
+              .then(function (d) {
+                var q = d && d.quota ? d.quota : null;
+                if (quotaImproved(prev, q)) {
+                  stopVipPoll();
+                  try { payOverlayClose(); } catch (eX2) {}
+                  var msg = vipSuccessMessage(q);
+                  setVipPayStatus(msg);
+                  payResultOpen("ok", "支付成功", msg, vipLastOutTradeNo ? ("订单号：" + vipLastOutTradeNo) : "");
+                  vipCollapseAfterSuccess();
+                  refreshMe();
+                }
+              })
+              .catch(function () {});
+          }
         }, 3000);
       }
 
@@ -886,8 +1891,9 @@
             setVipPayStatus("二维码图片加载失败：请使用下方「复制付款链接」。");
           };
         }
-        if (vipQrWrap) vipQrWrap.hidden = false;
-        try { location.hash = "#vip"; } catch (e) {}
+        var isAgentPay = String(vipLastPlan || "").indexOf("agent_") === 0;
+        var title = isAgentPay ? ("升级：" + planTitle(vipLastPlan)) : ("开通：" + planTitle(vipLastPlan));
+        payOverlayOpen(title, "请使用 <b>微信</b> 扫一扫完成支付");
       }
 
       function startWechatNative(plan) {
@@ -898,17 +1904,32 @@
           return;
         }
         stopVipPoll();
-        if (vipQrWrap) vipQrWrap.hidden = true;
+        payOverlayClose();
         setVipPayStatus("正在创建订单…");
-        apiFetch("/api/me", { cache: "no-store" })
-          .then(function (d) {
-            quotaSnapshotBeforePay = d && d.quota ? d.quota : null;
-            return apiFetch("/api/billing/wechat/native", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ plan: plan }),
-            });
-          })
+        vipLastPlan = String(plan || "");
+        var isAgentPay = String(plan || "").indexOf("agent_") === 0;
+        try { location.hash = isAgentPay ? "#agent" : "#vip"; } catch (eH) {}
+        var snapP = isAgentPay
+          ? apiFetch("/api/agent/overview", { cache: "no-store" }).then(function (d) {
+              try{
+                var ag = d && d.agent ? d.agent : null;
+                var tier0 = d && d.tier ? d.tier : null;
+                agentSnapshotBeforePay = {
+                  level: (ag && ag.level != null) ? ag.level : (tier0 && tier0.level != null ? tier0.level : ""),
+                  expires_at: (ag && ag.expires_at != null) ? ag.expires_at : (tier0 && tier0.expires_at != null ? tier0.expires_at : null),
+                };
+              }catch(e0){ agentSnapshotBeforePay = null; }
+            }).catch(function () { agentSnapshotBeforePay = null; })
+          : apiFetch("/api/me", { cache: "no-store" }).then(function (d) {
+              quotaSnapshotBeforePay = d && d.quota ? d.quota : null;
+            }).catch(function () { quotaSnapshotBeforePay = null; });
+        snapP.then(function () {
+          return apiFetch("/api/billing/wechat/native", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ plan: plan }),
+          });
+        })
           .then(function (d) {
             var af = d && d.amount_fen != null ? Number(d.amount_fen) : 0;
             var pf = d && d.priced_amount_fen != null ? Number(d.priced_amount_fen) : af;
@@ -933,32 +1954,156 @@
             }
             setVipPayStatus(hint);
             showVipQr(d);
+            try { vipLastOutTradeNo = d && d.out_trade_no ? String(d.out_trade_no) : ""; } catch (e0) { vipLastOutTradeNo = ""; }
             startVipPoll();
           })
           .catch(function (e) {
             var msg = e && e.message ? String(e.message) : "下单失败";
             setVipPayStatus(msg);
+            payResultOpen("bad", "下单失败", "创建订单失败，请稍后重试。", msg);
           });
       }
 
-      var btnVipTrial = $("btn-vip-trial");
-      if (btnVipTrial) {
-        btnVipTrial.addEventListener("click", function () {
-          startWechatNative("vip_trial_99");
-        });
+      function startAlipayWap(plan) {
+        if (!tokenGet()) {
+          setVipPayStatus("请先登录后再开通 VIP。");
+          setStatus("请先登录后再开通 VIP。");
+          try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) { window.scrollTo(0, 0); }
+          return;
+        }
+        stopVipPoll();
+        payOverlayClose();
+        setVipPayStatus("正在创建订单…");
+        vipLastPlan = String(plan || "");
+        var isAgentPay = String(plan || "").indexOf("agent_") === 0;
+        try { location.hash = isAgentPay ? "#agent" : "#vip"; } catch (eH) {}
+        var snapP = isAgentPay
+          ? apiFetch("/api/agent/overview", { cache: "no-store" }).then(function (d) {
+              try{
+                var ag = d && d.agent ? d.agent : null;
+                var tier0 = d && d.tier ? d.tier : null;
+                agentSnapshotBeforePay = {
+                  level: (ag && ag.level != null) ? ag.level : (tier0 && tier0.level != null ? tier0.level : ""),
+                  expires_at: (ag && ag.expires_at != null) ? ag.expires_at : (tier0 && tier0.expires_at != null ? tier0.expires_at : null),
+                };
+              }catch(e0){ agentSnapshotBeforePay = null; }
+            }).catch(function () { agentSnapshotBeforePay = null; })
+          : apiFetch("/api/me", { cache: "no-store" }).then(function (d) {
+              quotaSnapshotBeforePay = d && d.quota ? d.quota : null;
+            }).catch(function () { quotaSnapshotBeforePay = null; });
+        snapP.then(function () {
+          return apiFetch("/api/billing/alipay/wap", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ plan: plan }),
+          });
+        })
+          .then(function (d) {
+            var payUrl = d && d.pay_url ? String(d.pay_url) : "";
+            var otn = d && d.out_trade_no ? String(d.out_trade_no) : "";
+            if (!payUrl) throw new Error("未返回支付地址");
+            if (vipOutTrade) vipOutTrade.textContent = otn;
+            if (vipCodeUrl) vipCodeUrl.value = payUrl;
+            var af = d && d.amount_fen != null ? Number(d.amount_fen) : 0;
+            var pf = d && d.priced_amount_fen != null ? Number(d.priced_amount_fen) : af;
+            var ay = d && d.amount_yuan_display ? String(d.amount_yuan_display) : "";
+            var py = d && d.priced_amount_yuan_display ? String(d.priced_amount_yuan_display) : "";
+            var hint =
+              "正在跳转支付宝收银台…支付完成后回到本页会自动检测（约每 3 秒），也可点「刷新配额」。";
+            if (pf !== af && pf > 0) {
+              hint =
+                "正在跳转支付宝收银台；应付金额以支付宝显示为准。支付完成后本页会自动检测（约每 3 秒）。";
+            }
+            if (ay) {
+              hint =
+                "正在跳转支付宝收银台（实收 ¥" +
+                ay +
+                "）…支付完成后本页会自动检测（约每 3 秒）。";
+              if (py && py !== ay) {
+                hint =
+                  "正在跳转支付宝收银台（标价 ¥" +
+                  py +
+                  "，联调实收 ¥" +
+                  ay +
+                  "；以支付宝显示为准）…支付完成后本页会自动检测（约每 3 秒）。";
+              }
+            }
+            setVipPayStatus(hint);
+            startVipPoll();
+            payResultOpen(
+              "warn",
+              "正在跳转收银台…",
+              "即将跳转到支付宝完成支付。支付完成后回到本页会自动检测，也可点「刷新配额」。",
+              otn ? ("订单号：" + otn) : ""
+            );
+            try { setTimeout(function(){ window.location.href = payUrl; }, 260); } catch (e0) { window.location.href = payUrl; }
+          })
+          .catch(function (e) {
+            var msg = e && e.message ? String(e.message) : "下单失败";
+            setVipPayStatus(msg);
+            payResultOpen("bad", "下单失败", "创建订单失败，请稍后重试。", msg);
+          });
       }
-      var btnVip = $("btn-vip");
-      if (btnVip) {
-        btnVip.addEventListener("click", function () {
-          startWechatNative("vip_month");
-        });
-      }
-      var btnVipYear = $("btn-vip-year");
-      if (btnVipYear) {
-        btnVipYear.addEventListener("click", function () {
-          startWechatNative("vip_year_999");
-        });
-      }
+
+      var vipPlanTrialBtn = $("vip-plan-trial");
+      if (vipPlanTrialBtn) vipPlanTrialBtn.addEventListener("click", function () { vipPlanSelected = "vip_trial_99"; syncVipChoiceUi(); });
+      var vipPlanMonthBtn = $("vip-plan-month");
+      if (vipPlanMonthBtn) vipPlanMonthBtn.addEventListener("click", function () { vipPlanSelected = "vip_month"; syncVipChoiceUi(); });
+      var vipPlanYearBtn = $("vip-plan-year");
+      if (vipPlanYearBtn) vipPlanYearBtn.addEventListener("click", function () { vipPlanSelected = "vip_year_999"; syncVipChoiceUi(); });
+
+      var vipPayWechatBtn = $("vip-pay-wechat");
+      if (vipPayWechatBtn) vipPayWechatBtn.addEventListener("click", function () {
+        if (!vipPlanSelected) { setVipChoiceHint("请先选择套餐。"); return; }
+        (function(){
+          var plan = String(vipPlanSelected||'').trim();
+          var curPlan = String(lastQuotaPlanCode||'').trim();
+          var now = Math.floor(Date.now()/1000);
+          var curExp = lastQuotaExpiresAt != null ? Number(lastQuotaExpiresAt) : NaN;
+          var active = !!curExp && isFinite(curExp) && curExp > now;
+          var title = planTitle(plan);
+          if(active && curPlan === plan){
+            var to0 = fmtDateYmd(curExp);
+            var to1 = fmtDateYmd(Number(curExp) + planPeriodSec(plan));
+            payConfirmOpen("确认续费？", "当前有效期内，续费后将自动顺延。" + (to0 && to1 ? (" 预计到期：" + to0 + " → " + to1) : ""))
+              .then(function(ok){ if(ok) startWechatNative(plan); });
+            return;
+          }
+          if(active && curPlan && curPlan !== plan){
+            var to2 = fmtDateYmd(now + planPeriodSec(plan));
+            payConfirmOpen("确认升级？", "将立即升级为「" + title + "」，并从现在开始按新套餐计算有效期（不会叠加旧剩余时间）。" + (to2 ? (" 预计到期：" + to2) : ""))
+              .then(function(ok){ if(ok) startWechatNative(plan); });
+            return;
+          }
+          startWechatNative(plan);
+        })();
+      });
+      var vipPayAlipayBtn = $("vip-pay-alipay");
+      if (vipPayAlipayBtn) vipPayAlipayBtn.addEventListener("click", function () {
+        if (!vipPlanSelected) { setVipChoiceHint("请先选择套餐。"); return; }
+        (function(){
+          var plan = String(vipPlanSelected||'').trim();
+          var curPlan = String(lastQuotaPlanCode||'').trim();
+          var now = Math.floor(Date.now()/1000);
+          var curExp = lastQuotaExpiresAt != null ? Number(lastQuotaExpiresAt) : NaN;
+          var active = !!curExp && isFinite(curExp) && curExp > now;
+          var title = planTitle(plan);
+          if(active && curPlan === plan){
+            var to0 = fmtDateYmd(curExp);
+            var to1 = fmtDateYmd(Number(curExp) + planPeriodSec(plan));
+            payConfirmOpen("确认续费？", "当前有效期内，续费后将自动顺延。" + (to0 && to1 ? (" 预计到期：" + to0 + " → " + to1) : ""))
+              .then(function(ok){ if(ok) startAlipayWap(plan); });
+            return;
+          }
+          if(active && curPlan && curPlan !== plan){
+            var to2 = fmtDateYmd(now + planPeriodSec(plan));
+            payConfirmOpen("确认升级？", "将立即升级为「" + title + "」，并从现在开始按新套餐计算有效期（不会叠加旧剩余时间）。" + (to2 ? (" 预计到期：" + to2) : ""))
+              .then(function(ok){ if(ok) startAlipayWap(plan); });
+            return;
+          }
+          startAlipayWap(plan);
+        })();
+      });
       if (btnVipRefresh) {
         btnVipRefresh.addEventListener("click", function () {
           setVipPayStatus("");
@@ -975,6 +2120,26 @@
           copyText(s)
             .then(function () { setVipPayStatus("已复制付款链接，可发到微信内打开。"); })
             .catch(function () { setVipPayStatus("复制失败，请手动选择输入框内链接复制。"); });
+        });
+      }
+
+      if (btnPayClose) btnPayClose.addEventListener("click", payOverlayClose);
+      if (payOverlay) {
+        payOverlay.addEventListener("click", function (ev) {
+          if (ev.target === payOverlay) payOverlayClose();
+        });
+      }
+
+      if (btnPayResultClose) btnPayResultClose.addEventListener("click", payResultClose);
+      if (btnPayResultRefresh) btnPayResultRefresh.addEventListener("click", function(){
+        try{ setVipPayStatus(""); }catch(e){}
+        try{ refreshMe(); }catch(e2){}
+        try{ agentRefresh(); }catch(e3){}
+        try{ payResultClose(); }catch(e3){}
+      });
+      if (payResultOverlay) {
+        payResultOverlay.addEventListener("click", function(ev){
+          if(ev.target === payResultOverlay) payResultClose();
         });
       }
 
@@ -998,6 +2163,73 @@
         }
       }
 
+      // Share modal (conversion-friendly templates + QR)
+      var shareOverlay = $("share-overlay");
+      var btnShareClose = $("btn-share-close");
+      var shareTitle = $("share-title");
+      var shareTpl = $("share-template");
+      var shareText = $("share-text");
+      var btnShareCopyText = $("btn-share-copy-text");
+      var btnShareCopyLink = $("btn-share-copy-link");
+      var shareQr = $("share-qr");
+      var shareStatus = $("share-status");
+      var __shareLink = "";
+
+      function shareOverlayOpen() { try { if (shareOverlay) shareOverlay.hidden = false; } catch (e) {} }
+      function shareOverlayClose() { try { if (shareOverlay) shareOverlay.hidden = true; } catch (e) {} }
+      function setShareStatus(s) { try { if (shareStatus) shareStatus.textContent = String(s || ""); } catch (e) {} }
+
+      function shareBuildText(kind, link, extra) {
+        var l = String(link || "").trim();
+        var code = extra && extra.code ? String(extra.code || "").trim() : "";
+        var head = "AI24X 行情查询｜灯塔版";
+        var compliance = "【内容仅供学习交流，不构成任何建议】";
+        if (kind === "group") {
+          return (
+            head + "\n" +
+            "一键查趋势结构/关键位/风险提示（忙的时候快速看重点）。\n" +
+            (code ? ("邀请码：" + code + "\n") : "") +
+            "入口：" + l + "\n" +
+            "开通 VIP：更稳更快、次数更高（高峰期体验更好）。\n" +
+            compliance
+          );
+        }
+        if (kind === "moments") {
+          return (
+            "最近在用一个更省时间的行情查询页。\n" +
+            "（趋势结构/关键位/风险提示，一页看清）\n" +
+            "链接：" + l + "\n" +
+            compliance
+          );
+        }
+        // dm
+        return (
+          head + "\n" +
+          "我用这个查行情更快：把海量信息压缩成可执行要点。\n" +
+          (code ? ("邀请码：" + code + "\n") : "") +
+          "直接打开：" + l + "\n" +
+          compliance
+        );
+      }
+
+      function shareRender() {
+        var kind = "dm";
+        try { kind = shareTpl ? String(shareTpl.value || "dm") : "dm"; } catch (e) {}
+        var txt = shareBuildText(kind, __shareLink, { code: (inviteInput ? inviteInput.value : "") });
+        try { if (shareText) shareText.value = txt; } catch (e2) {}
+      }
+
+      function shareOpenInvite() {
+        var link = inviteLinkInput ? String(inviteLinkInput.value || "") : "";
+        if (!link) { setInviteStatus("请先获取邀请码生成邀请链接。"); return; }
+        __shareLink = link;
+        try { if (shareTitle) shareTitle.textContent = "分享邀请链接"; } catch (e0) {}
+        try { if (shareQr) shareQr.src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=" + encodeURIComponent(link); } catch (e1) {}
+        shareRender();
+        shareOverlayOpen();
+        setShareStatus("");
+      }
+
       function fmtTs(ts){
         if(!ts) return '—';
         try{
@@ -1007,13 +2239,22 @@
         }catch(e){ return String(ts); }
       }
 
+      function inviteToggleApply(){
+        try{
+          if(!inviteTableWrap) return;
+          inviteTableWrap.style.maxHeight = inviteTableCollapsed ? "280px" : "none";
+          if(btnInviteToggle) btnInviteToggle.textContent = inviteTableCollapsed ? "展开邀请记录" : "收起邀请记录";
+        }catch(e){}
+      }
+
       function makeInviteLink(code) {
         code = String(code || "").trim().toUpperCase();
         if (!code) return "";
         try {
-          return new URL("./index.html?i=" + encodeURIComponent(code), String(location.href)).toString();
+          // Prefer short link /i/{code} for sharing; it 302 redirects to index.html with invite param.
+          return new URL("./i/" + encodeURIComponent(code), String(location.href)).toString();
         } catch (e) {
-          return "./index.html?i=" + encodeURIComponent(code);
+          return "./i/" + encodeURIComponent(code);
         }
       }
 
@@ -1037,19 +2278,108 @@
           var items = (d && d.items) ? d.items : [];
           if(!items || !items.length) return;
           if(table) table.style.display = "";
+          try{
+            if(btnInviteToggle){
+              btnInviteToggle.disabled = false;
+              // Collapse by default when records are long.
+              inviteTableCollapsed = (items.length >= 8);
+              inviteToggleApply();
+            }
+          }catch(eT){}
           items.forEach(function(it){
             var tr = document.createElement("tr");
             var amt = 0;
             try { amt = Number(it.reward_amount != null ? it.reward_amount : 0) || 0; } catch (eAmt) { amt = 0; }
             var rewardTxt = (amt > 0) ? ("+" + String(Math.floor(amt)) + " 次") : (it.rewarded ? "已发" : "待发");
+            var who = "";
+            try {
+              var p = it.invitee_phone_masked ? String(it.invitee_phone_masked || "").trim() : "";
+              var e = it.invitee_email_masked ? String(it.invitee_email_masked || "").trim() : "";
+              who = p || e || (it.invitee ? String(it.invitee || "") : "");
+            } catch (eWho) {
+              who = it.invitee ? String(it.invitee || "") : "";
+            }
             tr.innerHTML =
               "<td style='padding:10px 8px; border-bottom:1px solid var(--border);'>"+fmtTs(it.created_at)+"</td>"+
-              "<td style='padding:10px 8px; border-bottom:1px solid var(--border);'>"+String(it.invitee||"")+"</td>"+
+              "<td style='padding:10px 8px; border-bottom:1px solid var(--border);'>"+who+"</td>"+
               "<td style='padding:10px 8px; border-bottom:1px solid var(--border);'>"+(it.activated ? "是" : "否")+"</td>"+
               "<td style='padding:10px 8px; border-bottom:1px solid var(--border);'>"+rewardTxt+"</td>";
             tbody.appendChild(tr);
           });
         }).catch(function(){});
+      }
+
+      var agentCommFilter = $("agent-comm-filter");
+      var btnAgentCommRefresh = $("btn-agent-comm-refresh");
+      var agentCommTable = $("agent-comm-table");
+      var agentCommTbody = $("agent-comm-tbody");
+      var agentCommHint = $("agent-comm-hint");
+
+      function agentCommSetHint(s){
+        try{
+          if(!agentCommHint) return;
+          var t = String(s || "");
+          agentCommHint.textContent = t;
+          agentCommHint.style.display = t ? "" : "none";
+        }catch(e){}
+      }
+
+      function commStatusZh(st){
+        st = String(st||"").toLowerCase();
+        if(st === "pending") return "待结算";
+        if(st === "requested") return "已申请";
+        if(st === "paid") return "已结算";
+        if(st === "canceled" || st === "cancelled") return "已取消";
+        return st || "—";
+      }
+
+      function agentCommissionsRefresh(){
+        if(!tokenGet()){
+          agentCommSetHint("请先登录后查看。");
+          try{ if(agentCommTable) agentCommTable.style.display = "none"; }catch(e0){}
+          return;
+        }
+        var st = "";
+        try{ st = agentCommFilter ? String(agentCommFilter.value||"").trim() : ""; }catch(e1){ st=""; }
+        agentCommSetHint("加载中…");
+        try{ if(agentCommTable) agentCommTable.style.display = "none"; }catch(e2){}
+        try{ if(agentCommTbody) agentCommTbody.innerHTML = ""; }catch(e3){}
+        apiFetch("/api/agent/commissions?status=" + encodeURIComponent(st || "") + "&limit=50&offset=0", { cache:"no-store" })
+          .then(function(d){
+            var items = d && d.items ? d.items : [];
+            if(!items || !items.length){
+              agentCommSetHint("暂无记录。");
+              return;
+            }
+            agentCommSetHint("");
+            try{ if(agentCommTable) agentCommTable.style.display = ""; }catch(e0){}
+            items.forEach(function(it){
+              var tr = document.createElement("tr");
+              var plan = "";
+              var status = "";
+              var friend = "";
+              var amtY = "0.00";
+              var note = "";
+              try{ plan = planTitle(it.plan || ""); }catch(e1){}
+              try{ status = String(it.status || ""); }catch(e2){}
+              try{ friend = String(it.buyer_masked || ""); }catch(eF){ friend=""; }
+              try{ amtY = fmtFenYuanStr(it.commission_fen); }catch(e3){}
+              try{
+                note = (it.out_trade_no ? ("单号 " + String(it.out_trade_no).slice(0, 16) + (String(it.out_trade_no).length>16?"…":"")) : "");
+              }catch(e4){ note = ""; }
+              tr.innerHTML =
+                "<td style='padding:10px 8px; border-bottom:1px solid var(--border);'>"+fmtTs(it.created_at || it.paid_at || it.eligible_at)+"</td>"+
+                "<td style='padding:10px 8px; border-bottom:1px solid var(--border);'>"+plan+"</td>"+
+                "<td style='padding:10px 8px; border-bottom:1px solid var(--border);'>"+(friend||"—")+"</td>"+
+                "<td style='padding:10px 8px; border-bottom:1px solid var(--border);'>"+commStatusZh(status||"")+"</td>"+
+                "<td style='padding:10px 8px; border-bottom:1px solid var(--border);'>"+amtY+"</td>"+
+                "<td style='padding:10px 8px; border-bottom:1px solid var(--border);'>"+(note||"")+"</td>";
+              if(agentCommTbody) agentCommTbody.appendChild(tr);
+            });
+          })
+          .catch(function(e){
+            agentCommSetHint(normalizeErrMsg(e) || "加载失败。");
+          });
       }
 
       function logout() {
@@ -1064,11 +2394,120 @@
       }
 
       if (btnLogout) btnLogout.addEventListener("click", logout);
+      if (btnNotices) btnNotices.addEventListener("click", function(){ noticeOverlayOpen(); loadNotices(); });
+      if (btnNoticeClose) btnNoticeClose.addEventListener("click", noticeOverlayClose);
+      if (btnNoticeRefresh) btnNoticeRefresh.addEventListener("click", loadNotices);
+      if (btnNoticeMarkAll) btnNoticeMarkAll.addEventListener("click", noticeMarkAll);
+      if (noticeOverlay) {
+        noticeOverlay.addEventListener("click", function(ev){
+          if(ev.target === noticeOverlay) noticeOverlayClose();
+        });
+      }
       if (btnAgentRefresh) btnAgentRefresh.addEventListener("click", agentRefresh);
       if (btnAgentSetAcct) btnAgentSetAcct.addEventListener("click", agentSetAccount);
       if (btnAgentWithdraw) btnAgentWithdraw.addEventListener("click", agentWithdraw);
+      if (btnAgentWithdrawAll) btnAgentWithdrawAll.addEventListener("click", function(){
+        try{
+          var wd = agentLastOverview && agentLastOverview.withdrawable_fen != null ? Number(agentLastOverview.withdrawable_fen) : 0;
+          if(!isFinite(wd) || wd <= 0){
+            if(agentWithdrawStatus) agentWithdrawStatus.textContent = "暂无可提现金额。";
+            return;
+          }
+          if(agentWithdrawAmount) agentWithdrawAmount.value = fmtFenYuanStr(wd);
+          if(agentWithdrawStatus) agentWithdrawStatus.textContent = "已填入全部可提现金额。";
+        }catch(e){}
+      });
       if (btnAgentAcctSave) btnAgentAcctSave.addEventListener("click", agentSaveAccountFromModal);
       if (btnAgentWithdrawSubmit) btnAgentWithdrawSubmit.addEventListener("click", agentWithdrawSubmit);
+      var btnAgentPayWechat = $("agent-pay-wechat");
+      var btnAgentPayAlipay = $("agent-pay-alipay");
+      if (btnAgentUpgGrowth) btnAgentUpgGrowth.addEventListener("click", function () {
+        try{
+          var now = Math.floor(Date.now()/1000);
+          var curLvl = agentLastOverview && agentLastOverview.agent && agentLastOverview.agent.level ? String(agentLastOverview.agent.level||"") : "";
+          var curExp = agentLastOverview && agentLastOverview.agent && agentLastOverview.agent.expires_at != null ? Number(agentLastOverview.agent.expires_at) : NaN;
+          var active = !!curExp && isFinite(curExp) && curExp > now;
+          var rank = function(l){ l=String(l||"").trim().toLowerCase(); if(l==="gold")l="pro"; if(l==="senior")l="growth"; if(l==="normal")l="starter"; if(l==="pro")return 30; if(l==="growth")return 20; if(l==="starter")return 10; return 0; };
+          if(active && rank(curLvl) >= 30){
+            if(agentStatusEl) agentStatusEl.textContent = "你当前为专业档，成长档无需再购买。";
+            agentPlanSelected = "";
+            syncAgentChoiceUi();
+            return;
+          }
+        }catch(e0){}
+        agentPlanSelected = "agent_growth";
+        syncAgentChoiceUi();
+        try{ location.hash = "#agent"; }catch(e){}
+      });
+      if (btnAgentUpgPro) btnAgentUpgPro.addEventListener("click", function () {
+        agentPlanSelected = "agent_pro";
+        syncAgentChoiceUi();
+        try{ location.hash = "#agent"; }catch(e){}
+      });
+      if (btnAgentPayWechat) btnAgentPayWechat.addEventListener("click", function () {
+        if (!agentPlanSelected) { if (agentStatusEl) agentStatusEl.textContent = "请先选择成长档或专业档。"; return; }
+        (function(){
+          var plan = String(agentPlanSelected||'').trim();
+          var title = planTitle(plan);
+          var now = Math.floor(Date.now()/1000);
+          var curLvl = "";
+          var curExp = NaN;
+          try{
+            curLvl = agentLastOverview && agentLastOverview.agent && agentLastOverview.agent.level ? String(agentLastOverview.agent.level || "") : "";
+            curExp = agentLastOverview && agentLastOverview.agent && agentLastOverview.agent.expires_at != null ? Number(agentLastOverview.agent.expires_at) : NaN;
+          }catch(e0){}
+          var active = !!curExp && isFinite(curExp) && curExp > now;
+          var rank = function(l){ l=String(l||"").trim().toLowerCase(); if(l==="gold")l="pro"; if(l==="senior")l="growth"; if(l==="normal")l="starter"; if(l==="pro")return 30; if(l==="growth")return 20; if(l==="starter")return 10; return 0; };
+          var tgtLvl = plan === "agent_pro" ? "pro" : "growth";
+          if(active && rank(curLvl) >= rank(tgtLvl)){
+            var to0 = fmtDateYmd(curExp);
+            var to1 = fmtDateYmd(Number(curExp) + planPeriodSec(plan));
+            payConfirmOpen("确认续费？", "当前有效期内，续费后将自动顺延。" + (to0 && to1 ? (" 预计到期：" + to0 + " → " + to1) : ""))
+              .then(function(ok){ if(ok) startWechatNative(plan); });
+            return;
+          }
+          if(active && rank(curLvl) < rank(tgtLvl)){
+            var to2 = fmtDateYmd(now + planPeriodSec(plan));
+            payConfirmOpen("确认升级？", "将立即升级为「" + title + "」，并从现在开始按新档位计算有效期（不会叠加旧剩余时间）。" + (to2 ? (" 预计到期：" + to2) : ""))
+              .then(function(ok){ if(ok) startWechatNative(plan); });
+            return;
+          }
+          startWechatNative(plan);
+        })();
+      });
+      if (btnAgentPayAlipay) btnAgentPayAlipay.addEventListener("click", function () {
+        if (!agentPlanSelected) { if (agentStatusEl) agentStatusEl.textContent = "请先选择成长档或专业档。"; return; }
+        (function(){
+          var plan = String(agentPlanSelected||'').trim();
+          var title = planTitle(plan);
+          var now = Math.floor(Date.now()/1000);
+          var curLvl = "";
+          var curExp = NaN;
+          try{
+            curLvl = agentLastOverview && agentLastOverview.agent && agentLastOverview.agent.level ? String(agentLastOverview.agent.level || "") : "";
+            curExp = agentLastOverview && agentLastOverview.agent && agentLastOverview.agent.expires_at != null ? Number(agentLastOverview.agent.expires_at) : NaN;
+          }catch(e0){}
+          var active = !!curExp && isFinite(curExp) && curExp > now;
+          var rank = function(l){ l=String(l||"").trim().toLowerCase(); if(l==="gold")l="pro"; if(l==="senior")l="growth"; if(l==="normal")l="starter"; if(l==="pro")return 30; if(l==="growth")return 20; if(l==="starter")return 10; return 0; };
+          var tgtLvl = plan === "agent_pro" ? "pro" : "growth";
+          if(active && rank(curLvl) >= rank(tgtLvl)){
+            var to0 = fmtDateYmd(curExp);
+            var to1 = fmtDateYmd(Number(curExp) + planPeriodSec(plan));
+            payConfirmOpen("确认续费？", "当前有效期内，续费后将自动顺延。" + (to0 && to1 ? (" 预计到期：" + to0 + " → " + to1) : ""))
+              .then(function(ok){ if(ok) startAlipayWap(plan); });
+            return;
+          }
+          if(active && rank(curLvl) < rank(tgtLvl)){
+            var to2 = fmtDateYmd(now + planPeriodSec(plan));
+            payConfirmOpen("确认升级？", "将立即升级为「" + title + "」，并从现在开始按新档位计算有效期（不会叠加旧剩余时间）。" + (to2 ? (" 预计到期：" + to2) : ""))
+              .then(function(ok){ if(ok) startAlipayWap(plan); });
+            return;
+          }
+          startAlipayWap(plan);
+        })();
+      });
+      if (btnAgentCommRefresh) btnAgentCommRefresh.addEventListener("click", agentCommissionsRefresh);
+      if (agentCommFilter) agentCommFilter.addEventListener("change", agentCommissionsRefresh);
 
       ["pw-modal-change", "pw-modal-forget", "pw-modal-agent-acct", "pw-modal-agent-withdraw"].forEach(function (mid) {
         var m = $(mid);
@@ -1358,6 +2797,7 @@
       var inviteLinkInput = $("invite-link");
       var btnCopyInviteLink = $("btn-copy-invite-link");
       var btnBind = $("btn-bind-invite");
+      var btnShareInvite = $("btn-share-invite");
       if (btnMyInvite) {
         btnMyInvite.addEventListener("click", function () {
           setInviteStatus("处理中…");
@@ -1415,6 +2855,35 @@
             .catch(function () { setStatus("复制失败，请手动选择复制。"); setInviteStatus("复制失败，请手动选择复制。"); });
         });
       }
+      if (btnShareInvite) {
+        btnShareInvite.addEventListener("click", function () {
+          shareOpenInvite();
+        });
+      }
+
+      if (btnShareClose) btnShareClose.addEventListener("click", shareOverlayClose);
+      if (shareOverlay) {
+        shareOverlay.addEventListener("click", function (ev) {
+          if (ev.target === shareOverlay) shareOverlayClose();
+        });
+      }
+      if (shareTpl) shareTpl.addEventListener("change", shareRender);
+      if (btnShareCopyText) btnShareCopyText.addEventListener("click", function () {
+        var txt = shareText ? String(shareText.value || "") : "";
+        copyText(txt)
+          .then(function () { setShareStatus("已复制文案"); })
+          .catch(function () { setShareStatus("复制失败"); });
+      });
+      if (btnShareCopyLink) btnShareCopyLink.addEventListener("click", function () {
+        var link = String(__shareLink || "");
+        copyText(link)
+          .then(function () { setShareStatus("已复制链接"); })
+          .catch(function () { setShareStatus("复制失败"); });
+      });
+      if (btnInviteToggle) btnInviteToggle.addEventListener("click", function(){
+        inviteTableCollapsed = !inviteTableCollapsed;
+        inviteToggleApply();
+      });
       if (btnBind) {
         btnBind.addEventListener("click", function () {
           var code = bindInput ? String(bindInput.value || "").trim() : "";
@@ -1444,9 +2913,11 @@
       } catch (e) {}
 
       try { loadSmsCaptchaCfg(); } catch (e0) {}
+      try { loadInviteRewardTip(); } catch (e0) {}
       refreshMe();
       reloadInviteRecords();
       try { agentRefresh(); } catch (e0) {}
+      try { agentCommissionsRefresh(); } catch (e0) {}
       try {
         var fh0 = String(location.hash || "").replace(/^#/, "").split(/[?&]/)[0];
         if (fh0 === "forgot") {

@@ -38,6 +38,12 @@ Thumbs.db
 config.local.*
 deploy-token.txt
 
+# 私钥/证书（禁止入库）
+*.pem
+*.key
+*.p12
+*.pfx
+
 # 测试文件
 test-*
 *-test.*
