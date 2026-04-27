@@ -55,6 +55,7 @@ from .schemas import (
     PasswordResetIn,
     PayNativeIn,
     PayNativeOut,
+    PayH5Out,
     PayWapIn,
     PayWapOut,
     QuotaConsumeIn,
@@ -2146,6 +2147,84 @@ async def billing_wechat_native(body: PayNativeIn, user_id: int = Depends(get_cu
     return PayNativeOut(
         out_trade_no=out_trade_no,
         code_url=code_url,
+        amount_fen=charge_fen,
+        priced_amount_fen=priced_fen,
+        amount_yuan_display=_fen_to_yuan_display(charge_fen),
+        priced_amount_yuan_display=_fen_to_yuan_display(priced_fen),
+        plan=plan_norm,
+    )
+
+
+@app.post("/api/billing/wechat/h5", response_model=PayH5Out)
+async def billing_wechat_h5(request: Request, body: PayNativeIn, user_id: int = Depends(get_current_user_id)) -> PayH5Out:
+    """
+    微信 H5（MWEB）下单：用于微信内置浏览器，避免“长按识别二维码被拦截”。
+    前端拿到 h5_url 后应直接跳转；支付完成会回跳 return_url。
+    """
+    wx_cfg = resolve_wechat_pay()
+    b = resolve_billing()
+    if not bool(getattr(b, "billing_pay_wechat_enabled", True)):
+        raise HTTPException(status_code=503, detail="微信支付已关闭")
+    if not wechat_v3.wechat_pay_configured(wx_cfg):
+        raise HTTPException(status_code=503, detail="微信支付未配置")
+
+    plan_norm, priced_fen = _billing_normalize_plan(body.plan)
+    if plan_norm == "vip_trial_99" and db.pay_user_has_paid_trial(int(user_id)):
+        raise HTTPException(status_code=400, detail="体验卡每位用户限购 1 次，您已购买过。")
+    charge_fen = _billing_charge_amount_fen(priced_fen)
+    out_trade_no = db.pay_mk_out_trade_no(int(user_id))
+    if plan_norm == "vip_month":
+        desc = str(getattr(b, "vip_title_month", "AI24X VIP月会员") or "AI24X VIP月会员")
+    elif plan_norm == "vip_year_999":
+        desc = str(getattr(b, "vip_title_year", "AI24X VIP年会员") or "AI24X VIP年会员")
+    elif plan_norm == "vip_trial_99":
+        desc = str(getattr(b, "vip_title_trial", "AI24X VIP体验卡") or "AI24X VIP体验卡")
+    elif plan_norm == "agent_growth":
+        desc = str(getattr(b, "agent_title_growth", "伙伴计划 · 成长档") or "伙伴计划 · 成长档")
+    else:
+        desc = str(getattr(b, "agent_title_pro", "伙伴计划 · 专业档") or "伙伴计划 · 专业档")
+
+    # Build return_url/app_url from forwarded headers (behind Nginx).
+    try:
+        proto = str(request.headers.get("x-forwarded-proto") or request.url.scheme or "https").split(",")[0].strip()
+        host = str(request.headers.get("x-forwarded-host") or request.headers.get("host") or request.url.netloc or "").split(",")[0].strip()
+        origin = f"{proto}://{host}" if host else str(request.base_url).rstrip("/")
+    except Exception:
+        origin = str(request.base_url).rstrip("/")
+    return_url = f"{origin}/account.html?otn={quote(out_trade_no)}&ch=wechat"
+    app_url = origin + "/"
+
+    db.pay_order_create(
+        int(user_id),
+        out_trade_no=out_trade_no,
+        plan=plan_norm,
+        amount_fen=charge_fen,
+        channel="wechat_h5",
+        code_url=None,
+    )
+    try:
+        wx = await wechat_v3.h5_create_order(
+            wx_cfg,
+            out_trade_no=out_trade_no,
+            description=desc,
+            amount_fen=charge_fen,
+            return_url=return_url,
+            app_url=app_url,
+            app_name="AI24X",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e)[:800]) from e
+    h5_url = str(wx.get("h5_url") or "")
+    if not h5_url:
+        raise HTTPException(status_code=502, detail=f"微信下单未返回 h5_url: {wx!r}")
+    # store for ops/debug (reuse code_url field)
+    try:
+        db.pay_order_attach_code_url(out_trade_no, h5_url)
+    except Exception:
+        pass
+    return PayH5Out(
+        out_trade_no=out_trade_no,
+        h5_url=h5_url,
         amount_fen=charge_fen,
         priced_amount_fen=priced_fen,
         amount_yuan_display=_fen_to_yuan_display(charge_fen),

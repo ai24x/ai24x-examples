@@ -234,7 +234,7 @@
     }
     .search-row input[type="text"] {
       flex: 1 1 260px;
-      min-width: 180px;
+      min-width: 0;
       max-width: 520px;
       padding: 10px 12px;
       border-radius: 6px;
@@ -242,6 +242,10 @@
       background: var(--panel2);
       color: var(--text);
       font-size: 14px;
+    }
+    .search-row #btn-search {
+      flex: 0 0 auto;
+      white-space: nowrap;
     }
     .search-row input:focus {
       outline: none;
@@ -880,6 +884,9 @@
       }
       .search-row input[type="text"] {
         max-width: 100%;
+      }
+      .search-row button {
+        padding: 10px 14px;
       }
     }
 

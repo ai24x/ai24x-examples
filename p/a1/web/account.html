@@ -238,7 +238,7 @@
       <div class="status" id="status" style="margin-top:10px;"></div>
 
       <div id="auth-user" hidden>
-        <div class="hint">免费：10/天 + 50/周　VIP：150/天 + 500/周　（指数白名单与去重规则见文档）</div>
+        <div class="hint">次数额度以“我的”页显示的实际剩余为准；不同套餐额度可能会调整（以系统实时配置为准）。</div>
         <div class="notice-bar" id="notice-bar" hidden>
           <div class="left">
             <span class="notice-badge"><span class="notice-dot"></span>系统通告</span>
@@ -1221,6 +1221,18 @@
       }
 
       function refreshMe() {
+        // If returned from WeChat H5 cashier, resume polling by out_trade_no.
+        try{
+          var sp0 = new URLSearchParams(String(location.search || "").replace(/^\?/, ""));
+          var otn0 = String(sp0.get("otn") || "").trim();
+          var ch0 = String(sp0.get("ch") || "").trim().toLowerCase();
+          if(otn0 && (ch0 === "wechat" || ch0 === "wechat_h5")){
+            vipLastOutTradeNo = otn0;
+            try { vipLastPlan = String(localStorage.getItem("ai24x_last_wechat_plan") || vipLastPlan || ""); } catch (eLP) {}
+            setVipPayStatus("已返回本页：正在确认支付结果（约每 3 秒）…");
+            startVipPoll();
+          }
+        }catch(eR){}
         var t = tokenGet();
         if (!t) {
           if (authGuest) authGuest.hidden = false;
@@ -1923,14 +1935,35 @@
           : apiFetch("/api/me", { cache: "no-store" }).then(function (d) {
               quotaSnapshotBeforePay = d && d.quota ? d.quota : null;
             }).catch(function () { quotaSnapshotBeforePay = null; });
+        function isWeChatEnv(){
+          try{
+            var ua = String(navigator.userAgent || "").toLowerCase();
+            return ua.indexOf("micromessenger") >= 0;
+          }catch(e){ return false; }
+        }
+
         snapP.then(function () {
-          return apiFetch("/api/billing/wechat/native", {
+          // In WeChat built-in browser, prefer H5(MWEB) to avoid "long-press QR blocked".
+          var apiPath = isWeChatEnv() ? "/api/billing/wechat/h5" : "/api/billing/wechat/native";
+          return apiFetch(apiPath, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ plan: plan }),
           });
         })
           .then(function (d) {
+            // H5(MWEB) path: redirect to WeChat cashier directly.
+            var h5 = d && d.h5_url ? String(d.h5_url) : "";
+            if (h5) {
+              try { vipLastOutTradeNo = d && d.out_trade_no ? String(d.out_trade_no) : ""; } catch (e0) { vipLastOutTradeNo = ""; }
+              var ay = d && d.amount_yuan_display ? String(d.amount_yuan_display) : "";
+              setVipPayStatus("正在跳转微信支付" + (ay ? ("（¥" + ay + "）") : "") + "…支付完成后将自动返回并检测。");
+              // Persist order so we can resume polling on return.
+              try { localStorage.setItem("ai24x_last_wechat_otn", String(vipLastOutTradeNo || "")); } catch (eLS) {}
+              try { localStorage.setItem("ai24x_last_wechat_plan", String(vipLastPlan || "")); } catch (eLS2) {}
+              try { window.location.href = h5; } catch (eGo) { location.href = h5; }
+              return;
+            }
             var af = d && d.amount_fen != null ? Number(d.amount_fen) : 0;
             var pf = d && d.priced_amount_fen != null ? Number(d.priced_amount_fen) : af;
             var ay = d && d.amount_yuan_display ? String(d.amount_yuan_display) : "";

@@ -87,6 +87,21 @@ def invite_cfg_effective() -> dict[str, int]:
     }
 
 
+def vip_quota_cfg_effective() -> dict[str, int]:
+    """
+    Effective VIP quota caps (admin_config overrides env defaults).
+    Keys:
+    - vip_daily_cap / vip_weekly: for vip_month & vip_year_999 (current product behavior)
+    - vip_trial_daily_cap / vip_trial_weekly: for vip_trial_99
+    """
+    return {
+        "vip_daily_cap": _cfg_int("vip_daily_cap", int(getattr(settings, "vip_daily_cap", 150) or 150)),
+        "vip_weekly": _cfg_int("vip_weekly", int(getattr(settings, "vip_weekly", 500) or 500)),
+        "vip_trial_daily_cap": _cfg_int("vip_trial_daily_cap", int(getattr(settings, "vip_trial_daily_cap", 20) or 20)),
+        "vip_trial_weekly": _cfg_int("vip_trial_weekly", int(getattr(settings, "vip_trial_weekly", 100) or 100)),
+    }
+
+
 class _ConnProxy:
     """
     Uniform DB API for sqlite3/psycopg connections.
@@ -2197,15 +2212,18 @@ def _plan_defaults(plan: str) -> tuple[str, int, int, int | None]:
         return ("free", int(fw), int(fd), None)
     if p in ("vip", "vip_month", "month", "monthly"):
         # 30 days validity (soft; only used for UI display currently)
-        return ("vip_month", int(settings.vip_weekly), int(settings.vip_daily_cap), now + 30 * 86400)
+        vc = vip_quota_cfg_effective()
+        return ("vip_month", int(vc["vip_weekly"]), int(vc["vip_daily_cap"]), now + 30 * 86400)
     if p in ("vip_year_999", "vip_year", "year", "yearly"):
-        return ("vip_year_999", int(settings.vip_weekly), int(settings.vip_daily_cap), now + 365 * 86400)
+        vc = vip_quota_cfg_effective()
+        return ("vip_year_999", int(vc["vip_weekly"]), int(vc["vip_daily_cap"]), now + 365 * 86400)
     if p in ("vip_trial_99", "vip_trial", "trial", "trial_99"):
         # 体验卡：7 天；额度低于月卡（默认 100/周 + 20/天，约≤100 次/首周），单价不低于月卡折算
+        vc = vip_quota_cfg_effective()
         return (
             "vip_trial_99",
-            int(settings.vip_trial_weekly),
-            int(settings.vip_trial_daily_cap),
+            int(vc["vip_trial_weekly"]),
+            int(vc["vip_trial_daily_cap"]),
             now + 7 * 86400,
         )
     # Custom/legacy plan: keep current limits, do not set expiry.

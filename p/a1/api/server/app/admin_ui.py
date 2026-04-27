@@ -917,6 +917,24 @@ def admin_app_html(admin_base: str) -> str:
               </div>
               <div class="field-row" style="margin-top:10px; flex-wrap:wrap;">
                 <div class="field" style="min-width:240px;">
+                  <span class="lbl">体验卡日上限</span><span class="sub">vip_trial_daily_cap</span>
+                  <input id="bill_vip_trial_daily_cap" class="mono" type="number" min="0" step="1" placeholder="20" style="width:160px;" />
+                </div>
+                <div class="field" style="min-width:240px;">
+                  <span class="lbl">体验卡周上限</span><span class="sub">vip_trial_weekly</span>
+                  <input id="bill_vip_trial_weekly" class="mono" type="number" min="0" step="1" placeholder="100" style="width:160px;" />
+                </div>
+                <div class="field" style="min-width:240px;">
+                  <span class="lbl">VIP日上限（月/年共用）</span><span class="sub">vip_daily_cap</span>
+                  <input id="bill_vip_daily_cap" class="mono" type="number" min="0" step="1" placeholder="150" style="width:160px;" />
+                </div>
+                <div class="field" style="min-width:240px;">
+                  <span class="lbl">VIP周上限（月/年共用）</span><span class="sub">vip_weekly</span>
+                  <input id="bill_vip_weekly" class="mono" type="number" min="0" step="1" placeholder="500" style="width:160px;" />
+                </div>
+              </div>
+              <div class="field-row" style="margin-top:10px; flex-wrap:wrap;">
+                <div class="field" style="min-width:240px;">
                   <span class="lbl">非 prod 小额实扣开关</span><span class="sub">billing_dev_real_pay</span>
                   <select id="bill_billing_dev_real_pay">
                     <option value="">默认（跟随 .env）</option>
@@ -3159,6 +3177,10 @@ def admin_app_html(admin_base: str) -> str:
         put('price_vip_trial_fen','bill_price_vip_trial_fen');
         put('price_vip_month_fen','bill_price_vip_month_fen');
         put('price_vip_year_fen','bill_price_vip_year_fen');
+        put('vip_trial_daily_cap','bill_vip_trial_daily_cap');
+        put('vip_trial_weekly','bill_vip_trial_weekly');
+        put('vip_daily_cap','bill_vip_daily_cap');
+        put('vip_weekly','bill_vip_weekly');
         put('billing_dev_real_pay','bill_billing_dev_real_pay');
         put('billing_dev_amount_fen','bill_billing_dev_amount_fen');
         put('billing_pay_wechat_enabled','bill_billing_pay_wechat_enabled');
@@ -3185,6 +3207,10 @@ def admin_app_html(admin_base: str) -> str:
         post('price_vip_trial_fen','bill_price_vip_trial_fen');
         post('price_vip_month_fen','bill_price_vip_month_fen');
         post('price_vip_year_fen','bill_price_vip_year_fen');
+        post('vip_trial_daily_cap','bill_vip_trial_daily_cap');
+        post('vip_trial_weekly','bill_vip_trial_weekly');
+        post('vip_daily_cap','bill_vip_daily_cap');
+        post('vip_weekly','bill_vip_weekly');
         post('billing_dev_real_pay','bill_billing_dev_real_pay');
         post('billing_dev_amount_fen','bill_billing_dev_amount_fen');
         post('billing_pay_wechat_enabled','bill_billing_pay_wechat_enabled');

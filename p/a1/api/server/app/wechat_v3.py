@@ -221,6 +221,64 @@ async def native_create_order(
     return payload
 
 
+async def h5_create_order(
+    s: Any,
+    *,
+    out_trade_no: str,
+    description: str,
+    amount_fen: int,
+    return_url: str,
+    app_url: str,
+    app_name: str = "AI24X",
+) -> dict[str, Any]:
+    """
+    WeChat Pay API v3: H5 (MWEB) order.
+    - In WeChat built-in browser, this is the most stable "no-scan" path.
+    - Returns `h5_url` which frontends should navigate to.
+    """
+    if not wechat_pay_configured(s):
+        raise RuntimeError("WeChat Pay is not configured")
+    path = "/v3/pay/transactions/h5"
+    url = f"{s.wechat_pay_host}{path}"
+    body_obj = {
+        "appid": s.wechat_app_id,
+        "mchid": s.wechat_mch_id,
+        "description": description[:127],
+        "out_trade_no": out_trade_no,
+        "notify_url": s.wechat_notify_url,
+        "amount": {"total": int(amount_fen), "currency": "CNY"},
+        "scene_info": {
+            "payer_client_ip": "127.0.0.1",
+            "h5_info": {
+                "type": "Wap",
+                "app_name": str(app_name or "AI24X")[:64],
+                "app_url": str(app_url or "")[:256],
+            },
+        },
+        "return_url": str(return_url or "")[:256],
+    }
+    body = json.dumps(body_obj, ensure_ascii=False, separators=(",", ":"))
+    pem = merchant_private_key_pem(s)
+    auth = _build_auth_header(s.wechat_mch_id, s.wechat_mch_serial_no, pem, "POST", path, body)
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        r = await client.post(
+            url,
+            content=body.encode("utf-8"),
+            headers={
+                "Authorization": auth,
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+            },
+        )
+    try:
+        payload = r.json()
+    except Exception:
+        payload = {"raw": r.text}
+    if r.status_code >= 400:
+        raise RuntimeError(f"wechat h5 error {r.status_code}: {payload}")
+    return payload
+
+
 async def query_transaction_by_out_trade_no(s: Any, *, out_trade_no: str) -> dict[str, Any]:
     """
     主动查询微信订单状态（兜底：notify 未达时可用）。

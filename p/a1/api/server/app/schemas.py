@@ -159,3 +159,17 @@ class PayWapOut(BaseModel):
     priced_amount_yuan_display: str
     plan: str
 
+
+class PayH5Out(BaseModel):
+    """微信 H5（MWEB）下单返回：前端跳转 h5_url 拉起微信支付。"""
+
+    out_trade_no: str
+    h5_url: str
+    # 真值：用于对账/返佣/日志
+    amount_fen: int
+    priced_amount_fen: int
+    # 展示：用于前台/后台避免看错（字符串，已按 2 位小数格式化）
+    amount_yuan_display: str
+    priced_amount_yuan_display: str
+    plan: str
+
