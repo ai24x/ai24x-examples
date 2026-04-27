@@ -865,6 +865,23 @@
     .chart-tooltip[hidden] {
       display: none !important;
     }
+    /* Light theme uses dark chart surface; keep tooltip high-contrast */
+    :root[data-theme="light"] .chart-tooltip {
+      color: #e5e7eb;
+      border-color: rgba(255, 255, 255, 0.10);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+    }
+    :root[data-theme="light"] .chart-tooltip .tt-date,
+    :root[data-theme="light"] .chart-tooltip .tt-num,
+    :root[data-theme="light"] .chart-tooltip .tt-sig-remind {
+      color: #f8fafc;
+    }
+    :root[data-theme="light"] .chart-tooltip .tt-row {
+      color: rgba(226, 232, 240, 0.82);
+    }
+    :root[data-theme="light"] #chart-wrap {
+      border-color: rgba(15, 23, 42, 0.16);
+    }
     #quote-status {
       flex: 1 1 220px;
       min-width: 160px;
