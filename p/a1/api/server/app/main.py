@@ -2184,15 +2184,14 @@ async def billing_wechat_h5(request: Request, body: PayNativeIn, user_id: int = 
     else:
         desc = str(getattr(b, "agent_title_pro", "伙伴计划 · 专业档") or "伙伴计划 · 专业档")
 
-    # Build return_url/app_url from forwarded headers (behind Nginx).
+    # Build redirect_url from forwarded headers (behind Nginx).
     try:
         proto = str(request.headers.get("x-forwarded-proto") or request.url.scheme or "https").split(",")[0].strip()
         host = str(request.headers.get("x-forwarded-host") or request.headers.get("host") or request.url.netloc or "").split(",")[0].strip()
         origin = f"{proto}://{host}" if host else str(request.base_url).rstrip("/")
     except Exception:
         origin = str(request.base_url).rstrip("/")
-    return_url = f"{origin}/account.html?otn={quote(out_trade_no)}&ch=wechat"
-    app_url = origin + "/"
+    redirect_url = f"{origin}/account.html?otn={quote(out_trade_no)}&ch=wechat"
 
     db.pay_order_create(
         int(user_id),
@@ -2208,15 +2207,18 @@ async def billing_wechat_h5(request: Request, body: PayNativeIn, user_id: int = 
             out_trade_no=out_trade_no,
             description=desc,
             amount_fen=charge_fen,
-            return_url=return_url,
-            app_url=app_url,
-            app_name="AI24X",
         )
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e)[:800]) from e
     h5_url = str(wx.get("h5_url") or "")
     if not h5_url:
         raise HTTPException(status_code=502, detail=f"微信下单未返回 h5_url: {wx!r}")
+    # WeChat H5 requires appending redirect_url when navigating to h5_url.
+    try:
+        sep = "&" if "?" in h5_url else "?"
+        h5_url = h5_url + sep + "redirect_url=" + quote(redirect_url, safe="")
+    except Exception:
+        pass
     # store for ops/debug (reuse code_url field)
     try:
         db.pay_order_attach_code_url(out_trade_no, h5_url)

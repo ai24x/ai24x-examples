@@ -227,9 +227,6 @@ async def h5_create_order(
     out_trade_no: str,
     description: str,
     amount_fen: int,
-    return_url: str,
-    app_url: str,
-    app_name: str = "AI24X",
 ) -> dict[str, Any]:
     """
     WeChat Pay API v3: H5 (MWEB) order.
@@ -251,11 +248,8 @@ async def h5_create_order(
             "payer_client_ip": "127.0.0.1",
             "h5_info": {
                 "type": "Wap",
-                "app_name": str(app_name or "AI24X")[:64],
-                "app_url": str(app_url or "")[:256],
             },
         },
-        "return_url": str(return_url or "")[:256],
     }
     body = json.dumps(body_obj, ensure_ascii=False, separators=(",", ":"))
     pem = merchant_private_key_pem(s)
