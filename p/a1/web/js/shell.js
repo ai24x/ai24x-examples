@@ -12,6 +12,12 @@
       return '<a href="' + esc(href) + '" class="' + cls + '">' + esc(label) + "</a>";
     }
 
+    function navHidden(href, label, id) {
+      var cls = active === id ? "is-active" : "";
+      // Default-hide gated entries to avoid "flash then disappear".
+      return '<a href="' + esc(href) + '" class="' + cls + '" style="display:none">' + esc(label) + "</a>";
+    }
+
     return (
       '<div class="container header-inner">' +
       '<a class="brand" href="index.html" aria-label="AI24X">' +
@@ -23,7 +29,7 @@
       nav("index.html", "首页", "index") +
       nav("demo.html", "行情", "demo") +
       nav("account.html", "我的", "account") +
-      nav("partner.html", "伙伴", "partner") +
+      navHidden("partner.html", "伙伴", "partner") +
       nav("feedback.html", "反馈", "feedback") +
       "</nav>" +
       '<div class="header-actions">' +
@@ -165,7 +171,8 @@
       nav("index.html", "首页", "index"),
       nav("demo.html", "行情", "demo"),
       nav("account.html", "我的", "account"),
-      nav("partner.html", "伙伴", "partner"),
+      // Default-hide gated entries to avoid "flash then disappear".
+      _el("a", { href: "partner.html", class: (active === "partner" ? "is-active" : ""), style: "display:none" }, ["伙伴"]),
       nav("feedback.html", "反馈", "feedback"),
     ]);
     var actions = _el("div", { class: "header-actions" }, []);
@@ -244,10 +251,19 @@
           try{ links[i].style.display = "none"; }catch(e1){}
         }
       }
+      function showPartner(){
+        if(!nav) return;
+        var links = nav.querySelectorAll('a[href$="partner.html"]');
+        for(var i=0;i<links.length;i++){
+          try{ links[i].style.display = ""; }catch(e1){}
+        }
+      }
+      // Always hide first to avoid flash; then show only when confirmed VIP.
+      hidePartner();
       if(!tok){
-        hidePartner();
+        // keep hidden
       }else{
-        // Best-effort: if /api/me fails, default to hiding partner.
+        // Best-effort: if /api/me fails, keep partner hidden.
         try{
           fetch("/api/me", { cache: "no-store", headers: { "Authorization": "Bearer " + String(tok) } })
             .then(function(r){ return r && r.ok ? r.json() : null; })
@@ -256,11 +272,11 @@
                 var q = d && d.quota ? d.quota : null;
                 var plan = q && q.plan ? String(q.plan) : "";
                 var isVip = plan.indexOf("vip_") === 0;
-                if(!isVip) hidePartner();
-              }catch(e2){ hidePartner(); }
+                if(isVip) showPartner();
+              }catch(e2){ /* keep hidden */ }
             })
-            .catch(function(){ hidePartner(); });
-        }catch(e3){ hidePartner(); }
+            .catch(function(){ /* keep hidden */ });
+        }catch(e3){ /* keep hidden */ }
       }
     }catch(eG){}
   }
