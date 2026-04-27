@@ -231,6 +231,38 @@
       f.appendChild(footerDom());
     }
     bindChrome();
+    // Nav gate: show "伙伴" only for logged-in VIP users (reduce noise & improve conversion).
+    try{
+      var TOKEN_KEY = "ai24x_a_token";
+      var tok = "";
+      try{ tok = localStorage.getItem(TOKEN_KEY) || ""; }catch(e0){ tok = ""; }
+      var nav = document.getElementById("nav-main");
+      function hidePartner(){
+        if(!nav) return;
+        var links = nav.querySelectorAll('a[href$="partner.html"]');
+        for(var i=0;i<links.length;i++){
+          try{ links[i].style.display = "none"; }catch(e1){}
+        }
+      }
+      if(!tok){
+        hidePartner();
+      }else{
+        // Best-effort: if /api/me fails, default to hiding partner.
+        try{
+          fetch("/api/me", { cache: "no-store", headers: { "Authorization": "Bearer " + String(tok) } })
+            .then(function(r){ return r && r.ok ? r.json() : null; })
+            .then(function(d){
+              try{
+                var q = d && d.quota ? d.quota : null;
+                var plan = q && q.plan ? String(q.plan) : "";
+                var isVip = plan.indexOf("vip_") === 0;
+                if(!isVip) hidePartner();
+              }catch(e2){ hidePartner(); }
+            })
+            .catch(function(){ hidePartner(); });
+        }catch(e3){ hidePartner(); }
+      }
+    }catch(eG){}
   }
 
   global.AI24X_A_SHELL = { mount: mount, applyTheme: applyTheme };
