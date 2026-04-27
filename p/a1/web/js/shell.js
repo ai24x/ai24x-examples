@@ -90,9 +90,20 @@
       var sel = document.getElementById("theme-select");
       if (sel) {
         var k = "ai24x_a_theme";
+        var mk = "ai24x_a_theme_migrated_calm_to_light_v1";
         var cur = "";
         try { cur = localStorage.getItem(k) || ""; } catch (e0) {}
         cur = String(cur || "").trim() || "light";
+        // One-time migration: force legacy "calm" users to "light" immediately,
+        // but never override future manual selections.
+        try {
+          var migrated = localStorage.getItem(mk) || "";
+          if (!migrated && cur === "calm") {
+            cur = "light";
+            localStorage.setItem(k, cur);
+            localStorage.setItem(mk, "1");
+          }
+        } catch (eM) {}
         sel.value = cur;
         applyTheme(cur);
         sel.addEventListener("change", function () {

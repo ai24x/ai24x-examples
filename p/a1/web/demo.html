@@ -3289,11 +3289,21 @@
   (function initThemeUnified() {
     try {
       var k = 'ai24x_a_theme';
+      var mk = 'ai24x_a_theme_migrated_calm_to_light_v1';
       var saved = 'light';
       try {
         if (typeof localStorage !== 'undefined') saved = localStorage.getItem(k) || 'light';
       } catch (e0) {}
       saved = String(saved || '').trim() || 'light';
+      // One-time migration to ensure legacy default "calm" users immediately switch to "light".
+      try {
+        var migrated = localStorage.getItem(mk) || '';
+        if (!migrated && saved === 'calm') {
+          saved = 'light';
+          localStorage.setItem(k, saved);
+          localStorage.setItem(mk, '1');
+        }
+      } catch (eM) {}
       if (themeSelectEl) themeSelectEl.value = saved;
       if (window.AI24X_A_SHELL && window.AI24X_A_SHELL.applyTheme) {
         window.AI24X_A_SHELL.applyTheme(saved);
