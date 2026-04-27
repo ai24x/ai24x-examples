@@ -879,6 +879,9 @@
     :root[data-theme="light"] .chart-tooltip .tt-row {
       color: rgba(226, 232, 240, 0.82);
     }
+    /* Preserve rise/fall semantic colors in tooltip */
+    :root[data-theme="light"] .chart-tooltip .tt-num.up { color: var(--rise); }
+    :root[data-theme="light"] .chart-tooltip .tt-num.down { color: var(--fall); }
     :root[data-theme="light"] #chart-wrap {
       border-color: rgba(15, 23, 42, 0.16);
     }
