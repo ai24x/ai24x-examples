@@ -7,7 +7,7 @@
     "nav.home": "首页",
     "nav.product": "产品",
     "nav.pricing": "价格",
-    "nav.refer": "邀请回馈",
+    "nav.refer": "回馈",
     "nav.docs": "说明",
     "nav.console": "控制台",
     "nav.login": "登录",
