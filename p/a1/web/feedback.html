@@ -49,7 +49,8 @@
       <section class="card">
         <h1>意见反馈</h1>
         <p class="sub" style="margin:0 0 12px;">提交工单后会在「我的工单」留下记录，与后台客服处理联动；<strong>须登录</strong>后方可填写与提交。</p>
-        <div id="fb-guest" class="sub">
+        <div id="fb-loading" class="sub">加载中…</div>
+        <div id="fb-guest" class="sub" hidden>
           <p style="margin:0 0 10px;">查看或提交反馈前请先登录（登录成功后将自动返回本页）。</p>
           <p style="margin:0;"><a class="btn primary" href="./index.html?mode=login&amp;ch=phone&amp;next=feedback.html">去登录</a>
           <span style="margin-left:10px; font-size:12px; color:var(--muted);">注册亦在首页完成</span></p>
@@ -228,8 +229,10 @@
       }
       function applyAuth() {
         var tok = tokenGet();
+        var l = $("fb-loading");
         var g = $("fb-guest");
         var u = $("fb-user");
+        if (l) l.hidden = true;
         if (tok) {
           if (g) g.hidden = true;
           if (u) u.hidden = false;
