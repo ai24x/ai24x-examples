@@ -16,6 +16,26 @@
       } catch (e) {}
     })();
   </script>
+  <script>
+    (function () {
+      // Invite short link: /i/{CODE} → /index.html?mode=register&i={CODE}
+      // Keep this redirect in the static page to avoid Nginx/app rewrites drifting.
+      try {
+        var p = String(location.pathname || "");
+        var m = p.match(/^\/i\/([A-Za-z0-9_-]{4,32})\/?$/);
+        if (!m || !m[1]) return;
+        var code = String(m[1] || "").trim().toUpperCase();
+        if (!code) return;
+        var u = new URL(String(location.href));
+        u.pathname = "/index.html";
+        // Force register view for invite links
+        u.searchParams.set("mode", "register");
+        u.searchParams.set("i", code);
+        // Remove path-based invite to avoid relative-path issues
+        try { location.replace(u.toString()); } catch (e2) { location.href = u.toString(); }
+      } catch (e0) {}
+    })();
+  </script>
   <link rel="stylesheet" href="/css/base.css" />
   <link rel="stylesheet" href="/css/tool.css" />
   <style>
