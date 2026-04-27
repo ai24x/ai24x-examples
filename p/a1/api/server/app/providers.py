@@ -2678,7 +2678,12 @@ async def _fetch_tx_kline_core(
                 # continue falling back to public sources and avoid returning a misleading error.
                 try:
                     msg = str(r.get("msg") or "").strip()
-                    if "暂未就绪" in msg or "token" in msg.lower():
+                    if (
+                        "暂未就绪" in msg
+                        or "token" in msg.lower()
+                        or "tushare not installed" in msg.lower()
+                        or "no module named" in msg.lower()
+                    ):
                         continue
                 except Exception:
                     pass

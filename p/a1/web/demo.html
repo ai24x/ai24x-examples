@@ -1205,7 +1205,7 @@
 <body>
   <header class="site-header" id="site-header"></header>
   <main class="wrap page-main">
-    <div class="disclaimer-bar" id="disclaimer-bar" role="note" aria-label="风险提示">
+    <div class="disclaimer-bar" id="disclaimer-bar" role="note" aria-label="风险提示" style="display:none">
       <span>【<b>内容仅供学习交流，不构成任何建议</b>】</span>
       <button type="button" class="x" id="disclaimer-close">我知道了</button>
     </div>
@@ -1254,7 +1254,7 @@
       <div class="search-row">
         <input type="text" id="stock-query" placeholder="代码或简称，例如 600519 / 上证指数" autocomplete="off" />
         <button type="button" id="btn-search">查询</button>
-        <button type="button" id="btn-share" title="分享当前页面"><span class="dot" aria-hidden="true"></span>分享</button>
+        <button type="button" id="btn-share" title="分享当前页面" style="display:none"><span class="dot" aria-hidden="true"></span>分享</button>
         <div id="quote-status" class="ok" role="status"></div>
       </div>
       <div class="sample-chips" aria-label="快捷填入示例">
@@ -1263,7 +1263,6 @@
         <button type="button" data-secid="0.399001" data-fill="深证成指">深证成指</button>
         <button type="button" data-secid="0.399006" data-fill="创业板指">创业板指</button>
         <button type="button" data-secid="0.899050" data-fill="北证50">北证50</button>
-        <button type="button" data-q="浪潮信息">示例：浪潮信息</button>
       </div>
       <div class="pick-list" id="pick-list" role="listbox" aria-label="选择证券"></div>
       <div class="quote-title" id="quote-title"></div>
@@ -1298,7 +1297,7 @@
           <li><strong>B1、B2</strong>：偏<strong>强</strong>。适合<strong>顺势、跟随</strong>与<strong>观察结构是否延续</strong>。</li>
           <li><strong>险1、险2</strong>（尤其险2）：偏<strong>高位或结构承压</strong>，建议<strong>谨慎</strong>。</li>
           <li><strong>S1、S2</strong> 与 <strong>风险</strong> 若<strong>频繁、密集</strong>：偏<strong>弱</strong>，建议<strong>谨慎回避</strong>。</li>
-          <li>须<strong>结合其它指标</strong>；<strong>低位侧重确认、高位侧重风险</strong>；风格以<strong>中线波段</strong>为主。</li>
+          <li>须<strong>结合其它指标</strong>；<strong>低位侧重确认、高位侧重风险</strong>。</li>
         </ul>
         <p class="usage-hint-note">K 线缩写：小底、底1/2、B1/2、S1/2、险1/2、顶2；颜色与图例一致。B/S 为信号标记（偏强/偏弱），用于学习交流。</p>
       </aside>
@@ -3716,7 +3715,6 @@
   function buildQuoteTitleHtml() {
     var useLine =
       '<div class="qt-use">' +
-      '<span class="qt-tag">要领</span>' +
       '<div class="qt-hint-items">' +
       '<span class="qt-item">' +
       qtIconPair('absorb', '小底', 'qt-c-absorb') +
@@ -3743,7 +3741,6 @@
       '<span class="qt-item-label">预警</span></span>' +
       '</div>' +
       '<span class="qt-use-vrule" aria-hidden="true"></span>' +
-      '<span class="qt-band">中线波段</span>' +
       '</div>';
     return useLine;
   }
@@ -4013,18 +4010,8 @@
           ? srcNote + ' · 鼠标悬停以当前柱为准'
           : srcNote + ' · 盘中快照与最新价以接口为准';
     } else {
-      // Keep it short and user-friendly: show latest trade date only.
-      try {
-        var lastRow = rows && rows.length ? rows[rows.length - 1] : null;
-        var lastD = normalizeChartDateStr(lastRow ? lastRow[0] : '');
-        var lastClose = lastRow ? parseFloat(lastRow[2]) : NaN;
-        statusEl.textContent =
-          lastD
-            ? ('更新至 ' + lastD + (isFinite(lastClose) ? (' · 收盘 ' + lastClose.toFixed(2)) : ''))
-            : '';
-      } catch (eS) {
-        statusEl.textContent = '';
-      }
+      // Keep UI clean: avoid duplicating "更新至/收盘" with details shown below.
+      statusEl.textContent = '';
     }
     statusEl.className = 'ok';
   }
