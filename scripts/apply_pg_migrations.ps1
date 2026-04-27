@@ -47,7 +47,8 @@ CREATE TABLE IF NOT EXISTS schema_migrations(
 "@
 
 if (-not $DryRun) {
-  & $psql "$dsn" -v ON_ERROR_STOP=1 -c $initSql | Out-Null
+  # psql expects options before connection string
+  & $psql -v ON_ERROR_STOP=1 "$dsn" -c $initSql | Out-Null
 }
 
 $files = Get-ChildItem -Path $MigrationsDir -Filter "*.sql" | Sort-Object Name
@@ -62,7 +63,7 @@ foreach ($f in $files) {
   $checkSql = "SELECT 1 FROM schema_migrations WHERE id='$id' LIMIT 1;"
   $already = $false
   if (-not $DryRun) {
-    $out = & $psql "$dsn" -t -A -v ON_ERROR_STOP=1 -c $checkSql
+    $out = & $psql -t -A -v ON_ERROR_STOP=1 "$dsn" -c $checkSql
     if (($out | Out-String).Trim() -eq "1") { $already = $true }
   }
 
@@ -74,10 +75,10 @@ foreach ($f in $files) {
   Write-Host ("APPLY " + $id)
   if ($DryRun) { continue }
 
-  & $psql "$dsn" -v ON_ERROR_STOP=1 -f $f.FullName | Out-Null
+  & $psql -v ON_ERROR_STOP=1 "$dsn" -f $f.FullName | Out-Null
 
   $markSql = "INSERT INTO schema_migrations(id) VALUES ('$id');"
-  & $psql "$dsn" -v ON_ERROR_STOP=1 -c $markSql | Out-Null
+  & $psql -v ON_ERROR_STOP=1 "$dsn" -c $markSql | Out-Null
 }
 
 Write-Host "OK: migrations applied."
