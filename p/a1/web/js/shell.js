@@ -102,7 +102,8 @@
       if (!global.__AI24X_A_SW_INSTALLED && "serviceWorker" in navigator && String(location.protocol || "") !== "file:") {
         global.__AI24X_A_SW_INSTALLED = true;
         // Cache-bust SW URL so deployments don't require Ctrl+F5.
-        navigator.serviceWorker.register("./sw.js?v=16", { scope: "./", updateViaCache: "none" }).then(function (reg) {
+        // Use absolute paths so pages still work under subpaths like /i/{code}.
+        navigator.serviceWorker.register("/sw.js?v=16", { scope: "/", updateViaCache: "none" }).then(function (reg) {
           try {
             reg.update && reg.update();
             if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
