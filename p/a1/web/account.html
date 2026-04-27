@@ -370,7 +370,7 @@
       </div>
     </section>
 
-    <section class="card" id="agent">
+    <section class="card" id="agent" hidden>
       <h1>伙伴计划（支持研发）</h1>
       <p class="sub" style="margin:0 0 6px;">
         选择档位并支付，成功后自动生效；可随时在本页查看到期与结算数据。
@@ -625,7 +625,7 @@
     </div>
   </div>
 
-  <script src="/js/shell.js"></script>
+  <script src="/js/shell.js?v=17"></script>
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("account"); } catch (e) {}
   </script>
@@ -1300,6 +1300,19 @@
             try {
               reloadInviteRecords();
             } catch (eR) {}
+            // Gate partner plan: visible only for logged-in VIP users.
+            try{
+              var isVip = (String(lastQuotaPlanCode || "").indexOf("vip_") === 0);
+              var agentSec = document.getElementById("agent");
+              if(agentSec) agentSec.hidden = !isVip;
+              // Stop loading agent data when gated off.
+              if(!isVip){
+                try{ if(agentKv) agentKv.hidden = true; }catch(e0){}
+                try{ if(agentStatusEl) agentStatusEl.textContent = ""; }catch(e1){}
+              }else{
+                try{ agentRefresh(); }catch(e2){}
+              }
+            }catch(eG){}
           })
           .catch(function (e) {
             var s = (e && (e.status != null)) ? Number(e.status) : null;
