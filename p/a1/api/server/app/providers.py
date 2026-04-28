@@ -750,6 +750,63 @@ def _cache_get(variant: str, secid: str, period: str, count: int) -> Dict[str, A
     now = time.time()
     v = _KLINE_CACHE.get(k)
     if not v:
+        # In-memory range reuse: if we already cached a bigger `count` for the same
+        # (variant, secid, period) within TTL, reuse it by slicing the latest bars.
+        try:
+            v0, s0, p0, c0 = k
+            best_key: Tuple[str, str, str, int] | None = None
+            best_payload: Dict[str, Any] | None = None
+            best_exp: float | None = None
+            for kk, vv in list(_KLINE_CACHE.items()):
+                if not isinstance(kk, tuple) or len(kk) != 4:
+                    continue
+                if kk[0] != v0 or kk[1] != s0 or kk[2] != p0:
+                    continue
+                exp2, payload2 = vv
+                if exp2 <= now:
+                    continue
+                try:
+                    cc = int(kk[3])
+                except Exception:
+                    continue
+                if cc < int(count):
+                    continue
+                if best_key is None or cc < int(best_key[3]):  # smallest sufficient superset
+                    best_key = kk
+                    best_payload = payload2
+                    best_exp = exp2
+            if best_payload is not None and best_exp is not None:
+                def _slice_payload(payload: Dict[str, Any], n: int) -> Dict[str, Any]:
+                    try:
+                        if not isinstance(payload, dict):
+                            return payload
+                        out = dict(payload)
+                        data = payload.get("data")
+                        if not isinstance(data, dict):
+                            return out
+                        data2: Dict[str, Any] = {}
+                        for key_pack, pack in data.items():
+                            if not isinstance(pack, dict):
+                                data2[key_pack] = pack
+                                continue
+                            pack2: Dict[str, Any] = {}
+                            for kk2, vv2 in pack.items():
+                                if isinstance(vv2, list) and len(vv2) > n:
+                                    pack2[kk2] = vv2[-int(n) :]
+                                else:
+                                    pack2[kk2] = vv2
+                            data2[key_pack] = pack2
+                        out["data"] = data2
+                        return out
+                    except Exception:
+                        return payload
+
+                sliced = _slice_payload(best_payload, int(count))
+                # memoize sliced variant for faster future hits
+                _KLINE_CACHE[k] = (min(best_exp, now + ttl), sliced)
+                return sliced
+        except Exception:
+            pass
         # DB cache fallback for resilience across restarts.
         try:
             payload = db.kline_cache_get("|".join([k[0], k[1], k[2], str(k[3])]))
