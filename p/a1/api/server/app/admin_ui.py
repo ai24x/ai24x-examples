@@ -3026,6 +3026,8 @@ def admin_app_html(admin_base: str) -> str:
       async function loadConfig(){
         var d = await api('/api/admin/config');
         var items = d.items || {};
+        // Keep a snapshot so "默认(空)" can delete existing DB overrides.
+        try { globalThis.__AI24X_ADMIN_CFG_ITEMS = items || {}; } catch(e0) {}
         $('cfgPaidProvider').value = (items.paid_provider != null ? String(items.paid_provider) : '');
         $('cfgPriority').value = (items.paid_provider_priority != null ? String(items.paid_provider_priority) : '');
         $('cfgRtK').value = (items.tushare_use_rt_k != null ? String(items.tushare_use_rt_k) : '');
@@ -3350,7 +3352,14 @@ def admin_app_html(admin_base: str) -> str:
         if(tsToken !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'tushare_token', value: tsToken})}));
         if(pr !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'paid_provider_priority', value: pr})}));
         if(rk !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'tushare_use_rt_k', value: rk})}));
-        if(vo !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'paid_vip_only', value: vo})}));
+        // If admin selects "默认(空)" and there is an existing DB override, delete it (set empty).
+        try{
+          var cur = '';
+          try{ cur = String((globalThis.__AI24X_ADMIN_CFG_ITEMS||{}).paid_vip_only||''); }catch(e0){ cur = ''; }
+          if(vo !== '' || cur !== ''){
+            tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'paid_vip_only', value: vo})}));
+          }
+        }catch(eV){}
         if(tasks.length===0){ setStatus('请至少修改一项后再保存（全部留空表示不写数据库）'); return; }
         setStatus('正在保存数据源配置…');
         await Promise.all(tasks);
