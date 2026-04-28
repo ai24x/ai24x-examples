@@ -367,6 +367,129 @@ def root_landing() -> dict:
     return {"ok": True, "service": "ai24x-p-a-api"}
 
 
+def _public_origin(request: Request) -> str:
+    """
+    Determine origin for share cards behind reverse proxy.
+    Prefer forwarded headers; fall back to request.url.
+    """
+    try:
+        xf_proto = str(request.headers.get("x-forwarded-proto") or "").strip().lower()
+        xf_host = str(request.headers.get("x-forwarded-host") or "").strip()
+        if xf_host:
+            proto = xf_proto or str(request.url.scheme or "http")
+            return f"{proto}://{xf_host}"
+    except Exception:
+        pass
+    try:
+        return str(request.url.scheme or "http") + "://" + str(request.url.netloc)
+    except Exception:
+        return ""
+
+
+@app.get("/i/{code}", response_class=HTMLResponse, include_in_schema=False)
+def share_landing(
+    request: Request,
+    code: str,
+    secid: str | None = None,
+    period: str | None = None,
+    view: str | None = None,
+    utm: str | None = None,
+    scene: str | None = None,
+) -> HTMLResponse:
+    """
+    Share landing page for WeChat link previews.
+    - Server-rendered OG meta so WeChat crawler can build a nice card.
+    - Body shows a lightweight "复盘卡" and a CTA to open demo.html.
+    """
+    c = (code or "").strip().upper()
+    if not re.fullmatch(r"[A-Z0-9]{4,32}", c or ""):
+        # Keep it simple: avoid reflecting arbitrary strings into HTML/meta.
+        raise HTTPException(status_code=404, detail="not found")
+
+    sid = (secid or "").strip()
+    per = (period or "").strip().lower()
+    if per not in ("day", "week", "month"):
+        per = "day"
+    origin = _public_origin(request) or ""
+
+    # Build canonical URL (what is being shared). Preserve query for tracking.
+    try:
+        u = request.url
+        canonical = str(u)
+    except Exception:
+        canonical = f"{origin}/i/{quote(c)}"
+
+    # Build "open in app" url (web demo) with state.
+    open_url = f"{origin}/demo.html"
+    try:
+        qs = []
+        if sid:
+            qs.append("secid=" + quote(sid))
+        if per:
+            qs.append("period=" + quote(per))
+        qs.append("i=" + quote(c))
+        qs.append("view=" + quote((view or "lite").strip() or "lite"))
+        if utm:
+            qs.append("utm=" + quote(str(utm)[:64]))
+        if scene:
+            qs.append("scene=" + quote(str(scene)[:64]))
+        open_url = open_url + ("?" + "&".join(qs) if qs else "")
+    except Exception:
+        pass
+
+    # Title/desc: compliant and tool-oriented.
+    title = "AI24X 复盘卡"
+    if sid:
+        title = f"AI24X 复盘卡 · {sid}"
+    desc = "结构要点 / 关键位 / 风险提示（仅供参考）。打开即可查看简版，注册后解锁完整。"
+    og_img = f"{origin}/img/share-preview.svg" if origin else "/img/share-preview.svg"
+
+    html = f"""<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{title}</title>
+  <meta name="description" content="{desc}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="{title}" />
+  <meta property="og:description" content="{desc}" />
+  <meta property="og:image" content="{og_img}" />
+  <meta property="og:url" content="{canonical}" />
+  <meta name="robots" content="noindex,nofollow" />
+  <style>
+    body{{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#0b1220;background:#0b1220}}
+    .wrap{{max-width:720px;margin:0 auto;padding:18px}}
+    .card{{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:16px;padding:16px;color:rgba(255,255,255,0.92)}}
+    .t{{font-weight:800;font-size:18px}}
+    .sub{{margin-top:6px;color:rgba(255,255,255,0.70);font-size:13px;line-height:1.5}}
+    .grid{{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}}
+    .pill{{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:10px}}
+    .pill b{{color:rgba(251,191,36,0.95)}}
+    .btn{{display:inline-block;margin-top:14px;background:rgba(251,191,36,0.92);color:rgba(24,18,6,.98);font-weight:900;text-decoration:none;padding:10px 14px;border-radius:12px}}
+    .muted{{margin-top:10px;color:rgba(255,255,255,0.60);font-size:12px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="t">复盘卡 · 结构要点速览</div>
+      <div class="sub">{desc}</div>
+      <div class="grid">
+        <div class="pill"><b>结构</b>：上行 / 震荡 / 下行（偏结构观察）</div>
+        <div class="pill"><b>关键位</b>：支撑区 / 压力区（区间表达）</div>
+        <div class="pill"><b>风险</b>：关注风险提示（复盘用）</div>
+      </div>
+      <a class="btn" href="{open_url}">打开查看</a>
+      <div class="muted">参考码：{c} · 仅供参考</div>
+    </div>
+  </div>
+</body>
+</html>
+"""
+    return HTMLResponse(html, headers=_NO_STORE)
+
+
 def _admin_login_html_response(browser_base: str, otp_required: bool | None = None) -> HTMLResponse:
     if otp_required is None:
         otp_required = admin_browser_otp_required()
