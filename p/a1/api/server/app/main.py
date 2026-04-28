@@ -1968,6 +1968,39 @@ async def api_signals(
         if not isinstance(pack, dict):
             return {"code": -1, "msg": "signals: bad pack", "data": {}}
         candles = candles_from_tencent_like_pack(pack, period=period)  # type: ignore[arg-type]
+        # Week/month may be rendered on frontend by aggregating daily bars when provider
+        # doesn't return week/month rows. Keep backend behavior aligned so markers show up.
+        try:
+            if period in ("week", "month") and len(candles) < 60:
+                # Pull daily history and aggregate.
+                day_count = int(count)
+                if period == "week":
+                    day_count = max(day_count * 8, 1200)
+                else:
+                    day_count = max(day_count * 25, 1500)
+                day_count = min(day_count, 3000)
+                payload_day = await fetch_tx_kline(
+                    secid,
+                    "day",
+                    count=day_count,
+                    variant=("vip" if user_id is not None and is_vip else "free") if user_id is not None else "anon",
+                    priority_override=priority_override,
+                    allow_paid=allow_paid if user_id is not None else False,
+                )
+                if isinstance(payload_day, dict) and int(payload_day.get("code") or 0) == 0:
+                    data_day = payload_day.get("data") if isinstance(payload_day, dict) else None
+                    if isinstance(data_day, dict) and data_day:
+                        pack_day = next(iter(data_day.values()))
+                        if isinstance(pack_day, dict):
+                            day_candles = candles_from_tencent_like_pack(pack_day, period="day")
+                            if period == "week":
+                                from .signals import aggregate_daily_to_week
+                                candles = aggregate_daily_to_week(day_candles)
+                            else:
+                                from .signals import aggregate_daily_to_month
+                                candles = aggregate_daily_to_month(day_candles)
+        except Exception:
+            pass
         sig = build_signals_v3(candles)
         return {
             "code": 0,

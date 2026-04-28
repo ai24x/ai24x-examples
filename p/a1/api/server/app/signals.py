@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 import math
 from typing import Any, Literal
 
@@ -62,6 +63,103 @@ def candles_from_tencent_like_pack(pack: dict[str, Any], period: Period) -> list
         if not d or o is None or c is None or h is None or l is None:
             continue
         out.append(Candle(time=d, open=o, close=c, high=h, low=l, vol=v))
+    return out
+
+
+def _parse_ymd(s: str) -> date | None:
+    try:
+        s = str(s or "").strip()
+        if not s:
+            return None
+        # Expect YYYY-MM-DD (provider payload).
+        y = int(s[0:4])
+        m = int(s[5:7])
+        d = int(s[8:10])
+        return date(y, m, d)
+    except Exception:
+        return None
+
+
+def aggregate_daily_to_week(candles: list[Candle]) -> list[Candle]:
+    """
+    Aggregate daily candles into ISO-week candles.
+    - time uses the last trading day in that week (for stable marker alignment).
+    """
+    if not candles:
+        return []
+    out: list[Candle] = []
+    cur_key: tuple[int, int] | None = None  # (iso_year, iso_week)
+    buf: list[Candle] = []
+
+    def flush() -> None:
+        nonlocal buf
+        if not buf:
+            return
+        o = buf[0].open
+        c = buf[-1].close
+        h = max(x.high for x in buf)
+        l = min(x.low for x in buf)
+        v: float | None = None
+        try:
+            vs = [x.vol for x in buf if x.vol is not None]
+            v = float(sum(vs)) if vs else None
+        except Exception:
+            v = None
+        out.append(Candle(time=buf[-1].time, open=o, close=c, high=h, low=l, vol=v))
+        buf = []
+
+    for x in candles:
+        dt = _parse_ymd(x.time)
+        if dt is None:
+            continue
+        k = (dt.isocalendar().year, dt.isocalendar().week)
+        if cur_key is None:
+            cur_key = k
+        if k != cur_key:
+            flush()
+            cur_key = k
+        buf.append(x)
+    flush()
+    return out
+
+
+def aggregate_daily_to_month(candles: list[Candle]) -> list[Candle]:
+    """Aggregate daily candles into month candles; time uses last day in month bucket."""
+    if not candles:
+        return []
+    out: list[Candle] = []
+    cur_key: tuple[int, int] | None = None  # (year, month)
+    buf: list[Candle] = []
+
+    def flush() -> None:
+        nonlocal buf
+        if not buf:
+            return
+        o = buf[0].open
+        c = buf[-1].close
+        h = max(x.high for x in buf)
+        l = min(x.low for x in buf)
+        v: float | None = None
+        try:
+            vs = [x.vol for x in buf if x.vol is not None]
+            v = float(sum(vs)) if vs else None
+        except Exception:
+            v = None
+        out.append(Candle(time=buf[-1].time, open=o, close=c, high=h, low=l, vol=v))
+        buf = []
+
+    for x in candles:
+        dt = _parse_ymd(x.time)
+        if dt is None:
+            continue
+        k = (dt.year, dt.month)
+        if cur_key is None:
+            cur_key = k
+        if k != cur_key:
+            flush()
+            cur_key = k
+        buf.append(x)
+    flush()
     return out
 
 
