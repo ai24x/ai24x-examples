@@ -706,7 +706,8 @@ def secid_to_tencent_symbol(secid: str) -> str:
     code = parts[1] if len(parts) > 1 else ""
     if not re.fullmatch(r"\d{6}", code or ""):
         return "sz" + (code or "")
-    if code.startswith("92") or re.fullmatch(r"89\d{4}", code):
+    # BSE / 北交所（BJ）常见代码段：43/83/87/88/92/89xxxx
+    if code.startswith("92") or re.fullmatch(r"89\d{4}", code) or code.startswith(("43", "83", "87", "88")):
         return "bj" + code
     if market == "1":
         return "sh" + code
