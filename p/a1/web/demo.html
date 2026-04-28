@@ -325,6 +325,20 @@
       padding: 14px 14px 12px;
       box-sizing: border-box;
     }
+    /* Mobile: bottom sheet */
+    @media (max-width: 640px){
+      #share-overlay.pw-modal{ align-items: flex-end; padding: 12px; }
+      #share-overlay .pw-modal-panel{
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+        border-left: 0;
+        border-right: 0;
+        border-bottom: 0;
+      }
+    }
     #share-overlay .pw-modal-panel .btn{
       padding: 8px 12px;
       border-radius: 10px;
@@ -1284,7 +1298,7 @@
       <div class="search-row">
         <input type="text" id="stock-query" placeholder="代码或简称，例如 600519 / 上证指数" autocomplete="off" />
         <button type="button" id="btn-search">查询</button>
-        <button type="button" id="btn-share" title="分享当前页面" style="display:none"><span class="dot" aria-hidden="true"></span>分享</button>
+        <button type="button" id="btn-share" title="分享这次查询" disabled><span class="dot" aria-hidden="true"></span>分享</button>
         <div id="quote-status" class="ok" role="status"></div>
       </div>
       <div class="sample-chips" aria-label="快捷填入示例">
@@ -1340,7 +1354,7 @@
   </main>
   <footer class="site-footer" id="site-footer"></footer>
 
-  <script src="/js/shell.js?v=17"></script>
+  <script src="/js/shell.js?v=18"></script>
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("demo"); } catch (e) {}
   </script>
@@ -4232,14 +4246,14 @@
     try {
       if (quoteTitleEl) t = String(quoteTitleEl.textContent || "").trim();
     } catch (e) {}
-    var title = t ? ("AI24X 行情查询 · " + t) : "AI24X 行情查询";
+    var title = t ? ("AI24X 复盘卡 · " + t) : "AI24X 复盘卡";
     var url = "";
     try { url = String(location.href); } catch (e2) { url = ""; }
-    var compliance = "【内容仅供学习交流，不构成任何建议】";
+    var compliance = "【仅供参考】";
     var text =
       (t ? (t + "｜") : "") +
-      "一键看趋势结构/关键位/风险提示（忙的时候快速看重点）。\n" +
-      "打开直接看：" + url + "\n" +
+      "结构要点 / 关键位 / 风险提示（复盘卡）。\n" +
+      "打开查看：" + url + "\n" +
       compliance;
     var period = "";
     try { period = String(currentPeriod || (readUrlState() ? readUrlState().period : '') || 'day'); } catch (eP) { period = 'day'; }
@@ -4271,31 +4285,33 @@
     var url = String(p && p.url ? p.url : "").trim();
     var q = String(p && p.quote ? p.quote : "").trim();
     var inv = String(p && p.invite_code ? p.invite_code : "").trim();
-    var head = q ? ("AI24X 行情查询 · " + q) : "AI24X 行情查询";
-    var compliance = "【内容仅供学习交流，不构成任何建议】";
-    if (kind === "group") {
+    var head = q ? (q + " · 复盘卡") : "AI24X 复盘卡";
+    var compliance = "【仅供参考】";
+    if (kind === "risk") {
       return (
         head + "\n" +
-        "趋势结构/关键位/风险提示，一页看清（学习交流）。\n" +
+        "结构：上行/震荡/下行（偏结构判断）\n" +
+        "关键位：支撑区/压力区（区间表达）\n" +
+        "风险：关注风险提示（复盘用）\n" +
         (inv ? ("参考码：" + inv + "\n") : "") +
         "链接：" + url + "\n" +
-        "免登录可看有限次数；想长期使用建议注册并绑定参考码。\n" +
         compliance
       );
     }
-    if (kind === "moments") {
+    if (kind === "checklist") {
       return (
-        (q ? (q + "｜") : "") +
-        "趋势结构/关键位/风险提示，一页看清（学习交流）。\n" +
+        head + "\n" +
+        "复盘清单：\n" +
+        "1）结构要点　2）关键位　3）风险提示\n" +
         (inv ? ("参考码：" + inv + "\n") : "") +
         "链接：" + url + "\n" +
         compliance
       );
     }
-    // dm
+    // structure
     return (
       head + "\n" +
-      "趋势结构/关键位/风险提示，一页看清（学习交流）。\n" +
+      "结构要点速览：结构 / 关键位 / 风险提示\n" +
       (inv ? ("参考码：" + inv + "\n") : "") +
       "链接：" + url + "\n" +
       compliance
@@ -4304,9 +4320,28 @@
 
   function buildShareUrlWithInvite(url, code) {
     try {
-      var u = new URL(String(url || ''), String(location.href));
       var c = String(code || '').trim().toUpperCase();
-      if (c) u.searchParams.set('i', c);
+      if (!c) return String(url || '');
+      var state = readUrlState && readUrlState();
+      var sid = state && state.secid ? String(state.secid) : '';
+      var per = state && state.period ? String(state.period) : '';
+
+      // Prefer unified short-link on production domains (e.g. a.ai24x.com/i/XXXX).
+      var host = '';
+      try { host = String(location.hostname || ''); } catch (eH) { host = ''; }
+      var isProdLike = /(^|\.)ai24x\.com$/i.test(host) && host !== '127.0.0.1' && host !== 'localhost';
+      if (isProdLike) {
+        var base = String(location.origin || '');
+        var u2 = new URL(base + "/i/" + encodeURIComponent(c));
+        if (sid) u2.searchParams.set('secid', sid);
+        if (per) u2.searchParams.set('period', per);
+        u2.searchParams.set('view', 'lite');
+        return u2.toString();
+      }
+
+      // Dev/local fallback: keep current URL and add ?i=CODE.
+      var u = new URL(String(url || ''), String(location.href));
+      u.searchParams.set('i', c);
       return u.toString();
     } catch (e) {
       return String(url || '');
@@ -4448,6 +4483,7 @@
       // Persist the last successful query for refresh continuity.
       saveLastQuery(secid, currentPeriod, quoteDisplayHint);
       setUrlState(secid, currentPeriod);
+      try { setShareButtonReady(true); } catch (eS0) {}
     });
   }
 
@@ -4871,6 +4907,22 @@
     var btnShare = document.getElementById("btn-share");
     if (btnShare) btnShare.addEventListener("click", doShare);
   } catch (eS) {}
+
+  function setShareButtonReady(ready) {
+    try {
+      var btn = document.getElementById("btn-share");
+      if (!btn) return;
+      btn.disabled = !ready;
+      btn.style.display = "";
+      btn.title = ready ? "分享这次查询" : "请先查询一个标的后再分享";
+    } catch (e) {}
+  }
+
+  // Enable share once URL state has a selected secid (after first query or chip click).
+  try {
+    var st0 = readUrlState && readUrlState();
+    setShareButtonReady(!!(st0 && st0.secid));
+  } catch (e0) { setShareButtonReady(false); }
   loadDefaultShanghaiIndex();
 })();
   </script>
@@ -4878,26 +4930,32 @@
   <div id="share-overlay" class="pw-modal" hidden>
     <div class="pw-modal-panel" style="max-width:560px;">
       <h2 style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-        <span>一键分享</span>
+        <span>分享这次查询</span>
         <button class="btn" type="button" id="btn-share-close">关闭</button>
       </h2>
       <p class="sub" style="margin:0 0 10px;">
-        选模板复制即可，适合微信/群聊转发。
+        生成一张「复盘卡」：结构要点 + 关键位 + 风险提示（仅供参考）。
       </p>
       <div class="muted small" id="share-meta" style="margin:-6px 0 10px;">
         游客免登录：每日可看 3 次；登录后可生成专属参考码
       </div>
       <div class="row" style="gap:10px; flex-wrap:wrap; align-items:center;">
         <select id="share-template">
-          <option value="dm">私聊</option>
-          <option value="group">群聊</option>
-          <option value="moments">朋友圈</option>
+          <option value="risk">风险提示（最稳）</option>
+          <option value="checklist">复盘清单（工具感）</option>
+          <option value="structure">结构要点（信息密度）</option>
         </select>
-        <button class="btn primary" type="button" id="btn-share-copy-text">复制文案</button>
+        <button class="btn primary" type="button" id="btn-share-native" style="display:none">转发</button>
+        <button class="btn" type="button" id="btn-share-poster">生成海报</button>
+        <button class="btn" type="button" id="btn-share-copy-text">复制文案</button>
         <button class="btn" type="button" id="btn-share-copy-link">复制链接</button>
         <span class="muted small" id="share-status"></span>
       </div>
       <textarea id="share-text" rows="6" style="margin-top:10px; width:100%; font-family: ui-monospace, monospace; font-size: 12px;"></textarea>
+      <div id="share-poster-wrap" style="margin-top:12px; text-align:center;" hidden>
+        <div class="muted small" style="margin-bottom:8px;">海报（长按保存/转发到朋友圈）</div>
+        <img id="share-poster-img" alt="分享海报" style="display:inline-block; width:min(320px, 90vw); border-radius:12px; border:1px solid rgba(255,255,255,0.12); background:#fff;" />
+      </div>
       <div style="margin-top:12px; text-align:center;">
         <div class="muted small" style="margin-bottom:8px;">二维码（微信内可直接扫一扫/长按识别）</div>
         <img id="share-qr" alt="分享二维码" width="220" height="220" style="display:inline-block; border-radius:12px; border:1px solid var(--border); background:#fff; padding:8px;" />
