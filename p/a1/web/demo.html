@@ -916,6 +916,17 @@
     }
     #quote-status.ok { color: var(--muted); }
 
+    @media (max-width: 640px) {
+      .search-row { gap: 8px; }
+      .search-row input[type="text"] {
+        flex: 1 1 180px;
+        max-width: 100%;
+      }
+      /* keep CTA buttons compact so they don't wrap */
+      .search-row button { padding: 10px 14px; }
+      .search-row #btn-share { padding: 10px 14px; }
+    }
+
     @media (max-width: 520px) {
       #quote-status {
         flex-basis: 100%;
@@ -925,6 +936,9 @@
         max-width: 100%;
       }
       .search-row button {
+        padding: 10px 14px;
+      }
+      .search-row #btn-share{
         padding: 10px 14px;
       }
     }
@@ -3842,6 +3856,59 @@
     }
   }
 
+  function buildLocalMaCrossMarkers(candles, nFast, nSlow) {
+    try {
+      nFast = Math.max(2, Math.floor(Number(nFast || 14)));
+      nSlow = Math.max(nFast + 1, Math.floor(Number(nSlow || 28)));
+      if (!candles || candles.length < Math.max(62, nSlow + 2)) return [];
+      var closes = candles.map(function (c) { return Number(c && c.close); });
+      function sma(arr, n) {
+        var out = new Array(arr.length);
+        var s = 0;
+        for (var i = 0; i < arr.length; i++) {
+          var v = Number(arr[i]);
+          s += v;
+          if (i >= n) s -= Number(arr[i - n]);
+          out[i] = i >= n - 1 ? (s / n) : NaN;
+        }
+        return out;
+      }
+      var f = sma(closes, nFast);
+      var s = sma(closes, nSlow);
+      var mk = [];
+      for (var i = 1; i < candles.length; i++) {
+        if (!isFinite(f[i]) || !isFinite(s[i]) || !isFinite(f[i - 1]) || !isFinite(s[i - 1])) continue;
+        var t = candles[i].time;
+        if (!t) continue;
+        var up = f[i] > s[i] && f[i - 1] <= s[i - 1];
+        var dn = f[i] < s[i] && f[i - 1] >= s[i - 1];
+        if (up) {
+          mk.push({ time: t, position: 'belowBar', color: '#ff3d5c', shape: 'arrowUp', text: '𝐁', id: 'lc-b-' + i });
+        } else if (dn) {
+          mk.push({ time: t, position: 'aboveBar', color: '#00e68a', shape: 'arrowDown', text: '𝐒', id: 'lc-s-' + i });
+        }
+      }
+      return mk;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function applyLocalSignalsFallbackIfNeeded(secid, period, candles) {
+    try {
+      // Only for Eastmoney BK plates: backend may be unreachable from some servers (subbrain03),
+      // but browser JSONP can still load candles, so compute a minimal local signal set.
+      if (!isEmPlateSecid(secid)) return false;
+      var mk = buildLocalMaCrossMarkers(candles, 14, 28);
+      if (!mk || !mk.length) return false;
+      try { if (series && typeof series.setMarkers === 'function') series.setMarkers(mk); } catch (e0) {}
+      try { setupChartTooltip(chart, series, candles, mainChartVols, null, null); } catch (e1) {}
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   // 风控展示层：把后端信号文本收敛为更中性、平台更友好的口径（不改算法，只改展示）
   function normalizeSignalText(s) {
     s = s == null ? '' : String(s);
@@ -4060,7 +4127,10 @@
               } catch (eLb) {}
             } catch (eMk) {}
           })
-          .catch(function () {});
+          .catch(function () {
+            // Final fallback: for BK plates, compute minimal local MA-cross signals.
+            try { applyLocalSignalsFallbackIfNeeded(result.secid || currentSecid, period, mainChartCandles); } catch (e0) {}
+          });
       });
     var n = mainChartCandles.length;
     var ro = CHART_RIGHT_OFFSET_BARS;
