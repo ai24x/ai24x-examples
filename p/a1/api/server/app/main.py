@@ -2029,6 +2029,158 @@ async def api_signals(
         return {"code": -1, "msg": f"signals failed ({type(e).__name__})", "data": {}}
 
 
+@app.get("/api/kline_with_signals")
+async def api_kline_with_signals(
+    secid: str,
+    period: str = "day",
+    count: int = 500,
+    user_id: Optional[int] = Depends(get_optional_user_id),
+) -> dict:
+    """
+    One-shot endpoint: fetch kline pack + compute signals in one request.
+    This avoids the frontend doing /api/kline + /api/signals separately (2 RTT + duplicated upstream pulls).
+    """
+    _rate_limit(f"kline2:{user_id or 'anon'}", settings.kline_per_minute)
+    if period not in ("day", "week", "month"):
+        raise HTTPException(status_code=400, detail="Invalid period")
+    if count < 50:
+        count = 50
+    if period in ("week", "month"):
+        if count > 3000:
+            count = 3000
+    else:
+        if count > 1000:
+            count = 1000
+
+    # Resolve the same paid/public policy as /api/kline and /api/signals.
+    secid0 = str(secid or "").strip()
+    md = market_data_status()
+    base_pri = str((md.get("paid") or {}).get("priority") or "").strip().lower()
+    if not base_pri:
+        base_pri = "tencent,eastmoney,sina,paid"
+    vip_only = bool((md.get("paid") or {}).get("vip_only"))
+
+    is_vip = False
+    allow_paid = False
+    variant = "free"
+    priority_override = base_pri
+
+    def reorder(priority: str, paid_first: bool) -> str:
+        items = [x.strip() for x in (priority or "").split(",") if x.strip()]
+        items2: list[str] = []
+        for it in items:
+            if it not in items2:
+                items2.append(it)
+        if "paid" in items2:
+            items2 = [x for x in items2 if x != "paid"]
+        if paid_first:
+            items2 = ["paid"] + items2
+        else:
+            items2 = items2 + ["paid"]
+        return ",".join(items2)
+
+    if user_id is None:
+        if secid0 in _ANON_KLINE_WHITELIST:
+            priority_override = ",".join([x for x in base_pri.split(",") if x.strip() and x.strip() != "paid"])
+            allow_paid = False
+            variant = "anon"
+            count = min(int(count), 800)
+        else:
+            return {"code": -401, "msg": "请先登录后再查询", "data": {}, "signals": {}}
+    else:
+        db.downgrade_expired_vip_plan(int(user_id))
+        quota = db.get_quota_status(int(user_id))
+        plan = str(quota.get("plan") or "anon").strip().lower()
+        is_vip = plan not in ("", "free", "anon")
+        allow_paid = (is_vip or not vip_only)
+        first = (base_pri.split(",")[0].strip() if base_pri else "")
+        paid_first = bool(first == "paid" or is_vip)
+        priority_override = (
+            reorder(base_pri, paid_first=paid_first)
+            if allow_paid
+            else ",".join([x for x in base_pri.split(",") if x.strip() != "paid"])
+        )
+        variant = "vip" if is_vip else "free"
+
+    # Fetch kline ONCE.
+    payload = await fetch_tx_kline(
+        secid0,
+        period,
+        count=int(count),
+        variant=variant,
+        priority_override=priority_override,
+        allow_paid=allow_paid,
+    )
+    if not isinstance(payload, dict) or int(payload.get("code") or 0) != 0:
+        return {
+            "code": int((payload or {}).get("code") or -1),
+            "msg": str((payload or {}).get("msg") or "kline failed"),
+            "data": (payload or {}).get("data") if isinstance(payload, dict) else {},
+            "signals": {},
+        }
+    data = payload.get("data") if isinstance(payload, dict) else None
+    if not isinstance(data, dict) or not data:
+        return {"code": -1, "msg": "kline: empty data", "data": {}, "signals": {}}
+    pack = next(iter(data.values()))
+    if not isinstance(pack, dict):
+        return {"code": -1, "msg": "kline: bad pack", "data": data, "signals": {}}
+
+    # Compute signals based on the same candles (avoid divergence).
+    try:
+        from .signals import (
+            candles_from_tencent_like_pack,
+            aggregate_daily_to_week,
+            aggregate_daily_to_month,
+            rows_from_candles,
+        )
+        candles = candles_from_tencent_like_pack(pack, period=period)  # type: ignore[arg-type]
+        # If provider doesn't have week/month rows, derive from daily in the SAME endpoint.
+        if period in ("week", "month") and len(candles) < 60:
+            day_count = int(count)
+            if period == "week":
+                day_count = max(day_count * 8, 1200)
+            else:
+                day_count = max(day_count * 25, 1500)
+            day_count = min(day_count, 3000)
+            payload_day = await fetch_tx_kline(
+                secid0,
+                "day",
+                count=day_count,
+                variant=variant,
+                priority_override=priority_override,
+                allow_paid=allow_paid,
+            )
+            if isinstance(payload_day, dict) and int(payload_day.get("code") or 0) == 0:
+                data_day = payload_day.get("data")
+                if isinstance(data_day, dict) and data_day:
+                    pack_day = next(iter(data_day.values()))
+                    if isinstance(pack_day, dict):
+                        day_candles = candles_from_tencent_like_pack(pack_day, period="day")
+                        if period == "week":
+                            agg = aggregate_daily_to_week(day_candles)
+                            candles = agg
+                            rows = rows_from_candles(agg)
+                            pack["qfqweek"] = rows
+                            pack["week"] = rows
+                        else:
+                            agg = aggregate_daily_to_month(day_candles)
+                            candles = agg
+                            rows = rows_from_candles(agg)
+                            pack["qfqmonth"] = rows
+                            pack["month"] = rows
+        sig = build_signals_v3(candles)
+        payload["data"] = data  # ensure pack mutations are returned
+        payload["signals"] = {
+            "version": "a2-v3",
+            "markers": sig.get("markers") or [],
+            "bar_labels": sig.get("bar_labels") or [],
+        }
+        return payload
+    except Exception as e:
+        payload["signals"] = {"code": -1, "msg": f"signals failed ({type(e).__name__})"}
+        return payload
+
+
 @app.get("/api/status/market-data")
 def api_market_data_status(_: bool = Depends(require_admin)) -> dict:
     return market_data_status()

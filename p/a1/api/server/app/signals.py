@@ -66,6 +66,26 @@ def candles_from_tencent_like_pack(pack: dict[str, Any], period: Period) -> list
     return out
 
 
+def rows_from_candles(candles: list[Candle]) -> list[list[str]]:
+    """Convert Candle list back to Tencent-like rows: [date, open, close, high, low, vol]."""
+    out: list[list[str]] = []
+    for c in candles or []:
+        try:
+            out.append(
+                [
+                    str(c.time),
+                    str(float(c.open)),
+                    str(float(c.close)),
+                    str(float(c.high)),
+                    str(float(c.low)),
+                    str(float(c.vol)) if c.vol is not None else "0",
+                ]
+            )
+        except Exception:
+            continue
+    return out
+
+
 def _parse_ymd(s: str) -> date | None:
     try:
         s = str(s or "").strip()

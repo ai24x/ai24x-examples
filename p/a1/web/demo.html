@@ -3807,6 +3807,26 @@
     }
   }
 
+  function apiKlineWithSignals(secid, period, count, opts) {
+    try {
+      var consume = opts && opts.consume ? 1 : 0;
+      var url =
+        (API_BASE || '') +
+        '/api/kline_with_signals?secid=' +
+        encodeURIComponent(String(secid || '')) +
+        '&period=' +
+        encodeURIComponent(String(period || 'day')) +
+        '&count=' +
+        encodeURIComponent(String(count || 500));
+      if (consume) url += '&consume=1'; // reserved for future (server currently ignores)
+      return fetch(url, { cache: 'no-store', headers: authHeaders() }).then(function (r) {
+        return r.ok ? r.json() : Promise.reject(new Error('kline2 http ' + r.status));
+      });
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  }
+
   // 风控展示层：把后端信号文本收敛为更中性、平台更友好的口径（不改算法，只改展示）
   function normalizeSignalText(s) {
     s = s == null ? '' : String(s);
@@ -3963,10 +3983,12 @@
         series.setMarkers([]);
       }
     } catch (eMk0) {}
-    apiSignals(result.secid || currentSecid, period, rows ? rows.length : undefined)
+    // Prefer one-shot endpoint to avoid duplicate upstream pulls.
+    apiKlineWithSignals(result.secid || currentSecid, period, rows ? rows.length : undefined, { consume: true })
       .then(function (sd) {
         try {
-          var mk = sd && sd.data && sd.data.markers ? sd.data.markers : [];
+          var sig = (sd && sd.signals) ? sd.signals : (sd && sd.data ? sd.data : null);
+          var mk = sig && sig.markers ? sig.markers : [];
           try {
             if (mk && mk.length) {
               mk = mk.map(function (m) {
@@ -3981,7 +4003,7 @@
           if (series && typeof series.setMarkers === 'function') {
             series.setMarkers(mk || []);
           }
-          var lbs = sd && sd.data && sd.data.bar_labels ? sd.data.bar_labels : null;
+          var lbs = sig && sig.bar_labels ? sig.bar_labels : null;
           try {
             if (lbs && lbs.length) {
               lbs = lbs.map(function (x) { return normalizeSignalText(x); });
@@ -3992,7 +4014,39 @@
           } catch (eLb) {}
         } catch (eMk) {}
       })
-      .catch(function () {});
+      .catch(function () {
+        // Backward compatible fallback
+        apiSignals(result.secid || currentSecid, period, rows ? rows.length : undefined)
+          .then(function (sd) {
+            try {
+              var mk = sd && sd.data && sd.data.markers ? sd.data.markers : [];
+              try {
+                if (mk && mk.length) {
+                  mk = mk.map(function (m) {
+                    if (!m) return m;
+                    var mm = {};
+                    try { for (var k in m) mm[k] = m[k]; } catch (e0) { mm = m; }
+                    if (mm && mm.text != null) mm.text = normalizeSignalText(mm.text);
+                    return mm;
+                  });
+                }
+              } catch (eMkN) {}
+              if (series && typeof series.setMarkers === 'function') {
+                series.setMarkers(mk || []);
+              }
+              var lbs = sd && sd.data && sd.data.bar_labels ? sd.data.bar_labels : null;
+              try {
+                if (lbs && lbs.length) {
+                  lbs = lbs.map(function (x) { return normalizeSignalText(x); });
+                }
+              } catch (eLbN) {}
+              try {
+                setupChartTooltip(chart, series, mainChartCandles, mainChartVols, lbs, null);
+              } catch (eLb) {}
+            } catch (eMk) {}
+          })
+          .catch(function () {});
+      });
     var n = mainChartCandles.length;
     var ro = CHART_RIGHT_OFFSET_BARS;
     var vis = computeInitialVisibleBarCount(period, chartEl.clientWidth, n);
