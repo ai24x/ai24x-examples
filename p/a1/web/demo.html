@@ -1541,6 +1541,7 @@
     if (!/^\d{6}$/.test(code)) return 'sz' + code;
     if (code.charAt(0) === '9' && code.charAt(1) === '2') return 'bj' + code;
     if (/^89\d{4}$/.test(code)) return 'bj' + code;
+    if (/^(?:43|83|87|88)\d{4}$/.test(code)) return 'bj' + code;
     if (market === '1') return 'sh' + code;
     return 'sz' + code;
   }
@@ -1549,6 +1550,7 @@
     var code = String(secid).split('.')[1] || '';
     if (/^92\d{4}$/.test(code)) return true;
     if (/^89\d{4}$/.test(code)) return true;
+    if (/^(?:43|83|87|88)\d{4}$/.test(code)) return true;
     return false;
   }
 
@@ -1814,7 +1816,7 @@
   function apiSuggest(keyword) {
     function doFetch(base) {
       var b = String(base || '');
-      return fetch(b + '/api/suggest?q=' + encodeURIComponent(keyword), {
+      return fetch(b + '/api/suggest?q=' + encodeURIComponent(keyword) + '&include_plates=1', {
         cache: 'no-store',
         headers: authHeaders(),
       }).then(function (r) {
@@ -2229,7 +2231,8 @@
       return apiKline(secid, period, countForPeriod(period), opts).then(function (raw) {
         var sym = klineRequestSymbol(secid);
         if (!raw || raw.code !== 0 || !raw.data) {
-          throw new Error('K 线数据异常或代码不支持');
+          var msg = raw && raw.msg ? String(raw.msg) : '';
+          throw new Error(msg || 'K 线数据异常或代码不支持');
         }
         var picked = pickBestTencentPack(raw.data, sym, meta);
         if (!picked || !picked.pack) {
@@ -2266,7 +2269,12 @@
     var loader = isEmPlateSecid(secid)
       ? DEMO_MODE === 'standalone'
         ? loadEmPlatePackAsTencentShape(secid, period)
-        : loadViaApi().then(function (res) {
+        : loadViaApi()
+          .catch(function () {
+            // Backend may fail to reach Eastmoney plate endpoints; fall back to browser JSONP (old standalone behavior).
+            return loadEmPlatePackAsTencentShape(secid, period);
+          })
+          .then(function (res) {
             // Plate "today bar" best-effort:
             // Backend kline for 90.BKxxxx can lag by 1 trading day. If so, fetch Eastmoney plate daily and patch tail.
             try {
