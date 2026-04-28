@@ -1243,7 +1243,19 @@ def admin_config_set(body: dict, _: bool = Depends(require_admin)) -> dict:
     if not key:
         raise HTTPException(status_code=400, detail="Missing key")
     try:
-        return db.admin_config_set(key, value)
+        out = db.admin_config_set(key, value)
+        # Invalidate providers admin_config cache so paid switches take effect immediately.
+        try:
+            from . import providers as _providers
+
+            try:
+                _providers._ADMIN_CONF = None  # type: ignore[attr-defined]
+                _providers._ADMIN_CONF_EXP = 0.0  # type: ignore[attr-defined]
+            except Exception:
+                pass
+        except Exception:
+            pass
+        return out
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
