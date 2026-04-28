@@ -38,8 +38,10 @@
       '<option value="dark">深黑</option>' +
       '<option value="light">蓝白（默认）</option>' +
       "</select>" +
-      '<a class="btn btn-ghost" href="account.html">登录/续期</a>' +
-      '<a class="btn btn-primary" href="account.html#vip">开通 VIP</a>' +
+      '<span id="auth-actions" style="display:none">' +
+      '<a class="btn btn-ghost" id="btn-auth" href="account.html">登录/续期</a>' +
+      '<a class="btn btn-primary" id="btn-vip" href="account.html#vip">开通 VIP</a>' +
+      "</span>" +
       "</div>" +
       "</div>"
     );
@@ -193,8 +195,10 @@
       _el("option", { value: "light", text: "蓝白（默认）" }),
     ]);
     actions.appendChild(sel);
-    actions.appendChild(_el("a", { class: "btn btn-ghost", href: "account.html" }, ["登录/续期"]));
-    actions.appendChild(_el("a", { class: "btn btn-primary", href: "account.html#vip" }, ["开通 VIP"]));
+    var authWrap = _el("span", { id: "auth-actions", style: "display:none" }, []);
+    authWrap.appendChild(_el("a", { class: "btn btn-ghost", id: "btn-auth", href: "account.html" }, ["登录/续期"]));
+    authWrap.appendChild(_el("a", { class: "btn btn-primary", id: "btn-vip", href: "account.html#vip" }, ["开通 VIP"]));
+    actions.appendChild(authWrap);
 
     wrap.appendChild(brand);
     wrap.appendChild(toggle);
@@ -255,6 +259,9 @@
       var tok = "";
       try{ tok = localStorage.getItem(TOKEN_KEY) || ""; }catch(e0){ tok = ""; }
       var nav = document.getElementById("nav-main");
+      var authWrap = document.getElementById("auth-actions");
+      var btnAuth = document.getElementById("btn-auth");
+      var btnVip = document.getElementById("btn-vip");
       function hidePartner(){
         if(!nav) return;
         var links = nav.querySelectorAll('a[href$="partner.html"]');
@@ -269,10 +276,33 @@
           try{ links[i].style.display = ""; }catch(e1){}
         }
       }
+      function showAuthWrap(){
+        if(!authWrap) return;
+        try{ authWrap.style.display = ""; }catch(e0){}
+      }
+      function setLoggedOutUi(){
+        try{
+          if(btnAuth) btnAuth.textContent = "登录";
+          if(btnAuth) btnAuth.setAttribute("href", "account.html");
+          if(btnVip) btnVip.style.display = "";
+        }catch(e0){}
+      }
+      function setLoggedInUi(d){
+        try{
+          var u = d && d.user ? d.user : null;
+          var name = (u && (u.nickname || u.name || u.phone)) ? String(u.nickname || u.name || u.phone) : "我的";
+          if(btnAuth) btnAuth.textContent = name;
+          if(btnAuth) btnAuth.setAttribute("href", "account.html");
+          // Keep VIP button visible (renew) for now; can be refined later.
+          if(btnVip) btnVip.style.display = "";
+        }catch(e0){}
+      }
       // Always hide first to avoid flash; then show only when confirmed VIP.
       hidePartner();
+      // Avoid "login flash": hide auth actions until we know state.
       if(!tok){
-        // keep hidden
+        setLoggedOutUi();
+        showAuthWrap();
       }else{
         // Best-effort: if /api/me fails, keep partner hidden.
         try{
@@ -285,9 +315,17 @@
                 var isVip = plan.indexOf("vip_") === 0;
                 if(isVip) showPartner();
               }catch(e2){ /* keep hidden */ }
+              try{ setLoggedInUi(d); }catch(eU){}
+              showAuthWrap();
             })
-            .catch(function(){ /* keep hidden */ });
-        }catch(e3){ /* keep hidden */ }
+            .catch(function(){
+              setLoggedOutUi();
+              showAuthWrap();
+            });
+        }catch(e3){
+          setLoggedOutUi();
+          showAuthWrap();
+        }
       }
     }catch(eG){}
   }
