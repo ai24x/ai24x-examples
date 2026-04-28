@@ -1431,6 +1431,8 @@
   var THS_PLATE_TO_EM_SECID = {
     /** 同花顺行业指数「证券」（如需 BK 兜底可自行追加映射） */
     '881157': '90.BK0473',
+    /** 同花顺概念「商业航天」：在非会员/无付费源时回退到东财 BK0963 */
+    '886078': '90.BK0963',
   };
 
   function isEmPlateSecid(secid) {
@@ -4463,9 +4465,18 @@
     } else if (plateEmSecid) {
       p = loadBySecid(plateEmSecid);
     } else if (parsed && /^(?:88|881|886)\d{3}$/.test(parsed.six)) {
-      // Prefer paid THS index path via backend (TuShare ths_daily), avoid Eastmoney BK which is often unstable.
+      // Prefer paid THS index path via backend (TuShare ths_daily).
+      // If paid is not available (e.g. vip_only=1 for non-vip), fall back to mapped Eastmoney BK plate.
       (function () {
         var secid = 'ths:' + parsed.six;
+        var emFallback = THS_PLATE_TO_EM_SECID[String(parsed.six || '').trim()] || null;
+        function loadThs() {
+          return loadBySecid(secid);
+        }
+        function loadEmFallback() {
+          if (!emFallback) return Promise.reject(new Error('no em fallback'));
+          return loadBySecid(emFallback);
+        }
         // Best-effort: resolve Chinese name via suggest so title shows e.g. AI应用 instead of just 886108.
         try {
           p = suggestRows(parsed.six)
@@ -4477,16 +4488,24 @@
                 });
               } catch (e0) {}
               if (hit && hit.Name) {
-                return loadBySecid(secid, { name: hit.Name, code: hit.Code });
+                return loadBySecid(secid, { name: hit.Name, code: hit.Code }).catch(function () {
+                  return loadEmFallback();
+                });
               }
-              return loadBySecid(secid);
+              return loadThs().catch(function () {
+                return loadEmFallback();
+              });
             })
             .catch(function () {
-              return loadBySecid(secid);
+              return loadThs().catch(function () {
+                return loadEmFallback();
+              });
             });
           return;
         } catch (e1) {}
-        p = loadBySecid(secid);
+        p = loadThs().catch(function () {
+          return loadEmFallback();
+        });
       })();
     } else if (parsed) {
       (function () {

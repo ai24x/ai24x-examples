@@ -3354,7 +3354,9 @@ def admin_app_html(admin_base: str) -> str:
         if(tasks.length===0){ setStatus('请至少修改一项后再保存（全部留空表示不写数据库）'); return; }
         setStatus('正在保存数据源配置…');
         await Promise.all(tasks);
-        setStatus('已保存到数据库，约 5 秒内生效');
+        try { await loadConfig(); } catch(e0) {}
+        try { await loadMarket(); } catch(e1) {}
+        setStatus('已保存到数据库（已刷新显示）');
       }
 
       async function loadMarket(){
