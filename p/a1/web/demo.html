@@ -489,6 +489,8 @@
       background: var(--border);
       flex-shrink: 0;
     }
+    /* Separator removed: keep hidden even if old DOM cached */
+    .quote-title .qt-use-vrule { display: none; }
     /* 与 K 线标记一致：小圆点 + 箭头（B 向上，S/险/顶向下） */
     .quote-title .qt-pair {
       display: inline-flex;
@@ -3804,7 +3806,6 @@
       qtIconPair('high', '【顶】', 'qt-c-high') +
       '<span class="qt-item-label">预警</span></span>' +
       '</div>' +
-      '<span class="qt-use-vrule" aria-hidden="true"></span>' +
       '</div>';
     return useLine;
   }
@@ -4266,6 +4267,10 @@
   var shareTpl = null;
   var shareTextEl = null;
   var shareQr = null;
+  var btnShareNative = null;
+  var btnSharePoster = null;
+  var sharePosterWrap = null;
+  var sharePosterImg = null;
   var btnShareCopyText = null;
   var btnShareCopyLink = null;
   var shareStatusEl = null;
@@ -4366,6 +4371,116 @@
     try { if (shareTextEl) shareTextEl.value = txt; } catch (e2) {}
   }
 
+  function canNativeShare() {
+    try { return !!(navigator && navigator.share); } catch (e) { return false; }
+  }
+
+  function nativeShare(p) {
+    try {
+      if (!canNativeShare()) return Promise.reject(new Error("no_native_share"));
+      return navigator.share({ title: p.title || "", text: shareTextEl ? String(shareTextEl.value || "") : (p.text || ""), url: p.url || "" });
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  }
+
+  function posterDraw(p) {
+    // Minimal poster: title + 3 blocks + QR + code; designed for WeChat "long-press save".
+    return new Promise(function (resolve, reject) {
+      try {
+        var w = 1080, h = 1440;
+        var c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        var g = c.getContext("2d");
+        if (!g) return reject(new Error("no_canvas"));
+
+        // Background
+        g.fillStyle = "#0b1220";
+        g.fillRect(0, 0, w, h);
+        // Accent
+        var grd = g.createLinearGradient(0, 0, w, 0);
+        grd.addColorStop(0, "rgba(251,191,36,0.95)");
+        grd.addColorStop(1, "rgba(59,130,246,0.95)");
+        g.fillStyle = grd;
+        g.fillRect(0, 0, w, 14);
+
+        // Title
+        g.fillStyle = "rgba(255,255,255,0.96)";
+        g.font = "700 56px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+        var q = String(p.quote || "").trim();
+        var t = q ? (q + " · 复盘卡") : "AI24X 复盘卡";
+        g.fillText(t, 72, 140);
+
+        // Subtitle
+        g.fillStyle = "rgba(255,255,255,0.70)";
+        g.font = "400 32px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+        g.fillText("结构要点 / 关键位 / 风险提示（仅供参考）", 72, 200);
+
+        function card(y, title, body) {
+          g.fillStyle = "rgba(255,255,255,0.06)";
+          g.strokeStyle = "rgba(255,255,255,0.10)";
+          g.lineWidth = 2;
+          g.beginPath();
+          g.roundRect(72, y, w - 144, 190, 20);
+          g.fill();
+          g.stroke();
+
+          g.fillStyle = "rgba(251,191,36,0.95)";
+          g.font = "800 34px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+          g.fillText(title, 100, y + 64);
+          g.fillStyle = "rgba(255,255,255,0.86)";
+          g.font = "500 34px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+          g.fillText(body, 100, y + 124);
+        }
+
+        card(280, "结构", "上行 / 震荡 / 下行（偏结构）");
+        card(500, "关键位", "支撑区 / 压力区（区间表达）");
+        card(720, "风险", "关注风险提示（复盘用）");
+
+        // QR
+        var qrSrc = "";
+        try { qrSrc = shareQr ? String(shareQr.src || "") : ""; } catch (e0) { qrSrc = ""; }
+        if (!qrSrc) return reject(new Error("no_qr"));
+        var img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = function () {
+          try {
+            g.fillStyle = "rgba(255,255,255,0.06)";
+            g.strokeStyle = "rgba(255,255,255,0.10)";
+            g.lineWidth = 2;
+            g.beginPath();
+            g.roundRect(72, 980, w - 144, 360, 24);
+            g.fill(); g.stroke();
+
+            // qr box
+            g.fillStyle = "#ffffff";
+            g.beginPath();
+            g.roundRect(120, 1030, 280, 280, 24);
+            g.fill();
+            g.drawImage(img, 128, 1038, 264, 264);
+
+            // Text right
+            g.fillStyle = "rgba(255,255,255,0.92)";
+            g.font = "800 40px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+            g.fillText("长按识别查看", 440, 1105);
+            g.fillStyle = "rgba(255,255,255,0.70)";
+            g.font = "500 30px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+            g.fillText("简版可见 · 注册解锁完整", 440, 1165);
+            var inv = String(p.invite_code || "").trim();
+            g.fillText(inv ? ("参考码：" + inv) : "登录后可生成专属参考码", 440, 1220);
+            g.fillText("仅供参考", 440, 1275);
+
+            resolve(c.toDataURL("image/png"));
+          } catch (e2) { reject(e2); }
+        };
+        img.onerror = function () { reject(new Error("qr_load_failed")); };
+        img.src = qrSrc;
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
   function doShare() {
     var p = sharePayload();
     if (!shareOverlay) {
@@ -4375,6 +4490,10 @@
         shareTpl = document.getElementById("share-template");
         shareTextEl = document.getElementById("share-text");
         shareQr = document.getElementById("share-qr");
+        btnShareNative = document.getElementById("btn-share-native");
+        btnSharePoster = document.getElementById("btn-share-poster");
+        sharePosterWrap = document.getElementById("share-poster-wrap");
+        sharePosterImg = document.getElementById("share-poster-img");
         btnShareCopyText = document.getElementById("btn-share-copy-text");
         btnShareCopyLink = document.getElementById("btn-share-copy-link");
         shareStatusEl = document.getElementById("share-status");
@@ -4387,6 +4506,30 @@
           });
         }
         if (shareTpl) shareTpl.addEventListener("change", function () { shareRender(p); });
+        if (btnShareNative) btnShareNative.addEventListener("click", function () {
+          setShareStatus("准备调起转发…");
+          nativeShare(p)
+            .then(function () { setShareStatus("已调起转发"); })
+            .catch(function () {
+              // Fallback: copy link if native share not available / cancelled.
+              copyText(p.url)
+                .then(function () { setShareStatus("已复制链接"); })
+                .catch(function () { setShareStatus("转发不可用：已复制失败"); });
+            });
+        });
+        if (btnSharePoster) btnSharePoster.addEventListener("click", function () {
+          try { if (sharePosterWrap) sharePosterWrap.hidden = true; } catch (e0) {}
+          setShareStatus("生成海报中…");
+          posterDraw(p)
+            .then(function (dataUrl) {
+              try {
+                if (sharePosterImg) sharePosterImg.src = dataUrl;
+                if (sharePosterWrap) sharePosterWrap.hidden = false;
+              } catch (e1) {}
+              setShareStatus("海报已生成：长按图片保存/转发");
+            })
+            .catch(function () { setShareStatus("海报生成失败（可先复制链接转发）"); });
+        });
         if (btnShareCopyText) btnShareCopyText.addEventListener("click", function () {
           var txt = shareTextEl ? String(shareTextEl.value || "") : "";
           copyText(txt)
@@ -4411,6 +4554,10 @@
       try {
         if (shareQr) shareQr.src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=" + encodeURIComponent(p.url);
       } catch (e1) {}
+      try {
+        if (btnShareNative) btnShareNative.style.display = canNativeShare() ? "" : "none";
+        if (sharePosterWrap) sharePosterWrap.hidden = true;
+      } catch (eN) {}
       shareRender(p);
       shareOverlayOpen();
       try {
