@@ -1233,6 +1233,22 @@
             startVipPoll();
           }
         }catch(eR){}
+        // If returned from Alipay cashier (or page reload), resume polling by out_trade_no.
+        try{
+          var sp1 = new URLSearchParams(String(location.search || "").replace(/^\?/, ""));
+          var otn1 = String(sp1.get("otn") || "").trim();
+          var ch1 = String(sp1.get("ch") || "").trim().toLowerCase();
+          var savedOtn = "";
+          try { savedOtn = String(localStorage.getItem("ai24x_last_alipay_otn") || "").trim(); } catch (eSO) { savedOtn = ""; }
+          var savedPlan = "";
+          try { savedPlan = String(localStorage.getItem("ai24x_last_alipay_plan") || "").trim(); } catch (eSP) { savedPlan = ""; }
+          if((otn1 && (ch1 === "alipay" || ch1 === "alipay_wap")) || savedOtn){
+            vipLastOutTradeNo = otn1 || savedOtn;
+            if(savedPlan) vipLastPlan = savedPlan;
+            setVipPayStatus("已返回本页：正在确认支付结果（约每 3 秒）…");
+            startVipPoll();
+          }
+        }catch(eRA){}
         var t = tokenGet();
         if (!t) {
           if (authGuest) authGuest.hidden = false;
@@ -1806,6 +1822,11 @@
         try{ quotaSnapshotBeforePay = null; }catch(e6){}
         try{ agentSnapshotBeforePay = null; }catch(e7){}
         try{ vipLastPlan = ""; }catch(e8){}
+        // Clear persisted payment resume markers (wechat/alipay)
+        try { localStorage.removeItem("ai24x_last_wechat_otn"); } catch (e9) {}
+        try { localStorage.removeItem("ai24x_last_wechat_plan"); } catch (e10) {}
+        try { localStorage.removeItem("ai24x_last_alipay_otn"); } catch (e11) {}
+        try { localStorage.removeItem("ai24x_last_alipay_plan"); } catch (e12) {}
       }
 
       function quotaImproved(prev, cur) {
@@ -2057,6 +2078,9 @@
             if (vipOutTrade) vipOutTrade.textContent = otn;
             if (vipCodeUrl) vipCodeUrl.value = payUrl;
             try { vipLastOutTradeNo = otn || ""; } catch (eOTN) { vipLastOutTradeNo = ""; }
+            // Persist so returning from cashier can resume polling/fulfillment even after reload.
+            try { localStorage.setItem("ai24x_last_alipay_otn", String(vipLastOutTradeNo || "")); } catch (eLSA) {}
+            try { localStorage.setItem("ai24x_last_alipay_plan", String(vipLastPlan || "")); } catch (eLSAP) {}
             var af = d && d.amount_fen != null ? Number(d.amount_fen) : 0;
             var pf = d && d.priced_amount_fen != null ? Number(d.priced_amount_fen) : af;
             var ay = d && d.amount_yuan_display ? String(d.amount_yuan_display) : "";
