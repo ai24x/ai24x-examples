@@ -665,7 +665,9 @@
       try {
         if (loggedStrip) loggedStrip.hidden = true;
         if (loggedHint) loggedHint.hidden = true;
-        if (authPanel) authPanel.hidden = false;
+        // Avoid "login panel flash" for logged-in users: keep auth panel hidden
+        // until we confirm there is no valid token.
+        if (authPanel) authPanel.hidden = true;
         if (quotaKv) quotaKv.hidden = true;
       } catch (e0) {}
 
@@ -855,6 +857,18 @@
         if (!on && loggedAccount) loggedAccount.textContent = "";
       }
 
+      function setCheckingUi() {
+        try {
+          if (loggedStrip) loggedStrip.hidden = false;
+          if (loggedHint) loggedHint.hidden = true;
+          if (authPanel) authPanel.hidden = true;
+          if (loggedStripText) loggedStripText.textContent = "正在验证登录…";
+          if (btnLogout) btnLogout.hidden = true;
+          if (loggedAccount) loggedAccount.textContent = "";
+          if (quotaKv) quotaKv.hidden = true;
+        } catch (e0) {}
+      }
+
       function refreshMe() {
         var t = tokenGet();
         if (!t) {
@@ -863,8 +877,8 @@
           setStatus("");
           return;
         }
-        // 有 token 时先保持未登录界面，仅在 /api/me 成功后再显示「已登录」，避免校验前误提示
-        setLoggedUi(false);
+        // 有 token：先进入“验证中”状态，避免未登录面板闪现
+        setCheckingUi();
         quotaKv.hidden = true;
         setStatus("");
         apiFetch("/api/me", { cache: "no-store" })
