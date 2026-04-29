@@ -12,12 +12,6 @@
       return '<a href="' + esc(href) + '" class="' + cls + '">' + esc(label) + "</a>";
     }
 
-    function navHidden(href, label, id) {
-      var cls = active === id ? "is-active" : "";
-      // Default-hide gated entries to avoid "flash then disappear".
-      return '<a href="' + esc(href) + '" class="' + cls + '" style="display:none">' + esc(label) + "</a>";
-    }
-
     return (
       '<div class="container header-inner">' +
       '<a class="brand" href="index.html" aria-label="AI24X">' +
@@ -29,7 +23,6 @@
       nav("index.html", "首页", "index") +
       nav("demo.html", "行情", "demo") +
       nav("account.html", "我的", "account") +
-      navHidden("partner.html", "伙伴", "partner") +
       nav("feedback.html", "反馈", "feedback") +
       "</nav>" +
       '<div class="header-actions">' +
@@ -184,8 +177,6 @@
       nav("index.html", "首页", "index"),
       nav("demo.html", "行情", "demo"),
       nav("account.html", "我的", "account"),
-      // Default-hide gated entries to avoid "flash then disappear".
-      _el("a", { href: "partner.html", class: (active === "partner" ? "is-active" : ""), style: "display:none" }, ["伙伴"]),
       nav("feedback.html", "反馈", "feedback"),
     ]);
     var actions = _el("div", { class: "header-actions" }, []);
@@ -253,29 +244,13 @@
       f.appendChild(footerDom());
     }
     bindChrome();
-    // Nav gate: show "伙伴" only for logged-in VIP users (reduce noise & improve conversion).
     try{
       var TOKEN_KEY = "ai24x_a_token";
       var tok = "";
       try{ tok = localStorage.getItem(TOKEN_KEY) || ""; }catch(e0){ tok = ""; }
-      var nav = document.getElementById("nav-main");
       var authWrap = document.getElementById("auth-actions");
       var btnAuth = document.getElementById("btn-auth");
       var btnVip = document.getElementById("btn-vip");
-      function hidePartner(){
-        if(!nav) return;
-        var links = nav.querySelectorAll('a[href$="partner.html"]');
-        for(var i=0;i<links.length;i++){
-          try{ links[i].style.display = "none"; }catch(e1){}
-        }
-      }
-      function showPartner(){
-        if(!nav) return;
-        var links = nav.querySelectorAll('a[href$="partner.html"]');
-        for(var i=0;i<links.length;i++){
-          try{ links[i].style.display = ""; }catch(e1){}
-        }
-      }
       function showAuthWrap(){
         if(!authWrap) return;
         try{ authWrap.style.display = ""; }catch(e0){}
@@ -296,8 +271,6 @@
           if(btnVip) btnVip.style.display = "";
         }catch(e0){}
       }
-      // Always hide first to avoid flash; then show only when confirmed VIP.
-      hidePartner();
       // Avoid "login flash": hide auth actions until we know state.
       if(!tok){
         setLoggedOutUi();
@@ -311,12 +284,6 @@
           fetch("/api/me", { cache: "no-store", headers: { "Authorization": "Bearer " + String(tok) } })
             .then(function(r){ return r && r.ok ? r.json() : null; })
             .then(function(d){
-              try{
-                var q = d && d.quota ? d.quota : null;
-                var plan = q && q.plan ? String(q.plan) : "";
-                var isVip = plan.indexOf("vip_") === 0;
-                if(isVip) showPartner();
-              }catch(e2){ /* keep hidden */ }
               try{ setLoggedInUi(d); }catch(eU){}
               showAuthWrap();
             })
