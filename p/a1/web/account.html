@@ -1859,7 +1859,7 @@
         stopVipPoll();
         var prev = quotaSnapshotBeforePay;
         var n = 0;
-        vipPollTimer = setInterval(function () {
+        function tick(){
           n += 1;
           if (n > 120) {
             stopVipPoll();
@@ -1929,6 +1929,10 @@
               .catch(function () {});
           }
         }, 3000);
+        // First tick immediately for faster Alipay/WeChat confirmation.
+        try { tick(); } catch (e0) {}
+        // Then poll every 2s for a snappier UX.
+        vipPollTimer = setInterval(tick, 2000);
       }
 
       function showVipQr(d) {
