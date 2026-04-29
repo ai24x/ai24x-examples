@@ -38,7 +38,7 @@
       '<option value="dark">深黑</option>' +
       '<option value="light">蓝白（默认）</option>' +
       "</select>" +
-      '<span id="auth-actions" style="display:none">' +
+      '<span id="auth-actions" style="display:none; display:inline-flex; align-items:center; gap:10px; min-width:118px; justify-content:flex-end">' +
       '<a class="btn btn-ghost" id="btn-auth" href="account.html">登录/续期</a>' +
       '<a class="btn btn-primary" id="btn-vip" href="account.html#vip">开通 VIP</a>' +
       "</span>" +
@@ -195,7 +195,7 @@
       _el("option", { value: "light", text: "蓝白（默认）" }),
     ]);
     actions.appendChild(sel);
-    var authWrap = _el("span", { id: "auth-actions", style: "display:none" }, []);
+    var authWrap = _el("span", { id: "auth-actions", style: "display:none; display:inline-flex; align-items:center; gap:10px; min-width:118px; justify-content:flex-end" }, []);
     authWrap.appendChild(_el("a", { class: "btn btn-ghost", id: "btn-auth", href: "account.html" }, ["登录/续期"]));
     authWrap.appendChild(_el("a", { class: "btn btn-primary", id: "btn-vip", href: "account.html#vip" }, ["开通 VIP"]));
     actions.appendChild(authWrap);
@@ -289,9 +289,8 @@
       }
       function setLoggedInUi(d){
         try{
-          var u = d && d.user ? d.user : null;
-          var name = (u && (u.nickname || u.name || u.phone)) ? String(u.nickname || u.name || u.phone) : "我的";
-          if(btnAuth) btnAuth.textContent = name;
+          // Keep header stable: always show "我的" (avoid phone/nickname width drift).
+          if(btnAuth) btnAuth.textContent = "我的";
           if(btnAuth) btnAuth.setAttribute("href", "account.html");
           // Keep VIP button visible (renew) for now; can be refined later.
           if(btnVip) btnVip.style.display = "";
@@ -304,6 +303,9 @@
         setLoggedOutUi();
         showAuthWrap();
       }else{
+        // Show stable entry immediately when token exists; refine state after /api/me.
+        try{ setLoggedInUi(null); }catch(e0){}
+        showAuthWrap();
         // Best-effort: if /api/me fails, keep partner hidden.
         try{
           fetch("/api/me", { cache: "no-store", headers: { "Authorization": "Bearer " + String(tok) } })
@@ -319,12 +321,10 @@
               showAuthWrap();
             })
             .catch(function(){
-              setLoggedOutUi();
-              showAuthWrap();
+              // keep "我的" shown; if token invalid, account page will guide relogin
             });
         }catch(e3){
-          setLoggedOutUi();
-          showAuthWrap();
+          // keep "我的" shown
         }
       }
     }catch(eG){}
