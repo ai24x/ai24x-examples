@@ -7,6 +7,7 @@ import time
 from typing import Any
 from urllib.parse import quote
 
+import httpx
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 
@@ -174,4 +175,62 @@ def verify_notify(
     if not _verify_rsa2(public_key, msg, sign):
         return False, "invalid_signature"
     return True, None
+
+
+def query_trade(
+    s: Any,
+    *,
+    out_trade_no: str,
+) -> dict[str, Any]:
+    """
+    主动查询交易（alipay.trade.query）。
+    用于 notify 兜底：当异步通知未到达时，前端可触发查询并补发开通。
+    """
+    if not alipay_configured(s):
+        raise RuntimeError("Alipay is not configured")
+
+    otn = str(out_trade_no or "").strip()
+    if not otn:
+        raise RuntimeError("missing_out_trade_no")
+
+    app_id = str(getattr(s, "alipay_app_id", "")).strip()
+    gateway = str(getattr(s, "alipay_gateway", "")).strip().rstrip("?")
+    charset = "utf-8"
+
+    biz = {"out_trade_no": otn}
+    params: dict[str, str] = {
+        "app_id": app_id,
+        "method": "alipay.trade.query",
+        "format": "JSON",
+        "charset": charset,
+        "sign_type": "RSA2",
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+        "version": "1.0",
+        "biz_content": json.dumps(biz, ensure_ascii=False, separators=(",", ":")),
+    }
+    sign_src = _canonical_kv(params)
+    pem = merchant_private_key_pem(s)
+    params["sign"] = _sign_rsa2(pem, sign_src)
+
+    try:
+        with httpx.Client(timeout=15.0) as client:
+            r = client.post(gateway, data=params)
+    except httpx.RequestError as e:
+        raise RuntimeError(f"alipay_query_unreachable: {e}") from e
+
+    try:
+        data = r.json()
+    except Exception as e:
+        raise RuntimeError(f"alipay_query_non_json: {r.text[:200]}") from e
+
+    resp = data.get("alipay_trade_query_response") if isinstance(data, dict) else None
+    if not isinstance(resp, dict):
+        raise RuntimeError("alipay_query_invalid_response")
+
+    code = str(resp.get("code") or "").strip()
+    if code and code != "10000":
+        msg = str(resp.get("sub_msg") or resp.get("msg") or "query_failed")[:200]
+        raise RuntimeError(f"alipay_query_failed: {code} {msg}".strip())
+
+    return resp
 

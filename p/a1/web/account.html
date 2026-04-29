@@ -1854,13 +1854,19 @@
             return;
           }
           var p0 = Promise.resolve();
-          // WeChat notify 兜底：主动 query 并补发开通（忽略错误）
+          // Notify 兜底：主动 query 并补发开通（忽略错误）
           if (vipLastOutTradeNo) {
-            p0 = apiFetch("/api/billing/wechat/query_and_fulfill", {
+            var q1 = apiFetch("/api/billing/wechat/query_and_fulfill", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ out_trade_no: vipLastOutTradeNo }),
             }).catch(function () {});
+            var q2 = apiFetch("/api/billing/alipay/query_and_fulfill", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ out_trade_no: vipLastOutTradeNo }),
+            }).catch(function () {});
+            p0 = Promise.all([q1, q2]).then(function(){});
           }
           var isAgentPay = String(vipLastPlan || "").indexOf("agent_") === 0;
           if (isAgentPay) {
@@ -2050,6 +2056,7 @@
             if (!payUrl) throw new Error("未返回支付地址");
             if (vipOutTrade) vipOutTrade.textContent = otn;
             if (vipCodeUrl) vipCodeUrl.value = payUrl;
+            try { vipLastOutTradeNo = otn || ""; } catch (eOTN) { vipLastOutTradeNo = ""; }
             var af = d && d.amount_fen != null ? Number(d.amount_fen) : 0;
             var pf = d && d.priced_amount_fen != null ? Number(d.priced_amount_fen) : af;
             var ay = d && d.amount_yuan_display ? String(d.amount_yuan_display) : "";

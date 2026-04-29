@@ -2708,6 +2708,48 @@ async def billing_alipay_notify(request: Request) -> PlainTextResponse:
     return PlainTextResponse("success", status_code=200)
 
 
+@app.post("/api/billing/alipay/query_and_fulfill")
+async def billing_alipay_query_and_fulfill(body: dict, user_id: int = Depends(get_current_user_id)) -> dict:
+    """
+    兜底：当支付宝 notify 因网络/配置原因未到达时，前端可带 out_trade_no 主动查询并补发开通。
+    - 仅允许查询自己的订单
+    - 若 trade_status=TRADE_SUCCESS/TRADE_FINISHED 则尝试 fulfill（幂等）
+    """
+    ali_cfg = resolve_alipay()
+    otn = str((body or {}).get("out_trade_no") or "").strip()
+    if not otn:
+        raise HTTPException(status_code=400, detail="missing out_trade_no")
+
+    row = db.pay_order_get_by_out_trade_no(otn)
+    if not row:
+        raise HTTPException(status_code=404, detail="order_not_found")
+    if int(row.get("user_id") or 0) != int(user_id):
+        raise HTTPException(status_code=403, detail="forbidden")
+    if str(row.get("status") or "") == "paid":
+        return {"ok": True, "status": "paid", "duplicate": True}
+
+    try:
+        txn = alipay_wap.query_trade(ali_cfg, out_trade_no=otn)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e)[:400]) from e
+
+    trade_status = str(txn.get("trade_status") or "").strip()
+    if trade_status not in ("TRADE_SUCCESS", "TRADE_FINISHED"):
+        return {"ok": True, "status": "pending", "trade_status": trade_status}
+
+    trade_no = str(txn.get("trade_no") or "").strip()
+    total_amount = str(txn.get("total_amount") or "").strip()
+    try:
+        fen = int(round(float(total_amount) * 100.0))
+    except Exception:
+        raise HTTPException(status_code=502, detail="invalid_total_amount")
+
+    r = db.pay_order_try_fulfill_alipay(otn, trade_no, fen)
+    if not r.get("ok"):
+        raise HTTPException(status_code=409, detail=str(r.get("error") or "fulfill_failed"))
+    return {"ok": True, "status": "paid", "duplicate": bool(r.get("duplicate"))}
+
+
 @app.get("/api/admin/user/{user_id}/quota_status")
 def admin_user_quota_status(user_id: int, _: bool = Depends(require_admin)) -> dict:
     """

@@ -2553,6 +2553,8 @@ def _admin_pay_order_row_dict(r: Any) -> dict[str, Any]:
         "id": int(r["id"]),
         "out_trade_no": str(r["out_trade_no"] or ""),
         "user_id": int(r["user_id"]),
+        "user_phone": str(_row_get(r, "user_phone") or ""),
+        "user_email": str(_row_get(r, "user_email") or ""),
         "plan": str(r["plan"] or ""),
         "amount_fen": int(r["amount_fen"] or 0),
         "channel": str(r["channel"] or ""),
@@ -2582,12 +2584,15 @@ def admin_list_pay_orders(
         total = int(_row_get(cnt_row, "c") or 0)
         rows = conn.execute(
             f"""
-            SELECT id, out_trade_no, user_id, plan, amount_fen, channel, status,
-                   transaction_id, created_at, updated_at,
-                   CASE WHEN code_url IS NOT NULL AND LENGTH(TRIM(CAST(code_url AS TEXT))) > 0 THEN 1 ELSE 0 END AS has_code_url
-            FROM pay_orders
+            SELECT o.id, o.out_trade_no, o.user_id,
+                   u.phone AS user_phone, u.email AS user_email,
+                   o.plan, o.amount_fen, o.channel, o.status,
+                   o.transaction_id, o.created_at, o.updated_at,
+                   CASE WHEN o.code_url IS NOT NULL AND LENGTH(TRIM(CAST(o.code_url AS TEXT))) > 0 THEN 1 ELSE 0 END AS has_code_url
+            FROM pay_orders o
+            LEFT JOIN users u ON u.id = o.user_id
             {where}
-            ORDER BY id DESC
+            ORDER BY o.id DESC
             LIMIT ? OFFSET ?
             """,
             (*params, limit, offset),
@@ -2610,12 +2615,15 @@ def admin_export_pay_orders_rows(
     with connect() as conn:
         rows = conn.execute(
             f"""
-            SELECT id, out_trade_no, user_id, plan, amount_fen, channel, status,
-                   transaction_id, created_at, updated_at,
-                   CASE WHEN code_url IS NOT NULL AND LENGTH(TRIM(CAST(code_url AS TEXT))) > 0 THEN 1 ELSE 0 END AS has_code_url
-            FROM pay_orders
+            SELECT o.id, o.out_trade_no, o.user_id,
+                   u.phone AS user_phone, u.email AS user_email,
+                   o.plan, o.amount_fen, o.channel, o.status,
+                   o.transaction_id, o.created_at, o.updated_at,
+                   CASE WHEN o.code_url IS NOT NULL AND LENGTH(TRIM(CAST(o.code_url AS TEXT))) > 0 THEN 1 ELSE 0 END AS has_code_url
+            FROM pay_orders o
+            LEFT JOIN users u ON u.id = o.user_id
             {where}
-            ORDER BY id DESC
+            ORDER BY o.id DESC
             LIMIT ?
             """,
             (*params, cap),

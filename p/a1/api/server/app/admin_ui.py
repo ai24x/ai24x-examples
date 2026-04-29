@@ -1058,7 +1058,7 @@ def admin_app_html(admin_base: str) -> str:
                   <thead>
                     <tr>
                       <th style="width:72px;"><span class="th-cn">订单 id</span><span class="th-en">id</span></th>
-                      <th style="width:96px;"><span class="th-cn">用户</span><span class="th-en">userId</span></th>
+                      <th style="width:140px;"><span class="th-cn">用户账号</span><span class="th-en">phone</span></th>
                       <th style="width:120px;"><span class="th-cn">套餐</span><span class="th-en">plan</span></th>
                       <th style="width:88px;"><span class="th-cn">实收(元)</span><span class="th-en">amount</span></th>
                       <th style="width:96px;"><span class="th-cn">实收(分)</span><span class="th-en">amount_fen</span></th>
@@ -2050,12 +2050,30 @@ def admin_app_html(admin_base: str) -> str:
         var body = $('ordersBody');
         body.innerHTML = '';
         (d.items || []).forEach(function(it){
+          function maskPhone(s){
+            s = String(s||'').trim();
+            if(!s) return '—';
+            var digits = s.replace(/\\D/g,'');
+            if(digits.length === 11){
+              return digits.slice(0,3)+'****'+digits.slice(7);
+            }
+            if(s.indexOf('@') >= 0){
+              var a = s.split('@');
+              var u = a[0]||'';
+              var d0 = a.slice(1).join('@')||'';
+              if(u.length <= 2) return u + '***@' + d0;
+              return u.slice(0,2) + '***' + u.slice(-1) + '@' + d0;
+            }
+            if(s.length <= 4) return s;
+            return s.slice(0,2) + '***' + s.slice(-2);
+          }
+          var acct = it.user_phone ? String(it.user_phone) : (it.user_email ? String(it.user_email) : '');
           var tr = document.createElement('tr');
           tr.style.cursor = 'pointer';
           tr.title = '点击查看该用户的配额与运维流水';
           tr.innerHTML =
             '<td class="mono">'+esc(it.id)+'</td>'+
-            '<td class="mono">'+esc(it.user_id)+'</td>'+
+            '<td class="mono">'+esc(maskPhone(acct))+'<span class="muted small">（id '+esc(it.user_id)+'）</span></td>'+
             '<td class="mono">'+esc(ordPlanZh(it.plan))+'<span class="muted small">（'+esc(it.plan||'')+'）</span></td>'+
             '<td class="mono">'+esc(fmtFenYuan(it.amount_fen))+'</td>'+
             '<td class="mono">'+esc(it.amount_fen)+'</td>'+
@@ -2880,7 +2898,7 @@ def admin_app_html(admin_base: str) -> str:
           if(s === '0.399006') return '创业板指（0.399006）';
           if(s === '0.899050') return '北证50（0.899050）';
           // Generic secid market mapping: 1.x = SH, 0.0/0.3 = SZ, 0.899 = BJ
-          var m = s.match(/^(\d+)\.(\d{3,})$/);
+          var m = s.match(/^(\\d+)\\.(\\d{3,})$/);
           if(!m) return s;
           var mk = m[1];
           var code = m[2];
