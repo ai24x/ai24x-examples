@@ -636,11 +636,38 @@
       // Service Worker 注册已统一在 `js/shell.js` 处理（避免多处重复注册与连环刷新）。
 
       function apiBase() {
+        // Default: same-origin (reverse proxy should map /api/* to backend).
+        // Override options (for emergency ops / misconfigured proxies):
+        // - localStorage: ai24x_a_api_base = "https://api.example.com"
+        // - query param: ?api_base=https%3A%2F%2Fapi.example.com
+        try {
+          var q = "";
+          try { q = String(location.search || ""); } catch (eQ) { q = ""; }
+          if (q && q.indexOf("api_base=") >= 0) {
+            var m = q.match(/[?&]api_base=([^&]+)/);
+            if (m && m[1]) {
+              var u = decodeURIComponent(m[1]);
+              u = String(u || "").trim().replace(/\/$/, "");
+              if (u) {
+                try { localStorage.setItem("ai24x_a_api_base", u); } catch (eS) {}
+                return u;
+              }
+            }
+          }
+        } catch (e0) {}
+
+        try {
+          var saved = "";
+          try { saved = String(localStorage.getItem("ai24x_a_api_base") || ""); } catch (e1) { saved = ""; }
+          saved = saved.trim().replace(/\/$/, "");
+          if (saved) return saved;
+        } catch (e2) {}
+
         try {
           var host = String(location.hostname || "");
           var port = String(location.port || "");
           if ((host === "127.0.0.1" || host === "localhost") && port === "18001") return "http://127.0.0.1:18011";
-        } catch (e) {}
+        } catch (e3) {}
         return "";
       }
 
@@ -1928,7 +1955,7 @@
               })
               .catch(function () {});
           }
-        }, 3000);
+        }
         // First tick immediately for faster Alipay/WeChat confirmation.
         try { tick(); } catch (e0) {}
         // Then poll every 2s for a snappier UX.

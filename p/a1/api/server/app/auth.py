@@ -20,10 +20,26 @@ def create_token(user_id: int, email: str | None, phone: str | None = None) -> s
 
 
 def parse_token(token: str) -> dict:
+    secrets: list[str] = []
     try:
-        return jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+        cur = str(getattr(settings, "jwt_secret", "") or "").strip()
+        if cur:
+            secrets.append(cur)
     except Exception:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        pass
+    try:
+        prev = str(getattr(settings, "jwt_secret_prev", "") or "").strip()
+        if prev and prev not in secrets:
+            secrets.append(prev)
+    except Exception:
+        pass
+
+    for sec in secrets:
+        try:
+            return jwt.decode(token, sec, algorithms=["HS256"])
+        except Exception:
+            continue
+    raise HTTPException(status_code=401, detail="Invalid token")
 
 
 def get_current_user_id(

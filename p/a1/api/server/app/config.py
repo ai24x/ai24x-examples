@@ -45,6 +45,9 @@ class Settings:
     database_url: str
     db_path: str
     jwt_secret: str
+    # Optional: accept tokens signed by a previous secret during rotation / accidents.
+    # Keep this temporarily (hours-days) and remove after all clients refresh tokens.
+    jwt_secret_prev: str
     jwt_expire_days: int
     admin_key: str
     # 管理台 HTML 挂载路径（不含 /login 后缀）；默认含日期前缀，可自行改 env 不定期轮换
@@ -133,12 +136,23 @@ def load_settings() -> Settings:
         raise RuntimeError("SQLite is disabled. Set AI24X_DB_KIND=pgsql and configure AI24X_DATABASE_URL.")
     if db_kind not in ("pg", "pgsql", "postgres", "postgresql"):
         raise RuntimeError(f"Unsupported AI24X_DB_KIND={db_kind!r}. Only pgsql is allowed.")
+    env = os.getenv("AI24X_ENV", "dev")
+    jwt_secret = os.getenv("AI24X_JWT_SECRET", "change-me")
+    jwt_secret_prev = str(os.getenv("AI24X_JWT_SECRET_PREV", "") or "").strip()
+    # Fail-fast in production if secret looks like a placeholder.
+    # Without a stable secret, every deploy/restart can invalidate all browser sessions.
+    if str(env or "").strip().lower() in ("prod", "production"):
+        s = str(jwt_secret or "").strip()
+        if not s or s == "change-me" or len(s) < 16:
+            raise RuntimeError("AI24X_JWT_SECRET is missing/too weak in prod. Set a long random secret (>=16 chars).")
+
     return Settings(
-        env=os.getenv("AI24X_ENV", "dev"),
+        env=env,
         db_kind=db_kind,
         database_url=str(os.getenv("AI24X_DATABASE_URL", "")).strip(),
         db_path=os.getenv("AI24X_DB_PATH", "./data/ai24x.db"),
-        jwt_secret=os.getenv("AI24X_JWT_SECRET", "change-me"),
+        jwt_secret=jwt_secret,
+        jwt_secret_prev=jwt_secret_prev,
         jwt_expire_days=_to_int(os.getenv("AI24X_JWT_EXPIRE_DAYS"), 7),
         admin_key=os.getenv("AI24X_ADMIN_KEY", "change-me-admin"),
         admin_mount_path=normalize_admin_mount(os.getenv("AI24X_ADMIN_MOUNT_PATH")),
