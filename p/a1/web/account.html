@@ -87,6 +87,86 @@
       border-color: rgba(251,191,36,.30) !important;
     }
 
+    /* Pay method buttons (icon + label) */
+    .pay-btn{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      line-height:1;
+    }
+    .pay-btn .pay-ico{
+      width:18px; height:18px;
+      display:inline-flex;
+      align-items:center; justify-content:center;
+      flex:0 0 auto;
+    }
+    .pay-btn .pay-ico svg{ width:18px; height:18px; display:block; }
+    .pay-btn .pay-lbl{ line-height:1; }
+
+    /* Step pills (replace "1）2）" with icons) */
+    .pill.step{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding-left:10px;
+    }
+    .pill.step .step-ico{
+      width:18px; height:18px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      flex:0 0 auto;
+      border-radius: 10px;
+      background: rgba(96,165,250,.16);
+      border: 1px solid rgba(96,165,250,.22);
+    }
+    .pill.step .step-ico svg{ width:14px; height:14px; display:block; }
+    /* Colored step icon variants (local style, no external assets) */
+    .pill.step .step-ico.step-plan{
+      background: linear-gradient(135deg, rgba(167,139,250,.95), rgba(96,165,250,.92));
+      border-color: rgba(167,139,250,.28);
+    }
+    .pill.step .step-ico.step-pay{
+      background: linear-gradient(135deg, rgba(34,211,238,.92), rgba(96,165,250,.92));
+      border-color: rgba(34,211,238,.26);
+    }
+    .pill.step .step-ico.step-tier{
+      background: linear-gradient(135deg, rgba(251,191,36,.96), rgba(245,158,11,.92));
+      border-color: rgba(251,191,36,.30);
+    }
+    .pill.step .step-ico svg .ico-fill{ fill:#fff; }
+    .pill.step .step-ico svg .ico-stroke{ stroke:#fff; }
+
+    /* Share overlay readability (high contrast across themes) */
+    #share-overlay.pw-modal{
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+    #share-overlay .pw-modal-panel{
+      background: rgba(18, 22, 29, 0.96);
+      border-color: rgba(255,255,255,0.10);
+      box-shadow: 0 18px 50px rgba(0,0,0,0.55);
+      color: #f8fafc;
+    }
+    #share-overlay .pw-modal-panel .sub,
+    #share-overlay .pw-modal-panel .muted,
+    #share-overlay .pw-modal-panel .small{
+      color: rgba(226,232,240,0.80) !important;
+    }
+    #share-overlay textarea{
+      color: #e5e7eb;
+      background: rgba(2, 6, 23, 0.42);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      padding: 10px 12px;
+      outline: none;
+    }
+    #share-overlay textarea:focus{
+      border-color: rgba(96,165,250,0.55);
+      box-shadow: 0 0 0 4px rgba(96,165,250,0.16);
+    }
+
     /* Pay overlay (VIP + partner upgrade) */
     .pay-overlay{
       position: fixed; inset: 0; z-index: 220;
@@ -271,15 +351,48 @@
       </p>
       <div class="muted small" id="vip-expiry" style="margin-top:6px;">VIP 到期：—</div>
       <div class="row" style="flex-wrap:wrap; gap:10px; align-items:center;">
-        <span class="pill">1）选择套餐</span>
+        <span class="pill step">
+          <span class="step-ico step-plan" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false" role="img">
+              <path class="ico-fill" d="M7 7h-2c-.6 0-1 .4-1 1s.4 1 1 1h1.2l1.6 8.3c.1.5.5.9 1 .9h8.8c.5 0 .9-.3 1-.8l1.2-6.2c.1-.6-.3-1.1-1-1.1H8.6L8.3 8.5C8.2 7.6 7.7 7 7 7zm2.3 5h9l-.9 4.6H10.1L9.3 12z"></path>
+              <path class="ico-fill" d="M10 20a1.5 1.5 0 1 0 0 .01V20zm7 0a1.5 1.5 0 1 0 0 .01V20z"></path>
+            </svg>
+          </span>
+          选择套餐
+        </span>
         <button class="btn vip-plan vip-trial is-selected" id="vip-plan-trial" type="button">体验卡</button>
         <button class="btn vip-plan vip-month" id="vip-plan-month" type="button">月卡</button>
         <button class="btn vip-plan vip-year" id="vip-plan-year" type="button">年卡</button>
       </div>
       <div class="row" style="margin-top:10px; flex-wrap:wrap; gap:10px; align-items:center;">
-        <span class="pill">2）选择支付方式</span>
-        <button class="btn" id="vip-pay-wechat" type="button" disabled>微信支付</button>
-        <button class="btn" id="vip-pay-alipay" type="button" disabled>支付宝</button>
+        <span class="pill step">
+          <span class="step-ico step-pay" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false" role="img">
+              <path class="ico-fill" d="M4 7.5C4 6.1 5.1 5 6.5 5h11C19.9 5 21 6.1 21 7.5v9c0 1.4-1.1 2.5-2.5 2.5h-11C5.1 19 4 17.9 4 16.5v-9zm2 .5v1.2h13V8c0-.6-.4-1-1-1H7c-.6 0-1 .4-1 1zm0 3.2v5.3c0 .6.4 1 1 1h11c.6 0 1-.4 1-1v-5.3H6z"></path>
+              <path class="ico-stroke" d="M8 15.2h4.2" stroke-width="1.6" stroke-linecap="round"></path>
+            </svg>
+          </span>
+          选择支付方式
+        </span>
+        <button class="btn pay-btn" id="vip-pay-wechat" type="button" disabled aria-label="微信支付">
+          <span class="pay-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false" role="img">
+              <circle cx="12" cy="12" r="12" fill="#07C160"></circle>
+              <path d="M9.2 7.7c-2.2 0-4 1.4-4 3.2 0 1 .5 1.9 1.3 2.5l-.4 1.5 1.7-.8c.4.1.9.2 1.4.2 2.2 0 4-1.4 4-3.2s-1.8-3.4-4-3.4zm-1.6 2.6a.7.7 0 1 1 0 0zm3.2 0a.7.7 0 1 1 0 0z" fill="#fff" opacity=".95"></path>
+              <path d="M14.7 9.6c-1.7 0-3.1 1.1-3.1 2.5 0 .8.4 1.5 1 2l-.3 1.2 1.4-.6c.3.1.7.1 1 .1 1.7 0 3.1-1.1 3.1-2.5s-1.4-2.7-3.1-2.7zm-1.2 2a.55.55 0 1 1 0 0zm2.4 0a.55.55 0 1 1 0 0z" fill="#fff" opacity=".9"></path>
+            </svg>
+          </span>
+          <span class="pay-lbl">微信支付</span>
+        </button>
+        <button class="btn pay-btn" id="vip-pay-alipay" type="button" disabled aria-label="支付宝支付">
+          <span class="pay-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false" role="img">
+              <circle cx="12" cy="12" r="12" fill="#1677FF"></circle>
+              <path d="M8.2 15.6c1.6-2 2.9-4.9 3.4-7.2h1.7c-.1.6-.2 1.2-.4 1.8h3.4v1.4h-3.8c-.3.8-.7 1.7-1.2 2.5 1 .5 2.2 1 3.6 1.4l-.7 1.4c-1.5-.5-2.8-1.1-4-1.8-.9.9-2 1.6-3.4 2l-.7-1.3c1-.3 1.9-.8 2.6-1.4-.8-.6-1.5-1.2-2-1.8l1.5-.4z" fill="#fff" opacity=".96"></path>
+            </svg>
+          </span>
+          <span class="pay-lbl">支付宝</span>
+        </button>
         <button class="btn" id="btn-vip-refresh" type="button">刷新配额</button>
         <a class="btn" href="./demo.html?from=vip">去行情页</a>
       </div>
@@ -401,14 +514,48 @@
       <div class="hint" id="agent-tier-hint" style="margin-top:10px; display:none;"></div>
 
       <div class="row" style="margin-top:10px; flex-wrap:wrap; gap:10px; align-items:center;">
-        <span class="pill">1）选择档位</span>
+        <span class="pill step">
+          <span class="step-ico step-tier" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false" role="img">
+              <path class="ico-fill" d="M12 3l8 4.5v9L12 21 4 16.5v-9L12 3zm0 2.3L6 8.2v7.1l6 3.4 6-3.4V8.2l-6-2.9z"></path>
+              <path class="ico-stroke" d="M9 11.2h6" stroke-width="1.6" stroke-linecap="round"></path>
+              <path class="ico-stroke" d="M9 14h6" stroke-width="1.6" stroke-linecap="round" opacity=".9"></path>
+            </svg>
+          </span>
+          选择档位
+        </span>
         <button class="btn vip-plan vip-month" type="button" id="btn-agent-upg-growth" disabled>成长档</button>
         <button class="btn vip-plan vip-year" type="button" id="btn-agent-upg-pro" disabled>专业档</button>
       </div>
       <div class="row" style="margin-top:10px; flex-wrap:wrap; gap:10px; align-items:center;">
-        <span class="pill">2）选择支付方式</span>
-        <button class="btn" type="button" id="agent-pay-wechat" disabled>微信支付</button>
-        <button class="btn" type="button" id="agent-pay-alipay" disabled>支付宝</button>
+        <span class="pill step">
+          <span class="step-ico step-pay" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false" role="img">
+              <path class="ico-fill" d="M4 7.5C4 6.1 5.1 5 6.5 5h11C19.9 5 21 6.1 21 7.5v9c0 1.4-1.1 2.5-2.5 2.5h-11C5.1 19 4 17.9 4 16.5v-9zm2 .5v1.2h13V8c0-.6-.4-1-1-1H7c-.6 0-1 .4-1 1zm0 3.2v5.3c0 .6.4 1 1 1h11c.6 0 1-.4 1-1v-5.3H6z"></path>
+              <path class="ico-stroke" d="M8 15.2h4.2" stroke-width="1.6" stroke-linecap="round"></path>
+            </svg>
+          </span>
+          选择支付方式
+        </span>
+        <button class="btn pay-btn" type="button" id="agent-pay-wechat" disabled aria-label="微信支付">
+          <span class="pay-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false" role="img">
+              <circle cx="12" cy="12" r="12" fill="#07C160"></circle>
+              <path d="M9.2 7.7c-2.2 0-4 1.4-4 3.2 0 1 .5 1.9 1.3 2.5l-.4 1.5 1.7-.8c.4.1.9.2 1.4.2 2.2 0 4-1.4 4-3.2s-1.8-3.4-4-3.4zm-1.6 2.6a.7.7 0 1 1 0 0zm3.2 0a.7.7 0 1 1 0 0z" fill="#fff" opacity=".95"></path>
+              <path d="M14.7 9.6c-1.7 0-3.1 1.1-3.1 2.5 0 .8.4 1.5 1 2l-.3 1.2 1.4-.6c.3.1.7.1 1 .1 1.7 0 3.1-1.1 3.1-2.5s-1.4-2.7-3.1-2.7zm-1.2 2a.55.55 0 1 1 0 0zm2.4 0a.55.55 0 1 1 0 0z" fill="#fff" opacity=".9"></path>
+            </svg>
+          </span>
+          <span class="pay-lbl">微信支付</span>
+        </button>
+        <button class="btn pay-btn" type="button" id="agent-pay-alipay" disabled aria-label="支付宝支付">
+          <span class="pay-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false" role="img">
+              <circle cx="12" cy="12" r="12" fill="#1677FF"></circle>
+              <path d="M8.2 15.6c1.6-2 2.9-4.9 3.4-7.2h1.7c-.1.6-.2 1.2-.4 1.8h3.4v1.4h-3.8c-.3.8-.7 1.7-1.2 2.5 1 .5 2.2 1 3.6 1.4l-.7 1.4c-1.5-.5-2.8-1.1-4-1.8-.9.9-2 1.6-3.4 2l-.7-1.3c1-.3 1.9-.8 2.6-1.4-.8-.6-1.5-1.2-2-1.8l1.5-.4z" fill="#fff" opacity=".96"></path>
+            </svg>
+          </span>
+          <span class="pay-lbl">支付宝</span>
+        </button>
         <span class="muted small">支付成功后将自动生效；如未更新可点「刷新」。</span>
       </div>
       <div class="hint" id="agent-choice-hint" style="margin-top:10px;"></div>
@@ -625,7 +772,7 @@
     </div>
   </div>
 
-  <script src="/js/shell.js?v=20"></script>
+  <script src="/js/shell.js?v=21"></script>
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("account"); } catch (e) {}
   </script>
@@ -2290,22 +2437,21 @@
       function shareBuildText(kind, link, extra) {
         var l = String(link || "").trim();
         var code = extra && extra.code ? String(extra.code || "").trim() : "";
-        var head = "AI24X 行情查询｜灯塔版";
+        var head = "AI行情官｜灯塔版";
         var compliance = "【内容仅供学习交流，不构成任何建议】";
         if (kind === "group") {
           return (
             head + "\n" +
-            "一键查趋势结构/关键位/风险提示（忙的时候快速看重点）。\n" +
+            "一键查看结构要点/关键位/提示信息（学习交流）。\n" +
             (code ? ("邀请码：" + code + "\n") : "") +
             "入口：" + l + "\n" +
-            "开通 VIP：更稳更快、次数更高（高峰期体验更好）。\n" +
             compliance
           );
         }
         if (kind === "moments") {
           return (
             "最近在用一个更省时间的行情查询页。\n" +
-            "（趋势结构/关键位/风险提示，一页看清）\n" +
+            "（结构要点/关键位/提示信息，一页看清）\n" +
             "链接：" + l + "\n" +
             compliance
           );

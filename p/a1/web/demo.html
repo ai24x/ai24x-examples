@@ -5,14 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex,nofollow,noarchive" />
   <title>AI 行情官｜灯塔版（1.01）</title>
-  <meta name="description" content="AI24X 行情查询：趋势结构/关键位/风险提示，一页看清（学习交流，不构成任何建议）。" />
+  <meta name="description" content="AI行情官：结构要点/关键位/提示信息，一页看清（学习交流，不构成任何建议）。" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="AI24X" />
-  <meta property="og:title" content="AI24X 行情查询" />
-  <meta property="og:description" content="趋势结构/关键位/风险提示，一页看清（学习交流，不构成任何建议）。" />
-  <meta property="og:image" content="/img/share-preview.svg" />
+  <meta property="og:title" content="AI行情官" />
+  <meta property="og:description" content="结构要点/关键位/提示信息，一页看清（学习交流，不构成任何建议）。" />
+  <!-- WeChat link preview: prefer raster (WeChat often ignores SVG). -->
+  <meta property="og:image" content="https://images.weserv.nl/?url=https%3A%2F%2Fa.ai24x.com%2Fimg%2Fshare-preview.svg&w=1200&h=630&fit=cover&output=png" />
+  <meta property="og:image:secure_url" content="https://images.weserv.nl/?url=https%3A%2F%2Fa.ai24x.com%2Fimg%2Fshare-preview.svg&w=1200&h=630&fit=cover&output=png" />
+  <meta property="og:image:type" content="image/png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
+  <!-- Fallback -->
+  <meta property="og:image" content="https://a.ai24x.com/img/share-preview.svg" />
+  <meta property="og:image:secure_url" content="https://a.ai24x.com/img/share-preview.svg" />
+  <meta property="og:image:type" content="image/svg+xml" />
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" href="data:," />
   <link rel="stylesheet" href="/css/base.css" />
@@ -321,7 +328,8 @@
       border: 1px solid rgba(255,255,255,0.10);
       background: rgba(18, 22, 29, 0.96);
       box-shadow: 0 18px 50px rgba(0,0,0,0.55);
-      color: var(--text);
+      /* Force high contrast even in light theme (var(--text) may be dark) */
+      color: #f8fafc;
       padding: 14px 14px 12px;
       box-sizing: border-box;
     }
@@ -344,7 +352,7 @@
       border-radius: 10px;
       border: 1px solid rgba(255,255,255,0.10);
       background: rgba(255,255,255,0.06);
-      color: var(--text);
+      color: #f8fafc;
       cursor: pointer;
     }
     #share-overlay .pw-modal-panel .btn.primary{
@@ -352,6 +360,109 @@
       border-color: rgba(251,191,36,0.65);
       color: rgba(24,18,6,.98);
       font-weight: 900;
+    }
+    #share-overlay .pw-modal-panel .sub,
+    #share-overlay .pw-modal-panel .muted,
+    #share-overlay .pw-modal-panel .small{
+      color: rgba(226,232,240,0.80) !important;
+    }
+    #share-overlay textarea{
+      color: #e5e7eb;
+      background: rgba(2, 6, 23, 0.42);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      padding: 10px 12px;
+      outline: none;
+    }
+    #share-overlay textarea:focus{
+      border-color: rgba(96,165,250,0.55);
+      box-shadow: 0 0 0 4px rgba(96,165,250,0.16);
+    }
+
+    /* WeChat share tip (top-right arrow overlay) */
+    #wechat-share-tip{
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: rgba(0,0,0,0.35);
+      display: none;
+    }
+    #wechat-share-tip .tip{
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: min(320px, calc(100vw - 20px));
+      color: #f8fafc;
+      text-align: right;
+      font-size: 14px;
+      line-height: 1.4;
+      text-shadow: 0 10px 30px rgba(0,0,0,0.55);
+      pointer-events: none;
+    }
+    #wechat-share-tip .tip .t1{ font-weight: 900; }
+    #wechat-share-tip .tip .t2{ opacity: 0.85; font-size: 12px; margin-top: 4px; }
+    #wechat-share-tip .arrow{
+      position: absolute;
+      top: 6px;
+      right: 10px;
+      width: 68px;
+      height: 68px;
+      pointer-events: none;
+    }
+    #wechat-share-tip .close{
+      position: absolute;
+      left: 14px;
+      top: 14px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(18, 22, 29, 0.72);
+      color: #f8fafc;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    /* WeChat share tip (top-right arrow) */
+    #wechat-share-tip{
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: rgba(0,0,0,0.35);
+      display: none;
+    }
+    #wechat-share-tip .tip{
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: min(320px, calc(100vw - 20px));
+      color: #f8fafc;
+      text-align: right;
+      font-size: 14px;
+      line-height: 1.4;
+      pointer-events: none;
+      text-shadow: 0 10px 30px rgba(0,0,0,0.55);
+    }
+    #wechat-share-tip .tip .t1{ font-weight: 900; }
+    #wechat-share-tip .tip .t2{ opacity: 0.85; font-size: 12px; margin-top: 4px; }
+    #wechat-share-tip .arrow{
+      position: absolute;
+      top: 6px;
+      right: 10px;
+      width: 68px;
+      height: 68px;
+      pointer-events: none;
+    }
+    #wechat-share-tip .close{
+      position: absolute;
+      left: 14px;
+      top: 14px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(18, 22, 29, 0.72);
+      color: #f8fafc;
+      font-size: 12px;
+      cursor: pointer;
     }
     .sample-chips {
       display: flex;
@@ -3972,9 +4083,9 @@
         try { nm = String(inputEl && inputEl.value ? inputEl.value : '').trim(); } catch (e1) { nm = ''; }
       }
       var perZh = (period === 'week' ? '周线' : period === 'month' ? '月线' : '日线');
-      var t = (nm ? (nm + ' · ' + perZh + '｜AI24X 行情查询') : ('AI24X 行情查询 · ' + perZh));
+      var t = (nm ? (nm + ' · ' + perZh + '｜AI行情官') : ('AI行情官 · ' + perZh));
       document.title = t;
-      var desc = '趋势结构/关键位/风险提示，一页看清（学习交流，不构成任何建议）。';
+      var desc = '结构要点/关键位/提示信息，一页看清（学习交流，不构成任何建议）。';
       var mt = document.querySelector('meta[property="og:title"]');
       var md = document.querySelector('meta[property="og:description"]');
       var mdesc = document.querySelector('meta[name="description"]');
@@ -4317,13 +4428,13 @@
     try {
       if (quoteTitleEl) t = String(quoteTitleEl.textContent || "").trim();
     } catch (e) {}
-    var title = t ? ("AI24X 复盘卡 · " + t) : "AI24X 复盘卡";
+    var title = t ? ("AI行情官 · " + t) : "AI行情官";
     var url = "";
     try { url = String(location.href); } catch (e2) { url = ""; }
-    var compliance = "【仅供参考】";
+    var compliance = "【内容仅供学习交流，不构成任何建议】";
     var text =
       (t ? (t + "｜") : "") +
-      "结构要点 / 关键位 / 风险提示（复盘卡）。\n" +
+      "结构要点 / 关键位 / 提示信息（学习交流）。\n" +
       "打开查看：" + url + "\n" +
       compliance;
     var period = "";
@@ -4360,14 +4471,14 @@
     var url = String(p && p.url ? p.url : "").trim();
     var q = String(p && p.quote ? p.quote : "").trim();
     var inv = String(p && p.invite_code ? p.invite_code : "").trim();
-    var head = q ? (q + " · 复盘卡") : "AI24X 复盘卡";
-    var compliance = "【仅供参考】";
+    var head = q ? (q + " · 学习卡") : "AI行情官 · 学习卡";
+    var compliance = "【内容仅供学习交流，不构成任何建议】";
     if (kind === "risk") {
       return (
         head + "\n" +
         "结构：上行/震荡/下行（偏结构判断）\n" +
         "关键位：支撑区/压力区（区间表达）\n" +
-        "风险：关注风险提示（复盘用）\n" +
+        "提示：以页面提示信息为准\n" +
         (inv ? ("参考码：" + inv + "\n") : "") +
         "链接：" + url + "\n" +
         compliance
@@ -4376,8 +4487,7 @@
     if (kind === "checklist") {
       return (
         head + "\n" +
-        "复盘清单：\n" +
-        "1）结构要点　2）关键位　3）风险提示\n" +
+        "清单：结构要点 / 关键位 / 提示信息\n" +
         (inv ? ("参考码：" + inv + "\n") : "") +
         "链接：" + url + "\n" +
         compliance
@@ -4386,7 +4496,7 @@
     // structure
     return (
       head + "\n" +
-      "结构要点速览：结构 / 关键位 / 风险提示\n" +
+      "要点速览：结构 / 关键位 / 提示信息\n" +
       (inv ? ("参考码：" + inv + "\n") : "") +
       "链接：" + url + "\n" +
       compliance
@@ -4438,10 +4548,62 @@
     var kind = "dm";
     try { kind = shareTpl ? String(shareTpl.value || "dm") : "dm"; } catch (e) {}
     var txt = shareBuildText(kind, p);
+    // Avoid WeChat chat composer truncation: keep it compact.
+    try {
+      var s = String(txt || "");
+      if (s.length > 420) {
+        // Keep head + link + compliance; trim middle.
+        var u = String(p && p.url ? p.url : "").trim();
+        var c = "【内容仅供学习交流，不构成任何建议】";
+        var head = (s.split("\n")[0] || "AI24X 复盘卡").trim();
+        s = head + "\n" + "链接：" + u + "\n" + c;
+      }
+      txt = s;
+    } catch (e3) {}
     try { if (shareTextEl) shareTextEl.value = txt; } catch (e2) {}
   }
 
+  function isWeChatEnvShare() {
+    try {
+      var ua = String(navigator.userAgent || "").toLowerCase();
+      return ua.indexOf("micromessenger") >= 0;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function showWeChatShareTip() {
+    try {
+      var el = document.getElementById("wechat-share-tip");
+      if (!el) return;
+      el.style.display = "block";
+      var btn = document.getElementById("btn-wx-tip-close");
+      if (btn && !btn.__bound) {
+        btn.__bound = true;
+        btn.addEventListener("click", function () {
+          try { el.style.display = "none"; } catch (e0) {}
+        });
+      }
+      if (!el.__bound) {
+        el.__bound = true;
+        el.addEventListener("click", function (ev) {
+          // click outside close button also closes
+          try {
+            if (ev && ev.target && (ev.target.id === "wechat-share-tip")) el.style.display = "none";
+          } catch (e1) {}
+        });
+      }
+      // auto-hide after a short while
+      try {
+        clearTimeout(el.__t);
+        el.__t = setTimeout(function () { try { el.style.display = "none"; } catch (e2) {} }, 5500);
+      } catch (eT) {}
+    } catch (e) {}
+  }
+
   function canNativeShare() {
+    // In WeChat built-in browser, native share is often incomplete (title-only) or unstable.
+    if (isWeChatEnvShare()) return false;
     try { return !!(navigator && navigator.share); } catch (e) { return false; }
   }
 
@@ -4478,13 +4640,13 @@
         g.fillStyle = "rgba(255,255,255,0.96)";
         g.font = "700 56px system-ui, -apple-system, Segoe UI, Roboto, Arial";
         var q = String(p.quote || "").trim();
-        var t = q ? (q + " · 复盘卡") : "AI24X 复盘卡";
+        var t = q ? (q + " · 学习卡") : "AI行情官 · 学习卡";
         g.fillText(t, 72, 140);
 
         // Subtitle
         g.fillStyle = "rgba(255,255,255,0.70)";
         g.font = "400 32px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-        g.fillText("结构要点 / 关键位 / 风险提示（仅供参考）", 72, 200);
+        g.fillText("结构要点 / 关键位 / 提示信息（学习交流）", 72, 200);
 
         function card(y, title, body) {
           g.fillStyle = "rgba(255,255,255,0.06)";
@@ -4505,7 +4667,7 @@
 
         card(280, "结构", "上行 / 震荡 / 下行（偏结构）");
         card(500, "关键位", "支撑区 / 压力区（区间表达）");
-        card(720, "风险", "关注风险提示（复盘用）");
+        card(720, "提示", "以页面提示信息为准");
 
         // QR
         var qrSrc = "";
@@ -4538,7 +4700,7 @@
             g.fillText("简版可见 · 注册解锁完整", 440, 1165);
             var inv = String(p.invite_code || "").trim();
             g.fillText(inv ? ("参考码：" + inv) : "登录后可生成专属参考码", 440, 1220);
-            g.fillText("仅供参考", 440, 1275);
+            g.fillText("学习交流", 440, 1275);
 
             resolve(c.toDataURL("image/png"));
           } catch (e2) { reject(e2); }
@@ -4630,14 +4792,14 @@
       } catch (eN) {}
       shareRender(p);
       shareOverlayOpen();
+      // In WeChat, show the top-right “...” share hint overlay.
+      try { if (isWeChatEnvShare()) showWeChatShareTip(); } catch (eW) {}
       try {
         if (shareMetaEl) {
-          var used = guestViewsGet();
-          var guestTip = "游客免登录：今日已用 " + used + "/" + GUEST_VIEWS_MAX_PER_DAY + " 次";
-          shareMetaEl.textContent = code ? ("参考码 " + code + " · " + guestTip) : (guestTip + "；登录后可生成专属参考码");
+          shareMetaEl.textContent = code ? ("参考码 " + code + " 已加入链接") : "建议：微信内优先用「复制链接 / 复制文案」转发";
         }
       } catch (eM) {}
-      setShareStatus(code ? ("参考码 " + code + " 已加入分享") : "提示：登录后可生成专属参考码");
+      setShareStatus(code ? ("已生成分享链接（含参考码 " + code + "）") : "已生成分享内容");
     });
   }
 
@@ -5151,16 +5313,16 @@
         <button class="btn" type="button" id="btn-share-close">关闭</button>
       </h2>
       <p class="sub" style="margin:0 0 10px;">
-        生成一张「复盘卡」：结构要点 + 关键位 + 风险提示（仅供参考）。
+        生成一张「学习卡」：结构要点 + 关键位 + 提示信息（学习交流）。
       </p>
       <div class="muted small" id="share-meta" style="margin:-6px 0 10px;">
-        游客免登录：每日可看 3 次；登录后可生成专属参考码
+        复制文案或链接转发到微信/群聊即可。
       </div>
       <div class="row" style="gap:10px; flex-wrap:wrap; align-items:center;">
         <select id="share-template">
-          <option value="risk">风险提示（最稳）</option>
-          <option value="checklist">复盘清单（工具感）</option>
-          <option value="structure">结构要点（信息密度）</option>
+          <option value="risk">风险提示</option>
+          <option value="checklist">复盘清单</option>
+          <option value="structure">结构要点</option>
         </select>
         <button class="btn primary" type="button" id="btn-share-native" style="display:none">转发</button>
         <button class="btn" type="button" id="btn-share-poster">生成海报</button>
@@ -5177,6 +5339,18 @@
         <div class="muted small" style="margin-bottom:8px;">二维码（微信内可直接扫一扫/长按识别）</div>
         <img id="share-qr" alt="分享二维码" width="220" height="220" style="display:inline-block; border-radius:12px; border:1px solid var(--border); background:#fff; padding:8px;" />
       </div>
+    </div>
+  </div>
+
+  <div id="wechat-share-tip" aria-hidden="true">
+    <button class="close" type="button" id="btn-wx-tip-close">知道了</button>
+    <svg class="arrow" viewBox="0 0 80 80" aria-hidden="true" focusable="false">
+      <path d="M16 58 C34 48, 46 36, 56 20" fill="none" stroke="rgba(255,255,255,0.92)" stroke-width="4" stroke-linecap="round"></path>
+      <path d="M54 22 L70 14 L62 30" fill="none" stroke="rgba(255,255,255,0.92)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+    </svg>
+    <div class="tip">
+      <div class="t1">点击右上角「···」可转发</div>
+      <div class="t2">也可以发到不同微信 / 微信群</div>
     </div>
   </div>
 
