@@ -10,13 +10,13 @@
   <meta property="og:site_name" content="AI24X" />
   <meta property="og:title" content="AI行情官" />
   <meta property="og:description" content="结构要点/关键位/提示信息，一页看清（学习交流，不构成任何建议）。" />
-  <!-- WeChat link preview: prefer raster (WeChat often ignores SVG). -->
-  <meta property="og:image" content="https://images.weserv.nl/?url=https%3A%2F%2Fa.ai24x.com%2Fimg%2Fshare-preview.svg&w=1200&h=630&fit=cover&output=png" />
-  <meta property="og:image:secure_url" content="https://images.weserv.nl/?url=https%3A%2F%2Fa.ai24x.com%2Fimg%2Fshare-preview.svg&w=1200&h=630&fit=cover&output=png" />
+  <!-- WeChat link preview: prefer a local PNG (WeChat often ignores SVG). -->
+  <meta property="og:image" content="https://a.ai24x.com/img/share-preview.png" />
+  <meta property="og:image:secure_url" content="https://a.ai24x.com/img/share-preview.png" />
   <meta property="og:image:type" content="image/png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
-  <!-- Fallback -->
+  <!-- Fallback (some crawlers may accept SVG) -->
   <meta property="og:image" content="https://a.ai24x.com/img/share-preview.svg" />
   <meta property="og:image:secure_url" content="https://a.ai24x.com/img/share-preview.svg" />
   <meta property="og:image:type" content="image/svg+xml" />
@@ -4083,7 +4083,14 @@
         try { nm = String(inputEl && inputEl.value ? inputEl.value : '').trim(); } catch (e1) { nm = ''; }
       }
       var perZh = (period === 'week' ? '周线' : period === 'month' ? '月线' : '日线');
-      var t = (nm ? (nm + ' · ' + perZh + '｜AI行情官') : ('AI行情官 · ' + perZh));
+      // Mask name in title for WeChat-friendly neutrality.
+      var nm2 = String(nm || "").trim();
+      try { nm2 = nm2.replace(/\(.*?\)/g, ""); } catch (eN0) {}
+      nm2 = nm2.replace(/\s+/g, " ").trim();
+      var arr = [];
+      try { arr = Array.from(nm2); } catch (eN1) { arr = []; }
+      var nmMask = (arr && arr.length) ? ((arr.length <= 1) ? (arr[0] + "*") : (arr.slice(0, 2).join("") + "*")) : "";
+      var t = (nmMask ? (nmMask + ' · ' + perZh + '｜AI行情官') : ('AI行情官 · ' + perZh));
       document.title = t;
       var desc = '结构要点/关键位/提示信息，一页看清（学习交流，不构成任何建议）。';
       var mt = document.querySelector('meta[property="og:title"]');
@@ -4428,7 +4435,24 @@
     try {
       if (quoteTitleEl) t = String(quoteTitleEl.textContent || "").trim();
     } catch (e) {}
-    var title = t ? ("AI行情官 · " + t) : "AI行情官";
+    function _maskTitleName(s) {
+      s = String(s || "").trim();
+      if (!s) return "";
+      // Remove common suffix parts to keep it short.
+      try { s = s.replace(/\(.*?\)/g, ""); } catch (e0) {}
+      s = s.replace(/\s+/g, " ").trim();
+      // If contains separators, take the first segment as "name".
+      try { s = s.split("｜")[0]; } catch (e1) {}
+      try { s = s.split("|")[0]; } catch (e2) {}
+      s = String(s || "").trim();
+      // Mask: keep first 2 visible chars for readability.
+      var arr = Array.from(s);
+      if (arr.length <= 1) return arr[0] + "*";
+      if (arr.length === 2) return arr[0] + "*";
+      return arr.slice(0, 2).join("") + "*";
+    }
+    var shortName = _maskTitleName(t);
+    var title = shortName ? ("AI行情官 · " + shortName) : "AI行情官";
     var url = "";
     try { url = String(location.href); } catch (e2) { url = ""; }
     var compliance = "【内容仅供学习交流，不构成任何建议】";
@@ -4456,6 +4480,7 @@
   var btnShareCopyLink = null;
   var shareStatusEl = null;
   var shareMetaEl = null;
+  var sharePCurrent = null;
 
   function shareOverlayOpen() {
     try { if (shareOverlay) shareOverlay.hidden = false; } catch (e) {}
@@ -4555,7 +4580,7 @@
         // Keep head + link + compliance; trim middle.
         var u = String(p && p.url ? p.url : "").trim();
         var c = "【内容仅供学习交流，不构成任何建议】";
-        var head = (s.split("\n")[0] || "AI24X 复盘卡").trim();
+        var head = (s.split("\n")[0] || "AI行情官").trim();
         s = head + "\n" + "链接：" + u + "\n" + c;
       }
       txt = s;
@@ -4715,6 +4740,7 @@
 
   function doShare() {
     var p = sharePayload();
+    sharePCurrent = p;
     if (!shareOverlay) {
       try {
         shareOverlay = document.getElementById("share-overlay");
@@ -4737,22 +4763,32 @@
             if (ev.target === shareOverlay) shareOverlayClose();
           });
         }
-        if (shareTpl) shareTpl.addEventListener("change", function () { shareRender(p); });
+        if (shareTpl) shareTpl.addEventListener("change", function () { try { shareRender(sharePCurrent || sharePayload()); } catch (e0) {} });
         if (btnShareNative) btnShareNative.addEventListener("click", function () {
+          var p0 = sharePCurrent || sharePayload();
+          // In WeChat, keep the button but guide users to top-right share.
+          if (isWeChatEnvShare()) {
+            try { showWeChatShareTip(); } catch (eW) {}
+            setShareStatus("提示：请点右上角「···」转发；已为你复制链接。");
+            copyText(String(p0 && p0.url ? p0.url : ""))
+              .then(function () {})
+              .catch(function () { setShareStatus("提示：请点右上角「···」转发（复制失败，可手动复制链接）。"); });
+            return;
+          }
           setShareStatus("准备调起转发…");
-          nativeShare(p)
+          nativeShare(p0)
             .then(function () { setShareStatus("已调起转发"); })
             .catch(function () {
               // Fallback: copy link if native share not available / cancelled.
-              copyText(p.url)
+              copyText(String(p0 && p0.url ? p0.url : ""))
                 .then(function () { setShareStatus("已复制链接"); })
-                .catch(function () { setShareStatus("转发不可用：已复制失败"); });
+                .catch(function () { setShareStatus("转发不可用：复制失败"); });
             });
         });
         if (btnSharePoster) btnSharePoster.addEventListener("click", function () {
           try { if (sharePosterWrap) sharePosterWrap.hidden = true; } catch (e0) {}
           setShareStatus("生成海报中…");
-          posterDraw(p)
+          posterDraw(sharePCurrent || sharePayload())
             .then(function (dataUrl) {
               try {
                 if (sharePosterImg) sharePosterImg.src = dataUrl;
@@ -4769,7 +4805,8 @@
             .catch(function () { setShareStatus("复制失败"); });
         });
         if (btnShareCopyLink) btnShareCopyLink.addEventListener("click", function () {
-          copyText(p.url)
+          var p0 = sharePCurrent || sharePayload();
+          copyText(String(p0 && p0.url ? p0.url : ""))
             .then(function () { setShareStatus("已复制链接"); })
             .catch(function () { setShareStatus("复制失败"); });
         });
@@ -4783,11 +4820,16 @@
           p.url = buildShareUrlWithInvite(p.url, code);
         }
       } catch (e0) {}
+      sharePCurrent = p;
       try {
         if (shareQr) shareQr.src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=" + encodeURIComponent(p.url);
       } catch (e1) {}
       try {
-        if (btnShareNative) btnShareNative.style.display = canNativeShare() ? "" : "none";
+        if (btnShareNative) {
+          // Keep a visible "转发" entry even in WeChat; it becomes a guide to top-right.
+          btnShareNative.style.display = "";
+          btnShareNative.textContent = isWeChatEnvShare() ? "转发（右上角···）" : "转发";
+        }
         if (sharePosterWrap) sharePosterWrap.hidden = true;
       } catch (eN) {}
       shareRender(p);

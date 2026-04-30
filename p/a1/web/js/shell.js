@@ -6,9 +6,44 @@
     return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
+  function _getInviteCode() {
+    // Keep invite code across pages: prefer URL ?i=CODE, fallback to localStorage.
+    try {
+      var u = new URL(String(location.href));
+      var code = String(u.searchParams.get("i") || "").trim().toUpperCase();
+      if (code) {
+        try { localStorage.setItem("ai24x_invite_code", code); } catch (e0) {}
+        return code;
+      }
+    } catch (e1) {}
+    try {
+      var v = String(localStorage.getItem("ai24x_invite_code") || "").trim().toUpperCase();
+      return v || "";
+    } catch (e2) {
+      return "";
+    }
+  }
+
+  function withInvite(href) {
+    try {
+      var code = _getInviteCode();
+      if (!code) return href;
+      // external link: do not append
+      if (/^https?:\/\//i.test(String(href || ""))) return href;
+      var base = String(location.origin || "");
+      var u = new URL(String(href || ""), base + "/");
+      if (!u.searchParams.get("i")) u.searchParams.set("i", code);
+      var p = u.pathname.replace(/^\//, "");
+      return p + (u.search ? u.search : "") + (u.hash ? u.hash : "");
+    } catch (e) {
+      return href;
+    }
+  }
+
   function headerHtml(active) {
     function nav(href, label, id) {
       var cls = active === id ? "is-active" : "";
+      href = withInvite(href);
       return '<a href="' + esc(href) + '" class="' + cls + '">' + esc(label) + "</a>";
     }
 
@@ -156,6 +191,7 @@
 
   function headerDom(active) {
     function nav(href, label, id) {
+      href = withInvite(href);
       return _el(
         "a",
         { href: href, class: active === id ? "is-active" : "" },

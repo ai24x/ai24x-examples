@@ -440,7 +440,7 @@
         </section>
       </div>
 
-      <div class="home-login">
+      <div class="home-login" id="home-auth">
         <section class="card login-form" aria-label="账号">
             <div class="login-title">
             <h1>账号</h1>
@@ -700,6 +700,16 @@
           else if (hasInv) authMode = "register";
         } catch (e0) {}
         applyRadiosFromState();
+        // Mobile-friendly: when URL asks login/register (or has invite), scroll to auth panel.
+        try {
+          var sp2 = new URLSearchParams(String(location.search || "").replace(/^\?/, ""));
+          var m2 = String(sp2.get("mode") || "").trim().toLowerCase();
+          var hasInv2 = String(sp2.get("i") || sp2.get("invite") || sp2.get("inv") || sp2.get("ref") || "").trim();
+          if (m2 === "login" || m2 === "register" || !!hasInv2) {
+            var t = document.getElementById("home-auth") || authPanel;
+            if (t && t.scrollIntoView) t.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        } catch (e2) {}
       })();
 
       function wireCardGrid(gridId, onPick) {
