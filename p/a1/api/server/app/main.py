@@ -130,6 +130,44 @@ _ANON_KLINE_WHITELIST: set[str] = {
     "0.000977",  # 浪潮信息（示例）
 }
 
+# Anonymous extra trial quota (non-whitelist): allow a few self-selected queries per day.
+# This complements the frontend guest counter but must be enforced server-side too.
+_ANON_DAILY: dict[str, tuple[str, int]] = {}
+_ANON_DAILY_MAX: int = 3
+
+
+def _anon_day_key() -> str:
+    return time.strftime("%Y-%m-%d", time.localtime())
+
+
+def _anon_id_from_request(request: "Request") -> str:
+    try:
+        host = (request.client.host if request and request.client else "") or ""
+        host = str(host).strip()
+        return host or "unknown"
+    except Exception:
+        return "unknown"
+
+
+def _anon_daily_can_consume(request: "Request") -> bool:
+    k = f"{_anon_id_from_request(request)}"
+    day = _anon_day_key()
+    cur_day, cur_cnt = _ANON_DAILY.get(k, (day, 0))
+    if cur_day != day:
+        cur_cnt = 0
+        cur_day = day
+    return cur_cnt < int(_ANON_DAILY_MAX)
+
+
+def _anon_daily_consume(request: "Request") -> None:
+    k = f"{_anon_id_from_request(request)}"
+    day = _anon_day_key()
+    cur_day, cur_cnt = _ANON_DAILY.get(k, (day, 0))
+    if cur_day != day:
+        cur_cnt = 0
+        cur_day = day
+    _ANON_DAILY[k] = (cur_day, int(cur_cnt) + 1)
+
 
 def _rate_limit(key: str, limit: int, window_s: int = 60) -> None:
     now = int(time.time())
@@ -1913,6 +1951,7 @@ async def api_kline(
     secid: str,
     period: str = "day",
     count: int = 500,
+    request: "Request" = None,  # type: ignore[assignment]
     user_id: Optional[int] = Depends(get_optional_user_id),
 ) -> dict:
     _rate_limit(f"kline:{user_id or 'anon'}", settings.kline_per_minute)
@@ -1930,16 +1969,15 @@ async def api_kline(
     try:
         if user_id is None:
             secid0 = str(secid or "").strip()
+            # Force public sources only; do not allow paid provider for anonymous traffic.
+            md = market_data_status()
+            base_pri = str((md.get("paid") or {}).get("priority") or "").strip().lower()
+            if not base_pri:
+                base_pri = "tencent,eastmoney,sina,paid"
+            priority_override = ",".join([x for x in base_pri.split(",") if x.strip() and x.strip() != "paid"])
+
             if secid0 in _ANON_KLINE_WHITELIST:
-                # Force public sources only; do not allow paid provider for anonymous traffic.
-                md = market_data_status()
-                base_pri = str((md.get("paid") or {}).get("priority") or "").strip().lower()
-                if not base_pri:
-                    base_pri = "tencent,eastmoney,sina,paid"
-                priority_override = ",".join([x for x in base_pri.split(",") if x.strip() and x.strip() != "paid"])
-                # Keep it lighter for anonymous: smaller count.
-                # Anonymous whitelist is for onboarding; still needs enough history for MA57 + signals.
-                # 2y daily bars ~= 520. Keep a little buffer.
+                # Whitelist: always allowed (onboarding + demo stability).
                 count_anon = min(int(count), 800)
                 return await fetch_tx_kline(
                     secid0,
@@ -1949,8 +1987,26 @@ async def api_kline(
                     priority_override=priority_override,
                     allow_paid=False,
                 )
-            # Prevent unlimited anonymous queries from public/demo pages.
-            return {"code": -401, "msg": "请先登录后再查询", "data": {}}
+
+            # Extra anon trial quota for self-selected symbols (3/day per IP).
+            if request is not None and _anon_daily_can_consume(request):
+                count_anon = min(int(count), 800)
+                payload = await fetch_tx_kline(
+                    secid0,
+                    period,
+                    count=count_anon,
+                    variant="anon",
+                    priority_override=priority_override,
+                    allow_paid=False,
+                )
+                try:
+                    if isinstance(payload, dict) and int(payload.get("code") or 0) == 0:
+                        _anon_daily_consume(request)
+                except Exception:
+                    pass
+                return payload
+
+            return {"code": -401, "msg": "游客今日体验次数已用完，请登录继续", "data": {}}
 
         db.downgrade_expired_vip_plan(int(user_id))
         quota = db.get_quota_status(int(user_id)) if user_id is not None else {"plan": "anon"}
@@ -2157,6 +2213,7 @@ async def api_kline_with_signals(
     secid: str,
     period: str = "day",
     count: int = 500,
+    request: "Request" = None,  # type: ignore[assignment]
     user_id: Optional[int] = Depends(get_optional_user_id),
 ) -> dict:
     """
@@ -2203,13 +2260,16 @@ async def api_kline_with_signals(
         return ",".join(items2)
 
     if user_id is None:
+        priority_override = ",".join([x for x in base_pri.split(",") if x.strip() and x.strip() != "paid"])
+        allow_paid = False
+        variant = "anon"
+        count = min(int(count), 800)
+
         if secid0 in _ANON_KLINE_WHITELIST:
-            priority_override = ",".join([x for x in base_pri.split(",") if x.strip() and x.strip() != "paid"])
-            allow_paid = False
-            variant = "anon"
-            count = min(int(count), 800)
+            pass
         else:
-            return {"code": -401, "msg": "请先登录后再查询", "data": {}, "signals": {}}
+            if request is None or not _anon_daily_can_consume(request):
+                return {"code": -401, "msg": "游客今日体验次数已用完，请登录继续", "data": {}, "signals": {}}
     else:
         db.downgrade_expired_vip_plan(int(user_id))
         quota = db.get_quota_status(int(user_id))
@@ -2234,6 +2294,13 @@ async def api_kline_with_signals(
         priority_override=priority_override,
         allow_paid=allow_paid,
     )
+    # Consume anon daily trial only for non-whitelist success.
+    try:
+        if user_id is None and secid0 not in _ANON_KLINE_WHITELIST and request is not None:
+            if isinstance(payload, dict) and int(payload.get("code") or 0) == 0:
+                _anon_daily_consume(request)
+    except Exception:
+        pass
     if not isinstance(payload, dict) or int(payload.get("code") or 0) != 0:
         return {
             "code": int((payload or {}).get("code") or -1),
