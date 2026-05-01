@@ -2446,7 +2446,16 @@
           })
       : DEMO_MODE === 'standalone'
         ? loadTencentFqPackViaJsonp(secid, period)
-        : loadViaApi().then(function (res) {
+        : loadViaApi()
+          .catch(function (eApi) {
+            // If backend API is unreachable (common on localhost preview),
+            // fall back to browser JSONP to keep public-source queries working.
+            if (canUseJsonpKlineFallback()) {
+              return loadTencentFqPackViaJsonp(secid, period);
+            }
+            throw eApi;
+          })
+          .then(function (res) {
             // keep original BJ sparse logic for A/BJ symbols
             var arr2 = pickTencentKlineRows(res.pack, meta);
             var bjMin = isBeijingSecid(secid) ? minBeijingKlineBarsThreshold(period) : 0;
