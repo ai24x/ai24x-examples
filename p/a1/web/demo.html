@@ -4876,6 +4876,13 @@
 
     // Guest mode: allow view without login, but limit by day count.
     if (!isAuthed()) {
+      // Index whitelist should never be blocked by guest_limit (backend also whitelists these).
+      try {
+        var s0 = String(secid || '').trim();
+        if (s0 && (s0 === '1.000001' || s0 === '0.399001' || s0 === '0.399006' || s0 === '0.899050')) {
+          opts.guest_count = false;
+        }
+      } catch (eW) {}
       if (opts.guest_count && !guestViewsCanUse()) {
         showGuestLimitUpsell();
         return Promise.reject(new Error('guest_limit'));
