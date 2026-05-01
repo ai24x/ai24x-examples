@@ -1925,24 +1925,40 @@
 
   function fetchSinaKlineRows(secid, period) {
     // Browser direct-fetch to sina is often blocked by CORS.
-    // For stability, reuse backend `/api/kline` and extract rows from its Tencent-like shape.
-    // Note: despite the name, this is now a "backend rows helper" used by legacy enrichment paths.
+    // Try backend first (if available), otherwise fall back to proxy-fetch Sina directly.
     var meta = PERIOD_META[period] || PERIOD_META.day;
     function countForPeriod(p) {
       if (p === 'month') return 2200;
       if (p === 'week') return 1400;
       return 500;
     }
-    return apiKline(String(secid || ''), meta.scale || String(period || 'day'), countForPeriod(meta.scale || String(period || 'day')), { consume: false }).then(function (payload) {
-      if (!payload || Number(payload.code) !== 0 || !payload.data) throw new Error('empty');
-      var raw = payload.data;
-      var keys = Object.keys(raw || {});
-      if (!keys.length) throw new Error('empty');
-      var pack = raw[keys[0]];
-      var rows = pickTencentKlineRows(pack, meta);
-      if (!rows || !rows.length) throw new Error('empty');
-      return rows;
-    });
+    function tryBackend() {
+      return apiKline(String(secid || ''), meta.scale || String(period || 'day'), countForPeriod(meta.scale || String(period || 'day')), { consume: false }).then(function (payload) {
+        if (!payload || Number(payload.code) !== 0 || !payload.data) throw new Error('empty');
+        var raw = payload.data;
+        var keys = Object.keys(raw || {});
+        if (!keys.length) throw new Error('empty');
+        var pack = raw[keys[0]];
+        var rows = pickTencentKlineRows(pack, meta);
+        if (!rows || !rows.length) throw new Error('empty');
+        return rows;
+      });
+    }
+    function tryProxy() {
+      var url = buildSinaKlineUrl(secid, period);
+      return fetch(SINA_PROXY + encodeURIComponent(url), { cache: 'no-store' })
+        .then(function (r) { if (!r.ok) throw new Error('sina_proxy_bad'); return r.text(); })
+        .then(function (txt) {
+          txt = String(txt || '').trim();
+          if (!txt) throw new Error('empty');
+          var json = null;
+          try { json = JSON.parse(txt); } catch (e0) { throw new Error('sina_json_bad'); }
+          var rows = sinaJsonToRows(json);
+          if (!rows || !rows.length) throw new Error('empty');
+          return rows;
+        });
+    }
+    return tryBackend().catch(function () { return tryProxy(); });
   }
 
   function appendScript(src, onload, onerror) {
