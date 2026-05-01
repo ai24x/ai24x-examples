@@ -1872,6 +1872,12 @@
     if (!isBeijingSecid(secid)) return Promise.resolve();
     var arr = res.pack[meta.arrKey];
     var n = arr && arr.length ? arr.length : 0;
+    // Speed-first for 北证50 on localhost: if Tencent already returned some bars,
+    // don't block on Sina proxy enrichment (proxy is much slower than the original file:// demo).
+    try {
+      var s0 = String(secid || "").trim();
+      if (s0 === "0.899050" && n > 0 && canUseJsonpKlineFallback()) return Promise.resolve();
+    } catch (e0) {}
     var need = minBeijingKlineBarsThreshold(period);
     if (n >= need) return Promise.resolve();
     return fetchSinaKlineRows(secid, period)
