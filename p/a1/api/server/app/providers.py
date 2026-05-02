@@ -720,6 +720,7 @@ def secid_to_sina_symbol(secid: str) -> str | None:
     - sh000001 (上证指数)
     - sz399001 (深证成指)
     - sz399006 (创业板指)
+    - bj899050 (北证50, 新浪用 bj 前缀表示北交所)
     """
     s = str(secid).strip()
     if s == "1.000001":
@@ -728,6 +729,9 @@ def secid_to_sina_symbol(secid: str) -> str | None:
         return "sz399001"
     if s == "0.399006":
         return "sz399006"
+    # 北证50：新浪使用 bj 前缀表示北交所标的
+    if s == "0.899050":
+        return "bj899050"
     return None
 
 
@@ -2395,7 +2399,7 @@ async def fetch_em_plate_kline(
     }
     limits = httpx.Limits(max_connections=20, max_keepalive_connections=0)
     try:
-        async with httpx.AsyncClient(timeout=timeout, headers=headers, limits=limits, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=timeout, headers=headers, limits=limits, follow_redirects=True, verify=False) as client:
             try:
                 day_rows, week_rows, month_rows = await asyncio.gather(
                     _fetch_em_plate_klt(client, sid, 101),
@@ -2462,7 +2466,7 @@ async def fetch_em_stock_kline(
         "Connection": "close",
     }
     limits = httpx.Limits(max_connections=20, max_keepalive_connections=0)
-    async with httpx.AsyncClient(timeout=timeout, headers=headers, limits=limits, follow_redirects=True) as client:
+    async with httpx.AsyncClient(timeout=timeout, headers=headers, limits=limits, follow_redirects=True, verify=False) as client:
         day_rows, week_rows, month_rows = await asyncio.gather(
             _fetch_em_plate_klt(client, sid, 101),
             _fetch_em_plate_klt(client, sid, 102),
@@ -2510,7 +2514,7 @@ async def fetch_em_index_kline(
         "Connection": "close",
     }
     limits = httpx.Limits(max_connections=20, max_keepalive_connections=0)
-    async with httpx.AsyncClient(timeout=timeout, headers=headers, limits=limits, follow_redirects=True) as client:
+    async with httpx.AsyncClient(timeout=timeout, headers=headers, limits=limits, follow_redirects=True, verify=False) as client:
         day_rows, week_rows, month_rows = await asyncio.gather(
             _fetch_em_plate_klt(client, sid, 101),
             _fetch_em_plate_klt(client, sid, 102),
@@ -2616,8 +2620,13 @@ async def _fetch_tx_kline_core(
         return None
 
     async def _try_eastmoney() -> Dict[str, Any] | None:
-        # Index fallback: for 北证50, prefer Eastmoney index endpoint.
-        if str(secid).strip() == "0.899050":
+        # Index fallback: for BSE indices (北证50 etc.), skip eastmoney entirely.
+        # Eastmoney push2his has SSL renegotiation issues on Windows (schannel),
+        # and tencent doesn't support BSE indices either. Go straight to sina.
+        sid_str = str(secid).strip()
+        is_bse_index = sid_str == "0.899050" or bool(re.fullmatch(r"0\.89\d{4}", sid_str))
+        if is_bse_index:
+            return None
             try:
                 t0 = time.perf_counter()
                 em_payload = await fetch_em_index_kline(secid, period, count=count, timeout=timeout)
@@ -2688,6 +2697,10 @@ async def _fetch_tx_kline_core(
         return None
 
     async def _try_tencent() -> Dict[str, Any] | None:
+        # Skip tencent for BSE indices — it returns empty day[] for 899050 etc.
+        sid_str = str(secid).strip()
+        if sid_str == "0.899050" or bool(re.fullmatch(r"0\.89\d{4}", sid_str)):
+            return None
         if not _tx_allow():
             return {"code": -1, "msg": "tencent kline temporarily unavailable (circuit open)", "data": {}}
         scale = "day" if period == "day" else "week" if period == "week" else "month"
@@ -2841,7 +2854,10 @@ async def fetch_sina_kline(secid: str, period: str, count: int = 500, timeout: f
     if not sym:
         return {"code": -1, "msg": "sina fallback not supported for this secid", "data": {}}
 
-    params = {"symbol": sym}
+    # Sina scale: 240=day, 15=week(estimate), 0=60min
+    sina_scale_map = {"day": "240", "week": "1680", "month": "7200"}
+    scale = sina_scale_map.get(period, "240")
+    params = {"symbol": sym, "scale": scale, "ma": "no", "datalen": str(count)}
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Referer": "https://finance.sina.com.cn/",
