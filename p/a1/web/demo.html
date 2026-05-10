@@ -2162,19 +2162,9 @@
     if (!hasAuth) {
       // 白名单：免登录可查（用于演示/预览）
       if (isLoginFreeWhitelistSecid(secid)) return fetchKline();
-      // 非白名单：检查游客每日配额（3次）
-      if (typeof guestViewsCanUse === 'function' && guestViewsCanUse()) {
-        // 配额充足，允许查询，并消耗一次配额
-        if (typeof guestViewsInc === 'function') guestViewsInc();
-        return fetchKline();
-      }
-      // 游客配额已用完：提示注册/登录
-      try {
-        if (typeof showQuotaUpsell === 'function') {
-          showQuotaUpsell('GUEST_LIMIT:游客免登录查看已达上限（今日3次）。请先注册/登录后继续使用；注册即享免费额度（10次/天）。');
-        }
-      } catch (e0) {}
-      throw new Error('GUEST_LIMIT:游客免登录查看已达上限（今日3次）。请先注册/登录后继续使用。');
+      // 非白名单游客：前端入口（loadBySecid/applyPeriod）已做配额检查，
+      // 这里直接请求，后端也会按 IP 做匿名配额兜底。
+      return fetchKline();
     }
 
     return apiMe()
@@ -4930,7 +4920,9 @@
       } catch (eW) {}
       if (opts.guest_count && !guestViewsCanUse()) {
         showGuestLimitUpsell();
-        return Promise.reject(new Error('guest_limit'));
+        setSoftLoading(false);
+        statusEl.textContent = '';
+        return Promise.resolve();
       }
       opts = Object.assign({}, opts, { consume: false });
     }
@@ -5156,6 +5148,10 @@
       var m = e && (e.message || String(e)) ? String(e.message || String(e)) : '';
       if (m.indexOf('次数不足') >= 0) {
         showQuotaUpsell(m);
+        return;
+      }
+      if (m.indexOf('游客今日体验次数已用完') >= 0 || m.indexOf('游客') >= 0 && m.indexOf('已用完') >= 0) {
+        showGuestLimitUpsell();
         return;
       }
       var nice = prettyFetchError(m);
