@@ -5329,7 +5329,14 @@
     var fromHome = isEnterFromHome();
     if (fromHome) stripFromParam();
     var urlState = readUrlState();
-    var last = urlState || (!fromHome || urlState ? readLastQuery() : null);
+    var last;
+    if (urlState) {
+      last = urlState;
+    } else if (!fromHome) {
+      last = readLastQuery();
+    } else {
+      last = null;
+    }
     if (last && last.period && PERIOD_META[last.period]) {
       currentPeriod = String(last.period);
       syncPeriodTabs();
