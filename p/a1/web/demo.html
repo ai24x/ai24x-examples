@@ -5342,8 +5342,16 @@
       syncPeriodTabs();
       loadBySecid(String(last.secid), last.name ? { name: last.name, code: last.code || '' } : null, { consume: false })
         .catch(function (e) {
-          // fallback to default index if last query fails
-          return loadBySecid(SHANGHAI_INDEX_SECID, null, { consume: false });
+          // Only fall back to default index if URL doesn't explicitly specify a secid (shared link).
+          // If urlState exists, the user opened a shared link — show error instead of silently redirecting.
+          if (!urlState) {
+            return loadBySecid(SHANGHAI_INDEX_SECID, null, { consume: false });
+          }
+          var m = e && (e.message || String(e)) ? String(e.message || String(e)) : '';
+          setLoadError('加载失败：' + (prettyErrText(m) || m || '未知错误'));
+          setSoftLoading(false);
+          statusEl.textContent = '';
+          return Promise.resolve();
         })
         .finally(function () {
           if (!suppressHints) {
