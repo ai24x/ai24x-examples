@@ -721,6 +721,9 @@ def secid_to_sina_symbol(secid: str) -> str | None:
     - sz399001 (深证成指)
     - sz399006 (创业板指)
     - bj899050 (北证50, 新浪用 bj 前缀表示北交所)
+    - bj920509 (北交所股票, 新浪同样用 bj 前缀)
+
+    BSE / 北交所（BJ）常见代码段：43/83/87/88/92/89xxxx
     """
     s = str(secid).strip()
     if s == "1.000001":
@@ -729,9 +732,17 @@ def secid_to_sina_symbol(secid: str) -> str | None:
         return "sz399001"
     if s == "0.399006":
         return "sz399006"
-    # 北证50：新浪使用 bj 前缀表示北交所标的
-    if s == "0.899050":
-        return "bj899050"
+    # BSE / 北交所：统一用 bj 前缀
+    parts = s.split(".")
+    market = parts[0] if parts else "0"
+    code = parts[1] if len(parts) > 1 else ""
+    if re.fullmatch(r"89\d{4}", code or "") or code.startswith(("43", "83", "87", "88", "92")):
+        return "bj" + code
+    # 其他 A 股默认 sz（新浪也会接受 sz/sh 前缀）
+    if market == "1":
+        return "sh" + code
+    if re.fullmatch(r"\d{6}", code or ""):
+        return "sz" + code
     return None
 
 
