@@ -2162,13 +2162,19 @@
     if (!hasAuth) {
       // 白名单：免登录可查（用于演示/预览）
       if (isLoginFreeWhitelistSecid(secid)) return fetchKline();
-      // 非白名单：提示登录或开通
+      // 非白名单：检查游客每日配额（3次）
+      if (typeof guestViewsCanUse === 'function' && guestViewsCanUse()) {
+        // 配额充足，允许查询，并消耗一次配额
+        if (typeof guestViewsInc === 'function') guestViewsInc();
+        return fetchKline();
+      }
+      // 游客配额已用完：提示注册/登录
       try {
         if (typeof showQuotaUpsell === 'function') {
-          showQuotaUpsell('请先登录后查询；如需更高额度请开通 VIP');
+          showQuotaUpsell('GUEST_LIMIT:游客免登录查看已达上限（今日3次）。请先注册/登录后继续使用；注册即享免费额度（10次/天）。');
         }
       } catch (e0) {}
-      throw new Error('请先登录后查询；如需更高额度请开通 VIP');
+      throw new Error('GUEST_LIMIT:游客免登录查看已达上限（今日3次）。请先注册/登录后继续使用。');
     }
 
     return apiMe()
@@ -3524,9 +3530,26 @@
       // Prefer top alert for UX (keep chart area clean)
       var alertEl = document.getElementById('top-alert');
       var msgEl = document.getElementById('top-alert-msg');
+      // 重置按钮状态（游客分支会按需修改）
+      var loginBtn = document.getElementById('top-alert-go-login');
+      var vipBtn = document.getElementById('top-alert-go-vip');
+      var inviteBtn = document.getElementById('top-alert-go-invite');
+      if (loginBtn) loginBtn.textContent = '登录/续期';
+      if (vipBtn) vipBtn.style.display = '';
+      if (inviteBtn) inviteBtn.style.display = '';
       if (msgEl) {
         var s = String(text || '');
-        if (s.indexOf('次数不足') >= 0) {
+        if (s.indexOf('GUEST_LIMIT:') >= 0) {
+          // 游客配额用完：分层提示 → 引导注册
+          var guestMsg = s.replace('GUEST_LIMIT:', '').trim();
+          msgEl.innerHTML =
+            '<b>游客次数已用完</b> ' + guestMsg.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') +
+            '<span class="sub">注册即享免费额度：10次/天 + 50次/周</span>';
+          // 游客场景：按钮文字改为"注册/登录"，隐藏VIP/邀请按钮
+          if (loginBtn) loginBtn.textContent = '注册/登录';
+          if (vipBtn) vipBtn.style.display = 'none';
+          if (inviteBtn) inviteBtn.style.display = 'none';
+        } else if (s.indexOf('次数不足') >= 0) {
           msgEl.innerHTML =
             '<b>次数不足</b> 请先登录/续期，或通过邀请获取次数' +
             '<span class="sub">免费：10/天 + 50/周　VIP：150/天 + 500/周</span>';
