@@ -4580,23 +4580,14 @@
       var sid = state && state.secid ? String(state.secid) : '';
       var per = state && state.period ? String(state.period) : '';
 
-      // Prefer unified short-link on production domains (e.g. a.ai24x.com/i/XXXX).
-      var host = '';
-      try { host = String(location.hostname || ''); } catch (eH) { host = ''; }
-      var isProdLike = /(^|\.)ai24x\.com$/i.test(host) && host !== '127.0.0.1' && host !== 'localhost';
-      if (isProdLike) {
-        var base = String(location.origin || '');
-        var u2 = new URL(base + "/i/" + encodeURIComponent(c));
-        if (sid) u2.searchParams.set('secid', sid);
-        if (per) u2.searchParams.set('period', per);
-        u2.searchParams.set('view', 'lite');
-        return u2.toString();
-      }
-
-      // Dev/local fallback: keep current URL and add ?i=CODE.
-      var u = new URL(String(url || ''), String(location.href));
-      u.searchParams.set('i', c);
-      return u.toString();
+      // Always point share link to demo.html (the quote page), not home/register.
+      // Recipients see the content first, then decide to register.
+      var base = String(location.origin || '');
+      var u2 = new URL(base + "/demo.html");
+      u2.searchParams.set('i', c);
+      if (sid) u2.searchParams.set('secid', sid);
+      if (per) u2.searchParams.set('period', per);
+      return u2.toString();
     } catch (e) {
       return String(url || '');
     }
@@ -5396,6 +5387,26 @@
     } catch (e) {}
   }
 
+  // Patch all register/login links to carry invite code automatically
+  function patchRegisterLinks() {
+    try {
+      var code = String(localStorage.getItem('ai24x_invite_code') || '').trim().toUpperCase();
+      if (!code) return;
+      var links = document.querySelectorAll('a[href]');
+      for (var i = 0; i < links.length; i++) {
+        var a = links[i];
+        var href = a.getAttribute('href') || '';
+        if (!href || href === '#') continue;
+        // Only patch links pointing to register/login pages
+        if (!/(?:\/|^)(index\.html|account\.html|register|login)/i.test(href)) continue;
+        // Skip if already has invite param
+        if (/[?&]i=/.test(href) || /[?&]invite=/.test(href)) continue;
+        var sep = href.indexOf('?') >= 0 ? '&' : '?';
+        a.setAttribute('href', href + sep + 'i=' + encodeURIComponent(code));
+      }
+    } catch (e) {}
+  }
+
   // Enable share once URL state has a selected secid (after first query or chip click).
   try {
     var st0 = readUrlState && readUrlState();
@@ -5433,6 +5444,9 @@
       } catch (e1) {}
     })();
   } catch (e) {}
+
+  // Patch register/login links to carry invite code
+  try { patchRegisterLinks(); } catch (e) {}
 
   loadDefaultShanghaiIndex();
 })();

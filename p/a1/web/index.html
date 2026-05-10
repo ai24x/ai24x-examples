@@ -1119,6 +1119,24 @@
         setStatus("已退出。");
       }
 
+      // Patch all register/login links to carry invite code automatically
+      function patchRegisterLinks() {
+        try {
+          var code = String(localStorage.getItem('ai24x_invite_code') || '').trim().toUpperCase();
+          if (!code) return;
+          var links = document.querySelectorAll('a[href]');
+          for (var i = 0; i < links.length; i++) {
+            var a = links[i];
+            var href = a.getAttribute('href') || '';
+            if (!href || href === '#') continue;
+            if (!/(?:\/|^)(index\.html|account\.html|register|login)/i.test(href)) continue;
+            if (/[?&]i=/.test(href) || /[?&]invite=/.test(href)) continue;
+            var sep = href.indexOf('?') >= 0 ? '&' : '?';
+            a.setAttribute('href', href + sep + 'i=' + encodeURIComponent(code));
+          }
+        } catch (e) {}
+      }
+
       wireCardGrid("auth-mode-cards", function () {
         authMode = readAuthMode();
       });
@@ -1133,6 +1151,8 @@
       try { window.addEventListener("storage", function (ev) { if (ev && ev.key === TOKEN_KEY) { try { refreshMe(); } catch (e0) {} } }); } catch (e2) {}
 
       refreshMe();
+      // Patch register/login links to carry invite code
+      try { patchRegisterLinks(); } catch (e) {}
     })();
   </script>
 </body>
