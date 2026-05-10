@@ -33,7 +33,21 @@
         u.searchParams.set("i", code);
         // Remove path-based invite to avoid relative-path issues
         try { location.replace(u.toString()); } catch (e2) { location.href = u.toString(); }
-      } catch (e0) {}
+        } catch (e0) {}
+    })();
+
+    // Also save invite code from URL to localStorage (for cross-page journey)
+    (function tryReadInvite() {
+      try {
+        var raw = '';
+        var sp = new URLSearchParams(String(location.search || '').replace(/^\?/, ''));
+        raw = sp.get('i') || sp.get('invite') || sp.get('inv') || sp.get('ref') || '';
+        raw = String(raw || '').trim().toUpperCase();
+        if (!raw) return;
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('ai24x_invite_code', raw);
+        }
+      } catch (e) {}
     })();
   </script>
   <link rel="stylesheet" href="/css/base.css" />
@@ -981,6 +995,11 @@
           v = String(v || "").trim();
           if (v) return v.toUpperCase();
         } catch (e) {}
+        // Fallback: try localStorage (set by demo.html or other pages)
+        try {
+          var ls = String(localStorage.getItem("ai24x_invite_code") || "").trim().toUpperCase();
+          if (ls) return ls;
+        } catch (e2) {}
         return "";
       }
 

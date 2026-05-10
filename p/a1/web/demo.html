@@ -5405,6 +5405,39 @@
     var st0 = readUrlState && readUrlState();
     setShareButtonReady(!!(st0 && st0.secid));
   } catch (e0) { setShareButtonReady(false); }
+  // Read invite code from URL and persist to localStorage (journey: share link → other pages → register)
+  try {
+    (function tryReadInvite() {
+      try {
+        var raw = '';
+        // Pattern 1: /i/CODE path (production short link)
+        var pm = String(location.pathname || '').match(/\/i\/([^/?#]+)/);
+        if (pm && pm[1]) raw = decodeURIComponent(pm[1]);
+        // Pattern 2: ?i=CODE or ?invite=CODE etc.
+        if (!raw) {
+          var sp = new URLSearchParams(String(location.search || '').replace(/^\?/, ''));
+          raw = sp.get('i') || sp.get('invite') || sp.get('inv') || sp.get('ref') || '';
+        }
+        raw = String(raw || '').trim().toUpperCase();
+        if (!raw) return;
+        // Persist for cross-page use (account.html will read it)
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('ai24x_invite_code', raw);
+        }
+        // Also strip invite params from visible URL (clean, but keep logic)
+        try {
+          var u = new URL(String(location.href));
+          var changed = false;
+          ['i','invite','inv','ref'].forEach(function(k) {
+            if (u.searchParams.has(k)) { u.searchParams.delete(k); changed = true; }
+          });
+          // Keep /i/CODE in path for first-load; don't rewrite to avoid loop
+          if (changed) history.replaceState(null, '', u.toString());
+        } catch (e0) {}
+      } catch (e1) {}
+    })();
+  } catch (e) {}
+
   loadDefaultShanghaiIndex();
 })();
   </script>

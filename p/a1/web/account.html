@@ -1305,6 +1305,11 @@
           v = String(v || "").trim();
           if (v) return v.toUpperCase();
         } catch (e) {}
+        // Fallback: try localStorage (set by demo.html / index.html)
+        try {
+          var ls = String(localStorage.getItem("ai24x_invite_code") || "").trim().toUpperCase();
+          if (ls) return ls;
+        } catch (e2) {}
         return "";
       }
 
