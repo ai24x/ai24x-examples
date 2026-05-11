@@ -5406,6 +5406,13 @@
   // Watchlist button
   btnWatchlist.addEventListener('click', function (e) {
     e.stopPropagation();
+    // Toggle current stock in/out of watchlist
+    var s = currentSecidState();
+    var last = readLastQuery();
+    if (s) {
+      toggleWatchlist(s, last ? last.name : '', last ? last.code : '');
+    }
+    // Toggle panel
     if (watchlistPanelEl.hidden) {
       renderWatchlistPanel();
       watchlistPanelEl.hidden = false;
