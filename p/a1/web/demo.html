@@ -5098,11 +5098,20 @@
 
   function saveLastQuery(secid, period, hint) {
     try {
+      var nm = (hint && hint.name) ? String(hint.name) : '';
+      var cd = (hint && hint.code) ? String(hint.code) : '';
+      // Fallback: grab displayed name from page when hint is missing (e.g. matched SECID_TO_LABEL)
+      if (!nm) {
+        try { nm = String(quoteTitleEl && quoteTitleEl.textContent ? quoteTitleEl.textContent : '').replace(/\s+/g,' ').trim(); } catch (e) {}
+      }
+      if (!nm) {
+        try { nm = String(inputEl && inputEl.value ? inputEl.value : '').trim(); } catch (e) {}
+      }
       var o = {
         secid: String(secid || ''),
         period: String(period || 'day'),
-        name: hint && hint.name ? String(hint.name) : '',
-        code: hint && hint.code ? String(hint.code) : '',
+        name: nm,
+        code: cd,
         ts: Date.now(),
       };
       if (typeof localStorage !== 'undefined') localStorage.setItem(LAST_QUERY_KEY, JSON.stringify(o));
