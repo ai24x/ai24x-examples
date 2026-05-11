@@ -88,6 +88,7 @@ class Settings:
     # Market data robustness (MVP)
     kline_cache_ttl_s: float
     kline_fallback_sina: bool
+    redis_url: str  # Redis cache URL (e.g. redis://localhost:6379/0), empty to disable
 
     # Paid market-data provider (reserved; default off)
     paid_provider: str
@@ -179,6 +180,7 @@ def load_settings() -> Settings:
         invite_reward_invitee_daily=_to_int(os.getenv("AI24X_INVITE_REWARD_INVITEE_DAILY"), 0),
         kline_cache_ttl_s=_to_float(os.getenv("AI24X_KLINE_CACHE_TTL_S"), 30.0),
         kline_fallback_sina=str(os.getenv("AI24X_KLINE_FALLBACK_SINA", "1")).strip() not in ("0", "false", "False", "no", "NO"),
+        redis_url=os.getenv("AI24X_REDIS_URL", "").strip(),
         paid_provider=str(os.getenv("AI24X_PAID_PROVIDER", "off")).strip().lower(),
         # Default: paid first, public sources as backup.
         paid_provider_priority=str(os.getenv("AI24X_PAID_PROVIDER_PRIORITY", "paid,tencent,eastmoney,sina")).strip().lower(),

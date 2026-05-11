@@ -13,6 +13,34 @@ import httpx
 from .config import settings
 from . import db
 
+# Redis cache layer (optional, graceful degradation)
+_redis: Any = None
+_redis_init_attempted: bool = False
+_REDIS_PREFIX: str = "kline:"
+
+
+def _redis_client() -> Any:
+    """Lazy-init Redis client. Returns None if unavailable."""
+    global _redis, _redis_init_attempted
+    if _redis_init_attempted:
+        return _redis
+    _redis_init_attempted = True
+    redis_url = str(getattr(settings, "redis_url", "") or "").strip()
+    if not redis_url:
+        return None
+    try:
+        import redis as _redis_mod  # type: ignore
+        _redis = _redis_mod.from_url(redis_url, socket_connect_timeout=2, socket_timeout=2)
+        _redis.ping()
+        return _redis
+    except Exception:
+        _redis = None
+        return None
+
+
+def _redis_cache_key(secid: str, period: str, count: int) -> str:
+    return _REDIS_PREFIX + "|".join([str(secid), str(period), str(count)])
+
 
 EM_SUGGEST = "https://searchadapter.eastmoney.com/api/suggest/get"
 EM_PLATE_KLINE = "https://push2his.eastmoney.com/api/qt/stock/kline/get"
@@ -823,6 +851,19 @@ def _cache_get(variant: str, secid: str, period: str, count: int) -> Dict[str, A
                 return sliced
         except Exception:
             pass
+        # Redis cache layer (shared across workers, ~1ms latency)
+        try:
+            r = _redis_client()
+            if r:
+                rk = _redis_cache_key(str(k[1]), str(k[2]), int(k[3]))
+                raw = r.get(rk)
+                if raw:
+                    payload = json.loads(raw)
+                    if isinstance(payload, dict):
+                        _KLINE_CACHE[k] = (now + ttl, payload)
+                        return payload
+        except Exception:
+            pass
         # DB cache fallback for resilience across restarts.
         try:
             payload = db.kline_cache_get("|".join([k[0], k[1], k[2], str(k[3])]))
@@ -845,6 +886,14 @@ def _cache_put(variant: str, secid: str, period: str, count: int, payload: Dict[
         return
     k = (str(variant or ""), str(secid), str(period), int(count))
     _KLINE_CACHE[k] = (time.time() + ttl, payload)
+    # Redis cache (shared across workers)
+    try:
+        r = _redis_client()
+        if r:
+            rk = _redis_cache_key(str(secid), str(period), int(count))
+            r.setex(rk, int(ttl), json.dumps(payload))
+    except Exception:
+        pass
     try:
         db.kline_cache_put("|".join([k[0], k[1], k[2], str(k[3])]), payload, ttl_s=ttl)
     except Exception:
