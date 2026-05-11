@@ -1373,24 +1373,40 @@
     }
     .disclaimer-bar .x:hover{ background: rgba(255,255,255,.85); }
 
-    /* ===== Watchlist & Search History ===== */
-    .search-row #btn-watchlist {
+    /* ===== Watchlist Panel ===== */
+    .search-row #btn-fav, .search-row #btn-wl-panel {
       flex: 0 0 auto;
-      padding: 10px 14px;
+      padding: 10px 16px;
       border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all .15s;
+    }
+    .search-row #btn-fav {
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      color: var(--muted);
+    }
+    .search-row #btn-fav:hover { border-color: var(--ma2); color: var(--text); }
+    .search-row #btn-fav.on {
+      color: #f59e0b;
+      border-color: #f59e0b;
+      background: rgba(245,158,11,.08);
+    }
+    .search-row #btn-fav:disabled { opacity: 0.4; cursor: not-allowed; }
+    .search-row #btn-wl-panel {
       border: 1px solid var(--border);
       background: var(--panel2);
       color: var(--text);
-      font-size: 16px;
-      cursor: pointer;
-      line-height: 1;
-      transition: all .15s;
+      min-width: 56px;
+      text-align: center;
     }
-    .search-row #btn-watchlist:hover { border-color: var(--ma2); }
-    .search-row #btn-watchlist.on { color: #f59e0b; border-color: #f59e0b; background: rgba(245,158,11,.08); }
-    .watchlist-panel, .history-dropdown {
+    .search-row #btn-wl-panel:hover { border-color: var(--ma2); }
+    .watchlist-panel {
       position: absolute;
       top: 100%;
+      right: 0;
       margin-top: 4px;
       background: var(--panel);
       border: 1px solid var(--border);
@@ -1401,10 +1417,8 @@
       max-width: 360px;
       padding: 6px 0;
     }
-    .watchlist-panel { right: 100px; }
-    .history-dropdown { left: 0; right: 0; }
-    .watchlist-panel[hidden], .history-dropdown[hidden] { display: none; }
-    .wl-header, .hdr-header {
+    .watchlist-panel[hidden] { display: none; }
+    .wl-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -1413,7 +1427,7 @@
       font-size: 12px;
       color: var(--muted);
     }
-    .wl-header button, .hdr-header button {
+    .wl-header button {
       padding: 2px 8px;
       border-radius: 4px;
       border: none;
@@ -1422,8 +1436,8 @@
       font-size: 11px;
       cursor: pointer;
     }
-    .wl-header button:hover, .hdr-header button:hover { color: var(--text); }
-    .wl-item, .hdr-item {
+    .wl-header button:hover { color: var(--text); }
+    .wl-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -1433,9 +1447,9 @@
       font-size: 13px;
       color: var(--text);
     }
-    .wl-item:hover, .hdr-item:hover { background: var(--panel2); }
-    .wl-item .wl-code, .hdr-item .hdr-code { font-size: 11px; color: var(--muted); margin-left: 8px; }
-    .wl-item .wl-del, .hdr-item .hdr-del {
+    .wl-item:hover { background: var(--panel2); }
+    .wl-item .wl-code { font-size: 11px; color: var(--muted); margin-left: 8px; }
+    .wl-item .wl-del {
       flex: 0 0 auto;
       margin-left: 8px;
       padding: 2px 6px;
@@ -1447,16 +1461,16 @@
       cursor: pointer;
       line-height: 1;
     }
-    .wl-item .wl-del:hover, .hdr-item .hdr-del:hover { color: #ef4444; }
-    .wl-empty, .hdr-empty {
+    .wl-item .wl-del:hover { color: #ef4444; }
+    .wl-empty {
       padding: 16px 14px;
       text-align: center;
       font-size: 12px;
       color: var(--muted);
     }
     @media (max-width: 520px) {
-      .watchlist-panel { right: 60px; }
-      .search-row #btn-watchlist { padding: 10px 12px; font-size: 14px; }
+      .search-row #btn-fav { padding: 10px 12px; font-size: 12px; }
+      .search-row #btn-wl-panel { padding: 10px 12px; font-size: 12px; min-width: 44px; }
     }
   </style>
 </head>
@@ -1513,9 +1527,9 @@
         <input type="text" id="stock-query" placeholder="代码或简称，例如 600519 / 上证指数" autocomplete="off" />
         <button type="button" id="btn-search">查询</button>
         <button type="button" id="btn-share" title="分享这次查询" disabled><span class="dot" aria-hidden="true"></span>分享</button>
-        <button type="button" id="btn-watchlist" title="自选收藏">☆</button>
+        <button type="button" id="btn-fav" disabled>收藏</button>
+        <button type="button" id="btn-wl-panel">自选</button>
         <div id="quote-status" class="ok" role="status"></div>
-        <div class="history-dropdown" id="history-dropdown" hidden></div>
         <div class="watchlist-panel" id="watchlist-panel" hidden></div>
       </div>
       <div class="sample-chips" aria-label="快捷填入示例">
@@ -3480,9 +3494,9 @@
   var pickList = document.getElementById('pick-list');
   var periodTabsEl = document.getElementById('period-tabs');
   var themeSelectEl = document.getElementById('theme-select');
-  var btnWatchlist = document.getElementById('btn-watchlist');
+  var btnFav = document.getElementById('btn-fav');
+  var btnWlPanel = document.getElementById('btn-wl-panel');
   var watchlistPanelEl = document.getElementById('watchlist-panel');
-  var historyDropdownEl = document.getElementById('history-dropdown');
   // 导出/下载能力已移除：避免把信号数据导出到本地文件，优先提升站内粘性与后续会员功能空间。
 
   function setLoadError(msgHtml) {
@@ -4467,12 +4481,10 @@
 
   var LAST_QUERY_KEY = 'ai24x_a_last_query';
   var WATCHLIST_KEY = 'ai24x_a_watchlist';
-  var HISTORY_KEY = 'ai24x_a_search_history';
-  var HISTORY_MAX = 5;
   var GUEST_VIEWS_KEY_PREFIX = 'ai24x_demo_guest_views_day_';
   var GUEST_VIEWS_MAX_PER_DAY = 3;
 
-  // ===== Watchlist (自选收藏) =====
+  // ===== Watchlist (收藏 + 自选) =====
   function loadWatchlist() {
     try {
       if (typeof localStorage === 'undefined') return [];
@@ -4480,9 +4492,7 @@
     } catch (e) { return []; }
   }
   function saveWatchlist(list) {
-    try {
-      if (typeof localStorage !== 'undefined') localStorage.setItem(WATCHLIST_KEY, JSON.stringify(list));
-    } catch (e) {}
+    try { if (typeof localStorage !== 'undefined') localStorage.setItem(WATCHLIST_KEY, JSON.stringify(list)); } catch (e) {}
   }
   function isInWatchlist(secid) {
     return loadWatchlist().some(function (w) { return w.secid === secid; });
@@ -4499,94 +4509,76 @@
       list.push({ secid: String(secid), name: String(name || ''), code: String(code || ''), ts: Date.now() });
     }
     saveWatchlist(list);
-    renderWatchlistBtn();
+    renderFavBtn();
+    renderWlPanelBtn();
     if (watchlistPanelEl && !watchlistPanelEl.hidden) renderWatchlistPanel();
   }
-  function renderWatchlistBtn() {
-    if (!btnWatchlist) return;
+  function renderFavBtn() {
+    if (!btnFav) return;
     var s = currentSecidState();
     if (s && isInWatchlist(s)) {
-      btnWatchlist.textContent = '★';
-      btnWatchlist.classList.add('on');
+      btnFav.textContent = '已收藏';
+      btnFav.classList.add('on');
     } else {
-      btnWatchlist.textContent = '☆';
-      btnWatchlist.classList.remove('on');
+      btnFav.textContent = '收藏';
+      btnFav.classList.remove('on');
     }
+  }
+  function renderWlPanelBtn() {
+    if (!btnWlPanel) return;
+    var n = loadWatchlist().length;
+    btnWlPanel.textContent = n > 0 ? '自选(' + n + ')' : '自选';
   }
   function renderWatchlistPanel() {
     if (!watchlistPanelEl) return;
     var list = loadWatchlist();
     if (!list.length) {
-      watchlistPanelEl.innerHTML = '<div class="wl-empty">暂无自选，查询后点击 ☆ 添加</div>';
+      watchlistPanelEl.innerHTML = '<div class="wl-empty">暂无自选，查询后点「收藏」添加</div>';
       return;
     }
-    var html = '<div class="wl-header"><span>自选收藏 (' + list.length + '/20)</span><button onclick="clearWatchlist()">清空</button></div>';
+    var html = '<div class="wl-header"><span>我的自选 (' + list.length + '/20)</span><button class="wl-clear-all">清空</button></div>';
     for (var i = list.length - 1; i >= 0; i--) {
       var w = list[i];
-      html += '<div class="wl-item" data-secid="' + escAttr(w.secid) + '" onclick="loadBySecid(\'' + escAttr(w.secid) + '\',' + (w.name ? '{name:\'' + escAttr(w.name) + '\',code:\'' + escAttr(w.code||'') + '\'}' : 'null') + ',{consume:true})"><span>' + escHtml(w.name || w.secid) + '<span class="wl-code">' + escHtml(w.code || w.secid) + '</span></span><button class="wl-del" onclick="event.stopPropagation();removeFromWatchlist(\'' + escAttr(w.secid) + '\')">×</button></div>';
+      html += '<div class="wl-item" data-secid="' + escAttr(w.secid) + '"><span>' + escHtml(w.name || w.secid) + '<span class="wl-code">' + escHtml(w.code || w.secid) + '</span></span><button class="wl-del" data-del="' + escAttr(w.secid) + '">×</button></div>';
     }
     watchlistPanelEl.innerHTML = html;
   }
-  function removeFromWatchlist(secid) {
-    toggleWatchlist(secid);
-    if (watchlistPanelEl && !watchlistPanelEl.hidden) renderWatchlistPanel();
-  }
+  // Panel item click → load stock / delete single / clear all
+  watchlistPanelEl.addEventListener('click', function (e) {
+    // Clear all button
+    if (e.target.closest('.wl-clear-all')) {
+      saveWatchlist([]);
+      renderFavBtn();
+      renderWlPanelBtn();
+      renderWatchlistPanel();
+      return;
+    }
+    var del = e.target.closest('.wl-del');
+    if (del) {
+      e.stopPropagation();
+      var sid = del.getAttribute('data-del');
+      if (sid) {
+        var list2 = loadWatchlist().filter(function (w) { return w.secid !== sid; });
+        saveWatchlist(list2);
+        renderFavBtn();
+        renderWlPanelBtn();
+        renderWatchlistPanel();
+      }
+      return;
+    }
+    var item = e.target.closest('.wl-item');
+    if (item) {
+      var secid = item.getAttribute('data-secid');
+      if (secid) loadBySecid(secid, null, { consume: true });
+    }
+  });
   function clearWatchlist() {
     saveWatchlist([]);
-    renderWatchlistBtn();
+    renderFavBtn();
+    renderWlPanelBtn();
     renderWatchlistPanel();
   }
 
-  // ===== Search History (搜索历史) =====
-  function loadHistory() {
-    try {
-      if (typeof localStorage === 'undefined') return [];
-      return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-    } catch (e) { return []; }
-  }
-  function saveHistory(list) { try { if (typeof localStorage !== 'undefined') localStorage.setItem(HISTORY_KEY, JSON.stringify(list)); } catch (e) {} }
-  function addToHistory(secid, name, code) {
-    if (!secid) return;
-    var list = loadHistory();
-    // Remove duplicate
-    list = list.filter(function (h) { return h.secid !== secid; });
-    list.push({ secid: String(secid), name: String(name || ''), code: String(code || ''), ts: Date.now() });
-    // Keep last N
-    while (list.length > HISTORY_MAX) { list.shift(); }
-    saveHistory(list);
-  }
-  function renderHistory() {
-    if (!historyDropdownEl) return;
-    var list = loadHistory();
-    if (!list.length) {
-      historyDropdownEl.innerHTML = '';
-      historyDropdownEl.hidden = true;
-      return;
-    }
-    var html = '<div class="hdr-header"><span>最近搜索</span><button onclick="clearHistory()">清空</button></div>';
-    for (var i = list.length - 1; i >= 0; i--) {
-      var h = list[i];
-      html += '<div class="hdr-item" onclick="loadBySecid(\'' + escAttr(h.secid) + '\',' + (h.name ? '{name:\'' + escAttr(h.name) + '\',code:\'' + escAttr(h.code||'') + '\'}' : 'null') + ',{consume:true});hideHistory();"><span>' + escHtml(h.name || h.secid) + '<span class="hdr-code">' + escHtml(h.code || h.secid) + '</span></span><button class="hdr-del" onclick="event.stopPropagation();removeHistory(\'' + escAttr(h.secid) + '\')">×</button></div>';
-    }
-    historyDropdownEl.innerHTML = html;
-  }
-  function clearHistory() {
-    saveHistory([]);
-    renderHistory();
-  }
-  function removeHistory(secid) {
-    var list = loadHistory().filter(function (h) { return h.secid !== secid; });
-    saveHistory(list);
-    renderHistory();
-  }
-  function showHistory() {
-    if (!historyDropdownEl) return;
-    renderHistory();
-    historyDropdownEl.hidden = false;
-  }
-  function hideHistory() {
-    if (historyDropdownEl) historyDropdownEl.hidden = true;
-  }
   function currentSecidState() {
     try {
       var last = readLastQuery();
@@ -5114,9 +5106,10 @@
         ts: Date.now(),
       };
       if (typeof localStorage !== 'undefined') localStorage.setItem(LAST_QUERY_KEY, JSON.stringify(o));
-      // Also record search history and refresh watchlist button state
-      addToHistory(o.secid, o.name, o.code);
-      renderWatchlistBtn();
+      // Enable fav button and refresh its state after each query
+      if (btnFav) { btnFav.disabled = false; }
+      renderFavBtn();
+      renderWlPanelBtn();
     } catch (e) {}
   }
 
@@ -5389,34 +5382,25 @@
   inputEl.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') runSearch();
   });
-  // Show history on input focus
-  inputEl.addEventListener('focus', function () {
-    var list = loadHistory();
-    if (list.length) showHistory();
-  });
-  // Hide history on outside click
+  // Close watchlist panel on outside click
   document.addEventListener('click', function (e) {
-    if (historyDropdownEl && !historyDropdownEl.hidden && !historyDropdownEl.contains(e.target) && e.target !== inputEl) {
-      hideHistory();
-    }
-    if (watchlistPanelEl && !watchlistPanelEl.hidden && !watchlistPanelEl.contains(e.target) && e.target !== btnWatchlist) {
+    if (watchlistPanelEl && !watchlistPanelEl.hidden && !watchlistPanelEl.contains(e.target) && e.target !== btnWlPanel) {
       watchlistPanelEl.hidden = true;
     }
   });
-  // Watchlist button
-  btnWatchlist.addEventListener('click', function (e) {
+  // 收藏按钮：添加/移除当前标的
+  btnFav.addEventListener('click', function (e) {
     e.stopPropagation();
-    // Toggle current stock in/out of watchlist
     var s = currentSecidState();
     var last = readLastQuery();
-    if (s) {
-      toggleWatchlist(s, last ? last.name : '', last ? last.code : '');
-    }
-    // Toggle panel
+    if (s) toggleWatchlist(s, last ? last.name : '', last ? last.code : '');
+  });
+  // 自选按钮：打开/关闭自选面板
+  btnWlPanel.addEventListener('click', function (e) {
+    e.stopPropagation();
     if (watchlistPanelEl.hidden) {
       renderWatchlistPanel();
       watchlistPanelEl.hidden = false;
-      hideHistory();
     } else {
       watchlistPanelEl.hidden = true;
     }
@@ -5721,6 +5705,9 @@
 
   // Patch register/login links to carry invite code
   try { patchRegisterLinks(); } catch (e) {}
+
+  // Initial watchlist button state
+  renderWlPanelBtn();
 
   loadDefaultShanghaiIndex();
 })();
