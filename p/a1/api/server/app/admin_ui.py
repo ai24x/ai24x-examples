@@ -3714,11 +3714,7 @@ def admin_app_html(admin_base: str) -> str:
           if(p) params.set('phone', p);
           if(pur) params.set('purpose', pur);
           if(st) params.set('status', st);
-          var cfg = await adminApiGet('/api/admin/config', 'config_sms_logs');
-          var idUrl = (cfg && cfg.sms_identity_api_base) ? cfg.sms_identity_api_base.replace(/\/+$/, '') : '';
-          if(!idUrl){ setStatus('未配置主站 API URL'); return; }
-          var r = await adminFetch(idUrl + '/v1/admin/sms/logs?' + params.toString());
-          var d = await r.json();
+          var d = await api('/api/admin/sms_logs?' + params.toString());
           if(!d || !d.rows){ setStatus('返回数据异常'); return; }
           $('smsLogSummary').textContent = '共 ' + (d.total || 0) + ' 条';
           var tbody = $('smsLogTbody');

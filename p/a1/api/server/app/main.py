@@ -1382,6 +1382,28 @@ def admin_sms_effective(_: bool = Depends(require_admin)) -> dict:
     return out
 
 
+@app.get("/api/admin/sms_logs")
+def admin_sms_logs(
+    phone: str = "",
+    purpose: str = "",
+    status: str = "",
+    limit: int = 50,
+    offset: int = 0,
+    _: bool = Depends(require_admin),
+) -> dict:
+    """代理查询主站短信发送记录。"""
+    cfg = resolve_identity()
+    params = f"limit={min(limit,200)}&offset={offset}"
+    if phone:
+        params += f"&phone={phone}"
+    if purpose:
+        params += f"&purpose={purpose}"
+    if status:
+        params += f"&status={status}"
+    data = _identity_get(f"/v1/admin/sms/logs?{params}")
+    return data
+
+
 @app.get("/api/public/sms_captcha")
 def public_sms_captcha() -> dict:
     """Public config for reserved SMS captcha feature (default disabled)."""
