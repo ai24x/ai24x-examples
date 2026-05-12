@@ -5503,7 +5503,7 @@
     }
 
     // Build card canvas
-    var W = 800, H = 1200;
+    var W = 900, H = 1350;
     var c = document.createElement('canvas');
     c.width = W; c.height = H;
     var g = c.getContext('2d');
@@ -5514,68 +5514,72 @@
 
     // Header bar
     g.fillStyle = '#111827';
-    g.fillRect(0, 0, W, 64);
+    g.fillRect(0, 0, W, 72);
     g.fillStyle = '#6366f1';
-    g.font = 'bold 24px sans-serif';
-    g.fillText('AI行情官 · 灯塔版', 30, 43);
-    g.fillStyle = 'rgba(255,255,255,.35)';
+    g.font = 'bold 26px sans-serif';
+    g.fillText('AI行情官 · 灯塔版', 36, 48);
+    g.fillStyle = 'rgba(255,255,255,.3)';
     g.font = '13px sans-serif';
-    g.fillText('a.ai24x.com', W - 30 - g.measureText('a.ai24x.com').width, 43);
+    g.fillText('a.ai24x.com', W - 36 - g.measureText('a.ai24x.com').width, 48);
 
     // Stock info
     var qi = getQuoteSnapshot();
     g.fillStyle = '#e2e8f0';
-    g.font = 'bold 22px sans-serif';
-    g.fillText(qi.name || '—', 30, 100);
+    g.font = 'bold 24px sans-serif';
+    g.fillText(qi.name || '—', 36, 116);
     if (qi.price) {
       g.fillStyle = qi.change && qi.change.indexOf('-') >= 0 ? '#22c55e' : '#ef4444';
-      g.font = 'bold 20px sans-serif';
-      g.fillText(qi.price, 30, 132);
+      g.font = 'bold 22px sans-serif';
+      g.fillText(qi.price, 36, 152);
       g.font = '14px sans-serif';
-      g.fillText(qi.change, 30 + g.measureText(qi.price).width + 10, 132);
+      g.fillText(qi.change, 36 + g.measureText(qi.price).width + 12, 152);
     }
 
     // Signal summary
     g.fillStyle = '#94a3b8';
     g.font = '14px sans-serif';
-    g.fillText('信号摘要', 30, 170);
+    g.fillText('信号摘要', 36, 194);
     var summary = getSignalSummary();
     g.fillStyle = '#fbbf24';
-    g.font = 'bold 16px sans-serif';
-    var lines = wrapText(g, summary, W - 60);
+    g.font = 'bold 17px sans-serif';
+    var lines = wrapText(g, summary, W - 72);
     for (var li = 0; li < Math.min(lines.length, 3); li++) {
-      g.fillText(lines[li], 30, 198 + li * 24);
+      g.fillText(lines[li], 36, 226 + li * 26);
     }
 
     // Chart screenshot
     try {
-      // Scale chart to fit card width
-      var chartW = W - 40;
-      var chartH = Math.round(chartW * 0.5);
+      var chartW = W - 48;
+      var chartH = Math.round(chartW * 0.52);
       g.fillStyle = '#111827';
-      g.fillRect(20, 260, chartW, chartH);
-      g.drawImage(chartCanvas, 20, 260, chartW, chartH);
+      g.fillRect(24, 290, chartW, chartH);
+      g.drawImage(chartCanvas, 24, 290, chartW, chartH);
     } catch (e2) {}
 
-    // Bottom section: invite / QR / disclaimer
-    var bottomY = 260 + Math.round((W - 40) * 0.5) + 20;
+    // Bottom section: invitation info + QR
+    var bottomY = 290 + Math.round((W - 48) * 0.52) + 18;
+    var bottomH = 195;
     g.fillStyle = '#111827';
-    g.fillRect(0, bottomY, W, 140);
+    g.fillRect(0, bottomY, W, bottomH);
     g.fillStyle = '#94a3b8';
-    g.font = '12px sans-serif';
-    g.fillText('扫码查看完整行情 →', 30, bottomY + 30);
+    g.font = '13px sans-serif';
+    g.fillText('扫码体验完整行情分析 →', 36, bottomY + 36);
     var inv = getInviteCode();
     if (inv) {
       g.fillStyle = '#6366f1';
-      g.font = 'bold 14px sans-serif';
-      g.fillText('邀请码: ' + inv, 30, bottomY + 55);
+      g.font = 'bold 15px sans-serif';
+      g.fillText('邀请码: ' + inv, 36, bottomY + 62);
     }
 
-    // QR code
-    var qrSize = 90;
-    var qrX = W - qrSize - 30;
-    var qrY = bottomY + 10;
-    var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=' + (qrSize * 2) + 'x' + (qrSize * 2) + '&data=' + encodeURIComponent('https://a.ai24x.com/demo.html' + (inv ? '?i=' + inv : ''));
+    // QR code - large size for reliable scanning
+    var qrSize = 150;
+    var qrSourceSize = qrSize * 3; // high-res source for sharp rendering
+    var qrX = W - qrSize - 36;
+    var qrY = bottomY + 18;
+    // White QR background for contrast
+    g.fillStyle = '#ffffff';
+    g.fillRect(qrX - 6, qrY - 6, qrSize + 12, qrSize + 12);
+    var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=' + qrSourceSize + 'x' + qrSourceSize + '&data=' + encodeURIComponent('https://a.ai24x.com/demo.html' + (inv ? '?i=' + inv : ''));
     var qrImg = new Image();
     qrImg.crossOrigin = 'anonymous';
     var qrLoaded = false;
@@ -5587,9 +5591,9 @@
 
     function finalizeCard(canvas) {
       // Disclaimer
-      g.fillStyle = 'rgba(255,255,255,.25)';
+      g.fillStyle = 'rgba(255,255,255,.2)';
       g.font = '11px sans-serif';
-      g.fillText('⚠ 仅供学习交流，不构成投资建议', 30, H - 20);
+      g.fillText('⚠ 仅供学习交流，不构成投资建议', 36, H - 22);
 
       var url = canvas.toDataURL('image/png');
       cardPreviewImg.src = url;
