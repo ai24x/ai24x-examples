@@ -244,6 +244,15 @@ def _sms_forward_json(mobile: str, purpose: str) -> dict:
         payload["sms_106_sign_name"] = cfg.sms_106_sign_name.strip()
     if (cfg.sms_106_template or "").strip():
         payload["sms_106_template"] = cfg.sms_106_template.strip()
+    # Forward provider selection and juhe config
+    prov = (cfg.sms_active_provider or "identity_proxy").strip()
+    if prov in ("juhe", "tencent"):
+        payload["sms_provider"] = prov
+    if prov == "juhe":
+        if (cfg.sms_juhe_key or "").strip():
+            payload["sms_juhe_key"] = cfg.sms_juhe_key.strip()
+        if (cfg.sms_juhe_template_id or "").strip():
+            payload["sms_juhe_tpl_id"] = cfg.sms_juhe_template_id.strip()
     return payload
 
 

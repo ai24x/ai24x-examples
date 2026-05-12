@@ -92,6 +92,11 @@ class SmsSendRequest(BaseModel):
     sms_106_password: Optional[str] = Field(default=None, max_length=128)
     sms_106_sign_name: Optional[str] = Field(default=None, max_length=64)
     sms_106_template: Optional[str] = Field(default=None, max_length=600)
+    # 聚合数据 / 腾讯短信（可选扩展）
+    sms_provider: Optional[str] = Field(default=None, max_length=50, description="sms provider: 106/tencent/juhe")
+    sms_juhe_key: Optional[str] = Field(default=None, max_length=128)
+    sms_juhe_tpl_id: Optional[str] = Field(default=None, max_length=64)
+    sms_juhe_vars: Optional[str] = Field(default=None, max_length=600, description="JSON string of template vars e.g. {\"code\":\"123456\"}")
 
 
 class SmsSendResponse(BaseModel):

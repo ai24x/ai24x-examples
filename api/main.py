@@ -39,6 +39,7 @@ from sms_106_client import (
     normalize_mobile,
     send_sms_106,
 )
+from sms_juhe_client import send_sms_juhe
 from email_otp_memory import store_otp as store_email_otp
 from email_otp_memory import verify_and_consume_otp as verify_email_otp
 from auth_tokens import create_auth_access_token
@@ -365,21 +366,35 @@ async def auth_sms_send(request: Request, body: SmsSendRequest, db: Session = De
     # 通过同号 60s 冷却后再记入 IP/手机号小时窗口，避免误伤正常重试
     record_attempt(ip, mob)
 
-    ok, raw, msg = await send_sms_106(
-        endpoint=endpoint or settings.sms_106_endpoint,
-        account=account,
-        password=password,
-        mobile=mob,
-        content=content,
-        sign_name=sign_name_use or None,
-    )
+    # Record SMS send
+    provider_name = "106"
+    try:
+        if body.sms_provider == "juhe" and body.sms_juhe_key:
+            provider_name = "juhe"
+            ok, raw, msg = await send_sms_juhe(
+                app_key=body.sms_juhe_key,
+                mobile=mob,
+                tpl_id=body.sms_juhe_tpl_id or "",
+                tpl_vars={"code": code_for_sms},
+            )
+        else:
+            ok, raw, msg = await send_sms_106(
+                endpoint=endpoint or settings.sms_106_endpoint,
+                account=account,
+                password=password,
+                mobile=mob,
+                content=content,
+                sign_name=sign_name_use or None,
+            )
+    except Exception as e:
+        ok, raw, msg = False, "", f"发送异常: {e}"
     if ok:
         mark_sent(mob)
         store_otp(mob, body.purpose, code, ttl_s=300.0)
     # Log SMS send result
     try:
         db.add(SmsSendLog(
-            phone=mob, purpose=body.purpose or "login", provider="106",
+            phone=mob, purpose=body.purpose or "login", provider=provider_name,
             template_text=(template_use[:200] if template_use else None),
             content_sent=(content[:300] if content else None),
             status="ok" if ok else "fail",
