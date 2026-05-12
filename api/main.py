@@ -356,7 +356,7 @@ async def auth_sms_send(request: Request, body: SmsSendRequest, db: Session = De
     code = generate_numeric_code(6)
     # Keep template unchanged (备案), only enrich the {code} variable display.
     # Store/verify still uses the pure numeric code.
-    code_for_sms = f"{code} AI24X"
+    code_for_sms = str(code)
     try:
         content = template_use.format(code=code_for_sms)
     except Exception:
