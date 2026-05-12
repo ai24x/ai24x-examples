@@ -97,6 +97,12 @@ class SmsSendRequest(BaseModel):
     sms_juhe_key: Optional[str] = Field(default=None, max_length=128)
     sms_juhe_tpl_id: Optional[str] = Field(default=None, max_length=64)
     sms_juhe_vars: Optional[str] = Field(default=None, max_length=600, description="JSON string of template vars e.g. {\"code\":\"123456\"}")
+    sms_tencent_secret_id: Optional[str] = Field(default=None, max_length=128)
+    sms_tencent_secret_key: Optional[str] = Field(default=None, max_length=128)
+    sms_tencent_sdk_app_id: Optional[str] = Field(default=None, max_length=64)
+    sms_tencent_sign: Optional[str] = Field(default=None, max_length=64)
+    sms_tencent_template_id: Optional[str] = Field(default=None, max_length=64)
+    sms_tencent_region: Optional[str] = Field(default=None, max_length=32))
 
 
 class SmsSendResponse(BaseModel):

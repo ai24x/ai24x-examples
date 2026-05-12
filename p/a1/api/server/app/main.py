@@ -253,6 +253,19 @@ def _sms_forward_json(mobile: str, purpose: str) -> dict:
             payload["sms_juhe_key"] = cfg.sms_juhe_key.strip()
         if (cfg.sms_juhe_template_id or "").strip():
             payload["sms_juhe_tpl_id"] = cfg.sms_juhe_template_id.strip()
+    if prov == "tencent":
+        if (cfg.sms_tencent_secret_id or "").strip():
+            payload["sms_tencent_secret_id"] = cfg.sms_tencent_secret_id.strip()
+        if (cfg.sms_tencent_secret_key or "").strip():
+            payload["sms_tencent_secret_key"] = cfg.sms_tencent_secret_key.strip()
+        if (cfg.sms_tencent_sdk_app_id or "").strip():
+            payload["sms_tencent_sdk_app_id"] = cfg.sms_tencent_sdk_app_id.strip()
+        if (cfg.sms_tencent_sign or "").strip():
+            payload["sms_tencent_sign"] = cfg.sms_tencent_sign.strip()
+        if (cfg.sms_tencent_template_id or "").strip():
+            payload["sms_tencent_template_id"] = cfg.sms_tencent_template_id.strip()
+        if (cfg.sms_tencent_region or "").strip():
+            payload["sms_tencent_region"] = cfg.sms_tencent_region.strip()
     return payload
 
 

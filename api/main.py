@@ -40,6 +40,7 @@ from sms_106_client import (
     send_sms_106,
 )
 from sms_juhe_client import send_sms_juhe
+from sms_tencent_client import send_sms_tencent
 from email_otp_memory import store_otp as store_email_otp
 from email_otp_memory import verify_and_consume_otp as verify_email_otp
 from auth_tokens import create_auth_access_token
@@ -376,6 +377,18 @@ async def auth_sms_send(request: Request, body: SmsSendRequest, db: Session = De
                 mobile=mob,
                 tpl_id=body.sms_juhe_tpl_id or "",
                 tpl_vars={"code": code_for_sms},
+            )
+        elif body.sms_provider == "tencent" and body.sms_tencent_secret_id:
+            provider_name = "tencent"
+            ok, raw, msg = await send_sms_tencent(
+                secret_id=body.sms_tencent_secret_id,
+                secret_key=body.sms_tencent_secret_key or "",
+                sdk_app_id=body.sms_tencent_sdk_app_id or "",
+                sign_name=body.sms_tencent_sign or "",
+                template_id=body.sms_tencent_template_id or "",
+                template_params=[code_for_sms],
+                phone=mob,
+                region=body.sms_tencent_region or "ap-guangzhou",
             )
         else:
             ok, raw, msg = await send_sms_106(

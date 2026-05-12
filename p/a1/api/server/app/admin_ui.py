@@ -1378,45 +1378,45 @@ def admin_app_html(admin_base: str) -> str:
                 <button class="sms-tab" data-tab="tab-logs">发送记录</button>
               </div>
               <div class="sms-tab-content" id="tab-106">
-                <div class="msg small muted" style="margin:4px 0 8px;">模板须包含 <span class="mono">{code}</span>。密码不回显，更新时再填。</div>
+                <div class="msg small muted" style="margin:4px 0 8px;">⚙ 106网关 · 接口地址留空则使用主站 .env 配置。模板须含 <span class="mono">{code}</span></div>
                 <div class="field-row">
-                  <div class="field" style="flex:1; min-width:260px;"><span class="lbl">接口地址</span><input id="sms_106_endpoint" class="mono" style="width:100%;" placeholder="留空使用主站默认" /></div>
-                  <div class="field" style="min-width:160px;"><span class="lbl">账号</span><input id="sms_106_account" class="mono" autocomplete="off" /></div>
-                  <div class="field" style="min-width:180px;"><span class="lbl">密码</span><input id="sms_106_password" type="password" autocomplete="off" placeholder="已配置（不回显；更新时再填写）" /></div>
+                  <div class="field" style="flex:1; min-width:260px;"><span class="lbl">接口地址（endpoint）</span><input id="sms_106_endpoint" class="mono" style="width:100%;" placeholder="不填使用主站默认" /></div>
+                  <div class="field" style="min-width:160px;"><span class="lbl">账号（account）</span><input id="sms_106_account" class="mono" autocomplete="off" /></div>
+                  <div class="field" style="min-width:180px;"><span class="lbl">密码（password）</span><input id="sms_106_password" type="password" autocomplete="off" placeholder="已配置（不回显）" /></div>
                 </div>
                 <div class="msg small muted" style="margin-top:6px;"><span id="sms_106_password_hint"></span></div>
                 <div class="field-row">
-                  <div class="field" style="flex:1; min-width:200px;"><span class="lbl">短信签名</span><input id="sms_106_sign_name" style="width:100%;" placeholder="如：速度网络" /></div>
+                  <div class="field" style="min-width:200px;"><span class="lbl">签名（sign_name）</span><input id="sms_106_sign_name" style="width:100%;" placeholder="如：速度网络" /></div>
                 </div>
                 <div class="field-row">
-                  <div class="field" style="flex:1; min-width:100%;"><span class="lbl">内容模板</span><textarea id="sms_106_template" rows="3" style="width:100%; resize:vertical;" placeholder="须含 {code}，与平台审核文案一致"></textarea></div>
+                  <div class="field" style="flex:1;"><span class="lbl">内容模板（template）</span><textarea id="sms_106_template" rows="3" style="width:100%; resize:vertical;" placeholder="须含 {code}，与平台审核文案一致"></textarea></div>
                 </div>
               </div>
               <div class="sms-tab-content" id="tab-tencent" style="display:none;">
-                <div class="msg small muted" style="margin:4px 0 8px;">腾讯云短信 SDK（预留，接入后配置）。需在腾讯云控制台报备签名与模板。</div>
+                <div class="msg small muted" style="margin:4px 0 8px;">☁ 腾讯云短信 · 需在控制台报备签名和模板。API 采用 TC3-HMAC-SHA256 签名</div>
                 <div class="field-row">
-                  <div class="field"><span class="lbl">SecretId</span><input id="sms_tencent_secret_id" class="mono" /></div>
-                  <div class="field"><span class="lbl">SecretKey</span><input id="sms_tencent_secret_key" type="password" autocomplete="off" placeholder="已配置（不回显；更新时再填写）" /></div>
-                  <div class="field"><span class="lbl">SdkAppId</span><input id="sms_tencent_sdk_app_id" class="mono" /></div>
+                  <div class="field" style="min-width:200px;"><span class="lbl">SecretId（密钥ID）</span><input id="sms_tencent_secret_id" class="mono" placeholder="腾讯云 API 密钥" /></div>
+                  <div class="field" style="min-width:200px;"><span class="lbl">SecretKey（密钥Key）</span><input id="sms_tencent_secret_key" type="password" autocomplete="off" placeholder="已配置（不回显）" /></div>
                 </div>
                 <div class="msg small muted" style="margin-top:6px;"><span id="sms_tencent_secret_key_hint"></span></div>
                 <div class="field-row">
-                  <div class="field"><span class="lbl">短信签名</span><input id="sms_tencent_sign" /></div>
-                  <div class="field"><span class="lbl">模板 ID</span><input id="sms_tencent_template_id" class="mono" /></div>
-                  <div class="field"><span class="lbl">地域</span><input id="sms_tencent_region" class="mono" placeholder="ap-guangzhou" /></div>
+                  <div class="field" style="min-width:180px;"><span class="lbl">SDK AppID（应用ID）</span><input id="sms_tencent_sdk_app_id" class="mono" placeholder="如：1400006666" /></div>
+                  <div class="field" style="min-width:180px;"><span class="lbl">签名（SignName）</span><input id="sms_tencent_sign" placeholder="审核通过的签名" /></div>
+                  <div class="field" style="min-width:180px;"><span class="lbl">模板ID（TemplateId）</span><input id="sms_tencent_template_id" class="mono" placeholder="如：1110" /></div>
+                  <div class="field" style="min-width:120px;"><span class="lbl">地域（Region）</span><input id="sms_tencent_region" class="mono" placeholder="ap-guangzhou" /></div>
                 </div>
               </div>
               <div class="sms-tab-content" id="tab-juhe" style="display:none;">
-                <div class="msg small muted" style="margin:4px 0 8px;">聚合数据短信 API（预留，接入后配置）。</div>
+                <div class="msg small muted" style="margin:4px 0 8px;">📊 聚合数据 · 模板用 #code# 变量。已接入可用（POST v.juhe.cn/sms/send）</div>
                 <div class="field-row">
-                  <div class="field" style="flex:1; min-width:260px;"><span class="lbl">AppKey</span><input id="sms_juhe_key" class="mono" style="width:100%;" placeholder="聚合数据 AppKey" /></div>
+                  <div class="field" style="flex:1; min-width:260px;"><span class="lbl">AppKey（应用密钥）</span><input id="sms_juhe_key" class="mono" style="width:100%;" placeholder="聚合数据中心获取" /></div>
                 </div>
                 <div class="field-row">
-                  <div class="field" style="min-width:200px;"><span class="lbl">模板 ID</span><input id="sms_juhe_template_id" class="mono" placeholder="聚合审核过的模板ID" /></div>
-                  <div class="field" style="flex:1;"><span class="lbl">短信签名</span><input id="sms_juhe_sign" placeholder="聚合报备的签名" /></div>
+                  <div class="field" style="min-width:200px;"><span class="lbl">模板ID（tpl_id）</span><input id="sms_juhe_template_id" class="mono" placeholder="审核通过的模板ID" /></div>
+                  <div class="field" style="flex:1;"><span class="lbl">签名（sign）</span><input id="sms_juhe_sign" placeholder="报备的短信签名" /></div>
                 </div>
                 <div class="field-row">
-                  <div class="field" style="flex:1; min-width:100%;"><span class="lbl">内容模板</span><textarea id="sms_juhe_template" rows="3" style="width:100%; resize:vertical;" placeholder="须含 {code}"></textarea></div>
+                  <div class="field" style="flex:1;"><span class="lbl">内容模板（template）</span><textarea id="sms_juhe_template" rows="3" style="width:100%; resize:vertical;" placeholder="须含 #code#，如：您的验证码是：#code#"></textarea></div>
                 </div>
               </div>
               <div class="sms-tab-content" id="tab-logs" style="display:none;">
