@@ -1430,8 +1430,8 @@ def admin_app_html(admin_base: str) -> str:
                 <div class="msg small muted" id="smsLogSummary" style="margin-top:6px;">—</div>
                 <div style="margin-top:8px; overflow:auto; max-height:400px;">
                   <table class="tbl" style="min-width:700px; width:100%;">
-                    <thead><tr><th>时间</th><th>手机号</th><th>用途</th><th>状态</th><th>错误信息</th><th>IP</th></tr></thead>
-                    <tbody id="smsLogTbody"><tr><td colspan="6" class="muted" style="text-align:center;">点击刷新加载</td></tr></tbody>
+                    <thead><tr><th>时间</th><th>手机号</th><th>用途</th><th>通道</th><th>状态</th><th>错误信息</th><th>IP</th></tr></thead>
+                    <tbody id="smsLogTbody"><tr><td colspan="7" class="muted" style="text-align:center;">点击刷新加载</td></tr></tbody>
                   </table>
                 </div>
               </div>
@@ -3736,6 +3736,7 @@ def admin_app_html(admin_base: str) -> str:
               '<td class="mono small">' + escT(ts) + '</td>' +
               '<td>' + escT(row.phone || '') + '</td>' +
               '<td>' + escT(row.purpose || '') + '</td>' +
+              '<td>' + (row.provider === 'tencent' ? '腾讯' : row.provider === 'juhe' ? '聚合' : '106') + '</td>' +
               '<td>' + (row.status === 'ok' ? '<span class="pill" style="background:#166534;color:#86efac;">成功</span>' : '<span class="pill" style="background:#7f1d1d;color:#fca5a5;">失败</span>') + '</td>' +
               '<td class="small muted">' + escT(row.error_msg || '') + '</td>' +
               '<td class="mono small muted">' + escT(row.ip_address || '') + '</td>' +
