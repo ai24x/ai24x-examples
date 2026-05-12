@@ -9,7 +9,7 @@ import logging
 import time
 
 from database import get_db, init_db
-from models import AuthUser
+from models import AuthUser, SmsSendLog
 from schemas import (
     AuthEmailSendRequest,
     AuthEmailSendResponse,
@@ -376,6 +376,19 @@ async def auth_sms_send(request: Request, body: SmsSendRequest, db: Session = De
     if ok:
         mark_sent(mob)
         store_otp(mob, body.purpose, code, ttl_s=300.0)
+    # Log SMS send result
+    try:
+        db.add(SmsSendLog(
+            phone=mob, purpose=body.purpose or "login", provider="106",
+            template_text=(template_use[:200] if template_use else None),
+            content_sent=(content[:300] if content else None),
+            status="ok" if ok else "fail",
+            error_msg=(msg[:500] if not ok and msg else None),
+            ip_address=ip,
+        ))
+        db.commit()
+    except Exception:
+        pass
     return SmsSendResponse(ok=ok, raw=raw, message=msg, cooldown_s=None)
 
 
@@ -463,6 +476,47 @@ async def admin_sms_effective(request: Request):
         "sms_106_password_masked": _mask_secret_tail(settings.sms_106_password, keep_tail=4),
         "sms_106_sign_name": (settings.sms_106_sign_name or "").strip(),
         "sms_106_template": (settings.sms_106_template or "").strip(),
+    }
+
+
+@app.get("/v1/admin/sms/logs")
+async def admin_sms_logs(
+    request: Request,
+    db: Session = Depends(get_db),
+    phone: str = "",
+    purpose: str = "",
+    status: str = "",
+    limit: int = 50,
+    offset: int = 0,
+):
+    """查询短信发送记录（需 X-SMS-Internal-Key）。"""
+    if not (settings.sms_internal_key or "").strip():
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="SMS_INTERNAL_KEY not configured.")
+    if (request.headers.get("X-SMS-Internal-Key") or "").strip() != settings.sms_internal_key:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Missing or invalid X-SMS-Internal-Key.")
+    q = db.query(SmsSendLog)
+    if phone:
+        q = q.filter(SmsSendLog.phone.like(f"%{phone}%"))
+    if purpose:
+        q = q.filter(SmsSendLog.purpose == purpose)
+    if status:
+        q = q.filter(SmsSendLog.status == status)
+    total = q.count()
+    rows = q.order_by(SmsSendLog.id.desc()).offset(offset).limit(min(limit, 200)).all()
+    return {
+        "total": total,
+        "limit": min(limit, 200),
+        "offset": offset,
+        "rows": [
+            {
+                "id": r.id, "phone": r.phone, "purpose": r.purpose,
+                "provider": r.provider, "status": r.status,
+                "error_msg": r.error_msg,
+                "ip_address": r.ip_address,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+            }
+            for r in rows
+        ],
     }
 
 

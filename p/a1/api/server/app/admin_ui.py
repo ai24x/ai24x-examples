@@ -1415,6 +1415,26 @@ def admin_app_html(admin_base: str) -> str:
                 <div class="field"><span class="lbl">地域</span><input id="sms_tencent_region" class="mono" placeholder="ap-guangzhou" /></div>
               </div>
             </div>
+            <!-- SMS Send Log -->
+            <div class="card" style="margin-top:14px;">
+              <div class="row">
+                <span class="pill">📋 短信发送记录</span>
+                <button type="button" id="btnLoadSmsLogs">刷新</button>
+              </div>
+              <div class="field-row" style="margin-top:8px; gap:8px; flex-wrap:wrap; align-items:flex-end;">
+                <div class="field" style="min-width:140px;"><span class="lbl">手机号</span><input id="sms_log_phone" placeholder="模糊搜索" style="width:100%;" /></div>
+                <div class="field" style="min-width:100px;"><span class="lbl">用途</span><select id="sms_log_purpose"><option value="">全部</option><option value="login">登录</option><option value="register">注册</option><option value="forgot">忘记密码</option><option value="admin">管理员</option></select></div>
+                <div class="field" style="min-width:80px;"><span class="lbl">状态</span><select id="sms_log_status"><option value="">全部</option><option value="ok">成功</option><option value="fail">失败</option></select></div>
+                <button type="button" id="btnSearchSmsLogs">查询</button>
+              </div>
+              <div class="msg small muted" id="smsLogSummary" style="margin-top:6px;">—</div>
+              <div style="margin-top:8px; overflow:auto; max-height:400px;">
+                <table class="tbl" style="min-width:700px; width:100%;">
+                  <thead><tr><th>时间</th><th>手机号</th><th>用途</th><th>状态</th><th>错误信息</th><th>IP</th></tr></thead>
+                  <tbody id="smsLogTbody"><tr><td colspan="6" class="muted" style="text-align:center;">点击刷新加载</td></tr></tbody>
+                </table>
+              </div>
+            </div>
           </section>
 
           <section class="panel-page" id="p-market">
@@ -3685,6 +3705,38 @@ def admin_app_html(admin_base: str) -> str:
         $('btnSaveSms').addEventListener('click', async function(){
           try{ await saveSms(); }catch(e){ setStatus('保存短信配置失败：'+e.message); }
         });
+        // SMS log viewer
+        async function loadSmsLogs(){
+          var p = ($('sms_log_phone') ? $('sms_log_phone').value : '').trim();
+          var pur = $('sms_log_purpose') ? $('sms_log_purpose').value : '';
+          var st = $('sms_log_status') ? $('sms_log_status').value : '';
+          var params = new URLSearchParams({ limit: '50', offset: '0' });
+          if(p) params.set('phone', p);
+          if(pur) params.set('purpose', pur);
+          if(st) params.set('status', st);
+          var cfg = await adminApiGet('/api/admin/config', 'config_sms_logs');
+          var idUrl = (cfg && cfg.sms_identity_api_base) ? cfg.sms_identity_api_base.replace(/\/+$/, '') : '';
+          if(!idUrl){ setStatus('未配置主站 API URL'); return; }
+          var r = await adminFetch(idUrl + '/v1/admin/sms/logs?' + params.toString());
+          var d = await r.json();
+          if(!d || !d.rows){ setStatus('返回数据异常'); return; }
+          $('smsLogSummary').textContent = '共 ' + (d.total || 0) + ' 条';
+          var tbody = $('smsLogTbody');
+          tbody.innerHTML = d.rows.map(function(row){
+            var ts = row.created_at ? row.created_at.slice(0,19).replace('T',' ') : '';
+            return '<tr>' +
+              '<td class="mono small">' + escT(ts) + '</td>' +
+              '<td>' + escT(row.phone || '') + '</td>' +
+              '<td>' + escT(row.purpose || '') + '</td>' +
+              '<td>' + (row.status === 'ok' ? '<span class="pill" style="background:#166534;color:#86efac;">成功</span>' : '<span class="pill" style="background:#7f1d1d;color:#fca5a5;">失败</span>') + '</td>' +
+              '<td class="small muted">' + escT(row.error_msg || '') + '</td>' +
+              '<td class="mono small muted">' + escT(row.ip_address || '') + '</td>' +
+            '</tr>';
+          }).join('');
+        }
+        function escT(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+        if($('btnLoadSmsLogs')) $('btnLoadSmsLogs').addEventListener('click', function(){ loadSmsLogs().catch(function(e){ setStatus('加载失败：'+e.message); }); });
+        if($('btnSearchSmsLogs')) $('btnSearchSmsLogs').addEventListener('click', function(){ loadSmsLogs().catch(function(e){ setStatus('查询失败：'+e.message); }); });
         // 诊断工具已移除（避免界面出现接口/代码字段名）
         $('btnLoadMarket').addEventListener('click', async function(){
           try{ await loadMarket(); }catch(e){ setStatus('刷新行情路由失败：'+e.message); }

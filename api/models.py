@@ -93,3 +93,19 @@ class AuthUser(Base):
     phone_verified_at = Column(DateTime(timezone=True), nullable=True)
     email_verified_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SmsSendLog(Base):
+    """短信发送记录：用于审计、排障、用量统计"""
+    __tablename__ = "sms_send_log"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    phone = Column(String(20), nullable=False, index=True)
+    purpose = Column(String(50), nullable=False, default="login")  # login/register/forgot/admin
+    provider = Column(String(50), nullable=False, default="106")  # 106/tencent/juhe
+    template_text = Column(Text, nullable=True)   # 实际使用的模版（truncated）
+    content_sent = Column(Text, nullable=True)    # 实际发送的内容
+    status = Column(String(20), nullable=False, default="ok")  # ok/fail/blocked
+    error_msg = Column(Text, nullable=True)
+    ip_address = Column(String(45), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
