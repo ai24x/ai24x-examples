@@ -357,6 +357,21 @@ def admin_app_html(admin_base: str) -> str:
       .panel-page > .card:first-child { margin-top: 0; }
       .rk-up { color: #fb7185; }
       .rk-down { color: #34d399; }
+      /* SMS provider tabs */
+      .sms-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 14px; }
+      .sms-tab {
+        padding: 8px 18px;
+        border: none;
+        background: transparent;
+        color: var(--muted);
+        font-size: 13px;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
+        transition: all .15s;
+      }
+      .sms-tab:hover { color: var(--text); }
+      .sms-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
     </style>
   </head>
   <body>
@@ -1332,7 +1347,7 @@ def admin_app_html(admin_base: str) -> str:
           </section>
 
           <section class="panel-page" id="p-sms">
-            <div class="card" id="sec-sms">
+            <div class="card">
               <div class="row">
                 <span class="pill">短信与统一身份</span>
                 <button type="button" id="btnLoadSms">读取</button>
@@ -1340,99 +1355,77 @@ def admin_app_html(admin_base: str) -> str:
               </div>
               <div class="field-row" style="margin-top:10px;">
                 <div class="field" style="flex:1; min-width:280px;"><span class="lbl">主站 API 根 URL</span><input id="sms_identity_api_base" style="width:100%;" placeholder="https://api.xxx.com" /></div>
-                <div class="field" style="min-width:220px;"><span class="lbl">短信内部密钥</span><input id="sms_internal_key" type="password" autocomplete="off" style="min-width:200px;" placeholder="已配置（不回显；更新时再填写）" /></div>
-                <div class="field"><span class="lbl">短信通道</span>
-                  <select id="sms_active_provider">
-                    <option value="identity_proxy">106接口网（经主站 API，identity_proxy）</option>
-                    <option value="tencent">腾讯短信（预留，未接发送）</option>
-                  </select>
-                </div>
+                <div class="field" style="min-width:220px;"><span class="lbl">内部密钥</span><input id="sms_internal_key" type="password" autocomplete="off" style="min-width:200px;" placeholder="已配置（不回显；更新时再填写）" /></div>
               </div>
               <div class="msg small muted" id="sms-secret-hints" style="margin-top:6px;">
                 <span id="sms_internal_key_hint"></span>
               </div>
-              <div class="card-title" style="margin-top:14px;">短信防刷（预留，默认关闭）</div>
-              <div class="msg small muted" style="margin-top:4px;">
-                关闭时不影响现有发码流程；开启后，前端“获取验证码”会自动显示图形码并携带 token，后端校验失败则拒发短信。
-              </div>
-              <div class="field-row" style="margin-top:10px;">
-                <div class="field">
-                  <span class="lbl">启用图形码</span>
-                  <select id="sms_captcha_enabled">
-                    <option value="0">关闭（默认）</option>
-                    <option value="1">开启（Turnstile）</option>
-                  </select>
-                </div>
-                <div class="field">
-                  <span class="lbl">提供方</span>
-                  <select id="sms_captcha_provider">
-                    <option value="turnstile">turnstile</option>
-                  </select>
-                </div>
-                <div class="field" style="flex:1; min-width:260px;">
-                  <span class="lbl">Site key（前端）</span>
-                  <input id="sms_captcha_turnstile_site_key" class="mono" style="width:100%;" placeholder="0x4AAAAAA..." />
-                </div>
-                <div class="field" style="flex:1; min-width:260px;">
-                  <span class="lbl">Secret key（后端）</span>
-                  <input id="sms_captcha_turnstile_secret_key" type="password" autocomplete="off" class="mono" style="width:100%;" placeholder="已配置（不回显；更新时再填写）" />
-                </div>
-              </div>
-              <div class="msg small muted" style="margin-top:6px;">
-                <span id="sms_captcha_secret_hint"></span>
-              </div>
-              <div class="card-title" style="margin-top:14px;">106 接口核心</div>
-              <div class="msg small muted" style="margin-top:4px;">模板须包含 <span class="mono">{code}</span>。密码不回显，更新时再填。</div>
-              <div class="field-row" style="margin-top:10px;">
-                <div class="field" style="flex:1; min-width:260px;"><span class="lbl">接口地址</span><input id="sms_106_endpoint" class="mono" style="width:100%;" placeholder="留空表示使用主站默认" /></div>
-                <div class="field" style="min-width:160px;"><span class="lbl">账号</span><input id="sms_106_account" class="mono" autocomplete="off" /></div>
-                <div class="field" style="min-width:180px;"><span class="lbl">密码</span><input id="sms_106_password" type="password" autocomplete="off" placeholder="已配置（不回显；更新时再填写）" /></div>
-              </div>
-              <div class="msg small muted" style="margin-top:6px;">
-                <span id="sms_106_password_hint"></span>
-              </div>
-              <div class="field-row">
-                <div class="field" style="flex:1; min-width:200px;"><span class="lbl">签名</span><input id="sms_106_sign_name" style="width:100%;" placeholder="可选" /></div>
-              </div>
-              <div class="field-row">
-                <div class="field" style="flex:1; min-width:100%;">
-                  <span class="lbl">内容模板</span>
-                  <textarea id="sms_106_template" rows="3" style="width:100%; resize:vertical;" placeholder="须含 {code}，与 106 平台审核文案一致"></textarea>
-                </div>
-              </div>
-              <div class="card-title" style="margin-top:12px;">腾讯短信（预留，后期主通道不稳再接入 SDK）</div>
-              <div class="field-row">
-                <div class="field"><span class="lbl">SecretId</span><input id="sms_tencent_secret_id" class="mono" /></div>
-                <div class="field"><span class="lbl">SecretKey</span><input id="sms_tencent_secret_key" type="password" autocomplete="off" placeholder="已配置（不回显；更新时再填写）" /></div>
-                <div class="field"><span class="lbl">SdkAppId</span><input id="sms_tencent_sdk_app_id" class="mono" /></div>
-              </div>
-              <div class="msg small muted" style="margin-top:6px;">
-                <span id="sms_tencent_secret_key_hint"></span>
-              </div>
-              <div class="field-row">
-                <div class="field"><span class="lbl">短信签名</span><input id="sms_tencent_sign" /></div>
-                <div class="field"><span class="lbl">模板 ID</span><input id="sms_tencent_template_id" class="mono" /></div>
-                <div class="field"><span class="lbl">地域</span><input id="sms_tencent_region" class="mono" placeholder="ap-guangzhou" /></div>
-              </div>
             </div>
-            <!-- SMS Send Log -->
+            <!-- Provider tabs -->
             <div class="card" style="margin-top:14px;">
-              <div class="row">
-                <span class="pill">📋 短信发送记录</span>
-                <button type="button" id="btnLoadSmsLogs">刷新</button>
+              <div class="sms-tabs">
+                <button class="sms-tab active" data-tab="tab-106">106网关</button>
+                <button class="sms-tab" data-tab="tab-tencent">腾讯短信</button>
+                <button class="sms-tab" data-tab="tab-juhe">聚合数据</button>
+                <button class="sms-tab" data-tab="tab-logs">发送记录</button>
               </div>
-              <div class="field-row" style="margin-top:8px; gap:8px; flex-wrap:wrap; align-items:flex-end;">
-                <div class="field" style="min-width:140px;"><span class="lbl">手机号</span><input id="sms_log_phone" placeholder="模糊搜索" style="width:100%;" /></div>
-                <div class="field" style="min-width:100px;"><span class="lbl">用途</span><select id="sms_log_purpose"><option value="">全部</option><option value="login">登录</option><option value="register">注册</option><option value="forgot">忘记密码</option><option value="admin">管理员</option></select></div>
-                <div class="field" style="min-width:80px;"><span class="lbl">状态</span><select id="sms_log_status"><option value="">全部</option><option value="ok">成功</option><option value="fail">失败</option></select></div>
-                <button type="button" id="btnSearchSmsLogs">查询</button>
+              <div class="sms-tab-content" id="tab-106">
+                <div class="msg small muted" style="margin:4px 0 8px;">模板须包含 <span class="mono">{code}</span>。密码不回显，更新时再填。</div>
+                <div class="field-row">
+                  <div class="field" style="flex:1; min-width:260px;"><span class="lbl">接口地址</span><input id="sms_106_endpoint" class="mono" style="width:100%;" placeholder="留空使用主站默认" /></div>
+                  <div class="field" style="min-width:160px;"><span class="lbl">账号</span><input id="sms_106_account" class="mono" autocomplete="off" /></div>
+                  <div class="field" style="min-width:180px;"><span class="lbl">密码</span><input id="sms_106_password" type="password" autocomplete="off" placeholder="已配置（不回显；更新时再填写）" /></div>
+                </div>
+                <div class="msg small muted" style="margin-top:6px;"><span id="sms_106_password_hint"></span></div>
+                <div class="field-row">
+                  <div class="field" style="flex:1; min-width:200px;"><span class="lbl">短信签名</span><input id="sms_106_sign_name" style="width:100%;" placeholder="如：速度网络" /></div>
+                </div>
+                <div class="field-row">
+                  <div class="field" style="flex:1; min-width:100%;"><span class="lbl">内容模板</span><textarea id="sms_106_template" rows="3" style="width:100%; resize:vertical;" placeholder="须含 {code}，与平台审核文案一致"></textarea></div>
+                </div>
               </div>
-              <div class="msg small muted" id="smsLogSummary" style="margin-top:6px;">—</div>
-              <div style="margin-top:8px; overflow:auto; max-height:400px;">
-                <table class="tbl" style="min-width:700px; width:100%;">
-                  <thead><tr><th>时间</th><th>手机号</th><th>用途</th><th>状态</th><th>错误信息</th><th>IP</th></tr></thead>
-                  <tbody id="smsLogTbody"><tr><td colspan="6" class="muted" style="text-align:center;">点击刷新加载</td></tr></tbody>
-                </table>
+              <div class="sms-tab-content" id="tab-tencent" style="display:none;">
+                <div class="msg small muted" style="margin:4px 0 8px;">腾讯云短信 SDK（预留，接入后配置）。需在腾讯云控制台报备签名与模板。</div>
+                <div class="field-row">
+                  <div class="field"><span class="lbl">SecretId</span><input id="sms_tencent_secret_id" class="mono" /></div>
+                  <div class="field"><span class="lbl">SecretKey</span><input id="sms_tencent_secret_key" type="password" autocomplete="off" placeholder="已配置（不回显；更新时再填写）" /></div>
+                  <div class="field"><span class="lbl">SdkAppId</span><input id="sms_tencent_sdk_app_id" class="mono" /></div>
+                </div>
+                <div class="msg small muted" style="margin-top:6px;"><span id="sms_tencent_secret_key_hint"></span></div>
+                <div class="field-row">
+                  <div class="field"><span class="lbl">短信签名</span><input id="sms_tencent_sign" /></div>
+                  <div class="field"><span class="lbl">模板 ID</span><input id="sms_tencent_template_id" class="mono" /></div>
+                  <div class="field"><span class="lbl">地域</span><input id="sms_tencent_region" class="mono" placeholder="ap-guangzhou" /></div>
+                </div>
+              </div>
+              <div class="sms-tab-content" id="tab-juhe" style="display:none;">
+                <div class="msg small muted" style="margin:4px 0 8px;">聚合数据短信 API（预留，接入后配置）。</div>
+                <div class="field-row">
+                  <div class="field" style="flex:1; min-width:260px;"><span class="lbl">AppKey</span><input id="sms_juhe_key" class="mono" style="width:100%;" placeholder="聚合数据 AppKey" /></div>
+                </div>
+                <div class="field-row">
+                  <div class="field" style="min-width:200px;"><span class="lbl">模板 ID</span><input id="sms_juhe_template_id" class="mono" placeholder="聚合审核过的模板ID" /></div>
+                  <div class="field" style="flex:1;"><span class="lbl">短信签名</span><input id="sms_juhe_sign" placeholder="聚合报备的签名" /></div>
+                </div>
+                <div class="field-row">
+                  <div class="field" style="flex:1; min-width:100%;"><span class="lbl">内容模板</span><textarea id="sms_juhe_template" rows="3" style="width:100%; resize:vertical;" placeholder="须含 {code}"></textarea></div>
+                </div>
+              </div>
+              <div class="sms-tab-content" id="tab-logs" style="display:none;">
+                <div class="row" style="margin-bottom:8px;"><button type="button" id="btnLoadSmsLogs">刷新</button></div>
+                <div class="field-row" style="gap:8px; flex-wrap:wrap; align-items:flex-end;">
+                  <div class="field" style="min-width:140px;"><span class="lbl">手机号</span><input id="sms_log_phone" placeholder="模糊搜索" style="width:100%;" /></div>
+                  <div class="field" style="min-width:100px;"><span class="lbl">用途</span><select id="sms_log_purpose"><option value="">全部</option><option value="login">登录</option><option value="register">注册</option><option value="forgot">忘记密码</option><option value="admin">管理员</option></select></div>
+                  <div class="field" style="min-width:80px;"><span class="lbl">状态</span><select id="sms_log_status"><option value="">全部</option><option value="ok">成功</option><option value="fail">失败</option></select></div>
+                  <button type="button" id="btnSearchSmsLogs">查询</button>
+                </div>
+                <div class="msg small muted" id="smsLogSummary" style="margin-top:6px;">—</div>
+                <div style="margin-top:8px; overflow:auto; max-height:400px;">
+                  <table class="tbl" style="min-width:700px; width:100%;">
+                    <thead><tr><th>时间</th><th>手机号</th><th>用途</th><th>状态</th><th>错误信息</th><th>IP</th></tr></thead>
+                    <tbody id="smsLogTbody"><tr><td colspan="6" class="muted" style="text-align:center;">点击刷新加载</td></tr></tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </section>
@@ -3733,6 +3726,16 @@ def admin_app_html(admin_base: str) -> str:
         function escT(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
         if($('btnLoadSmsLogs')) $('btnLoadSmsLogs').addEventListener('click', function(){ loadSmsLogs().catch(function(e){ setStatus('加载失败：'+e.message); }); });
         if($('btnSearchSmsLogs')) $('btnSearchSmsLogs').addEventListener('click', function(){ loadSmsLogs().catch(function(e){ setStatus('查询失败：'+e.message); }); });
+        // SMS tab switching
+        document.querySelectorAll('.sms-tab').forEach(function(t){
+          t.addEventListener('click', function(){
+            document.querySelectorAll('.sms-tab').forEach(function(x){ x.classList.remove('active'); });
+            t.classList.add('active');
+            document.querySelectorAll('.sms-tab-content').forEach(function(x){ x.style.display = 'none'; });
+            var panel = document.getElementById(t.getAttribute('data-tab'));
+            if(panel) panel.style.display = 'block';
+          });
+        });
         // 诊断工具已移除（避免界面出现接口/代码字段名）
         $('btnLoadMarket').addEventListener('click', async function(){
           try{ await loadMarket(); }catch(e){ setStatus('刷新行情路由失败：'+e.message); }
