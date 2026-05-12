@@ -1356,9 +1356,17 @@ def admin_app_html(admin_base: str) -> str:
               <div class="field-row" style="margin-top:10px;">
                 <div class="field" style="flex:1; min-width:280px;"><span class="lbl">主站 API 根 URL</span><input id="sms_identity_api_base" style="width:100%;" placeholder="https://api.xxx.com" /></div>
                 <div class="field" style="min-width:220px;"><span class="lbl">内部密钥</span><input id="sms_internal_key" type="password" autocomplete="off" style="min-width:200px;" placeholder="已配置（不回显；更新时再填写）" /></div>
+                <div class="field"><span class="lbl">当前短信通道</span>
+                  <select id="sms_active_provider">
+                    <option value="identity_proxy">106网关（经主站 API）</option>
+                    <option value="tencent">腾讯云短信</option>
+                    <option value="juhe">聚合数据</option>
+                  </select>
+                </div>
               </div>
               <div class="msg small muted" id="sms-secret-hints" style="margin-top:6px;">
                 <span id="sms_internal_key_hint"></span>
+                <span style="margin-left:12px;">💡 其它通道备案中，接入后可通过上方下拉切换；后续加入自动故障切换。</span>
               </div>
             </div>
             <!-- Provider tabs -->
@@ -3284,6 +3292,11 @@ def admin_app_html(admin_base: str) -> str:
         putVal('sms_tencent_sign', eff.sms_tencent_sign || '');
         putVal('sms_tencent_template_id', eff.sms_tencent_template_id || '');
         putVal('sms_tencent_region', eff.sms_tencent_region || 'ap-guangzhou');
+        // Juhe
+        putVal('sms_juhe_key', eff.sms_juhe_key || '');
+        putVal('sms_juhe_template_id', eff.sms_juhe_template_id || '');
+        putVal('sms_juhe_sign', eff.sms_juhe_sign || '');
+        putVal('sms_juhe_template', eff.sms_juhe_template || '');
 
         // Secrets never echoed back; show hint via placeholder.
         var ik = $('sms_internal_key');
@@ -3364,6 +3377,12 @@ def admin_app_html(admin_base: str) -> str:
         postSecretIfFilled('sms_captcha_turnstile_secret_key', 'sms_captcha_turnstile_secret_key');
         postSecretIfFilled('sms_106_password', 'sms_106_password');
         postSecretIfFilled('sms_tencent_secret_key', 'sms_tencent_secret_key');
+
+        // Juhe（聚合数据）
+        postIfChanged('sms_juhe_key', 'sms_juhe_key', eff.sms_juhe_key);
+        postIfChanged('sms_juhe_template_id', 'sms_juhe_template_id', eff.sms_juhe_template_id);
+        postIfChanged('sms_juhe_sign', 'sms_juhe_sign', eff.sms_juhe_sign);
+        postIfChanged('sms_juhe_template', 'sms_juhe_template', eff.sms_juhe_template);
 
         if(tasks.length === 0){ setStatus('未检测到修改（为空的输入不会覆盖原配置）'); return; }
         setStatus('正在保存短信与身份配置…');

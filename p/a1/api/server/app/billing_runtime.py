@@ -169,6 +169,11 @@ def resolve_identity() -> SimpleNamespace:
         sms_tencent_sign=p("sms_tencent_sign", ""),
         sms_tencent_template_id=p("sms_tencent_template_id", ""),
         sms_tencent_region=p("sms_tencent_region", "ap-guangzhou"),
+        # 聚合数据（预留）
+        sms_juhe_key=p("sms_juhe_key", ""),
+        sms_juhe_template_id=p("sms_juhe_template_id", ""),
+        sms_juhe_sign=p("sms_juhe_sign", ""),
+        sms_juhe_template=p("sms_juhe_template", ""),
     )
 
 

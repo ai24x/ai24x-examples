@@ -1360,6 +1360,11 @@ def admin_sms_effective(_: bool = Depends(require_admin)) -> dict:
         "sms_tencent_sign": (cfg.sms_tencent_sign or "").strip() or "",
         "sms_tencent_template_id": (cfg.sms_tencent_template_id or "").strip() or "",
         "sms_tencent_region": (cfg.sms_tencent_region or "").strip() or "ap-guangzhou",
+        # juhe（聚合数据，预留）
+        "sms_juhe_key": (cfg.sms_juhe_key or "").strip() or "",
+        "sms_juhe_template_id": (cfg.sms_juhe_template_id or "").strip() or "",
+        "sms_juhe_sign": (cfg.sms_juhe_sign or "").strip() or "",
+        "sms_juhe_template": (cfg.sms_juhe_template or "").strip() or "",
     }
     # If subsite didn't override 106 fields, pull main-site effective config for reference.
     try:
