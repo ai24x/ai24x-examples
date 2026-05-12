@@ -102,7 +102,7 @@ class SmsSendRequest(BaseModel):
     sms_tencent_sdk_app_id: Optional[str] = Field(default=None, max_length=64)
     sms_tencent_sign: Optional[str] = Field(default=None, max_length=64)
     sms_tencent_template_id: Optional[str] = Field(default=None, max_length=64)
-    sms_tencent_region: Optional[str] = Field(default=None, max_length=32))
+    sms_tencent_region: Optional[str] = Field(default=None, max_length=32)
 
 
 class SmsSendResponse(BaseModel):
