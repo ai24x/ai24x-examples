@@ -2044,6 +2044,7 @@ async def api_kline(
                 )
 
             # Extra anon trial quota for self-selected symbols (3/day per IP).
+            # Only check availability here; actual consume happens in kline_with_signals.
             if request is not None and _anon_daily_can_consume(request):
                 count_anon = min(int(count), 800)
                 payload = await fetch_tx_kline(
@@ -2054,11 +2055,6 @@ async def api_kline(
                     priority_override=priority_override,
                     allow_paid=False,
                 )
-                try:
-                    if isinstance(payload, dict) and int(payload.get("code") or 0) == 0:
-                        _anon_daily_consume(request)
-                except Exception:
-                    pass
                 return payload
 
             return {"code": -401, "msg": "游客今日体验次数已用完，请登录继续", "data": {}}
