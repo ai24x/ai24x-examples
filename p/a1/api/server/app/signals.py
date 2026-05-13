@@ -930,6 +930,15 @@ def build_markers_v3_js_port(candles: list[Candle]) -> list[dict[str, Any]]:
             riskBits.append("险1")
         if risk2Once[i]:
             riskBits.append("险2")
+        # v1.02: 高位死叉破位预警（MA5下穿MA10 + 中高价区 + 跌破MA14）
+        highBreakdown = (
+            cross510[i] and (not (i > 0 and cross510[i - 1]))
+            and closePos[i] >= 0.5
+            and (not _isnan(closes[i])) and (not _isnan(ma1[i]))
+            and closes[i] < ma1[i]
+        )
+        if highBreakdown:
+            riskBits.append("破位")
 
         if d1HintOnce[i]:
             push_pair(i, "belowBar", LS_COL_BOTTOM_HINT, "arrowUp", "小底", f"ls-x-{i}", 0.98, 3)
