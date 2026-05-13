@@ -248,6 +248,23 @@ def _sma_nan(closes: list[float], n: int) -> list[float]:
     return out
 
 
+def _ema_nan(closes: list[float], n: int) -> list[float]:
+    """v1.02 EMA: faster response than SMA (~2-3 bars). Warmup uses SMA as seed."""
+    alpha = 2.0 / (n + 1)
+    out = [_nan() for _ in closes]
+    if n <= 0:
+        return out
+    # Seed first valid bar with SMA
+    s = 0.0
+    for j in range(n):
+        s += float(closes[j])
+    out[n - 1] = s / float(n)
+    # EMA from then on
+    for i in range(n, len(closes)):
+        out[i] = float(closes[i]) * alpha + out[i - 1] * (1.0 - alpha)
+    return out
+
+
 def _cross_up_nan(a: list[float], b: list[float], i: int) -> bool:
     if i < 1:
         return False
@@ -439,12 +456,12 @@ def build_markers_v3_js_port(candles: list[Candle]) -> list[dict[str, Any]]:
                 vv = _nan()
             vols.append(vv if (vv == vv) else _nan())
 
-    ma1 = _sma_nan(closes, MA_N1)
-    ma2 = _sma_nan(closes, MA_N2)
-    ma3 = _sma_nan(closes, MA_N3)
-    ma4 = _sma_nan(closes, LS_N4)
-    ma5 = _sma_nan(closes, LS_N5)
-    ma7 = _sma_nan(closes, LS_N7)
+    ma1 = _ema_nan(closes, MA_N1)
+    ma2 = _ema_nan(closes, MA_N2)
+    ma3 = _ema_nan(closes, MA_N3)
+    ma4 = _ema_nan(closes, LS_N4)
+    ma5 = _ema_nan(closes, LS_N5)
+    ma7 = _ema_nan(closes, LS_N7)
 
     # regime filter (same as JS)
     REG_SLOPE_LOOKBACK = 6
@@ -792,7 +809,7 @@ def build_markers_v3_js_port(candles: list[Candle]) -> list[dict[str, Any]]:
     ts2First = [False] * n
     ts2OnceFirst = [False] * n
     for i in range(n):
-        t2 = hasBuyPoint2[i] and isRelativeHigh[i] and ma1Decline[i]
+        t2 = (hasBuyPoint2[i] or closePos[i] >= 0.6) and isRelativeHigh[i] and ma1Decline[i]
         ts2First[i] = t2
         ts2OnceFirst[i] = t2 and not (i > 0 and ts2First[i - 1])
 
