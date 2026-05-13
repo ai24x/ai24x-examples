@@ -536,9 +536,14 @@ def build_markers_v3_js_port(candles: list[Candle]) -> list[dict[str, Any]]:
         baseCnt10 = count_closes_below(ma5, i, BASE_LOOKBACK)
         cooldownOk1 = (i - lastConf1) > CONF_COOLDOWN
         windowOk1 = lastCand1 >= 0 and 0 <= (i - lastCand1) <= CONF_WINDOW
+        # v1.02: d1 buy signals now require volume confirmation (≥20MA * 1.1)
+        vNowD1 = vols[i]
+        vMa20D1 = vol_sma_at(i, 20)
+        volumeOkD1 = (not _isnan(vNowD1)) and vNowD1 > 0 and ((vNowD1 >= vMa20D1 * 1.1) if (not _isnan(vMa20D1)) else True)
         if (
             windowOk1
             and cooldownOk1
+            and volumeOkD1
             and (not _isnan(low))
             and (not _isnan(close))
             and (not _isnan(ma5[i]))
@@ -800,7 +805,7 @@ def build_markers_v3_js_port(candles: list[Candle]) -> list[dict[str, Any]]:
 
     markers: list[dict[str, Any]] = []
 
-    def push_dot(idx: int, position: str, color: str, idStr: str, sizeMul: float | None = None) -> None:
+    def push_dot(idx: int, position: str, color: str, idStr: str, sizeMul: float | None = None, weight: int = 0) -> None:
         if idx < 0 or idx >= n:
             return
         m: dict[str, Any] = {
@@ -811,10 +816,11 @@ def build_markers_v3_js_port(candles: list[Candle]) -> list[dict[str, Any]]:
             "text": "\u200b",
             "id": idStr,
             "size": float(sizeMul) if sizeMul is not None else 0.72,
+            "weight": weight,
         }
         markers.append(m)
 
-    def push_arrow(idx: int, position: str, color: str, arrowShape: str, text: str, idStr: str, sizeMul: float | None = None) -> None:
+    def push_arrow(idx: int, position: str, color: str, arrowShape: str, text: str, idStr: str, sizeMul: float | None = None, weight: int = 0) -> None:
         if idx < 0 or idx >= n or not text:
             return
         m: dict[str, Any] = {
@@ -824,14 +830,15 @@ def build_markers_v3_js_port(candles: list[Candle]) -> list[dict[str, Any]]:
             "shape": arrowShape,
             "text": text,
             "id": idStr,
+            "weight": weight,
         }
         if sizeMul is not None and float(sizeMul) != 1.0:
             m["size"] = float(sizeMul)
         markers.append(m)
 
-    def push_pair(idx: int, position: str, color: str, arrowShape: str, label: str, idBase: str, arrSize: float | None = None) -> None:
-        push_dot(idx, position, color, idBase + "-0", 0.72)
-        push_arrow(idx, position, color, arrowShape, label, idBase + "-1", arrSize if arrSize is not None else 1.06)
+    def push_pair(idx: int, position: str, color: str, arrowShape: str, label: str, idBase: str, arrSize: float | None = None, weight: int = 0) -> None:
+        push_dot(idx, position, color, idBase + "-0", 0.72, weight)
+        push_arrow(idx, position, color, arrowShape, label, idBase + "-1", arrSize if arrSize is not None else 1.06, weight)
 
     for i in range(n):
         reg = int(regime[i] or 0)
@@ -883,7 +890,7 @@ def build_markers_v3_js_port(candles: list[Candle]) -> list[dict[str, Any]]:
             riskBits.append("险2")
 
         if d1HintOnce[i]:
-            push_pair(i, "belowBar", LS_COL_BOTTOM_HINT, "arrowUp", "小底", f"ls-x-{i}", 0.98)
+            push_pair(i, "belowBar", LS_COL_BOTTOM_HINT, "arrowUp", "小底", f"ls-x-{i}", 0.98, 3)
         if allowBottomSignal and (d1Once[i] or d2Once[i]):
             realBottomBits: list[str] = []
             if d1Once[i]:
@@ -891,18 +898,18 @@ def build_markers_v3_js_port(candles: list[Candle]) -> list[dict[str, Any]]:
             if d2Once[i]:
                 realBottomBits.append("底2")
             dn = len(realBottomBits)
-            push_pair(i, "belowBar", LS_COL_BOTTOM, "arrowUp", "·".join(realBottomBits), f"ls-d-{i}", 1.1 if dn > 1 else 1.02)
+            push_pair(i, "belowBar", LS_COL_BOTTOM, "arrowUp", "·".join(realBottomBits), f"ls-d-{i}", 1.1 if dn > 1 else 1.02, 5 if dn == 1 else 7)
         if allowBottomBuy and buyBits:
             bn = len(buyBits)
-            push_pair(i, "belowBar", LS_COL_BUY, "arrowUp", "·".join(buyBits), f"ls-b-{i}", 1.14 if bn > 1 else 1.08)
+            push_pair(i, "belowBar", LS_COL_BUY, "arrowUp", "·".join(buyBits), f"ls-b-{i}", 1.14 if bn > 1 else 1.08, 4 if bn == 1 else 7)
         if sellBits:
             sn = len(sellBits)
-            push_pair(i, "aboveBar", LS_COL_SELL, "arrowDown", "·".join(sellBits), f"ls-as-{i}", 1.12 if sn > 1 else 1.06)
+            push_pair(i, "aboveBar", LS_COL_SELL, "arrowDown", "·".join(sellBits), f"ls-as-{i}", 1.12 if sn > 1 else 1.06, 3)
         if riskBits:
             rn = len(riskBits)
-            push_pair(i, "aboveBar", LS_COL_RISK, "arrowDown", "·".join(riskBits), f"ls-ar-{i}", 1.12 if rn > 1 else 1.06)
+            push_pair(i, "aboveBar", LS_COL_RISK, "arrowDown", "·".join(riskBits), f"ls-ar-{i}", 1.12 if rn > 1 else 1.06, 2)
         if highBits:
-            push_pair(i, "aboveBar", LS_COL_HIGH, "arrowDown", "·".join(highBits), f"ls-ah-{i}", 1.06)
+            push_pair(i, "aboveBar", LS_COL_HIGH, "arrowDown", "·".join(highBits), f"ls-ah-{i}", 1.06, 2)
 
     def lane(mid: Any) -> int:
         s = str(mid)
