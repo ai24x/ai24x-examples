@@ -162,7 +162,7 @@ def _anon_daily_can_consume(request: "Request") -> bool:
     if cur_day != day:
         cur_cnt = 0
         cur_day = day
-    return cur_cnt < int(getattr(settings, "anon_daily_max", 3))
+    return cur_cnt < int(getattr(settings, "anon_daily_max", 0) or _ANON_DAILY_MAX)
 
 
 def _anon_daily_consume(request: "Request") -> None:
