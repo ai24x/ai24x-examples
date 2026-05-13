@@ -64,6 +64,9 @@ class Settings:
     free_daily_cap: int
     free_weekly: int
 
+    # Anonymous guest quota
+    anon_daily_max: int
+
     vip_daily_cap: int
     vip_weekly: int
     dedupe_seconds: int
@@ -165,6 +168,7 @@ def load_settings() -> Settings:
         # Quota (CN-first / mid-term product)
         free_daily_cap=_to_int(os.getenv("AI24X_FREE_DAILY_CAP"), 10),
         free_weekly=_to_int(os.getenv("AI24X_FREE_WEEKLY"), 50),
+        anon_daily_max=_to_int(os.getenv("AI24X_ANON_DAILY_MAX"), 3),
         vip_daily_cap=_to_int(os.getenv("AI24X_VIP_DAILY_CAP"), 150),
         vip_weekly=_to_int(os.getenv("AI24X_VIP_WEEKLY"), 500),
         dedupe_seconds=_to_int(os.getenv("AI24X_DEDUPE_SECONDS"), 60),

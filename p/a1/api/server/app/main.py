@@ -121,13 +121,19 @@ async def _security_headers_mw(request: Request, call_next):
 _RL: dict[str, tuple[int, int]] = {}
 
 # Anonymous whitelist: allow a few demo/sample symbols without login to improve onboarding.
-# Keep it small to avoid abuse.
 _ANON_KLINE_WHITELIST: set[str] = {
     "1.000001",  # 上证指数
     "0.399001",  # 深证成指
     "0.399006",  # 创业板指
     "0.899050",  # 北证50
     "0.000977",  # 浪潮信息（示例）
+    "1.300059",  # 东方财富
+    "0.300059",  # 东方财富（深）
+    "1.300033",  # 同花顺
+    "1.600519",  # 贵州茅台
+    "1.688981",  # 中芯国际
+    "1.601398",  # 工商银行
+    "0.300750",  # 宁德时代
 }
 
 # Anonymous extra trial quota (non-whitelist): allow a few self-selected queries per day.
@@ -156,7 +162,7 @@ def _anon_daily_can_consume(request: "Request") -> bool:
     if cur_day != day:
         cur_cnt = 0
         cur_day = day
-    return cur_cnt < int(_ANON_DAILY_MAX)
+    return cur_cnt < int(getattr(settings, "anon_daily_max", 3))
 
 
 def _anon_daily_consume(request: "Request") -> None:
