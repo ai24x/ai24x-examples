@@ -5231,7 +5231,7 @@
     setLoadError('');
     setSoftLoading(true);
     showOfflineHintIfNeeded();
-    if (!isAuthed() && !guestViewsCanUse()) {
+    if (!isAuthed() && !isLoginFreeWhitelistSecid(currentSecid) && !guestViewsCanUse()) {
       showGuestLimitUpsell();
       setSoftLoading(false);
       return Promise.resolve();
