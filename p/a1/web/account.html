@@ -2642,6 +2642,7 @@
 
       function logout() {
         tokenClear();
+        try { localStorage.removeItem('ai24x_a_watchlist'); } catch (e) {}
         if (authGuest) authGuest.hidden = false;
         if (authUser) authUser.hidden = true;
         quotaKv.hidden = true;

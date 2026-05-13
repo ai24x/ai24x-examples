@@ -1114,6 +1114,7 @@
 
       function logout() {
         tokenClear();
+        try { localStorage.removeItem('ai24x_a_watchlist'); } catch (e) {}
         quotaKv.hidden = true;
         setLoggedUi(false);
         setStatus("已退出。");
