@@ -4366,6 +4366,10 @@
         try {
           var sig = (sd && sd.signals) ? sd.signals : (sd && sd.data ? sd.data : null);
           _lastSignalData = sig; // cache for share card
+          // Debug: log signal count for guest users
+          if (!isAuthed()) {
+            try { console.log('[a1] signals received:', sig ? (sig.markers ? sig.markers.length : 0) : 0, 'markers'); } catch (eD) {}
+          }
           var mk = sig && sig.markers ? sig.markers : [];
           try {
             if (mk && mk.length) {
