@@ -577,8 +577,8 @@ def build_markers_v3_js_port(candles: list[Candle]) -> list[dict[str, Any]]:
         windowOk1 = lastCand1 >= 0 and 0 <= (i - lastCand1) <= CONF_WINDOW
         # v1.02: d1 buy signals now require volume confirmation (≥50MA * 1.1)
         vNowD1 = vols[i]
-        vMa20D1 = vol_sma_at(i, 50)
-        volumeOkD1 = (not _isnan(vNowD1)) and vNowD1 > 0 and ((vNowD1 >= vMa20D1) if (not _isnan(vMa20D1)) else True)
+        vMa20D1 = vol_sma_at(i, 20)
+        volumeOkD1 = (not _isnan(vNowD1)) and vNowD1 > 0 and ((vNowD1 >= vMa20D1 * 0.95) if (not _isnan(vMa20D1)) else True)
         if (
             windowOk1
             and cooldownOk1
@@ -625,7 +625,7 @@ def build_markers_v3_js_port(candles: list[Candle]) -> list[dict[str, Any]]:
         # small bottom enhancement
         if (not d1Once[i]) and (i - lastConf1) > _cooldown_at(i):
             vNow1 = vols[i]
-            vMa20_1 = vol_sma_at(i, 50)
+            vMa20_1 = vol_sma_at(i, 20)
             if (_isnan(vNow1)) or vNow1 <= 0:
                 volumeOk1 = True
             else:
@@ -696,7 +696,7 @@ def build_markers_v3_js_port(candles: list[Candle]) -> list[dict[str, Any]]:
         )
         crossDayOk20 = dCand2[i] and stUp510 and (not _isnan(close)) and (not _isnan(ma7[i])) and close >= ma7[i]
         vNow = vols[i]
-        vMa20 = vol_sma_at(i, 50)
+        vMa20 = vol_sma_at(i, 20)
         volumeOk2 = (not _isnan(vNow)) and vNow > 0 and ((vNow >= vMa20 * 1.15) if (not _isnan(vMa20)) else True)
         if (
             lastCand2 >= 0
