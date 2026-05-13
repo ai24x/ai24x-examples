@@ -881,7 +881,9 @@ def build_markers_v3_js_port(candles: list[Candle]) -> list[dict[str, Any]]:
 
     for i in range(n):
         reg = int(regime[i] or 0)
-        allowBottomBuy = reg != -1
+        # v1.02: allow buy signals above MA28 even during post-crash regime decline
+        aboveMA28 = (not _isnan(closes[i])) and (not _isnan(ma2[i])) and closes[i] >= ma2[i]
+        allowBottomBuy = (reg != -1) or aboveMA28
         allowSellHigh = reg != 1
 
         strongBottomException = (reg == -1 and d2Once[i] and (closePos[i] <= 0.25))
