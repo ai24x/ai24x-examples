@@ -80,7 +80,7 @@
       '<div class="container">' +
       '<div class="footer-grid">' +
       '<div class="footer-col">' +
-      '<div class="footer-title">AI24X · AI 行情官｜灯塔版（V1.01）</div>' +
+      '<div class="footer-title">AI24X · AI 行情官｜灯塔版（V1.02）</div>' +
       '<div class="mt-2">行情与指标，一目了然</div>' +
       "</div>" +
       '<div class="footer-col">' +
@@ -239,7 +239,7 @@
     var grid = _el("div", { class: "footer-grid" }, []);
 
     var c1 = _el("div", { class: "footer-col" }, [
-      _el("div", { class: "footer-title", text: "AI24X · AI 行情官｜灯塔版（V1.01）" }),
+      _el("div", { class: "footer-title", text: "AI24X · AI 行情官｜灯塔版（V1.02）" }),
       _el("div", { class: "mt-2", text: "行情与指标，一目了然" }),
     ]);
     var c2 = _el("div", { class: "footer-col" }, [
