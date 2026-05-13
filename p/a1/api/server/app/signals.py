@@ -902,6 +902,7 @@ def build_markers_v3_js_port(candles: list[Candle]) -> list[dict[str, Any]]:
             or strongSmallBottomException
             or strongMainBottomException
             or strongBottomStrongD1Exception
+            or (d1MainOnce[i] and closePos[i] <= BOTTOM_MAX_POS and (not _isnan(ma1[i])) and closes[i] >= ma1[i])
         )
 
         highBits: list[str] = []
