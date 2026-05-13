@@ -205,6 +205,36 @@ def _isnan(x: float) -> bool:
     return math.isnan(x)
 
 
+def _atr(closes: list[float], highs: list[float | None], lows: list[float | None], n: int) -> list[float]:
+    """Average True Range (Wilder's smoothed). Returns NaN for warmup bars."""
+    tr: list[float] = []
+    for i in range(len(closes)):
+        h = highs[i] if highs[i] is not None and not _isnan(float(highs[i])) else _nan()
+        l = lows[i] if lows[i] is not None and not _isnan(float(lows[i])) else _nan()
+        prev_c = float(closes[i - 1]) if i > 0 and not _isnan(float(closes[i - 1])) else _nan()
+        if _isnan(h) or _isnan(l):
+            tr.append(_nan())
+        else:
+            r1 = h - l
+            r2 = abs(h - prev_c) if not _isnan(prev_c) else 0.0
+            r3 = abs(l - prev_c) if not _isnan(prev_c) else 0.0
+            tr.append(max(r1, r2, r3))
+    atr: list[float] = []
+    s = 0.0
+    for i in range(len(tr)):
+        if _isnan(tr[i]):
+            atr.append(_nan())
+            continue
+        if i < n:
+            atr.append(_nan())
+            s += tr[i]
+            if i == n - 1:
+                atr[i] = s / n
+        else:
+            atr.append((atr[i - 1] * (n - 1) + tr[i]) / n)
+    return atr
+
+
 def _sma_nan(closes: list[float], n: int) -> list[float]:
     """JS parity: returns NaN for warmup bars."""
     out = [_nan() for _ in closes]
@@ -381,7 +411,7 @@ def build_markers_v3_js_port(candles: list[Candle]) -> list[dict[str, Any]]:
     MA_N3 = 57
     LS_N4 = 5
     LS_N5 = 10
-    LS_N7 = 20
+    LS_N7 = 28  # v1.03: 原MA20冗余替换为MA28，与MA14形成有效间距
     LS_PERIOD_HIGH = 20
 
     LS_COL_BUY = "#ff3d5c"
@@ -395,6 +425,8 @@ def build_markers_v3_js_port(candles: list[Candle]) -> list[dict[str, Any]]:
         return []
 
     closes = [float(c.close) for c in candles]
+    highs = [float(c.high) for c in candles]
+    lows = [float(c.low) for c in candles]
     vols: list[float] = []
     for c in candles:
         v = c.vol
@@ -482,7 +514,14 @@ def build_markers_v3_js_port(candles: list[Candle]) -> list[dict[str, Any]]:
     lastConf2 = -9999
     lastHint1 = -9999
     CONF_WINDOW = 10
-    CONF_COOLDOWN = 10
+    # v1.03: ATR-based adaptive cooldown (replaces fixed CONF_COOLDOWN)
+    _atr14 = _atr(closes, highs, lows, 14)
+    _atr_pct = [(float(_atr14[i]) / float(closes[i]) * 100) if (i < n and not _isnan(_atr14[i]) and closes[i] > 0) else 1.5 for i in range(n)]
+
+    def _cooldown_at(i: int) -> int:
+        pct = _atr_pct[i] if i < len(_atr_pct) else 1.5
+        # clamp between 6 and 16 days based on volatility
+        return max(6, min(16, int(pct * 3.5 + 2)))
     RECLAIM_BAND_PCT = 0.012
     REQUIRE_ABOVE_MA14 = True
     BASE_LOOKBACK = 6
@@ -534,7 +573,7 @@ def build_markers_v3_js_port(candles: list[Candle]) -> list[dict[str, Any]]:
         )
         crossDayOk10 = dCand1[i] and stUp510_d1 and above14 and (not _isnan(close)) and (not _isnan(ma5[i])) and close >= ma5[i]
         baseCnt10 = count_closes_below(ma5, i, BASE_LOOKBACK)
-        cooldownOk1 = (i - lastConf1) > CONF_COOLDOWN
+        cooldownOk1 = (i - lastConf1) > _cooldown_at(i)
         windowOk1 = lastCand1 >= 0 and 0 <= (i - lastCand1) <= CONF_WINDOW
         # v1.02: d1 buy signals now require volume confirmation (≥20MA * 1.1)
         vNowD1 = vols[i]
@@ -584,7 +623,7 @@ def build_markers_v3_js_port(candles: list[Candle]) -> list[dict[str, Any]]:
             lastHint1 = i
 
         # small bottom enhancement
-        if (not d1Once[i]) and (i - lastConf1) > CONF_COOLDOWN:
+        if (not d1Once[i]) and (i - lastConf1) > _cooldown_at(i):
             vNow1 = vols[i]
             vMa20_1 = vol_sma_at(i, 20)
             if (_isnan(vNow1)) or vNow1 <= 0:
@@ -662,7 +701,7 @@ def build_markers_v3_js_port(candles: list[Candle]) -> list[dict[str, Any]]:
         if (
             lastCand2 >= 0
             and 0 <= (i - lastCand2) <= CONF_WINDOW
-            and (i - lastConf2) > CONF_COOLDOWN
+            and (i - lastConf2) > _cooldown_at(i)
             and (not _isnan(low))
             and (not _isnan(close))
             and (not _isnan(ma7[i]))
