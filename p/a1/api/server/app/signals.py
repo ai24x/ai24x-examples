@@ -908,8 +908,6 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         push_arrow(idx, position, color, arrowShape, label, idBase + "-1", arrSize if arrSize is not None else 1.06, weight)
 
     lastBreakdownIdx = -9999
-    lastConvergeIdx = -9999
-    _convergeStreak: list[int] = []
     for i in range(n):
         reg = int(regime[i] or 0)
         # v1.02: allow buy signals above MA28 even during post-crash regime decline
@@ -979,26 +977,6 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             riskBits.append("破位")
             lastBreakdownIdx = i
 
-        # v1.02: MA收敛警示 — 短期三线(5/10/14)间距<1%持续5天+30日冷却
-        CONVERGE_STREAK = 5
-        CONVERGE_TH = 0.01
-        CONVERGE_COOLDOWN = 30
-        _maConverge = (
-            (not _isnan(ma4[i])) and (not _isnan(ma5[i])) and (not _isnan(ma1[i]))
-            and closes[i] > 0
-        )
-        if _maConverge:
-            _mas = [ma4[i], ma5[i], ma1[i]]
-            _spread = (max(_mas) - min(_mas)) / closes[i]
-            if _spread < CONVERGE_TH:
-                _convergeStreak.append(i)
-            else:
-                _convergeStreak.clear()
-            if len(_convergeStreak) >= CONVERGE_STREAK and (i - lastConvergeIdx) > CONVERGE_COOLDOWN:
-                riskBits.append("收敛")
-                lastConvergeIdx = i
-                _convergeStreak.clear()  # one emit per cluster
-
         # v1.02: 同bar去重 — 卖/险/顶 三者只保留最高severity
         # severity: 顶2 > 卖1+卖2 > 卖1 > 卖2 > 险1+破位 > 险1 > 险2 > 破位
         def _danger_score(bits: list[str]) -> int:
@@ -1011,7 +989,6 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             if '险1' in s and '破位' in s: score = max(score, 60)
             if '险1' in s: score = max(score, 50)
             if '险2' in s: score = max(score, 40)
-            if '收敛' in s: score = max(score, 35)
             if '破位' in s: score = max(score, 30)
             return score
         danger = [(sellBits, _danger_score(sellBits)), (riskBits, _danger_score(riskBits)), (highBits, _danger_score(highBits))]
