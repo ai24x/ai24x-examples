@@ -3999,10 +3999,10 @@
         lockVisibleTimeRangeOnResize: true,
       },
     });
-    // v1.04: 双生命线 — MA57(绿)主生命线加粗, MA28(蓝)次生命线, MA14(橙)降为普通均线
+    // v1.04: 双生命线 — MA57(绿)主生命线, MA28(蓝)次生命线, MA14(橙)普通均线
     maSeries1 = lcAddMaLine(chart, '#ff8000');   // MA14 橙色 — 普通均线
     maSeries2 = lcAddMaLine(chart, '#3399ff');   // MA28 蓝色 — 次生命线
-    maSeries3 = lcAddMaLinePrimary(chart, '#00c853');  // MA57 绿色 — 主生命线(加粗)
+    maSeries3 = lcAddMaLine(chart, '#00c853');   // MA57 绿色 — 主生命线
     maShort1 = null;
     maShort2 = null;
     maShort3 = null;
