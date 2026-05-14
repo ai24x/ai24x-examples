@@ -904,6 +904,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         push_dot(idx, position, color, idBase + "-0", 0.72, weight)
         push_arrow(idx, position, color, arrowShape, label, idBase + "-1", arrSize if arrSize is not None else 1.06, weight)
 
+    lastBreakdownIdx = -9999
     for i in range(n):
         reg = int(regime[i] or 0)
         # v1.02: allow buy signals above MA28 even during post-crash regime decline
@@ -944,7 +945,9 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
                 buyBits.append("买2")
 
         sellBits: list[str] = []
-        if allowSellHigh:
+        # v1.02: buy signals suppress same-day sell signals (inflection point priority)
+        hasBuyToday = bool(buyBits or (allowBottomSignal and (d1Once[i] or d2Once[i])))
+        if allowSellHigh and not hasBuyToday:
             if ts1Once[i]:
                 sellBits.append("卖1")
             if ts2Once[i]:
@@ -955,13 +958,18 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             riskBits.append("险1")
         if risk2Once[i]:
             riskBits.append("险2")
-        # v1.02: 高位死叉破位预警（MA5下穿MA10 + 中高价区 + 跌破MA14）
+        # v1.02: 高位死叉破位预警 + 10日冷却（防刷屏）
+        breakdownCooldown = (i - lastBreakdownIdx) > 10 if lastBreakdownIdx >= 0 else True
         highBreakdown = (
             cross510[i] and (not (i > 0 and cross510[i - 1]))
             and closePos[i] >= 0.5
             and (not _isnan(closes[i])) and (not _isnan(ma1[i]))
             and closes[i] < ma1[i]
+            and breakdownCooldown
         )
+        if highBreakdown:
+            riskBits.append("破位")
+            lastBreakdownIdx = i
         if highBreakdown:
             riskBits.append("破位")
 
