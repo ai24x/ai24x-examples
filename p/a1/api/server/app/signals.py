@@ -698,10 +698,13 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             and (not _isnan(ma5[i]))
             and (not _isnan(ma4[i]))
             and (not aboveMA14)  # v1.04: hint仅在MA14下方
-            and closePos[i] <= BOTTOM_MAX_POS  # v1.02: hint only in lower price zone
+            and belowMA57  # v1.04: 必须在主生命线下方
+            and (i > 0 and (not _isnan(closes[i-1])) and (not _isnan(ma3[i-1])) and closes[i-1] < ma3[i-1])  # 非刚跌破，前日也在MA57下方
+            and closePos[i] <= BOTTOM_MAX_POS
             and (close >= ma5[i] * 0.98)  # v1.02: relaxed reclaim (EMA lag-tolerant)
             and (touch10 or dCand1[i] or futureCrossSoon)
-            and ma4[i] >= ma5[i] * 0.998  # v1.02: floating tolerance for near-equal EMAs
+            and ma4[i] >= ma5[i]  # v1.04: 必须MA5≥MA10，非死叉区
+            and (not turnDn14[i])  # v1.04: 下拐日不出小底（矛盾信号）
             and baseCnt10 >= BASE_MIN_BELOW
         )
         if hintOk and (not d1Once[i]):
