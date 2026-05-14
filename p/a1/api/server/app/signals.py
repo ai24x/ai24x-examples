@@ -522,9 +522,9 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
     SLOPE_BEAR = -0.003
 
     # v1.04: MA14 斜率拐点检测 — 灵敏度高于MA28/MA57，适合抄底逃顶
-    TURN_UP_TH_14 = 0.0025   # MA14 5日斜率突破0.25% = 走平上拐
-    TURN_DN_TH_14 = -0.0025  # MA14 5日斜率跌破-0.25% = 走平下拐
-    TURN_FLAT_14 = 0.001     # MA14 "走平"区间 ±0.1%
+    TURN_UP_TH_14 = 0.002    # MA14 5日斜率突破0.2% = 走平上拐 (灵敏)
+    TURN_DN_TH_14 = -0.002   # MA14 5日斜率跌破-0.2% = 走平下拐
+    TURN_FLAT_14 = 0.0008    # MA14 "走平"区间 ±0.08%
 
     slopeMA14_5: list[float] = []
     for i in range(n):
@@ -1054,7 +1054,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
 
         # v1.04: MA14斜率拐点 — ↗走平上拐 / ↘走平下拐 特殊箭头
         turnBits: list[str] = []
-        TURN_COOLDOWN_14 = 8
+        TURN_COOLDOWN_14 = 5
         if i - lastTurn14UpIdx > TURN_COOLDOWN_14 if lastTurn14UpIdx >= 0 else True:
             if turnUp14[i]:
                 turnBits.append("↗")
@@ -1131,13 +1131,13 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         if allowBottomBuy and buyBits:
             bn = len(buyBits)
             push_pair(i, "belowBar", LS_COL_BUY, "arrowUp", "·".join(buyBits), f"ls-b-{i}", 1.14 if bn > 1 else 1.08, 4 if bn == 1 else 7)
-        # v1.04: MA14拐点 — 紫箭头: ↗belowBar ↘aboveBar
+        # v1.04: MA14拐点 — 紫箭头加粗: ↗belowBar ↘aboveBar
         if turnBits:
             for tb in turnBits:
                 if tb == "↗":
-                    push_arrow(i, "belowBar", LS_COL_TURN, "arrowUp", tb, f"ls-turn-{i}-up", 1.05, 2)
+                    push_arrow(i, "belowBar", LS_COL_TURN, "arrowUp", tb, f"ls-turn-{i}-up", 1.25, 3)
                 else:
-                    push_arrow(i, "aboveBar", LS_COL_TURN, "arrowDown", tb, f"ls-turn-{i}-dn", 1.05, 2)
+                    push_arrow(i, "aboveBar", LS_COL_TURN, "arrowDown", tb, f"ls-turn-{i}-dn", 1.25, 3)
         if sellBits:
             sn = len(sellBits)
             push_pair(i, "aboveBar", LS_COL_SELL, "arrowDown", "·".join(sellBits), f"ls-as-{i}", 1.12 if sn > 1 else 1.06, 3)
