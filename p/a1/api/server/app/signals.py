@@ -521,31 +521,27 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
     SLOPE_BULL = 0.003
     SLOPE_BEAR = -0.003
 
-    # v1.04: 斜率拐点检测 — 走平→突破阈值 = 趋势改变
-    TURN_UP_TH_57 = 0.004   # MA57 10日斜率突破0.4% = 上拐
-    TURN_DN_TH_57 = -0.004  # MA57 10日斜率跌破-0.4% = 下拐
-    TURN_UP_TH_28 = 0.003   # MA28 5日斜率突破0.3% = 上拐
-    TURN_DN_TH_28 = -0.003  # MA28 5日斜率跌破-0.3% = 下拐
-    TURN_FLAT = 0.0015      # "走平"区间 ±0.15%
+    # v1.04: MA14 斜率拐点检测 — 灵敏度高于MA28/MA57，适合抄底逃顶
+    TURN_UP_TH_14 = 0.0025   # MA14 5日斜率突破0.25% = 走平上拐
+    TURN_DN_TH_14 = -0.0025  # MA14 5日斜率跌破-0.25% = 走平下拐
+    TURN_FLAT_14 = 0.001     # MA14 "走平"区间 ±0.1%
 
-    turnUp57: list[bool] = [False] * n
-    turnDn57: list[bool] = [False] * n
-    turnUp28: list[bool] = [False] * n
-    turnDn28: list[bool] = [False] * n
+    slopeMA14_5: list[float] = []
+    for i in range(n):
+        if i >= SLOPE_LOOKBACK_5 and (not _isnan(ma1[i])) and (not _isnan(ma1[i - SLOPE_LOOKBACK_5])) and ma1[i - SLOPE_LOOKBACK_5] != 0:
+            slopeMA14_5.append((ma1[i] - ma1[i - SLOPE_LOOKBACK_5]) / abs(ma1[i - SLOPE_LOOKBACK_5]))
+        else:
+            slopeMA14_5.append(_nan())
+
+    turnUp14: list[bool] = [False] * n
+    turnDn14: list[bool] = [False] * n
     for i in range(1, n):
-        s57 = slopeMA57_10[i] if i < len(slopeMA57_10) else _nan()
-        s57p = slopeMA57_10[i-1] if i-1 < len(slopeMA57_10) else _nan()
-        s28 = slopeMA28_5[i] if i < len(slopeMA28_5) else _nan()
-        s28p = slopeMA28_5[i-1] if i-1 < len(slopeMA28_5) else _nan()
-        # 上拐：上一根走平/下拐，当前突破上拐阈值
-        if (not _isnan(s57p)) and (not _isnan(s57)) and s57p <= TURN_FLAT and s57 > TURN_UP_TH_57:
-            turnUp57[i] = True
-        if (not _isnan(s57p)) and (not _isnan(s57)) and s57p >= -TURN_FLAT and s57 < TURN_DN_TH_57:
-            turnDn57[i] = True
-        if (not _isnan(s28p)) and (not _isnan(s28)) and s28p <= TURN_FLAT and s28 > TURN_UP_TH_28:
-            turnUp28[i] = True
-        if (not _isnan(s28p)) and (not _isnan(s28)) and s28p >= -TURN_FLAT and s28 < TURN_DN_TH_28:
-            turnDn28[i] = True
+        s14 = slopeMA14_5[i] if i < len(slopeMA14_5) else _nan()
+        s14p = slopeMA14_5[i-1] if i-1 < len(slopeMA14_5) else _nan()
+        if (not _isnan(s14p)) and (not _isnan(s14)) and s14p <= TURN_FLAT_14 and s14 > TURN_UP_TH_14:
+            turnUp14[i] = True
+        if (not _isnan(s14p)) and (not _isnan(s14)) and s14p >= -TURN_FLAT_14 and s14 < TURN_DN_TH_14:
+            turnDn14[i] = True
 
     # close position filter
     BOTTOM_RANGE_N = 60
@@ -978,16 +974,21 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
     lastB1Idx = -9999
     lastB2Idx = -9999
     lastB3Idx = -9999
-    # v1.04: 斜率拐点独立冷却（MA57拐点稀有，20天冷却；MA28 10天冷却）
-    lastTurn57UpIdx = -9999
-    lastTurn57DnIdx = -9999
-    lastTurn28UpIdx = -9999
-    lastTurn28DnIdx = -9999
+    # v1.04: MA14斜率拐点独立冷却（8天冷却，适合短周期抄底逃顶）
+    lastTurn14UpIdx = -9999
+    lastTurn14DnIdx = -9999
     for i in range(n):
         reg = int(regime[i] or 0)
-        # v1.02: allow buy signals above MA28 even during post-crash regime decline
-        aboveMA28 = (not _isnan(closes[i])) and (not _isnan(ma2[i])) and closes[i] >= ma2[i]
-        allowBottomBuy = (reg != -1) or aboveMA28
+        # v1.04: 双生命线位置提前计算（供允许买卖判断用）
+        closeV = closes[i]
+        aboveMA57_2 = (not _isnan(closeV)) and (not _isnan(ma3[i])) and closeV >= ma3[i]
+        aboveMA28_2 = (not _isnan(closeV)) and (not _isnan(ma2[i])) and closeV >= ma2[i]
+        belowMA57_2 = (not _isnan(closeV)) and (not _isnan(ma3[i])) and closeV < ma3[i]
+        belowMA28_2 = (not _isnan(closeV)) and (not _isnan(ma2[i])) and closeV < ma2[i]
+        bothBelowQ = belowMA57_2 and belowMA28_2    # 象限① 深熊
+        bothAboveQ = aboveMA57_2 and aboveMA28_2    # 象限④ 强牛
+        # v1.04: 象限①深熊区突破regime封锁 — 双生命线下方正是抄底时机
+        allowBottomBuy = (reg != -1) or aboveMA28_2 or bothBelowQ
         allowSellHigh = reg != 1
 
         strongBottomException = (reg == -1 and d2Once[i] and (closePos[i] <= 0.25))
@@ -1014,18 +1015,11 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             if high2Once[i]:
                 highBits.append("顶2")
 
-        # v1.04: 双生命线四象限
-        closeV = closes[i]
-        aboveMA57_2 = (not _isnan(closeV)) and (not _isnan(ma3[i])) and closeV >= ma3[i]
-        aboveMA28_2 = (not _isnan(closeV)) and (not _isnan(ma2[i])) and closeV >= ma2[i]
-        belowMA57_2 = (not _isnan(closeV)) and (not _isnan(ma3[i])) and closeV < ma3[i]
-        belowMA28_2 = (not _isnan(closeV)) and (not _isnan(ma2[i])) and closeV < ma2[i]
-        bothBelowQ = belowMA57_2 and belowMA28_2    # 象限① 深熊
+        # v1.04: 双生命线四象限（位置定义已提前，此处只补充过渡区）
         primaryBelowQ = belowMA57_2 and (not belowMA28_2)  # 象限② 熊反弹
-        bothAboveQ = aboveMA57_2 and aboveMA28_2    # 象限④ 强牛
         primaryAboveQ = aboveMA57_2 and (not aboveMA28_2)  # 象限③ 牛回调
 
-        # 斜率方向（v1.04新增）
+        # 斜率方向（v1.04）
         slope28 = slopeMA28_5[i] if i < len(slopeMA28_5) else _nan()
         slope57 = slopeMA57_10[i] if i < len(slopeMA57_10) else _nan()
         slopeBullish = (not _isnan(slope28)) and (not _isnan(slope57)) and slope28 > -SLOPE_FLAT and slope57 > -SLOPE_BEAR
@@ -1058,26 +1052,17 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         if allowBottomBuy and (closePos[i] <= BUY_MAX_POS) and tj3PostOnce[i]:
             buyBits.append("买2")
 
-        # v1.04: 斜率拐点信号 — 生命线趋势改变时的箭头标记
+        # v1.04: MA14斜率拐点 — ↗走平上拐 / ↘走平下拐 特殊箭头
         turnBits: list[str] = []
-        TURN_COOLDOWN_57 = 20
-        TURN_COOLDOWN_28 = 10
-        if i - lastTurn57UpIdx > TURN_COOLDOWN_57 if lastTurn57UpIdx >= 0 else True:
-            if turnUp57[i]:
-                turnBits.append("↑MA57")
-                lastTurn57UpIdx = i
-        if i - lastTurn57DnIdx > TURN_COOLDOWN_57 if lastTurn57DnIdx >= 0 else True:
-            if turnDn57[i]:
-                turnBits.append("↓MA57")
-                lastTurn57DnIdx = i
-        if i - lastTurn28UpIdx > TURN_COOLDOWN_28 if lastTurn28UpIdx >= 0 else True:
-            if turnUp28[i]:
-                turnBits.append("↑MA28")
-                lastTurn28UpIdx = i
-        if i - lastTurn28DnIdx > TURN_COOLDOWN_28 if lastTurn28DnIdx >= 0 else True:
-            if turnDn28[i]:
-                turnBits.append("↓MA28")
-                lastTurn28DnIdx = i
+        TURN_COOLDOWN_14 = 8
+        if i - lastTurn14UpIdx > TURN_COOLDOWN_14 if lastTurn14UpIdx >= 0 else True:
+            if turnUp14[i]:
+                turnBits.append("↗")
+                lastTurn14UpIdx = i
+        if i - lastTurn14DnIdx > TURN_COOLDOWN_14 if lastTurn14DnIdx >= 0 else True:
+            if turnDn14[i]:
+                turnBits.append("↘")
+                lastTurn14DnIdx = i
 
         sellBits: list[str] = []
         # v1.04: 卖/险信号 — 价格必须在主生命线上方（bothAbove优先）
@@ -1146,13 +1131,13 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         if allowBottomBuy and buyBits:
             bn = len(buyBits)
             push_pair(i, "belowBar", LS_COL_BUY, "arrowUp", "·".join(buyBits), f"ls-b-{i}", 1.14 if bn > 1 else 1.08, 4 if bn == 1 else 7)
-        # v1.04: 斜率拐点 — 紫色箭头
+        # v1.04: MA14拐点 — 紫箭头: ↗belowBar ↘aboveBar
         if turnBits:
             for tb in turnBits:
-                if tb.startswith("↑"):
-                    push_arrow(i, "belowBar", LS_COL_TURN, "arrowUp", tb, f"ls-turn-{i}-{tb}", 0.95, 1)
+                if tb == "↗":
+                    push_arrow(i, "belowBar", LS_COL_TURN, "arrowUp", tb, f"ls-turn-{i}-up", 1.05, 2)
                 else:
-                    push_arrow(i, "aboveBar", LS_COL_TURN, "arrowDown", tb, f"ls-turn-{i}-{tb}", 0.95, 1)
+                    push_arrow(i, "aboveBar", LS_COL_TURN, "arrowDown", tb, f"ls-turn-{i}-dn", 1.05, 2)
         if sellBits:
             sn = len(sellBits)
             push_pair(i, "aboveBar", LS_COL_SELL, "arrowDown", "·".join(sellBits), f"ls-as-{i}", 1.12 if sn > 1 else 1.06, 3)
