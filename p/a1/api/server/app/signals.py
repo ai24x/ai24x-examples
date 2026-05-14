@@ -613,7 +613,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             and (not _isnan(ma5[i]))
             and (not _isnan(ma4[i]))
             and ((not REQUIRE_ABOVE_MA14) or above14)
-            and (((reclaim10 and (touch10 or dCand1[i])) or crossDayOk10 or crossRecovery10 or dCand1[i]))
+            and (((reclaim10 and (touch10 or dCand1[i])) or crossDayOk10 or crossRecovery10 or (dCand1[i] and above14)))
             and ma4[i] >= ma5[i]
             and baseCnt10 >= BASE_MIN_BELOW
         ):
