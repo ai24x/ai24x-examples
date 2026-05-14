@@ -442,7 +442,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
     LS_COL_HIGH = "#ff0090"
     LS_COL_BOTTOM = "#38bdf8"
     LS_COL_BOTTOM_HINT = "#22c55e"
-    LS_COL_TURN = "#00e5ff"        # v1.04: 斜率拐点亮青色(高可见度)
+    LS_COL_TURN = "#c026d3"        # v1.04: 斜率拐点亮紫色(高对比度)
 
     if n < MA_N3 + 5:
         return []
