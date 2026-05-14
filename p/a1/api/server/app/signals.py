@@ -545,7 +545,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
 
     # close position filter
     BOTTOM_RANGE_N = 60
-    BOTTOM_MAX_POS = 0.55
+    BOTTOM_MAX_POS = 0.65
     BUY_MAX_POS = 0.55
     closePos: list[float] = [0.5 for _ in range(n)]
     for i in range(n):
@@ -589,8 +589,8 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         # clamp between 6 and 16 days based on volatility
         return max(6, min(16, int(pct * 3.5 + 2)))
     RECLAIM_BAND_PCT = 0.03  # v1.02: widened from 1.2% to 3% for V-bounce capture
-    # v1.04: 底信号确认需要价格回到次生命线(MA28)上方
-    REQUIRE_ABOVE_SECONDARY = True
+    # v1.04: 底信号简化 — 站上MA14 + 有点放量即可
+    REQUIRE_ABOVE_MA14 = True
     BASE_LOOKBACK = 6
     BASE_MIN_BELOW = 3
 
@@ -628,6 +628,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         reclaim10 = (not _isnan(close)) and (not _isnan(ma5[i])) and close >= ma5[i] and close <= ma5[i] * (1 + RECLAIM_BAND_PCT)
         touch10 = (not _isnan(low)) and (not _isnan(ma5[i])) and low <= ma5[i]
         # v1.04: 双生命线判断
+        aboveMA14 = (not _isnan(close)) and (not _isnan(ma1[i])) and close >= ma1[i]
         aboveMA28 = (not _isnan(close)) and (not _isnan(ma2[i])) and close >= ma2[i]
         aboveMA57 = (not _isnan(close)) and (not _isnan(ma3[i])) and close >= ma3[i]
         belowMA28 = (not _isnan(close)) and (not _isnan(ma2[i])) and close < ma2[i]
@@ -640,7 +641,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         # v1.02: golden cross recovery — catch V-bounces within 3 bars of cross
         crossRecovery10 = (
             (i - lastCand1) <= 3 and lastCand1 >= 0
-            and aboveMA28 and close >= ma5[i]
+            and aboveMA14 and close >= ma5[i]
             and ma4[i] >= ma5[i]
         )
         stUp510_d1 = (
@@ -653,14 +654,14 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             and ma4[i] > ma4[i - 1]
             and ma5[i] > ma5[i - 1]
         )
-        crossDayOk10 = dCand1[i] and stUp510_d1 and aboveMA28 and (not _isnan(close)) and (not _isnan(ma5[i])) and close >= ma5[i]
+        crossDayOk10 = dCand1[i] and stUp510_d1 and aboveMA14 and (not _isnan(close)) and (not _isnan(ma5[i])) and close >= ma5[i]
         baseCnt10 = count_closes_below(ma5, i, BASE_LOOKBACK)
         cooldownOk1 = (i - lastConf1) > (_cooldown_at(i) if not crossRecovery10 else 4)
         windowOk1 = lastCand1 >= 0 and 0 <= (i - lastCand1) <= CONF_WINDOW
         # v1.02: d1 buy signals now require volume confirmation (≥20MA * 0.85)
         vNowD1 = vols[i]
         vMa20D1 = vol_sma_at(i, 20)
-        volumeOkD1 = (not _isnan(vNowD1)) and vNowD1 > 0 and ((vNowD1 >= vMa20D1 * 0.85) if (not _isnan(vMa20D1)) else True)
+        volumeOkD1 = (not _isnan(vNowD1)) and vNowD1 > 0 and ((vNowD1 >= vMa20D1 * 0.75) if (not _isnan(vMa20D1)) else True)
         if (
             windowOk1
             and cooldownOk1
@@ -669,7 +670,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             and (not _isnan(close))
             and (not _isnan(ma5[i]))
             and (not _isnan(ma4[i]))
-            and ((not REQUIRE_ABOVE_SECONDARY) or aboveMA28)
+            and ((not REQUIRE_ABOVE_MA14) or aboveMA14)
             and (((reclaim10 and (touch10 or dCand1[i])) or crossDayOk10 or crossRecovery10 or dCand1[i]))
             and ma4[i] >= ma5[i]
             and baseCnt10 >= BASE_MIN_BELOW
@@ -696,7 +697,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             and (not _isnan(close))
             and (not _isnan(ma5[i]))
             and (not _isnan(ma4[i]))
-            and (not aboveMA28)  # v1.04: hint仅在次生命线(MA28)下方
+            and (not aboveMA14)  # v1.04: hint仅在MA14下方
             and closePos[i] <= BOTTOM_MAX_POS  # v1.02: hint only in lower price zone
             and (close >= ma5[i] * 0.98)  # v1.02: relaxed reclaim (EMA lag-tolerant)
             and (touch10 or dCand1[i] or futureCrossSoon)
@@ -760,7 +761,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
                 and downCnt >= 1
                 and (((secondCross510 and stUp510_1) or (cross514 and stUp510Loose)))
                 and smallReclaim10
-                and ((not REQUIRE_ABOVE_SECONDARY) or aboveMA28)
+                and ((not REQUIRE_ABOVE_MA14) or aboveMA14)
             )
             if smallOk:
                 d1Once[i] = True
@@ -791,7 +792,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             and (not _isnan(close))
             and (not _isnan(ma7[i]))
             and (not _isnan(ma5[i]))
-            and ((not REQUIRE_ABOVE_SECONDARY) or aboveMA28)
+            and ((not REQUIRE_ABOVE_MA14) or aboveMA14)
             and (((reclaim20 and touch20) or crossDayOk20))
             and volumeOk2
             and ma5[i] >= ma7[i]
@@ -803,23 +804,10 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
     jc1 = [_cross_up_nan(ma1, ma2, i) for i in range(n)]
     jc3 = [_cross_up_nan(ma2, ma3, i) for i in range(n)]
 
-    # hold confirm
+    # hold confirm (d2 only — d1 already requires close ≥ MA14)
     HOLD_WIN = 3
-    d1Keep = d1Once[:]
     d2Keep = d2Once[:]
     for i in range(n):
-        if d1Once[i]:
-            ok1 = False
-            for f1 in range(0, HOLD_WIN):
-                if i + f1 >= n:
-                    break
-                cc1 = closes[i + f1]
-                m14 = ma1[i + f1]
-                if (not _isnan(cc1)) and (not _isnan(m14)) and cc1 >= m14:
-                    ok1 = True
-                    break
-            if not ok1:
-                d1Keep[i] = False
         if d2Once[i]:
             ok2 = False
             for f2 in range(0, HOLD_WIN):
@@ -832,7 +820,6 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
                     break
             if not ok2:
                 d2Keep[i] = False
-    d1Once = d1Keep
     d2Once = d2Keep
 
     jc1Once = [jc1[i] and not (i > 0 and jc1[i - 1]) for i in range(n)]
@@ -1007,7 +994,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             or strongSmallBottomException
             or strongMainBottomException
             or strongBottomStrongD1Exception
-            or (d1MainOnce[i] and closePos[i] <= BOTTOM_MAX_POS and (not _isnan(ma2[i])) and closes[i] >= ma2[i])
+            or (d1MainOnce[i] and closePos[i] <= BOTTOM_MAX_POS and (not _isnan(ma1[i])) and closes[i] >= ma1[i])
         )
 
         highBits: list[str] = []
