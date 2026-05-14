@@ -959,7 +959,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         if risk2Once[i]:
             riskBits.append("险2")
         # v1.02: 高位死叉破位预警 + 10日冷却（防刷屏）
-        breakdownCooldown = (i - lastBreakdownIdx) > 10 if lastBreakdownIdx >= 0 else True
+        breakdownCooldown = (i - lastBreakdownIdx) > 15 if lastBreakdownIdx >= 0 else True
         highBreakdown = (
             cross510[i] and (not (i > 0 and cross510[i - 1]))
             and closePos[i] >= 0.5
@@ -970,8 +970,6 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         if highBreakdown:
             riskBits.append("破位")
             lastBreakdownIdx = i
-        if highBreakdown:
-            riskBits.append("破位")
 
         if d1HintOnce[i]:
             push_pair(i, "belowBar", LS_COL_BOTTOM_HINT, "arrowUp", "小底", f"ls-x-{i}", 0.98, 3)
