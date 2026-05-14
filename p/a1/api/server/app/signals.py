@@ -442,7 +442,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
     LS_COL_HIGH = "#ff0090"
     LS_COL_BOTTOM = "#38bdf8"
     LS_COL_BOTTOM_HINT = "#22c55e"
-    LS_COL_TURN = "#a78bfa"        # v1.04: 斜率拐点紫色
+    LS_COL_TURN = "#00e5ff"        # v1.04: 斜率拐点亮青色(高可见度)
 
     if n < MA_N3 + 5:
         return []
@@ -1131,13 +1131,13 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         if allowBottomBuy and buyBits:
             bn = len(buyBits)
             push_pair(i, "belowBar", LS_COL_BUY, "arrowUp", "·".join(buyBits), f"ls-b-{i}", 1.14 if bn > 1 else 1.08, 4 if bn == 1 else 7)
-        # v1.04: MA14拐点 — 紫箭头加粗: ↗belowBar ↘aboveBar
+        # v1.04: MA14拐点 — 亮青箭头醒目: ↗belowBar ↘aboveBar
         if turnBits:
             for tb in turnBits:
                 if tb == "↗":
-                    push_arrow(i, "belowBar", LS_COL_TURN, "arrowUp", tb, f"ls-turn-{i}-up", 1.25, 3)
+                    push_arrow(i, "belowBar", LS_COL_TURN, "arrowUp", tb, f"ls-turn-{i}-up", 1.35, 3)
                 else:
-                    push_arrow(i, "aboveBar", LS_COL_TURN, "arrowDown", tb, f"ls-turn-{i}-dn", 1.25, 3)
+                    push_arrow(i, "aboveBar", LS_COL_TURN, "arrowDown", tb, f"ls-turn-{i}-dn", 1.35, 3)
         if sellBits:
             sn = len(sellBits)
             push_pair(i, "aboveBar", LS_COL_SELL, "arrowDown", "·".join(sellBits), f"ls-as-{i}", 1.12 if sn > 1 else 1.06, 3)
