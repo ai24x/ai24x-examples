@@ -442,6 +442,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
     LS_COL_HIGH = "#ff0090"
     LS_COL_BOTTOM = "#38bdf8"
     LS_COL_BOTTOM_HINT = "#22c55e"
+    LS_COL_TURN = "#a78bfa"        # v1.04: 斜率拐点紫色
 
     if n < MA_N3 + 5:
         return []
@@ -519,6 +520,32 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
     SLOPE_FLAT = 0.002
     SLOPE_BULL = 0.003
     SLOPE_BEAR = -0.003
+
+    # v1.04: 斜率拐点检测 — 走平→突破阈值 = 趋势改变
+    TURN_UP_TH_57 = 0.004   # MA57 10日斜率突破0.4% = 上拐
+    TURN_DN_TH_57 = -0.004  # MA57 10日斜率跌破-0.4% = 下拐
+    TURN_UP_TH_28 = 0.003   # MA28 5日斜率突破0.3% = 上拐
+    TURN_DN_TH_28 = -0.003  # MA28 5日斜率跌破-0.3% = 下拐
+    TURN_FLAT = 0.0015      # "走平"区间 ±0.15%
+
+    turnUp57: list[bool] = [False] * n
+    turnDn57: list[bool] = [False] * n
+    turnUp28: list[bool] = [False] * n
+    turnDn28: list[bool] = [False] * n
+    for i in range(1, n):
+        s57 = slopeMA57_10[i] if i < len(slopeMA57_10) else _nan()
+        s57p = slopeMA57_10[i-1] if i-1 < len(slopeMA57_10) else _nan()
+        s28 = slopeMA28_5[i] if i < len(slopeMA28_5) else _nan()
+        s28p = slopeMA28_5[i-1] if i-1 < len(slopeMA28_5) else _nan()
+        # 上拐：上一根走平/下拐，当前突破上拐阈值
+        if (not _isnan(s57p)) and (not _isnan(s57)) and s57p <= TURN_FLAT and s57 > TURN_UP_TH_57:
+            turnUp57[i] = True
+        if (not _isnan(s57p)) and (not _isnan(s57)) and s57p >= -TURN_FLAT and s57 < TURN_DN_TH_57:
+            turnDn57[i] = True
+        if (not _isnan(s28p)) and (not _isnan(s28)) and s28p <= TURN_FLAT and s28 > TURN_UP_TH_28:
+            turnUp28[i] = True
+        if (not _isnan(s28p)) and (not _isnan(s28)) and s28p >= -TURN_FLAT and s28 < TURN_DN_TH_28:
+            turnDn28[i] = True
 
     # close position filter
     BOTTOM_RANGE_N = 60
@@ -951,6 +978,11 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
     lastB1Idx = -9999
     lastB2Idx = -9999
     lastB3Idx = -9999
+    # v1.04: 斜率拐点独立冷却（MA57拐点稀有，20天冷却；MA28 10天冷却）
+    lastTurn57UpIdx = -9999
+    lastTurn57DnIdx = -9999
+    lastTurn28UpIdx = -9999
+    lastTurn28DnIdx = -9999
     for i in range(n):
         reg = int(regime[i] or 0)
         # v1.02: allow buy signals above MA28 even during post-crash regime decline
@@ -1026,6 +1058,27 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         if allowBottomBuy and (closePos[i] <= BUY_MAX_POS) and tj3PostOnce[i]:
             buyBits.append("买2")
 
+        # v1.04: 斜率拐点信号 — 生命线趋势改变时的箭头标记
+        turnBits: list[str] = []
+        TURN_COOLDOWN_57 = 20
+        TURN_COOLDOWN_28 = 10
+        if i - lastTurn57UpIdx > TURN_COOLDOWN_57 if lastTurn57UpIdx >= 0 else True:
+            if turnUp57[i]:
+                turnBits.append("↑MA57")
+                lastTurn57UpIdx = i
+        if i - lastTurn57DnIdx > TURN_COOLDOWN_57 if lastTurn57DnIdx >= 0 else True:
+            if turnDn57[i]:
+                turnBits.append("↓MA57")
+                lastTurn57DnIdx = i
+        if i - lastTurn28UpIdx > TURN_COOLDOWN_28 if lastTurn28UpIdx >= 0 else True:
+            if turnUp28[i]:
+                turnBits.append("↑MA28")
+                lastTurn28UpIdx = i
+        if i - lastTurn28DnIdx > TURN_COOLDOWN_28 if lastTurn28DnIdx >= 0 else True:
+            if turnDn28[i]:
+                turnBits.append("↓MA28")
+                lastTurn28DnIdx = i
+
         sellBits: list[str] = []
         # v1.04: 卖/险信号 — 价格必须在主生命线上方（bothAbove优先）
         hasBuyToday = bool(buyBits or (allowBottomSignal and (d1Once[i] or d2Once[i])))
@@ -1093,6 +1146,13 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         if allowBottomBuy and buyBits:
             bn = len(buyBits)
             push_pair(i, "belowBar", LS_COL_BUY, "arrowUp", "·".join(buyBits), f"ls-b-{i}", 1.14 if bn > 1 else 1.08, 4 if bn == 1 else 7)
+        # v1.04: 斜率拐点 — 紫色箭头
+        if turnBits:
+            for tb in turnBits:
+                if tb.startswith("↑"):
+                    push_arrow(i, "belowBar", LS_COL_TURN, "arrowUp", tb, f"ls-turn-{i}-{tb}", 0.95, 1)
+                else:
+                    push_arrow(i, "aboveBar", LS_COL_TURN, "arrowDown", tb, f"ls-turn-{i}-{tb}", 0.95, 1)
         if sellBits:
             sn = len(sellBits)
             push_pair(i, "aboveBar", LS_COL_SELL, "arrowDown", "·".join(sellBits), f"ls-as-{i}", 1.12 if sn > 1 else 1.06, 3)
@@ -1116,6 +1176,8 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             return 5
         if s.startswith("ls-ar-"):
             return 6
+        if s.startswith("ls-turn-"):
+            return 7
         return 9
 
     def time_key(t: Any) -> str:
