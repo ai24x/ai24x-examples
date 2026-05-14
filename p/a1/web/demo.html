@@ -76,9 +76,9 @@
       --border: #252b36;
       --text: #e8eaed;
       --muted: #8b949e;
-      --ma1: #ff8000;
-      --ma2: #0080ff;
-      --ma3: #00c853;
+      --ma1: #ff8000;   /* MA14 普通 */
+      --ma2: #0080ff;   /* MA28 次生命线 */
+      --ma3: #00c853;   /* MA57 主生命线 */
       --rise: #f03a52;
       --fall: #00b578;
       --warn: #e6b422;
@@ -121,9 +121,9 @@
       --border: #252b36;
       --text: #e8eaed;
       --muted: #8b949e;
-      --ma1: #ff8000;
-      --ma2: #0080ff;
-      --ma3: #00c853;
+      --ma1: #ff8000;   /* MA14 普通 */
+      --ma2: #0080ff;   /* MA28 次生命线 */
+      --ma3: #00c853;   /* MA57 主生命线 */
       --rise: #f03a52;
       --fall: #00b578;
       --warn: #e6b422;
@@ -1595,7 +1595,7 @@
         </div>
         <ul>
           <li><strong>底系列</strong>（小底、底1、底2）：偏<strong>低位关注</strong>。适合<strong>盯住、等确认</strong>与<strong>分段观察</strong>。</li>
-          <li><strong>B1、B2、B3</strong>：偏<strong>强</strong>，三级金叉信号。B1最强（MA5金叉MA14），B3最稳（MA14金叉MA28）。</li>
+          <li><strong>B1、B2、B3</strong>：偏<strong>强</strong>，三级金叉信号。双生命线(MA57主+MA28次)下方触发。</li>
           <li><strong>险1、险2</strong>（尤其险2）：偏<strong>高位或结构承压</strong>，建议<strong>谨慎</strong>。</li>
           <li><strong>S1、S2</strong> 与 <strong>风险</strong> 若<strong>频繁、密集</strong>：偏<strong>弱</strong>，建议<strong>谨慎回避</strong>。</li>
           <li>须<strong>结合其它指标</strong>；<strong>低位侧重确认、高位侧重风险</strong>。</li>
@@ -3916,6 +3916,26 @@
     throw new Error('图表库不兼容：无法创建均线（请使用 lightweight-charts 4.x 或 5.x）');
   }
 
+  // v1.04: 主生命线(MA57) — 加粗视觉
+  function lcAddMaLinePrimary(chartApi, color) {
+    var opt = {
+      color: color,
+      lineWidth: 2.5,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: true,
+      overlay: true,
+    };
+    if (typeof chartApi.addLineSeries === 'function') {
+      return chartApi.addLineSeries(opt);
+    }
+    var LS = LightweightCharts.LineSeries;
+    if (LS && typeof chartApi.addSeries === 'function') {
+      return chartApi.addSeries(LS, opt);
+    }
+    throw new Error('图表库不兼容：无法创建主生命线');
+  }
+
   function lcAddMaLineShort(chartApi, color) {
     var LS_STY = typeof LightweightCharts !== 'undefined' && LightweightCharts.LineStyle;
     var dashed = LS_STY && LS_STY.Dashed !== undefined ? LS_STY.Dashed : 2;
@@ -3979,9 +3999,10 @@
         lockVisibleTimeRangeOnResize: true,
       },
     });
-    maSeries1 = lcAddMaLine(chart, '#ff8000');
-    maSeries2 = lcAddMaLine(chart, '#3399ff');
-    maSeries3 = lcAddMaLine(chart, '#00c853');
+    // v1.04: 双生命线 — MA57(绿)主生命线加粗, MA28(蓝)次生命线, MA14(橙)降为普通均线
+    maSeries1 = lcAddMaLine(chart, '#ff8000');   // MA14 橙色 — 普通均线
+    maSeries2 = lcAddMaLine(chart, '#3399ff');   // MA28 蓝色 — 次生命线
+    maSeries3 = lcAddMaLinePrimary(chart, '#00c853');  // MA57 绿色 — 主生命线(加粗)
     maShort1 = null;
     maShort2 = null;
     maShort3 = null;

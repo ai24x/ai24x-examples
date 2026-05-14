@@ -431,6 +431,9 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
     LS_N4 = 5
     LS_N5 = 10
     LS_N7 = 20  # v1.02: restored from 28 — MA20 spacing critical for dCand2/ts1/顶2 signals
+    # v1.04: 双生命线体系 — MA57(主) + MA28(次)
+    PRIMARY_LIFE = MA_N3   # 57 — 季度级别，管大趋势方向
+    SECONDARY_LIFE = MA_N2  # 28 — 月度级别，管信号时机
     LS_PERIOD_HIGH = 20
 
     LS_COL_BUY = "#ff3d5c"
@@ -496,6 +499,27 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         else:
             regime.append(0)
 
+    # v1.04: 双生命线坡度 — 用于判断走平/上拐/下拐状态
+    SLOPE_LOOKBACK_5 = 5
+    SLOPE_LOOKBACK_10 = 10
+    slopeMA28_5: list[float] = []
+    slopeMA57_10: list[float] = []
+    for i in range(n):
+        # MA28 5-bar slope
+        if i >= SLOPE_LOOKBACK_5 and (not _isnan(ma2[i])) and (not _isnan(ma2[i - SLOPE_LOOKBACK_5])) and ma2[i - SLOPE_LOOKBACK_5] != 0:
+            slopeMA28_5.append((ma2[i] - ma2[i - SLOPE_LOOKBACK_5]) / abs(ma2[i - SLOPE_LOOKBACK_5]))
+        else:
+            slopeMA28_5.append(_nan())
+        # MA57 10-bar slope
+        if i >= SLOPE_LOOKBACK_10 and (not _isnan(ma3[i])) and (not _isnan(ma3[i - SLOPE_LOOKBACK_10])) and ma3[i - SLOPE_LOOKBACK_10] != 0:
+            slopeMA57_10.append((ma3[i] - ma3[i - SLOPE_LOOKBACK_10]) / abs(ma3[i - SLOPE_LOOKBACK_10]))
+        else:
+            slopeMA57_10.append(_nan())
+    # 斜率阈值：±0.2% ≈ 走平，>0.3% 明确上拐，<-0.3% 明确下拐
+    SLOPE_FLAT = 0.002
+    SLOPE_BULL = 0.003
+    SLOPE_BEAR = -0.003
+
     # close position filter
     BOTTOM_RANGE_N = 60
     BOTTOM_MAX_POS = 0.55
@@ -542,7 +566,8 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         # clamp between 6 and 16 days based on volatility
         return max(6, min(16, int(pct * 3.5 + 2)))
     RECLAIM_BAND_PCT = 0.03  # v1.02: widened from 1.2% to 3% for V-bounce capture
-    REQUIRE_ABOVE_MA14 = True
+    # v1.04: 底信号确认需要价格回到次生命线(MA28)上方
+    REQUIRE_ABOVE_SECONDARY = True
     BASE_LOOKBACK = 6
     BASE_MIN_BELOW = 3
 
@@ -579,11 +604,20 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         close = closes[i]
         reclaim10 = (not _isnan(close)) and (not _isnan(ma5[i])) and close >= ma5[i] and close <= ma5[i] * (1 + RECLAIM_BAND_PCT)
         touch10 = (not _isnan(low)) and (not _isnan(ma5[i])) and low <= ma5[i]
-        above14 = (not _isnan(close)) and (not _isnan(ma1[i])) and close >= ma1[i]
+        # v1.04: 双生命线判断
+        aboveMA28 = (not _isnan(close)) and (not _isnan(ma2[i])) and close >= ma2[i]
+        aboveMA57 = (not _isnan(close)) and (not _isnan(ma3[i])) and close >= ma3[i]
+        belowMA28 = (not _isnan(close)) and (not _isnan(ma2[i])) and close < ma2[i]
+        belowMA57 = (not _isnan(close)) and (not _isnan(ma3[i])) and close < ma3[i]
+        # 四象限：①=双下(深熊) ②=主下次上(熊反弹) ③=主上次下(牛回调) ④=双上(强牛)
+        bothBelow = belowMA57 and belowMA28
+        primaryBelow = belowMA57 and (not belowMA28)
+        bothAbove = aboveMA57 and aboveMA28
+        primaryAbove = aboveMA57 and (not aboveMA28)
         # v1.02: golden cross recovery — catch V-bounces within 3 bars of cross
         crossRecovery10 = (
             (i - lastCand1) <= 3 and lastCand1 >= 0
-            and above14 and close >= ma5[i]
+            and aboveMA28 and close >= ma5[i]
             and ma4[i] >= ma5[i]
         )
         stUp510_d1 = (
@@ -596,7 +630,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             and ma4[i] > ma4[i - 1]
             and ma5[i] > ma5[i - 1]
         )
-        crossDayOk10 = dCand1[i] and stUp510_d1 and above14 and (not _isnan(close)) and (not _isnan(ma5[i])) and close >= ma5[i]
+        crossDayOk10 = dCand1[i] and stUp510_d1 and aboveMA28 and (not _isnan(close)) and (not _isnan(ma5[i])) and close >= ma5[i]
         baseCnt10 = count_closes_below(ma5, i, BASE_LOOKBACK)
         cooldownOk1 = (i - lastConf1) > (_cooldown_at(i) if not crossRecovery10 else 4)
         windowOk1 = lastCand1 >= 0 and 0 <= (i - lastCand1) <= CONF_WINDOW
@@ -612,7 +646,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             and (not _isnan(close))
             and (not _isnan(ma5[i]))
             and (not _isnan(ma4[i]))
-            and ((not REQUIRE_ABOVE_MA14) or above14)
+            and ((not REQUIRE_ABOVE_SECONDARY) or aboveMA28)
             and (((reclaim10 and (touch10 or dCand1[i])) or crossDayOk10 or crossRecovery10 or dCand1[i]))
             and ma4[i] >= ma5[i]
             and baseCnt10 >= BASE_MIN_BELOW
@@ -639,7 +673,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             and (not _isnan(close))
             and (not _isnan(ma5[i]))
             and (not _isnan(ma4[i]))
-            and (not above14)
+            and (not aboveMA28)  # v1.04: hint仅在次生命线(MA28)下方
             and closePos[i] <= BOTTOM_MAX_POS  # v1.02: hint only in lower price zone
             and (close >= ma5[i] * 0.98)  # v1.02: relaxed reclaim (EMA lag-tolerant)
             and (touch10 or dCand1[i] or futureCrossSoon)
@@ -703,7 +737,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
                 and downCnt >= 1
                 and (((secondCross510 and stUp510_1) or (cross514 and stUp510Loose)))
                 and smallReclaim10
-                and ((not REQUIRE_ABOVE_MA14) or above14)
+                and ((not REQUIRE_ABOVE_SECONDARY) or aboveMA28)
             )
             if smallOk:
                 d1Once[i] = True
@@ -734,7 +768,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             and (not _isnan(close))
             and (not _isnan(ma7[i]))
             and (not _isnan(ma5[i]))
-            and ((not REQUIRE_ABOVE_MA14) or above14)
+            and ((not REQUIRE_ABOVE_SECONDARY) or aboveMA28)
             and (((reclaim20 and touch20) or crossDayOk20))
             and volumeOk2
             and ma5[i] >= ma7[i]
@@ -940,7 +974,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             or strongSmallBottomException
             or strongMainBottomException
             or strongBottomStrongD1Exception
-            or (d1MainOnce[i] and closePos[i] <= BOTTOM_MAX_POS and (not _isnan(ma1[i])) and closes[i] >= ma1[i])
+            or (d1MainOnce[i] and closePos[i] <= BOTTOM_MAX_POS and (not _isnan(ma2[i])) and closes[i] >= ma2[i])
         )
 
         highBits: list[str] = []
@@ -948,15 +982,34 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             if high2Once[i]:
                 highBits.append("顶2")
 
-        # v1.02: life-line gate — symmetric for buy/sell
-        belowLifeLine = (not _isnan(closes[i])) and (not _isnan(ma1[i])) and closes[i] < ma1[i]
-        # v1.02: 金叉前10天内至少5天收盘在MA14下方 — 确保真正的"下方环境"
-        belowCnt10 = count_closes_below(ma1, i, 10)
-        genuinelyBelow = belowCnt10 >= 5
+        # v1.04: 双生命线四象限
+        closeV = closes[i]
+        aboveMA57_2 = (not _isnan(closeV)) and (not _isnan(ma3[i])) and closeV >= ma3[i]
+        aboveMA28_2 = (not _isnan(closeV)) and (not _isnan(ma2[i])) and closeV >= ma2[i]
+        belowMA57_2 = (not _isnan(closeV)) and (not _isnan(ma3[i])) and closeV < ma3[i]
+        belowMA28_2 = (not _isnan(closeV)) and (not _isnan(ma2[i])) and closeV < ma2[i]
+        bothBelowQ = belowMA57_2 and belowMA28_2    # 象限① 深熊
+        primaryBelowQ = belowMA57_2 and (not belowMA28_2)  # 象限② 熊反弹
+        bothAboveQ = aboveMA57_2 and aboveMA28_2    # 象限④ 强牛
+        primaryAboveQ = aboveMA57_2 and (not aboveMA28_2)  # 象限③ 牛回调
+
+        # 斜率方向（v1.04新增）
+        slope28 = slopeMA28_5[i] if i < len(slopeMA28_5) else _nan()
+        slope57 = slopeMA57_10[i] if i < len(slopeMA57_10) else _nan()
+        slopeBullish = (not _isnan(slope28)) and (not _isnan(slope57)) and slope28 > -SLOPE_FLAT and slope57 > -SLOPE_BEAR
+        slopeBearish = (not _isnan(slope28)) and (not _isnan(slope57)) and slope28 < SLOPE_FLAT and slope57 < SLOPE_BULL
 
         buyBits: list[str] = []
-        # v1.03: B1/B2/B3 三级金叉信号（短→长，强度递减）
-        if allowBottomBuy and belowLifeLine and genuinelyBelow:
+        # v1.04: B信号四象限+斜率增强
+        if allowBottomBuy and (bothBelowQ or primaryBelowQ):
+            signalWeight = 3 if bothBelowQ else 2  # 双下=强, 主下=中
+            # 斜率同向增强: 价格在下方 + 斜率走平/上拐 → 反转概率↑
+            if bothBelowQ and slopeBullish:
+                signalWeight = 4
+            # 斜率背离降权: 价格在下方但斜率在下拐 → 可能只是反弹
+            if bothBelowQ and (not _isnan(slope57)) and slope57 < SLOPE_BEAR:
+                signalWeight = max(1, signalWeight - 1)
+
             b1Cooldown = (i - lastB1Idx) > _cooldown_at(i) if lastB1Idx >= 0 else True
             b2Cooldown = (i - lastB2Idx) > _cooldown_at(i) if lastB2Idx >= 0 else True
             b3Cooldown = (i - lastB3Idx) > _cooldown_at(i) if lastB3Idx >= 0 else True
@@ -974,9 +1027,9 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             buyBits.append("买2")
 
         sellBits: list[str] = []
-        # v1.02: sell signals require price below life-line
+        # v1.04: 卖/险信号 — 价格必须在主生命线上方（bothAbove优先）
         hasBuyToday = bool(buyBits or (allowBottomSignal and (d1Once[i] or d2Once[i])))
-        isSellValid = allowSellHigh and belowLifeLine
+        isSellValid = allowSellHigh and (bothAboveQ or primaryAboveQ)
         if isSellValid and hasBuyToday:
             isSellValid = False  # buy signals suppress same-day sell
         if isSellValid:
@@ -990,12 +1043,12 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             riskBits.append("险1")
         if risk2Once[i]:
             riskBits.append("险2")
-        # v1.02: 高位死叉破位预警（MA5下穿MA10 + 中高价区 + 跌破MA14 + 15日冷却）
+        # v1.04: 破位 — 价格必须在主生命线上方（双上方）
         breakdownCooldown = (i - lastBreakdownIdx) > 15 if lastBreakdownIdx >= 0 else True
         highBreakdown = (
             cross510[i] and (not (i > 0 and cross510[i - 1]))
             and closePos[i] >= 0.5
-            and belowLifeLine
+            and bothAboveQ
             and breakdownCooldown
         )
         if highBreakdown:
