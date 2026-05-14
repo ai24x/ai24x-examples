@@ -942,10 +942,13 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         # v1.02: life-line gate — symmetric for buy/sell
         belowLifeLine = (not _isnan(closes[i])) and (not _isnan(ma1[i])) and closes[i] < ma1[i]
         # v1.02 fix: 买1(金叉)仅当价格在生命线下方时才出 — "下方金叉→底/B"规则
+        # 额外约束：金叉前10天内至少5天收盘在MA14下方，确保是真正的"下方环境"而非短暂刺穿
+        belowCnt10 = count_closes_below(ma1, i, 10)
+        genuinelyBelow = belowCnt10 >= 5
         allowBuySignal = allowBottomBuy and (jc1Once[i] or closePos[i] <= BUY_MAX_POS)
         buyBits: list[str] = []
         if allowBuySignal:
-            if jc1Once[i] and belowLifeLine:
+            if jc1Once[i] and belowLifeLine and genuinelyBelow:
                 buyBits.append("买1")
             if (closePos[i] <= BUY_MAX_POS) and tj3PostOnce[i]:
                 buyBits.append("买2")
