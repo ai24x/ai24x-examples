@@ -443,7 +443,6 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
     LS_COL_BOTTOM = "#38bdf8"
     LS_COL_BOTTOM_HINT = "#22c55e"
     LS_COL_TURN = "#00e5ff"        # v1.04: 斜率拐点亮青色
-    LS_COL_BREAK = "#f59e0b"       # v1.04: 破线信号琥珀色
 
     if n < MA_N3 + 5:
         return []
@@ -1066,7 +1065,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
                     vMa20Br = vol_sma_at(i, 20)
                     volumeOkBr = (not _isnan(vNowBr)) and vNowBr > 0 and ((vNowBr >= vMa20Br * 1.1) if (not _isnan(vMa20Br)) else True)
                     if volumeOkBr:
-                        breakBits.append("破")
+                        breakBits.append("底1")
                         lastBreak28UpIdx = i
 
         sellBits: list[str] = []
@@ -1143,9 +1142,9 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
                     push_arrow(i, "belowBar", LS_COL_TURN, "arrowUp", tb, f"ls-turn-{i}-up", 1.35, 3)
                 else:
                     push_arrow(i, "aboveBar", LS_COL_TURN, "arrowDown", tb, f"ls-turn-{i}-dn", 1.35, 3)
-        # v1.04: 破线信号 — 琥珀色箭头 belowBar
+        # v1.04: 破线信号 — 用底1标签+底颜色
         if breakBits:
-            push_arrow(i, "belowBar", LS_COL_BREAK, "arrowUp", "·".join(breakBits), f"ls-break-{i}", 1.2, 2)
+            push_pair(i, "belowBar", LS_COL_BOTTOM, "arrowUp", "·".join(breakBits), f"ls-break-{i}", 1.02, 5)
         if sellBits:
             sn = len(sellBits)
             push_pair(i, "aboveBar", LS_COL_SELL, "arrowDown", "·".join(sellBits), f"ls-as-{i}", 1.12 if sn > 1 else 1.06, 3)
