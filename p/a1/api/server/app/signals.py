@@ -939,17 +939,19 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             if high2Once[i]:
                 highBits.append("顶2")
 
+        # v1.02: life-line gate — symmetric for buy/sell
+        belowLifeLine = (not _isnan(closes[i])) and (not _isnan(ma1[i])) and closes[i] < ma1[i]
+        # v1.02 fix: 买1(金叉)仅当价格在生命线下方时才出 — "下方金叉→底/B"规则
         allowBuySignal = allowBottomBuy and (jc1Once[i] or closePos[i] <= BUY_MAX_POS)
         buyBits: list[str] = []
         if allowBuySignal:
-            if jc1Once[i]:
+            if jc1Once[i] and belowLifeLine:
                 buyBits.append("买1")
             if (closePos[i] <= BUY_MAX_POS) and tj3PostOnce[i]:
                 buyBits.append("买2")
 
         sellBits: list[str] = []
-        # v1.02: sell signals require price below EMA14 (life-line crossing)
-        belowLifeLine = (not _isnan(closes[i])) and (not _isnan(ma1[i])) and closes[i] < ma1[i]
+        # v1.02: sell signals require price below life-line
         hasBuyToday = bool(buyBits or (allowBottomSignal and (d1Once[i] or d2Once[i])))
         isSellValid = allowSellHigh and belowLifeLine
         if isSellValid and hasBuyToday:
