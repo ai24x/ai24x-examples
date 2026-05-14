@@ -541,7 +541,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         pct = _atr_pct[i] if i < len(_atr_pct) else 1.5
         # clamp between 6 and 16 days based on volatility
         return max(6, min(16, int(pct * 3.5 + 2)))
-    RECLAIM_BAND_PCT = 0.012
+    RECLAIM_BAND_PCT = 0.03  # v1.02: widened from 1.2% to 3% for V-bounce capture
     REQUIRE_ABOVE_MA14 = True
     BASE_LOOKBACK = 6
     BASE_MIN_BELOW = 3
@@ -580,6 +580,12 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         reclaim10 = (not _isnan(close)) and (not _isnan(ma5[i])) and close >= ma5[i] and close <= ma5[i] * (1 + RECLAIM_BAND_PCT)
         touch10 = (not _isnan(low)) and (not _isnan(ma5[i])) and low <= ma5[i]
         above14 = (not _isnan(close)) and (not _isnan(ma1[i])) and close >= ma1[i]
+        # v1.02: golden cross recovery — catch V-bounces within 3 bars of cross
+        crossRecovery10 = (
+            (i - lastCand1) <= 3 and lastCand1 >= 0
+            and above14 and close >= ma5[i]
+            and ma4[i] >= ma5[i]
+        )
         stUp510_d1 = (
             i > 0
             and (not _isnan(ma4[i]))
@@ -592,9 +598,9 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         )
         crossDayOk10 = dCand1[i] and stUp510_d1 and above14 and (not _isnan(close)) and (not _isnan(ma5[i])) and close >= ma5[i]
         baseCnt10 = count_closes_below(ma5, i, BASE_LOOKBACK)
-        cooldownOk1 = (i - lastConf1) > _cooldown_at(i)
+        cooldownOk1 = (i - lastConf1) > (_cooldown_at(i) if not crossRecovery10 else 4)
         windowOk1 = lastCand1 >= 0 and 0 <= (i - lastCand1) <= CONF_WINDOW
-        # v1.02: d1 buy signals now require volume confirmation (≥50MA * 1.1)
+        # v1.02: d1 buy signals now require volume confirmation (≥20MA * 0.95)
         vNowD1 = vols[i]
         vMa20D1 = vol_sma_at(i, 20)
         volumeOkD1 = (not _isnan(vNowD1)) and vNowD1 > 0 and ((vNowD1 >= vMa20D1 * 0.95) if (not _isnan(vMa20D1)) else True)
@@ -607,7 +613,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             and (not _isnan(ma5[i]))
             and (not _isnan(ma4[i]))
             and ((not REQUIRE_ABOVE_MA14) or above14)
-            and (((reclaim10 and (touch10 or dCand1[i])) or crossDayOk10))
+            and (((reclaim10 and (touch10 or dCand1[i])) or crossDayOk10 or crossRecovery10))
             and ma4[i] >= ma5[i]
             and baseCnt10 >= BASE_MIN_BELOW
         ):
@@ -1008,7 +1014,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             str(m.get("id")),
         )
     )
-    # v1.02: signal locking — freeze markers >5 bars old to prevent MA recalc drift
+    # v1.02: signal locking — freeze markers >5 bars old
     if cache_key and len(candles) > 10:
         LOCK_BARS = 5
         freeze_cutoff = candles[-LOCK_BARS - 1].time if len(candles) > LOCK_BARS else ""
@@ -1016,7 +1022,6 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             cache_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "signal_cache")
             os.makedirs(cache_dir, exist_ok=True)
             cache_path = os.path.join(cache_dir, f"{cache_key}.json")
-            cached: dict[str, Any] = {}
             cache_exists = os.path.exists(cache_path)
             if cache_exists:
                 try:
@@ -1024,21 +1029,21 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
                         cached = json.load(fh)
                 except Exception:
                     cached = {}
-            # Only lock if cache exists; first run returns full fresh markers
-            if cache_exists and cached.get("markers"):
-                locked: list[dict[str, Any]] = []
-                seen_times: set[str] = set()
-                for mk in cached.get("markers", []):
-                    t = str(mk.get("time") or "")
-                    if t and t < freeze_cutoff:
-                        locked.append(mk)
-                        seen_times.add(t + str(mk.get("id") or ""))
-                for mk in markers:
-                    t = str(mk.get("time") or "")
-                    key2 = t + str(mk.get("id") or "")
-                    if t >= freeze_cutoff and key2 not in seen_times:
-                        locked.append(mk)
-                markers = locked
+                if cached.get("markers"):
+                    locked = []
+                    seen_times = set()
+                    for mk in cached.get("markers", []):
+                        t = str(mk.get("time") or "")
+                        if t and t < freeze_cutoff:
+                            locked.append(mk)
+                            seen_times.add(t + str(mk.get("id") or ""))
+                    for mk in markers:
+                        t = str(mk.get("time") or "")
+                        key2 = t + str(mk.get("id") or "")
+                        if t >= freeze_cutoff and key2 not in seen_times:
+                            locked.append(mk)
+                    markers = locked
+            # Save current markers for next time
             try:
                 with open(cache_path, "w", encoding="utf-8") as fh:
                     json.dump({"markers": markers, "ts": str(candles[-1].time) if candles else ""}, fh, ensure_ascii=False)
