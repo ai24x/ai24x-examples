@@ -430,7 +430,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
     MA_N3 = 57
     LS_N4 = 5
     LS_N5 = 10
-    LS_N7 = 28  # v1.03: 原MA20冗余替换为MA28，与MA14形成有效间距
+    LS_N7 = 20  # v1.02: restored from 28 — MA20 spacing critical for dCand2/ts1/顶2 signals
     LS_PERIOD_HIGH = 20
 
     LS_COL_BUY = "#ff3d5c"
