@@ -779,6 +779,11 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
     d2Once = d2Keep
 
     jc1Once = [jc1[i] and not (i > 0 and jc1[i - 1]) for i in range(n)]
+    # v1.03: B1/B2 短周期金叉数组（MA5金叉MA14 / MA5金叉MA20）
+    cross514 = [_cross_up_nan(ma4, ma1, i) for i in range(n)]
+    cross520 = [_cross_up_nan(ma4, ma7, i) for i in range(n)]
+    cross514Once = [cross514[i] and not (i > 0 and cross514[i - 1]) for i in range(n)]
+    cross520Once = [cross520[i] and not (i > 0 and cross520[i - 1]) for i in range(n)]
     tj3Post = [jc3[i + 5] if (i + 5) < n else False for i in range(n)]
     tj3PostOnce = [tj3Post[i] and not (i > 0 and tj3Post[i - 1]) for i in range(n)]
 
@@ -908,6 +913,10 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         push_arrow(idx, position, color, arrowShape, label, idBase + "-1", arrSize if arrSize is not None else 1.06, weight)
 
     lastBreakdownIdx = -9999
+    # v1.03: B1/B2/B3 独立冷却计数
+    lastB1Idx = -9999
+    lastB2Idx = -9999
+    lastB3Idx = -9999
     for i in range(n):
         reg = int(regime[i] or 0)
         # v1.02: allow buy signals above MA28 even during post-crash regime decline
@@ -941,17 +950,28 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
 
         # v1.02: life-line gate — symmetric for buy/sell
         belowLifeLine = (not _isnan(closes[i])) and (not _isnan(ma1[i])) and closes[i] < ma1[i]
-        # v1.02 fix: 买1(金叉)仅当价格在生命线下方时才出 — "下方金叉→底/B"规则
-        # 额外约束：金叉前10天内至少5天收盘在MA14下方，确保是真正的"下方环境"而非短暂刺穿
+        # v1.02: 金叉前10天内至少5天收盘在MA14下方 — 确保真正的"下方环境"
         belowCnt10 = count_closes_below(ma1, i, 10)
         genuinelyBelow = belowCnt10 >= 5
-        allowBuySignal = allowBottomBuy and (jc1Once[i] or closePos[i] <= BUY_MAX_POS)
+
         buyBits: list[str] = []
-        if allowBuySignal:
-            if jc1Once[i] and belowLifeLine and genuinelyBelow:
-                buyBits.append("买1")
-            if (closePos[i] <= BUY_MAX_POS) and tj3PostOnce[i]:
-                buyBits.append("买2")
+        # v1.03: B1/B2/B3 三级金叉信号（短→长，强度递减）
+        if allowBottomBuy and belowLifeLine and genuinelyBelow:
+            b1Cooldown = (i - lastB1Idx) > _cooldown_at(i) if lastB1Idx >= 0 else True
+            b2Cooldown = (i - lastB2Idx) > _cooldown_at(i) if lastB2Idx >= 0 else True
+            b3Cooldown = (i - lastB3Idx) > _cooldown_at(i) if lastB3Idx >= 0 else True
+            if cross514Once[i] and b1Cooldown:
+                buyBits.append("B1")
+                lastB1Idx = i
+            if cross520Once[i] and b2Cooldown:
+                buyBits.append("B2")
+                lastB2Idx = i
+            if jc1Once[i] and b3Cooldown:
+                buyBits.append("B3")
+                lastB3Idx = i
+        # 买2: different algorithm (price bottom zone + future MA28/MA57 cross prediction)
+        if allowBottomBuy and (closePos[i] <= BUY_MAX_POS) and tj3PostOnce[i]:
+            buyBits.append("买2")
 
         sellBits: list[str] = []
         # v1.02: sell signals require price below life-line
