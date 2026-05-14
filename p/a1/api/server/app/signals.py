@@ -443,6 +443,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
     LS_COL_BOTTOM = "#38bdf8"
     LS_COL_BOTTOM_HINT = "#22c55e"
     LS_COL_TURN = "#00e5ff"        # v1.04: 斜率拐点亮青色
+    LS_COL_BREAK = "#f59e0b"       # v1.04: 破线信号琥珀色
 
     if n < MA_N3 + 5:
         return []
@@ -964,6 +965,8 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
     # v1.04: MA14斜率拐点独立冷却（8天冷却，适合短周期抄底逃顶）
     lastTurn14UpIdx = -9999
     lastTurn14DnIdx = -9999
+    # v1.04: 破线信号冷却
+    lastBreak28UpIdx = -9999
     for i in range(n):
         reg = int(regime[i] or 0)
         # v1.04: 双生命线位置提前计算（供允许买卖判断用）
@@ -1051,6 +1054,21 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
                 turnBits.append("↘")
                 lastTurn14DnIdx = i
 
+        # v1.04: 破线信号 — 放量突破MA28(次生命线)从下方
+        breakBits: list[str] = []
+        BREAK_COOLDOWN = 10
+        if i - lastBreak28UpIdx > BREAK_COOLDOWN if lastBreak28UpIdx >= 0 else True:
+            if allowBottomBuy:
+                # cross_close_up_ma28: close was < MA28 last bar, now >= MA28
+                if (i > 0 and (not _isnan(closes[i-1])) and (not _isnan(ma2[i-1])) and closes[i-1] < ma2[i-1]
+                        and aboveMA28_2):
+                    vNowBr = vols[i]
+                    vMa20Br = vol_sma_at(i, 20)
+                    volumeOkBr = (not _isnan(vNowBr)) and vNowBr > 0 and ((vNowBr >= vMa20Br * 1.1) if (not _isnan(vMa20Br)) else True)
+                    if volumeOkBr:
+                        breakBits.append("破")
+                        lastBreak28UpIdx = i
+
         sellBits: list[str] = []
         # v1.04: 卖/险信号 — 价格必须在主生命线上方（bothAbove优先）
         hasBuyToday = bool(buyBits or (allowBottomSignal and (d1Once[i] or d2Once[i])))
@@ -1125,6 +1143,9 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
                     push_arrow(i, "belowBar", LS_COL_TURN, "arrowUp", tb, f"ls-turn-{i}-up", 1.35, 3)
                 else:
                     push_arrow(i, "aboveBar", LS_COL_TURN, "arrowDown", tb, f"ls-turn-{i}-dn", 1.35, 3)
+        # v1.04: 破线信号 — 琥珀色箭头 belowBar
+        if breakBits:
+            push_arrow(i, "belowBar", LS_COL_BREAK, "arrowUp", "·".join(breakBits), f"ls-break-{i}", 1.2, 2)
         if sellBits:
             sn = len(sellBits)
             push_pair(i, "aboveBar", LS_COL_SELL, "arrowDown", "·".join(sellBits), f"ls-as-{i}", 1.12 if sn > 1 else 1.06, 3)
@@ -1150,6 +1171,8 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             return 6
         if s.startswith("ls-turn-"):
             return 7
+        if s.startswith("ls-break-"):
+            return 8
         return 9
 
     def time_key(t: Any) -> str:
