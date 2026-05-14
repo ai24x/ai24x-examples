@@ -458,12 +458,12 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
                 vv = _nan()
             vols.append(vv if (vv == vv) else _nan())
 
-    ma1 = _ema_nan(closes, MA_N1)
-    ma2 = _ema_nan(closes, MA_N2)
-    ma3 = _ema_nan(closes, MA_N3)
-    ma4 = _ema_nan(closes, LS_N4)
-    ma5 = _ema_nan(closes, LS_N5)
-    ma7 = _ema_nan(closes, LS_N7)
+    ma1 = _sma_nan(closes, MA_N1)
+    ma2 = _sma_nan(closes, MA_N2)
+    ma3 = _sma_nan(closes, MA_N3)
+    ma4 = _sma_nan(closes, LS_N4)
+    ma5 = _sma_nan(closes, LS_N5)
+    ma7 = _sma_nan(closes, LS_N7)
 
     # regime filter (same as JS)
     REG_SLOPE_LOOKBACK = 6
@@ -613,7 +613,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             and (not _isnan(ma5[i]))
             and (not _isnan(ma4[i]))
             and ((not REQUIRE_ABOVE_MA14) or above14)
-            and (((reclaim10 and (touch10 or dCand1[i])) or crossDayOk10 or crossRecovery10 or (dCand1[i] and above14)))
+            and (((reclaim10 and (touch10 or dCand1[i])) or crossDayOk10 or crossRecovery10 or dCand1[i]))
             and ma4[i] >= ma5[i]
             and baseCnt10 >= BASE_MIN_BELOW
         ):
