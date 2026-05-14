@@ -600,10 +600,10 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         baseCnt10 = count_closes_below(ma5, i, BASE_LOOKBACK)
         cooldownOk1 = (i - lastConf1) > (_cooldown_at(i) if not crossRecovery10 else 4)
         windowOk1 = lastCand1 >= 0 and 0 <= (i - lastCand1) <= CONF_WINDOW
-        # v1.02: d1 buy signals now require volume confirmation (≥20MA * 0.95)
+        # v1.02: d1 buy signals now require volume confirmation (≥20MA * 0.85)
         vNowD1 = vols[i]
         vMa20D1 = vol_sma_at(i, 20)
-        volumeOkD1 = (not _isnan(vNowD1)) and vNowD1 > 0 and ((vNowD1 >= vMa20D1 * 0.95) if (not _isnan(vMa20D1)) else True)
+        volumeOkD1 = (not _isnan(vNowD1)) and vNowD1 > 0 and ((vNowD1 >= vMa20D1 * 0.85) if (not _isnan(vMa20D1)) else True)
         if (
             windowOk1
             and cooldownOk1
@@ -625,22 +625,25 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         # hint small bottom
         HINT_COOLDOWN = 6
         HINT_LOOKAHEAD = 2
+        HINT_WINDOW = 25  # v1.02: wider window for hint (EMA shifts golden cross later)
+        hintWindowOk = lastCand1 >= 0 and 0 <= (i - lastCand1) <= HINT_WINDOW
         futureCrossSoon = False
         for fh in range(1, HINT_LOOKAHEAD + 1):
             if i + fh < n and dCand1[i + fh]:
                 futureCrossSoon = True
                 break
         hintOk = (
-            windowOk1
+            hintWindowOk
             and (i - lastHint1) > HINT_COOLDOWN
             and (not _isnan(low))
             and (not _isnan(close))
             and (not _isnan(ma5[i]))
             and (not _isnan(ma4[i]))
             and (not above14)
-            and reclaim10
+            and closePos[i] <= BOTTOM_MAX_POS  # v1.02: hint only in lower price zone
+            and (close >= ma5[i] * 0.98)  # v1.02: relaxed reclaim (EMA lag-tolerant)
             and (touch10 or dCand1[i] or futureCrossSoon)
-            and ma4[i] >= ma5[i]
+            and ma4[i] >= ma5[i] * 0.998  # v1.02: floating tolerance for near-equal EMAs
             and baseCnt10 >= BASE_MIN_BELOW
         )
         if hintOk and (not d1Once[i]):
