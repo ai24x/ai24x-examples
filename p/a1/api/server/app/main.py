@@ -2243,7 +2243,7 @@ async def api_signals(
                                 candles = aggregate_daily_to_month(day_candles)
         except Exception:
             pass
-        sig = build_signals_v3(candles)
+        sig = build_signals_v3(candles, cache_key=secid0)
         return {
             "code": 0,
             "msg": "ok",
@@ -2409,7 +2409,7 @@ async def api_kline_with_signals(
                             rows = rows_from_candles(agg)
                             pack["qfqmonth"] = rows
                             pack["month"] = rows
-        sig = build_signals_v3(candles)
+        sig = build_signals_v3(candles, cache_key=secid0)
         payload["data"] = data  # ensure pack mutations are returned
         payload["signals"] = {
             "version": "a2-v3",

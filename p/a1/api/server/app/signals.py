@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
+import json
 import math
+import os
 from typing import Any, Literal
 
 
@@ -418,7 +420,7 @@ def build_markers_v1(candles: list[Candle]) -> list[dict[str, Any]]:
     return markers
 
 
-def build_markers_v3_js_port(candles: list[Candle]) -> list[dict[str, Any]]:
+def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> list[dict[str, Any]]:
     """Server-side port of original `p/a/web/demo.html` leishen markers."""
     if not candles:
         return []
@@ -1006,10 +1008,48 @@ def build_markers_v3_js_port(candles: list[Candle]) -> list[dict[str, Any]]:
             str(m.get("id")),
         )
     )
+    # v1.02: signal locking — freeze markers >5 bars old to prevent MA recalc drift
+    if cache_key and len(candles) > 10:
+        LOCK_BARS = 5
+        freeze_cutoff = candles[-LOCK_BARS - 1].time if len(candles) > LOCK_BARS else ""
+        try:
+            cache_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "signal_cache")
+            os.makedirs(cache_dir, exist_ok=True)
+            cache_path = os.path.join(cache_dir, f"{cache_key}.json")
+            cached: dict[str, Any] = {}
+            cache_exists = os.path.exists(cache_path)
+            if cache_exists:
+                try:
+                    with open(cache_path, "r", encoding="utf-8") as fh:
+                        cached = json.load(fh)
+                except Exception:
+                    cached = {}
+            # Only lock if cache exists; first run returns full fresh markers
+            if cache_exists and cached.get("markers"):
+                locked: list[dict[str, Any]] = []
+                seen_times: set[str] = set()
+                for mk in cached.get("markers", []):
+                    t = str(mk.get("time") or "")
+                    if t and t < freeze_cutoff:
+                        locked.append(mk)
+                        seen_times.add(t + str(mk.get("id") or ""))
+                for mk in markers:
+                    t = str(mk.get("time") or "")
+                    key2 = t + str(mk.get("id") or "")
+                    if t >= freeze_cutoff and key2 not in seen_times:
+                        locked.append(mk)
+                markers = locked
+            try:
+                with open(cache_path, "w", encoding="utf-8") as fh:
+                    json.dump({"markers": markers, "ts": str(candles[-1].time) if candles else ""}, fh, ensure_ascii=False)
+            except Exception:
+                pass
+        except Exception:
+            pass
     return markers
 
 
-def build_signals_v3(candles: list[Candle]) -> dict[str, Any]:
+def build_signals_v3(candles: list[Candle], *, cache_key: str = "") -> dict[str, Any]:
     """
     Return both markers and per-bar signal labels (barLabels in original JS).
     Shape:
@@ -1028,7 +1068,7 @@ def build_signals_v3(candles: list[Candle]) -> dict[str, Any]:
     # To avoid duplicating 600+ lines, we rebuild labels from the returned markers by day index.
     # This keeps frontend behavior (labels are just hints) consistent and stable.
 
-    markers = build_markers_v3_js_port(candles)
+    markers = build_markers_v3_js_port(candles, cache_key=cache_key)
 
     # Map timeKey -> idx for label alignment
     idx_by_time: dict[str, int] = {}
