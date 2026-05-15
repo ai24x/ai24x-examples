@@ -2305,6 +2305,13 @@
           throw new Error('次数不足：请先登录/续期，或通过邀请获取次数');
         }
       })
+      .catch(function (e) {
+        // 登录态API调用失败：可能是网络波动/服务重启，跳过配额检查继续查询
+        if (String(e.message || '') === 'me' || /token/i.test(String(e.message || ''))) {
+          return; // 静默降级，后端会兜底配额
+        }
+        throw e; // 其他错误（如次数不足）继续抛出
+      })
       .then(fetchKline)
       .then(function (data) {
         if (data && Number(data.code) !== 0) {
@@ -3961,7 +3968,7 @@
   function ensureChart() {
     disposeChart();
     if (typeof LightweightCharts === 'undefined') {
-      throw new Error('图表库未加载');
+      throw new Error('图表库加载中，请稍候重试');
     }
     installAttributionKiller(chartEl);
     var CM = typeof LightweightCharts !== 'undefined' ? LightweightCharts.CrosshairMode : null;
@@ -4593,7 +4600,17 @@
     var html = '<div class="wl-header"><span>我的自选 (' + list.length + '/20)</span><button class="wl-clear-all">清空</button></div>';
     for (var i = list.length - 1; i >= 0; i--) {
       var w = list[i];
-      html += '<div class="wl-item" data-secid="' + escAttr(w.secid) + '"><span>' + escHtml(w.name || w.secid) + '<span class="wl-code">' + escHtml(w.code || w.secid) + '</span></span><button class="wl-del" data-del="' + escAttr(w.secid) + '">×</button></div>';
+      // v1.04: 清洗code显示 — 参数值/长字符串→提取secid中纯代码
+      var cleanCode = (function () {
+        var c = String(w.code || w.secid || '');
+        // 如果code包含参数特征(?&=)或超过12字符，用secid提取
+        if (/[?&=]/.test(c) || c.length > 12) {
+          var m = String(w.secid || '').match(/(\d{6}|\d{8})$/);
+          return m ? m[1] : c;
+        }
+        return c;
+      })();
+      html += '<div class="wl-item" data-secid="' + escAttr(w.secid) + '"><span>' + escHtml(w.name || w.secid) + '<span class="wl-code">' + escHtml(cleanCode) + '</span></span><button class="wl-del" data-del="' + escAttr(w.secid) + '">×</button></div>';
     }
     watchlistPanelEl.innerHTML = html;
   }
@@ -5154,6 +5171,11 @@
     try {
       var nm = (hint && hint.name) ? String(hint.name) : '';
       var cd = (hint && hint.code) ? String(hint.code) : '';
+      // v1.04: 清洗code — 去掉参数特征字符
+      if (/[?&=]/.test(cd) || cd.length > 12) {
+        var m1 = String(secid || '').match(/(\d{6}|\d{8})$/);
+        cd = m1 ? m1[1] : cd;
+      }
       // Fallback: grab displayed name from page when hint is missing (e.g. matched SECID_TO_LABEL)
       if (!nm) {
         try { nm = String(quoteTitleEl && quoteTitleEl.textContent ? quoteTitleEl.textContent : '').replace(/\s+/g,' ').trim(); } catch (e) {}
@@ -5225,7 +5247,11 @@
     hidePick();
     return loadTencentFqPack(secid, currentPeriod, opts).then(function (res) {
       periodTabsEl.classList.remove('disabled');
-      renderPack(res);
+      try { renderPack(res); } catch (e) {
+        if (String(e.message || '').indexOf('图表库') >= 0) {
+          setTimeout(function () { try { renderPack(res); } catch (e2) {} }, 1500);
+        } else { throw e; }
+      }
       try {
         if (!isAuthed() && opts && opts.guest_count) guestViewsInc();
       } catch (eG) {}
@@ -5259,7 +5285,16 @@
     }
     return loadTencentFqPack(currentSecid, currentPeriod, isAuthed() ? { consume: true } : { consume: false })
       .then(function (res) {
-        renderPack(res);
+        // v1.04: 新网络环境图表库可能仍在加载，失败时延时重试一次
+        try {
+          renderPack(res);
+        } catch (e) {
+          if (String(e.message || '').indexOf('图表库') >= 0) {
+            setTimeout(function () { try { renderPack(res); } catch (e2) { statusEl.textContent = '加载失败：图表组件未就绪，请刷新重试'; setSoftLoading(false); } }, 1500);
+            return;
+          }
+          throw e;
+        }
         try { if (!isAuthed()) guestViewsInc(); } catch (eG) {}
       })
       .catch(function (e) {
