@@ -5554,11 +5554,15 @@
     initCardUI();
     if (!chart || !cardPreviewImg) return;
     try {
+      if (cardStatusEl) cardStatusEl.textContent = '截图中…';
       // Capture chart screenshot
-      var chartCanvas = chart.takeScreenshot();
-      if (!chartCanvas) { if (cardStatusEl) cardStatusEl.textContent = '截图失败，请稍后重试'; return; }
+      var chartCanvas = (typeof chart.takeScreenshot === 'function') ? chart.takeScreenshot() : null;
+      if (!chartCanvas) {
+        if (cardStatusEl) cardStatusEl.textContent = '截图失败：请稍后重试（图表可能未完全加载）';
+        return;
+      }
     } catch (e) {
-      if (cardStatusEl) cardStatusEl.textContent = '当前图表库不支持截图';
+      if (cardStatusEl) cardStatusEl.textContent = '截图失败：' + String(e.message || '图表库不支持');
       return;
     }
 
@@ -5641,24 +5645,29 @@
     g.fillRect(qrX - 6, qrY - 6, qrSize + 12, qrSize + 12);
     var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=' + qrSourceSize + 'x' + qrSourceSize + '&data=' + encodeURIComponent('https://a.ai24x.com/demo.html' + (inv ? '?i=' + inv : ''));
     var qrImg = new Image();
-    qrImg.crossOrigin = 'anonymous';
+    qrImg.crossOrigin = 'anonymous';  // 必须在src之前设置
+    qrImg.src = qrUrl;                // v1.04: 先设crossOrigin再设src
     var qrLoaded = false;
     qrImg.onload = function () { qrLoaded = true; g.drawImage(qrImg, qrX, qrY, qrSize, qrSize); finalizeCard(c); };
     qrImg.onerror = function () { finalizeCard(c); };
-    qrImg.src = qrUrl;
     // Fallback: if QR doesn't load in 5s, show card without it
     setTimeout(function () { if (!qrLoaded) finalizeCard(c); }, 5000);
 
     function finalizeCard(canvas) {
-      // Disclaimer
-      g.fillStyle = 'rgba(255,255,255,.2)';
-      g.font = '11px sans-serif';
-      g.fillText('⚠ 仅供学习交流，不构成投资建议', 36, H - 22);
+      try {
+        // Disclaimer
+        g.fillStyle = 'rgba(255,255,255,.2)';
+        g.font = '11px sans-serif';
+        g.fillText('⚠ 仅供学习交流，不构成投资建议', 36, H - 22);
 
-      var url = canvas.toDataURL('image/png');
-      cardPreviewImg.src = url;
-      if (cardOverlay) cardOverlay.hidden = false;
-      if (cardStatusEl) cardStatusEl.textContent = '';
+        var url = canvas.toDataURL('image/png');
+        cardPreviewImg.src = url;
+        if (cardOverlay) cardOverlay.hidden = false;
+        if (cardStatusEl) cardStatusEl.textContent = '';
+      } catch (e) {
+        // CORS 污染或浏览器限制导致 toDataURL 失败
+        if (cardStatusEl) cardStatusEl.textContent = '生成失败：浏览器安全限制（可尝试用"分享→海报"替代）';
+      }
     }
   }
   function saveCardImage() {
