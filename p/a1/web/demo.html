@@ -4304,21 +4304,6 @@
         crosshair: { mode: 0 },
       });
       installAttributionKiller(el);
-      // v1.05: 同步主图与MACD子图的时间轴缩放
-      (function syncTimeScale() {
-        if (!chart || !macdChart) return;
-        var mainTs = chart.timeScale();
-        var macdTs = macdChart.timeScale();
-        function syncToMacd() {
-          try {
-            var vr = mainTs.getVisibleRange();
-            if (vr && vr.from && vr.to) macdTs.setVisibleRange({ from: vr.from, to: vr.to });
-          } catch (e) {}
-        }
-        // 主图变化时同步到MACD
-        try { mainTs.subscribeVisibleTimeRangeChange(syncToMacd); } catch (e) {}
-        syncToMacd();
-      })();
       macdBarSeries = macdChart.addHistogramSeries({ color: '#22c55e', priceFormat: { type: 'price', precision: 4 } });
       macdDifSeries = macdChart.addLineSeries({ color: '#e2e8f0', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
       macdDeaSeries = macdChart.addLineSeries({ color: '#f59e0b', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
@@ -4333,6 +4318,30 @@
     macdBarSeries.setData(bars);
     macdDifSeries.setData(difs);
     macdDeaSeries.setData(deas);
+    // v1.05: 数据就绪后同步主图时间轴
+    syncMacdTimeScale();
+  }
+
+  var _macdSyncSetup = false;
+  function syncMacdTimeScale() {
+    if (_macdSyncSetup || !chart || !macdChart) return;
+    _macdSyncSetup = true;
+    var mainTs = chart.timeScale();
+    var macdTs = macdChart.timeScale();
+    var _syncing = false;
+    function sync() {
+      if (_syncing) return;
+      try {
+        var vr = mainTs.getVisibleRange();
+        if (vr && vr.from && vr.to) {
+          _syncing = true;
+          macdTs.setVisibleRange({ from: vr.from, to: vr.to });
+          _syncing = false;
+        }
+      } catch (e) { _syncing = false; }
+    }
+    try { mainTs.subscribeVisibleTimeRangeChange(sync); } catch (e) {}
+    sync();
   }
 
   function renderPack(result) {
