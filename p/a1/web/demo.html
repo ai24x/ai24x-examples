@@ -4296,12 +4296,14 @@
       macdChart = LightweightCharts.createChart(el, {
         width: el.clientWidth,
         height: 140,
+        attributionLogo: false,
         layout: { background: { type: 'solid', color: '#0a0c10' }, textColor: '#6b7280' },
         grid: { vertLines: { color: '#1a1f2e' }, horzLines: { color: '#1a1f2e' } },
         rightPriceScale: { borderColor: '#252b36', scaleMargins: { top: 0.05, bottom: 0.05 } },
         timeScale: { borderColor: '#252b36', timeVisible: false },
         crosshair: { mode: 0 },
       });
+      installAttributionKiller(el);
       macdBarSeries = macdChart.addHistogramSeries({ color: '#22c55e', priceFormat: { type: 'price', precision: 4 } });
       macdDifSeries = macdChart.addLineSeries({ color: '#e2e8f0', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
       macdDeaSeries = macdChart.addLineSeries({ color: '#f59e0b', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
