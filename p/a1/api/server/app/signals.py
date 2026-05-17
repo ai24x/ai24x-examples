@@ -1295,7 +1295,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
                 pass
         except Exception:
             pass
-    return markers
+    return markers, dif, dea, macdBar
 
 
 def build_signals_v3(candles: list[Candle], *, cache_key: str = "") -> dict[str, Any]:
@@ -1306,18 +1306,29 @@ def build_signals_v3(candles: list[Candle], *, cache_key: str = "") -> dict[str,
     - bar_labels: list[str|None] aligned to candles index
     """
     if not candles:
-        return {"markers": [], "bar_labels": []}
+        return {"markers": [], "bar_labels": [], "macd": []}
 
     # Reuse the JS-port implementation flow, but also collect per-bar labels.
     n = len(candles)
     if n < 62:
-        return {"markers": [], "bar_labels": [None for _ in range(n)]}
+        return {"markers": [], "bar_labels": [None for _ in range(n)], "macd": []}
 
     # We compute markers using the port, but we also need the same intermediate arrays to build labels.
     # To avoid duplicating 600+ lines, we rebuild labels from the returned markers by day index.
     # This keeps frontend behavior (labels are just hints) consistent and stable.
 
-    markers = build_markers_v3_js_port(candles, cache_key=cache_key)
+    markers, dif_arr, dea_arr, macd_bar_arr = build_markers_v3_js_port(candles, cache_key=cache_key)
+
+    # Build MACD timeseries for frontend sub-chart
+    n_macd = len(candles)
+    macd_json: list[dict[str, Any]] = []
+    for i in range(n_macd):
+        t = str(candles[i].time)
+        d = dif_arr[i] if i < len(dif_arr) else None
+        e = dea_arr[i] if i < len(dea_arr) else None
+        b = macd_bar_arr[i] if i < len(macd_bar_arr) else None
+        if d is not None and d == d and e is not None and e == e:
+            macd_json.append({"time": t, "dif": round(float(d), 4), "dea": round(float(e), 4), "bar": round(float(b if b == b else 0), 4)})
 
     # Map timeKey -> idx for label alignment
     idx_by_time: dict[str, int] = {}
@@ -1382,5 +1393,5 @@ def build_signals_v3(candles: list[Candle], *, cache_key: str = "") -> dict[str,
             rem_parts.append("·".join(high_bits[i]))
         bar_labels[i] = ("　".join(rem_parts)) if rem_parts else None
 
-    return {"markers": markers, "bar_labels": bar_labels}
+    return {"markers": markers, "bar_labels": bar_labels, "macd": macd_json}
 
