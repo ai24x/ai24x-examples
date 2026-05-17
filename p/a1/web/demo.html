@@ -946,24 +946,13 @@
     }
     #chart-wrap {
       width: 100%;
-      height: clamp(375px, calc(100vh - 480px), 610px);
+      height: clamp(375px, calc(100vh - 340px), 750px);
       min-height: 325px;
       border-radius: 8px;
       border: 1px solid var(--border);
       background: #0a0c10;
       overflow: hidden;
     }
-    #macd-wrap {
-      width: 100%;
-      height: 140px;
-      display: none;
-      border-radius: 0 0 8px 8px;
-      border: 1px solid var(--border);
-      border-top: none;
-      background: #0a0c10;
-      overflow: hidden;
-    }
-    #macd-wrap.on { display: block; }
     .chart-tooltip {
       position: absolute;
       pointer-events: none;
@@ -1581,7 +1570,6 @@
       <div class="quote-live" id="quote-live" hidden></div>
       <div class="chart-box" id="chart-box">
         <div id="chart-wrap"></div>
-        <div id="macd-wrap" class="macd-pane"></div>
         <div class="signal-legend" aria-label="K 线信号颜色说明">
           <span class="sig-item"><i class="sig-dot sig-absorb" aria-hidden="true"></i>小底（提前关注）</span>
           <span class="sig-item"><i class="sig-dot sig-bottom" aria-hidden="true"></i>底（低位关注）</span>
@@ -3901,6 +3889,9 @@
       maShort1 = null;
       maShort2 = null;
       maShort3 = null;
+      macdBarSeries = null;
+      macdDifSeries = null;
+      macdDeaSeries = null;
     }
   }
 
@@ -4037,8 +4028,22 @@
       borderVisible: false,
       wickUpColor: '#f03a52',
       wickDownColor: '#00b578',
+      priceScaleId: 'right',
     });
-  }
+    // v1.05: MACD叠加到主图（独立右轴，自动同步）
+    // DIF/DEA must use 'macd' priceScale
+    var _macdOpts = { priceLineVisible: false, lastValueVisible: false, priceScaleId: 'macd' };
+    macdDifSeries = chart.addLineSeries(Object.assign({ color: '#e2e8f0', lineWidth: 1 }, _macdOpts));
+    macdDeaSeries = chart.addLineSeries(Object.assign({ color: '#f59e0b', lineWidth: 1 }, _macdOpts));
+    if (typeof chart.addHistogramSeries === 'function') {
+      macdBarSeries = chart.addHistogramSeries({
+        color: '#22c55e',
+        priceScaleId: 'macd',
+        priceFormat: { type: 'price', precision: 4 },
+      });
+    }
+    // 设置MACD右轴位置
+    try { if (chart.priceScale) chart.priceScale('macd').applyOptions({ scaleMargins: { top: 0.75, bottom: 0.05 } }); } catch (e) {}
 
   function buildSmaLineData(candles, period) {
     var out = [];
@@ -4285,29 +4290,9 @@
     return { candles: cv.candles, volumes: cv.volumes };
   }
 
-  // v1.05: MACD子图渲染
-  var macdChart = null, macdBarSeries = null, macdDifSeries = null, macdDeaSeries = null;
+  // v1.05: MACD渲染（直接更新主图中的MACD系列，共用时间轴无同步问题）
   function renderMacdPane(macdData) {
-    var el = document.getElementById('macd-wrap');
-    if (!el) return;
-    if (!macdData || !macdData.length) { el.classList.remove('on'); return; }
-    el.classList.add('on');
-    if (!macdChart) {
-      macdChart = LightweightCharts.createChart(el, {
-        width: el.clientWidth,
-        height: 140,
-        attributionLogo: false,
-        layout: { background: { type: 'solid', color: '#0a0c10' }, textColor: '#6b7280' },
-        grid: { vertLines: { color: '#1a1f2e' }, horzLines: { color: '#1a1f2e' } },
-        rightPriceScale: { borderColor: '#252b36', scaleMargins: { top: 0.05, bottom: 0.05 } },
-        timeScale: { borderColor: '#252b36', timeVisible: false, rightOffset: CHART_RIGHT_OFFSET_BARS, barSpacing: 8, fixLeftEdge: false, lockVisibleTimeRangeOnResize: true },
-        crosshair: { mode: 0 },
-      });
-      installAttributionKiller(el);
-      macdBarSeries = macdChart.addHistogramSeries({ color: '#22c55e', priceFormat: { type: 'price', precision: 4 } });
-      macdDifSeries = macdChart.addLineSeries({ color: '#e2e8f0', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-      macdDeaSeries = macdChart.addLineSeries({ color: '#f59e0b', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-    }
+    if (!macdData || !macdData.length) return;
     var bars = [], difs = [], deas = [];
     for (var i = 0; i < macdData.length; i++) {
       var d = macdData[i];
@@ -4315,33 +4300,9 @@
       difs.push({ time: d.time, value: d.dif });
       deas.push({ time: d.time, value: d.dea });
     }
-    macdBarSeries.setData(bars);
-    macdDifSeries.setData(difs);
-    macdDeaSeries.setData(deas);
-    // v1.05: 数据就绪后同步主图时间轴
-    syncMacdTimeScale();
-  }
-
-  var _macdSyncSetup = false;
-  function syncMacdTimeScale() {
-    if (_macdSyncSetup || !chart || !macdChart) return;
-    _macdSyncSetup = true;
-    var mainTs = chart.timeScale();
-    var macdTs = macdChart.timeScale();
-    var _syncing = false;
-    function sync() {
-      if (_syncing) return;
-      try {
-        var vr = mainTs.getVisibleRange();
-        if (vr && vr.from && vr.to) {
-          _syncing = true;
-          macdTs.setVisibleRange({ from: vr.from, to: vr.to });
-          _syncing = false;
-        }
-      } catch (e) { _syncing = false; }
-    }
-    try { mainTs.subscribeVisibleTimeRangeChange(sync); } catch (e) {}
-    sync();
+    if (macdBarSeries) try { macdBarSeries.setData(bars); } catch (e) {}
+    if (macdDifSeries) try { macdDifSeries.setData(difs); } catch (e) {}
+    if (macdDeaSeries) try { macdDeaSeries.setData(deas); } catch (e) {}
   }
 
   function renderPack(result) {
@@ -4441,7 +4402,6 @@
     }
     try {
       chart.resize(chartEl.clientWidth, chartEl.clientHeight);
-      if (macdChart) { try { var me = document.getElementById('macd-wrap'); if (me) macdChart.resize(me.clientWidth, 140); } catch (e) {} }
     } catch (eResize) {}
     // 信号计算需要量能确认：把 vol 附到蜡烛上（不影响图表 setData）
     var candlesForSignals = mainChartCandles;
