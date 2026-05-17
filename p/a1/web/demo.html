@@ -4300,10 +4300,25 @@
         layout: { background: { type: 'solid', color: '#0a0c10' }, textColor: '#6b7280' },
         grid: { vertLines: { color: '#1a1f2e' }, horzLines: { color: '#1a1f2e' } },
         rightPriceScale: { borderColor: '#252b36', scaleMargins: { top: 0.05, bottom: 0.05 } },
-        timeScale: { borderColor: '#252b36', timeVisible: false },
+        timeScale: { borderColor: '#252b36', timeVisible: false, rightOffset: CHART_RIGHT_OFFSET_BARS, barSpacing: 8, fixLeftEdge: false, lockVisibleTimeRangeOnResize: true },
         crosshair: { mode: 0 },
       });
       installAttributionKiller(el);
+      // v1.05: 同步主图与MACD子图的时间轴缩放
+      (function syncTimeScale() {
+        if (!chart || !macdChart) return;
+        var mainTs = chart.timeScale();
+        var macdTs = macdChart.timeScale();
+        function syncToMacd() {
+          try {
+            var vr = mainTs.getVisibleRange();
+            if (vr && vr.from && vr.to) macdTs.setVisibleRange({ from: vr.from, to: vr.to });
+          } catch (e) {}
+        }
+        // 主图变化时同步到MACD
+        try { mainTs.subscribeVisibleTimeRangeChange(syncToMacd); } catch (e) {}
+        syncToMacd();
+      })();
       macdBarSeries = macdChart.addHistogramSeries({ color: '#22c55e', priceFormat: { type: 'price', precision: 4 } });
       macdDifSeries = macdChart.addLineSeries({ color: '#e2e8f0', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
       macdDeaSeries = macdChart.addLineSeries({ color: '#f59e0b', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
@@ -4417,6 +4432,7 @@
     }
     try {
       chart.resize(chartEl.clientWidth, chartEl.clientHeight);
+      if (macdChart) { try { var me = document.getElementById('macd-wrap'); if (me) macdChart.resize(me.clientWidth, 140); } catch (e) {} }
     } catch (eResize) {}
     // 信号计算需要量能确认：把 vol 附到蜡烛上（不影响图表 setData）
     var candlesForSignals = mainChartCandles;
