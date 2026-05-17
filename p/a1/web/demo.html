@@ -4044,6 +4044,7 @@
     }
     // 设置MACD右轴位置
     try { if (chart.priceScale) chart.priceScale('macd').applyOptions({ scaleMargins: { top: 0.75, bottom: 0.05 } }); } catch (e) {}
+  }
 
   function buildSmaLineData(candles, period) {
     var out = [];
