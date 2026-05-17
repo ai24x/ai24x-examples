@@ -469,6 +469,57 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
     ma5 = _sma_nan(closes, LS_N5)
     ma7 = _sma_nan(closes, LS_N7)
 
+    # v1.05: MACD (EMA12-EMA26, DEA=EMA9) — 二重确认，不改变触发条件
+    def _ema_nan(src: list[float], period: int) -> list[float]:
+        out = [_nan()] * len(src)
+        k = 2.0 / (period + 1)
+        first = -1
+        for i in range(len(src)):
+            if _isnan(src[i]):
+                continue
+            if first < 0:
+                first = i
+                out[i] = src[i]
+            else:
+                out[i] = src[i] * k + out[i - 1] * (1 - k)
+        return out
+
+    ema12 = _ema_nan(closes, 12)
+    ema26 = _ema_nan(closes, 26)
+    dif: list[float] = []
+    dea: list[float] = []
+    macdBar: list[float] = []
+    for i in range(n):
+        if (not _isnan(ema12[i])) and (not _isnan(ema26[i])):
+            dif.append(ema12[i] - ema26[i])
+        else:
+            dif.append(_nan())
+    dea = _ema_nan(dif, 9)
+    for i in range(n):
+        if (not _isnan(dif[i])) and (not _isnan(dea[i])):
+            macdBar.append((dif[i] - dea[i]) * 2)
+        else:
+            macdBar.append(_nan())
+
+    # MACD 金叉/死叉检测
+    macdGoldenCross: list[bool] = [False] * n
+    macdDeadCross: list[bool] = [False] * n
+    macdBullish: list[int] = [0] * n   # 1=金叉后持续, -1=死叉后持续, 0=无效
+    for i in range(1, n):
+        if (not _isnan(dif[i])) and (not _isnan(dea[i])) and (not _isnan(dif[i-1])) and (not _isnan(dea[i-1])):
+            if dif[i-1] <= dea[i-1] and dif[i] > dea[i]:
+                macdGoldenCross[i] = True
+            elif dif[i-1] >= dea[i-1] and dif[i] < dea[i]:
+                macdDeadCross[i] = True
+    # MACD 方向状态（滞后1日，确保非未来数据）
+    lastMacdDir = 0
+    for i in range(n):
+        if macdGoldenCross[i]:
+            lastMacdDir = 1
+        elif macdDeadCross[i]:
+            lastMacdDir = -1
+        macdBullish[i] = lastMacdDir if i > 0 else 0
+
     # regime filter (same as JS)
     REG_SLOPE_LOOKBACK = 6
     REG_FLAT_TH = 0.0015
@@ -1157,6 +1208,23 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         if highBits:
             push_pair(i, "aboveBar", LS_COL_HIGH, "arrowDown", "·".join(highBits), f"ls-ah-{i}", 1.06, 2)
 
+        # v1.05: MACD 金叉/死叉标记（小圆点）
+        if macdGoldenCross[i]:
+            push_arrow(i, "belowBar", "#22d3ee", "circle", "+", f"ls-macd-g-{i}", 0.65, 0)
+        if macdDeadCross[i]:
+            push_arrow(i, "aboveBar", "#f97316", "circle", "-", f"ls-macd-d-{i}", 0.65, 0)
+
+    # v1.05: MACD 增强 — 同向信号加权重
+    for m in markers:
+        t = m.get("time", "")
+        for j in range(n):
+            if candles[j].time == t and m.get("position") == "belowBar" and macdGoldenCross[j]:
+                m["weight"] = (m.get("weight") or 0) + 1
+                m["color"] = "#ff1744"  # brighter red = stronger
+            elif candles[j].time == t and m.get("position") == "aboveBar" and macdDeadCross[j]:
+                m["weight"] = (m.get("weight") or 0) + 1
+                m["color"] = "#00e676"  # brighter green = stronger
+
     def lane(mid: Any) -> int:
         s = str(mid)
         if s.startswith("ls-d-"):
@@ -1175,6 +1243,8 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             return 7
         if s.startswith("ls-break-"):
             return 8
+        if s.startswith("ls-macd-"):
+            return 0  # 最底层，不影响其他信号
         return 9
 
     def time_key(t: Any) -> str:
