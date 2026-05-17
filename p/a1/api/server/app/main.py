@@ -2251,6 +2251,7 @@ async def api_signals(
                 "version": "a2-v3",
                 "markers": sig.get("markers") or [],
                 "bar_labels": sig.get("bar_labels") or [],
+                "macd": sig.get("macd") or [],
             },
         }
     except HTTPException:
@@ -2415,6 +2416,7 @@ async def api_kline_with_signals(
             "version": "a2-v3",
             "markers": sig.get("markers") or [],
             "bar_labels": sig.get("bar_labels") or [],
+            "macd": sig.get("macd") or [],
         }
         return payload
     except Exception as e:
