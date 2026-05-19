@@ -61,7 +61,8 @@
   <div class="game fadeIn game-pond style-young" id="gameBox">
     <div class="sky">
       <div class="sun"></div><div class="moon"></div>
-      <div class="cloud cloud1"></div><div class="cloud cloud2"></div>
+      <div class="cloud cloud1"></div><div class="cloud cloud2"></div><div class="cloud cloud3"></div><div class="cloud cloud4"></div>
+      <div class="birds"><div class="bird">🕊️</div><div class="bird">🐦</div><div class="bird">🕊️</div></div>
     <div class="nightMask" id="nightMask"></div>
       <div class="fog" id="fogBox"></div>
       <div class="snow" id="snowBox"></div>
@@ -77,20 +78,24 @@
     </div>
 
     <div class="top">
-      <div class="item">💰金币：<span id="coin">200</span></div>
-      <div class="item">⭐阅历：<span id="score">0</span></div>
-      <div class="item" id="btnGoal">🎯境界</div>
-      <div class="item" id="btnShop">🛒道具</div>
-      <div class="item" id="btnBag">🎒仓库</div>
-      <div class="item" id="btnHelp">ℹ️指南</div>
-      <a class="item" href="archive/history-legacy.html" title="旧版联调单页（封存）">📜历史封存</a>
-      <div class="item" id="btnSys">⚙️设置</div>
+      <div class="statBar">
+        <span>💰<b id="coin">200</b></span>
+        <span>⭐<b id="score">0</b></span>
+        <span>🎣<b id="rodLv">Lv.0</b></span>
+      </div>
+      <div class="actionBar">
+        <button class="actBtn" id="btnBag">🎒<span>背包</span></button>
+        <button class="actBtn" id="btnCommunity">📣<span>社区</span></button>
+        <button class="actBtn" id="btnMore">⋯<span>更多</span></button>
+      </div>
     </div>
 
     <div class="scene">
       <div class="water water-pond" id="waterBox"><div class="waterLine"></div></div>
       <div id="fishShadows"><div class="fishShadow fs-pond-1"></div><div class="fishShadow fs-pond-2"></div></div>
       <div id="sceneDecor"></div>
+      <div id="bottleFloat" class="bottle-float" style="display:none" title="漂流瓶">🍾</div>
+      <div id="adSign" class="ad-sign" title="看广告领金币">📺</div>
       <svg class="lineSvg" id="lineSvg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
         <path id="linePath" d="" />
         <path id="linePathUnder" d="" />
@@ -116,7 +121,24 @@
       <div id="npcBox"></div>
     </div>
 
-    <button class="fabArea" id="btnArea">🎣钓场</button>
+    <!-- 「更多」快速菜单 -->
+    <div id="moreMenu" style="display:none;position:fixed;bottom:170px;right:12px;z-index:200;background:#fff;border-radius:14px;padding:10px 0;min-width:160px;box-shadow:0 8px 32px rgba(0,0,0,.18);animation:moreMenuIn .25s ease-out">
+      <div id="btnMoreEmpire" style="padding:10px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;border-bottom:1px solid #f0">
+        <span style="font-size:20px">🏰</span><span style="font-size:14px;font-weight:500">渔场经营</span>
+      </div>
+      <div id="btnMoreGrowth" style="padding:10px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;border-bottom:1px solid #f0">
+        <span style="font-size:20px">📈</span><span style="font-size:14px;font-weight:500">成长</span>
+      </div>
+      <div id="btnMoreGoal" style="padding:10px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #f0;cursor:pointer">
+        <span style="font-size:20px">🎯</span><span style="font-size:14px;font-weight:500">垂钓境界</span>
+      </div>
+      <div id="btnMoreDaily" style="padding:10px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #f0;cursor:pointer">
+        <span style="font-size:20px">📋</span><span style="font-size:14px;font-weight:500">每日任务</span>
+      </div>
+      <div id="btnMoreSys" style="padding:10px 16px;display:flex;align-items:center;gap:10px;cursor:pointer">
+        <span style="font-size:20px">⚙️</span><span style="font-size:14px;font-weight:500">设置</span>
+      </div>
+    </div>
 
     <div class="btnGroup">
       <button class="btn btnCast" id="castBtn">抛竿</button>
@@ -125,10 +147,25 @@
     <div class="fightHud" id="fightHud" aria-hidden="true">
       <div class="fightBar"><i id="fightFill"></i></div>
       <div class="fightTxt" id="fightTxt">遛鱼</div>
+      <div class="fightDir" id="fightDir" style="display:none"></div>
     </div>
   </div>
 
   <div class="tooltip" id="tooltip" role="status" aria-live="polite"></div>
+
+  <!-- 自定义Toast -->
+  <div class="toast" id="toast"></div>
+
+  <!-- 自定义确认弹窗 -->
+  <div class="mask" id="confirmMask" style="display:none">
+    <div class="panel" style="max-width:320px">
+      <div style="text-align:center;font-size:15px;margin-bottom:16px" id="confirmMsg"></div>
+      <div style="display:flex;gap:10px">
+        <button class="btnOk" id="confirmCancel" style="background:#888;flex:1">取消</button>
+        <button class="btnOk" id="confirmOk" style="flex:1">确认</button>
+      </div>
+    </div>
+  </div>
 
   <!-- 系统配置（开发/联调，不打扰玩家） -->
   <div class="mask" id="sysMask" style="display:none">
@@ -151,6 +188,13 @@
         提示：微信内建议保留动效与声效；若卡顿可关闭动效。
       </div>
       <button class="btnOk" id="btnSysClose">关闭</button>
+      <div style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(0,0,0,.08)">
+        <div style="font-weight:500;margin-bottom:8px">🎣 鱼竿升级（当前 <span id="sysRodLv">Lv.0</span>）</div>
+        <div style="font-size:12px;color:#888;margin-bottom:8px" id="sysRodInfo">每级提升稀有鱼概率+10%，减少冷却1.5%</div>
+        <button class="btnOk" id="btnUpgradeRod">升级鱼竿</button>
+      </div>
+      <button class="btnOk danger" id="btnLogoutAction" style="margin-top:12px">🚪 退出登录（再登录回同一账号）</button>
+      <button class="btnOk danger" id="btnResetAccount" style="margin-top:6px;background:#888">🔄 彻底换号（清空所有记录）</button>
     </div>
   </div>
 
@@ -164,7 +208,118 @@
     </div>
   </div>
 
+  <!-- 境界 -->
+  <div class="mask" id="goalMask" style="display:none">
+    <div class="panel">
+      <h2>🎯 垂钓境界</h2>
+      <div id="goalContent"></div>
+      <button class="btnOk" id="btnGoalClose">关闭</button>
+    </div>
+  </div>
+
+  <!-- 每日任务 -->
+  <div class="mask" id="dailyMask" style="display:none">
+    <div class="panel">
+      <h2>📋 每日任务</h2>
+      <div id="dailyList"></div>
+      <button class="btnOk" id="btnDailyClose">关闭</button>
+    </div>
+  </div>
+
+  <!-- 渔场经营 -->
+  <div class="mask" id="empireMask" style="display:none">
+    <div class="panel" style="max-width:420px;max-height:85vh;overflow-y:auto">
+      <h2>🏰 渔场经营</h2>
+      <div style="display:flex;gap:6px;margin-bottom:12px">
+        <button class="miniBtn primary" id="tabBusiness">🏪 经营</button>
+        <button class="miniBtn" id="tabShowcase">🏆 装备</button>
+      </div>
+      <div id="empireContent"></div>
+      <button class="btnOk" id="btnEmpireClose">关闭</button>
+    </div>
+  </div>
+
+  <!-- 鱼市交易 -->
+  <div class="mask" id="marketMask" style="display:none">
+    <div class="panel" style="max-width:420px;max-height:85vh;overflow-y:auto">
+      <h2>📊 鱼市交易</h2>
+      <div id="marketContent"></div>
+      <button class="btnOk" id="btnMarketClose">关闭</button>
+    </div>
+  </div>
+
+  <!-- 社区 -->
+  <div class="mask" id="communityMask" style="display:none">
+    <div class="panel" style="max-width:420px;max-height:85vh;overflow-y:auto">
+      <h2>📣 山海渔社区</h2>
+      <div style="display:flex;gap:6px;margin-bottom:12px">
+        <button class="miniBtn primary" id="tabClub">🏠 俱乐部</button>
+        <button class="miniBtn" id="tabCatch">📸 真实渔获</button>
+        <button class="miniBtn" id="tabRank">🏆 排行榜</button>
+        <button class="miniBtn" id="tabShow">🎨 展示台</button>
+      </div>
+      <div id="communityContent"></div>
+      <button class="btnOk" id="btnCommunityClose">关闭</button>
+    </div>
+  </div>
+
+  <!-- 底部内嵌广告条（不弹遮罩） -->
+  <div id="adBar">
+    <div class="adbar-inner">
+      <div class="adbar-icon">📺</div>
+      <div class="adbar-info">
+        <div class="adbar-reward">📺 看广告 · +3💰</div>
+        <div class="adbar-hint">观看倒计时</div>
+      </div>
+      <div class="adbar-timer" id="adbarTimer">10</div>
+    </div>
+    <div class="adbar-progress"><div class="adbar-fill" id="adbarFill"></div></div>
+    <div class="adbar-skip" id="adbarSkip">跳过（无奖励）</div>
+  </div>
+
+  <!-- 看广告遮罩（保留结构，playAd不再调用，不再主动弹出） -->
+  <div class="mask" id="adMask" style="display:none;z-index:1999 !important">
+    <div class="ad-box">
+      <div class="ad-timer" id="adTimer">10</div>
+      <div class="ad-label">📺 观看广告 · +3💰</div>
+      <div class="ad-progress"><div class="ad-fill" id="adFill"></div></div>
+      <div class="ad-tip">请稍候，广告播放中…</div>
+      <button class="btnOk danger" id="btnAdSkip" style="margin-top:16px;display:none">跳过</button>
+    </div>
+  </div>
+
+  <!-- 漂流瓶交互 -->
+  <div class="mask" id="bottleMask" style="display:none">
+    <div class="panel" style="max-width:320px">
+      <h2>🍾 漂流瓶</h2>
+      <div id="bottleContent" style="text-align:center"></div>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button class="btnOk" id="btnBottleClose" style="flex:1;background:#888">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 仓库（页面内弹窗） -->
+  <div class="mask" id="bagMask" style="display:none">
+    <div class="panel">
+      <h2>🎒 我的背包</h2>
+      <div style="display:flex;gap:6px;margin-bottom:12px">
+        <button class="miniBtn primary" id="tabFish">🐟 鱼获</button>
+        <button class="miniBtn" id="tabItems">🎒 道具</button>
+      </div>
+      <div id="bagContent"></div>
+      <button class="btnOk" id="btnBagClose">关闭</button>
+    </div>
+  </div>
+
   <script src="js/sfx.js"></script>
+  <script src="js/fisher-api.js"></script>
   <script src="js/demo2.js"></script>
+
+  <div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,.5);z-index:999;text-align:center">
+    <a href="agreement.html" target="_blank" style="color:inherit">用户协议</a>
+    &nbsp;·&nbsp;
+    垂钓社区与渔获管理工具
+  </div>
 </body>
 </html>
