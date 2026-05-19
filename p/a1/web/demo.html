@@ -5621,6 +5621,16 @@
     if (!chart || !cardPreviewImg) return;
     if (cardStatusEl) cardStatusEl.textContent = '截图中…';
 
+    // Pre-fetch invite code so card always shows it
+    fetchMyInviteCode().then(function (code) {
+      if (code) { try { localStorage.setItem('ai24x_invite_code', code); } catch (_) {} }
+      _doGenerateShareCard();
+    }).catch(function () {
+      _doGenerateShareCard();
+    });
+  }
+
+  function _doGenerateShareCard() {
     // Temporarily expand right offset to capture 2 empty K-bars + right price column
     var origRightOffset = CHART_RIGHT_OFFSET_BARS;
     var extraOffset = origRightOffset + 2;
@@ -5643,11 +5653,11 @@
       }
 
       // Build card canvas at 2x resolution for sharp text
-      var LW = 900, LH = 1350;
+      var LW = 900, LH = 1500;
       var c = document.createElement('canvas');
       c.width = LW * 2; c.height = LH * 2;
       var g = c.getContext('2d');
-      g.scale(2, 2); // All drawing uses logical coordinates (900x1350)
+      g.scale(2, 2); // All drawing uses logical coordinates (900x1500)
 
       // Dark background
       g.fillStyle = '#0a0e17';
@@ -5689,26 +5699,29 @@
       }
 
       // Chart — draw in pixel space for maximum sharpness
+      // Use wider aspect ratio (0.65) so phone screenshots fill better
+      var chartW = LW - 48;
+      var chartH = Math.round(chartW * 0.65);
+      var chartTopY = 290;
       try {
-        var chartW = LW - 48;
-        var chartH = Math.round(chartW * 0.52);
         g.save();
         g.setTransform(1, 0, 0, 1, 0, 0); // raw pixel space
         g.fillStyle = '#111827';
-        g.fillRect(24 * 2, 290 * 2, chartW * 2, chartH * 2);
+        g.fillRect(24 * 2, chartTopY * 2, chartW * 2, chartH * 2);
         g.imageSmoothingEnabled = true;
         g.imageSmoothingQuality = 'high';
         var srcW = chartCanvas.width, srcH = chartCanvas.height;
         var dAR = (chartW * 2) / (chartH * 2), sAR = srcW / srcH;
         var sx = 0, sy = 0, sW = srcW, sH = srcH;
+        // If source is wider than dest, crop sides; if taller, crop top
         if (sAR > dAR) { sW = srcH * dAR; sx = (srcW - sW) / 2; }
         else { sH = srcW / dAR; sy = (srcH - sH) / 2; }
-        g.drawImage(chartCanvas, sx, sy, sW, sH, 24 * 2, 290 * 2, chartW * 2, chartH * 2);
+        g.drawImage(chartCanvas, sx, sy, sW, sH, 24 * 2, chartTopY * 2, chartW * 2, chartH * 2);
         g.restore();
       } catch (e2) {}
 
-      // Bottom section
-      var bottomY = 290 + Math.round((LW - 48) * 0.52) + 18;
+      // Bottom section — starts below chart
+      var bottomY = chartTopY + chartH + 18;
       g.fillStyle = '#111827';
       g.fillRect(0, bottomY, LW, 195);
       g.fillStyle = '#94a3b8';
@@ -5761,12 +5774,38 @@
   }
   function saveCardImage() {
     if (!cardPreviewImg || !cardPreviewImg.src || cardPreviewImg.src === location.href) return;
+    if (cardStatusEl) cardStatusEl.textContent = '保存中…';
+    // 1. Try Web Share API (best mobile experience — can save to album)
+    if (navigator.share && navigator.canShare && typeof File !== 'undefined') {
+      try {
+        var qn = _lastQueryName || getQuoteSnapshot().name;
+        if (!qn) { try { qn = String(inputEl.value || '').trim().replace(/\s+.*/, ''); } catch (_) {} }
+        var fileName = 'AI行情官_' + (qn || 'chart').replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_') + '.png';
+        fetch(cardPreviewImg.src)
+          .then(function (r) { return r.blob(); })
+          .then(function (blob) {
+            var file = new File([blob], fileName, { type: 'image/png' });
+            if (navigator.canShare({ files: [file] })) {
+              return navigator.share({ files: [file], title: fileName }).then(function () {
+                if (cardStatusEl) cardStatusEl.textContent = '已分享/保存';
+              });
+            }
+            return Promise.reject('not supported');
+          })
+          .catch(function () {
+            _fallbackSaveCard();
+          });
+        return;
+      } catch (e) { /* fall through to fallback */ }
+    }
+    _fallbackSaveCard();
+  }
+  function _fallbackSaveCard() {
     try {
       var a = document.createElement('a');
       a.href = cardPreviewImg.src;
       var qn = _lastQueryName || getQuoteSnapshot().name;
       if (!qn) { try { qn = String(inputEl.value || '').trim().replace(/\s+.*/, ''); } catch (_) {} }
-      // Final fallback: read from localStorage (saved by saveLastQuery on every successful query)
       if (!qn) {
         try {
           var stored = JSON.parse(localStorage.getItem(LAST_QUERY_KEY) || '{}');
@@ -5775,8 +5814,9 @@
       }
       a.download = 'AI行情官_' + (qn || 'chart').replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_') + '.png';
       a.click();
+      if (cardStatusEl) cardStatusEl.textContent = '已触发下载';
     } catch (e) {
-      if (cardStatusEl) cardStatusEl.textContent = '保存失败，请长按图片手动保存';
+      if (cardStatusEl) cardStatusEl.textContent = '请长按图片保存到相册';
     }
   }
   function wrapText(ctx, text, maxWidth) {
@@ -6139,7 +6179,7 @@
         <span>信号分享卡</span>
         <button class="btn" type="button" id="btn-card-close">关闭</button>
       </h2>
-      <p class="sub">长按保存图片，转发到微信/朋友圈</p>
+      <p class="sub">点击「保存图片」或长按图片保存到相册</p>
       <div id="card-preview-wrap" style="margin:12px 0; text-align:center; background:rgba(0,0,0,.2); border-radius:8px; padding:8px;">
         <img id="card-preview-img" alt="信号分享卡" style="max-width:100%; border-radius:8px; display:block;" />
       </div>
