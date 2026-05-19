@@ -5717,6 +5717,13 @@
       a.href = cardPreviewImg.src;
       var qn = _lastQueryName || getQuoteSnapshot().name;
       if (!qn) { try { qn = String(inputEl.value || '').trim().replace(/\s+.*/, ''); } catch (_) {} }
+      // Final fallback: read from localStorage (saved by saveLastQuery on every successful query)
+      if (!qn) {
+        try {
+          var stored = JSON.parse(localStorage.getItem(LAST_QUERY_KEY) || '{}');
+          if (stored && stored.name) qn = String(stored.name).trim();
+        } catch (_) {}
+      }
       a.download = 'AI行情官_' + (qn || 'chart').replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_') + '.png';
       a.click();
     } catch (e) {
