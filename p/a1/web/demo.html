@@ -5669,11 +5669,23 @@
       }
 
       // Build card canvas at 2x resolution for sharp text
-      var LW = 900, LH = 1500;
+      // Height will be set after we know chart screenshot dimensions
+      var LW = 900;
       var c = document.createElement('canvas');
-      c.width = LW * 2; c.height = LH * 2;
       var g = c.getContext('2d');
-      g.scale(2, 2); // All drawing uses logical coordinates (900x1500)
+
+      // ... header + stock info + signal summary area height
+      var headerH = 290; // header bar(72) + stock info gap + signal summary
+
+      // First pass: need screenshot dimensions to calculate total height
+      // chartH = chartW * (srcH/srcW), bottomH = 195, padding = 60
+      var _chartAreaW = LW - 48;
+      var _srcW0 = chartCanvas.width, _srcH0 = chartCanvas.height;
+      var _chartH0 = Math.round(_chartAreaW * (_srcH0 / _srcW0));
+      var LH = headerH + _chartH0 + 195 + 60; // header + chart + bottom + padding
+
+      c.width = LW * 2; c.height = LH * 2;
+      g.scale(2, 2); // All drawing uses logical coordinates
 
       // Dark background
       g.fillStyle = '#0a0e17';
@@ -5715,29 +5727,27 @@
       }
 
       // Chart — draw in pixel space for maximum sharpness
-      // Use wider aspect ratio (0.65) so phone screenshots fill better
+      // Auto-fit: use source screenshot aspect ratio so nothing gets cropped
       var chartW = LW - 48;
-      var chartH = Math.round(chartW * 0.65);
       var chartTopY = 290;
       try {
         g.save();
         g.setTransform(1, 0, 0, 1, 0, 0); // raw pixel space
+        var srcW = chartCanvas.width, srcH = chartCanvas.height;
+        var chartH = Math.round(chartW * (srcH / srcW));
         g.fillStyle = '#111827';
         g.fillRect(24 * 2, chartTopY * 2, chartW * 2, chartH * 2);
         g.imageSmoothingEnabled = true;
         g.imageSmoothingQuality = 'high';
-        var srcW = chartCanvas.width, srcH = chartCanvas.height;
-        var dAR = (chartW * 2) / (chartH * 2), sAR = srcW / srcH;
-        var sx = 0, sy = 0, sW = srcW, sH = srcH;
-        // If source is wider than dest, crop sides; if taller, crop top
-        if (sAR > dAR) { sW = srcH * dAR; sx = (srcW - sW) / 2; }
-        else { sH = srcW / dAR; sy = (srcH - sH) / 2; }
-        g.drawImage(chartCanvas, sx, sy, sW, sH, 24 * 2, chartTopY * 2, chartW * 2, chartH * 2);
+        // Draw full source — no cropping, just scale to fit width
+        g.drawImage(chartCanvas, 0, 0, srcW, srcH, 24 * 2, chartTopY * 2, chartW * 2, chartH * 2);
         g.restore();
       } catch (e2) {}
 
-      // Bottom section — starts below chart
-      var bottomY = chartTopY + chartH + 18;
+      // Bottom section — starts below chart (dynamic height based on screenshot)
+      var _srcW2 = chartCanvas.width, _srcH2 = chartCanvas.height;
+      var chartH2 = Math.round((LW - 48) * (_srcH2 / _srcW2));
+      var bottomY = chartTopY + chartH2 + 18;
       g.fillStyle = '#111827';
       g.fillRect(0, bottomY, LW, 195);
       g.fillStyle = '#94a3b8';
