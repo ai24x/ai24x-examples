@@ -5206,6 +5206,7 @@
         code: cd,
         ts: Date.now(),
       };
+      if (nm) _lastQueryName = nm;
       if (typeof localStorage !== 'undefined') localStorage.setItem(LAST_QUERY_KEY, JSON.stringify(o));
       // Enable fav button and refresh state after each query
       if (btnFav) { btnFav.disabled = false; }
@@ -5538,6 +5539,7 @@
   function getInviteCode() {
     try { return String(localStorage.getItem('ai24x_invite_code') || '').trim().toUpperCase(); } catch (e) { return ''; }
   }
+  var _lastQueryName = '';  // 记录最近一次查询的标的名称，供卡片保存用
   function getQuoteSnapshot() {
     var name = '', price = '', change = '';
     try { name = String(quoteTitleEl && quoteTitleEl.textContent ? quoteTitleEl.textContent : '').replace(/\s+/g,' ').trim(); } catch (e) {}
@@ -5713,7 +5715,7 @@
     try {
       var a = document.createElement('a');
       a.href = cardPreviewImg.src;
-      var qn = getQuoteSnapshot().name;
+      var qn = _lastQueryName || getQuoteSnapshot().name;
       if (!qn) { try { qn = String(inputEl.value || '').trim().replace(/\s+.*/, ''); } catch (_) {} }
       a.download = 'AI行情官_' + (qn || 'chart').replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_') + '.png';
       a.click();
