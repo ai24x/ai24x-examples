@@ -2402,15 +2402,16 @@ async def _fetch_em_plate_klt(client: httpx.AsyncClient, secid: str, klt: int) -
         "klt": str(klt),
         "fqt": "1",
     }
-    urls = [EM_PLATE_KLINE]
+    urls = []
     try:
         http_url = EM_PLATE_KLINE.replace("https://", "http://", 1)
         if http_url != EM_PLATE_KLINE:
             urls.append(http_url)
     except Exception:
         pass
+    urls.append(EM_PLATE_KLINE)  # HTTPS as fallback
 
-    for attempt in range(3):
+    for attempt in range(2):
         url = urls[min(attempt, len(urls) - 1)]
         try:
             r = await client.get(url, params=params)
@@ -2420,85 +2421,91 @@ async def _fetch_em_plate_klt(client: httpx.AsyncClient, secid: str, klt: int) -
             return _em_kline_rows_from_payload(payload)
         except httpx.RemoteProtocolError as e:
             _src_fail("eastmoney.push2his", (time.perf_counter() - t0) * 1000.0, f"RemoteProtocolError:{e}")
-            await asyncio.sleep(0.25 + 0.25 * attempt)
+            await asyncio.sleep(0.25)
             continue
         except Exception as e:
             _src_fail("eastmoney.push2his", (time.perf_counter() - t0) * 1000.0, type(e).__name__)
             raise
-    # Last resort: public proxy (server-side), useful in some local networks.
-    try:
-        base_url = urls[0]
-        full = str(httpx.URL(base_url, params=params))
-        proxy = "https://api.codetabs.com/v1/proxy/?quest=" + _urlquote(full, safe="")
-        r2 = await client.get(proxy)
-        r2.raise_for_status()
-        payload2 = r2.json()
-        _src_ok("eastmoney.push2his.proxy", (time.perf_counter() - t0) * 1000.0)
-        return _em_kline_rows_from_payload(payload2)
-    except Exception as e2:
-        _src_fail("eastmoney.push2his.proxy", (time.perf_counter() - t0) * 1000.0, type(e2).__name__)
-        raise httpx.RemoteProtocolError("eastmoney push2his disconnected")
+    raise httpx.RemoteProtocolError("eastmoney push2his disconnected")
 
 
 async def fetch_em_plate_kline(
-    secid: str, period: str, count: int = 500, timeout: float = 15.0
+    secid: str, period: str, count: int = 500, timeout: float = 5.0
 ) -> Dict[str, Any]:
     """
     东财板块指数 K 线；返回结构与腾讯 fqkline JSON 接近，便于前端 pickTencentKlineRows 复用。
     同时返回日/周/月三套序列（周月为东财聚合，与前端自聚合可能略有差异）。
+
+    注意：东财 push2his 在 Windows schannel 下有 SSL 重协商问题（RemoteProtocolError）。
+    此函数快速重试 2 轮后即返回，让浏览器端 JSONP 兜底。
     """
     sid = str(secid).strip()
     if not is_em_plate_secid(sid):
         raise ValueError("invalid eastmoney plate secid")
     key = sid.upper()
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Referer": "https://quote.eastmoney.com/",
-        # Avoid reusing keep-alive connections: eastmoney endpoints may drop them abruptly.
-        "Connection": "close",
-    }
-    limits = httpx.Limits(max_connections=20, max_keepalive_connections=0)
-    try:
-        async with httpx.AsyncClient(timeout=timeout, headers=headers, limits=limits, follow_redirects=True, verify=False) as client:
-            try:
+
+    def _client_opts() -> dict:
+        return {
+            "timeout": timeout,
+            "headers": {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Referer": "https://quote.eastmoney.com/",
+                "Connection": "close",
+            },
+            "limits": httpx.Limits(max_connections=10, max_keepalive_connections=0),
+            "follow_redirects": True,
+            "verify": False,
+        }
+
+    last_err: Optional[Exception] = None
+
+    # Fast retry: at most 2 attempts, short sleep between, so frontend timeout isn't triggered.
+    for attempt in range(2):
+        try:
+            async with httpx.AsyncClient(**_client_opts()) as client:
                 day_rows, week_rows, month_rows = await asyncio.gather(
                     _fetch_em_plate_klt(client, sid, 101),
                     _fetch_em_plate_klt(client, sid, 102),
                     _fetch_em_plate_klt(client, sid, 103),
                 )
-            except httpx.RemoteProtocolError:
-                # Reduce upstream pressure: fetch day only, then aggregate week/month locally.
-                day_rows = await _fetch_em_plate_klt(client, sid, 101)
-                week_rows = _agg_to_week(day_rows)
-                month_rows = _agg_to_month(day_rows)
-    except httpx.RemoteProtocolError:
-        return {"code": -1, "msg": "eastmoney plate kline temporarily unreachable (direct/proxy)", "data": {}}
+        except httpx.RemoteProtocolError as e:
+            last_err = e
+            if attempt < 1:
+                await asyncio.sleep(0.5)
+            continue
+        except Exception as e:
+            last_err = e
+            break
 
-    def tail(rows: list[list[str]]) -> list[list[str]]:
-        if count > 0 and len(rows) > count:
-            return rows[-count:]
-        return rows
+        def tail(rows: list[list[str]]) -> list[list[str]]:
+            if count > 0 and len(rows) > count:
+                return rows[-count:]
+            return rows
 
-    d = tail(day_rows)
-    w = tail(week_rows)
-    m = tail(month_rows)
-    if not d:
-        return {"code": -1, "msg": "no eastmoney plate kline", "data": {}}
-    # Plate intraday may lag; append a synthetic today bar so UI shows "today" consistently.
-    d2, syn_today = _maybe_append_today_placeholder(d)
-    if syn_today:
-        d = d2
-        # Week/month are kept as-is; frontend also aggregates from day when needed.
+        d = tail(day_rows)
+        w = tail(week_rows)
+        m = tail(month_rows)
+        if not d:
+            return {"code": -1, "msg": "no eastmoney plate kline", "data": {}}
+        # Plate intraday may lag; append a synthetic today bar so UI shows "today" consistently.
+        d2, syn_today = _maybe_append_today_placeholder(d)
+        if syn_today:
+            d = d2
 
-    pack: Dict[str, Any] = {
-        "qfqday": d,
-        "day": d,
-        "qfqweek": w,
-        "week": w,
-        "qfqmonth": m,
-        "month": m,
-    }
-    return {"code": 0, "data": {key: pack}}
+        pack: Dict[str, Any] = {
+            "qfqday": d,
+            "day": d,
+            "qfqweek": w,
+            "week": w,
+            "qfqmonth": m,
+            "month": m,
+        }
+        return {"code": 0, "data": {key: pack}}
+
+    # All 3 attempts exhausted — return descriptive error so frontend can react.
+    err_name = type(last_err).__name__ if last_err else "unknown"
+    err_msg = str(last_err) if last_err else ""
+    return {"code": -1, "msg": f"eastmoney plate kline temporarily unavailable ({err_name}: {err_msg})", "data": {}}
 
 
 def is_em_stock_secid(secid: str) -> bool:
