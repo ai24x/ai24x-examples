@@ -5713,7 +5713,9 @@
     try {
       var a = document.createElement('a');
       a.href = cardPreviewImg.src;
-      a.download = 'AI行情官_' + getQuoteSnapshot().name.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_') + '.png';
+      var qn = getQuoteSnapshot().name;
+      if (!qn) { try { qn = String(inputEl.value || '').trim().replace(/\s+.*/, ''); } catch (_) {} }
+      a.download = 'AI行情官_' + (qn || 'chart').replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_') + '.png';
       a.click();
     } catch (e) {
       if (cardStatusEl) cardStatusEl.textContent = '保存失败，请长按图片手动保存';
@@ -6059,8 +6061,8 @@
           <option value="checklist">复盘清单</option>
           <option value="structure">结构要点</option>
         </select>
-        <button class="btn primary" type="button" id="btn-share-native" style="display:none">转发</button>
-        <button class="btn" type="button" id="btn-share-card">分享卡片</button>
+        <button class="btn primary" type="button" id="btn-share-card">分享卡片</button>
+        <button class="btn" type="button" id="btn-share-native" style="display:none">转发</button>
         <button class="btn" type="button" id="btn-share-copy-text">复制文案</button>
         <button class="btn" type="button" id="btn-share-copy-link">复制链接</button>
         <span class="muted small" id="share-status"></span>
