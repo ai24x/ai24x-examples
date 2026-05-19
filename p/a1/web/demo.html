@@ -5775,8 +5775,9 @@
   function saveCardImage() {
     if (!cardPreviewImg || !cardPreviewImg.src || cardPreviewImg.src === location.href) return;
     if (cardStatusEl) cardStatusEl.textContent = '保存中…';
-    // 1. Try Web Share API (best mobile experience — can save to album)
-    if (navigator.share && navigator.canShare && typeof File !== 'undefined') {
+    // 1. Try Web Share API — mobile only (desktop always use download)
+    var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isMobile && navigator.share && navigator.canShare && typeof File !== 'undefined') {
       try {
         var qn = _lastQueryName || getQuoteSnapshot().name;
         if (!qn) { try { qn = String(inputEl.value || '').trim().replace(/\s+.*/, ''); } catch (_) {} }
