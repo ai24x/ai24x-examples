@@ -1178,8 +1178,8 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
 
         if d1HintOnce[i]:
             push_pair(i, "belowBar", LS_COL_BOTTOM_HINT, "arrowUp", "小底", f"ls-x-{i}", 0.98, 3)
+        realBottomBits: list[str] = []
         if allowBottomSignal and (d1Once[i] or d2Once[i]):
-            realBottomBits: list[str] = []
             if d1Once[i]:
                 realBottomBits.append("底1")
             if d2Once[i]:
@@ -1197,8 +1197,11 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
                 else:
                     push_arrow(i, "aboveBar", LS_COL_TURN, "arrowDown", tb, f"ls-turn-{i}-dn", 1.35, 3)
         # v1.04: 破线信号 — 用底1标签+底颜色
+        # 去重：如果 realBottomBits 已有"底1"，则 breakBits 中的"底1"跳过（避免同一根K线两个底1）
         if breakBits:
-            push_pair(i, "belowBar", LS_COL_BOTTOM, "arrowUp", "·".join(breakBits), f"ls-break-{i}", 1.02, 5)
+            dedupBreakBits = [b for b in breakBits if b not in realBottomBits]
+            if dedupBreakBits:
+                push_pair(i, "belowBar", LS_COL_BOTTOM, "arrowUp", "·".join(dedupBreakBits), f"ls-break-{i}", 1.02, 5)
         if sellBits:
             sn = len(sellBits)
             push_pair(i, "aboveBar", LS_COL_SELL, "arrowDown", "·".join(sellBits), f"ls-as-{i}", 1.12 if sn > 1 else 1.06, 3)
@@ -1214,16 +1217,21 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         if macdDeadCross[i]:
             push_arrow(i, "aboveBar", "#f97316", "circle", "-", f"ls-macd-d-{i}", 0.65, 0)
 
-    # v1.05: MACD 增强 — 同向信号加权重
+    # v1.05: MACD 增强 — 同向信号加权重（仅对B信号改颜色，不覆盖底信号的蓝色）
     for m in markers:
         t = m.get("time", "")
+        mid = str(m.get("id", ""))
         for j in range(n):
             if candles[j].time == t and m.get("position") == "belowBar" and macdGoldenCross[j]:
                 m["weight"] = (m.get("weight") or 0) + 1
-                m["color"] = "#ff1744"  # brighter red = stronger
+                # 只对B信号(金叉)加亮红色，底/小底保持原有颜色
+                if mid.startswith("ls-b-"):
+                    m["color"] = "#ff1744"
             elif candles[j].time == t and m.get("position") == "aboveBar" and macdDeadCross[j]:
                 m["weight"] = (m.get("weight") or 0) + 1
-                m["color"] = "#00e676"  # brighter green = stronger
+                # 只对卖信号(死叉)加亮绿色，险/顶保持原有颜色
+                if mid.startswith("ls-as-"):
+                    m["color"] = "#00e676"
 
     def lane(mid: Any) -> int:
         s = str(mid)
