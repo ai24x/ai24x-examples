@@ -45,7 +45,7 @@
     (function () {
       try {
         var k = "ai24x_a_theme";
-        var t = String(localStorage.getItem(k) || "").trim() || "dark";
+        var t = String(localStorage.getItem(k) || "").trim() || "calm";
         document.documentElement.setAttribute("data-theme", t);
       } catch (e) {}
     })();
@@ -3637,26 +3637,12 @@
     try {
       var k = 'ai24x_a_theme';
       var mk = 'ai24x_a_theme_migrated_calm_to_light_v1';
-      var saved = 'light';
+      var saved = 'calm';
       try {
-        if (typeof localStorage !== 'undefined') saved = localStorage.getItem(k) || 'light';
+        if (typeof localStorage !== 'undefined') saved = localStorage.getItem(k) || 'calm';
       } catch (e0) {}
-      saved = String(saved || '').trim() || 'light';
-      // One-time migration to ensure legacy default "calm" users immediately switch to "light".
-      try {
-        var migrated = localStorage.getItem(mk) || '';
-        if (!migrated && saved === 'calm') {
-          saved = 'light';
-          localStorage.setItem(k, saved);
-          localStorage.setItem(mk, '1');
-        }
-      } catch (eM) {}
-      if (themeSelectEl) themeSelectEl.value = saved;
-      if (window.AI24X_A_SHELL && window.AI24X_A_SHELL.applyTheme) {
-        window.AI24X_A_SHELL.applyTheme(saved);
-      } else {
-        document.documentElement.setAttribute('data-theme', saved);
-      }
+      saved = String(saved || '').trim() || 'calm';
+      document.documentElement.setAttribute('data-theme', saved);
     } catch (e) {}
   })();
 
@@ -4239,13 +4225,61 @@
       // Only for Eastmoney BK plates: backend may be unreachable from some servers (subbrain03),
       // but browser JSONP can still load candles, so compute a minimal local signal set.
       if (!isEmPlateSecid(secid)) return false;
+      var closes = candles.map(function (c) { return Number(c && c.close); });
+      // MA cross markers
       var mk = buildLocalMaCrossMarkers(candles, 14, 28);
-      if (!mk || !mk.length) return false;
+      // Local MACD computation
+      var macd = buildLocalMacd(candles);
+      if (macd && macd.length) {
+        try { renderMacdPane(macd); } catch (e0) {}
+      }
+      if (!mk || !mk.length) {
+        if (macd && macd.length) return true; // at least MACD rendered
+        return false;
+      }
       try { if (series && typeof series.setMarkers === 'function') series.setMarkers(mk); } catch (e0) {}
       try { setupChartTooltip(chart, series, candles, mainChartVols, null, null); } catch (e1) {}
       return true;
     } catch (e) {
       return false;
+    }
+  }
+
+  function buildLocalMacd(candles) {
+    try {
+      if (!candles || candles.length < 35) return [];
+      var closes = candles.map(function (c) { return Number(c && c.close); });
+      // EMA helper
+      function ema(arr, n) {
+        var k = 2 / (n + 1);
+        var out = new Array(arr.length);
+        out[0] = arr[0];
+        for (var i = 1; i < arr.length; i++) {
+          if (!isFinite(arr[i]) || !isFinite(out[i - 1])) { out[i] = out[i - 1] || arr[i]; continue; }
+          out[i] = arr[i] * k + out[i - 1] * (1 - k);
+        }
+        return out;
+      }
+      var ema12 = ema(closes, 12);
+      var ema26 = ema(closes, 26);
+      var dif = [], dea = [], bar = [];
+      for (var i = 0; i < closes.length; i++) {
+        dif.push(ema12[i] - ema26[i]);
+      }
+      dea = ema(dif, 9);
+      for (var i = 0; i < closes.length; i++) {
+        bar.push(2 * (dif[i] - dea[i]));
+      }
+      var result = [];
+      for (var i = 0; i < closes.length; i++) {
+        if (!isFinite(dif[i]) || !isFinite(dea[i]) || !isFinite(bar[i])) continue;
+        var t = candles[i] && candles[i].time;
+        if (!t) continue;
+        result.push({ time: t, dif: Math.round(dif[i] * 10000) / 10000, dea: Math.round(dea[i] * 10000) / 10000, bar: Math.round(bar[i] * 10000) / 10000 });
+      }
+      return result;
+    } catch (e) {
+      return [];
     }
   }
 

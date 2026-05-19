@@ -64,7 +64,7 @@
       '<select id="theme-select" class="select-mini" aria-label="Theme">' +
       '<option value="calm">深蓝</option>' +
       '<option value="dark">深黑</option>' +
-      '<option value="light">蓝白（默认）</option>' +
+      '<option value="light">蓝白</option>' +
       "</select>" +
       '<span id="auth-actions" style="display:none; display:inline-flex; align-items:center; gap:10px; min-width:118px; justify-content:flex-end">' +
       '<a class="btn btn-ghost" id="btn-auth" href="account.html">登录/续期</a>' +
@@ -120,24 +120,13 @@
       var sel = document.getElementById("theme-select");
       if (sel) {
         var k = "ai24x_a_theme";
-        var mk = "ai24x_a_theme_migrated_calm_to_light_v1";
         var cur = "";
         try { cur = localStorage.getItem(k) || ""; } catch (e0) {}
-        cur = String(cur || "").trim() || "light";
-        // One-time migration: force legacy "calm" users to "light" immediately,
-        // but never override future manual selections.
-        try {
-          var migrated = localStorage.getItem(mk) || "";
-          if (!migrated && cur === "calm") {
-            cur = "light";
-            localStorage.setItem(k, cur);
-            localStorage.setItem(mk, "1");
-          }
-        } catch (eM) {}
+        cur = String(cur || "").trim() || "calm";
         sel.value = cur;
         applyTheme(cur);
         sel.addEventListener("change", function () {
-          var v = String(sel.value || "light").trim() || "light";
+          var v = String(sel.value || "calm").trim() || "calm";
           try { localStorage.setItem(k, v); } catch (e1) {}
           applyTheme(v);
         });
@@ -165,7 +154,7 @@
 
   function applyTheme(t) {
     try {
-      t = String(t || "").trim() || "light";
+      t = String(t || "").trim() || "calm";
       document.documentElement.setAttribute("data-theme", t);
     } catch (e) {}
   }
@@ -219,7 +208,7 @@
     var sel = _el("select", { id: "theme-select", class: "select-mini", "aria-label": "Theme" }, [
       _el("option", { value: "calm", text: "深蓝" }),
       _el("option", { value: "dark", text: "深黑" }),
-      _el("option", { value: "light", text: "蓝白（默认）" }),
+      _el("option", { value: "light", text: "蓝白" }),
     ]);
     actions.appendChild(sel);
     var authWrap = _el("span", { id: "auth-actions", style: "display:none; display:inline-flex; align-items:center; gap:10px; min-width:118px; justify-content:flex-end" }, []);

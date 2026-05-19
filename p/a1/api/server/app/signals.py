@@ -1267,6 +1267,8 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         )
     )
     # v1.02: signal locking — freeze markers >5 bars old
+    # CACHE_VERSION: bump this when signal algorithm changes to auto-invalidate stale caches
+    CACHE_VERSION = 3
     if cache_key and len(candles) > 10:
         LOCK_BARS = 5
         freeze_cutoff = candles[-LOCK_BARS - 1].time if len(candles) > LOCK_BARS else ""
@@ -1280,6 +1282,9 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
                     with open(cache_path, "r", encoding="utf-8") as fh:
                         cached = json.load(fh)
                 except Exception:
+                    cached = {}
+                # Auto-invalidate if cache version mismatches
+                if int(cached.get("v", 0)) != CACHE_VERSION:
                     cached = {}
                 if cached.get("markers"):
                     locked = []
@@ -1298,7 +1303,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             # Save current markers for next time
             try:
                 with open(cache_path, "w", encoding="utf-8") as fh:
-                    json.dump({"markers": markers, "ts": str(candles[-1].time) if candles else ""}, fh, ensure_ascii=False)
+                    json.dump({"v": CACHE_VERSION, "markers": markers, "ts": str(candles[-1].time) if candles else ""}, fh, ensure_ascii=False)
             except Exception:
                 pass
         except Exception:
