@@ -5636,6 +5636,19 @@
     var extraOffset = origRightOffset + 2;
     try { chart.timeScale().applyOptions({ rightOffset: extraOffset }); } catch (_) {}
 
+    // Temporarily enlarge chart container so MACD pane is visible in screenshot
+    var chartWrapEl = document.getElementById('chart-wrap');
+    var origHeight = chartWrapEl ? chartWrapEl.style.height : '';
+    var needsRestore = false;
+    if (chartWrapEl) {
+      var rect = chartWrapEl.getBoundingClientRect();
+      if (rect.height < 500) {
+        chartWrapEl.style.height = '600px';
+        chartWrapEl.style.transition = 'none';
+        needsRestore = true;
+      }
+    }
+
     // Wait for chart to re-render with expanded view, then screenshot + restore
     setTimeout(function () {
       var chartCanvas = null;
@@ -5646,6 +5659,9 @@
       }
       // Restore immediately
       try { chart.timeScale().applyOptions({ rightOffset: origRightOffset }); } catch (_) {}
+      if (needsRestore && chartWrapEl) {
+        chartWrapEl.style.height = origHeight;
+      }
 
       if (!chartCanvas) {
         if (cardStatusEl) cardStatusEl.textContent = '截图失败：请稍后重试';
@@ -5770,7 +5786,7 @@
           if (cardStatusEl) cardStatusEl.textContent = '生成失败：浏览器安全限制（可尝试用"分享→海报"替代）';
         }
       }
-    }, 100); // 100ms for chart re-render
+    }, 400); // 400ms for chart re-render at enlarged height
   }
   function saveCardImage() {
     if (!cardPreviewImg || !cardPreviewImg.src || cardPreviewImg.src === location.href) return;
