@@ -3483,21 +3483,32 @@
     var json = await suggestTransport(keyword);
     var rows = json && json.QuotationCodeTable && json.QuotationCodeTable.Data;
     if (!rows || !rows.length) return [];
+
+    // 判断结果中是否包含板块类型（BK 或 THS），若有则视为板块搜索
+    var hasPlateResults = rows.some(function (r) {
+      var qid = String(r.QuoteID || '');
+      return /^90\.BK\d+$/i.test(qid) || /^ths:\d{6}$/i.test(qid);
+    });
+
     var filtered = rows.filter(function (r) {
       var c = String(r.Code || '');
       var qid = String(r.QuoteID || '');
       var cl = String(r.Classify != null ? r.Classify : '');
-      // 东财板块指数：QuoteID 形如 90.BKxxxx
-      // 允许作为“可选能力”（不再默认引导，但用户主动搜索时应可用）
+      // 东财板块指数：QuoteID 形如 90.BKxxxx — 始终允许
       if (/^90\.BK\d+$/i.test(qid)) return true;
-      // TuShare THS 指数：QuoteID 形如 ths:881271
+      // TuShare THS 指数：QuoteID 形如 ths:881271 — 始终允许
       if (/^ths:\d{6}$/i.test(qid)) return true;
       // 放宽：只要是 A 股/指数的 QuoteID（0/1.六位），就允许进入候选（含科创 688xxx）
       if (/^[01]\.\d{6}$/.test(qid)) return true;
       // 仍兼容旧字段与北交所
       if (r.Classify === 'AStock') return true;
-      if (r.Classify === 'Index') return true;
       if (r.Classify === 'NEEQ') return true;
+      // 板块搜索时：只保留 BK 和 THS，过滤掉 Index/34/92xxx 等无K线数据的东财匹配项
+      if (hasPlateResults) {
+        return false;
+      }
+      // 非板块搜索：保留原有股票/指数逻辑
+      if (r.Classify === 'Index') return true;
       if (cl === '34') return true;
       if (/^92\d{4}$/.test(c)) return true;
       return false;

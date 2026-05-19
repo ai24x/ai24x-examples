@@ -2024,12 +2024,19 @@ async def api_kline(
     try:
         if user_id is None:
             secid0 = str(secid or "").strip()
+            # THS 概念板块（ths:886108）只能通过 tushare 付费源获取K线，
+            # 对游客开放板块查询权限，提升体验。
+            is_ths_plate = secid0.lower().startswith("ths:")
             # Force public sources only; do not allow paid provider for anonymous traffic.
             md = market_data_status()
             base_pri = str((md.get("paid") or {}).get("priority") or "").strip().lower()
             if not base_pri:
                 base_pri = "tencent,eastmoney,sina,paid"
-            priority_override = ",".join([x for x in base_pri.split(",") if x.strip() and x.strip() != "paid"])
+            if is_ths_plate:
+                # 板块查K线：保留 paid（tushare 是唯一数据源）
+                priority_override = base_pri
+            else:
+                priority_override = ",".join([x for x in base_pri.split(",") if x.strip() and x.strip() != "paid"])
 
             if secid0 in _ANON_KLINE_WHITELIST:
                 # Whitelist: always allowed (onboarding + demo stability).
@@ -2040,7 +2047,7 @@ async def api_kline(
                     count=count_anon,
                     variant="anon",
                     priority_override=priority_override,
-                    allow_paid=False,
+                    allow_paid=is_ths_plate,
                 )
 
             # Extra anon trial quota for self-selected symbols (3/day per IP).
@@ -2053,7 +2060,7 @@ async def api_kline(
                     count=count_anon,
                     variant="anon",
                     priority_override=priority_override,
-                    allow_paid=False,
+                    allow_paid=is_ths_plate,
                 )
                 return payload
 
@@ -2140,12 +2147,16 @@ async def api_signals(
         # Keep the same anon policy as /api/kline.
         if user_id is None:
             secid0 = str(secid or "").strip()
-            if secid0 in _ANON_KLINE_WHITELIST:
+            is_ths_plate = secid0.lower().startswith("ths:")
+            if secid0 in _ANON_KLINE_WHITELIST or is_ths_plate:
                 md = market_data_status()
                 base_pri = str((md.get("paid") or {}).get("priority") or "").strip().lower()
                 if not base_pri:
                     base_pri = "tencent,eastmoney,sina,paid"
-                priority_override = ",".join([x for x in base_pri.split(",") if x.strip() and x.strip() != "paid"])
+                if is_ths_plate:
+                    priority_override = base_pri
+                else:
+                    priority_override = ",".join([x for x in base_pri.split(",") if x.strip() and x.strip() != "paid"])
                 count_anon = min(int(count), 800)
                 payload = await fetch_tx_kline(
                     secid0,
@@ -2153,7 +2164,7 @@ async def api_signals(
                     count=count_anon,
                     variant="anon",
                     priority_override=priority_override,
-                    allow_paid=False,
+                    allow_paid=is_ths_plate,
                 )
             else:
                 return {"code": -401, "msg": "请先登录后再查询", "data": {}}
