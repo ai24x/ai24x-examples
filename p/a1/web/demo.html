@@ -1747,10 +1747,14 @@
   }
 
   function suggestResultSortKey(r) {
-    if (r.Classify === 'Index') return 0;
-    if (String(r.Classify != null ? r.Classify : '') === '34') return 1;
-    if (String(r.Classify || '').toUpperCase() === 'BK') return 1;
-    return 2;
+    var cl = String(r.Classify != null ? r.Classify : '');
+    // THS 付费板块优先（数据更稳定）
+    if (cl.toUpperCase() === 'THS') return 0;
+    // 东财BK板块
+    if (cl === '34' || cl.toUpperCase() === 'BK') return 1;
+    // 其他指数/股票
+    if (cl === 'Index') return 2;
+    return 3;
   }
 
   function resolveIndexAlias(keyword) {
