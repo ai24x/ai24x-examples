@@ -1374,7 +1374,7 @@
     .disclaimer-bar .x:hover{ background: rgba(255,255,255,.85); }
 
     /* ===== Watchlist Panel ===== */
-    .search-row #btn-fav, .search-row #btn-wl-panel, .search-row #btn-card {
+    .search-row #btn-fav, .search-row #btn-wl-panel {
       flex: 0 0 auto;
       padding: 10px 16px;
       border-radius: 6px;
@@ -1383,13 +1383,6 @@
       white-space: nowrap;
       transition: all .15s;
     }
-    .search-row #btn-card {
-      border: 1px solid rgba(255,214,102,.5);
-      background: linear-gradient(135deg, rgba(255,214,102,.12), rgba(251,191,36,.06));
-      color: rgba(255,214,102,.95);
-    }
-    .search-row #btn-card:hover { border-color: rgba(255,214,102,.8); background: linear-gradient(135deg, rgba(255,214,102,.2), rgba(251,191,36,.12)); }
-    .search-row #btn-card:disabled { opacity: 0.4; cursor: not-allowed; }
 
     /* Card overlay: same centering as share overlay */
     #card-overlay.pw-modal {
@@ -1495,7 +1488,6 @@
     @media (max-width: 520px) {
       .search-row #btn-fav { padding: 10px 12px; font-size: 12px; }
       .search-row #btn-wl-panel { padding: 10px 12px; font-size: 12px; min-width: 44px; }
-      .search-row #btn-card { padding: 10px 12px; font-size: 12px; }
     }
   </style>
 </head>
@@ -1552,7 +1544,6 @@
         <input type="text" id="stock-query" placeholder="代码或简称，例如 600519 / 上证指数" autocomplete="off" />
         <button type="button" id="btn-search">查询</button>
         <button type="button" id="btn-share" title="分享这次查询" disabled><span class="dot" aria-hidden="true"></span>分享</button>
-        <button type="button" id="btn-card" title="生成信号分享卡" disabled>卡片</button>
         <button type="button" id="btn-fav" disabled>收藏</button>
         <button type="button" id="btn-wl-panel">自选</button>
         <div id="quote-status" class="ok" role="status"></div>
@@ -4840,9 +4831,7 @@
   var shareTextEl = null;
   var shareQr = null;
   var btnShareNative = null;
-  var btnSharePoster = null;
-  var sharePosterWrap = null;
-  var sharePosterImg = null;
+  var btnShareCard = null;
   var btnShareCopyText = null;
   var btnShareCopyLink = null;
   var shareStatusEl = null;
@@ -5107,9 +5096,7 @@
         shareTextEl = document.getElementById("share-text");
         shareQr = document.getElementById("share-qr");
         btnShareNative = document.getElementById("btn-share-native");
-        btnSharePoster = document.getElementById("btn-share-poster");
-        sharePosterWrap = document.getElementById("share-poster-wrap");
-        sharePosterImg = document.getElementById("share-poster-img");
+        btnShareCard = document.getElementById("btn-share-card");
         btnShareCopyText = document.getElementById("btn-share-copy-text");
         btnShareCopyLink = document.getElementById("btn-share-copy-link");
         shareStatusEl = document.getElementById("share-status");
@@ -5143,18 +5130,12 @@
                 .catch(function () { setShareStatus("转发不可用：复制失败"); });
             });
         });
-        if (btnSharePoster) btnSharePoster.addEventListener("click", function () {
-          try { if (sharePosterWrap) sharePosterWrap.hidden = true; } catch (e0) {}
-          setShareStatus("生成海报中…");
-          posterDraw(sharePCurrent || sharePayload())
-            .then(function (dataUrl) {
-              try {
-                if (sharePosterImg) sharePosterImg.src = dataUrl;
-                if (sharePosterWrap) sharePosterWrap.hidden = false;
-              } catch (e1) {}
-              setShareStatus("海报已生成：长按图片保存/转发");
-            })
-            .catch(function () { setShareStatus("海报生成失败（可先复制链接转发）"); });
+        if (btnShareCard) btnShareCard.addEventListener("click", function () {
+          // Close share overlay, then open card overlay with chart screenshot
+          try { shareOverlayClose(); } catch (_) {}
+          initCardUI();
+          if (cardStatusEl) cardStatusEl.textContent = '生成中…';
+          generateShareCard();
         });
         if (btnShareCopyText) btnShareCopyText.addEventListener("click", function () {
           var txt = shareTextEl ? String(shareTextEl.value || "") : "";
@@ -5188,7 +5169,6 @@
           btnShareNative.style.display = "";
           btnShareNative.textContent = isWeChatEnvShare() ? "转发（右上角···）" : "转发";
         }
-        if (sharePosterWrap) sharePosterWrap.hidden = true;
       } catch (eN) {}
       shareRender(p);
       shareOverlayOpen();
@@ -5227,9 +5207,8 @@
         ts: Date.now(),
       };
       if (typeof localStorage !== 'undefined') localStorage.setItem(LAST_QUERY_KEY, JSON.stringify(o));
-      // Enable fav/card buttons and refresh state after each query
+      // Enable fav button and refresh state after each query
       if (btnFav) { btnFav.disabled = false; }
-      if (btnCard) { btnCard.disabled = false; }
       renderFavBtn();
       renderWlPanelBtn();
     } catch (e) {}
@@ -5691,11 +5670,12 @@
         g.fillText('邀请码: ' + inv, 36, bottomY + 62);
       }
 
-      // QR code — 300px source drawn in pixel space
-      var qrSize = 150, qrSourceSize = 300;
-      var qrX = LW - qrSize - 36, qrY = bottomY + 18;
+      // QR code — 100px logical, 300px source drawn in pixel space (sharp at 2x)
+      var qrSize = 100, qrSourceSize = 300;
+      var qrX = LW - qrSize - 36, qrY = bottomY + 48;
+      g.globalAlpha = 0.85;
       g.fillStyle = '#ffffff';
-      g.fillRect(qrX - 6, qrY - 6, qrSize + 12, qrSize + 12);
+      g.fillRect(qrX - 4, qrY - 4, qrSize + 8, qrSize + 8);
       var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=' + qrSourceSize + 'x' + qrSourceSize + '&data=' + encodeURIComponent('https://a.ai24x.com/demo.html' + (inv ? '?i=' + inv : ''));
       var qrImg = new Image();
       qrImg.crossOrigin = 'anonymous';
@@ -5705,11 +5685,12 @@
         qrLoaded = true;
         g.save();
         g.setTransform(1, 0, 0, 1, 0, 0);
-        g.drawImage(qrImg, 0, 0, qrSourceSize, qrSourceSize, qrX * 2, qrY * 2, qrSourceSize, qrSourceSize);
+        g.drawImage(qrImg, 0, 0, qrSourceSize, qrSourceSize, qrX * 2, qrY * 2, qrSize * 2, qrSize * 2);
         g.restore();
+        g.globalAlpha = 1;
         finalizeCard(c);
       };
-      qrImg.onerror = function () { finalizeCard(c); };
+      qrImg.onerror = function () { g.globalAlpha = 1; finalizeCard(c); };
       setTimeout(function () { if (!qrLoaded) finalizeCard(c); }, 5000);
 
       function finalizeCard(canvas) {
@@ -5755,14 +5736,6 @@
     result.push(current);
     return result;
   }
-
-  // Card button click
-  var btnCard = document.getElementById('btn-card');
-  btnCard.addEventListener('click', function () {
-    initCardUI();
-    if (cardStatusEl) cardStatusEl.textContent = '生成中…';
-    generateShareCard();
-  });
 
   document.querySelectorAll('.sample-chips button').forEach(function (btn) {
     btn.addEventListener('click', function () {
@@ -6087,16 +6060,12 @@
           <option value="structure">结构要点</option>
         </select>
         <button class="btn primary" type="button" id="btn-share-native" style="display:none">转发</button>
-        <button class="btn" type="button" id="btn-share-poster">生成海报</button>
+        <button class="btn" type="button" id="btn-share-card">分享卡片</button>
         <button class="btn" type="button" id="btn-share-copy-text">复制文案</button>
         <button class="btn" type="button" id="btn-share-copy-link">复制链接</button>
         <span class="muted small" id="share-status"></span>
       </div>
       <textarea id="share-text" rows="6" style="margin-top:10px; width:100%; font-family: ui-monospace, monospace; font-size: 12px;"></textarea>
-      <div id="share-poster-wrap" style="margin-top:12px; text-align:center;" hidden>
-        <div class="muted small" style="margin-bottom:8px;">海报（长按保存/转发到朋友圈）</div>
-        <img id="share-poster-img" alt="分享海报" style="display:inline-block; width:min(320px, 90vw); border-radius:12px; border:1px solid rgba(255,255,255,0.12); background:#fff;" />
-      </div>
       <div style="margin-top:12px; text-align:center;">
         <div class="muted small" style="margin-bottom:8px;">二维码（微信内可直接扫一扫/长按识别）</div>
         <img id="share-qr" alt="分享二维码" width="220" height="220" style="display:inline-block; border-radius:12px; border:1px solid var(--border); background:#fff; padding:8px;" />
