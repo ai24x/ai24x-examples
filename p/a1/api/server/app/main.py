@@ -203,8 +203,12 @@ def _client_ip(request: "Request") -> str:
 _AUTH_IP_RL: dict[str, tuple[int, int]] = {}
 
 
-def _auth_ip_rate_limit(request: "Request", limit: int = 10, window_s: int = 60) -> None:
-    """Rate-limit authenticated requests by client IP (defense against scraping with valid tokens)."""
+def _auth_ip_rate_limit(request: "Request", limit: int = 30, window_s: int = 60) -> None:
+    """Rate-limit authenticated requests by client IP (defense against scraping with valid tokens).
+    
+    Default 30/min is conservative enough to catch multi-account scraping but won't
+    block normal browsing (~2s per stock = 30/min theoretical max).
+    """
     ip = _client_ip(request)
     now = int(time.time())
     win = now // window_s
