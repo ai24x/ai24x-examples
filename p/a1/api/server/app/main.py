@@ -188,6 +188,39 @@ def _rate_limit(key: str, limit: int, window_s: int = 60) -> None:
         raise HTTPException(status_code=429, detail="请求过于频繁，请稍后再试")
 
 
+def _client_ip(request: "Request") -> str:
+    """Extract real client IP (respect X-Forwarded-For)."""
+    xff = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    if xff:
+        return xff
+    try:
+        return (request.client.host if request and request.client else "") or "unknown"
+    except Exception:
+        return "unknown"
+
+
+# Per-IP rate limit for authenticated endpoints (anti-scraping).
+_AUTH_IP_RL: dict[str, tuple[int, int]] = {}
+
+
+def _auth_ip_rate_limit(request: "Request", limit: int = 10, window_s: int = 60) -> None:
+    """Rate-limit authenticated requests by client IP (defense against scraping with valid tokens)."""
+    ip = _client_ip(request)
+    now = int(time.time())
+    win = now // window_s
+    k = f"auth_ip:{ip}:{win}"
+    cur_win, cnt = _AUTH_IP_RL.get(k, (win, 0))
+    if cur_win != win:
+        cnt = 0
+    cnt += 1
+    _AUTH_IP_RL[k] = (win, cnt)
+    if limit > 0 and cnt > limit:
+        raise HTTPException(
+            status_code=429,
+            detail="同一设备请求过于频繁，请稍后再试",
+        )
+
+
 def _identity_post(path: str, json_body: dict, *, extra_headers: dict[str, str] | None = None) -> dict:
     cfg = resolve_identity()
     base = (cfg.identity_api_base or "").strip().rstrip("/")
@@ -360,8 +393,18 @@ def _identity_lookup_user_id(*, phone: str = "", email: str = "") -> int | None:
 
 def _cors_list(v: str) -> list[str]:
     vv = (v or "").strip()
-    if vv == "*" or not vv:
-        return ["*"]
+    if not vv or vv == "*":
+        # Default narrow: only allow our own domains + localhost dev ports.
+        # Override via AI24X_CORS_ORIGINS if you need additional origins.
+        return [
+            "https://a.ai24x.com",
+            "https://www.ai24x.com",
+            "https://api.ai24x.com",
+            "http://localhost:18001",
+            "http://127.0.0.1:18001",
+            "http://localhost:18003",
+            "http://127.0.0.1:18003",
+        ]
     return [x.strip() for x in vv.split(",") if x.strip()]
 
 
@@ -2010,6 +2053,8 @@ async def api_kline(
     user_id: Optional[int] = Depends(get_optional_user_id),
 ) -> dict:
     _rate_limit(f"kline:{user_id or 'anon'}", settings.kline_per_minute)
+    if user_id is not None:
+        _auth_ip_rate_limit(request)
     if period not in ("day", "week", "month"):
         raise HTTPException(status_code=400, detail="Invalid period")
     if count < 50:
@@ -2132,6 +2177,8 @@ async def api_signals(
     - data: { markers: [...], version: "a2-v1" }
     """
     _rate_limit(f"signals:{user_id or 'anon'}", settings.kline_per_minute)
+    if user_id is not None:
+        _auth_ip_rate_limit(request)
     if period not in ("day", "week", "month"):
         raise HTTPException(status_code=400, detail="Invalid period")
     if count < 50:
@@ -2284,6 +2331,8 @@ async def api_kline_with_signals(
     This avoids the frontend doing /api/kline + /api/signals separately (2 RTT + duplicated upstream pulls).
     """
     _rate_limit(f"kline2:{user_id or 'anon'}", settings.kline_per_minute)
+    if user_id is not None:
+        _auth_ip_rate_limit(request)
     if period not in ("day", "week", "month"):
         raise HTTPException(status_code=400, detail="Invalid period")
     if count < 50:
