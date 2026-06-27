@@ -1083,13 +1083,13 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             b2Cooldown = (i - lastB2Idx) > _cooldown_at(i) if lastB2Idx >= 0 else True
             b3Cooldown = (i - lastB3Idx) > _cooldown_at(i) if lastB3Idx >= 0 else True
             if cross514Once[i] and b1Cooldown:
-                buyBits.append("B1")
+                buyBits.append("金1")
                 lastB1Idx = i
             if cross520Once[i] and b2Cooldown:
-                buyBits.append("B2")
+                buyBits.append("金2")
                 lastB2Idx = i
             if jc1Once[i] and b3Cooldown:
-                buyBits.append("B3")
+                buyBits.append("金3")
                 lastB3Idx = i
         # 买2: different algorithm (price bottom zone + future MA28/MA57 cross prediction)
         if allowBottomBuy and (closePos[i] <= BUY_MAX_POS) and tj3PostOnce[i]:
@@ -1148,11 +1148,11 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             and breakdownCooldown
         )
         if highBreakdown:
-            riskBits.append("破位")
+            riskBits.append("破")
             lastBreakdownIdx = i
 
         # v1.02: 同bar去重 — 卖/险/顶 三者只保留最高severity
-        # severity: 顶2 > 卖1+卖2 > 卖1 > 卖2 > 险1+破位 > 险1 > 险2 > 破位
+        # severity: 顶2 > 卖1+卖2 > 卖1 > 卖2 > 险1+破 > 险1 > 险2 > 破
         def _danger_score(bits: list[str]) -> int:
             s = set(bits)
             score = 0
@@ -1160,10 +1160,10 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             if '卖1' in s and '卖2' in s: score = max(score, 90)
             if '卖1' in s: score = max(score, 80)
             if '卖2' in s: score = max(score, 70)
-            if '险1' in s and '破位' in s: score = max(score, 60)
+            if '险1' in s and '破' in s: score = max(score, 60)
             if '险1' in s: score = max(score, 50)
             if '险2' in s: score = max(score, 40)
-            if '破位' in s: score = max(score, 30)
+            if '破' in s: score = max(score, 30)
             return score
         danger = [(sellBits, _danger_score(sellBits)), (riskBits, _danger_score(riskBits)), (highBits, _danger_score(highBits))]
         danger = [(b, s) for b, s in danger if b]
