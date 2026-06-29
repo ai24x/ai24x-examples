@@ -569,7 +569,7 @@ def share_landing(
   <meta property="og:description" content="{desc}" />
   <meta property="og:image" content="{og_img}" />
   <meta property="og:url" content="{canonical}" />
-  <meta name="robots" content="noindex,nofollow" />
+  <meta name="robots" content="index,follow" />
   <style>
     body{{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#0b1220;background:#0b1220}}
     .wrap{{max-width:720px;margin:0 auto;padding:18px}}
@@ -1579,11 +1579,6 @@ def proxy_sms_send(body: SmsSendProxyIn, request: Request) -> dict:
     """转发至主站 `POST /v1/auth/sms/send`：带 X-SMS-Internal-Key；若管理端配置了 sms_106_* 则一并提交以覆盖主站 .env。"""
     cfg = resolve_identity()
     prov = (cfg.sms_active_provider or "identity_proxy").strip().lower()
-    if prov == "tencent":
-        raise HTTPException(
-            status_code=503,
-            detail="当前已选「腾讯短信」为预留通道，发送逻辑尚未接入；请在管理后台改为主通道 identity_proxy（经主站 API 走 106接口网）或后续再接腾讯 SDK。",
-        )
     # Reserved: captcha gate for SMS anti-abuse (default off).
     if bool(cfg.sms_captcha_enabled):
         prov2 = (cfg.sms_captcha_provider or "turnstile").strip().lower()
