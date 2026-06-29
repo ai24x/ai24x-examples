@@ -953,6 +953,14 @@
       background: #22c55e;
       animation: sig-glow-absorb 2.05s ease-in-out infinite;
     }
+    .signal-legend .sig-dot.sig-macd-g {
+      background: #ff3d5c;
+      opacity: 0.8;
+    }
+    .signal-legend .sig-dot.sig-macd-d {
+      background: #00e68a;
+      opacity: 0.8;
+    }
     @media (prefers-reduced-motion: reduce) {
       .signal-legend .sig-dot {
         animation: none !important;
@@ -1592,6 +1600,8 @@
           <span class="sig-item"><i class="sig-dot sig-sell" aria-hidden="true"></i>等（偏弱）</span>
           <span class="sig-item"><i class="sig-dot sig-risk" aria-hidden="true"></i>险（关注风险）</span>
           <span class="sig-item"><i class="sig-dot sig-high" aria-hidden="true"></i>顶（警惕高位）</span>
+          <span class="sig-item"><i class="sig-dot sig-macd-g" aria-hidden="true"></i>金（MACD金叉）</span>
+          <span class="sig-item"><i class="sig-dot sig-macd-d" aria-hidden="true"></i>等（MACD死叉）</span>
         </div>
         <div class="short-term-bar" id="short-term-bar">
           <label class="short-term-toggle">
@@ -1613,7 +1623,8 @@
           <li><strong>金1、金2、金3</strong>：偏<strong>强</strong>，低位金叉信号，提示股价可能从弱势转强。</li>
           <li><strong>险1、险2</strong>（尤其险2）：偏<strong>高位或结构承压</strong>，建议<strong>谨慎</strong>。</li>
           <li><strong>等1、等2</strong> 与 <strong>风险</strong> 若<strong>频繁、密集</strong>：偏<strong>弱</strong>，建议<strong>等一等再观察</strong>。</li>
-          <li>须<strong>结合其它指标</strong>；<strong>低位侧重确认、高位侧重风险</strong>。</li>
+          <li><strong>须<strong>结合其它指标</strong>；<strong>低位侧重确认、高位侧重风险</strong>。</li>
+          <li><strong>金、等</strong>（MACD 副图亮柱+箭头）：红柱红箭=金叉，绿柱绿箭=死叉，<strong>辅助参考</strong>确认均线信号有效性。</li>
         </ul>
         <p class="usage-hint-note">K 线标记颜色与上方图例一致。金 为金叉信号，仅供学习交流参考。</p>
       </aside>
@@ -4353,12 +4364,26 @@
     var bars = [], difs = [], deas = [];
     for (var i = 0; i < macdData.length; i++) {
       var d = macdData[i];
-      bars.push({ time: d.time, value: d.bar, color: d.bar >= 0 ? '#ef444488' : '#22c55e88' });
+      var barColor = d.bar >= 0 ? '#ef444488' : '#22c55e88';
+      // v1.05: MACD 金叉/死叉日高亮柱体颜色（金=鲜红, 等=鲜绿）
+      if (d.golden_cross) barColor = '#ff1744';
+      if (d.dead_cross)  barColor = '#00e676';
+      bars.push({ time: d.time, value: d.bar, color: barColor });
       difs.push({ time: d.time, value: d.dif });
       deas.push({ time: d.time, value: d.dea });
     }
     if (macdBarSeries) try { macdBarSeries.setData(bars); } catch (e) {}
-    if (macdDifSeries) try { macdDifSeries.setData(difs); } catch (e) {}
+    if (macdDifSeries) {
+      try { macdDifSeries.setData(difs); } catch (e) {}
+      // v1.05: MACD金叉=红上箭, 死叉=绿下箭 (text不渲染on-chart,只用shape+color)
+      var macdMks = [];
+      for (var j = 0; j < macdData.length; j++) {
+        var d2 = macdData[j];
+        if (d2.golden_cross) macdMks.push({ time: d2.time, position: 'inBar', color: '#ff1744', shape: 'arrowUp' });
+        if (d2.dead_cross)  macdMks.push({ time: d2.time, position: 'inBar', color: '#00e676', shape: 'arrowDown' });
+      }
+      if (macdMks.length) try { macdDifSeries.setMarkers(macdMks); } catch (e) {}
+    }
     if (macdDeaSeries) try { macdDeaSeries.setData(deas); } catch (e) {}
   }
 

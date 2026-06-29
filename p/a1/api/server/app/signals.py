@@ -1211,11 +1211,8 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         if highBits:
             push_pair(i, "aboveBar", LS_COL_HIGH, "arrowDown", "·".join(highBits), f"ls-ah-{i}", 1.06, 2)
 
-        # v1.05: MACD 金叉/死叉标记（小圆点）
-        if macdGoldenCross[i]:
-            push_arrow(i, "belowBar", "#22d3ee", "circle", "+", f"ls-macd-g-{i}", 0.65, 0)
-        if macdDeadCross[i]:
-            push_arrow(i, "aboveBar", "#f97316", "circle", "-", f"ls-macd-d-{i}", 0.65, 0)
+        # v1.05: MACD 金叉/死叉 — 仅通过 macd_json 传给前端渲染在 MACD 副图上
+        # K线上不重复显示，避免信号过载
 
     # v1.05: MACD 增强 — 同向信号加权重（仅对B信号改颜色，不覆盖底信号的蓝色）
     for m in markers:
@@ -1308,7 +1305,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
                 pass
         except Exception:
             pass
-    return markers, dif, dea, macdBar
+    return markers, dif, dea, macdBar, macdGoldenCross, macdDeadCross
 
 
 def build_signals_v3(candles: list[Candle], *, cache_key: str = "") -> dict[str, Any]:
@@ -1330,7 +1327,7 @@ def build_signals_v3(candles: list[Candle], *, cache_key: str = "") -> dict[str,
     # To avoid duplicating 600+ lines, we rebuild labels from the returned markers by day index.
     # This keeps frontend behavior (labels are just hints) consistent and stable.
 
-    markers, dif_arr, dea_arr, macd_bar_arr = build_markers_v3_js_port(candles, cache_key=cache_key)
+    markers, dif_arr, dea_arr, macd_bar_arr, macd_golden, macd_dead = build_markers_v3_js_port(candles, cache_key=cache_key)
 
     # Build MACD timeseries for frontend sub-chart
     n_macd = len(candles)
@@ -1341,7 +1338,12 @@ def build_signals_v3(candles: list[Candle], *, cache_key: str = "") -> dict[str,
         e = dea_arr[i] if i < len(dea_arr) else None
         b = macd_bar_arr[i] if i < len(macd_bar_arr) else None
         if d is not None and d == d and e is not None and e == e:
-            macd_json.append({"time": t, "dif": round(float(d), 4), "dea": round(float(e), 4), "bar": round(float(b if b == b else 0), 4)})
+            entry = {"time": t, "dif": round(float(d), 4), "dea": round(float(e), 4), "bar": round(float(b if b == b else 0), 4)}
+            if i < len(macd_golden) and macd_golden[i]:
+                entry["golden_cross"] = True
+            if i < len(macd_dead) and macd_dead[i]:
+                entry["dead_cross"] = True
+            macd_json.append(entry)
 
     # Map timeKey -> idx for label alignment
     idx_by_time: dict[str, int] = {}
