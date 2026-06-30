@@ -18,6 +18,22 @@ TENCENT_SERVICE = "sms"
 TENCENT_ACTION = "SendSms"
 TENCENT_VERSION = "2021-01-11"
 
+# 腾讯云短信错误码 → 中文友好提示
+TENCENT_ERROR_MAP: dict[str, str] = {
+    "LimitExceeded.PhoneNumberDailyLimit":        "该手机号今日发送次数已达上限，请明天再试",
+    "LimitExceeded.PhoneNumberThirtySecondLimit": "发送过于频繁，请稍后再试",
+    "LimitExceeded.PhoneNumberOneHourLimit":      "该手机号每小时发送次数已达上限，请稍后再试",
+    "LimitExceeded.PhoneNumberTenSecondLimit":    "发送过于频繁，请稍后再试",
+    "FailedOperation.PhoneNumberInBlacklist":     "该手机号无法接收短信（可能被运营商拉黑）",
+    "FailedOperation.SignatureIncorrectOrUnapproved": "短信签名未审批通过，请联系管理员",
+    "FailedOperation.TemplateIncorrectOrUnapproved":  "短信模板未审批通过，请联系管理员",
+    "InvalidParameterValue.TemplateIdNotExist":   "短信模板ID配置错误，请在后台检查",
+    "AuthFailure.UnauthorizedOperation":          "API密钥权限不足，需在腾讯云CAM控制台关联短信权限",
+    "AuthFailure.SignatureFailure":               "API密钥验证失败，请检查SecretId/SecretKey是否正确",
+    "UnauthorizedOperation.SmsMessagesQpsOverLimit": "短信发送频率超出QPS上限，请稍后再试",
+    "FailedOperation.InsufficientBalanceInSmsPackage": "短信套餐余额不足，请充值",
+}
+
 
 def _tc3_sign(
     secret_id: str,
@@ -160,13 +176,15 @@ async def send_sms_tencent(
     if not status_set:
         err_info = resp.get("Error", {})
         code = err_info.get("Code", "UnknownError")
-        msg = err_info.get("Message", "未知错误")
+        raw_msg = err_info.get("Message", "未知错误")
+        msg = TENCENT_ERROR_MAP.get(code, raw_msg)
         logger.warning("tencent sms API error code=%s msg=%s reqId=%s", code, msg, req_id)
-        return False, raw, f"API错误 [{code}]: {msg}"
+        return False, raw, msg
 
     st = status_set[0]
     code = st.get("Code", "")
-    msg = st.get("Message", "")
+    raw_msg = st.get("Message", "")
+    msg = TENCENT_ERROR_MAP.get(code, raw_msg) if not (code == "Ok") else "发送成功"
     ok = code == "Ok"
 
     if not ok:
@@ -175,4 +193,4 @@ async def send_sms_tencent(
             phone[:3] + "****", code, msg, req_id,
         )
 
-    return ok, raw, f"[{code}] {msg}"
+    return ok, raw, msg
