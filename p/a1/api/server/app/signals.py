@@ -1030,6 +1030,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         belowMA28_2 = (not _isnan(closeV)) and (not _isnan(ma2[i])) and closeV < ma2[i]
         bothBelowQ = belowMA57_2 and belowMA28_2    # 象限① 深熊
         bothAboveQ = aboveMA57_2 and aboveMA28_2    # 象限④ 强牛
+        abovePrimary = aboveMA57_2 and (not aboveMA28_2)  # 主生命线上(顶信号门禁)
         # v1.04: 象限①深熊区突破regime封锁 — 双生命线下方正是抄底时机
         allowBottomBuy = (reg != -1) or aboveMA28_2 or bothBelowQ
         allowSellHigh = reg != 1
@@ -1054,7 +1055,8 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         )
 
         highBits: list[str] = []
-        if allowSellHigh:
+        # v1.06: 顶须在主生命线上方，绿线下方不出顶
+        if allowSellHigh and (bothAboveQ or abovePrimary):
             if high2Once[i]:
                 highBits.append("顶2")
 
