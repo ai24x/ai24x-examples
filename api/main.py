@@ -301,12 +301,12 @@ async def auth_sms_send(request: Request, body: SmsSendRequest, db: Session = De
     if not settings.sms_106_enabled:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="SMS disabled: set SMS_106_ENABLED=true and credentials in environment.",
+            detail="短信服务未开启，请联系管理员配置",
         )
     if settings.sms_internal_key and request.headers.get("X-SMS-Internal-Key") != settings.sms_internal_key:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Missing or invalid X-SMS-Internal-Key.",
+            detail="内部服务密钥未配置，请联系管理员",
         )
 
     def _pick(override: str | None, base: str) -> str:
@@ -431,7 +431,7 @@ async def internal_sms_verify_consume(request: Request, body: InternalSmsVerifyC
     if request.headers.get("X-SMS-Internal-Key") != settings.sms_internal_key:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Missing or invalid X-SMS-Internal-Key.",
+            detail="内部服务密钥未配置，请联系管理员",
         )
     mob = normalize_mobile(body.mobile)
     if len(mob) != 11 or not mob.isdigit():
@@ -461,7 +461,7 @@ async def auth_sms_diagnostics(request: Request):
         if (request.headers.get("X-SMS-Internal-Key") or "").strip() != settings.sms_internal_key:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Missing or invalid X-SMS-Internal-Key.",
+                detail="内部服务密钥未配置，请联系管理员",
             )
     return {
         "ok": True,
@@ -493,7 +493,7 @@ def _mask_secret_tail(s: str | None, keep_tail: int = 4) -> str:
 async def admin_sms_effective(request: Request):
     """管理端读取主站 106 短信“当前生效配置”（便于维护参考）。必须提供 X-SMS-Internal-Key。"""
     if not (settings.sms_internal_key or "").strip():
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="SMS_INTERNAL_KEY not configured.")
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="短信内部密钥未配置，请联系管理员")
     if (request.headers.get("X-SMS-Internal-Key") or "").strip() != settings.sms_internal_key:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Missing or invalid X-SMS-Internal-Key.")
     return {
@@ -519,7 +519,7 @@ async def admin_sms_logs(
 ):
     """查询短信发送记录（需 X-SMS-Internal-Key）。"""
     if not (settings.sms_internal_key or "").strip():
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="SMS_INTERNAL_KEY not configured.")
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="短信内部密钥未配置，请联系管理员")
     if (request.headers.get("X-SMS-Internal-Key") or "").strip() != settings.sms_internal_key:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Missing or invalid X-SMS-Internal-Key.")
     q = db.query(SmsSendLog)
@@ -756,11 +756,11 @@ async def admin_password_set(
 ):
     """Admin-only force set password; requires X-SMS-Internal-Key."""
     if not (settings.sms_internal_key or "").strip():
-        raise HTTPException(status_code=503, detail="SMS_INTERNAL_KEY not configured.")
+        raise HTTPException(status_code=503, detail="短信内部密钥未配置，请联系管理员")
     if (request.headers.get("X-SMS-Internal-Key") or "").strip() != (
         settings.sms_internal_key or ""
     ).strip():
-        raise HTTPException(status_code=403, detail="Forbidden")
+        raise HTTPException(status_code=403, detail="禁止访问")
     try:
         u = admin_set_password(
             db,
@@ -790,11 +790,11 @@ async def admin_user_contact_set(
 ):
     """Admin-only force set user phone/email binding; requires X-SMS-Internal-Key."""
     if not (settings.sms_internal_key or "").strip():
-        raise HTTPException(status_code=503, detail="SMS_INTERNAL_KEY not configured.")
+        raise HTTPException(status_code=503, detail="短信内部密钥未配置，请联系管理员")
     if (request.headers.get("X-SMS-Internal-Key") or "").strip() != (
         settings.sms_internal_key or ""
     ).strip():
-        raise HTTPException(status_code=403, detail="Forbidden")
+        raise HTTPException(status_code=403, detail="禁止访问")
     try:
         u = admin_set_contact(db, user_id=int(body.user_id), phone=body.phone, email=body.email)
     except ValueError as e:
@@ -821,15 +821,15 @@ async def admin_user_lookup(
 ):
     """Lookup auth user by phone/email; requires X-SMS-Internal-Key."""
     if not (settings.sms_internal_key or "").strip():
-        raise HTTPException(status_code=503, detail="SMS_INTERNAL_KEY not configured.")
+        raise HTTPException(status_code=503, detail="短信内部密钥未配置，请联系管理员")
     if (request.headers.get("X-SMS-Internal-Key") or "").strip() != (
         settings.sms_internal_key or ""
     ).strip():
-        raise HTTPException(status_code=403, detail="Forbidden")
+        raise HTTPException(status_code=403, detail="禁止访问")
     p = (phone or "").strip()
     e = (email or "").strip().lower()
     if not p and not e:
-        raise HTTPException(status_code=400, detail="phone or email required")
+        raise HTTPException(status_code=400, detail="请填写手机号或邮箱")
     q = db.query(AuthUser)
     u = None
     if p:
@@ -837,7 +837,7 @@ async def admin_user_lookup(
     if u is None and e:
         u = q.filter(AuthUser.email == e).first()
     if u is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="用户不存在")
     return {"ok": True, "user": {"id": int(u.id), "email": u.email or "", "phone": u.phone or ""}}
 
 
@@ -849,11 +849,11 @@ async def admin_user_bootstrap(
 ):
     """Create user if missing (phone/email) and set password; requires X-SMS-Internal-Key."""
     if not (settings.sms_internal_key or "").strip():
-        raise HTTPException(status_code=503, detail="SMS_INTERNAL_KEY not configured.")
+        raise HTTPException(status_code=503, detail="短信内部密钥未配置，请联系管理员")
     if (request.headers.get("X-SMS-Internal-Key") or "").strip() != (
         settings.sms_internal_key or ""
     ).strip():
-        raise HTTPException(status_code=403, detail="Forbidden")
+        raise HTTPException(status_code=403, detail="禁止访问")
     try:
         if body.phone:
             u = get_by_phone(db, body.phone) or create_user_phone(db, body.phone, body.new_password)

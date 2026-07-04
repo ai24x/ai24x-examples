@@ -242,18 +242,22 @@ def _identity_post(path: str, json_body: dict, *, extra_headers: dict[str, str] 
         with httpx.Client(timeout=30.0) as client:
             r = client.post(url, json=json_body, headers=headers or None)
     except httpx.RequestError as e:
-        raise HTTPException(status_code=503, detail=f"Identity API unreachable: {e}") from e
+        raise HTTPException(status_code=503, detail="身份服务暂时不可用，请稍后重试") from e
     ct = (r.headers.get("content-type") or "").lower()
     if r.status_code >= 400:
         detail = r.text[:4000]
         if "json" in ct:
             try:
-                detail = str(r.json())
+                err = r.json()
+                if isinstance(err, dict):
+                    detail = str(err.get("error") or err.get("detail") or err.get("message") or "")
+                if not detail:
+                    detail = str(err)
             except Exception:
                 pass
         raise HTTPException(status_code=r.status_code, detail=detail)
     if "json" not in ct:
-        raise HTTPException(status_code=502, detail="Identity API returned non-JSON")
+        raise HTTPException(status_code=502, detail="身份服务响应异常，请稍后重试")
     return r.json()
 
 
@@ -360,18 +364,22 @@ def _identity_get(path: str) -> dict:
         with httpx.Client(timeout=15.0) as client:
             r = client.get(url, headers=headers or None)
     except httpx.RequestError as e:
-        raise HTTPException(status_code=503, detail=f"Identity API unreachable: {e}") from e
+        raise HTTPException(status_code=503, detail="身份服务暂时不可用，请稍后重试") from e
     ct = (r.headers.get("content-type") or "").lower()
     if r.status_code >= 400:
         detail = r.text[:4000]
         if "json" in ct:
             try:
-                detail = str(r.json())
+                err = r.json()
+                if isinstance(err, dict):
+                    detail = str(err.get("error") or err.get("detail") or err.get("message") or "")
+                if not detail:
+                    detail = str(err)
             except Exception:
                 pass
         raise HTTPException(status_code=r.status_code, detail=detail)
     if "json" not in ct:
-        raise HTTPException(status_code=502, detail="Identity API returned non-JSON")
+        raise HTTPException(status_code=502, detail="身份服务响应异常，请稍后重试")
     return r.json()
 
 
