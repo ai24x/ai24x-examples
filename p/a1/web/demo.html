@@ -1167,6 +1167,24 @@
       pointer-events: auto;
     }
     .top-alert.is-show { display: flex; }
+    /* 错误态 — 红色 */
+    .top-alert.is-error {
+      border-color: #ff3d5c;
+      background: linear-gradient(90deg, rgba(255,61,92,0.32), rgba(255,61,92,0.12));
+    }
+    .top-alert.is-error .icon { background: #ff3d5c; }
+    /* 成功态 — 绿色 */
+    .top-alert.is-success {
+      border-color: #00e68a;
+      background: linear-gradient(90deg, rgba(0,230,138,0.28), rgba(0,230,138,0.10));
+    }
+    .top-alert.is-success .icon { background: #00b36a; }
+    /* 告警态 — 橙黄色（显式类，与默认一致） */
+    .top-alert.is-warn {
+      border-color: rgba(251, 191, 36, 0.95);
+      background: linear-gradient(90deg, rgba(251, 191, 36, 0.40), rgba(251, 191, 36, 0.16));
+    }
+    .top-alert.is-warn .icon { background: rgba(17, 24, 39, 0.86); }
     .top-alert .icon {
       display: inline-flex;
       align-items: center;
@@ -1336,10 +1354,11 @@
       margin: 10px 0 0;
       padding: 10px 12px;
       border-radius: 12px;
-      border: 1px solid rgba(245, 158, 11, 0.28);
-      background: rgba(245, 158, 11, 0.12);
-      color: var(--text);
+      border: 1px solid #ff3d5c88;
+      background: linear-gradient(90deg, rgba(255,61,92,0.14), rgba(255,61,92,0.06));
+      color: #ff1744;
       font-size: 12px;
+      font-weight: 700;
       line-height: 1.55;
     }
     .load-error b { color: var(--warn); font-weight: 900; }
@@ -3718,7 +3737,18 @@
           msgEl.textContent = s;
         }
       }
-      if (alertEl) alertEl.classList.add('is-show');
+      if (alertEl) {
+        // 根据消息类型高亮颜色
+        alertEl.className = 'top-alert is-show';
+        var lower = s.toLowerCase();
+        if (lower.indexOf('错误')>=0||lower.indexOf('失败')>=0||lower.indexOf('error')>=0||lower.indexOf('fail')>=0||lower.indexOf('已注册')>=0) {
+          alertEl.classList.add('is-error');
+        } else if (lower.indexOf('成功')>=0||lower.indexOf('ok')>=0) {
+          alertEl.classList.add('is-success');
+        } else {
+          alertEl.classList.add('is-warn');
+        }
+      }
       // Fallback to status line if alert missing
       if (!alertEl) {
         statusEl.className = '';
