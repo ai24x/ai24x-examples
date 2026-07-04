@@ -312,7 +312,31 @@
     .login-form input{ width: 100%; max-width: 100%; }
     .login-form .row > input{ flex: 1 1 260px; }
     .login-form .row > button{ flex: 0 0 auto; }
-    .login-form .status{ margin-top: 8px; }
+    .login-form .status{
+      margin-top: 8px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: inherit;
+      background: transparent;
+      border: 1px solid transparent;
+    }
+    .login-form .status.is-error{
+      color: #fff;
+      background: linear-gradient(90deg, rgba(255,61,92,0.85), rgba(255,61,92,0.65));
+      border-color: #ff3d5c;
+    }
+    .login-form .status.is-success{
+      color: #fff;
+      background: linear-gradient(90deg, rgba(0,182,106,0.85), rgba(0,182,106,0.65));
+      border-color: #00e68a;
+    }
+    .login-form .status.is-warn{
+      color: #0b1220;
+      background: linear-gradient(90deg, rgba(251,191,36,0.40), rgba(251,191,36,0.16));
+      border-color: rgba(251,191,36,0.55);
+    }
     .login-form .kv{ margin-top: 10px; }
 
     .wechat-box{
@@ -751,7 +775,19 @@
       }
 
       function setStatus(s) {
-        if (statusEl) statusEl.textContent = s || "";
+        if (!statusEl) return;
+        var t = (s || "").trim();
+        statusEl.textContent = t || "";
+        statusEl.className = "status" + (t ? "" : "");
+        if (!t) return;
+        var lower = t.toLowerCase();
+        if (lower.indexOf("错误")>=0||lower.indexOf("失败")>=0||lower.indexOf("已注册")>=0||lower.indexOf("不存在")>=0||lower.indexOf("无效")>=0) {
+          statusEl.classList.add("is-error");
+        } else if (lower.indexOf("成功")>=0||lower.indexOf("已发送")>=0||lower.indexOf("已退出")>=0||lower.indexOf("已绑定")>=0) {
+          statusEl.classList.add("is-success");
+        } else {
+          statusEl.classList.add("is-warn");
+        }
       }
 
       function normalizeErrMsg(err) {
