@@ -421,6 +421,16 @@ def _apply_qfq(rows: list[list[str]], factors: list[tuple[str, float]]) -> list[
     return out
 
 
+def _is_flat_placeholder(row: list[str]) -> bool:
+    """Return True if row is a synthetic/intraday placeholder (OHLC all equal + zero volume)."""
+    try:
+        o = float(row[1]); c = float(row[2]); h = float(row[3]); l = float(row[4])
+        v = float(row[5] if len(row) > 5 else 0)
+        return abs(o - c) < 0.001 and abs(h - c) < 0.001 and abs(l - c) < 0.001 and v < 1
+    except (ValueError, IndexError):
+        return False
+
+
 async def fetch_tushare_kline(secid: str, period: str, count: int = 500, timeout: float = 10.0) -> Dict[str, Any]:
     """
     TuShare paid provider:
@@ -510,6 +520,9 @@ async def fetch_tushare_kline(secid: str, period: str, count: int = 500, timeout
                         if not (h >= max(o, c) and l <= min(o, c)):
                             # tolerate slight inconsistencies but skip obviously broken rows
                             continue
+                        # Skip intraday placeholder bars: OHLC all equal + zero volume
+                        if abs(o - c) < 0.001 and abs(h - c) < 0.001 and abs(l - c) < 0.001 and v < 1:
+                            continue
                         rows.append([d, f"{o}", f"{c}", f"{h}", f"{l}", f"{v}"])
                     except Exception:
                         continue
@@ -572,6 +585,10 @@ async def fetch_tushare_kline(secid: str, period: str, count: int = 500, timeout
                 pass
             week_rows = _agg_to_week(day_rows)
             month_rows = _agg_to_month(day_rows)
+            # Final filter: remove any flat placeholder bars (OHLC all equal + zero vol)
+            day_rows = [r for r in day_rows if len(r) >= 6 and not _is_flat_placeholder(r)]
+            if not day_rows:
+                return {"code": -1, "msg": "该板块暂未收录，暂无K线数据", "data": {}}
             key = f"THS:{six}"
             payload = _wrap_as_tencent_shape(key, day_rows, week_rows, month_rows)
             try:
