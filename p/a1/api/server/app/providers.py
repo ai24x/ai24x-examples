@@ -199,6 +199,9 @@ def _secid_to_tushare_ts_code(secid: str) -> str | None:
     Returns None for non-stock (e.g. 90.BKxxxx plates).
     """
     s = str(secid).strip()
+    # THS plate secid (ths:88397 etc.) — not a stock, handled by ths_daily path
+    if s.lower().startswith(("ths:", "ths.")):
+        return None
     if is_em_plate_secid(s):
         return None
     parts = s.split(".")
@@ -477,7 +480,7 @@ async def fetch_tushare_kline(secid: str, period: str, count: int = 500, timeout
         # THS industry/concept index path: "ths:881271" / "ths:886078" etc.
         if str(sid).lower().startswith(("ths:", "ths.")):
             six = str(sid)[4:].strip()
-            if not re.fullmatch(r"\d{6}", six or ""):
+            if not re.fullmatch(r"\d{5,6}", six or ""):
                 return {"code": -1, "msg": "invalid ths code", "data": {}}
             lookback = max(int(count) * 3, 900)
             start_dt = datetime.utcfromtimestamp(time.time() - lookback * 86400)
@@ -515,7 +518,7 @@ async def fetch_tushare_kline(secid: str, period: str, count: int = 500, timeout
             if len(rows) > int(count):
                 rows = rows[-int(count) :]
             if not rows:
-                return {"code": -1, "msg": "tushare ths_daily empty", "data": {}}
+                return {"code": -1, "msg": "该板块暂未收录，暂无K线数据", "data": {}}
             # If today's bar is missing, try to fetch today's bar explicitly after market data is expected to be updated.
             syn_today = False
             try:
@@ -2806,6 +2809,7 @@ async def _fetch_tx_kline_core(
             return None
 
     last_err: Dict[str, Any] | None = None
+    is_ths = str(secid).lower().startswith(("ths:", "ths."))
     for src in _priority():
         if src == "paid":
             r = await _try_paid()
@@ -2826,7 +2830,12 @@ async def _fetch_tx_kline_core(
                 except Exception:
                     pass
                 last_err = r
+                # v1.06: THS plates — public sources don't support ths: codes, stop here
+                if is_ths:
+                    return r
         elif src == "tencent":
+            if is_ths:
+                continue  # tencent doesn't support THS plate codes
             r = await _try_tencent()
             # circuit open returns an error payload (not None) so we can still continue
             if r is not None and _tencent_payload_has_rows(r):
@@ -2834,6 +2843,8 @@ async def _fetch_tx_kline_core(
             if r is not None and not _tencent_payload_has_rows(r):
                 last_err = r
         elif src == "eastmoney":
+            if is_ths:
+                continue  # eastmoney doesn't support THS plate codes
             try:
                 r = await _try_eastmoney()
             except Exception as e:
@@ -2843,6 +2854,8 @@ async def _fetch_tx_kline_core(
             if r is not None and not _tencent_payload_has_rows(r):
                 last_err = r
         elif src == "sina":
+            if is_ths:
+                continue  # sina doesn't support THS plate codes
             try:
                 r = await _try_sina()
             except Exception as e:
