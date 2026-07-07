@@ -951,7 +951,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
     zCrossPrev = [(i > 0 and cross510[i - 1]) for i in range(n)]
     lastRisk1 = [_bars_last_9999(zCrossPrev, i) for i in range(n)]
     risk1 = [
-        cross510[i] and (not (i > 0 and cross510[i - 1])) and (lastRisk1[i] == 9999 or lastRisk1[i] > 20)
+        cross510[i] and (not (i > 0 and cross510[i - 1])) and (lastRisk1[i] == 9999 or lastRisk1[i] > 15)
         for i in range(n)
     ]
     lastRisk1Time = [_bars_last_9999(risk1, i) for i in range(n)]
