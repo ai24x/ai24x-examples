@@ -2378,15 +2378,18 @@ async def api_kline_with_signals(
             items2 = items2 + ["paid"]
         return ",".join(items2)
 
+    is_ths_plate = secid0.lower().startswith("ths:")
     if user_id is None:
         priority_override = ",".join([x for x in base_pri.split(",") if x.strip() and x.strip() != "paid"])
         allow_paid = False
         variant = "anon"
         count = min(int(count), 800)
 
-        if secid0 in _ANON_KLINE_WHITELIST:
-            pass
-        else:
+        # THS 概念板块只能通过 tushare 付费源获取K线，对游客开放
+        if is_ths_plate:
+            allow_paid = True
+            priority_override = base_pri
+        elif secid0 not in _ANON_KLINE_WHITELIST:
             if request is None or not _anon_daily_can_consume(request):
                 return {"code": -401, "msg": "游客今日体验次数已用完，请登录继续", "data": {}, "signals": {}}
     else:
