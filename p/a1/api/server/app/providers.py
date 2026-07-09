@@ -806,6 +806,29 @@ def _strip_js_wrapper(s: str) -> str:
     return s
 
 
+def _payload_missing_today(payload: Dict[str, Any]) -> bool:
+    """Return True if payload's last bar date is before today (cache stale during trading)."""
+    try:
+        now = datetime.now()
+        if now.weekday() >= 5:
+            return False
+        today = now.strftime("%Y-%m-%d")
+        data = payload.get("data") if isinstance(payload, dict) else None
+        if not isinstance(data, dict):
+            return False
+        for pack in data.values():
+            if not isinstance(pack, dict):
+                continue
+            rows = pack.get("day") or pack.get("qfqday") or []
+            if rows and isinstance(rows, list) and len(rows) > 0:
+                last = rows[-1]
+                if isinstance(last, list) and len(last) > 0:
+                    return str(last[0]) < today
+        return False
+    except Exception:
+        return False
+
+
 def _cache_get(variant: str, secid: str, period: str, count: int) -> Dict[str, Any] | None:
     ttl = float(getattr(settings, "kline_cache_ttl_s", 30.0))
     if ttl <= 0:
@@ -866,6 +889,8 @@ def _cache_get(variant: str, secid: str, period: str, count: int) -> Dict[str, A
                         return payload
 
                 sliced = _slice_payload(best_payload, int(count))
+                if _payload_missing_today(sliced):
+                    return None  # force refresh during trading hours
                 # memoize sliced variant for faster future hits
                 _KLINE_CACHE[k] = (min(best_exp, now + ttl), sliced)
                 return sliced
@@ -888,6 +913,8 @@ def _cache_get(variant: str, secid: str, period: str, count: int) -> Dict[str, A
         try:
             payload = db.kline_cache_get("|".join([k[0], k[1], k[2], str(k[3])]))
             if isinstance(payload, dict):
+                if _payload_missing_today(payload):
+                    return None  # force refresh during trading hours
                 _KLINE_CACHE[k] = (now + ttl, payload)
                 return payload
         except Exception:
@@ -897,6 +924,9 @@ def _cache_get(variant: str, secid: str, period: str, count: int) -> Dict[str, A
     if exp <= now:
         _KLINE_CACHE.pop(k, None)
         return None
+    if _payload_missing_today(payload):
+        _KLINE_CACHE.pop(k, None)
+        return None  # force refresh for stale intraday cache
     return payload
 
 
@@ -2827,6 +2857,7 @@ async def _fetch_tx_kline_core(
 
     last_err: Dict[str, Any] | None = None
     is_ths = str(secid).lower().startswith(("ths:", "ths."))
+    best_stale: Dict[str, Any] | None = None  # fallback when all sources are stale
     for src in _priority():
         if src == "paid":
             r = await _try_paid()
@@ -2856,6 +2887,9 @@ async def _fetch_tx_kline_core(
             r = await _try_tencent()
             # circuit open returns an error payload (not None) so we can still continue
             if r is not None and _tencent_payload_has_rows(r):
+                if _payload_missing_today(r) and not is_ths:
+                    if best_stale is None: best_stale = r
+                    continue  # stale — try next source for fresher data
                 return r
             if r is not None and not _tencent_payload_has_rows(r):
                 last_err = r
@@ -2867,6 +2901,9 @@ async def _fetch_tx_kline_core(
             except Exception as e:
                 r = {"code": -1, "msg": f"eastmoney failed: {type(e).__name__}", "data": {}}
             if r is not None and _tencent_payload_has_rows(r):
+                if _payload_missing_today(r) and not is_ths:
+                    if best_stale is None: best_stale = r
+                    continue  # stale — try next source for fresher data
                 return r
             if r is not None and not _tencent_payload_has_rows(r):
                 last_err = r
@@ -2878,9 +2915,23 @@ async def _fetch_tx_kline_core(
             except Exception as e:
                 r = {"code": -1, "msg": f"sina failed: {type(e).__name__}", "data": {}}
             if r is not None and _tencent_payload_has_rows(r):
+                if _payload_missing_today(r) and not is_ths:
+                    if best_stale is None: best_stale = r
+                    continue  # stale — try next source for fresher data
                 return r
             if r is not None and not _tencent_payload_has_rows(r):
                 last_err = r
+
+    # All sources stale or failed — try paid as last resort (data quality fallback)
+    if best_stale is not None and (not allow_paid or not _paid_enabled()):
+        try:
+            r = await _try_paid()
+            if r is not None and _tencent_payload_has_rows(r) and not _payload_missing_today(r):
+                return r
+        except Exception:
+            pass
+    if best_stale is not None:
+        return best_stale
 
     # If Tencent failed later in the chain, retry once with its existing fallbacks.
     # This keeps legacy behavior when priority does not include eastmoney/sina.
