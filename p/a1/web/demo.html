@@ -5013,8 +5013,8 @@
       var per = state && state.period ? String(state.period) : '';
 
       // Short link format: https://a.ai24x.com/i/{CODE}?secid=...&period=...
-      var base = String(location.origin || '');
-      if (!base || base === 'null') base = 'https://a.ai24x.com';
+      // Always use production domain for share links (not localhost)
+      var base = 'https://a.ai24x.com';
       var u2 = new URL(base + '/i/' + c);
       if (sid) u2.searchParams.set('secid', sid);
       if (per) u2.searchParams.set('period', per);
