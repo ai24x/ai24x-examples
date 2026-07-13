@@ -5661,6 +5661,10 @@
     if (btnRegen) btnRegen.addEventListener('click', generateShareCard);
   }
   function getInviteCode() {
+    // Priority: 1) share overlay current  2) localStorage  3) empty
+    try {
+      if (sharePCurrent && sharePCurrent.invite_code) return String(sharePCurrent.invite_code).trim().toUpperCase();
+    } catch (_) {}
     try { return String(localStorage.getItem('ai24x_invite_code') || '').trim().toUpperCase(); } catch (e) { return ''; }
   }
   var _lastQueryName = '';  // 记录最近一次查询的标的名称，供卡片保存用
@@ -5844,9 +5848,8 @@
       var qrLink = 'https://a.ai24x.com';
       if (inv) {
         qrLink += '/i/' + inv;
-        var st = readUrlState && readUrlState();
-        var qsid = st && st.secid ? String(st.secid) : '';
-        var qper = st && st.period ? String(st.period) : '';
+        var qsid = currentSecid || '';
+        var qper = currentPeriod || 'day';
         if (qsid) qrLink += (qrLink.indexOf('?') < 0 ? '?' : '&') + 'secid=' + encodeURIComponent(qsid);
         if (qper) qrLink += '&period=' + encodeURIComponent(qper);
       } else {
