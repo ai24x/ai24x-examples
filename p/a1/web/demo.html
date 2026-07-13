@@ -5012,11 +5012,10 @@
       var sid = state && state.secid ? String(state.secid) : '';
       var per = state && state.period ? String(state.period) : '';
 
-      // Always point share link to demo.html (the quote page), not home/register.
-      // Recipients see the content first, then decide to register.
+      // Short link format: https://a.ai24x.com/i/{CODE}?secid=...&period=...
       var base = String(location.origin || '');
-      var u2 = new URL(base + "/demo.html");
-      u2.searchParams.set('i', c);
+      if (!base || base === 'null') base = 'https://a.ai24x.com';
+      var u2 = new URL(base + '/i/' + c);
       if (sid) u2.searchParams.set('secid', sid);
       if (per) u2.searchParams.set('period', per);
       return u2.toString();
@@ -6286,7 +6285,7 @@
           <button class="btn" type="button" id="btn-card-close" style="font-size:12px; padding:6px 10px;">关闭</button>
         </div>
       </div>
-      <p class="sub" style="margin:0 0 10px;">点击「保存图片」或长按图片保存到相册</p>
+      <p class="sub" style="margin:0 0 10px; color:var(--accent); font-weight:800;">点击「保存图片」或长按图片保存到相册</p>
       <div id="card-preview-wrap" style="margin:0 0 8px; text-align:center; background:rgba(0,0,0,.2); border-radius:8px; padding:8px;">
         <img id="card-preview-img" alt="信号分享卡" style="max-width:100%; border-radius:8px; display:block;" />
       </div>
