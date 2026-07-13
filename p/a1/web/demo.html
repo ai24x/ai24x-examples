@@ -5835,13 +5835,24 @@
         g.fillText('邀请码: ' + inv, 36, bottomY + 62);
       }
 
-      // QR code — 100px logical, 300px source drawn in pixel space (sharp at 2x)
+      // QR code — short link with invite code + current state
       var qrSize = 100, qrSourceSize = 300;
       var qrX = LW - qrSize - 36, qrY = bottomY + 48;
       g.globalAlpha = 0.85;
       g.fillStyle = '#ffffff';
       g.fillRect(qrX - 4, qrY - 4, qrSize + 8, qrSize + 8);
-      var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=' + qrSourceSize + 'x' + qrSourceSize + '&data=' + encodeURIComponent('https://a.ai24x.com/demo.html' + (inv ? '?i=' + inv : ''));
+      var qrLink = 'https://a.ai24x.com';
+      if (inv) {
+        qrLink += '/i/' + inv;
+        var st = readUrlState && readUrlState();
+        var qsid = st && st.secid ? String(st.secid) : '';
+        var qper = st && st.period ? String(st.period) : '';
+        if (qsid) qrLink += (qrLink.indexOf('?') < 0 ? '?' : '&') + 'secid=' + encodeURIComponent(qsid);
+        if (qper) qrLink += '&period=' + encodeURIComponent(qper);
+      } else {
+        qrLink += '/demo.html';
+      }
+      var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=' + qrSourceSize + 'x' + qrSourceSize + '&data=' + encodeURIComponent(qrLink);
       var qrImg = new Image();
       qrImg.crossOrigin = 'anonymous';
       qrImg.src = qrUrl;
