@@ -5703,13 +5703,15 @@
     // Pre-fetch invite code so card always shows it
     fetchMyInviteCode().then(function (code) {
       if (code) { try { localStorage.setItem('ai24x_invite_code', code); } catch (_) {} }
-      _doGenerateShareCard();
+      _doGenerateShareCard(code);
     }).catch(function () {
-      _doGenerateShareCard();
+      _doGenerateShareCard('');
     });
   }
 
-  function _doGenerateShareCard() {
+  function _doGenerateShareCard(inviteCodeOverride) {
+    // Use the passed code (most reliable) with fallbacks
+    var inv = inviteCodeOverride || getInviteCode();
     // Temporarily expand right offset to capture 2 empty K-bars + right price column
     var origRightOffset = CHART_RIGHT_OFFSET_BARS;
     var extraOffset = origRightOffset + 2;
@@ -5831,8 +5833,7 @@
       g.fillRect(0, bottomY, LW, 195);
       g.fillStyle = '#94a3b8';
       g.font = '13px sans-serif';
-      g.fillText('\u626b\u7801\u4f53\u9a8c\u5b8c\u6574\u884c\u60c5\u5206\u6790 \u2192', 36, bottomY + 36);
-      var inv = getInviteCode();
+      g.fillText('扫码体验完整行情分析 →', 36, bottomY + 36);
       if (inv) {
         g.fillStyle = '#6366f1';
         g.font = 'bold 15px sans-serif';
