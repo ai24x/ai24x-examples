@@ -32,7 +32,7 @@
   </script>
   <script>
     (function () {
-      // Invite short link: /i/{CODE} → /index.html?mode=register&i={CODE}
+      // Invite short link: /i/{CODE} → /demo.html?i={CODE} (content-first)
       // Keep this redirect in the static page to avoid Nginx/app rewrites drifting.
       try {
         var p = String(location.pathname || "");
@@ -41,11 +41,10 @@
         var code = String(m[1] || "").trim().toUpperCase();
         if (!code) return;
         var u = new URL(String(location.href));
-        u.pathname = "/index.html";
-        // Force register view for invite links
-        u.searchParams.set("mode", "register");
+        u.pathname = "/demo.html";
         u.searchParams.set("i", code);
-        // Remove path-based invite to avoid relative-path issues
+        // Remove mode=register if already set (doesn't apply to demo.html)
+        u.searchParams.delete("mode");
         try { location.replace(u.toString()); } catch (e2) { location.href = u.toString(); }
         } catch (e0) {}
     })();
