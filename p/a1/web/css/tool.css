@@ -52,6 +52,15 @@ input {
   color: var(--text);
   font-size: 14px;
 }
+/* Auth / tool forms on narrow screens: never force 180px min-width (clips OTP buttons). */
+@media (max-width: 640px) {
+  input {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+  }
+}
 input:focus {
   outline: none;
   border-color: var(--ma2);
@@ -91,7 +100,12 @@ button.btn:hover {
 }
 .hero-copy {
   flex: 1 1 420px;
-  min-width: 280px;
+  min-width: 0;
+}
+@media (min-width: 981px) {
+  .hero-copy {
+    min-width: 280px;
+  }
 }
 .hero-art {
   flex: 0 0 auto;

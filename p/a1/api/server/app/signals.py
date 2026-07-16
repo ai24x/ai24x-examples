@@ -11,6 +11,20 @@ from typing import Any, Literal
 # v1.08: auto-clean old signal caches on import to prevent stale B/S naming
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 _CACHE_DIR = os.path.join(_BASE_DIR, "..", "data", "signal_cache")
+
+
+def _safe_signal_cache_filename(cache_key: str) -> str:
+    """
+    Windows forbids ':' in filenames. Keys like 'ths:886018_day' used to create an NTFS
+    Alternate Data Stream on a zero-byte file named 'ths', corrupting signal locking.
+    """
+    s = str(cache_key or "").strip()
+    for ch in '<>:"/\\|?*':
+        s = s.replace(ch, "_")
+    s = s.strip(" .")
+    return s or "unknown"
+
+
 try:
     for _f in glob.glob(os.path.join(_CACHE_DIR, "*.json")):
         try:
@@ -20,8 +34,17 @@ try:
                 os.remove(_f)
         except Exception:
             pass
+    # Remove legacy NTFS ADS host file created by cache_key containing ':'
+    try:
+        _ads_host = os.path.join(_CACHE_DIR, "ths")
+        if os.path.isfile(_ads_host):
+            os.remove(_ads_host)
+    except Exception:
+        pass
 except Exception:
-    passPeriod = Literal["day", "week", "month"]
+    pass
+
+Period = Literal["day", "week", "month"]
 
 
 @dataclass(frozen=True)
@@ -1279,15 +1302,18 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         )
     )
     # v1.02: signal locking — freeze markers >5 bars old
-    # CACHE_VERSION: bump this when signal algorithm changes to auto-invalidate stale caches
-    CACHE_VERSION = 4
+    # CACHE_VERSION: bump when algorithm OR cache filename scheme changes
+    CACHE_VERSION = 5
     if cache_key and len(candles) > 10:
         LOCK_BARS = 5
         freeze_cutoff = candles[-LOCK_BARS - 1].time if len(candles) > LOCK_BARS else ""
+        range_t0 = str(candles[0].time)
+        range_t1 = str(candles[-1].time)
         try:
             cache_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "signal_cache")
             os.makedirs(cache_dir, exist_ok=True)
-            cache_path = os.path.join(cache_dir, f"{cache_key}.json")
+            safe_name = _safe_signal_cache_filename(cache_key)
+            cache_path = os.path.join(cache_dir, f"{safe_name}.json")
             cache_exists = os.path.exists(cache_path)
             if cache_exists:
                 try:
@@ -1298,12 +1324,15 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
                 # Auto-invalidate if cache version mismatches
                 if int(cached.get("v", 0)) != CACHE_VERSION:
                     cached = {}
+                # Rolling window: drop locked markers outside current candle range
                 if cached.get("markers"):
                     locked = []
                     seen_times = set()
                     for mk in cached.get("markers", []):
                         t = str(mk.get("time") or "")
-                        if t and t < freeze_cutoff:
+                        if not t or t < range_t0 or t > range_t1:
+                            continue
+                        if t < freeze_cutoff:
                             locked.append(mk)
                             seen_times.add(t + str(mk.get("id") or ""))
                     for mk in markers:
@@ -1315,7 +1344,16 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             # Save current markers for next time
             try:
                 with open(cache_path, "w", encoding="utf-8") as fh:
-                    json.dump({"v": CACHE_VERSION, "markers": markers, "ts": str(candles[-1].time) if candles else ""}, fh, ensure_ascii=False)
+                    json.dump(
+                        {
+                            "v": CACHE_VERSION,
+                            "markers": markers,
+                            "ts": range_t1,
+                            "t0": range_t0,
+                        },
+                        fh,
+                        ensure_ascii=False,
+                    )
             except Exception:
                 pass
         except Exception:

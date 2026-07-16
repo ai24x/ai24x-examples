@@ -1768,6 +1768,10 @@
     return /^90\.BK\d+$/i.test(String(secid || '').trim());
   }
 
+  function isThsSecid(secid) {
+    return /^ths[:.]\d{6}$/i.test(String(secid || '').trim());
+  }
+
   function emPlatePackDataKey(secid) {
     return String(secid || '').trim().toUpperCase();
   }
@@ -4332,9 +4336,9 @@
 
   function applyLocalSignalsFallbackIfNeeded(secid, period, candles) {
     try {
-      // Only for Eastmoney BK plates: backend may be unreachable from some servers (subbrain03),
-      // but browser JSONP can still load candles, so compute a minimal local signal set.
-      if (!isEmPlateSecid(secid)) return false;
+      // BK / THS plates: backend may return empty markers (short month history, cache miss, etc.)
+      // Compute a minimal local MA-cross + MACD set so the chart is not blank.
+      if (!isEmPlateSecid(secid) && !isThsSecid(secid)) return false;
       var closes = candles.map(function (c) { return Number(c && c.close); });
       // MA cross markers
       var mk = buildLocalMaCrossMarkers(candles, 14, 28);
@@ -4612,15 +4616,16 @@
             series.setMarkers(mk || []);
           }
           var isBk = isEmPlateSecid(result.secid || currentSecid);
-          // BK plates: if backend returns no markers, fall back to local MA-cross
-          if (isBk && (!mk || !mk.length)) {
+          var isThs = isThsSecid(result.secid || currentSecid);
+          // BK/THS: if backend returns no markers, fall back to local MA-cross
+          if ((isBk || isThs) && (!mk || !mk.length)) {
             try { applyLocalSignalsFallbackIfNeeded(result.secid || currentSecid, period, mainChartCandles); } catch(eff) {}
           }
           var lbs = sig && sig.bar_labels ? sig.bar_labels : null;
           // v1.05: Render MACD sub-chart
           var macdData = sig && sig.macd ? sig.macd : null;
-          // BK plates with empty MACD: compute locally
-          if (isBk && (!macdData || !macdData.length)) {
+          // BK/THS plates with empty MACD: compute locally
+          if ((isBk || isThs) && (!macdData || !macdData.length)) {
             var localMacd = buildLocalMacd(mainChartCandles);
             if (localMacd && localMacd.length) macdData = localMacd;
           }
@@ -4668,7 +4673,7 @@
             } catch (eMk) {}
           })
           .catch(function () {
-            // Final fallback: for BK plates, compute minimal local MA-cross signals.
+            // Final fallback: for BK/THS plates, compute minimal local MA-cross signals.
             try { applyLocalSignalsFallbackIfNeeded(result.secid || currentSecid, period, mainChartCandles); } catch (e0) {}
           });
       });

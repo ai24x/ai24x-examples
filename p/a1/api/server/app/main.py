@@ -22,12 +22,18 @@ def _startup_clean():
                 if f.endswith(".pyc"):
                     try: _os.remove(_os.path.join(root, f))
                     except: pass
-    # 2) clear stale signal caches
+    # 2) clear stale signal caches (incl. legacy NTFS ADS host 'ths' from ths:XXXX keys)
     sd = _os.path.join(base, "data", "signal_cache")
     if _os.path.isdir(sd):
         for f in _glob.glob(_os.path.join(sd, "*.json")):
             try: _os.remove(f)
             except: pass
+        # Windows ADS host file created by cache keys containing ':'
+        try:
+            ads_host = _os.path.join(sd, "ths")
+            if _os.path.isfile(ads_host):
+                _os.remove(ads_host)
+        except: pass
 _startup_clean()
 
 import httpx
@@ -2058,8 +2064,22 @@ async def api_suggest(
         if isinstance(d2, list) and d2 and (not isinstance(d1, list) or not d1):
             return ths
         if isinstance(d1, list) and isinstance(d2, list) and d2:
-            # append THS items after Eastmoney items
-            merged = d1 + d2
+            # Prefer THS first for pure-letter (pinyin) queries: EM often returns unrelated OTC funds
+            # (e.g. gyyc → 复星医药成长基金), while THS correctly hits 高压氧舱.
+            kw_letters = "".join(ch for ch in str(q or "").strip().lower() if "a" <= ch <= "z")
+            prefer_ths_first = bool(kw_letters) and len(kw_letters) >= 2 and str(q or "").strip().isascii()
+            # Deduplicate by QuoteID while merging
+            seen: set[str] = set()
+            merged: list = []
+            primary = d2 + d1 if prefer_ths_first else d1 + d2
+            for it in primary:
+                if not isinstance(it, dict):
+                    continue
+                qid = str(it.get("QuoteID") or "").strip().upper()
+                if not qid or qid in seen:
+                    continue
+                seen.add(qid)
+                merged.append(it)
             out = dict(em)
             tbl = dict(out.get("QuotationCodeTable") or {})
             tbl["Data"] = merged
@@ -2218,9 +2238,9 @@ async def api_signals(
             count = 1000
 
     try:
+        secid0 = str(secid or "").strip()
         # Keep the same anon policy as /api/kline.
         if user_id is None:
-            secid0 = str(secid or "").strip()
             is_ths_plate = secid0.lower().startswith("ths:")
             if secid0 in _ANON_KLINE_WHITELIST or is_ths_plate:
                 md = market_data_status()
@@ -2297,8 +2317,13 @@ async def api_signals(
         candles = candles_from_tencent_like_pack(pack, period=period)  # type: ignore[arg-type]
         # Week/month may be rendered on frontend by aggregating daily bars when provider
         # doesn't return week/month rows. Keep backend behavior aligned so markers show up.
+        # THS concept indices often have short native week/month series; always rebuild from
+        # daily history when bars are too few for MA57-based signals (< 80).
         try:
-            if period in ("week", "month") and len(candles) < 60:
+            need_agg = period in ("week", "month") and (
+                len(candles) < 80 or str(secid0 or "").lower().startswith("ths:")
+            )
+            if need_agg:
                 # Pull daily history and aggregate.
                 day_count = int(count)
                 if period == "week":
@@ -2467,7 +2492,11 @@ async def api_kline_with_signals(
         )
         candles = candles_from_tencent_like_pack(pack, period=period)  # type: ignore[arg-type]
         # If provider doesn't have week/month rows, derive from daily in the SAME endpoint.
-        if period in ("week", "month") and len(candles) < 60:
+        # THS concept indices: always rebuild week/month from daily (native series often too short for MA57).
+        need_agg = period in ("week", "month") and (
+            len(candles) < 80 or str(secid0 or "").lower().startswith("ths:")
+        )
+        if need_agg:
             day_count = int(count)
             if period == "week":
                 day_count = max(day_count * 8, 1200)

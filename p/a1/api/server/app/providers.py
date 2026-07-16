@@ -1202,6 +1202,54 @@ async def _ths_hotspot_allow_names_from_10jqka(ttl_s: float = 300.0) -> set[str]
 # When we need "funds net ranking" in the future, implement it as a separate mode to avoid mixing ranking rules.
 
 
+def _ths_name_pinyin(name: str) -> tuple[str, str]:
+    """
+    Return (initials, full_pinyin) for THS index name, e.g. 高压氧舱 -> ("gyyc", "gaoyayangcang").
+    Best-effort: empty strings if pypinyin unavailable.
+    """
+    n = str(name or "").strip()
+    if not n:
+        return "", ""
+    try:
+        from pypinyin import Style, lazy_pinyin  # type: ignore
+
+        initials = "".join(lazy_pinyin(n, style=Style.FIRST_LETTER)).lower()
+        full = "".join(lazy_pinyin(n, style=Style.NORMAL)).lower()
+        # keep only ascii letters for matching english keyboard queries like gyyc
+        initials = "".join(ch for ch in initials if "a" <= ch <= "z")
+        full = "".join(ch for ch in full if "a" <= ch <= "z")
+        return initials, full
+    except Exception:
+        return "", ""
+
+
+def _ths_kw_matches(name: str, six: str, kw2: str, initials: str = "", full_py: str = "") -> bool:
+    """Match THS index by Chinese name, 6-digit code, or pinyin (gyyc / gaoyayangcang)."""
+    kw = str(kw2 or "").strip()
+    if not kw:
+        return False
+    hay = str(name or "").replace(" ", "")
+    if kw in hay or kw in str(six or ""):
+        return True
+    # ascii/pinyin queries: gyyc, gaoya, etc.
+    kw_l = kw.lower()
+    if not kw_l.isascii():
+        return False
+    # strip non-letters for pure pinyin match
+    kw_letters = "".join(ch for ch in kw_l if "a" <= ch <= "z")
+    if not kw_letters or len(kw_letters) < 2:
+        return False
+    ini = str(initials or "").lower()
+    full = str(full_py or "").lower()
+    if not ini and not full:
+        ini, full = _ths_name_pinyin(name)
+    if ini and (kw_letters == ini or ini.startswith(kw_letters) or kw_letters in ini):
+        return True
+    if full and (kw_letters == full or full.startswith(kw_letters) or kw_letters in full):
+        return True
+    return False
+
+
 async def _ths_index_list(ttl_s: float = 3600.0) -> list[dict[str, Any]]:
     """
     Cache TuShare ths_index list in memory (contains ts_code like 881271.TI).
@@ -1229,7 +1277,16 @@ async def _ths_index_list(ttl_s: float = 3600.0) -> list[dict[str, Any]]:
                 name = str(r.get("name", "")).strip()
                 typ = str(r.get("type", "")).strip()
                 if ts_code and name:
-                    out.append({"ts_code": ts_code, "name": name, "type": typ})
+                    ini, full = _ths_name_pinyin(name)
+                    out.append(
+                        {
+                            "ts_code": ts_code,
+                            "name": name,
+                            "type": typ,
+                            "pinyin": ini,
+                            "pinyin_full": full,
+                        }
+                    )
         except Exception:
             out = []
         _THS_INDEX_CACHE = out
@@ -1274,10 +1331,30 @@ async def _ths_index_lookup_by_six(six: str) -> dict[str, Any] | None:
     return None
 
 
+def _ths_suggest_item(six: str, name: str, typ: str = "", initials: str = "") -> dict[str, Any]:
+    return {
+        "Code": six,
+        "Name": name,
+        "PinYin": str(initials or "").upper(),
+        "ID": six,
+        "JYS": "",
+        "Classify": "THS",
+        "MarketType": "",
+        "SecurityTypeName": "同花顺指数",
+        "SecurityType": "",
+        "MktNum": "",
+        "TypeUS": typ,
+        "QuoteID": f"ths:{six}",
+        "UnifiedCode": six,
+        "InnerCode": "",
+    }
+
+
 async def fetch_ths_suggest(q: str, limit: int = 30) -> dict:
     """
     Return Eastmoney-like suggest payload for THS indices.
     QuoteID uses our backend format: ths:881271 (not 881271.TI).
+    Supports Chinese name, 6-digit code, and pinyin (e.g. gyyc → 高压氧舱).
     """
     kw = str(q or "").strip()
     if not kw:
@@ -1295,26 +1372,11 @@ async def fetch_ths_suggest(q: str, limit: int = 30) -> dict:
                 ts_code = str(one.get("ts_code") or "").strip()
                 typ = str(one.get("type") or "").strip()
                 six = ts_code.split(".", 1)[0].strip() if ts_code else kw2
-                out.append(
-                    {
-                        "Code": six,
-                        "Name": name,
-                        "PinYin": "",
-                        "ID": six,
-                        "JYS": "",
-                        "Classify": "THS",
-                        "MarketType": "",
-                        "SecurityTypeName": "同花顺指数",
-                        "SecurityType": "",
-                        "MktNum": "",
-                        "TypeUS": typ,
-                        "QuoteID": f"ths:{six}",
-                        "UnifiedCode": six,
-                        "InnerCode": "",
-                    }
-                )
+                ini, _full = _ths_name_pinyin(name)
+                out.append(_ths_suggest_item(six, name, typ=typ, initials=ini))
         return {"QuotationCodeTable": {"Data": out, "TotalCount": len(out), "Status": 0, "Message": "OK"}}
-    out = []
+    out: list[dict[str, Any]] = []
+    seen: set[str] = set()
     for it in items:
         name = str(it.get("name") or "")
         ts_code = str(it.get("ts_code") or "")
@@ -1323,26 +1385,14 @@ async def fetch_ths_suggest(q: str, limit: int = 30) -> dict:
         six = ts_code.split(".", 1)[0].strip()
         if not six.isdigit() or len(six) != 6:
             continue
-        hay = name.replace(" ", "")
-        if kw2 in hay or kw2 in six:
-            out.append(
-                {
-                    "Code": six,
-                    "Name": name,
-                    "PinYin": "",
-                    "ID": six,
-                    "JYS": "",
-                    "Classify": "THS",
-                    "MarketType": "",
-                    "SecurityTypeName": "同花顺指数",
-                    "SecurityType": "",
-                    "MktNum": "",
-                    "TypeUS": "",
-                    "QuoteID": f"ths:{six}",
-                    "UnifiedCode": six,
-                    "InnerCode": "",
-                }
-            )
+        ini = str(it.get("pinyin") or "")
+        full = str(it.get("pinyin_full") or "")
+        if not _ths_kw_matches(name, six, kw2, initials=ini, full_py=full):
+            continue
+        if six in seen:
+            continue
+        seen.add(six)
+        out.append(_ths_suggest_item(six, name, typ=str(it.get("type") or ""), initials=ini))
         if len(out) >= int(limit):
             break
     # If cache list is empty/unavailable, try exact lookup by code.
@@ -1353,24 +1403,8 @@ async def fetch_ths_suggest(q: str, limit: int = 30) -> dict:
             ts_code = str(one.get("ts_code") or "").strip()
             typ = str(one.get("type") or "").strip()
             six = ts_code.split(".", 1)[0].strip() if ts_code else kw2
-            out.append(
-                {
-                    "Code": six,
-                    "Name": name,
-                    "PinYin": "",
-                    "ID": six,
-                    "JYS": "",
-                    "Classify": "THS",
-                    "MarketType": "",
-                    "SecurityTypeName": "同花顺指数",
-                    "SecurityType": "",
-                    "MktNum": "",
-                    "TypeUS": typ,
-                    "QuoteID": f"ths:{six}",
-                    "UnifiedCode": six,
-                    "InnerCode": "",
-                }
-            )
+            ini, _full = _ths_name_pinyin(name)
+            out.append(_ths_suggest_item(six, name, typ=typ, initials=ini))
     return {"QuotationCodeTable": {"Data": out, "TotalCount": len(out), "Status": 0, "Message": "OK"}}
 
 

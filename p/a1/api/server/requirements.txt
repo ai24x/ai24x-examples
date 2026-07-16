@@ -8,4 +8,5 @@ psycopg[binary]==3.3.3
 python-multipart==0.0.9
 tushare
 pandas
+pypinyin>=0.50
 redis[hiredis]>=5.0

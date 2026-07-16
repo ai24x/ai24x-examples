@@ -66,21 +66,6 @@ module.exports = {
       log_date_format: "YYYY-MM-DD HH:mm:ss",
     },
     {
-      name: "a-web-18001",
-      cwd: "./p/a/web",
-      script: "python",
-      windowsHide: true,
-      args: "-m http.server 18001",
-      autorestart: true,
-      max_memory_restart: "200M",
-      env: {
-        PYTHONUNBUFFERED: "1",
-      },
-      out_file: "./logs/pm2-a-web-out.log",
-      error_file: "./logs/pm2-a-web-err.log",
-      log_date_format: "YYYY-MM-DD HH:mm:ss",
-    },
-    {
       name: "fisher-web-18002",
       cwd: "./p/fisher/web",
       script: "python",
@@ -93,24 +78,6 @@ module.exports = {
       },
       out_file: "./logs/pm2-fisher-web-out.log",
       error_file: "./logs/pm2-fisher-web-err.log",
-      log_date_format: "YYYY-MM-DD HH:mm:ss",
-    },
-    {
-      name: "a-api-18031",
-      cwd: "./p/a/api/server",
-      script: "python",
-      windowsHide: true,
-      // Note: avoid `--reload` on Windows (it may spawn extra console windows).
-      // When you change backend code, run: `pm2 restart a-api-18031`
-      args: "-m uvicorn app.main:app --host 127.0.0.1 --port 18031",
-      autorestart: true,
-      max_memory_restart: "600M",
-      env: {
-        PYTHONUNBUFFERED: "1",
-        AI24X_ENV: "dev",
-      },
-      out_file: "./logs/pm2-a-api-out.log",
-      error_file: "./logs/pm2-a-api-err.log",
       log_date_format: "YYYY-MM-DD HH:mm:ss",
     },
     {

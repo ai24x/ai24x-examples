@@ -1,9 +1,21 @@
 /**
- * AI 行情官（p/a/web）统一页眉 / 页脚（轻量版，无 i18n 依赖）
+ * AI 行情官（p/a1/web）统一页眉 / 页脚（轻量版，无 i18n 依赖）
  */
 (function (global) {
   function esc(s) {
     return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  /** Local static :18001 → API :18011; production same-origin (Nginx /api). */
+  function getApiBase() {
+    try {
+      if (String(location.protocol || "") === "file:") return "http://127.0.0.1:18011";
+      var host = String(location.hostname || "");
+      var port = String(location.port || "");
+      if ((host === "127.0.0.1" || host === "localhost") && port === "18001") return "http://127.0.0.1:18011";
+      if ((host === "127.0.0.1" || host === "localhost") && port === "18003") return "http://127.0.0.1:18011";
+    } catch (e0) {}
+    return "";
   }
 
   function _getInviteCode() {
@@ -306,7 +318,8 @@
         showAuthWrap();
         // Best-effort: if /api/me fails, keep partner hidden.
         try{
-          fetch("/api/me", { cache: "no-store", headers: { "Authorization": "Bearer " + String(tok) } })
+          var apiBase = getApiBase();
+          fetch((apiBase || "") + "/api/me", { cache: "no-store", headers: { "Authorization": "Bearer " + String(tok) } })
             .then(function(r){ return r && r.ok ? r.json() : null; })
             .then(function(d){
               try{ setLoggedInUi(d); }catch(eU){}
