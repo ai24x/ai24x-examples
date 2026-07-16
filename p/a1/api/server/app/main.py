@@ -2370,6 +2370,62 @@ async def api_signals(
         return {"code": -1, "msg": f"signals failed ({type(e).__name__})", "data": {}}
 
 
+@app.post("/api/signals/compute")
+async def api_signals_compute(
+    request: Request,
+    user_id: Optional[int] = Depends(get_optional_user_id),
+) -> dict:
+    """
+    Compute full v3 signals from client-provided K-line rows.
+
+    Used when production Windows cannot reach Eastmoney plate endpoints (SSL),
+    but the browser already loaded BK candles via JSONP — so the chart has data
+    while GET /api/kline_with_signals returns empty markers (frontend then only
+    showed minimal local 金/等). Upload rows → same server algorithm → full markers.
+    """
+    _rate_limit(f"sigcomp:{user_id or 'anon'}", settings.kline_per_minute)
+    if user_id is not None:
+        _auth_ip_rate_limit(request)
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="invalid json")
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="invalid body")
+    period = str(body.get("period") or "day").strip().lower()
+    if period not in ("day", "week", "month"):
+        raise HTTPException(status_code=400, detail="Invalid period")
+    rows = body.get("rows")
+    if not isinstance(rows, list) or len(rows) < 62:
+        return {"code": -1, "msg": "need >=62 kline rows", "data": {}}
+    # Cap payload size
+    if len(rows) > 3000:
+        rows = rows[-3000:]
+    try:
+        from .signals import candles_from_tencent_like_pack, build_signals_v3
+
+        key_plain = {"day": "day", "week": "week", "month": "month"}[period]
+        key_qfq = {"day": "qfqday", "week": "qfqweek", "month": "qfqmonth"}[period]
+        pack = {key_plain: rows, key_qfq: rows}
+        candles = candles_from_tencent_like_pack(pack, period=period)  # type: ignore[arg-type]
+        if len(candles) < 62:
+            return {"code": -1, "msg": "parsed candles < 62", "data": {}}
+        # No disk lock cache: rows come from client and must not mix with server-fetched locks.
+        sig = build_signals_v3(candles, cache_key="")
+        return {
+            "code": 0,
+            "msg": "ok",
+            "data": {
+                "version": "a2-v3-client",
+                "markers": sig.get("markers") or [],
+                "bar_labels": sig.get("bar_labels") or [],
+                "macd": sig.get("macd") or [],
+            },
+        }
+    except Exception as e:
+        return {"code": -1, "msg": f"compute failed ({type(e).__name__})", "data": {}}
+
+
 @app.get("/api/kline_with_signals")
 async def api_kline_with_signals(
     secid: str,

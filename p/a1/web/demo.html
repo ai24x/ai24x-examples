@@ -4315,6 +4315,102 @@
     }
   }
 
+  /** Upload browser-side candles for full v3 markers (BK when server cannot reach Eastmoney). */
+  function apiComputeSignalsFromCandles(secid, period, candles) {
+    try {
+      var rows = [];
+      for (var i = 0; i < (candles || []).length; i++) {
+        var c = candles[i];
+        if (!c || !c.time) continue;
+        rows.push([
+          String(c.time),
+          String(c.open),
+          String(c.close),
+          String(c.high),
+          String(c.low),
+          String(c.vol != null ? c.vol : c.volume != null ? c.volume : 0),
+        ]);
+      }
+      if (rows.length < 62) return Promise.reject(new Error('too few candles'));
+      return fetch((API_BASE || '') + '/api/signals/compute', {
+        method: 'POST',
+        cache: 'no-store',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+        body: JSON.stringify({
+          secid: String(secid || ''),
+          period: String(period || 'day'),
+          rows: rows,
+        }),
+      }).then(function (r) {
+        return r.ok ? r.json() : Promise.reject(new Error('compute http ' + r.status));
+      });
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  }
+
+  function applySignalPayloadToChart(sig, secid, period, candles) {
+    try {
+      _lastSignalData = sig;
+      var mk = sig && sig.markers ? sig.markers : [];
+      try {
+        if (mk && mk.length) {
+          mk = mk.map(function (m) {
+            if (!m) return m;
+            var mm = {};
+            try {
+              for (var k in m) mm[k] = m[k];
+            } catch (e0) {
+              mm = m;
+            }
+            if (mm && mm.text != null) mm.text = normalizeSignalText(mm.text);
+            return mm;
+          });
+        }
+      } catch (eMkN) {}
+      if (series && typeof series.setMarkers === 'function') {
+        series.setMarkers(mk || []);
+      }
+      var lbs = sig && sig.bar_labels ? sig.bar_labels : null;
+      var macdData = sig && sig.macd ? sig.macd : null;
+      var isBk = isEmPlateSecid(secid);
+      var isThs = isThsSecid(secid);
+      if ((isBk || isThs) && (!macdData || !macdData.length)) {
+        var localMacd = buildLocalMacd(candles);
+        if (localMacd && localMacd.length) macdData = localMacd;
+      }
+      renderMacdPane(macdData);
+      try {
+        if (lbs && lbs.length) {
+          lbs = lbs.map(function (x) {
+            return normalizeSignalText(x);
+          });
+        }
+      } catch (eLbN) {}
+      try {
+        setupChartTooltip(chart, series, candles, mainChartVols, lbs, null);
+      } catch (eLb) {}
+      return !!(mk && mk.length);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /** BK/THS: when server markers empty, recompute from candles already on chart. */
+  function recoverFullSignalsFromCandles(secid, period, candles) {
+    return apiComputeSignalsFromCandles(secid, period, candles)
+      .then(function (sd) {
+        var sig = sd && sd.data ? sd.data : null;
+        if (sig && applySignalPayloadToChart(sig, secid, period, candles)) return true;
+        applyLocalSignalsFallbackIfNeeded(secid, period, candles);
+        return false;
+      })
+      .catch(function () {
+        applyLocalSignalsFallbackIfNeeded(secid, period, candles);
+        return false;
+      });
+  }
+
   function buildLocalMaCrossMarkers(candles, nFast, nSlow) {
     try {
       nFast = Math.max(2, Math.floor(Number(nFast || 14)));
@@ -4614,86 +4710,48 @@
       .then(function (sd) {
         try {
           var sig = (sd && sd.signals) ? sd.signals : (sd && sd.data ? sd.data : null);
-          _lastSignalData = sig; // cache for share card
-          // Debug: log signal count for guest users
-          if (!isAuthed()) {
-            try { console.log('[a1] signals received:', sig ? (sig.markers ? sig.markers.length : 0) : 0, 'markers'); } catch (eD) {}
-          }
           var mk = sig && sig.markers ? sig.markers : [];
-          try {
-            if (mk && mk.length) {
-              mk = mk.map(function (m) {
-                if (!m) return m;
-                var mm = {};
-                try { for (var k in m) mm[k] = m[k]; } catch (e0) { mm = m; }
-                if (mm && mm.text != null) mm.text = normalizeSignalText(mm.text);
-                return mm;
-              });
-            }
-          } catch (eMkN) {}
-          if (series && typeof series.setMarkers === 'function') {
-            series.setMarkers(mk || []);
-          }
           var isBk = isEmPlateSecid(result.secid || currentSecid);
           var isThs = isThsSecid(result.secid || currentSecid);
-          // BK/THS: if backend returns no markers, fall back to local MA-cross
-          if ((isBk || isThs) && (!mk || !mk.length)) {
-            try { applyLocalSignalsFallbackIfNeeded(result.secid || currentSecid, period, mainChartCandles); } catch(eff) {}
+          // Debug: log signal count for guest users
+          if (!isAuthed()) {
+            try { console.log('[a1] signals received:', mk ? mk.length : 0, 'markers'); } catch (eD) {}
           }
-          var lbs = sig && sig.bar_labels ? sig.bar_labels : null;
-          // v1.05: Render MACD sub-chart
-          var macdData = sig && sig.macd ? sig.macd : null;
-          // BK/THS plates with empty MACD: compute locally
-          if ((isBk || isThs) && (!macdData || !macdData.length)) {
-            var localMacd = buildLocalMacd(mainChartCandles);
-            if (localMacd && localMacd.length) macdData = localMacd;
+          if (mk && mk.length) {
+            applySignalPayloadToChart(sig, result.secid || currentSecid, period, candlesForSignals);
+            return;
           }
-          renderMacdPane(macdData);
-          try {
-            if (lbs && lbs.length) {
-              lbs = lbs.map(function (x) { return normalizeSignalText(x); });
-            }
-          } catch (eLbN) {}
-          try {
-            setupChartTooltip(chart, series, mainChartCandles, mainChartVols, lbs, null);
-          } catch (eLb) {}
+          // BK: production often cannot pull Eastmoney → empty markers while chart has JSONP candles.
+          // Recompute full v3 from chart candles (not just local 金/等).
+          if (isBk || isThs) {
+            recoverFullSignalsFromCandles(result.secid || currentSecid, period, candlesForSignals);
+            return;
+          }
+          applySignalPayloadToChart(sig || {}, result.secid || currentSecid, period, candlesForSignals);
         } catch (eMk) {}
       })
       .catch(function () {
         // Backward compatible fallback
-        apiSignals(result.secid || currentSecid, period, rows ? rows.length : undefined)
+        var sec = result.secid || currentSecid;
+        var isBk2 = isEmPlateSecid(sec);
+        var isThs2 = isThsSecid(sec);
+        if (isBk2 || isThs2) {
+          recoverFullSignalsFromCandles(sec, period, candlesForSignals);
+          return;
+        }
+        apiSignals(sec, period, rows ? rows.length : undefined)
           .then(function (sd) {
             try {
-              _lastSignalData = (sd && sd.data) ? sd.data : null; // cache for share card (fallback path)
-              var mk = sd && sd.data && sd.data.markers ? sd.data.markers : [];
-              try {
-                if (mk && mk.length) {
-                  mk = mk.map(function (m) {
-                    if (!m) return m;
-                    var mm = {};
-                    try { for (var k in m) mm[k] = m[k]; } catch (e0) { mm = m; }
-                    if (mm && mm.text != null) mm.text = normalizeSignalText(mm.text);
-                    return mm;
-                  });
-                }
-              } catch (eMkN) {}
-              if (series && typeof series.setMarkers === 'function') {
-                series.setMarkers(mk || []);
+              var sig2 = (sd && sd.data) ? sd.data : null;
+              if (sig2 && sig2.markers && sig2.markers.length) {
+                applySignalPayloadToChart(sig2, sec, period, candlesForSignals);
+              } else {
+                applyLocalSignalsFallbackIfNeeded(sec, period, mainChartCandles);
               }
-              var lbs = sd && sd.data && sd.data.bar_labels ? sd.data.bar_labels : null;
-              try {
-                if (lbs && lbs.length) {
-                  lbs = lbs.map(function (x) { return normalizeSignalText(x); });
-                }
-              } catch (eLbN) {}
-              try {
-                setupChartTooltip(chart, series, mainChartCandles, mainChartVols, lbs, null);
-              } catch (eLb) {}
             } catch (eMk) {}
           })
           .catch(function () {
-            // Final fallback: for BK/THS plates, compute minimal local MA-cross signals.
-            try { applyLocalSignalsFallbackIfNeeded(result.secid || currentSecid, period, mainChartCandles); } catch (e0) {}
+            try { applyLocalSignalsFallbackIfNeeded(sec, period, mainChartCandles); } catch (e0) {}
           });
       });
     var n = mainChartCandles.length;
