@@ -1815,10 +1815,10 @@
 
   function suggestResultSortKey(r) {
     var cl = String(r.Classify != null ? r.Classify : '');
-    // THS 付费板块优先（数据更稳定）
-    if (cl.toUpperCase() === 'THS') return 0;
-    // 东财BK板块
-    if (cl === '34' || cl.toUpperCase() === 'BK') return 1;
+    // 东财BK板块优先（数据与同花顺一致,信号正常）
+    if (cl === '34' || cl.toUpperCase() === 'BK') return 0;
+    // THS同花顺指数（数据滞后,信号有缓存断档）
+    if (cl.toUpperCase() === 'THS') return 1;
     // 其他指数/股票
     if (cl === 'Index') return 2;
     return 3;
