@@ -4316,14 +4316,58 @@
   }
 
   /** Upload browser-side candles for full v3 markers (BK when server cannot reach Eastmoney). */
+  function candleTimeToYmd(t) {
+    try {
+      if (t == null) return '';
+      if (typeof t === 'string') {
+        var s = String(t).trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+        return s;
+      }
+      if (typeof t === 'object' && t.year != null) {
+        var y = Number(t.year);
+        var m = Number(t.month);
+        var d = Number(t.day);
+        if (!y || !m || !d) return '';
+        return (
+          String(y) +
+          '-' +
+          (m < 10 ? '0' : '') +
+          String(m) +
+          '-' +
+          (d < 10 ? '0' : '') +
+          String(d)
+        );
+      }
+      if (typeof t === 'number' && isFinite(t)) {
+        var dt = new Date(t * (t > 1e12 ? 1 : 1000));
+        if (isNaN(dt.getTime())) return '';
+        var mm = dt.getMonth() + 1;
+        var dd = dt.getDate();
+        return (
+          dt.getFullYear() +
+          '-' +
+          (mm < 10 ? '0' : '') +
+          mm +
+          '-' +
+          (dd < 10 ? '0' : '') +
+          dd
+        );
+      }
+    } catch (e0) {}
+    return '';
+  }
+
   function apiComputeSignalsFromCandles(secid, period, candles) {
     try {
       var rows = [];
       for (var i = 0; i < (candles || []).length; i++) {
         var c = candles[i];
-        if (!c || !c.time) continue;
+        if (!c) continue;
+        var ymd = candleTimeToYmd(c.time);
+        if (!ymd) continue;
         rows.push([
-          String(c.time),
+          ymd,
           String(c.open),
           String(c.close),
           String(c.high),
@@ -4699,61 +4743,66 @@
         });
       }
     } catch (eCv) {}
-    // Signals/markers are computed on backend (a2 B-plan MVP).
+    // Signals: BK always compute from chart candles (prod Windows often cannot fetch Eastmoney).
+    // THS/stocks: prefer one-shot kline_with_signals; BK skips trusting that path for markers.
     try {
       if (series && typeof series.setMarkers === 'function') {
         series.setMarkers([]);
       }
     } catch (eMk0) {}
-    // Prefer one-shot endpoint to avoid duplicate upstream pulls.
-    apiKlineWithSignals(result.secid || currentSecid, period, rows ? rows.length : undefined, { consume: true })
-      .then(function (sd) {
-        try {
-          var sig = (sd && sd.signals) ? sd.signals : (sd && sd.data ? sd.data : null);
-          var mk = sig && sig.markers ? sig.markers : [];
-          var isBk = isEmPlateSecid(result.secid || currentSecid);
-          var isThs = isThsSecid(result.secid || currentSecid);
-          // Debug: log signal count for guest users
-          if (!isAuthed()) {
-            try { console.log('[a1] signals received:', mk ? mk.length : 0, 'markers'); } catch (eD) {}
-          }
-          if (mk && mk.length) {
-            applySignalPayloadToChart(sig, result.secid || currentSecid, period, candlesForSignals);
+    (function loadSignals() {
+      var sec = result.secid || currentSecid;
+      var isBk = isEmPlateSecid(sec);
+      var isThs = isThsSecid(sec);
+      if (isBk) {
+        // Always use chart candles → /api/signals/compute (fixes time={year,month,day} + empty EM pull).
+        recoverFullSignalsFromCandles(sec, period, candlesForSignals);
+        return;
+      }
+      apiKlineWithSignals(sec, period, rows ? rows.length : undefined, { consume: true })
+        .then(function (sd) {
+          try {
+            var sig = sd && sd.signals ? sd.signals : sd && sd.data ? sd.data : null;
+            var mk = sig && sig.markers ? sig.markers : [];
+            if (!isAuthed()) {
+              try {
+                console.log('[a1] signals received:', mk ? mk.length : 0, 'markers');
+              } catch (eD) {}
+            }
+            if (mk && mk.length) {
+              applySignalPayloadToChart(sig, sec, period, candlesForSignals);
+              return;
+            }
+            if (isThs) {
+              recoverFullSignalsFromCandles(sec, period, candlesForSignals);
+              return;
+            }
+            applySignalPayloadToChart(sig || {}, sec, period, candlesForSignals);
+          } catch (eMk) {}
+        })
+        .catch(function () {
+          if (isThs) {
+            recoverFullSignalsFromCandles(sec, period, candlesForSignals);
             return;
           }
-          // BK: production often cannot pull Eastmoney → empty markers while chart has JSONP candles.
-          // Recompute full v3 from chart candles (not just local 金/等).
-          if (isBk || isThs) {
-            recoverFullSignalsFromCandles(result.secid || currentSecid, period, candlesForSignals);
-            return;
-          }
-          applySignalPayloadToChart(sig || {}, result.secid || currentSecid, period, candlesForSignals);
-        } catch (eMk) {}
-      })
-      .catch(function () {
-        // Backward compatible fallback
-        var sec = result.secid || currentSecid;
-        var isBk2 = isEmPlateSecid(sec);
-        var isThs2 = isThsSecid(sec);
-        if (isBk2 || isThs2) {
-          recoverFullSignalsFromCandles(sec, period, candlesForSignals);
-          return;
-        }
-        apiSignals(sec, period, rows ? rows.length : undefined)
-          .then(function (sd) {
-            try {
-              var sig2 = (sd && sd.data) ? sd.data : null;
-              if (sig2 && sig2.markers && sig2.markers.length) {
-                applySignalPayloadToChart(sig2, sec, period, candlesForSignals);
-              } else {
+          apiSignals(sec, period, rows ? rows.length : undefined)
+            .then(function (sd) {
+              try {
+                var sig2 = sd && sd.data ? sd.data : null;
+                if (sig2 && sig2.markers && sig2.markers.length) {
+                  applySignalPayloadToChart(sig2, sec, period, candlesForSignals);
+                } else {
+                  applyLocalSignalsFallbackIfNeeded(sec, period, mainChartCandles);
+                }
+              } catch (eMk) {}
+            })
+            .catch(function () {
+              try {
                 applyLocalSignalsFallbackIfNeeded(sec, period, mainChartCandles);
-              }
-            } catch (eMk) {}
-          })
-          .catch(function () {
-            try { applyLocalSignalsFallbackIfNeeded(sec, period, mainChartCandles); } catch (e0) {}
-          });
-      });
+              } catch (e0) {}
+            });
+        });
+    })();
     var n = mainChartCandles.length;
     var ro = CHART_RIGHT_OFFSET_BARS;
     var vis = computeInitialVisibleBarCount(period, chartEl.clientWidth, n);
