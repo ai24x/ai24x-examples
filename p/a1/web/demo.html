@@ -3582,6 +3582,14 @@
       if (/^92\d{4}$/.test(c)) return true;
       return false;
     });
+    // Deduplicate by QuoteID (backend may return duplicates for THS plates)
+    var seen = {};
+    filtered = filtered.filter(function (r) {
+      var qid = String(r.QuoteID || '').toUpperCase();
+      if (seen[qid]) return false;
+      seen[qid] = true;
+      return true;
+    });
     filtered.sort(function (a, b) {
       return suggestResultSortKey(a) - suggestResultSortKey(b);
     });
