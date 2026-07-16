@@ -1751,6 +1751,17 @@
     '886078': '90.BK0963',
   };
 
+  // Reverse: BK plate → THS six-digit code
+  var EM_SECID_TO_THS_PLATE = (function () {
+    var m = {};
+    try {
+      Object.keys(THS_PLATE_TO_EM_SECID).forEach(function (k) {
+        m[String(THS_PLATE_TO_EM_SECID[k]).toUpperCase()] = k;
+      });
+    } catch (_) {}
+    return m;
+  })();
+
   function isEmPlateSecid(secid) {
     return /^90\.BK\d+$/i.test(String(secid || '').trim());
   }
@@ -3574,6 +3585,29 @@
     filtered.sort(function (a, b) {
       return suggestResultSortKey(a) - suggestResultSortKey(b);
     });
+    // v1.09: for BK plate results, inject THS counterpart so user can choose
+    if (hasPlateResults) {
+      var injected = [];
+      filtered.forEach(function (r) {
+        var qid = String(r.QuoteID || '').toUpperCase();
+        var thsCode = EM_SECID_TO_THS_PLATE[qid];
+        if (thsCode) {
+          // Check not already in list
+          var already = filtered.some(function (f) {
+            return String(f.QuoteID || '').toUpperCase() === 'THS:' + thsCode;
+          });
+          if (!already) {
+            injected.push({
+              QuoteID: 'ths:' + thsCode,
+              Name: String(r.Name || '') + '（同花顺指数）',
+              Code: thsCode,
+              Classify: 'THS',
+            });
+          }
+        }
+      });
+      if (injected.length) filtered = injected.concat(filtered); // THS first
+    }
     return filtered;
   }
 
