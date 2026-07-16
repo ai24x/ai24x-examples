@@ -4385,7 +4385,16 @@
         if (!isFinite(dif[i]) || !isFinite(dea[i]) || !isFinite(bar[i])) continue;
         var t = candles[i] && candles[i].time;
         if (!t) continue;
-        result.push({ time: t, dif: Math.round(dif[i] * 10000) / 10000, dea: Math.round(dea[i] * 10000) / 10000, bar: Math.round(bar[i] * 10000) / 10000 });
+        var entry = { time: t, dif: Math.round(dif[i] * 10000) / 10000, dea: Math.round(dea[i] * 10000) / 10000, bar: Math.round(bar[i] * 10000) / 10000 };
+        // Detect golden cross: dif crosses ABOVE dea (金叉)
+        if (i > 0 && dif[i] > dea[i] && dif[i-1] <= dea[i-1]) {
+          entry.golden_cross = true;
+        }
+        // Detect dead cross: dif crosses BELOW dea (死叉)
+        if (i > 0 && dif[i] < dea[i] && dif[i-1] >= dea[i-1]) {
+          entry.dead_cross = true;
+        }
+        result.push(entry);
       }
       return result;
     } catch (e) {
