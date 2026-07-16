@@ -2,13 +2,26 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
+import glob
 import json
 import math
 import os
 from typing import Any, Literal
 
-
-Period = Literal["day", "week", "month"]
+# v1.08: auto-clean old signal caches on import to prevent stale B/S naming
+_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+_CACHE_DIR = os.path.join(_BASE_DIR, "..", "data", "signal_cache")
+try:
+    for _f in glob.glob(os.path.join(_CACHE_DIR, "*.json")):
+        try:
+            _mtime = os.path.getmtime(_f)
+            _age_h = (__import__("time").time() - _mtime) / 3600
+            if _age_h > 24:  # only clean >24h old to avoid race with active requests
+                os.remove(_f)
+        except Exception:
+            pass
+except Exception:
+    passPeriod = Literal["day", "week", "month"]
 
 
 @dataclass(frozen=True)
@@ -1267,7 +1280,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
     )
     # v1.02: signal locking — freeze markers >5 bars old
     # CACHE_VERSION: bump this when signal algorithm changes to auto-invalidate stale caches
-    CACHE_VERSION = 3
+    CACHE_VERSION = 4
     if cache_key and len(candles) > 10:
         LOCK_BARS = 5
         freeze_cutoff = candles[-LOCK_BARS - 1].time if len(candles) > LOCK_BARS else ""
