@@ -1,14 +1,34 @@
 from __future__ import annotations
 
 import csv
+import glob as _glob
 import io
 import logging
+import os as _os
 import random
 import re
 import string
 import time
 from typing import Optional
 from urllib.parse import quote
+
+# v1.09: startup pycache + signal cache cleaner (prevent stale bytecode on Windows)
+def _startup_clean():
+    base = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+    # 1) clear all __pycache__ in api/server tree
+    for root, dirs, files in _os.walk(base):
+        if root.endswith("__pycache__"):
+            for f in files:
+                if f.endswith(".pyc"):
+                    try: _os.remove(_os.path.join(root, f))
+                    except: pass
+    # 2) clear stale signal caches
+    sd = _os.path.join(base, "data", "signal_cache")
+    if _os.path.isdir(sd):
+        for f in _glob.glob(_os.path.join(sd, "*.json")):
+            try: _os.remove(f)
+            except: pass
+_startup_clean()
 
 import httpx
 from fastapi import Cookie, Depends, FastAPI, Header, HTTPException, Request
