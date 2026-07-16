@@ -4557,6 +4557,10 @@
           if (series && typeof series.setMarkers === 'function') {
             series.setMarkers(mk || []);
           }
+          // v1.07: BK plates — if backend returns no markers, compute signals locally
+          if (!mk || !mk.length) {
+            try { applyLocalSignalsFallbackIfNeeded(result.secid || currentSecid, period, mainChartCandles); } catch(eff) {}
+          }
           var lbs = sig && sig.bar_labels ? sig.bar_labels : null;
           // v1.05: Render MACD sub-chart
           var macdData = sig && sig.macd ? sig.macd : null;
