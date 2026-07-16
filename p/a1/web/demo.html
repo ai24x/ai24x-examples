@@ -4611,24 +4611,28 @@
           if (series && typeof series.setMarkers === 'function') {
             series.setMarkers(mk || []);
           }
-          // v1.09: BK plates — backend pycache unreliable on Windows, always use local signals
           var isBk = isEmPlateSecid(result.secid || currentSecid);
-          if (isBk) {
+          // BK plates: if backend returns no markers, fall back to local MA-cross
+          if (isBk && (!mk || !mk.length)) {
             try { applyLocalSignalsFallbackIfNeeded(result.secid || currentSecid, period, mainChartCandles); } catch(eff) {}
-          } else {
-            var lbs = sig && sig.bar_labels ? sig.bar_labels : null;
-            // v1.05: Render MACD sub-chart
-            var macdData = sig && sig.macd ? sig.macd : null;
-            renderMacdPane(macdData);
-            try {
-              if (lbs && lbs.length) {
-                lbs = lbs.map(function (x) { return normalizeSignalText(x); });
-              }
-            } catch (eLbN) {}
-            try {
-              setupChartTooltip(chart, series, mainChartCandles, mainChartVols, lbs, null);
-            } catch (eLb) {}
           }
+          var lbs = sig && sig.bar_labels ? sig.bar_labels : null;
+          // v1.05: Render MACD sub-chart
+          var macdData = sig && sig.macd ? sig.macd : null;
+          // BK plates with empty MACD: compute locally
+          if (isBk && (!macdData || !macdData.length)) {
+            var localMacd = buildLocalMacd(mainChartCandles);
+            if (localMacd && localMacd.length) macdData = localMacd;
+          }
+          renderMacdPane(macdData);
+          try {
+            if (lbs && lbs.length) {
+              lbs = lbs.map(function (x) { return normalizeSignalText(x); });
+            }
+          } catch (eLbN) {}
+          try {
+            setupChartTooltip(chart, series, mainChartCandles, mainChartVols, lbs, null);
+          } catch (eLb) {}
         } catch (eMk) {}
       })
       .catch(function () {
