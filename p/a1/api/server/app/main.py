@@ -2214,6 +2214,7 @@ async def api_signals(
     secid: str,
     period: str = "day",
     count: int = 500,
+    request: Request = None,  # type: ignore[assignment]
     user_id: Optional[int] = Depends(get_optional_user_id),
 ) -> dict:
     """
@@ -2224,8 +2225,10 @@ async def api_signals(
     - data: { markers: [...], version: "a2-v1" }
     """
     _rate_limit(f"signals:{user_id or 'anon'}", settings.kline_per_minute)
-    if user_id is not None:
-        _auth_ip_rate_limit(request)
+    if request is not None:
+        _rate_limit(f"signals_ip:{_client_ip(request)}", settings.kline_per_minute)
+        if user_id is not None:
+            _auth_ip_rate_limit(request)
     if period not in ("day", "week", "month"):
         raise HTTPException(status_code=400, detail="Invalid period")
     if count < 50:
@@ -2362,6 +2365,7 @@ async def api_signals(
                 "markers": sig.get("markers") or [],
                 "bar_labels": sig.get("bar_labels") or [],
                 "macd": sig.get("macd") or [],
+                "meta": sig.get("meta") or {},
             },
         }
     except HTTPException:
@@ -2382,10 +2386,25 @@ async def api_signals_compute(
     but the browser already loaded BK candles via JSONP — so the chart has data
     while GET /api/kline_with_signals returns empty markers (frontend then only
     showed minimal local 金/等). Upload rows → same server algorithm → full markers.
+
+    Anti-scrape (2026-07-20):
+    - Login required (client controls both secid label and rows; whitelist on secid
+      cannot stop uploading arbitrary OHLC under a demo symbol).
+    - Stricter per-user + per-IP rate limits than /api/kline.
+    - No quota consume here: recovery path after /api/kline already charged.
     """
-    _rate_limit(f"sigcomp:{user_id or 'anon'}", settings.kline_per_minute)
+    ip = _client_ip(request)
+    lim_user = int(getattr(settings, "signals_compute_per_minute", 0) or 20)
+    lim_ip = int(getattr(settings, "signals_compute_ip_per_minute", 0) or 15)
+    _rate_limit(f"sigcomp:{user_id or 'anon'}", lim_user)
+    _rate_limit(f"sigcomp_ip:{ip}", lim_ip)
     if user_id is not None:
         _auth_ip_rate_limit(request)
+
+    # Must login: unauthenticated compute = free oracle for reverse-engineering.
+    if user_id is None:
+        return {"code": -401, "msg": "请先登录后再计算信号", "data": {}}
+
     try:
         body = await request.json()
     except Exception:
@@ -2396,11 +2415,20 @@ async def api_signals_compute(
     if period not in ("day", "week", "month"):
         raise HTTPException(status_code=400, detail="Invalid period")
     rows = body.get("rows")
-    if not isinstance(rows, list) or len(rows) < 62:
-        return {"code": -1, "msg": "need >=62 kline rows", "data": {}}
+    # Align with build_signals_v3: MACD from 35 bars; full markers need 62.
+    if not isinstance(rows, list) or len(rows) < 35:
+        return {"code": -1, "msg": "need >=35 kline rows", "data": {}}
     # Cap payload size
     if len(rows) > 3000:
         rows = rows[-3000:]
+
+    # Soft gate: expired/empty quota users still get recovery for an already-open chart,
+    # but we refresh plan state so VIP downgrade stays consistent with other routes.
+    try:
+        db.downgrade_expired_vip_plan(int(user_id))
+    except Exception:
+        pass
+
     try:
         from .signals import candles_from_tencent_like_pack, build_signals_v3
 
@@ -2408,8 +2436,8 @@ async def api_signals_compute(
         key_qfq = {"day": "qfqday", "week": "qfqweek", "month": "qfqmonth"}[period]
         pack = {key_plain: rows, key_qfq: rows}
         candles = candles_from_tencent_like_pack(pack, period=period)  # type: ignore[arg-type]
-        if len(candles) < 62:
-            return {"code": -1, "msg": "parsed candles < 62", "data": {}}
+        if len(candles) < 35:
+            return {"code": -1, "msg": "parsed candles < 35", "data": {}}
         # No disk lock cache: rows come from client and must not mix with server-fetched locks.
         sig = build_signals_v3(candles, cache_key="")
         return {
@@ -2420,6 +2448,7 @@ async def api_signals_compute(
                 "markers": sig.get("markers") or [],
                 "bar_labels": sig.get("bar_labels") or [],
                 "macd": sig.get("macd") or [],
+                "meta": sig.get("meta") or {},
             },
         }
     except Exception as e:
@@ -2439,8 +2468,10 @@ async def api_kline_with_signals(
     This avoids the frontend doing /api/kline + /api/signals separately (2 RTT + duplicated upstream pulls).
     """
     _rate_limit(f"kline2:{user_id or 'anon'}", settings.kline_per_minute)
-    if user_id is not None:
-        _auth_ip_rate_limit(request)
+    if request is not None:
+        _rate_limit(f"kline2_ip:{_client_ip(request)}", settings.kline_per_minute)
+        if user_id is not None:
+            _auth_ip_rate_limit(request)
     if period not in ("day", "week", "month"):
         raise HTTPException(status_code=400, detail="Invalid period")
     if count < 50:
@@ -2592,6 +2623,7 @@ async def api_kline_with_signals(
             "markers": sig.get("markers") or [],
             "bar_labels": sig.get("bar_labels") or [],
             "macd": sig.get("macd") or [],
+            "meta": sig.get("meta") or {},
         }
         return payload
     except Exception as e:

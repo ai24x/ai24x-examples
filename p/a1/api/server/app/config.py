@@ -80,6 +80,9 @@ class Settings:
     # Rate limiting (MVP)
     kline_per_minute: int
     suggest_per_minute: int
+    # Client-upload signal compute (anti-scrape; lower than kline)
+    signals_compute_per_minute: int
+    signals_compute_ip_per_minute: int
 
     # Invite rewards (MVP)
     invite_reward_inviter_weekly: int
@@ -177,6 +180,8 @@ def load_settings() -> Settings:
         sms_internal_key=str(os.getenv("AI24X_SMS_INTERNAL_KEY", "")).strip(),
         kline_per_minute=_to_int(os.getenv("AI24X_KLINE_PER_MINUTE"), 60),
         suggest_per_minute=_to_int(os.getenv("AI24X_SUGGEST_PER_MINUTE"), 120),
+        signals_compute_per_minute=_to_int(os.getenv("AI24X_SIGNALS_COMPUTE_PER_MINUTE"), 20),
+        signals_compute_ip_per_minute=_to_int(os.getenv("AI24X_SIGNALS_COMPUTE_IP_PER_MINUTE"), 15),
         invite_reward_inviter_weekly=_to_int(os.getenv("AI24X_INVITE_REWARD_INVITER_WEEKLY"), 100),
         invite_reward_invitee_weekly=_to_int(os.getenv("AI24X_INVITE_REWARD_INVITEE_WEEKLY"), 50),
         invite_weekly_cap=_to_int(os.getenv("AI24X_INVITE_WEEKLY_CAP"), 500),

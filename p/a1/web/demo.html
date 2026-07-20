@@ -7,14 +7,14 @@
   <title>AI行情官｜灯塔版 — 股票K线信号分析工具，均线指标免费看</title>
   <meta name="description" content="AI行情官灯塔版：免费股票K线信号分析工具。底1底2金信号、MA14/MA28/MA57双生命线、MACD副图指标，一页看清上证指数/深证/北证50的K线结构要点与关键位信号（仅供学习参考，不构成投资建议）。" />
   <meta name="keywords" content="AI行情官,AI行情官灯塔版,股票K线信号,均线指标,MA14,MA28,MA57,底信号,金信号,免费K线分析,同花顺指标,选股公式,技术分析" />
-  <link rel="canonical" href="https://a.ai24x.com/" />
+  <link rel="canonical" href="https://a.ai24x.com/demo.html" />
   <!-- Schema.org structured data for search engines -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "WebApplication",
     "name": "AI行情官｜灯塔版",
-    "url": "https://a.ai24x.com/",
+    "url": "https://a.ai24x.com/demo.html",
     "description": "免费股票K线信号分析工具，提供底/B/风险三大类信号、MA14/MA28/MA57双生命线体系、MACD副图指标",
     "applicationCategory": "FinanceApplication",
     "operatingSystem": "Web",
@@ -22,9 +22,12 @@
   }
   </script>
   <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://a.ai24x.com/demo.html" />
   <meta property="og:site_name" content="AI24X" />
-  <meta property="og:title" content="AI行情官" />
+  <meta property="og:title" content="AI行情官｜灯塔版 — 股票K线信号分析工具" />
   <meta property="og:description" content="结构要点/关键位/提示信息，一页看清（学习交流，不构成任何建议）。" />
+  <meta name="applicable-device" content="pc,mobile" />
+  <meta http-equiv="Cache-Control" content="no-transform" />
   <!-- WeChat link preview: prefer a local PNG (WeChat often ignores SVG). -->
   <meta property="og:image" content="https://a.ai24x.com/img/share-preview.png" />
   <meta property="og:image:secure_url" content="https://a.ai24x.com/img/share-preview.png" />
@@ -4360,6 +4363,11 @@
 
   function apiComputeSignalsFromCandles(secid, period, candles) {
     try {
+      // Server requires login (anti-scrape). Skip round-trip when anonymous.
+      var hdr = authHeaders();
+      if (!(hdr && hdr.Authorization)) {
+        return Promise.reject(new Error('compute requires login'));
+      }
       var rows = [];
       for (var i = 0; i < (candles || []).length; i++) {
         var c = candles[i];
@@ -4375,11 +4383,11 @@
           String(c.vol != null ? c.vol : c.volume != null ? c.volume : 0),
         ]);
       }
-      if (rows.length < 62) return Promise.reject(new Error('too few candles'));
+      if (rows.length < 35) return Promise.reject(new Error('too few candles'));
       return fetch((API_BASE || '') + '/api/signals/compute', {
         method: 'POST',
         cache: 'no-store',
-        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+        headers: Object.assign({ 'Content-Type': 'application/json' }, hdr),
         body: JSON.stringify({
           secid: String(secid || ''),
           period: String(period || 'day'),
@@ -4417,9 +4425,8 @@
       }
       var lbs = sig && sig.bar_labels ? sig.bar_labels : null;
       var macdData = sig && sig.macd ? sig.macd : null;
-      var isBk = isEmPlateSecid(secid);
-      var isThs = isThsSecid(secid);
-      if ((isBk || isThs) && (!macdData || !macdData.length)) {
+      // All symbols (incl. new listings): local MACD if server returned empty
+      if ((!macdData || !macdData.length) && candles && candles.length >= 35) {
         var localMacd = buildLocalMacd(candles);
         if (localMacd && localMacd.length) macdData = localMacd;
       }
@@ -4444,6 +4451,10 @@
   function recoverFullSignalsFromCandles(secid, period, candles) {
     return apiComputeSignalsFromCandles(secid, period, candles)
       .then(function (sd) {
+        if (!sd || Number(sd.code) === -401) {
+          applyLocalSignalsFallbackIfNeeded(secid, period, candles);
+          return false;
+        }
         var sig = sd && sd.data ? sd.data : null;
         if (sig && applySignalPayloadToChart(sig, secid, period, candles)) return true;
         applyLocalSignalsFallbackIfNeeded(secid, period, candles);
@@ -4459,7 +4470,8 @@
     try {
       nFast = Math.max(2, Math.floor(Number(nFast || 14)));
       nSlow = Math.max(nFast + 1, Math.floor(Number(nSlow || 28)));
-      if (!candles || candles.length < Math.max(62, nSlow + 2)) return [];
+      // Allow short-history (new listings): MA28 needs ~30 bars, not full MA57 path
+      if (!candles || candles.length < Math.max(30, nSlow + 2)) return [];
       var closes = candles.map(function (c) { return Number(c && c.close); });
       function sma(arr, n) {
         var out = new Array(arr.length);
@@ -4495,19 +4507,20 @@
 
   function applyLocalSignalsFallbackIfNeeded(secid, period, candles) {
     try {
-      // BK / THS plates: backend may return empty markers (short month history, cache miss, etc.)
-      // Compute a minimal local MA-cross + MACD set so the chart is not blank.
-      if (!isEmPlateSecid(secid) && !isThsSecid(secid)) return false;
-      var closes = candles.map(function (c) { return Number(c && c.close); });
-      // MA cross markers
-      var mk = buildLocalMaCrossMarkers(candles, 14, 28);
-      // Local MACD computation
+      // New listings / plates: server may omit markers or MACD; keep chart useful.
+      var isPlate = isEmPlateSecid(secid) || isThsSecid(secid);
       var macd = buildLocalMacd(candles);
       if (macd && macd.length) {
         try { renderMacdPane(macd); } catch (e0) {}
       }
+      // Stocks: MACD-only local fallback (markers come from server short_history_ma28 path)
+      if (!isPlate) {
+        return !!(macd && macd.length);
+      }
+      // BK / THS plates: minimal local MA-cross + MACD
+      var mk = buildLocalMaCrossMarkers(candles, 14, 28);
       if (!mk || !mk.length) {
-        if (macd && macd.length) return true; // at least MACD rendered
+        if (macd && macd.length) return true;
         return false;
       }
       try { if (series && typeof series.setMarkers === 'function') series.setMarkers(mk); } catch (e0) {}
@@ -4771,6 +4784,14 @@
             }
             if (mk && mk.length) {
               applySignalPayloadToChart(sig, sec, period, candlesForSignals);
+              try {
+                var meta = sig && sig.meta ? sig.meta : null;
+                if (meta && meta.reason === 'short_history_ma28' && statusEl) {
+                  statusEl.textContent =
+                    '日K约' + (meta.bars || candlesForSignals.length) + '根（不足62），主生命线暂用MA28；信号为短历史模式';
+                  statusEl.className = '';
+                }
+              } catch (eMeta) {}
               return;
             }
             if (isThs) {
@@ -4778,6 +4799,19 @@
               return;
             }
             applySignalPayloadToChart(sig || {}, sec, period, candlesForSignals);
+            // New listings: empty markers but may still have macd; tip + local lite if needed
+            try {
+              var nBars = candlesForSignals ? candlesForSignals.length : 0;
+              var hasMacd = sig && sig.macd && sig.macd.length;
+              if (nBars > 0 && nBars < 62) {
+                if (!hasMacd) applyLocalSignalsFallbackIfNeeded(sec, period, candlesForSignals);
+                else if (statusEl) {
+                  statusEl.textContent =
+                    '日K约' + nBars + '根（不足62），主生命线暂用MA28；信号为短历史模式';
+                  statusEl.className = '';
+                }
+              }
+            } catch (eShort) {}
           } catch (eMk) {}
         })
         .catch(function () {
@@ -4789,7 +4823,7 @@
             .then(function (sd) {
               try {
                 var sig2 = sd && sd.data ? sd.data : null;
-                if (sig2 && sig2.markers && sig2.markers.length) {
+                if (sig2 && ((sig2.markers && sig2.markers.length) || (sig2.macd && sig2.macd.length))) {
                   applySignalPayloadToChart(sig2, sec, period, candlesForSignals);
                 } else {
                   applyLocalSignalsFallbackIfNeeded(sec, period, mainChartCandles);
