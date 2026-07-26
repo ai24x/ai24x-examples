@@ -42,7 +42,7 @@
         <h1>注册</h1>
         <p class="sub">当前开放<strong>邮箱注册</strong>。手机短信注册稍后接入（国内/国际短信）。</p>
         <div class="callout mt-2" id="auth-closed-banner" role="status">
-          <strong>温馨提示</strong>：主站暂未开放注册。本地（127.0.0.1）已自动开放以便联调。
+          <strong>温馨提示</strong>：主站暂未开放注册。本地预览（127.0.0.1）已自动开放。
         </div>
         <form class="card mt-2" id="form-register">
           <fieldset class="auth-fieldset-preview" id="reg-fieldset" disabled>
@@ -69,6 +69,7 @@
           <div class="form-group">
             <label>邀请码（可选）</label>
             <input id="reg-invite" name="invite_code" type="text" class="input" maxlength="32" placeholder="选填" />
+            <p class="sub" style="margin:6px 0 0;">填写有效邀请码：双方各送 5000 token（与行情官无关）。</p>
           </div>
           <button type="submit" class="btn btn-primary">注册</button>
           <div id="reg-msg"></div>

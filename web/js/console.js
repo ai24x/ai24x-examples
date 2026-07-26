@@ -168,20 +168,19 @@
       if (zh) {
         if (pay.enabled && (pay.wechat_ready || pay.alipay_ready)) {
           hint.textContent =
-            "本站人民币结算：点套餐可选微信 / 支付宝。" +
-            (pay.mock_allowed ? " 本机仍保留「模拟到账」。" : "");
+            "选择套餐后可用微信或支付宝支付。" +
+            (pay.mock_allowed ? " 测试环境仍可使用「模拟到账」。" : "");
         } else if (pay.wechat_configured || pay.alipay_configured) {
-          hint.textContent =
-            "商户已配置，但 TOKEN_PAY_ENABLED 未开——目前只能模拟到账。";
+          hint.textContent = "支付暂未开放，测试环境可使用「模拟到账」。";
         } else if (pay.mock_allowed) {
-          hint.textContent = "本地模式：仅「模拟到账」。";
+          hint.textContent = "测试环境：可使用「模拟到账」体验充值。";
         } else {
-          hint.textContent = "在线支付未开启。";
+          hint.textContent = "在线支付暂未开放。";
         }
       } else {
         hint.textContent = pay.enabled
-          ? "CN checkout uses WeChat/Alipay (CNY). Intl PayPal coming on the English site."
-          : "Online pay not ready — mock fulfill may be available in local env.";
+          ? "Choose a plan and pay with WeChat or Alipay (CNY) on this site."
+          : "Online pay is not open yet. Test environments may offer a mock top-up.";
       }
     }
     if (!plans.length) {
@@ -375,14 +374,14 @@
             hint:
               "当前仍为模拟单（" +
               (r.out_trade_no || "") +
-              "）。请关闭后在订单列表点「模拟到账」，或确认已开启 TOKEN_PAY_ENABLED。",
+              "）。请关闭后在订单列表点「模拟到账」。",
           });
           return refreshAll();
         }
         if (channel === "wechat" && r && r.code_url) {
           showPayResult({
             hint:
-              "请用微信扫码支付。本机回调可能收不到，付完后到「我的订单」点「查单补履约」。单号：" +
+              "请用微信扫码支付。付完后若余额未更新，可到「我的订单」点「确认到账」。单号：" +
               (r.out_trade_no || ""),
             qrData: r.code_url,
             urlText: r.code_url,
@@ -404,7 +403,7 @@
               (opened
                 ? "已在新窗口打开支付宝。"
                 : "若未自动弹出，请点下方「在新窗口打开支付宝」。") +
-              " 付完后回到本页控制台，在「我的订单」点「查单补履约」。单号：" +
+              " 付完后回到本页，若余额未更新可到「我的订单」点「确认到账」。单号：" +
               (r.out_trade_no || ""),
             urlText: r.pay_url,
             openUrl: r.pay_url,
@@ -473,7 +472,7 @@
         btnQ.type = "button";
         btnQ.className = "btn";
         btnQ.style.marginLeft = "6px";
-        btnQ.textContent = "查单补履约";
+        btnQ.textContent = "确认到账";
         btnQ.addEventListener("click", function () {
           AI24X_API.billingQueryFulfill(o.out_trade_no, o.channel || "wechat")
             .then(function (r) {

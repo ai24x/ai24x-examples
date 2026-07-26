@@ -316,9 +316,9 @@
 
   function planSettleHint(p) {
     if (isZhUi()) {
-      return (p && p.settle_hint_zh) || "本站：微信 / 支付宝，人民币结算";
+      return (p && p.settle_hint_zh) || "支持微信支付、支付宝";
     }
-    return (p && p.settle_hint_en) || "Intl site: PayPal (USD). Same SKUs.";
+    return (p && p.settle_hint_en) || "Pay with PayPal (USD) on the international site";
   }
 
   global.AI24X_API = {

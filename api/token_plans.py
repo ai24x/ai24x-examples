@@ -48,8 +48,8 @@ TOKEN_PLANS: dict[str, dict[str, Any]] = {
         "credit_tokens": 100_000,
         "set_vip": False,
         "enabled": True,
-        "note_zh": "国内外同一套餐；本站使用微信/支付宝支付人民币。",
-        "note_en": "Same SKU worldwide. Intl checkout: PayPal (USD).",
+        "note_zh": "充值后可用于 API 调用；支持微信、支付宝。",
+        "note_en": "Credits for API usage. PayPal on the international site.",
     },
     "token_pack_100k": {
         "title_zh": "开发包",
@@ -59,8 +59,8 @@ TOKEN_PLANS: dict[str, dict[str, Any]] = {
         "credit_tokens": 500_000,
         "set_vip": False,
         "enabled": True,
-        "note_zh": "主力预充值；单价优于入门包。",
-        "note_en": "Best for regular API use; better unit rate than Starter.",
+        "note_zh": "适合日常调用，单价更优。",
+        "note_en": "Better unit rate for regular API use.",
     },
     "token_vip_month": {
         "title_zh": "Pro 月卡",
@@ -125,8 +125,8 @@ def list_public_plans() -> list[dict[str, Any]]:
                 "note": note_zh,
                 "note_zh": note_zh,
                 "note_en": note_en,
-                "settle_hint_zh": "本站：微信 / 支付宝，人民币结算",
-                "settle_hint_en": "Intl site: PayPal (USD). Same SKUs as CN site.",
+                "settle_hint_zh": "支持微信支付、支付宝",
+                "settle_hint_en": "Pay with PayPal (USD) on the international site",
             }
         )
     return out
