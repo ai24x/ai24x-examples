@@ -82,6 +82,8 @@
     "page.product.matrix.a.desc": "股票查询助手：行情与 K 线查询 + 技术指标信号参考（仅供学习研究，不构成投资建议）。",
     "page.product.matrix.api.title": "AI24X 统一 API（api.ai24x.com）",
     "page.product.matrix.api.desc": "统一 AI 接口入口：更简单的接入体验，更稳定的调用与可控的成本。",
+    "page.product.matrix.api.open": "使用说明",
+    "page.product.matrix.api.console": "控制台",
     "page.product.matrix.more.title": "更多子项目（p/）",
     "page.product.matrix.more.desc": "更多 AI 应用与工具将持续上线，覆盖更多场景与效率需求。",
     "page.pricing.title": "价格计费",
@@ -285,6 +287,8 @@
     "page.product.matrix.api.title": "AI24X Unified API (api.ai24x.com)",
     "page.product.matrix.api.desc":
       "A unified AI endpoint — simpler integration, steadier calls, and more predictable costs.",
+    "page.product.matrix.api.open": "Docs",
+    "page.product.matrix.api.console": "Console",
     "page.product.matrix.more.title": "More projects (p/)",
     "page.product.matrix.more.desc":
       "More AI apps and tools are coming — built for real workflows and productivity gains.",
