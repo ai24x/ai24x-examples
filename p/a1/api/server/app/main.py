@@ -1578,6 +1578,17 @@ def public_sms_captcha() -> dict:
     return {"enabled": True, "provider": "turnstile", "turnstile_site_key": site_key}
 
 
+@app.get("/api/public/build_stamp")
+def public_build_stamp() -> dict:
+    """部署探针：确认公网 a-api 是否已加载登录重签等热修（无密钥）。"""
+    return {
+        "ok": True,
+        "stamp": "20260727-resign-v2",
+        "session_resign": True,
+        "identity_jwt_env": "AI24X_IDENTITY_JWT_SECRET",
+    }
+
+
 @app.post("/api/admin/config")
 def admin_config_set(body: dict, _: bool = Depends(require_admin)) -> dict:
     key = str(body.get("key") or "").strip()

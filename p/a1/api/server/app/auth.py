@@ -33,6 +33,15 @@ def parse_token(token: str) -> dict:
             secrets.append(prev)
     except Exception:
         pass
+    # 主站 identity 签发密钥（可与本站 jwt_secret 不同）；用于密钥漂移时仍能验主站 token
+    try:
+        import os
+
+        ident = str(os.getenv("AI24X_IDENTITY_JWT_SECRET", "") or "").strip()
+        if ident and ident not in secrets:
+            secrets.append(ident)
+    except Exception:
+        pass
 
     for sec in secrets:
         try:
