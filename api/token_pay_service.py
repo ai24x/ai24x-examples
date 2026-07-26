@@ -65,10 +65,17 @@ def token_pay_enabled() -> bool:
 
 
 def token_pay_mock_allowed() -> bool:
+    """模拟到账开关。
+    - 真支付已开（TOKEN_PAY_ENABLED）：仅当显式 TOKEN_PAY_MOCK_ENABLED=true 才允许
+      （副脑实付联调务必保持 MOCK=false，避免白嫖到账）
+    - 真支付未开：MOCK=true，或本机/dev/test 环境，可模拟履约
+    """
+    if token_pay_enabled():
+        return bool(settings.token_pay_mock_enabled)
     if bool(settings.token_pay_mock_enabled):
         return True
     env = (settings.app_env or "").strip().lower()
-    return env in ("dev", "local", "test") and not token_pay_enabled()
+    return env in ("dev", "local", "test")
 
 
 def mk_out_trade_no(auth_user_id: int) -> str:

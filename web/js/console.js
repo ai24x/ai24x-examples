@@ -6,6 +6,10 @@
     return document.getElementById(id);
   }
 
+  function tr(zh, en) {
+    return AI24X_API.isZhUi() ? zh : en;
+  }
+
   function fmtInt(v) {
     var n = Number(v);
     if (!isFinite(n)) return "--";
@@ -87,7 +91,9 @@
     if (/^invite_register_bonus\s+referrer=/i.test(n)) {
       return zh ? "邀请注册奖励（新用户侧）" : "Invite bonus (new user)";
     }
-    if (/^vip\s*日额度/i.test(n) || /^VIP 日额度/i.test(n)) return n;
+    if (/^vip\s*日额度/i.test(n) || /^VIP 日额度/i.test(n)) {
+      return zh ? n : n.replace(/vip\s*日额度|VIP 日额度/gi, "VIP daily quota");
+    }
     if (/^chat\/run$/i.test(n)) return zh ? "API 调用" : "API call";
     if (/^(wechat|alipay|mock):/i.test(n)) {
       var parts = n.split(":");
@@ -121,13 +127,24 @@
     return true;
   }
 
+  function defaultKeyName() {
+    if (window.AI24X_I18N && AI24X_I18N.t) {
+      var v = AI24X_I18N.t("page.console.modal.keyNameDefault");
+      if (v && v !== "page.console.modal.keyNameDefault") return v;
+    }
+    return tr("默认密钥", "Default key");
+  }
+
   function renderKeys(keys) {
     var box = $("keysList");
     var display = $("apiKeyDisplay");
     if (!box) return;
     box.innerHTML = "";
     if (!keys || !keys.length) {
-      box.innerHTML = '<li class="list-item"><span>暂无密钥</span><span></span></li>';
+      box.innerHTML =
+        '<li class="list-item"><span>' +
+        tr("暂无密钥", "No keys yet") +
+        "</span><span></span></li>";
       if (display) display.textContent = "--";
       return;
     }
@@ -135,30 +152,34 @@
       var li = document.createElement("li");
       li.className = "list-item";
       var left = document.createElement("span");
-      left.textContent = (k.name || "密钥") + " · " + (k.key_prefix || "") + "…";
+      left.textContent =
+        (k.name || tr("密钥", "Key")) + " · " + (k.key_prefix || "") + "…";
       var right = document.createElement("span");
       var btnUse = document.createElement("button");
       btnUse.type = "button";
       btnUse.className = "btn";
-      btnUse.textContent = "用作调用";
+      btnUse.textContent = tr("用作调用", "Use for calls");
       btnUse.style.marginRight = "6px";
       btnUse.addEventListener("click", function () {
         showMsg(
           $("consoleMsg"),
-          "列表只显示前缀。完整 Key 仅创建时返回一次；若已保存可粘贴到上方「API Key」框。",
+          tr(
+            "列表只显示前缀。完整 Key 仅创建时返回一次；若已保存可粘贴到上方「API Key」框。",
+            "List shows prefixes only. The full key is returned once at creation — paste it into API Key above if you saved it."
+          ),
           true
         );
       });
       var btnDel = document.createElement("button");
       btnDel.type = "button";
       btnDel.className = "btn";
-      btnDel.textContent = "删除";
+      btnDel.textContent = tr("删除", "Delete");
       btnDel.addEventListener("click", function () {
-        if (!confirm("确认停用该 Key？")) return;
+        if (!confirm(tr("确认停用该 Key？", "Disable this key?"))) return;
         AI24X_API.keysDelete(k.id)
           .then(refreshAll)
           .catch(function (e) {
-            showMsg($("consoleMsg"), e.message || "删除失败", false);
+            showMsg($("consoleMsg"), e.message || tr("删除失败", "Delete failed"), false);
           });
       });
       right.appendChild(btnUse);
@@ -168,7 +189,10 @@
       box.appendChild(li);
     });
     if (display) {
-      display.textContent = (keys[0].key_prefix || "") + "…（完整密钥仅创建时可见）";
+      display.textContent =
+        (keys[0].key_prefix || "") +
+        "…" +
+        tr("（完整密钥仅创建时可见）", " (full key shown only at creation)");
     }
   }
 
@@ -199,12 +223,15 @@
         }
       } else {
         hint.textContent = pay.enabled
-          ? "Choose a plan and pay with WeChat or Alipay (CNY) on this site."
-          : "Online pay is not open yet. Test environments may offer a mock top-up.";
+          ? "Choose a plan and pay with WeChat or Alipay (CNY) on this site." +
+            (pay.mock_allowed ? " Mock top-up is still available in test." : "")
+          : pay.mock_allowed
+            ? "Online pay is not open yet. Test environments may offer a mock top-up."
+            : "Online pay is not open yet.";
       }
     }
     if (!plans.length) {
-      box.innerHTML = '<p class="sub">' + (zh ? "暂无套餐" : "No plans") + "</p>";
+      box.innerHTML = '<p class="sub">' + tr("暂无套餐", "No plans") + "</p>";
       return;
     }
     plans.forEach(function (p) {
@@ -245,12 +272,12 @@
         actions.appendChild(btn);
       }
 
-      if (pay.wechat_ready) addBtn(zh ? "微信" : "WeChat", "btn btn-primary", "wechat");
-      if (pay.alipay_ready) addBtn(zh ? "支付宝" : "Alipay", "btn btn-primary", "alipay");
+      if (pay.wechat_ready) addBtn(tr("微信", "WeChat"), "btn btn-primary", "wechat");
+      if (pay.alipay_ready) addBtn(tr("支付宝", "Alipay"), "btn btn-primary", "alipay");
       if (!pay.wechat_ready && !pay.alipay_ready) {
-        addBtn(zh ? "下单" : "Buy", "btn btn-primary", pay.mock_allowed ? "mock" : "wechat");
+        addBtn(tr("下单", "Buy"), "btn btn-primary", pay.mock_allowed ? "mock" : "wechat");
       } else if (pay.mock_allowed) {
-        addBtn(zh ? "模拟到账" : "Mock pay", "btn", "mock");
+        addBtn(tr("模拟到账", "Mock pay"), "btn", "mock");
       }
 
       card.appendChild(h);
@@ -271,7 +298,7 @@
   function openPayModal(title, sub) {
     var root = $("modal-pay");
     if (!root) return;
-    $("modal-pay-title").textContent = title || "支付";
+    $("modal-pay-title").textContent = title || tr("支付", "Pay");
     $("modal-pay-sub").textContent = sub || "";
     $("modal-pay-channels").innerHTML = "";
     $("modal-pay-result").style.display = "none";
@@ -307,7 +334,9 @@
       if (opts.openUrl) {
         openLink.href = opts.openUrl;
         openLink.style.display = "inline-block";
-        openLink.textContent = opts.openLabel || "在新窗口打开";
+        openLink.textContent =
+          opts.openLabel ||
+          tr("在新窗口打开", "Open in new window");
       } else {
         openLink.removeAttribute("href");
         openLink.style.display = "none";
@@ -336,23 +365,25 @@
     var planTitle = AI24X_API.planTitle(planMeta) || planId;
 
     if (channel === "mock" || (!pay.wechat_ready && !pay.alipay_ready && pay.mock_allowed)) {
-      showMsg($("consoleMsg"), "正在创建模拟订单…", true);
+      showMsg($("consoleMsg"), tr("正在创建模拟订单…", "Creating mock order…"), true);
       AI24X_API.billingWechatNative(planId)
         .then(function (r) {
           showMsg(
             $("consoleMsg"),
-            "已创建 " + (r && r.out_trade_no) + "。请在「我的订单」点「模拟到账」。",
+            tr(
+              "已创建 " + (r && r.out_trade_no) + "。请在「我的订单」点「模拟到账」。",
+              "Created " + (r && r.out_trade_no) + ". Use Mock pay under My orders."
+            ),
             true
           );
           return refreshAll();
         })
         .catch(function (e) {
-          showMsg($("consoleMsg"), e.message || "下单失败", false);
+          showMsg($("consoleMsg"), e.message || tr("下单失败", "Order failed"), false);
         });
       return;
     }
 
-    // 支付宝：点击瞬间先占住新窗口，URL 回来再导航（防弹窗拦截 / 防本页被顶掉）
     var alipayWin = null;
     if (channel === "alipay") {
       try {
@@ -360,7 +391,9 @@
         if (alipayWin) {
           try {
             alipayWin.document.write(
-              "<!doctype html><title>正在打开支付宝…</title><p style='font:14px sans-serif;padding:24px'>正在打开支付宝，请稍候…</p>"
+              "<!doctype html><title>Alipay</title><p style='font:14px sans-serif;padding:24px'>" +
+                tr("正在打开支付宝，请稍候…", "Opening Alipay…") +
+                "</p>"
             );
           } catch (e) {}
         }
@@ -372,10 +405,10 @@
     openPayModal(
       planTitle + (price ? " · " + price : ""),
       channel === "wechat"
-        ? "正在拉起微信扫码…"
+        ? tr("正在拉起微信扫码…", "Preparing WeChat QR…")
         : channel === "alipay"
-          ? "将在新窗口打开支付宝；本页控制台保留。"
-          : "请选择支付方式"
+          ? tr("将在新窗口打开支付宝；本页控制台保留。", "Alipay opens in a new window; this console stays.")
+          : tr("请选择支付方式", "Choose a payment method")
     );
 
     var req =
@@ -392,18 +425,25 @@
             } catch (e) {}
           }
           showPayResult({
-            hint:
+            hint: tr(
               "当前仍为模拟单（" +
-              (r.out_trade_no || "") +
-              "）。请关闭后在订单列表点「模拟到账」。",
+                (r.out_trade_no || "") +
+                "）。请关闭后在订单列表点「模拟到账」。",
+              "This is still a mock order (" +
+                (r.out_trade_no || "") +
+                "). Close and tap Mock pay in the order list."
+            ),
           });
           return refreshAll();
         }
         if (channel === "wechat" && r && r.code_url) {
           showPayResult({
-            hint:
+            hint: tr(
               "请用微信扫码支付。付完后若余额未更新，可到「我的订单」点「确认到账」。单号：" +
-              (r.out_trade_no || ""),
+                (r.out_trade_no || ""),
+              "Scan with WeChat to pay. If balance does not update, tap Confirm under My orders. Order: " +
+                (r.out_trade_no || "")
+            ),
             qrData: r.code_url,
           });
         } else if (channel === "alipay" && r && r.pay_url) {
@@ -421,12 +461,21 @@
           showPayResult({
             hint:
               (opened
-                ? "已在新窗口打开支付宝，请在新窗口完成付款。"
-                : "若未自动弹出，请点下方按钮打开支付宝。") +
-              " 付完后回到本页，若余额未更新可到「我的订单」点「确认到账」。单号：" +
+                ? tr(
+                    "已在新窗口打开支付宝，请在新窗口完成付款。",
+                    "Alipay opened in a new window — finish payment there."
+                  )
+                : tr(
+                    "若未自动弹出，请点下方按钮打开支付宝。",
+                    "If no window opened, use the button below."
+                  )) +
+              tr(
+                " 付完后回到本页，若余额未更新可到「我的订单」点「确认到账」。单号：",
+                " Then return here; if balance is stale, tap Confirm under My orders. Order: "
+              ) +
               (r.out_trade_no || ""),
             openUrl: r.pay_url,
-            openLabel: "在新窗口打开支付宝",
+            openLabel: tr("在新窗口打开支付宝", "Open Alipay in a new window"),
           });
         } else {
           if (alipayWin && !alipayWin.closed) {
@@ -435,7 +484,10 @@
             } catch (e) {}
           }
           showPayResult({
-            hint: "下单返回异常，请看控制台消息。单号：" + ((r && r.out_trade_no) || ""),
+            hint: tr(
+              "下单返回异常，请看控制台消息。单号：" + ((r && r.out_trade_no) || ""),
+              "Unexpected order response. Order: " + ((r && r.out_trade_no) || "")
+            ),
           });
         }
         return refreshAll();
@@ -446,8 +498,8 @@
             alipayWin.close();
           } catch (err) {}
         }
-        showPayResult({ hint: e.message || "下单失败" });
-        showMsg($("consoleMsg"), e.message || "下单失败", false);
+        showPayResult({ hint: e.message || tr("下单失败", "Order failed") });
+        showMsg($("consoleMsg"), e.message || tr("下单失败", "Order failed"), false);
       });
   }
 
@@ -456,54 +508,63 @@
     if (!box) return;
     box.innerHTML = "";
     if (!rows || !rows.length) {
-      box.innerHTML = '<li class="list-item"><span>暂无订单</span><span></span></li>';
+      box.innerHTML =
+        '<li class="list-item"><span>' +
+        tr("暂无订单", "No orders") +
+        "</span><span></span></li>";
       return;
     }
     rows.forEach(function (o) {
       var li = document.createElement("li");
       li.className = "list-item";
       var left = document.createElement("span");
+      var amt = ((Number(o.amount_fen) || 0) / 100).toFixed(2);
       left.textContent =
         labelPlanForUi(o.plan) +
-        " · ¥" +
-        ((Number(o.amount_fen) || 0) / 100).toFixed(2) +
+        " · " +
+        (AI24X_API.isZhUi() ? "¥" + amt : "CNY " + amt) +
         " · " +
         labelOrderStatus(o.status) +
         (o.channel ? " · " + labelChannel(o.channel) : "");
       var right = document.createElement("span");
       if (o.status === "pending") {
-        var btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "btn btn-primary";
-        btn.textContent = "模拟到账";
-        btn.addEventListener("click", function () {
-          AI24X_API.billingMockFulfill(o.out_trade_no)
-            .then(function () {
-              showMsg($("consoleMsg"), "模拟到账成功", true);
-              return refreshAll();
-            })
-            .catch(function (e) {
-              showMsg($("consoleMsg"), e.message || "模拟失败", false);
-            });
-        });
-        right.appendChild(btn);
+        var payCfg = window.__tokenPay || {};
+        if (payCfg.mock_allowed) {
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "btn btn-primary";
+          btn.textContent = tr("模拟到账", "Mock pay");
+          btn.addEventListener("click", function () {
+            AI24X_API.billingMockFulfill(o.out_trade_no)
+              .then(function () {
+                showMsg($("consoleMsg"), tr("模拟到账成功", "Mock pay OK"), true);
+                return refreshAll();
+              })
+              .catch(function (e) {
+                showMsg($("consoleMsg"), e.message || tr("模拟失败", "Mock failed"), false);
+              });
+          });
+          right.appendChild(btn);
+        }
         var btnQ = document.createElement("button");
         btnQ.type = "button";
-        btnQ.className = "btn";
-        btnQ.style.marginLeft = "6px";
-        btnQ.textContent = "确认到账";
+        btnQ.className = payCfg.mock_allowed ? "btn" : "btn btn-primary";
+        if (payCfg.mock_allowed) btnQ.style.marginLeft = "6px";
+        btnQ.textContent = tr("确认到账", "Confirm");
         btnQ.addEventListener("click", function () {
           AI24X_API.billingQueryFulfill(o.out_trade_no, o.channel || "wechat")
             .then(function (r) {
               showMsg(
                 $("consoleMsg"),
-                r && r.ok ? "查单履约成功" : "尚未支付成功",
+                r && r.ok
+                  ? tr("查单履约成功", "Payment confirmed")
+                  : tr("尚未支付成功", "Not paid yet"),
                 !!(r && r.ok)
               );
               return refreshAll();
             })
             .catch(function (e) {
-              showMsg($("consoleMsg"), e.message || "查单失败", false);
+              showMsg($("consoleMsg"), e.message || tr("查单失败", "Query failed"), false);
             });
         });
         right.appendChild(btnQ);
@@ -521,7 +582,10 @@
     if (!box) return;
     box.innerHTML = "";
     if (!rows || !rows.length) {
-      box.innerHTML = '<li class="list-item"><span>暂无流水</span><span></span></li>';
+      box.innerHTML =
+        '<li class="list-item"><span>' +
+        tr("暂无流水", "No ledger entries") +
+        "</span><span></span></li>";
       return;
     }
     rows.slice(0, 12).forEach(function (r) {
@@ -544,16 +608,20 @@
     if (!requireLogin()) return;
     var user = AI24X_API.getAuthUser() || {};
     $("acct-user").textContent = user.email || user.phone || user.id || "--";
-    $("acct-phone").textContent = user.phone || "未绑定";
+    var phoneUnset =
+      (window.AI24X_I18N && AI24X_I18N.t && AI24X_I18N.t("page.console.phoneUnset")) ||
+      tr("未绑定", "Not bound");
+    $("acct-phone").textContent = user.phone || phoneUnset;
 
     try {
       var bal = await AI24X_API.billingBalance();
       $("stat-balance").textContent = fmtInt(bal.balance_tokens);
-      var planLabel = labelPlanId(bal.plan);
+      var planLabel = labelPlanForUi(bal.plan);
       if (bal.is_vip_active && bal.vip_expires_at) {
-        planLabel += " · 到期 " + String(bal.vip_expires_at).slice(0, 10);
+        planLabel +=
+          tr(" · 到期 ", " · expires ") + String(bal.vip_expires_at).slice(0, 10);
       } else if (String(bal.plan || "").toLowerCase() === "vip" && !bal.is_vip_active) {
-        planLabel = "免费档（Token VIP 已过期）";
+        planLabel = tr("免费档（Token VIP 已过期）", "Free (Token VIP expired)");
       }
       $("acct-plan").textContent = planLabel;
     } catch (e) {
@@ -562,7 +630,7 @@
         requireLogin();
         return;
       }
-      showMsg($("consoleMsg"), e.message || "余额加载失败", false);
+      showMsg($("consoleMsg"), e.message || tr("余额加载失败", "Failed to load balance"), false);
     }
 
     try {
@@ -620,7 +688,7 @@
       else AI24X_API.setBase("");
       if (k) AI24X_API.setApiKey(k);
       else AI24X_API.setApiKey("");
-      showMsg($("consoleMsg"), "已保存 API 设置", true);
+      showMsg($("consoleMsg"), tr("已保存 API 设置", "API settings saved"), true);
     });
     $("btn-refresh").addEventListener("click", function () {
       refreshAll();
@@ -644,7 +712,7 @@
     });
     $("btn-create-key").addEventListener("click", function () {
       var inp = $("create-key-name");
-      if (inp && !(inp.value || "").trim()) inp.value = "默认密钥";
+      if (inp && !(inp.value || "").trim()) inp.value = defaultKeyName();
       openModal("modal-create-key");
       if (inp) {
         setTimeout(function () {
@@ -656,7 +724,7 @@
     var btnConfirmKey = $("btn-create-key-confirm");
     if (btnConfirmKey) {
       btnConfirmKey.addEventListener("click", function () {
-        var name = (($("create-key-name") && $("create-key-name").value) || "").trim() || "默认密钥";
+        var name = (($("create-key-name") && $("create-key-name").value) || "").trim() || defaultKeyName();
         btnConfirmKey.disabled = true;
         AI24X_API.keysCreate({ name: name })
           .then(function (r) {
@@ -667,12 +735,16 @@
               if ($("apiKeyDisplay")) $("apiKeyDisplay").textContent = r.api_key;
               if ($("modal-show-key-value")) $("modal-show-key-value").textContent = r.api_key;
               openModal("modal-show-key");
-              showMsg($("consoleMsg"), "密钥已创建，请复制保存。", true);
+              showMsg(
+                $("consoleMsg"),
+                tr("密钥已创建，请复制保存。", "Key created — copy and save it."),
+                true
+              );
             }
             return refreshAll();
           })
           .catch(function (e) {
-            showMsg($("consoleMsg"), e.message || "创建失败", false);
+            showMsg($("consoleMsg"), e.message || tr("创建失败", "Create failed"), false);
           })
           .finally(function () {
             btnConfirmKey.disabled = false;
@@ -687,10 +759,14 @@
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(t).then(
             function () {
-              showMsg($("consoleMsg"), "已复制到剪贴板", true);
+              showMsg($("consoleMsg"), tr("已复制到剪贴板", "Copied to clipboard"), true);
             },
             function () {
-              showMsg($("consoleMsg"), "复制失败，请手动选择下方密钥", false);
+              showMsg(
+                $("consoleMsg"),
+                tr("复制失败，请手动选择下方密钥", "Copy failed — select the key manually"),
+                false
+              );
             }
           );
         }
@@ -699,16 +775,23 @@
     $("btn-copy-key").addEventListener("click", function () {
       var t = ($("api-key").value || $("apiKeyDisplay").textContent || "").trim();
       if (!t || t === "--" || t.indexOf("…") >= 0) {
-        showMsg($("consoleMsg"), "没有可复制的完整 Key（创建后会出现在输入框）", false);
+        showMsg(
+          $("consoleMsg"),
+          tr(
+            "没有可复制的完整 Key（创建后会出现在输入框）",
+            "No full key to copy (it appears in the input after creation)"
+          ),
+          false
+        );
         return;
       }
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(t).then(
           function () {
-            showMsg($("consoleMsg"), "已复制", true);
+            showMsg($("consoleMsg"), tr("已复制", "Copied"), true);
           },
           function () {
-            showMsg($("consoleMsg"), "复制失败，请手动选择", false);
+            showMsg($("consoleMsg"), tr("复制失败，请手动选择", "Copy failed — select manually"), false);
           }
         );
       }
@@ -719,13 +802,17 @@
         var out = $("chat-out");
         var key = ($("api-key").value || AI24X_API.getApiKey() || "").trim();
         if (!key) {
-          showMsg($("consoleMsg"), "请先创建并保存 API Key", false);
+          showMsg(
+            $("consoleMsg"),
+            tr("请先创建并保存 API Key", "Create and save an API key first"),
+            false
+          );
           return;
         }
         AI24X_API.setApiKey(key);
-        out.textContent = "请求中…";
+        out.textContent = tr("请求中…", "Requesting…");
         AI24X_API.chatRun({
-          prompt: ($("chat-prompt").value || "").trim() || "你好",
+          prompt: ($("chat-prompt").value || "").trim() || tr("你好", "Hello"),
           model: ($("chat-model").value || "auto").trim() || "auto",
         })
           .then(function (r) {
@@ -733,8 +820,8 @@
             return refreshAll();
           })
           .catch(function (e) {
-            out.textContent = e.message || "失败";
-            showMsg($("consoleMsg"), e.message || "chat 失败", false);
+            out.textContent = e.message || tr("失败", "Failed");
+            showMsg($("consoleMsg"), e.message || tr("chat 失败", "chat failed"), false);
           });
       });
     }
@@ -749,7 +836,7 @@
     var langSel = document.getElementById("lang-select");
     if (langSel) {
       langSel.addEventListener("change", function () {
-        if (window.__tokenPlansPayload) renderPlans(window.__tokenPlansPayload);
+        refreshAll();
       });
     }
   });

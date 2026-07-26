@@ -49,12 +49,13 @@ TOKEN_ALIPAY_RETURN_URL=https://www.ai24x.com/console.html
 
 商户平台里把 **Native/手机网站支付回调** 增加（或单独配置）上述 Token URL；**保留** a1 原回调不动。
 
-## 开启真支付步骤
-1. 凭证写入 `api/.env` 后：`pm2 restart core-8000 --update-env`
-2. 打开 `/v1/billing/pay/status` → `merchant_configured=true` 且 notify 已设  
+## 开启真支付步骤（副脑03 实付）
+1. 凭证写入生产 `api/.env` 后：`pm2 restart core-api-8002 --update-env`
+2. 打开 `/v1/billing/pay/status` → `wechat_ready`/`alipay_ready`、notify 已设  
 3. a1 扫码付一笔仍正常（回归）  
-4. 控制台 Token 套餐小额实付一单 → 查 `token_pay_orders` + 钱包余额  
-5. 确认无误再设 `TOKEN_PAY_ENABLED=true`（可先保持 mock 并行）
+4. 设 `TOKEN_PAY_ENABLED=true` 且 **`TOKEN_PAY_MOCK_ENABLED=false`**（关模拟；只留「确认到账」）
+5. 控制台 Token 套餐小额实付一单 → 查 `token_pay_orders` + 钱包余额  
+6. 详见 `docs/联调/Token发版-Gitee与副脑03.md`
 
 ## 国际支付（并行申请，后接代码）
 - PayPal / Stripe：现在去申请账号与商户审核即可  

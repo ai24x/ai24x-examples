@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="AI24X 用户控制台：余额、API Key、套餐与用量。" />
+  <meta name="description" content="AI24X console: balance, API keys, plans, and usage." />
   <title>用户控制台 · AI24X</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="css/base.css?v=20260725d" />
@@ -15,40 +15,40 @@
     <div class="ui-modal-root" id="modal-create-key" aria-hidden="true">
       <div class="ui-modal-backdrop" data-close-modal="modal-create-key"></div>
       <div class="ui-modal-card" role="dialog" aria-labelledby="modal-create-key-title">
-        <h3 id="modal-create-key-title">创建 API 密钥</h3>
-        <p class="ui-modal-sub">给这把密钥起个好记的名字，方便以后区分（例如「本机调试」「服务器」）。</p>
+        <h3 id="modal-create-key-title" data-i18n="page.console.modal.createTitle">创建 API 密钥</h3>
+        <p class="ui-modal-sub" data-i18n="page.console.modal.createSub">给这把密钥起个好记的名字，方便以后区分。</p>
         <div class="form-group">
-          <label for="create-key-name">密钥名称</label>
-          <input class="input" id="create-key-name" type="text" maxlength="64" value="默认密钥" autocomplete="off" />
+          <label for="create-key-name" data-i18n="page.console.modal.keyName">密钥名称</label>
+          <input class="input" id="create-key-name" type="text" maxlength="64" value="默认密钥" autocomplete="off" data-i18n="page.console.modal.keyNameDefault" />
         </div>
         <div class="ui-modal-actions">
-          <button type="button" class="btn" data-close-modal="modal-create-key">取消</button>
-          <button type="button" class="btn btn-primary" id="btn-create-key-confirm">创建</button>
+          <button type="button" class="btn" data-close-modal="modal-create-key" data-i18n="page.console.modal.cancel">取消</button>
+          <button type="button" class="btn btn-primary" id="btn-create-key-confirm" data-i18n="page.console.modal.create">创建</button>
         </div>
       </div>
     </div>
     <div class="ui-modal-root" id="modal-show-key" aria-hidden="true">
       <div class="ui-modal-backdrop" data-close-modal="modal-show-key"></div>
       <div class="ui-modal-card" role="dialog" aria-labelledby="modal-show-key-title">
-        <h3 id="modal-show-key-title">请立即保存密钥</h3>
-        <p class="ui-modal-sub">完整密钥<strong>只显示这一次</strong>。关闭后无法再查看，请复制到安全处。</p>
+        <h3 id="modal-show-key-title" data-i18n="page.console.modal.saveTitle">请立即保存密钥</h3>
+        <p class="ui-modal-sub" data-i18n-html="page.console.modal.saveSub">完整密钥<strong>只显示这一次</strong>。关闭后无法再查看，请复制到安全处。</p>
         <div class="ui-modal-key" id="modal-show-key-value">--</div>
         <div class="ui-modal-actions">
-          <button type="button" class="btn btn-primary" id="btn-modal-copy-key">复制密钥</button>
-          <button type="button" class="btn" data-close-modal="modal-show-key">我已保存</button>
+          <button type="button" class="btn btn-primary" id="btn-modal-copy-key" data-i18n="page.console.modal.copyKey">复制密钥</button>
+          <button type="button" class="btn" data-close-modal="modal-show-key" data-i18n="page.console.modal.saved">我已保存</button>
         </div>
       </div>
     </div>
     <div class="ui-modal-root" id="modal-pay" aria-hidden="true">
       <div class="ui-modal-backdrop" data-close-modal="modal-pay"></div>
       <div class="ui-modal-card" role="dialog" aria-labelledby="modal-pay-title" style="width:min(440px,100%)">
-        <h3 id="modal-pay-title">选择支付方式</h3>
-        <p class="ui-modal-sub" id="modal-pay-sub">请选择微信或支付宝完成支付。</p>
+        <h3 id="modal-pay-title" data-i18n="page.console.modal.payTitle">选择支付方式</h3>
+        <p class="ui-modal-sub" id="modal-pay-sub" data-i18n="page.console.modal.paySub">请选择微信或支付宝完成支付。</p>
         <div id="modal-pay-channels" class="ui-modal-actions" style="justify-content:flex-start"></div>
         <div id="modal-pay-result" style="display:none;margin-top:14px">
           <p class="ui-modal-sub" id="modal-pay-result-hint"></p>
           <div id="modal-pay-qr-wrap" style="text-align:center;margin:10px 0">
-            <img id="modal-pay-qr" alt="支付二维码" width="220" height="220" style="display:none;border-radius:8px;border:1px solid var(--border)" />
+            <img id="modal-pay-qr" alt="QR" width="220" height="220" style="display:none;border-radius:8px;border:1px solid var(--border)" />
           </div>
           <div class="ui-modal-key" id="modal-pay-url" style="display:none"></div>
           <p style="margin-top:10px">
@@ -59,12 +59,13 @@
               target="_blank"
               rel="noopener noreferrer"
               style="display:none"
+              data-i18n="page.console.modal.openAlipay"
               >在新窗口打开支付宝</a
             >
           </p>
         </div>
         <div class="ui-modal-actions">
-          <button type="button" class="btn" data-close-modal="modal-pay">关闭（控制台留在本页）</button>
+          <button type="button" class="btn" data-close-modal="modal-pay" data-i18n="page.console.modal.closePay">关闭</button>
         </div>
       </div>
     </div>
@@ -79,114 +80,114 @@
       <div class="container">
         <div class="stats-grid">
           <div class="stat-card">
-            <div class="stat-label">余额 (token)</div>
+            <div class="stat-label" data-i18n="page.console.stat.balance">余额 (token)</div>
             <div class="stat-value" id="stat-balance">--</div>
-            <div class="stat-sub">钱包可用额度</div>
+            <div class="stat-sub" data-i18n="page.console.stat.balance.sub">钱包可用额度</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">近期消耗笔数</div>
+            <div class="stat-label" data-i18n="page.console.stat.calls">近期消耗笔数</div>
             <div class="stat-value" id="stat-calls">--</div>
-            <div class="stat-sub">近期调用消耗笔数</div>
+            <div class="stat-sub" data-i18n="page.console.stat.calls.sub">近期调用消耗笔数</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">API Key</div>
+            <div class="stat-label" data-i18n="page.console.stat.keys">API Key</div>
             <div class="stat-value" id="stat-keys">--</div>
-            <div class="stat-sub">有效密钥数量</div>
+            <div class="stat-sub" data-i18n="page.console.stat.keys.sub">有效密钥数量</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">一级邀请</div>
+            <div class="stat-label" data-i18n="page.console.stat.referrals">一级邀请</div>
             <div class="stat-value" id="stat-referrals">--</div>
-            <div class="stat-sub">邀请码：<span id="inviteCode">--</span></div>
+            <div class="stat-sub"><span data-i18n="page.console.stat.referrals.sub">邀请码：</span><span id="inviteCode">--</span></div>
           </div>
         </div>
       </div>
 
       <div class="container grid-2">
         <div class="card">
-          <h3 class="mt-0">账户</h3>
+          <h3 class="mt-0" data-i18n="page.console.account.title">账户</h3>
           <ul class="list-clean">
-            <li class="list-item"><span>用户</span><span id="acct-user">--</span></li>
-            <li class="list-item"><span>手机</span><span id="acct-phone">--</span></li>
-            <li class="list-item"><span>套餐档位</span><span id="acct-plan">--</span></li>
+            <li class="list-item"><span data-i18n="page.console.account.user">用户</span><span id="acct-user">--</span></li>
+            <li class="list-item"><span data-i18n="page.console.account.phone">手机</span><span id="acct-phone">--</span></li>
+            <li class="list-item"><span data-i18n="page.console.account.plan">套餐档位</span><span id="acct-plan">--</span></li>
           </ul>
           <div class="card-actions">
-            <button type="button" class="btn" id="btn-logout">退出登录</button>
-            <a class="btn btn-primary" href="pricing.html">定价说明</a>
-            <a class="btn" href="refer.html">邀请回馈</a>
+            <button type="button" class="btn" id="btn-logout" data-i18n="page.console.actions.logout">退出登录</button>
+            <a class="btn btn-primary" href="pricing.html" data-i18n="page.console.actions.upgrade">定价说明</a>
+            <a class="btn" href="refer.html" data-i18n="page.console.actions.refer">邀请回馈</a>
           </div>
         </div>
 
         <div class="card">
-          <h3 class="mt-0">调用设置</h3>
-          <p class="sub">API Base 默认同源；调用 chat 时使用下方 API Key（X-API-Key）。</p>
+          <h3 class="mt-0" data-i18n="page.console.apisettings.title">调用设置</h3>
+          <p class="sub" data-i18n="page.console.apisettings.sub">API Base 默认同源；调用 chat 时使用下方 API Key（X-API-Key）。</p>
           <div class="form-group mt-2">
-            <label>API Base</label>
+            <label data-i18n="page.console.apiurl">API Base</label>
             <input type="url" class="input" id="api-base" placeholder="http://127.0.0.1:8000" />
           </div>
           <div class="form-group">
-            <label>API Key（完整密钥）</label>
+            <label data-i18n="page.console.apikey">API Key（完整密钥）</label>
             <input type="password" class="input" id="api-key" placeholder="sk-..." autocomplete="off" />
           </div>
           <div class="card-actions">
-            <button type="button" class="btn btn-primary" id="btn-save-api">保存</button>
-            <button type="button" class="btn" id="btn-refresh">刷新数据</button>
+            <button type="button" class="btn btn-primary" id="btn-save-api" data-i18n="page.console.save">保存</button>
+            <button type="button" class="btn" id="btn-refresh" data-i18n="page.console.actions.refresh">刷新数据</button>
           </div>
         </div>
       </div>
 
       <div class="container grid-2">
         <div class="card">
-          <h3 class="mt-0">API Key</h3>
-          <p class="sub">完整密钥仅在创建时返回一次；列表只显示前缀。</p>
+          <h3 class="mt-0" data-i18n="page.console.keys.title">API Key</h3>
+          <p class="sub" data-i18n="page.console.keys.sub">完整密钥仅在创建时返回一次；列表只显示前缀。</p>
           <div class="api-key-display" id="apiKeyDisplay">--</div>
           <ul class="list-clean mt-2" id="keysList"></ul>
           <div class="card-actions">
-            <button type="button" class="btn" id="btn-copy-key">复制当前 Key</button>
-            <button type="button" class="btn btn-primary" id="btn-create-key">创建密钥</button>
+            <button type="button" class="btn" id="btn-copy-key" data-i18n="page.console.keys.copy">复制当前 Key</button>
+            <button type="button" class="btn btn-primary" id="btn-create-key" data-i18n="page.console.keys.create">创建密钥</button>
           </div>
         </div>
 
         <div class="card">
-          <h3 class="mt-0">用量流水</h3>
-          <p class="sub">充值 / 赠送 / 消耗 / 返利</p>
+          <h3 class="mt-0" data-i18n="page.console.activity.title">用量流水</h3>
+          <p class="sub" data-i18n="page.console.activity.sub">充值 / 赠送 / 消耗 / 返利</p>
           <ul class="list-clean" id="activityList"></ul>
         </div>
       </div>
 
       <div class="container grid-2">
         <div class="card">
-          <h3 class="mt-0">Token 套餐</h3>
-          <p class="sub" id="payHint">加载中…</p>
+          <h3 class="mt-0" data-i18n="page.console.plans.title">Token 套餐</h3>
+          <p class="sub" id="payHint" data-i18n="page.console.plans.loading">加载中…</p>
           <div id="plansList" class="mt-2"></div>
         </div>
         <div class="card">
-          <h3 class="mt-0">我的订单</h3>
-          <p class="sub">待支付订单可「模拟到账」或「确认到账」</p>
+          <h3 class="mt-0" data-i18n="page.console.orders.title">我的订单</h3>
+          <p class="sub" data-i18n="page.console.orders.sub">待支付订单可「模拟到账」或「确认到账」</p>
           <ul class="list-clean" id="ordersList"></ul>
         </div>
       </div>
 
       <div class="container">
         <div class="card">
-          <h3 class="mt-0">试调 chat/run（L0–L3）</h3>
-          <p class="sub">使用上方已保存的 API Key。品牌档：auto/flash（DeepSeek）· pro/ultra（VIP）。鉴权为 X-API-Key + prompt。</p>
+          <h3 class="mt-0" data-i18n="page.console.chat.title">试调 chat/run</h3>
+          <p class="sub" data-i18n="page.console.chat.sub">使用上方已保存的 API Key。品牌档：auto / flash / pro / ultra。</p>
           <div class="form-group">
-            <label>Prompt</label>
-            <textarea class="input" id="chat-prompt" rows="3" placeholder="你好">你好</textarea>
+            <label data-i18n="page.console.chat.prompt">Prompt</label>
+            <textarea class="input" id="chat-prompt" rows="3" placeholder="Hello" data-i18n-placeholder="page.console.chat.promptPh">Hello</textarea>
           </div>
           <div class="form-group">
             <label>model</label>
             <select class="input" id="chat-model">
-              <option value="auto" selected>auto（按套餐路由）</option>
-              <option value="flash">flash（L1 DeepSeek）</option>
+              <option value="auto" selected>auto</option>
+              <option value="flash">flash</option>
               <option value="deepseek-chat">deepseek-chat</option>
-              <option value="pro">pro（L2 VIP）</option>
-              <option value="ultra">ultra（L3 VIP）</option>
-              <option value="siliconflow-free">siliconflow-free（L0 兜底）</option>
+              <option value="pro">pro</option>
+              <option value="ultra">ultra</option>
+              <option value="siliconflow-free">siliconflow-free</option>
             </select>
           </div>
           <div class="card-actions">
-            <button type="button" class="btn btn-primary" id="btn-chat-run">发送</button>
+            <button type="button" class="btn btn-primary" id="btn-chat-run" data-i18n="page.console.chat.send">发送</button>
           </div>
           <pre id="chat-out" class="code-block mt-2" style="white-space:pre-wrap;min-height:80px;">--</pre>
         </div>
@@ -194,11 +195,11 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260726v"></script>
-  <script src="js/api.js?v=20260726w"></script>
-  <script src="js/i18n.js?v=20260726w"></script>
-  <script src="js/shell.js?v=20260726v"></script>
+  <script src="config/locales.js?v=20260726x"></script>
+  <script src="js/api.js?v=20260726x"></script>
+  <script src="js/i18n.js?v=20260726x"></script>
+  <script src="js/shell.js?v=20260726x"></script>
   <script src="js/app.js?v=20260725a"></script>
-  <script src="js/console.js?v=20260726w"></script>
+  <script src="js/console.js?v=20260726y"></script>
 </body>
 </html>

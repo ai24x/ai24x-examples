@@ -22,35 +22,42 @@
     <section class="section">
       <div class="container" style="max-width:480px">
         <h1 data-i18n="auth.login.title">登录</h1>
-        <p class="sub">使用<strong>邮箱</strong>登录 AI24X（手机登录稍后开放）。</p>
-        <div class="callout mt-2" id="auth-closed-banner" role="status" aria-live="polite">
+        <p class="sub" data-i18n="auth.login.sub">使用邮箱登录 AI24X（手机登录稍后开放）。</p>
+        <div class="callout mt-2" id="auth-closed-banner" role="status" aria-live="polite" data-i18n-html="auth.closed.banner">
           <strong>温馨提示</strong>：主站<strong>暂未开放</strong>注册与登录。本地预览（127.0.0.1）已自动开放。
         </div>
         <form class="card mt-2" id="form-login">
           <fieldset class="auth-fieldset-preview" id="login-fieldset" disabled>
           <div class="form-group">
-            <label>邮箱</label>
+            <label data-i18n="auth.login.email">邮箱</label>
             <input id="login-email" name="email" type="email" class="input" autocomplete="email" required placeholder="you@example.com" />
           </div>
           <div class="form-group">
-            <label>密码</label>
+            <label data-i18n="auth.login.password">密码</label>
             <input name="password" type="password" class="input" required autocomplete="current-password" />
           </div>
-          <button type="submit" class="btn btn-primary">登录</button>
+          <button type="submit" class="btn btn-primary" data-i18n="auth.login.submit">登录</button>
           <div id="login-msg"></div>
           </fieldset>
         </form>
-        <p class="mt-2 sub"><a href="register.html">注册</a> · <a href="console.html">控制台</a></p>
+        <p class="mt-2 sub" data-i18n-html="auth.login.footer"><a href="register.html">注册</a> · <a href="console.html">控制台</a></p>
       </div>
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260726v"></script>
-  <script src="js/api.js?v=20260726w"></script>
-  <script src="js/i18n.js?v=20260726w"></script>
-  <script src="js/shell.js?v=20260726v"></script>
+  <script src="config/locales.js?v=20260726x"></script>
+  <script src="js/api.js?v=20260726x"></script>
+  <script src="js/i18n.js?v=20260726x"></script>
+  <script src="js/shell.js?v=20260726x"></script>
   <script src="js/app.js?v=20260725a"></script>
   <script>
+    function t(key, fallback) {
+      if (window.AI24X_I18N && AI24X_I18N.t) {
+        var v = AI24X_I18N.t(key);
+        if (v && v !== key) return v;
+      }
+      return fallback || key;
+    }
     function nextUrl() {
       try {
         var u = new URL(location.href);
@@ -65,7 +72,7 @@
       var box = document.getElementById("login-msg");
       box.innerHTML = "";
       if (!AI24X_API.isLocalAuthOpen()) {
-        box.innerHTML = '<div class="alert alert-error">暂未开放。</div>';
+        box.innerHTML = '<div class="alert alert-error">' + t("auth.closed.submitBlocked", "暂未开放。") + "</div>";
         return;
       }
       var password = (document.querySelector('#form-login input[name="password"]').value || "").trim();
@@ -78,20 +85,21 @@
           location.href = nextUrl();
         })
         .catch(function (err) {
-          box.innerHTML = '<div class="alert alert-error">' + (err.message || "登录失败") + "</div>";
+          box.innerHTML = '<div class="alert alert-error">' + (err.message || t("auth.login.fail", "登录失败")) + "</div>";
         });
     });
 
     document.addEventListener("DOMContentLoaded", function () {
-      if (AI24X_API.isLocalAuthOpen()) {
+      function applyLocalBanner() {
+        if (!AI24X_API.isLocalAuthOpen()) return;
         var fs = document.getElementById("login-fieldset");
         if (fs) fs.disabled = false;
         var ban = document.getElementById("auth-closed-banner");
-        if (ban) {
-          ban.innerHTML =
-            "<strong>本地预览</strong>：邮箱登录已开放。可用测试账号，或先去 <a href=\"register.html\">注册</a>。";
-        }
+        if (ban) ban.innerHTML = t("auth.login.localBanner", ban.innerHTML);
       }
+      applyLocalBanner();
+      var langSel = document.getElementById("lang-select");
+      if (langSel) langSel.addEventListener("change", applyLocalBanner);
     });
   </script>
 </body>

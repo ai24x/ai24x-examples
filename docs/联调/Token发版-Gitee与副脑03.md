@@ -78,16 +78,31 @@ curl.exe -sS -o NUL -w "%{http_code}" https://www.ai24x.com/console.html
 
 期望：`health` 200；`pay/status` JSON 可读；`TOKEN_PAY_ENABLED` / 商户项按 env 配置。
 
-### 生产 `api/.env` 必查（Token）
+### 生产 `api/.env` 必查（Token · 实付联调）
 ```
 TOKEN_PAY_ENABLED=true
+TOKEN_PAY_MOCK_ENABLED=false
 TOKEN_WECHAT_NOTIFY_URL=https://api.ai24x.com/v1/billing/wechat/notify
 TOKEN_ALIPAY_NOTIFY_URL=https://api.ai24x.com/v1/billing/alipay/notify
 TOKEN_ALIPAY_RETURN_URL=https://www.ai24x.com/console.html
 # + WECHAT_* / ALIPAY_* 商户凭证、DEEPSEEK_API_KEY、SMTP_*
 ```
 
+说明：
+- **实付阶段务必 `TOKEN_PAY_MOCK_ENABLED=false`**：控制台不显示「模拟到账」，接口 `mock_fulfill` 返回 403
+- **保留「确认到账」**：真支付回调延迟/丢失时的查单补履约（不是模拟）
+- 本机开发可另开 `TOKEN_PAY_MOCK_ENABLED=true`（或关真支付 + local 环境自动允许 mock）
+
 改完 env 后：`pm2 restart core-api-8002 --update-env`
+
+### 实付门禁（`pay/status`）
+```powershell
+curl.exe -sS http://127.0.0.1:8002/v1/billing/pay/status
+```
+期望 JSON 中大致：
+- `"enabled": true`
+- `"mock_allowed": false`
+- `"wechat_ready"` / `"alipay_ready"` 至少一个为 `true`（商户齐）
 
 ### 商户平台（一次性）
 - 微信 / 支付宝 **增加** Token 上述 notify（**保留** a1 原回调不动）
