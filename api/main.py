@@ -656,7 +656,6 @@ async def auth_email_send(body: AuthEmailSendRequest):
 
     code = generate_numeric_code(6)
     store_email_otp(em, body.purpose, code, ttl_s=300.0)
-    _auth_email_last_sent[em] = now
 
     # 测试邮箱（*.local / example.com）：即使已配 SMTP 也走 local，避免假邮箱触发真发信
     is_test_mailbox = em.endswith(".local") or em.endswith("@example.com") or em.endswith(".example.com")
@@ -664,7 +663,7 @@ async def auth_email_send(body: AuthEmailSendRequest):
     if smtp_configured() and not is_test_mailbox:
         ok, msg = send_otp_email(to_email=em, code=code, purpose=body.purpose)
         if not ok:
-            # 发信失败：作废本次 OTP，避免「没收到信却仍能靠猜/泄露注册」
+            # 发信失败：作废本次 OTP；不写入限流，便于改配置后立即重试
             try:
                 from email_otp_memory import store_otp as _store
 
@@ -678,6 +677,7 @@ async def auth_email_send(body: AuthEmailSendRequest):
                 local_code=None,
                 dev_code=None,
             )
+        _auth_email_last_sent[em] = time.time()
         logger.info("Email OTP sent via SMTP purpose=%s email=%s", body.purpose, em)
         return AuthEmailSendResponse(
             ok=True,
@@ -700,6 +700,7 @@ async def auth_email_send(body: AuthEmailSendRequest):
 
     expose = bool(getattr(settings, "email_otp_expose_local_code", True))
     local = code if expose else None
+    _auth_email_last_sent[em] = time.time()
     logger.info(
         "Email OTP local channel purpose=%s email=%s expose=%s",
         body.purpose,
