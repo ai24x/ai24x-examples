@@ -103,7 +103,27 @@
     if (tok && !headers.Authorization) headers.Authorization = "Bearer " + tok;
     var k = getApiKey();
     if (k && !headers["X-API-Key"]) headers["X-API-Key"] = k;
-    var res = await fetch(url, Object.assign({}, options, { headers: headers }));
+    var res;
+    try {
+      res = await fetch(url, Object.assign({}, options, { headers: headers }));
+    } catch (e) {
+      var raw = String((e && e.message) || e || "");
+      var netZh =
+        "无法连接 API 服务。请稍后重试；若持续失败，请检查 api.ai24x.com 是否正常。";
+      var netEn =
+        "Cannot reach the API. Try again later, or check that api.ai24x.com is up.";
+      var msg = /failed to fetch|networkerror|load failed|network request failed|fetch failed/i.test(
+        raw
+      )
+        ? isZhUi()
+          ? netZh
+          : netEn
+        : raw || (isZhUi() ? "网络错误" : "Network error");
+      var err = new Error(msg);
+      err.status = 0;
+      err.cause = e;
+      throw err;
+    }
     var text = await res.text();
     var data = null;
     try {
@@ -138,7 +158,13 @@
         }
         var joined = parts.filter(Boolean).join(" ").trim();
         if (!joined && fallbackText) joined = String(fallbackText).trim();
-        if (!joined) joined = "请求失败（" + status + "）";
+        // Nginx/HTML 502 等无 JSON 时，避免把整页 HTML 抛给用户
+        if (/<\s*html|bad gateway|502/i.test(joined)) {
+          joined = isZhUi()
+            ? "API 网关异常（" + status + "）。服务可能未启动，请稍后重试。"
+            : "API gateway error (" + status + "). The service may be down.";
+        }
+        if (!joined) joined = isZhUi() ? "请求失败（" + status + "）" : "Request failed (" + status + ")";
 
         if (
           status === 401 &&
@@ -149,10 +175,12 @@
         ) {
           return "手机号/邮箱或密码错误，请检查后重试。";
         }
-        if (status === 401) return "登录已失效或未授权，请重新登录。";
-        if (status === 403) return "没有权限执行此操作。";
-        if (status === 429) return "请求过于频繁，请稍后再试。";
-        if (status >= 500) return "服务暂时不可用，请稍后再试。";
+        if (status === 401)
+          return isZhUi() ? "登录已失效或未授权，请重新登录。" : "Unauthorized. Please sign in again.";
+        if (status === 403) return isZhUi() ? "没有权限执行此操作。" : "Forbidden.";
+        if (status === 429) return isZhUi() ? "请求过于频繁，请稍后再试。" : "Too many requests. Try later.";
+        if (status >= 500)
+          return isZhUi() ? "服务暂时不可用，请稍后再试。" : "Service temporarily unavailable.";
 
         if (joined.length > 180) joined = joined.slice(0, 177) + "…";
         return joined;

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI24X · 指挥中心 v3.6</title>
+<title>AI24X · 指挥中心</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body {
@@ -12,6 +12,32 @@
     min-height: 100vh;
   }
   .container { max-width: 1200px; margin: 0 auto; padding: 24px 20px 60px; }
+
+  /* Password Gate */
+  #passwordGate {
+    position: fixed; inset:0; z-index:9999;
+    display:flex; align-items:center; justify-content:center;
+    background: #080812;
+  }
+  #passwordGate .box {
+    background: #12122a; border:1px solid #2a2a44; border-radius:12px;
+    padding:32px; text-align:center; max-width:340px; width:90%;
+  }
+  #passwordGate .lock { font-size:2.5em; margin-bottom:10px; }
+  #passwordGate input {
+    width:100%; padding:10px; margin:12px 0;
+    background:#1a1a38; border:1px solid #2a2a44; border-radius:6px;
+    color:#c0c0c8; font-size:1em; text-align:center; outline:none;
+  }
+  #passwordGate input:focus { border-color:#667eea; }
+  #passwordGate .err { color:#f5576c; font-size:0.8em; display:none; }
+  #passwordGate button {
+    width:100%; padding:10px;
+    background:linear-gradient(135deg,#667eea,#764ba2);
+    color:#fff; border:none; border-radius:6px; font-size:1em; cursor:pointer;
+  }
+  #passwordGate button:hover { opacity:.9; }
+  #mainContent { display:none; }
 
   .header {
     display: flex; justify-content: space-between; align-items: center;
@@ -42,39 +68,27 @@
   }
   .brain-card .b-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
   .brain-card .b-name { font-size: 0.78em; font-weight: 600; }
-  .brain-card .b-status {
-    font-size: 0.6em; padding: 1px 8px; border-radius: 8px; font-weight: 600;
-  }
+  .brain-card .b-status { font-size: 0.6em; padding: 1px 8px; border-radius: 8px; font-weight: 600; }
   .brain-card .b-spec { font-size: 0.62em; color: #666; }
   .brain-card .b-role { font-size: 0.68em; color: #999; margin-top: 4px; }
+  .brain-card .b-duties { font-size: 0.64em; color: #777; margin-top: 6px; line-height:1.5; padding-top:6px; border-top:1px solid #1a1a2e; }
 
   .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin: 10px 0; }
-  .metric {
-    background: #12122a; border: 1px solid #2a2a44; border-radius: 8px;
-    padding: 12px; text-align: center;
-  }
+  .metric { background: #12122a; border: 1px solid #2a2a44; border-radius: 8px; padding: 12px; text-align: center; }
   .metric .val { font-size: 1.3em; font-weight: 700; }
   .metric .lbl { font-size: 0.62em; color: #888; margin-top: 2px; }
 
-  .svc-table { width: 100%; border-collapse: separate; border-spacing: 0 3px; font-size: 0.74em; }
-  .svc-table th { text-align: left; color: #555; padding: 4px 8px; font-size: 0.9em; }
-  .svc-table td { padding: 6px 8px; background: #12122a; border: 1px solid #2a2a44; }
-  .svc-table td:first-child { border-radius: 5px 0 0 5px; }
-  .svc-table td:last-child { border-radius: 0 5px 5px 0; }
-
   .links { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
   .link-btn {
-    display: inline-block;
-    background: #1a1a38; border: 1px solid #2a2a44; border-radius: 6px;
-    padding: 6px 14px; font-size: 0.7em; color: #8899ff; text-decoration: none;
-    transition: all .15s;
+    display: inline-block; background: #1a1a38; border: 1px solid #2a2a44; border-radius: 6px;
+    padding: 6px 14px; font-size: 0.7em; color: #8899ff; text-decoration: none; transition: all .15s;
   }
   .link-btn:hover { background: #2a2a50; border-color: #667eea; }
 
   .phase-list { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
   .phase-card {
-    flex: 1; min-width: 180px;
-    background: #10101e; border: 1px solid #222; border-radius: 8px; padding: 10px;
+    flex: 1; min-width: 180px; background: #10101e; border: 1px solid #222;
+    border-radius: 8px; padding: 10px;
   }
   .phase-card .ph-title { font-size: 0.72em; font-weight: 600; display: flex; justify-content: space-between; margin-bottom: 6px; }
   .phase-card .ph-items { display: flex; gap: 4px; flex-wrap: wrap; }
@@ -82,14 +96,28 @@
 
   .strategy-box {
     background: linear-gradient(135deg, #0f0f2a, #1a0a2e);
-    border: 1px solid rgba(102,126,234,.2);
-    border-radius: 12px; padding: 16px; margin: 10px 0;
-    font-size: 0.76em;
+    border: 1px solid rgba(102,126,234,.2); border-radius: 12px;
+    padding: 16px; margin: 10px 0; font-size: 0.76em;
   }
   .strategy-box .s-row { display: flex; gap: 16px; flex-wrap: wrap; margin: 6px 0; }
   .strategy-box .s-item { flex: 1; min-width: 160px; }
   .strategy-box .s-label { color: #555; font-size: 0.88em; }
   .strategy-box .s-val { font-weight: 600; font-size: 1.1em; }
+
+  .flow-chart {
+    background: #0f0a1a; border: 1px solid #1f1a2e; border-radius: 10px;
+    padding: 14px; margin: 8px 0; font-size: 0.7em; line-height: 1.7;
+  }
+  .flow-chart .step { color: #667eea; font-weight:600; }
+  .flow-chart .arrow { color: #333; margin:0 4px; }
+
+  .kpi-row { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+  .kpi-card {
+    flex:1; min-width:120px; background:#12122a; border:1px solid #2a2a44;
+    border-radius:8px; padding:10px; text-align:center;
+  }
+  .kpi-card .val { font-size:1.8em; font-weight:700; }
+  .kpi-card .lbl { font-size:0.6em; color:#666; margin-top:2px; }
 
   .footer { text-align: center; color: #333; font-size: 0.6em; padding: 30px 0; border-top: 1px solid #1a1a2e; margin-top: 30px; }
 
@@ -103,6 +131,22 @@
 </style>
 </head>
 <body>
+
+<!-- Password Gate -->
+<div id="passwordGate">
+  <div class="box">
+    <div class="lock">🔐</div>
+    <div style="font-size:1.1em;font-weight:700;color:#aabbff;">AI24X 指挥中心</div>
+    <div style="font-size:0.75em;color:#555;margin:6px 0;">输入密码访问</div>
+    <input type="password" id="pwdInput" placeholder="密码" autofocus
+      onkeydown="if(event.key==='Enter')checkPwd()">
+    <div class="err" id="pwdErr">密码错误</div>
+    <button onclick="checkPwd()">进入</button>
+  </div>
+</div>
+
+<!-- Main Content -->
+<div id="mainContent">
 <div class="container">
 
   <!-- Header -->
@@ -118,7 +162,6 @@
       <div style="margin-top:3px;">
         <span class="badge bg-blue">v3.6</span>
         <span class="badge bg-pink">国际优先</span>
-        <span class="badge bg-green">Phase 1</span>
       </div>
     </div>
   </div>
@@ -127,18 +170,19 @@
   <div class="strategy-box">
     <div style="font-weight:700;font-size:0.9em;margin-bottom:8px;color:#aabbff;">🎯 当前战略 · 国际优先</div>
     <div class="s-row">
-      <div class="s-item"><div class="s-label">🔴 P0 国际</div><div class="s-val c-pink">英文站 → API → PayPal → 赚钱</div></div>
+      <div class="s-item"><div class="s-label">🔴 P0 国际</div><div class="s-val c-pink">英文站 → API → PayPal → 💰</div></div>
       <div class="s-item"><div class="s-label">🟢 P1 国内</div><div class="s-val c-green">A1行情官运营 · 种子群维护</div></div>
-      <div class="s-item"><div class="s-label">⚪ 搁置</div><div class="s-val c-gray">国内Token推广 · 合规前置</div></div>
+      <div class="s-item"><div class="s-label">⚪ 搁置</div><div class="s-val c-gray">国内Token推广 · Fisher</div></div>
     </div>
     <div style="margin-top:8px;font-size:0.76em;color:#666;border-top:1px solid #1a1a2e;padding-top:8px;">
-      卖中国模型的成本洼地给全球开发者：DeepSeek Flash ¥0.14/M → 国际卖 $0.20-0.50/M（10-25倍利润）
+      核心优势：DeepSeek Flash ¥0.14/M → 国际卖 $0.20-0.50/M（10-25倍利润）
     </div>
   </div>
 
   <!-- Architecture -->
   <div class="s-title">🧠 系统架构 · 主脑 + 四副脑</div>
   <div class="arch-row">
+    <!-- 主脑 -->
     <div class="brain-card" style="border-color:#667eea;">
       <div class="b-head">
         <span class="b-name" style="color:#667eea;">🧠 主脑 · 本机</span>
@@ -146,87 +190,144 @@
       </div>
       <div class="b-spec">雷总 + Cursor + OpenClaw</div>
       <div class="b-role">决策 · 主开发 · 调度 · 督查 · 自动化</div>
+      <div class="b-duties">
+        ▸ 全盘战略决策与分工<br>
+        ▸ Cursor主力编码（API/前端）<br>
+        ▸ OpenClaw自动化巡更/告警<br>
+        ▸ 飞书统一通信枢纽<br>
+        ▸ 决策存档（DEC-xxxx）
+      </div>
     </div>
+    <!-- 01 -->
     <div class="brain-card" style="border-color:#ff9800;">
       <div class="b-head">
         <span class="b-name" style="color:#ff9800;">💻 01 · 国际增长</span>
         <span class="b-status bg-orange">VPN就绪</span>
       </div>
-      <div class="b-spec">4核8G · VPN出海</div>
-      <div class="b-role">英文SEO · X/Reddit/HN · 国际站推广 · PayPal</div>
+      <div class="b-spec">4核8G · VPN出海 · OpenClaw已升级</div>
+      <div class="b-role">🌍 国际Token平台推广 · 海外流量</div>
+      <div class="b-duties">
+        ▸ Google SEO批量内容+关键词<br>
+        ▸ X/Reddit/HN发布运营<br>
+        ▸ 竞品监控+数据分析<br>
+        ▸ 邮件营销<br>
+        ▸ 04是你的天然灾备
+      </div>
     </div>
+    <!-- 02 -->
     <div class="brain-card" style="border-color:#4caf50;">
       <div class="b-head">
         <span class="b-name" style="color:#4caf50;">💻 02 · 国内运营</span>
         <span class="b-status bg-green">在线</span>
       </div>
-      <div class="b-spec">2核8G · 国内</div>
-      <div class="b-role">A1行情官推广 · 中文文档 · 辅助01中文内容</div>
+      <div class="b-spec">2核8G · 国内 · OpenClaw已升级</div>
+      <div class="b-role">🇨🇳 A1行情官推广 · 辅助01中文</div>
+      <div class="b-duties">
+        ▸ A1行情官种子群+社媒运营<br>
+        ▸ 中文教程/接入指南<br>
+        ▸ 辅助01：英文SEO→中文审校+素材<br>
+        ▸ 30台机房统调（后期）<br>
+        ▸ 拉03数据做内网备份
+      </div>
     </div>
+    <!-- 03 -->
     <div class="brain-card" style="border-color:#42a5f5;">
       <div class="b-head">
         <span class="b-name" style="color:#42a5f5;">☁️ 03 · 运维+API</span>
         <span class="b-status bg-green">就绪</span>
       </div>
       <div class="b-spec">2核8G · 公网</div>
-      <div class="b-role">公网服务 · PM2 · Nginx · 告警 · 备份</div>
+      <div class="b-role">🔧 公网服务 · 部署 · 告警 · 备份</div>
+      <div class="b-duties">
+        ▸ PM2/Nginx/公网服务<br>
+        ▸ 告警监控<br>
+        ▸ 代码部署（git pull）<br>
+        ▸ 数据备份<br>
+        ▸ 供01/02/04访问查询状态
+      </div>
     </div>
+    <!-- 04 -->
     <div class="brain-card" style="border-color:#f06292;">
       <div class="b-head">
         <span class="b-name" style="color:#f06292;">☁️ 04 · 国际节点</span>
         <span class="b-status bg-gray">待部署</span>
       </div>
       <div class="b-spec">2核8G · 新加坡</div>
-      <div class="b-role">01灾备 · PayPal/Stripe · 海外CDN</div>
+      <div class="b-role">🌏 海外 · 灾备 · PayPal · CDN</div>
+      <div class="b-duties">
+        ▸ 01 VPN灾备出口<br>
+        ▸ PayPal/Stripe支付<br>
+        ▸ 海外CDN加速<br>
+        ▸ 英文文档托管
+      </div>
     </div>
   </div>
 
-  <!-- Core Metrics -->
-  <div class="s-title">📊 核心指标</div>
-  <div class="metrics">
-    <div class="metric"><div class="val c-green" id="smokeResult">17/17</div><div class="lbl">上次烟测</div></div>
-    <div class="metric"><div class="val c-blue" id="svcOnline">4</div><div class="lbl">服务在线</div></div>
-    <div class="metric"><div class="val c-green" id="svcTotal">4</div><div class="lbl">服务总数</div></div>
-    <div class="metric"><div class="val c-yellow" id="decisions">11</div><div class="lbl">决策记录</div></div>
-    <div class="metric"><div class="val c-orange" id="gitChanges">33</div><div class="lbl">未提交文件</div></div>
-    <div class="metric"><div class="val c-pink" id="projects">3</div><div class="lbl">子项目数</div></div>
+  <!-- KPI -->
+  <div class="s-title">📊 一人公司 KPI</div>
+  <div class="kpi-row">
+    <div class="kpi-card"><div class="val c-green">&lt;30min</div><div class="lbl">雷总日均人工</div></div>
+    <div class="kpi-card"><div class="val c-orange">&lt;¥500/月</div><div class="lbl">运营成本</div></div>
+    <div class="kpi-card"><div class="val c-blue">90%+</div><div class="lbl">在线率</div></div>
+    <div class="kpi-card"><div class="val c-yellow">4</div><div class="lbl">数字副脑</div></div>
+    <div class="kpi-card"><div class="val c-pink">0</div><div class="lbl">外包依赖</div></div>
   </div>
 
-  <!-- Services -->
-  <div class="s-title">⚙️ 本机服务状态</div>
-  <table class="svc-table">
-    <thead><tr><th>服务</th><th>状态</th><th>端口</th><th>运行时间</th><th>内存</th></tr></thead>
-    <tbody id="svcBody">
-      <tr><td style="color:#42a5f5;">core-8000</td><td><span class="badge bg-green">online</span></td><td>8000</td><td id="uptime0">-</td><td id="mem0">-</td></tr>
-      <tr><td style="color:#4caf50;">a1-api-18011</td><td><span class="badge bg-green">online</span></td><td>18011</td><td id="uptime1">-</td><td id="mem1">-</td></tr>
-      <tr><td style="color:#4caf50;">a1-web-18001</td><td><span class="badge bg-green">online</span></td><td>18001</td><td id="uptime2">-</td><td id="mem2">-</td></tr>
-      <tr><td style="color:#f06292;">fisher-web-18002</td><td><span class="badge bg-green">online</span></td><td>18002</td><td id="uptime3">-</td><td id="mem3">-</td></tr>
-    </tbody>
-  </table>
+  <!-- Flow -->
+  <div class="s-title">🔄 国际站协作流</div>
+  <div class="flow-chart">
+    <span class="step">01 (VPN)</span> → Google 关键词+SEO内容生产
+    <span class="arrow">↓</span> 飞书同步
+    <span class="step">02</span> → 英文内容审校 + 知识补充
+    <span class="arrow">↓</span>
+    <span class="step">01</span> 或 <span class="step">04</span> → 发布到 Google/X/Reddit/HN
+    <span class="arrow">↓</span>
+    数据反馈 → 飞书回传 → <span class="step">01</span> 优化策略
+  </div>
+
+  <div class="s-title">🔄 A1行情官协作流</div>
+  <div class="flow-chart">
+    <span class="step">主脑(Cursor)</span> → A1功能开发/维护
+    <span class="arrow">↓</span>
+    <span class="step">03</span> → 部署上线
+    <span class="arrow">↓</span>
+    <span class="step">02</span> → 种子群运营 + 社媒推广 + 教程
+    <span class="arrow">↓</span>
+    用户反馈 → 飞书回传 → <span class="step">主脑</span> 决策
+  </div>
 
   <!-- Projects -->
-  <div class="s-title">🚀 三项目并行</div>
+  <div class="s-title">🚀 项目看板</div>
   <div class="arch-row">
     <div class="brain-card" style="flex:2;border-color:#f06292;">
       <div class="b-head">
         <span class="b-name" style="color:#f06292;">🌍 国际Token平台</span>
         <span class="b-status bg-pink">P0 · 主攻</span>
       </div>
-      <div class="b-role">英文站 → 注册/Key → DeepSeek API → PayPal收款<br>卖点：Chinese AI at 90% less than OpenAI<br>01主攻 · 02辅助中文内容</div>
+      <div class="b-role">Chinese AI at 90% less than OpenAI</div>
+      <div class="b-duties">
+        01主攻英文推广 · 02辅助中文内容
+      </div>
     </div>
     <div class="brain-card" style="flex:1;border-color:#4caf50;">
       <div class="b-head">
         <span class="b-name" style="color:#4caf50;">🐻 A1 行情官</span>
         <span class="b-status bg-green">P1 · 运营</span>
       </div>
-      <div class="b-role">A股K线 · AI信号 · ¥99/月<br>02主推 · 种子群+社媒</div>
+      <div class="b-role">A股K线 · AI信号 · ¥99/月</div>
+      <div class="b-duties">
+        02主推 · 种子群+社媒
+      </div>
     </div>
     <div class="brain-card" style="flex:1;">
       <div class="b-head">
         <span class="b-name" style="color:#f06292;">Fisher 山海渔</span>
         <span class="b-status bg-gray">搁置</span>
       </div>
-      <div class="b-role">钓鱼游戏/社区 · 国际优先后再看</div>
+      <div class="b-role">钓鱼游戏/社区</div>
+      <div class="b-duties">
+        国际优先后再看
+      </div>
     </div>
   </div>
 
@@ -235,25 +336,14 @@
     ⚪ 国内Token平台：保留体验/联调/种子，<strong>不花精力推广</strong>。等国际跑通、合规清晰后再启动。
   </div>
 
-  <!-- Quick Links -->
-  <div class="s-title">🔗 快捷入口</div>
-  <div class="links">
-    <a class="link-btn" href="/" target="_blank">🏠 主站 www</a>
-    <a class="link-btn" href="/console.html" target="_blank">👤 控制台</a>
-    <a class="link-btn" href="http://127.0.0.1:18001/" target="_blank">📈 A1行情官</a>
-    <a class="link-btn" href="http://127.0.0.1:18002/" target="_blank">🎣 Fisher</a>
-    <a class="link-btn" href="/docs/README.md" target="_blank">📚 文档索引</a>
-    <a class="link-btn" href="./memory/daily/2026-07-26.md" target="_blank">📋 今日作战卡</a>
-  </div>
-
   <!-- Execution Phases -->
-  <div class="s-title">📅 执行阶段（国际优先）</div>
+  <div class="s-title">📅 执行阶段</div>
   <div class="phase-list">
     <div class="phase-card" style="border-color:#f06292;">
       <div class="ph-title"><span>🔴 P0 · 本周</span><span style="color:#f06292;">国际闭环</span></div>
       <div class="ph-items">
         <span class="ph-item">01 VPN ✅</span>
-        <span class="ph-item">02飞书在线 ✅</span>
+        <span class="ph-item">02飞书 ✅</span>
         <span class="ph-item">PayPal申请</span>
         <span class="ph-item">英文站规划</span>
         <span class="ph-item">A1种子群启动</span>
@@ -275,7 +365,7 @@
         <span class="ph-item">04新加坡</span>
         <span class="ph-item">OpenAI兼容</span>
         <span class="ph-item">更多模型</span>
-        <span class="ph-item">付费用户增长</span>
+        <span class="ph-item">付费增长</span>
         <span class="ph-item">国内合规再看</span>
       </div>
     </div>
@@ -283,50 +373,55 @@
 
   <!-- Automation -->
   <div class="s-title">🤖 自动化引擎</div>
-  <div class="metrics" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));">
+  <div class="metrics" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
     <div class="metric"><div class="val" style="color:#667eea;">一三五 09:00</div><div class="lbl">🧪 平台巡更</div></div>
     <div class="metric"><div class="val" style="color:#667eea;">飞书推</div><div class="lbl">📊 异常告警</div></div>
     <div class="metric"><div class="val" style="color:#667eea;">OpenClaw</div><div class="lbl">⏱️ Cron调度</div></div>
     <div class="metric"><div class="val" style="color:#667eea;">待配</div><div class="lbl">📈 成本日报</div></div>
   </div>
 
+  <!-- Moral -->
+  <div class="strategy-box" style="text-align:center;">
+    <div style="font-size:0.8em;color:#888;line-height:1.8;">
+      国内做深，种子做精。国际做广，闷声发财。<br>
+      先让全球开发者用上中国最好的模型，再回过头来服务国内。
+    </div>
+    <div style="font-size:1.4em;margin-top:8px;">🎇</div>
+  </div>
+
   <!-- Footer -->
   <div class="footer">
-    <div style="font-size:1.8em;margin-bottom:6px;">🎇</div>
     AI24X · 指挥官面板 v3.6 · 2026-07-26<br>
-    国际优先 · 国内沙盒 · 闷声发财<br>
+    主脑 AI24X永生 · 雷总的数字分身<br>
     我命由我不由天，热爱每一天
   </div>
 
 </div>
-<script>
-  function updateClock() {
-    const now = new Date();
-    const opts = { timeZone:'Asia/Shanghai', year:'numeric', month:'2-digit', day:'2-digit',
-                   hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false };
-    document.getElementById('clock').textContent = '🕐 ' + now.toLocaleString('zh-CN', opts) + ' CST';
-  }
-  updateClock();
-  setInterval(updateClock, 1000);
+</div>
 
-  // Refresh PM2 data from API
-  async function refreshServices() {
-    try {
-      const res = await fetch('/pm2-status.json?' + Date.now());
-      if (!res.ok) return;
-      const data = await res.json();
-      const names = ['core-8000','a1-api-18011','a1-web-18001','fisher-web-18002'];
-      const keys = Object.keys(data);
-      names.forEach((n,i) => {
-        const svc = data[n];
-        if (svc) {
-          document.getElementById('uptime'+i).textContent = svc.uptime || '-';
-          document.getElementById('mem'+i).textContent = svc.memory || '-';
-        }
-      });
-    } catch(e) { /* static fallback OK */ }
+<script>
+// Password check
+function checkPwd() {
+  const pwd = document.getElementById('pwdInput').value;
+  if (pwd === 'iamlei') {
+    document.getElementById('passwordGate').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'block';
+  } else {
+    document.getElementById('pwdErr').style.display = 'block';
+    document.getElementById('pwdInput').value = '';
+    document.getElementById('pwdInput').focus();
   }
-  refreshServices();
+}
+
+// Clock
+function updateClock() {
+  const now = new Date();
+  const opts = { timeZone:'Asia/Shanghai', year:'numeric', month:'2-digit', day:'2-digit',
+                 hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false };
+  document.getElementById('clock').textContent = '🕐 ' + now.toLocaleString('zh-CN', opts) + ' CST';
+}
+updateClock();
+setInterval(updateClock, 1000);
 </script>
 </body>
 </html>

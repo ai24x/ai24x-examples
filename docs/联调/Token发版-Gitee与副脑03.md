@@ -76,7 +76,9 @@ curl.exe -sS -o NUL -w "%{http_code}" https://api.ai24x.com/health
 curl.exe -sS -o NUL -w "%{http_code}" https://www.ai24x.com/console.html
 ```
 
-期望：`health` 200；`pay/status` JSON 可读；`TOKEN_PAY_ENABLED` / 商户项按 env 配置。
+期望：本机 `8002/health` 与公网 `api.ai24x.com/health` 均为 **200**（若公网 **502**，多半是 `core-api-8002` 未起来或 Nginx 反代指错端口）。
+
+官网注册若出现英文 `Failed to fetch`：通常是浏览器跨域看到 Nginx 502 无 CORS，本质仍是 **API 502**，先修上游再测注册。
 
 ### 生产 `api/.env` 必查（Token · 实付联调）
 ```
