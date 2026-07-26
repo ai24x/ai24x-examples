@@ -1,11 +1,12 @@
 """
 Token 产品套餐目录（与 a1 行情官 VIP 配额套餐完全独立）。
 
-定价口径（2026-07-26）：
+定价口径（2026-07-26 / 联调更新 2026-07-27）：
 - 主数据按国际价（USD 锚定，对标 OpenRouter 中国模型线 +10%～25% 便利溢价）
 - 国内站收银台收 CNY（微信/支付宝）；国际站收 USD（PayPal 等）— 同一 SKU
 - 前端按语言展示：中文只显示人民币文案；其它语言显示美元文案
 - 价格可用环境变量覆盖（分）：TOKEN_PRICE_<PLAN_UPPER>_FEN
+- 入门包暂为国内联调价：¥1 / 10_000 token（正式获客前再抬回国际口径）
 """
 from __future__ import annotations
 
@@ -43,13 +44,14 @@ TOKEN_PLANS: dict[str, dict[str, Any]] = {
     "token_pack_10k": {
         "title_zh": "入门包",
         "title_en": "Starter",
-        "price_usd": 5.0,
-        "price_fen": _price("TOKEN_PRICE_TOKEN_PACK_10K_FEN", _fen_from_usd(5.0)),
-        "credit_tokens": 100_000,
+        # 联调体验：固定 ¥1（100 分）；USD 展示按汇率约 0.14
+        "price_usd": round(1.0 / _usd_cny(), 2),
+        "price_fen": _price("TOKEN_PRICE_TOKEN_PACK_10K_FEN", 100),
+        "credit_tokens": 10_000,
         "set_vip": False,
         "enabled": True,
-        "note_zh": "充值后可用于 API 调用；支持微信、支付宝。",
-        "note_en": "Credits for API usage. PayPal on the international site.",
+        "note_zh": "联调体验价：¥1 到账 1 万 token；支持微信、支付宝。",
+        "note_en": "Debug promo: ~$0.14 for 10k credits. PayPal on the international site.",
     },
     "token_pack_100k": {
         "title_zh": "开发包",

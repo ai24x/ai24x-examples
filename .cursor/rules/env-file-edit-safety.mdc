@@ -1,0 +1,21 @@
+---
+description: 禁止 Write 整文件覆盖 .env；敏感配置只用行级编辑
+alwaysApply: true
+---
+
+# `.env` 编辑安全（副脑 / 生产）
+
+## 硬禁止
+
+- **禁止**用 Write / 整文件覆盖 `api/.env`、任意机器上的生产/预演 `.env`
+- **禁止**把真实 `.env` 内容提交进 git、指挥中心 JSON、公开文档
+
+## 正确做法
+
+- 只改需要的键：用 **StrReplace（行级）** 或让运维在服务器用记事本手改
+- 改完自检目标行：不得出现 Unicode 省略号 `…`（U+2026）替换密码片段
+- 生产改完后：`pm2 restart <进程名> --update-env`，并看日志无连库/解码错误
+
+## 背景
+
+2026-07-27 副脑03：Write 覆盖 `.env` 时 `DATABASE_URL` 密码被写成 `…`，API 崩溃停机。详见 `docs/联调/事故-Cursor写env密码被省略号替换.md`。
