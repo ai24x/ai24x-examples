@@ -179,8 +179,17 @@
           return isZhUi() ? "登录已失效或未授权，请重新登录。" : "Unauthorized. Please sign in again.";
         if (status === 403) return isZhUi() ? "没有权限执行此操作。" : "Forbidden.";
         if (status === 429) return isZhUi() ? "请求过于频繁，请稍后再试。" : "Too many requests. Try later.";
-        if (status >= 500)
+        // 支付下单 502 需露出上游原因，便于副脑排障（勿整页 HTML）
+        if (status >= 500) {
+          if (
+            joined &&
+            !/<\s*html/i.test(joined) &&
+            /(微信|支付宝|下单失败|wechat|alipay|pay)/i.test(joined)
+          ) {
+            return joined.length > 240 ? joined.slice(0, 237) + "…" : joined;
+          }
           return isZhUi() ? "服务暂时不可用，请稍后再试。" : "Service temporarily unavailable.";
+        }
 
         if (joined.length > 180) joined = joined.slice(0, 177) + "…";
         return joined;
