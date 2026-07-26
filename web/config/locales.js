@@ -1,6 +1,9 @@
 /**
  * AI24X 语言包 — 扁平 key，扩展语言时在此追加
  * ja/ko/de/fr/es：导航与页脚已翻译，正文段落回退英文
+ *
+ * 注意：此处文案面向最终用户。勿写 SMTP / 本地预览 / 联调 / env 等运维用语。
+ * 开发说明见代码注释、.env.example、docs/联调（.cursor/rules/user-facing-copy.mdc）。
  */
 (function (global) {
   var zh = {

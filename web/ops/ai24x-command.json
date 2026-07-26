@@ -1,0 +1,72 @@
+{
+  "schema": "ai24x.command.v1",
+  "updated": "2026-07-26",
+  "title": "AI24X 指挥中心 · 副脑协同数据",
+  "human_ui": "/ai24x.html",
+  "note": "供 OpenClaw / 副脑拉取角色与链接；不含密码与密钥。",
+  "strategy": {
+    "priority": "intl_first",
+    "p0": "英文站 → API → PayPal",
+    "p1": "A1 行情官运营 · 种子群",
+    "parked": ["国内 Token 推广", "Fisher"]
+  },
+  "brains": [
+    {
+      "id": "main",
+      "name": "主脑",
+      "host": "local",
+      "role": "决策 · 主开发 · 调度 · 督查",
+      "tools": ["Cursor", "OpenClaw", "飞书"]
+    },
+    {
+      "id": "01",
+      "name": "国际增长",
+      "host": "vpn",
+      "role": "国际 Token 推广 · 海外流量",
+      "duties": ["SEO", "X/Reddit/HN", "竞品", "邮件营销"]
+    },
+    {
+      "id": "02",
+      "name": "国内运营",
+      "host": "cn",
+      "role": "A1 行情官推广 · 中文辅助",
+      "duties": ["种子群", "社媒", "中文教程", "协助 01 审校"]
+    },
+    {
+      "id": "03",
+      "name": "运维+API",
+      "host": "public",
+      "role": "公网服务 · 部署 · 告警 · 备份",
+      "duties": ["PM2", "Nginx", "git pull", "备份", "状态查询入口"]
+    },
+    {
+      "id": "04",
+      "name": "国际节点",
+      "host": "sg-planned",
+      "role": "海外灾备 · PayPal · CDN",
+      "status": "pending"
+    }
+  ],
+  "links": {
+    "www": "https://www.ai24x.com/",
+    "api_health": "https://api.ai24x.com/health",
+    "api_pay_status": "https://api.ai24x.com/v1/billing/pay/status",
+    "console": "https://www.ai24x.com/console.html",
+    "docs": "https://www.ai24x.com/docs.html",
+    "a1": "https://a.ai24x.com/",
+    "command_ui": "https://www.ai24x.com/ai24x.html",
+    "command_data": "https://www.ai24x.com/ops/ai24x-command.json",
+    "runbook_token": "docs/联调/Token发版-Gitee与副脑03.md",
+    "openclaw_upgrade": "docs/OpenClaw升级经验-副脑通用.md"
+  },
+  "processes": {
+    "core_api": "core-api-8002",
+    "a1_api": "a-api-8001",
+    "do_not_touch": ["a1 notify URLs", "p/a1 pay fulfill"]
+  },
+  "collab": {
+    "hub": "飞书",
+    "intl_flow": ["01 SEO", "飞书", "02 审校", "01/04 发布", "数据回传"],
+    "a1_flow": ["主脑开发", "03 部署", "02 运营", "反馈回主脑"]
+  }
+}

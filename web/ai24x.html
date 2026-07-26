@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI24X · 指挥中心</title>
+<meta name="robots" content="noindex,nofollow,noarchive" />
+<meta name="referrer" content="no-referrer" />
+<!-- 内部作战沙盘：勿挂导航；副脑机读数据见 /ops/ai24x-command.json -->
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body {
@@ -380,6 +383,29 @@
     <div class="metric"><div class="val" style="color:#667eea;">待配</div><div class="lbl">📈 成本日报</div></div>
   </div>
 
+  <!-- 副脑协同链接（人类点选；机器读 JSON） -->
+  <div class="s-title">🔗 副脑协同 · 统一入口</div>
+  <div class="links">
+    <a class="link-btn" href="/ops/ai24x-command.json" target="_blank" rel="noopener">机读数据 JSON</a>
+    <a class="link-btn" href="https://api.ai24x.com/health" target="_blank" rel="noopener">API /health</a>
+    <a class="link-btn" href="https://api.ai24x.com/v1/billing/pay/status" target="_blank" rel="noopener">pay/status</a>
+    <a class="link-btn" href="console.html" target="_blank" rel="noopener">控制台</a>
+    <a class="link-btn" href="docs.html" target="_blank" rel="noopener">文档</a>
+    <a class="link-btn" href="https://a.ai24x.com/" target="_blank" rel="noopener">A1 行情官</a>
+  </div>
+  <div class="flow-chart" style="margin-top:8px;">
+    <span class="step">OpenClaw 拉取</span>
+    <span class="arrow">→</span>
+    <code style="color:#8899ff;">/ops/ai24x-command.json</code>
+    <span class="arrow">→</span>
+    角色 / 链接 / 协作流（不含密码与密钥）
+    <br>
+    <span style="color:#555;">公网探测：</span>
+    <span id="probeApi" class="c-gray">api …</span>
+    <span class="arrow">·</span>
+    <span id="probeWww" class="c-gray">www …</span>
+  </div>
+
   <!-- Moral -->
   <div class="strategy-box" style="text-align:center;">
     <div style="font-size:0.8em;color:#888;line-height:1.8;">
@@ -391,7 +417,7 @@
 
   <!-- Footer -->
   <div class="footer">
-    AI24X · 指挥官面板 v3.6 · 2026-07-26<br>
+    AI24X · 指挥官面板 v3.6.1 · 2026-07-26<br>
     主脑 AI24X永生 · 雷总的数字分身<br>
     我命由我不由天，热爱每一天
   </div>
@@ -400,28 +426,54 @@
 </div>
 
 <script>
-// Password check
+/** 门禁：仅防顺手点开；源码可见，生产请再加 Nginx 基础认证或内网限制 */
+var GATE_KEY = 'ai24x_cmd_ok';
+function unlockUi() {
+  document.getElementById('passwordGate').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+  probeStatus();
+}
 function checkPwd() {
-  const pwd = document.getElementById('pwdInput').value;
+  var pwd = document.getElementById('pwdInput').value;
+  // 口令勿写进 ops JSON；改口令时同步改此处与运维备忘（勿提交明文到对外文档）
   if (pwd === 'iamlei') {
-    document.getElementById('passwordGate').style.display = 'none';
-    document.getElementById('mainContent').style.display = 'block';
+    try { sessionStorage.setItem(GATE_KEY, '1'); } catch (e) {}
+    unlockUi();
   } else {
     document.getElementById('pwdErr').style.display = 'block';
     document.getElementById('pwdInput').value = '';
     document.getElementById('pwdInput').focus();
   }
 }
+try {
+  if (sessionStorage.getItem(GATE_KEY) === '1') unlockUi();
+} catch (e) {}
 
-// Clock
 function updateClock() {
-  const now = new Date();
-  const opts = { timeZone:'Asia/Shanghai', year:'numeric', month:'2-digit', day:'2-digit',
-                 hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false };
-  document.getElementById('clock').textContent = '🕐 ' + now.toLocaleString('zh-CN', opts) + ' CST';
+  var el = document.getElementById('clock');
+  if (!el) return;
+  var now = new Date();
+  var opts = { timeZone:'Asia/Shanghai', year:'numeric', month:'2-digit', day:'2-digit',
+               hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false };
+  el.textContent = now.toLocaleString('zh-CN', opts) + ' CST';
 }
 updateClock();
 setInterval(updateClock, 1000);
+
+function setProbe(id, ok, text) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.className = ok ? 'c-green' : 'c-orange';
+  el.textContent = text;
+}
+function probeStatus() {
+  fetch('https://api.ai24x.com/health', { method: 'GET', mode: 'cors', cache: 'no-store' })
+    .then(function (r) { setProbe('probeApi', r.ok, 'api ' + r.status); })
+    .catch(function () { setProbe('probeApi', false, 'api 不可达'); });
+  fetch('/', { method: 'HEAD', cache: 'no-store' })
+    .then(function (r) { setProbe('probeWww', r.ok, 'www ' + r.status); })
+    .catch(function () { setProbe('probeWww', false, 'www ?'); });
+}
 </script>
 </body>
 </html>
