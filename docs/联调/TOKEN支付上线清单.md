@@ -49,6 +49,13 @@ TOKEN_ALIPAY_RETURN_URL=https://www.ai24x.com/console.html
 
 商户平台里把 **Native/手机网站支付回调** 增加（或单独配置）上述 Token URL；**保留** a1 原回调不动。
 
+> **付款成功但不加 Token**：多半是商户平台**尚未登记** Token 回调，异步通知打到 a1 或落空。  
+> 临时：控制台「我的订单」对 `pending` 单点 **确认到账**（主动查微信/支付宝并履约）。  
+> 根治：微信/支付宝商户后台增加  
+> `https://api.ai24x.com/v1/billing/wechat/notify`  
+> `https://api.ai24x.com/v1/billing/alipay/notify`  
+> （Native/WAP 支付通知，与 a1 原回调并存）
+
 ## 开启真支付步骤（副脑03 实付）
 1. 凭证写入生产 `api/.env` 后：`pm2 restart core-api-8002 --update-env`
 2. 打开 `/v1/billing/pay/status` → `merchant_configured=true`；`/v1/billing/plans` → `wechat_ready`/`alipay_ready` 为 true

@@ -319,6 +319,13 @@
     root.setAttribute("aria-hidden", "false");
   }
 
+  function closePayModal() {
+    var root = $("modal-pay");
+    if (!root) return;
+    root.classList.remove("is-open");
+    root.setAttribute("aria-hidden", "true");
+  }
+
   function showPayResult(opts) {
     opts = opts || {};
     $("modal-pay-result").style.display = "block";
@@ -368,6 +375,45 @@
       }
     } catch (e) {}
     return false;
+  }
+
+  var _fulfillPollTimer = null;
+  /** 支付后主动查单补履约（异步 notify 未到时的兜底） */
+  function startFulfillPoll(outTradeNo, channel) {
+    if (!outTradeNo) return;
+    if (_fulfillPollTimer) {
+      clearInterval(_fulfillPollTimer);
+      _fulfillPollTimer = null;
+    }
+    var tries = 0;
+    var maxTries = 40; // ~2 分钟（每 3 秒）
+    _fulfillPollTimer = setInterval(function () {
+      tries += 1;
+      if (tries > maxTries) {
+        clearInterval(_fulfillPollTimer);
+        _fulfillPollTimer = null;
+        return;
+      }
+      AI24X_API.billingQueryFulfill(outTradeNo, channel || "wechat")
+        .then(function (r) {
+          if (r && r.ok) {
+            clearInterval(_fulfillPollTimer);
+            _fulfillPollTimer = null;
+            showMsg(
+              $("consoleMsg"),
+              tr("支付已确认，Token 已到账。单号：" + outTradeNo, "Paid. Tokens credited. Order: " + outTradeNo),
+              true
+            );
+            try {
+              closePayModal();
+            } catch (e) {}
+            return refreshAll();
+          }
+        })
+        .catch(function () {
+          /* 未支付成功时接口可能 4xx，继续轮询 */
+        });
+    }, 3000);
   }
 
   function buyPlan(planId, channel, planMeta) {
@@ -450,13 +496,14 @@
         if (channel === "wechat" && r && r.code_url) {
           showPayResult({
             hint: tr(
-              "请用微信扫码支付。付完后若余额未更新，可到「我的订单」点「确认到账」。单号：" +
+              "请用微信扫码支付。付完后本页会自动查单到账；也可到「我的订单」点「确认到账」。单号：" +
                 (r.out_trade_no || ""),
-              "Scan with WeChat to pay. If balance does not update, tap Confirm under My orders. Order: " +
+              "Scan with WeChat. This page auto-confirms after pay; or tap Confirm under My orders. Order: " +
                 (r.out_trade_no || "")
             ),
             qrData: r.code_url,
           });
+          startFulfillPoll(r.out_trade_no, "wechat");
         } else if (channel === "alipay" && r && r.pay_url) {
           var opened = false;
           if (alipayWin && !alipayWin.closed) {
@@ -481,13 +528,14 @@
                     "If no window opened, use the button below."
                   )) +
               tr(
-                " 付完后回到本页，若余额未更新可到「我的订单」点「确认到账」。单号：",
-                " Then return here; if balance is stale, tap Confirm under My orders. Order: "
+                " 付完后本页会自动查单到账；也可点「确认到账」。单号：",
+                " This page auto-confirms after pay; or tap Confirm. Order: "
               ) +
               (r.out_trade_no || ""),
             openUrl: r.pay_url,
             openLabel: tr("在新窗口打开支付宝", "Open Alipay in a new window"),
           });
+          startFulfillPoll(r.out_trade_no, "alipay");
         } else {
           if (alipayWin && !alipayWin.closed) {
             try {
@@ -536,7 +584,8 @@
         (AI24X_API.isZhUi() ? "¥" + amt : "CNY " + amt) +
         " · " +
         labelOrderStatus(o.status) +
-        (o.channel ? " · " + labelChannel(o.channel) : "");
+        (o.channel ? " · " + labelChannel(o.channel) : "") +
+        (o.out_trade_no ? " · " + o.out_trade_no : "");
       var right = document.createElement("span");
       if (o.status === "pending") {
         var payCfg = window.__tokenPay || {};
@@ -568,8 +617,8 @@
               showMsg(
                 $("consoleMsg"),
                 r && r.ok
-                  ? tr("查单履约成功", "Payment confirmed")
-                  : tr("尚未支付成功", "Not paid yet"),
+                  ? tr("查单履约成功，Token 已到账", "Payment confirmed, tokens credited")
+                  : tr("尚未支付成功或查单未完成", "Not paid yet / still pending"),
                 !!(r && r.ok)
               );
               return refreshAll();
@@ -580,7 +629,7 @@
         });
         right.appendChild(btnQ);
       } else {
-        right.textContent = o.out_trade_no || "";
+        right.textContent = o.transaction_id || o.out_trade_no || "";
       }
       li.appendChild(left);
       li.appendChild(right);
