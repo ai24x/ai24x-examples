@@ -51,11 +51,17 @@ TOKEN_ALIPAY_RETURN_URL=https://www.ai24x.com/console.html
 
 ## 开启真支付步骤（副脑03 实付）
 1. 凭证写入生产 `api/.env` 后：`pm2 restart core-api-8002 --update-env`
-2. 打开 `/v1/billing/pay/status` → `wechat_ready`/`alipay_ready`、notify 已设  
+2. 打开 `/v1/billing/pay/status` → `merchant_configured=true`；`/v1/billing/plans` → `wechat_ready`/`alipay_ready` 为 true
 3. a1 扫码付一笔仍正常（回归）  
 4. 设 `TOKEN_PAY_ENABLED=true` 且 **`TOKEN_PAY_MOCK_ENABLED=false`**（关模拟；只留「确认到账」）
 5. 控制台 Token 套餐小额实付一单 → 查 `token_pay_orders` + 钱包余额  
 6. 详见 `docs/联调/Token发版-Gitee与副脑03.md`
+
+### 线上现象对照（2026-07-27）
+`https://www.ai24x.com/console.html` 只显示「下单/支付通道未就绪」且无法跳转支付：  
+因 `api.ai24x.com` 上 **`TOKEN_PAY_ENABLED=true` 但 `wechat_configured`/`alipay_configured` 均为 false**（商户号/密钥路径未进 **core** 的 `api/.env`，私钥 path 不存在）。  
+本机 `:8000` 有微信/支付宝按钮 = 本机商户已配齐。  
+**修复**：把 a1 已跑通的商户项按无前缀变量写入 `C:\ai24x01\api\.env`（**禁止 Write 整文件覆盖**），确认私钥文件路径对 core 进程可读，再 `--update-env` 重启。
 
 ## 国际支付（并行申请，后接代码）
 - PayPal / Stripe：现在去申请账号与商户审核即可  

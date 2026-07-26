@@ -274,10 +274,21 @@
 
       if (pay.wechat_ready) addBtn(tr("微信", "WeChat"), "btn btn-primary", "wechat");
       if (pay.alipay_ready) addBtn(tr("支付宝", "Alipay"), "btn btn-primary", "alipay");
-      if (!pay.wechat_ready && !pay.alipay_ready) {
-        addBtn(tr("下单", "Buy"), "btn btn-primary", pay.mock_allowed ? "mock" : "wechat");
-      } else if (pay.mock_allowed) {
+      if (pay.mock_allowed) {
         addBtn(tr("模拟到账", "Mock pay"), "btn", "mock");
+      } else if (!pay.wechat_ready && !pay.alipay_ready) {
+        var disabled = document.createElement("button");
+        disabled.type = "button";
+        disabled.className = "btn";
+        disabled.disabled = true;
+        disabled.textContent = pay.enabled
+          ? tr("支付通道未就绪", "Pay channel not ready")
+          : tr("支付暂未开放", "Pay not open");
+        disabled.title = tr(
+          "需在 api/.env 配齐 WECHAT_* / ALIPAY_* 商户项后重启 core-api-8002",
+          "Configure WECHAT_* / ALIPAY_* in api/.env, then restart core-api-8002"
+        );
+        actions.appendChild(disabled);
       }
 
       card.appendChild(h);
