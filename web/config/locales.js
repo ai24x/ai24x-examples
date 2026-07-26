@@ -134,6 +134,12 @@
     "page.docs.endpoint.p":
       "统一路径 <code>POST /v1/chat/run</code>。使用 <code>X-API-Key</code> 进行鉴权（更多参数见文档）。",
     "page.docs.curl": "cURL 示例",
+    "page.docs.steps": "三步上手",
+    "page.docs.step1": "注册并登录控制台，创建或复制 API Key。",
+    "page.docs.step2": "按需购买 Token 套餐（控制台支付）。",
+    "page.docs.step3": "请求时带上请求头 X-API-Key，调用 /v1/chat/run。",
+    "page.docs.privacy": "隐私政策",
+    "page.docs.terms": "服务条款",
     "page.about.title": "关于我们",
     "page.about.sub": "AI24X 智能聚合平台提供 7×24 小时全天候多模型 API 与智能应用服务，立足中国，服务全球。",
     "page.about.p1": "主品牌：AI24X（AI24X 智能聚合平台）。",
@@ -420,6 +426,12 @@
     "page.docs.endpoint.p":
       "Use <code>POST /v1/chat/run</code>. Authenticate with <code>X-API-Key</code> (see docs for options).",
     "page.docs.curl": "cURL sample",
+    "page.docs.steps": "Get started in 3 steps",
+    "page.docs.step1": "Sign up, open the console, and create or copy your API Key.",
+    "page.docs.step2": "Buy a Token plan from the console when you need more quota.",
+    "page.docs.step3": "Send requests to /v1/chat/run with the X-API-Key header.",
+    "page.docs.privacy": "Privacy",
+    "page.docs.terms": "Terms",
     "page.about.title": "About AI24X",
     "page.about.sub":
       "We help developers ship faster with a dependable multi-model API hub.",

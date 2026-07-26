@@ -355,6 +355,70 @@ def admin_list_orders(
     }
 
 
+def admin_token_summary(db: Session) -> dict:
+    """管理端看板：订单计数 + 支付通道就绪（不含密钥）。"""
+    from sqlalchemy import func
+
+    from models import AuthUser, TokenWallet
+
+    def _cnt(status: str | None = None, channel: str | None = None) -> int:
+        q = db.query(func.count(TokenPayOrder.id))
+        if status:
+            q = q.filter(TokenPayOrder.status == status)
+        if channel:
+            q = q.filter(TokenPayOrder.channel == channel)
+        return int(q.scalar() or 0)
+
+    paid_fen = (
+        db.query(func.coalesce(func.sum(TokenPayOrder.amount_fen), 0))
+        .filter(TokenPayOrder.status == "paid", TokenPayOrder.channel.in_(("wechat", "alipay")))
+        .scalar()
+    )
+    paid_usd_cents = (
+        db.query(func.coalesce(func.sum(TokenPayOrder.amount_fen), 0))
+        .filter(TokenPayOrder.status == "paid", TokenPayOrder.channel == "paypal")
+        .scalar()
+    )
+    users = int(db.query(func.count(AuthUser.id)).scalar() or 0)
+    wallets = int(db.query(func.count(TokenWallet.id)).scalar() or 0)
+    pay = public_plans().get("pay") or {}
+    return {
+        "ok": True,
+        "users": users,
+        "wallets": wallets,
+        "orders": {
+            "pending": _cnt("pending"),
+            "paid": _cnt("paid"),
+            "failed": _cnt("failed"),
+            "by_channel_paid": {
+                "wechat": _cnt("paid", "wechat"),
+                "alipay": _cnt("paid", "alipay"),
+                "paypal": _cnt("paid", "paypal"),
+            },
+            "paid_amount_cny_fen": int(paid_fen or 0),
+            "paid_amount_usd_cents": int(paid_usd_cents or 0),
+        },
+        "pay": pay,
+    }
+
+
+async def admin_query_fulfill_order(db: Session, *, out_trade_no: str) -> dict:
+    """管理端代用户查单履约（pending → 向通道确认后加 Token）。"""
+    otn = str(out_trade_no or "").strip()
+    row = db.query(TokenPayOrder).filter(TokenPayOrder.out_trade_no == otn).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="订单不存在")
+    uid = int(row.auth_user_id)
+    ch = str(row.channel or "")
+    if ch == "wechat":
+        return await query_and_fulfill_wechat(db, out_trade_no=otn, auth_user_id=uid)
+    if ch == "alipay":
+        return query_and_fulfill_alipay(db, out_trade_no=otn, auth_user_id=uid)
+    if ch == "paypal":
+        return await query_and_fulfill_paypal(db, out_trade_no=otn, auth_user_id=uid)
+    raise HTTPException(status_code=400, detail=f"unsupported_channel:{ch}")
+
+
 async def create_wechat_native(db: Session, *, auth_user_id: int, plan: str) -> dict:
     row = create_pending_order(db, auth_user_id=auth_user_id, plan=plan, channel="wechat")
     plan_meta = get_plan(row.plan) or {}

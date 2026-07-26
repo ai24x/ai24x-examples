@@ -1500,6 +1500,25 @@ async def admin_token_topup(request: Request, body: BillingTopupBody, db: Sessio
     )
 
 
+@app.get("/v1/admin/token/summary")
+async def admin_token_summary_api(request: Request, db: Session = Depends(get_db)):
+    _require_internal_key(request)
+    from token_pay_service import admin_token_summary
+
+    return admin_token_summary(db)
+
+
+@app.post("/v1/admin/token/orders/query_fulfill")
+async def admin_token_orders_query_fulfill(
+    request: Request, body: TokenQueryFulfillBody, db: Session = Depends(get_db)
+):
+    """管理端对 pending 单主动查通道并履约（不代替用户登录）。"""
+    _require_internal_key(request)
+    from token_pay_service import admin_query_fulfill_order
+
+    return await admin_query_fulfill_order(db, out_trade_no=body.out_trade_no)
+
+
 # 静态官网（与 API 同端口 8000）；须挂在所有 API 路由之后
 _WEB_ROOT = Path(__file__).resolve().parent.parent / "web"
 if _WEB_ROOT.is_dir():

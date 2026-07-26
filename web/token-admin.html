@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow,noarchive" />
+  <meta name="description" content="AI24X Token 内部管理" />
+  <title>Token 管理 · AI24X</title>
+  <style>
+    :root {
+      --bg: #0c0e12;
+      --panel: #12161d;
+      --panel2: #181d26;
+      --border: #252b36;
+      --text: #e8eaed;
+      --muted: #8b949e;
+      --pri: #60a5fa;
+      --ok: #34d399;
+      --warn: #fbbf24;
+      --bad: #fb7185;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+      background: radial-gradient(1200px 600px at 10% -10%, #1a2333 0%, var(--bg) 55%);
+      color: var(--text);
+    }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 20px 16px 48px; }
+    h1 { font-size: 18px; margin: 0 0 6px; }
+    h2 { font-size: 14px; margin: 0 0 10px; }
+    .muted { color: var(--muted); }
+    .small { font-size: 12px; line-height: 1.5; }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      margin-top: 14px;
+    }
+    .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .field { display: flex; flex-direction: column; gap: 4px; min-width: 140px; }
+    .field .lbl { font-size: 12px; color: var(--muted); }
+    input, select {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 10px;
+      min-width: 140px;
+    }
+    button {
+      background: rgba(96,165,250,0.12);
+      border: 1px solid rgba(96,165,250,0.45);
+      color: #eef6ff;
+      padding: 8px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    button:hover { border-color: rgba(96,165,250,0.75); }
+    button.ok {
+      background: rgba(52,211,153,0.14);
+      border-color: rgba(52,211,153,0.48);
+      color: #eafff7;
+    }
+    button.danger {
+      background: rgba(251,113,133,0.10);
+      border-color: rgba(251,113,133,0.45);
+      color: #fff1f2;
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+    }
+    .stat {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .stat .n { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .stat .k { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid var(--border);
+      background: var(--panel2);
+    }
+    .pill.ok { color: var(--ok); border-color: rgba(52,211,153,0.4); }
+    .pill.bad { color: var(--bad); border-color: rgba(251,113,133,0.4); }
+    .pill.warn { color: var(--warn); border-color: rgba(251,191,36,0.4); }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 9px 6px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; }
+    #msg { min-height: 1.3em; margin-top: 8px; font-size: 12px; color: var(--muted); }
+    #msg.err { color: var(--bad); }
+    #msg.ok { color: var(--ok); }
+    #gate, #app { display: none; }
+    #gate.on, #app.on { display: block; }
+    .login-card { max-width: 420px; margin: 12vh auto 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div id="gate">
+      <div class="card login-card">
+        <h1>Token 管理</h1>
+        <p class="muted small">仅供内部运维。密钥保存在本浏览器会话，关闭标签页后需重新填写。</p>
+        <div class="field" style="margin-top:12px;">
+          <span class="lbl">API 根地址</span>
+          <input id="apiBase" type="text" autocomplete="off" placeholder="https://api.ai24x.com 或 http://127.0.0.1:8000" />
+        </div>
+        <div class="field" style="margin-top:10px;">
+          <span class="lbl">内部密钥</span>
+          <input id="ikey" type="password" autocomplete="off" placeholder="粘贴后进入" />
+        </div>
+        <div class="row" style="margin-top:14px;">
+          <button type="button" class="ok" id="btnEnter">进入工作台</button>
+        </div>
+        <div id="gateMsg" class="muted small" style="margin-top:10px;"></div>
+      </div>
+    </div>
+
+    <div id="app">
+      <div class="row" style="justify-content:space-between;">
+        <div>
+          <h1>Token 管理工作台</h1>
+          <p class="muted small" id="baseLabel"></p>
+        </div>
+        <div class="row">
+          <button type="button" id="btnRefresh">刷新看板</button>
+          <button type="button" class="danger" id="btnLogout">退出</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>支付与规模</h2>
+        <div class="row" id="payPills" style="margin-bottom:12px;"></div>
+        <div class="grid" id="stats"></div>
+      </div>
+
+      <div class="card">
+        <h2>订单</h2>
+        <div class="row">
+          <div class="field"><span class="lbl">状态</span>
+            <select id="ordStatus">
+              <option value="">全部</option>
+              <option value="pending">pending</option>
+              <option value="paid">paid</option>
+              <option value="failed">failed</option>
+            </select>
+          </div>
+          <div class="field"><span class="lbl">用户 ID</span>
+            <input id="ordUid" type="number" min="1" placeholder="可选" />
+          </div>
+          <div class="field" style="min-width:220px;"><span class="lbl">单号关键词</span>
+            <input id="ordQ" type="text" placeholder="out_trade_no / 交易号" />
+          </div>
+          <button type="button" id="btnLoadOrders">查询</button>
+        </div>
+        <div style="overflow:auto;margin-top:12px;">
+          <table>
+            <thead>
+              <tr>
+                <th>单号</th><th>用户</th><th>套餐</th><th>金额</th><th>通道</th><th>状态</th><th>时间</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="ordBody"></tbody>
+          </table>
+        </div>
+        <p class="muted small" id="ordMeta"></p>
+      </div>
+
+      <div class="card">
+        <h2>钱包 / 手工加额</h2>
+        <div class="row">
+          <div class="field"><span class="lbl">用户 ID</span>
+            <input id="wUid" type="number" min="1" />
+          </div>
+          <div class="field" style="min-width:200px;"><span class="lbl">或邮箱 / 手机</span>
+            <input id="wContact" type="text" placeholder="查找后填入 ID" />
+          </div>
+          <button type="button" id="btnLookup">查找用户</button>
+          <button type="button" id="btnWallet">查余额</button>
+        </div>
+        <p class="small mono" id="walletOut" style="margin-top:10px;"></p>
+        <div class="row" style="margin-top:10px;">
+          <div class="field"><span class="lbl">加 Token 数量</span>
+            <input id="topAmt" type="number" min="1" value="10000" />
+          </div>
+          <div class="field" style="min-width:200px;"><span class="lbl">备注</span>
+            <input id="topNote" type="text" value="admin_topup" />
+          </div>
+          <label class="small muted" style="display:flex;gap:6px;align-items:center;">
+            <input id="topVip" type="checkbox" /> 同时开通 VIP
+          </label>
+          <button type="button" class="ok" id="btnTopup">确认加额</button>
+        </div>
+      </div>
+
+      <div id="msg"></div>
+    </div>
+  </div>
+
+  <script>
+(function () {
+  var SK = "ai24x_token_admin_v1";
+  var $ = function (id) { return document.getElementById(id); };
+  var state = { base: "", key: "" };
+
+  function loadSession() {
+    try {
+      var raw = sessionStorage.getItem(SK);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (e) { return null; }
+  }
+  function saveSession() {
+    sessionStorage.setItem(SK, JSON.stringify({ base: state.base, key: state.key }));
+  }
+  function clearSession() { sessionStorage.removeItem(SK); }
+
+  function normBase(b) {
+    return String(b || "").trim().replace(/\/+$/, "");
+  }
+
+  function setMsg(t, kind) {
+    var el = $("msg");
+    el.textContent = t || "";
+    el.className = kind === "err" ? "err" : (kind === "ok" ? "ok" : "");
+  }
+
+  async function api(path, opts) {
+    opts = opts || {};
+    var headers = Object.assign({}, opts.headers || {});
+    headers["X-SMS-Internal-Key"] = state.key;
+    if (opts.body && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
+    var r = await fetch(state.base + path, {
+      method: opts.method || "GET",
+      headers: headers,
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
+    });
+    var j = null;
+    try { j = await r.json(); } catch (e) {}
+    if (!r.ok) {
+      var d = j && (j.detail || j.message || j.error);
+      throw new Error(typeof d === "string" ? d : ("HTTP " + r.status));
+    }
+    return j;
+  }
+
+  function fenLabel(ch, fen) {
+    var n = Number(fen || 0);
+    if (ch === "paypal") return "$" + (n / 100).toFixed(2);
+    return "¥" + (n / 100).toFixed(2);
+  }
+
+  function statusPill(s) {
+    var c = s === "paid" ? "ok" : (s === "pending" ? "warn" : "bad");
+    return '<span class="pill ' + c + '">' + s + "</span>";
+  }
+
+  async function refreshSummary() {
+    var s = await api("/v1/admin/token/summary");
+    var pay = s.pay || {};
+    var pills = [
+      ["支付总开关", !!pay.enabled],
+      ["微信", !!pay.wechat_ready],
+      ["支付宝", !!pay.alipay_ready],
+      ["PayPal", !!pay.paypal_ready],
+      ["Mock", !!pay.mock],
+    ];
+    $("payPills").innerHTML = pills.map(function (p) {
+      return '<span class="pill ' + (p[1] ? "ok" : "bad") + '">' + p[0] + ": " + (p[1] ? "就绪" : "未就绪") + "</span>";
+    }).join(" ");
+    var o = s.orders || {};
+    var cells = [
+      ["注册用户", s.users],
+      ["钱包数", s.wallets],
+      ["待履约", o.pending],
+      ["已支付", o.paid],
+      ["失败", o.failed],
+      ["CNY 已付(元)", ((o.paid_amount_cny_fen || 0) / 100).toFixed(2)],
+      ["USD 已付", ((o.paid_amount_usd_cents || 0) / 100).toFixed(2)],
+    ];
+    $("stats").innerHTML = cells.map(function (c) {
+      return '<div class="stat"><div class="n">' + c[1] + '</div><div class="k">' + c[0] + "</div></div>";
+    }).join("");
+  }
+
+  async function loadOrders() {
+    var qs = new URLSearchParams();
+    var st = ($("ordStatus").value || "").trim();
+    var uid = ($("ordUid").value || "").trim();
+    var q = ($("ordQ").value || "").trim();
+    if (st) qs.set("status", st);
+    if (uid) qs.set("auth_user_id", uid);
+    if (q) qs.set("q", q);
+    qs.set("limit", "50");
+    var data = await api("/v1/admin/token/orders?" + qs.toString());
+    var rows = data.rows || [];
+    $("ordMeta").textContent = "共 " + (data.total || rows.length) + " 条（最多显示 50）";
+    $("ordBody").innerHTML = rows.map(function (r) {
+      var fulfill = r.status === "pending"
+        ? '<button type="button" data-otn="' + String(r.out_trade_no).replace(/"/g, "") + '" class="btnFulfill">查单履约</button>'
+        : "";
+      return "<tr>" +
+        '<td class="mono">' + r.out_trade_no + "</td>" +
+        "<td>" + r.auth_user_id + "</td>" +
+        "<td>" + r.plan + "</td>" +
+        "<td>" + fenLabel(r.channel, r.amount_fen) + "</td>" +
+        "<td>" + r.channel + "</td>" +
+        "<td>" + statusPill(r.status) + "</td>" +
+        '<td class="mono">' + (r.paid_at || r.created_at || "") + "</td>" +
+        "<td>" + fulfill + "</td>" +
+        "</tr>";
+    }).join("") || '<tr><td colspan="8" class="muted">无订单</td></tr>';
+  }
+
+  async function enterApp() {
+    $("gate").classList.remove("on");
+    $("app").classList.add("on");
+    $("baseLabel").textContent = state.base;
+    setMsg("");
+    await refreshSummary();
+    await loadOrders();
+  }
+
+  $("btnEnter").onclick = async function () {
+    var gm = $("gateMsg");
+    gm.textContent = "";
+    state.base = normBase($("apiBase").value);
+    state.key = ($("ikey").value || "").trim();
+    if (!state.base || !state.key) {
+      gm.textContent = "请填写 API 根地址与内部密钥";
+      return;
+    }
+    try {
+      saveSession();
+      await api("/v1/admin/token/summary");
+      await enterApp();
+    } catch (e) {
+      clearSession();
+      gm.textContent = "无法进入：" + (e && e.message ? e.message : String(e));
+    }
+  };
+
+  $("btnLogout").onclick = function () {
+    clearSession();
+    state.key = "";
+    $("app").classList.remove("on");
+    $("gate").classList.add("on");
+    $("ikey").value = "";
+  };
+
+  $("btnRefresh").onclick = async function () {
+    try {
+      await refreshSummary();
+      setMsg("看板已刷新", "ok");
+    } catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+
+  $("btnLoadOrders").onclick = async function () {
+    try {
+      await loadOrders();
+      setMsg("订单已更新", "ok");
+    } catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+
+  $("ordBody").onclick = async function (ev) {
+    var t = ev.target;
+    if (!t || !t.classList || !t.classList.contains("btnFulfill")) return;
+    var otn = t.getAttribute("data-otn");
+    if (!otn) return;
+    t.disabled = true;
+    try {
+      var r = await api("/v1/admin/token/orders/query_fulfill", {
+        method: "POST",
+        body: { out_trade_no: otn },
+      });
+      setMsg("履约结果：" + JSON.stringify(r), "ok");
+      await loadOrders();
+      await refreshSummary();
+    } catch (e) {
+      setMsg(String(e.message || e), "err");
+    } finally {
+      t.disabled = false;
+    }
+  };
+
+  $("btnLookup").onclick = async function () {
+    try {
+      var c = ($("wContact").value || "").trim();
+      if (!c) throw new Error("请填写邮箱或手机号");
+      var qs = c.indexOf("@") >= 0
+        ? ("email=" + encodeURIComponent(c))
+        : ("phone=" + encodeURIComponent(c));
+      var r = await api("/v1/admin/users/lookup?" + qs);
+      var u = r.user || {};
+      $("wUid").value = u.id || "";
+      $("walletOut").textContent = "用户 #" + u.id + "  email=" + (u.email || "") + "  phone=" + (u.phone || "");
+      setMsg("已找到用户", "ok");
+    } catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+
+  $("btnWallet").onclick = async function () {
+    try {
+      var uid = Number($("wUid").value || 0);
+      if (!uid) throw new Error("请填写用户 ID");
+      var r = await api("/v1/admin/token/wallet?auth_user_id=" + uid);
+      $("walletOut").textContent = JSON.stringify(r, null, 2);
+      setMsg("余额已拉取", "ok");
+    } catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+
+  $("btnTopup").onclick = async function () {
+    try {
+      var uid = Number($("wUid").value || 0);
+      var amt = Number($("topAmt").value || 0);
+      if (!uid || !amt) throw new Error("请填写用户 ID 与加额数量");
+      if (!window.confirm("确认给用户 #" + uid + " 增加 " + amt + " Token？")) return;
+      var r = await api("/v1/admin/token/topup", {
+        method: "POST",
+        body: {
+          auth_user_id: uid,
+          amount: amt,
+          note: ($("topNote").value || "admin_topup").trim(),
+          set_vip: !!$("topVip").checked,
+        },
+      });
+      $("walletOut").textContent = JSON.stringify(r, null, 2);
+      setMsg("加额成功", "ok");
+      await refreshSummary();
+    } catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+
+  (function init() {
+    var def = (location.origin && location.origin.indexOf("http") === 0)
+      ? location.origin
+      : "http://127.0.0.1:8000";
+    $("apiBase").value = def;
+    var s = loadSession();
+    if (s && s.base && s.key) {
+      state.base = normBase(s.base);
+      state.key = String(s.key);
+      $("apiBase").value = state.base;
+      enterApp().catch(function (e) {
+        clearSession();
+        $("gate").classList.add("on");
+        $("app").classList.remove("on");
+        $("gateMsg").textContent = "会话失效：" + (e && e.message ? e.message : String(e));
+      });
+    } else {
+      $("gate").classList.add("on");
+    }
+  })();
+})();
+  </script>
+</body>
+</html>
