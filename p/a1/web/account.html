@@ -1824,9 +1824,10 @@
         inviteBind(ic)
           .then(function () {
             setInviteStatus("邀请码已绑定。");
+            try { localStorage.removeItem("ai24x_invite_code"); } catch (e2) {}
           })
           .catch(function () {
-            setInviteStatus("邀请码绑定失败，请核对或是否已绑定。");
+            setInviteStatus("邀请码暂未绑定（不影响登录），可核对后重试。");
           })
           .finally(function () {
             try {
