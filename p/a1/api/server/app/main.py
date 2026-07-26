@@ -93,6 +93,51 @@ from .schemas import (
 )
 
 
+def _session_from_identity_payload(data: dict) -> LoginOut:
+    """
+    主站 identity 校验通过后，用本站 AI24X_JWT_SECRET 重签会话。
+
+    避免生产上 core SECRET_KEY 与 a1 AI24X_JWT_SECRET 漂移时：
+    登录成功 → /api/me Invalid token →「登录已失效」。
+    """
+    user = data.get("user") if isinstance(data, dict) else None
+    if not isinstance(user, dict):
+        user = {}
+    uid = 0
+    try:
+        uid = int(user.get("id") or 0)
+    except Exception:
+        uid = 0
+    if uid <= 0:
+        # 兜底：从主站 token 读 sub（不验签；仅在 identity 刚返回后使用）
+        try:
+            from jose import jwt as _jwt
+
+            raw = str((data or {}).get("token") or "")
+            if raw:
+                claims = _jwt.get_unverified_claims(raw)
+                uid = int(claims.get("sub") or 0)
+                if not user.get("email"):
+                    user["email"] = claims.get("email") or ""
+                if not user.get("phone"):
+                    user["phone"] = claims.get("phone") or ""
+        except Exception:
+            uid = 0
+    if uid <= 0:
+        return LoginOut(token=str((data or {}).get("token") or ""), user=user)
+    email = (user.get("email") or "") or None
+    phone = (user.get("phone") or "") or None
+    try:
+        db.ensure_platform_user(uid, email, phone)
+    except Exception:
+        pass
+    token = create_token(uid, email, phone)
+    return LoginOut(
+        token=token,
+        user={"id": uid, "email": email or "", "phone": phone or ""},
+    )
+
+
 app = FastAPI(
     title="AI24X 股票查询助手 API",
     version="0.1.0",
@@ -1654,7 +1699,7 @@ def register(body: RegisterIn) -> LoginOut:
         payload["email"] = body.email
         payload["email_code"] = (body.email_code or "").strip()
     data = _identity_post("/v1/auth/register", payload)
-    return LoginOut(token=data["token"], user=data.get("user", {}))
+    return _session_from_identity_payload(data)
 
 
 @app.post("/api/auth/login", response_model=LoginOut)
@@ -1668,7 +1713,7 @@ def login(body: LoginIn) -> LoginOut:
         else:
             payload["email"] = (body.email or "").strip().lower()
         data = _identity_post("/v1/auth/login", payload)
-        return LoginOut(token=data["token"], user=data.get("user", {}))
+        return _session_from_identity_payload(data)
 
     if not body.email or not body.code:
         raise HTTPException(
@@ -1696,7 +1741,7 @@ def password_change(request: Request, body: PasswordChangeIn) -> LoginOut:
         {"old_password": body.old_password, "new_password": body.new_password},
         extra_headers={"Authorization": auth},
     )
-    return LoginOut(token=data["token"], user=data.get("user", {}))
+    return _session_from_identity_payload(data)
 
 
 @app.post("/api/auth/password/reset", response_model=LoginOut)
@@ -1711,7 +1756,7 @@ def password_reset(body: PasswordResetIn) -> LoginOut:
         payload["email"] = body.email
         payload["email_code"] = (body.email_code or "").strip()
     data = _identity_post("/v1/auth/password/reset", payload)
-    return LoginOut(token=data["token"], user=data.get("user", {}))
+    return _session_from_identity_payload(data)
 
 
 @app.post("/api/auth/phone/bind", response_model=LoginOut)
@@ -1731,17 +1776,7 @@ def bind_phone(request: Request, body: dict) -> LoginOut:
         {"phone": phone, "sms_code": code},
         extra_headers={"Authorization": auth},
     )
-    try:
-        tok = str(data.get("token") or "")
-        if tok:
-            payload = parse_token(tok)
-            uid = int(payload.get("sub") or 0)
-            if uid > 0:
-                db.ensure_platform_user(uid, payload.get("email") or None, payload.get("phone") or None)
-    except Exception:
-        # best-effort: do not break bind flow if sync fails
-        pass
-    return LoginOut(token=data["token"], user=data.get("user", {}))
+    return _session_from_identity_payload(data)
 
 
 @app.post("/api/auth/email/bind", response_model=LoginOut)
@@ -1761,16 +1796,7 @@ def bind_email(request: Request, body: dict) -> LoginOut:
         {"email": email, "email_code": code},
         extra_headers={"Authorization": auth},
     )
-    try:
-        tok = str(data.get("token") or "")
-        if tok:
-            payload = parse_token(tok)
-            uid = int(payload.get("sub") or 0)
-            if uid > 0:
-                db.ensure_platform_user(uid, payload.get("email") or None, payload.get("phone") or None)
-    except Exception:
-        pass
-    return LoginOut(token=data["token"], user=data.get("user", {}))
+    return _session_from_identity_payload(data)
 
 
 @app.get("/api/feedback/categories")
