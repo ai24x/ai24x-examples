@@ -3,7 +3,7 @@
   "updated": "2026-07-26",
   "title": "AI24X 指挥中心 · 副脑协同数据",
   "human_ui": "/ai24x.html",
-  "note": "供 OpenClaw / 副脑拉取角色与链接；不含密码与密钥。",
+  "note": "供 OpenClaw / 副脑拉取角色与链接；页面无门禁；不含密码与密钥。勿把本页设为 www 默认首页。",
   "strategy": {
     "priority": "intl_first",
     "p0": "英文站 → API → PayPal",

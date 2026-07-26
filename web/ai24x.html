@@ -14,33 +14,8 @@
     background: #080812; color: #c0c0c8; line-height: 1.6;
     min-height: 100vh;
   }
+  /* 内部作战沙盘：无前端门禁（源码可见无意义）；副脑读 /ops/ai24x-command.json */
   .container { max-width: 1200px; margin: 0 auto; padding: 24px 20px 60px; }
-
-  /* Password Gate */
-  #passwordGate {
-    position: fixed; inset:0; z-index:9999;
-    display:flex; align-items:center; justify-content:center;
-    background: #080812;
-  }
-  #passwordGate .box {
-    background: #12122a; border:1px solid #2a2a44; border-radius:12px;
-    padding:32px; text-align:center; max-width:340px; width:90%;
-  }
-  #passwordGate .lock { font-size:2.5em; margin-bottom:10px; }
-  #passwordGate input {
-    width:100%; padding:10px; margin:12px 0;
-    background:#1a1a38; border:1px solid #2a2a44; border-radius:6px;
-    color:#c0c0c8; font-size:1em; text-align:center; outline:none;
-  }
-  #passwordGate input:focus { border-color:#667eea; }
-  #passwordGate .err { color:#f5576c; font-size:0.8em; display:none; }
-  #passwordGate button {
-    width:100%; padding:10px;
-    background:linear-gradient(135deg,#667eea,#764ba2);
-    color:#fff; border:none; border-radius:6px; font-size:1em; cursor:pointer;
-  }
-  #passwordGate button:hover { opacity:.9; }
-  #mainContent { display:none; }
 
   .header {
     display: flex; justify-content: space-between; align-items: center;
@@ -135,21 +110,6 @@
 </head>
 <body>
 
-<!-- Password Gate -->
-<div id="passwordGate">
-  <div class="box">
-    <div class="lock">🔐</div>
-    <div style="font-size:1.1em;font-weight:700;color:#aabbff;">AI24X 指挥中心</div>
-    <div style="font-size:0.75em;color:#555;margin:6px 0;">输入密码访问</div>
-    <input type="password" id="pwdInput" placeholder="密码" autofocus
-      onkeydown="if(event.key==='Enter')checkPwd()">
-    <div class="err" id="pwdErr">密码错误</div>
-    <button onclick="checkPwd()">进入</button>
-  </div>
-</div>
-
-<!-- Main Content -->
-<div id="mainContent">
 <div class="container">
 
   <!-- Header -->
@@ -157,14 +117,15 @@
     <div class="header-left">
       <div>
         <div class="logo">AI24X <span class="logo-sub">指挥中心</span></div>
-        <div style="font-size:0.6em;color:#555;margin-top:2px;">🎇 国际优先 · 国内沙盒 · 闷声发财</div>
+        <div style="font-size:0.6em;color:#555;margin-top:2px;">内部作战沙盘 · 非官网首页 · 副脑读 JSON</div>
       </div>
     </div>
     <div class="header-right">
       <div class="time" id="clock"></div>
       <div style="margin-top:3px;">
-        <span class="badge bg-blue">v3.6</span>
+        <span class="badge bg-blue">v3.6.2</span>
         <span class="badge bg-pink">国际优先</span>
+        <span class="badge bg-gray">noindex</span>
       </div>
     </div>
   </div>
@@ -417,38 +378,13 @@
 
   <!-- Footer -->
   <div class="footer">
-    AI24X · 指挥官面板 v3.6.1 · 2026-07-26<br>
-    主脑 AI24X永生 · 雷总的数字分身<br>
-    我命由我不由天，热爱每一天
+    AI24X · 指挥官面板 v3.6.2 · 内部协同（勿作 www 默认首页）<br>
+    人读本页 · 副脑读 /ops/ai24x-command.json · 密钥永不写进页面
   </div>
 
 </div>
-</div>
 
 <script>
-/** 门禁：仅防顺手点开；源码可见，生产请再加 Nginx 基础认证或内网限制 */
-var GATE_KEY = 'ai24x_cmd_ok';
-function unlockUi() {
-  document.getElementById('passwordGate').style.display = 'none';
-  document.getElementById('mainContent').style.display = 'block';
-  probeStatus();
-}
-function checkPwd() {
-  var pwd = document.getElementById('pwdInput').value;
-  // 口令勿写进 ops JSON；改口令时同步改此处与运维备忘（勿提交明文到对外文档）
-  if (pwd === 'iamlei') {
-    try { sessionStorage.setItem(GATE_KEY, '1'); } catch (e) {}
-    unlockUi();
-  } else {
-    document.getElementById('pwdErr').style.display = 'block';
-    document.getElementById('pwdInput').value = '';
-    document.getElementById('pwdInput').focus();
-  }
-}
-try {
-  if (sessionStorage.getItem(GATE_KEY) === '1') unlockUi();
-} catch (e) {}
-
 function updateClock() {
   var el = document.getElementById('clock');
   if (!el) return;
@@ -474,6 +410,7 @@ function probeStatus() {
     .then(function (r) { setProbe('probeWww', r.ok, 'www ' + r.status); })
     .catch(function () { setProbe('probeWww', false, 'www ?'); });
 }
+probeStatus();
 </script>
 </body>
 </html>
