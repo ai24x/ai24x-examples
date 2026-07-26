@@ -1132,22 +1132,6 @@
         });
       }
 
-      /** 登录后勿用邀请码失败盖住「登录成功」（localStorage 残留分享码会导致全员误报）。 */
-      function inviteCodeForPostAuth(isRegister) {
-        if (isRegister) return readInviteForBind();
-        // 登录：仅当邀请输入框有用户手填内容时才绑；不读 URL/localStorage
-        try {
-          var typed = registerInviteEl ? String(registerInviteEl.value || "").trim() : "";
-          return typed ? typed.toUpperCase() : "";
-        } catch (e0) {
-          return "";
-        }
-      }
-
-      function clearStoredInviteCode() {
-        try { localStorage.removeItem("ai24x_invite_code"); } catch (e0) {}
-      }
-
       function safePostLoginNextPath() {
         try {
           var sp = new URLSearchParams(String(location.search || "").replace(/^\?/, ""));
@@ -1200,37 +1184,30 @@
           .then(function (d) {
             if (!d || !d.token) throw new Error("no token");
             tokenSet(d.token);
-            var isRegister = authMode === "register";
-            var okMsg = isRegister ? "注册成功。" : "登录成功。";
-            setStatus(okMsg);
+            setStatus(authMode === "register" ? "注册成功。" : "登录成功。");
             var nextPath = safePostLoginNextPath();
-            var goNext = function () {
-              if (!nextPath) return;
-              try { location.replace(nextPath); } catch (eG) { location.href = nextPath; }
-            };
-            var finishUi = function () {
-              if (nextPath) goNext();
-              else refreshMe();
-            };
-            var ic = inviteCodeForPostAuth(isRegister);
-            if (!ic) {
-              finishUi();
+            if (nextPath) {
+              var ic0 = readInviteForBind();
+              var go = function () {
+                try { location.replace(nextPath); } catch (eG) { location.href = nextPath; }
+              };
+              if (ic0) {
+                inviteBind(ic0)
+                  .then(function () { setStatus("邀请码已绑定。"); })
+                  .catch(function () { setStatus("邀请码绑定失败，可在用户中心再试。"); })
+                  .finally(go);
+              } else {
+                go();
+              }
               return;
             }
-            inviteBind(ic)
-              .then(function () {
-                setStatus(okMsg + "邀请码已绑定。");
-                clearStoredInviteCode();
-              })
-              .catch(function () {
-                // 绝不把绑定失败显示成登录失败
-                if (isRegister) {
-                  setStatus(okMsg + "邀请码未绑定，可在用户中心再试。");
-                } else {
-                  setStatus(okMsg);
-                }
-              })
-              .finally(finishUi);
+            refreshMe();
+            var ic = readInviteForBind();
+            if (ic) {
+              inviteBind(ic)
+                .then(function () { setStatus("邀请码已绑定。"); })
+                .catch(function () { setStatus("邀请码绑定失败，可在用户中心再试。"); });
+            }
           })
           .catch(function (e) {
             var m = normalizeErrMsg(e);

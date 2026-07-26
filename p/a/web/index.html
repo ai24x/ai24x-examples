@@ -913,16 +913,6 @@
         });
       }
 
-      function inviteCodeForPostAuth(isRegister) {
-        if (isRegister) return readInviteForBind();
-        try {
-          var typed = registerInviteEl ? String(registerInviteEl.value || "").trim() : "";
-          return typed ? typed.toUpperCase() : "";
-        } catch (e0) {
-          return "";
-        }
-      }
-
       function submitAuth() {
         authMode = readAuthMode();
         var idv = (identEl && identEl.value) ? String(identEl.value).trim() : "";
@@ -953,24 +943,14 @@
           .then(function (d) {
             if (!d || !d.token) throw new Error("no token");
             tokenSet(d.token);
-            var isRegister = authMode === "register";
-            var okMsg = isRegister ? "注册成功。" : "登录成功。";
-            setStatus(okMsg);
-            var ic = inviteCodeForPostAuth(isRegister);
-            if (!ic) {
-              refreshMe();
-              return;
+            setStatus(authMode === "register" ? "注册成功。" : "登录成功。");
+            refreshMe();
+            var ic = readInviteForBind();
+            if (ic) {
+              inviteBind(ic)
+                .then(function () { setStatus("邀请码已绑定。"); })
+                .catch(function () { setStatus("邀请码绑定失败，可在用户中心再试。"); });
             }
-            inviteBind(ic)
-              .then(function () {
-                setStatus(okMsg + "邀请码已绑定。");
-                try { localStorage.removeItem("ai24x_invite_code"); } catch (e0) {}
-              })
-              .catch(function () {
-                if (isRegister) setStatus(okMsg + "邀请码未绑定，可在用户中心再试。");
-                else setStatus(okMsg);
-              })
-              .finally(function () { refreshMe(); });
           })
           .catch(function (e) {
             var m = normalizeErrMsg(e);
