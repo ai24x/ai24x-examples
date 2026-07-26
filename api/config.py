@@ -64,6 +64,21 @@ class Settings(BaseSettings):
     enable_rate_limiting: bool = Field(default=True, validation_alias="ENABLE_RATE_LIMITING")
     enable_caching: bool = Field(default=True, validation_alias="ENABLE_CACHING")
 
+    # 安全：生产默认更严
+    strict_auth: bool = Field(
+        default=True,
+        validation_alias="STRICT_AUTH",
+        description="禁止仅凭 user_id 调用 chat（必须 X-API-Key）",
+    )
+    disable_docs_in_prod: bool = Field(default=True, validation_alias="DISABLE_DOCS_IN_PROD")
+    cors_origins: str = Field(
+        default="*",
+        validation_alias="CORS_ORIGINS",
+        description="逗号分隔；生产请改为 https://www.ai24x.com 等",
+    )
+    chat_rate_per_minute: int = Field(default=60, validation_alias="CHAT_RATE_PER_MINUTE")
+    chat_rate_per_ip_per_minute: int = Field(default=120, validation_alias="CHAT_RATE_PER_IP_PER_MINUTE")
+
     # Dev switches
     skip_db_init: bool = Field(default=False, validation_alias="SKIP_DB_INIT")
     
@@ -92,6 +107,74 @@ class Settings(BaseSettings):
     sms_ip_min_interval_s: float = Field(default=2.0, validation_alias="SMS_IP_MIN_INTERVAL_S")
     sms_ip_max_send_per_hour: int = Field(default=150, validation_alias="SMS_IP_MAX_SEND_PER_HOUR")
     sms_phone_max_send_per_hour: int = Field(default=25, validation_alias="SMS_PHONE_MAX_SEND_PER_HOUR")
+
+    # —— 邮箱验证码（SMTP；未配置时非生产可走 local 卡片）——
+    smtp_host: str = Field(default="", validation_alias="SMTP_HOST")
+    smtp_port: int = Field(default=587, validation_alias="SMTP_PORT")
+    smtp_user: str = Field(default="", validation_alias="SMTP_USER")
+    smtp_password: str = Field(default="", validation_alias="SMTP_PASSWORD")
+    smtp_from: str = Field(default="", validation_alias="SMTP_FROM")
+    smtp_use_tls: bool = Field(default=True, validation_alias="SMTP_USE_TLS")
+    smtp_use_ssl: bool = Field(default=False, validation_alias="SMTP_USE_SSL")
+    email_otp_subject: str = Field(default="【AI24X】验证码", validation_alias="EMAIL_OTP_SUBJECT")
+    email_otp_body_template: str = Field(
+        default="您的 AI24X {purpose}验证码是：{code}\n\n5 分钟内有效，请勿泄露给他人。\n\n— AI24X",
+        validation_alias="EMAIL_OTP_BODY_TEMPLATE",
+    )
+    # 非生产且未配 SMTP 时，是否在 API 响应里带回 local_code（默认 true 便于本机联调）
+    email_otp_expose_local_code: bool = Field(default=True, validation_alias="EMAIL_OTP_EXPOSE_LOCAL_CODE")
+
+    # 邀请注册即时奖励反作弊（每邀请人 / 每 IP · 滑动 24h）
+    referral_register_bonus_per_referrer_day: int = Field(
+        default=30, validation_alias="REFERRAL_REGISTER_BONUS_PER_REFERRER_DAY"
+    )
+    referral_register_bonus_per_ip_day: int = Field(
+        default=8, validation_alias="REFERRAL_REGISTER_BONUS_PER_IP_DAY"
+    )
+
+    # —— Token 在线支付（与 a1 可共用商户号，但 notify URL 必须独立指向主站）——
+    # 默认关闭真实支付；本地可 TOKEN_PAY_MOCK_ENABLED=true 测履约
+    token_pay_enabled: bool = Field(default=False, validation_alias="TOKEN_PAY_ENABLED")
+    token_pay_mock_enabled: bool = Field(default=False, validation_alias="TOKEN_PAY_MOCK_ENABLED")
+    token_wechat_notify_url: str = Field(default="", validation_alias="TOKEN_WECHAT_NOTIFY_URL")
+    token_alipay_notify_url: str = Field(default="", validation_alias="TOKEN_ALIPAY_NOTIFY_URL")
+    token_alipay_return_url: str = Field(default="", validation_alias="TOKEN_ALIPAY_RETURN_URL")
+
+    wechat_mch_id: str = Field(default="", validation_alias="WECHAT_MCH_ID")
+    wechat_app_id: str = Field(default="", validation_alias="WECHAT_APP_ID")
+    wechat_mch_serial_no: str = Field(default="", validation_alias="WECHAT_MCH_SERIAL_NO")
+    wechat_mch_private_key_path: str = Field(default="", validation_alias="WECHAT_MCH_PRIVATE_KEY_PATH")
+    wechat_mch_private_key_pem: str = Field(default="", validation_alias="WECHAT_MCH_PRIVATE_KEY_PEM")
+    wechat_api_v3_key: str = Field(default="", validation_alias="WECHAT_API_V3_KEY")
+    wechat_pay_host: str = Field(
+        default="https://api.mch.weixin.qq.com", validation_alias="WECHAT_PAY_HOST"
+    )
+    wechat_notify_skip_verify: bool = Field(default=False, validation_alias="WECHAT_NOTIFY_SKIP_VERIFY")
+
+    alipay_app_id: str = Field(default="", validation_alias="ALIPAY_APP_ID")
+    alipay_gateway: str = Field(
+        default="https://openapi.alipay.com/gateway.do", validation_alias="ALIPAY_GATEWAY"
+    )
+    alipay_merchant_private_key_path: str = Field(
+        default="", validation_alias="ALIPAY_MERCHANT_PRIVATE_KEY_PATH"
+    )
+    alipay_merchant_private_key_pem: str = Field(
+        default="", validation_alias="ALIPAY_MERCHANT_PRIVATE_KEY_PEM"
+    )
+    alipay_public_key: str = Field(default="", validation_alias="ALIPAY_PUBLIC_KEY")
+
+    # —— LLM upstream（L0 硅基流动 / L1 DeepSeek）——
+    deepseek_api_key: str = Field(default="", validation_alias="DEEPSEEK_API_KEY")
+    deepseek_base_url: str = Field(default="https://api.deepseek.com", validation_alias="DEEPSEEK_BASE_URL")
+    deepseek_model: str = Field(default="deepseek-v4-flash", validation_alias="DEEPSEEK_MODEL")
+    siliconflow_api_key: str = Field(default="", validation_alias="SILICONFLOW_API_KEY")
+    siliconflow_base_url: str = Field(
+        default="https://api.siliconflow.cn/v1", validation_alias="SILICONFLOW_BASE_URL"
+    )
+    siliconflow_model: str = Field(
+        default="Qwen/Qwen2.5-7B-Instruct", validation_alias="SILICONFLOW_MODEL"
+    )
+    token_llm_timeout_s: float = Field(default=30.0, validation_alias="TOKEN_LLM_TIMEOUT_S")
 
 
 settings = Settings()

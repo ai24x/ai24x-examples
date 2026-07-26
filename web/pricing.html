@@ -4,67 +4,109 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>价格计费 · AI24X</title>
-  <link rel="stylesheet" href="css/base.css?v=20260421a" />
-  <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260421a" data-base="css/themes/" />
+  <link rel="stylesheet" href="css/base.css?v=20260725a" />
+  <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260725a" data-base="css/themes/" />
 </head>
 <body data-page="pricing" class="theme-blue">
   <header class="site-header" id="site-header"></header>
   <main class="page-main">
     <section class="hero hero-surface section-tight">
       <div class="container">
-        <h1 data-i18n="page.pricing.title"></h1>
-        <p class="lead" data-i18n="page.pricing.sub"></p>
-      </div>
-    </section>
-    <section class="section section-alt">
-      <div class="container grid-3">
-        <div class="card"><p data-i18n="page.pricing.p1"></p></div>
-        <div class="card"><p data-i18n="page.pricing.p2"></p></div>
-        <div class="card"><p data-i18n="page.pricing.p3"></p></div>
+        <h1 data-i18n="page.pricing.title">价格计费</h1>
+        <p class="lead">Token 聚合套餐与行情官 VIP 分开展示，避免混淆。</p>
       </div>
     </section>
 
     <section class="section">
       <div class="container" style="max-width:980px;">
-        <h2 style="margin:0 0 10px;">AI 行情官｜灯塔版（可体验服务内容）</h2>
+        <h2 style="margin:0 0 10px;">Token 聚合（API 调用额度）</h2>
+        <p class="sub" id="tokenPayStatus" style="margin:0 0 14px;">加载套餐中…</p>
+        <div class="grid-3" id="tokenPlansGrid"></div>
+        <div class="hero-cta" style="margin-top:14px;">
+          <a class="btn btn-primary" href="console.html">去控制台购买 / 管理 Key</a>
+          <a class="btn" href="login.html?next=console.html">登录</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container" style="max-width:980px;">
+        <h2 style="margin:0 0 10px;">AI 行情官｜灯塔版</h2>
         <p class="sub" style="margin:0 0 14px;">
-          先体验行情查询与信号展示，再按需开通 VIP。内容仅供学习交流，不构成任何建议。
+          信号查询额度（与上方 Token 钱包无关）。内容仅供学习交流，不构成任何建议。
         </p>
         <div class="grid-3">
           <div class="card">
             <h3 style="margin:0 0 8px;">体验卡</h3>
-            <p class="sub" style="margin:0;">适合先体验流程与稳定性；额度较低。</p>
+            <p class="sub" style="margin:0;">适合先体验流程与稳定性。</p>
             <p class="sub" style="margin:10px 0 0;">
-              <a class="btn" href="account.html#vip">去开通</a>
+              <a class="btn" href="http://127.0.0.1:18001/account.html#vip">本地开通</a>
+              <a class="btn" href="https://a.ai24x.com/account.html#vip" target="_blank" rel="noopener">线上</a>
             </p>
           </div>
           <div class="card">
             <h3 style="margin:0 0 8px;">月卡</h3>
-            <p class="sub" style="margin:0;">适合高频使用；更稳的数据源优先级与更好的高峰期体验。</p>
+            <p class="sub" style="margin:0;">适合高频使用。</p>
             <p class="sub" style="margin:10px 0 0;">
-              <a class="btn btn-primary" href="account.html#vip">去开通</a>
+              <a class="btn btn-primary" href="http://127.0.0.1:18001/account.html#vip">本地开通</a>
             </p>
           </div>
           <div class="card">
             <h3 style="margin:0 0 8px;">年卡</h3>
-            <p class="sub" style="margin:0;">适合长期使用；权益与服务支持以系统实时配置为准。</p>
+            <p class="sub" style="margin:0;">适合长期使用。</p>
             <p class="sub" style="margin:10px 0 0;">
-              <a class="btn btn-primary" href="account.html#vip">去开通</a>
+              <a class="btn btn-primary" href="http://127.0.0.1:18001/demo.html">去体验</a>
             </p>
           </div>
-        </div>
-        <div class="hero-cta" style="margin-top:14px;">
-          <a class="btn btn-primary" href="demo.html">立即体验行情查询</a>
-          <a class="btn" href="account.html#vip">查看 VIP / 支付入口</a>
         </div>
       </div>
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260421a"></script>
-  <script src="js/api.js?v=20260421a"></script>
-  <script src="js/i18n.js?v=20260421a"></script>
-  <script src="js/shell.js?v=20260421a"></script>
-  <script src="js/app.js?v=20260421a"></script>
+  <script src="config/locales.js?v=20260725a"></script>
+  <script src="js/api.js?v=20260725a"></script>
+  <script src="js/i18n.js?v=20260725a"></script>
+  <script src="js/shell.js?v=20260725a"></script>
+  <script src="js/app.js?v=20260725a"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var grid = document.getElementById("tokenPlansGrid");
+      var st = document.getElementById("tokenPayStatus");
+      AI24X_API.billingPlans()
+        .then(function (data) {
+          var plans = (data && data.plans) || [];
+          var pay = (data && data.pay) || {};
+          st.textContent = pay.enabled
+            ? "在线支付已开启。"
+            : pay.mock_allowed
+              ? "本地可下单后在控制台「模拟到账」（真支付未开）。"
+              : "套餐可浏览；支付通道未就绪。";
+          grid.innerHTML = "";
+          plans.forEach(function (p) {
+            var card = document.createElement("div");
+            card.className = "card";
+            var bits = [];
+            if (p.credit_tokens) bits.push("到账 " + p.credit_tokens + " token");
+            if (p.set_vip) bits.push("Token VIP");
+            card.innerHTML =
+              "<h3 style=\"margin:0 0 8px;\">" +
+              (p.title || p.plan) +
+              "</h3>" +
+              '<p class="sub" style="margin:0;">¥' +
+              (p.price_yuan || "") +
+              (bits.length ? " · " + bits.join(" · ") : "") +
+              "</p>" +
+              (p.note
+                ? '<p class="sub" style="margin:8px 0 0;">' + p.note + "</p>"
+                : "") +
+              '<p class="sub" style="margin:10px 0 0;"><a class="btn btn-primary" href="console.html">去控制台</a></p>';
+            grid.appendChild(card);
+          });
+        })
+        .catch(function (e) {
+          st.textContent = e.message || "套餐加载失败";
+        });
+    });
+  </script>
 </body>
 </html>

@@ -2,7 +2,6 @@ from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, Foreign
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 import enum
-from datetime import datetime
 
 Base = declarative_base()
 
@@ -13,8 +12,8 @@ class UserType(str, enum.Enum):
 
 
 class User(Base):
-    __tablename__ = "users"
-    
+    __tablename__ = "token_gateway_users"
+
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(String(255), unique=True, index=True, nullable=False)
     user_type = Column(Enum(UserType), default=UserType.FREE, nullable=False)
@@ -22,7 +21,7 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     is_active = Column(Boolean, default=True)
-    
+
     # Rate limiting
     daily_request_limit = Column(Integer, default=100)  # Free users
     monthly_request_limit = Column(Integer, default=3000)
@@ -32,35 +31,35 @@ class User(Base):
 
 class ChatRequest(Base):
     __tablename__ = "chat_requests"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     request_id = Column(String(255), unique=True, index=True, nullable=False)
     user_id = Column(String(255), index=True, nullable=False)
     user_type = Column(Enum(UserType), nullable=False)
-    
+
     # Request data
     prompt = Column(Text, nullable=False)
     model = Column(String(100), nullable=True)
     temperature = Column(Float, default=0.7)
     max_tokens = Column(Integer, default=1000)
-    
+
     # Response data
     response = Column(Text, nullable=True)
     error_message = Column(Text, nullable=True)
-    
+
     # Metadata
     ip_address = Column(String(45), nullable=True)
     user_agent = Column(Text, nullable=True)
-    
+
     # Timing
     request_time = Column(DateTime(timezone=True), server_default=func.now())
     response_time = Column(DateTime(timezone=True), nullable=True)
     processing_duration = Column(Float, nullable=True)  # in seconds
-    
+
     # Status
     status = Column(String(50), default="pending")  # pending, processing, completed, failed
     is_success = Column(Boolean, default=False)
-    
+
     # Billing/usage
     token_count = Column(Integer, default=0)
     cost = Column(Float, default=0.0)
@@ -68,7 +67,7 @@ class ChatRequest(Base):
 
 class RateLimit(Base):
     __tablename__ = "rate_limits"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(String(255), index=True, nullable=False)
     window_type = Column(String(20), nullable=False)  # daily, monthly
@@ -97,15 +96,130 @@ class AuthUser(Base):
 
 class SmsSendLog(Base):
     """短信发送记录：用于审计、排障、用量统计"""
+
     __tablename__ = "sms_send_log"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     phone = Column(String(20), nullable=False, index=True)
     purpose = Column(String(50), nullable=False, default="login")  # login/register/forgot/admin
     provider = Column(String(50), nullable=False, default="106")  # 106/tencent/juhe
-    template_text = Column(Text, nullable=True)   # 实际使用的模版（truncated）
-    content_sent = Column(Text, nullable=True)    # 实际发送的内容
+    template_text = Column(Text, nullable=True)  # 实际使用的模版（截断）
+    content_sent = Column(Text, nullable=True)  # 实际发送的内容
     status = Column(String(20), nullable=False, default="ok")  # ok/fail/blocked
     error_msg = Column(Text, nullable=True)
     ip_address = Column(String(45), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class BillingPlan(str, enum.Enum):
+    FREE = "free"
+    VIP = "vip"
+
+
+class ApiKey(Base):
+    """终端用户 API Key（绑 auth_users；chat/run 鉴权）。"""
+
+    __tablename__ = "api_keys"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    auth_user_id = Column(
+        Integer, ForeignKey("auth_users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name = Column(String(64), nullable=False, default="默认密钥")
+    api_key = Column(String(128), unique=True, nullable=False, index=True)
+    key_prefix = Column(String(16), nullable=False, default="")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_used_at = Column(DateTime(timezone=True), nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+
+
+class TokenWallet(Base):
+    """Token 钱包：余额以整数 token 计。"""
+
+    __tablename__ = "token_wallets"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    auth_user_id = Column(
+        Integer, ForeignKey("auth_users.id", ondelete="CASCADE"), unique=True, nullable=False, index=True
+    )
+    plan = Column(Enum(BillingPlan), default=BillingPlan.FREE, nullable=False)
+    balance_tokens = Column(Integer, default=0, nullable=False)
+    bonus_period = Column(String(16), nullable=True)
+    vip_expires_at = Column(DateTime(timezone=True), nullable=True)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class BillingLedger(Base):
+    """计费流水：正数入账，负数消耗。"""
+
+    __tablename__ = "billing_ledger"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    auth_user_id = Column(
+        Integer, ForeignKey("auth_users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    entry_type = Column(String(16), nullable=False)  # consume / topup / bonus / referral
+    amount = Column(Integer, nullable=False)
+    model = Column(String(64), nullable=True)
+    tokens = Column(Integer, nullable=True)
+    request_id = Column(String(64), nullable=True, index=True)
+    note = Column(String(255), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class InviteCode(Base):
+    """用户邀请码（一对一）。"""
+
+    __tablename__ = "token_invite_codes"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    auth_user_id = Column(
+        Integer, ForeignKey("auth_users.id", ondelete="CASCADE"), unique=True, nullable=False, index=True
+    )
+    code = Column(String(16), unique=True, nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Referral(Base):
+    """推荐关系与返利记录。"""
+
+    __tablename__ = "token_referrals"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    referrer_id = Column(
+        Integer, ForeignKey("auth_users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    referee_id = Column(
+        Integer, ForeignKey("auth_users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    level = Column(Integer, default=1, nullable=False)
+    reward_tokens = Column(Integer, default=0, nullable=False)
+    status = Column(String(16), default="pending", nullable=False)
+    topup_ledger_id = Column(Integer, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class TokenPayOrder(Base):
+    """
+    Token 产品支付订单（独立于 a1 的 pay_orders）。
+    out_trade_no 前缀 T；product 固定 token。
+    """
+
+    __tablename__ = "token_pay_orders"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    out_trade_no = Column(String(32), unique=True, nullable=False, index=True)
+    auth_user_id = Column(
+        Integer, ForeignKey("auth_users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    plan = Column(String(64), nullable=False)
+    amount_fen = Column(Integer, nullable=False)
+    channel = Column(String(16), nullable=False, default="wechat")
+    status = Column(String(16), nullable=False, default="pending")  # pending/paid/failed
+    code_url = Column(Text, nullable=True)
+    transaction_id = Column(String(128), nullable=True, index=True)
+    product = Column(String(16), nullable=False, default="token")
+    paid_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

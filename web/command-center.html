@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI24X · 指挥中心</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #080812; color: #c0c0c8; line-height: 1.6;
+    min-height: 100vh;
+  }
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px 20px 60px; }
+
+  /* Header */
+  .header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 0 20px; border-bottom: 1px solid #1a1a2e; margin-bottom: 24px;
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .logo {
+    font-size: 1.5em; font-weight: 800;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .logo-sub { font-size: 0.6em; color: #555; font-weight: 400; }
+  .header-right { text-align: right; font-size: 0.72em; color: #555; }
+  .header-right .time { color: #888; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 0.65em; font-weight: 600; }
+
+  /* Section titles */
+  .s-title {
+    font-size: 0.85em; font-weight: 700; color: #ddd;
+    border-left: 3px solid #667eea; padding-left: 12px; margin: 28px 0 12px;
+  }
+
+  /* Grid layouts */
+  .arch-row { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
+  .brain-card {
+    flex: 1; min-width: 180px;
+    background: #12122a; border: 1px solid #2a2a44; border-radius: 10px;
+    padding: 14px;
+  }
+  .brain-card .b-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .brain-card .b-name { font-size: 0.78em; font-weight: 600; }
+  .brain-card .b-status {
+    font-size: 0.6em; padding: 1px 8px; border-radius: 8px; font-weight: 600;
+  }
+  .brain-card .b-spec { font-size: 0.62em; color: #666; }
+  .brain-card .b-role { font-size: 0.68em; color: #999; margin-top: 4px; }
+
+  /* Metrics */
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin: 10px 0; }
+  .metric {
+    background: #12122a; border: 1px solid #2a2a44; border-radius: 8px;
+    padding: 12px; text-align: center;
+  }
+  .metric .val { font-size: 1.3em; font-weight: 700; }
+  .metric .lbl { font-size: 0.62em; color: #888; margin-top: 2px; }
+
+  /* Service list */
+  .svc-table { width: 100%; border-collapse: separate; border-spacing: 0 3px; font-size: 0.74em; }
+  .svc-table th { text-align: left; color: #555; padding: 4px 8px; font-size: 0.9em; }
+  .svc-table td { padding: 6px 8px; background: #12122a; border: 1px solid #2a2a44; }
+  .svc-table td:first-child { border-radius: 5px 0 0 5px; }
+  .svc-table td:last-child { border-radius: 0 5px 5px 0; }
+
+  /* Action links */
+  .links { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+  .link-btn {
+    display: inline-block;
+    background: #1a1a38; border: 1px solid #2a2a44; border-radius: 6px;
+    padding: 6px 14px; font-size: 0.7em; color: #8899ff; text-decoration: none;
+    transition: all .15s;
+  }
+  .link-btn:hover { background: #2a2a50; border-color: #667eea; }
+
+  /* Phase cards */
+  .phase-list { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+  .phase-card {
+    flex: 1; min-width: 180px;
+    background: #10101e; border: 1px solid #222; border-radius: 8px; padding: 10px;
+  }
+  .phase-card .ph-title { font-size: 0.72em; font-weight: 600; display: flex; justify-content: space-between; margin-bottom: 6px; }
+  .phase-card .ph-items { display: flex; gap: 4px; flex-wrap: wrap; }
+  .phase-card .ph-item { background: #1a1a38; border-radius: 4px; padding: 2px 8px; font-size: 0.64em; color: #999; }
+
+  /* Footer */
+  .footer { text-align: center; color: #333; font-size: 0.6em; padding: 30px 0; border-top: 1px solid #1a1a2e; margin-top: 30px; }
+
+  /* Status colors */
+  .c-green { color: #4caf50; } .c-orange { color: #ff9800; } .c-blue { color: #42a5f5; }
+  .c-pink { color: #f06292; } .c-yellow { color: #ffc107; } .c-gray { color: #666; }
+  .bg-green { background: rgba(76,175,80,.15); color: #4caf50; }
+  .bg-orange { background: rgba(255,152,0,.15); color: #ff9800; }
+  .bg-gray { background: rgba(100,100,100,.15); color: #666; }
+  .bg-blue { background: rgba(66,165,245,.15); color: #42a5f5; }
+
+  .section { margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div>
+        <div class="logo">AI24X <span class="logo-sub">指挥中心</span></div>
+        <div style="font-size:0.6em;color:#555;margin-top:2px;">🎇 我命由我不由天，热爱每一天</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="time" id="clock"></div>
+      <div style="margin-top:3px;"><span class="badge bg-blue">v3.5</span> <span class="badge bg-green">Phase 1</span></div>
+    </div>
+  </div>
+
+  <!-- Architecture -->
+  <div class="s-title">🧠 系统架构 · 主脑 + 四副脑</div>
+  <div class="arch-row">
+    <div class="brain-card" style="border-color:#667eea;">
+      <div class="b-head">
+        <span class="b-name" style="color:#667eea;">🧠 主脑 · 本机</span>
+        <span class="b-status bg-green">在线</span>
+      </div>
+      <div class="b-spec">雷总 + Cursor + OpenClaw</div>
+      <div class="b-role">决策 · 主开发 · 调度 · 督查 · 自动化</div>
+    </div>
+    <div class="brain-card">
+      <div class="b-head">
+        <span class="b-name" style="color:#ff9800;">💻 01 · 增长引擎</span>
+        <span class="b-status bg-gray">待VPN</span>
+      </div>
+      <div class="b-spec">4核8G · 国内+VPN</div>
+      <div class="b-role">Google SEO · X/Reddit/HN · 竞品监控</div>
+    </div>
+    <div class="brain-card">
+      <div class="b-head">
+        <span class="b-name" style="color:#4caf50;">💻 02 · 国内营销</span>
+        <span class="b-status bg-gray">未上线</span>
+      </div>
+      <div class="b-spec">2核8G · 国内</div>
+      <div class="b-role">种子群 · 教程 · 社媒 · 30台机房统调</div>
+    </div>
+    <div class="brain-card">
+      <div class="b-head">
+        <span class="b-name" style="color:#42a5f5;">☁️ 03 · 运维+API</span>
+        <span class="b-status bg-green">就绪</span>
+      </div>
+      <div class="b-spec">2核8G · 公网</div>
+      <div class="b-role">公网服务 · PM2 · Nginx · 告警</div>
+    </div>
+    <div class="brain-card">
+      <div class="b-head">
+        <span class="b-name" style="color:#f06292;">☁️ 04 · 国际节点</span>
+        <span class="b-status bg-gray">待部署</span>
+      </div>
+      <div class="b-spec">2核8G · 新加坡</div>
+      <div class="b-role">01灾备 · PayPal/Stripe · 海外CDN</div>
+    </div>
+  </div>
+
+  <!-- Core Metrics -->
+  <div class="s-title">📊 核心指标</div>
+  <div class="metrics">
+    <div class="metric"><div class="val c-green" id="smokeResult">17/17</div><div class="lbl">上次烟测</div></div>
+    <div class="metric"><div class="val c-blue" id="svcOnline">4</div><div class="lbl">服务在线</div></div>
+    <div class="metric"><div class="val c-green" id="svcTotal">4</div><div class="lbl">服务总数</div></div>
+    <div class="metric"><div class="val c-yellow" id="decisions">11</div><div class="lbl">决策记录</div></div>
+    <div class="metric"><div class="val c-orange" id="gitChanges">33</div><div class="lbl">未提交文件</div></div>
+    <div class="metric"><div class="val c-pink" id="projects">3</div><div class="lbl">子项目数</div></div>
+  </div>
+
+  <!-- Services -->
+  <div class="s-title">⚙️ 本机服务状态</div>
+  <table class="svc-table">
+    <thead><tr><th>服务</th><th>状态</th><th>端口</th><th>运行时间</th><th>内存</th></tr></thead>
+    <tbody id="svcBody">
+      <tr><td style="color:#42a5f5;">core-8000</td><td><span class="badge bg-green">online</span></td><td>8000</td><td>9h</td><td>105MB</td></tr>
+      <tr><td style="color:#4caf50;">a1-api-18011</td><td><span class="badge bg-green">online</span></td><td>18011</td><td>24h</td><td>80MB</td></tr>
+      <tr><td style="color:#4caf50;">a1-web-18001</td><td><span class="badge bg-green">online</span></td><td>18001</td><td>24h</td><td>64MB</td></tr>
+      <tr><td style="color:#f06292;">fisher-web-18002</td><td><span class="badge bg-green">online</span></td><td>18002</td><td>24h</td><td>57MB</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Projects -->
+  <div class="s-title">🚀 双项目并行</div>
+  <div class="arch-row">
+    <div class="brain-card" style="flex:2;">
+      <div class="b-head">
+        <span class="b-name" style="color:#f5576c;">Token 聚合平台</span>
+        <span class="b-status bg-green">Phase 1</span>
+      </div>
+      <div class="b-role">keys · billing · chat/run · referrals · SMTP ✅<br>待真支付 · 飞书日报 · 推广</div>
+    </div>
+    <div class="brain-card" style="flex:1;">
+      <div class="b-head">
+        <span class="b-name" style="color:#4caf50;">A1 行情官</span>
+        <span class="b-status bg-green">运营中</span>
+      </div>
+      <div class="b-role">A股K线 · AI信号 · ¥99/月 · VIP<br>维护态 · 等牛市</div>
+    </div>
+    <div class="brain-card" style="flex:1;">
+      <div class="b-head">
+        <span class="b-name" style="color:#f06292;">Fisher 山海渔</span>
+        <span class="b-status bg-gray">开发中</span>
+      </div>
+      <div class="b-role">钓鱼游戏/社区 · 本地开发</div>
+    </div>
+  </div>
+
+  <!-- Quick Links -->
+  <div class="s-title">🔗 快捷入口</div>
+  <div class="links">
+    <a class="link-btn" href="/" target="_blank">🏠 主站 www</a>
+    <a class="link-btn" href="/console.html" target="_blank">👤 控制台</a>
+    <a class="link-btn" href="http://127.0.0.1:18001/" target="_blank">📈 A1行情官</a>
+    <a class="link-btn" href="http://127.0.0.1:18002/" target="_blank">🎣 Fisher</a>
+    <a class="link-btn" href="/docs/README.md" target="_blank">📚 文档索引</a>
+    <a class="link-btn" href="./memory/daily/2026-07-26.md" target="_blank">📋 今日作战卡</a>
+  </div>
+
+  <!-- Execution Phases -->
+  <div class="s-title">📅 执行阶段</div>
+  <div class="phase-list">
+    <div class="phase-card">
+      <div class="ph-title"><span>P0 · 本周</span><span style="color:#f5576c;">⚠</span></div>
+      <div class="ph-items">
+        <span class="ph-item">烟测验收 ✅</span>
+        <span class="ph-item">控制台验收</span>
+        <span class="ph-item">01 VPN测试</span>
+        <span class="ph-item">飞书接入</span>
+      </div>
+    </div>
+    <div class="phase-card">
+      <div class="ph-title"><span>P1 · 2周</span><span style="color:#ff9800;">📌</span></div>
+      <div class="ph-items">
+        <span class="ph-item">Token真支付</span>
+        <span class="ph-item">01 SEO启动</span>
+        <span class="ph-item">02国内营销</span>
+        <span class="ph-item">飞书日报</span>
+      </div>
+    </div>
+    <div class="phase-card">
+      <div class="ph-title"><span>P2 · 1月</span><span style="color:#42a5f5;">🔭</span></div>
+      <div class="ph-items">
+        <span class="ph-item">英文站</span>
+        <span class="ph-item">PayPal</span>
+        <span class="ph-item">04新加坡</span>
+        <span class="ph-item">30台机房</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Automation -->
+  <div class="s-title">🤖 自动化引擎</div>
+  <div class="metrics" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));">
+    <div class="metric"><div class="val" style="color:#667eea;">一三五 09:00</div><div class="lbl">🧪 平台巡更</div></div>
+    <div class="metric"><div class="val" style="color:#667eea;">飞书推</div><div class="lbl">📊 异常告警</div></div>
+    <div class="metric"><div class="val" style="color:#667eea;">OpenClaw</div><div class="lbl">⏱️ Cron调度</div></div>
+    <div class="metric"><div class="val" style="color:#667eea;">待配</div><div class="lbl">📈 成本日报</div></div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div style="font-size:1.8em;margin-bottom:6px;">🎇</div>
+    AI24X · 指挥官面板 v1.0 · 2026-07-26<br>
+    我命由我不由天，热爱每一天
+  </div>
+
+</div>
+<script>
+  // Clock
+  function updateClock() {
+    const now = new Date();
+    const opts = { timeZone:'Asia/Shanghai', year:'numeric', month:'2-digit', day:'2-digit',
+                   hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false };
+    document.getElementById('clock').textContent = '🕐 ' + now.toLocaleString('zh-CN', opts) + ' CST';
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // Auto-refresh every 5 minutes
+  setTimeout(() => location.reload(), 300000);
+</script>
+</body>
+</html>

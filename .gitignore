@@ -28,6 +28,10 @@ backups/
 .DS_Store
 Thumbs.db
 *.db
+api/_smoke_last.json
+api/_tmp_*
+scripts/_organize_docs.py
+scripts/_verify_docs.py
 *.sqlite
 *.sqlite3
 *.zip

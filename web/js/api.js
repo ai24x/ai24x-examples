@@ -6,6 +6,8 @@
 (function (global) {
   var STORAGE_BASE = "ai24x_api_base";
   var STORAGE_KEY = "ai24x_api_key";
+  var STORAGE_TOKEN = "ai24x_auth_token";
+  var STORAGE_USER = "ai24x_auth_user";
   var PRODUCTION = "https://api.ai24x.com";
 
   function getBase() {
@@ -31,6 +33,51 @@
     else localStorage.removeItem(STORAGE_KEY);
   }
 
+  function getAuthToken() {
+    return localStorage.getItem(STORAGE_TOKEN) || "";
+  }
+
+  function setAuthToken(token) {
+    if (token) localStorage.setItem(STORAGE_TOKEN, token);
+    else localStorage.removeItem(STORAGE_TOKEN);
+  }
+
+  function getAuthUser() {
+    try {
+      var raw = localStorage.getItem(STORAGE_USER);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function setAuthUser(user) {
+    if (user) localStorage.setItem(STORAGE_USER, JSON.stringify(user));
+    else localStorage.removeItem(STORAGE_USER);
+  }
+
+  function clearAuth() {
+    localStorage.removeItem(STORAGE_TOKEN);
+    localStorage.removeItem(STORAGE_USER);
+  }
+
+  function saveAuthSession(data) {
+    if (!data || !data.token) return;
+    setAuthToken(data.token);
+    if (data.user) setAuthUser(data.user);
+  }
+
+  /** 本机预览开放登录/注册；生产域名默认仍关闭（可用 ?auth=1 强制开） */
+  function isLocalAuthOpen() {
+    var h = location.hostname;
+    if (h === "localhost" || h === "127.0.0.1" || h === "::1") return true;
+    try {
+      return /(?:^|[?&])auth=1(?:&|$)/.test(location.search || "");
+    } catch (e) {
+      return false;
+    }
+  }
+
   async function request(path, options) {
     options = options || {};
     var url = getBase() + path;
@@ -40,8 +87,10 @@
     );
     if (options.body && typeof options.body === "string" && !headers["Content-Type"])
       headers["Content-Type"] = "application/json";
+    var tok = getAuthToken();
+    if (tok && !headers.Authorization) headers.Authorization = "Bearer " + tok;
     var k = getApiKey();
-    if (k) headers["X-API-Key"] = k;
+    if (k && !headers["X-API-Key"]) headers["X-API-Key"] = k;
     var res = await fetch(url, Object.assign({}, options, { headers: headers }));
     var text = await res.text();
     var data = null;
@@ -56,7 +105,6 @@
         if (typeof v === "string") return v.trim();
         return "";
       }
-      /** Flatten JSON error into one user-visible line (Chinese-first). */
       function humanErrorMessage(status, body, fallbackText) {
         var b = body && typeof body === "object" ? body : null;
         var parts = [];
@@ -80,7 +128,6 @@
         if (!joined && fallbackText) joined = String(fallbackText).trim();
         if (!joined) joined = "请求失败（" + status + "）";
 
-        // Normalize known auth failure (avoid showing Python dict / machine keys).
         if (
           status === 401 &&
           (joined.indexOf("手机号/邮箱或密码错误") >= 0 ||
@@ -95,7 +142,6 @@
         if (status === 429) return "请求过于频繁，请稍后再试。";
         if (status >= 500) return "服务暂时不可用，请稍后再试。";
 
-        // If server still returned a JSON-looking blob, keep it short.
         if (joined.length > 180) joined = joined.slice(0, 177) + "…";
         return joined;
       }
@@ -109,7 +155,6 @@
     return data;
   }
 
-  /** POST /v1/chat/run — optional user_id query for integrations that pass it in the URL */
   function chatRun(body, userId) {
     var q = userId ? "?user_id=" + encodeURIComponent(userId) : "";
     return request("/v1/chat/run" + q, {
@@ -126,11 +171,13 @@
     return request("/v1/user/info", { method: "GET" });
   }
 
-  /** Auth: login */
   function authLogin(payload) {
     return request("/v1/auth/login", {
       method: "POST",
       body: JSON.stringify(payload || {}),
+    }).then(function (data) {
+      saveAuthSession(data);
+      return data;
     });
   }
 
@@ -138,15 +185,24 @@
     return request("/v1/auth/register", {
       method: "POST",
       body: JSON.stringify(payload || {}),
+    }).then(function (data) {
+      saveAuthSession(data);
+      return data;
     });
   }
 
-  /** POST /v1/auth/sms/send — may require SMS_INTERNAL_KEY in headers when the server is configured for it */
   function authSmsSend(payload, headers) {
     return request("/v1/auth/sms/send", {
       method: "POST",
       body: JSON.stringify(payload || {}),
       headers: headers || {},
+    });
+  }
+
+  function authEmailSend(payload) {
+    return request("/v1/auth/email/send", {
+      method: "POST",
+      body: JSON.stringify(payload || {}),
     });
   }
 
@@ -161,12 +217,74 @@
     });
   }
 
+  function keysDelete(keyId) {
+    return request("/v1/keys/" + encodeURIComponent(keyId), { method: "DELETE" });
+  }
+
   function billingBalance() {
     return request("/v1/billing/balance", { method: "GET" });
   }
 
+  function billingUsage(params) {
+    params = params || {};
+    var q = [];
+    if (params.limit != null) q.push("limit=" + encodeURIComponent(params.limit));
+    if (params.offset != null) q.push("offset=" + encodeURIComponent(params.offset));
+    if (params.entry_type) q.push("entry_type=" + encodeURIComponent(params.entry_type));
+    return request("/v1/billing/usage" + (q.length ? "?" + q.join("&") : ""), { method: "GET" });
+  }
+
+  function billingPlans() {
+    return request("/v1/billing/plans", { method: "GET" });
+  }
+
+  function billingWechatNative(plan) {
+    return request("/v1/billing/wechat/native", {
+      method: "POST",
+      body: JSON.stringify({ plan: plan }),
+    });
+  }
+
+  function billingAlipayWap(plan) {
+    return request("/v1/billing/alipay/wap", {
+      method: "POST",
+      body: JSON.stringify({ plan: plan }),
+    });
+  }
+
+  function billingOrders(limit) {
+    var q = limit != null ? "?limit=" + encodeURIComponent(limit) : "";
+    return request("/v1/billing/orders" + q, { method: "GET" });
+  }
+
+  function billingMockFulfill(outTradeNo) {
+    return request("/v1/billing/orders/mock_fulfill", {
+      method: "POST",
+      body: JSON.stringify({ out_trade_no: outTradeNo }),
+    });
+  }
+
+  function billingQueryFulfill(outTradeNo, channel) {
+    var path =
+      channel === "alipay"
+        ? "/v1/billing/alipay/query_and_fulfill"
+        : "/v1/billing/wechat/query_and_fulfill";
+    return request(path, {
+      method: "POST",
+      body: JSON.stringify({ out_trade_no: outTradeNo }),
+    });
+  }
+
+  function listModels() {
+    return request("/v1/models", { method: "GET" });
+  }
+
   function referralsSummary() {
     return request("/v1/referrals/summary", { method: "GET" });
+  }
+
+  function referralsCode() {
+    return request("/v1/referrals/code", { method: "GET" });
   }
 
   global.AI24X_API = {
@@ -174,6 +292,13 @@
     setBase: setBase,
     getApiKey: getApiKey,
     setApiKey: setApiKey,
+    getAuthToken: getAuthToken,
+    setAuthToken: setAuthToken,
+    getAuthUser: getAuthUser,
+    setAuthUser: setAuthUser,
+    clearAuth: clearAuth,
+    saveAuthSession: saveAuthSession,
+    isLocalAuthOpen: isLocalAuthOpen,
     request: request,
     chatRun: chatRun,
     health: health,
@@ -181,9 +306,20 @@
     authLogin: authLogin,
     authRegister: authRegister,
     authSmsSend: authSmsSend,
+    authEmailSend: authEmailSend,
     keysList: keysList,
     keysCreate: keysCreate,
+    keysDelete: keysDelete,
     billingBalance: billingBalance,
+    billingUsage: billingUsage,
+    billingPlans: billingPlans,
+    billingWechatNative: billingWechatNative,
+    billingAlipayWap: billingAlipayWap,
+    billingOrders: billingOrders,
+    billingMockFulfill: billingMockFulfill,
+    billingQueryFulfill: billingQueryFulfill,
+    listModels: listModels,
     referralsSummary: referralsSummary,
+    referralsCode: referralsCode,
   };
 })(typeof window !== "undefined" ? window : this);

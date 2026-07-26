@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from models import User, ChatRequest, UserType
 from schemas import ChatRequest as ChatRequestSchema, ChatResponse
 from config import settings
+from security_util import attribution_block
 
 
 class UserService:
@@ -73,12 +74,19 @@ class ChatService:
         user: User,
         request: ChatRequestSchema,
         ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None
+        user_agent: Optional[str] = None,
+        auth_user_id: Optional[int] = None,
     ) -> ChatResponse:
-        """处理聊天请求"""
+        """处理聊天请求；若提供 auth_user_id 则走 Token 钱包扣减。"""
         request_id = f"req_{uuid.uuid4().hex[:16]}"
         start_time = time.time()
-        
+
+        # Token 钱包预检（MVP：至少要有余额）
+        if auth_user_id is not None:
+            from token_mvp_service import assert_can_spend
+
+            assert_can_spend(db, int(auth_user_id), need_tokens=1)
+
         # 创建请求记录
         chat_request = ChatRequest(
             request_id=request_id,
@@ -90,21 +98,44 @@ class ChatService:
             max_tokens=request.max_tokens,
             ip_address=ip_address,
             user_agent=user_agent,
-            status="processing"
+            status="processing",
         )
         db.add(chat_request)
         db.commit()
-        
+
         try:
-            # 模拟AI处理（实际项目中这里会调用AI API）
-            # 这里使用简单的回复生成
-            response_text = ChatService._generate_response(request.prompt)
-            token_count = len(response_text.split()) * 1.3  # 估算token数
-            
+            from token_mvp_service import get_balance_snapshot
+            from model_router import run_routed_chat
+
+            is_vip = False
+            if auth_user_id is not None:
+                snap0 = get_balance_snapshot(db, int(auth_user_id))
+                is_vip = bool(snap0.get("is_vip_active"))
+
+            routed = run_routed_chat(
+                prompt=request.prompt,
+                requested_model=request.model,
+                is_vip=is_vip,
+                temperature=float(request.temperature or 0.7),
+                max_tokens=int(request.max_tokens or 1000),
+            )
+            if not routed.ok:
+                raise RuntimeError(routed.error or "all_routes_failed")
+
+            response_text = routed.text
+            used_model = routed.model
+            # 全上游失败落 stub：不计费（总纲 v3.3）；纯联调 stub（未配 Key）仍计最小 token 便于测钱包
+            billable = not (
+                routed.provider == "stub"
+                and (routed.error or "") == "all_live_failed_used_stub"
+            )
+            token_count = max(1, int(routed.token_count)) if billable else 0
+
             processing_time = time.time() - start_time
-            
+
             # 更新请求记录
             chat_request.response = response_text
+            chat_request.model = used_model
             chat_request.response_time = datetime.utcnow()
             chat_request.processing_duration = processing_time
             chat_request.status = "completed"
@@ -112,21 +143,42 @@ class ChatService:
             chat_request.token_count = int(token_count)
             chat_request.cost = token_count * (0.000002 if user.user_type == UserType.FREE else 0.000001)
             db.commit()
-            
+
             # 增加用户请求计数
             UserService.increment_request_count(db, user)
-            
+
+            remaining_quota = user.daily_request_limit - user.current_daily_requests
+            if auth_user_id is not None:
+                from token_mvp_service import consume_tokens, get_balance_snapshot
+
+                if billable and token_count > 0:
+                    consume_tokens(
+                        db,
+                        auth_user_id=int(auth_user_id),
+                        tokens=int(token_count),
+                        model=used_model,
+                        request_id=request_id,
+                    )
+                snap = get_balance_snapshot(db, int(auth_user_id))
+                remaining_quota = int(snap.get("balance_tokens") or 0)
+
             return ChatResponse(
                 request_id=request_id,
                 response=response_text,
-                model=request.model or "gpt-3.5-turbo",
+                model=used_model,
                 token_count=int(token_count),
                 processing_time=processing_time,
                 user_type=user.user_type,
-                remaining_quota=user.daily_request_limit - user.current_daily_requests,
-                created_at=datetime.utcnow()
+                remaining_quota=remaining_quota,
+                created_at=datetime.utcnow(),
+                layer=routed.layer,
+                provider=routed.provider,
+                route_attempts=routed.attempts,
+                attribution=attribution_block(
+                    request_id=request_id, auth_user_id=auth_user_id
+                ),
             )
-            
+
         except Exception as e:
             # 记录错误
             chat_request.error_message = str(e)

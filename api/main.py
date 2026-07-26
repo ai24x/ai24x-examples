@@ -23,6 +23,14 @@ from schemas import (
     AdminPasswordSetBody,
     AdminUserContactSetBody,
     AdminUserBootstrapBody,
+    ApiKeyCreateBody,
+    ApiKeyCreatedOut,
+    ApiKeyOut,
+    BillingBalanceOut,
+    BillingTopupBody,
+    TokenPayCreateBody,
+    TokenMockFulfillBody,
+    TokenQueryFulfillBody,
     ChatRequest,
     ChatResponse,
     ErrorResponse,
@@ -61,6 +69,13 @@ from auth_user_service import (
 )
 from sms_abuse_guard import check_before_send, client_ip, record_attempt
 from sms_otp_memory import store_otp, verify_and_consume_otp
+from security_util import (
+    attribution_block,
+    check_sliding_rate,
+    client_ip as sec_client_ip,
+    is_prod,
+    security_headers,
+)
 
 # 配置日志
 logging.basicConfig(
@@ -72,36 +87,36 @@ logger = logging.getLogger(__name__)
 # 邮箱验证码发送冷却（进程内；多实例需 Redis）
 _auth_email_last_sent: dict[str, float] = {}
 
+_docs_on = not (is_prod() and bool(settings.disable_docs_in_prod))
 # 创建FastAPI应用
 app = FastAPI(
     title="AI24X API",
     description="AI24X Token aggregation platform — unified multi-model API gateway (PostgreSQL via SQLAlchemy).",
     version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc"
+    docs_url="/docs" if _docs_on else None,
+    redoc_url="/redoc" if _docs_on else None,
+    openapi_url="/openapi.json" if _docs_on else None,
 )
 
-# 添加CORS中间件
+_cors_raw = (settings.cors_origins or "*").strip()
+_cors_origins = ["*"] if _cors_raw == "*" else [x.strip() for x in _cors_raw.split(",") if x.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 生产环境中应限制来源
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_cors_origins,
+    allow_credentials=("*" not in _cors_origins),
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-API-Key", "X-SMS-Internal-Key", "X-Request-ID"],
 )
 
 
-# 中间件：记录请求日志
+# 中间件：安全响应头 + 请求日志
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start_time = time.time()
-    
-    # 获取客户端信息
-    ip_address = request.client.host if request.client else None
-    user_agent = request.headers.get("user-agent")
-    
+    ip_address = sec_client_ip(request)
     response = await call_next(request)
-    
+    for k, v in security_headers().items():
+        response.headers.setdefault(k, v)
     process_time = time.time() - start_time
     logger.info(
         f"{request.method} {request.url.path} - "
@@ -109,19 +124,39 @@ async def log_requests(request: Request, call_next):
         f"Time: {process_time:.3f}s - "
         f"IP: {ip_address}"
     )
-    
     return response
 
 
-# 中间件：速率限制（简化版）
+# 中间件：chat 限流（IP + API Key）
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
     if not settings.enable_rate_limiting:
         return await call_next(request)
-    
-    # 实际项目中这里会有更复杂的速率限制逻辑
-    # 例如：基于IP、用户ID、API key等
-    
+    path = request.url.path or ""
+    if path.rstrip("/").endswith("/v1/chat/run") and request.method.upper() == "POST":
+        ip = sec_client_ip(request)
+        ok_ip, _ = check_sliding_rate(
+            f"ip:{ip}",
+            limit=int(settings.chat_rate_per_ip_per_minute or 120),
+            window_s=60.0,
+        )
+        if not ok_ip:
+            return JSONResponse(
+                status_code=429,
+                content={"error": "请求过于频繁（IP）", "code": "429", "request_id": None},
+            )
+        api_key = (request.headers.get("X-API-Key") or "").strip()
+        if api_key:
+            ok_k, _ = check_sliding_rate(
+                f"key:{api_key[:24]}",
+                limit=int(settings.chat_rate_per_minute or 60),
+                window_s=60.0,
+            )
+            if not ok_k:
+                return JSONResponse(
+                    status_code=429,
+                    content={"error": "请求过于频繁（API Key）", "code": "429", "request_id": None},
+                )
     return await call_next(request)
 
 
@@ -130,29 +165,51 @@ def get_current_user(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """从请求头获取当前用户"""
-    # 从Header获取API Key
+    """从请求头获取当前用户（优先 api_keys；严格模式禁止仅 user_id）。"""
     api_key = request.headers.get("X-API-Key")
-    
-    # 从查询参数获取用户ID（用于测试）
     user_id = request.query_params.get("user_id")
-    
+    request.state.auth_user_id = None
+
+    if api_key:
+        try:
+            from token_mvp_service import resolve_chat_user_from_api_key
+
+            user, auth_uid = resolve_chat_user_from_api_key(db, api_key)
+            request.state.auth_user_id = int(auth_uid)
+            allowed, error_msg = UserService.check_rate_limit(db, user)
+            if not allowed:
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail=error_msg,
+                )
+            return user
+        except HTTPException as e:
+            if e.status_code != 401:
+                raise
+            # fall through to legacy User.api_key
+
+    # 严格鉴权：禁止「只带 user_id」冒充（防拷贝脚本扫接口）
+    if bool(settings.strict_auth) and not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="需要有效的 X-API-Key",
+        )
+
     user = AuthService.authenticate_user(db, api_key=api_key, user_id=user_id)
-    
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="无效的API Key或用户ID"
+            detail="无效的API Key或用户ID",
         )
-    
-    # 检查速率限制
+
     allowed, error_msg = UserService.check_rate_limit(db, user)
     if not allowed:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=error_msg
+            detail=error_msg,
         )
-    
+
     return user
 
 
@@ -192,12 +249,14 @@ async def chat_run(
         user_agent = http_request.headers.get("user-agent")
         
         # 处理聊天请求
+        auth_uid = getattr(http_request.state, "auth_user_id", None) if http_request else None
         response = ChatService.process_chat_request(
             db=db,
             user=current_user,
             request=request,
             ip_address=ip_address,
-            user_agent=user_agent
+            user_agent=user_agent,
+            auth_user_id=auth_uid,
         )
         
         logger.info(f"Chat request processed: {response.request_id} for user: {current_user.user_id}")
@@ -577,6 +636,9 @@ async def auth_login(body: AuthLoginBody, db: Session = Depends(get_db)):
 
 @app.post("/v1/auth/email/send", response_model=AuthEmailSendResponse)
 async def auth_email_send(body: AuthEmailSendRequest):
+    from email_smtp import send_otp_email, smtp_configured
+    from security_util import is_prod
+
     em = norm_email(body.email)
     if not em or "@" not in em:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="邮箱格式不正确")
@@ -587,6 +649,8 @@ async def auth_email_send(body: AuthEmailSendRequest):
         return AuthEmailSendResponse(
             ok=False,
             message="发送过于频繁，请稍后再试",
+            channel=None,
+            local_code=None,
             dev_code=None,
         )
 
@@ -594,19 +658,72 @@ async def auth_email_send(body: AuthEmailSendRequest):
     store_email_otp(em, body.purpose, code, ttl_s=300.0)
     _auth_email_last_sent[em] = now
 
-    dev_code: str | None = None
-    if str(settings.app_env).lower() not in ("prod", "production"):
-        dev_code = code
-    logger.info("Email OTP stored purpose=%s email=%s (dev_code only in non-prod response)", body.purpose, em)
+    # 测试邮箱（*.local / example.com）：即使已配 SMTP 也走 local，避免假邮箱触发真发信
+    is_test_mailbox = em.endswith(".local") or em.endswith("@example.com") or em.endswith(".example.com")
+
+    if smtp_configured() and not is_test_mailbox:
+        ok, msg = send_otp_email(to_email=em, code=code, purpose=body.purpose)
+        if not ok:
+            # 发信失败：作废本次 OTP，避免「没收到信却仍能靠猜/泄露注册」
+            try:
+                from email_otp_memory import store_otp as _store
+
+                _store(em, body.purpose, "__invalid__", ttl_s=1.0)
+            except Exception:
+                pass
+            return AuthEmailSendResponse(
+                ok=False,
+                message=msg or "邮件发送失败",
+                channel="smtp",
+                local_code=None,
+                dev_code=None,
+            )
+        logger.info("Email OTP sent via SMTP purpose=%s email=%s", body.purpose, em)
+        return AuthEmailSendResponse(
+            ok=True,
+            message=msg or "验证码已发送到邮箱，请查收。",
+            channel="smtp",
+            local_code=None,
+            dev_code=None,
+        )
+
+    # 无 SMTP：生产禁止；开发可走 local 卡片
+    if is_prod():
+        return AuthEmailSendResponse(
+            ok=False,
+            message="邮件服务未配置，请联系管理员（需配置 SMTP_*）",
+            channel=None,
+            local_code=None,
+            dev_code=None,
+        )
+
+    expose = bool(getattr(settings, "email_otp_expose_local_code", True))
+    local = code if expose else None
+    logger.info(
+        "Email OTP local channel purpose=%s email=%s expose=%s",
+        body.purpose,
+        em,
+        expose,
+    )
     return AuthEmailSendResponse(
         ok=True,
-        message="验证码已发送，请注意查收。",
-        dev_code=dev_code,
+        message="本地联调：验证码已生成（正式环境将发到邮箱）。",
+        channel="local",
+        local_code=local,
+        dev_code=local,
     )
 
 
+@app.get("/v1/auth/email/status")
+async def auth_email_status():
+    """运维自检：邮箱通道是否就绪（不含密钥）。"""
+    from email_smtp import email_channel_status
+
+    return {"ok": True, **email_channel_status()}
+
+
 @app.post("/v1/auth/register", response_model=AuthTokenResponse)
-async def auth_register(body: AuthRegisterBody, db: Session = Depends(get_db)):
+async def auth_register(request: Request, body: AuthRegisterBody, db: Session = Depends(get_db)):
     if body.phone:
         mob = normalize_mobile(body.phone)
         if len(mob) != 11 or not mob.isdigit():
@@ -629,6 +746,20 @@ async def auth_register(body: AuthRegisterBody, db: Session = Depends(get_db)):
                 detail="邮箱验证码错误或已过期，请重新获取",
             )
         u = create_user_email(db, em, body.password)
+
+    # Token MVP：可选邀请码绑定（无效码静默忽略，不阻断注册）
+    try:
+        from token_mvp_service import bind_referral_on_register, get_or_create_wallet
+
+        bind_referral_on_register(
+            db,
+            referee_id=int(u.id),
+            invite_code=body.invite_code,
+            client_ip=sec_client_ip(request),
+        )
+        get_or_create_wallet(db, int(u.id))
+    except Exception:
+        logger.exception("referral bind / wallet bootstrap failed for user %s", u.id)
 
     token = create_auth_access_token(
         user_id=int(u.id),
@@ -874,40 +1005,386 @@ async def admin_user_bootstrap(
 
 
 @app.get("/v1/keys")
-async def keys_list_placeholder():
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="API keys list not implemented.",
+async def keys_list(request: Request, db: Session = Depends(get_db)):
+    from token_mvp_service import list_api_keys
+
+    u = _auth_user_from_bearer(request, db)
+    return {"keys": list_api_keys(db, int(u.id))}
+
+
+@app.post("/v1/keys", response_model=ApiKeyCreatedOut)
+async def keys_create(request: Request, body: ApiKeyCreateBody, db: Session = Depends(get_db)):
+    from token_mvp_service import create_api_key
+
+    u = _auth_user_from_bearer(request, db)
+    return create_api_key(db, int(u.id), body.name)
+
+
+@app.delete("/v1/keys/{key_id}")
+async def keys_delete(key_id: int, request: Request, db: Session = Depends(get_db)):
+    from token_mvp_service import delete_api_key
+
+    u = _auth_user_from_bearer(request, db)
+    return delete_api_key(db, int(u.id), int(key_id))
+
+
+@app.get("/v1/billing/balance", response_model=BillingBalanceOut)
+async def billing_balance(request: Request, db: Session = Depends(get_db)):
+    from token_mvp_service import get_balance_snapshot
+
+    u = _auth_user_from_bearer(request, db)
+    return get_balance_snapshot(db, int(u.id))
+
+
+@app.post("/v1/billing/topup", response_model=BillingBalanceOut)
+async def billing_topup(request: Request, body: BillingTopupBody, db: Session = Depends(get_db)):
+    """内部充值接口：需 X-SMS-Internal-Key。"""
+    if not (settings.sms_internal_key or "").strip():
+        raise HTTPException(status_code=503, detail="内部密钥未配置")
+    if (request.headers.get("X-SMS-Internal-Key") or "").strip() != (
+        settings.sms_internal_key or ""
+    ).strip():
+        raise HTTPException(status_code=403, detail="禁止访问")
+    from token_mvp_service import topup_tokens
+
+    return topup_tokens(
+        db,
+        auth_user_id=int(body.auth_user_id),
+        amount=int(body.amount),
+        note=body.note,
+        set_vip=bool(body.set_vip),
     )
 
 
-@app.post("/v1/keys")
-async def keys_create_placeholder():
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="API key create not implemented.",
-    )
+@app.get("/v1/billing/usage")
+async def billing_usage(
+    request: Request,
+    db: Session = Depends(get_db),
+    limit: int = 50,
+    offset: int = 0,
+    entry_type: str | None = None,
+):
+    from token_mvp_service import list_usage
+
+    u = _auth_user_from_bearer(request, db)
+    return list_usage(db, int(u.id), limit=limit, offset=offset, entry_type=entry_type)
 
 
-@app.get("/v1/billing/balance")
-async def billing_balance_placeholder():
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Billing balance not implemented.",
-    )
+@app.get("/v1/referrals/code")
+async def referrals_code(request: Request, db: Session = Depends(get_db)):
+    from token_mvp_service import get_or_create_invite_code
+
+    u = _auth_user_from_bearer(request, db)
+    row = get_or_create_invite_code(db, int(u.id))
+    return {"code": row.code, "auth_user_id": int(u.id)}
+
+
+@app.get("/v1/referrals/stats")
+async def referrals_stats(request: Request, db: Session = Depends(get_db)):
+    from token_mvp_service import get_or_create_invite_code, referral_stats
+
+    u = _auth_user_from_bearer(request, db)
+    get_or_create_invite_code(db, int(u.id))
+    return referral_stats(db, int(u.id))
+
+
+@app.get("/v1/referrals/earnings")
+async def referrals_earnings(
+    request: Request,
+    db: Session = Depends(get_db),
+    limit: int = 50,
+    offset: int = 0,
+):
+    from token_mvp_service import referral_earnings
+
+    u = _auth_user_from_bearer(request, db)
+    return referral_earnings(db, int(u.id), limit=limit, offset=offset)
 
 
 @app.get("/v1/referrals/summary")
-async def referrals_summary_placeholder():
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Referrals summary not implemented.",
+async def referrals_summary(request: Request, db: Session = Depends(get_db)):
+    """兼容旧占位路径：等同 stats + code。"""
+    from token_mvp_service import get_or_create_invite_code, referral_stats
+
+    u = _auth_user_from_bearer(request, db)
+    code = get_or_create_invite_code(db, int(u.id)).code
+    stats = referral_stats(db, int(u.id))
+    return {"code": code, **stats}
+
+
+# —— Token 套餐 / 在线支付（独立于 a1；默认 TOKEN_PAY_ENABLED=false）——
+
+
+def _require_internal_key(request: Request) -> None:
+    if not (settings.sms_internal_key or "").strip():
+        raise HTTPException(status_code=503, detail="内部密钥未配置")
+    if (request.headers.get("X-SMS-Internal-Key") or "").strip() != (
+        settings.sms_internal_key or ""
+    ).strip():
+        raise HTTPException(status_code=403, detail="禁止访问")
+
+
+@app.get("/v1/billing/plans")
+async def billing_plans():
+    """公开套餐目录 + 支付通道就绪状态（不含密钥）。"""
+    from token_pay_service import public_plans
+
+    return public_plans()
+
+
+@app.get("/v1/billing/pay/status")
+async def billing_pay_status():
+    """支付通道自检（不含密钥）；上真支付前先看这里。"""
+    from pathlib import Path
+
+    wechat_notify = (settings.token_wechat_notify_url or "").strip()
+    alipay_notify = (settings.token_alipay_notify_url or "").strip()
+    wx_path = (settings.wechat_mch_private_key_path or "").strip()
+    wechat_ready = bool(
+        (settings.wechat_mch_id or "").strip()
+        and (settings.wechat_app_id or "").strip()
+        and (settings.wechat_api_v3_key or "").strip()
+        and (
+            wx_path
+            or (settings.wechat_mch_private_key_pem or "").strip()
+        )
+    )
+    alipay_ready = bool(
+        (settings.alipay_app_id or "").strip()
+        and (settings.alipay_public_key or "").strip()
+        and (
+            (settings.alipay_merchant_private_key_path or "").strip()
+            or (settings.alipay_merchant_private_key_pem or "").strip()
+        )
+    )
+    return {
+        "ok": True,
+        "token_pay_enabled": bool(settings.token_pay_enabled),
+        "token_pay_mock_enabled": bool(settings.token_pay_mock_enabled),
+        "wechat": {
+            "merchant_configured": wechat_ready,
+            "private_key_path_exists": bool(wx_path and Path(wx_path).exists()),
+            "notify_url_set": bool(wechat_notify),
+            "notify_url_hint": wechat_notify[:80] + ("…" if len(wechat_notify) > 80 else ""),
+        },
+        "alipay": {
+            "merchant_configured": alipay_ready,
+            "notify_url_set": bool(alipay_notify),
+            "notify_url_hint": alipay_notify[:80] + ("…" if len(alipay_notify) > 80 else ""),
+            "return_url_set": bool((settings.token_alipay_return_url or "").strip()),
+        },
+        "next_steps": [
+            "确认 TOKEN_*_NOTIFY_URL 与 a1 回调不同，并在商户平台登记 Token 回调",
+            "小额实付前设 TOKEN_PAY_ENABLED=true 后 pm2 restart core-8000 --update-env",
+            "实付后核对 token_pay_orders + 钱包；并回归 a1 支付",
+        ],
+        "a1_safety": "本接口不读写 a1 pay_orders；同步脚本从不复制 a1 notify",
+    }
+
+
+@app.post("/v1/billing/wechat/native")
+async def billing_wechat_native(
+    request: Request, body: TokenPayCreateBody, db: Session = Depends(get_db)
+):
+    from token_pay_service import create_wechat_native
+
+    u = _auth_user_from_bearer(request, db)
+    return await create_wechat_native(db, auth_user_id=int(u.id), plan=body.plan)
+
+
+@app.post("/v1/billing/alipay/wap")
+async def billing_alipay_wap(
+    request: Request, body: TokenPayCreateBody, db: Session = Depends(get_db)
+):
+    from token_pay_service import create_alipay_wap
+
+    u = _auth_user_from_bearer(request, db)
+    return await create_alipay_wap(db, auth_user_id=int(u.id), plan=body.plan)
+
+
+@app.get("/v1/billing/orders")
+async def billing_orders_mine(request: Request, db: Session = Depends(get_db), limit: int = 20):
+    from token_pay_service import list_orders_for_user
+
+    u = _auth_user_from_bearer(request, db)
+    return list_orders_for_user(db, int(u.id), limit=limit)
+
+
+@app.post("/v1/billing/orders/mock_fulfill")
+async def billing_orders_mock_fulfill(
+    request: Request, body: TokenMockFulfillBody, db: Session = Depends(get_db)
+):
+    """
+    本地/联调模拟到账。需登录；订单须属于当前用户。
+    生产请保持 TOKEN_PAY_MOCK_ENABLED=false，且不要开 TOKEN_PAY_ENABLED 前乱测真钱。
+    """
+    from token_pay_service import mock_fulfill
+
+    u = _auth_user_from_bearer(request, db)
+    return mock_fulfill(db, out_trade_no=body.out_trade_no, auth_user_id=int(u.id))
+
+
+@app.post("/v1/billing/wechat/query_and_fulfill")
+async def billing_wechat_query_and_fulfill(
+    request: Request, body: TokenQueryFulfillBody, db: Session = Depends(get_db)
+):
+    from token_pay_service import query_and_fulfill_wechat
+
+    u = _auth_user_from_bearer(request, db)
+    return await query_and_fulfill_wechat(db, out_trade_no=body.out_trade_no, auth_user_id=int(u.id))
+
+
+@app.post("/v1/billing/alipay/query_and_fulfill")
+async def billing_alipay_query_and_fulfill(
+    request: Request, body: TokenQueryFulfillBody, db: Session = Depends(get_db)
+):
+    from token_pay_service import query_and_fulfill_alipay
+
+    u = _auth_user_from_bearer(request, db)
+    return query_and_fulfill_alipay(db, out_trade_no=body.out_trade_no, auth_user_id=int(u.id))
+
+
+@app.get("/v1/models")
+async def list_models(request: Request, db: Session = Depends(get_db)):
+    """公开模型目录；若已登录则按 VIP 状态返回推荐链。"""
+    from model_router import list_models_public
+
+    is_vip = False
+    try:
+        u = _auth_user_from_bearer(request, db)
+        from token_mvp_service import get_balance_snapshot
+
+        snap = get_balance_snapshot(db, int(u.id))
+        is_vip = bool(snap.get("is_vip_active"))
+    except HTTPException:
+        pass
+    return list_models_public(is_vip=is_vip)
+
+
+@app.post("/v1/billing/wechat/notify")
+async def billing_wechat_notify(request: Request, db: Session = Depends(get_db)):
+    """微信异步通知 → 仅履约 token_pay_orders（T 前缀）。不碰 a1 pay_orders。"""
+    from token_pay_service import pay_settings_ns, try_fulfill, token_pay_enabled
+
+    if not token_pay_enabled():
+        return JSONResponse(status_code=200, content={"code": "FAIL", "message": "token_pay_disabled"})
+    body_str = (await request.body()).decode("utf-8", errors="replace")
+    headers = {k: v for k, v in request.headers.items()}
+    try:
+        from pay_wechat_v3 import parse_payment_notify
+
+        txn = await parse_payment_notify(pay_settings_ns(), headers=headers, body_str=body_str)
+    except Exception as e:
+        logger.warning("token wechat notify verify failed: %s", e)
+        return JSONResponse(status_code=200, content={"code": "FAIL", "message": "verify_failed"})
+
+    if str(txn.get("trade_state") or "") != "SUCCESS":
+        return JSONResponse(status_code=200, content={"code": "SUCCESS", "message": "ignored"})
+
+    otn = str(txn.get("out_trade_no") or "")
+    txid = str(txn.get("transaction_id") or "")
+    total = int(((txn.get("amount") or {}) if isinstance(txn.get("amount"), dict) else {}).get("total") or 0)
+    r = try_fulfill(db, out_trade_no=otn, transaction_id=txid, amount_fen=total, channel_tag="wechat")
+    if not r.get("ok"):
+        logger.warning("token wechat fulfill fail otn=%s err=%s", otn, r.get("error"))
+        return JSONResponse(status_code=200, content={"code": "FAIL", "message": str(r.get("error") or "fail")})
+    return JSONResponse(status_code=200, content={"code": "SUCCESS", "message": "成功"})
+
+
+@app.post("/v1/billing/alipay/notify")
+async def billing_alipay_notify(request: Request, db: Session = Depends(get_db)):
+    """支付宝异步通知 → 仅履约 token_pay_orders。"""
+    from token_pay_service import pay_settings_ns, try_fulfill, token_pay_enabled
+
+    if not token_pay_enabled():
+        return "failure"
+    form = dict(await request.form())
+    form_s = {str(k): str(v) for k, v in form.items()}
+    try:
+        from pay_alipay_wap import verify_notify
+
+        ok, err = verify_notify(pay_settings_ns(), form=form_s)
+    except Exception as e:
+        logger.warning("token alipay notify error: %s", e)
+        return "failure"
+    if not ok:
+        logger.warning("token alipay verify fail: %s", err)
+        return "failure"
+
+    trade_status = (form_s.get("trade_status") or "").strip()
+    if trade_status not in ("TRADE_SUCCESS", "TRADE_FINISHED"):
+        return "success"
+
+    otn = (form_s.get("out_trade_no") or "").strip()
+    trade_no = (form_s.get("trade_no") or "").strip()
+    try:
+        yuan = float(form_s.get("total_amount") or "0")
+        fen = int(round(yuan * 100))
+    except Exception:
+        fen = 0
+    r = try_fulfill(db, out_trade_no=otn, transaction_id=trade_no, amount_fen=fen, channel_tag="alipay")
+    if not r.get("ok"):
+        logger.warning("token alipay fulfill fail otn=%s err=%s", otn, r.get("error"))
+        return "failure"
+    return "success"
+
+
+@app.get("/v1/admin/token/wallet")
+async def admin_token_wallet(request: Request, auth_user_id: int, db: Session = Depends(get_db)):
+    _require_internal_key(request)
+    from token_mvp_service import get_balance_snapshot
+
+    return get_balance_snapshot(db, int(auth_user_id))
+
+
+@app.get("/v1/admin/token/orders")
+async def admin_token_orders(
+    request: Request,
+    db: Session = Depends(get_db),
+    auth_user_id: int | None = None,
+    status: str | None = None,
+    q: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+):
+    _require_internal_key(request)
+    from token_pay_service import admin_list_orders
+
+    return admin_list_orders(
+        db, auth_user_id=auth_user_id, status=status, q=q, limit=limit, offset=offset
+    )
+
+
+@app.post("/v1/admin/token/topup", response_model=BillingBalanceOut)
+async def admin_token_topup(request: Request, body: BillingTopupBody, db: Session = Depends(get_db)):
+    """管理端手工充值（同 /v1/billing/topup，路径更明确）。"""
+    _require_internal_key(request)
+    from token_mvp_service import topup_tokens
+
+    return topup_tokens(
+        db,
+        auth_user_id=int(body.auth_user_id),
+        amount=int(body.amount),
+        note=body.note or "admin_topup",
+        set_vip=bool(body.set_vip),
     )
 
 
 # 静态官网（与 API 同端口 8000）；须挂在所有 API 路由之后
 _WEB_ROOT = Path(__file__).resolve().parent.parent / "web"
 if _WEB_ROOT.is_dir():
+    @app.get("/favicon.ico", include_in_schema=False)
+    async def favicon_ico():
+        # 浏览器默认要 .ico；站点用 SVG，避免无害 404
+        from fastapi.responses import FileResponse
+
+        svg = _WEB_ROOT / "favicon.svg"
+        if svg.is_file():
+            return FileResponse(svg, media_type="image/svg+xml")
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404)
+
     app.mount(
         "/",
         StaticFiles(directory=str(_WEB_ROOT), html=True),

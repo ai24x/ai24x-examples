@@ -3,7 +3,8 @@
 ## 项目概述
 AI24X—AI 无限 · 接口自由，是一个全球 AI 人共创的一站式多模型 API 与智能应用服务平台。
 
-> **当前升级方向（2026 国内优先验证）**：本仓库同时承载主站 `www.ai24x.com`、核心 API `api.ai24x.com`，以及可持续追加的新项目池 `p/`（第一个子项目：**AI 行情官｜灯塔版（1.01）**：`a.ai24x.com`）。详见 `docs/站点与子项目规划.md`（保留 `docs/SITE_AND_PROJECTS.md` 兼容入口）。
+> **当前升级方向（2026 国内优先验证）**：本仓库同时承载主站 `www.ai24x.com`、核心 API `api.ai24x.com`，以及可持续追加的新项目池 `p/`（第一个子项目：**AI 行情官｜灯塔版（1.01）**：`a.ai24x.com`）。  
+> **文档入口**：先打开 [`docs/README.md`](docs/README.md)。Token 总纲：[`docs/规划/开发总纲-AI24X-API-v3.5.md`](docs/规划/开发总纲-AI24X-API-v3.5.md)。站点规划：[`docs/规划/站点与子项目规划.md`](docs/规划/站点与子项目规划.md)。
 
 ## 技术栈
 - 后端：FastAPI + Python

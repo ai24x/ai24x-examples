@@ -1,0 +1,24 @@
+﻿---
+description: Token 聚合平台 MVP 开发任务 - 完整指令
+globs: api/*.py, api/**/*.py
+---
+# Token 聚合平台 MVP
+
+## 项目已具备
+- 用户注册/登录 (auth) ✅
+- JWT 鉴权中间件 ✅
+- /v1/chat/run 核心调用 ✅
+- PostgreSQL 数据库 ✅
+- 前端页面 (web/) ✅
+
+## 待开发（P0→P1→P2）
+1. /v1/keys - API Keys 管理（GET/POST/DELETE）
+2. /v1/billing - 计费（余额/充值/用量）
+3. chat/run 接入计费扣减
+4. /v1/referrals - 推荐返利
+
+## 参考
+- 详细任务书: TASK-TOKEN-MVP.md（项目根目录）
+- 数据库: db/schema.sql
+- 现有代码风格: api/main.py（已用FastAPI app）
+- 验证码秘密: api/auth_user_service.py

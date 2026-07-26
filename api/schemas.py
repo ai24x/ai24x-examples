@@ -11,7 +11,10 @@ class UserType(str, Enum):
 
 class ChatRequest(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=10000, description="用户输入的提示词")
-    model: Optional[str] = Field(default="gpt-3.5-turbo", description="使用的模型名称")
+    model: Optional[str] = Field(
+        default="auto",
+        description="模型名或 auto（按 FREE/VIP 走 L0–L3 fallback）",
+    )
     temperature: Optional[float] = Field(default=0.7, ge=0.0, le=2.0, description="温度参数")
     max_tokens: Optional[int] = Field(default=1000, ge=1, le=4000, description="最大token数")
     stream: Optional[bool] = Field(default=False, description="是否流式输出")
@@ -20,7 +23,7 @@ class ChatRequest(BaseModel):
         json_schema_extra = {
             "example": {
                 "prompt": "你好，请介绍一下Python",
-                "model": "gpt-3.5-turbo",
+                "model": "auto",
                 "temperature": 0.7,
                 "max_tokens": 1000,
                 "stream": False
@@ -37,18 +40,26 @@ class ChatResponse(BaseModel):
     user_type: UserType = Field(..., description="用户类型")
     remaining_quota: Optional[int] = Field(None, description="剩余配额")
     created_at: datetime = Field(..., description="创建时间")
+    layer: Optional[str] = Field(None, description="路由层级 L0–L3")
+    provider: Optional[str] = Field(None, description="stub / openai_compatible")
+    route_attempts: Optional[List[Dict[str, Any]]] = Field(None, description="fallback 尝试记录")
+    attribution: Optional[Dict[str, Any]] = Field(
+        None, description="平台溯源与使用声明（防未授权转售追责）"
+    )
     
     class Config:
         json_schema_extra = {
             "example": {
                 "request_id": "req_123456789",
                 "response": "Python是一种高级编程语言...",
-                "model": "gpt-3.5-turbo",
+                "model": "deepseek-flash",
                 "token_count": 150,
                 "processing_time": 1.5,
                 "user_type": "free",
                 "remaining_quota": 85,
-                "created_at": "2024-01-01T12:00:00Z"
+                "created_at": "2024-01-01T12:00:00Z",
+                "layer": "L1",
+                "provider": "stub",
             }
         }
 
@@ -129,6 +140,7 @@ class AuthRegisterBody(BaseModel):
     email: Optional[str] = None
     sms_code: Optional[str] = None
     email_code: Optional[str] = None
+    invite_code: Optional[str] = Field(default=None, max_length=32)
 
     @field_validator("phone", "email", mode="before")
     @classmethod
@@ -164,7 +176,14 @@ class AuthEmailSendRequest(BaseModel):
 class AuthEmailSendResponse(BaseModel):
     ok: bool
     message: str
-    dev_code: Optional[str] = Field(None, description="非生产环境可选返回，便于联调")
+    channel: Optional[str] = Field(
+        None, description="smtp=真实发信；local=本机联调卡片（非正式）"
+    )
+    local_code: Optional[str] = Field(
+        None, description="仅 channel=local 时可能返回；正式环境恒为 null"
+    )
+    # 兼容旧前端字段名
+    dev_code: Optional[str] = Field(None, description="同 local_code（兼容）")
 
 
 class AuthLoginBody(BaseModel):
@@ -312,3 +331,62 @@ class AdminUserBootstrapBody(BaseModel):
         if bool(p) == bool(e):
             raise ValueError("请只提供 phone 或 email 之一")
         return self
+# —— Token MVP ——
+
+# --- Token MVP ---
+
+
+class ApiKeyCreateBody(BaseModel):
+    name: str = Field(default="默认密钥", min_length=1, max_length=64)
+
+
+class ApiKeyCreatedOut(BaseModel):
+    id: int
+    name: str
+    api_key: str
+    key_prefix: str
+    created_at: Optional[str] = None
+    is_active: bool = True
+    warning: Optional[str] = None
+
+
+class ApiKeyOut(BaseModel):
+    id: int
+    name: str
+    key_prefix: str
+    created_at: Optional[str] = None
+    last_used_at: Optional[str] = None
+    is_active: bool = True
+
+
+class BillingBalanceOut(BaseModel):
+    auth_user_id: int
+    plan: str
+    balance_tokens: int
+    bonus_period: Optional[str] = None
+    free_monthly_bonus: int
+    vip_daily_bonus: int
+    vip_expires_at: Optional[str] = None
+    is_vip_active: bool = False
+
+
+class BillingTopupBody(BaseModel):
+    """Internal topup; requires X-SMS-Internal-Key."""
+
+    auth_user_id: int = Field(..., ge=1)
+    amount: int = Field(..., gt=0, description="token amount")
+    note: Optional[str] = Field(default=None, max_length=255)
+    set_vip: bool = Field(default=False, description="also upgrade to VIP")
+
+
+class TokenPayCreateBody(BaseModel):
+    plan: str = Field(..., min_length=4, max_length=64)
+
+
+class TokenMockFulfillBody(BaseModel):
+    out_trade_no: str = Field(..., min_length=4, max_length=32)
+
+
+class TokenQueryFulfillBody(BaseModel):
+    out_trade_no: str = Field(..., min_length=4, max_length=32)
+
