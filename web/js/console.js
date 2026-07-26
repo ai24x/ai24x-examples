@@ -213,20 +213,20 @@
         if (pay.enabled && (pay.wechat_ready || pay.alipay_ready)) {
           hint.textContent =
             "选择套餐后可用微信或支付宝支付。" +
-            (pay.mock_allowed ? " 测试环境仍可使用「模拟到账」。" : "");
+            (pay.mock_allowed ? " 也可使用「模拟到账」。" : "");
         } else if (pay.wechat_configured || pay.alipay_configured) {
-          hint.textContent = "支付暂未开放，测试环境可使用「模拟到账」。";
+          hint.textContent = "在线支付准备中" + (pay.mock_allowed ? "，可用「模拟到账」。" : "。");
         } else if (pay.mock_allowed) {
-          hint.textContent = "测试环境：可使用「模拟到账」体验充值。";
+          hint.textContent = "可用「模拟到账」完成体验充值。";
         } else {
           hint.textContent = "在线支付暂未开放。";
         }
       } else {
         hint.textContent = pay.enabled
           ? "Choose a plan and pay with WeChat or Alipay (CNY) on this site." +
-            (pay.mock_allowed ? " Mock top-up is still available in test." : "")
+            (pay.mock_allowed ? " Mock top-up is also available." : "")
           : pay.mock_allowed
-            ? "Online pay is not open yet. Test environments may offer a mock top-up."
+            ? "Online pay is not open yet. Mock top-up is available."
             : "Online pay is not open yet.";
       }
     }

@@ -1,0 +1,30 @@
+---
+description: 用户可见文案禁止运维/联调黑话；开发说明只写注释
+alwaysApply: true
+---
+
+# 用户端文案规范（防「开发描述」漏出）
+
+适用范围：`web/**` 页面文案、`web/config/locales.js`、前端 `alert`/`showMsg`、以及 **API 返回给浏览器的 `message`/`detail`**（用户会直接看到）。
+
+## 禁止出现在用户端的词（示例）
+
+- SMTP / PEM / env / `TOKEN_*` / `APP_ENV` / 回调 URL / notify
+- 本地预览、正式环境、联调、副脑、mock 开关说明、未配置 XXX
+- 接口路径、表名、进程名（如 `core-api-8002`）、Nginx/PM2
+
+开发说明写在：**代码注释**、`.env.example`、`docs/联调/**`，不要写进 locales / HTML 默认文案 / API `message`。
+
+## 正确写法
+
+| 场景 | 用户可见 | 开发侧 |
+|------|----------|--------|
+| 未配邮件 | 「邮件服务暂不可用，请稍后再试。」 | 日志：`SMTP not configured` |
+| 本机验证码卡片 | 「验证码」「已填入上方，请设置密码完成注册。」 | 注释：`channel=local` 仅非生产 |
+| 支付未开 | 「在线支付暂未开放。」 | env：`TOKEN_PAY_ENABLED` |
+
+## 改文案时自检
+
+1. 站在「不了解运维的用户」读一遍是否仍通顺  
+2. 中英文 locales 同步改，且英文也不要出现 SMTP 等词  
+3. 后端 `HTTPException(detail=...)` / `AuthEmailSendResponse.message` 同样按用户口吻

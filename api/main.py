@@ -687,11 +687,12 @@ async def auth_email_send(body: AuthEmailSendRequest):
             dev_code=None,
         )
 
-    # 无 SMTP：生产禁止；开发可走 local 卡片
+    # 无 SMTP：生产禁止暴露验证码；开发可走 local 卡片（仅本机联调）
     if is_prod():
+        logger.error("Email OTP blocked: SMTP not configured in production")
         return AuthEmailSendResponse(
             ok=False,
-            message="邮件服务未配置，请联系管理员（需配置 SMTP_*）",
+            message="邮件服务暂不可用，请稍后再试。",
             channel=None,
             local_code=None,
             dev_code=None,
@@ -707,7 +708,8 @@ async def auth_email_send(body: AuthEmailSendRequest):
     )
     return AuthEmailSendResponse(
         ok=True,
-        message="本地联调：验证码已生成（正式环境将发到邮箱）。",
+        # 用户可见文案：勿写 SMTP / 联调 / 正式环境 等运维用语
+        message="验证码已生成，请查看下方并完成注册。",
         channel="local",
         local_code=local,
         dev_code=local,
