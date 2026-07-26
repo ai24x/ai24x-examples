@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>价格计费 · AI24X</title>
-  <link rel="stylesheet" href="css/base.css?v=20260726p" />
+  <link rel="stylesheet" href="css/base.css?v=20260726q" />
   <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260725a" data-base="css/themes/" />
 </head>
 <body data-page="pricing" class="theme-blue">
@@ -13,40 +13,37 @@
     <section class="hero hero-surface section-tight">
       <div class="container">
         <h1 data-i18n="page.pricing.title">价格计费</h1>
-        <p class="lead" data-i18n="page.pricing.sub">
-          套餐与国际站统一；国内站微信/支付宝收人民币，国际站 PayPal 等收美元。
-        </p>
-        <p class="callout mt-2">
-          对标 OpenRouter 等中国模型聚合：专精省事，标价贴近或略高；相对 GPT/Claude 仍高性价比。
-          与「AI 行情官」VIP 无关。
+        <p class="lead" data-i18n="page.pricing.sub">本站套餐以人民币标价；微信 / 支付宝结算。</p>
+        <p class="callout mt-2" data-i18n="page.pricing.callout">
+          对标 OpenRouter 等中国模型聚合：专精省事，标价贴近或略高。与「AI 行情官」VIP 无关。
         </p>
       </div>
     </section>
 
     <section class="section">
       <div class="container" style="max-width:980px;">
-        <h2 style="margin:0 0 10px;">Token 聚合（API 额度）</h2>
+        <h2 style="margin:0 0 10px;" data-i18n="page.pricing.tokenTitle">Token 聚合（API 额度）</h2>
         <p class="sub" id="tokenPayStatus" style="margin:0 0 14px;">加载套餐中…</p>
         <p class="sub" id="tokenSettleHint" style="margin:0 0 14px;"></p>
         <div class="grid-3" id="tokenPlansGrid"></div>
         <div class="hero-cta" style="margin-top:14px;">
-          <a class="btn btn-primary" href="console.html">去控制台购买 / 管理 Key</a>
-          <a class="btn" href="login.html?next=console.html">登录</a>
+          <a class="btn btn-primary" href="console.html" data-i18n="page.pricing.ctaConsole">去控制台购买 / 管理 Key</a>
+          <a class="btn" href="login.html?next=console.html" data-i18n="nav.login">登录</a>
         </div>
       </div>
     </section>
 
-    <section class="section section-alt">
+    <section class="section section-alt" id="settleSection">
       <div class="container" style="max-width:980px;">
-        <h2 style="margin:0 0 10px;">结算说明</h2>
+        <h2 style="margin:0 0 10px;" data-i18n="page.pricing.settleTitle">结算说明</h2>
         <div class="grid-2">
           <div class="card">
-            <h3 style="margin:0 0 8px;">国内站（中文）</h3>
-            <p class="sub" style="margin:0;">微信、支付宝 · <strong>人民币 CNY</strong>。现阶段以体验、联调、验履约为主。</p>
+            <h3 style="margin:0 0 8px;" data-i18n="page.pricing.settleCnTitle">本站（中文）</h3>
+            <p class="sub" style="margin:0;" data-i18n="page.pricing.settleCnBody">微信、支付宝 · 人民币结算。现阶段以体验、联调、验履约为主。</p>
           </div>
           <div class="card">
-            <h3 style="margin:0 0 8px;">国际站</h3>
-            <p class="sub" style="margin:0;">PayPal 等 · <strong>美元 USD</strong>。同一套 SKU 与权益，收银台不同。</p>
+            <h3 style="margin:0 0 8px;" data-i18n="page.pricing.settleIntlTitle">国际站</h3>
+            <p class="sub" style="margin:0;" data-i18n="page.pricing.settleIntlBody">PayPal 等 · 美元结算。同一套 SKU，仅收银台不同（切换语言后套餐价显示美元）。</p>
           </div>
         </div>
       </div>
@@ -86,8 +83,8 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260726p"></script>
-  <script src="js/api.js?v=20260726c"></script>
+  <script src="config/locales.js?v=20260726q"></script>
+  <script src="js/api.js?v=20260726q"></script>
   <script src="js/i18n.js?v=20260725a"></script>
   <script src="js/shell.js?v=20260725a"></script>
   <script src="js/app.js?v=20260725a"></script>
@@ -96,6 +93,8 @@
       var grid = document.getElementById("tokenPlansGrid");
       var st = document.getElementById("tokenPayStatus");
       var settle = document.getElementById("tokenSettleHint");
+      var payload = null;
+
       function esc(s) {
         return String(s || "")
           .replace(/&/g, "&amp;")
@@ -103,50 +102,71 @@
           .replace(/>/g, "&gt;")
           .replace(/"/g, "&quot;");
       }
+
+      function renderPlans() {
+        if (!payload || !grid) return;
+        var plans = payload.plans || [];
+        var pay = payload.pay || {};
+        var zh = AI24X_API.isZhUi();
+        st.textContent = zh
+          ? pay.enabled
+            ? "在线支付已开启：微信 / 支付宝（人民币）。"
+            : pay.mock_allowed
+              ? "本地可下单后在控制台「模拟到账」。"
+              : "套餐可浏览；支付通道未就绪。"
+          : pay.enabled
+            ? "Checkout on this host uses WeChat/Alipay (CNY). Switch language to preview USD labels."
+            : pay.mock_allowed
+              ? "Local mock fulfill available in console."
+              : "Plans listed; payment not ready.";
+        if (settle) settle.textContent = AI24X_API.planSettleHint(plans[0]);
+        grid.innerHTML = "";
+        plans.forEach(function (p) {
+          var card = document.createElement("div");
+          card.className = "card";
+          var bits = [];
+          if (p.credit_tokens) bits.push(p.credit_tokens + " token");
+          if (p.set_vip) {
+            bits.push(
+              zh
+                ? "Token VIP" + (p.vip_days ? " " + p.vip_days + " 天" : "")
+                : "Token VIP" + (p.vip_days ? " " + p.vip_days + "d" : "")
+            );
+          }
+          var note = AI24X_API.planNote(p);
+          var cta = zh ? "去控制台" : "Open console";
+          card.innerHTML =
+            "<h3 style=\"margin:0 0 8px;\">" +
+            esc(AI24X_API.planTitle(p)) +
+            "</h3>" +
+            '<p class="sub" style="margin:0;"><strong>' +
+            esc(AI24X_API.planPriceLabel(p)) +
+            "</strong>" +
+            (bits.length ? " · " + esc(bits.join(" · ")) : "") +
+            "</p>" +
+            (note ? '<p class="sub" style="margin:8px 0 0;">' + esc(note) + "</p>" : "") +
+            '<p class="sub" style="margin:10px 0 0;"><a class="btn btn-primary" href="console.html">' +
+            esc(cta) +
+            "</a></p>";
+          grid.appendChild(card);
+        });
+      }
+
       AI24X_API.billingPlans()
         .then(function (data) {
-          var plans = (data && data.plans) || [];
-          var pay = (data && data.pay) || {};
-          st.textContent = pay.enabled
-            ? "在线支付已开启：国内站微信/支付宝（人民币）。"
-            : pay.mock_allowed
-              ? "本地可下单后在控制台「模拟到账」（真支付未开）。"
-              : "套餐可浏览；支付通道未就绪。";
-          if (settle && plans[0] && plans[0].settle_hint) {
-            settle.textContent = plans[0].settle_hint;
-          } else if (settle) {
-            settle.textContent = "国内站 CNY（微信/支付宝）· 国际站 USD（PayPal 等）· 同一 SKU";
-          }
-          grid.innerHTML = "";
-          plans.forEach(function (p) {
-            var card = document.createElement("div");
-            card.className = "card";
-            var bits = [];
-            if (p.price_usd) bits.push("$" + p.price_usd);
-            if (p.credit_tokens) bits.push("到账 " + p.credit_tokens + " token");
-            if (p.set_vip) {
-              bits.push("Token VIP" + (p.vip_days ? " " + p.vip_days + " 天" : ""));
-            }
-            var note = String(p.note || "").replace(/vip_daily_bonus/gi, "每日赠送额度");
-            card.innerHTML =
-              "<h3 style=\"margin:0 0 8px;\">" +
-              esc(p.title || "套餐") +
-              "</h3>" +
-              '<p class="sub" style="margin:0;"><strong>¥' +
-              esc(p.price_yuan || "") +
-              "</strong>" +
-              (bits.length ? " · " + esc(bits.join(" · ")) : "") +
-              "</p>" +
-              (note
-                ? '<p class="sub" style="margin:8px 0 0;">' + esc(note) + "</p>"
-                : "") +
-              '<p class="sub" style="margin:10px 0 0;"><a class="btn btn-primary" href="console.html">去控制台</a></p>';
-            grid.appendChild(card);
-          });
+          payload = data;
+          renderPlans();
         })
         .catch(function (e) {
           st.textContent = e.message || "套餐加载失败";
         });
+
+      var langSel = document.getElementById("lang-select");
+      if (langSel) {
+        langSel.addEventListener("change", function () {
+          renderPlans();
+        });
+      }
     });
   </script>
 </body>

@@ -4,6 +4,7 @@ Token 产品套餐目录（与 a1 行情官 VIP 配额套餐完全独立）。
 定价口径（2026-07-26）：
 - 主数据按国际价（USD 锚定，对标 OpenRouter 中国模型线 +10%～25% 便利溢价）
 - 国内站收银台收 CNY（微信/支付宝）；国际站收 USD（PayPal 等）— 同一 SKU
+- 前端按语言展示：中文只显示人民币文案；其它语言显示美元文案
 - 价格可用环境变量覆盖（分）：TOKEN_PRICE_<PLAN_UPPER>_FEN
 """
 from __future__ import annotations
@@ -11,7 +12,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-# 展示用汇率（国内 CNY ≈ USD × 此值；可用 TOKEN_USD_CNY 覆盖）
+
 def _usd_cny() -> float:
     raw = (os.getenv("TOKEN_USD_CNY") or "7.2").strip()
     try:
@@ -36,72 +37,68 @@ def _fen_from_usd(usd: float) -> int:
     return max(1, int(round(float(usd) * _usd_cny() * 100)))
 
 
-# 与 token_mvp_service.VIP_DAILY_BONUS_TOKENS 对齐（文案用）
-_VIP_DAILY_BONUS_HINT = 100_000
+_VIP_DAILY_WAN = 10  # 日赠约 10 万 token（与 VIP_DAILY_BONUS_TOKENS=100_000 对齐）
 
-# plan_id -> definition（SKU 国内外统一；仅结算通道不同）
 TOKEN_PLANS: dict[str, dict[str, Any]] = {
     "token_pack_10k": {
-        "title": "Starter 入门包",
+        "title_zh": "入门包",
+        "title_en": "Starter",
         "price_usd": 5.0,
         "price_fen": _price("TOKEN_PRICE_TOKEN_PACK_10K_FEN", _fen_from_usd(5.0)),
         "credit_tokens": 100_000,
         "set_vip": False,
         "enabled": True,
-        "note": "约 $5 · 国内外同一套餐；国内站微信/支付宝付人民币。",
+        "note_zh": "国内外同一套餐；本站使用微信/支付宝支付人民币。",
+        "note_en": "Same SKU worldwide. Intl checkout: PayPal (USD).",
     },
     "token_pack_100k": {
-        "title": "Builder 开发包",
+        "title_zh": "开发包",
+        "title_en": "Builder",
         "price_usd": 20.0,
         "price_fen": _price("TOKEN_PRICE_TOKEN_PACK_100K_FEN", _fen_from_usd(20.0)),
         "credit_tokens": 500_000,
         "set_vip": False,
         "enabled": True,
-        "note": "约 $20 · 主力预充值；单价优于入门包。",
+        "note_zh": "主力预充值；单价优于入门包。",
+        "note_en": "Best for regular API use; better unit rate than Starter.",
     },
     "token_vip_month": {
-        "title": "Pro Pass 月卡",
+        "title_zh": "Pro 月卡",
+        "title_en": "Pro Pass",
         "price_usd": 15.0,
         "price_fen": _price("TOKEN_PRICE_TOKEN_VIP_MONTH_FEN", _fen_from_usd(15.0)),
         "credit_tokens": 0,
         "set_vip": True,
         "vip_days": 30,
         "enabled": True,
-        "note": (
-            f"约 $15 / 30 天 Token VIP；有效期内每日额外赠送约 {_VIP_DAILY_BONUS_HINT // 10000} 万 token。"
+        "note_zh": (
+            f"开通 Token VIP 30 天；有效期内每日额外赠送约 {_VIP_DAILY_WAN} 万 token。"
             "与「AI 行情官」VIP 无关。"
+        ),
+        "note_en": (
+            f"Token VIP for 30 days; about {_VIP_DAILY_WAN * 10_000:,} bonus tokens/day. "
+            "Not related to AI行情官 VIP."
         ),
     },
     "token_vip_month_50w": {
-        "title": "Scale 组合包",
+        "title_zh": "Scale 组合包",
+        "title_en": "Scale",
         "price_usd": 100.0,
         "price_fen": _price("TOKEN_PRICE_TOKEN_VIP_MONTH_50W_FEN", _fen_from_usd(100.0)),
         "credit_tokens": 2_500_000,
         "set_vip": True,
         "vip_days": 30,
         "enabled": True,
-        "note": (
-            f"约 $100 · 立即到账 250 万 token，并开通 Pro Pass 30 天；"
-            f"日赠约 {_VIP_DAILY_BONUS_HINT // 10000} 万 token。"
+        "note_zh": (
+            f"立即到账 250 万 token，并开通 Pro 月卡 30 天；日赠约 {_VIP_DAILY_WAN} 万 token。"
             "与「AI 行情官」VIP 无关。"
+        ),
+        "note_en": (
+            f"2.5M tokens credited + Pro Pass 30 days; ~{_VIP_DAILY_WAN * 10_000:,} bonus/day. "
+            "Not related to AI行情官 VIP."
         ),
     },
 }
-
-
-def _public_note(p: dict[str, Any]) -> str:
-    note = (p.get("note") or "").strip()
-    if note:
-        return note
-    bits: list[str] = []
-    credit = int(p.get("credit_tokens") or 0)
-    if credit:
-        bits.append(f"到账 {credit} token")
-    if p.get("set_vip"):
-        days = int(p.get("vip_days") or 30)
-        bits.append(f"开通 Token VIP {days} 天")
-        bits.append(f"每日额外赠送约 {_VIP_DAILY_BONUS_HINT // 10000} 万 token")
-    return "；".join(bits)
 
 
 def list_public_plans() -> list[dict[str, Any]]:
@@ -112,10 +109,16 @@ def list_public_plans() -> list[dict[str, Any]]:
             continue
         usd = float(p.get("price_usd") or 0)
         fen = int(p["price_fen"])
+        title_zh = str(p.get("title_zh") or p.get("title") or plan_id)
+        title_en = str(p.get("title_en") or title_zh)
+        note_zh = str(p.get("note_zh") or p.get("note") or "")
+        note_en = str(p.get("note_en") or note_zh)
         out.append(
             {
                 "plan": plan_id,
-                "title": p["title"],
+                "title": title_zh,
+                "title_zh": title_zh,
+                "title_en": title_en,
                 "price_fen": fen,
                 "price_yuan": f"{fen / 100:.2f}",
                 "price_usd": f"{usd:.2f}" if usd else None,
@@ -123,8 +126,11 @@ def list_public_plans() -> list[dict[str, Any]]:
                 "credit_tokens": int(p.get("credit_tokens") or 0),
                 "set_vip": bool(p.get("set_vip")),
                 "vip_days": int(p.get("vip_days") or 0) or None,
-                "note": _public_note(p),
-                "settle_hint": "国内站 CNY（微信/支付宝）· 国际站 USD（PayPal 等）· 同一 SKU",
+                "note": note_zh,
+                "note_zh": note_zh,
+                "note_en": note_en,
+                "settle_hint_zh": "本站：微信 / 支付宝，人民币结算",
+                "settle_hint_en": "Intl site: PayPal (USD). Same SKUs as CN site.",
             }
         )
     return out
@@ -135,7 +141,8 @@ def get_plan(plan_id: str) -> dict[str, Any] | None:
     p = TOKEN_PLANS.get(pid)
     if not p or not p.get("enabled", True):
         return None
-    return {"plan": pid, **p}
+    title = str(p.get("title_zh") or p.get("title") or pid)
+    return {"plan": pid, "title": title, **p}
 
 
 def normalize_plan(plan_id: str) -> tuple[str, int]:

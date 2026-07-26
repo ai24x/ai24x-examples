@@ -28,12 +28,28 @@
       FREE: "免费档",
       vip: "Token VIP",
       VIP: "Token VIP",
-      token_pack_10k: "Starter 入门包",
-      token_pack_100k: "Builder 开发包",
-      token_vip_month: "Pro Pass 月卡",
+      token_pack_10k: "入门包",
+      token_pack_100k: "开发包",
+      token_vip_month: "Pro 月卡",
       token_vip_month_50w: "Scale 组合包",
     };
-    return m[plan] || plan || "--";
+    if (m[plan]) return m[plan];
+    return plan || "--";
+  }
+
+  function labelPlanIdEn(plan) {
+    var m = {
+      token_pack_10k: "Starter",
+      token_pack_100k: "Builder",
+      token_vip_month: "Pro Pass",
+      token_vip_month_50w: "Scale",
+    };
+    return m[plan] || labelPlanId(plan);
+  }
+
+  // keep labelPlanId for orders; wrap for UI lang
+  function labelPlanForUi(plan) {
+    return AI24X_API.isZhUi() ? labelPlanId(plan) : labelPlanIdEn(plan);
   }
 
   function labelOrderStatus(s) {
@@ -139,27 +155,37 @@
   function renderPlans(data) {
     var box = $("plansList");
     if (!box) return;
+    if (data) window.__tokenPlansPayload = data;
+    data = data || window.__tokenPlansPayload;
+    if (!data) return;
     box.innerHTML = "";
     var plans = (data && data.plans) || [];
     var pay = (data && data.pay) || {};
     window.__tokenPay = pay;
+    var zh = AI24X_API.isZhUi();
     var hint = $("payHint");
     if (hint) {
-      if (pay.enabled && (pay.wechat_ready || pay.alipay_ready)) {
-        hint.textContent =
-          "真支付已开启：点套餐可选微信 / 支付宝。" +
-          (pay.mock_allowed ? " 本机仍保留「模拟到账」兜底。" : "");
-      } else if (pay.wechat_configured || pay.alipay_configured) {
-        hint.textContent =
-          "商户已配置，但 TOKEN_PAY_ENABLED 未开——目前只能模拟到账。请开启真支付后刷新。";
-      } else if (pay.mock_allowed) {
-        hint.textContent = "本地模式：仅「模拟到账」（商户未就绪或未开真支付）。";
+      if (zh) {
+        if (pay.enabled && (pay.wechat_ready || pay.alipay_ready)) {
+          hint.textContent =
+            "本站人民币结算：点套餐可选微信 / 支付宝。" +
+            (pay.mock_allowed ? " 本机仍保留「模拟到账」。" : "");
+        } else if (pay.wechat_configured || pay.alipay_configured) {
+          hint.textContent =
+            "商户已配置，但 TOKEN_PAY_ENABLED 未开——目前只能模拟到账。";
+        } else if (pay.mock_allowed) {
+          hint.textContent = "本地模式：仅「模拟到账」。";
+        } else {
+          hint.textContent = "在线支付未开启。";
+        }
       } else {
-        hint.textContent = "在线支付未开启。";
+        hint.textContent = pay.enabled
+          ? "CN checkout uses WeChat/Alipay (CNY). Intl PayPal coming on the English site."
+          : "Online pay not ready — mock fulfill may be available in local env.";
       }
     }
     if (!plans.length) {
-      box.innerHTML = '<p class="sub">暂无套餐</p>';
+      box.innerHTML = '<p class="sub">' + (zh ? "暂无套餐" : "No plans") + "</p>";
       return;
     }
     plans.forEach(function (p) {
@@ -169,15 +195,20 @@
       var h = document.createElement("h4");
       h.className = "mt-0";
       h.style.marginBottom = "6px";
-      h.textContent = p.title || p.plan;
+      h.textContent = AI24X_API.planTitle(p);
       var meta = document.createElement("p");
       meta.className = "sub";
       meta.style.margin = "0";
-      var bits = ["¥" + (p.price_yuan || "?")];
-      if (p.price_usd) bits.push("≈ $" + p.price_usd);
-      if (p.credit_tokens) bits.push("到账 " + p.credit_tokens + " token");
+      var bits = [AI24X_API.planPriceLabel(p)];
+      if (p.credit_tokens) {
+        bits.push((zh ? "到账 " : "") + p.credit_tokens + " token");
+      }
       if (p.set_vip) {
-        bits.push("开通 Token VIP" + (p.vip_days ? " " + p.vip_days + " 天" : ""));
+        bits.push(
+          zh
+            ? "开通 Token VIP" + (p.vip_days ? " " + p.vip_days + " 天" : "")
+            : "Token VIP" + (p.vip_days ? " " + p.vip_days + "d" : "")
+        );
       }
       meta.textContent = bits.join(" · ");
       var actions = document.createElement("div");
@@ -195,21 +226,22 @@
         actions.appendChild(btn);
       }
 
-      if (pay.wechat_ready) addBtn("微信", "btn btn-primary", "wechat");
-      if (pay.alipay_ready) addBtn("支付宝", "btn btn-primary", "alipay");
+      if (pay.wechat_ready) addBtn(zh ? "微信" : "WeChat", "btn btn-primary", "wechat");
+      if (pay.alipay_ready) addBtn(zh ? "支付宝" : "Alipay", "btn btn-primary", "alipay");
       if (!pay.wechat_ready && !pay.alipay_ready) {
-        addBtn("下单", "btn btn-primary", pay.mock_allowed ? "mock" : "wechat");
+        addBtn(zh ? "下单" : "Buy", "btn btn-primary", pay.mock_allowed ? "mock" : "wechat");
       } else if (pay.mock_allowed) {
-        addBtn("模拟到账", "btn", "mock");
+        addBtn(zh ? "模拟到账" : "Mock pay", "btn", "mock");
       }
 
       card.appendChild(h);
       card.appendChild(meta);
-      if (p.note) {
+      var noteText = AI24X_API.planNote(p);
+      if (noteText) {
         var note = document.createElement("p");
         note.className = "sub";
         note.style.marginTop = "6px";
-        note.textContent = p.note;
+        note.textContent = noteText;
         card.appendChild(note);
       }
       card.appendChild(actions);
@@ -280,8 +312,8 @@
 
   function buyPlan(planId, channel, planMeta) {
     var pay = window.__tokenPay || {};
-    var title = (planMeta && planMeta.title) || planId;
-    var price = (planMeta && planMeta.price_yuan) || "";
+    var price = AI24X_API.planPriceLabel(planMeta) || "";
+    var planTitle = AI24X_API.planTitle(planMeta) || planId;
 
     if (channel === "mock" || (!pay.wechat_ready && !pay.alipay_ready && pay.mock_allowed)) {
       showMsg($("consoleMsg"), "正在创建模拟订单…", true);
@@ -318,7 +350,7 @@
     }
 
     openPayModal(
-      title + (price ? " · ¥" + price : ""),
+      planTitle + (price ? " · " + price : ""),
       channel === "wechat"
         ? "正在拉起微信扫码…"
         : channel === "alipay"
@@ -414,7 +446,7 @@
       li.className = "list-item";
       var left = document.createElement("span");
       left.textContent =
-        labelPlanId(o.plan) +
+        labelPlanForUi(o.plan) +
         " · ¥" +
         ((Number(o.amount_fen) || 0) / 100).toFixed(2) +
         " · " +
@@ -696,5 +728,11 @@
     $("api-key").value = AI24X_API.getApiKey();
     bind();
     refreshAll();
+    var langSel = document.getElementById("lang-select");
+    if (langSel) {
+      langSel.addEventListener("change", function () {
+        if (window.__tokenPlansPayload) renderPlans(window.__tokenPlansPayload);
+      });
+    }
   });
 })();

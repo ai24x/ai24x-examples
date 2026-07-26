@@ -287,6 +287,40 @@
     return request("/v1/referrals/code", { method: "GET" });
   }
 
+  /** 中文 UI 只展示人民币；其它语言展示美元（不混写） */
+  function isZhUi() {
+    try {
+      return !global.AI24X_I18N || global.AI24X_I18N.getLang() === "zh";
+    } catch (e) {
+      return true;
+    }
+  }
+
+  function planTitle(p) {
+    if (!p) return "";
+    if (isZhUi()) return p.title_zh || p.title || p.plan || "";
+    return p.title_en || p.title_zh || p.title || p.plan || "";
+  }
+
+  function planPriceLabel(p) {
+    if (!p) return "";
+    if (isZhUi()) return "¥" + (p.price_yuan || "");
+    return p.price_usd ? "$" + p.price_usd : "¥" + (p.price_yuan || "");
+  }
+
+  function planNote(p) {
+    if (!p) return "";
+    if (isZhUi()) return p.note_zh || p.note || "";
+    return p.note_en || p.note_zh || p.note || "";
+  }
+
+  function planSettleHint(p) {
+    if (isZhUi()) {
+      return (p && p.settle_hint_zh) || "本站：微信 / 支付宝，人民币结算";
+    }
+    return (p && p.settle_hint_en) || "Intl site: PayPal (USD). Same SKUs.";
+  }
+
   global.AI24X_API = {
     getBase: getBase,
     setBase: setBase,
@@ -321,5 +355,10 @@
     listModels: listModels,
     referralsSummary: referralsSummary,
     referralsCode: referralsCode,
+    isZhUi: isZhUi,
+    planTitle: planTitle,
+    planPriceLabel: planPriceLabel,
+    planNote: planNote,
+    planSettleHint: planSettleHint,
   };
 })(typeof window !== "undefined" ? window : this);
