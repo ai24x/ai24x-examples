@@ -187,7 +187,7 @@
     "auth.login.submit": "登录",
     "auth.login.goto": "没有账号？",
     "auth.closed.banner":
-      "<strong>温馨提示</strong>：主站<strong>暂未开放</strong>注册与登录。本地预览（127.0.0.1）已自动开放。",
+      "<strong>温馨提示</strong>：当前环境<strong>暂未开放</strong>注册与登录。",
     "auth.closed.submitBlocked": "暂未开放。",
     "auth.closed.registerBlocked": "暂未开放。",
     "auth.closed.footerLogin":
@@ -477,7 +477,7 @@
     "auth.login.submit": "Continue",
     "auth.login.goto": "No account?",
     "auth.closed.banner":
-      "<strong>Notice</strong>: Main-site sign-up / sign-in are not open yet. Local preview (127.0.0.1) is enabled automatically.",
+      "<strong>Notice</strong>: Sign-up / sign-in are not open in this environment.",
     "auth.closed.submitBlocked": "Not open yet.",
     "auth.closed.registerBlocked": "Not open yet.",
     "auth.closed.footerLogin":

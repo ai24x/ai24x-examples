@@ -67,15 +67,27 @@
     if (data.user) setAuthUser(data.user);
   }
 
-  /** 本机预览开放登录/注册；生产域名默认仍关闭（可用 ?auth=1 强制开） */
+  /**
+   * 主站登录/注册 UI 是否开放。
+   * - 本机 / ai24x.com：默认开放（Token 实付联调需要）
+   * - 其它域名：默认关；?auth=1 强制开，?auth=0 强制关
+   */
   function isLocalAuthOpen() {
-    var h = location.hostname;
-    if (h === "localhost" || h === "127.0.0.1" || h === "::1") return true;
     try {
-      return /(?:^|[?&])auth=1(?:&|$)/.test(location.search || "");
-    } catch (e) {
-      return false;
-    }
+      var q = location.search || "";
+      if (/(?:^|[?&])auth=0(?:&|$)/.test(q)) return false;
+      if (/(?:^|[?&])auth=1(?:&|$)/.test(q)) return true;
+    } catch (e) {}
+    var h = (location.hostname || "").toLowerCase();
+    if (h === "localhost" || h === "127.0.0.1" || h === "::1") return true;
+    if (h === "ai24x.com" || h.endsWith(".ai24x.com")) return true;
+    return false;
+  }
+
+  /** 是否本机预览（用于展示本地联调提示） */
+  function isLocalHost() {
+    var h = (location.hostname || "").toLowerCase();
+    return h === "localhost" || h === "127.0.0.1" || h === "::1";
   }
 
   async function request(path, options) {
@@ -336,6 +348,7 @@
     clearAuth: clearAuth,
     saveAuthSession: saveAuthSession,
     isLocalAuthOpen: isLocalAuthOpen,
+    isLocalHost: isLocalHost,
     request: request,
     chatRun: chatRun,
     health: health,
