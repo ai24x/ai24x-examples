@@ -12,6 +12,61 @@
     return String(Math.round(n));
   }
 
+  function labelEntryType(t) {
+    var m = {
+      consume: "消耗",
+      topup: "充值",
+      bonus: "赠送",
+      referral: "邀请奖励",
+    };
+    return m[t] || t || "";
+  }
+
+  function labelPlanId(plan) {
+    var m = {
+      free: "免费档",
+      FREE: "免费档",
+      vip: "Token VIP",
+      VIP: "Token VIP",
+      token_pack_10k: "Starter 入门包",
+      token_pack_100k: "Builder 开发包",
+      token_vip_month: "Pro Pass 月卡",
+      token_vip_month_50w: "Scale 组合包",
+    };
+    return m[plan] || plan || "--";
+  }
+
+  function labelOrderStatus(s) {
+    var m = { pending: "待支付", paid: "已支付", failed: "失败" };
+    return m[s] || s || "";
+  }
+
+  function labelChannel(c) {
+    var m = { wechat: "微信", alipay: "支付宝", mock: "模拟" };
+    return m[c] || c || "";
+  }
+
+  function humanizeLedgerNote(note) {
+    var n = String(note || "");
+    if (!n) return "";
+    if (/^invite_register_bonus\s+referee=/i.test(n)) {
+      return "邀请注册奖励（邀请人侧）";
+    }
+    if (/^invite_register_bonus\s+referrer=/i.test(n)) {
+      return "邀请注册奖励（新用户侧）";
+    }
+    if (/^vip\s*日额度/i.test(n) || /^VIP 日额度/i.test(n)) return n;
+    if (/^chat\/run$/i.test(n)) return "API 调用";
+    if (/^(wechat|alipay|mock):/i.test(n)) {
+      var parts = n.split(":");
+      return labelChannel(parts[0]) + "支付到账" + (parts[2] ? " · " + labelPlanId(parts[2]) : "");
+    }
+    if (/vip_daily_bonus/i.test(n)) {
+      return n.replace(/vip_daily_bonus/gi, "每日赠送额度");
+    }
+    return n;
+  }
+
   function showMsg(el, text, ok) {
     if (!el) return;
     el.innerHTML =
@@ -119,8 +174,11 @@
       meta.className = "sub";
       meta.style.margin = "0";
       var bits = ["¥" + (p.price_yuan || "?")];
+      if (p.price_usd) bits.push("≈ $" + p.price_usd);
       if (p.credit_tokens) bits.push("到账 " + p.credit_tokens + " token");
-      if (p.set_vip) bits.push("开通 Token VIP");
+      if (p.set_vip) {
+        bits.push("开通 Token VIP" + (p.vip_days ? " " + p.vip_days + " 天" : ""));
+      }
       meta.textContent = bits.join(" · ");
       var actions = document.createElement("div");
       actions.className = "card-actions";
@@ -356,11 +414,12 @@
       li.className = "list-item";
       var left = document.createElement("span");
       left.textContent =
-        (o.plan || "") +
+        labelPlanId(o.plan) +
         " · ¥" +
         ((Number(o.amount_fen) || 0) / 100).toFixed(2) +
         " · " +
-        (o.status || "");
+        labelOrderStatus(o.status) +
+        (o.channel ? " · " + labelChannel(o.channel) : "");
       var right = document.createElement("span");
       if (o.status === "pending") {
         var btn = document.createElement("button");
@@ -420,9 +479,9 @@
       li.className = "list-item";
       var left = document.createElement("span");
       left.textContent =
-        (r.entry_type || "") +
+        labelEntryType(r.entry_type) +
         (r.model ? " · " + r.model : "") +
-        (r.note ? " · " + r.note : "");
+        (r.note ? " · " + humanizeLedgerNote(r.note) : "");
       var right = document.createElement("span");
       right.textContent = (r.amount > 0 ? "+" : "") + String(r.amount);
       li.appendChild(left);
@@ -440,11 +499,11 @@
     try {
       var bal = await AI24X_API.billingBalance();
       $("stat-balance").textContent = fmtInt(bal.balance_tokens);
-      var planLabel = bal.plan || "--";
+      var planLabel = labelPlanId(bal.plan);
       if (bal.is_vip_active && bal.vip_expires_at) {
         planLabel += " · 到期 " + String(bal.vip_expires_at).slice(0, 10);
-      } else if (bal.plan === "vip" && !bal.is_vip_active) {
-        planLabel = "free（VIP已过期）";
+      } else if (String(bal.plan || "").toLowerCase() === "vip" && !bal.is_vip_active) {
+        planLabel = "免费档（Token VIP 已过期）";
       }
       $("acct-plan").textContent = planLabel;
     } catch (e) {

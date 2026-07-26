@@ -25,7 +25,7 @@ from models import (
 
 # —— 配额口径（MVP 简化；后续可配进 system_configs）——
 FREE_MONTHLY_BONUS_TOKENS = 10_000
-VIP_DAILY_BONUS_TOKENS = 500_000
+VIP_DAILY_BONUS_TOKENS = 100_000
 REFERRAL_L1_BPS = 1000  # 10%（被邀请人充值时）
 REFERRAL_L2_BPS = 200  # 2%
 # 邀请注册即时奖励：双方各得（与总纲「邀请双方各得」对齐）
