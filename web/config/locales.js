@@ -34,7 +34,7 @@
     "page.index.hero.lead": "一站式多模型 API 与智能应用服务平台",
     "page.index.tag1": "7×24 小时全天候智能服务",
     "page.index.tag2": "统一接口接入全球主流 AI 模型",
-    "page.index.tag3": "AI 应用生态 · 首发 AI 行情官｜灯塔版",
+    "page.index.tag3": "Token 套餐与控制台一站管理",
     "page.index.tag4": "共创共享 · 自由调用 · 全球加速",
     "page.index.callout":
       "<strong>统一接口</strong>：<code>https://api.ai24x.com/v1/chat/run</code>",
@@ -230,7 +230,7 @@
       "One-stop multi-model API & AI apps platform for developers worldwide.",
     "page.index.tag1": "Global edge network",
     "page.index.tag2": "Single endpoint · api.ai24x.com/v1/chat/run",
-    "page.index.tag3": "AI apps · Market Watch (Lighthouse)",
+    "page.index.tag3": "Token plans & console in one place",
     "page.index.tag4": "Secure · compliant · accelerated",
     "page.index.callout":
       "<strong>Unified endpoint</strong>: <code>https://api.ai24x.com/v1/chat/run</code>",

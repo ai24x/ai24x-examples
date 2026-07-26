@@ -162,35 +162,6 @@
     if (h) {
       h.innerHTML = headerHtml(activePage);
       fixNavActive(activePage);
-      // WeChat H5 review helper: ensure "service content" is one click away on any page.
-      try {
-        if (!document.getElementById("a1-banner")) {
-          var bar = document.createElement("div");
-          bar.id = "a1-banner";
-          bar.setAttribute("role", "note");
-          bar.style.cssText =
-            "border-top:1px solid rgba(148,163,184,.20);" +
-            "border-bottom:1px solid rgba(148,163,184,.20);" +
-            "background:rgba(15,23,42,.35);" +
-            "backdrop-filter:saturate(120%) blur(6px);" +
-            "color:rgba(226,232,240,.92);" +
-            "font-size:12px;" +
-            "line-height:1.6;";
-          bar.innerHTML =
-            '<div class="container" style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:8px 0;">' +
-            '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">' +
-            '<b style="color:#fbbf24;">AI 行情官｜灯塔版</b>' +
-            '<span>行情查询与信号展示（可体验）</span>' +
-            '<span style="opacity:.9;">内容仅供学习交流</span>' +
-            "</div>" +
-            '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">' +
-            '<a href="demo.html" class="btn btn-primary" style="padding:6px 10px;font-size:12px;">立即体验</a>' +
-            '<a href="pricing.html" class="btn" style="padding:6px 10px;font-size:12px;">VIP 说明</a>' +
-            "</div>" +
-            "</div>";
-          h.insertAdjacentElement("afterend", bar);
-        }
-      } catch (e0) {}
     }
     if (f) f.innerHTML = footerHtml();
     bindChrome();

@@ -57,7 +57,7 @@
               <button type="button" class="btn btn-otp-send" id="reg-btn-send-email">获取验证码</button>
             </div>
             <div class="otp-local-box" id="reg-otp-local" aria-live="polite">
-              <div class="otp-local-label">本地联调验证码（正式环境将发到邮箱）</div>
+              <div class="otp-local-label">本地预览验证码（正式环境将发到邮箱）</div>
               <div class="otp-local-code" id="reg-otp-code">------</div>
               <div class="otp-local-hint">已自动填入上方输入框，可直接设置密码完成注册。</div>
             </div>
@@ -105,7 +105,7 @@
             otpCode.textContent = String(code);
             otpBox.classList.add("is-on");
             if (inpCode) inpCode.value = String(code);
-            box.innerHTML = '<div class="alert alert-success">本地联调验证码已就绪，请继续设置密码。</div>';
+            box.innerHTML = '<div class="alert alert-success">验证码已就绪，请继续设置密码。</div>';
             return;
           }
           otpBox.classList.remove("is-on");
