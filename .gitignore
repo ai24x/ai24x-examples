@@ -39,6 +39,9 @@ scripts/_verify_docs.py
 # 配置文件（包含敏感信息）
 .env
 *.env
+!api/.env.example
+api/certs/
+**/token-pay-bundle*/
 config.local.*
 deploy-token.txt
 

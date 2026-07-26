@@ -63,6 +63,28 @@ TOKEN_ALIPAY_RETURN_URL=https://www.ai24x.com/console.html
 本机 `:8000` 有微信/支付宝按钮 = 本机商户已配齐。  
 **修复**：把 a1 已跑通的商户项按无前缀变量写入 `C:\ai24x01\api\.env`（**禁止 Write 整文件覆盖**），确认私钥文件路径对 core 进程可读，再 `--update-env` 重启。
 
+### 推荐：本机导出同步包 → 副脑03 一键应用（避免 PEM 被打成 `***`）
+
+本机（主脑）已通支付后：
+
+```powershell
+Set-Location E:\AI24X\ai24x-website\ai24x01
+python api/scripts_export_token_pay_bundle.py
+# 生成 E:\AI24X\bak\token-pay-bundle-时间戳\ 与同名 .zip（含 certs/*.pem + pay.env）
+```
+
+把 **zip**（勿进 git）拷到副脑03，例如 `C:\ai24x-transfer\token-pay-bundle.zip`，然后：
+
+```powershell
+Set-Location C:\ai24x01
+git pull origin master
+Set-Location C:\ai24x01\api
+python scripts_apply_token_pay_bundle.py C:\ai24x-transfer\token-pay-bundle.zip
+curl.exe -sS http://127.0.0.1:8002/v1/billing/plans
+```
+
+说明：脚本把私钥落到 `api/certs\`，`.env` 只写 **PATH**，清空 PEM 内联，避免聊天/Cursor 脱敏成 `***`。
+
 ## 国际支付（并行申请，后接代码）
 - PayPal / Stripe：现在去申请账号与商户审核即可  
 - **代码接入排 Phase 2**（与英文站一起），不挡国内真付调试
