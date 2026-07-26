@@ -165,6 +165,18 @@ class Settings(BaseSettings):
     )
     alipay_public_key: str = Field(default="", validation_alias="ALIPAY_PUBLIC_KEY")
 
+    # —— PayPal（国际 USD；Sandbox / Live）——
+    paypal_client_id: str = Field(default="", validation_alias="PAYPAL_CLIENT_ID")
+    paypal_client_secret: str = Field(default="", validation_alias="PAYPAL_CLIENT_SECRET")
+    paypal_mode: str = Field(default="sandbox", validation_alias="PAYPAL_MODE")  # sandbox|live
+    paypal_webhook_id: str = Field(default="", validation_alias="PAYPAL_WEBHOOK_ID")
+    token_paypal_return_url: str = Field(
+        default="https://www.ai24x.com/console.html", validation_alias="TOKEN_PAYPAL_RETURN_URL"
+    )
+    token_paypal_cancel_url: str = Field(
+        default="https://www.ai24x.com/console.html", validation_alias="TOKEN_PAYPAL_CANCEL_URL"
+    )
+
     # —— LLM upstream（L0 硅基流动 / L1 DeepSeek）——
     deepseek_api_key: str = Field(default="", validation_alias="DEEPSEEK_API_KEY")
     deepseek_base_url: str = Field(default="https://api.deepseek.com", validation_alias="DEEPSEEK_BASE_URL")

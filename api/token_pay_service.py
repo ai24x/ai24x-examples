@@ -63,6 +63,12 @@ def pay_settings_ns() -> SimpleNamespace:
         "alipay_merchant_private_key_path": _s(settings.alipay_merchant_private_key_path or ""),
         "alipay_merchant_private_key_pem": _pem(settings.alipay_merchant_private_key_pem or ""),
         "alipay_public_key": _pem(settings.alipay_public_key or ""),
+        "paypal_client_id": _s(getattr(settings, "paypal_client_id", "") or ""),
+        "paypal_client_secret": _s(getattr(settings, "paypal_client_secret", "") or ""),
+        "paypal_mode": _s(getattr(settings, "paypal_mode", "sandbox") or "sandbox") or "sandbox",
+        "paypal_webhook_id": _s(getattr(settings, "paypal_webhook_id", "") or ""),
+        "paypal_return_url": _s(getattr(settings, "token_paypal_return_url", "") or ""),
+        "paypal_cancel_url": _s(getattr(settings, "token_paypal_cancel_url", "") or ""),
     }
 
     if bool(getattr(settings, "token_pay_reuse_a1", True)):
@@ -110,10 +116,12 @@ def mk_out_trade_no(auth_user_id: int) -> str:
 def public_plans() -> dict:
     cfg = pay_settings_ns()
     from pay_alipay_wap import alipay_configured
+    from pay_paypal import paypal_configured
     from pay_wechat_v3 import wechat_pay_configured
 
     wx_cfg = wechat_pay_configured(cfg)
     ali_cfg = alipay_configured(cfg)
+    pp_cfg = paypal_configured(cfg)
     enabled = token_pay_enabled()
     return {
         "plans": list_public_plans(),
@@ -122,9 +130,12 @@ def public_plans() -> dict:
             "mock_allowed": token_pay_mock_allowed(),
             "wechat_configured": wx_cfg,
             "alipay_configured": ali_cfg,
+            "paypal_configured": pp_cfg,
+            "paypal_mode": str(getattr(cfg, "paypal_mode", "sandbox") or "sandbox"),
             # ready = 可拉真单（开关开 + 商户齐）
             "wechat_ready": bool(enabled and wx_cfg),
             "alipay_ready": bool(enabled and ali_cfg),
+            "paypal_ready": bool(enabled and pp_cfg),
         },
     }
 
@@ -143,13 +154,24 @@ def create_pending_order(
         plan_id, price_fen = normalize_plan(plan)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+    ch = (channel or "wechat")[:16]
+    # PayPal：amount_fen 存 USD 美分；微信/支付宝仍为 CNY 分
+    if ch == "paypal":
+        meta = get_plan(plan_id) or {}
+        try:
+            usd = float(meta.get("price_usd") or 0)
+        except Exception:
+            usd = 0.0
+        if usd <= 0:
+            raise HTTPException(status_code=400, detail="plan_missing_usd_price")
+        price_fen = max(1, int(round(usd * 100)))
     otn = mk_out_trade_no(int(auth_user_id))
     row = TokenPayOrder(
         out_trade_no=otn,
         auth_user_id=int(auth_user_id),
         plan=plan_id,
         amount_fen=int(price_fen),
-        channel=(channel or "wechat")[:16],
+        channel=ch,
         status="pending",
         product="token",
     )
@@ -443,6 +465,155 @@ async def create_alipay_wap(db: Session, *, auth_user_id: int, plan: str) -> dic
         "pay_url": pay_url,
         "mock": False,
     }
+
+
+async def create_paypal_order(db: Session, *, auth_user_id: int, plan: str) -> dict:
+    row = create_pending_order(db, auth_user_id=auth_user_id, plan=plan, channel="paypal")
+    plan_meta = get_plan(row.plan) or {}
+    title = str(plan_meta.get("title_en") or plan_meta.get("title_zh") or row.plan)
+    usd = float(plan_meta.get("price_usd") or 0) or (int(row.amount_fen) / 100.0)
+
+    if token_pay_mock_allowed() and not token_pay_enabled():
+        pay_url = f"mock://token-pay/{row.out_trade_no}"
+        row.code_url = pay_url
+        db.commit()
+        return {
+            "out_trade_no": row.out_trade_no,
+            "plan": row.plan,
+            "amount_fen": row.amount_fen,
+            "amount_usd": f"{usd:.2f}",
+            "currency": "USD",
+            "channel": "paypal",
+            "pay_url": pay_url,
+            "mock": True,
+            "hint": "TOKEN_PAY_ENABLED 未开：请用 mock_fulfill 模拟到账",
+        }
+
+    if not token_pay_enabled():
+        raise HTTPException(status_code=503, detail="Token 在线支付未开启（TOKEN_PAY_ENABLED）")
+
+    cfg = pay_settings_ns()
+    from pay_paypal import approve_url_from_order, create_checkout_order, paypal_configured
+
+    if not paypal_configured(cfg):
+        raise HTTPException(status_code=503, detail="PayPal 未配置（PAYPAL_CLIENT_ID / SECRET）")
+
+    ret = (getattr(cfg, "paypal_return_url", "") or "https://www.ai24x.com/console.html").strip()
+    can = (getattr(cfg, "paypal_cancel_url", "") or ret).strip()
+    # 带回本站单号，便于 return 页触发 capture
+    sep = "&" if "?" in ret else "?"
+    ret_q = f"{ret}{sep}paypal=1&out_trade_no={row.out_trade_no}"
+    can_q = f"{can}{sep}paypal_cancel=1&out_trade_no={row.out_trade_no}" if "out_trade_no=" not in can else can
+
+    try:
+        pp = await create_checkout_order(
+            cfg,
+            out_trade_no=row.out_trade_no,
+            amount_usd=usd,
+            description=title,
+            return_url=ret_q,
+            cancel_url=can_q,
+        )
+    except Exception as e:
+        logger.exception("paypal create failed")
+        row.status = "failed"
+        db.commit()
+        raise HTTPException(status_code=502, detail=f"PayPal 下单失败: {e}") from e
+
+    pay_url = approve_url_from_order(pp or {})
+    pp_id = str((pp or {}).get("id") or "")
+    # code_url 存 approve 链接；transaction_id 暂存 PayPal order id（paid 后改为 capture id）
+    row.code_url = (pay_url or "")[:2000] or None
+    if pp_id:
+        row.transaction_id = pp_id[:128]
+    db.commit()
+    return {
+        "out_trade_no": row.out_trade_no,
+        "plan": row.plan,
+        "amount_fen": row.amount_fen,
+        "amount_usd": f"{usd:.2f}",
+        "currency": "USD",
+        "channel": "paypal",
+        "pay_url": pay_url,
+        "paypal_order_id": pp_id,
+        "mock": False,
+    }
+
+
+async def capture_and_fulfill_paypal(
+    db: Session, *, out_trade_no: str, auth_user_id: int, paypal_order_id: str | None = None
+) -> dict:
+    """Return URL / 手动确认：Capture 后履约。"""
+    otn = str(out_trade_no or "").strip()
+    row = db.query(TokenPayOrder).filter(TokenPayOrder.out_trade_no == otn).first()
+    if not row or int(row.auth_user_id) != int(auth_user_id):
+        raise HTTPException(status_code=404, detail="订单不存在")
+    if str(row.channel) != "paypal":
+        raise HTTPException(status_code=400, detail="not_paypal_order")
+    if str(row.status) == "paid":
+        return {
+            "ok": True,
+            "duplicate": True,
+            "out_trade_no": otn,
+            "balance": get_balance_snapshot(db, int(auth_user_id)),
+        }
+
+    if token_pay_mock_allowed() and not token_pay_enabled():
+        return mock_fulfill(db, out_trade_no=otn, auth_user_id=auth_user_id)
+    if not token_pay_enabled():
+        raise HTTPException(status_code=503, detail="Token 在线支付未开启")
+
+    cfg = pay_settings_ns()
+    from pay_paypal import (
+        capture_order,
+        extract_capture_id,
+        extract_captured_usd_cents,
+        extract_custom_id,
+        get_order,
+        is_order_completed,
+        paypal_configured,
+    )
+
+    if not paypal_configured(cfg):
+        raise HTTPException(status_code=503, detail="PayPal 未配置")
+
+    pid = (paypal_order_id or str(row.transaction_id or "")).strip()
+    if not pid:
+        raise HTTPException(status_code=400, detail="missing_paypal_order_id")
+
+    try:
+        # 已完成则直接读；否则 capture
+        cur = await get_order(cfg, paypal_order_id=pid)
+        if is_order_completed(cur):
+            captured = cur
+        else:
+            captured = await capture_order(cfg, paypal_order_id=pid)
+    except Exception as e:
+        logger.exception("paypal capture failed otn=%s", otn)
+        raise HTTPException(status_code=502, detail=f"PayPal 扣款失败: {e}") from e
+
+    custom = extract_custom_id(captured) or otn
+    if custom and custom != otn:
+        logger.warning("paypal custom_id mismatch otn=%s custom=%s", otn, custom)
+    cents = extract_captured_usd_cents(captured)
+    if cents <= 0:
+        cents = int(row.amount_fen)
+    txid = extract_capture_id(captured) or pid
+    r = try_fulfill(
+        db,
+        out_trade_no=otn,
+        transaction_id=txid,
+        amount_fen=cents,
+        channel_tag="paypal_capture",
+    )
+    if not r.get("ok"):
+        raise HTTPException(status_code=409, detail=str(r.get("error") or "fulfill_failed"))
+    return r
+
+
+async def query_and_fulfill_paypal(db: Session, *, out_trade_no: str, auth_user_id: int) -> dict:
+    """与微信「确认到账」同义：查单/Capture 后履约。"""
+    return await capture_and_fulfill_paypal(db, out_trade_no=out_trade_no, auth_user_id=auth_user_id)
 
 
 async def query_and_fulfill_wechat(db: Session, *, out_trade_no: str, auth_user_id: int) -> dict:

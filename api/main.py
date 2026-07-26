@@ -1141,6 +1141,7 @@ async def billing_pay_status():
     from pathlib import Path
 
     from pay_alipay_wap import alipay_configured
+    from pay_paypal import paypal_configured
     from pay_wechat_v3 import wechat_pay_configured
     from token_pay_service import pay_settings_ns, token_pay_enabled, token_pay_mock_allowed
 
@@ -1165,6 +1166,7 @@ async def billing_pay_status():
     ) and not ok]
     wx_cfg = wechat_pay_configured(cfg)
     ali_cfg = alipay_configured(cfg)
+    pp_cfg = paypal_configured(cfg)
     enabled = token_pay_enabled()
     wechat_notify = cfg.wechat_notify_url or ""
     alipay_notify = cfg.alipay_notify_url or ""
@@ -1187,13 +1189,21 @@ async def billing_pay_status():
             "notify_url_hint": alipay_notify[:80] + ("…" if len(alipay_notify) > 80 else ""),
             "return_url_set": bool((cfg.alipay_return_url or "").strip()),
         },
+        "paypal": {
+            "merchant_configured": pp_cfg,
+            "ui_ready": bool(enabled and pp_cfg),
+            "mode": str(getattr(cfg, "paypal_mode", "sandbox") or "sandbox"),
+            "webhook_id_set": bool(getattr(cfg, "paypal_webhook_id", "") or ""),
+            "return_url_set": bool(getattr(cfg, "paypal_return_url", "") or ""),
+        },
         "console_hint": (
-            "控制台只显示 wechat_ready/alipay_ready=true 的通道；"
+            "控制台只显示 wechat_ready/alipay_ready/paypal_ready=true 的通道；"
             "看 /v1/billing/plans 的 pay 字段，或本接口 wechat.missing"
         ),
         "next_steps": [
             "确认 TOKEN_*_NOTIFY_URL 与 a1 回调不同，并在商户平台登记 Token 回调",
             "微信缺项见 wechat.missing（常见：serial_no 空，或 api_v3_key 不是正好 32 位）",
+            "PayPal：配 PAYPAL_CLIENT_ID/SECRET，MODE=sandbox 联调；Live 仅开在副脑04",
             "改完 api/.env 后 pm2 restart core-api-8002 --update-env",
             "实付后核对 token_pay_orders + 钱包；并回归 a1 支付",
         ],
@@ -1219,6 +1229,16 @@ async def billing_alipay_wap(
 
     u = _auth_user_from_bearer(request, db)
     return await create_alipay_wap(db, auth_user_id=int(u.id), plan=body.plan)
+
+
+@app.post("/v1/billing/paypal/order")
+async def billing_paypal_order(
+    request: Request, body: TokenPayCreateBody, db: Session = Depends(get_db)
+):
+    from token_pay_service import create_paypal_order
+
+    u = _auth_user_from_bearer(request, db)
+    return await create_paypal_order(db, auth_user_id=int(u.id), plan=body.plan)
 
 
 @app.get("/v1/billing/orders")
@@ -1261,6 +1281,29 @@ async def billing_alipay_query_and_fulfill(
 
     u = _auth_user_from_bearer(request, db)
     return query_and_fulfill_alipay(db, out_trade_no=body.out_trade_no, auth_user_id=int(u.id))
+
+
+@app.post("/v1/billing/paypal/capture")
+async def billing_paypal_capture(
+    request: Request, body: TokenQueryFulfillBody, db: Session = Depends(get_db)
+):
+    """PayPal 支付返回后 Capture + 履约（也可当「确认到账」）。"""
+    from token_pay_service import capture_and_fulfill_paypal
+
+    u = _auth_user_from_bearer(request, db)
+    return await capture_and_fulfill_paypal(
+        db, out_trade_no=body.out_trade_no, auth_user_id=int(u.id)
+    )
+
+
+@app.post("/v1/billing/paypal/query_and_fulfill")
+async def billing_paypal_query_and_fulfill(
+    request: Request, body: TokenQueryFulfillBody, db: Session = Depends(get_db)
+):
+    from token_pay_service import query_and_fulfill_paypal
+
+    u = _auth_user_from_bearer(request, db)
+    return await query_and_fulfill_paypal(db, out_trade_no=body.out_trade_no, auth_user_id=int(u.id))
 
 
 @app.get("/v1/models")
@@ -1346,6 +1389,74 @@ async def billing_alipay_notify(request: Request, db: Session = Depends(get_db))
         logger.warning("token alipay fulfill fail otn=%s err=%s", otn, r.get("error"))
         return "failure"
     return "success"
+
+
+@app.post("/v1/billing/paypal/webhook")
+async def billing_paypal_webhook(request: Request, db: Session = Depends(get_db)):
+    """PayPal Webhook → Capture 完成后履约。未配 WEBHOOK_ID 时仍尝试解析事件（仅 sandbox 联调）。"""
+    import json
+
+    from token_pay_service import pay_settings_ns, try_fulfill, token_pay_enabled
+
+    if not token_pay_enabled():
+        return JSONResponse(status_code=200, content={"ok": False, "reason": "disabled"})
+    body_str = (await request.body()).decode("utf-8", errors="replace")
+    headers = {k: v for k, v in request.headers.items()}
+    cfg = pay_settings_ns()
+    from pay_paypal import (
+        extract_capture_id,
+        extract_captured_usd_cents,
+        extract_custom_id,
+        verify_webhook_signature,
+    )
+
+    verified = False
+    try:
+        verified = await verify_webhook_signature(cfg, headers=headers, body=body_str)
+    except Exception as e:
+        logger.warning("paypal webhook verify error: %s", e)
+    mode = str(getattr(cfg, "paypal_mode", "sandbox") or "sandbox").lower()
+    if not verified and mode not in ("sandbox", "test", "dev"):
+        return JSONResponse(status_code=400, content={"ok": False, "reason": "verify_failed"})
+
+    try:
+        event = json.loads(body_str or "{}")
+    except Exception:
+        return JSONResponse(status_code=400, content={"ok": False, "reason": "bad_json"})
+
+    et = str(event.get("event_type") or "")
+    resource = event.get("resource") or {}
+    # 兼容 CHECKOUT.ORDER.APPROVED / PAYMENT.CAPTURE.COMPLETED
+    otn = extract_custom_id(resource) if isinstance(resource, dict) else ""
+    if not otn and isinstance(resource, dict):
+        otn = str(resource.get("custom_id") or resource.get("invoice_id") or "").strip()
+        # capture 资源里 custom_id 可能在 supplementary_data / purchase_units
+        if not otn:
+            for pu in resource.get("purchase_units") or []:
+                otn = str(pu.get("custom_id") or pu.get("reference_id") or "").strip()
+                if otn:
+                    break
+    if not otn.startswith("T"):
+        return JSONResponse(status_code=200, content={"ok": True, "ignored": True, "event": et})
+
+    cents = extract_captured_usd_cents(resource) if isinstance(resource, dict) else 0
+    if cents <= 0 and isinstance(resource, dict):
+        try:
+            cents = int(round(float((resource.get("amount") or {}).get("value") or 0) * 100))
+        except Exception:
+            cents = 0
+    txid = extract_capture_id(resource) if isinstance(resource, dict) else ""
+    if not txid and isinstance(resource, dict):
+        txid = str(resource.get("id") or "")[:128]
+    if cents <= 0 or not txid:
+        logger.warning("paypal webhook incomplete otn=%s event=%s", otn, et)
+        return JSONResponse(status_code=200, content={"ok": False, "reason": "incomplete"})
+
+    r = try_fulfill(db, out_trade_no=otn, transaction_id=txid, amount_fen=cents, channel_tag="paypal_webhook")
+    if not r.get("ok"):
+        logger.warning("paypal webhook fulfill fail otn=%s err=%s", otn, r.get("error"))
+        return JSONResponse(status_code=200, content={"ok": False, "error": r.get("error")})
+    return JSONResponse(status_code=200, content={"ok": True, "out_trade_no": otn})
 
 
 @app.get("/v1/admin/token/wallet")

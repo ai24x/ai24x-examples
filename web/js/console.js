@@ -74,10 +74,10 @@
 
   function labelChannel(c) {
     if (!AI24X_API.isZhUi()) {
-      var en = { wechat: "WeChat", alipay: "Alipay", mock: "Mock" };
+      var en = { wechat: "WeChat", alipay: "Alipay", paypal: "PayPal", mock: "Mock" };
       return en[c] || c || "";
     }
-    var m = { wechat: "微信", alipay: "支付宝", mock: "模拟" };
+    var m = { wechat: "微信", alipay: "支付宝", paypal: "PayPal", mock: "模拟" };
     return m[c] || c || "";
   }
 
@@ -95,10 +95,11 @@
       return zh ? n : n.replace(/vip\s*日额度|VIP 日额度/gi, "VIP daily quota");
     }
     if (/^chat\/run$/i.test(n)) return zh ? "API 调用" : "API call";
-    if (/^(wechat|alipay|mock):/i.test(n)) {
+    if (/^(wechat|alipay|paypal|mock|paypal_capture|paypal_webhook):/i.test(n)) {
       var parts = n.split(":");
+      var ch0 = String(parts[0] || "").replace(/_capture|_webhook/i, "");
       return (
-        labelChannel(parts[0]) +
+        labelChannel(ch0) +
         (zh ? "支付到账" : " payment") +
         (parts[2] ? " · " + labelPlanForUi(parts[2]) : "")
       );
@@ -274,9 +275,10 @@
 
       if (pay.wechat_ready) addBtn(tr("微信", "WeChat"), "btn btn-primary", "wechat");
       if (pay.alipay_ready) addBtn(tr("支付宝", "Alipay"), "btn btn-primary", "alipay");
+      if (pay.paypal_ready) addBtn("PayPal", "btn btn-primary", "paypal");
       if (pay.mock_allowed) {
         addBtn(tr("模拟到账", "Mock pay"), "btn", "mock");
-      } else if (!pay.wechat_ready && !pay.alipay_ready) {
+      } else if (!pay.wechat_ready && !pay.alipay_ready && !pay.paypal_ready) {
         var disabled = document.createElement("button");
         disabled.type = "button";
         disabled.className = "btn";
@@ -285,8 +287,8 @@
           ? tr("支付通道未就绪", "Pay channel not ready")
           : tr("支付暂未开放", "Pay not open");
         disabled.title = tr(
-          "需在 api/.env 配齐 WECHAT_* / ALIPAY_* 商户项后重启 core-api-8002",
-          "Configure WECHAT_* / ALIPAY_* in api/.env, then restart core-api-8002"
+          "需配齐支付商户项后重启 API",
+          "Configure payment credentials, then restart API"
         );
         actions.appendChild(disabled);
       }
@@ -465,13 +467,17 @@
         ? tr("正在拉起微信扫码…", "Preparing WeChat QR…")
         : channel === "alipay"
           ? tr("将在新窗口打开支付宝；本页控制台保留。", "Alipay opens in a new window; this console stays.")
-          : tr("请选择支付方式", "Choose a payment method")
+          : channel === "paypal"
+            ? tr("将打开 PayPal（USD）；本页控制台保留。", "Opening PayPal (USD); this console stays.")
+            : tr("请选择支付方式", "Choose a payment method")
     );
 
     var req =
       channel === "alipay"
         ? AI24X_API.billingAlipayWap(planId)
-        : AI24X_API.billingWechatNative(planId);
+        : channel === "paypal"
+          ? AI24X_API.billingPaypalOrder(planId)
+          : AI24X_API.billingWechatNative(planId);
 
     req
       .then(function (r) {
@@ -536,6 +542,23 @@
             openLabel: tr("在新窗口打开支付宝", "Open Alipay in a new window"),
           });
           startFulfillPoll(r.out_trade_no, "alipay");
+        } else if (channel === "paypal" && r && r.pay_url) {
+          var ppOpened = openAlipayInNewWindow(r.pay_url);
+          showPayResult({
+            hint:
+              (ppOpened
+                ? tr("已打开 PayPal，请在新窗口完成付款。", "PayPal opened — finish payment there.")
+                : tr("请点下方按钮打开 PayPal。", "Use the button below to open PayPal.")) +
+              tr(
+                " 付完返回本页会自动确认到账。单号：",
+                " After return, this page auto-confirms. Order: "
+              ) +
+              (r.out_trade_no || "") +
+              (r.amount_usd ? " · $" + r.amount_usd : ""),
+            openUrl: r.pay_url,
+            openLabel: tr("打开 PayPal", "Open PayPal"),
+          });
+          startFulfillPoll(r.out_trade_no, "paypal");
         } else {
           if (alipayWin && !alipayWin.closed) {
             try {
@@ -893,6 +916,28 @@
     $("api-key").value = AI24X_API.getApiKey();
     bind();
     refreshAll();
+    // PayPal return：?paypal=1&out_trade_no=T…
+    try {
+      var qs = new URLSearchParams(window.location.search || "");
+      var otn = qs.get("out_trade_no") || "";
+      if (qs.get("paypal") === "1" && otn) {
+        showMsg($("consoleMsg"), tr("正在确认 PayPal 支付…", "Confirming PayPal…"), true);
+        AI24X_API.billingQueryFulfill(otn, "paypal")
+          .then(function (r) {
+            showMsg(
+              $("consoleMsg"),
+              r && r.ok
+                ? tr("PayPal 已到账", "PayPal credited")
+                : tr("PayPal 尚未完成，可点确认到账", "PayPal pending — tap Confirm"),
+              !!(r && r.ok)
+            );
+            return refreshAll();
+          })
+          .catch(function (e) {
+            showMsg($("consoleMsg"), e.message || tr("PayPal 确认失败", "PayPal confirm failed"), false);
+          });
+      }
+    } catch (e) {}
     var langSel = document.getElementById("lang-select");
     if (langSel) {
       langSel.addEventListener("change", function () {
