@@ -1137,48 +1137,64 @@ async def billing_plans():
 
 @app.get("/v1/billing/pay/status")
 async def billing_pay_status():
-    """支付通道自检（不含密钥）；上真支付前先看这里。"""
+    """支付通道自检（不含密钥）；与控制台按钮同一套 wechat_pay_configured / alipay_configured。"""
     from pathlib import Path
 
-    wechat_notify = (settings.token_wechat_notify_url or "").strip()
-    alipay_notify = (settings.token_alipay_notify_url or "").strip()
-    wx_path = (settings.wechat_mch_private_key_path or "").strip()
-    wechat_ready = bool(
-        (settings.wechat_mch_id or "").strip()
-        and (settings.wechat_app_id or "").strip()
-        and (settings.wechat_api_v3_key or "").strip()
-        and (
-            wx_path
-            or (settings.wechat_mch_private_key_pem or "").strip()
-        )
-    )
-    alipay_ready = bool(
-        (settings.alipay_app_id or "").strip()
-        and (settings.alipay_public_key or "").strip()
-        and (
-            (settings.alipay_merchant_private_key_path or "").strip()
-            or (settings.alipay_merchant_private_key_pem or "").strip()
-        )
-    )
+    from pay_alipay_wap import alipay_configured
+    from pay_wechat_v3 import wechat_pay_configured
+    from token_pay_service import pay_settings_ns, token_pay_enabled, token_pay_mock_allowed
+
+    cfg = pay_settings_ns()
+    wx_path = (cfg.wechat_mch_private_key_path or "").strip()
+    wx_pem = bool((cfg.wechat_mch_private_key_pem or "").strip())
+    api_v3 = str(cfg.wechat_api_v3_key or "")
+    wx_checks = {
+        "mch_id": bool(cfg.wechat_mch_id),
+        "app_id": bool(cfg.wechat_app_id),
+        "serial_no": bool(cfg.wechat_mch_serial_no),
+        "private_key": bool(wx_pem or wx_path),
+        "private_key_pem_inline": wx_pem,
+        "private_key_path_set": bool(wx_path),
+        "private_key_path_exists": bool(wx_path and Path(wx_path).exists()),
+        "api_v3_key_len_32": len(api_v3) == 32,
+        "api_v3_key_len": len(api_v3),
+        "notify_url": bool(cfg.wechat_notify_url),
+    }
+    wx_missing = [k for k, ok in wx_checks.items() if k in (
+        "mch_id", "app_id", "serial_no", "private_key", "api_v3_key_len_32", "notify_url"
+    ) and not ok]
+    wx_cfg = wechat_pay_configured(cfg)
+    ali_cfg = alipay_configured(cfg)
+    enabled = token_pay_enabled()
+    wechat_notify = cfg.wechat_notify_url or ""
+    alipay_notify = cfg.alipay_notify_url or ""
     return {
         "ok": True,
-        "token_pay_enabled": bool(settings.token_pay_enabled),
-        "token_pay_mock_enabled": bool(settings.token_pay_mock_enabled),
+        "token_pay_enabled": enabled,
+        "token_pay_mock_enabled": token_pay_mock_allowed(),
         "wechat": {
-            "merchant_configured": wechat_ready,
-            "private_key_path_exists": bool(wx_path and Path(wx_path).exists()),
+            "merchant_configured": wx_cfg,
+            "ui_ready": bool(enabled and wx_cfg),
+            "checks": wx_checks,
+            "missing": wx_missing,
             "notify_url_set": bool(wechat_notify),
             "notify_url_hint": wechat_notify[:80] + ("…" if len(wechat_notify) > 80 else ""),
         },
         "alipay": {
-            "merchant_configured": alipay_ready,
+            "merchant_configured": ali_cfg,
+            "ui_ready": bool(enabled and ali_cfg),
             "notify_url_set": bool(alipay_notify),
             "notify_url_hint": alipay_notify[:80] + ("…" if len(alipay_notify) > 80 else ""),
-            "return_url_set": bool((settings.token_alipay_return_url or "").strip()),
+            "return_url_set": bool((cfg.alipay_return_url or "").strip()),
         },
+        "console_hint": (
+            "控制台只显示 wechat_ready/alipay_ready=true 的通道；"
+            "看 /v1/billing/plans 的 pay 字段，或本接口 wechat.missing"
+        ),
         "next_steps": [
             "确认 TOKEN_*_NOTIFY_URL 与 a1 回调不同，并在商户平台登记 Token 回调",
-            "小额实付前设 TOKEN_PAY_ENABLED=true 后 pm2 restart core-8000 --update-env",
+            "微信缺项见 wechat.missing（常见：serial_no 空，或 api_v3_key 不是正好 32 位）",
+            "改完 api/.env 后 pm2 restart core-api-8002 --update-env",
             "实付后核对 token_pay_orders + 钱包；并回归 a1 支付",
         ],
         "a1_safety": "本接口不读写 a1 pay_orders；同步脚本从不复制 a1 notify",
