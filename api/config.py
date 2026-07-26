@@ -136,6 +136,8 @@ class Settings(BaseSettings):
     # 默认关闭真实支付；本地可 TOKEN_PAY_MOCK_ENABLED=true 测履约
     token_pay_enabled: bool = Field(default=False, validation_alias="TOKEN_PAY_ENABLED")
     token_pay_mock_enabled: bool = Field(default=False, validation_alias="TOKEN_PAY_MOCK_ENABLED")
+    # 为 true 时：core 未配齐的商户字段自动从行情官 a1（admin_config / a1 .env）补齐；仍不复用 a1 回调
+    token_pay_reuse_a1: bool = Field(default=True, validation_alias="TOKEN_PAY_REUSE_A1")
     token_wechat_notify_url: str = Field(default="", validation_alias="TOKEN_WECHAT_NOTIFY_URL")
     token_alipay_notify_url: str = Field(default="", validation_alias="TOKEN_ALIPAY_NOTIFY_URL")
     token_alipay_return_url: str = Field(default="", validation_alias="TOKEN_ALIPAY_RETURN_URL")

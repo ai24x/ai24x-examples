@@ -34,29 +34,51 @@ def pay_settings_ns() -> SimpleNamespace:
     """构造给 pay_wechat_v3 / pay_alipay_wap 用的配置对象（notify 走 Token 专用 URL）。"""
 
     def _pem(s: str) -> str:
-        # scripts_sync_pay_from_a1 可能把换行存成 \n
-        return (s or "").replace("\\n", "\n").strip()
+        raw = (s or "").strip()
+        if raw == "***" or raw.startswith("***"):
+            return ""
+        return raw.replace("\\n", "\n").strip()
 
-    return SimpleNamespace(
-        wechat_mch_id=(settings.wechat_mch_id or "").strip(),
-        wechat_app_id=(settings.wechat_app_id or "").strip(),
-        wechat_mch_serial_no=(settings.wechat_mch_serial_no or "").strip(),
-        wechat_mch_private_key_path=(settings.wechat_mch_private_key_path or "").strip(),
-        wechat_mch_private_key_pem=_pem(settings.wechat_mch_private_key_pem or ""),
-        wechat_api_v3_key=(settings.wechat_api_v3_key or "").strip(),
-        wechat_notify_url=(settings.token_wechat_notify_url or "").strip(),
-        wechat_pay_host=(settings.wechat_pay_host or "https://api.mch.weixin.qq.com").strip(),
-        # Token 侧默认强制验签（比 a1 测试开关更严）
-        wechat_notify_skip_verify=bool(settings.wechat_notify_skip_verify)
+    def _s(v: str) -> str:
+        t = (v or "").strip()
+        if t == "***" or t.startswith("***"):
+            return ""
+        return t
+
+    kwargs: dict[str, Any] = {
+        "wechat_mch_id": _s(settings.wechat_mch_id or ""),
+        "wechat_app_id": _s(settings.wechat_app_id or ""),
+        "wechat_mch_serial_no": _s(settings.wechat_mch_serial_no or ""),
+        "wechat_mch_private_key_path": _s(settings.wechat_mch_private_key_path or ""),
+        "wechat_mch_private_key_pem": _pem(settings.wechat_mch_private_key_pem or ""),
+        "wechat_api_v3_key": _s(settings.wechat_api_v3_key or ""),
+        "wechat_pay_host": _s(settings.wechat_pay_host or "https://api.mch.weixin.qq.com")
+        or "https://api.mch.weixin.qq.com",
+        "wechat_notify_skip_verify": bool(settings.wechat_notify_skip_verify)
         if (settings.app_env or "").strip().lower() not in ("prod", "production")
         else False,
-        alipay_app_id=(settings.alipay_app_id or "").strip(),
-        alipay_gateway=(settings.alipay_gateway or "https://openapi.alipay.com/gateway.do").strip(),
+        "alipay_app_id": _s(settings.alipay_app_id or ""),
+        "alipay_gateway": _s(settings.alipay_gateway or "https://openapi.alipay.com/gateway.do")
+        or "https://openapi.alipay.com/gateway.do",
+        "alipay_merchant_private_key_path": _s(settings.alipay_merchant_private_key_path or ""),
+        "alipay_merchant_private_key_pem": _pem(settings.alipay_merchant_private_key_pem or ""),
+        "alipay_public_key": _pem(settings.alipay_public_key or ""),
+    }
+
+    if bool(getattr(settings, "token_pay_reuse_a1", True)):
+        try:
+            from a1_pay_credentials import merge_a1_into_pay_kwargs
+
+            kwargs = merge_a1_into_pay_kwargs(kwargs)
+        except Exception as e:
+            logger.warning("TOKEN_PAY_REUSE_A1 merge failed: %s", e)
+
+    return SimpleNamespace(
+        **kwargs,
+        # 回调永远用 Token 独立 URL（绝不复用 a1）
+        wechat_notify_url=(settings.token_wechat_notify_url or "").strip(),
         alipay_notify_url=(settings.token_alipay_notify_url or "").strip(),
         alipay_return_url=(settings.token_alipay_return_url or "").strip(),
-        alipay_merchant_private_key_path=(settings.alipay_merchant_private_key_path or "").strip(),
-        alipay_merchant_private_key_pem=_pem(settings.alipay_merchant_private_key_pem or ""),
-        alipay_public_key=_pem(settings.alipay_public_key or ""),
     )
 
 

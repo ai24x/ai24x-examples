@@ -63,7 +63,27 @@ TOKEN_ALIPAY_RETURN_URL=https://www.ai24x.com/console.html
 本机 `:8000` 有微信/支付宝按钮 = 本机商户已配齐。  
 **修复**：把 a1 已跑通的商户项按无前缀变量写入 `C:\ai24x01\api\.env`（**禁止 Write 整文件覆盖**），确认私钥文件路径对 core 进程可读，再 `--update-env` 重启。
 
-### 推荐：本机导出同步包 → 副脑03 一键应用（避免 PEM 被打成 `***`）
+### 推荐：直接复用行情官 a1 商户密钥（2026-07-27）
+
+**可以共用**：商户号、AppId、序列号、API v3、私钥文件/PEM、支付宝密钥。  
+**不能共用**：支付回调 URL（Token 必须用 `TOKEN_WECHAT_NOTIFY_URL` / `TOKEN_ALIPAY_NOTIFY_URL`）。
+
+代码默认 `TOKEN_PAY_REUSE_A1=true`：core 里空的或 `***` 损坏字段，运行时从 a1 `admin_config` 或 `p/a1/api/server/.env` 的 `AI24X_*` 自动补齐。
+
+副脑03 最少只需保证：
+
+```
+TOKEN_PAY_ENABLED=true
+TOKEN_PAY_MOCK_ENABLED=false
+TOKEN_PAY_REUSE_A1=true
+TOKEN_WECHAT_NOTIFY_URL=https://api.ai24x.com/v1/billing/wechat/notify
+TOKEN_ALIPAY_NOTIFY_URL=https://api.ai24x.com/v1/billing/alipay/notify
+TOKEN_ALIPAY_RETURN_URL=https://www.ai24x.com/console.html
+```
+
+并把 core `.env` 里写成 `***` 的 `WECHAT_MCH_PRIVATE_KEY_PEM` / `ALIPAY_MERCHANT_PRIVATE_KEY_PEM` **删掉或清空**（避免挡住回退），然后 `pm2 restart core-api-8002 --update-env`。
+
+### 备选：本机导出同步包 → 副脑03 一键应用（避免 PEM 被打成 `***`）
 
 本机（主脑）已通支付后：
 
