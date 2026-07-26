@@ -384,7 +384,6 @@
               "请用微信扫码支付。付完后若余额未更新，可到「我的订单」点「确认到账」。单号：" +
               (r.out_trade_no || ""),
             qrData: r.code_url,
-            urlText: r.code_url,
           });
         } else if (channel === "alipay" && r && r.pay_url) {
           var opened = false;
@@ -401,11 +400,10 @@
           showPayResult({
             hint:
               (opened
-                ? "已在新窗口打开支付宝。"
-                : "若未自动弹出，请点下方「在新窗口打开支付宝」。") +
+                ? "已在新窗口打开支付宝，请在新窗口完成付款。"
+                : "若未自动弹出，请点下方按钮打开支付宝。") +
               " 付完后回到本页，若余额未更新可到「我的订单」点「确认到账」。单号：" +
               (r.out_trade_no || ""),
-            urlText: r.pay_url,
             openUrl: r.pay_url,
             openLabel: "在新窗口打开支付宝",
           });
