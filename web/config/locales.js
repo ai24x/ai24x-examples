@@ -86,7 +86,7 @@
     "page.product.matrix.more.desc": "更多 AI 应用与工具将持续上线，覆盖更多场景与效率需求。",
     "page.pricing.title": "价格计费",
     "page.pricing.sub": "本站套餐以人民币标价；微信 / 支付宝结算。",
-    "page.pricing.callout": "对标 OpenRouter 等中国模型聚合：专精省事，标价贴近或略高。与「AI 行情官」VIP 无关。",
+    "page.pricing.callout": "对标 OpenRouter 等中国模型聚合：专精省事，标价贴近或略高。",
     "page.pricing.tokenTitle": "Token 聚合（API 额度）",
     "page.pricing.ctaConsole": "去控制台购买 / 管理 Key",
     "page.pricing.settleTitle": "结算说明",
@@ -96,7 +96,7 @@
     "page.pricing.settleIntlBody": "PayPal 等 · 美元结算。同一套 SKU，仅收银台不同。",
     "page.pricing.p1": "入门包 / 开发包 / Pro 月卡 / Scale：同一 SKU。",
     "page.pricing.p2": "中文界面只显示人民币；其它语言显示美元标价。",
-    "page.pricing.p3": "与「AI 行情官」VIP 无关；控制台可购买与查看账单。",
+    "page.pricing.p3": "控制台可购买与查看账单。",
     "page.refer.title": "邀请回馈",
     "page.refer.sub": "回馈规则与提现方式以控制台与协议为准。",
     "page.refer.b1": "邀请好友注册并产生有效使用，按规则获得回馈。",
@@ -292,7 +292,7 @@
     "page.pricing.sub":
       "Prices shown in USD for international languages. PayPal checkout on the intl site.",
     "page.pricing.callout":
-      "China-model focus vs OpenRouter: convenience premium. Not related to AI行情官 VIP.",
+      "China-model focus vs OpenRouter: convenience premium.",
     "page.pricing.tokenTitle": "Token plans (API credits)",
     "page.pricing.ctaConsole": "Buy / manage keys in Console",
     "page.pricing.settleTitle": "Checkout",
@@ -302,7 +302,7 @@
     "page.pricing.settleIntlBody": "PayPal etc. · USD. Same SKUs; different checkout only.",
     "page.pricing.p1": "Starter / Builder / Pro Pass / Scale — one catalog.",
     "page.pricing.p2": "Chinese UI shows CNY only; other languages show USD.",
-    "page.pricing.p3": "Separate from AI行情官 VIP. Buy and invoice in the console.",
+    "page.pricing.p3": "Buy and invoice in the console.",
     "page.refer.title": "Referral rewards",
     "page.refer.sub":
       "Rewards and withdrawals (WeChat Pay / Alipay / PayPal) — see console & agreements.",

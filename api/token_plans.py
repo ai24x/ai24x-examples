@@ -73,11 +73,9 @@ TOKEN_PLANS: dict[str, dict[str, Any]] = {
         "enabled": True,
         "note_zh": (
             f"开通 Token VIP 30 天；有效期内每日额外赠送约 {_VIP_DAILY_WAN} 万 token。"
-            "与「AI 行情官」VIP 无关。"
         ),
         "note_en": (
-            f"Token VIP for 30 days; about {_VIP_DAILY_WAN * 10_000:,} bonus tokens/day. "
-            "Not related to AI行情官 VIP."
+            f"Token VIP for 30 days; about {_VIP_DAILY_WAN * 10_000:,} bonus tokens/day."
         ),
     },
     "token_vip_month_50w": {
@@ -91,11 +89,9 @@ TOKEN_PLANS: dict[str, dict[str, Any]] = {
         "enabled": True,
         "note_zh": (
             f"立即到账 250 万 token，并开通 Pro 月卡 30 天；日赠约 {_VIP_DAILY_WAN} 万 token。"
-            "与「AI 行情官」VIP 无关。"
         ),
         "note_en": (
-            f"2.5M tokens credited + Pro Pass 30 days; ~{_VIP_DAILY_WAN * 10_000:,} bonus/day. "
-            "Not related to AI行情官 VIP."
+            f"2.5M tokens credited + Pro Pass 30 days; ~{_VIP_DAILY_WAN * 10_000:,} bonus/day."
         ),
     },
 }
