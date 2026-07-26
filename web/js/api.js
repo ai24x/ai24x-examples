@@ -290,6 +290,9 @@
   /** 中文 UI 只展示人民币；其它语言展示美元（不混写） */
   function isZhUi() {
     try {
+      if (global.AI24X_I18N && typeof global.AI24X_I18N.isZh === "function") {
+        return global.AI24X_I18N.isZh();
+      }
       return !global.AI24X_I18N || global.AI24X_I18N.getLang() === "zh";
     } catch (e) {
       return true;

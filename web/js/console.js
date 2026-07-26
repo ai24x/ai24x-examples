@@ -13,6 +13,10 @@
   }
 
   function labelEntryType(t) {
+    if (!AI24X_API.isZhUi()) {
+      var en = { consume: "Usage", topup: "Top-up", bonus: "Bonus", referral: "Referral" };
+      return en[t] || t || "";
+    }
     var m = {
       consume: "消耗",
       topup: "充值",
@@ -39,25 +43,36 @@
 
   function labelPlanIdEn(plan) {
     var m = {
+      free: "Free",
+      FREE: "Free",
+      vip: "Token VIP",
+      VIP: "Token VIP",
       token_pack_10k: "Starter",
       token_pack_100k: "Builder",
       token_vip_month: "Pro Pass",
       token_vip_month_50w: "Scale",
     };
-    return m[plan] || labelPlanId(plan);
+    return m[plan] || plan || "--";
   }
 
-  // keep labelPlanId for orders; wrap for UI lang
   function labelPlanForUi(plan) {
     return AI24X_API.isZhUi() ? labelPlanId(plan) : labelPlanIdEn(plan);
   }
 
   function labelOrderStatus(s) {
+    if (!AI24X_API.isZhUi()) {
+      var en = { pending: "Pending", paid: "Paid", failed: "Failed" };
+      return en[s] || s || "";
+    }
     var m = { pending: "待支付", paid: "已支付", failed: "失败" };
     return m[s] || s || "";
   }
 
   function labelChannel(c) {
+    if (!AI24X_API.isZhUi()) {
+      var en = { wechat: "WeChat", alipay: "Alipay", mock: "Mock" };
+      return en[c] || c || "";
+    }
     var m = { wechat: "微信", alipay: "支付宝", mock: "模拟" };
     return m[c] || c || "";
   }
@@ -65,20 +80,25 @@
   function humanizeLedgerNote(note) {
     var n = String(note || "");
     if (!n) return "";
+    var zh = AI24X_API.isZhUi();
     if (/^invite_register_bonus\s+referee=/i.test(n)) {
-      return "邀请注册奖励（邀请人侧）";
+      return zh ? "邀请注册奖励（邀请人侧）" : "Invite bonus (referrer)";
     }
     if (/^invite_register_bonus\s+referrer=/i.test(n)) {
-      return "邀请注册奖励（新用户侧）";
+      return zh ? "邀请注册奖励（新用户侧）" : "Invite bonus (new user)";
     }
     if (/^vip\s*日额度/i.test(n) || /^VIP 日额度/i.test(n)) return n;
-    if (/^chat\/run$/i.test(n)) return "API 调用";
+    if (/^chat\/run$/i.test(n)) return zh ? "API 调用" : "API call";
     if (/^(wechat|alipay|mock):/i.test(n)) {
       var parts = n.split(":");
-      return labelChannel(parts[0]) + "支付到账" + (parts[2] ? " · " + labelPlanId(parts[2]) : "");
+      return (
+        labelChannel(parts[0]) +
+        (zh ? "支付到账" : " payment") +
+        (parts[2] ? " · " + labelPlanForUi(parts[2]) : "")
+      );
     }
     if (/vip_daily_bonus/i.test(n)) {
-      return n.replace(/vip_daily_bonus/gi, "每日赠送额度");
+      return n.replace(/vip_daily_bonus/gi, zh ? "每日赠送额度" : "daily bonus");
     }
     return n;
   }
@@ -276,11 +296,12 @@
     } else {
       img.style.display = "none";
     }
-    if (opts.urlText) {
+    if (opts.urlText && !/^https?:\/\//i.test(String(opts.urlText))) {
       urlBox.style.display = "block";
       urlBox.textContent = opts.urlText;
     } else {
       urlBox.style.display = "none";
+      urlBox.textContent = "";
     }
     if (openLink) {
       if (opts.openUrl) {

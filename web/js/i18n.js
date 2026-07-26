@@ -1,5 +1,10 @@
 /**
  * 国际化 — 语言包为扁平 key：nav.home、page.index.title 等
+ *
+ * 策略（2026-07-26）：
+ * - 中文：zh
+ * - 其它语言选项：统一以英文为内容底稿（避免缺译时回落到中文造成中英混杂）
+ * - 日/德/法等若有独立词条可覆盖英文；暂无完整译稿前等同 English UX
  */
 (function (global) {
   var LANG_KEY = "ai24x_lang";
@@ -12,22 +17,32 @@
     localStorage.setItem(LANG_KEY, code);
   }
 
+  function isZh() {
+    return getLang() === "zh";
+  }
+
   function dictFor(code) {
     var L = global.AI24X_LOCALES || {};
     var zh = L.zh || {};
     var en = L.en || {};
     var cur = L[code] || {};
     if (code === "zh") return Object.assign({}, en, zh);
-    return Object.assign({}, zh, en, cur);
+    // 国际语言：英文打底 + 当前语言覆盖；绝不混入中文
+    return Object.assign({}, en, cur);
   }
 
   function t(key) {
-    var d = dictFor(getLang());
+    var lang = getLang();
+    var d = dictFor(lang);
     if (d[key] != null && d[key] !== "") return d[key];
-    var en = dictFor("en");
+    var en = (global.AI24X_LOCALES && global.AI24X_LOCALES.en) || {};
     if (en[key] != null && en[key] !== "") return en[key];
-    var zh = dictFor("zh");
-    return zh[key] != null ? zh[key] : key;
+    // 仅中文界面才回退到 zh；国际界面缺 key 时显示 key，避免蹦出中文
+    if (lang === "zh") {
+      var zh = (global.AI24X_LOCALES && global.AI24X_LOCALES.zh) || {};
+      if (zh[key] != null && zh[key] !== "") return zh[key];
+    }
+    return key;
   }
 
   function apply(root) {
@@ -35,13 +50,14 @@
     var htmlMap = {
       zh: "zh-CN",
       en: "en",
-      ja: "ja",
-      ko: "ko",
-      de: "de",
-      fr: "fr",
-      es: "es",
+      ja: "en",
+      ko: "en",
+      de: "en",
+      fr: "en",
+      es: "en",
     };
-    document.documentElement.lang = htmlMap[getLang()] || "zh-CN";
+    var lang = getLang();
+    document.documentElement.lang = htmlMap[lang] || (lang === "zh" ? "zh-CN" : "en");
 
     root.querySelectorAll("[data-i18n]").forEach(function (el) {
       var key = el.getAttribute("data-i18n");
@@ -66,9 +82,13 @@
       var key = el.getAttribute("data-i18n-html");
       if (!key) return;
       var val = t(key);
-      // 语言包未加载 / 缓存旧版缺少 key 时，t() 会回退为 key 字符串；保留节点内默认 HTML（如登录页闭站说明）
       if (val === key) return;
       el.innerHTML = val;
+    });
+
+    // 无 data-i18n 的中文默认节点：国际语言下隐藏或由页面脚本重绘
+    root.querySelectorAll("[data-i18n-zh-only]").forEach(function (el) {
+      el.style.display = isZh() ? "" : "none";
     });
 
     var sel = document.getElementById("lang-select");
@@ -80,6 +100,7 @@
   global.AI24X_I18N = {
     getLang: getLang,
     setLang: setLang,
+    isZh: isZh,
     t: t,
     apply: apply,
     LANGS: [
