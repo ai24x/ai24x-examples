@@ -34,6 +34,7 @@ def init_db():
         BillingLedger,
         InviteCode,
         Referral,
+        TokenCreditLot,
         TokenPayOrder,
         TokenWallet,
     )

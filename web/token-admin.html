@@ -191,7 +191,7 @@
       <p class="muted small">仅供内部运维。请填主站内部密钥（与行情官管理密钥不是同一个）。密钥只存本页会话。</p>
       <div class="field" style="margin-top:12px;">
         <span class="lbl">API 根地址</span>
-        <input id="apiBase" type="text" autocomplete="off" placeholder="本机用 http://127.0.0.1:8000" />
+        <input id="apiBase" type="text" autocomplete="off" placeholder="生产 https://api.ai24x.com" />
       </div>
       <div class="field" style="margin-top:10px;">
         <span class="lbl">内部密钥</span>
@@ -200,7 +200,7 @@
       <div class="row" style="margin-top:14px;">
         <button type="button" class="ok" id="btnEnter">进入工作台</button>
       </div>
-      <div id="gateMsg" class="muted small" style="margin-top:10px;">本机联调建议 API 填 http://127.0.0.1:8000</div>
+      <div id="gateMsg" class="muted small" style="margin-top:10px;">生产请填 https://api.ai24x.com（不要用 www）；本机用 http://127.0.0.1:8000</div>
     </div>
   </div>
 
@@ -471,7 +471,7 @@
       return "服务端未配置内部密钥。请检查配置后重启 API 进程。";
     }
     if (status === 404) {
-      return "接口不存在（404）。请把 API 根地址改为 http://127.0.0.1:8000，并确认已重启加载最新代码。";
+      return "接口不存在（404）。生产请用 https://api.ai24x.com ；本机用 http://127.0.0.1:8000。不要填 www。";
     }
     return d || ("HTTP " + status);
   }
@@ -486,14 +486,26 @@
       headers: headers,
       body: opts.body ? JSON.stringify(opts.body) : undefined,
     });
+    var text = "";
+    try { text = await r.text(); } catch (e) { text = ""; }
     var j = null;
-    try { j = await r.json(); } catch (e) {}
+    try { j = text ? JSON.parse(text) : null; } catch (e) { j = null; }
     if (!r.ok) {
       var d = j && (j.detail || j.message || j.error);
       var err = new Error(typeof d === "string" ? d : ("HTTP " + r.status));
       err.status = r.status;
       err.detail = typeof d === "string" ? d : "";
       throw err;
+    }
+    if (j == null || typeof j !== "object") {
+      var hint =
+        /<\s*html/i.test(text || "")
+          ? "返回了网页而不是 JSON。请把 API 根地址改为 https://api.ai24x.com（不要用 www）。"
+          : "接口返回空数据。请确认 API 根地址为 https://api.ai24x.com，且 core-api 已启动。";
+      var err2 = new Error(hint);
+      err2.status = r.status;
+      err2.detail = hint;
+      throw err2;
     }
     return j;
   }
@@ -648,8 +660,8 @@
     await refreshSummary();
     var pending = await api("/v1/admin/token/orders?status=pending&limit=20");
     var paid = await api("/v1/admin/token/orders?status=paid&limit=8");
-    var pRows = pending.rows || [];
-    var paidRows = paid.rows || [];
+    var pRows = (pending && pending.rows) || [];
+    var paidRows = (paid && paid.rows) || [];
     if ($("dashPendingBody")) {
       $("dashPendingBody").innerHTML = pRows.length
         ? pRows.map(function (r) {
@@ -700,8 +712,8 @@
 
   async function loadOrders() {
     var data = await api("/v1/admin/token/orders?" + orderFilterQs(50).toString());
-    var rows = data.rows || [];
-    $("ordMeta").textContent = "共 " + (data.total || rows.length) + " 条（最多显示 50）";
+    var rows = (data && data.rows) || [];
+    $("ordMeta").textContent = "共 " + ((data && data.total) || rows.length) + " 条（最多显示 50）";
     $("ordBody").innerHTML = rows.map(function (r) {
       var fulfill = r.status === "pending"
         ? '<button type="button" data-otn="' + String(r.out_trade_no).replace(/"/g, "") + '" class="btnFulfill">查单履约</button>'
@@ -777,6 +789,11 @@
     gm.textContent = "";
     gm.style.color = "";
     state.base = normBase($("apiBase").value);
+    // 误填 www 时自动改到 api 子域
+    if (/^https?:\/\/(www\.)?ai24x\.com\/?$/i.test(state.base)) {
+      state.base = "https://api.ai24x.com";
+      $("apiBase").value = state.base;
+    }
     state.key = scrubKey($("ikey").value);
     $("ikey").value = state.key;
     if (!state.base || !state.key) {
@@ -935,13 +952,25 @@
 
   (function init() {
     initMainNav();
-    var def = (location.origin && location.origin.indexOf("http") === 0)
-      ? location.origin
-      : "http://127.0.0.1:8000";
+    var h = (location.hostname || "").toLowerCase();
+    var def;
+    if (h === "localhost" || h === "127.0.0.1" || h === "::1") {
+      def = (location.origin && location.origin.indexOf("http") === 0)
+        ? location.origin
+        : "http://127.0.0.1:8000";
+    } else if (h === "ai24x.com" || h.endsWith(".ai24x.com")) {
+      def = "https://api.ai24x.com";
+    } else {
+      def = "https://api.ai24x.com";
+    }
     $("apiBase").value = def;
     var s = loadSession();
     if (s && s.base && s.key) {
       state.base = normBase(s.base);
+      // 旧会话若误存了 www，自动纠正到 api 子域
+      if (/^https?:\/\/(www\.)?ai24x\.com\/?$/i.test(state.base)) {
+        state.base = "https://api.ai24x.com";
+      }
       state.key = String(s.key);
       $("apiBase").value = state.base;
       enterApp().catch(function (e) {

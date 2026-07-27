@@ -661,7 +661,12 @@ async def create_paypal_order(db: Session, *, auth_user_id: int, plan: str) -> d
         logger.exception("paypal create failed")
         row.status = "failed"
         db.commit()
-        raise HTTPException(status_code=502, detail=f"PayPal 下单失败: {e}") from e
+        err = str(e)
+        if "invalid_client" in err or "paypal_oauth_error" in err:
+            detail = "PayPal 商户凭证无效，请稍后重试或联系客服。"
+        else:
+            detail = "PayPal 下单暂时失败，请稍后重试。"
+        raise HTTPException(status_code=502, detail=detail) from e
 
     pay_url = approve_url_from_order(pp or {})
     pp_id = str((pp or {}).get("id") or "")

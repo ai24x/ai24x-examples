@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from models import (
@@ -18,6 +19,7 @@ from models import (
     BillingPlan,
     InviteCode,
     Referral,
+    TokenCreditLot,
     TokenWallet,
     User,
     UserType,
@@ -30,10 +32,23 @@ REFERRAL_L1_BPS = 1000  # 10%（被邀请人充值时）
 REFERRAL_L2_BPS = 200  # 2%
 # 邀请注册即时奖励：双方各得（与总纲「邀请双方各得」对齐）
 REFERRAL_REGISTER_BONUS_TOKENS = 5_000
+# 预充值默认 12 个月；大包可在套餐里写 730
+DEFAULT_PACK_VALIDITY_DAYS = 365
+# 赠送窗口：FREE 月赠约 40 天；VIP 日赠 2 天（跨日缓冲）
+FREE_BONUS_VALIDITY_DAYS = 40
+VIP_BONUS_VALIDITY_DAYS = 2
+REFERRAL_VALIDITY_DAYS = 365
+LEGACY_VALIDITY_DAYS = 365
 
 
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+def _as_naive(dt: Optional[datetime]) -> Optional[datetime]:
+    if dt is None:
+        return None
+    return dt.replace(tzinfo=None) if getattr(dt, "tzinfo", None) else dt
 
 
 def _period_month(now: Optional[datetime] = None) -> str:
@@ -55,7 +70,7 @@ def _gen_invite_code(n: int = 8) -> str:
     return "".join(secrets.choice(alphabet) for _ in range(n))
 
 
-# —— Wallet ——
+# —— Wallet / credit lots ——
 
 
 def get_or_create_wallet(db: Session, auth_user_id: int) -> TokenWallet:
@@ -74,6 +89,163 @@ def get_or_create_wallet(db: Session, auth_user_id: int) -> TokenWallet:
     return w
 
 
+def _active_lots_q(db: Session, auth_user_id: int, now: Optional[datetime] = None):
+    now = now or _utcnow()
+    return (
+        db.query(TokenCreditLot)
+        .filter(
+            TokenCreditLot.auth_user_id == int(auth_user_id),
+            TokenCreditLot.amount_remaining > 0,
+            TokenCreditLot.expires_at > now,
+        )
+        .order_by(TokenCreditLot.expires_at.asc(), TokenCreditLot.id.asc())
+    )
+
+
+def _sum_active_lots(db: Session, auth_user_id: int, now: Optional[datetime] = None) -> int:
+    now = now or _utcnow()
+    v = (
+        db.query(func.coalesce(func.sum(TokenCreditLot.amount_remaining), 0))
+        .filter(
+            TokenCreditLot.auth_user_id == int(auth_user_id),
+            TokenCreditLot.amount_remaining > 0,
+            TokenCreditLot.expires_at > now,
+        )
+        .scalar()
+    )
+    return int(v or 0)
+
+
+def _expire_overdue_lots(db: Session, auth_user_id: int, *, commit: bool = False) -> int:
+    """核销已到期批次；返回核销 token 数。"""
+    now = _utcnow()
+    rows = (
+        db.query(TokenCreditLot)
+        .filter(
+            TokenCreditLot.auth_user_id == int(auth_user_id),
+            TokenCreditLot.amount_remaining > 0,
+            TokenCreditLot.expires_at <= now,
+        )
+        .all()
+    )
+    expired = 0
+    for lot in rows:
+        amt = int(lot.amount_remaining or 0)
+        if amt <= 0:
+            continue
+        lot.amount_remaining = 0
+        expired += amt
+        db.add(
+            BillingLedger(
+                auth_user_id=int(auth_user_id),
+                entry_type="expire",
+                amount=-amt,
+                tokens=amt,
+                note=f"lot_expire id={lot.id}",
+            )
+        )
+    if expired:
+        w = get_or_create_wallet(db, auth_user_id)
+        w.balance_tokens = max(0, int(w.balance_tokens or 0) - expired)
+        w.updated_at = now
+    if commit:
+        db.commit()
+    return expired
+
+
+def _grandfather_legacy_balance(db: Session, wallet: TokenWallet) -> None:
+    """上线前已有余额且无批次时，整包迁入 12 个月 legacy 批次。"""
+    now = _utcnow()
+    bal = int(wallet.balance_tokens or 0)
+    if bal <= 0:
+        return
+    active = _sum_active_lots(db, int(wallet.auth_user_id), now)
+    gap = bal - active
+    if gap <= 0:
+        return
+    db.add(
+        TokenCreditLot(
+            auth_user_id=int(wallet.auth_user_id),
+            source="legacy",
+            plan=None,
+            amount_initial=gap,
+            amount_remaining=gap,
+            expires_at=now + timedelta(days=LEGACY_VALIDITY_DAYS),
+            ledger_id=None,
+        )
+    )
+
+
+def sync_credit_lots(db: Session, wallet: TokenWallet, *, commit: bool = True) -> TokenWallet:
+    """过期核销 + 存量迁批次；钱包余额对齐有效批次合计。"""
+    uid = int(wallet.auth_user_id)
+    _expire_overdue_lots(db, uid, commit=False)
+    wallet = get_or_create_wallet(db, uid)
+    _grandfather_legacy_balance(db, wallet)
+    db.flush()
+    now = _utcnow()
+    active = _sum_active_lots(db, uid, now)
+    wallet.balance_tokens = active
+    wallet.updated_at = now
+    if commit:
+        db.commit()
+        db.refresh(wallet)
+    return wallet
+
+
+def _credit_lot(
+    db: Session,
+    *,
+    auth_user_id: int,
+    amount: int,
+    entry_type: str,
+    source: str,
+    validity_days: int,
+    note: Optional[str] = None,
+    plan: Optional[str] = None,
+    commit: bool = True,
+) -> BillingLedger:
+    amount = int(amount)
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="入账数量必须为正整数")
+    days = max(1, int(validity_days or DEFAULT_PACK_VALIDITY_DAYS))
+    now = _utcnow()
+    w = get_or_create_wallet(db, auth_user_id)
+    sync_credit_lots(db, w, commit=False)
+    w = get_or_create_wallet(db, auth_user_id)
+    ledger = BillingLedger(
+        auth_user_id=int(auth_user_id),
+        entry_type=str(entry_type)[:16],
+        amount=amount,
+        tokens=amount,
+        note=(note or source)[:255],
+    )
+    db.add(ledger)
+    db.flush()
+    db.add(
+        TokenCreditLot(
+            auth_user_id=int(auth_user_id),
+            source=str(source)[:16],
+            plan=(plan or None),
+            amount_initial=amount,
+            amount_remaining=amount,
+            expires_at=now + timedelta(days=days),
+            ledger_id=int(ledger.id),
+        )
+    )
+    w.balance_tokens = int(w.balance_tokens or 0) + amount
+    w.updated_at = now
+    if commit:
+        db.commit()
+        db.refresh(ledger)
+    return ledger
+
+
+def _nearest_lot_expiry(db: Session, auth_user_id: int) -> Optional[datetime]:
+    lot = _active_lots_q(db, auth_user_id).first()
+    return _as_naive(lot.expires_at) if lot else None
+
+
 def ensure_vip_status(db: Session, wallet: TokenWallet) -> TokenWallet:
     """VIP 过期则降级为 FREE（不删余额）。"""
     if wallet.plan != BillingPlan.VIP:
@@ -82,8 +254,8 @@ def ensure_vip_status(db: Session, wallet: TokenWallet) -> TokenWallet:
     if exp is None:
         return wallet
     now = _utcnow()
-    exp_naive = exp.replace(tzinfo=None) if getattr(exp, "tzinfo", None) else exp
-    if exp_naive > now:
+    exp_naive = _as_naive(exp)
+    if exp_naive and exp_naive > now:
         return wallet
     wallet.plan = BillingPlan.FREE
     wallet.updated_at = now
@@ -99,9 +271,8 @@ def extend_vip(db: Session, auth_user_id: int, *, days: int = 30) -> TokenWallet
     now = _utcnow()
     base = now
     if w.vip_expires_at is not None:
-        exp = w.vip_expires_at
-        exp_naive = exp.replace(tzinfo=None) if getattr(exp, "tzinfo", None) else exp
-        if exp_naive > now:
+        exp_naive = _as_naive(w.vip_expires_at)
+        if exp_naive and exp_naive > now:
             base = exp_naive
     w.plan = BillingPlan.VIP
     w.vip_expires_at = base + timedelta(days=days)
@@ -112,33 +283,37 @@ def extend_vip(db: Session, auth_user_id: int, *, days: int = 30) -> TokenWallet
 
 
 def ensure_period_bonus(db: Session, wallet: TokenWallet) -> TokenWallet:
-    """FREE 按月赠送；VIP 按日补充额度（MVP：直接加余额并记账）。"""
+    """FREE 按月赠送；VIP 按日补充额度（写入短有效期批次）。"""
     wallet = ensure_vip_status(db, wallet)
+    wallet = sync_credit_lots(db, wallet, commit=True)
     now = _utcnow()
     if wallet.plan == BillingPlan.VIP:
         period = _period_day(now)
         amount = VIP_DAILY_BONUS_TOKENS
         note = "VIP 日额度"
+        validity = VIP_BONUS_VALIDITY_DAYS
     else:
         period = _period_month(now)
         amount = FREE_MONTHLY_BONUS_TOKENS
         note = "FREE 月赠额度"
+        validity = FREE_BONUS_VALIDITY_DAYS
 
     if wallet.bonus_period == period:
         return wallet
 
-    wallet.balance_tokens = int(wallet.balance_tokens or 0) + int(amount)
+    _credit_lot(
+        db,
+        auth_user_id=int(wallet.auth_user_id),
+        amount=int(amount),
+        entry_type="bonus",
+        source="bonus",
+        validity_days=validity,
+        note=f"{note} {period}",
+        commit=False,
+    )
+    wallet = get_or_create_wallet(db, int(wallet.auth_user_id))
     wallet.bonus_period = period
     wallet.updated_at = now
-    db.add(
-        BillingLedger(
-            auth_user_id=int(wallet.auth_user_id),
-            entry_type="bonus",
-            amount=int(amount),
-            tokens=int(amount),
-            note=f"{note} {period}",
-        )
-    )
     db.commit()
     db.refresh(wallet)
     return wallet
@@ -147,6 +322,7 @@ def ensure_period_bonus(db: Session, wallet: TokenWallet) -> TokenWallet:
 def get_balance_snapshot(db: Session, auth_user_id: int) -> dict:
     w = ensure_period_bonus(db, get_or_create_wallet(db, auth_user_id))
     exp = w.vip_expires_at
+    nearest = _nearest_lot_expiry(db, int(auth_user_id))
     return {
         "auth_user_id": int(auth_user_id),
         "plan": w.plan.value if hasattr(w.plan, "value") else str(w.plan),
@@ -155,9 +331,10 @@ def get_balance_snapshot(db: Session, auth_user_id: int) -> dict:
         "free_monthly_bonus": FREE_MONTHLY_BONUS_TOKENS,
         "vip_daily_bonus": VIP_DAILY_BONUS_TOKENS,
         "vip_expires_at": exp.isoformat() if exp else None,
+        "credits_expire_at": nearest.isoformat() if nearest else None,
         "is_vip_active": bool(
             w.plan == BillingPlan.VIP
-            and (exp is None or (exp.replace(tzinfo=None) if getattr(exp, "tzinfo", None) else exp) > _utcnow())
+            and (exp is None or (_as_naive(exp) or _utcnow()) > _utcnow())
         ),
     }
 
@@ -199,8 +376,19 @@ def consume_tokens(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
             detail="余额不足，请充值",
         )
-    w.balance_tokens = bal - tokens
-    w.updated_at = _utcnow()
+    now = _utcnow()
+    left = tokens
+    for lot in _active_lots_q(db, int(auth_user_id), now).all():
+        if left <= 0:
+            break
+        take = min(int(lot.amount_remaining or 0), left)
+        if take <= 0:
+            continue
+        lot.amount_remaining = int(lot.amount_remaining or 0) - take
+        left -= take
+    db.flush()
+    w.balance_tokens = _sum_active_lots(db, int(auth_user_id), now)
+    w.updated_at = now
     db.add(
         BillingLedger(
             auth_user_id=int(auth_user_id),
@@ -225,6 +413,8 @@ def topup_tokens(
     note: Optional[str] = None,
     set_vip: bool = False,
     vip_days: int = 30,
+    validity_days: Optional[int] = None,
+    plan: Optional[str] = None,
 ) -> dict:
     amount = int(amount)
     if amount <= 0:
@@ -232,26 +422,27 @@ def topup_tokens(
     u = db.query(AuthUser).filter(AuthUser.id == int(auth_user_id)).first()
     if not u:
         raise HTTPException(status_code=404, detail="用户不存在")
-    w = get_or_create_wallet(db, auth_user_id)
     if set_vip:
         extend_vip(db, auth_user_id, days=int(vip_days) if vip_days else 30)
-        w = get_or_create_wallet(db, auth_user_id)
-    w.balance_tokens = int(w.balance_tokens or 0) + amount
-    w.updated_at = _utcnow()
-    ledger = BillingLedger(
+    days = int(validity_days) if validity_days is not None else DEFAULT_PACK_VALIDITY_DAYS
+    if days <= 0:
+        days = int(vip_days) if vip_days else DEFAULT_PACK_VALIDITY_DAYS
+    ledger = _credit_lot(
+        db,
         auth_user_id=int(auth_user_id),
-        entry_type="topup",
         amount=amount,
-        tokens=amount,
+        entry_type="topup",
+        source="topup",
+        validity_days=days,
         note=(note or "topup")[:255],
+        plan=plan,
+        commit=True,
     )
-    db.add(ledger)
-    db.commit()
-    db.refresh(w)
-    db.refresh(ledger)
     # 首次充值触发推荐返利
     try:
-        settle_referral_on_topup(db, referee_id=int(auth_user_id), topup_amount=amount, topup_ledger_id=int(ledger.id))
+        settle_referral_on_topup(
+            db, referee_id=int(auth_user_id), topup_amount=amount, topup_ledger_id=int(ledger.id)
+        )
     except Exception:
         pass
     return get_balance_snapshot(db, auth_user_id)
@@ -507,17 +698,15 @@ def _grant_register_invite_bonus(
         (int(referrer_id), f"invite_register_bonus referee={int(referee_id)}"),
         (int(referee_id), f"invite_register_bonus referrer={int(referrer_id)}"),
     ):
-        w = get_or_create_wallet(db, uid)
-        w.balance_tokens = int(w.balance_tokens or 0) + amount
-        w.updated_at = _utcnow()
-        db.add(
-            BillingLedger(
-                auth_user_id=uid,
-                entry_type="referral",
-                amount=amount,
-                tokens=amount,
-                note=note,
-            )
+        _credit_lot(
+            db,
+            auth_user_id=uid,
+            amount=amount,
+            entry_type="referral",
+            source="referral",
+            validity_days=REFERRAL_VALIDITY_DAYS,
+            note=note,
+            commit=False,
         )
     db.commit()
 
@@ -606,17 +795,15 @@ def settle_referral_on_topup(
         r.status = "paid"
         r.topup_ledger_id = int(topup_ledger_id)
         if reward > 0:
-            w = get_or_create_wallet(db, int(r.referrer_id))
-            w.balance_tokens = int(w.balance_tokens or 0) + reward
-            w.updated_at = _utcnow()
-            db.add(
-                BillingLedger(
-                    auth_user_id=int(r.referrer_id),
-                    entry_type="referral",
-                    amount=reward,
-                    tokens=reward,
-                    note=f"L{r.level} 返利 from user {referee_id}",
-                )
+            _credit_lot(
+                db,
+                auth_user_id=int(r.referrer_id),
+                amount=reward,
+                entry_type="referral",
+                source="referral",
+                validity_days=REFERRAL_VALIDITY_DAYS,
+                note=f"L{r.level} 返利 from user {referee_id}",
+                commit=False,
             )
     db.commit()
 

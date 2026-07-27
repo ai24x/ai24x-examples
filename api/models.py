@@ -150,6 +150,27 @@ class TokenWallet(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
+class TokenCreditLot(Base):
+    """
+    预充值/赠送额度批次：按到期日 FIFO 扣费。
+    remaining=0 表示已用尽或已过期核销。
+    """
+
+    __tablename__ = "token_credit_lots"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    auth_user_id = Column(
+        Integer, ForeignKey("auth_users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    source = Column(String(16), nullable=False, default="topup")  # topup/bonus/referral/legacy
+    plan = Column(String(64), nullable=True)
+    amount_initial = Column(Integer, nullable=False)
+    amount_remaining = Column(Integer, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    ledger_id = Column(Integer, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class BillingLedger(Base):
     """计费流水：正数入账，负数消耗。"""
 
@@ -159,7 +180,7 @@ class BillingLedger(Base):
     auth_user_id = Column(
         Integer, ForeignKey("auth_users.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    entry_type = Column(String(16), nullable=False)  # consume / topup / bonus / referral
+    entry_type = Column(String(16), nullable=False)  # consume / topup / bonus / referral / expire
     amount = Column(Integer, nullable=False)
     model = Column(String(64), nullable=True)
     tokens = Column(Integer, nullable=True)

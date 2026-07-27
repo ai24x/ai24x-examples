@@ -11,9 +11,20 @@
   var PRODUCTION = "https://api.ai24x.com";
 
   function getBase() {
+    var h = (location.hostname || "").toLowerCase();
+    var onProdHost = h === "ai24x.com" || h.endsWith(".ai24x.com");
     var saved = localStorage.getItem(STORAGE_BASE);
-    if (saved) return saved.replace(/\/$/, "");
-    var h = location.hostname;
+    if (saved) {
+      saved = saved.replace(/\/$/, "");
+      // 公网页若误存了本机 API，会导致 Failed to fetch / 无法到账
+      if (onProdHost && /^(https?:\/\/)?(localhost|127\.0\.0\.1|::1)(:|\/|$)/i.test(saved)) {
+        try {
+          localStorage.removeItem(STORAGE_BASE);
+        } catch (e) {}
+        return PRODUCTION;
+      }
+      return saved;
+    }
     if (h === "localhost" || h === "127.0.0.1" || h === "::1")
       return (location.origin || "").replace(/\/$/, "") || PRODUCTION;
     return PRODUCTION;

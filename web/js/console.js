@@ -1014,25 +1014,42 @@
           _fulfillPollTimer = null;
         }
         showMsg($("consoleMsg"), tr("正在确认 PayPal 支付…", "Confirming PayPal…"), true);
-        AI24X_API.billingQueryFulfill(otn, "paypal")
+        function tryPaypalCapture(attempt) {
+          return AI24X_API.billingQueryFulfill(otn, "paypal").catch(function (e) {
+            var msg = (e && e.message) || "";
+            if (/ALREADY_CAPTURED|已到账|duplicate/i.test(msg)) {
+              return { ok: true, duplicate: true };
+            }
+            // 回跳后偶发连不上 API：自动再试 2 次
+            if (attempt < 3 && (e.status === 0 || /无法连接|Cannot reach|Failed to fetch/i.test(msg))) {
+              return new Promise(function (resolve, reject) {
+                setTimeout(function () {
+                  tryPaypalCapture(attempt + 1).then(resolve, reject);
+                }, 1500 * attempt);
+              });
+            }
+            throw e;
+          });
+        }
+        tryPaypalCapture(1)
           .then(function (r) {
             showMsg(
               $("consoleMsg"),
               r && r.ok
                 ? tr("PayPal 已到账", "PayPal credited")
-                : tr("PayPal 尚未完成，可点确认到账", "PayPal pending — tap Confirm"),
+                : tr("PayPal 尚未完成，可在「我的订单」点确认到账", "PayPal pending — tap Confirm under My orders"),
               !!(r && r.ok)
             );
             return refreshAll();
           })
           .catch(function (e) {
             var msg = (e && e.message) || "";
-            // 并发确认时偶发；再查一次余额/订单即可
-            if (/ALREADY_CAPTURED|已到账|duplicate/i.test(msg)) {
-              showMsg($("consoleMsg"), tr("PayPal 已到账", "PayPal credited"), true);
-              return refreshAll();
-            }
-            showMsg($("consoleMsg"), msg || tr("PayPal 确认失败", "PayPal confirm failed"), false);
+            showMsg(
+              $("consoleMsg"),
+              (msg || tr("PayPal 确认失败", "PayPal confirm failed")) +
+                tr(" — 请在「我的订单」点「确认到账」", " — tap Confirm under My orders"),
+              false
+            );
           });
       }
     } catch (e) {}
