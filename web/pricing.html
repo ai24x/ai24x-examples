@@ -4,8 +4,34 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>价格计费 · AI24X</title>
-  <link rel="stylesheet" href="css/base.css?v=20260726q" />
+  <link rel="stylesheet" href="css/base.css?v=20260727pp" />
   <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260725a" data-base="css/themes/" />
+  <style>
+    /* 套餐卡等高，按钮贴底对齐同一水平线 */
+    #tokenPlansGrid {
+      align-items: stretch;
+    }
+    #tokenPlansGrid > .card {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 100%;
+    }
+    .pricing-plan-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: stretch;
+      margin-top: auto;
+      padding-top: 14px;
+    }
+    .pricing-plan-actions .btn {
+      box-sizing: border-box;
+      min-height: 40px;
+      flex: 1 1 calc(50% - 4px);
+      white-space: nowrap;
+    }
+  </style>
 </head>
 <body data-page="pricing" class="theme-blue">
   <header class="site-header" id="site-header"></header>
@@ -13,7 +39,7 @@
     <section class="hero hero-surface section-tight">
       <div class="container">
         <h1 data-i18n="page.pricing.title">价格计费</h1>
-        <p class="lead" data-i18n="page.pricing.sub">选择适合你的 Token 套餐，微信或支付宝支付。</p>
+        <p class="lead" data-i18n="page.pricing.sub">选择 Token 套餐。国内：微信/支付宝（CNY）；国际：控制台 PayPal（USD）。</p>
         <p class="callout mt-2" data-i18n="page.pricing.callout">
           高性价比中国模型 API，按需选购额度与 Pro 权益。
         </p>
@@ -28,6 +54,7 @@
         <div class="grid-3" id="tokenPlansGrid"></div>
         <div class="hero-cta" style="margin-top:14px;">
           <a class="btn btn-primary" href="console.html" data-i18n="page.pricing.ctaConsole">去控制台购买 / 管理 Key</a>
+          <a class="btn" href="paypal.html" data-i18n="page.pricing.settleIntlLink">查看 PayPal 收款说明</a>
           <a class="btn" href="login.html?next=console.html" data-i18n="nav.login">登录</a>
         </div>
       </div>
@@ -39,11 +66,16 @@
         <div class="grid-2">
           <div class="card">
             <h3 style="margin:0 0 8px;" data-i18n="page.pricing.settleCnTitle">微信支付 / 支付宝</h3>
-            <p class="sub" style="margin:0;" data-i18n="page.pricing.settleCnBody">人民币结算，下单后在控制台完成支付。</p>
+            <p class="sub" style="margin:0;" data-i18n="page.pricing.settleCnBody">人民币结算，登录控制台后选择套餐完成支付。</p>
           </div>
-          <div class="card">
-            <h3 style="margin:0 0 8px;" data-i18n="page.pricing.settleIntlTitle">PayPal 等</h3>
-            <p class="sub" style="margin:0;" data-i18n="page.pricing.settleIntlBody">国际用户可使用美元支付（国际站）。</p>
+          <div class="card" id="settlePaypalCard" style="border-color:color-mix(in srgb, #0070ba 35%, var(--border, #d8e4ef));">
+            <h3 style="margin:0 0 8px;" data-i18n="page.pricing.settleIntlTitle">PayPal（USD）</h3>
+            <p class="sub" style="margin:0;" data-i18n="page.pricing.settleIntlBody">国际用户：打开价格页选套餐 → 登录控制台 → 点击 PayPal → 在 PayPal 完成付款，Token 自动到账。</p>
+            <p class="sub" style="margin:8px 0 0;" data-i18n="page.pricing.settleIntlSteps">流程：定价 → 登录 → 控制台点 PayPal → PayPal 收银台。</p>
+            <p class="sub" style="margin:12px 0 0;">
+              <a class="btn btn-primary" href="login.html?next=console.html%3Fpay%3Dpaypal" data-i18n="page.pricing.ctaPaypal">PayPal 购买</a>
+              <a class="btn" href="paypal.html" data-i18n="page.pricing.settleIntlLink">查看 PayPal 收款说明</a>
+            </p>
           </div>
         </div>
       </div>
@@ -83,7 +115,7 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260727b"></script>
+  <script src="config/locales.js?v=20260727pp"></script>
   <script src="js/api.js?v=20260727b"></script>
   <script src="js/i18n.js?v=20260726x"></script>
   <script src="js/shell.js?v=20260726x"></script>
@@ -111,19 +143,40 @@
           .replace(/"/g, "&quot;");
       }
 
+      function consoleHref(plan, payChannel) {
+        var q = [];
+        if (plan) q.push("plan=" + encodeURIComponent(plan));
+        if (payChannel) q.push("pay=" + encodeURIComponent(payChannel));
+        var path = "console.html" + (q.length ? "?" + q.join("&") : "");
+        var loggedIn = false;
+        try {
+          loggedIn = !!(window.AI24X_API && AI24X_API.getAuthToken && AI24X_API.getAuthToken());
+        } catch (e) {}
+        if (loggedIn) return path;
+        return "login.html?next=" + encodeURIComponent(path);
+      }
+
       function renderPlans() {
         if (!payload || !grid) return;
         var plans = payload.plans || [];
         var pay = payload.pay || {};
         var zh = AI24X_API.isZhUi();
+        var paypalReady = !!pay.paypal_ready;
         st.textContent = zh
           ? pay.enabled
-            ? t("page.pricing.payReady", "可在线支付：请到控制台选择微信或支付宝。")
+            ? t(
+                "page.pricing.payReady",
+                paypalReady
+                  ? "可在线支付：登录控制台，可用微信、支付宝或 PayPal。"
+                  : "可在线支付：登录控制台完成支付。"
+              )
             : pay.mock_allowed
               ? t("page.pricing.payMock", "当前为测试环境，可在控制台完成体验充值。")
               : t("page.pricing.payClosed", "套餐可浏览；支付暂未开放，请稍后再试。")
           : pay.enabled
-            ? "Online payment is available in the console."
+            ? paypalReady
+              ? "Online payment is available in the console (incl. PayPal)."
+              : "Online payment is available in the console."
             : pay.mock_allowed
               ? "Test environment: try a purchase in the console."
               : "Plans are listed; payment is not open yet.";
@@ -142,7 +195,23 @@
             );
           }
           var note = AI24X_API.planNote(p);
-          var cta = zh ? t("page.pricing.ctaShort", "去控制台") : "Open console";
+          var ctaConsole = zh ? t("page.pricing.ctaShort", "去控制台") : "Open console";
+          var ctaPaypal = zh ? t("page.pricing.ctaPaypal", "PayPal 购买") : "Pay with PayPal";
+          var hrefConsole = consoleHref(p.plan, "");
+          var hrefPaypal = consoleHref(p.plan, "paypal");
+          var actions =
+            '<div class="pricing-plan-actions">' +
+            '<a class="btn" href="' +
+            esc(hrefConsole) +
+            '">' +
+            esc(ctaConsole) +
+            "</a>" +
+            '<a class="btn btn-primary" href="' +
+            esc(hrefPaypal) +
+            '">' +
+            esc(ctaPaypal) +
+            "</a>" +
+            "</div>";
           card.innerHTML =
             "<h3 style=\"margin:0 0 8px;\">" +
             esc(AI24X_API.planTitle(p)) +
@@ -153,9 +222,7 @@
             (bits.length ? " · " + esc(bits.join(" · ")) : "") +
             "</p>" +
             (note ? '<p class="sub" style="margin:8px 0 0;">' + esc(note) + "</p>" : "") +
-            '<p class="sub" style="margin:10px 0 0;"><a class="btn btn-primary" href="console.html">' +
-            esc(cta) +
-            "</a></p>";
+            actions;
           grid.appendChild(card);
         });
       }

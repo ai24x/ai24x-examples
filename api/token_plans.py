@@ -49,9 +49,10 @@ TOKEN_PLANS: dict[str, dict[str, Any]] = {
         "price_fen": _price("TOKEN_PRICE_TOKEN_PACK_10K_FEN", 100),
         "credit_tokens": 10_000,
         "set_vip": False,
+        "validity_days": 365,
         "enabled": True,
-        "note_zh": "联调体验价：¥1 到账 1 万 token；支持微信、支付宝。",
-        "note_en": "Debug promo: ~$0.14 for 10k credits. PayPal on the international site.",
+        "note_zh": "联调体验价：¥1 到账 1 万 token；额度自到账起 12 个月有效。支持微信、支付宝。",
+        "note_en": "Debug promo: ~$0.14 for 10k credits (valid 12 months from credit). PayPal on the international site.",
     },
     "token_pack_100k": {
         "title_zh": "开发包",
@@ -60,9 +61,10 @@ TOKEN_PLANS: dict[str, dict[str, Any]] = {
         "price_fen": _price("TOKEN_PRICE_TOKEN_PACK_100K_FEN", _fen_from_usd(20.0)),
         "credit_tokens": 500_000,
         "set_vip": False,
+        "validity_days": 365,
         "enabled": True,
-        "note_zh": "适合日常调用，单价更优。",
-        "note_en": "Better unit rate for regular API use.",
+        "note_zh": "适合日常调用，单价更优；额度自到账起 12 个月有效。",
+        "note_en": "Better unit rate for regular API use. Credits valid 12 months from top-up.",
     },
     "token_vip_month": {
         "title_zh": "Pro 月卡",
@@ -72,12 +74,13 @@ TOKEN_PLANS: dict[str, dict[str, Any]] = {
         "credit_tokens": 0,
         "set_vip": True,
         "vip_days": 30,
+        "validity_days": 0,
         "enabled": True,
         "note_zh": (
-            f"开通 Token VIP 30 天；有效期内每日额外赠送约 {_VIP_DAILY_WAN} 万 token。"
+            f"开通 Token VIP 30 天；有效期内每日额外赠送约 {_VIP_DAILY_WAN} 万 token（日赠额度另计有效期）。"
         ),
         "note_en": (
-            f"Token VIP for 30 days; about {_VIP_DAILY_WAN * 10_000:,} bonus tokens/day."
+            f"Token VIP for 30 days; about {_VIP_DAILY_WAN * 10_000:,} bonus tokens/day (bonus lots expire separately)."
         ),
     },
     "token_vip_month_50w": {
@@ -88,12 +91,13 @@ TOKEN_PLANS: dict[str, dict[str, Any]] = {
         "credit_tokens": 2_500_000,
         "set_vip": True,
         "vip_days": 30,
+        "validity_days": 730,
         "enabled": True,
         "note_zh": (
-            f"立即到账 250 万 token，并开通 Pro 月卡 30 天；日赠约 {_VIP_DAILY_WAN} 万 token。"
+            f"立即到账 250 万 token（24 个月有效），并开通 Pro 月卡 30 天；日赠约 {_VIP_DAILY_WAN} 万 token。"
         ),
         "note_en": (
-            f"2.5M tokens credited + Pro Pass 30 days; ~{_VIP_DAILY_WAN * 10_000:,} bonus/day."
+            f"2.5M tokens credited (valid 24 months) + Pro Pass 30 days; ~{_VIP_DAILY_WAN * 10_000:,} bonus/day."
         ),
     },
 }
@@ -124,6 +128,7 @@ def list_public_plans() -> list[dict[str, Any]]:
                 "credit_tokens": int(p.get("credit_tokens") or 0),
                 "set_vip": bool(p.get("set_vip")),
                 "vip_days": int(p.get("vip_days") or 0) or None,
+                "validity_days": int(p.get("validity_days") or 0) or None,
                 "note": note_zh,
                 "note_zh": note_zh,
                 "note_en": note_en,

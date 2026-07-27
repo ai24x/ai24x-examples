@@ -367,6 +367,7 @@ class BillingBalanceOut(BaseModel):
     free_monthly_bonus: int
     vip_daily_bonus: int
     vip_expires_at: Optional[str] = None
+    credits_expire_at: Optional[str] = None
     is_vip_active: bool = False
 
 
@@ -377,6 +378,9 @@ class BillingTopupBody(BaseModel):
     amount: int = Field(..., gt=0, description="token amount")
     note: Optional[str] = Field(default=None, max_length=255)
     set_vip: bool = Field(default=False, description="also upgrade to VIP")
+    validity_days: Optional[int] = Field(
+        default=None, ge=1, le=3650, description="credit lot validity days; default 365"
+    )
 
 
 class TokenPayCreateBody(BaseModel):

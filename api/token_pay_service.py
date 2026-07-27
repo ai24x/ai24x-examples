@@ -223,6 +223,8 @@ def _fulfill_order_row(
         note=note,
         set_vip=set_vip,
         vip_days=int(plan.get("vip_days") or 30),
+        validity_days=int(plan.get("validity_days") or 0) or None,
+        plan=str(row.plan),
     )
 
     row.status = "paid"
@@ -312,6 +314,7 @@ def admin_list_orders(
     *,
     auth_user_id: Optional[int] = None,
     status: Optional[str] = None,
+    channel: Optional[str] = None,
     q: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
@@ -321,6 +324,9 @@ def admin_list_orders(
         query = query.filter(TokenPayOrder.auth_user_id == int(auth_user_id))
     if status:
         query = query.filter(TokenPayOrder.status == str(status).strip())
+    ch = (channel or "").strip().lower()
+    if ch:
+        query = query.filter(TokenPayOrder.channel == ch)
     qq = (q or "").strip()
     if qq:
         like = f"%{qq}%"
@@ -355,11 +361,67 @@ def admin_list_orders(
     }
 
 
+def admin_orders_csv_text(
+    db: Session,
+    *,
+    auth_user_id: Optional[int] = None,
+    status: Optional[str] = None,
+    channel: Optional[str] = None,
+    q: Optional[str] = None,
+    limit: int = 2000,
+) -> str:
+    """导出订单 CSV（UTF-8 BOM，Excel 可直接打开）。"""
+    import csv
+    import io
+
+    data = admin_list_orders(
+        db,
+        auth_user_id=auth_user_id,
+        status=status,
+        channel=channel,
+        q=q,
+        limit=min(5000, max(1, int(limit))),
+        offset=0,
+    )
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(
+        [
+            "id",
+            "out_trade_no",
+            "auth_user_id",
+            "plan",
+            "amount_fen",
+            "channel",
+            "status",
+            "transaction_id",
+            "created_at",
+            "paid_at",
+        ]
+    )
+    for r in data.get("rows") or []:
+        w.writerow(
+            [
+                r.get("id"),
+                r.get("out_trade_no"),
+                r.get("auth_user_id"),
+                r.get("plan"),
+                r.get("amount_fen"),
+                r.get("channel"),
+                r.get("status"),
+                r.get("transaction_id") or "",
+                r.get("created_at") or "",
+                r.get("paid_at") or "",
+            ]
+        )
+    return "\ufeff" + buf.getvalue()
+
+
 def admin_token_summary(db: Session) -> dict:
     """管理端看板：订单计数 + 支付通道就绪（不含密钥）。"""
     from sqlalchemy import func
 
-    from models import AuthUser, TokenWallet
+    from models import AuthUser, TokenCreditLot, TokenWallet
 
     def _cnt(status: str | None = None, channel: str | None = None) -> int:
         q = db.query(func.count(TokenPayOrder.id))
@@ -381,11 +443,28 @@ def admin_token_summary(db: Session) -> dict:
     )
     users = int(db.query(func.count(AuthUser.id)).scalar() or 0)
     wallets = int(db.query(func.count(TokenWallet.id)).scalar() or 0)
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    active_lots = int(
+        db.query(func.count(TokenCreditLot.id))
+        .filter(TokenCreditLot.amount_remaining > 0, TokenCreditLot.expires_at > now)
+        .scalar()
+        or 0
+    )
+    active_tokens = int(
+        db.query(func.coalesce(func.sum(TokenCreditLot.amount_remaining), 0))
+        .filter(TokenCreditLot.amount_remaining > 0, TokenCreditLot.expires_at > now)
+        .scalar()
+        or 0
+    )
     pay = public_plans().get("pay") or {}
     return {
         "ok": True,
         "users": users,
         "wallets": wallets,
+        "credits": {
+            "active_lots": active_lots,
+            "active_tokens": active_tokens,
+        },
         "orders": {
             "pending": _cnt("pending"),
             "paid": _cnt("paid"),
@@ -646,15 +725,41 @@ async def capture_and_fulfill_paypal(
         raise HTTPException(status_code=400, detail="missing_paypal_order_id")
 
     try:
-        # 已完成则直接读；否则 capture
+        # 已完成则直接读；否则 capture。并发回跳/轮询可能二次 capture → ORDER_ALREADY_CAPTURED，改查单履约。
         cur = await get_order(cfg, paypal_order_id=pid)
         if is_order_completed(cur):
             captured = cur
         else:
-            captured = await capture_order(cfg, paypal_order_id=pid)
+            try:
+                captured = await capture_order(cfg, paypal_order_id=pid)
+            except RuntimeError as e:
+                err = str(e)
+                if "ORDER_ALREADY_CAPTURED" in err:
+                    logger.info("paypal already captured otn=%s pid=%s; refetch", otn, pid)
+                    captured = await get_order(cfg, paypal_order_id=pid)
+                else:
+                    raise
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception("paypal capture failed otn=%s", otn)
-        raise HTTPException(status_code=502, detail=f"PayPal 扣款失败: {e}") from e
+        raise HTTPException(
+            status_code=502,
+            detail="PayPal 确认失败，请稍后在「我的订单」点确认到账。",
+        ) from e
+
+    # 并发：另一请求可能已履约
+    db.refresh(row)
+    if str(row.status) == "paid":
+        return {
+            "ok": True,
+            "duplicate": True,
+            "out_trade_no": otn,
+            "balance": get_balance_snapshot(db, int(auth_user_id)),
+        }
+
+    if not is_order_completed(captured):
+        raise HTTPException(status_code=409, detail="支付尚未完成，请稍后再试。")
 
     custom = extract_custom_id(captured) or otn
     if custom and custom != otn:

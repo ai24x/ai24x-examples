@@ -26,7 +26,6 @@
       background: radial-gradient(1200px 600px at 10% -10%, #1a2333 0%, var(--bg) 55%);
       color: var(--text);
     }
-    .wrap { max-width: 1120px; margin: 0 auto; padding: 20px 16px 48px; }
     h1 { font-size: 18px; margin: 0 0 6px; }
     h2 { font-size: 14px; margin: 0 0 10px; }
     .muted { color: var(--muted); }
@@ -56,6 +55,7 @@
       padding: 8px 12px;
       border-radius: 10px;
       cursor: pointer;
+      font: inherit;
     }
     button:hover { border-color: rgba(96,165,250,0.75); }
     button.ok {
@@ -101,118 +101,338 @@
     #msg { min-height: 1.3em; margin-top: 8px; font-size: 12px; color: var(--muted); }
     #msg.err { color: var(--bad); }
     #msg.ok { color: var(--ok); }
-    #gate, #app { display: none; }
-    #gate.on, #app.on { display: block; }
+    #gate { display: none; }
+    #gate.on { display: block; }
+    #app { display: none; min-height: 100vh; }
+    #app.on { display: flex; }
+    .login-wrap { max-width: 1120px; margin: 0 auto; padding: 20px 16px 48px; }
     .login-card { max-width: 420px; margin: 12vh auto 0; }
+
+    /* —— 对齐行情官 admin：左一级 / 右子导航 + 面板 —— */
+    .layout { display: flex; min-height: 100vh; align-items: stretch; width: 100%; }
+    .sidebar {
+      width: 268px; flex-shrink: 0; background: var(--panel); border-right: 1px solid var(--border);
+      padding: 16px 12px; display: flex; flex-direction: column; gap: 4px;
+    }
+    .brand { font-weight: 700; font-size: 15px; letter-spacing: 0.02em; }
+    .side-hint { font-size: 11px; color: var(--muted); line-height: 1.5; margin: 6px 0 12px; }
+    .nav-group { margin-top: 10px; }
+    .nav-l1 {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 10px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(96,165,250,.06);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .nav-l1:hover { background: rgba(96,165,250,.10); }
+    .nav-l1.active { border-color: rgba(96,165,250,.55); background: rgba(96,165,250,.12); }
+    .nav-l1 .chev { opacity: .7; }
+    .nav-l2 { display: none; }
+    .nav-item {
+      display: block; width: 100%; text-align: left; padding: 10px 12px; border-radius: 10px;
+      border: 1px solid transparent; background: transparent; color: var(--text); cursor: pointer; font-size: 13px;
+    }
+    .nav-item .subt { display: block; font-size: 10px; color: var(--muted); margin-top: 2px; font-weight: 400; }
+    .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .main-top {
+      flex-shrink: 0; padding: 10px 16px; border-bottom: 1px solid var(--border);
+      background: var(--panel); position: sticky; top: 0; z-index: 3;
+    }
+    .subnav {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .subnav-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .subnav-item:hover { border-color: rgba(96,165,250,.45); }
+    .subnav-item.active {
+      border-color: rgba(96,165,250,.55);
+      background: rgba(96,165,250,.12);
+      color: var(--pri);
+    }
+    .subnav-item .subt { font-size: 11px; font-weight: 500; color: var(--muted); }
+    .main-scroll { flex: 1; overflow: auto; padding: 16px 16px 32px; }
+    .panel-page { display: none; }
+    .panel-page.active { display: block; }
+    .panel-page > .card:first-child { margin-top: 0; }
+    @media (max-width: 860px) {
+      #app.on { display: block; }
+      .layout { flex-direction: column; }
+      .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div id="gate">
-      <div class="card login-card">
-        <h1>Token 管理</h1>
-        <p class="muted small">仅供内部运维。密钥保存在本浏览器会话，关闭标签页后需重新填写。</p>
-        <div class="field" style="margin-top:12px;">
-          <span class="lbl">API 根地址</span>
-          <input id="apiBase" type="text" autocomplete="off" placeholder="https://api.ai24x.com 或 http://127.0.0.1:8000" />
-        </div>
-        <div class="field" style="margin-top:10px;">
-          <span class="lbl">内部密钥</span>
-          <input id="ikey" type="password" autocomplete="off" placeholder="粘贴后进入" />
-        </div>
-        <div class="row" style="margin-top:14px;">
-          <button type="button" class="ok" id="btnEnter">进入工作台</button>
-        </div>
-        <div id="gateMsg" class="muted small" style="margin-top:10px;"></div>
+  <div id="gate" class="login-wrap">
+    <div class="card login-card">
+      <h1>Token 管理</h1>
+      <p class="muted small">仅供内部运维。请填主站内部密钥（与行情官管理密钥不是同一个）。密钥只存本页会话。</p>
+      <div class="field" style="margin-top:12px;">
+        <span class="lbl">API 根地址</span>
+        <input id="apiBase" type="text" autocomplete="off" placeholder="本机用 http://127.0.0.1:8000" />
       </div>
+      <div class="field" style="margin-top:10px;">
+        <span class="lbl">内部密钥</span>
+        <input id="ikey" type="password" autocomplete="off" placeholder="内部密钥" />
+      </div>
+      <div class="row" style="margin-top:14px;">
+        <button type="button" class="ok" id="btnEnter">进入工作台</button>
+      </div>
+      <div id="gateMsg" class="muted small" style="margin-top:10px;">本机联调建议 API 填 http://127.0.0.1:8000</div>
     </div>
+  </div>
 
-    <div id="app">
-      <div class="row" style="justify-content:space-between;">
-        <div>
-          <h1>Token 管理工作台</h1>
-          <p class="muted small" id="baseLabel"></p>
+  <div id="app">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="brand">Token 管理后台</div>
+        <div class="side-hint" id="baseLabel">左侧一级菜单；右侧为子功能页。</div>
+
+        <div class="nav-group" data-group="g-overview">
+          <button type="button" class="nav-l1 active" data-group-btn="g-overview">
+            <span>运营总览</span><span class="chev">▾</span>
+          </button>
+          <div class="nav-l2">
+            <button type="button" class="nav-item" data-panel="p-dash">
+              今日常用
+              <span class="subt">待履约、通道、最近到账、快捷查用户</span>
+            </button>
+          </div>
         </div>
-        <div class="row">
-          <button type="button" id="btnRefresh">刷新看板</button>
-          <button type="button" class="danger" id="btnLogout">退出</button>
+
+        <div class="nav-group" data-group="g-pay">
+          <button type="button" class="nav-l1" data-group-btn="g-pay">
+            <span>支付与订单</span><span class="chev">▾</span>
+          </button>
+          <div class="nav-l2">
+            <button type="button" class="nav-item" data-panel="p-orders">
+              Token 订单
+              <span class="subt">筛选、查单履约、导出 CSV</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-channels">
+              支付通道
+              <span class="subt">微信 / 支付宝 / PayPal / Mock</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="nav-group" data-group="g-wallet">
+          <button type="button" class="nav-l1" data-group-btn="g-wallet">
+            <span>用户与钱包</span><span class="chev">▾</span>
+          </button>
+          <div class="nav-l2">
+            <button type="button" class="nav-item" data-panel="p-wallet">
+              查余额 / 加额
+              <span class="subt">查找用户、有效天数、开通 VIP</span>
+            </button>
+          </div>
+        </div>
+
+        <div style="flex:1"></div>
+        <button type="button" class="nav-item danger" id="btnLogout" style="margin-top:8px;border-color:var(--border);">
+          退出登录
+          <span class="subt">清除本页会话密钥</span>
+        </button>
+      </aside>
+
+      <div class="main">
+        <div class="main-top">
+          <div class="row" style="justify-content:space-between;">
+            <div class="row">
+              <span class="pill">操作状态</span>
+              <span id="msg" class="small" style="margin:0;"></span>
+            </div>
+            <button type="button" id="btnRefresh">刷新当前页</button>
+          </div>
+          <div class="subnav" id="subnav" aria-label="子菜单"></div>
+        </div>
+        <div class="main-scroll">
+          <div class="panel-page active" id="p-dash">
+            <div class="card">
+              <h2>今日常用</h2>
+              <p class="muted small" style="margin:0 0 10px;">进门先看：待履约、通道是否就绪、最近到账；可一键跳转处理。</p>
+              <div class="row" id="dashQuick" style="margin-bottom:12px;">
+                <button type="button" class="ok" id="btnDashPending">看待履约订单</button>
+                <button type="button" id="btnDashOrders">全部订单</button>
+                <button type="button" id="btnDashWallet">查余额 / 加额</button>
+              </div>
+              <div class="row" id="payPills" style="margin-bottom:12px;"></div>
+              <div class="grid" id="stats"></div>
+            </div>
+            <div class="card">
+              <div class="row" style="justify-content:space-between;margin-bottom:8px;">
+                <h2 style="margin:0;">待履约（pending）</h2>
+                <button type="button" id="btnDashLoadPending">刷新待履约</button>
+              </div>
+              <div style="overflow:auto;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>单号</th><th>用户</th><th>套餐</th><th>金额</th><th>通道</th><th>时间</th><th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="dashPendingBody"></tbody>
+                </table>
+              </div>
+              <p class="muted small" id="dashPendingMeta"></p>
+            </div>
+            <div class="card">
+              <div class="row" style="justify-content:space-between;margin-bottom:8px;">
+                <h2 style="margin:0;">最近已支付</h2>
+                <span class="muted small">最新 8 笔</span>
+              </div>
+              <div style="overflow:auto;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>单号</th><th>用户</th><th>套餐</th><th>金额</th><th>通道</th><th>支付时间</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dashPaidBody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card">
+              <h2>快捷查用户</h2>
+              <div class="row">
+                <div class="field" style="min-width:220px;"><span class="lbl">邮箱 / 手机</span>
+                  <input id="dashContact" type="text" placeholder="查找后跳到钱包页" />
+                </div>
+                <div class="field"><span class="lbl">或用户 ID</span>
+                  <input id="dashUid" type="number" min="1" placeholder="可选" />
+                </div>
+                <button type="button" id="btnDashLookup">查找并打开钱包</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-page" id="p-orders">
+            <div class="card">
+              <h2>Token 订单</h2>
+              <div class="row">
+                <div class="field"><span class="lbl">状态</span>
+                  <select id="ordStatus">
+                    <option value="">全部</option>
+                    <option value="pending">pending</option>
+                    <option value="paid">paid</option>
+                    <option value="failed">failed</option>
+                  </select>
+                </div>
+                <div class="field"><span class="lbl">通道</span>
+                  <select id="ordChannel">
+                    <option value="">全部</option>
+                    <option value="wechat">wechat</option>
+                    <option value="alipay">alipay</option>
+                    <option value="paypal">paypal</option>
+                    <option value="mock">mock</option>
+                  </select>
+                </div>
+                <div class="field"><span class="lbl">用户 ID</span>
+                  <input id="ordUid" type="number" min="1" placeholder="可选" />
+                </div>
+                <div class="field" style="min-width:220px;"><span class="lbl">单号关键词</span>
+                  <input id="ordQ" type="text" placeholder="out_trade_no / 交易号" />
+                </div>
+                <button type="button" id="btnLoadOrders">查询</button>
+                <button type="button" id="btnExportCsv">导出 CSV</button>
+              </div>
+              <div style="overflow:auto;margin-top:12px;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>单号</th><th>用户</th><th>套餐</th><th>金额</th><th>通道</th><th>状态</th><th>时间</th><th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="ordBody"></tbody>
+                </table>
+              </div>
+              <p class="muted small" id="ordMeta"></p>
+            </div>
+          </div>
+
+          <div class="panel-page" id="p-channels">
+            <div class="card">
+              <h2>支付通道</h2>
+              <p class="muted small">与看板同源；PayPal 需在服务端配置沙箱/正式密钥后才会就绪。</p>
+              <div class="row" id="channelPills" style="margin-top:10px;"></div>
+              <div class="grid" id="channelStats" style="margin-top:12px;"></div>
+            </div>
+          </div>
+
+          <div class="panel-page" id="p-wallet">
+            <div class="card">
+              <h2>查余额 / 加额</h2>
+              <div class="row">
+                <div class="field"><span class="lbl">用户 ID</span>
+                  <input id="wUid" type="number" min="1" />
+                </div>
+                <div class="field" style="min-width:200px;"><span class="lbl">或邮箱 / 手机</span>
+                  <input id="wContact" type="text" placeholder="查找后填入 ID" />
+                </div>
+                <button type="button" id="btnLookup">查找用户</button>
+                <button type="button" id="btnWallet">查余额</button>
+              </div>
+              <p class="small mono" id="walletOut" style="margin-top:10px;"></p>
+              <div class="row" style="margin-top:10px;">
+                <div class="field"><span class="lbl">加 Token 数量</span>
+                  <input id="topAmt" type="number" min="1" value="10000" />
+                </div>
+                <div class="field"><span class="lbl">有效天数</span>
+                  <input id="topDays" type="number" min="1" max="3650" value="365" />
+                </div>
+                <div class="field" style="min-width:200px;"><span class="lbl">备注</span>
+                  <input id="topNote" type="text" value="admin_topup" />
+                </div>
+                <label class="small muted" style="display:flex;gap:6px;align-items:center;">
+                  <input id="topVip" type="checkbox" /> 同时开通 VIP
+                </label>
+                <button type="button" class="ok" id="btnTopup">确认加额</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-
-      <div class="card">
-        <h2>支付与规模</h2>
-        <div class="row" id="payPills" style="margin-bottom:12px;"></div>
-        <div class="grid" id="stats"></div>
-      </div>
-
-      <div class="card">
-        <h2>订单</h2>
-        <div class="row">
-          <div class="field"><span class="lbl">状态</span>
-            <select id="ordStatus">
-              <option value="">全部</option>
-              <option value="pending">pending</option>
-              <option value="paid">paid</option>
-              <option value="failed">failed</option>
-            </select>
-          </div>
-          <div class="field"><span class="lbl">用户 ID</span>
-            <input id="ordUid" type="number" min="1" placeholder="可选" />
-          </div>
-          <div class="field" style="min-width:220px;"><span class="lbl">单号关键词</span>
-            <input id="ordQ" type="text" placeholder="out_trade_no / 交易号" />
-          </div>
-          <button type="button" id="btnLoadOrders">查询</button>
-        </div>
-        <div style="overflow:auto;margin-top:12px;">
-          <table>
-            <thead>
-              <tr>
-                <th>单号</th><th>用户</th><th>套餐</th><th>金额</th><th>通道</th><th>状态</th><th>时间</th><th></th>
-              </tr>
-            </thead>
-            <tbody id="ordBody"></tbody>
-          </table>
-        </div>
-        <p class="muted small" id="ordMeta"></p>
-      </div>
-
-      <div class="card">
-        <h2>钱包 / 手工加额</h2>
-        <div class="row">
-          <div class="field"><span class="lbl">用户 ID</span>
-            <input id="wUid" type="number" min="1" />
-          </div>
-          <div class="field" style="min-width:200px;"><span class="lbl">或邮箱 / 手机</span>
-            <input id="wContact" type="text" placeholder="查找后填入 ID" />
-          </div>
-          <button type="button" id="btnLookup">查找用户</button>
-          <button type="button" id="btnWallet">查余额</button>
-        </div>
-        <p class="small mono" id="walletOut" style="margin-top:10px;"></p>
-        <div class="row" style="margin-top:10px;">
-          <div class="field"><span class="lbl">加 Token 数量</span>
-            <input id="topAmt" type="number" min="1" value="10000" />
-          </div>
-          <div class="field" style="min-width:200px;"><span class="lbl">备注</span>
-            <input id="topNote" type="text" value="admin_topup" />
-          </div>
-          <label class="small muted" style="display:flex;gap:6px;align-items:center;">
-            <input id="topVip" type="checkbox" /> 同时开通 VIP
-          </label>
-          <button type="button" class="ok" id="btnTopup">确认加额</button>
-        </div>
-      </div>
-
-      <div id="msg"></div>
     </div>
   </div>
 
   <script>
 (function () {
   var SK = "ai24x_token_admin_v1";
+  var NAV_GROUP_KEY = "ai24x_token_admin_nav_group";
   var $ = function (id) { return document.getElementById(id); };
-  var state = { base: "", key: "" };
+  var state = { base: "", key: "", panel: "p-dash" };
+
+  function qsa(sel) {
+    try { return Array.prototype.slice.call(document.querySelectorAll(sel)); }
+    catch (e) { return []; }
+  }
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
 
   function loadSession() {
     try {
@@ -229,11 +449,31 @@
   function normBase(b) {
     return String(b || "").trim().replace(/\/+$/, "");
   }
+  function scrubKey(s) {
+    return String(s || "")
+      .replace(/^\uFEFF/, "")
+      .replace(/[\u200B-\u200D\uFEFF]/g, "")
+      .trim();
+  }
 
   function setMsg(t, kind) {
     var el = $("msg");
     el.textContent = t || "";
-    el.className = kind === "err" ? "err" : (kind === "ok" ? "ok" : "");
+    el.className = kind === "err" ? "err" : (kind === "ok" ? "ok" : "small");
+  }
+
+  function gateFailHint(status, detail) {
+    var d = String(detail || "");
+    if (status === 403 || /禁止访问/.test(d)) {
+      return "密钥不正确。请用主站内部密钥（不是行情官管理密钥）。当前 API：" + state.base;
+    }
+    if (status === 503 || /未配置/.test(d)) {
+      return "服务端未配置内部密钥。请检查配置后重启 API 进程。";
+    }
+    if (status === 404) {
+      return "接口不存在（404）。请把 API 根地址改为 http://127.0.0.1:8000，并确认已重启加载最新代码。";
+    }
+    return d || ("HTTP " + status);
   }
 
   async function api(path, opts) {
@@ -250,7 +490,10 @@
     try { j = await r.json(); } catch (e) {}
     if (!r.ok) {
       var d = j && (j.detail || j.message || j.error);
-      throw new Error(typeof d === "string" ? d : ("HTTP " + r.status));
+      var err = new Error(typeof d === "string" ? d : ("HTTP " + r.status));
+      err.status = r.status;
+      err.detail = typeof d === "string" ? d : "";
+      throw err;
     }
     return j;
   }
@@ -260,10 +503,98 @@
     if (ch === "paypal") return "$" + (n / 100).toFixed(2);
     return "¥" + (n / 100).toFixed(2);
   }
-
   function statusPill(s) {
     var c = s === "paid" ? "ok" : (s === "pending" ? "warn" : "bad");
     return '<span class="pill ' + c + '">' + s + "</span>";
+  }
+
+  function getGroupForPanel(panelId) {
+    var btn = document.querySelector('.nav-item[data-panel="' + panelId + '"]');
+    if (!btn) return "";
+    var g = btn.closest && btn.closest(".nav-group");
+    return g ? String(g.getAttribute("data-group") || "") : "";
+  }
+
+  function groupDefaultPanel(groupId) {
+    var pref = {
+      "g-overview": "p-dash",
+      "g-pay": "p-orders",
+      "g-wallet": "p-wallet",
+    };
+    var pid = pref[groupId] || "p-dash";
+    if ($(pid)) return pid;
+    var g = document.querySelector('.nav-group[data-group="' + groupId + '"]');
+    var first = g && g.querySelector && g.querySelector(".nav-item[data-panel]");
+    return first ? String(first.getAttribute("data-panel") || "p-dash") : "p-dash";
+  }
+
+  function renderSubnav(groupId) {
+    var box = $("subnav");
+    if (!box) return;
+    box.innerHTML = "";
+    var g = document.querySelector('.nav-group[data-group="' + groupId + '"]');
+    if (!g) return;
+    var items = qsa('.nav-group[data-group="' + groupId + '"] .nav-item[data-panel]');
+    items.forEach(function (src) {
+      var pid = String(src.getAttribute("data-panel") || "");
+      var title = (src.childNodes && src.childNodes.length)
+        ? String(src.childNodes[0].textContent || "").trim()
+        : String(src.textContent || "").trim();
+      var subtEl = src.querySelector ? src.querySelector(".subt") : null;
+      var subt = subtEl ? String(subtEl.textContent || "").trim() : "";
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "subnav-item";
+      b.setAttribute("data-panel", pid);
+      b.innerHTML = "<span>" + esc(title) + "</span>" +
+        (subt ? '<span class="subt">' + esc(subt) + "</span>" : "");
+      b.onclick = function () { showPanel(pid); };
+      box.appendChild(b);
+    });
+    syncSubnavActive();
+  }
+
+  function syncSubnavActive() {
+    var cur = state.panel || "";
+    qsa("#subnav .subnav-item[data-panel]").forEach(function (b) {
+      b.classList.toggle("active", b.getAttribute("data-panel") === cur);
+    });
+  }
+
+  function setActiveGroup(groupId, forcePanel) {
+    groupId = String(groupId || "");
+    qsa(".nav-l1[data-group-btn]").forEach(function (h) {
+      h.classList.toggle("active", h.getAttribute("data-group-btn") === groupId);
+    });
+    try { localStorage.setItem(NAV_GROUP_KEY, groupId); } catch (e) {}
+    renderSubnav(groupId);
+    var next = forcePanel || (
+      getGroupForPanel(state.panel) === groupId ? state.panel : groupDefaultPanel(groupId)
+    );
+    return showPanel(next);
+  }
+
+  async function showPanel(panelId) {
+    panelId = String(panelId || "p-dash");
+    if (!$(panelId)) panelId = "p-dash";
+    state.panel = panelId;
+    qsa(".panel-page").forEach(function (p) {
+      p.classList.toggle("active", p.id === panelId);
+    });
+    var gid = getGroupForPanel(panelId);
+    if (gid) {
+      qsa(".nav-l1[data-group-btn]").forEach(function (h) {
+        h.classList.toggle("active", h.getAttribute("data-group-btn") === gid);
+      });
+      renderSubnav(gid);
+    } else {
+      syncSubnavActive();
+    }
+    try {
+      await refreshCurrentPanel();
+    } catch (e) {
+      setMsg(String(e.message || e), "err");
+    }
   }
 
   async function refreshSummary() {
@@ -274,36 +605,101 @@
       ["微信", !!pay.wechat_ready],
       ["支付宝", !!pay.alipay_ready],
       ["PayPal", !!pay.paypal_ready],
-      ["Mock", !!pay.mock],
+      ["Mock", !!(pay.mock_allowed || pay.mock)],
     ];
-    $("payPills").innerHTML = pills.map(function (p) {
+    var pillsHtml = pills.map(function (p) {
       return '<span class="pill ' + (p[1] ? "ok" : "bad") + '">' + p[0] + ": " + (p[1] ? "就绪" : "未就绪") + "</span>";
     }).join(" ");
+    if ($("payPills")) $("payPills").innerHTML = pillsHtml;
+    if ($("channelPills")) $("channelPills").innerHTML = pillsHtml;
+
     var o = s.orders || {};
+    var cr = s.credits || {};
     var cells = [
-      ["注册用户", s.users],
-      ["钱包数", s.wallets],
       ["待履约", o.pending],
       ["已支付", o.paid],
+      ["注册用户", s.users],
+      ["有效批次", cr.active_lots == null ? "-" : cr.active_lots],
+      ["批次余额", cr.active_tokens == null ? "-" : cr.active_tokens],
       ["失败", o.failed],
       ["CNY 已付(元)", ((o.paid_amount_cny_fen || 0) / 100).toFixed(2)],
       ["USD 已付", ((o.paid_amount_usd_cents || 0) / 100).toFixed(2)],
     ];
-    $("stats").innerHTML = cells.map(function (c) {
+    var statsHtml = cells.map(function (c) {
       return '<div class="stat"><div class="n">' + c[1] + '</div><div class="k">' + c[0] + "</div></div>";
     }).join("");
+    if ($("stats")) $("stats").innerHTML = statsHtml;
+    if ($("channelStats")) {
+      var by = o.by_channel_paid || {};
+      var chCells = [
+        ["微信已付单", by.wechat || 0],
+        ["支付宝已付单", by.alipay || 0],
+        ["PayPal 已付单", by.paypal || 0],
+        ["待履约", o.pending || 0],
+      ];
+      $("channelStats").innerHTML = chCells.map(function (c) {
+        return '<div class="stat"><div class="n">' + c[1] + '</div><div class="k">' + c[0] + "</div></div>";
+      }).join("");
+    }
+    return s;
   }
 
-  async function loadOrders() {
+  async function loadDashHome() {
+    await refreshSummary();
+    var pending = await api("/v1/admin/token/orders?status=pending&limit=20");
+    var paid = await api("/v1/admin/token/orders?status=paid&limit=8");
+    var pRows = pending.rows || [];
+    var paidRows = paid.rows || [];
+    if ($("dashPendingBody")) {
+      $("dashPendingBody").innerHTML = pRows.length
+        ? pRows.map(function (r) {
+            return "<tr>" +
+              '<td class="mono">' + esc(r.out_trade_no) + "</td>" +
+              "<td>" + esc(r.auth_user_id) + "</td>" +
+              "<td>" + esc(r.plan) + "</td>" +
+              "<td>" + fenLabel(r.channel, r.amount_fen) + "</td>" +
+              "<td>" + esc(r.channel) + "</td>" +
+              '<td class="mono">' + esc(r.created_at || "") + "</td>" +
+              '<td><button type="button" data-otn="' + String(r.out_trade_no).replace(/"/g, "") + '" class="btnFulfill">查单履约</button></td>' +
+              "</tr>";
+          }).join("")
+        : '<tr><td colspan="7" class="muted">暂无待履约订单</td></tr>';
+    }
+    if ($("dashPendingMeta")) {
+      $("dashPendingMeta").textContent = "待履约共 " + (pending.total || pRows.length) + " 笔（本页最多 20）";
+    }
+    if ($("dashPaidBody")) {
+      $("dashPaidBody").innerHTML = paidRows.length
+        ? paidRows.map(function (r) {
+            return "<tr>" +
+              '<td class="mono">' + esc(r.out_trade_no) + "</td>" +
+              "<td>" + esc(r.auth_user_id) + "</td>" +
+              "<td>" + esc(r.plan) + "</td>" +
+              "<td>" + fenLabel(r.channel, r.amount_fen) + "</td>" +
+              "<td>" + esc(r.channel) + "</td>" +
+              '<td class="mono">' + esc(r.paid_at || r.created_at || "") + "</td>" +
+              "</tr>";
+          }).join("")
+        : '<tr><td colspan="6" class="muted">暂无已支付订单</td></tr>';
+    }
+  }
+
+  function orderFilterQs(extraLimit) {
     var qs = new URLSearchParams();
     var st = ($("ordStatus").value || "").trim();
+    var ch = ($("ordChannel").value || "").trim();
     var uid = ($("ordUid").value || "").trim();
     var q = ($("ordQ").value || "").trim();
     if (st) qs.set("status", st);
+    if (ch) qs.set("channel", ch);
     if (uid) qs.set("auth_user_id", uid);
     if (q) qs.set("q", q);
-    qs.set("limit", "50");
-    var data = await api("/v1/admin/token/orders?" + qs.toString());
+    qs.set("limit", String(extraLimit || 50));
+    return qs;
+  }
+
+  async function loadOrders() {
+    var data = await api("/v1/admin/token/orders?" + orderFilterQs(50).toString());
     var rows = data.rows || [];
     $("ordMeta").textContent = "共 " + (data.total || rows.length) + " 条（最多显示 50）";
     $("ordBody").innerHTML = rows.map(function (r) {
@@ -311,34 +707,81 @@
         ? '<button type="button" data-otn="' + String(r.out_trade_no).replace(/"/g, "") + '" class="btnFulfill">查单履约</button>'
         : "";
       return "<tr>" +
-        '<td class="mono">' + r.out_trade_no + "</td>" +
-        "<td>" + r.auth_user_id + "</td>" +
-        "<td>" + r.plan + "</td>" +
+        '<td class="mono">' + esc(r.out_trade_no) + "</td>" +
+        "<td>" + esc(r.auth_user_id) + "</td>" +
+        "<td>" + esc(r.plan) + "</td>" +
         "<td>" + fenLabel(r.channel, r.amount_fen) + "</td>" +
-        "<td>" + r.channel + "</td>" +
+        "<td>" + esc(r.channel) + "</td>" +
         "<td>" + statusPill(r.status) + "</td>" +
-        '<td class="mono">' + (r.paid_at || r.created_at || "") + "</td>" +
+        '<td class="mono">' + esc(r.paid_at || r.created_at || "") + "</td>" +
         "<td>" + fulfill + "</td>" +
         "</tr>";
     }).join("") || '<tr><td colspan="8" class="muted">无订单</td></tr>';
   }
 
+  async function refreshCurrentPanel() {
+    var p = state.panel || "p-dash";
+    if (p === "p-dash") {
+      await loadDashHome();
+      setMsg("常用页已刷新", "ok");
+    } else if (p === "p-channels") {
+      await refreshSummary();
+      setMsg("通道状态已刷新", "ok");
+    } else if (p === "p-orders") {
+      await loadOrders();
+      setMsg("订单已更新", "ok");
+    }
+  }
+
   async function enterApp() {
     $("gate").classList.remove("on");
     $("app").classList.add("on");
-    $("baseLabel").textContent = state.base;
+    $("baseLabel").textContent = "API：" + state.base + " · 左侧一级菜单，右侧子功能";
     setMsg("");
-    await refreshSummary();
-    await loadOrders();
+    var gid = "g-overview";
+    try { gid = localStorage.getItem(NAV_GROUP_KEY) || gid; } catch (e) {}
+    await setActiveGroup(gid, gid === "g-overview" ? "p-dash" : null);
+  }
+
+  function initMainNav() {
+    qsa(".nav-l1[data-group-btn]").forEach(function (h) {
+      h.addEventListener("click", function () {
+        setActiveGroup(h.getAttribute("data-group-btn"));
+      });
+    });
+  }
+
+  async function fulfillOrder(otn, btn) {
+    if (!otn) return;
+    if (btn) btn.disabled = true;
+    try {
+      var r = await api("/v1/admin/token/orders/query_fulfill", {
+        method: "POST",
+        body: { out_trade_no: otn },
+      });
+      setMsg("履约结果：" + JSON.stringify(r), "ok");
+      if (state.panel === "p-dash") await loadDashHome();
+      else {
+        await loadOrders();
+        await refreshSummary();
+      }
+    } catch (e) {
+      setMsg(String(e.message || e), "err");
+    } finally {
+      if (btn) btn.disabled = false;
+    }
   }
 
   $("btnEnter").onclick = async function () {
     var gm = $("gateMsg");
     gm.textContent = "";
+    gm.style.color = "";
     state.base = normBase($("apiBase").value);
-    state.key = ($("ikey").value || "").trim();
+    state.key = scrubKey($("ikey").value);
+    $("ikey").value = state.key;
     if (!state.base || !state.key) {
       gm.textContent = "请填写 API 根地址与内部密钥";
+      gm.style.color = "var(--bad)";
       return;
     }
     try {
@@ -347,7 +790,8 @@
       await enterApp();
     } catch (e) {
       clearSession();
-      gm.textContent = "无法进入：" + (e && e.message ? e.message : String(e));
+      gm.style.color = "var(--bad)";
+      gm.textContent = "无法进入：" + gateFailHint(e && e.status, e && (e.detail || e.message));
     }
   };
 
@@ -360,10 +804,8 @@
   };
 
   $("btnRefresh").onclick = async function () {
-    try {
-      await refreshSummary();
-      setMsg("看板已刷新", "ok");
-    } catch (e) { setMsg(String(e.message || e), "err"); }
+    try { await refreshCurrentPanel(); }
+    catch (e) { setMsg(String(e.message || e), "err"); }
   };
 
   $("btnLoadOrders").onclick = async function () {
@@ -373,26 +815,75 @@
     } catch (e) { setMsg(String(e.message || e), "err"); }
   };
 
-  $("ordBody").onclick = async function (ev) {
+  $("btnDashLoadPending").onclick = async function () {
+    try {
+      await loadDashHome();
+      setMsg("待履约已刷新", "ok");
+    } catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+
+  $("btnDashPending").onclick = function () {
+    showPanel("p-orders").then(function () {
+      $("ordStatus").value = "pending";
+      return loadOrders();
+    }).then(function () {
+      setMsg("已打开待履约订单", "ok");
+    }).catch(function (e) { setMsg(String(e.message || e), "err"); });
+  };
+  $("btnDashOrders").onclick = function () { showPanel("p-orders"); };
+  $("btnDashWallet").onclick = function () { showPanel("p-wallet"); };
+
+  $("btnDashLookup").onclick = async function () {
+    try {
+      var c = ($("dashContact").value || "").trim();
+      var uid = Number($("dashUid").value || 0);
+      if (c) {
+        var qs = c.indexOf("@") >= 0
+          ? ("email=" + encodeURIComponent(c))
+          : ("phone=" + encodeURIComponent(c));
+        var r = await api("/v1/admin/users/lookup?" + qs);
+        var u = r.user || {};
+        uid = Number(u.id || 0);
+        $("dashUid").value = uid || "";
+      }
+      if (!uid) throw new Error("请填写邮箱/手机或用户 ID");
+      $("wUid").value = uid;
+      await showPanel("p-wallet");
+      var snap = await api("/v1/admin/token/wallet?auth_user_id=" + uid);
+      $("walletOut").textContent = JSON.stringify(snap, null, 2);
+      setMsg("已打开用户 #" + uid + " 钱包", "ok");
+    } catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+
+  $("btnExportCsv").onclick = async function () {
+    try {
+      var qs = orderFilterQs(2000);
+      var r = await fetch(state.base + "/v1/admin/token/orders/export.csv?" + qs.toString(), {
+        headers: { "X-SMS-Internal-Key": state.key },
+      });
+      if (!r.ok) {
+        var j = null;
+        try { j = await r.json(); } catch (e0) {}
+        throw new Error((j && (j.detail || j.message)) || ("HTTP " + r.status));
+      }
+      var blob = await r.blob();
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "token_orders.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+      setMsg("CSV 已下载", "ok");
+    } catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+
+  document.addEventListener("click", function (ev) {
     var t = ev.target;
     if (!t || !t.classList || !t.classList.contains("btnFulfill")) return;
     var otn = t.getAttribute("data-otn");
-    if (!otn) return;
-    t.disabled = true;
-    try {
-      var r = await api("/v1/admin/token/orders/query_fulfill", {
-        method: "POST",
-        body: { out_trade_no: otn },
-      });
-      setMsg("履约结果：" + JSON.stringify(r), "ok");
-      await loadOrders();
-      await refreshSummary();
-    } catch (e) {
-      setMsg(String(e.message || e), "err");
-    } finally {
-      t.disabled = false;
-    }
-  };
+    fulfillOrder(otn, t);
+  });
 
   $("btnLookup").onclick = async function () {
     try {
@@ -423,8 +914,9 @@
     try {
       var uid = Number($("wUid").value || 0);
       var amt = Number($("topAmt").value || 0);
+      var days = Number($("topDays").value || 365);
       if (!uid || !amt) throw new Error("请填写用户 ID 与加额数量");
-      if (!window.confirm("确认给用户 #" + uid + " 增加 " + amt + " Token？")) return;
+      if (!window.confirm("确认给用户 #" + uid + " 增加 " + amt + " Token（有效 " + days + " 天）？")) return;
       var r = await api("/v1/admin/token/topup", {
         method: "POST",
         body: {
@@ -432,6 +924,7 @@
           amount: amt,
           note: ($("topNote").value || "admin_topup").trim(),
           set_vip: !!$("topVip").checked,
+          validity_days: days > 0 ? days : 365,
         },
       });
       $("walletOut").textContent = JSON.stringify(r, null, 2);
@@ -441,6 +934,7 @@
   };
 
   (function init() {
+    initMainNav();
     var def = (location.origin && location.origin.indexOf("http") === 0)
       ? location.origin
       : "http://127.0.0.1:8000";

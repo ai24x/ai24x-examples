@@ -18,7 +18,13 @@
 
   function labelEntryType(t) {
     if (!AI24X_API.isZhUi()) {
-      var en = { consume: "Usage", topup: "Top-up", bonus: "Bonus", referral: "Referral" };
+      var en = {
+        consume: "Usage",
+        topup: "Top-up",
+        bonus: "Bonus",
+        referral: "Referral",
+        expire: "Expired",
+      };
       return en[t] || t || "";
     }
     var m = {
@@ -26,6 +32,7 @@
       topup: "充值",
       bonus: "赠送",
       referral: "邀请奖励",
+      expire: "过期核销",
     };
     return m[t] || t || "";
   }
@@ -95,6 +102,7 @@
       return zh ? n : n.replace(/vip\s*日额度|VIP 日额度/gi, "VIP daily quota");
     }
     if (/^chat\/run$/i.test(n)) return zh ? "API 调用" : "API call";
+    if (/^lot_expire\b/i.test(n)) return zh ? "额度到期自动核销" : "Credit lot expired";
     if (/^(wechat|alipay|paypal|mock|paypal_capture|paypal_webhook):/i.test(n)) {
       var parts = n.split(":");
       var ch0 = String(parts[0] || "").replace(/_capture|_webhook/i, "");
@@ -211,11 +219,17 @@
     var hint = $("payHint");
     if (hint) {
       if (zh) {
-        if (pay.enabled && (pay.wechat_ready || pay.alipay_ready)) {
+        if (pay.enabled && (pay.wechat_ready || pay.alipay_ready || pay.paypal_ready)) {
+          var ch = [];
+          if (pay.wechat_ready) ch.push("微信");
+          if (pay.alipay_ready) ch.push("支付宝");
+          if (pay.paypal_ready) ch.push("PayPal");
           hint.textContent =
-            "选择套餐后可用微信或支付宝支付。" +
+            "选择套餐后可用 " +
+            ch.join(" / ") +
+            " 支付。" +
             (pay.mock_allowed ? " 也可使用「模拟到账」。" : "");
-        } else if (pay.wechat_configured || pay.alipay_configured) {
+        } else if (pay.wechat_configured || pay.alipay_configured || pay.paypal_configured) {
           hint.textContent = "在线支付准备中" + (pay.mock_allowed ? "，可用「模拟到账」。" : "。");
         } else if (pay.mock_allowed) {
           hint.textContent = "可用「模拟到账」完成体验充值。";
@@ -223,12 +237,21 @@
           hint.textContent = "在线支付暂未开放。";
         }
       } else {
-        hint.textContent = pay.enabled
-          ? "Choose a plan and pay with WeChat or Alipay (CNY) on this site." +
-            (pay.mock_allowed ? " Mock top-up is also available." : "")
-          : pay.mock_allowed
+        if (pay.enabled && (pay.wechat_ready || pay.alipay_ready || pay.paypal_ready)) {
+          var enCh = [];
+          if (pay.wechat_ready) enCh.push("WeChat");
+          if (pay.alipay_ready) enCh.push("Alipay");
+          if (pay.paypal_ready) enCh.push("PayPal");
+          hint.textContent =
+            "Choose a plan and pay with " +
+            enCh.join(" / ") +
+            "." +
+            (pay.mock_allowed ? " Mock top-up is also available." : "");
+        } else {
+          hint.textContent = pay.mock_allowed
             ? "Online pay is not open yet. Mock top-up is available."
             : "Online pay is not open yet.";
+        }
       }
     }
     if (!plans.length) {
@@ -249,6 +272,13 @@
       var bits = [AI24X_API.planPriceLabel(p)];
       if (p.credit_tokens) {
         bits.push((zh ? "到账 " : "") + p.credit_tokens + " token");
+      }
+      if (p.validity_days && p.credit_tokens) {
+        bits.push(
+          zh
+            ? "额度有效 " + p.validity_days + " 天"
+            : "valid " + p.validity_days + " days"
+        );
       }
       if (p.set_vip) {
         bits.push(
@@ -273,8 +303,8 @@
         actions.appendChild(btn);
       }
 
-      if (pay.wechat_ready) addBtn(tr("微信", "WeChat"), "btn btn-primary", "wechat");
-      if (pay.alipay_ready) addBtn(tr("支付宝", "Alipay"), "btn btn-primary", "alipay");
+      if (pay.wechat_ready) addBtn(tr("微信", "WeChat"), "btn", "wechat");
+      if (pay.alipay_ready) addBtn(tr("支付宝", "Alipay"), "btn", "alipay");
       if (pay.paypal_ready) addBtn("PayPal", "btn btn-primary", "paypal");
       if (pay.mock_allowed) {
         addBtn(tr("模拟到账", "Mock pay"), "btn", "mock");
@@ -304,8 +334,57 @@
         card.appendChild(note);
       }
       card.appendChild(actions);
+      if (p.plan) card.setAttribute("data-plan", String(p.plan));
       box.appendChild(card);
     });
+    tryApplyPayDeepLink();
+  }
+
+  function tryApplyPayDeepLink() {
+    try {
+      var qs = new URLSearchParams(window.location.search || "");
+      var wantPlan = (qs.get("plan") || "").trim();
+      var wantPay = (qs.get("pay") || "").trim().toLowerCase();
+      if (!wantPlan && !wantPay) return;
+      var box = $("plansList");
+      if (!box) return;
+      var card = null;
+      if (wantPlan) {
+        card = box.querySelector('[data-plan="' + wantPlan.replace(/"/g, "") + '"]');
+      }
+      if (!card) card = box.querySelector(".card");
+      if (card) {
+        card.scrollIntoView({ behavior: "smooth", block: "center" });
+        card.style.outline = "2px solid #0070ba";
+        card.style.outlineOffset = "2px";
+      }
+      if (wantPay === "paypal" && card) {
+        var pp = Array.prototype.slice.call(card.querySelectorAll("button")).find(function (b) {
+          return (b.textContent || "").trim() === "PayPal";
+        });
+        if (pp) {
+          showMsg(
+            $("consoleMsg"),
+            tr("已定位到套餐，请点击 PayPal 完成付款。", "Plan ready — tap PayPal to pay."),
+            true
+          );
+          setTimeout(function () {
+            try {
+              pp.focus();
+            } catch (e) {}
+          }, 300);
+        } else {
+          showMsg(
+            $("consoleMsg"),
+            tr(
+              "PayPal 通道未就绪，请稍后再试或联系客服。",
+              "PayPal is not ready yet. Try again later."
+            ),
+            false
+          );
+        }
+      }
+    } catch (e) {}
   }
 
   function openPayModal(title, sub) {
@@ -699,6 +778,15 @@
     try {
       var bal = await AI24X_API.billingBalance();
       $("stat-balance").textContent = fmtInt(bal.balance_tokens);
+      var balSub = $("stat-balance-sub");
+      if (balSub) {
+        if (bal.credits_expire_at && Number(bal.balance_tokens) > 0) {
+          balSub.textContent =
+            tr("最早到期 ", "Earliest expiry ") + String(bal.credits_expire_at).slice(0, 10);
+        } else {
+          balSub.textContent = tr("钱包可用额度", "Wallet available credits");
+        }
+      }
       var planLabel = labelPlanForUi(bal.plan);
       if (bal.is_vip_active && bal.vip_expires_at) {
         planLabel +=
@@ -921,6 +1009,10 @@
       var qs = new URLSearchParams(window.location.search || "");
       var otn = qs.get("out_trade_no") || "";
       if (qs.get("paypal") === "1" && otn) {
+        if (_fulfillPollTimer) {
+          clearInterval(_fulfillPollTimer);
+          _fulfillPollTimer = null;
+        }
         showMsg($("consoleMsg"), tr("正在确认 PayPal 支付…", "Confirming PayPal…"), true);
         AI24X_API.billingQueryFulfill(otn, "paypal")
           .then(function (r) {
@@ -934,7 +1026,13 @@
             return refreshAll();
           })
           .catch(function (e) {
-            showMsg($("consoleMsg"), e.message || tr("PayPal 确认失败", "PayPal confirm failed"), false);
+            var msg = (e && e.message) || "";
+            // 并发确认时偶发；再查一次余额/订单即可
+            if (/ALREADY_CAPTURED|已到账|duplicate/i.test(msg)) {
+              showMsg($("consoleMsg"), tr("PayPal 已到账", "PayPal credited"), true);
+              return refreshAll();
+            }
+            showMsg($("consoleMsg"), msg || tr("PayPal 确认失败", "PayPal confirm failed"), false);
           });
       }
     } catch (e) {}

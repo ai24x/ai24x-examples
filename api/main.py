@@ -1056,6 +1056,7 @@ async def billing_topup(request: Request, body: BillingTopupBody, db: Session = 
         amount=int(body.amount),
         note=body.note,
         set_vip=bool(body.set_vip),
+        validity_days=body.validity_days,
     )
 
 
@@ -1473,6 +1474,7 @@ async def admin_token_orders(
     db: Session = Depends(get_db),
     auth_user_id: int | None = None,
     status: str | None = None,
+    channel: str | None = None,
     q: str | None = None,
     limit: int = 50,
     offset: int = 0,
@@ -1481,7 +1483,44 @@ async def admin_token_orders(
     from token_pay_service import admin_list_orders
 
     return admin_list_orders(
-        db, auth_user_id=auth_user_id, status=status, q=q, limit=limit, offset=offset
+        db,
+        auth_user_id=auth_user_id,
+        status=status,
+        channel=channel,
+        q=q,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@app.get("/v1/admin/token/orders/export.csv")
+async def admin_token_orders_export(
+    request: Request,
+    db: Session = Depends(get_db),
+    auth_user_id: int | None = None,
+    status: str | None = None,
+    channel: str | None = None,
+    q: str | None = None,
+    limit: int = 2000,
+):
+    """订单 CSV 导出（内部密钥）。"""
+    _require_internal_key(request)
+    from fastapi.responses import Response
+
+    from token_pay_service import admin_orders_csv_text
+
+    text = admin_orders_csv_text(
+        db,
+        auth_user_id=auth_user_id,
+        status=status,
+        channel=channel,
+        q=q,
+        limit=limit,
+    )
+    return Response(
+        content=text.encode("utf-8"),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="token_orders.csv"'},
     )
 
 
@@ -1497,6 +1536,7 @@ async def admin_token_topup(request: Request, body: BillingTopupBody, db: Sessio
         amount=int(body.amount),
         note=body.note or "admin_topup",
         set_vip=bool(body.set_vip),
+        validity_days=body.validity_days,
     )
 
 
