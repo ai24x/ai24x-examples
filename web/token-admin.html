@@ -247,6 +247,10 @@
               查余额 / 加额
               <span class="subt">查找用户、有效天数、开通 VIP</span>
             </button>
+            <button type="button" class="nav-item" data-panel="p-ledger">
+              用户流水
+              <span class="subt">BillingLedger 充值/消耗/过期</span>
+            </button>
           </div>
         </div>
 
@@ -369,6 +373,10 @@
                 </table>
               </div>
               <p class="muted small" id="ordMeta"></p>
+              <div class="row" style="margin-top:8px;">
+                <button type="button" id="btnOrdPrev">上一页</button>
+                <button type="button" id="btnOrdNext">下一页</button>
+              </div>
             </div>
           </div>
 
@@ -412,6 +420,40 @@
               </div>
             </div>
           </div>
+
+          <div class="panel-page" id="p-ledger">
+            <div class="card">
+              <h2>用户流水</h2>
+              <p class="muted small">查看 BillingLedger（topup / consume / expire / referral 等）。</p>
+              <div class="row">
+                <div class="field"><span class="lbl">用户 ID</span>
+                  <input id="ledUid" type="number" min="1" />
+                </div>
+                <div class="field"><span class="lbl">类型</span>
+                  <select id="ledType">
+                    <option value="">全部</option>
+                    <option value="topup">topup</option>
+                    <option value="consume">consume</option>
+                    <option value="expire">expire</option>
+                    <option value="bonus">bonus</option>
+                    <option value="referral">referral</option>
+                  </select>
+                </div>
+                <button type="button" id="btnLedger">查询流水</button>
+              </div>
+              <p class="muted small" id="ledMeta" style="margin-top:8px;"></p>
+              <div style="overflow:auto;margin-top:8px;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th><th>类型</th><th>数量</th><th>tokens</th><th>model</th><th>备注</th><th>时间</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ledBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -422,7 +464,7 @@
   var SK = "ai24x_token_admin_v1";
   var NAV_GROUP_KEY = "ai24x_token_admin_nav_group";
   var $ = function (id) { return document.getElementById(id); };
-  var state = { base: "", key: "", panel: "p-dash" };
+  var state = { base: "", key: "", panel: "p-dash", ordOffset: 0 };
 
   function qsa(sel) {
     try { return Array.prototype.slice.call(document.querySelectorAll(sel)); }
@@ -707,13 +749,17 @@
     if (uid) qs.set("auth_user_id", uid);
     if (q) qs.set("q", q);
     qs.set("limit", String(extraLimit || 50));
+    qs.set("offset", String(Math.max(0, state.ordOffset || 0)));
     return qs;
   }
 
   async function loadOrders() {
     var data = await api("/v1/admin/token/orders?" + orderFilterQs(50).toString());
     var rows = (data && data.rows) || [];
-    $("ordMeta").textContent = "共 " + ((data && data.total) || rows.length) + " 条（最多显示 50）";
+    var total = (data && data.total) || rows.length;
+    var off = state.ordOffset || 0;
+    $("ordMeta").textContent =
+      "共 " + total + " 条 · 本页 " + rows.length + " · offset=" + off;
     $("ordBody").innerHTML = rows.map(function (r) {
       var fulfill = r.status === "pending"
         ? '<button type="button" data-otn="' + String(r.out_trade_no).replace(/"/g, "") + '" class="btnFulfill">查单履约</button>'
@@ -731,6 +777,34 @@
     }).join("") || '<tr><td colspan="8" class="muted">无订单</td></tr>';
   }
 
+  async function loadLedger() {
+    var uid = Number(($("ledUid").value || "").trim() || ($("wUid").value || "").trim() || 0);
+    if (!uid) {
+      setMsg("请填写用户 ID", "err");
+      return;
+    }
+    $("ledUid").value = String(uid);
+    var qs = new URLSearchParams();
+    qs.set("auth_user_id", String(uid));
+    qs.set("limit", "50");
+    var et = ($("ledType").value || "").trim();
+    if (et) qs.set("entry_type", et);
+    var data = await api("/v1/admin/token/ledger?" + qs.toString());
+    var rows = (data && data.rows) || [];
+    $("ledMeta").textContent = "用户 " + uid + " · 共 " + ((data && data.total) || rows.length) + " 条";
+    $("ledBody").innerHTML = rows.map(function (r) {
+      return "<tr>" +
+        "<td>" + esc(r.id) + "</td>" +
+        "<td>" + esc(r.type) + "</td>" +
+        "<td>" + esc(r.amount) + "</td>" +
+        "<td>" + esc(r.tokens) + "</td>" +
+        "<td>" + esc(r.model || "") + "</td>" +
+        '<td class="mono">' + esc(r.note || "") + "</td>" +
+        '<td class="mono">' + esc(r.created_at || "") + "</td>" +
+        "</tr>";
+    }).join("") || '<tr><td colspan="7" class="muted">无流水</td></tr>';
+  }
+
   async function refreshCurrentPanel() {
     var p = state.panel || "p-dash";
     if (p === "p-dash") {
@@ -742,6 +816,9 @@
     } else if (p === "p-orders") {
       await loadOrders();
       setMsg("订单已更新", "ok");
+    } else if (p === "p-ledger") {
+      await loadLedger();
+      setMsg("流水已更新", "ok");
     }
   }
 
@@ -771,7 +848,10 @@
         method: "POST",
         body: { out_trade_no: otn },
       });
-      setMsg("履约结果：" + JSON.stringify(r), "ok");
+      var tip = r && r.ok
+        ? (r.duplicate ? "已到账（重复确认）" : "已到账")
+        : ("未完成：" + (r && (r.error || r.trade_state) || "pending"));
+      setMsg(tip + " · " + otn, r && r.ok ? "ok" : "err");
       if (state.panel === "p-dash") await loadDashHome();
       else {
         await loadOrders();
@@ -827,10 +907,31 @@
 
   $("btnLoadOrders").onclick = async function () {
     try {
+      state.ordOffset = 0;
       await loadOrders();
       setMsg("订单已更新", "ok");
     } catch (e) { setMsg(String(e.message || e), "err"); }
   };
+  if ($("btnOrdPrev")) {
+    $("btnOrdPrev").onclick = async function () {
+      state.ordOffset = Math.max(0, (state.ordOffset || 0) - 50);
+      try { await loadOrders(); } catch (e) { setMsg(String(e.message || e), "err"); }
+    };
+  }
+  if ($("btnOrdNext")) {
+    $("btnOrdNext").onclick = async function () {
+      state.ordOffset = (state.ordOffset || 0) + 50;
+      try { await loadOrders(); } catch (e) { setMsg(String(e.message || e), "err"); }
+    };
+  }
+  if ($("btnLedger")) {
+    $("btnLedger").onclick = async function () {
+      try {
+        await loadLedger();
+        setMsg("流水已加载", "ok");
+      } catch (e) { setMsg(String(e.message || e), "err"); }
+    };
+  }
 
   $("btnDashLoadPending").onclick = async function () {
     try {

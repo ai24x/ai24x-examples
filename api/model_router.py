@@ -42,6 +42,9 @@ MODEL_LAYER: dict[str, str] = {
 # VIP：DeepSeek 主力 → reasoner → 扩展
 CHAIN_FREE = ["L1", "L0"]
 CHAIN_VIP = ["L1", "L2", "L3"]
+# 欧盟（及显式 EU 区）：优先 Qwen 国际（QI），再 L0；需 TOKEN_REGION_ROUTING=1 且配置 QI Key
+CHAIN_FREE_EU = ["QI", "L0"]
+CHAIN_VIP_EU = ["QI", "L1", "L2", "L3"]
 
 LAYER_DEFAULT_MODEL = {
     "L0": "siliconflow-free",
@@ -49,6 +52,7 @@ LAYER_DEFAULT_MODEL = {
     "L1": "deepseek-chat",
     "L2": "deepseek-pro",
     "L3": "kimi-k3",
+    "QI": "qwen-intl-turbo",
 }
 
 # 逻辑名 → upstream 实际 model id（DeepSeek 平台现要求 v4 系列）
@@ -71,10 +75,48 @@ LOGICAL_TO_UPSTREAM_MODEL = {
     "gpt-3.5-turbo": "deepseek-v4-flash",
     "auto": "deepseek-v4-flash",
     "free": "deepseek-v4-flash",
+    # Qwen 国际（DashScope compatible-mode 常用 id，可用 TOKEN_LLM_QI_MODEL 覆盖）
+    "qwen-intl-turbo": "qwen-turbo",
+    "qwen-intl-plus": "qwen-plus",
+    "qwen-plus": "qwen-plus",
 }
 
 # 计费倍率（相对 completion token 估算）
-LAYER_COST_MULT = {"L0": 1, "L1": 1, "L2": 5, "L3": 8}
+LAYER_COST_MULT = {"L0": 1, "L1": 1, "L2": 5, "L3": 8, "QI": 1}
+
+# ISO 3166-1 alpha-2（Cloudflare CF-IPCountry / 手工 X-AI24X-Region）
+_EU_COUNTRY_CODES = frozenset(
+    {
+        "AT",
+        "BE",
+        "BG",
+        "HR",
+        "CY",
+        "CZ",
+        "DK",
+        "EE",
+        "FI",
+        "FR",
+        "DE",
+        "GR",
+        "HU",
+        "IE",
+        "IT",
+        "LV",
+        "LT",
+        "LU",
+        "MT",
+        "NL",
+        "PL",
+        "PT",
+        "RO",
+        "SK",
+        "SI",
+        "ES",
+        "SE",
+        "EU",  # 显式区号
+    }
+)
 
 
 @dataclass
@@ -92,6 +134,7 @@ class RouteResult:
 def list_models_public(*, is_vip: bool) -> dict[str, Any]:
     l0 = _layer_upstream("L0")
     l1 = _layer_upstream("L1")
+    qi = _layer_upstream("QI")
     return {
         "layers": {
             "L0": {
@@ -108,6 +151,13 @@ def list_models_public(*, is_vip: bool) -> dict[str, Any]:
                 "ready": bool(l1.get("key")),
                 "provider": l1.get("provider"),
             },
+            "QI": {
+                "title": "Qwen 国际（欧盟区优先；需 TOKEN_REGION_ROUTING=1）",
+                "models": ["qwen-intl-turbo", "qwen-intl-plus"],
+                "free": True,
+                "ready": bool(qi.get("key")),
+                "provider": qi.get("provider"),
+            },
             "L2": {
                 "title": "VIP 增强层",
                 "models": ["pro", "deepseek-pro", "deepseek-reasoner"],
@@ -120,22 +170,25 @@ def list_models_public(*, is_vip: bool) -> dict[str, Any]:
             },
         },
         "brand": {
-            "free": "auto（FREE 链 L1→L0）",
-            "flash": "L1 DeepSeek",
+            "free": "auto（FREE 链 L1→L0；EU 开区路由时 QI→L0）",
+            "flash": "L1 DeepSeek / EU→QI",
             "pro": "L2（VIP）",
             "ultra": "L3（VIP）",
         },
         "default": "auto",
         "chain": CHAIN_VIP if is_vip else CHAIN_FREE,
+        "region_routing": _region_routing_enabled(),
         "upstream": {
             "l0_ready": bool(l0.get("key")),
             "l1_deepseek_ready": bool(l1.get("key")),
+            "qi_qwen_intl_ready": bool(qi.get("key")),
             "deepseek_ready": bool(l1.get("key")),
-            "mode": "live" if (l0.get("key") or l1.get("key")) else "stub",
+            "mode": "live" if (l0.get("key") or l1.get("key") or qi.get("key")) else "stub",
             "l0_base": l0.get("base") or None,
             "l1_base": l1.get("base") or None,
+            "qi_base": qi.get("base") or None,
         },
-        "note": "免费用户默认 DeepSeek（平台月赠额度限额）；DeepSeek 故障时 fallback 硅基流动。VIP 走 L1→L2→L3。",
+        "note": "免费用户默认 DeepSeek；故障 fallback 硅基流动。欧盟区路由默认关（TOKEN_REGION_ROUTING=0）。",
     }
 
 
@@ -180,6 +233,7 @@ def _layer_upstream(layer: str) -> dict[str, str]:
     分层独立 upstream，避免 L0 误用 DeepSeek Key。
     L0 → 硅基流动（免费额度测试）
     L1 → DeepSeek
+    QI → Qwen 国际（DashScope OpenAI compatible；默认关闭区域路由时不进链）
     """
     layer = (layer or "").upper()
     if layer == "L0":
@@ -210,6 +264,20 @@ def _layer_upstream(layer: str) -> dict[str, str]:
             or "deepseek-v4-flash"
         )
         provider = "deepseek"
+    elif layer == "QI":
+        # 国际：DashScope compatible-mode（新加坡等）；也可用任意 OpenAI 兼容代理
+        base = (
+            _env("TOKEN_LLM_QI_BASE")
+            or _env("QWEN_INTL_BASE_URL")
+            or "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+        )
+        key = _env("TOKEN_LLM_QI_KEY") or _env("QWEN_INTL_API_KEY") or _env("DASHSCOPE_API_KEY")
+        model = (
+            _env("TOKEN_LLM_QI_MODEL")
+            or _env("QWEN_INTL_MODEL")
+            or "qwen-turbo"
+        )
+        provider = "qwen_intl"
     else:
         base = _env(f"TOKEN_LLM_{layer}_BASE") or _env("TOKEN_LLM_BASE") or ""
         key = _env(f"TOKEN_LLM_{layer}_KEY") or _env("TOKEN_LLM_KEY") or ""
@@ -235,29 +303,69 @@ def _upstream_model_id(logical: str, layer_default: str) -> str:
     return LOGICAL_TO_UPSTREAM_MODEL.get(logical, layer_default or logical)
 
 
-def resolve_chain(*, requested_model: Optional[str], is_vip: bool) -> list[tuple[str, str]]:
+def _region_routing_enabled() -> bool:
+    v = (_env("TOKEN_REGION_ROUTING", "0") or "0").strip().lower()
+    return v in ("1", "true", "yes", "on")
+
+
+def normalize_region(region_hint: Optional[str]) -> str:
+    """
+    返回 'EU' | 'DEFAULT'。
+    支持：EU / EEA 字样，或 ISO 国家码（CF-IPCountry）。
+    """
+    raw = (region_hint or "").strip().upper()
+    if not raw:
+        return "DEFAULT"
+    if raw in ("EU", "EEA", "EUROPE"):
+        return "EU"
+    if len(raw) == 2 and raw in _EU_COUNTRY_CODES:
+        return "EU"
+    return "DEFAULT"
+
+
+def resolve_chain(
+    *,
+    requested_model: Optional[str],
+    is_vip: bool,
+    region_hint: Optional[str] = None,
+) -> list[tuple[str, str]]:
     """
     返回 [(layer, logical_model), ...] 尝试序列。
+    TOKEN_REGION_ROUTING=0（默认）：行为与改前一致（非欧盟链）。
+    =1 且 region=EU：优先 QI（Qwen 国际）。
     """
     req = (requested_model or "auto").strip().lower() or "auto"
+    use_eu = _region_routing_enabled() and normalize_region(region_hint) == "EU"
+    if use_eu:
+        # 无 QI Key 时仍给出 EU 链；run_routed_chat 会 skip no_key 并 fallback
+        free_chain = CHAIN_FREE_EU
+        vip_chain = CHAIN_VIP_EU
+    else:
+        free_chain = CHAIN_FREE
+        vip_chain = CHAIN_VIP
+
     if req in ("auto", "free"):
-        layers = CHAIN_VIP if is_vip else CHAIN_FREE
+        layers = vip_chain if is_vip else free_chain
         return [(ly, LAYER_DEFAULT_MODEL[ly]) for ly in layers]
 
     layer = MODEL_LAYER.get(req, "L1")
     if layer == "auto":
-        layers = CHAIN_VIP if is_vip else CHAIN_FREE
+        layers = vip_chain if is_vip else free_chain
         return [(ly, LAYER_DEFAULT_MODEL[ly]) for ly in layers]
 
     # 品牌档映射到默认逻辑模型
-    brand_logical = {"flash": "deepseek-chat", "pro": "deepseek-pro", "ultra": "kimi-k3"}
+    brand_logical = {
+        "flash": "deepseek-chat" if not use_eu else "qwen-intl-turbo",
+        "pro": "deepseek-pro" if not use_eu else "qwen-intl-plus",
+        "ultra": "kimi-k3",
+    }
     logical = brand_logical.get(req, req)
 
-    # VIP 限定层：FREE 用户降到 L1→L0，禁止静默按 VIP 价升档
+    # VIP 限定层：FREE 用户降到默认 FREE 链，禁止静默按 VIP 价升档
     if layer in ("L2", "L3") and not is_vip:
-        return [("L1", LAYER_DEFAULT_MODEL["L1"]), ("L0", LAYER_DEFAULT_MODEL["L0"])]
+        return [(ly, LAYER_DEFAULT_MODEL[ly]) for ly in free_chain]
 
-    chain_layers = CHAIN_VIP if is_vip else CHAIN_FREE
+    chain_layers = vip_chain if is_vip else free_chain
     # 从指定层开始，再 fallback 同链后续
     out: list[tuple[str, str]] = [(layer, logical)]
     started = False
@@ -273,6 +381,122 @@ def resolve_chain(*, requested_model: Optional[str], is_vip: bool) -> list[tuple
             if ly != layer:
                 out.append((ly, LAYER_DEFAULT_MODEL[ly]))
     return out
+
+
+def run_routed_chat(
+    *,
+    prompt: str,
+    requested_model: Optional[str],
+    is_vip: bool,
+    temperature: float = 0.7,
+    max_tokens: int = 1000,
+    region_hint: Optional[str] = None,
+) -> RouteResult:
+    attempts: list[dict[str, Any]] = []
+    chain = resolve_chain(
+        requested_model=requested_model, is_vip=is_vip, region_hint=region_hint
+    )
+    timeout_s = _timeout_s()
+    any_live = any(bool(_layer_upstream(ly)["key"]) for ly, _ in chain)
+
+    for layer, logical_model in chain:
+        up = _layer_upstream(layer)
+        api_model = _upstream_model_id(logical_model, up["model"])
+        t0 = time.time()
+        try:
+            if up["base"] and up["key"]:
+                out = _call_openai_compatible(
+                    base=up["base"],
+                    key=up["key"],
+                    model=api_model,
+                    prompt=prompt,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    timeout_s=timeout_s,
+                )
+                provider = str(up.get("provider") or "openai_compatible")
+                if "deepseek.com" in up["base"]:
+                    provider = "deepseek"
+                elif "siliconflow" in up["base"]:
+                    provider = "siliconflow"
+                elif "dashscope" in up["base"] or provider == "qwen_intl":
+                    provider = "qwen_intl"
+                used_model = str(out.get("raw_model") or api_model)
+            else:
+                # 已配置其它层真 Key 时：跳过无 Key 层，避免 L0 stub 挡住 DeepSeek
+                if any_live:
+                    attempts.append(
+                        {
+                            "layer": layer,
+                            "model": logical_model,
+                            "ok": False,
+                            "skipped": "no_key",
+                            "ms": 0,
+                        }
+                    )
+                    continue
+                out = _stub_response(prompt, layer=layer, model=logical_model)
+                provider = "stub"
+                used_model = logical_model
+
+            elapsed = time.time() - t0
+            attempts.append(
+                {
+                    "layer": layer,
+                    "model": used_model,
+                    "provider": provider,
+                    "ok": True,
+                    "ms": int(elapsed * 1000),
+                }
+            )
+            raw_tokens = int(out["tokens"])
+            mult = int(LAYER_COST_MULT.get(layer, 1))
+            bill_tokens = max(1, raw_tokens * mult)
+            return RouteResult(
+                ok=True,
+                text=str(out["text"]),
+                model=used_model,
+                layer=layer,
+                provider=provider,
+                token_count=bill_tokens,
+                attempts=attempts,
+            )
+        except Exception as e:
+            elapsed = time.time() - t0
+            logger.warning("route layer=%s model=%s failed: %s", layer, logical_model, e)
+            attempts.append(
+                {
+                    "layer": layer,
+                    "model": logical_model,
+                    "ok": False,
+                    "error": str(e)[:200],
+                    "ms": int(elapsed * 1000),
+                }
+            )
+            continue
+
+    # 所有 live 失败时：测试环境回落 stub，避免无效 Key 把整条链打死
+    layer0, logical0 = chain[0] if chain else ("L0", "siliconflow-free")
+    stub = _stub_response(prompt, layer=layer0, model=logical0)
+    attempts.append(
+        {
+            "layer": layer0,
+            "model": logical0,
+            "provider": "stub",
+            "ok": True,
+            "fallback": "all_live_failed",
+        }
+    )
+    return RouteResult(
+        ok=True,
+        text=str(stub["text"]),
+        model=logical0,
+        layer=layer0,
+        provider="stub",
+        token_count=max(1, int(stub["tokens"])),
+        attempts=attempts,
+        error="all_live_failed_used_stub",
+    )
 
 
 def _call_openai_compatible(
@@ -328,106 +552,3 @@ def _stub_response(prompt: str, *, layer: str, model: str) -> dict[str, Any]:
         "当前未配置 TOKEN_LLM_* upstream，返回联调占位回复。"
     )
     return {"text": text, "tokens": max(1, int(len(text.split()) * 1.3))}
-
-
-def run_routed_chat(
-    *,
-    prompt: str,
-    requested_model: Optional[str],
-    is_vip: bool,
-    temperature: float = 0.7,
-    max_tokens: int = 1000,
-) -> RouteResult:
-    attempts: list[dict[str, Any]] = []
-    chain = resolve_chain(requested_model=requested_model, is_vip=is_vip)
-    timeout_s = _timeout_s()
-    any_live = any(bool(_layer_upstream(ly)["key"]) for ly, _ in chain)
-
-    for layer, logical_model in chain:
-        up = _layer_upstream(layer)
-        api_model = _upstream_model_id(logical_model, up["model"])
-        t0 = time.time()
-        try:
-            if up["base"] and up["key"]:
-                out = _call_openai_compatible(
-                    base=up["base"],
-                    key=up["key"],
-                    model=api_model,
-                    prompt=prompt,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                    timeout_s=timeout_s,
-                )
-                provider = str(up.get("provider") or "openai_compatible")
-                if "deepseek.com" in up["base"]:
-                    provider = "deepseek"
-                elif "siliconflow" in up["base"]:
-                    provider = "siliconflow"
-                used_model = str(out.get("raw_model") or api_model)
-            else:
-                # 已配置其它层真 Key 时：跳过无 Key 层，避免 L0 stub 挡住 DeepSeek
-                if any_live:
-                    attempts.append(
-                        {
-                            "layer": layer,
-                            "model": logical_model,
-                            "ok": False,
-                            "skipped": "no_key",
-                            "ms": 0,
-                        }
-                    )
-                    continue
-                out = _stub_response(prompt, layer=layer, model=logical_model)
-                provider = "stub"
-                used_model = logical_model
-
-            elapsed = time.time() - t0
-            attempts.append(
-                {
-                    "layer": layer,
-                    "model": used_model,
-                    "provider": provider,
-                    "ok": True,
-                    "ms": int(elapsed * 1000),
-                }
-            )
-            raw_tokens = int(out["tokens"])
-            mult = int(LAYER_COST_MULT.get(layer, 1))
-            bill_tokens = max(1, raw_tokens * mult)
-            return RouteResult(
-                ok=True,
-                text=str(out["text"]),
-                model=used_model,
-                layer=layer,
-                provider=provider,
-                token_count=bill_tokens,
-                attempts=attempts,
-            )
-        except Exception as e:
-            elapsed = time.time() - t0
-            logger.warning("model route fail layer=%s model=%s err=%s", layer, logical_model, e)
-            attempts.append(
-                {
-                    "layer": layer,
-                    "model": logical_model,
-                    "ok": False,
-                    "ms": int(elapsed * 1000),
-                    "error": str(e)[:200],
-                }
-            )
-            continue
-
-    # 所有 live 失败时：测试环境回落 stub，避免无效 DeepSeek Key 把整条链打死
-    layer0, logical0 = chain[0] if chain else ("L0", "siliconflow-free")
-    stub = _stub_response(prompt, layer=layer0, model=logical0)
-    attempts.append({"layer": layer0, "model": logical0, "provider": "stub", "ok": True, "fallback": "all_live_failed"})
-    return RouteResult(
-        ok=True,
-        text=str(stub["text"]),
-        model=logical0,
-        layer=layer0,
-        provider="stub",
-        token_count=max(1, int(stub["tokens"])),
-        attempts=attempts,
-        error="all_live_failed_used_stub",
-    )

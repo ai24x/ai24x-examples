@@ -76,6 +76,7 @@ class ChatService:
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
         auth_user_id: Optional[int] = None,
+        region_hint: Optional[str] = None,
     ) -> ChatResponse:
         """处理聊天请求；若提供 auth_user_id 则走 Token 钱包扣减。"""
         request_id = f"req_{uuid.uuid4().hex[:16]}"
@@ -118,6 +119,7 @@ class ChatService:
                 is_vip=is_vip,
                 temperature=float(request.temperature or 0.7),
                 max_tokens=int(request.max_tokens or 1000),
+                region_hint=region_hint,
             )
             if not routed.ok:
                 raise RuntimeError(routed.error or "all_routes_failed")

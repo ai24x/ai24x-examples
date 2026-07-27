@@ -250,6 +250,13 @@ async def chat_run(
         
         # 处理聊天请求
         auth_uid = getattr(http_request.state, "auth_user_id", None) if http_request else None
+        region_hint = None
+        if http_request is not None:
+            region_hint = (
+                (http_request.headers.get("x-ai24x-region") or "").strip()
+                or (http_request.headers.get("cf-ipcountry") or "").strip()
+                or None
+            )
         response = ChatService.process_chat_request(
             db=db,
             user=current_user,
@@ -257,6 +264,7 @@ async def chat_run(
             ip_address=ip_address,
             user_agent=user_agent,
             auth_user_id=auth_uid,
+            region_hint=region_hint,
         )
         
         logger.info(f"Chat request processed: {response.request_id} for user: {current_user.user_id}")
@@ -1466,6 +1474,28 @@ async def admin_token_wallet(request: Request, auth_user_id: int, db: Session = 
     from token_mvp_service import get_balance_snapshot
 
     return get_balance_snapshot(db, int(auth_user_id))
+
+
+@app.get("/v1/admin/token/ledger")
+async def admin_token_ledger(
+    request: Request,
+    auth_user_id: int,
+    db: Session = Depends(get_db),
+    entry_type: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+):
+    """管理端查看用户 BillingLedger（充值/消耗/过期等）。"""
+    _require_internal_key(request)
+    from token_mvp_service import list_usage
+
+    return list_usage(
+        db,
+        int(auth_user_id),
+        limit=limit,
+        offset=offset,
+        entry_type=(entry_type or "").strip() or None,
+    )
 
 
 @app.get("/v1/admin/token/orders")
