@@ -444,7 +444,7 @@
   }
 
   /** 点击当下同步开窗，避免异步回调后被浏览器拦截；绝不 location 顶掉控制台 */
-  function openAlipayInNewWindow(payUrl) {
+  function openPayInNewWindow(payUrl) {
     if (!payUrl) return false;
     try {
       var w = window.open(payUrl, "_blank", "noopener,noreferrer");
@@ -456,6 +456,47 @@
       }
     } catch (e) {}
     return false;
+  }
+  /** @deprecated 兼容旧名 */
+  function openAlipayInNewWindow(payUrl) {
+    return openPayInNewWindow(payUrl);
+  }
+
+  function openCheckoutPlaceholder(labelZh, labelEn) {
+    var win = null;
+    try {
+      win = window.open("about:blank", "_blank");
+      if (win) {
+        try {
+          win.document.write(
+            "<!doctype html><title>Checkout</title><p style='font:14px/1.5 system-ui,sans-serif;padding:24px;color:#334'>" +
+              tr(labelZh, labelEn) +
+              "</p>"
+          );
+        } catch (e) {}
+      }
+    } catch (e) {
+      win = null;
+    }
+    return win;
+  }
+
+  function navigateCheckoutWin(win, payUrl) {
+    if (win && !win.closed && payUrl) {
+      try {
+        win.location.href = payUrl;
+        return true;
+      } catch (e) {}
+    }
+    return openPayInNewWindow(payUrl);
+  }
+
+  function closeCheckoutWin(win) {
+    if (win && !win.closed) {
+      try {
+        win.close();
+      } catch (e) {}
+    }
   }
 
   var _fulfillPollTimer = null;
@@ -522,22 +563,17 @@
       return;
     }
 
-    var alipayWin = null;
+    var checkoutWin = null;
     if (channel === "alipay") {
-      try {
-        alipayWin = window.open("about:blank", "_blank");
-        if (alipayWin) {
-          try {
-            alipayWin.document.write(
-              "<!doctype html><title>Alipay</title><p style='font:14px sans-serif;padding:24px'>" +
-                tr("正在打开支付宝，请稍候…", "Opening Alipay…") +
-                "</p>"
-            );
-          } catch (e) {}
-        }
-      } catch (e) {
-        alipayWin = null;
-      }
+      checkoutWin = openCheckoutPlaceholder(
+        "正在打开支付宝，请稍候…",
+        "Opening Alipay…"
+      );
+    } else if (channel === "paypal") {
+      checkoutWin = openCheckoutPlaceholder(
+        "正在创建 PayPal 订单，请稍候…（勿关闭此窗口）",
+        "Creating PayPal order… Keep this tab open."
+      );
     }
 
     openPayModal(
@@ -547,7 +583,10 @@
         : channel === "alipay"
           ? tr("将在新窗口打开支付宝；本页控制台保留。", "Alipay opens in a new window; this console stays.")
           : channel === "paypal"
-            ? tr("将打开 PayPal（USD）；本页控制台保留。", "Opening PayPal (USD); this console stays.")
+            ? tr(
+                "正在向 PayPal 下单（约需数秒），请允许浏览器弹窗；本页控制台保留。",
+                "Creating PayPal order (a few seconds). Allow pop-ups; this console stays."
+              )
             : tr("请选择支付方式", "Choose a payment method")
     );
 
@@ -561,11 +600,7 @@
     req
       .then(function (r) {
         if (r && r.mock) {
-          if (alipayWin && !alipayWin.closed) {
-            try {
-              alipayWin.close();
-            } catch (e) {}
-          }
+          closeCheckoutWin(checkoutWin);
           showPayResult({
             hint: tr(
               "当前仍为模拟单（" +
@@ -590,17 +625,7 @@
           });
           startFulfillPoll(r.out_trade_no, "wechat");
         } else if (channel === "alipay" && r && r.pay_url) {
-          var opened = false;
-          if (alipayWin && !alipayWin.closed) {
-            try {
-              alipayWin.location.href = r.pay_url;
-              opened = true;
-            } catch (e) {
-              opened = openAlipayInNewWindow(r.pay_url);
-            }
-          } else {
-            opened = openAlipayInNewWindow(r.pay_url);
-          }
+          var opened = navigateCheckoutWin(checkoutWin, r.pay_url);
           showPayResult({
             hint:
               (opened
@@ -622,12 +647,15 @@
           });
           startFulfillPoll(r.out_trade_no, "alipay");
         } else if (channel === "paypal" && r && r.pay_url) {
-          var ppOpened = openAlipayInNewWindow(r.pay_url);
+          var ppOpened = navigateCheckoutWin(checkoutWin, r.pay_url);
           showPayResult({
             hint:
               (ppOpened
                 ? tr("已打开 PayPal，请在新窗口完成付款。", "PayPal opened — finish payment there.")
-                : tr("请点下方按钮打开 PayPal。", "Use the button below to open PayPal.")) +
+                : tr(
+                    "弹窗被拦截时，请点下方按钮打开 PayPal。",
+                    "If the pop-up was blocked, use the button below."
+                  )) +
               tr(
                 " 付完返回本页会自动确认到账。单号：",
                 " After return, this page auto-confirms. Order: "
@@ -639,11 +667,7 @@
           });
           startFulfillPoll(r.out_trade_no, "paypal");
         } else {
-          if (alipayWin && !alipayWin.closed) {
-            try {
-              alipayWin.close();
-            } catch (e) {}
-          }
+          closeCheckoutWin(checkoutWin);
           showPayResult({
             hint: tr(
               "下单返回异常，请看控制台消息。单号：" + ((r && r.out_trade_no) || ""),
@@ -654,11 +678,7 @@
         return refreshAll();
       })
       .catch(function (e) {
-        if (alipayWin && !alipayWin.closed) {
-          try {
-            alipayWin.close();
-          } catch (err) {}
-        }
+        closeCheckoutWin(checkoutWin);
         showPayResult({ hint: e.message || tr("下单失败", "Order failed") });
         showMsg($("consoleMsg"), e.message || tr("下单失败", "Order failed"), false);
       });
