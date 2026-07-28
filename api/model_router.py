@@ -56,7 +56,7 @@ LAYER_DEFAULT_MODEL = {
 # 聚合默认 model id（OpenRouter 路由名；可用 OPENROUTER_MODEL_* 覆盖）
 _OR_DEFAULT_MODELS = {
     "L0": "openrouter/auto",
-    "L1": "deepseek/deepseek-chat",
+    "L1": "qwen/qwen3.7-flash",
     "L2": "deepseek/deepseek-r1",
     "L3": "openai/gpt-4o-mini",
     "QI": "qwen/qwen-2.5-72b-instruct",

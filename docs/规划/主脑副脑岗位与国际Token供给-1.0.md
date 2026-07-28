@@ -1,9 +1,10 @@
 # AI24X · 主脑/副脑岗位与国际 Token 供给（拍板口径）
 
-> **版本**：1.0.1 · 2026-07-27  
+> **版本**：1.0.2 · 2026-07-28  
 > **对齐**：指挥中心 `web/ai24x.html` · `web/ops/ai24x-command.json`  
 > **策略**：一人公司 · 国际优先 · 先跑通流水 · 再扩 7×24 项目  
-> **命名**：飞书显示名（AI24X 指挥/国际/中国/运维CN/运维SG）与席位别称（主脑、副脑01～04）**双轨并存**；文档与口头指令里「副脑01」等永久有效。
+> **命名**：飞书显示名（AI24X 指挥/国际/中国/运维CN/运维SG）与席位别称（主脑、副脑01～04）**双轨并存**；文档与口头指令里「副脑01」等永久有效。  
+> **模型**：聚合优先（OpenRouter）→ 直连 DeepSeek/Qwen 兜底；详见 §四。
 
 ---
 
@@ -56,34 +57,49 @@
 
 ## 四、模型路由与数据区域
 
-对外别名不变：`flash | pro | ultra | auto`。
+对外别名不变：`flash | pro | ultra | auto`（用户不感知上游品牌）。
 
-### 拍板（2026-07-28）：聚合优先
+### 拍板（2026-07-28）：聚合优先 + 直连兜底
+
+```
+用户 → AI24X（鉴权/计费）→ 路由
+         ├─ ① OpenRouter（默认主路径）
+         ├─ ② 直连 DeepSeek / Qwen（降本或聚合故障）
+         └─ ③ 第二聚合（P2，双活）
+```
 
 | 项 | 口径 |
 |----|------|
-| **默认上游** | **OpenRouter**（或同类 OpenAI 兼容聚合）：一 Key 多模型，面向开发者转售更友好 |
-| **直连官方** | 仅作可选（`TOKEN_LLM_UPSTREAM=direct`），不作为对外售卖主路径 |
-| **欧盟** | 仍可用区路由：聚合上的国际向模型 id（`OPENROUTER_MODEL_EU`），默认关 |
-| **稳定性** | 可再加第二聚合商作兜底；封 Key 只换聚合侧，不对外宣称官方代理 |
+| **默认上游** | **OpenRouter**（`TOKEN_LLM_UPSTREAM=openrouter`） |
+| **直连官方** | 可选兜底（`TOKEN_LLM_UPSTREAM=direct`），不作为对外售卖主路径 |
+| **对外话术** | 卖 AI24X Token / 统一 API，**不宣称**官方代理 |
+| **欧盟** | 区路由默认关；开则用聚合上的国际向模型（`OPENROUTER_MODEL_EU`） |
+| **性价比** | 聚合 token 价≈透传，综合约多 5～7% 充值费；换合规与换模自由 |
 
-### 档位映射（OpenRouter 默认，可 env 覆盖）
+### 默认档位（代码 `_OR_DEFAULT_MODELS`，可用 env 覆盖）
 
-| 对外 | 层 | 默认 model id（示例） |
-|------|----|----------------------|
-| flash / auto | L1 | `deepseek/deepseek-chat` |
+| 对外 | 层 | OpenRouter model id |
+|------|----|---------------------|
+| flash / auto | L1 | `qwen/qwen3.7-flash` |
 | pro | L2 | `deepseek/deepseek-r1` |
 | ultra | L3 | `openai/gpt-4o-mini` |
 | 兜底 | L0 | `openrouter/auto` |
 | 欧盟优先 | QI | `qwen/qwen-2.5-72b-instruct` |
 
-### 接入顺序
+### 接入优先级（唯一清单）
 
-1. P0：OpenRouter Key + 本机/公网 `chat/run` 烟测  
-2. P1：按成本微调 `OPENROUTER_MODEL_*`；欧盟区路由按需开  
-3. P2：第二聚合商（同 OpenAI 兼容）作 L0/故障切换  
+| 优先级 | 做什么 | 谁 |
+|--------|--------|-----|
+| **P0** | OpenRouter Key + 本机/公网 `chat/run` 三档烟测 | 雷总配 Key；主脑代码已就绪 |
+| **P0** | 固定上表三档 id，按 OR 账单校毛利 | 主脑微调 env |
+| **P1** | 直连 DeepSeek（非欧盟降本/故障切） | 有流水后再开 |
+| **P1** | 直连 Qwen 国际（欧盟叙事/聚合挂） | 有流水后再开 |
+| **P1** | PayPal Webhook 第二履约路径 | 雷总后台 + 03 行级 env |
+| **P2** | 第二聚合商双活 | 稳定流水后 |
+| **P2** | MiniMax / 智谱海外 / Claude·Gemini 中低档作 ultra 备胎 | 有明确溢价场景再加 |
+| **不做（现阶段）** | 默认链挂 Opus/顶配 GPT；堆十家官方直连；为「全家桶」接长尾 | — |
 
-联调说明：`docs/联调/OpenRouter聚合接入.md`。
+联调：`docs/联调/OpenRouter聚合接入.md` · 代码：`api/model_router.py`。
 
 ---
 
