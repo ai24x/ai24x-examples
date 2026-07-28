@@ -58,36 +58,32 @@
 
 对外别名不变：`flash | pro | ultra | auto`。
 
-| 客户区 | 默认上游 | 说明 |
-|--------|----------|------|
-| **欧盟**（及明确要求模型处理不进中国） | **Qwen 国际**（Turbo / Plus） | 固定价、国际节点 |
-| **非欧盟** | **DeepSeek 国内** Flash / Pro | 性价比；ToS 写明模型处理地 |
-| **全区域兜底** | Qwen 国内批量 → MiniMax 国际 | 上游故障切换 |
-| **ultra** | 智谱海外 Pro 等 | 高价增值，不进免费/日赠主力 |
+### 拍板（2026-07-28）：聚合优先
 
-### DeepSeek 黄金时段（上游×2）
+| 项 | 口径 |
+|----|------|
+| **默认上游** | **OpenRouter**（或同类 OpenAI 兼容聚合）：一 Key 多模型，面向开发者转售更友好 |
+| **直连官方** | 仅作可选（`TOKEN_LLM_UPSTREAM=direct`），不作为对外售卖主路径 |
+| **欧盟** | 仍可用区路由：聚合上的国际向模型 id（`OPENROUTER_MODEL_EU`），默认关 |
+| **稳定性** | 可再加第二聚合商作兜底；封 Key 只换聚合侧，不对外宣称官方代理 |
 
-- **不对用户**做高峰单价翻倍（预付 credit 体验差）
-- 售价按综合成本留余量；高峰时 `auto/flash` **优先切固定价国际模型**
-- 日赠 / FREE 默认走 **固定价上游**，避免高峰送亏
+### 档位映射（OpenRouter 默认，可 env 覆盖）
+
+| 对外 | 层 | 默认 model id（示例） |
+|------|----|----------------------|
+| flash / auto | L1 | `deepseek/deepseek-chat` |
+| pro | L2 | `deepseek/deepseek-r1` |
+| ultra | L3 | `openai/gpt-4o-mini` |
+| 兜底 | L0 | `openrouter/auto` |
+| 欧盟优先 | QI | `qwen/qwen-2.5-72b-instruct` |
 
 ### 接入顺序
 
-1. P0：DeepSeek（已有）+ **Qwen 国际**  
-2. P1：Qwen 国内兜底 + MiniMax Flash 国际  
-3. P2：智谱海外 Pro（ultra）
+1. P0：OpenRouter Key + 本机/公网 `chat/run` 烟测  
+2. P1：按成本微调 `OPENROUTER_MODEL_*`；欧盟区路由按需开  
+3. P2：第二聚合商（同 OpenAI 兼容）作 L0/故障切换  
 
-成本参考（输出向，元/百万 token 量级，以供应商实时价为准）：
-
-| 模型 | 节点 | 峰谷 | 用途 |
-|------|------|------|------|
-| DeepSeek V4-Flash | 国内 | 有（约×2） | 非欧盟 flash 主力 |
-| DeepSeek V4-Pro | 国内 | 有（约×2） | 非欧盟 pro |
-| Qwen-Turbo 批量 | 国际 | 无 | 欧盟免费层 / 高峰切流 |
-| Qwen-Plus 批量 | 国际 | 无 | 欧盟 pro |
-| Qwen-Turbo 批量 | 国内 | 无 | 最便宜兜底 |
-| MiniMax Flash | 国际 | 无 | 国际备胎 |
-| 智谱 Z.AI Pro | 海外 | 无 | ultra |
+联调说明：`docs/联调/OpenRouter聚合接入.md`。
 
 ---
 

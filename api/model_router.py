@@ -1,8 +1,10 @@
 """
 L0–L3 模型路由（MVP）。
 
-未配置 upstream Key 时走本地 stub（仍返回 layer/model，便于联调）。
-配置 OpenAI 兼容端点后走真实调用，单层超时默认 5s，失败则 fallback 下一档。
+默认上游模式：OpenRouter 等 OpenAI 兼容**聚合平台**（转售友好、一 Key 多模型）。
+TOKEN_LLM_UPSTREAM=direct 时回退直连 DeepSeek / 硅基流动 / Qwen 国际。
+
+未配置 Key 时走本地 stub；配置后走真实调用，单层失败则 fallback 下一档。
 """
 from __future__ import annotations
 
@@ -19,7 +21,6 @@ logger = logging.getLogger(__name__)
 # 逻辑模型名 → 层级
 MODEL_LAYER: dict[str, str] = {
     "auto": "auto",
-    # 品牌档（对外；底层映射见 resolve）
     "free": "auto",
     "flash": "L1",
     "pro": "L2",
@@ -34,57 +35,80 @@ MODEL_LAYER: dict[str, str] = {
     "minimax": "L3",
     "qwen-plus": "L3",
     "doubao-pro": "L3",
-    # 兼容旧默认
     "gpt-3.5-turbo": "L1",
 }
 
-# FREE：DeepSeek 主打（平台月赠额度限额）；失败再落 L0 硅基流动兜底
-# VIP：DeepSeek 主力 → reasoner → 扩展
+# 聚合模式：各层都打同一 OpenRouter，用不同 model id 区分档位
 CHAIN_FREE = ["L1", "L0"]
 CHAIN_VIP = ["L1", "L2", "L3"]
-# 欧盟（及显式 EU 区）：优先 Qwen 国际（QI），再 L0；需 TOKEN_REGION_ROUTING=1 且配置 QI Key
-CHAIN_FREE_EU = ["QI", "L0"]
+# 欧盟：优先「国际向」聚合模型（仍经 OpenRouter），再兜底
+CHAIN_FREE_EU = ["QI", "L1", "L0"]
 CHAIN_VIP_EU = ["QI", "L1", "L2", "L3"]
 
 LAYER_DEFAULT_MODEL = {
-    "L0": "siliconflow-free",
-    # DeepSeek 新账号仅支持 v4：flash=主打，pro=增强
-    "L1": "deepseek-chat",
-    "L2": "deepseek-pro",
-    "L3": "kimi-k3",
-    "QI": "qwen-intl-turbo",
+    "L0": "or-fallback",
+    "L1": "or-flash",
+    "L2": "or-pro",
+    "L3": "or-ultra",
+    "QI": "or-eu",
 }
 
-# 逻辑名 → upstream 实际 model id（DeepSeek 平台现要求 v4 系列）
-LOGICAL_TO_UPSTREAM_MODEL = {
-    # L0 硅基流动免费额度常用模型（可改 SILICONFLOW_MODEL）
+# 聚合默认 model id（OpenRouter 路由名；可用 OPENROUTER_MODEL_* 覆盖）
+_OR_DEFAULT_MODELS = {
+    "L0": "openrouter/auto",
+    "L1": "deepseek/deepseek-chat",
+    "L2": "deepseek/deepseek-r1",
+    "L3": "openai/gpt-4o-mini",
+    "QI": "qwen/qwen-2.5-72b-instruct",
+}
+
+# 直连模式逻辑名 → upstream model id
+LOGICAL_TO_UPSTREAM_MODEL_DIRECT = {
     "glm-4-flash": "THUDM/glm-4-9b-chat",
     "siliconflow-free": "Qwen/Qwen2.5-7B-Instruct",
-    # L1 DeepSeek Flash
     "flash": "deepseek-v4-flash",
     "deepseek-flash": "deepseek-v4-flash",
     "deepseek-chat": "deepseek-v4-flash",
     "deepseek-v4-flash": "deepseek-v4-flash",
-    # L2 DeepSeek Pro
     "pro": "deepseek-v4-pro",
     "deepseek-pro": "deepseek-v4-pro",
     "deepseek-reasoner": "deepseek-v4-pro",
     "deepseek-v4-pro": "deepseek-v4-pro",
-    # L3 品牌占位
     "ultra": "kimi-k3",
     "gpt-3.5-turbo": "deepseek-v4-flash",
     "auto": "deepseek-v4-flash",
     "free": "deepseek-v4-flash",
-    # Qwen 国际（DashScope compatible-mode 常用 id，可用 TOKEN_LLM_QI_MODEL 覆盖）
     "qwen-intl-turbo": "qwen-turbo",
     "qwen-intl-plus": "qwen-plus",
     "qwen-plus": "qwen-plus",
 }
 
-# 计费倍率（相对 completion token 估算）
+# 聚合模式：品牌档 → OpenRouter model（可被 env 覆盖后的层默认再映射）
+LOGICAL_TO_UPSTREAM_MODEL_OR = {
+    "flash": "L1",
+    "deepseek-flash": "L1",
+    "deepseek-chat": "L1",
+    "or-flash": "L1",
+    "pro": "L2",
+    "deepseek-pro": "L2",
+    "deepseek-reasoner": "L2",
+    "or-pro": "L2",
+    "ultra": "L3",
+    "or-ultra": "L3",
+    "kimi-k3": "L3",
+    "auto": "L1",
+    "free": "L1",
+    "or-fallback": "L0",
+    "siliconflow-free": "L0",
+    "glm-4-flash": "L0",
+    "or-eu": "QI",
+    "qwen-intl-turbo": "QI",
+    "qwen-intl-plus": "QI",
+    "qwen-plus": "QI",
+}
+
 LAYER_COST_MULT = {"L0": 1, "L1": 1, "L2": 5, "L3": 8, "QI": 1}
 
-# ISO 3166-1 alpha-2（Cloudflare CF-IPCountry / 手工 X-AI24X-Region）
 _EU_COUNTRY_CODES = frozenset(
     {
         "AT",
@@ -114,7 +138,7 @@ _EU_COUNTRY_CODES = frozenset(
         "SI",
         "ES",
         "SE",
-        "EU",  # 显式区号
+        "EU",
     }
 )
 
@@ -132,63 +156,74 @@ class RouteResult:
 
 
 def list_models_public(*, is_vip: bool) -> dict[str, Any]:
+    mode = _upstream_mode()
     l0 = _layer_upstream("L0")
     l1 = _layer_upstream("L1")
+    l2 = _layer_upstream("L2")
+    l3 = _layer_upstream("L3")
     qi = _layer_upstream("QI")
+    any_key = bool(l0.get("key") or l1.get("key") or qi.get("key"))
     return {
         "layers": {
             "L0": {
-                "title": "兜底层（硅基流动等，DeepSeek 不可用时）",
-                "models": ["siliconflow-free", "glm-4-flash"],
+                "title": "兜底（聚合自动路由 / 直连硅基）",
+                "models": ["or-fallback", "siliconflow-free", "glm-4-flash"],
                 "free": True,
                 "ready": bool(l0.get("key")),
                 "provider": l0.get("provider"),
             },
             "L1": {
-                "title": "主打层（DeepSeek Flash/Chat，免费用户靠平台额度限额）",
-                "models": ["flash", "deepseek-flash", "deepseek-chat", "auto"],
+                "title": "主打 flash（聚合 DeepSeek 等）",
+                "models": ["flash", "deepseek-chat", "or-flash", "auto"],
                 "free": True,
                 "ready": bool(l1.get("key")),
                 "provider": l1.get("provider"),
             },
             "QI": {
-                "title": "Qwen 国际（欧盟区优先；需 TOKEN_REGION_ROUTING=1）",
-                "models": ["qwen-intl-turbo", "qwen-intl-plus"],
+                "title": "欧盟向聚合模型（需 TOKEN_REGION_ROUTING=1）",
+                "models": ["or-eu", "qwen-intl-turbo"],
                 "free": True,
                 "ready": bool(qi.get("key")),
                 "provider": qi.get("provider"),
             },
             "L2": {
-                "title": "VIP 增强层",
-                "models": ["pro", "deepseek-pro", "deepseek-reasoner"],
+                "title": "VIP pro",
+                "models": ["pro", "or-pro", "deepseek-pro"],
                 "vip_only": True,
+                "ready": bool(l2.get("key")),
             },
             "L3": {
-                "title": "扩展层",
-                "models": ["ultra", "kimi-k3", "minimax", "qwen-plus", "doubao-pro"],
+                "title": "VIP ultra",
+                "models": ["ultra", "or-ultra"],
                 "vip_only": True,
+                "ready": bool(l3.get("key")),
             },
         },
         "brand": {
-            "free": "auto（FREE 链 L1→L0；EU 开区路由时 QI→L0）",
-            "flash": "L1 DeepSeek / EU→QI",
+            "free": "auto → 聚合 L1→L0",
+            "flash": "L1",
             "pro": "L2（VIP）",
             "ultra": "L3（VIP）",
         },
         "default": "auto",
         "chain": CHAIN_VIP if is_vip else CHAIN_FREE,
         "region_routing": _region_routing_enabled(),
+        "upstream_mode": mode,
         "upstream": {
+            "mode": "live" if any_key else "stub",
+            "openrouter_ready": mode == "openrouter" and bool(l1.get("key")),
             "l0_ready": bool(l0.get("key")),
-            "l1_deepseek_ready": bool(l1.get("key")),
-            "qi_qwen_intl_ready": bool(qi.get("key")),
-            "deepseek_ready": bool(l1.get("key")),
-            "mode": "live" if (l0.get("key") or l1.get("key") or qi.get("key")) else "stub",
+            "l1_ready": bool(l1.get("key")),
+            "qi_ready": bool(qi.get("key")),
             "l0_base": l0.get("base") or None,
             "l1_base": l1.get("base") or None,
             "qi_base": qi.get("base") or None,
+            "l1_model": l1.get("model") or None,
         },
-        "note": "免费用户默认 DeepSeek；故障 fallback 硅基流动。欧盟区路由默认关（TOKEN_REGION_ROUTING=0）。",
+        "note": (
+            "默认经 OpenRouter 等聚合平台售卖 Token（转售友好）。"
+            "TOKEN_LLM_UPSTREAM=direct 可回退官方直连。"
+        ),
     }
 
 
@@ -196,7 +231,6 @@ def _env(name: str, default: str = "") -> str:
     v = (os.getenv(name) or "").strip()
     if v:
         return v
-    # pydantic Settings 已读 .env，但不会自动写入 os.environ；这里回退
     try:
         from config import settings as _s
 
@@ -208,6 +242,9 @@ def _env(name: str, default: str = "") -> str:
             "SILICONFLOW_BASE_URL": "siliconflow_base_url",
             "SILICONFLOW_MODEL": "siliconflow_model",
             "TOKEN_LLM_TIMEOUT_S": "token_llm_timeout_s",
+            "OPENROUTER_API_KEY": "openrouter_api_key",
+            "OPENROUTER_BASE_URL": "openrouter_base_url",
+            "TOKEN_LLM_UPSTREAM": "token_llm_upstream",
         }
         attr = alias_map.get(name)
         if attr and hasattr(_s, attr):
@@ -215,6 +252,23 @@ def _env(name: str, default: str = "") -> str:
     except Exception:
         pass
     return default
+
+
+def _upstream_mode() -> str:
+    """
+    openrouter（默认）| direct
+    未显式配置时：有 OPENROUTER_API_KEY → openrouter；否则若仅有 DeepSeek → direct；默认仍标 openrouter（stub 直到配 Key）。
+    """
+    raw = (_env("TOKEN_LLM_UPSTREAM", "") or "").strip().lower()
+    if raw in ("openrouter", "aggregator", "or"):
+        return "openrouter"
+    if raw in ("direct", "official", "legacy"):
+        return "direct"
+    if _env("OPENROUTER_API_KEY"):
+        return "openrouter"
+    if _env("DEEPSEEK_API_KEY") or _env("TOKEN_LLM_L1_KEY"):
+        return "direct"
+    return "openrouter"
 
 
 def _normalize_openai_base(base: str) -> str:
@@ -225,17 +279,48 @@ def _normalize_openai_base(base: str) -> str:
         return base + "/v1"
     if base in ("https://api.siliconflow.cn", "http://api.siliconflow.cn"):
         return base + "/v1"
+    if base in ("https://openrouter.ai/api", "http://openrouter.ai/api"):
+        return base + "/v1"
     return base
+
+
+def _openrouter_model_for_layer(layer: str) -> str:
+    layer = (layer or "").upper()
+    env_key = {
+        "L0": "OPENROUTER_MODEL_L0",
+        "L1": "OPENROUTER_MODEL_L1",
+        "L2": "OPENROUTER_MODEL_L2",
+        "L3": "OPENROUTER_MODEL_L3",
+        "QI": "OPENROUTER_MODEL_EU",
+    }.get(layer, "")
+    if env_key:
+        v = _env(env_key)
+        if v:
+            return v
+    return _OR_DEFAULT_MODELS.get(layer, _OR_DEFAULT_MODELS["L1"])
 
 
 def _layer_upstream(layer: str) -> dict[str, str]:
     """
-    分层独立 upstream，避免 L0 误用 DeepSeek Key。
-    L0 → 硅基流动（免费额度测试）
-    L1 → DeepSeek
-    QI → Qwen 国际（DashScope OpenAI compatible；默认关闭区域路由时不进链）
+    openrouter：各层共用 OpenRouter Key，按层选不同 model。
+    direct：L0 硅基 / L1 DeepSeek / QI DashScope 国际。
     """
     layer = (layer or "").upper()
+    if _upstream_mode() == "openrouter":
+        base = (
+            _env("OPENROUTER_BASE_URL")
+            or _env("TOKEN_LLM_BASE")
+            or "https://openrouter.ai/api/v1"
+        )
+        key = _env("OPENROUTER_API_KEY") or _env("TOKEN_LLM_KEY")
+        model = _openrouter_model_for_layer(layer)
+        return {
+            "base": _normalize_openai_base(base),
+            "key": key,
+            "model": model,
+            "provider": "openrouter",
+        }
+
     if layer == "L0":
         base = (
             _env("TOKEN_LLM_L0_BASE")
@@ -265,18 +350,13 @@ def _layer_upstream(layer: str) -> dict[str, str]:
         )
         provider = "deepseek"
     elif layer == "QI":
-        # 国际：DashScope compatible-mode（新加坡等）；也可用任意 OpenAI 兼容代理
         base = (
             _env("TOKEN_LLM_QI_BASE")
             or _env("QWEN_INTL_BASE_URL")
             or "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
         )
         key = _env("TOKEN_LLM_QI_KEY") or _env("QWEN_INTL_API_KEY") or _env("DASHSCOPE_API_KEY")
-        model = (
-            _env("TOKEN_LLM_QI_MODEL")
-            or _env("QWEN_INTL_MODEL")
-            or "qwen-turbo"
-        )
+        model = _env("TOKEN_LLM_QI_MODEL") or _env("QWEN_INTL_MODEL") or "qwen-turbo"
         provider = "qwen_intl"
     else:
         base = _env(f"TOKEN_LLM_{layer}_BASE") or _env("TOKEN_LLM_BASE") or ""
@@ -300,8 +380,15 @@ def _timeout_s() -> float:
 
 
 def _upstream_model_id(logical: str, layer_default: str) -> str:
-    return LOGICAL_TO_UPSTREAM_MODEL.get(logical, layer_default or logical)
-
+    logical = (logical or "").strip()
+    if _upstream_mode() == "openrouter":
+        if "/" in logical and not logical.startswith("or-"):
+            return logical
+        mapped_layer = LOGICAL_TO_UPSTREAM_MODEL_OR.get(logical)
+        if mapped_layer:
+            return _openrouter_model_for_layer(mapped_layer)
+        return layer_default or _openrouter_model_for_layer("L1")
+    return LOGICAL_TO_UPSTREAM_MODEL_DIRECT.get(logical, layer_default or logical)
 
 def _region_routing_enabled() -> bool:
     v = (_env("TOKEN_REGION_ROUTING", "0") or "0").strip().lower()
@@ -354,11 +441,20 @@ def resolve_chain(
         return [(ly, LAYER_DEFAULT_MODEL[ly]) for ly in layers]
 
     # 品牌档映射到默认逻辑模型
-    brand_logical = {
-        "flash": "deepseek-chat" if not use_eu else "qwen-intl-turbo",
-        "pro": "deepseek-pro" if not use_eu else "qwen-intl-plus",
-        "ultra": "kimi-k3",
-    }
+    if _upstream_mode() == "openrouter":
+        brand_logical = {
+            "flash": "or-flash",
+            "pro": "or-pro",
+            "ultra": "or-ultra",
+        }
+        if use_eu:
+            brand_logical["flash"] = "or-eu"
+    else:
+        brand_logical = {
+            "flash": "deepseek-chat" if not use_eu else "qwen-intl-turbo",
+            "pro": "deepseek-pro" if not use_eu else "qwen-intl-plus",
+            "ultra": "kimi-k3",
+        }
     logical = brand_logical.get(req, req)
 
     # VIP 限定层：FREE 用户降到默认 FREE 链，禁止静默按 VIP 价升档
@@ -413,9 +509,12 @@ def run_routed_chat(
                     temperature=temperature,
                     max_tokens=max_tokens,
                     timeout_s=timeout_s,
+                    provider=str(up.get("provider") or ""),
                 )
                 provider = str(up.get("provider") or "openai_compatible")
-                if "deepseek.com" in up["base"]:
+                if "openrouter.ai" in up["base"]:
+                    provider = "openrouter"
+                elif "deepseek.com" in up["base"]:
                     provider = "deepseek"
                 elif "siliconflow" in up["base"]:
                     provider = "siliconflow"
@@ -508,17 +607,23 @@ def _call_openai_compatible(
     temperature: float,
     max_tokens: int,
     timeout_s: float,
+    provider: str = "",
 ) -> dict[str, Any]:
     url = f"{base}/chat/completions"
     headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+    # OpenRouter 推荐带上站点头（排行榜 / 风控识别）
+    if provider == "openrouter" or "openrouter.ai" in (base or ""):
+        headers["HTTP-Referer"] = (
+            _env("OPENROUTER_SITE_URL") or "https://www.ai24x.com"
+        )
+        headers["X-Title"] = _env("OPENROUTER_APP_NAME") or "AI24X"
     body: dict[str, Any] = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
-    # DeepSeek v4 默认会写 reasoning_content，易把 max_tokens 吃光导致 content 为空
-    # 默认关闭 thinking；需要推理时设 DEEPSEEK_THINKING=1
+    # DeepSeek v4 直连时默认关 thinking
     if str(model).startswith("deepseek-v4") and (_env("DEEPSEEK_THINKING", "0") or "0").strip() not in (
         "1",
         "true",

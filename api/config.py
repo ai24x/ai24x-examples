@@ -177,7 +177,12 @@ class Settings(BaseSettings):
         default="https://www.ai24x.com/console.html", validation_alias="TOKEN_PAYPAL_CANCEL_URL"
     )
 
-    # —— LLM upstream（L0 硅基流动 / L1 DeepSeek）——
+    # —— LLM upstream（默认聚合 OpenRouter；直连为可选）——
+    token_llm_upstream: str = Field(default="openrouter", validation_alias="TOKEN_LLM_UPSTREAM")
+    openrouter_api_key: str = Field(default="", validation_alias="OPENROUTER_API_KEY")
+    openrouter_base_url: str = Field(
+        default="https://openrouter.ai/api/v1", validation_alias="OPENROUTER_BASE_URL"
+    )
     deepseek_api_key: str = Field(default="", validation_alias="DEEPSEEK_API_KEY")
     deepseek_base_url: str = Field(default="https://api.deepseek.com", validation_alias="DEEPSEEK_BASE_URL")
     deepseek_model: str = Field(default="deepseek-v4-flash", validation_alias="DEEPSEEK_MODEL")
