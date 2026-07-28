@@ -562,6 +562,22 @@
       cursor: not-allowed;
       pointer-events: none;
     }
+    /* 查询进行中：禁止连点换周期，避免网络卡顿时连扣免费次数 */
+    .period-tabs.is-busy {
+      opacity: 0.55;
+      pointer-events: none;
+    }
+    .period-tabs.is-busy button {
+      cursor: not-allowed;
+    }
+    #btn-search:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    #stock-query[data-busy='1'] {
+      opacity: 0.85;
+      cursor: wait;
+    }
     .quote-title {
       font-size: 13px;
       font-weight: 500;
@@ -1822,13 +1838,30 @@
 
   function suggestResultSortKey(r) {
     var cl = String(r.Classify != null ? r.Classify : '');
-    // 东财BK板块优先（数据与同花顺一致,信号正常）
-    if (cl === '34' || cl.toUpperCase() === 'BK') return 0;
-    // THS同花顺指数（数据滞后,信号有缓存断档）
-    if (cl.toUpperCase() === 'THS') return 1;
-    // 其他指数/股票
-    if (cl === 'Index') return 2;
-    return 3;
+    var qid = String(r.QuoteID || '');
+    var code = String(r.Code || '');
+    // 个股（A股/北交所）优先：搜「东方财富」应先出 300059，而不是「东方财富热股」BK
+    if (cl === 'AStock' || cl === 'NEEQ' || /^[01]\.\d{6}$/.test(qid) || /^92\d{4}$/.test(code)) return 0;
+    // 宽基/指数次之
+    if (cl === 'Index') return 1;
+    // 东财 BK 板块（部分「热股」类 BK 可能无稳定 K 线）
+    if (cl === '34' || cl.toUpperCase() === 'BK' || /^90\.BK\d+$/i.test(qid)) return 2;
+    // THS 同花顺指数
+    if (cl.toUpperCase() === 'THS' || /^ths:\d{6}$/i.test(qid)) return 3;
+    return 4;
+  }
+
+  function suggestNameMatchBoost(r, keyword) {
+    try {
+      var kw = String(keyword || '').trim().replace(/\s+/g, '');
+      if (!kw) return 0;
+      var name = String(r.Name || '').replace(/\s+/g, '');
+      if (name === kw) return -20; // exact name first
+      if (name.indexOf(kw) === 0) return -10;
+      return 0;
+    } catch (e) {
+      return 0;
+    }
   }
 
   function resolveIndexAlias(keyword) {
@@ -2312,6 +2345,52 @@
     });
   }
 
+  function quotaChargeDayKey() {
+    var d = new Date();
+    var y = d.getFullYear();
+    var m = d.getMonth() + 1;
+    var day = d.getDate();
+    return y + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day;
+  }
+  function chargedStorageKey(secid) {
+    return 'a1_q_charged:' + quotaChargeDayKey() + ':' + String(secid || '').trim();
+  }
+  function wasChargedToday(secid) {
+    try {
+      if (typeof sessionStorage === 'undefined') return false;
+      return sessionStorage.getItem(chargedStorageKey(secid)) === '1';
+    } catch (e) {
+      return false;
+    }
+  }
+  function markChargedToday(secid) {
+    try {
+      if (typeof sessionStorage === 'undefined') return;
+      sessionStorage.setItem(chargedStorageKey(secid), '1');
+    } catch (e) {}
+  }
+
+  /** 同标的多周期内存缓存，减轻日/周/月切换卡顿 */
+  var _fqPackCache = {};
+  var FQ_PACK_CACHE_TTL_MS = 5 * 60 * 1000;
+  function fqPackCacheGet(secid, period) {
+    try {
+      var k = String(secid || '') + '|' + String(period || 'day');
+      var e = _fqPackCache[k];
+      if (!e || !e.raw) return null;
+      if (Date.now() - Number(e.at || 0) > FQ_PACK_CACHE_TTL_MS) return null;
+      return JSON.parse(JSON.stringify(e.raw));
+    } catch (e0) {
+      return null;
+    }
+  }
+  function fqPackCacheSet(secid, period, res) {
+    try {
+      var k = String(secid || '') + '|' + String(period || 'day');
+      _fqPackCache[k] = { raw: JSON.parse(JSON.stringify(res)), at: Date.now() };
+    } catch (e1) {}
+  }
+
   function apiKline(secid, period, count, opts) {
     var q =
       API_BASE +
@@ -2344,12 +2423,15 @@
     // 计次策略：
     // - 未登录：提示登录/开通（本产品定位为“会员查询”，避免无感使用导致“没提示”的体验问题）
     // - 已登录：先检查剩余次数，再拉 K 线；拉取成功后再扣次（失败不扣）
+    // - 同一标的自然日只扣 1 次（服务端兜底）；换周期不扣；已扣过则跳过 consume
     var hdr = authHeaders();
     var hasAuth = !!(hdr && hdr.Authorization);
-    var DEDUPE_SECONDS = 60;
-    var bucket = Math.floor(Date.now() / 1000 / DEDUPE_SECONDS);
-    var idem = String(secid || '') + ':' + String(period || 'day') + ':' + String(bucket);
+    var dayKey = quotaChargeDayKey();
+    var idem = String(secid || '') + ':d:' + dayKey;
     var meta = PERIOD_META[period || 'day'] || PERIOD_META.day;
+    if (shouldConsume && wasChargedToday(secid)) {
+      shouldConsume = false;
+    }
 
     function fetchKline() {
       return fetch(q, { cache: 'no-store', headers: hdr }).then(function (r) {
@@ -2398,8 +2480,8 @@
             return null;
           })
           .then(function (qr) {
-            // Update quota pill immediately after a successful consume.
             try {
+              markChargedToday(secid);
               if (qr && qr.quota) setQuotaPill(qr.quota);
             } catch (e0) {}
             return data;
@@ -2581,6 +2663,10 @@
 
   function loadTencentFqPack(secid, period, opts) {
     var meta = PERIOD_META[period] || PERIOD_META.day;
+    var cached = fqPackCacheGet(secid, period);
+    if (cached) {
+      return Promise.resolve(cached);
+    }
     function lastYmdOfRows(rows) {
       try {
         if (!rows || !rows.length) return '';
@@ -2748,6 +2834,7 @@
       });
     }).then(function (res) {
       finalizeWeekMonthBarsInChain(secid, period, res);
+      try { fqPackCacheSet(secid, period, res); } catch (eC) {}
       return res;
     });
   }
@@ -3572,23 +3659,22 @@
       var c = String(r.Code || '');
       var qid = String(r.QuoteID || '');
       var cl = String(r.Classify != null ? r.Classify : '');
-      // 东财板块指数：QuoteID 形如 90.BKxxxx — 始终允许
+      // 东财板块指数：QuoteID 形如 90.BKxxxx — 始终允许（列表靠后）
       if (/^90\.BK\d+$/i.test(qid)) return true;
       // TuShare THS 指数：QuoteID 形如 ths:881271 — 始终允许
       if (/^ths:\d{6}$/i.test(qid)) return true;
-      // 仍兼容旧字段与北交所
+      // 个股：无论结果里是否混有板块，都必须保留（避免搜「东方财富」只剩热股 BK）
       if (r.Classify === 'AStock') return true;
       if (r.Classify === 'NEEQ') return true;
-      // 板块搜索时：只保留 BK 和 THS，过滤掉 980xxx/Index/34/92xxx 等无K线数据项
+      if (/^[01]\.\d{6}$/.test(qid)) return true;
+      if (/^92\d{4}$/.test(c)) return true;
+      // 板块关键词场景：仍过滤掉无稳定 K 线的杂项指数码
       if (hasPlateResults) {
         return false;
       }
-      // 非板块搜索：保留原有股票/指数逻辑
-      // A 股/指数的 QuoteID（0/1.六位），含科创 688xxx
-      if (/^[01]\.\d{6}$/.test(qid)) return true;
+      // 非板块搜索：保留指数
       if (r.Classify === 'Index') return true;
       if (cl === '34') return true;
-      if (/^92\d{4}$/.test(c)) return true;
       return false;
     });
     // Deduplicate by QuoteID (backend may return duplicates for THS plates)
@@ -3600,7 +3686,9 @@
       return true;
     });
     filtered.sort(function (a, b) {
-      return suggestResultSortKey(a) - suggestResultSortKey(b);
+      var ka = suggestResultSortKey(a) + suggestNameMatchBoost(a, keyword);
+      var kb = suggestResultSortKey(b) + suggestNameMatchBoost(b, keyword);
+      return ka - kb;
     });
     // v1.09: for BK plate results, inject THS counterpart so user can choose.
     // Keep BK first (data/signals more stable); THS is optional second entry.
@@ -3662,6 +3750,35 @@
   var btnWlPanel = document.getElementById('btn-wl-panel');
   var watchlistPanelEl = document.getElementById('watchlist-panel');
   // 导出/下载能力已移除：避免把信号数据导出到本地文件，优先提升站内粘性与后续会员功能空间。
+
+  /** 查询中全局锁：防止卡顿时连点查询/换周期/示例筹码重复扣次 */
+  var queryBusy = false;
+  function setQueryUiBusy(on) {
+    try {
+      if (btnSearch) btnSearch.disabled = !!on;
+      if (periodTabsEl) periodTabsEl.classList.toggle('is-busy', !!on);
+      if (inputEl) {
+        if (on) inputEl.setAttribute('data-busy', '1');
+        else inputEl.removeAttribute('data-busy');
+      }
+    } catch (e0) {}
+  }
+  function tryBeginQuery(busyMsg) {
+    if (queryBusy) {
+      try {
+        statusEl.textContent = busyMsg || '查询进行中，请稍候…';
+        statusEl.className = '';
+      } catch (e1) {}
+      return false;
+    }
+    queryBusy = true;
+    setQueryUiBusy(true);
+    return true;
+  }
+  function endQuery() {
+    queryBusy = false;
+    setQueryUiBusy(false);
+  }
 
   function setLoadError(msgHtml) {
     try {
@@ -4425,10 +4542,23 @@
       }
       var lbs = sig && sig.bar_labels ? sig.bar_labels : null;
       var macdData = sig && sig.macd ? sig.macd : null;
-      // All symbols (incl. new listings): local MACD if server returned empty
-      if ((!macdData || !macdData.length) && candles && candles.length >= 35) {
-        var localMacd = buildLocalMacd(candles);
-        if (localMacd && localMacd.length) macdData = localMacd;
+      // Local MACD when:
+      // 1) server returned empty (new listings / short history), OR
+      // 2) chart candles include a newer bar than server MACD (common: Tencent day lags,
+      //    frontend merges today from qt → K shows today but MACD would stop at yesterday)
+      if (candles && candles.length >= 35) {
+        var needLocalMacd = !macdData || !macdData.length;
+        if (!needLocalMacd) {
+          try {
+            var lastC = candles[candles.length - 1] && candles[candles.length - 1].time;
+            var lastM = macdData[macdData.length - 1] && macdData[macdData.length - 1].time;
+            if (lastC != null && lastM != null && String(lastC) > String(lastM)) needLocalMacd = true;
+          } catch (eMacdLag) {}
+        }
+        if (needLocalMacd) {
+          var localMacd = buildLocalMacd(candles);
+          if (localMacd && localMacd.length) macdData = localMacd;
+        }
       }
       renderMacdPane(macdData);
       try {
@@ -5592,6 +5722,13 @@
       }
       opts = Object.assign({}, opts, { consume: false });
     }
+
+    // _holdLock=true：外层（如 runSearch）已占锁，本函数只负责业务，不在 finally 释放
+    var ownLock = !opts._holdLock;
+    if (ownLock) {
+      if (!tryBeginQuery()) return Promise.resolve();
+    }
+
     currentSecid = secid;
     quoteDisplayHint =
       displayHint && displayHint.name
@@ -5614,21 +5751,25 @@
     var stbLoad = document.getElementById('short-term-bar');
     if (stbLoad) stbLoad.hidden = true;
     hidePick();
-    return loadTencentFqPack(secid, currentPeriod, opts).then(function (res) {
-      periodTabsEl.classList.remove('disabled');
-      try { renderPack(res); } catch (e) {
-        if (String(e.message || '').indexOf('图表库') >= 0) {
-          setTimeout(function () { try { renderPack(res); } catch (e2) {} }, 1500);
-        } else { throw e; }
-      }
-      try {
-        if (!isAuthed() && opts && opts.guest_count) guestViewsInc();
-      } catch (eG) {}
-      // Persist the last successful query for refresh continuity.
-      saveLastQuery(secid, currentPeriod, quoteDisplayHint);
-      setUrlState(secid, currentPeriod);
-      try { setShareButtonReady(true); } catch (eS0) {}
-    });
+    return loadTencentFqPack(secid, currentPeriod, opts)
+      .then(function (res) {
+        periodTabsEl.classList.remove('disabled');
+        try { renderPack(res); } catch (e) {
+          if (String(e.message || '').indexOf('图表库') >= 0) {
+            setTimeout(function () { try { renderPack(res); } catch (e2) {} }, 1500);
+          } else { throw e; }
+        }
+        try {
+          if (!isAuthed() && opts && opts.guest_count) guestViewsInc();
+        } catch (eG) {}
+        // Persist the last successful query for refresh continuity.
+        saveLastQuery(secid, currentPeriod, quoteDisplayHint);
+        setUrlState(secid, currentPeriod);
+        try { setShareButtonReady(true); } catch (eS0) {}
+      })
+      .finally(function () {
+        if (ownLock) endQuery();
+      });
   }
 
   function applyPeriod(period) {
@@ -5639,6 +5780,7 @@
       return;
     }
     if (period === currentPeriod) return;
+    if (!tryBeginQuery()) return;
     currentPeriod = period;
     syncPeriodTabs();
     setUrlState(currentSecid, currentPeriod);
@@ -5650,9 +5792,10 @@
     if (!isAuthed() && !isLoginFreeWhitelistSecid(currentSecid) && !guestViewsCanUse()) {
       showGuestLimitUpsell();
       setSoftLoading(false);
+      endQuery();
       return Promise.resolve();
     }
-    return loadTencentFqPack(currentSecid, currentPeriod, isAuthed() ? { consume: true } : { consume: false })
+    return loadTencentFqPack(currentSecid, currentPeriod, { consume: false })
       .then(function (res) {
         // v1.04: 新网络环境图表库可能仍在加载，失败时延时重试一次
         try {
@@ -5678,6 +5821,9 @@
         statusEl.textContent = '加载失败：' + (prettyErrText(m) || m);
         statusEl.className = '';
         setSoftLoading(false);
+      })
+      .finally(function () {
+        endQuery();
       });
   }
 
@@ -5688,14 +5834,15 @@
       statusEl.className = '';
       return;
     }
+    if (!tryBeginQuery()) return;
     showOfflineHintIfNeeded();
 
-    btnSearch.disabled = true;
     statusEl.className = '';
     statusEl.textContent = '查询中…';
     setSoftLoading(true);
     hidePick();
 
+    var hold = { _holdLock: true };
     var normSuggest = normalizePlateSearchKeyword(normalizeSearchKeywordForSuggest(raw));
     var plateEmSecid = resolvePlateNameToEmSecid(normSuggest);
     var parsed = parseSixDigitCode(raw);
@@ -5704,9 +5851,9 @@
     var bkPlate = raw.match(/^BK\d{3,8}$/i);
 
     if (bkPlate) {
-      p = loadBySecid('90.' + raw.toUpperCase());
+      p = loadBySecid('90.' + raw.toUpperCase(), null, hold);
     } else if (plateEmSecid) {
-      p = loadBySecid(plateEmSecid);
+      p = loadBySecid(plateEmSecid, null, hold);
     } else if (parsed && /^(?:88|881|886)\d{3}$/.test(parsed.six)) {
       // Prefer paid THS index path via backend (TuShare ths_daily).
       // If paid is not available (e.g. vip_only=1 for non-vip), fall back to mapped Eastmoney BK plate.
@@ -5714,11 +5861,11 @@
         var secid = 'ths:' + parsed.six;
         var emFallback = THS_PLATE_TO_EM_SECID[String(parsed.six || '').trim()] || null;
         function loadThs() {
-          return loadBySecid(secid);
+          return loadBySecid(secid, null, hold);
         }
         function loadEmFallback() {
           if (!emFallback) return Promise.reject(new Error('no em fallback'));
-          return loadBySecid(emFallback);
+          return loadBySecid(emFallback, null, hold);
         }
         // Best-effort: resolve Chinese name via suggest so title shows e.g. AI应用 instead of just 886108.
         try {
@@ -5731,7 +5878,7 @@
                 });
               } catch (e0) {}
               if (hit && hit.Name) {
-                return loadBySecid(secid, { name: hit.Name, code: hit.Code }).catch(function () {
+                return loadBySecid(secid, { name: hit.Name, code: hit.Code }, hold).catch(function () {
                   return loadEmFallback();
                 });
               }
@@ -5764,19 +5911,19 @@
                 });
               } catch (e0) {}
               if (hit && hit.Name) {
-                return loadBySecid(secid, { name: hit.Name, code: hit.Code });
+                return loadBySecid(secid, { name: hit.Name, code: hit.Code }, hold);
               }
-              return loadBySecid(secid);
+              return loadBySecid(secid, null, hold);
             })
             .catch(function () {
-              return loadBySecid(secid);
+              return loadBySecid(secid, null, hold);
             });
           return;
         } catch (e1) {}
-        p = loadBySecid(secid);
+        p = loadBySecid(secid, null, hold);
       })();
     } else if (aliasSecid) {
-      p = loadBySecid(aliasSecid);
+      p = loadBySecid(aliasSecid, null, hold);
     } else {
       p = suggestRows(normSuggest).then(function (list) {
         if (!list.length) {
@@ -5786,8 +5933,10 @@
           return;
         }
         if (list.length === 1) {
-          return loadBySecid(list[0].QuoteID, { name: list[0].Name, code: list[0].Code });
+          return loadBySecid(list[0].QuoteID, { name: list[0].Name, code: list[0].Code }, hold);
         }
+        // 多结果待选：先释放锁，点选时再由 loadBySecid 自行占锁
+        endQuery();
         statusEl.textContent = '找到多条结果，请选择：';
         pickList.classList.add('visible');
         list.forEach(function (item) {
@@ -5802,6 +5951,7 @@
             item.SecurityTypeName +
             '</small>';
           b.addEventListener('click', function () {
+            if (queryBusy) return;
             loadBySecid(item.QuoteID, { name: item.Name, code: item.Code }).catch(function (e) {
               var m = e && (e.message || String(e)) ? String(e.message || String(e)) : '';
               if (m.indexOf('次数不足') >= 0) {
@@ -5842,7 +5992,8 @@
       disposeChart();
       setSoftLoading(false);
     }).finally(function () {
-      btnSearch.disabled = false;
+      // 多选列表路径已提前 endQuery；此处幂等再清一次
+      if (queryBusy) endQuery();
     });
   }
 
@@ -6187,32 +6338,28 @@
     btn.addEventListener('click', function () {
       var sid = btn.getAttribute('data-secid');
       if (sid) {
+        if (queryBusy) return;
         inputEl.value = btn.getAttribute('data-fill') || '';
-        btnSearch.disabled = true;
         statusEl.className = '';
         statusEl.textContent = '加载中…';
         setSoftLoading(true);
         hidePick();
-        loadBySecid(sid)
-          .catch(function (e) {
-            var m = e && (e.message || String(e)) ? String(e.message || String(e)) : '';
-            if (m.indexOf('次数不足') >= 0) {
-              showQuotaUpsell(m);
-              btnSearch.disabled = false;
-              return;
-            }
-            statusEl.textContent = '加载失败：' + (prettyErrText(m) || m);
-            statusEl.className = '';
-            currentSecid = null;
-            periodTabsEl.classList.add('disabled');
-            disposeChart();
-            setSoftLoading(false);
-          })
-          .finally(function () {
-            btnSearch.disabled = false;
-          });
+        loadBySecid(sid).catch(function (e) {
+          var m = e && (e.message || String(e)) ? String(e.message || String(e)) : '';
+          if (m.indexOf('次数不足') >= 0) {
+            showQuotaUpsell(m);
+            return;
+          }
+          statusEl.textContent = '加载失败：' + (prettyErrText(m) || m);
+          statusEl.className = '';
+          currentSecid = null;
+          periodTabsEl.classList.add('disabled');
+          disposeChart();
+          setSoftLoading(false);
+        });
         return;
       }
+      if (queryBusy) return;
       inputEl.value = btn.getAttribute('data-q') || '';
       runSearch();
     });

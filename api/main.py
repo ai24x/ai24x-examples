@@ -371,9 +371,14 @@ async def auth_sms_send(request: Request, body: SmsSendRequest, db: Session = De
             detail="短信服务未开启，请联系管理员配置",
         )
     if settings.sms_internal_key and request.headers.get("X-SMS-Internal-Key") != settings.sms_internal_key:
+        # 常见：副站 AI24X_SMS_INTERNAL_KEY 未配或与主站 SMS_INTERNAL_KEY 不一致
+        logger.warning(
+            "sms send forbidden: internal key missing or mismatch (header_present=%s)",
+            bool((request.headers.get("X-SMS-Internal-Key") or "").strip()),
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="内部服务密钥未配置，请联系管理员",
+            detail="短信服务暂时不可用，请稍后再试。",
         )
 
     def _pick(override: str | None, base: str) -> str:
@@ -498,7 +503,7 @@ async def internal_sms_verify_consume(request: Request, body: InternalSmsVerifyC
     if request.headers.get("X-SMS-Internal-Key") != settings.sms_internal_key:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="内部服务密钥未配置，请联系管理员",
+            detail="短信服务暂时不可用，请稍后再试。",
         )
     mob = normalize_mobile(body.mobile)
     if len(mob) != 11 or not mob.isdigit():
@@ -528,7 +533,7 @@ async def auth_sms_diagnostics(request: Request):
         if (request.headers.get("X-SMS-Internal-Key") or "").strip() != settings.sms_internal_key:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="内部服务密钥未配置，请联系管理员",
+                detail="短信服务暂时不可用，请稍后再试。",
             )
     return {
         "ok": True,

@@ -1668,7 +1668,12 @@ def admin_sms_diagnostics(_: bool = Depends(require_admin)) -> dict:
 def proxy_sms_send(body: SmsSendProxyIn, request: Request) -> dict:
     """转发至主站 `POST /v1/auth/sms/send`：带 X-SMS-Internal-Key；若管理端配置了 sms_106_* 则一并提交以覆盖主站 .env。"""
     cfg = resolve_identity()
-    prov = (cfg.sms_active_provider or "identity_proxy").strip().lower()
+    if not (cfg.sms_internal_key or "").strip():
+        # 主站若已设 SMS_INTERNAL_KEY，无此头会 403；先在本站明确提示运维配齐密钥
+        raise HTTPException(
+            status_code=503,
+            detail="短信服务暂时不可用，请稍后再试。",
+        )
     # Reserved: captcha gate for SMS anti-abuse (default off).
     if bool(cfg.sms_captcha_enabled):
         prov2 = (cfg.sms_captcha_provider or "turnstile").strip().lower()

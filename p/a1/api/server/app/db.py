@@ -1613,9 +1613,11 @@ def get_quota_status(user_id: int) -> dict:
 def consume_quota(user_id: int, secid: str, period: str, idempotency_key: str, ok: bool) -> dict:
     """
     扣次：由上层决定是否“成功”。
-    - 30 秒内对同一 secid+period 去重：应由调用方使用稳定 idempotency_key
+    - 调用方 idempotency_key 命中则去重；
+    - 另：同一用户同一 secid 在自然日内已成功扣过，则不再扣（换日/周/月、刷新、旧前端键均兜底）。
     """
     now = int(time.time())
+    secid_n = str(secid or "").strip()
     downgrade_expired_vip_plan(int(user_id))
     with connect() as conn:
         # idempotency
@@ -1624,20 +1626,52 @@ def consume_quota(user_id: int, secid: str, period: str, idempotency_key: str, o
             (user_id, idempotency_key),
         ).fetchone()
         if existing:
-            return {"deduped": True, "result": str(existing["result"]), "consumed_at": int(existing["consumed_at"])}
+            return {
+                "deduped": True,
+                "result": str(existing["result"]),
+                "consumed_at": int(existing["consumed_at"]),
+                "quota": get_quota_status(user_id),
+            }
 
         # Free whitelist (MVP): core indices are always free and should never consume quota.
         # Keep it server-enforced to avoid client-side bypass or UI inconsistencies.
         free_whitelist = {"1.000001", "0.399001", "0.399006", "0.899050", "0.000977"}  # 上证/深成/创业/北证50/浪潮信息
-        if ok and str(secid).strip() in free_whitelist:
+        if ok and secid_n in free_whitelist:
             conn.execute(
                 """
                 INSERT INTO quota_ledger(user_id, secid, period, idempotency_key, consumed_at, result)
                 VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                (user_id, secid, period, idempotency_key, now, "free"),
+                (user_id, secid_n, period, idempotency_key, now, "free"),
             )
             return {"deduped": False, "result": "free", "consumed_at": now, "quota": get_quota_status(user_id)}
+
+        # Same symbol already charged today → no second charge (period switch / refresh / old clients).
+        if ok and secid_n:
+            try:
+                today = _day_key(now)
+                prev_rows = conn.execute(
+                    """
+                    SELECT result, consumed_at FROM quota_ledger
+                    WHERE user_id=? AND secid=? AND result='ok'
+                    ORDER BY consumed_at DESC
+                    LIMIT 30
+                    """,
+                    (user_id, secid_n),
+                ).fetchall()
+                for pr in prev_rows or []:
+                    try:
+                        if _day_key(int(pr["consumed_at"])) == today:
+                            return {
+                                "deduped": True,
+                                "result": "ok",
+                                "consumed_at": int(pr["consumed_at"]),
+                                "quota": get_quota_status(user_id),
+                            }
+                    except Exception:
+                        continue
+            except Exception:
+                pass
 
         had_ok_before = False
         try:
@@ -1656,7 +1690,7 @@ def consume_quota(user_id: int, secid: str, period: str, idempotency_key: str, o
                 INSERT INTO quota_ledger(user_id, secid, period, idempotency_key, consumed_at, result)
                 VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                (user_id, secid, period, idempotency_key, now, "failed"),
+                (user_id, secid_n, period, idempotency_key, now, "failed"),
             )
             return {"deduped": False, "result": "failed", "consumed_at": now, "quota": status}
 
@@ -1666,7 +1700,7 @@ def consume_quota(user_id: int, secid: str, period: str, idempotency_key: str, o
                 INSERT INTO quota_ledger(user_id, secid, period, idempotency_key, consumed_at, result)
                 VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                (user_id, secid, period, idempotency_key, now, "exhausted"),
+                (user_id, secid_n, period, idempotency_key, now, "exhausted"),
             )
             return {"deduped": False, "result": "exhausted", "consumed_at": now, "quota": status}
 
@@ -1686,7 +1720,7 @@ def consume_quota(user_id: int, secid: str, period: str, idempotency_key: str, o
             INSERT INTO quota_ledger(user_id, secid, period, idempotency_key, consumed_at, result)
             VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (user_id, secid, period, idempotency_key, now, "ok"),
+            (user_id, secid_n, period, idempotency_key, now, "ok"),
         )
 
         # Invite reward trigger: first successful query after binding
