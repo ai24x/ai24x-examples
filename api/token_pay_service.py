@@ -69,6 +69,8 @@ def pay_settings_ns() -> SimpleNamespace:
         "paypal_webhook_id": _s(getattr(settings, "paypal_webhook_id", "") or ""),
         "paypal_return_url": _s(getattr(settings, "token_paypal_return_url", "") or ""),
         "paypal_cancel_url": _s(getattr(settings, "token_paypal_cancel_url", "") or ""),
+        "paypal_locale": _s(getattr(settings, "paypal_locale", "") or "") or "en-US",
+        "paypal_landing_page": _s(getattr(settings, "paypal_landing_page", "") or "") or "BILLING",
     }
 
     if bool(getattr(settings, "token_pay_reuse_a1", True)):

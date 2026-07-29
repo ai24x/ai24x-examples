@@ -76,6 +76,10 @@ async def create_checkout_order(
     if not paypal_configured(s):
         raise RuntimeError("paypal_not_configured")
     value = f"{float(amount_usd):.2f}"
+    locale = str(getattr(s, "paypal_locale", "") or "en-US").strip() or "en-US"
+    landing = str(getattr(s, "paypal_landing_page", "") or "BILLING").strip().upper() or "BILLING"
+    if landing not in ("LOGIN", "BILLING", "NO_PREFERENCE"):
+        landing = "BILLING"
     body = {
         "intent": "CAPTURE",
         "purchase_units": [
@@ -88,8 +92,10 @@ async def create_checkout_order(
         ],
         "application_context": {
             "brand_name": "AI24X",
-            "landing_page": "NO_PREFERENCE",
+            "locale": locale,
+            "landing_page": landing,
             "user_action": "PAY_NOW",
+            "shipping_preference": "NO_SHIPPING",
             "return_url": return_url,
             "cancel_url": cancel_url,
         },

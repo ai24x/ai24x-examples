@@ -1209,6 +1209,8 @@ async def billing_pay_status():
             "mode": str(getattr(cfg, "paypal_mode", "sandbox") or "sandbox"),
             "webhook_id_set": bool(getattr(cfg, "paypal_webhook_id", "") or ""),
             "return_url_set": bool(getattr(cfg, "paypal_return_url", "") or ""),
+            "locale": str(getattr(cfg, "paypal_locale", "") or "en-US"),
+            "landing_page": str(getattr(cfg, "paypal_landing_page", "") or "BILLING"),
         },
         "console_hint": (
             "控制台只显示 wechat_ready/alipay_ready/paypal_ready=true 的通道；"

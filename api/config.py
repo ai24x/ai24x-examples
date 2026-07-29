@@ -176,6 +176,10 @@ class Settings(BaseSettings):
     token_paypal_cancel_url: str = Field(
         default="https://www.ai24x.com/console.html", validation_alias="TOKEN_PAYPAL_CANCEL_URL"
     )
+    # 结账页语言 BCP-47（国际默认 en-US）；买家账号偏好仍可能覆盖
+    paypal_locale: str = Field(default="en-US", validation_alias="TOKEN_PAYPAL_LOCALE")
+    # LOGIN | BILLING | NO_PREFERENCE — BILLING 略偏向卡/账单页，不保证 Guest
+    paypal_landing_page: str = Field(default="BILLING", validation_alias="TOKEN_PAYPAL_LANDING_PAGE")
 
     # —— LLM upstream（默认聚合 OpenRouter；直连为可选）——
     token_llm_upstream: str = Field(default="openrouter", validation_alias="TOKEN_LLM_UPSTREAM")
