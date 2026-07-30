@@ -637,7 +637,7 @@
   </main>
   <footer class="site-footer" id="site-footer"></footer>
 
-  <script src="/js/shell.js?v=21"></script>
+  <script src="/js/shell.js?v=27"></script>
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("index"); } catch (e) {}
   </script>
@@ -1158,7 +1158,7 @@
           var path = String(u.pathname || "");
           if (path.indexOf("..") >= 0) return "";
           var leaf = path.split("/").pop() || "";
-          var allow = { "feedback.html": 1, "account.html": 1, "demo.html": 1, "partner.html": 1, "index.html": 1 };
+          var allow = { "feedback.html": 1, "account.html": 1, "demo.html": 1, "partner.html": 1, "index.html": 1, "help.html": 1 };
           if (!allow[leaf]) return "";
           var qs = new URLSearchParams(u.search || "");
           qs.delete("next");

@@ -8,7 +8,7 @@
 (() => {
   "use strict";
 
-  const CACHE_VERSION = "ai24x-a1-static-v26";
+  const CACHE_VERSION = "ai24x-a1-static-v28";
   const CACHE_NAME = CACHE_VERSION;
 
   /** @param {string} p */
@@ -35,6 +35,7 @@
           urlFromScope("index.html"),
           urlFromScope("account.html"),
           urlFromScope("demo.html"),
+          urlFromScope("help.html"),
           urlFromScope("partner.html"),
           urlFromScope("feedback.html"),
           // p/a base styles + shared chrome

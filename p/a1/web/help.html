@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="index,follow" />
+  <title>AI行情官帮助指南｜怎么用、信号说明与常见问题（灯塔版）</title>
+  <meta name="description" content="AI行情官帮助指南：怎么用行情查询，怎么看K线圆点箭头、彩色趋势线与副图柱状提示，免费次数与常见问题。学习对照，不构成投资建议。" />
+  <meta name="keywords" content="AI行情官帮助指南,AI行情官怎么用,AI行情官使用教程,AI行情官信号说明,K线箭头含义,股票趋势线怎么看,MACD副图怎么看,AI行情官常见问题,AI行情官免费查询,股票K线信号怎么看,AI行情官VIP,AI行情官灯塔版" />
+  <link rel="canonical" href="https://a.ai24x.com/help.html" />
+  <meta name="applicable-device" content="pc,mobile" />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://a.ai24x.com/help.html" />
+  <meta property="og:title" content="AI行情官帮助指南｜怎么用与信号说明" />
+  <meta property="og:description" content="三步上手、信号图例、次数说明与常见问题。学习交流，不构成投资建议。" />
+  <meta property="og:image" content="https://a.ai24x.com/img/share-preview.png" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "AI行情官怎么用？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "先注册登录，进入行情页输入股票名称或代码查询，查看K线与图上彩色标记；可切换日线、周线、月线。标记仅供学习参考，不构成投资建议。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "AI行情官图上的小底、底、金、等、险、顶是什么意思？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "它们是学习用提示：小底偏早期关注，底偏低位关注，金偏强，等偏弱，险提示风险，顶提示高位警惕。单一标记不构成买卖依据。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "AI行情官免费查询次数怎么算？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "免费用户每天、每周有次数上限。成功查询一只新标的通常计一次；同一标的当天切换周期或刷新，一般不再另扣。次数不足可开通VIP或邀请好友。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "搜东方财富点进去是空的怎么办？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "请优先选择带股票代码的个股结果，不要误点「热股」等板块名称。部分板块可能暂无行情。"
+        }
+      }
+    ]
+  }
+  </script>
+  <link rel="icon" href="data:," />
+  <script>
+    (function () {
+      try {
+        var k = "ai24x_a_theme";
+        var t = String(localStorage.getItem(k) || "").trim() || "calm";
+        document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="/css/base.css" />
+  <link rel="stylesheet" href="/css/tool.css" />
+  <style>
+    .help-hero { margin: 0 0 14px; }
+    .help-hero h1 { margin: 0 0 8px; font-size: 22px; }
+    .help-hero .sub { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+    .help-toc {
+      display: flex; flex-wrap: wrap; gap: 8px 10px;
+      margin: 14px 0 0; padding: 0; list-style: none;
+    }
+    .help-toc a {
+      display: inline-block; padding: 6px 12px; border-radius: 999px;
+      border: 1px solid var(--border); background: var(--panel2);
+      color: var(--text); text-decoration: none; font-size: 13px;
+    }
+    .help-toc a:hover { border-color: var(--pri, #3b82f6); }
+    .help-sec { scroll-margin-top: 78px; margin-top: 16px; }
+    .help-sec h2 { font-size: 16px; margin: 0 0 10px; }
+    .help-sec p, .help-sec li { font-size: 14px; line-height: 1.7; color: var(--text); }
+    .help-sec .muted { color: var(--muted); font-size: 13px; }
+    .help-steps { margin: 0; padding-left: 1.2em; }
+    .help-steps li { margin: 0 0 8px; }
+    .sig-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px; margin: 12px 0 0;
+    }
+    .sig-card {
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 12px 14px; background: var(--panel2);
+      display: flex; gap: 10px; align-items: flex-start;
+    }
+    .sig-card .sig-body { min-width: 0; }
+    .sig-card .sig-title {
+      display: flex; align-items: center; gap: 8px;
+      margin: 0 0 4px; font-size: 14px; font-weight: 700;
+    }
+    .sig-card .sig-desc { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.55; }
+    .help-subh {
+      margin: 18px 0 8px; font-size: 14px; font-weight: 700; color: var(--text);
+    }
+    .help-subh:first-of-type { margin-top: 14px; }
+    .viz-row {
+      display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center;
+      margin: 8px 0 10px;
+    }
+    .viz-chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 12px; border-radius: 10px;
+      border: 1px solid var(--border); background: var(--panel2);
+      font-size: 13px; color: var(--text);
+    }
+    .viz-arrow {
+      display: inline-flex; flex-direction: column; align-items: center; gap: 2px;
+      line-height: 1; font-size: 11px; font-weight: 800;
+    }
+    .viz-arrow .arr {
+      font-size: 14px; line-height: 1;
+    }
+    .viz-arrow.up { color: #ff3d5c; }
+    .viz-arrow.dn { color: #00e68a; }
+    .viz-arrow.turn { color: #a78bfa; }
+    .ma-sample {
+      display: inline-block; width: 28px; height: 3px; border-radius: 2px; vertical-align: middle;
+    }
+    .ma-sample.ma-orange { background: #ff8000; }
+    .ma-sample.ma-blue { background: #0080ff; }
+    .ma-sample.ma-green { background: #00c853; }
+    .ma-sample.ma-dash {
+      background: repeating-linear-gradient(90deg, #94a3b8 0 4px, transparent 4px 7px);
+      height: 2px;
+    }
+    .macd-bars {
+      display: inline-flex; align-items: flex-end; gap: 2px; height: 18px; vertical-align: middle;
+    }
+    .macd-bars i {
+      display: block; width: 4px; border-radius: 1px;
+    }
+    .macd-bars .up1 { height: 6px; background: #ff3d5c; opacity: .85; }
+    .macd-bars .up2 { height: 12px; background: #ff3d5c; }
+    .macd-bars .dn1 { height: 8px; background: #00e68a; opacity: .85; }
+    .macd-bars .dn2 { height: 14px; background: #00e68a; }
+    .sig-dot {
+      width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+      margin-top: 2px;
+    }
+    .sig-dot.sig-absorb { background: #22c55e; box-shadow: 0 0 0 1px rgba(0,0,0,.45), 0 0 8px rgba(34,197,94,.55); }
+    .sig-dot.sig-bottom { background: #38bdf8; box-shadow: 0 0 0 1px rgba(0,0,0,.45), 0 0 8px rgba(56,189,248,.55); }
+    .sig-dot.sig-buy { background: #ff3d5c; box-shadow: 0 0 0 1px rgba(0,0,0,.45), 0 0 8px rgba(255,61,92,.55); }
+    .sig-dot.sig-sell { background: #00e68a; box-shadow: 0 0 0 1px rgba(0,0,0,.45), 0 0 8px rgba(0,230,138,.5); }
+    .sig-dot.sig-risk { background: #ffb300; box-shadow: 0 0 0 1px rgba(0,0,0,.45), 0 0 8px rgba(255,179,0,.55); }
+    .sig-dot.sig-high { background: #ff0090; box-shadow: 0 0 0 1px rgba(0,0,0,.45), 0 0 8px rgba(255,0,144,.55); }
+    .help-subh {
+      margin: 16px 0 8px; font-size: 14px; font-weight: 700; color: var(--text);
+    }
+    .help-subh:first-of-type { margin-top: 12px; }
+    .viz-row {
+      display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0 0;
+    }
+    .viz-chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 12px; border-radius: 10px;
+      border: 1px solid var(--border); background: var(--panel2);
+      font-size: 13px; color: var(--text);
+    }
+    .viz-chip .muted { font-size: 12px; color: var(--muted); }
+    .ma-swatch {
+      width: 28px; height: 3px; border-radius: 2px; flex-shrink: 0;
+    }
+    .ma-swatch.ma-orange { background: #ff8000; }
+    .ma-swatch.ma-blue { background: #0080ff; }
+    .ma-swatch.ma-green { background: #00c853; }
+    .ma-swatch.ma-dash {
+      background: transparent;
+      border-top: 2px dashed #94a3b8;
+      height: 0; width: 28px;
+    }
+    .arr-ico {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 18px; height: 18px; flex-shrink: 0; font-size: 14px; line-height: 1;
+      font-weight: 900;
+    }
+    .arr-ico.up { color: #ff3d5c; }
+    .arr-ico.dn { color: #00e68a; }
+    .arr-ico.turn { color: #a78bfa; }
+    .bar-sample {
+      display: inline-flex; align-items: flex-end; gap: 2px; height: 16px; flex-shrink: 0;
+    }
+    .bar-sample i {
+      display: block; width: 4px; border-radius: 1px;
+    }
+    .bar-sample .b-r { background: #ff3d5c; height: 14px; }
+    .bar-sample .b-g { background: #00e68a; height: 10px; }
+    .bar-sample .b-r2 { background: #ff3d5c; height: 7px; opacity: 0.7; }
+    .signal-legend {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+      margin-top: 12px; padding: 10px 12px; font-size: 12px; color: var(--muted);
+      background: var(--panel2); border: 1px solid var(--border); border-radius: 8px;
+    }
+    .signal-legend .sig-item {
+      display: inline-flex; align-items: center; gap: 7px; color: var(--text); white-space: nowrap;
+    }
+    .signal-legend .sig-dot { margin-top: 0; width: 11px; height: 11px; }
+    .faq-item { margin: 0 0 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+    .faq-item:last-child { border-bottom: 0; margin-bottom: 0; padding-bottom: 0; }
+    .faq-item h3 { margin: 0 0 6px; font-size: 14px; font-weight: 600; }
+    .faq-item p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.65; }
+    .help-cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+    .note-box {
+      margin-top: 12px; padding: 12px 14px; border-radius: 12px;
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      background: rgba(251, 191, 36, 0.08);
+      font-size: 13px; line-height: 1.65; color: var(--text);
+    }
+    .seo-more {
+      margin: 14px 0 0; font-size: 12px; color: var(--muted); line-height: 1.65;
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header" id="site-header"></header>
+  <main class="page-main">
+    <div class="wrap">
+      <section class="card help-hero">
+        <h1>AI行情官帮助指南</h1>
+        <p class="sub">想知道 <strong>AI行情官怎么用</strong>？本页是灯塔版使用教程：三步上手、圆点箭头、趋势线与副图怎么看、免费次数与常见问题——方便快速上手看盘学习。</p>
+        <ul class="help-toc" aria-label="本页目录">
+          <li><a href="#start">三步上手</a></li>
+          <li><a href="#marks">圆点与箭头</a></li>
+          <li><a href="#lines">趋势线</a></li>
+          <li><a href="#subchart">副图</a></li>
+          <li><a href="#quota">次数与套餐</a></li>
+          <li><a href="#faq">常见问题</a></li>
+          <li><a href="#safe">风险提示</a></li>
+        </ul>
+        <div class="help-cta">
+          <a class="btn primary" href="./demo.html">打开行情页</a>
+          <a class="btn" href="./account.html">我的账户</a>
+          <a class="btn" href="./feedback.html">意见反馈</a>
+        </div>
+      </section>
+
+      <section class="card help-sec" id="start">
+        <h2>一、AI行情官怎么用（三步上手）</h2>
+        <ol class="help-steps">
+          <li><strong>登录</strong>：在首页用手机号或邮箱注册/登录。登录后可查询更多标的，并在「我的」查看剩余次数。</li>
+          <li><strong>查询</strong>：进入「行情」，输入股票名称或代码（如「贵州茅台」「600519」），点查询。同名结果里优先选<strong>个股</strong>，不要误点「热股」类板块（部分板块可能暂无行情）。</li>
+          <li><strong>阅读</strong>：看 K 线、彩色圆点与箭头；对照主图趋势线与下方副图。可切换日线 / 周线 / 月线。含义见下文图例。</li>
+        </ol>
+        <p class="muted" style="margin:10px 0 0;">小提示：查询加载中请稍候，避免连点。同一标的当天重复查看或切换周期，一般不会重复扣次（以页面「今日剩余」为准）。</p>
+      </section>
+
+      <section class="card help-sec" id="marks">
+        <h2>二、标记图例（圆点 + 箭头）</h2>
+        <p style="margin:0 0 8px;">主图 K 线上常见<strong>彩色圆点 + 箭头 + 短文字</strong>，用来提示你留意某个位置。它们是<strong>学习对照</strong>，不是买卖指令，也不代表涨跌承诺。</p>
+        <div class="help-subh">圆点颜色（与行情页一致）</div>
+        <div class="signal-legend" aria-label="信号颜色图例">
+          <span class="sig-item"><i class="sig-dot sig-absorb" aria-hidden="true"></i>小底（提前关注）</span>
+          <span class="sig-item"><i class="sig-dot sig-bottom" aria-hidden="true"></i>底（低位关注）</span>
+          <span class="sig-item"><i class="sig-dot sig-buy" aria-hidden="true"></i>金（偏强）</span>
+          <span class="sig-item"><i class="sig-dot sig-sell" aria-hidden="true"></i>等（偏弱）</span>
+          <span class="sig-item"><i class="sig-dot sig-risk" aria-hidden="true"></i>险（关注风险）</span>
+          <span class="sig-item"><i class="sig-dot sig-high" aria-hidden="true"></i>顶（警惕高位）</span>
+        </div>
+        <div class="sig-grid">
+          <div class="sig-card">
+            <i class="sig-dot sig-absorb" aria-hidden="true"></i>
+            <div class="sig-body">
+              <div class="sig-title">小底</div>
+              <p class="sig-desc">偏早期的关注提示，适合记下来继续观察，不必急于下结论。</p>
+            </div>
+          </div>
+          <div class="sig-card">
+            <i class="sig-dot sig-bottom" aria-hidden="true"></i>
+            <div class="sig-body">
+              <div class="sig-title">底</div>
+              <p class="sig-desc">偏底部区域的关注提示，仍建议结合整体走势自行判断。</p>
+            </div>
+          </div>
+          <div class="sig-card">
+            <i class="sig-dot sig-buy" aria-hidden="true"></i>
+            <div class="sig-body">
+              <div class="sig-title">金</div>
+              <p class="sig-desc">偏强一侧的提示，表示结构相对积极，不代表必然上涨。</p>
+            </div>
+          </div>
+          <div class="sig-card">
+            <i class="sig-dot sig-sell" aria-hidden="true"></i>
+            <div class="sig-body">
+              <div class="sig-title">等</div>
+              <p class="sig-desc">偏弱一侧的提示，表示宜多等一等、少冲动。</p>
+            </div>
+          </div>
+          <div class="sig-card">
+            <i class="sig-dot sig-risk" aria-hidden="true"></i>
+            <div class="sig-body">
+              <div class="sig-title">险</div>
+              <p class="sig-desc">风险关注提示，多出现在承压或需谨慎的位置。</p>
+            </div>
+          </div>
+          <div class="sig-card">
+            <i class="sig-dot sig-high" aria-hidden="true"></i>
+            <div class="sig-body">
+              <div class="sig-title">顶</div>
+              <p class="sig-desc">高位或过热一侧的预警提示，宜提高警惕。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="help-subh">箭头大致表示什么</div>
+        <div class="viz-row">
+          <div class="viz-chip"><span class="arr-ico up" aria-hidden="true">▲</span><span>向上箭头<span class="muted"> · 多在 K 线下方，偏「关注 / 偏强」一侧</span></span></div>
+          <div class="viz-chip"><span class="arr-ico dn" aria-hidden="true">▼</span><span>向下箭头<span class="muted"> · 多在 K 线上方，偏「谨慎 / 偏弱」一侧</span></span></div>
+          <div class="viz-chip"><span class="arr-ico turn" aria-hidden="true">↕</span><span>单独转折箭头<span class="muted"> · 提示短线节奏可能变化，宜对照，不急于下结论</span></span></div>
+        </div>
+        <p class="muted" style="margin:10px 0 0;">同一根 K 线旁可能同时出现圆点与箭头，文字也可能带「金1」「底2」等编号，仅表示提示类型更细，不代表强度排序或必涨必跌。低位提示偏多 → 可多观察；高位提示偏多 → 宜更谨慎。</p>
+      </section>
+
+      <section class="card help-sec" id="lines">
+        <h2>三、主图趋势线（均线）</h2>
+        <p style="margin:0 0 8px;">主图上叠加的彩色曲线，用来观察价格与中长期结构的相对位置，属于<strong>看图辅助</strong>，不是操作指令。</p>
+        <div class="viz-row">
+          <div class="viz-chip"><span class="ma-swatch ma-orange" aria-hidden="true"></span><span>橙色线<span class="muted"> · 偏短线节奏参考</span></span></div>
+          <div class="viz-chip"><span class="ma-swatch ma-blue" aria-hidden="true"></span><span>蓝色线<span class="muted"> · 偏中期结构参考</span></span></div>
+          <div class="viz-chip"><span class="ma-swatch ma-green" aria-hidden="true"></span><span>绿色线<span class="muted"> · 偏主趋势结构参考</span></span></div>
+          <div class="viz-chip"><span class="ma-swatch ma-dash" aria-hidden="true"></span><span>虚线短均线<span class="muted"> · 可选开关，辅助更早观察波动</span></span></div>
+        </div>
+        <ul class="help-steps" style="margin-top:12px;">
+          <li>价格在线上方或下方，只说明相对位置，不自动等于看涨或看跌结论。</li>
+          <li>线与线交叉、走平或转向，可当作<strong>结构变化提醒</strong>，请结合 K 线与标记一起看。</li>
+          <li>行情页可勾选是否显示短周期虚线；关掉后主图更简洁，不影响其他学习提示。</li>
+        </ul>
+      </section>
+
+      <section class="card help-sec" id="subchart">
+        <h2>四、副图（柱状与箭头）</h2>
+        <p style="margin:0 0 8px;">主图下方副图用柱形和少量箭头，做<strong>强弱节奏的辅助对照</strong>，与主图标记互相参考即可。</p>
+        <div class="viz-row">
+          <div class="viz-chip">
+            <span class="bar-sample" aria-hidden="true"><i class="b-r"></i><i class="b-g"></i><i class="b-r2"></i></span>
+            <span>红 / 绿柱<span class="muted"> · 柱高矮反映波动强弱对比，颜色区分方向感，仅供对照学习</span></span>
+          </div>
+          <div class="viz-chip">
+            <span class="arr-ico up" aria-hidden="true">▲</span>
+            <span>副图「金」类提示<span class="muted"> · 偏强状态切换的辅助标记</span></span>
+          </div>
+          <div class="viz-chip">
+            <span class="arr-ico dn" aria-hidden="true">▼</span>
+            <span>副图「等」类提示<span class="muted"> · 偏弱或宜放缓节奏的辅助标记</span></span>
+          </div>
+        </div>
+        <p class="muted" style="margin:12px 0 0;">副图与主图不一致时很常见：可把副图当作「第二视角」，以整体结构为准，不要单看一根柱或一个箭头下结论。</p>
+      </section>
+
+      <section class="card help-sec" id="quota">
+        <h2>五、免费查询次数与 VIP</h2>
+        <ul class="help-steps">
+          <li><strong>免费用户</strong>：每天、每周有查询次数上限，可在行情页或「我的」查看「今日剩余 / 本周剩余」。</li>
+          <li><strong>怎么计次</strong>：成功查到一只新标的通常计一次；同一标的当天换日/周/月线、刷新重看，一般不再另扣。</li>
+          <li><strong>次数不足</strong>：可开通 VIP / 体验卡，或通过邀请好友获得额外次数（详见「我的」页）。</li>
+          <li><strong>部分指数</strong>：少数常用指数可能提供演示查看，以页面提示为准。</li>
+        </ul>
+      </section>
+
+      <section class="card help-sec" id="faq">
+        <h2>六、AI行情官常见问题</h2>
+
+        <div class="faq-item">
+          <h3>搜「东方财富」点进去是空的？</h3>
+          <p>列表里若出现「××热股」等板块名称，部分暂无可用行情。请优先选择带股票代码的<strong>个股</strong>，再查询。</p>
+        </div>
+        <div class="faq-item">
+          <h3>箭头、趋势线、副图柱分别看什么？</h3>
+          <p>圆点+箭头提示「留意这里」；彩色趋势线看价格相对结构位置；副图柱与箭头是强弱节奏的第二视角。三者都是学习对照，不要单看一个就下结论。</p>
+        </div>
+        <div class="faq-item">
+          <h3>为什么感觉点几下次数就少了？</h3>
+          <p>请等加载完成再点，避免连点。同一标的当天重复查看或切换周期，一般不另扣；若仍异常，可到「反馈」说明时间与操作步骤。</p>
+        </div>
+        <div class="faq-item">
+          <h3>注册 / 忘记密码收不到短信？</h3>
+          <p>请确认手机号无误，并稍等一会儿。若持续失败，可改用邮箱，或提交反馈由客服协助。</p>
+        </div>
+        <div class="faq-item">
+          <h3>登录后提示失效 / 要重新登录？</h3>
+          <p>登录状态有有效期，过期后请重新登录。换设备、清缓存后一般也需要重新登录。</p>
+        </div>
+        <div class="faq-item">
+          <h3>日线、周线、月线看起来不一样？</h3>
+          <p>正常现象：不同周期看的是不同时间尺度，图上提示也会随之变化，请分别理解，不要直接横向对比。</p>
+        </div>
+        <div class="faq-item">
+          <h3>和别的软件里板块点数对不上？</h3>
+          <p>不同平台编制与数据可能不同，点数不宜直接对比。本站以页面展示的行情为准。</p>
+        </div>
+        <div class="faq-item">
+          <h3>这些图标能直接当买卖点吗？</h3>
+          <p>不能。标记、箭头、趋势线与副图都只是学习参考，须结合自身判断与风险承受能力；市场有风险，投资需谨慎。</p>
+        </div>
+      </section>
+
+      <section class="card help-sec" id="safe">
+        <h2>七、风险提示</h2>
+        <div class="note-box">
+          <strong>内容仅供学习交流，不构成任何投资建议。</strong><br />
+          市场有风险，投资需谨慎。请根据自身情况独立判断与决策；因使用本工具产生的任何损益，由使用者自行承担。
+        </div>
+        <p class="seo-more">
+          相关说明：AI行情官帮助指南、K线箭头含义、股票趋势线怎么看、副图强弱柱对照、免费查询与 VIP，均可从本页与「行情」「我的」入口继续了解。
+        </p>
+        <div class="help-cta">
+          <a class="btn primary" href="./demo.html">去行情页试试</a>
+          <a class="btn" href="./feedback.html">还有问题？去反馈</a>
+        </div>
+      </section>
+    </div>
+  </main>
+  <footer class="site-footer" id="site-footer"></footer>
+  <script src="/js/shell.js?v=28"></script>
+  <script>
+    try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("help"); } catch (e) {}
+  </script>
+</body>
+</html>

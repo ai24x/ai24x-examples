@@ -69,6 +69,7 @@
       '<nav class="nav-main" id="nav-main" aria-label="Main">' +
       nav("index.html", "首页", "index") +
       nav("demo.html", "行情", "demo") +
+      nav("help.html", "帮助", "help") +
       nav("account.html", "我的", "account") +
       nav("feedback.html", "反馈", "feedback") +
       "</nav>" +
@@ -98,6 +99,7 @@
       '<div class="footer-col">' +
       '<div class="footer-title">产品</div>' +
       '<a href="demo.html">行情与信号</a>' +
+      '<a href="help.html">使用帮助</a>' +
       '<a href="account.html">用户中心</a>' +
       '<a href="feedback.html">意见反馈</a>' +
       "</div>" +
@@ -151,7 +153,7 @@
         global.__AI24X_A_SW_INSTALLED = true;
         // Cache-bust SW URL so deployments don't require Ctrl+F5.
         // Use absolute paths so pages still work under subpaths like /i/{code}.
-        navigator.serviceWorker.register("/sw.js?v=26", { scope: "/", updateViaCache: "none" }).then(function (reg) {
+        navigator.serviceWorker.register("/sw.js?v=28", { scope: "/", updateViaCache: "none" }).then(function (reg) {
           try {
             reg.update && reg.update();
             if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
@@ -213,6 +215,7 @@
     var navMain = _el("nav", { class: "nav-main", id: "nav-main", "aria-label": "Main" }, [
       nav("index.html", "首页", "index"),
       nav("demo.html", "行情", "demo"),
+      nav("help.html", "帮助", "help"),
       nav("account.html", "我的", "account"),
       nav("feedback.html", "反馈", "feedback"),
     ]);
@@ -246,6 +249,7 @@
     var c2 = _el("div", { class: "footer-col" }, [
       _el("div", { class: "footer-title", text: "产品" }),
       _el("a", { href: "demo.html", text: "行情与信号" }),
+      _el("a", { href: "help.html", text: "使用帮助" }),
       _el("a", { href: "account.html", text: "用户中心" }),
       _el("a", { href: "feedback.html", text: "意见反馈" }),
     ]);
