@@ -395,9 +395,12 @@
           <div class="panel-page" id="p-channels">
             <div class="card">
               <h2>支付通道</h2>
-              <p class="muted small">与看板同源；PayPal 需在服务端配置沙箱/正式密钥后才会就绪。</p>
+              <p class="muted small">只读自检：不展示密钥。改配置请服务器行级改 .env 后重启服务。</p>
+              <div class="row" style="margin-top:10px;">
+                <button type="button" id="btnChannelsRefresh">刷新</button>
+              </div>
               <div class="row" id="channelPills" style="margin-top:10px;"></div>
-              <div class="grid" id="channelStats" style="margin-top:12px;"></div>
+              <div id="channelCards" style="margin-top:12px;display:grid;gap:10px;"></div>
             </div>
           </div>
 
@@ -674,6 +677,78 @@
     }
   }
 
+  function _chanCard(title, ready, lines) {
+    var badge = ready
+      ? '<span class="pill ok">就绪</span>'
+      : '<span class="pill bad">未就绪</span>';
+    return (
+      '<div class="card" style="margin:0;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg2,#0f1419);">' +
+      '<div class="row" style="justify-content:space-between;align-items:center;"><strong>' +
+      title +
+      "</strong>" +
+      badge +
+      "</div>" +
+      '<pre class="mono small" style="margin:8px 0 0;white-space:pre-wrap;">' +
+      (lines || []).join("\n") +
+      "</pre></div>"
+    );
+  }
+
+  async function loadChannelsDetail() {
+    var host = $("channelCards");
+    if (!host) return;
+    host.innerHTML = "<p class='muted small'>加载中…</p>";
+    var r = await api("/v1/billing/pay/status");
+    var wx = r.wechat || {};
+    var ali = r.alipay || {};
+    var pp = r.paypal || {};
+    var pills = [
+      ["支付总开关", !!r.token_pay_enabled],
+      ["微信", !!wx.ui_ready],
+      ["支付宝", !!ali.ui_ready],
+      ["PayPal", !!pp.ui_ready],
+      ["Mock", !!r.token_pay_mock_enabled],
+    ];
+    if ($("channelPills")) {
+      $("channelPills").innerHTML = pills
+        .map(function (p) {
+          return (
+            '<span class="pill ' +
+            (p[1] ? "ok" : "bad") +
+            '">' +
+            p[0] +
+            ": " +
+            (p[1] ? "就绪" : "未就绪") +
+            "</span>"
+          );
+        })
+        .join(" ");
+    }
+    var wxLines = [
+      "商户配置: " + (wx.merchant_configured ? "是" : "否"),
+      "回调已设: " + (wx.notify_url_set ? "是" : "否"),
+    ];
+    if (wx.missing && wx.missing.length) {
+      wxLines.push("缺项: " + wx.missing.join(", "));
+    }
+    var aliLines = [
+      "商户配置: " + (ali.merchant_configured ? "是" : "否"),
+      "回调已设: " + (ali.notify_url_set ? "是" : "否"),
+      "回跳已设: " + (ali.return_url_set ? "是" : "否"),
+    ];
+    var ppLines = [
+      "商户配置: " + (pp.merchant_configured ? "是" : "否"),
+      "mode: " + (pp.mode || "-"),
+      "webhook: " + (pp.webhook_id_set ? "已设" : "未设"),
+      "return_url: " + (pp.return_url_set ? "已设" : "未设"),
+      "locale/landing: " + (pp.locale || "-") + " / " + (pp.landing_page || "-"),
+    ];
+    host.innerHTML =
+      _chanCard("微信", !!wx.ui_ready, wxLines) +
+      _chanCard("支付宝", !!ali.ui_ready, aliLines) +
+      _chanCard("PayPal", !!pp.ui_ready, ppLines);
+  }
+
   async function loadRouting() {
     var out = $("routingOut");
     if (!out) return;
@@ -860,7 +935,7 @@
       await loadDashHome();
       setMsg("常用页已刷新", "ok");
     } else if (p === "p-channels") {
-      await refreshSummary();
+      await loadChannelsDetail();
       setMsg("通道状态已刷新", "ok");
     } else if (p === "p-routing") {
       await loadRouting();
@@ -1006,6 +1081,16 @@
       try {
         await loadRouting();
         setMsg("路由状态已刷新", "ok");
+      } catch (e) {
+        setMsg(String(e.message || e), "err");
+      }
+    };
+  }
+  if ($("btnChannelsRefresh")) {
+    $("btnChannelsRefresh").onclick = async function () {
+      try {
+        await loadChannelsDetail();
+        setMsg("通道状态已刷新", "ok");
       } catch (e) {
         setMsg(String(e.message || e), "err");
       }

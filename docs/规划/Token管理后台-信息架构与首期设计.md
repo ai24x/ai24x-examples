@@ -35,7 +35,7 @@
 | 订单列表/履约 | ✅ | `GET/POST /v1/admin/token/orders*` |
 | 查用户/加额 | ✅ | `GET /v1/admin/users/lookup` · `POST .../topup` |
 | 流水 | ✅ | `GET /v1/admin/token/ledger` |
-| 支付通道状态 | 🔶 可复用 | `GET /v1/billing/pay/status`（admin 鉴权后嵌） |
+| 支付通道状态 | ✅ | `GET /v1/billing/pay/status`（admin 面板只读展示） |
 | 路由状态 | ✅ | `GET /v1/admin/token/routing` → mode、L0–L3/QI、key_set |
 | 用户冻结 | ❌ P1 | `POST /v1/admin/users/{id}/freeze` |
 | 系统开关 | ❌ P2 | 配置表或受限 env 白名单 |
@@ -69,9 +69,32 @@
 
 1. ✅ 用户控制台品牌隐藏 + 系统提示 + API 档位名  
 2. ✅ Admin：`GET /v1/admin/token/routing` + token-admin「路由状态」面板  
-3. ⏳ Admin：通道面板接 `pay/status` 细化（脱敏 mode / webhook）  
+3. ✅ Admin：通道面板接 `pay/status` 细化（脱敏 mode / webhook）  
 4. ⏳ PayPal Webhook（本机 Sandbox）  
 5. ⏳ 入门包正式价  
+
+---
+
+## 6. 下一迭代设计（本机优先）
+
+### 6.1 PayPal Webhook（履约兜底）
+
+- **目标**：用户关页/回跳失败时，Webhook 仍能把 pending → paid 并入账  
+- **本机**：Sandbox webhook → 本机隧道或先 mock 验签路径；验 `PAYPAL_WEBHOOK_ID`  
+- **生产**：Live webhook 仍挂 API 宿主；改 `.env` 行级 + 重启  
+- **管理台**：通道卡已显示 `webhook: 已设/未设`；后续可加「最近 webhook 事件」只读（P1）
+
+### 6.2 入门包正式价
+
+- 价表拆：`starter` 正式价（国际口径）+ 可选 `debug` / 内部 SKU（仅 mock 或白名单）  
+- 控制台默认只展示正式档；debug 不进公网页  
+- 改价后回归：plans API、创建单金额、到账 tokens 一致
+
+### 6.3 用户冻结（P1）
+
+- `POST /v1/admin/users/{id}/freeze` + `unfreeze`  
+- 冻结后：禁登录 JWT 新签 / 禁 chat / 禁充值（择一先做 chat+充值）  
+- token-admin 用户行增加按钮 + 原因备注
 
 ---
 
