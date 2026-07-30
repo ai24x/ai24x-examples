@@ -593,7 +593,21 @@ def run_routed_chat(
             )
             continue
 
-    # 所有 live 失败时：测试环境回落 stub，避免无效 Key 把整条链打死
+    # 已配置 live Key 但全部失败：对用户硬失败（勿返回假 stub 冒充成功）
+    if any_live:
+        logger.error("all live routes failed attempts=%s", attempts)
+        return RouteResult(
+            ok=False,
+            text="",
+            model="",
+            layer="",
+            provider="",
+            token_count=0,
+            attempts=attempts,
+            error="all_live_failed",
+        )
+
+    # 未配置任何 Key：本机联调 stub
     layer0, logical0 = chain[0] if chain else ("L0", "siliconflow-free")
     stub = _stub_response(prompt, layer=layer0, model=logical0)
     attempts.append(
@@ -602,7 +616,7 @@ def run_routed_chat(
             "model": logical0,
             "provider": "stub",
             "ok": True,
-            "fallback": "all_live_failed",
+            "fallback": "no_keys_stub",
         }
     )
     return RouteResult(
@@ -613,7 +627,7 @@ def run_routed_chat(
         provider="stub",
         token_count=max(1, int(stub["tokens"])),
         attempts=attempts,
-        error="all_live_failed_used_stub",
+        error=None,
     )
 
 

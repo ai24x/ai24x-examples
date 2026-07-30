@@ -450,6 +450,8 @@
               <p class="muted small" id="systemOpsNote">支付 / LLM / 国内短信 / 邮件。国际用户用邮箱验证；国际短信暂不接入。</p>
               <div class="row" style="margin-top:10px;">
                 <button type="button" id="btnSystemRefresh">刷新</button>
+                <button type="button" id="btnUpstreamProbe">上游摘要</button>
+                <button type="button" id="btnUpstreamLive">探活 L0/L1（花钱）</button>
               </div>
               <div class="row" id="systemPills" style="margin-top:10px;"></div>
               <pre id="systemOut" class="mono small" style="margin-top:12px;white-space:pre-wrap;background:var(--bg2,#0f1419);padding:12px;border-radius:8px;border:1px solid var(--border);">—</pre>
@@ -1253,6 +1255,29 @@
       try {
         await loadSystem();
         setMsg("系统开关已刷新", "ok");
+      } catch (e) {
+        setMsg(String(e.message || e), "err");
+      }
+    };
+  }
+  if ($("btnUpstreamProbe")) {
+    $("btnUpstreamProbe").onclick = async function () {
+      try {
+        var r = await api("/v1/admin/token/upstream_probe?live=0");
+        if ($("systemOut")) $("systemOut").textContent = JSON.stringify(r, null, 2);
+        setMsg("上游摘要已刷新（未花钱）", "ok");
+      } catch (e) {
+        setMsg(String(e.message || e), "err");
+      }
+    };
+  }
+  if ($("btnUpstreamLive")) {
+    $("btnUpstreamLive").onclick = async function () {
+      try {
+        if (!window.confirm("将对 L0/L1 发极短请求（可能产生微量费用）。继续？")) return;
+        var r = await api("/v1/admin/token/upstream_probe?live=1");
+        if ($("systemOut")) $("systemOut").textContent = JSON.stringify(r, null, 2);
+        setMsg("探活完成", "ok");
       } catch (e) {
         setMsg(String(e.message || e), "err");
       }

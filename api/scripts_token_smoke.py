@@ -48,13 +48,25 @@ def main() -> int:
         rows.append(
             _ok(
                 "models_live",
-                up.get("mode") == "live" and bool(up.get("l1_deepseek_ready")),
+                up.get("mode") == "live" and bool(up.get("l1_ready") or up.get("direct_ready") or up.get("openrouter_ready")),
                 json.dumps(up, ensure_ascii=False),
             )
         )
         rows.append(_ok("brand_flash", bool((m.get("brand") or {}).get("flash")), str(m.get("brand"))))
     except Exception as e:
         rows.append(_ok("models_live", False, str(e)))
+
+    try:
+        h = client.get("/health").json()
+        rows.append(
+            _ok(
+                "health_upstream",
+                h.get("status") == "healthy" and bool(h.get("upstream_mode")),
+                f"mode={h.get('upstream_mode')} stamp={h.get('build_stamp')}",
+            )
+        )
+    except Exception as e:
+        rows.append(_ok("health_upstream", False, str(e)))
 
     try:
         es = client.get("/v1/auth/email/status").json()

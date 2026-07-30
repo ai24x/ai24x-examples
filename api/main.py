@@ -1,12 +1,13 @@
 from pathlib import Path
+import logging
+import os
+import time
 
 from fastapi import FastAPI, Depends, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
-import logging
-import time
 
 from database import get_db, init_db
 from models import AuthUser, SmsSendLog
@@ -220,11 +221,27 @@ def get_current_user(
 # 健康检查端点
 @app.get("/health")
 async def health_check():
+    """进程存活 + 只读上游摘要（不探活、不泄露密钥）。"""
+    from model_router import _layer_upstream, _upstream_mode
+
+    mode = _upstream_mode()
+    layers = {}
+    for ly in ("L0", "L1", "L2", "L3", "QI"):
+        up = _layer_upstream(ly)
+        layers[ly] = {"key_set": bool(up.get("key")), "provider": up.get("provider") or ""}
+    build = (
+        (os.environ.get("AI24X_BUILD_STAMP") or "").strip()
+        or (os.environ.get("BUILD_STAMP") or "").strip()
+        or ""
+    )
     return {
         "status": "healthy",
         "service": "AI24X API",
         "version": "1.0.0",
-        "timestamp": time.time()
+        "build_stamp": build or None,
+        "upstream_mode": mode,
+        "layers": layers,
+        "timestamp": time.time(),
     }
 
 
@@ -1662,6 +1679,58 @@ async def admin_token_routing(request: Request):
         "layers": layers,
         "public_note": "用户 API/控制台只见 auto/flash/pro/ultra；本接口供管理台。",
         "upstream_public": pub.get("upstream") or {},
+    }
+
+
+@app.get("/v1/admin/token/upstream_probe")
+async def admin_token_upstream_probe(request: Request, live: int = 0):
+    """
+    上游探活（只读）。
+    live=0：只报各层 key_set / provider / model（默认，不花钱）。
+    live=1：对已配 Key 的 L1（及有 Key 的 L0）发极短请求测通断。
+    """
+    _require_internal_key(request)
+    import time as _time
+
+    from model_router import _call_openai_compatible, _layer_upstream, _upstream_mode
+
+    mode = _upstream_mode()
+    out_layers = {}
+    for ly in ("L0", "L1", "L2", "L3", "QI"):
+        up = _layer_upstream(ly)
+        row = {
+            "provider": up.get("provider"),
+            "model": up.get("model"),
+            "key_set": bool(up.get("key")),
+            "probe": None,
+        }
+        if int(live or 0) == 1 and ly in ("L0", "L1") and up.get("key") and up.get("base"):
+            t0 = _time.time()
+            try:
+                _call_openai_compatible(
+                    base=str(up["base"]),
+                    key=str(up["key"]),
+                    model=str(up["model"]),
+                    prompt="ping",
+                    temperature=0,
+                    max_tokens=1,
+                    timeout_s=15.0,
+                    provider=str(up.get("provider") or ""),
+                )
+                row["probe"] = {"ok": True, "ms": int((_time.time() - t0) * 1000)}
+            except Exception as e:
+                row["probe"] = {
+                    "ok": False,
+                    "ms": int((_time.time() - t0) * 1000),
+                    "error": str(e)[:160],
+                }
+        out_layers[ly] = row
+    return {
+        "ok": True,
+        "upstream_mode": mode,
+        "live": bool(int(live or 0) == 1),
+        "layers": out_layers,
+        "note": "默认 live=0 不花钱；live=1 仅探 L0/L1。OR 挂了请行级切 TOKEN_LLM_UPSTREAM=direct 后重启。",
     }
 
 

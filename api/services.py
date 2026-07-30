@@ -3,6 +3,7 @@ import time
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from sqlalchemy.orm import Session
+from fastapi import HTTPException, status
 
 from models import User, ChatRequest, UserType
 from schemas import ChatRequest as ChatRequestSchema, ChatResponse
@@ -122,7 +123,10 @@ class ChatService:
                 region_hint=region_hint,
             )
             if not routed.ok:
-                raise RuntimeError(routed.error or "all_routes_failed")
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="模型服务暂时繁忙，请稍后再试。",
+                )
 
             response_text = routed.text
             used_model = routed.model
