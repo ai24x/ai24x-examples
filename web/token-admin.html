@@ -454,6 +454,14 @@
                 <button type="button" id="btnWallet">查余额</button>
               </div>
               <p class="small mono" id="walletOut" style="margin-top:10px;"></p>
+              <div class="row" style="margin-top:10px;align-items:center;">
+                <span class="pill" id="freezePill">冻结状态：—</span>
+                <div class="field" style="min-width:180px;"><span class="lbl">冻结原因</span>
+                  <input id="freezeReason" type="text" placeholder="可选" />
+                </div>
+                <button type="button" class="danger" id="btnFreeze">冻结账号</button>
+                <button type="button" id="btnUnfreeze">解冻</button>
+              </div>
               <div class="row" style="margin-top:10px;">
                 <div class="field"><span class="lbl">加 Token 数量</span>
                   <input id="topAmt" type="number" min="1" value="10000" />
@@ -1241,6 +1249,16 @@
     fulfillOrder(otn, t);
   });
 
+  function setFreezePill(u) {
+    var el = $("freezePill");
+    if (!el) return;
+    var frozen = !!(u && (u.frozen || u.frozen_at));
+    el.className = "pill " + (frozen ? "bad" : "ok");
+    el.textContent = frozen
+      ? ("已冻结" + (u.freeze_reason ? " · " + u.freeze_reason : ""))
+      : "未冻结";
+  }
+
   $("btnLookup").onclick = async function () {
     try {
       var c = ($("wContact").value || "").trim();
@@ -1252,6 +1270,7 @@
       var u = r.user || {};
       $("wUid").value = u.id || "";
       $("walletOut").textContent = "用户 #" + u.id + "  email=" + (u.email || "") + "  phone=" + (u.phone || "");
+      setFreezePill(u);
       setMsg("已找到用户", "ok");
     } catch (e) { setMsg(String(e.message || e), "err"); }
   };
@@ -1262,9 +1281,37 @@
       if (!uid) throw new Error("请填写用户 ID");
       var r = await api("/v1/admin/token/wallet?auth_user_id=" + uid);
       $("walletOut").textContent = JSON.stringify(r, null, 2);
+      setFreezePill(r.user || { frozen: !!r.frozen });
       setMsg("余额已拉取", "ok");
     } catch (e) { setMsg(String(e.message || e), "err"); }
   };
+
+  if ($("btnFreeze")) {
+    $("btnFreeze").onclick = async function () {
+      try {
+        var uid = Number($("wUid").value || 0);
+        if (!uid) throw new Error("请填写用户 ID");
+        if (!window.confirm("确认冻结用户 #" + uid + "？将无法登录、对话与充值。")) return;
+        var r = await api("/v1/admin/users/" + uid + "/freeze", {
+          method: "POST",
+          body: { reason: ($("freezeReason").value || "").trim() || "admin" },
+        });
+        setFreezePill(r.user || {});
+        setMsg("已冻结 #" + uid, "ok");
+      } catch (e) { setMsg(String(e.message || e), "err"); }
+    };
+  }
+  if ($("btnUnfreeze")) {
+    $("btnUnfreeze").onclick = async function () {
+      try {
+        var uid = Number($("wUid").value || 0);
+        if (!uid) throw new Error("请填写用户 ID");
+        var r = await api("/v1/admin/users/" + uid + "/unfreeze", { method: "POST", body: {} });
+        setFreezePill(r.user || { frozen: false });
+        setMsg("已解冻 #" + uid, "ok");
+      } catch (e) { setMsg(String(e.message || e), "err"); }
+    };
+  }
 
   $("btnTopup").onclick = async function () {
     try {

@@ -167,48 +167,41 @@ def list_models_public(*, is_vip: bool) -> dict[str, Any]:
     return {
         "layers": {
             "L0": {
-                "title": "兜底（聚合自动路由 / 直连硅基）",
-                "models": ["or-fallback", "siliconflow-free", "glm-4-flash"],
+                "title": "auto 兜底",
+                "models": ["auto"],
                 "free": True,
                 "ready": bool(l0.get("key")),
-                "provider": l0.get("provider"),
             },
             "L1": {
-                "title": "主打 flash（聚合 · 默认 DeepSeek V4 Flash）",
-                "models": ["flash", "deepseek-chat", "or-flash", "auto"],
+                "title": "flash",
+                "models": ["flash", "auto"],
                 "free": True,
                 "ready": bool(l1.get("key")),
-                "provider": l1.get("provider"),
-                "upstream_model": l1.get("model") or None,
             },
             "QI": {
-                "title": "欧盟向聚合模型（需 TOKEN_REGION_ROUTING=1）",
-                "models": ["or-eu", "qwen-intl-turbo"],
+                "title": "区域档（按需）",
+                "models": ["auto"],
                 "free": True,
                 "ready": bool(qi.get("key")),
-                "provider": qi.get("provider"),
-                "upstream_model": qi.get("model") or None,
             },
             "L2": {
-                "title": "VIP pro",
-                "models": ["pro", "or-pro", "deepseek-pro"],
+                "title": "pro（VIP）",
+                "models": ["pro"],
                 "vip_only": True,
                 "ready": bool(l2.get("key")),
-                "upstream_model": l2.get("model") or None,
             },
             "L3": {
-                "title": "VIP ultra",
-                "models": ["ultra", "or-ultra"],
+                "title": "ultra（VIP）",
+                "models": ["ultra"],
                 "vip_only": True,
                 "ready": bool(l3.get("key")),
-                "upstream_model": l3.get("model") or None,
             },
         },
         "brand": {
-            "free": "auto → 聚合 L1→L0",
-            "flash": "L1",
-            "pro": "L2（VIP）",
-            "ultra": "L3（VIP）",
+            "auto": "自动档",
+            "flash": "flash",
+            "pro": "pro",
+            "ultra": "ultra",
         },
         "default": "auto",
         "chain": CHAIN_VIP if is_vip else CHAIN_FREE,
@@ -221,18 +214,12 @@ def list_models_public(*, is_vip: bool) -> dict[str, Any]:
             "l0_ready": bool(l0.get("key")),
             "l1_ready": bool(l1.get("key")),
             "qi_ready": bool(qi.get("key")),
-            "l0_base": l0.get("base") or None,
-            "l1_base": l1.get("base") or None,
-            "qi_base": qi.get("base") or None,
+            # 运维自检保留；用户控制台勿展示
             "l1_model": l1.get("model") or None,
             "l2_model": l2.get("model") or None,
             "l3_model": l3.get("model") or None,
         },
-        "note": (
-            "聚合默认 L1=deepseek/deepseek-v4-flash、L2=deepseek/deepseek-v4-pro；"
-            "能力向可 OPENROUTER_MODEL_L1=xiaomi/mimo-v2.5。"
-            "TOKEN_LLM_UPSTREAM=direct 回退官方 DeepSeek。"
-        ),
+        "note": "对外档位：auto / flash / pro / ultra。上游映射见管理台「路由状态」。",
     }
 
 

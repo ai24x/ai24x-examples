@@ -56,6 +56,7 @@ from auth_user_service import (
     authenticate_password,
     admin_set_contact,
     admin_set_password,
+    auth_user_public_dict,
     bind_email_for_user,
     bind_phone_for_user,
     change_password_for_user,
@@ -63,9 +64,12 @@ from auth_user_service import (
     create_user_phone,
     get_by_email,
     get_by_phone,
+    is_user_frozen,
     norm_email,
+    raise_if_frozen,
     reset_password_email,
     reset_password_phone,
+    set_user_frozen,
 )
 from sms_abuse_guard import check_before_send, client_ip, record_attempt
 from sms_otp_memory import store_otp, verify_and_consume_otp
@@ -634,6 +638,7 @@ async def auth_login(body: AuthLoginBody, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="手机号/邮箱或密码错误",
         )
+    raise_if_frozen(u)
     token = create_auth_access_token(
         user_id=int(u.id),
         email=u.email,
@@ -807,6 +812,7 @@ def _auth_user_from_bearer(request: Request, db: Session) -> AuthUser:
     u = db.query(AuthUser).filter(AuthUser.id == uid).first()
     if not u:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="用户不存在")
+    raise_if_frozen(u)
     return u
 
 
@@ -985,7 +991,43 @@ async def admin_user_lookup(
         u = q.filter(AuthUser.email == e).first()
     if u is None:
         raise HTTPException(status_code=404, detail="用户不存在")
-    return {"ok": True, "user": {"id": int(u.id), "email": u.email or "", "phone": u.phone or ""}}
+    return {"ok": True, "user": auth_user_public_dict(u)}
+
+
+@app.post("/v1/admin/users/{user_id}/freeze")
+async def admin_user_freeze(
+    user_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """冻结账号：禁登录、chat、充值。Body 可选 {\"reason\":\"...\"}。"""
+    _require_internal_key(request)
+    reason = ""
+    try:
+        body = await request.json()
+        if isinstance(body, dict):
+            reason = str(body.get("reason") or "")
+    except Exception:
+        reason = ""
+    try:
+        u = set_user_frozen(db, user_id=int(user_id), frozen=True, reason=reason)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    return {"ok": True, "user": auth_user_public_dict(u)}
+
+
+@app.post("/v1/admin/users/{user_id}/unfreeze")
+async def admin_user_unfreeze(
+    user_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    _require_internal_key(request)
+    try:
+        u = set_user_frozen(db, user_id=int(user_id), frozen=False)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    return {"ok": True, "user": auth_user_public_dict(u)}
 
 
 @app.post("/v1/admin/users/bootstrap", response_model=AuthTokenResponse)
@@ -1480,7 +1522,14 @@ async def admin_token_wallet(request: Request, auth_user_id: int, db: Session = 
     _require_internal_key(request)
     from token_mvp_service import get_balance_snapshot
 
-    return get_balance_snapshot(db, int(auth_user_id))
+    snap = get_balance_snapshot(db, int(auth_user_id))
+    u = db.query(AuthUser).filter(AuthUser.id == int(auth_user_id)).first()
+    if u:
+        snap["user"] = auth_user_public_dict(u)
+        snap["frozen"] = is_user_frozen(u)
+    else:
+        snap["frozen"] = False
+    return snap
 
 
 @app.get("/v1/admin/token/ledger")

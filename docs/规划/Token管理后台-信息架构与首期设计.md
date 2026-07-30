@@ -38,7 +38,7 @@
 | 支付通道状态 | ✅ | `GET /v1/billing/pay/status` |
 | 路由状态 | ✅ | `GET /v1/admin/token/routing` |
 | 价表只读 | ✅ | `GET /v1/admin/token/plans` |
-| 用户冻结 | ❌ P1 | `POST /v1/admin/users/{id}/freeze` |
+| 用户冻结 | ✅ | `POST /v1/admin/users/{id}/freeze` · `unfreeze` |
 | 网页改价 | ❌ 不做 | 改 `TOKEN_PRICE_*_FEN` + 重启 |
 
 鉴权统一：`X-SMS-Internal-Key`。
@@ -75,20 +75,25 @@
 3. ⏸ **入门包正式价**：暂不抬；体验价保留  
 4. ⏸ **PayPal Webhook**：P1 兜底（主路径 Capture 已通）  
 5. ⏸ **微信/支付宝国际收单**：不做；另签国际产品再立项  
-6. ⏳ 用户冻结（P1）  
+6. ✅ 用户冻结（禁登录 / chat / 充值；管理台钱包页）  
+7. ⏸ PayPal 真商户 Webhook 挂 URL（本机伪造路径已冒烟 OK）  
 
 ---
 
 ## 7. PayPal Webhook（P1 · 说明）
 
 - **用途**：回跳/Capture 失败时，仍靠 PayPal 服务端通知履约  
-- **非阻塞**：小流量可手查 pending 履约；正式大规模对外收款前再配齐验签  
+- **本机**：`python api/scripts_paypal_webhook_local_test.py` / `scripts_token_local_smoke.py` 可伪造事件验履约  
+- **生产**：商户后台挂 `https://api.ai24x.com/v1/billing/paypal/webhook` + `PAYPAL_WEBHOOK_ID`（有流水压力再配）  
 
 ---
 
-## 8. 用户冻结（P1）
+## 8. 用户冻结（已落地）
 
-- `freeze` / `unfreeze`；先禁 chat + 充值  
+- 列：`auth_users.frozen_at` / `freeze_reason`（软迁移）  
+- 挂点：登录、Bearer、chat 扣费前、创建充值单  
+- 文案：「账号暂不可用，请联系客服。」  
+- Admin：钱包页冻结 / 解冻  
 
 ---
 

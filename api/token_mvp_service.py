@@ -340,6 +340,10 @@ def get_balance_snapshot(db: Session, auth_user_id: int) -> dict:
 
 
 def assert_can_spend(db: Session, auth_user_id: int, need_tokens: int = 1) -> TokenWallet:
+    from auth_user_service import raise_if_frozen
+
+    u = db.query(AuthUser).filter(AuthUser.id == int(auth_user_id)).first()
+    raise_if_frozen(u)
     w = ensure_period_bonus(db, get_or_create_wallet(db, auth_user_id))
     bal = int(w.balance_tokens or 0)
     if bal <= 0:

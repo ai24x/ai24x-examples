@@ -240,3 +240,46 @@ def bind_email_for_user(db: Session, *, user_id: int, email: str, email_code: st
     db.commit()
     db.refresh(u)
     return u
+
+
+_FROZEN_MSG = "账号暂不可用，请联系客服。"
+
+
+def is_user_frozen(u: Optional[AuthUser]) -> bool:
+    return bool(u is not None and getattr(u, "frozen_at", None))
+
+
+def auth_user_public_dict(u: AuthUser) -> dict:
+    return {
+        "id": int(u.id),
+        "email": u.email or "",
+        "phone": u.phone or "",
+        "frozen": is_user_frozen(u),
+        "frozen_at": u.frozen_at.isoformat() if getattr(u, "frozen_at", None) else None,
+        "freeze_reason": (getattr(u, "freeze_reason", None) or "") or None,
+    }
+
+
+def raise_if_frozen(u: Optional[AuthUser]) -> None:
+    """用户可见文案；供登录 / chat / 充值挂点。"""
+    from fastapi import HTTPException
+
+    if is_user_frozen(u):
+        raise HTTPException(status_code=403, detail=_FROZEN_MSG)
+
+
+def set_user_frozen(
+    db: Session, *, user_id: int, frozen: bool, reason: str = ""
+) -> AuthUser:
+    u = db.query(AuthUser).filter(AuthUser.id == int(user_id)).first()
+    if not u:
+        raise ValueError("用户不存在")
+    if frozen:
+        u.frozen_at = datetime.now(timezone.utc)
+        u.freeze_reason = (reason or "").strip()[:255] or "admin"
+    else:
+        u.frozen_at = None
+        u.freeze_reason = None
+    db.commit()
+    db.refresh(u)
+    return u

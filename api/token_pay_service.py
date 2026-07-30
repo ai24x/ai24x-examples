@@ -149,9 +149,12 @@ def create_pending_order(
     plan: str,
     channel: str,
 ) -> TokenPayOrder:
+    from auth_user_service import raise_if_frozen
+
     u = db.query(AuthUser).filter(AuthUser.id == int(auth_user_id)).first()
     if not u:
         raise HTTPException(status_code=404, detail="用户不存在")
+    raise_if_frozen(u)
     try:
         plan_id, price_fen = normalize_plan(plan)
     except ValueError as e:

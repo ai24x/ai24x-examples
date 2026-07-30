@@ -40,13 +40,25 @@ def init_db():
     )
 
     Base.metadata.create_all(bind=engine)
-    # 软迁移：已有 token_wallets 补 VIP 到期列（不碰 a1 表）
+    # 软迁移：已有表补列（不碰 a1 表）
     try:
         with engine.begin() as conn:
             conn.execute(
                 text(
                     "ALTER TABLE token_wallets "
                     "ADD COLUMN IF NOT EXISTS vip_expires_at TIMESTAMP WITH TIME ZONE"
+                )
+            )
+            conn.execute(
+                text(
+                    "ALTER TABLE auth_users "
+                    "ADD COLUMN IF NOT EXISTS frozen_at TIMESTAMP WITH TIME ZONE"
+                )
+            )
+            conn.execute(
+                text(
+                    "ALTER TABLE auth_users "
+                    "ADD COLUMN IF NOT EXISTS freeze_reason VARCHAR(255)"
                 )
             )
     except Exception:

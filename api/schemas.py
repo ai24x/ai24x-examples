@@ -52,14 +52,13 @@ class ChatResponse(BaseModel):
             "example": {
                 "request_id": "req_123456789",
                 "response": "Python是一种高级编程语言...",
-                "model": "deepseek-flash",
+                "model": "flash",
                 "token_count": 150,
                 "processing_time": 1.5,
                 "user_type": "free",
                 "remaining_quota": 85,
                 "created_at": "2024-01-01T12:00:00Z",
-                "layer": "L1",
-                "provider": "stub",
+                "provider": "ai24x",
             }
         }
 

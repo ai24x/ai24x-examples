@@ -91,6 +91,9 @@ class AuthUser(Base):
     password_hash = Column(String(255), nullable=False)
     phone_verified_at = Column(DateTime(timezone=True), nullable=True)
     email_verified_at = Column(DateTime(timezone=True), nullable=True)
+    # 冻结：非空即冻结（禁登录 / chat / 充值）；管理台可解冻
+    frozen_at = Column(DateTime(timezone=True), nullable=True)
+    freeze_reason = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
