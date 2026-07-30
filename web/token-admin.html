@@ -235,6 +235,10 @@
               支付通道
               <span class="subt">微信 / 支付宝 / PayPal / Mock</span>
             </button>
+            <button type="button" class="nav-item" data-panel="p-plans">
+              价表（只读）
+              <span class="subt">当前套餐价 · env 覆盖键</span>
+            </button>
           </div>
         </div>
 
@@ -401,6 +405,27 @@
               </div>
               <div class="row" id="channelPills" style="margin-top:10px;"></div>
               <div id="channelCards" style="margin-top:12px;display:grid;gap:10px;"></div>
+            </div>
+          </div>
+
+          <div class="panel-page" id="p-plans">
+            <div class="card">
+              <h2>价表（只读）</h2>
+              <p class="muted small" id="plansOpsNote">入门包体验价可继续使用。改价请服务器改 TOKEN_PRICE_*_FEN 后重启；本页不可写配置。</p>
+              <div class="row" style="margin-top:10px;">
+                <button type="button" id="btnPlansRefresh">刷新</button>
+                <span class="muted small" id="plansFxMeta"></span>
+              </div>
+              <div style="overflow:auto;margin-top:12px;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>套餐</th><th>plan</th><th>CNY</th><th>USD</th><th>到账 token</th><th>标记</th><th>env 键</th>
+                    </tr>
+                  </thead>
+                  <tbody id="plansBody"></tbody>
+                </table>
+              </div>
             </div>
           </div>
 
@@ -749,6 +774,59 @@
       _chanCard("PayPal", !!pp.ui_ready, ppLines);
   }
 
+  async function loadPlans() {
+    var body = $("plansBody");
+    if (!body) return;
+    body.innerHTML = "<tr><td colspan='7' class='muted'>加载中…</td></tr>";
+    var r = await api("/v1/admin/token/plans");
+    if ($("plansOpsNote") && r.ops_note) $("plansOpsNote").textContent = r.ops_note;
+    if ($("plansFxMeta")) {
+      $("plansFxMeta").textContent = "汇率 TOKEN_USD_CNY=" + (r.usd_cny != null ? r.usd_cny : "-");
+    }
+    var rows = r.plans || [];
+    if (!rows.length) {
+      body.innerHTML = "<tr><td colspan='7' class='muted'>无套餐</td></tr>";
+      return;
+    }
+    body.innerHTML = rows
+      .map(function (p) {
+        var flags = [];
+        if (!p.enabled) flags.push("停用");
+        if (p.promo) flags.push("体验价");
+        if (p.set_vip) flags.push("VIP");
+        if (p.price_env_override) flags.push("env覆盖");
+        var envCell = p.price_env_key
+          ? esc(p.price_env_key) + (p.price_env_override ? " ✓" : "（默认）")
+          : "—";
+        return (
+          "<tr>" +
+          "<td>" +
+          esc(p.title_zh || "") +
+          "</td>" +
+          "<td class='mono small'>" +
+          esc(p.plan || "") +
+          "</td>" +
+          "<td>¥" +
+          esc(p.price_yuan || String((Number(p.price_fen || 0) / 100).toFixed(2))) +
+          "</td>" +
+          "<td>" +
+          (p.price_usd != null ? "$" + esc(String(p.price_usd)) : "—") +
+          "</td>" +
+          "<td>" +
+          (p.credit_tokens || 0) +
+          "</td>" +
+          "<td>" +
+          (flags.length ? flags.join(" · ") : "—") +
+          "</td>" +
+          "<td class='mono small'>" +
+          envCell +
+          "</td>" +
+          "</tr>"
+        );
+      })
+      .join("");
+  }
+
   async function loadRouting() {
     var out = $("routingOut");
     if (!out) return;
@@ -937,6 +1015,9 @@
     } else if (p === "p-channels") {
       await loadChannelsDetail();
       setMsg("通道状态已刷新", "ok");
+    } else if (p === "p-plans") {
+      await loadPlans();
+      setMsg("价表已刷新", "ok");
     } else if (p === "p-routing") {
       await loadRouting();
       setMsg("路由状态已刷新", "ok");
@@ -1091,6 +1172,16 @@
       try {
         await loadChannelsDetail();
         setMsg("通道状态已刷新", "ok");
+      } catch (e) {
+        setMsg(String(e.message || e), "err");
+      }
+    };
+  }
+  if ($("btnPlansRefresh")) {
+    $("btnPlansRefresh").onclick = async function () {
+      try {
+        await loadPlans();
+        setMsg("价表已刷新", "ok");
       } catch (e) {
         setMsg(String(e.message || e), "err");
       }

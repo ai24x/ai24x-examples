@@ -1610,6 +1610,15 @@ async def admin_token_routing(request: Request):
     }
 
 
+@app.get("/v1/admin/token/plans")
+async def admin_token_plans(request: Request):
+    """运维只读价表（含 env 覆盖键提示）；不可经本接口改价。"""
+    _require_internal_key(request)
+    from token_plans import list_admin_plans
+
+    return list_admin_plans()
+
+
 @app.post("/v1/admin/token/orders/query_fulfill")
 async def admin_token_orders_query_fulfill(
     request: Request, body: TokenQueryFulfillBody, db: Session = Depends(get_db)
