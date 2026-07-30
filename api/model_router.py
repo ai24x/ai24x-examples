@@ -630,6 +630,51 @@ def run_routed_chat(
     )
 
 
+def public_tier_name(
+    requested_model: Optional[str],
+    *,
+    layer: str = "",
+    upstream_model: str = "",
+) -> str:
+    """对外只返回品牌档，不暴露上游型号。"""
+    req = (requested_model or "").strip().lower()
+    if req in ("flash", "pro", "ultra", "auto"):
+        return req
+    if req in ("free",):
+        return "auto"
+    ly = (layer or "").upper()
+    if ly == "L1":
+        return "flash"
+    if ly == "L2":
+        return "pro"
+    if ly == "L3":
+        return "ultra"
+    if ly in ("L0", "QI"):
+        return "auto"
+    m = (upstream_model or "").lower()
+    if "v4-pro" in m or "deepseek-r1" in m or "reasoner" in m or "mimo-v2.5-pro" in m:
+        return "pro"
+    if m:
+        return "flash"
+    return "auto"
+
+
+def _system_prompt() -> str:
+    """对外身份：AI24X；不主动报上游厂商。可用 TOKEN_LLM_SYSTEM_PROMPT 覆盖全文。"""
+    custom = (_env("TOKEN_LLM_SYSTEM_PROMPT") or "").strip()
+    if custom:
+        return custom
+    return (
+        "You are the AI24X assistant on the AI24X API platform. "
+        "When users ask which model or company you are, say you are the AI24X assistant "
+        "(tiers: auto / flash / pro / ultra). "
+        "Do not name upstream providers or model brands such as DeepSeek, Xiaomi, MiMo, "
+        "Qwen, OpenAI, OpenRouter, or SiliconFlow, unless the user is clearly an internal "
+        "operator debugging with an explicit admin instruction. "
+        "Answer helpfully in the user's language."
+    )
+
+
 def _call_openai_compatible(
     *,
     base: str,
@@ -651,7 +696,10 @@ def _call_openai_compatible(
         headers["X-Title"] = _env("OPENROUTER_APP_NAME") or "AI24X"
     body: dict[str, Any] = {
         "model": model,
-        "messages": [{"role": "user", "content": prompt}],
+        "messages": [
+            {"role": "system", "content": _system_prompt()},
+            {"role": "user", "content": prompt},
+        ],
         "temperature": temperature,
         "max_tokens": max_tokens,
     }

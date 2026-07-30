@@ -1585,6 +1585,31 @@ async def admin_token_summary_api(request: Request, db: Session = Depends(get_db
     return admin_token_summary(db)
 
 
+@app.get("/v1/admin/token/routing")
+async def admin_token_routing(request: Request):
+    """运维只读：上游模式与各档真实 model id（用户端不展示）。"""
+    _require_internal_key(request)
+    from model_router import _layer_upstream, _upstream_mode, list_models_public
+
+    mode = _upstream_mode()
+    layers = {}
+    for ly in ("L0", "L1", "L2", "L3", "QI"):
+        up = _layer_upstream(ly)
+        layers[ly] = {
+            "provider": up.get("provider"),
+            "model": up.get("model"),
+            "key_set": bool(up.get("key")),
+        }
+    pub = list_models_public(is_vip=True)
+    return {
+        "ok": True,
+        "upstream_mode": mode,
+        "layers": layers,
+        "public_note": "用户 API/控制台只见 auto/flash/pro/ultra；本接口供管理台。",
+        "upstream_public": pub.get("upstream") or {},
+    }
+
+
 @app.post("/v1/admin/token/orders/query_fulfill")
 async def admin_token_orders_query_fulfill(
     request: Request, body: TokenQueryFulfillBody, db: Session = Depends(get_db)

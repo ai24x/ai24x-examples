@@ -254,6 +254,18 @@
           </div>
         </div>
 
+        <div class="nav-group" data-group="g-sys">
+          <button type="button" class="nav-l1" data-group-btn="g-sys">
+            <span>模型与系统</span><span class="chev">▾</span>
+          </button>
+          <div class="nav-l2">
+            <button type="button" class="nav-item" data-panel="p-routing">
+              路由状态
+              <span class="subt">openrouter/direct · 各档上游（只读）</span>
+            </button>
+          </div>
+        </div>
+
         <div style="flex:1"></div>
         <button type="button" class="nav-item danger" id="btnLogout" style="margin-top:8px;border-color:var(--border);">
           退出登录
@@ -386,6 +398,17 @@
               <p class="muted small">与看板同源；PayPal 需在服务端配置沙箱/正式密钥后才会就绪。</p>
               <div class="row" id="channelPills" style="margin-top:10px;"></div>
               <div class="grid" id="channelStats" style="margin-top:12px;"></div>
+            </div>
+          </div>
+
+          <div class="panel-page" id="p-routing">
+            <div class="card">
+              <h2>路由状态（运维只读）</h2>
+              <p class="muted small">用户控制台只见 auto/flash/pro/ultra。此处可看真实上游。改模式请服务器行级改 .env 后重启，勿在网页写密钥。</p>
+              <div class="row" style="margin-top:10px;">
+                <button type="button" id="btnRoutingRefresh">刷新</button>
+              </div>
+              <pre id="routingOut" class="mono small" style="margin-top:12px;white-space:pre-wrap;background:var(--bg2,#0f1419);padding:12px;border-radius:8px;border:1px solid var(--border);">—</pre>
             </div>
           </div>
 
@@ -651,6 +674,32 @@
     }
   }
 
+  async function loadRouting() {
+    var out = $("routingOut");
+    if (!out) return;
+    out.textContent = "加载中…";
+    var r = await api("/v1/admin/token/routing");
+    var lines = [];
+    lines.push("upstream_mode: " + (r.upstream_mode || "-"));
+    lines.push("");
+    var layers = r.layers || {};
+    ["L0", "L1", "L2", "L3", "QI"].forEach(function (ly) {
+      var x = layers[ly] || {};
+      lines.push(
+        ly +
+          "  provider=" +
+          (x.provider || "-") +
+          "  model=" +
+          (x.model || "-") +
+          "  key=" +
+          (x.key_set ? "set" : "NO")
+      );
+    });
+    lines.push("");
+    lines.push(r.public_note || "");
+    out.textContent = lines.join("\n");
+  }
+
   async function refreshSummary() {
     var s = await api("/v1/admin/token/summary");
     var pay = s.pay || {};
@@ -813,6 +862,9 @@
     } else if (p === "p-channels") {
       await refreshSummary();
       setMsg("通道状态已刷新", "ok");
+    } else if (p === "p-routing") {
+      await loadRouting();
+      setMsg("路由状态已刷新", "ok");
     } else if (p === "p-orders") {
       await loadOrders();
       setMsg("订单已更新", "ok");
@@ -949,6 +1001,16 @@
     }).catch(function (e) { setMsg(String(e.message || e), "err"); });
   };
   $("btnDashOrders").onclick = function () { showPanel("p-orders"); };
+  if ($("btnRoutingRefresh")) {
+    $("btnRoutingRefresh").onclick = async function () {
+      try {
+        await loadRouting();
+        setMsg("路由状态已刷新", "ok");
+      } catch (e) {
+        setMsg(String(e.message || e), "err");
+      }
+    };
+  }
   $("btnDashWallet").onclick = function () { showPanel("p-wallet"); };
 
   $("btnDashLookup").onclick = async function () {

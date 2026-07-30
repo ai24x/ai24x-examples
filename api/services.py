@@ -126,6 +126,11 @@ class ChatService:
 
             response_text = routed.text
             used_model = routed.model
+            from model_router import public_tier_name
+
+            public_model = public_tier_name(
+                request.model, layer=routed.layer or "", upstream_model=used_model or ""
+            )
             # 全上游失败落 stub：不计费（总纲 v3.3）；纯联调 stub（未配 Key）仍计最小 token 便于测钱包
             billable = not (
                 routed.provider == "stub"
@@ -135,7 +140,7 @@ class ChatService:
 
             processing_time = time.time() - start_time
 
-            # 更新请求记录
+            # 更新请求记录（库内仍记上游型号便于运维）
             chat_request.response = response_text
             chat_request.model = used_model
             chat_request.response_time = datetime.utcnow()
@@ -158,7 +163,7 @@ class ChatService:
                         db,
                         auth_user_id=int(auth_user_id),
                         tokens=int(token_count),
-                        model=used_model,
+                        model=public_model,
                         request_id=request_id,
                     )
                 snap = get_balance_snapshot(db, int(auth_user_id))
@@ -167,15 +172,15 @@ class ChatService:
             return ChatResponse(
                 request_id=request_id,
                 response=response_text,
-                model=used_model,
+                model=public_model,
                 token_count=int(token_count),
                 processing_time=processing_time,
                 user_type=user.user_type,
                 remaining_quota=remaining_quota,
                 created_at=datetime.utcnow(),
-                layer=routed.layer,
-                provider=routed.provider,
-                route_attempts=routed.attempts,
+                layer=None,
+                provider="ai24x",
+                route_attempts=None,
                 attribution=attribution_block(
                     request_id=request_id, auth_user_id=auth_user_id
                 ),

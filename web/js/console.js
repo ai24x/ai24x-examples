@@ -16,6 +16,38 @@
     return String(Math.round(n));
   }
 
+  /** 用户端只展示品牌档，不暴露上游厂商/型号 */
+  function brandModelLabel(requested, layer, upstreamModel) {
+    var req = String(requested || "").trim().toLowerCase();
+    if (req === "flash" || req === "pro" || req === "ultra" || req === "auto" || req === "free") {
+      return req === "free" ? "auto" : req;
+    }
+    var ly = String(layer || "").toUpperCase();
+    if (ly === "L1") return "flash";
+    if (ly === "L2") return "pro";
+    if (ly === "L3") return "ultra";
+    if (ly === "L0" || ly === "QI") return "auto";
+    var m = String(upstreamModel || "").toLowerCase();
+    if (/v4-pro|deepseek-r1|reasoner|mimo-v2\.5-pro/.test(m)) return "pro";
+    if (/flash|deepseek-chat|mimo|gpt-4o-mini|turbo|qwen/.test(m)) return "flash";
+    return "auto";
+  }
+
+  function formatChatOut(r, requested) {
+    if (!r || typeof r !== "object") return String(r || "");
+    return JSON.stringify(
+      {
+        reply: r.response,
+        tier: brandModelLabel(requested, r.layer, r.model),
+        tokens: r.token_count,
+        remaining: r.remaining_quota,
+        request_id: r.request_id,
+      },
+      null,
+      2
+    );
+  }
+
   function labelEntryType(t) {
     if (!AI24X_API.isZhUi()) {
       var en = {
@@ -776,7 +808,7 @@
       var left = document.createElement("span");
       left.textContent =
         labelEntryType(r.entry_type) +
-        (r.model ? " · " + r.model : "") +
+        (r.model ? " · " + brandModelLabel("", "", r.model) : "") +
         (r.note ? " · " + humanizeLedgerNote(r.note) : "");
       var right = document.createElement("span");
       right.textContent = (r.amount > 0 ? "+" : "") + String(r.amount);
@@ -1007,7 +1039,8 @@
           model: ($("chat-model").value || "auto").trim() || "auto",
         })
           .then(function (r) {
-            out.textContent = JSON.stringify(r, null, 2);
+            var requested = ($("chat-model").value || "auto").trim() || "auto";
+            out.textContent = formatChatOut(r, requested);
             return refreshAll();
           })
           .catch(function (e) {
