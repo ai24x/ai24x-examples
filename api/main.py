@@ -398,7 +398,7 @@ async def auth_sms_send(request: Request, body: SmsSendRequest, db: Session = De
     if not account or not password:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="SMS 106 not configured: SMS_106_ACCOUNT / SMS_106_PASSWORD missing (env or request body with valid internal key).",
+            detail="短信服务暂不可用，请稍后再试。",
         )
 
     mob = normalize_mobile(body.mobile)
@@ -571,15 +571,21 @@ async def admin_sms_effective(request: Request):
     if not (settings.sms_internal_key or "").strip():
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="短信内部密钥未配置，请联系管理员")
     if (request.headers.get("X-SMS-Internal-Key") or "").strip() != settings.sms_internal_key:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Missing or invalid X-SMS-Internal-Key.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="禁止访问")
     return {
         "ok": True,
         "sms_106_enabled": bool(settings.sms_106_enabled),
         "sms_106_endpoint": (settings.sms_106_endpoint or "").strip(),
+        # 完整账号仅内部密钥可读（行情官管理台回填）；对外勿暴露
         "sms_106_account": (settings.sms_106_account or "").strip(),
+        "sms_106_account_masked": _mask_sms_account(settings.sms_106_account),
+        "sms_106_account_set": bool((settings.sms_106_account or "").strip()),
+        "sms_106_password_set": bool((settings.sms_106_password or "").strip()),
         "sms_106_password_masked": _mask_secret_tail(settings.sms_106_password, keep_tail=4),
         "sms_106_sign_name": (settings.sms_106_sign_name or "").strip(),
         "sms_106_template": (settings.sms_106_template or "").strip(),
+        "intl_sms": False,
+        "intl_note": "国际用户请用邮箱验证码；国际短信本轮不接入。",
     }
 
 
@@ -1656,6 +1662,37 @@ async def admin_token_routing(request: Request):
         "layers": layers,
         "public_note": "用户 API/控制台只见 auto/flash/pro/ultra；本接口供管理台。",
         "upstream_public": pub.get("upstream") or {},
+    }
+
+
+@app.get("/v1/admin/token/system")
+async def admin_token_system(request: Request):
+    """运维只读：支付/路由/短信/邮件开关摘要（无密钥明文）。"""
+    _require_internal_key(request)
+    from email_smtp import smtp_configured
+    from model_router import _upstream_mode
+    from token_pay_service import pay_settings_ns, token_pay_enabled, token_pay_mock_allowed
+
+    cfg = pay_settings_ns()
+    return {
+        "ok": True,
+        "pay": {
+            "enabled": token_pay_enabled(),
+            "mock_allowed": token_pay_mock_allowed(),
+            "paypal_mode": str(getattr(cfg, "paypal_mode", "sandbox") or "sandbox"),
+        },
+        "llm": {"upstream_mode": _upstream_mode()},
+        "sms": {
+            "enabled": bool(settings.sms_106_enabled),
+            "internal_key_set": bool((settings.sms_internal_key or "").strip()),
+            "account_set": bool((settings.sms_106_account or "").strip()),
+            "intl_sms": False,
+        },
+        "email": {"smtp_configured": bool(smtp_configured())},
+        "ops_note": (
+            "改开关请服务器行级改 .env 后重启。国际用户用邮箱 OTP；"
+            "国内短信仅 11 位号；国际短信暂不接入。"
+        ),
     }
 
 

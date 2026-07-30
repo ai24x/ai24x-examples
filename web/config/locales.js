@@ -206,9 +206,9 @@
       "<a href=\"register.html\">注册</a> · <a href=\"console.html\">控制台</a>",
     "auth.closed.footerRegister":
       "<a href=\"login.html\">登录</a> · <a href=\"console.html\">控制台</a>",
-    "auth.closed.registerSmsHint": "短信验证码将在主站开放后启用。",
+    "auth.closed.registerSmsHint": "国内手机验证码用于行情官等场景；主站可用邮箱注册。",
     "auth.register.title": "注册",
-    "auth.register.sub": "当前开放邮箱注册。手机短信注册稍后接入。",
+    "auth.register.sub": "当前开放邮箱注册。国内手机号验证用于行情官等产品。",
     "auth.register.modeBanner": "",
     "auth.register.email": "邮箱",
     "auth.register.password": "密码（至少 6 位）",
@@ -219,8 +219,7 @@
     "auth.register.sendCode": "获取验证码",
     "auth.register.codeSent": "验证码已发送，请查收短信",
     "auth.register.needPhone": "请先填写 11 位中国大陆手机号",
-    "auth.register.smsKeyHint":
-      "若接口返回 403：在浏览器控制台执行 localStorage.setItem('ai24x_sms_internal_key','你的密钥') 后刷新本页（与服务器 SMS_INTERNAL_KEY 一致）。",
+    "auth.register.smsKeyHint": "",
 
     "page.console.actions.logout": "退出登录",
     "page.console.plans.title": "Token 套餐",
@@ -506,11 +505,10 @@
       "<a href=\"register.html\">Sign up</a> · <a href=\"console.html\">Console</a>",
     "auth.closed.footerRegister":
       "<a href=\"login.html\">Log in</a> · <a href=\"console.html\">Console</a>",
-    "auth.closed.registerSmsHint": "SMS codes will be enabled when main-site registration opens.",
+    "auth.closed.registerSmsHint": "China mobile OTP is used by products like Market Officer; email sign-up is available on the main site.",
     "auth.register.title": "Sign up",
-    "auth.register.sub": "Email sign-up is open. SMS registration comes later.",
-    "auth.register.modeBanner":
-      "<strong>Phone</strong>: enter mobile → <em>Send code</em> → 6-digit SMS → password. <strong>Email</strong>: switch tab (email verification coming soon).",
+    "auth.register.sub": "Email sign-up is open. China mobile verification is used by other products where needed.",
+    "auth.register.modeBanner": "",
     "auth.register.email": "Email",
     "auth.register.password": "Password (min 6 chars)",
     "auth.register.submit": "Create account",
@@ -520,8 +518,7 @@
     "auth.register.sendCode": "Send code",
     "auth.register.codeSent": "Code sent. Check your email.",
     "auth.register.needPhone": "Enter a valid 11-digit China mobile number first.",
-    "auth.register.smsKeyHint":
-      "If you get HTTP 403: run localStorage.setItem('ai24x_sms_internal_key','<your key>') in the browser console, then refresh (must match server SMS_INTERNAL_KEY).",
+    "auth.register.smsKeyHint": "",
 
     "page.console.actions.logout": "Log out",
     "page.console.plans.title": "Token plans",

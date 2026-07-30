@@ -267,6 +267,10 @@
               路由状态
               <span class="subt">openrouter/direct · 各档上游（只读）</span>
             </button>
+            <button type="button" class="nav-item" data-panel="p-system">
+              系统开关
+              <span class="subt">支付/短信/邮件 · 只读</span>
+            </button>
           </div>
         </div>
 
@@ -437,6 +441,18 @@
                 <button type="button" id="btnRoutingRefresh">刷新</button>
               </div>
               <pre id="routingOut" class="mono small" style="margin-top:12px;white-space:pre-wrap;background:var(--bg2,#0f1419);padding:12px;border-radius:8px;border:1px solid var(--border);">—</pre>
+            </div>
+          </div>
+
+          <div class="panel-page" id="p-system">
+            <div class="card">
+              <h2>系统开关（只读）</h2>
+              <p class="muted small" id="systemOpsNote">支付 / LLM / 国内短信 / 邮件。国际用户用邮箱验证；国际短信暂不接入。</p>
+              <div class="row" style="margin-top:10px;">
+                <button type="button" id="btnSystemRefresh">刷新</button>
+              </div>
+              <div class="row" id="systemPills" style="margin-top:10px;"></div>
+              <pre id="systemOut" class="mono small" style="margin-top:12px;white-space:pre-wrap;background:var(--bg2,#0f1419);padding:12px;border-radius:8px;border:1px solid var(--border);">—</pre>
             </div>
           </div>
 
@@ -835,6 +851,60 @@
       .join("");
   }
 
+  async function loadSystem() {
+    var out = $("systemOut");
+    var pills = $("systemPills");
+    if (!out) return;
+    out.textContent = "加载中…";
+    var r = await api("/v1/admin/token/system");
+    if ($("systemOpsNote") && r.ops_note) $("systemOpsNote").textContent = r.ops_note;
+    var pay = r.pay || {};
+    var llm = r.llm || {};
+    var sms = r.sms || {};
+    var email = r.email || {};
+    var rows = [
+      ["支付总开关", !!pay.enabled],
+      ["Mock", !!pay.mock_allowed],
+      ["LLM", true],
+      ["国内短信", !!sms.enabled],
+      ["短信密钥", !!sms.internal_key_set],
+      ["邮件SMTP", !!email.smtp_configured],
+      ["国际短信", !!sms.intl_sms],
+    ];
+    if (pills) {
+      pills.innerHTML = rows
+        .map(function (p) {
+          var ok = p[0] === "LLM" ? true : p[0] === "国际短信" ? false : p[1];
+          var label =
+            p[0] === "LLM"
+              ? "LLM: " + (llm.upstream_mode || "-")
+              : p[0] === "Mock"
+                ? "Mock: " + (p[1] ? "开" : "关")
+                : p[0] === "国际短信"
+                  ? "国际短信: 未接入"
+                  : p[0] + ": " + (p[1] ? "开/已配" : "关/未配");
+          return (
+            '<span class="pill ' +
+            (ok ? "ok" : "bad") +
+            '">' +
+            label +
+            "</span>"
+          );
+        })
+        .join(" ");
+    }
+    out.textContent = JSON.stringify(
+      {
+        pay: pay,
+        llm: llm,
+        sms: sms,
+        email: email,
+      },
+      null,
+      2
+    );
+  }
+
   async function loadRouting() {
     var out = $("routingOut");
     if (!out) return;
@@ -1029,6 +1099,9 @@
     } else if (p === "p-routing") {
       await loadRouting();
       setMsg("路由状态已刷新", "ok");
+    } else if (p === "p-system") {
+      await loadSystem();
+      setMsg("系统开关已刷新", "ok");
     } else if (p === "p-orders") {
       await loadOrders();
       setMsg("订单已更新", "ok");
@@ -1170,6 +1243,16 @@
       try {
         await loadRouting();
         setMsg("路由状态已刷新", "ok");
+      } catch (e) {
+        setMsg(String(e.message || e), "err");
+      }
+    };
+  }
+  if ($("btnSystemRefresh")) {
+    $("btnSystemRefresh").onclick = async function () {
+      try {
+        await loadSystem();
+        setMsg("系统开关已刷新", "ok");
       } catch (e) {
         setMsg(String(e.message || e), "err");
       }
