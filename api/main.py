@@ -603,7 +603,7 @@ async def admin_sms_logs(
     if not (settings.sms_internal_key or "").strip():
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="短信内部密钥未配置，请联系管理员")
     if (request.headers.get("X-SMS-Internal-Key") or "").strip() != settings.sms_internal_key:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Missing or invalid X-SMS-Internal-Key.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="禁止访问")
     q = db.query(SmsSendLog)
     if phone:
         q = q.filter(SmsSendLog.phone.like(f"%{phone}%"))
