@@ -1,6 +1,6 @@
 {
   "schema": "ai24x.command.v1",
-  "updated": "2026-07-28",
+  "updated": "2026-07-30",
   "title": "AI24X 指挥中心 · 副脑协同数据",
   "human_ui": "/ai24x.html",
   "canon": "docs/规划/主脑副脑岗位与国际Token供给-1.0.md",
@@ -8,8 +8,8 @@
   "strategy": {
     "priority": "intl_first",
     "one_liner": "主脑定事写代码；03/04 看店收银；01/02 拉人续费",
-    "p0": "国际 Token：PayPal Sandbox 已通 → OpenRouter 跑通 chat → 04 收银 → 01 获客",
-    "p1": "A1 行情官：03 生产 → 02 运营；直连 DS/Qwen 仅作聚合兜底",
+    "p0": "LLM：direct+DeepSeek 跑通 chat → 用户付费闭环；OR 充值后再切聚合/MiMo",
+    "p1": "OpenRouter 充值后切回；PayPal Webhook；A1 由 03/02",
     "parked": ["国内 Token 推广", "Fisher", "独立预发环境", "美欧额外主机（暂缓）", "PayPal Live 在 03 养用户"]
   },
   "infra": {
@@ -20,15 +20,19 @@
   },
   "routing": {
     "aliases": ["flash", "pro", "ultra", "auto"],
-    "upstream_default": "openrouter",
-    "upstream_fallback": ["deepseek_direct", "qwen_intl_direct", "second_aggregator"],
-    "flash": "qwen/qwen3.7-flash",
-    "pro": "deepseek/deepseek-r1",
-    "ultra": "openai/gpt-4o-mini",
-    "eu_default": "qwen_via_openrouter_OPENROUTER_MODEL_EU",
-    "non_eu_default": "openrouter_L1",
-    "peak_ds_2x": "do_not_pass_to_user_price; stay_on_aggregator_fixed_price_models",
-    "docs": "docs/联调/OpenRouter聚合接入.md"
+    "upstream_default": "direct",
+    "upstream_fallback": ["openrouter_when_funded", "siliconflow_L0"],
+    "flash": "deepseek-v4-flash",
+    "pro": "deepseek-v4-pro",
+    "ultra": "deepseek-v4-pro",
+    "openrouter_when_ready": {
+      "flash": "xiaomi/mimo-v2.5",
+      "pro": "deepseek/deepseek-r1",
+      "ultra": "openai/gpt-4o-mini"
+    },
+    "eu_default": "qwen_intl_when_TOKEN_REGION_ROUTING",
+    "non_eu_default": "direct_L1",
+    "docs": "docs/联调/DeepSeek直连跑通.md"
   },
   "brains": [
     {

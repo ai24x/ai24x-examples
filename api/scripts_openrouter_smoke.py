@@ -44,7 +44,8 @@ def main() -> int:
         "public:",
         pub.get("upstream_mode"),
         "ready=",
-        (pub.get("upstream") or {}).get("openrouter_ready"),
+        (pub.get("upstream") or {}).get("direct_ready")
+        or (pub.get("upstream") or {}).get("openrouter_ready"),
     )
 
     if (os.getenv("OPENROUTER_SMOKE_LIVE") or "").strip() not in ("1", "true", "TRUE"):

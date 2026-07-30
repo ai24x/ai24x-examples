@@ -56,7 +56,8 @@ LAYER_DEFAULT_MODEL = {
 # 聚合默认 model id（OpenRouter 路由名；可用 OPENROUTER_MODEL_* 覆盖）
 _OR_DEFAULT_MODELS = {
     "L0": "openrouter/auto",
-    "L1": "qwen/qwen3.7-flash",
+    # 第一梯队 L1：小米 MiMo-V2.5（OR 用量领先）；回滚：OPENROUTER_MODEL_L1=qwen/qwen3.7-flash
+    "L1": "xiaomi/mimo-v2.5",
     "L2": "deepseek/deepseek-r1",
     "L3": "openai/gpt-4o-mini",
     "QI": "qwen/qwen-2.5-72b-instruct",
@@ -74,7 +75,7 @@ LOGICAL_TO_UPSTREAM_MODEL_DIRECT = {
     "deepseek-pro": "deepseek-v4-pro",
     "deepseek-reasoner": "deepseek-v4-pro",
     "deepseek-v4-pro": "deepseek-v4-pro",
-    "ultra": "kimi-k3",
+    "ultra": "deepseek-v4-pro",
     "gpt-3.5-turbo": "deepseek-v4-flash",
     "auto": "deepseek-v4-flash",
     "free": "deepseek-v4-flash",
@@ -173,11 +174,12 @@ def list_models_public(*, is_vip: bool) -> dict[str, Any]:
                 "provider": l0.get("provider"),
             },
             "L1": {
-                "title": "主打 flash（聚合 DeepSeek 等）",
+                "title": "主打 flash（聚合 · 默认 MiMo-V2.5）",
                 "models": ["flash", "deepseek-chat", "or-flash", "auto"],
                 "free": True,
                 "ready": bool(l1.get("key")),
                 "provider": l1.get("provider"),
+                "upstream_model": l1.get("model") or None,
             },
             "QI": {
                 "title": "欧盟向聚合模型（需 TOKEN_REGION_ROUTING=1）",
@@ -185,18 +187,21 @@ def list_models_public(*, is_vip: bool) -> dict[str, Any]:
                 "free": True,
                 "ready": bool(qi.get("key")),
                 "provider": qi.get("provider"),
+                "upstream_model": qi.get("model") or None,
             },
             "L2": {
                 "title": "VIP pro",
                 "models": ["pro", "or-pro", "deepseek-pro"],
                 "vip_only": True,
                 "ready": bool(l2.get("key")),
+                "upstream_model": l2.get("model") or None,
             },
             "L3": {
                 "title": "VIP ultra",
                 "models": ["ultra", "or-ultra"],
                 "vip_only": True,
                 "ready": bool(l3.get("key")),
+                "upstream_model": l3.get("model") or None,
             },
         },
         "brand": {
@@ -212,6 +217,7 @@ def list_models_public(*, is_vip: bool) -> dict[str, Any]:
         "upstream": {
             "mode": "live" if any_key else "stub",
             "openrouter_ready": mode == "openrouter" and bool(l1.get("key")),
+            "direct_ready": mode == "direct" and bool(l1.get("key")),
             "l0_ready": bool(l0.get("key")),
             "l1_ready": bool(l1.get("key")),
             "qi_ready": bool(qi.get("key")),
@@ -219,10 +225,12 @@ def list_models_public(*, is_vip: bool) -> dict[str, Any]:
             "l1_base": l1.get("base") or None,
             "qi_base": qi.get("base") or None,
             "l1_model": l1.get("model") or None,
+            "l2_model": l2.get("model") or None,
+            "l3_model": l3.get("model") or None,
         },
         "note": (
-            "默认经 OpenRouter 等聚合平台售卖 Token（转售友好）。"
-            "TOKEN_LLM_UPSTREAM=direct 可回退官方直连。"
+            "现阶段默认直连 DeepSeek（TOKEN_LLM_UPSTREAM=direct）。"
+            "OpenRouter 有余额后改 openrouter；L1 聚合默认 xiaomi/mimo-v2.5。"
         ),
     }
 
@@ -256,19 +264,22 @@ def _env(name: str, default: str = "") -> str:
 
 def _upstream_mode() -> str:
     """
-    openrouter（默认）| direct
-    未显式配置时：有 OPENROUTER_API_KEY → openrouter；否则若仅有 DeepSeek → direct；默认仍标 openrouter（stub 直到配 Key）。
+    direct | openrouter
+
+    现阶段默认直连 DeepSeek（国内可充值跑通）。
+    显式 TOKEN_LLM_UPSTREAM=openrouter 且 Key 有余额后再切聚合。
     """
     raw = (_env("TOKEN_LLM_UPSTREAM", "") or "").strip().lower()
     if raw in ("openrouter", "aggregator", "or"):
         return "openrouter"
     if raw in ("direct", "official", "legacy"):
         return "direct"
-    if _env("OPENROUTER_API_KEY"):
-        return "openrouter"
+    # 未写 TOKEN_LLM_UPSTREAM：有 DeepSeek 则直连（先跑通）；否则才用 OR
     if _env("DEEPSEEK_API_KEY") or _env("TOKEN_LLM_L1_KEY"):
         return "direct"
-    return "openrouter"
+    if _env("OPENROUTER_API_KEY"):
+        return "openrouter"
+    return "direct"
 
 
 def _normalize_openai_base(base: str) -> str:
@@ -358,6 +369,26 @@ def _layer_upstream(layer: str) -> dict[str, str]:
         key = _env("TOKEN_LLM_QI_KEY") or _env("QWEN_INTL_API_KEY") or _env("DASHSCOPE_API_KEY")
         model = _env("TOKEN_LLM_QI_MODEL") or _env("QWEN_INTL_MODEL") or "qwen-turbo"
         provider = "qwen_intl"
+    elif layer in ("L2", "L3"):
+        # 直连阶段：VIP 档暂共用 DeepSeek（pro 模型）；OR 充值后再切回聚合档
+        base = (
+            _env(f"TOKEN_LLM_{layer}_BASE")
+            or _env("DEEPSEEK_BASE_URL")
+            or _env("TOKEN_LLM_BASE")
+            or "https://api.deepseek.com/v1"
+        )
+        key = (
+            _env(f"TOKEN_LLM_{layer}_KEY")
+            or _env("DEEPSEEK_API_KEY")
+            or _env("TOKEN_LLM_KEY")
+        )
+        default_model = "deepseek-v4-pro" if layer == "L2" else "deepseek-v4-pro"
+        model = (
+            _env(f"TOKEN_LLM_{layer}_MODEL")
+            or _env("DEEPSEEK_MODEL_PRO")
+            or default_model
+        )
+        provider = "deepseek"
     else:
         base = _env(f"TOKEN_LLM_{layer}_BASE") or _env("TOKEN_LLM_BASE") or ""
         key = _env(f"TOKEN_LLM_{layer}_KEY") or _env("TOKEN_LLM_KEY") or ""
@@ -453,7 +484,7 @@ def resolve_chain(
         brand_logical = {
             "flash": "deepseek-chat" if not use_eu else "qwen-intl-turbo",
             "pro": "deepseek-pro" if not use_eu else "qwen-intl-plus",
-            "ultra": "kimi-k3",
+            "ultra": "deepseek-pro",
         }
     logical = brand_logical.get(req, req)
 

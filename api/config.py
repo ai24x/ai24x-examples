@@ -182,7 +182,7 @@ class Settings(BaseSettings):
     paypal_landing_page: str = Field(default="BILLING", validation_alias="TOKEN_PAYPAL_LANDING_PAGE")
 
     # —— LLM upstream（默认聚合 OpenRouter；直连为可选）——
-    token_llm_upstream: str = Field(default="openrouter", validation_alias="TOKEN_LLM_UPSTREAM")
+    token_llm_upstream: str = Field(default="direct", validation_alias="TOKEN_LLM_UPSTREAM")
     openrouter_api_key: str = Field(default="", validation_alias="OPENROUTER_API_KEY")
     openrouter_base_url: str = Field(
         default="https://openrouter.ai/api/v1", validation_alias="OPENROUTER_BASE_URL"

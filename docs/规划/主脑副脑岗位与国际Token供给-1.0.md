@@ -1,10 +1,10 @@
 # AI24X · 主脑/副脑岗位与国际 Token 供给（拍板口径）
 
-> **版本**：1.0.2 · 2026-07-28  
+> **版本**：1.0.4 · 2026-07-30  
 > **对齐**：指挥中心 `web/ai24x.html` · `web/ops/ai24x-command.json`  
 > **策略**：一人公司 · 国际优先 · 先跑通流水 · 再扩 7×24 项目  
 > **命名**：飞书显示名（AI24X 指挥/国际/中国/运维CN/运维SG）与席位别称（主脑、副脑01～04）**双轨并存**；文档与口头指令里「副脑01」等永久有效。  
-> **模型**：聚合优先（OpenRouter）→ 直连 DeepSeek/Qwen 兜底；详见 §四。
+> **模型**：**现阶段直连 DeepSeek（国内可充）跑通** → OpenRouter 有余额后再切回聚合（MiMo 等）；详见 §四。
 
 ---
 
@@ -59,47 +59,57 @@
 
 对外别名不变：`flash | pro | ultra | auto`（用户不感知上游品牌）。
 
-### 拍板（2026-07-28）：聚合优先 + 直连兜底
+### 拍板（2026-07-30）：先直连跑通 → 再聚合
 
 ```
 用户 → AI24X（鉴权/计费）→ 路由
-         ├─ ① OpenRouter（默认主路径）
-         ├─ ② 直连 DeepSeek / Qwen（降本或聚合故障）
-         └─ ③ 第二聚合（P2，双活）
+         ├─ ① 直连 DeepSeek（现阶段默认，国内人民币充值）
+         ├─ ② L0 硅基流动（可选兜底，国内充值）
+         └─ ③ OpenRouter（P1：国际卡/加密充值后切回；MiMo 等）
 ```
 
 | 项 | 口径 |
 |----|------|
-| **默认上游** | **OpenRouter**（`TOKEN_LLM_UPSTREAM=openrouter`） |
-| **直连官方** | 可选兜底（`TOKEN_LLM_UPSTREAM=direct`），不作为对外售卖主路径 |
+| **现阶段默认上游** | **direct**（`TOKEN_LLM_UPSTREAM=direct`）→ DeepSeek L1/L2/L3 |
+| **OpenRouter** | Key 可先留着；**有余额后再** `TOKEN_LLM_UPSTREAM=openrouter` |
 | **对外话术** | 卖 AI24X Token / 统一 API，**不宣称**官方代理 |
-| **欧盟** | 区路由默认关；开则用聚合上的国际向模型（`OPENROUTER_MODEL_EU`） |
-| **性价比** | 聚合 token 价≈透传，综合约多 5～7% 充值费；换合规与换模自由 |
+| **欧盟** | 区路由默认关；开则需 Qwen 国际 Key |
+| **性价比** | 直连官方价；OR 综合约多充值费，换一 Key 多模型 |
 
-### 默认档位（代码 `_OR_DEFAULT_MODELS`，可用 env 覆盖）
+### 默认档位
 
-| 对外 | 层 | OpenRouter model id |
-|------|----|---------------------|
-| flash / auto | L1 | `qwen/qwen3.7-flash` |
-| pro | L2 | `deepseek/deepseek-r1` |
-| ultra | L3 | `openai/gpt-4o-mini` |
-| 兜底 | L0 | `openrouter/auto` |
-| 欧盟优先 | QI | `qwen/qwen-2.5-72b-instruct` |
+**A. 直连（当前默认）**
+
+| 对外 | 层 | 上游 |
+|------|----|------|
+| flash / auto | L1 | DeepSeek `deepseek-v4-flash`（`DEEPSEEK_API_KEY`） |
+| pro / ultra | L2/L3 | DeepSeek `deepseek-v4-pro`（同 Key） |
+| 兜底 | L0 | 硅基（可选 `SILICONFLOW_API_KEY`） |
+
+**B. 聚合（OR 充值后）**（代码 `_OR_DEFAULT_MODELS`，env 覆盖）
+
+| 对外 | 层 | OpenRouter model id | 备注 |
+|------|----|---------------------|------|
+| flash / auto | L1 | `xiaomi/mimo-v2.5` | 第一梯队；回滚 `qwen/qwen3.7-flash` |
+| pro | L2 | `deepseek/deepseek-r1` | |
+| ultra | L3 | `openai/gpt-4o-mini` | |
+| 兜底 | L0 | `openrouter/auto` | |
+| 欧盟优先 | QI | `qwen/qwen-2.5-72b-instruct` | |
+
+**定价纪律（与套餐）**：卖平台 credit，不绑上游品牌。入门包联调 ¥1 正式获客前抬回。
 
 ### 接入优先级（唯一清单）
 
 | 优先级 | 做什么 | 谁 |
 |--------|--------|-----|
-| **P0** | OpenRouter Key + 本机/公网 `chat/run` 三档烟测 | 雷总配 Key；主脑代码已就绪 |
-| **P0** | 固定上表三档 id，按 OR 账单校毛利 | 主脑微调 env |
-| **P1** | 直连 DeepSeek（非欧盟降本/故障切） | 有流水后再开 |
-| **P1** | 直连 Qwen 国际（欧盟叙事/聚合挂） | 有流水后再开 |
-| **P1** | PayPal Webhook 第二履约路径 | 雷总后台 + 03 行级 env |
-| **P2** | 第二聚合商双活 | 稳定流水后 |
-| **P2** | MiniMax / 智谱海外 / Claude·Gemini 中低档作 ultra 备胎 | 有明确溢价场景再加 |
-| **不做（现阶段）** | 默认链挂 Opus/顶配 GPT；堆十家官方直连；为「全家桶」接长尾 | — |
+| **P0** | `TOKEN_LLM_UPSTREAM=direct` + DeepSeek Key；本机/公网 `chat/run` 烟测 | 雷总国内充值 DS；主脑已切默认 |
+| **P0** | 生产行级改 env + 重启 `AI24X-core` | 副脑03/04 |
+| **P1** | OpenRouter 充值成功 → `TOKEN_LLM_UPSTREAM=openrouter`，L1=MiMo | 雷总 |
+| **P1** | 硅基 L0 兜底 Key（可选） | 有需要再开 |
+| **P1** | PayPal Webhook；入门包国际价 | 另任务 |
+| **不做（现阶段）** | 硬充 OR 卡住上线；堆十家直连 | — |
 
-联调：`docs/联调/OpenRouter聚合接入.md` · 代码：`api/model_router.py`。
+联调：`docs/联调/OpenRouter聚合接入.md` · `docs/联调/DeepSeek直连跑通.md` · 代码：`api/model_router.py`。
 
 ---
 
@@ -124,4 +134,4 @@
 
 ---
 
-*主脑汇总 · 2026-07-27*
+*主脑汇总 · 2026-07-30（v1.0.4 · 先 direct 后 OR）*
