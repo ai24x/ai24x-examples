@@ -8,8 +8,8 @@
   "strategy": {
     "priority": "intl_first",
     "one_liner": "主脑定事写代码；03/04 看店收银；01/02 拉人续费",
-    "p0": "LLM：direct+DeepSeek 跑通 chat → 用户付费闭环；OR 充值后再切聚合/MiMo",
-    "p1": "OpenRouter 充值后切回；PayPal Webhook；A1 由 03/02",
+    "p0": "OR 默认 L1=DS Flash / L2=V4-Pro；保留 direct 回滚；付费闭环",
+    "p1": "MiMo 能力向 A/B；PayPal Webhook；入门包国际价；A1 由 03/02",
     "parked": ["国内 Token 推广", "Fisher", "独立预发环境", "美欧额外主机（暂缓）", "PayPal Live 在 03 养用户"]
   },
   "infra": {
@@ -20,19 +20,13 @@
   },
   "routing": {
     "aliases": ["flash", "pro", "ultra", "auto"],
-    "upstream_default": "direct",
-    "upstream_fallback": ["openrouter_when_funded", "siliconflow_L0"],
-    "flash": "deepseek-v4-flash",
-    "pro": "deepseek-v4-pro",
-    "ultra": "deepseek-v4-pro",
-    "openrouter_when_ready": {
-      "flash": "xiaomi/mimo-v2.5",
-      "pro": "deepseek/deepseek-r1",
-      "ultra": "openai/gpt-4o-mini"
-    },
-    "eu_default": "qwen_intl_when_TOKEN_REGION_ROUTING",
-    "non_eu_default": "direct_L1",
-    "docs": "docs/联调/DeepSeek直连跑通.md"
+    "upstream_default": "openrouter",
+    "upstream_fallback": ["direct_deepseek", "siliconflow_L0"],
+    "flash": "deepseek/deepseek-v4-flash",
+    "flash_alt_capability": "xiaomi/mimo-v2.5",
+    "pro": "deepseek/deepseek-v4-pro",
+    "ultra": "openai/gpt-4o-mini",
+    "docs": "docs/联调/OpenRouter聚合接入.md"
   },
   "brains": [
     {

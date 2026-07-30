@@ -53,12 +53,12 @@ LAYER_DEFAULT_MODEL = {
     "QI": "or-eu",
 }
 
-# 聚合默认 model id（OpenRouter 路由名；可用 OPENROUTER_MODEL_* 覆盖）
+# 聚合默认 model id（OpenRouter；可用 OPENROUTER_MODEL_* 覆盖）
+# 成本优先：L1=DS Flash；能力向可改 OPENROUTER_MODEL_L1=xiaomi/mimo-v2.5
 _OR_DEFAULT_MODELS = {
     "L0": "openrouter/auto",
-    # 第一梯队 L1：小米 MiMo-V2.5（OR 用量领先）；回滚：OPENROUTER_MODEL_L1=qwen/qwen3.7-flash
-    "L1": "xiaomi/mimo-v2.5",
-    "L2": "deepseek/deepseek-r1",
+    "L1": "deepseek/deepseek-v4-flash",
+    "L2": "deepseek/deepseek-v4-pro",
     "L3": "openai/gpt-4o-mini",
     "QI": "qwen/qwen-2.5-72b-instruct",
 }
@@ -174,7 +174,7 @@ def list_models_public(*, is_vip: bool) -> dict[str, Any]:
                 "provider": l0.get("provider"),
             },
             "L1": {
-                "title": "主打 flash（聚合 · 默认 MiMo-V2.5）",
+                "title": "主打 flash（聚合 · 默认 DeepSeek V4 Flash）",
                 "models": ["flash", "deepseek-chat", "or-flash", "auto"],
                 "free": True,
                 "ready": bool(l1.get("key")),
@@ -229,8 +229,9 @@ def list_models_public(*, is_vip: bool) -> dict[str, Any]:
             "l3_model": l3.get("model") or None,
         },
         "note": (
-            "现阶段默认直连 DeepSeek（TOKEN_LLM_UPSTREAM=direct）。"
-            "OpenRouter 有余额后改 openrouter；L1 聚合默认 xiaomi/mimo-v2.5。"
+            "聚合默认 L1=deepseek/deepseek-v4-flash、L2=deepseek/deepseek-v4-pro；"
+            "能力向可 OPENROUTER_MODEL_L1=xiaomi/mimo-v2.5。"
+            "TOKEN_LLM_UPSTREAM=direct 回退官方 DeepSeek。"
         ),
     }
 

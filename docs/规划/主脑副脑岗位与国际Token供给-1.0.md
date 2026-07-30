@@ -1,10 +1,10 @@
 # AI24X · 主脑/副脑岗位与国际 Token 供给（拍板口径）
 
-> **版本**：1.0.4 · 2026-07-30  
+> **版本**：1.0.5 · 2026-07-30  
 > **对齐**：指挥中心 `web/ai24x.html` · `web/ops/ai24x-command.json`  
 > **策略**：一人公司 · 国际优先 · 先跑通流水 · 再扩 7×24 项目  
 > **命名**：飞书显示名（AI24X 指挥/国际/中国/运维CN/运维SG）与席位别称（主脑、副脑01～04）**双轨并存**；文档与口头指令里「副脑01」等永久有效。  
-> **模型**：**现阶段直连 DeepSeek（国内可充）跑通** → OpenRouter 有余额后再切回聚合（MiMo 等）；详见 §四。
+> **模型**：OR 已可充 → **聚合默认 L1=DeepSeek Flash、L2=V4-Pro**；MiMo 能力向一键切换；`direct` 官方 DS 作回滚。
 
 ---
 
@@ -59,55 +59,55 @@
 
 对外别名不变：`flash | pro | ultra | auto`（用户不感知上游品牌）。
 
-### 拍板（2026-07-30）：先直连跑通 → 再聚合
+### 拍板（2026-07-30）：OR 成本优先档 + 直连回滚
 
 ```
 用户 → AI24X（鉴权/计费）→ 路由
-         ├─ ① 直连 DeepSeek（现阶段默认，国内人民币充值）
-         ├─ ② L0 硅基流动（可选兜底，国内充值）
-         └─ ③ OpenRouter（P1：国际卡/加密充值后切回；MiMo 等）
+         ├─ ① OpenRouter（有余额时主路径；L1=DS Flash / L2=V4-Pro）
+         ├─ ② 直连 DeepSeek（TOKEN_LLM_UPSTREAM=direct 回滚 / 国内应急）
+         └─ ③ L0 硅基 / openrouter/auto（可选兜底）
 ```
 
 | 项 | 口径 |
 |----|------|
-| **现阶段默认上游** | **direct**（`TOKEN_LLM_UPSTREAM=direct`）→ DeepSeek L1/L2/L3 |
-| **OpenRouter** | Key 可先留着；**有余额后再** `TOKEN_LLM_UPSTREAM=openrouter` |
+| **有 OR 余额时** | `TOKEN_LLM_UPSTREAM=openrouter` |
+| **应急 / 无 OR** | `TOKEN_LLM_UPSTREAM=direct` + 官方 DeepSeek Key |
 | **对外话术** | 卖 AI24X Token / 统一 API，**不宣称**官方代理 |
-| **欧盟** | 区路由默认关；开则需 Qwen 国际 Key |
-| **性价比** | 直连官方价；OR 综合约多充值费，换一 Key 多模型 |
+| **欧盟** | 区路由默认关；开则 QI=Qwen |
+| **性价比** | OR 上 Flash 标价通常 ≤ MiMo；MiMo 作能力向切换非默认 |
 
 ### 默认档位
 
-**A. 直连（当前默认）**
-
-| 对外 | 层 | 上游 |
-|------|----|------|
-| flash / auto | L1 | DeepSeek `deepseek-v4-flash`（`DEEPSEEK_API_KEY`） |
-| pro / ultra | L2/L3 | DeepSeek `deepseek-v4-pro`（同 Key） |
-| 兜底 | L0 | 硅基（可选 `SILICONFLOW_API_KEY`） |
-
-**B. 聚合（OR 充值后）**（代码 `_OR_DEFAULT_MODELS`，env 覆盖）
+**A. 聚合（OR · 推荐主路径）**（`_OR_DEFAULT_MODELS`）
 
 | 对外 | 层 | OpenRouter model id | 备注 |
 |------|----|---------------------|------|
-| flash / auto | L1 | `xiaomi/mimo-v2.5` | 第一梯队；回滚 `qwen/qwen3.7-flash` |
-| pro | L2 | `deepseek/deepseek-r1` | |
+| flash / auto | L1 | `deepseek/deepseek-v4-flash` | **成本优先默认** |
+| 能力向 L1 | — | `xiaomi/mimo-v2.5` | env：`OPENROUTER_MODEL_L1=xiaomi/mimo-v2.5` |
+| pro | L2 | `deepseek/deepseek-v4-pro` | 替代原 R1 默认 |
 | ultra | L3 | `openai/gpt-4o-mini` | |
 | 兜底 | L0 | `openrouter/auto` | |
-| 欧盟优先 | QI | `qwen/qwen-2.5-72b-instruct` | |
+| 欧盟 | QI | `qwen/qwen-2.5-72b-instruct` | |
 
-**定价纪律（与套餐）**：卖平台 credit，不绑上游品牌。入门包联调 ¥1 正式获客前抬回。
+**B. 直连（回滚）**
+
+| 对外 | 层 | 上游 |
+|------|----|------|
+| flash / auto | L1 | `deepseek-v4-flash` |
+| pro / ultra | L2/L3 | `deepseek-v4-pro` |
+| 兜底 | L0 | 硅基（可选） |
+
+**定价纪律**：卖平台 credit；入门包联调 ¥1 正式获客前抬回。
 
 ### 接入优先级（唯一清单）
 
 | 优先级 | 做什么 | 谁 |
 |--------|--------|-----|
-| **P0** | `TOKEN_LLM_UPSTREAM=direct` + DeepSeek Key；本机/公网 `chat/run` 烟测 | 雷总国内充值 DS；主脑已切默认 |
-| **P0** | 生产行级改 env + 重启 `AI24X-core` | 副脑03/04 |
-| **P1** | OpenRouter 充值成功 → `TOKEN_LLM_UPSTREAM=openrouter`，L1=MiMo | 雷总 |
-| **P1** | 硅基 L0 兜底 Key（可选） | 有需要再开 |
+| **P0** | 生产 `openrouter` + 上表默认档；控制台验 flash→DS Flash | 副脑03 + 雷总 |
+| **P0** | 保留 `direct` + DeepSeek Key 作一键回滚 | 已具备 |
+| **P1** | 能力向：L1 切 MiMo A/B；看账单毛利 | 主脑 |
 | **P1** | PayPal Webhook；入门包国际价 | 另任务 |
-| **不做（现阶段）** | 硬充 OR 卡住上线；堆十家直连 | — |
+| **不做（现阶段）** | 默认挂 MiMo-Pro / Opus；堆十家直连 | — |
 
 联调：`docs/联调/OpenRouter聚合接入.md` · `docs/联调/DeepSeek直连跑通.md` · 代码：`api/model_router.py`。
 
@@ -134,4 +134,4 @@
 
 ---
 
-*主脑汇总 · 2026-07-30（v1.0.4 · 先 direct 后 OR）*
+*主脑汇总 · 2026-07-30（v1.0.5 · OR 默认 DS Flash/Pro）*
