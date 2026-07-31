@@ -871,6 +871,24 @@ code {
 .mt-2 {
   margin-top: 8px;
 }
+
+/* 帮助中心：FAQ 卡片纵向间距（mt-2=8px 偏紧） */
+body[data-page="help"] .help-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  margin-top: 1.25rem;
+}
+body[data-page="help"] .help-stack > .card {
+  margin-top: 0;
+}
+body[data-page="help"] .help-block-gap {
+  margin-top: 2.5rem;
+}
+body[data-page="help"] #support {
+  margin-bottom: 0.25rem;
+}
+
 .flex-gap {
   display: flex;
   flex-wrap: wrap;
