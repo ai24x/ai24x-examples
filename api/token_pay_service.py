@@ -91,18 +91,33 @@ def pay_settings_ns() -> SimpleNamespace:
 
 
 def token_pay_enabled() -> bool:
-    return bool(settings.token_pay_enabled)
+    try:
+        from system_flags import effective_token_pay_enabled
+
+        return effective_token_pay_enabled()
+    except Exception:
+        return bool(settings.token_pay_enabled)
 
 
 def token_pay_mock_allowed() -> bool:
     """模拟到账开关。
-    - 真支付已开（TOKEN_PAY_ENABLED）：仅当显式 TOKEN_PAY_MOCK_ENABLED=true 才允许
-      （副脑实付联调务必保持 MOCK=false，避免白嫖到账）
-    - 真支付未开：MOCK=true，或本机/dev/test 环境，可模拟履约
+    - 真支付已开：仅当 MOCK 配置为 true 才允许（管理台覆盖优先于 env）
+    - 真支付未开：MOCK=true，或本机/dev/test；若管理台显式关 MOCK 则禁止
     """
+    try:
+        from system_flags import effective_token_pay_mock_flag, get_override
+
+        mock_flag = effective_token_pay_mock_flag()
+        has_ov = get_override("token_pay_mock_enabled") is not None
+    except Exception:
+        mock_flag = bool(settings.token_pay_mock_enabled)
+        has_ov = False
+
     if token_pay_enabled():
-        return bool(settings.token_pay_mock_enabled)
-    if bool(settings.token_pay_mock_enabled):
+        return bool(mock_flag)
+    if has_ov:
+        return bool(mock_flag)
+    if bool(mock_flag):
         return True
     env = (settings.app_env or "").strip().lower()
     return env in ("dev", "local", "test")

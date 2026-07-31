@@ -38,6 +38,13 @@ from schemas import (
     InternalSmsVerifyConsumeIn,
     SmsSendRequest,
     SmsSendResponse,
+    SupportAskBody,
+    SupportTicketCreateBody,
+    SupportTicketReplyBody,
+    TokenAdminSystemUpdateBody,
+    TokenAdminWarehouseUpdateBody,
+    TokenAdminFreeSharedUpdateBody,
+    TokenAdminLlmKeysUpdateBody,
 )
 from services import AuthService, UserService, ChatService
 from config import settings
@@ -1017,6 +1024,53 @@ async def admin_user_lookup(
     return {"ok": True, "user": auth_user_public_dict(u)}
 
 
+@app.get("/v1/admin/users")
+async def admin_users_list(
+    request: Request,
+    db: Session = Depends(get_db),
+    q: str = "",
+    limit: int = 50,
+    offset: int = 0,
+):
+    """管理端用户列表（邮箱/手机/ID 搜索）。"""
+    _require_internal_key(request)
+    from admin_ops_service import admin_list_users
+
+    return admin_list_users(db, q=q, limit=limit, offset=offset)
+
+
+@app.get("/v1/admin/token/economics")
+async def admin_token_economics(request: Request, days: int = 7, db: Session = Depends(get_db)):
+    """成本/收入粗算（非上游账单对账）。"""
+    _require_internal_key(request)
+    from admin_ops_service import admin_economics
+
+    return admin_economics(db, days=days)
+
+
+@app.get("/v1/admin/token/alerts")
+async def admin_token_alerts(request: Request, db: Session = Depends(get_db)):
+    """运维告警摘要（只读）。"""
+    _require_internal_key(request)
+    from admin_ops_service import admin_ops_alerts
+
+    return admin_ops_alerts(db)
+
+
+@app.get("/v1/admin/token/usage_monitor")
+async def admin_token_usage_monitor(
+    request: Request,
+    days: int = 1,
+    top_n: int = 20,
+    db: Session = Depends(get_db),
+):
+    """高消耗用户/模型 + 上游通道就绪摘要（防刷与对账）。"""
+    _require_internal_key(request)
+    from admin_ops_service import admin_usage_monitor
+
+    return admin_usage_monitor(db, days=days, top_n=top_n)
+
+
 @app.post("/v1/admin/users/{user_id}/freeze")
 async def admin_user_freeze(
     user_id: int,
@@ -1192,6 +1246,118 @@ async def referrals_summary(request: Request, db: Session = Depends(get_db)):
     code = get_or_create_invite_code(db, int(u.id)).code
     stats = referral_stats(db, int(u.id))
     return {"code": code, **stats}
+
+
+@app.post("/v1/support/ask")
+async def support_ask(request: Request, body: SupportAskBody, db: Session = Depends(get_db)):
+    """登录用户即时协助：平台成本，不扣用户 Token；有日帽。"""
+    from support_bot import ask_support
+
+    u = _auth_user_from_bearer(request, db)
+    lang = (body.lang or "").strip().lower()
+    if lang not in ("zh", "en"):
+        # 粗判：含中文则 zh
+        lang = "zh" if any("\u4e00" <= ch <= "\u9fff" for ch in (body.question or "")) else "en"
+    return ask_support(auth_user_id=int(u.id), question=body.question, lang_hint=lang)
+
+
+@app.post("/v1/support/tickets")
+async def support_ticket_create(
+    request: Request, body: SupportTicketCreateBody, db: Session = Depends(get_db)
+):
+    from support_tickets import create_ticket
+
+    u = _auth_user_from_bearer(request, db)
+    r = create_ticket(
+        db,
+        auth_user_id=int(u.id),
+        category=body.category,
+        body=body.body,
+        subject=body.subject or "",
+        ai_summary=body.ai_summary,
+    )
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("message") or "提交失败")
+    return r
+
+
+@app.get("/v1/support/tickets")
+async def support_ticket_list(
+    request: Request,
+    db: Session = Depends(get_db),
+    limit: int = 20,
+    offset: int = 0,
+):
+    from support_tickets import list_tickets_for_user
+
+    u = _auth_user_from_bearer(request, db)
+    return list_tickets_for_user(db, int(u.id), limit=limit, offset=offset)
+
+
+@app.get("/v1/admin/token/referrals")
+async def admin_token_referrals(
+    request: Request,
+    db: Session = Depends(get_db),
+    q: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+):
+    _require_internal_key(request)
+    from token_mvp_service import admin_referral_overview
+
+    return admin_referral_overview(db, q=q, limit=limit, offset=offset)
+
+
+@app.get("/v1/admin/token/referrals/{auth_user_id}")
+async def admin_token_referral_detail(
+    request: Request,
+    auth_user_id: int,
+    db: Session = Depends(get_db),
+    limit: int = 100,
+):
+    _require_internal_key(request)
+    from token_mvp_service import admin_referral_detail
+
+    return admin_referral_detail(db, int(auth_user_id), limit=limit)
+
+
+@app.get("/v1/admin/token/tickets")
+async def admin_token_tickets(
+    request: Request,
+    db: Session = Depends(get_db),
+    status: str | None = None,
+    category: str | None = None,
+    auth_user_id: int | None = None,
+    limit: int = 50,
+    offset: int = 0,
+):
+    _require_internal_key(request)
+    from support_tickets import admin_list_tickets
+
+    return admin_list_tickets(
+        db,
+        status=status,
+        category=category,
+        auth_user_id=auth_user_id,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@app.post("/v1/admin/token/tickets/{ticket_id}/reply")
+async def admin_token_ticket_reply(
+    request: Request,
+    ticket_id: int,
+    body: SupportTicketReplyBody,
+    db: Session = Depends(get_db),
+):
+    _require_internal_key(request)
+    from support_tickets import admin_reply_ticket
+
+    r = admin_reply_ticket(db, ticket_id=int(ticket_id), reply=body.reply, close=bool(body.close))
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("message") or "回复失败")
+    return r
 
 
 # —— Token 套餐 / 在线支付（独立于 a1；默认 TOKEN_PAY_ENABLED=false）——
@@ -1736,33 +1902,83 @@ async def admin_token_upstream_probe(request: Request, live: int = 0):
 
 @app.get("/v1/admin/token/system")
 async def admin_token_system(request: Request):
-    """运维只读：支付/路由/短信/邮件开关摘要（无密钥明文）。"""
+    """运维系统开关：可覆盖并立即生效（密钥只读）。"""
     _require_internal_key(request)
-    from email_smtp import smtp_configured
-    from model_router import _upstream_mode
-    from token_pay_service import pay_settings_ns, token_pay_enabled, token_pay_mock_allowed
+    from system_flags import list_system_flags
 
-    cfg = pay_settings_ns()
-    return {
-        "ok": True,
-        "pay": {
-            "enabled": token_pay_enabled(),
-            "mock_allowed": token_pay_mock_allowed(),
-            "paypal_mode": str(getattr(cfg, "paypal_mode", "sandbox") or "sandbox"),
-        },
-        "llm": {"upstream_mode": _upstream_mode()},
-        "sms": {
-            "enabled": bool(settings.sms_106_enabled),
-            "internal_key_set": bool((settings.sms_internal_key or "").strip()),
-            "account_set": bool((settings.sms_106_account or "").strip()),
-            "intl_sms": False,
-        },
-        "email": {"smtp_configured": bool(smtp_configured())},
-        "ops_note": (
-            "改开关请服务器行级改 .env 后重启。国际用户用邮箱 OTP；"
-            "国内短信仅 11 位号；国际短信暂不接入。"
-        ),
-    }
+    return list_system_flags()
+
+
+@app.put("/v1/admin/token/system")
+@app.post("/v1/admin/token/system")
+async def admin_token_system_update(request: Request, body: TokenAdminSystemUpdateBody):
+    """管理台改开关：写入覆盖文件，立即对前台生效。"""
+    _require_internal_key(request)
+    from system_flags import update_system_flags
+
+    try:
+        return update_system_flags(body.model_dump(exclude_none=True))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="参数无效，请检查后再试。") from e
+
+
+@app.get("/v1/admin/token/model_warehouse")
+async def admin_token_model_warehouse(request: Request):
+    """模型仓库：档位映射、层单价、容灾链、套餐毛利粗算、VIP 自选规划。"""
+    _require_internal_key(request)
+    from model_warehouse import warehouse_snapshot
+
+    return warehouse_snapshot()
+
+
+@app.post("/v1/admin/token/model_warehouse")
+async def admin_token_model_warehouse_update(request: Request, body: TokenAdminWarehouseUpdateBody):
+    """保存层模型 / 层启用 / VIP 自选开关（不含密钥）。"""
+    _require_internal_key(request)
+    from model_warehouse import update_warehouse
+
+    try:
+        return update_warehouse(body.model_dump(exclude_none=True))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="参数无效，请检查后再试。")
+
+
+@app.get("/v1/admin/token/free_shared")
+async def admin_token_free_shared(request: Request, db: Session = Depends(get_db)):
+    """免费共享通道（余额用尽可走运营池）。"""
+    _require_internal_key(request)
+    from free_shared import admin_snapshot
+
+    return admin_snapshot(db)
+
+
+@app.post("/v1/admin/token/free_shared")
+async def admin_token_free_shared_update(request: Request, body: TokenAdminFreeSharedUpdateBody):
+    _require_internal_key(request)
+    from free_shared import update_config
+
+    return update_config(body.model_dump(exclude_none=True))
+
+
+@app.get("/v1/admin/token/llm_keys")
+async def admin_token_llm_keys(request: Request):
+    """上游 Key 掩码摘要；可查看 VIP 降级最近事件。"""
+    _require_internal_key(request)
+    from llm_keys import list_keys_admin
+
+    return list_keys_admin()
+
+
+@app.post("/v1/admin/token/llm_keys")
+async def admin_token_llm_keys_update(request: Request, body: TokenAdminLlmKeysUpdateBody):
+    """临时覆盖上游 Key（写入覆盖文件，立即生效）。传空字符串或 clear 可回退 env。"""
+    _require_internal_key(request)
+    from llm_keys import update_keys_admin
+
+    try:
+        return update_keys_admin(body.model_dump(exclude_none=True))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="密钥无效，请检查后再试。")
 
 
 @app.get("/v1/admin/token/plans")
@@ -1799,6 +2015,22 @@ if _WEB_ROOT.is_dir():
         from fastapi import HTTPException
 
         raise HTTPException(status_code=404)
+
+    @app.api_route("/r/{code}", methods=["GET", "HEAD"], include_in_schema=False)
+    async def invite_short_link(code: str):
+        """邀请短链：/r/{CODE} → 注册页并带上 invite（便于分享复制）。"""
+        import re
+
+        from fastapi.responses import RedirectResponse
+
+        raw = (code or "").strip().upper()
+        safe = re.sub(r"[^A-Z0-9]", "", raw)[:32]
+        if len(safe) < 4:
+            return RedirectResponse(url="/register.html", status_code=302)
+        return RedirectResponse(
+            url=f"/register.html?invite={safe}",
+            status_code=302,
+        )
 
     app.mount(
         "/",

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://www.ai24x.com/index.html</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.ai24x.com/pricing.html</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.ai24x.com/product.html</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.ai24x.com/docs.html</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.ai24x.com/help.html</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.ai24x.com/refer.html</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.ai24x.com/register.html</loc><changefreq>monthly</changefreq></url>
+  <url><loc>https://www.ai24x.com/about.html</loc><changefreq>monthly</changefreq></url>
+  <url><loc>https://www.ai24x.com/models/index.html</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.ai24x.com/models/kimi.html</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.ai24x.com/models/xiaomi-mimo.html</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.ai24x.com/models/minimax.html</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.ai24x.com/models/zhipu-glm.html</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.ai24x.com/models/deepseek.html</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.ai24x.com/models/qwen.html</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.ai24x.com/guides/index.html</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.ai24x.com/guides/openclaw.html</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.ai24x.com/guides/openai-sdk.html</loc><changefreq>weekly</changefreq></url>
+</urlset>

@@ -63,6 +63,25 @@ class ChatResponse(BaseModel):
         }
 
 
+class SupportAskBody(BaseModel):
+    """控制台 AI 即时协助（不扣用户余额）。"""
+
+    question: str = Field(..., min_length=2, max_length=2000)
+    lang: Optional[str] = Field(default=None, max_length=8)
+
+
+class SupportTicketCreateBody(BaseModel):
+    category: str = Field(default="api", max_length=32)
+    subject: Optional[str] = Field(default=None, max_length=120)
+    body: str = Field(..., min_length=10, max_length=4000)
+    ai_summary: Optional[str] = Field(default=None, max_length=2000)
+
+
+class SupportTicketReplyBody(BaseModel):
+    reply: str = Field(..., min_length=1, max_length=4000)
+    close: bool = False
+
+
 class ErrorResponse(BaseModel):
     error: str = Field(..., description="错误信息")
     code: str = Field(..., description="错误代码")
@@ -396,4 +415,48 @@ class TokenMockFulfillBody(BaseModel):
 
 class TokenQueryFulfillBody(BaseModel):
     out_trade_no: str = Field(..., min_length=4, max_length=32)
+
+
+class TokenAdminSystemUpdateBody(BaseModel):
+    token_pay_enabled: Optional[bool] = None
+    token_pay_mock_enabled: Optional[bool] = None
+    sms_106_enabled: Optional[bool] = None
+    token_llm_upstream: Optional[str] = Field(default=None, max_length=32)
+    clear: Optional[list[str]] = Field(default=None, max_length=16)
+
+
+class TokenAdminWarehouseLayerPatch(BaseModel):
+    layer: str = Field(..., min_length=1, max_length=8)
+    model: Optional[str] = Field(default=None, max_length=128)
+    enabled: Optional[bool] = None
+
+
+class TokenAdminWarehouseUpdateBody(BaseModel):
+    layers: Optional[list[TokenAdminWarehouseLayerPatch]] = Field(default=None, max_length=16)
+    vip_pick_enabled: Optional[bool] = None
+    vip_pick_models: Optional[list[str]] = Field(default=None, max_length=32)
+    note: Optional[str] = Field(default=None, max_length=200)
+
+
+class TokenAdminFreeSharedUpdateBody(BaseModel):
+    enabled: Optional[bool] = None
+    daily_req_cap: Optional[int] = Field(default=None, ge=1, le=500)
+    daily_token_cap: Optional[int] = Field(default=None, ge=1000, le=2_000_000)
+    prefer: Optional[str] = Field(default=None, max_length=64)
+    pool_enabled: Optional[list[str]] = Field(default=None, max_length=16)
+    upgrade_first: Optional[bool] = None
+    brand_model: Optional[str] = Field(default=None, max_length=32)
+    dispatch_mode: Optional[str] = Field(default=None, max_length=32)
+
+
+class TokenAdminLlmKeysUpdateBody(BaseModel):
+    OPENROUTER_API_KEY: Optional[str] = Field(default=None, max_length=256)
+    OPENROUTER_API_KEY_FREE: Optional[str] = Field(default=None, max_length=256)
+    SILICONFLOW_API_KEY: Optional[str] = Field(default=None, max_length=256)
+    SILICONFLOW_API_KEY_FREE: Optional[str] = Field(default=None, max_length=256)
+    TOGETHER_API_KEY: Optional[str] = Field(default=None, max_length=256)
+    OPENAI_API_KEY: Optional[str] = Field(default=None, max_length=256)
+    ANTHROPIC_API_KEY: Optional[str] = Field(default=None, max_length=256)
+    GOOGLE_AI_API_KEY: Optional[str] = Field(default=None, max_length=256)
+    clear: Optional[list[str]] = Field(default=None, max_length=8)
 

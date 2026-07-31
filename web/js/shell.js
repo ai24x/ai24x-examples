@@ -1,14 +1,23 @@
 /**
- * 统一页眉 / 页脚（8+ 页共用，避免复制粘贴漂移）
+ * 统一页眉 / 页脚（含子目录 models/ guides/ 的相对前缀）
  */
 (function (global) {
   function esc(s) {
     return String(s || "").replace(/"/g, "&quot;");
   }
 
+  function pathPrefix() {
+    try {
+      var p = String(location.pathname || "");
+      if (p.indexOf("/models/") >= 0 || p.indexOf("/guides/") >= 0) return "../";
+    } catch (e) {}
+    return "";
+  }
+
   function headerHtml(activePage) {
     var L = global.AI24X_I18N;
     var langs = L.LANGS;
+    var pre = pathPrefix();
     var langOpts = langs
       .map(function (x) {
         return (
@@ -25,6 +34,7 @@
       var c = activePage === id ? " is-active" : "";
       return (
         '<a href="' +
+        pre +
         href +
         '" data-i18n="' +
         key +
@@ -36,7 +46,9 @@
 
     return (
       '<div class="container header-inner">' +
-      '<a class="brand" href="index.html">' +
+      '<a class="brand" href="' +
+      pre +
+      'index.html">' +
       '<span class="brand-mark">AI</span>' +
       "<span>AI24X</span>" +
       "</a>" +
@@ -45,7 +57,9 @@
       nav("index.html", "nav.home", "index") +
       nav("product.html", "nav.product", "product") +
       nav("pricing.html", "nav.pricing", "pricing") +
+      nav("models/index.html", "nav.models", "models") +
       nav("docs.html", "nav.docs", "docs") +
+      nav("help.html", "nav.help", "help") +
       nav("console.html", "nav.console", "console") +
       nav("login.html", "nav.login", "login") +
       nav("register.html", "nav.register", "register") +
@@ -67,10 +81,14 @@
   function fixNavActive(activePage) {
     var nav = document.getElementById("nav-main");
     if (!nav) return;
+    var pre = pathPrefix();
     var map = {
       index: "index.html",
       product: "product.html",
       pricing: "pricing.html",
+      models: "models/index.html",
+      guides: "guides/index.html",
+      help: "help.html",
       refer: "refer.html",
       partner: "partner.html",
       docs: "docs.html",
@@ -79,7 +97,7 @@
       login: "login.html",
       register: "register.html",
     };
-    var file = map[activePage];
+    var file = map[activePage] ? pre + map[activePage] : "";
     nav.querySelectorAll("a").forEach(function (a) {
       var href = a.getAttribute("href") || "";
       a.classList.toggle("is-active", !!file && href === file);
@@ -87,6 +105,7 @@
   }
 
   function footerHtml() {
+    var pre = pathPrefix();
     return (
       '<div class="container">' +
       '<div class="footer-grid">' +
@@ -96,19 +115,42 @@
       "</div>" +
       '<div class="footer-col">' +
       '<div class="footer-title" data-i18n="footer.col.product"></div>' +
-      '<a href="product.html" data-i18n="footer.link.product"></a>' +
-      '<a href="pricing.html" data-i18n="footer.link.pricing"></a>' +
-      '<a href="partner.html" data-i18n="footer.link.partner"></a>' +
+      '<a href="' +
+      pre +
+      'product.html" data-i18n="footer.link.product"></a>' +
+      '<a href="' +
+      pre +
+      'pricing.html" data-i18n="footer.link.pricing"></a>' +
+      '<a href="' +
+      pre +
+      'models/index.html" data-i18n="footer.link.models"></a>' +
+      '<a href="' +
+      pre +
+      'partner.html" data-i18n="footer.link.partner"></a>' +
       "</div>" +
       '<div class="footer-col">' +
       '<div class="footer-title" data-i18n="footer.col.dev"></div>' +
-      '<a href="docs.html" data-i18n="footer.link.docs"></a>' +
-      '<a href="refer.html" data-i18n="footer.link.refer"></a>' +
-      '<a href="console.html" data-i18n="footer.link.console"></a>' +
+      '<a href="' +
+      pre +
+      'docs.html" data-i18n="footer.link.docs"></a>' +
+      '<a href="' +
+      pre +
+      'guides/index.html" data-i18n="footer.link.guides"></a>' +
+      '<a href="' +
+      pre +
+      'help.html" data-i18n="footer.link.help"></a>' +
+      '<a href="' +
+      pre +
+      'refer.html" data-i18n="footer.link.refer"></a>' +
+      '<a href="' +
+      pre +
+      'console.html" data-i18n="footer.link.console"></a>' +
       "</div>" +
       '<div class="footer-col">' +
       '<div class="footer-title" data-i18n="footer.col.corp"></div>' +
-      '<a href="about.html" data-i18n="footer.link.about"></a>' +
+      '<a href="' +
+      pre +
+      'about.html" data-i18n="footer.link.about"></a>' +
       "</div>" +
       "</div>" +
       '<div class="footer-bottom">© 2026 AI24X · <span data-i18n="footer.copy"></span> · <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">浙ICP备10040624号-7</a></div>' +
@@ -171,5 +213,5 @@
     if (ts) ts.value = th;
   }
 
-  global.AI24X_SHELL = { mount: mount, applyTheme: applyTheme };
+  global.AI24X_SHELL = { mount: mount, applyTheme: applyTheme, pathPrefix: pathPrefix };
 })(typeof window !== "undefined" ? window : this);

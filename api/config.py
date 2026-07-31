@@ -184,6 +184,7 @@ class Settings(BaseSettings):
     # —— LLM upstream（默认聚合 OpenRouter；直连为可选）——
     token_llm_upstream: str = Field(default="direct", validation_alias="TOKEN_LLM_UPSTREAM")
     openrouter_api_key: str = Field(default="", validation_alias="OPENROUTER_API_KEY")
+    openrouter_api_key_free: str = Field(default="", validation_alias="OPENROUTER_API_KEY_FREE")
     openrouter_base_url: str = Field(
         default="https://openrouter.ai/api/v1", validation_alias="OPENROUTER_BASE_URL"
     )
@@ -191,11 +192,30 @@ class Settings(BaseSettings):
     deepseek_base_url: str = Field(default="https://api.deepseek.com", validation_alias="DEEPSEEK_BASE_URL")
     deepseek_model: str = Field(default="deepseek-v4-flash", validation_alias="DEEPSEEK_MODEL")
     siliconflow_api_key: str = Field(default="", validation_alias="SILICONFLOW_API_KEY")
+    siliconflow_api_key_free: str = Field(default="", validation_alias="SILICONFLOW_API_KEY_FREE")
     siliconflow_base_url: str = Field(
         default="https://api.siliconflow.cn/v1", validation_alias="SILICONFLOW_BASE_URL"
     )
     siliconflow_model: str = Field(
         default="Qwen/Qwen2.5-7B-Instruct", validation_alias="SILICONFLOW_MODEL"
+    )
+    # 国际备用：Together（开源）+ 厂直连（旗舰）；空 Key=未启用
+    together_api_key: str = Field(default="", validation_alias="TOGETHER_API_KEY")
+    together_base_url: str = Field(
+        default="https://api.together.xyz/v1", validation_alias="TOGETHER_BASE_URL"
+    )
+    openai_api_key: str = Field(default="", validation_alias="OPENAI_API_KEY")
+    openai_base_url: str = Field(
+        default="https://api.openai.com/v1", validation_alias="OPENAI_BASE_URL"
+    )
+    anthropic_api_key: str = Field(default="", validation_alias="ANTHROPIC_API_KEY")
+    anthropic_base_url: str = Field(
+        default="https://api.anthropic.com/v1", validation_alias="ANTHROPIC_BASE_URL"
+    )
+    google_ai_api_key: str = Field(default="", validation_alias="GOOGLE_AI_API_KEY")
+    google_ai_base_url: str = Field(
+        default="https://generativelanguage.googleapis.com/v1beta/openai/",
+        validation_alias="GOOGLE_AI_BASE_URL",
     )
     token_llm_timeout_s: float = Field(default=30.0, validation_alias="TOKEN_LLM_TIMEOUT_S")
 

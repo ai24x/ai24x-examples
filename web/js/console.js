@@ -818,6 +818,32 @@
     });
   }
 
+  function fillVipPickOptions(isVip) {
+    var sel = $("chat-model");
+    if (!sel || !AI24X_API.listModels) return;
+    AI24X_API.listModels()
+      .then(function (m) {
+        var picks = (m && m.vip_picks) || [];
+        // 清掉旧 vip 选项，保留基础档
+        var keep = { auto: 1, flash: 1, pro: 1, ultra: 1, shared: 1 };
+        Array.prototype.slice.call(sel.options).forEach(function (opt) {
+          if (!keep[opt.value]) sel.removeChild(opt);
+        });
+        picks.forEach(function (p) {
+          if (!p || !p.id) return;
+          var opt = document.createElement("option");
+          opt.value = p.id;
+          var lock = p.locked ? tr("（需会员）", " (VIP)") : "";
+          var mult = p.billing_mult ? " ×" + p.billing_mult : "";
+          var tag = p.group === "intl" ? tr(" · 国际", " · intl") : "";
+          opt.textContent = (p.title || p.id) + mult + tag + lock;
+          opt.disabled = !!p.locked;
+          sel.appendChild(opt);
+        });
+      })
+      .catch(function () {});
+  }
+
   async function refreshAll() {
     if (!requireLogin()) return;
     var user = AI24X_API.getAuthUser() || {};
@@ -847,6 +873,12 @@
         planLabel = tr("免费档（Token VIP 已过期）", "Free (Token VIP expired)");
       }
       $("acct-plan").textContent = planLabel;
+      var cta = $("balance-cta");
+      if (cta) {
+        cta.style.display = Number(bal.balance_tokens) <= 0 ? "" : "none";
+      }
+      window._ai24xIsVip = !!bal.is_vip_active;
+      fillVipPickOptions(!!bal.is_vip_active);
     } catch (e) {
       if (e && e.status === 401) {
         AI24X_API.clearAuth();
@@ -869,6 +901,19 @@
       var ref = await AI24X_API.referralsSummary();
       $("stat-referrals").textContent = String(ref.invitees_l1 != null ? ref.invitees_l1 : 0);
       if ($("inviteCode")) $("inviteCode").textContent = ref.code || "--";
+      window._ai24xInviteCode = ref.code || "";
+      if ($("inviteShortLink")) {
+        var sl =
+          window.AI24X_INVITE && ref.code
+            ? AI24X_INVITE.shortLink(ref.code)
+            : ref.code
+              ? location.origin + "/r/" + encodeURIComponent(ref.code)
+              : "--";
+        $("inviteShortLink").textContent = sl || "--";
+      }
+      if ($("inviteL1Card")) {
+        $("inviteL1Card").textContent = String(ref.invitees_l1 != null ? ref.invitees_l1 : 0);
+      }
     } catch (e) {
       $("stat-referrals").textContent = "--";
     }
@@ -1046,7 +1091,77 @@
           .catch(function (e) {
             out.textContent = e.message || tr("失败", "Failed");
             showMsg($("consoleMsg"), e.message || tr("chat 失败", "chat failed"), false);
+            if (e && e.status === 402) {
+              var cta = $("balance-cta");
+              if (cta) cta.style.display = "";
+            }
           });
+      });
+    }
+    var btnShared = $("btn-continue-shared");
+    if (btnShared) {
+      btnShared.addEventListener("click", function () {
+        var sel = $("chat-model");
+        if (sel) sel.value = "shared";
+        var cta = $("balance-cta");
+        if (cta) cta.style.display = "none";
+        showMsg(
+          $("consoleMsg"),
+          tr("已切换到 shared，可再点发送试调", "Switched to shared — tap Send to try"),
+          true
+        );
+        var prompt = $("chat-prompt");
+        if (prompt && !(prompt.value || "").trim()) prompt.value = "Hello";
+        if ($("btn-chat-run")) $("btn-chat-run").click();
+      });
+    }
+    var btnInv = $("btn-copy-invite-link");
+    if (btnInv) {
+      btnInv.addEventListener("click", function () {
+        var code = window._ai24xInviteCode || ($("inviteCode") && $("inviteCode").textContent) || "";
+        code = String(code || "").trim();
+        if (!code || code === "--") {
+          showMsg($("consoleMsg"), tr("暂无邀请码", "No invite code yet"), false);
+          return;
+        }
+        var link =
+          (window.AI24X_INVITE && AI24X_INVITE.shortLink(code)) ||
+          location.origin + "/r/" + encodeURIComponent(code);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(link).then(
+            function () {
+              showMsg($("consoleMsg"), tr("邀请短链已复制", "Short invite link copied"), true);
+            },
+            function () {
+              showMsg($("consoleMsg"), link, true);
+            }
+          );
+        } else {
+          showMsg($("consoleMsg"), link, true);
+        }
+      });
+    }
+    var btnCode = $("btn-copy-invite-code");
+    if (btnCode) {
+      btnCode.addEventListener("click", function () {
+        var code = window._ai24xInviteCode || ($("inviteCode") && $("inviteCode").textContent) || "";
+        code = String(code || "").trim();
+        if (!code || code === "--") {
+          showMsg($("consoleMsg"), tr("暂无邀请码", "No invite code yet"), false);
+          return;
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(code).then(
+            function () {
+              showMsg($("consoleMsg"), tr("邀请码已复制", "Invite code copied"), true);
+            },
+            function () {
+              showMsg($("consoleMsg"), code, true);
+            }
+          );
+        } else {
+          showMsg($("consoleMsg"), code, true);
+        }
       });
     }
   }

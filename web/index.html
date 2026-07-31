@@ -1,11 +1,15 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="AI24X 一站式多模型 API 与智能应用服务平台：统一接口、全球加速、安全合规。" />
-  <title>AI24X—AI 无限 · 接口自由</title>
-  <link rel="stylesheet" href="css/base.css?v=20260726v" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>China LLM API · Kimi MiMo MiniMax GLM DeepSeek · AI24X</title>
+  <meta name="description" content="Call popular China models with one AI24X key and PayPal USD. Try flash or pro—Kimi, MiMo, MiniMax, GLM, DeepSeek, Qwen." />
+  <meta property="og:description" content="One key for China models. PayPal USD. Start with flash or pro." />
+  <meta property="og:url" content="https://www.ai24x.com/index.html" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="stylesheet" href="css/base.css?v=20260731i" />
   <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260725a" data-base="css/themes/" />
 </head>
 <body data-page="index" class="theme-blue">
@@ -22,11 +26,13 @@
           <span class="tag" data-i18n="page.index.tag3"></span>
           <span class="tag" data-i18n="page.index.tag4"></span>
         </div>
+        <p class="lead mt-2" data-i18n-html="page.index.callout"></p>
         <div class="hero-cta">
           <a class="btn btn-primary" href="register.html" data-i18n="page.index.hero.cta.register"></a>
+          <a class="btn" href="models/index.html" data-i18n="page.index.hero.cta.models"></a>
           <a class="btn" href="docs.html" data-i18n="btn.docs"></a>
-          <a class="btn" href="product.html" data-i18n="btn.product"></a>
           <a class="btn" href="pricing.html" data-i18n="nav.pricing"></a>
+          <a class="btn" href="https://a.ai24x.com/" data-i18n="page.index.hero.cta.a" data-i18n-zh-only></a>
         </div>
       </div>
     </section>
@@ -80,19 +86,27 @@
       <div class="container">
         <h2 data-i18n="page.index.sec2.title"></h2>
         <p class="sub" data-i18n="page.index.sec2.sub"></p>
-        <div class="code-block" aria-label="curl">curl -X POST "https://api.ai24x.com/v1/chat/run?user_id=test_user_001" \
+        <div class="code-block" aria-label="curl">curl -X POST "https://api.ai24x.com/v1/chat/run" \
   -H "Content-Type: application/json" \
-  -d "{\"prompt\":\"Hello AI24X\",\"model\":\"deepseek/deepseek-chat\",\"temperature\":0.7,\"max_tokens\":200,\"stream\":false}"</div>
+  -H "X-API-Key: YOUR_API_KEY" \
+  -d "{\"prompt\":\"Hello AI24X\",\"model\":\"flash\",\"temperature\":0.7,\"max_tokens\":200,\"stream\":false}"</div>
+        <div class="hero-cta" style="margin-top:16px">
+          <a class="btn" href="models/index.html" data-i18n="btn.models"></a>
+          <a class="btn" href="guides/index.html" data-i18n="btn.guides"></a>
+          <a class="btn" href="help.html" data-i18n="nav.help"></a>
+          <a class="btn" href="refer.html" data-i18n="nav.refer"></a>
+        </div>
       </div>
     </section>
   </main>
 
   <footer class="site-footer" id="site-footer"></footer>
 
-  <script src="config/locales.js?v=20260728a"></script>
-  <script src="js/api.js?v=20260727b"></script>
-  <script src="js/i18n.js?v=20260726x"></script>
-  <script src="js/shell.js?v=20260726x"></script>
+  <script src="config/locales.js?v=20260731g"></script>
+  <script src="js/api.js?v=20260731f"></script>
+  <script src="js/i18n.js?v=20260731a"></script>
+  <script src="js/shell.js?v=20260731g"></script>
   <script src="js/app.js?v=20260421a"></script>
+  <script src="js/support-widget.js?v=20260731i"></script>
 </body>
 </html>

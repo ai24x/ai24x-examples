@@ -25,16 +25,19 @@ from models import (
     UserType,
 )
 
-# —— 配额口径（MVP 简化；后续可配进 system_configs）——
-FREE_MONTHLY_BONUS_TOKENS = 10_000
-VIP_DAILY_BONUS_TOKENS = 100_000
+# —— 配额口径（2026-07-30：关掉 FREE 月赠叠礼；注册一次性小礼包）——
+FREE_MONTHLY_BONUS_TOKENS = 0  # 已关闭：避免与注册礼包叠得过松
+VIP_DAILY_BONUS_TOKENS = 100_000  # 仅付费 VIP 日赠，保持
 REFERRAL_L1_BPS = 1000  # 10%（被邀请人充值时）
 REFERRAL_L2_BPS = 200  # 2%
 # 邀请注册即时奖励：双方各得（与总纲「邀请双方各得」对齐）
 REFERRAL_REGISTER_BONUS_TOKENS = 5_000
+# 无邀请码也发：注册欢迎礼（一次性；防刷靠 OTP + 可选邀请频控）
+SIGNUP_BONUS_TOKENS = 5_000
+SIGNUP_BONUS_VALIDITY_DAYS = 365
 # 预充值默认 12 个月；大包可在套餐里写 730
 DEFAULT_PACK_VALIDITY_DAYS = 365
-# 赠送窗口：FREE 月赠约 40 天；VIP 日赠 2 天（跨日缓冲）
+# 赠送窗口：FREE 月赠已关；VIP 日赠 2 天（跨日缓冲）
 FREE_BONUS_VALIDITY_DAYS = 40
 VIP_BONUS_VALIDITY_DAYS = 2
 REFERRAL_VALIDITY_DAYS = 365
@@ -247,13 +250,17 @@ def _nearest_lot_expiry(db: Session, auth_user_id: int) -> Optional[datetime]:
 
 
 def ensure_vip_status(db: Session, wallet: TokenWallet) -> TokenWallet:
-    """VIP 过期则降级为 FREE（不删余额）。"""
+    """VIP 过期则降级为 FREE（不删余额）。无到期时间的 VIP 视为异常数据，同样降级，避免无限日赠。"""
     if wallet.plan != BillingPlan.VIP:
         return wallet
     exp = wallet.vip_expires_at
-    if exp is None:
-        return wallet
     now = _utcnow()
+    if exp is None:
+        wallet.plan = BillingPlan.FREE
+        wallet.updated_at = now
+        db.commit()
+        db.refresh(wallet)
+        return wallet
     exp_naive = _as_naive(exp)
     if exp_naive and exp_naive > now:
         return wallet
@@ -283,7 +290,7 @@ def extend_vip(db: Session, auth_user_id: int, *, days: int = 30) -> TokenWallet
 
 
 def ensure_period_bonus(db: Session, wallet: TokenWallet) -> TokenWallet:
-    """FREE 按月赠送；VIP 按日补充额度（写入短有效期批次）。"""
+    """VIP 按日补充额度；FREE 月赠已关闭（amount=0 仅推进 period 标记）。"""
     wallet = ensure_vip_status(db, wallet)
     wallet = sync_credit_lots(db, wallet, commit=True)
     now = _utcnow()
@@ -301,6 +308,31 @@ def ensure_period_bonus(db: Session, wallet: TokenWallet) -> TokenWallet:
     if wallet.bonus_period == period:
         return wallet
 
+    if int(amount) <= 0:
+        wallet.bonus_period = period
+        wallet.updated_at = now
+        db.commit()
+        db.refresh(wallet)
+        return wallet
+
+    # 幂等：同 period 已有流水则只推进标记（防并发双请求各发一笔）
+    full_note = f"{note} {period}"
+    dup = (
+        db.query(BillingLedger.id)
+        .filter(
+            BillingLedger.auth_user_id == int(wallet.auth_user_id),
+            BillingLedger.entry_type == "bonus",
+            BillingLedger.note == full_note,
+        )
+        .first()
+    )
+    if dup:
+        wallet.bonus_period = period
+        wallet.updated_at = now
+        db.commit()
+        db.refresh(wallet)
+        return wallet
+
     _credit_lot(
         db,
         auth_user_id=int(wallet.auth_user_id),
@@ -308,7 +340,7 @@ def ensure_period_bonus(db: Session, wallet: TokenWallet) -> TokenWallet:
         entry_type="bonus",
         source="bonus",
         validity_days=validity,
-        note=f"{note} {period}",
+        note=full_note,
         commit=False,
     )
     wallet = get_or_create_wallet(db, int(wallet.auth_user_id))
@@ -317,6 +349,37 @@ def ensure_period_bonus(db: Session, wallet: TokenWallet) -> TokenWallet:
     db.commit()
     db.refresh(wallet)
     return wallet
+
+
+def grant_signup_bonus(db: Session, auth_user_id: int) -> bool:
+    """注册欢迎礼：一次性；已发过则跳过。返回是否新发放。"""
+    amount = int(SIGNUP_BONUS_TOKENS)
+    if amount <= 0:
+        return False
+    uid = int(auth_user_id)
+    exists = (
+        db.query(BillingLedger)
+        .filter(
+            BillingLedger.auth_user_id == uid,
+            BillingLedger.entry_type == "bonus",
+            BillingLedger.note == "signup_welcome",
+        )
+        .first()
+    )
+    if exists:
+        return False
+    get_or_create_wallet(db, uid)
+    _credit_lot(
+        db,
+        auth_user_id=uid,
+        amount=amount,
+        entry_type="bonus",
+        source="bonus",
+        validity_days=SIGNUP_BONUS_VALIDITY_DAYS,
+        note="signup_welcome",
+        commit=True,
+    )
+    return True
 
 
 def get_balance_snapshot(db: Session, auth_user_id: int) -> dict:
@@ -329,6 +392,7 @@ def get_balance_snapshot(db: Session, auth_user_id: int) -> dict:
         "balance_tokens": int(w.balance_tokens or 0),
         "bonus_period": w.bonus_period,
         "free_monthly_bonus": FREE_MONTHLY_BONUS_TOKENS,
+        "signup_bonus_tokens": SIGNUP_BONUS_TOKENS,
         "vip_daily_bonus": VIP_DAILY_BONUS_TOKENS,
         "vip_expires_at": exp.isoformat() if exp else None,
         "credits_expire_at": nearest.isoformat() if nearest else None,
@@ -349,7 +413,7 @@ def assert_can_spend(db: Session, auth_user_id: int, need_tokens: int = 1) -> To
     if bal <= 0:
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="余额不足，请充值或等待下期赠送额度",
+            detail="余额不足，请充值后再试",
         )
     if bal < int(need_tokens):
         raise HTTPException(
@@ -848,4 +912,102 @@ def referral_earnings(db: Session, auth_user_id: int, *, limit: int = 50, offset
             }
             for r in rows
         ],
+    }
+
+
+def admin_referral_overview(
+    db: Session, *, q: Optional[str] = None, limit: int = 50, offset: int = 0
+) -> dict:
+    """邀请人列表：邀请码、一级/二级人数、已获赠 token。"""
+    from models import AuthUser
+
+    qq = (q or "").strip()
+    base = db.query(InviteCode, AuthUser).join(AuthUser, AuthUser.id == InviteCode.auth_user_id)
+    if qq:
+        if qq.isdigit():
+            base = base.filter(
+                (InviteCode.auth_user_id == int(qq)) | (InviteCode.code.ilike(f"%{qq.upper()}%"))
+            )
+        else:
+            like = f"%{qq}%"
+            base = base.filter(
+                (InviteCode.code.ilike(f"%{qq.upper()}%"))
+                | (AuthUser.email.ilike(like))
+                | (AuthUser.phone.ilike(like))
+            )
+    total = base.count()
+    pairs = (
+        base.order_by(InviteCode.id.desc())
+        .offset(max(0, int(offset)))
+        .limit(min(200, max(1, int(limit))))
+        .all()
+    )
+    out = []
+    for inv, u in pairs:
+        uid = int(inv.auth_user_id)
+        refs = db.query(Referral).filter(Referral.referrer_id == uid).all()
+        l1 = [r for r in refs if int(r.level) == 1]
+        l2 = [r for r in refs if int(r.level) == 2]
+        earned = sum(int(r.reward_tokens or 0) for r in refs if r.status == "paid")
+        pending = sum(1 for r in refs if r.status == "pending")
+        out.append(
+            {
+                "auth_user_id": uid,
+                "code": inv.code,
+                "email": u.email or "",
+                "phone": u.phone or "",
+                "invitees_l1": len(l1),
+                "invitees_l2": len(l2),
+                "earned_tokens": earned,
+                "pending_count": pending,
+                "created_at": inv.created_at.isoformat() if inv.created_at else None,
+            }
+        )
+    return {"total": total, "rows": out, "limit": limit, "offset": offset}
+
+
+def admin_referral_detail(db: Session, auth_user_id: int, *, limit: int = 100) -> dict:
+    from models import AuthUser
+
+    uid = int(auth_user_id)
+    inv = db.query(InviteCode).filter(InviteCode.auth_user_id == uid).first()
+    u = db.query(AuthUser).filter(AuthUser.id == uid).first()
+    refs = (
+        db.query(Referral)
+        .filter(Referral.referrer_id == uid)
+        .order_by(Referral.id.desc())
+        .limit(min(500, max(1, int(limit))))
+        .all()
+    )
+    referee_ids = list({int(r.referee_id) for r in refs})
+    users = {}
+    if referee_ids:
+        for ru in db.query(AuthUser).filter(AuthUser.id.in_(referee_ids)).all():
+            users[int(ru.id)] = ru
+    rows = []
+    for r in refs:
+        ru = users.get(int(r.referee_id))
+        rows.append(
+            {
+                "id": r.id,
+                "referee_id": int(r.referee_id),
+                "referee_email": (ru.email if ru else "") or "",
+                "referee_phone": (ru.phone if ru else "") or "",
+                "level": int(r.level),
+                "reward_tokens": int(r.reward_tokens or 0),
+                "status": r.status,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+            }
+        )
+    stats = referral_stats(db, uid)
+    return {
+        "auth_user_id": uid,
+        "code": inv.code if inv else None,
+        "user": {
+            "id": uid,
+            "email": (u.email if u else "") or "",
+            "phone": (u.phone if u else "") or "",
+        },
+        **stats,
+        "rows": rows,
     }

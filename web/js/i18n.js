@@ -1,20 +1,71 @@
 /**
  * 国际化 — 语言包为扁平 key：nav.home、page.index.title 等
  *
- * 策略（2026-07-26）：
- * - 中文：zh
- * - 其它语言选项：统一以英文为内容底稿（避免缺译时回落到中文造成中英混杂）
- * - 日/德/法等若有独立词条可覆盖英文；暂无完整译稿前等同 English UX
+ * 策略（2026-07-31）：
+ * - 已选过语言（localStorage）→ 永远尊重
+ * - ?lang=xx 可强制并写入（便于自测）
+ * - 首访：浏览器语言含 zh → 中文；否则英文（国际 SEO / 海外开发者默认）
+ * - 其它语言选项：英文打底，避免缺译回落到中文造成中英混杂
  */
 (function (global) {
   var LANG_KEY = "ai24x_lang";
+  var ALLOWED = { zh: 1, en: 1, ja: 1, ko: 1, de: 1, fr: 1, es: 1 };
+
+  function normalizeLang(code) {
+    var c = String(code || "")
+      .trim()
+      .toLowerCase()
+      .replace(/_/g, "-");
+    if (!c) return "";
+    if (ALLOWED[c]) return c;
+    var base = c.split("-")[0];
+    if (ALLOWED[base]) return base;
+    if (base === "zh") return "zh";
+    return "";
+  }
+
+  function browserPrefersZh() {
+    var list = [];
+    try {
+      if (navigator.languages && navigator.languages.length) {
+        for (var i = 0; i < navigator.languages.length; i++) list.push(navigator.languages[i]);
+      } else if (navigator.language) list.push(navigator.language);
+    } catch (e) {}
+    for (var j = 0; j < list.length; j++) {
+      var n = normalizeLang(list[j]);
+      if (n === "zh") return true;
+      if (String(list[j] || "").toLowerCase().indexOf("zh") === 0) return true;
+    }
+    return false;
+  }
+
+  function detectFirstVisitLang() {
+    try {
+      var q = new URLSearchParams(window.location.search || "").get("lang");
+      var fromQ = normalizeLang(q);
+      if (fromQ) {
+        localStorage.setItem(LANG_KEY, fromQ);
+        return fromQ;
+      }
+    } catch (e) {}
+    var saved = normalizeLang(localStorage.getItem(LANG_KEY));
+    if (saved) return saved;
+    var initial = browserPrefersZh() ? "zh" : "en";
+    try {
+      localStorage.setItem(LANG_KEY, initial);
+    } catch (e2) {}
+    return initial;
+  }
 
   function getLang() {
-    return localStorage.getItem(LANG_KEY) || "zh";
+    var saved = normalizeLang(localStorage.getItem(LANG_KEY));
+    if (saved) return saved;
+    return detectFirstVisitLang();
   }
 
   function setLang(code) {
-    localStorage.setItem(LANG_KEY, code);
+    var n = normalizeLang(code) || "en";
+    localStorage.setItem(LANG_KEY, n);
   }
 
   function isZh() {
@@ -27,7 +78,6 @@
     var en = L.en || {};
     var cur = L[code] || {};
     if (code === "zh") return Object.assign({}, en, zh);
-    // 国际语言：英文打底 + 当前语言覆盖；绝不混入中文
     return Object.assign({}, en, cur);
   }
 
@@ -37,7 +87,6 @@
     if (d[key] != null && d[key] !== "") return d[key];
     var en = (global.AI24X_LOCALES && global.AI24X_LOCALES.en) || {};
     if (en[key] != null && en[key] !== "") return en[key];
-    // 仅中文界面才回退到 zh；国际界面缺 key 时显示 key，避免蹦出中文
     if (lang === "zh") {
       var zh = (global.AI24X_LOCALES && global.AI24X_LOCALES.zh) || {};
       if (zh[key] != null && zh[key] !== "") return zh[key];
@@ -86,9 +135,13 @@
       el.innerHTML = val;
     });
 
-    // 无 data-i18n 的中文默认节点：国际语言下隐藏或由页面脚本重绘
     root.querySelectorAll("[data-i18n-zh-only]").forEach(function (el) {
       el.style.display = isZh() ? "" : "none";
+    });
+
+    root.querySelectorAll("[data-i18n-en-priority]").forEach(function (el) {
+      if (isZh()) el.classList.remove("is-primary-cta");
+      else el.classList.add("is-primary-cta");
     });
 
     var sel = document.getElementById("lang-select");
@@ -96,6 +149,11 @@
     var ts = document.getElementById("theme-select");
     if (ts) ts.value = localStorage.getItem("ai24x_theme") || "blue";
   }
+
+  // 尽早解析首访语言，减少闪中文
+  try {
+    detectFirstVisitLang();
+  } catch (e) {}
 
   global.AI24X_I18N = {
     getLang: getLang,

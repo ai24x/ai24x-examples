@@ -22,6 +22,9 @@ logger = logging.getLogger(__name__)
 MODEL_LAYER: dict[str, str] = {
     "auto": "auto",
     "free": "auto",
+    "shared": "L0",
+    "free-shared": "L0",
+    "free_shared": "L0",
     "flash": "L1",
     "pro": "L2",
     "ultra": "L3",
@@ -40,10 +43,11 @@ MODEL_LAYER: dict[str, str] = {
 
 # 聚合模式：各层都打同一 OpenRouter，用不同 model id 区分档位
 CHAIN_FREE = ["L1", "L0"]
-CHAIN_VIP = ["L1", "L2", "L3"]
+# VIP 档：OR 层失败后落到 L0 硅基（免费 Key），避免整站 OR 挂死
+CHAIN_VIP = ["L1", "L2", "L3", "L0"]
 # 欧盟：优先「国际向」聚合模型（仍经 OpenRouter），再兜底
 CHAIN_FREE_EU = ["QI", "L1", "L0"]
-CHAIN_VIP_EU = ["QI", "L1", "L2", "L3"]
+CHAIN_VIP_EU = ["QI", "L1", "L2", "L3", "L0"]
 
 LAYER_DEFAULT_MODEL = {
     "L0": "or-fallback",
@@ -154,6 +158,8 @@ class RouteResult:
     token_count: int
     attempts: list[dict[str, Any]] = field(default_factory=list)
     error: Optional[str] = None
+    billing_mult: int = 1
+    public_model: Optional[str] = None
 
 
 def list_models_public(*, is_vip: bool) -> dict[str, Any]:
@@ -219,8 +225,19 @@ def list_models_public(*, is_vip: bool) -> dict[str, Any]:
             "l2_model": l2.get("model") or None,
             "l3_model": l3.get("model") or None,
         },
-        "note": "对外档位：auto / flash / pro / ultra。上游映射见管理台「路由状态」。",
+        "vip_picks": _public_vip_picks(is_vip=is_vip),
+        "shared": "shared",
+        "note": "对外档位：auto / flash / pro / ultra / shared；VIP 可点名中国名模（见 vip_picks）。",
     }
+
+
+def _public_vip_picks(*, is_vip: bool) -> list[dict[str, Any]]:
+    try:
+        from model_warehouse import list_vip_picks_for_user
+
+        return list_vip_picks_for_user(is_vip=is_vip)
+    except Exception:
+        return []
 
 
 def _env(name: str, default: str = "") -> str:
@@ -254,9 +271,16 @@ def _upstream_mode() -> str:
     """
     direct | openrouter
 
-    现阶段默认直连 DeepSeek（国内可充值跑通）。
-    显式 TOKEN_LLM_UPSTREAM=openrouter 且 Key 有余额后再切聚合。
+    管理台覆盖优先；否则看 TOKEN_LLM_UPSTREAM / 已配 Key。
     """
+    try:
+        from system_flags import effective_llm_upstream_override
+
+        ov = effective_llm_upstream_override()
+        if ov:
+            return ov
+    except Exception:
+        pass
     raw = (_env("TOKEN_LLM_UPSTREAM", "") or "").strip().lower()
     if raw in ("openrouter", "aggregator", "or"):
         return "openrouter"
@@ -285,6 +309,14 @@ def _normalize_openai_base(base: str) -> str:
 
 def _openrouter_model_for_layer(layer: str) -> str:
     layer = (layer or "").upper()
+    try:
+        from model_warehouse import layer_model_override
+
+        ov = layer_model_override(layer)
+        if ov:
+            return ov
+    except Exception:
+        pass
     env_key = {
         "L0": "OPENROUTER_MODEL_L0",
         "L1": "OPENROUTER_MODEL_L1",
@@ -306,12 +338,49 @@ def _layer_upstream(layer: str) -> dict[str, str]:
     """
     layer = (layer or "").upper()
     if _upstream_mode() == "openrouter":
+        # L0 若已配硅基：用独立通道作 FREE 降级 / 免费共享，避免 OR 整站挂时无兜底
+        sf_key = _env("SILICONFLOW_API_KEY") or _env("TOKEN_LLM_L0_KEY")
+        try:
+            from llm_keys import silicon_free_key
+
+            sf_key = silicon_free_key() or sf_key
+        except Exception:
+            pass
+        use_sf_l0 = (_env("TOKEN_LLM_L0_USE_SILICON") or "1").strip().lower() not in (
+            "0",
+            "false",
+            "no",
+            "off",
+        )
+        if layer == "L0" and sf_key and use_sf_l0:
+            base = (
+                _env("TOKEN_LLM_L0_BASE")
+                or _env("SILICONFLOW_BASE_URL")
+                or "https://api.siliconflow.cn/v1"
+            )
+            model = (
+                _env("TOKEN_LLM_L0_MODEL")
+                or _env("SILICONFLOW_MODEL")
+                or "Qwen/Qwen2.5-7B-Instruct"
+            )
+            return {
+                "base": _normalize_openai_base(base),
+                "key": sf_key,
+                "model": model,
+                "provider": "siliconflow",
+            }
         base = (
             _env("OPENROUTER_BASE_URL")
             or _env("TOKEN_LLM_BASE")
             or "https://openrouter.ai/api/v1"
         )
         key = _env("OPENROUTER_API_KEY") or _env("TOKEN_LLM_KEY")
+        try:
+            from llm_keys import openrouter_main_key
+
+            key = openrouter_main_key() or key
+        except Exception:
+            pass
         model = _openrouter_model_for_layer(layer)
         return {
             "base": _normalize_openai_base(base),
@@ -327,6 +396,12 @@ def _layer_upstream(layer: str) -> dict[str, str]:
             or "https://api.siliconflow.cn/v1"
         )
         key = _env("TOKEN_LLM_L0_KEY") or _env("SILICONFLOW_API_KEY")
+        try:
+            from llm_keys import silicon_free_key
+
+            key = silicon_free_key() or key
+        except Exception:
+            pass
         model = (
             _env("TOKEN_LLM_L0_MODEL")
             or _env("SILICONFLOW_MODEL")
@@ -450,6 +525,10 @@ def resolve_chain(
         free_chain = CHAIN_FREE
         vip_chain = CHAIN_VIP
 
+    # 免费共享：仅 L0，不爬付费档
+    if req in ("shared", "free-shared", "free_shared"):
+        return [("L0", LAYER_DEFAULT_MODEL["L0"])]
+
     if req in ("auto", "free"):
         layers = vip_chain if is_vip else free_chain
         return [(ly, LAYER_DEFAULT_MODEL[ly]) for ly in layers]
@@ -507,6 +586,42 @@ def run_routed_chat(
     max_tokens: int = 1000,
     region_hint: Optional[str] = None,
 ) -> RouteResult:
+    # —— VIP 点名中国/国际模（OR 优先）——
+    pick = None
+    pick_gate_on = False
+    try:
+        from model_warehouse import resolve_vip_pick, vip_pick_enabled
+
+        pick = resolve_vip_pick(requested_model)
+        pick_gate_on = bool(vip_pick_enabled())
+    except Exception:
+        pick = None
+        pick_gate_on = False
+
+    if pick:
+        if not is_vip:
+            return RouteResult(
+                ok=False,
+                text="",
+                model="",
+                layer="VIP",
+                provider="",
+                token_count=0,
+                attempts=[],
+                error="vip_required",
+                billing_mult=int(pick.get("billing_mult") or 1),
+                public_model=str(pick.get("id") or "vip_pick"),
+            )
+        if not pick_gate_on:
+            requested_model = "flash"
+        else:
+            return _run_vip_pick_chat(
+                pick=pick,
+                prompt=prompt,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+
     attempts: list[dict[str, Any]] = []
     chain = resolve_chain(
         requested_model=requested_model, is_vip=is_vip, region_hint=region_hint
@@ -578,6 +693,7 @@ def run_routed_chat(
                 provider=provider,
                 token_count=bill_tokens,
                 attempts=attempts,
+                billing_mult=1,
             )
         except Exception as e:
             elapsed = time.time() - t0
@@ -631,19 +747,335 @@ def run_routed_chat(
     )
 
 
+def _run_vip_pick_chat(
+    *,
+    pick: dict[str, Any],
+    prompt: str,
+    temperature: float,
+    max_tokens: int,
+) -> RouteResult:
+    """VIP 点名：优先 OpenRouter model id；无 OR 时尝试 direct_id + DeepSeek/硅基层。"""
+    billing_mult = max(1, int(pick.get("billing_mult") or 1))
+    public_id = str(pick.get("id") or "vip_pick")
+    or_id = (pick.get("openrouter_id") or "").strip()
+    direct_id = (pick.get("direct_id") or "").strip()
+    timeout_s = _timeout_s()
+    attempts: list[dict[str, Any]] = []
+
+    # 1) OpenRouter
+    if or_id and _upstream_mode() == "openrouter":
+        up = _layer_upstream("L1")
+        if up.get("key") and up.get("base"):
+            t0 = time.time()
+            try:
+                out = _call_openai_compatible(
+                    base=up["base"],
+                    key=up["key"],
+                    model=or_id,
+                    prompt=prompt,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    timeout_s=timeout_s,
+                    provider="openrouter",
+                )
+                elapsed = time.time() - t0
+                raw = max(1, int(out.get("tokens") or 1))
+                attempts.append(
+                    {"layer": "VIP", "model": or_id, "provider": "openrouter", "ok": True, "ms": int(elapsed * 1000)}
+                )
+                return RouteResult(
+                    ok=True,
+                    text=str(out.get("text") or ""),
+                    model=str(out.get("raw_model") or or_id),
+                    layer="VIP",
+                    provider="openrouter",
+                    token_count=max(1, raw * billing_mult),
+                    attempts=attempts,
+                    billing_mult=billing_mult,
+                    public_model=public_id,
+                )
+            except Exception as e:
+                attempts.append(
+                    {"layer": "VIP", "model": or_id, "ok": False, "error": str(e)[:200]}
+                )
+                logger.warning("vip_pick OR failed id=%s err=%s", public_id, e)
+
+    # 2) 国际旗舰：厂直连备用（填 Key 即试；OpenAI/Google 兼容端点可用）
+    try:
+        from upstream_providers import direct_model_for_vip
+
+        direct_up = direct_model_for_vip(public_id)
+        if direct_up and not direct_up.get("skip_call") and direct_up.get("key"):
+            t0 = time.time()
+            try:
+                out = _call_openai_compatible(
+                    base=_normalize_openai_base(str(direct_up["base"])),
+                    key=str(direct_up["key"]),
+                    model=str(direct_up["model"]),
+                    prompt=prompt,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    timeout_s=timeout_s,
+                    provider=str(direct_up.get("id") or "direct"),
+                )
+                elapsed = time.time() - t0
+                raw = max(1, int(out.get("tokens") or 1))
+                attempts.append(
+                    {
+                        "layer": "VIP",
+                        "model": direct_up["model"],
+                        "provider": direct_up.get("id"),
+                        "ok": True,
+                        "ms": int(elapsed * 1000),
+                    }
+                )
+                return RouteResult(
+                    ok=True,
+                    text=str(out.get("text") or ""),
+                    model=str(out.get("raw_model") or direct_up["model"]),
+                    layer="VIP",
+                    provider=str(direct_up.get("id") or "direct"),
+                    token_count=max(1, raw * billing_mult),
+                    attempts=attempts,
+                    billing_mult=billing_mult,
+                    public_model=public_id,
+                )
+            except Exception as e:
+                attempts.append(
+                    {
+                        "layer": "VIP",
+                        "model": direct_up.get("model"),
+                        "provider": direct_up.get("id"),
+                        "ok": False,
+                        "error": str(e)[:200],
+                    }
+                )
+                logger.warning("vip_pick direct failed id=%s err=%s", public_id, e)
+    except Exception as e:
+        logger.debug("vip direct resolve skip: %s", e)
+
+    # 3) 目录里配置的 direct_id（DeepSeek 等）
+    if direct_id:
+        up = _layer_upstream("L1")
+        if _upstream_mode() == "direct" or (up.get("key") and "deepseek" in (up.get("base") or "")):
+            base = up.get("base") or ""
+            key = up.get("key") or ""
+            if key and base:
+                t0 = time.time()
+                try:
+                    out = _call_openai_compatible(
+                        base=base,
+                        key=key,
+                        model=direct_id,
+                        prompt=prompt,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                        timeout_s=timeout_s,
+                        provider=str(up.get("provider") or "direct"),
+                    )
+                    elapsed = time.time() - t0
+                    raw = max(1, int(out.get("tokens") or 1))
+                    attempts.append(
+                        {
+                            "layer": "VIP",
+                            "model": direct_id,
+                            "provider": up.get("provider") or "direct",
+                            "ok": True,
+                            "ms": int(elapsed * 1000),
+                        }
+                    )
+                    return RouteResult(
+                        ok=True,
+                        text=str(out.get("text") or ""),
+                        model=str(out.get("raw_model") or direct_id),
+                        layer="VIP",
+                        provider=str(up.get("provider") or "direct"),
+                        token_count=max(1, raw * billing_mult),
+                        attempts=attempts,
+                        billing_mult=billing_mult,
+                        public_model=public_id,
+                    )
+                except Exception as e:
+                    attempts.append(
+                        {"layer": "VIP", "model": direct_id, "ok": False, "error": str(e)[:200]}
+                    )
+
+    # 4) 降级：中国模可走硅基；国际旗舰禁止静默用硅基顶 GPT/Claude（只告警后走 DS Flash）
+    is_intl_flagship = public_id.startswith("vip-gpt") or "claude" in public_id or "gemini" in public_id
+    degrade_targets: list[tuple[str, str, str, str]] = []
+    if not is_intl_flagship:
+        try:
+            from llm_keys import silicon_degrade_key
+
+            sf_key = silicon_degrade_key()
+            sf_base = (
+                _env("SILICONFLOW_BASE_URL")
+                or _env("TOKEN_LLM_L0_BASE")
+                or "https://api.siliconflow.cn/v1"
+            )
+            sf_model = (
+                _env("SILICONFLOW_MODEL")
+                or _env("TOKEN_LLM_L0_MODEL")
+                or "Qwen/Qwen2.5-7B-Instruct"
+            )
+            if sf_key:
+                degrade_targets.append(("siliconflow", sf_base, sf_key, sf_model))
+        except Exception:
+            pass
+    else:
+        # Together：仅当有开源镜像映射时才用（当前国际旗舰无同名，跳过）
+        try:
+            from upstream_providers import resolve_provider
+
+            tg = resolve_provider("together")
+            # 占位：后续可为 kimi/qwen 等中国开源模配 together 镜像 id
+            _ = tg
+        except Exception:
+            pass
+
+    # DeepSeek flash：优先直连 L1；否则 OR 主 Key 打 flash id
+    try:
+        up1 = _layer_upstream("L1")
+        if up1.get("key") and up1.get("base") and "deepseek" in (up1.get("base") or ""):
+            degrade_targets.append(
+                (
+                    "deepseek",
+                    str(up1["base"]),
+                    str(up1["key"]),
+                    str(up1.get("model") or "deepseek-v4-flash"),
+                )
+            )
+        else:
+            from llm_keys import openrouter_main_key
+
+            or_key = openrouter_main_key()
+            if or_key:
+                degrade_targets.append(
+                    (
+                        "openrouter",
+                        _env("OPENROUTER_BASE_URL") or "https://openrouter.ai/api/v1",
+                        or_key,
+                        "deepseek/deepseek-v4-flash",
+                    )
+                )
+    except Exception:
+        pass
+
+    for prov, base, key, model in degrade_targets:
+        if not key or not base:
+            continue
+        t0 = time.time()
+        try:
+            out = _call_openai_compatible(
+                base=_normalize_openai_base(base),
+                key=key,
+                model=model,
+                prompt=prompt,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                timeout_s=timeout_s,
+                provider=prov,
+            )
+            elapsed = time.time() - t0
+            raw = max(1, int(out.get("tokens") or 1))
+            attempts.append(
+                {
+                    "layer": "VIP",
+                    "model": model,
+                    "provider": prov,
+                    "ok": True,
+                    "degraded": True,
+                    "ms": int(elapsed * 1000),
+                }
+            )
+            try:
+                from llm_keys import note_vip_degrade
+
+                note_vip_degrade(
+                    public_id=public_id,
+                    to_provider=prov,
+                    to_model=model,
+                    reason="or_or_direct_unavailable",
+                )
+            except Exception:
+                pass
+            return RouteResult(
+                ok=True,
+                text=str(out.get("text") or ""),
+                model=str(out.get("raw_model") or model),
+                layer="VIP",
+                provider=prov,
+                token_count=max(1, raw * billing_mult),
+                attempts=attempts,
+                billing_mult=billing_mult,
+                public_model=public_id,
+            )
+        except Exception as e:
+            attempts.append(
+                {
+                    "layer": "VIP",
+                    "model": model,
+                    "provider": prov,
+                    "ok": False,
+                    "degraded": True,
+                    "error": str(e)[:200],
+                }
+            )
+
+    # 5) 无 Key stub（仅联调）
+    if not any(bool(_layer_upstream(ly).get("key")) for ly in ("L1", "L2", "L0")):
+        stub = _stub_response(prompt, layer="VIP", model=public_id)
+        return RouteResult(
+            ok=True,
+            text=str(stub["text"]),
+            model=public_id,
+            layer="VIP",
+            provider="stub",
+            token_count=max(1, int(stub["tokens"]) * billing_mult),
+            attempts=attempts + [{"layer": "VIP", "ok": True, "provider": "stub"}],
+            billing_mult=billing_mult,
+            public_model=public_id,
+        )
+
+    return RouteResult(
+        ok=False,
+        text="",
+        model="",
+        layer="VIP",
+        provider="",
+        token_count=0,
+        attempts=attempts,
+        error="vip_pick_failed",
+        billing_mult=billing_mult,
+        public_model=public_id,
+    )
+
+
 def public_tier_name(
     requested_model: Optional[str],
     *,
     layer: str = "",
     upstream_model: str = "",
 ) -> str:
-    """对外只返回品牌档，不暴露上游型号。"""
+    """对外只返回品牌档，不暴露上游型号。VIP 点名返回 vip-* id。"""
     req = (requested_model or "").strip().lower()
-    if req in ("flash", "pro", "ultra", "auto"):
+    try:
+        from model_warehouse import resolve_vip_pick
+
+        pick = resolve_vip_pick(requested_model)
+        if pick:
+            return str(pick.get("id") or "vip_pick")
+    except Exception:
+        pass
+    if req in ("flash", "pro", "ultra", "auto", "shared"):
         return req
-    if req in ("free",):
-        return "auto"
+    if req in ("free", "free-shared", "free_shared"):
+        return "shared" if req != "free" else "auto"
+    if req.startswith("vip-") or req.startswith("vip:"):
+        return req.replace("vip:", "vip-")[:64]
     ly = (layer or "").upper()
+    if ly == "VIP":
+        return req[:64] if req else "vip_pick"
     if ly == "L1":
         return "flash"
     if ly == "L2":

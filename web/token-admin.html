@@ -177,6 +177,51 @@
     .panel-page { display: none; }
     .panel-page.active { display: block; }
     .panel-page > .card:first-child { margin-top: 0; }
+    .section-label {
+      font-size: 12px; font-weight: 700; color: var(--muted);
+      margin: 16px 0 8px; letter-spacing: 0.02em;
+    }
+    .section-label:first-child { margin-top: 0; }
+    .glance-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+      gap: 10px;
+    }
+    .glance-card {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      min-height: 78px;
+    }
+    .glance-card.ok { border-color: rgba(52,211,153,0.35); }
+    .glance-card.bad { border-color: rgba(251,113,133,0.4); }
+    .glance-card.warn { border-color: rgba(251,191,36,0.4); }
+    .glance-card .gk { font-size: 11px; color: var(--muted); }
+    .glance-card .gv { font-size: 15px; font-weight: 700; margin-top: 6px; line-height: 1.3; word-break: break-all; }
+    .glance-card .gs { font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+    .sys-detail {
+      margin-top: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel2);
+      padding: 0;
+    }
+    .sys-detail > summary {
+      cursor: pointer;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--muted);
+      list-style: none;
+      user-select: none;
+    }
+    .sys-detail > summary::-webkit-details-marker { display: none; }
+    .sys-detail[open] > summary { border-bottom: 1px solid var(--border); color: var(--text); }
+    .sys-detail pre {
+      margin: 0; padding: 12px; white-space: pre-wrap;
+      max-height: 280px; overflow: auto;
+    }
+    #subnav.hidden { display: none; }
     @media (max-width: 860px) {
       #app.on { display: block; }
       .layout { flex-direction: column; }
@@ -236,8 +281,8 @@
               <span class="subt">微信 / 支付宝 / PayPal / Mock</span>
             </button>
             <button type="button" class="nav-item" data-panel="p-plans">
-              价表（只读）
-              <span class="subt">当前套餐价 · env 覆盖键</span>
+              价表管理
+              <span class="subt">前后台同源 · 可改价</span>
             </button>
           </div>
         </div>
@@ -247,13 +292,25 @@
             <span>用户与钱包</span><span class="chev">▾</span>
           </button>
           <div class="nav-l2">
+            <button type="button" class="nav-item" data-panel="p-users">
+              用户列表
+              <span class="subt">默认入口 · 搜索 · 跳转钱包</span>
+            </button>
             <button type="button" class="nav-item" data-panel="p-wallet">
               查余额 / 加额
-              <span class="subt">查找用户、有效天数、开通 VIP</span>
+              <span class="subt">查找、加额、冻结</span>
             </button>
             <button type="button" class="nav-item" data-panel="p-ledger">
               用户流水
-              <span class="subt">BillingLedger 充值/消耗/过期</span>
+              <span class="subt">充值 / 消耗 / 过期</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-referrals">
+              邀请管理
+              <span class="subt">邀请码 · 下级 · 返利</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-tickets">
+              人工工单
+              <span class="subt">转人工 · 回复 · 关闭</span>
             </button>
           </div>
         </div>
@@ -263,13 +320,25 @@
             <span>模型与系统</span><span class="chev">▾</span>
           </button>
           <div class="nav-l2">
-            <button type="button" class="nav-item" data-panel="p-routing">
-              路由状态
-              <span class="subt">openrouter/direct · 各档上游（只读）</span>
+            <button type="button" class="nav-item" data-panel="p-usage">
+              用量监控
+              <span class="subt">高耗用户 · 模型 · 通道</span>
             </button>
-            <button type="button" class="nav-item" data-panel="p-system">
-              系统开关
-              <span class="subt">支付/短信/邮件 · 只读</span>
+            <button type="button" class="nav-item" data-panel="p-sys">
+              开关与密钥
+              <span class="subt">支付 / LLM · 上游 Key</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-warehouse">
+              模型仓库
+              <span class="subt">档位 · 层 · 容灾</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-econ">
+              毛利与告警
+              <span class="subt">流水粗算 · 探活</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-shared">
+              免费共享
+              <span class="subt">引流池 · 日帽</span>
             </button>
           </div>
         </div>
@@ -414,17 +483,18 @@
 
           <div class="panel-page" id="p-plans">
             <div class="card">
-              <h2>价表（只读）</h2>
-              <p class="muted small" id="plansOpsNote">入门包体验价可继续使用。改价请服务器改 TOKEN_PRICE_*_FEN 后重启；本页不可写配置。</p>
+              <h2>价表管理</h2>
+              <p class="muted small" id="plansOpsNote">前后台同源。改 CNY/USD/到账 token 后点保存，立即对用户收银台生效。</p>
               <div class="row" style="margin-top:10px;">
                 <button type="button" id="btnPlansRefresh">刷新</button>
+                <button type="button" class="ok" id="btnPlansSave">保存改价</button>
                 <span class="muted small" id="plansFxMeta"></span>
               </div>
               <div style="overflow:auto;margin-top:12px;">
                 <table>
                   <thead>
                     <tr>
-                      <th>套餐</th><th>plan</th><th>CNY</th><th>USD</th><th>到账 token</th><th>标记</th><th>env 键</th>
+                      <th>套餐</th><th>plan</th><th>CNY 分</th><th>USD</th><th>到账 token</th><th>启用</th><th>来源</th>
                     </tr>
                   </thead>
                   <tbody id="plansBody"></tbody>
@@ -433,28 +503,208 @@
             </div>
           </div>
 
-          <div class="panel-page" id="p-routing">
+          <div class="panel-page" id="p-usage">
             <div class="card">
-              <h2>路由状态（运维只读）</h2>
-              <p class="muted small">用户控制台只见 auto/flash/pro/ultra。此处可看真实上游。改模式请服务器行级改 .env 后重启，勿在网页写密钥。</p>
-              <div class="row" style="margin-top:10px;">
-                <button type="button" id="btnRoutingRefresh">刷新</button>
+              <div class="row" style="justify-content:space-between;align-items:flex-start;">
+                <div>
+                  <h2 style="margin:0;">用量与通道监控</h2>
+                  <p class="muted small" style="margin:6px 0 0;" id="usageOpsNote">按用户 / 模型看平台额度消耗；高耗可去「用户与钱包」冻结。通道 ready=已填 Key（各厂账户余额请看厂商控制台）。</p>
+                </div>
+                <div class="row">
+                  <div class="field" style="min-width:110px;"><span class="lbl">监控天数</span>
+                    <select id="usageDays">
+                      <option value="1" selected>近 1 日</option>
+                      <option value="7">近 7 日</option>
+                      <option value="30">近 30 日</option>
+                    </select>
+                  </div>
+                  <button type="button" class="ok" id="btnUsageRefresh">刷新监控</button>
+                </div>
               </div>
-              <pre id="routingOut" class="mono small" style="margin-top:12px;white-space:pre-wrap;background:var(--bg2,#0f1419);padding:12px;border-radius:8px;border:1px solid var(--border);">—</pre>
+              <div class="section-label">摘要</div>
+              <div class="grid" id="usageSummaryGrid"></div>
+              <div class="row" id="usageAlertPills" style="margin:10px 0;"></div>
+              <div class="section-label">高消耗用户</div>
+              <div style="overflow:auto;max-height:280px;">
+                <table>
+                  <thead><tr><th>用户</th><th>消耗</th><th>流水笔数</th><th>标记</th><th></th></tr></thead>
+                  <tbody id="usageUserBody"></tbody>
+                </table>
+              </div>
+              <div class="section-label">高消耗模型</div>
+              <div style="overflow:auto;max-height:280px;">
+                <table>
+                  <thead><tr><th>模型</th><th>消耗</th><th>流水笔数</th><th>标记</th></tr></thead>
+                  <tbody id="usageModelBody"></tbody>
+                </table>
+              </div>
+              <div class="section-label">上游通道就绪</div>
+              <div class="glance-grid" id="usageProviderGrid"></div>
             </div>
           </div>
 
-          <div class="panel-page" id="p-system">
+          <div class="panel-page" id="p-sys">
             <div class="card">
-              <h2>系统开关（只读）</h2>
-              <p class="muted small" id="systemOpsNote">支付 / LLM / 国内短信 / 邮件。国际用户用邮箱验证；国际短信暂不接入。</p>
-              <div class="row" style="margin-top:10px;">
-                <button type="button" id="btnSystemRefresh">刷新</button>
-                <button type="button" id="btnUpstreamProbe">上游摘要</button>
-                <button type="button" id="btnUpstreamLive">探活 L0/L1（花钱）</button>
+              <div class="row" style="justify-content:space-between;align-items:flex-start;">
+                <div>
+                  <h2 style="margin:0;">开关与密钥</h2>
+                  <p class="muted small" style="margin:6px 0 0;" id="sysOpsNote">支付 / LLM 开关；上游 Key 掩码与临时覆盖。改 .env 后须重启 API。</p>
+                </div>
+                <div class="row">
+                  <button type="button" id="btnSysRefresh">刷新</button>
+                  <button type="button" class="ok" id="btnSysSave">保存开关</button>
+                </div>
               </div>
-              <div class="row" id="systemPills" style="margin-top:10px;"></div>
-              <pre id="systemOut" class="mono small" style="margin-top:12px;white-space:pre-wrap;background:var(--bg2,#0f1419);padding:12px;border-radius:8px;border:1px solid var(--border);">—</pre>
+              <div class="section-label">系统开关</div>
+              <div class="glance-grid" id="sysSwitchGrid"></div>
+              <div class="section-label">上游密钥（掩码 · 可临时覆盖）</div>
+              <p class="muted small" id="llmKeysNote" style="margin:0 0 8px;">来源 env=已从 .env 加载；admin=后台临时覆盖。输入框留空不改。</p>
+              <div class="glance-grid" id="llmKeysGrid"></div>
+              <div class="row" style="margin:8px 0 12px;">
+                <button type="button" id="btnLlmKeysRefresh">刷新密钥状态</button>
+                <button type="button" class="ok" id="btnLlmKeysSave">保存密钥覆盖</button>
+              </div>
+              <div id="llmKeysDegrade" class="muted small"></div>
+            </div>
+          </div>
+
+          <div class="panel-page" id="p-warehouse">
+            <div class="card">
+              <div class="row" style="justify-content:space-between;align-items:flex-start;">
+                <div>
+                  <h2 style="margin:0;">模型仓库</h2>
+                  <p class="muted small" style="margin:6px 0 0;" id="whOpsNote">付费仓：层模型可改。容灾 FREE L1→L0、VIP L1→L2→L3（与共享池独立）。</p>
+                </div>
+                <div class="row">
+                  <button type="button" id="btnWhRefresh">刷新仓库</button>
+                  <button type="button" class="ok" id="btnWhSave">保存层模型</button>
+                  <label class="small" style="display:inline-flex;align-items:center;gap:6px;">
+                    <input type="checkbox" id="whVipPick" /> 高阶 VIP 自选通道
+                  </label>
+                </div>
+              </div>
+              <div class="section-label">用户档位 → 上游</div>
+              <div style="overflow:auto;">
+                <table>
+                  <thead><tr><th>档位</th><th>映射层</th><th>当前上游模型</th><th>FREE 容灾</th><th>VIP 容灾</th></tr></thead>
+                  <tbody id="whBrandBody"></tbody>
+                </table>
+              </div>
+              <div class="section-label">层配置（可改 model id）</div>
+              <div style="overflow:auto;">
+                <table>
+                  <thead><tr><th>层</th><th>Provider</th><th>Model</th><th>Key</th><th>来源</th></tr></thead>
+                  <tbody id="whLayerBody"></tbody>
+                </table>
+              </div>
+              <div class="section-label">目录 · 接入与成本</div>
+              <div style="overflow:auto;max-height:360px;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>模型</th><th>档位</th><th>层</th><th>状态</th>
+                      <th>成本$/M</th><th>计费倍率</th><th>容灾下一档</th>
+                    </tr>
+                  </thead>
+                  <tbody id="whCatalogBody"></tbody>
+                </table>
+              </div>
+              <div class="section-label">套餐毛利粗算（按 Flash 混合成本）</div>
+              <div class="grid" id="whPlanGrid"></div>
+              <div class="section-label">容灾风险</div>
+              <div id="whRiskBox" class="muted small"></div>
+            </div>
+          </div>
+
+          <div class="panel-page" id="p-econ">
+            <div class="card">
+              <div class="row" style="justify-content:space-between;align-items:flex-start;">
+                <div>
+                  <h2 style="margin:0;">毛利与告警</h2>
+                  <p class="muted small" style="margin:6px 0 0;">流水粗算毛利（Flash 均价，会低估 Claude）；精确对账看厂商账单。异常会出现在下方告警条。</p>
+                </div>
+                <div class="row">
+                  <div class="field" style="min-width:110px;"><span class="lbl">毛利天数</span>
+                    <select id="econDays">
+                      <option value="1">近 1 日</option>
+                      <option value="7" selected>近 7 日</option>
+                      <option value="30">近 30 日</option>
+                    </select>
+                  </div>
+                  <button type="button" id="btnEconRefresh">刷新毛利</button>
+                  <button type="button" id="btnUpstreamProbe">上游摘要</button>
+                  <button type="button" id="btnUpstreamLive">探活 L0/L1</button>
+                </div>
+              </div>
+              <div class="section-label">成本毛利（流水粗算）</div>
+              <div class="grid" id="sysEconGrid"></div>
+              <div class="section-label">运维告警</div>
+              <div class="row" id="alertPills" style="margin-top:4px;"></div>
+              <details class="sys-detail" id="sysDetailBox" style="margin-top:12px;">
+                <summary>原始详情 / 探活结果（默认收起）</summary>
+                <pre id="sysDetailOut" class="mono small">—</pre>
+              </details>
+            </div>
+          </div>
+
+          <div class="panel-page" id="p-shared">
+            <div class="card">
+              <h2>免费共享通道</h2>
+              <p class="muted small" id="fsOpsNote">试用用尽后：主推付费；可选共享继续玩。与 flash/pro 付费路由分开管理，避免毛利被刷穿。</p>
+              <div class="row" style="margin-top:10px;">
+                <button type="button" id="btnFsRefresh">刷新</button>
+                <button type="button" class="ok" id="btnFsSave">保存共享配置</button>
+              </div>
+              <div class="section-label">开关与日帽</div>
+              <div class="glance-grid" id="fsSwitchGrid"></div>
+              <div class="section-label">连通摘要</div>
+              <p class="muted small" id="fsConnNote" style="margin:0 0 8px;">—</p>
+              <div class="section-label">共享池仓库（启用多选 / 主力单选）</div>
+              <p class="muted small" style="margin:0 0 8px;">启用=进容灾/轮询池；主力=起点（只能一个）。调度在上方选「挂了自动顶上」或「多条轮询」。</p>
+              <div style="overflow:auto;max-height:360px;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>启用</th><th>主力</th><th>模型</th><th>状态</th><th>成本</th><th>扩容说明</th>
+                    </tr>
+                  </thead>
+                  <tbody id="fsCatalogBody"></tbody>
+                </table>
+              </div>
+              <div class="section-label">扩容建议</div>
+              <ul class="muted small" id="fsScaleTips" style="margin:8px 0 0;padding-left:18px;line-height:1.7;"></ul>
+              <div class="section-label">当前启用链</div>
+              <div class="glance-grid" id="fsPoolGrid"></div>
+              <div class="section-label">今日用量</div>
+              <div class="grid" id="fsTodayGrid"></div>
+              <div class="section-label">漏斗口径</div>
+              <ol class="muted small" id="fsFunnel" style="margin:8px 0 0;padding-left:18px;line-height:1.7;"></ol>
+            </div>
+          </div>
+
+          <div class="panel-page" id="p-users">
+            <div class="card">
+              <h2>用户列表</h2>
+              <p class="muted small">「用户与钱包」默认入口。点「钱包」可加额 / 冻结。</p>
+              <div class="row" style="margin-top:10px;">
+                <div class="field" style="min-width:220px;"><span class="lbl">搜索（邮箱 / 手机 / ID）</span>
+                  <input id="usersQ" type="text" placeholder="可留空" />
+                </div>
+                <button type="button" id="btnUsersRefresh">刷新</button>
+                <button type="button" id="btnUsersPrev">上一页</button>
+                <button type="button" id="btnUsersNext">下一页</button>
+              </div>
+              <p class="muted small" id="usersMeta"></p>
+              <div style="overflow:auto;margin-top:8px;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th><th>邮箱</th><th>手机</th><th>余额</th><th>套餐</th><th>状态</th><th>注册</th><th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="usersBody"></tbody>
+                </table>
+              </div>
             </div>
           </div>
 
@@ -531,6 +781,86 @@
               </div>
             </div>
           </div>
+
+          <div class="panel-page" id="p-referrals">
+            <div class="card">
+              <h2>邀请管理</h2>
+              <p class="muted small">看谁在推荐、邀请码、一级/二级人数与已获赠 token。点「明细」看下级列表。</p>
+              <div class="row" style="margin-top:10px;">
+                <div class="field" style="min-width:220px;"><span class="lbl">搜索（邀请码 / 邮箱 / 手机 / 用户ID）</span>
+                  <input id="refQ" type="text" placeholder="可留空" />
+                </div>
+                <button type="button" id="btnRefRefresh">刷新</button>
+              </div>
+              <p class="muted small" id="refMeta"></p>
+              <div style="overflow:auto;margin-top:8px;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>用户ID</th><th>邀请码</th><th>邮箱</th><th>一级</th><th>二级</th><th>已获赠</th><th>待结算</th><th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="refBody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card">
+              <h2>邀请明细 <span class="muted small" id="refDetailTitle"></span></h2>
+              <pre class="mono small" id="refDetailOut" style="white-space:pre-wrap;min-height:60px;">选择上方一行查看下级。</pre>
+            </div>
+          </div>
+
+          <div class="panel-page" id="p-tickets">
+            <div class="card">
+              <h2>人工工单</h2>
+              <p class="muted small">用户从控制台「转人工」提交。回复后用户可在控制台看到状态。</p>
+              <div class="row" style="margin-top:10px;">
+                <div class="field"><span class="lbl">状态</span>
+                  <select id="tkStatus">
+                    <option value="">全部</option>
+                    <option value="open" selected>open</option>
+                    <option value="replied">replied</option>
+                    <option value="closed">closed</option>
+                  </select>
+                </div>
+                <div class="field"><span class="lbl">分类</span>
+                  <select id="tkCat">
+                    <option value="">全部</option>
+                    <option value="billing">billing</option>
+                    <option value="api">api</option>
+                    <option value="account">account</option>
+                    <option value="suggestion">suggestion</option>
+                    <option value="complaint">complaint</option>
+                  </select>
+                </div>
+                <button type="button" id="btnTkRefresh">刷新</button>
+              </div>
+              <p class="muted small" id="tkMeta"></p>
+              <div style="overflow:auto;margin-top:8px;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th><th>用户</th><th>分类</th><th>标题</th><th>状态</th><th>时间</th><th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="tkBody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card">
+              <h2>回复工单</h2>
+              <p class="small mono" id="tkSelected">未选择</p>
+              <div class="field" style="margin-top:8px;"><span class="lbl">回复内容</span>
+                <textarea id="tkReply" rows="4" style="width:100%;" placeholder="对用户可见的回复"></textarea>
+              </div>
+              <div class="row" style="margin-top:8px;">
+                <label class="small muted" style="display:flex;gap:6px;align-items:center;">
+                  <input id="tkClose" type="checkbox" /> 同时关闭
+                </label>
+                <button type="button" class="ok" id="btnTkReply">提交回复</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -541,7 +871,7 @@
   var SK = "ai24x_token_admin_v1";
   var NAV_GROUP_KEY = "ai24x_token_admin_nav_group";
   var $ = function (id) { return document.getElementById(id); };
-  var state = { base: "", key: "", panel: "p-dash", ordOffset: 0 };
+  var state = { base: "", key: "", panel: "p-dash", ordOffset: 0, usersOffset: 0 };
 
   function qsa(sel) {
     try { return Array.prototype.slice.call(document.querySelectorAll(sel)); }
@@ -650,7 +980,8 @@
     var pref = {
       "g-overview": "p-dash",
       "g-pay": "p-orders",
-      "g-wallet": "p-wallet",
+      "g-wallet": "p-users",
+      "g-sys": "p-usage",
     };
     var pid = pref[groupId] || "p-dash";
     if ($(pid)) return pid;
@@ -664,8 +995,17 @@
     if (!box) return;
     box.innerHTML = "";
     var g = document.querySelector('.nav-group[data-group="' + groupId + '"]');
-    if (!g) return;
+    if (!g) {
+      box.classList.add("hidden");
+      return;
+    }
     var items = qsa('.nav-group[data-group="' + groupId + '"] .nav-item[data-panel]');
+    // 仅一项时不画顶栏子菜单，直接一页看完
+    if (items.length <= 1) {
+      box.classList.add("hidden");
+      return;
+    }
+    box.classList.remove("hidden");
     items.forEach(function (src) {
       var pid = String(src.getAttribute("data-panel") || "");
       var title = (src.childNodes && src.childNodes.length)
@@ -816,121 +1156,780 @@
     }
     body.innerHTML = rows
       .map(function (p) {
-        var flags = [];
-        if (!p.enabled) flags.push("停用");
-        if (p.promo) flags.push("体验价");
-        if (p.set_vip) flags.push("VIP");
-        if (p.price_env_override) flags.push("env覆盖");
-        var envCell = p.price_env_key
-          ? esc(p.price_env_key) + (p.price_env_override ? " ✓" : "（默认）")
-          : "—";
+        var src = p.price_source || (p.price_env_override ? "env" : "default");
+        if (p.has_admin_override) src = "admin";
+        var pid = esc(p.plan || "");
         return (
-          "<tr>" +
-          "<td>" +
-          esc(p.title_zh || "") +
-          "</td>" +
-          "<td class='mono small'>" +
-          esc(p.plan || "") +
-          "</td>" +
-          "<td>¥" +
-          esc(p.price_yuan || String((Number(p.price_fen || 0) / 100).toFixed(2))) +
-          "</td>" +
-          "<td>" +
-          (p.price_usd != null ? "$" + esc(String(p.price_usd)) : "—") +
-          "</td>" +
-          "<td>" +
-          (p.credit_tokens || 0) +
-          "</td>" +
-          "<td>" +
-          (flags.length ? flags.join(" · ") : "—") +
-          "</td>" +
-          "<td class='mono small'>" +
-          envCell +
-          "</td>" +
+          "<tr data-plan=\"" + pid + "\">" +
+          "<td>" + esc(p.title_zh || "") + (p.promo ? " <span class='pill'>体验</span>" : "") +
+          (p.set_vip ? " <span class='pill'>VIP</span>" : "") + "</td>" +
+          "<td class='mono small'>" + pid + "</td>" +
+          "<td><input class='plan-fen' type='number' min='1' value='" + Number(p.price_fen || 0) + "' style='width:88px'/></td>" +
+          "<td><input class='plan-usd' type='number' min='0' step='0.01' value='" +
+            (p.price_usd != null ? Number(p.price_usd) : "") + "' style='width:80px'/></td>" +
+          "<td><input class='plan-credit' type='number' min='0' value='" + Number(p.credit_tokens || 0) + "' style='width:100px'/></td>" +
+          "<td><input class='plan-on' type='checkbox'" + (p.enabled ? " checked" : "") + "/></td>" +
+          "<td class='mono small'>" + esc(src) + "</td>" +
           "</tr>"
         );
       })
       .join("");
   }
 
-  async function loadSystem() {
-    var out = $("systemOut");
-    var pills = $("systemPills");
-    if (!out) return;
-    out.textContent = "加载中…";
-    var r = await api("/v1/admin/token/system");
-    if ($("systemOpsNote") && r.ops_note) $("systemOpsNote").textContent = r.ops_note;
-    var pay = r.pay || {};
-    var llm = r.llm || {};
-    var sms = r.sms || {};
-    var email = r.email || {};
-    var rows = [
-      ["支付总开关", !!pay.enabled],
-      ["Mock", !!pay.mock_allowed],
-      ["LLM", true],
-      ["国内短信", !!sms.enabled],
-      ["短信密钥", !!sms.internal_key_set],
-      ["邮件SMTP", !!email.smtp_configured],
-      ["国际短信", !!sms.intl_sms],
-    ];
-    if (pills) {
-      pills.innerHTML = rows
-        .map(function (p) {
-          var ok = p[0] === "LLM" ? true : p[0] === "国际短信" ? false : p[1];
-          var label =
-            p[0] === "LLM"
-              ? "LLM: " + (llm.upstream_mode || "-")
-              : p[0] === "Mock"
-                ? "Mock: " + (p[1] ? "开" : "关")
-                : p[0] === "国际短信"
-                  ? "国际短信: 未接入"
-                  : p[0] + ": " + (p[1] ? "开/已配" : "关/未配");
+  async function savePlans() {
+    var body = $("plansBody");
+    if (!body) return;
+    var plans = [];
+    qsa("#plansBody tr[data-plan]").forEach(function (tr) {
+      var pid = tr.getAttribute("data-plan");
+      if (!pid) return;
+      var fenEl = tr.querySelector(".plan-fen");
+      var usdEl = tr.querySelector(".plan-usd");
+      var crEl = tr.querySelector(".plan-credit");
+      var onEl = tr.querySelector(".plan-on");
+      var item = { plan: pid, enabled: !!(onEl && onEl.checked) };
+      if (fenEl && fenEl.value !== "") item.price_fen = parseInt(fenEl.value, 10);
+      if (usdEl && usdEl.value !== "") item.price_usd = parseFloat(usdEl.value);
+      if (crEl && crEl.value !== "") item.credit_tokens = parseInt(crEl.value, 10);
+      plans.push(item);
+    });
+    if (!plans.length) {
+      setMsg("无套餐可保存", "err");
+      return;
+    }
+    await api("/v1/admin/token/plans", { method: "POST", body: { plans: plans } });
+    setMsg("价表已保存，前台立即生效", "ok");
+    await loadPlans();
+  }
+
+  async function loadUsers() {
+    var body = $("usersBody");
+    if (!body) return;
+    body.innerHTML = "<tr><td colspan='8' class='muted'>加载中…</td></tr>";
+    var lim = 30;
+    var qs = "limit=" + lim + "&offset=" + (state.usersOffset || 0);
+    var q = ($("usersQ") && $("usersQ").value || "").trim();
+    if (q) qs += "&q=" + encodeURIComponent(q);
+    var r = await api("/v1/admin/users?" + qs);
+    var rows = r.rows || [];
+    if ($("usersMeta")) {
+      $("usersMeta").textContent =
+        "共 " + (r.total || 0) + " 人 · 本页 " + rows.length + " · 偏移 " + (r.offset || 0);
+    }
+    body.innerHTML =
+      rows
+        .map(function (u) {
+          var st = u.frozen
+            ? '<span class="pill bad">已冻结</span>'
+            : '<span class="pill ok">正常</span>';
           return (
-            '<span class="pill ' +
-            (ok ? "ok" : "bad") +
-            '">' +
-            label +
-            "</span>"
+            "<tr>" +
+            "<td>" +
+            u.id +
+            "</td>" +
+            "<td class='mono small'>" +
+            esc(u.email || "—") +
+            "</td>" +
+            "<td class='mono small'>" +
+            esc(u.phone || "—") +
+            "</td>" +
+            "<td>" +
+            (u.balance_tokens || 0) +
+            "</td>" +
+            "<td>" +
+            esc(u.plan || "—") +
+            "</td>" +
+            "<td>" +
+            st +
+            "</td>" +
+            "<td class='mono small'>" +
+            esc((u.created_at || "").slice(0, 19)) +
+            "</td>" +
+            "<td><button type='button' class='btnUserWallet' data-uid='" +
+            u.id +
+            "'>钱包</button></td>" +
+            "</tr>"
           );
         })
-        .join(" ");
-    }
-    out.textContent = JSON.stringify(
-      {
-        pay: pay,
-        llm: llm,
-        sms: sms,
-        email: email,
-      },
-      null,
-      2
+        .join("") || "<tr><td colspan='8' class='muted'>暂无用户</td></tr>";
+  }
+
+  function _glanceCard(cls, key, val, sub) {
+    return (
+      '<div class="glance-card ' + (cls || "") + '">' +
+      '<div class="gk">' + esc(key) + "</div>" +
+      '<div class="gv">' + esc(String(val == null ? "—" : val)) + "</div>" +
+      (sub ? '<div class="gs">' + esc(String(sub)) + "</div>" : "") +
+      "</div>"
     );
   }
 
-  async function loadRouting() {
-    var out = $("routingOut");
-    if (!out) return;
-    out.textContent = "加载中…";
-    var r = await api("/v1/admin/token/routing");
-    var lines = [];
-    lines.push("upstream_mode: " + (r.upstream_mode || "-"));
-    lines.push("");
-    var layers = r.layers || {};
-    ["L0", "L1", "L2", "L3", "QI"].forEach(function (ly) {
-      var x = layers[ly] || {};
-      lines.push(
-        ly +
-          "  provider=" +
-          (x.provider || "-") +
-          "  model=" +
-          (x.model || "-") +
-          "  key=" +
-          (x.key_set ? "set" : "NO")
+  function _statCard(key, val) {
+    return (
+      '<div class="stat"><div class="n">' +
+      esc(String(val == null ? "—" : val)) +
+      '</div><div class="k">' +
+      esc(key) +
+      "</div></div>"
+    );
+  }
+
+  function _glanceToggle(id, cls, key, checked, sub) {
+    return (
+      '<div class="glance-card ' + (cls || "") + '">' +
+      '<div class="gk">' + esc(key) + '</div>' +
+      '<div class="gv" style="display:flex;align-items:center;gap:10px;margin-top:8px;">' +
+      '<label style="display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;cursor:pointer;">' +
+      '<input type="checkbox" id="' + id + '"' + (checked ? " checked" : "") + " />" +
+      '<span>' + (checked ? "开" : "关") + "</span></label></div>" +
+      (sub ? '<div class="gs">' + esc(String(sub)) + "</div>" : "") +
+      "</div>"
+    );
+  }
+
+  function _glanceSelect(id, cls, key, value, options, sub) {
+    var opts = (options || [])
+      .map(function (o) {
+        return (
+          '<option value="' +
+          esc(o) +
+          '"' +
+          (o === value ? " selected" : "") +
+          ">" +
+          esc(o) +
+          "</option>"
+        );
+      })
+      .join("");
+    return (
+      '<div class="glance-card ' + (cls || "") + '">' +
+      '<div class="gk">' + esc(key) + "</div>" +
+      '<div class="gv" style="margin-top:8px;">' +
+      '<select id="' + id + '" style="min-width:120px;width:100%;">' +
+      opts +
+      "</select></div>" +
+      (sub ? '<div class="gs">' + esc(String(sub)) + "</div>" : "") +
+      "</div>"
+    );
+  }
+
+  async function loadSysOverview() {
+    if ($("sysSwitchGrid")) $("sysSwitchGrid").innerHTML = '<div class="muted small">加载中…</div>';
+
+    var sys = await api("/v1/admin/token/system");
+    var routing = await api("/v1/admin/token/routing");
+
+    if ($("sysOpsNote") && sys.ops_note) $("sysOpsNote").textContent = sys.ops_note;
+
+    var pay = sys.pay || {};
+    var llm = sys.llm || {};
+    var sms = sys.sms || {};
+    var email = sys.email || {};
+    var mode = (llm.upstream_mode || routing.upstream_mode || "direct");
+    var mockFlag = pay.mock_flag != null ? !!pay.mock_flag : !!pay.mock_allowed;
+
+    if ($("sysSwitchGrid")) {
+      $("sysSwitchGrid").innerHTML =
+        _glanceToggle(
+          "swPayOn",
+          pay.enabled ? "ok" : "bad",
+          "支付总开关",
+          !!pay.enabled,
+          "来源 " + (pay.enabled_source || "env") + " · 保存后前台收银台立即生效"
+        ) +
+        _glanceToggle(
+          "swPayMock",
+          mockFlag ? "warn" : "ok",
+          "模拟支付",
+          mockFlag,
+          "来源 " + (pay.mock_source || "env") + " · 生产实付请保持关"
+        ) +
+        _glanceSelect(
+          "swLlmMode",
+          "ok",
+          "上游模式",
+          mode === "openrouter" ? "openrouter" : "direct",
+          llm.options || ["direct", "openrouter"],
+          "来源 " + (llm.upstream_source || "env") + " · 保存后立即切换路由"
+        ) +
+        _glanceToggle(
+          "swSmsOn",
+          sms.enabled ? "ok" : "bad",
+          "国内短信",
+          !!sms.enabled,
+          (sms.internal_key_set ? "密钥已配" : "密钥未配") +
+            " · 来源 " +
+            (sms.enabled_source || "env")
+        ) +
+        _glanceCard(
+          email.smtp_configured ? "ok" : "bad",
+          "邮件服务",
+          email.smtp_configured ? "已配" : "未配",
+          "只读 · 改账号请服务器改配置"
+        ) +
+        _glanceCard("warn", "国际短信", "未接入", "暂不建设");
+
+      ["swPayOn", "swPayMock", "swSmsOn"].forEach(function (id) {
+        var el = $(id);
+        if (!el) return;
+        el.onchange = function () {
+          var lab = el.parentNode && el.parentNode.querySelector("span");
+          if (lab) lab.textContent = el.checked ? "开" : "关";
+        };
+      });
+    }
+
+    try {
+      await loadLlmKeys();
+    } catch (eKeys) {
+      if ($("llmKeysNote")) $("llmKeysNote").textContent = "密钥状态加载失败：" + String(eKeys.message || eKeys);
+    }
+  }
+
+  async function loadEconPanel() {
+    var days = Number(($("econDays") && $("econDays").value) || 7);
+    if ($("sysEconGrid")) $("sysEconGrid").innerHTML = '<div class="muted small">加载中…</div>';
+    var sys = await api("/v1/admin/token/system");
+    var routing = await api("/v1/admin/token/routing");
+    var econ = await api("/v1/admin/token/economics?days=" + days);
+    var alerts = await api("/v1/admin/token/alerts");
+
+    if ($("sysEconGrid")) {
+      $("sysEconGrid").innerHTML =
+        _statCard("消耗 token", econ.consume_tokens) +
+        _statCard("估上游成本 $", econ.est_upstream_cost_usd) +
+        _statCard("估收入 $", econ.revenue_usd_est) +
+        _statCard("估毛利 $", econ.gross_margin_usd_est) +
+        _statCard("新用户", econ.new_users);
+    }
+
+    if ($("alertPills")) {
+      var list = alerts.alerts || [];
+      $("alertPills").innerHTML = list.length
+        ? list
+            .map(function (al) {
+              var cls = al.level === "error" ? "bad" : al.level === "warn" ? "warn" : "ok";
+              return '<span class="pill ' + cls + '">' + esc(al.msg || al.code) + "</span>";
+            })
+            .join(" ")
+        : '<span class="pill ok">暂无告警</span>';
+    }
+
+    if ($("sysDetailOut")) {
+      $("sysDetailOut").textContent = JSON.stringify(
+        { system: sys, routing: routing, economics: econ, alerts: alerts },
+        null,
+        2
       );
+    }
+  }
+
+  async function loadUsageMonitor() {
+    var days = Number(($("usageDays") && $("usageDays").value) || 1);
+    var r = await api("/v1/admin/token/usage_monitor?days=" + days + "&top_n=20");
+    if ($("usageOpsNote") && r.ops_note) $("usageOpsNote").textContent = r.ops_note;
+    if ($("usageSummaryGrid")) {
+      $("usageSummaryGrid").innerHTML =
+        _glanceCard("ok", "总消耗", String(r.total_consume_tokens || 0), "平台 token · " + days + " 日") +
+        _glanceCard(
+          (r.alerts || []).length ? "warn" : "ok",
+          "监控告警",
+          String((r.alerts || []).length),
+          "高耗 / 国际名模"
+        );
+    }
+    if ($("usageAlertPills")) {
+      var ual = r.alerts || [];
+      $("usageAlertPills").innerHTML = ual.length
+        ? ual
+            .map(function (al) {
+              var cls = al.level === "error" ? "bad" : al.level === "warn" ? "warn" : "ok";
+              return '<span class="pill ' + cls + '">' + esc(al.msg || al.code) + "</span>";
+            })
+            .join(" ")
+        : '<span class="pill ok">无用量异常</span>';
+    }
+    if ($("usageUserBody")) {
+      var users = r.top_users || [];
+      $("usageUserBody").innerHTML = users.length
+        ? users
+            .map(function (u) {
+              var label = u.email || u.phone || "#" + u.auth_user_id;
+              var flag = u.flag || "ok";
+              return (
+                "<tr><td>" +
+                esc(label) +
+                ' <span class="muted small">#' +
+                esc(u.auth_user_id) +
+                "</span></td><td>" +
+                esc(u.consume_tokens) +
+                "</td><td>" +
+                esc(u.ledger_rows) +
+                '</td><td><span class="pill ' +
+                (flag === "high" ? "bad" : flag === "watch" ? "warn" : "ok") +
+                '">' +
+                esc(flag) +
+                '</span></td><td><button type="button" class="usage-goto-wallet" data-uid="' +
+                esc(u.auth_user_id) +
+                '">钱包</button></td></tr>'
+              );
+            })
+            .join("")
+        : '<tr><td colspan="5" class="muted">暂无消耗</td></tr>';
+      qsa(".usage-goto-wallet").forEach(function (btn) {
+        btn.onclick = function () {
+          var uid = btn.getAttribute("data-uid");
+          if ($("wUid")) $("wUid").value = uid || "";
+          showPanel("p-wallet").then(function () {
+            if ($("btnWallet")) $("btnWallet").click();
+          });
+        };
+      });
+    }
+    if ($("usageModelBody")) {
+      var models = r.top_models || [];
+      $("usageModelBody").innerHTML = models.length
+        ? models
+            .map(function (m) {
+              var flag = m.flag || "ok";
+              return (
+                "<tr><td class='mono'>" +
+                esc(m.model) +
+                "</td><td>" +
+                esc(m.consume_tokens) +
+                "</td><td>" +
+                esc(m.ledger_rows) +
+                '</td><td><span class="pill ' +
+                (flag === "intl_vip" || flag === "high" ? "warn" : "ok") +
+                '">' +
+                esc(flag) +
+                "</span></td></tr>"
+              );
+            })
+            .join("")
+        : '<tr><td colspan="4" class="muted">暂无</td></tr>';
+    }
+    if ($("usageProviderGrid")) {
+      var prov = (r.providers && r.providers.providers) || [];
+      $("usageProviderGrid").innerHTML = prov.length
+        ? prov
+            .map(function (p) {
+              return (
+                '<div class="glance-card ' +
+                (p.ready ? "ok" : "bad") +
+                '"><div class="gk">' +
+                esc(p.title || p.id) +
+                '</div><div class="gv">' +
+                (p.ready ? "ready" : "未就绪") +
+                '</div><div class="gs">' +
+                esc(p.role || "") +
+                (p.key_masked ? " · " + esc(p.key_masked) : "") +
+                "</div></div>"
+              );
+            })
+            .join("")
+        : '<div class="muted small">通道列表空</div>';
+    }
+  }
+
+  async function loadLlmKeys() {
+    var r = await api("/v1/admin/token/llm_keys");
+    if ($("llmKeysNote") && r.ops_note) $("llmKeysNote").textContent = r.ops_note;
+    var rows = r.keys || [];
+    if ($("llmKeysGrid")) {
+      $("llmKeysGrid").innerHTML = rows
+        .map(function (k) {
+          var id = "lk_" + String(k.name || "").replace(/\W+/g, "_");
+          var role =
+            k.role === "free"
+              ? "免费"
+              : k.role === "backup"
+                ? "开源备用"
+                : k.role === "direct"
+                  ? "厂直连"
+                  : "主收银";
+          var src = k.source || "";
+          return (
+            '<div class="glance-card ' +
+            (k.set ? "ok" : "bad") +
+            '"><div class="gk">' +
+            esc(role) +
+            " · " +
+            esc(k.name) +
+            '</div><div class="gv mono small">' +
+            esc(k.masked || "未配置") +
+            '</div><div class="gs">来源 ' +
+            esc(src) +
+            '</div><input class="llm-key-inp" id="' +
+            id +
+            '" data-key="' +
+            esc(k.name) +
+            '" type="password" placeholder="粘贴新密钥临时覆盖（留空不改）" style="width:100%;margin-top:6px"/></div>'
+          );
+        })
+        .join("");
+    }
+    var deg = r.vip_degrade_recent || [];
+    if ($("llmKeysDegrade")) {
+      $("llmKeysDegrade").innerHTML = deg.length
+        ? "最近 VIP 降级：<br/>" +
+          deg
+            .map(function (d) {
+              return (
+                esc(d.ts || "") +
+                " · " +
+                esc(d.public_id || "") +
+                " → " +
+                esc(d.to_provider || "") +
+                "/" +
+                esc(d.to_model || "")
+              );
+            })
+            .join("<br/>")
+        : "暂无 VIP 降级记录（进程内）。";
+    }
+  }
+
+  async function saveLlmKeys() {
+    var body = {};
+    qsa(".llm-key-inp").forEach(function (inp) {
+      var name = inp.getAttribute("data-key");
+      var val = String(inp.value || "").trim();
+      if (name && val) body[name] = val;
     });
-    lines.push("");
-    lines.push(r.public_note || "");
-    out.textContent = lines.join("\n");
+    if (!Object.keys(body).length) {
+      setMsg("未填写新密钥（留空表示不改）", "err");
+      return;
+    }
+    await api("/v1/admin/token/llm_keys", { method: "POST", body: body });
+    setMsg("密钥覆盖已保存（立即生效）", "ok");
+    await loadLlmKeys();
+  }
+
+  async function saveSysFlags() {
+    var payOn = !!($("swPayOn") && $("swPayOn").checked);
+    var mockOn = !!($("swPayMock") && $("swPayMock").checked);
+    var smsOn = !!($("swSmsOn") && $("swSmsOn").checked);
+    var mode = ($("swLlmMode") && $("swLlmMode").value) || "direct";
+    if (payOn && mockOn) {
+      if (!window.confirm("真支付已开且模拟支付也开：用户可能白嫖到账。确认仍要保存？")) return;
+    }
+    await api("/v1/admin/token/system", {
+      method: "POST",
+      body: {
+        token_pay_enabled: payOn,
+        token_pay_mock_enabled: mockOn,
+        sms_106_enabled: smsOn,
+        token_llm_upstream: mode,
+      },
+    });
+    setMsg("系统开关已保存，前台立即生效", "ok");
+    await loadSysOverview();
+  }
+
+  function _runtimePill(rt) {
+    var map = {
+      active: ["ok", "在用"],
+      standby: ["warn", "待命"],
+      ready: ["ok", "就绪"],
+      need_key: ["bad", "缺 Key"],
+      disabled: ["bad", "停用"],
+      planned: ["warn", "规划中"],
+      vip_pick_planned: ["warn", "VIP自选·待开"],
+    };
+    var x = map[rt] || ["", rt || "-"];
+    return '<span class="pill ' + x[0] + '">' + esc(x[1]) + "</span>";
+  }
+
+  async function loadWarehouse() {
+    var r = await api("/v1/admin/token/model_warehouse");
+    if ($("whOpsNote") && r.ops_note) $("whOpsNote").textContent = r.ops_note;
+    if ($("whVipPick")) $("whVipPick").checked = !!(r.vip_pick && r.vip_pick.enabled);
+
+    var brands = r.brand_map || [];
+    if ($("whBrandBody")) {
+      $("whBrandBody").innerHTML = brands
+        .map(function (b) {
+          return (
+            "<tr><td><strong>" +
+            esc(b.brand) +
+            "</strong></td><td class='mono'>" +
+            esc(b.maps_to_layer) +
+            "</td><td class='mono small'>" +
+            esc(b.upstream_model || "—") +
+            "</td><td class='mono small'>" +
+            esc(b.chain_free || "") +
+            "</td><td class='mono small'>" +
+            esc(b.chain_vip || "") +
+            "</td></tr>"
+          );
+        })
+        .join("") || "<tr><td colspan='5' class='muted'>无</td></tr>";
+    }
+
+    var layers = r.layers || {};
+    if ($("whLayerBody")) {
+      $("whLayerBody").innerHTML = ["L0", "L1", "L2", "L3", "QI"]
+        .map(function (ly) {
+          var x = layers[ly] || {};
+          return (
+            "<tr data-layer='" +
+            ly +
+            "'><td><strong>" +
+            ly +
+            "</strong></td><td class='mono small'>" +
+            esc(x.provider || "—") +
+            "</td><td><input class='wh-model' type='text' value='" +
+            esc(x.model || "") +
+            "' style='min-width:220px;width:100%'/></td><td>" +
+            (x.key_set ? '<span class="pill ok">有</span>' : '<span class="pill bad">无</span>') +
+            "</td><td class='mono small'>" +
+            esc(x.source || "") +
+            "</td></tr>"
+          );
+        })
+        .join("");
+    }
+
+    var cat = r.catalog || [];
+    if ($("whCatalogBody")) {
+      $("whCatalogBody").innerHTML = cat
+        .map(function (c) {
+          return (
+            "<tr><td>" +
+            esc(c.title || c.id) +
+            '<div class="mono small">' +
+            esc(c.openrouter_id || c.direct_id || "") +
+            "</div></td><td>" +
+            esc((c.brand_tiers || []).join(", ")) +
+            "</td><td>" +
+            esc(c.layer) +
+            "</td><td>" +
+            _runtimePill(c.runtime) +
+            "</td><td>" +
+            (c.cost_blended_usd_per_m != null ? c.cost_blended_usd_per_m : "—") +
+            "</td><td>×" +
+            (c.billing_mult || 1) +
+            "</td><td class='mono small'>" +
+            esc((c.failover_to || []).join(" → ") || "—") +
+            "</td></tr>"
+          );
+        })
+        .join("") || "<tr><td colspan='7' class='muted'>无目录</td></tr>";
+    }
+
+    var plans = r.plans_margin || [];
+    if ($("whPlanGrid")) {
+      $("whPlanGrid").innerHTML = plans
+        .map(function (p) {
+          return _statCard(
+            (p.title || p.plan) + " 毛利$",
+            p.est_gross_usd != null ? p.est_gross_usd : "—"
+          );
+        })
+        .join("");
+    }
+
+    var risks = (r.failover && r.failover.risks) || [];
+    if ($("whRiskBox")) {
+      $("whRiskBox").innerHTML = risks
+        .map(function (x) {
+          return (
+            "<div style='margin:6px 0;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--panel2)'>" +
+            "<strong>若挂：" +
+            esc(x.if_down) +
+            "</strong> → " +
+            esc(x.then) +
+            "<div class='muted' style='margin-top:4px'>补位：" +
+            esc(x.mitigation) +
+            "</div></div>"
+          );
+        })
+        .join("");
+    }
+
+    if ($("sysLayerGrid")) {
+      $("sysLayerGrid").innerHTML = ["L0", "L1", "L2", "L3", "QI"]
+        .map(function (ly) {
+          var x = layers[ly] || {};
+          return _glanceCard(
+            x.key_set ? "ok" : "bad",
+            ly + (x.key_set ? " · 就绪" : " · 无 Key"),
+            x.provider || "—",
+            x.model || "—"
+          );
+        })
+        .join("");
+    }
+  }
+
+  async function saveWarehouse() {
+    var layers = [];
+    qsa("#whLayerBody tr[data-layer]").forEach(function (tr) {
+      var ly = tr.getAttribute("data-layer");
+      var inp = tr.querySelector(".wh-model");
+      layers.push({ layer: ly, model: inp ? String(inp.value || "").trim() : "" });
+    });
+    await api("/v1/admin/token/model_warehouse", {
+      method: "POST",
+      body: {
+        layers: layers,
+        vip_pick_enabled: !!($("whVipPick") && $("whVipPick").checked),
+      },
+    });
+    setMsg("模型仓库已保存", "ok");
+    await loadWarehouse();
+  }
+
+  async function loadFreeShared() {
+    var r = await api("/v1/admin/token/free_shared");
+    if ($("fsOpsNote") && r.ops_note) $("fsOpsNote").textContent = r.ops_note;
+    var cfg = r.config || {};
+    var preferOpts = (r.catalog || [])
+      .filter(function (c) { return c.access !== "planned" || c.enabled; })
+      .map(function (c) { return c.id; });
+    if (!preferOpts.length) preferOpts = ["silicon-qwen", "or-auto"];
+    if ($("fsSwitchGrid")) {
+      $("fsSwitchGrid").innerHTML =
+        _glanceToggle("fsOn", cfg.enabled ? "ok" : "bad", "共享通道", !!cfg.enabled, "关则余额用尽只能充值") +
+        _glanceToggle("fsUpgradeFirst", cfg.upgrade_first ? "ok" : "warn", "先推付费", !!cfg.upgrade_first, "开：402 主推充值；关：可直接落共享") +
+        _glanceSelect(
+          "fsPrefer",
+          "ok",
+          "主力（单选起点）",
+          cfg.prefer || "silicon-qwen",
+          preferOpts,
+          "failover 先打谁；rotate 轮询起点"
+        ) +
+        _glanceSelect(
+          "fsDispatch",
+          "ok",
+          "调度策略",
+          cfg.dispatch_mode === "rotate" ? "rotate" : "failover",
+          ["failover", "rotate"],
+          "failover=挂了自动顶上；rotate=多条轮询"
+        ) +
+        '<div class="glance-card ok"><div class="gk">日请求帽</div><div class="gv"><input id="fsReqCap" type="number" min="1" max="500" value="' +
+        Number(cfg.daily_req_cap || 30) +
+        '" style="width:100%"/></div><div class="gs">建议 20～50</div></div>' +
+        '<div class="glance-card ok"><div class="gk">日 token 帽</div><div class="gv"><input id="fsTokCap" type="number" min="1000" value="' +
+        Number(cfg.daily_token_cap || 30000) +
+        '" style="width:100%"/></div><div class="gs">防刷硬顶</div></div>';
+      ["fsOn", "fsUpgradeFirst"].forEach(function (id) {
+        var el = $(id);
+        if (!el) return;
+        el.onchange = function () {
+          var lab = el.parentNode && el.parentNode.querySelector("span");
+          if (lab) lab.textContent = el.checked ? "开" : "关";
+        };
+      });
+    }
+    if ($("fsConnNote") && r.connectivity) {
+      var c = r.connectivity;
+      $("fsConnNote").textContent =
+        (c.note || "") +
+        " · 调度=" + (c.dispatch_mode || "failover") +
+        " · 尝试序=" + ((c.attempt_order || []).join("→") || "-") +
+        " · 主力" + (c.primary_ready ? "已通" : "未通") +
+        " · 备" + (c.backup_ready ? "已通" : "未通/无") +
+        " · live启用=" + (c.live_enabled_count != null ? c.live_enabled_count : "-");
+    }
+    var cat = r.catalog || [];
+    if ($("fsCatalogBody")) {
+      $("fsCatalogBody").innerHTML = cat
+        .map(function (row) {
+          var rt = row.runtime || "";
+          var pill =
+            rt === "active"
+              ? '<span class="pill ok">已连通</span>'
+              : rt === "need_key"
+                ? '<span class="pill bad">缺 Key</span>'
+                : '<span class="pill warn">规划中</span>';
+          return (
+            "<tr data-fs-id='" +
+            esc(row.id) +
+            "'>" +
+            "<td><input type='checkbox' class='fs-en'" +
+            (row.enabled ? " checked" : "") +
+            (rt === "planned" && row.id === "byok-user" ? " disabled" : "") +
+            "/></td>" +
+            "<td><input type='radio' name='fsPrimary' class='fs-pri' value='" +
+            esc(row.id) +
+            "'" +
+            (row.role === "primary" ? " checked" : "") +
+            "/></td>" +
+            "<td><strong>" +
+            esc(row.title || row.id) +
+            '</strong><div class="mono small">' +
+            esc(row.model_id || "") +
+            "</div></td>" +
+            "<td>" +
+            pill +
+            "</td>" +
+            "<td>" +
+            esc(row.cost || "—") +
+            "</td>" +
+            "<td class='small'>" +
+            esc(row.scale_note || row.quality || "") +
+            "</td></tr>"
+          );
+        })
+        .join("") || "<tr><td colspan='6' class='muted'>无目录</td></tr>";
+    }
+    if ($("fsScaleTips")) {
+      $("fsScaleTips").innerHTML = (r.scale_tips || [])
+        .map(function (t) { return "<li>" + esc(t) + "</li>"; })
+        .join("");
+    }
+    var pool = r.pool || [];
+    if ($("fsPoolGrid")) {
+      $("fsPoolGrid").innerHTML = pool
+        .map(function (p) {
+          return _glanceCard(
+            p.ready ? "ok" : "bad",
+            (p.role === "primary" ? "主力 · " : "备 · ") + (p.title || p.id),
+            p.ready ? "已连通" : "未连通",
+            (p.model_id || p.id || "")
+          );
+        })
+        .join("") || _glanceCard("warn", "共享池", "空", "请启用至少一条");
+    }
+    var today = r.today || {};
+    if ($("fsTodayGrid")) {
+      $("fsTodayGrid").innerHTML =
+        _statCard("今日共享请求", today.requests) +
+        _statCard("今日共享用户", today.users);
+    }
+    var steps = (r.funnel && r.funnel.steps) || [];
+    if ($("fsFunnel")) {
+      $("fsFunnel").innerHTML = steps.map(function (s) { return "<li>" + esc(s) + "</li>"; }).join("");
+    }
+  }
+
+  async function saveFreeShared() {
+    var enabledIds = [];
+    qsa("#fsCatalogBody tr[data-fs-id]").forEach(function (tr) {
+      var id = tr.getAttribute("data-fs-id");
+      var en = tr.querySelector(".fs-en");
+      if (id && en && en.checked) enabledIds.push(id);
+    });
+    var preferEl = document.querySelector("#fsCatalogBody input.fs-pri:checked");
+    var prefer = (preferEl && preferEl.value) || ($("fsPrefer") && $("fsPrefer").value) || "silicon-qwen";
+    if (enabledIds.indexOf(prefer) < 0) enabledIds.unshift(prefer);
+    await api("/v1/admin/token/free_shared", {
+      method: "POST",
+      body: {
+        enabled: !!($("fsOn") && $("fsOn").checked),
+        upgrade_first: !!($("fsUpgradeFirst") && $("fsUpgradeFirst").checked),
+        prefer: prefer,
+        pool_enabled: enabledIds,
+        dispatch_mode: ($("fsDispatch") && $("fsDispatch").value) || "failover",
+        daily_req_cap: Number(($("fsReqCap") && $("fsReqCap").value) || 30),
+        daily_token_cap: Number(($("fsTokCap") && $("fsTokCap").value) || 30000),
+      },
+    });
+    setMsg("免费共享配置已保存", "ok");
+    await loadFreeShared();
   }
 
   async function refreshSummary() {
@@ -1087,6 +2086,115 @@
     }).join("") || '<tr><td colspan="7" class="muted">无流水</td></tr>';
   }
 
+  async function loadReferrals() {
+    var body = $("refBody");
+    if (!body) return;
+    body.innerHTML = "<tr><td colspan='8' class='muted'>加载中…</td></tr>";
+    var qs = "limit=50&offset=0";
+    var q = (($("refQ") && $("refQ").value) || "").trim();
+    if (q) qs += "&q=" + encodeURIComponent(q);
+    var r = await api("/v1/admin/token/referrals?" + qs);
+    var rows = r.rows || [];
+    if ($("refMeta")) $("refMeta").textContent = "共 " + (r.total || 0) + " 位有邀请码的用户 · 本页 " + rows.length;
+    body.innerHTML =
+      rows
+        .map(function (u) {
+          return (
+            "<tr>" +
+            "<td>" + u.auth_user_id + "</td>" +
+            "<td class='mono'>" + esc(u.code || "") + "</td>" +
+            "<td class='mono small'>" + esc(u.email || "—") + "</td>" +
+            "<td>" + (u.invitees_l1 || 0) + "</td>" +
+            "<td>" + (u.invitees_l2 || 0) + "</td>" +
+            "<td>" + (u.earned_tokens || 0) + "</td>" +
+            "<td>" + (u.pending_count || 0) + "</td>" +
+            "<td><button type='button' data-ref-uid='" + u.auth_user_id + "'>明细</button></td>" +
+            "</tr>"
+          );
+        })
+        .join("") || "<tr><td colspan='8' class='muted'>暂无</td></tr>";
+    body.querySelectorAll("[data-ref-uid]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        loadReferralDetail(parseInt(btn.getAttribute("data-ref-uid"), 10)).catch(function (e) {
+          setMsg(e.message || "明细失败", "err");
+        });
+      });
+    });
+  }
+
+  async function loadReferralDetail(uid) {
+    if (!uid) return;
+    if ($("refDetailTitle")) $("refDetailTitle").textContent = "· 用户 " + uid;
+    if ($("refDetailOut")) $("refDetailOut").textContent = "加载中…";
+    var d = await api("/v1/admin/token/referrals/" + uid + "?limit=200");
+    var lines = [];
+    lines.push("邀请码: " + (d.code || "—"));
+    lines.push("邮箱: " + ((d.user && d.user.email) || "—") + "  手机: " + ((d.user && d.user.phone) || "—"));
+    lines.push(
+      "一级 " + (d.invitees_l1 || 0) +
+        " · 二级 " + (d.invitees_l2 || 0) +
+        " · 已获赠 " + (d.earned_tokens || 0) +
+        " · 待结算 " + (d.pending_count || 0)
+    );
+    lines.push("---");
+    (d.rows || []).forEach(function (r) {
+      lines.push(
+        "#" + r.id + " L" + r.level + " referee=" + r.referee_id +
+          " " + (r.referee_email || r.referee_phone || "") +
+          " reward=" + r.reward_tokens + " " + r.status +
+          " " + ((r.created_at || "").slice(0, 19))
+      );
+    });
+    if ($("refDetailOut")) $("refDetailOut").textContent = lines.join("\n");
+  }
+
+  var stateTkId = 0;
+  async function loadTickets() {
+    var body = $("tkBody");
+    if (!body) return;
+    body.innerHTML = "<tr><td colspan='7' class='muted'>加载中…</td></tr>";
+    var qs = new URLSearchParams();
+    qs.set("limit", "50");
+    var st = ($("tkStatus") && $("tkStatus").value) || "";
+    var cat = ($("tkCat") && $("tkCat").value) || "";
+    if (st) qs.set("status", st);
+    if (cat) qs.set("category", cat);
+    var r = await api("/v1/admin/token/tickets?" + qs.toString());
+    var rows = r.rows || [];
+    if ($("tkMeta")) $("tkMeta").textContent = "共 " + (r.total || 0) + " · 本页 " + rows.length;
+    body.innerHTML =
+      rows
+        .map(function (t) {
+          var u = t.user || {};
+          return (
+            "<tr>" +
+            "<td>" + t.id + "</td>" +
+            "<td class='mono small'>" + t.auth_user_id + " " + esc(u.email || u.phone || "") + "</td>" +
+            "<td>" + esc(t.category) + "</td>" +
+            "<td>" + esc((t.subject || "").slice(0, 40)) + "</td>" +
+            "<td>" + esc(t.status) + "</td>" +
+            "<td class='mono small'>" + esc((t.created_at || "").slice(0, 19)) + "</td>" +
+            "<td><button type='button' data-tk-id='" + t.id + "'>查看</button></td>" +
+            "</tr>"
+          );
+        })
+        .join("") || "<tr><td colspan='7' class='muted'>暂无</td></tr>";
+    body.querySelectorAll("[data-tk-id]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var id = parseInt(btn.getAttribute("data-tk-id"), 10);
+        var row = rows.find(function (x) { return x.id === id; });
+        stateTkId = id;
+        if ($("tkSelected")) {
+          $("tkSelected").textContent = row
+            ? ("#" + row.id + " [" + row.status + "] " + row.category + "\n" + (row.body || "") +
+              (row.ai_summary ? "\n---AI摘要---\n" + row.ai_summary : "") +
+              (row.admin_reply ? "\n---已回复---\n" + row.admin_reply : ""))
+            : ("#" + id);
+        }
+      });
+    });
+  }
+
   async function refreshCurrentPanel() {
     var p = state.panel || "p-dash";
     if (p === "p-dash") {
@@ -1098,18 +2206,42 @@
     } else if (p === "p-plans") {
       await loadPlans();
       setMsg("价表已刷新", "ok");
-    } else if (p === "p-routing") {
-      await loadRouting();
-      setMsg("路由状态已刷新", "ok");
-    } else if (p === "p-system") {
-      await loadSystem();
-      setMsg("系统开关已刷新", "ok");
+    } else if (p === "p-usage") {
+      await loadUsageMonitor();
+      setMsg("用量监控已刷新", "ok");
+    } else if (p === "p-sys" || p === "p-routing" || p === "p-system") {
+      if (p !== "p-sys") {
+        state.panel = "p-sys";
+        qsa(".panel-page").forEach(function (el) {
+          el.classList.toggle("active", el.id === "p-sys");
+        });
+      }
+      await loadSysOverview();
+      setMsg("开关与密钥已刷新", "ok");
+    } else if (p === "p-warehouse") {
+      await loadWarehouse();
+      setMsg("模型仓库已刷新", "ok");
+    } else if (p === "p-econ") {
+      await loadEconPanel();
+      setMsg("毛利与告警已刷新", "ok");
+    } else if (p === "p-shared") {
+      await loadFreeShared();
+      setMsg("免费共享已刷新", "ok");
+    } else if (p === "p-users") {
+      await loadUsers();
+      setMsg("用户列表已刷新", "ok");
     } else if (p === "p-orders") {
       await loadOrders();
       setMsg("订单已更新", "ok");
     } else if (p === "p-ledger") {
       await loadLedger();
       setMsg("流水已更新", "ok");
+    } else if (p === "p-referrals") {
+      await loadReferrals();
+      setMsg("邀请列表已更新", "ok");
+    } else if (p === "p-tickets") {
+      await loadTickets();
+      setMsg("工单已更新", "ok");
     }
   }
 
@@ -1223,6 +2355,46 @@
       } catch (e) { setMsg(String(e.message || e), "err"); }
     };
   }
+  if ($("btnRefRefresh")) {
+    $("btnRefRefresh").onclick = async function () {
+      try {
+        await loadReferrals();
+        setMsg("邀请列表已刷新", "ok");
+      } catch (e) { setMsg(String(e.message || e), "err"); }
+    };
+  }
+  if ($("btnTkRefresh")) {
+    $("btnTkRefresh").onclick = async function () {
+      try {
+        await loadTickets();
+        setMsg("工单已刷新", "ok");
+      } catch (e) { setMsg(String(e.message || e), "err"); }
+    };
+  }
+  if ($("btnTkReply")) {
+    $("btnTkReply").onclick = async function () {
+      try {
+        if (!stateTkId) {
+          setMsg("请先选择工单", "err");
+          return;
+        }
+        var reply = (($("tkReply") && $("tkReply").value) || "").trim();
+        if (!reply) {
+          setMsg("请填写回复", "err");
+          return;
+        }
+        await api("/v1/admin/token/tickets/" + stateTkId + "/reply", {
+          method: "POST",
+          body: { reply: reply, close: !!($("tkClose") && $("tkClose").checked) },
+        });
+        if ($("tkReply")) $("tkReply").value = "";
+        setMsg("已回复", "ok");
+        await loadTickets();
+      } catch (e) {
+        setMsg(String(e.message || e), "err");
+      }
+    };
+  }
 
   $("btnDashLoadPending").onclick = async function () {
     try {
@@ -1240,21 +2412,106 @@
     }).catch(function (e) { setMsg(String(e.message || e), "err"); });
   };
   $("btnDashOrders").onclick = function () { showPanel("p-orders"); };
-  if ($("btnRoutingRefresh")) {
-    $("btnRoutingRefresh").onclick = async function () {
+  if ($("btnSysRefresh")) {
+    $("btnSysRefresh").onclick = async function () {
       try {
-        await loadRouting();
-        setMsg("路由状态已刷新", "ok");
+        await loadSysOverview();
+        setMsg("开关与密钥已刷新", "ok");
       } catch (e) {
         setMsg(String(e.message || e), "err");
       }
     };
   }
-  if ($("btnSystemRefresh")) {
-    $("btnSystemRefresh").onclick = async function () {
+  if ($("btnEconRefresh")) {
+    $("btnEconRefresh").onclick = async function () {
       try {
-        await loadSystem();
-        setMsg("系统开关已刷新", "ok");
+        await loadEconPanel();
+        setMsg("毛利与告警已刷新", "ok");
+      } catch (e) {
+        setMsg(String(e.message || e), "err");
+      }
+    };
+  }
+  if ($("btnUsageRefresh")) {
+    $("btnUsageRefresh").onclick = async function () {
+      try {
+        await loadUsageMonitor();
+        setMsg("用量监控已刷新", "ok");
+      } catch (e) {
+        setMsg(String(e.message || e), "err");
+      }
+    };
+  }
+  if ($("btnSysSave")) {
+    $("btnSysSave").onclick = async function () {
+      try {
+        await saveSysFlags();
+      } catch (e) {
+        setMsg(String(e.message || e), "err");
+      }
+    };
+  }
+  if ($("btnWhRefresh")) {
+    $("btnWhRefresh").onclick = async function () {
+      try {
+        await loadWarehouse();
+        setMsg("模型仓库已刷新", "ok");
+      } catch (e) {
+        setMsg(String(e.message || e), "err");
+      }
+    };
+  }
+  if ($("btnWhSave")) {
+    $("btnWhSave").onclick = async function () {
+      try {
+        await saveWarehouse();
+      } catch (e) {
+        setMsg(String(e.message || e), "err");
+      }
+    };
+  }
+  if ($("btnLlmKeysRefresh")) {
+    $("btnLlmKeysRefresh").onclick = async function () {
+      try {
+        await loadLlmKeys();
+        setMsg("密钥状态已刷新", "ok");
+      } catch (e) {
+        setMsg(String(e.message || e), "err");
+      }
+    };
+  }
+  if ($("btnLlmKeysSave")) {
+    $("btnLlmKeysSave").onclick = async function () {
+      try {
+        await saveLlmKeys();
+      } catch (e) {
+        setMsg(String(e.message || e), "err");
+      }
+    };
+  }
+  if ($("btnFsRefresh")) {
+    $("btnFsRefresh").onclick = async function () {
+      try {
+        await loadFreeShared();
+        setMsg("免费共享已刷新", "ok");
+      } catch (e) {
+        setMsg(String(e.message || e), "err");
+      }
+    };
+  }
+  if ($("btnFsSave")) {
+    $("btnFsSave").onclick = async function () {
+      try {
+        await saveFreeShared();
+      } catch (e) {
+        setMsg(String(e.message || e), "err");
+      }
+    };
+  }
+  if ($("econDays")) {
+    $("econDays").onchange = async function () {
+      try {
+        await loadSysOverview();
       } catch (e) {
         setMsg(String(e.message || e), "err");
       }
@@ -1264,7 +2521,8 @@
     $("btnUpstreamProbe").onclick = async function () {
       try {
         var r = await api("/v1/admin/token/upstream_probe?live=0");
-        if ($("systemOut")) $("systemOut").textContent = JSON.stringify(r, null, 2);
+        if ($("sysDetailOut")) $("sysDetailOut").textContent = JSON.stringify(r, null, 2);
+        if ($("sysDetailBox")) $("sysDetailBox").open = true;
         setMsg("上游摘要已刷新（未花钱）", "ok");
       } catch (e) {
         setMsg(String(e.message || e), "err");
@@ -1276,13 +2534,52 @@
       try {
         if (!window.confirm("将对 L0/L1 发极短请求（可能产生微量费用）。继续？")) return;
         var r = await api("/v1/admin/token/upstream_probe?live=1");
-        if ($("systemOut")) $("systemOut").textContent = JSON.stringify(r, null, 2);
+        if ($("sysDetailOut")) $("sysDetailOut").textContent = JSON.stringify(r, null, 2);
+        if ($("sysDetailBox")) $("sysDetailBox").open = true;
         setMsg("探活完成", "ok");
       } catch (e) {
         setMsg(String(e.message || e), "err");
       }
     };
   }
+  if ($("btnUsersRefresh")) {
+    $("btnUsersRefresh").onclick = async function () {
+      try {
+        state.usersOffset = 0;
+        await loadUsers();
+        setMsg("用户列表已刷新", "ok");
+      } catch (e) {
+        setMsg(String(e.message || e), "err");
+      }
+    };
+  }
+  if ($("btnUsersPrev")) {
+    $("btnUsersPrev").onclick = async function () {
+      state.usersOffset = Math.max(0, (state.usersOffset || 0) - 30);
+      try {
+        await loadUsers();
+      } catch (e) {
+        setMsg(String(e.message || e), "err");
+      }
+    };
+  }
+  if ($("btnUsersNext")) {
+    $("btnUsersNext").onclick = async function () {
+      state.usersOffset = (state.usersOffset || 0) + 30;
+      try {
+        await loadUsers();
+      } catch (e) {
+        setMsg(String(e.message || e), "err");
+      }
+    };
+  }
+  document.addEventListener("click", function (ev) {
+    var t = ev.target;
+    if (!t || !t.classList || !t.classList.contains("btnUserWallet")) return;
+    var uid = t.getAttribute("data-uid");
+    if ($("wUid")) $("wUid").value = uid || "";
+    showPanel("p-wallet");
+  });
   if ($("btnChannelsRefresh")) {
     $("btnChannelsRefresh").onclick = async function () {
       try {
@@ -1298,6 +2595,15 @@
       try {
         await loadPlans();
         setMsg("价表已刷新", "ok");
+      } catch (e) {
+        setMsg(String(e.message || e), "err");
+      }
+    };
+  }
+  if ($("btnPlansSave")) {
+    $("btnPlansSave").onclick = async function () {
+      try {
+        await savePlans();
       } catch (e) {
         setMsg(String(e.message || e), "err");
       }

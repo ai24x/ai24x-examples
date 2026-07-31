@@ -247,3 +247,22 @@ class TokenPayOrder(Base):
     paid_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class SupportTicket(Base):
+    """主站 Token 人工工单（与行情官 user_feedback 隔离）。"""
+
+    __tablename__ = "token_support_tickets"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    auth_user_id = Column(
+        Integer, ForeignKey("auth_users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    category = Column(String(32), nullable=False, default="api")  # billing/api/account/suggestion/complaint
+    subject = Column(String(120), nullable=False, default="")
+    body = Column(Text, nullable=False)
+    ai_summary = Column(Text, nullable=True)
+    status = Column(String(16), nullable=False, default="open", index=True)  # open/replied/closed
+    admin_reply = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

@@ -348,6 +348,28 @@
     return request("/v1/models", { method: "GET" });
   }
 
+  function supportAsk(question, lang) {
+    return request("/v1/support/ask", {
+      method: "POST",
+      body: JSON.stringify({
+        question: question || "",
+        lang: lang || (isZhUi() ? "zh" : "en"),
+      }),
+    });
+  }
+
+  function supportTicketCreate(payload) {
+    return request("/v1/support/tickets", {
+      method: "POST",
+      body: JSON.stringify(payload || {}),
+    });
+  }
+
+  function supportTicketList(limit, offset) {
+    var qs = "limit=" + (limit || 20) + "&offset=" + (offset || 0);
+    return request("/v1/support/tickets?" + qs, { method: "GET" });
+  }
+
   function referralsSummary() {
     return request("/v1/referrals/summary", { method: "GET" });
   }
@@ -427,6 +449,9 @@
     billingMockFulfill: billingMockFulfill,
     billingQueryFulfill: billingQueryFulfill,
     listModels: listModels,
+    supportAsk: supportAsk,
+    supportTicketCreate: supportTicketCreate,
+    supportTicketList: supportTicketList,
     referralsSummary: referralsSummary,
     referralsCode: referralsCode,
     isZhUi: isZhUi,

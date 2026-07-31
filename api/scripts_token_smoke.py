@@ -122,7 +122,7 @@ def main() -> int:
         rows.append(_ok("invite_code", False, str(e)))
 
     bal_a0 = int(client.get("/v1/billing/balance", headers=h_a).json().get("balance_tokens") or 0)
-    rows.append(_ok("balance_a_initial", bal_a0 >= 10000, f"balance={bal_a0}"))
+    rows.append(_ok("balance_a_initial", bal_a0 >= 5000, f"balance={bal_a0}"))
 
     # —— Key + chat ——
     api_key = None
@@ -192,7 +192,7 @@ def main() -> int:
             rows.append(
                 _ok(
                     "invite_register_bonus",
-                    bal_a_after >= bal_before_invite + 5000 and bal_b >= 15000,
+                    bal_a_after >= bal_before_invite + 5000 and bal_b >= 10000,
                     f"A {bal_before_invite}->{bal_a_after}; B={bal_b}",
                 )
             )

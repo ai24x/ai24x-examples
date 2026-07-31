@@ -48,6 +48,15 @@ def build_report(db) -> dict:
         )
         .scalar()
     )
+    expired = (
+        db.query(func.coalesce(func.sum(BillingLedger.amount), 0))
+        .filter(
+            BillingLedger.created_at >= start,
+            BillingLedger.created_at < end,
+            BillingLedger.entry_type == "expire",
+        )
+        .scalar()
+    )
     topup = (
         db.query(func.coalesce(func.sum(BillingLedger.amount), 0))
         .filter(
@@ -73,6 +82,7 @@ def build_report(db) -> dict:
         "chat_requests": chat_n,
         "chat_tokens_recorded": chat_tokens,
         "ledger_consume_tokens": int(consume or 0),
+        "ledger_expire_tokens": int(expired or 0),
         "ledger_credit_tokens": int(topup or 0),
         "paid_amount_fen": int(paid_fen or 0),
         "paid_amount_yuan": f"{int(paid_fen or 0) / 100:.2f}",
@@ -83,11 +93,16 @@ def build_report(db) -> dict:
 def maybe_feishu(text: str) -> None:
     url = (os.getenv("FEISHU_WEBHOOK_URL") or "").strip()
     if not url:
+        print("[feishu] FEISHU_WEBHOOK_URL 未配置，跳过推送", file=sys.stderr)
         return
     try:
         import httpx
 
-        httpx.post(url, json={"msg_type": "text", "content": {"text": text}}, timeout=10.0)
+        r = httpx.post(url, json={"msg_type": "text", "content": {"text": text}}, timeout=10.0)
+        if r.status_code >= 400:
+            print(f"[feishu] HTTP {r.status_code}: {r.text[:200]}", file=sys.stderr)
+        else:
+            print("[feishu] ok", file=sys.stderr)
     except Exception as e:
         print(f"[feishu skipped] {e}", file=sys.stderr)
 
@@ -103,6 +118,7 @@ def main() -> int:
         f"chat 次数: {rep['chat_requests']}",
         f"chat 记录 token: {rep['chat_tokens_recorded']}",
         f"账本消耗: {rep['ledger_consume_tokens']}",
+        f"账本过期核销: {rep['ledger_expire_tokens']}",
         f"账本入账: {rep['ledger_credit_tokens']}",
         f"支付到账: ¥{rep['paid_amount_yuan']}",
         rep["note"],

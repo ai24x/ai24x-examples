@@ -3,14 +3,95 @@ Token 产品套餐目录（与 a1 行情官 VIP 配额套餐完全独立）。
 
 定价口径（2026-07-30）：
 - 主数据按国际价（USD 锚定）；国内收银台 CNY（微信/支付宝），国际 PayPal USD
-- 入门包默认保持体验价 ¥1 / 1 万 token（正式规模获客前再抬）；可用 env 覆盖
-- 改价：行级改 TOKEN_PRICE_*_FEN 后重启；管理台只读展示，禁止网页写 .env
-- 国际支付主路径 = PayPal；国内微信/支付宝不按「国际收单」改造（另签产品再立项）
+- 入门包默认保持体验价 ¥1 / 1 万 token（正式规模获客前再抬）
+- 改价优先级：管理台覆盖文件 > env TOKEN_PRICE_*_FEN > 代码默认
+- 前台 /v1/billing/plans 与后台同源 list_public_plans / get_plan
 """
 from __future__ import annotations
 
+import json
 import os
+from copy import deepcopy
+from pathlib import Path
 from typing import Any
+
+_OVERRIDE_PATH = Path(__file__).resolve().parent / "data" / "token_plans_override.json"
+
+_VIP_DAILY_WAN = 10  # 日赠约 10 万 token（与 VIP_DAILY_BONUS_TOKENS=100_000 对齐）
+
+# plan_id → 覆盖 CNY 分的环境变量名
+PLAN_PRICE_ENV: dict[str, str] = {
+    "token_pack_10k": "TOKEN_PRICE_TOKEN_PACK_10K_FEN",
+    "token_pack_100k": "TOKEN_PRICE_TOKEN_PACK_100K_FEN",
+    "token_vip_month": "TOKEN_PRICE_TOKEN_VIP_MONTH_FEN",
+    "token_vip_month_50w": "TOKEN_PRICE_TOKEN_VIP_MONTH_50W_FEN",
+}
+
+# 代码默认（不含运行时价）；价由 _resolve_price_fen 计算
+_PLAN_DEFAULTS: dict[str, dict[str, Any]] = {
+    "token_pack_10k": {
+        "title_zh": "入门包",
+        "title_en": "Starter",
+        "price_usd": round(1.0 / 7.2, 2),
+        "default_fen": 100,
+        "credit_tokens": 10_000,
+        "set_vip": False,
+        "validity_days": 365,
+        "enabled": True,
+        "promo": True,
+        "note_zh": "体验价：¥1 到账 1 万 token；额度自到账起 12 个月有效。支持微信、支付宝。",
+        "note_en": "Promo: about $0.14 for 10k credits (valid 12 months from credit). PayPal on the international site.",
+    },
+    "token_pack_100k": {
+        "title_zh": "开发包",
+        "title_en": "Builder",
+        "price_usd": 20.0,
+        "default_fen": None,  # 由 USD×汇率推算
+        "credit_tokens": 500_000,
+        "set_vip": False,
+        "validity_days": 365,
+        "enabled": True,
+        "promo": False,
+        "note_zh": "适合日常调用，单价更优；额度自到账起 12 个月有效。",
+        "note_en": "Better unit rate for regular API use. Credits valid 12 months from top-up.",
+    },
+    "token_vip_month": {
+        "title_zh": "Pro 月卡",
+        "title_en": "Pro Pass",
+        "price_usd": 15.0,
+        "default_fen": None,
+        "credit_tokens": 0,
+        "set_vip": True,
+        "vip_days": 30,
+        "validity_days": 0,
+        "enabled": True,
+        "promo": False,
+        "note_zh": (
+            f"开通 Token VIP 30 天；有效期内每日额外赠送约 {_VIP_DAILY_WAN} 万 token（日赠额度另计有效期）。"
+        ),
+        "note_en": (
+            f"Token VIP for 30 days; about {_VIP_DAILY_WAN * 10_000:,} bonus tokens/day (bonus lots expire separately)."
+        ),
+    },
+    "token_vip_month_50w": {
+        "title_zh": "Scale 组合包",
+        "title_en": "Scale",
+        "price_usd": 100.0,
+        "default_fen": None,
+        "credit_tokens": 2_500_000,
+        "set_vip": True,
+        "vip_days": 30,
+        "validity_days": 730,
+        "enabled": True,
+        "promo": False,
+        "note_zh": (
+            f"立即到账 250 万 token（24 个月有效），并开通 Pro 月卡 30 天；日赠约 {_VIP_DAILY_WAN} 万 token。"
+        ),
+        "note_en": (
+            f"2.5M tokens credited (valid 24 months) + Pro Pass 30 days; ~{_VIP_DAILY_WAN * 10_000:,} bonus/day."
+        ),
+    },
+}
 
 
 def _usd_cny() -> float:
@@ -41,87 +122,103 @@ def _fen_from_usd(usd: float) -> int:
     return max(1, int(round(float(usd) * _usd_cny() * 100)))
 
 
-_VIP_DAILY_WAN = 10  # 日赠约 10 万 token（与 VIP_DAILY_BONUS_TOKENS=100_000 对齐）
+def _load_overrides() -> dict[str, dict[str, Any]]:
+    try:
+        if not _OVERRIDE_PATH.is_file():
+            return {}
+        raw = json.loads(_OVERRIDE_PATH.read_text(encoding="utf-8"))
+        plans = raw.get("plans") if isinstance(raw, dict) else None
+        if not isinstance(plans, dict):
+            return {}
+        out: dict[str, dict[str, Any]] = {}
+        for k, v in plans.items():
+            if isinstance(v, dict):
+                out[str(k)] = v
+        return out
+    except Exception:
+        return {}
 
-# plan_id → 覆盖 CNY 分的环境变量名
-PLAN_PRICE_ENV: dict[str, str] = {
-    "token_pack_10k": "TOKEN_PRICE_TOKEN_PACK_10K_FEN",
-    "token_pack_100k": "TOKEN_PRICE_TOKEN_PACK_100K_FEN",
-    "token_vip_month": "TOKEN_PRICE_TOKEN_VIP_MONTH_FEN",
-    "token_vip_month_50w": "TOKEN_PRICE_TOKEN_VIP_MONTH_50W_FEN",
-}
 
-TOKEN_PLANS: dict[str, dict[str, Any]] = {
-    "token_pack_10k": {
-        "title_zh": "入门包",
-        "title_en": "Starter",
-        # 体验价：默认 ¥1（100 分）；正式获客前可继续保留
-        "price_usd": round(1.0 / _usd_cny(), 2),
-        "price_fen": _price("TOKEN_PRICE_TOKEN_PACK_10K_FEN", 100),
-        "credit_tokens": 10_000,
-        "set_vip": False,
-        "validity_days": 365,
-        "enabled": True,
-        "promo": True,
-        "note_zh": "体验价：¥1 到账 1 万 token；额度自到账起 12 个月有效。支持微信、支付宝。",
-        "note_en": "Promo: about $0.14 for 10k credits (valid 12 months from credit). PayPal on the international site.",
-    },
-    "token_pack_100k": {
-        "title_zh": "开发包",
-        "title_en": "Builder",
-        "price_usd": 20.0,
-        "price_fen": _price("TOKEN_PRICE_TOKEN_PACK_100K_FEN", _fen_from_usd(20.0)),
-        "credit_tokens": 500_000,
-        "set_vip": False,
-        "validity_days": 365,
-        "enabled": True,
-        "promo": False,
-        "note_zh": "适合日常调用，单价更优；额度自到账起 12 个月有效。",
-        "note_en": "Better unit rate for regular API use. Credits valid 12 months from top-up.",
-    },
-    "token_vip_month": {
-        "title_zh": "Pro 月卡",
-        "title_en": "Pro Pass",
-        "price_usd": 15.0,
-        "price_fen": _price("TOKEN_PRICE_TOKEN_VIP_MONTH_FEN", _fen_from_usd(15.0)),
-        "credit_tokens": 0,
-        "set_vip": True,
-        "vip_days": 30,
-        "validity_days": 0,
-        "enabled": True,
-        "promo": False,
-        "note_zh": (
-            f"开通 Token VIP 30 天；有效期内每日额外赠送约 {_VIP_DAILY_WAN} 万 token（日赠额度另计有效期）。"
-        ),
-        "note_en": (
-            f"Token VIP for 30 days; about {_VIP_DAILY_WAN * 10_000:,} bonus tokens/day (bonus lots expire separately)."
-        ),
-    },
-    "token_vip_month_50w": {
-        "title_zh": "Scale 组合包",
-        "title_en": "Scale",
-        "price_usd": 100.0,
-        "price_fen": _price("TOKEN_PRICE_TOKEN_VIP_MONTH_50W_FEN", _fen_from_usd(100.0)),
-        "credit_tokens": 2_500_000,
-        "set_vip": True,
-        "vip_days": 30,
-        "validity_days": 730,
-        "enabled": True,
-        "promo": False,
-        "note_zh": (
-            f"立即到账 250 万 token（24 个月有效），并开通 Pro 月卡 30 天；日赠约 {_VIP_DAILY_WAN} 万 token。"
-        ),
-        "note_en": (
-            f"2.5M tokens credited (valid 24 months) + Pro Pass 30 days; ~{_VIP_DAILY_WAN * 10_000:,} bonus/day."
-        ),
-    },
-}
+def _save_overrides(plans: dict[str, dict[str, Any]]) -> None:
+    _OVERRIDE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    payload = {"plans": plans, "updated_note": "admin_ui"}
+    _OVERRIDE_PATH.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _default_fen_for(plan_id: str, base: dict[str, Any]) -> int:
+    df = base.get("default_fen")
+    if df is not None:
+        return int(df)
+    usd = float(base.get("price_usd") or 0)
+    return _fen_from_usd(usd) if usd > 0 else 1
+
+
+def _resolve_plan(plan_id: str) -> dict[str, Any] | None:
+    base = _PLAN_DEFAULTS.get(plan_id)
+    if not base:
+        return None
+    ov = _load_overrides().get(plan_id) or {}
+    p = deepcopy(base)
+    env_key = PLAN_PRICE_ENV.get(plan_id, "")
+    default_fen = _default_fen_for(plan_id, base)
+
+    # 可覆盖字段
+    for key in (
+        "title_zh",
+        "title_en",
+        "note_zh",
+        "note_en",
+        "promo",
+        "enabled",
+        "set_vip",
+        "credit_tokens",
+        "validity_days",
+        "vip_days",
+        "price_usd",
+    ):
+        if key in ov and ov[key] is not None:
+            p[key] = ov[key]
+
+    if "price_fen" in ov and ov["price_fen"] is not None:
+        try:
+            fen = int(ov["price_fen"])
+            p["price_fen"] = fen if fen > 0 else _price(env_key, default_fen) if env_key else default_fen
+            p["_price_source"] = "admin"
+        except (TypeError, ValueError):
+            p["price_fen"] = _price(env_key, default_fen) if env_key else default_fen
+            p["_price_source"] = "env" if env_key and _env_override_set(env_key) else "default"
+    elif env_key:
+        p["price_fen"] = _price(env_key, default_fen)
+        p["_price_source"] = "env" if _env_override_set(env_key) else "default"
+    else:
+        p["price_fen"] = default_fen
+        p["_price_source"] = "default"
+
+    if "price_usd" in ov and ov["price_usd"] is not None:
+        try:
+            p["price_usd"] = float(ov["price_usd"])
+        except (TypeError, ValueError):
+            pass
+
+    p.pop("default_fen", None)
+    return p
+
+
+def resolved_plans() -> dict[str, dict[str, Any]]:
+    return {pid: p for pid in _PLAN_DEFAULTS if (p := _resolve_plan(pid))}
+
+
+# 兼容旧 import：TOKEN_PLANS 为解析后快照（启动时）；运行时请用 resolved_plans/get_plan
+TOKEN_PLANS: dict[str, dict[str, Any]] = resolved_plans()
 
 
 def list_public_plans() -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     fx = _usd_cny()
-    for plan_id, p in TOKEN_PLANS.items():
+    for plan_id, p in resolved_plans().items():
         if not p.get("enabled", True):
             continue
         usd = float(p.get("price_usd") or 0)
@@ -155,13 +252,16 @@ def list_public_plans() -> list[dict[str, Any]]:
 
 
 def list_admin_plans() -> dict[str, Any]:
-    """运维只读价表：含 env 覆盖键；不含密钥。"""
+    """运维价表：可编辑字段 + 来源标记。"""
     fx = _usd_cny()
     rows: list[dict[str, Any]] = []
-    for plan_id, p in TOKEN_PLANS.items():
+    overrides = _load_overrides()
+    for plan_id in _PLAN_DEFAULTS:
+        p = _resolve_plan(plan_id) or {}
         env_key = PLAN_PRICE_ENV.get(plan_id, "")
         fen = int(p.get("price_fen") or 0)
         usd = float(p.get("price_usd") or 0)
+        src = str(p.get("_price_source") or "default")
         rows.append(
             {
                 "plan": plan_id,
@@ -178,6 +278,8 @@ def list_admin_plans() -> dict[str, Any]:
                 "validity_days": int(p.get("validity_days") or 0) or None,
                 "price_env_key": env_key or None,
                 "price_env_override": bool(env_key and _env_override_set(env_key)),
+                "price_source": src,
+                "has_admin_override": plan_id in overrides,
                 "note_zh": str(p.get("note_zh") or ""),
             }
         )
@@ -185,22 +287,70 @@ def list_admin_plans() -> dict[str, Any]:
         "ok": True,
         "usd_cny": fx,
         "plans": rows,
+        "editable": True,
         "ops_note": (
-            "入门包默认体验价可继续使用。改价：服务器行级改对应 TOKEN_PRICE_*_FEN 后重启 API；"
-            "本页不可写密钥或 .env。"
-            "国际 USD 主路径为 PayPal；国内微信/支付宝保持 CNY 国内商户。"
-            "PayPal Webhook 为回跳失败时的履约兜底（P1），主路径 Capture 已够用。"
+            "价表前后台同源。本页可改 CNY 分 / USD / 到账 token / 启停；"
+            "保存后立即对前台生效（写入 api/data/token_plans_override.json）。"
+            "优先级：管理台覆盖 > env TOKEN_PRICE_*_FEN > 代码默认。"
+            "入门包体验价可继续使用；国际 USD 主路径为 PayPal。"
         ),
     }
 
 
+def update_admin_plans(updates: list[dict[str, Any]]) -> dict[str, Any]:
+    """合并写入管理台覆盖；仅允许已有 plan_id。"""
+    cur = _load_overrides()
+    for item in updates or []:
+        if not isinstance(item, dict):
+            continue
+        pid = str(item.get("plan") or "").strip()
+        if pid not in _PLAN_DEFAULTS:
+            continue
+        row = dict(cur.get(pid) or {})
+        if "price_fen" in item and item["price_fen"] is not None:
+            try:
+                fen = int(item["price_fen"])
+                if fen > 0:
+                    row["price_fen"] = fen
+            except (TypeError, ValueError):
+                pass
+        if "price_usd" in item and item["price_usd"] is not None:
+            try:
+                usd = float(item["price_usd"])
+                if usd >= 0:
+                    row["price_usd"] = usd
+            except (TypeError, ValueError):
+                pass
+        if "credit_tokens" in item and item["credit_tokens"] is not None:
+            try:
+                ct = int(item["credit_tokens"])
+                if ct >= 0:
+                    row["credit_tokens"] = ct
+            except (TypeError, ValueError):
+                pass
+        if "enabled" in item and item["enabled"] is not None:
+            row["enabled"] = bool(item["enabled"])
+        if "promo" in item and item["promo"] is not None:
+            row["promo"] = bool(item["promo"])
+        if "title_zh" in item and item["title_zh"] is not None:
+            row["title_zh"] = str(item["title_zh"])[:64]
+        if "note_zh" in item and item["note_zh"] is not None:
+            row["note_zh"] = str(item["note_zh"])[:500]
+        cur[pid] = row
+    _save_overrides(cur)
+    global TOKEN_PLANS
+    TOKEN_PLANS = resolved_plans()
+    return list_admin_plans()
+
+
 def get_plan(plan_id: str) -> dict[str, Any] | None:
     pid = (plan_id or "").strip()
-    p = TOKEN_PLANS.get(pid)
+    p = _resolve_plan(pid)
     if not p or not p.get("enabled", True):
         return None
     title = str(p.get("title_zh") or p.get("title") or pid)
-    return {"plan": pid, "title": title, **p}
+    clean = {k: v for k, v in p.items() if not str(k).startswith("_")}
+    return {"plan": pid, "title": title, **clean}
 
 
 def normalize_plan(plan_id: str) -> tuple[str, int]:

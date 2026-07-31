@@ -83,11 +83,18 @@ class ChatService:
         request_id = f"req_{uuid.uuid4().hex[:16]}"
         start_time = time.time()
 
-        # Token 钱包预检（MVP：至少要有余额）
+        # Token 钱包预检：有余额走付费；无余额可转免费共享（model=shared）
+        billing_mode = "paid"
         if auth_user_id is not None:
-            from token_mvp_service import assert_can_spend
+            from free_shared import resolve_chat_billing_mode
 
-            assert_can_spend(db, int(auth_user_id), need_tokens=1)
+            billing = resolve_chat_billing_mode(
+                db,
+                auth_user_id=int(auth_user_id),
+                requested_model=request.model,
+                force_shared=False,
+            )
+            billing_mode = str(billing.get("mode") or "paid")
 
         # 创建请求记录
         chat_request = ChatRequest(
@@ -110,19 +117,33 @@ class ChatService:
             from model_router import run_routed_chat
 
             is_vip = False
+            route_model = request.model
             if auth_user_id is not None:
                 snap0 = get_balance_snapshot(db, int(auth_user_id))
                 is_vip = bool(snap0.get("is_vip_active"))
+            if billing_mode == "shared":
+                from free_shared import run_shared_pool_chat
 
-            routed = run_routed_chat(
-                prompt=request.prompt,
-                requested_model=request.model,
-                is_vip=is_vip,
-                temperature=float(request.temperature or 0.7),
-                max_tokens=int(request.max_tokens or 1000),
-                region_hint=region_hint,
-            )
+                routed = run_shared_pool_chat(
+                    prompt=request.prompt,
+                    temperature=float(request.temperature or 0.7),
+                    max_tokens=int(request.max_tokens or 1000),
+                )
+            else:
+                routed = run_routed_chat(
+                    prompt=request.prompt,
+                    requested_model=route_model,
+                    is_vip=is_vip,
+                    temperature=float(request.temperature or 0.7),
+                    max_tokens=int(request.max_tokens or 1000),
+                    region_hint=region_hint,
+                )
             if not routed.ok:
+                if (routed.error or "") == "vip_required":
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="点名模型需有效会员权益，请升级后再试。",
+                    )
                 raise HTTPException(
                     status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                     detail="模型服务暂时繁忙，请稍后再试。",
@@ -132,8 +153,10 @@ class ChatService:
             used_model = routed.model
             from model_router import public_tier_name
 
-            public_model = public_tier_name(
-                request.model, layer=routed.layer or "", upstream_model=used_model or ""
+            public_model = getattr(routed, "public_model", None) or public_tier_name(
+                "shared" if billing_mode == "shared" else request.model,
+                layer=routed.layer or "",
+                upstream_model=used_model or "",
             )
             # 全上游失败落 stub：不计费（总纲 v3.3）；纯联调 stub（未配 Key）仍计最小 token 便于测钱包
             billable = not (
@@ -141,6 +164,7 @@ class ChatService:
                 and (routed.error or "") == "all_live_failed_used_stub"
             )
             token_count = max(1, int(routed.token_count)) if billable else 0
+            # billing_mult 已计入 routed.token_count（VIP 点名）；此处不再叠乘
 
             processing_time = time.time() - start_time
 
@@ -161,17 +185,33 @@ class ChatService:
             remaining_quota = user.daily_request_limit - user.current_daily_requests
             if auth_user_id is not None:
                 from token_mvp_service import consume_tokens, get_balance_snapshot
+                from free_shared import record_shared_usage
 
-                if billable and token_count > 0:
-                    consume_tokens(
-                        db,
-                        auth_user_id=int(auth_user_id),
-                        tokens=int(token_count),
-                        model=public_model,
-                        request_id=request_id,
-                    )
-                snap = get_balance_snapshot(db, int(auth_user_id))
-                remaining_quota = int(snap.get("balance_tokens") or 0)
+                if billing_mode == "shared":
+                    if billable and token_count > 0:
+                        record_shared_usage(
+                            db,
+                            auth_user_id=int(auth_user_id),
+                            tokens=int(token_count),
+                            model=public_model,
+                            request_id=request_id,
+                        )
+                    snap = get_balance_snapshot(db, int(auth_user_id))
+                    remaining_quota = int(snap.get("balance_tokens") or 0)
+                else:
+                    if billable and token_count > 0:
+                        consume_tokens(
+                            db,
+                            auth_user_id=int(auth_user_id),
+                            tokens=int(token_count),
+                            model=public_model,
+                            request_id=request_id,
+                        )
+                    snap = get_balance_snapshot(db, int(auth_user_id))
+                    remaining_quota = int(snap.get("balance_tokens") or 0)
+
+            if billing_mode == "shared":
+                public_model = "shared"
 
             return ChatResponse(
                 request_id=request_id,

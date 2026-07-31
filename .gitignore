@@ -19,6 +19,7 @@ pm2-*.log
 
 # 备份文件
 backups/
+_backups/
 *.backup*
 *-backup*
 
@@ -41,6 +42,11 @@ scripts/_verify_docs.py
 *.env
 !api/.env.example
 api/certs/
+api/data/token_plans_override.json
+api/data/system_flags_override.json
+api/data/model_warehouse_override.json
+api/data/free_shared_override.json
+api/data/llm_keys_override.json
 **/token-pay-bundle*/
 config.local.*
 deploy-token.txt
