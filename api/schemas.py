@@ -454,9 +454,10 @@ class TokenAdminLlmKeysUpdateBody(BaseModel):
     OPENROUTER_API_KEY_FREE: Optional[str] = Field(default=None, max_length=256)
     SILICONFLOW_API_KEY: Optional[str] = Field(default=None, max_length=256)
     SILICONFLOW_API_KEY_FREE: Optional[str] = Field(default=None, max_length=256)
+    DEEPSEEK_API_KEY: Optional[str] = Field(default=None, max_length=256)
     TOGETHER_API_KEY: Optional[str] = Field(default=None, max_length=256)
     OPENAI_API_KEY: Optional[str] = Field(default=None, max_length=256)
     ANTHROPIC_API_KEY: Optional[str] = Field(default=None, max_length=256)
     GOOGLE_AI_API_KEY: Optional[str] = Field(default=None, max_length=256)
-    clear: Optional[list[str]] = Field(default=None, max_length=8)
+    clear: Optional[list[str]] = Field(default=None, max_length=16)
 

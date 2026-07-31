@@ -14,7 +14,8 @@
 | 优先级 | 用途 | 模型 / 通道 | 配置 |
 |--------|------|-------------|------|
 | P0 | 主档 flash | OR `deepseek/deepseek-v4-flash` 或直连同名 | `OPENROUTER_*` / `DEEPSEEK_*` |
-| P0 | OR 挂了回滚 | `TOKEN_LLM_UPSTREAM=direct` + DeepSeek Key | 行级改 env → `Restart-Service AI24X-core` |
+| P0 | OR 挂了自动兜底 | 有 `DEEPSEEK_API_KEY` 时 **自动** 官方 Flash（无需整站切 direct） | `TOKEN_LLM_DS_FAILOVER=1`（默认开） |
+| P0 | OR 挂了整站回滚 | `TOKEN_LLM_UPSTREAM=direct` + DeepSeek Key | 行级改 env → `Restart-Service AI24X-core` |
 | P0 | FREE 兜底 L0 | 硅基 `Qwen/Qwen2.5-7B-Instruct`（direct）或 OR `openrouter/auto` | `SILICONFLOW_API_KEY` |
 | P0 | pro | OR/直连 `deepseek-v4-pro` | L2 |
 

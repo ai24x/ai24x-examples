@@ -26,16 +26,84 @@ try:
 except Exception:
     pass
 
-# 允许管理台临时改的键（不含随意扩面）
+# 允许管理台临时改的键（含已启用 + 待规划通道，便于日后填 Key）
 _ALLOWED = (
     "OPENROUTER_API_KEY",
     "OPENROUTER_API_KEY_FREE",
     "SILICONFLOW_API_KEY",
     "SILICONFLOW_API_KEY_FREE",
+    "DEEPSEEK_API_KEY",
     "TOGETHER_API_KEY",
     "OPENAI_API_KEY",
     "ANTHROPIC_API_KEY",
     "GOOGLE_AI_API_KEY",
+)
+
+# 管理台展示顺序与说明（status: live=生产在用 / failover=自动兜底 / planned=骨架待填）
+_KEY_CATALOG: tuple[dict[str, str], ...] = (
+    {
+        "name": "OPENROUTER_API_KEY",
+        "title": "OpenRouter 主 Key",
+        "role": "main",
+        "status": "live",
+        "group": "聚合",
+    },
+    {
+        "name": "OPENROUTER_API_KEY_FREE",
+        "title": "OpenRouter 免费通道",
+        "role": "free",
+        "status": "live",
+        "group": "聚合",
+    },
+    {
+        "name": "SILICONFLOW_API_KEY",
+        "title": "硅基流动主 Key",
+        "role": "main",
+        "status": "live",
+        "group": "中国备用",
+    },
+    {
+        "name": "SILICONFLOW_API_KEY_FREE",
+        "title": "硅基流动免费/L0",
+        "role": "free",
+        "status": "live",
+        "group": "中国备用",
+    },
+    {
+        "name": "DEEPSEEK_API_KEY",
+        "title": "DeepSeek 官方（Flash 兜底）",
+        "role": "failover",
+        "status": "failover",
+        "group": "官方直连",
+    },
+    {
+        "name": "TOGETHER_API_KEY",
+        "title": "Together（开源备用）",
+        "role": "backup",
+        "status": "planned",
+        "group": "待规划备用",
+    },
+    {
+        "name": "OPENAI_API_KEY",
+        "title": "OpenAI 直连",
+        "role": "direct",
+        "status": "planned",
+        "group": "待规划直连",
+    },
+    {
+        "name": "ANTHROPIC_API_KEY",
+        "title": "Anthropic 直连",
+        "role": "direct",
+        "status": "planned",
+        "group": "待规划直连",
+    },
+    {
+        "name": "GOOGLE_AI_API_KEY",
+        "title": "Google Gemini 直连",
+        "role": "direct",
+        "status": "planned",
+        "group": "待规划直连",
+    },
 )
 
 # VIP 降级事件（内存环，供告警；进程重启清空）
@@ -92,12 +160,14 @@ def get_key(name: str, default: str = "") -> str:
             "OPENROUTER_API_KEY_FREE": "openrouter_api_key_free",
             "SILICONFLOW_API_KEY": "siliconflow_api_key",
             "SILICONFLOW_API_KEY_FREE": "siliconflow_api_key_free",
+            "DEEPSEEK_API_KEY": "deepseek_api_key",
             "TOGETHER_API_KEY": "together_api_key",
             "OPENAI_API_KEY": "openai_api_key",
             "ANTHROPIC_API_KEY": "anthropic_api_key",
             "GOOGLE_AI_API_KEY": "google_ai_api_key",
             "TOKEN_LLM_KEY": "openrouter_api_key",
             "TOKEN_LLM_L0_KEY": "siliconflow_api_key",
+            "TOKEN_LLM_L1_KEY": "deepseek_api_key",
         }
         attr = alias.get(name)
         if attr:
@@ -144,34 +214,42 @@ def mask(secret: str) -> str:
 def list_keys_admin() -> dict[str, Any]:
     ov = _load_ov()
 
-    def row(env_name: str, value: str, *, role: str) -> dict[str, Any]:
-        return {
-            "name": env_name,
-            "role": role,
-            "set": bool(value),
-            "masked": mask(value) if value else "",
-            "source": "admin" if env_name in ov else ("env" if value else "unset"),
-        }
+    def resolve_value(env_name: str) -> str:
+        if env_name == "OPENROUTER_API_KEY":
+            return openrouter_main_key()
+        if env_name == "SILICONFLOW_API_KEY":
+            return silicon_main_key()
+        return get_key(env_name)
+
+    keys_out: list[dict[str, Any]] = []
+    for meta in _KEY_CATALOG:
+        env_name = meta["name"]
+        value = resolve_value(env_name)
+        # FREE 未单独配置时 openrouter_free/silicon_free 会回落主 Key；展示「是否单独配置」更诚实
+        if env_name.endswith("_FREE"):
+            value = get_key(env_name)
+        keys_out.append(
+            {
+                "name": env_name,
+                "title": meta.get("title") or env_name,
+                "role": meta.get("role") or "main",
+                "status": meta.get("status") or "planned",
+                "group": meta.get("group") or "",
+                "set": bool(value),
+                "masked": mask(value) if value else "",
+                "source": "admin" if env_name in ov else ("env" if value else "unset"),
+            }
+        )
 
     return {
         "ok": True,
         "editable": True,
-        "keys": [
-            row("OPENROUTER_API_KEY", openrouter_main_key(), role="main"),
-            row("OPENROUTER_API_KEY_FREE", get_key("OPENROUTER_API_KEY_FREE"), role="free"),
-            row("SILICONFLOW_API_KEY", silicon_main_key(), role="main"),
-            row("SILICONFLOW_API_KEY_FREE", get_key("SILICONFLOW_API_KEY_FREE"), role="free"),
-            row("TOGETHER_API_KEY", get_key("TOGETHER_API_KEY"), role="backup"),
-            row("OPENAI_API_KEY", get_key("OPENAI_API_KEY"), role="direct"),
-            row("ANTHROPIC_API_KEY", get_key("ANTHROPIC_API_KEY"), role="direct"),
-            row("GOOGLE_AI_API_KEY", get_key("GOOGLE_AI_API_KEY"), role="direct"),
-        ],
+        "keys": keys_out,
         "ops_note": (
-            "此处展示当前进程已加载的密钥（掩码）。"
-            "改 .env 后须重启 API 才会出现在「来源 env」；"
-            "也可在下方粘贴后点保存，写入覆盖文件立即生效（优先于 .env）。"
+            "此处列出当前与待规划上游密钥（掩码）。"
+            "DeepSeek=OR 失败自动 Flash 兜底；Together/OpenAI/Anthropic/Google=骨架，填 Key 后可启用。"
+            "改 .env 后须重启 API 才进「来源 env」；下方粘贴保存写入覆盖文件立即生效。"
             "免费通道请用 *_FREE，勿与主收银混用。"
-            "Together=开源模备用；OpenAI/Anthropic/Google=国际旗舰直连备用（填 Key 即启用骨架）。"
         ),
         "vip_degrade_recent": list(_VIP_DEGRADE[-10:]),
     }

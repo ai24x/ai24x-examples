@@ -466,6 +466,29 @@ def _layer_upstream(layer: str) -> dict[str, str]:
     }
 
 
+def _deepseek_official_upstream() -> dict[str, str]:
+    """
+    官方 DeepSeek 通道（与 TOKEN_LLM_UPSTREAM 无关）。
+    生产 OR 为主时：OR 失败后用此作 Flash/Pro 直连兜底（需 DEEPSEEK_API_KEY）。
+    """
+    key = (_env("DEEPSEEK_API_KEY") or "").strip()
+    if not key:
+        return {"base": "", "key": "", "model": "", "provider": "deepseek"}
+    base = (_env("DEEPSEEK_BASE_URL") or "https://api.deepseek.com/v1").strip()
+    model = (_env("DEEPSEEK_MODEL") or "deepseek-v4-flash").strip()
+    return {
+        "base": _normalize_openai_base(base),
+        "key": key,
+        "model": model,
+        "provider": "deepseek",
+    }
+
+
+def _ds_failover_enabled() -> bool:
+    v = (_env("TOKEN_LLM_DS_FAILOVER", "1") or "1").strip().lower()
+    return v not in ("0", "false", "no", "off")
+
+
 def _timeout_s() -> float:
     try:
         return max(2.0, float(_env("TOKEN_LLM_TIMEOUT_S", "15") or "15"))
@@ -707,6 +730,62 @@ def run_routed_chat(
                     "ms": int(elapsed * 1000),
                 }
             )
+            # OR 主档 L1 失败：自动试官方 DeepSeek Flash（有 Key 才走）
+            if (
+                layer == "L1"
+                and _upstream_mode() == "openrouter"
+                and _ds_failover_enabled()
+            ):
+                ds = _deepseek_official_upstream()
+                if ds.get("key") and ds.get("base"):
+                    t_ds = time.time()
+                    try:
+                        out = _call_openai_compatible(
+                            base=ds["base"],
+                            key=ds["key"],
+                            model=ds["model"],
+                            prompt=prompt,
+                            temperature=temperature,
+                            max_tokens=max_tokens,
+                            timeout_s=timeout_s,
+                            provider="deepseek",
+                        )
+                        used_model = str(out.get("raw_model") or ds["model"])
+                        attempts.append(
+                            {
+                                "layer": "L1",
+                                "model": used_model,
+                                "provider": "deepseek",
+                                "ok": True,
+                                "failover": "deepseek_official",
+                                "ms": int((time.time() - t_ds) * 1000),
+                            }
+                        )
+                        raw_tokens = int(out["tokens"])
+                        mult = int(LAYER_COST_MULT.get("L1", 1))
+                        return RouteResult(
+                            ok=True,
+                            text=str(out["text"]),
+                            model=used_model,
+                            layer="L1",
+                            provider="deepseek",
+                            token_count=max(1, raw_tokens * mult),
+                            attempts=attempts,
+                            billing_mult=1,
+                        )
+                    except Exception as e2:
+                        logger.warning("deepseek official failover failed: %s", e2)
+                        attempts.append(
+                            {
+                                "layer": "L1",
+                                "model": ds.get("model"),
+                                "provider": "deepseek",
+                                "ok": False,
+                                "failover": "deepseek_official",
+                                "error": str(e2)[:200],
+                                "ms": int((time.time() - t_ds) * 1000),
+                            }
+                        )
             continue
 
     # 已配置 live Key 但全部失败：对用户硬失败（勿返回假 stub 冒充成功）
@@ -854,55 +933,78 @@ def _run_vip_pick_chat(
     except Exception as e:
         logger.debug("vip direct resolve skip: %s", e)
 
-    # 3) 目录里配置的 direct_id（DeepSeek 等）
-    if direct_id:
-        up = _layer_upstream("L1")
-        if _upstream_mode() == "direct" or (up.get("key") and "deepseek" in (up.get("base") or "")):
-            base = up.get("base") or ""
-            key = up.get("key") or ""
-            if key and base:
-                t0 = time.time()
-                try:
-                    out = _call_openai_compatible(
-                        base=base,
-                        key=key,
-                        model=direct_id,
-                        prompt=prompt,
-                        temperature=temperature,
-                        max_tokens=max_tokens,
-                        timeout_s=timeout_s,
-                        provider=str(up.get("provider") or "direct"),
-                    )
-                    elapsed = time.time() - t0
-                    raw = max(1, int(out.get("tokens") or 1))
-                    attempts.append(
-                        {
-                            "layer": "VIP",
-                            "model": direct_id,
-                            "provider": up.get("provider") or "direct",
-                            "ok": True,
-                            "ms": int(elapsed * 1000),
-                        }
-                    )
-                    return RouteResult(
-                        ok=True,
-                        text=str(out.get("text") or ""),
-                        model=str(out.get("raw_model") or direct_id),
-                        layer="VIP",
-                        provider=str(up.get("provider") or "direct"),
-                        token_count=max(1, raw * billing_mult),
-                        attempts=attempts,
-                        billing_mult=billing_mult,
-                        public_model=public_id,
-                    )
-                except Exception as e:
-                    attempts.append(
-                        {"layer": "VIP", "model": direct_id, "ok": False, "error": str(e)[:200]}
-                    )
+    # 3) 目录 direct_id → 官方 DeepSeek（OR 模式下也可兜底；不依赖 upstream=direct）
+    if direct_id and _ds_failover_enabled():
+        ds = _deepseek_official_upstream()
+        use_ds = bool(ds.get("key") and ds.get("base")) and (
+            str(direct_id).startswith("deepseek") or "deepseek" in str(direct_id).lower()
+        )
+        if use_ds:
+            t0 = time.time()
+            try:
+                out = _call_openai_compatible(
+                    base=ds["base"],
+                    key=ds["key"],
+                    model=direct_id,
+                    prompt=prompt,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    timeout_s=timeout_s,
+                    provider="deepseek",
+                )
+                elapsed = time.time() - t0
+                raw = max(1, int(out.get("tokens") or 1))
+                attempts.append(
+                    {
+                        "layer": "VIP",
+                        "model": direct_id,
+                        "provider": "deepseek",
+                        "ok": True,
+                        "failover": "deepseek_official",
+                        "ms": int(elapsed * 1000),
+                    }
+                )
+                return RouteResult(
+                    ok=True,
+                    text=str(out.get("text") or ""),
+                    model=str(out.get("raw_model") or direct_id),
+                    layer="VIP",
+                    provider="deepseek",
+                    token_count=max(1, raw * billing_mult),
+                    attempts=attempts,
+                    billing_mult=billing_mult,
+                    public_model=public_id,
+                )
+            except Exception as e:
+                attempts.append(
+                    {
+                        "layer": "VIP",
+                        "model": direct_id,
+                        "provider": "deepseek",
+                        "ok": False,
+                        "failover": "deepseek_official",
+                        "error": str(e)[:200],
+                    }
+                )
+                logger.warning("vip_pick deepseek official failed id=%s err=%s", public_id, e)
 
     # 4) 降级：中国模可走硅基；国际旗舰禁止静默用硅基顶 GPT/Claude（只告警后走 DS Flash）
     is_intl_flagship = public_id.startswith("vip-gpt") or "claude" in public_id or "gemini" in public_id
     degrade_targets: list[tuple[str, str, str, str]] = []
+
+    # 4a) 官方 DeepSeek Flash 优先（OR 挂 / 点名失败后的统一兜底）
+    if _ds_failover_enabled():
+        ds = _deepseek_official_upstream()
+        if ds.get("key") and ds.get("base"):
+            degrade_targets.append(
+                (
+                    "deepseek",
+                    str(ds["base"]),
+                    str(ds["key"]),
+                    str(ds.get("model") or "deepseek-v4-flash"),
+                )
+            )
+
     if not is_intl_flagship:
         try:
             from llm_keys import silicon_degrade_key
@@ -923,29 +1025,17 @@ def _run_vip_pick_chat(
         except Exception:
             pass
     else:
-        # Together：仅当有开源镜像映射时才用（当前国际旗舰无同名，跳过）
         try:
             from upstream_providers import resolve_provider
 
             tg = resolve_provider("together")
-            # 占位：后续可为 kimi/qwen 等中国开源模配 together 镜像 id
             _ = tg
         except Exception:
             pass
 
-    # DeepSeek flash：优先直连 L1；否则 OR 主 Key 打 flash id
-    try:
-        up1 = _layer_upstream("L1")
-        if up1.get("key") and up1.get("base") and "deepseek" in (up1.get("base") or ""):
-            degrade_targets.append(
-                (
-                    "deepseek",
-                    str(up1["base"]),
-                    str(up1["key"]),
-                    str(up1.get("model") or "deepseek-v4-flash"),
-                )
-            )
-        else:
+    # 4b) 仍无官方 DS 时：用 OR 主 Key 打 DS Flash（二次机会）
+    if not any(p[0] == "deepseek" for p in degrade_targets):
+        try:
             from llm_keys import openrouter_main_key
 
             or_key = openrouter_main_key()
@@ -958,8 +1048,8 @@ def _run_vip_pick_chat(
                         "deepseek/deepseek-v4-flash",
                     )
                 )
-    except Exception:
-        pass
+        except Exception:
+            pass
 
     for prov, base, key, model in degrade_targets:
         if not key or not base:
