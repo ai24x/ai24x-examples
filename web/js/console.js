@@ -29,7 +29,7 @@
     if (ly === "L0" || ly === "QI") return "auto";
     var m = String(upstreamModel || "").toLowerCase();
     if (/v4-pro|deepseek-r1|reasoner|mimo-v2\.5-pro/.test(m)) return "pro";
-    if (/flash|deepseek-chat|mimo|gpt-4o-mini|turbo|qwen/.test(m)) return "flash";
+    if (/flash|deepseek-chat|mimo|gpt-5-mini|gpt-4o-mini|turbo|qwen/.test(m)) return "flash";
     return "auto";
   }
 
@@ -835,8 +835,9 @@
           opt.value = p.id;
           var lock = p.locked ? tr("（需会员）", " (VIP)") : "";
           var mult = p.billing_mult ? " ×" + p.billing_mult : "";
-          var tag = p.group === "intl" ? tr(" · 国际", " · intl") : "";
-          opt.textContent = (p.title || p.id) + mult + tag + lock;
+          var title =
+            !AI24X_API.isZhUi() && p.title_en ? p.title_en : p.title || p.id;
+          opt.textContent = title + mult + lock;
           opt.disabled = !!p.locked;
           sel.appendChild(opt);
         });

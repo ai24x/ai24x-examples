@@ -63,8 +63,8 @@ _OR_DEFAULT_MODELS = {
     "L0": "openrouter/auto",
     "L1": "deepseek/deepseek-v4-flash",
     "L2": "deepseek/deepseek-v4-pro",
-    "L3": "openai/gpt-4o-mini",
-    "QI": "qwen/qwen-2.5-72b-instruct",
+    "L3": "openai/gpt-5-mini",
+    "QI": "qwen/qwen3.7-plus",
 }
 
 # 直连模式逻辑名 → upstream model id
@@ -227,7 +227,7 @@ def list_models_public(*, is_vip: bool) -> dict[str, Any]:
         },
         "vip_picks": _public_vip_picks(is_vip=is_vip),
         "shared": "shared",
-        "note": "对外档位：auto / flash / pro / ultra / shared；VIP 可点名中国名模（见 vip_picks）。",
+        "note": "对外档位：auto / flash / pro / ultra / shared；VIP 可点名中国与国际名模（见 vip_picks）。",
     }
 
 

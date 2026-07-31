@@ -16,9 +16,9 @@
 | flash / auto | `OPENROUTER_MODEL_L1` | `deepseek/deepseek-v4-flash` |
 | 能力向 L1 | 同上 | `xiaomi/mimo-v2.5` |
 | pro | `OPENROUTER_MODEL_L2` | `deepseek/deepseek-v4-pro` |
-| ultra | `OPENROUTER_MODEL_L3` | `openai/gpt-4o-mini` |
+| ultra | `OPENROUTER_MODEL_L3` | `openai/gpt-5-mini` |
 | 兜底 | `OPENROUTER_MODEL_L0` | `openrouter/auto` |
-| 欧盟 | `OPENROUTER_MODEL_EU` | `qwen/qwen-2.5-72b-instruct` |
+| 欧盟 | `OPENROUTER_MODEL_EU` | `qwen/qwen3.7-plus` |
 
 ## 本机 / 生产 env
 

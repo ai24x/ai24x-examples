@@ -1,6 +1,6 @@
 {
   "schema": "ai24x.command.v1",
-  "updated": "2026-07-30",
+  "updated": "2026-08-01",
   "title": "AI24X 指挥中心 · 副脑协同数据",
   "human_ui": "/ai24x.html",
   "canon": "docs/规划/主脑副脑岗位与国际Token供给-1.0.md",
@@ -8,7 +8,7 @@
   "strategy": {
     "priority": "intl_first",
     "one_liner": "主脑定事写代码；03/04 看店收银；01/02 拉人续费",
-    "p0": "OR 默认 L1=DS Flash / L2=V4-Pro；保留 direct 回滚；付费闭环",
+    "p0": "OR 默认 L1=DS Flash / L2=V4-Pro / L3=GPT-5-mini；名模对齐 OR 现行；付费闭环",
     "p1": "MiMo 能力向 A/B；PayPal Webhook；入门包国际价；A1 由 03/02",
     "parked": ["国内 Token 推广", "Fisher", "独立预发环境", "美欧额外主机（暂缓）", "PayPal Live 在 03 养用户"]
   },
@@ -25,7 +25,8 @@
     "flash": "deepseek/deepseek-v4-flash",
     "flash_alt_capability": "xiaomi/mimo-v2.5",
     "pro": "deepseek/deepseek-v4-pro",
-    "ultra": "openai/gpt-4o-mini",
+    "ultra": "openai/gpt-5-mini",
+    "eu": "qwen/qwen3.7-plus",
     "docs": "docs/联调/OpenRouter聚合接入.md"
   },
   "brains": [

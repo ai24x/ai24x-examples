@@ -24,7 +24,7 @@
 |------|------|------|
 | 能力向 L1 | `OPENROUTER_MODEL_L1=xiaomi/mimo-v2.5` | A/B，看毛利 |
 | EU | `TOKEN_REGION_ROUTING=1` + QI Key | 默认关 |
-| ultra 降本 | 用中国线替代 `gpt-4o-mini` | 可选 |
+| ultra 降本 | 用中国线替代 `gpt-5-mini` | 可选 |
 
 ## 运维自检
 

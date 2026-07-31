@@ -85,9 +85,9 @@
 | flash / auto | L1 | `deepseek/deepseek-v4-flash` | **成本优先默认** |
 | 能力向 L1 | — | `xiaomi/mimo-v2.5` | env：`OPENROUTER_MODEL_L1=xiaomi/mimo-v2.5` |
 | pro | L2 | `deepseek/deepseek-v4-pro` | 替代原 R1 默认 |
-| ultra | L3 | `openai/gpt-4o-mini` | |
+| ultra | L3 | `openai/gpt-5-mini` | |
 | 兜底 | L0 | `openrouter/auto` | |
-| 欧盟 | QI | `qwen/qwen-2.5-72b-instruct` | |
+| 欧盟 | QI | `qwen/qwen3.7-plus` | |
 
 **B. 直连（回滚）**
 
@@ -119,7 +119,7 @@
 - 卖 **平台 credit**，不向用户暴露上游峰谷价  
 - 入门包默认体验价可继续保留；正式规模获客前再抬 Starter 国际价  
 - Pro 日赠按 **固定价模型成本** 核算  
-- 毛利纪律：非欧盟低峰 DS 宜厚；欧盟 Qwen 可薄一些换合规；高峰切国际允许短时更薄  
+- 毛利纪律：非欧盟默认 DS Flash 统一费率核算；欧盟 Qwen 可薄一些换合规；**不再依赖「低谷更厚 / 高峰切路由」做日常毛利**（官方若恢复高峰×2 再启用高峰路由兜底，仍不对用户加价）  
 - 国际支付主路径 PayPal；国内微信/支付宝保持 CNY  
 
 现行代码价表见 `api/token_plans.py`；管理台只读：`GET /v1/admin/token/plans`。
