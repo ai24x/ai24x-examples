@@ -52,9 +52,9 @@ class RegisterIn(BaseModel):
         if bool(p) == bool(e):
             raise ValueError("请只填写手机号或邮箱之一")
         if p and not (self.sms_code or "").strip():
-            raise ValueError("手机注册请填写短信验证码")
+            raise ValueError("请填写短信验证码")
         if e and not (self.email_code or "").strip():
-            raise ValueError("邮箱注册请填写邮箱验证码")
+            raise ValueError("请填写邮箱验证码")
         return self
 
 
@@ -91,9 +91,9 @@ class PasswordResetIn(BaseModel):
         if bool(p) == bool(e):
             raise ValueError("请只填写手机号或邮箱之一")
         if p and not (self.sms_code or "").strip():
-            raise ValueError("手机找回请填写短信验证码")
+            raise ValueError("请填写短信验证码")
         if e and not (self.email_code or "").strip():
-            raise ValueError("邮箱找回请填写邮箱验证码")
+            raise ValueError("请填写邮箱验证码")
         return self
 
 

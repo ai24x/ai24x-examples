@@ -797,7 +797,7 @@
     </div>
   </div>
 
-  <script src="/js/shell.js?v=27"></script>
+  <script src="/js/shell.js?v=29"></script>
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("account"); } catch (e) {}
   </script>
@@ -1382,6 +1382,18 @@
         if (m.indexOf("手机号/邮箱或密码错误") >= 0 || m.indexOf("手机号或密码错误") >= 0 || m.indexOf("邮箱或密码错误") >= 0) {
           return "手机号或密码错误，请检查后重试。";
         }
+        m = m.replace(/^(?:Value error[,:\s]+)/i, "").trim();
+        try {
+          var arrMatch = m.match(/\[\s*\{[\s\S]*\}\s*\]/);
+          if (arrMatch) {
+            var msgPy = m.match(/\b'msg'\s*:\s*'((?:[^'\\]|\\.)*)'/);
+            if (msgPy && msgPy[1]) m = msgPy[1].trim();
+            else {
+              msgPy = m.match(/\b"msg"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+              if (msgPy && msgPy[1]) m = msgPy[1].trim();
+            }
+          }
+        } catch (eArr) {}
         // Try to extract a clean error message from JSON / Python-dict-like strings,
         // even when the error is prefixed by "HTTP 400:" etc.
         try {
@@ -1391,22 +1403,38 @@
             var tail = m.slice(jStart);
             try {
               var j = JSON.parse(tail);
-              if (j && j.error) return String(j.error).trim();
-              if (j && j.detail != null) return typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail);
+              if (j && j.error) return scrubUserMsg(String(j.error).trim());
+              if (j && j.detail != null) {
+                var dd = j.detail;
+                if (Array.isArray(dd) && dd[0]) {
+                  var d0 = dd[0];
+                  dd = (d0 && (d0.msg || d0.message)) ? (d0.msg || d0.message) : d0;
+                }
+                return scrubUserMsg(typeof dd === "string" ? dd : String(dd));
+              }
             } catch (e0) {}
           }
         } catch (eJ) {}
         // Python dict str: {'error': 'xx', 'code': '401', 'request_id': None}
         var pe = m.match(/\b'error'\s*:\s*'((?:[^'\\]|\\.)*)'/);
-        if (pe && pe[1]) return pe[1].trim();
+        if (pe && pe[1]) return scrubUserMsg(pe[1].trim());
         pe = m.match(/\b"error"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-        if (pe && pe[1]) return pe[1].trim();
+        if (pe && pe[1]) return scrubUserMsg(pe[1].trim());
         pe = m.match(/\b'detail'\s*:\s*'((?:[^'\\]|\\.)*)'/);
-        if (pe && pe[1]) return pe[1].trim();
+        if (pe && pe[1]) return scrubUserMsg(pe[1].trim());
         pe = m.match(/\b"detail"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-        if (pe && pe[1]) return pe[1].trim();
+        if (pe && pe[1]) return scrubUserMsg(pe[1].trim());
         if (m.indexOf("该手机号已注册") >= 0) return "该手机号已注册，请直接登录或找回密码。";
-        return m || "请求失败";
+        return scrubUserMsg(m) || "请求失败";
+      }
+
+      function scrubUserMsg(s) {
+        var t = String(s || "").trim().replace(/^(?:Value error[,:\s]+)/i, "").trim();
+        if (!t) return "";
+        if (/SMS_|AI24X_|ALIPAY_|TOKEN_|APP_ENV|identity_api|INTERNAL_KEY|NOTIFY_URL|环境变量|\.env\b|X-SMS-|admin_browser_otp|sms_internal_key|Identity\b|user_id=/i.test(t)) {
+          return "服务暂不可用，请稍后再试。";
+        }
+        return t;
       }
 
       function forgetSyncCh() {

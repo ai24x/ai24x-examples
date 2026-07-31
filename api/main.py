@@ -389,7 +389,7 @@ async def auth_sms_send(request: Request, body: SmsSendRequest, db: Session = De
     if not settings.sms_106_enabled:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="短信服务未开启，请联系管理员配置",
+            detail="短信服务暂不可用，请稍后再试。",
         )
     if settings.sms_internal_key and request.headers.get("X-SMS-Internal-Key") != settings.sms_internal_key:
         # 常见：副站 AI24X_SMS_INTERNAL_KEY 未配或与主站 SMS_INTERNAL_KEY 不一致
@@ -420,7 +420,7 @@ async def auth_sms_send(request: Request, body: SmsSendRequest, db: Session = De
 
     mob = normalize_mobile(body.mobile)
     if len(mob) != 11 or not mob.isdigit():
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="手机号格式不正确（需 11 位国内号）")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="手机号格式不正确，请填写 11 位手机号")
 
     # Register flow: fail fast if the phone is already taken to avoid wasting SMS.
     # (User explicitly requested this behavior.)
@@ -519,7 +519,7 @@ async def internal_sms_verify_consume(request: Request, body: InternalSmsVerifyC
     if not settings.sms_internal_key:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="SMS_INTERNAL_KEY not configured: internal verify disabled.",
+            detail="短信服务暂时不可用，请稍后再试。",
         )
     if request.headers.get("X-SMS-Internal-Key") != settings.sms_internal_key:
         raise HTTPException(
@@ -528,12 +528,12 @@ async def internal_sms_verify_consume(request: Request, body: InternalSmsVerifyC
         )
     mob = normalize_mobile(body.mobile)
     if len(mob) != 11 or not mob.isdigit():
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="手机号格式不正确（需 11 位国内号）")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="手机号格式不正确，请填写 11 位手机号")
     purpose = (body.purpose or "login").strip().lower() or "login"
     if not verify_and_consume_otp(mob, purpose, body.code or ""):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="验证码错误或已过期",
+            detail="验证码错误或已过期，请重新获取",
         )
     return {"ok": True}
 
@@ -586,7 +586,7 @@ def _mask_secret_tail(s: str | None, keep_tail: int = 4) -> str:
 async def admin_sms_effective(request: Request):
     """管理端读取主站 106 短信“当前生效配置”（便于维护参考）。必须提供 X-SMS-Internal-Key。"""
     if not (settings.sms_internal_key or "").strip():
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="短信内部密钥未配置，请联系管理员")
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="短信服务暂时不可用，请稍后再试。")
     if (request.headers.get("X-SMS-Internal-Key") or "").strip() != settings.sms_internal_key:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="禁止访问")
     return {
@@ -618,7 +618,7 @@ async def admin_sms_logs(
 ):
     """查询短信发送记录（需 X-SMS-Internal-Key）。"""
     if not (settings.sms_internal_key or "").strip():
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="短信内部密钥未配置，请联系管理员")
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="短信服务暂时不可用，请稍后再试。")
     if (request.headers.get("X-SMS-Internal-Key") or "").strip() != settings.sms_internal_key:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="禁止访问")
     q = db.query(SmsSendLog)
@@ -659,7 +659,7 @@ async def auth_login(body: AuthLoginBody, db: Session = Depends(get_db)):
     if not u:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="手机号/邮箱或密码错误",
+            detail="手机号或密码错误，请检查后重试。",
         )
     raise_if_frozen(u)
     token = create_auth_access_token(
@@ -771,7 +771,7 @@ async def auth_register(request: Request, body: AuthRegisterBody, db: Session = 
     if body.phone:
         mob = normalize_mobile(body.phone)
         if len(mob) != 11 or not mob.isdigit():
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="手机号格式不正确（需 11 位国内号）")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="手机号格式不正确，请填写 11 位手机号")
         if get_by_phone(db, mob):
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="该手机号已注册")
         if not verify_and_consume_otp(mob, "register", body.sms_code or ""):
@@ -932,7 +932,7 @@ async def admin_password_set(
 ):
     """Admin-only force set password; requires X-SMS-Internal-Key."""
     if not (settings.sms_internal_key or "").strip():
-        raise HTTPException(status_code=503, detail="短信内部密钥未配置，请联系管理员")
+        raise HTTPException(status_code=503, detail="短信服务暂时不可用，请稍后再试。")
     if (request.headers.get("X-SMS-Internal-Key") or "").strip() != (
         settings.sms_internal_key or ""
     ).strip():
@@ -966,7 +966,7 @@ async def admin_user_contact_set(
 ):
     """Admin-only force set user phone/email binding; requires X-SMS-Internal-Key."""
     if not (settings.sms_internal_key or "").strip():
-        raise HTTPException(status_code=503, detail="短信内部密钥未配置，请联系管理员")
+        raise HTTPException(status_code=503, detail="短信服务暂时不可用，请稍后再试。")
     if (request.headers.get("X-SMS-Internal-Key") or "").strip() != (
         settings.sms_internal_key or ""
     ).strip():
@@ -997,7 +997,7 @@ async def admin_user_lookup(
 ):
     """Lookup auth user by phone/email; requires X-SMS-Internal-Key."""
     if not (settings.sms_internal_key or "").strip():
-        raise HTTPException(status_code=503, detail="短信内部密钥未配置，请联系管理员")
+        raise HTTPException(status_code=503, detail="短信服务暂时不可用，请稍后再试。")
     if (request.headers.get("X-SMS-Internal-Key") or "").strip() != (
         settings.sms_internal_key or ""
     ).strip():
@@ -1061,7 +1061,7 @@ async def admin_user_bootstrap(
 ):
     """Create user if missing (phone/email) and set password; requires X-SMS-Internal-Key."""
     if not (settings.sms_internal_key or "").strip():
-        raise HTTPException(status_code=503, detail="短信内部密钥未配置，请联系管理员")
+        raise HTTPException(status_code=503, detail="短信服务暂时不可用，请稍后再试。")
     if (request.headers.get("X-SMS-Internal-Key") or "").strip() != (
         settings.sms_internal_key or ""
     ).strip():
@@ -1121,7 +1121,7 @@ async def billing_balance(request: Request, db: Session = Depends(get_db)):
 async def billing_topup(request: Request, body: BillingTopupBody, db: Session = Depends(get_db)):
     """内部充值接口：需 X-SMS-Internal-Key。"""
     if not (settings.sms_internal_key or "").strip():
-        raise HTTPException(status_code=503, detail="内部密钥未配置")
+        raise HTTPException(status_code=503, detail="服务暂不可用，请稍后再试。")
     if (request.headers.get("X-SMS-Internal-Key") or "").strip() != (
         settings.sms_internal_key or ""
     ).strip():
@@ -1199,7 +1199,7 @@ async def referrals_summary(request: Request, db: Session = Depends(get_db)):
 
 def _require_internal_key(request: Request) -> None:
     if not (settings.sms_internal_key or "").strip():
-        raise HTTPException(status_code=503, detail="内部密钥未配置")
+        raise HTTPException(status_code=503, detail="服务暂不可用，请稍后再试。")
     if (request.headers.get("X-SMS-Internal-Key") or "").strip() != (
         settings.sms_internal_key or ""
     ).strip():

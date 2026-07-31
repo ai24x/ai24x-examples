@@ -153,17 +153,17 @@ class AuthRegisterBody(BaseModel):
     def one_channel_and_codes(self):
         p, e = self.phone, self.email
         if p and e:
-            raise ValueError("仅支持填写手机号或邮箱之一")
+            raise ValueError("请只填写手机号或邮箱之一")
         if not p and not e:
             raise ValueError("请填写手机号或邮箱")
         if p:
             sc = (self.sms_code or "").strip()
             if len(sc) != 6 or not sc.isdigit():
-                raise ValueError("手机注册需填写 6 位数字验证码")
+                raise ValueError("请填写短信里的 6 位数字验证码")
         if e:
             ec = (self.email_code or "").strip()
             if len(ec) != 6 or not ec.isdigit():
-                raise ValueError("邮箱注册需填写 6 位数字验证码")
+                raise ValueError("请填写邮箱里的 6 位数字验证码")
         return self
 
 
@@ -233,10 +233,14 @@ class AuthPasswordResetBody(BaseModel):
         self.email = e
         if bool(p) == bool(e):
             raise ValueError("请只填写手机号或邮箱之一")
-        if p and not (self.sms_code or "").strip():
-            raise ValueError("手机找回请填写短信验证码")
-        if e and not (self.email_code or "").strip():
-            raise ValueError("邮箱找回请填写邮箱验证码")
+        if p:
+            sc = (self.sms_code or "").strip()
+            if len(sc) != 6 or not sc.isdigit():
+                raise ValueError("请填写短信里的 6 位数字验证码")
+        if e:
+            ec = (self.email_code or "").strip()
+            if len(ec) != 6 or not ec.isdigit():
+                raise ValueError("请填写邮箱里的 6 位数字验证码")
         return self
 
 
@@ -252,8 +256,8 @@ class AuthBindPhoneBody(BaseModel):
         self.sms_code = c
         if not p:
             raise ValueError("请填写手机号")
-        if not c:
-            raise ValueError("请填写短信验证码")
+        if len(c) != 6 or not c.isdigit():
+            raise ValueError("请填写短信里的 6 位数字验证码")
         return self
 
 
@@ -269,8 +273,8 @@ class AuthBindEmailBody(BaseModel):
         self.email_code = c
         if not e or "@" not in e:
             raise ValueError("邮箱格式不正确")
-        if not c:
-            raise ValueError("请填写邮箱验证码")
+        if len(c) != 6 or not c.isdigit():
+            raise ValueError("请填写邮箱里的 6 位数字验证码")
         return self
 
 

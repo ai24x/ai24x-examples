@@ -296,6 +296,47 @@ def _auth_ip_rate_limit(request: "Request", limit: int = 30, window_s: int = 60)
         )
 
 
+def _scrub_user_facing_detail(msg: str) -> str:
+    """Strip ops/env leakage from messages that may reach the browser."""
+    s = (msg or "").strip()
+    if not s:
+        return "请求失败，请稍后重试。"
+    s = re.sub(r"(?i)^value error[,:\s]+", "", s).strip() or s
+    leak = re.search(
+        r"(?i)(SMS_|AI24X_|ALIPAY_|TOKEN_|APP_ENV|identity_api|INTERNAL_KEY|NOTIFY_URL|"
+        r"环境变量|\.env\b|X-SMS-|admin_browser_otp|admin_user_reset|sms_internal_key|"
+        r"Identity|user_id=)",
+        s,
+    )
+    if leak:
+        return "服务暂不可用，请稍后再试。"
+    return s
+
+
+def _detail_from_upstream_body(err: object) -> str:
+    """Normalize FastAPI/Pydantic error JSON into a short user-facing string."""
+    if not isinstance(err, dict):
+        return _scrub_user_facing_detail(str(err))
+    detail = err.get("error")
+    if detail is None:
+        detail = err.get("detail")
+    if detail is None:
+        detail = err.get("message")
+    if isinstance(detail, list) and detail:
+        first = detail[0]
+        if isinstance(first, dict):
+            msg = str(first.get("msg") or first.get("message") or first.get("error") or "")
+            return _scrub_user_facing_detail(msg)
+        return _scrub_user_facing_detail(str(first))
+    if isinstance(detail, dict):
+        return _scrub_user_facing_detail(
+            str(detail.get("msg") or detail.get("message") or detail.get("error") or "")
+        )
+    if detail is not None and str(detail).strip():
+        return _scrub_user_facing_detail(str(detail))
+    return "请求失败，请稍后重试。"
+
+
 def _identity_post(path: str, json_body: dict, *, extra_headers: dict[str, str] | None = None) -> dict:
     cfg = resolve_identity()
     base = (cfg.identity_api_base or "").strip().rstrip("/")
@@ -313,22 +354,21 @@ def _identity_post(path: str, json_body: dict, *, extra_headers: dict[str, str] 
         with httpx.Client(timeout=30.0) as client:
             r = client.post(url, json=json_body, headers=headers or None)
     except httpx.RequestError as e:
-        raise HTTPException(status_code=503, detail="身份服务暂时不可用，请稍后重试") from e
+        raise HTTPException(status_code=503, detail="服务暂时不可用，请稍后重试") from e
     ct = (r.headers.get("content-type") or "").lower()
     if r.status_code >= 400:
         detail = r.text[:4000]
         if "json" in ct:
             try:
                 err = r.json()
-                if isinstance(err, dict):
-                    detail = str(err.get("error") or err.get("detail") or err.get("message") or "")
-                if not detail:
-                    detail = str(err)
+                detail = _detail_from_upstream_body(err)
             except Exception:
-                pass
+                detail = _scrub_user_facing_detail(detail)
+        else:
+            detail = _scrub_user_facing_detail(detail)
         raise HTTPException(status_code=r.status_code, detail=detail)
     if "json" not in ct:
-        raise HTTPException(status_code=502, detail="身份服务响应异常，请稍后重试")
+        raise HTTPException(status_code=502, detail="服务响应异常，请稍后重试")
     return r.json()
 
 
@@ -435,22 +475,21 @@ def _identity_get(path: str) -> dict:
         with httpx.Client(timeout=15.0) as client:
             r = client.get(url, headers=headers or None)
     except httpx.RequestError as e:
-        raise HTTPException(status_code=503, detail="身份服务暂时不可用，请稍后重试") from e
+        raise HTTPException(status_code=503, detail="服务暂时不可用，请稍后重试") from e
     ct = (r.headers.get("content-type") or "").lower()
     if r.status_code >= 400:
         detail = r.text[:4000]
         if "json" in ct:
             try:
                 err = r.json()
-                if isinstance(err, dict):
-                    detail = str(err.get("error") or err.get("detail") or err.get("message") or "")
-                if not detail:
-                    detail = str(err)
+                detail = _detail_from_upstream_body(err)
             except Exception:
-                pass
+                detail = _scrub_user_facing_detail(detail)
+        else:
+            detail = _scrub_user_facing_detail(detail)
         raise HTTPException(status_code=r.status_code, detail=detail)
     if "json" not in ct:
-        raise HTTPException(status_code=502, detail="身份服务响应异常，请稍后重试")
+        raise HTTPException(status_code=502, detail="服务响应异常，请稍后重试")
     return r.json()
 
 
@@ -721,11 +760,11 @@ def admin_otp_send(request: Request, body: AdminOtpSendIn) -> dict:
         if not admin_browser_otp_feature_enabled():
             raise HTTPException(
                 status_code=400,
-                detail="管理登录短信 OTP 未开启：请登录后在「系统配置」中开启（admin_browser_otp_enabled），并配置白名单手机号。",
+                detail="管理登录短信验证未开启，请先在系统配置中开启并登记白名单手机号。",
             )
         raise HTTPException(
             status_code=400,
-            detail="未配置管理 OTP 白名单：请在环境变量 AI24X_ADMIN_OTP_PHONES 或库表 admin_operators 中登记手机号。",
+            detail="管理登录短信验证未就绪，请先登记白名单手机号。",
         )
     if not is_phone_allowed_for_admin_otp(body.phone):
         raise HTTPException(status_code=403, detail="当前号码不可用于管理后台验证")
@@ -1263,7 +1302,7 @@ def admin_user_password_set(user_id: int, body: dict, _: bool = Depends(require_
         raise HTTPException(status_code=400, detail="新密码至少 6 位")
     cfg = resolve_identity()
     if not (cfg.sms_internal_key or "").strip():
-        raise HTTPException(status_code=503, detail="未配置 sms_internal_key，无法执行管理员强制改密")
+        raise HTTPException(status_code=503, detail="改密服务暂未就绪，请稍后再试")
     try:
         cur = db.admin_get_user(int(user_id))
         cur_u = (cur or {}).get("user") if isinstance(cur, dict) else None
@@ -1283,7 +1322,7 @@ def admin_user_password_set(user_id: int, body: dict, _: bool = Depends(require_
             )
             id_uid = _identity_lookup_user_id(phone=cur_phone, email=cur_email)
         if not id_uid:
-            raise HTTPException(status_code=404, detail="Identity 用户不存在：请先让该用户在主站完成一次注册/登录后再改密")
+            raise HTTPException(status_code=404, detail="该用户尚未在主站建立账号，请先让用户完成一次注册或登录后再改密")
         data = _identity_post(
             "/v1/admin/users/password/set",
             {"user_id": int(id_uid), "new_password": npw},
@@ -1296,12 +1335,11 @@ def admin_user_password_set(user_id: int, body: dict, _: bool = Depends(require_
         if (
             e.status_code in (400, 404)
             and ("用户不存在" in d or "user not found" in d.lower())
-            and not d.startswith("Identity 用户不存在：")
+            and "尚未在主站建立账号" not in d
         ):
-            base = (cfg.identity_api_base or "").strip()
             raise HTTPException(
                 status_code=404,
-                detail=f"Identity 用户不存在：p/a1 的 user_id={int(user_id)} 与 Identity 用户表不一致。请检查 AI24X_IDENTITY_API_BASE={base!r} 指向的主站是否使用同一套数据库/同一批用户数据。",
+                detail="账号数据不一致，请确认主站与行情官指向同一套用户库后再改密。",
             )
         raise
     # Do not return token to admin UI; only indicate success.
@@ -1355,7 +1393,7 @@ def admin_user_reset(user_id: int, body: dict, _: bool = Depends(require_admin))
     if env == "prod":
         v = (db.admin_config_get("admin_user_reset_enabled") or "").strip().lower()
         if v not in ("1", "true", "yes", "on"):
-            raise HTTPException(status_code=403, detail="生产环境禁止重置账号（admin_user_reset_enabled 未开启）")
+            raise HTTPException(status_code=403, detail="当前不可重置账号，请联系运维开启后再试。")
 
     try:
         return db.admin_user_reset(
@@ -1706,7 +1744,7 @@ def request_code(body: RequestCodeIn) -> RequestCodeOut:
 @app.post("/api/auth/register", response_model=LoginOut)
 def register(body: RegisterIn) -> LoginOut:
     if not identity_configured():
-        raise HTTPException(status_code=503, detail="注册需配置主站身份 API（环境变量或管理后台 identity_api_base）")
+        raise HTTPException(status_code=503, detail="注册服务暂未就绪，请稍后再试")
     payload: dict = {"password": body.password}
     if body.phone:
         payload["phone"] = body.phone
@@ -1748,7 +1786,7 @@ def login(body: LoginIn) -> LoginOut:
 @app.post("/api/auth/password/change", response_model=LoginOut)
 def password_change(request: Request, body: PasswordChangeIn) -> LoginOut:
     if not identity_configured():
-        raise HTTPException(status_code=503, detail="未配置主站身份 API（环境变量或管理后台）")
+        raise HTTPException(status_code=503, detail="服务暂未就绪，请稍后再试")
     auth = (request.headers.get("Authorization") or "").strip()
     if not auth:
         raise HTTPException(status_code=401, detail="需要登录")
@@ -1763,7 +1801,7 @@ def password_change(request: Request, body: PasswordChangeIn) -> LoginOut:
 @app.post("/api/auth/password/reset", response_model=LoginOut)
 def password_reset(body: PasswordResetIn) -> LoginOut:
     if not identity_configured():
-        raise HTTPException(status_code=503, detail="未配置主站身份 API（环境变量或管理后台）")
+        raise HTTPException(status_code=503, detail="服务暂未就绪，请稍后再试")
     payload: dict = {"new_password": body.new_password}
     if body.phone:
         payload["phone"] = body.phone
@@ -1779,7 +1817,7 @@ def password_reset(body: PasswordResetIn) -> LoginOut:
 def bind_phone(request: Request, body: dict) -> LoginOut:
     """Bind phone to current user (requires bearer token + sms code)."""
     if not identity_configured():
-        raise HTTPException(status_code=503, detail="未配置主站身份 API（环境变量或管理后台）")
+        raise HTTPException(status_code=503, detail="服务暂未就绪，请稍后再试")
     auth = (request.headers.get("Authorization") or "").strip()
     if not auth:
         raise HTTPException(status_code=401, detail="需要登录")
@@ -1799,7 +1837,7 @@ def bind_phone(request: Request, body: dict) -> LoginOut:
 def bind_email(request: Request, body: dict) -> LoginOut:
     """Bind email to current user (requires bearer token + email code)."""
     if not identity_configured():
-        raise HTTPException(status_code=503, detail="未配置主站身份 API（环境变量或管理后台）")
+        raise HTTPException(status_code=503, detail="服务暂未就绪，请稍后再试")
     auth = (request.headers.get("Authorization") or "").strip()
     if not auth:
         raise HTTPException(status_code=401, detail="需要登录")
@@ -2792,7 +2830,7 @@ async def billing_wechat_native(body: PayNativeIn, user_id: int = Depends(get_cu
     if not wechat_v3.wechat_pay_configured(wx_cfg):
         raise HTTPException(
             status_code=503,
-            detail="微信支付未配置：请设置 AI24X_WECHAT_MCH_ID / APP_ID / MCH_SERIAL_NO / MCH_PRIVATE_KEY_PATH / API_V3_KEY / NOTIFY_URL",
+            detail="在线支付暂未开放，请稍后再试。",
         )
     plan_norm, priced_fen = _billing_normalize_plan(body.plan)
     if plan_norm == "vip_trial_99" and db.pay_user_has_paid_trial(int(user_id)):
@@ -2855,7 +2893,7 @@ async def billing_wechat_h5(request: Request, body: PayNativeIn, user_id: int = 
     if not bool(getattr(b, "billing_pay_wechat_enabled", True)):
         raise HTTPException(status_code=503, detail="微信支付已关闭")
     if not wechat_v3.wechat_pay_configured(wx_cfg):
-        raise HTTPException(status_code=503, detail="微信支付未配置")
+        raise HTTPException(status_code=503, detail="在线支付暂未开放，请稍后再试。")
 
     plan_norm, priced_fen = _billing_normalize_plan(body.plan)
     if plan_norm == "vip_trial_99" and db.pay_user_has_paid_trial(int(user_id)):
@@ -2995,7 +3033,7 @@ async def billing_alipay_wap(body: PayWapIn, user_id: int = Depends(get_current_
     if not alipay_wap.alipay_configured(ali_cfg):
         raise HTTPException(
             status_code=503,
-            detail="支付宝未配置：请设置 ALIPAY_APP_ID / 公钥 / 商户私钥 / NOTIFY_URL（及可选 RETURN_URL）",
+            detail="在线支付暂未开放，请稍后再试。",
         )
 
     plan_norm, priced_fen = _billing_normalize_plan(body.plan)
