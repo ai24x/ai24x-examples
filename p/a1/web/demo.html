@@ -212,6 +212,22 @@
       margin-bottom: 0;
       flex: 0 0 auto;
     }
+    .period-tools {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px 12px;
+      flex: 0 1 auto;
+      min-width: 0;
+    }
+    .chart-tools {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex: 0 0 auto;
+    }
 
     .theme-row {
       display: inline-flex;
@@ -1300,6 +1316,17 @@
       .quote-head .period-tabs {
         justify-content: flex-start;
       }
+      .period-tools {
+        justify-content: space-between;
+        width: 100%;
+        gap: 8px;
+      }
+      .chart-tools #btn-fav,
+      .chart-tools #btn-wl-panel {
+        padding: 7px 12px;
+        font-size: 12px;
+      }
+      .chart-tools #btn-wl-panel { min-width: 48px; }
       .theme-row {
         justify-content: flex-start;
       }
@@ -1526,15 +1553,17 @@
       font-weight: 700;
     }
 
-    /* ===== Watchlist Panel ===== */
-    .search-row #btn-fav, .search-row #btn-wl-panel {
+    /* ===== Watchlist / Fav (beside period tabs) ===== */
+    .chart-tools #btn-fav,
+    .chart-tools #btn-wl-panel {
       flex: 0 0 auto;
-      padding: 10px 16px;
+      padding: 8px 14px;
       border-radius: 6px;
       font-size: 13px;
+      font-weight: 700;
       cursor: pointer;
       white-space: nowrap;
-      transition: all .15s;
+      transition: background .15s, border-color .15s, color .15s, box-shadow .15s;
     }
 
     /* Card overlay: same centering as share overlay */
@@ -1553,26 +1582,43 @@
     }
     #card-overlay.pw-modal[hidden] { display: none !important; }
 
-    .search-row #btn-fav {
-      border: 1px solid var(--border);
-      background: var(--panel2);
-      color: var(--muted);
+    /* 收藏：琥珀金，点亮一点 */
+    .chart-tools #btn-fav {
+      border: 1px solid rgba(245, 158, 11, 0.55);
+      background: linear-gradient(180deg, rgba(245, 158, 11, 0.22), rgba(245, 158, 11, 0.10));
+      color: #fbbf24;
+      box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.08);
     }
-    .search-row #btn-fav:hover { border-color: var(--ma2); color: var(--text); }
-    .search-row #btn-fav.on {
-      color: #f59e0b;
+    .chart-tools #btn-fav:hover {
       border-color: #f59e0b;
-      background: rgba(245,158,11,.08);
+      color: #fcd34d;
+      background: linear-gradient(180deg, rgba(245, 158, 11, 0.32), rgba(245, 158, 11, 0.14));
     }
-    .search-row #btn-fav:disabled { opacity: 0.4; cursor: not-allowed; }
-    .search-row #btn-wl-panel {
-      border: 1px solid var(--border);
-      background: var(--panel2);
-      color: var(--text);
+    .chart-tools #btn-fav.on {
+      color: #fff7ed;
+      border-color: #f59e0b;
+      background: linear-gradient(180deg, #d97706 0%, #b45309 100%);
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.35);
+    }
+    .chart-tools #btn-fav:disabled {
+      opacity: 0.42;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    /* 自选：青绿，与周期/主操作区分 */
+    .chart-tools #btn-wl-panel {
+      border: 1px solid rgba(45, 212, 191, 0.50);
+      background: linear-gradient(180deg, rgba(45, 212, 191, 0.20), rgba(20, 184, 166, 0.10));
+      color: #5eead4;
       min-width: 56px;
       text-align: center;
+      box-shadow: 0 0 0 1px rgba(45, 212, 191, 0.08);
     }
-    .search-row #btn-wl-panel:hover { border-color: var(--ma2); }
+    .chart-tools #btn-wl-panel:hover {
+      border-color: #2dd4bf;
+      color: #99f6e4;
+      background: linear-gradient(180deg, rgba(45, 212, 191, 0.30), rgba(20, 184, 166, 0.14));
+    }
     .watchlist-panel {
       position: absolute;
       top: 100%;
@@ -1637,10 +1683,6 @@
       text-align: center;
       font-size: 12px;
       color: var(--muted);
-    }
-    @media (max-width: 520px) {
-      .search-row #btn-fav { padding: 10px 12px; font-size: 12px; }
-      .search-row #btn-wl-panel { padding: 10px 12px; font-size: 12px; min-width: 44px; }
     }
   </style>
 </head>
@@ -1709,10 +1751,17 @@
             <a class="btn-mini" id="btn-login" href="./index.html?mode=login">登录</a>
           </span>
         </div>
-        <div class="period-tabs disabled" id="period-tabs" role="tablist" aria-label="K 线周期">
-          <button type="button" role="tab" data-period="day" aria-selected="true">日线</button>
-          <button type="button" role="tab" data-period="week" aria-selected="false">周线</button>
-          <button type="button" role="tab" data-period="month" aria-selected="false">月线</button>
+        <div class="period-tools" id="period-tools">
+          <div class="period-tabs disabled" id="period-tabs" role="tablist" aria-label="K 线周期">
+            <button type="button" role="tab" data-period="day" aria-selected="true">日线</button>
+            <button type="button" role="tab" data-period="week" aria-selected="false">周线</button>
+            <button type="button" role="tab" data-period="month" aria-selected="false">月线</button>
+          </div>
+          <div class="chart-tools" aria-label="收藏与自选">
+            <button type="button" id="btn-fav" disabled>收藏</button>
+            <button type="button" id="btn-wl-panel">自选</button>
+            <div class="watchlist-panel" id="watchlist-panel" hidden></div>
+          </div>
         </div>
       </div>
       <div id="load-error" class="load-error" hidden role="alert"></div>
@@ -1720,10 +1769,7 @@
         <input type="text" id="stock-query" placeholder="代码或简称，例如 600519 / 上证指数" autocomplete="off" />
         <button type="button" id="btn-search">查询</button>
         <button type="button" id="btn-share" title="分享这次查询" disabled><span class="dot" aria-hidden="true"></span>分享</button>
-        <button type="button" id="btn-fav" disabled>收藏</button>
-        <button type="button" id="btn-wl-panel">自选</button>
         <div id="quote-status" class="ok" role="status"></div>
-        <div class="watchlist-panel" id="watchlist-panel" hidden></div>
       </div>
       <div class="sample-chips" aria-label="快捷填入示例">
         <span class="chip-label">常用</span>
@@ -1773,7 +1819,7 @@
   </main>
   <footer class="site-footer" id="site-footer"></footer>
 
-  <script src="/js/shell.js?v=31"></script>
+  <script src="/js/shell.js?v=32"></script>
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("demo"); } catch (e) {}
   </script>
