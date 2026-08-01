@@ -393,9 +393,12 @@ def admin_list_orders(
         .limit(min(200, max(1, int(limit))))
         .all()
     )
-    return {
-        "total": total,
-        "rows": [
+    from models import AuthUser
+
+    out_rows = []
+    for r in rows:
+        u = db.query(AuthUser).filter(AuthUser.id == int(r.auth_user_id)).first()
+        out_rows.append(
             {
                 "id": r.id,
                 "out_trade_no": r.out_trade_no,
@@ -407,10 +410,13 @@ def admin_list_orders(
                 "transaction_id": r.transaction_id,
                 "created_at": r.created_at.isoformat() if r.created_at else None,
                 "paid_at": r.paid_at.isoformat() if r.paid_at else None,
+                "utm_source": (getattr(u, "utm_source", None) if u else None) or None,
+                "utm_medium": (getattr(u, "utm_medium", None) if u else None) or None,
+                "utm_campaign": (getattr(u, "utm_campaign", None) if u else None) or None,
+                "gclid": (getattr(u, "gclid", None) if u else None) or None,
             }
-            for r in rows
-        ],
-    }
+        )
+    return {"total": total, "rows": out_rows}
 
 
 def admin_orders_csv_text(

@@ -247,7 +247,9 @@ def is_user_frozen(u: Optional[AuthUser]) -> bool:
 
 
 def auth_user_public_dict(u: AuthUser) -> dict:
-    return {
+    from utm_attribution import acquisition_public_dict
+
+    d = {
         "id": int(u.id),
         "email": u.email or "",
         "phone": u.phone or "",
@@ -255,6 +257,10 @@ def auth_user_public_dict(u: AuthUser) -> dict:
         "frozen_at": u.frozen_at.isoformat() if getattr(u, "frozen_at", None) else None,
         "freeze_reason": (getattr(u, "freeze_reason", None) or "") or None,
     }
+    acq = acquisition_public_dict(u)
+    if any(acq.get(k) for k in ("utm_source", "utm_campaign", "gclid")):
+        d["acquisition"] = acq
+    return d
 
 
 def raise_if_frozen(u: Optional[AuthUser]) -> None:

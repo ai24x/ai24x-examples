@@ -943,6 +943,25 @@ async def auth_register(request: Request, body: AuthRegisterBody, db: Session = 
     except Exception:
         logger.exception("referral bind / wallet bootstrap failed for user %s", u.id)
 
+    # 广告 UTM / gclid 首触落库（不影响注册成功）
+    try:
+        from utm_attribution import apply_acquisition_on_register
+
+        apply_acquisition_on_register(
+            db,
+            u,
+            {
+                "utm_source": body.utm_source,
+                "utm_medium": body.utm_medium,
+                "utm_campaign": body.utm_campaign,
+                "utm_content": body.utm_content,
+                "utm_term": body.utm_term,
+                "gclid": body.gclid,
+            },
+        )
+    except Exception:
+        logger.exception("acquisition utm persist failed for user %s", u.id)
+
     token = create_auth_access_token(
         user_id=int(u.id),
         email=u.email,
@@ -1177,6 +1196,15 @@ async def admin_token_economics(request: Request, days: int = 7, db: Session = D
     from admin_ops_service import admin_economics
 
     return admin_economics(db, days=days)
+
+
+@app.get("/v1/admin/token/acquisition")
+async def admin_token_acquisition(request: Request, days: int = 14, db: Session = Depends(get_db)):
+    """投流归因：渠道→注册→已支付（join 用户首触 UTM）。"""
+    _require_internal_key(request)
+    from admin_ops_service import admin_acquisition_funnel
+
+    return admin_acquisition_funnel(db, days=days)
 
 
 @app.get("/v1/admin/token/alerts")

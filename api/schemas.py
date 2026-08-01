@@ -159,10 +159,33 @@ class AuthRegisterBody(BaseModel):
     sms_code: Optional[str] = None
     email_code: Optional[str] = None
     invite_code: Optional[str] = Field(default=None, max_length=32)
+    # 广告 / 渠道首触（可选；落库后不覆盖）
+    utm_source: Optional[str] = Field(default=None, max_length=128)
+    utm_medium: Optional[str] = Field(default=None, max_length=128)
+    utm_campaign: Optional[str] = Field(default=None, max_length=128)
+    utm_content: Optional[str] = Field(default=None, max_length=128)
+    utm_term: Optional[str] = Field(default=None, max_length=128)
+    gclid: Optional[str] = Field(default=None, max_length=128)
 
     @field_validator("phone", "email", mode="before")
     @classmethod
     def strip_str(cls, v):
+        if v is None:
+            return None
+        s = str(v).strip()
+        return s or None
+
+    @field_validator(
+        "utm_source",
+        "utm_medium",
+        "utm_campaign",
+        "utm_content",
+        "utm_term",
+        "gclid",
+        mode="before",
+    )
+    @classmethod
+    def strip_utm(cls, v):
         if v is None:
             return None
         s = str(v).strip()

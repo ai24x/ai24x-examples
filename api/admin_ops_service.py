@@ -49,9 +49,113 @@ def admin_list_users(
                 "balance_tokens": bal,
                 "plan": plan or "free",
                 "created_at": u.created_at.isoformat() if u.created_at else None,
+                "utm_source": (getattr(u, "utm_source", None) or "") or None,
+                "utm_medium": (getattr(u, "utm_medium", None) or "") or None,
+                "utm_campaign": (getattr(u, "utm_campaign", None) or "") or None,
+                "utm_content": (getattr(u, "utm_content", None) or "") or None,
+                "gclid": (getattr(u, "gclid", None) or "") or None,
+                "acquired_at": u.acquired_at.isoformat()
+                if getattr(u, "acquired_at", None)
+                else None,
             }
         )
     return {"ok": True, "total": total, "limit": limit, "offset": offset, "rows": out}
+
+
+def admin_acquisition_funnel(db: Session, *, days: int = 14) -> dict[str, Any]:
+    """
+    渠道→注册→已支付订单（join auth_users，不在订单表冗余 UTM）。
+    供投流日报 / A/B/C 组对照。
+    """
+    days = max(1, min(90, int(days or 14)))
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+
+    regs = (
+        db.query(AuthUser)
+        .filter(AuthUser.created_at >= since)
+        .order_by(AuthUser.id.desc())
+        .limit(2000)
+        .all()
+    )
+    by_campaign: dict[str, dict[str, Any]] = {}
+    for u in regs:
+        key = (getattr(u, "utm_campaign", None) or getattr(u, "utm_source", None) or "(none)").strip()
+        bucket = by_campaign.setdefault(
+            key,
+            {
+                "utm_campaign": getattr(u, "utm_campaign", None),
+                "utm_source": getattr(u, "utm_source", None),
+                "utm_medium": getattr(u, "utm_medium", None),
+                "registers": 0,
+                "paid_users": 0,
+                "paid_orders": 0,
+                "paid_amount_fen": 0,
+            },
+        )
+        bucket["registers"] += 1
+
+    paid = (
+        db.query(TokenPayOrder)
+        .filter(TokenPayOrder.status == "paid", TokenPayOrder.paid_at >= since)
+        .order_by(TokenPayOrder.id.desc())
+        .limit(5000)
+        .all()
+    )
+    paid_users_seen: set[int] = set()
+    order_rows = []
+    for o in paid:
+        u = db.query(AuthUser).filter(AuthUser.id == int(o.auth_user_id)).first()
+        src = (getattr(u, "utm_source", None) if u else None) or None
+        camp = (getattr(u, "utm_campaign", None) if u else None) or None
+        med = (getattr(u, "utm_medium", None) if u else None) or None
+        key = (camp or src or "(none)").strip()
+        bucket = by_campaign.setdefault(
+            key,
+            {
+                "utm_campaign": camp,
+                "utm_source": src,
+                "utm_medium": med,
+                "registers": 0,
+                "paid_users": 0,
+                "paid_orders": 0,
+                "paid_amount_fen": 0,
+            },
+        )
+        bucket["paid_orders"] += 1
+        bucket["paid_amount_fen"] += int(o.amount_fen or 0)
+        uid = int(o.auth_user_id)
+        if uid not in paid_users_seen:
+            bucket["paid_users"] += 1
+            paid_users_seen.add(uid)
+
+        order_rows.append(
+            {
+                "out_trade_no": o.out_trade_no,
+                "auth_user_id": uid,
+                "plan": o.plan,
+                "amount_fen": int(o.amount_fen or 0),
+                "channel": o.channel,
+                "paid_at": o.paid_at.isoformat() if o.paid_at else None,
+                "utm_source": src,
+                "utm_medium": med,
+                "utm_campaign": camp,
+                "utm_content": (getattr(u, "utm_content", None) if u else None) or None,
+                "gclid": (getattr(u, "gclid", None) if u else None) or None,
+            }
+        )
+
+    campaigns = sorted(
+        by_campaign.values(),
+        key=lambda x: (-int(x.get("paid_amount_fen") or 0), -int(x.get("registers") or 0)),
+    )
+    return {
+        "ok": True,
+        "days": days,
+        "since": since.isoformat(),
+        "campaigns": campaigns,
+        "paid_orders": order_rows[:200],
+        "note": "UTM on user (first-touch at register); orders joined by auth_user_id",
+    }
 
 
 def admin_economics(db: Session, *, days: int = 7) -> dict[str, Any]:

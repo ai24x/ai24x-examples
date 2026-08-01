@@ -62,5 +62,17 @@ def init_db():
                     "ADD COLUMN IF NOT EXISTS freeze_reason VARCHAR(255)"
                 )
             )
+            for col, typ in (
+                ("utm_source", "VARCHAR(128)"),
+                ("utm_medium", "VARCHAR(128)"),
+                ("utm_campaign", "VARCHAR(128)"),
+                ("utm_content", "VARCHAR(128)"),
+                ("utm_term", "VARCHAR(128)"),
+                ("gclid", "VARCHAR(128)"),
+                ("acquired_at", "TIMESTAMP WITH TIME ZONE"),
+            ):
+                conn.execute(
+                    text(f"ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS {col} {typ}")
+                )
     except Exception:
         pass

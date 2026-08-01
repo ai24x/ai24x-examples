@@ -94,6 +94,14 @@ class AuthUser(Base):
     # 冻结：非空即冻结（禁登录 / chat / 充值）；管理台可解冻
     frozen_at = Column(DateTime(timezone=True), nullable=True)
     freeze_reason = Column(String(255), nullable=True)
+    # 获客首触（广告 UTM / gclid）；注册时写入，不随后续访问覆盖
+    utm_source = Column(String(128), nullable=True, index=True)
+    utm_medium = Column(String(128), nullable=True)
+    utm_campaign = Column(String(128), nullable=True, index=True)
+    utm_content = Column(String(128), nullable=True)
+    utm_term = Column(String(128), nullable=True)
+    gclid = Column(String(128), nullable=True, index=True)
+    acquired_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
