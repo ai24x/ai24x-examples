@@ -150,14 +150,42 @@
     return n;
   }
 
+  var _toastTimer = null;
+  var _payModalSession = 0;
+  var _pendingCheckoutWin = null;
+  var _payDeepLinkDone = false;
+
+  function showToast(text, ok) {
+    var msg = String(text || "").replace(/<[^>]+>/g, "").trim();
+    if (!msg) return;
+    var t = document.getElementById("ai24x-toast");
+    if (!t) {
+      t = document.createElement("div");
+      t.id = "ai24x-toast";
+      t.setAttribute("role", "status");
+      t.setAttribute("aria-live", "polite");
+      document.body.appendChild(t);
+    }
+    t.className = "ai24x-toast " + (ok ? "is-ok" : "is-error");
+    t.textContent = msg;
+    t.hidden = false;
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(function () {
+      t.hidden = true;
+    }, 5600);
+  }
+
   function showMsg(el, text, ok) {
-    if (!el) return;
-    el.innerHTML =
-      '<div class="alert ' +
-      (ok ? "alert-success" : "alert-error") +
-      '">' +
-      String(text || "") +
-      "</div>";
+    if (el) {
+      el.innerHTML =
+        '<div class="alert ' +
+        (ok ? "alert-success" : "alert-error") +
+        '">' +
+        String(text || "") +
+        "</div>";
+    }
+    /* 控制台提示一律底部浮层，避免只写在页顶被挡住 */
+    showToast(text, ok);
   }
 
   function requireLogin() {
@@ -374,8 +402,8 @@
           ? tr("支付通道未就绪", "Pay channel not ready")
           : tr("支付暂未开放", "Pay not open");
         disabled.title = tr(
-          "需配齐支付商户项后重启 API",
-          "Configure payment credentials, then restart API"
+          "支付暂不可用，请稍后再试或换其它方式。",
+          "Payment unavailable — try again later or another method."
         );
         actions.appendChild(disabled);
       }
@@ -397,12 +425,27 @@
     tryApplyPayDeepLink();
   }
 
+  function clearPayDeepLinkFromUrl() {
+    try {
+      var u = new URL(window.location.href);
+      if (!u.searchParams.has("plan") && !u.searchParams.has("pay")) return;
+      u.searchParams.delete("plan");
+      u.searchParams.delete("pay");
+      var q = u.searchParams.toString();
+      history.replaceState({}, "", u.pathname + (q ? "?" + q : "") + u.hash);
+    } catch (e) {}
+  }
+
   function tryApplyPayDeepLink() {
     try {
+      if (_payDeepLinkDone) return;
       var qs = new URLSearchParams(window.location.search || "");
       var wantPlan = (qs.get("plan") || "").trim();
       var wantPay = (qs.get("pay") || "").trim().toLowerCase();
       if (!wantPlan && !wantPay) return;
+      /* 只引导一次：清掉 URL，禁止自动 click（否则无用户手势→弹窗被拦→刷新套餐又自动点→死循环） */
+      _payDeepLinkDone = true;
+      clearPayDeepLinkFromUrl();
       var box = $("plansList");
       if (!box) return;
       var card = null;
@@ -410,37 +453,35 @@
         card = box.querySelector('[data-plan="' + wantPlan.replace(/"/g, "") + '"]');
       }
       if (!card) card = box.querySelector(".card");
+      var plansAnchor = $("token-plans");
+      if (plansAnchor) {
+        try {
+          plansAnchor.scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch (e0) {}
+      }
       if (card) {
         card.scrollIntoView({ behavior: "smooth", block: "center" });
         card.style.outline = "2px solid #0070ba";
         card.style.outlineOffset = "2px";
       }
-      if (wantPay && card) {
-        var chBtn = card.querySelector('button[data-pay-channel="' + wantPay + '"]');
-        if (chBtn && !chBtn.disabled) {
-          showMsg(
-            $("consoleMsg"),
-            tr(
-              "已从价格页带入套餐，正在打开支付…",
-              "Plan from pricing — opening checkout…"
-            ),
-            true
-          );
-          setTimeout(function () {
-            try {
-              chBtn.click();
-            } catch (e2) {}
-          }, 350);
-        } else {
-          showMsg(
-            $("consoleMsg"),
-            tr(
-              "支付通道未就绪或未登录，请在下方套餐手动选择。",
-              "Pay channel not ready — pick a button on the plan card."
-            ),
-            false
-          );
-        }
+      var chBtn =
+        wantPay && card
+          ? card.querySelector('button[data-pay-channel="' + wantPay + '"]')
+          : null;
+      if (wantPay && chBtn && !chBtn.disabled) {
+        var guide = tr(
+          "已从价格页带入套餐，请点击下方支付按钮完成付款。",
+          "Plan selected from pricing — tap a pay button below to continue."
+        );
+        showMsg($("consoleMsg"), guide, true);
+        showToast(guide, true);
+      } else if (wantPay || wantPlan) {
+        var guide2 = tr(
+          "请在下方套餐选择支付方式。",
+          "Choose a payment method on the plan card below."
+        );
+        showMsg($("consoleMsg"), guide2, true);
+        showToast(guide2, true);
       }
     } catch (e) {}
   }
@@ -454,11 +495,19 @@
     $("modal-pay-result").style.display = "none";
     $("modal-pay-qr").style.display = "none";
     $("modal-pay-url").style.display = "none";
+    var hintEl = $("modal-pay-result-hint");
+    if (hintEl) {
+      hintEl.className = "ui-modal-sub";
+      hintEl.textContent = "";
+    }
     root.classList.add("is-open");
     root.setAttribute("aria-hidden", "false");
   }
 
   function closePayModal() {
+    _payModalSession += 1;
+    closeCheckoutWin(_pendingCheckoutWin);
+    _pendingCheckoutWin = null;
     var root = $("modal-pay");
     if (!root) return;
     root.classList.remove("is-open");
@@ -468,7 +517,12 @@
   function showPayResult(opts) {
     opts = opts || {};
     $("modal-pay-result").style.display = "block";
-    $("modal-pay-result-hint").textContent = opts.hint || "";
+    var hintEl = $("modal-pay-result-hint");
+    if (hintEl) {
+      hintEl.className = opts.isError ? "alert alert-error" : "ui-modal-sub";
+      hintEl.style.marginTop = opts.isError ? "0" : "";
+      hintEl.textContent = opts.hint || "";
+    }
     var img = $("modal-pay-qr");
     var urlBox = $("modal-pay-url");
     var openLink = $("modal-pay-open-link");
@@ -600,6 +654,7 @@
     var pay = window.__tokenPay || {};
     var price = AI24X_API.planPriceLabel(planMeta) || "";
     var planTitle = AI24X_API.planTitle(planMeta) || planId;
+    var session = ++_payModalSession;
 
     if (channel === "mock" || (!pay.wechat_ready && !pay.alipay_ready && pay.mock_allowed)) {
       showMsg($("consoleMsg"), tr("正在创建模拟订单…", "Creating mock order…"), true);
@@ -633,6 +688,7 @@
         "Creating PayPal order… Keep this tab open."
       );
     }
+    _pendingCheckoutWin = checkoutWin;
 
     openPayModal(
       planTitle + (price ? " · " + price : ""),
@@ -642,8 +698,8 @@
           ? tr("将在新窗口打开支付宝；本页控制台保留。", "Alipay opens in a new window; this console stays.")
           : channel === "paypal"
             ? tr(
-                "正在向 PayPal 下单（约需数秒），请允许浏览器弹窗；本页控制台保留。",
-                "Creating PayPal order (a few seconds). Allow pop-ups; this console stays."
+                "正在创建 PayPal 订单，请稍候；若未弹出窗口，用下方按钮打开。",
+                "Creating PayPal order… If no window opens, use the button below."
               )
             : tr("请选择支付方式", "Choose a payment method")
     );
@@ -657,6 +713,11 @@
 
     req
       .then(function (r) {
+        if (session !== _payModalSession) {
+          closeCheckoutWin(checkoutWin);
+          return;
+        }
+        if (_pendingCheckoutWin === checkoutWin) _pendingCheckoutWin = null;
         if (r && r.mock) {
           closeCheckoutWin(checkoutWin);
           showPayResult({
@@ -692,8 +753,8 @@
                     "Alipay opened in a new window — finish payment there."
                   )
                 : tr(
-                    "若未自动弹出，请点下方按钮打开支付宝。",
-                    "If no window opened, use the button below."
+                    "浏览器拦截了新窗口时，请点下方按钮打开支付宝。",
+                    "If the browser blocked the window, open Alipay with the button below."
                   )) +
               tr(
                 " 付完后本页会自动查单到账；也可点「确认到账」。单号：",
@@ -711,8 +772,8 @@
               (ppOpened
                 ? tr("已打开 PayPal，请在新窗口完成付款。", "PayPal opened — finish payment there.")
                 : tr(
-                    "弹窗被拦截时，请点下方按钮打开 PayPal。",
-                    "If the pop-up was blocked, use the button below."
+                    "浏览器拦截了新窗口时，请点下方按钮打开 PayPal。",
+                    "If the browser blocked the window, open PayPal with the button below."
                   )) +
               tr(
                 " 付完返回本页会自动确认到账。单号：",
@@ -726,19 +787,27 @@
           startFulfillPoll(r.out_trade_no, "paypal");
         } else {
           closeCheckoutWin(checkoutWin);
-          showPayResult({
-            hint: tr(
-              "下单返回异常，请看控制台消息。单号：" + ((r && r.out_trade_no) || ""),
-              "Unexpected order response. Order: " + ((r && r.out_trade_no) || "")
-            ),
-          });
+          var badHint = tr(
+            "下单未完成，请稍后重试或换一种支付方式。单号：" +
+              ((r && r.out_trade_no) || ""),
+            "Could not start checkout. Try again or another method. Order: " +
+              ((r && r.out_trade_no) || "")
+          );
+          showPayResult({ isError: true, hint: badHint });
+          showMsg($("consoleMsg"), badHint, false);
         }
         return refreshAll();
       })
       .catch(function (e) {
+        if (session !== _payModalSession) {
+          closeCheckoutWin(checkoutWin);
+          return;
+        }
+        if (_pendingCheckoutWin === checkoutWin) _pendingCheckoutWin = null;
         closeCheckoutWin(checkoutWin);
-        showPayResult({ hint: e.message || tr("下单失败", "Order failed") });
-        showMsg($("consoleMsg"), e.message || tr("下单失败", "Order failed"), false);
+        var errText = e.message || tr("下单失败", "Order failed");
+        showPayResult({ isError: true, hint: errText });
+        showMsg($("consoleMsg"), errText, false);
       });
   }
 
@@ -1002,6 +1071,10 @@
       el.setAttribute("aria-hidden", "false");
     }
     function closeModal(id) {
+      if (id === "modal-pay") {
+        closePayModal();
+        return;
+      }
       var el = $(id);
       if (!el) return;
       el.classList.remove("is-open");

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>价格计费 · AI24X</title>
-  <link rel="stylesheet" href="css/base.css?v=20260801c" />
+  <link rel="stylesheet" href="css/base.css?v=20260801e" />
   <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260725a" data-base="css/themes/" />
   <style>
     /* 套餐卡等高，按钮贴底对齐同一水平线 */
@@ -28,7 +28,7 @@
     .pricing-plan-actions .btn {
       box-sizing: border-box;
       min-height: 40px;
-      flex: 1 1 calc(50% - 4px);
+      flex: 1 1 100%;
       white-space: nowrap;
     }
   </style>
@@ -39,7 +39,7 @@
     <section class="hero hero-surface section-tight">
       <div class="container">
         <h1 data-i18n="page.pricing.title">价格计费</h1>
-        <p class="lead" data-i18n="page.pricing.sub">选择套餐后可直接微信 / 支付宝 / PayPal 下单；控制台还可管理 Key 与订单。</p>
+        <p class="lead" data-i18n="page.pricing.sub">先在本页选好套餐，再到控制台完成支付；Key、订单与余额也在控制台。</p>
         <p class="callout mt-2" data-i18n="page.pricing.callout">
           高性价比中国模型 API，按需选购额度与 Pro 权益。
         </p>
@@ -53,9 +53,9 @@
         <p class="sub" id="tokenSettleHint" style="margin:0 0 14px;"></p>
         <div class="grid-3" id="tokenPlansGrid"></div>
         <div class="hero-cta" style="margin-top:14px;">
-          <a class="btn btn-primary" href="console.html" data-i18n="page.pricing.ctaConsole">去控制台购买 / 管理 Key</a>
+          <a class="btn btn-primary" href="console.html#token-plans" data-i18n="page.pricing.ctaConsole">去控制台购买 / 管理 Key</a>
           <a class="btn" href="paypal.html" data-i18n="page.pricing.settleIntlLink">查看 PayPal 收款说明</a>
-          <a class="btn" href="login.html?next=console.html" data-i18n="nav.login">登录</a>
+          <a class="btn" href="login.html?next=console.html%23token-plans" data-i18n="nav.login">登录</a>
         </div>
       </div>
     </section>
@@ -66,14 +66,14 @@
         <div class="grid-2">
           <div class="card">
             <h3 style="margin:0 0 8px;" data-i18n="page.pricing.settleCnTitle">微信支付 / 支付宝</h3>
-            <p class="sub" style="margin:0;" data-i18n="page.pricing.settleCnBody">人民币结算：本页套餐卡片上点微信 / 支付宝即可（需登录）。</p>
+            <p class="sub" style="margin:0;" data-i18n="page.pricing.settleCnBody">人民币：登录控制台后，在套餐上选择微信或支付宝完成付款。</p>
           </div>
           <div class="card" id="settlePaypalCard" style="border-color:color-mix(in srgb, #0070ba 35%, var(--border, #d8e4ef));">
             <h3 style="margin:0 0 8px;" data-i18n="page.pricing.settleIntlTitle">PayPal（USD）</h3>
-            <p class="sub" style="margin:0;" data-i18n="page.pricing.settleIntlBody">国际用户：本页套餐点 PayPal（USD）→ 登录后进入收银台 → Token 自动到账。</p>
-            <p class="sub" style="margin:8px 0 0;" data-i18n="page.pricing.settleIntlSteps">流程：选套餐 → PayPal → 登录（如需）→ 付款到账。</p>
+            <p class="sub" style="margin:0;" data-i18n="page.pricing.settleIntlBody">国际用户：控制台套餐上点 PayPal（USD），付款后 Token 自动到账。</p>
+            <p class="sub" style="margin:8px 0 0;" data-i18n="page.pricing.settleIntlSteps">流程：本页选套餐 → 控制台支付 → 到账。</p>
             <p class="sub" style="margin:12px 0 0;">
-              <a class="btn btn-primary" href="login.html?next=console.html%3Fpay%3Dpaypal" data-i18n="page.pricing.ctaPaypal">PayPal 购买</a>
+              <a class="btn btn-primary" href="login.html?next=console.html%23token-plans" data-i18n="page.pricing.ctaPaypal">去控制台用 PayPal</a>
               <a class="btn" href="paypal.html" data-i18n="page.pricing.settleIntlLink">查看 PayPal 收款说明</a>
             </p>
           </div>
@@ -115,7 +115,7 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260801c"></script>
+  <script src="config/locales.js?v=20260801f"></script>
   <script src="js/api.js?v=20260801a"></script>
   <script src="js/i18n.js?v=20260731a"></script>
   <script src="js/shell.js?v=20260731g"></script>
@@ -144,11 +144,10 @@
           .replace(/"/g, "&quot;");
       }
 
-      function payHref(plan, payChannel) {
-        var q = [];
-        if (plan) q.push("plan=" + encodeURIComponent(plan));
-        if (payChannel) q.push("pay=" + encodeURIComponent(payChannel));
-        var path = "console.html" + (q.length ? "?" + q.join("&") : "");
+      /** 只带套餐进控制台结算区；支付通道在控制台点选（唯一收银台） */
+      function buyHref(plan) {
+        var path = "console.html#token-plans";
+        if (plan) path = "console.html?plan=" + encodeURIComponent(plan) + "#token-plans";
         var loggedIn = false;
         try {
           loggedIn = !!(window.AI24X_API && AI24X_API.getAuthToken && AI24X_API.getAuthToken());
@@ -157,56 +156,28 @@
         return "login.html?next=" + encodeURIComponent(path);
       }
 
-      function ico(ch) {
-        if (ch === "wechat") {
-          return '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="#07C160" d="M9.5 4C5.9 4 3 6.5 3 9.6c0 1.8 1 3.3 2.6 4.4L5 16.2l2.4-1.2c.7.2 1.4.3 2.1.3.2 0 .4 0 .6 0-.2-.5-.3-1-.3-1.6 0-3.2 3.1-5.8 6.9-5.8.2 0 .4 0 .6.1C16.4 5.3 13.2 4 9.5 4zm-2.3 3.1c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zm4.6 0c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zM16.8 9c-3.1 0-5.6 2.1-5.6 4.7s2.5 4.7 5.6 4.7c.6 0 1.2-.1 1.8-.3l1.9.9-.5-1.7c1.2-.9 2-2.2 2-3.6C21.9 11.1 19.5 9 16.8 9zm-1.9 3.1c.3 0 .6.3.6.6s-.3.6-.6.6-.6-.3-.6-.6.3-.6.6-.6zm3.8 0c.3 0 .6.3.6.6s-.3.6-.6.6-.6-.3-.6-.6.3-.6.6-.6z"/></svg>';
-        }
-        if (ch === "alipay") {
-          return '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="#1677FF" d="M21.5 12.2c0-4.6-3.4-8.2-8.3-8.2H5.2v16h8.1c4.8 0 8.2-3.5 8.2-7.8zm-9.9 3.3c-2.2 0-3.4-1-3.4-2.5 0-1.6 1.3-2.5 3.5-2.5.6 0 1.2.1 1.8.2-.3.6-.6 1.3-.9 2.1H10c-.5 0-.8.2-.8.6 0 .4.4.7 1.1.7.7 0 1.4-.2 2-.5.2.6.4 1.1.5 1.5-.9.3-1.8.4-2.7.4zm5.7-1.1c-.4.7-.9 1.4-1.5 2-.2-.5-.4-1.1-.5-1.7.7-.1 1.4-.2 2-.3zm1.3-2.5c-.9.2-1.9.4-2.9.8.3-.8.6-1.5 1-2.1.7.3 1.3.8 1.9 1.3z"/></svg>';
-        }
-        if (ch === "paypal") {
-          return '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="#003087" d="M7.2 20.5h1.7l.5-3.1h1.7c3.3 0 5.5-1.4 6.1-4.3.1-.5.1-.9.1-1.2 0-.2 0-.4-.1-.6H19l.1-.5c.4-2.5-.9-4.2-3.8-4.2H9.2L7.2 20.5zm4.2-11.5h1.7c1.3 0 2 .5 1.8 1.7-.2 1.4-1.2 1.7-2.5 1.7h-1.5l.5-3.4z"/><path fill="#009CDE" d="M9.5 21.5h1.7l.4-2.5H13c2.7 0 4.4-1.1 4.9-3.5.1-.4.1-.7.1-1 0-.1 0-.3 0-.4h1.5l.1-.4c.3-2-.7-3.4-3.1-3.4h-4.3l-1.9 11.2h1.7l.5-3.1h1.4c1.1 0 1.7.4 1.5 1.4-.2 1.1-1 1.4-2.1 1.4H10l.5 3.3z"/></svg>';
-        }
-        return "";
-      }
-
-      function payBtn(plan, ch, label, primary) {
-        var cls = "btn btn-pay" + (primary ? " btn-primary" : "");
-        return (
-          '<a class="' +
-          cls +
-          '" href="' +
-          esc(payHref(plan, ch)) +
-          '">' +
-          ico(ch) +
-          "<span>" +
-          esc(label) +
-          "</span></a>"
-        );
-      }
-
       function renderPlans() {
         if (!payload || !grid) return;
         var plans = payload.plans || [];
         var pay = payload.pay || {};
         var zh = AI24X_API.isZhUi();
-        var wx = !!pay.wechat_ready;
-        var ali = !!pay.alipay_ready;
-        var pp = !!pay.paypal_ready;
         st.textContent = zh
           ? pay.enabled
             ? t(
                 "page.pricing.payReady",
-                "可在本页直接下单：微信 / 支付宝 / PayPal（未登录会先引导登录）。控制台可管理 Key 与订单。"
+                "选好套餐后点「去购买」，在控制台用微信 / 支付宝 / PayPal 付款（未登录会先引导登录）。"
               )
             : pay.mock_allowed
-              ? t("page.pricing.payMock", "当前为测试环境，可在控制台完成体验充值。")
+              ? t("page.pricing.payMock", "可在控制台完成体验充值。")
               : t("page.pricing.payClosed", "套餐可浏览；支付暂未开放，请稍后再试。")
           : pay.enabled
-            ? "Pay on this page: WeChat / Alipay / PayPal (login if needed). Console is for keys & orders."
+            ? t(
+                "page.pricing.payReady",
+                "Tap Buy on a plan, then pay with WeChat / Alipay / PayPal in the Console (sign-in if needed)."
+              )
             : pay.mock_allowed
-              ? "Test environment: try a purchase in the console."
-              : "Plans are listed; payment is not open yet.";
+              ? t("page.pricing.payMock", "You can try a purchase in the console.")
+              : t("page.pricing.payClosed", "Plans are listed; payment is not open yet.");
         if (settle) settle.textContent = AI24X_API.planSettleHint(plans[0]);
         grid.innerHTML = "";
         plans.forEach(function (p) {
@@ -222,26 +193,14 @@
             );
           }
           var note = AI24X_API.planNote(p);
-          var actions = '<div class="pricing-plan-actions">';
-          if (wx) actions += payBtn(p.plan, "wechat", zh ? "微信" : "WeChat", false);
-          if (ali) actions += payBtn(p.plan, "alipay", zh ? "支付宝" : "Alipay", false);
-          if (pp) actions += payBtn(p.plan, "paypal", "PayPal", true);
-          if (!wx && !ali && !pp) {
-            actions +=
-              '<a class="btn" href="' +
-              esc(payHref(p.plan, "")) +
-              '">' +
-              esc(zh ? "去控制台" : "Open console") +
-              "</a>";
-          } else {
-            actions +=
-              '<a class="btn" href="' +
-              esc(payHref(p.plan, "")) +
-              '">' +
-              esc(zh ? "控制台" : "Console") +
-              "</a>";
-          }
-          actions += "</div>";
+          var buyLabel = t("page.pricing.ctaBuy", zh ? "去购买" : "Buy");
+          var actions =
+            '<div class="pricing-plan-actions">' +
+            '<a class="btn btn-primary" href="' +
+            esc(buyHref(p.plan)) +
+            '">' +
+            esc(buyLabel) +
+            "</a></div>";
           card.innerHTML =
             "<h3 style=\"margin:0 0 8px;\">" +
             esc(AI24X_API.planTitle(p)) +

@@ -9,9 +9,17 @@ alwaysApply: true
 
 ## 禁止出现在用户端的词（示例）
 
+**运维 / 环境**
+
 - SMTP / PEM / env / `TOKEN_*` / `APP_ENV` / 回调 URL / notify
 - 本地预览、正式环境、联调、副脑、mock 开关说明、未配置 XXX
 - 接口路径、表名、进程名（如 `core-api-8002`）、Nginx/PM2
+
+**供应商 / 内部口径（易写成「开发说明书」）**
+
+- 上游厂商、上游、挂牌、OR / OpenRouter（对用户说品牌档/模型名即可）
+- 开发包折算、对外统一品牌、无需记 XXX（改成用户动作：填写 flash…）
+- L0/L1/L2/L3、QI、failover、NSSM（除非帮助页刻意写给开发者且标明「开发者」）
 
 开发说明写在：**代码注释**、`.env.example`、`docs/联调/**`，不要写进 locales / HTML 默认文案 / API `message`。
 
@@ -22,9 +30,19 @@ alwaysApply: true
 | 未配邮件 | 「邮件服务暂不可用，请稍后再试。」 | 日志：`SMTP not configured` |
 | 本机验证码卡片 | 「验证码」「已填入上方，请设置密码完成注册。」 | 注释：`channel=local` 仅非生产 |
 | 支付未开 | 「在线支付暂未开放。」 | env：`TOKEN_PAY_ENABLED` |
+| 推荐档说明 | 「填写 flash、pro 等即可，新手建议先从 flash 开始。」 | 注释：brand tiers hide upstream |
+| 限购 | 「该优惠套餐每位用户限购一次，请选择其它套餐。」 | 日志：`promo_max_purchases` |
 
-## 改文案时自检
+## 自检清单（改文案必做）
 
 1. 站在「不了解运维的用户」读一遍是否仍通顺  
-2. 中英文 locales 同步改，且英文也不要出现 SMTP 等词  
-3. 后端 `HTTPException(detail=...)` / `AuthEmailSendResponse.message` 同样按用户口吻
+2. 中英文 locales **同步**改，且英文也不要出现 SMTP / upstream vendor 等词  
+3. 后端 `HTTPException(detail=...)` / `AuthEmailSendResponse.message` 同样按用户口吻  
+4. HTML 里的**默认中文**（`data-i18n` 标签内）也要改，不能只改 locales  
+5. 改完可跑：`python scripts/check_user_facing_copy.py`（命中黑名单词即失败）
+
+## 彻底减少复发
+
+- 新功能文案先写「用户会点什么、会看到什么结果」，再落到 locales  
+- Code review：凡改 `locales.js` / 用户可见 `detail=`，对照本规则黑名单扫一眼  
+- 不要把内部架构句（统一品牌、上游、挂牌）直接贴进产品页
