@@ -4,14 +4,45 @@
   <meta charset="UTF-8" />
   <script src="js/i18n-boot.js?v=20260802g"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>China LLM API · Kimi MiMo MiniMax GLM DeepSeek · AI24X</title>
-  <meta name="description" content="Call popular China models with one AI24X key and PayPal USD. Try flash or pro—Kimi, MiMo, MiniMax, GLM, DeepSeek, Qwen." />
-  <meta property="og:description" content="One key for China models. PayPal USD. Start with flash or pro." />
-  <meta property="og:url" content="https://www.ai24x.com/index.html" />
+  <title>China LLM API · OpenAI-compatible · PayPal · AI24X</title>
+  <meta name="description" content="Call China LLMs (Kimi, MiMo, MiniMax, GLM, DeepSeek, Qwen) with one AI24X key. OpenAI-compatible POST /v1/chat/completions plus /v1/chat/run. PayPal USD." />
+  <link rel="canonical" href="https://www.ai24x.com/index.html" />
   <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="AI24X" />
+  <meta property="og:title" content="China LLM API · OpenAI-compatible · PayPal · AI24X" />
+  <meta property="og:description" content="One key for China models. OpenAI-compatible chat completions. PayPal USD. Start with flash or pro." />
+  <meta property="og:url" content="https://www.ai24x.com/index.html" />
+  <meta property="og:image" content="https://www.ai24x.com/img/og-share.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="China LLM API · OpenAI-compatible · AI24X" />
+  <meta name="twitter:description" content="One key for China models. OpenAI-compatible completions. PayPal USD." />
+  <meta name="twitter:image" content="https://www.ai24x.com/img/og-share.png" />
   <link rel="stylesheet" href="css/base.css?v=20260802f" />
   <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260725a" data-base="css/themes/" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "AI24X",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Web",
+    "url": "https://www.ai24x.com/index.html",
+    "description": "China LLM API gateway with OpenAI-compatible chat completions and PayPal USD top-up.",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD",
+      "description": "Free signup; paid token plans available"
+    },
+    "provider": {
+      "@type": "Organization",
+      "name": "AI24X",
+      "url": "https://www.ai24x.com/"
+    }
+  }
+  </script>
 </head>
 <body data-page="index" class="theme-blue">
   <header class="site-header" id="site-header"></header>
@@ -27,8 +58,8 @@
           <span class="tag" data-i18n="page.index.tag3">PayPal (USD) · WeChat/Alipay (CNY)</span>
           <span class="tag" data-i18n="page.index.tag4">Try flash/pro · name a model on VIP</span>
         </div>
-        <p class="sub mt-2" data-i18n-html="page.index.trust"><strong>OpenAI-compatible</strong> · <strong>PayPal USD</strong> · Start with flash / pro tiers</p>
-        <p class="lead mt-2" data-i18n-html="page.index.callout"><strong>Endpoint</strong>: <code>https://api.ai24x.com/v1/chat/run</code> · try <code>flash</code> / <code>pro</code></p>
+        <p class="sub mt-2" data-i18n-html="page.index.trust"><strong>OpenAI-compatible</strong> · <code>POST /v1/chat/completions</code> · <strong>PayPal USD</strong> · Start with flash / pro</p>
+        <p class="lead mt-2" data-i18n-html="page.index.callout"><strong>Endpoints</strong>: <code>https://api.ai24x.com/v1/chat/completions</code> (OpenAI-compatible) · also <code>/v1/chat/run</code> · try <code>flash</code> / <code>pro</code></p>
         <div class="hero-cta">
           <a class="btn btn-primary" href="register.html" data-i18n="page.index.hero.cta.register">Create account</a>
           <a class="btn" href="models/index.html" data-i18n="page.index.hero.cta.models">Browse China models</a>
@@ -41,44 +72,44 @@
 
     <section class="section">
       <div class="container" style="max-width:720px;margin:0 auto;text-align:center">
-        <h2 data-i18n="page.index.start.title"></h2>
-        <p class="sub" data-i18n="page.index.start.sub"></p>
+        <h2 data-i18n="page.index.start.title">Get started in three steps</h2>
+        <p class="sub" data-i18n="page.index.start.sub">Sign up → create an API key in Console → try flash or pro. Top up when you’re ready; VIP members can also pick models by name.</p>
         <div class="hero-cta" style="justify-content:center;margin-top:14px">
-          <a class="btn btn-primary" href="register.html" data-i18n="page.index.hero.cta.register"></a>
-          <a class="btn" href="login.html" data-i18n="nav.login"></a>
-          <a class="btn" href="console.html" data-i18n="page.index.start.btnConsole"></a>
+          <a class="btn btn-primary" href="register.html" data-i18n="page.index.hero.cta.register">Create account</a>
+          <a class="btn" href="login.html" data-i18n="nav.login">Log in</a>
+          <a class="btn" href="console.html" data-i18n="page.index.start.btnConsole">Open console</a>
         </div>
       </div>
     </section>
 
     <section class="section section-alt">
       <div class="container">
-        <h2 data-i18n="page.index.sec1.title"></h2>
-        <p class="sub" data-i18n="page.index.sec1.sub"></p>
+        <h2 data-i18n="page.index.sec1.title">China models, without the hassle</h2>
+        <p class="sub" data-i18n="page.index.sec1.sub">Skip hopping between vendor signups and invoices—one key, clear credits, simple tiers</p>
         <div class="grid-3">
           <div class="card">
-            <h3 data-i18n="page.index.c1t"></h3>
-            <p data-i18n="page.index.c1p"></p>
+            <h3 data-i18n="page.index.c1t">Popular China models in one place</h3>
+            <p data-i18n="page.index.c1p">Kimi, Xiaomi MiMo, MiniMax, Zhipu GLM, DeepSeek, Qwen—and more. Start on a simple tier; VIP can pick by name.</p>
           </div>
           <div class="card">
-            <h3 data-i18n="page.index.c2t"></h3>
-            <p data-i18n="page.index.c2p"></p>
+            <h3 data-i18n="page.index.c2t">Try first, scale when it fits</h3>
+            <p data-i18n="page.index.c2p">Use flash / pro to check quality and spend, then add credits when you need more—easy to understand billing.</p>
           </div>
           <div class="card">
-            <h3 data-i18n="page.index.c3t"></h3>
-            <p data-i18n="page.index.c3p"></p>
+            <h3 data-i18n="page.index.c3t">Pay the way you already pay</h3>
+            <p data-i18n="page.index.c3p">Abroad: PayPal (USD). In China: WeChat Pay / Alipay. Credits are ready to use after top-up.</p>
           </div>
           <div class="card">
-            <h3 data-i18n="page.index.c4t"></h3>
-            <p data-i18n="page.index.c4p"></p>
+            <h3 data-i18n="page.index.c4t">Works with tools you already use</h3>
+            <p data-i18n="page.index.c4p">OpenClaw and common SDK examples help you plug in with less glue code—see Integrations.</p>
           </div>
           <div class="card">
-            <h3 data-i18n="page.index.c5t"></h3>
-            <p data-i18n="page.index.c5p"></p>
+            <h3 data-i18n="page.index.c5t">Invite friends—both get tokens</h3>
+            <p data-i18n="page.index.c5p">Share your invite link: both sides get a signup bonus; you earn more after their first paid top-up (see Referrals).</p>
           </div>
           <div class="card">
-            <h3 data-i18n="page.index.c6t"></h3>
-            <p data-i18n="page.index.c6p"></p>
+            <h3 data-i18n="page.index.c6t">Help when you need it</h3>
+            <p data-i18n="page.index.c6p">Docs and Help center cover most setup questions; ask the in-console assistant anytime. Billing disputes go to human support.</p>
           </div>
         </div>
       </div>
@@ -86,17 +117,22 @@
 
     <section class="section">
       <div class="container">
-        <h2 data-i18n="page.index.sec2.title"></h2>
-        <p class="sub" data-i18n="page.index.sec2.sub"></p>
-        <div class="code-block" aria-label="curl">curl -X POST "https://api.ai24x.com/v1/chat/run" \
+        <h2 data-i18n="page.index.sec2.title">Quick start</h2>
+        <p class="sub" data-i18n="page.index.sec2.sub">OpenAI-compatible completions, or our simple /v1/chat/run. Use tiers like flash or pro. More examples in Docs and Integrations.</p>
+        <div class="code-block" aria-label="curl-completions">curl -X POST "https://api.ai24x.com/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -d "{\"model\":\"flash\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello AI24X\"}],\"stream\":false}"</div>
+        <p class="sub mt-2" data-i18n-html="page.index.sec2.runHint">Also available: <code>POST /v1/chat/run</code> with <code>X-API-Key</code> and a <code>prompt</code> field.</p>
+        <div class="code-block mt-2" aria-label="curl-run">curl -X POST "https://api.ai24x.com/v1/chat/run" \
   -H "Content-Type: application/json" \
   -H "X-API-Key: YOUR_API_KEY" \
   -d "{\"prompt\":\"Hello AI24X\",\"model\":\"flash\",\"temperature\":0.7,\"max_tokens\":200,\"stream\":false}"</div>
         <div class="hero-cta" style="margin-top:16px">
-          <a class="btn" href="models/index.html" data-i18n="btn.models"></a>
-          <a class="btn" href="guides/index.html" data-i18n="btn.guides"></a>
-          <a class="btn" href="help.html" data-i18n="nav.help"></a>
-          <a class="btn" href="refer.html" data-i18n="nav.refer"></a>
+          <a class="btn" href="models/index.html" data-i18n="btn.models">China models</a>
+          <a class="btn" href="guides/index.html" data-i18n="btn.guides">Integrations</a>
+          <a class="btn" href="help.html" data-i18n="nav.help">Help</a>
+          <a class="btn" href="refer.html" data-i18n="nav.refer">Referrals</a>
         </div>
       </div>
     </section>
@@ -104,10 +140,10 @@
 
   <footer class="site-footer" id="site-footer"></footer>
 
-  <script src="config/locales.js?v=20260802h"></script>
+  <script src="config/locales.js?v=20260802i"></script>
   <script src="js/api.js?v=20260801f"></script>
   <script src="js/utm.js?v=20260802a"></script>
-<script src="js/i18n.js?v=20260802g"></script>
+  <script src="js/i18n.js?v=20260802g"></script>
   <script src="js/shell.js?v=20260802f"></script>
   <script src="js/app.js?v=20260802f"></script>
   <script src="js/support-widget.js?v=20260731i"></script>

@@ -47,9 +47,9 @@
     "page.index.tag3": "PayPal（USD）· 微信/支付宝（CNY）",
     "page.index.tag4": "先试 flash/pro · 会员可点名",
     "page.index.trust":
-      "<strong>OpenAI 兼容</strong> · <strong>PayPal 美元</strong> · 从 flash / pro 起步",
+      "<strong>OpenAI 兼容</strong> · <code>POST /v1/chat/completions</code> · <strong>PayPal 美元</strong> · 从 flash / pro 起步",
     "page.index.callout":
-      "<strong>统一接口</strong>：<code>https://api.ai24x.com/v1/chat/run</code> · 推荐档位 <code>flash</code> / <code>pro</code>",
+      "<strong>接口</strong>：<code>https://api.ai24x.com/v1/chat/completions</code>（OpenAI 兼容）· 亦支持 <code>/v1/chat/run</code> · 推荐 <code>flash</code> / <code>pro</code>",
     "page.index.hero.cta.register": "免费注册",
     "page.index.hero.cta.models": "浏览中国名模",
     "page.index.hero.cta.a": "AI 行情官｜灯塔版",
@@ -74,7 +74,8 @@
     "page.index.c6t": "有问题先自助，再找人",
     "page.index.c6p": "使用说明、帮助中心随时可查；控制台里也能问助手。支付争议可走人工处理。",
     "page.index.sec2.title": "快速接入",
-    "page.index.sec2.sub": "请求里请使用档位名 flash 或 pro。更多示例见使用说明与接入案例。",
+    "page.index.sec2.sub": "可用 OpenAI 兼容的 completions，或简单的 /v1/chat/run。请求里填 flash 或 pro。更多示例见使用说明与接入案例。",
+    "page.index.sec2.runHint": "亦可：<code>POST /v1/chat/run</code>，用 <code>X-API-Key</code> 与 <code>prompt</code> 字段。",
     "btn.docs": "查看使用说明",
     "btn.product": "了解产品",
     "btn.models": "中国名模",
@@ -541,9 +542,9 @@
     "page.index.tag3": "PayPal (USD) · WeChat/Alipay (CNY)",
     "page.index.tag4": "Try flash/pro · name a model on VIP",
     "page.index.trust":
-      "<strong>OpenAI-compatible</strong> · <strong>PayPal USD</strong> · Start with flash / pro tiers",
+      "<strong>OpenAI-compatible</strong> · <code>POST /v1/chat/completions</code> · <strong>PayPal USD</strong> · Start with flash / pro",
     "page.index.callout":
-      "<strong>Endpoint</strong>: <code>https://api.ai24x.com/v1/chat/run</code> · try <code>flash</code> / <code>pro</code>",
+      "<strong>Endpoints</strong>: <code>https://api.ai24x.com/v1/chat/completions</code> (OpenAI-compatible) · also <code>/v1/chat/run</code> · try <code>flash</code> / <code>pro</code>",
     "page.index.hero.cta.register": "Create account",
     "page.index.hero.cta.models": "Browse China models",
     "page.index.hero.cta.a": "Market Watch (CN app)",
@@ -574,7 +575,9 @@
       "Docs and Help center cover most setup questions; ask the in-console assistant anytime. Billing disputes go to human support.",
     "page.index.sec2.title": "Quick start",
     "page.index.sec2.sub":
-      "Send tier names like flash or pro in your request. More examples in Docs and Integrations.",
+      "OpenAI-compatible completions, or our simple /v1/chat/run. Use tiers like flash or pro. More examples in Docs and Integrations.",
+    "page.index.sec2.runHint":
+      "Also available: <code>POST /v1/chat/run</code> with <code>X-API-Key</code> and a <code>prompt</code> field.",
     "btn.docs": "View docs",
     "btn.product": "Explore product",
     "btn.models": "China models",
