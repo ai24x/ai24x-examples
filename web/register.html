@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <script src="js/i18n-boot.js?v=20260802g"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>注册 · AI24X</title>
+  <title>Sign up · AI24X</title>
   <link rel="stylesheet" href="css/base.css?v=20260802f" />
   <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260725a" data-base="css/themes/" />
   <style>
@@ -40,48 +40,48 @@
   <main class="page-main">
     <section class="section">
       <div class="container" style="max-width:480px">
-        <h1 data-i18n="auth.register.title">注册</h1>
-        <p class="sub" data-i18n="auth.register.sub">当前开放邮箱注册。手机短信注册稍后接入。</p>
+        <h1 data-i18n="auth.register.title">Sign up</h1>
+        <p class="sub" data-i18n="auth.register.sub">Email sign-up is open. China mobile verification is used by other products where needed.</p>
         <div class="callout mt-2" id="auth-closed-banner" role="status" data-i18n-html="auth.closed.banner">
-          <strong>温馨提示</strong>：当前环境<strong>暂未开放</strong>注册与登录。
+          <strong>Notice</strong>: Sign-up / sign-in are not open in this environment.
         </div>
         <form class="card mt-2" id="form-register">
           <fieldset class="auth-fieldset-preview" id="reg-fieldset" disabled>
           <div class="form-group">
-            <label data-i18n="auth.register.email">邮箱</label>
+            <label data-i18n="auth.register.email">Email</label>
             <input id="reg-email" name="email" type="email" class="input" autocomplete="email" required />
           </div>
           <div class="form-group form-group-otp-inline">
-            <label data-i18n="auth.register.emailCode">邮箱验证码</label>
+            <label data-i18n="auth.register.emailCode">Email code</label>
             <div class="form-otp-row">
               <input id="reg-email-code" name="email_code" type="text" inputmode="numeric" maxlength="6" class="input" autocomplete="one-time-code" required />
-              <button type="button" class="btn btn-otp-send" id="reg-btn-send-email" data-i18n="auth.register.sendCode">获取验证码</button>
+              <button type="button" class="btn btn-otp-send" id="reg-btn-send-email" data-i18n="auth.register.sendCode">Send code</button>
             </div>
             <div class="otp-local-box" id="reg-otp-local" aria-live="polite">
-              <div class="otp-local-label" data-i18n="auth.register.otpLocal">验证码</div>
+              <div class="otp-local-label" data-i18n="auth.register.otpLocal">Verification code</div>
               <div class="otp-local-code" id="reg-otp-code">------</div>
-              <div class="otp-local-hint" data-i18n="auth.register.otpHint">已填入上方，请设置密码完成注册。</div>
+              <div class="otp-local-hint" data-i18n="auth.register.otpHint">Filled above — set a password to finish.</div>
             </div>
           </div>
           <div class="form-group">
-            <label data-i18n="auth.register.password">密码（至少 6 位）</label>
+            <label data-i18n="auth.register.password">Password (min 6 chars)</label>
             <input name="password" type="password" class="input" required minlength="6" autocomplete="new-password" />
           </div>
           <div class="form-group">
-            <label data-i18n="auth.register.invite">邀请码（可选）</label>
-            <input id="reg-invite" name="invite_code" type="text" class="input" maxlength="32" data-i18n-placeholder="auth.register.invitePh" placeholder="选填" />
-            <p class="sub" style="margin:6px 0 0;" data-i18n="auth.register.inviteHint">填写有效邀请码：双方各送 5000 token。</p>
+            <label data-i18n="auth.register.invite">Invite code (optional)</label>
+            <input id="reg-invite" name="invite_code" type="text" class="input" maxlength="32" data-i18n-placeholder="auth.register.invitePh" placeholder="Optional" />
+            <p class="sub" style="margin:6px 0 0;" data-i18n="auth.register.inviteHint">Valid invite: both sides get 5000 tokens.</p>
           </div>
-          <button type="submit" class="btn btn-primary" data-i18n="auth.register.submit">注册</button>
+          <button type="submit" class="btn btn-primary" data-i18n="auth.register.submit">Create account</button>
           <div id="reg-msg"></div>
           </fieldset>
         </form>
-        <p class="mt-2 sub" data-i18n-html="auth.closed.footerRegister"><a href="login.html">登录</a> · <a href="console.html">控制台</a></p>
+        <p class="mt-2 sub" data-i18n-html="auth.closed.footerRegister"><a href="login.html">Log in</a> · <a href="console.html">Console</a></p>
       </div>
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260801g"></script>
+  <script src="config/locales.js?v=20260802h"></script>
   <script src="js/api.js?v=20260801f"></script>
   <script src="js/invite.js?v=20260731a"></script>
   <script src="js/i18n.js?v=20260802g"></script>
@@ -103,12 +103,12 @@
       var inpCode = document.getElementById("reg-email-code");
       otpBox.classList.remove("is-on");
       if (!AI24X_API.isLocalAuthOpen()) {
-        box.innerHTML = '<div class="alert alert-error">' + t("auth.closed.registerBlocked", "暂未开放。") + "</div>";
+        box.innerHTML = '<div class="alert alert-error">' + t("auth.closed.registerBlocked", "Not open yet.") + "</div>";
         return;
       }
       var email = (document.getElementById("reg-email").value || "").trim();
       if (!email) {
-        box.innerHTML = '<div class="alert alert-error">' + t("auth.register.needEmail", "请先填写邮箱") + "</div>";
+        box.innerHTML = '<div class="alert alert-error">' + t("auth.register.needEmail", "Enter your email first") + "</div>";
         return;
       }
       AI24X_API.authEmailSend({ email: email, purpose: "register" })
@@ -119,7 +119,7 @@
             otpCode.textContent = String(code);
             otpBox.classList.add("is-on");
             if (inpCode) inpCode.value = String(code);
-            box.innerHTML = '<div class="alert alert-success">' + t("auth.register.codeReady", "验证码已就绪，请继续设置密码。") + "</div>";
+            box.innerHTML = '<div class="alert alert-success">' + t("auth.register.codeReady", "Code ready — continue with your password.") + "</div>";
             return;
           }
           otpBox.classList.remove("is-on");
@@ -127,9 +127,9 @@
             (r && r.message) ||
             (r && r.ok
               ? channel === "smtp"
-                ? t("auth.register.codeSentSmtp", "验证码已发送到邮箱，请查收（含垃圾箱）。")
-                : t("auth.register.codeSent", "验证码已发送")
-              : t("auth.register.sendFail", "发送失败"));
+                ? t("auth.register.codeSentSmtp", "Code sent to your email (check spam).")
+                : t("auth.register.codeSent", "Code sent. Check your email.")
+              : t("auth.register.sendFail", "Failed to send"));
           box.innerHTML =
             '<div class="alert ' +
             (r && r.ok ? "alert-success" : "alert-error") +
@@ -138,7 +138,7 @@
             "</div>";
         })
         .catch(function (e) {
-          box.innerHTML = '<div class="alert alert-error">' + (e.message || t("auth.register.sendFail", "失败")) + "</div>";
+          box.innerHTML = '<div class="alert alert-error">' + (e.message || t("auth.register.sendFail", "Failed to send")) + "</div>";
         });
     });
 
@@ -146,7 +146,7 @@
       e.preventDefault();
       var box = document.getElementById("reg-msg");
       if (!AI24X_API.isLocalAuthOpen()) {
-        box.innerHTML = '<div class="alert alert-error">' + t("auth.closed.registerBlocked", "暂未开放。") + "</div>";
+        box.innerHTML = '<div class="alert alert-error">' + t("auth.closed.registerBlocked", "Not open yet.") + "</div>";
         return;
       }
       var password = (document.querySelector('#form-register input[name="password"]').value || "").trim();
@@ -163,7 +163,7 @@
           location.href = "console.html";
         })
         .catch(function (err) {
-          box.innerHTML = '<div class="alert alert-error">' + (err.message || t("auth.register.fail", "注册失败")) + "</div>";
+          box.innerHTML = '<div class="alert alert-error">' + (err.message || t("auth.register.fail", "Sign-up failed")) + "</div>";
         });
     });
 

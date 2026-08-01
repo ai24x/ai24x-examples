@@ -1,14 +1,15 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <script src="js/i18n-boot.js?v=20260802g"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>价格计费 · AI24X</title>
+  <title>Pricing · AI24X Token API</title>
+  <meta name="description" content="AI24X token plans: choose a pack, pay in Console with PayPal USD (or WeChat/Alipay). Keys and balance in one place." />
   <link rel="stylesheet" href="css/base.css?v=20260802f" />
   <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260725a" data-base="css/themes/" />
   <style>
-    /* 套餐卡等高，按钮贴底对齐同一水平线 */
+    /* Equal-height plan cards; actions stick to bottom */
     #tokenPlansGrid {
       align-items: stretch;
     }
@@ -39,76 +40,43 @@
   <main class="page-main">
     <section class="hero hero-surface section-tight">
       <div class="container">
-        <h1 data-i18n="page.pricing.title">价格计费</h1>
-        <p class="lead" data-i18n="page.pricing.sub">先在本页选好套餐，再到控制台完成支付；Key、订单与余额也在控制台。</p>
+        <h1 data-i18n="page.pricing.title">Pricing</h1>
+        <p class="lead" data-i18n="page.pricing.sub">Choose a plan here, then pay in the Console. Keys, orders, and balance live there too.</p>
         <p class="callout mt-2" data-i18n="page.pricing.callout">
-          高性价比中国模型 API，按需选购额度与 Pro 权益。
+          Try flash / pro first, then add credits as you go. VIP members can also pick Kimi, MiMo, MiniMax, GLM, and more by name.
         </p>
       </div>
     </section>
 
     <section class="section">
       <div class="container" style="max-width:980px;">
-        <h2 style="margin:0 0 10px;" data-i18n="page.pricing.tokenTitle">Token 套餐</h2>
-        <p class="sub" id="tokenPayStatus" style="margin:0 0 14px;" data-i18n="page.pricing.loading">加载套餐中…</p>
+        <h2 style="margin:0 0 10px;" data-i18n="page.pricing.tokenTitle">Token plans</h2>
+        <p class="sub" id="tokenPayStatus" style="margin:0 0 14px;" data-i18n="page.pricing.loading">Loading plans…</p>
         <p class="sub" id="tokenSettleHint" style="margin:0 0 14px;"></p>
         <div class="grid-3" id="tokenPlansGrid"></div>
         <div class="hero-cta" style="margin-top:14px;">
-          <a class="btn btn-primary" href="console.html#token-plans" data-i18n="page.pricing.ctaConsole">去控制台购买 / 管理 Key</a>
-          <a class="btn" href="paypal.html" data-i18n="page.pricing.settleIntlLink">查看 PayPal 收款说明</a>
-          <a class="btn" href="login.html?next=console.html%23token-plans" data-i18n="nav.login">登录</a>
+          <a class="btn btn-primary" href="console.html#token-plans" data-i18n="page.pricing.ctaConsole">Buy / manage keys in Console</a>
+          <a class="btn" href="paypal.html" data-i18n="page.pricing.settleIntlLink">PayPal checkout guide</a>
+          <a class="btn" href="login.html?next=console.html%23token-plans" data-i18n="nav.login">Log in</a>
         </div>
       </div>
     </section>
 
     <section class="section section-alt" id="settleSection">
       <div class="container" style="max-width:980px;">
-        <h2 style="margin:0 0 10px;" data-i18n="page.pricing.settleTitle">支付方式</h2>
+        <h2 style="margin:0 0 10px;" data-i18n="page.pricing.settleTitle">Payment</h2>
         <div class="grid-2">
           <div class="card">
-            <h3 style="margin:0 0 8px;" data-i18n="page.pricing.settleCnTitle">微信支付 / 支付宝</h3>
-            <p class="sub" style="margin:0;" data-i18n="page.pricing.settleCnBody">人民币：登录控制台后，在套餐上选择微信或支付宝完成付款。</p>
+            <h3 style="margin:0 0 8px;" data-i18n="page.pricing.settleCnTitle">WeChat Pay / Alipay</h3>
+            <p class="sub" style="margin:0;" data-i18n="page.pricing.settleCnBody">CNY: sign in to the Console, then choose WeChat or Alipay on a plan.</p>
           </div>
           <div class="card" id="settlePaypalCard" style="border-color:color-mix(in srgb, #0070ba 35%, var(--border, #d8e4ef));">
-            <h3 style="margin:0 0 8px;" data-i18n="page.pricing.settleIntlTitle">PayPal（USD）</h3>
-            <p class="sub" style="margin:0;" data-i18n="page.pricing.settleIntlBody">国际用户：控制台套餐上点 PayPal（USD），付款后 Token 自动到账。</p>
-            <p class="sub" style="margin:8px 0 0;" data-i18n="page.pricing.settleIntlSteps">流程：本页选套餐 → 控制台支付 → 到账。</p>
+            <h3 style="margin:0 0 8px;" data-i18n="page.pricing.settleIntlTitle">PayPal (USD)</h3>
+            <p class="sub" style="margin:0;" data-i18n="page.pricing.settleIntlBody">International: tap PayPal (USD) on a Console plan; tokens credit after checkout.</p>
+            <p class="sub" style="margin:8px 0 0;" data-i18n="page.pricing.settleIntlSteps">Choose plan → Console → PayPal → credits.</p>
             <p class="sub" style="margin:12px 0 0;">
-              <a class="btn btn-primary" href="login.html?next=console.html%23token-plans" data-i18n="page.pricing.ctaPaypal">去控制台用 PayPal</a>
-              <a class="btn" href="paypal.html" data-i18n="page.pricing.settleIntlLink">查看 PayPal 收款说明</a>
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" data-i18n-zh-only>
-      <div class="container" style="max-width:980px;">
-        <h2 style="margin:0 0 10px;">AI 行情官｜灯塔版</h2>
-        <p class="sub" style="margin:0 0 14px;">
-          信号查询额度（与上方 Token 钱包无关）。内容仅供学习交流，不构成任何建议。
-        </p>
-        <div class="grid-3">
-          <div class="card">
-            <h3 style="margin:0 0 8px;">体验卡</h3>
-            <p class="sub" style="margin:0;">适合先体验流程与稳定性。</p>
-            <p class="sub" style="margin:10px 0 0;">
-              <a class="btn" href="http://127.0.0.1:18001/account.html#vip">本地开通</a>
-              <a class="btn" href="https://a.ai24x.com/account.html#vip" target="_blank" rel="noopener">线上</a>
-            </p>
-          </div>
-          <div class="card">
-            <h3 style="margin:0 0 8px;">月卡</h3>
-            <p class="sub" style="margin:0;">适合高频使用。</p>
-            <p class="sub" style="margin:10px 0 0;">
-              <a class="btn btn-primary" href="http://127.0.0.1:18001/account.html#vip">本地开通</a>
-            </p>
-          </div>
-          <div class="card">
-            <h3 style="margin:0 0 8px;">年卡</h3>
-            <p class="sub" style="margin:0;">适合长期使用。</p>
-            <p class="sub" style="margin:10px 0 0;">
-              <a class="btn btn-primary" href="http://127.0.0.1:18001/demo.html">去体验</a>
+              <a class="btn btn-primary" href="login.html?next=console.html%23token-plans" data-i18n="page.pricing.ctaPaypal">PayPal in Console</a>
+              <a class="btn" href="paypal.html" data-i18n="page.pricing.settleIntlLink">PayPal checkout guide</a>
             </p>
           </div>
         </div>
@@ -116,7 +84,7 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260801g"></script>
+  <script src="config/locales.js?v=20260802h"></script>
   <script src="js/api.js?v=20260801f"></script>
   <script src="js/i18n.js?v=20260802g"></script>
   <script src="js/shell.js?v=20260802f"></script>
@@ -145,7 +113,7 @@
           .replace(/"/g, "&quot;");
       }
 
-      /** 只带套餐进控制台结算区；支付通道在控制台点选（唯一收银台） */
+      /** Plan only into Console checkout; pick channel there */
       function buyHref(plan) {
         var path = "console.html#token-plans";
         if (plan) path = "console.html?plan=" + encodeURIComponent(plan) + "#token-plans";
@@ -223,7 +191,7 @@
           renderPlans();
         })
         .catch(function (e) {
-          st.textContent = e.message || t("page.pricing.loadFail", "套餐加载失败");
+          st.textContent = e.message || t("page.pricing.loadFail", "Failed to load plans");
         });
 
       var langSel = document.getElementById("lang-select");

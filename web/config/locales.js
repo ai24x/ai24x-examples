@@ -46,6 +46,8 @@
     "page.index.tag2": "统一接口 · api.ai24x.com",
     "page.index.tag3": "PayPal（USD）· 微信/支付宝（CNY）",
     "page.index.tag4": "先试 flash/pro · 会员可点名",
+    "page.index.trust":
+      "<strong>OpenAI 兼容</strong> · <strong>PayPal 美元</strong> · 从 flash / pro 起步",
     "page.index.callout":
       "<strong>统一接口</strong>：<code>https://api.ai24x.com/v1/chat/run</code> · 推荐档位 <code>flash</code> / <code>pro</code>",
     "page.index.hero.cta.register": "免费注册",
@@ -285,7 +287,7 @@
     "page.pricing.settleCnBody": "人民币：登录控制台后，在套餐上选择微信或支付宝完成付款。",
     "page.pricing.settleIntlTitle": "PayPal（USD）",
     "page.pricing.settleIntlBody": "国际用户：控制台套餐上点 PayPal（USD），付款后 Token 自动到账。",
-    "page.pricing.settleIntlSteps": "流程：本页选套餐 → 控制台支付 → 到账。",
+    "page.pricing.settleIntlSteps": "选套餐 → 控制台 → PayPal → 到账。",
     "page.pricing.settleIntlLink": "查看 PayPal 收款说明",
     "page.pricing.p1": "入门包、开发包、Pro 月卡、Scale 组合包任选。",
     "page.pricing.p2": "中文界面显示人民币价格；PayPal 按美元结算。",
@@ -538,6 +540,8 @@
     "page.index.tag2": "Single endpoint · api.ai24x.com",
     "page.index.tag3": "PayPal (USD) · WeChat/Alipay (CNY)",
     "page.index.tag4": "Try flash/pro · name a model on VIP",
+    "page.index.trust":
+      "<strong>OpenAI-compatible</strong> · <strong>PayPal USD</strong> · Start with flash / pro tiers",
     "page.index.callout":
       "<strong>Endpoint</strong>: <code>https://api.ai24x.com/v1/chat/run</code> · try <code>flash</code> / <code>pro</code>",
     "page.index.hero.cta.register": "Create account",
@@ -789,7 +793,7 @@
     "page.pricing.settleCnBody": "CNY: sign in to the Console, then choose WeChat or Alipay on a plan.",
     "page.pricing.settleIntlTitle": "PayPal (USD)",
     "page.pricing.settleIntlBody": "International: tap PayPal (USD) on a Console plan; tokens credit after checkout.",
-    "page.pricing.settleIntlSteps": "Flow: pick a plan here → pay in Console → credited.",
+    "page.pricing.settleIntlSteps": "Choose plan → Console → PayPal → credits.",
     "page.pricing.settleIntlLink": "PayPal checkout guide",
     "page.pricing.p1": "Starter, Builder, Pro Pass, and Scale packs.",
     "page.pricing.p2": "English UI shows USD prices; PayPal settles in USD.",
