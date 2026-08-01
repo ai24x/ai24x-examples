@@ -1016,7 +1016,7 @@
 
     /* max-device-width：华为等浏览器常“宽布局视口 + 缩放显示”，仅 max-width 可能不生效 */
     @media (max-width: 640px), (max-device-width: 640px) {
-      /* 手机：查询区变窄变短 — 输入独占一行，按钮下一行两列；字号 16 防聚焦放大 */
+      /* 手机紧凑：查询一行三列（表单 50% | 查询 25% | 分享 25%），字号 16 防聚焦放大 */
       .wrap {
         padding-left: 8px !important;
         padding-right: 8px !important;
@@ -1024,34 +1024,40 @@
         box-sizing: border-box;
       }
       .quote-section {
-        padding: 12px 10px 12px;
-        margin-bottom: 12px;
+        padding: 8px 8px 10px;
+        margin-bottom: 10px;
       }
       .search-row {
-        display: flex;
-        flex-direction: column;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         align-items: stretch;
-        flex-wrap: nowrap;
-        gap: 8px;
+        gap: 6px;
         width: 100%;
         max-width: 100%;
+        margin-bottom: 4px;
       }
       .search-row input[type="text"],
       .search-row input[type="search"],
       .search-row #stock-query,
       .search-row #stock-query:focus {
-        flex: none;
+        grid-column: 1;
+        grid-row: 1;
         width: 100% !important;
         max-width: 100% !important;
         min-width: 0 !important;
+        height: 36px;
+        min-height: 36px;
         font-size: 16px !important;
-        padding: 10px 12px;
+        padding: 0 10px;
       }
       .search-row-actions {
+        grid-column: 2;
+        grid-row: 1;
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 8px;
+        gap: 6px;
         width: 100%;
+        min-width: 0;
       }
       .search-row-actions button,
       .search-row #btn-share,
@@ -1060,25 +1066,32 @@
       .chart-tools #btn-wl-panel {
         height: 36px;
         min-height: 36px;
-        padding: 0 12px;
-        font-size: 13px;
+        padding: 0 6px;
+        font-size: 12px;
         box-sizing: border-box;
       }
       .search-row-actions button,
       .search-row #btn-share {
         width: 100%;
+        min-width: 0;
       }
       .search-row #btn-share {
-        gap: 4px;
+        gap: 0;
         box-shadow: none;
         letter-spacing: 0;
       }
+      .search-row #btn-share .dot { display: none; }
       #quote-status {
-        flex: none;
+        grid-column: 1 / -1;
+        grid-row: 2;
         min-width: 0 !important;
+        min-height: 0;
         width: 100%;
         max-width: 100%;
+        margin: 0;
+        font-size: 11px;
       }
+      #quote-status:empty { display: none; }
     }
 
     .topbar {
@@ -1377,29 +1390,31 @@
     .load-error b { color: var(--warn); font-weight: 900; }
     .load-error code { background: rgba(0,0,0,0.18); }
 
-    @media (max-width: 640px) {
+    @media (max-width: 640px), (max-device-width: 640px) {
       .quote-head {
         flex-direction: column;
         align-items: stretch;
-        gap: 8px;
-        margin-bottom: 8px;
+        gap: 4px;
+        margin-bottom: 4px;
       }
       .quote-head .period-tabs {
         justify-content: flex-start;
+        margin-bottom: 0;
+        gap: 6px;
       }
       .period-tools {
         justify-content: space-between;
         width: 100%;
-        gap: 8px;
+        gap: 6px;
       }
       .chart-tools #btn-fav,
       .chart-tools #btn-wl-panel {
         height: 36px;
         min-height: 36px;
-        padding: 0 12px;
-        font-size: 13px;
+        padding: 0 10px;
+        font-size: 12px;
       }
-      .chart-tools #btn-wl-panel { min-width: 52px; }
+      .chart-tools #btn-wl-panel { min-width: 48px; }
       .theme-row {
         justify-content: flex-start;
       }
@@ -1412,26 +1427,36 @@
         min-height: 280px;
       }
       .quote-live {
-        margin: 0 0 6px;
-        padding: 8px 10px;
+        margin: 0 0 4px;
+        padding: 6px 8px;
         font-size: 11px;
-        line-height: 1.45;
+        line-height: 1.4;
       }
+      .load-error {
+        margin: 4px 0 0;
+        padding: 8px 10px;
+      }
+      /* 白名单芯片：去掉与上方查询行之间的多余空隙 */
       .sample-chips {
         flex-wrap: nowrap;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
         gap: 6px;
-        margin: 0 0 6px;
-        padding-bottom: 2px;
+        margin: 0 0 4px;
+        padding: 0;
       }
       .sample-chips .chip-label { display: none; }
       .sample-chips button {
         flex: 0 0 auto;
-        padding: 6px 10px;
+        padding: 5px 10px;
         font-size: 12px;
       }
-      .search-row { margin-bottom: 8px; gap: 6px; }
+      .pick-list { margin-bottom: 6px; }
+      .quote-title { margin: 0; min-height: 0; }
+      .quote-head-title:empty,
+      .quote-head-title:has(#quota-kv[hidden]) {
+        display: none;
+      }
       .quote-head-title { min-width: 0; max-width: 100%; }
       .period-tools { max-width: 100%; min-width: 0; }
       .watchlist-panel {
@@ -1449,12 +1474,17 @@
       .st-label-short { display: inline !important; }
       .page-main.wrap,
       main.wrap {
-        padding-top: 8px;
+        padding-top: 6px;
         padding-bottom: 10px;
       }
-      .invite-banner {
-        margin-bottom: 8px;
+      .disclaimer-bar {
+        margin: 0 0 6px;
         padding: 8px 10px;
+        font-size: 12px;
+      }
+      .invite-banner {
+        margin-bottom: 6px;
+        padding: 6px 8px;
       }
       .invite-banner .ib-copy .sub { display: none; }
       .hint { display: none; }
@@ -1891,7 +1921,7 @@
   </main>
   <footer class="site-footer" id="site-footer"></footer>
 
-  <script src="/js/shell.js?v=38"></script>
+  <script src="/js/shell.js?v=39"></script>
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("demo"); } catch (e) {}
   </script>

@@ -8,7 +8,7 @@
 (() => {
   "use strict";
 
-  const CACHE_VERSION = "ai24x-a1-static-v38";
+  const CACHE_VERSION = "ai24x-a1-static-v39";
   const CACHE_NAME = CACHE_VERSION;
 
   /** @param {string} p */
