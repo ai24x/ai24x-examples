@@ -353,6 +353,7 @@
         btn.className = cls + (channel !== "mock" ? " btn-pay" : "");
         var ico = channel !== "mock" ? payIconSvg(channel) : "";
         btn.innerHTML = ico + "<span>" + label + "</span>";
+        btn.setAttribute("data-pay-channel", channel);
         btn.addEventListener("click", function () {
           buyPlan(p.plan, channel, p);
         });
@@ -414,27 +415,28 @@
         card.style.outline = "2px solid #0070ba";
         card.style.outlineOffset = "2px";
       }
-      if (wantPay === "paypal" && card) {
-        var pp = Array.prototype.slice.call(card.querySelectorAll("button")).find(function (b) {
-          return (b.textContent || "").trim() === "PayPal";
-        });
-        if (pp) {
+      if (wantPay && card) {
+        var chBtn = card.querySelector('button[data-pay-channel="' + wantPay + '"]');
+        if (chBtn && !chBtn.disabled) {
           showMsg(
             $("consoleMsg"),
-            tr("已定位到套餐，请点击 PayPal 完成付款。", "Plan ready — tap PayPal to pay."),
+            tr(
+              "已从价格页带入套餐，正在打开支付…",
+              "Plan from pricing — opening checkout…"
+            ),
             true
           );
           setTimeout(function () {
             try {
-              pp.focus();
-            } catch (e) {}
-          }, 300);
+              chBtn.click();
+            } catch (e2) {}
+          }, 350);
         } else {
           showMsg(
             $("consoleMsg"),
             tr(
-              "PayPal 通道未就绪，请稍后再试或联系客服。",
-              "PayPal is not ready yet. Try again later."
+              "支付通道未就绪或未登录，请在下方套餐手动选择。",
+              "Pay channel not ready — pick a button on the plan card."
             ),
             false
           );

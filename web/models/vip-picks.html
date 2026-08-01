@@ -1,13 +1,52 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>VIP named models · China &amp; International | AI24X</title>
-  <meta name="description" content="VIP members can pick China and international models by name. Start with flash/pro, then name a model." />
+  <title>模型调用名 · AI24X 品牌档与 VIP 点名</title>
+  <meta name="description" content="AI24X brand tiers auto/flash/pro/ultra/shared, plus VIP named China and international models." />
   <link rel="canonical" href="https://www.ai24x.com/models/vip-picks.html" />
-  <link rel="stylesheet" href="../css/base.css?v=20260801b" />
+  <link rel="stylesheet" href="../css/base.css?v=20260801c" />
   <link id="theme-css" rel="stylesheet" href="../css/themes/theme-blue.css?v=20260725a" data-base="../css/themes/" />
+  <style>
+    .model-table-wrap { overflow: auto; margin: 10px 0 22px; border: 1px solid var(--border, #d8e4ef); border-radius: 10px; }
+    .model-table-wrap table { margin: 0; width: 100%; border-collapse: collapse; font-size: 13px; }
+    .model-table-wrap th {
+      background: rgba(15, 23, 42, 0.04);
+      font-weight: 600;
+      color: var(--muted);
+      white-space: nowrap;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border, #d8e4ef);
+      text-align: left;
+    }
+    .model-table-wrap td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+      vertical-align: top;
+    }
+    .model-table-wrap tr:last-child td { border-bottom: none; }
+    .model-table-wrap tr:hover td { background: rgba(37, 99, 235, 0.04); }
+    .pill-brand {
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(37, 99, 235, 0.35);
+      color: #1d4ed8;
+      background: rgba(37, 99, 235, 0.08);
+      white-space: nowrap;
+    }
+    .pill-vip {
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+  </style>
 </head>
 <body data-page="models" class="theme-blue">
   <header class="site-header" id="site-header"></header>
@@ -15,8 +54,8 @@
     <section class="hero hero-surface section-tight">
       <div class="container">
         <p class="sub"><a href="index.html" data-i18n="page.models.all">全部名模</a></p>
-        <h1 data-i18n="page.models.vip.h1">VIP 点名名模</h1>
-        <p class="lead" data-i18n="page.models.vip.lead">开通 VIP 后，可按名称选用中国或国际名模。倍率越高，钱包消耗越多；预估费用按开发包折算，仅供参考。</p>
+        <h1 data-i18n="page.models.vip.h1">模型调用名</h1>
+        <p class="lead" data-i18n="page.models.vip.lead">先用 AI24X 品牌档位（auto / flash / pro / ultra / shared）；会员还可按名称点用中国与国际名模。倍率越高，钱包消耗越多。</p>
         <div class="hero-cta">
           <a class="btn btn-primary" href="../pricing.html" data-i18n="nav.pricing">价格</a>
           <a class="btn" href="../console.html" data-i18n="nav.console">控制台</a>
@@ -25,39 +64,40 @@
       </div>
     </section>
     <section class="section">
-      <div class="container" style="max-width:860px">
+      <div class="container" style="max-width:960px">
         <h2 data-i18n="page.models.vip.how">怎么用</h2>
         <ol>
           <li data-i18n="page.models.vip.s1">注册并创建 API Key</li>
-          <li data-i18n="page.models.vip.s2">购买带 VIP 天数的 Token 套餐</li>
-          <li data-i18n="page.models.vip.s3">在控制台选择模型，或请求里填写下表调用名</li>
+          <li data-i18n="page.models.vip.s2">在价格页或控制台购买 Token 套餐（点名需带 VIP 天数）</li>
+          <li data-i18n="page.models.vip.s3">请求里填调用名：优先品牌档；会员可填下表点名</li>
         </ol>
-        <h2 class="mt-2" data-i18n="page.models.vip.list">可点名清单</h2>
-        <p class="sub" data-i18n="page.models.vip.listHint">清单随服务实时更新。</p>
 
-        <h3 class="mt-2" data-i18n="page.models.vip.groupChina">中国名模</h3>
-        <div style="overflow:auto">
+        <h2 class="mt-2" data-i18n="page.models.vip.brandTitle">AI24X 品牌档位</h2>
+        <p class="sub" data-i18n="page.models.vip.brandHint">对外统一品牌，无需记上游厂商。新用户建议从 flash 起步。</p>
+        <div class="model-table-wrap">
           <table>
             <thead>
               <tr>
+                <th data-i18n="page.models.vip.col.group">分组</th>
                 <th data-i18n="page.models.vip.col.name">名称</th>
                 <th data-i18n="page.models.vip.col.id">调用名</th>
                 <th data-i18n="page.models.vip.col.mult">倍率</th>
-                <th data-i18n="page.models.vip.col.est">预估消耗</th>
                 <th data-i18n="page.models.vip.col.blurb">说明</th>
               </tr>
             </thead>
-            <tbody id="vipPickChina">
-              <tr><td colspan="5" class="muted">Loading…</td></tr>
+            <tbody id="brandTierBody">
+              <tr><td colspan="5" class="muted">…</td></tr>
             </tbody>
           </table>
         </div>
 
-        <h3 id="intl" class="mt-2" data-i18n="page.models.vip.groupIntl">国际名模</h3>
-        <div style="overflow:auto">
+        <h2 class="mt-2" data-i18n="page.models.vip.list">VIP 点名清单</h2>
+        <p class="sub" data-i18n="page.models.vip.listHint">需开通 Token VIP。预估消耗按开发包折算，仅供参考；清单随服务更新。</p>
+        <div class="model-table-wrap">
           <table>
             <thead>
               <tr>
+                <th data-i18n="page.models.vip.col.group">分组</th>
                 <th data-i18n="page.models.vip.col.name">名称</th>
                 <th data-i18n="page.models.vip.col.id">调用名</th>
                 <th data-i18n="page.models.vip.col.mult">倍率</th>
@@ -65,8 +105,8 @@
                 <th data-i18n="page.models.vip.col.blurb">说明</th>
               </tr>
             </thead>
-            <tbody id="vipPickIntl">
-              <tr><td colspan="5" class="muted">Loading…</td></tr>
+            <tbody id="vipPickAll">
+              <tr><td colspan="6" class="muted">Loading…</td></tr>
             </tbody>
           </table>
         </div>
@@ -77,15 +117,15 @@ Header: X-API-Key: YOUR_API_KEY
 
 {
   "prompt": "Hello",
-  "model": "vip-kimi",
+  "model": "flash",
   "max_tokens": 200
 }</div>
-        <p class="sub mt-2" data-i18n="page.models.vip.note">需开通 VIP 后方可点名。服务繁忙时可能自动改用通用档，以保证可用。</p>
+        <p class="sub mt-2" data-i18n="page.models.vip.note">点名需 VIP。服务繁忙时可能自动改用通用档，以保证可用。</p>
       </div>
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="../config/locales.js?v=20260801b"></script>
+  <script src="../config/locales.js?v=20260801c"></script>
   <script src="../js/api.js?v=20260801a"></script>
   <script src="../js/i18n.js?v=20260731a"></script>
   <script src="../js/shell.js?v=20260731g"></script>
@@ -107,7 +147,7 @@ Header: X-API-Key: YOUR_API_KEY
           }
           return String(localStorage.getItem("ai24x_lang") || "").toLowerCase().indexOf("zh") === 0;
         } catch (e) {
-          return false;
+          return true;
         }
       }
       function pickTitle(p) {
@@ -118,7 +158,6 @@ Header: X-API-Key: YOUR_API_KEY
         if (isZh()) return p.blurb || p.quality || "";
         return p.blurb_en || p.blurb || p.quality || "";
       }
-      var cachedPicks = null;
       function pickEst(p) {
         var mult = Number(p.billing_mult || 1) || 1;
         if (isZh()) {
@@ -128,12 +167,80 @@ Header: X-API-Key: YOUR_API_KEY
         var usd = p.est_usd_per_m != null ? p.est_usd_per_m : Math.round(40 * mult * 100) / 100;
         return "~$" + usd + "/1M";
       }
-      function rowsFor(list) {
-        if (!list.length) return "<tr><td colspan='5' class='muted'>—</td></tr>";
+      function brandRows() {
+        var zh = isZh();
+        var rows = [
+          {
+            group: zh ? "品牌" : "Brand",
+            name: "AI24X Auto",
+            id: "auto",
+            mult: "×1",
+            blurb: zh ? "自动选档，省心起步" : "Auto route — easiest start",
+          },
+          {
+            group: zh ? "品牌" : "Brand",
+            name: "AI24X Flash",
+            id: "flash",
+            mult: "×1",
+            blurb: zh ? "日常主力，高性价比" : "Daily workhorse, best value",
+          },
+          {
+            group: zh ? "品牌" : "Brand",
+            name: "AI24X Pro",
+            id: "pro",
+            mult: "×5",
+            blurb: zh ? "更高质量（VIP 档）" : "Higher quality (VIP tier)",
+          },
+          {
+            group: zh ? "品牌" : "Brand",
+            name: "AI24X Ultra",
+            id: "ultra",
+            mult: "×8",
+            blurb: zh ? "旗舰档（VIP）" : "Flagship tier (VIP)",
+          },
+          {
+            group: zh ? "品牌" : "Brand",
+            name: "AI24X Shared",
+            id: "shared",
+            mult: "×1",
+            blurb: zh ? "免费共享通道（有日帽）" : "Free shared lane (daily cap)",
+          },
+        ];
+        return rows
+          .map(function (r) {
+            return (
+              "<tr><td><span class='pill-brand'>" +
+              esc(r.group) +
+              "</span></td><td><strong>" +
+              esc(r.name) +
+              "</strong></td><td class='mono'>" +
+              esc(r.id) +
+              "</td><td>" +
+              esc(r.mult) +
+              "</td><td class='sub'>" +
+              esc(r.blurb) +
+              "</td></tr>"
+            );
+          })
+          .join("");
+      }
+      function vipRows(list) {
+        if (!list.length) return "<tr><td colspan='6' class='muted'>—</td></tr>";
+        var zh = isZh();
         return list
           .map(function (p) {
+            var g =
+              p.group === "intl"
+                ? zh
+                  ? "国际"
+                  : "Intl"
+                : zh
+                  ? "中国"
+                  : "China";
             return (
-              "<tr><td>" +
+              "<tr><td><span class='pill-vip'>" +
+              esc(g) +
+              "</span></td><td>" +
               esc(pickTitle(p)) +
               "</td><td class='mono'>" +
               esc(p.id) +
@@ -148,40 +255,42 @@ Header: X-API-Key: YOUR_API_KEY
           })
           .join("");
       }
+      var cachedPicks = null;
       function render(picks) {
-        var chinaEl = document.getElementById("vipPickChina");
-        var intlEl = document.getElementById("vipPickIntl");
-        if (!chinaEl || !intlEl) return;
-        var china = (picks || []).filter(function (p) {
-          return p && p.group !== "intl";
+        var brandEl = document.getElementById("brandTierBody");
+        var vipEl = document.getElementById("vipPickAll");
+        if (brandEl) brandEl.innerHTML = brandRows();
+        if (!vipEl) return;
+        var sorted = (picks || []).slice().sort(function (a, b) {
+          var ga = a.group === "intl" ? 1 : 0;
+          var gb = b.group === "intl" ? 1 : 0;
+          if (ga !== gb) return ga - gb;
+          return String(a.id || "").localeCompare(String(b.id || ""));
         });
-        var intl = (picks || []).filter(function (p) {
-          return p && p.group === "intl";
-        });
-        chinaEl.innerHTML = rowsFor(china);
-        intlEl.innerHTML = rowsFor(intl);
+        vipEl.innerHTML = vipRows(sorted);
       }
       document.addEventListener("DOMContentLoaded", function () {
-        var chinaEl = document.getElementById("vipPickChina");
-        var intlEl = document.getElementById("vipPickIntl");
-        if (!chinaEl || !intlEl || !window.AI24X_API || !AI24X_API.listModels) return;
+        var vipEl = document.getElementById("vipPickAll");
+        render([]);
+        if (!vipEl || !window.AI24X_API || !AI24X_API.listModels) return;
         AI24X_API.listModels()
           .then(function (m) {
             cachedPicks = (m && m.vip_picks) || [];
             render(cachedPicks);
           })
           .catch(function () {
-            chinaEl.innerHTML = "<tr><td colspan='5' class='muted'>—</td></tr>";
-            intlEl.innerHTML = "<tr><td colspan='5' class='muted'>—</td></tr>";
+            vipEl.innerHTML = "<tr><td colspan='6' class='muted'>—</td></tr>";
           });
         document.addEventListener("ai24x:lang", function () {
-          if (cachedPicks) render(cachedPicks);
+          render(cachedPicks || []);
         });
-        var langSel = document.getElementById("lang-select") || document.querySelector("[data-lang-select], #site-lang, select.lang");
+        var langSel =
+          document.getElementById("lang-select") ||
+          document.querySelector("[data-lang-select], #site-lang, select.lang");
         if (langSel) {
           langSel.addEventListener("change", function () {
             setTimeout(function () {
-              if (cachedPicks) render(cachedPicks);
+              render(cachedPicks || []);
             }, 0);
           });
         }
