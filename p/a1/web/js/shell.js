@@ -80,8 +80,8 @@
       '<option value="light">蓝白</option>' +
       "</select>" +
       '<span id="auth-actions" style="display:none; display:inline-flex; align-items:center; gap:10px; min-width:118px; justify-content:flex-end">' +
-      '<a class="btn btn-ghost" id="btn-auth" href="index.html?mode=login">登录</a>' +
-      '<a class="btn btn-primary" id="btn-vip" href="index.html?mode=register">免费注册</a>' +
+      '<a class="btn btn-ghost btn-auth-login" id="btn-auth" href="index.html?mode=login">登录</a>' +
+      '<a class="btn btn-primary btn-auth-register" id="btn-vip" href="index.html?mode=register">免费注册</a>' +
       "</span>" +
       "</div>" +
       "</div>"
@@ -153,7 +153,7 @@
         global.__AI24X_A_SW_INSTALLED = true;
         // Cache-bust SW URL so deployments don't require Ctrl+F5.
         // Use absolute paths so pages still work under subpaths like /i/{code}.
-        navigator.serviceWorker.register("/sw.js?v=32", { scope: "/", updateViaCache: "none" }).then(function (reg) {
+        navigator.serviceWorker.register("/sw.js?v=33", { scope: "/", updateViaCache: "none" }).then(function (reg) {
           try {
             reg.update && reg.update();
             if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
@@ -227,8 +227,8 @@
     ]);
     actions.appendChild(sel);
     var authWrap = _el("span", { id: "auth-actions", style: "display:none; display:inline-flex; align-items:center; gap:10px; min-width:118px; justify-content:flex-end" }, []);
-    authWrap.appendChild(_el("a", { class: "btn btn-ghost", id: "btn-auth", href: "index.html?mode=login" }, ["登录"]));
-    authWrap.appendChild(_el("a", { class: "btn btn-primary", id: "btn-vip", href: "index.html?mode=register" }, ["免费注册"]));
+    authWrap.appendChild(_el("a", { class: "btn btn-ghost btn-auth-login", id: "btn-auth", href: "index.html?mode=login" }, ["登录"]));
+    authWrap.appendChild(_el("a", { class: "btn btn-primary btn-auth-register", id: "btn-vip", href: "index.html?mode=register" }, ["免费注册"]));
     actions.appendChild(authWrap);
 
     wrap.appendChild(brand);
@@ -318,15 +318,15 @@
       }
       function setLoggedOutUi(){
         try{
-          // 游客：登录为次、免费注册为主（邀请链路友好）
+          // 游客：登录为次、免费注册为主（仅顶栏出现）
           if(btnAuth) {
             btnAuth.textContent = "登录";
-            btnAuth.className = "btn btn-ghost";
+            btnAuth.className = "btn btn-ghost btn-auth-login";
             btnAuth.setAttribute("href", authHref("login"));
           }
           if(btnVip) {
             btnVip.textContent = "免费注册";
-            btnVip.className = "btn btn-primary";
+            btnVip.className = "btn btn-primary btn-auth-register";
             btnVip.setAttribute("href", authHref("register"));
             btnVip.style.display = "";
           }
@@ -334,7 +334,6 @@
       }
       function setLoggedInUi(d){
         try{
-          // Keep header stable: always show "我的" (avoid phone/nickname width drift).
           if(btnAuth) {
             btnAuth.textContent = "我的";
             btnAuth.className = "btn btn-ghost";

@@ -1705,18 +1705,16 @@
     <div class="invite-banner" id="invite-banner" role="region" aria-label="好友邀请">
       <div class="ib-copy">
         <b>好友邀请你试用 AI 行情官</b>
-        <span class="sub">可先免费看几次信号；注册后领取更多次数，邀请码会自动带上。</span>
+        <span class="sub">可先免费看几次信号；需要更多次数请点页面顶部「免费注册」（邀请码会自动带上）。</span>
       </div>
       <div class="ib-actions">
-        <a class="primary" id="invite-banner-register" href="./index.html?mode=register">免费注册</a>
-        <a id="invite-banner-login" href="./index.html?mode=login">已有账号登录</a>
         <button type="button" class="x" id="invite-banner-close" aria-label="关闭">关闭</button>
       </div>
     </div>
     <div class="top-alert" id="top-alert" role="status" aria-live="polite">
       <span class="icon" aria-hidden="true">!</span>
       <span class="msg" id="top-alert-msg">
-        <b>次数不足</b> 请先注册/登录，或通过邀请获取次数
+        <b>次数不足</b> 请点击页面顶部「免费注册」或「登录」
         <span class="sub" id="top-alert-sub">免费：10/天 + 50/周　VIP：150/天 + 500/周</span>
       </span>
       <span class="actions">
@@ -1724,7 +1722,8 @@
           type="button"
           class="btn-mini primary"
           id="top-alert-go-login"
-        >免费注册</button>
+          hidden
+        >账户中心</button>
         <button
           type="button"
           class="btn-mini secondary"
@@ -1746,10 +1745,6 @@
             <span>本周剩余 <b id="q-week">-</b></span>
             <span>套餐 <b id="q-plan">-</b></span>
           </div>
-          <span class="guest-auth" id="guest-auth-actions">
-            <a class="btn-mini primary" id="btn-register" href="./index.html?mode=register">免费注册</a>
-            <a class="btn-mini" id="btn-login" href="./index.html?mode=login">登录</a>
-          </span>
         </div>
         <div class="period-tools" id="period-tools">
           <div class="period-tabs disabled" id="period-tabs" role="tablist" aria-label="K 线周期">
@@ -1819,7 +1814,7 @@
   </main>
   <footer class="site-footer" id="site-footer"></footer>
 
-  <script src="/js/shell.js?v=32"></script>
+  <script src="/js/shell.js?v=33"></script>
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("demo"); } catch (e) {}
   </script>
@@ -2443,46 +2438,6 @@
       var t = '';
       if (typeof localStorage !== 'undefined') t = localStorage.getItem(AUTH_TOKEN_KEY) || '';
       t = String(t || '').trim();
-      var guestWrap = document.getElementById('guest-auth-actions');
-      var btnReg = document.getElementById('btn-register');
-      var btn = document.getElementById('btn-login');
-      function inviteCode() {
-        try {
-          var sp = new URLSearchParams(String(location.search || '').replace(/^\?/, ''));
-          var v = sp.get('i') || sp.get('invite') || sp.get('inv') || sp.get('ref') || '';
-          v = String(v || '').trim().toUpperCase();
-          if (v) return v;
-        } catch (e0) {}
-        try { return String(localStorage.getItem('ai24x_invite_code') || '').trim().toUpperCase(); } catch (e1) { return ''; }
-      }
-      function authHref(mode) {
-        var h = './index.html?mode=' + (mode === 'login' ? 'login' : 'register');
-        var ic = inviteCode();
-        if (ic) h += '&i=' + encodeURIComponent(ic);
-        return h;
-      }
-      if (t) {
-        if (btnReg) btnReg.hidden = true;
-        if (btn) {
-          btn.hidden = false;
-          btn.className = 'btn-mini';
-          btn.textContent = '账户/续期';
-          btn.setAttribute('href', './account.html');
-        }
-        if (guestWrap) guestWrap.hidden = false;
-      } else {
-        if (guestWrap) guestWrap.hidden = false;
-        if (btnReg) {
-          btnReg.hidden = false;
-          btnReg.textContent = '免费注册';
-          btnReg.setAttribute('href', authHref('register'));
-        }
-        if (btn) {
-          btn.hidden = false;
-          btn.textContent = '登录';
-          btn.setAttribute('href', authHref('login'));
-        }
-      }
       if (!t) return;
       apiMe()
         .then(function (d) {
@@ -2512,14 +2467,6 @@
       try {
         if (sessionStorage.getItem(dismissKey) === '1') return;
       } catch (e3) {}
-      function href(mode) {
-        var h = './index.html?mode=' + mode + '&i=' + encodeURIComponent(code);
-        return h;
-      }
-      var aReg = document.getElementById('invite-banner-register');
-      var aLogin = document.getElementById('invite-banner-login');
-      if (aReg) aReg.setAttribute('href', href('register'));
-      if (aLogin) aLogin.setAttribute('href', href('login'));
       bar.classList.add('is-show');
       var btnClose = document.getElementById('invite-banner-close');
       if (btnClose) {
@@ -4119,37 +4066,42 @@
       var loginBtn = document.getElementById('top-alert-go-login');
       var vipBtn = document.getElementById('top-alert-go-vip');
       var inviteBtn = document.getElementById('top-alert-go-invite');
-      if (loginBtn) loginBtn.textContent = '免费注册';
-      if (vipBtn) vipBtn.style.display = '';
-      if (inviteBtn) inviteBtn.style.display = '';
+      var authed = false;
+      try {
+        authed = !!(typeof localStorage !== 'undefined' && String(localStorage.getItem(AUTH_TOKEN_KEY) || '').trim());
+      } catch (eA) {}
+      // 「免费注册/登录」仅保留顶栏；此处引导看顶部或去账户中心
+      if (loginBtn) {
+        loginBtn.textContent = '账户中心';
+        loginBtn.hidden = !authed;
+        loginBtn.style.display = authed ? '' : 'none';
+      }
+      if (vipBtn) vipBtn.style.display = authed ? '' : 'none';
+      if (inviteBtn) inviteBtn.style.display = authed ? '' : 'none';
       if (msgEl) {
         var s = String(text || '');
         if (s.indexOf('GUEST_LIMIT:') >= 0) {
-          // 游客配额用完：分层提示 → 引导注册
           var guestMsg = s.replace('GUEST_LIMIT:', '').trim();
           msgEl.innerHTML =
             '<b>游客次数已用完</b> ' + guestMsg.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') +
-            '<span class="sub">注册即享免费额度：10次/天 + 50次/周</span>';
-          // 游客场景：主按钮「免费注册」，隐藏 VIP/邀请
-          if (loginBtn) loginBtn.textContent = '免费注册';
-          if (vipBtn) vipBtn.style.display = 'none';
-          if (inviteBtn) inviteBtn.style.display = 'none';
+            '<span class="sub">请点击页面顶部「免费注册」领取次数（10次/天 + 50次/周）</span>';
         } else if (s.indexOf('次数不足') >= 0) {
-          msgEl.innerHTML =
-            '<b>次数不足</b> 请先注册/登录，或通过邀请获取次数' +
-            '<span class="sub">免费：10/天 + 50/周　VIP：150/天 + 500/周</span>';
-          if (loginBtn) loginBtn.textContent = '免费注册';
+          msgEl.innerHTML = authed
+            ? ('<b>次数不足</b> 可通过开通 VIP 或邀请获取次数' +
+              '<span class="sub">免费：10/天 + 50/周　VIP：150/天 + 500/周</span>')
+            : ('<b>次数不足</b> 请点击页面顶部「免费注册」或「登录」' +
+              '<span class="sub">免费：10/天 + 50/周　VIP：150/天 + 500/周</span>');
         } else if (s.indexOf('登录') >= 0 || s.indexOf('VIP') >= 0 || s.indexOf('开通') >= 0) {
-          msgEl.innerHTML =
-            '<b>需要登录</b> 请先注册或登录后再查询；如需更高额度可开通 VIP' +
-            '<span class="sub">免费：10/天 + 50/周　VIP：150/天 + 500/周</span>';
-          if (loginBtn) loginBtn.textContent = '免费注册';
+          msgEl.innerHTML = authed
+            ? ('<b>需要更高额度</b> 可开通 VIP 后继续查询' +
+              '<span class="sub">免费：10/天 + 50/周　VIP：150/天 + 500/周</span>')
+            : ('<b>需要登录</b> 请点击页面顶部「免费注册」或「登录」' +
+              '<span class="sub">免费：10/天 + 50/周　VIP：150/天 + 500/周</span>');
         } else {
           msgEl.textContent = s;
         }
       }
       if (alertEl) {
-        // 根据消息类型高亮颜色
         alertEl.className = 'top-alert is-show';
         var lower = String(text || '').toLowerCase();
         if (lower.indexOf('错误')>=0||lower.indexOf('失败')>=0||lower.indexOf('error')>=0||lower.indexOf('fail')>=0||lower.indexOf('已注册')>=0) {
@@ -4159,10 +4111,7 @@
         } else {
           alertEl.classList.add('is-warn');
         }
-        try {
-          var preferReg = !!(loginBtn && String(loginBtn.textContent || '').indexOf('注册') >= 0);
-          alertEl.setAttribute('data-cta', preferReg ? 'register' : 'account');
-        } catch (eCta) {}
+        try { alertEl.setAttribute('data-cta', 'account'); } catch (eCta) {}
       }
       // Fallback to status line if alert missing
       if (!alertEl) {
@@ -4215,11 +4164,7 @@
         }
       }
       function goPrimaryAuth() {
-        var cta = '';
-        try { cta = alertEl ? String(alertEl.getAttribute('data-cta') || '') : ''; } catch (e0) {}
-        var lab = goLogin ? String(goLogin.textContent || '') : '';
-        if (cta === 'register' || lab.indexOf('注册') >= 0) nav(registerHref());
-        else nav('./account.html');
+        nav('./account.html');
       }
       if (goLogin) {
         goLogin.addEventListener('click', function () {
