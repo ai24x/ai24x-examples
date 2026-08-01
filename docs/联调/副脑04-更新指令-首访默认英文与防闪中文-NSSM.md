@@ -1,6 +1,6 @@
 # 副脑04 · 更新指令（首访默认英文 + 防闪中文）
 
-> 发令：2026-08-02  
+> 发令：2026-08-02 · 目标提交 `004f564`  
 > 范围：**仅静态站 `web/`**（Nginx 静态；**不必**重启 `AI24X-core`）  
 > **禁止**整文件覆盖 `api/.env`；本包**无需**改 `.env`  
 > 远端：`git pull origin master`（或 `gitee master`）
@@ -33,7 +33,7 @@ git checkout master
 git pull origin master
 # 若失败：git pull gitee master
 git log -1 --oneline
-# 期望含：i18n / default English / FOUC 或「首访默认英文」
+# 期望：004f564（fix(web): default first visit to English…）
 
 # 本包无需改 .env；勿动 DATABASE_URL
 # 静态站：确认 Nginx/站点根已指向本仓 web（或你们现网同步方式）
