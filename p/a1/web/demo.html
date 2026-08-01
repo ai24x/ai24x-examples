@@ -1007,12 +1007,14 @@
       font-size: 12px;
       color: var(--warn);
       margin: 0;
-      min-height: 1.2em;
+      min-height: 0;
       overflow-wrap: anywhere;
       word-break: break-word;
       max-width: 100%;
     }
     #quote-status.ok { color: var(--muted); }
+    #quote-status:empty,
+    #quote-status[hidden] { display: none !important; }
 
     /* max-device-width：华为等浏览器常“宽布局视口 + 缩放显示”，仅 max-width 可能不生效 */
     @media (max-width: 640px), (max-device-width: 640px) {
@@ -1024,17 +1026,17 @@
         box-sizing: border-box;
       }
       .quote-section {
-        padding: 8px 8px 10px;
-        margin-bottom: 10px;
+        padding: 12px 10px 12px;
+        margin-bottom: 12px;
       }
       .search-row {
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         align-items: stretch;
-        gap: 6px;
+        gap: 8px;
         width: 100%;
         max-width: 100%;
-        margin-bottom: 4px;
+        margin-bottom: 8px;
       }
       .search-row input[type="text"],
       .search-row input[type="search"],
@@ -1055,7 +1057,7 @@
         grid-row: 1;
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 6px;
+        gap: 8px;
         width: 100%;
         min-width: 0;
       }
@@ -1091,7 +1093,8 @@
         margin: 0;
         font-size: 11px;
       }
-      #quote-status:empty { display: none; }
+      #quote-status:empty,
+      #quote-status[hidden] { display: none !important; }
     }
 
     .topbar {
@@ -1394,18 +1397,18 @@
       .quote-head {
         flex-direction: column;
         align-items: stretch;
-        gap: 4px;
-        margin-bottom: 4px;
+        gap: 8px;
+        margin-bottom: 8px;
       }
       .quote-head .period-tabs {
         justify-content: flex-start;
         margin-bottom: 0;
-        gap: 6px;
+        gap: 8px;
       }
       .period-tools {
         justify-content: space-between;
         width: 100%;
-        gap: 6px;
+        gap: 8px;
       }
       .chart-tools #btn-fav,
       .chart-tools #btn-wl-panel {
@@ -1436,13 +1439,13 @@
         margin: 4px 0 0;
         padding: 8px 10px;
       }
-      /* 白名单芯片：去掉与上方查询行之间的多余空隙 */
+      /* 白名单芯片：与查询行保持适中间距（勿过密） */
       .sample-chips {
         flex-wrap: nowrap;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
-        gap: 6px;
-        margin: 0 0 4px;
+        gap: 8px;
+        margin: 0 0 8px;
         padding: 0;
       }
       .sample-chips .chip-label { display: none; }
@@ -1871,7 +1874,7 @@
           <button type="button" id="btn-search">查询</button>
           <button type="button" id="btn-share" title="分享这次查询" disabled><span class="dot" aria-hidden="true"></span>分享</button>
         </div>
-        <div id="quote-status" class="ok" role="status"></div>
+        <div id="quote-status" class="ok" role="status" hidden></div>
       </div>
       <div class="sample-chips" aria-label="快捷填入示例">
         <span class="chip-label">常用</span>
@@ -1921,7 +1924,7 @@
   </main>
   <footer class="site-footer" id="site-footer"></footer>
 
-  <script src="/js/shell.js?v=39"></script>
+  <script src="/js/shell.js?v=40"></script>
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("demo"); } catch (e) {}
   </script>
@@ -4051,10 +4054,8 @@
   }
   function tryBeginQuery(busyMsg) {
     if (queryBusy) {
-      try {
-        statusEl.textContent = busyMsg || '查询进行中，请稍候…';
-        statusEl.className = '';
-      } catch (e1) {}
+      // 连点时不刷「查询进行中」，避免状态行闪动
+      try { setStatusMsg(''); } catch (e1) {}
       return false;
     }
     queryBusy = true;
@@ -4363,15 +4364,24 @@
         titleEl.innerHTML = '';
         titleEl.hidden = true;
       }
-      if (liveEl) {
-        liveEl.hidden = false;
-        if (!liveEl.innerHTML) {
-          liveEl.innerHTML =
-            '<div class="live-row"><strong>—（—）</strong>　现价 <strong>—</strong>　—%</div>' +
-            '<div class="live-row">量 <span class="tt-num">—</span>　额 <span class="tt-num">—</span>　<span style="color:var(--muted);font-size:11px;">快照 —</span></div>';
-        }
+      // 无行情内容时不要塞「—」占位；有旧内容时仅降透明度提示刷新中
+      if (liveEl && !String(liveEl.innerHTML || '').trim()) {
+        liveEl.hidden = true;
       }
     }
+  }
+
+  /** 状态行：例行「加载中/查询中」不展示；仅真实提示/错误时出现 */
+  function setStatusMsg(msg, opts) {
+    opts = opts || {};
+    if (!statusEl) return;
+    var t = msg == null ? '' : String(msg).trim();
+    if (!opts.force && (/^加载中/.test(t) || /^查询中/.test(t) || t.indexOf('查询进行中') === 0)) {
+      t = '';
+    }
+    statusEl.textContent = t;
+    statusEl.className = opts.ok || !t ? 'ok' : '';
+    try { statusEl.hidden = !t; } catch (e0) {}
   }
 
   var chart = null;
@@ -5360,15 +5370,16 @@
             : result.klineSource === 'tencent+sina' || result.klineSource === 'sina+tencent'
               ? 'K线：腾讯与新浪合并最新交易日 · 快照：腾讯财经'
               : '数据来源：腾讯财经公开接口';
-      statusEl.textContent =
+      setStatusMsg(
         result.klineSource === 'eastmoney-plate'
           ? srcNote + ' · 鼠标悬停以当前柱为准'
-          : srcNote + ' · 盘中快照与最新价以接口为准';
+          : srcNote + ' · 盘中快照与最新价以接口为准',
+        { force: true, ok: true }
+      );
     } else {
       // Keep UI clean: avoid duplicating "更新至/收盘" with details shown below.
-      statusEl.textContent = '';
+      setStatusMsg('');
     }
-    statusEl.className = 'ok';
   }
 
   function hidePick() {
@@ -6075,8 +6086,7 @@
         inputEl.value = quoteDisplayHint.name;
       } catch (eIn2) {}
     }
-    statusEl.className = '';
-    statusEl.textContent = '加载中…';
+    setStatusMsg('');
     setLoadError('');
     setSoftLoading(true);
     var stbLoad = document.getElementById('short-term-bar');
@@ -6106,8 +6116,7 @@
   function applyPeriod(period) {
     if (!PERIOD_META[period]) return;
     if (!currentSecid) {
-      statusEl.textContent = '请先查询股票代码或简称';
-      statusEl.className = '';
+      setStatusMsg('请先查询股票代码或简称');
       return;
     }
     if (period === currentPeriod) return;
@@ -6115,8 +6124,7 @@
     currentPeriod = period;
     syncPeriodTabs();
     setUrlState(currentSecid, currentPeriod);
-    statusEl.className = '';
-    statusEl.textContent = '加载中…';
+    setStatusMsg('');
     setLoadError('');
     setSoftLoading(true);
     showOfflineHintIfNeeded();
@@ -6149,8 +6157,7 @@
         }
         var nice = prettyFetchError(m);
         if (nice) setLoadError(nice);
-        statusEl.textContent = '加载失败：' + (prettyErrText(m) || m);
-        statusEl.className = '';
+        setStatusMsg('加载失败：' + (prettyErrText(m) || m));
         setSoftLoading(false);
       })
       .finally(function () {
@@ -6161,15 +6168,13 @@
   function runSearch() {
     var raw = inputEl.value.trim();
     if (!raw) {
-      statusEl.textContent = '请输入代码或简称';
-      statusEl.className = '';
+      setStatusMsg('请输入代码或简称');
       return;
     }
     if (!tryBeginQuery()) return;
     showOfflineHintIfNeeded();
 
-    statusEl.className = '';
-    statusEl.textContent = '查询中…';
+    setStatusMsg('');
     setSoftLoading(true);
     hidePick();
 
@@ -6268,7 +6273,7 @@
         }
         // 多结果待选：先释放锁，点选时再由 loadBySecid 自行占锁
         endQuery();
-        statusEl.textContent = '找到多条结果，请选择：';
+        setStatusMsg('找到多条结果，请选择：');
         pickList.classList.add('visible');
         list.forEach(function (item) {
           var b = document.createElement('button');
@@ -6671,8 +6676,7 @@
       if (sid) {
         if (queryBusy) return;
         inputEl.value = btn.getAttribute('data-fill') || '';
-        statusEl.className = '';
-        statusEl.textContent = '加载中…';
+        setStatusMsg('');
         setSoftLoading(true);
         hidePick();
         loadBySecid(sid).catch(function (e) {
@@ -6681,8 +6685,7 @@
             showQuotaUpsell(m);
             return;
           }
-          statusEl.textContent = '加载失败：' + (prettyErrText(m) || m);
-          statusEl.className = '';
+          setStatusMsg('加载失败：' + (prettyErrText(m) || m));
           currentSecid = null;
           periodTabsEl.classList.add('disabled');
           disposeChart();
@@ -6848,7 +6851,7 @@
           var m = e && (e.message || String(e)) ? String(e.message || String(e)) : '';
           setLoadError('加载失败：' + (prettyErrText(m) || m || '未知错误'));
           setSoftLoading(false);
-          statusEl.textContent = '';
+          setStatusMsg('');
           return Promise.resolve();
         })
         .finally(function () {
@@ -6868,17 +6871,15 @@
       }
       try {
         if (typeof navigator !== 'undefined' && navigator && navigator.onLine === false) {
-          statusEl.textContent = '当前离线：页面可用，但 K 线需要联网获取数据。请恢复网络后重试。';
-          statusEl.className = '';
+          setStatusMsg('当前离线：页面可用，但 K 线需要联网获取数据。请恢复网络后重试。');
           return;
         }
       } catch (e2) {}
       if (m === 'Failed to fetch') {
-        statusEl.textContent = '网络请求失败：请检查网络或代理设置（离线时 K 线无法加载）。';
+        setStatusMsg('网络请求失败：请检查网络后重试。');
       } else {
-        statusEl.textContent = '上证指数默认加载失败：' + (prettyErrText(m) || m);
+        setStatusMsg('上证指数默认加载失败：' + (prettyErrText(m) || m));
       }
-      statusEl.className = '';
     }).finally(function () {
     });
   }
