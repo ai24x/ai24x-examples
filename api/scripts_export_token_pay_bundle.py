@@ -184,13 +184,14 @@ def main() -> int:
                 "AI24X Token 支付同步包（含商户密钥文件，勿提交 git / 勿贴公开群）",
                 f"生成时间: {stamp}",
                 "",
-                "副脑03:",
-                "1) 把本目录整个拷到服务器，例如 C:\\ai24x-transfer\\token-pay-bundle\\",
-                "2) 先更新代码: cd C:\\ai24x01 && git pull origin master",
+                "副脑03 / 副脑04（路径相同 C:\\ai24x01）:",
+                "1) 把 zip 或本目录拷到服务器，例如 C:\\ai24x-transfer\\token-pay-bundle.zip",
+                "2) git pull 拿到最新 scripts_apply_token_pay_bundle.py",
                 "3) 应用:",
                 "   cd C:\\ai24x01\\api",
-                "   python scripts_apply_token_pay_bundle.py C:\\ai24x-transfer\\token-pay-bundle",
-                "4) 回传: curl.exe -sS http://127.0.0.1:8002/v1/billing/plans",
+                "   python scripts_apply_token_pay_bundle.py C:\\ai24x-transfer\\token-pay-bundle.zip",
+                "4) 回传: curl.exe -sS http://127.0.0.1:8002/v1/billing/pay/status",
+                "   期望 wechat/alipay merchant_configured=true，mock=false",
                 "",
             ]
         ),
@@ -209,7 +210,7 @@ def main() -> int:
     print("OK zip:", zip_path)
     print("wx pem bytes:", (cert_dir / "wechat_apiclient_key.pem").stat().st_size)
     print("ali pem bytes:", (cert_dir / "alipay_merchant_private.pem").stat().st_size)
-    print("下一步: 把 zip 拷到副脑03，git pull 后运行 scripts_apply_token_pay_bundle.py")
+    print("下一步: 把 zip 拷到副脑04（或03），git pull 后运行 scripts_apply_token_pay_bundle.py")
     return 0
 
 
