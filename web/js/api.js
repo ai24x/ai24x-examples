@@ -148,27 +148,110 @@
         if (typeof v === "string") return v.trim();
         return "";
       }
+      /** 后端仍返回中文 detail 时，英文 UI 映射（含精确句与前缀） */
+      var DETAIL_EN = {
+        "该优惠套餐每位用户限购一次，请选择其它套餐。":
+          "This promo plan is limited to one purchase per account. Please choose another plan.",
+        "账号暂不可用，请联系客服。": "This account is unavailable. Please contact support.",
+        "用户不存在": "User not found.",
+        "需要登录": "Please sign in.",
+        "登录已失效": "Session expired. Please sign in again.",
+        "余额不足，请充值后再试": "Insufficient balance. Please top up and try again.",
+        "余额不足，请充值": "Insufficient balance. Please top up.",
+        "今日免费额度已用完，请充值继续使用，或明日再试。":
+          "Today’s free quota is used up. Top up to continue, or try again tomorrow.",
+        "Token 在线支付未开启（TOKEN_PAY_ENABLED）": "Online payment is not available right now.",
+        "Token 在线支付未开启": "Online payment is not available right now.",
+        "微信未配置完整，或 TOKEN_WECHAT_NOTIFY_URL 为空（须指向主站 Token 回调，勿复用 a1 回调）":
+          "WeChat Pay is not available right now.",
+        "支付宝未配置完整，或 TOKEN_ALIPAY_NOTIFY_URL 为空（须指向主站 Token 回调）":
+          "Alipay is not available right now.",
+        "PayPal 未配置（PAYPAL_CLIENT_ID / SECRET）": "PayPal is not available right now.",
+        "PayPal 未配置": "PayPal is not available right now.",
+        "微信未配置": "WeChat Pay is not available right now.",
+        "支付宝未配置": "Alipay is not available right now.",
+        "订单不存在": "Order not found.",
+        "订单不属于当前用户": "This order does not belong to your account.",
+        "支付尚未完成，请稍后再试。": "Payment is not completed yet. Please try again shortly.",
+        "mock 支付未开启": "Mock payment is disabled.",
+        "手机号格式不正确，请填写 11 位手机号": "Enter a valid 11-digit mobile number.",
+        "该手机号已注册": "This mobile number is already registered.",
+        "该邮箱已注册": "This email is already registered.",
+        "邮箱格式不正确": "Enter a valid email address.",
+        "验证码错误或已过期，请重新获取": "Invalid or expired code. Please request a new one.",
+        "验证码错误或已过期，请重新获取验证码": "Invalid or expired code. Please request a new one.",
+        "邮箱验证码错误或已过期，请重新获取": "Invalid or expired email code. Please request a new one.",
+        "手机号或密码错误，请检查后重试。": "Incorrect account or password. Please try again.",
+        "短信服务暂不可用，请稍后再试。": "SMS is temporarily unavailable. Please try again later.",
+        "短信服务暂时不可用，请稍后再试。": "SMS is temporarily unavailable. Please try again later.",
+        "邮件服务暂不可用，请稍后再试。": "Email is temporarily unavailable. Please try again later.",
+        "服务暂不可用，请稍后再试。": "Service temporarily unavailable. Please try again later.",
+        "禁止访问": "Access denied.",
+        "参数无效，请检查后再试。": "Invalid parameters. Please check and try again.",
+        "无效的 API Key": "Invalid API key.",
+        "需要有效的 X-API-Key": "A valid API key is required.",
+        "无效的API Key或用户ID": "Invalid API key or user id.",
+        "请填写手机号或邮箱": "Enter a mobile number or email.",
+        "账号暂不可用，请联系客服。": "This account is unavailable. Please contact support.",
+        "密钥无效，请检查后再试。": "Invalid key. Please check and try again.",
+        "点名模型需有效会员权益，请升级后再试。":
+          "This model requires an active membership. Please upgrade and try again.",
+        "模型服务暂时繁忙，请稍后再试。": "The model service is busy. Please try again later.",
+        "PayPal 商户凭证无效，请稍后重试或联系客服。":
+          "PayPal merchant credentials are invalid. Please try again later or contact support.",
+        "PayPal 下单暂时失败，请稍后重试。": "PayPal checkout failed temporarily. Please try again later.",
+        "PayPal 确认失败，请稍后在「我的订单」点确认到账。":
+          "PayPal confirmation failed. Please confirm payment later under My Orders.",
+      };
+      function localizeDetail(text) {
+        var s = pickStr(text);
+        if (!s || isZhUi()) return s;
+        if (DETAIL_EN[s]) return DETAIL_EN[s];
+        var keys = Object.keys(DETAIL_EN);
+        for (var i = 0; i < keys.length; i++) {
+          if (s.indexOf(keys[i]) >= 0) return DETAIL_EN[keys[i]];
+        }
+        if (/微信下单失败/i.test(s)) return "WeChat order failed. Please try again later.";
+        if (/支付宝下单失败/i.test(s)) return "Alipay order failed. Please try again later.";
+        if (/额度不足/.test(s)) return "Not enough credits for this request. Please top up.";
+        // 英文 UI 仍收到中文：勿原样露出
+        if (/[\u4e00-\u9fff]/.test(s)) return "Something went wrong. Please try again.";
+        return s;
+      }
+      function pickDetail(d) {
+        if (d == null) return "";
+        if (typeof d === "string") return localizeDetail(d);
+        if (Array.isArray(d)) {
+          return d
+            .map(function (e) {
+              return localizeDetail(pickStr(e && (e.msg || e.message)));
+            })
+            .filter(Boolean)
+            .join(isZhUi() ? "；" : "; ");
+        }
+        if (typeof d === "object") {
+          if (isZhUi())
+            return pickStr(d.message_zh) || pickStr(d.message) || localizeDetail(pickStr(d.message_en));
+          return (
+            pickStr(d.message_en) ||
+            localizeDetail(pickStr(d.message_zh) || pickStr(d.message)) ||
+            pickStr(d.message)
+          );
+        }
+        return "";
+      }
       function humanErrorMessage(status, body, fallbackText) {
         var b = body && typeof body === "object" ? body : null;
         var parts = [];
         if (b) {
-          parts.push(pickStr(b.error));
-          parts.push(pickStr(b.message));
-          var d = b.detail;
-          if (typeof d === "string") parts.push(d.trim());
-          else if (Array.isArray(d)) {
-            parts.push(
-              d
-                .map(function (e) {
-                  return pickStr(e && e.msg);
-                })
-                .filter(Boolean)
-                .join("；")
-            );
-          }
+          parts.push(localizeDetail(pickStr(b.error)));
+          // 顶层 message 可能是中文；detail 双语对象优先
+          var fromDetail = b.detail != null ? pickDetail(b.detail) : "";
+          if (fromDetail) parts.push(fromDetail);
+          else parts.push(localizeDetail(pickStr(b.message)));
         }
         var joined = parts.filter(Boolean).join(" ").trim();
-        if (!joined && fallbackText) joined = String(fallbackText).trim();
+        if (!joined && fallbackText) joined = localizeDetail(String(fallbackText).trim());
         // Nginx/HTML 502 等无 JSON 时，避免把整页 HTML 抛给用户
         if (/<\s*html|bad gateway|502/i.test(joined)) {
           joined = isZhUi()
@@ -182,22 +265,52 @@
           (joined.indexOf("手机号/邮箱或密码错误") >= 0 ||
             joined.indexOf("手机号或密码错误") >= 0 ||
             joined.indexOf("邮箱或密码错误") >= 0 ||
-            joined.indexOf("密码错误") >= 0)
+            joined.indexOf("密码错误") >= 0 ||
+            /incorrect account or password/i.test(joined))
         ) {
-          return "手机号/邮箱或密码错误，请检查后重试。";
+          return isZhUi()
+            ? "手机号/邮箱或密码错误，请检查后重试。"
+            : "Incorrect account or password. Please try again.";
         }
         if (status === 401)
           return isZhUi() ? "登录已失效或未授权，请重新登录。" : "Unauthorized. Please sign in again.";
-        if (status === 403) return isZhUi() ? "没有权限执行此操作。" : "Forbidden.";
-        if (status === 429) return isZhUi() ? "请求过于频繁，请稍后再试。" : "Too many requests. Try later.";
-        // 支付下单 502 需露出上游原因，便于副脑排障（勿整页 HTML）
+        if (status === 403) {
+          // 保留已本地化的具体原因（如账号冻结）；泛化「禁止访问」才用默认句
+          if (
+            joined &&
+            joined !== "禁止访问" &&
+            joined !== "Access denied." &&
+            (isZhUi() || !/[\u4e00-\u9fff]/.test(joined))
+          ) {
+            return joined.length > 180 ? joined.slice(0, 177) + "…" : joined;
+          }
+          return isZhUi() ? "没有权限执行此操作。" : "Forbidden.";
+        }
+        if (status === 429) {
+          if (
+            joined &&
+            (joined.indexOf("免费额度") >= 0 ||
+              /free quota/i.test(joined) ||
+              /not enough credits/i.test(joined) ||
+              joined.indexOf("额度不足") >= 0)
+          ) {
+            return isZhUi() || !/[\u4e00-\u9fff]/.test(joined)
+              ? joined.length > 180
+                ? joined.slice(0, 177) + "…"
+                : joined
+              : localizeDetail(joined);
+          }
+          return isZhUi() ? "请求过于频繁，请稍后再试。" : "Too many requests. Try later.";
+        }
+        // 支付下单 502：中文 UI 可保留简短原因；英文已 localize
         if (status >= 500) {
           if (
             joined &&
             !/<\s*html/i.test(joined) &&
             /(微信|支付宝|下单失败|wechat|alipay|pay)/i.test(joined)
           ) {
-            return joined.length > 240 ? joined.slice(0, 237) + "…" : joined;
+            var payMsg = isZhUi() ? joined : localizeDetail(joined);
+            return payMsg.length > 240 ? payMsg.slice(0, 237) + "…" : payMsg;
           }
           return isZhUi() ? "服务暂时不可用，请稍后再试。" : "Service temporarily unavailable.";
         }

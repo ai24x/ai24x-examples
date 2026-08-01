@@ -413,12 +413,22 @@ def assert_can_spend(db: Session, auth_user_id: int, need_tokens: int = 1) -> To
     if bal <= 0:
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="余额不足，请充值后再试",
+            detail={
+                "message_zh": "余额不足，请充值后再试",
+                "message_en": "Insufficient balance. Please top up and try again.",
+                "message": "余额不足，请充值后再试",
+                "code": "insufficient_balance",
+            },
         )
     if bal < int(need_tokens):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"额度不足（余额 {bal} token，本次预估 {need_tokens}）",
+            detail={
+                "message_zh": f"额度不足（余额 {bal} token，本次预估 {need_tokens}）",
+                "message_en": f"Not enough credits (balance {bal}, this request needs about {need_tokens}).",
+                "message": f"额度不足（余额 {bal} token，本次预估 {need_tokens}）",
+                "code": "insufficient_credits",
+            },
         )
     return w
 
@@ -442,7 +452,12 @@ def consume_tokens(
     if tokens <= 0:
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="余额不足，请充值",
+            detail={
+                "message_zh": "余额不足，请充值",
+                "message_en": "Insufficient balance. Please top up.",
+                "message": "余额不足，请充值",
+                "code": "insufficient_balance",
+            },
         )
     now = _utcnow()
     left = tokens

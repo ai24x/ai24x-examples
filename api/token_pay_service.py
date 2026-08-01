@@ -178,9 +178,13 @@ def _assert_promo_purchase_ok(db: Session, *, auth_user_id: int, plan_id: str) -
         .count()
     )
     if n >= max_n:
-        raise HTTPException(
-            status_code=400,
-            detail="该优惠套餐每位用户限购一次，请选择其它套餐。",
+        from user_i18n import raise_user
+
+        raise_user(
+            400,
+            "该优惠套餐每位用户限购一次，请选择其它套餐。",
+            "This promo plan is limited to one purchase per account. Please choose another plan.",
+            code="promo_limit",
         )
 
 

@@ -242,9 +242,6 @@ def bind_email_for_user(db: Session, *, user_id: int, email: str, email_code: st
     return u
 
 
-_FROZEN_MSG = "账号暂不可用，请联系客服。"
-
-
 def is_user_frozen(u: Optional[AuthUser]) -> bool:
     return bool(u is not None and getattr(u, "frozen_at", None))
 
@@ -265,7 +262,15 @@ def raise_if_frozen(u: Optional[AuthUser]) -> None:
     from fastapi import HTTPException
 
     if is_user_frozen(u):
-        raise HTTPException(status_code=403, detail=_FROZEN_MSG)
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "message_zh": "账号暂不可用，请联系客服。",
+                "message_en": "This account is unavailable. Please contact support.",
+                "message": "账号暂不可用，请联系客服。",
+                "code": "account_frozen",
+            },
+        )
 
 
 def set_user_frozen(

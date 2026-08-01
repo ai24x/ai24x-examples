@@ -518,18 +518,29 @@ def assert_shared_allowed(db: Session, auth_user_id: int) -> dict[str, Any]:
     if not cfg["enabled"]:
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="余额不足，请充值后再试",
+            detail={
+                "message_zh": "余额不足，请充值后再试",
+                "message_en": "Insufficient balance. Please top up and try again.",
+                "message": "余额不足，请充值后再试",
+                "code": "insufficient_balance",
+            },
         )
     reqs, toks = _shared_counts_today(db, int(auth_user_id))
+    _quota_detail = {
+        "message_zh": "今日免费额度已用完，请充值继续使用，或明日再试。",
+        "message_en": "Today’s free quota is used up. Top up to continue, or try again tomorrow.",
+        "message": "今日免费额度已用完，请充值继续使用，或明日再试。",
+        "code": "free_quota_exhausted",
+    }
     if reqs >= int(cfg["daily_req_cap"]):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="今日免费额度已用完，请充值继续使用，或明日再试。",
+            detail=_quota_detail,
         )
     if toks >= int(cfg["daily_token_cap"]):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="今日免费额度已用完，请充值继续使用，或明日再试。",
+            detail=_quota_detail,
         )
     return {
         "mode": "shared",
