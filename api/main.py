@@ -139,13 +139,24 @@ async def log_requests(request: Request, call_next):
     return response
 
 
-# 中间件：chat 限流（IP + API Key）
+def _is_chat_post_path(path: str) -> bool:
+    p = (path or "").rstrip("/")
+    return p.endswith("/v1/chat/run") or p.endswith("/v1/chat/completions")
+
+
+def _is_openai_completions_path(path: str) -> bool:
+    return (path or "").rstrip("/").endswith("/v1/chat/completions")
+
+
+# 中间件：chat 限流（IP + API Key / Bearer）
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
     if not settings.enable_rate_limiting:
         return await call_next(request)
     path = request.url.path or ""
-    if path.rstrip("/").endswith("/v1/chat/run") and request.method.upper() == "POST":
+    if _is_chat_post_path(path) and request.method.upper() == "POST":
+        from openai_compat import extract_api_key, openai_error_body
+
         ip = sec_client_ip(request)
         ok_ip, _ = check_sliding_rate(
             f"ip:{ip}",
@@ -153,11 +164,20 @@ async def rate_limit_middleware(request: Request, call_next):
             window_s=60.0,
         )
         if not ok_ip:
+            if _is_openai_completions_path(path):
+                return JSONResponse(
+                    status_code=429,
+                    content=openai_error_body(
+                        "请求过于频繁（IP）",
+                        err_type="rate_limit_error",
+                        code="rate_limit_exceeded",
+                    ),
+                )
             return JSONResponse(
                 status_code=429,
                 content={"error": "请求过于频繁（IP）", "code": "429", "request_id": None},
             )
-        api_key = (request.headers.get("X-API-Key") or "").strip()
+        api_key = extract_api_key(request) or ""
         if api_key:
             ok_k, _ = check_sliding_rate(
                 f"key:{api_key[:24]}",
@@ -165,6 +185,15 @@ async def rate_limit_middleware(request: Request, call_next):
                 window_s=60.0,
             )
             if not ok_k:
+                if _is_openai_completions_path(path):
+                    return JSONResponse(
+                        status_code=429,
+                        content=openai_error_body(
+                            "请求过于频繁（API Key）",
+                            err_type="rate_limit_error",
+                            code="rate_limit_exceeded",
+                        ),
+                    )
                 return JSONResponse(
                     status_code=429,
                     content={"error": "请求过于频繁（API Key）", "code": "429", "request_id": None},
@@ -177,8 +206,11 @@ def get_current_user(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """从请求头获取当前用户（优先 api_keys；严格模式禁止仅 user_id）。"""
-    api_key = request.headers.get("X-API-Key")
+    """从请求头获取当前用户（优先 api_keys；严格模式禁止仅 user_id）。
+    支持 X-API-Key 与 Authorization: Bearer（同一密钥体系）。"""
+    from openai_compat import extract_api_key
+
+    api_key = extract_api_key(request)
     user_id = request.query_params.get("user_id")
     request.state.auth_user_id = None
 
@@ -198,13 +230,19 @@ def get_current_user(
         except HTTPException as e:
             if e.status_code != 401:
                 raise
+            # OpenAI 兼容路径：Bearer 无效直接 401，不再落到 legacy user_id
+            if _is_openai_completions_path(request.url.path or ""):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid API key",
+                )
             # fall through to legacy User.api_key
 
     # 严格鉴权：禁止「只带 user_id」冒充（防拷贝脚本扫接口）
     if bool(settings.strict_auth) and not api_key:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="需要有效的 X-API-Key",
+            detail="需要有效的 API Key（Authorization: Bearer 或 X-API-Key）",
         )
 
     user = AuthService.authenticate_user(db, api_key=api_key, user_id=user_id)
@@ -308,6 +346,84 @@ async def chat_run(
         )
 
 
+# OpenAI 兼容：/v1/chat/completions（与 /v1/chat/run 并存，复用鉴权计费）
+@app.post("/v1/chat/completions")
+async def chat_completions(
+    http_request: Request,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    OpenAI Chat Completions 兼容入口。
+    Authorization: Bearer <API_KEY> 或 X-API-Key；body 为 messages[] + model + stream。
+    """
+    from openai_compat import (
+        build_chat_request_schema,
+        completion_id,
+        streaming_response,
+        to_openai_completion,
+    )
+
+    try:
+        body = await http_request.json()
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="请求体必须是 JSON",
+        )
+    if not isinstance(body, dict):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="请求体必须是 JSON 对象",
+        )
+
+    chat_req = build_chat_request_schema(body)
+    want_stream = bool(body.get("stream"))
+    ip_address = http_request.client.host if http_request.client else None
+    user_agent = http_request.headers.get("user-agent")
+    auth_uid = getattr(http_request.state, "auth_user_id", None)
+    region_hint = (
+        (http_request.headers.get("x-ai24x-region") or "").strip()
+        or (http_request.headers.get("cf-ipcountry") or "").strip()
+        or None
+    )
+
+    try:
+        response = ChatService.process_chat_request(
+            db=db,
+            user=current_user,
+            request=chat_req,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            auth_user_id=auth_uid,
+            region_hint=region_hint,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error processing chat completions: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="处理请求时发生错误",
+        )
+
+    cmpl_id = completion_id()
+    logger.info(
+        "Chat completions: %s stream=%s user=%s model=%s",
+        response.request_id,
+        want_stream,
+        current_user.user_id,
+        response.model,
+    )
+    if want_stream:
+        return streaming_response(
+            response, requested_model=chat_req.model or "flash", cmpl_id=cmpl_id
+        )
+    return to_openai_completion(
+        response, requested_model=chat_req.model or "flash", cmpl_id=cmpl_id
+    )
+
+
 # 用户信息端点
 @app.get("/v1/user/info")
 async def get_user_info(
@@ -338,6 +454,10 @@ def _http_detail_str(detail: object) -> str:
 # 全局异常处理
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
+    if _is_openai_completions_path(request.url.path or ""):
+        from openai_compat import openai_error_response
+
+        return openai_error_response(exc)
     body = ErrorResponse(
         error=_http_detail_str(exc.detail),
         code=str(int(exc.status_code)),
@@ -353,6 +473,17 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 async def general_exception_handler(request: Request, exc: Exception):
     # Log full traceback for server-side debugging (front-end receives a generic 500 message).
     logger.exception("Unhandled exception")
+    if _is_openai_completions_path(request.url.path or ""):
+        from openai_compat import openai_error_body
+
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content=openai_error_body(
+                "服务器内部错误",
+                err_type="server_error",
+                code="server_error",
+            ),
+        )
     body = ErrorResponse(
         error="服务器内部错误",
         code="INTERNAL_SERVER_ERROR",
