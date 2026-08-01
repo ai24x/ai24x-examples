@@ -2,7 +2,8 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- maximum-scale=1：部分华为/安卓浏览器点输入框会强制放大，仅 16px 字号拦不住 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="robots" content="index,follow" />
   <title>AI行情官｜灯塔版 — 股票K线信号分析工具，均线指标免费看</title>
   <meta name="description" content="AI行情官灯塔版：免费股票K线信号分析工具。底1底2金信号、MA14/MA28/MA57双生命线、MACD副图指标，一页看清上证指数/深证/北证50的K线结构要点与关键位信号（仅供学习参考，不构成投资建议）。" />
@@ -269,6 +270,8 @@
     /* 防横向溢出，但不改 .wrap 的统一最大宽度（min(1360px, 100%)） */
     .quote-section {
       overflow-x: clip;
+      max-width: 100%;
+      box-sizing: border-box;
     }
     .search-row {
       display: flex;
@@ -277,57 +280,82 @@
       align-items: center;
       margin-bottom: 12px;
       position: relative;
+      width: 100%;
       max-width: 100%;
       box-sizing: border-box;
     }
-    .search-row input[type="text"] {
-      flex: 1 1 260px;
-      min-width: 0;
+    .search-row-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      flex: 0 0 auto;
+    }
+    .search-row input[type="text"],
+    .search-row input[type="search"],
+    .search-row #stock-query {
+      flex: 1 1 220px;
+      min-width: 0 !important;
       max-width: 520px;
+      width: auto;
       padding: 10px 12px;
       border-radius: 6px;
       border: 1px solid var(--border);
       background: var(--panel2);
       color: var(--text);
-      font-size: 14px;
+      font-size: 16px !important; /* ≥16px + !important，防聚焦整页放大 */
+      line-height: 1.35;
+      box-sizing: border-box;
+      touch-action: manipulation;
     }
     .search-row #btn-search {
       flex: 0 0 auto;
       white-space: nowrap;
     }
-    .search-row input:focus {
+    .search-row input:focus,
+    .search-row #stock-query:focus,
+    .search-row #stock-query:focus-visible {
       outline: none;
       border-color: var(--ma2);
+      font-size: 16px !important;
+    }
+    /* 行情页操作按钮统一尺寸：查询/分享/日周月/收藏/自选 */
+    .search-row button,
+    .search-row #btn-share,
+    .period-tabs button,
+    .chart-tools #btn-fav,
+    .chart-tools #btn-wl-panel {
+      height: 36px;
+      min-height: 36px;
+      padding: 0 14px;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1;
+      border-radius: 6px;
+      box-sizing: border-box;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+      cursor: pointer;
     }
     .search-row button {
-      padding: 10px 20px;
-      border-radius: 6px;
       border: none;
       background: linear-gradient(180deg, #1e5a8a 0%, #156090 100%);
       color: #fff;
-      font-size: 14px;
-      cursor: pointer;
     }
     .search-row button:hover { filter: brightness(1.08); }
     .search-row button:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
-    /* Share CTA: align with homepage "行情查询" button (vip-cta vibe) */
+    /* Share CTA: 尺寸同上，仅配色不同 */
     .search-row #btn-share{
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 10px 20px; /* keep identical height/shape with #btn-search */
-      border-radius: 6px; /* keep identical shape with #btn-search */
-      font-size: 14px;
-      font-weight: 900;
+      gap: 6px;
       letter-spacing: 0.02em;
       color: rgba(24,18,6,.98);
       background: linear-gradient(135deg, rgba(255,214,102,1), rgba(251,191,36,.95));
       border: 1px solid rgba(251,191,36,.55);
-      box-shadow: 0 10px 20px rgba(251,191,36,.22);
+      box-shadow: 0 6px 14px rgba(251,191,36,.18);
     }
     .search-row #btn-share:hover{
       filter: brightness(1.03);
@@ -562,13 +590,9 @@
       align-items: center;
     }
     .period-tabs button {
-      padding: 8px 16px;
-      border-radius: 6px;
       border: 1px solid var(--border);
       background: var(--panel2);
       color: var(--muted);
-      font-size: 13px;
-      cursor: pointer;
     }
     .period-tabs button:hover {
       border-color: var(--ma2);
@@ -979,40 +1003,70 @@
     }
     #quote-status {
       flex: 1 1 220px;
-      min-width: 160px;
+      min-width: 0;
       font-size: 12px;
       color: var(--warn);
       margin: 0;
       min-height: 1.2em;
       overflow-wrap: anywhere;
       word-break: break-word;
+      max-width: 100%;
     }
     #quote-status.ok { color: var(--muted); }
 
-    @media (max-width: 640px) {
-      /* 查询行：网格防撑开（输入可收缩，按钮不换行撑宽） */
-      .search-row {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto auto;
-        gap: 6px;
-        width: 100%;
+    /* max-device-width：华为等浏览器常“宽布局视口 + 缩放显示”，仅 max-width 可能不生效 */
+    @media (max-width: 640px), (max-device-width: 640px) {
+      /* 手机：查询区变窄变短 — 输入独占一行，按钮下一行两列；字号 16 防聚焦放大 */
+      .wrap {
+        padding-left: 8px !important;
+        padding-right: 8px !important;
         max-width: 100%;
         box-sizing: border-box;
       }
-      .search-row input[type="text"] {
-        grid-column: 1;
-        width: 100%;
-        max-width: none;
-        min-width: 0;
-        flex: unset;
-        font-size: 13px;
-        padding: 8px 10px;
+      .quote-section {
+        padding: 12px 10px 12px;
+        margin-bottom: 12px;
       }
-      .search-row button,
+      .search-row {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        flex-wrap: nowrap;
+        gap: 8px;
+        width: 100%;
+        max-width: 100%;
+      }
+      .search-row input[type="text"],
+      .search-row input[type="search"],
+      .search-row #stock-query,
+      .search-row #stock-query:focus {
+        flex: none;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        font-size: 16px !important;
+        padding: 10px 12px;
+      }
+      .search-row-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        width: 100%;
+      }
+      .search-row-actions button,
+      .search-row #btn-share,
+      .period-tabs button,
+      .chart-tools #btn-fav,
+      .chart-tools #btn-wl-panel {
+        height: 36px;
+        min-height: 36px;
+        padding: 0 12px;
+        font-size: 13px;
+        box-sizing: border-box;
+      }
+      .search-row-actions button,
       .search-row #btn-share {
-        padding: 8px 10px;
-        font-size: 12px;
-        white-space: nowrap;
+        width: 100%;
       }
       .search-row #btn-share {
         gap: 4px;
@@ -1020,25 +1074,10 @@
         letter-spacing: 0;
       }
       #quote-status {
-        grid-column: 1 / -1;
         flex: none;
-        min-width: 0;
+        min-width: 0 !important;
         width: 100%;
-      }
-    }
-
-    @media (max-width: 520px) {
-      .search-row {
-        grid-template-columns: minmax(0, 1fr) auto auto;
-      }
-      .search-row input[type="text"] {
-        font-size: 13px;
-        padding: 8px 10px;
-      }
-      .search-row button,
-      .search-row #btn-share {
-        padding: 8px 10px;
-        font-size: 12px;
+        max-width: 100%;
       }
     }
 
@@ -1355,10 +1394,12 @@
       }
       .chart-tools #btn-fav,
       .chart-tools #btn-wl-panel {
-        padding: 7px 12px;
-        font-size: 12px;
+        height: 36px;
+        min-height: 36px;
+        padding: 0 12px;
+        font-size: 13px;
       }
-      .chart-tools #btn-wl-panel { min-width: 48px; }
+      .chart-tools #btn-wl-panel { min-width: 52px; }
       .theme-row {
         justify-content: flex-start;
       }
@@ -1592,16 +1633,10 @@
       font-weight: 700;
     }
 
-    /* ===== Watchlist / Fav (beside period tabs) ===== */
+    /* ===== Watchlist / Fav (beside period tabs；尺寸见上方统一规则) ===== */
     .chart-tools #btn-fav,
     .chart-tools #btn-wl-panel {
       flex: 0 0 auto;
-      padding: 8px 14px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      white-space: nowrap;
       transition: background .15s, border-color .15s, color .15s, box-shadow .15s;
     }
 
@@ -1801,9 +1836,11 @@
       </div>
       <div id="load-error" class="load-error" hidden role="alert"></div>
       <div class="search-row">
-        <input type="text" id="stock-query" placeholder="代码/简称，如 600519" autocomplete="off" />
-        <button type="button" id="btn-search">查询</button>
-        <button type="button" id="btn-share" title="分享这次查询" disabled><span class="dot" aria-hidden="true"></span>分享</button>
+        <input type="search" id="stock-query" name="stock-query" placeholder="代码/简称" autocomplete="off" enterkeyhint="search" inputmode="search" />
+        <div class="search-row-actions">
+          <button type="button" id="btn-search">查询</button>
+          <button type="button" id="btn-share" title="分享这次查询" disabled><span class="dot" aria-hidden="true"></span>分享</button>
+        </div>
         <div id="quote-status" class="ok" role="status"></div>
       </div>
       <div class="sample-chips" aria-label="快捷填入示例">
@@ -1854,7 +1891,7 @@
   </main>
   <footer class="site-footer" id="site-footer"></footer>
 
-  <script src="/js/shell.js?v=36"></script>
+  <script src="/js/shell.js?v=38"></script>
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("demo"); } catch (e) {}
   </script>
@@ -3957,6 +3994,17 @@
   var btnFav = document.getElementById('btn-fav');
   var btnWlPanel = document.getElementById('btn-wl-panel');
   var watchlistPanelEl = document.getElementById('watchlist-panel');
+  // 手机端勿自动聚焦查询框：字号<16 时部分浏览器会整页放大，看起来像“撑开”
+  try {
+    if (inputEl) {
+      inputEl.blur();
+      setTimeout(function () {
+        try {
+          if (document.activeElement === inputEl) inputEl.blur();
+        } catch (eB0) {}
+      }, 80);
+    }
+  } catch (eBlur) {}
   // 导出/下载能力已移除：避免把信号数据导出到本地文件，优先提升站内粘性与后续会员功能空间。
 
   /** 查询中全局锁：防止卡顿时连点查询/换周期/示例筹码重复扣次 */
