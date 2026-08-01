@@ -63,7 +63,8 @@
       '<div class="container header-inner">' +
       '<a class="brand" href="index.html" aria-label="AI24X">' +
       '<span class="brand-mark">AI</span>' +
-      "<span>AI 行情官｜灯塔版</span>" +
+      '<span class="brand-text brand-text-full">AI 行情官｜灯塔版</span>' +
+      '<span class="brand-text brand-text-short">AI行情官</span>' +
       "</a>" +
       '<button type="button" class="menu-toggle" id="menu-toggle" aria-label="Menu" aria-expanded="false"><span></span></button>' +
       '<nav class="nav-main" id="nav-main" aria-label="Main">' +
@@ -74,12 +75,7 @@
       nav("feedback.html", "反馈", "feedback") +
       "</nav>" +
       '<div class="header-actions">' +
-      '<select id="theme-select" class="select-mini" aria-label="Theme">' +
-      '<option value="calm">深蓝</option>' +
-      '<option value="dark">深黑</option>' +
-      '<option value="light">蓝白</option>' +
-      "</select>" +
-      '<span id="auth-actions" style="display:none; display:inline-flex; align-items:center; gap:10px; min-width:118px; justify-content:flex-end">' +
+      '<span id="auth-actions" class="auth-actions">' +
       '<a class="btn btn-ghost btn-auth-login" id="btn-auth" href="index.html?mode=login">登录</a>' +
       '<a class="btn btn-primary btn-auth-register" id="btn-vip" href="index.html?mode=register">免费注册</a>' +
       "</span>" +
@@ -129,22 +125,11 @@
       });
     }
 
-    // Theme (shared with demo.html data-theme variables)
+    // Theme: lock to calm (深蓝); theme select removed to avoid mobile header overflow
     try {
-      var sel = document.getElementById("theme-select");
-      if (sel) {
-        var k = "ai24x_a_theme";
-        var cur = "";
-        try { cur = localStorage.getItem(k) || ""; } catch (e0) {}
-        cur = String(cur || "").trim() || "calm";
-        sel.value = cur;
-        applyTheme(cur);
-        sel.addEventListener("change", function () {
-          var v = String(sel.value || "calm").trim() || "calm";
-          try { localStorage.setItem(k, v); } catch (e1) {}
-          applyTheme(v);
-        });
-      }
+      var k = "ai24x_a_theme";
+      try { localStorage.setItem(k, "calm"); } catch (e0) {}
+      applyTheme("calm");
     } catch (e) {}
 
     // Service Worker update (avoid "Ctrl+F5 looks different" after deployments)
@@ -153,7 +138,7 @@
         global.__AI24X_A_SW_INSTALLED = true;
         // Cache-bust SW URL so deployments don't require Ctrl+F5.
         // Use absolute paths so pages still work under subpaths like /i/{code}.
-        navigator.serviceWorker.register("/sw.js?v=35", { scope: "/", updateViaCache: "none" }).then(function (reg) {
+        navigator.serviceWorker.register("/sw.js?v=36", { scope: "/", updateViaCache: "none" }).then(function (reg) {
           try {
             reg.update && reg.update();
             if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
@@ -205,7 +190,8 @@
     var wrap = _el("div", { class: "container header-inner" }, []);
     var brand = _el("a", { class: "brand", href: "index.html", "aria-label": "AI24X" }, [
       _el("span", { class: "brand-mark", text: "AI" }),
-      _el("span", { text: "AI 行情官｜灯塔版" }),
+      _el("span", { class: "brand-text brand-text-full", text: "AI 行情官｜灯塔版" }),
+      _el("span", { class: "brand-text brand-text-short", text: "AI行情官" }),
     ]);
     var toggle = _el(
       "button",
@@ -220,13 +206,7 @@
       nav("feedback.html", "反馈", "feedback"),
     ]);
     var actions = _el("div", { class: "header-actions" }, []);
-    var sel = _el("select", { id: "theme-select", class: "select-mini", "aria-label": "Theme" }, [
-      _el("option", { value: "calm", text: "深蓝" }),
-      _el("option", { value: "dark", text: "深黑" }),
-      _el("option", { value: "light", text: "蓝白" }),
-    ]);
-    actions.appendChild(sel);
-    var authWrap = _el("span", { id: "auth-actions", style: "display:none; display:inline-flex; align-items:center; gap:10px; min-width:118px; justify-content:flex-end" }, []);
+    var authWrap = _el("span", { id: "auth-actions", class: "auth-actions" }, []);
     authWrap.appendChild(_el("a", { class: "btn btn-ghost btn-auth-login", id: "btn-auth", href: "index.html?mode=login" }, ["登录"]));
     authWrap.appendChild(_el("a", { class: "btn btn-primary btn-auth-register", id: "btn-vip", href: "index.html?mode=register" }, ["免费注册"]));
     actions.appendChild(authWrap);
@@ -314,7 +294,7 @@
       }
       function showAuthWrap(){
         if(!authWrap) return;
-        try{ authWrap.style.display = ""; }catch(e0){}
+        try{ authWrap.style.display = "inline-flex"; }catch(e0){}
       }
       function setLoggedOutUi(){
         try{

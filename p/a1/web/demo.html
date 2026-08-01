@@ -63,8 +63,8 @@
     (function () {
       try {
         var k = "ai24x_a_theme";
-        var t = String(localStorage.getItem(k) || "").trim() || "calm";
-        document.documentElement.setAttribute("data-theme", t);
+        try { localStorage.setItem(k, "calm"); } catch (e0) {}
+        document.documentElement.setAttribute("data-theme", "calm");
       } catch (e) {}
     })();
   </script>
@@ -187,7 +187,7 @@
     .quote-head-title {
       margin: 0;
       flex: 1 1 auto;
-      min-width: 8rem;
+      min-width: 0;
       padding-left: 10px;
       border-left: 3px solid var(--ma1);
       display: flex;
@@ -266,6 +266,10 @@
     }
     .tool-row button:hover { border-color: var(--ma2); }
     .tool-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+    /* 防横向溢出，但不改 .wrap 的统一最大宽度（min(1360px, 100%)） */
+    .quote-section {
+      overflow-x: clip;
+    }
     .search-row {
       display: flex;
       flex-wrap: wrap;
@@ -273,6 +277,8 @@
       align-items: center;
       margin-bottom: 12px;
       position: relative;
+      max-width: 100%;
+      box-sizing: border-box;
     }
     .search-row input[type="text"] {
       flex: 1 1 260px;
@@ -984,29 +990,55 @@
     #quote-status.ok { color: var(--muted); }
 
     @media (max-width: 640px) {
-      .search-row { gap: 8px; }
-      .search-row input[type="text"] {
-        flex: 1 1 180px;
+      /* 查询行：网格防撑开（输入可收缩，按钮不换行撑宽） */
+      .search-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 6px;
+        width: 100%;
         max-width: 100%;
+        box-sizing: border-box;
       }
-      /* keep CTA buttons compact so they don't wrap */
-      .search-row button { padding: 10px 14px; }
-      .search-row #btn-share { padding: 10px 14px; }
+      .search-row input[type="text"] {
+        grid-column: 1;
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+        flex: unset;
+        font-size: 13px;
+        padding: 8px 10px;
+      }
+      .search-row button,
+      .search-row #btn-share {
+        padding: 8px 10px;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .search-row #btn-share {
+        gap: 4px;
+        box-shadow: none;
+        letter-spacing: 0;
+      }
+      #quote-status {
+        grid-column: 1 / -1;
+        flex: none;
+        min-width: 0;
+        width: 100%;
+      }
     }
 
     @media (max-width: 520px) {
-      #quote-status {
-        flex-basis: 100%;
-        min-width: 0;
+      .search-row {
+        grid-template-columns: minmax(0, 1fr) auto auto;
       }
       .search-row input[type="text"] {
-        max-width: 100%;
+        font-size: 13px;
+        padding: 8px 10px;
       }
-      .search-row button {
-        padding: 10px 14px;
-      }
-      .search-row #btn-share{
-        padding: 10px 14px;
+      .search-row button,
+      .search-row #btn-share {
+        padding: 8px 10px;
+        font-size: 12px;
       }
     }
 
@@ -1359,6 +1391,13 @@
         font-size: 12px;
       }
       .search-row { margin-bottom: 8px; gap: 6px; }
+      .quote-head-title { min-width: 0; max-width: 100%; }
+      .period-tools { max-width: 100%; min-width: 0; }
+      .watchlist-panel {
+        min-width: 0;
+        width: min(320px, calc(100vw - 20px));
+        max-width: calc(100vw - 20px);
+      }
       .sig-legend {
         margin-top: 4px;
         padding: 6px 8px;
@@ -1629,8 +1668,9 @@
       border-radius: 8px;
       box-shadow: 0 8px 24px rgba(0,0,0,.3);
       z-index: 100;
-      min-width: 240px;
-      max-width: 360px;
+      min-width: 0;
+      width: min(320px, calc(100vw - 24px));
+      max-width: min(360px, calc(100vw - 24px));
       padding: 6px 0;
     }
     .watchlist-panel[hidden] { display: none; }
@@ -1761,7 +1801,7 @@
       </div>
       <div id="load-error" class="load-error" hidden role="alert"></div>
       <div class="search-row">
-        <input type="text" id="stock-query" placeholder="代码或简称，例如 600519 / 上证指数" autocomplete="off" />
+        <input type="text" id="stock-query" placeholder="代码/简称，如 600519" autocomplete="off" />
         <button type="button" id="btn-search">查询</button>
         <button type="button" id="btn-share" title="分享这次查询" disabled><span class="dot" aria-hidden="true"></span>分享</button>
         <div id="quote-status" class="ok" role="status"></div>
@@ -1814,7 +1854,7 @@
   </main>
   <footer class="site-footer" id="site-footer"></footer>
 
-  <script src="/js/shell.js?v=35"></script>
+  <script src="/js/shell.js?v=36"></script>
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("demo"); } catch (e) {}
   </script>
@@ -4040,19 +4080,14 @@
   }
 
 
-  // Theme is unified by p/a/web/js/shell.js:
-  // - stored in localStorage key `ai24x_a_theme`
-  // - applied to <html data-theme="calm|dark|light">
+  // Theme locked to calm (深蓝); header theme select removed for mobile width.
   (function initThemeUnified() {
     try {
       var k = 'ai24x_a_theme';
-      var mk = 'ai24x_a_theme_migrated_calm_to_light_v1';
-      var saved = 'calm';
       try {
-        if (typeof localStorage !== 'undefined') saved = localStorage.getItem(k) || 'calm';
+        if (typeof localStorage !== 'undefined') localStorage.setItem(k, 'calm');
       } catch (e0) {}
-      saved = String(saved || '').trim() || 'calm';
-      document.documentElement.setAttribute('data-theme', saved);
+      document.documentElement.setAttribute('data-theme', 'calm');
     } catch (e) {}
   })();
 
