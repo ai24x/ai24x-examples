@@ -579,66 +579,81 @@
       cursor: wait;
     }
     .quote-title {
+      display: none; /* 图例已迁到 K 线下方，避免手机端重复占位 */
       font-size: 13px;
       font-weight: 500;
-      margin: 0 0 10px;
+      margin: 0;
       line-height: 1.55;
-      min-height: auto;
+      min-height: 0;
     }
-    .quote-title .qt-use {
+    .sig-legend {
+      display: block;
+      margin-top: 6px;
+      padding: 8px 10px;
+      font-size: 12px;
+      color: var(--muted);
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .sig-legend .qt-use {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 12px 16px;
-      font-size: 13px;
+      gap: 8px 12px;
+      font-size: 12px;
       color: var(--muted);
-      margin-top: 4px;
+      margin: 0;
     }
-    .quote-title .qt-tag {
+    .sig-legend .qt-macd-note {
+      flex: 1 1 100%;
+      margin: 2px 0 0;
+      font-size: 11px;
+      color: var(--muted);
+      opacity: 0.92;
+    }
+    .sig-legend .qt-macd-note .qt-macd-g { color: #ff3d5c; font-weight: 700; }
+    .sig-legend .qt-macd-note .qt-macd-d { color: #00e68a; font-weight: 700; }
+    .sig-legend .qt-tag {
       flex-shrink: 0;
       color: #fbbf24;
       font-weight: 900;
-      font-size: 13px;
-      padding: 5px 12px;
+      font-size: 12px;
+      padding: 4px 10px;
       border-radius: 6px;
       background: linear-gradient(180deg, rgba(245, 158, 11, 0.18), rgba(245, 158, 11, 0.10));
       border: 1px solid rgba(245, 158, 11, 0.35);
       letter-spacing: 0.12em;
     }
-    .quote-title .qt-hint-items {
+    .sig-legend .qt-hint-items {
       display: inline-flex;
       flex-wrap: wrap;
       align-items: center;
       gap: 2px 0;
-      row-gap: 8px;
+      row-gap: 6px;
     }
-    .quote-title .qt-item {
+    .sig-legend .qt-item {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
     }
-    .quote-title .qt-item-label {
-      letter-spacing: 0.04em;
+    .sig-legend .qt-item-label {
+      letter-spacing: 0.03em;
       white-space: nowrap;
     }
-    .quote-title .qt-sep-dot {
+    .sig-legend .qt-sep-dot {
       color: var(--muted);
       opacity: 0.55;
-      padding: 0 10px;
-      font-size: 15px;
+      padding: 0 8px;
+      font-size: 14px;
       line-height: 1;
       user-select: none;
     }
-    .quote-title .qt-use-vrule {
-      width: 1px;
-      height: 16px;
-      background: var(--border);
-      flex-shrink: 0;
+    .sig-legend .qt-use-vrule {
+      display: none;
     }
-    /* Separator removed: keep hidden even if old DOM cached */
-    .quote-title .qt-use-vrule { display: none; }
     /* 与 K 线标记一致：小圆点 + 箭头（B 向上，S/险/顶向下） */
-    .quote-title .qt-pair {
+    .sig-legend .qt-pair {
       display: inline-flex;
       flex-direction: row;
       align-items: center;
@@ -647,13 +662,13 @@
       vertical-align: -0.12em;
       line-height: 1;
     }
-    .quote-title .qt-pair-mid {
+    .sig-legend .qt-pair-mid {
       font-size: 11px;
       font-weight: 800;
       letter-spacing: 0.04em;
       line-height: 1;
     }
-    .quote-title .qt-mini-dot {
+    .sig-legend .qt-mini-dot {
       display: block;
       width: 6px;
       height: 6px;
@@ -662,86 +677,86 @@
       box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
     }
     /* 与 lightweight-charts@4.2 drawArrow 同形（尖头 + 矩形柱），见 series-markers-arrow.ts */
-    .quote-title .qt-lwc-arrow {
+    .sig-legend .qt-lwc-arrow {
       display: block;
       flex-shrink: 0;
       width: 11px;
       height: 11px;
       overflow: visible;
     }
-    .quote-title .qt-pair-buy {
+    .sig-legend .qt-pair-buy {
       color: #ff3d5c;
       filter: drop-shadow(0 0 4px rgba(255, 61, 92, 0.55));
     }
-    .quote-title .qt-pair-buy .qt-mini-dot {
+    .sig-legend .qt-pair-buy .qt-mini-dot {
       background: #ff3d5c;
     }
-    .quote-title .qt-pair-bottom {
+    .sig-legend .qt-pair-bottom {
       color: #38bdf8;
       filter: drop-shadow(0 0 4px rgba(56, 189, 248, 0.5));
     }
-    .quote-title .qt-pair-bottom .qt-mini-dot {
+    .sig-legend .qt-pair-bottom .qt-mini-dot {
       background: #38bdf8;
     }
-    .quote-title .qt-pair-absorb {
+    .sig-legend .qt-pair-absorb {
       color: #22c55e;
       filter: drop-shadow(0 0 4px rgba(34, 197, 94, 0.45));
     }
-    .quote-title .qt-pair-absorb .qt-mini-dot {
+    .sig-legend .qt-pair-absorb .qt-mini-dot {
       background: #22c55e;
     }
-    .quote-title .qt-pair-sell {
+    .sig-legend .qt-pair-sell {
       color: #00e68a;
       filter: drop-shadow(0 0 4px rgba(0, 230, 138, 0.45));
     }
-    .quote-title .qt-pair-sell .qt-mini-dot {
+    .sig-legend .qt-pair-sell .qt-mini-dot {
       background: #00e68a;
     }
-    .quote-title .qt-pair-risk {
+    .sig-legend .qt-pair-risk {
       color: #ffb300;
       filter: drop-shadow(0 0 5px rgba(255, 179, 0, 0.55));
     }
-    .quote-title .qt-pair-risk .qt-mini-dot {
+    .sig-legend .qt-pair-risk .qt-mini-dot {
       background: #ffb300;
     }
-    .quote-title .qt-pair-high {
+    .sig-legend .qt-pair-high {
       color: #ff0090;
       filter: drop-shadow(0 0 4px rgba(255, 0, 144, 0.5));
     }
-    .quote-title .qt-pair-high .qt-mini-dot {
+    .sig-legend .qt-pair-high .qt-mini-dot {
       background: #ff0090;
     }
-    .quote-title .qt-c-buy {
+    .sig-legend .qt-c-buy {
       color: #ff3d5c;
       font-weight: 900;
       text-shadow: 0 0 12px rgba(255, 61, 92, 0.65);
     }
-    .quote-title .qt-c-bottom {
+    .sig-legend .qt-c-bottom {
       color: #38bdf8;
       font-weight: 700;
       text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
     }
-    .quote-title .qt-c-absorb {
+    .sig-legend .qt-c-absorb {
       color: #22c55e;
       font-weight: 700;
       text-shadow: 0 0 10px rgba(34, 197, 94, 0.45);
     }
-    .quote-title .qt-c-sell {
+    .sig-legend .qt-c-sell {
       color: #00e68a;
       font-weight: 900;
       text-shadow: 0 0 12px rgba(0, 230, 138, 0.55);
     }
-    .quote-title .qt-c-risk {
+    .sig-legend .qt-c-risk {
       color: #ffb300;
       font-weight: 700;
       text-shadow: 0 0 12px rgba(255, 179, 0, 0.55);
     }
-    .quote-title .qt-c-high {
+    .sig-legend .qt-c-high {
       color: #ff0090;
       font-weight: 900;
       text-shadow: 0 0 12px rgba(255, 0, 144, 0.60);
     }
-    .quote-title .qt-band {
+    .sig-legend .qt-band {
       flex-shrink: 0;
       color: #8b9cff;
       font-weight: 600;
@@ -750,35 +765,35 @@
       white-space: nowrap;
     }
     @media (max-width: 480px) {
-      .quote-title .qt-use {
+      .sig-legend .qt-use {
         gap: 10px 12px;
       }
-      .quote-title .qt-sep-dot {
+      .sig-legend .qt-sep-dot {
         padding: 0 6px;
       }
-      .quote-title .qt-use-vrule {
+      .sig-legend .qt-use-vrule {
         display: none;
       }
-      .quote-title .qt-band {
+      .sig-legend .qt-band {
         white-space: normal;
         letter-spacing: 0.05em;
       }
-      .quote-title .qt-item-label {
+      .sig-legend .qt-item-label {
         white-space: normal;
       }
     }
     @media (prefers-reduced-motion: reduce) {
-      .quote-title .qt-pair-buy,
-      .quote-title .qt-pair-sell,
-      .quote-title .qt-pair-risk,
-      .quote-title .qt-pair-high {
+      .sig-legend .qt-pair-buy,
+      .sig-legend .qt-pair-sell,
+      .sig-legend .qt-pair-risk,
+      .sig-legend .qt-pair-high {
         filter: none;
       }
-      .quote-title .qt-c-buy,
-      .quote-title .qt-c-sell,
-      .quote-title .qt-c-risk,
-      .quote-title .qt-c-high,
-      .quote-title .qt-band {
+      .sig-legend .qt-c-buy,
+      .sig-legend .qt-c-sell,
+      .sig-legend .qt-c-risk,
+      .sig-legend .qt-c-high,
+      .sig-legend .qt-band {
         text-shadow: none;
       }
     }
@@ -850,12 +865,14 @@
     .short-term-bar .short-term-toggle span {
       margin: 0;
     }
-    .short-term-bar .short-term-toggle span{
+    .short-term-bar .short-term-toggle .st-label-full,
+    .short-term-bar .short-term-toggle .st-label-short {
       flex: 0 1 auto !important;
-      display: inline !important;
       margin: 0 !important;
       white-space: normal;
     }
+    .st-label-short { display: none !important; }
+    .st-label-full { display: inline !important; }
     .short-term-bar .short-term-toggle input {
       width: 15px;
       height: 15px;
@@ -865,126 +882,6 @@
     .chart-box {
       position: relative;
       width: 100%;
-    }
-    .signal-legend {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 10px 18px;
-      margin-top: 8px;
-      padding: 8px 12px;
-      font-size: 12px;
-      color: var(--muted);
-      background: var(--panel2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-    }
-    .signal-legend .sig-item {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      color: var(--text);
-      white-space: nowrap;
-    }
-    .signal-legend .sig-dot {
-      width: 11px;
-      height: 11px;
-      border-radius: 50%;
-      flex-shrink: 0;
-      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
-    }
-    @keyframes sig-glow-buy {
-      0%,
-      100% {
-        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 0 4px rgba(255, 61, 92, 0.55);
-      }
-      50% {
-        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 0 14px rgba(255, 61, 92, 0.95);
-      }
-    }
-    @keyframes sig-glow-sell {
-      0%,
-      100% {
-        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 0 4px rgba(0, 230, 138, 0.5);
-      }
-      50% {
-        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 0 14px rgba(0, 230, 138, 0.9);
-      }
-    }
-    @keyframes sig-glow-risk {
-      0%,
-      100% {
-        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 0 4px rgba(255, 179, 0, 0.55);
-      }
-      50% {
-        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 0 14px rgba(255, 179, 0, 0.95);
-      }
-    }
-    @keyframes sig-glow-high {
-      0%,
-      100% {
-        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 0 4px rgba(255, 0, 144, 0.55);
-      }
-      50% {
-        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 0 16px rgba(255, 0, 144, 0.95);
-      }
-    }
-    .signal-legend .sig-dot.sig-buy {
-      background: #ff3d5c;
-      animation: sig-glow-buy 2.1s ease-in-out infinite;
-    }
-    .signal-legend .sig-dot.sig-sell {
-      background: #00e68a;
-      animation: sig-glow-sell 2.1s ease-in-out infinite;
-    }
-    .signal-legend .sig-dot.sig-risk {
-      background: #ffb300;
-      animation: sig-glow-risk 2.1s ease-in-out infinite;
-    }
-    .signal-legend .sig-dot.sig-high {
-      background: #ff0090;
-      animation: sig-glow-high 2.15s ease-in-out infinite;
-    }
-    /* 破位预警（危）已移除：避免多重刷屏 */
-    @keyframes sig-glow-bottom {
-      0%,
-      100% {
-        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 0 4px rgba(56, 189, 248, 0.5);
-      }
-      50% {
-        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 0 14px rgba(56, 189, 248, 0.95);
-      }
-    }
-    .signal-legend .sig-dot.sig-bottom {
-      background: #38bdf8;
-      animation: sig-glow-bottom 2.05s ease-in-out infinite;
-    }
-    @keyframes sig-glow-absorb {
-      0%,
-      100% {
-        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 0 4px rgba(34, 197, 94, 0.55);
-      }
-      50% {
-        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 0 14px rgba(34, 197, 94, 0.95);
-      }
-    }
-    .signal-legend .sig-dot.sig-absorb {
-      background: #22c55e;
-      animation: sig-glow-absorb 2.05s ease-in-out infinite;
-    }
-    .signal-legend .sig-dot.sig-macd-g {
-      background: #ff3d5c;
-      opacity: 0.8;
-    }
-    .signal-legend .sig-dot.sig-macd-d {
-      background: #00e68a;
-      opacity: 0.8;
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .signal-legend .sig-dot {
-        animation: none !important;
-        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
-      }
     }
     #chart-wrap {
       width: 100%;
@@ -1323,8 +1220,8 @@
     }
 
     .usage-hint {
-      margin-top: 14px;
-      padding: 12px 14px;
+      margin-top: 10px;
+      padding: 10px 12px;
       background: var(--panel2);
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -1332,6 +1229,23 @@
       color: var(--muted);
       line-height: 1.55;
     }
+    .usage-hint > summary.usage-hint-title {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 900;
+      color: #fbbf24;
+      letter-spacing: 0.2px;
+      cursor: pointer;
+      list-style: none;
+      user-select: none;
+    }
+    .usage-hint > summary.usage-hint-title::-webkit-details-marker { display: none; }
+    .usage-hint > summary.usage-hint-title::after {
+      content: " ▾";
+      font-weight: 700;
+      opacity: 0.75;
+    }
+    .usage-hint[open] > summary.usage-hint-title::after { content: " ▴"; }
     .usage-hint .combo-tip {
       margin: 10px 0 10px;
       padding: 10px 10px;
@@ -1344,13 +1258,6 @@
     }
     .usage-hint .combo-tip strong { color: var(--warn); font-weight: 700; }
     .usage-hint .combo-tip .combo-tip-sub { color: var(--muted); }
-    .usage-hint .usage-hint-title {
-      margin: 0 0 8px;
-      font-size: 13px;
-      font-weight: 900;
-      color: #fbbf24;
-      letter-spacing: 0.2px;
-    }
     .usage-hint ul {
       margin: 0;
       padding-left: 1.1rem;
@@ -1387,6 +1294,8 @@
       .quote-head {
         flex-direction: column;
         align-items: stretch;
+        gap: 8px;
+        margin-bottom: 8px;
       }
       .quote-head .period-tabs {
         justify-content: flex-start;
@@ -1399,9 +1308,50 @@
       }
       th, td { padding: 8px; font-size: 12px; }
       #chart-wrap {
-        height: clamp(260px, calc(100vh - 308px), 520px);
-        min-height: 240px;
+        height: clamp(300px, calc(100vh - 210px), 640px);
+        min-height: 280px;
       }
+      .quote-live {
+        margin: 0 0 6px;
+        padding: 8px 10px;
+        font-size: 11px;
+        line-height: 1.45;
+      }
+      .sample-chips {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 6px;
+        margin: 0 0 6px;
+        padding-bottom: 2px;
+      }
+      .sample-chips .chip-label { display: none; }
+      .sample-chips button {
+        flex: 0 0 auto;
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+      .search-row { margin-bottom: 8px; gap: 6px; }
+      .sig-legend {
+        margin-top: 4px;
+        padding: 6px 8px;
+      }
+      .sig-legend .qt-sep-dot { padding: 0 5px; }
+      .sig-legend .qt-item-label { font-size: 11px; }
+      .st-label-full { display: none !important; }
+      .st-label-short { display: inline !important; }
+      .page-main.wrap,
+      main.wrap {
+        padding-top: 8px;
+        padding-bottom: 10px;
+      }
+      .invite-banner {
+        margin-bottom: 8px;
+        padding: 8px 10px;
+      }
+      .invite-banner .ib-copy .sub { display: none; }
+      .hint { display: none; }
+      .usage-hint { margin-top: 8px; padding: 8px 10px; }
     }
 
     /* Compliance disclaimer (always visible, non-blocking) */
@@ -1433,6 +1383,148 @@
       flex: 0 0 auto;
     }
     .disclaimer-bar .x:hover{ background: rgba(255,255,255,.85); }
+
+    /* 邀请落地：先看行情，同时给出明确注册引导 */
+    .invite-banner{
+      display:none;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      margin:0 0 10px;
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid rgba(37,99,235,.28);
+      background: linear-gradient(180deg, rgba(239,246,255,.95), rgba(219,234,254,.72));
+      color:#1e3a8a;
+      font-size:13px;
+      line-height:1.45;
+    }
+    .invite-banner.is-show{ display:flex; }
+    .invite-banner .ib-copy{ flex:1 1 180px; min-width:0; }
+    .invite-banner .ib-copy b{ font-weight:800; }
+    .invite-banner .ib-copy .sub{
+      display:block;
+      margin-top:2px;
+      font-size:12px;
+      color:#334155;
+      opacity:.92;
+    }
+    .invite-banner .ib-actions{
+      display:inline-flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .invite-banner .ib-actions a,
+    .invite-banner .ib-actions button{
+      appearance:none;
+      border-radius:8px;
+      padding:7px 12px;
+      font-size:12px;
+      font-weight:700;
+      cursor:pointer;
+      text-decoration:none;
+      border:1px solid rgba(37,99,235,.35);
+      background:#fff;
+      color:#1d4ed8;
+    }
+    .invite-banner .ib-actions a.primary{
+      background:#2563eb;
+      border-color:#2563eb;
+      color:#fff;
+    }
+    .invite-banner .ib-actions .x{
+      border:none;
+      background:transparent;
+      color:#64748b;
+      font-weight:600;
+      padding:6px 8px;
+    }
+    .quote-head-title .guest-auth{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .quote-head-title .guest-auth .btn-mini.primary{
+      background: var(--ma2, #2563eb);
+      border-color: var(--ma2, #2563eb);
+      color:#fff;
+      font-weight:700;
+    }
+
+    /* Invite guest soft CTA: content-first, register primary */
+    .invite-cta-bar{
+      display:none;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      margin: 0 0 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(37, 99, 235, 0.22);
+      background: linear-gradient(180deg, rgba(239,246,255,.96), rgba(219,234,254,.72));
+      color: #1e3a8a;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .invite-cta-bar.is-show{ display:flex; }
+    .invite-cta-bar .invite-cta-copy{ flex: 1 1 180px; min-width: 0; }
+    .invite-cta-bar .invite-cta-copy b{ font-weight: 800; }
+    .invite-cta-bar .invite-cta-copy .sub{
+      display:block;
+      margin-top: 2px;
+      font-size: 12px;
+      color: #334155;
+      opacity: .92;
+    }
+    .invite-cta-bar .invite-cta-actions{
+      display:inline-flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .invite-cta-bar .btn-mini{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding: 7px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(37,99,235,.28);
+      background: #fff;
+      color: #1e40af;
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration:none;
+      cursor:pointer;
+    }
+    .invite-cta-bar .btn-mini.primary{
+      background: #2563eb;
+      border-color: #2563eb;
+      color: #fff;
+    }
+    .invite-cta-bar .x{
+      border:0;
+      background:transparent;
+      color:#64748b;
+      cursor:pointer;
+      font-size:12px;
+      padding:4px 6px;
+    }
+    .quote-head-title .guest-auth-actions{
+      display:inline-flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .quote-head-title .btn-mini.primary{
+      background: var(--ma2, #2563eb);
+      border-color: var(--ma2, #2563eb);
+      color: #fff;
+      font-weight: 700;
+    }
 
     /* ===== Watchlist Panel ===== */
     .search-row #btn-fav, .search-row #btn-wl-panel {
@@ -1568,10 +1660,21 @@
       <span>【<b>内容仅供学习交流，不构成任何建议</b>】</span>
       <button type="button" class="x" id="disclaimer-close">我知道了</button>
     </div>
+    <div class="invite-banner" id="invite-banner" role="region" aria-label="好友邀请">
+      <div class="ib-copy">
+        <b>好友邀请你试用 AI 行情官</b>
+        <span class="sub">可先免费看几次信号；注册后领取更多次数，邀请码会自动带上。</span>
+      </div>
+      <div class="ib-actions">
+        <a class="primary" id="invite-banner-register" href="./index.html?mode=register">免费注册</a>
+        <a id="invite-banner-login" href="./index.html?mode=login">已有账号登录</a>
+        <button type="button" class="x" id="invite-banner-close" aria-label="关闭">关闭</button>
+      </div>
+    </div>
     <div class="top-alert" id="top-alert" role="status" aria-live="polite">
       <span class="icon" aria-hidden="true">!</span>
       <span class="msg" id="top-alert-msg">
-        <b>次数不足</b> 请先登录/续期，或通过邀请获取次数
+        <b>次数不足</b> 请先注册/登录，或通过邀请获取次数
         <span class="sub" id="top-alert-sub">免费：10/天 + 50/周　VIP：150/天 + 500/周</span>
       </span>
       <span class="actions">
@@ -1579,7 +1682,7 @@
           type="button"
           class="btn-mini primary"
           id="top-alert-go-login"
-        >登录/续期</button>
+        >免费注册</button>
         <button
           type="button"
           class="btn-mini secondary"
@@ -1601,7 +1704,10 @@
             <span>本周剩余 <b id="q-week">-</b></span>
             <span>套餐 <b id="q-plan">-</b></span>
           </div>
-          <a class="btn-mini" id="btn-login" href="./account.html">登录/续期</a>
+          <span class="guest-auth" id="guest-auth-actions">
+            <a class="btn-mini primary" id="btn-register" href="./index.html?mode=register">免费注册</a>
+            <a class="btn-mini" id="btn-login" href="./index.html?mode=login">登录</a>
+          </span>
         </div>
         <div class="period-tabs disabled" id="period-tabs" role="tablist" aria-label="K 线周期">
           <button type="button" role="tab" data-period="day" aria-selected="true">日线</button>
@@ -1631,26 +1737,18 @@
       <div class="quote-live" id="quote-live" hidden></div>
       <div class="chart-box" id="chart-box">
         <div id="chart-wrap"></div>
-        <div class="signal-legend" aria-label="K 线信号颜色说明">
-          <span class="sig-item"><i class="sig-dot sig-absorb" aria-hidden="true"></i>小底（提前关注）</span>
-          <span class="sig-item"><i class="sig-dot sig-bottom" aria-hidden="true"></i>底（低位关注）</span>
-          <span class="sig-item"><i class="sig-dot sig-buy" aria-hidden="true"></i>金（偏强）</span>
-          <span class="sig-item"><i class="sig-dot sig-sell" aria-hidden="true"></i>等（偏弱）</span>
-          <span class="sig-item"><i class="sig-dot sig-risk" aria-hidden="true"></i>险（关注风险）</span>
-          <span class="sig-item"><i class="sig-dot sig-high" aria-hidden="true"></i>顶（警惕高位）</span>
-          <span class="sig-item"><i class="sig-dot sig-macd-g" aria-hidden="true"></i>金（MACD金叉）</span>
-          <span class="sig-item"><i class="sig-dot sig-macd-d" aria-hidden="true"></i>等（MACD死叉）</span>
-        </div>
+        <div class="sig-legend" id="signal-legend" aria-label="K 线信号说明"></div>
         <div class="short-term-bar" id="short-term-bar">
           <label class="short-term-toggle">
             <input type="checkbox" id="chk-short-ma" checked />
-            <span>主图叠加短周期均线（虚线），辅助提前捕捉预判</span>
+            <span class="st-label-full">主图叠加短周期均线（虚线），辅助提前捕捉预判</span>
+            <span class="st-label-short">短均线（虚线）</span>
           </label>
         </div>
         <div class="chart-tooltip" id="chart-tooltip" hidden role="tooltip"></div>
       </div>
-      <aside class="usage-hint" id="tips" aria-label="雷神标注使用要领">
-        <p class="usage-hint-title">使用要领（学习交流）</p>
+      <details class="usage-hint" id="tips" aria-label="雷神标注使用要领">
+        <summary class="usage-hint-title">使用要领（点开查看）</summary>
         <div class="combo-tip" role="note">
           <strong>信号速览：</strong>
           低位出现信号 → <strong>关注</strong>；多信号共振 → <strong>加强参考</strong>；高位频繁出现 → <strong>警惕</strong>。
@@ -1664,8 +1762,8 @@
           <li>各类信号<strong>须结合其它指标综合判断</strong>，单一信号不构成决策依据。</li>
           <li>MACD 副图亮柱 + 箭头 = <strong>金叉/死叉辅助确认</strong>，可配合均线信号使用。</li>
         </ul>
-        <p class="usage-hint-note">K 线标记颜色与上方图例一致。金 为金叉信号，仅供学习交流参考。</p>
-      </aside>
+        <p class="usage-hint-note">K 线标记与图例一致。仅供学习交流参考。</p>
+      </details>
     </section>
 
     <div class="hint" style="margin-top:12px">
@@ -1675,7 +1773,7 @@
   </main>
   <footer class="site-footer" id="site-footer"></footer>
 
-  <script src="/js/shell.js?v=27"></script>
+  <script src="/js/shell.js?v=31"></script>
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("demo"); } catch (e) {}
   </script>
@@ -2299,14 +2397,91 @@
       var t = '';
       if (typeof localStorage !== 'undefined') t = localStorage.getItem(AUTH_TOKEN_KEY) || '';
       t = String(t || '').trim();
+      var guestWrap = document.getElementById('guest-auth-actions');
+      var btnReg = document.getElementById('btn-register');
       var btn = document.getElementById('btn-login');
-      if (btn) btn.textContent = t ? '账户/续期' : '登录/续期';
+      function inviteCode() {
+        try {
+          var sp = new URLSearchParams(String(location.search || '').replace(/^\?/, ''));
+          var v = sp.get('i') || sp.get('invite') || sp.get('inv') || sp.get('ref') || '';
+          v = String(v || '').trim().toUpperCase();
+          if (v) return v;
+        } catch (e0) {}
+        try { return String(localStorage.getItem('ai24x_invite_code') || '').trim().toUpperCase(); } catch (e1) { return ''; }
+      }
+      function authHref(mode) {
+        var h = './index.html?mode=' + (mode === 'login' ? 'login' : 'register');
+        var ic = inviteCode();
+        if (ic) h += '&i=' + encodeURIComponent(ic);
+        return h;
+      }
+      if (t) {
+        if (btnReg) btnReg.hidden = true;
+        if (btn) {
+          btn.hidden = false;
+          btn.className = 'btn-mini';
+          btn.textContent = '账户/续期';
+          btn.setAttribute('href', './account.html');
+        }
+        if (guestWrap) guestWrap.hidden = false;
+      } else {
+        if (guestWrap) guestWrap.hidden = false;
+        if (btnReg) {
+          btnReg.hidden = false;
+          btnReg.textContent = '免费注册';
+          btnReg.setAttribute('href', authHref('register'));
+        }
+        if (btn) {
+          btn.hidden = false;
+          btn.textContent = '登录';
+          btn.setAttribute('href', authHref('login'));
+        }
+      }
       if (!t) return;
       apiMe()
         .then(function (d) {
           setQuotaPill(d && d.quota ? d.quota : null);
         })
         .catch(function () {});
+    } catch (e) {}
+  })();
+
+  (function initInviteBanner() {
+    try {
+      var bar = document.getElementById('invite-banner');
+      if (!bar) return;
+      var tok = '';
+      try { tok = localStorage.getItem(AUTH_TOKEN_KEY) || ''; } catch (e0) { tok = ''; }
+      if (String(tok || '').trim()) return;
+      var code = '';
+      try {
+        var sp = new URLSearchParams(String(location.search || '').replace(/^\?/, ''));
+        code = String(sp.get('i') || sp.get('invite') || sp.get('inv') || sp.get('ref') || '').trim().toUpperCase();
+      } catch (e1) {}
+      if (!code) {
+        try { code = String(localStorage.getItem('ai24x_invite_code') || '').trim().toUpperCase(); } catch (e2) {}
+      }
+      if (!code) return;
+      var dismissKey = 'ai24x_invite_banner_dismiss:' + code;
+      try {
+        if (sessionStorage.getItem(dismissKey) === '1') return;
+      } catch (e3) {}
+      function href(mode) {
+        var h = './index.html?mode=' + mode + '&i=' + encodeURIComponent(code);
+        return h;
+      }
+      var aReg = document.getElementById('invite-banner-register');
+      var aLogin = document.getElementById('invite-banner-login');
+      if (aReg) aReg.setAttribute('href', href('register'));
+      if (aLogin) aLogin.setAttribute('href', href('login'));
+      bar.classList.add('is-show');
+      var btnClose = document.getElementById('invite-banner-close');
+      if (btnClose) {
+        btnClose.addEventListener('click', function () {
+          try { sessionStorage.setItem(dismissKey, '1'); } catch (e4) {}
+          bar.classList.remove('is-show');
+        });
+      }
     } catch (e) {}
   })();
 
@@ -3898,7 +4073,7 @@
       var loginBtn = document.getElementById('top-alert-go-login');
       var vipBtn = document.getElementById('top-alert-go-vip');
       var inviteBtn = document.getElementById('top-alert-go-invite');
-      if (loginBtn) loginBtn.textContent = '登录/续期';
+      if (loginBtn) loginBtn.textContent = '免费注册';
       if (vipBtn) vipBtn.style.display = '';
       if (inviteBtn) inviteBtn.style.display = '';
       if (msgEl) {
@@ -3909,18 +4084,20 @@
           msgEl.innerHTML =
             '<b>游客次数已用完</b> ' + guestMsg.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') +
             '<span class="sub">注册即享免费额度：10次/天 + 50次/周</span>';
-          // 游客场景：按钮文字改为"注册/登录"，隐藏VIP/邀请按钮
-          if (loginBtn) loginBtn.textContent = '注册/登录';
+          // 游客场景：主按钮「免费注册」，隐藏 VIP/邀请
+          if (loginBtn) loginBtn.textContent = '免费注册';
           if (vipBtn) vipBtn.style.display = 'none';
           if (inviteBtn) inviteBtn.style.display = 'none';
         } else if (s.indexOf('次数不足') >= 0) {
           msgEl.innerHTML =
-            '<b>次数不足</b> 请先登录/续期，或通过邀请获取次数' +
+            '<b>次数不足</b> 请先注册/登录，或通过邀请获取次数' +
             '<span class="sub">免费：10/天 + 50/周　VIP：150/天 + 500/周</span>';
+          if (loginBtn) loginBtn.textContent = '免费注册';
         } else if (s.indexOf('登录') >= 0 || s.indexOf('VIP') >= 0 || s.indexOf('开通') >= 0) {
           msgEl.innerHTML =
-            '<b>需要登录/VIP</b> 请先登录后再查询；如需更高额度可开通 VIP' +
+            '<b>需要登录</b> 请先注册或登录后再查询；如需更高额度可开通 VIP' +
             '<span class="sub">免费：10/天 + 50/周　VIP：150/天 + 500/周</span>';
+          if (loginBtn) loginBtn.textContent = '免费注册';
         } else {
           msgEl.textContent = s;
         }
@@ -3928,7 +4105,7 @@
       if (alertEl) {
         // 根据消息类型高亮颜色
         alertEl.className = 'top-alert is-show';
-        var lower = s.toLowerCase();
+        var lower = String(text || '').toLowerCase();
         if (lower.indexOf('错误')>=0||lower.indexOf('失败')>=0||lower.indexOf('error')>=0||lower.indexOf('fail')>=0||lower.indexOf('已注册')>=0) {
           alertEl.classList.add('is-error');
         } else if (lower.indexOf('成功')>=0||lower.indexOf('ok')>=0) {
@@ -3936,6 +4113,10 @@
         } else {
           alertEl.classList.add('is-warn');
         }
+        try {
+          var preferReg = !!(loginBtn && String(loginBtn.textContent || '').indexOf('注册') >= 0);
+          alertEl.setAttribute('data-cta', preferReg ? 'register' : 'account');
+        } catch (eCta) {}
       }
       // Fallback to status line if alert missing
       if (!alertEl) {
@@ -3958,6 +4139,26 @@
       var goLogin = document.getElementById('top-alert-go-login');
       var goVip = document.getElementById('top-alert-go-vip');
       var goInvite = document.getElementById('top-alert-go-invite');
+      function inviteQ() {
+        try {
+          var sp = new URLSearchParams(String(location.search || '').replace(/^\?/, ''));
+          var v = String(sp.get('i') || sp.get('invite') || '').trim().toUpperCase();
+          if (v) return v;
+        } catch (e0) {}
+        try { return String(localStorage.getItem('ai24x_invite_code') || '').trim().toUpperCase(); } catch (e1) { return ''; }
+      }
+      function registerHref() {
+        var h = './index.html?mode=register';
+        var ic = inviteQ();
+        if (ic) h += '&i=' + encodeURIComponent(ic);
+        return h;
+      }
+      function loginHref() {
+        var h = './index.html?mode=login';
+        var ic = inviteQ();
+        if (ic) h += '&i=' + encodeURIComponent(ic);
+        return h;
+      }
       function nav(to) {
         try {
           window.location.assign(to);
@@ -3967,9 +4168,16 @@
           } catch (e2) {}
         }
       }
+      function goPrimaryAuth() {
+        var cta = '';
+        try { cta = alertEl ? String(alertEl.getAttribute('data-cta') || '') : ''; } catch (e0) {}
+        var lab = goLogin ? String(goLogin.textContent || '') : '';
+        if (cta === 'register' || lab.indexOf('注册') >= 0) nav(registerHref());
+        else nav('./account.html');
+      }
       if (goLogin) {
         goLogin.addEventListener('click', function () {
-          nav('./account.html');
+          goPrimaryAuth();
         });
       }
       if (goVip) {
@@ -3990,7 +4198,10 @@
           var t = ev && ev.target ? ev.target : null;
           if (!t || !t.getAttribute) return;
           var id = t.getAttribute('id');
-          if (id === 'top-alert-go-login') nav('./account.html');
+          if (id === 'top-alert-go-login') {
+            ev.preventDefault();
+            goPrimaryAuth();
+          }
           if (id === 'top-alert-go-vip') nav('./account.html#vip');
           if (id === 'top-alert-go-invite') nav('./account.html#invite');
         },
@@ -4044,7 +4255,10 @@
       liveEl.classList.toggle('is-soft-loading', !!on);
     } catch (e1) {}
     if (on) {
-      if (titleEl && !titleEl.innerHTML) titleEl.innerHTML = buildQuoteTitleHtml();
+      if (titleEl) {
+        titleEl.innerHTML = '';
+        titleEl.hidden = true;
+      }
       if (liveEl) {
         liveEl.hidden = false;
         if (!liveEl.innerHTML) {
@@ -4399,9 +4613,22 @@
       qtIconPair('high', '【顶】', 'qt-c-high') +
       '<span class="qt-item-label">预警</span></span>' +
       '</div>' +
+      '<div class="qt-macd-note">副图 <span class="qt-macd-g">↑金叉</span> · <span class="qt-macd-d">↓死叉</span></div>' +
       '</div>';
     return useLine;
   }
+
+  function mountSignalLegend() {
+    try {
+      var el = document.getElementById('signal-legend');
+      if (el) el.innerHTML = buildQuoteTitleHtml();
+      if (titleEl) {
+        titleEl.innerHTML = '';
+        titleEl.hidden = true;
+      }
+    } catch (e0) {}
+  }
+  try { mountSignalLegend(); } catch (eML) {}
 
   function apiSignals(secid, period, count) {
     try {
@@ -5009,7 +5236,7 @@
     } catch (eExp) {}
     wireShortMaCheckboxOnce();
     updateShortTermBar(mainChartCandles);
-    titleEl.innerHTML = buildQuoteTitleHtml();
+    mountSignalLegend();
     var liveHtml = buildLiveHtml(pack.qt, key);
     if (!liveHtml) {
       liveHtml = buildLiveHtmlFromLastKline(result.secid || currentSecid, mainChartCandles, mainChartVols, result.klineSource || '');

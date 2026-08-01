@@ -80,8 +80,8 @@
       '<option value="light">蓝白</option>' +
       "</select>" +
       '<span id="auth-actions" style="display:none; display:inline-flex; align-items:center; gap:10px; min-width:118px; justify-content:flex-end">' +
-      '<a class="btn btn-ghost" id="btn-auth" href="account.html">登录/续期</a>' +
-      '<a class="btn btn-primary" id="btn-vip" href="account.html#vip">开通 VIP</a>' +
+      '<a class="btn btn-ghost" id="btn-auth" href="index.html?mode=login">登录</a>' +
+      '<a class="btn btn-primary" id="btn-vip" href="index.html?mode=register">免费注册</a>' +
       "</span>" +
       "</div>" +
       "</div>"
@@ -153,7 +153,7 @@
         global.__AI24X_A_SW_INSTALLED = true;
         // Cache-bust SW URL so deployments don't require Ctrl+F5.
         // Use absolute paths so pages still work under subpaths like /i/{code}.
-        navigator.serviceWorker.register("/sw.js?v=29", { scope: "/", updateViaCache: "none" }).then(function (reg) {
+        navigator.serviceWorker.register("/sw.js?v=31", { scope: "/", updateViaCache: "none" }).then(function (reg) {
           try {
             reg.update && reg.update();
             if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
@@ -227,8 +227,8 @@
     ]);
     actions.appendChild(sel);
     var authWrap = _el("span", { id: "auth-actions", style: "display:none; display:inline-flex; align-items:center; gap:10px; min-width:118px; justify-content:flex-end" }, []);
-    authWrap.appendChild(_el("a", { class: "btn btn-ghost", id: "btn-auth", href: "account.html" }, ["登录/续期"]));
-    authWrap.appendChild(_el("a", { class: "btn btn-primary", id: "btn-vip", href: "account.html#vip" }, ["开通 VIP"]));
+    authWrap.appendChild(_el("a", { class: "btn btn-ghost", id: "btn-auth", href: "index.html?mode=login" }, ["登录"]));
+    authWrap.appendChild(_el("a", { class: "btn btn-primary", id: "btn-vip", href: "index.html?mode=register" }, ["免费注册"]));
     actions.appendChild(authWrap);
 
     wrap.appendChild(brand);
@@ -292,24 +292,60 @@
       var authWrap = document.getElementById("auth-actions");
       var btnAuth = document.getElementById("btn-auth");
       var btnVip = document.getElementById("btn-vip");
+      function inviteCode() {
+        try {
+          var sp = new URLSearchParams(String(location.search || "").replace(/^\?/, ""));
+          var v = sp.get("i") || sp.get("invite") || sp.get("inv") || sp.get("ref") || "";
+          v = String(v || "").trim().toUpperCase();
+          if (v) return v;
+        } catch (e0) {}
+        try {
+          return String(localStorage.getItem("ai24x_invite_code") || "").trim().toUpperCase();
+        } catch (e1) {
+          return "";
+        }
+      }
+      function authHref(mode) {
+        var m = mode === "login" ? "login" : "register";
+        var h = "index.html?mode=" + m;
+        var ic = inviteCode();
+        if (ic) h += "&i=" + encodeURIComponent(ic);
+        return h;
+      }
       function showAuthWrap(){
         if(!authWrap) return;
         try{ authWrap.style.display = ""; }catch(e0){}
       }
       function setLoggedOutUi(){
         try{
-          if(btnAuth) btnAuth.textContent = "登录";
-          if(btnAuth) btnAuth.setAttribute("href", "account.html");
-          if(btnVip) btnVip.style.display = "";
+          // 游客：登录为次、免费注册为主（邀请链路友好）
+          if(btnAuth) {
+            btnAuth.textContent = "登录";
+            btnAuth.className = "btn btn-ghost";
+            btnAuth.setAttribute("href", authHref("login"));
+          }
+          if(btnVip) {
+            btnVip.textContent = "免费注册";
+            btnVip.className = "btn btn-primary";
+            btnVip.setAttribute("href", authHref("register"));
+            btnVip.style.display = "";
+          }
         }catch(e0){}
       }
       function setLoggedInUi(d){
         try{
           // Keep header stable: always show "我的" (avoid phone/nickname width drift).
-          if(btnAuth) btnAuth.textContent = "我的";
-          if(btnAuth) btnAuth.setAttribute("href", "account.html");
-          // Keep VIP button visible (renew) for now; can be refined later.
-          if(btnVip) btnVip.style.display = "";
+          if(btnAuth) {
+            btnAuth.textContent = "我的";
+            btnAuth.className = "btn btn-ghost";
+            btnAuth.setAttribute("href", "account.html");
+          }
+          if(btnVip) {
+            btnVip.textContent = "开通 VIP";
+            btnVip.className = "btn btn-primary";
+            btnVip.setAttribute("href", "account.html#vip");
+            btnVip.style.display = "";
+          }
         }catch(e0){}
       }
       // Avoid "login flash": hide auth actions until we know state.
