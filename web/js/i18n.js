@@ -1,10 +1,10 @@
 /**
  * 国际化 — 语言包为扁平 key：nav.home、page.index.title 等
  *
- * 策略（2026-07-31）：
+ * 策略（2026-08-02 · 国际站低调默认英文）：
  * - 已选过语言（localStorage）→ 永远尊重
- * - ?lang=xx 可强制并写入（便于自测）
- * - 首访：浏览器语言含 zh → 中文；否则英文（国际 SEO / 海外开发者默认）
+ * - ?lang=xx 可强制并写入（便于自测 / 运营链接）
+ * - 首访：固定英文（不跟浏览器语言自动切中文；中文等靠用户手动切）
  * - 其它语言选项：英文打底，避免缺译回落到中文造成中英混杂
  */
 (function (global) {
@@ -24,21 +24,6 @@
     return "";
   }
 
-  function browserPrefersZh() {
-    var list = [];
-    try {
-      if (navigator.languages && navigator.languages.length) {
-        for (var i = 0; i < navigator.languages.length; i++) list.push(navigator.languages[i]);
-      } else if (navigator.language) list.push(navigator.language);
-    } catch (e) {}
-    for (var j = 0; j < list.length; j++) {
-      var n = normalizeLang(list[j]);
-      if (n === "zh") return true;
-      if (String(list[j] || "").toLowerCase().indexOf("zh") === 0) return true;
-    }
-    return false;
-  }
-
   function detectFirstVisitLang() {
     try {
       var q = new URLSearchParams(window.location.search || "").get("lang");
@@ -50,7 +35,7 @@
     } catch (e) {}
     var saved = normalizeLang(localStorage.getItem(LANG_KEY));
     if (saved) return saved;
-    var initial = browserPrefersZh() ? "zh" : "en";
+    var initial = "en";
     try {
       localStorage.setItem(LANG_KEY, initial);
     } catch (e2) {}
@@ -148,6 +133,12 @@
     if (sel) sel.value = getLang();
     var ts = document.getElementById("theme-select");
     if (ts) ts.value = localStorage.getItem("ai24x_theme") || "blue";
+
+    try {
+      document.documentElement.classList.remove("i18n-pending");
+      var pendingStyle = document.getElementById("ai24x-i18n-pending");
+      if (pendingStyle && pendingStyle.parentNode) pendingStyle.parentNode.removeChild(pendingStyle);
+    } catch (e2) {}
   }
 
   // 尽早解析首访语言，减少闪中文

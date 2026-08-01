@@ -41,7 +41,7 @@
     "footer.copy": "保留所有权利",
     "page.index.hero.title": "中国强模 · 一个 Key · 极致性价比",
     "page.index.hero.lead":
-      "想用 Kimi、小米 MiMo、MiniMax、智谱 GLM、DeepSeek、Qwen？在这里一个账号、一个 Key 就能调，国际可用 PayPal 美元充值。",
+      "想用 AI24X 调 Kimi、小米 MiMo、MiniMax、智谱 GLM、DeepSeek、Qwen？一个账号、一个 Key 就能调，国际可用 PayPal 美元充值。",
     "page.index.tag1": "中国名模 · 性价比优先",
     "page.index.tag2": "统一接口 · api.ai24x.com",
     "page.index.tag3": "PayPal（USD）· 微信/支付宝（CNY）",
@@ -533,7 +533,7 @@
     "footer.copy": "All rights reserved",
     "page.index.hero.title": "China LLMs · One key · Extreme value",
     "page.index.hero.lead":
-      "Want Kimi, Xiaomi MiMo, MiniMax, Zhipu GLM, DeepSeek, or Qwen? One account, one API key—and PayPal USD when you’re abroad.",
+      "With AI24X, call Kimi, Xiaomi MiMo, MiniMax, Zhipu GLM, DeepSeek, or Qwen—one account, one API key, and PayPal USD when you’re abroad.",
     "page.index.tag1": "China models · great value",
     "page.index.tag2": "Single endpoint · api.ai24x.com",
     "page.index.tag3": "PayPal (USD) · WeChat/Alipay (CNY)",

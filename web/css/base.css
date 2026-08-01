@@ -351,6 +351,56 @@ body[data-page="register"] .page-main > .section:first-child {
   gap: 12px;
 }
 
+/* 探索子导航：复用 .hero-cta 排版（标题/导语下方） */
+.hero-cta.page-explore-cta {
+  margin-top: 24px;
+}
+
+/* 非中文：整页先藏，等 i18n.apply 后再露（防闪中文；boot 内联同规则兜底） */
+html.i18n-pending body {
+  visibility: hidden !important;
+}
+
+/* 名模 / VIP / 价格 / 接入 / 注册 / 邀请：统一次级导航 */
+.page-subnav {
+  border-bottom: 1px solid var(--border, #d8e4ef);
+  background: color-mix(in srgb, var(--surface, #fff) 88%, var(--bg, #f4f7fb));
+}
+.page-subnav-inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 0;
+}
+.page-subnav-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border, #d8e4ef);
+  background: var(--surface, #fff);
+  color: var(--muted, #64748b);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  line-height: 1.2;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.page-subnav-link:hover {
+  color: var(--text, #0f172a);
+  border-color: color-mix(in srgb, var(--accent, #2563eb) 45%, var(--border, #d8e4ef));
+}
+.page-subnav-link.is-active {
+  color: #fff;
+  background: var(--accent, #2563eb);
+  border-color: var(--accent, #2563eb);
+}
+.page-subnav-link.is-active:hover {
+  color: #fff;
+}
+
 .section h2 {
   margin: 0;
   font-size: clamp(1.5rem, 2.5vw, 1.85rem);
