@@ -1,6 +1,6 @@
 # 副脑04 · 更新指令（英文错误文案 + 主题下拉去前缀）
 
-> 发令：2026-08-01 · 目标提交见文末（推送后填入 `git log -1`）  
+> 发令：2026-08-01 · 目标提交 `392c368`  
 > 进程：NSSM `AI24X-core`（**本包含 api 变更，需重启**）  
 > **禁止**整文件覆盖 `api/.env`  
 > 远端：`git pull origin master`（或 `gitee master`）
@@ -33,7 +33,7 @@ git checkout master
 git pull origin master
 # 若失败：git pull gitee master
 git log -1 --oneline
-# 期望：含 feat(i18n) 英文错误与主题文案 的提交
+# 期望：392c368（fix i18n 英文错误与主题文案）
 
 # 本包无需改 .env；勿动 DATABASE_URL
 
