@@ -324,11 +324,35 @@
       actions.className = "card-actions";
       actions.style.marginTop = "10px";
 
+      function payIconSvg(channel) {
+        if (channel === "wechat") {
+          return (
+            '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+            '<path fill="#07C160" d="M9.5 4C5.9 4 3 6.5 3 9.6c0 1.8 1 3.3 2.6 4.4L5 16.2l2.4-1.2c.7.2 1.4.3 2.1.3.2 0 .4 0 .6 0-.2-.5-.3-1-.3-1.6 0-3.2 3.1-5.8 6.9-5.8.2 0 .4 0 .6.1C16.4 5.3 13.2 4 9.5 4zm-2.3 3.1c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zm4.6 0c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zM16.8 9c-3.1 0-5.6 2.1-5.6 4.7s2.5 4.7 5.6 4.7c.6 0 1.2-.1 1.8-.3l1.9.9-.5-1.7c1.2-.9 2-2.2 2-3.6C21.9 11.1 19.5 9 16.8 9zm-1.9 3.1c.3 0 .6.3.6.6s-.3.6-.6.6-.6-.3-.6-.6.3-.6.6-.6zm3.8 0c.3 0 .6.3.6.6s-.3.6-.6.6-.6-.3-.6-.6.3-.6.6-.6z"/></svg>'
+          );
+        }
+        if (channel === "alipay") {
+          return (
+            '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+            '<path fill="#1677FF" d="M21.5 12.2c0-4.6-3.4-8.2-8.3-8.2H5.2v16h8.1c4.8 0 8.2-3.5 8.2-7.8zm-9.9 3.3c-2.2 0-3.4-1-3.4-2.5 0-1.6 1.3-2.5 3.5-2.5.6 0 1.2.1 1.8.2-.3.6-.6 1.3-.9 2.1H10c-.5 0-.8.2-.8.6 0 .4.4.7 1.1.7.7 0 1.4-.2 2-.5.2.6.4 1.1.5 1.5-.9.3-1.8.4-2.7.4zm5.7-1.1c-.4.7-.9 1.4-1.5 2-.2-.5-.4-1.1-.5-1.7.7-.1 1.4-.2 2-.3zm1.3-2.5c-.9.2-1.9.4-2.9.8.3-.8.6-1.5 1-2.1.7.3 1.3.8 1.9 1.3z"/></svg>'
+          );
+        }
+        if (channel === "paypal") {
+          return (
+            '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+            '<path fill="#003087" d="M7.2 20.5h1.7l.5-3.1h1.7c3.3 0 5.5-1.4 6.1-4.3.1-.5.1-.9.1-1.2 0-.2 0-.4-.1-.6H19l.1-.5c.4-2.5-.9-4.2-3.8-4.2H9.2L7.2 20.5zm4.2-11.5h1.7c1.3 0 2 .5 1.8 1.7-.2 1.4-1.2 1.7-2.5 1.7h-1.5l.5-3.4z"/>' +
+            '<path fill="#009CDE" d="M9.5 21.5h1.7l.4-2.5H13c2.7 0 4.4-1.1 4.9-3.5.1-.4.1-.7.1-1 0-.1 0-.3 0-.4h1.5l.1-.4c.3-2-.7-3.4-3.1-3.4h-4.3l-1.9 11.2h1.7l.5-3.1h1.4c1.1 0 1.7.4 1.5 1.4-.2 1.1-1 1.4-2.1 1.4H10l.5 3.3z"/></svg>'
+          );
+        }
+        return "";
+      }
+
       function addBtn(label, cls, channel) {
         var btn = document.createElement("button");
         btn.type = "button";
-        btn.className = cls;
-        btn.textContent = label;
+        btn.className = cls + (channel !== "mock" ? " btn-pay" : "");
+        var ico = channel !== "mock" ? payIconSvg(channel) : "";
+        btn.innerHTML = ico + "<span>" + label + "</span>";
         btn.addEventListener("click", function () {
           buyPlan(p.plan, channel, p);
         });
@@ -835,9 +859,16 @@
           opt.value = p.id;
           var lock = p.locked ? tr("（需会员）", " (VIP)") : "";
           var mult = p.billing_mult ? " ×" + p.billing_mult : "";
+          var zhUi = AI24X_API.isZhUi();
+          var est = "";
+          if (p.est_cny_per_m != null || p.est_usd_per_m != null) {
+            est = zhUi
+              ? " · 约¥" + (p.est_cny_per_m != null ? p.est_cny_per_m : "—") + "/百万"
+              : " · ~$" + (p.est_usd_per_m != null ? p.est_usd_per_m : "—") + "/1M";
+          }
           var title =
-            !AI24X_API.isZhUi() && p.title_en ? p.title_en : p.title || p.id;
-          opt.textContent = title + mult + lock;
+            !zhUi && p.title_en ? p.title_en : p.title || p.id;
+          opt.textContent = title + mult + est + lock;
           opt.disabled = !!p.locked;
           sel.appendChild(opt);
         });

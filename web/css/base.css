@@ -658,6 +658,18 @@ body[data-page="register"] .page-main > .section:first-child {
   gap: 10px;
 }
 
+.btn-pay {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-pay .pay-ico {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  display: block;
+}
+
 .list-clean {
   list-style: none;
   padding: 0;

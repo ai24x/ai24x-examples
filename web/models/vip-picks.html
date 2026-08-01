@@ -6,7 +6,7 @@
   <title>VIP named models · China &amp; International | AI24X</title>
   <meta name="description" content="VIP members can pick China and international models by name. Start with flash/pro, then name a model." />
   <link rel="canonical" href="https://www.ai24x.com/models/vip-picks.html" />
-  <link rel="stylesheet" href="../css/base.css?v=20260801a" />
+  <link rel="stylesheet" href="../css/base.css?v=20260801b" />
   <link id="theme-css" rel="stylesheet" href="../css/themes/theme-blue.css?v=20260725a" data-base="../css/themes/" />
 </head>
 <body data-page="models" class="theme-blue">
@@ -16,7 +16,7 @@
       <div class="container">
         <p class="sub"><a href="index.html" data-i18n="page.models.all">全部名模</a></p>
         <h1 data-i18n="page.models.vip.h1">VIP 点名名模</h1>
-        <p class="lead" data-i18n="page.models.vip.lead">开通 VIP 后，可按名称选用中国或国际名模。倍率越高，消耗额度越多。</p>
+        <p class="lead" data-i18n="page.models.vip.lead">开通 VIP 后，可按名称选用中国或国际名模。倍率越高，钱包消耗越多；预估费用按开发包折算，仅供参考。</p>
         <div class="hero-cta">
           <a class="btn btn-primary" href="../pricing.html" data-i18n="nav.pricing">价格</a>
           <a class="btn" href="../console.html" data-i18n="nav.console">控制台</a>
@@ -43,11 +43,12 @@
                 <th data-i18n="page.models.vip.col.name">名称</th>
                 <th data-i18n="page.models.vip.col.id">调用名</th>
                 <th data-i18n="page.models.vip.col.mult">倍率</th>
+                <th data-i18n="page.models.vip.col.est">预估消耗</th>
                 <th data-i18n="page.models.vip.col.blurb">说明</th>
               </tr>
             </thead>
             <tbody id="vipPickChina">
-              <tr><td colspan="4" class="muted">Loading…</td></tr>
+              <tr><td colspan="5" class="muted">Loading…</td></tr>
             </tbody>
           </table>
         </div>
@@ -60,11 +61,12 @@
                 <th data-i18n="page.models.vip.col.name">名称</th>
                 <th data-i18n="page.models.vip.col.id">调用名</th>
                 <th data-i18n="page.models.vip.col.mult">倍率</th>
+                <th data-i18n="page.models.vip.col.est">预估消耗</th>
                 <th data-i18n="page.models.vip.col.blurb">说明</th>
               </tr>
             </thead>
             <tbody id="vipPickIntl">
-              <tr><td colspan="4" class="muted">Loading…</td></tr>
+              <tr><td colspan="5" class="muted">Loading…</td></tr>
             </tbody>
           </table>
         </div>
@@ -117,8 +119,17 @@ Header: X-API-Key: YOUR_API_KEY
         return p.blurb_en || p.blurb || p.quality || "";
       }
       var cachedPicks = null;
+      function pickEst(p) {
+        var mult = Number(p.billing_mult || 1) || 1;
+        if (isZh()) {
+          var cny = p.est_cny_per_m != null ? p.est_cny_per_m : Math.round(40 * 7.2 * mult);
+          return "约¥" + cny + "/百万";
+        }
+        var usd = p.est_usd_per_m != null ? p.est_usd_per_m : Math.round(40 * mult * 100) / 100;
+        return "~$" + usd + "/1M";
+      }
       function rowsFor(list) {
-        if (!list.length) return "<tr><td colspan='4' class='muted'>—</td></tr>";
+        if (!list.length) return "<tr><td colspan='5' class='muted'>—</td></tr>";
         return list
           .map(function (p) {
             return (
@@ -128,6 +139,8 @@ Header: X-API-Key: YOUR_API_KEY
               esc(p.id) +
               "</td><td>×" +
               esc(p.billing_mult || 1) +
+              "</td><td class='mono small'>" +
+              esc(pickEst(p)) +
               "</td><td class='sub'>" +
               esc(pickBlurb(p)) +
               "</td></tr>"
@@ -158,8 +171,8 @@ Header: X-API-Key: YOUR_API_KEY
             render(cachedPicks);
           })
           .catch(function () {
-            chinaEl.innerHTML = "<tr><td colspan='4' class='muted'>—</td></tr>";
-            intlEl.innerHTML = "<tr><td colspan='4' class='muted'>—</td></tr>";
+            chinaEl.innerHTML = "<tr><td colspan='5' class='muted'>—</td></tr>";
+            intlEl.innerHTML = "<tr><td colspan='5' class='muted'>—</td></tr>";
           });
         document.addEventListener("ai24x:lang", function () {
           if (cachedPicks) render(cachedPicks);

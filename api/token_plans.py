@@ -3,7 +3,7 @@ Token 产品套餐目录（与 a1 行情官 VIP 配额套餐完全独立）。
 
 定价口径（2026-07-30）：
 - 主数据按国际价（USD 锚定）；国内收银台 CNY（微信/支付宝），国际 PayPal USD
-- 入门包默认保持体验价 ¥1 / 1 万 token（正式规模获客前再抬）
+- 入门包为优惠体验档（默认 ¥9.9 / 1 万 token），promo_max_purchases=1 防刷
 - 改价优先级：管理台覆盖文件 > env TOKEN_PRICE_*_FEN > 代码默认
 - 前台 /v1/billing/plans 与后台同源 list_public_plans / get_plan
 """
@@ -32,15 +32,17 @@ _PLAN_DEFAULTS: dict[str, dict[str, Any]] = {
     "token_pack_10k": {
         "title_zh": "入门包",
         "title_en": "Starter",
-        "price_usd": round(1.0 / 7.2, 2),
-        "default_fen": 100,
+        # 优惠体验档（相对开发包单价更低）；正式国际标价另见 Builder / 决策文档 $5 口径
+        "price_usd": round(9.9 / 7.2, 2),
+        "default_fen": 990,
         "credit_tokens": 10_000,
         "set_vip": False,
         "validity_days": 365,
         "enabled": True,
         "promo": True,
-        "note_zh": "体验价：¥1 到账 1 万 token；额度自到账起 12 个月有效。支持微信、支付宝。",
-        "note_en": "Promo: about $0.14 for 10k credits (valid 12 months from credit). PayPal on the international site.",
+        "promo_max_purchases": 1,
+        "note_zh": "优惠体验：¥9.9 到账 1 万 token（每账号限购 1 次）；额度自到账起 12 个月有效。",
+        "note_en": "Promo: about $1.38 for 10k credits (1 purchase per account). Valid 12 months from credit.",
     },
     "token_pack_100k": {
         "title_zh": "开发包",
@@ -172,6 +174,7 @@ def _resolve_plan(plan_id: str) -> dict[str, Any] | None:
         "note_zh",
         "note_en",
         "promo",
+        "promo_max_purchases",
         "enabled",
         "set_vip",
         "credit_tokens",
@@ -244,6 +247,8 @@ def list_public_plans() -> list[dict[str, Any]]:
                 "note": note_zh,
                 "note_zh": note_zh,
                 "note_en": note_en,
+                "promo": bool(p.get("promo")),
+                "promo_max_purchases": int(p.get("promo_max_purchases") or 0) or None,
                 "settle_hint_zh": "支持微信支付、支付宝",
                 "settle_hint_en": "Pay with PayPal (USD) on the international site",
             }

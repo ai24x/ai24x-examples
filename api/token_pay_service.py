@@ -157,6 +157,33 @@ def public_plans() -> dict:
     }
 
 
+def _assert_promo_purchase_ok(db: Session, *, auth_user_id: int, plan_id: str) -> None:
+    """优惠体验套餐限购（按已支付成功次数）。"""
+    meta = get_plan(plan_id) or {}
+    if not meta.get("promo"):
+        return
+    try:
+        max_n = int(meta.get("promo_max_purchases") or 0)
+    except (TypeError, ValueError):
+        max_n = 0
+    if max_n <= 0:
+        return
+    n = (
+        db.query(TokenPayOrder)
+        .filter(
+            TokenPayOrder.auth_user_id == int(auth_user_id),
+            TokenPayOrder.plan == str(plan_id),
+            TokenPayOrder.status == "paid",
+        )
+        .count()
+    )
+    if n >= max_n:
+        raise HTTPException(
+            status_code=400,
+            detail="该优惠套餐每位用户限购一次，请选择其它套餐。",
+        )
+
+
 def create_pending_order(
     db: Session,
     *,
@@ -174,6 +201,7 @@ def create_pending_order(
         plan_id, price_fen = normalize_plan(plan)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+    _assert_promo_purchase_ok(db, auth_user_id=int(auth_user_id), plan_id=plan_id)
     ch = (channel or "wechat")[:16]
     # PayPal：amount_fen 存 USD 美分；微信/支付宝仍为 CNY 分
     if ch == "paypal":

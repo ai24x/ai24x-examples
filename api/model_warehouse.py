@@ -541,6 +541,14 @@ def resolve_vip_pick(requested_model: Optional[str]) -> Optional[dict[str, Any]]
 def list_vip_picks_for_user(*, is_vip: bool) -> list[dict[str, Any]]:
     """控制台可选点名列表（中国模优先）。非 VIP 也返回目录但 locked。"""
     enabled = vip_pick_enabled()
+    # 预估消耗按「开发包」折算：约 $20 / 50 万 token → $40 / 百万钱包 token
+    try:
+        fx = float((__import__("os").environ.get("TOKEN_USD_CNY") or "7.2").strip() or "7.2")
+        if fx <= 0:
+            fx = 7.2
+    except ValueError:
+        fx = 7.2
+    ref_usd_per_m = 40.0
     out = []
     for c in sorted(
         [x for x in CATALOG if x.get("role") == "vip_pick"],
@@ -550,19 +558,25 @@ def list_vip_picks_for_user(*, is_vip: bool) -> list[dict[str, Any]]:
         is_intl = str(c.get("id") or "").startswith("vip-gpt") or "claude" in str(
             c.get("id")
         ) or "gemini" in str(c.get("id") or "")
+        mult = int(c.get("billing_mult") or 1)
+        est_usd = round(ref_usd_per_m * mult, 2)
+        est_cny = int(round(est_usd * fx))
         out.append(
             {
                 "id": c["id"],
                 "title": c.get("title") or c["id"],
                 "title_en": c.get("title_en") or c.get("title") or c["id"],
                 "model": c["id"],
-                "billing_mult": int(c.get("billing_mult") or 1),
+                "billing_mult": mult,
                 # 短标签给用户看；勿塞运维备注
                 "blurb": c.get("quality") or "",
                 "blurb_en": c.get("quality_en") or c.get("quality") or "",
                 "group": "intl" if is_intl else "china",
                 "locked": (not is_vip) or (not enabled),
                 "enabled_platform": enabled,
+                "est_usd_per_m": est_usd,
+                "est_cny_per_m": est_cny,
+                "est_basis": "builder_pack",
             }
         )
     return out
