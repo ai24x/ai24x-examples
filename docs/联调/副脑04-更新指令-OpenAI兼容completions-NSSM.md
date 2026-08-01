@@ -1,6 +1,6 @@
 # 副脑04 · 更新指令（OpenAI 兼容 POST /v1/chat/completions）
 
-> 发令：2026-08-02  
+> 发令：2026-08-02 · 目标提交 `a692aed`  
 > 进程：NSSM `AI24X-core`（**必须重启**以加载新路由）  
 > **禁止**整文件覆盖 `api/.env`；本包**无需**改 `.env`  
 > 远端：`git pull origin master`（或 `gitee master`）
