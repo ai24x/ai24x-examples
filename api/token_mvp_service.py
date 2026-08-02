@@ -823,11 +823,44 @@ def ensure_gateway_user(db: Session, auth_user_id: int) -> User:
     return u
 
 
+def _find_api_key_any_status(db: Session, api_key: str) -> Optional[ApiKey]:
+    """含已吊销；仅用于区分 invalid vs disabled。"""
+    from security_util import hash_api_key
+
+    k = (api_key or "").strip()
+    if not k:
+        return None
+    hashed = hash_api_key(k)
+    row = db.query(ApiKey).filter(ApiKey.api_key == hashed).first()
+    if row:
+        return row
+    return db.query(ApiKey).filter(ApiKey.api_key == k).first()
+
+
 def resolve_chat_user_from_api_key(db: Session, api_key: str) -> tuple[User, int]:
     """返回 (gateway User, auth_user_id)。"""
     row = get_api_key_row(db, api_key)
     if not row:
-        raise HTTPException(status_code=401, detail="无效的 API Key")
+        any_row = _find_api_key_any_status(db, api_key)
+        if any_row is not None and not bool(any_row.is_active):
+            raise HTTPException(
+                status_code=401,
+                detail={
+                    "message_zh": "该 API Key 已停用，请到控制台创建新 Key。",
+                    "message_en": "This API key has been revoked. Create a new key in the console.",
+                    "message": "该 API Key 已停用，请到控制台创建新 Key。",
+                    "code": "key_disabled",
+                },
+            )
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "message_zh": "无效的 API Key",
+                "message_en": "Invalid API key",
+                "message": "无效的 API Key",
+                "code": "invalid_api_key",
+            },
+        )
     touch_api_key(db, row)
     gateway = ensure_gateway_user(db, int(row.auth_user_id))
     return gateway, int(row.auth_user_id)

@@ -235,12 +235,9 @@ def get_current_user(
         except HTTPException as e:
             if e.status_code != 401:
                 raise
-            # OpenAI 兼容路径：Bearer 无效直接 401，不再落到 legacy user_id
+            # OpenAI 兼容路径：保留细分 detail（invalid_api_key / key_disabled），不再落到 legacy
             if _is_openai_completions_path(request.url.path or ""):
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid API key",
-                )
+                raise
             # fall through to legacy User.api_key
 
     # 严格鉴权：禁止「只带 user_id」冒充（防拷贝脚本扫接口）

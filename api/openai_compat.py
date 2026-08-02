@@ -270,28 +270,45 @@ def openai_error_body(
     }
 
 
+def _detail_error_code(detail: Any) -> Optional[str]:
+    if isinstance(detail, dict):
+        c = detail.get("code")
+        if c:
+            return str(c).strip() or None
+    return None
+
+
 def map_http_exception_to_openai(exc: HTTPException) -> Tuple[int, Dict[str, Any]]:
     from user_i18n import openai_user_message
 
     code = int(exc.status_code)
     msg = openai_user_message(exc.detail)
+    detail_code = _detail_error_code(exc.detail)
     if code == 401:
+        err_code = detail_code or "invalid_api_key"
+        if err_code == "key_disabled":
+            return code, openai_error_body(
+                msg or "API key has been revoked",
+                err_type="invalid_request_error",
+                code="key_disabled",
+            )
         return code, openai_error_body(
             msg or "Invalid API key",
             err_type="invalid_request_error",
             code="invalid_api_key",
         )
     if code == 402:
+        err_code = detail_code or "insufficient_quota"
         return code, openai_error_body(
             msg or "Insufficient quota",
             err_type="insufficient_quota",
-            code="insufficient_quota",
+            code=err_code,
         )
     if code == 403:
         return code, openai_error_body(
             msg or "Forbidden",
             err_type="invalid_request_error",
-            code="permission_denied",
+            code=detail_code or "permission_denied",
         )
     if code == 429:
         return code, openai_error_body(
@@ -774,13 +791,15 @@ def build_chat_request_from_responses(body: Dict[str, Any]) -> ChatRequestSchema
         max_tokens = int(max_raw if max_raw is not None else 1000)
     except (TypeError, ValueError):
         max_tokens = 1000
-    max_tokens = max(1, min(4000, max_tokens))
+    # 与 Completions 对齐（不再单独卡 4000）
+    max_tokens = max(1, min(16384, max_tokens))
     return ChatRequestSchema(
         prompt=messages_to_prompt(messages),
         model=model,
         temperature=temperature,
         max_tokens=max_tokens,
         stream=bool(body.get("stream")),
+        messages=normalize_messages_for_upstream(messages),
     )
 
 
