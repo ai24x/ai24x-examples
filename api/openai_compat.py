@@ -63,24 +63,26 @@ def extract_api_key(request: Request) -> Optional[str]:
 
 
 def map_model_name(requested: Optional[str]) -> str:
-    """映射到平台 model；未知名默认 flash。"""
+    """映射到平台 model；未知名默认 flash。
+
+    顺序：品牌档 → OpenAI 生态 drop-in（gpt-4o→flash 等）→ VIP 点名短别名（kimi/gpt/claude…）
+    → 遗留层名 → flash。Completions 与 /v1/chat/run 共用 VIP 别名表。
+    """
     raw = (requested or "").strip()
     if not raw:
         return "flash"
     low = raw.lower()
     if low in ("free",):
         return "auto"
-    # 平台自有档 / VIP 点名
-    if low in (
-        "auto",
-        "flash",
-        "pro",
-        "ultra",
-        "shared",
-        "free-shared",
-        "free_shared",
-    ) or low.startswith("vip-"):
+    if low in ("free-shared", "free_shared"):
+        return "shared"
+    # 平台自有档 / 已是 vip-* 规范 id
+    if low in ("auto", "flash", "pro", "ultra", "shared") or low.startswith("vip-"):
         return low
+    # OpenAI 客户端常见模型名 → 品牌档（保持 drop-in；真名模请用 vip-gpt4o 等）
+    if low in _OPENAI_MODEL_ALIASES:
+        return _OPENAI_MODEL_ALIASES[low]
+    # 遗留层名（deepseek-flash / kimi-k3 等）优先于 VIP 短别名，避免行为突变
     try:
         from model_router import MODEL_LAYER
 
@@ -88,8 +90,15 @@ def map_model_name(requested: Optional[str]) -> str:
             return low
     except Exception:
         pass
-    if low in _OPENAI_MODEL_ALIASES:
-        return _OPENAI_MODEL_ALIASES[low]
+    # VIP 点名短别名：kimi / mimo / qwen / gpt / claude / gemini …
+    try:
+        from model_warehouse import resolve_vip_pick
+
+        pick = resolve_vip_pick(raw)
+        if pick and pick.get("id"):
+            return str(pick["id"])
+    except Exception:
+        pass
     return "flash"
 
 

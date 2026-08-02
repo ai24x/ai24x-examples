@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <script src="../js/i18n-boot.js?v=20260803b"></script>
+  <script src="../js/i18n-boot.js?v=20260803c"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OpenClaw + AI24X · tools, streaming, field notes</title>
-  <meta name="description" content="Connect OpenClaw to AI24X: baseUrl https://api.ai24x.com/v1, flash/pro with tools and streaming. Field notes: avoid 405/401, clean sessions, VIP named models." />
+  <title>OpenClaw + AI24X · flash / shared / VIP named models</title>
+  <meta name="description" content="OpenClaw + AI24X: flash/pro/shared and VIP ids (vip-kimi, vip-gpt5, vip-claude-sonnet…). Completions with tools and streaming." />
   <link rel="canonical" href="https://www.ai24x.com/guides/openclaw.html" />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="OpenClaw + AI24X · tools, streaming, field notes" />
@@ -44,30 +44,25 @@
         "api": "openai-completions",
         "apiKey": "YOUR_AI24X_API_KEY",
         "models": [
-          {
-            "id": "flash",
-            "name": "AI24X Flash",
-            "reasoning": false,
-            "input": ["text"],
-            "contextWindow": 128000,
-            "maxTokens": 8192,
-            "api": "openai-completions"
-          },
-          {
-            "id": "pro",
-            "name": "AI24X Pro",
-            "reasoning": false,
-            "input": ["text"],
-            "contextWindow": 128000,
-            "maxTokens": 8192,
-            "api": "openai-completions"
-          }
+          { "id": "flash", "name": "AI24X Flash", "reasoning": false, "input": ["text"], "contextWindow": 128000, "maxTokens": 8192, "api": "openai-completions" },
+          { "id": "pro", "name": "AI24X Pro", "reasoning": false, "input": ["text"], "contextWindow": 128000, "maxTokens": 8192, "api": "openai-completions" },
+          { "id": "ultra", "name": "AI24X Ultra", "reasoning": false, "input": ["text"], "contextWindow": 128000, "maxTokens": 8192, "api": "openai-completions" },
+          { "id": "auto", "name": "AI24X Auto", "reasoning": false, "input": ["text"], "contextWindow": 128000, "maxTokens": 8192, "api": "openai-completions" },
+          { "id": "shared", "name": "AI24X Shared (free daily, no tools)", "reasoning": false, "input": ["text"], "contextWindow": 128000, "maxTokens": 4096, "api": "openai-completions" },
+          { "id": "vip-kimi", "name": "Kimi (VIP)", "reasoning": false, "input": ["text"], "contextWindow": 128000, "maxTokens": 8192, "api": "openai-completions" },
+          { "id": "vip-mimo", "name": "MiMo (VIP)", "reasoning": false, "input": ["text"], "contextWindow": 128000, "maxTokens": 8192, "api": "openai-completions" },
+          { "id": "vip-qwen-max", "name": "Qwen Max (VIP)", "reasoning": false, "input": ["text"], "contextWindow": 128000, "maxTokens": 8192, "api": "openai-completions" },
+          { "id": "vip-glm", "name": "GLM (VIP)", "reasoning": false, "input": ["text"], "contextWindow": 128000, "maxTokens": 8192, "api": "openai-completions" },
+          { "id": "vip-minimax", "name": "MiniMax (VIP)", "reasoning": false, "input": ["text"], "contextWindow": 128000, "maxTokens": 8192, "api": "openai-completions" },
+          { "id": "vip-gpt5-mini", "name": "GPT-5 mini (VIP)", "reasoning": false, "input": ["text"], "contextWindow": 128000, "maxTokens": 8192, "api": "openai-completions" },
+          { "id": "vip-claude-sonnet", "name": "Claude Sonnet (VIP)", "reasoning": false, "input": ["text"], "contextWindow": 128000, "maxTokens": 8192, "api": "openai-completions" },
+          { "id": "vip-gemini-flash", "name": "Gemini Flash (VIP)", "reasoning": false, "input": ["text"], "contextWindow": 128000, "maxTokens": 8192, "api": "openai-completions" }
         ]
       }
     }
   }
 }</div>
-        <p class="sub" data-i18n="page.guides.openclaw.s2n">Optional: add <code>ultra</code> / <code>auto</code> the same way. VIP named ids (e.g. <code>vip-kimi</code>) need an active membership—add them under <code>models</code> and see the VIP list. Platform Completions allow up to 16384 <code>max_tokens</code>; OpenClaw <code>maxTokens: 8192</code> is a safe client default (raise for longer replies).</p>
+        <p class="sub" data-i18n-html="page.guides.openclaw.s2n">Copy more ids from the <a href="../models/vip-picks.html">VIP list</a> the same way (<code>vip-gpt5</code>, <code>vip-claude-opus</code>…). <strong>shared</strong> = free daily text only (no tools). VIP ids need membership + prepaid credits. Completions allow up to 16384 <code>max_tokens</code>; OpenClaw <code>maxTokens: 8192</code> is a safe client default.</p>
 
         <h2 class="mt-2" data-i18n="page.guides.openclaw.s3">3) Smoke test</h2>
         <p class="sub" data-i18n="page.guides.openclaw.s3p">In a <strong>clean</strong> OpenClaw session: <code>/model ai24x/flash</code>. Or from a terminal:</p>
@@ -84,8 +79,8 @@
         <h2 class="mt-2" data-i18n="page.guides.openclaw.s3c">5) Streaming &amp; long sessions</h2>
         <p class="sub" data-i18n="page.guides.openclaw.s3cp">AI24X streams true SSE for Completions. Prefer a clean session when validating tools or long tasks—huge prior context (tens of thousands of tokens + large tool schemas) makes any model feel slow. Keep credit balance for paid routing when using tools.</p>
 
-        <h2 class="mt-2" data-i18n="page.guides.openclaw.s3d">6) VIP named models</h2>
-        <p class="sub" data-i18n-html="page.guides.openclaw.s3dp">With an active membership, add ids like <code>vip-kimi</code> under the same provider and <code>/model ai24x/vip-kimi</code>. Completions + tools apply the same way; reliability depends on that named model. For day-to-day agents, prefer <code>flash</code> / <code>pro</code>. See <a href="../models/vip-picks.html">VIP list</a>.</p>
+        <h2 class="mt-2" data-i18n="page.guides.openclaw.s3d">6) Switch models: shared · China · GPT/Claude/Gemini</h2>
+        <p class="sub" data-i18n-html="page.guides.openclaw.s3dp">In a clean session: <code>/model ai24x/shared</code> (free text), <code>/model ai24x/vip-kimi</code>, <code>/model ai24x/vip-claude-sonnet</code>, etc. Prefer exact <code>vip-*</code> ids from the provider list. Short names like <code>kimi</code> / <code>gpt</code> / <code>claude</code> also map on Completions after the platform update—still best to pin <code>vip-*</code> in OpenClaw. Agents with tools: use <code>flash</code>/<code>pro</code> (or a VIP pick with balance)—not <code>shared</code>. Full catalog: <a href="../models/vip-picks.html">VIP list</a>.</p>
 
         <h2 class="mt-2" data-i18n="page.guides.openclaw.s4">7) Field notes (what actually broke setups)</h2>
         <ul class="lead" style="padding-left:1.2em">
@@ -94,7 +89,9 @@
           <li data-i18n="page.guides.openclaw.tip3"><strong>Chat works, tools never run</strong> — Not “flash is too weak”. Confirm Completions + tools path, paid balance, and a clean session. Start with flash; use pro for harder tasks.</li>
           <li data-i18n="page.guides.openclaw.tip4"><strong>Session overrides</strong> — A pinned session model can override your global default. Use a new session when testing AI24X vs another provider.</li>
           <li data-i18n="page.guides.openclaw.tip5"><strong>402</strong> — Insufficient balance / prepaid needed for the model. Top up in Console.</li>
-          <li data-i18n="page.guides.openclaw.tip6"><strong>VIP names</strong> — Need active VIP; add the exact id to the provider models list.</li>
+          <li data-i18n="page.guides.openclaw.tip6"><strong>VIP names</strong> — Need active VIP + prepaid; add exact <code>vip-*</code> ids to the provider models list.</li>
+          <li data-i18n-html="page.guides.openclaw.tip7"><strong>shared + tools</strong> — Free daily pool is text-only; tool calls need a paid model (<code>flash</code>/<code>pro</code>/<code>vip-*</code>) with balance.</li>
+          <li data-i18n="page.guides.openclaw.tip8"><strong>gpt-4o in OpenAI clients</strong> — Drop-in names like <code>gpt-4o</code> map to brand <code>flash</code>, not real GPT-4o. For the named model use <code>vip-gpt4o</code>.</li>
         </ul>
 
         <h2 class="mt-2" data-i18n="page.guides.openclaw.s5">8) CLI one-shot (optional)</h2>
@@ -112,7 +109,7 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="../config/locales.js?v=20260803b"></script>
+  <script src="../config/locales.js?v=20260803c"></script>
   <script src="../js/api.js?v=20260802i"></script>
   <script src="../js/i18n.js?v=20260802m"></script>
   <script src="../js/shell.js?v=20260802m"></script>
