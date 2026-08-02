@@ -1,6 +1,6 @@
 # 副脑04 · 更新指令（公开页 og:image + 首页 VIP 露出 · 静态站）
 
-> 发令：2026-08-02  
+> 发令：2026-08-02 · 目标提交 `874a7ce`（拉码后 HEAD 可为更新）  
 > 范围：**仅静态 `web/`**（不必重启 `AI24X-core`）  
 > **禁止**整文件覆盖 `api/.env`  
 > 承接：`50acf3b` SEO 基建验收后的 P1（次要页缺 og:image）+ 首页次要文案补 GPT/Claude
@@ -20,7 +20,7 @@ Set-Location C:\ai24x01
 git checkout master
 git pull origin master
 git log -1 --oneline
-# 期望：含「公开页 og」或「VIP 露出」说明的提交（拉码后 HEAD）
+# 期望：874a7ce（公开页 og + 首页 VIP 露出）或更新
 
 # 不必 Restart-Service AI24X-core
 
