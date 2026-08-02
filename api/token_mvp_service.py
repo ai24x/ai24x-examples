@@ -76,6 +76,73 @@ def _gen_invite_code(n: int = 8) -> str:
 # —— Wallet / credit lots ——
 
 
+def model_allows_vip_daily(model: Optional[str]) -> bool:
+    """VIP 日赠仅可用于 flash/auto/共享档；pro/ultra/名模必须花预充额度。"""
+    m = (model or "flash").strip().lower()
+    if m.startswith("vip-"):
+        return False
+    if m in (
+        "pro",
+        "ultra",
+        "or-pro",
+        "or-ultra",
+        "deepseek-pro",
+        "deepseek-reasoner",
+        "ds-v4-pro",
+    ):
+        return False
+    if m in (
+        "flash",
+        "auto",
+        "free",
+        "shared",
+        "free-shared",
+        "free_shared",
+        "or-flash",
+        "deepseek-flash",
+        "deepseek-chat",
+        "ds-v4-flash",
+        "",
+    ):
+        return True
+    # 其它未知型号：不开放日赠，避免贵模漏扣
+    return False
+
+
+def _is_vip_daily_lot(db: Session, lot: TokenCreditLot) -> bool:
+    src = (lot.source or "").strip().lower()
+    if src == "vip_daily":
+        return True
+    if src != "bonus":
+        return False
+    # 兼容旧批次：source=bonus + 流水备注「VIP 日额度」
+    if not lot.ledger_id:
+        return False
+    led = (
+        db.query(BillingLedger.note)
+        .filter(BillingLedger.id == int(lot.ledger_id))
+        .first()
+    )
+    note = (led[0] if led else "") or ""
+    return "VIP 日额度" in note or "VIP日额度" in note
+
+
+def spendable_tokens(
+    db: Session,
+    auth_user_id: int,
+    *,
+    allow_vip_daily: bool = True,
+    now: Optional[datetime] = None,
+) -> int:
+    now = now or _utcnow()
+    total = 0
+    for lot in _active_lots_q(db, int(auth_user_id), now).all():
+        if not allow_vip_daily and _is_vip_daily_lot(db, lot):
+            continue
+        total += int(lot.amount_remaining or 0)
+    return int(total)
+
+
 def get_or_create_wallet(db: Session, auth_user_id: int) -> TokenWallet:
     w = db.query(TokenWallet).filter(TokenWallet.auth_user_id == int(auth_user_id)).first()
     if w:
@@ -333,12 +400,13 @@ def ensure_period_bonus(db: Session, wallet: TokenWallet) -> TokenWallet:
         db.refresh(wallet)
         return wallet
 
+    lot_source = "vip_daily" if wallet.plan == BillingPlan.VIP else "bonus"
     _credit_lot(
         db,
         auth_user_id=int(wallet.auth_user_id),
         amount=int(amount),
         entry_type="bonus",
-        source="bonus",
+        source=lot_source,
         validity_days=validity,
         note=full_note,
         commit=False,
@@ -386,14 +454,20 @@ def get_balance_snapshot(db: Session, auth_user_id: int) -> dict:
     w = ensure_period_bonus(db, get_or_create_wallet(db, auth_user_id))
     exp = w.vip_expires_at
     nearest = _nearest_lot_expiry(db, int(auth_user_id))
-    return {
+    total = int(w.balance_tokens or 0)
+    prepaid = spendable_tokens(db, int(auth_user_id), allow_vip_daily=False)
+    vip_daily_left = max(0, total - prepaid)
+    out = {
         "auth_user_id": int(auth_user_id),
         "plan": w.plan.value if hasattr(w.plan, "value") else str(w.plan),
-        "balance_tokens": int(w.balance_tokens or 0),
+        "balance_tokens": total,
+        "prepaid_tokens": int(prepaid),
+        "vip_daily_remaining": int(vip_daily_left),
         "bonus_period": w.bonus_period,
         "free_monthly_bonus": FREE_MONTHLY_BONUS_TOKENS,
         "signup_bonus_tokens": SIGNUP_BONUS_TOKENS,
         "vip_daily_bonus": VIP_DAILY_BONUS_TOKENS,
+        "vip_daily_models": "flash,auto,shared",
         "vip_expires_at": exp.isoformat() if exp else None,
         "credits_expire_at": nearest.isoformat() if nearest else None,
         "is_vip_active": bool(
@@ -401,16 +475,40 @@ def get_balance_snapshot(db: Session, auth_user_id: int) -> dict:
             and (exp is None or (_as_naive(exp) or _utcnow()) > _utcnow())
         ),
     }
+    try:
+        from free_shared import user_shared_quota_snapshot
+
+        out.update(user_shared_quota_snapshot(db, int(auth_user_id)))
+    except Exception:
+        pass
+    return out
 
 
-def assert_can_spend(db: Session, auth_user_id: int, need_tokens: int = 1) -> TokenWallet:
+def assert_can_spend(
+    db: Session,
+    auth_user_id: int,
+    need_tokens: int = 1,
+    model: Optional[str] = None,
+) -> TokenWallet:
     from auth_user_service import raise_if_frozen
 
     u = db.query(AuthUser).filter(AuthUser.id == int(auth_user_id)).first()
     raise_if_frozen(u)
     w = ensure_period_bonus(db, get_or_create_wallet(db, auth_user_id))
-    bal = int(w.balance_tokens or 0)
+    allow_vip = model_allows_vip_daily(model)
+    bal = spendable_tokens(db, int(auth_user_id), allow_vip_daily=allow_vip)
+    total = int(w.balance_tokens or 0)
     if bal <= 0:
+        if total > 0 and not allow_vip:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail={
+                    "message_zh": "当前模型需使用充值额度；每日赠送仅可用于 flash/auto/共享档，请先充值。",
+                    "message_en": "This model needs prepaid credits. Daily bonus works only for flash/auto/shared — please top up.",
+                    "message": "当前模型需使用充值额度；每日赠送仅可用于 flash/auto/共享档，请先充值。",
+                    "code": "prepaid_required",
+                },
+            )
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
             detail={
@@ -424,9 +522,9 @@ def assert_can_spend(db: Session, auth_user_id: int, need_tokens: int = 1) -> To
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail={
-                "message_zh": f"额度不足（余额 {bal} token，本次预估 {need_tokens}）",
-                "message_en": f"Not enough credits (balance {bal}, this request needs about {need_tokens}).",
-                "message": f"额度不足（余额 {bal} token，本次预估 {need_tokens}）",
+                "message_zh": f"额度不足（可用 {bal} token，本次预估 {need_tokens}）",
+                "message_en": f"Not enough credits (available {bal}, this request needs about {need_tokens}).",
+                "message": f"额度不足（可用 {bal} token，本次预估 {need_tokens}）",
                 "code": "insufficient_credits",
             },
         )
@@ -445,11 +543,22 @@ def consume_tokens(
     w = ensure_period_bonus(db, get_or_create_wallet(db, auth_user_id))
     if tokens <= 0:
         return w
-    bal = int(w.balance_tokens or 0)
-    if bal < tokens:
-        # 成功响应后尽量扣光，避免因估算偏差导致负账；不足部分记 0
-        tokens = bal
-    if tokens <= 0:
+    allow_vip = model_allows_vip_daily(model)
+    now = _utcnow()
+    avail = spendable_tokens(
+        db, int(auth_user_id), allow_vip_daily=allow_vip, now=now
+    )
+    if avail <= 0:
+        if int(w.balance_tokens or 0) > 0 and not allow_vip:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail={
+                    "message_zh": "当前模型需使用充值额度；每日赠送仅可用于 flash/auto/共享档，请先充值。",
+                    "message_en": "This model needs prepaid credits. Daily bonus works only for flash/auto/shared — please top up.",
+                    "message": "当前模型需使用充值额度；每日赠送仅可用于 flash/auto/共享档，请先充值。",
+                    "code": "prepaid_required",
+                },
+            )
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
             detail={
@@ -459,11 +568,15 @@ def consume_tokens(
                 "code": "insufficient_balance",
             },
         )
-    now = _utcnow()
+    # 成功响应后尽量扣光可用额度，避免估算偏差导致负账
+    if avail < tokens:
+        tokens = avail
     left = tokens
     for lot in _active_lots_q(db, int(auth_user_id), now).all():
         if left <= 0:
             break
+        if not allow_vip and _is_vip_daily_lot(db, lot):
+            continue
         take = min(int(lot.amount_remaining or 0), left)
         if take <= 0:
             continue

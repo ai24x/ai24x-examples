@@ -809,8 +809,10 @@
             "Could not start checkout. Try again or another method. Order: " +
               ((r && r.out_trade_no) || "")
           );
+          // 错误只显示在支付卡片内，避免与页面顶部 consoleMsg 重复
+          var topMsg0 = $("consoleMsg");
+          if (topMsg0) topMsg0.innerHTML = "";
           showPayResult({ isError: true, hint: badHint });
-          showMsg($("consoleMsg"), badHint, false);
         }
         return refreshAll();
       })
@@ -822,8 +824,10 @@
         if (_pendingCheckoutWin === checkoutWin) _pendingCheckoutWin = null;
         closeCheckoutWin(checkoutWin);
         var errText = e.message || tr("下单失败", "Order failed");
+        // 限购/下单失败等：只留支付弹层提示，清掉页面顶部以免重复
+        var topMsg = $("consoleMsg");
+        if (topMsg) topMsg.innerHTML = "";
         showPayResult({ isError: true, hint: errText });
-        showMsg($("consoleMsg"), errText, false);
       });
   }
 
@@ -966,23 +970,51 @@
   async function refreshAll() {
     if (!requireLogin()) return;
     var user = AI24X_API.getAuthUser() || {};
-    $("acct-user").textContent = user.email || user.phone || user.id || "--";
+    var userLabel = user.email || user.phone || user.id || "--";
+    if ($("acct-user")) $("acct-user").textContent = userLabel;
+    if ($("overview-user")) $("overview-user").textContent = userLabel;
     var phoneUnset =
       (window.AI24X_I18N && AI24X_I18N.t && AI24X_I18N.t("page.console.phoneUnset")) ||
       tr("未绑定", "Not bound");
-    $("acct-phone").textContent = user.phone || phoneUnset;
+    if ($("acct-phone")) $("acct-phone").textContent = user.phone || phoneUnset;
 
     try {
       var bal = await AI24X_API.billingBalance();
       $("stat-balance").textContent = fmtInt(bal.balance_tokens);
       var balSub = $("stat-balance-sub");
       if (balSub) {
-        if (bal.credits_expire_at && Number(bal.balance_tokens) > 0) {
-          balSub.textContent =
-            tr("最早到期 ", "Earliest expiry ") + String(bal.credits_expire_at).slice(0, 10);
-        } else {
-          balSub.textContent = tr("钱包可用额度", "Wallet available credits");
+        var prepaid = Number(bal.prepaid_tokens);
+        var dailyLeft = Number(bal.vip_daily_remaining);
+        var parts = [];
+        if (!isNaN(prepaid) && !isNaN(dailyLeft) && (prepaid > 0 || dailyLeft > 0)) {
+          parts.push(
+            tr("充值 ", "Prepaid ") +
+              fmtInt(prepaid) +
+              tr(" · 日赠 ", " · daily ") +
+              fmtInt(dailyLeft) +
+              tr("（日赠仅 flash/auto）", " (daily: flash/auto only)")
+          );
         }
+        if (bal.credits_expire_at && Number(bal.balance_tokens) > 0) {
+          parts.push(
+            tr("最早到期 ", "Earliest expiry ") + String(bal.credits_expire_at).slice(0, 10)
+          );
+        }
+        if (
+          bal.shared_enabled &&
+          bal.shared_remain_tokens != null &&
+          Number(bal.balance_tokens) <= 0
+        ) {
+          parts.push(
+            tr("今日免费剩余 ", "Free today ") +
+              fmtInt(bal.shared_remain_tokens) +
+              "/" +
+              fmtInt(bal.shared_daily_token_cap || 0)
+          );
+        }
+        balSub.textContent = parts.length
+          ? parts.join(" · ")
+          : tr("钱包可用额度", "Wallet available credits");
       }
       var planLabel = labelPlanForUi(bal.plan);
       if (bal.is_vip_active && bal.vip_expires_at) {
@@ -991,7 +1023,8 @@
       } else if (String(bal.plan || "").toLowerCase() === "vip" && !bal.is_vip_active) {
         planLabel = tr("免费档（Token VIP 已过期）", "Free (Token VIP expired)");
       }
-      $("acct-plan").textContent = planLabel;
+      if ($("acct-plan")) $("acct-plan").textContent = planLabel;
+      if ($("overview-plan")) $("overview-plan").textContent = planLabel;
       var cta = $("balance-cta");
       if (cta) {
         cta.style.display = Number(bal.balance_tokens) <= 0 ? "" : "none";
@@ -1060,6 +1093,58 @@
     } catch (e) {}
   }
 
+  var CONSOLE_PANELS = [
+    "overview",
+    "keys",
+    "billing",
+    "usage",
+    "playground",
+    "invite",
+    "account",
+  ];
+
+  function normalizeConsolePanel(name) {
+    var n = String(name || "")
+      .replace(/^#/, "")
+      .trim()
+      .toLowerCase();
+    if (n === "token-plans" || n === "plans" || n === "orders") return "billing";
+    if (n === "activity" || n === "ledger") return "usage";
+    if (n === "chat" || n === "try") return "playground";
+    if (n === "refer" || n === "referral") return "invite";
+    if (CONSOLE_PANELS.indexOf(n) >= 0) return n;
+    return "overview";
+  }
+
+  function showConsolePanel(name, opts) {
+    var id = normalizeConsolePanel(name);
+    var pushHash = !opts || opts.pushHash !== false;
+    document.querySelectorAll(".console-panel").forEach(function (panel) {
+      var match = panel.getAttribute("data-console-panel") === id;
+      panel.classList.toggle("is-active", match);
+      if (match) panel.removeAttribute("hidden");
+      else panel.setAttribute("hidden", "");
+    });
+    document.querySelectorAll(".console-nav-item").forEach(function (btn) {
+      btn.classList.toggle(
+        "is-active",
+        btn.getAttribute("data-console-panel") === id
+      );
+    });
+    if (pushHash) {
+      try {
+        var next = "#" + id;
+        if (location.hash !== next) {
+          history.replaceState(null, "", next);
+        }
+      } catch (e) {}
+    }
+    var msg = $("consoleMsg");
+    if (msg && id !== "overview") {
+      /* keep message visible across panels */
+    }
+  }
+
   function bind() {
     var btnLogout = $("btn-logout");
     if (btnLogout) {
@@ -1068,18 +1153,24 @@
         location.href = "login.html";
       });
     }
-    $("btn-save-api").addEventListener("click", function () {
-      var b = $("api-base").value.trim();
-      var k = $("api-key").value.trim();
-      if (b) AI24X_API.setBase(b);
-      else AI24X_API.setBase("");
-      if (k) AI24X_API.setApiKey(k);
-      else AI24X_API.setApiKey("");
-      showMsg($("consoleMsg"), tr("已保存 API 设置", "API settings saved"), true);
-    });
-    $("btn-refresh").addEventListener("click", function () {
-      refreshAll();
-    });
+    var btnSaveApi = $("btn-save-api");
+    if (btnSaveApi) {
+      btnSaveApi.addEventListener("click", function () {
+        var b = ($("api-base") && $("api-base").value.trim()) || "";
+        var k = ($("api-key") && $("api-key").value.trim()) || "";
+        if (b) AI24X_API.setBase(b);
+        else AI24X_API.setBase("");
+        if (k) AI24X_API.setApiKey(k);
+        else AI24X_API.setApiKey("");
+        showMsg($("consoleMsg"), tr("已保存 API 设置", "API settings saved"), true);
+      });
+    }
+    var btnRefresh = $("btn-refresh");
+    if (btnRefresh) {
+      btnRefresh.addEventListener("click", function () {
+        refreshAll();
+      });
+    }
     function openModal(id) {
       var el = $(id);
       if (!el) return;
@@ -1101,7 +1192,7 @@
         closeModal(btn.getAttribute("data-close-modal"));
       });
     });
-    $("btn-create-key").addEventListener("click", function () {
+    function openCreateKeyModal() {
       var inp = $("create-key-name");
       if (inp && !(inp.value || "").trim()) inp.value = defaultKeyName();
       openModal("modal-create-key");
@@ -1111,7 +1202,25 @@
           inp.select();
         }, 0);
       }
+    }
+    document.querySelectorAll("[data-action='create-key']").forEach(function (btn) {
+      btn.addEventListener("click", openCreateKeyModal);
     });
+    document.querySelectorAll("[data-console-panel]").forEach(function (el) {
+      if (el.classList && el.classList.contains("console-panel")) return;
+      el.addEventListener("click", function (ev) {
+        var target = el.getAttribute("data-console-panel");
+        if (!target) return;
+        if (el.tagName === "A") return;
+        ev.preventDefault();
+        showConsolePanel(target);
+        if (el.getAttribute("data-action") === "create-key") openCreateKeyModal();
+      });
+    });
+    window.addEventListener("hashchange", function () {
+      showConsolePanel(location.hash || "overview", { pushHash: false });
+    });
+    showConsolePanel(location.hash || "overview", { pushHash: true });
     var btnConfirmKey = $("btn-create-key-confirm");
     if (btnConfirmKey) {
       btnConfirmKey.addEventListener("click", function () {
@@ -1163,30 +1272,41 @@
         }
       });
     }
-    $("btn-copy-key").addEventListener("click", function () {
-      var t = ($("api-key").value || $("apiKeyDisplay").textContent || "").trim();
-      if (!t || t === "--" || t.indexOf("…") >= 0) {
-        showMsg(
-          $("consoleMsg"),
-          tr(
-            "没有可复制的完整 Key（创建后会出现在输入框）",
-            "No full key to copy (it appears in the input after creation)"
-          ),
-          false
-        );
-        return;
-      }
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(t).then(
-          function () {
-            showMsg($("consoleMsg"), tr("已复制", "Copied"), true);
-          },
-          function () {
-            showMsg($("consoleMsg"), tr("复制失败，请手动选择", "Copy failed — select manually"), false);
-          }
-        );
-      }
-    });
+    var btnCopyKey = $("btn-copy-key");
+    if (btnCopyKey) {
+      btnCopyKey.addEventListener("click", function () {
+        var t = (
+          ($("api-key") && $("api-key").value) ||
+          ($("apiKeyDisplay") && $("apiKeyDisplay").textContent) ||
+          ""
+        ).trim();
+        if (!t || t === "--" || t.indexOf("…") >= 0) {
+          showMsg(
+            $("consoleMsg"),
+            tr(
+              "没有可复制的完整 Key（创建后会出现在输入框）",
+              "No full key to copy (it appears in the input after creation)"
+            ),
+            false
+          );
+          return;
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(t).then(
+            function () {
+              showMsg($("consoleMsg"), tr("已复制", "Copied"), true);
+            },
+            function () {
+              showMsg(
+                $("consoleMsg"),
+                tr("复制失败，请手动选择", "Copy failed — select manually"),
+                false
+              );
+            }
+          );
+        }
+      });
+    }
     var btnChat = $("btn-chat-run");
     if (btnChat) {
       btnChat.addEventListener("click", function () {
@@ -1217,6 +1337,7 @@
             if (e && e.status === 402) {
               var cta = $("balance-cta");
               if (cta) cta.style.display = "";
+              showConsolePanel("overview");
             }
           });
       });
@@ -1228,6 +1349,7 @@
         if (sel) sel.value = "shared";
         var cta = $("balance-cta");
         if (cta) cta.style.display = "none";
+        showConsolePanel("playground");
         showMsg(
           $("consoleMsg"),
           tr("已切换到 shared，可再点发送试调", "Switched to shared — tap Send to try"),

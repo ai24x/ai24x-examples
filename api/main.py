@@ -141,11 +141,16 @@ async def log_requests(request: Request, call_next):
 
 def _is_chat_post_path(path: str) -> bool:
     p = (path or "").rstrip("/")
-    return p.endswith("/v1/chat/run") or p.endswith("/v1/chat/completions")
+    return (
+        p.endswith("/v1/chat/run")
+        or p.endswith("/v1/chat/completions")
+        or p.endswith("/v1/responses")
+    )
 
 
 def _is_openai_completions_path(path: str) -> bool:
-    return (path or "").rstrip("/").endswith("/v1/chat/completions")
+    p = (path or "").rstrip("/")
+    return p.endswith("/v1/chat/completions") or p.endswith("/v1/responses")
 
 
 # 中间件：chat 限流（IP + API Key / Bearer）
@@ -362,7 +367,9 @@ async def chat_completions(
         completion_id,
         streaming_response,
         to_openai_completion,
+        true_streaming_response,
     )
+    from model_router import true_stream_enabled
 
     try:
         body = await http_request.json()
@@ -388,6 +395,38 @@ async def chat_completions(
         or None
     )
 
+    cmpl_id = completion_id()
+
+    # 真流式：边生成边写，流末扣费（OpenClaw / LobeChat）
+    if want_stream and true_stream_enabled():
+        try:
+            events = ChatService.stream_chat_request(
+                db=db,
+                user=current_user,
+                request=chat_req,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                auth_user_id=auth_uid,
+                region_hint=region_hint,
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error starting stream completions: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="处理请求时发生错误",
+            )
+        logger.info(
+            "Chat completions TRUE stream user=%s model=%s id=%s",
+            current_user.user_id,
+            chat_req.model,
+            cmpl_id,
+        )
+        return true_streaming_response(
+            events, requested_model=chat_req.model or "flash", cmpl_id=cmpl_id
+        )
+
     try:
         response = ChatService.process_chat_request(
             db=db,
@@ -407,7 +446,6 @@ async def chat_completions(
             detail="处理请求时发生错误",
         )
 
-    cmpl_id = completion_id()
     logger.info(
         "Chat completions: %s stream=%s user=%s model=%s",
         response.request_id,
@@ -421,6 +459,83 @@ async def chat_completions(
         )
     return to_openai_completion(
         response, requested_model=chat_req.model or "flash", cmpl_id=cmpl_id
+    )
+
+
+@app.post("/v1/responses")
+async def openai_responses_create(
+    http_request: Request,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    OpenAI Responses API 最小兼容（LobeChat / Continue 等）。
+    鉴权计费与 /v1/chat/completions 相同；不支持 tools / 多模态 / 响应持久化。
+    """
+    from openai_compat import (
+        build_chat_request_from_responses,
+        response_id,
+        streaming_responses_response,
+        to_openai_response,
+    )
+
+    try:
+        body = await http_request.json()
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="请求体必须是 JSON",
+        )
+    if not isinstance(body, dict):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="请求体必须是 JSON 对象",
+        )
+
+    chat_req = build_chat_request_from_responses(body)
+    want_stream = bool(body.get("stream"))
+    ip_address = http_request.client.host if http_request.client else None
+    user_agent = http_request.headers.get("user-agent")
+    auth_uid = getattr(http_request.state, "auth_user_id", None)
+    region_hint = (
+        (http_request.headers.get("x-ai24x-region") or "").strip()
+        or (http_request.headers.get("cf-ipcountry") or "").strip()
+        or None
+    )
+
+    try:
+        response = ChatService.process_chat_request(
+            db=db,
+            user=current_user,
+            request=chat_req,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            auth_user_id=auth_uid,
+            region_hint=region_hint,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error processing responses: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="处理请求时发生错误",
+        )
+
+    rid = response_id()
+    logger.info(
+        "Responses: %s stream=%s user=%s model=%s",
+        response.request_id,
+        want_stream,
+        current_user.user_id,
+        response.model,
+    )
+    if want_stream:
+        return streaming_responses_response(
+            response, requested_model=chat_req.model or "flash", resp_id=rid
+        )
+    return to_openai_response(
+        response, requested_model=chat_req.model or "flash", resp_id=rid
     )
 
 
@@ -812,13 +927,29 @@ async def auth_login(body: AuthLoginBody, db: Session = Depends(get_db)):
 
 
 @app.post("/v1/auth/email/send", response_model=AuthEmailSendResponse)
-async def auth_email_send(body: AuthEmailSendRequest):
+async def auth_email_send(request: Request, body: AuthEmailSendRequest):
+    from email_abuse_guard import (
+        check_email_send_allowed,
+        client_ip as email_client_ip,
+        record_email_send_attempt,
+    )
     from email_smtp import send_otp_email, smtp_configured
     from security_util import is_prod
 
     em = norm_email(body.email)
     if not em or "@" not in em:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="邮箱格式不正确")
+
+    ip = email_client_ip(request)
+    ok_abuse, abuse_msg = check_email_send_allowed(ip, em)
+    if not ok_abuse:
+        return AuthEmailSendResponse(
+            ok=False,
+            message=abuse_msg or "发送过于频繁，请稍后再试",
+            channel=None,
+            local_code=None,
+            dev_code=None,
+        )
 
     now = time.time()
     last = _auth_email_last_sent.get(em, 0.0)
@@ -833,6 +964,7 @@ async def auth_email_send(body: AuthEmailSendRequest):
 
     code = generate_numeric_code(6)
     store_email_otp(em, body.purpose, code, ttl_s=300.0)
+    record_email_send_attempt(ip, em)
 
     # 测试邮箱（*.local / example.com）：即使已配 SMTP 也走 local，避免假邮箱触发真发信
     is_test_mailbox = em.endswith(".local") or em.endswith("@example.com") or em.endswith(".example.com")
@@ -918,6 +1050,11 @@ async def auth_register(request: Request, body: AuthRegisterBody, db: Session = 
         u = create_user_phone(db, mob, body.password)
     else:
         em = norm_email(body.email or "")
+        from email_abuse_guard import assert_email_ok_for_register
+
+        ok_em, em_msg = assert_email_ok_for_register(em)
+        if not ok_em:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=em_msg)
         if get_by_email(db, em):
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="该邮箱已注册")
         if not verify_email_otp(em, "register", body.email_code or ""):
@@ -2140,11 +2277,24 @@ async def admin_token_llm_keys_update(request: Request, body: TokenAdminLlmKeysU
 
 @app.get("/v1/admin/token/plans")
 async def admin_token_plans(request: Request):
-    """运维只读价表（含 env 覆盖键提示）；不可经本接口改价。"""
+    """运维价表（含 env 覆盖键提示）。"""
     _require_internal_key(request)
     from token_plans import list_admin_plans
 
     return list_admin_plans()
+
+
+@app.post("/v1/admin/token/plans")
+async def admin_token_plans_update(request: Request):
+    """写入价表覆盖（api/data/token_plans_override.json）。"""
+    _require_internal_key(request)
+    from token_plans import update_admin_plans
+
+    body = await request.json()
+    plans = body.get("plans") if isinstance(body, dict) else None
+    if not isinstance(plans, list):
+        raise HTTPException(status_code=400, detail="参数无效，请检查后再试。")
+    return update_admin_plans(plans)
 
 
 @app.post("/v1/admin/token/orders/query_fulfill")

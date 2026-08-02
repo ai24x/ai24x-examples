@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <script src="js/i18n-boot.js?v=20260802g"></script>
+  <script src="js/i18n-boot.js?v=20260802m"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Help · API FAQ &amp; support | AI24X</title>
   <meta name="description" content="AI24X help: API errors, billing, tiers flash/pro, referrals. Self-serve first; tickets for disputes." />
@@ -23,10 +23,10 @@
     "@context": "https://schema.org",
     "@type": "FAQPage",
     "mainEntity": [
-      {"@type":"Question","name":"What model names should I send?","acceptedAnswer":{"@type":"Answer","text":"Use public tiers flash, pro, ultra, or auto—not unstable upstream brand ids."}},
-      {"@type":"Question","name":"How do international users pay?","acceptedAnswer":{"@type":"Answer","text":"PayPal USD from the console after sign-in; tokens credit after settlement."}},
-      {"@type":"Question","name":"401 or unauthorized?","acceptedAnswer":{"@type":"Answer","text":"Check X-API-Key, that the key is active, and that your account is not frozen."}},
-      {"@type":"Question","name":"Out of balance?","acceptedAnswer":{"@type":"Answer","text":"Top up in Console (PayPal or CNY rails). You may continue on free shared limits when enabled."}}
+      {"@type":"Question","name":"What model names should I send?","acceptedAnswer":{"@type":"Answer","text":"Start with flash (about $0.45/M) or pro, ultra, auto. VIP members can also name China models such as Kimi, MiMo, MiniMax, GLM."}},
+      {"@type":"Question","name":"How do international users pay?","acceptedAnswer":{"@type":"Answer","text":"Choose a plan on Pricing, sign in to Console, pay with PayPal (USD). Tokens credit after checkout. Starter from $2, Builder $20."}},
+      {"@type":"Question","name":"401 or unauthorized?","acceptedAnswer":{"@type":"Answer","text":"Check your API key is correct and active, and that your account is available. Re-login if needed."}},
+      {"@type":"Question","name":"Out of balance?","acceptedAnswer":{"@type":"Answer","text":"Top up in Console (PayPal or WeChat/Alipay). Pro daily bonus is for flash/auto/shared only; named models need prepaid credits."}}
     ]
   }
   </script>
@@ -61,19 +61,19 @@
         <div class="help-stack">
           <div class="card">
             <h3 class="mt-0" data-i18n="page.help.q1t">What model should I send?</h3>
-            <p data-i18n="page.help.q1p">Use flash, pro, ultra, or auto. Members can also pick China models by name.</p>
+            <p data-i18n="page.help.q1p">Everyday: flash (about $0.45/M) or pro / ultra / auto. Members can also name China models. New users: start with flash.</p>
           </div>
           <div class="card">
             <h3 class="mt-0" data-i18n="page.help.q2t">International payment</h3>
-            <p data-i18n="page.help.q2p">Pricing → Console → PayPal (USD). Domestic CNY: WeChat Pay / Alipay in Console.</p>
+            <p data-i18n="page.help.q2p">Pricing → Console → PayPal (USD). China (CNY): WeChat Pay / Alipay in Console.</p>
           </div>
           <div class="card">
             <h3 class="mt-0" data-i18n="page.help.q3t">401 / unauthorized</h3>
             <p data-i18n="page.help.q3p">Check that your API key is correct, active, and your account is available.</p>
           </div>
           <div class="card">
-            <h3 class="mt-0" data-i18n="page.help.q4t">Out of balance?</h3>
-            <p data-i18n="page.help.q4p">Top up in Console. If free shared mode is on, you may continue on shared within daily caps.</p>
+            <h3 class="mt-0" data-i18n="page.help.q4t">Out of balance? Or need prepaid credits?</h3>
+            <p data-i18n="page.help.q4p">When prepaid credits run out, we auto-continue on the free daily pool (~100k tokens/day). Or set model=shared. Pro daily bonus is for flash/auto only; named models need prepaid or VIP.</p>
           </div>
           <div class="card">
             <h3 class="mt-0" data-i18n="page.help.q5t">429 / rate limited</h3>
@@ -83,6 +83,10 @@
             <h3 class="mt-0" data-i18n="page.help.q6t">Referrals</h3>
             <p data-i18n="page.help.q6p">Share your invite code or link—see the Referrals page.</p>
           </div>
+          <div class="card">
+            <h3 class="mt-0" data-i18n="page.help.q7t">405 / Responses error?</h3>
+            <p data-i18n="page.help.q7p">POST /v1/responses is supported for text chat. If you still see 405, the Base URL likely includes /chat/completions—stop at /v1. For tools/multimodal, turn Responses off and use chat/completions.</p>
+          </div>
         </div>
         <h2 class="help-block-gap" data-i18n="page.help.stuck">还是不行？</h2>
         <p class="lead" data-i18n="page.help.stuckp">优先用控制台「转人工」提交工单并查看进度；紧急账单问题可用注册邮箱说明问题与大致时间。</p>
@@ -90,12 +94,12 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260801g"></script>
+  <script src="config/locales.js?v=20260802w"></script>
   <script src="js/api.js?v=20260802i"></script>
   <script src="js/utm.js?v=20260802a"></script>
-<script src="js/i18n.js?v=20260802g"></script>
-  <script src="js/shell.js?v=20260802f"></script>
-  <script src="js/app.js?v=20260802f"></script>
+<script src="js/i18n.js?v=20260802m"></script>
+  <script src="js/shell.js?v=20260802m"></script>
+  <script src="js/app.js?v=20260802m"></script>
   <script src="js/support-widget.js?v=20260731i"></script>
   <script>
     (function () {

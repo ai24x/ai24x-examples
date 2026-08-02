@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <script src="js/i18n-boot.js?v=20260802g"></script>
+  <script src="js/i18n-boot.js?v=20260802m"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex,nofollow,noarchive" />
   <meta name="description" content="AI24X Token 内部管理" />
@@ -620,12 +620,13 @@
                   <thead>
                     <tr>
                       <th>模型</th><th>档位</th><th>层</th><th>状态</th>
-                      <th>成本$/M</th><th>计费倍率</th><th>容灾下一档</th>
+                      <th>成本$/M</th><th>计费倍率</th><th>硅基 id</th><th>容灾下一档</th>
                     </tr>
                   </thead>
                   <tbody id="whCatalogBody"></tbody>
                 </table>
               </div>
+              <div class="muted small" id="whRoutingFlags" style="margin:8px 0 4px;"></div>
               <div class="section-label">套餐毛利粗算（按 Flash 混合成本）</div>
               <div class="grid" id="whPlanGrid"></div>
               <div class="section-label">容灾风险</div>
@@ -1681,7 +1682,8 @@
       need_key: ["bad", "缺 Key"],
       disabled: ["bad", "停用"],
       planned: ["warn", "规划中"],
-      vip_pick_planned: ["warn", "VIP自选·待开"],
+      vip_pick_planned: ["warn", "VIP点名·关"],
+      vip_pick_off: ["warn", "VIP点名·关"],
     };
     var x = map[rt] || ["", rt || "-"];
     return '<span class="pill ' + x[0] + '">' + esc(x[1]) + "</span>";
@@ -1757,11 +1759,29 @@
             "</td><td>×" +
             (c.billing_mult || 1) +
             "</td><td class='mono small'>" +
+            esc(c.siliconflow_id || "—") +
+            "</td><td class='mono small'>" +
             esc((c.failover_to || []).join(" → ") || "—") +
             "</td></tr>"
           );
         })
-        .join("") || "<tr><td colspan='7' class='muted'>无目录</td></tr>";
+        .join("") || "<tr><td colspan='8' class='muted'>无目录</td></tr>";
+    }
+    if ($("whRoutingFlags") && r.routing_flags) {
+      var rf = r.routing_flags;
+      var lm = rf.layer_cost_mult || {};
+      $("whRoutingFlags").textContent =
+        "路由只读：VIP硅基优先=" +
+        (rf.vip_silicon_first ? "开" : "关") +
+        " · DS付费优先=" +
+        (rf.ds_prefer_paid ? "开" : "关") +
+        " · L2×" +
+        (lm.L2 != null ? lm.L2 : "?") +
+        " / L3×" +
+        (lm.L3 != null ? lm.L3 : "?") +
+        " · 日赠可用=" +
+        (rf.vip_daily_models || "flash,auto,shared") +
+        (rf.note ? " · " + rf.note : "");
     }
 
     var plans = r.plans_margin || [];
@@ -1839,6 +1859,7 @@
       $("fsSwitchGrid").innerHTML =
         _glanceToggle("fsOn", cfg.enabled ? "ok" : "bad", "共享通道", !!cfg.enabled, "关则余额用尽只能充值") +
         _glanceToggle("fsUpgradeFirst", cfg.upgrade_first ? "ok" : "warn", "先推付费", !!cfg.upgrade_first, "开：402 主推充值；关：可直接落共享") +
+        _glanceToggle("fsAutoDegrade", cfg.auto_degrade !== false ? "ok" : "warn", "余额不足自动共享", cfg.auto_degrade !== false, "开：付费余额用尽自动进共享；关：直接 402") +
         _glanceSelect(
           "fsPrefer",
           "ok",
@@ -1856,12 +1877,12 @@
           "failover=挂了自动顶上；rotate=多条轮询"
         ) +
         '<div class="glance-card ok"><div class="gk">日请求帽</div><div class="gv"><input id="fsReqCap" type="number" min="1" max="500" value="' +
-        Number(cfg.daily_req_cap || 30) +
-        '" style="width:100%"/></div><div class="gs">建议 20～50</div></div>' +
+        Number(cfg.daily_req_cap != null ? cfg.daily_req_cap : 50) +
+        '" style="width:100%"/></div><div class="gs">现网默认 50</div></div>' +
         '<div class="glance-card ok"><div class="gk">日 token 帽</div><div class="gv"><input id="fsTokCap" type="number" min="1000" value="' +
-        Number(cfg.daily_token_cap || 30000) +
-        '" style="width:100%"/></div><div class="gs">防刷硬顶</div></div>';
-      ["fsOn", "fsUpgradeFirst"].forEach(function (id) {
+        Number(cfg.daily_token_cap != null ? cfg.daily_token_cap : 100000) +
+        '" style="width:100%"/></div><div class="gs">现网默认 10 万</div></div>';
+      ["fsOn", "fsUpgradeFirst", "fsAutoDegrade"].forEach(function (id) {
         var el = $(id);
         if (!el) return;
         el.onchange = function () {
@@ -1967,11 +1988,12 @@
       body: {
         enabled: !!($("fsOn") && $("fsOn").checked),
         upgrade_first: !!($("fsUpgradeFirst") && $("fsUpgradeFirst").checked),
+        auto_degrade: !!($("fsAutoDegrade") && $("fsAutoDegrade").checked),
         prefer: prefer,
         pool_enabled: enabledIds,
         dispatch_mode: ($("fsDispatch") && $("fsDispatch").value) || "failover",
-        daily_req_cap: Number(($("fsReqCap") && $("fsReqCap").value) || 30),
-        daily_token_cap: Number(($("fsTokCap") && $("fsTokCap").value) || 30000),
+        daily_req_cap: Number(($("fsReqCap") && $("fsReqCap").value) || 50),
+        daily_token_cap: Number(($("fsTokCap") && $("fsTokCap").value) || 100000),
       },
     });
     setMsg("免费共享配置已保存", "ok");

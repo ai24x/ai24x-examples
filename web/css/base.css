@@ -1043,3 +1043,124 @@ body[data-page="help"] #support {
   word-break: break-all;
   line-height: 1.45;
 }
+
+/* Console: left nav + right panels */
+.console-hero .lead {
+  max-width: 40rem;
+}
+.console-section {
+  padding-top: 0.5rem;
+}
+.console-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 1.25rem 1.75rem;
+  align-items: start;
+}
+.console-sidebar {
+  position: sticky;
+  top: 5.5rem;
+}
+.console-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+}
+.console-nav-item {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 550;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  cursor: pointer;
+  line-height: 1.3;
+}
+.console-nav-item:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.console-nav-item.is-active {
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface, #fff));
+  color: var(--accent-ink, var(--text));
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.console-main {
+  min-width: 0;
+}
+.console-panel[hidden] {
+  display: none !important;
+}
+.console-panel-head {
+  margin-bottom: 1rem;
+}
+.console-panel-head h2 {
+  font-size: 1.35rem;
+  margin-bottom: 0.35rem;
+}
+.console-alert {
+  margin-bottom: 1rem;
+}
+.console-identity {
+  margin-bottom: 1rem;
+  padding: 14px 16px;
+}
+.console-identity-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 12px 1.25rem;
+  align-items: end;
+}
+.console-identity-value {
+  font-weight: 650;
+  font-size: 1.05rem;
+  word-break: break-all;
+  margin-top: 0.2rem;
+}
+.console-identity-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+@media (max-width: 700px) {
+  .console-identity-row {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+  .console-identity-actions {
+    justify-content: flex-start;
+  }
+}
+@media (max-width: 900px) {
+  .console-layout {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .console-sidebar {
+    position: static;
+  }
+  .console-nav {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 6px;
+    padding: 8px;
+  }
+  .console-nav-item {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    padding: 0.55rem 0.8rem;
+  }
+  .console-nav-item.is-active {
+    box-shadow: none;
+  }
+}

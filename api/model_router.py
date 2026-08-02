@@ -12,7 +12,7 @@ import logging
 import os
 import time
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any, Iterator, Optional
 
 import httpx
 
@@ -112,7 +112,8 @@ LOGICAL_TO_UPSTREAM_MODEL_OR = {
     "qwen-plus": "QI",
 }
 
-LAYER_COST_MULT = {"L0": 1, "L1": 1, "L2": 5, "L3": 8, "QI": 1}
+# 与 S_flash≈$0.45/M 绑定（终稿 2026-08-02）：pro≈$1.35、ultra≈$2.70
+LAYER_COST_MULT = {"L0": 1, "L1": 1, "L2": 3, "L3": 6, "QI": 1}
 
 _EU_COUNTRY_CODES = frozenset(
     {
@@ -489,11 +490,111 @@ def _ds_failover_enabled() -> bool:
     return v not in ("0", "false", "no", "off")
 
 
+def _ds_prefer_paid_enabled() -> bool:
+    """OR 模式下付费 L1/L2：有 DeepSeek Key 时先直连，失败再走 OR（账单更干净）。"""
+    v = (_env("TOKEN_LLM_DS_PREFER_PAID", "1") or "1").strip().lower()
+    return v not in ("0", "false", "no", "off")
+
+
+def _deepseek_upstream_for_layer(layer: str) -> dict[str, str]:
+    """官方 DeepSeek：L1=Flash，L2/L3=Pro。"""
+    key = (_env("DEEPSEEK_API_KEY") or _env("TOKEN_LLM_L1_KEY") or "").strip()
+    if not key:
+        return {"base": "", "key": "", "model": "", "provider": "deepseek"}
+    base = (_env("DEEPSEEK_BASE_URL") or "https://api.deepseek.com/v1").strip()
+    if layer in ("L2", "L3"):
+        model = (
+            _env("TOKEN_LLM_L2_MODEL")
+            or _env("DEEPSEEK_MODEL_PRO")
+            or "deepseek-v4-pro"
+        ).strip()
+    else:
+        model = (
+            _env("DEEPSEEK_MODEL")
+            or _env("TOKEN_LLM_L1_MODEL")
+            or "deepseek-v4-flash"
+        ).strip()
+    return {
+        "base": _normalize_openai_base(base),
+        "key": key,
+        "model": model,
+        "provider": "deepseek",
+    }
+
+
 def _timeout_s() -> float:
     try:
         return max(2.0, float(_env("TOKEN_LLM_TIMEOUT_S", "15") or "15"))
     except ValueError:
         return 15.0
+
+
+def _stream_timeout_s() -> float:
+    """流式读超时（秒）；长会话 / OpenClaw 默认放宽。"""
+    try:
+        return max(30.0, float(_env("TOKEN_LLM_STREAM_TIMEOUT_S", "300") or "300"))
+    except ValueError:
+        return 300.0
+
+
+def true_stream_enabled() -> bool:
+    return (_env("TOKEN_LLM_TRUE_STREAM") or "1").strip().lower() not in (
+        "0",
+        "false",
+        "no",
+        "off",
+    )
+
+
+def _content_text(content: Any) -> str:
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for p in content:
+            if isinstance(p, str):
+                parts.append(p)
+            elif isinstance(p, dict):
+                if p.get("type") == "text" or "text" in p:
+                    parts.append(str(p.get("text") or ""))
+        return "\n".join(x for x in parts if x)
+    return str(content)
+
+
+def _build_chat_messages(
+    prompt: str, messages: Optional[list[dict[str, Any]]] = None
+) -> list[dict[str, str]]:
+    """组装上游 messages；有结构化 messages 时透传（跳过 tool），否则 prompt 单轮。"""
+    sys = _system_prompt()
+    if messages and isinstance(messages, list):
+        out: list[dict[str, str]] = [{"role": "system", "content": sys}]
+        sys_extra: list[str] = []
+        for m in messages:
+            if not isinstance(m, dict):
+                continue
+            role = str(m.get("role") or "").strip().lower()
+            if role in ("tool", "function"):
+                continue
+            text = _content_text(m.get("content")).strip()
+            if not text:
+                continue
+            if role == "system":
+                sys_extra.append(text)
+                continue
+            if role not in ("user", "assistant"):
+                role = "user"
+            out.append({"role": role, "content": text})
+        if sys_extra:
+            out[0]["content"] = sys + "\n\n" + "\n\n".join(sys_extra)
+        if len(out) == 1:
+            out.append({"role": "user", "content": (prompt or "Hello").strip() or "Hello"})
+        return out
+    return [
+        {"role": "system", "content": sys},
+        {"role": "user", "content": prompt or ""},
+    ]
 
 
 def _upstream_model_id(logical: str, layer_default: str) -> str:
@@ -609,7 +710,7 @@ def run_routed_chat(
     max_tokens: int = 1000,
     region_hint: Optional[str] = None,
 ) -> RouteResult:
-    # —— VIP 点名中国/国际模（OR 优先）——
+    # —— VIP 点名：中国模硅基优先（有 siliconflow_id 时）；国际模仍 OR/厂直连 ——
     pick = None
     pick_gate_on = False
     try:
@@ -656,6 +757,64 @@ def run_routed_chat(
         up = _layer_upstream(layer)
         api_model = _upstream_model_id(logical_model, up["model"])
         t0 = time.time()
+        # OR 模式付费档：DeepSeek 直连优先（失败后继续本层 OR）
+        if (
+            layer in ("L1", "L2")
+            and _upstream_mode() == "openrouter"
+            and _ds_prefer_paid_enabled()
+        ):
+            ds = _deepseek_upstream_for_layer(layer)
+            if ds.get("key") and ds.get("base"):
+                t_ds = time.time()
+                try:
+                    out = _call_openai_compatible(
+                        base=ds["base"],
+                        key=ds["key"],
+                        model=ds["model"],
+                        prompt=prompt,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                        timeout_s=timeout_s,
+                        provider="deepseek",
+                    )
+                    used_model = str(out.get("raw_model") or ds["model"])
+                    attempts.append(
+                        {
+                            "layer": layer,
+                            "model": used_model,
+                            "provider": "deepseek",
+                            "ok": True,
+                            "prefer": "deepseek_official",
+                            "ms": int((time.time() - t_ds) * 1000),
+                        }
+                    )
+                    raw_tokens = int(out["tokens"])
+                    mult = int(LAYER_COST_MULT.get(layer, 1))
+                    return RouteResult(
+                        ok=True,
+                        text=str(out["text"]),
+                        model=used_model,
+                        layer=layer,
+                        provider="deepseek",
+                        token_count=max(1, raw_tokens * mult),
+                        attempts=attempts,
+                        billing_mult=1,
+                    )
+                except Exception as e_ds:
+                    logger.warning(
+                        "deepseek prefer layer=%s failed: %s", layer, e_ds
+                    )
+                    attempts.append(
+                        {
+                            "layer": layer,
+                            "model": ds.get("model"),
+                            "provider": "deepseek",
+                            "ok": False,
+                            "prefer": "deepseek_official",
+                            "error": str(e_ds)[:200],
+                            "ms": int((time.time() - t_ds) * 1000),
+                        }
+                    )
         try:
             if up["base"] and up["key"]:
                 out = _call_openai_compatible(
@@ -826,6 +985,36 @@ def run_routed_chat(
     )
 
 
+def _vip_silicon_first_enabled() -> bool:
+    return (_env("TOKEN_LLM_VIP_SILICON_FIRST") or "1").strip().lower() not in (
+        "0",
+        "false",
+        "no",
+        "off",
+    )
+
+
+def _silicon_vip_upstream(model_id: str) -> Optional[dict[str, str]]:
+    """付费 VIP 点名用硅基主 Key（勿用免费 L0 Key）。"""
+    mid = (model_id or "").strip()
+    if not mid:
+        return None
+    try:
+        from llm_keys import silicon_main_key
+
+        key = silicon_main_key()
+    except Exception:
+        key = _env("SILICONFLOW_API_KEY") or _env("TOKEN_LLM_L0_KEY")
+    if not key:
+        return None
+    base = (
+        _env("SILICONFLOW_BASE_URL")
+        or _env("TOKEN_LLM_L0_BASE")
+        or "https://api.siliconflow.cn/v1"
+    )
+    return {"base": base, "key": key, "model": mid, "provider": "siliconflow"}
+
+
 def _run_vip_pick_chat(
     *,
     pick: dict[str, Any],
@@ -833,166 +1022,191 @@ def _run_vip_pick_chat(
     temperature: float,
     max_tokens: int,
 ) -> RouteResult:
-    """VIP 点名：优先 OpenRouter model id；无 OR 时尝试 direct_id + DeepSeek/硅基层。"""
+    """VIP 点名路由。
+
+    中国模（有 siliconflow_id）：硅基 → OR → 官方 DS/厂直连 → 降级
+    DeepSeek 点名：官方 DS → OR → 硅基同族 → 降级
+    国际旗舰：OR → 厂直连 → DS Flash 降级（禁止硅基顶替）
+    """
     billing_mult = max(1, int(pick.get("billing_mult") or 1))
     public_id = str(pick.get("id") or "vip_pick")
     or_id = (pick.get("openrouter_id") or "").strip()
     direct_id = (pick.get("direct_id") or "").strip()
+    sf_id = (pick.get("siliconflow_id") or "").strip()
     timeout_s = _timeout_s()
     attempts: list[dict[str, Any]] = []
+    is_ds_pick = public_id.startswith("vip-ds-")
+    is_intl_flagship = (
+        public_id.startswith("vip-gpt")
+        or "claude" in public_id
+        or "gemini" in public_id
+    )
 
-    # 1) OpenRouter
+    def _ok_result(out: dict[str, Any], *, model: str, provider: str) -> RouteResult:
+        raw = max(1, int(out.get("tokens") or 1))
+        return RouteResult(
+            ok=True,
+            text=str(out.get("text") or ""),
+            model=str(out.get("raw_model") or model),
+            layer="VIP",
+            provider=provider,
+            token_count=max(1, raw * billing_mult),
+            attempts=attempts,
+            billing_mult=billing_mult,
+            public_model=public_id,
+        )
+
+    def _try_call(
+        *,
+        base: str,
+        key: str,
+        model: str,
+        provider: str,
+        note: Optional[str] = None,
+    ) -> Optional[RouteResult]:
+        t0 = time.time()
+        try:
+            out = _call_openai_compatible(
+                base=base,
+                key=key,
+                model=model,
+                prompt=prompt,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                timeout_s=timeout_s,
+                provider=provider,
+            )
+            row = {
+                "layer": "VIP",
+                "model": model,
+                "provider": provider,
+                "ok": True,
+                "ms": int((time.time() - t0) * 1000),
+            }
+            if note:
+                row["prefer"] = note
+            attempts.append(row)
+            return _ok_result(out, model=model, provider=provider)
+        except Exception as e:
+            row = {
+                "layer": "VIP",
+                "model": model,
+                "provider": provider,
+                "ok": False,
+                "error": str(e)[:200],
+            }
+            if note:
+                row["prefer"] = note
+            attempts.append(row)
+            logger.warning(
+                "vip_pick %s failed id=%s model=%s err=%s",
+                provider,
+                public_id,
+                model,
+                e,
+            )
+            return None
+
+    # —— 通道顺序 ——
+    # A) DeepSeek 点名：官方直连最稳最便宜
+    if is_ds_pick and direct_id and _ds_failover_enabled():
+        ds = _deepseek_official_upstream()
+        if ds.get("key") and ds.get("base"):
+            got = _try_call(
+                base=str(ds["base"]),
+                key=str(ds["key"]),
+                model=direct_id,
+                provider="deepseek",
+                note="deepseek_official_first",
+            )
+            if got:
+                return got
+
+    # B) 中国模（非国际旗舰）：硅基优先
+    if (
+        (not is_intl_flagship)
+        and (not is_ds_pick)
+        and sf_id
+        and _vip_silicon_first_enabled()
+    ):
+        sf = _silicon_vip_upstream(sf_id)
+        if sf:
+            got = _try_call(
+                base=_normalize_openai_base(sf["base"]),
+                key=sf["key"],
+                model=sf["model"],
+                provider="siliconflow",
+                note="silicon_first",
+            )
+            if got:
+                return got
+
+    # C) OpenRouter
     if or_id and _upstream_mode() == "openrouter":
         up = _layer_upstream("L1")
         if up.get("key") and up.get("base"):
-            t0 = time.time()
-            try:
-                out = _call_openai_compatible(
-                    base=up["base"],
-                    key=up["key"],
-                    model=or_id,
-                    prompt=prompt,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                    timeout_s=timeout_s,
-                    provider="openrouter",
-                )
-                elapsed = time.time() - t0
-                raw = max(1, int(out.get("tokens") or 1))
-                attempts.append(
-                    {"layer": "VIP", "model": or_id, "provider": "openrouter", "ok": True, "ms": int(elapsed * 1000)}
-                )
-                return RouteResult(
-                    ok=True,
-                    text=str(out.get("text") or ""),
-                    model=str(out.get("raw_model") or or_id),
-                    layer="VIP",
-                    provider="openrouter",
-                    token_count=max(1, raw * billing_mult),
-                    attempts=attempts,
-                    billing_mult=billing_mult,
-                    public_model=public_id,
-                )
-            except Exception as e:
-                attempts.append(
-                    {"layer": "VIP", "model": or_id, "ok": False, "error": str(e)[:200]}
-                )
-                logger.warning("vip_pick OR failed id=%s err=%s", public_id, e)
+            got = _try_call(
+                base=str(up["base"]),
+                key=str(up["key"]),
+                model=or_id,
+                provider="openrouter",
+            )
+            if got:
+                return got
 
-    # 2) 国际旗舰：厂直连备用（填 Key 即试；OpenAI/Google 兼容端点可用）
+    # D) 国际旗舰厂直连 / 其它 VIP 厂直连
     try:
         from upstream_providers import direct_model_for_vip
 
         direct_up = direct_model_for_vip(public_id)
         if direct_up and not direct_up.get("skip_call") and direct_up.get("key"):
-            t0 = time.time()
-            try:
-                out = _call_openai_compatible(
-                    base=_normalize_openai_base(str(direct_up["base"])),
-                    key=str(direct_up["key"]),
-                    model=str(direct_up["model"]),
-                    prompt=prompt,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                    timeout_s=timeout_s,
-                    provider=str(direct_up.get("id") or "direct"),
-                )
-                elapsed = time.time() - t0
-                raw = max(1, int(out.get("tokens") or 1))
-                attempts.append(
-                    {
-                        "layer": "VIP",
-                        "model": direct_up["model"],
-                        "provider": direct_up.get("id"),
-                        "ok": True,
-                        "ms": int(elapsed * 1000),
-                    }
-                )
-                return RouteResult(
-                    ok=True,
-                    text=str(out.get("text") or ""),
-                    model=str(out.get("raw_model") or direct_up["model"]),
-                    layer="VIP",
-                    provider=str(direct_up.get("id") or "direct"),
-                    token_count=max(1, raw * billing_mult),
-                    attempts=attempts,
-                    billing_mult=billing_mult,
-                    public_model=public_id,
-                )
-            except Exception as e:
-                attempts.append(
-                    {
-                        "layer": "VIP",
-                        "model": direct_up.get("model"),
-                        "provider": direct_up.get("id"),
-                        "ok": False,
-                        "error": str(e)[:200],
-                    }
-                )
-                logger.warning("vip_pick direct failed id=%s err=%s", public_id, e)
+            got = _try_call(
+                base=_normalize_openai_base(str(direct_up["base"])),
+                key=str(direct_up["key"]),
+                model=str(direct_up["model"]),
+                provider=str(direct_up.get("id") or "direct"),
+                note="vendor_direct",
+            )
+            if got:
+                return got
     except Exception as e:
         logger.debug("vip direct resolve skip: %s", e)
 
-    # 3) 目录 direct_id → 官方 DeepSeek（OR 模式下也可兜底；不依赖 upstream=direct）
-    if direct_id and _ds_failover_enabled():
+    # E) 目录 direct_id → 官方 DeepSeek（非 ds 点名时的兜底）
+    if (not is_ds_pick) and direct_id and _ds_failover_enabled():
         ds = _deepseek_official_upstream()
         use_ds = bool(ds.get("key") and ds.get("base")) and (
-            str(direct_id).startswith("deepseek") or "deepseek" in str(direct_id).lower()
+            str(direct_id).startswith("deepseek")
+            or "deepseek" in str(direct_id).lower()
         )
         if use_ds:
-            t0 = time.time()
-            try:
-                out = _call_openai_compatible(
-                    base=ds["base"],
-                    key=ds["key"],
-                    model=direct_id,
-                    prompt=prompt,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                    timeout_s=timeout_s,
-                    provider="deepseek",
-                )
-                elapsed = time.time() - t0
-                raw = max(1, int(out.get("tokens") or 1))
-                attempts.append(
-                    {
-                        "layer": "VIP",
-                        "model": direct_id,
-                        "provider": "deepseek",
-                        "ok": True,
-                        "failover": "deepseek_official",
-                        "ms": int(elapsed * 1000),
-                    }
-                )
-                return RouteResult(
-                    ok=True,
-                    text=str(out.get("text") or ""),
-                    model=str(out.get("raw_model") or direct_id),
-                    layer="VIP",
-                    provider="deepseek",
-                    token_count=max(1, raw * billing_mult),
-                    attempts=attempts,
-                    billing_mult=billing_mult,
-                    public_model=public_id,
-                )
-            except Exception as e:
-                attempts.append(
-                    {
-                        "layer": "VIP",
-                        "model": direct_id,
-                        "provider": "deepseek",
-                        "ok": False,
-                        "failover": "deepseek_official",
-                        "error": str(e)[:200],
-                    }
-                )
-                logger.warning("vip_pick deepseek official failed id=%s err=%s", public_id, e)
+            got = _try_call(
+                base=str(ds["base"]),
+                key=str(ds["key"]),
+                model=direct_id,
+                provider="deepseek",
+                note="deepseek_official",
+            )
+            if got:
+                return got
 
-    # 4) 降级：中国模可走硅基；国际旗舰禁止静默用硅基顶 GPT/Claude（只告警后走 DS Flash）
-    is_intl_flagship = public_id.startswith("vip-gpt") or "claude" in public_id or "gemini" in public_id
+    # F) DeepSeek 点名失败后：硅基同族
+    if is_ds_pick and sf_id and _vip_silicon_first_enabled():
+        sf = _silicon_vip_upstream(sf_id)
+        if sf:
+            got = _try_call(
+                base=_normalize_openai_base(sf["base"]),
+                key=sf["key"],
+                model=sf["model"],
+                provider="siliconflow",
+                note="silicon_ds_fallback",
+            )
+            if got:
+                return got
+
+    # G) 降级：中国模可走硅基映射/默认小模；国际旗舰禁止静默用硅基顶 GPT/Claude
     degrade_targets: list[tuple[str, str, str, str]] = []
 
-    # 4a) 官方 DeepSeek Flash 优先（OR 挂 / 点名失败后的统一兜底）
     if _ds_failover_enabled():
         ds = _deepseek_official_upstream()
         if ds.get("key") and ds.get("base"):
@@ -1015,7 +1229,8 @@ def _run_vip_pick_chat(
                 or _env("TOKEN_LLM_L0_BASE")
                 or "https://api.siliconflow.cn/v1"
             )
-            sf_model = (
+            # 优先用点名映射；没有则回落 L0 默认模（质变，仅最后兜底）
+            sf_model = sf_id or (
                 _env("SILICONFLOW_MODEL")
                 or _env("TOKEN_LLM_L0_MODEL")
                 or "Qwen/Qwen2.5-7B-Instruct"
@@ -1208,6 +1423,7 @@ def _call_openai_compatible(
     max_tokens: int,
     timeout_s: float,
     provider: str = "",
+    messages: Optional[list[dict[str, Any]]] = None,
 ) -> dict[str, Any]:
     url = f"{base}/chat/completions"
     headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
@@ -1219,10 +1435,7 @@ def _call_openai_compatible(
         headers["X-Title"] = _env("OPENROUTER_APP_NAME") or "AI24X"
     body: dict[str, Any] = {
         "model": model,
-        "messages": [
-            {"role": "system", "content": _system_prompt()},
-            {"role": "user", "content": prompt},
-        ],
+        "messages": _build_chat_messages(prompt, messages),
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
@@ -1252,6 +1465,105 @@ def _call_openai_compatible(
     return {"text": text, "tokens": total, "raw_model": model}
 
 
+def _stream_openai_compatible(
+    *,
+    base: str,
+    key: str,
+    model: str,
+    prompt: str,
+    temperature: float,
+    max_tokens: int,
+    timeout_s: float,
+    provider: str = "",
+    messages: Optional[list[dict[str, Any]]] = None,
+):
+    """上游真流式。yield dict: delta / done / error。"""
+    import json as _json
+
+    url = f"{base}/chat/completions"
+    headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+    if provider == "openrouter" or "openrouter.ai" in (base or ""):
+        headers["HTTP-Referer"] = (
+            _env("OPENROUTER_SITE_URL") or "https://www.ai24x.com"
+        )
+        headers["X-Title"] = _env("OPENROUTER_APP_NAME") or "AI24X"
+    body: dict[str, Any] = {
+        "model": model,
+        "messages": _build_chat_messages(prompt, messages),
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        "stream": True,
+    }
+    if str(model).startswith("deepseek-v4") and (_env("DEEPSEEK_THINKING", "0") or "0").strip() not in (
+        "1",
+        "true",
+        "TRUE",
+        "yes",
+    ):
+        body["thinking"] = {"type": "disabled"}
+    # 部分上游在 stream 时把 usage 放在最后一包
+    body["stream_options"] = {"include_usage": True}
+
+    timeout = httpx.Timeout(timeout_s, connect=min(30.0, timeout_s))
+    full_parts: list[str] = []
+    usage_tokens = 0
+    try:
+        with httpx.Client(timeout=timeout) as client:
+            with client.stream("POST", url, headers=headers, json=body) as r:
+                r.raise_for_status()
+                for line in r.iter_lines():
+                    if not line:
+                        continue
+                    if isinstance(line, bytes):
+                        line = line.decode("utf-8", errors="replace")
+                    s = str(line).strip()
+                    if not s.startswith("data:"):
+                        continue
+                    data = s[5:].strip()
+                    if data == "[DONE]":
+                        break
+                    try:
+                        obj = _json.loads(data)
+                    except Exception:
+                        continue
+                    usage = obj.get("usage") or {}
+                    if usage.get("total_tokens"):
+                        try:
+                            usage_tokens = int(usage.get("total_tokens") or 0)
+                        except (TypeError, ValueError):
+                            pass
+                    choices = obj.get("choices") or []
+                    if not choices:
+                        continue
+                    delta = (choices[0] or {}).get("delta") or {}
+                    piece = delta.get("content")
+                    if piece is None:
+                        piece = delta.get("reasoning_content")
+                    if piece:
+                        text_piece = str(piece)
+                        full_parts.append(text_piece)
+                        yield {
+                            "type": "delta",
+                            "text": text_piece,
+                            "raw_model": model,
+                            "provider": provider,
+                        }
+    except Exception as e:
+        yield {"type": "error", "error": str(e)[:300], "raw_model": model, "provider": provider}
+        return
+
+    full = "".join(full_parts)
+    if usage_tokens <= 0:
+        usage_tokens = max(1, int(len(full.split()) * 1.3)) if full else 1
+    yield {
+        "type": "done",
+        "text": full,
+        "tokens": usage_tokens,
+        "raw_model": model,
+        "provider": provider,
+    }
+
+
 def _stub_response(prompt: str, *, layer: str, model: str) -> dict[str, Any]:
     preview = (prompt or "")[:80]
     text = (
@@ -1260,3 +1572,265 @@ def _stub_response(prompt: str, *, layer: str, model: str) -> dict[str, Any]:
         "当前未配置 TOKEN_LLM_* upstream，返回联调占位回复。"
     )
     return {"text": text, "tokens": max(1, int(len(text.split()) * 1.3))}
+
+
+def _try_upstream_stream(
+    *,
+    base: str,
+    key: str,
+    model: str,
+    prompt: str,
+    temperature: float,
+    max_tokens: int,
+    provider: str,
+    layer: str,
+    billing_mult: int,
+    public_model: str,
+    messages: Optional[list[dict[str, Any]]],
+) -> Iterator[dict[str, Any]]:
+    """对单一上游做真流式；成功结束 yield done；首包前失败 yield 空并 return。"""
+    timeout_s = _stream_timeout_s()
+    started = False
+    for ev in _stream_openai_compatible(
+        base=_normalize_openai_base(base),
+        key=key,
+        model=model,
+        prompt=prompt,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        timeout_s=timeout_s,
+        provider=provider,
+        messages=messages,
+    ):
+        et = ev.get("type")
+        if et == "error":
+            if started:
+                # 已写出部分内容：按已有文本收尾，避免客户端悬空
+                text = str(ev.get("partial") or "")
+                yield {
+                    "type": "done",
+                    "text": text,
+                    "tokens": max(1, int(len(text.split()) * 1.3)) if text else 1,
+                    "raw_model": model,
+                    "provider": provider,
+                    "layer": layer,
+                    "billing_mult": billing_mult,
+                    "public_model": public_model,
+                    "degraded_error": str(ev.get("error") or "")[:200],
+                }
+            return
+        if et == "delta":
+            if not started:
+                started = True
+                yield {
+                    "type": "meta",
+                    "layer": layer,
+                    "provider": provider,
+                    "raw_model": model,
+                    "billing_mult": billing_mult,
+                    "public_model": public_model,
+                }
+            yield ev
+        elif et == "done":
+            raw = max(1, int(ev.get("tokens") or 1))
+            yield {
+                "type": "done",
+                "text": str(ev.get("text") or ""),
+                "tokens": max(1, raw * max(1, int(billing_mult or 1))),
+                "raw_model": str(ev.get("raw_model") or model),
+                "provider": provider,
+                "layer": layer,
+                "billing_mult": billing_mult,
+                "public_model": public_model,
+            }
+            return
+    if not started:
+        return
+
+
+def run_routed_chat_stream(
+    *,
+    prompt: str,
+    requested_model: Optional[str],
+    is_vip: bool,
+    temperature: float = 0.7,
+    max_tokens: int = 1000,
+    region_hint: Optional[str] = None,
+    messages: Optional[list[dict[str, Any]]] = None,
+) -> Iterator[dict[str, Any]]:
+    """真流式路由。事件：meta → delta* → done；全部失败则 error。"""
+    pick = None
+    pick_gate_on = False
+    try:
+        from model_warehouse import resolve_vip_pick, vip_pick_enabled
+
+        pick = resolve_vip_pick(requested_model)
+        pick_gate_on = bool(vip_pick_enabled())
+    except Exception:
+        pick = None
+        pick_gate_on = False
+
+    if pick:
+        if not is_vip:
+            yield {"type": "error", "error": "vip_required"}
+            return
+        if pick_gate_on:
+            yield from _run_vip_pick_chat_stream(
+                pick=pick,
+                prompt=prompt,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                messages=messages,
+            )
+            return
+        requested_model = "flash"
+
+    chain = resolve_chain(
+        requested_model=requested_model, is_vip=is_vip, region_hint=region_hint
+    )
+    public = public_tier_name(requested_model or "flash", layer="", upstream_model="")
+    targets: list[tuple[str, str, str, str, str, int]] = []
+    # (layer, provider, base, key, model, mult)
+
+    for layer, logical_model in chain:
+        up = _layer_upstream(layer)
+        mult = int(LAYER_COST_MULT.get(layer, 1))
+        if (
+            layer in ("L1", "L2")
+            and _upstream_mode() == "openrouter"
+            and _ds_prefer_paid_enabled()
+        ):
+            ds = _deepseek_upstream_for_layer(layer)
+            if ds.get("key") and ds.get("base"):
+                targets.append(
+                    (
+                        layer,
+                        "deepseek",
+                        str(ds["base"]),
+                        str(ds["key"]),
+                        str(ds["model"]),
+                        mult,
+                    )
+                )
+        if up.get("key") and up.get("base"):
+            api_model = _upstream_model_id(logical_model, up["model"])
+            targets.append(
+                (
+                    layer,
+                    str(up.get("provider") or "upstream"),
+                    str(up["base"]),
+                    str(up["key"]),
+                    api_model,
+                    mult,
+                )
+            )
+
+    if not targets:
+        stub = _stub_response(prompt, layer="L0", model="stub")
+        yield {
+            "type": "meta",
+            "layer": "L0",
+            "provider": "stub",
+            "raw_model": "stub",
+            "billing_mult": 1,
+            "public_model": public,
+        }
+        yield {"type": "delta", "text": stub["text"]}
+        yield {
+            "type": "done",
+            "text": stub["text"],
+            "tokens": int(stub["tokens"]),
+            "raw_model": "stub",
+            "provider": "stub",
+            "layer": "L0",
+            "billing_mult": 1,
+            "public_model": public,
+        }
+        return
+
+    last_err = ""
+    for layer, provider, base, key, model, mult in targets:
+        got_done = False
+        for ev in _try_upstream_stream(
+            base=base,
+            key=key,
+            model=model,
+            prompt=prompt,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            provider=provider,
+            layer=layer,
+            billing_mult=mult,
+            public_model=public,
+            messages=messages,
+        ):
+            if ev.get("type") == "done":
+                got_done = True
+            yield ev
+        if got_done:
+            return
+        last_err = f"{provider}/{model} failed"
+    yield {"type": "error", "error": last_err or "all_upstreams_failed"}
+
+
+def _run_vip_pick_chat_stream(
+    *,
+    pick: dict[str, Any],
+    prompt: str,
+    temperature: float,
+    max_tokens: int,
+    messages: Optional[list[dict[str, Any]]] = None,
+) -> Iterator[dict[str, Any]]:
+    billing_mult = max(1, int(pick.get("billing_mult") or 1))
+    public_id = str(pick.get("id") or "vip_pick")
+    or_id = (pick.get("openrouter_id") or "").strip()
+    direct_id = (pick.get("direct_id") or "").strip()
+    sf_id = (pick.get("siliconflow_id") or "").strip()
+    is_ds_pick = public_id.startswith("vip-ds-")
+    is_intl = (
+        public_id.startswith("vip-gpt")
+        or "claude" in public_id
+        or "gemini" in public_id
+    )
+    targets: list[tuple[str, str, str, str]] = []  # provider, base, key, model
+
+    if is_ds_pick and direct_id and _ds_failover_enabled():
+        ds = _deepseek_official_upstream()
+        if ds.get("key") and ds.get("base"):
+            targets.append(("deepseek", str(ds["base"]), str(ds["key"]), direct_id))
+    if (not is_intl) and (not is_ds_pick) and sf_id and _vip_silicon_first_enabled():
+        sf = _silicon_vip_upstream(sf_id)
+        if sf:
+            targets.append(("siliconflow", sf["base"], sf["key"], sf["model"]))
+    if or_id and _upstream_mode() == "openrouter":
+        up = _layer_upstream("L1")
+        if up.get("key") and up.get("base"):
+            targets.append(("openrouter", str(up["base"]), str(up["key"]), or_id))
+    if is_ds_pick and sf_id:
+        sf = _silicon_vip_upstream(sf_id)
+        if sf:
+            targets.append(("siliconflow", sf["base"], sf["key"], sf["model"]))
+
+    last_err = ""
+    for provider, base, key, model in targets:
+        got_done = False
+        for ev in _try_upstream_stream(
+            base=base,
+            key=key,
+            model=model,
+            prompt=prompt,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            provider=provider,
+            layer="VIP",
+            billing_mult=billing_mult,
+            public_model=public_id,
+            messages=messages,
+        ):
+            if ev.get("type") == "done":
+                got_done = True
+            yield ev
+        if got_done:
+            return
+        last_err = f"{provider} failed"
+    yield {"type": "error", "error": last_err or "vip_upstream_failed"}

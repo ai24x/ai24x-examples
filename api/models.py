@@ -173,7 +173,7 @@ class TokenCreditLot(Base):
     auth_user_id = Column(
         Integer, ForeignKey("auth_users.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    source = Column(String(16), nullable=False, default="topup")  # topup/bonus/referral/legacy
+    source = Column(String(16), nullable=False, default="topup")  # topup/bonus/vip_daily/referral/legacy
     plan = Column(String(64), nullable=True)
     amount_initial = Column(Integer, nullable=False)
     amount_remaining = Column(Integer, nullable=False)

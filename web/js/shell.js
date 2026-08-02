@@ -22,12 +22,18 @@
     var L = global.AI24X_I18N;
     var langs = L.LANGS;
     var pre = pathPrefix();
+    var curLang = "en";
+    try {
+      if (L && typeof L.getLang === "function") curLang = L.getLang() || "en";
+    } catch (e0) {}
     var langOpts = langs
       .map(function (x) {
         return (
           '<option value="' +
           esc(x.code) +
-          '">' +
+          '"' +
+          (x.code === curLang ? " selected" : "") +
+          ">" +
           esc(x.label) +
           "</option>"
         );
@@ -183,13 +189,26 @@
 
     var lang = document.getElementById("lang-select");
     if (lang) {
+      try {
+        if (global.AI24X_I18N && typeof global.AI24X_I18N.getLang === "function") {
+          lang.value = global.AI24X_I18N.getLang();
+        }
+      } catch (e1) {}
       lang.addEventListener("change", function () {
+        var next = lang.value;
         try {
-          if (lang.value !== "zh") {
-            document.documentElement.classList.add("i18n-pending");
+          if (
+            global.AI24X_I18N &&
+            typeof global.AI24X_I18N.getLang === "function" &&
+            next === global.AI24X_I18N.getLang()
+          ) {
+            return;
           }
+        } catch (e2) {}
+        try {
+          document.documentElement.classList.add("i18n-pending");
         } catch (e0) {}
-        global.AI24X_I18N.setLang(lang.value);
+        global.AI24X_I18N.setLang(next);
         global.AI24X_I18N.apply(document);
       });
     }
@@ -321,12 +340,41 @@
   function exploreSubnavHtml(activeKey) {
     var pre = pathPrefix();
     var root = pre; /* models/guides 下为 ../ ，根页为空 */
+    var zhUi = false;
+    try {
+      zhUi = !!(global.AI24X_I18N && global.AI24X_I18N.isZh && global.AI24X_I18N.isZh());
+    } catch (eZh) {}
     var items = [
-      { key: "register", href: root + "register.html", i18n: "page.index.hero.cta.register", fallback: "免费注册" },
-      { key: "pricing", href: root + "pricing.html", i18n: "nav.pricing", fallback: "价格" },
-      { key: "guides", href: root + "guides/index.html", i18n: "btn.guides", fallback: "接入案例" },
-      { key: "vip", href: root + "models/vip-picks.html", i18n: "page.models.vip.cta", fallback: "VIP 点名清单" },
-      { key: "refer", href: root + "refer.html", i18n: "page.models.cta.invite", fallback: "邀请好友" },
+      {
+        key: "register",
+        href: root + "register.html",
+        i18n: "page.index.hero.cta.register",
+        fallback: zhUi ? "免费注册" : "Sign up",
+      },
+      {
+        key: "pricing",
+        href: root + "pricing.html",
+        i18n: "nav.pricing",
+        fallback: zhUi ? "价格" : "Pricing",
+      },
+      {
+        key: "guides",
+        href: root + "guides/index.html",
+        i18n: "btn.guides",
+        fallback: zhUi ? "接入案例" : "Integrations",
+      },
+      {
+        key: "vip",
+        href: root + "models/vip-picks.html",
+        i18n: "page.models.vip.cta",
+        fallback: zhUi ? "VIP 点名清单" : "VIP model list",
+      },
+      {
+        key: "refer",
+        href: root + "refer.html",
+        i18n: "page.models.cta.invite",
+        fallback: zhUi ? "邀请好友" : "Invite friends",
+      },
     ];
     /* 非名模首页时加「名模」便于返回；名模首页保持原来 5 键顺序与主按钮 */
     if (activeKey !== "models") {
@@ -334,7 +382,7 @@
         key: "models",
         href: root + "models/index.html",
         i18n: "page.models.title",
-        fallback: "名模",
+        fallback: zhUi ? "名模" : "Models",
       });
     }
     var primaryKey = activeKey === "models" ? "register" : activeKey;

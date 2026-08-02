@@ -141,7 +141,7 @@
     } catch (e2) {}
   }
 
-  // 尽早解析首访语言，减少闪中文
+  // 尽早解析首访语言（与 i18n-boot 一致）；页面在 apply 前保持 i18n-pending 隐藏
   try {
     detectFirstVisitLang();
   } catch (e) {}

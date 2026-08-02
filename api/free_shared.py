@@ -1,12 +1,17 @@
 """
 免费共享通道（独立运营域）。
 
-与付费 flash/pro/ultra 分离：余额用尽后可选继续走 L0 共享池（限日帽），
-主路径仍引导充值。配置写入 api/data/free_shared_override.json。
+漏斗（自动化）：
+  注册礼包/充值 → 付费档（flash/pro…）
+  → 余额用尽或该档不可花日赠时 → 自动降级 shared（日帽内继续聊）
+  → 响应/余额接口提示充值；充值后自动回付费档
+
+配置写入 api/data/free_shared_override.json；可用 TOKEN_SHARED_* 环境变量覆盖默认帽。
 """
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -70,15 +75,36 @@ SHARED_CATALOG: list[dict[str, Any]] = [
     },
 ]
 
+def _env_int(name: str, default: int) -> int:
+    raw = (os.getenv(name) or "").strip()
+    if not raw:
+        return int(default)
+    try:
+        return int(raw)
+    except ValueError:
+        return int(default)
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    raw = (os.getenv(name) or "").strip().lower()
+    if not raw:
+        return bool(default)
+    return raw not in ("0", "false", "no", "off")
+
+
+# 亮点默认：每日约 10 万 token / 50 次（可用 override / env 调）
 _DEFAULTS: dict[str, Any] = {
     "enabled": True,
-    "daily_req_cap": 30,
-    "daily_token_cap": 30_000,
+    "daily_req_cap": _env_int("TOKEN_SHARED_DAILY_REQ_CAP", 50),
+    "daily_token_cap": _env_int("TOKEN_SHARED_DAILY_TOKEN_CAP", 100_000),
     "prefer": "silicon-qwen",  # 主力：容灾链起点 / 轮询起点（单选）
     "pool_enabled": ["silicon-qwen", "or-auto"],  # 启用成员（多选）→ 容灾或轮询
     "dispatch_mode": "failover",  # failover=挂了自动顶上；rotate=多条轮询
     "brand_model": "shared",
-    "upgrade_first": True,
+    # False=余额用尽自动 shared；True=仅显式 model=shared 才进共享（不推荐）
+    "upgrade_first": _env_bool("TOKEN_SHARED_UPGRADE_FIRST", False),
+    # 付费档余额不足时自动降级 shared（flash/auto/pro 等；vip-* 除外）
+    "auto_degrade": _env_bool("TOKEN_SHARED_AUTO_DEGRADE", True),
     "ops_title": "免费共享通道",
 }
 
@@ -119,7 +145,8 @@ def effective_config() -> dict[str, Any]:
         if k in ov and ov[k] is not None:
             out[k] = ov[k]
     out["enabled"] = bool(out["enabled"])
-    out["upgrade_first"] = bool(out.get("upgrade_first", True))
+    out["upgrade_first"] = bool(out.get("upgrade_first", False))
+    out["auto_degrade"] = bool(out.get("auto_degrade", True))
     try:
         out["daily_req_cap"] = max(1, min(500, int(out["daily_req_cap"])))
     except (TypeError, ValueError):
@@ -457,16 +484,19 @@ def admin_snapshot(db: Optional[Session] = None) -> dict[str, Any]:
         "today": {"requests": today_reqs, "users": today_users},
         "funnel": {
             "steps": [
-                "注册小礼包试用",
-                "用尽 → 主推付费套餐",
-                "或选「免费共享」→ 仅共享池 · 日帽限流",
+                "注册小礼包 → 付费档 flash 试用",
+                "余额用尽 / 日赠不够花 pro → 自动降级 shared（日帽）",
+                "引导充值 → 自动回付费档；VIP 点名仍须会员",
             ],
             "upgrade_first": cfg["upgrade_first"],
+            "auto_degrade": cfg.get("auto_degrade", True),
+            "daily_token_cap": cfg["daily_token_cap"],
+            "daily_req_cap": cfg["daily_req_cap"],
         },
         "ops_note": (
             "启用可多选；主力单选。"
             "调度：挂了自动顶上=主力→其余依次试；多条轮询=每次换起点。"
-            "用户对外只见 shared。"
+            "用户对外只见 shared。auto_degrade=余额不足自动进共享。"
         ),
     }
 
@@ -483,6 +513,8 @@ def update_config(patch: dict[str, Any]) -> dict[str, Any]:
         cur["prefer"] = str(patch["prefer"]).strip().lower()
     if "upgrade_first" in patch and patch["upgrade_first"] is not None:
         cur["upgrade_first"] = bool(patch["upgrade_first"])
+    if "auto_degrade" in patch and patch["auto_degrade"] is not None:
+        cur["auto_degrade"] = bool(patch["auto_degrade"])
     if "brand_model" in patch and patch["brand_model"] is not None:
         cur["brand_model"] = str(patch["brand_model"]).strip()[:32] or "shared"
     if "dispatch_mode" in patch and patch["dispatch_mode"] is not None:
@@ -510,6 +542,25 @@ def _shared_counts_today(db: Session, auth_user_id: int) -> tuple[int, int]:
     reqs = len(rows)
     toks = sum(int(r.tokens or 0) for r in rows)
     return reqs, toks
+
+
+def user_shared_quota_snapshot(db: Session, auth_user_id: int) -> dict[str, Any]:
+    """控制台/余额接口：今日免费共享剩余（用户可见，无运维字段）。"""
+    cfg = effective_config()
+    reqs, toks = _shared_counts_today(db, int(auth_user_id))
+    req_cap = int(cfg["daily_req_cap"])
+    tok_cap = int(cfg["daily_token_cap"])
+    return {
+        "shared_enabled": bool(cfg["enabled"]),
+        "shared_auto_degrade": bool(cfg.get("auto_degrade", True))
+        and (not bool(cfg.get("upgrade_first"))),
+        "shared_daily_req_cap": req_cap,
+        "shared_daily_token_cap": tok_cap,
+        "shared_used_req": int(reqs),
+        "shared_used_tokens": int(toks),
+        "shared_remain_req": max(0, req_cap - int(reqs)),
+        "shared_remain_tokens": max(0, tok_cap - int(toks)),
+    }
 
 
 def assert_shared_allowed(db: Session, auth_user_id: int) -> dict[str, Any]:
@@ -576,6 +627,14 @@ def record_shared_usage(
     db.commit()
 
 
+def model_allows_auto_shared(model: Optional[str]) -> bool:
+    """vip 点名不自动降级；其余日常档（含 pro）可降到 shared 保活。"""
+    m = (model or "flash").strip().lower() or "flash"
+    if m.startswith("vip-"):
+        return False
+    return True
+
+
 def resolve_chat_billing_mode(
     db: Session,
     *,
@@ -584,12 +643,17 @@ def resolve_chat_billing_mode(
     force_shared: bool = False,
 ) -> dict[str, Any]:
     """
-    返回 {mode: paid|shared, wallet?, shared?}。
-    - 有余额：付费
-    - 无余额且（force_shared 或 model=shared）且通道开启：共享
-    - 否则 402（detail 可含可转共享提示，由调用方组文案）
+    返回 {mode: paid|shared, wallet?, shared?, auto_degraded?, reason?}。
+    - 该模型有可花额度 → paid
+    - 显式 shared / 余额用尽 / 日赠不够花 pro → 自动 shared（可关）
+    - vip-* 无权益或共享关闭 → 402/交由上层 403
     """
-    from token_mvp_service import ensure_period_bonus, get_or_create_wallet
+    from token_mvp_service import (
+        ensure_period_bonus,
+        get_or_create_wallet,
+        model_allows_vip_daily,
+        spendable_tokens,
+    )
     from auth_user_service import raise_if_frozen
     from models import AuthUser
 
@@ -597,29 +661,72 @@ def resolve_chat_billing_mode(
     raise_if_frozen(u)
     w = ensure_period_bonus(db, get_or_create_wallet(db, int(auth_user_id)))
     bal = int(w.balance_tokens or 0)
-    req = (requested_model or "").strip().lower()
+    req = (requested_model or "").strip().lower() or "flash"
     cfg = effective_config()
     want_shared = force_shared or req in ("shared", "free-shared", "free_shared")
+    allow_vip = model_allows_vip_daily(req)
+    spendable = spendable_tokens(
+        db, int(auth_user_id), allow_vip_daily=allow_vip
+    )
 
-    if bal > 0 and not want_shared:
-        return {"mode": "paid", "wallet": w, "balance": bal}
-
-    if bal > 0 and want_shared:
-        # 有余额仍选共享：允许（体验共享档），不扣余额
+    if want_shared:
         shared = assert_shared_allowed(db, int(auth_user_id))
-        return {"mode": "shared", "wallet": w, "balance": bal, "shared": shared}
+        return {
+            "mode": "shared",
+            "wallet": w,
+            "balance": bal,
+            "spendable": spendable,
+            "shared": shared,
+            "auto_degraded": False,
+            "reason": "explicit_shared",
+        }
 
-    if bal <= 0:
-        if want_shared or (cfg["enabled"] and not cfg.get("upgrade_first")):
-            shared = assert_shared_allowed(db, int(auth_user_id))
-            return {"mode": "shared", "wallet": w, "balance": 0, "shared": shared}
-        # 默认：余额不足先 402，前端展示充值 + 「继续免费」按钮
-        extra = ""
-        if cfg["enabled"]:
-            extra = "也可选择免费共享通道继续体验。"
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail=("余额不足，请充值后再试。" + extra).strip(),
-        )
+    if spendable > 0:
+        return {
+            "mode": "paid",
+            "wallet": w,
+            "balance": bal,
+            "spendable": spendable,
+            "auto_degraded": False,
+            "reason": "wallet",
+        }
 
-    return {"mode": "paid", "wallet": w, "balance": bal}
+    # 无可用付费额度 → 自动 shared（默认开）；upgrade_first=True 则强制先充值
+    auto_ok = (
+        bool(cfg.get("enabled"))
+        and bool(cfg.get("auto_degrade", True))
+        and (not bool(cfg.get("upgrade_first")))
+        and model_allows_auto_shared(req)
+    )
+    if auto_ok:
+        shared = assert_shared_allowed(db, int(auth_user_id))
+        reason = "balance_empty" if bal <= 0 else "prepaid_required_fallback"
+        return {
+            "mode": "shared",
+            "wallet": w,
+            "balance": bal,
+            "spendable": 0,
+            "shared": shared,
+            "auto_degraded": True,
+            "reason": reason,
+        }
+
+    extra = ""
+    if cfg.get("enabled"):
+        extra = "也可将 model 设为 shared 继续免费体验（每日有上限）。"
+    raise HTTPException(
+        status_code=status.HTTP_402_PAYMENT_REQUIRED,
+        detail={
+            "message_zh": ("余额不足，请充值后再试。" + extra).strip(),
+            "message_en": (
+                "Insufficient balance. Please top up."
+                + (
+                    " Or set model=shared for the free daily pool."
+                    if cfg.get("enabled")
+                    else ""
+                )
+            ).strip(),
+            "message": ("余额不足，请充值后再试。" + extra).strip(),
+            "code": "insufficient_balance",
+        },
+    )

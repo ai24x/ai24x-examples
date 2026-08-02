@@ -1,6 +1,7 @@
 """管理端：用户列表、成本毛利简报、告警摘要（无密钥）。"""
 from __future__ import annotations
 
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -172,8 +173,13 @@ def admin_economics(db: Session, *, days: int = 7) -> dict[str, Any]:
         .scalar()
         or 0
     )
-    # Flash 粗算：进出均半 → ~$0.21 / 1M；OR 略高按 1.2×
-    cost_per_m = 0.21 * 1.15
+    # 上游成本粗算（非售价）：Flash 地板约 $0.24/M；售价锚见 TOKEN_FLASH_REF_USD_PER_M≈0.45
+    try:
+        cost_per_m = float(os.getenv("TOKEN_ECON_COST_USD_PER_M") or "0.24")
+    except ValueError:
+        cost_per_m = 0.24
+    if cost_per_m <= 0:
+        cost_per_m = 0.24
     est_cost_usd = round((consume_tokens / 1_000_000.0) * cost_per_m, 4)
 
     paid_cny_fen = int(
@@ -221,8 +227,9 @@ def admin_economics(db: Session, *, days: int = 7) -> dict[str, Any]:
         "new_users": new_users,
         "pending_orders": pending,
         "note": (
-            "成本按 Flash 类均价粗算（含 OR 溢价系数），会低估 Claude/GPT 等高倍率名模真实上游成本。"
-            "请同时看「用量监控」按模型拆分；精确对账对照 OR / 厂账单。"
+            "成本按上游 Flash 地板粗算（默认 $0.24/M，可用 TOKEN_ECON_COST_USD_PER_M 覆盖）；"
+            "售价锚约 $0.45/M。会低估 Claude/GPT 等高倍率名模真实上游成本。"
+            "请同时看「用量监控」按模型拆分；精确对账对照上游账单。"
         ),
         "usage_hint": "GET /v1/admin/token/usage_monitor",
     }

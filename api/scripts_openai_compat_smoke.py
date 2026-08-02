@@ -140,6 +140,44 @@ def main() -> int:
             }
         )
 
+        # 5) Responses 最小兼容
+        r5 = client.post(
+            f"{base}/v1/responses",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "flash",
+                "input": "Reply with exactly: RESP_OK",
+                "max_output_tokens": 64,
+            },
+        )
+        try:
+            j5 = r5.json()
+        except Exception:
+            j5 = {}
+        out0 = (j5.get("output") or [{}])[0] if isinstance(j5, dict) else {}
+        parts = out0.get("content") if isinstance(out0, dict) else None
+        text5 = ""
+        if isinstance(parts, list) and parts:
+            text5 = str((parts[0] or {}).get("text") or "")
+        ok5 = (
+            r5.status_code == 200
+            and j5.get("object") == "response"
+            and j5.get("status") == "completed"
+            and bool(text5)
+        )
+        rows.append(
+            {
+                "name": "responses_non_stream",
+                "ok": bool(ok5),
+                "status": r5.status_code,
+                "object": j5.get("object"),
+                "preview": text5[:80],
+            }
+        )
+
     passed = sum(1 for x in rows if x.get("ok"))
     failed = len(rows) - passed
     print(json.dumps({"passed": passed, "failed": failed, "rows": rows}, ensure_ascii=False, indent=2))

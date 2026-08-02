@@ -83,8 +83,9 @@ class ChatService:
         request_id = f"req_{uuid.uuid4().hex[:16]}"
         start_time = time.time()
 
-        # Token 钱包预检：有余额走付费；无余额可转免费共享（model=shared）
+        # Token 钱包：有可花额度→付费；否则自动降级 shared（日帽内保活）
         billing_mode = "paid"
+        billing: dict = {}
         if auth_user_id is not None:
             from free_shared import resolve_chat_billing_mode
 
@@ -130,6 +131,16 @@ class ChatService:
                     max_tokens=int(request.max_tokens or 1000),
                 )
             else:
+                if auth_user_id is not None:
+                    from token_mvp_service import assert_can_spend
+
+                    # 预检：pro/名模不可只靠日赠；flash/auto 可用日赠
+                    assert_can_spend(
+                        db,
+                        int(auth_user_id),
+                        need_tokens=1,
+                        model=route_model,
+                    )
                 routed = run_routed_chat(
                     prompt=request.prompt,
                     requested_model=route_model,
@@ -213,6 +224,27 @@ class ChatService:
             if billing_mode == "shared":
                 public_model = "shared"
 
+            attr = attribution_block(
+                request_id=request_id, auth_user_id=auth_user_id
+            )
+            if billing_mode == "shared":
+                attr["billing_mode"] = "shared"
+                attr["auto_degraded"] = bool(billing.get("auto_degraded"))
+                if billing.get("auto_degraded"):
+                    attr["upgrade_hint_zh"] = (
+                        "当前为每日免费体验；充值后自动恢复付费档（flash/pro）。"
+                    )
+                    attr["upgrade_hint_en"] = (
+                        "You're on the free daily pool. Top up to return to paid flash/pro."
+                    )
+                shared_info = billing.get("shared") or {}
+                if shared_info.get("remain_tokens") is not None:
+                    attr["shared_remain_tokens"] = shared_info.get("remain_tokens")
+                if shared_info.get("remain_req") is not None:
+                    attr["shared_remain_req"] = shared_info.get("remain_req")
+            else:
+                attr["billing_mode"] = "paid"
+
             return ChatResponse(
                 request_id=request_id,
                 response=response_text,
@@ -225,9 +257,7 @@ class ChatService:
                 layer=None,
                 provider="ai24x",
                 route_attempts=None,
-                attribution=attribution_block(
-                    request_id=request_id, auth_user_id=auth_user_id
-                ),
+                attribution=attr,
             )
 
         except Exception as e:
@@ -238,7 +268,210 @@ class ChatService:
             chat_request.processing_duration = time.time() - start_time
             db.commit()
             raise
-    
+
+    @staticmethod
+    def stream_chat_request(
+        db: Session,
+        user: User,
+        request: ChatRequestSchema,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None,
+        auth_user_id: Optional[int] = None,
+        region_hint: Optional[str] = None,
+    ):
+        """真流式：yield meta/delta/done；流末按 usage 扣费（与非流账本一致）。"""
+        request_id = f"req_{uuid.uuid4().hex[:16]}"
+        start_time = time.time()
+        billing_mode = "paid"
+        billing: dict = {}
+        if auth_user_id is not None:
+            from free_shared import resolve_chat_billing_mode
+
+            billing = resolve_chat_billing_mode(
+                db,
+                auth_user_id=int(auth_user_id),
+                requested_model=request.model,
+                force_shared=False,
+            )
+            billing_mode = str(billing.get("mode") or "paid")
+
+        chat_request = ChatRequest(
+            request_id=request_id,
+            user_id=user.user_id,
+            user_type=user.user_type,
+            prompt=request.prompt,
+            model=request.model,
+            temperature=request.temperature,
+            max_tokens=request.max_tokens,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            status="processing",
+        )
+        db.add(chat_request)
+        db.commit()
+
+        msgs = getattr(request, "messages", None)
+        public_model = request.model or "flash"
+        provider = "ai24x"
+        used_model = public_model
+        full_text = ""
+        token_count = 0
+        billable = True
+
+        try:
+            from token_mvp_service import get_balance_snapshot
+            from model_router import run_routed_chat_stream, public_tier_name
+
+            is_vip = False
+            if auth_user_id is not None:
+                snap0 = get_balance_snapshot(db, int(auth_user_id))
+                is_vip = bool(snap0.get("is_vip_active"))
+
+            if billing_mode == "shared":
+                # 共享池：暂用非流整段后单 delta（避免阻塞主路径过久时仍可用）
+                from free_shared import run_shared_pool_chat
+
+                routed = run_shared_pool_chat(
+                    prompt=request.prompt,
+                    temperature=float(request.temperature or 0.7),
+                    max_tokens=int(request.max_tokens or 1000),
+                )
+                if not routed.ok:
+                    yield {"type": "error", "error": routed.error or "shared_failed"}
+                    chat_request.status = "failed"
+                    chat_request.error_message = str(routed.error or "")[:200]
+                    db.commit()
+                    return
+                full_text = str(routed.text or "")
+                token_count = max(1, int(routed.token_count or 1))
+                public_model = "shared"
+                yield {"type": "meta", "public_model": "shared", "provider": routed.provider}
+                if full_text:
+                    yield {"type": "delta", "text": full_text}
+                yield {
+                    "type": "done",
+                    "text": full_text,
+                    "tokens": token_count,
+                    "public_model": "shared",
+                    "raw_model": routed.model,
+                    "provider": routed.provider,
+                }
+            else:
+                if auth_user_id is not None:
+                    from token_mvp_service import assert_can_spend
+
+                    assert_can_spend(
+                        db,
+                        int(auth_user_id),
+                        need_tokens=1,
+                        model=request.model,
+                    )
+                saw_done = False
+                for ev in run_routed_chat_stream(
+                    prompt=request.prompt,
+                    requested_model=request.model,
+                    is_vip=is_vip,
+                    temperature=float(request.temperature or 0.7),
+                    max_tokens=int(request.max_tokens or 1000),
+                    region_hint=region_hint,
+                    messages=msgs if isinstance(msgs, list) else None,
+                ):
+                    et = ev.get("type")
+                    if et == "meta":
+                        public_model = str(
+                            ev.get("public_model")
+                            or public_tier_name(
+                                request.model or "flash",
+                                layer=str(ev.get("layer") or ""),
+                                upstream_model=str(ev.get("raw_model") or ""),
+                            )
+                        )
+                        provider = str(ev.get("provider") or provider)
+                        used_model = str(ev.get("raw_model") or used_model)
+                        yield {
+                            "type": "meta",
+                            "public_model": public_model,
+                            "raw_model": used_model,
+                            "provider": provider,
+                            "layer": ev.get("layer"),
+                        }
+                    elif et == "delta":
+                        full_text += str(ev.get("text") or "")
+                        yield ev
+                    elif et == "done":
+                        saw_done = True
+                        full_text = str(ev.get("text") or full_text)
+                        token_count = max(1, int(ev.get("tokens") or 1))
+                        public_model = str(ev.get("public_model") or public_model)
+                        used_model = str(ev.get("raw_model") or used_model)
+                        provider = str(ev.get("provider") or provider)
+                        if provider == "stub" and not full_text:
+                            billable = False
+                        yield {
+                            "type": "done",
+                            "text": full_text,
+                            "tokens": token_count,
+                            "public_model": public_model,
+                            "raw_model": used_model,
+                            "provider": provider,
+                        }
+                    elif et == "error":
+                        yield ev
+                        chat_request.status = "failed"
+                        chat_request.error_message = str(ev.get("error") or "")[:200]
+                        db.commit()
+                        return
+                if not saw_done:
+                    yield {"type": "error", "error": "stream_incomplete"}
+                    chat_request.status = "failed"
+                    db.commit()
+                    return
+
+            processing_time = time.time() - start_time
+            chat_request.response = full_text
+            chat_request.model = used_model
+            chat_request.response_time = datetime.utcnow()
+            chat_request.processing_duration = processing_time
+            chat_request.status = "completed"
+            chat_request.is_success = True
+            chat_request.token_count = int(token_count) if billable else 0
+            db.commit()
+            UserService.increment_request_count(db, user)
+
+            if auth_user_id is not None and billable and token_count > 0:
+                from token_mvp_service import consume_tokens
+                from free_shared import record_shared_usage
+
+                if billing_mode == "shared":
+                    record_shared_usage(
+                        db,
+                        auth_user_id=int(auth_user_id),
+                        tokens=int(token_count),
+                        model="shared",
+                        request_id=request_id,
+                    )
+                else:
+                    consume_tokens(
+                        db,
+                        auth_user_id=int(auth_user_id),
+                        tokens=int(token_count),
+                        model=public_model,
+                        request_id=request_id,
+                    )
+        except HTTPException:
+            chat_request.status = "failed"
+            chat_request.response_time = datetime.utcnow()
+            chat_request.processing_duration = time.time() - start_time
+            db.commit()
+            raise
+        except Exception as e:
+            chat_request.error_message = str(e)[:300]
+            chat_request.status = "failed"
+            chat_request.response_time = datetime.utcnow()
+            chat_request.processing_duration = time.time() - start_time
+            db.commit()
+            yield {"type": "error", "error": "server_error"}
+
     @staticmethod
     def _generate_response(prompt: str) -> str:
         """生成回复（模拟AI响应）"""

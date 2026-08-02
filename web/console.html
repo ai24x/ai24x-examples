@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <script src="js/i18n-boot.js?v=20260802g"></script>
+  <script src="js/i18n-boot.js?v=20260802p"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="description" content="AI24X console: balance, API keys, plans, and usage." />
   <title>Console · AI24X</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="css/base.css?v=20260802f" />
+  <link rel="stylesheet" href="css/base.css?v=20260802q" />
   <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260725a" data-base="css/themes/" />
 </head>
 <body data-page="console" class="theme-blue">
@@ -70,180 +70,258 @@
         </div>
       </div>
     </div>
-    <section class="hero hero-surface section-tight">
+
+    <section class="hero hero-surface section-tight console-hero">
       <div class="container">
         <h1 data-i18n="page.console.title">Console</h1>
         <p class="lead" data-i18n="page.console.sub">Manage Token balance, API keys, and plans.</p>
         <div id="consoleMsg" class="mt-2"></div>
-        <div id="balance-cta" class="card mt-2" style="display:none;border-color:#d4a84b;">
-          <h3 class="mt-0" data-i18n="page.console.balanceCta.title">Out of credits</h3>
-          <p class="sub" data-i18n="page.console.balanceCta.body">Top up for paid tiers, or continue on the free shared pool (daily caps).</p>
-          <div class="card-actions">
-            <a class="btn btn-primary" href="pricing.html" data-i18n="page.console.balanceCta.upgrade">Top up / upgrade</a>
-            <button type="button" class="btn" id="btn-continue-shared" data-i18n="page.console.balanceCta.shared">Continue free shared</button>
-            <a class="btn" href="help.html" data-i18n="nav.help">Help</a>
-          </div>
-        </div>
       </div>
     </section>
-    <section class="section">
-      <div class="container">
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-label" data-i18n="page.console.stat.balance">Balance (tokens)</div>
-            <div class="stat-value" id="stat-balance">--</div>
-            <div class="stat-sub" id="stat-balance-sub" data-i18n="page.console.stat.balance.sub">Available wallet credits</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label" data-i18n="page.console.stat.calls">Recent usage</div>
-            <div class="stat-value" id="stat-calls">--</div>
-            <div class="stat-sub" data-i18n="page.console.stat.calls.sub">Recent consume entries</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label" data-i18n="page.console.stat.keys">API Key</div>
-            <div class="stat-value" id="stat-keys">--</div>
-            <div class="stat-sub" data-i18n="page.console.stat.keys.sub">Active keys</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label" data-i18n="page.console.stat.referrals">Level-1 invites</div>
-            <div class="stat-value" id="stat-referrals">--</div>
-            <div class="stat-sub" data-i18n="page.console.stat.referrals.hint">Successful invitees</div>
-          </div>
-        </div>
-      </div>
 
-      <div class="container mt-2">
-        <h3 class="mt-0" data-i18n="page.console.invite.title">My invite code</h3>
-        <p class="sub" data-i18n="page.console.invite.sub">Share with friends for signup rewards. Details and stats on the Referrals page.</p>
-        <div class="grid-3 mt-2">
-          <div class="card">
-            <h3 class="mt-0" data-i18n="page.console.invite.codeTitle">Invite code</h3>
-            <p class="stat-value" id="inviteCode" style="font-size:1.5rem;letter-spacing:0.06em;">--</p>
-            <p class="sub" data-i18n="page.console.invite.codeHint">Friends enter this at signup</p>
-            <div class="card-actions">
-              <button type="button" class="btn btn-primary" id="btn-copy-invite-code" data-i18n="page.console.copyCode">Copy invite code</button>
+    <section class="section console-section">
+      <div class="container console-layout">
+        <aside class="console-sidebar" aria-label="Console navigation">
+          <nav class="console-nav" id="console-nav">
+            <button type="button" class="console-nav-item is-active" data-console-panel="overview" data-i18n="page.console.nav.overview">Overview</button>
+            <button type="button" class="console-nav-item" data-console-panel="keys" data-i18n="page.console.nav.keys">API keys</button>
+            <button type="button" class="console-nav-item" data-console-panel="billing" data-i18n="page.console.nav.billing">Billing</button>
+            <button type="button" class="console-nav-item" data-console-panel="usage" data-i18n="page.console.nav.usage">Usage</button>
+            <button type="button" class="console-nav-item" data-console-panel="playground" data-i18n="page.console.nav.playground">Playground</button>
+            <button type="button" class="console-nav-item" data-console-panel="invite" data-i18n="page.console.nav.invite">Invite</button>
+            <button type="button" class="console-nav-item" data-console-panel="account" data-i18n="page.console.nav.account">Account</button>
+          </nav>
+        </aside>
+
+        <div class="console-main">
+          <!-- Overview (default) -->
+          <div class="console-panel is-active" id="panel-overview" data-console-panel="overview" role="tabpanel">
+            <div class="console-panel-head">
+              <h2 class="mt-0" data-i18n="page.console.nav.overview">Overview</h2>
+              <p class="sub" data-i18n="page.console.overview.lead">Balance, keys, and shortcuts for daily work.</p>
+            </div>
+            <div class="card console-identity" id="overview-identity">
+              <div class="console-identity-row">
+                <div>
+                  <div class="stat-label" data-i18n="page.console.account.user">User</div>
+                  <div class="console-identity-value" id="overview-user">--</div>
+                </div>
+                <div>
+                  <div class="stat-label" data-i18n="page.console.account.plan">Plan tier</div>
+                  <div class="console-identity-value" id="overview-plan">--</div>
+                </div>
+                <div class="console-identity-actions">
+                  <button type="button" class="btn" data-console-panel="account" data-i18n="page.console.overview.accountLink">Account details</button>
+                </div>
+              </div>
+            </div>
+            <div id="balance-cta" class="card console-alert" style="display:none;border-color:#d4a84b;">
+              <h3 class="mt-0" data-i18n="page.console.balanceCta.title">Out of credits</h3>
+              <p class="sub" data-i18n="page.console.balanceCta.body">Top up for paid tiers, or continue on the free shared pool (daily caps).</p>
+              <div class="card-actions">
+                <button type="button" class="btn btn-primary" data-console-panel="billing" data-i18n="page.console.balanceCta.upgrade">Top up / upgrade</button>
+                <button type="button" class="btn" id="btn-continue-shared" data-i18n="page.console.balanceCta.shared">Continue free shared</button>
+                <a class="btn" href="help.html" data-i18n="nav.help">Help</a>
+              </div>
+            </div>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-label" data-i18n="page.console.stat.balance">Balance (tokens)</div>
+                <div class="stat-value" id="stat-balance">--</div>
+                <div class="stat-sub" id="stat-balance-sub" data-i18n="page.console.stat.balance.sub">Available wallet credits</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label" data-i18n="page.console.stat.calls">Recent usage</div>
+                <div class="stat-value" id="stat-calls">--</div>
+                <div class="stat-sub" data-i18n="page.console.stat.calls.sub">Recent consume entries</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label" data-i18n="page.console.stat.keys">API Key</div>
+                <div class="stat-value" id="stat-keys">--</div>
+                <div class="stat-sub" data-i18n="page.console.stat.keys.sub">Active keys</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label" data-i18n="page.console.stat.referrals">Level-1 invites</div>
+                <div class="stat-value" id="stat-referrals">--</div>
+                <div class="stat-sub" data-i18n="page.console.stat.referrals.hint">Successful invitees</div>
+              </div>
+            </div>
+            <div class="card mt-2">
+              <h3 class="mt-0" data-i18n="page.console.overview.quick">Quick actions</h3>
+              <p class="sub" data-i18n="page.console.overview.quickSub">Most-used steps for connecting and topping up.</p>
+              <div class="card-actions">
+                <button type="button" class="btn btn-primary" data-action="create-key" data-i18n="page.console.keys.create">Create key</button>
+                <button type="button" class="btn" data-console-panel="billing" data-i18n="page.console.nav.billing">Billing</button>
+                <button type="button" class="btn" data-console-panel="playground" data-i18n="page.console.nav.playground">Playground</button>
+                <button type="button" class="btn" id="btn-refresh" data-i18n="page.console.actions.refresh">Refresh data</button>
+                <a class="btn" href="guides/index.html" data-i18n="nav.guides">Integrations</a>
+              </div>
             </div>
           </div>
-          <div class="card">
-            <h3 class="mt-0" data-i18n="page.console.invite.linkTitle">Short invite link</h3>
-            <p class="sub" id="inviteShortLink" style="word-break:break-all;font-size:0.95rem;font-weight:600;">--</p>
-            <p class="sub" data-i18n="page.console.invite.linkHint">Opens signup with your code filled in</p>
-            <div class="card-actions">
-              <button type="button" class="btn btn-primary" id="btn-copy-invite-link" data-i18n="page.console.copyInvite">Copy short link</button>
+
+          <!-- API keys -->
+          <div class="console-panel" id="panel-keys" data-console-panel="keys" role="tabpanel" hidden>
+            <div class="console-panel-head">
+              <h2 class="mt-0" data-i18n="page.console.nav.keys">API keys</h2>
+              <p class="sub" data-i18n="page.console.keys.sub">Full key is shown only once at creation; list shows prefixes.</p>
+            </div>
+            <div class="grid-2">
+              <div class="card">
+                <h3 class="mt-0" data-i18n="page.console.keys.title">API Key</h3>
+                <div class="api-key-display" id="apiKeyDisplay">--</div>
+                <ul class="list-clean mt-2" id="keysList"></ul>
+                <div class="card-actions">
+                  <button type="button" class="btn" id="btn-copy-key" data-i18n="page.console.keys.copy">Copy current key</button>
+                  <button type="button" class="btn btn-primary" id="btn-create-key" data-action="create-key" data-i18n="page.console.keys.create">Create key</button>
+                </div>
+              </div>
+              <div class="card">
+                <h3 class="mt-0" data-i18n="page.console.apisettings.title">Call settings</h3>
+                <p class="sub" data-i18n="page.console.apisettings.sub">Set your API base and key here; chat tests will use this key.</p>
+                <div class="form-group mt-2">
+                  <label data-i18n="page.console.apiurl">API Base</label>
+                  <input type="url" class="input" id="api-base" placeholder="https://api.ai24x.com" />
+                </div>
+                <div class="form-group">
+                  <label data-i18n="page.console.apikey">API Key (full secret)</label>
+                  <input type="password" class="input" id="api-key" placeholder="sk-..." autocomplete="off" />
+                </div>
+                <div class="card-actions">
+                  <button type="button" class="btn btn-primary" id="btn-save-api" data-i18n="page.console.save">Save</button>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="card">
-            <h3 class="mt-0" data-i18n="page.console.invite.detailTitle">Referral details</h3>
-            <p class="stat-value" id="inviteL1Card">--</p>
-            <p class="sub" data-i18n="page.console.invite.detailHint">Level-1 invite count; rules on the details page</p>
-            <div class="card-actions">
-              <a class="btn btn-primary" href="refer.html" data-i18n="page.console.invite.open">Open referral details</a>
+
+          <!-- Billing -->
+          <div class="console-panel" id="panel-billing" data-console-panel="billing" role="tabpanel" hidden>
+            <div class="console-panel-head">
+              <h2 class="mt-0" data-i18n="page.console.nav.billing">Billing</h2>
+              <p class="sub" id="payHint" data-i18n="page.console.plans.loading">Loading…</p>
+            </div>
+            <div class="grid-2" id="token-plans">
+              <div class="card">
+                <h3 class="mt-0" data-i18n="page.console.plans.title">Token plans</h3>
+                <div id="plansList" class="mt-2"></div>
+              </div>
+              <div class="card">
+                <h3 class="mt-0" data-i18n="page.console.orders.title">My orders</h3>
+                <p class="sub" data-i18n="page.console.orders.sub">Pending orders: confirm payment</p>
+                <ul class="list-clean" id="ordersList"></ul>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div class="container grid-2">
-        <div class="card">
-          <h3 class="mt-0" data-i18n="page.console.account.title">Account</h3>
-          <ul class="list-clean">
-            <li class="list-item"><span data-i18n="page.console.account.user">User</span><span id="acct-user">--</span></li>
-            <li class="list-item"><span data-i18n="page.console.account.phone">Phone</span><span id="acct-phone">--</span></li>
-            <li class="list-item"><span data-i18n="page.console.account.plan">Plan tier</span><span id="acct-plan">--</span></li>
-          </ul>
-          <div class="card-actions">
-            <button type="button" class="btn" id="btn-logout" data-i18n="page.console.actions.logout">Log out</button>
-            <a class="btn btn-primary" href="pricing.html" data-i18n="page.console.actions.upgrade">Pricing</a>
-            <a class="btn" href="refer.html" data-i18n="page.console.actions.refer">Invite &amp; earn</a>
+          <!-- Usage -->
+          <div class="console-panel" id="panel-usage" data-console-panel="usage" role="tabpanel" hidden>
+            <div class="console-panel-head">
+              <h2 class="mt-0" data-i18n="page.console.nav.usage">Usage</h2>
+              <p class="sub" data-i18n="page.console.activity.sub">Top-ups / bonuses / usage / referrals</p>
+            </div>
+            <div class="card">
+              <h3 class="mt-0" data-i18n="page.console.activity.title">Ledger</h3>
+              <ul class="list-clean" id="activityList"></ul>
+            </div>
           </div>
-        </div>
 
-        <div class="card">
-          <h3 class="mt-0" data-i18n="page.console.apisettings.title">Call settings</h3>
-          <p class="sub" data-i18n="page.console.apisettings.sub">Set your API base and key here; chat tests will use this key.</p>
-          <div class="form-group mt-2">
-            <label data-i18n="page.console.apiurl">API Base</label>
-            <input type="url" class="input" id="api-base" placeholder="https://api.ai24x.com" />
+          <!-- Playground -->
+          <div class="console-panel" id="panel-playground" data-console-panel="playground" role="tabpanel" hidden>
+            <div class="console-panel-head">
+              <h2 class="mt-0" data-i18n="page.console.nav.playground">Playground</h2>
+              <p class="sub" data-i18n="page.console.chat.sub">Uses the API key saved above. Tiers: auto / flash / pro / ultra / shared. VIP: named China models.</p>
+              <p class="sub"><a href="models/vip-picks.html" data-i18n="page.models.vip.cta">VIP model list</a></p>
+            </div>
+            <div class="card">
+              <h3 class="mt-0" data-i18n="page.console.chat.title">Try chat/run</h3>
+              <div class="form-group">
+                <label data-i18n="page.console.chat.prompt">Prompt</label>
+                <textarea class="input" id="chat-prompt" rows="3" placeholder="Hello" data-i18n-placeholder="page.console.chat.promptPh">Hello</textarea>
+              </div>
+              <div class="form-group">
+                <label data-i18n="page.console.chat.model">Tier / named</label>
+                <select class="input" id="chat-model">
+                  <option value="auto" selected>auto</option>
+                  <option value="flash">flash</option>
+                  <option value="pro">pro</option>
+                  <option value="ultra">ultra</option>
+                  <option value="shared">shared (free pool)</option>
+                </select>
+              </div>
+              <div class="card-actions">
+                <button type="button" class="btn btn-primary" id="btn-chat-run" data-i18n="page.console.chat.send">Send</button>
+                <button type="button" class="btn" data-console-panel="keys" data-i18n="page.console.nav.keys">API keys</button>
+              </div>
+              <pre id="chat-out" class="code-block mt-2" style="white-space:pre-wrap;min-height:80px;">--</pre>
+            </div>
           </div>
-          <div class="form-group">
-            <label data-i18n="page.console.apikey">API Key (full secret)</label>
-            <input type="password" class="input" id="api-key" placeholder="sk-..." autocomplete="off" />
-          </div>
-          <div class="card-actions">
-            <button type="button" class="btn btn-primary" id="btn-save-api" data-i18n="page.console.save">Save</button>
-            <button type="button" class="btn" id="btn-refresh" data-i18n="page.console.actions.refresh">Refresh data</button>
-          </div>
-        </div>
-      </div>
 
-      <div class="container grid-2">
-        <div class="card">
-          <h3 class="mt-0" data-i18n="page.console.keys.title">API Key</h3>
-          <p class="sub" data-i18n="page.console.keys.sub">Full key is shown only once at creation; list shows prefixes.</p>
-          <div class="api-key-display" id="apiKeyDisplay">--</div>
-          <ul class="list-clean mt-2" id="keysList"></ul>
-          <div class="card-actions">
-            <button type="button" class="btn" id="btn-copy-key" data-i18n="page.console.keys.copy">Copy current key</button>
-            <button type="button" class="btn btn-primary" id="btn-create-key" data-i18n="page.console.keys.create">Create key</button>
+          <!-- Invite -->
+          <div class="console-panel" id="panel-invite" data-console-panel="invite" role="tabpanel" hidden>
+            <div class="console-panel-head">
+              <h2 class="mt-0" data-i18n="page.console.nav.invite">Invite</h2>
+              <p class="sub" data-i18n="page.console.invite.sub">Share with friends for signup rewards. Details and stats on the Referrals page.</p>
+            </div>
+            <div class="grid-3">
+              <div class="card">
+                <h3 class="mt-0" data-i18n="page.console.invite.codeTitle">Invite code</h3>
+                <p class="stat-value" id="inviteCode" style="font-size:1.5rem;letter-spacing:0.06em;">--</p>
+                <p class="sub" data-i18n="page.console.invite.codeHint">Friends enter this at signup</p>
+                <div class="card-actions">
+                  <button type="button" class="btn btn-primary" id="btn-copy-invite-code" data-i18n="page.console.copyCode">Copy invite code</button>
+                </div>
+              </div>
+              <div class="card">
+                <h3 class="mt-0" data-i18n="page.console.invite.linkTitle">Short invite link</h3>
+                <p class="sub" id="inviteShortLink" style="word-break:break-all;font-size:0.95rem;font-weight:600;">--</p>
+                <p class="sub" data-i18n="page.console.invite.linkHint">Opens signup with your code filled in</p>
+                <div class="card-actions">
+                  <button type="button" class="btn btn-primary" id="btn-copy-invite-link" data-i18n="page.console.copyInvite">Copy short link</button>
+                </div>
+              </div>
+              <div class="card">
+                <h3 class="mt-0" data-i18n="page.console.invite.detailTitle">Referral details</h3>
+                <p class="stat-value" id="inviteL1Card">--</p>
+                <p class="sub" data-i18n="page.console.invite.detailHint">Level-1 invite count; rules on the details page</p>
+                <div class="card-actions">
+                  <a class="btn btn-primary" href="refer.html" data-i18n="page.console.invite.open">Open referral details</a>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
 
-        <div class="card">
-          <h3 class="mt-0" data-i18n="page.console.activity.title">Ledger</h3>
-          <p class="sub" data-i18n="page.console.activity.sub">Top-ups / bonuses / usage / referrals</p>
-          <ul class="list-clean" id="activityList"></ul>
-        </div>
-      </div>
-
-      <div class="container grid-2" id="token-plans">
-        <div class="card">
-          <h3 class="mt-0" data-i18n="page.console.plans.title">Token plans</h3>
-          <p class="sub" id="payHint" data-i18n="page.console.plans.loading">Loading…</p>
-          <div id="plansList" class="mt-2"></div>
-        </div>
-        <div class="card">
-          <h3 class="mt-0" data-i18n="page.console.orders.title">My orders</h3>
-          <p class="sub" data-i18n="page.console.orders.sub">Pending orders: confirm payment</p>
-          <ul class="list-clean" id="ordersList"></ul>
-        </div>
-      </div>
-
-      <div class="container grid-2 console-main-row">
-        <div class="card" style="grid-column: 1 / -1;">
-          <h3 class="mt-0" data-i18n="page.console.chat.title">Try chat/run</h3>
-          <p class="sub" data-i18n="page.console.chat.sub">Uses the API key saved above. Tiers: auto / flash / pro / ultra / shared. VIP: named China models.</p>
-          <p class="sub"><a href="models/vip-picks.html" data-i18n="page.models.vip.cta">VIP model list</a></p>
-          <div class="form-group">
-            <label data-i18n="page.console.chat.prompt">Prompt</label>
-            <textarea class="input" id="chat-prompt" rows="3" placeholder="Hello" data-i18n-placeholder="page.console.chat.promptPh">Hello</textarea>
+          <!-- Account -->
+          <div class="console-panel" id="panel-account" data-console-panel="account" role="tabpanel" hidden>
+            <div class="console-panel-head">
+              <h2 class="mt-0" data-i18n="page.console.nav.account">Account</h2>
+              <p class="sub" data-i18n="page.console.account.lead">Profile and session.</p>
+            </div>
+            <div class="card" style="max-width:520px">
+              <h3 class="mt-0" data-i18n="page.console.account.title">Account</h3>
+              <ul class="list-clean">
+                <li class="list-item"><span data-i18n="page.console.account.user">User</span><span id="acct-user">--</span></li>
+                <li class="list-item"><span data-i18n="page.console.account.phone">Phone</span><span id="acct-phone">--</span></li>
+                <li class="list-item"><span data-i18n="page.console.account.plan">Plan tier</span><span id="acct-plan">--</span></li>
+              </ul>
+              <div class="card-actions">
+                <button type="button" class="btn" id="btn-logout" data-i18n="page.console.actions.logout">Log out</button>
+                <a class="btn btn-primary" href="pricing.html" data-i18n="page.console.actions.upgrade">Pricing</a>
+                <button type="button" class="btn" data-console-panel="invite" data-i18n="page.console.actions.refer">Invite &amp; earn</button>
+              </div>
+            </div>
           </div>
-          <div class="form-group">
-            <label data-i18n="page.console.chat.model">Tier / named</label>
-            <select class="input" id="chat-model">
-              <option value="auto" selected>auto</option>
-              <option value="flash">flash</option>
-              <option value="pro">pro</option>
-              <option value="ultra">ultra</option>
-              <option value="shared">shared (free pool)</option>
-            </select>
-          </div>
-          <div class="card-actions">
-            <button type="button" class="btn btn-primary" id="btn-chat-run" data-i18n="page.console.chat.send">Send</button>
-          </div>
-          <pre id="chat-out" class="code-block mt-2" style="white-space:pre-wrap;min-height:80px;">--</pre>
         </div>
       </div>
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260802h"></script>
+  <script src="config/locales.js?v=20260802q"></script>
   <script src="js/api.js?v=20260802i"></script>
   <script src="js/invite.js?v=20260731a"></script>
-<script src="js/utm.js?v=20260802a"></script>
-  <script src="js/i18n.js?v=20260802g"></script>
-  <script src="js/shell.js?v=20260802f"></script>
-  <script src="js/app.js?v=20260802f"></script>
-  <script src="js/console.js?v=20260802i"></script>
+  <script src="js/utm.js?v=20260802a"></script>
+  <script src="js/i18n.js?v=20260802p"></script>
+  <script src="js/shell.js?v=20260802p"></script>
+  <script src="js/app.js?v=20260802p"></script>
+  <script src="js/console.js?v=20260802r"></script>
   <script src="js/support-widget.js?v=20260731i"></script>
 </body>
 </html>

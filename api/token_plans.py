@@ -1,9 +1,11 @@
 """
 Token 产品套餐目录（与 a1 行情官 VIP 配额套餐完全独立）。
 
-定价口径（2026-07-30）：
+定价口径（2026-08-02 终稿）：
+- 钱包 token ≈ flash 当量；对外 flash 锚约 $0.45/M（Builder 略高约 $0.50/M）
 - 主数据按国际价（USD 锚定）；国内收银台 CNY（微信/支付宝），国际 PayPal USD
-- 入门包为优惠体验档（默认 $1 / 1 万 token，CNY 按汇率折算），promo_max_purchases=1 防刷
+- 入门包为优惠体验档（$2 / 30 万 token），promo_max_purchases=1 防刷
+- VIP 日赠仅可用于 flash/auto/共享档（见 token_mvp_service）
 - 改价优先级：管理台覆盖文件 > env TOKEN_PRICE_*_FEN > 代码默认
 - 前台 /v1/billing/plans 与后台同源 list_public_plans / get_plan
 """
@@ -32,30 +34,30 @@ _PLAN_DEFAULTS: dict[str, dict[str, Any]] = {
     "token_pack_10k": {
         "title_zh": "入门包",
         "title_en": "Starter",
-        # 国际习惯：小额整美元锚定；CNY 按汇率折算（默认 ×7.2 → ¥7.20）
-        "price_usd": 1.0,
+        # 国际小额整美元；CNY 按汇率折算（默认 ×7.2 → ¥14.40）
+        "price_usd": 2.0,
         "default_fen": None,
-        "credit_tokens": 10_000,
+        "credit_tokens": 300_000,
         "set_vip": False,
         "validity_days": 365,
         "enabled": True,
         "promo": True,
         "promo_max_purchases": 1,
-        "note_zh": "优惠体验：$1（约 ¥7.2）到账 1 万 token，每账号限购 1 次；额度自到账起 12 个月有效。",
-        "note_en": "Promo: $1 for 10k credits (1 purchase per account). Valid 12 months from credit.",
+        "note_zh": "优惠体验：$2 到账 30 万 token（约合 flash ≈$6.7/百万），每账号限购 1 次；额度自到账起 12 个月有效。",
+        "note_en": "Promo: $2 for 300k credits (~$6.7/M at flash). 1 purchase per account. Valid 12 months from credit.",
     },
     "token_pack_100k": {
         "title_zh": "开发包",
         "title_en": "Builder",
         "price_usd": 20.0,
         "default_fen": None,  # 由 USD×汇率推算
-        "credit_tokens": 500_000,
+        "credit_tokens": 40_000_000,
         "set_vip": False,
         "validity_days": 365,
         "enabled": True,
         "promo": False,
-        "note_zh": "适合日常调用，单价更优；额度自到账起 12 个月有效。",
-        "note_en": "Better unit rate for regular API use. Credits valid 12 months from top-up.",
+        "note_zh": "主充值包：约 $0.50/百万（flash 当量），适合日常 API；额度自到账起 12 个月有效。",
+        "note_en": "Main pack: about $0.50/M at flash equivalent. Credits valid 12 months from top-up.",
     },
     "token_vip_month": {
         "title_zh": "Pro 月卡",
@@ -69,28 +71,32 @@ _PLAN_DEFAULTS: dict[str, dict[str, Any]] = {
         "enabled": True,
         "promo": False,
         "note_zh": (
-            f"开通 Token VIP 30 天；有效期内每日额外赠送约 {_VIP_DAILY_WAN} 万 token（日赠额度另计有效期）。"
+            f"开通 Token VIP 30 天；每日额外赠送约 {_VIP_DAILY_WAN} 万 token"
+            f"（仅可用于 flash/auto/共享档；pro/名模请用充值包额度）。日赠额度另计有效期。"
         ),
         "note_en": (
-            f"Token VIP for 30 days; about {_VIP_DAILY_WAN * 10_000:,} bonus tokens/day (bonus lots expire separately)."
+            f"Token VIP for 30 days; ~{_VIP_DAILY_WAN * 10_000:,} bonus tokens/day "
+            f"(flash/auto/shared only — use prepaid credits for pro/VIP named models)."
         ),
     },
     "token_vip_month_50w": {
         "title_zh": "Scale 组合包",
         "title_en": "Scale",
-        "price_usd": 100.0,
+        "price_usd": 99.0,
         "default_fen": None,
-        "credit_tokens": 2_500_000,
+        "credit_tokens": 180_000_000,
         "set_vip": True,
         "vip_days": 30,
         "validity_days": 730,
         "enabled": True,
         "promo": False,
         "note_zh": (
-            f"立即到账 250 万 token（24 个月有效），并开通 Pro 月卡 30 天；日赠约 {_VIP_DAILY_WAN} 万 token。"
+            f"立即到账 1.8 亿 token（约 $0.55/百万 flash 当量，24 个月有效），并开通 Pro 月卡 30 天；"
+            f"日赠约 {_VIP_DAILY_WAN} 万 token（仅 flash/auto/共享）。"
         ),
         "note_en": (
-            f"2.5M tokens credited (valid 24 months) + Pro Pass 30 days; ~{_VIP_DAILY_WAN * 10_000:,} bonus/day."
+            f"180M tokens credited (~$0.55/M flash, valid 24 months) + Pro Pass 30 days; "
+            f"~{_VIP_DAILY_WAN * 10_000:,} bonus/day (flash/auto/shared only)."
         ),
     },
 }

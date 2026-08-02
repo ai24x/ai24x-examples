@@ -10,14 +10,16 @@ class UserType(str, Enum):
 
 
 class ChatRequest(BaseModel):
-    prompt: str = Field(..., min_length=1, max_length=10000, description="用户输入的提示词")
+    prompt: str = Field(..., min_length=1, max_length=200000, description="用户输入的提示词")
     model: Optional[str] = Field(
         default="auto",
         description="模型名或 auto（按 FREE/VIP 走 L0–L3 fallback）",
     )
     temperature: Optional[float] = Field(default=0.7, ge=0.0, le=2.0, description="温度参数")
-    max_tokens: Optional[int] = Field(default=1000, ge=1, le=4000, description="最大token数")
+    max_tokens: Optional[int] = Field(default=1000, ge=1, le=16384, description="最大token数")
     stream: Optional[bool] = Field(default=False, description="是否流式输出")
+    # OpenAI messages 透传（真流式 / 多轮）；无则上游仍用 prompt 拼单轮
+    messages: Optional[List[Dict[str, Any]]] = Field(default=None, description="OpenAI messages")
     
     class Config:
         json_schema_extra = {
@@ -419,10 +421,22 @@ class BillingBalanceOut(BaseModel):
     balance_tokens: int
     bonus_period: Optional[str] = None
     free_monthly_bonus: int
+    signup_bonus_tokens: Optional[int] = None
     vip_daily_bonus: int
     vip_expires_at: Optional[str] = None
     credits_expire_at: Optional[str] = None
     is_vip_active: bool = False
+    prepaid_tokens: Optional[int] = None
+    vip_daily_remaining: Optional[int] = None
+    vip_daily_models: Optional[str] = None
+    shared_enabled: Optional[bool] = None
+    shared_auto_degrade: Optional[bool] = None
+    shared_daily_req_cap: Optional[int] = None
+    shared_daily_token_cap: Optional[int] = None
+    shared_used_req: Optional[int] = None
+    shared_used_tokens: Optional[int] = None
+    shared_remain_req: Optional[int] = None
+    shared_remain_tokens: Optional[int] = None
 
 
 class BillingTopupBody(BaseModel):
@@ -477,6 +491,7 @@ class TokenAdminFreeSharedUpdateBody(BaseModel):
     prefer: Optional[str] = Field(default=None, max_length=64)
     pool_enabled: Optional[list[str]] = Field(default=None, max_length=16)
     upgrade_first: Optional[bool] = None
+    auto_degrade: Optional[bool] = None
     brand_model: Optional[str] = Field(default=None, max_length=32)
     dispatch_mode: Optional[str] = Field(default=None, max_length=32)
 

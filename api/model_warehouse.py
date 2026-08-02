@@ -7,11 +7,19 @@
 from __future__ import annotations
 
 import json
+import os
 from copy import deepcopy
 from pathlib import Path
 from typing import Any, Optional
 
 _OVERRIDE_PATH = Path(__file__).resolve().parent / "data" / "model_warehouse_override.json"
+
+
+def _env_flag(name: str, default: bool = True) -> bool:
+    raw = (os.getenv(name) or "").strip().lower()
+    if not raw:
+        return default
+    return raw not in ("0", "false", "no", "off")
 
 # 粗算上游价（USD / 1M tokens；以公开挂牌量级，非实时账单）
 # in=input out=output；展示用 blended≈ (in+out)/2
@@ -132,6 +140,8 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 1,
         "openrouter_id": "deepseek/deepseek-v4-flash",
         "direct_id": "deepseek-v4-flash",
+        # 官方直连优先；硅基仅作官方/OR 失败后的同族兜底
+        "siliconflow_id": "deepseek-ai/DeepSeek-V4-Flash",
         "cost_in": 0.14,
         "cost_out": 0.28,
         "billing_mult": 1,
@@ -149,6 +159,7 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 2,
         "openrouter_id": "deepseek/deepseek-v4-pro",
         "direct_id": "deepseek-v4-pro",
+        "siliconflow_id": "deepseek-ai/DeepSeek-V4-Pro",
         "cost_in": 0.435,
         "cost_out": 0.87,
         "billing_mult": 3,
@@ -166,10 +177,11 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 3,
         "openrouter_id": "moonshotai/kimi-k3",
         "direct_id": None,
+        # 中国模：硅基优先（相对 OR 降本）；mult 仍按 OR 地板防亏
+        "siliconflow_id": "moonshotai/Kimi-K3",
         "cost_in": 3.0,
         "cost_out": 15.0,
-        # K3 输出向贵；×12 对齐国际旗舰带宽
-        "billing_mult": 12,
+        "billing_mult": 24,
         "quality": "旗舰",
         "quality_en": "Flagship",
         "access": "ready",
@@ -185,6 +197,7 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 4,
         "openrouter_id": "xiaomi/mimo-v2.5-pro",
         "direct_id": None,
+        "siliconflow_id": None,  # 硅基目录暂无稳定同款，走 OR
         "cost_in": 0.435,
         "cost_out": 0.87,
         "billing_mult": 3,
@@ -202,9 +215,10 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 5,
         "openrouter_id": "minimax/minimax-m3",
         "direct_id": None,
+        "siliconflow_id": "MiniMaxAI/MiniMax-M2.5",
         "cost_in": 0.3,
         "cost_out": 1.2,
-        "billing_mult": 4,
+        "billing_mult": 3,
         "quality": "智能体 / 编程",
         "quality_en": "Agents / coding",
         "access": "ready",
@@ -220,9 +234,10 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 6,
         "openrouter_id": "qwen/qwen3.7-max",
         "direct_id": None,
+        "siliconflow_id": "Qwen/Qwen3-235B-A22B-Instruct-2507",
         "cost_in": 1.475,
         "cost_out": 4.425,
-        "billing_mult": 6,
+        "billing_mult": 12,
         "quality": "通用旗舰",
         "quality_en": "General flagship",
         "access": "ready",
@@ -238,9 +253,11 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 7,
         "openrouter_id": "z-ai/glm-5.2",
         "direct_id": None,
+        "siliconflow_id": "zai-org/GLM-5.1",
         "cost_in": 1.12,
         "cost_out": 3.52,
-        "billing_mult": 6,
+        # 贴地抬一档，避免估价抖动倒挂
+        "billing_mult": 8,
         "quality": "通用旗舰",
         "quality_en": "General flagship",
         "access": "ready",
@@ -258,7 +275,7 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         "cost_in": 1.25,
         "cost_out": 10.0,
-        "billing_mult": 14,
+        "billing_mult": 16,
         "quality": "旗舰",
         "quality_en": "Flagship",
         "access": "ready",
@@ -292,7 +309,7 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         "cost_in": 2.5,
         "cost_out": 15.0,
-        "billing_mult": 18,
+        "billing_mult": 24,
         "quality": "最强",
         "quality_en": "Top tier",
         "access": "ready",
@@ -309,7 +326,7 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         "cost_in": 2.5,
         "cost_out": 10.0,
-        "billing_mult": 14,
+        "billing_mult": 18,
         "quality": "经典",
         "quality_en": "Classic",
         "access": "ready",
@@ -343,7 +360,7 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         "cost_in": 2.0,
         "cost_out": 10.0,
-        "billing_mult": 14,
+        "billing_mult": 16,
         "quality": "写作 / 推理",
         "quality_en": "Writing / reasoning",
         "access": "ready",
@@ -360,7 +377,7 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         "cost_in": 1.0,
         "cost_out": 5.0,
-        "billing_mult": 6,
+        "billing_mult": 8,
         "quality": "轻量快速",
         "quality_en": "Fast and light",
         "access": "ready",
@@ -377,7 +394,7 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         "cost_in": 5.0,
         "cost_out": 25.0,
-        "billing_mult": 22,
+        "billing_mult": 40,
         "quality": "顶配",
         "quality_en": "Premium",
         "access": "ready",
@@ -394,7 +411,7 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         "cost_in": 2.0,
         "cost_out": 12.0,
-        "billing_mult": 14,
+        "billing_mult": 18,
         "quality": "长上下文",
         "quality_en": "Long context",
         "access": "ready",
@@ -411,7 +428,7 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         "cost_in": 1.5,
         "cost_out": 7.5,
-        "billing_mult": 8,
+        "billing_mult": 12,
         "quality": "轻量长上下文",
         "quality_en": "Light long-context",
         "access": "ready",
@@ -541,14 +558,22 @@ def resolve_vip_pick(requested_model: Optional[str]) -> Optional[dict[str, Any]]
 def list_vip_picks_for_user(*, is_vip: bool) -> list[dict[str, Any]]:
     """控制台可选点名列表（中国模优先）。非 VIP 也返回目录但 locked。"""
     enabled = vip_pick_enabled()
-    # 预估消耗按「开发包」折算：约 $20 / 50 万 token → $40 / 百万钱包 token
+    # 预估按 flash 售价锚：Builder $20/40M → ≈$0.50/M；对外展示用 $0.45 锚
     try:
         fx = float((__import__("os").environ.get("TOKEN_USD_CNY") or "7.2").strip() or "7.2")
         if fx <= 0:
             fx = 7.2
     except ValueError:
         fx = 7.2
-    ref_usd_per_m = 40.0
+    try:
+        ref_usd_per_m = float(
+            (__import__("os").environ.get("TOKEN_FLASH_REF_USD_PER_M") or "0.45").strip()
+            or "0.45"
+        )
+        if ref_usd_per_m <= 0:
+            ref_usd_per_m = 0.45
+    except ValueError:
+        ref_usd_per_m = 0.45
     out = []
     for c in sorted(
         [x for x in CATALOG if x.get("role") == "vip_pick"],
@@ -576,7 +601,7 @@ def list_vip_picks_for_user(*, is_vip: bool) -> list[dict[str, Any]]:
                 "enabled_platform": enabled,
                 "est_usd_per_m": est_usd,
                 "est_cny_per_m": est_cny,
-                "est_basis": "builder_pack",
+                "est_basis": "flash_anchor",
             }
         )
     return out
@@ -734,14 +759,21 @@ def warehouse_snapshot() -> dict[str, Any]:
             "enabled": vip_pick_enabled(),
             "models": vip_pick_models(),
             "note": (
-                "高阶 VIP 自选通道：用户控制台可选 OR 国际优质模型；"
-                "扣费按 billing_mult × 平台 token 单价（规划中，开关打开后下期接控制台）。"
+                "VIP 点名已上线：中国模有 siliconflow_id 时默认硅基优先（TOKEN_LLM_VIP_SILICON_FIRST）；"
+                "国际旗舰走 OR/厂直连。扣费 = 上游用量 × billing_mult（相对 flash 锚）。"
             ),
+        },
+        "routing_flags": {
+            "vip_silicon_first": _env_flag("TOKEN_LLM_VIP_SILICON_FIRST", True),
+            "ds_prefer_paid": _env_flag("TOKEN_LLM_DS_PREFER_PAID", True),
+            "layer_cost_mult": {"L2": 3, "L3": 6},
+            "vip_daily_models": "flash,auto,shared",
+            "note": "路由开关目前改 .env + 重启 core；本页只读展示。",
         },
         "ops_note": (
             "付费仓：改层 model 后保存即生效。"
-            "容灾已内置 FREE：L1→L0；VIP：L1→L2→L3（挂了自动下一档）。"
-            "与免费共享池调度独立。VIP 自选为规划能力。"
+            "容灾 FREE：L1→L0；VIP 点名：硅基/OR/厂直连（见目录 siliconflow_id）。"
+            "pro/ultra 层倍率 L2×3 / L3×6。与免费共享池独立。"
         ),
     }
 
