@@ -45,7 +45,7 @@
     "page.index.tag1": "中国名模 · 性价比优先",
     "page.index.tag2": "统一接口 · api.ai24x.com",
     "page.index.tag3": "PayPal（USD）· 微信/支付宝（CNY）",
-    "page.index.tag4": "先试 flash/pro · 会员可点名",
+    "page.index.tag4": "先试 flash/pro · VIP 可点名 GPT/Claude",
     "page.index.trust":
       "<strong>OpenAI 兼容</strong> · <code>POST /v1/chat/completions</code> · <strong>PayPal 美元</strong> · 从 flash / pro 起步",
     "page.index.callout":
@@ -55,13 +55,13 @@
     "page.index.hero.cta.a": "AI 行情官｜灯塔版",
     "page.index.start.title": "三步开始",
     "page.index.start.sub":
-      "注册账号 → 在控制台创建 API Key → 用 flash 或 pro 先试几句。觉得合适再充值；会员还可按名称选用心仪模型。",
+      "注册账号 → 在控制台创建 API Key → 用 flash 或 pro 先试几句。觉得合适再充值；VIP 还可点名心仪模型（含 GPT / Claude / Gemini）。",
     "page.index.start.btnConsole": "进入控制台",
     "page.index.sec1.title": "少折腾，把中国好模用起来",
     "page.index.sec1.sub": "不用到处开户、对多份账单——一个 Key，费用清楚，档位好选",
     "page.index.c1t": "常用中国名模都在这",
     "page.index.c1p":
-      "Kimi、小米 MiMo、MiniMax、智谱 GLM、DeepSeek、Qwen 等，先用通用档位上手，会员再按名称选用。",
+      "Kimi、小米 MiMo、MiniMax、智谱 GLM、DeepSeek、Qwen 等，先用通用档位上手；VIP 可点名中国名模，也可点名 GPT / Claude / Gemini。",
     "page.index.c2t": "先试清楚再加量",
     "page.index.c2p":
       "flash / pro 帮你先摸清效果和花费，再决定要不要加额度——账单简单，心里有数。",
@@ -540,7 +540,7 @@
     "page.index.tag1": "China models · great value",
     "page.index.tag2": "Single endpoint · api.ai24x.com",
     "page.index.tag3": "PayPal (USD) · WeChat/Alipay (CNY)",
-    "page.index.tag4": "Try flash/pro · name a model on VIP",
+    "page.index.tag4": "Try flash/pro · VIP can name GPT / Claude",
     "page.index.trust":
       "<strong>OpenAI-compatible</strong> · <code>POST /v1/chat/completions</code> · <strong>PayPal USD</strong> · Start with flash / pro",
     "page.index.callout":
@@ -550,14 +550,14 @@
     "page.index.hero.cta.a": "Market Watch (CN app)",
     "page.index.start.title": "Get started in three steps",
     "page.index.start.sub":
-      "Sign up → create an API key in Console → try flash or pro. Top up when you’re ready; VIP members can also pick models by name.",
+      "Sign up → create an API key in Console → try flash or pro. Top up when you’re ready; VIP can also name models (incl. GPT / Claude / Gemini).",
     "page.index.start.btnConsole": "Open console",
     "page.index.sec1.title": "China models, without the hassle",
     "page.index.sec1.sub":
       "Skip hopping between vendor signups and invoices—one key, clear credits, simple tiers",
     "page.index.c1t": "Popular China models in one place",
     "page.index.c1p":
-      "Kimi, Xiaomi MiMo, MiniMax, Zhipu GLM, DeepSeek, Qwen—and more. Start on a simple tier; VIP can pick by name.",
+      "Kimi, Xiaomi MiMo, MiniMax, Zhipu GLM, DeepSeek, Qwen—and more. Start on a simple tier; VIP can name China models or GPT / Claude / Gemini.",
     "page.index.c2t": "Try first, scale when it fits",
     "page.index.c2p":
       "Use flash / pro to check quality and spend, then add credits when you need more—easy to understand billing.",

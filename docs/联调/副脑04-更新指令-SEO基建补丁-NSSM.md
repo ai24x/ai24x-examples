@@ -10,6 +10,7 @@
 | 项 | 说明 |
 |----|------|
 | 首页 | canonical、`og:title`/`og:image`/`og:description`、OpenAI-compatible + `/v1/chat/completions` |
+| 公开页 OG | pricing / product / models/* / guides/* / docs / help / refer / login / register / privacy / terms 等：统一 `og:image`=`/img/og-share.png` + og:title/url/twitter |
 | 资源 | `web/img/og-share.png`（1200×630） |
 | sitemap | 公开页补全 + `lastmod`；URL 一律 `https://www.ai24x.com/...` |
 | robots | 与 sitemap 交叉：console / token-admin 等 Disallow，不进 sitemap |
@@ -29,8 +30,10 @@ git log -1 --oneline
 curl.exe -sS -o NUL -w "sitemap=%{http_code}`n" https://www.ai24x.com/sitemap.xml
 curl.exe -sS -o NUL -w "og=%{http_code}`n" https://www.ai24x.com/img/og-share.png
 curl.exe -sS https://www.ai24x.com/index.html | Select-String -Pattern "canonical|og:image|chat/completions"
-curl.exe -sS https://www.ai24x.com/pricing.html | Select-String -Pattern "127\.0\.0\.1|localhost"
-# 期望：pricing 无匹配
+curl.exe -sS https://www.ai24x.com/pricing.html | Select-String -Pattern "og:image|127\.0\.0\.1|localhost"
+curl.exe -sS https://www.ai24x.com/models/index.html | Select-String -Pattern "og:image"
+curl.exe -sS https://www.ai24x.com/guides/index.html | Select-String -Pattern "og:image"
+# 期望：pricing/models/guides 均含 og:image；pricing 无 localhost
 
 # Search Console：提交 https://www.ai24x.com/sitemap.xml（04 运营）
 ```
@@ -39,5 +42,6 @@ curl.exe -sS https://www.ai24x.com/pricing.html | Select-String -Pattern "127\.0
 
 1. sitemap / og-share.png → **200**  
 2. 首页含 canonical + og:image + completions  
-3. pricing 无 127.0.0.1  
-4. GSC 已提交 sitemap（若账号就绪）
+3. **pricing / models / guides 均含 `og:image` → og-share.png**  
+4. pricing 无 127.0.0.1  
+5. GSC 已提交 sitemap（若账号就绪）
