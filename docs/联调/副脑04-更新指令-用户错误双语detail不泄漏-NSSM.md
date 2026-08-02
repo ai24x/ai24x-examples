@@ -1,6 +1,6 @@
 # 副脑04 · 更新指令（用户错误双语 detail 不泄漏 · 需重启 core）
 
-> 发令：2026-08-02  
+> 发令：2026-08-02 · 目标提交 `eee0cef`  
 > 范围：`api/` 异常响应 + 静态 `web/js/api.js`（**需** `Restart-Service AI24X-core`）  
 > **禁止**整文件覆盖 `api/.env`
 
