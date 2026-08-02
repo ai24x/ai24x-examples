@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <script src="../js/i18n-boot.js?v=20260802m"></script>
+  <script src="../js/i18n-boot.js?v=20260803b"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LobeChat + AI24X · Custom OpenAI provider</title>
   <meta name="description" content="Add AI24X in LobeChat: API proxy https://api.ai24x.com/v1, model flash. Chat Completions and Responses supported." />
@@ -38,7 +38,7 @@
           <li data-i18n-html="page.guides.lobechat.l3">Provider id / name: <code>AI24X</code>. Short blurb: China LLMs · one key · PayPal.</li>
           <li data-i18n-html="page.guides.lobechat.l4"><strong>API Key</strong>: your AI24X key from Console.</li>
           <li data-i18n-html="page.guides.lobechat.l5"><strong>API proxy / base URL</strong>: <code>https://api.ai24x.com/v1</code> — stop at <code>/v1</code> (do <em>not</em> append <code>/chat/completions</code>).</li>
-          <li data-i18n-html="page.guides.lobechat.l6"><strong>Use Responses API</strong>: optional — POST /v1/responses is supported for text chat; turn off if you hit edge cases.</li>
+          <li data-i18n-html="page.guides.lobechat.l6"><strong>Use Responses API</strong>: OK for text chat. For tools / agent tool-calling, turn it off and use chat/completions.</li>
           <li data-i18n-html="page.guides.lobechat.l7">Fetch model list → enable <code>flash</code> (and <code>pro</code> / <code>ultra</code> if you need them) → Save.</li>
           <li data-i18n-html="page.guides.lobechat.l8">New chat → pick AI24X / flash → send <code>hello</code>.</li>
         </ol>
@@ -49,7 +49,7 @@
         <h2 class="mt-2" data-i18n="page.guides.lobechat.s3">3) Pitfalls (field-tested)</h2>
         <ul class="lead" style="padding-left:1.2em">
           <li data-i18n-html="page.guides.lobechat.tip1">Proxy set to <code>…/v1/chat/completions</code> → 405 (LobeChat already appends <code>/chat/completions</code>).</li>
-          <li data-i18n-html="page.guides.lobechat.tip2">Responses is live for text chat. Tools / multimodal are not supported — turn Responses off or use chat/completions.</li>
+          <li data-i18n-html="page.guides.lobechat.tip2">Responses is live for text chat. For tools / agent tool-calling, turn Responses off and use chat/completions (Completions supports tools).</li>
           <li data-i18n="page.guides.lobechat.tip3">Connectivity check may fail while chat still works (check may use GET; chat uses POST).</li>
           <li data-i18n="page.guides.lobechat.tip4">After rotating a key in Console, update the provider’s API Key field.</li>
         </ul>
@@ -67,7 +67,7 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="../config/locales.js?v=20260802k"></script>
+  <script src="../config/locales.js?v=20260803b"></script>
   <script src="../js/api.js?v=20260802i"></script>
   <script src="../js/i18n.js?v=20260802m"></script>
   <script src="../js/shell.js?v=20260802m"></script>

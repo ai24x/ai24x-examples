@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <script src="../js/i18n-boot.js?v=20260802o"></script>
+  <script src="../js/i18n-boot.js?v=20260803b"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LiteLLM + AI24X · OpenAI-compatible provider</title>
   <meta name="description" content="Route LiteLLM through AI24X: openai/flash with api_base https://api.ai24x.com/v1. One key for China LLMs." />
@@ -67,7 +67,7 @@ print(resp.choices[0].message.content)</div>
         <ul class="lead" style="padding-left:1.2em">
           <li data-i18n-html="page.guides.litellm.tip1">Prefix models with <code>openai/</code> so LiteLLM uses the OpenAI-compatible driver.</li>
           <li data-i18n-html="page.guides.litellm.tip2"><code>api_base</code> ends at <code>/v1</code>—do not append <code>/chat/completions</code>.</li>
-          <li data-i18n="page.guides.litellm.tip3">401 = bad key; 402 = top up credits in Console.</li>
+          <li data-i18n="page.guides.litellm.tip3">401 = bad or truncated key; 402 = top up in Console. Paste the full key.</li>
         </ul>
 
         <p class="mt-2">
@@ -80,7 +80,7 @@ print(resp.choices[0].message.content)</div>
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="../config/locales.js?v=20260802o"></script>
+  <script src="../config/locales.js?v=20260803b"></script>
   <script src="../js/api.js?v=20260802i"></script>
   <script src="../js/i18n.js?v=20260802o"></script>
   <script src="../js/shell.js?v=20260802o"></script>

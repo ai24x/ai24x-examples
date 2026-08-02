@@ -2,21 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <script src="../js/i18n-boot.js?v=20260802m"></script>
+  <script src="../js/i18n-boot.js?v=20260803b"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OpenClaw + AI24X · OpenAI-compatible setup</title>
-  <meta name="description" content="Connect OpenClaw to AI24X with openai-completions: baseUrl https://api.ai24x.com/v1, model flash/pro, one API key." />
+  <title>OpenClaw + AI24X · tools, streaming, field notes</title>
+  <meta name="description" content="Connect OpenClaw to AI24X: baseUrl https://api.ai24x.com/v1, flash/pro with tools and streaming. Field notes: avoid 405/401, clean sessions, VIP named models." />
   <link rel="canonical" href="https://www.ai24x.com/guides/openclaw.html" />
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="OpenClaw + AI24X · OpenAI-compatible setup" />
-  <meta property="og:description" content="Connect OpenClaw to AI24X with openai-completions: baseUrl https://api.ai24x.com/v1, model flash/pro, one API key." />
+  <meta property="og:title" content="OpenClaw + AI24X · tools, streaming, field notes" />
+  <meta property="og:description" content="baseUrl …/v1, openai-completions, flash/pro with tools. Lessons from real OpenClaw setups." />
   <meta property="og:url" content="https://www.ai24x.com/guides/openclaw.html" />
   <meta property="og:image" content="https://www.ai24x.com/img/og-share.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:image" content="https://www.ai24x.com/img/og-share.png" />
-  <link rel="stylesheet" href="../css/base.css?v=20260802f" />
+  <link rel="stylesheet" href="../css/base.css?v=20260802r" />
   <link id="theme-css" rel="stylesheet" href="../css/themes/theme-blue.css?v=20260725a" data-base="../css/themes/" />
 </head>
 <body data-page="guides" class="theme-blue">
@@ -26,16 +26,16 @@
       <div class="container">
         <p class="sub"><a href="index.html" data-i18n="page.guides.title">Integrations</a></p>
         <h1 data-i18n="page.guides.openclaw.h1">OpenClaw → AI24X</h1>
-        <p class="lead" data-i18n="page.guides.openclaw.lead">OpenClaw is a local-first agent framework with OpenAI-compatible providers. Point it at AI24X for flash/pro (and VIP named models) with one key and PayPal USD billing.</p>
+        <p class="lead" data-i18n="page.guides.openclaw.lead">OpenClaw is a local-first agent framework. Point it at AI24X for flash/pro (and VIP named models): chat, streaming, and tool calling so local commands can run—one key, PayPal USD billing.</p>
       </div>
     </section>
     <section class="section">
       <div class="container" style="max-width:820px">
         <h2 data-i18n="page.guides.openclaw.s1">1) Prerequisites</h2>
-        <p class="lead" data-i18n="page.guides.openclaw.s1p">Sign up → Console → create an API key → keep a small credit balance. OpenClaw 2026.7.1+ recommended.</p>
+        <p class="lead" data-i18n="page.guides.openclaw.s1p">Sign up → Console → create an API key → keep a small credit balance. OpenClaw 2026.7.1+ recommended. Paste the key in full—never truncate with “…”. </p>
 
         <h2 class="mt-2" data-i18n="page.guides.openclaw.s2">2) Provider config (openclaw.json)</h2>
-        <p class="lead" data-i18n-html="page.guides.openclaw.s2p">Add an <code>ai24x</code> provider under <code>models.providers</code>. <strong>Prefer <code>baseUrl=https://api.ai24x.com/v1</code></strong> (most builds append <code>/chat/completions</code>; if you see <code>/v1/v1</code>, use the root host):</p>
+        <p class="lead" data-i18n-html="page.guides.openclaw.s2p">Add an <code>ai24x</code> provider under <code>models.providers</code>. <strong>Must use <code>baseUrl=https://api.ai24x.com/v1</code></strong> (most builds append <code>/chat/completions</code>). Missing <code>/v1</code> → <strong>405</strong> and long retries that feel “stuck”.</p>
         <div class="code-block">{
   "models": {
     "providers": {
@@ -67,29 +67,43 @@
     }
   }
 }</div>
-        <p class="sub" data-i18n="page.guides.openclaw.s2n">Optional: add <code>ultra</code> / <code>auto</code> the same way. VIP named ids (e.g. <code>vip-kimi</code>) need an active membership—see the VIP list. Platform Completions allow up to 16384 <code>max_tokens</code>; OpenClaw <code>maxTokens: 8192</code> is a safe client default (raise if you need longer replies).</p>
+        <p class="sub" data-i18n="page.guides.openclaw.s2n">Optional: add <code>ultra</code> / <code>auto</code> the same way. VIP named ids (e.g. <code>vip-kimi</code>) need an active membership—add them under <code>models</code> and see the VIP list. Platform Completions allow up to 16384 <code>max_tokens</code>; OpenClaw <code>maxTokens: 8192</code> is a safe client default (raise for longer replies).</p>
 
         <h2 class="mt-2" data-i18n="page.guides.openclaw.s3">3) Smoke test</h2>
-        <p class="sub" data-i18n="page.guides.openclaw.s3p">In OpenClaw chat: <code>/model ai24x/flash</code>. Or from a terminal:</p>
+        <p class="sub" data-i18n="page.guides.openclaw.s3p">In a <strong>clean</strong> OpenClaw session: <code>/model ai24x/flash</code>. Or from a terminal:</p>
         <div class="code-block">curl -sS -X POST "https://api.ai24x.com/v1/chat/completions" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_AI24X_API_KEY" \
   -d "{\"model\":\"flash\",\"messages\":[{\"role\":\"user\",\"content\":\"hello\"}]}"</div>
-        <p class="sub mt-2" data-i18n="page.guides.openclaw.s3n">Expect HTTP 200 and a <code>choices[0].message.content</code> reply. Tool-using agents should see <code>tool_calls</code> when OpenClaw sends <code>tools</code>.</p>
+        <p class="sub mt-2" data-i18n="page.guides.openclaw.s3n">Expect HTTP 200 and <code>choices[0].message.content</code>. For agents, also expect <code>tool_calls</code> when the client sends <code>tools</code>.</p>
 
-        <h2 class="mt-2" data-i18n="page.guides.openclaw.s3b">3b) Tools / commands</h2>
-        <p class="sub" data-i18n="page.guides.openclaw.s3bp"><code>/v1/chat/completions</code> supports OpenAI <code>tools</code> / <code>tool_calls</code> / <code>role=tool</code> (streaming included). Point OpenClaw at AI24X flash or pro so local exec / read / web_fetch can run—same loop as a direct OpenAI-compatible provider.</p>
+        <h2 class="mt-2" data-i18n="page.guides.openclaw.s3b">4) Tools / commands (required for agents)</h2>
+        <p class="sub" data-i18n="page.guides.openclaw.s3bp"><code>/v1/chat/completions</code> supports OpenAI <code>tools</code> / <code>tool_calls</code> / <code>role=tool</code> (including streaming). With model <code>flash</code> or <code>pro</code>, OpenClaw can run local <code>exec</code> / read / web_fetch—same loop as other OpenAI-compatible providers. If the model only chats and never runs tools, check baseUrl, key, and that you are on Completions (not a Responses-only path).</p>
+        <p class="sub mt-2" data-i18n="page.guides.openclaw.s3bq">Quick check in a clean session: ask OpenClaw to run a shell command that prints the current year. Pass = a real tool call in the trace (e.g. exec), not only text saying “I ran it”.</p>
 
-        <h2 class="mt-2" data-i18n="page.guides.openclaw.s4">4) Pitfalls</h2>
+        <h2 class="mt-2" data-i18n="page.guides.openclaw.s3c">5) Streaming &amp; long sessions</h2>
+        <p class="sub" data-i18n="page.guides.openclaw.s3cp">AI24X streams true SSE for Completions. Prefer a clean session when validating tools or long tasks—huge prior context (tens of thousands of tokens + large tool schemas) makes any model feel slow. Keep credit balance for paid routing when using tools.</p>
+
+        <h2 class="mt-2" data-i18n="page.guides.openclaw.s3d">6) VIP named models</h2>
+        <p class="sub" data-i18n-html="page.guides.openclaw.s3dp">With an active membership, add ids like <code>vip-kimi</code> under the same provider and <code>/model ai24x/vip-kimi</code>. Completions + tools apply the same way; reliability depends on that named model. For day-to-day agents, prefer <code>flash</code> / <code>pro</code>. See <a href="../models/vip-picks.html">VIP list</a>.</p>
+
+        <h2 class="mt-2" data-i18n="page.guides.openclaw.s4">7) Field notes (what actually broke setups)</h2>
         <ul class="lead" style="padding-left:1.2em">
-          <li data-i18n-html="page.guides.openclaw.tip1">Prefer <code>baseUrl=https://api.ai24x.com/v1</code>. If you get a duplicated path (<code>/v1/v1</code>), switch to the root host. Wrong URL → 405.</li>
-          <li data-i18n="page.guides.openclaw.tip2">401 = bad or expired key—create a new one in Console.</li>
-          <li data-i18n="page.guides.openclaw.tip3">Start with <code>flash</code>; use <code>pro</code> for harder tasks; named VIP models only after VIP is active.</li>
-          <li data-i18n="page.guides.openclaw.tip4">Use a clean session when testing tools. Keep enough credit balance—tool calling needs paid routing.</li>
+          <li data-i18n-html="page.guides.openclaw.tip1"><strong>405 / “stuck retries”</strong> — Base URL missing <code>/v1</code>. Use <code>https://api.ai24x.com/v1</code>. If you see <code>/v1/v1</code>, switch to the root host once.</li>
+          <li data-i18n-html="page.guides.openclaw.tip2"><strong>401</strong> — Invalid key, truncated key (ellipsis), or revoked key. Paste the full key from Console; create a new one if unsure. Revoked keys return a distinct “revoked” style error when the platform is up to date.</li>
+          <li data-i18n="page.guides.openclaw.tip3"><strong>Chat works, tools never run</strong> — Not “flash is too weak”. Confirm Completions + tools path, paid balance, and a clean session. Start with flash; use pro for harder tasks.</li>
+          <li data-i18n="page.guides.openclaw.tip4"><strong>Session overrides</strong> — A pinned session model can override your global default. Use a new session when testing AI24X vs another provider.</li>
+          <li data-i18n="page.guides.openclaw.tip5"><strong>402</strong> — Insufficient balance / prepaid needed for the model. Top up in Console.</li>
+          <li data-i18n="page.guides.openclaw.tip6"><strong>VIP names</strong> — Need active VIP; add the exact id to the provider models list.</li>
         </ul>
+
+        <h2 class="mt-2" data-i18n="page.guides.openclaw.s5">8) CLI one-shot (optional)</h2>
+        <p class="sub" data-i18n="page.guides.openclaw.s5p">Without changing your default primary provider:</p>
+        <div class="code-block">openclaw agent --local --model ai24x/flash --session-key "agent:main:ai24x-smoke" --timeout 150 -m "Use a tool to print the current year"</div>
 
         <p class="mt-2">
           <a class="btn btn-primary" href="../register.html" data-i18n="page.index.hero.cta.register">Create account</a>
+          <a class="btn" href="index.html" data-i18n="page.guides.title">All integrations</a>
           <a class="btn" href="lobechat.html" data-i18n="page.guides.lobechat.t">LobeChat guide</a>
           <a class="btn" href="../models/vip-picks.html" data-i18n="page.models.vip.cta">VIP model list</a>
           <a class="btn" href="../console.html" data-i18n="nav.console">Console</a>
@@ -98,7 +112,7 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="../config/locales.js?v=20260803a"></script>
+  <script src="../config/locales.js?v=20260803b"></script>
   <script src="../js/api.js?v=20260802i"></script>
   <script src="../js/i18n.js?v=20260802m"></script>
   <script src="../js/shell.js?v=20260802m"></script>
