@@ -1,7 +1,7 @@
 # 副脑04 · 更新指令（控制台左侧当前栏目文字可读 · 静态）
 
 > 发令：2026-08-02 · **副脑04 = 对外生产**（www）  
-> 目标提交：推送后见下方「期望」/ `git log -1`  
+> 目标提交：`6d1c227`（`fix(web): keep console sidebar active nav text readable`）  
 > 范围：仅静态 `web/css/base.css` + `web/console.html`（**无需**重启 `AI24X-core`）  
 > **禁止**整文件覆盖 `api/.env`  
 > 远端：`git pull origin master`（失败再 `git pull gitee master`）
@@ -25,7 +25,8 @@ git checkout master
 git pull origin master
 # 若失败：git pull gitee master
 git log -1 --oneline
-# 期望：含 console sidebar / accent / 20260802r
+# 期望：6d1c227 fix(web): keep console sidebar active nav text readable
+# （若仅差 docs SHA 钉死提交亦可，至少含本修复）
 
 # 静态拉码即生效；硬刷新控制台即可（Ctrl+F5）
 ```
