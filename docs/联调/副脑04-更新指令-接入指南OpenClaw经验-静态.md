@@ -1,6 +1,7 @@
 # 副脑04 · 更新指令（接入指南 · OpenClaw 现场经验 + 关联页 · 静态）
 
 > 发令：2026-08-03 · **副脑04 = 对外生产**（www）  
+> 目标提交：`08bf963`（`docs(web): publish OpenClaw field notes on integration guides`）  
 > 范围：仅静态 `web/guides/**` + `web/help.html` + `web/config/locales.js`（**无需**重启 `AI24X-core`）  
 > **禁止**整文件覆盖 `api/.env`  
 > 远端：`git pull origin master`（失败再 `git pull gitee master`）
