@@ -121,10 +121,16 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://www.ai24x.com/guides/lobechat.html</loc>
+    <lastmod>2026-08-02</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://www.ai24x.com/guides/openclaw.html</loc>
     <lastmod>2026-08-02</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://www.ai24x.com/guides/openai-sdk.html</loc>

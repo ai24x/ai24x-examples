@@ -537,15 +537,19 @@
     return request("/v1/referrals/code", { method: "GET" });
   }
 
-  /** 中文 UI 只展示人民币；其它语言展示美元（不混写） */
+  /** 中文 UI 只展示人民币；其它语言（含 en/ja/ko…）展示美元与英文文案 */
   function isZhUi() {
     try {
       if (global.AI24X_I18N && typeof global.AI24X_I18N.isZh === "function") {
-        return global.AI24X_I18N.isZh();
+        return !!global.AI24X_I18N.isZh();
       }
-      return !global.AI24X_I18N || global.AI24X_I18N.getLang() === "zh";
+      if (global.AI24X_I18N && typeof global.AI24X_I18N.getLang === "function") {
+        return global.AI24X_I18N.getLang() === "zh";
+      }
+      // 国际站默认英文；勿在缺 i18n 时回落中文
+      return false;
     } catch (e) {
-      return true;
+      return false;
     }
   }
 

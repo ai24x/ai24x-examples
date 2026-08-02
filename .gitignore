@@ -22,10 +22,16 @@ backups/
 _backups/
 *.backup*
 *-backup*
+*.bak
+*.bak-*
+*.bak.*
+**/*.bak*
 
 # 临时文件
 *.tmp
 *.temp
+temp/
+**/temp/
 .DS_Store
 Thumbs.db
 *.db
@@ -40,7 +46,10 @@ scripts/_verify_docs.py
 # 配置文件（包含敏感信息）
 .env
 *.env
+.env.*
+!.env.example
 !api/.env.example
+**/.env.bak*
 api/certs/
 api/data/token_plans_override.json
 api/data/system_flags_override.json

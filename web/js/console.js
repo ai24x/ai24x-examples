@@ -6,8 +6,17 @@
     return document.getElementById(id);
   }
 
+  /** 中文界面用中文；英文及其他语言（ja/ko/de…）统一英文提示 */
   function tr(zh, en) {
-    return AI24X_API.isZhUi() ? zh : en;
+    try {
+      if (window.AI24X_I18N && typeof window.AI24X_I18N.isZh === "function") {
+        return window.AI24X_I18N.isZh() ? zh : en;
+      }
+      if (window.AI24X_API && typeof window.AI24X_API.isZhUi === "function") {
+        return window.AI24X_API.isZhUi() ? zh : en;
+      }
+    } catch (e) {}
+    return en;
   }
 
   function fmtInt(v) {
@@ -687,11 +696,18 @@
         "正在创建 PayPal 订单，请稍候…（勿关闭此窗口）",
         "Creating PayPal order… Keep this tab open."
       );
+      showMsg(
+        $("consoleMsg"),
+        tr(
+          "正在创建 PayPal 订单，请稍候…（勿关闭此窗口）",
+          "Creating PayPal order… Keep this tab open."
+        ),
+        true
+      );
     }
     _pendingCheckoutWin = checkoutWin;
 
-    openPayModal(
-      planTitle + (price ? " · " + price : ""),
+    var payBusyHint =
       channel === "wechat"
         ? tr("正在拉起微信扫码…", "Preparing WeChat QR…")
         : channel === "alipay"
@@ -701,8 +717,8 @@
                 "正在创建 PayPal 订单，请稍候；若未弹出窗口，用下方按钮打开。",
                 "Creating PayPal order… If no window opens, use the button below."
               )
-            : tr("请选择支付方式", "Choose a payment method")
-    );
+            : tr("请选择支付方式", "Choose a payment method");
+    openPayModal(planTitle + (price ? " · " + price : ""), payBusyHint);
 
     var req =
       channel === "alipay"
