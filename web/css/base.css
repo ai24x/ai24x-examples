@@ -1089,7 +1089,8 @@ body[data-page="help"] #support {
 }
 .console-nav-item.is-active {
   background: color-mix(in srgb, var(--accent) 16%, var(--surface, #fff));
-  color: var(--accent-ink, var(--text));
+  color: var(--accent);
+  font-weight: 650;
   box-shadow: inset 3px 0 0 var(--accent);
 }
 .console-main {
