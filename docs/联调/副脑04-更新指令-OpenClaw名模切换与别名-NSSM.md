@@ -1,6 +1,7 @@
-# 副脑04 · 更新指令（OpenClaw 名模切换 · Completions 别名 · NSSM）
+﻿# 副脑04 · 更新指令（OpenClaw 名模切换 · Completions 别名 · NSSM）
 
-> 发令：2026-08-03 · **副脑04 = 对外生产**（www + api）  
+> 发令：2026-08-03 · **副脑04 = 对外生产**（www + api）
+> 目标提交：`12ca327`  
 > **禁止**整文件覆盖 `api/.env`  
 > 远端：`git pull origin master`（失败再 `git pull gitee master`）
 
