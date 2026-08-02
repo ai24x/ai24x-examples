@@ -4,6 +4,7 @@
 对外：POST /v1/chat/completions、POST /v1/responses（Bearer / X-API-Key）
 对内：复用 ChatService → 路由 / 扣费 / 用量
 流式：默认真流式透传上游 SSE（TOKEN_LLM_TRUE_STREAM=0 时回退假流式切片）
+Completions：支持 tools / tool_calls / role=tool（OpenClaw）；Responses 仍为文本最小兼容。
 """
 from __future__ import annotations
 
@@ -111,8 +112,64 @@ def _content_to_text(content: Any) -> str:
     return str(content)
 
 
+def _normalize_tool_calls(raw: Any) -> Optional[List[Dict[str, Any]]]:
+    """规范化 assistant.tool_calls 列表；无效则 None。"""
+    if not isinstance(raw, list) or not raw:
+        return None
+    out: List[Dict[str, Any]] = []
+    for tc in raw:
+        if not isinstance(tc, dict):
+            continue
+        fn = tc.get("function") if isinstance(tc.get("function"), dict) else {}
+        name = str(fn.get("name") or "").strip()
+        if not name and not tc.get("id"):
+            continue
+        args = fn.get("arguments")
+        if args is None:
+            args = ""
+        elif not isinstance(args, str):
+            try:
+                args = json.dumps(args, ensure_ascii=False)
+            except Exception:
+                args = str(args)
+        item: Dict[str, Any] = {
+            "id": str(tc.get("id") or ("call_" + uuid.uuid4().hex[:24])),
+            "type": str(tc.get("type") or "function"),
+            "function": {"name": name or "tool", "arguments": args},
+        }
+        out.append(item)
+    return out or None
+
+
+def extract_tools_payload(body: Dict[str, Any]) -> Tuple[Optional[List[Dict[str, Any]]], Any]:
+    """从 Completions body 取出 tools / tool_choice（校验最小形状）。"""
+    tools_raw = body.get("tools")
+    tool_choice = body.get("tool_choice")
+    if tools_raw is None:
+        return None, tool_choice
+    if not isinstance(tools_raw, list):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="tools 必须是数组",
+        )
+    tools: List[Dict[str, Any]] = []
+    for t in tools_raw:
+        if not isinstance(t, dict):
+            continue
+        # 原样保留 OpenAI function tool 形状
+        tools.append(t)
+    if not tools:
+        return None, tool_choice
+    if len(tools) > 128:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="tools 数量过多，请精简后再试",
+        )
+    return tools, tool_choice
+
+
 def messages_to_prompt(messages: Any) -> str:
-    """OpenAI messages[] → 现有 prompt 字符串（tool/function 降级忽略）。"""
+    """OpenAI messages[] → 现有 prompt 字符串（含 tool 轮，供账本/回退）。"""
     if not isinstance(messages, list) or not messages:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -123,25 +180,36 @@ def messages_to_prompt(messages: Any) -> str:
         if not isinstance(m, dict):
             continue
         role = str(m.get("role") or "").strip().lower()
-        if role in ("tool", "function"):
-            # P0：不实现 function calling，忽略工具消息
-            continue
         text = _content_to_text(m.get("content")).strip()
+        if role in ("tool", "function"):
+            tid = str(m.get("tool_call_id") or m.get("name") or "").strip()
+            label = f"[tool {tid}]" if tid else "[tool]"
+            if text:
+                blocks.append(f"{label}\n{text}")
+            continue
+        if role == "assistant":
+            tcs = m.get("tool_calls")
+            if tcs:
+                try:
+                    tc_s = json.dumps(tcs, ensure_ascii=False)[:4000]
+                except Exception:
+                    tc_s = str(tcs)[:4000]
+                body = (text + "\n" if text else "") + f"[tool_calls]\n{tc_s}"
+                blocks.append(f"[assistant]\n{body}")
+                continue
+            if text:
+                blocks.append(f"[assistant]\n{text}")
+            continue
         if not text:
             continue
         if role == "system":
             blocks.append(f"[system]\n{text}")
-        elif role == "assistant":
-            blocks.append(f"[assistant]\n{text}")
         else:
-            # user / 未知角色按 user
             blocks.append(f"[user]\n{text}")
     prompt = "\n\n".join(blocks).strip()
     if not prompt:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="messages 中无有效文本内容",
-        )
+        # 仅有空壳 tool 轮时给占位，避免 ChatRequest.prompt 校验失败
+        prompt = "Continue."
     lim = _prompt_max_chars()
     if len(prompt) > lim:
         prompt = prompt[:lim]
@@ -149,7 +217,7 @@ def messages_to_prompt(messages: Any) -> str:
 
 
 def normalize_messages_for_upstream(messages: Any) -> Optional[List[Dict[str, Any]]]:
-    """清洗 messages 供上游透传；无效则 None（回退 prompt）。"""
+    """清洗 messages 供上游透传（含 tool / assistant.tool_calls）。"""
     if not isinstance(messages, list) or not messages:
         return None
     out: List[Dict[str, Any]] = []
@@ -158,8 +226,26 @@ def normalize_messages_for_upstream(messages: Any) -> Optional[List[Dict[str, An
             continue
         role = str(m.get("role") or "").strip().lower()
         if role in ("tool", "function"):
+            item: Dict[str, Any] = {
+                "role": role,
+                "content": _content_to_text(m.get("content")),
+            }
+            if m.get("tool_call_id") is not None:
+                item["tool_call_id"] = str(m.get("tool_call_id"))
+            if m.get("name"):
+                item["name"] = str(m.get("name"))
+            out.append(item)
             continue
         text = _content_to_text(m.get("content")).strip()
+        tcs = _normalize_tool_calls(m.get("tool_calls")) if role == "assistant" else None
+        if role == "assistant" and tcs:
+            item = {
+                "role": "assistant",
+                "content": text if text else None,
+                "tool_calls": tcs,
+            }
+            out.append(item)
+            continue
         if not text:
             continue
         if role not in ("system", "user", "assistant"):
@@ -232,6 +318,7 @@ def build_chat_request_schema(body: Dict[str, Any]) -> ChatRequestSchema:
     raw_messages = body.get("messages")
     prompt = messages_to_prompt(raw_messages)
     msgs = normalize_messages_for_upstream(raw_messages)
+    tools, tool_choice = extract_tools_payload(body)
     try:
         temperature = float(body.get("temperature") if body.get("temperature") is not None else 0.7)
     except (TypeError, ValueError):
@@ -249,6 +336,8 @@ def build_chat_request_schema(body: Dict[str, Any]) -> ChatRequestSchema:
         max_tokens=max_tokens,
         stream=bool(body.get("stream")),
         messages=msgs,
+        tools=tools,
+        tool_choice=tool_choice,
     )
 
 
@@ -262,6 +351,16 @@ def to_openai_completion(resp: ChatResponse, *, requested_model: str, cmpl_id: s
     prompt_tokens = max(1, int(total * 0.3)) if total else 0
     completion_tokens = max(0, total - prompt_tokens) if total else 0
     model_out = resp.model or requested_model or "flash"
+    tool_calls = getattr(resp, "tool_calls", None)
+    content = resp.response or ""
+    message: Dict[str, Any] = {"role": "assistant", "content": content}
+    if tool_calls:
+        message["tool_calls"] = tool_calls
+        if not str(content).strip():
+            message["content"] = None
+    finish = getattr(resp, "finish_reason", None) or (
+        "tool_calls" if tool_calls else "stop"
+    )
     out: Dict[str, Any] = {
         "id": cmpl_id,
         "object": "chat.completion",
@@ -270,8 +369,8 @@ def to_openai_completion(resp: ChatResponse, *, requested_model: str, cmpl_id: s
         "choices": [
             {
                 "index": 0,
-                "message": {"role": "assistant", "content": resp.response or ""},
-                "finish_reason": "stop",
+                "message": message,
+                "finish_reason": finish,
                 "logprobs": None,
             }
         ],
@@ -303,6 +402,10 @@ def iter_sse_from_completion(resp: ChatResponse, *, requested_model: str, cmpl_i
     """将已完成的回复切成 OpenAI SSE chunk（计费已在上游完成）。"""
     model_out = resp.model or requested_model or "flash"
     created = int(time.time())
+    tool_calls = getattr(resp, "tool_calls", None)
+    finish = getattr(resp, "finish_reason", None) or (
+        "tool_calls" if tool_calls else "stop"
+    )
 
     def pack(payload: Dict[str, Any]) -> str:
         return "data: " + json.dumps(payload, ensure_ascii=False) + "\n\n"
@@ -341,6 +444,23 @@ def iter_sse_from_completion(resp: ChatResponse, *, requested_model: str, cmpl_i
                 ],
             }
         )
+    if tool_calls:
+        # 假流式：整包 tool_calls（真流式走 iter_true_sse）
+        yield pack(
+            {
+                "id": cmpl_id,
+                "object": "chat.completion.chunk",
+                "created": created,
+                "model": model_out,
+                "choices": [
+                    {
+                        "index": 0,
+                        "delta": {"tool_calls": tool_calls},
+                        "finish_reason": None,
+                    }
+                ],
+            }
+        )
     yield pack(
         {
             "id": cmpl_id,
@@ -351,7 +471,7 @@ def iter_sse_from_completion(resp: ChatResponse, *, requested_model: str, cmpl_i
                 {
                     "index": 0,
                     "delta": {},
-                    "finish_reason": "stop",
+                    "finish_reason": finish,
                 }
             ],
         }
@@ -385,6 +505,27 @@ def iter_true_sse_from_events(
     def pack(payload: Dict[str, Any]) -> str:
         return "data: " + json.dumps(payload, ensure_ascii=False) + "\n\n"
 
+    def ensure_role() -> Iterator[str]:
+        nonlocal role_sent
+        if role_sent:
+            return
+        role_sent = True
+        yield pack(
+            {
+                "id": cmpl_id,
+                "object": "chat.completion.chunk",
+                "created": created,
+                "model": model_out,
+                "choices": [
+                    {
+                        "index": 0,
+                        "delta": {"role": "assistant", "content": ""},
+                        "finish_reason": None,
+                    }
+                ],
+            }
+        )
+
     for ev in events:
         et = ev.get("type")
         if et == "meta":
@@ -392,6 +533,16 @@ def iter_true_sse_from_events(
             continue
         if et == "error":
             err = str(ev.get("error") or "upstream_error")
+            # 用户可读短句（避免堆栈/上游原文）
+            if err in ("tools_unsupported", "vip_required", "tools_need_balance"):
+                if err == "vip_required":
+                    msg = "VIP required for this model."
+                elif err == "tools_need_balance":
+                    msg = "Tool calling needs available credit balance. Please top up."
+                else:
+                    msg = "This model cannot use tools right now. Try flash or pro."
+            else:
+                msg = "Service temporarily unavailable. Please try again."
             yield pack(
                 {
                     "id": cmpl_id,
@@ -405,29 +556,13 @@ def iter_true_sse_from_events(
                             "finish_reason": "stop",
                         }
                     ],
-                    "error": {"message": err, "type": "server_error"},
+                    "error": {"message": msg, "type": "server_error"},
                 }
             )
             yield "data: [DONE]\n\n"
             return
         if et == "delta":
-            if not role_sent:
-                role_sent = True
-                yield pack(
-                    {
-                        "id": cmpl_id,
-                        "object": "chat.completion.chunk",
-                        "created": created,
-                        "model": model_out,
-                        "choices": [
-                            {
-                                "index": 0,
-                                "delta": {"role": "assistant", "content": ""},
-                                "finish_reason": None,
-                            }
-                        ],
-                    }
-                )
+            yield from ensure_role()
             piece = str(ev.get("text") or "")
             if not piece:
                 continue
@@ -446,9 +581,33 @@ def iter_true_sse_from_events(
                     ],
                 }
             )
+        if et == "tool_calls_delta":
+            yield from ensure_role()
+            tcs = ev.get("tool_calls")
+            if not tcs:
+                continue
+            yield pack(
+                {
+                    "id": cmpl_id,
+                    "object": "chat.completion.chunk",
+                    "created": created,
+                    "model": model_out,
+                    "choices": [
+                        {
+                            "index": 0,
+                            "delta": {"tool_calls": tcs},
+                            "finish_reason": None,
+                        }
+                    ],
+                }
+            )
         if et == "done":
-            if not role_sent:
-                role_sent = True
+            yield from ensure_role()
+            model_out = str(ev.get("public_model") or model_out)
+            finish = str(ev.get("finish_reason") or "stop")
+            # 若流中未增量发过 tool_calls，收尾包补发整包（兼容部分上游）
+            final_tcs = ev.get("tool_calls")
+            if final_tcs and not ev.get("tool_calls_streamed"):
                 yield pack(
                     {
                         "id": cmpl_id,
@@ -458,13 +617,12 @@ def iter_true_sse_from_events(
                         "choices": [
                             {
                                 "index": 0,
-                                "delta": {"role": "assistant", "content": ""},
+                                "delta": {"tool_calls": final_tcs},
                                 "finish_reason": None,
                             }
                         ],
                     }
                 )
-            model_out = str(ev.get("public_model") or model_out)
             yield pack(
                 {
                     "id": cmpl_id,
@@ -475,7 +633,7 @@ def iter_true_sse_from_events(
                         {
                             "index": 0,
                             "delta": {},
-                            "finish_reason": "stop",
+                            "finish_reason": finish,
                         }
                     ],
                 }
@@ -506,7 +664,7 @@ def true_streaming_response(
 
 # ---------------------------------------------------------------------------
 # OpenAI Responses API 最小兼容（LobeChat / Continue 等默认走 /v1/responses）
-# 复用 ChatService；不做持久化、tools、多模态。
+# 复用 ChatService；文本最小兼容。tools / 多模态 / 持久化仍不在 Responses 路径。
 # ---------------------------------------------------------------------------
 
 

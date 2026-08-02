@@ -20,7 +20,10 @@ class ChatRequest(BaseModel):
     stream: Optional[bool] = Field(default=False, description="是否流式输出")
     # OpenAI messages 透传（真流式 / 多轮）；无则上游仍用 prompt 拼单轮
     messages: Optional[List[Dict[str, Any]]] = Field(default=None, description="OpenAI messages")
-    
+    # OpenAI tools / tool_choice（OpenClaw function calling）
+    tools: Optional[List[Dict[str, Any]]] = Field(default=None, description="OpenAI tools")
+    tool_choice: Optional[Any] = Field(default=None, description="OpenAI tool_choice")
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -48,7 +51,13 @@ class ChatResponse(BaseModel):
     attribution: Optional[Dict[str, Any]] = Field(
         None, description="平台溯源与使用声明（防未授权转售追责）"
     )
-    
+    tool_calls: Optional[List[Dict[str, Any]]] = Field(
+        None, description="OpenAI tool_calls（若模型请求调用工具）"
+    )
+    finish_reason: Optional[str] = Field(
+        None, description="stop / tool_calls / length 等"
+    )
+
     class Config:
         json_schema_extra = {
             "example": {

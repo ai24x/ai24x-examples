@@ -122,9 +122,17 @@ class ChatService:
             if auth_user_id is not None:
                 snap0 = get_balance_snapshot(db, int(auth_user_id))
                 is_vip = bool(snap0.get("is_vip_active"))
+            routed_tool_calls = None
+            routed_finish = None
             if billing_mode == "shared":
                 from free_shared import run_shared_pool_chat
 
+                # 共享池：工具调用仍走付费路由语义；无余额降级时暂不支持 tools
+                if getattr(request, "tools", None):
+                    raise HTTPException(
+                        status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                        detail="工具调用需有可用余额，请先充值后再试。",
+                    )
                 routed = run_shared_pool_chat(
                     prompt=request.prompt,
                     temperature=float(request.temperature or 0.7),
@@ -141,6 +149,7 @@ class ChatService:
                         need_tokens=1,
                         model=route_model,
                     )
+                msgs = getattr(request, "messages", None)
                 routed = run_routed_chat(
                     prompt=request.prompt,
                     requested_model=route_model,
@@ -148,12 +157,20 @@ class ChatService:
                     temperature=float(request.temperature or 0.7),
                     max_tokens=int(request.max_tokens or 1000),
                     region_hint=region_hint,
+                    messages=msgs if isinstance(msgs, list) else None,
+                    tools=getattr(request, "tools", None),
+                    tool_choice=getattr(request, "tool_choice", None),
                 )
             if not routed.ok:
                 if (routed.error or "") == "vip_required":
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail="点名模型需有效会员权益，请升级后再试。",
+                    )
+                if (routed.error or "") == "tools_unsupported":
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="当前模型暂不支持工具调用，请改用 flash 或 pro，或稍后再试。",
                     )
                 raise HTTPException(
                     status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -162,6 +179,8 @@ class ChatService:
 
             response_text = routed.text
             used_model = routed.model
+            routed_tool_calls = getattr(routed, "tool_calls", None)
+            routed_finish = getattr(routed, "finish_reason", None)
             from model_router import public_tier_name
 
             public_model = getattr(routed, "public_model", None) or public_tier_name(
@@ -258,6 +277,9 @@ class ChatService:
                 provider="ai24x",
                 route_attempts=None,
                 attribution=attr,
+                tool_calls=routed_tool_calls,
+                finish_reason=routed_finish
+                or ("tool_calls" if routed_tool_calls else "stop"),
             )
 
         except Exception as e:
@@ -328,6 +350,12 @@ class ChatService:
                 is_vip = bool(snap0.get("is_vip_active"))
 
             if billing_mode == "shared":
+                if getattr(request, "tools", None):
+                    yield {"type": "error", "error": "tools_need_balance"}
+                    chat_request.status = "failed"
+                    chat_request.error_message = "tools_need_balance"
+                    db.commit()
+                    return
                 # 共享池：暂用非流整段后单 delta（避免阻塞主路径过久时仍可用）
                 from free_shared import run_shared_pool_chat
 
@@ -375,6 +403,8 @@ class ChatService:
                     max_tokens=int(request.max_tokens or 1000),
                     region_hint=region_hint,
                     messages=msgs if isinstance(msgs, list) else None,
+                    tools=getattr(request, "tools", None),
+                    tool_choice=getattr(request, "tool_choice", None),
                 ):
                     et = ev.get("type")
                     if et == "meta":
@@ -398,6 +428,8 @@ class ChatService:
                     elif et == "delta":
                         full_text += str(ev.get("text") or "")
                         yield ev
+                    elif et == "tool_calls_delta":
+                        yield ev
                     elif et == "done":
                         saw_done = True
                         full_text = str(ev.get("text") or full_text)
@@ -414,6 +446,11 @@ class ChatService:
                             "public_model": public_model,
                             "raw_model": used_model,
                             "provider": provider,
+                            "tool_calls": ev.get("tool_calls"),
+                            "finish_reason": ev.get("finish_reason") or "stop",
+                            "tool_calls_streamed": bool(
+                                ev.get("tool_calls_streamed")
+                            ),
                         }
                     elif et == "error":
                         yield ev

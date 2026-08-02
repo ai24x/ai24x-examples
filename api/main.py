@@ -361,6 +361,7 @@ async def chat_completions(
     """
     OpenAI Chat Completions 兼容入口。
     Authorization: Bearer <API_KEY> 或 X-API-Key；body 为 messages[] + model + stream。
+    支持 OpenAI tools / tool_choice / tool_calls（含流式增量），供 OpenClaw 等执行本机工具。
     """
     from openai_compat import (
         build_chat_request_schema,

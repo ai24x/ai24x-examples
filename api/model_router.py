@@ -161,6 +161,44 @@ class RouteResult:
     error: Optional[str] = None
     billing_mult: int = 1
     public_model: Optional[str] = None
+    tool_calls: Optional[list[dict[str, Any]]] = None
+    finish_reason: Optional[str] = None
+
+
+def _tools_passthrough_enabled() -> bool:
+    """默认开启 tools 透传；TOKEN_LLM_TOOLS=0 可关。"""
+    return (_env("TOKEN_LLM_TOOLS") or "1").strip().lower() not in (
+        "0",
+        "false",
+        "no",
+        "off",
+    )
+
+
+def _route_ok_from_out(
+    out: dict[str, Any],
+    *,
+    model: str,
+    layer: str,
+    provider: str,
+    attempts: list[dict[str, Any]],
+    token_count: int,
+    billing_mult: int = 1,
+    public_model: Optional[str] = None,
+) -> RouteResult:
+    return RouteResult(
+        ok=True,
+        text=str(out.get("text") or ""),
+        model=str(out.get("raw_model") or model),
+        layer=layer,
+        provider=provider,
+        token_count=max(1, int(token_count)),
+        attempts=attempts,
+        billing_mult=billing_mult,
+        public_model=public_model,
+        tool_calls=out.get("tool_calls"),
+        finish_reason=out.get("finish_reason"),
+    )
 
 
 def list_models_public(*, is_vip: bool) -> dict[str, Any]:
@@ -565,23 +603,42 @@ def _content_text(content: Any) -> str:
 
 def _build_chat_messages(
     prompt: str, messages: Optional[list[dict[str, Any]]] = None
-) -> list[dict[str, str]]:
-    """组装上游 messages；有结构化 messages 时透传（跳过 tool），否则 prompt 单轮。"""
+) -> list[dict[str, Any]]:
+    """组装上游 messages；透传 user/assistant/tool 与 assistant.tool_calls。"""
     sys = _system_prompt()
     if messages and isinstance(messages, list):
-        out: list[dict[str, str]] = [{"role": "system", "content": sys}]
+        out: list[dict[str, Any]] = [{"role": "system", "content": sys}]
         sys_extra: list[str] = []
         for m in messages:
             if not isinstance(m, dict):
                 continue
             role = str(m.get("role") or "").strip().lower()
             if role in ("tool", "function"):
+                item: dict[str, Any] = {
+                    "role": role,
+                    "content": _content_text(m.get("content")),
+                }
+                if m.get("tool_call_id") is not None:
+                    item["tool_call_id"] = str(m.get("tool_call_id"))
+                if m.get("name"):
+                    item["name"] = str(m.get("name"))
+                out.append(item)
                 continue
             text = _content_text(m.get("content")).strip()
-            if not text:
-                continue
+            tcs = m.get("tool_calls")
             if role == "system":
-                sys_extra.append(text)
+                if text:
+                    sys_extra.append(text)
+                continue
+            if role == "assistant" and isinstance(tcs, list) and tcs:
+                item = {
+                    "role": "assistant",
+                    "content": text if text else None,
+                    "tool_calls": tcs,
+                }
+                out.append(item)
+                continue
+            if not text:
                 continue
             if role not in ("user", "assistant"):
                 role = "user"
@@ -709,7 +766,21 @@ def run_routed_chat(
     temperature: float = 0.7,
     max_tokens: int = 1000,
     region_hint: Optional[str] = None,
+    messages: Optional[list[dict[str, Any]]] = None,
+    tools: Optional[list[dict[str, Any]]] = None,
+    tool_choice: Any = None,
 ) -> RouteResult:
+    use_tools = tools if (tools and _tools_passthrough_enabled()) else None
+    use_choice = tool_choice if use_tools is not None else None
+
+    def _call(**kw: Any) -> dict[str, Any]:
+        return _call_openai_compatible(
+            messages=messages,
+            tools=use_tools,
+            tool_choice=use_choice,
+            **kw,
+        )
+
     # —— VIP 点名：中国模硅基优先（有 siliconflow_id 时）；国际模仍 OR/厂直连 ——
     pick = None
     pick_gate_on = False
@@ -744,6 +815,9 @@ def run_routed_chat(
                 prompt=prompt,
                 temperature=temperature,
                 max_tokens=max_tokens,
+                messages=messages,
+                tools=use_tools,
+                tool_choice=use_choice,
             )
 
     attempts: list[dict[str, Any]] = []
@@ -767,7 +841,7 @@ def run_routed_chat(
             if ds.get("key") and ds.get("base"):
                 t_ds = time.time()
                 try:
-                    out = _call_openai_compatible(
+                    out = _call(
                         base=ds["base"],
                         key=ds["key"],
                         model=ds["model"],
@@ -790,14 +864,13 @@ def run_routed_chat(
                     )
                     raw_tokens = int(out["tokens"])
                     mult = int(LAYER_COST_MULT.get(layer, 1))
-                    return RouteResult(
-                        ok=True,
-                        text=str(out["text"]),
+                    return _route_ok_from_out(
+                        out,
                         model=used_model,
                         layer=layer,
                         provider="deepseek",
-                        token_count=max(1, raw_tokens * mult),
                         attempts=attempts,
+                        token_count=max(1, raw_tokens * mult),
                         billing_mult=1,
                     )
                 except Exception as e_ds:
@@ -817,7 +890,7 @@ def run_routed_chat(
                     )
         try:
             if up["base"] and up["key"]:
-                out = _call_openai_compatible(
+                out = _call(
                     base=up["base"],
                     key=up["key"],
                     model=api_model,
@@ -867,14 +940,13 @@ def run_routed_chat(
             raw_tokens = int(out["tokens"])
             mult = int(LAYER_COST_MULT.get(layer, 1))
             bill_tokens = max(1, raw_tokens * mult)
-            return RouteResult(
-                ok=True,
-                text=str(out["text"]),
+            return _route_ok_from_out(
+                out,
                 model=used_model,
                 layer=layer,
                 provider=provider,
-                token_count=bill_tokens,
                 attempts=attempts,
+                token_count=bill_tokens,
                 billing_mult=1,
             )
         except Exception as e:
@@ -899,7 +971,7 @@ def run_routed_chat(
                 if ds.get("key") and ds.get("base"):
                     t_ds = time.time()
                     try:
-                        out = _call_openai_compatible(
+                        out = _call(
                             base=ds["base"],
                             key=ds["key"],
                             model=ds["model"],
@@ -922,14 +994,13 @@ def run_routed_chat(
                         )
                         raw_tokens = int(out["tokens"])
                         mult = int(LAYER_COST_MULT.get("L1", 1))
-                        return RouteResult(
-                            ok=True,
-                            text=str(out["text"]),
+                        return _route_ok_from_out(
+                            out,
                             model=used_model,
                             layer="L1",
                             provider="deepseek",
-                            token_count=max(1, raw_tokens * mult),
                             attempts=attempts,
+                            token_count=max(1, raw_tokens * mult),
                             billing_mult=1,
                         )
                     except Exception as e2:
@@ -1021,6 +1092,9 @@ def _run_vip_pick_chat(
     prompt: str,
     temperature: float,
     max_tokens: int,
+    messages: Optional[list[dict[str, Any]]] = None,
+    tools: Optional[list[dict[str, Any]]] = None,
+    tool_choice: Any = None,
 ) -> RouteResult:
     """VIP 点名路由。
 
@@ -1044,14 +1118,13 @@ def _run_vip_pick_chat(
 
     def _ok_result(out: dict[str, Any], *, model: str, provider: str) -> RouteResult:
         raw = max(1, int(out.get("tokens") or 1))
-        return RouteResult(
-            ok=True,
-            text=str(out.get("text") or ""),
-            model=str(out.get("raw_model") or model),
+        return _route_ok_from_out(
+            out,
+            model=model,
             layer="VIP",
             provider=provider,
-            token_count=max(1, raw * billing_mult),
             attempts=attempts,
+            token_count=max(1, raw * billing_mult),
             billing_mult=billing_mult,
             public_model=public_id,
         )
@@ -1075,6 +1148,9 @@ def _run_vip_pick_chat(
                 max_tokens=max_tokens,
                 timeout_s=timeout_s,
                 provider=provider,
+                messages=messages,
+                tools=tools,
+                tool_choice=tool_choice,
             )
             row = {
                 "layer": "VIP",
@@ -1280,6 +1356,9 @@ def _run_vip_pick_chat(
                 max_tokens=max_tokens,
                 timeout_s=timeout_s,
                 provider=prov,
+                messages=messages,
+                tools=tools,
+                tool_choice=tool_choice,
             )
             elapsed = time.time() - t0
             raw = max(1, int(out.get("tokens") or 1))
@@ -1304,17 +1383,7 @@ def _run_vip_pick_chat(
                 )
             except Exception:
                 pass
-            return RouteResult(
-                ok=True,
-                text=str(out.get("text") or ""),
-                model=str(out.get("raw_model") or model),
-                layer="VIP",
-                provider=prov,
-                token_count=max(1, raw * billing_mult),
-                attempts=attempts,
-                billing_mult=billing_mult,
-                public_model=public_id,
-            )
+            return _ok_result(out, model=model, provider=prov)
         except Exception as e:
             attempts.append(
                 {
@@ -1424,6 +1493,8 @@ def _call_openai_compatible(
     timeout_s: float,
     provider: str = "",
     messages: Optional[list[dict[str, Any]]] = None,
+    tools: Optional[list[dict[str, Any]]] = None,
+    tool_choice: Any = None,
 ) -> dict[str, Any]:
     url = f"{base}/chat/completions"
     headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
@@ -1439,6 +1510,10 @@ def _call_openai_compatible(
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
+    if tools and _tools_passthrough_enabled():
+        body["tools"] = tools
+        if tool_choice is not None:
+            body["tool_choice"] = tool_choice
     # DeepSeek v4 直连时默认关 thinking
     if str(model).startswith("deepseek-v4") and (_env("DEEPSEEK_THINKING", "0") or "0").strip() not in (
         "1",
@@ -1453,16 +1528,32 @@ def _call_openai_compatible(
     data = r.json()
     choices = data.get("choices") or []
     text = ""
+    tool_calls = None
+    finish_reason = "stop"
     if choices:
-        msg = (choices[0] or {}).get("message") or {}
+        ch0 = choices[0] or {}
+        msg = ch0.get("message") or {}
         text = str(msg.get("content") or "").strip()
         if not text:
             text = str(msg.get("reasoning_content") or "").strip()
+        raw_tcs = msg.get("tool_calls")
+        if isinstance(raw_tcs, list) and raw_tcs:
+            tool_calls = raw_tcs
+        finish_reason = str(
+            ch0.get("finish_reason") or ("tool_calls" if tool_calls else "stop")
+        )
     usage = data.get("usage") or {}
     total = int(usage.get("total_tokens") or 0)
     if total <= 0:
-        total = max(1, int(len(text.split()) * 1.3))
-    return {"text": text, "tokens": total, "raw_model": model}
+        # tool_calls 无正文时也按最小 1 token 计（避免 0）
+        total = max(1, int(len(text.split()) * 1.3)) if text else 1
+    return {
+        "text": text,
+        "tokens": total,
+        "raw_model": model,
+        "tool_calls": tool_calls,
+        "finish_reason": finish_reason,
+    }
 
 
 def _stream_openai_compatible(
@@ -1476,8 +1567,10 @@ def _stream_openai_compatible(
     timeout_s: float,
     provider: str = "",
     messages: Optional[list[dict[str, Any]]] = None,
+    tools: Optional[list[dict[str, Any]]] = None,
+    tool_choice: Any = None,
 ):
-    """上游真流式。yield dict: delta / done / error。"""
+    """上游真流式。yield dict: delta / tool_calls_delta / done / error。"""
     import json as _json
 
     url = f"{base}/chat/completions"
@@ -1494,6 +1587,10 @@ def _stream_openai_compatible(
         "max_tokens": max_tokens,
         "stream": True,
     }
+    if tools and _tools_passthrough_enabled():
+        body["tools"] = tools
+        if tool_choice is not None:
+            body["tool_choice"] = tool_choice
     if str(model).startswith("deepseek-v4") and (_env("DEEPSEEK_THINKING", "0") or "0").strip() not in (
         "1",
         "true",
@@ -1507,6 +1604,10 @@ def _stream_openai_compatible(
     timeout = httpx.Timeout(timeout_s, connect=min(30.0, timeout_s))
     full_parts: list[str] = []
     usage_tokens = 0
+    finish_reason = "stop"
+    tool_calls_streamed = False
+    # 拼装流式 tool_calls（按 index）
+    tc_acc: dict[int, dict[str, Any]] = {}
     try:
         with httpx.Client(timeout=timeout) as client:
             with client.stream("POST", url, headers=headers, json=body) as r:
@@ -1535,7 +1636,49 @@ def _stream_openai_compatible(
                     choices = obj.get("choices") or []
                     if not choices:
                         continue
-                    delta = (choices[0] or {}).get("delta") or {}
+                    ch0 = choices[0] or {}
+                    fr = ch0.get("finish_reason")
+                    if fr:
+                        finish_reason = str(fr)
+                    delta = ch0.get("delta") or {}
+                    tcs = delta.get("tool_calls")
+                    if isinstance(tcs, list) and tcs:
+                        tool_calls_streamed = True
+                        for piece_tc in tcs:
+                            if not isinstance(piece_tc, dict):
+                                continue
+                            try:
+                                idx = int(piece_tc.get("index") or 0)
+                            except (TypeError, ValueError):
+                                idx = 0
+                            slot = tc_acc.setdefault(
+                                idx,
+                                {
+                                    "id": "",
+                                    "type": "function",
+                                    "function": {"name": "", "arguments": ""},
+                                },
+                            )
+                            if piece_tc.get("id"):
+                                slot["id"] = str(piece_tc.get("id"))
+                            if piece_tc.get("type"):
+                                slot["type"] = str(piece_tc.get("type"))
+                            fn = piece_tc.get("function") or {}
+                            if isinstance(fn, dict):
+                                if fn.get("name"):
+                                    slot["function"]["name"] = str(
+                                        slot["function"].get("name") or ""
+                                    ) + str(fn.get("name"))
+                                if fn.get("arguments") is not None:
+                                    slot["function"]["arguments"] = str(
+                                        slot["function"].get("arguments") or ""
+                                    ) + str(fn.get("arguments"))
+                        yield {
+                            "type": "tool_calls_delta",
+                            "tool_calls": tcs,
+                            "raw_model": model,
+                            "provider": provider,
+                        }
                     piece = delta.get("content")
                     if piece is None:
                         piece = delta.get("reasoning_content")
@@ -1553,6 +1696,11 @@ def _stream_openai_compatible(
         return
 
     full = "".join(full_parts)
+    assembled_tcs = None
+    if tc_acc:
+        assembled_tcs = [tc_acc[i] for i in sorted(tc_acc.keys())]
+        if finish_reason == "stop":
+            finish_reason = "tool_calls"
     if usage_tokens <= 0:
         usage_tokens = max(1, int(len(full.split()) * 1.3)) if full else 1
     yield {
@@ -1561,6 +1709,9 @@ def _stream_openai_compatible(
         "tokens": usage_tokens,
         "raw_model": model,
         "provider": provider,
+        "tool_calls": assembled_tcs,
+        "finish_reason": finish_reason,
+        "tool_calls_streamed": tool_calls_streamed,
     }
 
 
@@ -1587,6 +1738,8 @@ def _try_upstream_stream(
     billing_mult: int,
     public_model: str,
     messages: Optional[list[dict[str, Any]]],
+    tools: Optional[list[dict[str, Any]]] = None,
+    tool_choice: Any = None,
 ) -> Iterator[dict[str, Any]]:
     """对单一上游做真流式；成功结束 yield done；首包前失败 yield 空并 return。"""
     timeout_s = _stream_timeout_s()
@@ -1601,6 +1754,8 @@ def _try_upstream_stream(
         timeout_s=timeout_s,
         provider=provider,
         messages=messages,
+        tools=tools,
+        tool_choice=tool_choice,
     ):
         et = ev.get("type")
         if et == "error":
@@ -1619,7 +1774,7 @@ def _try_upstream_stream(
                     "degraded_error": str(ev.get("error") or "")[:200],
                 }
             return
-        if et == "delta":
+        if et in ("delta", "tool_calls_delta"):
             if not started:
                 started = True
                 yield {
@@ -1642,6 +1797,9 @@ def _try_upstream_stream(
                 "layer": layer,
                 "billing_mult": billing_mult,
                 "public_model": public_model,
+                "tool_calls": ev.get("tool_calls"),
+                "finish_reason": ev.get("finish_reason") or "stop",
+                "tool_calls_streamed": bool(ev.get("tool_calls_streamed")),
             }
             return
     if not started:
@@ -1657,8 +1815,12 @@ def run_routed_chat_stream(
     max_tokens: int = 1000,
     region_hint: Optional[str] = None,
     messages: Optional[list[dict[str, Any]]] = None,
+    tools: Optional[list[dict[str, Any]]] = None,
+    tool_choice: Any = None,
 ) -> Iterator[dict[str, Any]]:
-    """真流式路由。事件：meta → delta* → done；全部失败则 error。"""
+    """真流式路由。事件：meta → delta* / tool_calls_delta* → done；全部失败则 error。"""
+    use_tools = tools if (tools and _tools_passthrough_enabled()) else None
+    use_choice = tool_choice if use_tools is not None else None
     pick = None
     pick_gate_on = False
     try:
@@ -1681,6 +1843,8 @@ def run_routed_chat_stream(
                 temperature=temperature,
                 max_tokens=max_tokens,
                 messages=messages,
+                tools=use_tools,
+                tool_choice=use_choice,
             )
             return
         requested_model = "flash"
@@ -1763,6 +1927,8 @@ def run_routed_chat_stream(
             billing_mult=mult,
             public_model=public,
             messages=messages,
+            tools=use_tools,
+            tool_choice=use_choice,
         ):
             if ev.get("type") == "done":
                 got_done = True
@@ -1780,6 +1946,8 @@ def _run_vip_pick_chat_stream(
     temperature: float,
     max_tokens: int,
     messages: Optional[list[dict[str, Any]]] = None,
+    tools: Optional[list[dict[str, Any]]] = None,
+    tool_choice: Any = None,
 ) -> Iterator[dict[str, Any]]:
     billing_mult = max(1, int(pick.get("billing_mult") or 1))
     public_id = str(pick.get("id") or "vip_pick")
@@ -1826,6 +1994,8 @@ def _run_vip_pick_chat_stream(
             billing_mult=billing_mult,
             public_model=public_id,
             messages=messages,
+            tools=tools,
+            tool_choice=tool_choice,
         ):
             if ev.get("type") == "done":
                 got_done = True

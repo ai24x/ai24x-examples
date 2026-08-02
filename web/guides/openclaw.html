@@ -75,13 +75,17 @@
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_AI24X_API_KEY" \
   -d "{\"model\":\"flash\",\"messages\":[{\"role\":\"user\",\"content\":\"hello\"}]}"</div>
-        <p class="sub mt-2" data-i18n="page.guides.openclaw.s3n">Expect HTTP 200 and a <code>choices[0].message.content</code> reply.</p>
+        <p class="sub mt-2" data-i18n="page.guides.openclaw.s3n">Expect HTTP 200 and a <code>choices[0].message.content</code> reply. Tool-using agents should see <code>tool_calls</code> when OpenClaw sends <code>tools</code>.</p>
+
+        <h2 class="mt-2" data-i18n="page.guides.openclaw.s3b">3b) Tools / commands</h2>
+        <p class="sub" data-i18n="page.guides.openclaw.s3bp"><code>/v1/chat/completions</code> supports OpenAI <code>tools</code> / <code>tool_calls</code> / <code>role=tool</code> (streaming included). Point OpenClaw at AI24X flash or pro so local exec / read / web_fetch can run—same loop as a direct OpenAI-compatible provider.</p>
 
         <h2 class="mt-2" data-i18n="page.guides.openclaw.s4">4) Pitfalls</h2>
         <ul class="lead" style="padding-left:1.2em">
           <li data-i18n-html="page.guides.openclaw.tip1">Prefer <code>baseUrl=https://api.ai24x.com/v1</code>. If you get a duplicated path (<code>/v1/v1</code>), switch to the root host. Wrong URL → 405.</li>
           <li data-i18n="page.guides.openclaw.tip2">401 = bad or expired key—create a new one in Console.</li>
           <li data-i18n="page.guides.openclaw.tip3">Start with <code>flash</code>; use <code>pro</code> for harder tasks; named VIP models only after VIP is active.</li>
+          <li data-i18n="page.guides.openclaw.tip4">Use a clean session when testing tools. Keep enough credit balance—tool calling needs paid routing.</li>
         </ul>
 
         <p class="mt-2">
