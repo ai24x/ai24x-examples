@@ -1,7 +1,7 @@
 # 副脑04 · 更新指令（OpenClaw tools / 命令执行 · 生产）
 
 > 发令：2026-08-02 夜 · **副脑04 = 对外生产**（www / api）  
-> 目标提交：推送后见下方「期望」/ `git log -1`  
+> 目标提交：`afd61a6`（`feat(api): OpenClaw tools/tool_calls passthrough for flash and pro`）  
 > 进程：NSSM `AI24X-core`（**必须重启**）  
 > 静态：`web/` 拉码即生效（硬刷新指南）  
 > **禁止**整文件 Write 覆盖 `api/.env`  
@@ -43,7 +43,7 @@ git checkout master
 git pull origin master
 # 若失败：git pull gitee master
 git log -1 --oneline
-# 期望：含 OpenClaw tools / tool_calls（见主脑钉死的 SHA）
+# 期望：afd61a6 feat(api): OpenClaw tools/tool_calls ...（或更新的 pin 提交）
 
 # 可选显式（默认已开）：TOKEN_LLM_TOOLS=1
 # 不要动 DATABASE_URL / 支付密钥；禁止整文件覆盖 .env
