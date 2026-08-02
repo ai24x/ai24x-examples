@@ -1,7 +1,7 @@
 # 副脑04 · 更新指令（OpenClaw 真流式 + 定价/防刷本包 · 生产）
 
 > 发令：2026-08-02 · **副脑04 = 对外生产**（www / api）  
-> 目标提交：拉码后看下方「期望 commit」（推送后填写 / 或 `git log -1`）  
+> 目标提交：`056af39`（`feat(api,web): true streaming for OpenClaw plus pricing and signup guards`）  
 > 进程：NSSM `AI24X-core`（**必须重启**）  
 > 静态：`web/` 拉码即生效（硬刷新）  
 > **禁止**整文件 Write 覆盖 `api/.env`  
@@ -36,7 +36,7 @@ git checkout master
 git pull origin master
 # 若失败：git pull gitee master
 git log -1 --oneline
-# 期望：含 OpenClaw 真流式 / true_stream / stream_chat 等（见主脑钉死的 SHA）
+# 期望：056af39 feat(api,web): true streaming for OpenClaw ...
 
 # —— 可选 env（行级追加；默认已开真流式，可不改）——
 # 若需显式：TOKEN_LLM_TRUE_STREAM=1
