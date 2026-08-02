@@ -49,7 +49,7 @@ OpenClaw / 客户端
 | 真流式 | `056af39` 一带 | SSE 透传 + nginx 超时清单 |
 | tools | `afd61a6` | tools / tool_calls / role=tool |
 | 侧栏可读 | `6d1c227` | 控制台当前项非白字 |
-| 过夜补强 | 见当晚最新 `git log -1` | Responses 上限对齐 Completions；401 区分 invalid / key_disabled；402 透出业务 code |
+| 过夜补强 | `7c2c92c` | Responses 上限对齐 Completions；401 区分 invalid / key_disabled；402 透出业务 code |
 
 副脑04 跑书：
 

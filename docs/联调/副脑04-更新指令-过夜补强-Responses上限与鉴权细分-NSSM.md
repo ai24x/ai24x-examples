@@ -1,7 +1,7 @@
 # 副脑04 · 更新指令（过夜补强 · Responses 上限 + 鉴权细分）
 
 > 发令：2026-08-03 凌晨 · **副脑04 = 对外生产**  
-> 目标提交：推送后 `git log -1`（主脑钉死 SHA）  
+> 目标提交：`7c2c92c`（`fix(api): align Responses max_tokens and refine OpenAI auth error codes`）  
 > 进程：NSSM `AI24X-core`（**必须重启**）  
 > 静态：指南 locales 拉码即生效  
 > **禁止**整文件 Write 覆盖 `api/.env`  
