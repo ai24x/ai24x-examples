@@ -83,16 +83,25 @@ class SupportTicketReplyBody(BaseModel):
 
 
 class ErrorResponse(BaseModel):
-    error: str = Field(..., description="错误信息")
+    error: str = Field(..., description="错误信息（默认中文短句；勿塞整包 dict）")
     code: str = Field(..., description="错误代码")
     request_id: Optional[str] = Field(None, description="请求ID")
-    
+    detail: Optional[Any] = Field(
+        None,
+        description="结构化 detail；双语时含 message_zh / message_en，供前端按界面语言选取",
+    )
+
     class Config:
         json_schema_extra = {
             "example": {
                 "error": "超出每日请求限制",
                 "code": "RATE_LIMIT_EXCEEDED",
-                "request_id": "req_123456789"
+                "request_id": "req_123456789",
+                "detail": {
+                    "message_zh": "超出每日请求限制",
+                    "message_en": "Daily request limit exceeded.",
+                    "message": "超出每日请求限制",
+                },
             }
         }
 

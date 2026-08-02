@@ -218,9 +218,42 @@
         if (/[\u4e00-\u9fff]/.test(s)) return "Something went wrong. Please try again.";
         return s;
       }
+      /** 兼容旧后端把双语 dict 写成 Python str(dict) 塞进 error 的事故 */
+      function parseBilingualBlob(text) {
+        var s = pickStr(text);
+        if (!s || s.indexOf("message_zh") < 0) return null;
+        function grab(key) {
+          var re = new RegExp(
+            "['\"]" + key + "['\"]\\s*:\\s*['\"]([^'\"]*)['\"]"
+          );
+          var m = s.match(re);
+          return m ? m[1] : "";
+        }
+        var zh = grab("message_zh");
+        var en = grab("message_en");
+        var msg = grab("message");
+        if (!zh && !en && !msg) {
+          try {
+            var j = JSON.parse(s);
+            if (j && typeof j === "object") {
+              zh = pickStr(j.message_zh);
+              en = pickStr(j.message_en);
+              msg = pickStr(j.message);
+            }
+          } catch (e) {
+            return null;
+          }
+        }
+        if (!zh && !en && !msg) return null;
+        return { message_zh: zh, message_en: en, message: msg || zh };
+      }
       function pickDetail(d) {
         if (d == null) return "";
-        if (typeof d === "string") return localizeDetail(d);
+        if (typeof d === "string") {
+          var blob = parseBilingualBlob(d);
+          if (blob) return pickDetail(blob);
+          return localizeDetail(d);
+        }
         if (Array.isArray(d)) {
           return d
             .map(function (e) {
@@ -244,14 +277,27 @@
         var b = body && typeof body === "object" ? body : null;
         var parts = [];
         if (b) {
-          parts.push(localizeDetail(pickStr(b.error)));
-          // 顶层 message 可能是中文；detail 双语对象优先
+          // 双语 detail 对象优先；勿把 error 里的 str(dict) 原样拼进文案
           var fromDetail = b.detail != null ? pickDetail(b.detail) : "";
-          if (fromDetail) parts.push(fromDetail);
-          else parts.push(localizeDetail(pickStr(b.message)));
+          if (fromDetail) {
+            parts.push(fromDetail);
+          } else {
+            var fromError = pickDetail(b.error);
+            if (fromError) parts.push(fromError);
+            else parts.push(localizeDetail(pickStr(b.message)));
+          }
         }
         var joined = parts.filter(Boolean).join(" ").trim();
-        if (!joined && fallbackText) joined = localizeDetail(String(fallbackText).trim());
+        if (!joined && fallbackText) {
+          var fb = pickDetail(String(fallbackText).trim());
+          joined = fb || localizeDetail(String(fallbackText).trim());
+        }
+        // 仍含 message_zh 字样则视为泄漏，兜底短句
+        if (/message_zh|message_en/.test(joined)) {
+          joined = isZhUi()
+            ? "操作失败，请选择其它套餐或稍后重试。"
+            : "That didn’t work. Please choose another plan or try again.";
+        }
         // Nginx/HTML 502 等无 JSON 时，避免把整页 HTML 抛给用户
         if (/<\s*html|bad gateway|502/i.test(joined)) {
           joined = isZhUi()

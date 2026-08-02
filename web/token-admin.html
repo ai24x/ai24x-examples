@@ -957,10 +957,21 @@
     var j = null;
     try { j = text ? JSON.parse(text) : null; } catch (e) { j = null; }
     if (!r.ok) {
-      var d = j && (j.detail || j.message || j.error);
-      var err = new Error(typeof d === "string" ? d : ("HTTP " + r.status));
+      var d = j && (j.detail != null ? j.detail : j.message != null ? j.message : j.error);
+      var msg = "";
+      if (typeof d === "string") {
+        msg = d;
+        if (msg.indexOf("message_zh") >= 0) {
+          var mz = msg.match(/['"]message_zh['"]\s*:\s*['"]([^'"]*)['"]/);
+          if (mz) msg = mz[1];
+        }
+      } else if (d && typeof d === "object") {
+        msg = String(d.message_zh || d.message || d.message_en || d.msg || "").trim();
+      }
+      if (!msg) msg = "HTTP " + r.status;
+      var err = new Error(msg);
       err.status = r.status;
-      err.detail = typeof d === "string" ? d : "";
+      err.detail = msg;
       throw err;
     }
     if (j == null || typeof j !== "object") {

@@ -156,8 +156,10 @@ def openai_error_body(
 
 
 def map_http_exception_to_openai(exc: HTTPException) -> Tuple[int, Dict[str, Any]]:
+    from user_i18n import openai_user_message
+
     code = int(exc.status_code)
-    msg = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
+    msg = openai_user_message(exc.detail)
     if code == 401:
         return code, openai_error_body(
             msg or "Invalid API key",

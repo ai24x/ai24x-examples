@@ -445,12 +445,6 @@ async def get_user_info(
     }
 
 
-def _http_detail_str(detail: object) -> str:
-    if isinstance(detail, str):
-        return detail
-    return str(detail)
-
-
 # 全局异常处理
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
@@ -458,14 +452,18 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         from openai_compat import openai_error_response
 
         return openai_error_response(exc)
+    from user_i18n import flatten_http_detail, is_bilingual_detail
+
+    err_text, detail_out = flatten_http_detail(exc.detail)
     body = ErrorResponse(
-        error=_http_detail_str(exc.detail),
+        error=err_text,
         code=str(int(exc.status_code)),
         request_id=request.headers.get("X-Request-ID"),
+        detail=detail_out if is_bilingual_detail(detail_out) else None,
     )
     return JSONResponse(
         status_code=exc.status_code,
-        content=body.model_dump(),
+        content=body.model_dump(exclude_none=True),
     )
 
 
