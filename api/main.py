@@ -1129,6 +1129,37 @@ def _auth_user_from_bearer(request: Request, db: Session) -> AuthUser:
     return u
 
 
+def _auth_user_from_api_key_or_jwt(request: Request, db: Session) -> AuthUser:
+    """控制台 JWT 或终端 API Key 均可；用于余额自检（核对 Key 是否绑在 VIP 账号上）。"""
+    from openai_compat import extract_api_key
+    from token_mvp_service import get_api_key_row
+
+    api_key = extract_api_key(request)
+    if api_key:
+        row = get_api_key_row(db, api_key)
+        if row:
+            u = db.query(AuthUser).filter(AuthUser.id == int(row.auth_user_id)).first()
+            if not u:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED, detail="用户不存在"
+                )
+            raise_if_frozen(u)
+            return u
+        # sk- 前缀按 Key 处理，避免误走 JWT 解码报「登录已失效」
+        if api_key.startswith("sk-"):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={
+                    "message_zh": "无效的 API Key",
+                    "message_en": "Invalid API key",
+                    "message": "无效的 API Key",
+                    "code": "invalid_api_key",
+                },
+            )
+        # Bearer 也可能是 JWT：下面再试
+    return _auth_user_from_bearer(request, db)
+
+
 @app.post("/v1/auth/password/change", response_model=AuthTokenResponse)
 async def auth_password_change(
     request: Request,
@@ -1457,9 +1488,10 @@ async def keys_delete(key_id: int, request: Request, db: Session = Depends(get_d
 
 @app.get("/v1/billing/balance", response_model=BillingBalanceOut)
 async def billing_balance(request: Request, db: Session = Depends(get_db)):
+    """登录 JWT 或 API Key 均可。用调试 Key 调本接口可核对 is_vip_active / 是否同一账号。"""
     from token_mvp_service import get_balance_snapshot
 
-    u = _auth_user_from_bearer(request, db)
+    u = _auth_user_from_api_key_or_jwt(request, db)
     return get_balance_snapshot(db, int(u.id))
 
 

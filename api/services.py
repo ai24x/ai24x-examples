@@ -165,7 +165,12 @@ class ChatService:
                 if (routed.error or "") == "vip_required":
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
-                        detail="点名模型需有效会员权益，请升级后再试。",
+                        detail={
+                            "message_zh": "点名模型需有效会员权益。请确认当前 API Key 属于已开通会员的账号（控制台可用同一 Key 访问余额接口核对）。",
+                            "message_en": "Named models need an active membership on the account that owns this API key. Check /v1/billing/balance with the same key.",
+                            "message": "点名模型需有效会员权益。请确认当前 API Key 属于已开通会员的账号。",
+                            "code": "vip_required",
+                        },
                     )
                 if (routed.error or "") == "tools_unsupported":
                     raise HTTPException(

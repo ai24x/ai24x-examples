@@ -435,6 +435,7 @@ class BillingBalanceOut(BaseModel):
     vip_expires_at: Optional[str] = None
     credits_expire_at: Optional[str] = None
     is_vip_active: bool = False
+    email: Optional[str] = None
     prepaid_tokens: Optional[int] = None
     vip_daily_remaining: Optional[int] = None
     vip_daily_models: Optional[str] = None

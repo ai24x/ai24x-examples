@@ -450,6 +450,24 @@ def grant_signup_bonus(db: Session, auth_user_id: int) -> bool:
     return True
 
 
+def _plan_is_vip(plan: object) -> bool:
+    raw = plan.value if hasattr(plan, "value") else str(plan or "")
+    return str(raw).strip().lower() == "vip"
+
+
+def wallet_vip_active(wallet: TokenWallet) -> bool:
+    """与控制台 is_vip_active 同一口径（供路由与余额共用）。"""
+    if not _plan_is_vip(wallet.plan):
+        return False
+    exp = wallet.vip_expires_at
+    if exp is None:
+        return False
+    exp_naive = _as_naive(exp)
+    if not exp_naive:
+        return False
+    return exp_naive > _utcnow()
+
+
 def get_balance_snapshot(db: Session, auth_user_id: int) -> dict:
     w = ensure_period_bonus(db, get_or_create_wallet(db, auth_user_id))
     exp = w.vip_expires_at
@@ -457,8 +475,10 @@ def get_balance_snapshot(db: Session, auth_user_id: int) -> dict:
     total = int(w.balance_tokens or 0)
     prepaid = spendable_tokens(db, int(auth_user_id), allow_vip_daily=False)
     vip_daily_left = max(0, total - prepaid)
+    au = db.query(AuthUser).filter(AuthUser.id == int(auth_user_id)).first()
     out = {
         "auth_user_id": int(auth_user_id),
+        "email": (au.email or None) if au else None,
         "plan": w.plan.value if hasattr(w.plan, "value") else str(w.plan),
         "balance_tokens": total,
         "prepaid_tokens": int(prepaid),
@@ -470,10 +490,7 @@ def get_balance_snapshot(db: Session, auth_user_id: int) -> dict:
         "vip_daily_models": "flash,auto,shared",
         "vip_expires_at": exp.isoformat() if exp else None,
         "credits_expire_at": nearest.isoformat() if nearest else None,
-        "is_vip_active": bool(
-            w.plan == BillingPlan.VIP
-            and (exp is None or (_as_naive(exp) or _utcnow()) > _utcnow())
-        ),
+        "is_vip_active": wallet_vip_active(w),
     }
     try:
         from free_shared import user_shared_quota_snapshot
