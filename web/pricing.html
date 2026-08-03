@@ -16,7 +16,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:image" content="https://www.ai24x.com/img/og-share.png" />
   <meta name="description" content="AI24X token plans: choose a pack, pay in Console with PayPal USD (or WeChat/Alipay). Keys and balance in one place." />
-  <link rel="stylesheet" href="css/base.css?v=20260802f" />
+  <link rel="stylesheet" href="css/base.css?v=20260803e" />
   <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260725a" data-base="css/themes/" />
   <style>
     /* Equal-height plan cards; actions stick to bottom */
@@ -63,7 +63,7 @@
         <h2 style="margin:0 0 10px;" data-i18n="page.pricing.tokenTitle">Token plans</h2>
         <p class="sub" id="tokenPayStatus" style="margin:0 0 14px;" data-i18n="page.pricing.loading">Loading plans…</p>
         <p class="sub" id="tokenSettleHint" style="margin:0 0 14px;"></p>
-        <div class="grid-3" id="tokenPlansGrid"></div>
+        <div class="plan-compare-wrap" id="tokenPlansGrid"></div>
         <div class="hero-cta" style="margin-top:14px;">
           <a class="btn btn-primary" href="console.html#token-plans" data-i18n="page.pricing.ctaConsole">Buy / manage keys in Console</a>
           <a class="btn" href="paypal.html" data-i18n="page.pricing.settleIntlLink">PayPal checkout guide</a>
@@ -94,8 +94,8 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260803d"></script>
-  <script src="js/api.js?v=20260803d"></script>
+  <script src="config/locales.js?v=20260803e"></script>
+  <script src="js/api.js?v=20260803e"></script>
   <script src="js/utm.js?v=20260802a"></script>
 <script src="js/i18n.js?v=20260802m"></script>
   <script src="js/shell.js?v=20260802m"></script>
@@ -160,51 +160,69 @@
               : t("page.pricing.payClosed", "Plans are listed; payment is not open yet.");
         if (settle) settle.textContent = AI24X_API.planSettleHint(plans[0]);
         grid.innerHTML = "";
+        grid.className = "plan-compare-wrap";
+        var table = document.createElement("table");
+        table.className = "plan-compare";
+        table.innerHTML =
+          "<thead><tr>" +
+          "<th>" +
+          (zh ? "套餐" : "Plan") +
+          "</th><th>" +
+          (zh ? "价格" : "Price") +
+          "</th><th>" +
+          (zh ? "预充" : "Credits") +
+          "</th><th>" +
+          (zh ? "会员" : "VIP") +
+          "</th><th>" +
+          (zh ? "可点名" : "Named") +
+          "</th><th>" +
+          (zh ? "适合" : "Best for") +
+          "</th><th></th></tr></thead>";
+        var tbody = document.createElement("tbody");
         plans.forEach(function (p) {
-          var card = document.createElement("div");
-          card.className = "card";
-          if (p.recommended) {
-            card.style.borderColor = "var(--accent, #2563eb)";
-          }
-          var tags = AI24X_API.planCapabilityTags(p) || [];
-          var canLine = AI24X_API.planCanLine(p) || "";
-          var notLine = AI24X_API.planNotLine(p) || "";
-          var bits = [];
-          if (p.credit_tokens) bits.push(p.credit_tokens + " token");
-          if (p.set_vip) {
-            bits.push(
-              zh
-                ? "Token VIP" + (p.vip_days ? " " + p.vip_days + " 天" : "")
-                : "Token VIP" + (p.vip_days ? " " + p.vip_days + "d" : "")
-            );
-          }
-          var note = AI24X_API.planNote(p);
+          var caps = AI24X_API.planCaps(p);
           var buyLabel = t("page.pricing.ctaBuy", zh ? "去购买" : "Buy");
-          var actions =
-            '<div class="pricing-plan-actions">' +
-            '<a class="btn btn-primary" href="' +
+          var tr = document.createElement("tr");
+          if (p.recommended) tr.className = "is-recommended";
+          tr.innerHTML =
+            "<td><strong>" +
+            esc(AI24X_API.planTitle(p)) +
+            "</strong>" +
+            (p.recommended
+              ? '<span class="plan-rec">' + (zh ? "推荐" : "Rec") + "</span>"
+              : "") +
+            "</td>" +
+            "<td>" +
+            esc(AI24X_API.planPriceLabel(p)) +
+            "</td>" +
+            "<td>" +
+            esc(AI24X_API.planCreditsShort(p)) +
+            "</td>" +
+            "<td>" +
+            esc(AI24X_API.planYesNo(!!caps.vip)) +
+            "</td>" +
+            "<td>" +
+            esc(AI24X_API.planYesNo(!!caps.named)) +
+            "</td>" +
+            "<td>" +
+            esc(AI24X_API.planOneLiner(p) || "—") +
+            "</td>" +
+            '<td><a class="btn btn-primary" href="' +
             esc(buyHref(p.plan)) +
             '">' +
             esc(buyLabel) +
-            "</a></div>";
-          card.innerHTML =
-            "<h3 style=\"margin:0 0 8px;\">" +
-            esc(AI24X_API.planTitle(p)) +
-            "</h3>" +
-            (tags.length
-              ? '<p class="sub" style="margin:0 0 6px;">' + esc(tags.join(" · ")) + "</p>"
-              : "") +
-            '<p class="sub" style="margin:0;"><strong>' +
-            esc(AI24X_API.planPriceLabel(p)) +
-            "</strong>" +
-            (bits.length ? " · " + esc(bits.join(" · ")) : "") +
-            "</p>" +
-            (canLine ? '<p class="sub" style="margin:8px 0 0;">' + esc(canLine) + "</p>" : "") +
-            (notLine ? '<p class="sub" style="margin:4px 0 0;">' + esc(notLine) + "</p>" : "") +
-            (note ? '<p class="sub" style="margin:8px 0 0;">' + esc(note) + "</p>" : "") +
-            actions;
-          grid.appendChild(card);
+            "</a></td>";
+          tbody.appendChild(tr);
         });
+        table.appendChild(tbody);
+        grid.appendChild(table);
+        var tip = document.createElement("p");
+        tip.className = "sub";
+        tip.style.marginTop = "12px";
+        tip.textContent = zh
+          ? "要点名 = 会员有 + 预充有。只买月卡或只买开发包都不完整。"
+          : "Named models need VIP Yes + Credits Yes. Pass-only or credits-only is incomplete.";
+        grid.appendChild(tip);
       }
 
       AI24X_API.billingPlans()

@@ -327,137 +327,123 @@
       box.innerHTML = '<p class="sub">' + tr("暂无套餐", "No plans") + "</p>";
       return;
     }
+
+    function payIconSvg(channel) {
+      if (channel === "wechat") {
+        return (
+          '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+          '<path fill="#07C160" d="M9.5 4C5.9 4 3 6.5 3 9.6c0 1.8 1 3.3 2.6 4.4L5 16.2l2.4-1.2c.7.2 1.4.3 2.1.3.2 0 .4 0 .6 0-.2-.5-.3-1-.3-1.6 0-3.2 3.1-5.8 6.9-5.8.2 0 .4 0 .6.1C16.4 5.3 13.2 4 9.5 4zm-2.3 3.1c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zm4.6 0c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zM16.8 9c-3.1 0-5.6 2.1-5.6 4.7s2.5 4.7 5.6 4.7c.6 0 1.2-.1 1.8-.3l1.9.9-.5-1.7c1.2-.9 2-2.2 2-3.6C21.9 11.1 19.5 9 16.8 9zm-1.9 3.1c.3 0 .6.3.6.6s-.3.6-.6.6-.6-.3-.6-.6.3-.6.6-.6zm3.8 0c.3 0 .6.3.6.6s-.3.6-.6.6-.6-.3-.6-.6.3-.6.6-.6z"/></svg>'
+        );
+      }
+      if (channel === "alipay") {
+        return (
+          '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+          '<path fill="#1677FF" d="M21.5 12.2c0-4.6-3.4-8.2-8.3-8.2H5.2v16h8.1c4.8 0 8.2-3.5 8.2-7.8zm-9.9 3.3c-2.2 0-3.4-1-3.4-2.5 0-1.6 1.3-2.5 3.5-2.5.6 0 1.2.1 1.8.2-.3.6-.6 1.3-.9 2.1H10c-.5 0-.8.2-.8.6 0 .4.4.7 1.1.7.7 0 1.4-.2 2-.5.2.6.4 1.1.5 1.5-.9.3-1.8.4-2.7.4zm5.7-1.1c-.4.7-.9 1.4-1.5 2-.2-.5-.4-1.1-.5-1.7.7-.1 1.4-.2 2-.3zm1.3-2.5c-.9.2-1.9.4-2.9.8.3-.8.6-1.5 1-2.1.7.3 1.3.8 1.9 1.3z"/></svg>'
+        );
+      }
+      if (channel === "paypal") {
+        return (
+          '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+          '<path fill="#003087" d="M7.2 20.5h1.7l.5-3.1h1.7c3.3 0 5.5-1.4 6.1-4.3.1-.5.1-.9.1-1.2 0-.2 0-.4-.1-.6H19l.1-.5c.4-2.5-.9-4.2-3.8-4.2H9.2L7.2 20.5zm4.2-11.5h1.7c1.3 0 2 .5 1.8 1.7-.2 1.4-1.2 1.7-2.5 1.7h-1.5l.5-3.4z"/>' +
+          '<path fill="#009CDE" d="M9.5 21.5h1.7l.4-2.5H13c2.7 0 4.4-1.1 4.9-3.5.1-.4.1-.7.1-1 0-.1 0-.3 0-.4h1.5l.1-.4c.3-2-.7-3.4-3.1-3.4h-4.3l-1.9 11.2h1.7l.5 3.1h1.4c1.1 0 1.7.4 1.5 1.4-.2 1.1-1 1.4-2.1 1.4H10l.5 3.3z"/></svg>'
+        );
+      }
+      return "";
+    }
+
+    var wrap = document.createElement("div");
+    wrap.className = "plan-compare-wrap";
+    var table = document.createElement("table");
+    table.className = "plan-compare";
+    table.innerHTML =
+      "<thead><tr>" +
+      "<th>" +
+      tr("套餐", "Plan") +
+      "</th><th>" +
+      tr("价格", "Price") +
+      "</th><th>" +
+      tr("预充", "Credits") +
+      "</th><th>" +
+      tr("会员", "VIP") +
+      "</th><th>" +
+      tr("可点名", "Named") +
+      "</th><th>" +
+      tr("适合", "Best for") +
+      "</th><th>" +
+      tr("购买", "Buy") +
+      "</th></tr></thead>";
+    var tbody = document.createElement("tbody");
     plans.forEach(function (p) {
-      var card = document.createElement("div");
-      card.className = "card";
-      card.style.marginBottom = "10px";
-      var h = document.createElement("h4");
-      h.className = "mt-0";
-      h.style.marginBottom = "6px";
-      h.textContent = AI24X_API.planTitle(p);
-      if (p.recommended) {
-        card.style.borderColor = "var(--accent, #2563eb)";
+      var caps = AI24X_API.planCaps(p);
+      var trEl = document.createElement("tr");
+      if (p.recommended) trEl.className = "is-recommended";
+      if (p.plan) trEl.setAttribute("data-plan", String(p.plan));
+      var nameCell = document.createElement("td");
+      nameCell.innerHTML =
+        "<strong>" +
+        (AI24X_API.planTitle(p) || "") +
+        "</strong>" +
+        (p.recommended
+          ? '<span class="plan-rec">' + tr("推荐", "Rec") + "</span>"
+          : "");
+      trEl.appendChild(nameCell);
+      function tdText(t) {
+        var td = document.createElement("td");
+        td.textContent = t;
+        return td;
       }
-      card.appendChild(h);
-      var tags = AI24X_API.planCapabilityTags(p) || [];
-      if (tags.length) {
-        var tagRow = document.createElement("p");
-        tagRow.className = "sub";
-        tagRow.style.margin = "0 0 6px";
-        tagRow.textContent = tags.join(" · ");
-        card.appendChild(tagRow);
-      }
-      var meta = document.createElement("p");
-      meta.className = "sub";
-      meta.style.margin = "0";
-      var bits = [AI24X_API.planPriceLabel(p)];
-      if (p.credit_tokens) {
-        bits.push((zh ? "到账 " : "") + p.credit_tokens + " token");
-      }
-      if (p.validity_days && p.credit_tokens) {
-        bits.push(
-          zh
-            ? "额度有效 " + p.validity_days + " 天"
-            : "valid " + p.validity_days + " days"
-        );
-      }
-      if (p.set_vip) {
-        bits.push(
-          zh
-            ? "开通 Token VIP" + (p.vip_days ? " " + p.vip_days + " 天" : "")
-            : "Token VIP" + (p.vip_days ? " " + p.vip_days + "d" : "")
-        );
-      }
-      meta.textContent = bits.join(" · ");
-      card.appendChild(meta);
-      var canLine = AI24X_API.planCanLine(p);
-      if (canLine) {
-        var canP = document.createElement("p");
-        canP.className = "sub";
-        canP.style.marginTop = "6px";
-        canP.textContent = canLine;
-        card.appendChild(canP);
-      }
-      var notLine = AI24X_API.planNotLine(p);
-      if (notLine) {
-        var notP = document.createElement("p");
-        notP.className = "sub";
-        notP.style.marginTop = "4px";
-        notP.textContent = notLine;
-        card.appendChild(notP);
-      }
+      trEl.appendChild(tdText(AI24X_API.planPriceLabel(p)));
+      trEl.appendChild(tdText(AI24X_API.planCreditsShort(p)));
+      trEl.appendChild(tdText(AI24X_API.planYesNo(!!caps.vip)));
+      trEl.appendChild(tdText(AI24X_API.planYesNo(!!caps.named)));
+      trEl.appendChild(tdText(AI24X_API.planOneLiner(p) || "—"));
+      var payTd = document.createElement("td");
+      payTd.className = "plan-compare-pay";
       var actions = document.createElement("div");
-      actions.className = "card-actions";
-      actions.style.marginTop = "10px";
-
-      function payIconSvg(channel) {
-        if (channel === "wechat") {
-          return (
-            '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
-            '<path fill="#07C160" d="M9.5 4C5.9 4 3 6.5 3 9.6c0 1.8 1 3.3 2.6 4.4L5 16.2l2.4-1.2c.7.2 1.4.3 2.1.3.2 0 .4 0 .6 0-.2-.5-.3-1-.3-1.6 0-3.2 3.1-5.8 6.9-5.8.2 0 .4 0 .6.1C16.4 5.3 13.2 4 9.5 4zm-2.3 3.1c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zm4.6 0c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zM16.8 9c-3.1 0-5.6 2.1-5.6 4.7s2.5 4.7 5.6 4.7c.6 0 1.2-.1 1.8-.3l1.9.9-.5-1.7c1.2-.9 2-2.2 2-3.6C21.9 11.1 19.5 9 16.8 9zm-1.9 3.1c.3 0 .6.3.6.6s-.3.6-.6.6-.6-.3-.6-.6.3-.6.6-.6zm3.8 0c.3 0 .6.3.6.6s-.3.6-.6.6-.6-.3-.6-.6.3-.6.6-.6z"/></svg>'
-          );
-        }
-        if (channel === "alipay") {
-          return (
-            '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
-            '<path fill="#1677FF" d="M21.5 12.2c0-4.6-3.4-8.2-8.3-8.2H5.2v16h8.1c4.8 0 8.2-3.5 8.2-7.8zm-9.9 3.3c-2.2 0-3.4-1-3.4-2.5 0-1.6 1.3-2.5 3.5-2.5.6 0 1.2.1 1.8.2-.3.6-.6 1.3-.9 2.1H10c-.5 0-.8.2-.8.6 0 .4.4.7 1.1.7.7 0 1.4-.2 2-.5.2.6.4 1.1.5 1.5-.9.3-1.8.4-2.7.4zm5.7-1.1c-.4.7-.9 1.4-1.5 2-.2-.5-.4-1.1-.5-1.7.7-.1 1.4-.2 2-.3zm1.3-2.5c-.9.2-1.9.4-2.9.8.3-.8.6-1.5 1-2.1.7.3 1.3.8 1.9 1.3z"/></svg>'
-          );
-        }
-        if (channel === "paypal") {
-          return (
-            '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
-            '<path fill="#003087" d="M7.2 20.5h1.7l.5-3.1h1.7c3.3 0 5.5-1.4 6.1-4.3.1-.5.1-.9.1-1.2 0-.2 0-.4-.1-.6H19l.1-.5c.4-2.5-.9-4.2-3.8-4.2H9.2L7.2 20.5zm4.2-11.5h1.7c1.3 0 2 .5 1.8 1.7-.2 1.4-1.2 1.7-2.5 1.7h-1.5l.5-3.4z"/>' +
-            '<path fill="#009CDE" d="M9.5 21.5h1.7l.4-2.5H13c2.7 0 4.4-1.1 4.9-3.5.1-.4.1-.7.1-1 0-.1 0-.3 0-.4h1.5l.1-.4c.3-2-.7-3.4-3.1-3.4h-4.3l-1.9 11.2h1.7l.5-3.1h1.4c1.1 0 1.7.4 1.5 1.4-.2 1.1-1 1.4-2.1 1.4H10l.5 3.3z"/></svg>'
-          );
-        }
-        return "";
-      }
-
+      actions.className = "card-actions plan-compare-actions";
       function addBtn(label, cls, channel) {
         var btn = document.createElement("button");
         btn.type = "button";
         btn.className = cls + (channel !== "mock" ? " btn-pay" : "");
-        var ico = channel !== "mock" ? payIconSvg(channel) : "";
-        btn.innerHTML = ico + "<span>" + label + "</span>";
+        btn.innerHTML = (channel !== "mock" ? payIconSvg(channel) : "") + "<span>" + label + "</span>";
         btn.setAttribute("data-pay-channel", channel);
         btn.addEventListener("click", function () {
           buyPlan(p.plan, channel, p);
         });
         actions.appendChild(btn);
       }
-
       if (pay.wechat_ready) addBtn(tr("微信", "WeChat"), "btn", "wechat");
       if (pay.alipay_ready) addBtn(tr("支付宝", "Alipay"), "btn", "alipay");
       if (pay.paypal_ready) addBtn("PayPal", "btn btn-primary", "paypal");
-      if (pay.mock_allowed) {
-        addBtn(tr("模拟到账", "Mock pay"), "btn", "mock");
-      } else if (!pay.wechat_ready && !pay.alipay_ready && !pay.paypal_ready) {
+      if (pay.mock_allowed) addBtn(tr("模拟", "Mock"), "btn", "mock");
+      if (
+        !pay.wechat_ready &&
+        !pay.alipay_ready &&
+        !pay.paypal_ready &&
+        !pay.mock_allowed
+      ) {
         var disabled = document.createElement("button");
         disabled.type = "button";
         disabled.className = "btn";
         disabled.disabled = true;
-        disabled.textContent = pay.enabled
-          ? tr("支付通道未就绪", "Pay channel not ready")
-          : tr("支付暂未开放", "Pay not open");
-        disabled.title = tr(
-          "支付暂不可用，请稍后再试或换其它方式。",
-          "Payment unavailable — try again later or another method."
-        );
+        disabled.textContent = tr("暂不可买", "Unavailable");
         actions.appendChild(disabled);
       }
-
-      var noteText = AI24X_API.planNote(p);
-      if (noteText) {
-        var note = document.createElement("p");
-        note.className = "sub";
-        note.style.marginTop = "6px";
-        note.textContent = noteText;
-        card.appendChild(note);
-      }
-      card.appendChild(actions);
-      if (p.plan) card.setAttribute("data-plan", String(p.plan));
-      box.appendChild(card);
+      payTd.appendChild(actions);
+      trEl.appendChild(payTd);
+      tbody.appendChild(trEl);
     });
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    var tip = document.createElement("p");
+    tip.className = "sub";
+    tip.style.marginTop = "10px";
+    tip.textContent = tr(
+      "要点名 = 会员有 + 预充有。只买月卡或只买开发包都不完整。",
+      "Named models need VIP Yes + Credits Yes. Pass-only or credits-only is incomplete."
+    );
+    wrap.appendChild(tip);
+    box.appendChild(wrap);
     tryApplyPayDeepLink();
   }
 
@@ -488,7 +474,7 @@
       if (wantPlan) {
         card = box.querySelector('[data-plan="' + wantPlan.replace(/"/g, "") + '"]');
       }
-      if (!card) card = box.querySelector(".card");
+      if (!card) card = box.querySelector("tr[data-plan], .card");
       var plansAnchor = $("token-plans");
       if (plansAnchor) {
         try {

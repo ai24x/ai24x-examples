@@ -596,58 +596,56 @@
     };
   }
 
-  function planCapabilityTags(p) {
-    var zh = isZhUi();
-    var c = planCaps(p);
-    var tags = [];
-    if (c.recommended) tags.push(zh ? "推荐·可点名" : "Recommended · named OK");
-    if (c.credits) tags.push(zh ? "预充额度" : "Prepaid credits");
-    if (c.vip) tags.push(zh ? "会员" : "Membership");
-    if (c.named) tags.push(zh ? "可点名" : "Named models");
-    if (c.vipOnly) tags.push(zh ? "日赠仅 flash" : "Daily: flash only");
-    if (c.creditsOnly) tags.push(zh ? "不含会员" : "No membership");
-    return tags;
+  function planCreditsShort(p) {
+    var n = Number((p && p.credit_tokens) || 0);
+    if (!n) return "—";
+    if (isZhUi()) {
+      if (n >= 1e8) return (n / 1e8).toFixed(n % 1e8 === 0 ? 0 : 1) + " 亿";
+      if (n >= 1e4) return Math.round(n / 1e4) + " 万";
+      return String(n);
+    }
+    if (n >= 1e6) return Math.round(n / 1e6) + "M";
+    if (n >= 1e3) return Math.round(n / 1e3) + "k";
+    return String(n);
   }
 
-  function planCanLine(p) {
+  /** 一句话定位（对比表用，避免多段说明） */
+  function planOneLiner(p) {
     var zh = isZhUi();
     var c = planCaps(p);
     if (c.named) {
-      return zh
-        ? "立刻能用：会员 + 预充一次齐，可点名 Kimi/Claude 等（仍耗预充额度）。"
-        : "You get: VIP + prepaid together — named models OK (uses prepaid).";
+      return zh ? "要名模首选：会员+额度一次齐" : "Best for named models: VIP + credits";
     }
     if (c.vipOnly) {
-      return zh
-        ? "立刻能用：会员身份 + 每日 flash/auto/共享额度。"
-        : "You get: membership + daily flash/auto/shared bonus.";
+      return zh ? "只要会员与日赠 flash" : "VIP + daily flash only";
+    }
+    if (c.creditsOnly && Number((p && p.credit_tokens) || 0) <= 500000) {
+      return zh ? "小额预充，先跑通" : "Small prepaid to get started";
     }
     if (c.creditsOnly) {
-      return zh
-        ? "立刻能用：预充额度打 flash/pro 等（按量扣费）。"
-        : "You get: prepaid credits for flash/pro (pay-as-you-go).";
+      return zh ? "日常预充，不含会员" : "Prepaid only — no VIP";
     }
     return "";
   }
 
-  function planNotLine(p) {
+  function planYesNo(flag) {
+    if (isZhUi()) return flag ? "有" : "无";
+    return flag ? "Yes" : "No";
+  }
+
+  function planCapabilityTags(p) {
     var zh = isZhUi();
     var c = planCaps(p);
-    if (c.named) {
-      return zh
-        ? "说明：日赠部分仍不能打名模；名模走预充余额。"
-        : "Note: daily bonus still cannot run named models — those use prepaid.";
-    }
-    if (c.vipOnly) {
-      return zh
-        ? "不要误会：单买月卡不能打名模，请再购开发包，或改选 Scale。"
-        : "Not enough alone for named models — add Builder credits, or choose Scale.";
-    }
-    if (c.creditsOnly) {
-      return zh
-        ? "不要误会：不含会员；要点名请另开月卡或选 Scale。"
-        : "No membership — add Pro Pass for named models, or choose Scale.";
-    }
+    var tags = [];
+    if (c.recommended) tags.push(zh ? "推荐" : "Recommended");
+    return tags;
+  }
+
+  function planCanLine(p) {
+    return planOneLiner(p);
+  }
+
+  function planNotLine(p) {
     return "";
   }
 
@@ -725,6 +723,9 @@
     planCapabilityTags: planCapabilityTags,
     planCanLine: planCanLine,
     planNotLine: planNotLine,
+    planOneLiner: planOneLiner,
+    planCreditsShort: planCreditsShort,
+    planYesNo: planYesNo,
     planFulfillMessage: planFulfillMessage,
   };
 })(typeof window !== "undefined" ? window : this);
