@@ -236,14 +236,14 @@
       var btnUse = document.createElement("button");
       btnUse.type = "button";
       btnUse.className = "btn";
-      btnUse.textContent = tr("用作调用", "Use for calls");
+      btnUse.textContent = tr("使用说明", "How to use");
       btnUse.style.marginRight = "6px";
       btnUse.addEventListener("click", function () {
         showMsg(
           $("consoleMsg"),
           tr(
-            "列表只显示前缀。完整 Key 仅创建时返回一次；若已保存可粘贴到上方「API Key」框。",
-            "List shows prefixes only. The full key is returned once at creation — paste it into API Key above if you saved it."
+            "一个账号可有多把 Key，共用余额与会员。完整 Key 仅创建时显示一次；列表里的前缀不能还原明文。把已保存的完整 Key 填到上方框或复制到 OpenClaw 即可，无需因充值重建 Key。",
+            "One account can have many keys; they share balance and VIP. The full key is shown once at creation—list prefixes cannot restore it. Paste a saved key above or into OpenClaw. Top-ups do not require a new key."
           ),
           true
         );
@@ -335,6 +335,18 @@
       h.className = "mt-0";
       h.style.marginBottom = "6px";
       h.textContent = AI24X_API.planTitle(p);
+      if (p.recommended) {
+        card.style.borderColor = "var(--accent, #2563eb)";
+      }
+      card.appendChild(h);
+      var tags = AI24X_API.planCapabilityTags(p) || [];
+      if (tags.length) {
+        var tagRow = document.createElement("p");
+        tagRow.className = "sub";
+        tagRow.style.margin = "0 0 6px";
+        tagRow.textContent = tags.join(" · ");
+        card.appendChild(tagRow);
+      }
       var meta = document.createElement("p");
       meta.className = "sub";
       meta.style.margin = "0";
@@ -357,6 +369,23 @@
         );
       }
       meta.textContent = bits.join(" · ");
+      card.appendChild(meta);
+      var canLine = AI24X_API.planCanLine(p);
+      if (canLine) {
+        var canP = document.createElement("p");
+        canP.className = "sub";
+        canP.style.marginTop = "6px";
+        canP.textContent = canLine;
+        card.appendChild(canP);
+      }
+      var notLine = AI24X_API.planNotLine(p);
+      if (notLine) {
+        var notP = document.createElement("p");
+        notP.className = "sub";
+        notP.style.marginTop = "4px";
+        notP.textContent = notLine;
+        card.appendChild(notP);
+      }
       var actions = document.createElement("div");
       actions.className = "card-actions";
       actions.style.marginTop = "10px";
@@ -417,8 +446,6 @@
         actions.appendChild(disabled);
       }
 
-      card.appendChild(h);
-      card.appendChild(meta);
       var noteText = AI24X_API.planNote(p);
       if (noteText) {
         var note = document.createElement("p");
@@ -621,9 +648,11 @@
   }
 
   var _fulfillPollTimer = null;
+  var _lastPayPlanId = null;
   /** 支付后主动查单补履约（异步 notify 未到时的兜底） */
-  function startFulfillPoll(outTradeNo, channel) {
+  function startFulfillPoll(outTradeNo, channel, planId) {
     if (!outTradeNo) return;
+    if (planId) _lastPayPlanId = planId;
     if (_fulfillPollTimer) {
       clearInterval(_fulfillPollTimer);
       _fulfillPollTimer = null;
@@ -644,7 +673,7 @@
             _fulfillPollTimer = null;
             showMsg(
               $("consoleMsg"),
-              tr("支付已确认，Token 已到账。单号：" + outTradeNo, "Paid. Tokens credited. Order: " + outTradeNo),
+              AI24X_API.planFulfillMessage(_lastPayPlanId || planId, outTradeNo),
               true
             );
             try {
@@ -664,6 +693,7 @@
     var price = AI24X_API.planPriceLabel(planMeta) || "";
     var planTitle = AI24X_API.planTitle(planMeta) || planId;
     var session = ++_payModalSession;
+    _lastPayPlanId = planId || null;
 
     if (channel === "mock" || (!pay.wechat_ready && !pay.alipay_ready && pay.mock_allowed)) {
       showMsg($("consoleMsg"), tr("正在创建模拟订单…", "Creating mock order…"), true);
@@ -758,7 +788,7 @@
             ),
             qrData: r.code_url,
           });
-          startFulfillPoll(r.out_trade_no, "wechat");
+          startFulfillPoll(r.out_trade_no, "wechat", planId);
         } else if (channel === "alipay" && r && r.pay_url) {
           var opened = navigateCheckoutWin(checkoutWin, r.pay_url);
           showPayResult({
@@ -780,7 +810,7 @@
             openUrl: r.pay_url,
             openLabel: tr("在新窗口打开支付宝", "Open Alipay in a new window"),
           });
-          startFulfillPoll(r.out_trade_no, "alipay");
+          startFulfillPoll(r.out_trade_no, "alipay", planId);
         } else if (channel === "paypal" && r && r.pay_url) {
           var ppOpened = navigateCheckoutWin(checkoutWin, r.pay_url);
           showPayResult({
@@ -800,7 +830,7 @@
             openUrl: r.pay_url,
             openLabel: tr("打开 PayPal", "Open PayPal"),
           });
-          startFulfillPoll(r.out_trade_no, "paypal");
+          startFulfillPoll(r.out_trade_no, "paypal", planId);
         } else {
           closeCheckoutWin(checkoutWin);
           var badHint = tr(
@@ -886,7 +916,7 @@
               showMsg(
                 $("consoleMsg"),
                 r && r.ok
-                  ? tr("查单履约成功，Token 已到账", "Payment confirmed, tokens credited")
+                  ? AI24X_API.planFulfillMessage(o.plan || _lastPayPlanId, o.out_trade_no)
                   : tr("尚未支付成功或查单未完成", "Not paid yet / still pending"),
                 !!(r && r.ok)
               );
@@ -992,7 +1022,7 @@
               fmtInt(prepaid) +
               tr(" · 日赠 ", " · daily ") +
               fmtInt(dailyLeft) +
-              tr("（日赠仅 flash/auto）", " (daily: flash/auto only)")
+              tr("（日赠仅 flash/auto；名模须会员+预充）", " (daily: flash/auto only; named needs VIP+prepaid)")
           );
         }
         if (bal.credits_expire_at && Number(bal.balance_tokens) > 0) {
@@ -1449,7 +1479,7 @@
             showMsg(
               $("consoleMsg"),
               r && r.ok
-                ? tr("PayPal 已到账", "PayPal credited")
+                ? AI24X_API.planFulfillMessage(_lastPayPlanId, null)
                 : tr("PayPal 尚未完成，可在「我的订单」点确认到账", "PayPal pending — tap Confirm under My orders"),
               !!(r && r.ok)
             );

@@ -51,7 +51,7 @@
     <section class="hero hero-surface section-tight">
       <div class="container">
         <h1 data-i18n="page.pricing.title">Pricing</h1>
-        <p class="lead" data-i18n="page.pricing.sub">Everyday work on flash from about $0.45/M—no need to burn flagship bills. Pick a plan here; pay and manage keys in the Console.</p>
+        <p class="lead" data-i18n="page.pricing.sub">Membership and prepaid are separate. Everyday flash → Builder; named models → Scale (or Pass + Builder). Pay and manage keys in the Console.</p>
         <p class="callout mt-2" data-i18n="page.pricing.callout">
           China LLMs, one key: flash from about $0.45/M. Pay with PayPal (USD) globally, or WeChat/Alipay in China. VIP can pick Kimi, MiMo, MiniMax, GLM, and more by name.
         </p>
@@ -94,8 +94,8 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260802w"></script>
-  <script src="js/api.js?v=20260802i"></script>
+  <script src="config/locales.js?v=20260803d"></script>
+  <script src="js/api.js?v=20260803d"></script>
   <script src="js/utm.js?v=20260802a"></script>
 <script src="js/i18n.js?v=20260802m"></script>
   <script src="js/shell.js?v=20260802m"></script>
@@ -163,6 +163,12 @@
         plans.forEach(function (p) {
           var card = document.createElement("div");
           card.className = "card";
+          if (p.recommended) {
+            card.style.borderColor = "var(--accent, #2563eb)";
+          }
+          var tags = AI24X_API.planCapabilityTags(p) || [];
+          var canLine = AI24X_API.planCanLine(p) || "";
+          var notLine = AI24X_API.planNotLine(p) || "";
           var bits = [];
           if (p.credit_tokens) bits.push(p.credit_tokens + " token");
           if (p.set_vip) {
@@ -185,11 +191,16 @@
             "<h3 style=\"margin:0 0 8px;\">" +
             esc(AI24X_API.planTitle(p)) +
             "</h3>" +
+            (tags.length
+              ? '<p class="sub" style="margin:0 0 6px;">' + esc(tags.join(" · ")) + "</p>"
+              : "") +
             '<p class="sub" style="margin:0;"><strong>' +
             esc(AI24X_API.planPriceLabel(p)) +
             "</strong>" +
             (bits.length ? " · " + esc(bits.join(" · ")) : "") +
             "</p>" +
+            (canLine ? '<p class="sub" style="margin:8px 0 0;">' + esc(canLine) + "</p>" : "") +
+            (notLine ? '<p class="sub" style="margin:4px 0 0;">' + esc(notLine) + "</p>" : "") +
             (note ? '<p class="sub" style="margin:8px 0 0;">' + esc(note) + "</p>" : "") +
             actions;
           grid.appendChild(card);

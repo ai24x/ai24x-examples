@@ -578,6 +578,105 @@
     return (p && p.settle_hint_en) || "Pay with PayPal (USD) on the international site";
   }
 
+  /** 套餐能力：额度 / 会员 / 可点名（避免下单误会） */
+  function planCaps(p) {
+    var credits =
+      p && (p.cap_credits != null ? !!p.cap_credits : Number(p.credit_tokens || 0) > 0);
+    var vip = p && (p.cap_vip != null ? !!p.cap_vip : !!p.set_vip);
+    var named =
+      p &&
+      (p.cap_named_ready != null ? !!p.cap_named_ready : !!(vip && credits));
+    return {
+      credits: !!credits,
+      vip: !!vip,
+      named: !!named,
+      vipOnly: !!vip && !credits,
+      creditsOnly: !!credits && !vip,
+      recommended: !!(p && p.recommended),
+    };
+  }
+
+  function planCapabilityTags(p) {
+    var zh = isZhUi();
+    var c = planCaps(p);
+    var tags = [];
+    if (c.recommended) tags.push(zh ? "推荐·可点名" : "Recommended · named OK");
+    if (c.credits) tags.push(zh ? "预充额度" : "Prepaid credits");
+    if (c.vip) tags.push(zh ? "会员" : "Membership");
+    if (c.named) tags.push(zh ? "可点名" : "Named models");
+    if (c.vipOnly) tags.push(zh ? "日赠仅 flash" : "Daily: flash only");
+    if (c.creditsOnly) tags.push(zh ? "不含会员" : "No membership");
+    return tags;
+  }
+
+  function planCanLine(p) {
+    var zh = isZhUi();
+    var c = planCaps(p);
+    if (c.named) {
+      return zh
+        ? "立刻能用：会员 + 预充一次齐，可点名 Kimi/Claude 等（仍耗预充额度）。"
+        : "You get: VIP + prepaid together — named models OK (uses prepaid).";
+    }
+    if (c.vipOnly) {
+      return zh
+        ? "立刻能用：会员身份 + 每日 flash/auto/共享额度。"
+        : "You get: membership + daily flash/auto/shared bonus.";
+    }
+    if (c.creditsOnly) {
+      return zh
+        ? "立刻能用：预充额度打 flash/pro 等（按量扣费）。"
+        : "You get: prepaid credits for flash/pro (pay-as-you-go).";
+    }
+    return "";
+  }
+
+  function planNotLine(p) {
+    var zh = isZhUi();
+    var c = planCaps(p);
+    if (c.named) {
+      return zh
+        ? "说明：日赠部分仍不能打名模；名模走预充余额。"
+        : "Note: daily bonus still cannot run named models — those use prepaid.";
+    }
+    if (c.vipOnly) {
+      return zh
+        ? "不要误会：单买月卡不能打名模，请再购开发包，或改选 Scale。"
+        : "Not enough alone for named models — add Builder credits, or choose Scale.";
+    }
+    if (c.creditsOnly) {
+      return zh
+        ? "不要误会：不含会员；要点名请另开月卡或选 Scale。"
+        : "No membership — add Pro Pass for named models, or choose Scale.";
+    }
+    return "";
+  }
+
+  function planFulfillMessage(planId, outTradeNo) {
+    var zh = isZhUi();
+    var otn = outTradeNo ? String(outTradeNo) : "";
+    var suffix = otn ? (zh ? " 单号：" + otn : " Order: " + otn) : "";
+    if (planId === "token_vip_month") {
+      return zh
+        ? "会员已开通。日赠仅 flash/auto；要点名请再购开发包或 Scale。" + suffix
+        : "Membership active. Daily bonus is flash/auto only — buy Builder or Scale for named models." +
+            suffix;
+    }
+    if (planId === "token_pack_100k" || planId === "token_pack_10k") {
+      return zh
+        ? "预充额度已到账。若要点名，请确认已开会员（月卡/Scale）。" + suffix
+        : "Credits added. For named models, confirm you also have VIP (Pro Pass / Scale)." +
+            suffix;
+    }
+    if (planId === "token_vip_month_50w") {
+      return zh
+        ? "会员与预充均已就绪，可在控制台选用名模。" + suffix
+        : "VIP + credits ready — you can use named models in the Console." + suffix;
+    }
+    return zh
+      ? "支付已确认，已到账。" + suffix
+      : "Paid and credited." + suffix;
+  }
+
   global.AI24X_API = {
     getBase: getBase,
     setBase: setBase,
@@ -622,5 +721,10 @@
     planPriceLabel: planPriceLabel,
     planNote: planNote,
     planSettleHint: planSettleHint,
+    planCaps: planCaps,
+    planCapabilityTags: planCapabilityTags,
+    planCanLine: planCanLine,
+    planNotLine: planNotLine,
+    planFulfillMessage: planFulfillMessage,
   };
 })(typeof window !== "undefined" ? window : this);

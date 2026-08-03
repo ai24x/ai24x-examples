@@ -43,8 +43,8 @@ _PLAN_DEFAULTS: dict[str, dict[str, Any]] = {
         "enabled": True,
         "promo": True,
         "promo_max_purchases": 1,
-        "note_zh": "优惠体验：$2 到账 30 万 token（约合 flash ≈$6.7/百万），每账号限购 1 次；额度自到账起 12 个月有效。",
-        "note_en": "Promo: $2 for 300k credits (~$6.7/M at flash). 1 purchase per account. Valid 12 months from credit.",
+        "note_zh": "仅预充额度，不含会员。适合日常 flash；要点名 Kimi/Claude 等请另开月卡，或直接选 Scale 组合包。额度自到账起 12 个月有效；每账号限购 1 次。",
+        "note_en": "Credits only—no membership. Fine for everyday flash. For named models (Kimi/Claude…), add Pro Pass or choose Scale. Valid 12 months. 1 purchase per account.",
     },
     "token_pack_100k": {
         "title_zh": "开发包",
@@ -56,8 +56,8 @@ _PLAN_DEFAULTS: dict[str, dict[str, Any]] = {
         "validity_days": 365,
         "enabled": True,
         "promo": False,
-        "note_zh": "主充值包：约 $0.50/百万（flash 当量），适合日常 API；额度自到账起 12 个月有效。",
-        "note_en": "Main pack: about $0.50/M at flash equivalent. Credits valid 12 months from top-up.",
+        "note_zh": "仅预充约 4,000 万 token（≈$0.50/百万 flash），不含会员。已有月卡时买它即可点名；只要额度、暂不要名模也可单买。额度 12 个月有效。",
+        "note_en": "About 40M prepaid tokens (~$0.50/M flash)—no membership. Pair with Pro Pass for named models, or buy alone for flash/pro usage. Valid 12 months.",
     },
     "token_vip_month": {
         "title_zh": "Pro 月卡",
@@ -71,12 +71,12 @@ _PLAN_DEFAULTS: dict[str, dict[str, Any]] = {
         "enabled": True,
         "promo": False,
         "note_zh": (
-            f"开通 Token VIP 30 天；每日额外赠送约 {_VIP_DAILY_WAN} 万 token"
-            f"（仅可用于 flash/auto/共享档；pro/名模请用充值包额度）。日赠额度另计有效期。"
+            f"开通会员 30 天 + 每日约 {_VIP_DAILY_WAN} 万 token（仅 flash/auto/共享）。"
+            "解锁名模点名资格，但名模须另有充值额度（开发包/Scale）。不要指望「只买月卡就能打 Kimi」。"
         ),
         "note_en": (
-            f"Token VIP for 30 days; ~{_VIP_DAILY_WAN * 10_000:,} bonus tokens/day "
-            f"(flash/auto/shared only — use prepaid credits for pro/VIP named models)."
+            f"Membership 30 days + ~{_VIP_DAILY_WAN * 10_000:,} bonus/day (flash/auto/shared only). "
+            "Unlocks named-model access, but named calls need prepaid credits (Builder/Scale). Pass alone is not enough for Kimi/Claude."
         ),
     },
     "token_vip_month_50w": {
@@ -91,12 +91,12 @@ _PLAN_DEFAULTS: dict[str, dict[str, Any]] = {
         "enabled": True,
         "promo": False,
         "note_zh": (
-            f"立即到账 1.8 亿 token（约 $0.55/百万 flash 当量，24 个月有效），并开通 Pro 月卡 30 天；"
-            f"日赠约 {_VIP_DAILY_WAN} 万 token（仅 flash/auto/共享）。"
+            f"推荐要名模的人选：会员 30 天 + 约 1.8 亿预充（24 个月）一次齐，可点名；"
+            f"另含日赠约 {_VIP_DAILY_WAN} 万（仅 flash/auto/共享）。"
         ),
         "note_en": (
-            f"180M tokens credited (~$0.55/M flash, valid 24 months) + Pro Pass 30 days; "
-            f"~{_VIP_DAILY_WAN * 10_000:,} bonus/day (flash/auto/shared only)."
+            f"Best if you need named models: 30-day VIP + ~180M prepaid (24 months) in one pack. "
+            f"Also ~{_VIP_DAILY_WAN * 10_000:,} daily bonus (flash/auto/shared only)."
         ),
     },
 }
@@ -257,8 +257,23 @@ def list_public_plans() -> list[dict[str, Any]]:
                 "promo_max_purchases": int(p.get("promo_max_purchases") or 0) or None,
                 "settle_hint_zh": "支持微信支付、支付宝",
                 "settle_hint_en": "Pay with PayPal (USD) on the international site",
+                # 前台能力标签（避免用户误会）
+                "cap_credits": int(p.get("credit_tokens") or 0) > 0,
+                "cap_vip": bool(p.get("set_vip")),
+                "cap_named_ready": bool(p.get("set_vip")) and int(p.get("credit_tokens") or 0) > 0,
+                "recommended": plan_id == "token_vip_month_50w",
             }
         )
+    # Scale 组合包提前，减少「先买月卡再买包」的误下单
+    out.sort(
+        key=lambda row: (
+            0 if row.get("recommended") else 1,
+            0 if row.get("plan") == "token_pack_10k" else 1,
+            0 if row.get("plan") == "token_pack_100k" else 1,
+            0 if row.get("plan") == "token_vip_month" else 1,
+            str(row.get("plan") or ""),
+        )
+    )
     return out
 
 
