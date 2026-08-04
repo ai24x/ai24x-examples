@@ -19,7 +19,8 @@
 
 确认已 push 到 Gitee（含本包提交），再让副脑03 pull。
 
-期望提交说明含：`header center` / `static-v43` / `顶栏导航统一居中`。
+期望提交说明含：`header center` / `static-v43` / `顶栏导航统一居中`。  
+本包 HEAD：`bf74d3c`（`fix(a1): center header nav at 1140 and bump static-v43`）。
 
 ## 执行（PowerShell · 可整段给 OpenClaw）
 
