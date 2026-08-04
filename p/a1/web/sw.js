@@ -8,7 +8,7 @@
 (() => {
   "use strict";
 
-  const CACHE_VERSION = "ai24x-a1-static-v42";
+  const CACHE_VERSION = "ai24x-a1-static-v43";
   const CACHE_NAME = CACHE_VERSION;
 
   /** @param {string} p */
@@ -98,10 +98,14 @@
           if (
             isLocal &&
             (p.endsWith("/js/shell.js") ||
+              p.endsWith("/css/base.css") ||
+              p.endsWith("/css/tool.css") ||
               p.endsWith("/partner.html") ||
               p.endsWith("/index.html") ||
               p.endsWith("/account.html") ||
-              p.endsWith("/demo.html"))
+              p.endsWith("/demo.html") ||
+              p.endsWith("/help.html") ||
+              p.endsWith("/feedback.html"))
           ) {
             try {
               const resp = await fetch(req, { cache: "no-store" });

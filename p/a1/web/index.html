@@ -39,12 +39,18 @@
             document.body.style.maxWidth = w + "px";
             document.body.style.overflowX = "hidden";
           }
-          var wraps = document.querySelectorAll(".wrap, .container, .home-grid, .home-login, .home-login .card");
+          var wraps = document.querySelectorAll(".wrap, .home-grid, .home-login, .home-login .card, main .container");
           for (var i = 0; i < wraps.length; i++) {
-            wraps[i].style.maxWidth = "100%";
-            wraps[i].style.width = "100%";
-            wraps[i].style.minWidth = "0";
-            wraps[i].style.boxSizing = "border-box";
+            var el = wraps[i];
+            try {
+              if (el.closest && (el.closest(".site-header") || el.closest(".site-footer") || el.closest("header") || el.closest("footer"))) {
+                continue;
+              }
+            } catch (eSkip) {}
+            el.style.maxWidth = "100%";
+            el.style.width = "100%";
+            el.style.minWidth = "0";
+            el.style.boxSizing = "border-box";
           }
         } catch (e0) {}
       }
@@ -128,7 +134,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="/css/base.css?v=42" />
+  <link rel="stylesheet" href="/css/base.css?v=43" />
   <link rel="stylesheet" href="/css/tool.css?v=42" />
   <style>
     /* Home layout: left intro + right login panel (no JS changes) */
@@ -153,10 +159,18 @@
       .hero-copy{ min-width: 0 !important; flex: 1 1 auto !important; max-width: 100% !important; }
       .hero-art{ width: 100% !important; max-width: 100% !important; }
       .feature-list{ grid-template-columns: 1fr !important; }
-      .wrap, .container{
+      .wrap, main .container, .home-grid, .home-login, .home-login .card{
         width: 100% !important; max-width: 100% !important;
         padding-left: 10px !important; padding-right: 10px !important;
         box-sizing: border-box !important;
+      }
+      /* 顶栏/页脚保持与全站一致的居中容器，勿被首页窄屏规则撑满 */
+      .site-header .container.header-inner,
+      .site-footer .container{
+        max-width: 1140px !important;
+        width: 100% !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
       }
       .btns{
         display: grid !important;

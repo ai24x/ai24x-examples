@@ -195,7 +195,10 @@ a.btn, button.btn {
   gap: 12px;
   min-height: 60px;
   width: 100%;
-  max-width: 100%;
+  /* 与 .container 同宽居中；勿写 max-width:100%，否则会盖掉 1140 把导航撑满屏 */
+  max-width: 1140px;
+  margin-left: auto;
+  margin-right: auto;
   box-sizing: border-box;
 }
 .brand {
@@ -318,7 +321,7 @@ a.btn, button.btn {
   .header-inner {
     grid-template-columns: minmax(0, 1fr) auto auto;
     gap: 8px;
-    max-width: 100%;
+    /* 仍保持 1140 居中；窄屏靠 .container 左右 padding，勿撑满视口 */
   }
   .header-inner > * { min-width: 0; }
   .brand-text-full { display: none; }
