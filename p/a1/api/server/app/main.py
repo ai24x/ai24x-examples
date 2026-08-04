@@ -1797,8 +1797,13 @@ def register(body: RegisterIn) -> LoginOut:
                 )
             else:
                 raise HTTPException(status_code=400, detail="本地身份模式请使用手机号注册")
+        except HTTPException:
+            raise
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e) or "注册失败") from e
+        except Exception as e:
+            logging.getLogger(__name__).exception("local register failed: %s", e)
+            raise HTTPException(status_code=500, detail="注册暂时失败，请稍后重试。") from e
         return _session_from_local_user(u)
 
     if not identity_configured():

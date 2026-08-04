@@ -147,4 +147,9 @@ def import_password_rows(rows: list[dict[str, Any]]) -> dict[str, int]:
         except Exception as e:
             err += 1
             logger.warning("import auth row failed: %s", e)
+    # 导入固定 id 后把自增序列推到 MAX(id)，避免随后注册撞主键
+    try:
+        db.sync_users_id_sequence()
+    except Exception as e:
+        logger.warning("sync users id sequence failed: %s", e)
     return {"ok": ok, "skip": skip, "error": err}

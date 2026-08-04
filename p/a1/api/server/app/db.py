@@ -1612,6 +1612,21 @@ def _ensure_quota_row(conn, user_id: int, now: int) -> None:
         )
 
 
+def sync_users_id_sequence() -> None:
+    """将 users.id 序列推到 MAX(id)，避免固定 id 导入后新注册主键冲突。"""
+    if not _is_pg():
+        return
+    with connect() as conn:
+        conn.execute(
+            """
+            SELECT setval(
+              pg_get_serial_sequence('users', 'id'),
+              (SELECT COALESCE(MAX(id), 1) FROM users)
+            )
+            """
+        )
+
+
 def create_local_user(*, phone: str | None, email: str | None, password_hash: str) -> User:
     """新建本地账号（自增 id）。"""
     now = int(time.time())
@@ -1624,6 +1639,28 @@ def create_local_user(*, phone: str | None, email: str | None, password_hash: st
         raise ValueError("phone or email required")
     with connect() as conn:
         if _is_pg():
+            # 导入 auth 时按固定 id 写入，IDENTITY 序列可能落后 → 新注册撞主键
+            try:
+                conn.execute(
+                    """
+                    SELECT setval(
+                      pg_get_serial_sequence('users', 'id'),
+                      GREATEST(COALESCE((SELECT MAX(id) FROM users), 1), 1)
+                    )
+                    """
+                )
+            except Exception:
+                try:
+                    conn.execute(
+                        """
+                        SELECT setval(
+                          pg_get_serial_sequence('users', 'id'),
+                          (SELECT COALESCE(MAX(id), 1) FROM users)
+                        )
+                        """
+                    )
+                except Exception:
+                    pass
             cur = conn.execute(
                 """
                 INSERT INTO users(email, phone, password_hash, created_at)
@@ -1639,6 +1676,8 @@ def create_local_user(*, phone: str | None, email: str | None, password_hash: st
                 (email_n, phone_n, ph, now),
             )
             uid = int(cur.lastrowid)
+        if uid <= 0:
+            raise RuntimeError("create_local_user failed: no id")
         _ensure_quota_row(conn, uid, now)
     u = get_user_auth_by_id(uid)
     if not u:
