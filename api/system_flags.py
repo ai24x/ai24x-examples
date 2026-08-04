@@ -144,7 +144,8 @@ def list_system_flags() -> dict[str, Any]:
         "ops_note": (
             "开关可在本页修改并保存，立即对前台生效（写入覆盖文件，优先于 .env）。"
             "密钥类仍须服务器行级改配置后重启。"
-            "国际用户用邮箱验证；国际短信暂不接入。"
+            "国际对外以邮箱注册为主；「国内短信」关闭时禁止手机号注册与发码"
+            "（含子站内部密钥写入，不再跳过开关）。国际短信暂不接入。"
         ),
         "overrides": {k: ov[k] for k in ov if k in _ALLOWED_BOOL or k in _ALLOWED_STR},
     }

@@ -656,7 +656,10 @@ async def shutdown_event():
 # —— 短信：106 网关（联调；生产务必配置 SMS_INTERNAL_KEY）——
 @app.post("/v1/auth/sms/send", response_model=SmsSendResponse)
 async def auth_sms_send(request: Request, body: SmsSendRequest, db: Session = Depends(get_db)):
-    if not settings.sms_106_enabled:
+    # 与管理台「国内短信」对齐：读 system_flags 覆盖，勿只看 .env
+    from system_flags import effective_sms_106_enabled
+
+    if not effective_sms_106_enabled():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="短信服务暂不可用，请稍后再试。",
@@ -1056,22 +1059,19 @@ async def auth_email_status():
 @app.post("/v1/auth/register", response_model=AuthTokenResponse)
 async def auth_register(request: Request, body: AuthRegisterBody, db: Session = Depends(get_db)):
     if body.phone:
-        # 子站本地短信直发：持有效 X-SMS-Internal-Key 视为已验码（跳过主站短信开关与 OTP）
+        from system_flags import effective_sms_106_enabled
+
+        # 国际对外邮箱为主：管理台「国内短信」关 = 禁止一切手机号注册（含子站内部密钥）
+        # 行情官已本地身份后，04 不再接受信任跳过写 auth_users
+        if not effective_sms_106_enabled():
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="手机号注册暂未开放，请使用邮箱注册。",
+            )
+        # 短信开着时：持有效内部密钥可跳过主站 OTP（子站已本地验码）；仍须开关为开
         _trusted = bool(settings.sms_internal_key) and (
             request.headers.get("X-SMS-Internal-Key") == settings.sms_internal_key
         )
-        # 未信任时：读 system_flags；短信未开启则拒绝手机号注册（www 可继续只开邮箱）
-        if not _trusted:
-            try:
-                from system_flags import flag_bool as _sf_bool
-                _sms_on = _sf_bool("sms_106_enabled", False)
-            except Exception:
-                _sms_on = bool(getattr(settings, "sms_106_enabled", False))
-            if not _sms_on:
-                raise HTTPException(
-                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                    detail="手机号注册暂未开放，请使用邮箱注册。",
-                )
         mob = normalize_mobile(body.phone)
         if len(mob) != 11 or not mob.isdigit():
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="手机号格式不正确，请填写 11 位手机号")
@@ -1267,6 +1267,13 @@ async def auth_password_reset(body: AuthPasswordResetBody, db: Session = Depends
 
 @app.post("/v1/auth/phone/bind", response_model=AuthTokenResponse)
 async def auth_bind_phone(request: Request, body: AuthBindPhoneBody, db: Session = Depends(get_db)):
+    from system_flags import effective_sms_106_enabled
+
+    if not effective_sms_106_enabled():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="手机号绑定暂未开放。",
+        )
     u = _auth_user_from_bearer(request, db)
     try:
         u2 = bind_phone_for_user(db, user_id=int(u.id), phone=body.phone, sms_code=body.sms_code)
