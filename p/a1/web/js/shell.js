@@ -138,7 +138,7 @@
         global.__AI24X_A_SW_INSTALLED = true;
         // Cache-bust SW URL so deployments don't require Ctrl+F5.
         // Use absolute paths so pages still work under subpaths like /i/{code}.
-        navigator.serviceWorker.register("/sw.js?v=40", { scope: "/", updateViaCache: "none" }).then(function (reg) {
+        navigator.serviceWorker.register("/sw.js?v=41", { scope: "/", updateViaCache: "none" }).then(function (reg) {
           try {
             reg.update && reg.update();
             if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
@@ -299,13 +299,23 @@
       function setLoggedOutUi(){
         try{
           // 游客：登录为次、免费注册为主（仅顶栏出现）
+          // 极窄屏用「注册」，减轻华为浏览器顶栏撑宽导致整页右侧裁切
+          var narrow = false;
+          try {
+            var w = Math.min(
+              window.innerWidth || 9999,
+              (window.visualViewport && window.visualViewport.width) || 9999,
+              (window.screen && screen.width) || 9999
+            );
+            narrow = w > 0 && w <= 380;
+          } catch (eN) {}
           if(btnAuth) {
             btnAuth.textContent = "登录";
             btnAuth.className = "btn btn-ghost btn-auth-login";
             btnAuth.setAttribute("href", authHref("login"));
           }
           if(btnVip) {
-            btnVip.textContent = "免费注册";
+            btnVip.textContent = narrow ? "注册" : "免费注册";
             btnVip.className = "btn btn-primary btn-auth-register";
             btnVip.setAttribute("href", authHref("register"));
             btnVip.style.display = "";

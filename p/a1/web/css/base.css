@@ -69,14 +69,22 @@ html {
   max-width: 100%;
   overflow-x: hidden;
 }
-/* Prevent horizontal layout shift when scrollbar appears/disappears between pages */
-html { scrollbar-gutter: stable; }
+/* 仅桌面预留滚动条槽；手机默认 auto，避免华为把布局算得更宽导致右侧裁切 */
+html { scrollbar-gutter: auto; }
+@media (min-width: 981px) and (pointer: fine) {
+  html { scrollbar-gutter: stable; }
+}
 body {
-  overflow-y: scroll;
+  overflow-y: auto;
   overflow-x: hidden;
   width: 100%;
   max-width: 100%;
   position: relative;
+}
+html.vp-narrow-fix,
+html.vp-narrow-fix body {
+  overflow-x: hidden !important;
+  max-width: 100% !important;
 }
 body {
   font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
@@ -175,6 +183,10 @@ a.btn, button.btn {
   background: var(--panel);
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(10px);
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+  box-sizing: border-box;
 }
 .header-inner {
   display: grid;
@@ -182,6 +194,9 @@ a.btn, button.btn {
   align-items: center;
   gap: 12px;
   min-height: 60px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .brand {
   display: inline-flex;
@@ -405,8 +420,16 @@ a.btn, button.btn {
   grid-template-columns: 1.4fr repeat(3, 1fr);
   gap: 22px;
 }
-@media (max-width: 860px) {
-  .footer-grid { grid-template-columns: 1fr 1fr; }
+@media (max-width: 860px), (max-device-width: 860px) {
+  .footer-grid { grid-template-columns: 1fr 1fr; max-width: 100%; min-width: 0; }
+  .footer-col { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+  .footer-title { overflow-wrap: anywhere; word-break: break-word; }
+  .site-footer { max-width: 100%; overflow-x: clip; box-sizing: border-box; }
+  .wrap { max-width: 100%; box-sizing: border-box; }
+  .card { max-width: 100%; box-sizing: border-box; }
+}
+@media (max-width: 420px), (max-device-width: 420px) {
+  .footer-grid { grid-template-columns: 1fr; }
 }
 .footer-title { font-weight: 900; color: var(--text); margin-bottom: 10px; }
 .footer-col a { display: block; padding: 5px 0; color: var(--muted); }
