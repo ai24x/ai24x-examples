@@ -55,9 +55,17 @@ from .admin_otp import (
     is_phone_allowed_for_admin_otp,
     normalize_admin_phone,
 )
-from .billing_runtime import identity_configured, resolve_alipay, resolve_billing, resolve_identity, resolve_wechat_pay
+from .billing_runtime import (
+    auth_local_enabled,
+    identity_configured,
+    resolve_alipay,
+    resolve_billing,
+    resolve_identity,
+    resolve_wechat_pay,
+)
 from .sms_local import send_local_sms, verify_and_consume_otp as verify_local_otp
 from .auth import create_token, get_current_user_id, get_optional_user_id, parse_token
+from . import auth_local
 from .config import settings
 from .admin_ui import admin_app_html, admin_login_html
 from .providers import (
@@ -1530,6 +1538,7 @@ def admin_sms_effective(_: bool = Depends(require_admin)) -> dict:
     out = {
         "identity_api_base": (cfg.identity_api_base or "").strip() or "",
         "sms_active_provider": (cfg.sms_active_provider or "identity_proxy").strip() or "identity_proxy",
+        "auth_local_enabled": "1" if bool(getattr(cfg, "auth_local_enabled", False)) else "0",
         "sms_internal_key_set": bool((cfg.sms_internal_key or "").strip()),
         "sms_internal_key_masked": _mask(cfg.sms_internal_key, keep_tail=4),
         # anti-abuse (reserved)
@@ -1652,6 +1661,21 @@ def admin_config_set(body: dict, _: bool = Depends(require_admin)) -> dict:
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@app.post("/api/admin/auth_import")
+def admin_auth_import(body: dict, _: bool = Depends(require_admin)) -> dict:
+    """
+    导入主站 auth_users 切片（按 id 写入 password_hash）。
+    body: { "rows": [ {"id":1,"phone":"...","email":"...","password_hash":"..."}, ... ] }
+    """
+    rows = body.get("rows")
+    if not isinstance(rows, list) or not rows:
+        raise HTTPException(status_code=400, detail="请提供 rows 数组")
+    if len(rows) > 20000:
+        raise HTTPException(status_code=400, detail="单次最多 20000 行")
+    stats = auth_local.import_password_rows(rows)
+    return {"ok": True, **stats}
+
+
 @app.get("/api/admin/sms_106_config")
 def admin_sms_106_config(_: bool = Depends(require_admin)) -> dict:
     """管理端读取 106 核心配置（明文，仅管理员）；存于 admin_config，保存后随短信转发提交主站。"""
@@ -1752,8 +1776,31 @@ def request_code(body: RequestCodeIn) -> RequestCodeOut:
     return RequestCodeOut(ok=True, dev_code=dev_code, message="验证码已生成。")
 
 
+def _session_from_local_user(u: db.User) -> LoginOut:
+    token = create_token(int(u.id), u.email or None, u.phone)
+    return LoginOut(
+        token=token,
+        user={"id": int(u.id), "email": u.email or "", "phone": u.phone or ""},
+    )
+
+
 @app.post("/api/auth/register", response_model=LoginOut)
 def register(body: RegisterIn) -> LoginOut:
+    # P1：本地身份——不写主站 auth_users
+    if auth_local_enabled():
+        try:
+            if body.phone:
+                u = auth_local.register_phone(
+                    phone=body.phone or "",
+                    password=body.password,
+                    sms_code=body.sms_code or "",
+                )
+            else:
+                raise HTTPException(status_code=400, detail="本地身份模式请使用手机号注册")
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e) or "注册失败") from e
+        return _session_from_local_user(u)
+
     if not identity_configured():
         raise HTTPException(status_code=503, detail="注册服务暂未就绪，请稍后再试")
     cfg = resolve_identity()
@@ -1782,6 +1829,19 @@ def register(body: RegisterIn) -> LoginOut:
 
 @app.post("/api/auth/login", response_model=LoginOut)
 def login(body: LoginIn) -> LoginOut:
+    if auth_local_enabled() and (body.password or "").strip():
+        if not body.phone and not body.email:
+            raise HTTPException(status_code=400, detail="请填写手机号或邮箱")
+        try:
+            u = auth_local.login_password(
+                phone=(body.phone or "").strip() or None,
+                email=(body.email or "").strip() or None,
+                password=(body.password or "").strip(),
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e) or "手机号或密码错误") from e
+        return _session_from_local_user(u)
+
     if identity_configured() and (body.password or "").strip():
         if not body.phone and not body.email:
             raise HTTPException(status_code=400, detail="请填写手机号或邮箱")
@@ -1808,7 +1868,22 @@ def login(body: LoginIn) -> LoginOut:
 
 
 @app.post("/api/auth/password/change", response_model=LoginOut)
-def password_change(request: Request, body: PasswordChangeIn) -> LoginOut:
+def password_change(
+    request: Request,
+    body: PasswordChangeIn,
+    user_id: int = Depends(get_current_user_id),
+) -> LoginOut:
+    if auth_local_enabled():
+        try:
+            u = auth_local.change_password(
+                user_id=int(user_id),
+                old_password=body.old_password,
+                new_password=body.new_password,
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e) or "改密失败") from e
+        return _session_from_local_user(u)
+
     if not identity_configured():
         raise HTTPException(status_code=503, detail="服务暂未就绪，请稍后再试")
     auth = (request.headers.get("Authorization") or "").strip()
@@ -1824,6 +1899,19 @@ def password_change(request: Request, body: PasswordChangeIn) -> LoginOut:
 
 @app.post("/api/auth/password/reset", response_model=LoginOut)
 def password_reset(body: PasswordResetIn) -> LoginOut:
+    if auth_local_enabled():
+        if not body.phone:
+            raise HTTPException(status_code=400, detail="本地身份模式请使用手机号重置密码")
+        try:
+            u = auth_local.reset_password_phone(
+                phone=body.phone or "",
+                sms_code=body.sms_code or "",
+                new_password=body.new_password,
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e) or "重置失败") from e
+        return _session_from_local_user(u)
+
     if not identity_configured():
         raise HTTPException(status_code=503, detail="服务暂未就绪，请稍后再试")
     payload: dict = {"new_password": body.new_password}

@@ -338,6 +338,17 @@ def init_db() -> None:
                 """
             )
 
+        # P1 本地身份：password_hash（与主站 passlib pbkdf2_sha256 兼容，便于按 id 迁入）
+        try:
+            if _is_pg():
+                conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;")
+            else:
+                cols = [r["name"] for r in conn.execute("PRAGMA table_info(users)").fetchall()]
+                if "password_hash" not in cols:
+                    conn.execute("ALTER TABLE users ADD COLUMN password_hash TEXT")
+        except Exception:
+            pass
+
         # Market data cache (MVP): persist successful K-line payloads for resilience across restarts.
         conn.execute(
             """
@@ -1297,20 +1308,23 @@ class User:
     id: int
     email: str
     phone: str | None = None
+    password_hash: str | None = None
 
 
 def get_or_create_user_by_email(email: str, phone: str | None = None) -> User:
     now = int(time.time())
     email = (email or "").strip().lower()
     with connect() as conn:
-        row = conn.execute(_adapt_sql("SELECT id, email, phone FROM users WHERE email = ?"), (email,)).fetchone()
+        row = conn.execute(_adapt_sql("SELECT id, email, phone, password_hash FROM users WHERE email = ?"), (email,)).fetchone()
         if row:
             email_v = _row_get(row, "email")
             phone_v = _row_get(row, "phone")
+            ph_v = _row_get(row, "password_hash")
             return User(
                 id=int(_row_get(row, "id") or 0),
                 email=str(email_v) if email_v is not None else "",
                 phone=str(phone_v) if phone_v is not None else None,
+                password_hash=str(ph_v) if ph_v is not None else None,
             )
 
         user_id: int
@@ -1493,6 +1507,211 @@ def ensure_platform_user(platform_user_id: int, email: str | None, phone: str | 
                     now,
                 ),
             )
+
+
+def _user_from_row(row) -> User:
+    email_v = _row_get(row, "email")
+    phone_v = _row_get(row, "phone")
+    ph_v = _row_get(row, "password_hash")
+    return User(
+        id=int(_row_get(row, "id") or 0),
+        email=str(email_v) if email_v is not None else "",
+        phone=str(phone_v) if phone_v is not None else None,
+        password_hash=str(ph_v) if ph_v is not None else None,
+    )
+
+
+def get_user_auth_by_id(user_id: int) -> User | None:
+    with connect() as conn:
+        row = conn.execute(
+            _adapt_sql("SELECT id, email, phone, password_hash FROM users WHERE id = ?"),
+            (int(user_id),),
+        ).fetchone()
+        return _user_from_row(row) if row else None
+
+
+def get_user_auth_by_phone(phone: str) -> User | None:
+    p = (phone or "").strip()
+    if not p:
+        return None
+    with connect() as conn:
+        row = conn.execute(
+            _adapt_sql("SELECT id, email, phone, password_hash FROM users WHERE phone = ?"),
+            (p,),
+        ).fetchone()
+        return _user_from_row(row) if row else None
+
+
+def get_user_auth_by_email(email: str) -> User | None:
+    e = (email or "").strip().lower()
+    if not e:
+        return None
+    with connect() as conn:
+        row = conn.execute(
+            _adapt_sql("SELECT id, email, phone, password_hash FROM users WHERE email = ?"),
+            (e,),
+        ).fetchone()
+        return _user_from_row(row) if row else None
+
+
+def set_user_password_hash(user_id: int, password_hash: str) -> None:
+    with connect() as conn:
+        conn.execute(
+            _adapt_sql("UPDATE users SET password_hash = ? WHERE id = ?"),
+            ((password_hash or "").strip(), int(user_id)),
+        )
+
+
+def touch_user_contacts(user_id: int, *, phone: str | None, email: str | None) -> None:
+    with connect() as conn:
+        if _is_pg():
+            conn.execute(
+                """
+                UPDATE users SET
+                  phone = COALESCE(%s, phone),
+                  email = COALESCE(%s, email)
+                WHERE id = %s
+                """,
+                (phone, email, int(user_id)),
+            )
+        else:
+            conn.execute(
+                """
+                UPDATE users SET
+                  phone = COALESCE(?, phone),
+                  email = COALESCE(?, email)
+                WHERE id = ?
+                """,
+                (phone, email, int(user_id)),
+            )
+
+
+def _ensure_quota_row(conn, user_id: int, now: int) -> None:
+    free_weekly_eff, free_daily_eff = _effective_free_limits()
+    if _is_pg():
+        conn.execute(
+            """
+            INSERT INTO quota(
+              user_id, plan, monthly_limit, daily_limit,
+              monthly_used, daily_used, month_key, day_key, expires_at, updated_at
+            ) VALUES (%s, 'free', %s, %s, 0, 0, %s, %s, NULL, %s)
+            ON CONFLICT (user_id) DO NOTHING
+            """,
+            (int(user_id), free_weekly_eff, free_daily_eff, _week_key(now), _day_key(now), now),
+        )
+    else:
+        conn.execute(
+            """
+            INSERT INTO quota(
+              user_id, plan, monthly_limit, daily_limit,
+              monthly_used, daily_used, month_key, day_key, expires_at, updated_at
+            ) VALUES (?, 'free', ?, ?, 0, 0, ?, ?, NULL, ?)
+            ON CONFLICT(user_id) DO NOTHING
+            """,
+            (int(user_id), free_weekly_eff, free_daily_eff, _week_key(now), _day_key(now), now),
+        )
+
+
+def create_local_user(*, phone: str | None, email: str | None, password_hash: str) -> User:
+    """新建本地账号（自增 id）。"""
+    now = int(time.time())
+    email_n = (email or "").strip().lower() or None
+    phone_n = (phone or "").strip() or None
+    ph = (password_hash or "").strip()
+    if not ph:
+        raise ValueError("password_hash required")
+    if not phone_n and not email_n:
+        raise ValueError("phone or email required")
+    with connect() as conn:
+        if _is_pg():
+            cur = conn.execute(
+                """
+                INSERT INTO users(email, phone, password_hash, created_at)
+                VALUES (%s, %s, %s, %s) RETURNING id
+                """,
+                (email_n, phone_n, ph, now),
+            )
+            rr = cur.fetchone()
+            uid = int(rr["id"]) if rr and rr.get("id") is not None else 0
+        else:
+            cur = conn.execute(
+                "INSERT INTO users(email, phone, password_hash, created_at) VALUES (?, ?, ?, ?)",
+                (email_n, phone_n, ph, now),
+            )
+            uid = int(cur.lastrowid)
+        _ensure_quota_row(conn, uid, now)
+    u = get_user_auth_by_id(uid)
+    if not u:
+        raise RuntimeError("create_local_user failed")
+    return u
+
+
+def upsert_local_auth_user(
+    *,
+    user_id: int,
+    phone: str | None,
+    email: str | None,
+    password_hash: str,
+) -> None:
+    """按固定 id 写入/更新密码（迁自主站 auth_users）；保留配额等业务数据。"""
+    now = int(time.time())
+    uid = int(user_id)
+    ph = (password_hash or "").strip()
+    if uid <= 0 or not ph:
+        raise ValueError("invalid id or password_hash")
+    email_n = (email or "").strip().lower() or None
+    phone_n = (phone or "").strip() or None
+    with connect() as conn:
+        row = conn.execute(_adapt_sql("SELECT id FROM users WHERE id = ?"), (uid,)).fetchone()
+        if row:
+            if _is_pg():
+                conn.execute(
+                    """
+                    UPDATE users SET
+                      password_hash = %s,
+                      phone = COALESCE(%s, phone),
+                      email = COALESCE(%s, email)
+                    WHERE id = %s
+                    """,
+                    (ph, phone_n, email_n, uid),
+                )
+            else:
+                conn.execute(
+                    """
+                    UPDATE users SET
+                      password_hash = ?,
+                      phone = COALESCE(?, phone),
+                      email = COALESCE(?, email)
+                    WHERE id = ?
+                    """,
+                    (ph, phone_n, email_n, uid),
+                )
+        else:
+            if _is_pg():
+                conn.execute(
+                    """
+                    INSERT INTO users (id, email, phone, password_hash, created_at)
+                    VALUES (%s, %s, %s, %s, %s)
+                    ON CONFLICT (id) DO UPDATE SET
+                      password_hash = EXCLUDED.password_hash,
+                      email = COALESCE(EXCLUDED.email, users.email),
+                      phone = COALESCE(EXCLUDED.phone, users.phone)
+                    """,
+                    (uid, email_n, phone_n, ph, now),
+                )
+            else:
+                conn.execute(
+                    """
+                    INSERT INTO users (id, email, phone, password_hash, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                      password_hash = excluded.password_hash,
+                      email = COALESCE(excluded.email, users.email),
+                      phone = COALESCE(excluded.phone, users.phone)
+                    """,
+                    (uid, email_n, phone_n, ph, now),
+                )
+        _ensure_quota_row(conn, uid, now)
 
 
 def get_quota_status(user_id: int) -> dict:

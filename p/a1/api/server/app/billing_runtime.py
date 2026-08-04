@@ -140,6 +140,9 @@ def resolve_identity() -> SimpleNamespace:
         v = (m.get(key) or "").strip()
         return v if v else str(fallback or "").strip()
 
+    def _truthy(raw: object) -> bool:
+        return str(raw or "").strip().lower() in ("1", "true", "yes", "on")
+
     prov = (m.get("sms_active_provider") or "").strip().lower() or "identity_proxy"
     cap_on = (m.get("sms_captcha_enabled") or "").strip().lower()
     if cap_on in ("1", "true", "yes", "on"):
@@ -152,6 +155,8 @@ def resolve_identity() -> SimpleNamespace:
         identity_api_base=p("identity_api_base", settings.identity_api_base),
         sms_internal_key=p("sms_internal_key", settings.sms_internal_key),
         sms_active_provider=prov,
+        # P1：本地注册/登录（不转发主站 auth_users）；与短信 local 独立，可同时开
+        auth_local_enabled=_truthy(m.get("auth_local_enabled")),
         # Reserved: SMS captcha / anti-abuse (default off; enable via admin_config).
         sms_captcha_enabled=captcha_enabled,
         sms_captcha_provider=(m.get("sms_captcha_provider") or "").strip().lower() or "turnstile",
@@ -179,3 +184,7 @@ def resolve_identity() -> SimpleNamespace:
 
 def identity_configured() -> bool:
     return bool((resolve_identity().identity_api_base or "").strip())
+
+
+def auth_local_enabled() -> bool:
+    return bool(getattr(resolve_identity(), "auth_local_enabled", False))

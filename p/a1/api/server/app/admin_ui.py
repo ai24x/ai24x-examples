@@ -1364,10 +1364,16 @@ def admin_app_html(admin_base: str) -> str:
                     <option value="juhe">爱聚合/聚合（备案中 · 勿用）</option>
                   </select>
                 </div>
+                <div class="field"><span class="lbl">账号模式</span>
+                  <select id="auth_local_enabled">
+                    <option value="0">转发主站注册登录（旧）</option>
+                    <option value="1">本站独立账号（P1 · 不写主站）</option>
+                  </select>
+                </div>
               </div>
               <div class="msg small muted" id="sms-secret-hints" style="margin-top:6px;">
                 <span id="sms_internal_key_hint"></span>
-                <span style="margin-left:12px;">正式通道用「本站直发 106」。腾讯仅临时救急；爱聚合备案完成前勿切。内部密钥须与主站一致（注册信任跳过）。</span>
+                <span style="margin-left:12px;">正式：短信「本站直发 106」+ 账号「本站独立」。开启独立账号前须先导入主站 password_hash（按 id），否则老用户无法登录。</span>
               </div>
             </div>
             <!-- Provider tabs -->
@@ -3281,6 +3287,7 @@ def admin_app_html(admin_base: str) -> str:
         }
         putVal('sms_identity_api_base', eff.identity_api_base || '');
         putVal('sms_active_provider', eff.sms_active_provider || 'identity_proxy');
+        putVal('auth_local_enabled', (eff.auth_local_enabled === '1' || eff.auth_local_enabled === 1 || eff.auth_local_enabled === true) ? '1' : '0');
         putVal('sms_captcha_enabled', eff.sms_captcha_enabled || '0');
         putVal('sms_captcha_provider', eff.sms_captcha_provider || 'turnstile');
         putVal('sms_captcha_turnstile_site_key', eff.sms_captcha_turnstile_site_key || '');
@@ -3358,6 +3365,7 @@ def admin_app_html(admin_base: str) -> str:
 
         postIfChanged('identity_api_base', 'sms_identity_api_base', eff.identity_api_base);
         postIfChanged('sms_active_provider', 'sms_active_provider', eff.sms_active_provider);
+        postIfChanged('auth_local_enabled', 'auth_local_enabled', (eff.auth_local_enabled === '1' || eff.auth_local_enabled === 1 || eff.auth_local_enabled === true) ? '1' : '0');
         postIfChanged('sms_captcha_enabled', 'sms_captcha_enabled', eff.sms_captcha_enabled);
         postIfChanged('sms_captcha_provider', 'sms_captcha_provider', eff.sms_captcha_provider);
         postIfChanged('sms_captcha_turnstile_site_key', 'sms_captcha_turnstile_site_key', eff.sms_captcha_turnstile_site_key);
