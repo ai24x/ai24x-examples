@@ -1,6 +1,19 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+
+def _norm_cn_mobile(v: object) -> str | None:
+    """Normalize CN mobile: keep digits, strip +86/86 prefix. Empty → None."""
+    if v is None:
+        return None
+    s = "".join(c for c in str(v).strip() if c.isdigit() or c == "+")
+    if s.startswith("+86"):
+        s = s[3:]
+    if s.startswith("86") and len(s) == 13:
+        s = s[2:]
+    s = "".join(c for c in s if c.isdigit())
+    return s or None
 
 
 class AdminLoginIn(BaseModel):
@@ -10,11 +23,24 @@ class AdminLoginIn(BaseModel):
     phone: str | None = Field(default=None, max_length=20)
     otp: str | None = Field(default=None, max_length=16)
 
+    @field_validator("phone", mode="before")
+    @classmethod
+    def _phone(cls, v):  # noqa: ANN001
+        return _norm_cn_mobile(v)
+
 
 class AdminOtpSendIn(BaseModel):
     """向白名单手机号发送管理后台登录验证码（须已配置主站短信或开发态 dev_code）。"""
 
     phone: str = Field(min_length=10, max_length=20)
+
+    @field_validator("phone", mode="before")
+    @classmethod
+    def _phone(cls, v):  # noqa: ANN001
+        n = _norm_cn_mobile(v)
+        if not n or len(n) != 11:
+            raise ValueError("请填写 11 位手机号")
+        return n
 
 
 class RequestCodeIn(BaseModel):
@@ -35,6 +61,11 @@ class LoginIn(BaseModel):
     password: str | None = Field(default=None, min_length=1, max_length=128)
     code: str | None = Field(default=None, max_length=16)
 
+    @field_validator("phone", mode="before")
+    @classmethod
+    def _phone(cls, v):  # noqa: ANN001
+        return _norm_cn_mobile(v)
+
 
 class RegisterIn(BaseModel):
     password: str = Field(min_length=6, max_length=128)
@@ -42,6 +73,11 @@ class RegisterIn(BaseModel):
     email: str | None = Field(default=None, max_length=128)
     sms_code: str | None = Field(default=None, max_length=16)
     email_code: str | None = Field(default=None, max_length=16)
+
+    @field_validator("phone", mode="before")
+    @classmethod
+    def _phone(cls, v):  # noqa: ANN001
+        return _norm_cn_mobile(v)
 
     @model_validator(mode="after")
     def one_register_channel(self) -> "RegisterIn":
@@ -51,18 +87,30 @@ class RegisterIn(BaseModel):
         self.email = e.lower() if e else None
         if bool(p) == bool(e):
             raise ValueError("请只填写手机号或邮箱之一")
-        if p and not (self.sms_code or "").strip():
-            raise ValueError("请填写短信验证码")
+        if p:
+            if len(p) != 11 or not p.isdigit():
+                raise ValueError("请填写 11 位手机号")
+            if not (self.sms_code or "").strip():
+                raise ValueError("请填写短信验证码")
         if e and not (self.email_code or "").strip():
             raise ValueError("请填写邮箱验证码")
         return self
 
 
 class SmsSendProxyIn(BaseModel):
-    mobile: str = Field(min_length=10, max_length=20)
+    # Allow longer raw input; normalize to 11 digits in validator (avoids English max_length=20 on +86/spaces).
+    mobile: str = Field(min_length=11, max_length=32)
     purpose: str = Field(default="register", max_length=32)
     # Reserved: enable SMS captcha (e.g. Turnstile) via admin config later.
     captcha_token: str | None = Field(default=None, max_length=4096)
+
+    @field_validator("mobile", mode="before")
+    @classmethod
+    def _mobile(cls, v):  # noqa: ANN001
+        n = _norm_cn_mobile(v)
+        if not n or len(n) != 11:
+            raise ValueError("请填写 11 位手机号")
+        return n
 
 
 class LoginOut(BaseModel):
@@ -81,6 +129,11 @@ class PasswordResetIn(BaseModel):
     email: str | None = Field(default=None, max_length=128)
     sms_code: str | None = Field(default=None, max_length=16)
     email_code: str | None = Field(default=None, max_length=16)
+
+    @field_validator("phone", mode="before")
+    @classmethod
+    def _phone(cls, v):  # noqa: ANN001
+        return _norm_cn_mobile(v)
 
     @model_validator(mode="after")
     def one_reset_channel(self) -> "PasswordResetIn":

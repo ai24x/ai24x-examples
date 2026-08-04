@@ -981,6 +981,13 @@
         }
       }
 
+      function normalizeCnMobile(raw) {
+        var s = String(raw || "").trim();
+        var d = s.replace(/\D/g, "");
+        if (d.indexOf("86") === 0 && d.length === 13) d = d.slice(2);
+        return d;
+      }
+
       function normalizeErrMsg(err) {
         var m = "";
         try {
@@ -995,6 +1002,13 @@
           return "网络或服务暂时不可用，请稍后重试。";
         }
         if (m === "no token") return "登录失败，请稍后重试。";
+        // Pydantic English length errors → 中文
+        if (/at most 20 characters/i.test(m) || /max_length.*20/i.test(m)) {
+          return "请填写 11 位手机号（不要带空格或 +86）。";
+        }
+        if (/at most \d+ characters/i.test(m) && /phone|mobile/i.test(m)) {
+          return "请填写 11 位手机号。";
+        }
         // Normalize common auth failure to user-friendly text.
         if (m.indexOf("手机号/邮箱或密码错误") >= 0 || m.indexOf("手机号或密码错误") >= 0 || m.indexOf("邮箱或密码错误") >= 0) {
           return "手机号或密码错误，请检查后重试。";
@@ -1241,11 +1255,16 @@
 
       function sendOtp() {
         authMode = readAuthMode();
-        var idv = (identEl && identEl.value) ? String(identEl.value).trim() : "";
+        var idv = normalizeCnMobile((identEl && identEl.value) ? String(identEl.value) : "");
         if (!idv) {
           setStatus("请输入手机号。");
           return;
         }
+        if (!/^\d{11}$/.test(idv)) {
+          setStatus("请填写 11 位手机号（不要带空格或 +86）。");
+          return;
+        }
+        if (identEl) identEl.value = idv;
         if (btnOtp) btnOtp.disabled = true;
         setStatus("发送验证码…");
         var url = "/api/auth/sms/send";
@@ -1350,10 +1369,12 @@
 
       function submitAuth() {
         authMode = readAuthMode();
-        var idv = (identEl && identEl.value) ? String(identEl.value).trim() : "";
+        var idv = normalizeCnMobile((identEl && identEl.value) ? String(identEl.value) : "");
         var pw = (passEl && passEl.value) ? String(passEl.value) : "";
         var otp = (otpEl && otpEl.value) ? String(otpEl.value).trim() : "";
         if (!idv) { setStatus("请填写手机号。"); return; }
+        if (!/^\d{11}$/.test(idv)) { setStatus("请填写 11 位手机号（不要带空格或 +86）。"); return; }
+        if (identEl) identEl.value = idv;
         if (!pw) { setStatus("请填写密码。"); return; }
         if (authMode === "register") {
           if (!otp) { setStatus("请填写验证码。"); return; }

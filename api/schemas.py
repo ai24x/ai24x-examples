@@ -131,7 +131,7 @@ class UserInfo(BaseModel):
 class SmsSendRequest(BaseModel):
     """联调发送短信验证码（内容按模板拼验证码；须与 106 平台审核文案一致）。"""
 
-    mobile: str = Field(..., min_length=10, max_length=20, description="手机号，国内建议 11 位")
+    mobile: str = Field(..., min_length=10, max_length=32, description="手机号，国内建议 11 位")
     purpose: Literal["register", "login", "reset", "bind", "test"] = Field(
         default="test", description="用途（当前仅影响日志，模板共用）"
     )
