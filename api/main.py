@@ -1056,27 +1056,33 @@ async def auth_email_status():
 @app.post("/v1/auth/register", response_model=AuthTokenResponse)
 async def auth_register(request: Request, body: AuthRegisterBody, db: Session = Depends(get_db)):
     if body.phone:
-        # 2026-08-03 加固：读 system_flags 真实值（而非 raw settings），短信未开启时拒绝手机号注册
-        try:
-            from system_flags import flag_bool as _sf_bool
-            _sms_on = _sf_bool("sms_106_enabled", False)
-        except Exception:
-            _sms_on = bool(getattr(settings, "sms_106_enabled", False))
-        if not _sms_on:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="手机号注册暂未开放，请使用邮箱注册。",
-            )
+        # 子站本地短信直发：持有效 X-SMS-Internal-Key 视为已验码（跳过主站短信开关与 OTP）
+        _trusted = bool(settings.sms_internal_key) and (
+            request.headers.get("X-SMS-Internal-Key") == settings.sms_internal_key
+        )
+        # 未信任时：读 system_flags；短信未开启则拒绝手机号注册（www 可继续只开邮箱）
+        if not _trusted:
+            try:
+                from system_flags import flag_bool as _sf_bool
+                _sms_on = _sf_bool("sms_106_enabled", False)
+            except Exception:
+                _sms_on = bool(getattr(settings, "sms_106_enabled", False))
+            if not _sms_on:
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="手机号注册暂未开放，请使用邮箱注册。",
+                )
         mob = normalize_mobile(body.phone)
         if len(mob) != 11 or not mob.isdigit():
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="手机号格式不正确，请填写 11 位手机号")
         if get_by_phone(db, mob):
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="该手机号已注册")
-        if not verify_and_consume_otp(mob, "register", body.sms_code or ""):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="验证码错误或已过期，请重新获取验证码",
-            )
+        if not _trusted:
+            if not verify_and_consume_otp(mob, "register", body.sms_code or ""):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="验证码错误或已过期，请重新获取验证码",
+                )
         u = create_user_phone(db, mob, body.password)
     else:
         em = norm_email(body.email or "")

@@ -56,6 +56,7 @@ from .admin_otp import (
     normalize_admin_phone,
 )
 from .billing_runtime import identity_configured, resolve_alipay, resolve_billing, resolve_identity, resolve_wechat_pay
+from .sms_local import send_local_sms, verify_and_consume_otp as verify_local_otp
 from .auth import create_token, get_current_user_id, get_optional_user_id, parse_token
 from .config import settings
 from .admin_ui import admin_app_html, admin_login_html
@@ -1675,7 +1676,7 @@ def admin_sms_diagnostics(_: bool = Depends(require_admin)) -> dict:
         "ok": True,
         "sms_active_provider": prov,
         "default_provider": "identity_proxy",
-        "default_note": "未配置 sms_active_provider 时默认为 identity_proxy：子站请求主站 API，主站再调 106接口网。",
+        "default_note": "正式：local=本站直发106；临时：tencent（移动签名未过）；勿用 juhe（备案中）；identity_proxy=经主站（主站关短信会挂）。",
         "identity_api_base": base or None,
         "subsite_admin_106": {
             "endpoint_set": bool((cfg.sms_106_endpoint or "").strip()),
@@ -1704,8 +1705,18 @@ def admin_sms_diagnostics(_: bool = Depends(require_admin)) -> dict:
 
 @app.post("/api/auth/sms/send")
 def proxy_sms_send(body: SmsSendProxyIn, request: Request) -> dict:
-    """转发至主站 `POST /v1/auth/sms/send`：带 X-SMS-Internal-Key；若管理端配置了 sms_106_* 则一并提交以覆盖主站 .env。"""
+    """本地直发（juhe/tencent/local）或转发主站 identity_proxy。"""
     cfg = resolve_identity()
+    _local_providers = ("local", "juhe", "tencent")
+    if (cfg.sms_active_provider or "identity_proxy").strip().lower() in _local_providers:
+        ok, msg, _dev = send_local_sms(
+            cfg=cfg,
+            mobile=body.mobile,
+            purpose=(body.purpose or "login").strip() or "login",
+        )
+        if not ok:
+            raise HTTPException(status_code=503, detail="短信服务暂不可用，请稍后再试。")
+        return {"ok": True, "message": "验证码已发送。", "ttl_s": 300}
     if not (cfg.sms_internal_key or "").strip():
         # 主站若已设 SMS_INTERNAL_KEY，无此头会 403；先在本站明确提示运维配齐密钥
         raise HTTPException(
@@ -1745,14 +1756,27 @@ def request_code(body: RequestCodeIn) -> RequestCodeOut:
 def register(body: RegisterIn) -> LoginOut:
     if not identity_configured():
         raise HTTPException(status_code=503, detail="注册服务暂未就绪，请稍后再试")
+    cfg = resolve_identity()
+    local_sms = (cfg.sms_active_provider or "identity_proxy").strip().lower() in ("local", "juhe", "tencent")
     payload: dict = {"password": body.password}
+    extra = None
     if body.phone:
         payload["phone"] = body.phone
         payload["sms_code"] = (body.sms_code or "").strip()
+        if local_sms:
+            # 本地已验码；带内部密钥让主站跳过短信开关与 OTP（账号仍写入主站 auth_users）
+            from .sms_local import normalize_mobile as _nm
+
+            if not verify_local_otp(_nm(body.phone), "register", body.sms_code or ""):
+                raise HTTPException(status_code=400, detail="验证码错误或已过期，请重新获取验证码")
+            _ikey = (cfg.sms_internal_key or "").strip()
+            if not _ikey:
+                raise HTTPException(status_code=503, detail="注册服务暂未就绪，请稍后再试")
+            extra = {"X-SMS-Internal-Key": _ikey}
     else:
         payload["email"] = body.email
         payload["email_code"] = (body.email_code or "").strip()
-    data = _identity_post("/v1/auth/register", payload)
+    data = _identity_post("/v1/auth/register", payload, extra_headers=extra)
     return _session_from_identity_payload(data)
 
 

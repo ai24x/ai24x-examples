@@ -1358,15 +1358,16 @@ def admin_app_html(admin_base: str) -> str:
                 <div class="field" style="min-width:220px;"><span class="lbl">内部密钥</span><input id="sms_internal_key" type="password" autocomplete="off" style="min-width:200px;" placeholder="已配置（不回显；更新时再填写）" /></div>
                 <div class="field"><span class="lbl">当前短信通道</span>
                   <select id="sms_active_provider">
-                    <option value="identity_proxy">106网关（经主站 API）</option>
-                    <option value="tencent">腾讯云短信</option>
-                    <option value="juhe">聚合数据</option>
+                    <option value="local">106网关（本站直发 · 正式）</option>
+                    <option value="identity_proxy">106网关（经主站 API · 旧）</option>
+                    <option value="tencent">腾讯云（电信可用；移动签名未过）</option>
+                    <option value="juhe">爱聚合/聚合（备案中 · 勿用）</option>
                   </select>
                 </div>
               </div>
               <div class="msg small muted" id="sms-secret-hints" style="margin-top:6px;">
                 <span id="sms_internal_key_hint"></span>
-                <span style="margin-left:12px;">💡 其它通道备案中，接入后可通过上方下拉切换；后续加入自动故障切换。</span>
+                <span style="margin-left:12px;">正式通道用「本站直发 106」。腾讯仅临时救急；爱聚合备案完成前勿切。内部密钥须与主站一致（注册信任跳过）。</span>
               </div>
             </div>
             <!-- Provider tabs -->
@@ -1378,7 +1379,7 @@ def admin_app_html(admin_base: str) -> str:
                 <button class="sms-tab" data-tab="tab-logs">发送记录</button>
               </div>
               <div class="sms-tab-content" id="tab-106">
-                <div class="msg small muted" style="margin:4px 0 8px;">⚙ 106网关 · 接口地址留空则使用主站 .env 配置。模板须含 <span class="mono">{code}</span></div>
+                <div class="msg small muted" style="margin:4px 0 8px;">⚙ 106网关 · 选「本站直发」时在此填账号；接口地址可留空用默认。模板须含 <span class="mono">{code}</span></div>
                 <div class="field-row">
                   <div class="field" style="flex:1; min-width:260px;"><span class="lbl">接口地址（endpoint）</span><input id="sms_106_endpoint" class="mono" style="width:100%;" placeholder="不填使用主站默认" /></div>
                   <div class="field" style="min-width:160px;"><span class="lbl">账号（account）</span><input id="sms_106_account" class="mono" autocomplete="off" /></div>
