@@ -151,6 +151,7 @@ def get_or_create_wallet(db: Session, auth_user_id: int) -> TokenWallet:
         auth_user_id=int(auth_user_id),
         plan=BillingPlan.FREE,
         balance_tokens=0,
+        balance_usd=0,
         bonus_period=None,
     )
     db.add(w)
@@ -473,14 +474,21 @@ def get_balance_snapshot(db: Session, auth_user_id: int) -> dict:
     exp = w.vip_expires_at
     nearest = _nearest_lot_expiry(db, int(auth_user_id))
     total = int(w.balance_tokens or 0)
+    usd = int(w.balance_usd or 0)
     prepaid = spendable_tokens(db, int(auth_user_id), allow_vip_daily=False)
     vip_daily_left = max(0, total - prepaid)
     au = db.query(AuthUser).filter(AuthUser.id == int(auth_user_id)).first()
+    from model_warehouse import flash_ref_usd_per_m as _flash_ref
+
+    ref = _flash_ref()
     out = {
         "auth_user_id": int(auth_user_id),
         "email": (au.email or None) if au else None,
         "plan": w.plan.value if hasattr(w.plan, "value") else str(w.plan),
         "balance_tokens": total,
+        "balance_usd": usd,              # USD 美分
+        "balance_usd_display": f"${usd / 100:.2f}",  # 前端直接展示
+        "flash_ref_usd_per_m": round(ref, 4),
         "prepaid_tokens": int(prepaid),
         "vip_daily_remaining": int(vip_daily_left),
         "bonus_period": w.bonus_period,
@@ -555,10 +563,12 @@ def consume_tokens(
     tokens: int,
     model: Optional[str] = None,
     request_id: Optional[str] = None,
+    amount_usd: int = 0,  # 2026-08-03: 并行扣 USD 余额（美分，消耗为正数）
 ) -> TokenWallet:
     tokens = max(0, int(tokens))
+    amount_usd = max(0, int(amount_usd))
     w = ensure_period_bonus(db, get_or_create_wallet(db, auth_user_id))
-    if tokens <= 0:
+    if tokens <= 0 and amount_usd <= 0:
         return w
     allow_vip = model_allows_vip_daily(model)
     now = _utcnow()
@@ -602,11 +612,14 @@ def consume_tokens(
     db.flush()
     w.balance_tokens = _sum_active_lots(db, int(auth_user_id), now)
     w.updated_at = now
+    # 并行扣 USD 余额（2026-08-03）
+    w.balance_usd = max(0, int(w.balance_usd or 0) - amount_usd)
     db.add(
         BillingLedger(
             auth_user_id=int(auth_user_id),
             entry_type="consume",
             amount=-int(tokens),
+            amount_usd=-amount_usd,
             model=(model or "")[:64] or None,
             tokens=int(tokens),
             request_id=request_id,
@@ -655,6 +668,60 @@ def topup_tokens(
     try:
         settle_referral_on_topup(
             db, referee_id=int(auth_user_id), topup_amount=amount, topup_ledger_id=int(ledger.id)
+        )
+    except Exception:
+        pass
+    return get_balance_snapshot(db, auth_user_id)
+
+
+def topup_usd(
+    db: Session,
+    *,
+    auth_user_id: int,
+    usd_cents: int,
+    note: Optional[str] = None,
+    set_vip: bool = False,
+    vip_days: int = 30,
+    plan: Optional[str] = None,
+) -> dict:
+    """USD 余额充值（美分）。同时等额换算 token 入账以保持内部核算兼容。"""
+    usd_cents = max(0, int(usd_cents))
+    if usd_cents <= 0:
+        raise HTTPException(status_code=400, detail="充值金额无效")
+    u = db.query(AuthUser).filter(AuthUser.id == int(auth_user_id)).first()
+    if not u:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    if set_vip:
+        extend_vip(db, auth_user_id, days=int(vip_days) if vip_days else 30)
+
+    # 更新 USD 余额
+    w = get_or_create_wallet(db, int(auth_user_id))
+    w.balance_usd = int(w.balance_usd or 0) + usd_cents
+    w.updated_at = _utcnow()
+
+    # 同时写入等额 token（保持 FIFO lot 体系兼容）
+    from model_warehouse import flash_ref_usd_per_m as _flash_ref
+    ref = _flash_ref()
+    token_amount = max(1, int(round(usd_cents / 100.0 / ref * 1_000_000))) if ref > 0 else usd_cents
+    ledger = _credit_lot(
+        db, auth_user_id=int(auth_user_id), amount=token_amount,
+        entry_type="topup", source="topup",
+        validity_days=DEFAULT_PACK_VALIDITY_DAYS,
+        note=(note or "topup_usd")[:255], plan=plan, commit=False,
+    )
+    db.add(BillingLedger(
+        auth_user_id=int(auth_user_id), entry_type="topup",
+        amount=token_amount, amount_usd=usd_cents,
+        model=None, tokens=token_amount,
+        note=(note or "topup")[:255],
+    ))
+    db.commit()
+    db.refresh(w)
+
+    # 首次充值触发推荐返利
+    try:
+        settle_referral_on_topup(
+            db, referee_id=int(auth_user_id), topup_amount=token_amount, topup_ledger_id=int(ledger.id)
         )
     except Exception:
         pass
@@ -749,6 +816,34 @@ def create_api_key(db: Session, auth_user_id: int, name: str = "默认密钥") -
         "created_at": row.created_at.isoformat() if row.created_at else None,
         "is_active": True,
         "warning": "请立即保存完整 api_key，之后无法再次查看明文；列表仅显示前缀。禁止分享给他人。",
+    }
+
+
+def rename_api_key(db: Session, auth_user_id: int, key_id: int, name: str) -> dict:
+    row = (
+        db.query(ApiKey)
+        .filter(
+            ApiKey.id == int(key_id),
+            ApiKey.auth_user_id == int(auth_user_id),
+            ApiKey.is_active.is_(True),
+        )
+        .first()
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="API Key 不存在或已停用")
+    new_name = (name or "").strip()[:64]
+    if not new_name:
+        raise HTTPException(status_code=400, detail="名称不能为空")
+    row.name = new_name
+    db.commit()
+    db.refresh(row)
+    return {
+        "id": row.id,
+        "name": row.name,
+        "key_prefix": row.key_prefix,
+        "created_at": row.created_at.isoformat() if row.created_at else None,
+        "last_used_at": row.last_used_at.isoformat() if row.last_used_at else None,
+        "is_active": bool(row.is_active),
     }
 
 

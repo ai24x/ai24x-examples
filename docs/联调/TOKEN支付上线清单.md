@@ -62,7 +62,7 @@ TOKEN_ALIPAY_RETURN_URL=https://www.ai24x.com/console.html
 3. a1 扫码付一笔仍正常（回归）  
 4. 设 `TOKEN_PAY_ENABLED=true` 且 **`TOKEN_PAY_MOCK_ENABLED=false`**（关模拟；只留「确认到账」）
 5. 控制台 Token 套餐小额实付一单 → 查 `token_pay_orders` + 钱包余额  
-6. 详见 `docs/联调/Token发版-Gitee与副脑03.md`
+6. 详见 `docs/联调/Token发版-Gitee与副脑04.md`（副脑03 版已降级为备份说明）
 
 ### 线上现象对照（2026-07-27）
 `https://www.ai24x.com/console.html` 只显示「下单/支付通道未就绪」且无法跳转支付：  

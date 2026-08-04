@@ -113,7 +113,17 @@ LOGICAL_TO_UPSTREAM_MODEL_OR = {
 }
 
 # 与 S_flash≈$0.45/M 绑定（终稿 2026-08-02）：pro≈$1.35、ultra≈$2.70
+# 运行时 L2/L3 可被 model_warehouse override.layer_mult 覆盖
 LAYER_COST_MULT = {"L0": 1, "L1": 1, "L2": 3, "L3": 6, "QI": 1}
+
+
+def _layer_billing_mult(layer: str) -> int:
+    try:
+        from model_warehouse import layer_cost_mult_for
+
+        return max(1, int(layer_cost_mult_for(layer)))
+    except Exception:
+        return max(1, int(LAYER_COST_MULT.get(str(layer or "").upper(), 1) or 1))
 
 _EU_COUNTRY_CODES = frozenset(
     {
@@ -266,8 +276,18 @@ def list_models_public(*, is_vip: bool) -> dict[str, Any]:
         },
         "vip_picks": _public_vip_picks(is_vip=is_vip),
         "shared": "shared",
+        "flash_ref_usd_per_m": _public_flash_ref(),
         "note": "对外档位：auto / flash / pro / ultra / shared；VIP 可点名中国与国际名模（见 vip_picks）。",
     }
+
+
+def _public_flash_ref() -> float:
+    try:
+        from model_warehouse import flash_ref_usd_per_m
+
+        return float(flash_ref_usd_per_m())
+    except Exception:
+        return 0.45
 
 
 def _public_vip_picks(*, is_vip: bool) -> list[dict[str, Any]]:
@@ -341,6 +361,8 @@ def _normalize_openai_base(base: str) -> str:
         return base + "/v1"
     if base in ("https://api.siliconflow.cn", "http://api.siliconflow.cn"):
         return base + "/v1"
+    if base in ("https://api.siliconflow.com", "http://api.siliconflow.com"):
+        return base + "/v1"
     if base in ("https://openrouter.ai/api", "http://openrouter.ai/api"):
         return base + "/v1"
     return base
@@ -395,7 +417,7 @@ def _layer_upstream(layer: str) -> dict[str, str]:
             base = (
                 _env("TOKEN_LLM_L0_BASE")
                 or _env("SILICONFLOW_BASE_URL")
-                or "https://api.siliconflow.cn/v1"
+                or "https://api.siliconflow.com/v1"
             )
             model = (
                 _env("TOKEN_LLM_L0_MODEL")
@@ -432,9 +454,13 @@ def _layer_upstream(layer: str) -> dict[str, str]:
         base = (
             _env("TOKEN_LLM_L0_BASE")
             or _env("SILICONFLOW_BASE_URL")
-            or "https://api.siliconflow.cn/v1"
+            or "https://api.siliconflow.com/v1"
         )
-        key = _env("TOKEN_LLM_L0_KEY") or _env("SILICONFLOW_API_KEY")
+        key = (
+            _env("SILICONFLOW_COM_API_KEY")
+            or _env("TOKEN_LLM_L0_KEY")
+            or _env("SILICONFLOW_API_KEY")
+        )
         try:
             from llm_keys import silicon_free_key
 
@@ -601,11 +627,48 @@ def _content_text(content: Any) -> str:
     return str(content)
 
 
+def _content_passthrough(content: Any) -> Any:
+    """保留 multipart 结构（含 image_url 图片数据）供上游透传。
+
+    ⚠️ 主脑 2026-08-04 新增 · Vision 修复 · 已部署 04 生产
+    科设注意：此函数为 vision 修复核心，Gitee 同步 / 部署时请保留。
+    详见 FIX-vision-support.md
+
+    OpenAI Vision 格式 message.content 为 list 时条目形如：
+      {"type": "text", "text": "..."}
+      {"type": "image_url", "image_url": {"url": "data:image/png;base64,..."}}
+    纯文本仍返回 str；空 content 返回 ""。
+    """
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[dict[str, Any]] = []
+        for p in content:
+            if isinstance(p, str):
+                parts.append({"type": "text", "text": p})
+            elif isinstance(p, dict):
+                tp = str(p.get("type") or "").strip().lower()
+                if tp == "image_url":
+                    # 原样保留图片数据透传上游
+                    parts.append(p)
+                elif tp == "text" or "text" in p:
+                    parts.append({"type": "text", "text": str(p.get("text") or "")})
+                else:
+                    parts.append(p)
+        return parts if parts else ""
+    return str(content)
+
+
 def _build_chat_messages(
-    prompt: str, messages: Optional[list[dict[str, Any]]] = None
+    prompt: str,
+    messages: Optional[list[dict[str, Any]]] = None,
+    *,
+    system_prompt: Optional[str] = None,
 ) -> list[dict[str, Any]]:
     """组装上游 messages；透传 user/assistant/tool 与 assistant.tool_calls。"""
-    sys = _system_prompt()
+    sys = system_prompt if system_prompt is not None else _system_prompt()
     if messages and isinstance(messages, list):
         out: list[dict[str, Any]] = [{"role": "system", "content": sys}]
         sys_extra: list[str] = []
@@ -642,7 +705,9 @@ def _build_chat_messages(
                 continue
             if role not in ("user", "assistant"):
                 role = "user"
-            out.append({"role": role, "content": text})
+            # ⚠️ 主脑 2026-08-04：user 消息保留 multipart（含 image_url）供 vision 透传
+            user_content = _content_passthrough(m.get("content"))
+            out.append({"role": role, "content": user_content})
         if sys_extra:
             out[0]["content"] = sys + "\n\n" + "\n\n".join(sys_extra)
         if len(out) == 1:
@@ -808,9 +873,19 @@ def run_routed_chat(
                 public_model=str(pick.get("id") or "vip_pick"),
             )
         if not pick_gate_on:
-            requested_model = "flash"
-        else:
-            return _run_vip_pick_chat(
+            return RouteResult(
+                ok=False,
+                text="",
+                model="",
+                layer="VIP",
+                provider="",
+                token_count=0,
+                attempts=[],
+                error="vip_pick_disabled",
+                billing_mult=int(pick.get("billing_mult") or 1),
+                public_model=str(pick.get("id") or "vip_pick"),
+            )
+        return _run_vip_pick_chat(
                 pick=pick,
                 prompt=prompt,
                 temperature=temperature,
@@ -863,7 +938,7 @@ def run_routed_chat(
                         }
                     )
                     raw_tokens = int(out["tokens"])
-                    mult = int(LAYER_COST_MULT.get(layer, 1))
+                    mult = int(_layer_billing_mult(layer))
                     return _route_ok_from_out(
                         out,
                         model=used_model,
@@ -938,7 +1013,7 @@ def run_routed_chat(
                 }
             )
             raw_tokens = int(out["tokens"])
-            mult = int(LAYER_COST_MULT.get(layer, 1))
+            mult = int(_layer_billing_mult(layer))
             bill_tokens = max(1, raw_tokens * mult)
             return _route_ok_from_out(
                 out,
@@ -993,7 +1068,7 @@ def run_routed_chat(
                             }
                         )
                         raw_tokens = int(out["tokens"])
-                        mult = int(LAYER_COST_MULT.get("L1", 1))
+                        mult = int(_layer_billing_mult("L1"))
                         return _route_ok_from_out(
                             out,
                             model=used_model,
@@ -1071,18 +1146,31 @@ def _silicon_vip_upstream(model_id: str) -> Optional[dict[str, str]]:
     if not mid:
         return None
     try:
-        from llm_keys import silicon_main_key
+        from llm_keys import silicon_main_key, silicon_com_key, silicon_cn_key
 
-        key = silicon_main_key()
+        com_key = silicon_com_key()
+        if com_key:
+            key = com_key
+            base = (
+                _env("SILICONFLOW_BASE_URL")
+                or _env("TOKEN_LLM_L0_BASE")
+                or "https://api.siliconflow.com/v1"
+            )
+        else:
+            key = silicon_cn_key() or silicon_main_key()
+            base = (
+                _env("SILICONFLOW_BASE_URL")
+                or _env("TOKEN_LLM_L0_BASE")
+                or "https://api.siliconflow.cn/v1"
+            )
     except Exception:
-        key = _env("SILICONFLOW_API_KEY") or _env("TOKEN_LLM_L0_KEY")
+        key = _env("SILICONFLOW_COM_API_KEY") or _env("SILICONFLOW_API_KEY") or _env("TOKEN_LLM_L0_KEY")
+        base = (
+            _env("SILICONFLOW_BASE_URL")
+            or ("https://api.siliconflow.com/v1" if _env("SILICONFLOW_COM_API_KEY") else "https://api.siliconflow.cn/v1")
+        )
     if not key:
         return None
-    base = (
-        _env("SILICONFLOW_BASE_URL")
-        or _env("TOKEN_LLM_L0_BASE")
-        or "https://api.siliconflow.cn/v1"
-    )
     return {"base": base, "key": key, "model": mid, "provider": "siliconflow"}
 
 
@@ -1183,7 +1271,7 @@ def _run_vip_pick_chat(
             )
             return None
 
-    # —— 通道顺序 ——
+    # —— 通道顺序（2026-08-03：中国模硅基.com 优先(价低) → OR 兜底；国际模 OR 优先）——
     # A) DeepSeek 点名：官方直连最稳最便宜
     if is_ds_pick and direct_id and _ds_failover_enabled():
         ds = _deepseek_official_upstream()
@@ -1198,7 +1286,7 @@ def _run_vip_pick_chat(
             if got:
                 return got
 
-    # B) 中国模（非国际旗舰）：硅基优先
+    # B) 中国模（非国际旗舰）：硅基 .com 优先（原厂价+国际端点，又快又便宜）
     if (
         (not is_intl_flagship)
         and (not is_ds_pick)
@@ -1212,12 +1300,12 @@ def _run_vip_pick_chat(
                 key=sf["key"],
                 model=sf["model"],
                 provider="siliconflow",
-                note="silicon_first",
+                note="silicon_com_first",
             )
             if got:
                 return got
 
-    # C) OpenRouter
+    # C) OpenRouter（国际模主路径；中国模兜底）
     if or_id and _upstream_mode() == "openrouter":
         up = _layer_upstream("L1")
         if up.get("key") and up.get("base"):
@@ -1230,7 +1318,18 @@ def _run_vip_pick_chat(
             if got:
                 return got
 
-    # D) 国际旗舰厂直连 / 其它 VIP 厂直连
+    # D) 国际模第二聚合 — TokenLab（待调研接入；比 OR 低 35-50% 成本）
+    # TODO: 接入后在此插入 tokenlab 调用，优先级在 OR 之后、厂直连之前
+    # if is_intl_flagship and or_id:
+    #     tl = _tokenlab_upstream(or_id)
+    #     if tl:
+    #         got = _try_call(..., provider="tokenlab", note="tokenlab_international")
+    #         if got: return got
+
+    # D2) 国际模第三聚合 — 待调研（备份/压价用）
+    # TODO: 找到第 3 家国际聚合后在此插入
+
+    # E) 国际旗舰厂直连 / 其它 VIP 厂直连
     try:
         from upstream_providers import direct_model_for_vip
 
@@ -1303,7 +1402,7 @@ def _run_vip_pick_chat(
             sf_base = (
                 _env("SILICONFLOW_BASE_URL")
                 or _env("TOKEN_LLM_L0_BASE")
-                or "https://api.siliconflow.cn/v1"
+                or "https://api.siliconflow.com/v1"
             )
             # 优先用点名映射；没有则回落 L0 默认模（质变，仅最后兜底）
             sf_model = sf_id or (
@@ -1473,12 +1572,13 @@ def _system_prompt() -> str:
         return custom
     return (
         "You are the AI24X assistant on the AI24X API platform. "
+        "Always write the brand as the single token AI24X — never AI on4X, AIon4X, or 24X alone. "
         "When users ask which model or company you are, say you are the AI24X assistant "
-        "(tiers: auto / flash / pro / ultra). "
+        "(tiers: auto / flash / pro / ultra / shared). "
         "Do not name upstream providers or model brands such as DeepSeek, Xiaomi, MiMo, "
         "Qwen, OpenAI, OpenRouter, or SiliconFlow, unless the user is clearly an internal "
         "operator debugging with an explicit admin instruction. "
-        "Answer helpfully in the user's language."
+        "Answer helpfully in the user's language. Use complete sentences; do not repeat filler words."
     )
 
 
@@ -1495,6 +1595,7 @@ def _call_openai_compatible(
     messages: Optional[list[dict[str, Any]]] = None,
     tools: Optional[list[dict[str, Any]]] = None,
     tool_choice: Any = None,
+    system_prompt: Optional[str] = None,
 ) -> dict[str, Any]:
     url = f"{base}/chat/completions"
     headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
@@ -1506,7 +1607,9 @@ def _call_openai_compatible(
         headers["X-Title"] = _env("OPENROUTER_APP_NAME") or "AI24X"
     body: dict[str, Any] = {
         "model": model,
-        "messages": _build_chat_messages(prompt, messages),
+        "messages": _build_chat_messages(
+            prompt, messages, system_prompt=system_prompt
+        ),
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
@@ -1847,7 +1950,8 @@ def run_routed_chat_stream(
                 tool_choice=use_choice,
             )
             return
-        requested_model = "flash"
+        yield {"type": "error", "error": "vip_pick_disabled"}
+        return
 
     chain = resolve_chain(
         requested_model=requested_model, is_vip=is_vip, region_hint=region_hint
@@ -1858,7 +1962,7 @@ def run_routed_chat_stream(
 
     for layer, logical_model in chain:
         up = _layer_upstream(layer)
-        mult = int(LAYER_COST_MULT.get(layer, 1))
+        mult = int(_layer_billing_mult(layer))
         if (
             layer in ("L1", "L2")
             and _upstream_mode() == "openrouter"
@@ -1962,22 +2066,27 @@ def _run_vip_pick_chat_stream(
     )
     targets: list[tuple[str, str, str, str]] = []  # provider, base, key, model
 
+    # 2026-08-03：中国模 硅基.com 优先(价低+国际端点) → OR兜底；国际模 OR 优先
     if is_ds_pick and direct_id and _ds_failover_enabled():
         ds = _deepseek_official_upstream()
         if ds.get("key") and ds.get("base"):
             targets.append(("deepseek", str(ds["base"]), str(ds["key"]), direct_id))
+    # B) 中国模：硅基 .com 优先（原厂价+国际CDN）
     if (not is_intl) and (not is_ds_pick) and sf_id and _vip_silicon_first_enabled():
         sf = _silicon_vip_upstream(sf_id)
         if sf:
             targets.append(("siliconflow", sf["base"], sf["key"], sf["model"]))
+    # C) OR（国际模主路径；中国模兜底）
     if or_id and _upstream_mode() == "openrouter":
         up = _layer_upstream("L1")
         if up.get("key") and up.get("base"):
             targets.append(("openrouter", str(up["base"]), str(up["key"]), or_id))
+    # F) DS 硅基同族兜底
     if is_ds_pick and sf_id:
         sf = _silicon_vip_upstream(sf_id)
         if sf:
             targets.append(("siliconflow", sf["base"], sf["key"], sf["model"]))
+    # TODO: TokenLab(#2) + 待调研(#3) 国际聚合接入后插入在 OR 之后、厂直连之前
 
     last_err = ""
     for provider, base, key, model in targets:

@@ -145,7 +145,7 @@ class ApiKey(Base):
 
 
 class TokenWallet(Base):
-    """Token 钱包：余额以整数 token 计。"""
+    """Token 钱包：balance_usd 为主余额（美分），balance_tokens 为内部核算单位。"""
 
     __tablename__ = "token_wallets"
 
@@ -155,6 +155,7 @@ class TokenWallet(Base):
     )
     plan = Column(Enum(BillingPlan), default=BillingPlan.FREE, nullable=False)
     balance_tokens = Column(Integer, default=0, nullable=False)
+    balance_usd = Column(Integer, default=0, nullable=False)  # USD 美分（主余额） 2026-08-03
     bonus_period = Column(String(16), nullable=True)
     vip_expires_at = Column(DateTime(timezone=True), nullable=True)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -183,7 +184,7 @@ class TokenCreditLot(Base):
 
 
 class BillingLedger(Base):
-    """计费流水：正数入账，负数消耗。"""
+    """计费流水：正数入账，负数消耗。amount 为 token，amount_usd 为美分。"""
 
     __tablename__ = "billing_ledger"
 
@@ -193,6 +194,7 @@ class BillingLedger(Base):
     )
     entry_type = Column(String(16), nullable=False)  # consume / topup / bonus / referral / expire
     amount = Column(Integer, nullable=False)
+    amount_usd = Column(Integer, default=0, nullable=False)  # USD 美分（消耗为负）2026-08-03
     model = Column(String(64), nullable=True)
     tokens = Column(Integer, nullable=True)
     request_id = Column(String(64), nullable=True, index=True)
@@ -247,6 +249,7 @@ class TokenPayOrder(Base):
     )
     plan = Column(String(64), nullable=False)
     amount_fen = Column(Integer, nullable=False)
+    amount_usd = Column(Integer, default=0, nullable=False)  # USD 美分（实际到账）2026-08-03
     channel = Column(String(16), nullable=False, default="wechat")
     status = Column(String(16), nullable=False, default="pending")  # pending/paid/failed
     code_url = Column(Text, nullable=True)

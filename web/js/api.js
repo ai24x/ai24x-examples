@@ -103,6 +103,8 @@
 
   async function request(path, options) {
     options = options || {};
+    // true=只用 Key；false=只用登录会话；undefined=自动（有 JWT 不带 Key，无 JWT 才带 Key）
+    var preferApiKey = options.preferApiKey;
     var url = getBase() + path;
     var headers = Object.assign(
       { Accept: "application/json" },
@@ -111,12 +113,23 @@
     if (options.body && typeof options.body === "string" && !headers["Content-Type"])
       headers["Content-Type"] = "application/json";
     var tok = getAuthToken();
-    if (tok && !headers.Authorization) headers.Authorization = "Bearer " + tok;
     var k = getApiKey();
-    if (k && !headers["X-API-Key"]) headers["X-API-Key"] = k;
+    if (preferApiKey === true) {
+      // 勾选「用 API Key」：只带 Key，勿带 JWT（否则后端 JWT 优先，勾选无效）
+      if (k && !headers["X-API-Key"]) headers["X-API-Key"] = k;
+    } else if (preferApiKey === false) {
+      // 默认试调用：只带登录会话，绝不偷带残留 sk
+      if (tok && !headers.Authorization) headers.Authorization = "Bearer " + tok;
+    } else {
+      // 余额/密钥等：已登录只走 JWT，避免串号；未登录才用本地 Key
+      if (tok && !headers.Authorization) headers.Authorization = "Bearer " + tok;
+      if (k && !headers["X-API-Key"] && !tok) headers["X-API-Key"] = k;
+    }
+    var fetchOpts = Object.assign({}, options, { headers: headers });
+    delete fetchOpts.preferApiKey;
     var res;
     try {
-      res = await fetch(url, Object.assign({}, options, { headers: headers }));
+      res = await fetch(url, fetchOpts);
     } catch (e) {
       var raw = String((e && e.message) || e || "");
       var netZh =
@@ -318,8 +331,29 @@
             ? "手机号/邮箱或密码错误，请检查后重试。"
             : "Incorrect account or password. Please try again.";
         }
-        if (status === 401)
-          return isZhUi() ? "登录已失效或未授权，请重新登录。" : "Unauthorized. Please sign in again.";
+        if (status === 401) {
+          var code =
+            b && typeof b.detail === "object" && b.detail
+              ? String(b.detail.code || "")
+              : "";
+          if (
+            code === "invalid_api_key" ||
+            /无效的\s*API\s*Key|Invalid API key/i.test(joined)
+          ) {
+            if (preferApiKey === true) {
+              return isZhUi()
+                ? "API Key 无效。请到「API 密钥」创建后，把完整 Key 粘到上方；或取消勾选，改用登录发送。"
+                : "Invalid API key. Create one under API keys, paste the full key above — or uncheck to use login.";
+            }
+            // 线上旧版 chat/run 会把登录 JWT 误判成 Key；勿引导用户去「取消勾选」
+            return isZhUi()
+              ? "登录会话未被试调用接受。请稍后再试；或勾选「用 API Key」发送。"
+              : "Login session was not accepted for try-call. Try again later, or check “Use API key”.";
+          }
+          return isZhUi()
+            ? "登录已失效或未授权，请重新登录。"
+            : "Unauthorized. Please sign in again.";
+        }
         if (status === 403) {
           // 保留已本地化的具体原因（如账号冻结）；泛化「禁止访问」才用默认句
           if (
@@ -374,12 +408,19 @@
     return data;
   }
 
-  function chatRun(body, userId) {
+  function chatRun(body, userId, opts) {
+    opts = opts || {};
     var q = userId ? "?user_id=" + encodeURIComponent(userId) : "";
     return request("/v1/chat/run" + q, {
       method: "POST",
       body: JSON.stringify(body || {}),
+      // 显式 true/false，避免 undefined 落到「无 token 偷带 Key」
+      preferApiKey: !!opts.preferApiKey,
     });
+  }
+
+  function logout() {
+    clearAuth();
   }
 
   function health() {
@@ -432,6 +473,13 @@
   function keysCreate(payload) {
     return request("/v1/keys", {
       method: "POST",
+      body: JSON.stringify(payload || {}),
+    });
+  }
+
+  function keysRename(keyId, payload) {
+    return request("/v1/keys/" + encodeURIComponent(keyId), {
+      method: "PATCH",
       body: JSON.stringify(payload || {}),
     });
   }
@@ -578,7 +626,7 @@
     return (p && p.settle_hint_en) || "Pay with PayPal (USD) on the international site";
   }
 
-  /** 套餐能力：额度 / 会员 / 可点名（避免下单误会） */
+  /** 套餐能力：额度 / 名模资格 / 是否齐备可点名 */
   function planCaps(p) {
     var credits =
       p && (p.cap_credits != null ? !!p.cap_credits : Number(p.credit_tokens || 0) > 0);
@@ -614,16 +662,16 @@
     var zh = isZhUi();
     var c = planCaps(p);
     if (c.named) {
-      return zh ? "要名模首选：会员+额度一次齐" : "Best for named models: VIP + credits";
+      return zh ? "名模可直接用（资格+额度齐）" : "Named models ready (access + credits)";
     }
     if (c.vipOnly) {
-      return zh ? "只要会员与日赠 flash" : "VIP + daily flash only";
+      return zh ? "会员资格" : "VIP access";
     }
     if (c.creditsOnly && Number((p && p.credit_tokens) || 0) <= 500000) {
-      return zh ? "小额预充，先跑通" : "Small prepaid to get started";
+      return zh ? "小额预充先跑通；要点名选 Scale" : "Small prepaid to start; Scale to name models";
     }
     if (c.creditsOnly) {
-      return zh ? "日常预充，不含会员" : "Prepaid only — no VIP";
+      return zh ? "日常预充；要点名选 Scale" : "Everyday credits; Scale to name models";
     }
     return "";
   }
@@ -655,15 +703,14 @@
     var suffix = otn ? (zh ? " 单号：" + otn : " Order: " + otn) : "";
     if (planId === "token_vip_month") {
       return zh
-        ? "会员已开通。日赠仅 flash/auto；要点名请再购开发包或 Scale。" + suffix
-        : "Membership active. Daily bonus is flash/auto only — buy Builder or Scale for named models." +
+        ? "会员已开通。每日额度仅 flash/auto；要点名请选 Scale。" + suffix
+        : "VIP active. Daily quota flash/auto only — choose Scale for named models." +
             suffix;
     }
     if (planId === "token_pack_100k" || planId === "token_pack_10k") {
       return zh
-        ? "预充额度已到账。若要点名，请确认已开会员（月卡/Scale）。" + suffix
-        : "Credits added. For named models, confirm you also have VIP (Pro Pass / Scale)." +
-            suffix;
+        ? "预充额度已到账。要点名请选 Scale 组合包。" + suffix
+        : "Credits added. For named models, choose Scale." + suffix;
     }
     if (planId === "token_vip_month_50w") {
       return zh
@@ -685,6 +732,7 @@
     getAuthUser: getAuthUser,
     setAuthUser: setAuthUser,
     clearAuth: clearAuth,
+    logout: logout,
     saveAuthSession: saveAuthSession,
     isLocalAuthOpen: isLocalAuthOpen,
     isLocalHost: isLocalHost,
@@ -698,6 +746,7 @@
     authEmailSend: authEmailSend,
     keysList: keysList,
     keysCreate: keysCreate,
+    keysRename: keysRename,
     keysDelete: keysDelete,
     billingBalance: billingBalance,
     billingUsage: billingUsage,

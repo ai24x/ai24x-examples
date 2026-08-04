@@ -36,6 +36,7 @@ def admin_list_users(
     for u in rows:
         w = db.query(TokenWallet).filter(TokenWallet.auth_user_id == int(u.id)).first()
         bal = int(w.balance_tokens or 0) if w else 0
+        usd = int(w.balance_usd or 0) if w else 0
         plan = ""
         if w is not None:
             plan = w.plan.value if hasattr(w.plan, "value") else str(w.plan or "")
@@ -48,6 +49,8 @@ def admin_list_users(
                 "frozen": frozen,
                 "freeze_reason": (getattr(u, "freeze_reason", None) or "") or None,
                 "balance_tokens": bal,
+                "balance_usd": usd,
+                "balance_usd_display": f"${usd / 100:.2f}",
                 "plan": plan or "free",
                 "created_at": u.created_at.isoformat() if u.created_at else None,
                 "utm_source": (getattr(u, "utm_source", None) or "") or None,
@@ -228,10 +231,12 @@ def admin_economics(db: Session, *, days: int = 7) -> dict[str, Any]:
         "pending_orders": pending,
         "note": (
             "成本按上游 Flash 地板粗算（默认 $0.24/M，可用 TOKEN_ECON_COST_USD_PER_M 覆盖）；"
-            "售价锚约 $0.45/M。会低估 Claude/GPT 等高倍率名模真实上游成本。"
-            "请同时看「用量监控」按模型拆分；精确对账对照上游账单。"
+            "售价锚见 TOKEN_FLASH_REF_USD_PER_M。"
+            "会低估 Claude/GPT 等高倍率名模真实上游成本——"
+            "请到「模型仓库」维护各 VIP 的 cost_in/out，并看「用量监控」按模型拆分；精确对账对照上游账单。"
         ),
         "usage_hint": "GET /v1/admin/token/usage_monitor",
+        "pricing_hint": "POST /v1/admin/token/model_warehouse vip_rates",
     }
 
 

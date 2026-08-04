@@ -1,25 +1,27 @@
 {
   "schema": "ai24x.command.v1",
-  "updated": "2026-08-01",
+  "updated": "2026-08-04",
   "title": "AI24X 指挥中心 · 副脑协同数据",
   "human_ui": "/ai24x.html",
   "canon": "docs/规划/主脑副脑岗位与国际Token供给-1.0.md",
   "note": "供 OpenClaw / 副脑拉取角色与链接；页面无门禁；不含密码与密钥。勿把本页设为 www 默认首页。",
   "strategy": {
     "priority": "intl_first",
-    "one_liner": "主脑定事写代码；03/04 看店收银；01/02 拉人续费",
-    "p0": "OR 默认 L1=DS Flash / L2=V4-Pro / L3=GPT-5-mini；名模对齐 OR 现行；付费闭环",
+    "one_liner": "主脑定事写代码；04 国际 Token 收银；03 行情官+Token冷备；01/02 拉人续费",
+    "p0": "OR 默认 L1=DS Flash / L2=V4-Pro / L3=GPT-5-mini；名模对齐 OR 现行；付费闭环（04）",
     "p1": "MiMo 能力向 A/B；PayPal Webhook；入门包国际价；A1 由 03/02",
-    "parked": ["国内 Token 推广", "Fisher", "独立预发环境", "美欧额外主机（暂缓）", "PayPal Live 在 03 养用户"]
+    "parked": ["国内 Token 推广", "Fisher", "独立预发环境", "美欧额外主机（暂缓）"]
   },
   "infra": {
     "intl_gateway": "singapore_x1",
+    "token_prod": "brain_04",
+    "token_backup": "brain_03",
     "no_us_eu_host_until": "stable_paid_traffic_or_compliance_need",
-    "deploy_flow": "local_ok → gitee → prod_gates",
+    "deploy_flow": "local_ok → gitee → brain_04_prod_gates",
     "staging": false
   },
   "routing": {
-    "aliases": ["flash", "pro", "ultra", "auto"],
+    "aliases": ["flash", "pro", "ultra", "auto", "shared"],
     "upstream_default": "openrouter",
     "upstream_fallback": ["direct_deepseek", "siliconflow_L0"],
     "flash": "deepseek/deepseek-v4-flash",
@@ -73,10 +75,11 @@
       "emoji": "🛡️",
       "name": "国内生产店长",
       "host": "public_cn",
-      "role": "国内站点生产",
-      "owns": ["a.ai24x.com", "PM2/Nginx/备份", "国内支付"],
-      "forbids": ["PayPal Live", "国际获客 KPI"],
-      "duties": ["部署门禁", "告警", "git pull", "备份"]
+      "role": "国内站点生产 · Token 冷备",
+      "owns": ["a.ai24x.com", "PM2/Nginx/备份", "国内支付", "Token冷备份机"],
+      "forbids": ["PayPal Live", "国际获客 KPI", "默认承接 www/api 正式流量"],
+      "duties": ["行情官部署门禁", "告警", "git pull", "备份", "主脑明示时同步 Token 冷备"],
+      "note": "2026-08-04：www/api 正式流量已切 04；03 上 Token 仅备份"
     },
     {
       "id": "04",
@@ -85,11 +88,11 @@
       "emoji": "🔗",
       "name": "国际生产店长",
       "host": "sg",
-      "role": "国际站点生产",
-      "owns": ["www.ai24x.com", "api.ai24x.com", "国际库", "PayPal Live"],
+      "role": "国际站点正式生产",
+      "owns": ["www.ai24x.com", "api.ai24x.com", "国际库", "PayPal Live", "Token聚合正式"],
       "forbids": ["行情官", "国内支付商户"],
-      "status": "target_sg",
-      "note": "过渡期 www/api 可暂在 03；Live 只开 04"
+      "status": "live_prod",
+      "note": "2026-08-04：www+api 正式生产在此；Token 发版默认捅 04"
     }
   ],
   "feishu_aliases": {
@@ -117,13 +120,15 @@
     "command_ui": "/ai24x.html",
     "command_data": "/ops/ai24x-command.json",
     "canon_doc": "docs/规划/主脑副脑岗位与国际Token供给-1.0.md",
-    "runbook_token": "docs/联调/Token发版-Gitee与副脑03.md",
+    "runbook_token": "docs/联调/Token发版-Gitee与副脑04.md",
+    "runbook_token_backup_03": "docs/联调/Token发版-Gitee与副脑03.md",
     "paypal_note": "docs/规划/国际站PayPal与副脑04过渡备注.md",
-    "openclaw_upgrade": "docs/OpenClaw升级经验-副脑通用.md"
+    "openclaw_upgrade": "docs/OpenClaw升级经验-副脑通用.md",
+    "jwt_trycall_fix": "docs/联调/副脑04-更新指令-试调用JWT鉴权.md"
   },
   "processes": {
-    "core_api_local": "core-8000",
-    "core_api_prod": "core-api-8002",
+    "core_api_local": "AI24X-core / :8000",
+    "core_api_prod": "AI24X-core (brain-04) / upstream often :8002",
     "a1_api": "a-api-8001",
     "do_not_touch": ["a1 notify URLs", "p/a1 pay fulfill", "whole-file Write .env"]
   },

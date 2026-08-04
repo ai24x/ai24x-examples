@@ -121,6 +121,41 @@ def _content_to_text(content: Any) -> str:
     return str(content)
 
 
+def _normalize_content_for_upstream(content: Any) -> Any:
+    """保留 multipart 结构（含 image_url image 数据）供上游透传。
+
+    ⚠️ 主脑 2026-08-04 新增 · Vision 支持 · 已部署 04 生产
+    科设注意：此函数为 vision 修复核心，Gitee 同步 / 部署时请保留。
+    详见 FIX-vision-support.md
+
+    OpenAI Vision 格式 message.content 为 list 时条目形如：
+      {"type": "text", "text": "..."}
+      {"type": "image_url", "image_url": {"url": "data:image/png;base64,..."}}
+    纯文本仍返回 str；空 content 返回 ""。
+    """
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: List[Dict[str, Any]] = []
+        for p in content:
+            if isinstance(p, str):
+                parts.append({"type": "text", "text": p})
+            elif isinstance(p, dict):
+                tp = str(p.get("type") or "").strip().lower()
+                if tp == "image_url":
+                    # 原样保留图片数据透传上游
+                    parts.append(p)
+                elif tp == "text" or "text" in p:
+                    parts.append({"type": "text", "text": str(p.get("text") or "")})
+                else:
+                    # 未知类型，safe fallback 透传
+                    parts.append(p)
+        return parts if parts else ""
+    return str(content)
+
+
 def _normalize_tool_calls(raw: Any) -> Optional[List[Dict[str, Any]]]:
     """规范化 assistant.tool_calls 列表；无效则 None。"""
     if not isinstance(raw, list) or not raw:
@@ -245,9 +280,11 @@ def normalize_messages_for_upstream(messages: Any) -> Optional[List[Dict[str, An
                 item["name"] = str(m.get("name"))
             out.append(item)
             continue
-        text = _content_to_text(m.get("content")).strip()
+        content = _normalize_content_for_upstream(m.get("content"))
         tcs = _normalize_tool_calls(m.get("tool_calls")) if role == "assistant" else None
         if role == "assistant" and tcs:
+            # assistant + tool_calls: 仅提取文本部分（工具调用不需要图片数据）
+            text = _content_to_text(m.get("content")).strip()
             item = {
                 "role": "assistant",
                 "content": text if text else None,
@@ -255,11 +292,12 @@ def normalize_messages_for_upstream(messages: Any) -> Optional[List[Dict[str, An
             }
             out.append(item)
             continue
-        if not text:
+        # 对于 string content 跳过空串；list 类型（multipart）始终保留
+        if isinstance(content, str) and not content.strip():
             continue
         if role not in ("system", "user", "assistant"):
             role = "user"
-        out.append({"role": role, "content": text})
+        out.append({"role": role, "content": content})
     return out or None
 
 

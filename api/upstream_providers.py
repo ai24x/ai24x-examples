@@ -22,15 +22,25 @@ PROVIDERS: dict[str, dict[str, Any]] = {
         "covers": ["china_named", "intl_named", "tiers"],
     },
     "siliconflow": {
-        "title": "硅基流动（L0/共享/中国模备用）",
+        "title": "硅基流动（L0/共享/中国模备用 · .cn）",
         "role": "china_backup",
         "openai_compatible": True,
         "key_env": "SILICONFLOW_API_KEY",
         "free_key_env": "SILICONFLOW_API_KEY_FREE",
         "base_env": "SILICONFLOW_BASE_URL",
-        "default_base": "https://api.siliconflow.cn/v1",
+        "default_base": "https://api.siliconflow.com/v1",  # 2026-08-03: international endpoint
         "enabled_env": "TOKEN_UPSTREAM_SILICON_ENABLED",
         "covers": ["china_open", "shared", "l0"],
+    },
+    "siliconflow_com": {
+        "title": "硅基流动国际站（.com · 中国模降本优先）",
+        "role": "china_backup",
+        "openai_compatible": True,
+        "key_env": "SILICONFLOW_COM_API_KEY",
+        "base_env": "SILICONFLOW_BASE_URL",
+        "default_base": "https://api.siliconflow.com/v1",
+        "enabled_env": "TOKEN_UPSTREAM_SILICON_ENABLED",
+        "covers": ["china_open", "shared", "l0_intl"],
     },
     "deepseek": {
         "title": "DeepSeek 官方（Flash/Pro 兜底）",
@@ -102,6 +112,25 @@ PROVIDERS: dict[str, dict[str, Any]] = {
         },
         "note": "兼容端点随 Google 文档调整；以官方为准。",
     },
+    # —— 国际聚合平台占位（待调研接入) ——
+    # 用途：OR 挂了做备份；多家聚合比价压成本做利润
+    # "tokenlab": {
+    #     "title": "TokenLab (#2 国际聚合 · Claude/Gemini 降本 35-50%)",
+    #     "role": "intl_aggregator",
+    #     "openai_compatible": True,
+    #     "key_env": "TOKENLAB_API_KEY",
+    #     "base_env": "TOKENLAB_BASE_URL",
+    #     "default_base": "https://api.tokenlab.sh/v1",
+    #     "covers": ["intl_named", "or_failover"],
+    # },
+    # "tbd_agg3": {
+    #     "title": "#3 国际聚合（待调研 · 比价压利润用）",
+    #     "role": "intl_aggregator",
+    #     "openai_compatible": True,
+    #     "key_env": "TBD_AGG3_API_KEY",
+    #     "base_env": "TBD_AGG3_BASE_URL",
+    #     "covers": ["intl_named", "price_arbitrage"],
+    # },
 }
 
 
@@ -113,6 +142,7 @@ def _env(name: str, default: str = "") -> str:
         "OPENROUTER_API_KEY_FREE",
         "SILICONFLOW_API_KEY",
         "SILICONFLOW_API_KEY_FREE",
+        "SILICONFLOW_COM_API_KEY",
         "DEEPSEEK_API_KEY",
         "TOGETHER_API_KEY",
         "OPENAI_API_KEY",

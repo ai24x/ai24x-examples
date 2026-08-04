@@ -405,6 +405,10 @@ class ApiKeyCreateBody(BaseModel):
     name: str = Field(default="默认密钥", min_length=1, max_length=64)
 
 
+class ApiKeyRenameBody(BaseModel):
+    name: str = Field(..., min_length=1, max_length=64)
+
+
 class ApiKeyCreatedOut(BaseModel):
     id: int
     name: str
@@ -487,11 +491,21 @@ class TokenAdminWarehouseLayerPatch(BaseModel):
     enabled: Optional[bool] = None
 
 
+class TokenAdminVipRatePatch(BaseModel):
+    id: str = Field(..., min_length=1, max_length=64)
+    billing_mult: Optional[int] = Field(default=None, ge=1, le=200)
+    cost_in: Optional[float] = Field(default=None, ge=0, le=1000)
+    cost_out: Optional[float] = Field(default=None, ge=0, le=1000)
+    enabled: Optional[bool] = None
+
+
 class TokenAdminWarehouseUpdateBody(BaseModel):
     layers: Optional[list[TokenAdminWarehouseLayerPatch]] = Field(default=None, max_length=16)
     vip_pick_enabled: Optional[bool] = None
     vip_pick_models: Optional[list[str]] = Field(default=None, max_length=32)
     note: Optional[str] = Field(default=None, max_length=200)
+    vip_rates: Optional[list[TokenAdminVipRatePatch]] = Field(default=None, max_length=64)
+    layer_mult: Optional[dict[str, int]] = None
 
 
 class TokenAdminFreeSharedUpdateBody(BaseModel):

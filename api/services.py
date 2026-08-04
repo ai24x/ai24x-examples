@@ -172,6 +172,16 @@ class ChatService:
                             "code": "vip_required",
                         },
                     )
+                if (routed.error or "") == "vip_pick_disabled":
+                    raise HTTPException(
+                        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                        detail={
+                            "message_zh": "点名模型暂时不可用，请改用 flash / pro，或稍后再试。",
+                            "message_en": "Named models are temporarily unavailable. Please use flash/pro, or try again later.",
+                            "message": "点名模型暂时不可用，请改用 flash / pro，或稍后再试。",
+                            "code": "vip_pick_disabled",
+                        },
+                    )
                 if (routed.error or "") == "tools_unsupported":
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
@@ -218,6 +228,7 @@ class ChatService:
             UserService.increment_request_count(db, user)
 
             remaining_quota = user.daily_request_limit - user.current_daily_requests
+            snap = None
             if auth_user_id is not None:
                 from token_mvp_service import consume_tokens, get_balance_snapshot
                 from free_shared import record_shared_usage
@@ -232,13 +243,17 @@ class ChatService:
                             request_id=request_id,
                         )
                     snap = get_balance_snapshot(db, int(auth_user_id))
-                    remaining_quota = int(snap.get("balance_tokens") or 0)
+                    remaining_quota = int(snap.get("shared_remain_tokens") or 0)
                 else:
                     if billable and token_count > 0:
+                        from model_warehouse import flash_ref_usd_per_m as _flash_ref
+                        ref = _flash_ref()
+                        amount_usd = max(0, int(round(token_count / 1_000_000.0 * ref * 100)))
                         consume_tokens(
                             db,
                             auth_user_id=int(auth_user_id),
                             tokens=int(token_count),
+                            amount_usd=amount_usd,
                             model=public_model,
                             request_id=request_id,
                         )
@@ -261,11 +276,19 @@ class ChatService:
                     attr["upgrade_hint_en"] = (
                         "You're on the free daily pool. Top up to return to paid flash/pro."
                     )
-                shared_info = billing.get("shared") or {}
-                if shared_info.get("remain_tokens") is not None:
-                    attr["shared_remain_tokens"] = shared_info.get("remain_tokens")
-                if shared_info.get("remain_req") is not None:
-                    attr["shared_remain_req"] = shared_info.get("remain_req")
+                # attribution 里的 remain 与 remaining_quota 对齐为扣费后
+                if snap is not None:
+                    attr["shared_remain_tokens"] = int(
+                        snap.get("shared_remain_tokens") or remaining_quota or 0
+                    )
+                    if snap.get("shared_remain_req") is not None:
+                        attr["shared_remain_req"] = snap.get("shared_remain_req")
+                else:
+                    shared_info = billing.get("shared") or {}
+                    if shared_info.get("remain_tokens") is not None:
+                        attr["shared_remain_tokens"] = shared_info.get("remain_tokens")
+                    if shared_info.get("remain_req") is not None:
+                        attr["shared_remain_req"] = shared_info.get("remain_req")
             else:
                 attr["billing_mode"] = "paid"
 

@@ -261,7 +261,7 @@
     wrap.innerHTML =
       '<div class="sw-fab-wrap">' +
       '<div class="sw-tip" id="sw-tip" role="status" hidden aria-hidden="true">' +
-      '<span data-i18n="page.console.help.tip">有问题点这里</span>' +
+      '<span data-i18n="page.console.help.tip">需要帮助？</span>' +
       '<button type="button" class="sw-tip-x" id="sw-tip-x" aria-label="Dismiss">×</button>' +
       "</div>" +
       '<button type="button" class="sw-fab" id="sw-fab" aria-expanded="false" aria-controls="sw-panel" ' +
@@ -280,7 +280,7 @@
       '<h3 class="mt-0" id="sw-title" data-i18n="page.console.help.title">即时协助</h3>' +
       '<button type="button" class="sw-close btn" id="sw-close" aria-label="Close">×</button>' +
       "</div>" +
-      '<p class="sub" data-i18n="page.console.help.sub">接入 / 计费常见问题即时答（不扣你的 Token；有日帽）。</p>' +
+      '<p class="sub" data-i18n="page.console.help.sub">接入、计费常见问题，不扣 Token。</p>' +
       '<div class="form-group">' +
       '<textarea class="input" id="sw-help-q" rows="2" placeholder="How do I call flash with PayPal credits?"></textarea>' +
       "</div>" +
@@ -294,7 +294,7 @@
       '<pre id="sw-help-out" class="code-block mt-2" style="white-space:pre-wrap;min-height:60px;">--</pre>' +
       '<div id="sw-ticket-msg" class="mt-2" aria-live="polite"></div>' +
       '<div id="sw-ticket-box" class="mt-2 sw-ticket-box" style="display:none;">' +
-      '<p class="sub" data-i18n="page.console.ticket.hint">仍未解决？提交工单，我们按工作日处理（不承诺秒回）。</p>' +
+      '<p class="sub" data-i18n="page.console.ticket.hint">需要人工？提交工单，工作日回复。</p>' +
       '<div class="form-group"><label data-i18n="page.console.ticket.cat">分类</label>' +
       '<select class="input" id="sw-ticket-cat">' +
       '<option value="api">API / 调用</option>' +
@@ -304,7 +304,7 @@
       '<option value="complaint">投诉</option>' +
       "</select></div>" +
       '<div class="form-group"><label data-i18n="page.console.ticket.body">问题描述</label>' +
-      '<textarea class="input" id="sw-ticket-body" rows="3" data-i18n-placeholder="page.console.ticket.bodyPh" placeholder="请说明现象、大致时间与订单号（如有）"></textarea>' +
+      '<textarea class="input" id="sw-ticket-body" rows="3" data-i18n-placeholder="page.console.ticket.bodyPh" placeholder="现象、时间、订单号（如有）"></textarea>' +
       "</div>" +
       '<div class="card-actions">' +
       '<button type="button" class="btn btn-primary" id="sw-btn-submit" data-i18n="page.console.ticket.submit">提交工单</button>' +

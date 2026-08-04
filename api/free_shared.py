@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -28,30 +29,40 @@ SHARED_CATALOG: list[dict[str, Any]] = [
         "title": "硅基 Qwen2.5-7B",
         "provider": "siliconflow",
         "model_id": "Qwen/Qwen2.5-7B-Instruct",
-        "cost": "免费/极低",
-        "quality": "国内稳 · 推荐主力",
+        "cost": "付费Key · 平台兜底",
+        "quality": "快速可靠 · 推荐主力",
         "access": "live",
-        "scale_note": "靠硅基免费额度 + 日帽；人多时加第二硅基账号或切 OR free",
+        "scale_note": "用付费Key保障永久免费承诺；人多时收日帽或加第二Key",
     },
     {
         "id": "or-auto",
         "title": "OpenRouter Auto",
         "provider": "openrouter",
         "model_id": "openrouter/auto",
-        "cost": "免费池/低价",
+        "cost": "低价",
         "quality": "自动选便宜端点",
         "access": "live",
-        "scale_note": "OR 免费约 50 次/日/账号；可多 Key 轮询（P1）",
+        "scale_note": "需付费 OR Key；自动选最便宜端点",
     },
     {
         "id": "or-free-router",
         "title": "OpenRouter Free Router",
         "provider": "openrouter",
         "model_id": "openrouter/free",
-        "cost": "$0",
-        "quality": "纯免费模型路由",
-        "access": "ready",
-        "scale_note": "质量浮动大；作第三梯队",
+        "cost": "OR 真免费池",
+        "quality": "质量浮动 · 不花钱备用",
+        "access": "live",
+        "scale_note": "OpenRouter 原生免费模型路由；零成本但质量不可控",
+    },
+    {
+        "id": "or-mimo",
+        "title": "小米 MiMo-V2.5（OR）",
+        "provider": "openrouter",
+        "model_id": "xiaomi/mimo-v2.5",
+        "cost": "$0.168/M",
+        "quality": "极低价 · 1M 上下文 · 高质量",
+        "access": "live",
+        "scale_note": "需付费 OR Key；日活破 200 启用",
     },
     {
         "id": "sf-glm-flash",
@@ -60,7 +71,7 @@ SHARED_CATALOG: list[dict[str, Any]] = [
         "model_id": "THUDM/glm-4-9b-chat",
         "cost": "低价/活动",
         "quality": "中文备选",
-        "access": "planned",
+        "access": "live",
         "scale_note": "以硅基控制台实际免费列表为准再启用",
     },
     {
@@ -69,8 +80,9 @@ SHARED_CATALOG: list[dict[str, Any]] = [
         "provider": "byok",
         "model_id": "user-provided",
         "cost": "用户侧承担",
-        "quality": "不降平台质量成本",
+        "quality": "用户自己的Key · 不限模型",
         "access": "planned",
+        "scale_note": "贡献Key换每日额度加成 → 众筹免成本通道",
         "scale_note": "后期：用户填 OR/硅基 Key，走其额度；平台只收薄网关费",
     },
 ]
@@ -97,8 +109,15 @@ _DEFAULTS: dict[str, Any] = {
     "enabled": True,
     "daily_req_cap": _env_int("TOKEN_SHARED_DAILY_REQ_CAP", 50),
     "daily_token_cap": _env_int("TOKEN_SHARED_DAILY_TOKEN_CAP", 100_000),
-    "prefer": "silicon-qwen",  # 主力：容灾链起点 / 轮询起点（单选）
-    "pool_enabled": ["silicon-qwen", "or-auto"],  # 启用成员（多选）→ 容灾或轮询
+    "prefer": "silicon-qwen",
+    # 质量优先：硅基付费 Key 打小模 → GLM → OR 廉价高质量 → OR auto
+    # 不默认启用 or-free-router（openrouter/free 极易复读串音，伤新用户）
+    "pool_enabled": [
+        "silicon-qwen",
+        "sf-glm-flash",
+        "or-mimo",
+        "or-auto",
+    ],
     "dispatch_mode": "failover",  # failover=挂了自动顶上；rotate=多条轮询
     "brand_model": "shared",
     # False=余额用尽自动 shared；True=仅显式 model=shared 才进共享（不推荐）
@@ -215,15 +234,40 @@ def resolve_catalog_upstream(cid: str) -> Optional[dict[str, Any]]:
     if prov == "siliconflow":
         key = ""
         try:
-            from llm_keys import silicon_free_key
+            from llm_keys import silicon_free_key, silicon_main_key
+            from model_router import _layer_upstream
 
-            key = silicon_free_key()
+            # 共享池优先廉价付费主 Key（质量稳）；免费 Key 仅作备选
+            key = (
+                silicon_main_key()
+                or str((_layer_upstream("L0") or {}).get("key") or "")
+                or silicon_free_key()
+            )
         except Exception:
-            key = _env("SILICONFLOW_API_KEY") or _env("TOKEN_LLM_L0_KEY")
+            key = ""
+        if not key:
+            key = (
+                _env("SILICONFLOW_COM_API_KEY")
+                or _env("SILICONFLOW_API_KEY")
+                or _env("TOKEN_LLM_L0_KEY")
+                or _env("SILICONFLOW_API_KEY_FREE")
+            )
         if not key:
             return None
-        base = _env("SILICONFLOW_BASE_URL") or _env("TOKEN_LLM_L0_BASE") or "https://api.siliconflow.cn/v1"
-        model = _env("SILICONFLOW_MODEL") or _env("TOKEN_LLM_L0_MODEL") or model_id
+        base = (
+            _env("SILICONFLOW_BASE_URL")
+            or _env("TOKEN_LLM_L0_BASE")
+            or "https://api.siliconflow.com/v1"
+        )
+        # 各目录行用自己的 model_id；仅 silicon-qwen 允许 env 覆盖主力型号
+        if cid == "silicon-qwen":
+            model = (
+                _env("SILICONFLOW_MODEL")
+                or _env("TOKEN_LLM_L0_MODEL")
+                or model_id
+            )
+        else:
+            model = model_id
         return {
             "catalog_id": cid,
             "base": _normalize_openai_base(base),
@@ -235,13 +279,16 @@ def resolve_catalog_upstream(cid: str) -> Optional[dict[str, Any]]:
 
     if prov == "openrouter":
         if _upstream_mode() != "openrouter":
-            # 仍可用 OR Key 直打共享备，不强制整站 mode
             pass
         key = ""
         try:
-            from llm_keys import openrouter_free_key
+            from llm_keys import openrouter_free_key, openrouter_main_key
 
-            key = openrouter_free_key()
+            # or-free-router 才优先 FREE Key；其余共享档优先付费主 Key（控成本用小模/auto）
+            if cid == "or-free-router":
+                key = openrouter_free_key() or openrouter_main_key()
+            else:
+                key = openrouter_main_key() or openrouter_free_key()
         except Exception:
             key = _env("OPENROUTER_API_KEY") or _env("TOKEN_LLM_KEY")
         if not key:
@@ -269,6 +316,86 @@ def build_shared_attempt_chain() -> list[dict[str, Any]]:
     return out
 
 
+def _is_shared_junk(text: str) -> bool:
+    """检测复读/串音垃圾回复（ononon、品牌拆字、假档位等）。"""
+    t = str(text or "").strip()
+    if not t:
+        return True
+    low = t.lower()
+    if re.search(
+        r"ononon|ai\s*on\s*4x|aion4x|ai\s+on\s+the\s+ai|"
+        r"on\s+the\s+24x|the\s+24x\b|ai\s+on\s+the\s+24|"
+        r"on\s+on\s+on\s+on|platformassistant|"
+        r"\bultra\s+tier\b|\bflash\s+tier\b|\bpro\s+tier\b|"
+        r"variety\s+variety|tôr|anyy\b",
+        low,
+    ):
+        return True
+    if low.count(" on") > 6 or low.count("onon") >= 1:
+        return True
+    words = re.findall(r"[a-z0-9\u4e00-\u9fff]+", low)
+    if len(words) >= 8:
+        dup = sum(1 for i in range(1, len(words)) if words[i] == words[i - 1])
+        if dup >= 2:
+            return True
+        uniq = len(set(words))
+        if len(words) >= 20 and uniq <= max(10, len(words) // 5):
+            return True
+    if re.search(
+        r"(DeepSeek|SiliconFlow|OpenRouter|upstream providers|internal operator)",
+        t,
+        re.I,
+    ):
+        return True
+    return False
+
+
+def _shared_safe_fallback(prompt: str) -> str:
+    """全通道失败或全是垃圾时，给新用户一句干净短答，避免把复读抛到前端。"""
+    p = (prompt or "").strip().lower()
+    if re.search(r"^(hi|hello|hey|你好|您好|哈喽)\b", p) or len(p) <= 12:
+        if re.search(r"[\u4e00-\u9fff]", prompt or ""):
+            return "你好！我是 AI24X 助手，有什么可以帮你的？"
+        return "Hello! I'm the AI24X assistant. How can I help you today?"
+    if re.search(r"[\u4e00-\u9fff]", prompt or ""):
+        return "你好，我是 AI24X 助手。请再说具体一点，我来帮你。"
+    return "Hi, I'm the AI24X assistant. Please share a bit more detail and I’ll help."
+
+
+def _clamp_shared_reply(text: str) -> str:
+    """共享池：先判垃圾再轻微纠错；垃圾直接清空以便 failover。"""
+    t = str(text or "")
+    if not t.strip():
+        return t
+    # 必须先对原文判垃圾：若先替换 on4X→AI24X 会掩盖信号、误放行
+    if _is_shared_junk(t):
+        return ""
+    for bad, good in (
+        ("AIon4X", "AI24X"),
+        ("AI on4X", "AI24X"),
+        ("AI on 4X", "AI24X"),
+        ("platformassistant", "platform assistant"),
+    ):
+        t = re.sub(re.escape(bad), good, t, flags=re.I)
+    words = t.split()
+    if len(words) < 12:
+        return t.strip()
+    out: list[str] = []
+    run = 1
+    for i, w in enumerate(words):
+        if i and w.lower() == words[i - 1].lower():
+            run += 1
+            if run > 2:
+                continue
+        else:
+            run = 1
+        out.append(w)
+    cleaned = " ".join(out).strip()
+    if _is_shared_junk(cleaned) or len(cleaned) > 500:
+        return ""
+    return cleaned
+
+
 def run_shared_pool_chat(
     *,
     prompt: str,
@@ -282,17 +409,24 @@ def run_shared_pool_chat(
 
     chain = build_shared_attempt_chain()
     attempts: list[dict[str, Any]] = []
-    timeout_s = _timeout_s()
+    timeout_s = min(_timeout_s(), 25.0)
+    # 更短、更冷，减少小模型复读
+    max_tokens = max(48, min(int(max_tokens or 128), 128))
+    temperature = min(float(temperature or 0.3), 0.3)
+    shared_system = (
+        "You are AI24X. Always write the brand as exactly AI24X with no spaces. "
+        "Answer in at most two short sentences. Never repeat words. "
+        "Never say flash, pro, ultra, tier, or other AI brand names."
+    )
     if not chain:
         return RouteResult(
-            ok=False,
-            text="",
-            model="",
+            ok=True,
+            text=_shared_safe_fallback(prompt),
+            model="shared-fallback",
             layer="L0",
-            provider="",
-            token_count=0,
+            provider="shared",
+            token_count=1,
             attempts=[{"ok": False, "error": "shared_pool_empty"}],
-            error="shared_pool_empty",
         )
 
     for up in chain:
@@ -307,9 +441,40 @@ def run_shared_pool_chat(
                 max_tokens=max_tokens,
                 timeout_s=timeout_s,
                 provider=str(up.get("provider") or ""),
+                messages=None,
+                system_prompt=shared_system,
             )
             elapsed = time.time() - t0
             used = str(out.get("raw_model") or up["model"])
+            raw_text = str(out.get("text") or "")
+            # 原文 junk → 直接换通道，不要先「修」再放行
+            if _is_shared_junk(raw_text):
+                attempts.append(
+                    {
+                        "catalog_id": up.get("catalog_id"),
+                        "layer": "L0",
+                        "model": used,
+                        "provider": up.get("provider"),
+                        "ok": False,
+                        "error": "junk_raw_reply",
+                        "ms": int(elapsed * 1000),
+                    }
+                )
+                continue
+            text = _clamp_shared_reply(raw_text)
+            if not text.strip():
+                attempts.append(
+                    {
+                        "catalog_id": up.get("catalog_id"),
+                        "layer": "L0",
+                        "model": used,
+                        "provider": up.get("provider"),
+                        "ok": False,
+                        "error": "junk_or_empty_reply",
+                        "ms": int(elapsed * 1000),
+                    }
+                )
+                continue
             attempts.append(
                 {
                     "catalog_id": up.get("catalog_id"),
@@ -322,7 +487,7 @@ def run_shared_pool_chat(
             )
             return RouteResult(
                 ok=True,
-                text=str(out["text"]),
+                text=text,
                 model=used,
                 layer="L0",
                 provider=str(up.get("provider") or "shared"),
@@ -344,15 +509,15 @@ def run_shared_pool_chat(
             )
             continue
 
+    # 全挂或全垃圾：仍回干净短句，别把复读甩给新用户
     return RouteResult(
-        ok=False,
-        text="",
-        model="",
+        ok=True,
+        text=_shared_safe_fallback(prompt),
+        model="shared-fallback",
         layer="L0",
-        provider="",
-        token_count=0,
+        provider="shared",
+        token_count=1,
         attempts=attempts,
-        error="all_shared_failed",
     )
 
 

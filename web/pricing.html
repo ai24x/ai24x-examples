@@ -16,7 +16,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:image" content="https://www.ai24x.com/img/og-share.png" />
   <meta name="description" content="AI24X token plans: choose a pack, pay in Console with PayPal USD (or WeChat/Alipay). Keys and balance in one place." />
-  <link rel="stylesheet" href="css/base.css?v=20260803e" />
+  <link rel="stylesheet" href="css/base.css?v=20260803g" />
   <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260725a" data-base="css/themes/" />
   <style>
     /* Equal-height plan cards; actions stick to bottom */
@@ -53,7 +53,7 @@
         <h1 data-i18n="page.pricing.title">Pricing</h1>
         <p class="lead" data-i18n="page.pricing.sub">Membership and prepaid are separate. Everyday flash → Builder; named models → Scale (or Pass + Builder). Pay and manage keys in the Console.</p>
         <p class="callout mt-2" data-i18n="page.pricing.callout">
-          China LLMs, one key: flash from about $0.45/M. Pay with PayPal (USD) globally, or WeChat/Alipay in China. VIP can pick Kimi, MiMo, MiniMax, GLM, and more by name.
+          Global models, one key: flash from about $0.45/M. Pay with PayPal (USD) globally, or WeChat/Alipay in China. VIP can pick Kimi, MiMo, MiniMax, GLM, and more by name.
         </p>
       </div>
     </section>
@@ -69,6 +69,7 @@
           <a class="btn" href="paypal.html" data-i18n="page.pricing.settleIntlLink">PayPal checkout guide</a>
           <a class="btn" href="login.html?next=console.html%23token-plans" data-i18n="nav.login">Log in</a>
         </div>
+        <p class="sub" style="margin-top:12px;text-align:center;color:var(--accent,#0f7b4e)" data-i18n="page.pricing.freeHint">Free daily channel always available — auto-activates when your balance runs out.</p>
       </div>
     </section>
 
@@ -94,8 +95,8 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260803e"></script>
-  <script src="js/api.js?v=20260803e"></script>
+  <script src="config/locales.js?v=20260803g"></script>
+  <script src="js/api.js?v=20260803g"></script>
   <script src="js/utm.js?v=20260802a"></script>
 <script src="js/i18n.js?v=20260802m"></script>
   <script src="js/shell.js?v=20260802m"></script>
@@ -172,9 +173,7 @@
           "</th><th>" +
           (zh ? "预充" : "Credits") +
           "</th><th>" +
-          (zh ? "会员" : "VIP") +
-          "</th><th>" +
-          (zh ? "可点名" : "Named") +
+          (zh ? "点名模" : "Name models") +
           "</th><th>" +
           (zh ? "适合" : "Best for") +
           "</th><th></th></tr></thead>";
@@ -202,9 +201,6 @@
             esc(AI24X_API.planYesNo(!!caps.vip)) +
             "</td>" +
             "<td>" +
-            esc(AI24X_API.planYesNo(!!caps.named)) +
-            "</td>" +
-            "<td>" +
             esc(AI24X_API.planOneLiner(p) || "—") +
             "</td>" +
             '<td><a class="btn btn-primary" href="' +
@@ -220,8 +216,8 @@
         tip.className = "sub";
         tip.style.marginTop = "12px";
         tip.textContent = zh
-          ? "要点名 = 会员有 + 预充有。只买月卡或只买开发包都不完整。"
-          : "Named models need VIP Yes + Credits Yes. Pass-only or credits-only is incomplete.";
+          ? "要点名选 Scale（资格+预充一次齐）。日常 flash 用开发包即可。"
+          : "Name models with Scale (access + credits). Everyday flash → Builder.";
         grid.appendChild(tip);
       }
 

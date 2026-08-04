@@ -32,7 +32,7 @@
 
 ## 相关入口
 
-- 发版：`docs/联调/Token发版-Gitee与副脑03.md`  
+- 发版：`docs/联调/Token发版-Gitee与副脑04.md`（正式）；备份机说明见同目录 `…副脑03.md`  
 - 手册：`docs/副脑统一操作手册.md`  
 - Cursor 规则：`.cursor/rules/env-file-edit-safety.mdc`  
 

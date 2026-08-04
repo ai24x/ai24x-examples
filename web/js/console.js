@@ -28,15 +28,38 @@
   /** 用户端只展示品牌档，不暴露上游厂商/型号 */
   function brandModelLabel(requested, layer, upstreamModel) {
     var req = String(requested || "").trim().toLowerCase();
-    if (req === "flash" || req === "pro" || req === "ultra" || req === "auto" || req === "free") {
-      return req === "free" ? "auto" : req;
+    if (req.indexOf("vip:") === 0) req = "vip-" + req.slice(4);
+    if (req.indexOf("vip-") === 0) return req.slice(0, 64);
+    var pub = String(upstreamModel || "").trim().toLowerCase();
+    if (pub.indexOf("vip:") === 0) pub = "vip-" + pub.slice(4);
+    if (pub.indexOf("vip-") === 0) return pub.slice(0, 64);
+    if (
+      req === "flash" ||
+      req === "pro" ||
+      req === "ultra" ||
+      req === "auto" ||
+      req === "free" ||
+      req === "shared"
+    ) {
+      if (req === "free") return "auto";
+      return req;
+    }
+    if (
+      pub === "flash" ||
+      pub === "pro" ||
+      pub === "ultra" ||
+      pub === "auto" ||
+      pub === "shared"
+    ) {
+      return pub;
     }
     var ly = String(layer || "").toUpperCase();
+    if (ly === "VIP") return req || pub || "vip_pick";
     if (ly === "L1") return "flash";
     if (ly === "L2") return "pro";
     if (ly === "L3") return "ultra";
     if (ly === "L0" || ly === "QI") return "auto";
-    var m = String(upstreamModel || "").toLowerCase();
+    var m = pub;
     if (/v4-pro|deepseek-r1|reasoner|mimo-v2\.5-pro/.test(m)) return "pro";
     if (/flash|deepseek-chat|mimo|gpt-5-mini|gpt-4o-mini|turbo|qwen/.test(m)) return "flash";
     return "auto";
@@ -44,12 +67,14 @@
 
   function formatChatOut(r, requested) {
     if (!r || typeof r !== "object") return String(r || "");
+    // remaining_quota 为扣费后快照；勿再用 attribution 里的预扣 remain（会偏大）
+    var remaining = r.remaining_quota;
     return JSON.stringify(
       {
         reply: r.response,
         tier: brandModelLabel(requested, r.layer, r.model),
         tokens: r.token_count,
-        remaining: r.remaining_quota,
+        remaining: remaining,
         request_id: r.request_id,
       },
       null,
@@ -87,7 +112,7 @@
       token_pack_10k: "入门包",
       token_pack_100k: "开发包",
       token_vip_month: "Pro 月卡",
-      token_vip_month_50w: "Scale 组合包",
+      token_vip_month_50w: "VIP名模包",
     };
     if (m[plan]) return m[plan];
     return plan || "--";
@@ -133,6 +158,15 @@
     var n = String(note || "");
     if (!n) return "";
     var zh = AI24X_API.isZhUi();
+    if (/^signup_welcome$/i.test(n)) {
+      return zh ? "注册欢迎礼" : "Signup welcome bonus";
+    }
+    if (/^free_shared\b/i.test(n) || /^shared\b/i.test(n)) {
+      return zh ? "免费共享调用" : "Free shared usage";
+    }
+    if (/^free_shared\s+\d{4}-\d{2}-\d{2}/i.test(n)) {
+      return zh ? "免费共享调用" : "Free shared usage";
+    }
     if (/^invite_register_bonus\s+referee=/i.test(n)) {
       return zh ? "邀请注册奖励（邀请人侧）" : "Invite bonus (referrer)";
     }
@@ -159,6 +193,17 @@
     return n;
   }
 
+  /** 就近提示：试调用用面板内卡片；其它优先主区，避免英雄区顶部看不见 */
+  function msgBox(preferId) {
+    if (preferId && $(preferId)) return $(preferId);
+    var active = document.querySelector(".console-panel.is-active");
+    if (active) {
+      var local = active.querySelector("[data-console-msg]");
+      if (local) return local;
+    }
+    return $("consoleMainMsg") || $("consoleMsg");
+  }
+
   var _toastTimer = null;
   var _payModalSession = 0;
   var _pendingCheckoutWin = null;
@@ -181,20 +226,35 @@
     clearTimeout(_toastTimer);
     _toastTimer = setTimeout(function () {
       t.hidden = true;
-    }, 5600);
+    }, ok ? 5600 : 9000);
   }
 
-  function showMsg(el, text, ok) {
-    if (el) {
-      el.innerHTML =
-        '<div class="alert ' +
+  /** 页内卡片提示（优先）；toastOnly=true 时仅浮层。默认不再双重弹出。 */
+  function showMsg(el, text, ok, opts) {
+    opts = opts || {};
+    var msg = String(text || "").replace(/<[^>]+>/g, "").trim();
+    if (!msg) return;
+    var box = el || msgBox();
+    if (box && !opts.toastOnly) {
+      box.innerHTML =
+        '<div class="alert console-inline-alert ' +
         (ok ? "alert-success" : "alert-error") +
-        '">' +
-        String(text || "") +
-        "</div>";
+        '" role="status">' +
+        msg +
+        ' <button type="button" class="btn btn-sm console-alert-dismiss" aria-label="OK">OK</button></div>';
+      var btn = box.querySelector(".console-alert-dismiss");
+      if (btn) {
+        btn.addEventListener("click", function () {
+          box.innerHTML = "";
+        });
+      }
+      try {
+        box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      } catch (eScroll) {}
     }
-    /* 控制台提示一律底部浮层，避免只写在页顶被挡住 */
-    showToast(text, ok);
+    if (opts.toast || opts.toastOnly || (!box && !opts.noToast)) {
+      showToast(msg, ok);
+    }
   }
 
   function requireLogin() {
@@ -213,65 +273,109 @@
     return tr("默认密钥", "Default key");
   }
 
+  function formatKeyDate(iso) {
+    if (!iso) return tr("从未", "Never");
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return String(iso).slice(0, 10);
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, "0");
+    var day = String(d.getDate()).padStart(2, "0");
+    var hh = String(d.getHours()).padStart(2, "0");
+    var mm = String(d.getMinutes()).padStart(2, "0");
+    return y + "-" + m + "-" + day + " " + hh + ":" + mm;
+  }
+
+  function iconBtn(kind, label) {
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn-icon";
+    btn.title = label;
+    btn.setAttribute("aria-label", label);
+    if (kind === "edit") {
+      btn.innerHTML =
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+    } else if (kind === "delete") {
+      btn.innerHTML =
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
+    }
+    return btn;
+  }
+
   function renderKeys(keys) {
     var box = $("keysList");
-    var display = $("apiKeyDisplay");
     if (!box) return;
     box.innerHTML = "";
     if (!keys || !keys.length) {
-      box.innerHTML =
-        '<li class="list-item"><span>' +
-        tr("暂无密钥", "No keys yet") +
-        "</span><span></span></li>";
-      if (display) display.textContent = "--";
+      var empty = document.createElement("tr");
+      empty.className = "keys-empty";
+      empty.innerHTML =
+        '<td colspan="5">' +
+        tr("暂无密钥，点击右上角创建。", "No keys yet — create one above.") +
+        "</td>";
+      box.appendChild(empty);
       return;
     }
     keys.forEach(function (k) {
-      var li = document.createElement("li");
-      li.className = "list-item";
-      var left = document.createElement("span");
-      left.textContent =
-        (k.name || tr("密钥", "Key")) + " · " + (k.key_prefix || "") + "…";
-      var right = document.createElement("span");
-      var btnUse = document.createElement("button");
-      btnUse.type = "button";
-      btnUse.className = "btn";
-      btnUse.textContent = tr("使用说明", "How to use");
-      btnUse.style.marginRight = "6px";
-      btnUse.addEventListener("click", function () {
-        showMsg(
-          $("consoleMsg"),
-          tr(
-            "一个账号可有多把 Key，共用余额与会员。完整 Key 仅创建时显示一次；列表里的前缀不能还原明文。把已保存的完整 Key 填到上方框或复制到 OpenClaw 即可，无需因充值重建 Key。",
-            "One account can have many keys; they share balance and VIP. The full key is shown once at creation—list prefixes cannot restore it. Paste a saved key above or into OpenClaw. Top-ups do not require a new key."
-          ),
-          true
+      var trEl = document.createElement("tr");
+      var tdName = document.createElement("td");
+      tdName.className = "keys-name";
+      tdName.textContent = k.name || tr("密钥", "Key");
+
+      var tdKey = document.createElement("td");
+      tdKey.className = "keys-prefix mono";
+      tdKey.textContent = (k.key_prefix || "sk-…") + "…";
+
+      var tdCreated = document.createElement("td");
+      tdCreated.className = "keys-date";
+      tdCreated.textContent = formatKeyDate(k.created_at);
+
+      var tdUsed = document.createElement("td");
+      tdUsed.className = "keys-date";
+      tdUsed.textContent = k.last_used_at
+        ? formatKeyDate(k.last_used_at)
+        : tr("从未", "Never");
+
+      var tdAct = document.createElement("td");
+      tdAct.className = "keys-actions";
+      var btnEdit = iconBtn("edit", tr("修改名称", "Rename"));
+      btnEdit.addEventListener("click", function () {
+        var next = window.prompt(
+          tr("新的密钥名称", "New key name"),
+          k.name || ""
         );
+        if (next == null) return;
+        next = String(next).trim();
+        if (!next) {
+          showMsg(msgBox(), tr("名称不能为空", "Name cannot be empty"), false);
+          return;
+        }
+        if (next === (k.name || "")) return;
+        AI24X_API.keysRename(k.id, { name: next })
+          .then(refreshAll)
+          .catch(function (e) {
+            showMsg(msgBox(), e.message || tr("改名失败", "Rename failed"), false);
+          });
       });
-      var btnDel = document.createElement("button");
-      btnDel.type = "button";
-      btnDel.className = "btn";
-      btnDel.textContent = tr("删除", "Delete");
+      var btnDel = iconBtn("delete", tr("删除", "Delete"));
+      btnDel.classList.add("btn-icon-danger");
       btnDel.addEventListener("click", function () {
         if (!confirm(tr("确认停用该 Key？", "Disable this key?"))) return;
         AI24X_API.keysDelete(k.id)
           .then(refreshAll)
           .catch(function (e) {
-            showMsg($("consoleMsg"), e.message || tr("删除失败", "Delete failed"), false);
+            showMsg(msgBox(), e.message || tr("删除失败", "Delete failed"), false);
           });
       });
-      right.appendChild(btnUse);
-      right.appendChild(btnDel);
-      li.appendChild(left);
-      li.appendChild(right);
-      box.appendChild(li);
+      tdAct.appendChild(btnEdit);
+      tdAct.appendChild(btnDel);
+
+      trEl.appendChild(tdName);
+      trEl.appendChild(tdKey);
+      trEl.appendChild(tdCreated);
+      trEl.appendChild(tdUsed);
+      trEl.appendChild(tdAct);
+      box.appendChild(trEl);
     });
-    if (display) {
-      display.textContent =
-        (keys[0].key_prefix || "") +
-        "…" +
-        tr("（完整密钥仅创建时可见）", " (full key shown only at creation)");
-    }
   }
 
   function renderPlans(data) {
@@ -362,11 +466,9 @@
       "</th><th>" +
       tr("价格", "Price") +
       "</th><th>" +
-      tr("预充", "Credits") +
+      tr("额", "Value") +
       "</th><th>" +
-      tr("会员", "VIP") +
-      "</th><th>" +
-      tr("可点名", "Named") +
+      tr("点名模", "Name models") +
       "</th><th>" +
       tr("适合", "Best for") +
       "</th><th>" +
@@ -393,9 +495,13 @@
         return td;
       }
       trEl.appendChild(tdText(AI24X_API.planPriceLabel(p)));
-      trEl.appendChild(tdText(AI24X_API.planCreditsShort(p)));
+      // Show flash-equivalent value: $X = ~Y flash calls
+      var tokens = Number(p.credit_tokens || 0);
+      var flashVal = tokens > 0 ? ("≈ " + AI24X_API.planCreditsShort(p) + " flash") : (p.price_usd ? "$" + p.price_usd : "—");
+      var td = document.createElement("td");
+      td.textContent = flashVal;
+      trEl.appendChild(td);
       trEl.appendChild(tdText(AI24X_API.planYesNo(!!caps.vip)));
-      trEl.appendChild(tdText(AI24X_API.planYesNo(!!caps.named)));
       trEl.appendChild(tdText(AI24X_API.planOneLiner(p) || "—"));
       var payTd = document.createElement("td");
       payTd.className = "plan-compare-pay";
@@ -439,8 +545,8 @@
     tip.className = "sub";
     tip.style.marginTop = "10px";
     tip.textContent = tr(
-      "要点名 = 会员有 + 预充有。只买月卡或只买开发包都不完整。",
-      "Named models need VIP Yes + Credits Yes. Pass-only or credits-only is incomplete."
+      "Flash $0.45/百万 · Pro $1.35/百万 · 自定义充值即将开放。Scale = 可点名模。",
+      "Flash $0.45/M · Pro $1.35/M · Custom top-up coming soon. Scale = named-model access."
     );
     wrap.appendChild(tip);
     box.appendChild(wrap);
@@ -495,15 +601,13 @@
           "已从价格页带入套餐，请点击下方支付按钮完成付款。",
           "Plan selected from pricing — tap a pay button below to continue."
         );
-        showMsg($("consoleMsg"), guide, true);
-        showToast(guide, true);
+        showMsg(msgBox(), guide, true);
       } else if (wantPay || wantPlan) {
         var guide2 = tr(
           "请在下方套餐选择支付方式。",
           "Choose a payment method on the plan card below."
         );
-        showMsg($("consoleMsg"), guide2, true);
-        showToast(guide2, true);
+        showMsg(msgBox(), guide2, true);
       }
     } catch (e) {}
   }
@@ -658,7 +762,7 @@
             clearInterval(_fulfillPollTimer);
             _fulfillPollTimer = null;
             showMsg(
-              $("consoleMsg"),
+              msgBox(),
               AI24X_API.planFulfillMessage(_lastPayPlanId || planId, outTradeNo),
               true
             );
@@ -682,11 +786,11 @@
     _lastPayPlanId = planId || null;
 
     if (channel === "mock" || (!pay.wechat_ready && !pay.alipay_ready && pay.mock_allowed)) {
-      showMsg($("consoleMsg"), tr("正在创建模拟订单…", "Creating mock order…"), true);
+      showMsg(msgBox(), tr("正在创建模拟订单…", "Creating mock order…"), true);
       AI24X_API.billingWechatNative(planId)
         .then(function (r) {
           showMsg(
-            $("consoleMsg"),
+            msgBox(),
             tr(
               "已创建 " + (r && r.out_trade_no) + "。请在「我的订单」点「模拟到账」。",
               "Created " + (r && r.out_trade_no) + ". Use Mock pay under My orders."
@@ -696,7 +800,7 @@
           return refreshAll();
         })
         .catch(function (e) {
-          showMsg($("consoleMsg"), e.message || tr("下单失败", "Order failed"), false);
+          showMsg(msgBox(), e.message || tr("下单失败", "Order failed"), false);
         });
       return;
     }
@@ -713,7 +817,7 @@
         "Creating PayPal order… Keep this tab open."
       );
       showMsg(
-        $("consoleMsg"),
+        msgBox(),
         tr(
           "正在创建 PayPal 订单，请稍候…（勿关闭此窗口）",
           "Creating PayPal order… Keep this tab open."
@@ -826,7 +930,7 @@
               ((r && r.out_trade_no) || "")
           );
           // 错误只显示在支付卡片内，避免与页面顶部 consoleMsg 重复
-          var topMsg0 = $("consoleMsg");
+          var topMsg0 = msgBox();
           if (topMsg0) topMsg0.innerHTML = "";
           showPayResult({ isError: true, hint: badHint });
         }
@@ -841,7 +945,7 @@
         closeCheckoutWin(checkoutWin);
         var errText = e.message || tr("下单失败", "Order failed");
         // 限购/下单失败等：只留支付弹层提示，清掉页面顶部以免重复
-        var topMsg = $("consoleMsg");
+        var topMsg = msgBox();
         if (topMsg) topMsg.innerHTML = "";
         showPayResult({ isError: true, hint: errText });
       });
@@ -882,11 +986,11 @@
           btn.addEventListener("click", function () {
             AI24X_API.billingMockFulfill(o.out_trade_no)
               .then(function () {
-                showMsg($("consoleMsg"), tr("模拟到账成功", "Mock pay OK"), true);
+                showMsg(msgBox(), tr("模拟到账成功", "Mock pay OK"), true);
                 return refreshAll();
               })
               .catch(function (e) {
-                showMsg($("consoleMsg"), e.message || tr("模拟失败", "Mock failed"), false);
+                showMsg(msgBox(), e.message || tr("模拟失败", "Mock failed"), false);
               });
           });
           right.appendChild(btn);
@@ -900,7 +1004,7 @@
           AI24X_API.billingQueryFulfill(o.out_trade_no, o.channel || "wechat")
             .then(function (r) {
               showMsg(
-                $("consoleMsg"),
+                msgBox(),
                 r && r.ok
                   ? AI24X_API.planFulfillMessage(o.plan || _lastPayPlanId, o.out_trade_no)
                   : tr("尚未支付成功或查单未完成", "Not paid yet / still pending"),
@@ -909,7 +1013,7 @@
               return refreshAll();
             })
             .catch(function (e) {
-              showMsg($("consoleMsg"), e.message || tr("查单失败", "Query failed"), false);
+              showMsg(msgBox(), e.message || tr("查单失败", "Query failed"), false);
             });
         });
         right.appendChild(btnQ);
@@ -952,10 +1056,11 @@
   function fillVipPickOptions(isVip) {
     var sel = $("chat-model");
     if (!sel || !AI24X_API.listModels) return;
+    var prev = String(sel.value || "");
     AI24X_API.listModels()
       .then(function (m) {
         var picks = (m && m.vip_picks) || [];
-        // 清掉旧 vip 选项，保留基础档
+        // 清掉旧 vip 选项，保留基础档（并记住当前选中，避免刷新后掉回 auto）
         var keep = { auto: 1, flash: 1, pro: 1, ultra: 1, shared: 1 };
         Array.prototype.slice.call(sel.options).forEach(function (opt) {
           if (!keep[opt.value]) sel.removeChild(opt);
@@ -979,6 +1084,23 @@
           opt.disabled = !!p.locked;
           sel.appendChild(opt);
         });
+        if (prev) {
+          sel.value = prev;
+          if (sel.value !== prev) {
+            // 选项尚未就绪或已锁定时尽量保留原值（加回临时 option）
+            var still = false;
+            Array.prototype.slice.call(sel.options).forEach(function (o) {
+              if (o.value === prev) still = true;
+            });
+            if (!still && String(prev).indexOf("vip-") === 0) {
+              var tmp = document.createElement("option");
+              tmp.value = prev;
+              tmp.textContent = prev;
+              sel.appendChild(tmp);
+              sel.value = prev;
+            }
+          }
+        }
       })
       .catch(function () {});
   }
@@ -996,64 +1118,225 @@
 
     try {
       var bal = await AI24X_API.billingBalance();
-      $("stat-balance").textContent = fmtInt(bal.balance_tokens);
+      // 会话串号防护：余额接口邮箱 vs 本地登录身份不一致 → 强制重登
+      var balEmail = String((bal && bal.email) || "")
+        .trim()
+        .toLowerCase();
+      var uiEmail = String(user.email || "")
+        .trim()
+        .toLowerCase();
+      if (balEmail && uiEmail && balEmail !== uiEmail) {
+        // 多半是 Playground 残留了其它账号的 API Key；先清 Key 再拉一次，勿直接踢登录
+        try {
+          AI24X_API.setApiKey("");
+          if ($("api-key")) $("api-key").value = "";
+        } catch (eClearKey) {}
+        if (!window._ai24xBalanceIdentityRetried) {
+          window._ai24xBalanceIdentityRetried = true;
+          showMsg(
+            msgBox(),
+            tr(
+              "检测到调试 Key 与登录账号不一致，已清除本地 API Key 并刷新。",
+              "Playground API key did not match your login. Cleared local key and refreshing."
+            ),
+            true
+          );
+          return refreshAll();
+        }
+        showMsg(
+          msgBox(),
+          tr(
+            "登录身份与钱包账号仍不一致（本地 " +
+              uiEmail +
+              " / 钱包 " +
+              balEmail +
+              "）。已退出，请重新登录。",
+            "Login still does not match wallet (UI " +
+              uiEmail +
+              " / wallet " +
+              balEmail +
+              "). Signed out — please log in again."
+          ),
+          false
+        );
+        AI24X_API.clearAuth();
+        requireLogin();
+        return;
+      }
+      window._ai24xBalanceIdentityRetried = false;
+      if (balEmail && !uiEmail) {
+        try {
+          var merged = Object.assign({}, user, { email: bal.email });
+          AI24X_API.setAuthUser(merged);
+          user = merged;
+          if ($("acct-user")) $("acct-user").textContent = bal.email;
+          if ($("overview-user")) $("overview-user").textContent = bal.email;
+        } catch (eMerge) {}
+      }
+      // 2026-08-04: 口径只剩两条——充值余额 vs 今日免费 shared；不再叠「余额不足+欢迎卡+日赠」
+      var usd = Number(bal.balance_usd) || 0;
+      var usdDisplay = "$" + (usd / 100).toFixed(2);
+      var planIsFree = String(bal.plan || "").toLowerCase() === "free";
+      var isVip = !!bal.is_vip_active;
+      var walletTokens = Number(bal.balance_tokens) || 0;
+      var walletEmpty = walletTokens <= 0 && usd <= 0;
+      var sharedOn = !!bal.shared_enabled;
+      var sharedLeft = bal.shared_remain_tokens != null ? Number(bal.shared_remain_tokens) : null;
+      var sharedCap = Number(bal.shared_daily_token_cap) || 0;
+
+      var tokenDisplay = fmtInt(walletTokens);
+      if ($("stat-balance")) $("stat-balance").textContent = usdDisplay;
       var balSub = $("stat-balance-sub");
       if (balSub) {
-        var prepaid = Number(bal.prepaid_tokens);
-        var dailyLeft = Number(bal.vip_daily_remaining);
-        var parts = [];
-        if (!isNaN(prepaid) && !isNaN(dailyLeft) && (prepaid > 0 || dailyLeft > 0)) {
-          parts.push(
-            tr("充值 ", "Prepaid ") +
-              fmtInt(prepaid) +
-              tr(" · 日赠 ", " · daily ") +
-              fmtInt(dailyLeft) +
-              tr("（日赠仅 flash/auto；名模须会员+预充）", " (daily: flash/auto only; named needs VIP+prepaid)")
+        if (usd > 0) {
+          balSub.textContent =
+            "≈ " +
+            tokenDisplay +
+            " tokens" +
+            (bal.credits_expire_at
+              ? tr(" · 最早到期 ", " · earliest ") + String(bal.credits_expire_at).slice(0, 10)
+              : "");
+        } else if (walletTokens > 0) {
+          balSub.textContent =
+            tokenDisplay +
+            " tokens" +
+            tr(" · 可用于 flash / pro", " · for flash / pro");
+        } else {
+          balSub.textContent = tr(
+            "充值后可用 flash / pro / 点名模",
+            "Top up for flash / pro / named models"
           );
         }
-        if (bal.credits_expire_at && Number(bal.balance_tokens) > 0) {
-          parts.push(
-            tr("最早到期 ", "Earliest expiry ") + String(bal.credits_expire_at).slice(0, 10)
-          );
-        }
-        if (
-          bal.shared_enabled &&
-          bal.shared_remain_tokens != null &&
-          Number(bal.balance_tokens) <= 0
-        ) {
-          parts.push(
-            tr("今日免费剩余 ", "Free today ") +
-              fmtInt(bal.shared_remain_tokens) +
-              "/" +
-              fmtInt(bal.shared_daily_token_cap || 0)
-          );
-        }
-        balSub.textContent = parts.length
-          ? parts.join(" · ")
-          : tr("钱包可用额度", "Wallet available credits");
       }
+
+      var sharedVal = $("stat-shared");
+      var sharedSub = $("stat-shared-sub");
+      var sharedCard = $("stat-shared-card");
+      if (sharedCard) sharedCard.style.display = sharedOn ? "" : "none";
+      if (sharedOn && sharedVal) {
+        sharedVal.textContent =
+          sharedLeft != null ? fmtInt(sharedLeft) : "--";
+        if (sharedSub) {
+          sharedSub.textContent =
+            sharedCap > 0
+              ? tr("今日剩余 / 日帽 ", "Left / daily cap ") +
+                fmtInt(sharedLeft) +
+                " / " +
+                fmtInt(sharedCap) +
+                tr(" · 档位选 shared", " · pick model=shared")
+              : tr("档位选 shared 即可试用", "Pick model=shared to try");
+        }
+      }
+
+      // 单一引导卡（取代「余额不足」+「免费共享已可用」双卡）
+      var howto = $("howto-card");
+      var howtoTitle = $("howto-title");
+      var howtoBody = $("howto-body");
+      var btnShared = $("btn-continue-shared");
+      var btnTry = $("howto-cta-try");
+      var btnBill = $("howto-cta-billing");
+      if (howto) {
+        var showHowto = false;
+        if (!isVip && sharedOn) {
+          showHowto = true;
+          howto.style.borderColor = "#0f7b4e";
+          if (howtoTitle)
+            howtoTitle.textContent = tr("怎么开始", "How to start");
+          if (howtoBody)
+            howtoBody.textContent = tr(
+              "两条路：① 试调用选 shared，用今日免费额度；② 充值后可用 flash / pro。两者分开看，互不顶替。",
+              "Two paths: ① Try-call with model=shared (free daily pool); ② Top up for flash/pro. Separate quotas."
+            );
+          if (btnTry) {
+            btnTry.style.display = "";
+            btnTry.textContent = tr("去试调用（shared）", "Try call (shared)");
+          }
+          if (btnShared) btnShared.style.display = "none";
+          if (btnBill) {
+            btnBill.style.display = "";
+            btnBill.textContent = tr("去充值", "Top up");
+          }
+        } else if (isVip && walletEmpty && sharedOn) {
+          showHowto = true;
+          howto.style.borderColor = "#d4a84b";
+          if (howtoTitle)
+            howtoTitle.textContent = tr("充值余额已用完", "Paid balance is empty");
+          if (howtoBody)
+            howtoBody.textContent = tr(
+              "flash / pro 需要充值。今日仍可用免费 shared（见右侧「今日免费」）。",
+              "flash/pro need a top-up. Free shared may still be available today (see Free today)."
+            );
+          if (btnTry) btnTry.style.display = "none";
+          if (btnShared) {
+            btnShared.style.display = "";
+            btnShared.className = "btn btn-primary";
+            btnShared.textContent = tr("用今日免费 shared", "Use free shared today");
+          }
+          if (btnBill) {
+            btnBill.style.display = "";
+            btnBill.className = "btn";
+            btnBill.textContent = tr("去充值", "Top up");
+          }
+        } else if (isVip && walletEmpty && !sharedOn) {
+          showHowto = true;
+          howto.style.borderColor = "#d4a84b";
+          if (howtoTitle)
+            howtoTitle.textContent = tr("充值余额已用完", "Paid balance is empty");
+          if (howtoBody)
+            howtoBody.textContent = tr(
+              "请充值后续用 flash / pro / 点名模。",
+              "Top up to keep using flash / pro / named models."
+            );
+          if (btnTry) btnTry.style.display = "none";
+          if (btnShared) btnShared.style.display = "none";
+          if (btnBill) {
+            btnBill.style.display = "";
+            btnBill.className = "btn btn-primary";
+            btnBill.textContent = tr("去充值", "Top up");
+          }
+        } else {
+          showHowto = false;
+        }
+        howto.style.display = showHowto ? "" : "none";
+      }
+      // 旧卡保持隐藏
+      var legacyCta = $("balance-cta");
+      if (legacyCta) legacyCta.style.display = "none";
+      var welcomeCard = $("free-welcome");
+      if (welcomeCard) welcomeCard.style.display = "none";
+
       var planLabel = labelPlanForUi(bal.plan);
-      if (bal.is_vip_active && bal.vip_expires_at) {
+      // 仅真实 VIP 且在有效期内显示到期时间
+      if (isVip && bal.vip_expires_at && !planIsFree) {
         planLabel +=
           tr(" · 到期 ", " · expires ") + String(bal.vip_expires_at).slice(0, 10);
-      } else if (String(bal.plan || "").toLowerCase() === "vip" && !bal.is_vip_active) {
-        planLabel = tr("免费档（Token VIP 已过期）", "Free (Token VIP expired)");
+      } else if (!planIsFree && !isVip && bal.vip_expires_at) {
+        planLabel = tr("免费档（VIP 已过期）", "Free (VIP expired)");
+      } else if (planIsFree) {
+        planLabel = labelPlanForUi("free");
       }
       if ($("acct-plan")) $("acct-plan").textContent = planLabel;
       if ($("overview-plan")) $("overview-plan").textContent = planLabel;
-      var cta = $("balance-cta");
-      if (cta) {
-        cta.style.display = Number(bal.balance_tokens) <= 0 ? "" : "none";
+      window._ai24xIsVip = isVip;
+      // 免费档：先默认 shared，再填 VIP 选项（避免异步重建把选中值打回 auto）
+      var chatSel = $("chat-model");
+      if (chatSel && !isVip && bal.shared_enabled) {
+        if (!window._ai24xFreeModelBootstrapped) {
+          chatSel.value = "shared";
+          window._ai24xFreeModelBootstrapped = true;
+        } else if (!chatSel.value || chatSel.value === "auto") {
+          // 刷新后若仍停在 auto，拉回 shared（免费档 flash/auto 易撞余额不足）
+          chatSel.value = "shared";
+        }
       }
-      window._ai24xIsVip = !!bal.is_vip_active;
-      fillVipPickOptions(!!bal.is_vip_active);
+      fillVipPickOptions(isVip);
     } catch (e) {
       if (e && e.status === 401) {
         AI24X_API.clearAuth();
         requireLogin();
         return;
       }
-      showMsg($("consoleMsg"), e.message || tr("余额加载失败", "Failed to load balance"), false);
+      showMsg(msgBox(), e.message || tr("余额加载失败", "Failed to load balance"), false);
     }
 
     try {
@@ -1092,10 +1375,10 @@
       var consumes = rows.filter(function (r) {
         return r.entry_type === "consume";
       }).length;
-      $("stat-calls").textContent = String(consumes);
+      if ($("stat-calls")) $("stat-calls").textContent = String(consumes);
       renderUsage(rows);
     } catch (e) {
-      $("stat-calls").textContent = "--";
+      if ($("stat-calls")) $("stat-calls").textContent = "--";
     }
 
     try {
@@ -1155,20 +1438,22 @@
         }
       } catch (e) {}
     }
-    var msg = $("consoleMsg");
+    var msg = msgBox();
     if (msg && id !== "overview") {
       /* keep message visible across panels */
     }
   }
 
   function bind() {
-    var btnLogout = $("btn-logout");
-    if (btnLogout) {
-      btnLogout.addEventListener("click", function () {
-        AI24X_API.clearAuth();
-        location.href = "login.html";
-      });
+    function doLogout() {
+      if (typeof AI24X_API.logout === "function") AI24X_API.logout();
+      else AI24X_API.clearAuth();
+      location.href = "login.html";
     }
+    var btnLogout = $("btn-logout");
+    if (btnLogout) btnLogout.addEventListener("click", doLogout);
+    var btnLogoutAcct = $("btn-logout-account");
+    if (btnLogoutAcct) btnLogoutAcct.addEventListener("click", doLogout);
     var btnSaveApi = $("btn-save-api");
     if (btnSaveApi) {
       btnSaveApi.addEventListener("click", function () {
@@ -1178,13 +1463,28 @@
         else AI24X_API.setBase("");
         if (k) AI24X_API.setApiKey(k);
         else AI24X_API.setApiKey("");
-        showMsg($("consoleMsg"), tr("已保存 API 设置", "API settings saved"), true);
+        showMsg(msgBox(), tr("已保存 API 设置", "API settings saved"), true);
       });
     }
     var btnRefresh = $("btn-refresh");
     if (btnRefresh) {
       btnRefresh.addEventListener("click", function () {
         refreshAll();
+      });
+    }
+    var navTickets = $("nav-tickets");
+    if (navTickets) {
+      navTickets.addEventListener("click", function (e) {
+        e.preventDefault();
+        if (window.AI24X_SUPPORT_WIDGET && typeof AI24X_SUPPORT_WIDGET.open === "function") {
+          AI24X_SUPPORT_WIDGET.open("ticket");
+        } else {
+          showMsg(
+            msgBox(),
+            tr("请使用右下角「协助」打开工单。", "Use the help widget (bottom-right) for tickets."),
+            true
+          );
+        }
       });
     }
     function openModal(id) {
@@ -1248,11 +1548,10 @@
             if (r && r.api_key) {
               AI24X_API.setApiKey(r.api_key);
               if ($("api-key")) $("api-key").value = r.api_key;
-              if ($("apiKeyDisplay")) $("apiKeyDisplay").textContent = r.api_key;
               if ($("modal-show-key-value")) $("modal-show-key-value").textContent = r.api_key;
               openModal("modal-show-key");
               showMsg(
-                $("consoleMsg"),
+                msgBox(),
                 tr("密钥已创建，请复制保存。", "Key created — copy and save it."),
                 true
               );
@@ -1260,7 +1559,7 @@
             return refreshAll();
           })
           .catch(function (e) {
-            showMsg($("consoleMsg"), e.message || tr("创建失败", "Create failed"), false);
+            showMsg(msgBox(), e.message || tr("创建失败", "Create failed"), false);
           })
           .finally(function () {
             btnConfirmKey.disabled = false;
@@ -1275,11 +1574,11 @@
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(t).then(
             function () {
-              showMsg($("consoleMsg"), tr("已复制到剪贴板", "Copied to clipboard"), true);
+              showMsg(msgBox(), tr("已复制到剪贴板", "Copied to clipboard"), true);
             },
             function () {
               showMsg(
-                $("consoleMsg"),
+                msgBox(),
                 tr("复制失败，请手动选择下方密钥", "Copy failed — select the key manually"),
                 false
               );
@@ -1291,17 +1590,13 @@
     var btnCopyKey = $("btn-copy-key");
     if (btnCopyKey) {
       btnCopyKey.addEventListener("click", function () {
-        var t = (
-          ($("api-key") && $("api-key").value) ||
-          ($("apiKeyDisplay") && $("apiKeyDisplay").textContent) ||
-          ""
-        ).trim();
+        var t = (($("api-key") && $("api-key").value) || "").trim();
         if (!t || t === "--" || t.indexOf("…") >= 0) {
           showMsg(
-            $("consoleMsg"),
+            msgBox(),
             tr(
-              "没有可复制的完整 Key（创建后会出现在输入框）",
-              "No full key to copy (it appears in the input after creation)"
+              "没有可复制的完整 Key（请在创建弹窗中复制，或到试调页粘贴已保存的 Key）",
+              "No full key to copy — use the create dialog, or paste a saved key in Playground"
             ),
             false
           );
@@ -1310,11 +1605,11 @@
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(t).then(
             function () {
-              showMsg($("consoleMsg"), tr("已复制", "Copied"), true);
+              showMsg(msgBox(), tr("已复制", "Copied"), true);
             },
             function () {
               showMsg(
-                $("consoleMsg"),
+                msgBox(),
                 tr("复制失败，请手动选择", "Copy failed — select manually"),
                 false
               );
@@ -1327,53 +1622,144 @@
     if (btnChat) {
       btnChat.addEventListener("click", function () {
         var out = $("chat-out");
+        var chatMsg = msgBox("playgroundMsg");
+        var useKey = $("chat-use-api-key") && $("chat-use-api-key").checked;
         var key = ($("api-key").value || AI24X_API.getApiKey() || "").trim();
-        if (!key) {
+        if (useKey) {
+          if (!key || key.indexOf("…") >= 0 || key.indexOf("...") >= 0) {
+            showMsg(
+              chatMsg,
+              tr(
+                "已勾选「用 API Key」。请先到「API 密钥」创建，再把完整 Key 粘到上方。",
+                "“Use API key” is on. Create a key under API keys, then paste the full key above."
+              ),
+              false
+            );
+            return;
+          }
+          AI24X_API.setApiKey(key);
+        } else if (!AI24X_API.getAuthToken()) {
           showMsg(
-            $("consoleMsg"),
-            tr("请先创建并保存 API Key", "Create and save an API key first"),
+            chatMsg,
+            tr(
+              "请先登录后再发送；或勾选「用 API Key」并用本账号完整密钥。",
+              "Sign in first — or check “Use API key” and paste your full key."
+            ),
             false
           );
           return;
         }
-        AI24X_API.setApiKey(key);
+        var model = ($("chat-model").value || "auto").trim() || "auto";
         out.textContent = tr("请求中…", "Requesting…");
-        AI24X_API.chatRun({
-          prompt: ($("chat-prompt").value || "").trim() || tr("你好", "Hello"),
-          model: ($("chat-model").value || "auto").trim() || "auto",
-        })
+        AI24X_API.chatRun(
+          {
+            prompt: ($("chat-prompt").value || "").trim() || tr("你好", "Hello"),
+            model: model,
+            max_tokens: model === "shared" ? 128 : 1000,
+          },
+          null,
+          { preferApiKey: !!useKey }
+        )
           .then(function (r) {
             var requested = ($("chat-model").value || "auto").trim() || "auto";
-            out.textContent = formatChatOut(r, requested);
+            var reply = (r && r.response) || "";
+            var junk =
+              /\bon(\s+on){4,}\b/i.test(reply) ||
+              /ononon|AIon4X|AI on4X|AI on the 24X|on the 24X|variety\s+variety|ultra\s+tier/i.test(
+                reply
+              );
+            if (junk && requested === "shared") {
+              var safe = tr(
+                "你好！我是 AI24X 助手，有什么可以帮你的？",
+                "Hello! I'm the AI24X assistant. How can I help you today?"
+              );
+              r = Object.assign({}, r, { response: safe });
+              out.textContent = formatChatOut(r, requested);
+              showMsg(
+                chatMsg,
+                tr(
+                  "通道已自动换了一条更稳的回复。可再试一次。",
+                  "Switched to a cleaner reply. You can try again."
+                ),
+                true
+              );
+            } else {
+              out.textContent = formatChatOut(r, requested);
+              if (requested === "shared") {
+                showMsg(
+                  chatMsg,
+                  tr("免费共享试调完成。", "Free shared try-call done."),
+                  true
+                );
+              }
+            }
             return refreshAll();
           })
           .catch(function (e) {
-            out.textContent = e.message || tr("失败", "Failed");
-            showMsg($("consoleMsg"), e.message || tr("chat 失败", "chat failed"), false);
+            var errMsg = e.message || tr("试调失败", "Try-call failed");
+            if (e && e.status === 401) {
+              if (useKey) {
+                errMsg = tr(
+                  "API Key 无效。请到「API 密钥」创建并粘贴完整 Key；或取消勾选，改用登录发送。",
+                  "Invalid API key. Create & paste a full key under API keys — or uncheck to use login."
+                );
+              } else if (
+                /API Key 无效|Invalid API key|鉴权失败|未被试调用接受/i.test(errMsg)
+              ) {
+                errMsg = tr(
+                  "登录会话未被试调用接受。请稍后再试；急需可用时请勾选「用 API Key」发送。",
+                  "Try-call did not accept the login session. Try again later, or check “Use API key”."
+                );
+              } else if (
+                /登录已失效|未授权|Unauthorized|需要登录/i.test(errMsg)
+              ) {
+                errMsg = tr(
+                  "登录已失效，请重新登录后再试。",
+                  "Session expired. Please sign in again."
+                );
+              }
+            }
+            out.textContent = errMsg;
+            showMsg(chatMsg, errMsg, false);
             if (e && e.status === 402) {
-              var cta = $("balance-cta");
-              if (cta) cta.style.display = "";
+              var howto402 = $("howto-card");
+              var ht = $("howto-title");
+              var hb = $("howto-body");
+              if (ht) ht.textContent = tr("余额不足", "Insufficient balance");
+              if (hb)
+                hb.textContent = tr(
+                  "请充值后续用 flash / pro；今日免费请改选 shared。",
+                  "Top up for flash/pro, or pick shared for today’s free pool."
+                );
+              if (howto402) howto402.style.display = "";
               showConsolePanel("overview");
             }
           });
       });
     }
+    function goTryShared() {
+      var sel = $("chat-model");
+      if (sel) sel.value = "shared";
+      var howto = $("howto-card");
+      if (howto) howto.style.display = "none";
+      showConsolePanel("playground");
+      showMsg(
+        msgBox("playgroundMsg"),
+        tr(
+          "已选 shared。点发送即可用今日免费额度（登录会话，不必勾 API Key）。",
+          "model=shared selected. Tap Send to use today’s free pool (login session — no API key needed)."
+        ),
+        true
+      );
+      var prompt = $("chat-prompt");
+      if (prompt && !(prompt.value || "").trim()) prompt.value = "Hello";
+    }
     var btnShared = $("btn-continue-shared");
-    if (btnShared) {
-      btnShared.addEventListener("click", function () {
-        var sel = $("chat-model");
-        if (sel) sel.value = "shared";
-        var cta = $("balance-cta");
-        if (cta) cta.style.display = "none";
-        showConsolePanel("playground");
-        showMsg(
-          $("consoleMsg"),
-          tr("已切换到 shared，可再点发送试调", "Switched to shared — tap Send to try"),
-          true
-        );
-        var prompt = $("chat-prompt");
-        if (prompt && !(prompt.value || "").trim()) prompt.value = "Hello";
-        if ($("btn-chat-run")) $("btn-chat-run").click();
+    if (btnShared) btnShared.addEventListener("click", goTryShared);
+    var btnTryHow = $("howto-cta-try");
+    if (btnTryHow) {
+      btnTryHow.addEventListener("click", function () {
+        goTryShared();
       });
     }
     var btnInv = $("btn-copy-invite-link");
@@ -1382,7 +1768,7 @@
         var code = window._ai24xInviteCode || ($("inviteCode") && $("inviteCode").textContent) || "";
         code = String(code || "").trim();
         if (!code || code === "--") {
-          showMsg($("consoleMsg"), tr("暂无邀请码", "No invite code yet"), false);
+          showMsg(msgBox(), tr("暂无邀请码", "No invite code yet"), false);
           return;
         }
         var link =
@@ -1391,14 +1777,14 @@
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(link).then(
             function () {
-              showMsg($("consoleMsg"), tr("邀请短链已复制", "Short invite link copied"), true);
+              showMsg(msgBox(), tr("邀请短链已复制", "Short invite link copied"), true);
             },
             function () {
-              showMsg($("consoleMsg"), link, true);
+              showMsg(msgBox(), link, true);
             }
           );
         } else {
-          showMsg($("consoleMsg"), link, true);
+          showMsg(msgBox(), link, true);
         }
       });
     }
@@ -1408,20 +1794,20 @@
         var code = window._ai24xInviteCode || ($("inviteCode") && $("inviteCode").textContent) || "";
         code = String(code || "").trim();
         if (!code || code === "--") {
-          showMsg($("consoleMsg"), tr("暂无邀请码", "No invite code yet"), false);
+          showMsg(msgBox(), tr("暂无邀请码", "No invite code yet"), false);
           return;
         }
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(code).then(
             function () {
-              showMsg($("consoleMsg"), tr("邀请码已复制", "Invite code copied"), true);
+              showMsg(msgBox(), tr("邀请码已复制", "Invite code copied"), true);
             },
             function () {
-              showMsg($("consoleMsg"), code, true);
+              showMsg(msgBox(), code, true);
             }
           );
         } else {
-          showMsg($("consoleMsg"), code, true);
+          showMsg(msgBox(), code, true);
         }
       });
     }
@@ -1442,7 +1828,7 @@
           clearInterval(_fulfillPollTimer);
           _fulfillPollTimer = null;
         }
-        showMsg($("consoleMsg"), tr("正在确认 PayPal 支付…", "Confirming PayPal…"), true);
+        showMsg(msgBox(), tr("正在确认 PayPal 支付…", "Confirming PayPal…"), true);
         function tryPaypalCapture(attempt) {
           return AI24X_API.billingQueryFulfill(otn, "paypal").catch(function (e) {
             var msg = (e && e.message) || "";
@@ -1463,7 +1849,7 @@
         tryPaypalCapture(1)
           .then(function (r) {
             showMsg(
-              $("consoleMsg"),
+              msgBox(),
               r && r.ok
                 ? AI24X_API.planFulfillMessage(_lastPayPlanId, null)
                 : tr("PayPal 尚未完成，可在「我的订单」点确认到账", "PayPal pending — tap Confirm under My orders"),
@@ -1474,7 +1860,7 @@
           .catch(function (e) {
             var msg = (e && e.message) || "";
             showMsg(
-              $("consoleMsg"),
+              msgBox(),
               (msg || tr("PayPal 确认失败", "PayPal confirm failed")) +
                 tr(" — 请在「我的订单」点「确认到账」", " — tap Confirm under My orders"),
               false

@@ -193,8 +193,9 @@ class Settings(BaseSettings):
     deepseek_model: str = Field(default="deepseek-v4-flash", validation_alias="DEEPSEEK_MODEL")
     siliconflow_api_key: str = Field(default="", validation_alias="SILICONFLOW_API_KEY")
     siliconflow_api_key_free: str = Field(default="", validation_alias="SILICONFLOW_API_KEY_FREE")
+    siliconflow_com_api_key: str = Field(default="", validation_alias="SILICONFLOW_COM_API_KEY")
     siliconflow_base_url: str = Field(
-        default="https://api.siliconflow.cn/v1", validation_alias="SILICONFLOW_BASE_URL"
+        default="https://api.siliconflow.com/v1", validation_alias="SILICONFLOW_BASE_URL"
     )
     siliconflow_model: str = Field(
         default="Qwen/Qwen2.5-7B-Instruct", validation_alias="SILICONFLOW_MODEL"

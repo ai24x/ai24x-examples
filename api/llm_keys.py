@@ -32,11 +32,15 @@ _ALLOWED = (
     "OPENROUTER_API_KEY_FREE",
     "SILICONFLOW_API_KEY",
     "SILICONFLOW_API_KEY_FREE",
+    "SILICONFLOW_COM_API_KEY",  # 2026-08-03: 硅基国际站 (.com)
     "DEEPSEEK_API_KEY",
     "TOGETHER_API_KEY",
     "OPENAI_API_KEY",
     "ANTHROPIC_API_KEY",
     "GOOGLE_AI_API_KEY",
+    # 国际聚合平台 Key（待接入后取消注释）
+    # "TOKENLAB_API_KEY",
+    # "TBD_AGG3_API_KEY",
 )
 
 # 管理台展示顺序与说明（status: live=生产在用 / failover=自动兜底 / planned=骨架待填）
@@ -50,24 +54,31 @@ _KEY_CATALOG: tuple[dict[str, str], ...] = (
     },
     {
         "name": "OPENROUTER_API_KEY_FREE",
-        "title": "OpenRouter 免费通道",
+        "title": "OpenRouter 免费通道（付费Key · 兜底预算）",
         "role": "free",
         "status": "live",
         "group": "聚合",
     },
     {
         "name": "SILICONFLOW_API_KEY",
-        "title": "硅基流动主 Key",
+        "title": "硅基主 Key（.cn 兜底）",
         "role": "main",
         "status": "live",
-        "group": "中国备用",
+        "group": "中国兜底",
     },
     {
         "name": "SILICONFLOW_API_KEY_FREE",
-        "title": "硅基流动免费/L0",
+        "title": "硅基国际 · 免费通道（付费Key · 兜底预算）",
         "role": "free",
         "status": "live",
-        "group": "中国备用",
+        "group": "国际备用",
+    },
+    {
+        "name": "SILICONFLOW_COM_API_KEY",
+        "title": "硅基付费国际站（.com）",
+        "role": "main",
+        "status": "live",
+        "group": "国际备用",
     },
     {
         "name": "DEEPSEEK_API_KEY",
@@ -104,6 +115,21 @@ _KEY_CATALOG: tuple[dict[str, str], ...] = (
         "status": "planned",
         "group": "待规划直连",
     },
+    # —— 国际聚合平台 Key 占位（待调研接入）——
+    # {
+    #     "name": "TOKENLAB_API_KEY",
+    #     "title": "TokenLab #2 国际聚合",
+    #     "role": "backup",
+    #     "status": "planned",
+    #     "group": "国际聚合",
+    # },
+    # {
+    #     "name": "TBD_AGG3_API_KEY",
+    #     "title": "#3 国际聚合（待调研）",
+    #     "role": "backup",
+    #     "status": "planned",
+    #     "group": "国际聚合",
+    # },
 )
 
 # VIP 降级事件（内存环，供告警；进程重启清空）
@@ -189,7 +215,21 @@ def openrouter_free_key() -> str:
 
 
 def silicon_main_key() -> str:
+    """硅基国际站优先；无国际 Key 回落国内。"""
+    com = get_key("SILICONFLOW_COM_API_KEY")
+    if com:
+        return com
     return get_key("SILICONFLOW_API_KEY") or get_key("TOKEN_LLM_L0_KEY")
+
+
+def silicon_com_key() -> str:
+    """硅基国际站 .com Key"""
+    return get_key("SILICONFLOW_COM_API_KEY") or ""
+
+
+def silicon_cn_key() -> str:
+    """硅基国内站 .cn Key（仅用于国际站不可用时的兜底）"""
+    return get_key("SILICONFLOW_API_KEY")
 
 
 def silicon_free_key() -> str:

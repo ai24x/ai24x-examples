@@ -262,20 +262,32 @@ def _fulfill_order_row(
     set_vip = bool(plan.get("set_vip"))
     note = f"{channel_tag}:{otn}:{row.plan}"
 
-    # VIP-only 月卡：到账 0 时写 1 token 作流水锚点（触发推荐结算）
+    # 2026-08-03: 统一按 USD 入账
+    from token_plans import _usd_cny
+    fx = _usd_cny()
+    plan_usd = float(plan.get("price_usd") or 0)
+    if plan_usd > 0:
+        usd_cents = int(round(plan_usd * 100))
+    else:
+        # 没有 USD 价时从 CNY 分换算（兜底）
+        usd_cents = max(1, int(round(int(amount_fen) / fx)))
+    row.amount_usd = usd_cents
+
+    # VIP-only 月卡：到账 0 时写 1 token 作流水锚点
     if credit <= 0 and set_vip:
         credit = 1
-    if credit <= 0:
+    if credit <= 0 and usd_cents <= 0:
         return {"ok": False, "error": "nothing_to_fulfill"}
 
-    topup_tokens(
+    from token_mvp_service import topup_usd
+
+    topup_usd(
         db,
         auth_user_id=int(row.auth_user_id),
-        amount=int(credit),
+        usd_cents=usd_cents,
         note=note,
         set_vip=set_vip,
         vip_days=int(plan.get("vip_days") or 30),
-        validity_days=int(plan.get("validity_days") or 0) or None,
         plan=str(row.plan),
     )
 

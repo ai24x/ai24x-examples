@@ -14,7 +14,8 @@ alwaysApply: true
 
 - 只改需要的键：用 **StrReplace（行级）** 或让运维在服务器用记事本手改
 - 改完自检目标行：不得出现 Unicode 省略号 `…`（U+2026）替换密码片段
-- 生产改完后：`pm2 restart <进程名> --update-env`，并看日志无连库/解码错误
+- 生产改完后：`Restart-Service AI24X-core` 或 `pm2 restart <进程名> --update-env`，并看日志无连库/解码错误
+- **Token / www / api 正式生产 = 副脑04**；副脑03 仅为 Token 冷备（改 03 `.env` 前须主脑明示灾备同步）
 
 ## 背景
 

@@ -13,6 +13,10 @@ from pathlib import Path
 from typing import Any, Optional
 
 _OVERRIDE_PATH = Path(__file__).resolve().parent / "data" / "model_warehouse_override.json"
+_AUDIT_PATH = Path(__file__).resolve().parent / "data" / "pricing_audit.jsonl"
+
+# 品牌层默认扣费倍率（相对 flash）；L2/L3 可被 override.layer_mult 覆盖
+_DEFAULT_LAYER_MULT = {"L0": 1, "L1": 1, "L2": 3, "L3": 6, "QI": 1}
 
 
 def _env_flag(name: str, default: bool = True) -> bool:
@@ -91,7 +95,7 @@ CATALOG: list[dict[str, Any]] = [
         "brand_tiers": ["shared"],
         "layer": "L0",
         "role": "or_fallback",
-        "priority": 2,
+        "priority": 9,
         "openrouter_id": "openrouter/auto",
         "direct_id": None,
         "cost_in": 0.0,
@@ -130,14 +134,35 @@ CATALOG: list[dict[str, Any]] = [
         "access": "ready",
         "failover_to": ["ds-v4-flash"],
     },
-    # —— VIP 自选：中国名模优先（title/quality 面向用户，勿写 OR/挂牌等内部词）——
+    {
+        "id": "vip-hy3",
+        "title": "Hy3",
+        "title_en": "Tencent Hy3",
+        "brand_tiers": ["vip_pick"],
+        "layer": "VIP",
+        "role": "vip_pick",
+        "priority": 10,
+        "openrouter_id": "tencent/hy3",
+        "direct_id": None,
+        "siliconflow_id": "tencent/Hy3",
+        "cost_in": 0.129,
+        "cost_out": 0.534,
+        "billing_mult": 2,
+        "quality": "低价预算",
+        "quality_en": "Ultra-budget",
+        "access": "ready",
+        "modalities": ["text"],
+        "failover_to": ["vip-ds-flash", "ds-v4-flash"],
+    },
+
+    # —— VIP 自选：中国名模（按国际知名度排序：Kimi → DeepSeek → Qwen → GLM → MiniMax → MiMo）——
     {
         "id": "vip-ds-flash",
         "title": "DeepSeek V4 Flash",
         "brand_tiers": ["vip_pick"],
         "layer": "VIP",
         "role": "vip_pick",
-        "priority": 1,
+        "priority": 2,
         "openrouter_id": "deepseek/deepseek-v4-flash",
         "direct_id": "deepseek-v4-flash",
         # 官方直连优先；硅基仅作官方/OR 失败后的同族兜底
@@ -148,6 +173,7 @@ CATALOG: list[dict[str, Any]] = [
         "quality": "高性价比",
         "quality_en": "Value",
         "access": "ready",
+        "modalities": ["text"],
         "failover_to": ["ds-v4-flash"],
     },
     {
@@ -156,7 +182,7 @@ CATALOG: list[dict[str, Any]] = [
         "brand_tiers": ["vip_pick"],
         "layer": "VIP",
         "role": "vip_pick",
-        "priority": 2,
+        "priority": 3,
         "openrouter_id": "deepseek/deepseek-v4-pro",
         "direct_id": "deepseek-v4-pro",
         "siliconflow_id": "deepseek-ai/DeepSeek-V4-Pro",
@@ -166,6 +192,7 @@ CATALOG: list[dict[str, Any]] = [
         "quality": "更强推理",
         "quality_en": "Stronger reasoning",
         "access": "ready",
+        "modalities": ["text"],
         "failover_to": ["ds-v4-pro"],
     },
     {
@@ -174,17 +201,37 @@ CATALOG: list[dict[str, Any]] = [
         "brand_tiers": ["vip_pick"],
         "layer": "VIP",
         "role": "vip_pick",
-        "priority": 3,
+        "priority": 1,
         "openrouter_id": "moonshotai/kimi-k3",
         "direct_id": None,
         # 中国模：硅基优先（相对 OR 降本）；mult 仍按 OR 地板防亏
         "siliconflow_id": "moonshotai/Kimi-K3",
         "cost_in": 3.0,
         "cost_out": 15.0,
-        "billing_mult": 24,
-        "quality": "旗舰",
-        "quality_en": "Flagship",
+        "billing_mult": 40,  # 2026-08-03 fix: ceil(9.0/0.45*2)=40 (was 24, inverted)
+        "quality": "旗舰 · 多项国际评测冠军",
+        "quality_en": "Flagship · top benchmarks",
         "access": "ready",
+        "modalities": ["text", "image"],
+        "failover_to": ["vip-ds-pro", "ds-v4-pro"],
+    },
+    {
+        "id": "vip-kimi-code",
+        "title": "Kimi K2.7 Code",
+        "brand_tiers": ["vip_pick"],
+        "layer": "VIP",
+        "role": "vip_pick",
+        "priority": 2,
+        "openrouter_id": "moonshotai/kimi-k2.7-code",
+        "direct_id": None,
+        "siliconflow_id": "moonshotai/Kimi-K2.7-Code",
+        "cost_in": 0.71,
+        "cost_out": 3.50,
+        "billing_mult": 10,
+        "quality": "编程",
+        "quality_en": "Coding",
+        "access": "ready",
+        "modalities": ["text", "image"],
         "failover_to": ["vip-ds-pro", "ds-v4-pro"],
     },
     {
@@ -204,6 +251,7 @@ CATALOG: list[dict[str, Any]] = [
         "quality": "均衡",
         "quality_en": "Balanced",
         "access": "ready",
+        "modalities": ["text"],
         "failover_to": ["vip-ds-flash", "ds-v4-flash"],
     },
     {
@@ -218,10 +266,11 @@ CATALOG: list[dict[str, Any]] = [
         "siliconflow_id": "MiniMaxAI/MiniMax-M2.5",
         "cost_in": 0.3,
         "cost_out": 1.2,
-        "billing_mult": 3,
+        "billing_mult": 4,  # 2026-08-03 fix: ceil(0.75/0.45*2)=4 (was 3, inverted)
         "quality": "智能体 / 编程",
         "quality_en": "Agents / coding",
         "access": "ready",
+        "modalities": ["text"],
         "failover_to": ["vip-ds-pro", "ds-v4-pro"],
     },
     {
@@ -237,13 +286,34 @@ CATALOG: list[dict[str, Any]] = [
         "siliconflow_id": "Qwen/Qwen3-235B-A22B-Instruct-2507",
         "cost_in": 1.475,
         "cost_out": 4.425,
-        "billing_mult": 12,
+        "billing_mult": 14,  # 2026-08-03 fix: ceil(2.95/0.45*2)=14 (was 12, inverted)
         "quality": "通用旗舰",
         "quality_en": "General flagship",
         "access": "ready",
+        "modalities": ["text"],
         "failover_to": ["vip-ds-flash", "ds-v4-flash"],
     },
+
     {
+        "id": "vip-qwen122b",
+        "title": "Qwen3.5 122B",
+        "title_en": "Qwen3.5 122B MoE",
+        "brand_tiers": ["vip_pick"],
+        "layer": "VIP",
+        "role": "vip_pick",
+        "priority": 8,
+        "openrouter_id": "qwen/qwen3.5-122b-a10b",
+        "direct_id": None,
+        "siliconflow_id": "Qwen/Qwen3.5-122B-A10B",
+        "cost_in": 0.26,
+        "cost_out": 2.08,
+        "billing_mult": 6,
+        "quality": "MoE",
+        "quality_en": "MoE flagship",
+        "access": "ready",
+        "modalities": ["text"],
+        "failover_to": ["vip-ds-flash", "ds-v4-flash"],
+    },    {
         "id": "vip-glm",
         "title": "智谱 GLM-5.2",
         "title_en": "Zhipu GLM-5.2",
@@ -256,11 +326,11 @@ CATALOG: list[dict[str, Any]] = [
         "siliconflow_id": "zai-org/GLM-5.1",
         "cost_in": 1.12,
         "cost_out": 3.52,
-        # 贴地抬一档，避免估价抖动倒挂
-        "billing_mult": 8,
+        "billing_mult": 11,  # 2026-08-03 fix: ceil(2.32/0.45*2)=11 (was 8, inverted)
         "quality": "通用旗舰",
         "quality_en": "General flagship",
         "access": "ready",
+        "modalities": ["text", "image"],
         "failover_to": ["vip-ds-flash", "ds-v4-flash"],
     },
     # —— VIP 自选：国际旗舰（次优先）——
@@ -275,10 +345,11 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         "cost_in": 1.25,
         "cost_out": 10.0,
-        "billing_mult": 16,
-        "quality": "旗舰",
-        "quality_en": "Flagship",
+        "billing_mult": 25,  # 2026-08-03 fix: ceil(5.625/0.45*2)=25 (was 16, inverted)
+        "quality": "旗舰 · 多项国际评测冠军",
+        "quality_en": "Flagship · top benchmarks",
         "access": "ready",
+        "modalities": ["text", "image"],
         "failover_to": ["vip-gpt5-mini", "vip-gpt4o", "vip-ds-pro"],
     },
     {
@@ -296,6 +367,7 @@ CATALOG: list[dict[str, Any]] = [
         "quality": "轻量",
         "quality_en": "Lightweight",
         "access": "ready",
+        "modalities": ["text"],
         "failover_to": ["vip-gpt4o-mini", "vip-ds-flash"],
     },
     {
@@ -307,12 +379,13 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 8,
         "openrouter_id": "openai/gpt-5.4",
         "direct_id": None,
-        "cost_in": 2.5,
-        "cost_out": 15.0,
-        "billing_mult": 24,
+        "cost_in": 2.00,    # 2026-08-03: 对齐 Terra 新定价 (was 2.50)
+        "cost_out": 12.00,  # 2026-08-03: 对齐 Terra 新定价 (was 15.00)
+        "billing_mult": 32,  # 2026-08-03 fix: ceil(7.0/0.45*2)=32 (was 24, inverted)
         "quality": "最强",
         "quality_en": "Top tier",
         "access": "ready",
+        "modalities": ["text", "image"],
         "failover_to": ["vip-gpt5", "vip-ds-pro"],
     },
     {
@@ -326,10 +399,11 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         "cost_in": 2.5,
         "cost_out": 10.0,
-        "billing_mult": 18,
+        "billing_mult": 28,  # 2026-08-03 fix: ceil(6.25/0.45*2)=28 (was 18, inverted)
         "quality": "经典",
         "quality_en": "Classic",
         "access": "ready",
+        "modalities": ["text", "image"],
         "failover_to": ["vip-gpt4o-mini", "vip-ds-pro"],
     },
     {
@@ -347,6 +421,7 @@ CATALOG: list[dict[str, Any]] = [
         "quality": "经典轻量",
         "quality_en": "Classic lightweight",
         "access": "ready",
+        "modalities": ["text", "image"],
         "failover_to": ["vip-ds-flash", "ds-v4-flash"],
     },
     {
@@ -360,10 +435,11 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         "cost_in": 2.0,
         "cost_out": 10.0,
-        "billing_mult": 16,
+        "billing_mult": 27,  # 2026-08-03 fix: ceil(6.0/0.45*2)=27 (was 16, inverted)
         "quality": "写作 / 推理",
         "quality_en": "Writing / reasoning",
         "access": "ready",
+        "modalities": ["text", "image"],
         "failover_to": ["vip-claude-haiku", "vip-ds-pro"],
     },
     {
@@ -377,10 +453,11 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         "cost_in": 1.0,
         "cost_out": 5.0,
-        "billing_mult": 8,
+        "billing_mult": 14,  # 2026-08-03 fix: ceil(3.0/0.45*2)=14 (was 8, inverted)
         "quality": "轻量快速",
         "quality_en": "Fast and light",
         "access": "ready",
+        "modalities": ["text", "image"],
         "failover_to": ["vip-ds-flash", "ds-v4-flash"],
     },
     {
@@ -394,10 +471,11 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         "cost_in": 5.0,
         "cost_out": 25.0,
-        "billing_mult": 40,
+        "billing_mult": 67,  # 2026-08-03 fix: ceil(15.0/0.45*2)=67 (was 40, inverted)
         "quality": "顶配",
         "quality_en": "Premium",
         "access": "ready",
+        "modalities": ["text", "image"],
         "failover_to": ["vip-claude-sonnet", "vip-ds-pro"],
     },
     {
@@ -411,10 +489,11 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         "cost_in": 2.0,
         "cost_out": 12.0,
-        "billing_mult": 18,
+        "billing_mult": 32,  # 2026-08-03 fix: ceil(7.0/0.45*2)=32 (was 18, inverted)
         "quality": "长上下文",
         "quality_en": "Long context",
         "access": "ready",
+        "modalities": ["text", "image"],
         "failover_to": ["vip-gemini-flash", "vip-ds-pro"],
     },
     {
@@ -428,11 +507,49 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         "cost_in": 1.5,
         "cost_out": 7.5,
-        "billing_mult": 12,
+        "billing_mult": 20,  # 2026-08-03 fix: ceil(4.5/0.45*2)=20 (was 12, inverted)
         "quality": "轻量长上下文",
         "quality_en": "Light long-context",
         "access": "ready",
+        "modalities": ["text", "image"],
         "failover_to": ["vip-ds-flash", "ds-v4-flash"],
+    },
+    # —— GPT-5.6 系列（2026-08-03 新增，OR 50% off 渠道成本）——
+    {
+        "id": "vip-gpt56-terra",
+        "title": "GPT-5.6 Terra",
+        "brand_tiers": ["vip_pick"],
+        "layer": "VIP",
+        "role": "vip_pick",
+        "priority": 13,
+        "openrouter_id": "openai/gpt-5.6-terra",
+        "direct_id": None,
+        "cost_in": 1.00,
+        "cost_out": 6.00,
+        "billing_mult": 16,
+        "quality": "日常旗舰·平衡",
+        "quality_en": "Balanced flagship",
+        "access": "ready",
+        "modalities": ["text", "image"],
+        "failover_to": ["vip-gpt56-luna", "vip-ds-pro"],
+    },
+    {
+        "id": "vip-gpt56-luna",
+        "title": "GPT-5.6 Luna",
+        "brand_tiers": ["vip_pick"],
+        "layer": "VIP",
+        "role": "vip_pick",
+        "priority": 20,
+        "openrouter_id": "openai/gpt-5.6-luna",
+        "direct_id": None,
+        "cost_in": 0.10,
+        "cost_out": 0.60,
+        "billing_mult": 2,
+        "quality": "高性价比·智能体",
+        "quality_en": "Value agentic",
+        "access": "ready",
+        "modalities": ["text", "image"],
+        "failover_to": ["vip-gpt5-mini", "vip-ds-flash"],
     },
 ]
 
@@ -455,6 +572,140 @@ def _save_ov(data: dict[str, Any]) -> None:
     )
 
 
+def flash_ref_usd_per_m() -> float:
+    try:
+        v = float((os.getenv("TOKEN_FLASH_REF_USD_PER_M") or "0.45").strip() or "0.45")
+        return v if v > 0 else 0.45
+    except ValueError:
+        return 0.45
+
+
+def min_markup() -> float:
+    """售价相对混合成本的最低加成（默认 2.0 = 约 50% 毛利率量级）。"""
+    try:
+        v = float((os.getenv("TOKEN_MIN_MARKUP") or "2.0").strip() or "2.0")
+        return v if v >= 1.0 else 2.0
+    except ValueError:
+        return 2.0
+
+
+def _usd_cny_fx() -> float:
+    try:
+        fx = float((os.getenv("TOKEN_USD_CNY") or "7.2").strip() or "7.2")
+        return fx if fx > 0 else 7.2
+    except ValueError:
+        return 7.2
+
+
+def _vip_rates_map() -> dict[str, dict[str, Any]]:
+    ov = _load_ov()
+    raw = ov.get("vip_rates")
+    if not isinstance(raw, dict):
+        return {}
+    out: dict[str, dict[str, Any]] = {}
+    for k, v in raw.items():
+        if isinstance(v, dict) and str(k).strip():
+            out[str(k).strip()] = v
+    return out
+
+
+def layer_cost_mult_map() -> dict[str, int]:
+    base = dict(_DEFAULT_LAYER_MULT)
+    ov = _load_ov()
+    raw = ov.get("layer_mult")
+    if isinstance(raw, dict):
+        for ly in ("L2", "L3"):
+            if ly not in raw:
+                continue
+            try:
+                n = int(raw[ly])
+            except (TypeError, ValueError):
+                continue
+            if 1 <= n <= 100:
+                base[ly] = n
+    return base
+
+
+def layer_cost_mult_for(layer: str) -> int:
+    return int(layer_cost_mult_map().get(str(layer or "").upper(), 1) or 1)
+
+
+def suggest_billing_mult(*, cost_in: float, cost_out: float) -> int:
+    """ceil(blended / flash_ref × min_markup)，至少 1。"""
+    blended = (float(cost_in or 0) + float(cost_out or 0)) / 2.0
+    ref = flash_ref_usd_per_m()
+    mk = min_markup()
+    if blended <= 0 or ref <= 0:
+        return 1
+    import math
+
+    return max(1, int(math.ceil(blended / ref * mk)))
+
+
+def _append_pricing_audit(entry: dict[str, Any]) -> None:
+    try:
+        _AUDIT_PATH.parent.mkdir(parents=True, exist_ok=True)
+        line = json.dumps(entry, ensure_ascii=False) + "\n"
+        with _AUDIT_PATH.open("a", encoding="utf-8") as f:
+            f.write(line)
+    except Exception:
+        pass
+
+
+def merge_catalog_row(c: dict[str, Any]) -> dict[str, Any]:
+    """CATALOG 行 + override（vip_rates / 成本与倍率）。"""
+    row = deepcopy(c)
+    if row.get("role") == "vip_pick":
+        ov = _vip_rates_map().get(str(row.get("id") or "")) or {}
+        if "billing_mult" in ov:
+            try:
+                row["billing_mult"] = max(1, min(200, int(ov["billing_mult"])))
+            except (TypeError, ValueError):
+                pass
+        if "cost_in" in ov:
+            try:
+                row["cost_in"] = float(ov["cost_in"])
+            except (TypeError, ValueError):
+                pass
+        if "cost_out" in ov:
+            try:
+                row["cost_out"] = float(ov["cost_out"])
+            except (TypeError, ValueError):
+                pass
+        if "enabled" in ov:
+            row["pick_enabled"] = bool(ov["enabled"])
+        else:
+            row["pick_enabled"] = True
+        row["rate_source"] = "admin" if ov else "catalog"
+    else:
+        row["pick_enabled"] = True
+        row["rate_source"] = "catalog"
+    return row
+
+
+def catalog_merged() -> list[dict[str, Any]]:
+    return [merge_catalog_row(c) for c in CATALOG]
+
+
+def _assert_vip_margin_ok(
+    *,
+    cid: str,
+    billing_mult: int,
+    cost_in: float,
+    cost_out: float,
+) -> None:
+    blended = (float(cost_in or 0) + float(cost_out or 0)) / 2.0
+    if blended <= 0:
+        return
+    sell = flash_ref_usd_per_m() * max(1, int(billing_mult))
+    floor = blended * min_markup()
+    if sell + 1e-9 < floor:
+        raise ValueError(
+            f"{cid}: 估售价 ${sell:.4g}/M 低于成本地板 ${floor:.4g}/M"
+            f"（混合成本 ${blended:.4g} × 最低加成 {min_markup():.2g}），请提高倍率或核对成本。"
+        )
+
+
 def layer_model_override(layer: str) -> Optional[str]:
     ov = _load_ov()
     layers = ov.get("layers") if isinstance(ov.get("layers"), dict) else {}
@@ -473,7 +724,7 @@ def vip_pick_enabled() -> bool:
 
 
 def resolve_vip_pick(requested_model: Optional[str]) -> Optional[dict[str, Any]]:
-    """若请求是 VIP 点名模，返回目录行（含 openrouter_id / billing_mult）；否则 None。"""
+    """若请求是 VIP 点名模，返回合并后的目录行（含 openrouter_id / billing_mult）；否则 None。"""
     raw = (requested_model or "").strip()
     if not raw:
         return None
@@ -490,6 +741,10 @@ def resolve_vip_pick(requested_model: Optional[str]) -> Optional[dict[str, Any]]
         "kimi-k3": "vip-kimi",
         "kimi3": "vip-kimi",
         "kimi-3": "vip-kimi",
+        "kimi-code": "vip-kimi-code",
+        "kimi-k2.7": "vip-kimi-code",
+        "kimi-k2.7-code": "vip-kimi-code",
+        "kimi27": "vip-kimi-code",
         "mimo": "vip-mimo",
         "xiaomi-mimo": "vip-mimo",
         "xiaomi": "vip-mimo",
@@ -504,6 +759,9 @@ def resolve_vip_pick(requested_model: Optional[str]) -> Optional[dict[str, Any]]
         "qwen": "vip-qwen-max",
         "qwen-max": "vip-qwen-max",
         "qwen3": "vip-qwen-max",
+        "qwen122b": "vip-qwen122b",
+        "qwen-122b": "vip-qwen122b",
+        "qwen3.5": "vip-qwen122b",
         "deepseek": "vip-ds-flash",
         "deepseek-flash": "vip-ds-flash",
         "deepseek-pro": "vip-ds-pro",
@@ -537,6 +795,20 @@ def resolve_vip_pick(requested_model: Optional[str]) -> Optional[dict[str, Any]]
         "gemini-pro": "vip-gemini-pro",
         "gemini-3": "vip-gemini-pro",
         "gemini-flash": "vip-gemini-flash",
+        # GPT-5.6 系列（2026-08-03）
+        "gpt56": "vip-gpt56-terra",
+        "gpt-5.6": "vip-gpt56-terra",
+        "gpt5.6": "vip-gpt56-terra",
+        "gpt56-terra": "vip-gpt56-terra",
+        "gpt-5.6-terra": "vip-gpt56-terra",
+        "terra": "vip-gpt56-terra",
+        "gpt56-luna": "vip-gpt56-luna",
+        "gpt-5.6-luna": "vip-gpt56-luna",
+        "luna": "vip-gpt56-luna",
+        "hy3": "vip-hy3",
+        "hy-3": "vip-hy3",
+        "tencent": "vip-hy3",
+        "tencent-hy3": "vip-hy3",
     }
     cid = aliases.get(key, key if key.startswith("vip-") else "")
     if not cid:
@@ -544,11 +816,13 @@ def resolve_vip_pick(requested_model: Optional[str]) -> Optional[dict[str, Any]]
         cid = key if any(c["id"] == key for c in CATALOG) else ""
     if not cid:
         return None
-    for c in CATALOG:
+    for c in catalog_merged():
         if c.get("role") != "vip_pick":
             continue
         if str(c.get("id")) != cid:
             continue
+        if c.get("pick_enabled") is False:
+            return None
         if not c.get("openrouter_id") and not c.get("direct_id"):
             return None
         return dict(c)
@@ -558,25 +832,11 @@ def resolve_vip_pick(requested_model: Optional[str]) -> Optional[dict[str, Any]]
 def list_vip_picks_for_user(*, is_vip: bool) -> list[dict[str, Any]]:
     """控制台可选点名列表（中国模优先）。非 VIP 也返回目录但 locked。"""
     enabled = vip_pick_enabled()
-    # 预估按 flash 售价锚：Builder $20/40M → ≈$0.50/M；对外展示用 $0.45 锚
-    try:
-        fx = float((__import__("os").environ.get("TOKEN_USD_CNY") or "7.2").strip() or "7.2")
-        if fx <= 0:
-            fx = 7.2
-    except ValueError:
-        fx = 7.2
-    try:
-        ref_usd_per_m = float(
-            (__import__("os").environ.get("TOKEN_FLASH_REF_USD_PER_M") or "0.45").strip()
-            or "0.45"
-        )
-        if ref_usd_per_m <= 0:
-            ref_usd_per_m = 0.45
-    except ValueError:
-        ref_usd_per_m = 0.45
+    fx = _usd_cny_fx()
+    ref_usd_per_m = flash_ref_usd_per_m()
     out = []
     for c in sorted(
-        [x for x in CATALOG if x.get("role") == "vip_pick"],
+        [x for x in catalog_merged() if x.get("role") == "vip_pick" and x.get("pick_enabled") is not False],
         key=lambda x: int(x.get("priority") or 99),
     ):
         # 国际旗舰次优先：仍列出，标注 intl
@@ -602,6 +862,7 @@ def list_vip_picks_for_user(*, is_vip: bool) -> list[dict[str, Any]]:
                 "est_usd_per_m": est_usd,
                 "est_cny_per_m": est_cny,
                 "est_basis": "flash_anchor",
+                "flash_ref_usd_per_m": ref_usd_per_m,
             }
         )
     return out
@@ -614,8 +875,10 @@ def vip_pick_models() -> list[str]:
         return [str(x).strip() for x in raw if str(x).strip()]
     return [
         str(c["openrouter_id"])
-        for c in CATALOG
-        if c.get("role") == "vip_pick" and c.get("openrouter_id")
+        for c in catalog_merged()
+        if c.get("role") == "vip_pick"
+        and c.get("pick_enabled") is not False
+        and c.get("openrouter_id")
     ]
 
 
@@ -675,9 +938,12 @@ def warehouse_snapshot() -> dict[str, Any]:
         )
 
     catalog_out = []
-    for c in CATALOG:
+    ref = flash_ref_usd_per_m()
+    mk = min_markup()
+    for c in catalog_merged():
         row = deepcopy(c)
-        row["cost_blended_usd_per_m"] = _blended(c)
+        blended = _blended(row)
+        row["cost_blended_usd_per_m"] = blended
         ly = str(c.get("layer") or "")
         live = layers_live.get(ly) or {}
         key_ok = bool(live.get("key_set")) if ly in layers_live else False
@@ -686,23 +952,41 @@ def warehouse_snapshot() -> dict[str, Any]:
         if access == "planned":
             runtime = "planned"
         elif ly == "VIP":
-            runtime = "vip_pick_planned" if not vip_pick_enabled() else ("ready" if key_ok else "need_key")
+            if not vip_pick_enabled() or row.get("pick_enabled") is False:
+                runtime = "vip_pick_off"
+            else:
+                runtime = "ready" if key_ok else "need_key"
         elif key_ok and live.get("enabled", True):
             # 当前层实际模型是否匹配
-            cur = str(live.get("model") or "")
+            cur_m = str(live.get("model") or "")
             want = str(c.get("openrouter_id") or c.get("direct_id") or "")
-            runtime = "active" if want and want in cur else "standby"
+            runtime = "active" if want and want in cur_m else "standby"
         elif key_ok:
             runtime = "disabled"
         else:
             runtime = "need_key"
         row["runtime"] = runtime
-        row["billing_mult"] = int(c.get("billing_mult") or (1 if ly != "VIP" else 10))
+        mult = int(row.get("billing_mult") or (1 if ly != "VIP" else 10))
+        row["billing_mult"] = mult
+        if row.get("role") == "vip_pick":
+            est_sell = round(ref * mult, 4)
+            row["est_sell_usd_per_m"] = est_sell
+            row["suggest_billing_mult"] = suggest_billing_mult(
+                cost_in=float(row.get("cost_in") or 0),
+                cost_out=float(row.get("cost_out") or 0),
+            )
+            if blended > 0:
+                row["est_margin_pct"] = round((1.0 - blended / est_sell) * 100.0, 1) if est_sell > 0 else None
+                row["cost_floor_usd_per_m"] = round(blended * mk, 4)
+            else:
+                row["est_margin_pct"] = None
+                row["cost_floor_usd_per_m"] = 0.0
         catalog_out.append(row)
 
     plans = list_public_plans()
     plan_margin = []
-    flash_cost = _blended(next(x for x in CATALOG if x["id"] == "ds-v4-flash"))
+    flash_row = next((x for x in catalog_merged() if x["id"] == "ds-v4-flash"), None)
+    flash_cost = _blended(flash_row) if flash_row else 0.21
     for p in plans:
         tokens = int(p.get("credit_tokens") or 0)
         usd = float(p.get("price_usd") or 0) if p.get("price_usd") else None
@@ -747,6 +1031,7 @@ def warehouse_snapshot() -> dict[str, Any]:
         ],
     }
 
+    lm = layer_cost_mult_map()
     return {
         "ok": True,
         "upstream_mode": mode,
@@ -755,6 +1040,16 @@ def warehouse_snapshot() -> dict[str, Any]:
         "catalog": catalog_out,
         "failover": failover,
         "plans_margin": plan_margin,
+        "pricing": {
+            "flash_ref_usd_per_m": ref,
+            "min_markup": mk,
+            "layer_mult": lm,
+            "note": (
+                "估售价 ≈ flash_ref × billing_mult；"
+                "保存 VIP 费率时若估售价 < 混合成本 × min_markup 则拒绝。"
+                "建议倍率 = ceil(混合成本 / flash_ref × min_markup)。"
+            ),
+        },
         "vip_pick": {
             "enabled": vip_pick_enabled(),
             "models": vip_pick_models(),
@@ -766,21 +1061,24 @@ def warehouse_snapshot() -> dict[str, Any]:
         "routing_flags": {
             "vip_silicon_first": _env_flag("TOKEN_LLM_VIP_SILICON_FIRST", True),
             "ds_prefer_paid": _env_flag("TOKEN_LLM_DS_PREFER_PAID", True),
-            "layer_cost_mult": {"L2": 3, "L3": 6},
+            "layer_cost_mult": {"L2": lm.get("L2", 3), "L3": lm.get("L3", 6)},
             "vip_daily_models": "flash,auto,shared",
-            "note": "路由开关目前改 .env + 重启 core；本页只读展示。",
+            "note": "L2/L3 倍率可在本页保存；VIP硅基/DS优先等开关改 .env + 重启。",
         },
         "ops_note": (
-            "付费仓：改层 model 后保存即生效。"
-            "容灾 FREE：L1→L0；VIP 点名：硅基/OR/厂直连（见目录 siliconflow_id）。"
-            "pro/ultra 层倍率 L2×3 / L3×6。与免费共享池独立。"
+            "付费仓：改层 model、VIP 成本/倍率后保存即生效（人审，无自动跟价）。"
+            "容灾 FREE：L1→L0；VIP 点名：硅基/OR/厂直连。"
+            f"pro/ultra 层倍率 L2×{lm.get('L2', 3)} / L3×{lm.get('L3', 6)}。与免费共享池独立。"
         ),
     }
 
 
-def update_warehouse(patch: dict[str, Any]) -> dict[str, Any]:
+def update_warehouse(patch: dict[str, Any], *, actor: str = "admin") -> dict[str, Any]:
+    from datetime import datetime, timezone
+
     cur = _load_ov()
     layers = dict(cur.get("layers") or {}) if isinstance(cur.get("layers"), dict) else {}
+    audit_changes: list[dict[str, Any]] = []
 
     for item in patch.get("layers") or []:
         if not isinstance(item, dict):
@@ -809,5 +1107,87 @@ def update_warehouse(patch: dict[str, Any]) -> dict[str, Any]:
     if patch.get("note") is not None:
         cur["note"] = str(patch.get("note") or "")[:200]
 
+    # 品牌层倍率（仅 L2/L3）
+    if isinstance(patch.get("layer_mult"), dict):
+        lm = dict(cur.get("layer_mult") or {}) if isinstance(cur.get("layer_mult"), dict) else {}
+        old_lm = dict(lm)
+        for ly in ("L2", "L3"):
+            if ly not in patch["layer_mult"]:
+                continue
+            try:
+                n = int(patch["layer_mult"][ly])
+            except (TypeError, ValueError):
+                raise ValueError(f"layer_mult.{ly} 无效")
+            if not (1 <= n <= 100):
+                raise ValueError(f"layer_mult.{ly} 须在 1～100")
+            lm[ly] = n
+        cur["layer_mult"] = lm
+        if lm != old_lm:
+            audit_changes.append({"field": "layer_mult", "old": old_lm, "new": lm})
+
+    # VIP 费率覆盖
+    if patch.get("vip_rates") is not None:
+        if not isinstance(patch.get("vip_rates"), list):
+            raise ValueError("vip_rates 须为数组")
+        rates = dict(cur.get("vip_rates") or {}) if isinstance(cur.get("vip_rates"), dict) else {}
+        base_by_id = {str(c["id"]): c for c in CATALOG if c.get("role") == "vip_pick"}
+        for item in patch["vip_rates"]:
+            if not isinstance(item, dict):
+                continue
+            cid = str(item.get("id") or "").strip()
+            if not cid or cid not in base_by_id:
+                raise ValueError(f"未知 VIP 模型 id：{cid or '（空）'}")
+            base = base_by_id[cid]
+            old = dict(rates.get(cid) or {})
+            new_row = dict(old)
+            if "billing_mult" in item and item["billing_mult"] is not None:
+                try:
+                    new_row["billing_mult"] = max(1, min(200, int(item["billing_mult"])))
+                except (TypeError, ValueError):
+                    raise ValueError(f"{cid}: billing_mult 无效")
+            if "cost_in" in item and item["cost_in"] is not None:
+                try:
+                    new_row["cost_in"] = float(item["cost_in"])
+                except (TypeError, ValueError):
+                    raise ValueError(f"{cid}: cost_in 无效")
+            if "cost_out" in item and item["cost_out"] is not None:
+                try:
+                    new_row["cost_out"] = float(item["cost_out"])
+                except (TypeError, ValueError):
+                    raise ValueError(f"{cid}: cost_out 无效")
+            if "enabled" in item and item["enabled"] is not None:
+                new_row["enabled"] = bool(item["enabled"])
+
+            mult = int(
+                new_row.get("billing_mult")
+                if "billing_mult" in new_row
+                else (base.get("billing_mult") or 1)
+            )
+            cin = float(
+                new_row["cost_in"] if "cost_in" in new_row else (base.get("cost_in") or 0)
+            )
+            cout = float(
+                new_row["cost_out"] if "cost_out" in new_row else (base.get("cost_out") or 0)
+            )
+            # 仅启用时做毛利护栏
+            if new_row.get("enabled", True) is not False:
+                _assert_vip_margin_ok(
+                    cid=cid, billing_mult=mult, cost_in=cin, cost_out=cout
+                )
+            rates[cid] = new_row
+            if new_row != old:
+                audit_changes.append(
+                    {"id": cid, "old": old or None, "new": new_row}
+                )
+        cur["vip_rates"] = rates
+
     _save_ov(cur)
+    if audit_changes:
+        _append_pricing_audit(
+            {
+                "ts": datetime.now(timezone.utc).isoformat(),
+                "actor": str(actor or "admin")[:64],
+                "changes": audit_changes[:64],
+            }
+        )
     return warehouse_snapshot()

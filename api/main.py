@@ -27,6 +27,7 @@ from schemas import (
     ApiKeyCreateBody,
     ApiKeyCreatedOut,
     ApiKeyOut,
+    ApiKeyRenameBody,
     BillingBalanceOut,
     BillingTopupBody,
     TokenPayCreateBody,
@@ -211,48 +212,71 @@ def get_current_user(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """从请求头获取当前用户（优先 api_keys；严格模式禁止仅 user_id）。
-    支持 X-API-Key 与 Authorization: Bearer（同一密钥体系）。"""
-    from openai_compat import extract_api_key
+    """从请求头获取当前用户。
 
-    api_key = extract_api_key(request)
-    user_id = request.query_params.get("user_id")
+    与控制台余额接口同一套认人：
+    1) Authorization Bearer JWT（登录会话，非 sk-）
+    2) X-API-Key / Bearer sk-（终端 API Key）
+    避免「余额正常、试调用 401」——旧逻辑在 JWT 解码失败时会静默落到 STRICT_AUTH。
+    """
+    from openai_compat import extract_api_key
+    from token_mvp_service import ensure_gateway_user
+
     request.state.auth_user_id = None
 
-    if api_key:
-        try:
-            from token_mvp_service import resolve_chat_user_from_api_key
+    auth = (request.headers.get("Authorization") or "").strip()
+    bearer = ""
+    if auth.lower().startswith("bearer "):
+        bearer = auth[7:].strip()
+    api_key = extract_api_key(request)
+    has_console_jwt = bool(
+        bearer and not bearer.startswith("sk-") and bearer.count(".") >= 2
+    )
+    has_sk = bool(api_key and str(api_key).startswith("sk-"))
 
-            user, auth_uid = resolve_chat_user_from_api_key(db, api_key)
-            request.state.auth_user_id = int(auth_uid)
-            allowed, error_msg = UserService.check_rate_limit(db, user)
-            if not allowed:
-                raise HTTPException(
-                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    detail=error_msg,
-                )
-            return user
-        except HTTPException as e:
-            if e.status_code != 401:
-                raise
-            # OpenAI 兼容路径：保留细分 detail（invalid_api_key / key_disabled），不再落到 legacy
-            if _is_openai_completions_path(request.url.path or ""):
-                raise
-            # fall through to legacy User.api_key
+    # 控制台 JWT 或 sk-：与 /v1/billing/balance 同一认人路径
+    if has_console_jwt or has_sk:
+        au = _auth_user_from_api_key_or_jwt(request, db)
+        request.state.auth_user_id = int(au.id)
+        user = ensure_gateway_user(db, int(au.id))
+        allowed, error_msg = UserService.check_rate_limit(db, user)
+        if not allowed:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=error_msg,
+            )
+        return user
 
-    # 严格鉴权：禁止「只带 user_id」冒充（防拷贝脚本扫接口）
-    if bool(settings.strict_auth) and not api_key:
+    # 有疑似 JWT 但未进上方分支时，禁止落到「无效的API Key或用户ID」
+    if bearer and not bearer.startswith("sk-") and bearer.count(".") >= 2:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="需要有效的 API Key（Authorization: Bearer 或 X-API-Key）",
+            detail="登录已失效",
         )
 
+    if bool(settings.strict_auth):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "message_zh": "请先登录，或提供有效的 API Key。",
+                "message_en": "Please sign in, or provide a valid API key.",
+                "message": "请先登录，或提供有效的 API Key。",
+                "code": "auth_required",
+            },
+        )
+
+    user_id = request.query_params.get("user_id")
     user = AuthService.authenticate_user(db, api_key=api_key, user_id=user_id)
 
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="无效的API Key或用户ID",
+            detail={
+                "message_zh": "请先登录，或提供有效的 API Key。",
+                "message_en": "Please sign in, or provide a valid API key.",
+                "message": "请先登录，或提供有效的 API Key。",
+                "code": "auth_required",
+            },
         )
 
     allowed, error_msg = UserService.check_rate_limit(db, user)
@@ -261,7 +285,6 @@ def get_current_user(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail=error_msg,
         )
-
     return user
 
 
@@ -295,10 +318,10 @@ async def health_check():
 # 主接口：/v1/chat/run
 @app.post("/v1/chat/run", response_model=ChatResponse)
 async def chat_run(
+    http_request: Request,
     request: ChatRequest,
-    current_user = Depends(get_current_user),
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
-    http_request: Request = None
 ):
     """
     处理聊天请求
@@ -316,15 +339,13 @@ async def chat_run(
         ip_address = http_request.client.host if http_request.client else None
         user_agent = http_request.headers.get("user-agent")
         
-        # 处理聊天请求
-        auth_uid = getattr(http_request.state, "auth_user_id", None) if http_request else None
-        region_hint = None
-        if http_request is not None:
-            region_hint = (
-                (http_request.headers.get("x-ai24x-region") or "").strip()
-                or (http_request.headers.get("cf-ipcountry") or "").strip()
-                or None
-            )
+        # 处理聊天请求（auth_user_id 由 get_current_user 写入 request.state）
+        auth_uid = getattr(http_request.state, "auth_user_id", None)
+        region_hint = (
+            (http_request.headers.get("x-ai24x-region") or "").strip()
+            or (http_request.headers.get("cf-ipcountry") or "").strip()
+            or None
+        )
         response = ChatService.process_chat_request(
             db=db,
             user=current_user,
@@ -1035,6 +1056,17 @@ async def auth_email_status():
 @app.post("/v1/auth/register", response_model=AuthTokenResponse)
 async def auth_register(request: Request, body: AuthRegisterBody, db: Session = Depends(get_db)):
     if body.phone:
+        # 2026-08-03 加固：读 system_flags 真实值（而非 raw settings），短信未开启时拒绝手机号注册
+        try:
+            from system_flags import flag_bool as _sf_bool
+            _sms_on = _sf_bool("sms_106_enabled", False)
+        except Exception:
+            _sms_on = bool(getattr(settings, "sms_106_enabled", False))
+        if not _sms_on:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="手机号注册暂未开放，请使用邮箱注册。",
+            )
         mob = normalize_mobile(body.phone)
         if len(mob) != 11 or not mob.isdigit():
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="手机号格式不正确，请填写 11 位手机号")
@@ -1064,7 +1096,11 @@ async def auth_register(request: Request, body: AuthRegisterBody, db: Session = 
 
     # Token MVP：可选邀请码绑定（无效码静默忽略，不阻断注册）
     try:
-        from token_mvp_service import bind_referral_on_register, get_or_create_wallet
+        from token_mvp_service import (
+            bind_referral_on_register,
+            get_or_create_wallet,
+            grant_signup_bonus,
+        )
 
         bind_referral_on_register(
             db,
@@ -1073,6 +1109,11 @@ async def auth_register(request: Request, body: AuthRegisterBody, db: Session = 
             client_ip=sec_client_ip(request),
         )
         get_or_create_wallet(db, int(u.id))
+        # 注册欢迎礼（一次性；已发则跳过）。与邀请注册奖独立。
+        try:
+            grant_signup_bonus(db, int(u.id))
+        except Exception:
+            logger.exception("signup welcome bonus failed for user %s", u.id)
     except Exception:
         logger.exception("referral bind / wallet bootstrap failed for user %s", u.id)
 
@@ -1130,9 +1171,21 @@ def _auth_user_from_bearer(request: Request, db: Session) -> AuthUser:
 
 
 def _auth_user_from_api_key_or_jwt(request: Request, db: Session) -> AuthUser:
-    """控制台 JWT 或终端 API Key 均可；用于余额自检（核对 Key 是否绑在 VIP 账号上）。"""
+    """控制台 JWT 或终端 API Key 均可。
+
+    若同时带 Bearer JWT 与 X-API-Key：优先 JWT（登录身份），避免 Playground
+    残留其它账号的 sk 导致余额/身份串号。仅 Key、无有效 JWT 时再走 Key。
+    """
     from openai_compat import extract_api_key
     from token_mvp_service import get_api_key_row
+
+    auth = (request.headers.get("Authorization") or "").strip()
+    bearer = ""
+    if auth.lower().startswith("bearer "):
+        bearer = auth[7:].strip()
+    # JWT（非 sk-）：校验失败直接报登录失效，禁止把同一 Bearer 再当 API Key 解析
+    if bearer and not bearer.startswith("sk-") and bearer.count(".") >= 2:
+        return _auth_user_from_bearer(request, db)
 
     api_key = extract_api_key(request)
     if api_key:
@@ -1156,7 +1209,6 @@ def _auth_user_from_api_key_or_jwt(request: Request, db: Session) -> AuthUser:
                     "code": "invalid_api_key",
                 },
             )
-        # Bearer 也可能是 JWT：下面再试
     return _auth_user_from_bearer(request, db)
 
 
@@ -1476,6 +1528,14 @@ async def keys_create(request: Request, body: ApiKeyCreateBody, db: Session = De
 
     u = _auth_user_from_bearer(request, db)
     return create_api_key(db, int(u.id), body.name)
+
+
+@app.patch("/v1/keys/{key_id}", response_model=ApiKeyOut)
+async def keys_rename(key_id: int, request: Request, body: ApiKeyRenameBody, db: Session = Depends(get_db)):
+    from token_mvp_service import rename_api_key
+
+    u = _auth_user_from_bearer(request, db)
+    return rename_api_key(db, int(u.id), int(key_id), body.name)
 
 
 @app.delete("/v1/keys/{key_id}")
@@ -2257,14 +2317,14 @@ async def admin_token_model_warehouse(request: Request):
 
 @app.post("/v1/admin/token/model_warehouse")
 async def admin_token_model_warehouse_update(request: Request, body: TokenAdminWarehouseUpdateBody):
-    """保存层模型 / 层启用 / VIP 自选开关（不含密钥）。"""
+    """保存层模型 / VIP 费率（成本+倍率）/ 层倍率 / VIP 自选开关。"""
     _require_internal_key(request)
     from model_warehouse import update_warehouse
 
     try:
-        return update_warehouse(body.model_dump(exclude_none=True))
-    except ValueError:
-        raise HTTPException(status_code=400, detail="参数无效，请检查后再试。")
+        return update_warehouse(body.model_dump(exclude_none=True), actor="token-admin")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e) or "参数无效，请检查后再试。")
 
 
 @app.get("/v1/admin/token/free_shared")

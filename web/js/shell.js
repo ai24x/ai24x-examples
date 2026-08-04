@@ -160,6 +160,9 @@
       'help.html" data-i18n="footer.link.help"></a>' +
       '<a href="' +
       pre +
+      'status.html" data-i18n="footer.link.status"></a>' +
+      '<a href="' +
+      pre +
       'refer.html" data-i18n="footer.link.refer"></a>' +
       '<a href="' +
       pre +
@@ -331,9 +334,6 @@
     if (p.indexOf("vip-picks") >= 0) return "vip";
     if (p.indexOf("/models/") >= 0) return "models";
     if (p.indexOf("/guides/") >= 0) return "guides";
-    if (p.indexOf("pricing") >= 0) return "pricing";
-    if (p.indexOf("register") >= 0) return "register";
-    if (p.indexOf("refer") >= 0) return "refer";
     return "";
   }
 
