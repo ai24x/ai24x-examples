@@ -13,6 +13,7 @@
 | 后台 | 「城市合伙人申请审核」卡片每行新增「材料/合同」按钮：查看/下载/删除附件，上传正式《城市合伙人合作协议》归档 |
 | 自动通知 | 审核通过/驳回、正式合同归档、工单回复/关闭 → 自动站内通知用户（user_notices，前台通知栏可见） |
 | 工单系统 | 前台 `feedback.html` + 后台「用户反馈」面板为既有功能，本次补齐「回复后通知用户」闭环 |
+| 后台重组 | 「伙伴与结算」拆分为：返佣台账与结算 / 城市合伙人（签约+审核+合同）/ 返佣与等级配置，导航与子菜单同步更新 |
 | 安全 | 附件接口按「本人或管理员」鉴权；用户不能删除官方合同；上传限流 |
 
 ## 二、执行（PowerShell · 整段复制给 OpenClaw）
@@ -27,7 +28,7 @@ git checkout master
 git pull gitee master
 if (-not $?) { git pull origin master }
 git log -1 --oneline
-if (-not (git log -1 --oneline | Select-String '合同归档')) { Write-Host '!! 未拉到目标提交，先别继续，回报 git log -1' -ForegroundColor Red; exit 1 }
+if (-not (git log -1 --oneline | Select-String '合同归档|面板拆分|城市合伙人')) { Write-Host '!! 未拉到目标提交，先别继续，回报 git log -1' -ForegroundColor Red; exit 1 }
 
 Write-Host '=== 2/3 重启后端（启动时自动建表 partner_contract_files）===' -ForegroundColor Cyan
 if (Get-Service AI24X-a1-api -ErrorAction SilentlyContinue) { Restart-Service AI24X-a1-api } else { Write-Host '!! 未找到 AI24X-a1-api 服务' -ForegroundColor Red; exit 1 }
