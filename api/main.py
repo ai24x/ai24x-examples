@@ -2449,6 +2449,46 @@ async def admin_token_plans_update(request: Request):
         raise HTTPException(status_code=400, detail="参数无效，请检查后再试。")
     return update_admin_plans(plans)
 
+@app.get("/v1/admin/token/alert_config")
+async def admin_alert_config(request: Request):
+    "运维预警通道配置（webhook 脱敏返回）。"
+    _require_internal_key(request)
+    from ops_alert import public_config
+
+    return public_config()
+
+
+@app.post("/v1/admin/token/alert_config")
+async def admin_alert_config_update(request: Request):
+    "保存预警通道配置（api/data/ops_alert_config.json）。"
+    _require_internal_key(request)
+    from ops_alert import save_config
+
+    body = await request.json()
+    if not isinstance(body, dict):
+        body = {}
+    return save_config(body)
+
+
+@app.post("/v1/admin/token/alerts/run")
+async def admin_alerts_run(request: Request, db: Session = Depends(get_db)):
+    "立即巡检一次并推送（管理台「立即巡检并推送」）。"
+    _require_internal_key(request)
+    from ops_alert import run_check
+
+    return run_check(db, push=True)
+
+
+@app.get("/v1/admin/token/alerts/latest")
+async def admin_alerts_latest(request: Request):
+    "只读：最近一次巡检 + 最近一次推送快照（供副脑04 轮询飞书私信去重）。"
+    _require_internal_key(request)
+    from ops_alert import latest_alert
+
+    return latest_alert()
+
+
+
 
 @app.post("/v1/admin/token/orders/query_fulfill")
 async def admin_token_orders_query_fulfill(
