@@ -1470,6 +1470,26 @@ async def admin_token_alerts(request: Request, db: Session = Depends(get_db)):
     return admin_ops_alerts(db)
 
 
+@app.post("/v1/admin/token/orders/cleanup")
+async def admin_token_orders_cleanup(request: Request, db: Session = Depends(get_db)):
+    """清理超时未付订单（默认 dry-run 只预览；body {"dry_run": false} 才真正作废无交易号的超时单）。"""
+    _require_internal_key(request)
+    dry_run = True
+    try:
+        body = await request.json()
+        if isinstance(body, dict):
+            v = body.get("dry_run", True)
+            if isinstance(v, bool):
+                dry_run = v
+            else:
+                dry_run = str(v).strip().lower() not in ("0", "false", "no")
+    except Exception:
+        dry_run = True
+    from token_pay_service import cleanup_expired_pending_orders
+
+    return cleanup_expired_pending_orders(db, dry_run=dry_run)
+
+
 @app.get("/v1/admin/token/usage_monitor")
 async def admin_token_usage_monitor(
     request: Request,

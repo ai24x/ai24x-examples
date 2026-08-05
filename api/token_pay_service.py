@@ -1014,3 +1014,55 @@ def query_and_fulfill_alipay(db: Session, *, out_trade_no: str, auth_user_id: in
     if not r.get("ok"):
         raise HTTPException(status_code=409, detail=str(r.get("error") or "fulfill_failed"))
     return r
+
+
+def cleanup_expired_pending_orders(db, *, dry_run: bool = True, now=None, max_void: int = 200) -> dict:
+    """清理超时未付订单（防积压，作废前先确认无渠道交易号）。
+
+    规则（保守，避免丢钱）：
+      1) 仅处理 status=pending 且已超时（pending_order_expired，微信/支付宝 24h、PayPal 72h）。
+      2) 有 transaction_id 的超时单【不】作废——可能已收款未发放（真问题），保留待渠道对账。
+      3) 无 transaction_id 的超时单 = 用户未完成支付/未生成渠道交易，status 置 failed（作废）。
+      4) dry_run=True 只统计不落库；单次作废 > max_void 时中止，防误伤。
+    返回统计供预警/管理台展示。
+    """
+    rows = db.query(TokenPayOrder).filter(TokenPayOrder.status == "pending").all()
+    valid = [r for r in rows if not pending_order_expired(r, now=now)]
+    expired = [r for r in rows if pending_order_expired(r, now=now)]
+    voidable = [r for r in expired if not getattr(r, "transaction_id", None)]
+    keep_reconcile = [r for r in expired if getattr(r, "transaction_id", None)]
+
+    voided = []
+    if not dry_run and voidable:
+        if len(voidable) > max(1, int(max_void)):
+            return {
+                "ok": False,
+                "dry_run": dry_run,
+                "error": "本次可作废 {n} 笔，超过保护上限 {m}，已中止，请人工确认后重试".format(n=len(voidable), m=int(max_void)),
+                "scanned": len(rows),
+                "valid": len(valid),
+                "voidable": len(voidable),
+                "kept_for_reconcile": len(keep_reconcile),
+                "voided": 0,
+            }
+        for r in voidable:
+            r.status = "failed"
+            voided.append(r.id)
+        db.commit()
+
+    return {
+        "ok": True,
+        "dry_run": dry_run,
+        "scanned": len(rows),
+        "valid": len(valid),
+        "expired": len(expired),
+        "voidable_no_txn": len(voidable),
+        "voided": len(voided),
+        "voided_ids": voided,
+        "kept_for_reconcile": len(keep_reconcile),
+        "kept_reconcile_ids": [r.id for r in keep_reconcile],
+        "note": (
+            "有交易号的超时单保留 pending 待渠道对账（可能已收款未发放，勿作废）；"
+            "无交易号的超时单已作废（用户未完成支付）。"
+        ),
+    }
