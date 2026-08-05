@@ -3088,8 +3088,7 @@
       $("gate").classList.add("on");
     }
   })();
-})();
-  
+
   async function loadAlertConfig() {
     var host = $("alertConfigBox");
     if (!host) return;
@@ -3144,6 +3143,8 @@
 
   if ($("btnAlertSave")) $("btnAlertSave").onclick = saveAlertConfig;
   if ($("btnAlertRun")) $("btnAlertRun").onclick = runAlertCheck;
+})();
+
 
   </script>
 </body>

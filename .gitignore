@@ -87,3 +87,5 @@ MIGRATION_*.md
 PAUSE_REPORT_*.md
 START_REPORT_*.md
 # RANKINGS_TEST_REPORT.md  # 注释掉，允许推送测试报告
+api/data/feishu_notify_state.json
+api/data/feishu_poll_last.txt
