@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 统一页眉 / 页脚（含子目录 models/ guides/ 的相对前缀）
  */
 (function (global) {
@@ -146,6 +146,7 @@
       '<a href="' +
       pre +
       'partner.html" data-i18n="footer.link.partner"></a>' +
+      '<a href="https://a.ai24x.com/" data-i18n="footer.link.marketwatch" data-i18n-zh-only></a>' +
       "</div>" +
       '<div class="footer-col">' +
       '<div class="footer-title" data-i18n="footer.col.dev"></div>' +
