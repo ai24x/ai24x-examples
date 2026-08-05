@@ -6171,7 +6171,10 @@
       setStatusMsg('请输入代码或简称');
       return;
     }
-    if (!tryBeginQuery()) return;
+    if (!tryBeginQuery()) {
+      setStatusMsg('正在查询中，请稍候…');
+      return;
+    }
     showOfflineHintIfNeeded();
 
     setStatusMsg('');
@@ -6264,7 +6267,7 @@
       p = suggestRows(normSuggest).then(function (list) {
         if (!list.length) {
           statusEl.textContent =
-            '未找到匹配结果：请尝试更换关键词或输入代码（如 600519）。';
+            '未找到对应标的：请检查输入是否有误，或换关键词/输入代码（如 600519、贵州茅台）。';
           setSoftLoading(false);
           return;
         }
@@ -6317,6 +6320,16 @@
       }
       if (m.indexOf('游客今日体验次数已用完') >= 0 || m.indexOf('游客') >= 0 && m.indexOf('已用完') >= 0) {
         showGuestLimitUpsell();
+        return;
+      }
+      // 搜索无对应标的：把上游“无数据/不支持/暂时不可用”统一为友好提示，避免技术性报错
+      if (/temporarily|暂时不可用|无数据|数据为空|K 线数据异常|代码不支持|无返回数据|not found/i.test(m)) {
+        statusEl.textContent = '未能加载「' + raw + '」：请检查输入是否有误（如 600519、贵州茅台），如代码无误请稍后重试。';
+        statusEl.className = '';
+        currentSecid = null;
+        periodTabsEl.classList.add('disabled');
+        disposeChart();
+        setSoftLoading(false);
         return;
       }
       var nice = prettyFetchError(m);
