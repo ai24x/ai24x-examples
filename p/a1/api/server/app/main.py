@@ -1045,7 +1045,13 @@ def admin_commissions_generate_for_order(body: dict, _: bool = Depends(require_a
     try:
         return db.commission_generate_for_order(out_trade_no)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        code = str(e)
+        msg = {
+            "missing out_trade_no": "请填写支付订单号",
+            "order_not_found": "未找到该订单号，请到「订单支付」面板核对后再填",
+            "order_not_paid": "该订单不是已支付状态，无法补单",
+        }.get(code, code)
+        raise HTTPException(status_code=400, detail=msg)
 
 
 def _partner_cash_eligible(user_id: int) -> bool:

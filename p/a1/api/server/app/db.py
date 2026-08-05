@@ -4118,6 +4118,7 @@ def _commission_generate_for_paid_order_in_conn(conn: Any, *, out_trade_no: str,
             # Fail-closed: if level lookup fails, skip L3 to avoid unintended leakage.
             pass
 
+    inserted = 0
     for depth, agent_uid, rate in pairs:
         if agent_uid <= 0 or rate <= 0:
             continue
@@ -4129,22 +4130,27 @@ def _commission_generate_for_paid_order_in_conn(conn: Any, *, out_trade_no: str,
         commission_fen = int(round(float(amount_fen) * float(rate)))
         if commission_fen <= 0:
             continue
-        _commission_insert_in_conn(
-            conn,
-            out_trade_no=str(out_trade_no),
-            agent_user_id=int(agent_uid),
-            level_depth=int(depth),
-            buyer_user_id=int(buyer_id),
-            plan=str(plan),
-            amount_fen=int(amount_fen),
-            rate=float(rate),
-            commission_fen=int(commission_fen),
-            eligible_at=int(eligible_at),
-            now=int(now),
-            rule_version="v2",
-            rate_source="base",
-            calc_meta=meta,
-        )
+        try:
+            if _commission_insert_in_conn(
+                conn,
+                out_trade_no=str(out_trade_no),
+                agent_user_id=int(agent_uid),
+                level_depth=int(depth),
+                buyer_user_id=int(buyer_id),
+                plan=str(plan),
+                amount_fen=int(amount_fen),
+                rate=float(rate),
+                commission_fen=int(commission_fen),
+                eligible_at=int(eligible_at),
+                now=int(now),
+                rule_version="v2",
+                rate_source="base",
+                calc_meta=meta,
+            ):
+                inserted += 1
+        except Exception:
+            pass
+    return inserted
 
 
 def commission_generate_for_order(out_trade_no: str) -> dict[str, Any]:
@@ -4168,7 +4174,7 @@ def commission_generate_for_order(out_trade_no: str) -> dict[str, Any]:
             return {"ok": True, "skipped": True, "reason": "agent_upgrade_commission_disabled"}
         amount_fen = int(row["amount_fen"])
         paid_at = int(row["paid_at"] or now)
-        _commission_generate_for_paid_order_in_conn(
+        inserted = _commission_generate_for_paid_order_in_conn(
             conn,
             out_trade_no=otn,
             buyer_id=int(buyer_id),
@@ -4179,6 +4185,7 @@ def commission_generate_for_order(out_trade_no: str) -> dict[str, Any]:
         )
         return {
             "ok": True,
+            "inserted": int(inserted or 0),
             "buyer_user_id": int(buyer_id),
         }
 

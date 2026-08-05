@@ -1442,10 +1442,10 @@ def admin_app_html(admin_base: str) -> str:
               <div class="card" style="margin-top:12px;">
                 <div class="row">
                   <span class="pill">补单（幂等）</span>
-                  <span class="muted small">为已支付订单生成返佣台账（回调异常时用）</span>
+                  <span class="muted small">订单已支付但上级没拿到返佣时（回调异常等），把订单号填进来补生成；重复操作不会重复发放</span>
                 </div>
                 <div class="row" style="margin-top:10px;">
-                  <input id="regenOutTradeNo" class="mono" placeholder="out_trade_no" style="min-width:320px;" />
+                  <input id="regenOutTradeNo" class="mono" placeholder="支付订单号（去「订单支付」里复制）" style="min-width:340px;" />
                   <button type="button" id="btnRegenCommission">生成返佣</button>
                 </div>
               </div>
@@ -2622,11 +2622,18 @@ async function loadEligibleCommissions(){
 
       async function regenCommissionForOrder(){
         var otn = String($('regenOutTradeNo').value || '').trim();
-        if(!otn){ setStatus('请填写 out_trade_no'); return; }
-        setStatus('正在生成返佣台账（幂等）…');
+        if(!otn){ setStatus('请填写支付订单号（去「订单支付」里复制）'); return; }
+        setStatus('正在生成返佣台账（幂等，重复操作不会重复发放）…');
         var r = await api('/api/admin/commissions/generate_for_order', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({out_trade_no: otn})});
-        if(r && r.skipped) setStatus('已跳过：'+(r.reason||'skipped'));
-        else setStatus('已处理：inserted='+(r.inserted?'1':'0'));
+        if(r && r.skipped){
+          var why = {
+            'commission_disabled': '返佣总开关未开启（去「返佣与等级配置」打开）',
+            'agent_upgrade_commission_disabled': '升级单返佣开关未开启（去「返佣与等级配置」打开）'
+          }[r.reason] || r.reason;
+          setStatus('未生成（跳过）：'+why);
+        } else {
+          setStatus('已生成返佣台账：新增 '+((r.inserted!=null)?r.inserted:'0')+' 条'+(r.buyer_user_id?('（下单用户 '+r.buyer_user_id+'）'):''));
+        }
         await loadEligibleCommissions();
       }
 
