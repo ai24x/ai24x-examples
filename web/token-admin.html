@@ -3173,7 +3173,11 @@
   function renderAlertLive(live) {
     var box = $("alertOverview");
     if (!box) return;
-    var alerts = (live && live.alerts) || [];
+    // 「当前告警」只展示真正的告警（error/warn）；info 级属正常业务信息，看「毛利与告警」
+    var alerts = ((live && live.alerts) || []).filter(function (a) {
+      var lv = String(a.level || "info");
+      return lv === "error" || lv === "warn";
+    });
     if (!alerts.length) {
       box.innerHTML = '<span style="color:#27ae60;">无告警</span>';
       return;
