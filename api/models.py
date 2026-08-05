@@ -258,6 +258,7 @@ class TokenPayOrder(Base):
     paid_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    confirmed_unpaid_at = Column(DateTime(timezone=True), nullable=True)  # 非空=对账确认未收款，值=确认时间
 
 
 class SupportTicket(Base):

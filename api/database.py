@@ -58,6 +58,12 @@ def init_db():
             )
             conn.execute(
                 text(
+                    "ALTER TABLE token_pay_orders "
+                    "ADD COLUMN IF NOT EXISTS confirmed_unpaid_at TIMESTAMP WITH TIME ZONE"
+                )
+            )
+            conn.execute(
+                text(
                     "ALTER TABLE auth_users "
                     "ADD COLUMN IF NOT EXISTS freeze_reason VARCHAR(255)"
                 )

@@ -1490,6 +1490,17 @@ async def admin_token_orders_cleanup(request: Request, db: Session = Depends(get
     return cleanup_expired_pending_orders(db, dry_run=dry_run)
 
 
+@app.post("/v1/admin/token/orders/{order_id}/confirm_unpaid")
+async def admin_token_order_confirm_unpaid(
+    order_id: int, request: Request, db: Session = Depends(get_db)
+):
+    """对账确认某笔 pending 订单未收款（有交易号但渠道确认无捕获/未完成支付）。幂等。"""
+    _require_internal_key(request)
+    from token_pay_service import confirm_order_unpaid
+
+    return confirm_order_unpaid(db, order_id=order_id)
+
+
 @app.get("/v1/admin/token/usage_monitor")
 async def admin_token_usage_monitor(
     request: Request,

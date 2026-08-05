@@ -2371,14 +2371,21 @@
     $("ordMeta").textContent =
       "共 " + total + " 条 · 本页 " + rows.length + " · offset=" + off + expInfo;
     $("ordBody").innerHTML = rows.map(function (r) {
-      var fulfill = r.status === "pending"
-        ? '<button type="button" data-otn="' + String(r.out_trade_no).replace(/"/g, "") + '" class="btnFulfill">查单履约</button>'
-        : "";
+      var fulfill = "";
+      if (r.status === "pending") {
+        fulfill += '<button type="button" data-otn="' + String(r.out_trade_no).replace(/"/g, "") + '" class="btnFulfill">查单履约</button>';
+        if (r.transaction_id && r.expired && !r.confirmed_unpaid_at) {
+          fulfill += ' <button type="button" data-oid="' + String(r.id).replace(/"/g, "") + '" class="btnConfirmUnpaid" style="color:#d97706;">确认未收款</button>';
+        }
+      }
       var expTag = "";
       if (r.expired) {
-        expTag = r.transaction_id
+        expTag = (r.transaction_id && !r.confirmed_unpaid_at)
           ? ' <span style="color:#d97706;font-size:11px;">·已过期·待对账</span>'
           : ' <span style="color:#c0392b;font-size:11px;">·已过期</span>';
+      }
+      if (r.confirmed_unpaid_at) {
+        expTag += ' <span style="color:#34d399;font-size:11px;">·已确认未收款</span>';
       }
       var rowStyle = r.expired ? ' style="opacity:.5;"' : "";
       return "<tr" + rowStyle + ">" +
@@ -3024,6 +3031,22 @@
     if (!t || !t.classList || !t.classList.contains("btnFulfill")) return;
     var otn = t.getAttribute("data-otn");
     fulfillOrder(otn, t);
+  });
+
+  document.addEventListener("click", function (ev) {
+    var t = ev.target;
+    if (!t || !t.classList || !t.classList.contains("btnConfirmUnpaid")) return;
+    var oid = t.getAttribute("data-oid");
+    if (!oid) return;
+    if (!window.confirm("确认该笔订单对账后未收款？\n标记后它不再计入有效待履约，超时后清理任务会自动作废为 failed。")) return;
+    (async function () {
+      try {
+        var r = await api("/v1/admin/token/orders/" + oid + "/confirm_unpaid", { method: "POST" });
+        setMsg("已确认未收款：" + (r.out_trade_no || oid), "ok");
+        loadOrders();
+        if (typeof refreshSummary === "function") refreshSummary();
+      } catch (e) { setMsg(String(e.message || e), "err"); }
+    })();
   });
 
   function setFreezePill(u) {

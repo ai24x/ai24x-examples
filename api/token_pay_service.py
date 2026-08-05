@@ -481,7 +481,7 @@ def admin_list_orders(
     total_expired = 0
     if not include_expired and (not status or str(status).strip() == "pending"):
         all_rows = query.all()
-        valid = [x for x in all_rows if not pending_order_expired(x)]
+        valid = [x for x in all_rows if not pending_order_expired(x) and not getattr(x, "confirmed_unpaid_at", None)]
         total_expired = len(all_rows) - len(valid)
         if valid:
             query = query.filter(TokenPayOrder.id.in_([x.id for x in valid]))
@@ -512,6 +512,7 @@ def admin_list_orders(
                 "created_at": r.created_at.isoformat() if r.created_at else None,
                 "paid_at": r.paid_at.isoformat() if r.paid_at else None,
                 "expired": pending_order_expired(r),
+                "confirmed_unpaid_at": r.confirmed_unpaid_at.isoformat() if r.confirmed_unpaid_at else None,
                 "utm_source": (getattr(u, "utm_source", None) if u else None) or None,
                 "utm_medium": (getattr(u, "utm_medium", None) if u else None) or None,
                 "utm_campaign": (getattr(u, "utm_campaign", None) if u else None) or None,
@@ -1021,16 +1022,20 @@ def cleanup_expired_pending_orders(db, *, dry_run: bool = True, now=None, max_vo
 
     规则（保守，避免丢钱）：
       1) 仅处理 status=pending 且已超时（pending_order_expired，微信/支付宝 24h、PayPal 72h）。
-      2) 有 transaction_id 的超时单【不】作废——可能已收款未发放（真问题），保留待渠道对账。
-      3) 无 transaction_id 的超时单 = 用户未完成支付/未生成渠道交易，status 置 failed（作废）。
+      2) 有 transaction_id 且【未】确认未收款的超时单【不】作废——可能已收款未发放（真问题），保留待渠道对账。
+      3) 无 transaction_id 或已确认未收款（confirmed_unpaid_at 非空）的超时单 = 用户未完成支付，status 置 failed（作废）。
       4) dry_run=True 只统计不落库；单次作废 > max_void 时中止，防误伤。
     返回统计供预警/管理台展示。
     """
+    def _confirmed(r):
+        return bool(getattr(r, "confirmed_unpaid_at", None))
+
     rows = db.query(TokenPayOrder).filter(TokenPayOrder.status == "pending").all()
-    valid = [r for r in rows if not pending_order_expired(r, now=now)]
+    valid = [r for r in rows if not pending_order_expired(r, now=now) and not _confirmed(r)]
     expired = [r for r in rows if pending_order_expired(r, now=now)]
-    voidable = [r for r in expired if not getattr(r, "transaction_id", None)]
-    keep_reconcile = [r for r in expired if getattr(r, "transaction_id", None)]
+    voidable = [r for r in expired if not getattr(r, "transaction_id", None) or _confirmed(r)]
+    keep_reconcile = [r for r in expired if getattr(r, "transaction_id", None) and not _confirmed(r)]
+    confirmed_unpaid = [r for r in rows if _confirmed(r)]
 
     voided = []
     if not dry_run and voidable:
@@ -1057,12 +1062,51 @@ def cleanup_expired_pending_orders(db, *, dry_run: bool = True, now=None, max_vo
         "valid": len(valid),
         "expired": len(expired),
         "voidable_no_txn": len(voidable),
+        "voidable_breakdown": {
+            "no_txn": len([r for r in voidable if not getattr(r, "transaction_id", None)]),
+            "confirmed_unpaid": len([r for r in voidable if getattr(r, "confirmed_unpaid_at", None)]),
+        },
         "voided": len(voided),
         "voided_ids": voided,
         "kept_for_reconcile": len(keep_reconcile),
         "kept_reconcile_ids": [r.id for r in keep_reconcile],
+        "confirmed_unpaid": len(confirmed_unpaid),
+        "confirmed_unpaid_ids": [r.id for r in confirmed_unpaid],
         "note": (
-            "有交易号的超时单保留 pending 待渠道对账（可能已收款未发放，勿作废）；"
-            "无交易号的超时单已作废（用户未完成支付）。"
+            "有交易号且未确认未收款的超时单保留 pending 待渠道对账（可能已收款未发放，勿作废）；"
+            "无交易号或已确认未收款的超时单作废（用户未完成支付）。"
         ),
+    }
+
+
+def confirm_order_unpaid(db, order_id: int) -> dict:
+    """对账确认某笔 pending 订单未收款（有交易号但渠道确认无捕获/未完成支付）。幂等。
+
+    标记后：有效待履约统计不再计入；超时后 cleanup 会将其作废为 failed。
+    """
+    r = db.query(TokenPayOrder).filter(TokenPayOrder.id == int(order_id)).first()
+    if r is None:
+        return {"ok": False, "error": "订单不存在"}
+    if r.status != "pending":
+        return {"ok": False, "error": "仅 pending 订单可确认未收款（当前 " + str(r.status) + "）"}
+    if r.confirmed_unpaid_at:
+        return {
+            "ok": True,
+            "id": r.id,
+            "out_trade_no": r.out_trade_no,
+            "status": r.status,
+            "transaction_id": r.transaction_id,
+            "confirmed_unpaid_at": r.confirmed_unpaid_at.isoformat() if r.confirmed_unpaid_at else None,
+            "note": "已确认未收款（重复确认，时间戳未改动）",
+        }
+    r.confirmed_unpaid_at = datetime.now(timezone.utc)
+    db.commit()
+    return {
+        "ok": True,
+        "id": r.id,
+        "out_trade_no": r.out_trade_no,
+        "status": r.status,
+        "transaction_id": r.transaction_id,
+        "confirmed_unpaid_at": r.confirmed_unpaid_at.isoformat() if r.confirmed_unpaid_at else None,
+        "note": "已标记：对账确认未收款；超时后清理任务将作废为 failed",
     }
