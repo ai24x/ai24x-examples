@@ -436,8 +436,16 @@ def admin_app_html(admin_base: str) -> str:
               <span class="subt">排行榜 + 伙伴详情（树/订单/返佣/提现摘要）</span>
             </button>
             <button type="button" class="nav-item" data-panel="p-commission">
-              伙伴与返佣
-              <span class="subt">支持多层推荐返佣；台账记录（T+N 到期后可提现，人工审核打款）</span>
+              返佣台账与结算
+              <span class="subt">待结算 / 补单 / 台账明细</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-cp">
+              城市合伙人
+              <span class="subt">签约代理 + 申请审核 + 合同归档</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-commission-cfg">
+              返佣与等级配置
+              <span class="subt">返佣比例 / 结算延迟 / 金银铜门槛</span>
             </button>
             <button type="button" class="nav-item" data-panel="p-payout">
               提现申请
@@ -1180,14 +1188,15 @@ def admin_app_html(admin_base: str) -> str:
             </div>
           </section>
 
-          <section class="panel-page" id="p-commission">
-            <div class="card" id="sec-commission">
+          
+          <section class="panel-page" id="p-commission-cfg">
+            <div class="card">
               <div class="row">
-                <span class="pill">代理与返佣</span>
-                <span class="muted small">支持三级推荐：同一订单可生成多条返佣台账（不同 depth）；默认不退款；先人工结算</span>
+                <span class="pill">返佣与等级配置</span>
+                <span class="muted small">动态参数（admin_config）与金银铜推广等级门槛；保存后即时生效</span>
               </div>
-
-              <div class="card" style="margin-top:12px;">
+            </div>
+<div class="card" style="margin-top:12px;">
                 <div class="row">
                   <span class="pill">动态配置（admin_config）</span>
                   <button type="button" id="btnLoadCommissionCfg">读取</button>
@@ -1284,7 +1293,16 @@ def admin_app_html(admin_base: str) -> str:
                 </div>
               </div>
 
-              <div class="card" style="margin-top:12px;">
+                        </section>
+
+          <section class="panel-page" id="p-cp">
+            <div class="card">
+              <div class="row">
+                <span class="pill">城市合伙人</span>
+                <span class="muted small">签约代理 + 申请审核（支付后人工审核）+ 合同归档</span>
+              </div>
+            </div>
+<div class="card" style="margin-top:12px;">
                 <div class="row">
                   <span class="pill">城市合伙人（签约代理）</span>
                   <span class="muted small">现金提现仅对签约城市合伙人开放；区域/协议编号用于对账</span>
@@ -1371,6 +1389,15 @@ def admin_app_html(admin_base: str) -> str:
                 <div id="cpAppFilesBox" class="msg small" style="margin-top:10px; display:none;"></div>
               </div>
 
+                        </section>
+
+          <section class="panel-page" id="p-commission">
+<div class="card" id="sec-commission">
+              <div class="row">
+                <span class="pill">代理与返佣</span>
+                <span class="muted small">支持三级推荐：同一订单可生成多条返佣台账（不同 depth）；默认不退款；先人工结算</span>
+              </div>
+
               <div class="card" style="margin-top:12px;">
                 <div class="row">
                   <span class="pill">待结算（eligible）</span>
@@ -1423,7 +1450,8 @@ def admin_app_html(admin_base: str) -> str:
                 </div>
               </div>
             </div>
-          </section>
+                    </section>
+
 
           <section class="panel-page" id="p-payout">
             <div class="card" id="sec-payout">
@@ -2968,8 +2996,14 @@ async function loadEligibleCommissions(){
           loadConfig().catch(function(e){ setStatus('数据源配置：'+e.message); });
         }
         if(id === 'p-commission'){
-          loadCommissionCfg().catch(function(e){ setStatus('返佣配置读取失败：'+e.message); });
           loadEligibleCommissions().catch(function(e){ setStatus('待结算读取失败：'+e.message); });
+        }
+        if(id === 'p-commission-cfg'){
+          loadCommissionCfg().catch(function(e){ setStatus('返佣配置读取失败：'+e.message); });
+        }
+        if(id === 'p-cp'){
+          loadCpApps().catch(function(e){ setStatus('申请读取失败：'+e.message); });
+          loadCityPartners().catch(function(e){ setStatus('签约列表读取失败：'+e.message); });
         }
         if(id === 'p-payout'){
           payoutOffset = 0;
