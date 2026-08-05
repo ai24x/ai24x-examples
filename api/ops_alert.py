@@ -148,6 +148,9 @@ def public_config() -> dict[str, Any]:
     """对外（管理台）展示：webhook 脱敏，不返回完整 URL。"""
     cfg = load_config()
     url = cfg.get("webhook_url") or ""
+    st = load_state()
+    codes = st.get("codes") or {}
+    active = sorted(k for k, v in codes.items() if v.get("active"))
     return {
         "ok": True,
         "enabled": bool(cfg.get("enabled")),
@@ -162,7 +165,10 @@ def public_config() -> dict[str, Any]:
         "email_enabled": bool(cfg.get("email_enabled")),
         "alert_email": cfg.get("alert_email") or "",
         "sms_mobiles": cfg.get("sms_mobiles") or "",
-        "active_codes": load_state_active_codes(),
+        "active_codes": active,
+        "last_check": st.get("last_check") or "",
+        "last_push_at": st.get("last_push_at") or "",
+        "last_push_text": st.get("last_push_text") or "",
     }
 
 

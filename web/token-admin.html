@@ -694,25 +694,57 @@
             </div>
           </div>
 
-          <div class="panel-page" id="p-alert">
+                    <div class="panel-page" id="p-alert">
             <div class="card">
               <div class="row" style="justify-content:space-between;align-items:flex-start;">
                 <div>
-                  <h2 style="margin:0;">预警通道</h2>
-                  <p class="muted small" style="margin:6px 0 0;">飞书 Webhook 为主通道；定时巡检（建议每 15 分钟）自动推送 P0/P1 预警，恢复自动发「已恢复」。短信为 P0 兜底占位，接入服务商后启用。</p>
+                  <h2 style="margin:0;">预警中心</h2>
+                  <p class="muted small" style="margin:6px 0 0;">定时巡检（生产每 15 分钟）自动发现 P0/P1 并推送；飞书私信走副脑04 值班出口（24h 在线），群 Webhook / 邮箱 / 短信兜底。恢复自动发「已恢复」。</p>
                 </div>
                 <div class="row">
                   <button type="button" id="btnAlertRun">立即巡检并推送</button>
                   <button type="button" class="ok" id="btnAlertSave">保存配置</button>
                 </div>
               </div>
-              <div class="section-label">通道配置</div>
+
+              <div class="section-label">① 预警概览</div>
+              <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
+                <div class="field"><span class="lbl">当前告警</span><div id="alertOverview" style="font-size:13px;min-height:20px;">—</div></div>
+                <div class="field"><span class="lbl">最近巡检</span><div id="alertLastCheck" style="font-size:13px;min-height:20px;">—</div></div>
+                <div class="field"><span class="lbl">最近推送</span><div id="alertLastPush" style="font-size:13px;min-height:20px;">—</div></div>
+              </div>
+              <details class="sys-detail" style="margin-top:8px;">
+                <summary>最近推送原文（默认收起）</summary>
+                <pre class="mono small" id="alertLastPushText" style="white-space:pre-wrap;">—</pre>
+              </details>
+
+              <div class="section-label">② 推送通道</div>
               <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;">
+                <div class="field" style="grid-column:1/-1;border:1px dashed rgba(128,128,128,.4);padding:8px;border-radius:6px;">
+                  <span class="lbl">飞书私信（值班出口 · 推荐）</span>
+                  <p class="muted small" style="margin:4px 0 0;">由副脑04 云主机运行轮询（每 5 分钟），凭证运行时读 openclaw.json（04 应用视角 open_id），绝不硬编码。内置：同预警 6h 合并、深夜 23:30-08:30 非 P0 静默、值班重提醒 30min。运行状态以副脑04 值班回执为准。</p>
+                  <div class="row" style="gap:8px;margin-top:8px;">
+                    <button type="button" id="btnCopyPmCmd">复制私信测试命令</button>
+                  </div>
+                </div>
+                <div class="field" style="min-width:280px;"><span class="lbl">飞书群 Webhook</span>
+                  <input type="text" id="alertWebhook" autocomplete="off" placeholder="留空=不推送；已配置则显示尾号" style="width:100%;" />
+                </div>
+                <div class="field" style="min-width:280px;"><span class="lbl">邮箱收件人（SMTP）</span>
+                  <input type="text" id="alertEmail" autocomplete="off" placeholder="逗号分隔；填了即启用邮件推送" style="width:100%;" />
+                </div>
+                <div class="field"><span class="lbl">短信兜底（仅 P0）</span>
+                  <input type="checkbox" id="alertSms" />
+                </div>
+                <div class="field" style="min-width:240px;"><span class="lbl">短信手机号（106，仅 P0）</span>
+                  <input type="text" id="alertSmsMobiles" autocomplete="off" placeholder="逗号分隔；需勾选短信兜底" style="width:100%;" />
+                </div>
+              </div>
+
+              <div class="section-label">③ 巡检策略</div>
+              <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
                 <div class="field"><span class="lbl">启用定时预警</span>
                   <input type="checkbox" id="alertEnabled" checked />
-                </div>
-                <div class="field" style="min-width:280px;"><span class="lbl">飞书 Webhook URL</span>
-                  <input type="text" id="alertWebhook" autocomplete="off" placeholder="留空=不推送；已配置则显示尾号" style="width:100%;" />
                 </div>
                 <div class="field"><span class="lbl">去抖冷却（分钟）</span>
                   <input type="number" id="alertCooldown" min="1" max="1440" value="60" style="width:88px;" />
@@ -723,18 +755,9 @@
                 <div class="field" style="min-width:240px;"><span class="lbl">健康探针地址</span>
                   <input type="text" id="alertBase" autocomplete="off" placeholder="http://127.0.0.1:8000" style="width:100%;" />
                 </div>
-                <div class="field"><span class="lbl">短信兜底（仅 P0）</span>
-                  <input type="checkbox" id="alertSms" />
-                </div>
-                <div class="field" style="min-width:280px;"><span class="lbl">邮箱收件人（SMTP）</span>
-                  <input type="text" id="alertEmail" autocomplete="off" placeholder="逗号分隔；填了即启用邮件推送" style="width:100%;" />
-                </div>
-                <div class="field" style="min-width:240px;"><span class="lbl">短信手机号（106，仅 P0）</span>
-                  <input type="text" id="alertSmsMobiles" autocomplete="off" placeholder="逗号分隔；需勾选短信兜底" style="width:100%;" />
-                </div>
               </div>
-              <p class="muted small">当前告警中：<span id="alertActiveCodes">无</span></p>
-              <div class="section-label">最近巡检</div>
+
+              <div class="section-label">④ 巡检输出</div>
               <pre class="mono small" id="alertRunResult" style="white-space:pre-wrap;">尚未巡检。点右上「立即巡检并推送」可测试链路。</pre>
             </div>
           </div>
@@ -3089,9 +3112,23 @@
     }
   })();
 
+  function renderAlertOverview(r) {
+    var codes = r.active_codes || [];
+    var box = $("alertOverview");
+    if (box) {
+      box.innerHTML = codes.length
+        ? codes.map(function (c) { return '<span style="display:inline-block;background:#fde9e7;color:#c0392b;border-radius:4px;padding:1px 8px;margin:2px 4px 0 0;font-size:12px;">' + esc(c) + '</span>'; }).join("")
+        : '<span style="color:#27ae60;">无告警</span>';
+    }
+    var lc = $("alertLastCheck");
+    if (lc) lc.textContent = r.last_check ? String(r.last_check).replace("T", " ").slice(0, 19) : "—";
+    var lp = $("alertLastPush");
+    if (lp) lp.textContent = r.last_push_at ? String(r.last_push_at).replace("T", " ").slice(0, 19) : "暂无推送";
+    var lpt = $("alertLastPushText");
+    if (lpt) lpt.textContent = r.last_push_text || "—";
+  }
+
   async function loadAlertConfig() {
-    var host = $("alertConfigBox");
-    if (!host) return;
     var r = await api("/v1/admin/token/alert_config");
     $("alertEnabled").checked = !!r.enabled;
     $("alertWebhook").value = r.webhook_set
@@ -3103,7 +3140,7 @@
     $("alertSms").checked = !!r.sms_enabled;
     $("alertEmail").value = r.alert_email || "";
     $("alertSmsMobiles").value = r.sms_mobiles || "";
-    $("alertActiveCodes").textContent = r.active_codes && r.active_codes.length ? r.active_codes.join("、") : "无";
+    renderAlertOverview(r);
   }
 
   async function saveAlertConfig() {
@@ -3141,8 +3178,32 @@
     await loadAlertConfig();
   }
 
+  function fallbackCopy(cmd) {
+    var ta = document.createElement("textarea");
+    ta.value = cmd;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); setMsg("已复制私信测试命令，到副脑04 云主机执行", "ok"); }
+    catch (e) { prompt("手动复制命令：", cmd); }
+    document.body.removeChild(ta);
+  }
+
+  function copyPmCmd() {
+    var cmd = 'python api\\feishu_notify.py --pm "【测试·预警私信】可忽略" --force';
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(cmd)
+        .then(function () { setMsg("已复制私信测试命令，到副脑04 云主机执行", "ok"); })
+        .catch(function () { fallbackCopy(cmd); });
+    } else {
+      fallbackCopy(cmd);
+    }
+  }
+
   if ($("btnAlertSave")) $("btnAlertSave").onclick = saveAlertConfig;
   if ($("btnAlertRun")) $("btnAlertRun").onclick = runAlertCheck;
+  if ($("btnCopyPmCmd")) $("btnCopyPmCmd").onclick = copyPmCmd;
 })();
 
 
