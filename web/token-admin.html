@@ -713,8 +713,8 @@
 
               <div class="section-label">① 预警概览</div>
               <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
-                <div class="field"><span class="lbl">当前告警</span><div id="alertOverview" style="font-size:13px;min-height:20px;">—</div></div>
-                <div class="field"><span class="lbl">最近巡检</span><div id="alertLastCheck" style="font-size:13px;min-height:20px;">—</div></div>
+                <div class="field"><span class="lbl">当前告警（实时）</span><div id="alertOverview" style="font-size:13px;min-height:20px;">—</div></div>
+                <div class="field"><span class="lbl">最近巡检（快照）</span><div id="alertLastCheck" style="font-size:13px;min-height:20px;">—</div></div>
                 <div class="field"><span class="lbl">最近推送</span><div id="alertLastPush" style="font-size:13px;min-height:20px;">—</div></div>
               </div>
               <details class="sys-detail" style="margin-top:8px;">
@@ -3170,6 +3170,22 @@
     }
   })();
 
+  function renderAlertLive(live) {
+    var box = $("alertOverview");
+    if (!box) return;
+    var alerts = (live && live.alerts) || [];
+    if (!alerts.length) {
+      box.innerHTML = '<span style="color:#27ae60;">无告警</span>';
+      return;
+    }
+    box.innerHTML = alerts.map(function (a) {
+      var lv = String(a.level || "info");
+      var bg = lv === "error" ? "#fde9e7" : lv === "warn" ? "#fdf3e0" : "#eaf4fd";
+      var fg = lv === "error" ? "#c0392b" : lv === "warn" ? "#b7791f" : "#2b6cb0";
+      return '<span title="' + esc(a.msg || "") + '" style="display:inline-block;background:' + bg + ';color:' + fg + ';border-radius:4px;padding:1px 8px;margin:2px 4px 0 0;font-size:12px;">' + esc(a.code || "") + '</span>';
+    }).join("");
+  }
+
   function renderAlertOverview(r) {
     var codes = r.active_codes || [];
     var box = $("alertOverview");
@@ -3199,6 +3215,10 @@
     $("alertEmail").value = r.alert_email || "";
     $("alertSmsMobiles").value = r.sms_mobiles || "";
     renderAlertOverview(r);
+    try {
+      var live = await api("/v1/admin/token/alerts/live");
+      renderAlertLive(live);
+    } catch (e) { /* 快照兜底：保留 active_codes */ }
   }
 
   async function saveAlertConfig() {

@@ -2512,6 +2512,15 @@ async def admin_alerts_run(request: Request, db: Session = Depends(get_db)):
     return run_check(db, push=True)
 
 
+@app.get("/v1/admin/token/alerts/live")
+async def admin_alerts_live(request: Request, db: Session = Depends(get_db)):
+    "实时聚合预警（不推送、不改状态）：预警中心「当前告警」实时展示用。"
+    _require_internal_key(request)
+    from ops_alert import collect_alerts
+
+    return collect_alerts(db)
+
+
 @app.get("/v1/admin/token/alerts/latest")
 async def admin_alerts_latest(request: Request):
     "只读：最近一次巡检 + 最近一次推送快照（供副脑04 轮询飞书私信去重）。"

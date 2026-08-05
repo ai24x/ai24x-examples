@@ -213,16 +213,25 @@ def collect_alerts(db) -> dict[str, Any]:
     cfg = load_config()
     health: dict[str, Any] = {"base_url": cfg.get("base_url"), "status": "unknown"}
     try:
-        import httpx
+        from urllib.parse import urlparse
 
-        h = httpx.get(cfg["base_url"] + "/health", timeout=6.0)
-        j = {}
-        try:
-            j = h.json()
-        except Exception:
-            pass
-        health["status"] = str(j.get("status") or ("down" if h.status_code >= 400 else "unknown"))
-        health["http"] = h.status_code
+        _host = (urlparse(cfg.get("base_url") or "").hostname or "").lower()
+        if _host in ("127.0.0.1", "localhost", "::1"):
+            # 自请求探针会在 API 进程内死锁（async 处理器同步探针阻塞事件循环），本地回环直接视为健康
+            health["status"] = "healthy"
+            health["http"] = 200
+            health["note"] = "loopback self, skip http probe"
+        else:
+            import httpx
+
+            h = httpx.get(cfg["base_url"] + "/health", timeout=6.0)
+            j = {}
+            try:
+                j = h.json()
+            except Exception:
+                pass
+            health["status"] = str(j.get("status") or ("down" if h.status_code >= 400 else "unknown"))
+            health["http"] = h.status_code
     except Exception as e:
         health["status"] = "down"
         health["error"] = str(e)[:160]
