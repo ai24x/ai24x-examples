@@ -1287,7 +1287,11 @@
             if(!d || !d.ok) throw new Error("bad");
             var iw = Number(d.invite_reward_inviter_weekly || 0) || 0;
             var id = Number(d.invite_reward_inviter_daily || 0) || 0;
-            var s = "邀请奖励：好友首次有效查询后到账（你 +" + String(id) + "/日，+" + String(iw) + "/周）。";
+            var cap = Number(d.invite_weekly_cap || 0) || 0;
+            var s = "邀请奖励：好友首次有效查询后到账（你 +" + String(iw) + "/周";
+            if(id > 0){ s += "，+" + String(id) + "/日"; }
+            if(cap > 0){ s += "，每周封顶 " + String(cap) + " 次"; }
+            s += "）。";
             el.textContent = s;
           })
           .catch(function(){
