@@ -591,6 +591,7 @@
         <span id="agent-kv-paid">已结算(元) <b id="agent-paid">-</b></span>
       </div>
       <div class="hint" id="agent-city-hint" style="margin-top:8px; display:none;"></div>
+      <div id="agent-city-apply" style="margin-top:10px;"></div>
       <div class="hint" id="agent-tier-hint" style="margin-top:10px; display:none;"></div>
       <div class="hint" id="agent-rewards-hint" style="margin-top:10px; display:none;">当前为权益回馈模式：邀请回馈以查询额度和会员权益形式发放；现金提现仅对签约城市合伙人开放。</div>
 
@@ -1754,6 +1755,7 @@
                 } else { cph.style.display = "none"; }
               }
             } catch (eC) {}
+            try { agentCityRefresh(); } catch (eA) {}
             try{
               var days2 = d && d.settle_delay_days != null ? Number(d.settle_delay_days) : null;
               if(days2 == null || !isFinite(days2)) days2 = 7;
@@ -1792,6 +1794,94 @@
           })
           .catch(function (e) {
             agentStatusEl.textContent = normalizeErrMsg(e) || "加载失败。";
+          });
+      }
+
+      function escHtml(s) {
+        return String(s == null ? "" : s).replace(/[&<>"']/g, function (m) {
+          return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m];
+        });
+      }
+
+      function agentCityFormHtml() {
+        return (
+          '<div class="hint" style="margin-top:8px;">申请成为城市合伙人（区域代理）：需先支付成长档/合作伙伴；提交后人工审核，通过后签署《城市合伙人合作协议》并开放现金结算试点。</div>' +
+          '<div class="row" style="margin-top:8px; flex-wrap:wrap; gap:8px; align-items:center;">' +
+          '<input id="cp-region" placeholder="申请区域（如 浙江温州）" style="max-width:180px;" />' +
+          '<input id="cp-contact" placeholder="联系人姓名/公司名称" style="max-width:180px;" />' +
+          '<input id="cp-idno" placeholder="证件号（选填）" style="max-width:200px;" />' +
+          '<input id="cp-phone" placeholder="联系电话（选填）" style="max-width:150px;" />' +
+          '</div>' +
+          '<div style="margin-top:8px;"><input id="cp-note" placeholder="备注（团队/资源情况，选填）" style="width:100%; max-width:480px;" /></div>' +
+          '<button class="btn primary" type="button" id="btn-cp-apply" style="margin-top:8px;">提交申请</button>' +
+          '<span class="muted small" style="margin-left:8px;">提交即表示同意平台合作规范与人工审核流程</span>'
+        );
+      }
+
+      function agentCityRender(app) {
+        var box = $("agent-city-apply");
+        if (!box) return;
+        var cph = $("agent-city-hint");
+        var cp = (app && app.partner) || {};
+        var ap = (app && app.application) || null;
+        if (cp.city_partner) {
+          if (cph) {
+            cph.textContent = "城市合伙人 · " + (cp.city_region || "待定区域") + (cp.city_agreement_no ? (" · 协议 " + cp.city_agreement_no) : "");
+            cph.style.display = "block";
+          }
+          box.innerHTML = "";
+          return;
+        }
+        if (cph) cph.style.display = "none";
+        var html = "";
+        if (ap && ap.status === "pending") {
+          html = '<div class="hint" style="margin-top:8px;">城市合伙人申请已提交（区域：' + escHtml(ap.region) + '），等待人工审核；通过后将自动签约并生成协议编号。</div>';
+        } else if (ap && ap.status === "rejected") {
+          html = '<div class="hint" style="margin-top:8px; color:var(--warn,#c0392b);">城市合伙人申请未通过：' + escHtml(ap.admin_note || "未填写原因") + '，可修正后重新申请。</div>' + agentCityFormHtml();
+        } else {
+          html = agentCityFormHtml();
+        }
+        box.innerHTML = html;
+        var b = $("btn-cp-apply");
+        if (b) b.addEventListener("click", agentCityApply);
+      }
+
+      function agentCityRefresh() {
+        return apiFetch("/api/agent/city_partner/application", { cache: "no-store" })
+          .then(function (d) { agentCityRender(d); })
+          .catch(function () {});
+      }
+
+      function agentCityApply() {
+        var btn = $("btn-cp-apply");
+        if (!btn) return;
+        if (!tokenGet()) {
+          if (agentStatusEl) agentStatusEl.textContent = "请先登录。";
+          return;
+        }
+        var v = function (id) { var el = $(id); return el ? String(el.value || "").trim() : ""; };
+        var region = v("cp-region"), contact = v("cp-contact"), idno = v("cp-idno"), phone = v("cp-phone"), note = v("cp-note");
+        if (!region || !contact) {
+          if (agentStatusEl) agentStatusEl.textContent = "请填写申请区域与联系人。";
+          return;
+        }
+        btn.disabled = true;
+        apiFetch("/api/agent/city_partner/apply", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ region: region, contact_name: contact, id_no: idno, phone: phone, note: note }),
+        })
+          .then(function (d) {
+            if (agentStatusEl) agentStatusEl.textContent = "申请已提交，等待人工审核。";
+            if (d && d.ok) return agentCityRefresh();
+            return null;
+          })
+          .catch(function (e) {
+            if (agentStatusEl) agentStatusEl.textContent = normalizeErrMsg(e) || "提交失败。";
+          })
+          .finally(function () {
+            btn.disabled = false;
+            try { if (agentStatusEl) agentStatusEl.textContent = agentStatusEl.textContent || ""; } catch (eF) {}
           });
       }
 

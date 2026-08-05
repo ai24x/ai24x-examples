@@ -1337,6 +1337,41 @@ def admin_app_html(admin_base: str) -> str:
 
               <div class="card" style="margin-top:12px;">
                 <div class="row">
+                  <span class="pill">城市合伙人申请审核</span>
+                  <span class="muted small">支付后人工审核：通过=签约+自动生成协议编号；驳回=记录原因</span>
+                  <button type="button" id="btnLoadCpApps">刷新</button>
+                  <select id="cpAppStatus">
+                    <option value="pending" selected>待审核</option>
+                    <option value="">全部</option>
+                    <option value="approved">已通过</option>
+                    <option value="rejected">已驳回</option>
+                  </select>
+                </div>
+                <div class="row" style="margin-top:10px; flex-wrap:wrap; gap:10px;">
+                  <input id="cpAppSearch" placeholder="搜索手机/邮箱/ID/区域/联系人" style="min-width:240px;" />
+                  <span id="cpAppMeta" class="muted small"></span>
+                </div>
+                <div style="margin-top:10px; overflow:auto;">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th style="width:60px;">ID</th>
+                        <th style="width:70px;">用户ID</th>
+                        <th style="width:110px;">区域</th>
+                        <th style="width:130px;">联系人</th>
+                        <th style="width:150px;">账号</th>
+                        <th style="width:120px;">申请时间</th>
+                        <th style="width:80px;">状态</th>
+                        <th>操作 / 备注</th>
+                      </tr>
+                    </thead>
+                    <tbody id="cpAppBody"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="card" style="margin-top:12px;">
+                <div class="row">
                   <span class="pill">待结算（eligible）</span>
                   <span class="muted small">status=pending 且 eligible_at ≤ now</span>
                   <button type="button" id="btnLoadEligible">刷新</button>
@@ -2385,6 +2420,68 @@ def admin_app_html(admin_base: str) -> str:
         var d = await api('/api/admin/agent/city_partner', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({user_id: uid, city_partner: en, city_region: region, city_agreement_no: ag})});
         setStatus('已保存城市合伙人：用户 '+uid+(d.city_partner ? ' 已签约' : ' 未签约')+(d.city_region ? ' · '+d.city_region : ''));
         await loadCityPartners();
+      }
+
+      async function loadCpApps(){
+        var st = String(($('cpAppStatus') && $('cpAppStatus').value) || '').trim();
+        var q = String(($('cpAppSearch') && $('cpAppSearch').value) || '').trim();
+        var qs = [];
+        if(st) qs.push('status=' + encodeURIComponent(st));
+        if(q) qs.push('q=' + encodeURIComponent(q));
+        var d = await api('/api/admin/agent/city_partner/applications' + (qs.length ? ('?' + qs.join('&')) : ''));
+        var body = $('cpAppBody');
+        if(!body) return;
+        body.innerHTML = '';
+        (d.items || []).forEach(function(it){
+          var tr = document.createElement('tr');
+          tr.dataset.appId = String(it.id);
+          var pending = it.status === 'pending';
+          var ops;
+          if(pending){
+            ops = '<td>' +
+              '<input class="cpAppRegion" placeholder="区域(默认'+esc(it.region||'')+')" style="width:110px;" /> ' +
+              '<input class="cpAppAg" placeholder="协议编号(自动)" style="width:120px;" /> ' +
+              '<input class="cpAppNote" placeholder="备注" style="width:90px;" /> ' +
+              '<button type="button" data-approve="1">通过</button> ' +
+              '<button type="button" data-reject="1">驳回</button></td>';
+          } else {
+            ops = '<td class="muted small">'+esc(it.admin_note||'')+'</td>';
+          }
+          tr.innerHTML =
+            '<td class="mono">'+esc(it.id)+'</td>' +
+            '<td class="mono">'+esc(it.user_id)+'</td>' +
+            '<td>'+esc(it.region||'')+'</td>' +
+            '<td>'+esc(it.contact_name||'')+'</td>' +
+            '<td class="mono">'+esc(it.user_phone||it.user_email||'')+'</td>' +
+            '<td class="mono">'+esc(fmtTs(it.created_at))+'</td>' +
+            '<td>'+esc(it.status)+'</td>' +
+            ops;
+          body.appendChild(tr);
+        });
+        var meta = $('cpAppMeta');
+        if(meta) meta.textContent = '共 '+((d.total != null) ? d.total : (d.items||[]).length)+' 条申请';
+      }
+
+      async function reviewCpApp(appId, approve, tr){
+        if(!appId){ setStatus('无效申请 ID'); return; }
+        var region = '', ag = '', note = '';
+        if(tr){
+          var r0 = tr.querySelector('.cpAppRegion'); if(r0) region = String(r0.value||'').trim();
+          var a0 = tr.querySelector('.cpAppAg'); if(a0) ag = String(a0.value||'').trim();
+          var n0 = tr.querySelector('.cpAppNote'); if(n0) note = String(n0.value||'').trim();
+        }
+        if(approve){
+          var msg = '确认通过该城市合伙人申请并签约？';
+          if(region) msg += '（区域：' + region + '）';
+          if(ag) msg += '（协议：' + ag + '）';
+          if(!window.confirm(msg)) return;
+        } else {
+          if(!window.confirm('确认驳回该申请？')) return;
+        }
+        setStatus(approve ? '正在通过并签约…' : '正在驳回…');
+        var d = await api('/api/admin/agent/city_partner/review', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({application_id: appId, approve: approve, admin_note: note, region: region, agreement_no: ag})});
+        setStatus((approve ? '已通过并签约：' : '已驳回：') + (d.agreement_no ? '协议 '+d.agreement_no : ''));
+        await loadCpApps();
       }
 
       async function loadEligibleCommissions(){
@@ -3868,6 +3965,27 @@ def admin_app_html(admin_base: str) -> str:
         if($('btnLoadCityPartners')) $('btnLoadCityPartners').addEventListener('click', async function(){
           try{ await loadCityPartners(); }catch(e){ setStatus('刷新城市合伙人失败：'+e.message); }
         });
+        if($('btnLoadCpApps')) $('btnLoadCpApps').addEventListener('click', async function(){
+          try{ await loadCpApps(); }catch(e){ setStatus('刷新申请失败：'+e.message); }
+        });
+        if($('cpAppStatus')) $('cpAppStatus').addEventListener('change', function(){
+          loadCpApps().catch(function(e){ setStatus('加载申请失败：'+e.message); });
+        });
+        if($('cpAppSearch')) $('cpAppSearch').addEventListener('keydown', function(e){
+          if(e.key === 'Enter') loadCpApps().catch(function(e){ setStatus('加载申请失败：'+e.message); });
+        });
+        var cpAppBody = $('cpAppBody');
+        if(cpAppBody) cpAppBody.addEventListener('click', function(ev){
+          var t = ev.target;
+          while(t && t !== cpAppBody && !(t.dataset && (t.dataset.approve || t.dataset.reject))) t = t.parentNode;
+          if(!t || t === cpAppBody) return;
+          var tr = t.closest ? t.closest('tr') : null;
+          var appId = Number((tr && tr.dataset && tr.dataset.appId) || 0);
+          if(!appId) return;
+          var approve = !!t.dataset.approve;
+          reviewCpApp(appId, approve, tr).catch(function(e){ setStatus('审核失败：'+e.message); });
+        });
+        try{ loadCpApps(); }catch(e){}
         if($('btnLoadEligible')) $('btnLoadEligible').addEventListener('click', async function(){
           try{ await loadEligibleCommissions(); }catch(e){ setStatus('刷新待结算失败：'+e.message); }
         });

@@ -1728,6 +1728,53 @@ def admin_agent_city_partners(q: str = "", limit: int = 50, offset: int = 0, _: 
     return db.admin_list_city_partners(q=q, limit=limit, offset=offset)
 
 
+@app.post("/api/agent/city_partner/apply")
+def agent_city_partner_apply(body: dict, user_id: int = Depends(get_current_user_id)) -> dict:
+    """前台申请城市合伙人（需已支付成长档/合作伙伴，支付后人工审核）。"""
+    try:
+        return db.create_city_partner_application(
+            user_id=user_id,
+            region=str(body.get("region") or ""),
+            contact_name=str(body.get("contact_name") or ""),
+            id_no=str(body.get("id_no") or ""),
+            phone=str(body.get("phone") or ""),
+            note=str(body.get("note") or ""),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/agent/city_partner/application")
+def agent_city_partner_application_get(user_id: int = Depends(get_current_user_id)) -> dict:
+    """查询本人城市合伙人申请状态与签约状态。"""
+    return {
+        "ok": True,
+        "application": db.get_city_partner_application_by_user(user_id),
+        "partner": db.agent_city_partner_info(user_id),
+    }
+
+
+@app.get("/api/admin/agent/city_partner/applications")
+def admin_agent_city_partner_applications(status: str = "", q: str = "", limit: int = 50, offset: int = 0, _: bool = Depends(require_admin)) -> dict:
+    """后台列出城市合伙人申请（默认待审核优先）。"""
+    return db.admin_list_city_partner_applications(status=status, q=q, limit=limit, offset=offset)
+
+
+@app.post("/api/admin/agent/city_partner/review")
+def admin_agent_city_partner_review(body: dict, _: bool = Depends(require_admin)) -> dict:
+    """后台审核城市合伙人申请：通过=签约（可改区域/协议编号），驳回=记录原因。"""
+    try:
+        return db.admin_review_city_partner_application(
+            application_id=int(body.get("application_id") or 0),
+            approve=bool(body.get("approve")),
+            admin_note=str(body.get("admin_note") or ""),
+            region_override=str(body.get("region") or ""),
+            agreement_no=str(body.get("agreement_no") or ""),
+        )
+    except (ValueError, TypeError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @app.get("/api/admin/sms_106_config")
 def admin_sms_106_config(_: bool = Depends(require_admin)) -> dict:
     """管理端读取 106 核心配置（明文，仅管理员）；存于 admin_config，保存后随短信转发提交主站。"""
