@@ -1323,9 +1323,11 @@
             var iw = Number(d.invite_reward_inviter_weekly || 0) || 0;
             var id = Number(d.invite_reward_inviter_daily || 0) || 0;
             var cap = Number(d.invite_weekly_cap || 0) || 0;
+            var dcap = Number(d.invite_daily_cap || 0) || 0;
             var s = "邀请奖励：好友首次有效查询后到账（你 +" + String(iw) + "/周";
             if(id > 0){ s += "，+" + String(id) + "/日"; }
-            if(cap > 0){ s += "，每周封顶 " + String(cap) + " 次"; }
+            if(dcap > 0){ s += "，当日奖励封顶 " + String(dcap) + " 次"; }
+            if(cap > 0){ s += "，每周奖励封顶 " + String(cap) + " 次"; }
             s += "）。";
             el.textContent = s;
           })

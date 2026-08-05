@@ -1851,7 +1851,7 @@ def admin_app_html(admin_base: str) -> str:
                 <div class="field-row" style="margin-top:12px;">
                   <div class="field" style="min-width:220px;">
                     <span class="lbl">邀请人奖励（天，可选）</span>
-                    <input id="cfgInviteInviterDaily" class="mono" placeholder="0" style="min-width:120px;" />
+                    <input id="cfgInviteInviterDaily" class="mono" placeholder="20" style="min-width:120px;" />
                   </div>
                   <div class="field" style="min-width:220px;">
                     <span class="lbl">邀请人奖励（周）</span>
@@ -1859,7 +1859,11 @@ def admin_app_html(admin_base: str) -> str:
                   </div>
                   <div class="field" style="min-width:220px;">
                     <span class="lbl">邀请人周封顶</span>
-                    <input id="cfgInviteWeeklyCap" class="mono" placeholder="500" style="min-width:120px;" />
+                    <input id="cfgInviteWeeklyCap" class="mono" placeholder="1000" style="min-width:120px;" />
+                  </div>
+                  <div class="field" style="min-width:220px;">
+                    <span class="lbl">邀请人日封顶（奖励累计）</span>
+                    <input id="cfgInviteDailyCap" class="mono" placeholder="200" style="min-width:120px;" />
                   </div>
                   <div class="field" style="min-width:220px;">
                     <span class="lbl">被邀请人奖励（天，可选）</span>
@@ -1867,7 +1871,7 @@ def admin_app_html(admin_base: str) -> str:
                   </div>
                   <div class="field" style="min-width:220px;">
                     <span class="lbl">被邀请人奖励（周）</span>
-                    <input id="cfgInviteInviteeWeekly" class="mono" placeholder="50" style="min-width:120px;" />
+                    <input id="cfgInviteInviteeWeekly" class="mono" placeholder="0" style="min-width:120px;" />
                   </div>
                 </div>
               </div>
@@ -2358,6 +2362,7 @@ def admin_app_html(admin_base: str) -> str:
         if($('cfgInviteInviterWeekly')) $('cfgInviteInviterWeekly').value = (it.invite_reward_inviter_weekly != null) ? String(it.invite_reward_inviter_weekly) : '';
         if($('cfgInviteInviteeWeekly')) $('cfgInviteInviteeWeekly').value = (it.invite_reward_invitee_weekly != null) ? String(it.invite_reward_invitee_weekly) : '';
         if($('cfgInviteWeeklyCap')) $('cfgInviteWeeklyCap').value = (it.invite_weekly_cap != null) ? String(it.invite_weekly_cap) : '';
+        if($('cfgInviteDailyCap')) $('cfgInviteDailyCap').value = (it.invite_daily_cap != null) ? String(it.invite_daily_cap) : '';
         if($('cfgInviteInviterDaily')) $('cfgInviteInviterDaily').value = (it.invite_reward_inviter_daily != null) ? String(it.invite_reward_inviter_daily) : '';
         if($('cfgInviteInviteeDaily')) $('cfgInviteInviteeDaily').value = (it.invite_reward_invitee_daily != null) ? String(it.invite_reward_invitee_daily) : '';
       }
@@ -2366,12 +2371,14 @@ def admin_app_html(admin_base: str) -> str:
         var iw = String(($('cfgInviteInviterWeekly') && $('cfgInviteInviterWeekly').value) || '').trim();
         var ew = String(($('cfgInviteInviteeWeekly') && $('cfgInviteInviteeWeekly').value) || '').trim();
         var cap = String(($('cfgInviteWeeklyCap') && $('cfgInviteWeeklyCap').value) || '').trim();
+        var dcap = String(($('cfgInviteDailyCap') && $('cfgInviteDailyCap').value) || '').trim();
         var id = String(($('cfgInviteInviterDaily') && $('cfgInviteInviterDaily').value) || '').trim();
         var ed = String(($('cfgInviteInviteeDaily') && $('cfgInviteInviteeDaily').value) || '').trim();
         var tasks = [];
         if(iw !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'invite_reward_inviter_weekly', value: iw})}));
         if(ew !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'invite_reward_invitee_weekly', value: ew})}));
         if(cap !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'invite_weekly_cap', value: cap})}));
+        if(dcap !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'invite_daily_cap', value: dcap})}));
         if(id !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'invite_reward_inviter_daily', value: id})}));
         if(ed !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'invite_reward_invitee_daily', value: ed})}));
         if(tasks.length === 0){ setStatus('未检测到修改（为空的输入不会覆盖原配置）'); return; }

@@ -78,6 +78,9 @@ def invite_cfg_effective() -> dict[str, int]:
         "invite_weekly_cap": _cfg_int(
             "invite_weekly_cap", int(getattr(settings, "invite_weekly_cap", 1000) or 1000)
         ),
+        "invite_daily_cap": _cfg_int(
+            "invite_daily_cap", int(getattr(settings, "invite_daily_cap", 200) or 200)
+        ),
         "invite_reward_inviter_daily": _cfg_int(
             "invite_reward_inviter_daily", int(getattr(settings, "invite_reward_inviter_daily", 0) or 0)
         ),
@@ -1937,7 +1940,7 @@ def get_quota_status(user_id: int) -> dict:
                 """
                 SELECT COALESCE(SUM(amount), 0) AS s
                 FROM reward_ledger
-                WHERE inviter_id=? AND created_at>=?
+                WHERE inviter_id=? AND reward_type='invite_first_query_inviter' AND created_at>=?
                 """,
                 (user_id, wk_start),
             ).fetchone()
@@ -2146,8 +2149,24 @@ def consume_quota(user_id: int, secid: str, period: str, idempotency_key: str, o
                                 (inviter_id, user_id, "invite_first_query_inviter", grant_inviter, now),
                             )
 
-                    # inviter daily bonus (optional)
+                    # inviter daily bonus (optional, capped by invite_daily_cap per day)
                     grant_inviter_day = max(0, int(cfg.get("invite_reward_inviter_daily", 0)))
+                    if grant_inviter_day > 0:
+                        day_cap = max(0, int(cfg.get("invite_daily_cap", 0)))
+                        if day_cap > 0:
+                            try:
+                                _dr = conn.execute(
+                                    """
+                                    SELECT COALESCE(SUM(amount), 0) AS s
+                                    FROM reward_ledger
+                                    WHERE inviter_id=? AND reward_type='invite_first_query_inviter_daily' AND created_at>=?
+                                    """,
+                                    (inviter_id, _day_start_ts(now)),
+                                ).fetchone()
+                                _already_day = int(_dr["s"] or 0) if _dr else 0
+                                grant_inviter_day = min(grant_inviter_day, max(0, day_cap - _already_day))
+                            except Exception:
+                                pass
                     if grant_inviter_day > 0:
                         if _is_pg():
                             conn.execute(
