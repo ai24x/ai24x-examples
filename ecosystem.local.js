@@ -19,7 +19,7 @@ module.exports = {
       script: "python",
       windowsHide: true,
       // Run uvicorn directly (no reload) to avoid WatchFiles/WinError issues.
-      args: "-m uvicorn main:app --host 0.0.0.0 --port 8000",
+      args: "-m uvicorn main:app --host 127.0.0.1 --port 8000",
       autorestart: true,
       max_memory_restart: "900M",
       env: {
@@ -39,7 +39,7 @@ module.exports = {
       cwd: "./p/a1/web",
       script: "python",
       windowsHide: true,
-      args: "-m http.server 18001",
+      args: "-m http.server 18001 --bind 127.0.0.1",
       autorestart: true,
       max_memory_restart: "200M",
       env: {
@@ -70,7 +70,7 @@ module.exports = {
       cwd: "./p/a/web",
       script: "python",
       windowsHide: true,
-      args: "-m http.server 18001",
+      args: "-m http.server 18001 --bind 127.0.0.1",
       autorestart: true,
       max_memory_restart: "200M",
       env: {

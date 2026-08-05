@@ -16,10 +16,10 @@ module.exports = {
     {
       name: "core-8000",
       cwd: "./api",
-      script: "python",
+      script: "C:\\Users\\Admin\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
       windowsHide: true,
       // Run uvicorn directly (no reload) to avoid WatchFiles/WinError issues.
-      args: "-m uvicorn main:app --host 0.0.0.0 --port 8000",
+      args: "-m uvicorn main:app --host 127.0.0.1 --port 8000",
       autorestart: true,
       max_memory_restart: "900M",
       env: {
@@ -39,7 +39,7 @@ module.exports = {
       cwd: "./p/a1/web",
       script: "python",
       windowsHide: true,
-      args: "-m http.server 18001",
+      args: "-m http.server 18001 --bind 127.0.0.1",
       autorestart: true,
       max_memory_restart: "200M",
       env: {
@@ -52,7 +52,7 @@ module.exports = {
     {
       name: "a1-api-18011",
       cwd: "./p/a1/api/server",
-      script: "python",
+      script: "C:\\Users\\Admin\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
       windowsHide: true,
       args: "-m uvicorn app.main:app --host 127.0.0.1 --port 18011",
       autorestart: true,

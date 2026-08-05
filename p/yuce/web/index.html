@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>人机研判 · 人和 AI 同题作答</title>
+  <meta name="description" content="同一道公开数据题：你的判断，对照多家国产 AI。覆盖物价与景气指标、二手房官方口径、院线票房。写清依据，结算后看谁更准。" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/yuce.css?v=20260731c" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="index.html">人机研判 <span class="brand-mark">PK</span></a>
+      <nav class="nav" aria-label="主导航">
+        <a class="hide-sm" href="#board">今日研判</a>
+        <a class="hide-sm" href="#verticals">本期话题</a>
+        <a class="hide-sm" href="#how">怎么玩</a>
+        <a class="hide-sm" href="#vip">会员</a>
+        <a class="btn btn-primary" href="#board">去作答</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-bg" aria-hidden="true"></div>
+      <div class="hero-duel" aria-hidden="true"><span class="h">人</span><span class="a">机</span></div>
+      <div class="container hero-inner">
+        <h1>人机同题，各说各的理</h1>
+        <p class="lead">同一道公开数据题，人和 AI 各自作答。写清你的依据，结算后看谁更准。</p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="#board">看一道题</a>
+          <a class="btn" href="#rules">平台规则</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="board">
+      <div class="container">
+        <div class="section-head">
+          <h2>今日人机对照 <span class="badge-mvp">物价景气 · 二手房 · 票房</span></h2>
+          <p>你的判断与各家 AI 并列展示。参与的人还不多时，先看 AI 怎么说；票权始终一人一票。</p>
+        </div>
+        <div class="pill-row" role="tablist" aria-label="话题筛选">
+          <button type="button" class="pill is-active" data-filter="all">全部</button>
+          <button type="button" class="pill" data-filter="macro">物价与景气</button>
+          <button type="button" class="pill" data-filter="housing">二手房</button>
+          <button type="button" class="pill" data-filter="boxoffice">院线票房</button>
+        </div>
+        <div class="event-board">
+          <div class="event-list" id="eventList"></div>
+          <aside class="pk-panel" aria-live="polite">
+            <span class="tag" id="pkTag">人机对立</span>
+            <h3 id="pkTitle">加载中…</h3>
+            <p class="sub" id="pkMeta"></p>
+            <div class="pk-bars">
+              <div class="pk-row" id="rowHuman">
+                <div class="pk-row-top"><span class="human" id="humanLabel">大家的判断</span><span id="humanPct">--</span></div>
+                <div class="bar bar-human"><i id="barHuman"></i></div>
+              </div>
+              <div class="pk-row">
+                <div class="pk-row-top"><span class="ai">AI 均线</span><span id="aiPct">--</span></div>
+                <div class="bar bar-ai"><i id="barAi"></i></div>
+              </div>
+            </div>
+            <p class="cold-hint" id="coldHint" hidden>参与的人还不多，先看看各家 AI 怎么判断。</p>
+            <ul class="ai-list" id="aiList"></ul>
+            <div class="vote-box">
+              <label>你的判断（理由至少 10 字；写满 20 字更容易被展示）</label>
+              <div class="vote-actions">
+                <button type="button" class="btn btn-human" data-choice="yes">是</button>
+                <button type="button" class="btn btn-human" data-choice="no">否</button>
+              </div>
+              <textarea id="voteReason" maxlength="200" placeholder="例如：季节性、统计口径、档期供需、成交与挂牌……"></textarea>
+              <button type="button" class="btn btn-primary" id="btnVote">提交判断</button>
+              <p class="vote-hint">每道题每个账号只能作答一次。每日有免费次数；积分不可提现。</p>
+              <p class="vote-msg" id="voteMsg"></p>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt" id="verticals">
+      <div class="container">
+        <div class="section-head">
+          <h2>本期开放的话题</h2>
+          <p>都来自可公开核对的数据。不做个股涨跌，不做球赛，也不问「该不该买房」。</p>
+        </div>
+        <div class="vertical-rail">
+          <div class="vertical is-mvp">
+            <div class="num">01</div>
+            <div>
+              <h3>物价与景气</h3>
+              <p>CPI、PMI、社零等：对照国家统计局将要公布的读数。</p>
+            </div>
+            <div class="freq">已开放</div>
+          </div>
+          <div class="vertical is-mvp">
+            <div class="num">02</div>
+            <div>
+              <h3>二手房</h3>
+              <p>70 城房价指数、成交套数等官方口径。只谈公开统计，不谈个案楼盘。</p>
+            </div>
+            <div class="freq">已开放</div>
+          </div>
+          <div class="vertical is-mvp">
+            <div class="num">03</div>
+            <div>
+              <h3>院线票房</h3>
+              <p>月度总票房、头部影片是否过线等，公开口径结算。</p>
+            </div>
+            <div class="freq">已开放</div>
+          </div>
+          <div class="vertical is-road">
+            <div class="num">后</div>
+            <div>
+              <h3>财报硬指标 · 大宗商品</h3>
+              <p>稍后开放：上市公司营收/净利等硬指标，以及现货均价类题目。不做股价涨跌预测。</p>
+            </div>
+            <div class="freq">即将到来</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="how">
+      <div class="container">
+        <div class="section-head">
+          <h2>怎么玩</h2>
+          <p>三步：作答 → 对照 AI → 等官方数据揭晓。</p>
+        </div>
+        <div class="steps">
+          <div class="step">
+            <span class="n">01</span>
+            <h3>写下你的判断</h3>
+            <p>选是或否，并写清理由。每日有免费次数；段位看你长期准不准。</p>
+          </div>
+          <div class="step">
+            <span class="n">02</span>
+            <h3>看看 AI 怎么说</h3>
+            <p>多家国产模型各自给出判断与简要依据，互不顶替你的票。</p>
+          </div>
+          <div class="step">
+            <span class="n">03</span>
+            <h3>对照官方结果</h3>
+            <p>数据公布后自动揭晓。你可以分享本场人和 AI 谁更准。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt" id="vip">
+      <div class="container">
+        <div class="section-head">
+          <h2>会员解锁功能，不买「更准」</h2>
+          <p>付费只增加解读与工具，不改变票权，也不改 AI 的判断。</p>
+        </div>
+        <table class="tier-table">
+          <thead>
+            <tr>
+              <th>等级</th>
+              <th>你能多做什么</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>免费</td>
+              <td>每日免费作答次数、精简 AI 结论、基础榜</td>
+            </tr>
+            <tr>
+              <td>白银</td>
+              <td>更多作答次数、更完整短解读、成绩单导出、少广告</td>
+            </tr>
+            <tr>
+              <td>黄金</td>
+              <td>小工具、新题提前看、记录云备份、月度简报三选一</td>
+            </tr>
+            <tr>
+              <td>钻石</td>
+              <td>全品类简报、你与 AI 的准确率对比、内测与专属支持</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="note">积分只用于站内权益，不能提现或转给他人。</p>
+      </div>
+    </section>
+
+    <section class="section" id="rules">
+      <div class="container">
+        <div class="section-head">
+          <h2>平台规则</h2>
+          <p>我们认真对待公开数据与公平作答。</p>
+        </div>
+        <div class="redlines">
+          <div class="redline"><strong>无资金兑付</strong> — 不作现金合约，不提供博彩兑付。</div>
+          <div class="redline"><strong>积分不可兑现</strong> — 不能充值购买积分用于提现或转账。</div>
+          <div class="redline"><strong>人和 AI 分开计</strong> — AI 不会混进大家的投票结果里。</div>
+          <div class="redline"><strong>行业标签不加分</strong> — 从业身份只作展示，不增加票权。</div>
+          <div class="redline"><strong>题目有边界</strong> — 不做政治、球赛、个股涨跌；不能自己随便出题。</div>
+          <div class="redline"><strong>表述克制</strong> — 不做盘口式页面，不引导「赌输赢」。</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-brand">人机研判</div>
+      <p class="disclaimer">
+        用户观点与 AI 分析仅为产业信息调研与知识互动参考，不构成任何投资、房产交易或采购决策建议。本平台无金融交易、无博彩兑付。AI 输出会标明所用模型。
+      </p>
+      <p class="footer-meta">演示页 · AI24X</p>
+    </div>
+  </footer>
+
+  <script src="js/yuce.js?v=20260731c"></script>
+</body>
+</html>

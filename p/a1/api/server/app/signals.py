@@ -456,10 +456,144 @@ def build_markers_v1(candles: list[Candle]) -> list[dict[str, Any]]:
     return markers
 
 
-def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> list[dict[str, Any]]:
-    """Server-side port of original `p/a/web/demo.html` leishen markers."""
+def _ema_nan(src: list[float], period: int) -> list[float]:
+    """EMA with NaN warmup; first valid value seeds the series (JS/MACD parity)."""
+    out = [_nan()] * len(src)
+    k = 2.0 / (period + 1)
+    first = -1
+    for i in range(len(src)):
+        if _isnan(src[i]):
+            continue
+        if first < 0:
+            first = i
+            out[i] = src[i]
+        else:
+            out[i] = src[i] * k + out[i - 1] * (1 - k)
+    return out
+
+
+def _compute_macd_arrays(
+    closes: list[float],
+) -> tuple[list[float], list[float], list[float], list[bool], list[bool]]:
+    """MACD(12,26,9): DIF/DEA/BAR + golden/dead cross flags."""
+    n = len(closes)
+    ema12 = _ema_nan(closes, 12)
+    ema26 = _ema_nan(closes, 26)
+    dif: list[float] = []
+    for i in range(n):
+        if (not _isnan(ema12[i])) and (not _isnan(ema26[i])):
+            dif.append(ema12[i] - ema26[i])
+        else:
+            dif.append(_nan())
+    dea = _ema_nan(dif, 9)
+    macd_bar: list[float] = []
+    for i in range(n):
+        if (not _isnan(dif[i])) and (not _isnan(dea[i])):
+            macd_bar.append((dif[i] - dea[i]) * 2)
+        else:
+            macd_bar.append(_nan())
+    golden = [False] * n
+    dead = [False] * n
+    for i in range(1, n):
+        if (
+            (not _isnan(dif[i]))
+            and (not _isnan(dea[i]))
+            and (not _isnan(dif[i - 1]))
+            and (not _isnan(dea[i - 1]))
+        ):
+            if dif[i - 1] <= dea[i - 1] and dif[i] > dea[i]:
+                golden[i] = True
+            elif dif[i - 1] >= dea[i - 1] and dif[i] < dea[i]:
+                dead[i] = True
+    return dif, dea, macd_bar, golden, dead
+
+
+def _macd_json_from_arrays(
+    candles: list[Candle],
+    dif: list[float],
+    dea: list[float],
+    macd_bar: list[float],
+    golden: list[bool],
+    dead: list[bool],
+) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for i in range(len(candles)):
+        d = dif[i] if i < len(dif) else None
+        e = dea[i] if i < len(dea) else None
+        b = macd_bar[i] if i < len(macd_bar) else None
+        if d is not None and d == d and e is not None and e == e:
+            entry: dict[str, Any] = {
+                "time": str(candles[i].time),
+                "dif": round(float(d), 4),
+                "dea": round(float(e), 4),
+                "bar": round(float(b if b == b else 0), 4),
+            }
+            if i < len(golden) and golden[i]:
+                entry["golden_cross"] = True
+            if i < len(dead) and dead[i]:
+                entry["dead_cross"] = True
+            out.append(entry)
+    return out
+
+
+def build_macd_json(candles: list[Candle]) -> list[dict[str, Any]]:
+    """Standalone MACD series for short-history stocks (new listings)."""
+    if not candles or len(candles) < 35:
+        return []
+    closes = [float(c.close) for c in candles]
+    dif, dea, bar, golden, dead = _compute_macd_arrays(closes)
+    return _macd_json_from_arrays(candles, dif, dea, bar, golden, dead)
+
+
+def build_ma_cross_markers_lite(candles: list[Candle], *, n_fast: int = 14, n_slow: int = 28) -> list[dict[str, Any]]:
+    """
+    Degraded signals for new stocks: MA14/MA28 cross only.
+    Used when history is too short for full MA57-based雷神 markers.
+    """
     if not candles:
         return []
+    n = len(candles)
+    need = max(n_slow + 2, 30)
+    if n < need:
+        return []
+    closes = [float(c.close) for c in candles]
+    ma_f = _sma_nan(closes, n_fast)
+    ma_s = _sma_nan(closes, n_slow)
+    markers: list[dict[str, Any]] = []
+    for i in range(1, n):
+        if _isnan(ma_f[i]) or _isnan(ma_s[i]) or _isnan(ma_f[i - 1]) or _isnan(ma_s[i - 1]):
+            continue
+        t = candles[i].time
+        if ma_f[i] > ma_s[i] and ma_f[i - 1] <= ma_s[i - 1]:
+            markers.append(
+                {
+                    "time": t,
+                    "position": "belowBar",
+                    "color": "#ff3d5c",
+                    "shape": "arrowUp",
+                    "text": "金",
+                    "id": f"lite-b-{i}",
+                }
+            )
+        elif ma_f[i] < ma_s[i] and ma_f[i - 1] >= ma_s[i - 1]:
+            markers.append(
+                {
+                    "time": t,
+                    "position": "aboveBar",
+                    "color": "#00e68a",
+                    "shape": "arrowDown",
+                    "text": "等",
+                    "id": f"lite-s-{i}",
+                }
+            )
+    return markers
+
+
+def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> list[dict[str, Any]]:
+    """Server-side port of original `p/a/web/demo.html` leishen markers."""
+    _empty = ([], [], [], [], [], [])
+    if not candles:
+        return _empty  # type: ignore[return-value]
     n = len(candles)
     MA_N1 = 14
     MA_N2 = 28
@@ -480,8 +614,12 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
     LS_COL_BOTTOM_HINT = "#22c55e"
     LS_COL_TURN = "#00e5ff"        # v1.04: 斜率拐点亮青色
 
-    if n < MA_N3 + 5:
-        return []
+    # New listings: allow full signal path once MA28+MACD are warm.
+    # When MA57 is still warming, primary life line falls back to MA28.
+    MIN_SIGNAL_BARS = max(MA_N2 + 5, 35)  # ~33–35
+    if n < MIN_SIGNAL_BARS:
+        return _empty  # type: ignore[return-value]
+    short_mode = n < (MA_N3 + 5)
 
     closes = [float(c.close) for c in candles]
     highs = [float(c.high) for c in candles]
@@ -505,48 +643,32 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
     ma5 = _sma_nan(closes, LS_N5)
     ma7 = _sma_nan(closes, LS_N7)
 
+    def _life_above(i: int, close: float) -> bool:
+        """Primary life (MA57); short_mode proxies to MA28 while MA57 is NaN."""
+        if not _isnan(ma3[i]):
+            return (not _isnan(close)) and close >= ma3[i]
+        if short_mode and (not _isnan(ma2[i])):
+            return (not _isnan(close)) and close >= ma2[i]
+        return False
+
+    def _life_below(i: int, close: float) -> bool:
+        if not _isnan(ma3[i]):
+            return (not _isnan(close)) and close < ma3[i]
+        if short_mode and (not _isnan(ma2[i])):
+            return (not _isnan(close)) and close < ma2[i]
+        return False
+
+    def _life_ref(i: int) -> float:
+        """MA used as primary life reference at bar i (for prev-bar compares)."""
+        if not _isnan(ma3[i]):
+            return ma3[i]
+        if short_mode and (not _isnan(ma2[i])):
+            return ma2[i]
+        return _nan()
+
     # v1.05: MACD (EMA12-EMA26, DEA=EMA9) — 二重确认，不改变触发条件
-    def _ema_nan(src: list[float], period: int) -> list[float]:
-        out = [_nan()] * len(src)
-        k = 2.0 / (period + 1)
-        first = -1
-        for i in range(len(src)):
-            if _isnan(src[i]):
-                continue
-            if first < 0:
-                first = i
-                out[i] = src[i]
-            else:
-                out[i] = src[i] * k + out[i - 1] * (1 - k)
-        return out
-
-    ema12 = _ema_nan(closes, 12)
-    ema26 = _ema_nan(closes, 26)
-    dif: list[float] = []
-    dea: list[float] = []
-    macdBar: list[float] = []
-    for i in range(n):
-        if (not _isnan(ema12[i])) and (not _isnan(ema26[i])):
-            dif.append(ema12[i] - ema26[i])
-        else:
-            dif.append(_nan())
-    dea = _ema_nan(dif, 9)
-    for i in range(n):
-        if (not _isnan(dif[i])) and (not _isnan(dea[i])):
-            macdBar.append((dif[i] - dea[i]) * 2)
-        else:
-            macdBar.append(_nan())
-
-    # MACD 金叉/死叉检测
-    macdGoldenCross: list[bool] = [False] * n
-    macdDeadCross: list[bool] = [False] * n
+    dif, dea, macdBar, macdGoldenCross, macdDeadCross = _compute_macd_arrays(closes)
     macdBullish: list[int] = [0] * n   # 1=金叉后持续, -1=死叉后持续, 0=无效
-    for i in range(1, n):
-        if (not _isnan(dif[i])) and (not _isnan(dea[i])) and (not _isnan(dif[i-1])) and (not _isnan(dea[i-1])):
-            if dif[i-1] <= dea[i-1] and dif[i] > dea[i]:
-                macdGoldenCross[i] = True
-            elif dif[i-1] >= dea[i-1] and dif[i] < dea[i]:
-                macdDeadCross[i] = True
     # MACD 方向状态（滞后1日，确保非未来数据）
     lastMacdDir = 0
     for i in range(n):
@@ -556,7 +678,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             lastMacdDir = -1
         macdBullish[i] = lastMacdDir if i > 0 else 0
 
-    # regime filter (same as JS)
+    # regime filter (same as JS); short_mode: MA28-only when MA57 still warming
     REG_SLOPE_LOOKBACK = 6
     REG_FLAT_TH = 0.0015
     regime: list[int] = []
@@ -567,14 +689,26 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         cur57 = ma3[i]
         prev28 = ma2[i - REG_SLOPE_LOOKBACK] if i - REG_SLOPE_LOOKBACK >= 0 else _nan()
         prev57 = ma3[i - REG_SLOPE_LOOKBACK] if i - REG_SLOPE_LOOKBACK >= 0 else _nan()
-        if _isnan(cur28) or _isnan(prev28) or prev28 == 0 or _isnan(cur57) or _isnan(prev57) or prev57 == 0:
+        if _isnan(cur28) or _isnan(prev28) or prev28 == 0:
             regime.append(0)
             regSlope28.append(_nan())
             regSlope57.append(_nan())
             continue
         r28 = (cur28 - prev28) / abs(prev28)
-        r57 = (cur57 - prev57) / abs(prev57)
         regSlope28.append(r28)
+        if _isnan(cur57) or _isnan(prev57) or prev57 == 0:
+            # short history: regime from MA28 only
+            regSlope57.append(_nan())
+            if abs(r28) <= REG_FLAT_TH:
+                regime.append(0)
+            elif r28 > REG_FLAT_TH:
+                regime.append(1)
+            elif r28 < -REG_FLAT_TH:
+                regime.append(-1)
+            else:
+                regime.append(0)
+            continue
+        r57 = (cur57 - prev57) / abs(prev57)
         regSlope57.append(r57)
         f28 = abs(r28) <= REG_FLAT_TH
         f57 = abs(r57) <= REG_FLAT_TH
@@ -717,9 +851,9 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         # v1.04: 双生命线判断
         aboveMA14 = (not _isnan(close)) and (not _isnan(ma1[i])) and close >= ma1[i]
         aboveMA28 = (not _isnan(close)) and (not _isnan(ma2[i])) and close >= ma2[i]
-        aboveMA57 = (not _isnan(close)) and (not _isnan(ma3[i])) and close >= ma3[i]
+        aboveMA57 = _life_above(i, close)
         belowMA28 = (not _isnan(close)) and (not _isnan(ma2[i])) and close < ma2[i]
-        belowMA57 = (not _isnan(close)) and (not _isnan(ma3[i])) and close < ma3[i]
+        belowMA57 = _life_below(i, close)
         # 四象限：①=双下(深熊) ②=主下次上(熊反弹) ③=主上次下(牛回调) ④=双上(强牛)
         bothBelow = belowMA57 and belowMA28
         primaryBelow = belowMA57 and (not belowMA28)
@@ -785,8 +919,8 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
             and (not _isnan(ma5[i]))
             and (not _isnan(ma4[i]))
             and (not aboveMA14)  # v1.04: hint仅在MA14下方
-            and belowMA57  # v1.04: 必须在主生命线下方
-            and (i > 0 and (not _isnan(closes[i-1])) and (not _isnan(ma3[i-1])) and closes[i-1] < ma3[i-1])  # 非刚跌破，前日也在MA57下方
+            and belowMA57  # v1.04: 必须在主生命线下方（短历史上 MA28 代理）
+            and (i > 0 and (not _isnan(closes[i-1])) and (not _isnan(_life_ref(i-1))) and closes[i-1] < _life_ref(i-1))
             and closePos[i] <= BOTTOM_MAX_POS
             and (close >= ma5[i] * 0.98)  # v1.02: relaxed reclaim (EMA lag-tolerant)
             and (touch10 or dCand1[i] or futureCrossSoon)
@@ -1060,9 +1194,9 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         reg = int(regime[i] or 0)
         # v1.04: 双生命线位置提前计算（供允许买卖判断用）
         closeV = closes[i]
-        aboveMA57_2 = (not _isnan(closeV)) and (not _isnan(ma3[i])) and closeV >= ma3[i]
+        aboveMA57_2 = _life_above(i, closeV)
         aboveMA28_2 = (not _isnan(closeV)) and (not _isnan(ma2[i])) and closeV >= ma2[i]
-        belowMA57_2 = (not _isnan(closeV)) and (not _isnan(ma3[i])) and closeV < ma3[i]
+        belowMA57_2 = _life_below(i, closeV)
         belowMA28_2 = (not _isnan(closeV)) and (not _isnan(ma2[i])) and closeV < ma2[i]
         bothBelowQ = belowMA57_2 and belowMA28_2    # 象限① 深熊
         bothAboveQ = aboveMA57_2 and aboveMA28_2    # 象限④ 强牛
@@ -1103,12 +1237,19 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
         # 斜率方向（v1.04）
         slope28 = slopeMA28_5[i] if i < len(slopeMA28_5) else _nan()
         slope57 = slopeMA57_10[i] if i < len(slopeMA57_10) else _nan()
-        slopeBullish = (not _isnan(slope28)) and (not _isnan(slope57)) and slope28 > -SLOPE_FLAT and slope57 > -SLOPE_BEAR
-        slopeBearish = (not _isnan(slope28)) and (not _isnan(slope57)) and slope28 < SLOPE_FLAT and slope57 < SLOPE_BULL
+        if short_mode and _isnan(slope57):
+            slopeBullish = (not _isnan(slope28)) and slope28 > -SLOPE_FLAT
+            slopeBearish = (not _isnan(slope28)) and slope28 < SLOPE_FLAT
+        else:
+            slopeBullish = (not _isnan(slope28)) and (not _isnan(slope57)) and slope28 > -SLOPE_FLAT and slope57 > -SLOPE_BEAR
+            slopeBearish = (not _isnan(slope28)) and (not _isnan(slope57)) and slope28 < SLOPE_FLAT and slope57 < SLOPE_BULL
 
         buyBits: list[str] = []
         # v1.04: B信号四象限+斜率增强
-        if allowBottomBuy and (bothBelowQ or primaryBelowQ):
+        # short_mode + MA28 proxy: bothBelowQ≈below MA28, primaryBelowQ rarely true
+        # Also allow below-MA28 alone in short_mode so 金1/金2/金3 can appear on new stocks.
+        buyZoneOk = bothBelowQ or primaryBelowQ or (short_mode and belowMA28_2)
+        if allowBottomBuy and buyZoneOk:
             signalWeight = 3 if bothBelowQ else 2  # 双下=强, 主下=中
             # 斜率同向增强: 价格在下方 + 斜率走平/上拐 → 反转概率↑
             if bothBelowQ and slopeBullish:
@@ -1303,7 +1444,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
     )
     # v1.02: signal locking — freeze markers >5 bars old
     # CACHE_VERSION: bump when algorithm OR cache filename scheme changes
-    CACHE_VERSION = 5
+    CACHE_VERSION = 9  # v9: restore ungated 险1/险2 (revert today's life-line gate experiment)
     if cache_key and len(candles) > 10:
         LOCK_BARS = 5
         freeze_cutoff = candles[-LOCK_BARS - 1].time if len(candles) > LOCK_BARS else ""
@@ -1367,14 +1508,27 @@ def build_signals_v3(candles: list[Candle], *, cache_key: str = "") -> dict[str,
     Shape:
     - markers: lightweight-charts markers
     - bar_labels: list[str|None] aligned to candles index
+    - macd: DIF/DEA/BAR for subplot
+
+    Thresholds:
+    - n < 35: empty (MACD / MA28 warmup insufficient)
+    - 35 <= n < 62: full雷神 with MA28 proxy for unfinished MA57 (short_history)
+    - n >= 62: full markers + MACD (MA57 primary life)
     """
     if not candles:
         return {"markers": [], "bar_labels": [], "macd": []}
 
-    # Reuse the JS-port implementation flow, but also collect per-bar labels.
     n = len(candles)
-    if n < 62:
-        return {"markers": [], "bar_labels": [None for _ in range(n)], "macd": []}
+    MIN_MACD_BARS = 35
+    MIN_MA57_BARS = 62
+
+    if n < MIN_MACD_BARS:
+        return {
+            "markers": [],
+            "bar_labels": [None for _ in range(n)],
+            "macd": [],
+            "meta": {"reason": "too_few_bars", "bars": n, "need_macd": MIN_MACD_BARS},
+        }
 
     # We compute markers using the port, but we also need the same intermediate arrays to build labels.
     # To avoid duplicating 600+ lines, we rebuild labels from the returned markers by day index.
@@ -1383,27 +1537,14 @@ def build_signals_v3(candles: list[Candle], *, cache_key: str = "") -> dict[str,
     markers, dif_arr, dea_arr, macd_bar_arr, macd_golden, macd_dead = build_markers_v3_js_port(candles, cache_key=cache_key)
 
     # Build MACD timeseries for frontend sub-chart
-    n_macd = len(candles)
-    macd_json: list[dict[str, Any]] = []
-    for i in range(n_macd):
-        t = str(candles[i].time)
-        d = dif_arr[i] if i < len(dif_arr) else None
-        e = dea_arr[i] if i < len(dea_arr) else None
-        b = macd_bar_arr[i] if i < len(macd_bar_arr) else None
-        if d is not None and d == d and e is not None and e == e:
-            entry = {"time": t, "dif": round(float(d), 4), "dea": round(float(e), 4), "bar": round(float(b if b == b else 0), 4)}
-            if i < len(macd_golden) and macd_golden[i]:
-                entry["golden_cross"] = True
-            if i < len(macd_dead) and macd_dead[i]:
-                entry["dead_cross"] = True
-            macd_json.append(entry)
+    macd_json = _macd_json_from_arrays(candles, dif_arr, dea_arr, macd_bar_arr, macd_golden, macd_dead)
 
     # Map timeKey -> idx for label alignment
     idx_by_time: dict[str, int] = {}
     for i, c in enumerate(candles):
         idx_by_time[str(c.time)] = i
 
-    bar_labels: list[str | None] = [None for _ in range(n)]
+    bar_labels = [None for _ in range(n)]  # type: list[str | None]
 
     # collect bits per bar
     bottom_bits: list[list[str]] = [[] for _ in range(n)]
@@ -1461,5 +1602,13 @@ def build_signals_v3(candles: list[Candle], *, cache_key: str = "") -> dict[str,
             rem_parts.append("·".join(high_bits[i]))
         bar_labels[i] = ("　".join(rem_parts)) if rem_parts else None
 
-    return {"markers": markers, "bar_labels": bar_labels, "macd": macd_json}
+    out: dict[str, Any] = {"markers": markers, "bar_labels": bar_labels, "macd": macd_json}
+    if n < MIN_MA57_BARS:
+        out["meta"] = {
+            "reason": "short_history_ma28",
+            "bars": n,
+            "need_full": MIN_MA57_BARS,
+            "note": "primary life uses MA28 until MA57 is ready",
+        }
+    return out
 

@@ -860,15 +860,15 @@ body.page{overflow:auto;background:linear-gradient(to bottom,#f3fbff,#f8f9fa)}
   position:absolute;right:-20%;bottom:18%;
   font-size:32px;cursor:pointer;
   z-index:30;
-  animation:bottleBob 3s ease-in-out infinite;
+  animation:bottleBob 4s ease-in-out infinite;
   filter:drop-shadow(0 2px 6px rgba(0,0,0,.15));
-  transition:opacity .5s;
+  /* transition 由 JS 控制 left/opacity，这里不设 */
   user-select:none;
 }
-.bottle-float:hover{transform:scale(1.2)}
+.bottle-float:hover{transform:scale(1.15)}
 @keyframes bottleBob{
-  0%,100%{transform:translateY(0) rotate(-5deg)}
-  50%{transform:translateY(-8px) rotate(5deg)}
+  0%,100%{transform:translateY(0) rotate(-3deg)}
+  50%{transform:translateY(-6px) rotate(3deg)}
 }
 .bottle-float{pointer-events:auto}
 

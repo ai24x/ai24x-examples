@@ -2466,7 +2466,7 @@
 
     // 漂流瓶动画（从右向左漂过水面）
     const spawnBottle = () => {
-      if (!bottleFloat || bottleActive || !canPull) return;
+      if (!bottleFloat || bottleActive || fishPhase === "bite" || fishPhase === "fight") return;
       bottleActive = true;
       bottleFloat.style.display = "block";
       bottleFloat.style.left = "105%";
@@ -2475,18 +2475,18 @@
       bottleFloat.style.transition = "none";
       // Force reflow
       void bottleFloat.offsetWidth;
-      // Animate: float left across water surface, ~12s
+      // Animate: 慢悠悠地从右向左漂，约 55 秒飘过水面
       requestAnimationFrame(() => {
-        bottleFloat.style.transition = "left 14s linear, bottom 3s ease-in-out, opacity 1s 13s";
+        bottleFloat.style.transition = "left 55s linear, bottom 8s ease-in-out, opacity 1.5s 53.5s";
         bottleFloat.style.left = "-15%";
-        bottleFloat.style.bottom = "16%";
+        bottleFloat.style.bottom = "17%";
       });
       setTimeout(() => {
         if (bottleActive) {
           bottleFloat.style.opacity = "0";
           bottleActive = false;
         }
-      }, 15000);
+      }, 56000);
     };
 
     // 点击漂流瓶
@@ -2665,6 +2665,8 @@
     btnMoreGrowth && btnMoreGrowth.addEventListener("click", () => { hideMoreMenu(); openMask(goalMask); renderGoalPanel(); });
     btnMoreGoal && btnMoreGoal.addEventListener("click", () => { hideMoreMenu(); openMask(goalMask); renderGoalPanel(); });
     btnMoreDaily && btnMoreDaily.addEventListener("click", () => { hideMoreMenu(); openMask(dailyMask); renderDailyPanel(); });
+    const btnMoreArea = document.getElementById("btnMoreArea");
+    btnMoreArea && btnMoreArea.addEventListener("click", () => { hideMoreMenu(); openMask(areaMask); renderAreaMenu(); });
     btnMoreSys && btnMoreSys.addEventListener("click", () => { hideMoreMenu(); sysMask && (sysMask.style.display = "flex"); });
 
     // ——— 以下保留旧按钮引用（防报错，DOM已移除但代码可能未清理）———

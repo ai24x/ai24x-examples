@@ -1,4 +1,4 @@
-# 依赖目录
+﻿# 依赖目录
 node_modules/
 .vscode/
 .idea/
@@ -89,3 +89,31 @@ START_REPORT_*.md
 # RANKINGS_TEST_REPORT.md  # 注释掉，允许推送测试报告
 api/data/feishu_notify_state.json
 api/data/feishu_poll_last.txt
+
+# ---- local tool state & scratch (added 2026-08-05) ----
+.codebuddy/
+.workbuddy/
+**/.workbuddy/
+/_*.py
+/_*.js
+/_*.txt
+/_*.json
+api/_*.py
+api/_*.json
+api/data/ops_alert_state.json
+api/data/pricing_audit.jsonl
+scripts/_*.py
+scripts/_*.js
+p/a1/api/server/_tmp_*.json
+p/a1/api/server/app/_check_*.js
+p/a1/web/_check_*.js
+p/fisher/web/js/demo2.js.old
+p/fisher/web/js/demo2_tmp.js
+p/fisher/web/js/build.sh
+p/fisher/web/js/min/
+p/a1/web_bak_0519_1636/
+p/fisher/api/server/backup_v1/
+p/fisher/web/archive/
+/日期：2026-05-11
+/版本：v1.0
+/目标：零预算冷启动，3
