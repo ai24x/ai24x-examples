@@ -972,6 +972,7 @@
     opts = opts || {};
     var headers = Object.assign({}, opts.headers || {});
     headers["X-SMS-Internal-Key"] = state.key;
+    headers["X-Admin-Key"] = state.key;
     if (opts.body && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
     var r = await fetch(state.base + path, {
       method: opts.method || "GET",
@@ -1767,7 +1768,7 @@
 
     var cat = r.catalog || [];
     var pricing = r.pricing || {};
-    var flashRef = Number(pricing.flash_ref_usd_per_m != null ? pricing.flash_ref_usd_per_m : 0.45) || 0.45;
+    var flashRef = Number(pricing.flash_ref_usd_per_m != null ? pricing.flash_ref_usd_per_m : 0.35) || 0.35;
     var minMk = Number(pricing.min_markup != null ? pricing.min_markup : 2) || 2;
     window.__whPricing = { flashRef: flashRef, minMarkup: minMk };
     if ($("whPricingNote")) {
@@ -2011,7 +2012,7 @@
   }
 
   function suggestAllVipMults() {
-    var p = window.__whPricing || { flashRef: 0.45, minMarkup: 2 };
+    var p = window.__whPricing || { flashRef: 0.35, minMarkup: 1.5 };
     qsa("#whVipRatesBody tr[data-vip-id]").forEach(function (tr) {
       var cin = Number((tr.querySelector(".wh-cin") || {}).value || 0) || 0;
       var cout = Number((tr.querySelector(".wh-cout") || {}).value || 0) || 0;
@@ -2890,7 +2891,7 @@
     try {
       var qs = orderFilterQs(2000);
       var r = await fetch(state.base + "/v1/admin/token/orders/export.csv?" + qs.toString(), {
-        headers: { "X-SMS-Internal-Key": state.key },
+        headers: { "X-SMS-Internal-Key": state.key, "X-Admin-Key": state.key },
       });
       if (!r.ok) {
         var j = null;

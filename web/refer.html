@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <script src="js/i18n-boot.js?v=20260802g"></script>
+  <script src="js/i18n-boot.js?v=20260802m"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Referrals · Invite builders | AI24X</title>
-  <meta name="description" content="Invite developers to AI24X. Both sides earn tokens; share your link for China LLM credits." />
+  <meta name="description" content="Invite developers to AI24X. Both sides earn tokens; share your link for Global models credits." />
   <link rel="canonical" href="https://www.ai24x.com/refer.html" />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Referrals · Invite builders | AI24X" />
-  <meta property="og:description" content="Invite developers to AI24X. Both sides earn tokens; share your link for China LLM credits." />
+  <meta property="og:description" content="Invite developers to AI24X. Both sides earn tokens; share your link for Global models credits." />
   <meta property="og:url" content="https://www.ai24x.com/refer.html" />
   <meta property="og:image" content="https://www.ai24x.com/img/og-share.png" />
   <meta property="og:image:width" content="1200" />
@@ -25,7 +25,7 @@
     <section class="hero hero-surface section-tight">
       <div class="container">
         <h1 data-i18n="page.refer.title">邀请回馈</h1>
-        <p class="lead" data-i18n="page.refer.sub">注册双方各送 5000 token；被邀请人首次充值后再按一级 10%、二级 2% 结算返利。</p>
+        <p class="lead" data-i18n="page.refer.sub">注册双方各送 5000 token；被邀请人首次充值后再按一级 10%、二级 2% 以 token 入账（可用于 API 调用，暂不支持提现）。</p>
       </div>
     </section>
     <section class="section">
@@ -58,13 +58,13 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260801g"></script>
+  <script src="config/locales.js?v=20260805a"></script>
   <script src="js/api.js?v=20260802i"></script>
   <script src="js/invite.js?v=20260731a"></script>
 <script src="js/utm.js?v=20260802a"></script>
-  <script src="js/i18n.js?v=20260802g"></script>
-  <script src="js/shell.js?v=20260802f"></script>
-  <script src="js/app.js?v=20260802f"></script>
+  <script src="js/i18n.js?v=20260802m"></script>
+  <script src="js/shell.js?v=20260802m"></script>
+  <script src="js/app.js?v=20260802m"></script>
   <script src="js/support-widget.js?v=20260731i"></script>
   <script>
     function t(key, fallback) {
@@ -104,8 +104,8 @@
         var link = inviteLink(code);
         var zh = AI24X_I18N && AI24X_I18N.isZh && AI24X_I18N.isZh();
         var text = zh
-          ? ("AI24X：一个 Key 调用中国强模（Kimi/MiMo/MiniMax/GLM/DeepSeek）。注册双方有赠送：\n" + link)
-          : ("AI24X — one key for extreme-value China LLMs (Kimi/MiMo/MiniMax/GLM/DeepSeek).\nBoth sides get signup tokens:\n" + link);
+          ? ("AI24X：一个 Key 调用中国强模（Kimi/MiMo/MiniMax/GLM/DeepSeek），国际可用 PayPal，flash 约 $0.35/百万。注册双方有赠送：\n" + link)
+          : ("AI24X — one key for Global models (Kimi/MiMo/MiniMax/GLM/DeepSeek). PayPal USD. Flash ~$0.35/M.\nBoth sides get signup tokens:\n" + link);
         copyText(text, t("page.refer.copiedShare", "分享文案已复制"));
       });
       if (!AI24X_API.getAuthToken()) {

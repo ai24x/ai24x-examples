@@ -103,6 +103,8 @@ class Settings(BaseSettings):
     sms_send_cooldown_s: float = Field(default=60.0, validation_alias="SMS_SEND_COOLDOWN_S")
     # 若非空：请求头须带 X-SMS-Internal-Key 且值一致，否则拒绝发送（建议生产必配）
     sms_internal_key: str = Field(default="", validation_alias="SMS_INTERNAL_KEY")
+    # 管理后台专用钥（可选）。未配时管理接口仍接受 SMS_INTERNAL_KEY（兼容旧部署）
+    admin_api_key: str = Field(default="", validation_alias="ADMIN_API_KEY")
     # 防刷（进程内；多实例需网关/Redis）。当前默认偏宽松，遇盗刷再收紧 .env
     sms_ip_min_interval_s: float = Field(default=2.0, validation_alias="SMS_IP_MIN_INTERVAL_S")
     sms_ip_max_send_per_hour: int = Field(default=150, validation_alias="SMS_IP_MAX_SEND_PER_HOUR")

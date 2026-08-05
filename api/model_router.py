@@ -112,7 +112,7 @@ LOGICAL_TO_UPSTREAM_MODEL_OR = {
     "qwen-plus": "QI",
 }
 
-# 与 S_flash≈$0.45/M 绑定（终稿 2026-08-02）：pro≈$1.35、ultra≈$2.70
+# 与 S_flash≈$0.35/M 绑定（2026-08-05）：pro≈$1.05、ultra≈$2.10
 # 运行时 L2/L3 可被 model_warehouse override.layer_mult 覆盖
 LAYER_COST_MULT = {"L0": 1, "L1": 1, "L2": 3, "L3": 6, "QI": 1}
 
@@ -287,7 +287,7 @@ def _public_flash_ref() -> float:
 
         return float(flash_ref_usd_per_m())
     except Exception:
-        return 0.45
+        return 0.35
 
 
 def _public_vip_picks(*, is_vip: bool) -> list[dict[str, Any]]:

@@ -1,5 +1,5 @@
-> **状态（2026-07-26）**：keys / billing / chat 计费 / referrals / models / FREE 日限 100 / flash·pro·ultra / DeepSeek v4 / SMTP **已完成**。  
-> **下一项**：Token 真支付（独立 notify）。总纲见 `docs/规划/开发总纲-AI24X-API-v3.5.md`。  
+> **状态（2026-07-27）**：keys / billing / chat 计费 / referrals / models / FREE 日限 100 / flash·pro·ultra / DeepSeek v4 / SMTP / 国内真支付骨架 / PayPal 骨架 / **额度批次有效期（FIFO）** **已完成**。  
+> **下一项**：PayPal Sandbox→Live（04）；Qwen 国际接入；公开获客前恢复入门包国际价。岗位总纲见 `docs/规划/主脑副脑岗位与国际Token供给-1.0.md`。  
 > 本文保留接口与 SQL 设计原文，实现以代码为准。
 
 你是一个专业的 AI 编程助手。以下是你的任务。

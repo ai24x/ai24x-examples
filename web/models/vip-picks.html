@@ -4,11 +4,11 @@
   <meta charset="UTF-8" />
   <script src="../js/i18n-boot.js?v=20260802m"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>VIP 点名清单 · AI24X</title>
-  <meta name="description" content="AI24X VIP model list: recommended tiers first, plus named China and international models." />
+  <title>点名模 · AI24X</title>
+  <meta name="description" content="AI24X named model list: global models and international flagships, all on one key." />
   <link rel="canonical" href="https://www.ai24x.com/models/vip-picks.html" />
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="VIP 点名清单 · AI24X" />
+  <meta property="og:title" content="点名模 · AI24X" />
   <meta property="og:description" content="AI24X VIP model list: recommended tiers first, plus named China and international models." />
   <meta property="og:url" content="https://www.ai24x.com/models/vip-picks.html" />
   <meta property="og:image" content="https://www.ai24x.com/img/og-share.png" />
@@ -63,8 +63,8 @@
   <main class="page-main">
     <section class="hero hero-surface section-tight">
       <div class="container">
-        <h1 data-i18n="page.models.vip.h1">VIP 点名清单</h1>
-        <p class="lead" data-i18n="page.models.vip.lead">日常别只烧旗舰——先用 flash（约 $0.45/百万）。下方中国名模适合认准某一款时点名；国际旗舰为附属。倍率越高，余额消耗越快。</p>
+        <h1 data-i18n="page.models.vip.h1">点名模</h1>
+        <p class="lead" data-i18n="page.models.vip.lead">下方中国名模适合点名调用；国际旗舰为附属。倍率越高，余额消耗越快。优先用 flash（$0.35/百万起）。</p>
         <div class="hero-cta">
           <a class="btn btn-primary" href="../console.html" data-i18n="nav.console">控制台</a>
         </div>
@@ -75,12 +75,12 @@
         <h2 data-i18n="page.models.vip.how">怎么用</h2>
         <ol>
           <li data-i18n="page.models.vip.s1">注册并创建 API Key</li>
-          <li data-i18n="page.models.vip.s2">在价格页或控制台购买套餐（名模点名需套餐含 VIP 天数）</li>
-          <li data-i18n="page.models.vip.s3">请求里填写模型名：优先用推荐档；也可填下方名模点名</li>
+          <li data-i18n="page.models.vip.s2">在价格页或控制台购买套餐（点名模需套餐含 VIP）</li>
+          <li data-i18n="page.models.vip.s3">请求里填写模型名：优先用推荐档；也可填下方名模名称</li>
         </ol>
 
         <h2 class="mt-2" data-i18n="page.models.vip.brandTitle">推荐档（优先）</h2>
-        <p class="sub" data-i18n="page.models.vip.brandHint">日常先填 flash（约 $0.45/百万）或 pro。Pro 日赠仅可用于 flash/auto/共享；名模点名请用充值额度。预估仅供参考。</p>
+        <p class="sub" data-i18n="page.models.vip.brandHint">日常先填 flash（约 $0.35/百万）或 pro；点名模/高倍率模型会更快消耗预充额度。预估仅供参考。</p>
         <div class="model-table-wrap">
           <table>
             <thead>
@@ -90,11 +90,12 @@
                 <th data-i18n="page.models.vip.col.id">模型名</th>
                 <th data-i18n="page.models.vip.col.mult">倍率</th>
                 <th data-i18n="page.models.vip.col.est">预估消耗</th>
+                <th data-i18n="page.models.vip.col.vision">视觉</th>
                 <th data-i18n="page.models.vip.col.blurb">说明</th>
               </tr>
             </thead>
             <tbody id="brandTierBody">
-              <tr><td colspan="6" class="muted">…</td></tr>
+              <tr><td colspan="7" class="muted">…</td></tr>
             </tbody>
           </table>
         </div>
@@ -111,6 +112,7 @@
                 <th data-i18n="page.models.vip.col.mult">倍率</th>
                 <th data-i18n="page.models.vip.col.est">预估消耗</th>
                 <th data-i18n="page.models.vip.col.blurb">说明</th>
+                <th>🖼️</th>
               </tr>
             </thead>
             <tbody id="vipPickAll">
@@ -167,8 +169,12 @@ Header: X-API-Key: YOUR_API_KEY
         if (isZh()) return p.blurb || p.quality || "";
         return p.blurb_en || p.blurb || p.quality || "";
       }
-      // flash 售价锚 ≈$0.45/M（与 API TOKEN_FLASH_REF_USD_PER_M / list_vip_picks 一致）
-      var REF_USD_PER_M = 0.45;
+      function hasImage(p) {
+        var m = p.modalities || ["text"];
+        return m.indexOf("image") >= 0;
+      }
+      // flash 售价锚：优先用 API flash_ref_usd_per_m / 各 pick 字段（与后台同源）
+      var REF_USD_PER_M = 0.35;
       function estByMult(mult) {
         var m = Number(mult || 1) || 1;
         if (isZh()) return "约¥" + Math.round(REF_USD_PER_M * 7.2 * m * 100) / 100 + "/百万";
@@ -176,17 +182,18 @@ Header: X-API-Key: YOUR_API_KEY
       }
       function pickEst(p) {
         var mult = Number(p.billing_mult || 1) || 1;
+        var ref =
+          p.flash_ref_usd_per_m != null ? Number(p.flash_ref_usd_per_m) : REF_USD_PER_M;
+        if (!(ref > 0)) ref = REF_USD_PER_M;
         if (isZh()) {
           var cny =
             p.est_cny_per_m != null
               ? p.est_cny_per_m
-              : Math.round(REF_USD_PER_M * 7.2 * mult * 100) / 100;
+              : Math.round(ref * 7.2 * mult * 100) / 100;
           return "约¥" + cny + "/百万";
         }
         var usd =
-          p.est_usd_per_m != null
-            ? p.est_usd_per_m
-            : Math.round(REF_USD_PER_M * mult * 100) / 100;
+          p.est_usd_per_m != null ? p.est_usd_per_m : Math.round(ref * mult * 100) / 100;
         return "~$" + usd + "/1M";
       }
       function brandRows() {
@@ -258,17 +265,19 @@ Header: X-API-Key: YOUR_API_KEY
         var zh = isZh();
         return list
           .map(function (p) {
+            var flagCN = '<svg width="16" height="12" viewBox="0 0 16 12" style="vertical-align:-1px"><rect fill="#DE2910" width="16" height="12"/><polygon fill="#FFDE00" points="3.5,2 5,4.5 5,1.5 5,4.5 5,4.5 3,2 5,3 5,2.5"/><polygon fill="#FFDE00" points="8,3.5 6,6 7.5,6.5 6.5,4.5 8.5,4.5"/><polygon fill="#FFDE00" points="5,7 3,9.5 4.5,8 4.5,8.5 3,8"/><polygon fill="#FFDE00" points="9,6 7.5,8.5 8.5,9 7,7.5 9,7"/></svg>';
+            var globeSVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="1.5" style="vertical-align:-2px"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 000 20"/></svg>';
             var g =
               p.group === "intl"
                 ? zh
-                  ? "国际"
-                  : "Intl"
+                  ? globeSVG + ' 国际'
+                  : globeSVG + ' Intl'
                 : zh
-                  ? "中国"
-                  : "China";
+                  ? flagCN + ' 中国'
+                  : flagCN + ' China';
             return (
               "<tr><td><span class='pill-vip'>" +
-              esc(g) +
+              g +
               "</span></td><td>" +
               esc(pickTitle(p)) +
               "</td><td class='mono'>" +
@@ -279,6 +288,8 @@ Header: X-API-Key: YOUR_API_KEY
               esc(pickEst(p)) +
               "</td><td class='sub'>" +
               esc(pickBlurb(p)) +
+              "</td><td class='mono'>" +
+              (hasImage(p) ? "🖼️" : "—") +
               "</td></tr>"
             );
           })
@@ -304,6 +315,11 @@ Header: X-API-Key: YOUR_API_KEY
         if (!vipEl || !window.AI24X_API || !AI24X_API.listModels) return;
         AI24X_API.listModels()
           .then(function (m) {
+            if (m && m.flash_ref_usd_per_m != null && Number(m.flash_ref_usd_per_m) > 0) {
+              REF_USD_PER_M = Number(m.flash_ref_usd_per_m);
+            } else if (m && m.vip_picks && m.vip_picks[0] && m.vip_picks[0].flash_ref_usd_per_m) {
+              REF_USD_PER_M = Number(m.vip_picks[0].flash_ref_usd_per_m) || REF_USD_PER_M;
+            }
             cachedPicks = (m && m.vip_picks) || [];
             render(cachedPicks);
           })

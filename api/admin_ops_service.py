@@ -176,7 +176,7 @@ def admin_economics(db: Session, *, days: int = 7) -> dict[str, Any]:
         .scalar()
         or 0
     )
-    # 上游成本粗算（非售价）：Flash 地板约 $0.24/M；售价锚见 TOKEN_FLASH_REF_USD_PER_M≈0.45
+    # 上游成本粗算（非售价）：Flash 地板约 $0.24/M；售价锚见 TOKEN_FLASH_REF_USD_PER_M≈0.35
     try:
         cost_per_m = float(os.getenv("TOKEN_ECON_COST_USD_PER_M") or "0.24")
     except ValueError:

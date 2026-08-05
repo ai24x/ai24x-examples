@@ -56,9 +56,11 @@ def check_plans(base: str) -> bool:
         return False
     plans = {p.get("plan"): p for p in (data.get("plans") or [])}
     expect = {
-        "token_pack_10k": (2.0, 300_000),
-        "token_pack_100k": (20.0, 40_000_000),
-        "token_vip_month_50w": (99.0, 180_000_000),
+        "token_pack_10k": (2.0, 1_000_000),
+        "token_pack_100k": (20.0, 50_000_000),
+        "token_pack_mid": (49.0, 140_000_000),
+        "token_vip_month": (15.0, 0),
+        "token_vip_month_50w": (99.0, 200_000_000),
     }
     ok = True
     for pid, (usd, tokens) in expect.items():
@@ -100,15 +102,15 @@ def check_vip_daily_logic() -> bool:
         else:
             _ok(f"vip_daily allow {model}={got}")
 
-    ref = float(os.getenv("TOKEN_FLASH_REF_USD_PER_M") or "0.45")
+    ref = float(os.getenv("TOKEN_FLASH_REF_USD_PER_M") or "0.35")
     kimi = next((c for c in CATALOG if c.get("id") == "vip-kimi"), None)
     if not kimi:
         _fail("catalog missing vip-kimi")
         return False
     mult = int(kimi.get("billing_mult") or 0)
     est = round(ref * mult, 2)
-    if abs(ref - 0.45) > 1e-9 or mult != 24 or abs(est - 10.8) > 0.01:
-        _fail(f"vip-picks est ref={ref} mult={mult} est={est} expect 0.45/24/10.8")
+    if abs(ref - 0.35) > 1e-9 or mult != 39 or abs(est - 13.65) > 0.01:
+        _fail(f"vip-picks est ref={ref} mult={mult} est={est} expect 0.35/39/13.65")
         ok = False
     else:
         _ok(f"vip-picks Kimi ~${est}/M (flash ${ref}/M × {mult})")
@@ -131,16 +133,16 @@ def check_vip_daily_logic() -> bool:
             _ok(f"{pid} siliconflow_id ok")
     glm = next((c for c in CATALOG if c.get("id") == "vip-glm"), {})
     gpt4o = next((c for c in CATALOG if c.get("id") == "vip-gpt4o"), {})
-    if int(glm.get("billing_mult") or 0) != 8:
-        _fail(f"vip-glm billing_mult={glm.get('billing_mult')} expect 8")
+    if int(glm.get("billing_mult") or 0) != 10:
+        _fail(f"vip-glm billing_mult={glm.get('billing_mult')} expect 10")
         ok = False
     else:
-        _ok("vip-glm billing_mult=8")
-    if int(gpt4o.get("billing_mult") or 0) != 18:
-        _fail(f"vip-gpt4o billing_mult={gpt4o.get('billing_mult')} expect 18")
+        _ok("vip-glm billing_mult=10")
+    if int(gpt4o.get("billing_mult") or 0) != 27:
+        _fail(f"vip-gpt4o billing_mult={gpt4o.get('billing_mult')} expect 27")
         ok = False
     else:
-        _ok("vip-gpt4o billing_mult=18")
+        _ok("vip-gpt4o billing_mult=27")
     mimo = next((c for c in CATALOG if c.get("id") == "vip-mimo"), {})
     if mimo.get("siliconflow_id"):
         _fail("vip-mimo should keep siliconflow_id=None (no stable SF twin)")
@@ -153,18 +155,18 @@ def check_vip_daily_logic() -> bool:
 def check_static_copy() -> bool:
     ok = True
     console = (WEB_DIR / "js" / "console.js").read_text(encoding="utf-8")
-    for needle in ("充值 ", "日赠 ", "日赠仅 flash/auto", "Prepaid ", "daily: flash/auto only"):
+    for needle in ("Flash $0.35/百万 · Pro $1.05/百万", "Flash $0.35/M · Pro $1.05/M"):
         if needle not in console:
             _fail(f"console.js missing {needle!r}")
             ok = False
         else:
             _ok(f"console.js has {needle!r}")
     vip = (WEB_DIR / "models" / "vip-picks.html").read_text(encoding="utf-8")
-    if "REF_USD_PER_M = 0.45" not in vip:
-        _fail("vip-picks.html REF_USD_PER_M != 0.45")
+    if "REF_USD_PER_M = 0.35" not in vip:
+        _fail("vip-picks.html REF_USD_PER_M != 0.35")
         ok = False
     else:
-        _ok("vip-picks.html REF_USD_PER_M = 0.45")
+        _ok("vip-picks.html REF_USD_PER_M = 0.35")
     return ok
 
 

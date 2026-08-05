@@ -87,14 +87,9 @@ _email_window: dict[str, list[float]] = defaultdict(list)
 
 
 def client_ip(request: Request) -> str:
-    xff = request.headers.get("x-forwarded-for") or request.headers.get("X-Forwarded-For")
-    if xff:
-        part = xff.split(",")[0].strip()
-        if part:
-            return part
-    if request.client and request.client.host:
-        return str(request.client.host)
-    return "unknown"
+    from security_util import client_ip as _sec_ip
+
+    return _sec_ip(request)
 
 
 def _env_bool(name: str, default: bool = True) -> bool:
@@ -165,6 +160,13 @@ def check_email_send_allowed(
     """发验证码前检查。返回 (ok, user_message)。"""
     if is_disposable_email(email):
         return False, "该邮箱暂不支持注册，请使用常用邮箱。"
+    try:
+        from security_util import is_prod
+
+        if is_prod() and is_test_mailbox(email):
+            return False, "该邮箱暂不支持注册，请使用常用邮箱。"
+    except Exception:
+        pass
 
     now = time.time()
     if ip and ip != "unknown":
@@ -196,4 +198,12 @@ def record_email_send_attempt(ip: str, email: str) -> None:
 def assert_email_ok_for_register(email: str) -> tuple[bool, str]:
     if is_disposable_email(email):
         return False, "该邮箱暂不支持注册，请使用常用邮箱。"
+    # 生产拒绝 example.com / .local 等测试邮箱（开发机仍可用）
+    try:
+        from security_util import is_prod
+
+        if is_prod() and is_test_mailbox(email):
+            return False, "该邮箱暂不支持注册，请使用常用邮箱。"
+    except Exception:
+        pass
     return True, ""

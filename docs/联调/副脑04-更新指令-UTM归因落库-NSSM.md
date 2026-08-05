@@ -25,7 +25,7 @@ git checkout master
 git pull origin master
 # 若失败：git pull gitee master
 git log -1 --oneline
-# 期望含：utm / acquisition
+# 期望：6c4bd82（feat(ads): first-touch UTM…）
 
 # 勿动 DATABASE_URL
 

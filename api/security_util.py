@@ -64,16 +64,69 @@ def check_sliding_rate(key: str, *, limit: int, window_s: float = 60.0) -> tuple
         return True, len(q)
 
 
+def peek_sliding_rate(key: str, *, limit: int, window_s: float = 60.0) -> tuple[bool, int]:
+    """只读检查，不写入。"""
+    if limit <= 0:
+        return True, 0
+    now = time.time()
+    with _lock:
+        q = _buckets[key]
+        while q and now - q[0] > window_s:
+            q.popleft()
+        n = len(q)
+        return n < limit, n
+
+
 def client_ip(request) -> str:
+    """取客户端 IP：优先 X-Real-IP；X-Forwarded-For 取最右段（贴近反向代理写入的 remote）。
+
+    勿信任最左段（可被客户端伪造）。Nginx 建议：
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $remote_addr;
+    """
     try:
-        xff = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+        xri = (request.headers.get("x-real-ip") or request.headers.get("X-Real-IP") or "").strip()
+        if xri:
+            return xri.split(",")[0].strip()[:64]
+        xff = (request.headers.get("x-forwarded-for") or request.headers.get("X-Forwarded-For") or "").strip()
         if xff:
-            return xff[:64]
+            parts = [p.strip() for p in xff.split(",") if p.strip()]
+            if parts:
+                return parts[-1][:64]
         if request.client and request.client.host:
             return str(request.client.host)[:64]
     except Exception:
         pass
     return "unknown"
+
+
+def check_login_throttle(*, identity: str, ip: str) -> tuple[bool, str]:
+    """登录失败频控：同一账号或 IP 在窗口内失败过多则拒绝。成功请调用 clear_login_failures。"""
+    ident = (identity or "").strip().lower()[:128] or "-"
+    ip_s = (ip or "unknown").strip()[:64] or "unknown"
+    # 15 分钟内：账号 8 次 / IP 30 次（只读 peek，失败时再 record）
+    ok_a, _ = peek_sliding_rate(f"login:id:{ident}", limit=8, window_s=900.0)
+    if not ok_a:
+        return False, "尝试次数过多，请稍后再试"
+    ok_i, _ = peek_sliding_rate(f"login:ip:{ip_s}", limit=30, window_s=900.0)
+    if not ok_i:
+        return False, "尝试次数过多，请稍后再试"
+    return True, ""
+
+
+def record_login_failure(*, identity: str, ip: str) -> None:
+    ident = (identity or "").strip().lower()[:128] or "-"
+    ip_s = (ip or "unknown").strip()[:64] or "unknown"
+    check_sliding_rate(f"login:id:{ident}", limit=8, window_s=900.0)
+    check_sliding_rate(f"login:ip:{ip_s}", limit=30, window_s=900.0)
+
+
+def clear_login_failures(*, identity: str, ip: str = "") -> None:
+    ident = (identity or "").strip().lower()[:128] or "-"
+    with _lock:
+        _buckets.pop(f"login:id:{ident}", None)
+        # IP 桶不因单次成功清零，防撞库扫号
+        _ = (ip or "").strip()
 
 
 def attribution_block(*, request_id: str, auth_user_id: Optional[int] = None) -> dict:

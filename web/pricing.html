@@ -51,9 +51,9 @@
     <section class="hero hero-surface section-tight">
       <div class="container">
         <h1 data-i18n="page.pricing.title">Pricing</h1>
-        <p class="lead" data-i18n="page.pricing.sub">Membership and prepaid are separate. Everyday flash → Builder; named models → Scale (or Pass + Builder). Pay and manage keys in the Console.</p>
+        <p class="lead" data-i18n="page.pricing.sub">Everyday flash → Builder/Advanced; named models → Scale or VIP Pass. Pay and manage keys in the Console.</p>
         <p class="callout mt-2" data-i18n="page.pricing.callout">
-          Global models, one key: flash from about $0.45/M. Pay with PayPal (USD) globally, or WeChat/Alipay in China. VIP can pick Kimi, MiMo, MiniMax, GLM, and more by name.
+          Starter to try · Builder/Advanced for daily credits · Scale (or VIP Pass) to name models.
         </p>
       </div>
     </section>
@@ -198,7 +198,7 @@
             esc(AI24X_API.planCreditsShort(p)) +
             "</td>" +
             "<td>" +
-            esc(AI24X_API.planYesNo(!!caps.vip)) +
+            esc(AI24X_API.planNameAccess(p)) +
             "</td>" +
             "<td>" +
             esc(AI24X_API.planOneLiner(p) || "—") +

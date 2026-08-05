@@ -2,7 +2,7 @@
 Token 产品套餐目录（与 a1 行情官 VIP 配额套餐完全独立）。
 
 定价口径（2026-08-02 终稿）：
-- 钱包 token ≈ flash 当量；对外 flash 锚约 $0.45/M（Builder 略高约 $0.50/M）
+- 钱包 token ≈ flash 当量；对外 flash 锚约 $0.35/M（Builder 约 $0.40/M）
 - 主数据按国际价（USD 锚定）；国内收银台 CNY（微信/支付宝），国际 PayPal USD
 - 入门包为优惠体验档（$2 / 30 万 token），promo_max_purchases=1 防刷
 - VIP 日赠仅可用于 flash/auto/共享档（见 token_mvp_service）
@@ -27,6 +27,7 @@ PLAN_PRICE_ENV: dict[str, str] = {
     "token_pack_100k": "TOKEN_PRICE_TOKEN_PACK_100K_FEN",
     "token_vip_month": "TOKEN_PRICE_TOKEN_VIP_MONTH_FEN",
     "token_vip_month_50w": "TOKEN_PRICE_TOKEN_VIP_MONTH_50W_FEN",
+    "token_pack_mid": "TOKEN_PRICE_TOKEN_PACK_MID_FEN",
 }
 
 # 代码默认（不含运行时价）；价由 _resolve_price_fen 计算
@@ -37,48 +38,59 @@ _PLAN_DEFAULTS: dict[str, dict[str, Any]] = {
         # 国际小额整美元；CNY 按汇率折算（默认 ×7.2 → ¥14.40）
         "price_usd": 2.0,
         "default_fen": None,
-        "credit_tokens": 300_000,
+        "credit_tokens": 1_000_000,
         "set_vip": False,
         "validity_days": 365,
         "enabled": True,
         "promo": True,
         "promo_max_purchases": 1,
-        "note_zh": "仅预充额度，不含名模资格。适合日常 flash；要点名请选 Scale 组合包。额度自到账起 12 个月有效；每账号限购 1 次。",
-        "note_en": "Credits only—no named-model access. Fine for everyday flash. For named models choose Scale. Valid 12 months. 1 purchase per account.",
+        "note_zh": "小额体验包：$2 试水 100 万 token（≈ 数千次 flash 调用）。仅预充额度，不含名模资格；要点名请选 Scale。额度 12 个月有效；每账号限购 1 次。",
+        "note_en": "Starter trial: $2 for 1M tokens (~thousands of flash calls). Credits only—no named-model access; choose Scale to name models. Valid 12 months. 1 purchase per account.",
     },
     "token_pack_100k": {
         "title_zh": "开发包",
         "title_en": "Builder",
         "price_usd": 20.0,
         "default_fen": None,  # 由 USD×汇率推算
-        "credit_tokens": 40_000_000,
+        "credit_tokens": 50_000_000,
         "set_vip": False,
         "validity_days": 365,
         "enabled": True,
         "promo": False,
-        "note_zh": "仅预充约 4,000 万 token（≈$0.50/百万 flash），不含名模资格。日常 flash/pro 够用；要点名请选 Scale 组合包。额度 12 个月有效。",
-        "note_en": "About 40M prepaid tokens (~$0.50/M flash)—no named-model access. Fine for flash/pro; choose Scale to name models. Valid 12 months.",
+        "note_zh": "预充 5,000 万 token（≈$0.40/百万），不含名模资格。日常 flash/auto 够用；pro/ultra 与点名名模需 VIP 资格（选 Scale 或 VIP 资格包）。额度 12 个月有效。",
+        "note_en": "50M prepaid tokens (~$0.40/M). No named-model access. Great for everyday flash/auto; pro/ultra and named models need VIP (choose Scale or VIP Pass). Valid 12 months.",
+    },
+    "token_pack_mid": {
+        "title_zh": "进阶包",
+        "title_en": "Advanced",
+        "price_usd": 49.0,
+        "default_fen": None,
+        "credit_tokens": 140_000_000,
+        "set_vip": False,
+        "validity_days": 365,
+        "enabled": True,
+        "promo": False,
+        "note_zh": "大额预充 1.4 亿 token（≈$0.35/百万），不含名模资格。适合跑量/团队共用；要点名请选 Scale 组合包。额度 12 个月有效。",
+        "note_en": "140M prepaid tokens (~$0.35/M)—no named-model access. Good for volume/teams; choose Scale to name models. Valid 12 months.",
     },
     "token_vip_month": {
-        "title_zh": "Pro 月卡",
-        "title_en": "Pro Pass",
+        "title_zh": "VIP 资格包",
+        "title_en": "VIP Pass",
         "price_usd": 15.0,
         "default_fen": None,
         "credit_tokens": 0,
         "set_vip": True,
         "vip_days": 30,
         "validity_days": 0,
-        "enabled": False,  # 下架前台；仅后台「老用户补资格」入口可用
+        "enabled": True,  # 2026-08-05 重新启用为「VIP 资格包」（无额度，30 天资格）
         "promo": False,
         "note_zh": (
-            "已下架前台（不进主对比表）。保留仅用于老用户已有额度、只差资格时补开。"
-            f"原权益：会员 30 天 + 每日约 {_VIP_DAILY_WAN} 万 token（仅 flash/auto/共享）。"
-            "新用户要点名请直接选 Scale 组合包（资格+额度一次齐）；若已有额度只差资格请联系支持。"
+            "30 天 VIP 资格包：可点名名模、可用 pro/ultra（消耗预充额度）。不含额度。"
+            "适合已有 Builder/Advanced 额度、只差资格的老开发者；新用户建议直接选 Scale（资格+额度一次齐）。"
         ),
         "note_en": (
-            "Removed from storefront. Kept only for existing users who already have credits and just need VIP access. "
-            f"Was: 30-day VIP + ~{_VIP_DAILY_WAN * 10_000:,} bonus/day (flash/auto/shared). "
-            "New users: choose Scale for named models."
+            "30-day VIP access: name models and use pro/ultra (billed from prepaid credits). No credits included. "
+            "Best for developers who already have prepaid credits. New users: choose Scale (access + credits in one)."
         ),
     },
     "token_vip_month_50w": {
@@ -86,19 +98,19 @@ _PLAN_DEFAULTS: dict[str, dict[str, Any]] = {
         "title_en": "Scale",
         "price_usd": 99.0,
         "default_fen": None,
-        "credit_tokens": 180_000_000,
+        "credit_tokens": 200_000_000,
         "set_vip": True,
-        "vip_days": 30,
-        "validity_days": 730,
+        "vip_days": 365,
+        "validity_days": 365,
         "enabled": True,
         "promo": False,
         "note_zh": (
-            "点名模 + 大额预充一次齐。含 30 天 VIP + 约 1.8 亿额度（24 个月）。"
-            f"另含日赠约 {_VIP_DAILY_WAN} 万（flash/auto/共享）。"
+            "点名模 + 大额预充一次齐：12 个月 VIP 名模资格 + 2 亿预充额度（12 个月有效）。"
+            "VIP 有效期跟随套餐年限。"
         ),
         "note_en": (
-            "Name models + bulk credits in one. 30-day VIP + ~180M prepaid (24 months). "
-            f"~{_VIP_DAILY_WAN * 10_000:,}/day bonus (flash/auto/shared)."
+            "Name models + bulk credits in one: 12-month VIP access + 200M prepaid (valid 12 months). "
+            "VIP validity matches the plan term."
         ),
     },
 }
@@ -215,6 +227,23 @@ def _resolve_plan(plan_id: str) -> dict[str, Any] | None:
             pass
 
     p.pop("default_fen", None)
+    # 价格口径：CNY 分 vs USD×汇率；偏差>5% 打标，公共列表可用预期分纠偏展示
+    try:
+        usd_v = float(p.get("price_usd") or 0)
+        fen_v = int(p.get("price_fen") or 0)
+        expected = int(round(usd_v * _usd_cny() * 100)) if usd_v > 0 else 0
+        if expected > 0 and fen_v > 0:
+            drift = abs(fen_v - expected) / float(expected)
+            if drift > 0.05:
+                p["_price_mismatch"] = True
+                p["_price_fen_expected"] = expected
+                p["_price_drift"] = round(drift, 4)
+            else:
+                p["_price_mismatch"] = False
+        else:
+            p["_price_mismatch"] = False
+    except Exception:
+        p["_price_mismatch"] = False
     return p
 
 
@@ -234,6 +263,21 @@ def list_public_plans() -> list[dict[str, Any]]:
             continue
         usd = float(p.get("price_usd") or 0)
         fen = int(p["price_fen"])
+        # 公共价：若覆盖残留导致 CNY 与 USD 锚偏差过大，以前台展示用 USD 重算分（不改覆盖文件）
+        if p.get("_price_mismatch") and p.get("_price_fen_expected"):
+            try:
+                import logging
+
+                logging.getLogger("token_plans").warning(
+                    "plan %s price_fen=%s drift from usd→%s (source=%s); public uses expected",
+                    plan_id,
+                    fen,
+                    p.get("_price_fen_expected"),
+                    p.get("_price_source"),
+                )
+            except Exception:
+                pass
+            fen = int(p["_price_fen_expected"])
         title_zh = str(p.get("title_zh") or p.get("title") or plan_id)
         title_en = str(p.get("title_en") or title_zh)
         note_zh = str(p.get("note_zh") or p.get("note") or "")
@@ -267,14 +311,14 @@ def list_public_plans() -> list[dict[str, Any]]:
             }
         )
     # Scale 优先，其次入门/开发
-    out.sort(
-        key=lambda row: (
-            0 if row.get("recommended") else 1,
-            0 if row.get("plan") == "token_pack_10k" else 1,
-            0 if row.get("plan") == "token_pack_100k" else 1,
-            str(row.get("plan") or ""),
-        )
-    )
+    _ORDER = {
+        "token_pack_10k": 0,
+        "token_vip_month": 1,
+        "token_pack_100k": 2,
+        "token_pack_mid": 3,
+        "token_vip_month_50w": 4,
+    }
+    out.sort(key=lambda row: _ORDER.get(str(row.get("plan") or ""), 99))
     return out
 
 
@@ -307,6 +351,10 @@ def list_admin_plans() -> dict[str, Any]:
                 "price_env_override": bool(env_key and _env_override_set(env_key)),
                 "price_source": src,
                 "has_admin_override": plan_id in overrides,
+                "price_mismatch": bool(p.get("_price_mismatch")),
+                "price_fen_expected": int(p["_price_fen_expected"])
+                if p.get("_price_fen_expected")
+                else None,
                 "note_zh": str(p.get("note_zh") or ""),
             }
         )
@@ -317,9 +365,9 @@ def list_admin_plans() -> dict[str, Any]:
         "editable": True,
         "ops_note": (
             "价表前后台同源。本页可改 CNY 分 / USD / 到账 token / 启停；"
-            "保存后立即对前台生效（写入 api/data/token_plans_override.json）。"
-            "优先级：管理台覆盖 > env TOKEN_PRICE_*_FEN > 代码默认。"
-            "入门包体验价可继续使用；国际 USD 主路径为 PayPal。"
+            "若某行 price_mismatch=true，说明 CNY 分与 USD×汇率偏差>5%（常见测试残留），请改正或清覆盖；"
+            "前台公开展示已自动用 USD 重算分，但后台仍显示覆盖原值便于排查。"
+            "保存写入 api/data/token_plans_override.json，立即生效。"
         ),
     }
 

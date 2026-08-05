@@ -11,22 +11,11 @@ from __future__ import annotations
 import time
 from collections import defaultdict
 
-from fastapi import Request
+from security_util import client_ip as client_ip  # noqa: F401 — 统一 X-Real-IP / XFF 右段
 
 _phone_window: dict[str, list[float]] = defaultdict(list)
 _ip_window: dict[str, list[float]] = defaultdict(list)
 _ip_last_ts: dict[str, float] = {}
-
-
-def client_ip(request: Request) -> str:
-    xff = request.headers.get("x-forwarded-for") or request.headers.get("X-Forwarded-For")
-    if xff:
-        part = xff.split(",")[0].strip()
-        if part:
-            return part
-    if request.client and request.client.host:
-        return str(request.client.host)
-    return "unknown"
 
 
 def _prune(ts_list: list[float], window_s: float) -> None:

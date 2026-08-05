@@ -11,6 +11,48 @@ from config import settings
 from security_util import attribution_block
 
 
+def _usd_cents_for_tokens(token_count: int) -> int:
+    """钱包 token → USD 美分（与 flash 锚一致）。"""
+    try:
+        from model_warehouse import flash_ref_usd_per_m
+
+        ref = float(flash_ref_usd_per_m())
+    except Exception:
+        ref = 0.35
+    if ref <= 0:
+        ref = 0.35
+    return max(0, int(round(max(0, int(token_count)) / 1_000_000.0 * ref * 100)))
+
+
+def estimate_need_tokens(*, model: Optional[str], max_tokens: int, prompt: str = "") -> int:
+    """预检用量：粗估 (prompt/4 + min(max_tokens,1024)) × 档位/名模倍率。
+
+    不按完整 max_tokens 卡死（OpenClaw 常设 8k）；成功后仍按实扣，余额不足则夹断。
+    """
+    mult = 1
+    try:
+        from model_warehouse import resolve_vip_pick, layer_cost_mult_for
+
+        pick = resolve_vip_pick(model)
+        if pick:
+            mult = max(1, int(pick.get("billing_mult") or 1))
+        else:
+            m = str(model or "flash").strip().lower()
+            layer = "L1"
+            if m in ("pro", "or-pro"):
+                layer = "L2"
+            elif m in ("ultra", "or-ultra"):
+                layer = "L3"
+            elif m in ("shared", "free", "or-fallback"):
+                layer = "L0"
+            mult = max(1, int(layer_cost_mult_for(layer)))
+    except Exception:
+        mult = 1
+    prompt_est = max(0, len(prompt or "") // 4)
+    capped = min(max(1, int(max_tokens or 1000)), 1024)
+    return max(1, (prompt_est + capped) * int(mult))
+
+
 class UserService:
     @staticmethod
     def get_user_by_id(db: Session, user_id: str) -> Optional[User]:
@@ -124,6 +166,7 @@ class ChatService:
                 is_vip = bool(snap0.get("is_vip_active"))
             routed_tool_calls = None
             routed_finish = None
+            used_shared_catalog = None
             if billing_mode == "shared":
                 from free_shared import run_shared_pool_chat
 
@@ -138,6 +181,11 @@ class ChatService:
                     temperature=float(request.temperature or 0.7),
                     max_tokens=int(request.max_tokens or 1000),
                 )
+                # T13：取本次实际命中的上游目录用于聚合熔断
+                for _a in getattr(routed, "attempts", None) or []:
+                    if _a.get("ok") and _a.get("catalog_id"):
+                        used_shared_catalog = _a["catalog_id"]
+                        break
             else:
                 if auth_user_id is not None:
                     from token_mvp_service import assert_can_spend
@@ -146,7 +194,11 @@ class ChatService:
                     assert_can_spend(
                         db,
                         int(auth_user_id),
-                        need_tokens=1,
+                        need_tokens=estimate_need_tokens(
+                            model=route_model,
+                            max_tokens=int(request.max_tokens or 1000),
+                            prompt=str(request.prompt or ""),
+                        ),
                         model=route_model,
                     )
                 msgs = getattr(request, "messages", None)
@@ -241,19 +293,17 @@ class ChatService:
                             tokens=int(token_count),
                             model=public_model,
                             request_id=request_id,
+                            catalog_id=used_shared_catalog,
                         )
                     snap = get_balance_snapshot(db, int(auth_user_id))
                     remaining_quota = int(snap.get("shared_remain_tokens") or 0)
                 else:
                     if billable and token_count > 0:
-                        from model_warehouse import flash_ref_usd_per_m as _flash_ref
-                        ref = _flash_ref()
-                        amount_usd = max(0, int(round(token_count / 1_000_000.0 * ref * 100)))
                         consume_tokens(
                             db,
                             auth_user_id=int(auth_user_id),
                             tokens=int(token_count),
-                            amount_usd=amount_usd,
+                            amount_usd=_usd_cents_for_tokens(int(token_count)),
                             model=public_model,
                             request_id=request_id,
                         )
@@ -377,6 +427,7 @@ class ChatService:
                 snap0 = get_balance_snapshot(db, int(auth_user_id))
                 is_vip = bool(snap0.get("is_vip_active"))
 
+            used_shared_catalog = None
             if billing_mode == "shared":
                 if getattr(request, "tools", None):
                     yield {"type": "error", "error": "tools_need_balance"}
@@ -392,6 +443,11 @@ class ChatService:
                     temperature=float(request.temperature or 0.7),
                     max_tokens=int(request.max_tokens or 1000),
                 )
+                # T13：取本次实际命中的上游目录用于聚合熔断
+                for _a in getattr(routed, "attempts", None) or []:
+                    if _a.get("ok") and _a.get("catalog_id"):
+                        used_shared_catalog = _a["catalog_id"]
+                        break
                 if not routed.ok:
                     yield {"type": "error", "error": routed.error or "shared_failed"}
                     chat_request.status = "failed"
@@ -419,7 +475,11 @@ class ChatService:
                     assert_can_spend(
                         db,
                         int(auth_user_id),
-                        need_tokens=1,
+                        need_tokens=estimate_need_tokens(
+                            model=request.model,
+                            max_tokens=int(request.max_tokens or 1000),
+                            prompt=str(request.prompt or ""),
+                        ),
                         model=request.model,
                     )
                 saw_done = False
@@ -514,12 +574,14 @@ class ChatService:
                         tokens=int(token_count),
                         model="shared",
                         request_id=request_id,
+                        catalog_id=used_shared_catalog,
                     )
                 else:
                     consume_tokens(
                         db,
                         auth_user_id=int(auth_user_id),
                         tokens=int(token_count),
+                        amount_usd=_usd_cents_for_tokens(int(token_count)),
                         model=public_model,
                         request_id=request_id,
                     )

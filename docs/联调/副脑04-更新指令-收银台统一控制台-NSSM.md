@@ -1,6 +1,6 @@
 # 副脑04 · 更新指令（收银台统一到控制台 + 支付提示可见）
 
-> 发令：2026-08-01 · 提交 `c7051db`  
+> 发令：2026-08-01 · 目标提交 `47dba4b`（含功能包 `c7051db`）  
 > 进程：NSSM `AI24X-core`（本包以静态页为主；无 `.env` 必改项则可不重启）  
 > **禁止**整文件覆盖 `api/.env`  
 > 远端：`git pull origin master`（或 `gitee master`）
@@ -33,7 +33,7 @@ git checkout master
 git pull origin master
 # 若失败：git pull gitee master
 git log -1 --oneline
-# 期望说明含：console checkout / pricing buy / toast / VIP list 一类
+# 期望：47dba4b 或至少含 c7051db（checkout / toast / VIP）
 
 # 本包通常无需改 .env；勿动 DATABASE_URL
 
@@ -68,4 +68,4 @@ curl.exe -sS -o NUL -w "vip=%{http_code}`n" https://www.ai24x.com/models/vip-pic
 
 - 不要 `pm2 restart` core  
 - 不要 Write 整份 `.env`  
-- 主脑未说「已本地 OK、已推 Gitee」前不要执行本包  
+- 不要动 `DATABASE_URL` 

@@ -20,7 +20,8 @@
 确认已 push 到 Gitee（含本包提交），再让副脑03 pull。
 
 期望提交说明含：`header center` / `static-v43` / `顶栏导航统一居中`。  
-本包 HEAD：`bf74d3c`（`fix(a1): center header nav at 1140 and bump static-v43`）。
+本包功能提交：`bf74d3c`；拉码后 HEAD 至少含 `390d4f6`（含本指令）。  
+`git log -1` 期望含：`static-v43` 或 `header-center` / `bf74d3c`。
 
 ## 执行（PowerShell · 可整段给 OpenClaw）
 
@@ -30,7 +31,8 @@ git checkout master
 git pull gitee master
 # 若无 gitee 远端：git pull origin master
 git log -1 --oneline
-# 期望含：header / 居中 / static-v43
+# 期望：390d4f6 或其后；须含 bf74d3c（static-v43 / header center）
+git log -3 --oneline
 
 # 静态为主；可选重启 web 服务清静态句柄
 Get-Service AI24X-a1-api, AI24X-a1-web | Format-Table Name, Status

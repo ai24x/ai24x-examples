@@ -27,7 +27,7 @@ from models import (
 
 # —— 配额口径（2026-07-30：关掉 FREE 月赠叠礼；注册一次性小礼包）——
 FREE_MONTHLY_BONUS_TOKENS = 0  # 已关闭：避免与注册礼包叠得过松
-VIP_DAILY_BONUS_TOKENS = 100_000  # 仅付费 VIP 日赠，保持
+VIP_DAILY_BONUS_TOKENS = 0  # 2026-08-05 取消 VIP 日赠：套餐只卖资格+额度，简化核算
 REFERRAL_L1_BPS = 1000  # 10%（被邀请人充值时）
 REFERRAL_L2_BPS = 200  # 2%
 # 邀请注册即时奖励：双方各得（与总纲「邀请双方各得」对齐）
@@ -383,7 +383,21 @@ def ensure_period_bonus(db: Session, wallet: TokenWallet) -> TokenWallet:
         db.refresh(wallet)
         return wallet
 
-    # 幂等：同 period 已有流水则只推进标记（防并发双请求各发一笔）
+    from sqlalchemy import or_, update as sa_update
+
+    # 原子抢占当日/当月 period，防并发双发
+    claimed = db.execute(
+        sa_update(TokenWallet)
+        .where(
+            TokenWallet.id == int(wallet.id),
+            or_(TokenWallet.bonus_period.is_(None), TokenWallet.bonus_period != period),
+        )
+        .values(bonus_period=period, updated_at=now)
+    )
+    if int(getattr(claimed, "rowcount", 0) or 0) != 1:
+        db.commit()
+        return get_or_create_wallet(db, int(wallet.auth_user_id))
+
     full_note = f"{note} {period}"
     dup = (
         db.query(BillingLedger.id)
@@ -395,11 +409,8 @@ def ensure_period_bonus(db: Session, wallet: TokenWallet) -> TokenWallet:
         .first()
     )
     if dup:
-        wallet.bonus_period = period
-        wallet.updated_at = now
         db.commit()
-        db.refresh(wallet)
-        return wallet
+        return get_or_create_wallet(db, int(wallet.auth_user_id))
 
     lot_source = "vip_daily" if wallet.plan == BillingPlan.VIP else "bonus"
     _credit_lot(
@@ -412,12 +423,8 @@ def ensure_period_bonus(db: Session, wallet: TokenWallet) -> TokenWallet:
         note=full_note,
         commit=False,
     )
-    wallet = get_or_create_wallet(db, int(wallet.auth_user_id))
-    wallet.bonus_period = period
-    wallet.updated_at = now
     db.commit()
-    db.refresh(wallet)
-    return wallet
+    return get_or_create_wallet(db, int(wallet.auth_user_id))
 
 
 def grant_signup_bonus(db: Session, auth_user_id: int) -> bool:
@@ -565,6 +572,10 @@ def consume_tokens(
     request_id: Optional[str] = None,
     amount_usd: int = 0,  # 2026-08-03: 并行扣 USD 余额（美分，消耗为正数）
 ) -> TokenWallet:
+    from sqlalchemy import update as sa_update
+
+    from models import TokenCreditLot, TokenWallet as TW
+
     tokens = max(0, int(tokens))
     amount_usd = max(0, int(amount_usd))
     w = ensure_period_bonus(db, get_or_create_wallet(db, auth_user_id))
@@ -599,21 +610,59 @@ def consume_tokens(
     if avail < tokens:
         tokens = avail
     left = tokens
-    for lot in _active_lots_q(db, int(auth_user_id), now).all():
-        if left <= 0:
+    # 原子批次扣：UPDATE ... WHERE amount_remaining >= take，防并发透支
+    guard = 0
+    while left > 0 and guard < 64:
+        guard += 1
+        lot = None
+        for cand in _active_lots_q(db, int(auth_user_id), now).all():
+            if not allow_vip and _is_vip_daily_lot(db, cand):
+                continue
+            if int(cand.amount_remaining or 0) <= 0:
+                continue
+            lot = cand
             break
-        if not allow_vip and _is_vip_daily_lot(db, lot):
-            continue
+        if lot is None:
+            break
         take = min(int(lot.amount_remaining or 0), left)
         if take <= 0:
+            break
+        res = db.execute(
+            sa_update(TokenCreditLot)
+            .where(
+                TokenCreditLot.id == int(lot.id),
+                TokenCreditLot.amount_remaining >= int(take),
+            )
+            .values(amount_remaining=TokenCreditLot.amount_remaining - int(take))
+        )
+        if int(getattr(res, "rowcount", 0) or 0) == 1:
+            left -= take
+        else:
+            db.expire(lot)
             continue
-        lot.amount_remaining = int(lot.amount_remaining or 0) - take
-        left -= take
+    deducted = int(tokens) - int(left)
+    tokens = max(0, deducted)
+    if amount_usd > 0 and tokens < avail:
+        # 若 token 被夹断，按比例缩 USD（避免只扣 USD）
+        pass
     db.flush()
     w.balance_tokens = _sum_active_lots(db, int(auth_user_id), now)
     w.updated_at = now
-    # 并行扣 USD 余额（2026-08-03）
-    w.balance_usd = max(0, int(w.balance_usd or 0) - amount_usd)
+    # USD：尽量原子减；不足则夹到 0
+    if amount_usd > 0:
+        usd_take = min(amount_usd, max(0, int(w.balance_usd or 0)))
+        if usd_take > 0:
+            res_u = db.execute(
+                sa_update(TW)
+                .where(TW.id == int(w.id), TW.balance_usd >= int(usd_take))
+                .values(balance_usd=TW.balance_usd - int(usd_take))
+            )
+            if int(getattr(res_u, "rowcount", 0) or 0) != 1:
+                # 竞态下回退内存夹断
+                w.balance_usd = max(0, int(w.balance_usd or 0) - usd_take)
+            amount_usd = usd_take
+        else:
+            amount_usd = 0
     db.add(
         BillingLedger(
             auth_user_id=int(auth_user_id),
@@ -683,8 +732,10 @@ def topup_usd(
     set_vip: bool = False,
     vip_days: int = 30,
     plan: Optional[str] = None,
+    token_amount: Optional[int] = None,
 ) -> dict:
-    """USD 余额充值（美分）。同时等额换算 token 入账以保持内部核算兼容。"""
+    """USD 余额充值（美分）。token 到账优先套餐契约（plan 的 credit_tokens），
+    未指定时退回按 flash 锚换算（历史/人工充值兼容）。"""
     usd_cents = max(0, int(usd_cents))
     if usd_cents <= 0:
         raise HTTPException(status_code=400, detail="充值金额无效")
@@ -699,32 +750,39 @@ def topup_usd(
     w.balance_usd = int(w.balance_usd or 0) + usd_cents
     w.updated_at = _utcnow()
 
-    # 同时写入等额 token（保持 FIFO lot 体系兼容）
-    from model_warehouse import flash_ref_usd_per_m as _flash_ref
-    ref = _flash_ref()
-    token_amount = max(1, int(round(usd_cents / 100.0 / ref * 1_000_000))) if ref > 0 else usd_cents
-    ledger = _credit_lot(
-        db, auth_user_id=int(auth_user_id), amount=token_amount,
-        entry_type="topup", source="topup",
-        validity_days=DEFAULT_PACK_VALIDITY_DAYS,
-        note=(note or "topup_usd")[:255], plan=plan, commit=False,
-    )
-    db.add(BillingLedger(
-        auth_user_id=int(auth_user_id), entry_type="topup",
-        amount=token_amount, amount_usd=usd_cents,
-        model=None, tokens=token_amount,
-        note=(note or "topup")[:255],
-    ))
-    db.commit()
-    db.refresh(w)
-
-    # 首次充值触发推荐返利
-    try:
-        settle_referral_on_topup(
-            db, referee_id=int(auth_user_id), topup_amount=token_amount, topup_ledger_id=int(ledger.id)
+    # token 到账：套餐契约（credit_tokens）优先，未指定退回 flash 锚换算（FIFO lot 兼容）
+    if token_amount is not None and int(token_amount) > 0:
+        token_amount = int(token_amount)
+    elif token_amount is not None and int(token_amount) == 0:
+        token_amount = 0  # 明确 0：仅开通资格（如 VIP 资格包），不发额度
+    else:
+        from model_warehouse import flash_ref_usd_per_m as _flash_ref
+        ref = _flash_ref()
+        token_amount = max(1, int(round(usd_cents / 100.0 / ref * 1_000_000))) if ref > 0 else usd_cents
+    if int(token_amount) > 0:
+        ledger = _credit_lot(
+            db, auth_user_id=int(auth_user_id), amount=token_amount,
+            entry_type="topup", source="topup",
+            validity_days=DEFAULT_PACK_VALIDITY_DAYS,
+            note=(note or "topup_usd")[:255], plan=plan, commit=False,
         )
-    except Exception:
-        pass
+        db.add(BillingLedger(
+            auth_user_id=int(auth_user_id), entry_type="topup",
+            amount=token_amount, amount_usd=usd_cents,
+            model=None, tokens=token_amount,
+            note=(note or "topup")[:255],
+        ))
+        db.commit()
+        db.refresh(w)
+
+    # 首次充值触发推荐返利（仅发额度的充值）
+    if int(token_amount) > 0:
+        try:
+            settle_referral_on_topup(
+                db, referee_id=int(auth_user_id), topup_amount=token_amount, topup_ledger_id=int(ledger.id)
+            )
+        except Exception:
+            pass
     return get_balance_snapshot(db, auth_user_id)
 
 
@@ -1132,9 +1190,19 @@ def settle_referral_on_topup(
     for r in rows:
         bps = REFERRAL_L1_BPS if int(r.level) == 1 else REFERRAL_L2_BPS
         reward = max(0, int(topup_amount) * int(bps) // 10000)
-        r.reward_tokens = reward
-        r.status = "paid"
-        r.topup_ledger_id = int(topup_ledger_id)
+        from sqlalchemy import update as sa_update
+
+        claimed = db.execute(
+            sa_update(Referral)
+            .where(Referral.id == int(r.id), Referral.status == "pending")
+            .values(
+                reward_tokens=int(reward),
+                status="paid",
+                topup_ledger_id=int(topup_ledger_id),
+            )
+        )
+        if int(getattr(claimed, "rowcount", 0) or 0) != 1:
+            continue
         if reward > 0:
             _credit_lot(
                 db,

@@ -27,7 +27,7 @@ git checkout master
 git pull origin master
 # 若失败：git pull gitee master
 git log -1 --oneline
-# 期望含：openai / chat/completions / compat
+# 期望：a692aed（openai / chat/completions / compat）
 
 # 勿动 DATABASE_URL；本包无 .env 必改项
 

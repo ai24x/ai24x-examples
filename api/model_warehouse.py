@@ -208,7 +208,7 @@ CATALOG: list[dict[str, Any]] = [
         "siliconflow_id": "moonshotai/Kimi-K3",
         "cost_in": 3.0,
         "cost_out": 15.0,
-        "billing_mult": 40,  # 2026-08-03 fix: ceil(9.0/0.45*2)=40 (was 24, inverted)
+        "billing_mult": 39,  # 2026-08-05: ceil(9.0/0.35*1.5)=39 (flash anchor 0.35)
         "quality": "旗舰 · 多项国际评测冠军",
         "quality_en": "Flagship · top benchmarks",
         "access": "ready",
@@ -266,7 +266,7 @@ CATALOG: list[dict[str, Any]] = [
         "siliconflow_id": "MiniMaxAI/MiniMax-M2.5",
         "cost_in": 0.3,
         "cost_out": 1.2,
-        "billing_mult": 4,  # 2026-08-03 fix: ceil(0.75/0.45*2)=4 (was 3, inverted)
+        "billing_mult": 4,  # 2026-08-05: ceil(0.75/0.35*1.5)=4
         "quality": "智能体 / 编程",
         "quality_en": "Agents / coding",
         "access": "ready",
@@ -286,7 +286,7 @@ CATALOG: list[dict[str, Any]] = [
         "siliconflow_id": "Qwen/Qwen3-235B-A22B-Instruct-2507",
         "cost_in": 1.475,
         "cost_out": 4.425,
-        "billing_mult": 14,  # 2026-08-03 fix: ceil(2.95/0.45*2)=14 (was 12, inverted)
+        "billing_mult": 13,  # 2026-08-05: ceil(2.95/0.35*1.5)=14
         "quality": "通用旗舰",
         "quality_en": "General flagship",
         "access": "ready",
@@ -326,7 +326,7 @@ CATALOG: list[dict[str, Any]] = [
         "siliconflow_id": "zai-org/GLM-5.1",
         "cost_in": 1.12,
         "cost_out": 3.52,
-        "billing_mult": 11,  # 2026-08-03 fix: ceil(2.32/0.45*2)=11 (was 8, inverted)
+        "billing_mult": 10,  # 2026-08-05: ceil(2.32/0.35*1.5)=11
         "quality": "通用旗舰",
         "quality_en": "General flagship",
         "access": "ready",
@@ -345,7 +345,7 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         "cost_in": 1.25,
         "cost_out": 10.0,
-        "billing_mult": 25,  # 2026-08-03 fix: ceil(5.625/0.45*2)=25 (was 16, inverted)
+        "billing_mult": 25,  # 2026-08-05: ceil(5.625/0.35*1.5)=25
         "quality": "旗舰 · 多项国际评测冠军",
         "quality_en": "Flagship · top benchmarks",
         "access": "ready",
@@ -381,7 +381,7 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         "cost_in": 2.00,    # 2026-08-03: 对齐 Terra 新定价 (was 2.50)
         "cost_out": 12.00,  # 2026-08-03: 对齐 Terra 新定价 (was 15.00)
-        "billing_mult": 32,  # 2026-08-03 fix: ceil(7.0/0.45*2)=32 (was 24, inverted)
+        "billing_mult": 30,  # 2026-08-05: ceil(7.0/0.35*1.5)=32
         "quality": "最强",
         "quality_en": "Top tier",
         "access": "ready",
@@ -399,7 +399,7 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         "cost_in": 2.5,
         "cost_out": 10.0,
-        "billing_mult": 28,  # 2026-08-03 fix: ceil(6.25/0.45*2)=28 (was 18, inverted)
+        "billing_mult": 27,  # 2026-08-05: ceil(6.25/0.35*1.5)=28
         "quality": "经典",
         "quality_en": "Classic",
         "access": "ready",
@@ -417,7 +417,7 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         "cost_in": 0.15,
         "cost_out": 0.6,
-        "billing_mult": 4,
+        "billing_mult": 2,
         "quality": "经典轻量",
         "quality_en": "Classic lightweight",
         "access": "ready",
@@ -435,7 +435,7 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         "cost_in": 2.0,
         "cost_out": 10.0,
-        "billing_mult": 27,  # 2026-08-03 fix: ceil(6.0/0.45*2)=27 (was 16, inverted)
+        "billing_mult": 26,  # 2026-08-05: ceil(6.0/0.35*1.5)=27
         "quality": "写作 / 推理",
         "quality_en": "Writing / reasoning",
         "access": "ready",
@@ -453,7 +453,7 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         "cost_in": 1.0,
         "cost_out": 5.0,
-        "billing_mult": 14,  # 2026-08-03 fix: ceil(3.0/0.45*2)=14 (was 8, inverted)
+        "billing_mult": 13,  # 2026-08-05: ceil(3.0/0.35*1.5)=14
         "quality": "轻量快速",
         "quality_en": "Fast and light",
         "access": "ready",
@@ -471,7 +471,7 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         "cost_in": 5.0,
         "cost_out": 25.0,
-        "billing_mult": 67,  # 2026-08-03 fix: ceil(15.0/0.45*2)=67 (was 40, inverted)
+        "billing_mult": 65,  # 2026-08-05: ceil(15.0/0.35*1.5)=67
         "quality": "顶配",
         "quality_en": "Premium",
         "access": "ready",
@@ -489,7 +489,7 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         "cost_in": 2.0,
         "cost_out": 12.0,
-        "billing_mult": 32,  # 2026-08-03 fix: ceil(7.0/0.45*2)=32 (was 18, inverted)
+        "billing_mult": 30,  # 2026-08-05: ceil(7.0/0.35*1.5)=32
         "quality": "长上下文",
         "quality_en": "Long context",
         "access": "ready",
@@ -507,7 +507,7 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         "cost_in": 1.5,
         "cost_out": 7.5,
-        "billing_mult": 20,  # 2026-08-03 fix: ceil(4.5/0.45*2)=20 (was 12, inverted)
+        "billing_mult": 20,  # 2026-08-05: ceil(4.5/0.35*1.5)=20
         "quality": "轻量长上下文",
         "quality_en": "Light long-context",
         "access": "ready",
@@ -526,7 +526,7 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         "cost_in": 1.00,
         "cost_out": 6.00,
-        "billing_mult": 16,
+        "billing_mult": 15,
         "quality": "日常旗舰·平衡",
         "quality_en": "Balanced flagship",
         "access": "ready",
@@ -574,17 +574,17 @@ def _save_ov(data: dict[str, Any]) -> None:
 
 def flash_ref_usd_per_m() -> float:
     try:
-        v = float((os.getenv("TOKEN_FLASH_REF_USD_PER_M") or "0.45").strip() or "0.45")
-        return v if v > 0 else 0.45
+        v = float((os.getenv("TOKEN_FLASH_REF_USD_PER_M") or "0.35").strip() or "0.35")
+        return v if v > 0 else 0.35
     except ValueError:
-        return 0.45
+        return 0.35
 
 
 def min_markup() -> float:
-    """售价相对混合成本的最低加成（默认 2.0 = 约 50% 毛利率量级）。"""
+    """售价相对混合成本的最低加成（默认 1.5 = 约 33% 毛利率量级）。"""
     try:
-        v = float((os.getenv("TOKEN_MIN_MARKUP") or "2.0").strip() or "2.0")
-        return v if v >= 1.0 else 2.0
+        v = float((os.getenv("TOKEN_MIN_MARKUP") or "1.5").strip() or "1.5")
+        return v if v >= 1.0 else 1.5
     except ValueError:
         return 2.0
 

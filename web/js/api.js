@@ -667,7 +667,7 @@
     if (c.vipOnly) {
       return zh ? "会员资格" : "VIP access";
     }
-    if (c.creditsOnly && Number((p && p.credit_tokens) || 0) <= 500000) {
+    if (c.creditsOnly && Number((p && p.credit_tokens) || 0) <= 2000000) {
       return zh ? "小额预充先跑通；要点名选 Scale" : "Small prepaid to start; Scale to name models";
     }
     if (c.creditsOnly) {
@@ -679,6 +679,14 @@
   function planYesNo(flag) {
     if (isZhUi()) return flag ? "有" : "无";
     return flag ? "Yes" : "No";
+  }
+
+  /** 点名模列：无资格=无；仅资格无额度=有（需额度）；资格+额度=有 */
+  function planNameAccess(p) {
+    var c = planCaps(p);
+    if (!c.vip) return isZhUi() ? "无" : "No";
+    if (!c.credits) return isZhUi() ? "有（需额度）" : "Yes (needs credits)";
+    return isZhUi() ? "有" : "Yes";
   }
 
   function planCapabilityTags(p) {
@@ -703,19 +711,18 @@
     var suffix = otn ? (zh ? " 单号：" + otn : " Order: " + otn) : "";
     if (planId === "token_vip_month") {
       return zh
-        ? "会员已开通。每日额度仅 flash/auto；要点名请选 Scale。" + suffix
-        : "VIP active. Daily quota flash/auto only — choose Scale for named models." +
-            suffix;
+        ? "VIP 资格已开通（30 天）：可点名名模（消耗预充额度）。" + suffix
+        : "VIP access active (30 days): you can name models (billed from prepaid credits)." + suffix;
     }
-    if (planId === "token_pack_100k" || planId === "token_pack_10k") {
+    if (planId === "token_pack_100k" || planId === "token_pack_10k" || planId === "token_pack_mid") {
       return zh
-        ? "预充额度已到账。要点名请选 Scale 组合包。" + suffix
-        : "Credits added. For named models, choose Scale." + suffix;
+        ? "预充额度已到账。要点名：选 Scale 或补购 VIP 资格包。" + suffix
+        : "Credits added. For named models: choose Scale, or add VIP Pass." + suffix;
     }
     if (planId === "token_vip_month_50w") {
       return zh
-        ? "会员与预充均已就绪，可在控制台选用名模。" + suffix
-        : "VIP + credits ready — you can use named models in the Console." + suffix;
+        ? "Scale 已到账：12 个月名模资格 + 2 亿预充额度。" + suffix
+        : "Scale ready: 12-month named access + 200M prepaid credits." + suffix;
     }
     return zh
       ? "支付已确认，已到账。" + suffix
@@ -775,6 +782,7 @@
     planOneLiner: planOneLiner,
     planCreditsShort: planCreditsShort,
     planYesNo: planYesNo,
+    planNameAccess: planNameAccess,
     planFulfillMessage: planFulfillMessage,
   };
 })(typeof window !== "undefined" ? window : this);

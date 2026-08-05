@@ -111,7 +111,8 @@
       VIP: "Token VIP",
       token_pack_10k: "入门包",
       token_pack_100k: "开发包",
-      token_vip_month: "Pro 月卡",
+      token_pack_mid: "进阶包",
+      token_vip_month: "VIP 资格包",
       token_vip_month_50w: "VIP名模包",
     };
     if (m[plan]) return m[plan];
@@ -126,7 +127,8 @@
       VIP: "Token VIP",
       token_pack_10k: "Starter",
       token_pack_100k: "Builder",
-      token_vip_month: "Pro Pass",
+      token_pack_mid: "Advanced",
+      token_vip_month: "VIP Pass",
       token_vip_month_50w: "Scale",
     };
     return m[plan] || plan || "--";
@@ -497,11 +499,17 @@
       trEl.appendChild(tdText(AI24X_API.planPriceLabel(p)));
       // Show flash-equivalent value: $X = ~Y flash calls
       var tokens = Number(p.credit_tokens || 0);
-      var flashVal = tokens > 0 ? ("≈ " + AI24X_API.planCreditsShort(p) + " flash") : (p.price_usd ? "$" + p.price_usd : "—");
+      var flashVal = tokens > 0
+        ? "≈ " + AI24X_API.planCreditsShort(p) + " flash"
+        : p.set_vip
+          ? tr("无额度", "No credits")
+          : p.price_usd
+            ? "$" + p.price_usd
+            : "—";
       var td = document.createElement("td");
       td.textContent = flashVal;
       trEl.appendChild(td);
-      trEl.appendChild(tdText(AI24X_API.planYesNo(!!caps.vip)));
+      trEl.appendChild(tdText(AI24X_API.planNameAccess(p)));
       trEl.appendChild(tdText(AI24X_API.planOneLiner(p) || "—"));
       var payTd = document.createElement("td");
       payTd.className = "plan-compare-pay";
@@ -545,8 +553,8 @@
     tip.className = "sub";
     tip.style.marginTop = "10px";
     tip.textContent = tr(
-      "Flash $0.45/百万 · Pro $1.35/百万 · 自定义充值即将开放。Scale = 可点名模。",
-      "Flash $0.45/M · Pro $1.35/M · Custom top-up coming soon. Scale = named-model access."
+      "Flash $0.35/百万 · Pro $1.05/百万。Scale：12 个月名模资格 + 2 亿额度；已有额度可补购 VIP 资格包。",
+      "Flash $0.35/M · Pro $1.05/M. Scale = 12-mo named access + 200M credits; VIP Pass adds access if you already have credits."
     );
     wrap.appendChild(tip);
     box.appendChild(wrap);
@@ -967,10 +975,13 @@
       li.className = "list-item";
       var left = document.createElement("span");
       var amt = ((Number(o.amount_fen) || 0) / 100).toFixed(2);
+      // PayPal 单 amount_fen 为 USD 美分；微信/支付宝为 CNY 分
+      var moneyLabel =
+        o.channel === "paypal" ? "$" + amt : AI24X_API.isZhUi() ? "¥" + amt : "CNY " + amt;
       left.textContent =
         labelPlanForUi(o.plan) +
         " · " +
-        (AI24X_API.isZhUi() ? "¥" + amt : "CNY " + amt) +
+        moneyLabel +
         " · " +
         labelOrderStatus(o.status) +
         (o.channel ? " · " + labelChannel(o.channel) : "") +
@@ -1669,17 +1680,26 @@
                 reply
               );
             if (junk && requested === "shared") {
-              var safe = tr(
-                "你好！我是 AI24X 助手，有什么可以帮你的？",
-                "Hello! I'm the AI24X assistant. How can I help you today?"
+              var promptText = ($("chat-prompt").value || "").trim();
+              var pureHi = /^(hi|hello|hey|你好|您好|哈喽|嗨)[!！?？.。…\s]*$/i.test(
+                promptText
               );
+              var safe = pureHi
+                ? tr(
+                    "你好！我是 AI24X 助手，有什么可以帮你的？",
+                    "Hello! I'm the AI24X assistant. How can I help you today?"
+                  )
+                : tr(
+                    "免费共享通道暂时繁忙。请稍后再试；产品用法可点右下角即时帮助，或改用 flash / auto（需余额）测质量。",
+                    "Free shared is busy. Try again shortly; for product Q&A use Instant Help, or flash/auto when you have balance."
+                  );
               r = Object.assign({}, r, { response: safe });
               out.textContent = formatChatOut(r, requested);
               showMsg(
                 chatMsg,
                 tr(
-                  "通道已自动换了一条更稳的回复。可再试一次。",
-                  "Switched to a cleaner reply. You can try again."
+                  "共享通道已换稳妥提示。产品问题请用右下角即时帮助。",
+                  "Shared channel used a safe tip. For product Q&A, use Instant Help."
                 ),
                 true
               );
@@ -1688,7 +1708,10 @@
               if (requested === "shared") {
                 showMsg(
                   chatMsg,
-                  tr("免费共享试调完成。", "Free shared try-call done."),
+                  tr(
+                    "免费共享连通正常。测质量请改 flash/auto（需余额）；产品对比用右下角即时帮助。",
+                    "Shared connectivity OK. Use flash/auto for quality (needs balance); Instant Help for product Q&A."
+                  ),
                   true
                 );
               }

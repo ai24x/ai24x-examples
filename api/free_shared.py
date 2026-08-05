@@ -11,8 +11,10 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -124,6 +126,13 @@ _DEFAULTS: dict[str, Any] = {
     "upgrade_first": _env_bool("TOKEN_SHARED_UPGRADE_FIRST", False),
     # 付费档余额不足时自动降级 shared（flash/auto/pro 等；vip-* 除外）
     "auto_degrade": _env_bool("TOKEN_SHARED_AUTO_DEGRADE", True),
+    # T13 共享池上游用量聚合告警 + 熔断（保护付费上游成本；次日 UTC 自动复位）
+    "pool_alert_tokens": _env_int("TOKEN_SHARED_POOL_ALERT_TOKENS", 2_000_000),
+    "pool_break_tokens": _env_int("TOKEN_SHARED_POOL_BREAK_TOKENS", 5_000_000),
+    "pool_break_reqs": _env_int("TOKEN_SHARED_POOL_BREAK_REQS", 5_000),
+    "pool_break_action": (
+        (os.getenv("TOKEN_SHARED_POOL_BREAK_ACTION") or "free-router").strip().lower()
+    ),
     "ops_title": "免费共享通道",
 }
 
@@ -155,6 +164,130 @@ def _save(data: dict[str, Any]) -> None:
         json.dumps(data, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
+
+
+# ---------- T13 共享池上游用量聚合 / 告警 / 熔断 ----------
+_USAGE_PATH = Path(__file__).resolve().parent / "data" / "shared_pool_usage.json"
+_usage_cache: dict[str, Any] = {}
+_usage_cache_ts = 0.0
+_USAGE_CACHE_TTL = 30.0
+
+
+def _usage_date() -> str:
+    return _utcnow().strftime("%Y-%m-%d")
+
+
+def _load_usage() -> dict[str, Any]:
+    global _usage_cache, _usage_cache_ts
+    now = time.time()
+    if _usage_cache and (now - _usage_cache_ts) < _USAGE_CACHE_TTL:
+        return _usage_cache
+    data: dict[str, Any] = {}
+    try:
+        if _USAGE_PATH.is_file():
+            raw = json.loads(_USAGE_PATH.read_text(encoding="utf-8"))
+            if isinstance(raw, dict):
+                data = raw
+    except Exception:
+        data = {}
+    _usage_cache = data
+    _usage_cache_ts = now
+    return data
+
+
+def _save_usage(data: dict[str, Any]) -> None:
+    global _usage_cache, _usage_cache_ts
+    _USAGE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    tmp = _USAGE_PATH.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    os.replace(str(tmp), str(_USAGE_PATH))
+    _usage_cache = data
+    _usage_cache_ts = time.time()
+
+
+def _usage_state() -> dict[str, Any]:
+    data = _load_usage()
+    if str(data.get("date") or "") != _usage_date():
+        return {
+            "date": _usage_date(),
+            "upstreams": {},
+            "total_tokens": 0,
+            "total_reqs": 0,
+            "alerted": False,
+            "breaker": False,
+        }
+    data.setdefault("upstreams", {})
+    data.setdefault("total_tokens", 0)
+    data.setdefault("total_reqs", 0)
+    return data
+
+
+def pool_breaker_state() -> dict[str, Any]:
+    """T13 熔断状态：今日共享池聚合用量是否越过阈值，动作 free-router/disable。"""
+    data = _usage_state()
+    return {
+        "active": bool(data.get("breaker")),
+        "date": str(data.get("date") or ""),
+        "action": str(data.get("breaker_action") or "free-router"),
+        "reason": str(data.get("breaker_reason") or ""),
+        "total_tokens": int(data.get("total_tokens") or 0),
+        "total_reqs": int(data.get("total_reqs") or 0),
+        "alerted": bool(data.get("alerted")),
+        "upstreams": data.get("upstreams") or {},
+    }
+
+
+def record_pool_upstream_usage(*, catalog_id: str, tokens: int) -> None:
+    """T13：按上游目录聚合今日共享池用量；跨告警阈值写日志，跨熔断阈值自动动作。"""
+    logger = logging.getLogger(__name__)
+    data = _usage_state()
+    day = _usage_date()
+    if str(data.get("date") or "") != day:
+        data = {
+            "date": day,
+            "upstreams": {},
+            "total_tokens": 0,
+            "total_reqs": 0,
+            "alerted": False,
+            "breaker": False,
+        }
+    up = data.setdefault("upstreams", {}).setdefault(str(catalog_id), {"tokens": 0, "reqs": 0})
+    up["tokens"] = int(up.get("tokens") or 0) + max(0, int(tokens))
+    up["reqs"] = int(up.get("reqs") or 0) + 1
+    data["total_tokens"] = int(data.get("total_tokens") or 0) + max(0, int(tokens))
+    data["total_reqs"] = int(data.get("total_reqs") or 0) + 1
+    cfg = effective_config()
+    alert_tok = int(cfg.get("pool_alert_tokens") or 0)
+    break_tok = int(cfg.get("pool_break_tokens") or 0)
+    break_req = int(cfg.get("pool_break_reqs") or 0)
+    if not data.get("alerted") and alert_tok > 0 and int(data["total_tokens"]) >= alert_tok:
+        data["alerted"] = True
+        logger.warning(
+            "shared pool usage alert: total_tokens=%s threshold=%s",
+            data["total_tokens"],
+            alert_tok,
+        )
+    if not data.get("breaker") and break_tok > 0 and int(data["total_tokens"]) >= break_tok:
+        data["breaker"] = True
+        data["breaker_action"] = str(cfg.get("pool_break_action") or "free-router")
+        data["breaker_reason"] = "token_cap"
+        logger.warning(
+            "shared pool breaker triggered: action=%s total_tokens=%s cap=%s",
+            data["breaker_action"],
+            data["total_tokens"],
+            break_tok,
+        )
+    if not data.get("breaker") and break_req > 0 and int(data["total_reqs"]) >= break_req:
+        data["breaker"] = True
+        data["breaker_action"] = str(cfg.get("pool_break_action") or "free-router")
+        data["breaker_reason"] = "req_cap"
+        logger.warning(
+            "shared pool breaker triggered: action=%s total_reqs=%s cap=%s",
+            data["breaker_action"],
+            data["total_reqs"],
+            break_req,
+        )
+    _save_usage(data)
 
 
 def effective_config() -> dict[str, Any]:
@@ -198,6 +331,25 @@ def effective_config() -> dict[str, Any]:
         dm = "failover"
     out["dispatch_mode"] = dm
     out["brand_model"] = str(out.get("brand_model") or "shared")[:32]
+
+    # T13 熔断：越过阈值后按动作收窄/关闭共享池（次日 UTC 自动复位）
+    try:
+        out["pool_alert_tokens"] = max(0, int(out.get("pool_alert_tokens") or 0))
+        out["pool_break_tokens"] = max(0, int(out.get("pool_break_tokens") or 0))
+        out["pool_break_reqs"] = max(0, int(out.get("pool_break_reqs") or 0))
+        _action = str(out.get("pool_break_action") or "free-router").strip().lower()
+        out["pool_break_action"] = _action if _action in ("free-router", "disable") else "free-router"
+    except (TypeError, ValueError):
+        pass
+    brk = pool_breaker_state()
+    out["pool_breaker"] = brk
+    if brk.get("active"):
+        action = str(brk.get("action") or "free-router")
+        if action == "disable":
+            out["enabled"] = False
+        else:
+            out["prefer"] = "or-free-router"
+            out["pool_enabled"] = ["or-free-router"]
     return out
 
 
@@ -350,16 +502,43 @@ def _is_shared_junk(text: str) -> bool:
     return False
 
 
+def _is_pure_greeting(prompt: str) -> bool:
+    """仅纯打招呼（可带标点），不含实质问题。"""
+    raw = (prompt or "").strip()
+    if not raw:
+        return True
+    # 去掉首尾标点/空白后再判
+    core = re.sub(r"^[\s\W]+|[\s\W]+$", "", raw, flags=re.UNICODE)
+    core = re.sub(r"[!！?？.。,…〜~]+$", "", core).strip()
+    if not core:
+        return True
+    if len(core) > 16:
+        return False
+    return bool(
+        re.fullmatch(
+            r"(hi|hello|hey|你好|您好|哈喽|嗨)([\s,，]*|$)",
+            core,
+            flags=re.I,
+        )
+    )
+
+
 def _shared_safe_fallback(prompt: str) -> str:
-    """全通道失败或全是垃圾时，给新用户一句干净短答，避免把复读抛到前端。"""
-    p = (prompt or "").strip().lower()
-    if re.search(r"^(hi|hello|hey|你好|您好|哈喽)\b", p) or len(p) <= 12:
+    """全通道失败或全是垃圾时的干净短答；有实质问题时勿再回「有什么可以帮你」。"""
+    if _is_pure_greeting(prompt):
         if re.search(r"[\u4e00-\u9fff]", prompt or ""):
             return "你好！我是 AI24X 助手，有什么可以帮你的？"
         return "Hello! I'm the AI24X assistant. How can I help you today?"
     if re.search(r"[\u4e00-\u9fff]", prompt or ""):
-        return "你好，我是 AI24X 助手。请再说具体一点，我来帮你。"
-    return "Hi, I'm the AI24X assistant. Please share a bit more detail and I’ll help."
+        return (
+            "免费共享通道暂时繁忙。请稍后再试；"
+            "产品用法可点右下角即时帮助，或改用 flash / auto（需余额）测质量。"
+        )
+    return (
+        "The free shared channel is busy. Try again shortly; "
+        "for product Q&A use Instant Help (bottom-right), "
+        "or try flash/auto when you have balance."
+    )
 
 
 def _clamp_shared_reply(text: str) -> str:
@@ -414,9 +593,14 @@ def run_shared_pool_chat(
     max_tokens = max(48, min(int(max_tokens or 128), 128))
     temperature = min(float(temperature or 0.3), 0.3)
     shared_system = (
-        "You are AI24X. Always write the brand as exactly AI24X with no spaces. "
-        "Answer in at most two short sentences. Never repeat words. "
-        "Never say flash, pro, ultra, tier, or other AI brand names."
+        "You are the AI24X assistant on the free shared channel. "
+        "Write the brand only as AI24X (no spaces). "
+        "You may explain product tiers: auto, flash, pro, ultra, shared. "
+        "auto picks a suitable paid tier; flash is fast everyday; "
+        "pro/ultra are stronger; shared is the free daily pool (lighter quality). "
+        "Reply in 1-3 short sentences in the user's language. "
+        "Do not repeat words. Do not invent fake tier names. "
+        "Do not mention upstream vendors or internal ops."
     )
     if not chain:
         return RouteResult(
@@ -647,6 +831,13 @@ def admin_snapshot(db: Optional[Session] = None) -> dict[str, Any]:
             "规模期再上 BYOK；勿把 Flash/Pro 塞进共享池",
         ],
         "today": {"requests": today_reqs, "users": today_users},
+        "pool_breaker": pool_breaker_state(),
+        "pool_limits": {
+            "alert_tokens": int(cfg.get("pool_alert_tokens") or 0),
+            "break_tokens": int(cfg.get("pool_break_tokens") or 0),
+            "break_reqs": int(cfg.get("pool_break_reqs") or 0),
+            "break_action": str(cfg.get("pool_break_action") or "free-router"),
+        },
         "funnel": {
             "steps": [
                 "注册小礼包 → 付费档 flash 试用",
@@ -774,6 +965,7 @@ def record_shared_usage(
     tokens: int,
     model: Optional[str],
     request_id: Optional[str],
+    catalog_id: Optional[str] = None,
 ) -> None:
     from models import BillingLedger
 
@@ -783,13 +975,16 @@ def record_shared_usage(
             auth_user_id=int(auth_user_id),
             entry_type="shared",
             amount=0,
-            model=(model or "")[:64] or None,
+            model=(catalog_id or model or "")[:64] or None,
             tokens=max(0, int(tokens)),
             request_id=request_id,
             note=f"free_shared {day}",
         )
     )
     db.commit()
+    # T13 聚合上游用量（熔断依据）
+    if catalog_id:
+        record_pool_upstream_usage(catalog_id=catalog_id, tokens=max(0, int(tokens)))
 
 
 def model_allows_auto_shared(model: Optional[str]) -> bool:

@@ -112,13 +112,24 @@ app = FastAPI(
 )
 
 _cors_raw = (settings.cors_origins or "*").strip()
+if is_prod() and (_cors_raw == "*" or not _cors_raw):
+    # 生产默认收窄，避免任意站跨域带 Cookie；仍可用 CORS_ORIGINS 显式覆盖
+    _cors_raw = "https://www.ai24x.com,https://ai24x.com"
+    logger.warning("CORS_ORIGINS=* in prod — using default www.ai24x.com,ai24x.com")
 _cors_origins = ["*"] if _cors_raw == "*" else [x.strip() for x in _cors_raw.split(",") if x.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
     allow_credentials=("*" not in _cors_origins),
-    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-API-Key", "X-SMS-Internal-Key", "X-Request-ID"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "X-API-Key",
+        "X-SMS-Internal-Key",
+        "X-Admin-Key",
+        "X-Request-ID",
+    ],
 )
 
 
@@ -922,7 +933,19 @@ async def admin_sms_logs(
 
 # —— 官网联调占位路由（返回 501，实现后替换为真实业务）——
 @app.post("/v1/auth/login", response_model=AuthTokenResponse)
-async def auth_login(body: AuthLoginBody, db: Session = Depends(get_db)):
+async def auth_login(request: Request, body: AuthLoginBody, db: Session = Depends(get_db)):
+    from security_util import (
+        check_login_throttle,
+        clear_login_failures,
+        record_login_failure,
+    )
+
+    identity = (body.email or body.phone or "").strip().lower()
+    ip = sec_client_ip(request)
+    ok_th, th_msg = check_login_throttle(identity=identity, ip=ip)
+    if not ok_th:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=th_msg)
+
     u = authenticate_password(
         db,
         phone=body.phone,
@@ -930,10 +953,12 @@ async def auth_login(body: AuthLoginBody, db: Session = Depends(get_db)):
         password=body.password,
     )
     if not u:
+        record_login_failure(identity=identity, ip=ip)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="手机号或密码错误，请检查后重试。",
         )
+    clear_login_failures(identity=identity, ip=ip)
     raise_if_frozen(u)
     token = create_auth_access_token(
         user_id=int(u.id),
@@ -1761,12 +1786,26 @@ async def admin_token_ticket_reply(
 
 
 def _require_internal_key(request: Request) -> None:
-    if not (settings.sms_internal_key or "").strip():
+    """管理接口鉴权：优先 ADMIN_API_KEY（头 X-Admin-Key），兼容旧 X-SMS-Internal-Key。"""
+    admin = (getattr(settings, "admin_api_key", "") or "").strip()
+    sms_k = (settings.sms_internal_key or "").strip()
+    expected = admin or sms_k
+    if not expected:
         raise HTTPException(status_code=503, detail="服务暂不可用，请稍后再试。")
-    if (request.headers.get("X-SMS-Internal-Key") or "").strip() != (
-        settings.sms_internal_key or ""
-    ).strip():
+    provided = (
+        (request.headers.get("X-Admin-Key") or "").strip()
+        or (request.headers.get("X-SMS-Internal-Key") or "").strip()
+    )
+    # 若配了独立 ADMIN_API_KEY，仅接受该钥（或仍可用 SMS 钥作兼容，方便过渡）
+    ok = False
+    if admin and provided == admin:
+        ok = True
+    elif sms_k and provided == sms_k:
+        ok = True
+    if not ok:
         raise HTTPException(status_code=403, detail="禁止访问")
+
+
 
 
 @app.get("/v1/billing/plans")
@@ -2037,9 +2076,10 @@ async def billing_alipay_notify(request: Request, db: Session = Depends(get_db))
 
 @app.post("/v1/billing/paypal/webhook")
 async def billing_paypal_webhook(request: Request, db: Session = Depends(get_db)):
-    """PayPal Webhook → Capture 完成后履约。未配 WEBHOOK_ID 时仍尝试解析事件（仅 sandbox 联调）。"""
+    """PayPal Webhook → Capture 完成后履约。生产必须 WEBHOOK_ID + 验签通过。"""
     import json
 
+    from security_util import is_prod
     from token_pay_service import pay_settings_ns, try_fulfill, token_pay_enabled
 
     if not token_pay_enabled():
@@ -2054,14 +2094,24 @@ async def billing_paypal_webhook(request: Request, db: Session = Depends(get_db)
         verify_webhook_signature,
     )
 
+    webhook_id = str(getattr(cfg, "paypal_webhook_id", "") or "").strip()
+    mode = str(getattr(cfg, "paypal_mode", "sandbox") or "sandbox").lower()
+    if is_prod() or mode in ("live", "production"):
+        if not webhook_id:
+            logger.error("paypal webhook rejected: PAYPAL_WEBHOOK_ID empty in prod/live")
+            return JSONResponse(status_code=503, content={"ok": False, "reason": "webhook_not_configured"})
+
     verified = False
     try:
         verified = await verify_webhook_signature(cfg, headers=headers, body=body_str)
     except Exception as e:
         logger.warning("paypal webhook verify error: %s", e)
-    mode = str(getattr(cfg, "paypal_mode", "sandbox") or "sandbox").lower()
-    if not verified and mode not in ("sandbox", "test", "dev"):
-        return JSONResponse(status_code=400, content={"ok": False, "reason": "verify_failed"})
+    if not verified:
+        if is_prod() or mode in ("live", "production"):
+            return JSONResponse(status_code=400, content={"ok": False, "reason": "verify_failed"})
+        if mode not in ("sandbox", "test", "dev"):
+            return JSONResponse(status_code=400, content={"ok": False, "reason": "verify_failed"})
+        logger.warning("paypal webhook unverified — allowed only in sandbox/test/dev")
 
     try:
         event = json.loads(body_str or "{}")

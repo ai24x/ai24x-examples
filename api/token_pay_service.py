@@ -101,9 +101,14 @@ def token_pay_enabled() -> bool:
 
 def token_pay_mock_allowed() -> bool:
     """模拟到账开关。
+    - 生产（APP_ENV=prod/production）：一律禁止，防覆盖文件误开
     - 真支付已开：仅当 MOCK 配置为 true 才允许（管理台覆盖优先于 env）
     - 真支付未开：MOCK=true，或本机/dev/test；若管理台显式关 MOCK 则禁止
     """
+    from security_util import is_prod
+
+    if is_prod():
+        return False
     try:
         from system_flags import effective_token_pay_mock_flag, get_override
 
@@ -241,6 +246,10 @@ def _fulfill_order_row(
     amount_fen: int,
     channel_tag: str,
 ) -> dict[str, Any]:
+    from sqlalchemy import update as sa_update
+
+    from token_plans import _resolve_plan, _usd_cny
+
     otn = str(row.out_trade_no)
     txid = str(transaction_id or "").strip()
     if not txid:
@@ -254,48 +263,79 @@ def _fulfill_order_row(
     if int(row.amount_fen) != int(amount_fen):
         return {"ok": False, "error": "amount_mismatch"}
 
-    plan = get_plan(str(row.plan))
+    # 履约可用已下架套餐定义（前台 enabled=false 仍需给已下单用户到账）
+    plan = _resolve_plan(str(row.plan))
     if not plan:
         return {"ok": False, "error": "plan_missing"}
 
-    credit = int(plan.get("credit_tokens") or 0)
+    plan_credit = int(plan.get("credit_tokens") or 0)
+    credit = plan_credit
     set_vip = bool(plan.get("set_vip"))
     note = f"{channel_tag}:{otn}:{row.plan}"
 
-    # 2026-08-03: 统一按 USD 入账
-    from token_plans import _usd_cny
     fx = _usd_cny()
     plan_usd = float(plan.get("price_usd") or 0)
     if plan_usd > 0:
         usd_cents = int(round(plan_usd * 100))
     else:
-        # 没有 USD 价时从 CNY 分换算（兜底）
         usd_cents = max(1, int(round(int(amount_fen) / fx)))
-    row.amount_usd = usd_cents
 
-    # VIP-only 月卡：到账 0 时写 1 token 作流水锚点
     if credit <= 0 and set_vip:
         credit = 1
     if credit <= 0 and usd_cents <= 0:
         return {"ok": False, "error": "nothing_to_fulfill"}
 
+    now = _utcnow()
+    # 原子抢占：仅 pending→paid 成功的一方可入账，防 webhook+手动确认双到账
+    claimed = db.execute(
+        sa_update(TokenPayOrder)
+        .where(
+            TokenPayOrder.out_trade_no == otn,
+            TokenPayOrder.status == "pending",
+        )
+        .values(
+            status="paid",
+            transaction_id=txid[:128],
+            amount_usd=int(usd_cents),
+            paid_at=now,
+            updated_at=now,
+        )
+    )
+    if int(getattr(claimed, "rowcount", 0) or 0) != 1:
+        db.rollback()
+        again = db.query(TokenPayOrder).filter(TokenPayOrder.out_trade_no == otn).first()
+        if again and str(again.status) == "paid":
+            if again.transaction_id and str(again.transaction_id) == txid:
+                return {"ok": True, "duplicate": True, "out_trade_no": otn}
+            return {"ok": False, "error": "order_already_paid"}
+        return {"ok": False, "error": "claim_failed"}
+    db.commit()
+
+    from models import BillingLedger
     from token_mvp_service import topup_usd
 
-    topup_usd(
-        db,
-        auth_user_id=int(row.auth_user_id),
-        usd_cents=usd_cents,
-        note=note,
-        set_vip=set_vip,
-        vip_days=int(plan.get("vip_days") or 30),
-        plan=str(row.plan),
+    # 入账幂等：同 note 已有 topup 则跳过（抢占已成功但入账中断时可重试）
+    existed = (
+        db.query(BillingLedger.id)
+        .filter(
+            BillingLedger.auth_user_id == int(row.auth_user_id),
+            BillingLedger.entry_type == "topup",
+            BillingLedger.note == note[:255],
+        )
+        .first()
     )
+    if not existed:
+        topup_usd(
+            db,
+            auth_user_id=int(row.auth_user_id),
+            usd_cents=usd_cents,
+            note=note,
+            set_vip=set_vip,
+            vip_days=int(plan.get("vip_days") or 30),
+            plan=str(row.plan),
+            token_amount=plan_credit if plan_credit > 0 else (0 if set_vip else None),
+        )
 
-    row.status = "paid"
-    row.transaction_id = txid[:128]
-    row.paid_at = _utcnow()
-    row.updated_at = _utcnow()
-    db.commit()
     snap = get_balance_snapshot(db, int(row.auth_user_id))
     return {"ok": True, "out_trade_no": otn, "balance": snap}
 
