@@ -4532,6 +4532,7 @@ def agent_commission_overview(user_id: int) -> dict[str, Any]:
             "payout_account": acct_out,
             "promo_tier": promo,
             "city_partner": city,
+            "has_partner_plan": bool(_user_has_paid_partner_plan(uid)),
         }
 
 
@@ -5066,6 +5067,7 @@ def agent_commission_overview(user_id: int) -> dict[str, Any]:
             "payout_account": acct_out,
             "promo_tier": promo,
             "city_partner": city,
+            "has_partner_plan": bool(_user_has_paid_partner_plan(uid)),
         }
 
 

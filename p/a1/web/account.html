@@ -361,6 +361,62 @@
       background: linear-gradient(90deg, rgba(251,191,36,0.40), rgba(251,191,36,0.16));
       border-color: rgba(251,191,36,0.55);
     }
+    .acct-tabs {
+      display: inline-flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin: 14px 0 6px;
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      max-width: 100%;
+    }
+    .acct-tab {
+      padding: 8px 16px;
+      border-radius: 9px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .acct-tab:hover { color: var(--accent, #60a5fa); background: rgba(96,165,250,.10); }
+    .acct-tab.is-active {
+      background: linear-gradient(135deg, var(--accent, #60a5fa), #3b82f6);
+      color: #fff;
+      box-shadow: 0 2px 12px rgba(59,130,246,.35);
+    }
+    @media (max-width: 520px) {
+      .acct-tabs { display: flex; overflow-x: auto; flex-wrap: nowrap; width: 100%; }
+      .acct-tab { white-space: nowrap; flex: 0 0 auto; }
+    }
+
+    /* 伙伴计划分步引导 */
+    .agent-steps { display: flex; gap: 8px; flex-wrap: wrap; margin: 2px 0 6px; }
+    .agent-step {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px 5px 6px; border-radius: 999px;
+      border: 1px dashed var(--border); color: var(--muted); font-size: 12px; line-height: 1.4;
+    }
+    .agent-step-no {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--muted); color: #fff; font-size: 11px; font-weight: 700; flex: 0 0 auto;
+    }
+    .agent-step.is-current { border-color: var(--accent, #60a5fa); color: var(--accent, #60a5fa); }
+    .agent-step.is-current .agent-step-no { background: var(--accent, #60a5fa); }
+    .agent-step.is-done { border-style: solid; border-color: rgba(16,185,129,.45); color: var(--text); background: rgba(16,185,129,.10); }
+    .agent-step.is-done .agent-step-no { background: #10b981; }
+    .agent-step-sec { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+    .agent-step-title { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 13px; margin-bottom: 8px; color: var(--text); }
+    .agent-step-title .agent-step-no { background: var(--panel2); color: var(--accent, #60a5fa); border: 1px solid var(--border); }
+    @media (max-width: 520px) {
+      .agent-steps { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; }
+      .agent-step { white-space: nowrap; flex: 0 0 auto; }
+    }
   </style>
 </head>
 <body>
@@ -420,7 +476,13 @@
       </div>
     </section>
 
-    <section class="card" id="vip">
+    <nav class="acct-tabs" id="acct-tabs" hidden aria-label="用户中心导航">
+      <button type="button" class="acct-tab is-active" data-acct-tab="vip" onclick="showAcctTab('vip')">会员</button>
+      <button type="button" class="acct-tab" data-acct-tab="invite" onclick="showAcctTab('invite')">邀请推广</button>
+      <button type="button" class="acct-tab" data-acct-tab="agent" onclick="showAcctTab('agent')">伙伴计划</button>
+    </nav>
+
+    <section class="card acct-panel" id="vip" data-acct-panel="vip">
       <h1>开通 VIP</h1>
       <p>选择套餐并支付，成功后自动生效；如未更新可点「刷新配额」。</p>
       <p class="sub" style="margin:8px 0 0;">
@@ -518,7 +580,7 @@
       </div>
     </div>
 
-    <section class="card" id="invite">
+    <section class="card acct-panel" id="invite" data-acct-panel="invite">
       <h1>邀请获取次数</h1>
       <p>把邀请链接发给朋友即可。对方打开后邀请码会自动带上（也可手动改）。已注册用户也可在下方绑定好友邀请码（仅一次）。</p>
       <p class="sub" style="margin:8px 0 0;" id="invite-reward-tip">奖励规则加载中…</p>
@@ -560,18 +622,28 @@
       </div>
     </section>
 
-    <section class="card" id="agent" hidden>
+    <section class="card acct-panel" id="agent" data-acct-panel="agent" hidden>
       <h1>伙伴计划（支持研发）</h1>
-      <p class="sub" style="margin:0 0 6px;">
-        选择档位并支付，成功后自动生效；可随时在本页查看到期与结算数据。
-      </p>
-      <div class="muted small" id="agent-expiry" style="margin:0 0 6px;">伙伴到期：—</div>
+      <div class="hint" id="agent-gate" hidden>开通会员（VIP）后可参与伙伴计划：推广返佣、城市合伙人等。请先在「会员」页开通任一付费套餐。</div>
+
+      <div class="agent-steps" id="agent-steps">
+        <div class="agent-step is-current" data-step="1"><span class="agent-step-no">一</span>选择档位并支付</div>
+        <div class="agent-step" data-step="2"><span class="agent-step-no">二</span>填写申请信息</div>
+        <div class="agent-step" data-step="3"><span class="agent-step-no">三</span>审核签约协议</div>
+      </div>
+
+      <div class="agent-step-sec" id="agent-sec-pay">
+        <div class="agent-step-title"><span class="agent-step-no">一</span>选择档位并支付</div>
+        <p class="sub" style="margin:0 0 6px;">
+          选择档位并支付，成功后自动生效；可随时在本页查看到期与结算数据。
+        </p>
+        <div class="muted small" id="agent-expiry" style="margin:0 0 6px;">伙伴到期：—</div>
       <details class="muted small" style="margin:0 0 6px;">
         <summary style="cursor:pointer; user-select:none;">展开说明</summary>
         <div style="margin-top:6px; line-height:1.7;">
           <div>通过「伙伴档位」支持研发与数据成本，获得更完善的协作服务与结算权益。</div>
           <div>分享与合作产生的回馈将进入「待结算 / 已结算」。展示为历史数据，不构成收益承诺，以实际结算为准。</div>
-          <div id="agent-comm-hint" style="margin-top:6px;">规则：金银铜推广等级按近 30 天团队成交额与活跃直推自动晋级，直推返点按本人等级阶梯（铜/银/金）计提；团队回馈需达到等级门槛（由后台设置）才生效。</div>
+          <div id="agent-comm-rule" style="margin-top:6px;">规则：金银铜推广等级按近 30 天团队成交额与活跃直推自动晋级，直推返点按本人等级阶梯（铜/银/金）计提；团队回馈需达到等级门槛（由后台设置）才生效。</div>
           <div id="agent-tier-desc" style="margin-top:6px;">
             <div><b>铜档</b>：入门推广，适合个人分享；直推返点基准档。</div>
             <div><b>银档</b>：团队业绩达标自动晋级，直推返点提升。</div>
@@ -580,21 +652,6 @@
           </div>
         </div>
       </details>
-
-      <div class="kv" id="agent-kv" hidden>
-        <span>推广等级 <b id="agent-level">-</b></span>
-        <span>直推成交(单) <b id="agent-direct-orders">-</b></span>
-        <span>团队规模 <b id="agent-team-size">-</b></span>
-        <span>团队成交额(元) <b id="agent-team-amount">-</b></span>
-        <span>预估回馈(元) <b id="agent-est">-</b></span>
-        <span id="agent-kv-withdrawable">可提现(元) <b id="agent-withdrawable">-</b></span>
-        <span id="agent-kv-paid">已结算(元) <b id="agent-paid">-</b></span>
-      </div>
-      <div class="hint" id="agent-city-hint" style="margin-top:8px; display:none;"></div>
-      <div id="agent-city-apply" style="margin-top:10px;"></div>
-      <div class="hint" id="agent-tier-hint" style="margin-top:10px; display:none;"></div>
-      <div class="hint" id="agent-rewards-hint" style="margin-top:10px; display:none;">当前为权益回馈模式：邀请回馈以查询额度和会员权益形式发放；现金提现仅对签约城市合伙人开放。</div>
-
       <div class="row" style="margin-top:10px; flex-wrap:wrap; gap:10px; align-items:center;">
         <span class="pill step">
           <span class="step-ico step-tier" aria-hidden="true">
@@ -641,7 +698,34 @@
         <span class="muted small">支付成功后将自动生效；如未更新可点「刷新」。</span>
       </div>
       <div class="hint" id="agent-choice-hint" style="margin-top:10px;"></div>
+      </div>
 
+      <div class="agent-step-sec" id="agent-sec-apply">
+        <div class="agent-step-title"><span class="agent-step-no">二</span>填写申请信息</div>
+        <div class="hint" id="agent-apply-gate" style="margin-top:8px;">请先完成第一步「选择档位并支付」，支付成功后自动解锁本步，即可填写申请信息。</div>
+        <div id="agent-city-apply" style="margin-top:10px;"></div>
+      </div>
+
+      <div class="agent-step-sec" id="agent-sec-sign">
+        <div class="agent-step-title"><span class="agent-step-no">三</span>审核签约协议</div>
+        <p class="sub" style="margin:0 0 6px;">提交申请后由平台人工审核；通过后签署《城市合伙人合作协议》，正式协议与往来材料归档在下方，可随时查看下载。</p>
+        <div id="agent-contract-box" style="margin-top:6px;"></div>
+      </div>
+
+      <div class="agent-step-sec" id="agent-sec-data">
+        <div class="agent-step-title">数据与结算</div>
+      <div class="kv" id="agent-kv" hidden>
+        <span>推广等级 <b id="agent-level">-</b></span>
+        <span>直推成交(单) <b id="agent-direct-orders">-</b></span>
+        <span>团队规模 <b id="agent-team-size">-</b></span>
+        <span>团队成交额(元) <b id="agent-team-amount">-</b></span>
+        <span>预估回馈(元) <b id="agent-est">-</b></span>
+        <span id="agent-kv-withdrawable">可提现(元) <b id="agent-withdrawable">-</b></span>
+        <span id="agent-kv-paid">已结算(元) <b id="agent-paid">-</b></span>
+      </div>
+      <div class="hint" id="agent-city-hint" style="margin-top:8px; display:none;"></div>
+      <div class="hint" id="agent-tier-hint" style="margin-top:10px; display:none;"></div>
+      <div class="hint" id="agent-rewards-hint" style="margin-top:10px; display:none;">当前为权益回馈模式：邀请回馈以查询额度和会员权益形式发放；现金提现仅对签约城市合伙人开放。</div>
       <div class="row" style="margin-top:10px; flex-wrap:wrap;">
         <button class="btn" type="button" id="btn-agent-refresh">刷新</button>
         <button class="btn" type="button" id="btn-agent-setacct">设置收款信息</button>
@@ -649,6 +733,7 @@
         <span class="muted small" id="agent-settle-cycle" style="align-self:center;">提现结算：—</span>
       </div>
       <div class="status" id="agent-status" style="margin-top:10px;"></div>
+      </div>
 
       <div style="margin-top:14px; overflow:auto;">
         <div class="row" style="gap:10px; align-items:center; flex-wrap:wrap;">
@@ -1254,6 +1339,32 @@
           .catch(function () {});
       }
 
+      var ACCT_TABS = ["vip", "invite", "agent"];
+      function showAcctTab(name) {
+        if (ACCT_TABS.indexOf(name) < 0) name = "vip";
+        ACCT_TABS.forEach(function (n) {
+          var sec = document.getElementById(n);
+          if (sec) sec.style.display = (n === name) ? "" : "none";
+        });
+        var tabs = document.querySelectorAll(".acct-tab[data-acct-tab]");
+        for (var i = 0; i < tabs.length; i++) {
+          var b = tabs[i];
+          if (b.getAttribute("data-acct-tab") === name) b.classList.add("is-active");
+          else b.classList.remove("is-active");
+        }
+      }
+      function initAcctTabs() {
+        var tabs = document.getElementById("acct-tabs");
+        if (!tabs) return;
+        tabs.hidden = false;
+        var loggedIn = !!tokenGet();
+        var agentTab = document.querySelector('.acct-tab[data-acct-tab="agent"]');
+        if (agentTab) agentTab.style.display = loggedIn ? "" : "none";
+        var def = "vip";
+        try { if (readInviteFromUrl()) def = "invite"; } catch (e) {}
+        showAcctTab(def);
+      }
+
       function tokenGet() {
         try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (e) { return ""; }
       }
@@ -1555,6 +1666,7 @@
         }
         if (authGuest) authGuest.hidden = true;
         if (authUser) authUser.hidden = false;
+        try{ initAcctTabs(); }catch(eTab){}
         // Notices should not depend on /api/me success; fetch immediately for a stable top reminder.
         try{
           if(noticeBar) noticeBar.hidden = false;
@@ -1609,11 +1721,14 @@
             try {
               reloadInviteRecords();
             } catch (eR) {}
+            try{ initAcctTabs(); }catch(eTab2){}
             // Gate partner plan: visible only for logged-in VIP users.
             try{
               var isVip = (String(lastQuotaPlanCode || "").indexOf("vip_") === 0);
               var agentSec = document.getElementById("agent");
-              if(agentSec) agentSec.hidden = !isVip;
+              var agentGate = document.getElementById("agent-gate");
+              if(agentSec) agentSec.hidden = false;
+              if(agentGate) agentGate.hidden = !!isVip;
               // Stop loading agent data when gated off.
               if(!isVip){
                 try{ if(agentKv) agentKv.hidden = true; }catch(e0){}
@@ -1634,6 +1749,11 @@
               quotaKv.hidden = true;
               setAccountIdentityVisible(false);
               setStatus("登录已失效，请重新登录。");
+              try{
+                var agentTab = document.querySelector('.acct-tab[data-acct-tab="agent"]');
+                if(agentTab) agentTab.style.display = "none";
+                showAcctTab("vip");
+              }catch(eT){}
               return;
             }
             quotaKv.hidden = true;
@@ -1694,6 +1814,7 @@
           .then(function (d) {
             if (!d || !d.ok) throw new Error((d && d.detail) || "加载失败");
             agentLastOverview = d || null;
+            try { updateAgentSteps(!!(d && d.has_partner_plan), false, false); } catch (eS) {}
             var ag = d.agent || null;
             var tier = d.tier || {};
             try{
@@ -1805,7 +1926,7 @@
 
       function agentCityFormHtml() {
         return (
-          '<div class="hint" style="margin-top:8px;">申请成为城市合伙人（区域代理）：需先支付成长档/合作伙伴；提交后人工审核，通过后签署《城市合伙人合作协议》并开放现金结算试点。</div>' +
+          '<div class="hint" style="margin-top:8px;">填写申请成为城市合伙人（区域代理）：提交后人工审核，通过后签署《城市合伙人合作协议》并开放现金结算试点。</div>' +
           '<div class="row" style="margin-top:8px; flex-wrap:wrap; gap:8px; align-items:center;">' +
           '<input id="cp-region" placeholder="申请区域（如 浙江温州）" style="max-width:180px;" />' +
           '<input id="cp-contact" placeholder="联系人姓名/公司名称" style="max-width:180px;" />' +
@@ -1818,20 +1939,43 @@
         );
       }
 
+            function updateAgentSteps(paid, applied, signed) {
+        var steps = document.querySelectorAll("#agent-steps .agent-step");
+        if (!steps || !steps.length) return;
+        var flags = [!!paid, !!applied, !!signed];
+        for (var i = 0; i < steps.length; i++) {
+          var cls = "agent-step";
+          if (flags[i]) cls += " is-done";
+          else {
+            var prevDone = (i === 0) ? true : flags[i - 1];
+            if (prevDone) cls += " is-current";
+          }
+          steps[i].className = cls;
+        }
+      }
+
       function agentCityRender(app) {
         var box = $("agent-city-apply");
         if (!box) return;
         var cph = $("agent-city-hint");
         var cp = (app && app.partner) || {};
         var ap = (app && app.application) || null;
+        var paid = !!(agentLastOverview && agentLastOverview.has_partner_plan);
+        var gate = $("agent-apply-gate");
+        var applySec = $("agent-sec-apply");
+        var signBox = $("agent-contract-box");
         if (cp.city_partner) {
           if (cph) {
             cph.textContent = "城市合伙人 · " + (cp.city_region || "待定区域") + (cp.city_agreement_no ? (" · 协议 " + cp.city_agreement_no) : "");
             cph.style.display = "block";
           }
-          box.innerHTML = '<div class="hint" style="margin-top:8px;">已签约。正式《城市合伙人合作协议》与往来材料归档如下，可随时下载查看。</div>' +
-            '<div id="agent-city-files" data-manage="0" style="margin-top:8px;"></div>';
-          agentCityLoadFiles();
+          try { if (applySec) applySec.style.display = "none"; } catch (e0) {}
+          if (signBox) {
+            signBox.innerHTML = '<div class="hint" style="margin-top:8px;">已签约。正式《城市合伙人合作协议》与往来材料归档如下，可随时下载查看。</div>' +
+              '<div id="agent-city-files" data-manage="0" style="margin-top:8px;"></div>';
+            agentCityLoadFiles();
+          }
+          updateAgentSteps(true, true, true);
           return;
         }
         if (cph) cph.style.display = "none";
@@ -1847,7 +1991,14 @@
             '<div id="agent-city-files" data-manage="1" style="margin-top:8px;"></div>' + agentCityUploadFormHtml();
           manage = "1";
         } else {
+          if (!paid) {
+            if (gate) gate.style.display = "block";
+            box.innerHTML = "";
+            updateAgentSteps(false, false, false);
+            return;
+          }
           html = agentCityFormHtml();
+          if (gate) gate.style.display = "none";
         }
         box.innerHTML = html;
         var b = $("btn-cp-apply");
@@ -1855,9 +2006,10 @@
         var ub = $("btn-cp-upload");
         if (ub) ub.addEventListener("click", agentCityUpload);
         if (manage === "1") agentCityLoadFiles();
+        updateAgentSteps(paid, !!ap, false);
       }
 
-      function agentCityUploadFormHtml() {
+function agentCityUploadFormHtml() {
         return '<div style="margin-top:10px; padding-top:8px; border-top:1px dashed var(--border,#ddd);">' +
           '<div class="muted small" style="margin-bottom:6px;">补充材料（身份证/营业执照/意向书等；PDF/JPG/PNG，≤10MB，最多 4 份，审核前可增删）：</div>' +
           '<div class="row" style="gap:8px; flex-wrap:wrap; align-items:center;">' +
@@ -3579,6 +3731,12 @@ function agentCityRefresh() {
           }, 200);
         }
       } catch (eHash0) {}
+      try {
+        window.showAcctTab = showAcctTab;
+        window.initAcctTabs = initAcctTabs;
+        window.agentCityDownload = agentCityDownload;
+        window.agentCityDel = agentCityDel;
+      } catch (eExpose) {}
     })();
   </script>
 </body>
