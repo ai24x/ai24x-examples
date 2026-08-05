@@ -478,7 +478,6 @@
 
     <nav class="acct-tabs" id="acct-tabs" hidden aria-label="用户中心导航">
       <button type="button" class="acct-tab is-active" data-acct-tab="vip" onclick="showAcctTab('vip')">会员</button>
-      <button type="button" class="acct-tab" data-acct-tab="invite" onclick="showAcctTab('invite')">邀请推广</button>
       <button type="button" class="acct-tab" data-acct-tab="agent" onclick="showAcctTab('agent')">伙伴计划</button>
     </nav>
 
@@ -627,13 +626,13 @@
       <div class="hint" id="agent-gate" hidden>开通会员（VIP）后可参与伙伴计划：推广返佣、城市合伙人等。请先在「会员」页开通任一付费套餐。</div>
 
       <div class="agent-steps" id="agent-steps">
-        <div class="agent-step is-current" data-step="1"><span class="agent-step-no">一</span>选择档位并支付</div>
-        <div class="agent-step" data-step="2"><span class="agent-step-no">二</span>填写申请信息</div>
-        <div class="agent-step" data-step="3"><span class="agent-step-no">三</span>审核签约协议</div>
+        <div class="agent-step is-current" data-step="1"><span class="agent-step-no">1</span>选择档位并支付</div>
+        <div class="agent-step" data-step="2"><span class="agent-step-no">2</span>填写申请信息</div>
+        <div class="agent-step" data-step="3"><span class="agent-step-no">3</span>审核签约协议</div>
       </div>
 
       <div class="agent-step-sec" id="agent-sec-pay">
-        <div class="agent-step-title"><span class="agent-step-no">一</span>选择档位并支付</div>
+        <div class="agent-step-title"><span class="agent-step-no">1</span>选择档位并支付</div>
         <p class="sub" style="margin:0 0 6px;">
           选择档位并支付，成功后自动生效；可随时在本页查看到期与结算数据。
         </p>
@@ -701,13 +700,13 @@
       </div>
 
       <div class="agent-step-sec" id="agent-sec-apply">
-        <div class="agent-step-title"><span class="agent-step-no">二</span>填写申请信息</div>
-        <div class="hint" id="agent-apply-gate" style="margin-top:8px;">请先完成第一步「选择档位并支付」，支付成功后自动解锁本步，即可填写申请信息。</div>
+        <div class="agent-step-title"><span class="agent-step-no">2</span>填写申请信息</div>
+        <div class="hint" id="agent-apply-gate" style="margin-top:8px;">请先完成第 1 步「选择档位并支付」，支付成功后自动解锁本步，即可填写申请信息。</div>
         <div id="agent-city-apply" style="margin-top:10px;"></div>
       </div>
 
       <div class="agent-step-sec" id="agent-sec-sign">
-        <div class="agent-step-title"><span class="agent-step-no">三</span>审核签约协议</div>
+        <div class="agent-step-title"><span class="agent-step-no">3</span>审核签约协议</div>
         <p class="sub" style="margin:0 0 6px;">提交申请后由平台人工审核；通过后签署《城市合伙人合作协议》，正式协议与往来材料归档在下方，可随时查看下载。</p>
         <div id="agent-contract-box" style="margin-top:6px;"></div>
       </div>
@@ -1341,10 +1340,13 @@
 
       var ACCT_TABS = ["vip", "invite", "agent"];
       function showAcctTab(name) {
+        if (name === "invite") name = "vip";
         if (ACCT_TABS.indexOf(name) < 0) name = "vip";
         ACCT_TABS.forEach(function (n) {
+          // 邀请推广内容并入会员卡片下方，随「会员」一起显示/隐藏
+          var visible = (n === name) || (n === "invite" && name === "vip");
           var sec = document.getElementById(n);
-          if (sec) sec.style.display = (n === name) ? "" : "none";
+          if (sec) sec.style.display = visible ? "" : "none";
         });
         var tabs = document.querySelectorAll(".acct-tab[data-acct-tab]");
         for (var i = 0; i < tabs.length; i++) {
@@ -1365,6 +1367,7 @@
           // 默认恒为「会员」；URL 邀请参数（?i=）仅用于自动绑定邀请码，不改变默认栏目。
           // 支持 #vip / #invite / #agent 直达（index/shell/partner 等入口链接约定）。
           var h = String(location.hash || "").replace(/^#/, "").trim().toLowerCase();
+          if (h === "invite") h = "vip";
           if (ACCT_TABS.indexOf(h) >= 0) def = h;
         } catch (e) {}
         showAcctTab(def);
