@@ -458,6 +458,7 @@
                 </div>
                 <button type="button" id="btnLoadOrders">查询</button>
                 <button type="button" id="btnExportCsv">导出 CSV</button>
+                <button type="button" class="warn" id="btnCleanupExpired" title="作废超过支付窗口仍未付款且无渠道交易号的订单（微信/支付宝 24h、PayPal 72h）；有交易号的保留待对账">清理过期单</button>
               </div>
               <div style="overflow:auto;margin-top:12px;">
                 <table>
@@ -2373,7 +2374,12 @@
       var fulfill = r.status === "pending"
         ? '<button type="button" data-otn="' + String(r.out_trade_no).replace(/"/g, "") + '" class="btnFulfill">查单履约</button>'
         : "";
-      var expTag = r.expired ? ' <span style="color:#c0392b;font-size:11px;">·已过期</span>' : "";
+      var expTag = "";
+      if (r.expired) {
+        expTag = r.transaction_id
+          ? ' <span style="color:#d97706;font-size:11px;">·已过期·待对账</span>'
+          : ' <span style="color:#c0392b;font-size:11px;">·已过期</span>';
+      }
       var rowStyle = r.expired ? ' style="opacity:.5;"' : "";
       return "<tr" + rowStyle + ">" +
         '<td class="mono">' + esc(r.out_trade_no) + "</td>" +
@@ -2991,6 +2997,25 @@
       a.remove();
       setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
       setMsg("CSV 已下载", "ok");
+    } catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+
+  $("btnCleanupExpired").onclick = async function () {
+    try {
+      var pre = await api("/v1/admin/token/orders/cleanup", { method: "POST", body: { dry_run: true } });
+      if (!pre || !pre.ok) throw new Error((pre && pre.error) || "预览失败");
+      var v = pre.voidable_no_txn || 0;
+      var k = pre.kept_for_reconcile || 0;
+      var valid = pre.valid || 0;
+      if (!v) {
+        setMsg("暂无待清理的过期未付订单（有效待履约 " + valid + " 笔；有交易号待对账 " + k + " 笔已保留）", "ok");
+        return;
+      }
+      if (!window.confirm("将作废 " + v + " 笔超时未付订单（无渠道交易号，用户未完成支付）。\n有交易号的 " + k + " 笔会保留待对账，不受影响。确认执行？")) return;
+      var r = await api("/v1/admin/token/orders/cleanup", { method: "POST", body: { dry_run: false } });
+      setMsg("已作废 " + (r.voided || 0) + " 笔超时未付订单；保留待对账 " + (r.kept_for_reconcile || 0) + " 笔", "ok");
+      if (typeof refreshSummary === "function") await refreshSummary();
+      loadOrders();
     } catch (e) { setMsg(String(e.message || e), "err"); }
   };
 
