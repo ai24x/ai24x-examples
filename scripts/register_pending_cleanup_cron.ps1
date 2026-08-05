@@ -3,7 +3,8 @@
 # 删除：Unregister-ScheduledTask -TaskName AI24X_PendingCleanup -Confirm:$false
 $ErrorActionPreference = "Stop"
 $python = (Get-Command python).Source
-$apiDir = "E:\AI24X\ai24x-website\ai24x01\api"
+$repoRoot = Split-Path -Parent $PSScriptRoot
+$apiDir = Join-Path $repoRoot "api"
 $script = Join-Path $apiDir "scripts_token_pending_cleanup.py"
 $taskName = "AI24X_PendingCleanup"
 $action = New-ScheduledTaskAction -Execute $python -Argument "`"$script`" --apply" -WorkingDirectory $apiDir
