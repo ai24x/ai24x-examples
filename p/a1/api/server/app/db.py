@@ -73,7 +73,7 @@ def invite_cfg_effective() -> dict[str, int]:
             "invite_reward_inviter_weekly", int(getattr(settings, "invite_reward_inviter_weekly", 100) or 100)
         ),
         "invite_reward_invitee_weekly": _cfg_int(
-            "invite_reward_invitee_weekly", int(getattr(settings, "invite_reward_invitee_weekly", 50) or 50)
+            "invite_reward_invitee_weekly", int(getattr(settings, "invite_reward_invitee_weekly", 0) or 0)
         ),
         "invite_weekly_cap": _cfg_int(
             "invite_weekly_cap", int(getattr(settings, "invite_weekly_cap", 1000) or 1000)
