@@ -949,8 +949,8 @@ def admin_app_html(admin_base: str) -> str:
                 <div class="field-row">
                   <div class="field" style="flex:1; min-width:200px;"><span class="lbl">套餐名称</span><span class="sub">vip_title_year</span><input id="bill_vip_title_year" placeholder="AI24X VIP年会员" /></div>
                   <div class="field" style="min-width:150px;"><span class="lbl">标价（元）</span><span class="sub">price_vip_year_fen（自动×100 存分）</span><input id="bill_price_vip_year_fen" class="mono" type="number" min="0.01" step="0.01" placeholder="8888" style="width:120px;" /></div>
-                  <div class="field" style="min-width:130px;"><span class="lbl">日上限（次）</span><span class="sub">vip_daily_cap · 与月卡共用</span><input id="bill_vip_daily_cap_year" class="mono" type="number" min="0" step="1" placeholder="150" style="width:110px;" /></div>
-                  <div class="field" style="min-width:130px;"><span class="lbl">周上限（次）</span><span class="sub">vip_weekly · 与月卡共用</span><input id="bill_vip_weekly_year" class="mono" type="number" min="0" step="1" placeholder="500" style="width:110px;" /></div>
+                  <div class="field" style="min-width:130px;"><span class="lbl">日上限（次）</span><span class="sub">vip_year_daily_cap</span><input id="bill_vip_year_daily_cap" class="mono" type="number" min="0" step="1" placeholder="150" style="width:110px;" /></div>
+                  <div class="field" style="min-width:130px;"><span class="lbl">周上限（次）</span><span class="sub">vip_year_weekly</span><input id="bill_vip_year_weekly" class="mono" type="number" min="0" step="1" placeholder="500" style="width:110px;" /></div>
                 </div>
               </div>
 
@@ -3614,8 +3614,8 @@ async function loadEligibleCommissions(){
         put('vip_trial_weekly','bill_vip_trial_weekly');
         put('vip_daily_cap','bill_vip_daily_cap');
         put('vip_weekly','bill_vip_weekly');
-        put('vip_daily_cap','bill_vip_daily_cap_year');
-        put('vip_weekly','bill_vip_weekly_year');
+        put('vip_year_daily_cap','bill_vip_year_daily_cap');
+        put('vip_year_weekly','bill_vip_year_weekly');
         put('billing_dev_real_pay','bill_billing_dev_real_pay');
         put('billing_dev_amount_fen','bill_billing_dev_amount_fen');
         put('billing_pay_wechat_enabled','bill_billing_pay_wechat_enabled');
@@ -3654,8 +3654,8 @@ async function loadEligibleCommissions(){
         post('vip_trial_weekly','bill_vip_trial_weekly');
         post('vip_daily_cap','bill_vip_daily_cap');
         post('vip_weekly','bill_vip_weekly');
-        post('vip_daily_cap','bill_vip_daily_cap_year');
-        post('vip_weekly','bill_vip_weekly_year');
+        post('vip_year_daily_cap','bill_vip_year_daily_cap');
+        post('vip_year_weekly','bill_vip_year_weekly');
         post('billing_dev_real_pay','bill_billing_dev_real_pay');
         post('billing_dev_amount_fen','bill_billing_dev_amount_fen');
         post('billing_pay_wechat_enabled','bill_billing_pay_wechat_enabled');
