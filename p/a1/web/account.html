@@ -1829,24 +1829,143 @@
             cph.textContent = "城市合伙人 · " + (cp.city_region || "待定区域") + (cp.city_agreement_no ? (" · 协议 " + cp.city_agreement_no) : "");
             cph.style.display = "block";
           }
-          box.innerHTML = "";
+          box.innerHTML = '<div class="hint" style="margin-top:8px;">已签约。正式《城市合伙人合作协议》与往来材料归档如下，可随时下载查看。</div>' +
+            '<div id="agent-city-files" data-manage="0" style="margin-top:8px;"></div>';
+          agentCityLoadFiles();
           return;
         }
         if (cph) cph.style.display = "none";
         var html = "";
+        var manage = "0";
         if (ap && ap.status === "pending") {
-          html = '<div class="hint" style="margin-top:8px;">城市合伙人申请已提交（区域：' + escHtml(ap.region) + '），等待人工审核；通过后将自动签约并生成协议编号。</div>';
+          html = '<div class="hint" style="margin-top:8px;">城市合伙人申请已提交（区域：' + escHtml(ap.region) + '），等待人工审核；通过后将自动签约并生成协议编号。</div>' +
+            '<div id="agent-city-files" data-manage="1" style="margin-top:8px;"></div>' + agentCityUploadFormHtml();
+          manage = "1";
         } else if (ap && ap.status === "rejected") {
-          html = '<div class="hint" style="margin-top:8px; color:var(--warn,#c0392b);">城市合伙人申请未通过：' + escHtml(ap.admin_note || "未填写原因") + '，可修正后重新申请。</div>' + agentCityFormHtml();
+          html = '<div class="hint" style="margin-top:8px; color:var(--warn,#c0392b);">城市合伙人申请未通过：' + escHtml(ap.admin_note || "未填写原因") + '，可修正后重新申请。</div>' +
+            agentCityFormHtml() +
+            '<div id="agent-city-files" data-manage="1" style="margin-top:8px;"></div>' + agentCityUploadFormHtml();
+          manage = "1";
         } else {
           html = agentCityFormHtml();
         }
         box.innerHTML = html;
         var b = $("btn-cp-apply");
         if (b) b.addEventListener("click", agentCityApply);
+        var ub = $("btn-cp-upload");
+        if (ub) ub.addEventListener("click", agentCityUpload);
+        if (manage === "1") agentCityLoadFiles();
       }
 
-      function agentCityRefresh() {
+      function agentCityUploadFormHtml() {
+        return '<div style="margin-top:10px; padding-top:8px; border-top:1px dashed var(--border,#ddd);">' +
+          '<div class="muted small" style="margin-bottom:6px;">补充材料（身份证/营业执照/意向书等；PDF/JPG/PNG，≤10MB，最多 4 份，审核前可增删）：</div>' +
+          '<div class="row" style="gap:8px; flex-wrap:wrap; align-items:center;">' +
+          '<input type="file" id="cp-file" accept=".pdf,.jpg,.jpeg,.png" />' +
+          '<input id="cp-file-kind" placeholder="材料类型（如 营业执照）" style="max-width:170px;" />' +
+          '<input id="cp-file-note" placeholder="备注（选填）" style="max-width:180px;" />' +
+          '<button class="btn" type="button" id="btn-cp-upload">上传材料</button>' +
+          '</div></div>';
+      }
+
+      function agentCityLoadFiles() {
+        var box = $("agent-city-files");
+        if (!box) return;
+        apiFetch("/api/agent/city_partner/attachments", { cache: "no-store" })
+          .then(function (d) {
+            if (!box) return;
+            var files = (d && d.items) || [];
+            var manage = String(box.getAttribute("data-manage") || "0") === "1";
+            box.innerHTML = '<div class="muted small">附件 / 合同归档：</div>' + (files.length ? "" : '<div class="muted small">暂无文件</div>');
+            files.forEach(function (f) {
+              var side = f.side === "admin" ? "官方合同" : "用户材料";
+              var sizeKb = f.size_bytes > 0 ? ("（" + Math.round(f.size_bytes / 1024) + "KB）") : "";
+              var row = document.createElement("div");
+              row.style.cssText = "display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px;";
+              row.innerHTML =
+                '<span class="muted small">[' + escHtml(side) + ']</span>' +
+                '<a href="javascript:void(0)" onclick="agentCityDownload(' + f.id + ')" style="text-decoration:underline;">' + escHtml(f.original_name || ("文件 " + f.id)) + '</a>' +
+                '<span class="muted small">' + escHtml(sizeKb) + '</span>' +
+                (f.note ? '<span class="muted small">· ' + escHtml(f.note) + '</span>' : '') +
+                (manage ? '<button class="btn" type="button" onclick="agentCityDel(' + f.id + ')">删除</button>' : '');
+              box.appendChild(row);
+            });
+          })
+          .catch(function () {
+            if (box) box.innerHTML = '<div class="muted small">附件加载失败，请稍后重试。</div>';
+          });
+      }
+
+      function agentCityUpload() {
+        if (!tokenGet()) {
+          if (agentStatusEl) agentStatusEl.textContent = "请先登录。";
+          return;
+        }
+        var fi = $("cp-file"), kind = $("cp-file-kind"), note = $("cp-file-note");
+        if (!fi || !fi.files || !fi.files.length) {
+          if (agentStatusEl) agentStatusEl.textContent = "请选择要上传的文件（PDF/JPG/PNG，≤10MB）。";
+          return;
+        }
+        var fd = new FormData();
+        fd.append("file", fi.files[0]);
+        fd.append("kind", kind ? String(kind.value || "").trim() : "material");
+        fd.append("note", note ? String(note.value || "").trim() : "");
+        if (agentStatusEl) agentStatusEl.textContent = "上传中…";
+        apiFetch("/api/agent/city_partner/upload", { method: "POST", body: fd })
+          .then(function (d) {
+            if (agentStatusEl) agentStatusEl.textContent = "上传成功，已纳入审核材料。";
+            if (fi) fi.value = "";
+            if (note) note.value = "";
+            return agentCityLoadFiles();
+          })
+          .catch(function (e) {
+            if (agentStatusEl) agentStatusEl.textContent = normalizeErrMsg(e) || "上传失败。";
+          });
+      }
+
+      function agentCityDownload(fileId) {
+        var t = tokenGet();
+        if (!t) {
+          if (agentStatusEl) agentStatusEl.textContent = "请先登录。";
+          return;
+        }
+        fetch((base || "") + "/api/agent/city_partner/attachments/" + fileId + "/download", { headers: { Authorization: "Bearer " + t } })
+          .then(function (r) {
+            if (!r.ok) {
+              return r.text().then(function (x) { throw new Error(x || ("HTTP " + r.status)); });
+            }
+            var cd = r.headers.get("Content-Disposition") || "";
+            var m = /filename\*=UTF-8''([^;]+)/i.exec(cd);
+            var fname = "";
+            if (m) { try { fname = decodeURIComponent(m[1]); } catch (e0) { fname = ""; } }
+            if (!fname) { var m2 = /filename="?([^";]+)"?/i.exec(cd); if (m2) fname = m2[1]; }
+            if (!fname) fname = "contract-" + fileId + ".pdf";
+            return r.blob().then(function (blob) {
+              var url = URL.createObjectURL(blob);
+              var a = document.createElement("a");
+              a.href = url; a.download = fname;
+              document.body.appendChild(a); a.click();
+              setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1500);
+            });
+          })
+          .catch(function (e) {
+            if (agentStatusEl) agentStatusEl.textContent = normalizeErrMsg(e) || "下载失败。";
+          });
+      }
+
+      function agentCityDel(fileId) {
+        if (!window.confirm("确认删除该附件？")) return;
+        apiFetch("/api/agent/city_partner/attachments/" + fileId + "/delete", { method: "POST" })
+          .then(function () {
+            if (agentStatusEl) agentStatusEl.textContent = "附件已删除。";
+            return agentCityLoadFiles();
+          })
+          .catch(function (e) {
+            if (agentStatusEl) agentStatusEl.textContent = normalizeErrMsg(e) || "删除失败。";
+          });
+      }
+
+function agentCityRefresh() {
         return apiFetch("/api/agent/city_partner/application", { cache: "no-store" })
           .then(function (d) { agentCityRender(d); })
           .catch(function () {});

@@ -1368,6 +1368,7 @@ def admin_app_html(admin_base: str) -> str:
                     <tbody id="cpAppBody"></tbody>
                   </table>
                 </div>
+                <div id="cpAppFilesBox" class="msg small" style="margin-top:10px; display:none;"></div>
               </div>
 
               <div class="card" style="margin-top:12px;">
@@ -2437,15 +2438,17 @@ def admin_app_html(admin_base: str) -> str:
           tr.dataset.appId = String(it.id);
           var pending = it.status === 'pending';
           var ops;
+          var filesBtn = '<button type="button" data-files="1">材料/合同</button>';
           if(pending){
             ops = '<td>' +
               '<input class="cpAppRegion" placeholder="区域(默认'+esc(it.region||'')+')" style="width:110px;" /> ' +
               '<input class="cpAppAg" placeholder="协议编号(自动)" style="width:120px;" /> ' +
               '<input class="cpAppNote" placeholder="备注" style="width:90px;" /> ' +
               '<button type="button" data-approve="1">通过</button> ' +
-              '<button type="button" data-reject="1">驳回</button></td>';
+              '<button type="button" data-reject="1">驳回</button> ' +
+              filesBtn + '</td>';
           } else {
-            ops = '<td class="muted small">'+esc(it.admin_note||'')+'</td>';
+            ops = '<td class="muted small">'+esc(it.admin_note||'')+'<br/>' + filesBtn + '</td>';
           }
           tr.innerHTML =
             '<td class="mono">'+esc(it.id)+'</td>' +
@@ -2484,7 +2487,78 @@ def admin_app_html(admin_base: str) -> str:
         await loadCpApps();
       }
 
-      async function loadEligibleCommissions(){
+      async function showCpAppFiles(appId){
+        var box = $('cpAppFilesBox');
+        if(!box) return;
+        setStatus('正在加载附件/合同…');
+        var d = await api('/api/admin/agent/city_partner/attachments?application_id=' + encodeURIComponent(appId));
+        var files = (d && d.items) || [];
+        var h = '<div class="row" style="flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:6px;">' +
+          '<b>申请 #'+esc(appId)+' · 材料/合同</b>' +
+          '<span class="muted small">（共 '+files.length+' 个文件）</span></div>';
+        if(!files.length) h += '<div class="muted small">暂无文件</div>';
+        files.forEach(function(f){
+          var side = f.side === 'admin' ? '官方合同' : '用户材料';
+          var sizeKb = f.size_bytes > 0 ? ('（'+Math.round(f.size_bytes/1024)+'KB）') : '';
+          h += '<div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px;">' +
+            '<span class="muted small">['+esc(side)+']</span>' +
+            '<a href="javascript:void(0)" onclick="adminCpFileDownload('+f.id+')" style="text-decoration:underline;">'+esc(f.original_name||('文件 '+f.id))+'</a>' +
+            '<span class="muted small">'+esc(sizeKb)+'</span>' +
+            (f.note ? '<span class="muted small">· '+esc(f.note)+'</span>' : '') +
+            ' <button type="button" onclick="adminCpFileDel('+f.id+','+appId+')">删除</button></div>';
+        });
+        h += '<div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding-top:8px;border-top:1px dashed #ddd;">' +
+          '<span class="muted small">上传正式《城市合伙人合作协议》：</span>' +
+          '<input type="file" id="cpAdminFile" accept=".pdf,.jpg,.jpeg,.png" />' +
+          '<input id="cpAdminNote" placeholder="备注（选填）" style="max-width:160px;" />' +
+          '<button type="button" id="btnCpAdminUpload">上传归档</button></div>';
+        box.innerHTML = h;
+        box.style.display = 'block';
+        var ub = $('btnCpAdminUpload');
+        if(ub) ub.addEventListener('click', function(){ uploadCpAdminContract(appId).catch(function(e){ setStatus('上传失败：'+e.message); }); });
+      }
+
+      async function uploadCpAdminContract(appId){
+        var fi = $('cpAdminFile');
+        if(!fi || !fi.files || !fi.files.length){ setStatus('请选择合同文件（PDF/JPG/PNG，≤10MB）'); return; }
+        var fd = new FormData();
+        fd.append('file', fi.files[0]);
+        fd.append('application_id', String(appId));
+        var note = $('cpAdminNote');
+        fd.append('note', note ? String(note.value||'').trim() : '');
+        setStatus('正在上传合同…');
+        var r = await api('/api/admin/agent/city_partner/upload', {method:'POST', body: fd});
+        setStatus('合同已归档（文件#'+r.file_id+'），已自动通知用户');
+        await showCpAppFiles(appId);
+      }
+
+      async function adminCpFileDownload(fileId){
+        var h = Object.assign({}, extraAdminHeaders());
+        h['Accept'] = '*/*';
+        var r = await fetch('/api/admin/agent/city_partner/attachments/'+fileId+'/download', {headers: h, credentials: 'include'});
+        if(!r.ok){ var t = await r.text().catch(function(){return '';}); throw new Error('HTTP '+r.status+' '+t); }
+        var cd = r.headers.get('Content-Disposition') || '';
+        var m = /filename[*]=UTF-8''([^;]+)/i.exec(cd);
+        var fname = '';
+        if(m){ try{ fname = decodeURIComponent(m[1]); }catch(e0){ fname=''; } }
+        if(!fname){ var m2 = /filename="?([^";]+)"?/i.exec(cd); if(m2) fname = m2[1]; }
+        if(!fname) fname = 'contract-'+fileId+'.pdf';
+        var blob = await r.blob();
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = fname;
+        document.body.appendChild(a); a.click();
+        setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 1500);
+      }
+
+      async function adminCpFileDel(fileId, appId){
+        if(!window.confirm('确认删除该附件？')) return;
+        await api('/api/admin/agent/city_partner/attachments/'+fileId+'/delete', {method:'POST'});
+        setStatus('附件已删除');
+        await showCpAppFiles(appId);
+      }
+
+async function loadEligibleCommissions(){
         setStatus('正在加载待结算返佣…');
         var d = await api('/api/admin/commissions?eligible_only=1&limit=200&offset=0');
         var body = $('eligibleBody');
@@ -3977,11 +4051,15 @@ def admin_app_html(admin_base: str) -> str:
         var cpAppBody = $('cpAppBody');
         if(cpAppBody) cpAppBody.addEventListener('click', function(ev){
           var t = ev.target;
-          while(t && t !== cpAppBody && !(t.dataset && (t.dataset.approve || t.dataset.reject))) t = t.parentNode;
+          while(t && t !== cpAppBody && !(t.dataset && (t.dataset.approve || t.dataset.reject || t.dataset.files))) t = t.parentNode;
           if(!t || t === cpAppBody) return;
           var tr = t.closest ? t.closest('tr') : null;
           var appId = Number((tr && tr.dataset && tr.dataset.appId) || 0);
           if(!appId) return;
+          if(t.dataset && t.dataset.files){
+            showCpAppFiles(appId).catch(function(e){ setStatus('加载附件失败：'+e.message); });
+            return;
+          }
           var approve = !!t.dataset.approve;
           reviewCpApp(appId, approve, tr).catch(function(e){ setStatus('审核失败：'+e.message); });
         });

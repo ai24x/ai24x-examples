@@ -9,6 +9,7 @@ import random
 import re
 import string
 import time
+import uuid
 from typing import Optional
 from urllib.parse import quote
 
@@ -37,10 +38,10 @@ def _startup_clean():
 _startup_clean()
 
 import httpx
-from fastapi import Cookie, Depends, FastAPI, Header, HTTPException, Request
+from fastapi import Cookie, Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.responses import PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 
 from . import alipay_wap, db, wechat_v3
 from .admin_baseline import log_admin_security_baseline
@@ -1773,6 +1774,214 @@ def admin_agent_city_partner_review(body: dict, _: bool = Depends(require_admin)
         )
     except (ValueError, TypeError) as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+_CONTRACT_FILE_TYPES = {
+    ".pdf": (b"%PDF", "application/pdf"),
+    ".jpg": (b"\xff\xd8\xff", "image/jpeg"),
+    ".jpeg": (b"\xff\xd8\xff", "image/jpeg"),
+    ".png": (b"\x89PNG\r\n\x1a\n", "image/png"),
+}
+_CONTRACT_FILE_MAX = 10 * 1024 * 1024  # 10MB
+
+
+def _validate_contract_file(filename: str, content: bytes) -> tuple[str, str]:
+    """校验合同附件：扩展名白名单 + magic bytes。返回 (ext, mime)。"""
+    name = str(filename or "").strip()
+    ext = (name.rsplit(".", 1)[-1].lower() if "." in name else "")
+    ext = "." + ext if ext else ""
+    if ext not in _CONTRACT_FILE_TYPES:
+        raise ValueError("unsupported_file_type")
+    magic, mime = _CONTRACT_FILE_TYPES[ext]
+    if len(content) < len(magic) or not content.startswith(magic):
+        raise ValueError("file_content_mismatch")
+    return ext, mime
+
+
+def _contract_file_response(row: dict) -> Response:
+    """按 stored_name 安全构造下载响应（防目录穿越）。"""
+    d = db.partner_contract_upload_dir()
+    stored = str(row.get("stored_name") or "")
+    if not stored or "/" in stored or "\\" in stored or ".." in stored:
+        raise HTTPException(status_code=404, detail="file_not_found")
+    path = _os.path.realpath(_os.path.join(d, stored))
+    if not path.startswith(_os.path.realpath(d) + _os.sep):
+        raise HTTPException(status_code=404, detail="file_not_found")
+    if not _os.path.isfile(path):
+        raise HTTPException(status_code=404, detail="file_not_found")
+    fname = quote(str(row.get("original_name") or "download"))
+    return FileResponse(path, media_type=str(row.get("mime") or "application/octet-stream"), filename=fname)
+
+
+def _unlink_contract_file(stored_name: str) -> None:
+    if not stored_name or "/" in stored_name or "\\" in stored_name or ".." in stored_name:
+        return
+    try:
+        d = db.partner_contract_upload_dir()
+        p = _os.path.realpath(_os.path.join(d, stored_name))
+        if p.startswith(_os.path.realpath(d) + _os.sep) and _os.path.isfile(p):
+            _os.remove(p)
+    except Exception:
+        pass
+
+
+@app.post("/api/agent/city_partner/upload")
+async def agent_city_partner_upload(
+    request: Request,
+    file: UploadFile = File(...),
+    kind: str = Form("material"),
+    note: str = Form(""),
+    user_id: int = Depends(get_current_user_id),
+) -> dict:
+    """用户上传城市合伙人申请材料（身份证/营业执照/意向书/已签合同扫描件等）。"""
+    _rate_limit(f"cp_upload:{user_id}", limit=20, window_s=3600)
+    _rate_limit(f"cp_upload_ip:{_client_ip(request)}", limit=60, window_s=3600)
+    try:
+        content = await file.read()
+        if not content:
+            raise ValueError("empty_file")
+        if len(content) > _CONTRACT_FILE_MAX:
+            raise ValueError("file_too_large")
+        ext, mime = _validate_contract_file(file.filename or "", content)
+        app = db.get_city_partner_application_by_user(int(user_id))
+        if not app:
+            raise ValueError("application_required")
+        if app.get("status") not in ("pending", "rejected"):
+            raise ValueError("upload_not_allowed")
+        existing = db.list_partner_contract_files(application_id=int(app["id"]), side="user")
+        if len(existing) >= 4:
+            raise ValueError("too_many_files")
+        stored = uuid.uuid4().hex + ext
+        d = db.partner_contract_upload_dir()
+        with open(_os.path.join(d, stored), "wb") as f:
+            f.write(content)
+        r = db.save_partner_contract_file(
+            application_id=int(app["id"]),
+            user_id=int(user_id),
+            side="user",
+            kind=str(kind or "material").strip()[:32] or "material",
+            original_name=str(file.filename or "")[:255],
+            stored_name=stored,
+            size_bytes=len(content),
+            mime=mime,
+            note=str(note or "").strip()[:300],
+        )
+        return r
+    except ValueError as e:
+        code = str(e)
+        msg = {
+            "unsupported_file_type": "仅支持 PDF/JPG/PNG 格式",
+            "file_content_mismatch": "文件内容与扩展名不符，请上传有效文件",
+            "file_too_large": "文件过大，请控制在 10MB 以内",
+            "empty_file": "文件为空",
+            "application_required": "请先提交城市合伙人申请",
+            "upload_not_allowed": "当前状态无需上传材料",
+            "too_many_files": "材料数量已达上限（4 份），请先删除旧材料",
+        }.get(code, code)
+        raise HTTPException(status_code=400, detail=msg)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e)[:200])
+
+
+@app.get("/api/agent/city_partner/attachments")
+def agent_city_partner_attachments(user_id: int = Depends(get_current_user_id)) -> dict:
+    """本人城市合伙人相关附件（材料 + 正式合同）。"""
+    return {"ok": True, "items": db.list_partner_contract_files(user_id=int(user_id))}
+
+
+@app.get("/api/agent/city_partner/attachments/{file_id}/download")
+def agent_city_partner_attachment_download(file_id: int, user_id: int = Depends(get_current_user_id)) -> Response:
+    row = db.get_partner_contract_file(int(file_id))
+    if not row:
+        raise HTTPException(status_code=404, detail="file_not_found")
+    if int(row["user_id"]) != int(user_id):
+        raise HTTPException(status_code=403, detail="forbidden")
+    return _contract_file_response(row)
+
+
+@app.post("/api/agent/city_partner/attachments/{file_id}/delete")
+def agent_city_partner_attachment_delete(file_id: int, user_id: int = Depends(get_current_user_id)) -> dict:
+    try:
+        r = db.delete_partner_contract_file(int(file_id), user_id=int(user_id))
+    except ValueError as e:
+        code = str(e)
+        msg = {"file_not_found": "文件不存在", "no_permission": "无权删除该文件"}.get(code, code)
+        raise HTTPException(status_code=400, detail=msg)
+    _unlink_contract_file(r.get("stored_name") or "")
+    return {"ok": True}
+
+
+@app.get("/api/admin/agent/city_partner/attachments")
+def admin_agent_city_partner_attachments(application_id: int = 0, user_id: int = 0, _: bool = Depends(require_admin)) -> dict:
+    return {"ok": True, "items": db.list_partner_contract_files(application_id=int(application_id), user_id=int(user_id))}
+
+
+@app.post("/api/admin/agent/city_partner/upload")
+async def admin_agent_city_partner_upload(
+    file: UploadFile = File(...),
+    application_id: int = Form(0),
+    note: str = Form(""),
+    _: bool = Depends(require_admin),
+) -> dict:
+    """后台上传/归档正式《城市合伙人合作协议》，自动站内通知用户。"""
+    try:
+        content = await file.read()
+        if not content:
+            raise ValueError("empty_file")
+        if len(content) > _CONTRACT_FILE_MAX:
+            raise ValueError("file_too_large")
+        ext, mime = _validate_contract_file(file.filename or "", content)
+        app_row = db.get_city_partner_application_by_id(int(application_id))
+        if not app_row:
+            raise ValueError("application_required")
+        stored = uuid.uuid4().hex + ext
+        d = db.partner_contract_upload_dir()
+        with open(_os.path.join(d, stored), "wb") as f:
+            f.write(content)
+        r = db.save_partner_contract_file(
+            application_id=int(application_id),
+            user_id=int(app_row["user_id"]),
+            side="admin",
+            kind="agreement",
+            original_name=str(file.filename or "")[:255],
+            stored_name=stored,
+            size_bytes=len(content),
+            mime=mime,
+            note=str(note or "").strip()[:300],
+        )
+        return r
+    except ValueError as e:
+        code = str(e)
+        msg = {
+            "unsupported_file_type": "仅支持 PDF/JPG/PNG 格式",
+            "file_content_mismatch": "文件内容与扩展名不符，请上传有效文件",
+            "file_too_large": "文件过大，请控制在 10MB 以内",
+            "empty_file": "文件为空",
+            "application_required": "申请不存在",
+        }.get(code, code)
+        raise HTTPException(status_code=400, detail=msg)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e)[:200])
+
+
+@app.get("/api/admin/agent/city_partner/attachments/{file_id}/download")
+def admin_agent_city_partner_attachment_download(file_id: int, _: bool = Depends(require_admin)) -> Response:
+    row = db.get_partner_contract_file(int(file_id))
+    if not row:
+        raise HTTPException(status_code=404, detail="file_not_found")
+    return _contract_file_response(row)
+
+
+@app.post("/api/admin/agent/city_partner/attachments/{file_id}/delete")
+def admin_agent_city_partner_attachment_delete(file_id: int, _: bool = Depends(require_admin)) -> dict:
+    try:
+        r = db.delete_partner_contract_file(int(file_id), is_admin=True)
+    except ValueError as e:
+        code = str(e)
+        msg = {"file_not_found": "文件不存在"}.get(code, code)
+        raise HTTPException(status_code=400, detail=msg)
+    _unlink_contract_file(r.get("stored_name") or "")
+    return {"ok": True}
 
 
 @app.get("/api/admin/sms_106_config")
