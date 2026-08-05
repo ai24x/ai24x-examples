@@ -537,6 +537,9 @@ def init_db() -> None:
                   tier_points BIGINT NOT NULL DEFAULT 0,
                   tier_updated_at BIGINT NOT NULL DEFAULT 0,
                   tier_locked INTEGER NOT NULL DEFAULT 0,
+                  city_partner INTEGER NOT NULL DEFAULT 0,
+                  city_region TEXT NOT NULL DEFAULT '',
+                  city_agreement_no TEXT NOT NULL DEFAULT '',
                   updated_at BIGINT NOT NULL
                 );
                 """
@@ -553,6 +556,9 @@ def init_db() -> None:
                   tier_points INTEGER NOT NULL DEFAULT 0,
                   tier_updated_at INTEGER NOT NULL DEFAULT 0,
                   tier_locked INTEGER NOT NULL DEFAULT 0,
+                  city_partner INTEGER NOT NULL DEFAULT 0,
+                  city_region TEXT NOT NULL DEFAULT '',
+                  city_agreement_no TEXT NOT NULL DEFAULT '',
                   updated_at INTEGER NOT NULL,
                   FOREIGN KEY(user_id) REFERENCES users(id)
                 );
@@ -664,6 +670,9 @@ def init_db() -> None:
                 conn.execute("ALTER TABLE agent_status ADD COLUMN IF NOT EXISTS tier_points BIGINT NOT NULL DEFAULT 0;")
                 conn.execute("ALTER TABLE agent_status ADD COLUMN IF NOT EXISTS tier_updated_at BIGINT NOT NULL DEFAULT 0;")
                 conn.execute("ALTER TABLE agent_status ADD COLUMN IF NOT EXISTS tier_locked INTEGER NOT NULL DEFAULT 0;")
+                conn.execute("ALTER TABLE agent_status ADD COLUMN IF NOT EXISTS city_partner INTEGER NOT NULL DEFAULT 0;")
+                conn.execute("ALTER TABLE agent_status ADD COLUMN IF NOT EXISTS city_region TEXT NOT NULL DEFAULT '';")
+                conn.execute("ALTER TABLE agent_status ADD COLUMN IF NOT EXISTS city_agreement_no TEXT NOT NULL DEFAULT '';")
             else:
                 cols = [r["name"] for r in conn.execute("PRAGMA table_info(invite_relations)").fetchall()]
                 if "inviter_l1_id" not in cols:
@@ -683,6 +692,12 @@ def init_db() -> None:
                     conn.execute("ALTER TABLE agent_status ADD COLUMN tier_updated_at INTEGER NOT NULL DEFAULT 0")
                 if "tier_locked" not in cols2:
                     conn.execute("ALTER TABLE agent_status ADD COLUMN tier_locked INTEGER NOT NULL DEFAULT 0")
+                if "city_partner" not in cols2:
+                    conn.execute("ALTER TABLE agent_status ADD COLUMN city_partner INTEGER NOT NULL DEFAULT 0")
+                if "city_region" not in cols2:
+                    conn.execute("ALTER TABLE agent_status ADD COLUMN city_region TEXT NOT NULL DEFAULT ''")
+                if "city_agreement_no" not in cols2:
+                    conn.execute("ALTER TABLE agent_status ADD COLUMN city_agreement_no TEXT NOT NULL DEFAULT ''")
         except Exception:
             pass
 
@@ -3221,6 +3236,61 @@ def _agent_commission_l3_min_level() -> str:
     return "growth"
 
 
+def _promo_tier_enabled() -> bool:
+    """金银铜推广等级总开关；关闭时返佣回退为 flat L1 比例。"""
+    return bool(_cfg_int("promo_tier_enabled", 1) == 1)
+
+
+def _promo_tier_rates() -> dict[str, float]:
+    """金银铜直推返点阶梯（0~0.9）。"""
+    return {
+        "bronze": _clamp_rate(_cfg_float("promo_tier_rate_bronze", 0.15)),
+        "silver": _clamp_rate(_cfg_float("promo_tier_rate_silver", 0.20)),
+        "gold": _clamp_rate(_cfg_float("promo_tier_rate_gold", 0.25)),
+    }
+
+
+def _promo_tier_rate_for_level(level: str) -> float:
+    """直推人当前推广等级对应的 L1 返点；无等级按铜档。"""
+    r = _promo_tier_rates()
+    lvl = str(level or "").strip().lower()
+    if lvl in ("gold", "pro"):
+        return float(r["gold"])
+    if lvl in ("silver", "senior", "growth"):
+        return float(r["silver"])
+    return float(r["bronze"])
+
+
+def _promo_tier_thresholds() -> dict[str, dict[str, int]]:
+    """金银铜晋级门槛（近 N 天窗口）：团队GMV(fen) + 活跃直推人数。"""
+    return {
+        "bronze": {
+            "gmv_fen": int(_cfg_int("promo_tier_bronze_team_gmv_fen", 3000 * 100)),
+            "active_direct": int(_cfg_int("promo_tier_bronze_active_direct", 3)),
+        },
+        "silver": {
+            "gmv_fen": int(_cfg_int("promo_tier_silver_team_gmv_fen", 20000 * 100)),
+            "active_direct": int(_cfg_int("promo_tier_silver_active_direct", 10)),
+        },
+        "gold": {
+            "gmv_fen": int(_cfg_int("promo_tier_gold_team_gmv_fen", 80000 * 100)),
+            "active_direct": int(_cfg_int("promo_tier_gold_active_direct", 30)),
+        },
+    }
+
+
+def _promo_tier_target_for(team_gmv_fen: int, active_direct: int) -> str:
+    """按业绩得出目标等级：金=双达标；银=双达标；铜=任一达标；否则入门。"""
+    thr = _promo_tier_thresholds()
+    if team_gmv_fen >= int(thr["gold"]["gmv_fen"]) and active_direct >= int(thr["gold"]["active_direct"]):
+        return "gold"
+    if team_gmv_fen >= int(thr["silver"]["gmv_fen"]) and active_direct >= int(thr["silver"]["active_direct"]):
+        return "silver"
+    if team_gmv_fen >= int(thr["bronze"]["gmv_fen"]) or active_direct >= int(thr["bronze"]["active_direct"]):
+        return "bronze"
+    return "starter"
+
+
 def _agent_commission_rates_effective() -> dict[str, float]:
     l1 = _agent_commission_rate_l1()
     l2 = _agent_commission_rate_l2()
@@ -3354,7 +3424,7 @@ def agent_get_status(user_id: int) -> dict[str, Any] | None:
     uid = int(user_id)
     with connect() as conn:
         row = conn.execute(
-            "SELECT user_id, level, expires_at, tier_points, tier_updated_at, tier_locked, updated_at FROM agent_status WHERE user_id=?",
+            "SELECT user_id, level, expires_at, tier_points, tier_updated_at, tier_locked, city_partner, city_region, city_agreement_no, updated_at FROM agent_status WHERE user_id=?",
             (uid,),
         ).fetchone()
         if not row:
@@ -3366,8 +3436,90 @@ def agent_get_status(user_id: int) -> dict[str, Any] | None:
             "tier_points": int(_row_get(row, "tier_points") or 0),
             "tier_updated_at": int(_row_get(row, "tier_updated_at") or 0),
             "tier_locked": bool(int(_row_get(row, "tier_locked") or 0) == 1),
+            "city_partner": bool(int(_row_get(row, "city_partner") or 0) == 1),
+            "city_region": str(_row_get(row, "city_region") or ""),
+            "city_agreement_no": str(_row_get(row, "city_agreement_no") or ""),
             "updated_at": int(row["updated_at"]),
         }
+
+
+def agent_city_partner_info(user_id: int) -> dict[str, Any]:
+    """返回用户城市合伙人签约信息（未签约返回 False）。"""
+    uid = int(user_id)
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT city_partner, city_region, city_agreement_no FROM agent_status WHERE user_id=?",
+            (uid,),
+        ).fetchone()
+        if not row:
+            return {"city_partner": False, "city_region": "", "city_agreement_no": ""}
+        return {
+            "city_partner": bool(int(_row_get(row, "city_partner") or 0) == 1),
+            "city_region": str(_row_get(row, "city_region") or ""),
+            "city_agreement_no": str(_row_get(row, "city_agreement_no") or ""),
+        }
+
+
+def admin_set_city_partner(*, user_id: int, city_partner: bool, city_region: str = "", city_agreement_no: str = "") -> dict[str, Any]:
+    """后台签约/解约城市合伙人（区域 + 协议编号）。"""
+    uid = int(user_id)
+    if uid <= 0:
+        raise ValueError("invalid_user_id")
+    cp = 1 if bool(city_partner) else 0
+    region = str(city_region or "").strip()[:64]
+    ag = str(city_agreement_no or "").strip()[:64]
+    now = int(time.time())
+    with connect() as conn:
+        row = conn.execute("SELECT 1 FROM agent_status WHERE user_id=?", (uid,)).fetchone()
+        if row:
+            conn.execute(
+                "UPDATE agent_status SET city_partner=?, city_region=?, city_agreement_no=?, updated_at=? WHERE user_id=?",
+                (cp, region, ag, now, uid),
+            )
+        else:
+            conn.execute(
+                "INSERT INTO agent_status(user_id, level, expires_at, tier_points, tier_updated_at, tier_locked, city_partner, city_region, city_agreement_no, updated_at) VALUES (?, 'starter', NULL, 0, 0, 0, ?, ?, ?, ?)",
+                (uid, cp, region, ag, now),
+            )
+    return {"ok": True, "user_id": uid, "city_partner": bool(cp), "city_region": region, "city_agreement_no": ag}
+
+
+def admin_list_city_partners(*, q: str = "", limit: int = 50, offset: int = 0) -> dict[str, Any]:
+    """后台列出已签约城市合伙人（手机/邮箱脱敏）。"""
+    q = str(q or "").strip()
+    lim = max(1, min(200, int(limit)))
+    off = max(0, int(offset))
+    sql = """
+        SELECT a.user_id, a.level, a.city_region, a.city_agreement_no, a.updated_at, u.phone, u.email
+        FROM agent_status a LEFT JOIN users u ON u.id = a.user_id
+        WHERE a.city_partner = 1
+    """
+    params: list = []
+    if q:
+        sql += " AND (u.phone LIKE ? OR u.email LIKE ? OR CAST(a.user_id AS TEXT) LIKE ? OR a.city_agreement_no LIKE ? OR a.city_region LIKE ?)"
+        like = "%" + q + "%"
+        params += [like, like, like, like, like]
+    sql += " ORDER BY a.updated_at DESC LIMIT ? OFFSET ?"
+    params += [lim, off]
+    with connect() as conn:
+        rows = conn.execute(sql, tuple(params)).fetchall()
+        items = []
+        for r in rows or []:
+            items.append({
+                "user_id": int(r["user_id"]),
+                "level": str(r["level"] or ""),
+                "city_region": str(_row_get(r, "city_region") or ""),
+                "city_agreement_no": str(_row_get(r, "city_agreement_no") or ""),
+                "phone": _mask_identity(str(_row_get(r, "phone") or "")),
+                "email": _mask_identity(str(_row_get(r, "email") or "")),
+                "updated_at": int(_row_get(r, "updated_at") or 0),
+            })
+        try:
+            crow = conn.execute("SELECT COUNT(1) AS c FROM agent_status WHERE city_partner=1").fetchone()
+            cnt = int(crow["c"] or 0) if crow else 0
+        except Exception:
+            cnt = len(items)
+        return {"ok": True, "items": items, "total": cnt, "limit": lim, "offset": off}
 
 
 def _agent_is_active_in_conn(conn: Any, user_id: int, now: int) -> bool:
@@ -3377,7 +3529,7 @@ def _agent_is_active_in_conn(conn: Any, user_id: int, now: int) -> bool:
         return False
     lvl = str(row["level"] or "").strip().lower()
     # Accept both legacy names (normal/senior/gold) and new names (starter/growth/pro).
-    if lvl not in ("normal", "senior", "gold", "starter", "growth", "pro"):
+    if lvl not in ("normal", "senior", "gold", "starter", "growth", "pro", "bronze", "silver"):
         return False
     exp = row["expires_at"]
     if exp is None:
@@ -3526,11 +3678,20 @@ def _commission_generate_for_paid_order_in_conn(conn: Any, *, out_trade_no: str,
     delay_days = _agent_settle_delay_days()
     eligible_at = int((paid_at or now) + delay_days * 86400)
 
+    # 金银铜：直推返点按直推人当前推广等级阶梯计提；关闭时回退 flat L1。
+    l1_rate = _promo_tier_rate_for_level(_agent_level_for_user_in_conn(conn, int(chain[0]), now)) if (chain[0] and _promo_tier_enabled()) else float(rates["l1"])
+    l2_rate = float(rates["l2"])
+    l3_rate = float(rates["l3"])
+    cap = float(rates.get("cap_total") or 0.0)
+    if cap > 0 and (l1_rate + l2_rate + l3_rate) > cap:
+        k = cap / (l1_rate + l2_rate + l3_rate)
+        l1_rate, l2_rate, l3_rate = float(l1_rate * k), float(l2_rate * k), float(l3_rate * k)
+
     pairs: list[tuple[int, int, float]] = []
     if chain[0]:
-        pairs.append((1, int(chain[0]), float(rates["l1"])))
+        pairs.append((1, int(chain[0]), float(l1_rate)))
     if chain[1]:
-        pairs.append((2, int(chain[1]), float(rates["l2"])))
+        pairs.append((2, int(chain[1]), float(l2_rate)))
     if chain[2]:
         # L3 (team) commission is a management allowance: require minimum agent level.
         try:
@@ -3754,6 +3915,17 @@ def agent_commission_overview(user_id: int) -> dict[str, Any]:
     with connect() as conn:
         st = agent_get_status(uid)
         inv_total = 0
+        city = {"city_partner": False, "city_region": "", "city_agreement_no": ""}
+        try:
+            crow = conn.execute("SELECT city_partner, city_region, city_agreement_no FROM agent_status WHERE user_id=?", (uid,)).fetchone()
+            if crow:
+                city = {
+                    "city_partner": bool(int(_row_get(crow, "city_partner") or 0) == 1),
+                    "city_region": str(_row_get(crow, "city_region") or ""),
+                    "city_agreement_no": str(_row_get(crow, "city_agreement_no") or ""),
+                }
+        except Exception:
+            pass
         try:
             r = conn.execute("SELECT COUNT(1) AS c FROM invite_relations WHERE inviter_id=?", (uid,)).fetchone()
             inv_total = int(r["c"] or 0) if r else 0
@@ -3828,42 +4000,48 @@ def agent_commission_overview(user_id: int) -> dict[str, Any]:
         except Exception:
             pass
 
-        # Tier evaluation (auto-upgrade unless locked).
+        # 金银铜推广等级评估：业绩自动晋级（可锁定）；兼容历史名。
         tier = {"level": (st or {}).get("level") if isinstance(st, dict) else None, "locked": False, "updated": False}
+        promo = {"enabled": bool(_agent_tier_enabled()), "level": "starter", "target": "starter", "window_days": win_days, "team_gmv_fen": int(team_paid_amount_fen), "active_direct": int(active_direct), "thresholds": {}, "rates": {}}
         try:
             if _agent_tier_enabled():
-                thr = _agent_tier_thresholds()
-                target = "starter"
-                if team_paid_amount_fen >= int(thr["pro_team_gmv_fen"]) and active_direct >= int(thr["pro_active_direct"]):
-                    target = "pro"
-                elif team_paid_amount_fen >= int(thr["growth_team_gmv_fen"]) or active_direct >= int(thr["growth_active_direct"]):
-                    target = "growth"
-                # Read lock flag from agent_status if present; normalize legacy level strings.
+                thr = _promo_tier_thresholds()
+                prate = _promo_tier_rates()
+                target = _promo_tier_target_for(int(team_paid_amount_fen), int(active_direct))
                 row_lock = conn.execute(
                     "SELECT tier_locked, level FROM agent_status WHERE user_id=?",
                     (uid,),
                 ).fetchone()
                 locked = bool(int(_row_get(row_lock, "tier_locked") or 0) == 1) if row_lock else False
-                cur_lvl = str(_row_get(row_lock, "level") or (st or {}).get("level") or "").strip().lower() if row_lock else str((st or {}).get("level") or "").strip().lower()
-                if cur_lvl in ("normal", ""):
+                cur_lvl = (
+                    str(_row_get(row_lock, "level") or (st or {}).get("level") or "").strip().lower()
+                    if row_lock
+                    else str((st or {}).get("level") or "").strip().lower()
+                )
+                if cur_lvl in ("normal", "starter", ""):
                     cur_lvl = "starter"
-                if cur_lvl == "senior":
-                    cur_lvl = "growth"
-                if cur_lvl == "gold":
-                    cur_lvl = "pro"
+                if cur_lvl in ("senior", "growth"):
+                    cur_lvl = "silver"
+                if cur_lvl in ("pro", "gold"):
+                    cur_lvl = "gold"
                 tier["locked"] = locked
                 tier["target"] = target
                 tier["window_days"] = win_days
                 tier["team_gmv_fen"] = int(team_paid_amount_fen)
                 tier["active_direct"] = int(active_direct)
+                promo["level"] = cur_lvl or target
+                promo["target"] = target
+                promo["thresholds"] = {k: {"gmv_fen": int(v["gmv_fen"]), "active_direct": int(v["active_direct"])} for k, v in thr.items()}
+                promo["rates"] = {k: float(v) for k, v in prate.items()}
                 if not locked and target and cur_lvl and target != cur_lvl:
-                    # Update level in-place; keep expires_at unchanged.
+                    # 业绩达标自动晋级/回落；不改 expires_at（付费档到期另算）。
                     conn.execute(
                         "UPDATE agent_status SET level=?, tier_points=?, tier_updated_at=?, updated_at=? WHERE user_id=?",
                         (target, int(team_paid_amount_fen), now, now, uid),
                     )
                     tier["updated"] = True
                     tier["level"] = target
+                    promo["level"] = target
                 else:
                     tier["level"] = cur_lvl or target
                     try:
@@ -3930,6 +4108,8 @@ def agent_commission_overview(user_id: int) -> dict[str, Any]:
             "withdrawable_fen": int(withdrawable),
             "settle_delay_days": int(_agent_settle_delay_days()),
             "payout_account": acct_out,
+            "promo_tier": promo,
+            "city_partner": city,
         }
 
 
@@ -4271,6 +4451,17 @@ def agent_commission_overview(user_id: int) -> dict[str, Any]:
     with connect() as conn:
         st = agent_get_status(uid)
         inv_total = 0
+        city = {"city_partner": False, "city_region": "", "city_agreement_no": ""}
+        try:
+            crow = conn.execute("SELECT city_partner, city_region, city_agreement_no FROM agent_status WHERE user_id=?", (uid,)).fetchone()
+            if crow:
+                city = {
+                    "city_partner": bool(int(_row_get(crow, "city_partner") or 0) == 1),
+                    "city_region": str(_row_get(crow, "city_region") or ""),
+                    "city_agreement_no": str(_row_get(crow, "city_agreement_no") or ""),
+                }
+        except Exception:
+            pass
         try:
             r = conn.execute("SELECT COUNT(1) AS c FROM invite_relations WHERE inviter_id=?", (uid,)).fetchone()
             inv_total = int(r["c"] or 0) if r else 0
@@ -4343,16 +4534,14 @@ def agent_commission_overview(user_id: int) -> dict[str, Any]:
         except Exception:
             pass
 
-        # Tier evaluation (best-effort; can be disabled by config).
+        # 金银铜推广等级评估：业绩自动晋级（可锁定）；兼容历史名。
         tier = {"level": (st or {}).get("level") if isinstance(st, dict) else None, "locked": False, "updated": False}
+        promo = {"enabled": bool(_agent_tier_enabled()), "level": "starter", "target": "starter", "window_days": win_days, "team_gmv_fen": int(team_paid_amount_fen), "active_direct": int(active_direct), "thresholds": {}, "rates": {}}
         try:
             if _agent_tier_enabled():
-                thr = _agent_tier_thresholds()
-                target = "starter"
-                if team_paid_amount_fen >= int(thr["pro_team_gmv_fen"]) and active_direct >= int(thr["pro_active_direct"]):
-                    target = "pro"
-                elif team_paid_amount_fen >= int(thr["growth_team_gmv_fen"]) or active_direct >= int(thr["growth_active_direct"]):
-                    target = "growth"
+                thr = _promo_tier_thresholds()
+                prate = _promo_tier_rates()
+                target = _promo_tier_target_for(int(team_paid_amount_fen), int(active_direct))
                 row_lock = conn.execute(
                     "SELECT tier_locked, level FROM agent_status WHERE user_id=?",
                     (uid,),
@@ -4363,18 +4552,39 @@ def agent_commission_overview(user_id: int) -> dict[str, Any]:
                     if row_lock
                     else str((st or {}).get("level") or "").strip().lower()
                 )
-                if cur_lvl in ("normal", ""):
+                if cur_lvl in ("normal", "starter", ""):
                     cur_lvl = "starter"
-                if cur_lvl == "senior":
-                    cur_lvl = "growth"
-                if cur_lvl == "gold":
-                    cur_lvl = "pro"
+                if cur_lvl in ("senior", "growth"):
+                    cur_lvl = "silver"
+                if cur_lvl in ("pro", "gold"):
+                    cur_lvl = "gold"
                 tier["locked"] = locked
                 tier["target"] = target
                 tier["window_days"] = win_days
                 tier["team_gmv_fen"] = int(team_paid_amount_fen)
                 tier["active_direct"] = int(active_direct)
-                tier["level"] = cur_lvl or target
+                promo["level"] = cur_lvl or target
+                promo["target"] = target
+                promo["thresholds"] = {k: {"gmv_fen": int(v["gmv_fen"]), "active_direct": int(v["active_direct"])} for k, v in thr.items()}
+                promo["rates"] = {k: float(v) for k, v in prate.items()}
+                if not locked and target and cur_lvl and target != cur_lvl:
+                    # 业绩达标自动晋级/回落；不改 expires_at（付费档到期另算）。
+                    conn.execute(
+                        "UPDATE agent_status SET level=?, tier_points=?, tier_updated_at=?, updated_at=? WHERE user_id=?",
+                        (target, int(team_paid_amount_fen), now, now, uid),
+                    )
+                    tier["updated"] = True
+                    tier["level"] = target
+                    promo["level"] = target
+                else:
+                    tier["level"] = cur_lvl or target
+                    try:
+                        conn.execute(
+                            "UPDATE agent_status SET tier_points=?, tier_updated_at=?, updated_at=? WHERE user_id=?",
+                            (int(team_paid_amount_fen), now, now, uid),
+                        )
+                    except Exception:
+                        pass
         except Exception:
             pass
 
@@ -4430,7 +4640,10 @@ def agent_commission_overview(user_id: int) -> dict[str, Any]:
             "tier": tier,
             "commission_sum_fen": sums,
             "withdrawable_fen": int(withdrawable),
+            "settle_delay_days": int(_agent_settle_delay_days()),
             "payout_account": acct_out,
+            "promo_tier": promo,
+            "city_partner": city,
         }
 
 
@@ -5404,12 +5617,12 @@ def _paid_plan_period_seconds(np: str) -> int:
 
 def _agent_level_rank(level: str) -> int:
     lvl = str(level or "").strip().lower()
-    # keep legacy names compatible
+    # 金银铜推广等级：金=30 银=20 铜=10；兼容历史名（pro/growth/normal 等）。
     if lvl in ("gold", "pro"):
         return 30
-    if lvl in ("senior", "growth"):
+    if lvl in ("silver", "senior", "growth"):
         return 20
-    if lvl in ("normal", "starter", ""):
+    if lvl in ("bronze", "normal", "starter", ""):
         return 10
     return 0
 

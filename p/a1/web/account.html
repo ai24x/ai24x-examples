@@ -571,16 +571,18 @@
         <div style="margin-top:6px; line-height:1.7;">
           <div>通过「伙伴档位」支持研发与数据成本，获得更完善的协作服务与结算权益。</div>
           <div>分享与合作产生的回馈将进入「待结算 / 已结算」。展示为历史数据，不构成收益承诺，以实际结算为准。</div>
-          <div id="agent-comm-hint" style="margin-top:6px;">规则：直推/间推回馈按后台比例生成；团队回馈需要达到一定伙伴等级（由后台设置）才生效。</div>
+          <div id="agent-comm-hint" style="margin-top:6px;">规则：金银铜推广等级按近 30 天团队成交额与活跃直推自动晋级，直推返点按本人等级阶梯（铜/银/金）计提；团队回馈需达到等级门槛（由后台设置）才生效。</div>
           <div id="agent-tier-desc" style="margin-top:6px;">
-            <div><b>成长档</b>：适合个人分享与支持研发，提供基础协作权益。</div>
-            <div><b>专业档</b>：适合团队/社群协作，可解锁「团队回馈」资格（以当前页面规则为准）。</div>
+            <div><b>铜档</b>：入门推广，适合个人分享；直推返点基准档。</div>
+            <div><b>银档</b>：团队业绩达标自动晋级，直推返点提升。</div>
+            <div><b>金档</b>：高业绩推广伙伴，直推返点最高；可解锁「团队回馈」资格（以当前页面规则为准）。</div>
+            <div><b>城市合伙人</b>：签约制区域代理，签署协议后可申请现金结算（试点开放）。</div>
           </div>
         </div>
       </details>
 
       <div class="kv" id="agent-kv" hidden>
-        <span>成长等级 <b id="agent-level">-</b></span>
+        <span>推广等级 <b id="agent-level">-</b></span>
         <span>直推成交(单) <b id="agent-direct-orders">-</b></span>
         <span>团队规模 <b id="agent-team-size">-</b></span>
         <span>团队成交额(元) <b id="agent-team-amount">-</b></span>
@@ -588,8 +590,9 @@
         <span id="agent-kv-withdrawable">可提现(元) <b id="agent-withdrawable">-</b></span>
         <span id="agent-kv-paid">已结算(元) <b id="agent-paid">-</b></span>
       </div>
+      <div class="hint" id="agent-city-hint" style="margin-top:8px; display:none;"></div>
       <div class="hint" id="agent-tier-hint" style="margin-top:10px; display:none;"></div>
-      <div class="hint" id="agent-rewards-hint" style="margin-top:10px; display:none;">当前为权益回馈模式：邀请回馈以查询额度和会员权益形式发放，暂不支持提现。</div>
+      <div class="hint" id="agent-rewards-hint" style="margin-top:10px; display:none;">当前为权益回馈模式：邀请回馈以查询额度和会员权益形式发放；现金提现仅对签约城市合伙人开放。</div>
 
       <div class="row" style="margin-top:10px; flex-wrap:wrap; gap:10px; align-items:center;">
         <span class="pill step">
@@ -1710,11 +1713,12 @@
                 }
               }
             }catch(eX){}
-            var lvl0 = (tier && tier.level) ? String(tier.level) : (ag && ag.level ? String(ag.level) : "");
+            var lvl0 = (d.promo_tier && d.promo_tier.level) ? String(d.promo_tier.level) : (tier && tier.level ? String(tier.level) : (ag && ag.level ? String(ag.level) : ""));
             var lvl = String(lvl0 || "");
             if (lvl === "normal" || lvl === "starter" || !lvl) lvl = "入门";
-            if (lvl === "senior" || lvl === "growth") lvl = "成长";
-            if (lvl === "gold" || lvl === "pro") lvl = "专业";
+            if (lvl === "bronze") lvl = "铜档";
+            if (lvl === "silver" || lvl === "senior" || lvl === "growth") lvl = "银档";
+            if (lvl === "gold" || lvl === "pro") lvl = "金档";
             if (agentLevelEl) agentLevelEl.textContent = lvl || "—";
             if (agentDirectOrdersEl) agentDirectOrdersEl.textContent = String(d.direct_paid_orders != null ? d.direct_paid_orders : 0);
             if (agentTeamSizeEl) agentTeamSizeEl.textContent = String(d.team_size != null ? d.team_size : 0);
@@ -1729,7 +1733,7 @@
             if (agentPaidEl) agentPaidEl.textContent = fmtFenYuanStr(paid);
             if (agentKv) agentKv.hidden = false;
             var payoutMode = String((d && d.payout_mode) || "rewards");
-            var payoutEnabled = payoutMode === "cash";
+            var payoutEnabled = (d && d.payout_enabled != null) ? !!d.payout_enabled : (payoutMode === "cash");
             if (!payoutEnabled) {
               if (btnAgentWithdraw) btnAgentWithdraw.style.display = "none";
               if (btnAgentSetAcct) btnAgentSetAcct.style.display = "none";
@@ -1740,25 +1744,47 @@
               if (agentRewardsHint) agentRewardsHint.style.display = "block";
             }
             agentStatusEl.textContent = "";
+            try {
+              var cph = $("agent-city-hint");
+              var cp = (d && d.city_partner) || {};
+              if (cph) {
+                if (cp.city_partner) {
+                  cph.textContent = "城市合伙人 · " + (cp.city_region || "待定区域") + (cp.city_agreement_no ? (" · 协议 " + cp.city_agreement_no) : "");
+                  cph.style.display = "block";
+                } else { cph.style.display = "none"; }
+              }
+            } catch (eC) {}
             try{
               var days2 = d && d.settle_delay_days != null ? Number(d.settle_delay_days) : null;
               if(days2 == null || !isFinite(days2)) days2 = 7;
               var t7 = "T+" + String(Math.max(0, Math.floor(days2)));
               if(agentSettleCycleEl){
-                if(payoutMode === "cash"){ agentSettleCycleEl.textContent = "提现结算：" + t7; }
-                else { agentSettleCycleEl.textContent = "结算说明：权益回馈（不支持提现）"; }
+                if(payoutEnabled){ agentSettleCycleEl.textContent = "提现结算：" + t7 + "（城市合伙人现金试点）"; }
+                else { agentSettleCycleEl.textContent = "结算说明：权益回馈（现金提现仅签约城市合伙人）"; }
               }
             }catch(eT){}
             try {
-              if (agentTierHintEl && tier && (tier.window_days || tier.target)) {
+              var promo = d.promo_tier || {};
+              if (agentTierHintEl && promo && promo.window_days) {
                 var locked = !!tier.locked;
-                var w = tier.window_days || "";
-                var gmv = (tier.team_gmv_fen != null) ? fmtFenYuanStr(tier.team_gmv_fen) : "";
-                var ad = (tier.active_direct != null) ? String(tier.active_direct) : "";
-                var tname = tier.target ? (String(tier.target) === "pro" ? "专业" : (String(tier.target) === "growth" ? "成长" : "入门")) : "";
+                var w = promo.window_days || tier.window_days || "";
+                var gmv = (promo.team_gmv_fen != null) ? fmtFenYuanStr(promo.team_gmv_fen) : "";
+                var ad = (promo.active_direct != null) ? String(promo.active_direct) : "";
+                var tname = promo.target ? (promo.target === "gold" ? "金档" : (promo.target === "silver" ? "银档" : (promo.target === "bronze" ? "铜档" : "入门"))) : "";
+                var thr = promo.thresholds || {};
+                var nextHint = "";
+                try {
+                  var cur = promo.level || "starter";
+                  if (cur !== "gold") {
+                    var nk = cur === "starter" ? "bronze" : (cur === "bronze" ? "silver" : "gold");
+                    var nt = thr[nk];
+                    if (nt) nextHint = " · 晋级" + (nk === "gold" ? "金档" : (nk === "silver" ? "银档" : "铜档")) + "：团队成交额 ¥" + fmtFenYuanStr(nt.gmv_fen) + " 且活跃直推 " + String(nt.active_direct) + " 人";
+                  }
+                } catch (eN) {}
                 agentTierHintEl.textContent =
-                  "成长参考（近 " + String(w) + " 天）：团队成交额 " + String(gmv) + " 元 · 活跃直推 " + String(ad) + " 人"
+                  "业绩参考（近 " + String(w) + " 天）：团队成交额 " + String(gmv) + " 元 · 活跃直推 " + String(ad) + " 人"
                   + (tname ? (" · 预计等级 " + tname) : "")
+                  + nextHint
                   + (locked ? "（已锁定，需管理员处理）" : "");
                 agentTierHintEl.style.display = "block";
               }

@@ -1234,6 +1234,109 @@ def admin_app_html(admin_base: str) -> str:
 
               <div class="card" style="margin-top:12px;">
                 <div class="row">
+                  <span class="pill">金银铜推广等级</span>
+                  <span class="muted small">按近 N 天团队GMV + 活跃直推自动晋级；直推返点按本人等级阶梯计提（铜/银/金）</span>
+                </div>
+                <div class="field-row" style="margin-top:12px;">
+                  <div class="field" style="min-width:200px;">
+                    <span class="lbl">等级开关</span><span class="sub">promo_tier_enabled</span>
+                    <select id="cfgPromoTierEnabled">
+                      <option value="1">开启（按等级阶梯返点）</option>
+                      <option value="0">关闭（回退统一直推比例）</option>
+                    </select>
+                  </div>
+                  <div class="field" style="min-width:200px;">
+                    <span class="lbl">铜档·团队GMV(元)</span><span class="sub">promo_tier_bronze_team_gmv_fen</span>
+                    <input id="cfgPromoBronzeGmv" class="mono" placeholder="3000" style="min-width:140px;" />
+                  </div>
+                  <div class="field" style="min-width:150px;">
+                    <span class="lbl">铜档·活跃直推</span><span class="sub">promo_tier_bronze_active_direct</span>
+                    <input id="cfgPromoBronzeAd" class="mono" placeholder="3" style="min-width:90px;" />
+                  </div>
+                  <div class="field" style="min-width:200px;">
+                    <span class="lbl">银档·团队GMV(元)</span><span class="sub">promo_tier_silver_team_gmv_fen</span>
+                    <input id="cfgPromoSilverGmv" class="mono" placeholder="20000" style="min-width:140px;" />
+                  </div>
+                  <div class="field" style="min-width:150px;">
+                    <span class="lbl">银档·活跃直推</span><span class="sub">promo_tier_silver_active_direct</span>
+                    <input id="cfgPromoSilverAd" class="mono" placeholder="10" style="min-width:90px;" />
+                  </div>
+                  <div class="field" style="min-width:200px;">
+                    <span class="lbl">金档·团队GMV(元)</span><span class="sub">promo_tier_gold_team_gmv_fen</span>
+                    <input id="cfgPromoGoldGmv" class="mono" placeholder="80000" style="min-width:140px;" />
+                  </div>
+                  <div class="field" style="min-width:150px;">
+                    <span class="lbl">金档·活跃直推</span><span class="sub">promo_tier_gold_active_direct</span>
+                    <input id="cfgPromoGoldAd" class="mono" placeholder="30" style="min-width:90px;" />
+                  </div>
+                  <div class="field" style="min-width:150px;">
+                    <span class="lbl">铜档直推返点</span><span class="sub">promo_tier_rate_bronze</span>
+                    <input id="cfgPromoRateBronze" class="mono" placeholder="0.15" style="min-width:90px;" />
+                  </div>
+                  <div class="field" style="min-width:150px;">
+                    <span class="lbl">银档直推返点</span><span class="sub">promo_tier_rate_silver</span>
+                    <input id="cfgPromoRateSilver" class="mono" placeholder="0.20" style="min-width:90px;" />
+                  </div>
+                  <div class="field" style="min-width:150px;">
+                    <span class="lbl">金档直推返点</span><span class="sub">promo_tier_rate_gold</span>
+                    <input id="cfgPromoRateGold" class="mono" placeholder="0.25" style="min-width:90px;" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="card" style="margin-top:12px;">
+                <div class="row">
+                  <span class="pill">城市合伙人（签约代理）</span>
+                  <span class="muted small">现金提现仅对签约城市合伙人开放；区域/协议编号用于对账</span>
+                  <button type="button" id="btnLoadCityPartners">刷新列表</button>
+                </div>
+                <div class="field-row" style="margin-top:12px;">
+                  <div class="field" style="min-width:110px;">
+                    <span class="lbl">用户 ID</span>
+                    <input id="cpUserId" class="mono" placeholder="user_id" style="width:100px;" />
+                  </div>
+                  <div class="field" style="min-width:180px;">
+                    <span class="lbl">城市/区域</span>
+                    <input id="cpRegion" placeholder="例如：杭州" style="min-width:130px;" />
+                  </div>
+                  <div class="field" style="min-width:220px;">
+                    <span class="lbl">协议编号</span>
+                    <input id="cpAgreementNo" placeholder="例如：CP-HZ-2026-001" style="min-width:170px;" />
+                  </div>
+                  <div class="field" style="min-width:180px;">
+                    <span class="lbl">签约状态</span>
+                    <select id="cpEnabled">
+                      <option value="1">已签约（开放现金提现）</option>
+                      <option value="0">未签约</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <button type="button" id="btnSetCityPartner">保存</button>
+                  </div>
+                </div>
+                <div class="row" style="margin-top:10px; flex-wrap:wrap; gap:10px;">
+                  <input id="cpSearch" placeholder="搜索手机/邮箱/ID" style="min-width:220px;" />
+                  <span id="cpMeta" class="muted small"></span>
+                </div>
+                <div style="margin-top:10px; overflow:auto;">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th style="width:80px;">ID</th>
+                        <th style="width:90px;">等级</th>
+                        <th style="width:130px;">区域</th>
+                        <th style="width:180px;">协议编号</th>
+                        <th style="width:200px;">账号</th>
+                        <th>更新时间</th>
+                      </tr>
+                    </thead>
+                    <tbody id="cpBody"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="card" style="margin-top:12px;">
+                <div class="row">
                   <span class="pill">待结算（eligible）</span>
                   <span class="muted small">status=pending 且 eligible_at ≤ now</span>
                   <button type="button" id="btnLoadEligible">刷新</button>
@@ -2172,6 +2275,17 @@ def admin_app_html(admin_base: str) -> str:
         try{ if($('cfgCommL3MinLevel')) $('cfgCommL3MinLevel').value = String(it.agent_commission_l3_min_level || 'growth'); }catch(e0){}
         if($('cfgCommCapTotal')) $('cfgCommCapTotal').value = (it.agent_commission_rate_cap_total != null) ? String(it.agent_commission_rate_cap_total) : '';
         $('cfgCommDelayDays').value = (it.agent_settle_delay_days != null) ? String(it.agent_settle_delay_days) : '';
+        if($('cfgPromoTierEnabled')) $('cfgPromoTierEnabled').value = (it.promo_tier_enabled != null && String(it.promo_tier_enabled).trim() !== '') ? String(it.promo_tier_enabled).trim() : '1';
+        function fen2yuan(v){ if(v == null || v === '') return ''; return String(Math.round(Number(v) / 100)); }
+        if($('cfgPromoBronzeGmv')) $('cfgPromoBronzeGmv').value = fen2yuan(it.promo_tier_bronze_team_gmv_fen);
+        if($('cfgPromoBronzeAd')) $('cfgPromoBronzeAd').value = (it.promo_tier_bronze_active_direct != null) ? String(it.promo_tier_bronze_active_direct) : '';
+        if($('cfgPromoSilverGmv')) $('cfgPromoSilverGmv').value = fen2yuan(it.promo_tier_silver_team_gmv_fen);
+        if($('cfgPromoSilverAd')) $('cfgPromoSilverAd').value = (it.promo_tier_silver_active_direct != null) ? String(it.promo_tier_silver_active_direct) : '';
+        if($('cfgPromoGoldGmv')) $('cfgPromoGoldGmv').value = fen2yuan(it.promo_tier_gold_team_gmv_fen);
+        if($('cfgPromoGoldAd')) $('cfgPromoGoldAd').value = (it.promo_tier_gold_active_direct != null) ? String(it.promo_tier_gold_active_direct) : '';
+        if($('cfgPromoRateBronze')) $('cfgPromoRateBronze').value = (it.promo_tier_rate_bronze != null) ? String(it.promo_tier_rate_bronze) : '';
+        if($('cfgPromoRateSilver')) $('cfgPromoRateSilver').value = (it.promo_tier_rate_silver != null) ? String(it.promo_tier_rate_silver) : '';
+        if($('cfgPromoRateGold')) $('cfgPromoRateGold').value = (it.promo_tier_rate_gold != null) ? String(it.promo_tier_rate_gold) : '';
       }
 
       async function loadInviteCfg(){
@@ -2219,10 +2333,58 @@ def admin_app_html(admin_base: str) -> str:
         if(l3min !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'agent_commission_l3_min_level', value: l3min})}));
         if(cap !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'agent_commission_rate_cap_total', value: cap})}));
         if(dd !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'agent_settle_delay_days', value: dd})}));
+        var pte = String($('cfgPromoTierEnabled').value || '1').trim();
+        tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'promo_tier_enabled', value: pte})}));
+        function yuan2fen(v){ if(v === '') return ''; return String(Math.round(Number(v) * 100)); }
+        var pr = {
+          promo_tier_bronze_team_gmv_fen: yuan2fen(String(($('cfgPromoBronzeGmv') && $('cfgPromoBronzeGmv').value) || '').trim()),
+          promo_tier_bronze_active_direct: String(($('cfgPromoBronzeAd') && $('cfgPromoBronzeAd').value) || '').trim(),
+          promo_tier_silver_team_gmv_fen: yuan2fen(String(($('cfgPromoSilverGmv') && $('cfgPromoSilverGmv').value) || '').trim()),
+          promo_tier_silver_active_direct: String(($('cfgPromoSilverAd') && $('cfgPromoSilverAd').value) || '').trim(),
+          promo_tier_gold_team_gmv_fen: yuan2fen(String(($('cfgPromoGoldGmv') && $('cfgPromoGoldGmv').value) || '').trim()),
+          promo_tier_gold_active_direct: String(($('cfgPromoGoldAd') && $('cfgPromoGoldAd').value) || '').trim(),
+          promo_tier_rate_bronze: String(($('cfgPromoRateBronze') && $('cfgPromoRateBronze').value) || '').trim(),
+          promo_tier_rate_silver: String(($('cfgPromoRateSilver') && $('cfgPromoRateSilver').value) || '').trim(),
+          promo_tier_rate_gold: String(($('cfgPromoRateGold') && $('cfgPromoRateGold').value) || '').trim()
+        };
+        Object.keys(pr).forEach(function(k){ if(pr[k] !== '') tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:k, value: pr[k]})})); });
         setStatus('正在保存返佣配置…');
         await Promise.all(tasks);
         setStatus('返佣配置已写入数据库');
         await loadCommissionCfg();
+      }
+
+      async function loadCityPartners(){
+        var q = String(($('cpSearch') && $('cpSearch').value) || '').trim();
+        var qs = q ? ('?q=' + encodeURIComponent(q)) : '';
+        var d = await api('/api/admin/agent/city_partners' + qs);
+        var body = $('cpBody');
+        body.innerHTML = '';
+        (d.items || []).forEach(function(it){
+          var tr = document.createElement('tr');
+          tr.innerHTML =
+            '<td class="mono">'+esc(it.user_id)+'</td>'+
+            '<td>'+esc(it.level||'')+'</td>'+
+            '<td>'+esc(it.city_region||'')+'</td>'+
+            '<td class="mono">'+esc(it.city_agreement_no||'')+'</td>'+
+            '<td class="mono">'+esc(it.phone||it.email||'')+'</td>'+
+            '<td class="mono">'+esc(fmtTs(it.updated_at))+'</td>';
+          body.appendChild(tr);
+        });
+        var meta = $('cpMeta');
+        if(meta) meta.textContent = '共 '+((d.total != null) ? d.total : (d.items||[]).length)+' 位城市合伙人';
+      }
+
+      async function setCityPartner(){
+        var uid = String(($('cpUserId') && $('cpUserId').value) || '').trim();
+        if(!uid){ setStatus('请填写用户 ID'); return; }
+        var region = String(($('cpRegion') && $('cpRegion').value) || '').trim();
+        var ag = String(($('cpAgreementNo') && $('cpAgreementNo').value) || '').trim();
+        var en = String(($('cpEnabled') && $('cpEnabled').value) || '0').trim();
+        setStatus('正在保存城市合伙人…');
+        var d = await api('/api/admin/agent/city_partner', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({user_id: uid, city_partner: en, city_region: region, city_agreement_no: ag})});
+        setStatus('已保存城市合伙人：用户 '+uid+(d.city_partner ? ' 已签约' : ' 未签约')+(d.city_region ? ' · '+d.city_region : ''));
+        await loadCityPartners();
       }
 
       async function loadEligibleCommissions(){
@@ -3699,6 +3861,12 @@ def admin_app_html(admin_base: str) -> str:
         });
         if($('btnSaveCommissionCfg')) $('btnSaveCommissionCfg').addEventListener('click', async function(){
           try{ await saveCommissionCfg(); }catch(e){ setStatus('保存返佣配置失败：'+e.message); }
+        });
+        if($('btnSetCityPartner')) $('btnSetCityPartner').addEventListener('click', async function(){
+          try{ await setCityPartner(); }catch(e){ setStatus('保存城市合伙人失败：'+e.message); }
+        });
+        if($('btnLoadCityPartners')) $('btnLoadCityPartners').addEventListener('click', async function(){
+          try{ await loadCityPartners(); }catch(e){ setStatus('刷新城市合伙人失败：'+e.message); }
         });
         if($('btnLoadEligible')) $('btnLoadEligible').addEventListener('click', async function(){
           try{ await loadEligibleCommissions(); }catch(e){ setStatus('刷新待结算失败：'+e.message); }

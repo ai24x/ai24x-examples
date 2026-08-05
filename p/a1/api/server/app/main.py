@@ -58,7 +58,6 @@ from .admin_otp import (
 from .billing_runtime import (
     auth_local_enabled,
     identity_configured,
-    partner_payout_enabled,
     partner_payout_mode,
     resolve_alipay,
     resolve_billing,
@@ -1048,14 +1047,27 @@ def admin_commissions_generate_for_order(body: dict, _: bool = Depends(require_a
         raise HTTPException(status_code=400, detail=str(e))
 
 
+def _partner_cash_eligible(user_id: int) -> bool:
+    """现金提现资格：全局模式=现金 且 该用户为签约城市合伙人。"""
+    if partner_payout_mode() != "cash":
+        return False
+    try:
+        cp = db.agent_city_partner_info(int(user_id))
+        return bool(cp and cp.get("city_partner"))
+    except Exception:
+        return False
+
+
 @app.get("/api/agent/overview")
 def agent_overview(user_id: int = Depends(get_current_user_id)) -> dict:
     try:
         out = db.agent_commission_overview(int(user_id))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    cp = out.get("city_partner") or {}
+    cash_pilot = partner_payout_mode() == "cash"
     out["payout_mode"] = partner_payout_mode()
-    out["payout_enabled"] = partner_payout_enabled()
+    out["payout_enabled"] = bool(cash_pilot and cp.get("city_partner"))
     return out
 
 
@@ -1074,8 +1086,8 @@ def agent_commissions(
 
 @app.post("/api/agent/payout_account")
 def agent_payout_account(body: dict, user_id: int = Depends(get_current_user_id)) -> dict:
-    if not partner_payout_enabled():
-        raise HTTPException(status_code=403, detail="当前为权益回馈模式：邀请回馈以额度/权益形式发放，暂不支持提现")
+    if not _partner_cash_eligible(int(user_id)):
+        raise HTTPException(status_code=403, detail="当前为权益回馈模式：仅签约城市合伙人可配置收款与现金提现")
     try:
         return db.agent_set_payout_account(
             user_id=int(user_id),
@@ -1096,8 +1108,8 @@ def agent_payout_account_get(user_id: int = Depends(get_current_user_id)) -> dic
 
 @app.post("/api/agent/payout/request")
 def agent_payout_request(body: dict, user_id: int = Depends(get_current_user_id)) -> dict:
-    if not partner_payout_enabled():
-        raise HTTPException(status_code=403, detail="当前为权益回馈模式：邀请回馈以额度/权益形式发放，暂不支持提现")
+    if not _partner_cash_eligible(int(user_id)):
+        raise HTTPException(status_code=403, detail="当前为权益回馈模式：仅签约城市合伙人可申请现金提现")
     try:
         amount = body.get("amount_fen", None)
         amount2 = None if amount is None else int(amount)
@@ -1686,6 +1698,34 @@ def admin_auth_import(body: dict, _: bool = Depends(require_admin)) -> dict:
         raise HTTPException(status_code=400, detail="单次最多 20000 行")
     stats = auth_local.import_password_rows(rows)
     return {"ok": True, **stats}
+
+
+@app.post("/api/admin/agent/city_partner")
+def admin_agent_city_partner_set(body: dict, _: bool = Depends(require_admin)) -> dict:
+    """后台签约/解约城市合伙人（区域 + 协议编号）。"""
+    try:
+        uid = int(body.get("user_id") or 0)
+    except Exception:
+        uid = 0
+    if uid <= 0:
+        raise HTTPException(status_code=400, detail="请提供有效的 user_id")
+    raw = str(body.get("city_partner") if body.get("city_partner") is not None else "").strip().lower()
+    enabled = raw in ("1", "true", "yes", "on")
+    try:
+        return db.admin_set_city_partner(
+            user_id=uid,
+            city_partner=enabled,
+            city_region=str(body.get("city_region") or ""),
+            city_agreement_no=str(body.get("city_agreement_no") or ""),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/admin/agent/city_partners")
+def admin_agent_city_partners(q: str = "", limit: int = 50, offset: int = 0, _: bool = Depends(require_admin)) -> dict:
+    """后台列出已签约城市合伙人。"""
+    return db.admin_list_city_partners(q=q, limit=limit, offset=offset)
 
 
 @app.get("/api/admin/sms_106_config")
