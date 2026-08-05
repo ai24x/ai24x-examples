@@ -95,6 +95,13 @@ _COMMON_CSS = """
       .card-title { font-size: 13px; font-weight: 600; color: var(--text); }
       .bill-plan-card { margin-top: 14px; padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--panel); }
       .bill-plan-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 2px; }
+      .bill-page-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 2px; }
+      .bill-page-title { font-size: 18px; font-weight: 800; letter-spacing: 0.4px; background: linear-gradient(90deg, #f2f9ff 0%, #7cc0ff 55%, #4ade80 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+      .bill-page-sub { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+      .bill-plan-title { font-size: 15px; font-weight: 700; color: #f4f8ff; display: inline-flex; align-items: center; gap: 8px; letter-spacing: 0.2px; }
+      .bill-plan-title::before { content: ''; width: 4px; height: 14px; border-radius: 2px; background: linear-gradient(180deg, var(--pri), var(--ok)); }
+      .bill-plan-tag { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid rgba(52,211,153,0.45); background: rgba(52,211,153,0.10); color: #7ee8b8; white-space: nowrap; }
+      .bill-plan-sub { font-size: 11px; color: var(--muted); }
       code.mono { font-size: 11px; background: var(--panel2); border: 1px solid var(--border); padding: 1px 6px; border-radius: 6px; }
       .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-top: 14px; }
       .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
@@ -906,15 +913,19 @@ def admin_app_html(admin_base: str) -> str:
 
           <section class="panel-page" id="p-billing">
             <div class="card" id="sec-billing">
-              <div class="row">
-                <span class="pill">会员与支付 · 套餐与定价</span>
-                <span class="muted small">进入本页自动加载；保存后立即影响下单金额与订单标题</span>
-                <button type="button" id="btnLoadBilling">刷新</button>
-                <button type="button" id="btnSaveBilling">保存全部</button>
+              <div class="bill-page-head">
+                <div>
+                  <div class="bill-page-title">会员与支付 · 套餐与定价</div>
+                  <div class="bill-page-sub">进入本页自动加载；标价以「元」显示、按「分」存储；保存后立即影响下单金额与订单标题</div>
+                </div>
+                <div class="row" style="margin:0;">
+                  <button type="button" id="btnLoadBilling">刷新</button>
+                  <button type="button" id="btnSaveBilling">保存全部</button>
+                </div>
               </div>
 
               <div class="bill-plan-card">
-                <div class="bill-plan-head"><span class="card-title">体验卡</span><span class="pill">¥8.8 · 7 天 · 低额度试用</span><span class="muted small">限购 1 次/账号</span></div>
+                <div class="bill-plan-head"><span class="bill-plan-title">体验卡</span><span class="bill-plan-tag">¥8.8 · 7 天 · 低额度试用</span><span class="bill-plan-sub">限购 1 次/账号</span></div>
                 <div class="field-row">
                   <div class="field" style="flex:1; min-width:200px;"><span class="lbl">套餐名称</span><span class="sub">vip_title_trial</span><input id="bill_vip_title_trial" placeholder="AI24X VIP体验卡" /></div>
                   <div class="field" style="min-width:150px;"><span class="lbl">标价（元）</span><span class="sub">price_vip_trial_fen（自动×100 存分）</span><input id="bill_price_vip_trial_fen" class="mono" type="number" min="0.01" step="0.01" placeholder="8.8" style="width:120px;" /></div>
@@ -924,7 +935,7 @@ def admin_app_html(admin_base: str) -> str:
               </div>
 
               <div class="bill-plan-card">
-                <div class="bill-plan-head"><span class="card-title">月卡</span><span class="pill">¥888 · 30 天</span><span class="muted small">主推档位</span></div>
+                <div class="bill-plan-head"><span class="bill-plan-title">月卡</span><span class="bill-plan-tag">¥888 · 30 天</span><span class="bill-plan-sub">主推档位</span></div>
                 <div class="field-row">
                   <div class="field" style="flex:1; min-width:200px;"><span class="lbl">套餐名称</span><span class="sub">vip_title_month</span><input id="bill_vip_title_month" placeholder="AI24X VIP月会员" /></div>
                   <div class="field" style="min-width:150px;"><span class="lbl">标价（元）</span><span class="sub">price_vip_month_fen（自动×100 存分）</span><input id="bill_price_vip_month_fen" class="mono" type="number" min="0.01" step="0.01" placeholder="888" style="width:120px;" /></div>
@@ -934,17 +945,17 @@ def admin_app_html(admin_base: str) -> str:
               </div>
 
               <div class="bill-plan-card">
-                <div class="bill-plan-head"><span class="card-title">年卡</span><span class="pill">¥8888 · 365 天</span><span class="muted small">额度与月卡共用</span></div>
+                <div class="bill-plan-head"><span class="bill-plan-title">年卡</span><span class="bill-plan-tag">¥8888 · 365 天</span><span class="bill-plan-sub">额度与月卡共用</span></div>
                 <div class="field-row">
                   <div class="field" style="flex:1; min-width:200px;"><span class="lbl">套餐名称</span><span class="sub">vip_title_year</span><input id="bill_vip_title_year" placeholder="AI24X VIP年会员" /></div>
                   <div class="field" style="min-width:150px;"><span class="lbl">标价（元）</span><span class="sub">price_vip_year_fen（自动×100 存分）</span><input id="bill_price_vip_year_fen" class="mono" type="number" min="0.01" step="0.01" placeholder="8888" style="width:120px;" /></div>
-                  <div class="field" style="min-width:130px;"><span class="lbl">日上限（次）</span><span class="sub">同月卡 vip_daily_cap</span></div>
-                  <div class="field" style="min-width:130px;"><span class="lbl">周上限（次）</span><span class="sub">同月卡 vip_weekly</span></div>
+                  <div class="field" style="min-width:130px;"><span class="lbl">日上限（次）</span><span class="sub">vip_daily_cap · 与月卡共用</span><input id="bill_vip_daily_cap_year" class="mono" type="number" min="0" step="1" placeholder="150" style="width:110px;" /></div>
+                  <div class="field" style="min-width:130px;"><span class="lbl">周上限（次）</span><span class="sub">vip_weekly · 与月卡共用</span><input id="bill_vip_weekly_year" class="mono" type="number" min="0" step="1" placeholder="500" style="width:110px;" /></div>
                 </div>
               </div>
 
               <div class="bill-plan-card">
-                <div class="bill-plan-head"><span class="card-title">支付与联调开关</span></div>
+                <div class="bill-plan-head"><span class="bill-plan-title">支付与联调开关</span></div>
                 <div class="field-row">
                   <div class="field" style="min-width:200px;"><span class="lbl">用户端微信支付</span><span class="sub">billing_pay_wechat_enabled</span>
                     <select id="bill_billing_pay_wechat_enabled">
@@ -975,7 +986,7 @@ def admin_app_html(admin_base: str) -> str:
               </div>
 
               <div class="bill-plan-card">
-                <div class="bill-plan-head"><span class="card-title">伙伴成长档</span><span class="muted small">成长/专业档 · 城市合伙人/合作入口</span></div>
+                <div class="bill-plan-head"><span class="bill-plan-title">伙伴成长档</span><span class="bill-plan-sub">成长/专业档 · 城市合伙人/合作入口</span></div>
                 <div class="field-row">
                   <div class="field" style="flex:1; min-width:180px;"><span class="lbl">成长档名称</span><span class="sub">agent_title_growth</span><input id="bill_agent_title_growth" placeholder="伙伴计划 · 成长档" /></div>
                   <div class="field" style="min-width:140px;"><span class="lbl">成长档标价（元）</span><span class="sub">price_agent_growth_fen</span><input id="bill_price_agent_growth_fen" class="mono" type="number" min="0.01" step="0.01" placeholder="5000" style="width:110px;" /></div>
@@ -1005,7 +1016,7 @@ def admin_app_html(admin_base: str) -> str:
               </div>
 
               <div class="bill-plan-card">
-                <div class="bill-plan-head"><span class="card-title">伙伴结算模式</span></div>
+                <div class="bill-plan-head"><span class="bill-plan-title">伙伴结算模式</span></div>
                 <div class="field-row" style="align-items:flex-start;">
                   <div class="field" style="min-width:300px;"><span class="lbl">结算模式</span><span class="sub">partner_payout_mode</span>
                     <select id="bill_partner_payout_mode">
@@ -1019,7 +1030,7 @@ def admin_app_html(admin_base: str) -> str:
               </div>
 
               <div class="msg small muted" style="margin-top:10px;">
-                说明：标价以「元」显示、按「分」存储（自动换算，如 8.8 → 880 分）；价格会进入订单用于展示/对账。保存后立即生效。
+                说明：价格进入订单用于展示/对账；保存后立即生效。非 prod 小额实扣仅联调用，线上务必关闭。
               </div>
             </div>
           </section>
@@ -3603,6 +3614,8 @@ async function loadEligibleCommissions(){
         put('vip_trial_weekly','bill_vip_trial_weekly');
         put('vip_daily_cap','bill_vip_daily_cap');
         put('vip_weekly','bill_vip_weekly');
+        put('vip_daily_cap','bill_vip_daily_cap_year');
+        put('vip_weekly','bill_vip_weekly_year');
         put('billing_dev_real_pay','bill_billing_dev_real_pay');
         put('billing_dev_amount_fen','bill_billing_dev_amount_fen');
         put('billing_pay_wechat_enabled','bill_billing_pay_wechat_enabled');
@@ -3641,6 +3654,8 @@ async function loadEligibleCommissions(){
         post('vip_trial_weekly','bill_vip_trial_weekly');
         post('vip_daily_cap','bill_vip_daily_cap');
         post('vip_weekly','bill_vip_weekly');
+        post('vip_daily_cap','bill_vip_daily_cap_year');
+        post('vip_weekly','bill_vip_weekly_year');
         post('billing_dev_real_pay','bill_billing_dev_real_pay');
         post('billing_dev_amount_fen','bill_billing_dev_amount_fen');
         post('billing_pay_wechat_enabled','bill_billing_pay_wechat_enabled');
