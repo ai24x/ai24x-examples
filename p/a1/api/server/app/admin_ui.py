@@ -93,6 +93,8 @@ _COMMON_CSS = """
       th .th-cn { display: block; color: var(--text); font-weight: 600; }
       th .th-en { display: block; font-weight: 400; color: var(--muted); font-size: 10px; margin-top: 2px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
       .card-title { font-size: 13px; font-weight: 600; color: var(--text); }
+      .bill-plan-card { margin-top: 14px; padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--panel); }
+      .bill-plan-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 2px; }
       code.mono { font-size: 11px; background: var(--panel2); border: 1px solid var(--border); padding: 1px 6px; border-radius: 6px; }
       .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-top: 14px; }
       .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
@@ -905,153 +907,119 @@ def admin_app_html(admin_base: str) -> str:
           <section class="panel-page" id="p-billing">
             <div class="card" id="sec-billing">
               <div class="row">
-                <span class="pill">VIP 套餐与定价</span>
-                <span class="muted small">写入 admin_config；用于测试/促销临时调整；保存后立即影响下单金额与订单标题</span>
-                <button type="button" id="btnLoadBilling">读取</button>
-                <button type="button" id="btnSaveBilling">保存</button>
+                <span class="pill">会员与支付 · 套餐与定价</span>
+                <span class="muted small">进入本页自动加载；保存后立即影响下单金额与订单标题</span>
+                <button type="button" id="btnLoadBilling">刷新</button>
+                <button type="button" id="btnSaveBilling">保存全部</button>
               </div>
-              <div class="field-row" style="margin-top:10px; flex-wrap:wrap;">
-                <div class="field" style="min-width:220px;">
-                  <span class="lbl">体验卡名称</span><span class="sub">vip_title_trial</span>
-                  <input id="bill_vip_title_trial" placeholder="AI24X VIP体验卡" style="min-width:220px;" />
-                </div>
-                <div class="field" style="min-width:220px;">
-                  <span class="lbl">月卡名称</span><span class="sub">vip_title_month</span>
-                  <input id="bill_vip_title_month" placeholder="AI24X VIP月会员" style="min-width:220px;" />
-                </div>
-                <div class="field" style="min-width:220px;">
-                  <span class="lbl">年卡名称</span><span class="sub">vip_title_year</span>
-                  <input id="bill_vip_title_year" placeholder="AI24X VIP年会员" style="min-width:220px;" />
+
+              <div class="bill-plan-card">
+                <div class="bill-plan-head"><span class="card-title">体验卡</span><span class="pill">¥8.8 · 7 天 · 低额度试用</span><span class="muted small">限购 1 次/账号</span></div>
+                <div class="field-row">
+                  <div class="field" style="flex:1; min-width:200px;"><span class="lbl">套餐名称</span><span class="sub">vip_title_trial</span><input id="bill_vip_title_trial" placeholder="AI24X VIP体验卡" /></div>
+                  <div class="field" style="min-width:150px;"><span class="lbl">标价（元）</span><span class="sub">price_vip_trial_fen（自动×100 存分）</span><input id="bill_price_vip_trial_fen" class="mono" type="number" min="0.01" step="0.01" placeholder="8.8" style="width:120px;" /></div>
+                  <div class="field" style="min-width:130px;"><span class="lbl">日上限（次）</span><input id="bill_vip_trial_daily_cap" class="mono" type="number" min="0" step="1" placeholder="20" style="width:110px;" /></div>
+                  <div class="field" style="min-width:130px;"><span class="lbl">周上限（次）</span><input id="bill_vip_trial_weekly" class="mono" type="number" min="0" step="1" placeholder="100" style="width:110px;" /></div>
                 </div>
               </div>
-              <div class="field-row" style="margin-top:10px; flex-wrap:wrap;">
-                <div class="field" style="min-width:220px;">
-                  <span class="lbl">体验卡标价(分)</span><span class="sub">price_vip_trial_fen</span>
-                  <input id="bill_price_vip_trial_fen" class="mono" type="number" min="1" step="1" placeholder="990" style="width:160px;" />
-                </div>
-                <div class="field" style="min-width:220px;">
-                  <span class="lbl">月卡标价(分)</span><span class="sub">price_vip_month_fen</span>
-                  <input id="bill_price_vip_month_fen" class="mono" type="number" min="1" step="1" placeholder="9900" style="width:160px;" />
-                </div>
-                <div class="field" style="min-width:220px;">
-                  <span class="lbl">年卡标价(分)</span><span class="sub">price_vip_year_fen</span>
-                  <input id="bill_price_vip_year_fen" class="mono" type="number" min="1" step="1" placeholder="99900" style="width:160px;" />
+
+              <div class="bill-plan-card">
+                <div class="bill-plan-head"><span class="card-title">月卡</span><span class="pill">¥888 · 30 天</span><span class="muted small">主推档位</span></div>
+                <div class="field-row">
+                  <div class="field" style="flex:1; min-width:200px;"><span class="lbl">套餐名称</span><span class="sub">vip_title_month</span><input id="bill_vip_title_month" placeholder="AI24X VIP月会员" /></div>
+                  <div class="field" style="min-width:150px;"><span class="lbl">标价（元）</span><span class="sub">price_vip_month_fen（自动×100 存分）</span><input id="bill_price_vip_month_fen" class="mono" type="number" min="0.01" step="0.01" placeholder="888" style="width:120px;" /></div>
+                  <div class="field" style="min-width:130px;"><span class="lbl">日上限（次）</span><input id="bill_vip_daily_cap" class="mono" type="number" min="0" step="1" placeholder="150" style="width:110px;" /></div>
+                  <div class="field" style="min-width:130px;"><span class="lbl">周上限（次）</span><input id="bill_vip_weekly" class="mono" type="number" min="0" step="1" placeholder="500" style="width:110px;" /></div>
                 </div>
               </div>
-              <div class="field-row" style="margin-top:10px; flex-wrap:wrap;">
-                <div class="field" style="min-width:240px;">
-                  <span class="lbl">体验卡日上限</span><span class="sub">vip_trial_daily_cap</span>
-                  <input id="bill_vip_trial_daily_cap" class="mono" type="number" min="0" step="1" placeholder="20" style="width:160px;" />
-                </div>
-                <div class="field" style="min-width:240px;">
-                  <span class="lbl">体验卡周上限</span><span class="sub">vip_trial_weekly</span>
-                  <input id="bill_vip_trial_weekly" class="mono" type="number" min="0" step="1" placeholder="100" style="width:160px;" />
-                </div>
-                <div class="field" style="min-width:240px;">
-                  <span class="lbl">VIP日上限（月/年共用）</span><span class="sub">vip_daily_cap</span>
-                  <input id="bill_vip_daily_cap" class="mono" type="number" min="0" step="1" placeholder="150" style="width:160px;" />
-                </div>
-                <div class="field" style="min-width:240px;">
-                  <span class="lbl">VIP周上限（月/年共用）</span><span class="sub">vip_weekly</span>
-                  <input id="bill_vip_weekly" class="mono" type="number" min="0" step="1" placeholder="500" style="width:160px;" />
+
+              <div class="bill-plan-card">
+                <div class="bill-plan-head"><span class="card-title">年卡</span><span class="pill">¥8888 · 365 天</span><span class="muted small">额度与月卡共用</span></div>
+                <div class="field-row">
+                  <div class="field" style="flex:1; min-width:200px;"><span class="lbl">套餐名称</span><span class="sub">vip_title_year</span><input id="bill_vip_title_year" placeholder="AI24X VIP年会员" /></div>
+                  <div class="field" style="min-width:150px;"><span class="lbl">标价（元）</span><span class="sub">price_vip_year_fen（自动×100 存分）</span><input id="bill_price_vip_year_fen" class="mono" type="number" min="0.01" step="0.01" placeholder="8888" style="width:120px;" /></div>
+                  <div class="field" style="min-width:130px;"><span class="lbl">日上限（次）</span><span class="sub">同月卡 vip_daily_cap</span></div>
+                  <div class="field" style="min-width:130px;"><span class="lbl">周上限（次）</span><span class="sub">同月卡 vip_weekly</span></div>
                 </div>
               </div>
-              <div class="field-row" style="margin-top:10px; flex-wrap:wrap;">
-                <div class="field" style="min-width:240px;">
-                  <span class="lbl">非 prod 小额实扣开关</span><span class="sub">billing_dev_real_pay</span>
-                  <select id="bill_billing_dev_real_pay">
-                    <option value="">默认（跟随 .env）</option>
-                    <option value="0">关闭（0）</option>
-                    <option value="1">开启（1，仅非 prod 生效）</option>
-                  </select>
+
+              <div class="bill-plan-card">
+                <div class="bill-plan-head"><span class="card-title">支付与联调开关</span></div>
+                <div class="field-row">
+                  <div class="field" style="min-width:200px;"><span class="lbl">用户端微信支付</span><span class="sub">billing_pay_wechat_enabled</span>
+                    <select id="bill_billing_pay_wechat_enabled">
+                      <option value="">默认（开启）</option>
+                      <option value="1">开启（1）</option>
+                      <option value="0">关闭（0）</option>
+                    </select>
+                  </div>
+                  <div class="field" style="min-width:200px;"><span class="lbl">用户端支付宝</span><span class="sub">billing_pay_alipay_enabled</span>
+                    <select id="bill_billing_pay_alipay_enabled">
+                      <option value="">默认（开启）</option>
+                      <option value="1">开启（1）</option>
+                      <option value="0">关闭（0）</option>
+                    </select>
+                  </div>
+                  <div class="field" style="min-width:210px;"><span class="lbl">非 prod 小额实扣开关</span><span class="sub">billing_dev_real_pay</span>
+                    <select id="bill_billing_dev_real_pay">
+                      <option value="">默认（跟随 .env）</option>
+                      <option value="0">关闭（0）</option>
+                      <option value="1">开启（1，仅非 prod 生效）</option>
+                    </select>
+                  </div>
+                  <div class="field" style="min-width:150px;"><span class="lbl">非 prod 实扣金额（分）</span><span class="sub">billing_dev_amount_fen</span>
+                    <input id="bill_billing_dev_amount_fen" class="mono" type="number" min="1" step="1" placeholder="10" style="width:120px;" />
+                  </div>
                 </div>
-                <div class="field" style="min-width:220px;">
-                  <span class="lbl">非 prod 实扣金额(分)</span><span class="sub">billing_dev_amount_fen</span>
-                  <input id="bill_billing_dev_amount_fen" class="mono" type="number" min="1" step="1" placeholder="10" style="width:160px;" />
-                </div>
+                <div class="msg small muted" style="margin-top:6px;">联调专用：开启后下单真实扣款替换为小额（线上务必关闭）。</div>
               </div>
-              <div class="field-row" style="margin-top:10px; flex-wrap:wrap;">
-                <div class="field" style="min-width:240px;">
-                  <span class="lbl">用户端开启微信支付</span><span class="sub">billing_pay_wechat_enabled</span>
-                  <select id="bill_billing_pay_wechat_enabled">
+
+              <div class="bill-plan-card">
+                <div class="bill-plan-head"><span class="card-title">伙伴成长档</span><span class="muted small">成长/专业档 · 城市合伙人/合作入口</span></div>
+                <div class="field-row">
+                  <div class="field" style="flex:1; min-width:180px;"><span class="lbl">成长档名称</span><span class="sub">agent_title_growth</span><input id="bill_agent_title_growth" placeholder="伙伴计划 · 成长档" /></div>
+                  <div class="field" style="min-width:140px;"><span class="lbl">成长档标价（元）</span><span class="sub">price_agent_growth_fen</span><input id="bill_price_agent_growth_fen" class="mono" type="number" min="0.01" step="0.01" placeholder="5000" style="width:110px;" /></div>
+                  <div class="field" style="min-width:150px;"><span class="lbl">开放成长档</span><select id="bill_agent_upgrade_growth_enabled">
                     <option value="">默认（开启）</option>
                     <option value="1">开启（1）</option>
                     <option value="0">关闭（0）</option>
-                  </select>
-                </div>
-                <div class="field" style="min-width:240px;">
-                  <span class="lbl">用户端开启支付宝</span><span class="sub">billing_pay_alipay_enabled</span>
-                  <select id="bill_billing_pay_alipay_enabled">
+                  </select></div>
+                  <div class="field" style="flex:1; min-width:180px;"><span class="lbl">专业档名称</span><span class="sub">agent_title_pro</span><input id="bill_agent_title_pro" placeholder="伙伴计划 · 专业档" /></div>
+                  <div class="field" style="min-width:140px;"><span class="lbl">专业档标价（元）</span><span class="sub">price_agent_pro_fen</span><input id="bill_price_agent_pro_fen" class="mono" type="number" min="0.01" step="0.01" placeholder="10000" style="width:110px;" /></div>
+                  <div class="field" style="min-width:150px;"><span class="lbl">开放专业档</span><select id="bill_agent_upgrade_pro_enabled">
                     <option value="">默认（开启）</option>
                     <option value="1">开启（1）</option>
                     <option value="0">关闭（0）</option>
-                  </select>
+                  </select></div>
+                </div>
+                <div class="field-row" style="margin-top:8px; align-items:flex-start;">
+                  <div class="field" style="min-width:260px;"><span class="lbl">升级档订单参与返佣</span><span class="sub">agent_upgrade_commission_enabled</span>
+                    <select id="bill_agent_upgrade_commission_enabled">
+                      <option value="">默认（关闭）</option>
+                      <option value="1">开启（1）</option>
+                      <option value="0">关闭（0）</option>
+                    </select>
+                  </div>
+                  <div class="msg small muted" style="margin-top:6px;">关闭时「成长/专业」升级不产生佣金流水；VIP 订单不受影响。</div>
                 </div>
               </div>
-              <div class="field-row" style="margin-top:12px; flex-wrap:wrap;">
-                <div class="field" style="min-width:220px;">
-                  <span class="lbl">成长档名称</span><span class="sub">agent_title_growth</span>
-                  <input id="bill_agent_title_growth" placeholder="伙伴计划 · 成长档" style="min-width:220px;" />
-                </div>
-                <div class="field" style="min-width:220px;">
-                  <span class="lbl">成长档标价(分)</span><span class="sub">price_agent_growth_fen</span>
-                  <input id="bill_price_agent_growth_fen" class="mono" type="number" min="1" step="1" placeholder="29900" style="width:160px;" />
-                </div>
-                <div class="field" style="min-width:240px;">
-                  <span class="lbl">开放成长档升级</span><span class="sub">agent_upgrade_growth_enabled</span>
-                  <select id="bill_agent_upgrade_growth_enabled">
-                    <option value="">默认（开启）</option>
-                    <option value="1">开启（1）</option>
-                    <option value="0">关闭（0）</option>
-                  </select>
+
+              <div class="bill-plan-card">
+                <div class="bill-plan-head"><span class="card-title">伙伴结算模式</span></div>
+                <div class="field-row" style="align-items:flex-start;">
+                  <div class="field" style="min-width:300px;"><span class="lbl">结算模式</span><span class="sub">partner_payout_mode</span>
+                    <select id="bill_partner_payout_mode">
+                      <option value="">默认（权益回馈·推荐）</option>
+                      <option value="rewards">权益回馈（不可提现）</option>
+                      <option value="cash">现金提现（私域白名单试点）</option>
+                    </select>
+                  </div>
+                  <div class="msg small muted" style="margin-top:6px;">合规说明：默认「权益回馈」，邀请回馈以查询额度/会员权益发放，用户端不展示提现入口；仅私域白名单试点可切「现金提现」。</div>
                 </div>
               </div>
-              <div class="field-row" style="margin-top:10px; flex-wrap:wrap;">
-                <div class="field" style="min-width:220px;">
-                  <span class="lbl">专业档名称</span><span class="sub">agent_title_pro</span>
-                  <input id="bill_agent_title_pro" placeholder="伙伴计划 · 专业档" style="min-width:220px;" />
-                </div>
-                <div class="field" style="min-width:220px;">
-                  <span class="lbl">专业档标价(分)</span><span class="sub">price_agent_pro_fen</span>
-                  <input id="bill_price_agent_pro_fen" class="mono" type="number" min="1" step="1" placeholder="99900" style="width:160px;" />
-                </div>
-                <div class="field" style="min-width:240px;">
-                  <span class="lbl">开放专业档升级</span><span class="sub">agent_upgrade_pro_enabled</span>
-                  <select id="bill_agent_upgrade_pro_enabled">
-                    <option value="">默认（开启）</option>
-                    <option value="1">开启（1）</option>
-                    <option value="0">关闭（0）</option>
-                  </select>
-                </div>
-              </div>
-              <div class="field-row" style="margin-top:10px; flex-wrap:wrap;">
-                <div class="field" style="min-width:360px;">
-                  <span class="lbl">升级档订单参与返佣</span><span class="sub">agent_upgrade_commission_enabled</span>
-                  <select id="bill_agent_upgrade_commission_enabled">
-                    <option value="">默认（关闭）</option>
-                    <option value="1">开启（1）</option>
-                    <option value="0">关闭（0）</option>
-                  </select>
-                </div>
-                <div class="msg small muted" style="margin-top:6px;">
-                  说明：关闭时，用户购买「成长/专业」升级档不会生成佣金流水；VIP 订单不受影响。
-                </div>
-              </div>
-              <div class="field-row" style="margin-top:10px; flex-wrap:wrap;">
-                <div class="field" style="min-width:360px;">
-                  <span class="lbl">伙伴结算模式</span><span class="sub">partner_payout_mode</span>
-                  <select id="bill_partner_payout_mode">
-                    <option value="">默认（权益回馈·推荐）</option>
-                    <option value="rewards">权益回馈（不可提现）</option>
-                    <option value="cash">现金提现（私域白名单试点）</option>
-                  </select>
-                </div>
-                <div class="msg small muted" style="margin-top:6px;">
-                  合规说明：默认「权益回馈」，邀请回馈以查询额度/会员权益发放，用户端不展示提现入口；仅当私域白名单试点时可切换「现金提现」。
-                </div>
-              </div>
-              <div class="msg small muted" style="margin-top:8px;">
-                说明：这里的“标价”会进入订单（后台展示/对账）。若开启“非 prod 小额实扣”，下单时真实扣款金额会被替换为该小额（仅联调用，线上务必关闭）。
+
+              <div class="msg small muted" style="margin-top:10px;">
+                说明：标价以「元」显示、按「分」存储（自动换算，如 8.8 → 880 分）；价格会进入订单用于展示/对账。保存后立即生效。
               </div>
             </div>
           </section>
@@ -2997,6 +2965,9 @@ async function loadEligibleCommissions(){
           loadSystem().catch(function(e){ setStatus('系统配置读取失败：'+e.message); });
           loadInviteCfg().catch(function(e){ setStatus('邀请配置读取失败：'+e.message); });
         }
+        if(id === 'p-billing'){
+          loadBilling().catch(function(e){ setStatus('套餐与定价读取失败：'+e.message); });
+        }
         if(id === 'p-wechat'){
           loadWechat().catch(function(e){ setStatus('微信支付配置：'+e.message); });
         }
@@ -3613,12 +3584,21 @@ async function loadEligibleCommissions(){
           if(String(v) === '***') { el.value = ''; return; }
           el.value = String(v);
         }
+        function putYuan(key, elId){
+          var el = $(elId);
+          if(!el) return;
+          var v = it[key];
+          if(v === undefined || v === null || String(v) === '***') { el.value = ''; return; }
+          var n = Number(v);
+          if(!isFinite(n) || n <= 0){ el.value = String(v); return; }
+          el.value = (n / 100).toFixed(2);
+        }
         put('vip_title_trial','bill_vip_title_trial');
         put('vip_title_month','bill_vip_title_month');
         put('vip_title_year','bill_vip_title_year');
-        put('price_vip_trial_fen','bill_price_vip_trial_fen');
-        put('price_vip_month_fen','bill_price_vip_month_fen');
-        put('price_vip_year_fen','bill_price_vip_year_fen');
+        putYuan('price_vip_trial_fen','bill_price_vip_trial_fen');
+        putYuan('price_vip_month_fen','bill_price_vip_month_fen');
+        putYuan('price_vip_year_fen','bill_price_vip_year_fen');
         put('vip_trial_daily_cap','bill_vip_trial_daily_cap');
         put('vip_trial_weekly','bill_vip_trial_weekly');
         put('vip_daily_cap','bill_vip_daily_cap');
@@ -3628,10 +3608,10 @@ async function loadEligibleCommissions(){
         put('billing_pay_wechat_enabled','bill_billing_pay_wechat_enabled');
         put('billing_pay_alipay_enabled','bill_billing_pay_alipay_enabled');
         put('agent_title_growth','bill_agent_title_growth');
-        put('price_agent_growth_fen','bill_price_agent_growth_fen');
+        putYuan('price_agent_growth_fen','bill_price_agent_growth_fen');
         put('agent_upgrade_growth_enabled','bill_agent_upgrade_growth_enabled');
         put('agent_title_pro','bill_agent_title_pro');
-        put('price_agent_pro_fen','bill_price_agent_pro_fen');
+        putYuan('price_agent_pro_fen','bill_price_agent_pro_fen');
         put('agent_upgrade_pro_enabled','bill_agent_upgrade_pro_enabled');
         put('agent_upgrade_commission_enabled','bill_agent_upgrade_commission_enabled');
         put('partner_payout_mode','bill_partner_payout_mode');
@@ -3639,9 +3619,16 @@ async function loadEligibleCommissions(){
 
       async function saveBilling(){
         var tasks = [];
+        var PRICE_KEYS = {price_vip_trial_fen:1, price_vip_month_fen:1, price_vip_year_fen:1, price_agent_growth_fen:1, price_agent_pro_fen:1};
         function post(key, elId){
           var el = $(elId);
           var v = el ? String(el.value||'').trim() : '';
+          if(v === ''){ return; }
+          if(PRICE_KEYS[key]){
+            var n = Number(v);
+            if(!isFinite(n) || n < 0){ setStatus('价格需为数字（元）：'+key); return; }
+            v = String(Math.round(n * 100));
+          }
           tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:key, value:v})}));
         }
         post('vip_title_trial','bill_vip_title_trial');
