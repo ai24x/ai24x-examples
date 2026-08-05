@@ -1362,10 +1362,8 @@
         if (agentTab) agentTab.style.display = loggedIn ? "" : "none";
         var def = "vip";
         try {
-          // 1) 分享链接显式带邀请参数 -> 邀请推广；localStorage 残留邀请码不影响默认栏目
-          var sp = new URLSearchParams(String(location.search || "").replace(/^\?/, ""));
-          if (sp.get("i") || sp.get("invite") || sp.get("inv") || sp.get("ref")) def = "invite";
-          // 2) 支持 #vip / #invite / #agent 直达（index/shell/partner 等入口链接约定）
+          // 默认恒为「会员」；URL 邀请参数（?i=）仅用于自动绑定邀请码，不改变默认栏目。
+          // 支持 #vip / #invite / #agent 直达（index/shell/partner 等入口链接约定）。
           var h = String(location.hash || "").replace(/^#/, "").trim().toLowerCase();
           if (ACCT_TABS.indexOf(h) >= 0) def = h;
         } catch (e) {}
