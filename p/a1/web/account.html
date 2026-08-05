@@ -389,6 +389,41 @@
       color: #fff;
       box-shadow: 0 2px 12px rgba(59,130,246,.35);
     }
+
+    /* 伙伴计划：高端香槟金 */
+    .acct-tab.acct-tab-agent {
+      background: linear-gradient(135deg, rgba(251,191,36,.18), rgba(245,158,11,.10));
+      border-color: rgba(245,158,11,.45);
+      color: #fbbf24;
+      font-weight: 700;
+    }
+    .acct-tab.acct-tab-agent:hover {
+      background: linear-gradient(135deg, rgba(251,191,36,.32), rgba(245,158,11,.20));
+      color: #fcd34d;
+      box-shadow: 0 2px 12px rgba(245,158,11,.30);
+    }
+    .acct-tab.acct-tab-agent.is-active {
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      border-color: #fbbf24;
+      color: #1f2937;
+      box-shadow: 0 3px 18px rgba(245,158,11,.50);
+    }
+    :root[data-theme="light"] .acct-tab.acct-tab-agent {
+      background: linear-gradient(135deg, rgba(251,191,36,.24), rgba(245,158,11,.14));
+      border-color: rgba(217,119,6,.45);
+      color: #b45309;
+    }
+    :root[data-theme="light"] .acct-tab.acct-tab-agent:hover {
+      background: linear-gradient(135deg, rgba(251,191,36,.36), rgba(245,158,11,.22));
+      color: #92400e;
+      box-shadow: 0 2px 12px rgba(217,119,6,.28);
+    }
+    :root[data-theme="light"] .acct-tab.acct-tab-agent.is-active {
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      border-color: #fbbf24;
+      color: #1f2937;
+      box-shadow: 0 3px 18px rgba(217,119,6,.45);
+    }
     @media (max-width: 520px) {
       .acct-tabs { display: flex; overflow-x: auto; flex-wrap: nowrap; width: 100%; }
       .acct-tab { white-space: nowrap; flex: 0 0 auto; }
@@ -478,7 +513,7 @@
 
     <nav class="acct-tabs" id="acct-tabs" hidden aria-label="用户中心导航">
       <button type="button" class="acct-tab is-active" data-acct-tab="vip" onclick="showAcctTab('vip')">会员</button>
-      <button type="button" class="acct-tab" data-acct-tab="agent" onclick="showAcctTab('agent')">伙伴计划</button>
+      <button type="button" class="acct-tab acct-tab-agent" data-acct-tab="agent" onclick="showAcctTab('agent')">✦ 伙伴计划</button>
     </nav>
 
     <section class="card acct-panel" id="vip" data-acct-panel="vip">
