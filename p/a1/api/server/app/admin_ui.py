@@ -1029,6 +1029,19 @@ def admin_app_html(admin_base: str) -> str:
                   说明：关闭时，用户购买「成长/专业」升级档不会生成佣金流水；VIP 订单不受影响。
                 </div>
               </div>
+              <div class="field-row" style="margin-top:10px; flex-wrap:wrap;">
+                <div class="field" style="min-width:360px;">
+                  <span class="lbl">伙伴结算模式</span><span class="sub">partner_payout_mode</span>
+                  <select id="bill_partner_payout_mode">
+                    <option value="">默认（权益回馈·推荐）</option>
+                    <option value="rewards">权益回馈（不可提现）</option>
+                    <option value="cash">现金提现（私域白名单试点）</option>
+                  </select>
+                </div>
+                <div class="msg small muted" style="margin-top:6px;">
+                  合规说明：默认「权益回馈」，邀请回馈以查询额度/会员权益发放，用户端不展示提现入口；仅当私域白名单试点时可切换「现金提现」。
+                </div>
+              </div>
               <div class="msg small muted" style="margin-top:8px;">
                 说明：这里的“标价”会进入订单（后台展示/对账）。若开启“非 prod 小额实扣”，下单时真实扣款金额会被替换为该小额（仅联调用，线上务必关闭）。
               </div>
@@ -3240,6 +3253,7 @@ def admin_app_html(admin_base: str) -> str:
         put('price_agent_pro_fen','bill_price_agent_pro_fen');
         put('agent_upgrade_pro_enabled','bill_agent_upgrade_pro_enabled');
         put('agent_upgrade_commission_enabled','bill_agent_upgrade_commission_enabled');
+        put('partner_payout_mode','bill_partner_payout_mode');
       }
 
       async function saveBilling(){
@@ -3270,6 +3284,7 @@ def admin_app_html(admin_base: str) -> str:
         post('price_agent_pro_fen','bill_price_agent_pro_fen');
         post('agent_upgrade_pro_enabled','bill_agent_upgrade_pro_enabled');
         post('agent_upgrade_commission_enabled','bill_agent_upgrade_commission_enabled');
+        post('partner_payout_mode','bill_partner_payout_mode');
         setStatus('正在保存套餐与定价…');
         await Promise.all(tasks);
         setStatus('套餐与定价已写入数据库（下单立即生效）');

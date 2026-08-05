@@ -11,6 +11,8 @@ from .config import settings
 _lock = threading.Lock()
 # 规范化手机号 -> (code, expire_unix)
 _store: dict[str, tuple[str, float]] = {}
+_verify_fails: dict[str, list[float]] = {}
+_ADMIN_VERIFY_MAX_FAILS = 5
 
 
 def normalize_admin_phone(raw: str) -> str:
@@ -95,11 +97,20 @@ def admin_otp_verify_and_consume(phone: str, code: str) -> bool:
             return False
         oc, exp = hit
         if now > exp:
-            del _store[p]
+            _store.pop(p, None)
+            _verify_fails.pop(p, None)
+            return False
+        fails = [t for t in (_verify_fails.get(p) or []) if now - t < 600.0]
+        if len(fails) >= _ADMIN_VERIFY_MAX_FAILS:
+            # 防爆破：连续错误超限即作废验证码
+            _store.pop(p, None)
+            _verify_fails.pop(p, None)
             return False
         if not _code_eq(oc, c):
+            _verify_fails[p] = fails + [now]
             return False
-        del _store[p]
+        _verify_fails.pop(p, None)
+        _store.pop(p, None)
         return True
 
 

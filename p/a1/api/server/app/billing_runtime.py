@@ -182,6 +182,19 @@ def resolve_identity() -> SimpleNamespace:
     )
 
 
+def partner_payout_mode() -> str:
+    """伙伴计划结算模式：默认 rewards=权益回馈（不可提现）；仅当后台显式设置 partner_payout_mode=cash 时才允许现金提现（只适用私域白名单试点）。"""
+    m = _items()
+    v = (m.get("partner_payout_mode") or "").strip().lower()
+    if v in ("cash", "1", "true", "yes", "on"):
+        return "cash"
+    return "rewards"
+
+
+def partner_payout_enabled() -> bool:
+    return partner_payout_mode() == "cash"
+
+
 def identity_configured() -> bool:
     return bool((resolve_identity().identity_api_base or "").strip())
 

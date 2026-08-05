@@ -107,6 +107,8 @@
       "</div>" +
       '<div class="footer-col">' +
       '<div class="footer-title">合规</div>' +
+      '<a href="terms.html">用户协议</a>' +
+      '<a href="privacy.html">隐私政策</a>' +
       '<a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">浙ICP备10040624号-7</a>' +
       "</div>" +
       "</div>" +
@@ -138,7 +140,7 @@
         global.__AI24X_A_SW_INSTALLED = true;
         // Cache-bust SW URL so deployments don't require Ctrl+F5.
         // Use absolute paths so pages still work under subpaths like /i/{code}.
-        navigator.serviceWorker.register("/sw.js?v=41", { scope: "/", updateViaCache: "none" }).then(function (reg) {
+        navigator.serviceWorker.register("/sw.js?v=44", { scope: "/", updateViaCache: "none" }).then(function (reg) {
           try {
             reg.update && reg.update();
             if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
@@ -241,6 +243,8 @@
     ]);
     var c4 = _el("div", { class: "footer-col" }, [
       _el("div", { class: "footer-title", text: "合规" }),
+      _el("a", { href: "terms.html", text: "用户协议" }),
+      _el("a", { href: "privacy.html", text: "隐私政策" }),
       _el("a", { href: "https://beian.miit.gov.cn/", target: "_blank", rel: "noopener", text: "浙ICP备10040624号-7" }),
     ]);
 

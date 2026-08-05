@@ -58,12 +58,14 @@ from .admin_otp import (
 from .billing_runtime import (
     auth_local_enabled,
     identity_configured,
+    partner_payout_enabled,
+    partner_payout_mode,
     resolve_alipay,
     resolve_billing,
     resolve_identity,
     resolve_wechat_pay,
 )
-from .sms_local import send_local_sms, verify_and_consume_otp as verify_local_otp
+from .sms_local import send_local_sms, send_local_sms_code, verify_and_consume_otp as verify_local_otp
 from .auth import create_token, get_current_user_id, get_optional_user_id, parse_token
 from . import auth_local
 from .config import settings
@@ -802,11 +804,14 @@ def admin_otp_send(request: Request, body: AdminOtpSendIn) -> dict:
     if identity_configured():
         _identity_post("/v1/auth/sms/send", _sms_forward_json(pnorm, "login"))
         return {"ok": True, "ttl_s": ttl}
-    if str(settings.env or "").lower() in ("prod", "production"):
-        raise HTTPException(status_code=503, detail="短信服务暂未就绪，请稍后再试")
+    # 本站本地短信通道直发（tencent/106/juhe）
     code = admin_otp_generate()
+    cfg = resolve_identity()
+    ok, msg = send_local_sms_code(cfg=cfg, mobile=pnorm, code=code)
+    if not ok:
+        raise HTTPException(status_code=503, detail="短信服务暂不可用，请稍后再试。")
     admin_otp_put(pnorm, code, ttl)
-    return {"ok": True, "ttl_s": ttl, "dev_code": code, "message": "验证码已生成。"}
+    return {"ok": True, "ttl_s": ttl, "message": "验证码已发送。"}
 
 
 @app.post("/api/admin/login")
@@ -1046,9 +1051,12 @@ def admin_commissions_generate_for_order(body: dict, _: bool = Depends(require_a
 @app.get("/api/agent/overview")
 def agent_overview(user_id: int = Depends(get_current_user_id)) -> dict:
     try:
-        return db.agent_commission_overview(int(user_id))
+        out = db.agent_commission_overview(int(user_id))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    out["payout_mode"] = partner_payout_mode()
+    out["payout_enabled"] = partner_payout_enabled()
+    return out
 
 
 @app.get("/api/agent/commissions")
@@ -1066,6 +1074,8 @@ def agent_commissions(
 
 @app.post("/api/agent/payout_account")
 def agent_payout_account(body: dict, user_id: int = Depends(get_current_user_id)) -> dict:
+    if not partner_payout_enabled():
+        raise HTTPException(status_code=403, detail="当前为权益回馈模式：邀请回馈以额度/权益形式发放，暂不支持提现")
     try:
         return db.agent_set_payout_account(
             user_id=int(user_id),
@@ -1086,6 +1096,8 @@ def agent_payout_account_get(user_id: int = Depends(get_current_user_id)) -> dic
 
 @app.post("/api/agent/payout/request")
 def agent_payout_request(body: dict, user_id: int = Depends(get_current_user_id)) -> dict:
+    if not partner_payout_enabled():
+        raise HTTPException(status_code=403, detail="当前为权益回馈模式：邀请回馈以额度/权益形式发放，暂不支持提现")
     try:
         amount = body.get("amount_fen", None)
         amount2 = None if amount is None else int(amount)
@@ -1730,6 +1742,10 @@ def admin_sms_diagnostics(_: bool = Depends(require_admin)) -> dict:
 @app.post("/api/auth/sms/send")
 def proxy_sms_send(body: SmsSendProxyIn, request: Request) -> dict:
     """本地直发（juhe/tencent/local）或转发主站 identity_proxy。"""
+    _rate_limit(f"sms_ip:{_client_ip(request)}", 20, 900)
+    _mob = str(body.mobile or "").strip()
+    if _mob:
+        _rate_limit(f"sms_phone:{_mob}", 6, 900)
     cfg = resolve_identity()
     _local_providers = ("local", "juhe", "tencent")
     if (cfg.sms_active_provider or "identity_proxy").strip().lower() in _local_providers:
@@ -1761,7 +1777,8 @@ def proxy_sms_send(body: SmsSendProxyIn, request: Request) -> dict:
 
 
 @app.post("/api/auth/request_code", response_model=RequestCodeOut)
-def request_code(body: RequestCodeIn) -> RequestCodeOut:
+def request_code(body: RequestCodeIn, request: Request) -> RequestCodeOut:
+    _rate_limit(f"email_code_ip:{_client_ip(request)}", 10, 900)
     if identity_configured():
         data = _identity_post(
             "/v1/auth/email/send",
@@ -1785,7 +1802,8 @@ def _session_from_local_user(u: db.User) -> LoginOut:
 
 
 @app.post("/api/auth/register", response_model=LoginOut)
-def register(body: RegisterIn) -> LoginOut:
+def register(body: RegisterIn, request: Request) -> LoginOut:
+    _rate_limit(f"reg_ip:{_client_ip(request)}", 10, 60)
     # P1：本地身份——不写主站 auth_users
     if auth_local_enabled():
         try:
@@ -1833,7 +1851,11 @@ def register(body: RegisterIn) -> LoginOut:
 
 
 @app.post("/api/auth/login", response_model=LoginOut)
-def login(body: LoginIn) -> LoginOut:
+def login(body: LoginIn, request: Request) -> LoginOut:
+    _rate_limit(f"login_ip:{_client_ip(request)}", 30, 60)
+    _lp = str(body.phone or "").strip()
+    if _lp:
+        _rate_limit(f"login_phone:{_lp}", 10, 300)
     if auth_local_enabled() and (body.password or "").strip():
         if not body.phone and not body.email:
             raise HTTPException(status_code=400, detail="请填写手机号或邮箱")
@@ -1903,7 +1925,11 @@ def password_change(
 
 
 @app.post("/api/auth/password/reset", response_model=LoginOut)
-def password_reset(body: PasswordResetIn) -> LoginOut:
+def password_reset(body: PasswordResetIn, request: Request) -> LoginOut:
+    _rate_limit(f"reset_ip:{_client_ip(request)}", 10, 60)
+    _rp = str(body.phone or "").strip()
+    if _rp:
+        _rate_limit(f"reset_phone:{_rp}", 5, 300)
     if auth_local_enabled():
         if not body.phone:
             raise HTTPException(status_code=400, detail="本地身份模式请使用手机号重置密码")

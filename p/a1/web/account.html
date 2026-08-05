@@ -18,7 +18,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="/css/base.css?v=43" />
+  <link rel="stylesheet" href="/css/base.css?v=44" />
   <link rel="stylesheet" href="/css/tool.css" />
   <style>
     .auth-card-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;max-width:440px;}
@@ -585,10 +585,11 @@
         <span>团队规模 <b id="agent-team-size">-</b></span>
         <span>团队成交额(元) <b id="agent-team-amount">-</b></span>
         <span>预估回馈(元) <b id="agent-est">-</b></span>
-        <span>可提现(元) <b id="agent-withdrawable">-</b></span>
-        <span>已结算(元) <b id="agent-paid">-</b></span>
+        <span id="agent-kv-withdrawable">可提现(元) <b id="agent-withdrawable">-</b></span>
+        <span id="agent-kv-paid">已结算(元) <b id="agent-paid">-</b></span>
       </div>
       <div class="hint" id="agent-tier-hint" style="margin-top:10px; display:none;"></div>
+      <div class="hint" id="agent-rewards-hint" style="margin-top:10px; display:none;">当前为权益回馈模式：邀请回馈以查询额度和会员权益形式发放，暂不支持提现。</div>
 
       <div class="row" style="margin-top:10px; flex-wrap:wrap; gap:10px; align-items:center;">
         <span class="pill step">
@@ -853,7 +854,7 @@
     </div>
   </div>
 
-  <script src="/js/shell.js?v=40"></script>
+  <script src="/js/shell.js?v=44"></script>
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("account"); } catch (e) {}
   </script>
@@ -1727,12 +1728,26 @@
             try { paid = d && d.commission_sum_fen && d.commission_sum_fen.paid != null ? Number(d.commission_sum_fen.paid) : 0; } catch (e0) {}
             if (agentPaidEl) agentPaidEl.textContent = fmtFenYuanStr(paid);
             if (agentKv) agentKv.hidden = false;
+            var payoutMode = String((d && d.payout_mode) || "rewards");
+            var payoutEnabled = payoutMode === "cash";
+            if (!payoutEnabled) {
+              if (btnAgentWithdraw) btnAgentWithdraw.style.display = "none";
+              if (btnAgentSetAcct) btnAgentSetAcct.style.display = "none";
+              var kvW = $("agent-kv-withdrawable"), kvP = $("agent-kv-paid");
+              if (kvW) kvW.style.display = "none";
+              if (kvP) kvP.style.display = "none";
+              var agentRewardsHint = $("agent-rewards-hint");
+              if (agentRewardsHint) agentRewardsHint.style.display = "block";
+            }
             agentStatusEl.textContent = "";
             try{
               var days2 = d && d.settle_delay_days != null ? Number(d.settle_delay_days) : null;
               if(days2 == null || !isFinite(days2)) days2 = 7;
               var t7 = "T+" + String(Math.max(0, Math.floor(days2)));
-              if(agentSettleCycleEl) agentSettleCycleEl.textContent = "提现结算：" + t7;
+              if(agentSettleCycleEl){
+                if(payoutMode === "cash"){ agentSettleCycleEl.textContent = "提现结算：" + t7; }
+                else { agentSettleCycleEl.textContent = "结算说明：权益回馈（不支持提现）"; }
+              }
             }catch(eT){}
             try {
               if (agentTierHintEl && tier && (tier.window_days || tier.target)) {

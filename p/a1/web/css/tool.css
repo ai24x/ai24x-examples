@@ -53,13 +53,18 @@ input {
   font-size: 14px;
 }
 /* Auth / tool forms on narrow screens: never force 180px min-width (clips OTP buttons). */
-@media (max-width: 640px) {
+@media (max-width: 640px), (max-device-width: 640px), (pointer: coarse) {
   input {
     flex: 1 1 auto;
     min-width: 0 !important;
     max-width: 100% !important;
     width: 100%;
     font-size: 16px; /* 避免华为/iOS 聚焦输入框时整页缩放撑开 */
+  }
+  .hero-copy {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
   }
 }
 input:focus {

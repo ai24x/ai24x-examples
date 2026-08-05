@@ -211,6 +211,8 @@ def send_sms_tencent_sync(
 
 # ---- 用户 OTP（进程内，生产可后续换 Redis/DB） ----
 _store: dict[str, tuple[str, float]] = {}
+_verify_fails: dict[str, list[float]] = {}
+_VERIFY_MAX_FAILS = 5
 
 
 def _key(phone: str, purpose: str) -> str:
@@ -222,19 +224,34 @@ def store_otp(phone: str, purpose: str, code: str, ttl_s: float = 300.0) -> None
 
 
 def verify_and_consume_otp(phone: str, purpose: str, code: str) -> bool:
+    import hmac
+
     k = _key(phone, purpose)
     tup = _store.get(k)
     if not tup:
         return False
     stored, exp = tup
-    if time.time() > exp:
+    now = time.time()
+    if now > exp:
         try:
             del _store[k]
         except KeyError:
             pass
+        _verify_fails.pop(k, None)
         return False
-    if stored != str(code or "").strip():
+    fails = [t for t in (_verify_fails.get(k) or []) if now - t < 600.0]
+    if len(fails) >= _VERIFY_MAX_FAILS:
+        # 防爆破：连续错误超限即作废验证码，需重新获取
+        try:
+            del _store[k]
+        except KeyError:
+            pass
+        _verify_fails.pop(k, None)
         return False
+    if not hmac.compare_digest(str(stored or "").encode("utf-8"), str(code or "").strip().encode("utf-8")):
+        _verify_fails[k] = fails + [now]
+        return False
+    _verify_fails.pop(k, None)
     del _store[k]
     return True
 
@@ -278,47 +295,69 @@ def send_local_sms(*, cfg, mobile: str, purpose: str, cooldown_s: float = 60.0) 
 
     provider = (cfg.sms_active_provider or "local").strip().lower()
     code = generate_numeric_code(6)
-    ok: bool
-    msg: str
-
-    if provider == "juhe":
-        app_key = (cfg.sms_juhe_key or "").strip()
-        tpl_id = (cfg.sms_juhe_template_id or "").strip()
-        if not app_key or not tpl_id:
-            return False, "短信服务未配置（juhe key/tpl_id），请联系管理员", None
-        ok, _raw, msg = send_sms_juhe_sync(app_key=app_key, mobile=mob, tpl_id=tpl_id, tpl_vars={"code": code})
-    elif provider == "tencent":
-        sid = (cfg.sms_tencent_secret_id or "").strip()
-        skey = (cfg.sms_tencent_secret_key or "").strip()
-        app = (cfg.sms_tencent_sdk_app_id or "").strip()
-        sign = (cfg.sms_tencent_sign or "").strip()
-        tpl = (cfg.sms_tencent_template_id or "").strip()
-        if not (sid and skey and app and sign and tpl):
-            return False, "短信服务未配置（tencent 参数不全），请联系管理员", None
-        ok, _raw, msg = send_sms_tencent_sync(
-            secret_id=sid, secret_key=skey, sdk_app_id=app, sign_name=sign,
-            template_id=tpl, template_params=[code], phone=mob,
-        )
-    else:  # local / 106
-        if not (cfg.sms_106_account or "").strip() or not (cfg.sms_106_password or "").strip():
-            logger.error("local sms not configured: sms_106_account/password missing in admin_config")
-            return False, "短信服务未配置，请联系管理员", None
-        template = (cfg.sms_106_template or "").strip() or DEFAULT_TEMPLATE
-        try:
-            content = template.format(code=code)
-        except Exception:
-            content = DEFAULT_TEMPLATE.format(code=code)
-        ok, _raw, msg = send_sms_106_sync(
-            endpoint=(cfg.sms_106_endpoint or "").strip() or "http://sms.106jiekou.com/utf8/sms.aspx",
-            account=(cfg.sms_106_account or "").strip(),
-            password=(cfg.sms_106_password or "").strip(),
-            mobile=mob,
-            content=content,
-            sign_name=(cfg.sms_106_sign_name or "").strip() or None,
-        )
+    ok, msg = _deliver_code(cfg, mob, code)
     if ok:
         store_otp(mob, purpose, code, ttl_s=300.0)
         mark_sent(mob)
     else:
         logger.warning("local sms send failed provider=%s purpose=%s msg=%s", provider, purpose, msg)
     return ok, msg, None
+
+
+def _deliver_code(cfg, mob: str, code: str) -> tuple[bool, str]:
+    """按通道发送指定验证码（juhe/tencent/106），返回 (ok, msg)。"""
+    provider = (cfg.sms_active_provider or "local").strip().lower()
+    if provider == "juhe":
+        app_key = (cfg.sms_juhe_key or "").strip()
+        tpl_id = (cfg.sms_juhe_template_id or "").strip()
+        if not app_key or not tpl_id:
+            return False, "短信服务未配置（juhe key/tpl_id），请联系管理员"
+        ok, _raw, msg = send_sms_juhe_sync(app_key=app_key, mobile=mob, tpl_id=tpl_id, tpl_vars={"code": code})
+        return ok, msg
+    if provider == "tencent":
+        sid = (cfg.sms_tencent_secret_id or "").strip()
+        skey = (cfg.sms_tencent_secret_key or "").strip()
+        app = (cfg.sms_tencent_sdk_app_id or "").strip()
+        sign = (cfg.sms_tencent_sign or "").strip()
+        tpl = (cfg.sms_tencent_template_id or "").strip()
+        if not (sid and skey and app and sign and tpl):
+            return False, "短信服务未配置（tencent 参数不全），请联系管理员"
+        ok, _raw, msg = send_sms_tencent_sync(
+            secret_id=sid, secret_key=skey, sdk_app_id=app, sign_name=sign,
+            template_id=tpl, template_params=[code], phone=mob,
+        )
+        return ok, msg
+    # local / 106
+    if not (cfg.sms_106_account or "").strip() or not (cfg.sms_106_password or "").strip():
+        logger.error("local sms not configured: sms_106_account/password missing in admin_config")
+        return False, "短信服务未配置，请联系管理员"
+    template = (cfg.sms_106_template or "").strip() or DEFAULT_TEMPLATE
+    try:
+        content = template.format(code=code)
+    except Exception:
+        content = DEFAULT_TEMPLATE.format(code=code)
+    ok, _raw, msg = send_sms_106_sync(
+        endpoint=(cfg.sms_106_endpoint or "").strip() or "http://sms.106jiekou.com/utf8/sms.aspx",
+        account=(cfg.sms_106_account or "").strip(),
+        password=(cfg.sms_106_password or "").strip(),
+        mobile=mob,
+        content=content,
+        sign_name=(cfg.sms_106_sign_name or "").strip() or None,
+    )
+    return ok, msg
+
+
+def send_local_sms_code(*, cfg, mobile: str, code: str) -> tuple[bool, str]:
+    """发送指定验证码（管理后台 OTP 等场景），不写入用户 OTP 存储。"""
+    mob = normalize_mobile(mobile)
+    if len(mob) != 11 or not mob.isdigit():
+        return False, "手机号格式不正确，请填写 11 位手机号"
+    allowed, remain = check_send_cooldown(mob, 60.0)
+    if not allowed:
+        return False, f"发送过于频繁，请 {int(remain or 0) + 1} 秒后再试"
+    ok, msg = _deliver_code(cfg, mob, str(code or "")[:6])
+    if ok:
+        mark_sent(mob)
+    else:
+        logger.warning("local sms send code failed msg=%s", msg)
+    return ok, msg

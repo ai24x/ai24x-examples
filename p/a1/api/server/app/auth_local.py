@@ -43,8 +43,8 @@ def register_phone(*, phone: str, password: str, sms_code: str) -> db.User:
     if not verify_and_consume_otp(mob, "register", sms_code or ""):
         raise ValueError("验证码错误或已过期，请重新获取验证码")
     pw = (password or "").strip()
-    if len(pw) < 6:
-        raise ValueError("密码至少 6 位")
+    if len(pw) < 8:
+        raise ValueError("密码至少 8 位")
     existing = db.get_user_auth_by_phone(mob)
     if existing and (existing.password_hash or "").strip():
         raise ValueError("该手机号已注册")
@@ -90,8 +90,8 @@ def change_password(*, user_id: int, old_password: str, new_password: str) -> db
     if not (u.password_hash or "").strip() or not verify_password(old_password, u.password_hash or ""):
         raise ValueError("原密码错误")
     np = (new_password or "").strip()
-    if len(np) < 6:
-        raise ValueError("新密码至少 6 位")
+    if len(np) < 8:
+        raise ValueError("新密码至少 8 位")
     db.set_user_password_hash(int(user_id), hash_password(np))
     out = db.get_user_auth_by_id(int(user_id))
     if not out:
@@ -109,8 +109,8 @@ def reset_password_phone(*, phone: str, sms_code: str, new_password: str) -> db.
     if not u:
         raise ValueError("该手机号未注册")
     np = (new_password or "").strip()
-    if len(np) < 6:
-        raise ValueError("新密码至少 6 位")
+    if len(np) < 8:
+        raise ValueError("新密码至少 8 位")
     db.set_user_password_hash(int(u.id), hash_password(np))
     out = db.get_user_auth_by_id(int(u.id))
     if not out:
