@@ -267,9 +267,13 @@ def collect_alerts(db) -> dict[str, Any]:
             .filter(TokenPayOrder.created_at >= day_start, TokenPayOrder.status == "paid")
             .first()
         )
-        pending = int(
-            db.query(func.count(TokenPayOrder.id)).filter(TokenPayOrder.status == "pending").scalar() or 0
+        from token_pay_service import pending_order_expired
+
+        _pend_rows = (
+            db.query(TokenPayOrder).filter(TokenPayOrder.status == "pending").all()
         )
+        pending = len([x for x in _pend_rows if not pending_order_expired(x)])
+        pending_expired = len(_pend_rows) - pending
         failed_24h = int(
             db.query(func.count(TokenPayOrder.id))
             .filter(TokenPayOrder.status == "failed", TokenPayOrder.created_at >= now - timedelta(hours=24))
@@ -279,6 +283,7 @@ def collect_alerts(db) -> dict[str, Any]:
         health["today_paid"] = int(today[0] or 0) if today else 0
         health["today_usd_cents"] = int(today[1] or 0) if today else 0
         health["pending"] = pending
+        health["pending_expired"] = pending_expired
         health["failed_24h"] = failed_24h
         if failed_24h >= 3:
             add("warn", "pay_failed_spike", f"近 24h 支付失败 {failed_24h} 笔，请核查通道")

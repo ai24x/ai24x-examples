@@ -212,10 +212,11 @@ def admin_economics(db: Session, *, days: int = 7) -> dict[str, Any]:
     new_users = int(
         db.query(func.count(AuthUser.id)).filter(AuthUser.created_at >= since).scalar() or 0
     )
-    pending = int(
-        db.query(func.count(TokenPayOrder.id)).filter(TokenPayOrder.status == "pending").scalar()
-        or 0
-    )
+    from token_pay_service import pending_order_expired
+
+    _pend_rows = db.query(TokenPayOrder).filter(TokenPayOrder.status == "pending").all()
+    pending = len([x for x in _pend_rows if not pending_order_expired(x)])
+    pending_expired = len(_pend_rows) - pending
 
     return {
         "ok": True,
@@ -229,6 +230,7 @@ def admin_economics(db: Session, *, days: int = 7) -> dict[str, Any]:
         "gross_margin_usd_est": margin,
         "new_users": new_users,
         "pending_orders": pending,
+        "pending_expired": pending_expired,
         "note": (
             "成本按上游 Flash 地板粗算（默认 $0.24/M，可用 TOKEN_ECON_COST_USD_PER_M 覆盖）；"
             "售价锚见 TOKEN_FLASH_REF_USD_PER_M。"
@@ -385,16 +387,18 @@ def admin_ops_alerts(db: Session) -> dict[str, Any]:
                 "msg": "兜底 L0 未配置（建议硅基或 OR L0），主档故障时无法降级",
             }
         )
-    pending = int(
-        db.query(func.count(TokenPayOrder.id)).filter(TokenPayOrder.status == "pending").scalar()
-        or 0
-    )
+    from token_pay_service import pending_order_expired
+
+    _pend_rows = db.query(TokenPayOrder).filter(TokenPayOrder.status == "pending").all()
+    pending = len([x for x in _pend_rows if not pending_order_expired(x)])
+    pending_expired = len(_pend_rows) - pending
     if pending >= 5:
         alerts.append(
             {
                 "level": "warn",
                 "code": "pay_pending_backlog",
-                "msg": f"待履约订单 {pending} 笔，请及时查单",
+                "msg": f"有效待履约订单 {pending} 笔，请及时查单"
+                + (f"（另有过期未付 {pending_expired} 笔已过滤）" if pending_expired else ""),
             }
         )
     elif pending > 0:
@@ -402,7 +406,8 @@ def admin_ops_alerts(db: Session) -> dict[str, Any]:
             {
                 "level": "info",
                 "code": "pay_pending",
-                "msg": f"待履约订单 {pending} 笔",
+                "msg": f"有效待履约订单 {pending} 笔"
+                + (f"（另有过期未付 {pending_expired} 笔）" if pending_expired else ""),
             }
         )
     try:

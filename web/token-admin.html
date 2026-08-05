@@ -438,6 +438,9 @@
                     <option value="failed">failed</option>
                   </select>
                 </div>
+                <div class="field"><span class="lbl">含过期未付</span>
+                  <input type="checkbox" id="ordIncludeExpired" title="勾选=显示超过支付窗口仍未付款的 pending（微信/支付宝 24h，PayPal 72h）" />
+                </div>
                 <div class="field"><span class="lbl">通道</span>
                   <select id="ordChannel">
                     <option value="">全部</option>
@@ -2301,7 +2304,7 @@
 
   async function loadDashHome() {
     await refreshSummary();
-    var pending = await api("/v1/admin/token/orders?status=pending&limit=20");
+    var pending = await api("/v1/admin/token/orders?status=pending&limit=20&include_expired=0");
     var paid = await api("/v1/admin/token/orders?status=paid&limit=8");
     var pRows = (pending && pending.rows) || [];
     var paidRows = (paid && paid.rows) || [];
@@ -2321,7 +2324,9 @@
         : '<tr><td colspan="7" class="muted">暂无待履约订单</td></tr>';
     }
     if ($("dashPendingMeta")) {
-      $("dashPendingMeta").textContent = "待履约共 " + (pending.total || pRows.length) + " 笔（本页最多 20）";
+      $("dashPendingMeta").textContent = "有效待履约共 " + (pending.total || pRows.length) + " 笔"
+        + ((pending && pending.total_expired) ? "（已过滤过期未付 " + pending.total_expired + " 笔）" : "")
+        + "（本页最多 20）";
     }
     if ($("dashPaidBody")) {
       $("dashPaidBody").innerHTML = paidRows.length
@@ -2349,6 +2354,8 @@
     if (ch) qs.set("channel", ch);
     if (uid) qs.set("auth_user_id", uid);
     if (q) qs.set("q", q);
+    var inc = $("ordIncludeExpired") && $("ordIncludeExpired").checked;
+    qs.set("include_expired", inc ? "1" : "0");
     qs.set("limit", String(extraLimit || 50));
     qs.set("offset", String(Math.max(0, state.ordOffset || 0)));
     return qs;
@@ -2359,19 +2366,22 @@
     var rows = (data && data.rows) || [];
     var total = (data && data.total) || rows.length;
     var off = state.ordOffset || 0;
+    var expInfo = (data && data.total_expired) ? " · 已过滤过期未付 " + data.total_expired + " 笔" : "";
     $("ordMeta").textContent =
-      "共 " + total + " 条 · 本页 " + rows.length + " · offset=" + off;
+      "共 " + total + " 条 · 本页 " + rows.length + " · offset=" + off + expInfo;
     $("ordBody").innerHTML = rows.map(function (r) {
       var fulfill = r.status === "pending"
         ? '<button type="button" data-otn="' + String(r.out_trade_no).replace(/"/g, "") + '" class="btnFulfill">查单履约</button>'
         : "";
-      return "<tr>" +
+      var expTag = r.expired ? ' <span style="color:#c0392b;font-size:11px;">·已过期</span>' : "";
+      var rowStyle = r.expired ? ' style="opacity:.5;"' : "";
+      return "<tr" + rowStyle + ">" +
         '<td class="mono">' + esc(r.out_trade_no) + "</td>" +
         "<td>" + esc(r.auth_user_id) + "</td>" +
         "<td>" + esc(r.plan) + "</td>" +
         "<td>" + fenLabel(r.channel, r.amount_fen) + "</td>" +
         "<td>" + esc(r.channel) + "</td>" +
-        "<td>" + statusPill(r.status) + "</td>" +
+        "<td>" + statusPill(r.status) + expTag + "</td>" +
         '<td class="mono">' + esc(r.paid_at || r.created_at || "") + "</td>" +
         "<td>" + fulfill + "</td>" +
         "</tr>";

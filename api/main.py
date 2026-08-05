@@ -2200,6 +2200,7 @@ async def admin_token_orders(
     q: str | None = None,
     limit: int = 50,
     offset: int = 0,
+    include_expired: int = 0,
 ):
     _require_internal_key(request)
     from token_pay_service import admin_list_orders
@@ -2212,6 +2213,7 @@ async def admin_token_orders(
         q=q,
         limit=limit,
         offset=offset,
+        include_expired=bool(include_expired),
     )
 
 

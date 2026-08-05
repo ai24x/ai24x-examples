@@ -9,9 +9,10 @@ Token 在线支付：独立表 token_pay_orders，不读写 a1 的 pay_orders。
 from __future__ import annotations
 
 import logging
+import os
 import secrets
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from typing import Any, Optional
 
@@ -413,6 +414,43 @@ def list_orders_for_user(db: Session, auth_user_id: int, *, limit: int = 20) -> 
     }
 
 
+def pending_order_expired(r, now=None) -> bool:
+    """pending 未付订单是否已超时（无 expires_at 字段，按 created_at + 渠道窗口判定）。
+
+    微信/支付宝扫码未付默认 24h 过期；PayPal 订单默认 72h（PayPal 授权有效期）。
+    窗口可用环境变量覆盖：TOKEN_PENDING_EXPIRE_HOURS_CN / TOKEN_PENDING_EXPIRE_HOURS_PP。
+    """
+    if r is None or getattr(r, "status", "") != "pending" or not getattr(r, "created_at", None):
+        return False
+    channel = str(getattr(r, "channel", "") or "").strip().lower()
+    try:
+        hours = int(os.getenv("TOKEN_PENDING_EXPIRE_HOURS_PP", "72"))
+        if channel in ("wechat", "alipay", "mock"):
+            hours = int(os.getenv("TOKEN_PENDING_EXPIRE_HOURS_CN", "24"))
+    except ValueError:
+        hours = 24 if channel in ("wechat", "alipay", "mock") else 72
+    now = now or datetime.now(timezone.utc)
+    created = getattr(r, "created_at", None)
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=timezone.utc)
+    else:
+        created = created.astimezone(timezone.utc)
+    return (now - created) > timedelta(hours=hours)
+
+
+def _pending_expire_hours(channel: str) -> int:
+    ch = str(channel or "").strip().lower()
+    if ch in ("wechat", "alipay", "mock"):
+        try:
+            return max(1, int(os.getenv("TOKEN_PENDING_EXPIRE_HOURS_CN", "24")))
+        except ValueError:
+            return 24
+    try:
+        return max(1, int(os.getenv("TOKEN_PENDING_EXPIRE_HOURS_PP", "72")))
+    except ValueError:
+        return 72
+
+
 def admin_list_orders(
     db: Session,
     *,
@@ -422,6 +460,7 @@ def admin_list_orders(
     q: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
+    include_expired: bool = False,
 ) -> dict:
     query = db.query(TokenPayOrder)
     if auth_user_id is not None:
@@ -439,6 +478,16 @@ def admin_list_orders(
             | (TokenPayOrder.transaction_id.ilike(like))
         )
     total = query.count()
+    total_expired = 0
+    if not include_expired and (not status or str(status).strip() == "pending"):
+        all_rows = query.all()
+        valid = [x for x in all_rows if not pending_order_expired(x)]
+        total_expired = len(all_rows) - len(valid)
+        if valid:
+            query = query.filter(TokenPayOrder.id.in_([x.id for x in valid]))
+        else:
+            query = query.filter(TokenPayOrder.id < 0)
+        total = len(valid)
     rows = (
         query.order_by(TokenPayOrder.id.desc())
         .offset(max(0, int(offset)))
@@ -462,13 +511,14 @@ def admin_list_orders(
                 "transaction_id": r.transaction_id,
                 "created_at": r.created_at.isoformat() if r.created_at else None,
                 "paid_at": r.paid_at.isoformat() if r.paid_at else None,
+                "expired": pending_order_expired(r),
                 "utm_source": (getattr(u, "utm_source", None) if u else None) or None,
                 "utm_medium": (getattr(u, "utm_medium", None) if u else None) or None,
                 "utm_campaign": (getattr(u, "utm_campaign", None) if u else None) or None,
                 "gclid": (getattr(u, "gclid", None) if u else None) or None,
             }
         )
-    return {"total": total, "rows": out_rows}
+    return {"total": total, "total_expired": total_expired, "rows": out_rows}
 
 
 def admin_orders_csv_text(
