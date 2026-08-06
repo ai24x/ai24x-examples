@@ -56,6 +56,47 @@ _DEFAULT_CONFIG: dict[str, Any] = {
 }
 
 _LEVEL_ICON = {"error": "P0", "warn": "P1", "info": "INFO"}
+
+_ALERT_LABELS = {
+    "ops_alerts_collect_fail": "告警采集异常",
+    "ops_health_down": "服务健康检查失败",
+    "pay_no_channel_ready": "支付通道全部未就绪",
+    "pay_paypal_not_configured": "PayPal 商户未配置",
+    "pay_paypal_not_ready": "PayPal 通道未就绪",
+    "pay_status_collect_fail": "支付状态采集异常",
+    "pay_failed_spike": "支付失败激增",
+    "pay_failed": "支付失败",
+    "pay_order_stats_fail": "订单统计异常",
+    "upstream_health_collect_fail": "上游健康采集异常",
+    "upstream_fail": "上游通道故障",
+    "upstream_circuit": "上游熔断触发",
+    "price_monitor_fail": "价格监控采集异常",
+    "price_alarm": "价格红线（倒挂）",
+    "price_warn": "价格预警（低毛利）",
+    "pay_pending_backlog": "待履约订单积压",
+    "pay_pending": "待履约订单",
+    "llm_l1_no_key": "L1 主档未配置密钥",
+    "llm_l0_no_key": "L0 备用未配置密钥",
+    "or_free_key_missing": "免费池 OpenRouter 密钥缺失",
+    "sf_free_key_missing": "免费池硅基密钥缺失",
+    "vip_degraded": "VIP 点名降级",
+    "user_high_burn": "用户消耗异常偏高",
+    "intl_vip_burn": "国际 VIP 消耗异常",
+}
+
+
+def _alert_label(code: str) -> str:
+    c = str(code or "")
+    for prefix, label in (
+        ("price_warn_", "价格预警（低毛利）"),
+        ("price_alarm_", "价格红线（倒挂）"),
+        ("upstream_fail_", "上游通道故障"),
+        ("upstream_circuit_", "上游熔断触发"),
+    ):
+        if c.startswith(prefix):
+            return label
+    return _ALERT_LABELS.get(c, c)
+
 _LEVEL_RANK = {"info": 0, "warn": 1, "error": 2}
 
 
@@ -502,7 +543,7 @@ def _push_sms(cfg: dict[str, Any], text: str) -> bool:
 
 def _fmt_alert(a: dict[str, Any]) -> str:
     icon = _LEVEL_ICON.get(str(a.get("level")), "?")
-    return f"{icon} {a.get('code')}：{a.get('msg')}"
+    return f"{icon} {_alert_label(str(a.get('code')))}：{a.get('msg')}"
 
 
 def run_check(db, *, push: bool = True, dry_run: bool = False) -> dict[str, Any]:

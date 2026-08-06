@@ -726,6 +726,13 @@
                 <pre class="mono small" id="alertLastPushText" style="white-space:pre-wrap;">—</pre>
               </details>
 
+              <div class="row" style="gap:8px;margin:10px 0 6px;align-items:center;">
+                <button type="button" id="btnAlertReset" style="background:#b7791f;border-color:#b7791f;color:#fff;">重置预警状态</button>
+                <span class="muted small">仅清空当前告警显示；若测试订单未清理，下次巡检可能再次出现（清理见 api/scripts_clean_test_orders.py）</span>
+              </div>
+              <div class="section-label">预警明细（实时 · 含具体说明）</div>
+              <div id="alertDetailList" style="font-size:13px;">—</div>
+
               <div class="section-label">② 推送通道</div>
               <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;">
                 <div class="field" style="grid-column:1/-1;border:1px dashed rgba(128,128,128,.4);padding:8px;border-radius:6px;">
@@ -3267,6 +3274,33 @@
     }).join("");
   }
 
+  function renderAlertDetail(live) {
+    var box = $("alertDetailList");
+    if (!box) return;
+    var list = ((live && live.alerts) || []).slice().sort(function (a, b) {
+      var rk = { error: 3, warn: 2, info: 1 };
+      return (rk[String(b.level)] || 0) - (rk[String(a.level)] || 0);
+    });
+    if (!list.length) {
+      box.innerHTML = '<span style="color:#27ae60;">无预警</span>';
+      return;
+    }
+    box.innerHTML =
+      '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+      '<tr style="text-align:left;color:#888;"><th style="padding:5px 8px;">级别</th><th style="padding:5px 8px;">告警项</th><th style="padding:5px 8px;">说明</th></tr>' +
+      list.map(function (a) {
+        var lv = String(a.level || "info");
+        var tag = lv === "error" ? '<span class="pill bad">P0</span>' : lv === "warn" ? '<span class="pill warn">P1</span>' : '<span class="pill ok">INFO</span>';
+        var code = String(a.code || "");
+        return (
+          '<tr style="border-top:1px solid #eee;"><td style="padding:5px 8px;">' + tag + '</td>' +
+          '<td style="padding:5px 8px;" title="' + esc(code) + '">' + esc(alertLabel(code)) + '</td>' +
+          '<td style="padding:5px 8px;">' + esc(a.msg || "") + '</td></tr>'
+        );
+      }).join("") +
+      "</table>";
+  }
+
   function renderAlertOverview(r) {
     var codes = r.active_codes || [];
     var box = $("alertOverview");
@@ -3360,7 +3394,15 @@
     }
   }
 
+  async function resetAlertState() {
+    if (!confirm("确认清空当前预警状态？\n仅清显示；若测试订单未清理，下次巡检可能再次出现。")) return;
+    await api("/v1/admin/token/alerts/reset", { method: "POST", body: {} });
+    setMsg("预警状态已重置", "ok");
+    await loadAlertConfig();
+  }
+
   if ($("btnAlertSave")) $("btnAlertSave").onclick = saveAlertConfig;
+  if ($("btnAlertReset")) $("btnAlertReset").onclick = resetAlertState;
   if ($("btnAlertRun")) $("btnAlertRun").onclick = runAlertCheck;
   function fmtPr(p) {
     if (!p) return "—";

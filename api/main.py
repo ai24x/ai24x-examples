@@ -2543,6 +2543,16 @@ async def admin_alert_config_update(request: Request):
     return save_config(body)
 
 
+@app.post("/v1/admin/token/alerts/reset")
+async def admin_alerts_reset(request: Request):
+    "清空预警状态（active 标记与最近推送快照）；测试订单未清理则下次巡检可能再次出现。"
+    _require_internal_key(request)
+    from ops_alert import reset_state
+
+    reset_state()
+    return {"ok": True, "reset_at": ""}
+
+
 @app.post("/v1/admin/token/alerts/run")
 async def admin_alerts_run(request: Request, db: Session = Depends(get_db)):
     "立即巡检一次并推送（管理台「立即巡检并推送」）。"
