@@ -33,6 +33,40 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import model_warehouse as mw
 
 _DATA_PATH = Path(__file__).resolve().parent / "data" / "provider_prices.json"
+
+# TokenLab /models 接口不带价；此为 2026-08-06 实拉验证的 TL 价表（$/1M），
+# 作为 tokenlab_detail 兜底，确保 refresh 后 TL 比价不丢（后续实拉可覆盖）。
+_DEFAULT_TL_DETAIL: dict[str, dict[str, float]] = {
+    "gpt-5.4": {"in": 0.75, "out": 4.5},
+    "gpt-5": {"in": 1.25, "out": 10.0},
+    "gpt-5-mini": {"in": 0.25, "out": 2.0},
+    "gpt-4o": {"in": 2.5, "out": 10.0},
+    "gpt-4o-mini": {"in": 0.15, "out": 0.6},
+    "gpt-5.6-terra": {"in": 0.6, "out": 3.6},
+    "gpt-5.6-luna": {"in": 0.06, "out": 0.36},
+    "claude-opus-5": {"in": 3.25, "out": 16.25},
+    "claude-sonnet-5": {"in": 1.95, "out": 9.75},
+    "claude-haiku-4.5": {"in": 0.65, "out": 3.25},
+    "gemini-3.6-flash": {"in": 0.75, "out": 3.75},
+    "gemini-3.1-pro-preview": {"in": 1.0, "out": 6.0},
+    "grok-4.20": {"in": 0.625, "out": 1.25},
+    "kimi-k3": {"in": 3.0, "out": 15.0},
+    "kimi-k2.7": {"in": 0.95, "out": 4.0},
+    "deepseek-v4-flash": {"in": 0.14705882, "out": 0.29411765},
+    "deepseek-v4-pro": {"in": 0.44117647, "out": 0.88235294},
+    "mimo-pro": {"in": 0.435, "out": 0.87},
+    "minimax-m3": {"in": 0.3, "out": 1.2},
+    "qwen3-max": {"in": 0.35294117, "out": 1.4117647},
+    "glm-5.2": {"in": 1.17647059, "out": 4.11764706},
+    "qwen3.5-122b": {"in": 0.0882353, "out": 0.70588236},
+    "hunyuan-3": {"in": 0.14705882, "out": 0.58823529},
+    # TL API 命名别名（与 _TOKENLAB_MODEL_MAP 对齐）
+    "mimo-v2.5-pro": {"in": 0.435, "out": 0.87},
+    "qwen3.7-max": {"in": 0.35294117, "out": 1.4117647},
+    "hy3": {"in": 0.14705882, "out": 0.58823529},
+    "kimi-k2.7-code": {"in": 0.95, "out": 4.0},
+}
+
 _CACHE_TTL_S = 12 * 3600
 _ROLES = {"default_flash", "default_pro", "default_ultra", "vip_pick"}
 
@@ -71,10 +105,17 @@ def _load() -> dict[str, Any]:
         if _DATA_PATH.is_file():
             raw = json.loads(_DATA_PATH.read_text(encoding="utf-8"))
             if isinstance(raw, dict):
+                td = raw.get("tokenlab_detail")
+                if not isinstance(td, dict) or not td:
+                    raw["tokenlab_detail"] = dict(_DEFAULT_TL_DETAIL)
+                else:
+                    merged = dict(_DEFAULT_TL_DETAIL)
+                    merged.update(td)
+                    raw["tokenlab_detail"] = merged
                 return raw
     except Exception:
         pass
-    return {"_meta": {"time": None, "source": "none"}}
+    return {"_meta": {"time": None, "source": "none"}, "tokenlab_detail": dict(_DEFAULT_TL_DETAIL)}
 
 
 def _save(data: dict[str, Any]) -> None:
@@ -207,7 +248,7 @@ def _tl_id(or_id: str) -> str:
     return str(or_id or "").rsplit("/", 1)[-1]
 
 
-def _providers_for(pp: dict[str, Any], or_id: str) -> dict[str, Optional[tuple[float, float]]]:
+def _providers_for(pp: dict[str, Any], or_id: str, cid: Optional[str] = None) -> dict[str, Optional[tuple[float, float]]]:
     """返回 {or, tl, rq: (in,out)|None}。"""
     out: dict[str, Optional[tuple[float, float]]] = {"or": None, "tl": None, "rq": None}
     for x in pp.get("openrouter") or []:
@@ -215,14 +256,24 @@ def _providers_for(pp: dict[str, Any], or_id: str) -> dict[str, Optional[tuple[f
             p = x["pricing"]
             out["or"] = (p["in"], p["out"])
             break
-    tl_id = _tl_id(or_id)
+    tl_candidates = [_tl_id(or_id)]
+    if cid:
+        try:
+            from model_router import _TOKENLAB_MODEL_MAP
+            m = _TOKENLAB_MODEL_MAP.get(str(cid))
+            if m:
+                tl_candidates.append(str(m))
+        except Exception:
+            pass
     detail = pp.get("tokenlab_detail") or {}
-    if tl_id in detail and detail[tl_id]:
-        p = detail[tl_id]
-        out["tl"] = (float(p.get("in") or 0), float(p.get("out") or 0))
-    else:
+    for cand in tl_candidates:
+        if cand in detail and detail[cand]:
+            p = detail[cand]
+            out["tl"] = (float(p.get("in") or 0), float(p.get("out") or 0))
+            break
+    if out["tl"] is None:
         for x in pp.get("tokenlab") or []:
-            if x.get("id") == tl_id and x.get("pricing"):
+            if x.get("id") in tl_candidates and x.get("pricing"):
                 p = x["pricing"]
                 out["tl"] = (p["in"], p["out"])
                 break
@@ -274,7 +325,7 @@ def snapshot() -> dict[str, Any]:
         gm_blend = round((1 - (cost_in + cost_out) / (sell_in + sell_out)) * 100, 1) if (sell_in + sell_out) > 0 else None
         gm_1to4 = round((1 - (cost_in + 4 * cost_out) / (sell_in + 4 * sell_out)) * 100, 1) if (sell_in + 4 * sell_out) > 0 else None
         or_id = str(c.get("openrouter_id") or "")
-        prov = _providers_for(pp, or_id)
+        prov = _providers_for(pp, or_id, cid)
         market = _market_min(prov)
         flags: list[str] = []
         level = "ok"
