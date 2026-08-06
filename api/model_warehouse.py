@@ -1034,6 +1034,7 @@ def list_vip_picks_for_user(*, is_vip: bool) -> list[dict[str, Any]]:
                 "est_cny_per_m": est_cny,
                 "est_basis": "flash_anchor",
                 "flash_ref_usd_per_m": ref_usd_per_m,
+                "modalities": c.get("modalities") or ["text"],
             }
         )
     return out
