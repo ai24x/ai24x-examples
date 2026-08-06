@@ -714,23 +714,14 @@
     </section>
 
         <section class="card acct-panel" id="watch" data-acct-panel="watch" hidden>
-      <h1>自选股</h1>
-      <p class="sub" style="margin:0 0 4px;">添加关注的标的，进入本页自动生成「自选评分榜」——按 MACD 量能柱、均线形态、量能确认、异动回踩、位置与趋势环境做技术面量化评分（0-100），仅供选股参考，不构成投资建议。</p>
-      <div class="row" style="margin-top:12px; flex-wrap:wrap; gap:8px; align-items:center;">
-        <input id="wl-search" type="text" placeholder="输入代码 / 名称 / 拼音，如 600000、浦发、pfyh" autocomplete="off" style="flex:1; min-width:220px;" />
-        <button class="btn primary" id="btn-wl-add" type="button" disabled>添加自选</button>
+      <div class="row" style="align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+        <h1 style="margin:0;">自选股</h1>
+        <a class="btn" href="./watchscore.html" target="_blank" rel="noopener">新窗口打开 ›</a>
       </div>
-      <div id="wl-suggest" style="display:none; margin-top:6px;"></div>
-      <div class="status" id="wl-status" style="margin-top:8px;"></div>
-      <div class="muted small" id="wl-account" style="margin-top:4px;"></div>
-      <div id="wl-list" style="margin-top:10px;"></div>
-      <div class="row" style="margin-top:16px; gap:10px; align-items:center; flex-wrap:wrap;">
-        <button class="btn" id="btn-wl-scores" type="button">刷新评分</button>
-        <a class="btn" href="./watchscore.html">独立评分页 ›</a>
-        <span class="muted small">进入本页自动生成评分榜；可随时点「刷新评分」。评分按自然日同票去重扣次，当天重复刷新不重复扣。</span>
+      <p class="sub" style="margin:0 0 4px;">添加关注的标的后自动评分——MACD 量能柱、均线形态、量能确认、异动回踩、位置与趋势（0-100）。仅供选股参考，不构成投资建议。</p>
+      <div style="margin-top:10px; border:1px solid rgba(148,163,184,.15); border-radius:12px; overflow:hidden; background:var(--panel);">
+        <iframe id="wl-embed" src="./watchscore.html?embed=1" style="width:100%; height:640px; border:0; display:block;" loading="lazy" title="自选评分榜"></iframe>
       </div>
-      <div class="hint" id="wl-score-hint" style="margin-top:10px; display:none;"></div>
-      <div id="wl-score-wrap" style="margin-top:10px;"></div>
     </section>
 <section class="card acct-panel" id="agent" data-acct-panel="agent" hidden>
       <h1>伙伴计划（支持研发）</h1>
@@ -1467,7 +1458,11 @@
           // 邀请推广内容并入会员卡片下方，随「会员」一起显示/隐藏
           var visible = (n === name) || (n === "invite" && name === "vip");
           var sec = document.getElementById(n);
-          if (sec) sec.style.display = visible ? "" : "none";
+          if (sec) {
+            // 必须同步移除 hidden 属性，否则 [hidden]{display:none} 会盖过 style.display
+            sec.hidden = !visible;
+            sec.style.display = visible ? "" : "none";
+          }
         });
         var tabs = document.querySelectorAll(".acct-tab[data-acct-tab]");
         for (var i = 0; i < tabs.length; i++) {

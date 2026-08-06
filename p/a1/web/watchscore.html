@@ -47,6 +47,10 @@
     .wl-score-high { color: #f43f5e; font-weight: 800; }
     .wl-score-mid { color: #fbbf24; font-weight: 700; }
     .wl-score-low { color: #94a3b8; font-weight: 600; }
+    body.embed .site-header, body.embed .site-footer { display: none !important; }
+    body.embed .wl-back { display: none !important; }
+    body.embed .page-main { padding-top: 4px; }
+    body.embed .card > h1 { display: none; }
   </style>
 </head>
 <body>
@@ -70,7 +74,7 @@
             </a>
           </div>
           <p class="sub" style="margin:12px 0 0;">
-            <a class="btn" href="./demo.html">← 返回行情页</a>
+            <a class="btn wl-back" href="./demo.html">← 返回行情页</a>
           </p>
         </div>
 
@@ -78,7 +82,7 @@
           <div class="score-top">
             <span class="muted small" id="wl-account">加载账号…</span>
             <span style="display:flex; gap:8px; align-items:center;">
-              <a class="btn" href="./demo.html">← 返回行情</a>
+              <a class="btn wl-back" href="./demo.html">← 返回行情</a>
               <button class="btn" id="btn-wl-scores" type="button">刷新评分</button>
             </span>
           </div>
@@ -258,6 +262,15 @@
       }
       var wlLastLoad = 0;
       function boot() {
+        try {
+          if (/[?&]embed=1/.test(String(location.search || ""))) {
+            document.body.classList.add("embed");
+            var hd = document.getElementById("site-header");
+            var ft = document.getElementById("site-footer");
+            if (hd) hd.style.display = "none";
+            if (ft) ft.style.display = "none";
+          }
+        } catch (eE) {}
         var logged = !!tokenGet();
         var guest = $("auth-guest");
         var user = $("auth-user");
