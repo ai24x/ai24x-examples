@@ -1,0 +1,785 @@
+{
+  "time": "20260806-1141",
+  "per": 1,
+  "judge_model": "deepseek-v4-pro",
+  "rows": [
+    {
+      "candidate": "DeepSeek V4 Flash · 官方直连",
+      "ok": true,
+      "auto_acc": 1.0,
+      "judge_acc": 1.0,
+      "med_ms": 1195,
+      "cost_usd": 0.0005,
+      "n_auto": 5,
+      "n_judge": 7,
+      "detail": [
+        {
+          "cat": "en_knowledge",
+          "q": "What is the capital of Australia?\nA. Syd",
+          "ok": true,
+          "ms": 1116,
+          "in": 165,
+          "out": 10
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "一年有多少个节气？\nA. 12 B. 18 C. 24 D. 36",
+          "ok": true,
+          "ms": 1034,
+          "in": 167,
+          "out": 19
+        },
+        {
+          "cat": "en_logic",
+          "q": "Ann sits immediately left of Bob, and Bo",
+          "ok": true,
+          "ms": 1401,
+          "in": 185,
+          "out": 66
+        },
+        {
+          "cat": "en_math",
+          "q": "A train travels 300 km in 2.5 hours. Wha",
+          "ok": true,
+          "ms": 1300,
+          "in": 168,
+          "out": 63
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个数的 1/4 是 25，这个数是多少？",
+          "ok": true,
+          "ms": 1268,
+          "in": 161,
+          "out": 40
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function sum_even(n) that",
+          "ok": true,
+          "score": 5,
+          "reason": "正确实现累加1..n内偶数，提供循环与公式两种方法，包含边界处理与示例，严格遵循指令。",
+          "ms": 3083,
+          "in": 170,
+          "out": 357
+        },
+        {
+          "cat": "en_reading",
+          "q": "Summarize in ONE sentence: 'Photosynthes",
+          "ok": true,
+          "score": 5,
+          "reason": "模型输出严格遵循指令，用一句话完整且正确地概括了光合作用的核心要素：阳光驱动、CO2和水转化为养分、释放氧气、对地球生命至关重要，并提及了科学研究的应用方向，与参考答案要点高度一致。",
+          "ms": 1350,
+          "in": 202,
+          "out": 40
+        },
+        {
+          "cat": "cn_reading",
+          "q": "这段文字的主要观点是什么？'开源软件降低了企业 IT 成本，但也带来安全维护责任",
+          "ok": true,
+          "score": 5,
+          "reason": "准确覆盖降本、安全责任、选型评估社区活跃度与安全响应能力三个要点，表述完整且严格遵循指令。",
+          "ms": 1195,
+          "in": 182,
+          "out": 38
+        },
+        {
+          "cat": "en_instruct",
+          "q": "Write a sentence that starts with the wo",
+          "ok": true,
+          "score": 5,
+          "reason": "句子以Although开头、句号结尾，语法正确且语义完整，严格遵循指令。",
+          "ms": 1168,
+          "in": 163,
+          "out": 16
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "用一段话介绍你自己，不超过 50 字。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出为一段话且仅29字，内容合理，严格遵循指令。",
+          "ms": 1112,
+          "in": 158,
+          "out": 26
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"Our API support",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，术语和句式均符合参考答案。",
+          "ms": 656,
+          "in": 160,
+          "out": 10
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「本次更新修复了一个严重的安全漏",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格对应原文语义，时态使用恰当。",
+          "ms": 965,
+          "in": 159,
+          "out": 8
+        }
+      ]
+    },
+    {
+      "candidate": "DeepSeek V4 Flash · OpenRouter",
+      "cat": "en_knowledge",
+      "ok": false,
+      "error": "Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-U",
+      "ms": 848
+    },
+    {
+      "candidate": "DeepSeek V4 Flash · OpenRouter",
+      "cat": "cn_knowledge",
+      "ok": false,
+      "error": "Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-U",
+      "ms": 1016
+    },
+    {
+      "candidate": "DeepSeek V4 Flash · OpenRouter",
+      "cat": "en_logic",
+      "ok": false,
+      "error": "Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-U",
+      "ms": 851
+    },
+    {
+      "candidate": "DeepSeek V4 Flash · OpenRouter",
+      "cat": "en_math",
+      "ok": false,
+      "error": "Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-U",
+      "ms": 1526
+    },
+    {
+      "candidate": "DeepSeek V4 Flash · OpenRouter",
+      "cat": "cn_math",
+      "ok": false,
+      "error": "Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-U",
+      "ms": 827
+    },
+    {
+      "candidate": "DeepSeek V4 Flash · OpenRouter",
+      "cat": "en_code",
+      "ok": false,
+      "error": "Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-U",
+      "ms": 821
+    },
+    {
+      "candidate": "DeepSeek V4 Flash · OpenRouter",
+      "cat": "en_reading",
+      "ok": false,
+      "error": "Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-U",
+      "ms": 818
+    },
+    {
+      "candidate": "DeepSeek V4 Flash · OpenRouter",
+      "cat": "cn_reading",
+      "ok": false,
+      "error": "Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-U",
+      "ms": 985
+    },
+    {
+      "candidate": "DeepSeek V4 Flash · OpenRouter",
+      "cat": "en_instruct",
+      "ok": false,
+      "error": "Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-U",
+      "ms": 1410
+    },
+    {
+      "candidate": "DeepSeek V4 Flash · OpenRouter",
+      "cat": "cn_instruct",
+      "ok": false,
+      "error": "Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-U",
+      "ms": 1829
+    },
+    {
+      "candidate": "DeepSeek V4 Flash · OpenRouter",
+      "cat": "en_translate",
+      "ok": false,
+      "error": "Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-U",
+      "ms": 823
+    },
+    {
+      "candidate": "DeepSeek V4 Flash · OpenRouter",
+      "cat": "cn_translate",
+      "ok": false,
+      "error": "Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-U",
+      "ms": 821
+    },
+    {
+      "candidate": "DeepSeek V4 Flash · OpenRouter",
+      "ok": true,
+      "auto_acc": null,
+      "judge_acc": null,
+      "med_ms": 0,
+      "cost_usd": 0.0,
+      "n_auto": 0,
+      "n_judge": 0,
+      "detail": [
+        {
+          "cat": "en_knowledge",
+          "q": "What is the capital of Australia?\nA. Syd",
+          "ok": false,
+          "error": "Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: http"
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "一年有多少个节气？\nA. 12 B. 18 C. 24 D. 36",
+          "ok": false,
+          "error": "Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: http"
+        },
+        {
+          "cat": "en_logic",
+          "q": "Ann sits immediately left of Bob, and Bo",
+          "ok": false,
+          "error": "Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: http"
+        },
+        {
+          "cat": "en_math",
+          "q": "A train travels 300 km in 2.5 hours. Wha",
+          "ok": false,
+          "error": "Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: http"
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个数的 1/4 是 25，这个数是多少？",
+          "ok": false,
+          "error": "Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: http"
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function sum_even(n) that",
+          "ok": false,
+          "error": "Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: http"
+        },
+        {
+          "cat": "en_reading",
+          "q": "Summarize in ONE sentence: 'Photosynthes",
+          "ok": false,
+          "error": "Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: http"
+        },
+        {
+          "cat": "cn_reading",
+          "q": "这段文字的主要观点是什么？'开源软件降低了企业 IT 成本，但也带来安全维护责任",
+          "ok": false,
+          "error": "Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: http"
+        },
+        {
+          "cat": "en_instruct",
+          "q": "Write a sentence that starts with the wo",
+          "ok": false,
+          "error": "Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: http"
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "用一段话介绍你自己，不超过 50 字。",
+          "ok": false,
+          "error": "Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: http"
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"Our API support",
+          "ok": false,
+          "error": "Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: http"
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「本次更新修复了一个严重的安全漏",
+          "ok": false,
+          "error": "Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: http"
+        }
+      ]
+    },
+    {
+      "candidate": "DeepSeek V4 Flash · TokenLab",
+      "ok": true,
+      "auto_acc": 1.0,
+      "judge_acc": 1.0,
+      "med_ms": 3881,
+      "cost_usd": 0.0005,
+      "n_auto": 5,
+      "n_judge": 7,
+      "detail": [
+        {
+          "cat": "en_knowledge",
+          "q": "What is the capital of Australia?\nA. Syd",
+          "ok": true,
+          "ms": 2126,
+          "in": 165,
+          "out": 10
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "一年有多少个节气？\nA. 12 B. 18 C. 24 D. 36",
+          "ok": true,
+          "ms": 4125,
+          "in": 167,
+          "out": 19
+        },
+        {
+          "cat": "en_logic",
+          "q": "Ann sits immediately left of Bob, and Bo",
+          "ok": true,
+          "ms": 3977,
+          "in": 185,
+          "out": 70
+        },
+        {
+          "cat": "en_math",
+          "q": "A train travels 300 km in 2.5 hours. Wha",
+          "ok": true,
+          "ms": 4649,
+          "in": 168,
+          "out": 61
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个数的 1/4 是 25，这个数是多少？",
+          "ok": true,
+          "ms": 3852,
+          "in": 161,
+          "out": 25
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function sum_even(n) that",
+          "ok": true,
+          "score": 5,
+          "reason": "正确实现累加1..n内偶数，提供循环与公式两种方法，包含文档、边界处理和示例，严格遵循指令。",
+          "ms": 6922,
+          "in": 170,
+          "out": 346
+        },
+        {
+          "cat": "en_reading",
+          "q": "Summarize in ONE sentence: 'Photosynthes",
+          "ok": true,
+          "score": 5,
+          "reason": "一句话完整覆盖了光合作用的驱动能量、原料、产物、生态意义及科研应用，且严格遵循单句指令，无冗余信息。",
+          "ms": 5238,
+          "in": 202,
+          "out": 41
+        },
+        {
+          "cat": "cn_reading",
+          "q": "这段文字的主要观点是什么？'开源软件降低了企业 IT 成本，但也带来安全维护责任",
+          "ok": true,
+          "score": 5,
+          "reason": "准确覆盖降本、安全责任、选型评估社区活跃度与安全响应能力三个要点，表述完整且严格遵循指令。",
+          "ms": 2853,
+          "in": 182,
+          "out": 38
+        },
+        {
+          "cat": "en_instruct",
+          "q": "Write a sentence that starts with the wo",
+          "ok": true,
+          "score": 5,
+          "reason": "句子以Although开头、句号结尾，语法正确且语义完整，严格遵循指令。",
+          "ms": 3532,
+          "in": 163,
+          "out": 26
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "用一段话介绍你自己，不超过 50 字。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出为一段话，共24字，未超50字，内容合理且严格遵循指令。",
+          "ms": 3881,
+          "in": 158,
+          "out": 22
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"Our API support",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，术语和句式均符合参考答案。",
+          "ms": 3537,
+          "in": 160,
+          "out": 10
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「本次更新修复了一个严重的安全漏",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格对应原文语义，正确使用了'critical security vulnerability'这一关键表述。",
+          "ms": 3091,
+          "in": 159,
+          "out": 8
+        }
+      ]
+    },
+    {
+      "candidate": "DeepSeek V4 Flash · 硅基.com",
+      "ok": true,
+      "auto_acc": 1.0,
+      "judge_acc": 1.0,
+      "med_ms": 5163,
+      "cost_usd": 0.0008,
+      "n_auto": 5,
+      "n_judge": 7,
+      "detail": [
+        {
+          "cat": "en_knowledge",
+          "q": "What is the capital of Australia?\nA. Syd",
+          "ok": true,
+          "ms": 5734,
+          "in": 165,
+          "out": 64
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "一年有多少个节气？\nA. 12 B. 18 C. 24 D. 36",
+          "ok": true,
+          "ms": 2202,
+          "in": 246,
+          "out": 18
+        },
+        {
+          "cat": "en_logic",
+          "q": "Ann sits immediately left of Bob, and Bo",
+          "ok": true,
+          "ms": 11031,
+          "in": 185,
+          "out": 157
+        },
+        {
+          "cat": "en_math",
+          "q": "A train travels 300 km in 2.5 hours. Wha",
+          "ok": true,
+          "ms": 2501,
+          "in": 247,
+          "out": 30
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个数的 1/4 是 25，这个数是多少？",
+          "ok": true,
+          "ms": 2463,
+          "in": 161,
+          "out": 76
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function sum_even(n) that",
+          "ok": true,
+          "score": 5,
+          "reason": "正确实现累加1..n内偶数，提供O(1)公式与循环两种方案，处理边界并严格遵循指令。",
+          "ms": 14531,
+          "in": 170,
+          "out": 609
+        },
+        {
+          "cat": "en_reading",
+          "q": "Summarize in ONE sentence: 'Photosynthes",
+          "ok": true,
+          "score": 5,
+          "reason": "正确涵盖所有要点（阳光驱动、CO2和水转化为养分与氧气、维持地球生命、启发研究），完整且严格遵循单句指令，无冗余信息。",
+          "ms": 5476,
+          "in": 202,
+          "out": 94
+        },
+        {
+          "cat": "cn_reading",
+          "q": "这段文字的主要观点是什么？'开源软件降低了企业 IT 成本，但也带来安全维护责任",
+          "ok": true,
+          "score": 5,
+          "reason": "输出准确概括了开源降本与安全责任的双面性，并完整包含选型需评估社区活跃度与安全响应能力的要点，严格遵循指令。",
+          "ms": 5940,
+          "in": 182,
+          "out": 104
+        },
+        {
+          "cat": "en_instruct",
+          "q": "Write a sentence that starts with the wo",
+          "ok": true,
+          "score": 5,
+          "reason": "句子以Although开头、句号结尾，语法正确且语义完整，严格遵循指令。",
+          "ms": 4646,
+          "in": 242,
+          "out": 46
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "用一段话介绍你自己，不超过 50 字。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出为一段话且仅29字，内容合理，严格遵循指令。",
+          "ms": 5163,
+          "in": 237,
+          "out": 320
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"Our API support",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，术语和句式均符合参考答案。",
+          "ms": 2387,
+          "in": 239,
+          "out": 46
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「本次更新修复了一个严重的安全漏",
+          "ok": true,
+          "score": 4,
+          "reason": "翻译准确传达了原文含义，但时态使用过去式(fixed)与原文的完成体略有偏差，且未使用更专业的'critical'一词。",
+          "ms": 4186,
+          "in": 238,
+          "out": 206
+        }
+      ]
+    },
+    {
+      "candidate": "DeepSeek V4 Pro · 官方直连",
+      "ok": true,
+      "auto_acc": 1.0,
+      "judge_acc": 1.0,
+      "med_ms": 1671,
+      "cost_usd": 0.0016,
+      "n_auto": 5,
+      "n_judge": 7,
+      "detail": [
+        {
+          "cat": "en_knowledge",
+          "q": "What is the capital of Australia?\nA. Syd",
+          "ok": true,
+          "ms": 1335,
+          "in": 165,
+          "out": 10
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "一年有多少个节气？\nA. 12 B. 18 C. 24 D. 36",
+          "ok": true,
+          "ms": 1258,
+          "in": 167,
+          "out": 19
+        },
+        {
+          "cat": "en_logic",
+          "q": "Ann sits immediately left of Bob, and Bo",
+          "ok": true,
+          "ms": 2346,
+          "in": 185,
+          "out": 82
+        },
+        {
+          "cat": "en_math",
+          "q": "A train travels 300 km in 2.5 hours. Wha",
+          "ok": true,
+          "ms": 1995,
+          "in": 168,
+          "out": 85
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个数的 1/4 是 25，这个数是多少？",
+          "ok": true,
+          "ms": 1588,
+          "in": 161,
+          "out": 56
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function sum_even(n) that",
+          "ok": true,
+          "score": 5,
+          "reason": "代码正确实现累加1..n内偶数，提供两种解法并附示例，完整遵循指令且解释清晰。",
+          "ms": 6569,
+          "in": 170,
+          "out": 447
+        },
+        {
+          "cat": "en_reading",
+          "q": "Summarize in ONE sentence: 'Photosynthes",
+          "ok": true,
+          "score": 5,
+          "reason": "一句话完整覆盖了阳光驱动、CO2和水转化为养分、释放氧气、对生命关键、农业与能源研究等所有要点，且严格遵循单句指令。",
+          "ms": 1949,
+          "in": 202,
+          "out": 38
+        },
+        {
+          "cat": "cn_reading",
+          "q": "这段文字的主要观点是什么？'开源软件降低了企业 IT 成本，但也带来安全维护责任",
+          "ok": true,
+          "score": 5,
+          "reason": "准确概括了开源降本与安全责任的双面性，并完整包含选型需评估社区活跃度与安全响应能力的要点，严格遵循指令。",
+          "ms": 1998,
+          "in": 182,
+          "out": 51
+        },
+        {
+          "cat": "en_instruct",
+          "q": "Write a sentence that starts with the wo",
+          "ok": true,
+          "score": 5,
+          "reason": "句子以Although开头、句号结尾，语法正确且语义完整，严格遵循指令。",
+          "ms": 1671,
+          "in": 163,
+          "out": 13
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "用一段话介绍你自己，不超过 50 字。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出为一段话，共29字，未超过50字，内容合理且严格遵循指令。",
+          "ms": 1640,
+          "in": 158,
+          "out": 27
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"Our API support",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确、完整，严格遵循指令，与参考答案语义一致。",
+          "ms": 1360,
+          "in": 160,
+          "out": 11
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「本次更新修复了一个严重的安全漏",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格对应原文语义，正确使用了 critical security vulnerability。",
+          "ms": 1391,
+          "in": 159,
+          "out": 9
+        }
+      ]
+    },
+    {
+      "candidate": "DeepSeek V4 Pro · TokenLab",
+      "ok": true,
+      "auto_acc": 1.0,
+      "judge_acc": 1.0,
+      "med_ms": 4133,
+      "cost_usd": 0.0017,
+      "n_auto": 5,
+      "n_judge": 7,
+      "detail": [
+        {
+          "cat": "en_knowledge",
+          "q": "What is the capital of Australia?\nA. Syd",
+          "ok": true,
+          "ms": 4133,
+          "in": 165,
+          "out": 10
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "一年有多少个节气？\nA. 12 B. 18 C. 24 D. 36",
+          "ok": true,
+          "ms": 2874,
+          "in": 167,
+          "out": 19
+        },
+        {
+          "cat": "en_logic",
+          "q": "Ann sits immediately left of Bob, and Bo",
+          "ok": true,
+          "ms": 4860,
+          "in": 185,
+          "out": 83
+        },
+        {
+          "cat": "en_math",
+          "q": "A train travels 300 km in 2.5 hours. Wha",
+          "ok": true,
+          "ms": 4589,
+          "in": 168,
+          "out": 81
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个数的 1/4 是 25，这个数是多少？",
+          "ok": true,
+          "ms": 3757,
+          "in": 161,
+          "out": 56
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function sum_even(n) that",
+          "ok": true,
+          "score": 5,
+          "reason": "正确实现累加1..n内偶数，提供两种解法并包含边界处理，完整且严格遵循指令。",
+          "ms": 7783,
+          "in": 170,
+          "out": 445
+        },
+        {
+          "cat": "en_reading",
+          "q": "Summarize in ONE sentence: 'Photosynthes",
+          "ok": true,
+          "score": 5,
+          "reason": "输出严格用一句话完整覆盖了光合作用的核心要素（阳光驱动、CO2和水转化为养分与氧气、维持地球生命、启发农业与能源研究），且无任何多余内容，完全符合指令。",
+          "ms": 4530,
+          "in": 202,
+          "out": 36
+        },
+        {
+          "cat": "cn_reading",
+          "q": "这段文字的主要观点是什么？'开源软件降低了企业 IT 成本，但也带来安全维护责任",
+          "ok": true,
+          "score": 5,
+          "reason": "准确概括了开源降本与安全责任的双面性，并完整包含了选型需评估社区活跃度与安全响应能力的应对策略，严格遵循指令。",
+          "ms": 5032,
+          "in": 182,
+          "out": 98
+        },
+        {
+          "cat": "en_instruct",
+          "q": "Write a sentence that starts with the wo",
+          "ok": true,
+          "score": 5,
+          "reason": "句子以Although开头、句号结尾，语法正确且语义完整，严格遵循指令。",
+          "ms": 3295,
+          "in": 163,
+          "out": 16
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "用一段话介绍你自己，不超过 50 字。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出为一段话，共36字，未超50字，内容合理且严格遵循指令。",
+          "ms": 3721,
+          "in": 158,
+          "out": 30
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"Our API support",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确、完整，严格遵循指令，与参考答案语义一致。",
+          "ms": 3359,
+          "in": 160,
+          "out": 11
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「本次更新修复了一个严重的安全漏",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格对应原文语义，正确使用了'critical security vulnerability'。",
+          "ms": 3968,
+          "in": 159,
+          "out": 9
+        }
+      ]
+    }
+  ]
+}

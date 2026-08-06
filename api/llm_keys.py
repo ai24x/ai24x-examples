@@ -38,9 +38,9 @@ _ALLOWED = (
     "OPENAI_API_KEY",
     "ANTHROPIC_API_KEY",
     "GOOGLE_AI_API_KEY",
-    # 国际聚合平台 Key（待接入后取消注释）
-    # "TOKENLAB_API_KEY",
-    # "TBD_AGG3_API_KEY",
+    # 国际聚合平台 Key
+    "TOKENLAB_API_KEY",
+    "REQUESTY_API_KEY",
 )
 
 # 管理台展示顺序与说明（status: live=生产在用 / failover=自动兜底 / planned=骨架待填）
@@ -115,21 +115,20 @@ _KEY_CATALOG: tuple[dict[str, str], ...] = (
         "status": "planned",
         "group": "待规划直连",
     },
-    # —— 国际聚合平台 Key 占位（待调研接入）——
-    # {
-    #     "name": "TOKENLAB_API_KEY",
-    #     "title": "TokenLab #2 国际聚合",
-    #     "role": "backup",
-    #     "status": "planned",
-    #     "group": "国际聚合",
-    # },
-    # {
-    #     "name": "TBD_AGG3_API_KEY",
-    #     "title": "#3 国际聚合（待调研）",
-    #     "role": "backup",
-    #     "status": "planned",
-    #     "group": "国际聚合",
-    # },
+    {
+        "name": "TOKENLAB_API_KEY",
+        "title": "TokenLab #2 国际聚合（Claude/Gemini 降本 30-70%）",
+        "role": "backup",
+        "status": "failover",
+        "group": "国际聚合",
+    },
+    {
+        "name": "REQUESTY_API_KEY",
+        "title": "Requesty #3 国际聚合（OR 兼容 · 免费档 200 次/天）",
+        "role": "backup",
+        "status": "failover",
+        "group": "国际聚合",
+    },
 )
 
 # VIP 降级事件（内存环，供告警；进程重启清空）

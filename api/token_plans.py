@@ -52,26 +52,26 @@ _PLAN_DEFAULTS: dict[str, dict[str, Any]] = {
         "title_en": "Builder",
         "price_usd": 20.0,
         "default_fen": None,  # 由 USD×汇率推算
-        "credit_tokens": 50_000_000,
+        "credit_tokens": 60_000_000,
         "set_vip": False,
         "validity_days": 365,
         "enabled": True,
         "promo": False,
-        "note_zh": "预充 5,000 万 token（≈$0.40/百万），不含名模资格。日常 flash/auto 够用；pro/ultra 与点名名模需 VIP 资格（选 Scale 或 VIP 资格包）。额度 12 个月有效。",
-        "note_en": "50M prepaid tokens (~$0.40/M). No named-model access. Great for everyday flash/auto; pro/ultra and named models need VIP (choose Scale or VIP Pass). Valid 12 months.",
+        "note_zh": "预充 6,000 万 token（≈$0.333/百万），不含名模资格。日常 flash/auto 够用；pro/ultra 与点名名模需 VIP 资格（选 Scale 或 VIP 资格包）。额度 12 个月有效。",
+        "note_en": "60M prepaid tokens (~$0.333/M). No named-model access. Great for everyday flash/auto; pro/ultra and named models need VIP (choose Scale or VIP Pass). Valid 12 months.",
     },
     "token_pack_mid": {
         "title_zh": "进阶包",
         "title_en": "Advanced",
         "price_usd": 49.0,
         "default_fen": None,
-        "credit_tokens": 140_000_000,
+        "credit_tokens": 150_000_000,
         "set_vip": False,
         "validity_days": 365,
         "enabled": True,
         "promo": False,
-        "note_zh": "大额预充 1.4 亿 token（≈$0.35/百万），不含名模资格。适合跑量/团队共用；要点名请选 Scale 组合包。额度 12 个月有效。",
-        "note_en": "140M prepaid tokens (~$0.35/M)—no named-model access. Good for volume/teams; choose Scale to name models. Valid 12 months.",
+        "note_zh": "大额预充 1.5 亿 token（≈$0.327/百万），不含名模资格。适合跑量/团队共用；要点名请选 Scale 组合包。额度 12 个月有效。",
+        "note_en": "150M prepaid tokens (~$0.327/M)—no named-model access. Good for volume/teams; choose Scale to name models. Valid 12 months.",
     },
     "token_vip_month": {
         "title_zh": "VIP 资格包",
@@ -98,18 +98,18 @@ _PLAN_DEFAULTS: dict[str, dict[str, Any]] = {
         "title_en": "Scale",
         "price_usd": 99.0,
         "default_fen": None,
-        "credit_tokens": 200_000_000,
+        "credit_tokens": 250_000_000,
         "set_vip": True,
         "vip_days": 365,
         "validity_days": 365,
         "enabled": True,
         "promo": False,
         "note_zh": (
-            "点名模 + 大额预充一次齐：12 个月 VIP 名模资格 + 2 亿预充额度（12 个月有效）。"
+            "点名模 + 大额预充一次齐：12 个月 VIP 名模资格 + 2.5 亿预充额度（12 个月有效）。"
             "VIP 有效期跟随套餐年限。"
         ),
         "note_en": (
-            "Name models + bulk credits in one: 12-month VIP access + 200M prepaid (valid 12 months). "
+            "Name models + bulk credits in one: 12-month VIP access + 250M prepaid (valid 12 months). "
             "VIP validity matches the plan term."
         ),
     },

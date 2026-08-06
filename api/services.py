@@ -29,13 +29,15 @@ def estimate_need_tokens(*, model: Optional[str], max_tokens: int, prompt: str =
 
     不按完整 max_tokens 卡死（OpenClaw 常设 8k）；成功后仍按实扣，余额不足则夹断。
     """
-    mult = 1
+    in_mult = 1
+    out_mult = 1
     try:
         from model_warehouse import resolve_vip_pick, layer_cost_mult_for
 
         pick = resolve_vip_pick(model)
         if pick:
-            mult = max(1, int(pick.get("billing_mult") or 1))
+            in_mult = max(1, int(pick.get("in_mult") or pick.get("billing_mult") or 1))
+            out_mult = max(1, int(pick.get("out_mult") or pick.get("billing_mult") or 1))
         else:
             m = str(model or "flash").strip().lower()
             layer = "L1"
@@ -46,11 +48,12 @@ def estimate_need_tokens(*, model: Optional[str], max_tokens: int, prompt: str =
             elif m in ("shared", "free", "or-fallback"):
                 layer = "L0"
             mult = max(1, int(layer_cost_mult_for(layer)))
+            in_mult = out_mult = int(mult)
     except Exception:
-        mult = 1
+        in_mult = out_mult = 1
     prompt_est = max(0, len(prompt or "") // 4)
     capped = min(max(1, int(max_tokens or 1000)), 1024)
-    return max(1, (prompt_est + capped) * int(mult))
+    return max(1, prompt_est * in_mult + capped * out_mult)
 
 
 class UserService:
@@ -201,6 +204,19 @@ class ChatService:
                         ),
                         model=route_model,
                     )
+
+                    # P2：点名模每日上限（单模型次数 / 单用户 credits），超限 429
+                    from vip_named_guard import check_named_daily_limit
+                    from model_warehouse import resolve_vip_pick
+
+                    if resolve_vip_pick(route_model):
+                        try:
+                            check_named_daily_limit(db, int(auth_user_id), str(route_model))
+                        except HTTPException:
+                            raise
+                        except Exception:
+                            # 保护不可用时不阻断主链路（fail-open），告警交给运维日志
+                            pass
                 msgs = getattr(request, "messages", None)
                 routed = run_routed_chat(
                     prompt=request.prompt,
@@ -307,6 +323,16 @@ class ChatService:
                             model=public_model,
                             request_id=request_id,
                         )
+
+                        # P2：累计点名模每日用量（仅成功且计费）
+                        from vip_named_guard import record_named_usage
+                        from model_warehouse import resolve_vip_pick
+
+                        if resolve_vip_pick(str(request.model or "")):
+                            try:
+                                record_named_usage(db, int(auth_user_id), str(request.model), int(token_count))
+                            except Exception:
+                                pass
                     snap = get_balance_snapshot(db, int(auth_user_id))
                     remaining_quota = int(snap.get("balance_tokens") or 0)
 

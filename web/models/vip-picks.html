@@ -64,7 +64,8 @@
     <section class="hero hero-surface section-tight">
       <div class="container">
         <h1 data-i18n="page.models.vip.h1">点名模</h1>
-        <p class="lead" data-i18n="page.models.vip.lead">下方中国名模适合点名调用；国际旗舰为附属。倍率越高，余额消耗越快。优先用 flash（$0.35/百万起）。</p>
+        <p class="lead" data-i18n="page.models.vip.lead">下方中国名模适合点名调用；国际旗舰为附属。倍率越高，余额消耗越快。优先用 flash（$0.35/百万起）；flash=DeepSeek V4 Flash，pro=DeepSeek V4 Pro/小米 MiMo 等。</p>
+        <p class="sub" style="margin-top:10px;" data-i18n="page.models.vip.dualRate">点名模按输入/输出双费率计费（表格列出 in/out 每百万单价）；品牌档 flash/pro/auto 仍单费率。输出重负载（coding / agent / 长文）请先核算输出价。</p>
         <div class="hero-cta">
           <a class="btn btn-primary" href="../console.html" data-i18n="nav.console">控制台</a>
         </div>
@@ -135,7 +136,7 @@ Header: X-API-Key: YOUR_API_KEY
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="../config/locales.js?v=20260805b"></script>
+  <script src="../config/locales.js?v=20260806a"></script>
   <script src="../js/api.js?v=20260802i"></script>
   <script src="../js/utm.js?v=20260802a"></script>
 <script src="../js/i18n.js?v=20260802m"></script>
@@ -181,20 +182,25 @@ Header: X-API-Key: YOUR_API_KEY
         return "~$" + Math.round(REF_USD_PER_M * m * 100) / 100 + "/1M";
       }
       function pickEst(p) {
-        var mult = Number(p.billing_mult || 1) || 1;
         var ref =
           p.flash_ref_usd_per_m != null ? Number(p.flash_ref_usd_per_m) : REF_USD_PER_M;
         if (!(ref > 0)) ref = REF_USD_PER_M;
+        var inMult = Number(p.in_mult || p.billing_mult || 1) || 1;
+        var outMult = Number(p.out_mult || p.billing_mult || 1) || 1;
+        var inUsd =
+          p.est_in_usd_per_m != null
+            ? p.est_in_usd_per_m
+            : Math.round(ref * inMult * 100) / 100;
+        var outUsd =
+          p.est_out_usd_per_m != null
+            ? p.est_out_usd_per_m
+            : Math.round(ref * outMult * 100) / 100;
         if (isZh()) {
-          var cny =
-            p.est_cny_per_m != null
-              ? p.est_cny_per_m
-              : Math.round(ref * 7.2 * mult * 100) / 100;
-          return "约¥" + cny + "/百万";
+          var inCny = Math.round(inUsd * 7.2 * 100) / 100;
+          var outCny = Math.round(outUsd * 7.2 * 100) / 100;
+          return "入 ¥" + inCny + " · 出 ¥" + outCny + "/百万";
         }
-        var usd =
-          p.est_usd_per_m != null ? p.est_usd_per_m : Math.round(ref * mult * 100) / 100;
-        return "~$" + usd + "/1M";
+        return "in $" + inUsd + " · out $" + outUsd + "/1M";
       }
       function brandRows() {
         var zh = isZh();
@@ -282,8 +288,10 @@ Header: X-API-Key: YOUR_API_KEY
               esc(pickTitle(p)) +
               "</td><td class='mono'>" +
               esc(p.id) +
-              "</td><td>×" +
-              esc(p.billing_mult || 1) +
+              "</td><td class='mono small'>in ×" +
+              esc(p.in_mult || p.billing_mult || 1) +
+              " · out ×" +
+              esc(p.out_mult || p.billing_mult || 1) +
               "</td><td class='mono small'>" +
               esc(pickEst(p)) +
               "</td><td class='sub'>" +

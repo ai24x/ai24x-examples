@@ -79,6 +79,10 @@ class Settings(BaseSettings):
     chat_rate_per_minute: int = Field(default=60, validation_alias="CHAT_RATE_PER_MINUTE")
     chat_rate_per_ip_per_minute: int = Field(default=120, validation_alias="CHAT_RATE_PER_IP_PER_MINUTE")
 
+    # P2 保护：点名模每日上限（单模型次数 / 单用户 credits），超限 429
+    vip_named_daily_calls_per_model: int = Field(default=200, validation_alias="VIP_NAMED_DAILY_CALLS_PER_MODEL")
+    vip_named_daily_credits_per_user: int = Field(default=50000, validation_alias="VIP_NAMED_DAILY_CREDITS_PER_USER")
+
     # Dev switches
     skip_db_init: bool = Field(default=False, validation_alias="SKIP_DB_INIT")
     

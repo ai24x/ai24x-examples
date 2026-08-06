@@ -112,25 +112,28 @@ PROVIDERS: dict[str, dict[str, Any]] = {
         },
         "note": "兼容端点随 Google 文档调整；以官方为准。",
     },
-    # —— 国际聚合平台占位（待调研接入) ——
-    # 用途：OR 挂了做备份；多家聚合比价压成本做利润
-    # "tokenlab": {
-    #     "title": "TokenLab (#2 国际聚合 · Claude/Gemini 降本 35-50%)",
-    #     "role": "intl_aggregator",
-    #     "openai_compatible": True,
-    #     "key_env": "TOKENLAB_API_KEY",
-    #     "base_env": "TOKENLAB_BASE_URL",
-    #     "default_base": "https://api.tokenlab.sh/v1",
-    #     "covers": ["intl_named", "or_failover"],
-    # },
-    # "tbd_agg3": {
-    #     "title": "#3 国际聚合（待调研 · 比价压利润用）",
-    #     "role": "intl_aggregator",
-    #     "openai_compatible": True,
-    #     "key_env": "TBD_AGG3_API_KEY",
-    #     "base_env": "TBD_AGG3_BASE_URL",
-    #     "covers": ["intl_named", "price_arbitrage"],
-    # },
+    "tokenlab": {
+        "title": "TokenLab (#2 国际聚合 · Claude/Gemini 官方 30-70% off)",
+        "role": "intl_aggregator",
+        "openai_compatible": True,
+        "key_env": "TOKENLAB_API_KEY",
+        "base_env": "TOKENLAB_BASE_URL",
+        "default_base": "https://api.tokenlab.sh/v1",
+        "enabled_env": "TOKEN_UPSTREAM_TOKENLAB_ENABLED",
+        "covers": ["intl_named", "china_named", "or_failover"],
+        "note": "官方裸 ID（gpt-5 / claude-*-5 / gemini-*）；VIP 点名映射见 model_router._TOKENLAB_MODEL_MAP。",
+    },
+    "requesty": {
+        "title": "Requesty (#3 国际聚合 · OR 同款 ID · 免费档 200 次/天)",
+        "role": "intl_aggregator",
+        "openai_compatible": True,
+        "key_env": "REQUESTY_API_KEY",
+        "base_env": "REQUESTY_BASE_URL",
+        "default_base": "https://router.requesty.ai/v1",
+        "enabled_env": "TOKEN_UPSTREAM_REQUESTY_ENABLED",
+        "covers": ["intl_named", "or_failover"],
+        "note": "OR 兼容模型 ID 直接复用 openrouter_id；免费层 200 次/天可作超模体验池。",
+    },
 }
 
 
@@ -148,6 +151,8 @@ def _env(name: str, default: str = "") -> str:
         "OPENAI_API_KEY",
         "ANTHROPIC_API_KEY",
         "GOOGLE_AI_API_KEY",
+        "REQUESTY_API_KEY",
+        "TOKENLAB_API_KEY",
     ):
         return get_key(name, default)
     import os

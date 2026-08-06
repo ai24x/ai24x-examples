@@ -721,8 +721,8 @@
     }
     if (planId === "token_vip_month_50w") {
       return zh
-        ? "Scale 已到账：12 个月名模资格 + 2 亿预充额度。" + suffix
-        : "Scale ready: 12-month named access + 200M prepaid credits." + suffix;
+        ? "Scale 已到账：12 个月名模资格 + 2.5 亿预充额度。" + suffix
+        : "Scale ready: 12-month named access + 250M prepaid credits." + suffix;
     }
     return zh
       ? "支付已确认，已到账。" + suffix

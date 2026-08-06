@@ -148,6 +148,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 0.129,
         "cost_out": 0.534,
         "billing_mult": 2,
+        "in_mult": 1,   # ceil(0.129/0.35*1.8)=1
+        "out_mult": 2,  # ceil(0.534/0.35*1.2)=2
         "quality": "低价预算",
         "quality_en": "Ultra-budget",
         "access": "ready",
@@ -170,6 +172,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 0.14,
         "cost_out": 0.28,
         "billing_mult": 1,
+        "in_mult": 1,   # ceil(0.14/0.35*1.8)=1
+        "out_mult": 1,  # ceil(0.28/0.35*1.2)=1
         "quality": "高性价比",
         "quality_en": "Value",
         "access": "ready",
@@ -189,6 +193,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 0.435,
         "cost_out": 0.87,
         "billing_mult": 3,
+        "in_mult": 3,   # ceil(0.435/0.35*1.8)=3
+        "out_mult": 3,  # ceil(0.87/0.35*1.2)=3
         "quality": "更强推理",
         "quality_en": "Stronger reasoning",
         "access": "ready",
@@ -209,6 +215,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 3.0,
         "cost_out": 15.0,
         "billing_mult": 39,  # 2026-08-05: ceil(9.0/0.35*1.5)=39 (flash anchor 0.35)
+        "in_mult": 16,   # ceil(3.0/0.35*1.8)=16
+        "out_mult": 52,  # ceil(15.0/0.35*1.2)=52
         "quality": "旗舰 · 多项国际评测冠军",
         "quality_en": "Flagship · top benchmarks",
         "access": "ready",
@@ -228,6 +236,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 0.71,
         "cost_out": 3.50,
         "billing_mult": 10,
+        "in_mult": 4,   # ceil(0.71/0.35*1.8)=4
+        "out_mult": 12,  # ceil(3.5/0.35*1.2)=12
         "quality": "编程",
         "quality_en": "Coding",
         "access": "ready",
@@ -248,6 +258,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 0.435,
         "cost_out": 0.87,
         "billing_mult": 3,
+        "in_mult": 3,   # ceil(0.435/0.35*1.8)=3
+        "out_mult": 3,  # ceil(0.87/0.35*1.2)=3
         "quality": "均衡",
         "quality_en": "Balanced",
         "access": "ready",
@@ -267,6 +279,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 0.3,
         "cost_out": 1.2,
         "billing_mult": 4,  # 2026-08-05: ceil(0.75/0.35*1.5)=4
+        "in_mult": 2,   # ceil(0.3/0.35*1.8)=2
+        "out_mult": 5,  # ceil(1.2/0.35*1.2)=5
         "quality": "智能体 / 编程",
         "quality_en": "Agents / coding",
         "access": "ready",
@@ -287,6 +301,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 1.475,
         "cost_out": 4.425,
         "billing_mult": 13,  # 2026-08-05: ceil(2.95/0.35*1.5)=14
+        "in_mult": 8,   # ceil(1.475/0.35*1.8)=8
+        "out_mult": 16,  # ceil(4.425/0.35*1.2)=16
         "quality": "通用旗舰",
         "quality_en": "General flagship",
         "access": "ready",
@@ -308,6 +324,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 0.26,
         "cost_out": 2.08,
         "billing_mult": 6,
+        "in_mult": 2,   # ceil(0.26/0.35*1.8)=2
+        "out_mult": 8,  # ceil(2.08/0.35*1.2)=8
         "quality": "MoE",
         "quality_en": "MoE flagship",
         "access": "ready",
@@ -327,6 +345,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 1.12,
         "cost_out": 3.52,
         "billing_mult": 10,  # 2026-08-05: ceil(2.32/0.35*1.5)=11
+        "in_mult": 6,   # ceil(1.12/0.35*1.8)=6
+        "out_mult": 13,  # ceil(3.52/0.35*1.2)=13
         "quality": "通用旗舰",
         "quality_en": "General flagship",
         "access": "ready",
@@ -346,6 +366,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 1.25,
         "cost_out": 10.0,
         "billing_mult": 25,  # 2026-08-05: ceil(5.625/0.35*1.5)=25
+        "in_mult": 7,   # ceil(1.25/0.35*1.8)=7
+        "out_mult": 35,  # ceil(10.0/0.35*1.2)=35
         "quality": "旗舰 · 多项国际评测冠军",
         "quality_en": "Flagship · top benchmarks",
         "access": "ready",
@@ -364,6 +386,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 0.25,
         "cost_out": 2.0,
         "billing_mult": 5,
+        "in_mult": 2,   # ceil(0.25/0.35*1.8)=2
+        "out_mult": 7,  # ceil(2.0/0.35*1.2)=7
         "quality": "轻量",
         "quality_en": "Lightweight",
         "access": "ready",
@@ -382,6 +406,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 2.00,    # 2026-08-03: 对齐 Terra 新定价 (was 2.50)
         "cost_out": 12.00,  # 2026-08-03: 对齐 Terra 新定价 (was 15.00)
         "billing_mult": 30,  # 2026-08-05: ceil(7.0/0.35*1.5)=32
+        "in_mult": 11,   # ceil(2.0/0.35*1.8)=11
+        "out_mult": 42,  # ceil(12.0/0.35*1.2)=42
         "quality": "最强",
         "quality_en": "Top tier",
         "access": "ready",
@@ -400,6 +426,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 2.5,
         "cost_out": 10.0,
         "billing_mult": 27,  # 2026-08-05: ceil(6.25/0.35*1.5)=28
+        "in_mult": 13,   # ceil(2.5/0.35*1.8)=13
+        "out_mult": 35,  # ceil(10.0/0.35*1.2)=35
         "quality": "经典",
         "quality_en": "Classic",
         "access": "ready",
@@ -418,6 +446,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 0.15,
         "cost_out": 0.6,
         "billing_mult": 2,
+        "in_mult": 1,   # ceil(0.15/0.35*1.8)=1
+        "out_mult": 3,  # ceil(0.6/0.35*1.2)=3
         "quality": "经典轻量",
         "quality_en": "Classic lightweight",
         "access": "ready",
@@ -436,6 +466,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 2.0,
         "cost_out": 10.0,
         "billing_mult": 26,  # 2026-08-05: ceil(6.0/0.35*1.5)=27
+        "in_mult": 11,   # ceil(2.0/0.35*1.8)=11
+        "out_mult": 35,  # ceil(10.0/0.35*1.2)=35
         "quality": "写作 / 推理",
         "quality_en": "Writing / reasoning",
         "access": "ready",
@@ -454,6 +486,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 1.0,
         "cost_out": 5.0,
         "billing_mult": 13,  # 2026-08-05: ceil(3.0/0.35*1.5)=14
+        "in_mult": 6,   # ceil(1.0/0.35*1.8)=6
+        "out_mult": 18,  # ceil(5.0/0.35*1.2)=18
         "quality": "轻量快速",
         "quality_en": "Fast and light",
         "access": "ready",
@@ -472,6 +506,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 5.0,
         "cost_out": 25.0,
         "billing_mult": 65,  # 2026-08-05: ceil(15.0/0.35*1.5)=67
+        "in_mult": 26,   # ceil(5.0/0.35*1.8)=26
+        "out_mult": 86,  # ceil(25.0/0.35*1.2)=86
         "quality": "顶配",
         "quality_en": "Premium",
         "access": "ready",
@@ -490,6 +526,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 2.0,
         "cost_out": 12.0,
         "billing_mult": 30,  # 2026-08-05: ceil(7.0/0.35*1.5)=32
+        "in_mult": 11,   # ceil(2.0/0.35*1.8)=11
+        "out_mult": 42,  # ceil(12.0/0.35*1.2)=42
         "quality": "长上下文",
         "quality_en": "Long context",
         "access": "ready",
@@ -508,6 +546,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 1.5,
         "cost_out": 7.5,
         "billing_mult": 20,  # 2026-08-05: ceil(4.5/0.35*1.5)=20
+        "in_mult": 8,   # ceil(1.5/0.35*1.8)=8
+        "out_mult": 26,  # ceil(7.5/0.35*1.2)=26
         "quality": "轻量长上下文",
         "quality_en": "Light long-context",
         "access": "ready",
@@ -527,6 +567,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 1.00,
         "cost_out": 6.00,
         "billing_mult": 15,
+        "in_mult": 6,   # ceil(1.0/0.35*1.8)=6
+        "out_mult": 21,  # ceil(6.0/0.35*1.2)=21
         "quality": "日常旗舰·平衡",
         "quality_en": "Balanced flagship",
         "access": "ready",
@@ -545,6 +587,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 0.10,
         "cost_out": 0.60,
         "billing_mult": 2,
+        "in_mult": 1,   # ceil(0.1/0.35*1.8)=1
+        "out_mult": 3,  # ceil(0.6/0.35*1.2)=3
         "quality": "高性价比·智能体",
         "quality_en": "Value agentic",
         "access": "ready",
@@ -676,6 +720,19 @@ def merge_catalog_row(c: dict[str, Any]) -> dict[str, Any]:
             row["pick_enabled"] = bool(ov["enabled"])
         else:
             row["pick_enabled"] = True
+        if "in_mult" in ov:
+            try:
+                row["in_mult"] = max(1, min(200, int(ov["in_mult"])))
+            except (TypeError, ValueError):
+                pass
+        if "out_mult" in ov:
+            try:
+                row["out_mult"] = max(1, min(200, int(ov["out_mult"])))
+            except (TypeError, ValueError):
+                pass
+        # 双价兜底：缺 in/out 倍率时回落 billing_mult（单费率兼容）
+        row.setdefault("in_mult", row.get("billing_mult", 1))
+        row.setdefault("out_mult", row.get("billing_mult", 1))
         row["rate_source"] = "admin" if ov else "catalog"
     else:
         row["pick_enabled"] = True
@@ -844,8 +901,14 @@ def list_vip_picks_for_user(*, is_vip: bool) -> list[dict[str, Any]]:
             c.get("id")
         ) or "gemini" in str(c.get("id") or "")
         mult = int(c.get("billing_mult") or 1)
+        in_mult = int(c.get("in_mult") or c.get("billing_mult") or 1)
+        out_mult = int(c.get("out_mult") or c.get("billing_mult") or 1)
         est_usd = round(ref_usd_per_m * mult, 2)
+        est_in_usd = round(ref_usd_per_m * in_mult, 2)
+        est_out_usd = round(ref_usd_per_m * out_mult, 2)
         est_cny = int(round(est_usd * fx))
+        est_in_cny = int(round(est_in_usd * fx))
+        est_out_cny = int(round(est_out_usd * fx))
         out.append(
             {
                 "id": c["id"],
@@ -853,6 +916,12 @@ def list_vip_picks_for_user(*, is_vip: bool) -> list[dict[str, Any]]:
                 "title_en": c.get("title_en") or c.get("title") or c["id"],
                 "model": c["id"],
                 "billing_mult": mult,
+                "in_mult": in_mult,
+                "out_mult": out_mult,
+                "est_in_usd_per_m": est_in_usd,
+                "est_out_usd_per_m": est_out_usd,
+                "est_in_cny_per_m": est_in_cny,
+                "est_out_cny_per_m": est_out_cny,
                 # 短标签给用户看；勿塞运维备注
                 "blurb": c.get("quality") or "",
                 "blurb_en": c.get("quality_en") or c.get("quality") or "",

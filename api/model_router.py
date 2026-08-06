@@ -1173,6 +1173,81 @@ def _silicon_vip_upstream(model_id: str) -> Optional[dict[str, str]]:
         return None
     return {"base": base, "key": key, "model": mid, "provider": "siliconflow"}
 
+# —— 国际聚合备用（#2 TokenLab / #3 Requesty）：仅 OR 失败后进入，优先级在厂直连之前 ——
+_TOKENLAB_MODEL_MAP: dict[str, str] = {
+    "vip-hy3": "hy3",
+    "vip-ds-flash": "deepseek-v4-flash",
+    "vip-ds-pro": "deepseek-v4-pro",
+    "vip-kimi": "kimi-k3",
+    "vip-kimi-code": "kimi-k2.7-code",
+    "vip-mimo": "mimo-v2.5-pro",
+    "vip-minimax": "minimax-m3",
+    "vip-qwen-max": "qwen3.7-max",
+    "vip-glm": "glm-5.2",
+    "vip-gpt5": "gpt-5",
+    "vip-gpt5-mini": "gpt-5-mini",
+    "vip-gpt54": "gpt-5.4",
+    "vip-gpt4o": "gpt-4o",
+    "vip-gpt4o-mini": "gpt-4o-mini",
+    "vip-claude-sonnet": "claude-sonnet-5",
+    "vip-claude-haiku": "claude-haiku-4-5",
+    "vip-claude-opus": "claude-opus-5",
+    "vip-gemini-pro": "gemini-3.1-pro-preview",
+    "vip-gemini-flash": "gemini-3.6-flash",
+    "vip-gpt56-terra": "gpt-5.6-terra",
+    "vip-gpt56-luna": "gpt-5.6-luna",
+}
+
+_REQUESTY_MODELS: frozenset[str] = frozenset({
+    "deepseek/deepseek-v4-flash",
+    "deepseek/deepseek-v4-pro",
+    "xiaomi/mimo-v2.5-pro",
+    "openai/gpt-5",
+    "openai/gpt-5-mini",
+    "openai/gpt-5.4",
+    "openai/gpt-4o",
+    "openai/gpt-4o-mini",
+    "anthropic/claude-sonnet-5",
+    "anthropic/claude-opus-5",
+    "google/gemini-3.1-pro-preview",
+    "openai/gpt-5.6-terra",
+    "openai/gpt-5.6-luna",
+})
+
+
+def _aggregator_upstream(provider_id: str, public_id: str, or_id: str) -> Optional[dict[str, str]]:
+    """#2 TokenLab / #3 Requesty 聚合解析；模型不存在则返回 None（由调用链跳过）。"""
+    try:
+        from upstream_providers import resolve_provider
+
+        up = resolve_provider(provider_id)
+        if not up or not up.get("key") or not up.get("base"):
+            return None
+        if provider_id == "tokenlab":
+            model = _TOKENLAB_MODEL_MAP.get(public_id)
+        else:
+            model = or_id if or_id in _REQUESTY_MODELS else None
+        if not model:
+            return None
+        return {
+            "base": _normalize_openai_base(str(up["base"])),
+            "key": str(up["key"]),
+            "model": model,
+            "provider": provider_id,
+        }
+    except Exception:
+        return None
+
+
+def _aggregator_candidates(public_id: str, or_id: str) -> list[dict[str, str]]:
+    out: list[dict[str, str]] = []
+    for pid in ("tokenlab", "requesty"):
+        up = _aggregator_upstream(pid, public_id, or_id)
+        if up:
+            out.append(up)
+    return out
+
+
 
 def _run_vip_pick_chat(
     *,
@@ -1188,9 +1263,11 @@ def _run_vip_pick_chat(
 
     中国模（有 siliconflow_id）：硅基 → OR → 官方 DS/厂直连 → 降级
     DeepSeek 点名：官方 DS → OR → 硅基同族 → 降级
-    国际旗舰：OR → 厂直连 → DS Flash 降级（禁止硅基顶替）
+    国际旗舰：OR → TokenLab/Requesty → 厂直连 → DS Flash 降级（禁止硅基顶替）
     """
     billing_mult = max(1, int(pick.get("billing_mult") or 1))
+    in_mult = max(1, int(pick.get("in_mult") or pick.get("billing_mult") or 1))
+    out_mult = max(1, int(pick.get("out_mult") or pick.get("billing_mult") or 1))
     public_id = str(pick.get("id") or "vip_pick")
     or_id = (pick.get("openrouter_id") or "").strip()
     direct_id = (pick.get("direct_id") or "").strip()
@@ -1206,13 +1283,18 @@ def _run_vip_pick_chat(
 
     def _ok_result(out: dict[str, Any], *, model: str, provider: str) -> RouteResult:
         raw = max(1, int(out.get("tokens") or 1))
+        p_in = max(1, int(out.get("prompt_tokens") or 0))
+        p_out = max(1, int(out.get("completion_tokens") or 0))
+        if p_in <= 1 and p_out <= 1:
+            half = max(1, raw // 2)
+            p_in, p_out = half, max(1, raw - half)
         return _route_ok_from_out(
             out,
             model=model,
             layer="VIP",
             provider=provider,
             attempts=attempts,
-            token_count=max(1, raw * billing_mult),
+            token_count=max(1, p_in * in_mult + p_out * out_mult),
             billing_mult=billing_mult,
             public_model=public_id,
         )
@@ -1318,16 +1400,17 @@ def _run_vip_pick_chat(
             if got:
                 return got
 
-    # D) 国际模第二聚合 — TokenLab（待调研接入；比 OR 低 35-50% 成本）
-    # TODO: 接入后在此插入 tokenlab 调用，优先级在 OR 之后、厂直连之前
-    # if is_intl_flagship and or_id:
-    #     tl = _tokenlab_upstream(or_id)
-    #     if tl:
-    #         got = _try_call(..., provider="tokenlab", note="tokenlab_international")
-    #         if got: return got
-
-    # D2) 国际模第三聚合 — 待调研（备份/压价用）
-    # TODO: 找到第 3 家国际聚合后在此插入
+    # D) 国际模第二/三聚合 — TokenLab / Requesty（OR 失败后、厂直连之前；TokenLab 降本 30-70%）
+    for agg in _aggregator_candidates(public_id, or_id):
+        got = _try_call(
+            base=str(agg["base"]),
+            key=str(agg["key"]),
+            model=str(agg["model"]),
+            provider=str(agg["provider"]),
+            note=f"{agg['provider']}_failover",
+        )
+        if got:
+            return got
 
     # E) 国际旗舰厂直连 / 其它 VIP 厂直连
     try:
@@ -1504,7 +1587,7 @@ def _run_vip_pick_chat(
             model=public_id,
             layer="VIP",
             provider="stub",
-            token_count=max(1, int(stub["tokens"]) * billing_mult),
+            token_count=max(1, int(stub["tokens"]) * out_mult),
             attempts=attempts + [{"layer": "VIP", "ok": True, "provider": "stub"}],
             billing_mult=billing_mult,
             public_model=public_id,
@@ -1647,12 +1730,25 @@ def _call_openai_compatible(
         )
     usage = data.get("usage") or {}
     total = int(usage.get("total_tokens") or 0)
+    prompt_t = int(usage.get("prompt_tokens") or 0)
+    completion_t = int(usage.get("completion_tokens") or 0)
     if total <= 0:
         # tool_calls 无正文时也按最小 1 token 计（避免 0）
         total = max(1, int(len(text.split()) * 1.3)) if text else 1
+    if prompt_t <= 0 and completion_t <= 0:
+        # 上游未返回 in/out 拆分：按 prompt 长度粗估输入，其余算输出
+        prompt_est = max(1, int(len(prompt) / 4)) if prompt else max(1, total // 2)
+        prompt_t = min(prompt_est, max(1, total - 1))
+        completion_t = max(1, total - prompt_t)
+    elif prompt_t <= 0:
+        prompt_t = max(0, total - completion_t)
+    elif completion_t <= 0:
+        completion_t = max(1, total - prompt_t)
     return {
         "text": text,
         "tokens": total,
+        "prompt_tokens": prompt_t,
+        "completion_tokens": completion_t,
         "raw_model": model,
         "tool_calls": tool_calls,
         "finish_reason": finish_reason,
@@ -1707,6 +1803,8 @@ def _stream_openai_compatible(
     timeout = httpx.Timeout(timeout_s, connect=min(30.0, timeout_s))
     full_parts: list[str] = []
     usage_tokens = 0
+    usage_prompt_tokens = 0
+    usage_completion_tokens = 0
     finish_reason = "stop"
     tool_calls_streamed = False
     # 拼装流式 tool_calls（按 index）
@@ -1736,6 +1834,13 @@ def _stream_openai_compatible(
                             usage_tokens = int(usage.get("total_tokens") or 0)
                         except (TypeError, ValueError):
                             pass
+                    try:
+                        if usage.get("prompt_tokens") is not None:
+                            usage_prompt_tokens = int(usage.get("prompt_tokens") or 0)
+                        if usage.get("completion_tokens") is not None:
+                            usage_completion_tokens = int(usage.get("completion_tokens") or 0)
+                    except (TypeError, ValueError):
+                        pass
                     choices = obj.get("choices") or []
                     if not choices:
                         continue
@@ -1806,10 +1911,20 @@ def _stream_openai_compatible(
             finish_reason = "tool_calls"
     if usage_tokens <= 0:
         usage_tokens = max(1, int(len(full.split()) * 1.3)) if full else 1
+    if usage_prompt_tokens <= 0 and usage_completion_tokens <= 0:
+        prompt_est = max(1, int(len(prompt) / 4)) if prompt else max(1, usage_tokens // 2)
+        usage_prompt_tokens = min(prompt_est, max(1, usage_tokens - 1))
+        usage_completion_tokens = max(1, usage_tokens - usage_prompt_tokens)
+    elif usage_prompt_tokens <= 0:
+        usage_prompt_tokens = max(0, usage_tokens - usage_completion_tokens)
+    elif usage_completion_tokens <= 0:
+        usage_completion_tokens = max(1, usage_tokens - usage_prompt_tokens)
     yield {
         "type": "done",
         "text": full,
         "tokens": usage_tokens,
+        "prompt_tokens": usage_prompt_tokens,
+        "completion_tokens": usage_completion_tokens,
         "raw_model": model,
         "provider": provider,
         "tool_calls": assembled_tcs,
@@ -1843,10 +1958,17 @@ def _try_upstream_stream(
     messages: Optional[list[dict[str, Any]]],
     tools: Optional[list[dict[str, Any]]] = None,
     tool_choice: Any = None,
+    billing_in: Optional[int] = None,
+    billing_out: Optional[int] = None,
 ) -> Iterator[dict[str, Any]]:
-    """对单一上游做真流式；成功结束 yield done；首包前失败 yield 空并 return。"""
+    """对单一上游做真流式；成功结束 yield done；首包前失败 yield 空并 return。
+
+    双价计费：billing_in/billing_out 缺省回落 billing_mult（品牌层单费率不变）。
+    """
     timeout_s = _stream_timeout_s()
     started = False
+    in_mult = max(1, int(billing_in if billing_in is not None else billing_mult or 1))
+    out_mult = max(1, int(billing_out if billing_out is not None else billing_mult or 1))
     for ev in _stream_openai_compatible(
         base=_normalize_openai_base(base),
         key=key,
@@ -1865,10 +1987,13 @@ def _try_upstream_stream(
             if started:
                 # 已写出部分内容：按已有文本收尾，避免客户端悬空
                 text = str(ev.get("partial") or "")
+                raw = max(1, int(len(text.split()) * 1.3)) if text else 1
+                half = max(1, raw // 2)
+                billed = max(1, half * in_mult + max(1, raw - half) * out_mult)
                 yield {
                     "type": "done",
                     "text": text,
-                    "tokens": max(1, int(len(text.split()) * 1.3)) if text else 1,
+                    "tokens": billed,
                     "raw_model": model,
                     "provider": provider,
                     "layer": layer,
@@ -1891,15 +2016,24 @@ def _try_upstream_stream(
             yield ev
         elif et == "done":
             raw = max(1, int(ev.get("tokens") or 1))
+            p_in = max(1, int(ev.get("prompt_tokens") or 0))
+            p_out = max(1, int(ev.get("completion_tokens") or 0))
+            if p_in <= 1 and p_out <= 1:
+                # 上游未给 in/out 拆分：按半估
+                half = max(1, raw // 2)
+                p_in, p_out = half, max(1, raw - half)
+            billed = max(1, p_in * in_mult + p_out * out_mult)
             yield {
                 "type": "done",
                 "text": str(ev.get("text") or ""),
-                "tokens": max(1, raw * max(1, int(billing_mult or 1))),
+                "tokens": billed,
                 "raw_model": str(ev.get("raw_model") or model),
                 "provider": provider,
                 "layer": layer,
                 "billing_mult": billing_mult,
                 "public_model": public_model,
+                "billing_in": in_mult,
+                "billing_out": out_mult,
                 "tool_calls": ev.get("tool_calls"),
                 "finish_reason": ev.get("finish_reason") or "stop",
                 "tool_calls_streamed": bool(ev.get("tool_calls_streamed")),
@@ -2054,6 +2188,8 @@ def _run_vip_pick_chat_stream(
     tool_choice: Any = None,
 ) -> Iterator[dict[str, Any]]:
     billing_mult = max(1, int(pick.get("billing_mult") or 1))
+    in_mult = max(1, int(pick.get("in_mult") or pick.get("billing_mult") or 1))
+    out_mult = max(1, int(pick.get("out_mult") or pick.get("billing_mult") or 1))
     public_id = str(pick.get("id") or "vip_pick")
     or_id = (pick.get("openrouter_id") or "").strip()
     direct_id = (pick.get("direct_id") or "").strip()
@@ -2086,7 +2222,9 @@ def _run_vip_pick_chat_stream(
         sf = _silicon_vip_upstream(sf_id)
         if sf:
             targets.append(("siliconflow", sf["base"], sf["key"], sf["model"]))
-    # TODO: TokenLab(#2) + 待调研(#3) 国际聚合接入后插入在 OR 之后、厂直连之前
+    # D) TokenLab / Requesty 国际聚合备用（OR 之后、厂直连之前）
+    for agg in _aggregator_candidates(public_id, or_id):
+        targets.append((str(agg["provider"]), str(agg["base"]), str(agg["key"]), str(agg["model"])))
 
     last_err = ""
     for provider, base, key, model in targets:
@@ -2105,6 +2243,8 @@ def _run_vip_pick_chat_stream(
             messages=messages,
             tools=tools,
             tool_choice=tool_choice,
+            billing_in=in_mult,
+            billing_out=out_mult,
         ):
             if ev.get("type") == "done":
                 got_done = True

@@ -1,0 +1,331 @@
+{
+  "time": "20260806-1218",
+  "per": 2,
+  "judge_model": "deepseek-v4-pro",
+  "rows": [
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_knowledge",
+      "ok": false,
+      "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/d",
+      "ms": 7593
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_knowledge",
+      "ok": false,
+      "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/d",
+      "ms": 6367
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "cn_knowledge",
+      "ok": false,
+      "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/d",
+      "ms": 5651
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "cn_knowledge",
+      "ok": false,
+      "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/d",
+      "ms": 7232
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_logic",
+      "ok": false,
+      "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/d",
+      "ms": 7026
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_logic",
+      "ok": false,
+      "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/d",
+      "ms": 7942
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_math",
+      "ok": false,
+      "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org",
+      "ms": 6416
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_math",
+      "ok": false,
+      "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org",
+      "ms": 7124
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "cn_math",
+      "ok": false,
+      "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org",
+      "ms": 7471
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "cn_math",
+      "ok": false,
+      "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org",
+      "ms": 8682
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_code",
+      "ok": false,
+      "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org",
+      "ms": 8003
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_code",
+      "ok": false,
+      "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org",
+      "ms": 6248
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_reading",
+      "ok": false,
+      "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/d",
+      "ms": 7146
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_reading",
+      "ok": false,
+      "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org",
+      "ms": 6690
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "cn_reading",
+      "ok": false,
+      "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org",
+      "ms": 7048
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "cn_reading",
+      "ok": false,
+      "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org",
+      "ms": 6479
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_instruct",
+      "ok": false,
+      "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/d",
+      "ms": 6463
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_instruct",
+      "ok": false,
+      "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org",
+      "ms": 5553
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "cn_instruct",
+      "ok": false,
+      "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org",
+      "ms": 6110
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "cn_instruct",
+      "ok": false,
+      "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/d",
+      "ms": 7632
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_translate",
+      "ok": false,
+      "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/d",
+      "ms": 5472
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_translate",
+      "ok": false,
+      "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org",
+      "ms": 6127
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "cn_translate",
+      "ok": false,
+      "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org",
+      "ms": 6637
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "cn_translate",
+      "ok": false,
+      "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org",
+      "ms": 5739
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "ok": true,
+      "auto_acc": null,
+      "judge_acc": null,
+      "med_ms": 0,
+      "cost_usd": 0.0,
+      "n_auto": 0,
+      "n_judge": 0,
+      "detail": [
+        {
+          "cat": "en_knowledge",
+          "q": "What is the capital of Australia?\nA. Syd",
+          "ok": false,
+          "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https:/"
+        },
+        {
+          "cat": "en_knowledge",
+          "q": "Who wrote \"Romeo and Juliet\"?\nA. Charles",
+          "ok": false,
+          "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https:/"
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "珠穆朗玛峰位于？\nA. 中国和尼泊尔边境 B. 中国和印度边境 C. 印度和尼泊",
+          "ok": false,
+          "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https:/"
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "光年是什么的单位？\nA. 时间 B. 速度 C. 距离 D. 亮度",
+          "ok": false,
+          "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https:/"
+        },
+        {
+          "cat": "en_logic",
+          "q": "If all Zorks are blue, and some blue thi",
+          "ok": false,
+          "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https:/"
+        },
+        {
+          "cat": "en_logic",
+          "q": "All apples are fruits. Some fruits are r",
+          "ok": false,
+          "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https:/"
+        },
+        {
+          "cat": "en_math",
+          "q": "The sum of three consecutive integers is",
+          "ok": false,
+          "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check:"
+        },
+        {
+          "cat": "en_math",
+          "q": "Simplify: (2^3 × 2^4) / 2^5",
+          "ok": false,
+          "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check:"
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个数的 1/4 是 25，这个数是多少？",
+          "ok": false,
+          "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check:"
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个三角形三个角分别是 2x、3x、4x，x 是多少？",
+          "ok": false,
+          "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check:"
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function largest(nums) th",
+          "ok": false,
+          "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check:"
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function word_frequency(t",
+          "ok": false,
+          "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check:"
+        },
+        {
+          "cat": "en_reading",
+          "q": "Passage: 'HTTP is a request-response pro",
+          "ok": false,
+          "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https:/"
+        },
+        {
+          "cat": "en_reading",
+          "q": "Extract all dates from this text and lis",
+          "ok": false,
+          "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check:"
+        },
+        {
+          "cat": "cn_reading",
+          "q": "把下面中文翻译成英文：'这个系统支持高并发请求，平均响应时间低于 200 毫秒。",
+          "ok": false,
+          "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check:"
+        },
+        {
+          "cat": "cn_reading",
+          "q": "用一句话概括：'人工智能正在改变医疗行业：辅助诊断系统能快速分析影像，降低漏诊率",
+          "ok": false,
+          "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check:"
+        },
+        {
+          "cat": "en_instruct",
+          "q": "List exactly three reasons why reading i",
+          "ok": false,
+          "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https:/"
+        },
+        {
+          "cat": "en_instruct",
+          "q": "Translate \"Good morning\" into French and",
+          "ok": false,
+          "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check:"
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "列出三条喝水的健康益处，用 1. 2. 3. 编号。",
+          "ok": false,
+          "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check:"
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "用一段话介绍你自己，不超过 50 字。",
+          "ok": false,
+          "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https:/"
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"Please send the",
+          "ok": false,
+          "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https:/"
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"This update fix",
+          "ok": false,
+          "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check:"
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「这个系统支持高并发请求。」",
+          "ok": false,
+          "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check:"
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「我们的 API 支持流式响应和",
+          "ok": false,
+          "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check:"
+        }
+      ]
+    }
+  ]
+}

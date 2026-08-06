@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey, Enum, Float
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey, Enum, Float, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 import enum
@@ -75,6 +75,23 @@ class RateLimit(Base):
     window_start = Column(DateTime(timezone=True), nullable=False)
     window_end = Column(DateTime(timezone=True), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class VipNamedDailyUsage(Base):
+    """P2 保护：单用户单模型每日点名模用量计数（超限拒绝点名，防国际旗舰倒挂被刷）。"""
+
+    __tablename__ = "vip_named_daily_usage"
+    __table_args__ = (
+        UniqueConstraint("auth_user_id", "model_id", "usage_date", name="uq_vip_named_daily_usage"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    auth_user_id = Column(Integer, index=True, nullable=False)
+    model_id = Column(String(100), index=True, nullable=False)
+    usage_date = Column(String(10), index=True, nullable=False)  # UTC YYYY-MM-DD
+    call_count = Column(Integer, default=0, nullable=False)
+    credits_used = Column(Integer, default=0, nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
 class AuthUser(Base):
