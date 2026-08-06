@@ -1333,13 +1333,22 @@ def admin_user_basic_update(user_id: int, body: dict, _: bool = Depends(require_
 def admin_user_password_set(user_id: int, body: dict, _: bool = Depends(require_admin)) -> dict:
     """
     Super admin: force set user password (no OTP).
-    This calls the identity service internal admin endpoint and requires sms_internal_key configured.
+    Local (auth_local_enabled): write users.password_hash directly; otherwise calls the
+    identity service internal admin endpoint and requires sms_internal_key configured.
     Body:
-    - new_password: string (>=6)
+    - new_password: string (>=8)
     """
     npw = str(body.get("new_password") or "")
-    if len(npw.strip()) < 6:
-        raise HTTPException(status_code=400, detail="新密码至少 6 位")
+    if len(npw.strip()) < 8:
+        raise HTTPException(status_code=400, detail="新密码至少 8 位")
+    # P1: 数据库已独立——本地身份直接写 users.password_hash，不再依赖主站 identity
+    if auth_local_enabled():
+        try:
+            db.admin_get_user(int(user_id))
+        except ValueError:
+            raise HTTPException(status_code=404, detail="用户不存在")
+        db.set_user_password_hash(int(user_id), auth_local.hash_password(npw))
+        return {"ok": True}
     cfg = resolve_identity()
     if not (cfg.sms_internal_key or "").strip():
         raise HTTPException(status_code=503, detail="改密服务暂未就绪，请稍后再试")
@@ -2261,8 +2270,6 @@ def password_reset(body: PasswordResetIn, request: Request) -> LoginOut:
 @app.post("/api/auth/phone/bind", response_model=LoginOut)
 def bind_phone(request: Request, body: dict) -> LoginOut:
     """Bind phone to current user (requires bearer token + sms code)."""
-    if not identity_configured():
-        raise HTTPException(status_code=503, detail="服务暂未就绪，请稍后再试")
     auth = (request.headers.get("Authorization") or "").strip()
     if not auth:
         raise HTTPException(status_code=401, detail="需要登录")
@@ -2270,6 +2277,35 @@ def bind_phone(request: Request, body: dict) -> LoginOut:
     code = str(body.get("sms_code") or "").strip()
     if not phone or not code:
         raise HTTPException(status_code=400, detail="请填写手机号与短信验证码")
+    # P1: 数据库已独立——本地验 OTP 后直接写 users.phone
+    if auth_local_enabled():
+        from .sms_local import normalize_mobile as _nm
+        mob = _nm(phone)
+        if len(mob) != 11 or not mob.isdigit():
+            raise HTTPException(status_code=400, detail="请填写 11 位手机号")
+        if not verify_local_otp(mob, "bind", code):
+            raise HTTPException(status_code=400, detail="验证码错误或已过期，请重新获取验证码")
+        try:
+            uid = int((parse_token(auth[7:] if auth[:7].lower() == "bearer " else auth)).get("sub") or 0)
+        except (TypeError, ValueError):
+            uid = 0
+        if uid <= 0:
+            raise HTTPException(status_code=401, detail="需要登录")
+        exist = db.get_user_auth_by_phone(mob)
+        if exist and int(exist.id) != uid:
+            raise HTTPException(status_code=400, detail="该手机号已被其他账号绑定")
+        try:
+            db.set_user_phone(int(uid), mob)
+        except ValueError as e:
+            if str(e) == "user not found":
+                raise HTTPException(status_code=404, detail="用户不存在")
+            raise HTTPException(status_code=400, detail="该手机号已被其他账号绑定")
+        u = db.get_user_auth_by_id(int(uid))
+        if not u:
+            raise HTTPException(status_code=404, detail="用户不存在")
+        return _session_from_local_user(u)
+    if not identity_configured():
+        raise HTTPException(status_code=503, detail="服务暂未就绪，请稍后再试")
     data = _identity_post(
         "/v1/auth/phone/bind",
         {"phone": phone, "sms_code": code},
@@ -2281,8 +2317,6 @@ def bind_phone(request: Request, body: dict) -> LoginOut:
 @app.post("/api/auth/email/bind", response_model=LoginOut)
 def bind_email(request: Request, body: dict) -> LoginOut:
     """Bind email to current user (requires bearer token + email code)."""
-    if not identity_configured():
-        raise HTTPException(status_code=503, detail="服务暂未就绪，请稍后再试")
     auth = (request.headers.get("Authorization") or "").strip()
     if not auth:
         raise HTTPException(status_code=401, detail="需要登录")
@@ -2290,6 +2324,34 @@ def bind_email(request: Request, body: dict) -> LoginOut:
     code = str(body.get("email_code") or "").strip()
     if not email or not code:
         raise HTTPException(status_code=400, detail="请填写邮箱与邮箱验证码")
+    # P1: 数据库已独立——本地身份暂未接邮箱 OTP，非生产仅放行开发码
+    if auth_local_enabled():
+        if "@" not in email or len(email) < 6:
+            raise HTTPException(status_code=400, detail="邮箱格式不正确")
+        dev_ok = (str(settings.env or "").strip().lower() != "prod") and code == "1234"
+        if not dev_ok:
+            raise HTTPException(status_code=503, detail="邮箱绑定服务暂未就绪，请稍后再试")
+        try:
+            uid = int((parse_token(auth[7:] if auth[:7].lower() == "bearer " else auth)).get("sub") or 0)
+        except (TypeError, ValueError):
+            uid = 0
+        if uid <= 0:
+            raise HTTPException(status_code=401, detail="需要登录")
+        exist = db.get_user_auth_by_email(email)
+        if exist and int(exist.id) != uid:
+            raise HTTPException(status_code=400, detail="该邮箱已被其他账号绑定")
+        try:
+            db.set_user_email(int(uid), email)
+        except ValueError as e:
+            if str(e) == "user not found":
+                raise HTTPException(status_code=404, detail="用户不存在")
+            raise HTTPException(status_code=400, detail="该邮箱已被其他账号绑定")
+        u = db.get_user_auth_by_id(int(uid))
+        if not u:
+            raise HTTPException(status_code=404, detail="用户不存在")
+        return _session_from_local_user(u)
+    if not identity_configured():
+        raise HTTPException(status_code=503, detail="服务暂未就绪，请稍后再试")
     data = _identity_post(
         "/v1/auth/email/bind",
         {"email": email, "email_code": code},
@@ -2608,6 +2670,95 @@ _WL_SCORE_CACHE: dict[tuple, tuple[float, dict]] = {}
 _WL_SCORE_TTL_S = 300.0
 
 
+async def _wl_fetch_snapshot(secid: str, code: str, name: str, variant: str, priority_override: str, allow_paid: bool) -> dict:
+    """单票技术指标快照：拉日线120根 → 技术面量化（与自选评分榜同口径，不含大盘调整）。"""
+    from .scoring import score_candles
+    from .signals import candles_from_tencent_like_pack
+
+    secid = str(secid or "").strip()
+    base = {"secid": secid, "code": str(code or ""), "name": str(name or "")}
+    try:
+        payload = await fetch_tx_kline(secid, "day", count=120, timeout=6.0, variant=variant, priority_override=priority_override, allow_paid=allow_paid)
+    except Exception as e:
+        base["error"] = "fetch:%s" % type(e).__name__
+        return base
+    if not isinstance(payload, dict) or int(payload.get("code") or 0) != 0:
+        base["error"] = str((payload or {}).get("msg") or "kline failed")
+        return base
+    data = payload.get("data")
+    if not isinstance(data, dict) or not data:
+        base["error"] = "empty data"
+        return base
+    pack = next(iter(data.values()))
+    candles = candles_from_tencent_like_pack(pack, period="day")
+    if len(candles) < 60:
+        base["error"] = "insufficient history"
+        return base
+    res = score_candles(candles, name=base["name"] or base["code"])
+    base.update(res)
+    return base
+
+
+async def _wl_market_env(variant: str, priority_override: str, allow_paid: bool) -> dict:
+    """大盘环境（上证指数）：MACD 首根红柱天数 + 均线信号，作为各标的统一加减分项。"""
+    from .scoring import _red_days, _ma, _slope_ratio
+    from .signals import _compute_macd_arrays, candles_from_tencent_like_pack
+
+    try:
+        payload = await fetch_tx_kline("1.000001", "day", count=120, timeout=6.0, variant=variant, priority_override=priority_override, allow_paid=allow_paid)
+        if not isinstance(payload, dict) or int(payload.get("code") or 0) != 0:
+            return {}
+        data = payload.get("data")
+        if not isinstance(data, dict) or not data:
+            return {}
+        pack = next(iter(data.values()))
+        candles = candles_from_tencent_like_pack(pack, period="day")
+        if len(candles) < 60:
+            return {}
+        closes = [float(c.close) for c in candles]
+        dif, dea, bar, golden, dead = _compute_macd_arrays(closes)
+        ma5 = _ma(closes, 5)
+        ma10 = _ma(closes, 10)
+        ma20 = _ma(closes, 20)
+        rd = _red_days(bar)
+        cur = closes[-1]
+        macd_red = rd >= 1
+        ma_bull = ma5[-1] > ma10[-1] > ma20[-1]
+        ma20_up = _slope_ratio(ma20, 5) > 0.001
+        above_ma20 = cur > ma20[-1]
+        weak = (not above_ma20) and (not ma20_up)
+        pts = 0.0
+        if macd_red:
+            pts += 3.0
+        if ma_bull:
+            pts += 3.0
+        if above_ma20 and ma20_up:
+            pts += 2.0
+        if weak:
+            pts -= 3.0
+        tags = []
+        tags.append("大盘MACD翻红·第%d天" % rd if macd_red else "大盘MACD绿柱")
+        if ma_bull:
+            tags.append("大盘均线多头")
+        elif above_ma20:
+            tags.append("大盘站上MA20")
+        else:
+            tags.append("大盘跌破MA20")
+        return {
+            "secid": "1.000001",
+            "name": "上证指数",
+            "pts": round(max(-3.0, min(8.0, pts)), 1),
+            "red_days": rd,
+            "ma_bull": bool(ma_bull),
+            "above_ma20": bool(above_ma20),
+            "weak": bool(weak),
+            "tags": tags,
+            "latest_time": str(candles[-1].time),
+        }
+    except Exception:
+        return {}
+
+
 @app.get("/api/watchlist/scores")
 async def api_watchlist_scores(
     request: Request,
@@ -2620,19 +2771,28 @@ async def api_watchlist_scores(
     _rate_limit(f"wl-scores:{user_id}", 6)
     wl = db.watchlist_list(int(user_id))
     items = wl.get("items") or []
-    if not items:
-        return {"ok": True, "items": [], "count": 0, "updated_at": int(time.time())}
-
-    _ckey = (int(user_id), int(time.time() // _WL_SCORE_TTL_S),
-             ",".join(sorted(str(it.get("secid") or "") for it in items)))
-    _chit = _WL_SCORE_CACHE.get(_ckey)
-    if _chit is not None and time.time() - _chit[0] < _WL_SCORE_TTL_S:
-        return _chit[1]
-
     db.downgrade_expired_vip_plan(int(user_id))
     quota = db.get_quota_status(int(user_id))
     plan = str(quota.get("plan") or "anon").strip().lower()
     is_vip = plan not in ("", "free", "anon")
+    caps = db.watchlist_score_caps()
+    max_n = int(caps.get("vip") if is_vip else caps.get("free")) or 0
+    vip_cap = int(caps.get("vip") or 0)
+    if not items:
+        return {"ok": True, "items": [], "count": 0, "updated_at": int(time.time()),
+                "is_vip": is_vip, "score_max": max_n, "vip_cap": vip_cap,
+                "watchlist_total": 0, "truncated": False}
+    truncated = False
+    watchlist_total = len(items)
+    if max_n > 0 and watchlist_total > max_n:
+        items = items[:max_n]
+        truncated = True
+
+    _ckey = (int(user_id), int(time.time() // _WL_SCORE_TTL_S), int(max_n),
+             ",".join(sorted(str(it.get("secid") or "") for it in items)))
+    _chit = _WL_SCORE_CACHE.get(_ckey)
+    if _chit is not None and time.time() - _chit[0] < _WL_SCORE_TTL_S:
+        return _chit[1]
     md = market_data_status()
     base_pri = str((md.get("paid") or {}).get("priority") or "").strip().lower()
     if not base_pri:
@@ -2646,118 +2806,24 @@ async def api_watchlist_scores(
 
     import asyncio
 
-    from .scoring import _red_days, _ma, _slope_ratio, score_candles
-    from .signals import _compute_macd_arrays, candles_from_tencent_like_pack
-
     async def _score_one(it: dict) -> dict:
         secid = str(it.get("secid") or "")
-        base = {
-            "secid": secid,
-            "code": str(it.get("code") or ""),
-            "name": str(it.get("name") or ""),
-        }
-        try:
-            payload = await fetch_tx_kline(
-                secid,
-                "day",
-                count=120,
-                timeout=6.0,
-                variant=variant,
-                priority_override=priority_override,
-                allow_paid=allow_paid,
-            )
-        except Exception as e:
-            base["error"] = "fetch:%s" % type(e).__name__
-            return base
-        if not isinstance(payload, dict) or int(payload.get("code") or 0) != 0:
-            base["error"] = str((payload or {}).get("msg") or "kline failed")
-            return base
-        data = payload.get("data")
-        if not isinstance(data, dict) or not data:
-            base["error"] = "empty data"
-            return base
-        pack = next(iter(data.values()))
-        candles = candles_from_tencent_like_pack(pack, period="day")
-        if len(candles) < 60:
-            base["error"] = "insufficient history"
-            return base
-        res = score_candles(candles, name=base["name"])
-        base.update(res)
-        try:
-            db.consume_quota(
-                int(user_id),
-                secid,
-                "day",
-                "wl:%s:day:%d" % (secid, int(time.time() // 86400)),
-                ok=True,
-            )
-        except Exception:
-            pass
+        base = await _wl_fetch_snapshot(secid, it.get("code"), it.get("name"), variant, priority_override, allow_paid)
+        if not base.get("error"):
+            try:
+                db.consume_quota(
+                    int(user_id),
+                    secid,
+                    "day",
+                    "wl:%s:day:%d" % (secid, int(time.time() // 86400)),
+                    ok=True,
+                )
+            except Exception:
+                pass
         return base
 
     async def _fetch_market() -> dict:
-        # 大盘环境（上证指数）：MACD 首根红柱天数 + 均线信号，作为各标的统一加减分项
-        try:
-            payload = await fetch_tx_kline(
-                "1.000001",
-                "day",
-                count=120,
-                timeout=6.0,
-                variant=variant,
-                priority_override=priority_override,
-                allow_paid=allow_paid,
-            )
-            if not isinstance(payload, dict) or int(payload.get("code") or 0) != 0:
-                return {}
-            data = payload.get("data")
-            if not isinstance(data, dict) or not data:
-                return {}
-            pack = next(iter(data.values()))
-            candles = candles_from_tencent_like_pack(pack, period="day")
-            if len(candles) < 60:
-                return {}
-            closes = [float(c.close) for c in candles]
-            dif, dea, bar, golden, dead = _compute_macd_arrays(closes)
-            ma5 = _ma(closes, 5)
-            ma10 = _ma(closes, 10)
-            ma20 = _ma(closes, 20)
-            rd = _red_days(bar)
-            cur = closes[-1]
-            macd_red = rd >= 1
-            ma_bull = ma5[-1] > ma10[-1] > ma20[-1]
-            ma20_up = _slope_ratio(ma20, 5) > 0.001
-            above_ma20 = cur > ma20[-1]
-            weak = (not above_ma20) and (not ma20_up)
-            pts = 0.0
-            if macd_red:
-                pts += 3.0
-            if ma_bull:
-                pts += 3.0
-            if above_ma20 and ma20_up:
-                pts += 2.0
-            if weak:
-                pts -= 3.0
-            tags = []
-            tags.append("大盘MACD翻红·第%d天" % rd if macd_red else "大盘MACD绿柱")
-            if ma_bull:
-                tags.append("大盘均线多头")
-            elif above_ma20:
-                tags.append("大盘站上MA20")
-            else:
-                tags.append("大盘跌破MA20")
-            return {
-                "secid": "1.000001",
-                "name": "上证指数",
-                "pts": round(max(-3.0, min(8.0, pts)), 1),
-                "red_days": rd,
-                "ma_bull": bool(ma_bull),
-                "above_ma20": bool(above_ma20),
-                "weak": bool(weak),
-                "tags": tags,
-                "latest_time": str(candles[-1].time),
-            }
-        except Exception:
-            return {}
+        return await _wl_market_env(variant, priority_override, allow_paid)
 
     # 整体 12 秒上限：外部数据源偶发慢/挂时，先出已算完的标的，其余标记超时，避免整榜一直转圈
     fs = [asyncio.ensure_future(_score_one(it)) for it in items]
@@ -2804,13 +2870,54 @@ async def api_watchlist_scores(
                 rks.append("大盘弱势")
     scored.sort(key=lambda x: float(x.get("score") or -1), reverse=True)
     result = {"ok": True, "items": scored, "count": len(scored), "updated_at": int(time.time()),
-              "market": market if market.get("name") else None}
+              "market": market if market.get("name") else None,
+              "is_vip": is_vip, "score_max": max_n, "vip_cap": vip_cap,
+              "watchlist_total": watchlist_total, "truncated": truncated}
     if len(_WL_SCORE_CACHE) > 256:
         _now = time.time()
         for _k in [k for k, v in _WL_SCORE_CACHE.items() if _now - v[0] > _WL_SCORE_TTL_S * 2]:
             _WL_SCORE_CACHE.pop(_k, None)
     _WL_SCORE_CACHE[_ckey] = (time.time(), result)
     return result
+
+
+@app.get("/api/quote/snapshot")
+async def api_quote_snapshot(
+    secid: str = "",
+    code: str = "",
+    name: str = "",
+    user_id: int = Depends(get_current_user_id),
+) -> dict:
+    """单票「技术指标快照」：综合分/关键信号/风险 + 大盘环境，与自选评分榜同口径（仅统计，非推荐）。"""
+    secid = str(secid or "").strip()
+    if not secid:
+        raise HTTPException(status_code=400, detail="missing secid")
+    _rate_limit(f"quote-snap:{user_id}", 10)
+    db.downgrade_expired_vip_plan(int(user_id))
+    quota = db.get_quota_status(int(user_id))
+    plan = str(quota.get("plan") or "anon").strip().lower()
+    is_vip = plan not in ("", "free", "anon")
+    md = market_data_status()
+    base_pri = str((md.get("paid") or {}).get("priority") or "").strip().lower()
+    if not base_pri:
+        base_pri = "tencent,eastmoney,sina,paid"
+    vip_only = bool((md.get("paid") or {}).get("vip_only"))
+    allow_paid = bool(is_vip or not vip_only)
+    priority_override = base_pri if allow_paid else ",".join(
+        [x for x in base_pri.split(",") if x.strip() and x.strip() != "paid"]
+    )
+    variant = "vip" if is_vip else "free"
+    snap = await _wl_fetch_snapshot(secid, code, name, variant, priority_override, allow_paid)
+    if snap.get("error"):
+        return {"ok": False, "error": snap["error"], "secid": secid, "code": str(code or ""), "name": str(name or "")}
+    try:
+        db.consume_quota(int(user_id), secid, "day", "wl:%s:day:%d" % (secid, int(time.time() // 86400)), ok=True)
+    except Exception:
+        pass
+    mkt = await _wl_market_env(variant, priority_override, allow_paid)
+    snap["market"] = mkt if mkt.get("name") else None
+    snap["is_vip"] = is_vip
+    return {"ok": True, **snap}
 
 
 @app.get("/api/suggest")

@@ -863,6 +863,57 @@
     .quote-live .down { color: var(--fall); }
     .quote-live .live-row { margin: 2px 0; }
     .quote-live .tt-num { color: var(--text); font-variant-numeric: tabular-nums; }
+    .quote-snap {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0 0 10px;
+      line-height: 1.6;
+      padding: 10px 12px;
+      background: var(--panel2);
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+    .quote-snap.is-soft-loading { opacity: 0.55; }
+    .quote-snap .qs-head { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; }
+    .quote-snap .qs-sep { color: var(--muted); opacity: 0.5; }
+    .quote-snap .qs-mkt-inline { display: inline-flex; align-items: baseline; gap: 3px; flex-wrap: wrap; }
+    .quote-snap .qs-mkt-inline .mkt-label { color: #f43f5e; font-weight: 800; }
+    .quote-snap .qs-mkt-inline .mkt-up { color: #f43f5e; font-weight: 700; }
+    .quote-snap .qs-mkt-inline .mkt-down { color: #3b82f6; font-weight: 700; }
+    .quote-snap .qs-mkt-inline .mkt-flat { color: #94a3b8; font-weight: 700; }
+    .quote-snap .qs-mkt-inline .qs-mkt-tags { color: var(--muted); }
+    .quote-snap .qs-risk-inline { color: #f87171; }
+    .quote-snap .qs-label { font-size: 11px; letter-spacing: 0.08em; color: var(--muted); }
+    .quote-snap .qs-score { font-size: 20px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+    .quote-snap .qs-score.up { color: #f43f5e; }
+    .quote-snap .qs-score.mid { color: #fbbf24; }
+    .quote-snap .qs-score.low { color: #94a3b8; }
+    .quote-snap .qs-state { font-weight: 700; }
+    .quote-snap .qs-state.up { color: #f43f5e; }
+    .quote-snap .qs-state.mid { color: #fbbf24; }
+    .quote-snap .qs-state.low { color: #94a3b8; }
+    .quote-snap .qs-row { margin: 6px 0 0; display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: baseline; }
+    .quote-snap .qs-tag { display: inline-flex; align-items: center; padding: 1px 8px; border-radius: 999px; background: rgba(244,63,94,.10); border: 1px solid rgba(244,63,94,.30); color: #f43f5e; font-size: 11px; white-space: nowrap; }
+    .quote-snap .qs-tag.amber { background: rgba(245,158,11,.10); border-color: rgba(245,158,11,.32); color: #fbbf24; }
+    .quote-snap .qs-tag.gray { background: rgba(148,163,184,.10); border-color: rgba(148,163,184,.28); color: #94a3b8; }
+    .quote-snap .qs-risk { color: #f87171; }
+    .quote-snap .qs-market { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+    .quote-snap .qs-market .mkt-label { color: #f43f5e; font-weight: 800; }
+    .quote-snap .qs-market .mkt-up { color: #f43f5e; font-weight: 700; }
+    .quote-snap .qs-market .mkt-down { color: #3b82f6; font-weight: 700; }
+    .quote-snap .qs-market .mkt-flat { color: #94a3b8; font-weight: 700; }
+    .quote-snap .qs-foot { margin-top: 7px; font-size: 11px; color: var(--muted); opacity: 0.85; }
+    .quote-snap .qs-loading { color: var(--muted); }
+    .quote-snap a { color: #f43f5e; font-weight: 700; text-decoration: none; }
+    .quote-snap a:hover { text-decoration: underline; }
+    @media (max-width: 640px), (max-device-width: 640px) {
+      .quote-snap { padding: 8px 10px; margin-bottom: 8px; }
+      .quote-snap .qs-score { font-size: 17px; }
+      .quote-snap .qs-head { gap: 4px 8px; }
+      .quote-snap .qs-row { gap: 3px 5px; }
+      .quote-snap .qs-foot { font-size: 10px; line-height: 1.5; }
+    }
     .short-term-bar {
       display: none !important;
       margin-top: 10px;
@@ -1688,6 +1739,34 @@
       overflow: auto;
     }
     #card-overlay.pw-modal[hidden] { display: none !important; }
+    #card-overlay .pw-modal-panel {
+      width: min(520px, calc(100vw - 28px));
+      max-width: 520px;
+      margin: auto;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(18, 22, 29, 0.96);
+      box-shadow: 0 18px 50px rgba(0,0,0,0.55);
+      color: #f8fafc;
+      padding: 14px;
+      box-sizing: border-box;
+    }
+    .card-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .card-actions .btn { font-size: 14px; font-weight: 700; padding: 9px 16px; border-radius: 10px; }
+    #card-overlay #btn-card-save {
+      border: 1px solid rgba(244,63,94,.65);
+      background: linear-gradient(180deg, #e11d48 0%, #be123c 100%);
+      color: #fff;
+      box-shadow: 0 2px 10px rgba(244,63,94,.35);
+    }
+    #card-overlay #btn-card-save:hover { filter: brightness(1.08); }
+    @media (max-width: 640px), (max-device-width: 640px) {
+      #card-overlay .pw-modal-panel { width: 100%; max-width: 100%; }
+      #card-overlay .pw-modal-head { flex-direction: column; align-items: stretch; }
+      .card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .card-actions #btn-card-save { grid-column: 1 / -1; }
+      .card-actions .btn { width: 100%; padding: 12px 14px; font-size: 15px; }
+    }
 
     /* 加自选：喜庆红（A股红涨吉利） */
     .chart-tools #btn-fav {
@@ -1889,6 +1968,7 @@
       <div class="pick-list" id="pick-list" role="listbox" aria-label="选择证券"></div>
       <div class="quote-title" id="quote-title"></div>
       <div class="quote-live" id="quote-live" hidden></div>
+      <div class="quote-snap" id="quote-snap" hidden></div>
       <div class="chart-box" id="chart-box">
         <div id="chart-wrap"></div>
         <div class="sig-legend" id="signal-legend" aria-label="K 线信号说明"></div>
@@ -1922,12 +2002,12 @@
 
     <div class="hint" style="margin-top:12px">
       行情与指标，一目了然
-      <span style="margin-left:10px; opacity:.85">内容仅供学习交流，不构成任何建议；请自行判断。</span>
+      <span style="margin-left:10px; opacity:.85">内容仅供学习交流与自主决策参考，不构成证券投资咨询，不构成任何买卖建议；请自行判断。</span>
     </div>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
 
-  <script src="/js/shell.js?v=46"></script>
+  <script src="/js/shell.js?v=48"></script>
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("demo"); } catch (e) {}
   </script>
@@ -4020,7 +4100,9 @@
   var chartEl = document.getElementById('chart-wrap');
   var statusEl = document.getElementById('quote-status');
   var titleEl = document.getElementById('quote-title');
+  var quoteTitleEl = titleEl;
   var liveEl = document.getElementById('quote-live');
+  var snapEl = document.getElementById('quote-snap');
   var loadErrorEl = document.getElementById('load-error');
   var inputEl = document.getElementById('stock-query');
   var btnSearch = document.getElementById('btn-search');
@@ -4371,6 +4453,12 @@
       if (liveEl && !String(liveEl.innerHTML || '').trim()) {
         liveEl.hidden = true;
       }
+      try {
+        if (snapEl) {
+          snapEl.hidden = true;
+          snapEl.innerHTML = '';
+        }
+      } catch (eSnap0) {}
     }
   }
 
@@ -4777,6 +4865,125 @@
     } catch (e) {
       return Promise.reject(e);
     }
+  }
+
+  // ===== 单票「技术指标快照」：综合分/关键信号/风险 + 大盘环境（与自选评分榜同口径） =====
+  var _snapCache = {};
+  var _snapReqSeq = 0;
+  var _snapCacheTTL = 300000; // 5 分钟
+
+  function apiQuoteSnapshot(secid, code, name) {
+    var url =
+      (API_BASE || '') +
+      '/api/quote/snapshot?secid=' +
+      encodeURIComponent(String(secid || '')) +
+      '&code=' +
+      encodeURIComponent(String(code || '')) +
+      '&name=' +
+      encodeURIComponent(String(name || ''));
+    return fetch(url, { cache: 'no-store', headers: authHeaders() }).then(function (r) {
+      return r.ok ? r.json() : Promise.reject(new Error('snapshot http ' + r.status));
+    });
+  }
+
+  function snapScoreCls(sc, err) {
+    if (err) return 'low';
+    return sc >= 70 ? 'up' : sc >= 45 ? 'mid' : 'low';
+  }
+
+  function snapStateText(sc, err) {
+    if (err) return '数据不足';
+    return sc >= 70 ? '偏强' : sc >= 45 ? '中性' : '偏弱';
+  }
+
+  function renderQuoteSnapshot(d) {
+    if (!snapEl) return;
+    if (!d || d.ok === false) {
+      snapEl.hidden = true;
+      snapEl.innerHTML = '';
+      _lastSnapData = null;
+      return;
+    }
+    var sc = Number(d.score || 0);
+    var err = String(d.error || '');
+    var cls = snapScoreCls(sc, err);
+    var tags = d.tags || [];
+    var risks = d.risks || [];
+    var mkt = d.market;
+    var risksShow = risks.length ? escHtml(risks.slice(0, 2).join(' / ') + (risks.length > 2 ? ' 等' : '')) : '';
+    var html =
+      '<div class="qs-head">' +
+      '<span class="qs-label">技术指标快照</span>' +
+      '<span class="qs-score ' + cls + '">' + (err ? '—' : sc.toFixed(0)) + '</span>' +
+      '<span class="qs-state ' + cls + '">' + snapStateText(sc, err) + '</span>';
+    if (mkt && mkt.name) {
+      var mpts = Number(mkt.pts || 0);
+      var mcls = mpts >= 2 ? 'mkt-up' : mpts <= -2 ? 'mkt-down' : 'mkt-flat';
+      var mlbl = mpts >= 2 ? '顺风' : mpts <= -2 ? '逆风' : '中性';
+      var mTags = (mkt.tags || []).map(function (t) { return String(t).replace(/^大盘/, ''); });
+      html +=
+        '<span class="qs-sep">·</span>' +
+        '<span class="qs-mkt-inline"><span class="mkt-label">大盘环境</span> <span class="' + mcls + '">' + mlbl + '</span>' +
+        (mTags.length ? '<span class="qs-mkt-tags">（' + escHtml(mTags.slice(0, 2).join(' / ') + (mTags.length > 2 ? ' 等' : '')) + '）</span>' : '') +
+        '</span>';
+    }
+    if (risksShow) {
+      html += '<span class="qs-sep">·</span><span class="qs-risk-inline">风险：' + risksShow + '</span>';
+    }
+    html +=
+      '<span style="flex:1"></span>' +
+      '<a href="./watchscore.html" target="_blank" rel="noopener" title="自选评分榜">评分榜 ›</a>' +
+      '</div>';
+    if (!err) {
+      if (tags.length) {
+        html += '<div class="qs-row">' + tags.map(function (t) {
+          var amber = /动能偏热|波动收敛|量价配合/.test(t);
+          var gray = /位置\d+%|超跌区|低位修复/.test(t);
+          var c = amber ? 'amber' : gray ? 'gray' : '';
+          return '<span class="qs-tag' + (c ? ' ' + c : '') + '">' + escHtml(t) + '</span>';
+        }).join('') + '</div>';
+      }
+    } else {
+      html += '<div class="qs-row qs-loading">' + (err === 'fetch:timeout' ? '统计超时，可稍后重试' : '统计暂不可用') + '</div>';
+    }
+    html +=
+      '<div class="qs-foot">公开技术指标统计（0-100 综合分）· 仅供自主决策参考，不构成证券投资咨询，不构成任何买卖建议。</div>';
+    snapEl.innerHTML = html;
+    snapEl.hidden = false;
+    _lastSnapData = d;
+  }
+
+  function loadQuoteSnapshot() {
+    if (!snapEl) return;
+    var secid = String(currentSecid || '').trim();
+    if (!secid || !isAuthed()) {
+      snapEl.hidden = true;
+      snapEl.innerHTML = '';
+      _lastSnapData = null;
+      return;
+    }
+    var cacheKey = secid + '|' + quotaChargeDayKey();
+    var hit = _snapCache[cacheKey];
+    if (hit && Date.now() - hit.at < _snapCacheTTL) {
+      renderQuoteSnapshot(hit.d);
+      return;
+    }
+    var seq = ++_snapReqSeq;
+    snapEl.hidden = false;
+    snapEl.innerHTML = '<div class="qs-loading">技术指标统计中…</div>';
+    var nm = quoteDisplayHint && quoteDisplayHint.name ? String(quoteDisplayHint.name) : '';
+    var cd = quoteDisplayHint && quoteDisplayHint.code ? String(quoteDisplayHint.code) : '';
+    apiQuoteSnapshot(secid, cd, nm)
+      .then(function (d) {
+        if (seq !== _snapReqSeq || secid !== String(currentSecid || '')) return;
+        if (d && d.ok) _snapCache[cacheKey] = { at: Date.now(), d: d };
+        renderQuoteSnapshot(d);
+      })
+      .catch(function () {
+        if (seq !== _snapReqSeq || secid !== String(currentSecid || '')) return;
+        snapEl.hidden = true;
+        snapEl.innerHTML = '';
+      });
   }
 
   /** Upload browser-side candles for full v3 markers (BK when server cannot reach Eastmoney). */
@@ -5360,6 +5567,7 @@
     }
     liveEl.innerHTML = liveHtml;
     liveEl.hidden = false;
+    try { loadQuoteSnapshot(); } catch (eSnap) {}
     setSoftLoading(false);
     syncPeriodTabs();
     // Public UI: keep status line simple; avoid exposing upstream vendor mix.
@@ -6457,16 +6665,35 @@
     try { return String(localStorage.getItem('ai24x_invite_code') || '').trim().toUpperCase(); } catch (e) { return ''; }
   }
   var _lastQueryName = '';  // 记录最近一次查询的标的名称，供卡片保存用
+  var _lastSnapData = null; // 最近一次技术快照（分享卡复用）
+  function cardTimeStr() {
+    var d = new Date();
+    function p2(n) { return (n < 10 ? '0' : '') + n; }
+    return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()) + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes());
+  }
   function getQuoteSnapshot() {
-    var name = '', price = '', change = '';
-    try { name = String(quoteTitleEl && quoteTitleEl.textContent ? quoteTitleEl.textContent : '').replace(/\s+/g,' ').trim(); } catch (e) {}
+    var name = '', price = '', change = '', code = '';
+    try { if (_lastQueryName) name = String(_lastQueryName).trim(); } catch (e) {}
+    if (!name) { try { if (quoteDisplayHint && quoteDisplayHint.name) name = String(quoteDisplayHint.name).trim(); } catch (e) {} }
     if (!name) { try { name = String(inputEl.value || '').trim(); } catch (e) {} }
+    // Strip a trailing code from the display name (e.g. “并行科技 920493” → “并行科技”) to avoid duplicated code on share cards.
+    try { name = name.replace(/\s*[\uff08(]?\d{4,6}[)\uff09]?\s*$/, '').trim(); } catch (e) {}
+    if (!name) { try { var _dn = displayNameForSecid(currentSecid); if (!/^\d+$/.test(_dn)) name = _dn; } catch (e) {} }
+    try { if (quoteDisplayHint && quoteDisplayHint.code) code = String(quoteDisplayHint.code).trim(); } catch (e) {}
+    if (!code) { try { code = formatSecidDisplayCode(currentSecid); } catch (e) {} }
     try {
       var liveText = liveEl && liveEl.textContent ? liveEl.textContent : '';
-      var m = liveText.match(/([\d.]+)\s*[\/\s]\s*([\d.]+)\s*[\/\s]\s*([+-][\d.]+[%]?)/);
-      if (m) { price = m[1]; change = m[3]; }
+      var m = liveText.match(/([\d.]+)\s*[\s\/\u3000]+\s*([+-][\d.]+[%]?)/);
+      if (m) { price = m[1]; change = m[2]; }
+      // Fallback: parse name/code from the live quote line (e.g. “并行科技（920493）　现价 …”) so cards always show the stock name.
+      var mn = liveText.match(/^\s*([^\uff08(]+?)[\uff08(]\s*(\d{4,6})\s*[)\uff09]/);
+      if (mn) {
+        var nm2 = String(mn[1] || '').trim();
+        if (!name && nm2 && !/^\d+$/.test(nm2)) name = nm2;
+        if (!code && mn[2]) code = String(mn[2]).trim();
+      }
     } catch (e) {}
-    return { name: name, price: price, change: change };
+    return { name: name, price: price, change: change, code: code };
   }
   function getSignalSummary() {
     var sig = _lastSignalData;
@@ -6540,12 +6767,38 @@
 
       // Build card canvas at 2x resolution for sharp text
       // Height will be set after we know chart screenshot dimensions
-      var LW = 900;
+      var LW = 1000;
       var c = document.createElement('canvas');
       var g = c.getContext('2d');
 
-      // ... header + stock info + signal summary area height
-      var headerH = 290; // header bar(72) + stock info gap + signal summary
+      // Signal summary lines + 技术快照 availability (used to position chart top)
+      var _sigSummary = getSignalSummary();
+      var _sigLines = 0;
+      try {
+        g.font = 'bold 17px sans-serif';
+        _sigLines = Math.min(wrapText(g, _sigSummary, LW - 72).length, 3);
+      } catch (eL) { _sigLines = 1; }
+      var _snap = _lastSnapData;
+      var _hasSnap = !!(_snap && _snap.ok && !_snap.error && _snap.score != null);
+      var _sigShowLines = 0;
+      if (_hasSnap && _snap.tags && _snap.tags.length) {
+        try {
+          g.font = '14px sans-serif';
+          _sigShowLines = Math.min(wrapText(g, '技术信号：' + _snap.tags.join(' · '), LW - 72).length, 2);
+        } catch (eT) { _sigShowLines = 1; }
+      }
+      var _riskLines = 0;
+      if (_hasSnap && _snap.risks && _snap.risks.length) {
+        try {
+          g.font = '13px sans-serif';
+          _riskLines = Math.min(wrapText(g, '风险：' + _snap.risks.join(' / '), LW - 72).length, 2);
+        } catch (eR) { _riskLines = 1; }
+      }
+      var _snapTopY = 226 + _sigLines * 26 + 8;
+      var _snapBlockH = _hasSnap ? (26 + _sigShowLines * 22 + _riskLines * 22 + 4) : 0;
+
+      // ... header + stock info + signal summary area height（含技术快照：综合分 + 具体技术信号 + 风险）
+      var headerH = _snapTopY + _snapBlockH;
 
       // First pass: need screenshot dimensions to calculate total height
       // chartH = chartW * (srcH/srcW), bottomH = 195, padding = 60
@@ -6569,37 +6822,90 @@
       g.fillText('AI行情官 · 灯塔版', 36, 48);
       g.fillStyle = 'rgba(255,255,255,.3)';
       g.font = '13px sans-serif';
-      g.fillText('a.ai24x.com', LW - 36 - g.measureText('a.ai24x.com').width, 48);
+      var _domTxt = 'a.ai24x.com · ' + cardTimeStr();
+      g.fillText(_domTxt, LW - 36 - g.measureText(_domTxt).width, 48);
 
-      // Stock info
+      // Stock info (single fillText per line: keeps card text in sync with the page quote bar and avoids measureText/rendering width mismatch)
       var qi = getQuoteSnapshot();
       g.fillStyle = '#e2e8f0';
       g.font = 'bold 24px sans-serif';
-      g.fillText(qi.name || '\u2014', 36, 116);
+      var _qNameTxt = qi.name || '\u2014';
+      var _qCodeTxt = qi.code;
+      if (_qCodeTxt && _qNameTxt.indexOf(_qCodeTxt) >= 0) _qCodeTxt = '';
+      g.fillText(_qNameTxt + (_qCodeTxt ? '  ' + _qCodeTxt : ''), 36, 116);
       if (qi.price) {
         g.fillStyle = qi.change && qi.change.indexOf('-') >= 0 ? '#22c55e' : '#ef4444';
         g.font = 'bold 22px sans-serif';
-        g.fillText(qi.price, 36, 152);
-        g.font = '14px sans-serif';
-        g.fillText(qi.change, 36 + g.measureText(qi.price).width + 12, 152);
+        g.fillText(qi.price + (qi.change ? '  ' + qi.change : ''), 36, 152);
       }
 
       // Signal summary
       g.fillStyle = '#94a3b8';
       g.font = '14px sans-serif';
-      g.fillText('\u4fe1\u53f7\u6458\u8981', 36, 194);
-      var summary = getSignalSummary();
+      g.fillText('K线信号', 36, 194);
+      var summary = _sigSummary;
       g.fillStyle = '#fbbf24';
       g.font = 'bold 17px sans-serif';
       var lines = wrapText(g, summary, LW - 72);
-      for (var li = 0; li < Math.min(lines.length, 3); li++) {
+      for (var li = 0; li < _sigLines; li++) {
         g.fillText(lines[li], 36, 226 + li * 26);
+      }
+
+      // 技术快照：综合分 + 大盘环境 + 风险（有数据才绘制，避免卡片过长）
+      if (_hasSnap) {
+        var _sc = Number(_snap.score || 0);
+        var _sCol = _sc >= 70 ? '#f43f5e' : _sc >= 45 ? '#fbbf24' : '#94a3b8';
+        var _sState = _sc >= 70 ? '偏强' : _sc >= 45 ? '中性' : '偏弱';
+        var _lblW = g.measureText('技术快照').width;
+        g.font = 'bold 16px sans-serif';
+        g.fillStyle = '#94a3b8';
+        g.fillText('技术快照', 36, _snapTopY + 22);
+        g.fillStyle = _sCol;
+        g.fillText('综合分 ' + _sc.toFixed(0), 36 + _lblW + 16, _snapTopY + 22);
+        g.font = '14px sans-serif';
+        g.fillStyle = '#e2e8f0';
+        g.fillText('（' + _sState + '）', 36 + _lblW + 16 + g.measureText('综合分 ' + _sc.toFixed(0)).width + 8, _snapTopY + 22);
+        var _mk = _snap.market;
+        if (_mk && _mk.name) {
+          var _mpts = Number(_mk.pts || 0);
+          var _mlbl = _mpts >= 2 ? '顺风' : _mpts <= -2 ? '逆风' : '中性';
+          var _mCol = _mpts >= 2 ? '#ef4444' : _mpts <= -2 ? '#3b82f6' : '#94a3b8';
+          var _mTags = (_mk.tags || []).map(function (t) { return String(t).replace(/^大盘/, ''); });
+          var _mTxt = '· 大盘环境 ';
+          var _mX = 36 + _lblW + 16 + g.measureText('综合分 ' + _sc.toFixed(0) + '（' + _sState + '）').width + 20;
+          g.font = '14px sans-serif';
+          g.fillStyle = '#94a3b8';
+          g.fillText(_mTxt, _mX, _snapTopY + 22);
+          g.fillStyle = _mCol;
+          g.fillText(_mlbl, _mX + g.measureText(_mTxt).width, _snapTopY + 22);
+          g.fillStyle = '#cbd5e1';
+          g.fillText('（' + _mTags.join(' / ') + '）', _mX + g.measureText(_mTxt + _mlbl).width + 4, _snapTopY + 22);
+        }
+        if (_sigShowLines > 0) {
+          var _sigTxt = '技术信号：' + _snap.tags.join(' · ');
+          var _sg = wrapText(g, _sigTxt, LW - 72);
+          g.fillStyle = '#fbbf24';
+          g.font = '14px sans-serif';
+          for (var _si = 0; _si < Math.min(_sg.length, _sigShowLines); _si++) {
+            g.fillText(_sg[_si], 36, _snapTopY + 48 + _si * 22);
+          }
+        }
+        if (_riskLines > 0) {
+          var _riskTxt = '风险：' + _snap.risks.join(' / ');
+          var _rl = wrapText(g, _riskTxt, LW - 72);
+          g.fillStyle = '#f87171';
+          g.font = '13px sans-serif';
+          var _riskTop = _snapTopY + 48 + _sigShowLines * 22;
+          for (var _ri = 0; _ri < Math.min(_rl.length, _riskLines); _ri++) {
+            g.fillText(_rl[_ri], 36, _riskTop + _ri * 22);
+          }
+        }
       }
 
       // Chart — draw in pixel space for maximum sharpness
       // Auto-fit: use source screenshot aspect ratio so nothing gets cropped
       var chartW = LW - 48;
-      var chartTopY = 290;
+      var chartTopY = headerH;
       try {
         g.save();
         g.setTransform(1, 0, 0, 1, 0, 0); // raw pixel space
@@ -7073,13 +7379,13 @@
   </div>
 
   <div id="card-overlay" class="pw-modal" hidden>
-    <div class="pw-modal-panel" style="max-width:420px; max-height:95vh; overflow-y:auto;">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
+    <div class="pw-modal-panel" style="max-height:95vh; overflow-y:auto;">
+      <div class="pw-modal-head" style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
         <h2 style="margin:0;"><span>信号分享卡</span></h2>
-        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <button class="btn primary" type="button" id="btn-card-save" style="font-size:12px; padding:6px 10px;">保存图片</button>
-          <button class="btn" type="button" id="btn-card-regen" style="font-size:12px; padding:6px 10px;">重新生成</button>
-          <button class="btn" type="button" id="btn-card-close" style="font-size:12px; padding:6px 10px;">关闭</button>
+        <div class="card-actions">
+          <button class="btn primary" type="button" id="btn-card-save">保存图片</button>
+          <button class="btn" type="button" id="btn-card-regen">重新生成</button>
+          <button class="btn" type="button" id="btn-card-close">关闭</button>
         </div>
       </div>
       <p class="sub" style="margin:0 0 10px; color:var(--accent); font-weight:800;">点击「保存图片」或长按图片保存到相册</p>

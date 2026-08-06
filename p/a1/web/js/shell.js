@@ -52,44 +52,12 @@
     }
   }
 
-  function headerHtml(active) {
-    function nav(href, label, id) {
-      var cls = active === id ? "is-active" : "";
-      href = withInvite(href);
-      return '<a href="' + esc(href) + '" class="' + cls + '">' + esc(label) + "</a>";
-    }
-
-    return (
-      '<div class="container header-inner">' +
-      '<a class="brand" href="index.html" aria-label="AI24X">' +
-      '<span class="brand-mark">AI</span>' +
-      '<span class="brand-text brand-text-full">AI 行情官｜灯塔版</span>' +
-      '<span class="brand-text brand-text-short">AI行情官</span>' +
-      "</a>" +
-      '<button type="button" class="menu-toggle" id="menu-toggle" aria-label="Menu" aria-expanded="false"><span></span></button>' +
-      '<nav class="nav-main" id="nav-main" aria-label="Main">' +
-      nav("index.html", "首页", "index") +
-      nav("demo.html", "行情", "demo") +
-      nav("help.html", "帮助", "help") +
-      nav("account.html", "我的", "account") +
-      nav("feedback.html", "反馈", "feedback") +
-      "</nav>" +
-      '<div class="header-actions">' +
-      '<span id="auth-actions" class="auth-actions">' +
-      '<a class="btn btn-ghost btn-auth-login" id="btn-auth" href="index.html?mode=login">登录</a>' +
-      '<a class="btn btn-primary btn-auth-register" id="btn-vip" href="index.html?mode=register">免费注册</a>' +
-      "</span>" +
-      "</div>" +
-      "</div>"
-    );
-  }
-
   function footerHtml() {
     return (
       '<div class="container">' +
       '<div class="footer-grid">' +
       '<div class="footer-col">' +
-      '<div class="footer-title">AI24X · AI 行情官｜灯塔版（V1.02）</div>' +
+      '<div class="footer-title">AI24X · AI 行情官｜灯塔版（V1.03）</div>' +
       '<div class="mt-2">行情与指标，一目了然</div>' +
       "</div>" +
       '<div class="footer-col">' +
@@ -140,7 +108,7 @@
         global.__AI24X_A_SW_INSTALLED = true;
         // Cache-bust SW URL so deployments don't require Ctrl+F5.
         // Use absolute paths so pages still work under subpaths like /i/{code}.
-        navigator.serviceWorker.register("/sw.js?v=46", { scope: "/", updateViaCache: "none" }).then(function (reg) {
+        navigator.serviceWorker.register("/sw.js?v=48", { scope: "/", updateViaCache: "none" }).then(function (reg) {
           try {
             reg.update && reg.update();
             if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
@@ -203,14 +171,15 @@
     var navMain = _el("nav", { class: "nav-main", id: "nav-main", "aria-label": "Main" }, [
       nav("index.html", "首页", "index"),
       nav("demo.html", "行情", "demo"),
-      nav("help.html", "帮助", "help"),
       nav("account.html", "我的", "account"),
+      nav("help.html", "帮助", "help"),
       nav("feedback.html", "反馈", "feedback"),
     ]);
     var actions = _el("div", { class: "header-actions" }, []);
     var authWrap = _el("span", { id: "auth-actions", class: "auth-actions" }, []);
     authWrap.appendChild(_el("a", { class: "btn btn-ghost btn-auth-login", id: "btn-auth", href: "index.html?mode=login" }, ["登录"]));
     authWrap.appendChild(_el("a", { class: "btn btn-primary btn-auth-register", id: "btn-vip", href: "index.html?mode=register" }, ["免费注册"]));
+    authWrap.appendChild(_el("button", { type: "button", class: "btn btn-ghost btn-header-logout", id: "btn-header-logout", style: "display:none;" }, ["退出"]));
     actions.appendChild(authWrap);
 
     wrap.appendChild(brand);
@@ -225,7 +194,7 @@
     var grid = _el("div", { class: "footer-grid" }, []);
 
     var c1 = _el("div", { class: "footer-col" }, [
-      _el("div", { class: "footer-title", text: "AI24X · AI 行情官｜灯塔版（V1.02）" }),
+      _el("div", { class: "footer-title", text: "AI24X · AI 行情官｜灯塔版（V1.03）" }),
       _el("div", { class: "mt-2", text: "行情与指标，一目了然" }),
     ]);
     var c2 = _el("div", { class: "footer-col" }, [
@@ -276,6 +245,7 @@
       var authWrap = document.getElementById("auth-actions");
       var btnAuth = document.getElementById("btn-auth");
       var btnVip = document.getElementById("btn-vip");
+      var btnLogout = document.getElementById("btn-header-logout");
       function inviteCode() {
         try {
           var sp = new URLSearchParams(String(location.search || "").replace(/^\?/, ""));
@@ -303,6 +273,7 @@
       function setLoggedOutUi(){
         try{
           if(btnAuth) btnAuth.style.display = "";
+          if(btnLogout) btnLogout.style.display = "none";
           // 游客：登录为次、免费注册为主（仅顶栏出现）
           // 极窄屏用「注册」，减轻华为浏览器顶栏撑宽导致整页右侧裁切
           var narrow = false;
@@ -331,6 +302,7 @@
         try{
           // 顶栏导航已有「我的」，右上角隐藏账号入口（避免双入口），仅保留「开通 VIP」。
           if(btnAuth) btnAuth.style.display = "none";
+          if(btnLogout) btnLogout.style.display = "";
           if(btnVip) {
             btnVip.textContent = "开通 VIP";
             btnVip.className = "btn btn-primary";
@@ -364,6 +336,15 @@
         }
       }
     }catch(eG){}
+      try{
+        var btnLogoutH = document.getElementById("btn-header-logout");
+        if(btnLogoutH) btnLogoutH.addEventListener("click", function(){
+          try{ localStorage.removeItem("ai24x_a_token"); }catch(e0){}
+          try{ localStorage.removeItem("ai24x_a_watchlist"); }catch(e1){}
+          try{ location.href = "index.html"; }catch(e2){}
+        });
+      }catch(eH){}
+
   }
 
   global.AI24X_A_SHELL = { mount: mount, applyTheme: applyTheme };

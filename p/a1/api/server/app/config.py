@@ -69,6 +69,9 @@ class Settings:
 
     vip_daily_cap: int
     vip_weekly: int
+    # 自选评分榜统计上限（普通注册会员 / VIP；admin_config 可覆盖 .env）
+    wl_score_max_free: int
+    wl_score_max_vip: int
     dedupe_seconds: int
 
     cors_origins: str
@@ -174,6 +177,8 @@ def load_settings() -> Settings:
         anon_daily_max=_to_int(os.getenv("AI24X_ANON_DAILY_MAX"), 3),
         vip_daily_cap=_to_int(os.getenv("AI24X_VIP_DAILY_CAP"), 150),
         vip_weekly=_to_int(os.getenv("AI24X_VIP_WEEKLY"), 500),
+        wl_score_max_free=_to_int(os.getenv("AI24X_WL_SCORE_MAX_FREE"), 20),
+        wl_score_max_vip=_to_int(os.getenv("AI24X_WL_SCORE_MAX_VIP"), 100),
         dedupe_seconds=_to_int(os.getenv("AI24X_DEDUPE_SECONDS"), 60),
         cors_origins=os.getenv("AI24X_CORS_ORIGINS", "*"),
         identity_api_base=str(os.getenv("AI24X_IDENTITY_API_BASE", "")).strip().rstrip("/"),

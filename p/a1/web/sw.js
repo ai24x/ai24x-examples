@@ -8,7 +8,7 @@
 (() => {
   "use strict";
 
-  const CACHE_VERSION = "ai24x-a1-static-v46";
+  const CACHE_VERSION = "ai24x-a1-static-v48";
   const CACHE_NAME = CACHE_VERSION;
 
   /** @param {string} p */
@@ -41,7 +41,9 @@
           // p/a base styles + shared chrome
           urlFromScope("css/base.css"),
           urlFromScope("css/tool.css"),
+          urlFromScope("css/watchscore.css"),
           urlFromScope("js/shell.js"),
+          urlFromScope("js/watchscore.js"),
           // vendor via typical alias (recommended by docs)
           new URL("/vendor/lightweight-charts.standalone.production.js", self.location.origin).toString(),
         ];
@@ -98,8 +100,10 @@
           if (
             isLocal &&
             (p.endsWith("/js/shell.js") ||
+              p.endsWith("/js/watchscore.js") ||
               p.endsWith("/css/base.css") ||
               p.endsWith("/css/tool.css") ||
+              p.endsWith("/css/watchscore.css") ||
               p.endsWith("/partner.html") ||
               p.endsWith("/index.html") ||
               p.endsWith("/account.html") ||

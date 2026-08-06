@@ -587,7 +587,7 @@
           <div class="hero-split">
             <div class="hero-copy">
               <div class="hero-head">
-                <h1>AI 行情官｜灯塔版（1.02）</h1>
+                <h1>AI 行情官｜灯塔版（1.03）</h1>
                 <div style="display:flex; gap:8px; align-items:center;">
                   <a class="vip-cta" href="./demo.html?from=home"><span class="dot"></span>行情查询</a>
                 </div>
@@ -706,7 +706,6 @@
 
           <div id="logged-strip" class="logged-strip">
             <span class="t" id="logged-strip-text">您还未登录</span>
-            <button type="button" class="btn" id="btn-logout" style="font-size:13px;">退出</button>
           </div>
 
           <div id="logged-hint" class="logged-hint" hidden>
@@ -784,7 +783,7 @@
   </main>
   <footer class="site-footer" id="site-footer"></footer>
 
-  <script src="/js/shell.js?v=46"></script>
+  <script src="/js/shell.js?v=48"></script>
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("index"); } catch (e) {}
   </script>
@@ -852,7 +851,6 @@
       var smsCaptchaWrap = $("sms-captcha-wrap");
       var smsCaptchaBox = $("sms-captcha-box");
       var btnSubmit = $("btn-submit");
-      var btnLogout = $("btn-logout");
       var authPanel = $("auth-panel");
       var loggedStrip = $("logged-strip");
       var loggedStripText = $("logged-strip-text");
@@ -1192,7 +1190,6 @@
         if (loggedHint) loggedHint.hidden = !on;
         if (authPanel) authPanel.hidden = !!on;
         if (loggedStripText) loggedStripText.textContent = on ? "已登录" : "您还未登录";
-        if (btnLogout) btnLogout.hidden = !on;
         if (!on && loggedAccount) loggedAccount.textContent = "";
       }
 
@@ -1202,7 +1199,6 @@
           if (loggedHint) loggedHint.hidden = true;
           if (authPanel) authPanel.hidden = true;
           if (loggedStripText) loggedStripText.textContent = "正在验证登录…";
-          if (btnLogout) btnLogout.hidden = true;
           if (loggedAccount) loggedAccount.textContent = "";
           if (quotaKv) quotaKv.hidden = true;
         } catch (e0) {}
@@ -1455,13 +1451,6 @@
           .finally(function () { if (btnSubmit) btnSubmit.disabled = false; });
       }
 
-      function logout() {
-        tokenClear();
-        try { localStorage.removeItem('ai24x_a_watchlist'); } catch (e) {}
-        quotaKv.hidden = true;
-        setLoggedUi(false);
-        setStatus("已退出。");
-      }
 
       // Patch all register/login links to carry invite code automatically
       function patchRegisterLinks() {
@@ -1488,7 +1477,6 @@
       syncAuthUi();
       if (btnOtp) btnOtp.addEventListener("click", sendOtp);
       if (btnSubmit) btnSubmit.addEventListener("click", submitAuth);
-      if (btnLogout) btnLogout.addEventListener("click", logout);
 
       // Handle BFCache restore (back/forward) and token changes from other tabs.
       try { window.addEventListener("pageshow", function () { try { refreshMe(); } catch (e0) {} }); } catch (e1) {}

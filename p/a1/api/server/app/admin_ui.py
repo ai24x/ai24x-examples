@@ -80,7 +80,7 @@ _COMMON_CSS = """
       tr:hover td { background: rgba(255,255,255,0.02); }
       .mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
       .muted { color: var(--muted); }
-      .split { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 12px; }
+      .split { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 12px; }
       @media (max-width: 960px) { .split { grid-template-columns: 1fr; } }
       .msg { margin-top: 10px; font-size: 12px; color: var(--muted); min-height: 1.2em; }
       .msg strong { color: var(--text); }
@@ -364,6 +364,29 @@ def admin_app_html(admin_base: str) -> str:
       .panel-page { display: none; }
       .panel-page.active { display: block; }
       .panel-page > .card:first-child { margin-top: 0; }
+      /* 用户详情操作卡：两列自适应网格；头部与宽表整行 */
+      .user-detail { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; align-items: start; }
+      .user-detail > .card { margin-top: 0; }
+      .user-detail > .card.wide { grid-column: 1 / -1; }
+      .user-detail > .row:first-child,
+      .user-detail > .msg { grid-column: 1 / -1; }
+      /* 窄屏：侧栏收窄、分组按钮横向排列 */
+      @media (max-width: 1180px) {
+        .sidebar { width: 224px; padding: 12px 10px; }
+        .nav-l1 { padding: 9px 8px; font-size: 11px; }
+        .subnav-item .subt { display: none; }
+      }
+      @media (max-width: 820px) {
+        .layout { flex-direction: column; }
+        .sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px 12px; }
+        .brand { font-size: 14px; }
+        .side-hint { display: none; }
+        .nav-group { margin-top: 0; }
+        .nav-l1 { padding: 8px 12px; border-radius: 999px; width: auto; }
+        .nav-l1 .chev { display: none; }
+        #btnLogout { margin-top: 0 !important; }
+        .main-top { position: static; }
+      }
       .rk-up { color: #fb7185; }
       .rk-down { color: #34d399; }
       /* SMS provider tabs */
@@ -540,13 +563,13 @@ def admin_app_html(admin_base: str) -> str:
                   </table>
                 </div>
               </div>
-              <div>
+              <div class="user-detail">
                 <div class="row">
                   <span class="pill">当前用户</span>
                   <span id="curUser" class="mono muted">—</span>
                 </div>
                 <div class="msg" id="userMeta"></div>
-                <div class="card" style="margin-top:12px;">
+                <div class="card" style="margin:0;">
                   <div class="row">
                     <span class="pill">配额与套餐</span>
                     <span id="quotaMeta" class="mono muted">—</span>
@@ -576,7 +599,7 @@ def admin_app_html(admin_base: str) -> str:
                   </div>
                   <div class="msg danger small">请先通过登录页写入会话；勿对公网暴露本服务且务必使用强管理密钥。</div>
                 </div>
-                <div class="card" style="margin-top:12px;">
+                <div class="card" style="margin:0;">
                   <div class="row">
                     <span class="pill">用户基础信息</span>
                     <span class="muted small">邮箱/手机唯一，改错会影响登录归属</span>
@@ -589,7 +612,7 @@ def admin_app_html(admin_base: str) -> str:
                     <input id="editPhone" class="mono" placeholder="如 189xxxx（留空=清空）" style="min-width:200px;" />
                   </div>
                 </div>
-                <div class="card" style="margin-top:12px;">
+                <div class="card" style="margin:0;">
                   <div class="row">
                     <span class="pill">密码（管理员强制设置）</span>
                     <span class="muted small">不需要验证码；仅限超级网管</span>
@@ -597,11 +620,11 @@ def admin_app_html(admin_base: str) -> str:
                   </div>
                   <div class="row" style="margin-top:10px;">
                     <label>新密码</label>
-                    <input id="adminNewPw" type="password" placeholder="至少 6 位（不回显原密码）" style="min-width:240px;" />
+                    <input id="adminNewPw" type="password" placeholder="至少 8 位（不回显原密码）" style="min-width:240px;" />
                   </div>
                   <div class="msg small muted">提示：会立即覆盖用户密码；请谨慎操作并通知用户重新登录。</div>
                 </div>
-                <div class="card" style="margin-top:12px;">
+                <div class="card" style="margin:0;">
                   <div class="row">
                     <span class="pill">充值 / 重置账号（测试用）</span>
                     <span class="muted small">清理测试数据，用于重复走邀请码/激活/支付/返佣链路（保留 user_id）</span>
@@ -627,7 +650,7 @@ def admin_app_html(admin_base: str) -> str:
                     </div>
                   </div>
                 </div>
-                <div class="card" style="margin-top:12px;">
+                <div class="card" style="margin:0;">
                   <div class="row">
                     <span class="pill">伙伴与邀请（快捷入口）</span>
                     <span class="muted small">已迁移到「伙伴与结算 → 伙伴与邀请」。这里仅提供一键跳转到详情页。</span>
@@ -637,7 +660,7 @@ def admin_app_html(admin_base: str) -> str:
                     <span class="muted small mono" id="treeMeta">提示：先在左侧列表选择一个用户。</span>
                   </div>
                 </div>
-                <div class="card" style="margin-top:12px;">
+                <div class="card wide" style="margin:0;">
                   <div class="row">
                     <span class="pill">最近扣次流水</span>
                     <span class="muted small">每次查询成功后的扣次记录</span>
@@ -658,7 +681,7 @@ def admin_app_html(admin_base: str) -> str:
                     </table>
                   </div>
                 </div>
-                <div class="card" style="margin-top:12px;">
+                <div class="card wide" style="margin:0;">
                   <div class="row">
                     <span class="pill">运维操作记录</span>
                     <span class="muted small">谁在何时改了配额等</span>
@@ -1817,6 +1840,16 @@ def admin_app_html(admin_base: str) -> str:
                   <span class="lbl">free 默认每周配额</span>
                   <span class="sub">free_weekly（留空=使用 .env 默认）</span>
                   <input id="sysFreeWeekly" class="mono" placeholder="50" style="min-width:120px;" />
+                </div>
+                <div class="field" style="min-width:220px;">
+                  <span class="lbl">评分榜统计上限·普通会员</span>
+                  <span class="sub">wl_score_max_free（留空=使用 .env 默认 20）</span>
+                  <input id="sysWlScoreMaxFree" class="mono" placeholder="20" style="min-width:120px;" />
+                </div>
+                <div class="field" style="min-width:220px;">
+                  <span class="lbl">评分榜统计上限·VIP</span>
+                  <span class="sub">wl_score_max_vip（留空=使用 .env 默认 100）</span>
+                  <input id="sysWlScoreMaxVip" class="mono" placeholder="100" style="min-width:120px;" />
                 </div>
               </div>
 
@@ -3150,6 +3183,8 @@ async function loadEligibleCommissions(){
         if(sel) sel.value = on ? '1' : '0';
         if($('sysFreeDailyCap')) $('sysFreeDailyCap').value = (it.free_daily_cap != null) ? String(it.free_daily_cap) : '';
         if($('sysFreeWeekly')) $('sysFreeWeekly').value = (it.free_weekly != null) ? String(it.free_weekly) : '';
+        if($('sysWlScoreMaxFree')) $('sysWlScoreMaxFree').value = (it.wl_score_max_free != null) ? String(it.wl_score_max_free) : '';
+        if($('sysWlScoreMaxVip')) $('sysWlScoreMaxVip').value = (it.wl_score_max_vip != null) ? String(it.wl_score_max_vip) : '';
         var sum = $('sysCurrentSummary');
         if(sum){
           sum.innerHTML =
@@ -3158,6 +3193,8 @@ async function loadEligibleCommissions(){
               {label:'管理登录短信 OTP', key:'admin_browser_otp_enabled'},
               {label:'free 默认每日配额', key:'free_daily_cap'},
               {label:'free 默认每周配额', key:'free_weekly'},
+              {label:'评分榜统计上限·普通会员', key:'wl_score_max_free'},
+              {label:'评分榜统计上限·VIP', key:'wl_score_max_vip'},
               {label:'付费数据源开关', key:'paid_provider'},
               {label:'请求顺序', key:'paid_provider_priority'},
               {label:'实时 K 线开关', key:'tushare_use_rt_k'},
@@ -3181,6 +3218,10 @@ async function loadEligibleCommissions(){
         // free defaults (blank = delete override -> fallback to .env)
         tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'free_daily_cap', value: fd})}));
         tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'free_weekly', value: fw})}));
+        var wlmf = String(($('sysWlScoreMaxFree') && $('sysWlScoreMaxFree').value) || '').trim();
+        var wlmv = String(($('sysWlScoreMaxVip') && $('sysWlScoreMaxVip').value) || '').trim();
+        tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'wl_score_max_free', value: wlmf})}));
+        tasks.push(api('/api/admin/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'wl_score_max_vip', value: wlmv})}));
         await Promise.all(tasks);
         setStatus('已保存。free 默认配额将用于新用户初始化与“重置到默认 free”。');
       }
@@ -3277,7 +3318,7 @@ async function loadEligibleCommissions(){
       async function adminSetPassword(){
         if(!currentUserId) return;
         var npw = ($('adminNewPw') && $('adminNewPw').value) ? String($('adminNewPw').value) : '';
-        if(!npw || npw.length < 6) throw new Error('新密码至少 6 位');
+        if(!npw || npw.length < 8) throw new Error('新密码至少 8 位');
         setStatus('正在保存新密码…');
         await api('/api/admin/user/'+encodeURIComponent(currentUserId)+'/password_set', {
           method:'POST',
@@ -3866,11 +3907,10 @@ async function loadEligibleCommissions(){
           groupId = String(groupId || '');
           var pref = {
             'g-users': 'p-users',
-            'g-billing': 'p-orders',
-            'g-agent': 'p-agent',
-            'g-sms': 'p-sms',
+            'g-pay': 'p-orders',
+            'g-settle': 'p-agent',
+            'g-ops': 'p-market',
             'g-system': 'p-system',
-            'g-market': 'p-market',
           };
           var pid = pref[groupId] || '';
           if(pid && document.getElementById(pid)) return pid;

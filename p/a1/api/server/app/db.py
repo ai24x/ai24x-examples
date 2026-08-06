@@ -108,6 +108,14 @@ def vip_quota_cfg_effective() -> dict[str, int]:
     }
 
 
+def watchlist_score_caps() -> dict[str, int]:
+    """自选评分榜统计上限：普通注册会员 free / VIP（admin_config 可覆盖 .env 默认）。"""
+    return {
+        "free": _cfg_int("wl_score_max_free", int(getattr(settings, "wl_score_max_free", 20) or 20)),
+        "vip": _cfg_int("wl_score_max_vip", int(getattr(settings, "wl_score_max_vip", 100) or 100)),
+    }
+
+
 class _ConnProxy:
     """
     Uniform DB API for sqlite3/psycopg connections.
@@ -1700,6 +1708,38 @@ def set_user_password_hash(user_id: int, password_hash: str) -> None:
             _adapt_sql("UPDATE users SET password_hash = ? WHERE id = ?"),
             ((password_hash or "").strip(), int(user_id)),
         )
+
+
+def set_user_phone(user_id: int, phone: str) -> None:
+    """无条件写手机号（绑定/换绑，数据库已独立）。唯一约束冲突抛 ValueError。"""
+    p = (phone or "").strip() or None
+    with connect() as conn:
+        u = conn.execute(_adapt_sql("SELECT id FROM users WHERE id = ?"), (int(user_id),)).fetchone()
+        if not u:
+            raise ValueError("user not found")
+        try:
+            conn.execute(_adapt_sql("UPDATE users SET phone = ? WHERE id = ?"), (p, int(user_id)))
+        except Exception as e:
+            msg = str(e).lower()
+            if "unique" in msg:
+                raise ValueError("phone taken")
+            raise
+
+
+def set_user_email(user_id: int, email: str) -> None:
+    """无条件写邮箱（绑定/换绑，数据库已独立）。唯一约束冲突抛 ValueError。"""
+    e = (email or "").strip().lower() or None
+    with connect() as conn:
+        u = conn.execute(_adapt_sql("SELECT id FROM users WHERE id = ?"), (int(user_id),)).fetchone()
+        if not u:
+            raise ValueError("user not found")
+        try:
+            conn.execute(_adapt_sql("UPDATE users SET email = ? WHERE id = ?"), (e, int(user_id)))
+        except Exception as e:
+            msg = str(e).lower()
+            if "unique" in msg:
+                raise ValueError("email taken")
+            raise
 
 
 def touch_user_contacts(user_id: int, *, phone: str | None, email: str | None) -> None:

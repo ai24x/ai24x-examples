@@ -20,6 +20,7 @@
   </script>
   <link rel="stylesheet" href="/css/base.css?v=44" />
   <link rel="stylesheet" href="/css/tool.css" />
+  <link rel="stylesheet" href="/css/watchscore.css?v=4" />
   <style>
     .auth-card-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;max-width:440px;}
     @media (max-width:520px){ .auth-card-grid{ grid-template-columns: 1fr; } }
@@ -562,7 +563,6 @@
           <button class="btn" id="btn-bind-phone" type="button" hidden>绑定手机</button>
           <button class="btn btn-forgot" id="btn-forget-user" type="button">忘记密码</button>
           <button class="btn primary" id="btn-change-pw" type="button">修改密码</button>
-          <button class="btn" id="btn-logout" type="button">退出</button>
         </div>
       </div>
     </section>
@@ -716,11 +716,17 @@
         <section class="card acct-panel" id="watch" data-acct-panel="watch" hidden>
       <div class="row" style="align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
         <h1 style="margin:0;">自选股</h1>
-        <a class="btn" href="./watchscore.html" target="_blank" rel="noopener">新窗口打开 ›</a>
+        <span style="display:flex; gap:8px; align-items:center;">
+          <a class="btn" href="./watchscore.html" target="_blank" rel="noopener">新窗口打开 ›</a>
+          <button class="btn" id="btn-wl-scores" type="button">刷新评分</button>
+        </span>
       </div>
-      <p class="sub" style="margin:0 0 4px;">仅对您自选的标的做公开技术指标统计（MACD、均线、量能、RSI、波动等常规指标，0-100 综合分），不构成证券投资咨询，不构成任何买卖建议。</p>
-      <div style="margin-top:10px; border:1px solid rgba(148,163,184,.15); border-radius:12px; overflow:hidden; background:var(--panel);">
-        <iframe id="wl-embed" src="./watchscore.html?embed=1" style="width:100%; height:640px; border:0; display:block;" loading="lazy" title="自选评分榜"></iframe>
+      <div style="margin-top:10px;">
+        <div class="status" id="wl-status" style="margin:0 0 4px;"></div>
+        <div id="wl-market" style="margin:0 0 10px; display:none;"></div>
+        <div id="wl-tier" style="display:none;"></div>
+        <div class="hint" id="wl-score-hint" style="margin-top:10px; display:none;"></div>
+        <div id="wl-score-wrap" style="margin-top:10px;"></div>
       </div>
     </section>
 <section class="card acct-panel" id="agent" data-acct-panel="agent" hidden>
@@ -964,7 +970,7 @@
       </label>
       <div class="pw-field-grid">
         <label class="pw-field">新密码
-          <input id="pw-fg-new" type="password" autocomplete="new-password" placeholder="至少 6 位" />
+          <input id="pw-fg-new" type="password" autocomplete="new-password" placeholder="至少 8 位" />
         </label>
         <label class="pw-field">确认新密码
           <input id="pw-fg-new2" type="password" autocomplete="new-password" placeholder="再输一次" />
@@ -1044,7 +1050,8 @@
     </div>
   </div>
 
-  <script src="/js/shell.js?v=46"></script>
+  <script src="/js/shell.js?v=48"></script>
+  <script src="/js/watchscore.js?v=4"></script>
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("account"); } catch (e) {}
   </script>
@@ -1223,7 +1230,6 @@
       var vipPlanSelected = "";
       var agentPlanSelected = "";
       var agentChoiceHintEl = $("agent-choice-hint");
-      var btnLogout = $("btn-logout");
       var btnBindPhone = $("btn-bind-phone");
       var authGuest = $("auth-guest");
       var authUser = $("auth-user");
@@ -1450,8 +1456,7 @@
       function showAcctTab(name) {
         if (name === "invite") name = "vip";
         if (name === "watch") {
-          wlAutoScore = true;
-          try { loadWatchlist(true); } catch (e) {}
+          try { if (window.AI24X_WatchScore) window.AI24X_WatchScore.refresh(true); } catch (eW) {}
         }
         if (ACCT_TABS.indexOf(name) < 0) name = "vip";
         ACCT_TABS.forEach(function (n) {
@@ -1481,7 +1486,7 @@
         if (agentTab) agentTab.style.display = loggedIn ? "" : "none";
         var watchTab = document.querySelector('.acct-tab[data-acct-tab="watch"]');
         if (watchTab) watchTab.style.display = loggedIn ? "" : "none";
-        if (loggedIn) { try { loadWatchlist(); loadWlAccount(); } catch (e) {} }
+        if (loggedIn) { try { if (window.AI24X_WatchScore) window.AI24X_WatchScore.refresh(); } catch (eW) {} }
         var def = "vip";
         try {
           // 默认恒为「会员」；URL 邀请参数（?i=）仅用于自动绑定邀请码，不改变默认栏目。
@@ -1499,6 +1504,15 @@
         } catch (e) {}
         showAcctTab(def);
       }
+      // #vip/#agent/#watch anchor navigation (used by watch score board VIP link)
+      try {
+        window.addEventListener("hashchange", function () {
+          var h = String(location.hash || "").replace(/^#/, "").trim().toLowerCase();
+          if (h === "invite") h = "vip";
+          if (ACCT_TABS.indexOf(h) >= 0) showAcctTab(h);
+        });
+      } catch (eH) {}
+
 
       function tokenGet() {
         try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (e) { return ""; }
@@ -1652,7 +1666,11 @@
       }
       function accountLineText(u) {
         u = u || {};
-        return "当前账号：手机 " + maskPhoneLabel(u.phone);
+        var ph = maskWlPhone(u.phone);
+        if (ph) return "当前账号：手机 " + ph;
+        var em = maskWlEmail(u.email);
+        if (em) return "当前账号：邮箱 " + em;
+        return "当前账号：未绑定";
       }
 
       function setAccountIdentityVisible(on) {
@@ -3299,17 +3317,6 @@ function agentCityRefresh() {
           });
       }
 
-      function logout() {
-        tokenClear();
-        try { localStorage.removeItem('ai24x_a_watchlist'); } catch (e) {}
-        if (authGuest) authGuest.hidden = false;
-        if (authUser) authUser.hidden = true;
-        quotaKv.hidden = true;
-        setAccountIdentityVisible(false);
-        setStatus("已退出。");
-        // Ensure all derived UI state is refreshed immediately.
-        try { refreshMe(); } catch (e) {}
-      }
 
       // Patch all register/login links to carry invite code automatically
       function patchRegisterLinks() {
@@ -3329,7 +3336,6 @@ function agentCityRefresh() {
         } catch (e) {}
       }
 
-      if (btnLogout) btnLogout.addEventListener("click", logout);
       if (btnNotices) btnNotices.addEventListener("click", function(){ noticeOverlayOpen(); loadNotices(); });
       if (btnNoticeClose) btnNoticeClose.addEventListener("click", noticeOverlayClose);
       if (btnNoticeRefresh) btnNoticeRefresh.addEventListener("click", loadNotices);
@@ -3876,226 +3882,6 @@ function agentCityRefresh() {
         window.agentCityDownload = agentCityDownload;
         window.agentCityDel = agentCityDel;
       } catch (eExpose) {}
-// ===== 自选股 / 自选评分榜 =====
-      var WL_LIMIT = 50;
-      var wlItems = [];
-      var wlLastLoad = 0;
-      var wlAutoScore = false;
-      function wlStatus(s, isErr) {
-        var el = document.getElementById("wl-status");
-        if (!el) return;
-        el.textContent = s || "";
-        el.style.color = isErr ? "#f87171" : "";
-      }
-      function escWl(s) {
-        if (!s) return "";
-        return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-      }
-      function loadWatchlist(force) {
-        if (!tokenGet()) return;
-        var now = Date.now();
-        if (!force && now - wlLastLoad < 4000) return;
-        wlLastLoad = now;
-        apiFetch("/api/watchlist").then(function (d) {
-          wlItems = (d && d.items) || [];
-          renderWlList();
-          loadWlAccount();
-          if (wlAutoScore) {
-            wlAutoScore = false;
-            if (wlItems.length) { try { loadWlScores(); } catch (e2) {} }
-          }
-        }).catch(function (e) {
-          wlStatus("自选加载失败：" + (e && e.message ? e.message : "网络错误"), true);
-        });
-      }
-      function renderWlList() {
-        var box = document.getElementById("wl-list");
-        if (!box) return;
-        if (!wlItems.length) {
-          box.innerHTML = '<div class="muted small" style="padding:6px 0;">暂无自选。搜索并添加，或在行情页查询后点「加自选」（登录后自动同步）。</div>';
-          return;
-        }
-        var html = '<div style="display:flex; flex-direction:column; gap:6px;">';
-        for (var i = 0; i < wlItems.length; i++) {
-          var it = wlItems[i];
-          var nm = escWl(it.name || it.code || "");
-          var cd = escWl(it.code || "");
-          var sid = escWl(it.secid || "");
-          html += '<div class="wl-row"><span class="wl-name">' + nm + '</span>'
-            + '<span class="wl-code">' + cd + '</span>'
-            + '<span class="muted small" style="margin-left:auto;">' + (i + 1) + '</span>'
-            + '<button type="button" class="btn" style="padding:4px 12px; font-size:12px;" data-wl-del="' + sid + '">移除</button></div>';
-        }
-        html += '</div>';
-        box.innerHTML = html;
-        var dels = box.querySelectorAll("[data-wl-del]");
-        for (var j = 0; j < dels.length; j++) {
-          dels[j].addEventListener("click", function () {
-            var sid2 = this.getAttribute("data-wl-del");
-            apiFetch("/api/watchlist/remove", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ secid: sid2 }) })
-              .then(function () {
-                wlItems = wlItems.filter(function (x) { return x.secid !== sid2; });
-                renderWlList();
-                wlStatus("已移除 " + sid2);
-              }).catch(function (e) { wlStatus("移除失败：" + (e && e.message || "网络错误"), true); });
-          });
-        }
-      }
-      function wlSuggestRows() {
-        var inp = document.getElementById("wl-search");
-        var box = document.getElementById("wl-suggest");
-        if (!inp || !box) return [];
-        var q = String(inp.value || "").trim();
-        if (!q) return [];
-        return apiFetch("/api/suggest?q=" + encodeURIComponent(q) + "&include_plates=0").then(function (d) {
-          var rows = (((d || {}).QuotationCodeTable || {}).Data) || [];
-          return rows.filter(function (r) {
-            return /^[01]\.\d{6}$/.test(String(r.QuoteID || ""));
-          });
-        }).catch(function () {
-          return [];
-        });
-      }
-      function wlRunSuggest() {
-        var inp = document.getElementById("wl-search");
-        var box = document.getElementById("wl-suggest");
-        if (!inp || !box) return;
-        var q = String(inp.value || "").trim();
-        if (!q) {
-          box.style.display = "none";
-          box.innerHTML = "";
-          return;
-        }
-        wlSuggestRows().then(function (rows) {
-          if (!rows.length) {
-            box.style.display = "";
-            box.innerHTML = '<div class="hint" style="margin:2px 0 0;">未找到匹配标的，请检查代码 / 名称 / 拼音是否输入正确。</div>';
-            return;
-          }
-          var html = '<div style="display:flex; flex-direction:column; gap:6px; margin-top:6px;">';
-          for (var i = 0; i < rows.slice(0, 8).length; i++) {
-            var it = rows[i];
-            var qid = String(it.QuoteID || "");
-            var cd = String(it.Code || qid.split(".")[1] || "");
-            var nm = String(it.Name || "");
-            html += '<button type="button" class="wl-sug" data-sid="' + escWl(qid) + '" data-cd="' + escWl(cd) + '" data-nm="' + escWl(nm) + '">'
-              + '<span style="font-weight:700;">' + escWl(nm) + '</span>'
-              + '<span class="wl-code">' + escWl(cd) + '</span>'
-              + '<span class="muted small">' + escWl(it.PinYin || "") + '</span></button>';
-          }
-          html += '</div>';
-          box.innerHTML = html;
-          box.style.display = "";
-          var sugs = box.querySelectorAll(".wl-sug");
-          for (var j = 0; j < sugs.length; j++) {
-            sugs[j].addEventListener("click", function () {
-              addWlItem(this.getAttribute("data-sid"), this.getAttribute("data-cd"), this.getAttribute("data-nm"));
-            });
-          }
-        });
-      }
-      function addWlItem(secid, code, name) {
-        if (!secid) return;
-        if (wlItems.length >= WL_LIMIT) { wlStatus("自选已达上限 " + WL_LIMIT + " 只", true); return; }
-        apiFetch("/api/watchlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ secid: secid, code: code || "", name: name || "" }) })
-          .then(function () {
-            wlStatus("已添加 " + (name || code || secid));
-            var inp = document.getElementById("wl-search"); if (inp) inp.value = "";
-            var box = document.getElementById("wl-suggest"); if (box) { box.style.display = "none"; box.innerHTML = ""; }
-            var btn = document.getElementById("btn-wl-add"); if (btn) btn.disabled = true;
-            loadWatchlist(true);
-          }).catch(function (e) { wlStatus("添加失败：" + (e && e.message || "网络错误"), true); });
-      }
-      function loadWlAccount() {
-        var el = document.getElementById("wl-account");
-        if (!el) return;
-        apiFetch("/api/me").then(function (d) {
-          var u = (d && d.user) || {};
-          var idv = String(u.email || u.phone || "").trim();
-          el.textContent = "当前账号：" + (idv || ("#" + (u.id != null ? u.id : "?"))) + " · 自选以服务端为准（跨设备同步）";
-        }).catch(function () {
-          el.textContent = "当前账号读取失败，请确认已登录";
-        });
-      }
-      function loadWlScores() {
-        var wrap = document.getElementById("wl-score-wrap");
-        var hint = document.getElementById("wl-score-hint");
-        if (!wrap) return;
-        if (!wlItems.length) { wlStatus("请先添加自选股", true); return; }
-        wrap.innerHTML = '<div class="muted small">评分计算中…（约几秒，最多 12 秒）</div>';
-        apiFetch("/api/watchlist/scores").then(function (d) {
-          var items = (d && d.items) || [];
-          if (hint) {
-            hint.style.display = "";
-            hint.textContent = "共 " + items.length + " 只标的参与评分；个别标的获取超时显示 —，可点「刷新评分」重试。评分按自然日同票去重扣次，仅为技术规则量化结果，不构成投资建议。";
-          }
-          renderWlScores(items);
-        }).catch(function (e) {
-          wrap.innerHTML = "";
-          wlStatus("评分失败：" + (e && e.message || "网络错误"), true);
-        });
-      }
-      function renderWlScores(items) {
-        var wrap = document.getElementById("wl-score-wrap");
-        if (!wrap) return;
-        if (!items.length) {
-          wrap.innerHTML = '<div class="muted small">暂无评分结果（标的可能缺少足够 K 线历史）。</div>';
-          return;
-        }
-        var html = '<table class="wl-score-table" style="width:100%; border-collapse:collapse; font-size:12px; min-width:620px;">'
-          + '<thead><tr><th>#</th><th>代码</th><th>名称</th><th>评分</th><th>信号标签</th><th>风险提示</th></tr></thead><tbody>';
-        for (var i = 0; i < items.length; i++) {
-          var it = items[i];
-          var err = String(it.error || "");
-          var sc = Number(it.score || 0);
-          var cls = err ? "wl-score-low" : (sc >= 70 ? "wl-score-high" : (sc >= 45 ? "wl-score-mid" : "wl-score-low"));
-          var tags = escWl((it.tags || []).join(" / "));
-          var risks = escWl((it.risks || []).join(" / "));
-          html += '<tr><td>' + (i + 1) + '</td>'
-            + '<td class="wl-code">' + escWl(it.code || "") + '</td>'
-            + '<td>' + escWl(it.name || "") + '</td>'
-            + '<td><span class="' + cls + '">' + (err ? "—" : sc.toFixed(0)) + '</span></td>'
-            + '<td>' + (tags || "—") + '</td>'
-            + '<td class="wl-risk">' + (risks || (err ? "数据获取超时，点「刷新评分」重试" : "—")) + '</td></tr>';
-        }
-        html += '</tbody></table>';
-        wrap.innerHTML = html;
-      }
-      function initWl() {
-        var inp = document.getElementById("wl-search");
-        var btn = document.getElementById("btn-wl-add");
-        var scoresBtn = document.getElementById("btn-wl-scores");
-        if (inp) {
-          inp.addEventListener("input", function () {
-            var q = String(inp.value || "").trim();
-            var b = document.getElementById("btn-wl-add");
-            if (b) b.disabled = !q;
-            clearTimeout(window.__wlSuggestTimer);
-            window.__wlSuggestTimer = setTimeout(wlRunSuggest, 350);
-          });
-          inp.addEventListener("keydown", function (e) {
-            if (e.key === "Enter") wlRunSuggest();
-          });
-        }
-        if (btn) {
-          btn.addEventListener("click", function () {
-            var inp2 = document.getElementById("wl-search");
-            var q = String(inp2 ? inp2.value : "").trim();
-            if (!q) return;
-            wlSuggestRows().then(function (rows) {
-              if (!rows.length) { wlStatus("未找到匹配标的，请检查输入", true); return; }
-              var it = rows[0];
-              addWlItem(String(it.QuoteID || ""), String(it.Code || ""), String(it.Name || ""));
-            });
-          });
-        }
-        if (scoresBtn) scoresBtn.addEventListener("click", loadWlScores);
-      }
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", initWl);
-      } else {
-        initWl();
-      }
     })();
         </script>
 </body>
