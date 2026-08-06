@@ -939,7 +939,7 @@
       </label>
       <div class="pw-field-grid">
         <label class="pw-field">新密码
-          <input id="pw-ch-new" type="password" autocomplete="new-password" placeholder="至少 6 位" />
+          <input id="pw-ch-new" type="password" autocomplete="new-password" placeholder="至少 8 位" />
         </label>
         <label class="pw-field">确认新密码
           <input id="pw-ch-new2" type="password" autocomplete="new-password" placeholder="再输一次" />
@@ -3554,7 +3554,9 @@ function agentCityRefresh() {
         pwFgSend.addEventListener("click", function () {
           var stf = $("pw-fg-status");
           function setF(s) {
-            if (stf) stf.textContent = s || "";
+            if (!stf) return;
+            stf.textContent = s || "";
+            if (s) { stf.classList.add("is-error"); } else { stf.classList.remove("is-error"); }
           }
           var idv = $("pw-fg-ident") ? String($("pw-fg-ident").value || "").trim() : "";
           if (!idv) {
@@ -3614,8 +3616,8 @@ function agentCityRefresh() {
             setF("请填写手机号与验证码。");
             return;
           }
-          if (!n1 || n1.length < 6) {
-            setF("新密码至少 6 位。");
+          if (!n1 || n1.length < 8) {
+            setF("新密码至少 8 位。");
             return;
           }
           if (n1 !== n2) {
@@ -3671,7 +3673,9 @@ function agentCityRefresh() {
         pwChSubmit.addEventListener("click", function () {
           var stc = $("pw-ch-status");
           function setC(s) {
-            if (stc) stc.textContent = s || "";
+            if (!stc) return;
+            stc.textContent = s || "";
+            if (s) { stc.classList.add("is-error"); } else { stc.classList.remove("is-error"); }
           }
           if (!tokenGet()) {
             setC("请先登录。");
@@ -3684,8 +3688,8 @@ function agentCityRefresh() {
             setC("请填写当前密码。");
             return;
           }
-          if (!n1 || n1.length < 6) {
-            setC("新密码至少 6 位。");
+          if (!n1 || n1.length < 8) {
+            setC("新密码至少 8 位。");
             return;
           }
           if (n1 !== n2) {
