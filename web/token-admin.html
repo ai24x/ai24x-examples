@@ -3263,7 +3263,7 @@
       var bg = lv === "error" ? "#fde9e7" : lv === "warn" ? "#fdf3e0" : "#eaf4fd";
       var fg = lv === "error" ? "#c0392b" : lv === "warn" ? "#b7791f" : "#2b6cb0";
       var label = alertLabel(a.code);
-      return '<span title="' + esc((a.code || '') + ' - ' + (a.msg || '')) + '" style="display:inline-block;background:' + bg + ';color:' + fg + ';border-radius:4px;padding:1px 8px;margin:2px 4px 0 0;font-size:12px;">' + esc(label) + ' <span style="opacity:.55;font-size:11px;">' + esc(a.code || '') + '</span></span>';
+      return '<span title="' + esc((a.code || '') + ' - ' + (a.msg || '')) + '" style="display:inline-block;background:' + bg + ';color:' + fg + ';border-radius:4px;padding:1px 8px;margin:2px 4px 0 0;font-size:12px;">' + esc(label) + '</span>';
     }).join("");
   }
 
@@ -3272,7 +3272,7 @@
     var box = $("alertOverview");
     if (box) {
       box.innerHTML = codes.length
-        ? codes.map(function (c) { var l = alertLabel(c); return '<span title="' + esc(c) + '" style="display:inline-block;background:#fde9e7;color:#c0392b;border-radius:4px;padding:1px 8px;margin:2px 4px 0 0;font-size:12px;">' + esc(l) + ' <span style="opacity:.55;font-size:11px;">' + esc(c) + '</span></span>'; }).join("")
+        ? codes.map(function (c) { var l = alertLabel(c); return '<span title="' + esc(c) + '" style="display:inline-block;background:#fde9e7;color:#c0392b;border-radius:4px;padding:1px 8px;margin:2px 4px 0 0;font-size:12px;">' + esc(l) + '</span>'; }).join("")
         : '<span style="color:#27ae60;">无告警</span>';
     }
     var lc = $("alertLastCheck");
