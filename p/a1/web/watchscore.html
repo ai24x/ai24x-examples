@@ -52,10 +52,23 @@
     body.embed .page-main { padding-top: 4px; }
     body.embed .card > h1 { display: none; }
     .wl-kline { color: #be123c; font-weight: 700; text-decoration: none; white-space: nowrap; }
+    .wl-kline.wk-high { color: #f43f5e; }
+    .wl-kline.wk-mid { color: #f59e0b; }
+    .wl-kline.wk-low { color: #94a3b8; }
     .wl-kline:hover { text-decoration: underline; }
-    #wl-market .mkt-up { color: #f43f5e; font-weight: 700; }
-    #wl-market .mkt-down { color: #3b82f6; font-weight: 700; }
-    #wl-market .mkt-flat { color: #94a3b8; font-weight: 700; }
+    #wl-market { margin:0 0 10px; font-size:12px; color:var(--muted); line-height:1.7; }
+    #wl-market .mkt-label { color:#f43f5e; font-weight:800; }
+    #wl-market .mkt-state { font-weight:700; }
+    #wl-market .mkt-up { color:#f43f5e; }
+    #wl-market .mkt-down { color:#3b82f6; }
+    #wl-market .mkt-flat { color:#94a3b8; }
+    .wl-score-head { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin:0 0 6px; font-size:12px; color:var(--muted); }
+    .wl-table-scroll { max-height:460px; overflow:auto; border:1px solid rgba(148,163,184,.15); border-radius:10px; }
+    body.embed .wl-table-scroll { max-height:380px; }
+    .wl-score-table thead th { position:sticky; top:0; z-index:1; background:var(--panel); box-shadow:0 1px 0 rgba(148,163,184,.2); }
+    .wl-score-table td.wl-tags, .wl-score-table td.wl-risk { max-width:210px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .wl-score-table td.wl-rank { width:34px; color:var(--muted); }
+    .wl-score-table td.wl-score-col { width:60px; }
   </style>
 </head>
 <body>
@@ -92,7 +105,7 @@
             </span>
           </div>
           <div class="status" id="wl-status" style="margin:0 0 4px;"></div>
-          <div class="muted small" id="wl-market" style="margin:2px 0 6px; display:none;"></div>
+          <div id="wl-market" style="margin:0 0 10px; display:none;"></div>
           <div id="wl-list"></div>
           <div class="hint" id="wl-score-hint" style="margin-top:10px; display:none;"></div>
           <div id="wl-score-wrap" style="margin-top:10px;"></div>
@@ -234,7 +247,7 @@
         var cls = pts >= 2 ? "mkt-up" : (pts <= -2 ? "mkt-down" : "mkt-flat");
         var lbl = pts >= 2 ? "顺风" : (pts <= -2 ? "逆风" : "中性");
         el.style.display = "";
-        el.innerHTML = "大盘环境：<span class=\"" + cls + "\">" + escWl(lbl) + "</span>（" + escWl(m.name) + "：" + escWl((m.tags || []).join(" / ")) + "）";
+        el.innerHTML = '<span class="mkt-label">大盘环境</span>：<span class="mkt-state ' + cls + '">' + escWl(lbl) + '</span>（' + escWl(m.name) + '：' + escWl((m.tags || []).join(" / ")) + '）';
       }
       function renderWlScores(items) {
         var wrap = $("wl-score-wrap");
@@ -243,23 +256,33 @@
           wrap.innerHTML = '<div class="muted small">暂无评分结果（标的可能缺少足够 K 线历史）。</div>';
           return;
         }
-        var html = '<table class="wl-score-table"><thead><tr><th>#</th><th>代码</th><th>名称</th><th>综合分</th><th>技术信号</th><th>风险提示</th></tr></thead><tbody>';
+        var ok = 0, sum = 0, high = 0;
+        for (var i = 0; i < items.length; i++) {
+          if (items[i].error) continue;
+          ok++; sum += Number(items[i].score || 0);
+          if (Number(items[i].score || 0) >= 70) high++;
+        }
+        var avg = ok ? (sum / ok).toFixed(1) : "—";
+        var html = '<div class="wl-score-head"><span>共 <b>' + items.length + '</b> 只 · 有效 <b>' + ok + '</b> 只 · 平均分 <b>' + avg + '</b> · 高分(≥70) <b>' + high + '</b> 只</span></div>';
+        html += '<div class="wl-table-scroll"><table class="wl-score-table"><thead><tr><th>#</th><th>代码</th><th>名称</th><th>综合分</th><th>技术信号</th><th>风险提示</th></tr></thead><tbody>';
         for (var i = 0; i < items.length; i++) {
           var it = items[i];
           var err = String(it.error || "");
           var sc = Number(it.score || 0);
           var cls = err ? "wl-score-low" : (sc >= 70 ? "wl-score-high" : (sc >= 45 ? "wl-score-mid" : "wl-score-low"));
+          var nameCls = err ? "wk-low" : (sc >= 70 ? "wk-high" : (sc >= 45 ? "wk-mid" : "wk-low"));
+          var arrow = err ? "" : (sc >= 70 ? " ↗" : (sc >= 45 ? " →" : " ↘"));
           var tags = escWl((it.tags || []).join(" / "));
           var risks = escWl((it.risks || []).join(" / "));
           var link = './demo.html?secid=' + encodeURIComponent(it.secid || '') + '&period=day';
-          html += '<tr><td>' + (i + 1) + '</td>'
+          html += '<tr><td class="wl-rank">' + (i + 1) + '</td>'
             + '<td class="wl-code">' + escWl(it.code || "") + '</td>'
-            + '<td><a class="wl-kline" href="' + link + '" target="_blank" rel="noopener" title="新窗口查看 K 线">' + escWl(it.name || "") + ' ↗</a></td>'
-            + '<td><span class="' + cls + '">' + (err ? "—" : sc.toFixed(0)) + '</span></td>'
-            + '<td>' + (tags || "—") + '</td>'
-            + '<td class="wl-risk">' + (risks || (err ? "数据获取超时，点「刷新评分」重试" : "—")) + '</td></tr>';
+            + '<td><a class="wl-kline ' + nameCls + '" href="' + link + '" target="_blank" rel="noopener" title="新窗口查看 K 线">' + escWl(it.name || "") + arrow + '</a></td>'
+            + '<td class="wl-score-col"><span class="' + cls + '">' + (err ? "—" : sc.toFixed(0)) + '</span></td>'
+            + '<td class="wl-tags" title="' + tags + '">' + (tags || "—") + '</td>'
+            + '<td class="wl-risk" title="' + risks + '">' + (risks || (err ? "数据获取超时，点「刷新评分」重试" : "—")) + '</td></tr>';
         }
-        html += '</tbody></table>';
+        html += '</tbody></table></div>';
         wrap.innerHTML = html;
       }
       function loadWatchlist(force) {
