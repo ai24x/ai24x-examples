@@ -23,6 +23,10 @@ CASES = [
     ("gpt", "vip-gpt5"),
     ("claude", "vip-claude-sonnet"),
     ("gemini", "vip-gemini-pro"),
+    ("gemini-3.6-flash", "vip-gemini-flash"),
+    ("gemini-3.1-pro", "vip-gemini-pro"),
+    ("claude-opus-5", "vip-claude-opus"),
+    ("claude-haiku-4.5", "vip-claude-haiku"),
     ("vip-claude-sonnet", "vip-claude-sonnet"),
     # OpenAI drop-in 仍落品牌档（不是真名模）
     ("gpt-4o", "flash"),
