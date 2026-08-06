@@ -101,6 +101,8 @@ api/data/feishu_poll_last.txt
 api/_*.py
 api/_*.json
 api/data/ops_alert_state.json
+api/data/upstream_health.json
+api/data/provider_prices.json
 api/data/pricing_audit.jsonl
 scripts/_*.py
 scripts/_*.js

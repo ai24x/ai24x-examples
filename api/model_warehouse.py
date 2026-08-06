@@ -171,11 +171,11 @@ CATALOG: list[dict[str, Any]] = [
         "siliconflow_id": "deepseek-ai/DeepSeek-V4-Flash",
         "cost_in": 0.14,
         "cost_out": 0.28,
-        "billing_mult": 1,
-        "in_mult": 1,   # ceil(0.14/0.35*1.8)=1
-        "out_mult": 1,  # ceil(0.28/0.35*1.2)=1
-        "quality": "高性价比",
-        "quality_en": "Value",
+        "billing_mult": 2,  # 2026-08-06: 点名溢价（与品牌层 flash 同模型，双价 in1/out2 毛利~60%）
+        "in_mult": 1,   # 输入 $0.35（= flash，2.5x 官方）
+        "out_mult": 2,  # 输出 $0.70（2.5x 官方）
+        "quality": "点名专属 · 全程同模型不降级",
+        "quality_en": "Named pick · same-model failover",
         "access": "ready",
         "modalities": ["text"],
         "failover_to": ["ds-v4-flash"],
@@ -192,9 +192,9 @@ CATALOG: list[dict[str, Any]] = [
         "siliconflow_id": "deepseek-ai/DeepSeek-V4-Pro",
         "cost_in": 0.435,
         "cost_out": 0.87,
-        "billing_mult": 3,
-        "in_mult": 3,   # ceil(0.435/0.35*1.8)=3
-        "out_mult": 3,  # ceil(0.87/0.35*1.2)=3
+        "billing_mult": 4,  # 2026-08-06: 点名溢价（$1.40，毛利~55%；3.2x/1.6x 官方）
+        "in_mult": 4,
+        "out_mult": 4,
         "quality": "更强推理",
         "quality_en": "Stronger reasoning",
         "access": "ready",
@@ -217,8 +217,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 3.0,
         "cost_out": 15.0,
         "billing_mult": 39,  # 2026-08-05: ceil(9.0/0.35*1.5)=39 (flash anchor 0.35)
-        "in_mult": 16,   # ceil(3.0/0.35*1.8)=16
-        "out_mult": 52,  # ceil(15.0/0.35*1.2)=52
+        "in_mult": 18,   # 2026-08-06: 点名溢价（$6.30，2.1x 官方）
+        "out_mult": 58,  # 2026-08-06: 点名溢价（$20.30，1.35x 官方）
         "quality": "旗舰 · 多项国际评测冠军",
         "quality_en": "Flagship · top benchmarks",
         "access": "ready",
@@ -234,6 +234,8 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 2,
         "openrouter_id": "moonshotai/kimi-k2.7-code",
         "direct_id": None,
+        # 2026-08-06: kimi-code 屏蔽 TokenLab（K3 在 TL 全挂 400/503，K2.7 未评测防空转）
+        "channels": ["openrouter"],
         "siliconflow_id": "moonshotai/Kimi-K2.7-Code",
         "cost_in": 0.71,
         "cost_out": 3.50,
@@ -259,9 +261,9 @@ CATALOG: list[dict[str, Any]] = [
         "siliconflow_id": None,  # 硅基目录暂无稳定同款，走 OR
         "cost_in": 0.435,
         "cost_out": 0.87,
-        "billing_mult": 3,
-        "in_mult": 3,   # ceil(0.435/0.35*1.8)=3
-        "out_mult": 3,  # ceil(0.87/0.35*1.2)=3
+        "billing_mult": 4,  # 2026-08-06: 点名溢价（品牌层无 mimo 替代，$1.40，毛利~55%）
+        "in_mult": 4,
+        "out_mult": 4,
         "quality": "均衡",
         "quality_en": "Balanced",
         "access": "ready",
@@ -347,8 +349,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 1.12,
         "cost_out": 3.52,
         "billing_mult": 10,  # 2026-08-05: ceil(2.32/0.35*1.5)=11
-        "in_mult": 6,   # ceil(1.12/0.35*1.8)=6
-        "out_mult": 13,  # ceil(3.52/0.35*1.2)=13
+        "in_mult": 8,   # 2026-08-06: 点名溢价（$2.80，2.5x 官方）
+        "out_mult": 14,  # 2026-08-06: 点名溢价（$4.90，1.4x 官方）
         "quality": "通用旗舰",
         "quality_en": "General flagship",
         "access": "ready",
@@ -365,6 +367,8 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 9,
         "openrouter_id": "openai/gpt-5",
         "direct_id": None,
+        # 2026-08-06: 保持 OR 主通道（补测 TL 同价无成本优势，OR 稳定性更优）
+        "channels": ["openrouter", "tokenlab", "requesty"],
         "cost_in": 1.25,
         "cost_out": 10.0,
         "billing_mult": 25,  # 2026-08-05: ceil(5.625/0.35*1.5)=25
@@ -427,6 +431,8 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 17,
         "openrouter_id": "openai/gpt-4o",
         "direct_id": None,
+        # 2026-08-06: 主通道切 TokenLab（补测 24/24 持平；TL 与 OR 同价，OR 留作备用）
+        "channels": ["tokenlab", "openrouter", "requesty"],
         "cost_in": 2.5,
         "cost_out": 10.0,
         "billing_mult": 27,  # 2026-08-05: ceil(6.25/0.35*1.5)=28
@@ -447,6 +453,8 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 18,
         "openrouter_id": "openai/gpt-4o-mini",
         "direct_id": None,
+        # 2026-08-06: 主通道切 TokenLab（补测 24/24 持平；TL 与 OR 同价）
+        "channels": ["tokenlab", "openrouter", "requesty"],
         "cost_in": 0.15,
         "cost_out": 0.6,
         "billing_mult": 2,
@@ -487,6 +495,8 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 14,
         "openrouter_id": "anthropic/claude-haiku-4.5",
         "direct_id": None,
+        # 2026-08-06: 保持 OR 主通道（定位"轻量快速"：TL 质量 0.5<0.6 且延迟 3.4s>2.2s；便宜 35% 但绝对值小）
+        "channels": ["openrouter", "tokenlab", "requesty"],
         "cost_in": 1.0,
         "cost_out": 5.0,
         "billing_mult": 13,  # 2026-08-05: ceil(3.0/0.35*1.5)=14
@@ -527,8 +537,10 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 12,
         "openrouter_id": "google/gemini-3.1-pro-preview",
         "direct_id": None,
-        "cost_in": 2.0,
-        "cost_out": 12.0,
+        # 2026-08-06: 主通道切 TokenLab（补测 96% 持平；TL 实价 $1.0/$6.0 为 OR 50%）
+        "channels": ["tokenlab", "openrouter", "requesty"],
+        "cost_in": 1.0,    # 2026-08-06: TL 实价（原 2.0 = OR）
+        "cost_out": 6.0,   # 2026-08-06: TL 实价（原 12.0 = OR）
         "billing_mult": 30,  # 2026-08-05: ceil(7.0/0.35*1.5)=32
         "in_mult": 11,   # ceil(2.0/0.35*1.8)=11
         "out_mult": 42,  # ceil(12.0/0.35*1.2)=42
@@ -592,8 +604,10 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 20,
         "openrouter_id": "openai/gpt-5.6-luna",
         "direct_id": None,
-        "cost_in": 0.10,
-        "cost_out": 0.60,
+        # 2026-08-06: 主通道切 TokenLab（补测 24/24 持平且延迟 2.3s < OR 2.8s；TL 实价 $0.06/$0.36 为 OR 60%）
+        "channels": ["tokenlab", "openrouter", "requesty"],
+        "cost_in": 0.06,    # 2026-08-06: TL 实价（原 0.10 = OR）
+        "cost_out": 0.36,   # 2026-08-06: TL 实价（原 0.60 = OR）
         "billing_mult": 2,
         "in_mult": 1,   # ceil(0.1/0.35*1.8)=1
         "out_mult": 3,  # ceil(0.6/0.35*1.2)=3

@@ -337,6 +337,10 @@
               毛利与告警
               <span class="subt">流水粗算 · 探活</span>
             </button>
+            <button type="button" class="nav-item" data-panel="p-supply">
+              供应链监控
+              <span class="subt">价格 · 毛利 · 供货商比价</span>
+            </button>
             <button type="button" class="nav-item" data-panel="p-alert">
               预警通道
               <span class="subt">飞书告警 · 定时巡检 · 测试推送</span>
@@ -763,6 +767,40 @@
 
               <div class="section-label">④ 巡检输出</div>
               <pre class="mono small" id="alertRunResult" style="white-space:pre-wrap;">尚未巡检。点右上「立即巡检并推送」可测试链路。</pre>
+            </div>
+          </div>
+          <div class="panel-page" id="p-supply">
+            <div class="card">
+              <div class="row" style="justify-content:space-between;align-items:flex-start;">
+                <div>
+                  <h2 style="margin:0;">供应链监控 · 价格 / 毛利 / 供货商比价</h2>
+                  <p class="muted small" style="margin:6px 0 0;">逐模型监控双口径毛利（输入端 / 输出端 / 1:1 混合 / 1:4 加权）；倒挂（GM&lt;0）标红、混合毛利&lt;20% 标黄；与 OR/TL/Requesty 实拉价对比，成本高于市场最低 1.2 倍提示可切通道。预警已接入巡检：倒挂=P0，低毛利=P1。</p>
+                </div>
+                <div class="row">
+                  <button type="button" id="btnPmLoad">刷新监控</button>
+                  <button type="button" class="ok" id="btnPmRefresh">刷新价目（实拉）</button>
+                </div>
+              </div>
+              <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:10px;">
+                <div class="field"><span class="lbl">快照时间</span><div id="pmTime" style="font-size:13px;">—</div></div>
+                <div class="field"><span class="lbl">价目基准时间</span><div id="pmPpTime" style="font-size:13px;">—</div></div>
+                <div class="field"><span class="lbl">倒挂 / 红线</span><div id="pmAlarm" style="font-size:13px;">—</div></div>
+                <div class="field"><span class="lbl">风险提示</span><div id="pmWarn" style="font-size:13px;">—</div></div>
+                <div class="field"><span class="lbl">降本机会</span><div id="pmInfo" style="font-size:13px;">—</div></div>
+              </div>
+              <div class="section-label">逐模型监控</div>
+              <div style="overflow-x:auto;">
+                <table id="pmTable">
+                  <thead>
+                    <tr>
+                      <th>模型</th><th>售价 入/出</th><th>成本 入/出</th><th>GM入</th><th>GM出</th><th>GM混合</th><th>GM1:4</th>
+                      <th>OR 入/出</th><th>TL 入/出</th><th>RQ 入/出</th><th>市场最低</th><th>状态</th>
+                    </tr>
+                  </thead>
+                  <tbody><tr><td colspan="12" class="muted">加载中…</td></tr></tbody>
+                </table>
+              </div>
+              <p class="muted small" style="margin:8px 0 0;">GM入/GM出 = 单端毛利；GM混合 = 1:1 综合；GM1:4 = 输入1输出4 加权（贴近实际流量）。红色=倒挂/破红线，黄色=低毛利或成本高于市场最低。</p>
             </div>
           </div>
           <div class="panel-page" id="p-shared">
@@ -2570,6 +2608,9 @@
     } else if (p === "p-alert") {
       await loadAlertConfig();
       setMsg("预警通道已刷新", "ok");
+    } else if (p === "p-supply") {
+      await loadSupplyMonitor();
+      setMsg("供应链监控已刷新", "ok");
     } else if (p === "p-shared") {
       await loadFreeShared();
       setMsg("免费共享已刷新", "ok");
@@ -3285,6 +3326,74 @@
 
   if ($("btnAlertSave")) $("btnAlertSave").onclick = saveAlertConfig;
   if ($("btnAlertRun")) $("btnAlertRun").onclick = runAlertCheck;
+  function fmtPr(p) {
+    if (!p) return "—";
+    return (p[0] == null ? "-" : p[0]) + "/" + (p[1] == null ? "-" : p[1]);
+  }
+  function fmtGm(v) {
+    if (v == null) return "—";
+    var c = v < 0 ? "var(--bad)" : (v < 20 ? "var(--warn)" : "var(--ok)");
+    return '<span style="color:' + c + ';">' + v + "%</span>";
+  }
+  function renderSupply(r) {
+    var s = r.summary || {};
+    $("pmTime").textContent = r.generated_cst || "—";
+    $("pmPpTime").textContent = r.provider_prices_time || "未拉取（点「刷新价目」）";
+    $("pmAlarm").innerHTML = s.alarm
+      ? '<span class="bad">' + s.alarm + " 个倒挂/红线：" + esc((s.alarm_ids || []).join(", ")) + "</span>"
+      : '<span style="color:var(--ok);">0 · 无倒挂</span>';
+    $("pmWarn").innerHTML = s.warn
+      ? '<span style="color:var(--warn);">' + s.warn + " 个：" + esc((s.warn_ids || []).join(", ")) + "</span>"
+      : '<span style="color:var(--ok);">0</span>';
+    $("pmInfo").innerHTML = s.info
+      ? '<span class="muted">' + s.info + " 个：" + esc((s.info_ids || []).join(", ")) + "</span>"
+      : '<span class="muted">0</span>';
+    var tb = $("pmTable").querySelector("tbody");
+    var rows = r.rows || [];
+    if (!rows.length) { tb.innerHTML = '<tr><td colspan="12" class="muted">无在售模型</td></tr>'; return; }
+    tb.innerHTML = rows.map(function (x) {
+      var cls = x.level === "alarm" ? ' style="background:rgba(251,113,133,.14);"'
+        : (x.level === "warn" ? ' style="background:rgba(251,191,36,.08);"' : "");
+      var flagTxt = (x.flags || []).length ? (x.flags || []).join("；") : "ok";
+      var chTxt = (x.channels || []).join("/");
+      var stTxt = x.level === "alarm" ? '<span class="bad">' + esc(flagTxt) + "</span>"
+        : x.level === "warn" ? '<span style="color:var(--warn);">' + esc(flagTxt) + "</span>"
+        : x.level === "info" ? '<span class="muted">' + esc(flagTxt) + "</span>"
+        : '<span style="color:var(--ok);">' + esc(flagTxt) + "</span>";
+      return "<tr" + cls + ">" +
+        "<td>" + esc(x.title) + (chTxt ? '<span class="muted small"> · ' + esc(chTxt) + "</span>" : "") + "</td>" +
+        '<td class="mono">' + fmtPr([x.sell_in, x.sell_out]) + "</td>" +
+        '<td class="mono">' + fmtPr([x.cost_in, x.cost_out]) + "</td>" +
+        '<td class="mono">' + fmtGm(x.gm_in) + "</td>" +
+        '<td class="mono">' + fmtGm(x.gm_out) + "</td>" +
+        '<td class="mono">' + fmtGm(x.gm_blend) + "</td>" +
+        '<td class="mono">' + fmtGm(x.gm_1to4) + "</td>" +
+        "<td class='mono'>" + (x.or ? fmtPr(x.or) : "—") + "</td>" +
+        "<td class='mono'>" + (x.tl ? fmtPr(x.tl) : "—") + "</td>" +
+        "<td class='mono'>" + (x.rq ? fmtPr(x.rq) : "—") + "</td>" +
+        "<td class='mono'>" + (x.market_min ? fmtPr(x.market_min) : "—") + "</td>" +
+        "<td>" + stTxt + "</td>" +
+        "</tr>";
+    }).join("");
+  }
+  async function loadSupplyMonitor() {
+    renderSupply(await api("/v1/admin/price/monitor"));
+  }
+  if ($("btnPmLoad")) {
+    $("btnPmLoad").onclick = async function () {
+      try { await loadSupplyMonitor(); setMsg("供应链监控已刷新", "ok"); }
+      catch (e) { setMsg(String(e.message || e), "err"); }
+    };
+  }
+  if ($("btnPmRefresh")) {
+    $("btnPmRefresh").onclick = async function () {
+      try {
+        setMsg("正在实拉 OR/TL/Requesty 价目…", "ok");
+        renderSupply(await api("/v1/admin/price/refresh", { method: "POST" }));
+        setMsg("价目已刷新（12h 缓存）", "ok");
+      } catch (e) { setMsg(String(e.message || e), "err"); }
+    };
+  }
   if ($("btnCopyPmCmd")) $("btnCopyPmCmd").onclick = copyPmCmd;
 })();
 

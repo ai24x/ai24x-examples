@@ -313,6 +313,65 @@ def collect_alerts(db) -> dict[str, Any]:
     except Exception as e:
         add("warn", "pay_order_stats_fail", f"订单统计异常: {e}")
 
+    # 5) 上游通道健康（窗口失败率 / 模型连续失败 / 熔断状态）
+    try:
+        from upstream_health import snapshot as _uh_snapshot
+
+        uh = _uh_snapshot()
+        for pid, st in (uh.get("recs") or {}).items():
+            w = st.get("window") or {}
+            w_total = int(w.get("total") or 0)
+            w_fail = int(w.get("fail") or 0)
+            if w_total >= 5 and w_fail / max(1, w_total) >= 0.6:
+                rate = round(w_fail * 100.0 / max(1, w_total))
+                add(
+                    "error",
+                    f"upstream_fail_{pid}",
+                    f"上游通道 {pid} 近 10 分钟失败率 {rate}%（{w_fail}/{w_total}），连续失败 {st.get('consec')} 次",
+                )
+            for mid, m in (st.get("models") or {}).items():
+                if int(m.get("consec") or 0) >= 3:
+                    safe_mid = "".join(c if c.isalnum() else "_" for c in str(mid))
+                    add(
+                        "warn",
+                        f"upstream_model_fail_{pid}_{safe_mid[:48]}",
+                        f"模型 {mid} 经 {pid} 连续失败 {m.get('consec')} 次，点名易降级",
+                    )
+        for pid2, s2 in (uh.get("circuit") or {}).items():
+            if s2.get("open"):
+                add(
+                    "error",
+                    f"upstream_circuit_{pid2}",
+                    f"通道 {pid2} 已自动熔断（{s2.get('reason') or '连续失败'}），冷却至 {s2.get('until_cst')}",
+                )
+    except Exception as e:
+        add("warn", "upstream_health_collect_fail", f"上游健康采集异常: {e}")
+
+
+    # 6) 价格与毛利监控（倒挂 / 低毛利 / 成本高于市场最低）
+    try:
+        from price_monitor import snapshot as _pm_snapshot
+
+        pm = _pm_snapshot()
+        for r in (pm.get("rows") or []):
+            rid = "".join(c if c.isalnum() else "_" for c in str(r.get("id") or ""))[:40]
+            if r.get("level") == "alarm":
+                add(
+                    "error",
+                    f"price_alarm_{rid}",
+                    f"价格红线: {r.get('title')} GM_in={r.get('gm_in')}% GM_out={r.get('gm_out')}% "
+                    f"混合={r.get('gm_blend')}% ({'; '.join(r.get('flags') or [])})",
+                )
+            elif r.get("level") == "warn":
+                add(
+                    "warn",
+                    f"price_warn_{rid}",
+                    f"价格预警: {r.get('title')} 混合毛利={r.get('gm_blend')}% "
+                    f"({'; '.join(r.get('flags') or [])})",
+                )
+    except Exception as e:
+        add("warn", "price_monitor_fail", f"价格监控采集异常: {e}")
+
     return {"ok": True, "alerts": alerts, "health": health}
 
 

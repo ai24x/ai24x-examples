@@ -2380,6 +2380,46 @@ async def admin_token_upstream_probe(request: Request, live: int = 0):
     }
 
 
+@app.get("/v1/admin/upstream/health")
+async def admin_upstream_health(request: Request):
+    """运维只读：上游通道健康快照（窗口失败率 / 连续失败 / 熔断状态）。"""
+    _require_internal_key(request)
+    from upstream_health import snapshot
+
+    return snapshot()
+
+
+@app.post("/v1/admin/upstream/health/reset")
+async def admin_upstream_health_reset(request: Request):
+    """运维：清空上游健康统计与熔断（排查/修复后手动恢复）。"""
+    _require_internal_key(request)
+    from upstream_health import reset
+
+    reset()
+    return {"ok": True, "reset": True}
+
+@app.get("/v1/admin/price/monitor")
+async def admin_price_monitor(request: Request):
+    """运维只读：价格与供应链监控（售价/成本/毛利三口径 + 供货商比价 + 倒挂检测）。"""
+    _require_internal_key(request)
+    from price_monitor import snapshot
+
+    return snapshot()
+
+
+@app.post("/v1/admin/price/refresh")
+async def admin_price_refresh(request: Request):
+    """运维：实拉 OR/TL/Requesty 价目并返回最新监控快照（12h 缓存，force 强制）。"""
+    _require_internal_key(request)
+    import asyncio
+    from price_monitor import refresh_provider_prices, snapshot
+
+    rep = await asyncio.to_thread(refresh_provider_prices, True)
+    snap = snapshot()
+    snap["refresh"] = {k: v for k, v in rep.items() if k in ("ok", "cached", "age_s", "providers")}
+    return snap
+
+
 @app.get("/v1/admin/token/system")
 async def admin_token_system(request: Request):
     """运维系统开关：可覆盖并立即生效（密钥只读）。"""

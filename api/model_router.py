@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from typing import Any, Iterator, Optional
 
 import httpx
+import upstream_health
 
 logger = logging.getLogger(__name__)
 
@@ -1272,6 +1273,9 @@ def _vip_aggregator_chain(pick: dict[str, Any], or_id: str) -> list[dict[str, st
         chain = list(default_order)
     out: list[dict[str, str]] = []
     for pid in chain:
+        # 熔断冷却中的聚合通道自动跳过（默认关闭，不影响现有行为）
+        if upstream_health.circuit_open(pid):
+            continue
         if pid == "openrouter":
             if not or_id or _upstream_mode() != "openrouter":
                 continue
@@ -1698,6 +1702,7 @@ def _system_prompt() -> str:
     )
 
 
+@upstream_health.wrap
 def _call_openai_compatible(
     *,
     base: str,
@@ -2000,6 +2005,8 @@ def _try_upstream_stream(
     """
     timeout_s = _stream_timeout_s()
     started = False
+    recorded = False
+    t0 = time.time()
     in_mult = max(1, int(billing_in if billing_in is not None else billing_mult or 1))
     out_mult = max(1, int(billing_out if billing_out is not None else billing_mult or 1))
     for ev in _stream_openai_compatible(
@@ -2017,6 +2024,15 @@ def _try_upstream_stream(
     ):
         et = ev.get("type")
         if et == "error":
+            if not recorded:
+                upstream_health.record_attempt(
+                    provider,
+                    model,
+                    ok=False,
+                    ms=int((time.time() - t0) * 1000),
+                    err=str(ev.get("error") or "")[:160],
+                )
+                recorded = True
             if started:
                 # 已写出部分内容：按已有文本收尾，避免客户端悬空
                 text = str(ev.get("partial") or "")
@@ -2048,6 +2064,11 @@ def _try_upstream_stream(
                 }
             yield ev
         elif et == "done":
+            if not recorded:
+                upstream_health.record_attempt(
+                    provider, model, ok=True, ms=int((time.time() - t0) * 1000)
+                )
+                recorded = True
             raw = max(1, int(ev.get("tokens") or 1))
             p_in = max(1, int(ev.get("prompt_tokens") or 0))
             p_out = max(1, int(ev.get("completion_tokens") or 0))
@@ -2072,6 +2093,14 @@ def _try_upstream_stream(
                 "tool_calls_streamed": bool(ev.get("tool_calls_streamed")),
             }
             return
+    if not recorded:
+        upstream_health.record_attempt(
+            provider,
+            model,
+            ok=False,
+            ms=int((time.time() - t0) * 1000),
+            err="stream_ended_without_done",
+        )
     if not started:
         return
 

@@ -1,0 +1,896 @@
+{
+ "generated": "2026-08-06 local pull",
+ "rows": [
+  {
+   "pick": "auto/flash",
+   "title": "AI24X Flash",
+   "or_id": "deepseek/deepseek-v4-flash",
+   "sell": [
+    0.35,
+    0.35
+   ],
+   "cost": [
+    0.14,
+    0.28
+   ],
+   "margin": 40.0,
+   "or": [
+    0.0882,
+    0.1764
+   ],
+   "requesty": [
+    0.14,
+    0.28
+   ],
+   "tl": [
+    0.14,
+    0.28
+   ],
+   "tl_note": "same",
+   "official": [
+    0.14,
+    0.28
+   ],
+   "official_note": "DS官方",
+   "channels": [
+    "DS直连->OR->L0硅基"
+   ]
+  },
+  {
+   "pick": "pro",
+   "title": "AI24X Pro",
+   "or_id": "deepseek/deepseek-v4-pro",
+   "sell": [
+    1.05,
+    1.05
+   ],
+   "cost": [
+    0.435,
+    0.87
+   ],
+   "margin": 38.0,
+   "or": [
+    0.435,
+    0.87
+   ],
+   "requesty": [
+    0.435,
+    0.87
+   ],
+   "tl": [
+    0.435,
+    0.87
+   ],
+   "tl_note": "same",
+   "official": [
+    0.435,
+    0.87
+   ],
+   "official_note": "DS官方",
+   "channels": [
+    "DS直连->OR"
+   ]
+  },
+  {
+   "pick": "ultra",
+   "title": "AI24X Ultra",
+   "or_id": "openai/gpt-5-mini",
+   "sell": [
+    2.1,
+    2.1
+   ],
+   "cost": [
+    0.25,
+    2.0
+   ],
+   "margin": 29.0,
+   "or": [
+    0.25,
+    2.0
+   ],
+   "requesty": [
+    0.25,
+    2.0
+   ],
+   "tl": [
+    0.25,
+    2.0
+   ],
+   "tl_note": "same",
+   "official": [
+    0.25,
+    2.0
+   ],
+   "official_note": "OpenAI官方",
+   "channels": [
+    "OR"
+   ]
+  },
+  {
+   "pick": "vip-kimi",
+   "title": "Kimi K3",
+   "or_id": "moonshotai/kimi-k3",
+   "sell": [
+    6.3,
+    20.3
+   ],
+   "cost": [
+    3.0,
+    15.0
+   ],
+   "margin": 32.3,
+   "or": [
+    3.0,
+    15.0
+   ],
+   "requesty": null,
+   "tl": [
+    3.0,
+    15.0
+   ],
+   "tl_note": "eval-ref",
+   "official": [
+    3.0,
+    15.0
+   ],
+   "official_note": "Moonshot官方",
+   "channels": [
+    "openrouter"
+   ]
+  },
+  {
+   "pick": "vip-ds-flash",
+   "title": "DeepSeek V4 Flash",
+   "or_id": "deepseek/deepseek-v4-flash",
+   "sell": [
+    0.35,
+    0.7
+   ],
+   "cost": [
+    0.14,
+    0.28
+   ],
+   "margin": 60.0,
+   "or": [
+    0.0882,
+    0.1764
+   ],
+   "requesty": [
+    0.14,
+    0.28
+   ],
+   "tl": [
+    0.14,
+    0.28
+   ],
+   "tl_note": "eval-ref",
+   "official": [
+    0.14,
+    0.28
+   ],
+   "official_note": "DS官方",
+   "channels": []
+  },
+  {
+   "pick": "vip-kimi-code",
+   "title": "Kimi K2.7 Code",
+   "or_id": "moonshotai/kimi-k2.7-code",
+   "sell": [
+    1.4,
+    4.2
+   ],
+   "cost": [
+    0.71,
+    3.5
+   ],
+   "margin": 24.8,
+   "or": [
+    0.7,
+    3.5
+   ],
+   "requesty": null,
+   "tl": null,
+   "tl_note": "eval-ref",
+   "official": [
+    0.7,
+    3.5
+   ],
+   "official_note": "Moonshot官方",
+   "channels": [
+    "openrouter"
+   ]
+  },
+  {
+   "pick": "vip-ds-pro",
+   "title": "DeepSeek V4 Pro",
+   "or_id": "deepseek/deepseek-v4-pro",
+   "sell": [
+    1.4,
+    1.4
+   ],
+   "cost": [
+    0.435,
+    0.87
+   ],
+   "margin": 53.4,
+   "or": [
+    0.435,
+    0.87
+   ],
+   "requesty": [
+    0.435,
+    0.87
+   ],
+   "tl": [
+    0.435,
+    0.87
+   ],
+   "tl_note": "eval-ref",
+   "official": [
+    0.435,
+    0.87
+   ],
+   "official_note": "DS官方",
+   "channels": []
+  },
+  {
+   "pick": "vip-mimo",
+   "title": "小米 MiMo Pro",
+   "or_id": "xiaomi/mimo-v2.5-pro",
+   "sell": [
+    1.4,
+    1.4
+   ],
+   "cost": [
+    0.435,
+    0.87
+   ],
+   "margin": 53.4,
+   "or": [
+    0.435,
+    0.87
+   ],
+   "requesty": [
+    0.435,
+    0.87
+   ],
+   "tl": null,
+   "tl_note": "eval-ref",
+   "official": [
+    0.435,
+    0.87
+   ],
+   "official_note": "Xiaomi官方",
+   "channels": []
+  },
+  {
+   "pick": "vip-minimax",
+   "title": "MiniMax M3",
+   "or_id": "minimax/minimax-m3",
+   "sell": [
+    0.7,
+    1.75
+   ],
+   "cost": [
+    0.3,
+    1.2
+   ],
+   "margin": 38.8,
+   "or": [
+    0.3,
+    1.2
+   ],
+   "requesty": null,
+   "tl": [
+    0.3,
+    1.2
+   ],
+   "tl_note": "eval-ref",
+   "official": [
+    0.3,
+    1.2
+   ],
+   "official_note": "MiniMax官方",
+   "channels": []
+  },
+  {
+   "pick": "vip-qwen-max",
+   "title": "通义 Qwen Max",
+   "or_id": "qwen/qwen3.7-max",
+   "sell": [
+    2.8,
+    5.6
+   ],
+   "cost": [
+    1.475,
+    4.425
+   ],
+   "margin": 29.8,
+   "or": [
+    1.475,
+    4.425
+   ],
+   "requesty": null,
+   "tl": [
+    1.475,
+    4.425
+   ],
+   "tl_note": "eval-ref",
+   "official": [
+    1.475,
+    4.425
+   ],
+   "official_note": "Alibaba官方",
+   "channels": []
+  },
+  {
+   "pick": "vip-glm",
+   "title": "智谱 GLM-5.2",
+   "or_id": "z-ai/glm-5.2",
+   "sell": [
+    2.8,
+    4.9
+   ],
+   "cost": [
+    1.12,
+    3.52
+   ],
+   "margin": 39.7,
+   "or": [
+    0.76,
+    2.42
+   ],
+   "requesty": null,
+   "tl": [
+    1.12,
+    3.52
+   ],
+   "tl_note": "eval-ref",
+   "official": [
+    0.76,
+    2.42
+   ],
+   "official_note": "Zhipu待核(取OR)",
+   "channels": []
+  },
+  {
+   "pick": "vip-qwen122b",
+   "title": "Qwen3.5 122B",
+   "or_id": "qwen/qwen3.5-122b-a10b",
+   "sell": [
+    0.7,
+    2.8
+   ],
+   "cost": [
+    0.26,
+    2.08
+   ],
+   "margin": 33.1,
+   "or": [
+    0.26,
+    2.08
+   ],
+   "requesty": null,
+   "tl": null,
+   "tl_note": "eval-ref",
+   "official": [
+    0.26,
+    2.08
+   ],
+   "official_note": "Alibaba官方",
+   "channels": []
+  },
+  {
+   "pick": "vip-gpt54",
+   "title": "GPT-5.4",
+   "or_id": "openai/gpt-5.4",
+   "sell": [
+    3.85,
+    14.7
+   ],
+   "cost": [
+    0.75,
+    4.5
+   ],
+   "margin": 71.7,
+   "or": [
+    2.5,
+    15.0
+   ],
+   "requesty": [
+    2.5,
+    15.0
+   ],
+   "tl": [
+    0.75,
+    4.5
+   ],
+   "tl_note": "measured",
+   "official": [
+    2.5,
+    15.0
+   ],
+   "official_note": "OpenAI官方",
+   "channels": [
+    "tokenlab",
+    "openrouter",
+    "requesty"
+   ]
+  },
+  {
+   "pick": "vip-gpt5",
+   "title": "GPT-5",
+   "or_id": "openai/gpt-5",
+   "sell": [
+    2.45,
+    12.25
+   ],
+   "cost": [
+    1.25,
+    10.0
+   ],
+   "margin": 23.5,
+   "or": [
+    1.25,
+    10.0
+   ],
+   "requesty": [
+    1.25,
+    10.0
+   ],
+   "tl": [
+    1.25,
+    10.0
+   ],
+   "tl_note": "eval-ref",
+   "official": [
+    1.25,
+    10.0
+   ],
+   "official_note": "OpenAI官方",
+   "channels": [
+    "openrouter",
+    "tokenlab",
+    "requesty"
+   ]
+  },
+  {
+   "pick": "vip-hy3",
+   "title": "Hy3",
+   "or_id": "tencent/hy3",
+   "sell": [
+    0.35,
+    0.7
+   ],
+   "cost": [
+    0.129,
+    0.534
+   ],
+   "margin": 36.9,
+   "or": [
+    0.132,
+    0.528
+   ],
+   "requesty": null,
+   "tl": null,
+   "tl_note": "eval-ref",
+   "official": [
+    0.132,
+    0.528
+   ],
+   "official_note": "Tencent官方",
+   "channels": []
+  },
+  {
+   "pick": "vip-claude-opus",
+   "title": "Claude Opus 5",
+   "or_id": "anthropic/claude-opus-5",
+   "sell": [
+    9.1,
+    30.1
+   ],
+   "cost": [
+    5.0,
+    25.0
+   ],
+   "margin": 23.5,
+   "or": [
+    5.0,
+    25.0
+   ],
+   "requesty": [
+    5.0,
+    25.0
+   ],
+   "tl": [
+    5.0,
+    25.0
+   ],
+   "tl_note": "eval-ref",
+   "official": [
+    5.0,
+    25.0
+   ],
+   "official_note": "Anthropic官方",
+   "channels": []
+  },
+  {
+   "pick": "vip-claude-sonnet",
+   "title": "Claude Sonnet 5",
+   "or_id": "anthropic/claude-sonnet-5",
+   "sell": [
+    3.85,
+    12.25
+   ],
+   "cost": [
+    2.0,
+    10.0
+   ],
+   "margin": 25.5,
+   "or": [
+    2.0,
+    10.0
+   ],
+   "requesty": [
+    2.0,
+    10.0
+   ],
+   "tl": [
+    3.0,
+    15.0
+   ],
+   "tl_note": "eval-ref",
+   "official": [
+    2.0,
+    10.0
+   ],
+   "official_note": "Anthropic官方",
+   "channels": []
+  },
+  {
+   "pick": "vip-gemini-pro",
+   "title": "Gemini 3.1 Pro",
+   "or_id": "google/gemini-3.1-pro-preview",
+   "sell": [
+    3.85,
+    14.7
+   ],
+   "cost": [
+    1.0,
+    6.0
+   ],
+   "margin": 62.3,
+   "or": [
+    2.0,
+    12.0
+   ],
+   "requesty": [
+    2.0,
+    12.0
+   ],
+   "tl": [
+    1.0,
+    6.0
+   ],
+   "tl_note": "measured",
+   "official": [
+    2.0,
+    12.0
+   ],
+   "official_note": "Google官方",
+   "channels": [
+    "tokenlab",
+    "openrouter",
+    "requesty"
+   ]
+  },
+  {
+   "pick": "vip-gpt56-terra",
+   "title": "GPT-5.6 Terra",
+   "or_id": "openai/gpt-5.6-terra",
+   "sell": [
+    2.1,
+    7.35
+   ],
+   "cost": [
+    0.6,
+    3.6
+   ],
+   "margin": 55.6,
+   "or": [
+    1.0,
+    6.0
+   ],
+   "requesty": [
+    2.0,
+    12.0
+   ],
+   "tl": [
+    0.6,
+    3.6
+   ],
+   "tl_note": "measured",
+   "official": [
+    2.0,
+    12.0
+   ],
+   "official_note": "OpenAI官方0805",
+   "channels": [
+    "tokenlab",
+    "openrouter",
+    "requesty"
+   ]
+  },
+  {
+   "pick": "vip-claude-haiku",
+   "title": "Claude Haiku 4.5",
+   "or_id": "anthropic/claude-haiku-4.5",
+   "sell": [
+    2.1,
+    6.3
+   ],
+   "cost": [
+    1.0,
+    5.0
+   ],
+   "margin": 28.6,
+   "or": [
+    1.0,
+    5.0
+   ],
+   "requesty": null,
+   "tl": null,
+   "tl_note": "eval-ref",
+   "official": [
+    1.0,
+    5.0
+   ],
+   "official_note": "Anthropic官方",
+   "channels": [
+    "openrouter",
+    "tokenlab",
+    "requesty"
+   ]
+  },
+  {
+   "pick": "vip-gemini-flash",
+   "title": "Gemini 3.6 Flash",
+   "or_id": "google/gemini-3.6-flash",
+   "sell": [
+    2.8,
+    9.1
+   ],
+   "cost": [
+    0.75,
+    3.75
+   ],
+   "margin": 62.2,
+   "or": [
+    1.5,
+    7.5
+   ],
+   "requesty": null,
+   "tl": [
+    0.75,
+    3.75
+   ],
+   "tl_note": "measured",
+   "official": [
+    1.5,
+    7.5
+   ],
+   "official_note": "Google官方",
+   "channels": [
+    "tokenlab",
+    "openrouter",
+    "requesty"
+   ]
+  },
+  {
+   "pick": "vip-gpt5-mini",
+   "title": "GPT-5 mini",
+   "or_id": "openai/gpt-5-mini",
+   "sell": [
+    0.7,
+    2.45
+   ],
+   "cost": [
+    0.25,
+    2.0
+   ],
+   "margin": 28.6,
+   "or": [
+    0.25,
+    2.0
+   ],
+   "requesty": [
+    0.25,
+    2.0
+   ],
+   "tl": [
+    0.25,
+    2.0
+   ],
+   "tl_note": "eval-ref",
+   "official": [
+    0.25,
+    2.0
+   ],
+   "official_note": "OpenAI官方",
+   "channels": []
+  },
+  {
+   "pick": "vip-gpt4o",
+   "title": "GPT-4o",
+   "or_id": "openai/gpt-4o",
+   "sell": [
+    4.55,
+    12.25
+   ],
+   "cost": [
+    2.5,
+    10.0
+   ],
+   "margin": 25.6,
+   "or": [
+    2.5,
+    10.0
+   ],
+   "requesty": [
+    2.5,
+    10.0
+   ],
+   "tl": [
+    2.5,
+    10.0
+   ],
+   "tl_note": "measured",
+   "official": [
+    2.5,
+    10.0
+   ],
+   "official_note": "OpenAI官方",
+   "channels": [
+    "tokenlab",
+    "openrouter",
+    "requesty"
+   ]
+  },
+  {
+   "pick": "vip-gpt4o-mini",
+   "title": "GPT-4o mini",
+   "or_id": "openai/gpt-4o-mini",
+   "sell": [
+    0.35,
+    1.05
+   ],
+   "cost": [
+    0.15,
+    0.6
+   ],
+   "margin": 46.4,
+   "or": [
+    0.15,
+    0.6
+   ],
+   "requesty": [
+    0.15,
+    0.6
+   ],
+   "tl": [
+    0.15,
+    0.6
+   ],
+   "tl_note": "measured",
+   "official": [
+    0.15,
+    0.6
+   ],
+   "official_note": "OpenAI官方",
+   "channels": [
+    "tokenlab",
+    "openrouter",
+    "requesty"
+   ]
+  },
+  {
+   "pick": "vip-grok",
+   "title": "Grok 4.20",
+   "or_id": "x-ai/grok-4.20",
+   "sell": [
+    2.8,
+    10.5
+   ],
+   "cost": [
+    0.625,
+    1.25
+   ],
+   "margin": 85.9,
+   "or": [
+    1.25,
+    2.5
+   ],
+   "requesty": null,
+   "tl": [
+    0.625,
+    1.25
+   ],
+   "tl_note": "measured",
+   "official": [
+    1.25,
+    2.5
+   ],
+   "official_note": "xAI待核(取OR)",
+   "channels": [
+    "tokenlab",
+    "openrouter"
+   ]
+  },
+  {
+   "pick": "vip-gpt56-luna",
+   "title": "GPT-5.6 Luna",
+   "or_id": "openai/gpt-5.6-luna",
+   "sell": [
+    0.35,
+    1.05
+   ],
+   "cost": [
+    0.06,
+    0.36
+   ],
+   "margin": 70.0,
+   "or": [
+    0.1,
+    0.6
+   ],
+   "requesty": [
+    0.2,
+    1.2
+   ],
+   "tl": [
+    0.06,
+    0.36
+   ],
+   "tl_note": "measured",
+   "official": [
+    0.2,
+    1.2
+   ],
+   "official_note": "OpenAI官方0805",
+   "channels": [
+    "tokenlab",
+    "openrouter",
+    "requesty"
+   ]
+  },
+  {
+   "pick": "vip-llama4",
+   "title": "Llama 4",
+   "or_id": "meta-llama/llama-4-maverick",
+   "sell": [
+    0.7,
+    1.05
+   ],
+   "cost": [
+    0.2,
+    0.8
+   ],
+   "margin": 42.9,
+   "or": [
+    0.2,
+    0.8
+   ],
+   "requesty": null,
+   "tl": null,
+   "tl_note": "eval-ref",
+   "official": [
+    null,
+    null
+   ],
+   "official_note": "开源无官方API",
+   "channels": [
+    "openrouter"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,3115 @@
+{
+  "time": "20260806-1457",
+  "per": 2,
+  "judge_model": "deepseek-v4-pro",
+  "rows": [
+    {
+      "candidate": "DeepSeek V4 Flash · 官方直连",
+      "ok": true,
+      "auto_acc": 0.8,
+      "judge_acc": 1.0,
+      "med_ms": 1343,
+      "cost_usd": 0.0011,
+      "n_auto": 10,
+      "n_judge": 14,
+      "detail": [
+        {
+          "cat": "en_knowledge",
+          "q": "What is the capital of Australia?\nA. Syd",
+          "ok": true,
+          "ms": 1343,
+          "in": 165,
+          "out": 10
+        },
+        {
+          "cat": "en_knowledge",
+          "q": "Who wrote \"Romeo and Juliet\"?\nA. Charles",
+          "ok": true,
+          "ms": 1406,
+          "in": 171,
+          "out": 10
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "珠穆朗玛峰位于？\nA. 中国和尼泊尔边境 B. 中国和印度边境 C. 印度和尼泊",
+          "ok": true,
+          "ms": 1343,
+          "in": 185,
+          "out": 20
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "光年是什么的单位？\nA. 时间 B. 速度 C. 距离 D. 亮度",
+          "ok": true,
+          "ms": 1468,
+          "in": 167,
+          "out": 36
+        },
+        {
+          "cat": "en_logic",
+          "q": "If all Zorks are blue, and some blue thi",
+          "ok": false,
+          "ms": 2547,
+          "in": 195,
+          "out": 197
+        },
+        {
+          "cat": "en_logic",
+          "q": "All apples are fruits. Some fruits are r",
+          "ok": false,
+          "ms": 2191,
+          "in": 188,
+          "out": 120
+        },
+        {
+          "cat": "en_math",
+          "q": "The sum of three consecutive integers is",
+          "ok": true,
+          "ms": 1578,
+          "in": 162,
+          "out": 99
+        },
+        {
+          "cat": "en_math",
+          "q": "Simplify: (2^3 × 2^4) / 2^5",
+          "ok": true,
+          "ms": 1515,
+          "in": 163,
+          "out": 95
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个数的 1/4 是 25，这个数是多少？",
+          "ok": true,
+          "ms": 1437,
+          "in": 161,
+          "out": 38
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个三角形三个角分别是 2x、3x、4x，x 是多少？",
+          "ok": true,
+          "ms": 1296,
+          "in": 165,
+          "out": 49
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function largest(nums) th",
+          "ok": true,
+          "score": 5,
+          "reason": "正确实现遍历比较求最大值，包含空列表处理，严格遵循不使用max()的指令，且提供清晰注释与示例，完整无缺。",
+          "ms": 3140,
+          "in": 165,
+          "out": 356
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function word_frequency(t",
+          "ok": true,
+          "score": 5,
+          "reason": "正确实现按空格分词并返回计数字典，额外处理标点与大小写，完整且严格遵循指令。",
+          "ms": 4575,
+          "in": 164,
+          "out": 443
+        },
+        {
+          "cat": "en_reading",
+          "q": "Passage: 'HTTP is a request-response pro",
+          "ok": true,
+          "score": 5,
+          "reason": "回答完全正确，准确提取了原文信息，严格遵循指令，且表述完整无冗余。",
+          "ms": 922,
+          "in": 204,
+          "out": 15
+        },
+        {
+          "cat": "en_reading",
+          "q": "Extract all dates from this text and lis",
+          "ok": true,
+          "score": 5,
+          "reason": "正确且完整地提取了三个日期，格式与参考答案一致，严格遵循指令。",
+          "ms": 1123,
+          "in": 198,
+          "out": 36
+        },
+        {
+          "cat": "cn_reading",
+          "q": "把下面中文翻译成英文：'这个系统支持高并发请求，平均响应时间低于 200 毫秒。",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，精确传达了高并发支持和低于200毫秒平均响应时间。",
+          "ms": 1181,
+          "in": 172,
+          "out": 19
+        },
+        {
+          "cat": "cn_reading",
+          "q": "用一句话概括：'人工智能正在改变医疗行业：辅助诊断系统能快速分析影像，降低漏诊率",
+          "ok": true,
+          "score": 5,
+          "reason": "输出准确概括了原文三个要点，语义完整，严格遵循一句话要求，且表达流畅。",
+          "ms": 1296,
+          "in": 189,
+          "out": 24
+        },
+        {
+          "cat": "en_instruct",
+          "q": "List exactly three reasons why reading i",
+          "ok": true,
+          "score": 5,
+          "reason": "输出严格遵循指令，恰好列出三条编号理由，内容正确且完整。",
+          "ms": 1735,
+          "in": 166,
+          "out": 66
+        },
+        {
+          "cat": "en_instruct",
+          "q": "Translate \"Good morning\" into French and",
+          "ok": true,
+          "score": 5,
+          "reason": "输出完全正确，仅包含法文翻译 Bonjour，严格遵循指令，无任何多余内容。",
+          "ms": 924,
+          "in": 160,
+          "out": 2
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "列出三条喝水的健康益处，用 1. 2. 3. 编号。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出恰好三条健康益处，使用1.2.3.编号，内容正确且完整，严格遵循指令。",
+          "ms": 2046,
+          "in": 166,
+          "out": 78
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "用一段话介绍你自己，不超过 50 字。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出为一段话，共22字，未超50字，内容合理且严格遵循指令。",
+          "ms": 1312,
+          "in": 158,
+          "out": 19
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"Please send the",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，语义与参考答案一致，且严格遵循指令，仅输出翻译结果。",
+          "ms": 1249,
+          "in": 162,
+          "out": 12
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"This update fix",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，与参考答案语义一致。",
+          "ms": 906,
+          "in": 159,
+          "out": 8
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「这个系统支持高并发请求。」",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确传达了“高并发请求”的含义，用词规范且完全遵循指令。",
+          "ms": 1047,
+          "in": 158,
+          "out": 8
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「我们的 API 支持流式响应和",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译完全正确，准确表达了流式响应和函数调用，严格遵循指令，无任何遗漏或错误。",
+          "ms": 1218,
+          "in": 162,
+          "out": 9
+        }
+      ]
+    },
+    {
+      "candidate": "DeepSeek V4 Flash · OpenRouter",
+      "ok": true,
+      "auto_acc": 1.0,
+      "judge_acc": 1.0,
+      "med_ms": 2702,
+      "cost_usd": 0.0012,
+      "n_auto": 10,
+      "n_judge": 14,
+      "detail": [
+        {
+          "cat": "en_knowledge",
+          "q": "What is the capital of Australia?\nA. Syd",
+          "ok": true,
+          "ms": 1484,
+          "in": 165,
+          "out": 17
+        },
+        {
+          "cat": "en_knowledge",
+          "q": "Who wrote \"Romeo and Juliet\"?\nA. Charles",
+          "ok": true,
+          "ms": 906,
+          "in": 171,
+          "out": 10
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "珠穆朗玛峰位于？\nA. 中国和尼泊尔边境 B. 中国和印度边境 C. 印度和尼泊",
+          "ok": true,
+          "ms": 7421,
+          "in": 185,
+          "out": 21
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "光年是什么的单位？\nA. 时间 B. 速度 C. 距离 D. 亮度",
+          "ok": true,
+          "ms": 2922,
+          "in": 167,
+          "out": 76
+        },
+        {
+          "cat": "en_logic",
+          "q": "If all Zorks are blue, and some blue thi",
+          "ok": true,
+          "ms": 2702,
+          "in": 195,
+          "out": 129
+        },
+        {
+          "cat": "en_logic",
+          "q": "All apples are fruits. Some fruits are r",
+          "ok": true,
+          "ms": 2562,
+          "in": 267,
+          "out": 124
+        },
+        {
+          "cat": "en_math",
+          "q": "The sum of three consecutive integers is",
+          "ok": true,
+          "ms": 10176,
+          "in": 162,
+          "out": 86
+        },
+        {
+          "cat": "en_math",
+          "q": "Simplify: (2^3 × 2^4) / 2^5",
+          "ok": true,
+          "ms": 11218,
+          "in": 163,
+          "out": 137
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个数的 1/4 是 25，这个数是多少？",
+          "ok": true,
+          "ms": 1828,
+          "in": 161,
+          "out": 27
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个三角形三个角分别是 2x、3x、4x，x 是多少？",
+          "ok": true,
+          "ms": 9109,
+          "in": 165,
+          "out": 55
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function largest(nums) th",
+          "ok": true,
+          "score": 5,
+          "reason": "正确实现遍历比较求最大值，包含空列表处理，完整给出代码、解释和示例，严格遵循指令未使用max()。",
+          "ms": 2296,
+          "in": 165,
+          "out": 266
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function word_frequency(t",
+          "ok": true,
+          "score": 5,
+          "reason": "正确实现分词计数并返回字典，完整处理大小写与标点，严格遵循指令且提供清晰说明。",
+          "ms": 6015,
+          "in": 164,
+          "out": 445
+        },
+        {
+          "cat": "en_reading",
+          "q": "Passage: 'HTTP is a request-response pro",
+          "ok": true,
+          "score": 5,
+          "reason": "回答完全正确，准确提取了原文信息，严格遵循指令，且表述完整无冗余。",
+          "ms": 1339,
+          "in": 204,
+          "out": 16
+        },
+        {
+          "cat": "en_reading",
+          "q": "Extract all dates from this text and lis",
+          "ok": true,
+          "score": 5,
+          "reason": "正确提取全部三个日期，格式清晰，严格遵循指令，无遗漏或错误。",
+          "ms": 2463,
+          "in": 277,
+          "out": 93
+        },
+        {
+          "cat": "cn_reading",
+          "q": "把下面中文翻译成英文：'这个系统支持高并发请求，平均响应时间低于 200 毫秒。",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，精确传达了高并发支持和低于200毫秒平均响应时间的信息。",
+          "ms": 3119,
+          "in": 172,
+          "out": 21
+        },
+        {
+          "cat": "cn_reading",
+          "q": "用一句话概括：'人工智能正在改变医疗行业：辅助诊断系统能快速分析影像，降低漏诊率",
+          "ok": true,
+          "score": 5,
+          "reason": "输出准确概括了原文三个要点，表述完整且严格遵循一句话指令，无冗余信息。",
+          "ms": 2281,
+          "in": 189,
+          "out": 19
+        },
+        {
+          "cat": "en_instruct",
+          "q": "List exactly three reasons why reading i",
+          "ok": true,
+          "score": 5,
+          "reason": "输出恰好三条，严格用1. 2. 3.编号，内容正确且完整覆盖阅读的认知、减压与知识共情三大益处。",
+          "ms": 2921,
+          "in": 166,
+          "out": 57
+        },
+        {
+          "cat": "en_instruct",
+          "q": "Translate \"Good morning\" into French and",
+          "ok": true,
+          "score": 5,
+          "reason": "输出完全正确，仅包含法文翻译 Bonjour，严格遵循指令，无任何多余内容。",
+          "ms": 12328,
+          "in": 160,
+          "out": 56
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "列出三条喝水的健康益处，用 1. 2. 3. 编号。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出恰好三条且严格使用1.2.3.编号，内容均为健康益处，完全符合指令。",
+          "ms": 2078,
+          "in": 166,
+          "out": 50
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "用一段话介绍你自己，不超过 50 字。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出为一段话，共28字，未超50字，内容合理且严格遵循指令。",
+          "ms": 1375,
+          "in": 158,
+          "out": 26
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"Please send the",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，语义与参考答案一致且表达自然。",
+          "ms": 4718,
+          "in": 162,
+          "out": 14
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"This update fix",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，与参考答案语义一致。",
+          "ms": 4268,
+          "in": 238,
+          "out": 136
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「这个系统支持高并发请求。」",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确传达了“高并发请求”为 high-concurrency requests，完全符合指令要求。",
+          "ms": 815,
+          "in": 158,
+          "out": 9
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「我们的 API 支持流式响应和",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译完全正确，准确表达了流式响应和函数调用，严格遵循指令。",
+          "ms": 2303,
+          "in": 241,
+          "out": 71
+        }
+      ]
+    },
+    {
+      "candidate": "DeepSeek V4 Flash · TokenLab",
+      "ok": true,
+      "auto_acc": 0.8,
+      "judge_acc": 1.0,
+      "med_ms": 4531,
+      "cost_usd": 0.0011,
+      "n_auto": 10,
+      "n_judge": 14,
+      "detail": [
+        {
+          "cat": "en_knowledge",
+          "q": "What is the capital of Australia?\nA. Syd",
+          "ok": true,
+          "ms": 3516,
+          "in": 165,
+          "out": 10
+        },
+        {
+          "cat": "en_knowledge",
+          "q": "Who wrote \"Romeo and Juliet\"?\nA. Charles",
+          "ok": true,
+          "ms": 3703,
+          "in": 171,
+          "out": 10
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "珠穆朗玛峰位于？\nA. 中国和尼泊尔边境 B. 中国和印度边境 C. 印度和尼泊",
+          "ok": true,
+          "ms": 4531,
+          "in": 185,
+          "out": 20
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "光年是什么的单位？\nA. 时间 B. 速度 C. 距离 D. 亮度",
+          "ok": true,
+          "ms": 3718,
+          "in": 167,
+          "out": 36
+        },
+        {
+          "cat": "en_logic",
+          "q": "If all Zorks are blue, and some blue thi",
+          "ok": false,
+          "ms": 4703,
+          "in": 195,
+          "out": 127
+        },
+        {
+          "cat": "en_logic",
+          "q": "All apples are fruits. Some fruits are r",
+          "ok": false,
+          "ms": 4765,
+          "in": 188,
+          "out": 164
+        },
+        {
+          "cat": "en_math",
+          "q": "The sum of three consecutive integers is",
+          "ok": true,
+          "ms": 4500,
+          "in": 162,
+          "out": 84
+        },
+        {
+          "cat": "en_math",
+          "q": "Simplify: (2^3 × 2^4) / 2^5",
+          "ok": true,
+          "ms": 4953,
+          "in": 163,
+          "out": 157
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个数的 1/4 是 25，这个数是多少？",
+          "ok": true,
+          "ms": 4562,
+          "in": 161,
+          "out": 25
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个三角形三个角分别是 2x、3x、4x，x 是多少？",
+          "ok": true,
+          "ms": 5761,
+          "in": 165,
+          "out": 49
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function largest(nums) th",
+          "ok": true,
+          "score": 5,
+          "reason": "正确实现遍历比较求最大值，包含空列表处理，严格遵循不使用max()的指令，且提供完整说明与示例。",
+          "ms": 5952,
+          "in": 165,
+          "out": 393
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function word_frequency(t",
+          "ok": true,
+          "score": 5,
+          "reason": "正确实现按空格分词计数并返回dict，完整提供基础版和增强版，严格遵循指令且额外给出示例与说明。",
+          "ms": 4733,
+          "in": 164,
+          "out": 392
+        },
+        {
+          "cat": "en_reading",
+          "q": "Passage: 'HTTP is a request-response pro",
+          "ok": true,
+          "score": 5,
+          "reason": "回答完全正确，准确提取了原文信息，严格遵循指令，且表述完整无冗余。",
+          "ms": 4202,
+          "in": 204,
+          "out": 15
+        },
+        {
+          "cat": "en_reading",
+          "q": "Extract all dates from this text and lis",
+          "ok": true,
+          "score": 5,
+          "reason": "正确且完整地提取了三个日期，严格遵循指令以列表形式输出，格式规范。",
+          "ms": 3680,
+          "in": 198,
+          "out": 36
+        },
+        {
+          "cat": "cn_reading",
+          "q": "把下面中文翻译成英文：'这个系统支持高并发请求，平均响应时间低于 200 毫秒。",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，准确传达了高并发支持和低于200毫秒平均响应时间。",
+          "ms": 3500,
+          "in": 172,
+          "out": 19
+        },
+        {
+          "cat": "cn_reading",
+          "q": "用一句话概括：'人工智能正在改变医疗行业：辅助诊断系统能快速分析影像，降低漏诊率",
+          "ok": true,
+          "score": 5,
+          "reason": "输出准确概括了原文三个要点，语义完整，严格遵循一句话指令，且表达流畅。",
+          "ms": 3781,
+          "in": 189,
+          "out": 24
+        },
+        {
+          "cat": "en_instruct",
+          "q": "List exactly three reasons why reading i",
+          "ok": true,
+          "score": 5,
+          "reason": "输出恰好三条理由，严格使用1. 2. 3.编号，内容正确且完整，完全符合指令。",
+          "ms": 4562,
+          "in": 166,
+          "out": 62
+        },
+        {
+          "cat": "en_instruct",
+          "q": "Translate \"Good morning\" into French and",
+          "ok": true,
+          "score": 5,
+          "reason": "输出完全正确，仅包含法文翻译 Bonjour，严格遵循指令，无多余内容。",
+          "ms": 2098,
+          "in": 160,
+          "out": 3
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "列出三条喝水的健康益处，用 1. 2. 3. 编号。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出恰好三条健康益处，使用1.2.3.编号，内容正确且完整，严格遵循指令。",
+          "ms": 2978,
+          "in": 166,
+          "out": 60
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "用一段话介绍你自己，不超过 50 字。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出为一段话，共22字，未超50字，内容合理且严格遵循指令。",
+          "ms": 2577,
+          "in": 158,
+          "out": 20
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"Please send the",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，语义与参考答案一致。",
+          "ms": 4906,
+          "in": 162,
+          "out": 12
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"This update fix",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，仅添加了符合中文习惯的'一个'，语义与参考答案完全一致。",
+          "ms": 65175,
+          "in": 159,
+          "out": 8
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「这个系统支持高并发请求。」",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确传达了“高并发请求”的含义，用词专业且完全遵循指令。",
+          "ms": 2546,
+          "in": 158,
+          "out": 8
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「我们的 API 支持流式响应和",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译完全正确，准确表达了流式响应和函数调用，严格遵循指令，无遗漏或多余内容。",
+          "ms": 4641,
+          "in": 162,
+          "out": 9
+        }
+      ]
+    },
+    {
+      "candidate": "DeepSeek V4 Pro · 官方直连",
+      "ok": true,
+      "auto_acc": 0.8,
+      "judge_acc": 1.0,
+      "med_ms": 1812,
+      "cost_usd": 0.0035,
+      "n_auto": 10,
+      "n_judge": 14,
+      "detail": [
+        {
+          "cat": "en_knowledge",
+          "q": "What is the capital of Australia?\nA. Syd",
+          "ok": true,
+          "ms": 2380,
+          "in": 165,
+          "out": 40
+        },
+        {
+          "cat": "en_knowledge",
+          "q": "Who wrote \"Romeo and Juliet\"?\nA. Charles",
+          "ok": true,
+          "ms": 1727,
+          "in": 171,
+          "out": 45
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "珠穆朗玛峰位于？\nA. 中国和尼泊尔边境 B. 中国和印度边境 C. 印度和尼泊",
+          "ok": true,
+          "ms": 1851,
+          "in": 185,
+          "out": 28
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "光年是什么的单位？\nA. 时间 B. 速度 C. 距离 D. 亮度",
+          "ok": true,
+          "ms": 1967,
+          "in": 167,
+          "out": 35
+        },
+        {
+          "cat": "en_logic",
+          "q": "If all Zorks are blue, and some blue thi",
+          "ok": false,
+          "ms": 3905,
+          "in": 195,
+          "out": 204
+        },
+        {
+          "cat": "en_logic",
+          "q": "All apples are fruits. Some fruits are r",
+          "ok": false,
+          "ms": 3906,
+          "in": 188,
+          "out": 198
+        },
+        {
+          "cat": "en_math",
+          "q": "The sum of three consecutive integers is",
+          "ok": true,
+          "ms": 1671,
+          "in": 162,
+          "out": 93
+        },
+        {
+          "cat": "en_math",
+          "q": "Simplify: (2^3 × 2^4) / 2^5",
+          "ok": true,
+          "ms": 2218,
+          "in": 163,
+          "out": 110
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个数的 1/4 是 25，这个数是多少？",
+          "ok": true,
+          "ms": 1656,
+          "in": 161,
+          "out": 56
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个三角形三个角分别是 2x、3x、4x，x 是多少？",
+          "ok": true,
+          "ms": 1734,
+          "in": 165,
+          "out": 56
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function largest(nums) th",
+          "ok": true,
+          "score": 5,
+          "reason": "正确实现遍历求最大，包含空列表处理，完整给出示例与解释，严格遵循不使用max()的指令。",
+          "ms": 4406,
+          "in": 165,
+          "out": 307
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function word_frequency(t",
+          "ok": true,
+          "score": 4,
+          "reason": "正确实现了按词计数并返回字典，但额外提供了正则和简单版本，虽功能更完善但略微超出题目最简要求，未严格遵循仅按空格分词的指令。",
+          "ms": 7515,
+          "in": 164,
+          "out": 576
+        },
+        {
+          "cat": "en_reading",
+          "q": "Passage: 'HTTP is a request-response pro",
+          "ok": true,
+          "score": 5,
+          "reason": "正确解释500为Internal Server Error，补充了其含义，完整且严格遵循指令。",
+          "ms": 1594,
+          "in": 204,
+          "out": 29
+        },
+        {
+          "cat": "en_reading",
+          "q": "Extract all dates from this text and lis",
+          "ok": true,
+          "score": 5,
+          "reason": "正确且完整地提取了三个日期，格式清晰，严格遵循指令要求。",
+          "ms": 1593,
+          "in": 198,
+          "out": 39
+        },
+        {
+          "cat": "cn_reading",
+          "q": "把下面中文翻译成英文：'这个系统支持高并发请求，平均响应时间低于 200 毫秒。",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，准确传达了高并发支持和低于200毫秒平均响应时间。",
+          "ms": 1297,
+          "in": 172,
+          "out": 19
+        },
+        {
+          "cat": "cn_reading",
+          "q": "用一句话概括：'人工智能正在改变医疗行业：辅助诊断系统能快速分析影像，降低漏诊率",
+          "ok": true,
+          "score": 5,
+          "reason": "输出准确概括了原文三个要点，语义完整，严格遵循一句话指令，且表达流畅。",
+          "ms": 1375,
+          "in": 189,
+          "out": 19
+        },
+        {
+          "cat": "en_instruct",
+          "q": "List exactly three reasons why reading i",
+          "ok": true,
+          "score": 5,
+          "reason": "输出恰好三条，严格使用1. 2. 3.编号，内容正确且完整，完全符合指令。",
+          "ms": 2007,
+          "in": 166,
+          "out": 48
+        },
+        {
+          "cat": "en_instruct",
+          "q": "Translate \"Good morning\" into French and",
+          "ok": true,
+          "score": 5,
+          "reason": "输出完全符合要求，仅包含正确的法文翻译 Bonjour，无任何多余内容。",
+          "ms": 1855,
+          "in": 160,
+          "out": 2
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "列出三条喝水的健康益处，用 1. 2. 3. 编号。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出恰好三条且严格使用1.2.3.编号，内容正确完整，完全遵循指令。",
+          "ms": 2453,
+          "in": 166,
+          "out": 58
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "用一段话介绍你自己，不超过 50 字。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出为一段话，共29字，未超过50字，内容合理且严格遵循指令。",
+          "ms": 1812,
+          "in": 158,
+          "out": 27
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"Please send the",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，语义与参考答案一致且表达更正式完整。",
+          "ms": 1750,
+          "in": 162,
+          "out": 12
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"This update fix",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，仅添加量词'一个'使表达更自然，未改变原意。",
+          "ms": 1406,
+          "in": 159,
+          "out": 8
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「这个系统支持高并发请求。」",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确传达了 high concurrency 支持，用词专业且严格遵循指令，仅输出译文。",
+          "ms": 1593,
+          "in": 158,
+          "out": 8
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「我们的 API 支持流式响应和",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译完全正确，准确表达了流式响应和函数调用，严格遵循指令，无任何遗漏或错误。",
+          "ms": 1265,
+          "in": 162,
+          "out": 9
+        }
+      ]
+    },
+    {
+      "candidate": "DeepSeek V4 Pro · TokenLab",
+      "ok": true,
+      "auto_acc": 0.8,
+      "judge_acc": 1.0,
+      "med_ms": 3812,
+      "cost_usd": 0.0035,
+      "n_auto": 10,
+      "n_judge": 14,
+      "detail": [
+        {
+          "cat": "en_knowledge",
+          "q": "What is the capital of Australia?\nA. Syd",
+          "ok": true,
+          "ms": 4203,
+          "in": 165,
+          "out": 40
+        },
+        {
+          "cat": "en_knowledge",
+          "q": "Who wrote \"Romeo and Juliet\"?\nA. Charles",
+          "ok": true,
+          "ms": 3329,
+          "in": 171,
+          "out": 45
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "珠穆朗玛峰位于？\nA. 中国和尼泊尔边境 B. 中国和印度边境 C. 印度和尼泊",
+          "ok": true,
+          "ms": 4495,
+          "in": 185,
+          "out": 20
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "光年是什么的单位？\nA. 时间 B. 速度 C. 距离 D. 亮度",
+          "ok": true,
+          "ms": 3906,
+          "in": 167,
+          "out": 31
+        },
+        {
+          "cat": "en_logic",
+          "q": "If all Zorks are blue, and some blue thi",
+          "ok": false,
+          "ms": 5546,
+          "in": 195,
+          "out": 148
+        },
+        {
+          "cat": "en_logic",
+          "q": "All apples are fruits. Some fruits are r",
+          "ok": false,
+          "ms": 5587,
+          "in": 188,
+          "out": 207
+        },
+        {
+          "cat": "en_math",
+          "q": "The sum of three consecutive integers is",
+          "ok": true,
+          "ms": 3390,
+          "in": 162,
+          "out": 92
+        },
+        {
+          "cat": "en_math",
+          "q": "Simplify: (2^3 × 2^4) / 2^5",
+          "ok": true,
+          "ms": 4468,
+          "in": 163,
+          "out": 114
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个数的 1/4 是 25，这个数是多少？",
+          "ok": true,
+          "ms": 3998,
+          "in": 161,
+          "out": 56
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个三角形三个角分别是 2x、3x、4x，x 是多少？",
+          "ok": true,
+          "ms": 3710,
+          "in": 165,
+          "out": 56
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function largest(nums) th",
+          "ok": true,
+          "score": 5,
+          "reason": "正确实现遍历比较求最大值，包含空列表处理，严格遵循不使用max()的指令，且提供完整示例与说明。",
+          "ms": 7953,
+          "in": 165,
+          "out": 417
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function word_frequency(t",
+          "ok": true,
+          "score": 4,
+          "reason": "正确实现了按词频统计并返回dict，且额外处理了标点、大小写等边界情况，但提供了两个版本略超出题目要求的简洁性，未严格遵循仅按空格分词的指令。",
+          "ms": 8062,
+          "in": 164,
+          "out": 451
+        },
+        {
+          "cat": "en_reading",
+          "q": "Passage: 'HTTP is a request-response pro",
+          "ok": true,
+          "score": 5,
+          "reason": "正确提取了500的含义，回答完整且严格遵循指令，未添加多余信息。",
+          "ms": 3172,
+          "in": 204,
+          "out": 15
+        },
+        {
+          "cat": "en_reading",
+          "q": "Extract all dates from this text and lis",
+          "ok": true,
+          "score": 5,
+          "reason": "正确且完整地提取了三个日期，格式清晰，严格遵循指令要求。",
+          "ms": 3565,
+          "in": 198,
+          "out": 39
+        },
+        {
+          "cat": "cn_reading",
+          "q": "把下面中文翻译成英文：'这个系统支持高并发请求，平均响应时间低于 200 毫秒。",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，正确传达了高并发支持和低于200毫秒平均响应时间。",
+          "ms": 3454,
+          "in": 172,
+          "out": 20
+        },
+        {
+          "cat": "cn_reading",
+          "q": "用一句话概括：'人工智能正在改变医疗行业：辅助诊断系统能快速分析影像，降低漏诊率",
+          "ok": true,
+          "score": 5,
+          "reason": "输出准确概括了原文三个要点，语义完整，严格遵循一句话指令，且表达流畅。",
+          "ms": 4132,
+          "in": 189,
+          "out": 19
+        },
+        {
+          "cat": "en_instruct",
+          "q": "List exactly three reasons why reading i",
+          "ok": true,
+          "score": 5,
+          "reason": "输出恰好三条理由，严格使用1. 2. 3.编号，内容正确且完整，完全符合指令。",
+          "ms": 3875,
+          "in": 166,
+          "out": 59
+        },
+        {
+          "cat": "en_instruct",
+          "q": "Translate \"Good morning\" into French and",
+          "ok": true,
+          "score": 5,
+          "reason": "输出完全符合要求，仅包含正确的法文翻译 Bonjour，无任何多余内容。",
+          "ms": 2890,
+          "in": 160,
+          "out": 2
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "列出三条喝水的健康益处，用 1. 2. 3. 编号。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出恰好三条且严格使用1.2.3.编号，内容正确完整，完全遵循指令。",
+          "ms": 3812,
+          "in": 166,
+          "out": 55
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "用一段话介绍你自己，不超过 50 字。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出为一段话，共33字，未超50字，内容合理且严格遵循指令。",
+          "ms": 3406,
+          "in": 158,
+          "out": 30
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"Please send the",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，语义与参考答案一致，且严格遵循了翻译指令。",
+          "ms": 3077,
+          "in": 162,
+          "out": 12
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"This update fix",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，仅添加了量词'一个'使表达更自然，未改变原意。",
+          "ms": 2765,
+          "in": 159,
+          "out": 8
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「这个系统支持高并发请求。」",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确传达了“高并发请求”的含义，用词专业且完全遵循指令，无多余内容。",
+          "ms": 3578,
+          "in": 158,
+          "out": 8
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「我们的 API 支持流式响应和",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译完全正确，准确表达了流式响应和函数调用，且严格遵循指令，无任何遗漏或错误。",
+          "ms": 2878,
+          "in": 162,
+          "out": 9
+        }
+      ]
+    },
+    {
+      "candidate": "DeepSeek V4 Pro · OpenRouter",
+      "ok": true,
+      "auto_acc": 0.9,
+      "judge_acc": 1.0,
+      "med_ms": 5868,
+      "cost_usd": 0.0059,
+      "n_auto": 10,
+      "n_judge": 14,
+      "detail": [
+        {
+          "cat": "en_knowledge",
+          "q": "What is the capital of Australia?\nA. Syd",
+          "ok": true,
+          "ms": 4621,
+          "in": 165,
+          "out": 51
+        },
+        {
+          "cat": "en_knowledge",
+          "q": "Who wrote \"Romeo and Juliet\"?\nA. Charles",
+          "ok": true,
+          "ms": 22952,
+          "in": 171,
+          "out": 40
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "珠穆朗玛峰位于？\nA. 中国和尼泊尔边境 B. 中国和印度边境 C. 印度和尼泊",
+          "ok": true,
+          "ms": 8953,
+          "in": 185,
+          "out": 45
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "光年是什么的单位？\nA. 时间 B. 速度 C. 距离 D. 亮度",
+          "ok": true,
+          "ms": 3497,
+          "in": 167,
+          "out": 96
+        },
+        {
+          "cat": "en_logic",
+          "q": "If all Zorks are blue, and some blue thi",
+          "ok": true,
+          "ms": 11056,
+          "in": 195,
+          "out": 517
+        },
+        {
+          "cat": "en_logic",
+          "q": "All apples are fruits. Some fruits are r",
+          "ok": false,
+          "ms": 72704,
+          "in": 188,
+          "out": 157
+        },
+        {
+          "cat": "en_math",
+          "q": "The sum of three consecutive integers is",
+          "ok": true,
+          "ms": 5515,
+          "in": 162,
+          "out": 209
+        },
+        {
+          "cat": "en_math",
+          "q": "Simplify: (2^3 × 2^4) / 2^5",
+          "ok": true,
+          "ms": 24012,
+          "in": 163,
+          "out": 149
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个数的 1/4 是 25，这个数是多少？",
+          "ok": true,
+          "ms": 3067,
+          "in": 161,
+          "out": 112
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个三角形三个角分别是 2x、3x、4x，x 是多少？",
+          "ok": true,
+          "ms": 4593,
+          "in": 165,
+          "out": 138
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function largest(nums) th",
+          "ok": true,
+          "score": 5,
+          "reason": "正确实现遍历比较求最大值，包含空列表处理，完整提供示例和解释，严格遵循不使用max()的指令。",
+          "ms": 52138,
+          "in": 165,
+          "out": 494
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function word_frequency(t",
+          "ok": true,
+          "score": 4,
+          "reason": "正确实现了词频统计，但额外引入了小写转换和正则分词，未严格遵循题目仅要求按空格分词的指令，完整性略超需求。",
+          "ms": 15234,
+          "in": 164,
+          "out": 489
+        },
+        {
+          "cat": "en_reading",
+          "q": "Passage: 'HTTP is a request-response pro",
+          "ok": true,
+          "score": 5,
+          "reason": "正确且完整地给出了500的含义，严格遵循指令，无多余内容。",
+          "ms": 3687,
+          "in": 204,
+          "out": 112
+        },
+        {
+          "cat": "en_reading",
+          "q": "Extract all dates from this text and lis",
+          "ok": true,
+          "score": 5,
+          "reason": "正确且完整地提取了三个日期，格式与参考答案一致，严格遵循指令。",
+          "ms": 1937,
+          "in": 199,
+          "out": 145
+        },
+        {
+          "cat": "cn_reading",
+          "q": "把下面中文翻译成英文：'这个系统支持高并发请求，平均响应时间低于 200 毫秒。",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，精确传达了高并发支持和低于200毫秒平均响应时间的信息。",
+          "ms": 3984,
+          "in": 172,
+          "out": 34
+        },
+        {
+          "cat": "cn_reading",
+          "q": "用一句话概括：'人工智能正在改变医疗行业：辅助诊断系统能快速分析影像，降低漏诊率",
+          "ok": true,
+          "score": 5,
+          "reason": "输出准确覆盖了辅助诊断、药物研发、个性化治疗三个要点，且严格遵循一句话概括的指令，表述完整流畅。",
+          "ms": 8154,
+          "in": 189,
+          "out": 292
+        },
+        {
+          "cat": "en_instruct",
+          "q": "List exactly three reasons why reading i",
+          "ok": true,
+          "score": 5,
+          "reason": "输出恰好三条理由，严格使用1. 2. 3.编号，内容正确且完整，完全符合指令。",
+          "ms": 3578,
+          "in": 166,
+          "out": 140
+        },
+        {
+          "cat": "en_instruct",
+          "q": "Translate \"Good morning\" into French and",
+          "ok": true,
+          "score": 5,
+          "reason": "输出完全符合要求，仅包含正确的法文翻译 Bonjour，无任何多余内容。",
+          "ms": 2937,
+          "in": 160,
+          "out": 44
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "列出三条喝水的健康益处，用 1. 2. 3. 编号。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出恰好三条健康益处，使用1.2.3.编号，内容正确且完整，严格遵循指令。",
+          "ms": 4394,
+          "in": 166,
+          "out": 89
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "用一段话介绍你自己，不超过 50 字。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出完全符合指令：一段话、未超50字、内容合理，正确性和完整性均优秀。",
+          "ms": 14628,
+          "in": 158,
+          "out": 768
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"Please send the",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，语义与参考答案一致，且严格遵循了翻译指令，表达更正式礼貌。",
+          "ms": 5868,
+          "in": 162,
+          "out": 194
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"This update fix",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，与参考答案语义一致。",
+          "ms": 1239,
+          "in": 159,
+          "out": 9
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「这个系统支持高并发请求。」",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确传达了“高并发请求”为“high concurrent requests”，完全符合指令要求。",
+          "ms": 6780,
+          "in": 158,
+          "out": 266
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「我们的 API 支持流式响应和",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译完全正确，准确表达了流式响应和函数调用，严格遵循指令，无遗漏或多余内容。",
+          "ms": 5875,
+          "in": 162,
+          "out": 195
+        }
+      ]
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_knowledge",
+      "ok": false,
+      "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/d",
+      "ms": 6703
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_knowledge",
+      "ok": false,
+      "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/d",
+      "ms": 6374
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "cn_knowledge",
+      "ok": false,
+      "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org",
+      "ms": 6594
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "cn_knowledge",
+      "ok": false,
+      "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org",
+      "ms": 8672
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_logic",
+      "ok": false,
+      "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/d",
+      "ms": 8130
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_logic",
+      "ok": false,
+      "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/d",
+      "ms": 6566
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_math",
+      "ok": false,
+      "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/d",
+      "ms": 5938
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_math",
+      "ok": false,
+      "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org",
+      "ms": 7266
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "cn_math",
+      "ok": false,
+      "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/d",
+      "ms": 7329
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "cn_math",
+      "ok": false,
+      "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/d",
+      "ms": 7422
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_code",
+      "ok": false,
+      "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/d",
+      "ms": 7688
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_code",
+      "ok": false,
+      "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/d",
+      "ms": 6790
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_reading",
+      "ok": false,
+      "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org",
+      "ms": 8277
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_reading",
+      "ok": false,
+      "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org",
+      "ms": 7255
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "cn_reading",
+      "ok": false,
+      "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/d",
+      "ms": 6324
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "cn_reading",
+      "ok": false,
+      "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org",
+      "ms": 7689
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_instruct",
+      "ok": false,
+      "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org",
+      "ms": 6187
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_instruct",
+      "ok": false,
+      "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org",
+      "ms": 6813
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "cn_instruct",
+      "ok": false,
+      "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/d",
+      "ms": 7125
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "cn_instruct",
+      "ok": false,
+      "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/d",
+      "ms": 7337
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_translate",
+      "ok": false,
+      "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org",
+      "ms": 7077
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "en_translate",
+      "ok": false,
+      "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/d",
+      "ms": 6844
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "cn_translate",
+      "ok": false,
+      "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org",
+      "ms": 6735
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "cat": "cn_translate",
+      "ok": false,
+      "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https://developer.mozilla.org",
+      "ms": 7205
+    },
+    {
+      "candidate": "Kimi K3 · TokenLab",
+      "ok": true,
+      "auto_acc": null,
+      "judge_acc": null,
+      "med_ms": 0,
+      "cost_usd": 0.0,
+      "n_auto": 0,
+      "n_judge": 0,
+      "detail": [
+        {
+          "cat": "en_knowledge",
+          "q": "What is the capital of Australia?\nA. Syd",
+          "ok": false,
+          "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https:/"
+        },
+        {
+          "cat": "en_knowledge",
+          "q": "Who wrote \"Romeo and Juliet\"?\nA. Charles",
+          "ok": false,
+          "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https:/"
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "珠穆朗玛峰位于？\nA. 中国和尼泊尔边境 B. 中国和印度边境 C. 印度和尼泊",
+          "ok": false,
+          "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check:"
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "光年是什么的单位？\nA. 时间 B. 速度 C. 距离 D. 亮度",
+          "ok": false,
+          "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check:"
+        },
+        {
+          "cat": "en_logic",
+          "q": "If all Zorks are blue, and some blue thi",
+          "ok": false,
+          "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https:/"
+        },
+        {
+          "cat": "en_logic",
+          "q": "All apples are fruits. Some fruits are r",
+          "ok": false,
+          "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https:/"
+        },
+        {
+          "cat": "en_math",
+          "q": "The sum of three consecutive integers is",
+          "ok": false,
+          "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https:/"
+        },
+        {
+          "cat": "en_math",
+          "q": "Simplify: (2^3 × 2^4) / 2^5",
+          "ok": false,
+          "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check:"
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个数的 1/4 是 25，这个数是多少？",
+          "ok": false,
+          "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https:/"
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个三角形三个角分别是 2x、3x、4x，x 是多少？",
+          "ok": false,
+          "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https:/"
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function largest(nums) th",
+          "ok": false,
+          "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https:/"
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function word_frequency(t",
+          "ok": false,
+          "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https:/"
+        },
+        {
+          "cat": "en_reading",
+          "q": "Passage: 'HTTP is a request-response pro",
+          "ok": false,
+          "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check:"
+        },
+        {
+          "cat": "en_reading",
+          "q": "Extract all dates from this text and lis",
+          "ok": false,
+          "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check:"
+        },
+        {
+          "cat": "cn_reading",
+          "q": "把下面中文翻译成英文：'这个系统支持高并发请求，平均响应时间低于 200 毫秒。",
+          "ok": false,
+          "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https:/"
+        },
+        {
+          "cat": "cn_reading",
+          "q": "用一句话概括：'人工智能正在改变医疗行业：辅助诊断系统能快速分析影像，降低漏诊率",
+          "ok": false,
+          "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check:"
+        },
+        {
+          "cat": "en_instruct",
+          "q": "List exactly three reasons why reading i",
+          "ok": false,
+          "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check:"
+        },
+        {
+          "cat": "en_instruct",
+          "q": "Translate \"Good morning\" into French and",
+          "ok": false,
+          "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check:"
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "列出三条喝水的健康益处，用 1. 2. 3. 编号。",
+          "ok": false,
+          "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https:/"
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "用一段话介绍你自己，不超过 50 字。",
+          "ok": false,
+          "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https:/"
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"Please send the",
+          "ok": false,
+          "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check:"
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"This update fix",
+          "ok": false,
+          "error": "Client error '400 Bad Request' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check: https:/"
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「这个系统支持高并发请求。」",
+          "ok": false,
+          "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check:"
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「我们的 API 支持流式响应和",
+          "ok": false,
+          "error": "Server error '503 Service Unavailable' for url 'https://api.tokenlab.sh/v1/chat/completions'\nFor more information check:"
+        }
+      ]
+    },
+    {
+      "candidate": "GLM-5.2 · TokenLab",
+      "ok": true,
+      "auto_acc": 0.9,
+      "judge_acc": 1.0,
+      "med_ms": 7546,
+      "cost_usd": 0.0289,
+      "n_auto": 10,
+      "n_judge": 14,
+      "detail": [
+        {
+          "cat": "en_knowledge",
+          "q": "What is the capital of Australia?\nA. Syd",
+          "ok": true,
+          "ms": 3046,
+          "in": 172,
+          "out": 36
+        },
+        {
+          "cat": "en_knowledge",
+          "q": "Who wrote \"Romeo and Juliet\"?\nA. Charles",
+          "ok": true,
+          "ms": 6624,
+          "in": 181,
+          "out": 272
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "珠穆朗玛峰位于？\nA. 中国和尼泊尔边境 B. 中国和印度边境 C. 印度和尼泊",
+          "ok": true,
+          "ms": 9052,
+          "in": 187,
+          "out": 382
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "光年是什么的单位？\nA. 时间 B. 速度 C. 距离 D. 亮度",
+          "ok": true,
+          "ms": 12406,
+          "in": 175,
+          "out": 494
+        },
+        {
+          "cat": "en_logic",
+          "q": "If all Zorks are blue, and some blue thi",
+          "ok": true,
+          "ms": 8171,
+          "in": 202,
+          "out": 248
+        },
+        {
+          "cat": "en_logic",
+          "q": "All apples are fruits. Some fruits are r",
+          "ok": true,
+          "ms": 8046,
+          "in": 195,
+          "out": 192
+        },
+        {
+          "cat": "en_math",
+          "q": "The sum of three consecutive integers is",
+          "ok": true,
+          "ms": 6173,
+          "in": 169,
+          "out": 272
+        },
+        {
+          "cat": "en_math",
+          "q": "Simplify: (2^3 × 2^4) / 2^5",
+          "ok": true,
+          "ms": 6979,
+          "in": 171,
+          "out": 134
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个数的 1/4 是 25，这个数是多少？",
+          "ok": true,
+          "ms": 11758,
+          "in": 167,
+          "out": 525
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个三角形三个角分别是 2x、3x、4x，x 是多少？",
+          "ok": false,
+          "ms": 4953,
+          "in": 172,
+          "out": 169
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function largest(nums) th",
+          "ok": true,
+          "score": 5,
+          "reason": "正确实现遍历比较求最大值，包含空列表处理，完整提供代码、说明和示例，严格遵循不使用max()的指令。",
+          "ms": 10343,
+          "in": 172,
+          "out": 474
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function word_frequency(t",
+          "ok": true,
+          "score": 5,
+          "reason": "正确实现分词计数并返回字典，额外处理了大小写、标点、类型检查，完整且严格遵循指令。",
+          "ms": 7546,
+          "in": 170,
+          "out": 299
+        },
+        {
+          "cat": "en_reading",
+          "q": "Passage: 'HTTP is a request-response pro",
+          "ok": true,
+          "score": 5,
+          "reason": "答案完全正确，准确提取了原文信息，严格遵循了指令要求。",
+          "ms": 7719,
+          "in": 211,
+          "out": 337
+        },
+        {
+          "cat": "en_reading",
+          "q": "Extract all dates from this text and lis",
+          "ok": true,
+          "score": 5,
+          "reason": "正确提取全部三个日期，格式清晰，严格遵循指令，无遗漏或错误。",
+          "ms": 5132,
+          "in": 204,
+          "out": 154
+        },
+        {
+          "cat": "cn_reading",
+          "q": "把下面中文翻译成英文：'这个系统支持高并发请求，平均响应时间低于 200 毫秒。",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，正确传达了高并发支持和低于200毫秒平均响应时间。",
+          "ms": 8704,
+          "in": 180,
+          "out": 383
+        },
+        {
+          "cat": "cn_reading",
+          "q": "用一句话概括：'人工智能正在改变医疗行业：辅助诊断系统能快速分析影像，降低漏诊率",
+          "ok": true,
+          "score": 5,
+          "reason": "输出准确概括了原文三个要点，并补充了'全面提升效率与精准度'的合理总结，完全符合指令要求。",
+          "ms": 3156,
+          "in": 197,
+          "out": 43
+        },
+        {
+          "cat": "en_instruct",
+          "q": "List exactly three reasons why reading i",
+          "ok": true,
+          "score": 5,
+          "reason": "输出恰好三条理由，使用1. 2. 3.编号，内容正确且完整，严格遵循指令。",
+          "ms": 6234,
+          "in": 173,
+          "out": 136
+        },
+        {
+          "cat": "en_instruct",
+          "q": "Translate \"Good morning\" into French and",
+          "ok": true,
+          "score": 5,
+          "reason": "输出完全符合要求，仅包含正确的法文翻译 Bonjour，无任何多余内容。",
+          "ms": 6609,
+          "in": 167,
+          "out": 194
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "列出三条喝水的健康益处，用 1. 2. 3. 编号。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出恰好三条健康益处，使用1.2.3.编号，内容正确且完整，严格遵循指令。",
+          "ms": 9812,
+          "in": 174,
+          "out": 444
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "用一段话介绍你自己，不超过 50 字。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出为一段话，共36字，未超50字，内容合理且严格遵循指令。",
+          "ms": 7980,
+          "in": 164,
+          "out": 324
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"Please send the",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，并补充了商务场景的常见变体，未遗漏任何要点。",
+          "ms": 9860,
+          "in": 169,
+          "out": 505
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"This update fix",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，与参考答案语义一致。",
+          "ms": 6613,
+          "in": 166,
+          "out": 267
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「这个系统支持高并发请求。」",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确传达了“高并发请求”的含义，用词专业且完全遵循指令。",
+          "ms": 7124,
+          "in": 165,
+          "out": 295
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「我们的 API 支持流式响应和",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译完全正确，准确表达了流式响应和函数调用，严格遵循指令，无遗漏或多余内容。",
+          "ms": 7312,
+          "in": 170,
+          "out": 259
+        }
+      ]
+    },
+    {
+      "candidate": "Qwen3.7 Max · TokenLab",
+      "ok": true,
+      "auto_acc": 0.8,
+      "judge_acc": 1.0,
+      "med_ms": 20734,
+      "cost_usd": 0.0933,
+      "n_auto": 10,
+      "n_judge": 14,
+      "detail": [
+        {
+          "cat": "en_knowledge",
+          "q": "What is the capital of Australia?\nA. Syd",
+          "ok": true,
+          "ms": 12738,
+          "in": 180,
+          "out": 424
+        },
+        {
+          "cat": "en_knowledge",
+          "q": "Who wrote \"Romeo and Juliet\"?\nA. Charles",
+          "ok": true,
+          "ms": 7234,
+          "in": 188,
+          "out": 296
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "珠穆朗玛峰位于？\nA. 中国和尼泊尔边境 B. 中国和印度边境 C. 印度和尼泊",
+          "ok": true,
+          "ms": 5250,
+          "in": 193,
+          "out": 188
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "光年是什么的单位？\nA. 时间 B. 速度 C. 距离 D. 亮度",
+          "ok": true,
+          "ms": 5937,
+          "in": 182,
+          "out": 179
+        },
+        {
+          "cat": "en_logic",
+          "q": "If all Zorks are blue, and some blue thi",
+          "ok": true,
+          "ms": 31468,
+          "in": 210,
+          "out": 1507
+        },
+        {
+          "cat": "en_logic",
+          "q": "All apples are fruits. Some fruits are r",
+          "ok": true,
+          "ms": 11593,
+          "in": 203,
+          "out": 538
+        },
+        {
+          "cat": "en_math",
+          "q": "The sum of three consecutive integers is",
+          "ok": true,
+          "ms": 20734,
+          "in": 177,
+          "out": 1059
+        },
+        {
+          "cat": "en_math",
+          "q": "Simplify: (2^3 × 2^4) / 2^5",
+          "ok": true,
+          "ms": 23513,
+          "in": 178,
+          "out": 1082
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个数的 1/4 是 25，这个数是多少？",
+          "ok": false,
+          "ms": 8421,
+          "in": 176,
+          "out": 343
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个三角形三个角分别是 2x、3x、4x，x 是多少？",
+          "ok": false,
+          "ms": 6406,
+          "in": 179,
+          "out": 237
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function largest(nums) th",
+          "ok": true,
+          "score": 5,
+          "reason": "代码正确实现遍历比较求最大值，包含空列表处理，完整遵循指令且未使用max()。",
+          "ms": 32868,
+          "in": 179,
+          "out": 1667
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function word_frequency(t",
+          "ok": true,
+          "score": 4,
+          "reason": "正确实现了词频统计并返回字典，但额外引入了小写转换和正则分词，未严格遵循题目隐含的按空格分词要求，完整性略超但未偏离核心功能。",
+          "ms": 22171,
+          "in": 177,
+          "out": 1123
+        },
+        {
+          "cat": "en_reading",
+          "q": "Passage: 'HTTP is a request-response pro",
+          "ok": true,
+          "score": 5,
+          "reason": "答案完全正确，准确提取了原文信息，严格遵循指令，简洁明了。",
+          "ms": 21545,
+          "in": 225,
+          "out": 1088
+        },
+        {
+          "cat": "en_reading",
+          "q": "Extract all dates from this text and lis",
+          "ok": true,
+          "score": 5,
+          "reason": "正确且完整地提取了三个日期，格式与参考答案一致，严格遵循指令仅列出日期。",
+          "ms": 26187,
+          "in": 221,
+          "out": 1310
+        },
+        {
+          "cat": "cn_reading",
+          "q": "把下面中文翻译成英文：'这个系统支持高并发请求，平均响应时间低于 200 毫秒。",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，正确传达了高并发支持和低于200毫秒平均响应时间。",
+          "ms": 24870,
+          "in": 186,
+          "out": 1290
+        },
+        {
+          "cat": "cn_reading",
+          "q": "用一句话概括：'人工智能正在改变医疗行业：辅助诊断系统能快速分析影像，降低漏诊率",
+          "ok": true,
+          "score": 5,
+          "reason": "输出准确概括了原文三个要点，语义完整且严格遵循指令，仅用一句话表达。",
+          "ms": 13718,
+          "in": 201,
+          "out": 534
+        },
+        {
+          "cat": "en_instruct",
+          "q": "List exactly three reasons why reading i",
+          "ok": true,
+          "score": 5,
+          "reason": "输出严格遵循指令，恰好列出三条理由并用1. 2. 3.编号，内容正确且完整。",
+          "ms": 18566,
+          "in": 180,
+          "out": 924
+        },
+        {
+          "cat": "en_instruct",
+          "q": "Translate \"Good morning\" into French and",
+          "ok": true,
+          "score": 5,
+          "reason": "输出完全符合要求，仅包含正确的法文翻译 Bonjour，无任何多余内容。",
+          "ms": 5662,
+          "in": 174,
+          "out": 191
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "列出三条喝水的健康益处，用 1. 2. 3. 编号。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出恰好三条且严格使用1.2.3.编号，内容正确完整，完全遵循指令。",
+          "ms": 7734,
+          "in": 179,
+          "out": 355
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "用一段话介绍你自己，不超过 50 字。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出为一段话、共24字，内容合理且严格遵循指令。",
+          "ms": 21328,
+          "in": 173,
+          "out": 982
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"Please send the",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，且补充了'我司'使语境更正式，未偏离原意。",
+          "ms": 26756,
+          "in": 176,
+          "out": 1401
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"This update fix",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，与参考答案语义一致且表达自然。",
+          "ms": 14250,
+          "in": 173,
+          "out": 692
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「这个系统支持高并发请求。」",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确传达了 high concurrency 支持，用词规范且完全遵循指令。",
+          "ms": 26648,
+          "in": 172,
+          "out": 1200
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「我们的 API 支持流式响应和",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确，完整包含'streaming responses'和'function calling'，严格遵循指令输出英文翻译。",
+          "ms": 21578,
+          "in": 176,
+          "out": 981
+        }
+      ]
+    },
+    {
+      "candidate": "MiniMax M3 · TokenLab",
+      "ok": true,
+      "auto_acc": 0.7,
+      "judge_acc": 1.0,
+      "med_ms": 4864,
+      "cost_usd": 0.0094,
+      "n_auto": 10,
+      "n_judge": 14,
+      "detail": [
+        {
+          "cat": "en_knowledge",
+          "q": "What is the capital of Australia?\nA. Syd",
+          "ok": true,
+          "ms": 4844,
+          "in": 329,
+          "out": 102
+        },
+        {
+          "cat": "en_knowledge",
+          "q": "Who wrote \"Romeo and Juliet\"?\nA. Charles",
+          "ok": true,
+          "ms": 4041,
+          "in": 334,
+          "out": 132
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "珠穆朗玛峰位于？\nA. 中国和尼泊尔边境 B. 中国和印度边境 C. 印度和尼泊",
+          "ok": true,
+          "ms": 4085,
+          "in": 346,
+          "out": 133
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "光年是什么的单位？\nA. 时间 B. 速度 C. 距离 D. 亮度",
+          "ok": false,
+          "ms": 6812,
+          "in": 330,
+          "out": 136
+        },
+        {
+          "cat": "en_logic",
+          "q": "If all Zorks are blue, and some blue thi",
+          "ok": false,
+          "ms": 7843,
+          "in": 359,
+          "out": 576
+        },
+        {
+          "cat": "en_logic",
+          "q": "All apples are fruits. Some fruits are r",
+          "ok": false,
+          "ms": 9406,
+          "in": 352,
+          "out": 756
+        },
+        {
+          "cat": "en_math",
+          "q": "The sum of three consecutive integers is",
+          "ok": true,
+          "ms": 5703,
+          "in": 326,
+          "out": 152
+        },
+        {
+          "cat": "en_math",
+          "q": "Simplify: (2^3 × 2^4) / 2^5",
+          "ok": true,
+          "ms": 4390,
+          "in": 328,
+          "out": 254
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个数的 1/4 是 25，这个数是多少？",
+          "ok": true,
+          "ms": 3765,
+          "in": 323,
+          "out": 167
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个三角形三个角分别是 2x、3x、4x，x 是多少？",
+          "ok": true,
+          "ms": 5881,
+          "in": 329,
+          "out": 270
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function largest(nums) th",
+          "ok": true,
+          "score": 5,
+          "reason": "正确实现遍历求最大，处理空列表，严格遵循指令未使用max()，解释清晰完整。",
+          "ms": 11099,
+          "in": 329,
+          "out": 491
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function word_frequency(t",
+          "ok": true,
+          "score": 4,
+          "reason": "正确实现了分词计数并返回dict，但额外添加了大小写归一化和标点处理，虽提升了实用性，但未严格遵循题目仅要求按空格分词的指令。",
+          "ms": 13172,
+          "in": 327,
+          "out": 768
+        },
+        {
+          "cat": "en_reading",
+          "q": "Passage: 'HTTP is a request-response pro",
+          "ok": true,
+          "score": 5,
+          "reason": "正确给出500含义，补充了服务器端错误说明，完整且严格遵循指令。",
+          "ms": 6952,
+          "in": 368,
+          "out": 114
+        },
+        {
+          "cat": "en_reading",
+          "q": "Extract all dates from this text and lis",
+          "ok": true,
+          "score": 5,
+          "reason": "正确且完整地提取了三个日期，严格遵循指令列出，无遗漏或多余内容。",
+          "ms": 4499,
+          "in": 361,
+          "out": 234
+        },
+        {
+          "cat": "cn_reading",
+          "q": "把下面中文翻译成英文：'这个系统支持高并发请求，平均响应时间低于 200 毫秒。",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，仅输出译文且正确传达了高并发支持与<200ms平均响应。",
+          "ms": 3562,
+          "in": 335,
+          "out": 97
+        },
+        {
+          "cat": "cn_reading",
+          "q": "用一句话概括：'人工智能正在改变医疗行业：辅助诊断系统能快速分析影像，降低漏诊率",
+          "ok": true,
+          "score": 4,
+          "reason": "概括准确覆盖三个要点，但添加了原文未强调的'全面赋能转型升级'，略有扩展，未严格遵循'仅概括'的指令。",
+          "ms": 4197,
+          "in": 353,
+          "out": 146
+        },
+        {
+          "cat": "en_instruct",
+          "q": "List exactly three reasons why reading i",
+          "ok": true,
+          "score": 5,
+          "reason": "输出严格按指令列出恰好三条理由并用1. 2. 3.编号，内容正确且完整。",
+          "ms": 6640,
+          "in": 330,
+          "out": 270
+        },
+        {
+          "cat": "en_instruct",
+          "q": "Translate \"Good morning\" into French and",
+          "ok": true,
+          "score": 5,
+          "reason": "输出仅包含法文翻译 Bonjour，完全符合指令要求，正确且完整。",
+          "ms": 2687,
+          "in": 324,
+          "out": 32
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "列出三条喝水的健康益处，用 1. 2. 3. 编号。",
+          "ok": true,
+          "score": 5,
+          "reason": "正确列出三条益处，编号格式严格遵循指令，内容完整且无多余信息。",
+          "ms": 4828,
+          "in": 330,
+          "out": 185
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "用一段话介绍你自己，不超过 50 字。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出为一段话，共34个汉字（含标点），严格≤50字，内容合理且正确介绍了AI24X助手。",
+          "ms": 7234,
+          "in": 321,
+          "out": 396
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"Please send the",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，输出自然流畅的中文，与参考答案语义一致。",
+          "ms": 5328,
+          "in": 326,
+          "out": 167
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"This update fix",
+          "ok": true,
+          "score": 4,
+          "reason": "翻译准确且自然，但输出中包含了不必要的思考过程，未严格遵循仅输出翻译的指令。",
+          "ms": 4324,
+          "in": 323,
+          "out": 68
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「这个系统支持高并发请求。」",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确传达了 high concurrency 支持，且严格遵循了只输出翻译结果的指令（思考过程在标签内，最终输出干净）。",
+          "ms": 4864,
+          "in": 322,
+          "out": 67
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「我们的 API 支持流式响应和",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译完全正确，完整覆盖了流式响应和函数调用两个要点，且严格遵循了仅输出翻译的指令。",
+          "ms": 4828,
+          "in": 325,
+          "out": 128
+        }
+      ]
+    },
+    {
+      "candidate": "MiMo v2.5 Pro · Requesty",
+      "ok": true,
+      "auto_acc": 0.7,
+      "judge_acc": 1.0,
+      "med_ms": 4171,
+      "cost_usd": 0.006,
+      "n_auto": 10,
+      "n_judge": 14,
+      "detail": [
+        {
+          "cat": "en_knowledge",
+          "q": "What is the capital of Australia?\nA. Syd",
+          "ok": true,
+          "ms": 4843,
+          "in": 176,
+          "out": 81
+        },
+        {
+          "cat": "en_knowledge",
+          "q": "Who wrote \"Romeo and Juliet\"?\nA. Charles",
+          "ok": true,
+          "ms": 5203,
+          "in": 185,
+          "out": 186
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "珠穆朗玛峰位于？\nA. 中国和尼泊尔边境 B. 中国和印度边境 C. 印度和尼泊",
+          "ok": true,
+          "ms": 1859,
+          "in": 197,
+          "out": 79
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "光年是什么的单位？\nA. 时间 B. 速度 C. 距离 D. 亮度",
+          "ok": true,
+          "ms": 3765,
+          "in": 180,
+          "out": 121
+        },
+        {
+          "cat": "en_logic",
+          "q": "If all Zorks are blue, and some blue thi",
+          "ok": false,
+          "ms": 7875,
+          "in": 206,
+          "out": 477
+        },
+        {
+          "cat": "en_logic",
+          "q": "All apples are fruits. Some fruits are r",
+          "ok": true,
+          "ms": 7562,
+          "in": 199,
+          "out": 422
+        },
+        {
+          "cat": "en_math",
+          "q": "The sum of three consecutive integers is",
+          "ok": true,
+          "ms": 3945,
+          "in": 174,
+          "out": 185
+        },
+        {
+          "cat": "en_math",
+          "q": "Simplify: (2^3 × 2^4) / 2^5",
+          "ok": true,
+          "ms": 4034,
+          "in": 175,
+          "out": 224
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个数的 1/4 是 25，这个数是多少？",
+          "ok": false,
+          "ms": 2690,
+          "in": 173,
+          "out": 130
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个三角形三个角分别是 2x、3x、4x，x 是多少？",
+          "ok": false,
+          "ms": 4171,
+          "in": 177,
+          "out": 187
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function largest(nums) th",
+          "ok": true,
+          "score": 5,
+          "reason": "正确实现遍历比较求最大值，包含空列表处理，完整展示代码、步骤、测试和复杂度分析，严格遵循指令未使用max()。",
+          "ms": 9046,
+          "in": 176,
+          "out": 484
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function word_frequency(t",
+          "ok": true,
+          "score": 5,
+          "reason": "正确实现了按空格分词并返回计数字典，额外处理了大小写和标点，完整且严格遵循指令，并提供了多种实现方式。",
+          "ms": 8031,
+          "in": 174,
+          "out": 423
+        },
+        {
+          "cat": "en_reading",
+          "q": "Passage: 'HTTP is a request-response pro",
+          "ok": true,
+          "score": 5,
+          "reason": "正确给出500含义并补充说明，完整且严格遵循指令，无多余内容。",
+          "ms": 2562,
+          "in": 222,
+          "out": 57
+        },
+        {
+          "cat": "en_reading",
+          "q": "Extract all dates from this text and lis",
+          "ok": true,
+          "score": 5,
+          "reason": "正确提取全部三个日期，格式清晰且附加说明，完全遵循指令。",
+          "ms": 3344,
+          "in": 218,
+          "out": 192
+        },
+        {
+          "cat": "cn_reading",
+          "q": "把下面中文翻译成英文：'这个系统支持高并发请求，平均响应时间低于 200 毫秒。",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，正确传达了高并发支持和低于200毫秒平均响应时间。",
+          "ms": 4297,
+          "in": 186,
+          "out": 149
+        },
+        {
+          "cat": "cn_reading",
+          "q": "用一句话概括：'人工智能正在改变医疗行业：辅助诊断系统能快速分析影像，降低漏诊率",
+          "ok": true,
+          "score": 4,
+          "reason": "正确概括了三个要点，但'全面革新技术'表述泛化且未明确提及AI，与指令要求的严格对应略有偏差。",
+          "ms": 3584,
+          "in": 201,
+          "out": 140
+        },
+        {
+          "cat": "en_instruct",
+          "q": "List exactly three reasons why reading i",
+          "ok": true,
+          "score": 5,
+          "reason": "输出恰好三条理由，严格使用1. 2. 3.编号，内容正确且完整，完全符合指令要求。",
+          "ms": 2672,
+          "in": 177,
+          "out": 112
+        },
+        {
+          "cat": "en_instruct",
+          "q": "Translate \"Good morning\" into French and",
+          "ok": true,
+          "score": 5,
+          "reason": "输出完全正确，仅包含法文翻译 Bonjour，严格遵循指令，无任何多余内容。",
+          "ms": 3046,
+          "in": 171,
+          "out": 106
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "列出三条喝水的健康益处，用 1. 2. 3. 编号。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出恰好三条健康益处，使用1.2.3.编号，内容正确且完整，严格遵循指令。",
+          "ms": 4125,
+          "in": 179,
+          "out": 158
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "用一段话介绍你自己，不超过 50 字。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出为一段话、共24字未超50字、内容合理且严格遵循指令。",
+          "ms": 3031,
+          "in": 169,
+          "out": 92
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"Please send the",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，语义与参考答案一致，且严格遵循了翻译指令。",
+          "ms": 5234,
+          "in": 173,
+          "out": 196
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"This update fix",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，与参考答案语义一致。",
+          "ms": 4328,
+          "in": 170,
+          "out": 123
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「这个系统支持高并发请求。」",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确传达了 high concurrency 支持，用词规范且完全遵循指令。",
+          "ms": 4484,
+          "in": 170,
+          "out": 154
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「我们的 API 支持流式响应和",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译完全正确，准确表达了流式响应和函数调用，严格遵循指令，无遗漏或多余内容。",
+          "ms": 5219,
+          "in": 176,
+          "out": 210
+        }
+      ]
+    },
+    {
+      "candidate": "GPT-5 mini · OpenRouter",
+      "ok": true,
+      "auto_acc": 0.9,
+      "judge_acc": 1.0,
+      "med_ms": 6109,
+      "cost_usd": 0.015,
+      "n_auto": 10,
+      "n_judge": 14,
+      "detail": [
+        {
+          "cat": "en_knowledge",
+          "q": "What is the capital of Australia?\nA. Syd",
+          "ok": true,
+          "ms": 4560,
+          "in": 168,
+          "out": 130
+        },
+        {
+          "cat": "en_knowledge",
+          "q": "Who wrote \"Romeo and Juliet\"?\nA. Charles",
+          "ok": true,
+          "ms": 4952,
+          "in": 174,
+          "out": 115
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "珠穆朗玛峰位于？\nA. 中国和尼泊尔边境 B. 中国和印度边境 C. 印度和尼泊",
+          "ok": true,
+          "ms": 4703,
+          "in": 193,
+          "out": 217
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "光年是什么的单位？\nA. 时间 B. 速度 C. 距离 D. 亮度",
+          "ok": true,
+          "ms": 4672,
+          "in": 172,
+          "out": 130
+        },
+        {
+          "cat": "en_logic",
+          "q": "If all Zorks are blue, and some blue thi",
+          "ok": true,
+          "ms": 12905,
+          "in": 198,
+          "out": 513
+        },
+        {
+          "cat": "en_logic",
+          "q": "All apples are fruits. Some fruits are r",
+          "ok": true,
+          "ms": 9687,
+          "in": 191,
+          "out": 313
+        },
+        {
+          "cat": "en_math",
+          "q": "The sum of three consecutive integers is",
+          "ok": true,
+          "ms": 4626,
+          "in": 165,
+          "out": 265
+        },
+        {
+          "cat": "en_math",
+          "q": "Simplify: (2^3 × 2^4) / 2^5",
+          "ok": true,
+          "ms": 9058,
+          "in": 167,
+          "out": 260
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个数的 1/4 是 25，这个数是多少？",
+          "ok": true,
+          "ms": 6797,
+          "in": 164,
+          "out": 140
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个三角形三个角分别是 2x、3x、4x，x 是多少？",
+          "ok": false,
+          "ms": 6327,
+          "in": 171,
+          "out": 266
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function largest(nums) th",
+          "ok": true,
+          "score": 5,
+          "reason": "正确实现遍历比较求最大值，包含空列表异常处理，完整覆盖题目要求且严格遵循不使用max()的指令。",
+          "ms": 8453,
+          "in": 168,
+          "out": 403
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function word_frequency(t",
+          "ok": true,
+          "score": 5,
+          "reason": "模型输出完全符合指令，仅返回了要求的JSON格式，且评分准确反映了参考答案的要点。",
+          "ms": 18272,
+          "in": 166,
+          "out": 768
+        },
+        {
+          "cat": "en_reading",
+          "q": "Passage: 'HTTP is a request-response pro",
+          "ok": true,
+          "score": 5,
+          "reason": "正确给出500含义，补充了错误性质、常见原因和调试建议，完整且严格遵循指令。",
+          "ms": 8033,
+          "in": 206,
+          "out": 401
+        },
+        {
+          "cat": "en_reading",
+          "q": "Extract all dates from this text and lis",
+          "ok": true,
+          "score": 5,
+          "reason": "正确提取全部三个日期，格式清晰且附加ISO标准化，完全遵循指令。",
+          "ms": 5734,
+          "in": 200,
+          "out": 330
+        },
+        {
+          "cat": "cn_reading",
+          "q": "把下面中文翻译成英文：'这个系统支持高并发请求，平均响应时间低于 200 毫秒。",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，精确传达了高并发支持和低于200毫秒平均响应时间。",
+          "ms": 9952,
+          "in": 178,
+          "out": 437
+        },
+        {
+          "cat": "cn_reading",
+          "q": "用一句话概括：'人工智能正在改变医疗行业：辅助诊断系统能快速分析影像，降低漏诊率",
+          "ok": true,
+          "score": 5,
+          "reason": "正确覆盖三个要点，完整保留核心信息，严格遵循一句话概括指令且未添加无关内容。",
+          "ms": 6687,
+          "in": 203,
+          "out": 236
+        },
+        {
+          "cat": "en_instruct",
+          "q": "List exactly three reasons why reading i",
+          "ok": true,
+          "score": 5,
+          "reason": "输出恰好三条理由，严格使用1. 2. 3.编号，内容正确且完整，完全符合指令要求。",
+          "ms": 5422,
+          "in": 169,
+          "out": 232
+        },
+        {
+          "cat": "en_instruct",
+          "q": "Translate \"Good morning\" into French and",
+          "ok": true,
+          "score": 5,
+          "reason": "输出完全符合指令，仅包含正确的法文翻译 Bonjour，无任何多余内容。",
+          "ms": 3131,
+          "in": 163,
+          "out": 138
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "列出三条喝水的健康益处，用 1. 2. 3. 编号。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出恰好三条健康益处，使用1.2.3.编号，内容正确且完整，严格遵循指令。",
+          "ms": 6109,
+          "in": 172,
+          "out": 396
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "用一段话介绍你自己，不超过 50 字。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出为一段话、共24字，内容合理且严格遵循指令。",
+          "ms": 6593,
+          "in": 162,
+          "out": 472
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"Please send the",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，语义与参考答案一致，且严格遵循了翻译指令。",
+          "ms": 4171,
+          "in": 165,
+          "out": 254
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"This update fix",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，语义与参考答案一致，仅措辞略有差异但无错误。",
+          "ms": 3343,
+          "in": 162,
+          "out": 187
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「这个系统支持高并发请求。」",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确传达了 high concurrency 支持，且提供了两种地道表达，完全符合指令。",
+          "ms": 5749,
+          "in": 162,
+          "out": 211
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「我们的 API 支持流式响应和",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，正确使用了streaming responses和function calls。",
+          "ms": 4390,
+          "in": 165,
+          "out": 162
+        }
+      ]
+    },
+    {
+      "candidate": "GPT-5 mini · TokenLab",
+      "ok": true,
+      "auto_acc": 0.8,
+      "judge_acc": 1.0,
+      "med_ms": 6140,
+      "cost_usd": 0.0138,
+      "n_auto": 10,
+      "n_judge": 14,
+      "detail": [
+        {
+          "cat": "en_knowledge",
+          "q": "What is the capital of Australia?\nA. Syd",
+          "ok": true,
+          "ms": 4389,
+          "in": 168,
+          "out": 85
+        },
+        {
+          "cat": "en_knowledge",
+          "q": "Who wrote \"Romeo and Juliet\"?\nA. Charles",
+          "ok": true,
+          "ms": 6044,
+          "in": 174,
+          "out": 85
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "珠穆朗玛峰位于？\nA. 中国和尼泊尔边境 B. 中国和印度边境 C. 印度和尼泊",
+          "ok": true,
+          "ms": 4671,
+          "in": 193,
+          "out": 255
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "光年是什么的单位？\nA. 时间 B. 速度 C. 距离 D. 亮度",
+          "ok": true,
+          "ms": 7155,
+          "in": 172,
+          "out": 116
+        },
+        {
+          "cat": "en_logic",
+          "q": "If all Zorks are blue, and some blue thi",
+          "ok": true,
+          "ms": 8718,
+          "in": 198,
+          "out": 435
+        },
+        {
+          "cat": "en_logic",
+          "q": "All apples are fruits. Some fruits are r",
+          "ok": true,
+          "ms": 6859,
+          "in": 191,
+          "out": 414
+        },
+        {
+          "cat": "en_math",
+          "q": "The sum of three consecutive integers is",
+          "ok": false,
+          "ms": 4187,
+          "in": 165,
+          "out": 133
+        },
+        {
+          "cat": "en_math",
+          "q": "Simplify: (2^3 × 2^4) / 2^5",
+          "ok": true,
+          "ms": 5906,
+          "in": 167,
+          "out": 251
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个数的 1/4 是 25，这个数是多少？",
+          "ok": true,
+          "ms": 5487,
+          "in": 164,
+          "out": 234
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个三角形三个角分别是 2x、3x、4x，x 是多少？",
+          "ok": false,
+          "ms": 5676,
+          "in": 171,
+          "out": 197
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function largest(nums) th",
+          "ok": true,
+          "score": 5,
+          "reason": "正确实现遍历比较求最大值，包含空列表异常处理，严格遵循不使用max()的指令，示例清晰完整。",
+          "ms": 8171,
+          "in": 168,
+          "out": 383
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function word_frequency(t",
+          "ok": true,
+          "score": 4,
+          "reason": "正确实现了分词计数并返回dict，但额外引入了小写和正则分词，未严格遵循题目仅要求按空格分词的指令。",
+          "ms": 9703,
+          "in": 166,
+          "out": 643
+        },
+        {
+          "cat": "en_reading",
+          "q": "Passage: 'HTTP is a request-response pro",
+          "ok": true,
+          "score": 5,
+          "reason": "正确给出500含义，补充了详细解释和排查建议，完全遵循指令且信息完整。",
+          "ms": 6140,
+          "in": 206,
+          "out": 439
+        },
+        {
+          "cat": "en_reading",
+          "q": "Extract all dates from this text and lis",
+          "ok": true,
+          "score": 5,
+          "reason": "正确提取全部三个日期，格式与参考答案一致，严格遵循指令。",
+          "ms": 6422,
+          "in": 200,
+          "out": 164
+        },
+        {
+          "cat": "cn_reading",
+          "q": "把下面中文翻译成英文：'这个系统支持高并发请求，平均响应时间低于 200 毫秒。",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，正确传达了高并发支持和低于200毫秒平均响应时间。",
+          "ms": 12758,
+          "in": 178,
+          "out": 224
+        },
+        {
+          "cat": "cn_reading",
+          "q": "用一句话概括：'人工智能正在改变医疗行业：辅助诊断系统能快速分析影像，降低漏诊率",
+          "ok": true,
+          "score": 5,
+          "reason": "输出完整覆盖辅助诊断、药物研发、个性化治疗三个要点，严格遵循一句话概括指令，表达准确无冗余。",
+          "ms": 9765,
+          "in": 203,
+          "out": 238
+        },
+        {
+          "cat": "en_instruct",
+          "q": "List exactly three reasons why reading i",
+          "ok": true,
+          "score": 5,
+          "reason": "输出恰好三条理由，严格使用1. 2. 3.编号，内容正确且完整覆盖阅读的认知、语言与情感益处。",
+          "ms": 6140,
+          "in": 169,
+          "out": 254
+        },
+        {
+          "cat": "en_instruct",
+          "q": "Translate \"Good morning\" into French and",
+          "ok": true,
+          "score": 5,
+          "reason": "输出完全正确，仅包含法文翻译 Bonjour，严格遵循指令，无任何多余内容。",
+          "ms": 4265,
+          "in": 163,
+          "out": 75
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "列出三条喝水的健康益处，用 1. 2. 3. 编号。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出恰好三条健康益处，使用1.2.3.编号，内容正确且完整，严格遵循指令。",
+          "ms": 5546,
+          "in": 172,
+          "out": 269
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "用一段话介绍你自己，不超过 50 字。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出完全符合要求：一段话、不超过50字、内容合理，正确性、完整性、指令遵循度均优秀。",
+          "ms": 9842,
+          "in": 162,
+          "out": 768
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"Please send the",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，语义与参考答案一致，且严格遵循了翻译指令。",
+          "ms": 5390,
+          "in": 165,
+          "out": 153
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"This update fix",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，与参考答案语义一致。",
+          "ms": 9421,
+          "in": 162,
+          "out": 213
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「这个系统支持高并发请求。」",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确传达了“高并发请求”的含义，用词专业且完整，严格遵循指令。",
+          "ms": 13171,
+          "in": 162,
+          "out": 276
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「我们的 API 支持流式响应和",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，术语与参考答案一致。",
+          "ms": 3640,
+          "in": 165,
+          "out": 83
+        }
+      ]
+    }
+  ]
+}
