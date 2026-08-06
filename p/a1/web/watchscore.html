@@ -53,6 +53,9 @@
     body.embed .card > h1 { display: none; }
     .wl-kline { color: #be123c; font-weight: 700; text-decoration: none; white-space: nowrap; }
     .wl-kline:hover { text-decoration: underline; }
+    #wl-market .mkt-up { color: #f43f5e; font-weight: 700; }
+    #wl-market .mkt-down { color: #3b82f6; font-weight: 700; }
+    #wl-market .mkt-flat { color: #94a3b8; font-weight: 700; }
   </style>
 </head>
 <body>
@@ -61,7 +64,7 @@
     <div class="wrap">
       <section class="card">
         <h1>自选评分榜</h1>
-        <p class="sub" style="margin:0 0 12px;">对「自选股」做技术面量化评分（0-100）：MACD 量能柱、均线形态、量能确认、异动回踩、位置与趋势环境。仅供选股参考，不构成投资建议。</p>
+        <p class="sub" style="margin:0 0 12px;">仅对您自选的标的做<strong>公开技术指标统计</strong>（MACD、均线、量能、RSI、波动等常规指标，0-100 综合分），仅供自主决策参考，<strong>不构成证券投资咨询，不构成任何买卖建议</strong>。</p>
 
         <div id="auth-guest" hidden>
           <p class="sub" style="margin:0 0 4px;">登录后同步服务端自选并自动生成评分榜。</p>
@@ -89,9 +92,11 @@
             </span>
           </div>
           <div class="status" id="wl-status" style="margin:0 0 4px;"></div>
+          <div class="muted small" id="wl-market" style="margin:2px 0 6px; display:none;"></div>
           <div id="wl-list"></div>
           <div class="hint" id="wl-score-hint" style="margin-top:10px; display:none;"></div>
           <div id="wl-score-wrap" style="margin-top:10px;"></div>
+          <p class="sub" style="margin:14px 0 0; font-size:12px; line-height:1.7;">本页仅对您自选的标的做公开技术指标统计，不构成证券投资咨询与任何买卖建议；技术指标存在滞后与失效风险，历史表现不代表未来，股市有风险，入市需谨慎，据此操作风险自负。</p>
         </div>
       </section>
     </div>
@@ -212,13 +217,24 @@
           var items = (d && d.items) || [];
           if (hint) {
             hint.style.display = "";
-            hint.textContent = "共 " + items.length + " 只标的参与评分；点名称可新窗口查看 K 线。个别标的获取超时显示 —，可点「刷新评分」重试。评分按自然日同票去重扣次，仅为技术规则量化结果，不构成投资建议。";
+            hint.textContent = "共 " + items.length + " 只标的参与技术指标统计；点名称可新窗口查看 K 线。个别标的获取超时显示 —，可点「刷新评分」重试。统计按自然日同票去重扣次，仅为技术规则量化结果，不构成投资建议。";
           }
+          renderMarket(d.market);
           renderWlScores(items);
         }).catch(function (e) {
           wrap.innerHTML = "";
           wlStatus("评分失败：" + (e && e.message || "网络错误"), true);
         });
+      }
+      function renderMarket(m) {
+        var el = $("wl-market");
+        if (!el) return;
+        if (!m || !m.name) { el.style.display = "none"; return; }
+        var pts = Number(m.pts || 0);
+        var cls = pts >= 2 ? "mkt-up" : (pts <= -2 ? "mkt-down" : "mkt-flat");
+        var lbl = pts >= 2 ? "顺风" : (pts <= -2 ? "逆风" : "中性");
+        el.style.display = "";
+        el.innerHTML = "大盘环境：<span class=\"" + cls + "\">" + escWl(lbl) + "</span>（" + escWl(m.name) + "：" + escWl((m.tags || []).join(" / ")) + "）";
       }
       function renderWlScores(items) {
         var wrap = $("wl-score-wrap");
@@ -227,7 +243,7 @@
           wrap.innerHTML = '<div class="muted small">暂无评分结果（标的可能缺少足够 K 线历史）。</div>';
           return;
         }
-        var html = '<table class="wl-score-table"><thead><tr><th>#</th><th>代码</th><th>名称</th><th>评分</th><th>信号标签</th><th>风险提示</th></tr></thead><tbody>';
+        var html = '<table class="wl-score-table"><thead><tr><th>#</th><th>代码</th><th>名称</th><th>综合分</th><th>技术信号</th><th>风险提示</th></tr></thead><tbody>';
         for (var i = 0; i < items.length; i++) {
           var it = items[i];
           var err = String(it.error || "");
@@ -257,7 +273,8 @@
           if (wlItems.length) loadWlScores();
           else {
             var wrap = $("wl-score-wrap");
-            if (wrap) wrap.innerHTML = '<div class="muted small">暂无自选，添加后自动生成评分榜。</div>';
+            if (wrap) wrap.innerHTML = '<div class="muted small">暂无自选，添加后自动生成技术指标统计。</div>';
+            var mEl = $("wl-market"); if (mEl) mEl.style.display = "none";
           }
         }).catch(function (e) {
           wlStatus("自选加载失败：" + (e && e.message ? e.message : "网络错误"), true);

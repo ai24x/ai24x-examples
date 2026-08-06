@@ -2646,8 +2646,8 @@ async def api_watchlist_scores(
 
     import asyncio
 
-    from .scoring import score_candles
-    from .signals import candles_from_tencent_like_pack
+    from .scoring import _red_days, _ma, _slope_ratio, score_candles
+    from .signals import _compute_macd_arrays, candles_from_tencent_like_pack
 
     async def _score_one(it: dict) -> dict:
         secid = str(it.get("secid") or "")
@@ -2695,13 +2695,81 @@ async def api_watchlist_scores(
             pass
         return base
 
+    async def _fetch_market() -> dict:
+        # 大盘环境（上证指数）：MACD 首根红柱天数 + 均线信号，作为各标的统一加减分项
+        try:
+            payload = await fetch_tx_kline(
+                "1.000001",
+                "day",
+                count=120,
+                timeout=6.0,
+                variant=variant,
+                priority_override=priority_override,
+                allow_paid=allow_paid,
+            )
+            if not isinstance(payload, dict) or int(payload.get("code") or 0) != 0:
+                return {}
+            data = payload.get("data")
+            if not isinstance(data, dict) or not data:
+                return {}
+            pack = next(iter(data.values()))
+            candles = candles_from_tencent_like_pack(pack, period="day")
+            if len(candles) < 60:
+                return {}
+            closes = [float(c.close) for c in candles]
+            dif, dea, bar, golden, dead = _compute_macd_arrays(closes)
+            ma5 = _ma(closes, 5)
+            ma10 = _ma(closes, 10)
+            ma20 = _ma(closes, 20)
+            rd = _red_days(bar)
+            cur = closes[-1]
+            macd_red = rd >= 1
+            ma_bull = ma5[-1] > ma10[-1] > ma20[-1]
+            ma20_up = _slope_ratio(ma20, 5) > 0.001
+            above_ma20 = cur > ma20[-1]
+            weak = (not above_ma20) and (not ma20_up)
+            pts = 0.0
+            if macd_red:
+                pts += 3.0
+            if ma_bull:
+                pts += 3.0
+            if above_ma20 and ma20_up:
+                pts += 2.0
+            if weak:
+                pts -= 3.0
+            tags = []
+            tags.append("大盘MACD翻红·第%d天" % rd if macd_red else "大盘MACD绿柱")
+            if ma_bull:
+                tags.append("大盘均线多头")
+            elif above_ma20:
+                tags.append("大盘站上MA20")
+            else:
+                tags.append("大盘跌破MA20")
+            return {
+                "secid": "1.000001",
+                "name": "上证指数",
+                "pts": round(max(-3.0, min(8.0, pts)), 1),
+                "red_days": rd,
+                "ma_bull": bool(ma_bull),
+                "above_ma20": bool(above_ma20),
+                "weak": bool(weak),
+                "tags": tags,
+                "latest_time": str(candles[-1].time),
+            }
+        except Exception:
+            return {}
+
     # 整体 12 秒上限：外部数据源偶发慢/挂时，先出已算完的标的，其余标记超时，避免整榜一直转圈
     fs = [asyncio.ensure_future(_score_one(it)) for it in items]
+    mkt_task = asyncio.ensure_future(_fetch_market())
+    fs.append(mkt_task)
     done, pending = await asyncio.wait(fs, timeout=12.0)
     for t in pending:
         t.cancel()
     scored = []
     for i, t in enumerate(fs):
+        if t is mkt_task:
+            continue
         it = items[i]
         if not t.cancelled() and t in done:
             try:
@@ -2717,8 +2785,26 @@ async def api_watchlist_scores(
             "name": str(it.get("name") or ""),
             "error": "fetch:timeout",
         })
+    market = {}
+    if not mkt_task.cancelled() and mkt_task in done:
+        try:
+            market = mkt_task.result() or {}
+        except Exception:
+            market = {}
+    mpts = float(market.get("pts") or 0.0)
+    for sc in scored:
+        if sc.get("error"):
+            continue
+        f = sc.setdefault("factors", {})
+        f["market"] = mpts
+        sc["score"] = round(max(0.0, min(100.0, float(sc.get("score") or 0.0) + mpts)), 1)
+        if market.get("weak"):
+            rks = sc.setdefault("risks", [])
+            if "大盘弱势" not in rks:
+                rks.append("大盘弱势")
     scored.sort(key=lambda x: float(x.get("score") or -1), reverse=True)
-    result = {"ok": True, "items": scored, "count": len(scored), "updated_at": int(time.time())}
+    result = {"ok": True, "items": scored, "count": len(scored), "updated_at": int(time.time()),
+              "market": market if market.get("name") else None}
     if len(_WL_SCORE_CACHE) > 256:
         _now = time.time()
         for _k in [k for k, v in _WL_SCORE_CACHE.items() if _now - v[0] > _WL_SCORE_TTL_S * 2]:
