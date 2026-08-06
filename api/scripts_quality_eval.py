@@ -9,6 +9,7 @@
   python scripts_quality_eval.py               默认每类 2 题
   python scripts_quality_eval.py --full        每类 4 题
   python scripts_quality_eval.py --only deepseek  只测含 deepseek 的候选
+  python scripts_quality_eval.py --group retest  补测 Luna / Gemini Pro / Haiku / GPT-5 / GPT-4o 系 × TL/OR
 输出：ops/quality-eval-YYYYMMDD-HHMM.md / .json
 """
 from __future__ import annotations
@@ -70,6 +71,19 @@ CANDIDATES: list[dict[str, Any]] = [
     {"label": "Grok 4.20 · OpenRouter", "provider": "openrouter", "base": "https://openrouter.ai/api/v1", "model": "x-ai/grok-4.20", "cost_in": 3.0, "cost_out": 15.0, "group": "flagship", "max_tokens": 2048},
     {"label": "Grok 4.20 · Requesty", "provider": "requesty", "base": "https://router.requesty.ai/v1", "model": "x-ai/grok-4.20", "cost_in": 3.0, "cost_out": 15.0, "group": "flagship", "max_tokens": 2048},
     {"label": "Llama 4 · OpenRouter", "provider": "openrouter", "base": "https://openrouter.ai/api/v1", "model": "meta-llama/llama-4-maverick", "cost_in": 0.5, "cost_out": 0.9, "group": "flagship", "max_tokens": 2048},
+    # —— 补测组（2026-08-06：Luna / Gemini Pro / Haiku / GPT-5 / GPT-4o 系 × TL/OR；cost 按 TL/OR 实价）——
+    {"label": "GPT-5.6 Luna · TokenLab", "provider": "tokenlab", "base": "https://api.tokenlab.sh/v1", "model": "gpt-5.6-luna", "cost_in": 0.06, "cost_out": 0.36, "group": "retest", "max_tokens": 2048},
+    {"label": "GPT-5.6 Luna · OpenRouter", "provider": "openrouter", "base": "https://openrouter.ai/api/v1", "model": "openai/gpt-5.6-luna", "cost_in": 0.1, "cost_out": 0.6, "group": "retest", "max_tokens": 2048},
+    {"label": "Gemini 3.1 Pro · TokenLab", "provider": "tokenlab", "base": "https://api.tokenlab.sh/v1", "model": "gemini-3.1-pro-preview", "cost_in": 1.0, "cost_out": 6.0, "group": "retest", "max_tokens": 2048},
+    {"label": "Gemini 3.1 Pro · OpenRouter", "provider": "openrouter", "base": "https://openrouter.ai/api/v1", "model": "google/gemini-3.1-pro-preview", "cost_in": 2.0, "cost_out": 12.0, "group": "retest", "max_tokens": 2048},
+    {"label": "Claude Haiku 4.5 · TokenLab", "provider": "tokenlab", "base": "https://api.tokenlab.sh/v1", "model": "claude-haiku-4-5", "cost_in": 0.65, "cost_out": 3.25, "group": "retest", "max_tokens": 2048},
+    {"label": "Claude Haiku 4.5 · OpenRouter", "provider": "openrouter", "base": "https://openrouter.ai/api/v1", "model": "anthropic/claude-haiku-4.5", "cost_in": 1.0, "cost_out": 5.0, "group": "retest", "max_tokens": 2048},
+    {"label": "GPT-5 · TokenLab", "provider": "tokenlab", "base": "https://api.tokenlab.sh/v1", "model": "gpt-5", "cost_in": 1.25, "cost_out": 10.0, "group": "retest", "max_tokens": 2048},
+    {"label": "GPT-5 · OpenRouter", "provider": "openrouter", "base": "https://openrouter.ai/api/v1", "model": "openai/gpt-5", "cost_in": 1.25, "cost_out": 10.0, "group": "retest", "max_tokens": 2048},
+    {"label": "GPT-4o · TokenLab", "provider": "tokenlab", "base": "https://api.tokenlab.sh/v1", "model": "gpt-4o", "cost_in": 2.5, "cost_out": 10.0, "group": "retest", "max_tokens": 2048},
+    {"label": "GPT-4o · OpenRouter", "provider": "openrouter", "base": "https://openrouter.ai/api/v1", "model": "openai/gpt-4o", "cost_in": 2.5, "cost_out": 10.0, "group": "retest", "max_tokens": 2048},
+    {"label": "GPT-4o-mini · TokenLab", "provider": "tokenlab", "base": "https://api.tokenlab.sh/v1", "model": "gpt-4o-mini", "cost_in": 0.15, "cost_out": 0.6, "group": "retest", "max_tokens": 2048},
+    {"label": "GPT-4o-mini · OpenRouter", "provider": "openrouter", "base": "https://openrouter.ai/api/v1", "model": "openai/gpt-4o-mini", "cost_in": 0.15, "cost_out": 0.6, "group": "retest", "max_tokens": 2048},
 ]
 
 _KEY_ENV = {
@@ -231,7 +245,7 @@ def main() -> int:
     ap.add_argument("--per", type=int, default=2, help="每类题数（默认 2）")
     ap.add_argument("--only", type=str, default="", help="只测 label 含该关键字的候选")
     ap.add_argument("--skip-judge", action="store_true", help="跳过 judge 类（只跑客观题）")
-    ap.add_argument("--group", type=str, default="value", choices=["value", "flagship", "all"], help="候选组：value=价值档（默认）/ flagship=旗舰补测 / all=全部")
+    ap.add_argument("--group", type=str, default="value", choices=["value", "flagship", "retest", "all"], help="候选组：value=价值档（默认）/ flagship=旗舰补测 / retest=补测 Luna-GeminiPro-Haiku-GPT5-4o 系 / all=全部")
     args = ap.parse_args()
 
     per = 4 if args.full else (1 if args.quick else args.per)
