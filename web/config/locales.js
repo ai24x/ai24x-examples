@@ -457,7 +457,7 @@
     "page.pricing.saveColAi24x": "AI24X 输出 $/M",
     "page.pricing.saveColGpt": "GPT 官方输出 $/M",
     "page.pricing.saveColSave": "节省",
-    "page.pricing.transparency": "底层模型透明：flash = DeepSeek V4 Flash；pro = DeepSeek V4 Pro / 小米 MiMo 等。我们不藏模型，价格以控制台页面为准。",
+    "page.pricing.transparency": "底层模型透明：flash = DeepSeek V4 Flash；pro = DeepSeek V4 Pro / 小米 MiMo 等。我们不藏模型——这是聚合服务（同 OpenRouter 模式）：一个 key 全模型、免外币卡、余额充值灵活。价格以控制台页面为准。",
     "page.refer.title": "邀请回馈",
     "page.refer.sub": "注册双方各送 5000 token；被邀请人首次充值后再按一级 10%、二级 2% 以 token 入账（可用于 API 调用，暂不支持提现）。复制链接发给开发者朋友，一起用中国模。",
     "page.refer.b1": "邀请好友注册并产生有效使用，按规则获得回馈。",
@@ -1162,7 +1162,7 @@
     "page.pricing.saveColAi24x": "AI24X output $/M",
     "page.pricing.saveColGpt": "GPT official output $/M",
     "page.pricing.saveColSave": "You save",
-    "page.pricing.transparency": "Under the hood: flash = DeepSeek V4 Flash; pro = DeepSeek V4 Pro / Xiaomi MiMo. We don’t hide the models. Final rates on Console.",
+    "page.pricing.transparency": "Under the hood: flash = DeepSeek V4 Flash; pro = DeepSeek V4 Pro / Xiaomi MiMo — we don’t hide the models. It’s an aggregator (OpenRouter-style): one key for every model, no foreign card needed, flexible top-up. Final rates on Console.",
     "page.refer.title": "Referral rewards",
     "page.refer.sub":
       "Both sides get 5000 tokens on signup; after the invitee's first top-up, earn 10% L1 / 2% L2 as token credit (usable for API calls; cash withdrawal is not supported). Share your link with other builders.",
