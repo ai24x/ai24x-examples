@@ -341,22 +341,28 @@
     }
     .auth-card{
       position:relative;
-      display:block;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
       margin:0;
-      padding: 10px 10px 10px 34px;
+      padding: 10px 12px;
       border-radius: 12px;
       border: 1px solid var(--border);
       background: var(--panel2);
       cursor: pointer;
       transition: border-color .15s ease, background .15s ease;
     }
-    .auth-card input{
-      position:absolute;
-      left: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 15px;
-      height: 15px;
+    .auth-card input[type="radio"]{
+      flex:0 0 auto;
+      width:15px;
+      height:15px;
+      min-width:15px;
+      max-width:15px;
+      margin:0;
+      padding:0;
+      border:0;
+      box-sizing:border-box;
       accent-color: #60a5fa;
       cursor: pointer;
     }
@@ -379,7 +385,7 @@
     @media (max-width: 420px), (max-device-width: 420px){
       /* 登录/注册卡片保持一行两列，缩短纵向长度 */
       .auth-card-grid{ grid-template-columns: 1fr 1fr; gap: 6px; max-width: 100%; }
-      .auth-card{ padding: 8px 8px 8px 28px; min-width: 0; }
+      .auth-card{ padding: 8px 12px; min-width: 0; }
       .auth-card .t{ font-size: 12px; }
       .wrap{ padding-left: 10px; padding-right: 10px; }
       .btns{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }

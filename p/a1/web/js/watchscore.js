@@ -241,8 +241,10 @@ window.AI24X_WatchScore = (function () {
           + '<td class="wl-tags" title="' + tagsFull + '">' + tagsShow + '</td>'
           + '<td class="wl-risk" title="' + risksFull + '">' + risksShow + '</td></tr>';
         if (isExp && !err) {
-          html += '<tr class="wl-detail-row"><td colspan="6"><div>技术信号：<span class="wl-detail-tags">' + tagsFull + '</span></div>'
-            + '<div>风险提示：<span class="wl-detail-risks">' + (risksArr.length ? risksFull : "—") + '</span></div></td></tr>';
+          html += '<tr class="wl-detail-row"><td colspan="6"><div class="wl-detail-grid">'
+            + '<div class="wl-detail-col wl-detail-col-tags">技术信号：<span class="wl-detail-tags">' + tagsFull + '</span></div>'
+            + '<div class="wl-detail-col wl-detail-col-risks">风险提示：<span class="wl-detail-risks">' + (risksArr.length ? risksFull : "—") + '</span></div>'
+            + '</div></td></tr>';
         }
         return html;
       }

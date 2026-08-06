@@ -66,7 +66,11 @@
     .wl-empty { padding:8px 4px; color:var(--muted); font-size:12px; }
     .wl-more { border:none; background:transparent; color:#f43f5e; font-size:11px; font-weight:700; cursor:pointer; padding:0 2px; margin-left:4px; }
     .wl-more:hover { text-decoration:underline; }
-    .wl-detail-row td { padding:6px 9px; background:rgba(148,163,184,.06); font-size:12px; line-height:1.7; color:var(--muted); }
+    .wl-detail-row td { padding:6px 0; background:rgba(148,163,184,.06); font-size:12px; line-height:1.7; color:var(--muted); }
+    .wl-detail-grid { display:grid; grid-template-columns:34px 74px 120px 60px 1fr 200px; min-width:700px; }
+    .wl-detail-grid .wl-detail-col { padding-left:9px; line-height:1.7; }
+    .wl-detail-grid .wl-detail-col-tags { grid-column:5; }
+    .wl-detail-grid .wl-detail-col-risks { grid-column:6; }
     .wl-detail-row .wl-detail-tags { color:var(--text); }
     .wl-detail-row .wl-detail-risks { color:#f87171; }
     #wl-tier { font-size:12px; color:var(--muted); margin:0 0 8px; }

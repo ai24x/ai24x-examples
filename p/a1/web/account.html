@@ -1266,12 +1266,23 @@
         }
       }
 
+      var PLAN_TITLE_FALLBACK = {
+        free: "免费版",
+        vip_trial_99: "VIP体验卡",
+        vip_month: "VIP月卡",
+        vip_year_999: "VIP年卡",
+        agent_growth: "伙伴计划·成长档",
+        agent_pro: "伙伴计划·专业档"
+      };
       function planTitle(planCode) {
         var p = String(planCode || "").trim();
         if (!p) return "-";
         try {
           if (planTitleMap && planTitleMap[p]) return String(planTitleMap[p]);
         } catch (e) {}
+        try {
+          if (PLAN_TITLE_FALLBACK[p]) return PLAN_TITLE_FALLBACK[p];
+        } catch (e2) {}
         return p;
       }
 
@@ -1663,6 +1674,22 @@
         p = String(p != null ? p : "").trim();
         if (p.length >= 11 && /^\d+$/.test(p)) return p.slice(0, 3) + "****" + p.slice(-4);
         return "未绑定";
+      }
+      function maskWlPhone(p) {
+        p = String(p != null ? p : "").trim();
+        if (p.length >= 11 && /^\d+$/.test(p)) return p.slice(0, 3) + "****" + p.slice(-4);
+        return "";
+      }
+      function maskWlEmail(em) {
+        em = String(em != null ? em : "").trim();
+        var at = em.indexOf("@");
+        if (at <= 0) return "";
+        var name = em.slice(0, at);
+        var domain = em.slice(at + 1);
+        if (!domain) return "";
+        var head = name.slice(0, 3);
+        var tail = name.length > 3 ? name.slice(-2) : "";
+        return head + "***" + tail + "@" + domain;
       }
       function accountLineText(u) {
         u = u || {};
