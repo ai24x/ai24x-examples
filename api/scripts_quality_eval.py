@@ -55,6 +55,21 @@ CANDIDATES: list[dict[str, Any]] = [
     # —— 参考锚点（国际轻量，横向比对用）——
     {"label": "GPT-5 mini · OpenRouter", "provider": "openrouter", "base": "https://openrouter.ai/api/v1", "model": "openai/gpt-5-mini", "cost_in": 0.25, "cost_out": 2.0},
     {"label": "GPT-5 mini · TokenLab", "provider": "tokenlab", "base": "https://api.tokenlab.sh/v1", "model": "gpt-5-mini", "cost_in": 0.25, "cost_out": 2.0},
+    # —— 旗舰补测组（国际旗舰 × TokenLab/OR + Grok/Llama 探路）——
+    {"label": "GPT-5.4 · TokenLab", "provider": "tokenlab", "base": "https://api.tokenlab.sh/v1", "model": "gpt-5.4", "cost_in": 2.0, "cost_out": 12.0, "group": "flagship", "max_tokens": 2048},
+    {"label": "GPT-5.4 · OpenRouter", "provider": "openrouter", "base": "https://openrouter.ai/api/v1", "model": "openai/gpt-5.4", "cost_in": 2.0, "cost_out": 12.0, "group": "flagship", "max_tokens": 2048},
+    {"label": "GPT-5.6 Terra · TokenLab", "provider": "tokenlab", "base": "https://api.tokenlab.sh/v1", "model": "gpt-5.6-terra", "cost_in": 2.0, "cost_out": 12.0, "group": "flagship", "max_tokens": 2048},
+    {"label": "GPT-5.6 Terra · OpenRouter", "provider": "openrouter", "base": "https://openrouter.ai/api/v1", "model": "openai/gpt-5.6-terra", "cost_in": 2.0, "cost_out": 12.0, "group": "flagship", "max_tokens": 2048},
+    {"label": "Claude Sonnet 5 · TokenLab", "provider": "tokenlab", "base": "https://api.tokenlab.sh/v1", "model": "claude-sonnet-5", "cost_in": 3.0, "cost_out": 15.0, "group": "flagship", "max_tokens": 2048},
+    {"label": "Claude Sonnet 5 · OpenRouter", "provider": "openrouter", "base": "https://openrouter.ai/api/v1", "model": "anthropic/claude-sonnet-5", "cost_in": 3.0, "cost_out": 15.0, "group": "flagship", "max_tokens": 2048},
+    {"label": "Claude Opus 5 · TokenLab", "provider": "tokenlab", "base": "https://api.tokenlab.sh/v1", "model": "claude-opus-5", "cost_in": 5.0, "cost_out": 25.0, "group": "flagship", "max_tokens": 2048},
+    {"label": "Claude Opus 5 · OpenRouter", "provider": "openrouter", "base": "https://openrouter.ai/api/v1", "model": "anthropic/claude-opus-5", "cost_in": 5.0, "cost_out": 25.0, "group": "flagship", "max_tokens": 2048},
+    {"label": "Gemini 3.6 Flash · TokenLab", "provider": "tokenlab", "base": "https://api.tokenlab.sh/v1", "model": "gemini-3.6-flash", "cost_in": 0.5, "cost_out": 2.5, "group": "flagship", "max_tokens": 2048},
+    {"label": "Gemini 3.6 Flash · OpenRouter", "provider": "openrouter", "base": "https://openrouter.ai/api/v1", "model": "google/gemini-3.6-flash", "cost_in": 0.5, "cost_out": 2.5, "group": "flagship", "max_tokens": 2048},
+    {"label": "Grok 4.20 · TokenLab", "provider": "tokenlab", "base": "https://api.tokenlab.sh/v1", "model": "grok-4.20", "cost_in": 3.0, "cost_out": 15.0, "group": "flagship", "max_tokens": 2048},
+    {"label": "Grok 4.20 · OpenRouter", "provider": "openrouter", "base": "https://openrouter.ai/api/v1", "model": "x-ai/grok-4.20", "cost_in": 3.0, "cost_out": 15.0, "group": "flagship", "max_tokens": 2048},
+    {"label": "Grok 4.20 · Requesty", "provider": "requesty", "base": "https://router.requesty.ai/v1", "model": "x-ai/grok-4.20", "cost_in": 3.0, "cost_out": 15.0, "group": "flagship", "max_tokens": 2048},
+    {"label": "Llama 4 · OpenRouter", "provider": "openrouter", "base": "https://openrouter.ai/api/v1", "model": "meta-llama/llama-4-maverick", "cost_in": 0.5, "cost_out": 0.9, "group": "flagship", "max_tokens": 2048},
 ]
 
 _KEY_ENV = {
@@ -216,6 +231,7 @@ def main() -> int:
     ap.add_argument("--per", type=int, default=2, help="每类题数（默认 2）")
     ap.add_argument("--only", type=str, default="", help="只测 label 含该关键字的候选")
     ap.add_argument("--skip-judge", action="store_true", help="跳过 judge 类（只跑客观题）")
+    ap.add_argument("--group", type=str, default="value", choices=["value", "flagship", "all"], help="候选组：value=价值档（默认）/ flagship=旗舰补测 / all=全部")
     args = ap.parse_args()
 
     per = 4 if args.full else (1 if args.quick else args.per)
@@ -226,7 +242,8 @@ def main() -> int:
         print("缺少 DEEPSEEK_API_KEY，无法用 DeepSeek V4 Pro 做裁判；请配 Key 或改用 --skip-judge")
         return 2
 
-    cands = [c for c in CANDIDATES if (not args.only or args.only.lower() in c["label"].lower())]
+    cands = [c for c in CANDIDATES if (args.group == "all" or c.get("group", "value") == args.group)]
+    cands = [c for c in cands if (not args.only or args.only.lower() in c["label"].lower())]
     cands = [c for c in cands if get_key(_KEY_ENV[c["provider"]])]
     if not cands:
         print("无可用候选（Key 未配）")
@@ -255,7 +272,7 @@ def main() -> int:
                     try:
                         out = _call_openai_compatible(
                             base=_normalize_openai_base(cand["base"]), key=key, model=cand["model"],
-                            prompt=q["q"], temperature=0.2, max_tokens=768, timeout_s=60,
+                            prompt=q["q"], temperature=0.2, max_tokens=cand.get("max_tokens", 768), timeout_s=60,
                             provider=cand["provider"],
                         )
                         last_err = None

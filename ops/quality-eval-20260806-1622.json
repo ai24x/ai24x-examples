@@ -1,0 +1,129 @@
+{
+  "time": "20260806-1622",
+  "per": 1,
+  "judge_model": "deepseek-v4-pro",
+  "rows": [
+    {
+      "candidate": "Grok 4.20 · TokenLab",
+      "ok": true,
+      "auto_acc": 1.0,
+      "judge_acc": 1.0,
+      "med_ms": 6235,
+      "cost_usd": 0.0945,
+      "n_auto": 5,
+      "n_judge": 7,
+      "detail": [
+        {
+          "cat": "en_knowledge",
+          "q": "What is the capital of Australia?\nA. Syd",
+          "ok": true,
+          "ms": 3222,
+          "in": 347,
+          "out": 222
+        },
+        {
+          "cat": "cn_knowledge",
+          "q": "一年有多少个节气？\nA. 12 B. 18 C. 24 D. 36",
+          "ok": true,
+          "ms": 4130,
+          "in": 350,
+          "out": 309
+        },
+        {
+          "cat": "en_logic",
+          "q": "Ann sits immediately left of Bob, and Bo",
+          "ok": true,
+          "ms": 9107,
+          "in": 367,
+          "out": 741
+        },
+        {
+          "cat": "en_math",
+          "q": "A train travels 300 km in 2.5 hours. Wha",
+          "ok": true,
+          "ms": 4067,
+          "in": 350,
+          "out": 355
+        },
+        {
+          "cat": "cn_math",
+          "q": "一个数的 1/4 是 25，这个数是多少？",
+          "ok": true,
+          "ms": 3895,
+          "in": 342,
+          "out": 238
+        },
+        {
+          "cat": "en_code",
+          "q": "Write a Python function sum_even(n) that",
+          "ok": true,
+          "score": 5,
+          "reason": "正确使用数学公式高效计算，完整实现需求，严格遵循指令返回函数定义。",
+          "ms": 8944,
+          "in": 351,
+          "out": 861
+        },
+        {
+          "cat": "en_reading",
+          "q": "Summarize in ONE sentence: 'Photosynthes",
+          "ok": true,
+          "score": 5,
+          "reason": "一句话完整覆盖了光合作用的核心要素（阳光、CO2、水合成养分、释放氧气、对生命关键），并严格遵循了单句指令，无冗余信息。",
+          "ms": 4925,
+          "in": 383,
+          "out": 474
+        },
+        {
+          "cat": "cn_reading",
+          "q": "这段文字的主要观点是什么？'开源软件降低了企业 IT 成本，但也带来安全维护责任",
+          "ok": true,
+          "score": 5,
+          "reason": "准确完整地概括了原文观点，并补充了成本与安全平衡的深层含义，严格遵循指令。",
+          "ms": 6961,
+          "in": 365,
+          "out": 381
+        },
+        {
+          "cat": "en_instruct",
+          "q": "Write a sentence that starts with the wo",
+          "ok": true,
+          "score": 5,
+          "reason": "句子以 Although 开头、句号结尾，语法正确且语义完整，严格遵循指令。",
+          "ms": 8382,
+          "in": 345,
+          "out": 658
+        },
+        {
+          "cat": "cn_instruct",
+          "q": "用一段话介绍你自己，不超过 50 字。",
+          "ok": true,
+          "score": 5,
+          "reason": "输出为一段话、共24字未超50字、内容合理且严格遵循指令。",
+          "ms": 6235,
+          "in": 341,
+          "out": 381
+        },
+        {
+          "cat": "en_translate",
+          "q": "Translate into Chinese: \"Our API support",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，严格遵循指令，无任何偏差。",
+          "ms": 7988,
+          "in": 342,
+          "out": 504
+        },
+        {
+          "cat": "cn_translate",
+          "q": "Translate into English: 「本次更新修复了一个严重的安全漏",
+          "ok": true,
+          "score": 5,
+          "reason": "翻译准确完整，正确传达了“修复严重安全漏洞”的核心语义，且严格遵循了翻译指令。",
+          "ms": 4509,
+          "in": 341,
+          "out": 330
+        }
+      ]
+    }
+  ]
+}
