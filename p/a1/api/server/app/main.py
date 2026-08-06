@@ -2602,6 +2602,12 @@ async def api_watchlist_remove(body: dict, user_id: int = Depends(get_current_us
     return db.watchlist_remove(int(user_id), str(body.get("secid") or ""))
 
 
+# 自选评分榜结果缓存：同用户、同自选池、5 分钟内重复进入/刷新直接秒出
+# （K 线内存缓存仅 30s，冷启动需逐票拉日线较慢，故加一层评分结果缓存）
+_WL_SCORE_CACHE: dict[tuple, tuple[float, dict]] = {}
+_WL_SCORE_TTL_S = 300.0
+
+
 @app.get("/api/watchlist/scores")
 async def api_watchlist_scores(
     request: Request,
@@ -2616,6 +2622,12 @@ async def api_watchlist_scores(
     items = wl.get("items") or []
     if not items:
         return {"ok": True, "items": [], "count": 0, "updated_at": int(time.time())}
+
+    _ckey = (int(user_id), int(time.time() // _WL_SCORE_TTL_S),
+             ",".join(sorted(str(it.get("secid") or "") for it in items)))
+    _chit = _WL_SCORE_CACHE.get(_ckey)
+    if _chit is not None and time.time() - _chit[0] < _WL_SCORE_TTL_S:
+        return _chit[1]
 
     db.downgrade_expired_vip_plan(int(user_id))
     quota = db.get_quota_status(int(user_id))
@@ -2649,6 +2661,7 @@ async def api_watchlist_scores(
                 secid,
                 "day",
                 count=120,
+                timeout=6.0,
                 variant=variant,
                 priority_override=priority_override,
                 allow_paid=allow_paid,
@@ -2685,7 +2698,13 @@ async def api_watchlist_scores(
     scored = await asyncio.gather(*(_score_one(it) for it in items))
     scored = [s for s in scored if s]
     scored.sort(key=lambda x: float(x.get("score") or -1), reverse=True)
-    return {"ok": True, "items": scored, "count": len(scored), "updated_at": int(time.time())}
+    result = {"ok": True, "items": scored, "count": len(scored), "updated_at": int(time.time())}
+    if len(_WL_SCORE_CACHE) > 256:
+        _now = time.time()
+        for _k in [k for k, v in _WL_SCORE_CACHE.items() if _now - v[0] > _WL_SCORE_TTL_S * 2]:
+            _WL_SCORE_CACHE.pop(_k, None)
+    _WL_SCORE_CACHE[_ckey] = (time.time(), result)
+    return result
 
 
 @app.get("/api/suggest")
