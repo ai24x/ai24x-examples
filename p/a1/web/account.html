@@ -715,7 +715,7 @@
 
         <section class="card acct-panel" id="watch" data-acct-panel="watch" hidden>
       <h1>自选股</h1>
-      <p class="sub" style="margin:0 0 4px;">添加关注的标的，一键生成「自选评分榜」——按 MACD 量能柱、均线形态、量能确认、异动回踩、位置与趋势环境做技术面量化评分（0-100），仅供选股参考，不构成投资建议。</p>
+      <p class="sub" style="margin:0 0 4px;">添加关注的标的，进入本页自动生成「自选评分榜」——按 MACD 量能柱、均线形态、量能确认、异动回踩、位置与趋势环境做技术面量化评分（0-100），仅供选股参考，不构成投资建议。</p>
       <div class="row" style="margin-top:12px; flex-wrap:wrap; gap:8px; align-items:center;">
         <input id="wl-search" type="text" placeholder="输入代码 / 名称 / 拼音，如 600000、浦发、pfyh" autocomplete="off" style="flex:1; min-width:220px;" />
         <button class="btn primary" id="btn-wl-add" type="button" disabled>添加自选</button>
@@ -725,8 +725,8 @@
       <div class="muted small" id="wl-account" style="margin-top:4px;"></div>
       <div id="wl-list" style="margin-top:10px;"></div>
       <div class="row" style="margin-top:16px; gap:10px; align-items:center; flex-wrap:wrap;">
-        <button class="btn" id="btn-wl-scores" type="button">生成评分榜</button>
-        <span class="muted small">评分榜按自然日同票去重扣次，当天重复刷新不重复扣。</span>
+        <button class="btn" id="btn-wl-scores" type="button">刷新评分</button>
+        <span class="muted small">进入本页自动生成评分榜；可随时点「刷新评分」。评分按自然日同票去重扣次，当天重复刷新不重复扣。</span>
       </div>
       <div class="hint" id="wl-score-hint" style="margin-top:10px; display:none;"></div>
       <div id="wl-score-wrap" style="margin-top:10px;"></div>
@@ -1457,7 +1457,10 @@
       var ACCT_TABS = ["vip", "invite", "watch", "agent"];
       function showAcctTab(name) {
         if (name === "invite") name = "vip";
-        if (name === "watch") { try { loadWatchlist(); } catch (e) {} }
+        if (name === "watch") {
+          wlAutoScore = true;
+          try { loadWatchlist(true); } catch (e) {}
+        }
         if (ACCT_TABS.indexOf(name) < 0) name = "vip";
         ACCT_TABS.forEach(function (n) {
           // 邀请推广内容并入会员卡片下方，随「会员」一起显示/隐藏
@@ -3873,6 +3876,7 @@ function agentCityRefresh() {
       var WL_LIMIT = 50;
       var wlItems = [];
       var wlLastLoad = 0;
+      var wlAutoScore = false;
       function wlStatus(s, isErr) {
         var el = document.getElementById("wl-status");
         if (!el) return;
@@ -3892,6 +3896,10 @@ function agentCityRefresh() {
           wlItems = (d && d.items) || [];
           renderWlList();
           loadWlAccount();
+          if (wlAutoScore) {
+            wlAutoScore = false;
+            if (wlItems.length) { try { loadWlScores(); } catch (e2) {} }
+          }
         }).catch(function (e) {
           wlStatus("自选加载失败：" + (e && e.message ? e.message : "网络错误"), true);
         });
