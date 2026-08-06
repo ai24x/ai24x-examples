@@ -3211,6 +3211,41 @@
     }
   })();
 
+  var ALERT_LABELS = {
+    "ops_alerts_collect_fail": "告警采集异常",
+    "ops_health_down": "服务健康检查失败",
+    "pay_no_channel_ready": "支付通道全部未就绪",
+    "pay_paypal_not_configured": "PayPal 商户未配置",
+    "pay_paypal_not_ready": "PayPal 通道未就绪",
+    "pay_status_collect_fail": "支付状态采集异常",
+    "pay_failed_spike": "支付失败激增",
+    "pay_failed": "支付失败",
+    "pay_order_stats_fail": "订单统计异常",
+    "upstream_health_collect_fail": "上游健康采集异常",
+    "upstream_fail": "上游通道故障",
+    "upstream_circuit": "上游熔断触发",
+    "price_monitor_fail": "价格监控采集异常",
+    "price_alarm": "价格红线（倒挂）",
+    "price_warn": "价格预警（低毛利）",
+    "pay_pending_backlog": "待履约订单积压",
+    "pay_pending": "待履约订单",
+    "llm_l1_no_key": "L1 主档未配置密钥",
+    "llm_l0_no_key": "L0 备用未配置密钥",
+    "or_free_key_missing": "免费池 OpenRouter 密钥缺失",
+    "sf_free_key_missing": "免费池硅基密钥缺失",
+    "vip_degraded": "VIP 点名降级",
+    "user_high_burn": "用户消耗异常偏高",
+    "intl_vip_burn": "国际 VIP 消耗异常"
+  };
+  function alertLabel(code) {
+    var c = String(code || "");
+    if (c.indexOf("price_warn_") === 0) return "价格预警（低毛利）";
+    if (c.indexOf("price_alarm_") === 0) return "价格红线（倒挂）";
+    if (c.indexOf("upstream_fail_") === 0) return "上游通道故障";
+    if (c.indexOf("upstream_circuit_") === 0) return "上游熔断触发";
+    return ALERT_LABELS[c] || c;
+  }
+
   function renderAlertLive(live) {
     var box = $("alertOverview");
     if (!box) return;
@@ -3227,7 +3262,8 @@
       var lv = String(a.level || "info");
       var bg = lv === "error" ? "#fde9e7" : lv === "warn" ? "#fdf3e0" : "#eaf4fd";
       var fg = lv === "error" ? "#c0392b" : lv === "warn" ? "#b7791f" : "#2b6cb0";
-      return '<span title="' + esc(a.msg || "") + '" style="display:inline-block;background:' + bg + ';color:' + fg + ';border-radius:4px;padding:1px 8px;margin:2px 4px 0 0;font-size:12px;">' + esc(a.code || "") + '</span>';
+      var label = alertLabel(a.code);
+      return '<span title="' + esc((a.code || '') + ' - ' + (a.msg || '')) + '" style="display:inline-block;background:' + bg + ';color:' + fg + ';border-radius:4px;padding:1px 8px;margin:2px 4px 0 0;font-size:12px;">' + esc(label) + ' <span style="opacity:.55;font-size:11px;">' + esc(a.code || '') + '</span></span>';
     }).join("");
   }
 
@@ -3236,7 +3272,7 @@
     var box = $("alertOverview");
     if (box) {
       box.innerHTML = codes.length
-        ? codes.map(function (c) { return '<span style="display:inline-block;background:#fde9e7;color:#c0392b;border-radius:4px;padding:1px 8px;margin:2px 4px 0 0;font-size:12px;">' + esc(c) + '</span>'; }).join("")
+        ? codes.map(function (c) { var l = alertLabel(c); return '<span title="' + esc(c) + '" style="display:inline-block;background:#fde9e7;color:#c0392b;border-radius:4px;padding:1px 8px;margin:2px 4px 0 0;font-size:12px;">' + esc(l) + ' <span style="opacity:.55;font-size:11px;">' + esc(c) + '</span></span>'; }).join("")
         : '<span style="color:#27ae60;">无告警</span>';
     }
     var lc = $("alertLastCheck");
