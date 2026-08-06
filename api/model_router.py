@@ -30,6 +30,7 @@ MODEL_LAYER: dict[str, str] = {
     "pro": "L2",
     "ultra": "L3",
     "glm-4-flash": "L0",
+    "silicon-qwen": "L0",  # 免费共享池硅基主力（点名直落 L0，勿落 L1）
     "siliconflow-free": "L0",
     "deepseek-flash": "L1",
     "deepseek-chat": "L1",
