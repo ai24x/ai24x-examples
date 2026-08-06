@@ -346,8 +346,10 @@ CATALOG: list[dict[str, Any]] = [
         "openrouter_id": "z-ai/glm-5.2",
         "direct_id": None,
         "siliconflow_id": "zai-org/GLM-5.1",
-        "cost_in": 1.12,
-        "cost_out": 3.52,
+        # 2026-08-06: 主通道切 OR（OR 实拉 $0.76/$2.42，比 TL 便宜 32%，毛利混合 39.7%→58.7%）
+        "channels": ["openrouter", "tokenlab", "requesty"],
+        "cost_in": 0.76,
+        "cost_out": 2.42,
         "billing_mult": 10,  # 2026-08-05: ceil(2.32/0.35*1.5)=11
         "in_mult": 8,   # 2026-08-06: 点名溢价（$2.80，2.5x 官方）
         "out_mult": 14,  # 2026-08-06: 点名溢价（$4.90，1.4x 官方）
