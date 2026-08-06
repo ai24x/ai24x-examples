@@ -374,8 +374,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 1.25,
         "cost_out": 10.0,
         "billing_mult": 25,  # 2026-08-05: ceil(5.625/0.35*1.5)=25
-        "in_mult": 7,   # ceil(1.25/0.35*1.8)=7
-        "out_mult": 35,  # ceil(10.0/0.35*1.2)=35
+        "in_mult": 6,   # 2026-08-06: 6x0.35=$2.10，vs 官方 1.25=1.68x，GM in 40%
+        "out_mult": 37,  # 2026-08-06: 37x0.35=$12.95，vs 官方 10=1.30x，GM out 23%
         "quality": "旗舰 · 多项国际评测冠军",
         "quality_en": "Flagship · top benchmarks",
         "access": "ready",
@@ -394,8 +394,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 0.25,
         "cost_out": 2.0,
         "billing_mult": 5,
-        "in_mult": 2,   # ceil(0.25/0.35*1.8)=2
-        "out_mult": 7,  # ceil(2.0/0.35*1.2)=7
+        "in_mult": 2,   # 2026-08-06: 维持 $0.70（mult=1 会跌破毛利线）
+        "out_mult": 8,  # 2026-08-06: 8x0.35=$2.80，vs 官方 2=1.40x，GM out 29%
         "quality": "轻量",
         "quality_en": "Lightweight",
         "access": "ready",
@@ -438,8 +438,8 @@ CATALOG: list[dict[str, Any]] = [
         "cost_in": 2.5,
         "cost_out": 10.0,
         "billing_mult": 27,  # 2026-08-05: ceil(6.25/0.35*1.5)=28
-        "in_mult": 13,   # ceil(2.5/0.35*1.8)=13
-        "out_mult": 35,  # ceil(10.0/0.35*1.2)=35
+        "in_mult": 11,   # 2026-08-06: 11x0.35=$3.85，vs 官方 2.5=1.54x，GM in 35%
+        "out_mult": 40,  # 2026-08-06: 40x0.35=$14.00，GM out 29%
         "quality": "经典",
         "quality_en": "Classic",
         "access": "ready",

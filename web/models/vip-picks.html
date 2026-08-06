@@ -103,6 +103,7 @@
 
         <h2 class="mt-2" data-i18n="page.models.vip.list">名模点名</h2>
         <p class="sub" data-i18n="page.models.vip.listHint">认准某一款时再点名（需套餐含 VIP）。倍率通常更高；预估消耗仅供参考，会随服务更新。</p>
+        <div id="vipPriceNote" class="sub" style="margin:8px 0 12px;padding:8px 10px;border:1px dashed rgba(128,128,128,.5);border-radius:6px;background:rgba(128,128,128,.05);"></div>
         <div class="model-table-wrap">
           <table>
             <thead>
@@ -202,6 +203,54 @@ Header: X-API-Key: YOUR_API_KEY
         }
         return "in $" + inUsd + " · out $" + outUsd + "/1M";
       }
+      // 官方直连价对照（$ / 1M tokens，in/out；OpenAI 官网价；2026-08-06 校验）
+      var OFFICIAL_PRICE = {
+        "vip-gpt54": [2.5, 15.0],
+        "vip-gpt5": [1.25, 10.0],
+        "vip-gpt56-terra": [2.0, 12.0],
+        "vip-gpt56-luna": [0.2, 1.2],
+        "vip-gpt5-mini": [0.25, 2.0],
+        "vip-gpt4o": [2.5, 10.0],
+        "vip-gpt4o-mini": [0.15, 0.6]
+      };
+      function officialBadge(p) {
+        var off = OFFICIAL_PRICE[p.id];
+        if (!off) return "";
+        var ref = p.flash_ref_usd_per_m != null ? Number(p.flash_ref_usd_per_m) : REF_USD_PER_M;
+        if (!(ref > 0)) ref = REF_USD_PER_M;
+        var inUsd = Number(p.est_in_usd_per_m != null ? p.est_in_usd_per_m : Math.round(ref * (p.in_mult || 1) * 100) / 100);
+        var outUsd = Number(p.est_out_usd_per_m != null ? p.est_out_usd_per_m : Math.round(ref * (p.out_mult || 1) * 100) / 100);
+        var dIn = off[0] > 0 ? Math.round(((inUsd - off[0]) / off[0]) * 100) : 0;
+        var dOut = off[1] > 0 ? Math.round(((outUsd - off[1]) / off[1]) * 100) : 0;
+        var zh = isZh();
+        var text, color, bg;
+        if (dOut <= -1) {
+          text = zh ? "输出省 " + (-dOut) + "%" : "out -" + (-dOut) + "%";
+          color = "#1e7e34"; bg = "#e6f4ea";
+        } else if (dOut <= 5) {
+          text = zh ? "输出持平官方" : "out = official";
+          color = "#555"; bg = "#f0f0f0";
+        } else {
+          text = zh ? "输出 +" + dOut + "%" : "out +" + dOut + "%";
+          color = "#b7791f"; bg = "#fdf3e0";
+        }
+        var title =
+          "OpenAI official $" + off[0] + "/$" + off[1] + " per 1M · AI24X $" + inUsd + "/$" + outUsd +
+          " (in " + (dIn >= 0 ? "+" : "") + dIn + "%, out " + (dOut >= 0 ? "+" : "") + dOut + "%)";
+        return (
+          ' <span title="' + esc(title) + '" style="display:inline-block;background:' + bg + ';color:' + color +
+          ';border-radius:3px;padding:0 5px;font-size:11px;margin-left:4px;">' + esc(text) + "</span>"
+        );
+      }
+      function fillPriceNote() {
+        var el = document.getElementById("vipPriceNote");
+        if (!el) return;
+        var zh = isZh();
+        el.textContent = zh
+          ? "为什么点名模价格看似高于官方直连？官方价不含渠道与支付合规成本，且需外币卡 + 海外账号。AI24X 聚合免外币卡、一个 key 全模型，输出端还有优惠（GPT-5.6 Terra 输出比官方省 39%）。最终扣费以 console 账单为准。"
+          : "Why do named picks cost more than official? Official pricing excludes channel & payment compliance, and needs a foreign card + overseas account. AI24X bundles every model under one key with no foreign card needed - and our output side can beat OpenAI (GPT-5.6 Terra output -39%). Final billing: see console.";
+      }
+
       function brandRows() {
         var zh = isZh();
         var rows = [
@@ -305,6 +354,7 @@ Header: X-API-Key: YOUR_API_KEY
       }
       var cachedPicks = null;
       function render(picks) {
+        fillPriceNote();
         var brandEl = document.getElementById("brandTierBody");
         var vipEl = document.getElementById("vipPickAll");
         if (brandEl) brandEl.innerHTML = brandRows();
