@@ -210,6 +210,8 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 1,
         "openrouter_id": "moonshotai/kimi-k3",
         "direct_id": None,
+        # 2026-08-06: TokenLab 的 kimi-k3 全挂（400/503，评测 0/24）→ 聚合链屏蔽 TL，走 硅基→OR
+        "channels": ["openrouter"],
         # 中国模：硅基优先（相对 OR 降本）；mult 仍按 OR 地板防亏
         "siliconflow_id": "moonshotai/Kimi-K3",
         "cost_in": 3.0,
@@ -403,8 +405,10 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 8,
         "openrouter_id": "openai/gpt-5.4",
         "direct_id": None,
-        "cost_in": 2.00,    # 2026-08-03: 对齐 Terra 新定价 (was 2.50)
-        "cost_out": 12.00,  # 2026-08-03: 对齐 Terra 新定价 (was 15.00)
+        # 2026-08-06: 主通道切 TokenLab（评测 24/24 vs OR 23/24；TL 实价 in $0.75/out $4.5，约 OR 70% off）
+        "channels": ["tokenlab", "openrouter", "requesty"],
+        "cost_in": 0.75,    # 2026-08-06: TL 实价（原 2.00 官方/OR）
+        "cost_out": 4.50,   # 2026-08-06: TL 实价（原 12.00 官方/OR）
         "billing_mult": 30,  # 2026-08-05: ceil(7.0/0.35*1.5)=32
         "in_mult": 11,   # ceil(2.0/0.35*1.8)=11
         "out_mult": 42,  # ceil(12.0/0.35*1.2)=42
@@ -543,8 +547,10 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 15,
         "openrouter_id": "google/gemini-3.6-flash",
         "direct_id": None,
-        "cost_in": 1.5,
-        "cost_out": 7.5,
+        # 2026-08-06: 主通道切 TokenLab（评测 22/24 vs OR 23/24 仅差1题；TL 实价 in $0.75/out $3.75 为 OR 50%，延迟 2.6s < OR 3.5s）
+        "channels": ["tokenlab", "openrouter", "requesty"],
+        "cost_in": 0.75,    # 2026-08-06: TL 实价（原 1.5 = OR）
+        "cost_out": 3.75,   # 2026-08-06: TL 实价（原 7.5 = OR）
         "billing_mult": 20,  # 2026-08-05: ceil(4.5/0.35*1.5)=20
         "in_mult": 8,   # ceil(1.5/0.35*1.8)=8
         "out_mult": 26,  # ceil(7.5/0.35*1.2)=26
@@ -564,8 +570,10 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 13,
         "openrouter_id": "openai/gpt-5.6-terra",
         "direct_id": None,
-        "cost_in": 1.00,
-        "cost_out": 6.00,
+        # 2026-08-06: 主通道切 TokenLab（评测 24/24 vs OR 22/24；TL 实价 in $0.6/out $3.6，比 OR 50% off 更低）
+        "channels": ["tokenlab", "openrouter", "requesty"],
+        "cost_in": 0.60,    # 2026-08-06: TL 实价（原 1.00 = OR 50% off）
+        "cost_out": 3.60,   # 2026-08-06: TL 实价（原 6.00 = OR 50% off）
         "billing_mult": 15,
         "in_mult": 6,   # ceil(1.0/0.35*1.8)=6
         "out_mult": 21,  # ceil(6.0/0.35*1.2)=21
@@ -594,6 +602,29 @@ CATALOG: list[dict[str, Any]] = [
         "access": "ready",
         "modalities": ["text", "image"],
         "failover_to": ["vip-gpt5-mini", "vip-ds-flash"],
+    },
+    {
+        # 2026-08-06: Grok 4.20 新增（评测：TL 22/24 · 6.3s ｜ OR 21/24 · 1.8s；TL 实价 in $0.625/out $1.25 为 OR 50%）
+        "id": "vip-grok",
+        "title": "Grok 4.20",
+        "title_en": "Grok 4.20",
+        "brand_tiers": ["vip_pick"],
+        "layer": "VIP",
+        "role": "vip_pick",
+        "priority": 19,
+        "openrouter_id": "x-ai/grok-4.20",
+        "direct_id": None,
+        "channels": ["tokenlab", "openrouter"],
+        "cost_in": 0.625,
+        "cost_out": 1.25,
+        "billing_mult": 24,   # 2026-08-06 临时定价，待雷总确认（参考 GPT-5.4/Terra 旗舰档）
+        "in_mult": 10,
+        "out_mult": 36,
+        "quality": "前沿旗舰 · 实时信息",
+        "quality_en": "Frontier · real-time info",
+        "access": "ready",
+        "modalities": ["text", "image"],
+        "failover_to": ["vip-gpt54", "vip-ds-pro"],
     },
 ]
 
@@ -731,6 +762,8 @@ def merge_catalog_row(c: dict[str, Any]) -> dict[str, Any]:
             except (TypeError, ValueError):
                 pass
         # 双价兜底：缺 in/out 倍率时回落 billing_mult（单费率兼容）
+        if isinstance(ov.get("channels"), list) and ov["channels"]:
+            row["channels"] = [str(x).strip() for x in ov["channels"] if str(x).strip()]
         row.setdefault("in_mult", row.get("billing_mult", 1))
         row.setdefault("out_mult", row.get("billing_mult", 1))
         row["rate_source"] = "admin" if ov else "catalog"
@@ -778,6 +811,19 @@ def vip_pick_enabled() -> bool:
     if "vip_pick_enabled" in ov:
         return bool(ov.get("vip_pick_enabled"))
     return True  # 默认开：高阶 VIP 可点名中国模
+
+
+def vip_channel_order(public_id: str) -> Optional[list[str]]:
+    """VIP 点名聚合通道顺序（openrouter/tokenlab/requesty 子集）；未配置返回 None（默认 OR → TokenLab → Requesty）。"""
+    cid = str(public_id or "").strip()
+    for c in catalog_merged():
+        if str(c.get("id") or "") != cid or c.get("role") != "vip_pick":
+            continue
+        ch = c.get("channels")
+        if isinstance(ch, list) and ch:
+            return [str(x).strip() for x in ch if str(x).strip()]
+        return None
+    return None
 
 
 def resolve_vip_pick(requested_model: Optional[str]) -> Optional[dict[str, Any]]:
@@ -862,6 +908,11 @@ def resolve_vip_pick(requested_model: Optional[str]) -> Optional[dict[str, Any]]
         "gpt56-luna": "vip-gpt56-luna",
         "gpt-5.6-luna": "vip-gpt56-luna",
         "luna": "vip-gpt56-luna",
+        "grok": "vip-grok",
+        "grok-4": "vip-grok",
+        "grok-4.20": "vip-grok",
+        "grok4": "vip-grok",
+        "x-ai": "vip-grok",
         "hy3": "vip-hy3",
         "hy-3": "vip-hy3",
         "tencent": "vip-hy3",
@@ -899,7 +950,7 @@ def list_vip_picks_for_user(*, is_vip: bool) -> list[dict[str, Any]]:
         # 国际旗舰次优先：仍列出，标注 intl
         is_intl = str(c.get("id") or "").startswith("vip-gpt") or "claude" in str(
             c.get("id")
-        ) or "gemini" in str(c.get("id") or "")
+        ) or "gemini" in str(c.get("id") or "") or "grok" in str(c.get("id") or "")
         mult = int(c.get("billing_mult") or 1)
         in_mult = int(c.get("in_mult") or c.get("billing_mult") or 1)
         out_mult = int(c.get("out_mult") or c.get("billing_mult") or 1)

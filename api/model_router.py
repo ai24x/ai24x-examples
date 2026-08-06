@@ -1196,6 +1196,7 @@ _TOKENLAB_MODEL_MAP: dict[str, str] = {
     "vip-gemini-flash": "gemini-3.6-flash",
     "vip-gpt56-terra": "gpt-5.6-terra",
     "vip-gpt56-luna": "gpt-5.6-luna",
+    "vip-grok": "grok-4.20",
 }
 
 _REQUESTY_MODELS: frozenset[str] = frozenset({
@@ -1249,6 +1250,49 @@ def _aggregator_candidates(public_id: str, or_id: str) -> list[dict[str, str]]:
 
 
 
+def _vip_aggregator_chain(pick: dict[str, Any], or_id: str) -> list[dict[str, str]]:
+    """VIP aggregator chain: default OR -> TokenLab -> Requesty; reorder/block via warehouse channels field."""
+    public_id = str(pick.get("id") or "")
+    try:
+        from model_warehouse import vip_channel_order
+
+        order = vip_channel_order(public_id)
+    except Exception:
+        order = None
+    default_order = ("openrouter", "tokenlab", "requesty")
+    if isinstance(order, list) and order:
+        # channels 为严格白名单顺序：只走列出的通道（未列出的不自动补回，未配置才用默认）
+        seen: set[str] = set()
+        chain: list[str] = []
+        for p in order:
+            if p in default_order and p not in seen:
+                seen.add(p)
+                chain.append(p)
+    else:
+        chain = list(default_order)
+    out: list[dict[str, str]] = []
+    for pid in chain:
+        if pid == "openrouter":
+            if not or_id or _upstream_mode() != "openrouter":
+                continue
+            up = _layer_upstream("L1")
+            if not (up.get("key") and up.get("base")):
+                continue
+            out.append(
+                {
+                    "provider": "openrouter",
+                    "base": str(up["base"]),
+                    "key": str(up["key"]),
+                    "model": or_id,
+                }
+            )
+        else:
+            agg = _aggregator_upstream(pid, public_id, or_id)
+            if agg:
+                out.append(agg)
+    return out
+
+
 def _run_vip_pick_chat(
     *,
     pick: dict[str, Any],
@@ -1279,6 +1323,7 @@ def _run_vip_pick_chat(
         public_id.startswith("vip-gpt")
         or "claude" in public_id
         or "gemini" in public_id
+        or "grok" in public_id
     )
 
     def _ok_result(out: dict[str, Any], *, model: str, provider: str) -> RouteResult:
@@ -1388,30 +1433,17 @@ def _run_vip_pick_chat(
                 return got
 
     # C) OpenRouter（国际模主路径；中国模兜底）
-    if or_id and _upstream_mode() == "openrouter":
-        up = _layer_upstream("L1")
-        if up.get("key") and up.get("base"):
-            got = _try_call(
-                base=str(up["base"]),
-                key=str(up["key"]),
-                model=or_id,
-                provider="openrouter",
-            )
-            if got:
-                return got
-
-    # D) 国际模第二/三聚合 — TokenLab / Requesty（OR 失败后、厂直连之前；TokenLab 降本 30-70%）
-    for agg in _aggregator_candidates(public_id, or_id):
+    # C+D) aggregator chain: OR -> TokenLab -> Requesty default; flagship prefers channel via channels field
+    for cand in _vip_aggregator_chain(pick, or_id):
         got = _try_call(
-            base=str(agg["base"]),
-            key=str(agg["key"]),
-            model=str(agg["model"]),
-            provider=str(agg["provider"]),
-            note=f"{agg['provider']}_failover",
+            base=str(cand["base"]),
+            key=str(cand["key"]),
+            model=str(cand["model"]),
+            provider=str(cand["provider"]),
+            note=str(cand["provider"]) + "_chain",
         )
         if got:
             return got
-
     # E) 国际旗舰厂直连 / 其它 VIP 厂直连
     try:
         from upstream_providers import direct_model_for_vip
@@ -2199,6 +2231,7 @@ def _run_vip_pick_chat_stream(
         public_id.startswith("vip-gpt")
         or "claude" in public_id
         or "gemini" in public_id
+        or "grok" in public_id
     )
     targets: list[tuple[str, str, str, str]] = []  # provider, base, key, model
 
@@ -2213,19 +2246,20 @@ def _run_vip_pick_chat_stream(
         if sf:
             targets.append(("siliconflow", sf["base"], sf["key"], sf["model"]))
     # C) OR（国际模主路径；中国模兜底）
-    if or_id and _upstream_mode() == "openrouter":
-        up = _layer_upstream("L1")
-        if up.get("key") and up.get("base"):
-            targets.append(("openrouter", str(up["base"]), str(up["key"]), or_id))
-    # F) DS 硅基同族兜底
+    # C+D) aggregator chain: OR -> TokenLab -> Requesty default; flagship prefers channel via channels field
+    _chain = _vip_aggregator_chain(pick, or_id)
+    for cand in _chain:
+        if str(cand["provider"]) == "openrouter":
+            targets.append((str(cand["provider"]), str(cand["base"]), str(cand["key"]), str(cand["model"])))
+            break
+    # F) DS silicon sibling fallback (after OR, before other aggregators)
     if is_ds_pick and sf_id:
         sf = _silicon_vip_upstream(sf_id)
         if sf:
             targets.append(("siliconflow", sf["base"], sf["key"], sf["model"]))
-    # D) TokenLab / Requesty 国际聚合备用（OR 之后、厂直连之前）
-    for agg in _aggregator_candidates(public_id, or_id):
-        targets.append((str(agg["provider"]), str(agg["base"]), str(agg["key"]), str(agg["model"])))
-
+    for cand in _chain:
+        if str(cand["provider"]) != "openrouter":
+            targets.append((str(cand["provider"]), str(cand["base"]), str(cand["key"]), str(cand["model"])))
     last_err = ""
     for provider, base, key, model in targets:
         got_done = False
