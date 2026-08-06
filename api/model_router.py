@@ -720,8 +720,12 @@ def _build_chat_messages(
     ]
 
 
-def _upstream_model_id(logical: str, layer_default: str) -> str:
+def _upstream_model_id(logical: str, layer_default: str, *, provider: str = "") -> str:
     logical = (logical or "").strip()
+    # L0 独立硅基通道（or-fallback/siliconflow-free）：模型名已由 _layer_upstream 解析
+    # （TOKEN_LLM_L0_MODEL / SILICONFLOW_MODEL），不得再按 OR 逻辑名映射（or-fallback→openrouter/auto 会 400）
+    if str(provider or "").strip() == "siliconflow":
+        return layer_default or logical or "Qwen/Qwen2.5-7B-Instruct"
     if _upstream_mode() == "openrouter":
         if "/" in logical and not logical.startswith("or-"):
             return logical
@@ -905,7 +909,7 @@ def run_routed_chat(
 
     for layer, logical_model in chain:
         up = _layer_upstream(layer)
-        api_model = _upstream_model_id(logical_model, up["model"])
+        api_model = _upstream_model_id(logical_model, up["model"], provider=up.get("provider"))
         t0 = time.time()
         # OR 模式付费档：DeepSeek 直连优先（失败后继续本层 OR）
         if (
@@ -2177,7 +2181,7 @@ def run_routed_chat_stream(
                     )
                 )
         if up.get("key") and up.get("base"):
-            api_model = _upstream_model_id(logical_model, up["model"])
+            api_model = _upstream_model_id(logical_model, up["model"], provider=up.get("provider"))
             targets.append(
                 (
                     layer,
