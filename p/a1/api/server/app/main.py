@@ -2695,8 +2695,28 @@ async def api_watchlist_scores(
             pass
         return base
 
-    scored = await asyncio.gather(*(_score_one(it) for it in items))
-    scored = [s for s in scored if s]
+    # 整体 12 秒上限：外部数据源偶发慢/挂时，先出已算完的标的，其余标记超时，避免整榜一直转圈
+    fs = [asyncio.ensure_future(_score_one(it)) for it in items]
+    done, pending = await asyncio.wait(fs, timeout=12.0)
+    for t in pending:
+        t.cancel()
+    scored = []
+    for i, t in enumerate(fs):
+        it = items[i]
+        if not t.cancelled() and t in done:
+            try:
+                r = t.result()
+            except Exception:
+                r = None
+            if r:
+                scored.append(r)
+            continue
+        scored.append({
+            "secid": str(it.get("secid") or ""),
+            "code": str(it.get("code") or ""),
+            "name": str(it.get("name") or ""),
+            "error": "fetch:timeout",
+        })
     scored.sort(key=lambda x: float(x.get("score") or -1), reverse=True)
     result = {"ok": True, "items": scored, "count": len(scored), "updated_at": int(time.time())}
     if len(_WL_SCORE_CACHE) > 256:

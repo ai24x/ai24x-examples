@@ -1474,6 +1474,7 @@
           if (b.getAttribute("data-acct-tab") === name) b.classList.add("is-active");
           else b.classList.remove("is-active");
         }
+        try { localStorage.setItem("ai24x_a_acct_tab", name); } catch (eStore) {}
       }
       function initAcctTabs() {
         var tabs = document.getElementById("acct-tabs");
@@ -1491,7 +1492,14 @@
           // 支持 #vip / #invite / #agent 直达（index/shell/partner 等入口链接约定）。
           var h = String(location.hash || "").replace(/^#/, "").trim().toLowerCase();
           if (h === "invite") h = "vip";
-          if (ACCT_TABS.indexOf(h) >= 0) def = h;
+          if (ACCT_TABS.indexOf(h) >= 0) {
+            def = h;
+          } else if (loggedIn) {
+            // 无直达锚点时，回到上次停留的栏目（如刷新前在「自选股」），首次使用仍默认「会员」。
+            var last = String(localStorage.getItem("ai24x_a_acct_tab") || "").trim().toLowerCase();
+            if (last === "invite") last = "vip";
+            if (ACCT_TABS.indexOf(last) >= 0) def = last;
+          }
         } catch (e) {}
         showAcctTab(def);
       }
@@ -4018,12 +4026,12 @@ function agentCityRefresh() {
         var hint = document.getElementById("wl-score-hint");
         if (!wrap) return;
         if (!wlItems.length) { wlStatus("请先添加自选股", true); return; }
-        wrap.innerHTML = '<div class="muted small">评分计算中…（逐票拉取日线，约几秒）</div>';
+        wrap.innerHTML = '<div class="muted small">评分计算中…（约几秒，最多 12 秒）</div>';
         apiFetch("/api/watchlist/scores").then(function (d) {
           var items = (d && d.items) || [];
           if (hint) {
             hint.style.display = "";
-            hint.textContent = "共 " + items.length + " 只标的参与评分；按自然日同票去重扣次。评分仅为技术规则量化结果，不构成投资建议。";
+            hint.textContent = "共 " + items.length + " 只标的参与评分；个别标的获取超时显示 —，可点「刷新评分」重试。评分按自然日同票去重扣次，仅为技术规则量化结果，不构成投资建议。";
           }
           renderWlScores(items);
         }).catch(function (e) {
@@ -4042,16 +4050,17 @@ function agentCityRefresh() {
           + '<thead><tr><th>#</th><th>代码</th><th>名称</th><th>评分</th><th>信号标签</th><th>风险提示</th></tr></thead><tbody>';
         for (var i = 0; i < items.length; i++) {
           var it = items[i];
+          var err = String(it.error || "");
           var sc = Number(it.score || 0);
-          var cls = sc >= 70 ? "wl-score-high" : (sc >= 45 ? "wl-score-mid" : "wl-score-low");
+          var cls = err ? "wl-score-low" : (sc >= 70 ? "wl-score-high" : (sc >= 45 ? "wl-score-mid" : "wl-score-low"));
           var tags = escWl((it.tags || []).join(" / "));
           var risks = escWl((it.risks || []).join(" / "));
           html += '<tr><td>' + (i + 1) + '</td>'
             + '<td class="wl-code">' + escWl(it.code || "") + '</td>'
             + '<td>' + escWl(it.name || "") + '</td>'
-            + '<td><span class="' + cls + '">' + sc.toFixed(0) + '</span></td>'
+            + '<td><span class="' + cls + '">' + (err ? "—" : sc.toFixed(0)) + '</span></td>'
             + '<td>' + (tags || "—") + '</td>'
-            + '<td class="wl-risk">' + (risks || "—") + '</td></tr>';
+            + '<td class="wl-risk">' + (risks || (err ? "数据获取超时，点「刷新评分」重试" : "—")) + '</td></tr>';
         }
         html += '</tbody></table>';
         wrap.innerHTML = html;
