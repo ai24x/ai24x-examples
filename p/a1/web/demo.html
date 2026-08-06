@@ -1761,6 +1761,9 @@
       cursor: pointer;
     }
     .wl-header button:hover { color: var(--text); }
+    .wl-header .wl-header-right { display: flex; align-items: center; gap: 8px; }
+    .wl-header .wl-score-link { color: #be123c; font-weight: 700; text-decoration: none; font-size: 12px; }
+    .wl-header .wl-score-link:hover { text-decoration: underline; }
     .wl-item {
       display: flex;
       align-items: center;
@@ -1924,7 +1927,7 @@
   </main>
   <footer class="site-footer" id="site-footer"></footer>
 
-  <script src="/js/shell.js?v=44"></script>
+  <script src="/js/shell.js?v=45"></script>
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("demo"); } catch (e) {}
   </script>
@@ -5502,7 +5505,7 @@
       watchlistPanelEl.innerHTML = '<div class="wl-empty">暂无自选，查询后点「加自选」添加</div>';
       return;
     }
-    var html = '<div class="wl-header"><span>我的自选 (' + list.length + '/20)' + (authToken() ? '' : ' · 游客仅本机') + '</span><button class="wl-clear-all">清空</button></div>';
+    var html = '<div class="wl-header"><span>我的自选 (' + list.length + '/20)' + (authToken() ? '' : ' · 游客仅本机') + '</span><span class="wl-header-right"><a class="wl-score-link" href="./watchscore.html">评分榜 ›</a><button class="wl-clear-all">清空</button></span></div>';
     for (var i = list.length - 1; i >= 0; i--) {
       var w = list[i];
       // v1.04: 清洗code显示 — 参数值/长字符串→提取secid中纯代码

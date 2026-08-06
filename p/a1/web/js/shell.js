@@ -140,7 +140,7 @@
         global.__AI24X_A_SW_INSTALLED = true;
         // Cache-bust SW URL so deployments don't require Ctrl+F5.
         // Use absolute paths so pages still work under subpaths like /i/{code}.
-        navigator.serviceWorker.register("/sw.js?v=44", { scope: "/", updateViaCache: "none" }).then(function (reg) {
+        navigator.serviceWorker.register("/sw.js?v=45", { scope: "/", updateViaCache: "none" }).then(function (reg) {
           try {
             reg.update && reg.update();
             if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
@@ -328,8 +328,21 @@
       }
       function setLoggedInUi(d){
         try{
+          // 顶栏导航已有「我的」，右侧按钮显示账号（脱敏），避免出现两个「我的」。
+          var authLabel = "账户";
+          try {
+            var u = (d && d.user) || {};
+            var pid = String(u.phone || "").trim();
+            var em = String(u.email || "").trim();
+            if (pid && /^\d{6,}$/.test(pid)) {
+              authLabel = pid.length > 7 ? pid.slice(0, 3) + "****" + pid.slice(-4) : pid;
+            } else if (em && em.indexOf("@") > 0) {
+              var at = em.indexOf("@");
+              authLabel = em.slice(0, 2) + "***" + em.slice(at);
+            }
+          } catch (eU2) {}
           if(btnAuth) {
-            btnAuth.textContent = "我的";
+            btnAuth.textContent = authLabel;
             btnAuth.className = "btn btn-ghost";
             btnAuth.setAttribute("href", "account.html");
           }
