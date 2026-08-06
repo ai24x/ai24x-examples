@@ -722,6 +722,7 @@
       </div>
       <div id="wl-suggest" style="display:none; margin-top:6px;"></div>
       <div class="status" id="wl-status" style="margin-top:8px;"></div>
+      <div class="muted small" id="wl-account" style="margin-top:4px;"></div>
       <div id="wl-list" style="margin-top:10px;"></div>
       <div class="row" style="margin-top:16px; gap:10px; align-items:center; flex-wrap:wrap;">
         <button class="btn" id="btn-wl-scores" type="button">生成评分榜</button>
@@ -1480,6 +1481,7 @@
         if (agentTab) agentTab.style.display = loggedIn ? "" : "none";
         var watchTab = document.querySelector('.acct-tab[data-acct-tab="watch"]');
         if (watchTab) watchTab.style.display = loggedIn ? "" : "none";
+        if (loggedIn) { try { loadWatchlist(); loadWlAccount(); } catch (e) {} }
         var def = "vip";
         try {
           // 默认恒为「会员」；URL 邀请参数（?i=）仅用于自动绑定邀请码，不改变默认栏目。
@@ -3885,6 +3887,7 @@ function agentCityRefresh() {
         apiFetch("/api/watchlist").then(function (d) {
           wlItems = (d && d.items) || [];
           renderWlList();
+          loadWlAccount();
         }).catch(function (e) {
           wlStatus("自选加载失败：" + (e && e.message ? e.message : "网络错误"), true);
         });
@@ -3986,6 +3989,17 @@ function agentCityRefresh() {
             var btn = document.getElementById("btn-wl-add"); if (btn) btn.disabled = true;
             loadWatchlist(true);
           }).catch(function (e) { wlStatus("添加失败：" + (e && e.message || "网络错误"), true); });
+      }
+      function loadWlAccount() {
+        var el = document.getElementById("wl-account");
+        if (!el) return;
+        apiFetch("/api/me").then(function (d) {
+          var u = (d && d.user) || {};
+          var idv = String(u.email || u.phone || "").trim();
+          el.textContent = "当前账号：" + (idv || ("#" + (u.id != null ? u.id : "?"))) + " · 自选以服务端为准（跨设备同步）";
+        }).catch(function () {
+          el.textContent = "当前账号读取失败，请确认已登录";
+        });
       }
       function loadWlScores() {
         var wrap = document.getElementById("wl-score-wrap");
