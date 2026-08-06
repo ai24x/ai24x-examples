@@ -366,20 +366,43 @@ def admin_app_html(admin_base: str) -> str:
       .panel-page > .card:first-child { margin-top: 0; }
       /* 用户详情操作卡：两列自适应网格；头部与宽表整行 */
       .user-detail { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
+      .user-detail > .row:first-child,
+      .user-detail > .msg,
+      .user-detail > .ud-tabs { grid-column: 1 / -1; }
       .user-detail > .card { margin-top: 0; min-width: 0; }
       .user-detail > .card.wide { grid-column: 1 / -1; }
-      .user-detail > .row:first-child,
-      .user-detail > .msg { grid-column: 1 / -1; }
-      /* 双列均衡排布：左列 配额+伙伴，右列 基础信息+密码+充值（竖排组合），列高对齐避免漂移 */
       .user-detail > .col-stack { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
       .user-detail > .col-stack > .card { margin-top: 0; }
-      @media (min-width: 1501px) {
-        .user-detail > .card.c-quota { grid-column: 1; grid-row: 2; }
-        .user-detail > .card.c-partner { grid-column: 1; grid-row: 3; }
-        .user-detail > .col-stack { grid-column: 2; grid-row: 2 / 4; }
-      }
+      /* 子页签：配额套餐 / 基础信息 / 安全与测试 / 流水与日志，降低右侧面板信息密度 */
+      .ud-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+      .ud-tab { padding: 7px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel2); color: var(--muted); font-size: 12px; cursor: pointer; }
+      .ud-tab:hover { border-color: rgba(96,165,250,0.55); color: var(--text); }
+      .ud-tab.active { background: rgba(96,165,250,0.14); border-color: rgba(96,165,250,0.55); color: #eef6ff; }
+      .user-detail[data-tab="quota"] > .card.wide,
+      .user-detail[data-tab="quota"] > .col-stack { display: none; }
+      .user-detail[data-tab="quota"] > .card.c-quota,
+      .user-detail[data-tab="quota"] > .card.c-partner { grid-column: 1 / -1; }
+      .user-detail[data-tab="basic"] > .card.c-quota,
+      .user-detail[data-tab="basic"] > .card.c-partner,
+      .user-detail[data-tab="basic"] > .card.wide,
+      .user-detail[data-tab="basic"] > .col-stack { grid-column: 1 / -1; }
+      .user-detail[data-tab="basic"] > .col-stack > .card.c-pw,
+      .user-detail[data-tab="basic"] > .col-stack > .card.c-recharge { display: none; }
+      .user-detail[data-tab="secure"] > .card.c-quota,
+      .user-detail[data-tab="secure"] > .card.c-partner,
+      .user-detail[data-tab="secure"] > .card.wide,
+      .user-detail[data-tab="secure"] > .col-stack > .card.c-basic { display: none; }
+      .user-detail[data-tab="secure"] > .col-stack { display: grid; grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .user-detail[data-tab="logs"] > .card.c-quota,
+      .user-detail[data-tab="logs"] > .card.c-partner,
+      .user-detail[data-tab="logs"] > .col-stack { display: none; }
       #curUser { scroll-margin-top: 96px; }
-      @media (max-width: 1500px) { .user-detail { grid-template-columns: 1fr; } }
+      @media (max-width: 1500px) { .user-detail { grid-template-columns: 1fr; } .user-detail[data-tab="secure"] > .col-stack { grid-template-columns: 1fr; } }
+      /* 来源徽章：本地注册绿 / 主站导入黄 / 其他灰 */
+      .src-badge { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; border: 1px solid var(--border); white-space: nowrap; }
+      .src-badge.ok { color: #7ee8b8; border-color: rgba(52,211,153,0.45); background: rgba(52,211,153,0.10); }
+      .src-badge.imp { color: #fcd34d; border-color: rgba(251,191,36,0.45); background: rgba(251,191,36,0.08); }
+      .src-badge.none { color: var(--muted); }
       /* 窄屏：侧栏收窄、分组按钮横向排列 */
       @media (max-width: 1180px) {
         .sidebar { width: 224px; padding: 12px 10px; }
@@ -574,12 +597,18 @@ def admin_app_html(admin_base: str) -> str:
                   </table>
                 </div>
               </div>
-              <div class="user-detail">
+              <div class="user-detail" data-tab="quota">
                 <div class="row">
                   <span class="pill">当前用户</span>
                   <span id="curUser" class="mono muted">—</span>
                 </div>
                 <div class="msg" id="userMeta"></div>
+                <div class="ud-tabs">
+                  <button type="button" class="ud-tab active" data-udtab="quota">配额套餐</button>
+                  <button type="button" class="ud-tab" data-udtab="basic">基础信息</button>
+                  <button type="button" class="ud-tab" data-udtab="secure">安全与测试</button>
+                  <button type="button" class="ud-tab" data-udtab="logs">流水与日志</button>
+                </div>
                 <div class="card c-quota" style="margin:0;">
                   <div class="row">
                     <span class="pill">配额与套餐</span>
@@ -3252,7 +3281,7 @@ async function loadEligibleCommissions(){
             '<td class="mono">'+esc(u.id)+'</td>'+
             '<td class="mono">'+esc(u.phone||'')+'</td>'+
             '<td class="mono">'+esc(u.email||'')+'</td>'+
-            '<td>'+esc(u.source||'')+'</td>'+
+            '<td><span class="src-badge '+(u.source==='本地注册(手机)'?'ok':(u.source==='主站导入(邮箱)'?'imp':'none'))+'">'+esc(u.source||'')+'</span></td>'+
             '<td class="mono">'+esc(fmtTs(u.created_at))+'</td>'+
             '<td>'+esc(u.quota ? u.quota.plan : '')+'</td>'+
             '<td class="mono">'+esc(u.quota ? u.quota.remaining : '')+'</td>'+
@@ -4301,6 +4330,18 @@ async function loadEligibleCommissions(){
         });
       }
 
+      function initUdTabs(){
+        var detail = document.querySelector('.user-detail');
+        if(!detail) return;
+        document.querySelectorAll('.ud-tab').forEach(function(b){
+          b.addEventListener('click', function(){
+            var t = b.getAttribute('data-udtab') || 'quota';
+            detail.setAttribute('data-tab', t);
+            document.querySelectorAll('.ud-tab').forEach(function(x){ x.classList.toggle('active', x === b); });
+          });
+        });
+      }
+      initUdTabs();
       boot();
     </script>
   </body>
