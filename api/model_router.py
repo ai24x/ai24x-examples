@@ -1324,6 +1324,7 @@ def _run_vip_pick_chat(
         or "claude" in public_id
         or "gemini" in public_id
         or "grok" in public_id
+        or "llama" in public_id
     )
 
     def _ok_result(out: dict[str, Any], *, model: str, provider: str) -> RouteResult:
@@ -2232,6 +2233,7 @@ def _run_vip_pick_chat_stream(
         or "claude" in public_id
         or "gemini" in public_id
         or "grok" in public_id
+        or "llama" in public_id
     )
     targets: list[tuple[str, str, str, str]] = []  # provider, base, key, model
 

@@ -617,14 +617,37 @@ CATALOG: list[dict[str, Any]] = [
         "channels": ["tokenlab", "openrouter"],
         "cost_in": 0.625,
         "cost_out": 1.25,
-        "billing_mult": 24,   # 2026-08-06 临时定价，待雷总确认（参考 GPT-5.4/Terra 旗舰档）
-        "in_mult": 10,
-        "out_mult": 36,
+        "billing_mult": 20,   # 2026-08-06 定价定案（前沿旗舰档：Terra 15 < Grok 20 < GPT-5.4 30；毛利约 87%）
+        "in_mult": 8,
+        "out_mult": 30,
         "quality": "前沿旗舰 · 实时信息",
         "quality_en": "Frontier · real-time info",
         "access": "ready",
         "modalities": ["text", "image"],
         "failover_to": ["vip-gpt54", "vip-ds-pro"],
+    },
+    {
+        # 2026-08-06: Llama 4 Maverick 上架（开源旗舰·高性价比；评测 21/24 · 2.7s；OR 实价 in $0.2/out $0.8；仅 OR 有货）
+        "id": "vip-llama4",
+        "title": "Llama 4",
+        "title_en": "Llama 4",
+        "brand_tiers": ["vip_pick"],
+        "layer": "VIP",
+        "role": "vip_pick",
+        "priority": 21,
+        "openrouter_id": "meta-llama/llama-4-maverick",
+        "direct_id": None,
+        "channels": ["openrouter"],
+        "cost_in": 0.2,
+        "cost_out": 0.8,
+        "billing_mult": 3,   # 2026-08-06 定价：开源旗舰引流款（毛利约 52%，走量）
+        "in_mult": 2,
+        "out_mult": 3,
+        "quality": "开源旗舰 · 高性价比",
+        "quality_en": "Open flagship · value",
+        "access": "ready",
+        "modalities": ["text"],
+        "failover_to": ["vip-gpt5-mini", "vip-ds-flash"],
     },
 ]
 
@@ -921,6 +944,10 @@ def resolve_vip_pick(requested_model: Optional[str]) -> Optional[dict[str, Any]]
         "grok-4.20": "vip-grok",
         "grok4": "vip-grok",
         "x-ai": "vip-grok",
+        "llama": "vip-llama4",
+        "llama-4": "vip-llama4",
+        "llama-4-maverick": "vip-llama4",
+        "llama4": "vip-llama4",
         "hy3": "vip-hy3",
         "hy-3": "vip-hy3",
         "tencent": "vip-hy3",
@@ -958,7 +985,7 @@ def list_vip_picks_for_user(*, is_vip: bool) -> list[dict[str, Any]]:
         # 国际旗舰次优先：仍列出，标注 intl
         is_intl = str(c.get("id") or "").startswith("vip-gpt") or "claude" in str(
             c.get("id")
-        ) or "gemini" in str(c.get("id") or "") or "grok" in str(c.get("id") or "")
+        ) or "gemini" in str(c.get("id") or "") or "grok" in str(c.get("id") or "") or "llama" in str(c.get("id") or "")
         mult = int(c.get("billing_mult") or 1)
         in_mult = int(c.get("in_mult") or c.get("billing_mult") or 1)
         out_mult = int(c.get("out_mult") or c.get("billing_mult") or 1)

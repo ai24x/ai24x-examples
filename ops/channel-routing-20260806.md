@@ -56,3 +56,9 @@
 4. Requesty 无 grok-4.20（404 整批），已在白名单外自动跳过
 5. 后续可让副脑04 从 TL/OR 控制台导出真实账单，核对毛利（当前毛利按实拉价目估算）
 6. 生产验收：拉起后抽查 /v1/models（vip_picks 应含 Grok 且不泄露 channels 字段）
+
+## 七、定价/上架补丁（2026-08-06 晚 · 主脑授权按最优策略定案，待补测后统一推送）
+- Grok 4.20 定价定案：billing_mult 24→20、in_mult 10→8、out_mult 36→30（前沿旗舰档：Terra 15 < Grok 20 < GPT-5.4 30；TL 实价 in $0.625/out $1.25 → 毛利约 87%）
+- 新增 vip-llama4（Llama 4 Maverick）：OR 实价 in $0.2/out $0.8，评测 21/24·2.7s；定价 mult 3/in 2/out 3（开源旗舰引流款，毛利约 52%）；channels=["openrouter"]（仅 OR 有货）
+- 别名：llama / llama-4 / llama-4-maverick / llama4 → vip-llama4；grok/llama 均归 intl 组与国际旗舰降级识别（禁硅基顶替）
+- 待办：补测结果回来后做最终路由定案（Luna/Gemini Pro/Haiku/GPT-5/4o 是否切 TL）+ 一并推送
