@@ -46,6 +46,7 @@ CANDIDATES: list[dict[str, Any]] = [
     {"label": "DeepSeek V4 Flash · 硅基.com", "provider": "siliconflow", "base": "https://api.siliconflow.com/v1", "model": "deepseek-ai/DeepSeek-V4-Flash", "cost_in": 0.14, "cost_out": 0.28},
     {"label": "DeepSeek V4 Pro · 官方直连", "provider": "deepseek", "base": "https://api.deepseek.com/v1", "model": "deepseek-v4-pro", "cost_in": 0.435, "cost_out": 0.87},
     {"label": "DeepSeek V4 Pro · TokenLab", "provider": "tokenlab", "base": "https://api.tokenlab.sh/v1", "model": "deepseek-v4-pro", "cost_in": 0.435, "cost_out": 0.87},
+    {"label": "DeepSeek V4 Pro · OpenRouter", "provider": "openrouter", "base": "https://openrouter.ai/api/v1", "model": "deepseek/deepseek-v4-pro", "cost_in": 0.435, "cost_out": 0.87},
     {"label": "Kimi K3 · TokenLab", "provider": "tokenlab", "base": "https://api.tokenlab.sh/v1", "model": "kimi-k3", "cost_in": 3.0, "cost_out": 15.0},
     {"label": "GLM-5.2 · TokenLab", "provider": "tokenlab", "base": "https://api.tokenlab.sh/v1", "model": "glm-5.2", "cost_in": 1.12, "cost_out": 3.52},
     {"label": "Qwen3.7 Max · TokenLab", "provider": "tokenlab", "base": "https://api.tokenlab.sh/v1", "model": "qwen3.7-max", "cost_in": 1.475, "cost_out": 4.425},
