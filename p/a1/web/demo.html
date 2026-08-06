@@ -5402,9 +5402,65 @@
   }
   function saveWatchlist(list) {
     try { if (typeof localStorage !== 'undefined') localStorage.setItem(WATCHLIST_KEY, JSON.stringify(list)); } catch (e) {}
+    wlServerPush(list);
   }
   function isInWatchlist(secid) {
     return loadWatchlist().some(function (w) { return w.secid === secid; });
+  }
+  function authToken() {
+    try { return String(localStorage.getItem(AUTH_TOKEN_KEY) || '').trim(); } catch (e) { return ''; }
+  }
+  function wlServerPush(list) {
+    var t = authToken();
+    if (!t || !list || !list.length) return;
+    var items = list.slice(0, 50);
+    for (var i = 0; i < items.length; i++) {
+      (function (it) {
+        fetch(API_BASE + '/api/watchlist', {
+          method: 'POST',
+          headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+          body: JSON.stringify({ secid: it.secid, code: it.code || '', name: it.name || '' })
+        }).catch(function () {});
+      })(items[i]);
+    }
+  }
+  function wlServerRemove(secid) {
+    var t = authToken();
+    if (!t || !secid) return;
+    fetch(API_BASE + '/api/watchlist/remove', {
+      method: 'POST',
+      headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+      body: JSON.stringify({ secid: secid })
+    }).catch(function () {});
+  }
+  function wlServerSync() {
+    var t = authToken();
+    if (!t) return;
+    fetch(API_BASE + '/api/watchlist', { headers: authHeaders(), cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || d.ok !== true) return;
+        var server = (d.items || []);
+        var local = loadWatchlist();
+        var merged = [];
+        var seen = {};
+        var i;
+        for (i = 0; i < server.length; i++) {
+          if (seen[server[i].secid]) continue;
+          seen[server[i].secid] = 1;
+          merged.push({ secid: String(server[i].secid), name: String(server[i].name || ''), code: String(server[i].code || ''), ts: Date.now() });
+        }
+        for (i = 0; i < local.length && merged.length < 50; i++) {
+          if (seen[local[i].secid]) continue;
+          seen[local[i].secid] = 1;
+          merged.push(local[i]);
+        }
+        saveWatchlist(merged);
+        renderFavBtn();
+        renderWlPanelBtn();
+        if (watchlistPanelEl && !watchlistPanelEl.hidden) renderWatchlistPanel();
+      })
+      .catch(function () {});
   }
   function toggleWatchlist(secid, name, code) {
     if (!secid) return;
@@ -5418,6 +5474,7 @@
       list.push({ secid: String(secid), name: String(name || ''), code: String(code || ''), ts: Date.now() });
     }
     saveWatchlist(list);
+    if (idx >= 0) wlServerRemove(secid);
     renderFavBtn();
     renderWlPanelBtn();
     if (watchlistPanelEl && !watchlistPanelEl.hidden) renderWatchlistPanel();
@@ -6976,6 +7033,7 @@
   renderWlPanelBtn();
 
   loadDefaultShanghaiIndex();
+  wlServerSync();
 })();
   </script>
 

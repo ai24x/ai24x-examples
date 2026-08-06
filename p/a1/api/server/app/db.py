@@ -355,6 +355,25 @@ def init_db() -> None:
         except Exception:
             pass
 
+        # 自选股（用户级，登录后跨设备同步；主键 user_id+secid 去重）
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS watchlist (
+              user_id BIGINT NOT NULL,
+              secid TEXT NOT NULL,
+              code TEXT NOT NULL,
+              name TEXT NOT NULL,
+              note TEXT NOT NULL DEFAULT '',
+              sort_order INTEGER NOT NULL DEFAULT 0,
+              created_at BIGINT NOT NULL,
+              PRIMARY KEY (user_id, secid)
+            );
+            """
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_watchlist_user_sort ON watchlist(user_id, sort_order, created_at);"
+        )
+
         # Market data cache (MVP): persist successful K-line payloads for resilience across restarts.
         conn.execute(
             """
@@ -6631,3 +6650,57 @@ def pay_order_try_fulfill_alipay(out_trade_no: str, trade_no: str, amount_fen: i
 
     return {"ok": True, "duplicate": False}
 
+
+
+# ============ 自选股 watchlist ============
+
+
+def _watchlist_row_dict(row: Any) -> dict[str, Any]:
+    return {
+        "secid": str(row["secid"] or ""),
+        "code": str(row["code"] or ""),
+        "name": str(row["name"] or ""),
+        "note": str(row["note"] or ""),
+        "sort_order": int(row["sort_order"] or 0),
+        "created_at": int(row["created_at"] or 0),
+    }
+
+
+def watchlist_add(user_id: int, secid: str, code: str, name: str, note: str = "") -> dict[str, Any]:
+    uid = int(user_id)
+    sid = str(secid or "").strip()
+    if not sid:
+        return {"ok": False, "msg": "缺少 secid"}
+    now = int(time.time())
+    with connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO watchlist(user_id, secid, code, name, note, sort_order, created_at)
+            VALUES (?, ?, ?, ?, ?, 0, ?)
+            ON CONFLICT(user_id, secid) DO UPDATE SET
+              code=excluded.code, name=excluded.name, note=excluded.note
+            """,
+            (uid, sid, str(code or "").strip()[:32], str(name or "").strip()[:64], str(note or "").strip()[:200], now),
+        )
+    return {"ok": True, "secid": sid}
+
+
+def watchlist_remove(user_id: int, secid: str) -> dict[str, Any]:
+    uid = int(user_id)
+    sid = str(secid or "").strip()
+    if not sid:
+        return {"ok": False, "msg": "缺少 secid"}
+    with connect() as conn:
+        conn.execute("DELETE FROM watchlist WHERE user_id=? AND secid=?", (uid, sid))
+    return {"ok": True, "secid": sid}
+
+
+def watchlist_list(user_id: int) -> dict[str, Any]:
+    uid = int(user_id)
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT * FROM watchlist WHERE user_id=? ORDER BY sort_order ASC, created_at ASC",
+            (uid,),
+        ).fetchall()
+        items = [_watchlist_row_dict(r) for r in (rows or [])]
+    return {"ok": True, "items": items, "count": len(items)}

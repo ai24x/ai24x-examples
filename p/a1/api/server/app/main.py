@@ -2572,6 +2572,122 @@ def invite_list(limit: int = 50, user_id: int = Depends(get_current_user_id)) ->
     return {"items": db.invite_list_for_user(user_id, limit=limit)}
 
 
+# ============ 自选股 watchlist（登录态，跨设备同步） ============
+
+
+@app.get("/api/watchlist")
+def api_watchlist(user_id: int = Depends(get_current_user_id)) -> dict:
+    _rate_limit(f"wl-list:{user_id}", 30)
+    return db.watchlist_list(int(user_id))
+
+
+@app.post("/api/watchlist")
+async def api_watchlist_add(body: dict, user_id: int = Depends(get_current_user_id)) -> dict:
+    _rate_limit(f"wl-add:{user_id}", 30)
+    secid = str(body.get("secid") or "").strip()
+    if not secid:
+        raise HTTPException(status_code=400, detail="缺少 secid")
+    return db.watchlist_add(
+        int(user_id),
+        secid,
+        str(body.get("code") or ""),
+        str(body.get("name") or ""),
+        str(body.get("note") or ""),
+    )
+
+
+@app.post("/api/watchlist/remove")
+async def api_watchlist_remove(body: dict, user_id: int = Depends(get_current_user_id)) -> dict:
+    _rate_limit(f"wl-rm:{user_id}", 60)
+    return db.watchlist_remove(int(user_id), str(body.get("secid") or ""))
+
+
+@app.get("/api/watchlist/scores")
+async def api_watchlist_scores(
+    request: Request,
+    user_id: int = Depends(get_current_user_id),
+) -> dict:
+    """
+    自选评分榜：对自选池逐票取日线 → 技术面评分 → 综合分降序。
+    扣次：复用自然日同票去重，同日重复刷新不重复扣。
+    """
+    _rate_limit(f"wl-scores:{user_id}", 6)
+    wl = db.watchlist_list(int(user_id))
+    items = wl.get("items") or []
+    if not items:
+        return {"ok": True, "items": [], "count": 0, "updated_at": int(time.time())}
+
+    db.downgrade_expired_vip_plan(int(user_id))
+    quota = db.get_quota_status(int(user_id))
+    plan = str(quota.get("plan") or "anon").strip().lower()
+    is_vip = plan not in ("", "free", "anon")
+    md = market_data_status()
+    base_pri = str((md.get("paid") or {}).get("priority") or "").strip().lower()
+    if not base_pri:
+        base_pri = "tencent,eastmoney,sina,paid"
+    vip_only = bool((md.get("paid") or {}).get("vip_only"))
+    allow_paid = bool(is_vip or not vip_only)
+    priority_override = base_pri if allow_paid else ",".join(
+        [x for x in base_pri.split(",") if x.strip() and x.strip() != "paid"]
+    )
+    variant = "vip" if is_vip else "free"
+
+    import asyncio
+
+    from .scoring import score_candles
+    from .signals import candles_from_tencent_like_pack
+
+    async def _score_one(it: dict) -> dict:
+        secid = str(it.get("secid") or "")
+        base = {
+            "secid": secid,
+            "code": str(it.get("code") or ""),
+            "name": str(it.get("name") or ""),
+        }
+        try:
+            payload = await fetch_tx_kline(
+                secid,
+                "day",
+                count=120,
+                variant=variant,
+                priority_override=priority_override,
+                allow_paid=allow_paid,
+            )
+        except Exception as e:
+            base["error"] = "fetch:%s" % type(e).__name__
+            return base
+        if not isinstance(payload, dict) or int(payload.get("code") or 0) != 0:
+            base["error"] = str((payload or {}).get("msg") or "kline failed")
+            return base
+        data = payload.get("data")
+        if not isinstance(data, dict) or not data:
+            base["error"] = "empty data"
+            return base
+        pack = next(iter(data.values()))
+        candles = candles_from_tencent_like_pack(pack, period="day")
+        if len(candles) < 60:
+            base["error"] = "insufficient history"
+            return base
+        res = score_candles(candles, name=base["name"])
+        base.update(res)
+        try:
+            db.consume_quota(
+                int(user_id),
+                secid,
+                "day",
+                "wl:%s:day:%d" % (secid, int(time.time() // 86400)),
+                ok=True,
+            )
+        except Exception:
+            pass
+        return base
+
+    scored = await asyncio.gather(*(_score_one(it) for it in items))
+    scored = [s for s in scored if s]
+    scored.sort(key=lambda x: float(x.get("score") or -1), reverse=True)
+    return {"ok": True, "items": scored, "count": len(scored), "updated_at": int(time.time())}
+
+
 @app.get("/api/suggest")
 async def api_suggest(
     q: str,

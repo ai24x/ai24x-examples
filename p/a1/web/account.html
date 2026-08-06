@@ -452,7 +452,63 @@
       .agent-steps { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; }
       .agent-step { white-space: nowrap; flex: 0 0 auto; }
     }
-  </style>
+        /* ===== 自选股 Tab：清新青绿 ===== */
+      .acct-tab.acct-tab-watch {
+        background: linear-gradient(135deg, rgba(16,185,129,.16), rgba(5,150,105,.08));
+        border-color: rgba(16,185,129,.45);
+        color: #34d399;
+        font-weight: 700;
+      }
+      .acct-tab.acct-tab-watch:hover {
+        background: linear-gradient(135deg, rgba(16,185,129,.26), rgba(5,150,105,.12));
+        color: #6ee7b7;
+      }
+      .acct-tab.acct-tab-watch.is-active {
+        background: linear-gradient(135deg, rgba(16,185,129,.32), rgba(5,150,105,.16));
+        border-color: rgba(16,185,129,.75);
+        color: #fff;
+        box-shadow: 0 2px 12px rgba(16,185,129,.28);
+      }
+      :root[data-theme="light"] .acct-tab.acct-tab-watch {
+        background: linear-gradient(135deg, rgba(16,185,129,.12), rgba(5,150,105,.06));
+        border-color: rgba(5,150,105,.4);
+        color: #047857;
+      }
+      :root[data-theme="light"] .acct-tab.acct-tab-watch:hover {
+        color: #065f46;
+      }
+      :root[data-theme="light"] .acct-tab.acct-tab-watch.is-active {
+        background: linear-gradient(135deg, rgba(16,185,129,.24), rgba(5,150,105,.12));
+        border-color: rgba(5,150,105,.6);
+        color: #064e3b;
+      }
+      /* 自选列表 / 评分榜 */
+      .wl-row {
+        display: flex; align-items: center; gap: 10px;
+        padding: 8px 10px; border-radius: 10px;
+        border: 1px solid rgba(148,163,184,.18);
+        background: rgba(148,163,184,.05);
+      }
+      .wl-name { font-weight: 700; font-size: 14px; }
+      .wl-code { color: var(--muted); font-size: 12px; font-family: ui-monospace, Consolas, monospace; }
+      .wl-sug {
+        display: flex; gap: 8px; align-items: baseline;
+        width: 100%; text-align: left; padding: 8px 10px;
+        border-radius: 8px; border: 1px solid rgba(148,163,184,.18);
+        background: transparent; color: inherit; cursor: pointer; font-size: 13px;
+      }
+      .wl-sug:hover { background: rgba(16,185,129,.10); border-color: rgba(16,185,129,.45); }
+      .wl-score-table th, .wl-score-table td {
+        padding: 7px 9px; border-bottom: 1px solid rgba(148,163,184,.15);
+        text-align: left; vertical-align: top;
+      }
+      .wl-score-table thead th { color: var(--muted); font-weight: 600; font-size: 12px; white-space: nowrap; }
+      .wl-score-table td.wl-risk { color: #f87171; }
+      .wl-score-high { color: #34d399; font-weight: 800; }
+      .wl-score-mid { color: #fbbf24; font-weight: 700; }
+      .wl-score-low { color: #94a3b8; font-weight: 600; }
+
+</style>
 </head>
 <body>
   <header class="site-header" id="site-header"></header>
@@ -513,6 +569,7 @@
 
     <nav class="acct-tabs" id="acct-tabs" hidden aria-label="用户中心导航">
       <button type="button" class="acct-tab is-active" data-acct-tab="vip" onclick="showAcctTab('vip')">会员</button>
+      <button type="button" class="acct-tab acct-tab-watch" data-acct-tab="watch" onclick="showAcctTab('watch')">自选股</button>
       <button type="button" class="acct-tab acct-tab-agent" data-acct-tab="agent" onclick="showAcctTab('agent')">✦ 伙伴计划</button>
     </nav>
 
@@ -656,7 +713,24 @@
       </div>
     </section>
 
-    <section class="card acct-panel" id="agent" data-acct-panel="agent" hidden>
+        <section class="card acct-panel" id="watch" data-acct-panel="watch" hidden>
+      <h1>自选股</h1>
+      <p class="sub" style="margin:0 0 4px;">添加关注的标的，一键生成「自选评分榜」——按 MACD 量能柱、均线形态、量能确认、异动回踩、位置与趋势环境做技术面量化评分（0-100），仅供选股参考，不构成投资建议。</p>
+      <div class="row" style="margin-top:12px; flex-wrap:wrap; gap:8px; align-items:center;">
+        <input id="wl-search" type="text" placeholder="输入代码 / 名称 / 拼音，如 600000、浦发、pfyh" autocomplete="off" style="flex:1; min-width:220px;" />
+        <button class="btn primary" id="btn-wl-add" type="button" disabled>添加自选</button>
+      </div>
+      <div id="wl-suggest" style="display:none; margin-top:6px;"></div>
+      <div class="status" id="wl-status" style="margin-top:8px;"></div>
+      <div id="wl-list" style="margin-top:10px;"></div>
+      <div class="row" style="margin-top:16px; gap:10px; align-items:center; flex-wrap:wrap;">
+        <button class="btn" id="btn-wl-scores" type="button">生成评分榜</button>
+        <span class="muted small">评分榜按自然日同票去重扣次，当天重复刷新不重复扣。</span>
+      </div>
+      <div class="hint" id="wl-score-hint" style="margin-top:10px; display:none;"></div>
+      <div id="wl-score-wrap" style="margin-top:10px;"></div>
+    </section>
+<section class="card acct-panel" id="agent" data-acct-panel="agent" hidden>
       <h1>伙伴计划（支持研发）</h1>
       <div class="hint" id="agent-gate" hidden>开通会员（VIP）后可参与伙伴计划：推广返佣、城市合伙人等。请先在「会员」页开通任一付费套餐。</div>
 
@@ -1379,9 +1453,10 @@
           .catch(function () {});
       }
 
-      var ACCT_TABS = ["vip", "invite", "agent"];
+      var ACCT_TABS = ["vip", "invite", "watch", "agent"];
       function showAcctTab(name) {
         if (name === "invite") name = "vip";
+        if (name === "watch") { try { loadWatchlist(); } catch (e) {} }
         if (ACCT_TABS.indexOf(name) < 0) name = "vip";
         ACCT_TABS.forEach(function (n) {
           // 邀请推广内容并入会员卡片下方，随「会员」一起显示/隐藏
@@ -1403,6 +1478,8 @@
         var loggedIn = !!tokenGet();
         var agentTab = document.querySelector('.acct-tab[data-acct-tab="agent"]');
         if (agentTab) agentTab.style.display = loggedIn ? "" : "none";
+        var watchTab = document.querySelector('.acct-tab[data-acct-tab="watch"]');
+        if (watchTab) watchTab.style.display = loggedIn ? "" : "none";
         var def = "vip";
         try {
           // 默认恒为「会员」；URL 邀请参数（?i=）仅用于自动绑定邀请码，不改变默认栏目。
@@ -3786,8 +3863,210 @@ function agentCityRefresh() {
         window.agentCityDownload = agentCityDownload;
         window.agentCityDel = agentCityDel;
       } catch (eExpose) {}
+// ===== 自选股 / 自选评分榜 =====
+      var WL_LIMIT = 50;
+      var wlItems = [];
+      var wlLastLoad = 0;
+      function wlStatus(s, isErr) {
+        var el = document.getElementById("wl-status");
+        if (!el) return;
+        el.textContent = s || "";
+        el.style.color = isErr ? "#f87171" : "";
+      }
+      function escWl(s) {
+        if (!s) return "";
+        return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      }
+      function loadWatchlist(force) {
+        if (!tokenGet()) return;
+        var now = Date.now();
+        if (!force && now - wlLastLoad < 4000) return;
+        wlLastLoad = now;
+        apiFetch("/api/watchlist").then(function (d) {
+          wlItems = (d && d.items) || [];
+          renderWlList();
+        }).catch(function (e) {
+          wlStatus("自选加载失败：" + (e && e.message ? e.message : "网络错误"), true);
+        });
+      }
+      function renderWlList() {
+        var box = document.getElementById("wl-list");
+        if (!box) return;
+        if (!wlItems.length) {
+          box.innerHTML = '<div class="muted small" style="padding:6px 0;">暂无自选。搜索并添加，或在行情页查询后点「收藏」（登录后自动同步）。</div>';
+          return;
+        }
+        var html = '<div style="display:flex; flex-direction:column; gap:6px;">';
+        for (var i = 0; i < wlItems.length; i++) {
+          var it = wlItems[i];
+          var nm = escWl(it.name || it.code || "");
+          var cd = escWl(it.code || "");
+          var sid = escWl(it.secid || "");
+          html += '<div class="wl-row"><span class="wl-name">' + nm + '</span>'
+            + '<span class="wl-code">' + cd + '</span>'
+            + '<span class="muted small" style="margin-left:auto;">' + (i + 1) + '</span>'
+            + '<button type="button" class="btn" style="padding:4px 12px; font-size:12px;" data-wl-del="' + sid + '">移除</button></div>';
+        }
+        html += '</div>';
+        box.innerHTML = html;
+        var dels = box.querySelectorAll("[data-wl-del]");
+        for (var j = 0; j < dels.length; j++) {
+          dels[j].addEventListener("click", function () {
+            var sid2 = this.getAttribute("data-wl-del");
+            apiFetch("/api/watchlist/remove", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ secid: sid2 }) })
+              .then(function () {
+                wlItems = wlItems.filter(function (x) { return x.secid !== sid2; });
+                renderWlList();
+                wlStatus("已移除 " + sid2);
+              }).catch(function (e) { wlStatus("移除失败：" + (e && e.message || "网络错误"), true); });
+          });
+        }
+      }
+      function wlSuggestRows() {
+        var inp = document.getElementById("wl-search");
+        var box = document.getElementById("wl-suggest");
+        if (!inp || !box) return [];
+        var q = String(inp.value || "").trim();
+        if (!q) return [];
+        return apiFetch("/api/suggest?q=" + encodeURIComponent(q) + "&include_plates=0").then(function (d) {
+          var rows = (((d || {}).QuotationCodeTable || {}).Data) || [];
+          return rows.filter(function (r) {
+            return /^[01]\.\d{6}$/.test(String(r.QuoteID || ""));
+          });
+        }).catch(function () {
+          return [];
+        });
+      }
+      function wlRunSuggest() {
+        var inp = document.getElementById("wl-search");
+        var box = document.getElementById("wl-suggest");
+        if (!inp || !box) return;
+        var q = String(inp.value || "").trim();
+        if (!q) {
+          box.style.display = "none";
+          box.innerHTML = "";
+          return;
+        }
+        wlSuggestRows().then(function (rows) {
+          if (!rows.length) {
+            box.style.display = "";
+            box.innerHTML = '<div class="hint" style="margin:2px 0 0;">未找到匹配标的，请检查代码 / 名称 / 拼音是否输入正确。</div>';
+            return;
+          }
+          var html = '<div style="display:flex; flex-direction:column; gap:6px; margin-top:6px;">';
+          for (var i = 0; i < rows.slice(0, 8).length; i++) {
+            var it = rows[i];
+            var qid = String(it.QuoteID || "");
+            var cd = String(it.Code || qid.split(".")[1] || "");
+            var nm = String(it.Name || "");
+            html += '<button type="button" class="wl-sug" data-sid="' + escWl(qid) + '" data-cd="' + escWl(cd) + '" data-nm="' + escWl(nm) + '">'
+              + '<span style="font-weight:700;">' + escWl(nm) + '</span>'
+              + '<span class="wl-code">' + escWl(cd) + '</span>'
+              + '<span class="muted small">' + escWl(it.PinYin || "") + '</span></button>';
+          }
+          html += '</div>';
+          box.innerHTML = html;
+          box.style.display = "";
+          var sugs = box.querySelectorAll(".wl-sug");
+          for (var j = 0; j < sugs.length; j++) {
+            sugs[j].addEventListener("click", function () {
+              addWlItem(this.getAttribute("data-sid"), this.getAttribute("data-cd"), this.getAttribute("data-nm"));
+            });
+          }
+        });
+      }
+      function addWlItem(secid, code, name) {
+        if (!secid) return;
+        if (wlItems.length >= WL_LIMIT) { wlStatus("自选已达上限 " + WL_LIMIT + " 只", true); return; }
+        apiFetch("/api/watchlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ secid: secid, code: code || "", name: name || "" }) })
+          .then(function () {
+            wlStatus("已添加 " + (name || code || secid));
+            var inp = document.getElementById("wl-search"); if (inp) inp.value = "";
+            var box = document.getElementById("wl-suggest"); if (box) { box.style.display = "none"; box.innerHTML = ""; }
+            var btn = document.getElementById("btn-wl-add"); if (btn) btn.disabled = true;
+            loadWatchlist(true);
+          }).catch(function (e) { wlStatus("添加失败：" + (e && e.message || "网络错误"), true); });
+      }
+      function loadWlScores() {
+        var wrap = document.getElementById("wl-score-wrap");
+        var hint = document.getElementById("wl-score-hint");
+        if (!wrap) return;
+        if (!wlItems.length) { wlStatus("请先添加自选股", true); return; }
+        wrap.innerHTML = '<div class="muted small">评分计算中…（逐票拉取日线，约几秒）</div>';
+        apiFetch("/api/watchlist/scores").then(function (d) {
+          var items = (d && d.items) || [];
+          if (hint) {
+            hint.style.display = "";
+            hint.textContent = "共 " + items.length + " 只标的参与评分；按自然日同票去重扣次。评分仅为技术规则量化结果，不构成投资建议。";
+          }
+          renderWlScores(items);
+        }).catch(function (e) {
+          wrap.innerHTML = "";
+          wlStatus("评分失败：" + (e && e.message || "网络错误"), true);
+        });
+      }
+      function renderWlScores(items) {
+        var wrap = document.getElementById("wl-score-wrap");
+        if (!wrap) return;
+        if (!items.length) {
+          wrap.innerHTML = '<div class="muted small">暂无评分结果（标的可能缺少足够 K 线历史）。</div>';
+          return;
+        }
+        var html = '<table class="wl-score-table" style="width:100%; border-collapse:collapse; font-size:12px; min-width:620px;">'
+          + '<thead><tr><th>#</th><th>代码</th><th>名称</th><th>评分</th><th>信号标签</th><th>风险提示</th></tr></thead><tbody>';
+        for (var i = 0; i < items.length; i++) {
+          var it = items[i];
+          var sc = Number(it.score || 0);
+          var cls = sc >= 70 ? "wl-score-high" : (sc >= 45 ? "wl-score-mid" : "wl-score-low");
+          var tags = escWl((it.tags || []).join(" / "));
+          var risks = escWl((it.risks || []).join(" / "));
+          html += '<tr><td>' + (i + 1) + '</td>'
+            + '<td class="wl-code">' + escWl(it.code || "") + '</td>'
+            + '<td>' + escWl(it.name || "") + '</td>'
+            + '<td><span class="' + cls + '">' + sc.toFixed(0) + '</span></td>'
+            + '<td>' + (tags || "—") + '</td>'
+            + '<td class="wl-risk">' + (risks || "—") + '</td></tr>';
+        }
+        html += '</tbody></table>';
+        wrap.innerHTML = html;
+      }
+      function initWl() {
+        var inp = document.getElementById("wl-search");
+        var btn = document.getElementById("btn-wl-add");
+        var scoresBtn = document.getElementById("btn-wl-scores");
+        if (inp) {
+          inp.addEventListener("input", function () {
+            var q = String(inp.value || "").trim();
+            var b = document.getElementById("btn-wl-add");
+            if (b) b.disabled = !q;
+            clearTimeout(window.__wlSuggestTimer);
+            window.__wlSuggestTimer = setTimeout(wlRunSuggest, 350);
+          });
+          inp.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") wlRunSuggest();
+          });
+        }
+        if (btn) {
+          btn.addEventListener("click", function () {
+            var inp2 = document.getElementById("wl-search");
+            var q = String(inp2 ? inp2.value : "").trim();
+            if (!q) return;
+            wlSuggestRows().then(function (rows) {
+              if (!rows.length) { wlStatus("未找到匹配标的，请检查输入", true); return; }
+              var it = rows[0];
+              addWlItem(String(it.QuoteID || ""), String(it.Code || ""), String(it.Name || ""));
+            });
+          });
+        }
+        if (scoresBtn) scoresBtn.addEventListener("click", loadWlScores);
+      }
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initWl);
+      } else {
+        initWl();
+      }
     })();
-  </script>
+        </script>
 </body>
 </html>
 
