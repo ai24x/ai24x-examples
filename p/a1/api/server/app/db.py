@@ -2364,6 +2364,22 @@ def kline_cache_put(cache_key: str, payload: dict[str, Any], ttl_s: float) -> No
             pass
 
 
+def _user_source_hint(*, phone: str = "", email: str = "") -> str:
+    """管理后台「来源」标记：按现有数据推断，不依赖新字段。
+
+    - 有手机号 → 本地注册（手机）
+    - 无手机号但有邮箱 → 主站导入（邮箱，历史批次）
+    - 都没有 → 无联系方式
+    """
+    phone = (phone or "").strip()
+    email = (email or "").strip()
+    if phone:
+        return "本地注册(手机)"
+    if email:
+        return "主站导入(邮箱)"
+    return "无联系方式"
+
+
 def admin_list_users(q: str = "", limit: int = 50, offset: int = 0) -> dict[str, Any]:
     qq = (q or "").strip()
     limit = max(1, min(int(limit or 50), 200))
@@ -2400,6 +2416,10 @@ def admin_list_users(q: str = "", limit: int = 50, offset: int = 0) -> dict[str,
                     "email": str(r["email"]) if r["email"] is not None else "",
                     "phone": str(r["phone"]) if r["phone"] is not None else "",
                     "created_at": int(r["created_at"]),
+                    "source": _user_source_hint(
+                        phone=str(r["phone"]) if r["phone"] is not None else "",
+                        email=str(r["email"]) if r["email"] is not None else "",
+                    ),
                     "quota": get_quota_status(uid) if r["plan"] is not None else None,
                 }
             )
@@ -2420,6 +2440,10 @@ def admin_get_user(uid: int) -> dict[str, Any]:
                 "email": str(u["email"]) if u["email"] is not None else "",
                 "phone": str(u["phone"]) if u["phone"] is not None else "",
                 "created_at": int(u["created_at"]),
+                "source": _user_source_hint(
+                    phone=str(u["phone"]) if u["phone"] is not None else "",
+                    email=str(u["email"]) if u["email"] is not None else "",
+                ),
             },
             "quota": get_quota_status(uid),
             "invite": {

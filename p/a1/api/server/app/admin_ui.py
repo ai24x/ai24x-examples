@@ -365,11 +365,21 @@ def admin_app_html(admin_base: str) -> str:
       .panel-page.active { display: block; }
       .panel-page > .card:first-child { margin-top: 0; }
       /* 用户详情操作卡：两列自适应网格；头部与宽表整行 */
-      .user-detail { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; align-items: start; }
-      .user-detail > .card { margin-top: 0; }
+      .user-detail { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
+      .user-detail > .card { margin-top: 0; min-width: 0; }
       .user-detail > .card.wide { grid-column: 1 / -1; }
       .user-detail > .row:first-child,
       .user-detail > .msg { grid-column: 1 / -1; }
+      /* 双列均衡排布：左列 配额+伙伴，右列 基础信息+密码+充值（竖排组合），列高对齐避免漂移 */
+      .user-detail > .col-stack { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+      .user-detail > .col-stack > .card { margin-top: 0; }
+      @media (min-width: 1501px) {
+        .user-detail > .card.c-quota { grid-column: 1; grid-row: 2; }
+        .user-detail > .card.c-partner { grid-column: 1; grid-row: 3; }
+        .user-detail > .col-stack { grid-column: 2; grid-row: 2 / 4; }
+      }
+      #curUser { scroll-margin-top: 96px; }
+      @media (max-width: 1500px) { .user-detail { grid-template-columns: 1fr; } }
       /* 窄屏：侧栏收窄、分组按钮横向排列 */
       @media (max-width: 1180px) {
         .sidebar { width: 224px; padding: 12px 10px; }
@@ -553,6 +563,7 @@ def admin_app_html(admin_base: str) -> str:
                         <th style="width:96px;"><span class="th-cn">用户 ID</span><span class="th-en">userId</span></th>
                         <th><span class="th-cn">手机</span><span class="th-en">phone</span></th>
                         <th><span class="th-cn">邮箱</span><span class="th-en">email</span></th>
+                        <th style="width:120px;"><span class="th-cn">来源</span><span class="th-en">source</span></th>
                         <th style="width:170px;"><span class="th-cn">注册时间</span><span class="th-en">createdAt</span></th>
                         <th style="width:100px;"><span class="th-cn">套餐</span><span class="th-en">plan</span></th>
                         <th style="width:120px;"><span class="th-cn">剩余次数摘要</span><span class="th-en">remaining</span></th>
@@ -569,7 +580,7 @@ def admin_app_html(admin_base: str) -> str:
                   <span id="curUser" class="mono muted">—</span>
                 </div>
                 <div class="msg" id="userMeta"></div>
-                <div class="card" style="margin:0;">
+                <div class="card c-quota" style="margin:0;">
                   <div class="row">
                     <span class="pill">配额与套餐</span>
                     <span id="quotaMeta" class="mono muted">—</span>
@@ -599,7 +610,8 @@ def admin_app_html(admin_base: str) -> str:
                   </div>
                   <div class="msg danger small">请先通过登录页写入会话；勿对公网暴露本服务且务必使用强管理密钥。</div>
                 </div>
-                <div class="card" style="margin:0;">
+                <div class="col-stack">
+                  <div class="card c-basic" style="margin:0;">
                   <div class="row">
                     <span class="pill">用户基础信息</span>
                     <span class="muted small">邮箱/手机唯一，改错会影响登录归属</span>
@@ -612,7 +624,7 @@ def admin_app_html(admin_base: str) -> str:
                     <input id="editPhone" class="mono" placeholder="如 189xxxx（留空=清空）" style="min-width:200px;" />
                   </div>
                 </div>
-                <div class="card" style="margin:0;">
+                <div class="card c-pw" style="margin:0;">
                   <div class="row">
                     <span class="pill">密码（管理员强制设置）</span>
                     <span class="muted small">不需要验证码；仅限超级网管</span>
@@ -624,7 +636,7 @@ def admin_app_html(admin_base: str) -> str:
                   </div>
                   <div class="msg small muted">提示：会立即覆盖用户密码；请谨慎操作并通知用户重新登录。</div>
                 </div>
-                <div class="card" style="margin:0;">
+                <div class="card c-recharge" style="margin:0;">
                   <div class="row">
                     <span class="pill">充值 / 重置账号（测试用）</span>
                     <span class="muted small">清理测试数据，用于重复走邀请码/激活/支付/返佣链路（保留 user_id）</span>
@@ -650,7 +662,8 @@ def admin_app_html(admin_base: str) -> str:
                     </div>
                   </div>
                 </div>
-                <div class="card" style="margin:0;">
+                </div>
+                <div class="card c-partner" style="margin:0;">
                   <div class="row">
                     <span class="pill">伙伴与邀请（快捷入口）</span>
                     <span class="muted small">已迁移到「伙伴与结算 → 伙伴与邀请」。这里仅提供一键跳转到详情页。</span>
@@ -3239,6 +3252,7 @@ async function loadEligibleCommissions(){
             '<td class="mono">'+esc(u.id)+'</td>'+
             '<td class="mono">'+esc(u.phone||'')+'</td>'+
             '<td class="mono">'+esc(u.email||'')+'</td>'+
+            '<td>'+esc(u.source||'')+'</td>'+
             '<td class="mono">'+esc(fmtTs(u.created_at))+'</td>'+
             '<td>'+esc(u.quota ? u.quota.plan : '')+'</td>'+
             '<td class="mono">'+esc(u.quota ? u.quota.remaining : '')+'</td>'+
@@ -3248,7 +3262,7 @@ async function loadEligibleCommissions(){
             ev.preventDefault();
             ev.stopPropagation();
             selectUser(u.id);
-            try{ document.getElementById('curUser').scrollIntoView({behavior:'smooth', block:'start'}); }catch(e){}
+            try{ document.getElementById('curUser').scrollIntoView({behavior:'auto', block:'nearest'}); }catch(e){}
           });
           body.appendChild(tr);
         });
@@ -3285,6 +3299,7 @@ async function loadEligibleCommissions(){
         if (u.phone) metaParts.push('手机 <span class="mono">'+esc(u.phone)+'</span>');
         if (u.email) metaParts.push('邮箱 <strong class="mono">'+esc(u.email)+'</strong>');
         metaParts.push('注册时间 <span class="mono">'+esc(fmtTs(u.created_at))+'</span>');
+        if (u.source) metaParts.push('来源 <strong>'+esc(u.source)+'</strong>');
         if (inv.my_code) metaParts.push('邀请码 <span class="mono">'+esc(inv.my_code)+'</span>');
         if (inv.inviter_id) metaParts.push('邀请人 <span class="mono">'+esc(inv.inviter_id)+'</span>');
         $('userMeta').innerHTML = metaParts.join(' · ');
