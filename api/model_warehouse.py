@@ -301,7 +301,7 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 6,
         "openrouter_id": "qwen/qwen3.7-max",
         "direct_id": None,
-        "siliconflow_id": "Qwen/Qwen3-235B-A22B-Instruct-2507",
+        "siliconflow_id": None,  # .com/.cn 目录无 Qwen3-235B（仅 Qwen3.5-397B/122B，与 qwen3.7-max 不等价）→ 走 OR 主通道
         "cost_in": 1.475,
         "cost_out": 4.425,
         "billing_mult": 13,  # 2026-08-05: ceil(2.95/0.35*1.5)=14
