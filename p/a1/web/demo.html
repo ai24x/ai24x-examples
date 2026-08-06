@@ -1689,42 +1689,42 @@
     }
     #card-overlay.pw-modal[hidden] { display: none !important; }
 
-    /* 收藏：琥珀金，点亮一点 */
+    /* 加自选：喜庆红（A股红涨吉利） */
     .chart-tools #btn-fav {
-      border: 1px solid rgba(245, 158, 11, 0.55);
-      background: linear-gradient(180deg, rgba(245, 158, 11, 0.22), rgba(245, 158, 11, 0.10));
-      color: #fbbf24;
-      box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(244, 63, 94, 0.55);
+      background: linear-gradient(180deg, rgba(244, 63, 94, 0.20), rgba(225, 29, 72, 0.10));
+      color: #fb7185;
+      box-shadow: 0 0 0 1px rgba(244, 63, 94, 0.08);
     }
     .chart-tools #btn-fav:hover {
-      border-color: #f59e0b;
-      color: #fcd34d;
-      background: linear-gradient(180deg, rgba(245, 158, 11, 0.32), rgba(245, 158, 11, 0.14));
+      border-color: #f43f5e;
+      color: #fda4af;
+      background: linear-gradient(180deg, rgba(244, 63, 94, 0.32), rgba(225, 29, 72, 0.14));
     }
     .chart-tools #btn-fav.on {
-      color: #fff7ed;
-      border-color: #f59e0b;
-      background: linear-gradient(180deg, #d97706 0%, #b45309 100%);
-      box-shadow: 0 0 12px rgba(245, 158, 11, 0.35);
+      color: #fff1f2;
+      border-color: #f43f5e;
+      background: linear-gradient(180deg, #e11d48 0%, #be123c 100%);
+      box-shadow: 0 0 12px rgba(244, 63, 94, 0.40);
     }
     .chart-tools #btn-fav:disabled {
       opacity: 0.42;
       cursor: not-allowed;
       box-shadow: none;
     }
-    /* 自选：青绿，与周期/主操作区分 */
+    /* 自选列表：喜庆红 */
     .chart-tools #btn-wl-panel {
-      border: 1px solid rgba(45, 212, 191, 0.50);
-      background: linear-gradient(180deg, rgba(45, 212, 191, 0.20), rgba(20, 184, 166, 0.10));
-      color: #5eead4;
+      border: 1px solid rgba(244, 63, 94, 0.50);
+      background: linear-gradient(180deg, rgba(244, 63, 94, 0.18), rgba(225, 29, 72, 0.08));
+      color: #fb7185;
       min-width: 56px;
       text-align: center;
-      box-shadow: 0 0 0 1px rgba(45, 212, 191, 0.08);
+      box-shadow: 0 0 0 1px rgba(244, 63, 94, 0.08);
     }
     .chart-tools #btn-wl-panel:hover {
-      border-color: #2dd4bf;
-      color: #99f6e4;
-      background: linear-gradient(180deg, rgba(45, 212, 191, 0.30), rgba(20, 184, 166, 0.14));
+      border-color: #f43f5e;
+      color: #fda4af;
+      background: linear-gradient(180deg, rgba(244, 63, 94, 0.30), rgba(225, 29, 72, 0.12));
     }
     .watchlist-panel {
       position: absolute;
@@ -1860,8 +1860,8 @@
             <button type="button" role="tab" data-period="week" aria-selected="false">周线</button>
             <button type="button" role="tab" data-period="month" aria-selected="false">月线</button>
           </div>
-          <div class="chart-tools" aria-label="收藏与自选">
-            <button type="button" id="btn-fav" disabled>收藏</button>
+          <div class="chart-tools" aria-label="自选操作">
+            <button type="button" id="btn-fav" disabled>加自选</button>
             <button type="button" id="btn-wl-panel">自选</button>
             <div class="watchlist-panel" id="watchlist-panel" hidden></div>
           </div>
@@ -5393,7 +5393,7 @@
   var GUEST_VIEWS_KEY_PREFIX = 'ai24x_demo_guest_views_day_';
   var GUEST_VIEWS_MAX_PER_DAY = 3;
 
-  // ===== Watchlist (收藏 + 自选) =====
+  // ===== Watchlist (自选) =====
   function loadWatchlist() {
     try {
       if (typeof localStorage === 'undefined') return [];
@@ -5483,10 +5483,10 @@
     if (!btnFav) return;
     var s = currentSecidState();
     if (s && isInWatchlist(s)) {
-      btnFav.textContent = '已收藏';
+      btnFav.textContent = '已自选';
       btnFav.classList.add('on');
     } else {
-      btnFav.textContent = '收藏';
+      btnFav.textContent = '加自选';
       btnFav.classList.remove('on');
     }
   }
@@ -5499,10 +5499,10 @@
     if (!watchlistPanelEl) return;
     var list = loadWatchlist();
     if (!list.length) {
-      watchlistPanelEl.innerHTML = '<div class="wl-empty">暂无自选，查询后点「收藏」添加</div>';
+      watchlistPanelEl.innerHTML = '<div class="wl-empty">暂无自选，查询后点「加自选」添加</div>';
       return;
     }
-    var html = '<div class="wl-header"><span>我的自选 (' + list.length + '/20)</span><button class="wl-clear-all">清空</button></div>';
+    var html = '<div class="wl-header"><span>我的自选 (' + list.length + '/20)' + (authToken() ? '' : ' · 游客仅本机') + '</span><button class="wl-clear-all">清空</button></div>';
     for (var i = list.length - 1; i >= 0; i--) {
       var w = list[i];
       // v1.04: 清洗code显示 — 参数值/长字符串→提取secid中纯代码
@@ -6413,7 +6413,7 @@
       watchlistPanelEl.hidden = true;
     }
   });
-  // 收藏按钮：添加/移除当前标的
+  // 加自选按钮：添加/移除当前标的
   btnFav.addEventListener('click', function (e) {
     e.stopPropagation();
     var s = currentSecidState();
