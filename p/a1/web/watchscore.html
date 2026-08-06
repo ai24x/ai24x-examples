@@ -51,6 +51,8 @@
     body.embed .wl-back { display: none !important; }
     body.embed .page-main { padding-top: 4px; }
     body.embed .card > h1 { display: none; }
+    .wl-kline { color: #be123c; font-weight: 700; text-decoration: none; white-space: nowrap; }
+    .wl-kline:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -210,7 +212,7 @@
           var items = (d && d.items) || [];
           if (hint) {
             hint.style.display = "";
-            hint.textContent = "共 " + items.length + " 只标的参与评分；个别标的获取超时显示 —，可点「刷新评分」重试。评分按自然日同票去重扣次，仅为技术规则量化结果，不构成投资建议。";
+            hint.textContent = "共 " + items.length + " 只标的参与评分；点名称可新窗口查看 K 线。个别标的获取超时显示 —，可点「刷新评分」重试。评分按自然日同票去重扣次，仅为技术规则量化结果，不构成投资建议。";
           }
           renderWlScores(items);
         }).catch(function (e) {
@@ -233,9 +235,10 @@
           var cls = err ? "wl-score-low" : (sc >= 70 ? "wl-score-high" : (sc >= 45 ? "wl-score-mid" : "wl-score-low"));
           var tags = escWl((it.tags || []).join(" / "));
           var risks = escWl((it.risks || []).join(" / "));
+          var link = './demo.html?secid=' + encodeURIComponent(it.secid || '') + '&period=day';
           html += '<tr><td>' + (i + 1) + '</td>'
             + '<td class="wl-code">' + escWl(it.code || "") + '</td>'
-            + '<td>' + escWl(it.name || "") + '</td>'
+            + '<td><a class="wl-kline" href="' + link + '" target="_blank" rel="noopener" title="新窗口查看 K 线">' + escWl(it.name || "") + ' ↗</a></td>'
             + '<td><span class="' + cls + '">' + (err ? "—" : sc.toFixed(0)) + '</span></td>'
             + '<td>' + (tags || "—") + '</td>'
             + '<td class="wl-risk">' + (risks || (err ? "数据获取超时，点「刷新评分」重试" : "—")) + '</td></tr>';
