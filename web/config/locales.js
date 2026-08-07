@@ -1,4 +1,4 @@
-﻿/**
+/**
  * AI24X 语言包 — 扁平 key，扩展语言时在此追加
  * ja/ko/de/fr/es：导航与页脚已翻译，正文段落回退英文
  *
@@ -40,6 +40,8 @@
     "footer.link.refer": "邀请回馈",
     "footer.link.console": "用户控制台",
     "footer.link.about": "关于我们",
+    "footer.link.terms": "服务条款",
+    "footer.link.privacy": "隐私政策",
     "footer.copy": "保留所有权利",
     "page.index.hero.title": "全球名模 · 一个 Key",
     "page.index.hero.lead":
@@ -731,6 +733,8 @@
     "footer.link.refer": "Referrals",
     "footer.link.console": "Console",
     "footer.link.about": "About",
+    "footer.link.terms": "Terms of Service",
+    "footer.link.privacy": "Privacy Policy",
     "footer.copy": "All rights reserved",
     "page.index.hero.title": "Global models · One key",
     "page.index.hero.lead":

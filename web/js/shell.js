@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 统一页眉 / 页脚（含子目录 models/ guides/ 的相对前缀）
  */
 (function (global) {
@@ -174,6 +174,12 @@
       '<a href="' +
       pre +
       'about.html" data-i18n="footer.link.about"></a>' +
+      '<a href="' +
+      pre +
+      'terms.html" data-i18n="footer.link.terms"></a>' +
+      '<a href="' +
+      pre +
+      'privacy.html" data-i18n="footer.link.privacy"></a>' +
       "</div>" +
       "</div>" +
       '<div class="footer-bottom">© 2026 AI24X · <span data-i18n="footer.copy"></span> · <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">浙ICP备10040624号-7</a></div>' +
