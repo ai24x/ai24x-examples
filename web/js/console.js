@@ -148,6 +148,7 @@
   }
 
   function labelChannel(c) {
+    if (c === "creem") return "Creem";
     if (!AI24X_API.isZhUi()) {
       var en = { wechat: "WeChat", alipay: "Alipay", paypal: "PayPal", mock: "Mock" };
       return en[c] || c || "";
@@ -180,7 +181,7 @@
     }
     if (/^chat\/run$/i.test(n)) return zh ? "API 调用" : "API call";
     if (/^lot_expire\b/i.test(n)) return zh ? "额度到期自动核销" : "Credit lot expired";
-    if (/^(wechat|alipay|paypal|mock|paypal_capture|paypal_webhook):/i.test(n)) {
+    if (/^(wechat|alipay|paypal|creem|mock|paypal_capture|paypal_webhook|creem_webhook):/i.test(n)) {
       var parts = n.split(":");
       var ch0 = String(parts[0] || "").replace(/_capture|_webhook/i, "");
       return (
@@ -394,11 +395,12 @@
     var hint = $("payHint");
     if (hint) {
       if (zh) {
-        if (pay.enabled && (pay.wechat_ready || pay.alipay_ready || pay.paypal_ready)) {
+        if (pay.enabled && (pay.wechat_ready || pay.alipay_ready || pay.paypal_ready || pay.creem_ready)) {
           var ch = [];
           if (pay.wechat_ready) ch.push("微信");
           if (pay.alipay_ready) ch.push("支付宝");
           if (pay.paypal_ready) ch.push("PayPal");
+          if (pay.creem_ready) ch.push("Creem");
           hint.textContent =
             "选择套餐后可用 " +
             ch.join(" / ") +
@@ -412,11 +414,12 @@
           hint.textContent = "在线支付暂未开放。";
         }
       } else {
-        if (pay.enabled && (pay.wechat_ready || pay.alipay_ready || pay.paypal_ready)) {
+        if (pay.enabled && (pay.wechat_ready || pay.alipay_ready || pay.paypal_ready || pay.creem_ready)) {
           var enCh = [];
           if (pay.wechat_ready) enCh.push("WeChat");
           if (pay.alipay_ready) enCh.push("Alipay");
           if (pay.paypal_ready) enCh.push("PayPal");
+          if (pay.creem_ready) enCh.push("Creem");
           hint.textContent =
             "Choose a plan and pay with " +
             enCh.join(" / ") +
@@ -445,6 +448,12 @@
         return (
           '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
           '<path fill="#1677FF" d="M21.5 12.2c0-4.6-3.4-8.2-8.3-8.2H5.2v16h8.1c4.8 0 8.2-3.5 8.2-7.8zm-9.9 3.3c-2.2 0-3.4-1-3.4-2.5 0-1.6 1.3-2.5 3.5-2.5.6 0 1.2.1 1.8.2-.3.6-.6 1.3-.9 2.1H10c-.5 0-.8.2-.8.6 0 .4.4.7 1.1.7.7 0 1.4-.2 2-.5.2.6.4 1.1.5 1.5-.9.3-1.8.4-2.7.4zm5.7-1.1c-.4.7-.9 1.4-1.5 2-.2-.5-.4-1.1-.5-1.7.7-.1 1.4-.2 2-.3zm1.3-2.5c-.9.2-1.9.4-2.9.8.3-.8.6-1.5 1-2.1.7.3 1.3.8 1.9 1.3z"/></svg>'
+        );
+      }
+      if (channel === "creem") {
+        return (
+          '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+          '<path fill="#7C3AED" d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm0 2v10h16V7H4zm2 2h4v2H6V9zm6 0h6v2h-6V9z"/></svg>'
         );
       }
       if (channel === "paypal") {
@@ -529,11 +538,13 @@
       if (pay.wechat_ready) addBtn(tr("微信", "WeChat"), "btn", "wechat");
       if (pay.alipay_ready) addBtn(tr("支付宝", "Alipay"), "btn", "alipay");
       if (pay.paypal_ready) addBtn("PayPal", "btn btn-primary", "paypal");
+      if (pay.creem_ready) addBtn("Creem", "btn btn-primary", "creem");
       if (pay.mock_allowed) addBtn(tr("模拟", "Mock"), "btn", "mock");
       if (
         !pay.wechat_ready &&
         !pay.alipay_ready &&
         !pay.paypal_ready &&
+        !pay.creem_ready &&
         !pay.mock_allowed
       ) {
         var disabled = document.createElement("button");
@@ -819,6 +830,19 @@
         "正在打开支付宝，请稍候…",
         "Opening Alipay…"
       );
+    } else if (channel === "creem") {
+      checkoutWin = openCheckoutPlaceholder(
+        "正在创建 Creem 订单，请稍候…（勿关闭此窗口）",
+        "Creating Creem order… Keep this tab open."
+      );
+      showMsg(
+        msgBox(),
+        tr(
+          "正在创建 Creem 订单，请稍候…（勿关闭此窗口）",
+          "Creating Creem order… Keep this tab open."
+        ),
+        true
+      );
     } else if (channel === "paypal") {
       checkoutWin = openCheckoutPlaceholder(
         "正在创建 PayPal 订单，请稍候…（勿关闭此窗口）",
@@ -840,6 +864,11 @@
         ? tr("正在拉起微信扫码…", "Preparing WeChat QR…")
         : channel === "alipay"
           ? tr("将在新窗口打开支付宝；本页控制台保留。", "Alipay opens in a new window; this console stays.")
+          : channel === "creem"
+            ? tr(
+                "正在创建 Creem 订单，请稍候；若未弹出窗口，用下方按钮打开。",
+                "Creating Creem order… If no window opens, use the button below."
+              )
           : channel === "paypal"
             ? tr(
                 "正在创建 PayPal 订单，请稍候；若未弹出窗口，用下方按钮打开。",
@@ -851,9 +880,11 @@
     var req =
       channel === "alipay"
         ? AI24X_API.billingAlipayWap(planId)
-        : channel === "paypal"
-          ? AI24X_API.billingPaypalOrder(planId)
-          : AI24X_API.billingWechatNative(planId);
+        : channel === "creem"
+          ? AI24X_API.billingCreemOrder(planId)
+          : channel === "paypal"
+            ? AI24X_API.billingPaypalOrder(planId)
+            : AI24X_API.billingWechatNative(planId);
 
     req
       .then(function (r) {
@@ -909,6 +940,26 @@
             openLabel: tr("在新窗口打开支付宝", "Open Alipay in a new window"),
           });
           startFulfillPoll(r.out_trade_no, "alipay", planId);
+        } else if (channel === "creem" && r && r.pay_url) {
+          var crOpened = navigateCheckoutWin(checkoutWin, r.pay_url);
+          showPayResult({
+            hint:
+              (crOpened
+                ? tr("已打开 Creem，请在新窗口完成付款。", "Creem opened — finish payment there.")
+                : tr(
+                    "浏览器拦截了新窗口时，请点击下方按钮打开 Creem。",
+                    "If the browser blocked the window, open Creem with the button below."
+                  )) +
+              tr(
+                " 付完返回本页会自动确认到账。单号：",
+                " After return, this page auto-confirms. Order: "
+              ) +
+              (r.out_trade_no || "") +
+              (r.amount_usd ? " · $" + r.amount_usd : ""),
+            openUrl: r.pay_url,
+            openLabel: tr("打开 Creem", "Open Creem"),
+          });
+          startFulfillPoll(r.out_trade_no, "creem", planId);
         } else if (channel === "paypal" && r && r.pay_url) {
           var ppOpened = navigateCheckoutWin(checkoutWin, r.pay_url);
           showPayResult({
@@ -977,7 +1028,11 @@
       var amt = ((Number(o.amount_fen) || 0) / 100).toFixed(2);
       // PayPal 单 amount_fen 为 USD 美分；微信/支付宝为 CNY 分
       var moneyLabel =
-        o.channel === "paypal" ? "$" + amt : AI24X_API.isZhUi() ? "¥" + amt : "CNY " + amt;
+        o.channel === "paypal" || o.channel === "creem"
+          ? "$" + amt
+          : AI24X_API.isZhUi()
+            ? "¥" + amt
+            : "CNY " + amt;
       left.textContent =
         labelPlanForUi(o.plan) +
         " · " +
@@ -1886,6 +1941,36 @@
               msgBox(),
               (msg || tr("PayPal 确认失败", "PayPal confirm failed")) +
                 tr(" — 请在「我的订单」点「确认到账」", " — tap Confirm under My orders"),
+              false
+            );
+          });
+      }
+      if (qs.get("creem") === "1" && otn) {
+        if (_fulfillPollTimer) {
+          clearInterval(_fulfillPollTimer);
+          _fulfillPollTimer = null;
+        }
+        showMsg(msgBox(), tr("正在确认 Creem 支付…", "Confirming Creem…"), true);
+        AI24X_API.billingQueryFulfill(otn, "creem")
+          .then(function (r) {
+            showMsg(
+              msgBox(),
+              r && r.ok
+                ? AI24X_API.planFulfillMessage(_lastPayPlanId, null)
+                : tr(
+                    "Creem 尚未完成，可在「我的订单」点确认到账",
+                    "Creem pending — tap Confirm under My orders"
+                  ),
+              !!(r && r.ok)
+            );
+            return refreshAll();
+          })
+          .catch(function (e) {
+            var msg = (e && e.message) || "";
+            showMsg(
+              msgBox(),
+              (msg || tr("Creem 确认失败", "Creem confirm failed")) +
+                tr(" — 请在「我的订单」点「确认到账」。", " — tap Confirm under My orders"),
               false
             );
           });

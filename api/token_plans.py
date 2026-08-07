@@ -201,6 +201,7 @@ def _resolve_plan(plan_id: str) -> dict[str, Any] | None:
         "validity_days",
         "vip_days",
         "price_usd",
+        "creem_product_id",
     ):
         if key in ov and ov[key] is not None:
             p[key] = ov[key]
@@ -356,6 +357,7 @@ def list_admin_plans() -> dict[str, Any]:
                 if p.get("_price_fen_expected")
                 else None,
                 "note_zh": str(p.get("note_zh") or ""),
+                "creem_product_id": str(p.get("creem_product_id") or ""),
             }
         )
     return {
@@ -411,6 +413,8 @@ def update_admin_plans(updates: list[dict[str, Any]]) -> dict[str, Any]:
             row["title_zh"] = str(item["title_zh"])[:64]
         if "note_zh" in item and item["note_zh"] is not None:
             row["note_zh"] = str(item["note_zh"])[:500]
+        if "creem_product_id" in item and item["creem_product_id"] is not None:
+            row["creem_product_id"] = str(item["creem_product_id"])[:64]
         cur[pid] = row
     _save_overrides(cur)
     global TOKEN_PLANS

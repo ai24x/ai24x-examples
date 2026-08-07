@@ -1853,6 +1853,7 @@ async def billing_pay_status():
     from pathlib import Path
 
     from pay_alipay_wap import alipay_configured
+    from pay_creem import creem_configured
     from pay_paypal import paypal_configured
     from pay_wechat_v3 import wechat_pay_configured
     from token_pay_service import pay_settings_ns, token_pay_enabled, token_pay_mock_allowed
@@ -1879,6 +1880,7 @@ async def billing_pay_status():
     wx_cfg = wechat_pay_configured(cfg)
     ali_cfg = alipay_configured(cfg)
     pp_cfg = paypal_configured(cfg)
+    creem_cfg = creem_configured(cfg)
     enabled = token_pay_enabled()
     wechat_notify = cfg.wechat_notify_url or ""
     alipay_notify = cfg.alipay_notify_url or ""
@@ -1900,6 +1902,13 @@ async def billing_pay_status():
             "notify_url_set": bool(alipay_notify),
             "notify_url_hint": alipay_notify[:80] + ("…" if len(alipay_notify) > 80 else ""),
             "return_url_set": bool((cfg.alipay_return_url or "").strip()),
+        },
+        "creem": {
+            "merchant_configured": bool(creem_cfg),
+            "ui_ready": bool(enabled and creem_cfg),
+            "mode": str(getattr(cfg, "creem_mode", "test") or "test"),
+            "webhook_secret_set": bool(getattr(cfg, "creem_webhook_secret", "") or ""),
+            "return_url_set": bool(getattr(cfg, "creem_return_url", "") or ""),
         },
         "paypal": {
             "merchant_configured": pp_cfg,
@@ -1953,6 +1962,26 @@ async def billing_paypal_order(
 
     u = _auth_user_from_bearer(request, db)
     return await create_paypal_order(db, auth_user_id=int(u.id), plan=body.plan)
+
+
+@app.post("/v1/billing/creem/order")
+async def billing_creem_order(
+    request: Request, body: TokenPayCreateBody, db: Session = Depends(get_db)
+):
+    from token_pay_service import create_creem_order
+
+    u = _auth_user_from_bearer(request, db)
+    return await create_creem_order(db, auth_user_id=int(u.id), plan=body.plan)
+
+
+@app.post("/v1/billing/creem/query")
+async def billing_creem_query(
+    request: Request, body: TokenQueryFulfillBody, db: Session = Depends(get_db)
+):
+    from token_pay_service import query_creem_order
+
+    u = _auth_user_from_bearer(request, db)
+    return await query_creem_order(db, out_trade_no=body.out_trade_no, auth_user_id=int(u.id))
 
 
 @app.get("/v1/billing/orders")
@@ -2180,6 +2209,94 @@ async def billing_paypal_webhook(request: Request, db: Session = Depends(get_db)
     r = try_fulfill(db, out_trade_no=otn, transaction_id=txid, amount_fen=cents, channel_tag="paypal_webhook")
     if not r.get("ok"):
         logger.warning("paypal webhook fulfill fail otn=%s err=%s", otn, r.get("error"))
+        return JSONResponse(status_code=200, content={"ok": False, "error": r.get("error")})
+    return JSONResponse(status_code=200, content={"ok": True, "out_trade_no": otn})
+
+
+@app.post("/v1/billing/creem/webhook")
+async def billing_creem_webhook(request: Request, db: Session = Depends(get_db)):
+    """Creem Webhook -> checkout.completed fulfill (HMAC-SHA256 verified)."""
+    import json
+
+    from security_util import is_prod
+    from token_pay_service import pay_settings_ns, try_fulfill, token_pay_enabled
+
+    if not token_pay_enabled():
+        return JSONResponse(status_code=200, content={"ok": False, "reason": "disabled"})
+    body_str = (await request.body()).decode("utf-8", errors="replace")
+    headers = {k: v for k, v in request.headers.items()}
+    cfg = pay_settings_ns()
+    from pay_creem import extract_checkout_data, verify_webhook_signature
+
+    mode = str(getattr(cfg, "creem_mode", "test") or "test").lower()
+    verified = False
+    try:
+        verified = verify_webhook_signature(cfg, headers=headers, body=body_str)
+    except Exception as e:
+        logger.warning("creem webhook verify error: %s", e)
+    if not verified:
+        if is_prod() or mode in ("live", "production"):
+            return JSONResponse(status_code=400, content={"ok": False, "reason": "verify_failed"})
+        if mode not in ("test", "sandbox", "dev"):
+            return JSONResponse(status_code=400, content={"ok": False, "reason": "verify_failed"})
+        logger.warning("creem webhook unverified - allowed only in test/sandbox/dev")
+
+    try:
+        event = json.loads(body_str or "{}")
+    except Exception:
+        return JSONResponse(status_code=400, content={"ok": False, "reason": "bad_json"})
+
+    et = str(event.get("eventType") or event.get("event_type") or "")
+    if et != "checkout.completed":
+        return JSONResponse(status_code=200, content={"ok": True, "ignored": True, "event": et})
+
+    d = extract_checkout_data(event)
+    otn = d["request_id"]
+    if not otn.startswith("T"):
+        return JSONResponse(status_code=200, content={"ok": True, "ignored": True, "event": et})
+    if d["status"] not in ("completed", "paid", ""):
+        return JSONResponse(status_code=200, content={"ok": True, "ignored": True, "event": et})
+    txid = d["order_id"] or d["checkout_id"]
+    if not txid:
+        return JSONResponse(status_code=200, content={"ok": False, "reason": "incomplete"})
+
+    from models import TokenPayOrder
+    from token_plans import get_plan
+
+    row = db.query(TokenPayOrder).filter(TokenPayOrder.out_trade_no == otn).first()
+    if not row:
+        return JSONResponse(status_code=200, content={"ok": False, "reason": "order_not_found"})
+    meta = get_plan(str(row.plan)) or {}
+    expect_pid = str(meta.get("creem_product_id") or "").strip()
+    if not expect_pid:
+        logger.warning("creem webhook plan missing product id otn=%s plan=%s", otn, row.plan)
+        return JSONResponse(status_code=200, content={"ok": False, "reason": "product_not_configured"})
+    if d["product_id"] and expect_pid != d["product_id"]:
+        logger.warning(
+            "creem webhook product mismatch otn=%s expect=%s got=%s",
+            otn,
+            expect_pid,
+            d["product_id"],
+        )
+        return JSONResponse(status_code=200, content={"ok": False, "reason": "product_mismatch"})
+    if d["amount"] and int(row.amount_fen) != int(d["amount"]):
+        logger.warning(
+            "creem webhook amount diff otn=%s local=%s creem=%s currency=%s",
+            otn,
+            row.amount_fen,
+            d["amount"],
+            d["currency"],
+        )
+
+    r = try_fulfill(
+        db,
+        out_trade_no=otn,
+        transaction_id=txid,
+        amount_fen=int(row.amount_fen),
+        channel_tag="creem_webhook",
+    )
+    if not r.get("ok"):
+        logger.warning("creem webhook fulfill fail otn=%s err=%s", otn, r.get("error"))
         return JSONResponse(status_code=200, content={"ok": False, "error": r.get("error")})
     return JSONResponse(status_code=200, content={"ok": True, "out_trade_no": otn})
 

@@ -187,6 +187,14 @@ class Settings(BaseSettings):
     # LOGIN | BILLING | NO_PREFERENCE — BILLING 略偏向卡/账单页，不保证 Guest
     paypal_landing_page: str = Field(default="BILLING", validation_alias="TOKEN_PAYPAL_LANDING_PAGE")
 
+    # ————— Creem（国际 USD，MoR 模式；test / live）—————
+    creem_api_key: str = Field(default="", validation_alias="CREEM_API_KEY")
+    creem_webhook_secret: str = Field(default="", validation_alias="CREEM_WEBHOOK_SECRET")
+    creem_mode: str = Field(default="test", validation_alias="CREEM_MODE")  # test|live
+    creem_return_url: str = Field(
+        default="https://www.ai24x.com/console.html", validation_alias="CREEM_RETURN_URL"
+    )
+
     # —— LLM upstream（默认聚合 OpenRouter；直连为可选）——
     token_llm_upstream: str = Field(default="direct", validation_alias="TOKEN_LLM_UPSTREAM")
     openrouter_api_key: str = Field(default="", validation_alias="OPENROUTER_API_KEY")

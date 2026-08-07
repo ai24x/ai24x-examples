@@ -526,6 +526,13 @@
     });
   }
 
+  function billingCreemOrder(plan) {
+    return request("/v1/billing/creem/order", {
+      method: "POST",
+      body: JSON.stringify({ plan: plan }),
+    });
+  }
+
   function billingOrders(limit) {
     var q = limit != null ? "?limit=" + encodeURIComponent(limit) : "";
     return request("/v1/billing/orders" + q, { method: "GET" });
@@ -544,7 +551,9 @@
         ? "/v1/billing/alipay/query_and_fulfill"
         : channel === "paypal"
           ? "/v1/billing/paypal/capture"
-          : "/v1/billing/wechat/query_and_fulfill";
+          : channel === "creem"
+            ? "/v1/billing/creem/query"
+            : "/v1/billing/wechat/query_and_fulfill";
     return request(path, {
       method: "POST",
       body: JSON.stringify({ out_trade_no: outTradeNo }),
@@ -761,6 +770,7 @@
     billingWechatNative: billingWechatNative,
     billingAlipayWap: billingAlipayWap,
     billingPaypalOrder: billingPaypalOrder,
+    billingCreemOrder: billingCreemOrder,
     billingOrders: billingOrders,
     billingMockFulfill: billingMockFulfill,
     billingQueryFulfill: billingQueryFulfill,

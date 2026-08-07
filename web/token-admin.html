@@ -279,7 +279,7 @@
             </button>
             <button type="button" class="nav-item" data-panel="p-channels">
               支付通道
-              <span class="subt">微信 / 支付宝 / PayPal / Mock</span>
+              <span class="subt">微信 / 支付宝 / PayPal / Creem / Mock</span>
             </button>
             <button type="button" class="nav-item" data-panel="p-plans">
               价表管理
@@ -451,6 +451,7 @@
                     <option value="wechat">wechat</option>
                     <option value="alipay">alipay</option>
                     <option value="paypal">paypal</option>
+                    <option value="creem">creem</option>
                     <option value="mock">mock</option>
                   </select>
                 </div>
@@ -1136,7 +1137,7 @@
 
   function fenLabel(ch, fen) {
     var n = Number(fen || 0);
-    if (ch === "paypal") return "$" + (n / 100).toFixed(2);
+    if (ch === "paypal" || ch === "creem") return "$" + (n / 100).toFixed(2);
     return "¥" + (n / 100).toFixed(2);
   }
   function statusPill(s) {
@@ -1268,11 +1269,13 @@
     var wx = r.wechat || {};
     var ali = r.alipay || {};
     var pp = r.paypal || {};
+    var cr = r.creem || {};
     var pills = [
       ["支付总开关", !!r.token_pay_enabled],
       ["微信", !!wx.ui_ready],
       ["支付宝", !!ali.ui_ready],
       ["PayPal", !!pp.ui_ready],
+      ["Creem", !!cr.ui_ready],
       ["Mock", !!r.token_pay_mock_enabled],
     ];
     if ($("channelPills")) {
@@ -1309,10 +1312,18 @@
       "return_url: " + (pp.return_url_set ? "已设" : "未设"),
       "locale/landing: " + (pp.locale || "-") + " / " + (pp.landing_page || "-"),
     ];
+    var crLines = [
+      "商户配置: " + (cr.merchant_configured ? "是" : "否"),
+      "mode: " + (cr.mode || "-"),
+      "webhook_secret: " + (cr.webhook_secret_set ? "已设" : "未设"),
+      "return_url: " + (cr.return_url_set ? "已设" : "未设"),
+      "提示: 每个套餐需在 Creem 后台建商品并填写 product_id",
+    ];
     host.innerHTML =
       _chanCard("微信", !!wx.ui_ready, wxLines) +
       _chanCard("支付宝", !!ali.ui_ready, aliLines) +
-      _chanCard("PayPal", !!pp.ui_ready, ppLines);
+      _chanCard("PayPal", !!pp.ui_ready, ppLines) +
+      _chanCard("Creem", !!cr.ui_ready, crLines);
   }
 
   async function loadPlans() {
@@ -2309,6 +2320,7 @@
       ["微信", !!pay.wechat_ready],
       ["支付宝", !!pay.alipay_ready],
       ["PayPal", !!pay.paypal_ready],
+      ["Creem", !!pay.creem_ready],
       ["Mock", !!(pay.mock_allowed || pay.mock)],
     ];
     var pillsHtml = pills.map(function (p) {
@@ -2339,6 +2351,7 @@
         ["微信已付单", by.wechat || 0],
         ["支付宝已付单", by.alipay || 0],
         ["PayPal 已付单", by.paypal || 0],
+        ["Creem 已付单", by.creem || 0],
         ["待履约", o.pending || 0],
       ];
       $("channelStats").innerHTML = chCells.map(function (c) {
