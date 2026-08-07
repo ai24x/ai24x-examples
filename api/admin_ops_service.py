@@ -431,7 +431,7 @@ def admin_ops_alerts(db: Session) -> dict[str, Any]:
             }
         )
     try:
-        from llm_keys import get_key, recent_vip_degrades
+        from llm_keys import get_key, recent_vip_degrades, silicon_main_key
 
         if not get_key("OPENROUTER_API_KEY_FREE") and get_key("OPENROUTER_API_KEY"):
             alerts.append(
@@ -441,12 +441,21 @@ def admin_ops_alerts(db: Session) -> dict[str, Any]:
                     "msg": "未配 OR 免费 Key，共享通道可能占用主收银 Key",
                 }
             )
-        if not get_key("SILICONFLOW_API_KEY_FREE") and get_key("SILICONFLOW_API_KEY"):
+        sf_main_key = silicon_main_key()
+        if not sf_main_key:
             alerts.append(
                 {
-                    "level": "warn",
+                    "level": "error",
+                    "code": "sf_no_key",
+                    "msg": "硅基主 Key 未配置，L0 免费池/中国模点名不可用",
+                }
+            )
+        elif not get_key("SILICONFLOW_API_KEY_FREE"):
+            alerts.append(
+                {
+                    "level": "info",
                     "code": "sf_free_key_missing",
-                    "msg": "未配硅基免费 Key，L0/共享可能占用主硅基 Key",
+                    "msg": "未配硅基独立免费 Key，L0/共享将消耗主 Key 配额（成本提示，可配 SILICONFLOW_API_KEY_FREE 分流）",
                 }
             )
         deg = recent_vip_degrades(5)

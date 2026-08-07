@@ -23,6 +23,7 @@ CLI：
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -36,6 +37,7 @@ from feishu_notify import FeishuNotify, _cst_now, _in_silent_hours
 
 _LAST_SEEN_FILE = Path(__file__).resolve().parent / "data" / "feishu_poll_last.txt"
 _DUTY_MINUTES = 30  # 值班重提醒间隔
+_QUIET_DUTY_CODES = {"sf_free_key_missing", "or_free_key_missing"}  # 配置类：只推状态变化，不参与值班重提醒
 
 
 def _api_base() -> str:
@@ -87,6 +89,30 @@ def _fetch_latest(dry_run: bool = False) -> Optional[dict]:
     return None
 
 
+def _fetch_live(dry_run: bool = False) -> Optional[dict]:
+    """实时聚合预警（不推送、不改状态）；last_push_at 为空时兜底私信用。"""
+    key = _api_key()
+    if not key:
+        return None
+    import httpx
+
+    url = _api_base() + "/v1/admin/token/alerts/live"
+    try:
+        r = httpx.get(
+            url,
+            headers={"X-SMS-Internal-Key": key, "X-Admin-Key": key},
+            timeout=15,
+        )
+        data = r.json()
+    except Exception as e:
+        print(f"[feishu_alert_poll] 拉取实时预警失败: {e}", flush=True)
+        return None
+    if isinstance(data, dict) and data.get("ok") is True:
+        return data
+    print(f"[feishu_alert_poll] 实时接口异常: {json.dumps(data, ensure_ascii=False)[:200]}", flush=True)
+    return None
+
+
 def _level_from_text(text: str) -> str:
     m = re.search(r"P0[×x](\d+)", text or "")
     if m and int(m.group(1)) > 0:
@@ -118,15 +144,42 @@ def _run(dry_run: bool = False) -> int:
             _write_last_seen(last_push_at)
         return 0
 
-    # 2) 值班重提醒：仍有未恢复预警且距上次私信 >30min
-    if active_count > 0 and last_push_at:
+    # 1b) 兜底：last_push_at 为空（巡检定时任务未注册 / 重置后未巡检）→ 直接私信实时 P0/P1
+    if not last_push_at:
+        live = _fetch_live(dry_run=dry_run)
+        if live:
+            act = [a for a in (live.get("alerts") or []) if str(a.get("level")) in ("error", "warn")]
+            if act:
+                now = _cst_now()
+                n_err = sum(1 for a in act if str(a.get("level")) == "error")
+                lines = [
+                    f"[AI24X 预警·实时] {now.strftime('%m-%d %H:%M')} (CST)",
+                    f"当前：P0×{n_err} P1×{len(act) - n_err} · 健康 {live.get('health', {}).get('status', 'unknown')}",
+                ]
+                for a in act:
+                    lines.append(f"{'P0' if str(a.get('level')) == 'error' else 'P1'} {a.get('code')}：{a.get('msg')}")
+                text = "\n".join(lines)
+                key = "live:" + hashlib.md5(text.encode("utf-8")).hexdigest()[:16]
+                if key != prev_seen:
+                    print(f"[feishu_alert_poll] 兜底实时预警: {key}", flush=True)
+                    if dry_run:
+                        print("[dry-run] 将私信:", text[:120].replace("\n", " "), flush=True)
+                    else:
+                        r = fn.send_pm(text, code=key, level="error" if n_err > 0 else "warn")
+                        print("[feishu_alert_poll] 私信结果:", json.dumps(r, ensure_ascii=False), flush=True)
+                        _write_last_seen(key)
+                    return 0
+
+    # 2) 值班重提醒：仍有未恢复预警且距上次私信 >30min（配置类不重复值班提醒，只推状态变化）
+    remind_codes = [c for c in (active_codes or []) if c not in _QUIET_DUTY_CODES]
+    if remind_codes and last_push_at:
         last_ts = 0.0
         try:
             last_ts = datetime.fromisoformat(last_push_at).timestamp()
         except Exception:
             last_ts = 0.0
         if last_ts and (time.time() - last_ts) > _DUTY_MINUTES * 60:
-            text = f"[AI24X 预警值班] 仍在告警中：{', '.join(active_codes)}（{active_count} 项），请跟进"
+            text = f"[AI24X 预警值班] 仍在告警中：{', '.join(remind_codes)}（{len(remind_codes)} 项），请跟进"
             print("[feishu_alert_poll] 值班重提醒", flush=True)
             if dry_run:
                 print("[dry-run] 将私信:", text, flush=True)
