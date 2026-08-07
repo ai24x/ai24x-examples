@@ -2364,6 +2364,42 @@ def kline_cache_put(cache_key: str, payload: dict[str, Any], ttl_s: float) -> No
             pass
 
 
+def kline_cache_scan(prefix: str, limit: int = 10) -> list[dict[str, Any]]:
+    """List valid kline_cache entries whose cache_key starts with prefix (newest first)."""
+    now = int(time.time())
+    pre = str(prefix or "").strip()
+    if not pre:
+        return []
+    limit = max(1, min(int(limit or 10), 50))
+    out: list[dict[str, Any]] = []
+    try:
+        with connect() as conn:
+            if _is_pg():
+                rows = conn.execute(
+                    "SELECT cache_key, expire_ts, payload_json FROM kline_cache "
+                    "WHERE cache_key LIKE %s AND expire_ts > %s ORDER BY expire_ts DESC LIMIT %s",
+                    (pre + "%", now, limit),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT cache_key, expire_ts, payload_json FROM kline_cache "
+                    "WHERE cache_key LIKE ? AND expire_ts > ? ORDER BY expire_ts DESC LIMIT ?",
+                    (pre + "%", now, limit),
+                ).fetchall()
+        for r in rows:
+            try:
+                out.append({
+                    "cache_key": str(r["cache_key"]),
+                    "expire_ts": int(r["expire_ts"]),
+                    "payload": json.loads(str(r["payload_json"])),
+                })
+            except Exception:
+                continue
+    except Exception:
+        pass
+    return out
+
+
 def _user_source_hint(*, phone: str = "", email: str = "") -> str:
     """管理后台「来源」标记：按现有数据推断，不依赖新字段。
 
@@ -6747,6 +6783,19 @@ def watchlist_add(user_id: int, secid: str, code: str, name: str, note: str = ""
             (uid, sid, str(code or "").strip()[:32], str(name or "").strip()[:64], str(note or "").strip()[:200], now),
         )
     return {"ok": True, "secid": sid}
+
+
+def watchlist_patch_ident(user_id: int, secid: str, code: str, name: str) -> None:
+    """回填自选标的代码/名称（评分时发现缺名补全后写回，保持跨端一致）。"""
+    uid = int(user_id)
+    sid = str(secid or "").strip()
+    if not sid:
+        return
+    with connect() as conn:
+        conn.execute(
+            "UPDATE watchlist SET code=?, name=? WHERE user_id=? AND secid=?",
+            (str(code or "").strip()[:32], str(name or "").strip()[:64], uid, sid),
+        )
 
 
 def watchlist_remove(user_id: int, secid: str) -> dict[str, Any]:

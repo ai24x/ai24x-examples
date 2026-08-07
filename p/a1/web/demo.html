@@ -2801,6 +2801,11 @@
       });
     }
 
+    // 板块K线为免费查询（服务端对板块不扣次，游客也可查）；
+    // 不占用个人次数配额，避免次数不足时被迫走浏览器直连 JSONP
+    // （同一出口 IP 在东财节流时同样会失败）导致“加载失败”。
+    if (isEmPlateSecid(secid) || isThsSecid(secid)) return fetchKline();
+
     if (!hasAuth) {
       // 白名单：免登录可查（用于演示/预览）
       if (isLoginFreeWhitelistSecid(secid)) return fetchKline();
@@ -3084,8 +3089,11 @@
       ? DEMO_MODE === 'standalone'
         ? loadEmPlatePackAsTencentShape(secid, period)
         : loadViaApi()
-          .catch(function () {
-            // Backend may fail to reach Eastmoney plate endpoints; fall back to browser JSONP (old standalone behavior).
+          .catch(function (eApi) {
+            // 数据源繁忙（东财节流）时后端已尽量回退存档；再走浏览器直连（同一 IP 同样失败）只会多等一次 JSONP 超时，直接抛后端结构化错误。
+            if (eApi && /eastmoney plate kline temporarily unavailable/i.test(String(eApi.message || ''))) {
+              throw eApi;
+            }
             return loadEmPlatePackAsTencentShape(secid, period);
           })
           .then(function (res) {
@@ -3448,12 +3456,17 @@
     return formatBusinessDay(t);
   }
 
+  var _candleIndexCache = null;
   function findCandleIndexByTime(candles, t) {
     var key = timeKey(t);
-    for (var i = 0; i < candles.length; i++) {
-      if (timeKey(candles[i].time) === key) return i;
+    var c = _candleIndexCache;
+    if (!c || c.ref !== candles) {
+      c = { ref: candles, map: {} };
+      for (var i = 0; i < candles.length; i++) c.map[timeKey(candles[i].time)] = i;
+      _candleIndexCache = c;
     }
-    return -1;
+    var idx = c.map[key];
+    return idx === undefined ? -1 : idx;
   }
 
   function formatVolumeVol(v) {
@@ -4185,6 +4198,9 @@
     if (mm === 'Failed to fetch' || /NetworkError/i.test(mm) || (/fetch/i.test(mm) && /failed/i.test(mm))) {
       return '网络或服务暂时不可用，请稍后重试。';
     }
+    if (/eastmoney plate kline temporarily unavailable/i.test(mm) || /plate kline/i.test(mm)) {
+      return '该板块行情数据源暂时繁忙（已自动优先使用缓存），请稍后重试。';
+    }
     try {
       var pe = mm.match(/\b'error'\s*:\s*'((?:[^'\\]|\\.)*)'/);
       if (pe && pe[1]) return pe[1].trim();
@@ -4486,6 +4502,8 @@
   var ENABLE_SHORT_MA = true;
   var currentSecid = null;
   var currentPeriod = 'day';
+  var _lastRenderKey = '';
+  var _lastChartPeriod = '';
   /** suggest 单条命中或多条点选时传入，在 renderPack 前写入，避免行情栏仍用上一标的名称 */
   var quoteDisplayHint = null;
 
@@ -4632,7 +4650,21 @@
     throw new Error('图表库不兼容：无法创建均线（请使用 lightweight-charts 4.x 或 5.x）');
   }
 
-  function ensureChart() {
+  function chartInstanceReady() {
+    return !!(
+      chart && series && maSeries1 && maSeries2 && maSeries3 &&
+      macdDifSeries && macdDeaSeries
+    );
+  }
+
+  function ensureChart(forceRebuild) {
+    if (!forceRebuild && chartInstanceReady()) {
+      // 复用已创建的图表实例：数据由调用方 setData 全量覆盖，避免每次查询重建 7 个 series
+      // 注意：周期切换（日/周/月）时复用 timeScale 会残留旧可见范围（lightweight-charts v4 兼容问题），
+      // 由调用方传 forceRebuild=true 强制重建，保证切换后视图锚定最新数据。
+      syncChartSize();
+      return;
+    }
     disposeChart();
     if (typeof LightweightCharts === 'undefined') {
       throw new Error('图表库加载中，请稍候重试');
@@ -4713,15 +4745,12 @@
   function buildSmaLineData(candles, period) {
     var out = [];
     if (!candles || candles.length < period) return out;
-    var closes = candles.map(function (c) {
-      return c.close;
-    });
-    for (var i = period - 1; i < closes.length; i++) {
-      var sum = 0;
-      for (var j = 0; j < period; j++) {
-        sum += closes[i - j];
-      }
+    var sum = 0;
+    for (var i = 0; i < period - 1; i++) sum += candles[i].close;
+    for (var i = period - 1; i < candles.length; i++) {
+      sum += candles[i].close;
       out.push({ time: candles[i].time, value: sum / period });
+      sum -= candles[i - period + 1].close;
     }
     return out;
   }
@@ -4735,10 +4764,21 @@
     return [];
   }
 
-  function onResize() {
-    if (chart && chartEl) {
-      chart.applyOptions({ width: chartEl.clientWidth, height: chartEl.clientHeight });
+  var _lastChartSize = null;
+  function syncChartSize() {
+    if (!chart || !chartEl) return;
+    var w = chartEl.clientWidth;
+    var h = chartEl.clientHeight;
+    if (w <= 0 || h <= 0) return;
+    if (!_lastChartSize || _lastChartSize[0] !== w || _lastChartSize[1] !== h) {
+      _lastChartSize = [w, h];
+      try {
+        chart.resize(w, h);
+      } catch (eS) {}
     }
+  }
+  function onResize() {
+    syncChartSize();
   }
   window.addEventListener('resize', onResize);
 
@@ -5330,6 +5370,7 @@
 
   function renderPack(result) {
     var period = result.period || 'day';
+    _lastRenderKey = String(result.secid || currentSecid || '') + '|' + period;
     var meta = PERIOD_META[period] || PERIOD_META.day;
     var pack = result.pack;
     var key = result.tencentKey;
@@ -5416,16 +5457,16 @@
     var mainChart = mainChartSeriesFromRows(rows);
     var mainChartCandles = mainChart.candles;
     var mainChartVols = mainChart.volumes;
-    ensureChart();
+    var forceRebuild = !!_lastChartPeriod && _lastChartPeriod !== period;
+    ensureChart(forceRebuild);
+    _lastChartPeriod = period;
     series.setData(mainChartCandles);
     if (maSeries1 && maSeries2 && maSeries3) {
       maSeries1.setData(buildSmaLineData(mainChartCandles, MA_N1));
       maSeries2.setData(buildSmaLineData(mainChartCandles, MA_N2));
       maSeries3.setData(buildSmaLineData(mainChartCandles, MA_N3));
     }
-    try {
-      chart.resize(chartEl.clientWidth, chartEl.clientHeight);
-    } catch (eResize) {}
+    syncChartSize();
     // 信号计算需要量能确认：把 vol 附到蜡烛上（不影响图表 setData）
     var candlesForSignals = mainChartCandles;
     try {
@@ -5446,6 +5487,7 @@
     } catch (eMk0) {}
     (function loadSignals() {
       var sec = result.secid || currentSecid;
+      var sigKey = String(sec || '') + '|' + period;
       var isBk = isEmPlateSecid(sec);
       var isThs = isThsSecid(sec);
       if (isBk) {
@@ -5455,6 +5497,7 @@
       }
       apiKlineWithSignals(sec, period, rows ? rows.length : undefined, { consume: true })
         .then(function (sd) {
+          if (sigKey !== _lastRenderKey) return;
           try {
             var sig = sd && sd.signals ? sd.signals : sd && sd.data ? sd.data : null;
             var mk = sig && sig.markers ? sig.markers : [];
@@ -5496,12 +5539,14 @@
           } catch (eMk) {}
         })
         .catch(function () {
+          if (sigKey !== _lastRenderKey) return;
           if (isThs) {
             recoverFullSignalsFromCandles(sec, period, candlesForSignals);
             return;
           }
           apiSignals(sec, period, rows ? rows.length : undefined)
             .then(function (sd) {
+              if (sigKey !== _lastRenderKey) return;
               try {
                 var sig2 = sd && sd.data ? sd.data : null;
                 if (sig2 && ((sig2.markers && sig2.markers.length) || (sig2.macd && sig2.macd.length))) {
@@ -5512,6 +5557,7 @@
               } catch (eMk) {}
             })
             .catch(function () {
+              if (sigKey !== _lastRenderKey) return;
               try {
                 applyLocalSignalsFallbackIfNeeded(sec, period, mainChartCandles);
               } catch (e0) {}
@@ -5523,22 +5569,30 @@
     var vis = computeInitialVisibleBarCount(period, chartEl.clientWidth, n);
     function applyDefaultVisibleRange() {
       try {
+        // 周期切换时图表会重建，此处仅作兜底：先重置 timeScale 残留状态再设可见范围
+        if (chart && chart.timeScale && typeof chart.timeScale.resetTimeScale === 'function') {
+          chart.timeScale().resetTimeScale();
+        }
+      } catch (eTs0) {}
+      try {
         chart.timeScale().applyOptions({
           barSpacing: chartBarSpacingForPeriod(period),
           rightOffset: ro,
         });
       } catch (eTs) {}
-      if (n > vis) {
-        chart.timeScale().setVisibleLogicalRange({
-          from: n - vis,
-          to: n - 1 + ro,
-        });
-      } else {
-        chart.timeScale().setVisibleLogicalRange({
-          from: 0,
-          to: n - 1 + ro,
-        });
-      }
+      try {
+        if (n > vis) {
+          chart.timeScale().setVisibleLogicalRange({
+            from: n - vis,
+            to: n - 1 + ro,
+          });
+        } else {
+          chart.timeScale().setVisibleLogicalRange({
+            from: 0,
+            to: n - 1 + ro,
+          });
+        }
+      } catch (eS) {}
     }
     requestAnimationFrame(function () {
       requestAnimationFrame(applyDefaultVisibleRange);
@@ -5851,7 +5905,9 @@
       var p = String(u.searchParams.get('period') || '').trim();
       if (!sid) return null;
       if (!p || !PERIOD_META[p]) p = 'day';
-      return { secid: sid, period: p };
+      var nm = String(u.searchParams.get('name') || '').trim();
+      var cd = String(u.searchParams.get('code') || '').trim();
+      return { secid: sid, period: p, name: nm || null, code: cd || null };
     } catch (e) {
       return null;
     }
@@ -6285,6 +6341,11 @@
         var m1 = String(secid || '').match(/(\d{6}|\d{8})$/);
         cd = m1 ? m1[1] : cd;
       }
+      // v1.10: 北证等 suggest 未命中时，代码从 secid 提取，避免自选存空
+      if (!cd) {
+        var mC = String(secid || '').match(/(\d{6})$/);
+        if (mC) cd = mC[1];
+      }
       // Fallback: grab displayed name from page when hint is missing (e.g. matched SECID_TO_LABEL)
       if (!nm) {
         try { nm = String(quoteTitleEl && quoteTitleEl.textContent ? quoteTitleEl.textContent : '').replace(/\s+/g,' ').trim(); } catch (e) {}
@@ -6292,6 +6353,8 @@
       if (!nm) {
         try { nm = String(inputEl && inputEl.value ? inputEl.value : '').trim(); } catch (e) {}
       }
+      // 最后兜底：名称至少用代码，保证自选列表代码/名称不空白
+      if (!nm) { nm = cd; }
       var o = {
         secid: String(secid || ''),
         period: String(period || 'day'),

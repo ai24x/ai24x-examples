@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>掘金 · VIP专属 · AI行情官｜灯塔版</title>
+  <meta name="description" content="AI行情官 VIP 专属功能：每日收盘后扫描沪深京 / 北证全市场，板块先行反推主线，再筛选底部刚走多、异动回踩企稳、未大幅拉升的标的。本工具仅基于公开行情做技术形态统计与信息整理，不构成投资建议，不保证收益。" />
+  <link rel="icon" href="data:," />
+  <script>
+    (function () {
+      try {
+        var k = "ai24x_a_theme";
+        var t = String(localStorage.getItem(k) || "").trim() || "light";
+        document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="/css/base.css?v=44" />
+  <link rel="stylesheet" href="/css/tool.css" />
+  <link rel="stylesheet" href="/css/bjscreener.css?v=7" />
+</head>
+<body>
+  <header class="site-header" id="site-header"></header>
+  <main class="page-main">
+    <div class="wrap">
+      <section class="card">
+        <h1>掘金 <span class="vip-badge">VIP 专属</span></h1>
+        <p class="sub" style="margin:0 0 6px;">每日收盘后自动扫描<strong>沪深京全市场</strong>与<strong>北证全市场</strong>：先看哪些标的在底部异动、反推可能的主线板块，再聚焦<strong>底部刚走多、异动拉升后回踩企稳、一路小阳、未大幅拉升</strong>的标的，逐一体检并排查风险。点击板块即可在 AI行情官查看对应行情。</p>
+
+        <div id="auth-guest" hidden>
+          <div class="gate-hero">
+            <div class="gate-title">登录后，每晚收盘解锁「掘金」扫描结果</div>
+            <div class="gate-sub">每晚收盘自动扫描沪深京 / 北证：先看哪些标的在底部异动，反推可能的主线板块，再做多因子体检与风险排查。</div>
+          </div>
+          <div class="gate-feats">
+            <div class="gate-feat"><b>① 每晚自动扫描</b><span>北证 340+ 只 / 沪深京板块成分池，逐一体检</span></div>
+            <div class="gate-feat"><b>② 底部异动筛选</b><span>底部刚走多 / 异动回踩企稳 / 一路小阳</span></div>
+            <div class="gate-feat"><b>③ 主线反推</b><span>从异动标的反推热门板块，叠加板块涨幅榜交叉验证</span></div>
+            <div class="gate-feat"><b>④ 风险排查 + 波段策略</b><span>硬伤排除、警示提示、中线波段策略参考</span></div>
+          </div>
+          <div class="auth-card-grid">
+            <a class="auth-card is-selected" href="./index.html?mode=login&amp;ch=phone">
+              <div class="t">去登录</div>
+              <div class="d">手机号或邮箱登录</div>
+            </a>
+            <a class="auth-card" href="./index.html?mode=register&amp;ch=phone">
+              <div class="t">去注册</div>
+              <div class="d">新用户注册</div>
+            </a>
+          </div>
+          <p class="sub gate-note">掘金为 VIP 专属功能；非 VIP 用户可先登录体验引导流程，再按需升级。</p>
+          <p class="gate-disclaimer">本页内容仅基于公开行情数据做技术形态统计与信息整理，仅供研究参考，不构成任何证券投资咨询、投资建议或收益承诺；股市有风险，入市需谨慎。</p>
+        </div>
+
+        <div id="auth-user" hidden>
+          <div class="bj-top">
+            <span class="bj-status" id="bj-status">正在加载…</span>
+            <span style="display:flex;gap:8px;align-items:center;">
+              <button class="btn-blue" id="btn-bj-refresh" type="button">重新扫描</button>
+            </span>
+          </div>
+          <div class="bj-tabs" id="bj-tabs">
+            <button type="button" class="bj-tab active" data-market="all">沪深京全市场</button>
+            <button type="button" class="bj-tab" data-market="bj">北证全市场</button>
+          </div>
+          <div id="bj-meta" class="bj-meta" hidden></div>
+
+          <div id="bj-vipgate" class="vip-card" hidden>
+            <div class="t">🔒 掘金为 VIP 专属功能</div>
+            <div class="d">开通 VIP 后，每晚收盘即可查看：全市场底部异动扫描结果、疑似主线板块、多因子体检与中线波段策略参考。<br/>当前账号未开通 VIP，升级后可解锁本页全部内容。</div>
+            <a class="btn" href="./account.html#vip" style="display:inline-block;">去开通 VIP</a>
+            <span style="display:inline-block;width:8px;"></span>
+            <a class="btn wl-back" href="./demo.html">← 返回行情页</a>
+            <p class="sub" style="margin:10px 0 0;font-size:12px;line-height:1.7;">本功能仅基于公开行情做技术形态统计与信息整理，不构成投资建议，不保证收益。</p>
+          </div>
+
+          <div id="bj-main" hidden>
+            
+            <div id="bj-boardrank"></div>
+            <div id="bj-result"></div>
+            <div id="bj-history"></div>
+            <div id="bj-picksgate" class="vip-card" hidden>
+              <div class="t">🔒 个股分析与波段策略为 VIP 专属</div>
+              <div class="d">异动板块与主线方向已为你解锁；开通 VIP 后，每晚收盘还可查看：主推 4 只（主线龙头 2 + 补涨卡位 2）、多因子体检、利空排查、中线波段策略与历史归档。</div>
+              <a class="btn" href="./account.html#vip" style="display:inline-block;">去开通 VIP</a>
+              <p class="sub" style="margin:10px 0 0;font-size:12px;line-height:1.7;">本功能仅基于公开行情做技术形态统计与信息整理，不构成投资建议，不保证收益。</p>
+            </div>
+            <p class="sub" style="margin:14px 0 0;font-size:12px;line-height:1.7;">本页仅对公开行情做技术形态统计与信息整理，不构成证券投资咨询与任何买卖建议；北交所 30CM 波动大，破止损或单日放量长阴 -8% 无条件离场。技术指标存在滞后与失效风险，历史表现不代表未来，股市有风险，入市需谨慎，据此操作风险自负。</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+  <footer class="site-footer" id="site-footer"></footer>
+  <script src="/js/shell.js?v=48"></script>
+  <script>
+    try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("bjscreener"); } catch (e) {}
+  </script>
+  <script src="/js/bjscreener.js?v=13"></script>
+  <script>
+    (function () {
+      var w = window.AI24X_BJScreener;
+      if (!w) return;
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", function () { w.boot(); });
+      } else {
+        w.boot();
+      }
+    })();
+  </script>
+</body>
+</html>

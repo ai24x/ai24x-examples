@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>北证每日跟踪 · 低风险潜力股扫描</title>
+<style>
+:root{
+  --bg:#f0f2f6; --card:#ffffff; --line:#e2e6ec; --txt:#1f2430; --sub:#5a6472;
+  --red:#e53935; --green:#2e7d32; --blue:#1e5a8a; --gold:#b8860b; --warn:#8a5b00;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:"Microsoft YaHei","PingFang SC",sans-serif;line-height:1.6}
+.wrap{max-width:1080px;margin:0 auto;padding:16px 14px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:14px;box-shadow:0 1px 4px rgba(20,30,60,.06)}
+h1{font-size:22px;margin:2px 0 2px}
+h2{font-size:16px;margin:18px 0 10px;border-left:4px solid var(--blue);padding-left:10px}
+.sub{color:var(--sub);font-size:13px}
+.head-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;background:#eef4fb;color:var(--blue);border:1px solid #cfe0f2}
+.btn{border:none;border-radius:8px;padding:9px 18px;font-size:14px;font-weight:700;cursor:pointer;background:linear-gradient(180deg,#1e5a8a,#156090);color:#fff}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.gold{background:linear-gradient(135deg,#ffd666,#fbbf24);color:#3a2c00}
+.btn.ghost{background:#fff;color:var(--blue);border:1px solid var(--blue)}
+.btn.sm{padding:5px 12px;font-size:12px;font-weight:600}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.field label{display:block;font-size:12px;color:var(--sub);margin-bottom:3px}
+.field input,.field select{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:#fff}
+.cfg-toggle{float:right;font-size:12px;color:var(--blue);cursor:pointer}
+.cfg-body{display:none}
+.cfg-body.open{display:block}
+#log{height:150px;overflow:auto;background:#10141c;color:#c9e4ff;font-size:12px;font-family:Consolas,monospace;padding:10px;border-radius:8px;white-space:pre-wrap}
+#prog{height:8px;background:#e4e8ee;border-radius:4px;overflow:hidden;margin:10px 0 4px}
+#prog>div{height:100%;width:0;background:linear-gradient(90deg,#1e88e5,#26a69a);transition:width .3s}
+table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+th{background:#f2f5f9;font-weight:600}
+tr:nth-child(even) td{background:#fafbfd}
+.up{color:var(--red)} .down{color:var(--green)}
+.pick-num{display:inline-block;min-width:22px;text-align:center;background:var(--blue);color:#fff;border-radius:6px;font-weight:700;padding:1px 6px}
+.tag{display:inline-block;padding:1px 7px;border-radius:5px;font-size:11px;margin:1px 2px 1px 0}
+.tag.ok{background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7}
+.tag.warn{background:#fff7e6;color:#8a5b00;border:1px solid #ffd591}
+.tag.risk{background:#fdecea;color:#b71c1c;border:1px solid #ef9a9a}
+.tag.info{background:#eef4fb;color:#0d3b66;border:1px solid #cfe0f2}
+.kbox{position:relative;margin:6px 0}
+canvas{width:100%;height:190px;display:block;border:1px solid var(--line);border-radius:8px;background:#fff}
+.levels{display:flex;flex-wrap:wrap;gap:8px;font-size:12px;margin:6px 0}
+.levels span{padding:3px 10px;border-radius:6px;background:#f6f8fa;border:1px solid var(--line)}
+.levels .s{color:var(--green);font-weight:700}
+.levels .p{color:var(--red);font-weight:700}
+.levels .stop{color:#b71c1c;font-weight:700;background:#fdecea;border-color:#ef9a9a}
+.pick-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(470px,1fr));gap:14px}
+@media(max-width:560px){.pick-grid{grid-template-columns:1fr}}
+.hist-item{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin:6px 0;font-size:13px}
+.hist-item .codes{color:var(--sub)}
+.notice{background:#fff7e6;border:1px solid #ffd591;color:var(--warn);font-size:12px;padding:8px 12px;border-radius:8px;margin:8px 0}
+.foot{color:#8a919c;font-size:12px;text-align:center;margin-top:22px}
+#tokbox{display:none;margin-top:8px}
+#tokbox.open{display:block}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid #cfe0f2;border-top-color:var(--blue);border-radius:50%;animation:sp 1s linear infinite;vertical-align:-1px}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head><body>
+<div class="wrap">
+  <div class="card">
+    <div class="head-row">
+      <div>
+        <h1>北证每日跟踪 · 低风险潜力股扫描</h1>
+        <div class="sub">北交所 30CM · 每天扫全市场 → 形态优选 → 推荐 3~5 只｜数据源：AI行情官(本地 18011) + 东财公开行情</div>
+      </div>
+      <div>
+        <button class="btn" id="btn-run">▶ 开始扫描</button>
+        <button class="btn ghost sm" id="btn-cancel" disabled>停止</button>
+      </div>
+    </div>
+    <div class="sub" style="margin-top:6px">
+      数据日期：<b id="asof">—</b> ｜ token：<span id="tokstate">检查中…</span>
+      <a id="tokedit" href="javascript:void(0)" style="font-size:12px;color:#1e5a8a">(设置)</a>
+    </div>
+    <div id="tokbox">
+      <input id="tokinput" type="password" style="width:60%;padding:7px 9px;border:1px solid #e2e6ec;border-radius:6px" placeholder="粘贴登录 token（eyJhbGciOi...）">
+      <button class="btn sm" id="btn-toksave">保存</button>
+      <span class="sub" style="margin-left:6px">不填则自动读取本机已登录的 ai24x_a_token</span>
+    </div>
+    <div class="cfg-toggle" id="cfg-toggle">⚙ 参数设置 ▾</div>
+    <div class="cfg-body open" id="cfg-body">
+      <div class="grid2" style="margin-top:10px">
+        <div class="field"><label>市值范围（亿）</label><input id="cfg-mcap" type="text" value="5~40"></div>
+        <div class="field"><label>最低成交额（万）</label><input id="cfg-amount" type="number" value="3000"></div>
+        <div class="field"><label>位置上限 %（AI行情官 cpos）</label><input id="cfg-pos" type="number" value="30"></div>
+        <div class="field"><label>5日涨幅上限 %</label><input id="cfg-max5" type="number" value="20"></div>
+        <div class="field"><label>10日涨幅上限 %</label><input id="cfg-max10" type="number" value="30"></div>
+        <div class="field"><label>AI评分下限</label><input id="cfg-ai" type="number" value="60"></div>
+        <div class="field"><label>推荐数量（3~5）</label><input id="cfg-n" type="number" value="5"></div>
+        <div class="field"><label>精筛候选数（每只拉K线，扫描时长≈候选数×2.3秒）</label><input id="cfg-cap" type="number" value="120"></div><div class="field"><label>打开页面自动扫描（当日未扫且已过时间）</label><select id="cfg-autoscan"><option value="1">开启</option><option value="0">关闭</option></select></div><div class="field"><label>自动扫描时间（HH:mm，交易日）</label><input id="cfg-plan" type="text" value="15:35"></div>
+        <div class="field" style="grid-column:1/-1"><label>题材关键词加分（逗号分隔，如：机器,煤炭,锂电,算力,光模块；名称命中则加分并打标签，可留空）</label><input id="cfg-kw" type="text" placeholder="机器,煤炭,锂,算力,光,半导体,军,卫,固态,氢"></div>
+        <div class="field"><label>底部异动最小涨幅 %（异动区4~14%）</label><input id="cfg-surge" type="number" value="4"></div>
+        <div class="field"><label>异动放量倍数（vs 20日均量）</label><input id="cfg-surgevol" type="number" value="1.8" step="0.1"></div>
+        <div class="field"><label>异动回溯天数（近N日内）</label><input id="cfg-surgedays" type="number" value="15"></div>
+        <div class="field"><label>20日涨幅上限 %（刚启动）</label><input id="cfg-max20" type="number" value="30"></div>
+        <div class="field"><label>60日涨幅上限 %（刚启动）</label><input id="cfg-max60" type="number" value="45"></div>
+        <div class="field"><label>主线板块共振</label><select id="cfg-mainline"><option value="score">加分</option><option value="must">必须命中(板块/关键词/强势三选一)</option><option value="off">关闭</option></select></div>
+        <div class="field"><label>热门板块5日涨幅阈值 %</label><input id="cfg-hotpct" type="number" value="4"></div>
+        <div class="field"><label>热门板块取前N名</label><input id="cfg-hotn" type="number" value="12"></div>
+        <div class="field"><label>换手率区间 %（低~高）</label><input id="cfg-turnmin" type="number" value="2"> ~ <input id="cfg-turnmax" type="number" value="20" style="width:70px"></div>
+        <div class="field"><label>主力净流入加分</label><select id="cfg-fund"><option value="1">开启</option><option value="0">关闭</option></select></div>
+      </div>
+      <div style="margin-top:8px;font-size:12px;color:#5a6472">
+        核心选股标准（已内置）：底部刚走多上拐 + 异动拉升一小波后回踩企稳 / 一路小阳上来 + 未大幅拉升 + 小市值高弹性 + 零风险标签。勾选 AI 确认：对初筛前 12 名调 AI行情官 快照（综合分/风险标签）复核，约 1.5 分钟。
+        <label style="margin-left:8px"><input type="checkbox" id="cfg-aiok" checked> 启用 AI 评分确认（慢）</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:4px">扫描进度</h2>
+    <div id="prog"><div id="progbar"></div></div>
+    <div class="sub" id="progtext">尚未开始</div>
+    <div id="log"></div>
+  </div>
+
+  <div class="card" id="result-card" style="display:none">
+    <div class="head-row">
+      <h2 style="margin-top:2px">今日推荐（北证 · 低风险优选）</h2>
+      <div>
+        <button class="btn sm gold" id="btn-copy">📋 复制简报</button>
+        <button class="btn sm ghost" id="btn-savehist">💾 存入历史</button>
+      </div>
+    </div>
+    <div class="notice">本页面仅作研究与信息整理，不构成任何投资建议；30CM 波动大，破止损或单日放量长阴 -8% 无条件离场。</div>
+    <div id="picks"></div>
+    <h2>备选池（落选原因）</h2>
+    <div id="runners"></div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:2px">历史记录（本机保存最近 30 次）</h2>
+    <div id="hist"></div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:2px">使用说明</h2>
+    <div class="sub">
+      ① 确保本机已启动 AI行情官 本地服务（18011）与演示页（18001）；② 本页需通过 <b>http://127.0.0.1:18001/bj-tracker/</b> 打开（CORS 仅允许该来源）；③ 点「开始扫描」，全市场北证标的 → 市值/成交额粗筛 → 逐只拉K线做形态体检 → 前 12 名调 AI行情官 快照复核 → 输出 3~5 只；④ 扫描结果可一键存入历史、复制简报。
+      <br>技术位规则：支撑1=近5日最低、支撑2=MA20；压力1=近10日最高、压力2=近60日最高；止损=min(支撑1,支撑2)。
+    </div>
+  </div>
+
+  <div class="foot">AI行情官智能体 · 北证每日跟踪 v1.0（2026-08-07）｜仅供研究参考，不构成投资建议</div>
+</div>
+
+<script>"use strict";
+var CFG_KEY="bj_tracker_cfg_v1", HIST_KEY="bj_tracker_hist_v1";
+var API="http://127.0.0.1:18011";
+var EM_HOSTS=["https://push2delay.eastmoney.com","https://push2.eastmoney.com"];
+var CFG={mcapMin:5,mcapMax:40,amountMin:3000,posMax:30,max5d:20,max10d:30,aiMin:60,topN:5,cap:120,aiOk:true,aiTop:12,kw:"",autoScan:true,planTime:"15:35",minSurge:4,surgeVol:1.8,surgeDays:15,max20d:30,max60d:45,mainline:"score",hotPct:4,hotN:12,turnMin:2,turnMax:20,useFund:true};
+var HOT={byName:{},list:[]};
+var RUN={cancelled:false,active:false};
+var $=function(id){return document.getElementById(id)};
+function num(v,d){var n=Number(v);return isFinite(n)?n.toFixed(d==null?2:d):"—"}
+function money(v){if(v==null||!isFinite(v))return"—";if(v>=1e8)return (v/1e8).toFixed(1)+"亿";if(v>=1e4)return (v/1e4).toFixed(0)+"万";return v.toFixed(0)}
+function pct(v){if(v==null||!isFinite(v))return"—";return (v>=0?"+":"")+v.toFixed(2)+"%"}
+function cls(v){return v>0?"up":(v<0?"down":"")}
+function loadCfg(){
+  try{var s=localStorage.getItem(CFG_KEY);if(s){var c=JSON.parse(s);for(var k in c)if(k in CFG)CFG[k]=c[k]}}catch(e){}
+  $("cfg-mcap").value=CFG.mcapMin+"~"+CFG.mcapMax;$("cfg-amount").value=CFG.amountMin;$("cfg-pos").value=CFG.posMax;
+  $("cfg-max5").value=CFG.max5d;$("cfg-max10").value=CFG.max10d;$("cfg-ai").value=CFG.aiMin;
+  $("cfg-n").value=CFG.topN;$("cfg-cap").value=CFG.cap;$("cfg-kw").value=CFG.kw;$("cfg-aiok").checked=!!CFG.aiOk;$("cfg-autoscan").value=CFG.autoScan?"1":"0";$("cfg-plan").value=CFG.planTime;
+  $("cfg-surge").value=CFG.minSurge;$("cfg-surgevol").value=CFG.surgeVol;$("cfg-surgedays").value=CFG.surgeDays;
+  $("cfg-max20").value=CFG.max20d;$("cfg-max60").value=CFG.max60d;$("cfg-mainline").value=CFG.mainline;
+  $("cfg-hotpct").value=CFG.hotPct;$("cfg-hotn").value=CFG.hotN;$("cfg-turnmin").value=CFG.turnMin;$("cfg-turnmax").value=CFG.turnMax;$("cfg-fund").value=CFG.useFund?"1":"0";
+}
+function saveCfg(){
+  var mm=String($("cfg-mcap").value||"").split("~");
+  CFG.mcapMin=parseFloat(mm[0])||5;CFG.mcapMax=parseFloat(mm[1]||mm[0])||40;
+  CFG.amountMin=parseFloat($("cfg-amount").value)||3000;CFG.posMax=parseFloat($("cfg-pos").value)||30;
+  CFG.max5d=parseFloat($("cfg-max5").value)||20;CFG.max10d=parseFloat($("cfg-max10").value)||30;
+  CFG.aiMin=parseFloat($("cfg-ai").value)||60;CFG.topN=Math.min(5,Math.max(3,parseInt($("cfg-n").value)||5));
+  CFG.cap=Math.min(200,Math.max(10,parseInt($("cfg-cap").value)||120));
+  CFG.kw=String($("cfg-kw").value||"").trim();CFG.aiOk=$("cfg-aiok").checked;CFG.autoScan=String($("cfg-autoscan").value)==="1";CFG.planTime=String($("cfg-plan").value||"15:35").trim();
+  CFG.minSurge=parseFloat($("cfg-surge").value)||4;CFG.surgeVol=parseFloat($("cfg-surgevol").value)||1.8;CFG.surgeDays=parseInt($("cfg-surgedays").value)||15;
+  CFG.max20d=parseFloat($("cfg-max20").value)||30;CFG.max60d=parseFloat($("cfg-max60").value)||45;CFG.mainline=String($("cfg-mainline").value||"score");
+  CFG.hotPct=parseFloat($("cfg-hotpct").value)||4;CFG.hotN=parseInt($("cfg-hotn").value)||12;CFG.turnMin=parseFloat($("cfg-turnmin").value)||2;CFG.turnMax=parseFloat($("cfg-turnmax").value)||20;CFG.useFund=String($("cfg-fund").value)==="1";
+  try{localStorage.setItem(CFG_KEY,JSON.stringify(CFG))}catch(e){}
+}
+function getToken(){
+  try{var t=localStorage.getItem("ai24x_a_token");if(t&&t.length>20)return t}catch(e){}
+  return String($("tokinput").value||"").trim();
+}
+function tokState(){
+  var t=getToken();
+  if(t){$("tokstate").textContent="已就绪（自动读取/已保存）";$("tokstate").style.color="#1b5e20"}
+  else{$("tokstate").textContent="未检测到 token（将仅用本地形态分析，AI 复核会跳过）";$("tokstate").style.color="#b8860b"}
+}
+function log(msg){var el=$("log");el.textContent+="["+new Date().toTimeString().slice(0,8)+"] "+msg+"\n";el.scrollTop=el.scrollHeight}
+function setProg(done,total,phase){$("progbar").style.width=(total?Math.min(100,done/total*100):0)+"%";$("progtext").textContent=(phase||"")+(total?("（"+done+"/"+total+"）"):"")}
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
+function qs(o){var a=[];for(var k in o)if(o[k]!=null)a.push(encodeURIComponent(k)+"="+encodeURIComponent(o[k]));return a.join("&")}
+function jsonpList(){
+  return new Promise(function(resolve,reject){
+    var tried=0;
+    function tryHost(){
+      if(tried>=EM_HOSTS.length){reject(new Error("东财行情列表加载失败（网络/被墙）"));return}
+      var host=EM_HOSTS[tried++];var cb="__bjlist"+Date.now();
+      var u=host+"/api/qt/clist/get?"+qs({pn:1,pz:600,po:1,np:1,fltt:2,invt:2,fid:"f6",fs:"m:0+t:81+s:2048",fields:"f12,f14,f2,f3,f5,f6,f8,f9,f10,f20,f21,f23",cb:cb});
+      var done=false;
+      var timer=setTimeout(function(){if(!done){done=true;cleanup();tryHost()}},12000);
+      function cleanup(){try{delete window[cb]}catch(e){}var s=$("__bjjs");if(s)s.remove()}
+      window[cb]=function(d){
+        if(done)return;done=true;clearTimeout(timer);
+        var rows=((d&&d.data&&d.data.diff)||[]);
+        if(!rows.length){cleanup();reject(new Error("东财列表返回为空"));return}
+        cleanup();resolve({total:d.data.total,rows:rows});
+      };
+      var s=document.createElement("script");s.id="__bjjs";s.src=u;
+      s.onerror=function(){if(!done){done=true;clearTimeout(timer);cleanup();tryHost()}};
+      document.head.appendChild(s);
+    }
+    tryHost();
+  });
+}
+function api(path,opts){
+  opts=opts||{};
+  var headers={};
+  var t=getToken();
+  if(t)headers.Authorization="Bearer "+t;
+  var url=API+path+(path.indexOf("?")>=0?"&":"?")+qs(opts.q||{});
+  return fetch(url,{headers:headers,cache:"no-store"}).then(function(r){
+    if(r.status===401)throw new Error("token 无效或已过期（401）：请重新登录后在账号页复制新 token");
+    if(r.status===429)throw new Error("rate429");
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    return r.json();
+  });
+}
+function apiWithRetry(path,q,label){
+  var maxTry=4;
+  function go(n){
+    return api(path,{q:q}).catch(function(e){
+      if(RUN.cancelled)throw e;
+      if(String(e.message).indexOf("rate429")>=0&&n<maxTry){
+        log("⚠ 限流 429，等待 "+(3+n)+"s 重试："+label);
+        return sleep((3+n)*1000).then(function(){return go(n+1)});
+      }
+      throw e;
+    });
+  }
+  return go(1);
+}
+function fetchKline(code){
+  return apiWithRetry("/api/kline",{secid:"1."+code,period:"day",count:170},"K线 "+code).then(function(p){
+    if(!p||p.code!==0||!p.data)throw new Error("K线异常 "+code);
+    var key="bj"+code;
+    var pk=p.data[key]||p.data["1."+code]||p.data[Object.keys(p.data)[0]];
+    var arr=(pk&&(pk.qfqday||pk.day||pk.kline))||[];
+    if(!arr.length)throw new Error("K线为空 "+code);
+    return arr;
+  });
+}
+function fetchSnapshot(code){
+  return apiWithRetry("/api/quote/snapshot",{secid:"1."+code},"快照 "+code).then(function(p){
+    if(!p||!p.ok)throw new Error("快照失败 "+code+(p&&p.error?"："+p.error:""));
+    return p;
+  });
+}
+function ema(arr,n){
+  var out=[],k=2/(n+1),prev=null;
+  for(var i=0;i<arr.length;i++){
+    var v=(prev==null)?arr[i]:arr[i]*k+prev*(1-k);
+    out.push(v);prev=v;
+  }
+  return out;
+}
+function maAt(arr,p,i){if(i+1<p)return NaN;var s=0;for(var j=i+1-p;j<=i;j++)s+=arr[j];return s/p}
+function analyze(bars,cand){
+  var n=bars.length;
+  var o=[],c=[],h=[],l=[],v=[];
+  for(var i=0;i<n;i++){o.push(+bars[i][1]);c.push(+bars[i][2]);h.push(+bars[i][3]);l.push(+bars[i][4]);v.push(+bars[i][5])}
+  var e12=ema(c,12),e26=ema(c,26),dif=[],dea=[],hist=[];
+  for(var i=0;i<n;i++){dif.push(e12[i]-e26[i])}
+  dea=ema(dif,9);
+  for(var i=0;i<n;i++)hist.push((dif[i]-dea[i])*2);
+  var last=n-1,cl=c[last];
+  var ma5=maAt(c,5,last),ma10=maAt(c,10,last),ma20=maAt(c,20,last),ma60=maAt(c,60,last);
+  var ma20_3=maAt(c,20,last-3);
+  var lo60=Math.min.apply(null,l.slice(n-60)),hi60=Math.max.apply(null,h.slice(n-60));
+  var pos=(hi60>lo60)?(cl-lo60)/(hi60-lo60):1;
+  var chg1=(c[last-1]>0)?(cl/c[last-1]-1)*100:0;
+  var chg5=(c[last-5]>0)?(cl/c[last-5]-1)*100:0;
+  var chg10=(c[last-10]>0)?(cl/c[last-10]-1)*100:0;
+  var chg20=(c[last-20]>0)?(cl/c[last-20]-1)*100:0;
+  var chg60=(c[last-60]>0)?(cl/c[last-60]-1)*100:0;
+  var v20=0;for(var i=last-19;i<=last;i++)v20+=v[i];v20/=20;
+  var volRatio=v20>0?v[last]/v20:0;
+  var v5=0;for(var i=last-4;i<=last;i++)v5+=v[i];v5/=5;
+  var vol5v20=v20>0?v5/v20:0;
+  var upDays=0,maxDayPct=0;
+  for(var i=last-4;i<=last;i++){if(c[i]>=o[i])upDays++;var p0=(c[i-1]>0)?(c[i]/c[i-1]-1)*100:0;if(p0>maxDayPct)maxDayPct=p0}
+  var patterns={},risks=[];
+  // 底部走多：站上MA20 + MA20上拐 + MA5>MA10 + MACD红柱
+  if(cl>ma20&&ma20>ma20_3&&ma5>ma10&&hist[last]>0)patterns.baseUp=1;
+  // 异动拉升一小波后回踩企稳
+  var pulled=false;
+  for(var i=n-13;i<=last-2;i++){
+    var pcti=(c[i-1]>0)?(c[i]/c[i-1]-1)*100:0;
+    if(pcti>=5&&v[i]>=1.5*v20){
+      for(var j=i+1;j<=last;j++){
+        var okPull=(l[j]<h[i])&&(v[j]<v[i]*0.9)&&(l[j]>=l[i]*0.97)&&(cl>=Math.max(c[i],c[j])*0.97)&&(cl>=ma10);
+        if(okPull){pulled=true;break}
+      }
+      if(pulled)break;
+    }
+  }
+  if(pulled)patterns.pullback=1;
+  // 一路小阳
+  if(upDays>=3&&maxDayPct<=8&&chg5>=0&&chg5<=18)patterns.smallYang=1;
+  // ★ 底部放量异动启动（核心：刚底部异动起来）
+  var surgeIdx=-1;
+  for(var i=Math.max(1,n-CFG.surgeDays-1);i<=last-1;i++){
+    var pcti=(c[i-1]>0)?(c[i]/c[i-1]-1)*100:0;
+    var vMA=0,cntV=0;
+    for(var k=i-20;k<=i-1;k++){if(k>=0){vMA+=v[k];cntV++}}
+    vMA/=cntV||1;
+    var posAtI=(hi60>lo60)?(c[i]-lo60)/(hi60-lo60):1;
+    if(pcti>=CFG.minSurge&&pcti<=14&&v[i]>=CFG.surgeVol*vMA&&posAtI<=0.5)surgeIdx=i;
+  }
+  var surgeOk=false,surgeDaysAgo=0;
+  if(surgeIdx>=0){
+    surgeDaysAgo=last-surgeIdx;
+    if(surgeDaysAgo<=CFG.surgeDays&&cl>=ma5&&cl>=c[surgeIdx]*0.97)surgeOk=true;
+  }
+  if(surgeOk)patterns.surgeStart=1;
+  if(surgeIdx>=0&&!surgeOk)risks.push("底部异动后未确认企稳");
+  // 均线粘合后发散（启动初期）
+  var spread=(Math.max(ma5,ma10,ma20)-Math.min(ma5,ma10,ma20))/ma20*100;
+  if(spread<=2.5&&ma5>ma10&&ma10>ma20&&hist[last]>0)patterns.tightBurst=1;
+  // 未大幅拉升 + 刚启动约束
+  if(chg5<=CFG.max5d&&chg10<=CFG.max10d)patterns.notHot=1;else risks.push("涨幅偏大(5日"+num(chg5,1)+"%)");
+  if(chg20>CFG.max20d)risks.push("20日涨幅过大"+num(chg20,1)+"%");
+  if(chg60>CFG.max60d)risks.push("60日涨幅过大"+num(chg60,1)+"%");
+  if(chg5>CFG.max5d)risks.push("5日涨幅过大"+num(chg5,1)+"%");
+  if(chg10>CFG.max10d)risks.push("10日涨幅过大"+num(chg10,1)+"%");
+  var hasZT=false;
+  for(var i=n-10;i<=last;i++){var p0=(c[i-1]>0)?(c[i]/c[i-1]-1)*100:0;if(p0>=25)hasZT=true}
+  if(hasZT)risks.push("10日内有涨停/近涨停");
+  var rr=(h[last]-c[last])/((h[last]-l[last])||1);
+  if((h[last]-cl)/cl>=0.05&&c[last]<o[last]&&rr>=0.5)risks.push("长上影滞涨");
+  if(last>=3){var lj=true;for(var i=last-2;i<=last;i++){if(!(c[i]>c[i-1]&&v[i]<v[i-1])){lj=false;break}}if(lj)risks.push("量价背离(3日缩量上涨)")}
+  if(cl<ma20&&!(ma20>ma20_3))risks.push("跌破MA20且趋势下拐");
+  if(cl<l[last-1]&&c[last]<o[last]&&chg1<=-7)risks.push("放量长阴");
+  var kwHits=[];
+  var nm=cand?cand.name:"";
+  if(CFG.kw){CFG.kw.split(/[,，]/).forEach(function(kw){if(kw&&nm.indexOf(kw)>=0)kwHits.push(kw)})}
+  // 本地评分
+  var sc=0;
+  if(pos<=0.10)sc+=40;else if(pos<=0.20)sc+=34;else if(pos<=0.30)sc+=28;else if(pos<=0.40)sc+=20;else sc+=10;
+  if(patterns.surgeStart)sc+=14;
+  if(patterns.pullback)sc+=12;
+  if(patterns.smallYang)sc+=10;
+  if(patterns.baseUp)sc+=10;
+  if(patterns.tightBurst)sc+=5;
+  if(hist[last]>0)sc+=4;
+  var gc=false;for(var i=last-4;i<=last;i++){if(dif[i]>dea[i]&&dif[i-1]<=dea[i-1])gc=true}
+  if(gc)sc+=3;
+  if(volRatio>=1.1&&volRatio<=3)sc+=4;else if(volRatio>0.6)sc+=1;
+  if(CFG.useFund&&cand&&cand.fund>0)sc+=4;
+  if(cand&&cand.turnover>=CFG.turnMin&&cand.turnover<=CFG.turnMax)sc+=2;else if(cand)risks.push("换手"+(cand.turnover<CFG.turnMin?"过低":"过高")+num(cand.turnover,1)+"%");
+  if(cand&&cand.hot)sc+=10;
+  if(kwHits.length)sc+=6;
+  sc-=risks.length*6;
+  if(!patterns.pullback&&!patterns.smallYang&&!patterns.baseUp&&!patterns.surgeStart)sc-=8;
+  var s1=Math.min.apply(null,l.slice(last-4)),s2=ma20;
+  var p1=Math.max.apply(null,h.slice(last-9)),p2=hi60;
+  var stop=Math.min(s1,s2);
+  return {closes:c,opens:o,highs:h,lows:l,vols:v,ma5:ma5,ma10:ma10,ma20:ma20,ma60:ma60,dif:dif,dea:dea,hist:hist,
+    pos:pos,chg1:chg1,chg5:chg5,chg10:chg10,chg20:chg20,chg60:chg60,volRatio:volRatio,vol5v20:vol5v20,upDays:upDays,
+    patterns:patterns,risks:risks,score:Math.max(0,Math.min(100,Math.round(sc))),surgeDaysAgo:surgeDaysAgo,spread:spread,
+    levels:{s1:s1,s2:s2,p1:p1,p2:p2,stop:stop},kwHits:kwHits,
+    hot:cand?!!cand.hot:false,hotName:cand?cand.hotName:"",fund:cand?Number(cand.fund)||0:0,ind:cand?cand.ind:""};
+}
+var LAST={picks:[],runners:[],asof:"",date:""};
+function fmtDate(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function normName(s){return String(s||"").replace(/(板块|概念|行业|指数|及器件|及材料|及服务|产业链)$/,"")}
+function boardHit(ind){
+  if(!ind||ind==="-")return "";
+  var n=normName(ind);
+  if(HOT.byName[n]||HOT.byName[ind])return HOT.byName[n]?n:ind;
+  if(n.length>=2){
+    for(var nm in HOT.byName){
+      var m=normName(nm);
+      if(m.length>=2&&(n.indexOf(m)>=0||m.indexOf(n)>=0||n.slice(0,2)===m.slice(0,2)))return nm;
+    }
+  }
+  return "";
+}
+function coarse(row){
+  var code=String(row.f12||""),name=String(row.f14||"");
+  if(!/^\d{6}$/.test(code))return null;
+  if(/ST|退/.test(name))return null;
+  var mcap=Number(row.f20||0),amount=Number(row.f6||0);
+  if(!(mcap>=CFG.mcapMin*1e8&&mcap<=CFG.mcapMax*1e8))return null;
+  if(amount<CFG.amountMin*1e4)return null;
+  if(Number(row.f3)>20)return null; // 当日已大涨的直接排除
+  var ind=String(row.f100||"").trim();
+  var hn=boardHit(ind);
+  var kh=[];
+  if(CFG.kw){CFG.kw.split(/[,，]/).forEach(function(kw){if(kw&&name.indexOf(kw)>=0)kh.push(kw)})}
+  return {code:code,name:name,price:Number(row.f2||0),pct:Number(row.f3||0),amount:amount,mcap:mcap,
+    turnover:Number(row.f8||0),pe:Number(row.f9||0),pb:Number(row.f23||0),volRatio:Number(row.f10||0),
+    fund:Number(row.f62||0),ind:ind,hot:!!hn,hotName:hn,kwHits:kh};
+}
+function loadHotSectors(){
+  return new Promise(function(resolve){
+    HOT={byName:{},list:[]};
+    var total=2,done=0;
+    function fin(){done++;if(done>=total)resolve()}
+    function grab(t){
+      var cb="__bjhot"+Date.now()+"_"+t;
+      var u=EM_HOSTS[0]+"/api/qt/clist/get?"+qs({pn:1,pz:60,po:1,np:1,fltt:2,invt:2,fid:"f109",fs:"m:90+t:"+t,fields:"f12,f14,f109",cb:cb});
+      var timer=setTimeout(function(){try{delete window[cb]}catch(e){}var s=document.getElementById("__bjhotjs");if(s)s.remove();fin()},12000);
+      window[cb]=function(d){
+        clearTimeout(timer);
+        try{
+          var rows=((d&&d.data&&d.data.diff)||[]),cnt=0;
+          rows.forEach(function(r){
+            var p5=Number(r.f109||0);
+            if(p5>=CFG.hotPct&&cnt<CFG.hotN){
+              var nm=String(r.f14||"").trim();
+              if(nm){HOT.byName[nm]=p5;HOT.list.push({name:nm,p5:p5});cnt++}
+            }
+          });
+        }catch(e){}
+        try{delete window[cb]}catch(e){}
+        var s=document.getElementById("__bjhotjs");if(s)s.remove();
+        fin();
+      };
+      var s=document.createElement("script");s.id="__bjhotjs";s.src=u;
+      s.onerror=function(){try{delete window[cb]}catch(e){}fin()};
+      document.head.appendChild(s);
+    }
+    grab(2);grab(3);
+    setTimeout(resolve,15000);
+  });
+}
+function tagHtml(A,snap){
+  var h="";
+  if(A.patterns.surgeStart)h+='<span class="tag ok">底部放量异动·'+(A.surgeDaysAgo||0)+'天前启动</span>';
+  if(A.patterns.pullback)h+='<span class="tag ok">异动拉升→回踩企稳</span>';
+  if(A.patterns.smallYang)h+='<span class="tag ok">一路小阳</span>';
+  if(A.patterns.baseUp)h+='<span class="tag ok">底部走多·均线上拐</span>';
+  if(A.patterns.tightBurst)h+='<span class="tag ok">均线粘合发散</span>';
+  if(A.patterns.notHot)h+='<span class="tag info">未大幅拉升</span>';
+  if(A.hot)h+='<span class="tag warn">主线:'+A.hotName+'</span>';
+  if(A.kwHits&&A.kwHits.length)h+='<span class="tag warn">题材:'+A.kwHits.join("/")+'</span>';
+  if(A.fund>0)h+='<span class="tag info">主力净流入 +'+money(A.fund)+'</span>';
+  if(snap&&snap.tags){snap.tags.slice(0,6).forEach(function(t){h+='<span class="tag info">'+t+'</span>'})}
+  if(snap&&snap.risks&&snap.risks.length){snap.risks.forEach(function(r){h+='<span class="tag risk">'+r+'</span>'})}
+  A.risks.slice(0,4).forEach(function(r){h+='<span class="tag risk">'+r+'</span>'});
+  return h;
+}
+function reasonOf(c){
+  var a=c.A,r=[];
+  if(a.patterns.surgeStart)r.push("底部放量异动"+(a.surgeDaysAgo||0)+"天前启动");
+  if(a.patterns.pullback)r.push("异动拉升后缩量回踩企稳");
+  if(a.patterns.smallYang)r.push("连续小阳趋势上拐");
+  if(a.patterns.baseUp)r.push("站上MA20且均线上拐");
+  if(a.patterns.tightBurst)r.push("均线粘合后发散");
+  if(a.hot)r.push("主线共振:"+a.hotName);
+  if(c.snap&&c.snap.score>=CFG.aiMin)r.push("AI综合分"+num(c.snap.score,0)+"≥"+CFG.aiMin);
+  if(a.kwHits&&a.kwHits.length)r.push("命中题材:"+a.kwHits.join("/"));
+  if(a.risks.length)r.push("注意:"+a.risks[0]);
+  return r.join("；")||"形态健康";
+}
+function renderPicks(){
+  var box=$("picks");box.innerHTML="";
+  if(!LAST.picks.length){box.innerHTML='<div class="sub">今日无符合全部条件的标的（放宽参数重试，或行情整体偏弱）</div>';return}
+  var grid=document.createElement("div");grid.className="pick-grid";
+  LAST.picks.forEach(function(c,i){
+    var a=c.A,snap=c.snap;
+    var d=document.createElement("div");d.className="card";d.style.marginBottom="0";
+    var chgCls=cls(c.pct);
+    var aiTxt=snap?("AI综合分 <b>"+num(snap.score,0)+"</b>"):"AI未复核";
+    var riskTxt=(snap&&snap.risks&&snap.risks.length)||a.risks.length?"<span style='color:#b71c1c'>有风险标签</span>":"<span style='color:#1b5e20'>零风险标签</span>";
+    d.innerHTML=
+      '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">'+
+        '<div><span class="pick-num">'+(i+1)+'</span> <b style="font-size:16px">'+c.name+'</b> <span class="sub">'+c.code+'</span></div>'+
+        '<div style="text-align:right">'+
+          '<span style="font-size:17px;font-weight:700" class="'+chgCls+'">'+num(c.price,2)+'</span> '+
+          '<span class="'+chgCls+'" style="font-size:14px;font-weight:700">'+pct(c.pct)+'</span></div>'+
+      '</div>'+
+      '<div style="margin:8px 0 4px">'+tagHtml(a,snap)+'</div>'+
+      '<div class="sub" style="margin-bottom:4px">'+
+        '本地形态分 <b>'+a.score+'</b> ｜ '+aiTxt+' ｜ 位置 <b>'+num(a.pos*100,0)+'%</b> ｜ 市值 '+money(c.mcap)+
+        ' ｜ 成交 '+money(c.amount)+' ｜ 5日 '+pct(a.chg5)+' ｜ 10日 '+pct(a.chg10)+' ｜ 量比 '+num(a.volRatio,2)+' ｜ 20日 '+pct(a.chg20)+' ｜ 换手 '+num(c.turnover,1)+'% ｜ '+riskTxt+
+      '</div>'+
+      '<div class="levels">'+
+        '<span class="s">支撑 '+num(a.levels.s1,2)+' / '+num(a.levels.s2,2)+'(MA20)</span>'+
+        '<span class="p">压力 '+num(a.levels.p1,2)+' / '+num(a.levels.p2,2)+'(60日高)</span>'+
+        '<span class="stop">止损 '+num(a.levels.stop,2)+'</span>'+
+      '</div>'+
+      '<div class="kbox"><canvas data-code="'+c.code+'" data-idx="'+i+'"></canvas></div>'+
+      '<div class="sub">入选逻辑：'+reasonOf(c)+'</div>';
+    grid.appendChild(d);
+  });
+  box.appendChild(grid);
+  requestAnimationFrame(function(){LAST.picks.forEach(function(c,i){var cv=document.querySelector('canvas[data-code="'+c.code+'"]');if(cv)drawChart(cv,c)})});
+  var rb=$("runners");rb.innerHTML="";
+  if(LAST.runners.length){
+    var h='<table><tr><th>代码</th><th>名称</th><th>现价</th><th>涨跌</th><th>形态分</th><th>位置</th><th>市值</th><th>5日</th><th>20日</th><th>落选原因</th></tr>';
+    LAST.runners.forEach(function(c){
+      var a=c.A;var rs=(c.snap&&c.snap.risks&&c.snap.risks.length?c.snap.risks:[]).concat(a.risks).slice(0,2).join("；")||"排名靠后";
+      h+='<tr><td>'+c.code+'</td><td>'+c.name+'</td><td class="'+cls(c.pct)+'">'+num(c.price,2)+'</td><td class="'+cls(c.pct)+'">'+pct(c.pct)+'</td><td>'+a.score+'</td><td>'+num(a.pos*100,0)+'%</td><td>'+money(c.mcap)+'</td><td class="'+cls(a.chg5)+'">'+pct(a.chg5)+'</td><td class="'+cls(a.chg20)+'">'+pct(a.chg20)+'</td><td>'+rs+'</td></tr>';
+    });
+    h+='</table>';rb.innerHTML=h;
+  } else rb.innerHTML='<div class="sub">无</div>';
+}
+function drawChart(cv,c){
+  var a=c.A;var n=a.closes.length;var start=Math.max(0,n-60);
+  var cs=a.closes.slice(start),os=a.opens.slice(start),hs=a.highs.slice(start),ls=a.lows.slice(start),vs=a.vols.slice(start);
+  var N=cs.length;
+  var dpr=window.devicePixelRatio||1;var w=cv.clientWidth||640,h=cv.clientHeight||190;
+  cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+"px";
+  var ctx=cv.getContext("2d");ctx.scale(dpr,dpr);
+  var padL=8,padR=52,padT=14,padB=16,volH=34;
+  var pw=w-padL-padR,ph=h-padT-padB-volH;
+  var hi=Math.max.apply(null,hs),lo=Math.min.apply(null,ls);
+  var span=hi-lo||1;var padSpan=span*0.08;hi+=padSpan;lo-=padSpan;
+  function X(i){return padL+i*(pw/N)}
+  function Y(v){return padT+(hi-v)/(hi-lo)*ph}
+  function Yv(v){var mx=Math.max.apply(null,vs)||1;return padT+ph+volH-(v/mx)*volH}
+  ctx.clearRect(0,0,w,h);
+  ctx.strokeStyle="#e2e6ec";ctx.lineWidth=1;
+  for(var g=0;g<=4;g++){var yy=padT+ph*g/4;ctx.beginPath();ctx.moveTo(padL,yy);ctx.lineTo(w-padR,yy);ctx.stroke()}
+  var bw=Math.max(1,pw/N*0.62);
+  for(var i=0;i<N;i++){
+    var up=cs[i]>=os[i];var col=up?"#e53935":"#2e7d32";
+    ctx.strokeStyle=col;ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(X(i),Y(hs[i]));ctx.lineTo(X(i),Y(ls[i]));ctx.stroke();
+    ctx.fillStyle=col;
+    ctx.fillRect(X(i)-bw/2,Y(Math.max(os[i],cs[i])),bw,Math.max(1,Math.abs(Y(os[i])-Y(cs[i]))));
+    ctx.fillStyle=up?"rgba(229,57,53,.55)":"rgba(46,125,50,.55)";
+    ctx.fillRect(X(i)-bw/2,Yv(vs[i]),bw,Math.max(1,Yv(0)-Yv(vs[i])));
+  }
+  function line(arr,p,color){ctx.strokeStyle=color;ctx.lineWidth=1.2;ctx.beginPath();var drawn=false;
+    for(var i=0;i<N;i++){var v=arr[start+i];if(v==null||isNaN(v))continue;if(!drawn){ctx.moveTo(X(i),Y(v));drawn=true}else ctx.lineTo(X(i),Y(v))}
+    if(drawn)ctx.stroke()}
+  line(a.ma5,5,"#fb8c00");line(a.ma10,10,"#1e88e5");line(a.ma20,20,"#8e24aa");
+  function hline(v,color,label){
+    if(v==null||isNaN(v))return;
+    ctx.strokeStyle=color;ctx.setLineDash([5,4]);ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(padL,Y(v));ctx.lineTo(w-padR,Y(v));ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle=color;ctx.font="10px Microsoft YaHei";
+    ctx.fillText(label+" "+num(v,2),w-padR+4,Y(v)-3);
+  }
+  hline(a.levels.p1,"#c62828","压力");
+  hline(a.levels.s1,"#2e7d32","支撑");
+  hline(a.levels.s2,"#2e7d32","MA20");
+  var lb="MA5橙 MA10蓝 MA20紫";
+  ctx.fillStyle="#5a6472";ctx.font="10px Microsoft YaHei";ctx.fillText(lb,padL,h-4);
+}
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function copyBrief(){
+  if(!LAST.picks.length){alert("先扫描出结果再复制");return}
+  var lines=[];
+  lines.push("北证每日跟踪 · "+LAST.date+"（数据截至 "+LAST.asof+" 收盘）");
+  lines.push("");lines.push("## 今日推荐（低风险优选）");
+  LAST.picks.forEach(function(c,i){
+    var a=c.A,s=c.snap;
+    lines.push("**"+(i+1)+". "+c.name+"("+c.code+")** 现价"+num(c.price,2)+"（"+pct(c.pct)+"）| 位置"+num(a.pos*100,0)+"% | 市值"+money(c.mcap)+" | 5日"+pct(a.chg5)+" | "+(s?"AI综合分"+num(s.score,0):"本地分"+a.score));
+    lines.push("- 形态："+tagText(a));
+    lines.push("- 技术位：支撑"+num(a.levels.s1,2)+"/"+num(a.levels.s2,2)+"、压力"+num(a.levels.p1,2)+"/"+num(a.levels.p2,2)+"、止损"+num(a.levels.stop,2));
+    lines.push("- 逻辑："+reasonOf(c));
+  });
+  lines.push("");lines.push("## 备选");
+  LAST.runners.slice(0,5).forEach(function(c){lines.push("- "+c.name+"("+c.code+") "+num(c.A.score,0)+"分 位置"+num(c.A.pos*100,0)+"%")});
+  lines.push("");lines.push("⚠ 不构成投资建议；30CM波动大，破止损或单日放量长阴-8%无条件离场。");
+  var txt=lines.join("\n");
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){alert("已复制到剪贴板")})}
+  else{var ta=document.createElement("textarea");ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand("copy");ta.remove();alert("已复制到剪贴板")}
+}
+function tagText(a){
+  var t=[];
+  if(a.patterns.surgeStart)t.push("底部放量异动"+(a.surgeDaysAgo||0)+"天前启动");
+  if(a.patterns.pullback)t.push("异动拉升→回踩企稳");
+  if(a.patterns.smallYang)t.push("一路小阳");
+  if(a.patterns.baseUp)t.push("底部走多·均线上拐");
+  if(a.patterns.tightBurst)t.push("均线粘合发散");
+  if(a.patterns.notHot)t.push("未大幅拉升");
+  if(a.hot)t.push("主线:"+a.hotName);
+  if(a.kwHits&&a.kwHits.length)t.push("题材:"+a.kwHits.join("/"));
+  return t.join("、")||"形态健康";
+}function runScan(){
+  if(RUN.active){log("已有扫描进行中");return}
+  saveCfg();tokState();
+  RUN.cancelled=false;RUN.active=true;
+  $("btn-run").disabled=true;$("btn-cancel").disabled=false;
+  $("result-card").style.display="none";
+  $("log").textContent="";
+  setProg(0,0,"初始化");
+  (async function(){
+    var t0=Date.now();
+    try{
+      log("① 拉取北交所全量 + 热门板块榜（主线共振）…");
+      var list=await jsonpList();
+      await loadHotSectors();
+      log("全市场 "+list.total+" 只；热门板块 "+HOT.list.length+" 个（5日≥"+CFG.hotPct+"%）："+(HOT.list.slice(0,6).map(function(x){return x.name}).join("/")||"无")+"…");
+      var cands=[];
+      list.rows.forEach(function(r){var c=coarse(r);if(c)cands.push(c)});
+      if(CFG.mainline==="must"){log("主线=必须命中（热门板块/题材关键词/强势资金 三选一，精筛阶段判定）")}
+      cands.sort(function(x,y){return y.amount-x.amount});
+      if(cands.length>CFG.cap)cands=cands.slice(0,CFG.cap);
+      log("粗筛候选 "+cands.length+" 只（市值"+CFG.mcapMin+"~"+CFG.mcapMax+"亿/成交≥"+CFG.amountMin+"万/非ST"+(CFG.mainline==="must"?"/主线必中":"")+"）→ 逐只拉K线形态体检");
+      var fine=[];
+      for(var i=0;i<cands.length;i++){
+        if(RUN.cancelled){log("已停止");return}
+        var c=cands[i];
+        setProg(i,cands.length,"② K线形态体检");
+        if(i%10===0)log("体检 "+c.code+" "+c.name+"（"+(i+1)+"/"+cands.length+"）");
+        try{
+          var bars=await fetchKline(c.code);
+          if(RUN.cancelled)return;
+          c.A=analyze(bars,c);
+          c.bars=bars;
+          if(c.bars&&c.bars.length)c.lastDate=c.bars[c.bars.length-1][0];
+          var a=c.A;
+          var mustStart=(a.patterns.surgeStart||a.patterns.smallYang||(a.patterns.baseUp&&(a.vol5v20>=1.15||a.volRatio>=1.2)));
+          var lineOk=CFG.mainline!=="must"||c.hot||(c.kwHits&&c.kwHits.length)||(a.chg5>=8&&c.amount>=5e7&&a.volRatio>=1.2);
+          if(a.pos<=CFG.posMax/100&&a.chg5<=CFG.max5d&&a.chg10<=CFG.max10d&&a.chg20<=CFG.max20d&&a.chg60<=CFG.max60d&&c.turnover>=CFG.turnMin&&c.turnover<=CFG.turnMax&&mustStart&&lineOk&&a.score>=50){
+            fine.push(c);
+          }
+        }catch(e){
+          if(String(e.message).indexOf("401")>=0){log("⚠ "+e.message+" → 请先设置 token");break}
+          if(i<3)log("跳过 "+c.code+"："+e.message);
+        }
+        await sleep(2100);
+      }
+      setProg(cands.length,cands.length,"");
+      log("形态体检完成，合格 "+fine.length+" 只");
+      if(!fine.length){log("无合格标的：行情可能整体偏弱或参数过严");return}
+      fine.sort(function(x,y){return y.A.score-x.A.score});
+      var finals=fine.slice(0,CFG.aiTop);
+      if(CFG.aiOk&&getToken()){
+        log("③ AI行情官 快照复核前 "+finals.length+" 名（约 "+(finals.length*7)+"s，尊重后端 10 次/分钟限流）");
+        for(var i=0;i<finals.length;i++){
+          if(RUN.cancelled)return;
+          var c=finals[i];
+          setProg(i,finals.length,"③ AI评分确认");
+          try{
+            c.snap=await fetchSnapshot(c.code);
+            if(c.snap){
+              var s=c.snap.score||0;
+              c.final=Math.round(c.A.score*0.55+s*0.45-(c.snap.risks?c.snap.risks.length*8:0));
+              log("AI "+c.code+" "+c.name+"：综合分 "+num(s,0)+" 本地 "+c.A.score+" → 最终 "+c.final+(c.snap.risks&&c.snap.risks.length?"（风险:"+c.snap.risks.join("/")+"）":"（零风险）"));
+            }
+          }catch(e){
+            log("AI 复核跳过 "+c.code+"："+e.message);
+          }
+          await sleep(7000);
+        }
+      } else {
+        log("未启用/无 token：按本地形态分排序（AI 复核已跳过）");
+      }
+      fine.forEach(function(c){if(c.final==null)c.final=c.A.score});
+      function riskOf(c){
+        if(c.snap&&c.snap.risks&&c.snap.risks.length)return true;
+        if(!c.snap&&c.A.risks.length)return true;
+        return false;
+      }
+      var clean=fine.filter(function(c){return !riskOf(c)});
+      var risky=fine.filter(riskOf);
+      clean.sort(function(x,y){return y.final-x.final});
+      risky.sort(function(x,y){return y.final-x.final});
+      var picks=clean.slice(0,CFG.topN);
+      if(picks.length<CFG.topN){
+        risky.forEach(function(c){if(picks.length<CFG.topN)picks.push(c)});
+        log('⚠ 零风险标的不足'+CFG.topN+'只，已补入有风险标签的次选（谨慎）');
+      }
+      var picked={};picks.forEach(function(c){picked[c.code]=1});
+      var all=fine.slice().sort(function(x,y){return y.final-x.final});
+      var runners=all.filter(function(c){return !picked[c.code]}).slice(0,10);
+      picks.forEach(function(c,i){c.rank=i+1});
+      LAST.picks=picks;LAST.runners=runners;
+      LAST.asof=(picks[0]&&picks[0].lastDate)||fmtDate();
+      LAST.date=fmtDate();
+      $("asof").textContent=LAST.asof;
+      $("result-card").style.display="block";
+      renderPicks();
+      log("完成！推荐 "+picks.length+" 只，耗时 "+Math.round((Date.now()-t0)/1000)+"s");
+    }catch(e){
+      log("❌ 扫描失败："+e.message);
+    }finally{
+      RUN.active=false;
+      $("btn-run").disabled=false;$("btn-cancel").disabled=true;
+      if(LAST.picks.length){
+        try{localStorage.setItem("bj_tracker_last_run_date",fmtDate())}catch(e){}
+        persistResult();
+        saveHist(true);
+        log("结果已自动保存：晚上打开本页可直接查看今日筛选");
+      }
+    }
+  })();
+}
+function saveHist(silent){
+  if(!LAST.picks.length){if(!silent)alert("没有可保存的结果");return}
+  try{
+    var list=JSON.parse(localStorage.getItem(HIST_KEY)||"[]");
+    list=list.filter(function(x){return x.date!==LAST.date});
+    list.unshift({date:LAST.date,asof:LAST.asof,ts:Date.now(),
+      picks:LAST.picks.map(function(c){return {code:c.code,name:c.name,price:c.price,pct:c.pct,score:c.final,pos:c.A.pos,chg5:c.A.chg5,mcap:c.mcap,stop:c.A.levels.stop}})});
+    if(list.length>30)list=list.slice(0,30);
+    localStorage.setItem(HIST_KEY,JSON.stringify(list));
+    renderHist();
+    if(!silent)alert("已存入历史");
+  }catch(e){if(!silent)alert("保存失败："+e.message)}
+}
+function renderHist(){
+  var box=$("hist");
+  try{
+    var list=JSON.parse(localStorage.getItem(HIST_KEY)||"[]");
+    if(!list.length){box.innerHTML='<div class="sub">暂无历史记录</div>';return}
+    var h="";
+    list.forEach(function(it){
+      var codes=it.picks.map(function(p){return '<b>'+p.name+'</b>('+p.code+')'}).join("　");
+      h+='<div class="hist-item"><b>'+it.date+'</b><span class="codes">'+codes+'</span>'+
+         '<span class="sub">数据截至 '+it.asof+'</span>'+
+         '<span class="sub" style="margin-left:auto">'+new Date(it.ts).toLocaleString()+'</span></div>';
+    });
+    box.innerHTML=h;
+  }catch(e){box.innerHTML='<div class="sub">读取失败</div>'}
+}
+function planMinutes(){var m=String(CFG.planTime||"15:35").match(/(\d{1,2}):(\d{2})/);return m?(+m[1]*60+ +m[2]):935}
+function todayStatus(){
+  var today=fmtDate();
+  var ran=null;try{ran=localStorage.getItem("bj_tracker_last_run_date")}catch(e){}
+  var d=new Date();
+  if(ran===today)return "今日已扫描，打开即展示最新结果";
+  if(d.getDay()===0||d.getDay()===6)return "非交易日（周末），结果保持最近交易日";
+  if(d.getHours()*60+d.getMinutes()>=planMinutes())return "已过 "+CFG.planTime+"：自动扫描中…（首次打开约等几分钟）";
+  return "今日未扫描 · 交易日 "+CFG.planTime+" 后打开本页自动扫描（或点「开始扫描」）";
+}
+function maybeAutoScan(){
+  if(RUN.active)return;
+  if(!CFG.autoScan)return;
+  var d=new Date();
+  if(d.getDay()===0||d.getDay()===6)return;
+  var today=fmtDate();
+  try{if(localStorage.getItem("bj_tracker_last_run_date")===today)return}catch(e){}
+  if(d.getHours()*60+d.getMinutes()>=planMinutes()){
+    log("⏰ 已到自动扫描时间（"+CFG.planTime+"），自动开始…");
+    runScan();
+  }
+}
+function persistResult(){
+  if(!LAST.picks.length)return;
+  try{
+    var slim={date:LAST.date,asof:LAST.asof,ts:Date.now(),
+      picks:LAST.picks.map(function(c){return {rank:c.rank,code:c.code,name:c.name,price:c.price,pct:c.pct,amount:c.amount,mcap:c.mcap,turnover:c.turnover,volRatio:c.volRatio,lastDate:c.lastDate,A:c.A,snap:c.snap,final:c.final}}),
+      runners:LAST.runners.map(function(c){return {code:c.code,name:c.name,price:c.price,pct:c.pct,amount:c.amount,mcap:c.mcap,final:c.final,
+        A:{score:c.A.score,pos:c.A.pos,chg5:c.A.chg5,chg10:c.A.chg10,chg20:c.A.chg20,levels:c.A.levels,patterns:c.A.patterns,risks:c.A.risks,kwHits:c.A.kwHits},snap:c.snap}})
+    };
+    localStorage.setItem("bj_tracker_last_result",JSON.stringify(slim));
+  }catch(e){log("结果持久化失败："+e.message)}
+}
+function restoreResult(){
+  try{
+    var s=localStorage.getItem("bj_tracker_last_result");
+    if(!s)return false;
+    var r=JSON.parse(s);
+    if(!r||!r.picks||!r.picks.length)return false;
+    LAST.picks=r.picks;LAST.runners=r.runners||[];LAST.date=r.date;LAST.asof=r.asof;
+    $("asof").textContent=r.asof;
+    $("result-card").style.display="block";
+    renderPicks();
+    return true;
+  }catch(e){return false}
+}
+function init(){
+  loadCfg();tokState();renderHist();
+  var restored=restoreResult();
+  $("progtext").textContent=restored?("已自动加载 "+LAST.date+" 结果（数据截至 "+LAST.asof+" 收盘；每晚收盘后刷新本页即可）"):todayStatus();
+  maybeAutoScan();
+  setInterval(maybeAutoScan,60000);
+  $("btn-run").addEventListener("click",runScan);
+  $("btn-cancel").addEventListener("click",function(){RUN.cancelled=true;log("正在停止（等待当前请求返回）…")});
+  $("btn-copy").addEventListener("click",copyBrief);
+  $("btn-savehist").addEventListener("click",saveHist);
+  $("tokedit").addEventListener("click",function(){$("tokbox").classList.toggle("open")});
+  $("btn-toksave").addEventListener("click",function(){
+    var v=String($("tokinput").value||"").trim();
+    if(v){try{localStorage.setItem("ai24x_a_token",v)}catch(e){}}
+    $("tokbox").classList.remove("open");tokState();log("token 已保存（localStorage）");
+  });
+  $("cfg-toggle").addEventListener("click",function(){$("cfg-body").classList.toggle("open");this.textContent=this.textContent.indexOf("▾")>=0?"⚙ 参数设置 ▴":"⚙ 参数设置 ▾"});
+}
+document.addEventListener("DOMContentLoaded",init);
+</script>
+</body>
+</html>

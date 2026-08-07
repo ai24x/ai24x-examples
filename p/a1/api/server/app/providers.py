@@ -51,6 +51,46 @@ SINA_KLINE = "https://quotes.sina.cn/cn/api/json_v2.php/CN_MarketDataService.get
 # key: (variant, secid, period, count) -> (expire_ts, payload)
 _KLINE_CACHE: dict[Tuple[str, str, str, int], Tuple[float, Dict[str, Any]]] = {}
 
+# 东财 push2his 共享 keep-alive 客户端：东财对"高频新建 TLS 连接"做 IP 级间歇秒断(RST)，
+# 原先每请求 Connection: close = 每次都新建 TLS 连接，极易触发；复用长连接可大幅降低触发概率。
+_EM_HIS_CLIENT: httpx.AsyncClient | None = None
+_EM_HIS_CLIENT_LOCK = asyncio.Lock()
+
+async def _get_em_his_client() -> httpx.AsyncClient:
+    global _EM_HIS_CLIENT
+    if _EM_HIS_CLIENT is not None:
+        return _EM_HIS_CLIENT
+    async with _EM_HIS_CLIENT_LOCK:
+        if _EM_HIS_CLIENT is None:
+            _EM_HIS_CLIENT = httpx.AsyncClient(
+                timeout=httpx.Timeout(12.0, connect=6.0),
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Referer": "https://quote.eastmoney.com/",
+                    "Connection": "keep-alive",
+                },
+                limits=httpx.Limits(max_connections=6, max_keepalive_connections=6),
+                follow_redirects=True,
+                verify=False,
+            )
+    return _EM_HIS_CLIENT
+
+# 板块K线长缓存：仅成功写入，TTL 30 分钟；失败时回退旧缓存，避免前端"加载失败"。
+_PLATE_CACHE: dict[str, Tuple[float, Dict[str, Any]]] = {}
+_PLATE_CACHE_TTL: float = 1800.0
+
+def _in_trading_window() -> bool:
+    """交易日 09:15-15:30 视为盘中；盘前/盘后/周末允许复用旧缓存。"""
+    try:
+        now = datetime.now()
+        if now.weekday() >= 5:
+            return False
+        hm = now.hour * 60 + now.minute
+        return 9 * 60 + 15 <= hm <= 15 * 60 + 30
+    except Exception:
+        return True
+
+
 _TX_FAILS: list[int] = []
 _TX_OPEN_UNTIL: int = 0
 
@@ -2473,8 +2513,12 @@ def _em_kline_rows_from_payload(payload: Dict[str, Any]) -> list[list[str]]:
     return out
 
 
-async def _fetch_em_plate_klt(client: httpx.AsyncClient, secid: str, klt: int) -> list[list[str]]:
-    t0 = time.perf_counter()
+async def _em_klt_series(secid: str, klt: int, timeout: float) -> list[list[str]]:
+    """从 push2his 拉取单个周期 K 线序列（单轮，不做内部快速重试）。
+
+    东财节流为“时间窗”式：短时间连续新建连接会秒断(RST)，且越快速重试越持续触发；
+    因此重试节奏统一由 _em_kline_day_rows 的整轮间隔控制。
+    """
     params = {
         "fields1": "f1",
         "fields2": "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61",
@@ -2486,111 +2530,468 @@ async def _fetch_em_plate_klt(client: httpx.AsyncClient, secid: str, klt: int) -
         "klt": str(klt),
         "fqt": "1",
     }
-    urls = []
-    try:
-        http_url = EM_PLATE_KLINE.replace("https://", "http://", 1)
-        if http_url != EM_PLATE_KLINE:
-            urls.append(http_url)
-    except Exception:
-        pass
+    urls: list[str] = []
+    http_url = EM_PLATE_KLINE.replace("https://", "http://", 1)
+    if http_url != EM_PLATE_KLINE:
+        urls.append(http_url)
     urls.append(EM_PLATE_KLINE)  # HTTPS as fallback
 
-    for attempt in range(2):
-        url = urls[min(attempt, len(urls) - 1)]
+    client = await _get_em_his_client()
+    last_err: Optional[Exception] = None
+    for url in urls:
+        t0 = time.perf_counter()
         try:
-            r = await client.get(url, params=params)
+            r = await client.get(url, params=params, timeout=timeout)
             r.raise_for_status()
             payload = r.json()
+            rows = _em_kline_rows_from_payload(payload)
+            if not rows:
+                raise ValueError("empty eastmoney kline payload")
             _src_ok("eastmoney.push2his", (time.perf_counter() - t0) * 1000.0)
-            return _em_kline_rows_from_payload(payload)
-        except httpx.RemoteProtocolError as e:
-            _src_fail("eastmoney.push2his", (time.perf_counter() - t0) * 1000.0, f"RemoteProtocolError:{e}")
-            await asyncio.sleep(0.25)
+            return rows
+        except (httpx.RemoteProtocolError, httpx.ConnectError, httpx.ReadError) as e:
+            _src_fail("eastmoney.push2his", (time.perf_counter() - t0) * 1000.0, f"{type(e).__name__}:{e}")
+            last_err = e
             continue
         except Exception as e:
             _src_fail("eastmoney.push2his", (time.perf_counter() - t0) * 1000.0, type(e).__name__)
-            raise
-    raise httpx.RemoteProtocolError("eastmoney push2his disconnected")
+            last_err = e
+            break  # 非瞬时错误（如无效 secid），不再重试
+    if last_err is None:
+        last_err = httpx.RemoteProtocolError("eastmoney push2his disconnected")
+    raise last_err
+
+
+# 并发保护：东财 push2his 对并发新连接敏感，全局限流 2 并发，避免批量扫描叠加触发节流。
+_EM_KLINE_SEM = asyncio.Semaphore(2)
+
+
+async def _em_kline_day_rows(secid: str, timeout: float, *, max_rounds: int = 2) -> list[list[str]]:
+    """拉取日线序列；东财时间窗节流时按 3s 间隔整轮重试（每轮仅 1 次请求，不再放大节流）。
+
+    上游纪律：熔断期内直接快速失败（不触网络）；运输层错误标记节流，避免扫描/点击放大探测。"""
+    if _em_his_is_throttled():
+        raise httpx.RemoteProtocolError("eastmoney push2his throttled (fuse)")
+    await _EM_HIS_GATE.acquire()
+    last_err: Optional[Exception] = None
+    for round_no in range(max_rounds):
+        try:
+            async with _EM_KLINE_SEM:
+                return await _em_klt_series(secid, 101, timeout)
+        except (httpx.RemoteProtocolError, httpx.ConnectError, httpx.ReadError) as e:
+            last_err = e
+            _mark_em_his_throttled()
+            if round_no < max_rounds - 1:
+                await asyncio.sleep(3.0)
+        except Exception as e:
+            last_err = e
+            break  # 非运输层错误（如无效 secid）不再重试
+    raise last_err  # type: ignore[misc]
+
+
+def _aggregate_week_month_from_day(day_rows: list[list[str]]) -> tuple[list[list[str]], list[list[str]]]:
+    """从日线聚合周/月线（与 demo.html 前端聚合逻辑一致）：
+    周=周一开市日分组、月=YYYY-MM 分组；bar 日期取组内最后一个交易日；
+    O=组首日开、C=组末日收、H=组内最高、L=组内最低、V=组内成交量之和。
+    返回 (week_rows, month_rows)，格式与日线一致 [date, open, close, high, low, vol]。
+    """
+    from datetime import timedelta
+
+    norm = [r for r in day_rows if isinstance(r, (list, tuple)) and len(r) >= 6]
+    norm_sorted = sorted(norm, key=lambda r: str(r[0]))
+    weeks: dict[str, list[list[str]]] = {}
+    months: dict[str, list[list[str]]] = {}
+    for r in norm_sorted:
+        parts = str(r[0]).split("-")
+        if len(parts) != 3:
+            continue
+        try:
+            y, m, d = int(parts[0]), int(parts[1]), int(parts[2])
+            dt = datetime(y, m, d)
+        except Exception:
+            continue
+        wk_start = (dt - timedelta(days=dt.weekday())).strftime("%Y-%m-%d")
+        weeks.setdefault(wk_start, []).append(r)
+        months.setdefault("%04d-%02d" % (y, m), []).append(r)
+
+    def _agg(chunks: dict[str, list[list[str]]]) -> list[list[str]]:
+        out: list[list[str]] = []
+        for k in sorted(chunks.keys()):
+            chunk = chunks[k]
+            if not chunk:
+                continue
+            o = float(chunk[0][1])
+            last = chunk[-1]
+            c = float(last[2])
+            h = max(float(x[3]) for x in chunk)
+            l = min(float(x[4]) for x in chunk)
+            v = sum(float(x[5]) or 0.0 for x in chunk)
+            out.append([str(last[0]), str(o), str(c), str(h), str(l), str(v)])
+        return out
+
+    return _agg(weeks), _agg(months)
+
+
+# 板块K线 DB 存档：每次成功缓存 7 天；上游节流时回退存档，保证点击板块始终能出图。
+_PLATE_DB_TTL: float = 7 * 24 * 3600.0
+
+
+def _plate_db_key(secid: str, count: int) -> str:
+    return "|".join(["plate_v2", str(secid).upper(), str(int(count))])
+
+
+def _plate_db_key_full(secid: str) -> str:
+    return "|".join(["plate_v2", str(secid).upper(), "full"])
+
+
+def _slice_kline_payload(payload: Dict[str, Any], n: int) -> Dict[str, Any]:
+    """Slice all kline row lists in a Tencent-like payload to the latest n bars."""
+    try:
+        if not isinstance(payload, dict):
+            return payload
+        out = dict(payload)
+        data = payload.get("data")
+        if not isinstance(data, dict):
+            return out
+        data2: Dict[str, Any] = {}
+        for key_pack, pack in data.items():
+            if not isinstance(pack, dict):
+                data2[key_pack] = pack
+                continue
+            pack2: Dict[str, Any] = {}
+            for kk2, vv2 in pack.items():
+                if isinstance(vv2, list) and len(vv2) > n:
+                    pack2[kk2] = vv2[-int(n):]
+                else:
+                    pack2[kk2] = vv2
+            data2[key_pack] = pack2
+        out["data"] = data2
+        return out
+    except Exception:
+        return payload
+
+
+def _plate_db_get(secid: str, count: int) -> Dict[str, Any] | None:
+    """板块K线 DB 存档读取：优先统一 full key，其次旧版 count key，最后前缀扫描取最大一档；
+    返回前按请求 count 截取，保证 count=500/1400/2200 都能命中同一份存档。"""
+    try:
+        sid_u = str(secid).strip().upper()
+        full = db.kline_cache_get(_plate_db_key_full(secid))
+        if isinstance(full, dict) and isinstance(full.get("data"), dict) and full.get("data"):
+            return _slice_kline_payload(full, count)
+        exact = db.kline_cache_get(_plate_db_key(secid, count))
+        if isinstance(exact, dict) and isinstance(exact.get("data"), dict) and exact.get("data"):
+            return _slice_kline_payload(exact, count)
+        for row in db.kline_cache_scan(f"plate_v2|{sid_u}|", 20):
+            p = row.get("payload")
+            if isinstance(p, dict) and isinstance(p.get("data"), dict) and p.get("data"):
+                return _slice_kline_payload(p, count)
+    except Exception:
+        pass
+    return None
+
+
+def _plate_db_put(secid: str, count: int, payload: Dict[str, Any]) -> None:
+    try:
+        # 统一存到 count 无关的 full key，任何请求档位都可复用；旧版 count key 不再写入。
+        db.kline_cache_put(_plate_db_key_full(secid), payload, ttl_s=_PLATE_DB_TTL)
+    except Exception:
+        pass
+
+
+# 东财 push2his 节流熔断：检测到 RST 后短时间不再直连（避免“探测续期”），改走存档/合成。
+_EM_HIS_THROTTLED_UNTIL: float = 0.0
+
+
+def _mark_em_his_throttled(seconds: float = 150.0) -> None:
+    global _EM_HIS_THROTTLED_UNTIL
+    _EM_HIS_THROTTLED_UNTIL = max(_EM_HIS_THROTTLED_UNTIL, time.time() + seconds)
+
+
+def _em_his_is_throttled() -> bool:
+    return time.time() < _EM_HIS_THROTTLED_UNTIL
+
+
+# 上游通道访问纪律：全局最小间隔 + 每分钟滑窗上限，防触发风控/IP 屏蔽。
+class _RateGate:
+    def __init__(self, min_interval_s: float, max_per_minute: int):
+        self.min_interval_s = float(min_interval_s or 0)
+        self.max_per_minute = int(max_per_minute or 0)
+        self._last_ts: float = 0.0
+        self._window: list[float] = []
+        self._lock = asyncio.Lock()
+
+    async def acquire(self) -> None:
+        if self.min_interval_s <= 0 and self.max_per_minute <= 0:
+            return
+        async with self._lock:
+            while True:
+                now = time.time()
+                if self.max_per_minute > 0:
+                    self._window[:] = [t for t in self._window if now - t < 60.0]
+                    if len(self._window) >= self.max_per_minute:
+                        await asyncio.sleep(self._window[0] + 60.0 - now)
+                        continue
+                gap = self._last_ts + self.min_interval_s - time.time()
+                if gap > 0:
+                    await asyncio.sleep(gap)
+                self._last_ts = time.time()
+                if self.max_per_minute > 0:
+                    self._window.append(time.time())
+                return
+
+
+# 各上游源的全局限速规则（保护性默认，可根据实测调整）
+_EM_HIS_GATE = _RateGate(min_interval_s=0.5, max_per_minute=180)    # 东财 push2his K线
+_TX_KLINE_GATE = _RateGate(min_interval_s=0.15, max_per_minute=120) # 腾讯 K线（合成兜底用）
+_EM_DELAY_GATE = _RateGate(min_interval_s=0.25, max_per_minute=90)  # 东财 push2delay 板块成分
+
+
+# 板块K线合成兜底：push2his 被节流且无存档时，用板块成分股（腾讯K线）合成等权指数临时出图。
+_PLATE_RECON_CACHE: dict[str, Tuple[float, Dict[str, Any]]] = {}
+_PLATE_RECON_TTL: float = 900.0
+_PLATE_RECON_SEM = asyncio.Semaphore(2)
+# 合成失败短缓存：某板块近期合成失败时 5 分钟内不重复花 20+ 次请求重试
+_PLATE_RECON_FAIL_EXP: dict[str, float] = {}
+
+
+def _tx_sym_from_code(code: str) -> str | None:
+    c = str(code or "").strip()
+    if c.startswith(("600", "601", "603", "605", "688", "689")):
+        return "sh" + c
+    if c.startswith(("000", "001", "002", "003", "300", "301")):
+        return "sz" + c
+    return None
+
+
+async def _fetch_tx_daily_rows(sym: str, count: int = 130, timeout: float = 8.0) -> list[list[str]]:
+    await _TX_KLINE_GATE.acquire()
+    url = "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get"
+    params = {"param": f"{sym},day,,,{int(count)},qfq"}
+    headers = {"User-Agent": "Mozilla/5.0", "Referer": "https://gu.qq.com/"}
+    async with httpx.AsyncClient(timeout=timeout, headers=headers, verify=False) as client:
+        r = await client.get(url, params=params)
+        r.raise_for_status()
+        j = r.json()
+    data = j.get("data") or {}
+    pack = data.get(sym) or {}
+    rows = pack.get("qfqday") or pack.get("day") or []
+    out: list[list[str]] = []
+    for row in rows:
+        if isinstance(row, list) and len(row) >= 6:
+            out.append([str(row[0]), str(row[1]), str(row[2]), str(row[3]), str(row[4]), str(row[5])])
+    return out
+
+
+async def _fetch_board_members(sid: str, top_n: int = 25, timeout: float = 8.0) -> list[dict[str, Any]]:
+    code = str(sid).strip().upper().replace("90.", "", 1)
+    if not code.startswith("BK"):
+        return []
+    await _EM_DELAY_GATE.acquire()
+    url = "https://push2delay.eastmoney.com/api/qt/clist/get"
+    params = {
+        "pn": "1", "pz": str(max(int(top_n), 10)), "po": "1", "np": "1", "fltt": "2", "invt": "2",
+        "fid": "f20", "fs": f"b:{code}", "fields": "f12,f14,f2,f3,f20",
+        "ut": "fa5fd1943c7b386f172d6893dbfba10b",
+    }
+    headers = {"User-Agent": "Mozilla/5.0", "Referer": "https://quote.eastmoney.com/"}
+    async with httpx.AsyncClient(timeout=timeout, headers=headers, verify=False) as client:
+        r = await client.get(url, params=params)
+        r.raise_for_status()
+        j = r.json()
+    diff = (j.get("data") or {}).get("diff") or []
+    out: list[dict[str, Any]] = []
+    for x in diff:
+        if isinstance(x, dict):
+            out.append({"code": str(x.get("f12") or ""), "name": str(x.get("f14") or ""), "mcap": x.get("f20")})
+    return out[: int(top_n)]
+
+
+async def reconstruct_plate_kline(sid: str, timeout: float = 12.0) -> Dict[str, Any] | None:
+    key = str(sid).strip().upper()
+    now = time.time()
+    cached = _PLATE_RECON_CACHE.get(key)
+    if cached and cached[0] > now:
+        return cached[1]
+    if _PLATE_RECON_FAIL_EXP.get(key, 0.0) > now:
+        return None
+    try:
+        members = await _fetch_board_members(sid, top_n=20)
+        syms: list[tuple[str, str]] = []
+        for m in members:
+            sym = _tx_sym_from_code(m.get("code") or "")
+            if sym:
+                syms.append((sym, m.get("name") or m.get("code")))
+        if len(syms) < 3:
+            _PLATE_RECON_FAIL_EXP[key] = now + 300.0
+            return None
+        rows_by_sym: dict[str, dict[str, list[str]]] = {}
+
+        async def _one(sym: str) -> None:
+            try:
+                async with _PLATE_RECON_SEM:
+                    rows = await _fetch_tx_daily_rows(sym)
+                if rows:
+                    rows_by_sym[sym] = {str(r[0]): r for r in rows}
+            except Exception:
+                pass
+
+        await asyncio.gather(*[_one(s) for s, _ in syms[:20]])
+        if len(rows_by_sym) < 3:
+            _PLATE_RECON_FAIL_EXP[key] = now + 300.0
+            return None
+        # 等权收益率指数构造：每只成分的日收益均值链式成指数（基准 1000），
+        # 避免“高价股主导均价”的失真（如深南电路 340元 vs 其它 10~120元）。
+        all_dates: dict[str, int] = {}
+        for mp in rows_by_sym.values():
+            for dt in mp:
+                all_dates[dt] = all_dates.get(dt, 0) + 1
+        min_cnt = max(3, int(len(rows_by_sym) * 0.6))
+        dates = sorted(dt for dt, cnt in all_dates.items() if cnt >= min_cnt)
+        if not dates:
+            _PLATE_RECON_FAIL_EXP[key] = now + 300.0
+            return None
+        day_rows: list[list[str]] = []
+        prev_close: dict[str, float] = {}
+        idx: float = 1000.0
+        for dt in dates:
+            o_r, c_r, h_r, l_r, v_sum = 0.0, 0.0, 0.0, 0.0, 0.0
+            n = 0
+            for sym, mp in rows_by_sym.items():
+                r = mp.get(dt)
+                if not r:
+                    continue
+                try:
+                    o, c, h, l = float(r[1]), float(r[2]), float(r[3]), float(r[4])
+                    pc = prev_close.get(sym)
+                except Exception:
+                    continue
+                if pc is None or pc <= 0:
+                    prev_close[sym] = c
+                    continue
+                o_r += o / pc - 1.0
+                c_r += c / pc - 1.0
+                h_r += h / pc - 1.0
+                l_r += l / pc - 1.0
+                v_sum += float(r[5]) or 0.0
+                n += 1
+                prev_close[sym] = c
+            if n < max(2, min_cnt - 1):
+                continue
+            o_idx = idx * (1.0 + o_r / n)
+            c_idx = idx * (1.0 + c_r / n)
+            h_idx = idx * (1.0 + h_r / n)
+            l_idx = idx * (1.0 + l_r / n)
+            idx = c_idx
+            day_rows.append([
+                str(dt),
+                "%.2f" % o_idx,
+                "%.2f" % c_idx,
+                "%.2f" % h_idx,
+                "%.2f" % l_idx,
+                str(int(v_sum)),
+            ])
+        if len(day_rows) < 20:
+            _PLATE_RECON_FAIL_EXP[key] = now + 300.0
+            return None
+        w, m = _aggregate_week_month_from_day(day_rows)
+        pack = {"qfqday": day_rows, "day": day_rows, "qfqweek": w, "week": w, "qfqmonth": m, "month": m}
+        payload: Dict[str, Any] = {
+            "code": 0,
+            "data": {key: pack},
+            "_meta": {"reconstructed": True, "members": len(rows_by_sym), "days": len(day_rows)},
+        }
+        _PLATE_RECON_CACHE[key] = (now + _PLATE_RECON_TTL, payload)
+        return payload
+    except Exception:
+        _PLATE_RECON_FAIL_EXP[key] = now + 300.0
+        return None
 
 
 async def fetch_em_plate_kline(
-    secid: str, period: str, count: int = 500, timeout: float = 5.0
+    secid: str, period: str, count: int = 500, timeout: float = 10.0
 ) -> Dict[str, Any]:
     """
     东财板块指数 K 线；返回结构与腾讯 fqkline JSON 接近，便于前端 pickTencentKlineRows 复用。
-    同时返回日/周/月三套序列（周月为东财聚合，与前端自聚合可能略有差异）。
+    同时返回日/周/月三套序列（周月由日线服务端聚合，与前端自聚合结果一致）。
 
-    注意：东财 push2his 在 Windows schannel 下有 SSL 重协商问题（RemoteProtocolError）。
-    此函数快速重试 2 轮后即返回，让浏览器端 JSONP 兜底。
+    稳定性策略（根治 push2his 间歇秒断导致的前端"加载失败"）：
+    - 全局复用单个 keep-alive AsyncClient（避免每次新建 TLS 连接触发东财 IP 级 RST）；
+    - 只拉日线（原来日/周/月三路，每标的 3 次上游请求 → 现在 1 次），周月本地聚合；
+    - 时间窗节流时 4s/8s 整轮重试，不快速连发；
+    - 成功数据进入 _PLATE_CACHE（30 分钟 TTL），失败回退旧缓存。
     """
     sid = str(secid).strip()
     if not is_em_plate_secid(sid):
         raise ValueError("invalid eastmoney plate secid")
     key = sid.upper()
 
-    def _client_opts() -> dict:
-        return {
-            "timeout": timeout,
-            "headers": {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "Referer": "https://quote.eastmoney.com/",
-                "Connection": "close",
-            },
-            "limits": httpx.Limits(max_connections=10, max_keepalive_connections=0),
-            "follow_redirects": True,
-            "verify": False,
-        }
+    # 1) 先尝鲜新长缓存（30 分钟）；仅盘中且缺今日数据时才强制刷新
+    now = time.time()
+    cached = _PLATE_CACHE.get(key)
+    if cached and cached[0] > now:
+        cp = cached[1]
+        if not (_in_trading_window() and _payload_missing_today(cp)):
+            return cp
+        _PLATE_CACHE.pop(key, None)
 
-    last_err: Optional[Exception] = None
-
-    # Fast retry: at most 2 attempts, short sleep between, so frontend timeout isn't triggered.
-    for attempt in range(2):
+    last_err: Exception | None = None
+    if not _em_his_is_throttled():
         try:
-            async with httpx.AsyncClient(**_client_opts()) as client:
-                day_rows, week_rows, month_rows = await asyncio.gather(
-                    _fetch_em_plate_klt(client, sid, 101),
-                    _fetch_em_plate_klt(client, sid, 102),
-                    _fetch_em_plate_klt(client, sid, 103),
-                )
-        except httpx.RemoteProtocolError as e:
-            last_err = e
-            if attempt < 1:
-                await asyncio.sleep(0.5)
-            continue
+            day_rows = await _em_kline_day_rows(sid, timeout, max_rounds=1)
         except Exception as e:
             last_err = e
-            break
+            _mark_em_his_throttled()
+            day_rows = None
+    else:
+        day_rows = None
+    if day_rows is None:
+        # 2) 失败回退（上游节流时不报错）：内存缓存 → DB 7 天存档 → 成分股合成，按旧数据出图。
+        if cached and isinstance(cached[1].get("data"), dict) and cached[1]["data"]:
+            return cached[1]
+        stale = _plate_db_get(sid, count)
+        if stale and isinstance(stale.get("data"), dict) and stale["data"]:
+            try:
+                stale.setdefault("_meta", {})["stale_from_archive"] = True
+            except Exception:
+                pass
+            return stale
+        recon = await reconstruct_plate_kline(sid)
+        if recon is not None:
+            return recon
+        err_name = type(last_err).__name__ if last_err else "RemoteProtocolError"
+        err_msg = str(last_err)[:160] if last_err else "eastmoney push2his throttled"
+        return {"code": -1, "msg": f"eastmoney plate kline temporarily unavailable ({err_name}: {err_msg})", "data": {}}
 
-        def tail(rows: list[list[str]]) -> list[list[str]]:
-            if count > 0 and len(rows) > count:
-                return rows[-count:]
-            return rows
+    def tail(rows: list[list[str]]) -> list[list[str]]:
+        if count > 0 and len(rows) > count:
+            return rows[-count:]
+        return rows
 
-        d = tail(day_rows)
-        w = tail(week_rows)
-        m = tail(month_rows)
-        if not d:
-            return {"code": -1, "msg": "no eastmoney plate kline", "data": {}}
-        # Plate intraday may lag; append a synthetic today bar so UI shows "today" consistently.
-        d2, syn_today = _maybe_append_today_placeholder(d)
-        if syn_today:
-            d = d2
+    d = tail(day_rows)
+    if not d:
+        if cached and isinstance(cached[1].get("data"), dict) and cached[1]["data"]:
+            return cached[1]
+        return {"code": -1, "msg": "no eastmoney plate kline", "data": {}}
+    # Plate intraday may lag; append a synthetic today bar so UI shows "today" consistently.
+    d2, syn_today = _maybe_append_today_placeholder(d)
+    if syn_today:
+        d = d2
 
-        pack: Dict[str, Any] = {
-            "qfqday": d,
-            "day": d,
-            "qfqweek": w,
-            "week": w,
-            "qfqmonth": m,
-            "month": m,
-        }
-        return {"code": 0, "data": {key: pack}}
+    w, m = _aggregate_week_month_from_day(d)
 
-    # All 3 attempts exhausted — return descriptive error so frontend can react.
-    err_name = type(last_err).__name__ if last_err else "unknown"
-    err_msg = str(last_err) if last_err else ""
-    return {"code": -1, "msg": f"eastmoney plate kline temporarily unavailable ({err_name}: {err_msg})", "data": {}}
-
+    pack: Dict[str, Any] = {
+        "qfqday": d,
+        "day": d,
+        "qfqweek": w,
+        "week": w,
+        "qfqmonth": m,
+        "month": m,
+    }
+    payload = {"code": 0, "data": {key: pack}}
+    _PLATE_CACHE[key] = (time.time() + _PLATE_CACHE_TTL, payload)
+    _plate_db_put(sid, count, payload)
+    return payload
 
 def is_em_stock_secid(secid: str) -> bool:
     """
@@ -2611,18 +3012,8 @@ async def fetch_em_stock_kline(
         return {"code": -1, "msg": "invalid eastmoney stock secid", "data": {}}
 
     key = sid.upper()
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Referer": "https://quote.eastmoney.com/",
-        "Connection": "close",
-    }
-    limits = httpx.Limits(max_connections=20, max_keepalive_connections=0)
-    async with httpx.AsyncClient(timeout=timeout, headers=headers, limits=limits, follow_redirects=True, verify=False) as client:
-        day_rows, week_rows, month_rows = await asyncio.gather(
-            _fetch_em_plate_klt(client, sid, 101),
-            _fetch_em_plate_klt(client, sid, 102),
-            _fetch_em_plate_klt(client, sid, 103),
-        )
+    day_rows = await _em_kline_day_rows(sid, timeout)
+    week_rows, month_rows = _aggregate_week_month_from_day(day_rows)
 
     def tail(rows: list[list[str]]) -> list[list[str]]:
         if count > 0 and len(rows) > count:
@@ -2659,18 +3050,8 @@ async def fetch_em_index_kline(
         return {"code": -1, "msg": "invalid eastmoney index secid", "data": {}}
 
     key = sid.upper()
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Referer": "https://quote.eastmoney.com/",
-        "Connection": "close",
-    }
-    limits = httpx.Limits(max_connections=20, max_keepalive_connections=0)
-    async with httpx.AsyncClient(timeout=timeout, headers=headers, limits=limits, follow_redirects=True, verify=False) as client:
-        day_rows, week_rows, month_rows = await asyncio.gather(
-            _fetch_em_plate_klt(client, sid, 101),
-            _fetch_em_plate_klt(client, sid, 102),
-            _fetch_em_plate_klt(client, sid, 103),
-        )
+    day_rows = await _em_kline_day_rows(sid, timeout)
+    week_rows, month_rows = _aggregate_week_month_from_day(day_rows)
 
     def tail(rows: list[list[str]]) -> list[list[str]]:
         if count > 0 and len(rows) > count:

@@ -2649,11 +2649,20 @@ async def api_watchlist_add(body: dict, user_id: int = Depends(get_current_user_
     secid = str(body.get("secid") or "").strip()
     if not secid:
         raise HTTPException(status_code=400, detail="缺少 secid")
+    code = str(body.get("code") or "").strip()
+    name = str(body.get("name") or "").strip()
+    if not code:
+        code = _wl_code_from_secid(secid)
+    if not name and code:
+        try:
+            name = await _wl_resolve_name(secid, code)
+        except Exception:
+            name = ""
     return db.watchlist_add(
         int(user_id),
         secid,
-        str(body.get("code") or ""),
-        str(body.get("name") or ""),
+        code,
+        name,
         str(body.get("note") or ""),
     )
 
@@ -2668,6 +2677,61 @@ async def api_watchlist_remove(body: dict, user_id: int = Depends(get_current_us
 # （K 线内存缓存仅 30s，冷启动需逐票拉日线较慢，故加一层评分结果缓存）
 _WL_SCORE_CACHE: dict[tuple, tuple[float, dict]] = {}
 _WL_SCORE_TTL_S = 300.0
+_WL_NAME_CACHE: dict[str, tuple[float, str]] = {}
+_WL_NAME_TTL_S = 3600.0
+
+
+def _wl_code_from_secid(secid: str) -> str:
+    m = re.search(r"(\d{6})$", str(secid or "").strip())
+    return m.group(1) if m else ""
+
+
+def _wl_normalize_ident(secid: str, code: str, name: str) -> tuple[str, str]:
+    code = str(code or "").strip()
+    name = str(name or "").strip()
+    if not code:
+        code = _wl_code_from_secid(secid)
+    return code, name
+
+
+async def _wl_resolve_name(secid: str, code: str) -> str:
+    """按代码解析标的名称（suggest 补名，带缓存与超时；仅用于自选缺名回填）。"""
+    import asyncio
+    secid = str(secid or "").strip()
+    code = str(code or "").strip()
+    if not code:
+        code = _wl_code_from_secid(secid)
+    if not code:
+        return ""
+    now = time.time()
+    hit = _WL_NAME_CACHE.get(secid) or _WL_NAME_CACHE.get(code)
+    if hit and now - hit[0] < _WL_NAME_TTL_S:
+        return hit[1]
+
+    async def _lookup() -> str:
+        from .providers import fetch_em_suggest, fetch_ths_suggest
+        for payload in (await fetch_em_suggest(code), await fetch_ths_suggest(code)):
+            try:
+                arr = ((payload or {}).get("QuotationCodeTable") or {}).get("Data") or []
+                for it in arr:
+                    if not isinstance(it, dict):
+                        continue
+                    if str(it.get("Code") or "") == code and str(it.get("Name") or "").strip():
+                        return str(it["Name"]).strip()
+            except Exception:
+                continue
+        return ""
+
+    try:
+        name = await asyncio.wait_for(_lookup(), timeout=4.0)
+    except Exception:
+        name = ""
+    if name:
+        if len(_WL_NAME_CACHE) > 1024:
+            _WL_NAME_CACHE.clear()
+        _WL_NAME_CACHE[secid] = (time.time(), name)
+        _WL_NAME_CACHE[code] = (time.time(), name)
+    return name
 
 
 async def _wl_fetch_snapshot(secid: str, code: str, name: str, variant: str, priority_override: str, allow_paid: bool) -> dict:
@@ -2676,7 +2740,10 @@ async def _wl_fetch_snapshot(secid: str, code: str, name: str, variant: str, pri
     from .signals import candles_from_tencent_like_pack
 
     secid = str(secid or "").strip()
-    base = {"secid": secid, "code": str(code or ""), "name": str(name or "")}
+    code, name = _wl_normalize_ident(secid, code, name)
+    if not name:
+        name = await _wl_resolve_name(secid, code)
+    base = {"secid": secid, "code": code, "name": name}
     try:
         payload = await fetch_tx_kline(secid, "day", count=120, timeout=6.0, variant=variant, priority_override=priority_override, allow_paid=allow_paid)
     except Exception as e:
@@ -2809,6 +2876,11 @@ async def api_watchlist_scores(
     async def _score_one(it: dict) -> dict:
         secid = str(it.get("secid") or "")
         base = await _wl_fetch_snapshot(secid, it.get("code"), it.get("name"), variant, priority_override, allow_paid)
+        if str(base.get("code") or "") != str(it.get("code") or "") or str(base.get("name") or "") != str(it.get("name") or ""):
+            try:
+                db.watchlist_patch_ident(int(user_id), secid, str(base.get("code") or ""), str(base.get("name") or ""))
+            except Exception:
+                pass
         if not base.get("error"):
             try:
                 db.consume_quota(
@@ -2847,7 +2919,7 @@ async def api_watchlist_scores(
             continue
         scored.append({
             "secid": str(it.get("secid") or ""),
-            "code": str(it.get("code") or ""),
+            "code": _wl_code_from_secid(str(it.get("secid") or "")) or str(it.get("code") or ""),
             "name": str(it.get("name") or ""),
             "error": "fetch:timeout",
         })
@@ -2918,6 +2990,107 @@ async def api_quote_snapshot(
     snap["market"] = mkt if mkt.get("name") else None
     snap["is_vip"] = is_vip
     return {"ok": True, **snap}
+
+
+@app.get("/api/bj/screener")
+async def api_bj_screener(
+    request: Request,
+    force: int = 0,
+    top_n: int = 5,
+    mcap_min: float = 0,
+    mcap_max: float = 0,
+    amount_min: float = 0,
+    pos_max: float = 0,
+    cap: int = 0,
+    market: str = "bj",
+    user_id: int = Depends(get_current_user_id),
+) -> dict:
+    """掘金（VIP 专属）：北证全市场 / 沪深京全市场扫描 -> 板块先行+主线反推 -> 主推 3 只。
+
+    market=bj 北证全市场（王者1+重点2）；market=all 沪深京“板块先行”两阶段（资金流榜→成分股粗筛→K线精筛），
+    主推“主线龙头 2 + 板块内补涨卡位 2”，小市值底部异动进备选池。
+    算法全部在服务端执行（bj_screener.py），前端仅展示接口返回；非 VIP 一律 403。
+    结果按自然日缓存，force=1 强制重扫。不扣查次（VIP 权益功能），仅做频率限制。
+    """
+    market = str(market or "bj").strip().lower()
+    if market not in ("bj", "all"):
+        market = "bj"
+    _rate_limit(f"bj-screener:{user_id}", 6)
+    try:
+        _auth_ip_rate_limit(request)
+    except Exception:
+        pass
+    db.downgrade_expired_vip_plan(int(user_id))
+    quota = db.get_quota_status(int(user_id))
+    plan = str(quota.get("plan") or "anon").strip().lower()
+    is_vip = plan not in ("", "free", "anon")
+    from .bj_screener import run_scan
+    if not is_vip:
+        # 非 VIP：开放“异动板块”视图（复用当日缓存或轻量扫描），个股分析保持 VIP 专属
+        try:
+            return await run_scan(int(user_id), force=False, cfg_override=None, boards_only=True, market=market)
+        except HTTPException:
+            raise
+        except Exception as e:
+            return {"ok": False, "error": "scan_failed", "message": f"{type(e).__name__}: {str(e)[:160]}"}
+
+    cfg_override: dict = {}
+    if mcap_min > 0:
+        cfg_override["mcapMin"] = float(mcap_min)
+    if mcap_max > 0:
+        cfg_override["mcapMax"] = float(mcap_max)
+    if amount_min > 0:
+        cfg_override["amountMin"] = float(amount_min)
+    if pos_max > 0:
+        cfg_override["posMax"] = float(pos_max)
+    if top_n > 0:
+        cfg_override["topN"] = int(max(3, min(5, top_n)))
+    if cap > 0:
+        cfg_override["cap"] = int(max(30, min(120, cap)))
+    try:
+        return await run_scan(int(user_id), force=bool(force), cfg_override=cfg_override or None, market=market)
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"ok": False, "error": "scan_failed", "message": f"{type(e).__name__}: {str(e)[:160]}"}
+
+
+@app.get("/api/bj/history")
+async def api_bj_history(
+    request: Request,
+    date: str = "",
+    market: str = "bj",
+    user_id: int = Depends(get_current_user_id),
+) -> dict:
+    """掘金历史归档（VIP 专属）：不传 date 返回归档日期摘要，传 date 返回当日完整结果（按市场隔离）。"""
+    market = str(market or "bj").strip().lower()
+    if market not in ("bj", "all"):
+        market = "bj"
+    _rate_limit(f"bj-history:{user_id}", 30)
+    try:
+        _auth_ip_rate_limit(request)
+    except Exception:
+        pass
+    db.downgrade_expired_vip_plan(int(user_id))
+    quota = db.get_quota_status(int(user_id))
+    plan = str(quota.get("plan") or "anon").strip().lower()
+    is_vip = plan not in ("", "free", "anon")
+    if not is_vip:
+        raise HTTPException(status_code=403, detail="北证掘金历史归档为 VIP 专属功能，开通 VIP 后即可使用")
+    from .bj_screener import archive_summary, load_archive
+
+    date = str(date or "").strip()
+    if date:
+        d = load_archive(market, date)
+        if not d:
+            raise HTTPException(status_code=404, detail="未找到该日期的归档记录")
+        d = dict(d)
+        d["ok"] = True
+        d["archive"] = True
+        d["cached"] = True
+        d["vip_required"] = False
+        return d
+    return {"ok": True, "list": archive_summary(market)}
 
 
 @app.get("/api/suggest")
