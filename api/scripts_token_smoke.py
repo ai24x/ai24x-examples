@@ -140,10 +140,14 @@ def main() -> int:
             json={"prompt": "Reply with exactly: SMOKE_OK", "model": "flash"},
         )
         cj = chat.json() if chat.headers.get("content-type", "").startswith("application/json") else {}
+        # 2026-08-07 品牌化适配：对外身份统一为 ai24x（services.py provider="ai24x"），
+        # 不再直报 deepseek；校验改为 200 + 对外身份合法 + 响应确含 SMOKE_OK（链路可用）
         rows.append(
             _ok(
                 "chat_deepseek",
-                chat.status_code == 200 and cj.get("provider") == "deepseek",
+                chat.status_code == 200
+                and cj.get("provider") in ("deepseek", "ai24x")
+                and "SMOKE_OK" in (cj.get("response") or ""),
                 f"status={chat.status_code} provider={cj.get('provider')} model={cj.get('model')} tokens={cj.get('token_count')} resp={(cj.get('response') or '')[:60]}",
             )
         )
