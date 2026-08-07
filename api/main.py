@@ -732,6 +732,14 @@ async def auth_sms_send(request: Request, body: SmsSendRequest, db: Session = De
             cooldown_s=round(remain or 0.0, 1),
         )
 
+    # 邮件语言：请求显式 lang 优先，否则按 Accept-Language 推断（含 zh 即中文，默认中文）
+    req_lang = (body.lang or "").strip().lower()
+    if not req_lang:
+        accept = (request.headers.get("accept-language") or "").lower()
+        req_lang = "zh" if ("zh" in accept or "cn" in accept) else "en"
+    if req_lang not in ("zh", "en"):
+        req_lang = "zh"
+
     code = generate_numeric_code(6)
     # Keep template unchanged (备案), only enrich the {code} variable display.
     # Store/verify still uses the pure numeric code.
@@ -1009,6 +1017,14 @@ async def auth_email_send(request: Request, body: AuthEmailSendRequest):
             dev_code=None,
         )
 
+    # 邮件语言：请求显式 lang 优先，否则按 Accept-Language 推断（含 zh 即中文，默认中文）
+    req_lang = (body.lang or "").strip().lower()
+    if not req_lang:
+        accept = (request.headers.get("accept-language") or "").lower()
+        req_lang = "zh" if ("zh" in accept or "cn" in accept) else "en"
+    if req_lang not in ("zh", "en"):
+        req_lang = "zh"
+
     code = generate_numeric_code(6)
     store_email_otp(em, body.purpose, code, ttl_s=300.0)
     record_email_send_attempt(ip, em)
@@ -1017,7 +1033,7 @@ async def auth_email_send(request: Request, body: AuthEmailSendRequest):
     is_test_mailbox = em.endswith(".local") or em.endswith("@example.com") or em.endswith(".example.com")
 
     if smtp_configured() and not is_test_mailbox:
-        ok, msg = send_otp_email(to_email=em, code=code, purpose=body.purpose)
+        ok, msg = send_otp_email(to_email=em, code=code, purpose=body.purpose, lang=req_lang)
         if not ok:
             # 发信失败：作废本次 OTP；不写入限流，便于改配置后立即重试
             try:

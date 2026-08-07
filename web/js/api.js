@@ -460,9 +460,13 @@
   }
 
   function authEmailSend(payload) {
+    var p = Object.assign({}, payload || {});
+    if (!p.lang) {
+      p.lang = (typeof isZhUi === "function" && isZhUi()) ? "zh" : "en";
+    }
     return request("/v1/auth/email/send", {
       method: "POST",
-      body: JSON.stringify(payload || {}),
+      body: JSON.stringify(p),
     });
   }
 

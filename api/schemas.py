@@ -232,6 +232,7 @@ class AuthRegisterBody(BaseModel):
 class AuthEmailSendRequest(BaseModel):
     email: str = Field(..., min_length=5, max_length=255)
     purpose: Literal["register", "login", "reset"] = Field(default="register")
+    lang: Optional[str] = Field(None, description="zh / en；缺省按 Accept-Language 推断，默认 zh")
 
 
 class AuthEmailSendResponse(BaseModel):

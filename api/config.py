@@ -122,6 +122,14 @@ class Settings(BaseSettings):
     smtp_from: str = Field(default="", validation_alias="SMTP_FROM")
     smtp_use_tls: bool = Field(default=True, validation_alias="SMTP_USE_TLS")
     smtp_use_ssl: bool = Field(default=False, validation_alias="SMTP_USE_SSL")
+    # Backup SMTP (auto fallback when primary fails; e.g. QQ personal mail as emergency backup)
+    smtp_backup_host: str = Field(default="", validation_alias="SMTP_BACKUP_HOST")
+    smtp_backup_port: int = Field(default=587, validation_alias="SMTP_BACKUP_PORT")
+    smtp_backup_user: str = Field(default="", validation_alias="SMTP_BACKUP_USER")
+    smtp_backup_password: str = Field(default="", validation_alias="SMTP_BACKUP_PASSWORD")
+    smtp_backup_from: str = Field(default="", validation_alias="SMTP_BACKUP_FROM")
+    smtp_backup_use_tls: bool = Field(default=True, validation_alias="SMTP_BACKUP_USE_TLS")
+    smtp_backup_use_ssl: bool = Field(default=False, validation_alias="SMTP_BACKUP_USE_SSL")
     email_otp_subject: str = Field(default="【AI24X】验证码", validation_alias="EMAIL_OTP_SUBJECT")
     email_otp_body_template: str = Field(
         default="您的 AI24X {purpose}验证码是：{code}\n\n5 分钟内有效，请勿泄露给他人。\n\n— AI24X",

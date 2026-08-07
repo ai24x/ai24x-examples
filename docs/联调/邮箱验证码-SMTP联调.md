@@ -29,6 +29,14 @@ EMAIL_OTP_SUBJECT=【AI24X】验证码
 pm2 restart core-8000 --update-env
 ```
 
+## 1.5 主备双通道（2026-08-07 新增）
+
+- 支持 **主 SMTP + 备用 SMTP**：主通道失败自动切备用（`email_smtp.py` 已实现）。
+- 推荐：主通道 Zoho Mail（`smtppro.zoho.com:465 SSL 或 587 TLS`，`support@ai24x.com`），备用 QQ 个人邮。
+- 主通道配置：`SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` / `SMTP_FROM` / `SMTP_USE_TLS` / `SMTP_USE_SSL`
+- 备用通道配置（均带 `_BACKUP_`）：`SMTP_BACKUP_HOST` / `SMTP_BACKUP_PORT` / `SMTP_BACKUP_USER` / `SMTP_BACKUP_PASSWORD` / `SMTP_BACKUP_FROM` / `SMTP_BACKUP_USE_TLS` / `SMTP_BACKUP_USE_SSL`
+- 状态接口 `GET /v1/auth/email/status` 新增字段：`smtp_configured`（主）、`smtp_backup_configured`、`smtp_primary`、`smtp_backup`；保留旧 `smtp_host` 兼容。
+- 未配任何 SMTP 时行为不变：非生产走 local 卡片，生产直接失败。
 ## 2. 自检
 
 ```
