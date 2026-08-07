@@ -1,4 +1,4 @@
-﻿## OS / Editor
+## OS / Editor
 .DS_Store
 Thumbs.db
 *.swp
@@ -26,7 +26,10 @@ env/
 **/.env
 **/.env.*
 !**/.env.example
-api/server/data/
+api/server/data/*
+!api/server/data/bj_archive/
+api/server/data/bj_archive/backup_20260807_rename/
+!api/server/data/bj_archive/*.json
 *.db
 *.sqlite
 *.sqlite3
