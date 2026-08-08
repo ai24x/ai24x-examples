@@ -34,10 +34,12 @@ from .ths_fuyao import build_sentiment as _ths_build_sentiment
 
 router = APIRouter()
 
-BASE_DIR = r"E:\AI24X\ai24x-website\ai24x01\p\a1\daily_report"
+# 仓库相对路径（本地/副脑03 通用，03 仅 C 盘无 E 盘）：__file__ = .../p/a1/api/server/app/daily_report.py
+_A1_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+BASE_DIR = os.path.join(_A1_ROOT, "daily_report")
 CFG_PATH = os.path.join(BASE_DIR, "config.json")
 CACHE_ROOT = os.path.join(BASE_DIR, "cache")          # 按日上游数据缓存（沿用原独立服务目录）
-ARCHIVE_ROOT = r"E:\AI24X\ai24x-website\ai24x01\p\a1\调研报告\04-每日跟踪\板块主攻研判"
+ARCHIVE_ROOT = os.path.join(_A1_ROOT, "调研报告", "04-每日跟踪", "板块主攻研判")
 
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 
