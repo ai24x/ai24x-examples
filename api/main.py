@@ -1,6 +1,7 @@
 from pathlib import Path
 import logging
 import os
+import subprocess
 import time
 
 from fastapi import FastAPI, Depends, HTTPException, Request, status
@@ -342,6 +343,30 @@ def get_current_user(
     return user
 
 
+_GIT_COMMIT = None
+_GIT_COMMIT_READ = False
+
+
+def _git_head_short():
+    """启动后首次 /health 读取一次仓库 HEAD（12 位短哈希），失败回落 None。"""
+    global _GIT_COMMIT, _GIT_COMMIT_READ
+    if not _GIT_COMMIT_READ:
+        _GIT_COMMIT_READ = True
+        try:
+            repo = Path(__file__).resolve().parent.parent
+            out = subprocess.run(
+                ["git", "-C", str(repo), "rev-parse", "--short=12", "HEAD"],
+                capture_output=True,
+                text=True,
+                timeout=3,
+            )
+            v = (out.stdout or "").strip()
+            _GIT_COMMIT = v if out.returncode == 0 and v else None
+        except Exception:
+            _GIT_COMMIT = None
+    return _GIT_COMMIT
+
+
 # 健康检查端点
 @app.get("/health")
 async def health_check():
@@ -356,6 +381,7 @@ async def health_check():
     build = (
         (os.environ.get("AI24X_BUILD_STAMP") or "").strip()
         or (os.environ.get("BUILD_STAMP") or "").strip()
+        or _git_head_short()
         or ""
     )
     return {
@@ -363,6 +389,7 @@ async def health_check():
         "service": "AI24X API",
         "version": "1.0.0",
         "build_stamp": build or None,
+        "commit": _git_head_short(),
         "upstream_mode": mode,
         "layers": layers,
         "timestamp": time.time(),
