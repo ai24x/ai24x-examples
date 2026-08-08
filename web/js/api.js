@@ -737,6 +737,11 @@
         ? "Scale 已到账：12 个月名模资格 + 2.5 亿预充额度。" + suffix
         : "Scale ready: 12-month named access + 250M prepaid credits." + suffix;
     }
+    if (planId === "token_value_pack") {
+      return zh
+        ? "超值包已到账：3000 万 credits + 30 天白名单点名资格（白名单内名模可直接点名）。" + suffix
+        : "Value Pack credited: 30M credits + 30-day whitelist named-model access." + suffix;
+    }
     return zh
       ? "支付已确认，已到账。" + suffix
       : "Paid and credited." + suffix;

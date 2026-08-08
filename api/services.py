@@ -164,9 +164,14 @@ class ChatService:
 
             is_vip = False
             route_model = request.model
+            allow_names = None
             if auth_user_id is not None:
                 snap0 = get_balance_snapshot(db, int(auth_user_id))
                 is_vip = bool(snap0.get("is_vip_active"))
+                if not is_vip:
+                    from token_mvp_service import value_pack_allowed_models
+
+                    allow_names = value_pack_allowed_models(db, int(auth_user_id))
             routed_tool_calls = None
             routed_finish = None
             used_shared_catalog = None
@@ -222,6 +227,7 @@ class ChatService:
                     prompt=request.prompt,
                     requested_model=route_model,
                     is_vip=is_vip,
+                    allow_names=allow_names,
                     temperature=float(request.temperature or 0.7),
                     max_tokens=int(request.max_tokens or 1000),
                     region_hint=region_hint,
@@ -449,9 +455,14 @@ class ChatService:
             from model_router import run_routed_chat_stream, public_tier_name
 
             is_vip = False
+            allow_names = None
             if auth_user_id is not None:
                 snap0 = get_balance_snapshot(db, int(auth_user_id))
                 is_vip = bool(snap0.get("is_vip_active"))
+                if not is_vip:
+                    from token_mvp_service import value_pack_allowed_models
+
+                    allow_names = value_pack_allowed_models(db, int(auth_user_id))
 
             used_shared_catalog = None
             if billing_mode == "shared":
@@ -513,6 +524,7 @@ class ChatService:
                     prompt=request.prompt,
                     requested_model=request.model,
                     is_vip=is_vip,
+                    allow_names=allow_names,
                     temperature=float(request.temperature or 0.7),
                     max_tokens=int(request.max_tokens or 1000),
                     region_hint=region_hint,

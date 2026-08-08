@@ -116,7 +116,7 @@ LOGICAL_TO_UPSTREAM_MODEL_OR = {
 
 # 与 S_flash≈$0.35/M 绑定（2026-08-05）：pro≈$1.05、ultra≈$2.10
 # 运行时 L2/L3 可被 model_warehouse override.layer_mult 覆盖
-LAYER_COST_MULT = {"L0": 1, "L1": 1, "L2": 3, "L3": 6, "QI": 1}
+LAYER_COST_MULT = {"L0": 1, "L1": 1, "L2": 3, "L3": 7, "QI": 1}  # ⚠️ 主脑 2026-08-08 修改：L3 6→7，同步 model_warehouse 消除 ultra 低毛利告警
 
 
 def _layer_billing_mult(layer: str) -> int:
@@ -213,7 +213,7 @@ def _route_ok_from_out(
     )
 
 
-def list_models_public(*, is_vip: bool) -> dict[str, Any]:
+def list_models_public(*, is_vip: bool, allow_names: Optional[set[str]] = None) -> dict[str, Any]:
     mode = _upstream_mode()
     l0 = _layer_upstream("L0")
     l1 = _layer_upstream("L1")
@@ -276,7 +276,7 @@ def list_models_public(*, is_vip: bool) -> dict[str, Any]:
             "l2_model": l2.get("model") or None,
             "l3_model": l3.get("model") or None,
         },
-        "vip_picks": _public_vip_picks(is_vip=is_vip),
+        "vip_picks": _public_vip_picks(is_vip=is_vip, allow_names=allow_names),
         "shared": "shared",
         "flash_ref_usd_per_m": _public_flash_ref(),
         "note": "对外档位：auto / flash / pro / ultra / shared；VIP 可点名中国与国际名模（见 vip_picks）。",
@@ -292,11 +292,13 @@ def _public_flash_ref() -> float:
         return 0.35
 
 
-def _public_vip_picks(*, is_vip: bool) -> list[dict[str, Any]]:
+def _public_vip_picks(
+    *, is_vip: bool, allow_names: Optional[set[str]] = None
+) -> list[dict[str, Any]]:
     try:
         from model_warehouse import list_vip_picks_for_user
 
-        return list_vip_picks_for_user(is_vip=is_vip)
+        return list_vip_picks_for_user(is_vip=is_vip, allow_names=allow_names)
     except Exception:
         return []
 
@@ -834,6 +836,7 @@ def run_routed_chat(
     prompt: str,
     requested_model: Optional[str],
     is_vip: bool,
+    allow_names: Optional[set[str]] = None,
     temperature: float = 0.7,
     max_tokens: int = 1000,
     region_hint: Optional[str] = None,
@@ -865,7 +868,10 @@ def run_routed_chat(
         pick_gate_on = False
 
     if pick:
-        if not is_vip:
+        pick_allowed = is_vip or (
+            allow_names is not None and str(pick.get("id") or "") in allow_names
+        )
+        if not pick_allowed:
             return RouteResult(
                 ok=False,
                 text="",
@@ -2115,6 +2121,7 @@ def run_routed_chat_stream(
     prompt: str,
     requested_model: Optional[str],
     is_vip: bool,
+    allow_names: Optional[set[str]] = None,
     temperature: float = 0.7,
     max_tokens: int = 1000,
     region_hint: Optional[str] = None,
@@ -2137,7 +2144,10 @@ def run_routed_chat_stream(
         pick_gate_on = False
 
     if pick:
-        if not is_vip:
+        pick_allowed = is_vip or (
+            allow_names is not None and str(pick.get("id") or "") in allow_names
+        )
+        if not pick_allowed:
             yield {"type": "error", "error": "vip_required"}
             return
         if pick_gate_on:

@@ -51,6 +51,7 @@
     "page.index.tag3": "PayPal · WeChat · Alipay",
     "page.index.tag4": "flash $0.35/M · VIP 点名模",
     "page.index.tagFree": "免费通道 · 永久可用",
+    "page.index.tagValue": "极致性价比 · 超值包 $9.9/3000万",
     "page.index.trust":
       "<strong>OpenAI 兼容</strong> · flash <strong>$0.35/M</strong> · 全球可付 · 多重保障",
     "page.index.callout":
@@ -66,7 +67,7 @@
     "page.index.hero.cta.models": "浏览名模",
     "page.index.hero.cta.a": "VIP 点名模",
     "page.index.start.title": "三步开始",
-    "page.index.start.sub": "注册 → 创建 Key → 请求里填 flash。合适再充值（入门 $2 / 开发包 $20）。",
+    "page.index.start.sub": "注册 → 创建 Key → 请求里填 flash。合适再充值（入门 $2 / 开发包 $20；首发特惠超值包 $9.9/3000万，30 天白名单点名）。",
     "page.index.start.btnConsole": "进入控制台",
     "page.index.sec1.title": "给要性价比的开发者",
     "page.index.sec1.sub": "熟悉的接口形态——不必事事打在旗舰账单上，可切到中国强模。",
@@ -96,7 +97,7 @@
     "page.models.cta.invite": "邀请好友",
     "page.models.foot": "会员可按名称选用中国名模。新用户建议先试 flash。",
     "page.models.groupChina": "中国名模",
-    "page.models.groupChinaHint": "介绍页便于了解；正式调用建议先用 flash / pro，会员可再点名中国模。",
+    "page.models.groupChinaHint": "Kimi / MiMo / MiniMax / GLM / DeepSeek / Qwen 中国名模一览，含能力与调用方式。正式调用建议先用 flash / pro 摸清效果与花费，会员可再点名。",
     "page.models.groupIntl": "国际名模（附属）",
     "page.models.intl.t": "GPT · Claude · Gemini",
     "page.models.intl.p": "VIP 附属能力：可按名称点用国际旗舰与轻量档；倍率更高，消耗更快。主推仍是中国名模。",
@@ -422,7 +423,7 @@
     "page.product.f2t": "用量清楚，价格可预期",
     "page.product.f2p": "按 Token 计费；flash 约 $0.35/百万；余额不足会提示，并有基础限流保护。",
     "page.product.f3t": "名模说明与接入示例",
-    "page.product.f3p": "点名模介绍页，以及 Cursor / Open WebUI / OpenClaw / LobeChat / SDK 示例；开通 Scale 或 VIP 资格包后可点名模。",
+    "page.product.f3p": "VIP 点名模清单页，以及 Cursor / Open WebUI / OpenClaw / LobeChat / SDK 接入示例；开通 Scale 或 VIP 资格包后可点名模。",
     "page.product.matrix.title": "产品入口",
     "page.product.matrix.sub": "国际开发者主用 Token API；行情官是国内另一款应用，可按需打开。",
     "page.product.matrix.open": "打开",
@@ -742,6 +743,7 @@
     "page.index.tag1": "China + Global · All models",
     "page.index.tag2": "Smart routing · Best path",
     "page.index.tagFree": "Free daily channel",
+    "page.index.tagValue": "Value Pack · $9.9/30M credits",
     "page.index.tag3": "PayPal · WeChat · Alipay",
     "page.index.tag4": "Flash $0.35/M · Name any model",
     "page.index.trust":
@@ -760,7 +762,7 @@
     "page.index.hero.cta.a": "VIP named models",
     "page.index.start.title": "Three steps",
     "page.index.start.sub":
-      "Sign up → create a key → call flash. Top up when ready (Starter $2 / Builder $20).",
+      "Sign up → create a key → call flash. Top up when ready (Starter $2 / Builder $20; launch Value Pack $9.9/30M with whitelist named access).",
     "page.index.start.btnConsole": "Open console",
     "page.index.sec1.title": "Built for developers who want value",
     "page.index.sec1.sub":
@@ -797,7 +799,7 @@
     "page.models.cta.invite": "Invite friends",
     "page.models.foot": "Members can pick China models by name. New users: try flash first.",
     "page.models.groupChina": "China models",
-    "page.models.groupChinaHint": "Browse intros here. Prefer flash / pro first; members can then name China models.",
+    "page.models.groupChinaHint": "China models (Kimi / MiMo / MiniMax / GLM / DeepSeek / Qwen) at a glance. Start with flash / pro, then pick by name as a member.",
     "page.models.groupIntl": "International (secondary)",
     "page.models.intl.t": "GPT · Claude · Gemini",
     "page.models.intl.p": "VIP secondary: name international flagship and light tiers. Higher multipliers cost more. China models stay the focus.",

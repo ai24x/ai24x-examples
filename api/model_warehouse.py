@@ -16,7 +16,28 @@ _OVERRIDE_PATH = Path(__file__).resolve().parent / "data" / "model_warehouse_ove
 _AUDIT_PATH = Path(__file__).resolve().parent / "data" / "pricing_audit.jsonl"
 
 # 品牌层默认扣费倍率（相对 flash）；L2/L3 可被 override.layer_mult 覆盖
-_DEFAULT_LAYER_MULT = {"L0": 1, "L1": 1, "L2": 3, "L3": 6, "QI": 1}
+_DEFAULT_LAYER_MULT = {"L0": 1, "L1": 1, "L2": 3, "L3": 7, "QI": 1}  # ⚠️ 主脑 2026-08-08 修改：L3 6→7，消除 price_warn_or_gpt5_mini 低毛利告警
+
+# 极致性价比·超值包（Value Pack）白名单点名模型（catalog id）：
+# 只装「质量过关 + 毛利安全」的低成本名模；国际旗舰（GPT-5/5.4/4o、Claude、Gemini、Grok、Kimi K3）一律不装，防倒挂。
+# 由 token_mvp_service.value_pack_allowed_models 判定资格；白名单随质量与成本基线滚动调整。
+VALUE_PACK_ALLOWED_IDS: frozenset[str] = frozenset(
+    {
+        "vip-hy3",
+        "vip-ds-flash",
+        "vip-ds-pro",
+        "vip-kimi-code",
+        "vip-mimo",
+        "vip-minimax",
+        "vip-qwen-max",
+        "vip-qwen122b",
+        "vip-glm",
+        "vip-gpt4o-mini",
+        "vip-gpt56-terra",
+        "vip-gpt56-luna",
+        "vip-llama4",
+    }
+)
 
 
 def _env_flag(name: str, default: bool = True) -> bool:
@@ -988,9 +1009,12 @@ def resolve_vip_pick(requested_model: Optional[str]) -> Optional[dict[str, Any]]
     return None
 
 
-def list_vip_picks_for_user(*, is_vip: bool) -> list[dict[str, Any]]:
+def list_vip_picks_for_user(
+    *, is_vip: bool, allow_names: Optional[set[str]] = None
+) -> list[dict[str, Any]]:
     """控制台可选点名列表（中国模优先）。非 VIP 也返回目录但 locked。"""
     enabled = vip_pick_enabled()
+    allow_names = set(allow_names or ())
     fx = _usd_cny_fx()
     ref_usd_per_m = flash_ref_usd_per_m()
     out = []
@@ -1028,7 +1052,8 @@ def list_vip_picks_for_user(*, is_vip: bool) -> list[dict[str, Any]]:
                 "blurb": c.get("quality") or "",
                 "blurb_en": c.get("quality_en") or c.get("quality") or "",
                 "group": "intl" if is_intl else "china",
-                "locked": (not is_vip) or (not enabled),
+                "locked": (not (is_vip or (str(c["id"]) in allow_names))) or (not enabled),
+                "value_pack_ok": str(c["id"]) in allow_names,
                 "enabled_platform": enabled,
                 "est_usd_per_m": est_usd,
                 "est_cny_per_m": est_cny,

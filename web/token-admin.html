@@ -1363,6 +1363,7 @@
   }
 
   async function savePlans() {
+    if (!window.confirm("保存改价将立即对用户收银台生效。确认保存？")) return;
     var body = $("plansBody");
     if (!body) return;
     var plans = [];
@@ -1806,12 +1807,14 @@
       setMsg("未填写新密钥（留空表示不改）", "err");
       return;
     }
+    if (!window.confirm("将更新上游密钥覆盖配置并立即生效。确认保存？")) return;
     await api("/v1/admin/token/llm_keys", { method: "POST", body: body });
     setMsg("密钥覆盖已保存（立即生效）", "ok");
     await loadLlmKeys();
   }
 
   async function saveSysFlags() {
+    if (!window.confirm("保存系统开关将立即生效（含在线支付开关）。确认保存？")) return;
     var payOn = !!($("swPayOn") && $("swPayOn").checked);
     var mockOn = !!($("swPayMock") && $("swPayMock").checked);
     var smsOn = !!($("swSmsOn") && $("swSmsOn").checked);
@@ -2100,6 +2103,7 @@
   }
 
   async function saveWarehouse() {
+    if (!window.confirm("保存模型仓库与费率将影响路由与扣费，立即生效。确认保存？")) return;
     var layers = [];
     qsa("#whLayerBody tr[data-layer]").forEach(function (tr) {
       var ly = tr.getAttribute("data-layer");
@@ -3368,6 +3372,7 @@
   }
 
   async function runAlertCheck() {
+    if (!window.confirm("将立即巡检并向飞书推送预警。确认执行？")) return;
     var out = $("alertRunResult");
     if (out) out.innerHTML = "<p class=\x27muted small\x27>巡检中…</p>";
     var r = await api("/v1/admin/token/alerts/run", { method: "POST", body: {} });

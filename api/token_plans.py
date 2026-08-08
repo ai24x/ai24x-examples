@@ -28,6 +28,7 @@ PLAN_PRICE_ENV: dict[str, str] = {
     "token_vip_month": "TOKEN_PRICE_TOKEN_VIP_MONTH_FEN",
     "token_vip_month_50w": "TOKEN_PRICE_TOKEN_VIP_MONTH_50W_FEN",
     "token_pack_mid": "TOKEN_PRICE_TOKEN_PACK_MID_FEN",
+    "token_value_pack": "TOKEN_PRICE_TOKEN_VALUE_PACK_FEN",
 }
 
 # 代码默认（不含运行时价）；价由 _resolve_price_fen 计算
@@ -111,6 +112,34 @@ _PLAN_DEFAULTS: dict[str, dict[str, Any]] = {
         "note_en": (
             "Name models + bulk credits in one: 12-month VIP access + 250M prepaid (valid 12 months). "
             "VIP validity matches the plan term."
+        ),
+    },
+    "token_value_pack": {
+        "title_zh": "极致性价比·超值包",
+        "title_en": "Value Pack",
+        "price_usd": 9.9,
+        "default_fen": None,
+        "credit_tokens": 30_000_000,
+        # 2026-08-08：不开全量 VIP；白名单点名资格由 value_pack 批次单独判定（30 天窗口）
+        "set_vip": False,
+        "value_pack": True,
+        "vip_days": 30,
+        "validity_days": 365,
+        "enabled": True,
+        "promo": True,
+        "promo_max_purchases": 2,
+        "note_zh": (
+            "首发特惠·极致性价比：$9.9 得 3000 万 credits（≈$0.33/百万）+ 30 天白名单点名资格。 "
+            "可点名超值包专属模型（DeepSeek Flash/Pro、GPT-5.6 Luna/Terra、Llama 4、Hy3、GPT-4o mini、"
+            "GLM-5.2、Qwen Max/122B、Kimi K2.7 Code、MiniMax M3、MiMo Pro 等）；不包含国际旗舰点名 "
+            "（GPT-5/5.4/4o、Claude、Gemini、Grok、Kimi K3）。限购 2 份；额度 12 个月有效。白名单随质量与成本滚动调整。"
+        ),
+        "note_en": (
+            "Launch Value Pack: $9.9 for 30M credits (~$0.33/M) + 30-day named-model access to a curated "
+            "whitelist (DeepSeek Flash/Pro, GPT-5.6 Luna/Terra, Llama 4, Hy3, GPT-4o mini, GLM-5.2, "
+            "Qwen Max/122B, Kimi K2.7 Code, MiniMax M3, MiMo Pro). Flagship picks (GPT-5/5.4/4o, Claude, "
+            "Gemini, Grok, Kimi K3) are not included. Max 2 per account; credits valid 12 months. "
+            "The whitelist rotates with quality & cost baselines."
         ),
     },
 }
@@ -202,6 +231,7 @@ def _resolve_plan(plan_id: str) -> dict[str, Any] | None:
         "vip_days",
         "price_usd",
         "creem_product_id",
+        "value_pack",
     ):
         if key in ov and ov[key] is not None:
             p[key] = ov[key]
@@ -256,6 +286,16 @@ def resolved_plans() -> dict[str, dict[str, Any]]:
 TOKEN_PLANS: dict[str, dict[str, Any]] = resolved_plans()
 
 
+def _value_pack_models() -> list[str]:
+    """超值包白名单点名模型（catalog id），与 model_warehouse.VALUE_PACK_ALLOWED_IDS 同源。"""
+    try:
+        from model_warehouse import VALUE_PACK_ALLOWED_IDS
+
+        return sorted(VALUE_PACK_ALLOWED_IDS)
+    except Exception:
+        return []
+
+
 def list_public_plans() -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     fx = _usd_cny()
@@ -295,6 +335,8 @@ def list_public_plans() -> list[dict[str, Any]]:
                 "usd_cny": fx,
                 "credit_tokens": int(p.get("credit_tokens") or 0),
                 "set_vip": bool(p.get("set_vip")),
+                "value_pack": bool(p.get("value_pack")),
+                "value_pack_models": _value_pack_models() if bool(p.get("value_pack")) else None,
                 "vip_days": int(p.get("vip_days") or 0) or None,
                 "validity_days": int(p.get("validity_days") or 0) or None,
                 "note": note_zh,
@@ -306,18 +348,19 @@ def list_public_plans() -> list[dict[str, Any]]:
                 "settle_hint_en": "Pay with PayPal (USD) on the international site",
                 # 前台能力标签（避免用户误会）
                 "cap_credits": int(p.get("credit_tokens") or 0) > 0,
-                "cap_vip": bool(p.get("set_vip")),
-                "cap_named_ready": bool(p.get("set_vip")) and int(p.get("credit_tokens") or 0) > 0,
+                "cap_vip": bool(p.get("set_vip")) or bool(p.get("value_pack")),
+                "cap_named_ready": (bool(p.get("set_vip")) or bool(p.get("value_pack"))) and int(p.get("credit_tokens") or 0) > 0,
                 "recommended": plan_id == "token_vip_month_50w",
             }
         )
     # Scale 优先，其次入门/开发
     _ORDER = {
-        "token_pack_10k": 0,
-        "token_vip_month": 1,
-        "token_pack_100k": 2,
-        "token_pack_mid": 3,
-        "token_vip_month_50w": 4,
+        "token_value_pack": 0,
+        "token_pack_10k": 1,
+        "token_vip_month": 2,
+        "token_pack_100k": 3,
+        "token_pack_mid": 4,
+        "token_vip_month_50w": 5,
     }
     out.sort(key=lambda row: _ORDER.get(str(row.get("plan") or ""), 99))
     return out

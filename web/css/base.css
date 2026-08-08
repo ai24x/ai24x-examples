@@ -317,6 +317,11 @@ body[data-page="register"] .page-main > .section:first-child {
   color: #fff;
   border-color: #0f7b4e;
 }
+.tag-value {
+  background: #d97706;
+  color: #fff;
+  border-color: #d97706;
+}
 
 .badge-dot {
   display: inline-block;

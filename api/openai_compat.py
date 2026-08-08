@@ -996,3 +996,31 @@ def streaming_responses_response(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+def openai_models_payload(pub: dict) -> dict:
+    """OpenAI-compatible /v1/models payload overlaying the private structure.
+
+    Returns {"object": "list", "data": [...]} so OpenAI SDKs/clients can
+    enumerate models, while callers merge this with the existing private
+    fields (layers/brand/chain/...) to keep the web UI working.
+    """
+    seen = {}
+    data = []
+    layers = pub.get("layers") or {}
+    for layer in ("L1", "L2", "L3", "L0", "QI"):
+        for mid in (layers.get(layer) or {}).get("models", []):
+            if mid not in seen:
+                seen[mid] = True
+                data.append({"id": mid, "object": "model", "created": 0, "owned_by": "ai24x", "layer": layer})
+    for mid in ("shared",):
+        if mid not in seen:
+            seen[mid] = True
+            data.append({"id": mid, "object": "model", "created": 0, "owned_by": "ai24x", "layer": "shared"})
+    for pick in pub.get("vip_picks") or []:
+        mid = str(pick.get("model") or "").strip()
+        if mid and mid not in seen:
+            seen[mid] = True
+            data.append({"id": mid, "object": "model", "created": 0, "owned_by": "ai24x", "layer": "vip_pick"})
+    return {"object": "list", "data": data}
+

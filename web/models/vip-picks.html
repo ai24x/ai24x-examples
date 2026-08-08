@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
@@ -47,6 +47,8 @@
       background: rgba(37, 99, 235, 0.08);
       white-space: nowrap;
     }
+    .model-table-wrap td.est-cell { white-space: nowrap; min-width: 190px; }
+    .model-table-wrap th.col-est { white-space: nowrap; min-width: 190px; }
     .pill-vip {
       display: inline-block;
       font-size: 11px;
@@ -71,6 +73,20 @@
         </div>
       </div>
     </section>
+    <section class="section section-tight" id="valuePackBanner" style="display:none;">
+      <div class="container" style="max-width:960px">
+        <div style="border:1px solid rgba(245,158,11,.55);border-radius:12px;background:linear-gradient(135deg,rgba(245,158,11,.10),rgba(37,99,235,.06));padding:16px 18px;">
+          <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;">
+            <div style="min-width:240px;flex:1;">
+              <div style="font-weight:700;font-size:16px;margin-bottom:6px;">⚡ 极致性价比·超值包（Value Pack）<span style="margin-left:6px;font-size:11px;padding:1px 8px;border-radius:999px;border:1px solid rgba(245,158,11,.6);color:#b45309;background:rgba(245,158,11,.12);">首发特惠</span></div>
+              <div class="sub" id="vpDesc" style="margin-top:6px;">…</div>
+              <div class="sub" id="vpModels" style="margin-top:6px;">…</div>
+            </div>
+            <a class="btn btn-primary" href="../pricing.html">查看套餐</a>
+          </div>
+        </div>
+      </div>
+    </section>
     <section class="section">
       <div class="container" style="max-width:960px">
         <h2 data-i18n="page.models.vip.how">怎么用</h2>
@@ -90,7 +106,7 @@
                 <th data-i18n="page.models.vip.col.name">名称</th>
                 <th data-i18n="page.models.vip.col.id">模型名</th>
                 <th data-i18n="page.models.vip.col.mult">倍率</th>
-                <th data-i18n="page.models.vip.col.est">预估消耗</th>
+                <th class="col-est" data-i18n="page.models.vip.col.est">预估消耗</th>
                 <th data-i18n="page.models.vip.col.vision">视觉</th>
                 <th data-i18n="page.models.vip.col.blurb">说明</th>
               </tr>
@@ -104,6 +120,7 @@
         <h2 class="mt-2" data-i18n="page.models.vip.list">名模点名</h2>
         <p class="sub" data-i18n="page.models.vip.listHint">认准某一款时再点名（需套餐含 VIP）。倍率通常更高；预估消耗仅供参考，会随服务更新。</p>
         <div id="vipPriceNote" class="sub" style="margin:8px 0 12px;padding:8px 10px;border:1px dashed rgba(128,128,128,.5);border-radius:6px;background:rgba(128,128,128,.05);"></div>
+        <div id="vipValueBar" class="sub" style="margin:8px 0 12px;padding:10px 12px;border:1px solid rgba(245,158,11,.5);border-radius:8px;background:linear-gradient(135deg,rgba(245,158,11,.09),rgba(37,99,235,.05));"></div>
         <div class="model-table-wrap">
           <table>
             <thead>
@@ -112,7 +129,7 @@
                 <th data-i18n="page.models.vip.col.name">名称</th>
                 <th data-i18n="page.models.vip.col.id">模型名</th>
                 <th data-i18n="page.models.vip.col.mult">倍率</th>
-                <th data-i18n="page.models.vip.col.est">预估消耗</th>
+                <th class="col-est" data-i18n="page.models.vip.col.est">预估消耗</th>
                 <th data-i18n="page.models.vip.col.blurb">说明</th>
                 <th>🖼️</th>
               </tr>
@@ -251,6 +268,39 @@ Header: X-API-Key: YOUR_API_KEY
           : "Why do named picks cost more than official? Official pricing excludes channel & payment compliance, and needs a foreign card + overseas account. AI24X bundles every model under one key with no foreign card needed - and our output side can beat OpenAI (GPT-5.6 Terra output -39%). Final billing: see console.";
       }
 
+      function officialBest(picks) {
+        var best = null;
+        (picks || []).forEach(function (p) {
+          var off = OFFICIAL_PRICE[p.id];
+          if (!off || !(off[1] > 0)) return;
+          var ref = p.flash_ref_usd_per_m != null ? Number(p.flash_ref_usd_per_m) : REF_USD_PER_M;
+          if (!(ref > 0)) ref = REF_USD_PER_M;
+          var outUsd = Number(p.est_out_usd_per_m != null ? p.est_out_usd_per_m : Math.round(ref * (p.out_mult || 1) * 100) / 100);
+          var dOut = off[1] > 0 ? Math.round(((outUsd - off[1]) / off[1]) * 100) : 0;
+          if (dOut <= 0 && (!best || dOut < best.dOut)) best = { title: pickTitle(p), dOut: dOut };
+        });
+        return best;
+      }
+      function fillValueBar(picks) {
+        var el = document.getElementById("vipValueBar");
+        if (!el) return;
+        var zh = isZh();
+        var best = officialBest(picks);
+        var parts = [];
+        if (best) {
+          parts.push(
+            zh
+              ? "点名 " + best.title + "：输出比官方直连省 " + -best.dOut + "%"
+              : best.title + " named: output " + -best.dOut + "% below official"
+          );
+        }
+        parts.push(
+          zh
+            ? "超值包 ≈ 官方 1/2 价、一个 key 聚合全模型、免外币卡"
+            : "Value Pack ≈ half of official, all models under one key, no foreign card"
+        );
+        el.textContent = "⚡ " + parts.join(" ｜ ");
+      }
       function brandRows() {
         var zh = isZh();
         var rows = [
@@ -306,7 +356,7 @@ Header: X-API-Key: YOUR_API_KEY
               esc(r.id) +
               "</td><td>×" +
               esc(r.mult) +
-              "</td><td class='mono small'>" +
+              "</td><td class='mono small est-cell'>" +
               esc(r.est) +
               "</td><td class='sub'>" +
               esc(r.blurb) +
@@ -335,13 +385,18 @@ Header: X-API-Key: YOUR_API_KEY
               g +
               "</span></td><td>" +
               esc(pickTitle(p)) +
+              (p.value_pack_ok
+                ? " <span style='display:inline-block;font-size:10px;padding:0 6px;border-radius:999px;border:1px solid rgba(245,158,11,.6);color:#b45309;background:rgba(245,158,11,.12);white-space:nowrap;'>" +
+                  (zh ? "超值包" : "Value") +
+                  "</span>"
+                : "") + officialBadge(p) +
               "</td><td class='mono'>" +
               esc(p.id) +
               "</td><td class='mono small'>in ×" +
               esc(p.in_mult || p.billing_mult || 1) +
               " · out ×" +
               esc(p.out_mult || p.billing_mult || 1) +
-              "</td><td class='mono small'>" +
+              "</td><td class='mono small est-cell'>" +
               esc(pickEst(p)) +
               "</td><td class='sub'>" +
               esc(pickBlurb(p)) +
@@ -352,9 +407,57 @@ Header: X-API-Key: YOUR_API_KEY
           })
           .join("");
       }
+      function renderValuePackBanner(plans, picks) {
+        var el = document.getElementById("valuePackBanner");
+        if (!el) return;
+        var vp = null;
+        (plans || []).forEach(function (p) {
+          if (p && p.value_pack) vp = p;
+        });
+        if (!vp) {
+          el.style.display = "none";
+          return;
+        }
+        var zh = isZh();
+        var whitelist = vp.value_pack_models || [];
+        var modelNames = [];
+        (picks || []).forEach(function (p) {
+          if (whitelist.indexOf(p.id) >= 0) modelNames.push(pickTitle(p));
+        });
+        var price =
+          window.AI24X_API && AI24X_API.planPriceLabel
+            ? AI24X_API.planPriceLabel(vp)
+            : zh
+              ? "¥71.28"
+              : "$9.9";
+        var credits =
+          window.AI24X_API && AI24X_API.planCreditsShort
+            ? AI24X_API.planCreditsShort(vp)
+            : zh
+              ? "3000 万"
+              : "30M";
+        var desc = zh
+          ? price + " 得 " + credits + " credits + 30 天白名单点名资格（≈官方 1/2 价、输出端更多折扣）。本包可直接点名："
+          : price + " for " + credits + " credits + 30-day whitelist named-model access (≈ half of official pricing, with extra output savings). Included: ";
+        var dEl = document.getElementById("vpDesc");
+        var mEl = document.getElementById("vpModels");
+        if (dEl) dEl.textContent = desc;
+        if (mEl)
+          mEl.textContent = modelNames.length
+            ? modelNames.join(" · ")
+            : zh
+              ? "（加载中…）"
+              : "(loading…)";
+        el.style.display = "";
+      }
+      function refreshBanner() {
+        renderValuePackBanner(cachedPlans && cachedPlans.plans, cachedPicks);
+      }
       var cachedPicks = null;
+      var cachedPlans = null;
       function render(picks) {
         fillPriceNote();
+        fillValueBar(picks);
         var brandEl = document.getElementById("brandTierBody");
         var vipEl = document.getElementById("vipPickAll");
         if (brandEl) brandEl.innerHTML = brandRows();
@@ -380,12 +483,23 @@ Header: X-API-Key: YOUR_API_KEY
             }
             cachedPicks = (m && m.vip_picks) || [];
             render(cachedPicks);
+            if (window.AI24X_API && AI24X_API.billingPlans) {
+              AI24X_API.billingPlans()
+                .then(function (plans) {
+                  cachedPlans = plans;
+                  refreshBanner();
+                })
+                .catch(function () {
+                  /* 套餐接口异常时隐藏横幅，不影响列表 */
+                });
+            }
           })
           .catch(function () {
             vipEl.innerHTML = "<tr><td colspan='6' class='muted'>—</td></tr>";
           });
         document.addEventListener("ai24x:lang", function () {
           render(cachedPicks || []);
+          refreshBanner();
         });
         var langSel =
           document.getElementById("lang-select") ||
@@ -394,6 +508,7 @@ Header: X-API-Key: YOUR_API_KEY
           langSel.addEventListener("change", function () {
             setTimeout(function () {
               render(cachedPicks || []);
+              refreshBanner();
             }, 0);
           });
         }

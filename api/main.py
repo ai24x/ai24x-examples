@@ -134,10 +134,46 @@ app.add_middleware(
 
 
 # 中间件：安全响应头 + 请求日志
+_ADMIN_AUDIT_METHODS = {"POST", "PATCH", "DELETE"}
+_ADMIN_AUDIT_SENSITIVE_HINTS = ("key", "secret", "token", "password")
+
+
+def _admin_audit_body(raw: bytes, max_len: int = 800) -> str:
+    """管理写操作请求体摘要（密钥类字段脱敏）。"""
+    if not raw:
+        return ""
+    text = raw.decode("utf-8", errors="replace")[:max_len]
+    try:
+        import json as _json
+
+        obj = _json.loads(text)
+        if isinstance(obj, dict):
+            for k in list(obj.keys()):
+                kl = k.lower()
+                if any(h in kl for h in _ADMIN_AUDIT_SENSITIVE_HINTS):
+                    obj[k] = "***"
+            return _json.dumps(obj, ensure_ascii=False)[:max_len]
+    except Exception:
+        pass
+    return text
+
+
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start_time = time.time()
     ip_address = sec_client_ip(request)
+    is_admin_write = (
+        request.method in _ADMIN_AUDIT_METHODS
+        and (request.url.path or "").startswith("/v1/admin/")
+    )
+    admin_body = ""
+    if is_admin_write:
+        try:
+            raw = await request.body()
+            request._body = raw  # 放回缓存，保证下游可读
+            admin_body = _admin_audit_body(raw)
+        except Exception:
+            admin_body = ""
     response = await call_next(request)
     for k, v in security_headers().items():
         response.headers.setdefault(k, v)
@@ -148,6 +184,13 @@ async def log_requests(request: Request, call_next):
         f"Time: {process_time:.3f}s - "
         f"IP: {ip_address}"
     )
+    if is_admin_write:
+        admin_key = request.headers.get("x-admin-key", "")
+        admin_tag = f"admin_key={admin_key[:8]}***" if admin_key else "admin_key=(none)"
+        logger.info(
+            f"[ADMIN-AUDIT] {request.method} {request.url.path} "
+            f"Status: {response.status_code} IP: {ip_address} {admin_tag} body={admin_body}"
+        )
     return response
 
 
@@ -2071,15 +2114,20 @@ async def list_models(request: Request, db: Session = Depends(get_db)):
     from model_router import list_models_public
 
     is_vip = False
+    allow_names = None
     try:
         u = _auth_user_from_bearer(request, db)
-        from token_mvp_service import get_balance_snapshot
+        from token_mvp_service import get_balance_snapshot, value_pack_allowed_models
 
         snap = get_balance_snapshot(db, int(u.id))
         is_vip = bool(snap.get("is_vip_active"))
+        if not is_vip:
+            allow_names = value_pack_allowed_models(db, int(u.id))
     except HTTPException:
         pass
-    return list_models_public(is_vip=is_vip)
+    m = list_models_public(is_vip=is_vip, allow_names=allow_names)
+    from openai_compat import openai_models_payload
+    return {**m, **openai_models_payload(m)}
 
 
 @app.post("/v1/billing/wechat/notify")
@@ -2775,5 +2823,7 @@ if __name__ == "__main__":
         port=settings.api_port,
         workers=settings.api_workers,
         # PM2/Windows 下 uvicorn reload 会触发 WinError 6 且日志难定位；统一由进程管理器重启。
-        reload=False
+        reload=False,
+        # 使用应用自身 logging 配置（basicConfig），保留 __main__ 请求/审计日志输出。
+        log_config=None
     )

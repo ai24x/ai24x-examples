@@ -476,6 +476,41 @@ def wallet_vip_active(wallet: TokenWallet) -> bool:
     return exp_naive > _utcnow()
 
 
+VALUE_PACK_ACCESS_DAYS = 30  # 超值包（Value Pack）白名单点名资格有效期（自购买日起）
+
+
+def _lot_value_pack_window_active(lot, now) -> bool:
+    created = lot.created_at if lot is not None else None
+    if created is None:
+        return False
+    created_naive = _as_naive(created)
+    return bool(created_naive) and (created_naive + timedelta(days=VALUE_PACK_ACCESS_DAYS)) > now
+
+
+def value_pack_allowed_models(db: Session, auth_user_id: int) -> Optional[set[str]]:
+    """超值包（Value Pack）白名单点名资格：
+
+    购买 30 天内且仍有未用额度的超值包批次存在时，返回白名单点名模型集合（catalog id）；否则 None。
+    不开全量 VIP——白名单外的名模（国际旗舰等）仍会被路由拒绝（vip_required）。
+    """
+    from model_warehouse import VALUE_PACK_ALLOWED_IDS
+
+    now = _utcnow()
+    lots = (
+        db.query(TokenCreditLot)
+        .filter(
+            TokenCreditLot.auth_user_id == int(auth_user_id),
+            TokenCreditLot.plan == "token_value_pack",
+            TokenCreditLot.amount_remaining > 0,
+            TokenCreditLot.expires_at > now,
+        )
+        .all()
+    )
+    if not any(_lot_value_pack_window_active(lot, now) for lot in lots):
+        return None
+    return set(VALUE_PACK_ALLOWED_IDS)
+
+
 def get_balance_snapshot(db: Session, auth_user_id: int) -> dict:
     w = ensure_period_bonus(db, get_or_create_wallet(db, auth_user_id))
     exp = w.vip_expires_at
@@ -506,6 +541,7 @@ def get_balance_snapshot(db: Session, auth_user_id: int) -> dict:
         "vip_expires_at": exp.isoformat() if exp else None,
         "credits_expire_at": nearest.isoformat() if nearest else None,
         "is_vip_active": wallet_vip_active(w),
+        "is_value_pack_active": bool(value_pack_allowed_models(db, int(auth_user_id))),
     }
     try:
         from free_shared import user_shared_quota_snapshot
