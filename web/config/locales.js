@@ -433,8 +433,10 @@
     "page.product.matrix.api.desc": "全球调用中国名模：统一接口、PayPal（USD）/ 中国本币充值、控制台管理 Key 与用量。",
     "page.product.matrix.api.open": "使用说明",
     "page.product.matrix.api.console": "控制台",
-    "page.product.matrix.more.title": "名模与接入",
-    "page.product.matrix.more.desc": "了解 Kimi / MiMo / MiniMax / GLM 等，或查看 OpenClaw 与 SDK 接入示例。",
+    "page.product.matrix.vip.title": "VIP 名模与接入",
+    "page.product.matrix.vip.desc": "DeepSeek / Kimi / MiMo / MiniMax / GLM / GPT / Claude 名模清单，含 OpenClaw / Cursor / SDK 接入示例。",
+    "page.product.matrix.vip.open": "名模清单",
+    "page.product.matrix.vip.guides": "接入指南",
     "page.pricing.title": "价格计费",
     "page.pricing.sub": "Flash $0.35/百万 token 起；输出端比 GPT 官方省 71-96%（2026-08-05 实抓）。买套餐、充值、管理 Key 都在控制台。支持微信 / 支付宝 / PayPal。",
     "page.pricing.callout":
@@ -1140,9 +1142,11 @@
       "Call China LLMs worldwide: one endpoint, PayPal (USD) globally or China local top-up, console for keys and usage.",
     "page.product.matrix.api.open": "Docs",
     "page.product.matrix.api.console": "Console",
-    "page.product.matrix.more.title": "Models & guides",
-    "page.product.matrix.more.desc":
-      "Learn about Kimi / MiMo / MiniMax / GLM, or open OpenClaw & SDK examples.",
+    "page.product.matrix.vip.title": "VIP Models & Guides",
+    "page.product.matrix.vip.desc":
+      "DeepSeek / Kimi / MiMo / MiniMax / GLM / GPT / Claude lineup plus OpenClaw / Cursor / SDK examples.",
+    "page.product.matrix.vip.open": "VIP Models",
+    "page.product.matrix.vip.guides": "Guides",
     "page.pricing.title": "Pricing",
     "page.pricing.sub": "Flash from $0.35/M. Output costs 71-96% less than GPT official pricing (captured 2026-08-05). Buy a pack, top up, manage keys in the Console. WeChat · Alipay · PayPal.",
     "page.pricing.callout":

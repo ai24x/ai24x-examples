@@ -21,6 +21,12 @@
   <meta name="twitter:image" content="https://www.ai24x.com/img/og-share.png" />
   <link rel="stylesheet" href="css/base.css?v=20260805a" />
   <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260805a" data-base="css/themes/" />
+  <style>
+    .tag-row a.tag { text-decoration: none; cursor: pointer; }
+    .tag-row a.tag-value { color: #fff; }
+    .tag-row a.tag-value:hover { color: #fff; filter: brightness(1.12); text-decoration: none; }
+    .tag-row a.tag-value::after { content: " \2192"; font-weight: 600; }
+  </style>
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -55,7 +61,7 @@
         <div class="tag-row">
           <span class="tag" data-i18n="page.index.tag1">global models · ~$0.35/M</span>
           <span class="tag" data-i18n="page.index.tag2">OpenAI-compatible</span>
-          <span class="tag tag-value" data-i18n="page.index.tagValue">Value Pack · $9.9/30M</span>
+          <a class="tag tag-value" href="pricing.html" data-i18n="page.index.tagValue">Value Pack · $9.9/30M</a>
           <span class="tag tag-free" data-i18n="page.index.tagFree">Free daily channel</span>
         </div>
         <div class="hero-cta">
