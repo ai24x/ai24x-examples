@@ -200,6 +200,7 @@ def _route_hit(source: str) -> None:
 def market_data_status() -> dict[str, Any]:
     return {
         "tencent": {"circuit_open_until": int(_TX_OPEN_UNTIL) if _TX_OPEN_UNTIL else 0, "fails_60s": int(len(_TX_FAILS))},
+        "ths": {"circuit_open_until": int(_THS_OPEN_UNTIL) if _THS_OPEN_UNTIL else 0, "fails_60s": int(len(_THS_FAILS)), "key_bad_until": int(_THS_KEY_BAD_UNTIL)},
         "sources": _SRC,
         "cache": {"mem_entries": int(len(_KLINE_CACHE)), "ttl_s": float(getattr(settings, "kline_cache_ttl_s", 30.0))},
         "paid": {
@@ -844,6 +845,94 @@ def _strip_js_wrapper(s: str) -> str:
     if m2:
         return m2.group(1)
     return s
+
+
+def _secid_to_ths_thscode(secid: str) -> str | None:
+    """内部 secid -> 同花顺 thscode（股票/指数）。"""
+    s = str(secid).strip()
+    if s.lower().startswith(("ths:", "ths.")) or is_em_plate_secid(s):
+        return None
+    sym = secid_to_tencent_symbol(s)
+    if sym.startswith("sh"):
+        return sym[2:] + ".SH"
+    if sym.startswith("sz"):
+        return sym[2:] + ".SZ"
+    if sym.startswith("bj"):
+        return sym[2:] + ".BJ"
+    return None
+
+
+def _ths_is_index(secid: str) -> bool:
+    sym = secid_to_tencent_symbol(str(secid).strip())
+    return bool(re.match(r"^(sh000\d{3}|sz399\d{3}|bj899\d{2})", sym))
+
+
+async def fetch_ths_fuyao_kline(
+    secid: str, period: str, count: int = 500, timeout: float = 10.0
+) -> Dict[str, Any] | None:
+    """同花顺金融数据API 日K -> 标准 tencent-like payload（仅日线，周/月由调用方本地聚合）。"""
+    global _THS_KEY_BAD_UNTIL
+    try:
+        from .ths_fuyao import fuyao_config  # lazy, 避免循环导入
+    except Exception:
+        return None
+    cfg = fuyao_config()
+    if str(cfg.get("enabled") or "").strip().lower() not in ("1", "true", "yes", "on"):
+        return None
+    api_key = cfg["api_key"]
+    if not api_key or time.time() < _THS_KEY_BAD_UNTIL:
+        return None
+    ths_code = _secid_to_ths_thscode(secid)
+    if not ths_code:
+        return None
+    base = str(cfg.get("base_url") or "").rstrip("/") or "https://fuyao.aicubes.cn"
+    path = "/api/a-share-index/prices/historical" if _ths_is_index(secid) else "/api/a-share/prices/historical"
+    await _THS_GATE.acquire()
+    now_ms = int(time.time() * 1000)
+    span_days = max(90, int(count) * 2 + 30)  # 含周末/节假日缓冲
+    start_ms = now_ms - span_days * 86400 * 1000
+    ten_years_ms = 10 * 366 * 86400 * 1000
+    if now_ms - start_ms > ten_years_ms:
+        start_ms = now_ms - ten_years_ms
+    params = {"thscode": ths_code, "interval": "1d", "start": start_ms, "end": now_ms, "adjust": "none"}
+    headers = {"X-api-key": api_key, "User-Agent": "ai24x/1.0"}
+    try:
+        async with httpx.AsyncClient(timeout=timeout, headers=headers) as client:
+            r = await client.get(base + path, params=params)
+            data = r.json()
+    except Exception:
+        return None
+    if not isinstance(data, dict):
+        return None
+    code = data.get("code")
+    if code != 0:
+        if code in (2001, 2003):
+            _THS_KEY_BAD_UNTIL = time.time() + 900.0
+        elif code in (4001, 5002, 5003):
+            _ths_on_fail()
+        return {"code": -1, "msg": f"ths fuyao kline {code}: {data.get('message') or data.get('msg')}", "data": {}}
+    items = (data.get("data") or {}).get("item") or []
+    if not items:
+        return None
+    rows: list[list[str]] = []
+    for it in items:
+        try:
+            d = datetime.fromtimestamp(int(it.get("date_ms") or 0) / 1000)
+            rows.append([
+                d.strftime("%Y-%m-%d"),
+                str(it["open_price"]), str(it["close_price"]),
+                str(it["high_price"]), str(it["low_price"]),
+                str(int(int(it.get("volume") or 0) / 100)),  # 股 -> 手（与腾讯一致）
+            ])
+        except Exception:
+            continue
+    rows.sort(key=lambda x: x[0])
+    if not rows:
+        return None
+    if count > 0 and len(rows) > count:
+        rows = rows[-count:]
+    sym = secid_to_tencent_symbol(secid)
+    return {"code": 0, "data": {sym: {"qfqday": rows}}}
 
 
 def _payload_missing_today(payload: Dict[str, Any]) -> bool:
@@ -2746,6 +2835,31 @@ _EM_HIS_GATE = _RateGate(min_interval_s=0.5, max_per_minute=180)    # 东财 pus
 _TX_KLINE_GATE = _RateGate(min_interval_s=0.15, max_per_minute=120) # 腾讯 K线（合成兜底用）
 _EM_DELAY_GATE = _RateGate(min_interval_s=0.25, max_per_minute=90)  # 东财 push2delay 板块成分
 
+# 同花顺金融数据API（fuyao.aicubes.cn，免费期增强通道）：限流与熔断
+_THS_GATE = _RateGate(min_interval_s=0.2, max_per_minute=60)
+_THS_FAILS: list[int] = []
+_THS_OPEN_UNTIL: int = 0
+_THS_KEY_BAD_UNTIL: float = 0.0
+
+
+def _ths_allow(now: int | None = None) -> bool:
+    now = int(now or time.time())
+    return now >= _THS_OPEN_UNTIL
+
+
+def _ths_on_fail(now: int | None = None) -> None:
+    global _THS_OPEN_UNTIL
+    now = int(now or time.time())
+    _THS_FAILS.append(now)
+    while _THS_FAILS and now - _THS_FAILS[0] > 60:
+        _THS_FAILS.pop(0)
+    if len(_THS_FAILS) >= 3:
+        _THS_OPEN_UNTIL = now + 120
+
+
+def _ths_on_ok(now: int | None = None) -> None:
+    _THS_FAILS.clear()
+
 
 # 板块K线合成兜底：push2his 被节流且无存档时，用板块成分股（腾讯K线）合成等权指数临时出图。
 _PLATE_RECON_CACHE: dict[str, Tuple[float, Dict[str, Any]]] = {}
@@ -3117,6 +3231,37 @@ async def _fetch_tx_kline_core(
                 out.append(it)
         return out
 
+    async def _try_ths() -> Dict[str, Any] | None:
+        if is_ths or period != "day":
+            return None  # 同花顺仅日线；ths: 板块代码走 paid 通道
+        if not _ths_allow():
+            return {"code": -1, "msg": "ths fuyao kline temporarily unavailable (circuit open)", "data": {}}
+        try:
+            t3 = time.perf_counter()
+            fb = await fetch_ths_fuyao_kline(secid, period, count=count, timeout=timeout)
+            if _tencent_payload_has_rows(fb):
+                try:
+                    fb["_meta"] = {
+                        "source": "ths:fuyao",
+                        "variant": str(variant),
+                        "priority": str(priority_override or _effective_priority() or ""),
+                        "ts": int(time.time()),
+                    }
+                except Exception:
+                    pass
+                _route_hit("ths:fuyao")
+                _cache_put(variant, secid, period, count, fb)
+                _ths_on_ok()
+                _src_ok("ths.fuyao", (time.perf_counter() - t3) * 1000.0)
+                return fb
+            if isinstance(fb, dict) and int(fb.get("code") or 0) != 0:
+                return fb
+        except Exception:
+            _src_fail("ths.fuyao", 0.0, "exception")
+            _ths_on_fail()
+            return None
+        return None
+
     async def _try_paid() -> Dict[str, Any] | None:
         if not allow_paid or not _paid_enabled():
             return None
@@ -3274,6 +3419,17 @@ async def _fetch_tx_kline_core(
     is_ths = str(secid).lower().startswith(("ths:", "ths."))
     best_stale: Dict[str, Any] | None = None  # fallback when all sources are stale
     for src in _priority():
+        if src == "ths":
+            if is_ths:
+                continue  # ths: 板块代码已由 paid 通道处理
+            r = await _try_ths()
+            if r is not None and _tencent_payload_has_rows(r):
+                if _payload_missing_today(r) and not is_ths:
+                    if best_stale is None: best_stale = r
+                    continue  # stale — 继续后续源取更新数据
+                return r
+            if r is not None and not _tencent_payload_has_rows(r):
+                last_err = r
         if src == "paid":
             r = await _try_paid()
             if r is not None and _tencent_payload_has_rows(r):

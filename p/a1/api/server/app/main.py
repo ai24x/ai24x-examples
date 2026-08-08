@@ -560,6 +560,11 @@ def _startup() -> None:
         log_admin_security_baseline(settings)
     except Exception:
         logging.getLogger(__name__).exception("admin security baseline check failed")
+    try:
+        from .bj_screener import start_bj_auto_scan
+        start_bj_auto_scan()
+    except Exception:
+        logging.getLogger(__name__).exception("bj auto scan task start failed")
 
 
 @app.get("/health")
@@ -3024,14 +3029,16 @@ async def api_bj_screener(
     quota = db.get_quota_status(int(user_id))
     plan = str(quota.get("plan") or "anon").strip().lower()
     is_vip = plan not in ("", "free", "anon")
-    from .bj_screener import run_scan
+    from .bj_screener import run_scan_dedup
     if not is_vip:
         # 非 VIP：开放“异动板块”视图（复用当日缓存或轻量扫描），个股分析保持 VIP 专属
         try:
-            return await run_scan(int(user_id), force=False, cfg_override=None, boards_only=True, market=market)
+            return await run_scan_dedup(int(user_id), force=False, cfg_override=None, boards_only=True, market=market)
         except HTTPException:
             raise
         except Exception as e:
+            from .bj_screener import mark_scan_failed
+            mark_scan_failed(market, f"\u626b\u63cf\u5931\u8d25: {type(e).__name__}")
             return {"ok": False, "error": "scan_failed", "message": f"{type(e).__name__}: {str(e)[:160]}"}
 
     cfg_override: dict = {}
@@ -3048,11 +3055,32 @@ async def api_bj_screener(
     if cap > 0:
         cfg_override["cap"] = int(max(30, min(120, cap)))
     try:
-        return await run_scan(int(user_id), force=bool(force), cfg_override=cfg_override or None, market=market)
+        return await run_scan_dedup(int(user_id), force=bool(force), cfg_override=cfg_override or None, market=market)
     except HTTPException:
         raise
     except Exception as e:
+        from .bj_screener import mark_scan_failed
+        mark_scan_failed(market, f"\u626b\u63cf\u5931\u8d25: {type(e).__name__}")
         return {"ok": False, "error": "scan_failed", "message": f"{type(e).__name__}: {str(e)[:160]}"}
+
+
+@app.get("/api/bj/screener/progress")
+async def api_bj_screener_progress(
+    request: Request,
+    market: str = "bj",
+    user_id: int = Depends(get_current_user_id),
+) -> dict:
+    """掘金扫描进度（前端进度条轮询）；不扣查次，仅做频率限制。"""
+    market = str(market or "bj").strip().lower()
+    if market not in ("bj", "all"):
+        market = "bj"
+    try:
+        _rate_limit(f"bj-screener-progress:{user_id}", 90)
+        _auth_ip_rate_limit(request)
+    except Exception:
+        pass
+    from .bj_screener import scan_progress
+    return scan_progress(market)
 
 
 @app.get("/api/bj/history")
@@ -4134,3 +4162,10 @@ def admin_user_quota_status(user_id: int, _: bool = Depends(require_admin)) -> d
         pass
     return {"ok": True, "user_id": int(user_id), "quota": db.get_quota_status(int(user_id))}
 
+# ============ 每日板块主攻研判（并入产品后端，路由见 app/daily_report.py） ============
+from .daily_report import router as _daily_report_router
+app.include_router(_daily_report_router)
+
+# ============ 同花顺金融数据服务（hithink-finance / fuyao，免费期增强通道） ============
+from .ths_fuyao import router as _ths_fuyao_router
+app.include_router(_ths_fuyao_router)

@@ -45,7 +45,7 @@
       var base = String(location.origin || "");
       var u = new URL(String(href || ""), base + "/");
       if (!u.searchParams.get("i")) u.searchParams.set("i", code);
-      var p = u.pathname.replace(/^\//, "");
+      var p = u.pathname;
       return p + (u.search ? u.search : "") + (u.hash ? u.hash : "");
     } catch (e) {
       return href;
@@ -158,7 +158,7 @@
     }
 
     var wrap = _el("div", { class: "container header-inner" }, []);
-    var brand = _el("a", { class: "brand", href: "index.html", "aria-label": "AI24X" }, [
+    var brand = _el("a", { class: "brand", href: "/index.html", "aria-label": "AI24X" }, [
       _el("span", { class: "brand-mark", text: "AI" }),
       _el("span", { class: "brand-text brand-text-full", text: "AI 行情官｜灯塔版" }),
       _el("span", { class: "brand-text brand-text-short", text: "AI行情官" }),
@@ -169,17 +169,18 @@
       [_el("span", {}, [])]
     );
     var navMain = _el("nav", { class: "nav-main", id: "nav-main", "aria-label": "Main" }, [
-      nav("index.html", "首页", "index"),
-      nav("demo.html", "行情", "demo"),
-      nav("gd.html", "掘金", "bjscreener"),
-      nav("account.html", "我的", "account"),
-      nav("help.html", "帮助", "help"),
-      nav("feedback.html", "反馈", "feedback"),
+      nav("/index.html", "首页", "index"),
+      nav("/demo.html", "行情", "demo"),
+      nav("/gd.html", "掘金", "bjscreener"),
+      nav("/daily/index.html", "复盘", "daily"),
+      nav("/account.html", "我的", "account"),
+      nav("/help.html", "帮助", "help"),
+      nav("/feedback.html", "反馈", "feedback"),
     ]);
     var actions = _el("div", { class: "header-actions" }, []);
     var authWrap = _el("span", { id: "auth-actions", class: "auth-actions" }, []);
-    authWrap.appendChild(_el("a", { class: "btn btn-ghost btn-auth-login", id: "btn-auth", href: "index.html?mode=login" }, ["登录"]));
-    authWrap.appendChild(_el("a", { class: "btn btn-primary btn-auth-register", id: "btn-vip", href: "index.html?mode=register" }, ["免费注册"]));
+    authWrap.appendChild(_el("a", { class: "btn btn-ghost btn-auth-login", id: "btn-auth", href: "/index.html?mode=login" }, ["登录"]));
+    authWrap.appendChild(_el("a", { class: "btn btn-primary btn-auth-register", id: "btn-vip", href: "/index.html?mode=register" }, ["免费注册"]));
     authWrap.appendChild(_el("button", { type: "button", class: "btn btn-ghost btn-header-logout", id: "btn-header-logout", style: "display:none;" }, ["退出"]));
     actions.appendChild(authWrap);
 
@@ -200,21 +201,21 @@
     ]);
     var c2 = _el("div", { class: "footer-col" }, [
       _el("div", { class: "footer-title", text: "产品" }),
-      _el("a", { href: "demo.html", text: "行情与信号" }),
-      _el("a", { href: "help.html", text: "使用帮助" }),
-      _el("a", { href: "account.html", text: "用户中心" }),
-      _el("a", { href: "feedback.html", text: "意见反馈" }),
+      _el("a", { href: "/demo.html", text: "行情与信号" }),
+      _el("a", { href: "/help.html", text: "使用帮助" }),
+      _el("a", { href: "/account.html", text: "用户中心" }),
+      _el("a", { href: "/feedback.html", text: "意见反馈" }),
     ]);
     var c3 = _el("div", { class: "footer-col" }, [
       _el("div", { class: "footer-title", text: "服务" }),
-      _el("a", { href: "account.html#vip", text: "开通 VIP" }),
-      _el("a", { href: "account.html#invite", text: "邀请奖励" }),
-      _el("a", { href: "partner.html", text: "伙伴合作" }),
+      _el("a", { href: "/account.html#vip", text: "开通 VIP" }),
+      _el("a", { href: "/account.html#invite", text: "邀请奖励" }),
+      _el("a", { href: "/partner.html", text: "伙伴合作" }),
     ]);
     var c4 = _el("div", { class: "footer-col" }, [
       _el("div", { class: "footer-title", text: "合规" }),
-      _el("a", { href: "terms.html", text: "用户协议" }),
-      _el("a", { href: "privacy.html", text: "隐私政策" }),
+      _el("a", { href: "/terms.html", text: "用户协议" }),
+      _el("a", { href: "/privacy.html", text: "隐私政策" }),
       _el("a", { href: "https://beian.miit.gov.cn/", target: "_blank", rel: "noopener", text: "浙ICP备10040624号-7" }),
     ]);
 
@@ -262,7 +263,7 @@
       }
       function authHref(mode) {
         var m = mode === "login" ? "login" : "register";
-        var h = "index.html?mode=" + m;
+        var h = "/index.html?mode=" + m;
         var ic = inviteCode();
         if (ic) h += "&i=" + encodeURIComponent(ic);
         return h;
@@ -348,6 +349,6 @@
 
   }
 
-  global.AI24X_A_SHELL = { mount: mount, applyTheme: applyTheme };
+  global.AI24X_A_SHELL = { mount: mount, applyTheme: applyTheme, getApiBase: getApiBase };
 })(typeof window !== "undefined" ? window : this);
 

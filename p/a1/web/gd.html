@@ -16,9 +16,9 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="/css/base.css?v=44" />
+  <link rel="stylesheet" href="/css/base.css?v=51" />
   <link rel="stylesheet" href="/css/tool.css" />
-  <link rel="stylesheet" href="/css/bjscreener.css?v=7" />
+  <link rel="stylesheet" href="/css/bjscreener.css?v=13" />
 </head>
 <body>
   <header class="site-header" id="site-header"></header>
@@ -26,17 +26,17 @@
     <div class="wrap">
       <section class="card">
         <h1>掘金 <span class="vip-badge">VIP 专属</span></h1>
-        <p class="sub" style="margin:0 0 6px;">每日收盘后自动扫描<strong>沪深京全市场</strong>与<strong>北证全市场</strong>：先看哪些标的在底部异动、反推可能的主线板块，再聚焦<strong>底部刚走多、异动拉升后回踩企稳、一路小阳、未大幅拉升</strong>的标的，逐一体检并排查风险。点击板块即可在 AI行情官查看对应行情。</p>
+        <p class="sub" style="margin:0 0 6px;">每日收盘后自动扫描<strong>沪深京全市场</strong>与<strong>北证全市场</strong>：先看哪些标的在底部异动、归类异动板块观察（主攻主线以「复盘」页为准），再聚焦<strong>底部刚走多、异动拉升后回踩企稳、一路小阳、未大幅拉升</strong>的标的，逐一体检并排查风险。点击板块即可在 AI行情官查看对应行情。</p>
 
         <div id="auth-guest" hidden>
           <div class="gate-hero">
             <div class="gate-title">登录后，每晚收盘解锁「掘金」扫描结果</div>
-            <div class="gate-sub">每晚收盘自动扫描沪深京 / 北证：先看哪些标的在底部异动，反推可能的主线板块，再做多因子体检与风险排查。</div>
+            <div class="gate-sub">每晚收盘自动扫描沪深京 / 北证：先看哪些标的在底部异动、归类异动板块观察（主攻主线以「复盘」页为准），再做多因子体检与风险排查。</div>
           </div>
           <div class="gate-feats">
             <div class="gate-feat"><b>① 每晚自动扫描</b><span>北证 340+ 只 / 沪深京板块成分池，逐一体检</span></div>
             <div class="gate-feat"><b>② 底部异动筛选</b><span>底部刚走多 / 异动回踩企稳 / 一路小阳</span></div>
-            <div class="gate-feat"><b>③ 主线反推</b><span>从异动标的反推热门板块，叠加板块涨幅榜交叉验证</span></div>
+            <div class="gate-feat"><b>③ 异动板块观察</b><span>从异动标的归类热门板块，叠加资金流榜交叉验证；主攻主线以「复盘」页为准</span></div>
             <div class="gate-feat"><b>④ 风险排查 + 波段策略</b><span>硬伤排除、警示提示、中线波段策略参考</span></div>
           </div>
           <div class="auth-card-grid">
@@ -60,6 +60,10 @@
               <button class="btn-blue" id="btn-bj-refresh" type="button">重新扫描</button>
             </span>
           </div>
+          <div class="bj-progress" id="bj-progress" hidden>
+            <div class="bj-progress-bar"><div class="bj-progress-fill" id="bj-progress-fill"></div></div>
+            <div class="bj-progress-text" id="bj-progress-text">正在扫描…</div>
+          </div>
           <div class="bj-tabs" id="bj-tabs">
             <button type="button" class="bj-tab active" data-market="all">沪深京全市场</button>
             <button type="button" class="bj-tab" data-market="bj">北证全市场</button>
@@ -77,7 +81,9 @@
 
           <div id="bj-main" hidden>
             
+            <div id="bj-mainlines"></div>
             <div id="bj-boardrank"></div>
+<div id="bj-ths-sentiment"></div>
             <div id="bj-result"></div>
             <div id="bj-history"></div>
             <div id="bj-picksgate" class="vip-card" hidden>
@@ -93,11 +99,11 @@
     </div>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="/js/shell.js?v=49"></script>
+  <script src="/js/shell.js?v=51"></script>
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("bjscreener"); } catch (e) {}
   </script>
-  <script src="/js/bjscreener.js?v=13"></script>
+  <script src="/js/bjscreener.js?v=22"></script>
   <script>
     (function () {
       var w = window.AI24X_BJScreener;
@@ -107,6 +113,30 @@
       } else {
         w.boot();
       }
+    })();
+  </script>
+  <script>
+    // 邀请码透传：URL(i/invite/inv/ref) -> localStorage；登录/注册/升级链接自动带上
+    (function () {
+      try {
+        var sp = new URLSearchParams(String(location.search || '').replace(/^\?/, ''));
+        var raw = String(sp.get('i') || sp.get('invite') || sp.get('inv') || sp.get('ref') || '').trim().toUpperCase();
+        if (raw) { try { localStorage.setItem('ai24x_invite_code', raw); } catch (e) {} }
+      } catch (e) {}
+      try {
+        var code = String(localStorage.getItem('ai24x_invite_code') || '').trim().toUpperCase();
+        if (!code) return;
+        var links = document.querySelectorAll('a[href]');
+        for (var i = 0; i < links.length; i++) {
+          var a = links[i];
+          var href = a.getAttribute('href') || '';
+          if (!href || href === '#') continue;
+          if (!/(?:\/|^)(index\.html|account\.html|register|login)/i.test(href)) continue;
+          if (/[?&]i=/.test(href) || /[?&]invite=/.test(href)) continue;
+          var sep = href.indexOf('?') >= 0 ? '&' : '?';
+          a.setAttribute('href', href + sep + 'i=' + encodeURIComponent(code));
+        }
+      } catch (e) {}
     })();
   </script>
 </body>

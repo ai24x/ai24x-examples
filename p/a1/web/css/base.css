@@ -180,6 +180,7 @@ a.btn, button.btn {
   position: sticky;
   top: 0;
   z-index: 100;
+  min-height: 60px;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(10px);
@@ -205,12 +206,13 @@ a.btn, button.btn {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font-weight: 900;
+  font-weight: 700;
   color: var(--text);
   white-space: nowrap;
   text-decoration: none;
   min-width: 0;
 }
+.brand-text { font-size: 15px; font-weight: 700; line-height: 1.35; }
 .brand-text-short { display: none; }
 .brand-mark {
   width: 34px;

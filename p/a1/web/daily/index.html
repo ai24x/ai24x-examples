@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="HandheldFriendly" content="true" />
+<meta name="format-detection" content="telephone=no" />
+<title>复盘 · AI行情官｜灯塔版</title>
+<meta name="description" content="AI行情官 复盘：每日收盘后自动生成大盘信号、资金主攻、板块技术体检与主线锁定。大盘与资金面免费可见，板块体检与主线锁定为 VIP 专属。本工具仅基于公开行情做统计与信息整理，不构成投资建议。" />
+<link rel="icon" href="data:," />
+<script>
+(function () {
+  try {
+    var k = "ai24x_a_theme";
+    var t = String(localStorage.getItem(k) || "").trim() || "light";
+    document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="/css/base.css?v=51" />
+<style>
+.page-main .wrap { max-width: min(1360px, 100%); padding: 12px 14px 26px; }
+.daily-top { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.daily-top h1 { margin: 0 0 6px; }
+.daily-top p.sub { margin: 0; }
+.daily-status { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--muted); font-size: 13px; margin-top: 10px; }
+.daily-status b { color: var(--text); font-weight: 700; }
+.vip-badge { display: inline-block; vertical-align: middle; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #3a2c00; background: linear-gradient(135deg, #ffd666, #fbbf24); }
+.badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; background: rgba(96,165,250,.12); color: var(--accent); border: 1px solid rgba(96,165,250,.35); }
+.badge.green { background: rgba(52,211,153,.12); color: var(--fall); border-color: rgba(52,211,153,.35); }
+.badge.gold { background: linear-gradient(135deg, rgba(255,214,102,.25), rgba(251,191,36,.14)); color: #b45309; border: 1px solid rgba(251,191,36,.55); }
+.badge.red { background: rgba(248,113,113,.12); color: var(--rise); border-color: rgba(248,113,113,.35); }
+.notice { background: rgba(251,191,36,.09); border: 1px solid rgba(251,191,36,.35); color: var(--warn); font-size: 13px; padding: 10px 14px; border-radius: 10px; margin: 12px 0; line-height: 1.7; }
+.notice a { color: var(--accent); }
+#prog { height: 8px; background: var(--panel2); border-radius: 4px; overflow: hidden; margin: 12px 0 4px; }
+#prog > div { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--fall)); transition: width .3s; }
+#log { display: none; min-height: 60px; max-height: 180px; overflow: auto; background: #0d1117; color: #c9d8ef; font-size: 12px; font-family: Consolas, monospace; padding: 10px; border-radius: 10px; white-space: pre-wrap; }
+#report { overflow-x: auto; }
+#report table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 10px 0; table-layout: fixed; }
+#report th, #report td { border: 1px solid var(--border); padding: 7px 10px; text-align: left; vertical-align: top; overflow-wrap: break-word; word-break: break-word; }
+#report th.col-rank, #report td.col-rank { width: 48px; text-align: left; white-space: nowrap; }
+#report th.col-name, #report td.col-name { width: 30%; }
+#report th { background: var(--panel2); font-weight: 600; color: var(--text); }
+#report tr:nth-child(even) td { background: rgba(128,140,170,.05); }
+#report h1 { font-size: 20px; color: var(--text); }
+#report h2 { font-size: 16px; margin: 22px 0 10px; border-left: 4px solid var(--accent); padding-left: 10px; color: var(--text); }
+#report h3 { font-size: 14px; color: var(--text); }
+#report .note { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.3); color: var(--warn); font-size: 13px; padding: 8px 12px; border-radius: 10px; margin: 10px 0; }
+#report .note.core { background: linear-gradient(135deg, rgba(251,191,36,.18), rgba(251,191,36,.06)); border: 1px solid rgba(251,191,36,.55); color: var(--text); font-weight: 600; font-size: 14px; }
+#report .note.good { background: rgba(248,113,113,.12); border: 1px solid rgba(248,113,113,.45); color: var(--rise); }
+#report .note.bad { background: rgba(52,211,153,.10); border: 1px solid rgba(52,211,153,.4); color: var(--fall); }
+#report .mainline { background: linear-gradient(135deg, rgba(248,113,113,.18), rgba(248,113,113,.06)); border: 1px solid rgba(248,113,113,.5); border-left: 4px solid var(--rise); color: var(--rise); font-weight: 700; font-size: 15px; padding: 10px 14px; border-radius: 10px; margin: 12px 0; line-height: 1.6; }
+#report .mainline b { color: var(--rise); }
+#report hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+#report code { background: var(--panel2); padding: 1px 5px; border-radius: 5px; font-size: 12px; }
+#report a { color: var(--accent); text-decoration: none; }
+#report a:hover { text-decoration: underline; }
+.hist-item { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; margin: 8px 0; font-size: 13px; }
+.hist-item a { color: var(--accent); text-decoration: none; font-weight: 600; }
+#report details.fold { margin: 14px 0; border: 1px solid var(--border); border-radius: 10px; background: var(--panel2); overflow: hidden; }
+#report details.fold summary { cursor: pointer; list-style: none; padding: 10px 14px; font-size: 15px; font-weight: 700; color: var(--text); border-left: 4px solid var(--accent); }
+#report details.fold summary::-webkit-details-marker { display: none; }
+#report details.fold summary::before { content: "\25b8 "; color: var(--accent); }
+#report details.fold[open] summary::before { content: "\25be "; }
+#report details.fold[open] summary { border-bottom: 1px solid var(--border); }
+#report details.fold h3 { margin: 14px 0 6px; }
+.spin { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: sp 1s linear infinite; vertical-align: -1px; }
+@keyframes sp { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<header class="site-header" id="site-header"></header>
+<main class="page-main">
+  <div class="wrap">
+    <section class="card">
+      <div class="daily-top">
+        <div>
+          <h1>复盘 <span class="vip-badge">大盘 · 主线</span></h1>
+          <p class="sub">每日收盘后自动生成：大盘信号 → 资金主攻 → 板块技术体检 → 主线锁定。大盘与资金面免费可见，板块体检与主线锁定为 VIP 专属。</p>
+        </div>
+        <div class="btns" style="margin:0;">
+          <button class="btn btn-primary" id="btn-run" type="button">▶ 立即生成</button>
+          <button class="btn" id="btn-force" type="button">强制重扫</button>
+        </div>
+      </div>
+      <div class="daily-status">
+        <span>今日：<b id="f-today">—</b></span>
+        <span>数据截至：<b id="f-asof">—</b></span>
+        <span>生成时间：<b id="f-gen">—</b></span>
+        <span>自动更新：<b id="f-next">—</b></span>
+        <span>账户：<b id="f-tok">—</b></span>
+      </div>
+      <div id="notice" class="notice" style="display:none"></div>
+      <div id="prog"><div id="progbar"></div></div>
+      <div id="progtext" class="status">—</div>
+      <div id="log"></div>
+    </section>
+
+    <section class="card">
+      <h2>当日报告</h2>
+      <div id="report"><p class="sub">正在检查…</p></div>
+    </section>
+
+    <section class="card">
+      <h2>往期报告（历史归档）</h2>
+      <div id="history"><p class="sub">加载中…</p></div>
+    </section>
+  </div>
+</main>
+<footer class="site-footer" id="site-footer"></footer>
+<script src="/js/shell.js?v=51"></script>
+<script>
+try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("daily"); } catch (e) {}
+</script>
+<script>
+(function () {
+  var API = (window.AI24X_A_SHELL && AI24X_A_SHELL.getApiBase) ? AI24X_A_SHELL.getApiBase() : '';
+  var pollTimer = null;
+
+  function el(id) { return document.getElementById(id); }
+  function log(msg) { var l = el('log'); l.style.display = 'block'; l.textContent += (msg + '\n'); l.scrollTop = l.scrollHeight; }
+  function token() {
+    try { var t = localStorage.getItem('ai24x_a_token'); if (t && t.length > 20) return t; } catch (e) {}
+    return '';
+  }
+  function api(path, opts) {
+    opts = opts || {};
+    opts.headers = opts.headers || {};
+    var t = token();
+    if (t) opts.headers.Authorization = 'Bearer ' + t;
+    opts.cache = 'no-store';
+    return fetch(API + path, opts).then(function (r) { return r.json(); });
+  }
+  function showNotice(html) {
+    var n = el('notice');
+    n.style.display = 'block';
+    n.innerHTML = html;
+  }
+  function hideNotice() { el('notice').style.display = 'none'; }
+  function accountBadge(s) {
+    if (!s.logged_in) return '<span class="badge red">未登录</span>';
+    return s.vip ? '<span class="badge gold">VIP</span>' : '<span class="badge red">免费版</span>';
+  }
+  function vipGuide(s) {
+    if (!s.logged_in) return '大盘信号与资金面<b>免费可见</b>；自动生成与板块体检/主线锁定需登录并开通 VIP。请先 <a href="/account.html">登录/注册</a>。';
+    if (!s.vip) return '当前为免费账户：大盘信号与资金面公开可见；自动生成、板块体检与主线锁定为 <b>VIP 专属</b>，请前往 <a href="/account.html">我的</a> 开通 VIP。';
+    return '';
+  }
+  function nextAutoText(s) {
+    if (!s.auto_scan) return '已关闭';
+    return s.is_weekend ? '下一交易日 ' + (s.auto_scan_time || '15:35') : (s.auto_scan_time || '15:35');
+  }
+
+  function setStatus() {
+    api('/api/report/status').then(function (s) {
+      el('f-today').textContent = s.today || '-';
+      el('f-asof').textContent = s.asof || '-';
+      el('f-gen').textContent = s.generated_at || '-';
+      el('f-next').textContent = nextAutoText(s);
+      el('f-tok').innerHTML = accountBadge(s);
+      renderHistory(s.history || []);
+      var needVip = !s.vip;
+      var upToDate = s.has_today && !s.needs_refresh && !s.running;
+      var br = el('btn-run');
+      br.disabled = needVip || upToDate;
+      br.textContent = upToDate ? '已是最新' : '立即生成';
+      el('btn-force').disabled = needVip;
+      var guide = vipGuide(s);
+      if (s.has_today && !s.running) {
+        if (s.needs_refresh && s.vip) {
+          showNotice('检测到旧数据（截至 ' + s.asof + '），收盘后自动刷新为最新数据…');
+          startScan(0);
+        } else {
+          if (guide) showNotice(guide); else hideNotice();
+          loadToday();
+        }
+      } else if (s.running) {
+        startPoll();
+      } else {
+        maybeAutoScan(s);
+      }
+    }).catch(function (e) {
+      showNotice('复盘服务暂不可用，请稍后重试（' + e + '）。');
+      el('report').innerHTML = '<p class="sub">服务暂不可用，无法加载报告。</p>';
+    });
+  }
+
+  function maybeAutoScan(s) {
+    var guide = vipGuide(s);
+    if (s.is_weekend) {
+      showNotice('今天是非交易日（周末）。当前展示最近一期报告；<b>下一交易日 ' + (s.auto_scan_time || '15:35') + ' 后打开本页将自动生成当日报告</b>。' + (guide ? '<br>' + guide : ''));
+      loadLastReport();
+      return;
+    }
+    if (!s.auto_scan) {
+      loadLastReport();
+      return;
+    }
+    if (!s.vip) {
+      showNotice(guide || 'VIP 专属功能：开通 VIP 后，收盘后打开本页将自动生成当日报告。');
+      loadLastReport();
+      return;
+    }
+    var now = new Date();
+    var hm = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
+    if (hm >= (s.auto_scan_time || '15:35')) {
+      showNotice('收盘后首次打开，自动开始生成当日报告（约 1~2 分钟，低频防封限流）。可先看往期报告。');
+      startScan(0);
+    } else {
+      showNotice('今日尚未收盘（当前 ' + hm + '）。当前展示最近一期报告；<b>今日 ' + (s.auto_scan_time || '15:35') + ' 后打开本页将自动生成当日报告</b>，无需手动点击。' + (guide ? '<br>' + guide : ''));
+      loadLastReport();
+    }
+  }
+
+  function startScan(force) {
+    var url = API + '/api/report/scan' + (force ? '?force=1' : '');
+    api(url, { method: 'POST' }).then(function (j) {
+      if (j.ok) {
+        el('btn-run').disabled = true;
+        el('btn-force').disabled = true;
+        hideNotice();
+        startPoll();
+      } else if (j.detail) {
+        showNotice('启动失败：' + j.detail);
+      } else {
+        showNotice(j.msg || '启动失败');
+      }
+    }).catch(function (e) { showNotice('启动失败：' + e); });
+  }
+
+  function startPoll() {
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(function () {
+      api('/api/report/progress').then(function (j) {
+        var p = j.progress || {};
+        var pct = p.pct || 0;
+        el('progbar').style.width = pct + '%';
+        el('progtext').textContent = (p.step || '') + (p.finished ? ' ｜ ' + p.finished : '');
+        if (!j.running) {
+          clearInterval(pollTimer); pollTimer = null;
+          el('btn-run').disabled = false;
+          el('btn-force').disabled = false;
+          if (p.ok) {
+            hideNotice();
+            loadToday();
+          } else {
+            showNotice('生成失败：' + (p.step || '未知错误'));
+          }
+          setStatus();
+        }
+      }).catch(function () {});
+    }, 1500);
+  }
+
+  function loadToday() {
+    api('/api/report/today').then(function (j) {
+      if (j.ok) {
+        el('f-asof').textContent = j.asof || '-';
+        el('f-gen').textContent = j.generated_at || '-';
+        el('report').innerHTML = j.html;
+      } else {
+        el('report').innerHTML = '<p class="sub">' + (j.msg || '无报告') + '</p>';
+      }
+    }).catch(function (e) { el('report').innerHTML = '<p class="sub">加载失败：' + e + '</p>'; });
+  }
+
+  function loadLastReport() {
+    api('/api/report/history').then(function (j) {
+      var items = j.items || [];
+      if (items.length === 0) { el('report').innerHTML = '<p class="sub">暂无历史报告。</p>'; return; }
+      var d = items[0].date;
+      api('/api/report/' + encodeURIComponent(d)).then(function (h) {
+        if (h.ok) {
+          el('report').innerHTML = '<div class="sub" style="margin-bottom:8px">当前展示最近一期报告（' + d + '），今日收盘后自动更新。</div>' + h.html;
+        } else { el('report').innerHTML = '<p class="sub">历史报告读取失败</p>'; }
+      });
+    });
+  }
+
+  function fmtDate8(d) {
+    var s = String(d || '');
+    return /^\d{8}$/.test(s) ? (s.slice(0, 4) + '-' + s.slice(4, 6) + '-' + s.slice(6, 8)) : s;
+  }
+
+  function renderHistory(items) {
+    var box = el('history');
+    if (!items || items.length === 0) { box.innerHTML = '<p class="sub">暂无历史归档。</p>'; return; }
+    var h = '';
+    items.forEach(function (it) {
+      h += '<div class="hist-item">' +
+        '<span class="badge">' + fmtDate8(it.date) + '</span>' +
+        '<a href=\'/daily/view.html?date=' + encodeURIComponent(it.date) + '\' target=\'_blank\' rel=\'noopener\'>打开报告 ↗</a>' +
+        '</div>';
+    });
+    box.innerHTML = h;
+  }
+
+  el('btn-run').addEventListener('click', function () { startScan(0); });
+  el('btn-force').addEventListener('click', function () {
+    if (!confirm('强制重扫将重新抓取上游数据（约 1~2 分钟，消耗当日上游预算），确定？')) return;
+    startScan(1);
+  });
+
+  setStatus();
+})();
+</script>
+</body>
+</html>

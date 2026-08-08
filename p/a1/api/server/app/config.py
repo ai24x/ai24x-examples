@@ -107,6 +107,11 @@ class Settings:
     tushare_token: str
     tushare_use_rt_k: bool
 
+    # 同花顺金融数据服务（fuyao.aicubes.cn，免费期增强通道；admin_config 可覆盖）
+    fuyao_api_key: str
+    fuyao_enabled: str
+    fuyao_base_url: str
+
     # WeChat Pay APIv3 (Native / JSAPI 共用商户参数；先接 Native 扫码调试)
     wechat_mch_id: str
     wechat_app_id: str
@@ -197,9 +202,12 @@ def load_settings() -> Settings:
         redis_url=os.getenv("AI24X_REDIS_URL", "").strip(),
         paid_provider=str(os.getenv("AI24X_PAID_PROVIDER", "off")).strip().lower(),
         # Default: paid first, public sources as backup.
-        paid_provider_priority=str(os.getenv("AI24X_PAID_PROVIDER_PRIORITY", "paid,tencent,eastmoney,sina")).strip().lower(),
+        paid_provider_priority=str(os.getenv("AI24X_PAID_PROVIDER_PRIORITY", "paid,tencent,ths,eastmoney,sina")).strip().lower(),
         tushare_token=str(os.getenv("AI24X_TUSHARE_TOKEN", "")).strip(),
         tushare_use_rt_k=str(os.getenv("AI24X_TUSHARE_USE_RT_K", "0")).strip() not in ("0", "false", "False", "no", "NO", ""),
+        fuyao_api_key=str(os.getenv("AI24X_FUYAO_API_KEY", "")).strip(),
+        fuyao_enabled=str(os.getenv("AI24X_FUYAO_ENABLED", "0")).strip(),
+        fuyao_base_url=str(os.getenv("AI24X_FUYAO_BASE_URL", "https://fuyao.aicubes.cn")).strip().rstrip("/"),
         wechat_mch_id=str(os.getenv("AI24X_WECHAT_MCH_ID", "")).strip(),
         wechat_app_id=str(os.getenv("AI24X_WECHAT_APP_ID", "")).strip(),
         wechat_mch_serial_no=str(os.getenv("AI24X_WECHAT_MCH_SERIAL_NO", "")).strip(),
