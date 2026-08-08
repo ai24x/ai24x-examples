@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <script src="js/i18n-boot.js?v=20260802p"></script>
+  <script src="js/i18n-boot.js?v=20260808b"></script>
   <script>
     /* 未登录立刻跳转，减少控制台骨架闪一下再进登录 */
     (function () {
@@ -17,8 +17,32 @@
   <meta name="description" content="AI24X console: balance, API keys, plans, and usage." />
   <title>Console · AI24X</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="css/base.css?v=20260805a" />
-  <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260805a" data-base="css/themes/" />
+  <link rel="stylesheet" href="css/base.css?v=20260808b" />
+  <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260808b" data-base="css/themes/" />
+  <style>
+    /* console: 卡片等高 + 动作贴底 + 按钮统一 */
+    .console-panel .card { display: flex; flex-direction: column; }
+    .console-panel .card .card-actions { margin-top: auto; }
+    .console-panel .btn { min-height: 38px; line-height: 1.2; white-space: nowrap; }
+    .stats-grid .stat-card { display: flex; flex-direction: column; }
+    .stats-grid .stat-card .stat-sub { margin-top: auto; }
+    /* 邀请回馈卡 */
+    .invite-reward-card { display: flex; flex-direction: column; gap: 14px; }
+    .invite-reward-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .invite-reward-stats { display: flex; gap: 28px; }
+    .invite-reward-stat .stat-value { font-size: 1.25rem; margin-top: 4px; }
+    .invite-reward-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .invite-reward-item { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .invite-reward-item .invite-label { font-weight: 700; color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
+    .invite-reward-code { font-weight: 800; letter-spacing: 0.05em; font-size: 1.05rem; color: var(--heading); }
+    .invite-reward-link { font-weight: 600; font-size: 0.9rem; word-break: break-all; color: var(--text); min-width: 0; }
+    .invite-reward-item .btn { flex-shrink: 0; }
+    @media (max-width: 720px) {
+      .invite-reward-head, .invite-reward-row { flex-direction: column; align-items: stretch; }
+      .invite-reward-stats { justify-content: space-between; }
+      .invite-reward-item { flex-wrap: wrap; }
+    }
+  </style>
 </head>
 <body data-page="console" class="theme-blue">
   <header class="site-header" id="site-header"></header>
@@ -161,6 +185,37 @@
                 <div class="stat-label" data-i18n="page.console.stat.referrals">Level-1 invites</div>
                 <div class="stat-value" id="stat-referrals">--</div>
                 <div class="stat-sub" data-i18n="page.console.stat.referrals.hint">Successful invitees</div>
+              </div>
+            </div>
+                        <div class="card invite-reward-card mt-2">
+              <div class="invite-reward-head">
+                <div class="invite-reward-title">
+                  <h3 class="mt-0" data-i18n="page.console.inviteReward.title">Invite &amp; earn</h3>
+                  <p class="sub" data-i18n="page.console.inviteReward.sub">Both sides get 5000 tokens at signup; L1 10% / L2 2% back after top-up.</p>
+                </div>
+                <div class="invite-reward-stats">
+                  <div class="invite-reward-stat">
+                    <div class="stat-label" data-i18n="page.console.inviteReward.l1">Invited (L1)</div>
+                    <div class="stat-value" id="overview-invite-l1">--</div>
+                  </div>
+                  <div class="invite-reward-stat">
+                    <div class="stat-label" data-i18n="page.console.inviteReward.earned">Rewards earned</div>
+                    <div class="stat-value" id="overview-invite-earned">--</div>
+                  </div>
+                </div>
+              </div>
+              <div class="invite-reward-row">
+                <div class="invite-reward-item">
+                  <span class="invite-label" data-i18n="page.console.invite.codeTitle">Invite code</span>
+                  <span class="invite-reward-code" id="overview-invite-code">--</span>
+                  <button type="button" class="btn" id="btn-copy-invite-code-ov" data-i18n="page.console.copyCode">Copy code</button>
+                </div>
+                <div class="invite-reward-item">
+                  <span class="invite-label" data-i18n="page.console.invite.linkTitle">Short link</span>
+                  <span class="invite-reward-link" id="overview-invite-link">--</span>
+                  <button type="button" class="btn" id="btn-copy-invite-link-ov" data-i18n="page.console.copyInvite">Copy link</button>
+                </div>
+                <a class="btn btn-primary" href="refer.html" data-i18n="page.console.inviteReward.open">Referral details</a>
               </div>
             </div>
             <div class="card mt-2">
@@ -335,6 +390,24 @@
                 <li class="list-item"><span data-i18n="page.console.account.phone">Phone</span><span id="acct-phone">--</span></li>
                 <li class="list-item"><span data-i18n="page.console.account.plan">Plan tier</span><span id="acct-plan">--</span></li>
               </ul>
+              <hr class="mt-2" style="border:0;border-top:1px solid var(--border)" />
+              <h3 class="mt-2" data-i18n="page.console.password.title">Change password</h3>
+              <div class="form-group">
+                <label for="acct-old-pass" data-i18n="page.console.password.old">Current password</label>
+                <input id="acct-old-pass" type="password" class="input" autocomplete="current-password" />
+              </div>
+              <div class="form-group">
+                <label for="acct-new-pass" data-i18n="page.console.password.new">New password</label>
+                <input id="acct-new-pass" type="password" class="input" minlength="6" autocomplete="new-password" />
+              </div>
+              <div class="form-group">
+                <label for="acct-new-pass2" data-i18n="page.console.password.confirm">Confirm new password</label>
+                <input id="acct-new-pass2" type="password" class="input" minlength="6" autocomplete="new-password" />
+              </div>
+              <div class="card-actions">
+                <button type="button" class="btn btn-primary" id="btn-change-password" data-i18n="page.console.password.change">Change password</button>
+              </div>
+              <div id="acct-pass-msg"></div>
               <div class="card-actions">
                 <button type="button" class="btn" id="btn-logout-account" data-i18n="page.console.actions.logout">Log out</button>
                 <a class="btn btn-primary" href="pricing.html" data-i18n="page.console.actions.upgrade">Pricing</a>
@@ -347,14 +420,14 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260805c"></script>
-  <script src="js/api.js?v=20260805a"></script>
+  <script src="config/locales.js?v=20260808a"></script>
+  <script src="js/api.js?v=20260808a"></script>
   <script src="js/invite.js?v=20260731a"></script>
   <script src="js/utm.js?v=20260802a"></script>
-  <script src="js/i18n.js?v=20260805a"></script>
-  <script src="js/shell.js?v=20260805b"></script>
-  <script src="js/app.js?v=20260805a"></script>
-  <script src="js/console.js?v=20260805a"></script>
+  <script src="js/i18n.js?v=20260808b"></script>
+  <script src="js/shell.js?v=20260808b"></script>
+  <script src="js/app.js?v=20260808b"></script>
+  <script src="js/console.js?v=20260808a"></script>
   <script src="js/support-widget.js?v=20260804g"></script>
 </body>
 </html>

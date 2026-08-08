@@ -469,6 +469,24 @@
       body: JSON.stringify(p),
     });
   }
+  function authPasswordChange(payload) {
+    return request("/v1/auth/password/change", {
+      method: "POST",
+      body: JSON.stringify(payload || {}),
+    }).then(function (data) {
+      if (data && data.token) saveAuthSession(data);
+      return data;
+    });
+  }
+  function authPasswordReset(payload) {
+    return request("/v1/auth/password/reset", {
+      method: "POST",
+      body: JSON.stringify(payload || {}),
+    }).then(function (data) {
+      if (data && data.token) saveAuthSession(data);
+      return data;
+    });
+  }
 
   function keysList() {
     return request("/v1/keys", { method: "GET" });
@@ -769,6 +787,8 @@
     authRegister: authRegister,
     authSmsSend: authSmsSend,
     authEmailSend: authEmailSend,
+    authPasswordChange: authPasswordChange,
+    authPasswordReset: authPasswordReset,
     keysList: keysList,
     keysCreate: keysCreate,
     keysRename: keysRename,

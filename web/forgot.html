@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <script src="js/i18n-boot.js?v=20260808b"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reset password · AI24X</title>
+  <link rel="canonical" href="https://www.ai24x.com/forgot.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Reset password · AI24X" />
+  <meta property="og:description" content="Reset your AI24X password with a verification code sent to your email or phone." />
+  <meta property="og:url" content="https://www.ai24x.com/forgot.html" />
+  <meta property="og:image" content="https://www.ai24x.com/img/og-share.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://www.ai24x.com/img/og-share.png" />
+  <meta name="description" content="Reset your AI24X password with a verification code." />
+  <link rel="stylesheet" href="css/base.css?v=20260808b" />
+  <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260808b" data-base="css/themes/" />
+  <style>
+    .auth-fieldset-preview {
+      border: 0;
+      margin: 0;
+      padding: 0;
+      min-width: 0;
+      opacity: 0.93;
+    }
+    .code-row { display: flex; gap: 8px; }
+    .code-row .input { flex: 1; min-width: 0; }
+    .code-row .btn { flex-shrink: 0; white-space: nowrap; }
+  </style>
+</head>
+<body data-page="login" class="theme-blue">
+  <header class="site-header" id="site-header"></header>
+  <main class="page-main">
+    <section class="section">
+      <div class="container" style="max-width:480px">
+        <h1 data-i18n="auth.forgot.title">Reset password</h1>
+        <p class="sub" data-i18n="auth.forgot.sub">Enter your email, get a code, then set a new password.</p>
+        <div class="callout mt-2" id="auth-closed-banner" role="status" aria-live="polite" data-i18n-html="auth.closed.banner">
+          <strong>Notice</strong>: Password reset is not open in this environment.
+        </div>
+        <form class="card mt-2" id="form-forgot" autocomplete="off">
+          <fieldset class="auth-fieldset-preview" id="forgot-fieldset" disabled>
+            <div class="form-group" id="fg-email">
+              <label data-i18n="auth.forgot.email">Email</label>
+              <input id="forgot-email" type="email" class="input" autocomplete="email" placeholder="you@example.com" />
+            </div>
+            <div class="form-group">
+              <label data-i18n="auth.forgot.code">Verification code</label>
+              <div class="code-row">
+                <input id="forgot-code" type="text" class="input" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="123456" />
+                <button type="button" class="btn" id="forgot-send" data-i18n="auth.forgot.sendCode">Send code</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label data-i18n="auth.forgot.newPassword">New password</label>
+              <input name="new-password" type="password" class="input" required minlength="6" autocomplete="new-password" />
+            </div>
+            <div class="form-group">
+              <label data-i18n="auth.forgot.confirm">Confirm new password</label>
+              <input name="new-password2" type="password" class="input" required minlength="6" autocomplete="new-password" />
+            </div>
+            <button type="submit" class="btn btn-primary" data-i18n="auth.forgot.submit">Reset password</button>
+            <div id="forgot-msg"></div>
+            <div class="otp-local-hint" id="forgot-otp-local" data-i18n="auth.register.otpHint">Filled above — set a password to finish.</div>
+          </fieldset>
+        </form>
+        <p class="mt-2 sub" data-i18n-html="auth.forgot.back"><a href="login.html">Back to login</a> · <a href="register.html">Sign up</a></p>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer" id="site-footer"></footer>
+  <script src="config/locales.js?v=20260808a"></script>
+  <script src="js/api.js?v=20260808a"></script>
+  <script src="js/utm.js?v=20260802a"></script>
+  <script src="js/i18n.js?v=20260808b"></script>
+  <script src="js/shell.js?v=20260808b"></script>
+  <script src="js/app.js?v=20260808b"></script>
+  <script>
+    function t(key, fallback) {
+      if (window.AI24X_I18N && AI24X_I18N.t) {
+        var v = AI24X_I18N.t(key);
+        if (v && v !== key) return v;
+      }
+      return fallback || key;
+    }
+    function nextUrl() {
+      try {
+        var u = new URL(location.href);
+        var n = u.searchParams.get("next");
+        if (n && n.indexOf("http") !== 0) return n;
+      } catch (e) {}
+      return "console.html";
+    }
+    var _cooldownTimer = null;
+    function channel() { return "email"; }
+    function activeChannelInput() {
+      return document.getElementById("forgot-email");
+    }
+    function startCooldown(btn, secs) {
+      var left = secs;
+      btn.disabled = true;
+      var label = btn.getAttribute("data-i18n") || "";
+      btn.setAttribute("data-orig-label", label);
+      if (_cooldownTimer) clearInterval(_cooldownTimer);
+      _cooldownTimer = setInterval(function () {
+        left--;
+        if (left <= 0) {
+          clearInterval(_cooldownTimer);
+          _cooldownTimer = null;
+          btn.disabled = false;
+          btn.textContent = t("auth.forgot.sendCode", "Send code");
+          return;
+        }
+        btn.textContent = left + "s";
+      }, 1000);
+    }
+    function showMsg(box, msg, isOk) {
+      box.innerHTML = '<div class="alert ' + (isOk ? "alert-success" : "alert-error") + '">' + msg + "</div>";
+    }
+    document.getElementById("forgot-send").addEventListener("click", function () {
+      var box = document.getElementById("forgot-msg");
+      var otpBox = document.getElementById("forgot-otp-local");
+      var inp = activeChannelInput();
+      otpBox.classList.remove("is-on");
+      if (!AI24X_API.isLocalAuthOpen()) {
+        showMsg(box, t("auth.closed.registerBlocked", "Not open yet."), false);
+        return;
+      }
+      var val = (inp.value || "").trim();
+      if (!val) {
+        showMsg(box, t("auth.forgot.needEmail", "Enter your email first"), false);
+        return;
+      }
+      var sendBtn = this;
+      var p = AI24X_API.authEmailSend({ email: val, purpose: "reset" });
+      p.then(function (r) {
+        var ok = r && r.ok;
+        var code = (r && (r.local_code || r.dev_code)) || "";
+        if (ok && code) {
+          var inpCode = document.getElementById("forgot-code");
+          if (inpCode) inpCode.value = String(code);
+          otpBox.classList.add("is-on");
+          showMsg(box, t("auth.register.codeReady", "Code ready — continue with your password."), true);
+          return;
+        }
+        var msg = (r && r.message) || (ok ? t("auth.forgot.codeSent", "Code sent. Check your email.") : t("auth.forgot.sendFail", "Failed to send code"));
+        showMsg(box, msg, !!ok);
+        if (ok) startCooldown(sendBtn, 60);
+      }).catch(function (e) {
+        showMsg(box, e.message || t("auth.forgot.sendFail", "Failed to send code"), false);
+      });
+    });
+    document.getElementById("form-forgot").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var box = document.getElementById("forgot-msg");
+      if (!AI24X_API.isLocalAuthOpen()) {
+        showMsg(box, t("auth.closed.registerBlocked", "Not open yet."), false);
+        return;
+      }
+      var newP = (document.querySelector("#form-forgot input[name=\"new-password\"]").value || "").trim();
+      var newP2 = (document.querySelector("#form-forgot input[name=\"new-password2\"]").value || "").trim();
+      if (newP.length < 6) {
+        showMsg(box, t("auth.forgot.pwShort", "Password must be at least 6 characters"), false);
+        return;
+      }
+      if (newP !== newP2) {
+        showMsg(box, t("auth.forgot.pwMismatch", "Passwords do not match"), false);
+        return;
+      }
+      var code = (document.getElementById("forgot-code").value || "").trim();
+      if (!code) {
+        showMsg(box, t("auth.forgot.needCode", "Enter the verification code"), false);
+        return;
+      }
+      var inp = activeChannelInput();
+      var val = (inp.value || "").trim();
+      if (!val) {
+        showMsg(box, t("auth.forgot.needEmail", "Enter your email first"), false);
+        return;
+      }
+      var payload = { new_password: newP, email: val, email_code: code };
+      var btn = document.querySelector("#form-forgot button[type=\"submit\"]");
+      if (btn) btn.disabled = true;
+      box.innerHTML = "";
+      AI24X_API.authPasswordReset(payload)
+        .then(function () {
+          showMsg(box, t("auth.forgot.resetSuccess", "Password reset. Redirecting to your console…"), true);
+          setTimeout(function () { location.href = nextUrl(); }, 1200);
+        })
+        .catch(function (err) {
+          showMsg(box, err.message || t("auth.forgot.resetFail", "Reset failed"), false);
+          if (btn) btn.disabled = false;
+        });
+    });
+    document.addEventListener("DOMContentLoaded", function () {
+      function applyAuthUi() {
+        var open = AI24X_API.isLocalAuthOpen();
+        var fs = document.getElementById("forgot-fieldset");
+        if (fs) fs.disabled = !open;
+        var ban = document.getElementById("auth-closed-banner");
+        if (!ban) return;
+        if (!open) {
+          ban.style.display = "";
+          ban.innerHTML = t("auth.closed.banner");
+          return;
+        }
+        if (AI24X_API.isLocalHost && AI24X_API.isLocalHost()) {
+          ban.style.display = "none";
+        } else {
+          ban.style.display = "none";
+        }
+      }
+      applyAuthUi();
+    });
+  </script>
+</body>
+</html>

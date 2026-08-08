@@ -26,7 +26,9 @@
     document.body.classList.remove("theme-blue", "theme-dark", "theme-cards");
     document.body.classList.add("theme-" + th);
 
-    if (window.AI24X_SHELL) AI24X_SHELL.mount(page);
+    try {
+      if (window.AI24X_SHELL) AI24X_SHELL.mount(page);
+    } catch (eMount) {}
     if (window.AI24X_I18N) AI24X_I18N.apply(document);
   }
 

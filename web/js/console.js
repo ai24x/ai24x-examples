@@ -1431,6 +1431,23 @@
       if ($("inviteL1Card")) {
         $("inviteL1Card").textContent = String(ref.invitees_l1 != null ? ref.invitees_l1 : 0);
       }
+      if ($("overview-invite-code")) $("overview-invite-code").textContent = ref.code || "--";
+      if ($("overview-invite-link")) {
+        var ovSl =
+          window.AI24X_INVITE && ref.code
+            ? AI24X_INVITE.shortLink(ref.code)
+            : ref.code
+              ? location.origin + "/r/" + encodeURIComponent(ref.code)
+              : "--";
+        $("overview-invite-link").textContent = ovSl || "--";
+      }
+      if ($("overview-invite-l1")) {
+        $("overview-invite-l1").textContent = String(ref.invitees_l1 != null ? ref.invitees_l1 : 0);
+      }
+      if ($("overview-invite-earned")) {
+        var earnedOv = ref.earned_tokens != null ? Number(ref.earned_tokens) : 0;
+        $("overview-invite-earned").textContent = earnedOv >= 1000 ? (earnedOv / 1000).toFixed(1).replace(/\.0$/, "") + "k" : String(earnedOv);
+      }
     } catch (e) {
       $("stat-referrals").textContent = "--";
     }
@@ -1840,53 +1857,92 @@
         goTryShared();
       });
     }
-    var btnInv = $("btn-copy-invite-link");
-    if (btnInv) {
-      btnInv.addEventListener("click", function () {
-        var code = window._ai24xInviteCode || ($("inviteCode") && $("inviteCode").textContent) || "";
-        code = String(code || "").trim();
-        if (!code || code === "--") {
-          showMsg(msgBox(), tr("暂无邀请码", "No invite code yet"), false);
-          return;
-        }
-        var link =
-          (window.AI24X_INVITE && AI24X_INVITE.shortLink(code)) ||
-          location.origin + "/r/" + encodeURIComponent(code);
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(link).then(
-            function () {
-              showMsg(msgBox(), tr("邀请短链已复制", "Short invite link copied"), true);
-            },
-            function () {
-              showMsg(msgBox(), link, true);
-            }
-          );
-        } else {
-          showMsg(msgBox(), link, true);
-        }
-      });
+    function copyInviteLink() {
+      var code = window._ai24xInviteCode || ($("inviteCode") && $("inviteCode").textContent) || "";
+      code = String(code || "").trim();
+      if (!code || code === "--") {
+        showMsg(msgBox(), tr("暂无邀请码", "No invite code yet"), false);
+        return;
+      }
+      var link =
+        (window.AI24X_INVITE && AI24X_INVITE.shortLink(code)) ||
+        location.origin + "/r/" + encodeURIComponent(code);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(link).then(
+          function () {
+            showMsg(msgBox(), tr("邀请短链已复制", "Short invite link copied"), true);
+          },
+          function () {
+            showMsg(msgBox(), link, true);
+          }
+        );
+      } else {
+        showMsg(msgBox(), link, true);
+      }
     }
+    function copyInviteCode() {
+      var code = window._ai24xInviteCode || ($("inviteCode") && $("inviteCode").textContent) || "";
+      code = String(code || "").trim();
+      if (!code || code === "--") {
+        showMsg(msgBox(), tr("暂无邀请码", "No invite code yet"), false);
+        return;
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).then(
+          function () {
+            showMsg(msgBox(), tr("邀请码已复制", "Invite code copied"), true);
+          },
+          function () {
+            showMsg(msgBox(), code, true);
+          }
+        );
+      } else {
+        showMsg(msgBox(), code, true);
+      }
+    }
+    var btnInv = $("btn-copy-invite-link");
+    if (btnInv) btnInv.addEventListener("click", copyInviteLink);
     var btnCode = $("btn-copy-invite-code");
-    if (btnCode) {
-      btnCode.addEventListener("click", function () {
-        var code = window._ai24xInviteCode || ($("inviteCode") && $("inviteCode").textContent) || "";
-        code = String(code || "").trim();
-        if (!code || code === "--") {
-          showMsg(msgBox(), tr("暂无邀请码", "No invite code yet"), false);
+    if (btnCode) btnCode.addEventListener("click", copyInviteCode);
+    var btnOvLink = $("btn-copy-invite-link-ov");
+    if (btnOvLink) btnOvLink.addEventListener("click", copyInviteLink);
+    var btnOvCode = $("btn-copy-invite-code-ov");
+    if (btnOvCode) btnOvCode.addEventListener("click", copyInviteCode);
+    var btnChangePass = $("btn-change-password");
+    if (btnChangePass) {
+      btnChangePass.addEventListener("click", function () {
+        var box = $("acct-pass-msg");
+        if (!box) return;
+        var oldP = ($("acct-old-pass") && $("acct-old-pass").value) || "";
+        var newP = ($("acct-new-pass") && $("acct-new-pass").value) || "";
+        var newP2 = ($("acct-new-pass2") && $("acct-new-pass2").value) || "";
+        if (!oldP) {
+          box.innerHTML = '<div class="alert alert-error">' + tr("请输入当前密码", "Enter your current password") + "</div>";
           return;
         }
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(code).then(
-            function () {
-              showMsg(msgBox(), tr("邀请码已复制", "Invite code copied"), true);
-            },
-            function () {
-              showMsg(msgBox(), code, true);
-            }
-          );
-        } else {
-          showMsg(msgBox(), code, true);
+        if (newP.length < 6) {
+          box.innerHTML = '<div class="alert alert-error">' + tr("新密码至少 6 位", "New password must be at least 6 characters") + "</div>";
+          return;
         }
+        if (newP !== newP2) {
+          box.innerHTML = '<div class="alert alert-error">' + tr("两次输入的新密码不一致", "Passwords do not match") + "</div>";
+          return;
+        }
+        btnChangePass.disabled = true;
+        box.innerHTML = "";
+        AI24X_API.authPasswordChange({ old_password: oldP, new_password: newP })
+          .then(function () {
+            if ($("acct-old-pass")) $("acct-old-pass").value = "";
+            if ($("acct-new-pass")) $("acct-new-pass").value = "";
+            if ($("acct-new-pass2")) $("acct-new-pass2").value = "";
+            box.innerHTML = '<div class="alert alert-success">' + tr("密码已修改", "Password updated") + "</div>";
+          })
+          .catch(function (e) {
+            box.innerHTML = '<div class="alert alert-error">' + (e.message || tr("修改密码失败", "Failed to update password")) + "</div>";
+          })
+          .finally(function () {
+            btnChangePass.disabled = false;
+          });
       });
     }
   }

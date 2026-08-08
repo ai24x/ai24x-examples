@@ -20,7 +20,7 @@
 
   function headerHtml(activePage) {
     var L = global.AI24X_I18N;
-    var langs = L.LANGS;
+    var langs = (L && Array.isArray(L.LANGS) && L.LANGS.length) ? L.LANGS : [{ code: "en", label: "English" }];
     var pre = pathPrefix();
     var curLang = "en";
     try {
