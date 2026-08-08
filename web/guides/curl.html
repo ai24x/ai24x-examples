@@ -2,7 +2,26 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <script src="../js/i18n-boot.js?v=20260808b"></script>
+  <script>
+/* i18n-boot inline v20260808c: language pre-read + FOUC guard (no network dependency) */
+(function () {
+  var KEY = "ai24x_lang";
+  try {
+    var raw = String(localStorage.getItem(KEY) || "").trim().toLowerCase().replace(/_/g, "-");
+    var lang = raw.split("-")[0] || "";
+    if (!lang) { lang = "en"; localStorage.setItem(KEY, lang); }
+    document.documentElement.setAttribute("data-ai24x-lang", lang);
+    document.documentElement.classList.add("i18n-pending");
+    if (!document.getElementById("ai24x-i18n-pending")) {
+      var st = document.createElement("style");
+      st.id = "ai24x-i18n-pending";
+      st.textContent = "html.i18n-pending body{visibility:hidden!important}";
+      (document.head || document.documentElement).appendChild(st);
+    }
+    setTimeout(function () { document.documentElement.classList.remove("i18n-pending"); }, 4000);
+  } catch (e) {}
+})();
+</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>curl · Call AI24X API | AI24X</title>
   <meta name="description" content="Smoke-test AI24X with curl: POST /v1/chat/run, X-API-Key, model flash or pro." />
