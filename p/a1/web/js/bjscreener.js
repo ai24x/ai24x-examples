@@ -239,8 +239,8 @@ window.AI24X_BJScreener = (function () {
     if (!ml.length) { box.innerHTML = ""; return; }
     var h = '<div class="bj-section">主攻主线（同步复盘）</div>' +
       '<div class="chips">' +
-      '<a class="chip" href="/daily/" target="_blank" rel="noopener" title="主线以复盘页为准（资金+技术双确认）· 新窗口打开复盘">' +
-      ml.map(function (m) { return esc(m.name || ""); }).join(" · ") + '↗</a>' +
+      '<a class="chip chip-mainline" href="/daily/" target="_blank" rel="noopener" title="主线以复盘页为准（资金+技术双确认）· 新窗口打开复盘">' +
+      ml.map(function (m) { return '<b>' + esc(m.name || "") + '</b>'; }).join(' <span class="ml-sep">·</span> ') + '↗</a>' +
       '</div>';
     box.innerHTML = h;
   }
