@@ -130,11 +130,8 @@ class Settings(BaseSettings):
     smtp_backup_from: str = Field(default="", validation_alias="SMTP_BACKUP_FROM")
     smtp_backup_use_tls: bool = Field(default=True, validation_alias="SMTP_BACKUP_USE_TLS")
     smtp_backup_use_ssl: bool = Field(default=False, validation_alias="SMTP_BACKUP_USE_SSL")
-    email_otp_subject: str = Field(default="【AI24X】验证码", validation_alias="EMAIL_OTP_SUBJECT")
-    email_otp_body_template: str = Field(
-        default="您的 AI24X {purpose}验证码是：{code}\n\n5 分钟内有效，请勿泄露给他人。\n\n— AI24X",
-        validation_alias="EMAIL_OTP_BODY_TEMPLATE",
-    )
+    email_otp_subject: str = Field(default="", validation_alias="EMAIL_OTP_SUBJECT")
+    email_otp_body_template: str = Field(default="", validation_alias="EMAIL_OTP_BODY_TEMPLATE")
     # 非生产且未配 SMTP 时，是否在 API 响应里带回 local_code（默认 true 便于本机联调）
     email_otp_expose_local_code: bool = Field(default=True, validation_alias="EMAIL_OTP_EXPOSE_LOCAL_CODE")
 
