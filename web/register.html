@@ -110,7 +110,7 @@
             <label data-i18n="auth.register.captcha">Captcha</label>
             <div class="form-otp-row">
               <input id="reg-captcha-answer" name="captcha_answer" type="text" maxlength="8" class="input" autocomplete="off" required data-i18n-placeholder="auth.register.captchaPh" placeholder="Type the code" />
-              <img id="reg-captcha-img" src="" alt="captcha" title="Click to refresh" style="height:42px;width:120px;object-fit:cover;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:#f6f8fc" />
+              <img id="reg-captcha-img" src="" alt="" title="Click to refresh" style="height:42px;width:120px;object-fit:cover;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:#f6f8fc;opacity:0;transition:opacity .15s" />
             </div>
             <p class="sub" style="margin:4px 0 0" data-i18n="auth.register.captchaRefresh">Click the image to refresh</p>
           </div>
@@ -165,14 +165,16 @@
     function loadRegisterCaptcha() {
       var img = document.getElementById("reg-captcha-img");
       if (!img) return;
+      img.style.opacity = "0";
       AI24X_API.authCaptchaGet()
         .then(function (r) {
           if (r && r.ok && r.token && r.image) {
             _regCaptchaToken = r.token;
             img.src = r.image;
+            img.style.opacity = "1";
           }
         })
-        .catch(function () {});
+        .catch(function () { img.style.opacity = "1"; });
     }
 
     document.getElementById("reg-btn-send-email").addEventListener("click", function () {

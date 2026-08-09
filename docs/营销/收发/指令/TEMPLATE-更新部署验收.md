@@ -1,4 +1,4 @@
-# 【指令模板】更新部署验收（主通道 v2 · 司令直连 04 · PowerShell 优先）
+﻿# 【指令模板】更新部署验收（主通道 v2 · 司令直连 04 · PowerShell 优先）
 
 > 三通道：
 > ① 主通道 v2（老板说「04更新」后，最快）：司令 提交→双推 gitee→写指令 md→跑 `scripts\deploy04.ps1 <指令.md>`（scp 到 04 + ssh 驱动 04 的 openclaw，--timeout 600）→ 04 完成部署+验收+飞书群回执。**跳过主脑中转**，主脑不参与部署（只留记忆/飞书）。
@@ -58,3 +58,13 @@ Write-Host "=== 部署成功 ✅ ===" -ForegroundColor Green
 - 根因①：主脑中转这跳是纯 LLM 中转（写文件→scp→ssh 驱动 04），scp 遇瞬时网络挂起即拖死整条链；
 - 根因②：--timeout 300 太紧，链路一卡就 abort；实际主脑 abort 前已把任务传给 04 并驱动，04 侧继续执行完成，只是结果回不来 → 误判失败。
 - 教训：部署这类确定性工作别走多层 LLM 中转；直连 04（deploy04.ps1）为默认；主脑中转仅作备用且 --timeout 提到 600。
+## 公网验收（部署后必做 · 2026-08-09 司令补充）
+1. 04 本机 8002 health OK 后，必须再验公网：
+   - `https://api.ai24x.com/health` → commit 字段必须 = 期望 HEAD
+   - `https://www.ai24x.com/<本次改动页面>` → 含关键新标记（如注册验证码：reg-captcha-group / locales.js?v=20260809b）
+2. 回执中必须附公网证据（health commit + 页面标记），雷总一眼确认「已更新上去」。
+
+## 验收清单纪律（2026-08-09 补充）
+- `scripts_token_smoke.py` 是本地专用（BASE=127.0.0.1:8000），生产验收清单不得包含该项；生产侧以「公网验收 + 接口实测」为准（曾因放 smoke 进生产清单导致误报 FAIL + 多一轮往返）。
+- 拉取前先 `git ls-remote origin master` 连续两次一致再 `git pull`，避免拉取途中远端引用变动（曾导致 shallow clone 兜底混乱）。
+- 改密码/凭证后：04 的 gitee 走 credential store（勿把 token 内嵌 URL，失效会导致 git 挂起弹登录）。

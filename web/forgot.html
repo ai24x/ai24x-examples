@@ -76,7 +76,7 @@
               <label data-i18n="auth.forgot.captcha">Captcha</label>
               <div class="code-row">
                 <input id="forgot-captcha-answer" type="text" maxlength="8" class="input" autocomplete="off" data-i18n-placeholder="auth.forgot.captchaPh" placeholder="Type the code" />
-                <img id="forgot-captcha-img" src="" alt="captcha" title="Click to refresh" style="height:42px;width:120px;object-fit:cover;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:#f6f8fc" />
+                <img id="forgot-captcha-img" src="" alt="" title="Click to refresh" style="height:42px;width:120px;object-fit:cover;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:#f6f8fc;opacity:0;transition:opacity .15s" />
               </div>
               <p class="sub" style="margin:4px 0 0" data-i18n="auth.forgot.captchaRefresh">Click the image to refresh</p>
             </div>
@@ -157,14 +157,16 @@
     function loadForgotCaptcha() {
       var img = document.getElementById("forgot-captcha-img");
       if (!img) return;
+      img.style.opacity = "0";
       AI24X_API.authCaptchaGet()
         .then(function (r) {
           if (r && r.ok && r.token && r.image) {
             _forgotCaptchaToken = r.token;
             img.src = r.image;
+            img.style.opacity = "1";
           }
         })
-        .catch(function () {});
+        .catch(function () { img.style.opacity = "1"; });
     }
     document.getElementById("forgot-send").addEventListener("click", function () {
       var box = document.getElementById("forgot-msg");
