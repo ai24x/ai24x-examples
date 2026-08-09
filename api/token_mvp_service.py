@@ -1292,6 +1292,72 @@ def referral_earnings(db: Session, auth_user_id: int, *, limit: int = 50, offset
     }
 
 
+
+
+def _mask_username(email: str = "", phone: str = "") -> str:
+    """脱敏用户名：邮箱保首尾字符，手机号保前3后4；两者皆空返回空串。"""
+    e = (email or "").strip()
+    p = (phone or "").strip()
+    if e:
+        local, _, domain = e.partition("@")
+        if len(local) >= 2:
+            return f"{local[0]}***{local[-1]}@{domain}"
+        return f"{local}***@{domain}" if local else f"***@{domain}"
+    if p:
+        if len(p) >= 8:
+            return f"{p[:3]}****{p[-4:]}"
+        if len(p) >= 3:
+            return f"{p[:1]}****{p[-1:]}"
+        return f"{p[:1]}****"
+    return ""
+
+
+def referral_invitees(db: Session, auth_user_id: int, *, limit: int = 50, offset: int = 0) -> dict:
+    """被邀请人列表：脱敏用户名 + 注册时间 + 是否激活（有充值或消费记录=已激活）。"""
+    from models import AuthUser, BillingLedger
+
+    q = db.query(Referral).filter(
+        Referral.referrer_id == int(auth_user_id), Referral.level == 1
+    )
+    total = q.count()
+    rows = (
+        q.order_by(Referral.id.desc())
+        .offset(max(0, int(offset)))
+        .limit(min(200, max(1, int(limit))))
+        .all()
+    )
+    referee_ids = list({int(r.referee_id) for r in rows})
+    users = {}
+    active_ids = set()
+    if referee_ids:
+        for ru in db.query(AuthUser).filter(AuthUser.id.in_(referee_ids)).all():
+            users[int(ru.id)] = ru
+        for (uid,) in (
+            db.query(BillingLedger.auth_user_id)
+            .filter(
+                BillingLedger.auth_user_id.in_(referee_ids),
+                BillingLedger.entry_type.in_(("topup", "consume")),
+            )
+            .distinct()
+            .all()
+        ):
+            active_ids.add(int(uid))
+    out = []
+    for r in rows:
+        ru = users.get(int(r.referee_id))
+        masked = _mask_username((ru.email if ru else "") or "", (ru.phone if ru else "") or "")
+        out.append(
+            {
+                "referee_id": int(r.referee_id),
+                "username_masked": masked or f"user{int(r.referee_id)}",
+                "registered_at": (ru.created_at.isoformat() if ru and ru.created_at else None),
+                "activated": int(r.referee_id) in active_ids,
+                "level": int(r.level),
+                "status": r.status,
+                "reward_tokens": int(r.reward_tokens or 0),
+            }
+        )
+    return {"total": total, "rows": out, "limit": limit, "offset": offset}
 def admin_referral_overview(
     db: Session, *, q: Optional[str] = None, limit: int = 50, offset: int = 0
 ) -> dict:

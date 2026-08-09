@@ -1824,6 +1824,20 @@ async def referrals_earnings(
     return referral_earnings(db, int(u.id), limit=limit, offset=offset)
 
 
+
+
+@app.get("/v1/referrals/invitees")
+async def referrals_invitees(
+    request: Request,
+    db: Session = Depends(get_db),
+    limit: int = 50,
+    offset: int = 0,
+):
+    """被邀请人列表：脱敏用户名 / 注册时间 / 是否激活。"""
+    from token_mvp_service import referral_invitees
+
+    u = _auth_user_from_bearer(request, db)
+    return referral_invitees(db, int(u.id), limit=limit, offset=offset)
 @app.get("/v1/referrals/summary")
 async def referrals_summary(request: Request, db: Session = Depends(get_db)):
     """兼容旧占位路径：等同 stats + code。"""

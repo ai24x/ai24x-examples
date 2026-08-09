@@ -620,6 +620,12 @@
     return request("/v1/referrals/code", { method: "GET" });
   }
 
+  /** 被邀请人列表：脱敏用户名 / 注册时间 / 是否激活 */
+  function referralsInvitees(limit, offset) {
+    var qs = "limit=" + (limit || 50) + "&offset=" + (offset || 0);
+    return request("/v1/referrals/invitees?" + qs, { method: "GET" });
+  }
+
   /** 中文 UI 只展示人民币；其它语言（含 en/ja/ko…）展示美元与英文文案 */
   function isZhUi() {
     try {
@@ -814,6 +820,7 @@
     supportTicketList: supportTicketList,
     referralsSummary: referralsSummary,
     referralsCode: referralsCode,
+    referralsInvitees: referralsInvitees,
     isZhUi: isZhUi,
     planTitle: planTitle,
     planPriceLabel: planPriceLabel,

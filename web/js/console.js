@@ -1171,6 +1171,79 @@
       .catch(function () {});
   }
 
+  function tkey(key, fallbackEn) {
+    try {
+      if (window.AI24X_I18N && typeof window.AI24X_I18N.t === "function") {
+        var v = window.AI24X_I18N.t(key);
+        if (v && v !== key) return v;
+      }
+    } catch (e) {}
+    return fallbackEn || key;
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function fmtDateTime(iso) {
+    if (!iso) return "--";
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return "--";
+    var p = function (n) { return n < 10 ? "0" + n : "" + n; };
+    return (
+      d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) +
+      " " + p(d.getHours()) + ":" + p(d.getMinutes())
+    );
+  }
+
+  function renderInvitees(containerId, data) {
+    var el = document.getElementById(containerId);
+    if (!el) return;
+    var rows = (data && data.rows) || [];
+    var total = data && data.total != null ? Number(data.total) : rows.length;
+    var countEl = document.getElementById(containerId.indexOf("overview") === 0 ? "overview-invitees-count" : "panel-invitees-count");
+    if (!rows.length) {
+      el.innerHTML = '<div class="invite-reward-empty">' + escapeHtml(tkey("page.console.inviteReward.empty", "No invitees yet — share your code to get started.")) + "</div>";
+      if (countEl) countEl.textContent = "";
+      return;
+    }
+    var html = '<table class="invite-reward-table"><thead><tr>' +
+      "<th>" + escapeHtml(tkey("page.console.inviteReward.colUser", "User")) + "</th>" +
+      "<th>" + escapeHtml(tkey("page.console.inviteReward.colTime", "Registered")) + "</th>" +
+      "<th>" + escapeHtml(tkey("page.console.inviteReward.colStatus", "Status")) + "</th>" +
+      "</tr></thead><tbody>";
+    rows.forEach(function (r) {
+      var active = !!r.activated;
+      var cls = active ? "badge-active" : "badge-pending";
+      var label = active
+        ? escapeHtml(tkey("page.console.inviteReward.active", "Activated"))
+        : escapeHtml(tkey("page.console.inviteReward.inactive", "Not activated"));
+      html += "<tr>" +
+        "<td>" + escapeHtml(r.username_masked || "--") + "</td>" +
+        "<td>" + escapeHtml(fmtDateTime(r.registered_at)) + "</td>" +
+        "<td><span class=\"" + cls + "\">" + label + "</span></td>" +
+        "</tr>";
+    });
+    html += "</tbody></table>";
+    if (total > rows.length) {
+      var moreTpl = tkey("page.console.inviteReward.more", "Showing {shown} of {total}");
+      html += '<div class="sub" style="text-align:right;margin-top:6px;">' + escapeHtml(moreTpl.replace("{shown}", rows.length).replace("{total}", total)) + "</div>";
+    }
+    el.innerHTML = html;
+    if (countEl) countEl.textContent = "(" + total + ")";
+  }
+
+  async function loadInvitees() {
+    var data = await AI24X_API.referralsInvitees(50, 0);
+    renderInvitees("overview-invitees-wrap", data);
+    renderInvitees("panel-invitees-wrap", data);
+  }
+
   async function refreshAll() {
     if (!requireLogin()) return;
     var user = AI24X_API.getAuthUser() || {};
@@ -1453,6 +1526,10 @@
     }
 
     try {
+      await loadInvitees();
+    } catch (e) {}
+
+    try {
       var usage = await AI24X_API.billingUsage({ limit: 30 });
       var rows = (usage && usage.rows) || [];
       var consumes = rows.filter(function (r) {
@@ -1513,6 +1590,10 @@
         btn.getAttribute("data-console-panel") === id
       );
     });
+    if (id === "invite") {
+      loadInvitees().catch(function () {});
+    }
+
     if (pushHash) {
       try {
         var next = "#" + id;
