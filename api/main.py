@@ -2440,6 +2440,10 @@ async def billing_creem_webhook(request: Request, db: Session = Depends(get_db))
             d["amount"],
             d["currency"],
         )
+        # 2026-08-09 harden: USD 订单金额不一致 = 本地定价与 Creem 产品价不一致（配置错误），
+        # 拒绝履约，避免按错误金额到账；非 USD（汇率换算）仅告警不阻断。
+        if str(d["currency"] or "").upper() == "USD":
+            return JSONResponse(status_code=200, content={"ok": False, "reason": "amount_mismatch"})
 
     r = try_fulfill(
         db,

@@ -437,6 +437,12 @@ class BillingBalanceOut(BaseModel):
     auth_user_id: int
     plan: str
     balance_tokens: int
+    balance_usd: Optional[int] = None
+    balance_usd_display: Optional[str] = None
+    balance_cny_display: Optional[str] = None
+    usd_cny: Optional[float] = None
+    is_value_pack_active: Optional[bool] = None
+    flash_ref_usd_per_m: Optional[float] = None
     bonus_period: Optional[str] = None
     free_monthly_bonus: int
     signup_bonus_tokens: Optional[int] = None

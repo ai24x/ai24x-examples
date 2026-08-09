@@ -139,8 +139,8 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260809c"></script>
-  <script src="js/api.js?v=20260809c"></script>
+  <script src="config/locales.js?v=20260809e"></script>
+  <script src="js/api.js?v=20260809e"></script>
   <script src="js/utm.js?v=20260802a"></script>
 <script src="js/i18n.js?v=20260808b"></script>
   <script src="js/shell.js?v=20260808b"></script>
@@ -219,6 +219,8 @@
           "</th><th>" +
           (zh ? "点名模" : "Name models") +
           "</th><th>" +
+          (zh ? "有效期" : "Validity") +
+          "</th><th>" +
           (zh ? "适合" : "Best for") +
           "</th><th></th></tr></thead>";
         var tbody = document.createElement("tbody");
@@ -236,7 +238,7 @@
               : "") +
             (p.promo && !p.recommended
               ? '<span style="display:inline-block;margin-left:6px;font-size:11px;padding:1px 8px;border-radius:999px;border:1px solid rgba(245,158,11,.6);color:#b45309;background:rgba(245,158,11,.12);">' +
-                (zh ? "首发特惠" : "Launch") +
+                (zh ? "限时特惠" : "Limited Time") +
                 "</span>"
               : "") +
             "</td>" +
@@ -248,6 +250,9 @@
             "</td>" +
             "<td>" +
             esc(AI24X_API.planNameAccess(p)) +
+            "</td>" +
+            "<td>" +
+            esc(AI24X_API.planValidityLabel(p)) +
             "</td>" +
             "<td>" +
             esc(AI24X_API.planOneLiner(p) || "—") +

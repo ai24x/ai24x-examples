@@ -717,6 +717,33 @@
     return "";
   }
 
+
+  /** 套餐有效期标签：额度有效期 + 点名资格有效期（无则显示长期） */
+  function planValidityLabel(p) {
+    var zh = isZhUi();
+    var parts = [];
+    function fmtDays(d, kind) {
+      var n = Number(d) || 0;
+      if (n <= 0) return "";
+      if (zh) {
+        if (n % 365 === 0) return (kind === "credit" ? "额度 " : "资格 ") + (n / 365) + " 年有效";
+        if (n % 30 === 0) return (kind === "credit" ? "额度 " : "资格 ") + (n / 30) + " 个月有效";
+        return (kind === "credit" ? "额度 " : "资格 ") + n + " 天有效";
+      }
+      if (n % 365 === 0) return (kind === "credit" ? "Credits " : "Access ") + (n / 365) + "yr";
+      if (n % 30 === 0) return (kind === "credit" ? "Credits " : "Access ") + (n / 30) + "mo";
+      return (kind === "credit" ? "Credits " : "Access ") + n + "d";
+    }
+    var vd = Number((p && p.validity_days) || 0);
+    var pd = Number((p && p.vip_days) || 0);
+    var hasCredits = Number((p && p.credit_tokens) || 0) > 0;
+    var hasVip = !!(p && (p.set_vip || p.value_pack || p.cap_vip));
+    if (hasCredits && vd > 0) parts.push(fmtDays(vd, "credit"));
+    if (hasVip && pd > 0) parts.push(fmtDays(pd, "access"));
+    if (!parts.length) return zh ? "长期有效" : "No expiry";
+    return parts.join(" \u00b7 ");
+  }
+
   function planYesNo(flag) {
     if (isZhUi()) return flag ? "有" : "无";
     return flag ? "Yes" : "No";
@@ -767,8 +794,8 @@
     }
     if (planId === "token_value_pack") {
       return zh
-        ? "超值包已到账：3000 万 credits + 30 天白名单点名资格（白名单内名模可直接点名）。" + suffix
-        : "Value Pack credited: 30M credits + 30-day whitelist named-model access." + suffix;
+        ? "限时特惠超值包已到账：3000 万 credits + 30 天白名单点名资格（白名单内名模可直接点名）。" + suffix
+        : "Limited-time Value Pack credited: 30M credits + 30-day whitelist named-model access." + suffix;
     }
     return zh
       ? "支付已确认，已到账。" + suffix
@@ -825,6 +852,7 @@
     planTitle: planTitle,
     planPriceLabel: planPriceLabel,
     planNote: planNote,
+    planValidityLabel: planValidityLabel,
     planSettleHint: planSettleHint,
     planCaps: planCaps,
     planCapabilityTags: planCapabilityTags,

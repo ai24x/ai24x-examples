@@ -481,6 +481,8 @@
       "</th><th>" +
       tr("点名模", "Name models") +
       "</th><th>" +
+      tr("有效期", "Validity") +
+      "</th><th>" +
       tr("适合", "Best for") +
       "</th><th>" +
       tr("购买", "Buy") +
@@ -488,14 +490,19 @@
     var tbody = document.createElement("tbody");
     plans.forEach(function (p) {
       var caps = AI24X_API.planCaps(p);
+      var lit = !!(p.value_pack && window.__isValuePackActive);
       var trEl = document.createElement("tr");
-      if (p.recommended) trEl.className = "is-recommended";
+      trEl.className = lit ? "vp-lit" : p.recommended ? "is-recommended" : "";
       if (p.plan) trEl.setAttribute("data-plan", String(p.plan));
       var nameCell = document.createElement("td");
+      nameCell.className = "vp-name-cell";
       nameCell.innerHTML =
         "<strong>" +
         (AI24X_API.planTitle(p) || "") +
         "</strong>" +
+        (lit
+          ? '<span class="vp-lit-badge">' + tr("✓ 已点亮", "✓ Lit") + "</span>"
+          : "") +
         (p.recommended
           ? '<span class="plan-rec">' + tr("推荐", "Rec") + "</span>"
           : "");
@@ -519,6 +526,7 @@
       td.textContent = flashVal;
       trEl.appendChild(td);
       trEl.appendChild(tdText(AI24X_API.planNameAccess(p)));
+      trEl.appendChild(tdText(AI24X_API.planValidityLabel(p)));
       trEl.appendChild(tdText(AI24X_API.planOneLiner(p) || "—"));
       var payTd = document.createElement("td");
       payTd.className = "plan-compare-pay";
@@ -564,12 +572,44 @@
     tip.className = "sub";
     tip.style.marginTop = "10px";
     tip.textContent = tr(
-      "Flash $0.35/百万 · Pro $1.05/百万。Scale：12 个月名模资格 + 2 亿额度；已有额度可补购 VIP 资格包。",
-      "Flash $0.35/M · Pro $1.05/M. Scale = 12-mo named access + 200M credits; VIP Pass adds access if you already have credits."
+      "Flash $0.35/百万 · Pro $1.05/百万。Scale：12 个月名模资格 + 2 亿额度；已有额度可补购 VIP 资格包。额度到期后剩余自动核销。",
+      "Flash $0.35/M · Pro $1.05/M. Scale = 12-mo named access + 200M credits; VIP Pass adds access if you already have credits. Unused credits expire with the plan."
     );
     wrap.appendChild(tip);
     box.appendChild(wrap);
+    if (window.__isValuePackActive) {
+      litValuePackRows();
+    } else {
+      try {
+        AI24X_API.billingBalance()
+          .then(function (bal) {
+            if (bal && bal.is_value_pack_active) {
+              window.__isValuePackActive = true;
+              litValuePackRows();
+            }
+          })
+          .catch(function () {});
+      } catch (eBal) {}
+    }
     tryApplyPayDeepLink();
+  }
+
+  function litValuePackRows() {
+    var box = $("plansList");
+    if (!box) return;
+    var rows = box.querySelectorAll('tr[data-plan="token_value_pack"]');
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      if (row.classList.contains("vp-lit")) continue;
+      row.classList.add("vp-lit");
+      var nm = row.querySelector(".vp-name-cell");
+      if (nm && !nm.querySelector(".vp-lit-badge")) {
+        var b = document.createElement("span");
+        b.className = "vp-lit-badge";
+        b.textContent = tr("✓ 已点亮", "✓ Lit");
+        nm.appendChild(b);
+      }
+    }
   }
 
   function clearPayDeepLinkFromUrl() {
@@ -1313,10 +1353,18 @@
         } catch (eMerge) {}
       }
       // 2026-08-04: 口径只剩两条——充值余额 vs 今日免费 shared；不再叠「余额不足+欢迎卡+日赠」
+      // 2026-08-09: 余额按语言展示——中文界面人民币(¥)，英文及其它语言美元($)
       var usd = Number(bal.balance_usd) || 0;
-      var usdDisplay = "$" + (usd / 100).toFixed(2);
+      var fx = Number(bal.usd_cny) || 7.2;
+      var usdDisplay = tr(
+        bal.balance_cny_display || "¥" + (usd / 100 * fx).toFixed(2),
+        "$" + (usd / 100).toFixed(2)
+      );
       var planIsFree = String(bal.plan || "").toLowerCase() === "free";
       var isVip = !!bal.is_vip_active;
+      var vpLine = $("vp-active-line");
+      if (vpLine) vpLine.style.display = bal.is_value_pack_active ? "" : "none";
+      window.__isValuePackActive = !!bal.is_value_pack_active;
       var walletTokens = Number(bal.balance_tokens) || 0;
       var walletEmpty = walletTokens <= 0 && usd <= 0;
       var sharedOn = !!bal.shared_enabled;

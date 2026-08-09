@@ -523,6 +523,11 @@ def get_balance_snapshot(db: Session, auth_user_id: int) -> dict:
     from model_warehouse import flash_ref_usd_per_m as _flash_ref
 
     ref = _flash_ref()
+    try:
+        from token_plans import _usd_cny as _fx
+        fx = float(_fx() or 7.2)
+    except Exception:
+        fx = 7.2
     out = {
         "auth_user_id": int(auth_user_id),
         "email": (au.email or None) if au else None,
@@ -530,6 +535,8 @@ def get_balance_snapshot(db: Session, auth_user_id: int) -> dict:
         "balance_tokens": total,
         "balance_usd": usd,              # USD 美分
         "balance_usd_display": f"${usd / 100:.2f}",  # 前端直接展示
+        "balance_cny_display": f"\u00a5{usd / 100 * fx:.2f}",  # 中文界面人民币展示
+        "usd_cny": round(fx, 4),
         "flash_ref_usd_per_m": round(ref, 4),
         "prepaid_tokens": int(prepaid),
         "vip_daily_remaining": int(vip_daily_left),
@@ -802,12 +809,12 @@ def topup_usd(
             validity_days=DEFAULT_PACK_VALIDITY_DAYS,
             note=(note or "topup_usd")[:255], plan=plan, commit=False,
         )
-        db.add(BillingLedger(
-            auth_user_id=int(auth_user_id), entry_type="topup",
-            amount=token_amount, amount_usd=usd_cents,
-            model=None, tokens=token_amount,
-            note=(note or "topup")[:255],
-        ))
+        # 2026-08-09 fix: 移除重复入账（_credit_lot 已写一条 topup 流水），
+        # amount_usd 记到同一条 ledger 供对账，避免一次履约出现两条流水
+        try:
+            ledger.amount_usd = int(usd_cents or 0)
+        except Exception:
+            pass
         db.commit()
         db.refresh(w)
 

@@ -129,13 +129,13 @@ _PLAN_DEFAULTS: dict[str, dict[str, Any]] = {
         "promo": True,
         "promo_max_purchases": 2,
         "note_zh": (
-            "首发特惠·极致性价比：$9.9 得 3000 万 credits（≈$0.33/百万）+ 30 天白名单点名资格。 "
+            "限时特惠 · 极致性价比：$9.9 得 3000 万 credits（≈$0.33/百万）+ 30 天白名单点名资格。 "
             "可点名超值包专属模型（DeepSeek Flash/Pro、GPT-5.6 Luna/Terra、Llama 4、Hy3、GPT-4o mini、"
             "GLM-5.2、Qwen Max/122B、Kimi K2.7 Code、MiniMax M3、MiMo Pro 等）；不包含国际旗舰点名 "
             "（GPT-5/5.4/4o、Claude、Gemini、Grok、Kimi K3）。限购 2 份；额度 12 个月有效。白名单随质量与成本滚动调整。"
         ),
         "note_en": (
-            "Launch Value Pack: $9.9 for 30M credits (~$0.33/M) + 30-day named-model access to a curated "
+            "Limited-time Value Pack: $9.9 for 30M credits (~$0.33/M) + 30-day named-model access to a curated "
             "whitelist (DeepSeek Flash/Pro, GPT-5.6 Luna/Terra, Llama 4, Hy3, GPT-4o mini, GLM-5.2, "
             "Qwen Max/122B, Kimi K2.7 Code, MiniMax M3, MiMo Pro). Flagship picks (GPT-5/5.4/4o, Claude, "
             "Gemini, Grok, Kimi K3) are not included. Max 2 per account; credits valid 12 months. "
