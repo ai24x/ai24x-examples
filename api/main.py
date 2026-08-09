@@ -569,15 +569,18 @@ async def openai_responses_create(
     db: Session = Depends(get_db),
 ):
     """
-    OpenAI Responses API 最小兼容（LobeChat / Continue 等）。
-    鉴权计费与 /v1/chat/completions 相同；不支持 tools / 多模态 / 响应持久化。
+    OpenAI Responses API 兼容（Codex / Cursor / LobeChat 等）。
+    鉴权计费与 /v1/chat/completions 相同；支持 tools / function_call 工具循环；
+    流式优先真流式透传上游 SSE（与 chat/completions 对齐，避免客户端空闲断连）。
     """
     from openai_compat import (
         build_chat_request_from_responses,
         response_id,
         streaming_responses_response,
         to_openai_response,
+        true_streaming_responses_response,
     )
+    from model_router import true_stream_enabled
 
     try:
         body = await http_request.json()
@@ -602,6 +605,37 @@ async def openai_responses_create(
         or (http_request.headers.get("cf-ipcountry") or "").strip()
         or None
     )
+    rid = response_id()
+
+    # 真流式：先发 response.created 心跳，边生成边写 SSE 事件（Codex/Cursor 工具循环）
+    if want_stream and true_stream_enabled():
+        try:
+            events = ChatService.stream_chat_request(
+                db=db,
+                user=current_user,
+                request=chat_req,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                auth_user_id=auth_uid,
+                region_hint=region_hint,
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error starting stream responses: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="处理请求时发生错误",
+            )
+        logger.info(
+            "Responses TRUE stream user=%s model=%s id=%s",
+            current_user.user_id,
+            chat_req.model,
+            rid,
+        )
+        return true_streaming_responses_response(
+            events, requested_model=chat_req.model or "flash", resp_id=rid
+        )
 
     try:
         response = ChatService.process_chat_request(
@@ -622,7 +656,6 @@ async def openai_responses_create(
             detail="处理请求时发生错误",
         )
 
-    rid = response_id()
     logger.info(
         "Responses: %s stream=%s user=%s model=%s",
         response.request_id,

@@ -4,7 +4,7 @@
 对外：POST /v1/chat/completions、POST /v1/responses（Bearer / X-API-Key）
 对内：复用 ChatService → 路由 / 扣费 / 用量
 流式：默认真流式透传上游 SSE（TOKEN_LLM_TRUE_STREAM=0 时回退假流式切片）
-Completions：支持 tools / tool_calls / role=tool（OpenClaw）；Responses 仍为文本最小兼容。
+Completions锛氭敮鎸?tools / tool_calls / role=tool锛圱penClaw锛夛紱Responses 鏀寔 tools / function_call / function_call_output 宸ュ叿寰幆锛圜odex / Cursor锛夈€?
 """
 from __future__ import annotations
 
@@ -727,8 +727,8 @@ def true_streaming_response(
 
 
 # ---------------------------------------------------------------------------
-# OpenAI Responses API 最小兼容（LobeChat / Continue 等默认走 /v1/responses）
-# 复用 ChatService；文本最小兼容。tools / 多模态 / 持久化仍不在 Responses 路径。
+# OpenAI Responses API 兼容（Codex / Cursor / LobeChat 等默认走 /v1/responses）
+# 复用 ChatService；支持 tools / function_call / function_call_output 工具循环闭环。
 # ---------------------------------------------------------------------------
 
 
@@ -738,6 +738,90 @@ def response_id() -> str:
 
 def _msg_id() -> str:
     return "msg_" + uuid.uuid4().hex
+
+
+# ---------------------------------------------------------------------------
+# Responses tools / function_call 适配（Codex / Cursor 等 agent 工具循环）
+# ---------------------------------------------------------------------------
+
+
+def _responses_tools_to_chat(tools_raw: Any) -> Optional[List[Dict[str, Any]]]:
+    """Responses tools -> chat completions tools 形状。
+
+    Responses 格式: {"type":"function","name":"shell","description":...,"parameters":{...}}
+    chat 格式:      {"type":"function","function":{"name":...,"description":...,"parameters":{...}}}
+    """
+    if not isinstance(tools_raw, list) or not tools_raw:
+        return None
+    out: List[Dict[str, Any]] = []
+    for t in tools_raw:
+        if not isinstance(t, dict):
+            continue
+        if isinstance(t.get("function"), dict):
+            out.append(t)
+            continue
+        if str(t.get("type") or "").lower() in ("function", "") and t.get("name"):
+            fn: Dict[str, Any] = {"name": str(t["name"])}
+            if t.get("description") is not None:
+                fn["description"] = str(t["description"])
+            if t.get("parameters") is not None:
+                fn["parameters"] = t["parameters"]
+            if t.get("strict") is not None:
+                fn["strict"] = bool(t["strict"])
+            out.append({"type": "function", "function": fn})
+            continue
+        out.append(t)
+    if len(out) > 128:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="tools 数量过多，请精简后再试",
+        )
+    return out or None
+
+
+def _responses_tool_choice_to_chat(tool_choice: Any) -> Any:
+    """Responses tool_choice -> chat 形状（auto/none/required 或 {type,function:{name}}）。"""
+    if tool_choice is None:
+        return None
+    if isinstance(tool_choice, str):
+        low = tool_choice.strip().lower()
+        return low if low in ("auto", "none", "required") else None
+    if isinstance(tool_choice, dict) and str(tool_choice.get("type") or "").lower() == "function":
+        name = str(tool_choice.get("name") or "").strip()
+        if name:
+            return {"type": "function", "function": {"name": name}}
+    return tool_choice
+
+
+def _chat_tool_calls_to_response_items(tool_calls: Any) -> List[Dict[str, Any]]:
+    """chat tool_calls -> Responses function_call output items。"""
+    if not isinstance(tool_calls, list) or not tool_calls:
+        return []
+    items: List[Dict[str, Any]] = []
+    for tc in tool_calls:
+        if not isinstance(tc, dict):
+            continue
+        fn = tc.get("function") if isinstance(tc.get("function"), dict) else {}
+        name = str(fn.get("name") or "tool").strip()
+        args = fn.get("arguments")
+        if isinstance(args, (dict, list)):
+            try:
+                args = json.dumps(args, ensure_ascii=False)
+            except Exception:
+                args = str(args)
+        args = str(args or "")
+        call_id = str(tc.get("id") or ("call_" + uuid.uuid4().hex[:24]))
+        items.append(
+            {
+                "id": "fc_" + uuid.uuid4().hex[:24],
+                "type": "function_call",
+                "status": "completed",
+                "call_id": call_id,
+                "name": name,
+                "arguments": args,
+            }
+        )
+    return items
 
 
 def _input_part_to_text(part: Any) -> str:
@@ -756,7 +840,11 @@ def _input_part_to_text(part: Any) -> str:
 
 
 def responses_input_to_messages(body: Dict[str, Any]) -> List[Dict[str, str]]:
-    """Responses `input` (+ optional `instructions`) → chat messages[]."""
+    """Responses input (+ optional instructions) -> chat messages[].
+
+    支持工具循环回放：function_call -> assistant.tool_calls；
+    function_call_output -> role=tool 消息（Codex / Cursor 多轮工具闭环）。
+    """
     messages: List[Dict[str, str]] = []
     instructions = body.get("instructions")
     if isinstance(instructions, str) and instructions.strip():
@@ -782,18 +870,71 @@ def responses_input_to_messages(body: Dict[str, Any]) -> List[Dict[str, str]]:
             detail="input 须为字符串或数组",
         )
 
+    def flush_pending() -> None:
+        nonlocal pending
+        if pending is None:
+            return
+        if pending.get("tool_calls"):
+            messages.append(pending)
+        elif pending.get("content"):
+            messages.append({"role": "assistant", "content": pending["content"]})
+        pending = None
+
+    pending: Optional[Dict[str, Any]] = None
     for item in raw:
         if isinstance(item, str):
+            flush_pending()
             if item.strip():
                 messages.append({"role": "user", "content": item.strip()})
             continue
         if not isinstance(item, dict):
             continue
         itype = str(item.get("type") or "").strip().lower()
-        if itype in ("function_call", "function_call_output", "reasoning", "web_search_call"):
+        if itype in ("reasoning", "web_search_call"):
+            continue
+        if itype == "function_call":
+            call_id = str(item.get("call_id") or item.get("id") or "").strip()
+            if not call_id:
+                call_id = "call_" + uuid.uuid4().hex[:24]
+            name = str(item.get("name") or "tool").strip()
+            args = item.get("arguments")
+            if isinstance(args, (dict, list)):
+                try:
+                    args = json.dumps(args, ensure_ascii=False)
+                except Exception:
+                    args = str(args)
+            args = str(args or "")
+            if pending is None:
+                pending = {"role": "assistant", "content": "", "tool_calls": []}
+            pending["tool_calls"].append(
+                {
+                    "id": call_id,
+                    "type": "function",
+                    "function": {"name": name or "tool", "arguments": args},
+                }
+            )
+            continue
+        if itype == "function_call_output":
+            flush_pending()
+            call_id = str(item.get("call_id") or "").strip()
+            output = item.get("output")
+            if isinstance(output, list):
+                out_text = "\n".join(
+                    x for x in (_input_part_to_text(p) for p in output) if x
+                ).strip()
+            else:
+                out_text = _content_to_text(output).strip()
+            messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": call_id or ("call_" + uuid.uuid4().hex[:24]),
+                    "content": out_text,
+                }
+            )
             continue
         role = str(item.get("role") or "user").strip().lower()
         if role in ("tool", "function"):
+            flush_pending()
             continue
         content = item.get("content")
         if isinstance(content, list):
@@ -810,7 +951,13 @@ def responses_input_to_messages(body: Dict[str, Any]) -> List[Dict[str, str]]:
             role = "user"
         if role == "developer":
             role = "system"
+        if role == "assistant":
+            flush_pending()
+            pending = {"role": "assistant", "content": text, "tool_calls": []}
+            continue
+        flush_pending()
         messages.append({"role": role, "content": text})
+    flush_pending()
 
     if not messages or all(m.get("role") == "system" for m in messages):
         raise HTTPException(
@@ -819,9 +966,8 @@ def responses_input_to_messages(body: Dict[str, Any]) -> List[Dict[str, str]]:
         )
     return messages
 
-
 def build_chat_request_from_responses(body: Dict[str, Any]) -> ChatRequestSchema:
-    """把 Responses 请求体转成内部 ChatRequest。"""
+    """把 Responses 请求体转成内部 ChatRequest（含 tools / tool_choice 透传）。"""
     messages = responses_input_to_messages(body)
     model = map_model_name(body.get("model"))
     try:
@@ -847,8 +993,9 @@ def build_chat_request_from_responses(body: Dict[str, Any]) -> ChatRequestSchema
         max_tokens=max_tokens,
         stream=bool(body.get("stream")),
         messages=normalize_messages_for_upstream(messages),
+        tools=_responses_tools_to_chat(body.get("tools")),
+        tool_choice=_responses_tool_choice_to_chat(body.get("tool_choice")),
     )
-
 
 def to_openai_response(
     resp: ChatResponse, *, requested_model: str, resp_id: str
@@ -858,18 +1005,12 @@ def to_openai_response(
     completion_tokens = max(0, total - prompt_tokens) if total else 0
     model_out = resp.model or requested_model or "flash"
     text = resp.response or ""
-    mid = _msg_id()
-    out: Dict[str, Any] = {
-        "id": resp_id,
-        "object": "response",
-        "created_at": int(time.time()),
-        "status": "completed",
-        "error": None,
-        "incomplete_details": None,
-        "model": model_out,
-        "output": [
+    fc_items = _chat_tool_calls_to_response_items(getattr(resp, "tool_calls", None))
+    output: List[Dict[str, Any]] = []
+    if text:
+        output.append(
             {
-                "id": mid,
+                "id": _msg_id(),
                 "type": "message",
                 "status": "completed",
                 "role": "assistant",
@@ -881,7 +1022,17 @@ def to_openai_response(
                     }
                 ],
             }
-        ],
+        )
+    output.extend(fc_items)
+    out: Dict[str, Any] = {
+        "id": resp_id,
+        "object": "response",
+        "created_at": int(time.time()),
+        "status": "completed",
+        "error": None,
+        "incomplete_details": None,
+        "model": model_out,
+        "output": output,
         "usage": {
             "input_tokens": prompt_tokens,
             "output_tokens": completion_tokens,
@@ -897,15 +1048,19 @@ def to_openai_response(
         }
     return out
 
-
 def iter_sse_from_response(
     resp: ChatResponse, *, requested_model: str, resp_id: str
 ) -> Iterator[str]:
-    """最小 Responses SSE：output_text.delta + completed（计费已在上游完成）。"""
+    """Responses SSE：output_text / function_call 事件 + completed（计费已在上游完成）。
+
+    function_call 事件序列：response.output_item.added(function_call) →
+    response.function_call_arguments.delta* → response.function_call_arguments.done，
+    供 Codex / Cursor 等客户端组装工具调用并继续工具循环。
+    """
     model_out = resp.model or requested_model or "flash"
     created = int(time.time())
-    mid = _msg_id()
     text = resp.response or ""
+    fc_items = _chat_tool_calls_to_response_items(getattr(resp, "tool_calls", None))
     total = max(0, int(resp.token_count or 0))
     prompt_tokens = max(1, int(total * 0.3)) if total else 0
     completion_tokens = max(0, total - prompt_tokens) if total else 0
@@ -922,57 +1077,103 @@ def iter_sse_from_response(
         "output": [],
     }
     yield pack("response.created", {"type": "response.created", "response": dict(base)})
-    yield pack(
-        "response.output_item.added",
-        {
-            "type": "response.output_item.added",
-            "output_index": 0,
-            "item": {
-                "id": mid,
-                "type": "message",
-                "status": "in_progress",
-                "role": "assistant",
-                "content": [],
-            },
-        },
-    )
-    yield pack(
-        "response.content_part.added",
-        {
-            "type": "response.content_part.added",
-            "item_id": mid,
-            "output_index": 0,
-            "content_index": 0,
-            "part": {"type": "output_text", "text": "", "annotations": []},
-        },
-    )
-    for piece in _chunk_text(text, 32):
-        if not piece:
-            continue
+    out_index = 0
+    if text:
+        mid = _msg_id()
         yield pack(
-            "response.output_text.delta",
+            "response.output_item.added",
             {
-                "type": "response.output_text.delta",
-                "item_id": mid,
-                "output_index": 0,
-                "content_index": 0,
-                "delta": piece,
+                "type": "response.output_item.added",
+                "output_index": out_index,
+                "item": {
+                    "id": mid,
+                    "type": "message",
+                    "status": "in_progress",
+                    "role": "assistant",
+                    "content": [],
+                },
             },
         )
-    yield pack(
-        "response.output_text.done",
-        {
-            "type": "response.output_text.done",
-            "item_id": mid,
-            "output_index": 0,
-            "content_index": 0,
-            "text": text,
-        },
+        yield pack(
+            "response.content_part.added",
+            {
+                "type": "response.content_part.added",
+                "item_id": mid,
+                "output_index": out_index,
+                "content_index": 0,
+                "part": {"type": "output_text", "text": "", "annotations": []},
+            },
+        )
+        for piece in _chunk_text(text, 32):
+            if not piece:
+                continue
+            yield pack(
+                "response.output_text.delta",
+                {
+                    "type": "response.output_text.delta",
+                    "item_id": mid,
+                    "output_index": out_index,
+                    "content_index": 0,
+                    "delta": piece,
+                },
+            )
+        yield pack(
+            "response.output_text.done",
+            {
+                "type": "response.output_text.done",
+                "item_id": mid,
+                "output_index": out_index,
+                "content_index": 0,
+                "text": text,
+            },
+        )
+        out_index += 1
+    for fc in fc_items:
+        fcid = str(fc.get("id") or ("fc_" + uuid.uuid4().hex[:24]))
+        call_id = str(fc.get("call_id") or fcid)
+        name = str(fc.get("name") or "tool")
+        args = str(fc.get("arguments") or "")
+        yield pack(
+            "response.output_item.added",
+            {
+                "type": "response.output_item.added",
+                "output_index": out_index,
+                "item": {
+                    "id": fcid,
+                    "type": "function_call",
+                    "status": "in_progress",
+                    "call_id": call_id,
+                    "name": name,
+                    "arguments": "",
+                },
+            },
+        )
+        for piece in _chunk_text(args, 32):
+            if not piece:
+                continue
+            yield pack(
+                "response.function_call_arguments.delta",
+                {
+                    "type": "response.function_call_arguments.delta",
+                    "item_id": fcid,
+                    "output_index": out_index,
+                    "delta": piece,
+                },
+            )
+        yield pack(
+            "response.function_call_arguments.done",
+            {
+                "type": "response.function_call_arguments.done",
+                "item_id": fcid,
+                "output_index": out_index,
+                "arguments": args,
+            },
+        )
+        out_index += 1
+    completed = to_openai_response(
+        resp, requested_model=requested_model, resp_id=resp_id
     )
-    completed = to_openai_response(resp, requested_model=requested_model, resp_id=resp_id)
     completed["created_at"] = created
-    if completed.get("output") and isinstance(completed["output"][0], dict):
-        completed["output"][0]["id"] = mid
     completed["usage"] = {
         "input_tokens": prompt_tokens,
         "output_tokens": completion_tokens,
@@ -983,12 +1184,370 @@ def iter_sse_from_response(
         {"type": "response.completed", "response": completed},
     )
 
-
 def streaming_responses_response(
     resp: ChatResponse, *, requested_model: str, resp_id: str
 ) -> StreamingResponse:
     return StreamingResponse(
         iter_sse_from_response(resp, requested_model=requested_model, resp_id=resp_id),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+
+def _responses_completed_payload(
+    *,
+    resp_id: str,
+    created: int,
+    model_out: str,
+    text: str,
+    tool_calls: Any,
+    tokens: int,
+) -> Dict[str, Any]:
+    """构造 Responses completed 事件里的完整 response（与 to_openai_response 同构）。"""
+    total = max(0, int(tokens or 0))
+    prompt_tokens = max(1, int(total * 0.3)) if total else 0
+    completion_tokens = max(0, total - prompt_tokens) if total else 0
+    output: List[Dict[str, Any]] = []
+    if text:
+        output.append(
+            {
+                "id": _msg_id(),
+                "type": "message",
+                "status": "completed",
+                "role": "assistant",
+                "content": [
+                    {"type": "output_text", "annotations": [], "text": text}
+                ],
+            }
+        )
+    output.extend(_chat_tool_calls_to_response_items(tool_calls))
+    return {
+        "id": resp_id,
+        "object": "response",
+        "created_at": created,
+        "status": "completed",
+        "error": None,
+        "incomplete_details": None,
+        "model": model_out,
+        "output": output,
+        "usage": {
+            "input_tokens": prompt_tokens,
+            "output_tokens": completion_tokens,
+            "total_tokens": total,
+        },
+    }
+
+
+def iter_true_sse_from_responses_events(
+    events: Iterator[Dict[str, Any]],
+    *,
+    requested_model: str,
+    resp_id: str,
+) -> Iterator[str]:
+    """把 ChatService.stream_chat_request 事件流转成 Responses SSE 真流式。
+
+    先发 response.created 心跳（避免客户端空闲断连），随后边生成边发
+    output_text.delta / function_call_arguments.delta，收尾 done /
+    response.completed。工具调用增量按上游 tool_calls 分片逐段转发。
+    """
+    model_out = requested_model or "flash"
+    created = int(time.time())
+
+    def pack(event: str, payload: Dict[str, Any]) -> str:
+        return f"event: {event}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+    base = {
+        "id": resp_id,
+        "object": "response",
+        "created_at": created,
+        "status": "in_progress",
+        "model": model_out,
+        "output": [],
+    }
+    yield pack("response.created", {"type": "response.created", "response": dict(base)})
+
+    msg_item_id: Optional[str] = None
+    msg_out_index: Optional[int] = None
+    text_acc: List[str] = []
+    fc_state: Dict[int, Dict[str, Any]] = {}
+    out_index = 0
+
+    for ev in events:
+        et = ev.get("type")
+        if et == "meta":
+            model_out = str(
+                ev.get("public_model") or ev.get("raw_model") or model_out
+            )
+            continue
+        if et == "delta":
+            piece = str(ev.get("text") or "")
+            if not piece:
+                continue
+            if msg_item_id is None:
+                msg_item_id = _msg_id()
+                msg_out_index = out_index
+                out_index += 1
+                yield pack(
+                    "response.output_item.added",
+                    {
+                        "type": "response.output_item.added",
+                        "output_index": msg_out_index,
+                        "item": {
+                            "id": msg_item_id,
+                            "type": "message",
+                            "status": "in_progress",
+                            "role": "assistant",
+                            "content": [],
+                        },
+                    },
+                )
+                yield pack(
+                    "response.content_part.added",
+                    {
+                        "type": "response.content_part.added",
+                        "item_id": msg_item_id,
+                        "output_index": msg_out_index,
+                        "content_index": 0,
+                        "part": {"type": "output_text", "text": "", "annotations": []},
+                    },
+                )
+            text_acc.append(piece)
+            yield pack(
+                "response.output_text.delta",
+                {
+                    "type": "response.output_text.delta",
+                    "item_id": msg_item_id,
+                    "output_index": msg_out_index,
+                    "content_index": 0,
+                    "delta": piece,
+                },
+            )
+        elif et == "tool_calls_delta":
+            tcs = ev.get("tool_calls")
+            if not isinstance(tcs, list):
+                continue
+            for piece_tc in tcs:
+                if not isinstance(piece_tc, dict):
+                    continue
+                try:
+                    idx = int(piece_tc.get("index") or 0)
+                except (TypeError, ValueError):
+                    idx = 0
+                st = fc_state.get(idx)
+                if st is None:
+                    fcid = "fc_" + uuid.uuid4().hex[:24]
+                    fn0 = piece_tc.get("function") or {}
+                    name0 = ""
+                    if isinstance(fn0, dict):
+                        name0 = str(fn0.get("name") or "")
+                    call_id0 = str(
+                        piece_tc.get("id") or ("call_" + uuid.uuid4().hex[:24])
+                    )
+                    st = {
+                        "item_id": fcid,
+                        "call_id": call_id0,
+                        "name": name0 or "tool",
+                        "out_index": out_index,
+                    }
+                    fc_state[idx] = st
+                    out_index += 1
+                    yield pack(
+                        "response.output_item.added",
+                        {
+                            "type": "response.output_item.added",
+                            "output_index": st["out_index"],
+                            "item": {
+                                "id": fcid,
+                                "type": "function_call",
+                                "status": "in_progress",
+                                "call_id": call_id0,
+                                "name": st["name"],
+                                "arguments": "",
+                            },
+                        },
+                    )
+                fn = piece_tc.get("function") or {}
+                if isinstance(fn, dict) and fn.get("arguments") is not None:
+                    arg_piece = fn.get("arguments")
+                    if isinstance(arg_piece, (dict, list)):
+                        try:
+                            arg_piece = json.dumps(arg_piece, ensure_ascii=False)
+                        except Exception:
+                            arg_piece = str(arg_piece)
+                    if arg_piece:
+                        yield pack(
+                            "response.function_call_arguments.delta",
+                            {
+                                "type": "response.function_call_arguments.delta",
+                                "item_id": st["item_id"],
+                                "output_index": st["out_index"],
+                                "delta": str(arg_piece),
+                            },
+                        )
+        elif et == "done":
+            if msg_item_id is not None:
+                yield pack(
+                    "response.output_text.done",
+                    {
+                        "type": "response.output_text.done",
+                        "item_id": msg_item_id,
+                        "output_index": msg_out_index,
+                        "content_index": 0,
+                        "text": "".join(text_acc),
+                    },
+                )
+                yield pack(
+                    "response.output_item.done",
+                    {
+                        "type": "response.output_item.done",
+                        "output_index": msg_out_index,
+                        "item": {
+                            "id": msg_item_id,
+                            "type": "message",
+                            "status": "completed",
+                            "role": "assistant",
+                            "content": [
+                                {
+                                    "type": "output_text",
+                                    "text": "".join(text_acc),
+                                    "annotations": [],
+                                }
+                            ],
+                        },
+                    },
+                )
+            tcs_full = ev.get("tool_calls") or []
+            completed_items: List[Dict[str, Any]] = []
+            for i, st in sorted(fc_state.items()):
+                args_full = ""
+                if i < len(tcs_full) and isinstance(tcs_full[i], dict):
+                    fn = tcs_full[i].get("function") or {}
+                    if isinstance(fn, dict):
+                        a = fn.get("arguments")
+                        if isinstance(a, (dict, list)):
+                            try:
+                                a = json.dumps(a, ensure_ascii=False)
+                            except Exception:
+                                a = str(a)
+                        args_full = str(a or "")
+                yield pack(
+                    "response.function_call_arguments.done",
+                    {
+                        "type": "response.function_call_arguments.done",
+                        "item_id": st["item_id"],
+                        "output_index": st["out_index"],
+                        "arguments": args_full,
+                    },
+                )
+                yield pack(
+                    "response.output_item.done",
+                    {
+                        "type": "response.output_item.done",
+                        "output_index": st["out_index"],
+                        "item": {
+                            "id": st["item_id"],
+                            "type": "function_call",
+                            "status": "completed",
+                            "call_id": st["call_id"],
+                            "name": st["name"],
+                            "arguments": args_full,
+                        },
+                    },
+                )
+                completed_items.append(
+                    {
+                        "id": st["item_id"],
+                        "type": "function_call",
+                        "status": "completed",
+                        "call_id": st["call_id"],
+                        "name": st["name"],
+                        "arguments": args_full,
+                    }
+                )
+            completed = _responses_completed_payload(
+                resp_id=resp_id,
+                created=created,
+                model_out=model_out,
+                text="".join(text_acc) if msg_item_id is not None else "",
+                tool_calls=tcs_full or None,
+                tokens=int(ev.get("tokens") or 0),
+            )
+            # 复用流中已发 item id，确保 completed.output 与流事件一致（Codex 依赖此映射）
+            if completed.get("output") and isinstance(completed["output"], list):
+                fixed: List[Dict[str, Any]] = []
+                for it in completed["output"]:
+                    if it.get("type") == "message" and msg_item_id is not None:
+                        it["id"] = msg_item_id
+                        fixed.append(it)
+                    elif it.get("type") == "function_call":
+                        fixed.append(completed_items.pop(0) if completed_items else it)
+                    else:
+                        fixed.append(it)
+                completed["output"] = fixed
+            yield pack(
+                "response.completed",
+                {"type": "response.completed", "response": completed},
+            )
+            return
+        elif et == "error":
+            err = str(ev.get("error") or "upstream_error")
+            if err in ("tools_unsupported", "vip_required", "tools_need_balance"):
+                if err == "vip_required":
+                    msg = "VIP required for this model."
+                elif err == "tools_need_balance":
+                    msg = "Tool calling needs available credit balance. Please top up."
+                else:
+                    msg = "This model cannot use tools right now. Try flash or pro."
+            else:
+                msg = "Service temporarily unavailable. Please try again."
+            yield pack(
+                "response.failed",
+                {
+                    "type": "response.failed",
+                    "response": {
+                        "id": resp_id,
+                        "object": "response",
+                        "created_at": created,
+                        "status": "failed",
+                        "model": model_out,
+                        "output": [],
+                        "error": {"code": "server_error", "message": msg},
+                    },
+                },
+            )
+            return
+    yield pack(
+        "response.failed",
+        {
+            "type": "response.failed",
+            "response": {
+                "id": resp_id,
+                "object": "response",
+                "created_at": created,
+                "status": "failed",
+                "model": model_out,
+                "output": [],
+                "error": {"code": "stream_incomplete", "message": "Stream ended unexpectedly."},
+            },
+        },
+    )
+
+
+def true_streaming_responses_response(
+    events: Iterator[Dict[str, Any]],
+    *,
+    requested_model: str,
+    resp_id: str,
+) -> StreamingResponse:
+    return StreamingResponse(
+        iter_true_sse_from_responses_events(
+            events, requested_model=requested_model, resp_id=resp_id
+        ),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
