@@ -90,10 +90,20 @@
     var nav = document.getElementById("nav-main");
     if (toggle && nav) {
       try { toggle.setAttribute("data-a1-bound", "1"); } catch (eB0) {}
-      toggle.addEventListener("click", function () {
+      function toggleNav() {
         var open = nav.classList.toggle("is-open");
+        // 内联式样式强制（防止旧 CSS 缓存缺 .is-open 规则导致菜单弹不开）
+        try { if (open) { nav.style.setProperty("display", "flex", "important"); } else { nav.style.removeProperty("display"); } } catch (eI0) {}
         toggle.setAttribute("aria-expanded", open ? "true" : "false");
-      });
+      }
+      toggle.addEventListener("click", function (ev) { if (ev) { try { ev.preventDefault(); } catch (eP0) {} } toggleNav(); });
+      // 点击菜单项后自动关闭抽屉
+      try {
+        var navLinks = nav.querySelectorAll("a");
+        for (var nl0 = 0; nl0 < navLinks.length; nl0++) {
+          (function (lk) { lk.addEventListener("click", function () { try { nav.classList.remove("is-open"); nav.style.removeProperty("display"); toggle.setAttribute("aria-expanded", "false"); } catch (eC0) {} }); })(navLinks[nl0]);
+        }
+      } catch (eL0) {}
     }
     // 兜底：页面重复挂载/覆盖 header 导致直接监听丢失时，事件委托仍保证菜单可开关
     try {
@@ -107,6 +117,7 @@
           var navEl = document.getElementById("nav-main");
           if (!navEl) return;
           var open = navEl.classList.toggle("is-open");
+          try { if (open) { navEl.style.setProperty("display", "flex", "important"); } else { navEl.style.removeProperty("display"); } } catch (eI1) {}
           btn.setAttribute("aria-expanded", open ? "true" : "false");
         });
       }
@@ -125,7 +136,7 @@
         global.__AI24X_A_SW_INSTALLED = true;
         // Cache-bust SW URL so deployments don't require Ctrl+F5.
         // Use absolute paths so pages still work under subpaths like /i/{code}.
-        navigator.serviceWorker.register("/sw.js?v=49", { scope: "/", updateViaCache: "none" }).then(function (reg) {
+        navigator.serviceWorker.register("/sw.js?v=50", { scope: "/", updateViaCache: "none" }).then(function (reg) {
           try {
             reg.update && reg.update();
             if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
