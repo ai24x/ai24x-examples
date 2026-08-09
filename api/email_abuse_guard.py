@@ -195,6 +195,26 @@ def record_email_send_attempt(ip: str, email: str) -> None:
         _email_window[em].append(now)
 
 
+_reg_ip_day: dict[str, list[float]] = defaultdict(list)
+_REG_IP_DAY_DEFAULT = 10
+
+
+def check_register_allowed(ip: str, max_per_day: int = _REG_IP_DAY_DEFAULT) -> tuple[bool, str]:
+    """注册级 IP 封顶（进程内；默认每 IP 每天最多 10 个新账号）。"""
+    if not ip or ip == "unknown":
+        return True, ""
+    now = time.time()
+    _prune(_reg_ip_day[ip], 86400.0)
+    if len(_reg_ip_day[ip]) >= int(max_per_day):
+        return False, "当前网络注册次数过多，请明天再试"
+    return True, ""
+
+
+def record_register(ip: str) -> None:
+    if ip and ip != "unknown":
+        _reg_ip_day[ip].append(time.time())
+
+
 def assert_email_ok_for_register(email: str) -> tuple[bool, str]:
     if is_disposable_email(email):
         return False, "该邮箱暂不支持注册，请使用常用邮箱。"

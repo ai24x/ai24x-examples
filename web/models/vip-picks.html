@@ -97,11 +97,11 @@
         <div style="border:1px solid rgba(245,158,11,.55);border-radius:12px;background:linear-gradient(135deg,rgba(245,158,11,.10),rgba(37,99,235,.06));padding:16px 18px;">
           <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;">
             <div style="min-width:240px;flex:1;">
-              <div style="font-weight:700;font-size:16px;margin-bottom:6px;">⚡ 极致性价比·超值包（Value Pack）<span style="margin-left:6px;font-size:11px;padding:1px 8px;border-radius:999px;border:1px solid rgba(245,158,11,.6);color:#b45309;background:rgba(245,158,11,.12);">首发特惠</span></div>
+              <div style="font-weight:700;font-size:16px;margin-bottom:6px;"><span data-i18n="page.models.vip.vpTitle">⚡ 极致性价比·超值包（Value Pack）</span><span style="margin-left:6px;font-size:11px;padding:1px 8px;border-radius:999px;border:1px solid rgba(245,158,11,.6);color:#b45309;background:rgba(245,158,11,.12);" data-i18n="page.models.vip.vpBadge">首发特惠</span></div>
               <div class="sub" id="vpDesc" style="margin-top:6px;">…</div>
               <div class="sub" id="vpModels" style="margin-top:6px;">…</div>
             </div>
-            <a class="btn btn-primary" href="../pricing.html">查看套餐</a>
+            <a class="btn btn-primary" href="../pricing.html" data-i18n="page.models.vip.vpCta">查看套餐</a>
           </div>
         </div>
       </div>
@@ -173,7 +173,7 @@ Header: X-API-Key: YOUR_API_KEY
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="../config/locales.js?v=20260808a"></script>
+  <script src="../config/locales.js?v=20260809a"></script>
   <script src="../js/api.js?v=20260808a"></script>
   <script src="../js/utm.js?v=20260802a"></script>
 <script src="../js/i18n.js?v=20260808b"></script>
@@ -258,23 +258,15 @@ Header: X-API-Key: YOUR_API_KEY
         var outUsd = Number(p.est_out_usd_per_m != null ? p.est_out_usd_per_m : Math.round(ref * (p.out_mult || 1) * 100) / 100);
         var dIn = off[0] > 0 ? Math.round(((inUsd - off[0]) / off[0]) * 100) : 0;
         var dOut = off[1] > 0 ? Math.round(((outUsd - off[1]) / off[1]) * 100) : 0;
+        // 只展示「我们有优惠」：输出比官方直连便宜才显示绿色徽章；持平或更贵不显示对照，避免无实惠反而劝退
+        if (dOut > -1) return "";
         var zh = isZh();
-        var text, color, bg;
-        if (dOut <= -1) {
-          text = zh ? "输出省 " + (-dOut) + "%" : "out -" + (-dOut) + "%";
-          color = "#1e7e34"; bg = "#e6f4ea";
-        } else if (dOut <= 5) {
-          text = zh ? "输出持平官方" : "out = official";
-          color = "#555"; bg = "#f0f0f0";
-        } else {
-          text = zh ? "输出 +" + dOut + "%" : "out +" + dOut + "%";
-          color = "#b7791f"; bg = "#fdf3e0";
-        }
+        var text = zh ? "输出省 " + (-dOut) + "%" : "out -" + (-dOut) + "%";
         var title =
           "OpenAI official $" + off[0] + "/$" + off[1] + " per 1M · AI24X $" + inUsd + "/$" + outUsd +
           " (in " + (dIn >= 0 ? "+" : "") + dIn + "%, out " + (dOut >= 0 ? "+" : "") + dOut + "%)";
         return (
-          ' <span title="' + esc(title) + '" style="display:inline-block;background:' + bg + ';color:' + color +
+          ' <span title="' + esc(title) + '" style="display:inline-block;background:#e6f4ea;color:#1e7e34' +
           ';border-radius:3px;padding:0 5px;font-size:11px;margin-left:4px;">' + esc(text) + "</span>"
         );
       }

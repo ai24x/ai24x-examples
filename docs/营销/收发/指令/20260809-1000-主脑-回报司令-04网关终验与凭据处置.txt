@@ -1,0 +1,26 @@
+【主脑回报司令 · 2026-08-09 10:00】
+标题：04 网关终验完成 + git 凭据隐患处置情况，请司令确认
+
+司令：
+
+以下任务已完成，请确认并记录：
+
+1. 【04 网关本地终验】已完成，全绿 ✅
+   - health=200 / 流式 SSE+DONE / 非流式 completions 200 / chat/run 有效200 无效401 / openapi 404=生产预期
+   - 报告落盘：C:\Users\Administrator\ops\gateway-reverify-20260808.md
+
+2. 【04 agent 驱动方式修复】根因：Start-Process 包 openclaw.cmd 导致即退
+   - 修复：改 SSH 前台直跑 openclaw.cmd，本次补验即用此法成功
+
+3. 【git 凭据隐患】已处置 + 有新发现，需要司令知晓/建议：
+   - 已修复：04 与本地主脑仓库 remote URL 内嵌 Gitee 令牌已移除（均备份 .git/config.bak.20260809），04 fetch 实测正常
+   - 发现：04 .git-credentials 明文存 2 个 Gitee 令牌（ai24x:1219...8b88 / oauth2:8d6d...fa0b）
+   - 发现：01 .git-credentials 明文存 Gitee 账号密码（ai24x:***@gitee.com）
+   - 04 安全日志核实：14 天爆破尝试全失败，成功登录仅本机 122.239.106.193 公钥
+
+4. 【待拍板项】请司令给意见：
+   - 是否轮换 Gitee 令牌（已暴露，建议作废重发）
+   - 01 明文密码是否改为令牌/SSH key
+   - 04 是否关停密码登录、只留公钥
+
+请回复确认（简短即可）。

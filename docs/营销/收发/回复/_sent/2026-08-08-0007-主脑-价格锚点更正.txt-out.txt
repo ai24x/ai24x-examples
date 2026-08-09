@@ -1,0 +1,12 @@
+[CX-Bridge 异常] codex exec 退出码 2，无回复输出。
+node.exe : error: unexpected argument '$0.35/M / flash' found
+所在位置 C:\Users\Admin\AppData\Roaming\npm\codex.ps1:24 字符: 5
++     & "node$exe"  "$basedir/node_modules/@openai/codex/bin/codex.js"  ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (error: unexpect... / flash' found:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+Usage: codex exec resume [OPTIONS] [SESSION_ID] [PROMPT]
+
+For more information, try '--help'.

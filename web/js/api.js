@@ -469,6 +469,10 @@
       body: JSON.stringify(p),
     });
   }
+
+  function authCaptchaGet() {
+    return request("/v1/auth/captcha", { method: "GET" });
+  }
   function authPasswordChange(payload) {
     return request("/v1/auth/password/change", {
       method: "POST",
@@ -787,6 +791,7 @@
     authRegister: authRegister,
     authSmsSend: authSmsSend,
     authEmailSend: authEmailSend,
+    authCaptchaGet: authCaptchaGet,
     authPasswordChange: authPasswordChange,
     authPasswordReset: authPasswordReset,
     keysList: keysList,

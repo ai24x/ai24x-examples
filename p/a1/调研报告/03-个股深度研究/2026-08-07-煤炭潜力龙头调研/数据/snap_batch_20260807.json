@@ -1,0 +1,1007 @@
+{
+  "600408": {
+    "secid": "1.600408",
+    "snapshot": {
+      "ok": true,
+      "secid": "1.600408",
+      "code": "",
+      "name": "",
+      "score": 70.6,
+      "factors": {
+        "macd": 13.0,
+        "ma": 15.0,
+        "vol": 14.0,
+        "surge": 0.0,
+        "pos": 8.0,
+        "trend": 10.0,
+        "rsi": 4.0,
+        "vp": -2.4,
+        "volc": 4.0
+      },
+      "tags": [
+        "MACD翻红·第24天",
+        "红柱放大",
+        "均线多头",
+        "MA20上翘",
+        "站上MA20",
+        "温和放量",
+        "价升量增",
+        "位置37%",
+        "MA57上方",
+        "动能偏热",
+        "波动收敛"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "red_days": 24,
+      "vol_ratio": 1.72,
+      "up_pct": 3.61,
+      "cpos": 0.371,
+      "latest_time": "2026-08-06",
+      "market": {
+        "secid": "1.000001",
+        "name": "上证指数",
+        "pts": 3.0,
+        "red_days": 3,
+        "ma_bull": false,
+        "above_ma20": true,
+        "weak": false,
+        "tags": [
+          "大盘MACD翻红·第3天",
+          "大盘站上MA20"
+        ],
+        "latest_time": "2026-08-06"
+      },
+      "is_vip": true
+    }
+  },
+  "600792": {
+    "secid": "1.600792",
+    "snapshot": {
+      "ok": true,
+      "secid": "1.600792",
+      "code": "",
+      "name": "",
+      "score": 67.4,
+      "factors": {
+        "macd": 13.0,
+        "ma": 15.0,
+        "vol": 14.0,
+        "surge": 0.0,
+        "pos": 8.0,
+        "trend": 5.0,
+        "rsi": 4.0,
+        "vp": -0.6,
+        "volc": 4.0
+      },
+      "tags": [
+        "MACD翻红·第20天",
+        "红柱放大",
+        "均线多头",
+        "MA20上翘",
+        "站上MA20",
+        "温和放量",
+        "价升量增",
+        "位置32%",
+        "动能偏热",
+        "波动收敛"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "red_days": 20,
+      "vol_ratio": 1.51,
+      "up_pct": 3.68,
+      "cpos": 0.329,
+      "latest_time": "2026-08-06",
+      "market": {
+        "secid": "1.000001",
+        "name": "上证指数",
+        "pts": 3.0,
+        "red_days": 3,
+        "ma_bull": false,
+        "above_ma20": true,
+        "weak": false,
+        "tags": [
+          "大盘MACD翻红·第3天",
+          "大盘站上MA20"
+        ],
+        "latest_time": "2026-08-06"
+      },
+      "is_vip": true
+    }
+  },
+  "600758": {
+    "secid": "1.600758",
+    "snapshot": {
+      "ok": true,
+      "secid": "1.600758",
+      "code": "",
+      "name": "",
+      "score": 77.4,
+      "factors": {
+        "macd": 13.0,
+        "ma": 15.0,
+        "vol": 14.0,
+        "surge": 8.0,
+        "pos": 10.0,
+        "trend": 5.0,
+        "rsi": 4.0,
+        "vp": -0.6,
+        "volc": 4.0
+      },
+      "tags": [
+        "MACD翻红·第19天",
+        "红柱放大",
+        "均线多头",
+        "MA20上翘",
+        "站上MA20",
+        "温和放量",
+        "价升量增",
+        "首板",
+        "位置28%",
+        "动能偏热",
+        "放量突破"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "red_days": 19,
+      "vol_ratio": 1.76,
+      "up_pct": 9.88,
+      "cpos": 0.282,
+      "latest_time": "2026-08-06",
+      "market": {
+        "secid": "1.000001",
+        "name": "上证指数",
+        "pts": 3.0,
+        "red_days": 3,
+        "ma_bull": false,
+        "above_ma20": true,
+        "weak": false,
+        "tags": [
+          "大盘MACD翻红·第3天",
+          "大盘站上MA20"
+        ],
+        "latest_time": "2026-08-06"
+      },
+      "is_vip": true
+    }
+  },
+  "601011": {
+    "secid": "1.601011",
+    "snapshot": {
+      "ok": true,
+      "secid": "1.601011",
+      "code": "",
+      "name": "",
+      "score": 66.6,
+      "factors": {
+        "macd": 13.0,
+        "ma": 15.0,
+        "vol": 11.0,
+        "surge": 0.0,
+        "pos": 10.0,
+        "trend": 5.0,
+        "rsi": 4.0,
+        "vp": -0.4,
+        "volc": 4.0
+      },
+      "tags": [
+        "MACD翻红·第9天",
+        "红柱放大",
+        "均线多头",
+        "均线金叉×2",
+        "站上MA20",
+        "价升量增",
+        "位置29%",
+        "动能偏热",
+        "波动收敛"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "red_days": 9,
+      "vol_ratio": 1.94,
+      "up_pct": 2.31,
+      "cpos": 0.296,
+      "latest_time": "2026-08-06",
+      "market": {
+        "secid": "1.000001",
+        "name": "上证指数",
+        "pts": 3.0,
+        "red_days": 3,
+        "ma_bull": false,
+        "above_ma20": true,
+        "weak": false,
+        "tags": [
+          "大盘MACD翻红·第3天",
+          "大盘站上MA20"
+        ],
+        "latest_time": "2026-08-06"
+      },
+      "is_vip": true
+    }
+  },
+  "600121": {
+    "secid": "1.600121",
+    "snapshot": {
+      "ok": true,
+      "secid": "1.600121",
+      "code": "",
+      "name": "",
+      "score": 78.6,
+      "factors": {
+        "macd": 13.0,
+        "ma": 18.0,
+        "vol": 11.0,
+        "surge": 7.0,
+        "pos": 8.0,
+        "trend": 10.0,
+        "rsi": 4.0,
+        "vp": -1.4,
+        "volc": 4.0
+      },
+      "tags": [
+        "MACD翻红·第17天",
+        "红柱放大",
+        "均线多头",
+        "MA20上翘",
+        "均线金叉",
+        "站上MA20",
+        "价升量增",
+        "异动回踩支撑",
+        "位置31%",
+        "MA57上方",
+        "动能偏热",
+        "波动收敛"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "red_days": 17,
+      "vol_ratio": 2.59,
+      "up_pct": 8.95,
+      "cpos": 0.316,
+      "latest_time": "2026-08-06",
+      "market": {
+        "secid": "1.000001",
+        "name": "上证指数",
+        "pts": 3.0,
+        "red_days": 3,
+        "ma_bull": false,
+        "above_ma20": true,
+        "weak": false,
+        "tags": [
+          "大盘MACD翻红·第3天",
+          "大盘站上MA20"
+        ],
+        "latest_time": "2026-08-06"
+      },
+      "is_vip": true
+    }
+  },
+  "000571": {
+    "secid": "0.000571",
+    "snapshot": {
+      "ok": true,
+      "secid": "0.000571",
+      "code": "",
+      "name": "",
+      "score": 95.4,
+      "factors": {
+        "macd": 21.0,
+        "ma": 15.0,
+        "vol": 14.0,
+        "surge": 15.0,
+        "pos": 2.0,
+        "trend": 10.0,
+        "rsi": 7.0,
+        "vp": 6.4,
+        "volc": 0.0
+      },
+      "tags": [
+        "MACD翻红·第3天",
+        "红柱放大",
+        "均线多头",
+        "均线金叉×2",
+        "站上MA20",
+        "温和放量",
+        "价升量增",
+        "首板",
+        "异动回踩支撑",
+        "位置98%",
+        "MA57上方",
+        "动能健康",
+        "量价配合"
+      ],
+      "risks": [
+        "5日涨幅过大"
+      ],
+      "red_days": 3,
+      "vol_ratio": 1.48,
+      "up_pct": 5.34,
+      "cpos": 0.987,
+      "latest_time": "2026-08-06",
+      "market": {
+        "secid": "1.000001",
+        "name": "上证指数",
+        "pts": 3.0,
+        "red_days": 3,
+        "ma_bull": false,
+        "above_ma20": true,
+        "weak": false,
+        "tags": [
+          "大盘MACD翻红·第3天",
+          "大盘站上MA20"
+        ],
+        "latest_time": "2026-08-06"
+      },
+      "is_vip": true
+    }
+  },
+  "601015": {
+    "secid": "1.601015",
+    "snapshot": {
+      "ok": true,
+      "secid": "1.601015",
+      "code": "",
+      "name": "",
+      "score": 63.6,
+      "factors": {
+        "macd": 13.0,
+        "ma": 15.0,
+        "vol": 11.0,
+        "surge": 0.0,
+        "pos": 8.0,
+        "trend": 10.0,
+        "rsi": 4.0,
+        "vp": -2.4,
+        "volc": 0.0
+      },
+      "tags": [
+        "MACD翻红·第25天",
+        "红柱放大",
+        "均线多头",
+        "MA20上翘",
+        "站上MA20",
+        "价升量增",
+        "位置47%",
+        "MA57上方",
+        "动能偏热"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "red_days": 25,
+      "vol_ratio": 2.7,
+      "up_pct": 7.19,
+      "cpos": 0.478,
+      "latest_time": "2026-08-06",
+      "market": {
+        "secid": "1.000001",
+        "name": "上证指数",
+        "pts": 3.0,
+        "red_days": 3,
+        "ma_bull": false,
+        "above_ma20": true,
+        "weak": false,
+        "tags": [
+          "大盘MACD翻红·第3天",
+          "大盘站上MA20"
+        ],
+        "latest_time": "2026-08-06"
+      },
+      "is_vip": true
+    }
+  },
+  "600508": {
+    "secid": "1.600508",
+    "snapshot": {
+      "ok": true,
+      "secid": "1.600508",
+      "code": "",
+      "name": "",
+      "score": 79.2,
+      "factors": {
+        "macd": 13.0,
+        "ma": 20.0,
+        "vol": 14.0,
+        "surge": 0.0,
+        "pos": 8.0,
+        "trend": 10.0,
+        "rsi": 7.0,
+        "vp": 2.2,
+        "volc": 0.0
+      },
+      "tags": [
+        "MACD翻红·第24天",
+        "红柱放大",
+        "均线多头",
+        "MA20上翘",
+        "均线金叉×2",
+        "站上MA20",
+        "温和放量",
+        "价升量增",
+        "位置44%",
+        "MA57上方",
+        "动能健康"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "red_days": 24,
+      "vol_ratio": 1.8,
+      "up_pct": 2.71,
+      "cpos": 0.449,
+      "latest_time": "2026-08-06",
+      "market": {
+        "secid": "1.000001",
+        "name": "上证指数",
+        "pts": 3.0,
+        "red_days": 3,
+        "ma_bull": false,
+        "above_ma20": true,
+        "weak": false,
+        "tags": [
+          "大盘MACD翻红·第3天",
+          "大盘站上MA20"
+        ],
+        "latest_time": "2026-08-06"
+      },
+      "is_vip": true
+    }
+  },
+  "600997": {
+    "secid": "1.600997",
+    "snapshot": {
+      "ok": true,
+      "secid": "1.600997",
+      "code": "",
+      "name": "",
+      "score": 68.8,
+      "factors": {
+        "macd": 10.0,
+        "ma": 20.0,
+        "vol": 9.0,
+        "surge": 0.0,
+        "pos": 5.0,
+        "trend": 10.0,
+        "rsi": 7.0,
+        "vp": 2.8,
+        "volc": 0.0
+      },
+      "tags": [
+        "MACD翻红·第26天",
+        "均线多头",
+        "MA20上翘",
+        "均线金叉×2",
+        "站上MA20",
+        "温和放量",
+        "位置70%",
+        "MA57上方",
+        "动能健康"
+      ],
+      "risks": [
+        "量价背离",
+        "长上影滞涨"
+      ],
+      "red_days": 26,
+      "vol_ratio": 1.6,
+      "up_pct": -0.71,
+      "cpos": 0.709,
+      "latest_time": "2026-08-06",
+      "market": {
+        "secid": "1.000001",
+        "name": "上证指数",
+        "pts": 3.0,
+        "red_days": 3,
+        "ma_bull": false,
+        "above_ma20": true,
+        "weak": false,
+        "tags": [
+          "大盘MACD翻红·第3天",
+          "大盘站上MA20"
+        ],
+        "latest_time": "2026-08-06"
+      },
+      "is_vip": true
+    }
+  },
+  "600740": {
+    "secid": "1.600740",
+    "snapshot": {
+      "ok": true,
+      "secid": "1.600740",
+      "code": "",
+      "name": "",
+      "score": 76.2,
+      "factors": {
+        "macd": 10.0,
+        "ma": 15.0,
+        "vol": 14.0,
+        "surge": 0.0,
+        "pos": 8.0,
+        "trend": 10.0,
+        "rsi": 7.0,
+        "vp": 3.2,
+        "volc": 4.0
+      },
+      "tags": [
+        "MACD翻红·第24天",
+        "均线多头",
+        "MA20上翘",
+        "站上MA20",
+        "温和放量",
+        "价升量增",
+        "位置44%",
+        "MA57上方",
+        "动能健康",
+        "波动收敛"
+      ],
+      "risks": [],
+      "red_days": 24,
+      "vol_ratio": 1.5,
+      "up_pct": 2.26,
+      "cpos": 0.449,
+      "latest_time": "2026-08-06",
+      "market": {
+        "secid": "1.000001",
+        "name": "上证指数",
+        "pts": 3.0,
+        "red_days": 3,
+        "ma_bull": false,
+        "above_ma20": true,
+        "weak": false,
+        "tags": [
+          "大盘MACD翻红·第3天",
+          "大盘站上MA20"
+        ],
+        "latest_time": "2026-08-06"
+      },
+      "is_vip": true
+    }
+  },
+  "600971": {
+    "secid": "1.600971",
+    "snapshot": {
+      "ok": true,
+      "secid": "1.600971",
+      "code": "",
+      "name": "",
+      "score": 69.2,
+      "factors": {
+        "macd": 13.0,
+        "ma": 18.0,
+        "vol": 14.0,
+        "surge": 0.0,
+        "pos": 2.0,
+        "trend": 10.0,
+        "rsi": 4.0,
+        "vp": 3.2,
+        "volc": 0.0
+      },
+      "tags": [
+        "MACD翻红·第18天",
+        "红柱放大",
+        "均线多头",
+        "MA20上翘",
+        "均线金叉",
+        "站上MA20",
+        "温和放量",
+        "价升量增",
+        "位置80%",
+        "MA57上方",
+        "动能偏热"
+      ],
+      "risks": [],
+      "red_days": 18,
+      "vol_ratio": 1.64,
+      "up_pct": 4.56,
+      "cpos": 0.81,
+      "latest_time": "2026-08-06",
+      "market": {
+        "secid": "1.000001",
+        "name": "上证指数",
+        "pts": 3.0,
+        "red_days": 3,
+        "ma_bull": false,
+        "above_ma20": true,
+        "weak": false,
+        "tags": [
+          "大盘MACD翻红·第3天",
+          "大盘站上MA20"
+        ],
+        "latest_time": "2026-08-06"
+      },
+      "is_vip": true
+    }
+  },
+  "600123": {
+    "secid": "1.600123",
+    "snapshot": {
+      "ok": true,
+      "secid": "1.600123",
+      "code": "",
+      "name": "",
+      "score": 62.4,
+      "factors": {
+        "macd": 10.0,
+        "ma": 15.0,
+        "vol": 14.0,
+        "surge": 0.0,
+        "pos": 2.0,
+        "trend": 10.0,
+        "rsi": 4.0,
+        "vp": 2.4,
+        "volc": 0.0
+      },
+      "tags": [
+        "MACD翻红·第22天",
+        "均线多头",
+        "MA20上翘",
+        "站上MA20",
+        "温和放量",
+        "价升量增",
+        "位置76%",
+        "MA57上方",
+        "动能偏热"
+      ],
+      "risks": [
+        "长上影滞涨"
+      ],
+      "red_days": 22,
+      "vol_ratio": 1.32,
+      "up_pct": 0.87,
+      "cpos": 0.769,
+      "latest_time": "2026-08-06",
+      "market": {
+        "secid": "1.000001",
+        "name": "上证指数",
+        "pts": 3.0,
+        "red_days": 3,
+        "ma_bull": false,
+        "above_ma20": true,
+        "weak": false,
+        "tags": [
+          "大盘MACD翻红·第3天",
+          "大盘站上MA20"
+        ],
+        "latest_time": "2026-08-06"
+      },
+      "is_vip": true
+    }
+  },
+  "600395": {
+    "secid": "1.600395",
+    "snapshot": {
+      "ok": true,
+      "secid": "1.600395",
+      "code": "",
+      "name": "",
+      "score": 65.0,
+      "factors": {
+        "macd": 13.0,
+        "ma": 15.0,
+        "vol": 11.0,
+        "surge": 0.0,
+        "pos": 8.0,
+        "trend": 5.0,
+        "rsi": 4.0,
+        "vp": 4.0,
+        "volc": 0.0
+      },
+      "tags": [
+        "MACD翻红·第20天",
+        "红柱放大",
+        "均线多头",
+        "MA20上翘",
+        "站上MA20",
+        "价升量增",
+        "位置32%",
+        "动能偏热",
+        "量价配合"
+      ],
+      "risks": [],
+      "red_days": 20,
+      "vol_ratio": 2.12,
+      "up_pct": 4.12,
+      "cpos": 0.326,
+      "latest_time": "2026-08-06",
+      "market": {
+        "secid": "1.000001",
+        "name": "上证指数",
+        "pts": 3.0,
+        "red_days": 3,
+        "ma_bull": false,
+        "above_ma20": true,
+        "weak": false,
+        "tags": [
+          "大盘MACD翻红·第3天",
+          "大盘站上MA20"
+        ],
+        "latest_time": "2026-08-06"
+      },
+      "is_vip": true
+    }
+  },
+  "000552": {
+    "secid": "0.000552",
+    "snapshot": {
+      "ok": true,
+      "secid": "0.000552",
+      "code": "",
+      "name": "",
+      "score": 76.2,
+      "factors": {
+        "macd": 10.0,
+        "ma": 15.0,
+        "vol": 14.0,
+        "surge": 0.0,
+        "pos": 8.0,
+        "trend": 10.0,
+        "rsi": 7.0,
+        "vp": 3.2,
+        "volc": 4.0
+      },
+      "tags": [
+        "MACD翻红·第24天",
+        "均线多头",
+        "MA20上翘",
+        "站上MA20",
+        "温和放量",
+        "价升量增",
+        "位置48%",
+        "MA57上方",
+        "动能健康",
+        "波动收敛"
+      ],
+      "risks": [
+        "长上影滞涨"
+      ],
+      "red_days": 24,
+      "vol_ratio": 1.56,
+      "up_pct": 1.57,
+      "cpos": 0.486,
+      "latest_time": "2026-08-06",
+      "market": {
+        "secid": "1.000001",
+        "name": "上证指数",
+        "pts": 3.0,
+        "red_days": 3,
+        "ma_bull": false,
+        "above_ma20": true,
+        "weak": false,
+        "tags": [
+          "大盘MACD翻红·第3天",
+          "大盘站上MA20"
+        ],
+        "latest_time": "2026-08-06"
+      },
+      "is_vip": true
+    }
+  },
+  "600403": {
+    "secid": "1.600403",
+    "snapshot": {
+      "ok": true,
+      "secid": "1.600403",
+      "code": "",
+      "name": "",
+      "score": 75.4,
+      "factors": {
+        "macd": 13.0,
+        "ma": 18.0,
+        "vol": 11.0,
+        "surge": 7.0,
+        "pos": 8.0,
+        "trend": 5.0,
+        "rsi": 4.0,
+        "vp": 0.4,
+        "volc": 4.0
+      },
+      "tags": [
+        "MACD翻红·第16天",
+        "红柱放大",
+        "均线多头",
+        "MA20上翘",
+        "均线金叉",
+        "站上MA20",
+        "价升量增",
+        "异动回踩支撑",
+        "位置41%",
+        "MA57上方",
+        "动能偏热",
+        "波动收敛"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "red_days": 16,
+      "vol_ratio": 1.11,
+      "up_pct": 9.95,
+      "cpos": 0.416,
+      "latest_time": "2026-08-06",
+      "market": {
+        "secid": "1.000001",
+        "name": "上证指数",
+        "pts": 3.0,
+        "red_days": 3,
+        "ma_bull": false,
+        "above_ma20": true,
+        "weak": false,
+        "tags": [
+          "大盘MACD翻红·第3天",
+          "大盘站上MA20"
+        ],
+        "latest_time": "2026-08-06"
+      },
+      "is_vip": true
+    }
+  },
+  "000723": {
+    "secid": "0.000723",
+    "snapshot": {
+      "ok": true,
+      "secid": "0.000723",
+      "code": "",
+      "name": "",
+      "score": 72.0,
+      "factors": {
+        "macd": 10.0,
+        "ma": 15.0,
+        "vol": 14.0,
+        "surge": 0.0,
+        "pos": 8.0,
+        "trend": 5.0,
+        "rsi": 7.0,
+        "vp": 4.0,
+        "volc": 4.0
+      },
+      "tags": [
+        "MACD翻红·第20天",
+        "均线多头",
+        "MA20上翘",
+        "站上MA20",
+        "温和放量",
+        "价升量增",
+        "位置31%",
+        "动能健康",
+        "量价配合",
+        "波动收敛"
+      ],
+      "risks": [
+        "长上影滞涨"
+      ],
+      "red_days": 20,
+      "vol_ratio": 1.39,
+      "up_pct": 0.84,
+      "cpos": 0.311,
+      "latest_time": "2026-08-06",
+      "market": {
+        "secid": "1.000001",
+        "name": "上证指数",
+        "pts": 3.0,
+        "red_days": 3,
+        "ma_bull": false,
+        "above_ma20": true,
+        "weak": false,
+        "tags": [
+          "大盘MACD翻红·第3天",
+          "大盘站上MA20"
+        ],
+        "latest_time": "2026-08-06"
+      },
+      "is_vip": true
+    }
+  },
+  "601101": {
+    "secid": "1.601101",
+    "snapshot": {
+      "ok": true,
+      "secid": "1.601101",
+      "code": "",
+      "name": "",
+      "score": 70.8,
+      "factors": {
+        "macd": 17.0,
+        "ma": 15.0,
+        "vol": 8.0,
+        "surge": 8.0,
+        "pos": 5.0,
+        "trend": 10.0,
+        "rsi": 4.0,
+        "vp": -1.2,
+        "volc": 0.0
+      },
+      "tags": [
+        "MACD翻红·第5天",
+        "红柱放大",
+        "均线多头",
+        "均线金叉×3",
+        "站上MA20",
+        "价升量增",
+        "首板",
+        "位置63%",
+        "MA57上方",
+        "动能偏热"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "red_days": 5,
+      "vol_ratio": 0.85,
+      "up_pct": 10.03,
+      "cpos": 0.634,
+      "latest_time": "2026-08-06",
+      "market": {
+        "secid": "1.000001",
+        "name": "上证指数",
+        "pts": 3.0,
+        "red_days": 3,
+        "ma_bull": false,
+        "above_ma20": true,
+        "weak": false,
+        "tags": [
+          "大盘MACD翻红·第3天",
+          "大盘站上MA20"
+        ],
+        "latest_time": "2026-08-06"
+      },
+      "is_vip": true
+    }
+  },
+  "000937": {
+    "secid": "0.000937",
+    "snapshot": {
+      "ok": true,
+      "secid": "0.000937",
+      "code": "",
+      "name": "",
+      "score": 61.4,
+      "factors": {
+        "macd": 10.0,
+        "ma": 8.0,
+        "vol": 14.0,
+        "surge": 0.0,
+        "pos": 5.0,
+        "trend": 10.0,
+        "rsi": 7.0,
+        "vp": 2.4,
+        "volc": 0.0
+      },
+      "tags": [
+        "MACD翻红·第24天",
+        "MA20上翘",
+        "站上MA20",
+        "温和放量",
+        "价升量增",
+        "位置63%",
+        "MA57上方",
+        "动能健康"
+      ],
+      "risks": [],
+      "red_days": 24,
+      "vol_ratio": 1.29,
+      "up_pct": 2.82,
+      "cpos": 0.634,
+      "latest_time": "2026-08-06",
+      "market": {
+        "secid": "1.000001",
+        "name": "上证指数",
+        "pts": 3.0,
+        "red_days": 3,
+        "ma_bull": false,
+        "above_ma20": true,
+        "weak": false,
+        "tags": [
+          "大盘MACD翻红·第3天",
+          "大盘站上MA20"
+        ],
+        "latest_time": "2026-08-06"
+      },
+      "is_vip": true
+    }
+  }
+}

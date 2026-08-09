@@ -1920,8 +1920,8 @@
           box.innerHTML = '<div class="alert alert-error">' + tr("请输入当前密码", "Enter your current password") + "</div>";
           return;
         }
-        if (newP.length < 6) {
-          box.innerHTML = '<div class="alert alert-error">' + tr("新密码至少 6 位", "New password must be at least 6 characters") + "</div>";
+        if (newP.length < 8) {
+          box.innerHTML = '<div class="alert alert-error">' + tr("新密码至少 8 位", "New password must be at least 8 characters") + "</div>";
           return;
         }
         if (newP !== newP2) {

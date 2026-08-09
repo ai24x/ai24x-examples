@@ -48,6 +48,12 @@
     .code-row { display: flex; gap: 8px; }
     .code-row .input { flex: 1; min-width: 0; }
     .code-row .btn { flex-shrink: 0; white-space: nowrap; }
+    #forgot-captcha-group .code-row img {
+      flex: 0 0 auto;
+      height: 42px;
+      width: 120px;
+      object-fit: cover;
+    }
   </style>
 </head>
 <body data-page="login" class="theme-blue">
@@ -66,6 +72,14 @@
               <label data-i18n="auth.forgot.email">Email</label>
               <input id="forgot-email" type="email" class="input" autocomplete="email" placeholder="you@example.com" />
             </div>
+            <div class="form-group" id="forgot-captcha-group">
+              <label data-i18n="auth.forgot.captcha">Captcha</label>
+              <div class="code-row">
+                <input id="forgot-captcha-answer" type="text" maxlength="8" class="input" autocomplete="off" data-i18n-placeholder="auth.forgot.captchaPh" placeholder="Type the code" />
+                <img id="forgot-captcha-img" src="" alt="captcha" title="Click to refresh" style="height:42px;width:120px;object-fit:cover;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:#f6f8fc" />
+              </div>
+              <p class="sub" style="margin:4px 0 0" data-i18n="auth.forgot.captchaRefresh">Click the image to refresh</p>
+            </div>
             <div class="form-group">
               <label data-i18n="auth.forgot.code">Verification code</label>
               <div class="code-row">
@@ -75,11 +89,11 @@
             </div>
             <div class="form-group">
               <label data-i18n="auth.forgot.newPassword">New password</label>
-              <input name="new-password" type="password" class="input" required minlength="6" autocomplete="new-password" />
+              <input name="new-password" type="password" class="input" required minlength="8" autocomplete="new-password" />
             </div>
             <div class="form-group">
               <label data-i18n="auth.forgot.confirm">Confirm new password</label>
-              <input name="new-password2" type="password" class="input" required minlength="6" autocomplete="new-password" />
+              <input name="new-password2" type="password" class="input" required minlength="8" autocomplete="new-password" />
             </div>
             <button type="submit" class="btn btn-primary" data-i18n="auth.forgot.submit">Reset password</button>
             <div id="forgot-msg"></div>
@@ -91,8 +105,8 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260808a"></script>
-  <script src="js/api.js?v=20260808a"></script>
+  <script src="config/locales.js?v=20260809b"></script>
+  <script src="js/api.js?v=20260809a"></script>
   <script src="js/utm.js?v=20260802a"></script>
   <script src="js/i18n.js?v=20260808b"></script>
   <script src="js/shell.js?v=20260808b"></script>
@@ -139,6 +153,19 @@
     function showMsg(box, msg, isOk) {
       box.innerHTML = '<div class="alert ' + (isOk ? "alert-success" : "alert-error") + '">' + msg + "</div>";
     }
+    var _forgotCaptchaToken = "";
+    function loadForgotCaptcha() {
+      var img = document.getElementById("forgot-captcha-img");
+      if (!img) return;
+      AI24X_API.authCaptchaGet()
+        .then(function (r) {
+          if (r && r.ok && r.token && r.image) {
+            _forgotCaptchaToken = r.token;
+            img.src = r.image;
+          }
+        })
+        .catch(function () {});
+    }
     document.getElementById("forgot-send").addEventListener("click", function () {
       var box = document.getElementById("forgot-msg");
       var otpBox = document.getElementById("forgot-otp-local");
@@ -153,8 +180,13 @@
         showMsg(box, t("auth.forgot.needEmail", "Enter your email first"), false);
         return;
       }
+      var capAnswer = (document.getElementById("forgot-captcha-answer") || { value: "" }).value || "";
+      if (!_forgotCaptchaToken || !capAnswer.trim()) {
+        showMsg(box, t("auth.forgot.captchaNeed", "Enter the captcha code first"), false);
+        return;
+      }
       var sendBtn = this;
-      var p = AI24X_API.authEmailSend({ email: val, purpose: "reset" });
+      var p = AI24X_API.authEmailSend({ email: val, purpose: "reset", captcha_token: _forgotCaptchaToken, captcha_answer: capAnswer.trim() });
       p.then(function (r) {
         var ok = r && r.ok;
         var code = (r && (r.local_code || r.dev_code)) || "";
@@ -181,8 +213,8 @@
       }
       var newP = (document.querySelector("#form-forgot input[name=\"new-password\"]").value || "").trim();
       var newP2 = (document.querySelector("#form-forgot input[name=\"new-password2\"]").value || "").trim();
-      if (newP.length < 6) {
-        showMsg(box, t("auth.forgot.pwShort", "Password must be at least 6 characters"), false);
+      if (newP.length < 8) {
+        showMsg(box, t("auth.forgot.pwShort", "Password must be at least 8 characters"), false);
         return;
       }
       if (newP !== newP2) {
@@ -233,6 +265,9 @@
         }
       }
       applyAuthUi();
+      var capImg = document.getElementById("forgot-captcha-img");
+      if (capImg) capImg.addEventListener("click", loadForgotCaptcha);
+      loadForgotCaptcha();
     });
   </script>
 </body>

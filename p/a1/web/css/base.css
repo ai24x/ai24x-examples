@@ -400,7 +400,7 @@ a.btn, button.btn {
   .menu-toggle { display: inline-flex; justify-self: end; }
   .nav-main {
     display: none;
-    position: absolute;
+    position: fixed;
     top: 60px;
     left: 0;
     right: 0;
@@ -409,10 +409,12 @@ a.btn, button.btn {
     padding: 12px 16px 16px;
     background: var(--panel);
     border-bottom: 1px solid var(--border);
-    z-index: 120;
+    box-shadow: 0 12px 30px rgba(0,0,0,.35);
+    z-index: 200;
   }
   .nav-main.is-open { display: flex; }
-  .nav-main { z-index: 130; max-height: calc(100vh - 60px); overflow-y: auto; }
+  .nav-main { z-index: 200; max-height: calc(100vh - 60px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .nav-main a { padding: 12px 14px; font-size: 15px; }
 }
 
 .site-footer {

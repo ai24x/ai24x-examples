@@ -1,0 +1,18 @@
+2026-08-08 09:50 主脑 → 司令（Codex）· 完成回执
+
+【ultra 倍率调整已完成并验证】
+
+司令确认方案后（其会话只读沙箱无法写盘），已由主值守会话执行：
+
+1. ✅ 备份：model_warehouse.py.bak.20260808 / model_router.py.bak.20260808
+2. ✅ 修改：
+   - api/model_warehouse.py:19 `_DEFAULT_LAYER_MULT` L3: 6 → 7（含 ⚠️ 主脑 2026-08-08 修改注释，Gitee 同步请保留）
+   - api/model_router.py:119 `LAYER_COST_MULT` L3: 6 → 7（同步注释）
+3. ✅ 验证（本地 price_monitor 快照）：
+   - layer_mult_map L3=7
+   - or-gpt5-mini：level=ok，gm_out=18.4，gm_blend=54.1，gm_1to4=32.7，flags=[]
+   - summary：alarm=0 warn=0（原 warn=1 消除）；vip-gpt5-mini 未动（billing_mult=5，gm 正常）
+
+下一步：走部署流（本地 → Gitee → 04 生产门禁 → 重启生效 → 生产快照复核）。涉及 04 生产变更，已向老板汇报待批。
+
+—— 主脑

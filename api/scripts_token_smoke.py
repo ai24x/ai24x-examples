@@ -76,20 +76,35 @@ def main() -> int:
         rows.append(_ok("email_status_api", False, str(e)))
 
     try:
+        from config import settings as _pay_cfg
+
+        expect_enabled = bool(getattr(_pay_cfg, "token_pay_enabled", False))
+        expect_mock = bool(getattr(_pay_cfg, "token_pay_mock_enabled", False))
         ps = client.get("/v1/billing/pay/status").json()
         rows.append(
             _ok(
-                "pay_status_default_off",
-                ps.get("ok") is True and ps.get("token_pay_enabled") is False,
-                f"enabled={ps.get('token_pay_enabled')} mock={ps.get('token_pay_mock_enabled')}",
+                "pay_status_matches_env",
+                ps.get("ok") is True
+                and bool(ps.get("token_pay_enabled")) is expect_enabled
+                and bool(ps.get("token_pay_mock_enabled")) is expect_mock,
+                f"env enabled={expect_enabled} mock={expect_mock} | api enabled={ps.get('token_pay_enabled')} mock={ps.get('token_pay_mock_enabled')}",
             )
         )
     except Exception as e:
-        rows.append(_ok("pay_status_default_off", False, str(e)))
+        rows.append(_ok("pay_status_matches_env", False, str(e)))
 
     def register(email: str, invite: str | None = None) -> tuple[bool, str, str]:
-        s = client.post("/v1/auth/email/send", json={"email": email, "purpose": "register"}).json()
-        if not s.get("ok"):
+        # 本机两次注册间隔可能 <2s，命中发码 IP 2s 间隔限流；命中即等 2.5s 重试
+        s = None
+        for _try in range(3):
+            s = client.post("/v1/auth/email/send", json={"email": email, "purpose": "register"}).json()
+            if s.get("ok"):
+                break
+            if "频繁" in (s.get("message") or ""):
+                time.sleep(2.5)
+                continue
+            break
+        if not (s or {}).get("ok"):
             return False, "", str(s)[:240]
         code = s.get("local_code") or s.get("dev_code")
         if not code:

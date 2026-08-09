@@ -1,0 +1,1 @@
+已核实两处代码（`model_warehouse.py:19`、`model_router.py:119`，L3 当前均为 6，override 为空无冲突）：方案确认 OK——L3 倍率 6→7（$2.45/M 输出，gm_out≈18.4% 消除告警），VIP 点名 vip-gpt5-mini 不动；但本会话为只读沙箱（写盘被策略拦截），无法直接改码、跑 price_monitor 验证及落盘回执，请由有写权限的主值守会话执行两处修改并验证部署。

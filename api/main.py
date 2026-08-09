@@ -1051,8 +1051,28 @@ async def auth_login(request: Request, body: AuthLoginBody, db: Session = Depend
     )
 
 
+@app.get("/v1/auth/captcha")
+async def auth_captcha(request: Request):
+    """图形验证码（注册/找回密码发码前必填；ENABLE_CAPTCHA=0 关闭）。"""
+    from captcha_guard import create_captcha
+
+    ip = sec_client_ip(request)
+    try:
+        r = create_captcha(ip)
+    except Exception:
+        r = None
+    if not r:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="验证码服务暂不可用，请稍后再试",
+        )
+    token, data_url = r
+    return {"ok": True, "token": token, "image": data_url}
+
+
 @app.post("/v1/auth/email/send", response_model=AuthEmailSendResponse)
 async def auth_email_send(request: Request, body: AuthEmailSendRequest):
+    from captcha_guard import captcha_enabled, verify_captcha
     from email_abuse_guard import (
         check_email_send_allowed,
         client_ip as email_client_ip,
@@ -1066,6 +1086,21 @@ async def auth_email_send(request: Request, body: AuthEmailSendRequest):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="邮箱格式不正确")
 
     ip = email_client_ip(request)
+
+    _peer = ""
+    try:
+        _peer = (request.client.host if request.client else "") or ""
+    except Exception:
+        _peer = ""
+    # 图形验证码（防批量发码/撞库；关闭时放行；开发本机回环免验——按 TCP 对端判断，防伪造）
+    if captcha_enabled() and not verify_captcha(body.captcha_token or "", body.captcha_answer or "", bypass_ip=_peer):
+        return AuthEmailSendResponse(
+            ok=False,
+            message="图形验证码错误或已过期，请刷新后重试",
+            channel=None,
+            local_code=None,
+            dev_code=None,
+        )
     ok_abuse, abuse_msg = check_email_send_allowed(ip, em)
     if not ok_abuse:
         return AuthEmailSendResponse(
@@ -1169,6 +1204,17 @@ async def auth_email_status():
 
 @app.post("/v1/auth/register", response_model=AuthTokenResponse)
 async def auth_register(request: Request, body: AuthRegisterBody, db: Session = Depends(get_db)):
+    from email_abuse_guard import check_register_allowed, record_register
+
+    # 蜜罐字段：真实用户不会填写（前端隐藏），非空即判定为机器人
+    if (body.website or "").strip():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="请求无效，请刷新页面重试")
+
+    # 注册级 IP 封顶（防批量注册打穿免费套餐）
+    ok_ip, ip_msg = check_register_allowed(sec_client_ip(request))
+    if not ok_ip:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=ip_msg)
+
     if body.phone:
         from system_flags import effective_sms_106_enabled
 
@@ -1210,6 +1256,8 @@ async def auth_register(request: Request, body: AuthRegisterBody, db: Session = 
                 detail="邮箱验证码错误或已过期，请重新获取",
             )
         u = create_user_email(db, em, body.password)
+
+    record_register(sec_client_ip(request))
 
     # Token MVP：可选邀请码绑定（无效码静默忽略，不阻断注册）
     try:

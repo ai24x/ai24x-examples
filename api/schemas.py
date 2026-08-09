@@ -173,12 +173,14 @@ class InternalSmsVerifyConsumeIn(BaseModel):
 class AuthRegisterBody(BaseModel):
     """手机注册须短信验证码；邮箱注册须邮箱验证码（进程内 OTP，生产换 Redis+邮件）。"""
 
-    password: str = Field(..., min_length=6, max_length=128)
+    password: str = Field(..., min_length=8, max_length=128)
     phone: Optional[str] = None
     email: Optional[str] = None
     sms_code: Optional[str] = None
     email_code: Optional[str] = None
     invite_code: Optional[str] = Field(default=None, max_length=32)
+    # 蜜罐字段：真实用户不会填写（前端隐藏），非空即判定为机器人
+    website: Optional[str] = Field(default=None, max_length=256)
     # 广告 / 渠道首触（可选；落库后不覆盖）
     utm_source: Optional[str] = Field(default=None, max_length=128)
     utm_medium: Optional[str] = Field(default=None, max_length=128)
@@ -232,6 +234,8 @@ class AuthRegisterBody(BaseModel):
 class AuthEmailSendRequest(BaseModel):
     email: str = Field(..., min_length=5, max_length=255)
     purpose: Literal["register", "login", "reset"] = Field(default="register")
+    captcha_token: Optional[str] = Field(default=None, max_length=64)
+    captcha_answer: Optional[str] = Field(default=None, max_length=16)
     lang: Optional[str] = Field(None, description="zh / en；缺省按 Accept-Language 推断，默认 zh")
 
 
@@ -278,11 +282,11 @@ class AuthTokenResponse(BaseModel):
 
 class AuthPasswordChangeBody(BaseModel):
     old_password: str = Field(..., min_length=1, max_length=128)
-    new_password: str = Field(..., min_length=6, max_length=128)
+    new_password: str = Field(..., min_length=8, max_length=128)
 
 
 class AuthPasswordResetBody(BaseModel):
-    new_password: str = Field(..., min_length=6, max_length=128)
+    new_password: str = Field(..., min_length=8, max_length=128)
     phone: Optional[str] = None
     email: Optional[str] = None
     sms_code: Optional[str] = None
@@ -347,7 +351,7 @@ class AdminPasswordSetBody(BaseModel):
     user_id: Optional[int] = None
     phone: Optional[str] = None
     email: Optional[str] = None
-    new_password: str = Field(..., min_length=6, max_length=128)
+    new_password: str = Field(..., min_length=8, max_length=128)
 
     @model_validator(mode="after")
     def one_user_selector(self) -> "AdminPasswordSetBody":
@@ -386,7 +390,7 @@ class AdminUserBootstrapBody(BaseModel):
 
     phone: Optional[str] = None
     email: Optional[str] = None
-    new_password: str = Field(..., min_length=6, max_length=128)
+    new_password: str = Field(..., min_length=8, max_length=128)
 
     @model_validator(mode="after")
     def one_channel(self) -> "AdminUserBootstrapBody":

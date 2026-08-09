@@ -1,0 +1,211 @@
+{
+  "ok": true,
+  "date": "2026-08-07",
+  "source": "ths:fuyao",
+  "limit_up": {
+    "count": 74,
+    "max_lianban": 4,
+    "max_name": "云南锗业",
+    "seal_money_top": [
+      {
+        "name": "景旺电子",
+        "ticker": "603228",
+        "seal": 651183910.0,
+        "reason": "AI算力PCB+光模块+汽车电子"
+      },
+      {
+        "name": "哈药股份",
+        "ticker": "600664",
+        "seal": 357324250.0,
+        "reason": "创新药+拟中标集采+业绩预增"
+      },
+      {
+        "name": "通宇通讯",
+        "ticker": "002792",
+        "seal": 305090470.0,
+        "reason": "拟入股佳贤通信+英伟达相关+卫星通信"
+      },
+      {
+        "name": "有研新材",
+        "ticker": "600206",
+        "seal": 254260530.0,
+        "reason": "半年报增长+半导体靶材+稀土+央企"
+      },
+      {
+        "name": "中国稀土",
+        "ticker": "000831",
+        "seal": 233131890.0,
+        "reason": "稀土+一季报增长+央企"
+      }
+    ]
+  },
+  "ladder": {
+    "date": "2026-08-07",
+    "rows": [
+      {
+        "board": "two_board",
+        "count": 6,
+        "names": [
+          "开开实业",
+          "方正科技",
+          "景旺电子",
+          "武汉凡谷"
+        ]
+      },
+      {
+        "board": "three_board",
+        "count": 2,
+        "names": [
+          "和远气体",
+          "有研新材"
+        ]
+      },
+      {
+        "board": "four_board",
+        "count": 5,
+        "names": [
+          "云南锗业",
+          "宝鼎科技",
+          "汇绿生态",
+          "沃格光电"
+        ]
+      },
+      {
+        "board": "five_board",
+        "count": 0,
+        "names": []
+      },
+      {
+        "board": "six_board",
+        "count": 0,
+        "names": []
+      },
+      {
+        "board": "seven_over",
+        "count": 0,
+        "names": []
+      }
+    ]
+  },
+  "hot": [
+    {
+      "name": "云南锗业",
+      "ticker": "002428",
+      "rank": 1,
+      "heat": "4871413",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "药明康德",
+      "ticker": "603259",
+      "rank": 2,
+      "heat": "4850657",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "哈药股份",
+      "ticker": "600664",
+      "rank": 3,
+      "heat": "3987127",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "中际旭创",
+      "ticker": "300308",
+      "rank": 4,
+      "heat": "3493532",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "长鑫科技",
+      "ticker": "688825",
+      "rank": 5,
+      "heat": "3341242",
+      "rank_trend": "flat"
+    }
+  ],
+  "skyrocket": [
+    {
+      "name": "药明康德",
+      "ticker": "603259",
+      "rank": 1,
+      "heat": "271160.1",
+      "rank_trend": "up"
+    },
+    {
+      "name": "江波龙",
+      "ticker": "301308",
+      "rank": 2,
+      "heat": "270725.3",
+      "rank_trend": "up"
+    },
+    {
+      "name": "国瓷材料",
+      "ticker": "300285",
+      "rank": 3,
+      "heat": "52619.4",
+      "rank_trend": "up"
+    },
+    {
+      "name": "百花医药",
+      "ticker": "600721",
+      "rank": 4,
+      "heat": "49146.6",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "蓝盾光电",
+      "ticker": "300862",
+      "rank": 5,
+      "heat": "40531.0",
+      "rank_trend": "up"
+    }
+  ],
+  "hot_money": [
+    {
+      "name": "成都系",
+      "buying": 309946752.0,
+      "stocks": [
+        "贤丰控股",
+        "盛达资源",
+        "博敏电子"
+      ]
+    },
+    {
+      "name": "T王",
+      "buying": 136126824.25,
+      "stocks": [
+        "展芯股份",
+        "天融信",
+        "恒银科技"
+      ]
+    },
+    {
+      "name": "方新侠",
+      "buying": 133407109.58,
+      "stocks": [
+        "中国稀土"
+      ]
+    },
+    {
+      "name": "徐晓",
+      "buying": 40639173.0,
+      "stocks": [
+        "联创光电"
+      ]
+    },
+    {
+      "name": "小鳄鱼",
+      "buying": 24100662.87,
+      "stocks": [
+        "方邦股份"
+      ]
+    }
+  ],
+  "anomaly": {
+    "count": 0,
+    "tags": {},
+    "top": []
+  },
+  "errors": []
+}
