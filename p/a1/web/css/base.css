@@ -183,13 +183,13 @@ a.btn, button.btn {
   min-height: 60px;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(10px);
   width: 100%;
   max-width: 100%;
   overflow-x: clip;
   box-sizing: border-box;
 }
 .header-inner {
+  position: relative;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
@@ -377,6 +377,8 @@ a.btn, button.btn {
 .select-mini:focus { border-color: rgba(96,165,250,.65); }
 
 .menu-toggle {
+  position: relative;
+  z-index: 135;
   display: none;
   width: 40px;
   height: 40px;
@@ -410,6 +412,7 @@ a.btn, button.btn {
     z-index: 120;
   }
   .nav-main.is-open { display: flex; }
+  .nav-main { z-index: 130; max-height: calc(100vh - 60px); overflow-y: auto; }
 }
 
 .site-footer {

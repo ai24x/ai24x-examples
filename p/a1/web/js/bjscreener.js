@@ -516,12 +516,12 @@ window.AI24X_BJScreener = (function () {
     var runners = d.runners || [];
     if (runners.length) {
       html += '<div class="bj-section">备选池（落选原因）</div>';
-      html += '<table class="bj-table"><tr><th>#</th><th>代码</th><th>名称</th><th>现价</th><th>涨跌</th><th>最终分</th><th>位置</th><th>市值</th><th>5日</th><th>20日</th><th>落选原因</th></tr>';
+      html += '<div class="table-scroll"><table class="bj-table"><tr><th>#</th><th>代码</th><th>名称</th><th>现价</th><th>涨跌</th><th>最终分</th><th>位置</th><th>市值</th><th>5日</th><th>20日</th><th>落选原因</th></tr>';
       runners.forEach(function (r, ri) {
         var blBadge = r.bearish_level === "hard" ? "<span style='color:var(--rise)'>硬伤</span>" : (r.bearish_level === "warn" ? "<span style='color:var(--warn)'>警示</span>" : "");
         html += '<tr><td style="color:var(--muted)">' + (ri + 1) + '</td><td style="color:var(--muted)">' + esc(r.code) + '</td><td><a href="demo.html?secid=' + encodeURIComponent(secidForCode(r.code)) + '&period=day" target="_blank" rel="noopener" style="color:var(--bj-acc)">' + esc(r.name) + '</a></td><td class="' + cls(r.pct) + '">' + num(r.price, 2) + '</td><td class="' + cls(r.pct) + '">' + pct(r.pct) + '</td><td>' + (r.final != null ? r.final : "—") + '</td><td>' + num((r.pos != null ? r.pos * 100 : 0), 0) + '%</td><td>' + money(r.mcap) + '</td><td class="' + cls(r.chg5) + '">' + pct(r.chg5) + '</td><td class="' + cls(r.chg20) + '">' + pct(r.chg20) + '</td><td>' + blBadge + ' ' + esc((r.risks || []).join("；") || "排名靠后") + '</td></tr>';
       });
-      html += '</table>';
+      html += '</table></div>';
     }
     box.innerHTML = html;
     requestAnimationFrame(function () {

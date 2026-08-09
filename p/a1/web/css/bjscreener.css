@@ -184,3 +184,9 @@ a.hist-row:hover{border-color:var(--bj-acc);background:var(--bj-acc-bg)}
 .ths-inline{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 4px}
 .ths-inline .chip{text-decoration:none}
 .ths-foot{margin:8px 0 2px;font-size:11px;color:var(--muted,#888)}
+
+/* 表格横向滚动容器（防止手机端表格撑开页面漂移，2026-08-09） */
+.table-scroll{width:100%;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin:8px 0;border:1px solid var(--border);border-radius:10px}
+.table-scroll .bj-table{margin:0;border-collapse:collapse;min-width:760px}
+.table-scroll .bj-table th,.table-scroll .bj-table td{white-space:nowrap;padding:7px 9px}
+@media (max-width:700px){.table-scroll .bj-table{min-width:700px;font-size:12px}}

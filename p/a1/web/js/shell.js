@@ -89,11 +89,28 @@
     var toggle = document.getElementById("menu-toggle");
     var nav = document.getElementById("nav-main");
     if (toggle && nav) {
+      try { toggle.setAttribute("data-a1-bound", "1"); } catch (eB0) {}
       toggle.addEventListener("click", function () {
         var open = nav.classList.toggle("is-open");
         toggle.setAttribute("aria-expanded", open ? "true" : "false");
       });
     }
+    // 兜底：页面重复挂载/覆盖 header 导致直接监听丢失时，事件委托仍保证菜单可开关
+    try {
+      if (!global.__A1_MENU_DELEGATE__) {
+        global.__A1_MENU_DELEGATE__ = true;
+        document.addEventListener("click", function (ev) {
+          var t = ev && ev.target;
+          var btn = t && t.closest ? t.closest("#menu-toggle") : null;
+          if (!btn) return;
+          if (btn.getAttribute("data-a1-bound") === "1") return;
+          var navEl = document.getElementById("nav-main");
+          if (!navEl) return;
+          var open = navEl.classList.toggle("is-open");
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+        });
+      }
+    } catch (eD) {}
 
     // Theme: lock to calm (深蓝); theme select removed to avoid mobile header overflow
     try {
@@ -108,7 +125,7 @@
         global.__AI24X_A_SW_INSTALLED = true;
         // Cache-bust SW URL so deployments don't require Ctrl+F5.
         // Use absolute paths so pages still work under subpaths like /i/{code}.
-        navigator.serviceWorker.register("/sw.js?v=48", { scope: "/", updateViaCache: "none" }).then(function (reg) {
+        navigator.serviceWorker.register("/sw.js?v=49", { scope: "/", updateViaCache: "none" }).then(function (reg) {
           try {
             reg.update && reg.update();
             if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
