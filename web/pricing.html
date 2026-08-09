@@ -145,7 +145,7 @@
 <script src="js/i18n.js?v=20260808b"></script>
   <script src="js/shell.js?v=20260808b"></script>
   <script src="js/app.js?v=20260808b"></script>
-  <script src="js/support-widget.js?v=20260731i"></script>
+  <script src="js/support-widget.js?v=20260809a"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       var grid = document.getElementById("tokenPlansGrid");
@@ -190,11 +190,11 @@
           ? pay.enabled
             ? t(
                 "page.pricing.payReady",
-                "选好套餐后点「去购买」，在控制台用微信 / 支付宝 / PayPal 付款（未登录会先引导登录）。"
+                "Tap Buy on a plan, then pay with WeChat / Alipay / PayPal in the Console (sign-in if needed)."
               )
             : pay.mock_allowed
-              ? t("page.pricing.payMock", "可在控制台完成体验充值。")
-              : t("page.pricing.payClosed", "套餐可浏览；支付暂未开放，请稍后再试。")
+              ? t("page.pricing.payMock", "You can try a purchase in the console.")
+              : t("page.pricing.payClosed", "Plans are listed; payment is not open yet.")
           : pay.enabled
             ? t(
                 "page.pricing.payReady",

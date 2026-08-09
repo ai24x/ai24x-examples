@@ -161,6 +161,10 @@
       return fallback || key;
     }
 
+    function zhUi() {
+      return !!(window.AI24X_I18N && typeof AI24X_I18N.isZh === "function" && AI24X_I18N.isZh());
+    }
+
     var _regCaptchaToken = "";
     function loadRegisterCaptcha() {
       var img = document.getElementById("reg-captcha-img");
@@ -210,7 +214,7 @@
           }
           otpBox.classList.remove("is-on");
           var msg =
-            (r && r.message) ||
+            (zhUi() && r && r.message) ||
             (r && r.ok
               ? channel === "smtp"
                 ? t("auth.register.codeSentSmtp", "Code sent to your email (check spam).")
@@ -224,7 +228,7 @@
             "</div>";
         })
         .catch(function (e) {
-          box.innerHTML = '<div class="alert alert-error">' + (e.message || t("auth.register.sendFail", "Failed to send")) + "</div>";
+          box.innerHTML = '<div class="alert alert-error">' + (zhUi() && e.message ? e.message : t("auth.register.sendFail", "Failed to send")) + "</div>";
         });
     });
 

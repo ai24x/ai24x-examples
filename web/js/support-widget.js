@@ -297,11 +297,11 @@
       '<p class="sub" data-i18n="page.console.ticket.hint">需要人工？提交工单，工作日回复。</p>' +
       '<div class="form-group"><label data-i18n="page.console.ticket.cat">分类</label>' +
       '<select class="input" id="sw-ticket-cat">' +
-      '<option value="api">API / 调用</option>' +
-      '<option value="billing">充值 / 账单</option>' +
-      '<option value="account">账号</option>' +
-      '<option value="suggestion">建议</option>' +
-      '<option value="complaint">投诉</option>' +
+      '<option value="api" data-i18n="page.console.ticket.catApi">API / Calls</option>' +
+      '<option value="billing" data-i18n="page.console.ticket.catBilling">Billing / Orders</option>' +
+      '<option value="account" data-i18n="page.console.ticket.catAccount">Account</option>' +
+      '<option value="suggestion" data-i18n="page.console.ticket.catSuggestion">Suggestion</option>' +
+      '<option value="complaint" data-i18n="page.console.ticket.catComplaint">Complaint</option>' +
       "</select></div>" +
       '<div class="form-group"><label data-i18n="page.console.ticket.body">问题描述</label>' +
       '<textarea class="input" id="sw-ticket-body" rows="3" data-i18n-placeholder="page.console.ticket.bodyPh" placeholder="现象、时间、订单号（如有）"></textarea>' +

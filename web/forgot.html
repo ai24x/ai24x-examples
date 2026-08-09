@@ -119,6 +119,10 @@
       }
       return fallback || key;
     }
+
+    function zhUi() {
+      return !!(window.AI24X_I18N && typeof AI24X_I18N.isZh === "function" && AI24X_I18N.isZh());
+    }
     function nextUrl() {
       try {
         var u = new URL(location.href);
@@ -199,11 +203,11 @@
           showMsg(box, t("auth.register.codeReady", "Code ready — continue with your password."), true);
           return;
         }
-        var msg = (r && r.message) || (ok ? t("auth.forgot.codeSent", "Code sent. Check your email.") : t("auth.forgot.sendFail", "Failed to send code"));
+        var msg = (zhUi() && r && r.message) || (ok ? t("auth.forgot.codeSent", "Code sent. Check your email.") : t("auth.forgot.sendFail", "Failed to send code"));
         showMsg(box, msg, !!ok);
         if (ok) startCooldown(sendBtn, 60);
       }).catch(function (e) {
-        showMsg(box, e.message || t("auth.forgot.sendFail", "Failed to send code"), false);
+        showMsg(box, (zhUi() && e.message) || t("auth.forgot.sendFail", "Failed to send code"), false);
       });
     });
     document.getElementById("form-forgot").addEventListener("submit", function (e) {

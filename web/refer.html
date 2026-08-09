@@ -84,7 +84,7 @@
   <script src="js/i18n.js?v=20260808b"></script>
   <script src="js/shell.js?v=20260808b"></script>
   <script src="js/app.js?v=20260808b"></script>
-  <script src="js/support-widget.js?v=20260731i"></script>
+  <script src="js/support-widget.js?v=20260809a"></script>
   <script>
     function t(key, fallback) {
       if (window.AI24X_I18N && AI24X_I18N.t) {
@@ -101,7 +101,7 @@
       if (!txt || txt === "--") return;
       var done = function () {
         var msg = document.getElementById("ref-msg");
-        msg.innerHTML = '<div class="alert alert-success">' + (okMsg || t("page.refer.copied", "已复制")) + "</div>";
+        msg.innerHTML = '<div class="alert alert-success">' + (okMsg || t("page.refer.copied", "Copied")) + "</div>";
       };
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(txt).then(done, function () {});
@@ -110,12 +110,12 @@
     document.addEventListener("DOMContentLoaded", function () {
       var msg = document.getElementById("ref-msg");
       document.getElementById("btn-copy-ref").addEventListener("click", function () {
-        copyText(document.getElementById("ref-code").textContent || "", t("page.refer.copiedCode", "邀请码已复制"));
+        copyText(document.getElementById("ref-code").textContent || "", t("page.refer.copiedCode", "Invite code copied"));
       });
       document.getElementById("btn-copy-link").addEventListener("click", function () {
         var code = document.getElementById("ref-code").textContent || "";
         if (!code || code === "--") return;
-        copyText(inviteLink(code), t("page.refer.copiedLink", "邀请短链已复制"));
+        copyText(inviteLink(code), t("page.refer.copiedLink", "Short invite link copied"));
       });
       document.getElementById("btn-copy-share").addEventListener("click", function () {
         var code = document.getElementById("ref-code").textContent || "";
@@ -125,10 +125,10 @@
         var text = zh
           ? ("AI24X：一个 Key 调用中国强模（Kimi/MiMo/MiniMax/GLM/DeepSeek），国际可用 PayPal，flash 约 $0.35/百万。注册双方有赠送：\n" + link)
           : ("AI24X — one key for Global models (Kimi/MiMo/MiniMax/GLM/DeepSeek). PayPal USD. Flash ~$0.35/M.\nBoth sides get signup tokens:\n" + link);
-        copyText(text, t("page.refer.copiedShare", "分享文案已复制"));
+        copyText(text, t("page.refer.copiedShare", "Share text copied"));
       });
       if (!AI24X_API.getAuthToken()) {
-        msg.innerHTML = '<div class="alert alert-error">' + t("page.refer.needLogin", "请先登录后查看邀请数据。") + "</div>";
+        msg.innerHTML = '<div class="alert alert-error">' + t("page.refer.needLogin", "Please log in to view referral data.") + "</div>";
         return;
       }
       AI24X_API.referralsSummary()
@@ -141,7 +141,7 @@
           document.getElementById("ref-pending").textContent = String(r.pending_count != null ? r.pending_count : 0);
         })
         .catch(function (e) {
-          msg.innerHTML = '<div class="alert alert-error">' + (e.message || t("page.refer.loadFail", "加载失败")) + "</div>";
+          msg.innerHTML = '<div class="alert alert-error">' + (e.message || t("page.refer.loadFail", "Failed to load")) + "</div>";
         });
     });
   </script>
