@@ -1132,9 +1132,41 @@
     });
   }
 
-  function renderUsage(rows) {
+  function fmtMoneyCents(cents, fx) {
+    var zh = AI24X_API.isZhUi();
+    var v = (Number(cents) || 0) / 100;
+    var sign = v < 0 ? "-" : "+";
+    var abs = Math.abs(v);
+    return zh ? sign + "¥" + (abs * fx).toFixed(2) : sign + "$" + abs.toFixed(2);
+  }
+
+  function fmtTokensCount(n) {
+    var v = Number(n) || 0;
+    if (v >= 1e6) return (v / 1e6).toFixed(1).replace(/\.0$/, "") + "M";
+    if (v >= 1e3) return (v / 1e3).toFixed(1).replace(/\.0$/, "") + "k";
+    return String(v);
+  }
+
+  function renderUsage(rows, summary) {
     var box = $("activityList");
     if (!box) return;
+    var sm = $("usageSummary");
+    if (sm) {
+      var fx = Number((summary && summary.usd_cny) || 0) || 7.2;
+      var usdCents = Number((summary && summary.consume_usd_cents) || 0) || 0;
+      var calls = Number((summary && summary.consume_calls) || 0) || 0;
+      var toks = Number((summary && summary.consume_tokens) || 0) || 0;
+      var spent = fmtMoneyCents(usdCents, fx);
+      sm.style.fontWeight = "600";
+      sm.style.margin = "8px 0 12px";
+      sm.style.fontSize = "13px";
+      sm.style.color = "var(--muted)";
+      sm.textContent = tr(
+        "消费 " + spent + " · 请求 " + calls + " 次 · 总消耗 " + fmtTokensCount(toks) + " tokens",
+        "Spent " + spent + " · " + calls + " calls · " + fmtTokensCount(toks) + " tokens total"
+      );
+      sm.style.display = "";
+    }
     box.innerHTML = "";
     if (!rows || !rows.length) {
       box.innerHTML =
@@ -1152,7 +1184,27 @@
         (r.model ? " · " + brandModelLabel("", "", r.model) : "") +
         (r.note ? " · " + humanizeLedgerNote(r.note) : "");
       var right = document.createElement("span");
-      right.textContent = (r.amount > 0 ? "+" : "") + String(r.amount);
+      var zh = AI24X_API.isZhUi();
+      var fx = Number((summary && summary.usd_cny) || 0) || 7.2;
+      var hasUsd = r.amount_usd != null && Number(r.amount_usd) !== 0;
+      var main = "";
+      var sub = "";
+      if (r.entry_type === "consume") {
+        if (hasUsd) {
+          main = fmtMoneyCents(-Math.abs(Number(r.amount_usd)), fx);
+          sub = fmtTokensCount(r.tokens || r.amount) + (zh ? " tokens" : "");
+        } else {
+          main = (r.amount < 0 ? "" : "+") + fmtTokensCount(r.tokens || r.amount);
+        }
+      } else if (hasUsd) {
+        main = fmtMoneyCents(Number(r.amount_usd), fx);
+        sub = fmtTokensCount(r.tokens || r.amount) + (zh ? " tokens" : "");
+      } else {
+        main = (r.amount > 0 ? "+" : "") + fmtTokensCount(r.amount);
+      }
+      right.innerHTML =
+        (main ? '<span style="font-weight:600">' + escapeHtml(main) + "</span>" : "") +
+        (sub ? ' <span style="font-size:11px;color:var(--muted);opacity:.75;margin-left:4px">' + escapeHtml(sub) + "</span>" : "");
       li.appendChild(left);
       li.appendChild(right);
       box.appendChild(li);
@@ -1580,11 +1632,14 @@
     try {
       var usage = await AI24X_API.billingUsage({ limit: 30 });
       var rows = (usage && usage.rows) || [];
-      var consumes = rows.filter(function (r) {
-        return r.entry_type === "consume";
-      }).length;
+      var consumes =
+        usage && usage.summary && usage.summary.consume_calls != null
+          ? Number(usage.summary.consume_calls)
+          : rows.filter(function (r) {
+              return r.entry_type === "consume";
+            }).length;
       if ($("stat-calls")) $("stat-calls").textContent = String(consumes);
-      renderUsage(rows);
+      renderUsage(rows, usage && usage.summary);
     } catch (e) {
       if ($("stat-calls")) $("stat-calls").textContent = "--";
     }

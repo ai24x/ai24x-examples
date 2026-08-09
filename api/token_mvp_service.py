@@ -829,6 +829,40 @@ def topup_usd(
     return get_balance_snapshot(db, auth_user_id)
 
 
+def _usage_summary(db: Session, auth_user_id: int) -> dict:
+    """\u7528\u91cf\u6c47\u603b\uff08\u5168\u91cf\uff0c\u4e0d\u53d7\u5206\u9875\u5f71\u54cd\uff09\uff1a\u6d88\u8d39\u91d1\u989d / \u8bf7\u6c42\u6b21\u6570 / \u603b tokens\u3002"""
+    from sqlalchemy import func as _sa_func
+    from token_plans import _usd_cny
+    try:
+        fx = float(_usd_cny() or 7.2)
+    except Exception:
+        fx = 7.2
+    try:
+        agg = (
+            db.query(
+                _sa_func.coalesce(_sa_func.sum(_sa_func.abs(BillingLedger.amount_usd)), 0).label("usd_cents"),
+                _sa_func.count(BillingLedger.id).label("calls"),
+                _sa_func.coalesce(_sa_func.sum(BillingLedger.tokens), 0).label("tokens"),
+            )
+            .filter(
+                BillingLedger.auth_user_id == int(auth_user_id),
+                BillingLedger.entry_type == "consume",
+            )
+            .first()
+        )
+        usd_cents = int(getattr(agg, "usd_cents", 0) or 0)
+        calls = int(getattr(agg, "calls", 0) or 0)
+        tokens = int(getattr(agg, "tokens", 0) or 0)
+    except Exception:
+        usd_cents = calls = tokens = 0
+    return {
+        "consume_usd_cents": usd_cents,
+        "consume_calls": calls,
+        "consume_tokens": tokens,
+        "usd_cny": round(fx, 4),
+    }
+
+
 def list_usage(
     db: Session,
     auth_user_id: int,
@@ -856,6 +890,7 @@ def list_usage(
                 "id": r.id,
                 "type": r.entry_type,
                 "amount": r.amount,
+                "amount_usd": r.amount_usd,
                 "model": r.model,
                 "tokens": r.tokens,
                 "request_id": r.request_id,
@@ -864,6 +899,7 @@ def list_usage(
             }
             for r in rows
         ],
+        "summary": _usage_summary(db, int(auth_user_id)),
     }
 
 
