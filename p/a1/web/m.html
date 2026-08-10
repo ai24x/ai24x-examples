@@ -16,35 +16,25 @@ html,body{height:100%;overflow:hidden}
 body{height:100dvh;display:flex;flex-direction:column;background:var(--bg);color:var(--text);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;font-size:14px}
 button{background:none;border:none;color:var(--text);cursor:pointer;font-size:14px;padding:6px 10px}
 input{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 10px;font-size:14px;outline:none;width:100%}
-
-/* 顶栏 */
 .topbar{display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--panel);border-bottom:1px solid var(--border)}
 .topbar .home{font-size:13px;color:var(--muted);white-space:nowrap}
 .topbar .search{flex:1;position:relative}
 .topbar .search .go{position:absolute;right:4px;top:50%;transform:translateY(-50%);color:var(--accent);font-size:16px;padding:4px}
 .topbar .fav-toggle{font-size:20px;color:var(--gold)}
 .topbar .more{font-size:18px;color:var(--muted)}
-
-/* 报价条 */
 .quote-strip{display:flex;align-items:baseline;gap:10px;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--border);overflow-x:auto}
 .quote-strip .nm{font-size:15px;font-weight:700;white-space:nowrap}
 .quote-strip .px{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
 .quote-strip .chg{font-size:13px;font-weight:700;white-space:nowrap}
 .quote-strip .fund{margin-left:auto;font-size:12px;color:var(--muted);white-space:nowrap}
-
-/* 大盘环境条 */
 .env-strip{display:flex;gap:6px;overflow-x:auto;padding:6px 10px;background:var(--bg);border-bottom:1px solid var(--border);scrollbar-width:none}
 .env-strip::-webkit-scrollbar{display:none}
 .env-chip{flex:0 0 auto;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:11px;color:var(--muted);white-space:nowrap}
 .env-chip b{color:var(--text)}
-
-/* 图表区 */
 .chart-main{flex:1 1 58%;min-height:0;position:relative;background:var(--bg)}
 .chart-macd{flex:0 0 14%;min-height:0;border-top:1px solid var(--border);background:var(--bg);position:relative}
 canvas{width:100%;height:100%;display:block}
 .chart-legend{position:absolute;left:10px;top:6px;font-size:11px;color:var(--muted);pointer-events:none;white-space:nowrap}
-
-/* 底部操作条 */
 .bottombar{flex:0 0 auto;display:flex;align-items:center;gap:4px;padding:6px 8px calc(6px + env(safe-area-inset-bottom));background:var(--panel);border-top:1px solid var(--border)}
 .bottombar .grp{display:flex;gap:2px;background:var(--panel2);border-radius:8px;padding:2px}
 .bottombar .grp button{padding:6px 10px;border-radius:6px;font-size:13px;color:var(--muted)}
@@ -52,8 +42,6 @@ canvas{width:100%;height:100%;display:block}
 .bottombar .act{font-size:13px;color:var(--text)}
 .bottombar .act.signal{color:var(--gold)}
 .bottombar .spacer{flex:1}
-
-/* 弹出卡片 */
 .sheet{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;z-index:50}
 .sheet.show{display:block}
 .sheet .card{position:absolute;left:0;right:0;bottom:0;max-height:70dvh;overflow-y:auto;background:var(--panel);border-radius:16px 16px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom))}
@@ -73,7 +61,6 @@ canvas{width:100%;height:100%;display:block}
 </head>
 <body>
 
-<!-- 顶栏 -->
 <div class="topbar">
   <button class="home" id="btn-home">首页</button>
   <div class="search">
@@ -84,7 +71,6 @@ canvas{width:100%;height:100%;display:block}
   <button class="more" id="btn-more" title="更多">⋯</button>
 </div>
 
-<!-- 报价条 -->
 <div class="quote-strip" id="quote-strip">
   <span class="nm" id="q-nm">上证指数</span>
   <span class="px" id="q-px">--</span>
@@ -92,22 +78,18 @@ canvas{width:100%;height:100%;display:block}
   <span class="fund" id="q-fund"></span>
 </div>
 
-<!-- 大盘环境条 -->
 <div class="env-strip" id="env-strip"></div>
 
-<!-- K线主图 -->
 <div class="chart-main">
   <div class="chart-legend" id="k-legend"></div>
   <canvas id="k-canvas"></canvas>
 </div>
 
-<!-- 迷你MACD -->
 <div class="chart-macd">
   <div class="chart-legend" id="m-legend">动能</div>
   <canvas id="m-canvas"></canvas>
 </div>
 
-<!-- 底部操作条 -->
 <div class="bottombar">
   <div class="grp" id="period-grp">
     <button data-p="day" class="on">日</button>
@@ -119,7 +101,6 @@ canvas{width:100%;height:100%;display:block}
   <button class="act" id="btn-desktop">桌面版</button>
 </div>
 
-<!-- 信号列表弹出卡 -->
 <div class="sheet" id="sheet-signal">
   <div class="card">
     <button class="close" id="close-signal">✕</button>
@@ -134,7 +115,6 @@ canvas{width:100%;height:100%;display:block}
   </div>
 </div>
 
-<!-- 更多弹出卡 -->
 <div class="sheet" id="sheet-more">
   <div class="card">
     <button class="close" id="close-more">✕</button>
@@ -164,12 +144,24 @@ function api(path, qs){
 function fmt(n){ return (n==null||isNaN(n)) ? "--" : Number(n).toFixed(2); }
 function fmtBig(n){ if(n==null||isNaN(n)) return ""; var v=Number(n); var a=Math.abs(v); var s=v<0?"-":"+"; if(a>=1e8) return s+(a/1e8).toFixed(2)+"亿"; if(a>=1e4) return s+(a/1e4).toFixed(1)+"万"; return s+a.toFixed(0); }
 
-/* ===== 状态 ===== */
+/* 通用：取 d.data 里第一个非空条目 */
+function firstEntry(d){
+  try {
+    var data = d && d.data;
+    if (!data) return null;
+    var keys = Object.keys(data);
+    for (var i=0;i<keys.length;i++){
+      var v = data[keys[i]];
+      if (v && typeof v === "object" && !Array.isArray(v)) return v;
+    }
+  } catch(e){}
+  return null;
+}
+
 var state = { secid: "1.000001", period: "day", name: "上证指数", favs: [] };
 try{ state.favs = JSON.parse(localStorage.getItem("ai24x_m_favs") || "[]"); }catch(e){ state.favs = []; }
 var sigCache = [];
 
-/* ===== 标的解析 ===== */
 function codeToSecid(code){
   code = String(code).trim();
   if (/^\d{6}$/.test(code)) {
@@ -180,10 +172,10 @@ function codeToSecid(code){
   return null;
 }
 
-/* ===== 报价 ===== */
+/* ===== 报价（兼容 data.<sh000001> 结构） ===== */
 function loadQuote(){
   api("/api/quote/snapshot", "secid=" + encodeURIComponent(state.secid)).then(function(d){
-    var o = d && d.data ? (d.data[state.secid] || {}) : {};
+    var o = firstEntry(d) || {};
     var px = o.price ?? o.close ?? o.last ?? null;
     var chg = o.change_pct ?? o.pct ?? o.change_percent ?? null;
     var fund = o.main_net_inflow ?? o.fund_net ?? o.mainflow ?? null;
@@ -212,14 +204,14 @@ function loadEnv(){
     el.appendChild(chip);
     if (i > 2) return;
     api("/api/quote/snapshot", "secid=" + e[0]).then(function(d){
-      var o = d && d.data ? (d.data[e[0]] || {}) : {};
+      var o = firstEntry(d) || {};
       var c = o.change_pct ?? o.pct ?? null;
       if (c != null) chip.innerHTML = e[1] + " <b style='color:" + (c>=0?"var(--up)":"var(--down)") + "'>" + (c>=0?"+":"") + Number(c).toFixed(2) + "%</b>";
     }).catch(function(){});
   });
 }
 
-/* ===== K线数据 ===== */
+/* ===== K线（兼容 data.<key>.day / .qfqday） ===== */
 var COUNT = { day: 400, week: 560, month: 660 };
 function loadKline(){
   var cnt = COUNT[state.period] || 400;
@@ -229,8 +221,9 @@ function loadKline(){
       var keys = Object.keys(d.data);
       for (var i=0;i<keys.length;i++){
         var v = d.data[keys[i]];
-        if (v && Array.isArray(v.qfqday) && v.qfqday.length){ rows = v.qfqday; break; }
-        if (v && Array.isArray(v)){ rows = v; break; }
+        if (!v || typeof v !== "object") continue;
+        if (Array.isArray(v.day) && v.day.length){ rows = v.day; break; }
+        if (Array.isArray(v.qfqday) && v.qfqday.length){ rows = v.qfqday; break; }
       }
     }
     if (!rows || !rows.length) throw new Error("no data");
@@ -238,7 +231,6 @@ function loadKline(){
   });
 }
 
-/* ===== 技术指标（内部计算，不展示参数） ===== */
 function sma(arr, p){
   var out = new Array(arr.length).fill(null); var s = 0;
   for (var i=0;i<arr.length;i++){ s += arr[i]; if (i>=p) s -= arr[i-p]; if (i>=p-1) out[i] = s/p; }
@@ -260,22 +252,21 @@ function macd(rows){
   return { dif: dif, dea: deaFull, hist: hist };
 }
 
-/* ===== 信号 ===== */
-function normSig(s){
-  var type = s.type || s.signal || s.name || "";
-  var label = type;
-  if (type.indexOf("底")>=0) label = "底信号";
-  else if (type.indexOf("金")>=0) label = "金信号";
-  else if (type.indexOf("风险")>=0) label = "风险";
-  return { date: s.date || s.day || "", label: label, note: s.note || s.desc || s.info || s.position || "" };
+/* ===== 信号（data.markers；text 中文短词归类） ===== */
+function classifySig(text){
+  text = String(text || "");
+  if (text.indexOf("底") >= 0) return { label: "底信号", color: "#fbbf24" };
+  if (text.indexOf("金") >= 0) return { label: "金信号", color: "#fbbf24" };
+  if (text.indexOf("风险") >= 0 || text.indexOf("降") >= 0 || text.indexOf("量") >= 0 || text.indexOf("转") >= 0) return { label: "提示", color: "#60a5fa" };
+  return { label: text || "信号", color: "#60a5fa" };
 }
 function loadSignals(){
   return api("/api/signals", "secid=" + encodeURIComponent(state.secid) + "&count=400").then(function(d){
-    var arr = null;
-    if (d && Array.isArray(d.signals)) arr = d.signals;
-    else if (d && Array.isArray(d.data)) arr = d.data;
-    else if (d && d.data && Array.isArray(d.data.signals)) arr = d.data.signals;
-    sigCache = (arr || []).map(normSig);
+    var arr = (d && d.data && Array.isArray(d.data.markers)) ? d.data.markers : [];
+    sigCache = arr.map(function(m){
+      var c = classifySig(m.text);
+      return { date: m.time || m.date || "", label: c.label, color: c.color, note: m.text || "" };
+    });
     return sigCache;
   }).catch(function(){ sigCache = []; return []; });
 }
@@ -285,7 +276,7 @@ function renderSigList(){
   el.innerHTML = "";
   sigCache.slice(-15).reverse().forEach(function(s){
     var row = document.createElement("div"); row.className = "sig-row";
-    row.innerHTML = '<span class="d">' + (s.date||"") + '</span><span class="s">' + s.label + '</span><span class="t">' + (s.note||"") + '</span>';
+    row.innerHTML = '<span class="d">' + (s.date||"") + '</span><span class="s" style="color:' + (s.color||"var(--gold)") + '">' + s.label + '</span><span class="t">' + (s.note||"") + '</span>';
     el.appendChild(row);
   });
 }
@@ -337,18 +328,15 @@ function drawK(rows, sigs){
     ctx.stroke();
   }
   line(ma1, "#60a5fa"); line(ma2, "#fbbf24"); line(ma3, "#c084fc");
+  /* 信号标注：按日期匹配 K线（markers.time 如 2026-06-16 与 rows.t 一致） */
   if (sigs && sigs.length) {
     var byDate = {}; sigs.forEach(function(s){ if (s.date) byDate[String(s.date)] = s; });
     ctx.font = "10px sans-serif";
     for (var j=0;j<vis;j++){
       var r = sub[j], s = byDate[String(r.t)];
       if (!s) continue;
-      var lab = s.label || s.type || "";
-      var sy = y(r.h) - 6;
-      if (lab.indexOf("底")>=0 || lab.indexOf("金")>=0) ctx.fillStyle = "#fbbf24";
-      else if (lab.indexOf("风险")>=0) ctx.fillStyle = "#f87171";
-      else ctx.fillStyle = "#60a5fa";
-      ctx.fillText(String(lab).slice(0,2), x(j)-8, sy);
+      ctx.fillStyle = s.color || "#60a5fa";
+      ctx.fillText(String(s.label).slice(0,2), x(j)-8, y(r.h)-6);
     }
   }
   document.getElementById("k-legend").textContent = "均线（短/中/长） · 信号标注";
@@ -381,7 +369,6 @@ function drawM(rows){
   document.getElementById("m-legend").textContent = "动能";
 }
 
-/* ===== 加载主流程 ===== */
 function render(){
   loadKline().then(function(rows){
     return loadSignals().then(function(sigs){
@@ -396,7 +383,6 @@ function render(){
 }
 function refresh(){ loadQuote(); render(); }
 
-/* ===== 交互 ===== */
 function goto(secid, name){
   if (!secid) return;
   state.secid = secid; if (name) state.name = name;
@@ -426,9 +412,7 @@ document.getElementById("btn-fav").addEventListener("click", function(){
   try{ localStorage.setItem("ai24x_m_favs", JSON.stringify(state.favs)); }catch(e){}
   renderFavList();
 });
-/* 回首页：跳转主站首页（同源，token 自动生效） */
 document.getElementById("btn-home").addEventListener("click", function(){ location.href = "index.html"; });
-/* 信号入口 */
 document.getElementById("btn-signal").addEventListener("click", function(){
   renderSigList();
   document.getElementById("sheet-signal").classList.add("show");
@@ -451,12 +435,8 @@ function renderFavList(){
   });
 }
 document.getElementById("btn-fav").textContent = (state.favs.indexOf(state.secid)>=0) ? "★" : "☆";
-
-/* 防闪烁 */
 document.addEventListener("visibilitychange", function(){ if (!document.hidden) refresh(); });
 window.addEventListener("resize", function(){ render(); });
-
-/* 启动 */
 loadEnv();
 refresh();
 })();
