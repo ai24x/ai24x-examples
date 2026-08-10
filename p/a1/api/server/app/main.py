@@ -2658,11 +2658,13 @@ async def api_watchlist_add(body: dict, user_id: int = Depends(get_current_user_
     name = str(body.get("name") or "").strip()
     if not code:
         code = _wl_code_from_secid(secid)
-    if not name and code:
+    if _wl_name_is_missing(name, code) and code:
         try:
             name = await _wl_resolve_name(secid, code)
         except Exception:
             name = ""
+    if _wl_name_is_missing(name, code):
+        name = ""
     return db.watchlist_add(
         int(user_id),
         secid,
@@ -2699,6 +2701,20 @@ def _wl_normalize_ident(secid: str, code: str, name: str) -> tuple[str, str]:
     return code, name
 
 
+def _wl_name_is_missing(name: str, code: str) -> bool:
+    """自选名称是否缺失/占位（空、纯代码、secid 形态）——此时应触发 suggest 补名。"""
+    name = str(name or "").strip()
+    if not name:
+        return True
+    code = str(code or "").strip()
+    if code and name == code:
+        return True
+    return bool(re.fullmatch(r"\d{4,8}", name))
+
+
+_WL_NAME_SEM = None  # asyncio.Semaphore，懒初始化（评分榜多只缺名并发补名时限制上游并发）
+
+
 async def _wl_resolve_name(secid: str, code: str) -> str:
     """按代码解析标的名称（suggest 补名，带缓存与超时；仅用于自选缺名回填）。"""
     import asyncio
@@ -2727,8 +2743,12 @@ async def _wl_resolve_name(secid: str, code: str) -> str:
                 continue
         return ""
 
+    global _WL_NAME_SEM
+    if _WL_NAME_SEM is None:
+        _WL_NAME_SEM = asyncio.Semaphore(2)
     try:
-        name = await asyncio.wait_for(_lookup(), timeout=4.0)
+        async with _WL_NAME_SEM:
+            name = await asyncio.wait_for(_lookup(), timeout=4.0)
     except Exception:
         name = ""
     if name:
@@ -2746,7 +2766,7 @@ async def _wl_fetch_snapshot(secid: str, code: str, name: str, variant: str, pri
 
     secid = str(secid or "").strip()
     code, name = _wl_normalize_ident(secid, code, name)
-    if not name:
+    if _wl_name_is_missing(name, code):
         name = await _wl_resolve_name(secid, code)
     base = {"secid": secid, "code": code, "name": name}
     try:
@@ -2886,6 +2906,7 @@ async def api_watchlist_scores(
                 db.watchlist_patch_ident(int(user_id), secid, str(base.get("code") or ""), str(base.get("name") or ""))
             except Exception:
                 pass
+        base["created_at"] = int(it.get("created_at") or 0)
         if not base.get("error"):
             try:
                 db.consume_quota(
@@ -2926,6 +2947,7 @@ async def api_watchlist_scores(
             "secid": str(it.get("secid") or ""),
             "code": _wl_code_from_secid(str(it.get("secid") or "")) or str(it.get("code") or ""),
             "name": str(it.get("name") or ""),
+            "created_at": int(it.get("created_at") or 0),
             "error": "fetch:timeout",
         })
     market = {}

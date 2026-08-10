@@ -61,7 +61,7 @@ window.AI24X_WatchScore = (function () {
       }
 
       var wlItems = [];
-      var wlState = { filter: "all", search: "", sortKey: "score", sortDir: "desc", weakOpen: false, expanded: {} };
+      var wlState = { filter: "all", search: "", sortKey: "created_at", sortDir: "desc", weakOpen: false, expanded: {} };
       function wlStatus(s, isErr) {
         var el = $("wl-status");
         if (!el) return;
@@ -156,6 +156,11 @@ window.AI24X_WatchScore = (function () {
           var sb = b.error ? -1 : Number(b.score || 0);
           return (sa - sb) * dir;
         }
+        if (k === "created_at") {
+          var ta = Number(a.created_at || 0), tb = Number(b.created_at || 0);
+          if (ta !== tb) return (ta - tb) * dir;
+          return String(a.code || "").localeCompare(String(b.code || "")) * dir;
+        }
         if (k === "code") return String(a.code || "").localeCompare(String(b.code || "")) * dir;
         return String(a.name || "").localeCompare(String(b.name || ""), "zh") * dir;
       }
@@ -174,6 +179,12 @@ window.AI24X_WatchScore = (function () {
         if (wlState.sortKey !== k) return "";
         return wlState.sortDir === "asc" ? " ↑" : " ↓";
       }
+      function wlTimeFmt(ts) {
+        ts = Number(ts || 0);
+        if (!ts) return "—";
+        var d = new Date(ts * 1000), p = function (n) { return n < 10 ? "0" + n : "" + n; };
+        return p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+      }
       function renderWlTable() {
         var items = wlItems || [];
         var q = String(wlState.search || "").trim().toLowerCase();
@@ -190,26 +201,32 @@ window.AI24X_WatchScore = (function () {
           list.push(it);
         }
         list.sort(wlSortCmp);
+        var flat = wlState.sortKey === "created_at";
         var html = '<div class="wl-table-scroll"><table class="wl-score-table"><thead><tr>'
           + '<th class="wl-rank">#</th>'
           + '<th class="wl-sort" data-wl-act="sort" data-k="code" title="点击排序">代码' + wlSortMark("code") + '</th>'
           + '<th class="wl-sort" data-wl-act="sort" data-k="name" title="点击排序">名称' + wlSortMark("name") + '</th>'
           + '<th class="wl-sort" data-wl-act="sort" data-k="score" title="点击排序">综合分' + wlSortMark("score") + '</th>'
-          + '<th>技术信号</th><th>风险提示</th></tr></thead><tbody>';
-        var groups = [["strong", "强势（≥70）"], ["mid", "中性（45-69）"], ["weak", "弱势（<45 / 超时）"]];
-        if (wlState.sortKey === "score" && wlState.sortDir === "asc") groups = groups.slice().reverse();
+          + '<th>技术信号</th><th>风险提示</th>'
+          + '<th class="wl-sort" data-wl-act="sort" data-k="created_at" title="点击排序">添加' + wlSortMark("created_at") + '</th></tr></thead><tbody>';
         var idx = 0, shown = 0;
-        for (var g = 0; g < groups.length; g++) {
-          var gname = groups[g][0];
-          var gitems = [];
-          for (var i = 0; i < list.length; i++) {
-            if (wlGroupOf(Number(list[i].score || 0), !!list[i].error) === gname) gitems.push(list[i]);
+        if (flat) {
+          for (var i = 0; i < list.length; i++) { idx++; shown++; html += wlRowHtml(list[i], idx); }
+        } else {
+          var groups = [["strong", "强势（≥70）"], ["mid", "中性（45-69）"], ["weak", "弱势（<45 / 超时）"]];
+          if (wlState.sortKey === "score" && wlState.sortDir === "asc") groups = groups.slice().reverse();
+          for (var g = 0; g < groups.length; g++) {
+            var gname = groups[g][0];
+            var gitems = [];
+            for (var i = 0; i < list.length; i++) {
+              if (wlGroupOf(Number(list[i].score || 0), !!list[i].error) === gname) gitems.push(list[i]);
+            }
+            if (!gitems.length) continue;
+            var collapsed = gname === "weak" && !wlState.weakOpen;
+            html += '<tr class="wl-group-row"><td colspan="7"><span class="wl-group-title" data-wl-act="group" data-k="' + gname + '">' + escWl(groups[g][1]) + ' · ' + gitems.length + ' 只' + (gname === "weak" ? (collapsed ? "　▶ 展开" : "　▼ 收起") : "") + '</span></td></tr>';
+            if (collapsed) continue;
+            for (var i = 0; i < gitems.length; i++) { idx++; shown++; html += wlRowHtml(gitems[i], idx); }
           }
-          if (!gitems.length) continue;
-          var collapsed = gname === "weak" && !wlState.weakOpen;
-          html += '<tr class="wl-group-row"><td colspan="6"><span class="wl-group-title" data-wl-act="group" data-k="' + gname + '">' + escWl(groups[g][1]) + ' · ' + gitems.length + ' 只' + (gname === "weak" ? (collapsed ? "　▶ 展开" : "　▼ 收起") : "") + '</span></td></tr>';
-          if (collapsed) continue;
-          for (var i = 0; i < gitems.length; i++) { idx++; shown++; html += wlRowHtml(gitems[i], idx); }
         }
         html += '</tbody></table></div>';
         if (!shown) html = '<div class="wl-empty">无匹配标的，试试调整筛选或搜索。</div>';
@@ -236,12 +253,13 @@ window.AI24X_WatchScore = (function () {
         var link = './demo.html?secid=' + encodeURIComponent(it.secid || '') + '&period=day';
         var html = '<tr><td class="wl-rank">' + idx + '</td>'
           + '<td class="wl-code">' + escWl(it.code || "") + '</td>'
-          + '<td class="wl-name"><a class="wl-kline ' + nameCls + '" href="' + link + '" target="_blank" rel="noopener" title="新窗口查看 K 线">' + escWl(it.name || "") + arrow + '</a></td>'
+          + '<td class="wl-name"><a class="wl-kline ' + nameCls + '" href="' + link + '" target="_blank" rel="noopener" title="新窗口查看 K 线">' + escWl(it.name || it.code || "") + arrow + '</a></td>'
           + '<td class="wl-score-col"><span class="' + cls + '">' + (err ? "—" : sc.toFixed(0)) + '</span></td>'
           + '<td class="wl-tags" title="' + tagsFull + '">' + tagsShow + '</td>'
-          + '<td class="wl-risk" title="' + risksFull + '">' + risksShow + '</td></tr>';
+          + '<td class="wl-risk" title="' + risksFull + '">' + risksShow + '</td>'
+          + '<td class="wl-time">' + wlTimeFmt(it.created_at) + '</td></tr>';
         if (isExp && !err) {
-          html += '<tr class="wl-detail-row"><td colspan="6"><div class="wl-detail-grid">'
+          html += '<tr class="wl-detail-row"><td colspan="7"><div class="wl-detail-grid">'
             + '<div class="wl-detail-col wl-detail-col-tags">技术信号：<span class="wl-detail-tags">' + tagsFull + '</span></div>'
             + '<div class="wl-detail-col wl-detail-col-risks">风险提示：<span class="wl-detail-risks">' + (risksArr.length ? risksFull : "—") + '</span></div>'
             + '</div></td></tr>';
@@ -270,7 +288,7 @@ window.AI24X_WatchScore = (function () {
       }
       function wlSort(k) {
         if (wlState.sortKey === k) { wlState.sortDir = wlState.sortDir === "asc" ? "desc" : "asc"; }
-        else { wlState.sortKey = k; wlState.sortDir = k === "score" ? "desc" : "asc"; }
+        else { wlState.sortKey = k; wlState.sortDir = (k === "code" || k === "name") ? "asc" : "desc"; }
         var region = $("wl-table-region");
         if (region) region.innerHTML = renderWlTable();
       }
@@ -289,13 +307,43 @@ window.AI24X_WatchScore = (function () {
         if (!force && now - wlLastLoad < 4000) return;
         wlLastLoad = now;
         apiFetch("/api/watchlist").then(function (d) {
-          wlItems = (d && d.items) || [];
-          if (wlItems.length) loadWlScores();
-          else {
-            var wrap = $("wl-score-wrap");
-            if (wrap) wrap.innerHTML = '<div class="muted small">暂无自选。到 <a href="./demo.html">行情页</a> 查询并点「加自选」后，自动生成技术指标统计。</div>';
-            var mEl = $("wl-market"); if (mEl) mEl.style.display = "none";
+          var server = (d && d.items) || [];
+          // 与行情页本地自选（ai24x_a_watchlist）合并：本地有、服务端没有的条目先补推，
+          // 避免「刚加自选立刻打开评分榜」因服务端推送未落地而看不到。
+          var local = [];
+          try { local = JSON.parse(localStorage.getItem("ai24x_a_watchlist") || "[]"); } catch (eL) { local = []; }
+          var have = {};
+          for (var i = 0; i < server.length; i++) have[String(server[i].secid || "")] = 1;
+          var pending = [];
+          for (var i = 0; i < local.length; i++) {
+            var it = local[i];
+            if (it && it.secid && !have[String(it.secid)]) pending.push(it);
           }
+          function afterSync() {
+            apiFetch("/api/watchlist").then(function (d2) {
+              wlItems = (d2 && d2.items) || [];
+              if (wlItems.length) loadWlScores();
+              else {
+                var wrap = $("wl-score-wrap");
+                if (wrap) wrap.innerHTML = '<div class="muted small">暂无自选。到 <a href="./demo.html">行情页</a> 查询并点「加自选」后，自动生成技术指标统计。</div>';
+                var mEl = $("wl-market"); if (mEl) mEl.style.display = "none";
+              }
+            }).catch(function (e) {
+              wlStatus("自选加载失败：" + (e && e.message ? e.message : "网络错误"), true);
+            });
+          }
+          if (!pending.length) { afterSync(); return; }
+          var tasks = [];
+          for (var i = 0; i < pending.length; i++) {
+            (function (it) {
+              tasks.push(apiFetch("/api/watchlist", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ secid: String(it.secid || ""), code: String(it.code || ""), name: String(it.name || "") })
+              }));
+            })(pending[i]);
+          }
+          Promise.all(tasks).then(afterSync, afterSync);
         }).catch(function (e) {
           wlStatus("自选加载失败：" + (e && e.message ? e.message : "网络错误"), true);
         });

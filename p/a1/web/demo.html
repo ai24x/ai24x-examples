@@ -1841,8 +1841,21 @@
     }
     .wl-header button:hover { color: var(--text); }
     .wl-header .wl-header-right { display: flex; align-items: center; gap: 8px; }
-    .wl-header .wl-score-link { color: #be123c; font-weight: 700; text-decoration: none; font-size: 12px; }
-    .wl-header .wl-score-link:hover { text-decoration: underline; }
+    .wl-header .wl-score-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: #e11d48;
+      font-weight: 800;
+      font-size: 13px;
+      background: rgba(225, 29, 72, 0.08);
+      padding: 3px 10px;
+      border-radius: 999px;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .wl-header .wl-score-link:hover { background: rgba(225, 29, 72, 0.16); text-decoration: none; }
+    .wl-header .wl-score-link svg { display: block; }
     .wl-item {
       display: flex;
       align-items: center;
@@ -1868,6 +1881,20 @@
       line-height: 1;
     }
     .wl-item .wl-del:hover { color: #ef4444; }
+    .wl-item .wl-score {
+      flex: 0 0 auto;
+      margin-right: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      min-width: 34px;
+      text-align: right;
+    }
+    .wl-item .wl-score.wl-score-high { color: #f43f5e; }
+    .wl-item .wl-score.wl-score-mid { color: #fbbf24; }
+    .wl-item .wl-score.wl-score-low { color: #94a3b8; }
+    .wl-item .wl-score.wl-score-na { color: var(--muted); font-weight: 400; }
+    .wl-header .wl-score-link { display: inline-flex; align-items: center; gap: 4px; }
+    .wl-header .wl-score-link svg { display: block; }
     .wl-empty {
       padding: 16px 14px;
       text-align: center;
@@ -4972,7 +4999,7 @@
     }
     html +=
       '<span style="flex:1"></span>' +
-      '<a href="./watchscore.html" target="_blank" rel="noopener" title="自选评分榜">评分榜 ›</a>' +
+      '<a href="./watchscore.html" target="_blank" rel="noopener" title="自选评分榜" style="display:inline-flex; align-items:center; gap:3px; text-decoration:none; color:inherit;"><svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor" aria-hidden="true" style="display:block;"><path d="M2 13.5h2.4V8.6H2v4.9zm4.6 0h2.4V4.2H6.6v9.3zm4.6 0h2.4V6.4h-2.4v7.1z"/></svg>评分榜 ›</a>' +
       '</div>';
     if (!err) {
       if (tags.length) {
@@ -5665,9 +5692,97 @@
       return JSON.parse(localStorage.getItem(WATCHLIST_KEY) || '[]');
     } catch (e) { return []; }
   }
-  function saveWatchlist(list) {
+  function saveWatchlist(list, skipServerPush) {
     try { if (typeof localStorage !== 'undefined') localStorage.setItem(WATCHLIST_KEY, JSON.stringify(list)); } catch (e) {}
-    wlServerPush(list);
+    if (!skipServerPush) wlServerPush(list);
+  }
+  function wlServerPushOne(secid, code, name) {
+    var t = authToken();
+    if (!t || !secid) return;
+    fetch(API_BASE + '/api/watchlist', {
+      method: 'POST',
+      headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+      body: JSON.stringify({ secid: String(secid), code: String(code || ''), name: String(name || '') })
+    }).catch(function () {});
+  }
+  var _wlPanelScoresCacheAt = 0;
+  var _wlPanelScoresLoading = false;
+  var WL_PANEL_SCORE_KEY_PREFIX = 'ai24x_a_wl_scores_';
+  function wlPanelScoreKey() {
+    try {
+      var t = authToken();
+      if (!t) return '';
+      return WL_PANEL_SCORE_KEY_PREFIX + String(t).slice(-10);
+    } catch (e) { return ''; }
+  }
+  function wlReadPanelScoreCache() {
+    try {
+      var k = wlPanelScoreKey();
+      if (!k) return null;
+      var raw = localStorage.getItem(k);
+      if (!raw) return null;
+      var o = JSON.parse(raw);
+      if (!o || !o.map) return null;
+      return o;
+    } catch (e) { return null; }
+  }
+  function wlWritePanelScoreCache(map) {
+    try {
+      var k = wlPanelScoreKey();
+      if (!k) return;
+      localStorage.setItem(k, JSON.stringify({ ts: Date.now(), map: map }));
+    } catch (e) {}
+  }
+  function wlApplyScoresToPanel(map) {
+    if (!watchlistPanelEl) return;
+    var spans = watchlistPanelEl.querySelectorAll('.wl-score[data-wl-score]');
+    for (var i = 0; i < spans.length; i++) {
+      var sid = spans[i].getAttribute('data-wl-score');
+      var sc = (map && map[sid] != null) ? map[sid] : null;
+      if (sc == null) continue; // 未返回/超时保持 …
+      spans[i].textContent = (sc % 1 === 0) ? sc.toFixed(0) : sc.toFixed(1);
+      spans[i].className = 'wl-score ' + (sc >= 70 ? 'wl-score-high' : (sc >= 45 ? 'wl-score-mid' : 'wl-score-low'));
+    }
+  }
+  function wlLoadScoresForPanel() {
+    var t = authToken();
+    if (!t || !watchlistPanelEl || watchlistPanelEl.hidden) return;
+    var now = Date.now();
+    // 1) 秒显：先应用本地持久化评分（10 分钟内），避免每次等接口重算
+    var cache = wlReadPanelScoreCache();
+    if (cache && now - cache.ts < 600000) wlApplyScoresToPanel(cache.map);
+    // 2) 后台刷新：30s 节流 + 防并发；服务端 300s 缓存命中时约 <1s 返回
+    if (_wlPanelScoresLoading) return;
+    if (_wlPanelScoresCacheAt && now - _wlPanelScoresCacheAt < 30000) return;
+    _wlPanelScoresLoading = true;
+    fetch(API_BASE + '/api/watchlist/scores', { headers: authHeaders(), cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        _wlPanelScoresLoading = false;
+        _wlPanelScoresCacheAt = Date.now();
+        if (!d || d.ok !== true || !d.items) return;
+        var map = {};
+        for (var i = 0; i < d.items.length; i++) {
+          var it = d.items[i];
+          if (!it || it.error) continue;
+          map[String(it.secid || '')] = Number(it.score);
+        }
+        wlWritePanelScoreCache(map);
+        wlApplyScoresToPanel(map);
+      })
+      .catch(function () {
+        _wlPanelScoresLoading = false;
+        _wlPanelScoresCacheAt = Date.now();
+      });
+  }
+  function wlServerRemoveAll(list) {
+    var t = authToken();
+    if (!t || !list || !list.length) return;
+    for (var i = 0; i < list.length; i++) {
+      (function (it) {
+        wlServerRemove(String((it && it.secid) || ''));
+      })(list[i]);
+    }
   }
   function isInWatchlist(secid) {
     return loadWatchlist().some(function (w) { return w.secid === secid; });
@@ -5736,10 +5851,18 @@
       list.splice(idx, 1);
     } else {
       if (list.length >= 20) { list.shift(); }
+      // 防呆：历史遗留的「纯代码/secid 形态」名称清空，由后端 suggest 补真实名称
+      try {
+        if (name && /^[0-9.\/]{4,12}$/.test(String(name).trim())) name = '';
+      } catch (eN) {}
       list.push({ secid: String(secid), name: String(name || ''), code: String(code || ''), ts: Date.now() });
     }
-    saveWatchlist(list);
-    if (idx >= 0) wlServerRemove(secid);
+    saveWatchlist(list, true);
+    if (idx >= 0) {
+      wlServerRemove(secid);
+    } else {
+      wlServerPushOne(secid, String(code || ''), String(name || ''));
+    }
     renderFavBtn();
     renderWlPanelBtn();
     if (watchlistPanelEl && !watchlistPanelEl.hidden) renderWatchlistPanel();
@@ -5767,7 +5890,7 @@
       watchlistPanelEl.innerHTML = '<div class="wl-empty">暂无自选，查询后点「加自选」添加</div>';
       return;
     }
-    var html = '<div class="wl-header"><span>我的自选 (' + list.length + '/20)' + (authToken() ? '' : ' · 游客仅本机') + '</span><span class="wl-header-right"><a class="wl-score-link" href="./watchscore.html">评分榜 ›</a><button class="wl-clear-all">清空</button></span></div>';
+    var html = '<div class="wl-header"><span>我的自选 (' + list.length + '/20)' + (authToken() ? '' : ' · 游客仅本机') + '</span><span class="wl-header-right"><a class="wl-score-link" href="./watchscore.html"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M2 13.5h2.4V8.6H2v4.9zm4.6 0h2.4V4.2H6.6v9.3zm4.6 0h2.4V6.4h-2.4v7.1z"/></svg>评分榜 ›</a><button class="wl-clear-all">清空</button></span></div>';
     for (var i = list.length - 1; i >= 0; i--) {
       var w = list[i];
       // v1.04: 清洗code显示 — 参数值/长字符串→提取secid中纯代码
@@ -5780,15 +5903,18 @@
         }
         return c;
       })();
-      html += '<div class="wl-item" data-secid="' + escAttr(w.secid) + '"><span>' + escHtml(w.name || w.secid) + '<span class="wl-code">' + escHtml(cleanCode) + '</span></span><button class="wl-del" data-del="' + escAttr(w.secid) + '">×</button></div>';
+      html += '<div class="wl-item" data-secid="' + escAttr(w.secid) + '"><span>' + escHtml(w.name || cleanCode) + '<span class="wl-code">' + escHtml(cleanCode) + '</span></span>' + (authToken() ? '<span class="wl-score wl-score-na" data-wl-score="' + escAttr(w.secid) + '">…</span>' : '') + '<button class="wl-del" data-del="' + escAttr(w.secid) + '">×</button></div>';
     }
     watchlistPanelEl.innerHTML = html;
+    try { wlLoadScoresForPanel(); } catch (e) {}
   }
   // Panel item click → load stock / delete single / clear all
   watchlistPanelEl.addEventListener('click', function (e) {
     // Clear all button
     if (e.target.closest('.wl-clear-all')) {
-      saveWatchlist([]);
+      var curAll = loadWatchlist();
+      saveWatchlist([], true);
+      wlServerRemoveAll(curAll);
       renderFavBtn();
       renderWlPanelBtn();
       renderWatchlistPanel();
@@ -5800,7 +5926,8 @@
       var sid = del.getAttribute('data-del');
       if (sid) {
         var list2 = loadWatchlist().filter(function (w) { return w.secid !== sid; });
-        saveWatchlist(list2);
+        saveWatchlist(list2, true);
+        wlServerRemove(sid);
         renderFavBtn();
         renderWlPanelBtn();
         renderWatchlistPanel();
@@ -5814,7 +5941,9 @@
     }
   });
   function clearWatchlist() {
-    saveWatchlist([]);
+    var curAll = loadWatchlist();
+    saveWatchlist([], true);
+    wlServerRemoveAll(curAll);
     renderFavBtn();
     renderWlPanelBtn();
     renderWatchlistPanel();
@@ -6353,8 +6482,11 @@
       if (!nm) {
         try { nm = String(inputEl && inputEl.value ? inputEl.value : '').trim(); } catch (e) {}
       }
-      // 最后兜底：名称至少用代码，保证自选列表代码/名称不空白
-      if (!nm) { nm = cd; }
+      // v1.11 名称兜底防呆：仅当名称整体是「纯代码 / secid 形态」才清空（等后端补名），
+      // 真实名称（含“名称(代码)”格式）不受影响，避免自选/评分榜显示代码。
+      try {
+        if (nm && /^[0-9.\/]{4,12}$/.test(String(nm).trim())) { nm = ''; }
+      } catch (eNm) {}
       var o = {
         secid: String(secid || ''),
         period: String(period || 'day'),
@@ -6692,14 +6824,38 @@
     e.stopPropagation();
     var s = currentSecidState();
     var last = readLastQuery();
-    if (s) toggleWatchlist(s, last ? last.name : '', last ? last.code : '');
+    if (!s) return;
+    var nm = last ? last.name : '';
+    var cd = last ? last.code : '';
+    // 名称未知时先 suggest 补名：让自选面板立即显示真实名称（失败则留空，后端也会补名）
+    if (!nm && cd && !isInWatchlist(s)) {
+      suggestRows(cd).then(function (list) {
+        var hit = null;
+        try { hit = (list || []).find(function (x) { return String(x && x.Code ? x.Code : '') === String(cd); }); } catch (e0) {}
+        if (hit && hit.Name) nm = String(hit.Name);
+        if (isInWatchlist(s)) {
+          // 等待期间已被其它操作添加：仅补全名称，避免重复切换
+          var cur = loadWatchlist();
+          for (var k = 0; k < cur.length; k++) {
+            if (cur[k].secid === s) { if (nm && !cur[k].name) cur[k].name = nm; break; }
+          }
+          saveWatchlist(cur, true);
+          renderFavBtn(); renderWlPanelBtn();
+          if (watchlistPanelEl && !watchlistPanelEl.hidden) renderWatchlistPanel();
+          return;
+        }
+        toggleWatchlist(s, nm, cd);
+      }).catch(function () { toggleWatchlist(s, nm, cd); });
+      return;
+    }
+    toggleWatchlist(s, nm, cd);
   });
   // 自选按钮：打开/关闭自选面板
   btnWlPanel.addEventListener('click', function (e) {
     e.stopPropagation();
     if (watchlistPanelEl.hidden) {
-      renderWatchlistPanel();
       watchlistPanelEl.hidden = false;
+      renderWatchlistPanel();
     } else {
       watchlistPanelEl.hidden = true;
     }
