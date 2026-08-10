@@ -38,8 +38,8 @@ input{background:var(--panel2);border:1px solid var(--border);color:var(--text);
 .env-chip{flex:0 0 auto;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:11px;color:var(--muted);white-space:nowrap;cursor:pointer}
 .env-chip.active{border-color:var(--accent);color:var(--text)}
 .env-chip b{color:var(--text)}
-.chart-main{flex:1 1 50%;min-height:0;position:relative;background:var(--bg);padding:0 8px 0 4px}
-.chart-macd{flex:0 0 18%;min-height:0;border-top:1px solid var(--border);background:var(--bg);position:relative;padding:0 8px 0 4px}
+.chart-main{flex:1 1 46%;min-height:0;position:relative;background:var(--bg);padding:0 8px 0 4px}
+.chart-macd{flex:0 0 18%;min-height:0;border-top:1px solid var(--border);background:var(--bg);position:relative;margin-bottom:4px;padding:0 8px 8px 4px}
 canvas{width:100%;height:100%;display:block}
 .chart-legend{position:absolute;left:14px;top:6px;font-size:11px;color:var(--muted);pointer-events:none;white-space:nowrap}
 .bottombar{flex:0 0 auto;display:flex;align-items:center;gap:4px;padding:6px 8px calc(6px + env(safe-area-inset-bottom));background:var(--panel);border-top:1px solid var(--border)}
@@ -461,7 +461,7 @@ function drawM(rows){
   for (var i=start;i<rows.length;i++){ if (m.hist[i]!=null) vals.push(m.hist[i]); }
   var mx = 1; vals.forEach(function(v){ var a=Math.abs(v); if(a>mx)mx=a; });
   mx = mx * state.zoom; /* 纵向缩放跟随主图 */
-  var padT=6, padB=4, padL=8, padR=18;
+  var padT=6, padB=8, padL=8, padR=18;
   var plotH = H-padT-padB, plotW = W-padL-padR;
   function x(i){ return padL + (i/(vis-1))*plotW; }
   function y(v){ return padT + (mx-v)/(2*mx)*plotH; }
