@@ -237,10 +237,9 @@ def _anon_day_key() -> str:
 
 
 def _anon_id_from_request(request: "Request") -> str:
+    # 用真实客户端 IP（识别 X-Forwarded-For），避免 Nginx 反代后所有游客共享同一额度
     try:
-        host = (request.client.host if request and request.client else "") or ""
-        host = str(host).strip()
-        return host or "unknown"
+        return _client_ip(request) or "unknown"
     except Exception:
         return "unknown"
 
