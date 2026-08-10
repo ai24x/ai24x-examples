@@ -11,6 +11,14 @@ from sqlalchemy.orm import Session
 from models import AuthUser, BillingLedger, TokenPayOrder, TokenWallet
 
 
+# 高消耗告警白名单：邮箱小写、逗号分隔；支持环境变量 TOKEN_BURN_ALERT_WHITELIST 覆盖（默认含老板测试号）
+_BURN_ALERT_EMAIL_WHITELIST = frozenset(
+    e.strip().lower()
+    for e in os.environ.get("TOKEN_BURN_ALERT_WHITELIST", "ityizu@foxmail.com").split(",")
+    if e.strip()
+)
+
+
 def admin_list_users(
     db: Session,
     *,
@@ -260,6 +268,7 @@ def admin_usage_monitor(db: Session, *, days: int = 1, top_n: int = 20) -> dict[
         db.query(
             BillingLedger.auth_user_id,
             func.coalesce(func.sum(func.abs(BillingLedger.amount)), 0).label("tokens"),
+            func.coalesce(func.sum(func.abs(BillingLedger.amount_usd)), 0).label("usd_cents"),
             func.count(BillingLedger.id).label("n"),
         )
         .filter(BillingLedger.entry_type == "consume", BillingLedger.created_at >= since)
@@ -269,19 +278,31 @@ def admin_usage_monitor(db: Session, *, days: int = 1, top_n: int = 20) -> dict[
         .all()
     )
     top_users = []
-    for uid, tokens, n in user_rows:
+    for uid, tokens, usd_cents, n in user_rows:
         u = db.query(AuthUser).filter(AuthUser.id == int(uid)).first()
         tok = int(tokens or 0)
-        # 日均 > 50 万平台 token 或单用户占比较高 → 标红关注
-        flag = "high" if tok >= 500_000 * days else ("watch" if tok >= 100_000 * days else "ok")
+        usd = int(usd_cents or 0)
+        email = (u.email if u else "") or ""
+        whitelisted = email.strip().lower() in _BURN_ALERT_EMAIL_WHITELIST
+        # 双维度：token 巨大 或 折算金额异常 → high；token 偏高 → watch；白名单用户仅展示不告警
+        if whitelisted:
+            flag = "ok"
+        elif tok >= 3_000_000 * days or usd >= 1_000 * days:
+            flag = "high"
+        elif tok >= 1_000_000 * days:
+            flag = "watch"
+        else:
+            flag = "ok"
         top_users.append(
             {
                 "auth_user_id": int(uid),
-                "email": (u.email if u else "") or "",
+                "email": email,
                 "phone": (u.phone if u else "") or "",
                 "frozen": bool(getattr(u, "frozen_at", None)) if u else False,
                 "consume_tokens": tok,
+                "consume_usd_cents": usd,
                 "ledger_rows": int(n or 0),
+                "whitelisted": whitelisted,
                 "flag": flag,
             }
         )
@@ -291,6 +312,7 @@ def admin_usage_monitor(db: Session, *, days: int = 1, top_n: int = 20) -> dict[
         db.query(
             func.coalesce(BillingLedger.model, "(empty)"),
             func.coalesce(func.sum(func.abs(BillingLedger.amount)), 0).label("tokens"),
+            func.coalesce(func.sum(func.abs(BillingLedger.amount_usd)), 0).label("usd_cents"),
             func.count(BillingLedger.id).label("n"),
         )
         .filter(BillingLedger.entry_type == "consume", BillingLedger.created_at >= since)
@@ -300,9 +322,10 @@ def admin_usage_monitor(db: Session, *, days: int = 1, top_n: int = 20) -> dict[
         .all()
     )
     top_models = []
-    for mid, tokens, n in model_rows:
+    for mid, tokens, usd_cents, n in model_rows:
         mid_s = str(mid or "")
         tok = int(tokens or 0)
+        usd = int(usd_cents or 0)
         # 国际高倍率名模标通道风险
         is_intl = mid_s.startswith("vip-gpt") or "claude" in mid_s or "gemini" in mid_s
         flag = "intl_vip" if is_intl and tok > 0 else ("high" if tok >= 1_000_000 * days else "ok")
@@ -310,6 +333,7 @@ def admin_usage_monitor(db: Session, *, days: int = 1, top_n: int = 20) -> dict[
             {
                 "model": mid_s,
                 "consume_tokens": tok,
+                "consume_usd_cents": usd,
                 "ledger_rows": int(n or 0),
                 "flag": flag,
             }
@@ -334,20 +358,29 @@ def admin_usage_monitor(db: Session, *, days: int = 1, top_n: int = 20) -> dict[
     alerts: list[dict[str, Any]] = []
     for row in top_users:
         if row["flag"] == "high":
+            who = row["email"] or f"用户 {row['auth_user_id']}"
+            usd_txt = f"{int(row.get('consume_usd_cents') or 0) / 100:.2f}"
             alerts.append(
                 {
                     "level": "warn",
                     "code": "user_high_burn",
-                    "msg": f"用户 {row['auth_user_id']} 近{days}日消耗 {row['consume_tokens']} 平台 token",
+                    "msg": (
+                        f"用户 {row['auth_user_id']}（{who}）近{days}日消耗 "
+                        f"{row['consume_tokens']} 平台 token（约 ${usd_txt}）"
+                    ),
                 }
             )
     intl_burn = sum(int(m["consume_tokens"]) for m in top_models if m.get("flag") == "intl_vip")
-    if intl_burn >= 200_000 * days:
+    intl_usd = sum(int(m.get("consume_usd_cents") or 0) for m in top_models if m.get("flag") == "intl_vip")
+    if intl_burn >= 1_000_000 * days or intl_usd >= 500 * days:
         alerts.append(
             {
                 "level": "warn",
                 "code": "intl_vip_burn",
-                "msg": f"国际名模近{days}日合计消耗约 {intl_burn} 平台 token，请对账 OR/厂账单",
+                "msg": (
+                    f"国际名模近{days}日合计消耗约 {intl_burn} 平台 token"
+                    f"（约 ${intl_usd / 100:.2f}），请对账 OR/厂账单"
+                ),
             }
         )
 
@@ -361,9 +394,12 @@ def admin_usage_monitor(db: Session, *, days: int = 1, top_n: int = 20) -> dict[
         "providers": providers,
         "alerts": alerts,
         "thresholds": {
-            "user_high_per_day": 500_000,
-            "user_watch_per_day": 100_000,
-            "intl_burn_warn_per_day": 200_000,
+            "user_high_per_day": 3_000_000,
+            "user_watch_per_day": 1_000_000,
+            "user_high_usd_per_day": 10.0,
+            "intl_burn_warn_per_day": 1_000_000,
+            "intl_burn_warn_usd_per_day": 5.0,
+            "alert_email_whitelist": sorted(_BURN_ALERT_EMAIL_WHITELIST),
         },
         "ops_note": (
             "消耗为平台额度（已含 VIP billing_mult）。"
