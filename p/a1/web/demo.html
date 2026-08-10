@@ -1159,6 +1159,17 @@
       }
       #quote-status:empty,
       #quote-status[hidden] { display: none !important; }
+      /* 查询栏吸顶：滚动看 K 线时保持可输入，无需滑回顶部
+         body 因 overflow-y:auto 是滚动容器会破坏 position:sticky，故用 translateY 自实现（仅手机端，滚动事件驱动） */
+      .search-row {
+        z-index: 75;
+        background: var(--panel);
+        border-radius: 8px;
+        padding: 6px 2px 8px;
+        margin-bottom: 2px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        will-change: transform;
+      }
     }
 
     .topbar {
@@ -5459,6 +5470,31 @@
     if (macdDeaSeries) try { macdDeaSeries.setData(deas); } catch (e) {}
   }
 
+  (function initStickySearchMobile() {
+    try {
+      if (!window.matchMedia) return;
+      var mq = window.matchMedia('(max-width: 640px)');
+      var row = document.querySelector('.search-row');
+      if (!row) return;
+      var TOP = 66; // 顶部站点栏 60 + 6
+      function apply() {
+        try {
+          if (!mq.matches) { if (row.style.transform) row.style.transform = ''; return; }
+          var docTop = row.offsetTop || 0;
+          var sc = window.pageYOffset || document.documentElement.scrollTop || 0;
+          var off = docTop - sc;
+          var shift = Math.max(0, TOP - off);
+          var cur = row.style.transform || '';
+          var want = shift > 0 ? 'translateY(' + shift + 'px)' : '';
+          if (cur !== want) row.style.transform = want;
+        } catch (e) {}
+      }
+      window.addEventListener('scroll', apply, { passive: true });
+      window.addEventListener('resize', apply, { passive: true });
+      apply();
+    } catch (e) {}
+  })();
+
   function autoScrollToChartForMobile(secid, period) {
     try {
       if (!window.matchMedia || !window.matchMedia('(max-width: 640px)').matches) return;
@@ -5469,7 +5505,10 @@
         requestAnimationFrame(function () {
           var box = document.getElementById('chart-box') || document.getElementById('chart-wrap');
           if (!box) return;
-          var top = box.getBoundingClientRect().top + (window.pageYOffset || document.documentElement.scrollTop) - 6;
+          var bar = document.querySelector('.search-row');
+          var offset = 6;
+          try { if (bar) offset = Math.round(bar.getBoundingClientRect().height) + 70; } catch (e) {}
+          var top = box.getBoundingClientRect().top + (window.pageYOffset || document.documentElement.scrollTop) - offset;
           try { window.scrollTo({ top: top, behavior: 'smooth' }); } catch (e) { window.scrollTo(0, top); }
         });
       });
@@ -5759,6 +5798,19 @@
   function hidePick() {
     pickList.innerHTML = '';
     pickList.classList.remove('visible');
+    try {
+      pickList.style.position = '';
+      pickList.style.top = '';
+      pickList.style.left = '';
+      pickList.style.right = '';
+      pickList.style.zIndex = '';
+      pickList.style.maxHeight = '';
+      pickList.style.background = '';
+      pickList.style.border = '';
+      pickList.style.borderRadius = '';
+      pickList.style.padding = '';
+      pickList.style.boxShadow = '';
+    } catch (e) {}
   }
 
   var LAST_QUERY_KEY = 'ai24x_a_last_query';
@@ -6823,6 +6875,22 @@
         endQuery();
         setStatusMsg('找到多条结果，请选择：');
         pickList.classList.add('visible');
+        try {
+          if (window.matchMedia && window.matchMedia('(max-width: 640px)').matches) {
+            var _pr = inputEl.getBoundingClientRect();
+            pickList.style.position = 'fixed';
+            pickList.style.top = Math.round(_pr.bottom + 6) + 'px';
+            pickList.style.left = '8px';
+            pickList.style.right = '8px';
+            pickList.style.zIndex = '95';
+            pickList.style.maxHeight = '42vh';
+            pickList.style.background = 'var(--panel)';
+            pickList.style.border = '1px solid var(--border)';
+            pickList.style.borderRadius = '8px';
+            pickList.style.padding = '6px';
+            pickList.style.boxShadow = '0 10px 24px rgba(0,0,0,0.25)';
+          }
+        } catch (ePk) {}
         list.forEach(function (item) {
           var b = document.createElement('button');
           b.type = 'button';
