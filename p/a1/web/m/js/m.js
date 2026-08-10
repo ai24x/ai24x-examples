@@ -522,10 +522,11 @@ function drawMiniK(ctx, rows, x0, y0, x1, y1){
   var padT = 8, padB = 8;
   var plotH = (y1 - y0) - padT - padB, plotW = x1 - x0;
   var range = (hi - lo) || 1;
-  function X(i){ return x0 + (i / (vis - 1)) * plotW; }
+  var step = plotW / vis;
+  function X(i){ return x0 + (i + 0.5) * step; }
   function Y(p){ return y0 + padT + (hi - p) / range * plotH; }
   ctx.strokeStyle = "rgba(148,163,184,.1)"; ctx.lineWidth = 1;
-  for (var g = 1; g < 4; g++){ var gy = y0 + padT + plotH * g / 4; ctx.beginPath(); ctx.moveTo(x0, gy); ctx.lineTo(x1, gy); ctx.stroke(); }
+  for (var g = 1; g < 5; g++){ var gy = y0 + padT + plotH * g / 4; ctx.beginPath(); ctx.moveTo(x0, gy); ctx.lineTo(x1, gy); ctx.stroke(); }
   var cw = Math.max(1.2, plotW / vis * 0.6);
   for (var i = 0; i < vis; i++){
     var r = sub[i], xi = X(i);
@@ -563,7 +564,7 @@ function drawMiniK(ctx, rows, x0, y0, x1, y1){
       ctx.fillStyle = sg.color || "#fbbf24";
       ctx.strokeStyle = "#0b1220"; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(mx, dotY, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      var lbl = String(sg.raw || sg.note || "").slice(0, 3).replace(/[·.。]+$/, "");
+      var lbl = String(sg.raw || sg.note || sg.label || "").slice(0, 3).replace(/[·.。]+$/, "");
       if (lbl){
         ctx.font = "bold 18px sans-serif"; ctx.textAlign = "center";
         var tw = ctx.measureText(lbl).width;
@@ -602,7 +603,8 @@ function drawMiniMacd(ctx, rows, x0, y0, x1, y1){
   es.forEach(function(v){ if (v < lo) lo = v; if (v > hi) hi = v; });
   var rng = (hi - lo) || 1;
   var padT = 12, padB = 16, plotH = (y1 - y0) - padT - padB, plotW = x1 - x0;
-  function X(i){ return x0 + (i / (vis - 1)) * plotW; }
+  var step = plotW / vis;
+  function X(i){ return x0 + (i + 0.5) * step; }
   function Y(v){ return y0 + padT + (hi - v) / rng * plotH; }
   var zero = Y(0);
   ctx.strokeStyle = "rgba(148,163,184,.14)"; ctx.lineWidth = 1;
@@ -683,9 +685,9 @@ function buildShareCard(done){
   ctx.font = "bold 30px sans-serif";
   ctx.fillText(chg == null ? "--" : (isUp ? "+" : "") + chg.toFixed(2) + "%", W - pad, 112);
   ctx.strokeStyle = "rgba(148,163,184,.16)"; ctx.beginPath(); ctx.moveTo(pad, 146); ctx.lineTo(W - pad, 146); ctx.stroke();
-  drawMiniK(ctx, rows, pad, 168, W - pad, 430);
-  drawMiniMacd(ctx, rows, pad, 448, W - pad, 580);
-  var y = 608;
+  drawMiniK(ctx, rows, pad, 168, W - pad, 408);
+  drawMiniMacd(ctx, rows, pad, 426, W - pad, 558);
+  var y = 586;
   var snap = _lastSnapData;
   ctx.fillStyle = MUTED; ctx.font = "22px sans-serif"; ctx.textAlign = "left";
   ctx.fillText("技术指标快照", pad, y); y += 44;
