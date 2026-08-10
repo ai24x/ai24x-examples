@@ -134,6 +134,17 @@ PROVIDERS: dict[str, dict[str, Any]] = {
         "covers": ["intl_named", "or_failover"],
         "note": "OR 兼容模型 ID 直接复用 openrouter_id；免费层 200 次/天可作超模体验池。",
     },
+    "quickrouter": {
+        "title": "QuickRouter (#4 国际聚合 · gpt-5 系降本 50% · 2026-08-11 接入)",
+        "role": "intl_aggregator",
+        "openai_compatible": True,
+        "key_env": "QUICKROUTER_API_KEY",
+        "base_env": "QUICKROUTER_BASE_URL",
+        "default_base": "https://api.quickrouter.ai/v1",
+        "enabled_env": "TOKEN_UPSTREAM_QUICKROUTER_ENABLED",
+        "covers": ["intl_named", "or_failover"],
+        "note": "裸模型 ID（gpt-5 / gpt-5-mini）；分组倍率×1 已账单实测（2026-08-10）；只接降本模型，gpt-5.4/luna/terra 贵不接。",
+    },
 }
 
 
@@ -153,6 +164,7 @@ def _env(name: str, default: str = "") -> str:
         "GOOGLE_AI_API_KEY",
         "REQUESTY_API_KEY",
         "TOKENLAB_API_KEY",
+        "QUICKROUTER_API_KEY",
     ):
         return get_key(name, default)
     import os

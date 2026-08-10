@@ -19,7 +19,7 @@ _AUDIT_PATH = Path(__file__).resolve().parent / "data" / "pricing_audit.jsonl"
 _DEFAULT_LAYER_MULT = {"L0": 1, "L1": 1, "L2": 3, "L3": 7, "QI": 1}  # ⚠️ 主脑 2026-08-08 修改：L3 6→7，消除 price_warn_or_gpt5_mini 低毛利告警
 
 # 极致性价比·超值包（Value Pack）白名单点名模型（catalog id）：
-# 只装「质量过关 + 毛利安全」的低成本名模；国际旗舰（GPT-5/5.4/4o、Claude、Gemini、Grok、Kimi K3）一律不装，防倒挂。
+# 只装「质量过关 + 毛利安全」的低成本名模；2026-08-11 起 gpt-5/gpt-5-mini 走 QuickRouter ×1 实锤成本（0.625/5.0、0.125/1.0）加入白名单；其余国际旗舰（5.4/4o/Claude/Gemini/Grok/Kimi K3）仍不装，防倒挂。
 # 由 token_mvp_service.value_pack_allowed_models 判定资格；白名单随质量与成本基线滚动调整。
 VALUE_PACK_ALLOWED_IDS: frozenset[str] = frozenset(
     {
@@ -32,6 +32,8 @@ VALUE_PACK_ALLOWED_IDS: frozenset[str] = frozenset(
         "vip-qwen-max",
         "vip-qwen122b",
         "vip-glm",
+        "vip-gpt5",
+        "vip-gpt5-mini",
         "vip-gpt4o-mini",
         "vip-gpt56-terra",
         "vip-gpt56-luna",
@@ -391,9 +393,10 @@ CATALOG: list[dict[str, Any]] = [
         "openrouter_id": "openai/gpt-5",
         "direct_id": None,
         # 2026-08-06: 保持 OR 主通道（补测 TL 同价无成本优势，OR 稳定性更优）
-        "channels": ["openrouter", "tokenlab", "requesty"],
-        "cost_in": 1.25,
-        "cost_out": 10.0,
+        # 2026-08-11: 加 QuickRouter failover（分组倍率×1 已账单实测 0.625/5.0，成本降 50%）
+        "channels": ["openrouter", "tokenlab", "requesty", "quickrouter"],
+        "cost_in": 0.625,
+        "cost_out": 5.0,
         "billing_mult": 25,  # 2026-08-05: ceil(5.625/0.35*1.5)=25
         "in_mult": 6,   # 2026-08-06: 6x0.35=$2.10，vs 官方 1.25=1.68x，GM in 40%
         "out_mult": 37,  # 2026-08-06: 37x0.35=$12.95，vs 官方 10=1.30x，GM out 23%
@@ -412,8 +415,9 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 16,
         "openrouter_id": "openai/gpt-5-mini",
         "direct_id": None,
-        "cost_in": 0.25,
-        "cost_out": 2.0,
+        # 2026-08-11: QuickRouter ×1 实锤 0.125/1.0（原 OR 0.25/2.0）
+        "cost_in": 0.125,
+        "cost_out": 1.0,
         "billing_mult": 5,
         "in_mult": 2,   # 2026-08-06: 维持 $0.70（mult=1 会跌破毛利线）
         "out_mult": 8,  # 2026-08-06: 8x0.35=$2.80，vs 官方 2=1.40x，GM out 29%

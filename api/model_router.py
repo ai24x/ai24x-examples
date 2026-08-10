@@ -1211,6 +1211,12 @@ _TOKENLAB_MODEL_MAP: dict[str, str] = {
     "vip-grok": "grok-4.20",
 }
 
+# QuickRouter（#4 国际聚合 · gpt-5 系降本 50%；2026-08-11 接入，分组倍率×1 已账单实测）
+_QUICKROUTER_MODEL_MAP: dict[str, str] = {
+    "vip-gpt5": "gpt-5",
+    "vip-gpt5-mini": "gpt-5-mini",
+}
+
 _REQUESTY_MODELS: frozenset[str] = frozenset({
     "deepseek/deepseek-v4-flash",
     "deepseek/deepseek-v4-pro",
@@ -1238,6 +1244,8 @@ def _aggregator_upstream(provider_id: str, public_id: str, or_id: str) -> Option
             return None
         if provider_id == "tokenlab":
             model = _TOKENLAB_MODEL_MAP.get(public_id)
+        elif provider_id == "quickrouter":
+            model = _QUICKROUTER_MODEL_MAP.get(public_id)
         else:
             model = or_id if or_id in _REQUESTY_MODELS else None
         if not model:
@@ -1271,7 +1279,7 @@ def _vip_aggregator_chain(pick: dict[str, Any], or_id: str) -> list[dict[str, st
         order = vip_channel_order(public_id)
     except Exception:
         order = None
-    default_order = ("openrouter", "tokenlab", "requesty")
+    default_order = ("openrouter", "tokenlab", "requesty", "quickrouter")
     if isinstance(order, list) and order:
         # channels 为严格白名单顺序：只走列出的通道（未列出的不自动补回，未配置才用默认）
         seen: set[str] = set()

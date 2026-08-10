@@ -41,6 +41,7 @@ _ALLOWED = (
     # 国际聚合平台 Key
     "TOKENLAB_API_KEY",
     "REQUESTY_API_KEY",
+    "QUICKROUTER_API_KEY",  # 2026-08-11: QuickRouter（国际名模降本 failover）
 )
 
 # 管理台展示顺序与说明（status: live=生产在用 / failover=自动兜底 / planned=骨架待填）
@@ -125,6 +126,13 @@ _KEY_CATALOG: tuple[dict[str, str], ...] = (
     {
         "name": "REQUESTY_API_KEY",
         "title": "Requesty #3 国际聚合（OR 兼容 · 免费档 200 次/天）",
+        "role": "backup",
+        "status": "failover",
+        "group": "国际聚合",
+    },
+    {
+        "name": "QUICKROUTER_API_KEY",
+        "title": "QuickRouter #4 国际聚合（gpt-5 系降本 50% · 倍率×1 已账单实测）",
         "role": "backup",
         "status": "failover",
         "group": "国际聚合",
