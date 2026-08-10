@@ -68,3 +68,12 @@ Write-Host "=== 部署成功 ✅ ===" -ForegroundColor Green
 - `scripts_token_smoke.py` 是本地专用（BASE=127.0.0.1:8000），生产验收清单不得包含该项；生产侧以「公网验收 + 接口实测」为准（曾因放 smoke 进生产清单导致误报 FAIL + 多一轮往返）。
 - 拉取前先 `git ls-remote origin master` 连续两次一致再 `git pull`，避免拉取途中远端引用变动（曾导致 shallow clone 兜底混乱）。
 - 改密码/凭证后：04 的 gitee 走 credential store（勿把 token 内嵌 URL，失效会导致 git 挂起弹登录）。
+
+## 副脑03（AI行情官 a1）环境差异（2026-08-10 定，老板提醒）
+- 03 主机：Administrator@123.207.199.238 · 仓库 C:\ai24x01 · 服务 AI24X-a1-api（NSSM，端口 **8001**，域名 a.ai24x.com）· 库 ai24x_a_cn（PG 127.0.0.1:5432）。
+- ⚠️ **03 无 D 盘**：pg_dump 备份路径写 `C:\backup\ai24x_a\`（勿写 D:\backup，实测 03 落 C 盘）。
+- ⚠️ **a1 /health 无 commit 字段**：验收以「进程新建时间 + 行为验收」确认，勿要求 commit 字段。
+- 派发：`powershell -File scripts\deploy03.ps1 <指令.md>`（与 04 同构，仅主机/服务/端口不同）。
+
+## 短哈希纪律（2026-08-10 补充）
+- 模板脚本用 `git rev-parse --short=12`，/health 的 commit 也是 12 位：指令中 `$EXP` 必须写 **12 位短哈希**（或校验用前缀匹配），写 7 位会导致 HEAD 比较失败（实测 5f43117 vs 5f4311725dbe，04 已改 --short=7 + 前缀匹配重跑通过）。
