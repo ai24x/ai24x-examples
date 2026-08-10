@@ -368,7 +368,7 @@ function renderSigList(){
   });
 }
 
-/* ===== 绘制（K线加宽不瘦长；信号=小圆点+文字留间距；量能副图跟随缩放） ===== */
+/* ===== 绘制（K线加宽不瘦长；信号=小圆点+文字留间距；量能副图跟随缩放；无最新K线高亮框） ===== */
 function resize(cv){
   var dpr = window.devicePixelRatio || 1;
   var w = cv.clientWidth, h = cv.clientHeight;
@@ -415,10 +415,6 @@ function drawK(rows, sigs){
     ctx.beginPath(); ctx.moveTo(xi, y(r.h)); ctx.lineTo(xi, y(r.l)); ctx.stroke();
     ctx.fillRect(xi-cw/2, Math.min(y(r.o),y(r.c)), cw, Math.max(1, Math.abs(y(r.o)-y(r.c))));
   }
-  var last = sub[vis-1], lx = x(vis-1);
-  ctx.strokeStyle = "#fbbf24"; ctx.lineWidth = 1.5;
-  ctx.strokeRect(lx-cw/2-1.5, Math.min(y(last.o),y(last.c))-1.5, cw+3, Math.max(1, Math.abs(y(last.o)-y(last.c)))+3);
-  ctx.beginPath(); ctx.moveTo(lx, y(last.h)); ctx.lineTo(lx, y(last.l)); ctx.stroke();
   function line(arr, color){
     ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.beginPath(); var started = false;
     for (var i=0;i<vis;i++){
