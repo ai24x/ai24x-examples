@@ -449,28 +449,53 @@ def sector_stats(sc):
     names = " / ".join("%s %.1f" % (_stock_link(x["code"], x["name"]), x["score"]) for x in top)
     return mean, names, ok
 
-def pick_main_lines(sector_scores):
+def pick_main_lines(sector_scores, prev_mainlines=None):
+    """主线锁定（延续约束版，防“一天一个想法”）：
+    - 今日确认主线：评分均值≥62 且（当日平均涨幅≥0，或昨日主线允许小幅回调≥-2%）；
+    - 昨日主线今日回调（均值≥55）→ 观察（延续观察），不直接退潮；
+    - 每日主线最多新增 1 个（有历史主线时），其余新晋先入观察，次日确认再升主线。
+    """
+    prev = {str(x) for x in (prev_mainlines or [])}
     main_lines, observes, avoids = [], [], []
     for sec, sc in sector_scores.items():
         mean, top3, ok = sector_stats(sc)
-        if mean is None: continue
+        if mean is None:
+            continue
         ups = [float(x.get("up_pct") or 0) for x in ok]
         avg_up = sum(ups) / len(ups) if ups else 0
-        if mean >= 62 and avg_up >= 0:
+        if mean >= 62 and (avg_up >= 0 or (sec in prev and avg_up >= -2.0)):
             main_lines.append(sec)
         elif mean >= 55:
-            observes.append(sec)
+            observes.append(sec)   # 含昨日主线回调 → 延续观察
         else:
             avoids.append(sec)
+    if prev and len(main_lines) > 0:
+        # 每日主线最多新增 1 个：超出部分先入观察，次日确认再升主线
+        new_ones = [s for s in main_lines if s not in prev]
+        if len(new_ones) > 1:
+            def _mean_of(name):
+                m, _t, _ok = sector_stats(sector_scores[name])
+                return m if m is not None else 0
+            new_sorted = sorted(new_ones, key=lambda s: -float(_mean_of(s)))
+            for s in new_sorted[1:]:
+                main_lines.remove(s)
+                if s not in observes:
+                    observes.append(s)
     return main_lines, observes, avoids
 
 def _prev_mainlines():
-    """上一归档日的主线（用于连续性对比）。"""
+    """上一归档日的主线（用于连续性对比）。优先读归档 mainlines.json（当日实际口径），旧归档回退按 sector_score 重算。"""
     try:
         arch = sorted([x for x in os.listdir(ARCHIVE_ROOT) if os.path.isdir(os.path.join(ARCHIVE_ROOT, x))], reverse=True)
         for d in arch:
             if d == today8():
                 continue
+            mj = os.path.join(ARCHIVE_ROOT, d, "mainlines.json")
+            if os.path.exists(mj):
+                obj = json.load(open(mj, encoding="utf-8"))
+                ml = obj.get("mainlines") or []
+                if ml:
+                    return {"date": d, "mainlines": ml}
             p = os.path.join(ARCHIVE_ROOT, d, "sector_score.json")
             if os.path.exists(p):
                 sc = json.load(open(p, encoding="utf-8"))
@@ -512,7 +537,10 @@ def build_md(data, vip=True):
     A("")
     A("---")
     A("")
-    main_lines, observes, avoids = pick_main_lines(sc)
+    _prev_ml = (data.get("prev_mainlines") or {}).get("mainlines") or []
+    main_lines, observes, avoids = pick_main_lines(sc, _prev_ml)
+    data["mainlines"] = main_lines
+    data["observes"] = observes
     sh = idx.get("上证指数", {}) or {}
     sh_lab = " ".join((sh.get("recent_labels") or [])[-2:]) or "-"
     A("## ⭐ 〇、核心结论")
@@ -689,7 +717,7 @@ def build_md(data, vip=True):
             mean, top3, ok = sector_stats(items)
             A("| %s | %s | %s |" % (sec, ("%.1f" % mean) if mean else "-", top3))
         A("")
-        main_lines, observes, avoids = pick_main_lines(sc)
+        main_lines, observes, avoids = pick_main_lines(sc, (data.get("prev_mainlines") or {}).get("mainlines") or [])
         A("---")
         A("")
         A("## ⭐ 四、主线锁定（算法双确认）")
@@ -707,10 +735,16 @@ def build_md(data, vip=True):
             cont = [x for x in main_lines if x in pml]
             newm = [x for x in main_lines if x not in pml]
             gone = [x for x in pml if x not in main_lines]
+            gone_obs = [x for x in gone if x in observes]
+            gone_av = [x for x in gone if x not in observes]
             A("")
-            A("**主线连续性**（对比 %s）：延续 %s；新增 %s；退潮 %s。" % (
-                prev.get("date") or "-", "、".join(cont) if cont else "无",
-                "、".join(newm) if newm else "无", "、".join(gone) if gone else "无"))
+            _cont_parts = ["延续 %s" % ("、".join(cont) if cont else "无"),
+                           "新增 %s" % ("、".join(newm) if newm else "无")]
+            if gone_obs:
+                _cont_parts.append("回调观察 %s" % "、".join(gone_obs))
+            if gone_av:
+                _cont_parts.append("退潮 %s" % "、".join(gone_av))
+            A("**主线连续性**（对比 %s）：%s。" % (prev.get("date") or "-", "；".join(_cont_parts)))
         A("")
     A("---")
     A("")
@@ -843,9 +877,17 @@ def run_daily(force=False, is_vip=True):
         set_progress(step="当日数据缓存已存在，直接生成报告（不再抓上游）")
         _breadth = cache_load("breadth") or {}
         _asof = (_idx.get("indexes", {}).get("上证指数", {}) or {}).get("last_date") or today()
+        _ths = cache_load("ths_sentiment")
+        if not _ths or not (_ths.get("limit_up") or {}).get("count"):
+            # 情绪缓存缺失/为空：补一次（内部按日缓存，上游成本极低）
+            try:
+                _ths = fetch_ths_sentiment(_asof)
+                cache_save("ths_sentiment", _ths)
+            except Exception:
+                _ths = _ths or {}
         _data = {"today8": d8, "asof": _asof, "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                  "indexes": _idx, "plates": _plates, "sector_scores": _sc, "breadth": _breadth,
-                 "ths_sentiment": cache_load("ths_sentiment") or {}}
+                 "ths_sentiment": _ths}
         _data["prev_mainlines"] = _prev_mainlines()
         _data["md"] = build_md(_data)
         _data["html"] = md_to_html(_data["md"])
@@ -876,12 +918,12 @@ def run_daily(force=False, is_vip=True):
     except Exception:
         breadth = cache_load("breadth") or {}
     set_progress(step="同花顺情绪面：涨停/连板/热榜/龙虎榜游资（限流低频）")
+    asof = (idx.get("indexes", {}).get("上证指数", {}) or {}).get("last_date") or today()
     try:
         ths_sentiment = fetch_ths_sentiment(asof)
         cache_save("ths_sentiment", ths_sentiment)
     except Exception:
         ths_sentiment = cache_load("ths_sentiment") or {}
-    asof = (idx.get("indexes", {}).get("上证指数", {}) or {}).get("last_date") or today()
     data = {"today8": d8, "asof": asof, "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "indexes": idx, "plates": plates, "sector_scores": sc, "breadth": breadth,
             "ths_sentiment": ths_sentiment}
@@ -905,6 +947,9 @@ def archive(data, d8):
         f.write(data["md"])
     with open(os.path.join(d, "report.html"), "w", encoding="utf-8") as f:
         f.write(data["html"])
+    with open(os.path.join(d, "mainlines.json"), "w", encoding="utf-8") as f:
+        json.dump({"date": d8, "mainlines": data.get("mainlines") or [], "observes": data.get("observes") or []},
+                  f, ensure_ascii=False, indent=2)
     return d
 
 def list_archive():
@@ -922,13 +967,55 @@ def load_report_by_date(d8):
     pm = os.path.join(ARCHIVE_ROOT, d8, "report.md")
     if os.path.exists(pm):
         md = open(pm, encoding="utf-8").read()
-        return {"date": d8, "html": md_to_html(md), "md": md}
-    p = os.path.join(ARCHIVE_ROOT, d8, "report.html")
-    if os.path.exists(p):
-        return {"date": d8, "html": open(p, encoding="utf-8").read(), "md": ""}
-    return None
+        out = {"date": d8, "html": md_to_html(md), "md": md}
+    else:
+        p = os.path.join(ARCHIVE_ROOT, d8, "report.html")
+        if not os.path.exists(p):
+            return None
+        out = {"date": d8, "html": open(p, encoding="utf-8").read(), "md": ""}
+    ps = os.path.join(ARCHIVE_ROOT, d8, "ths_sentiment.json")
+    if os.path.exists(ps):
+        try:
+            out["ths_sentiment"] = json.load(open(ps, encoding="utf-8"))
+        except Exception:
+            pass
+    return out
 
-def public_md(full_md):
+def _sentiment_public_lines(sentiment, header="### 2.6 市场情绪（免费公开）"):
+    """公开版市场情绪小节（涨停池/连板梯队/热股TOP5），数据异常时返回空。"""
+    try:
+        lim = sentiment.get("limit_up") or {}
+        ladder = sentiment.get("ladder") or {}
+        hot = sentiment.get("hot") or []
+        cnt = int(lim.get("count") or 0)
+        if not cnt:
+            return []
+        out = ["", header, ""]
+        out.append("> 涨停池 **" + str(cnt) + "** 家 · 最高连板 **" + str(lim.get("max_lianban") or 0) + "** 板（" + str(lim.get("max_name") or "-") + "）")
+        seal = lim.get("seal_money_top") or []
+        if seal:
+            out.append("> 封单TOP5：" + "、".join(str(x.get("name") or "") for x in seal[:5]))
+        lrows = ladder.get("rows") or []
+        lab = {"two_board": "2连板", "three_board": "3连板", "four_board": "4连板",
+               "five_board": "5连板", "six_board": "6连板", "seven_over": "7板以上"}
+        parts = []
+        for r in lrows:
+            if not (r or {}).get("count"):
+                continue
+            nm = "、".join(str(x) for x in (r.get("names") or [])[:3])
+            parts.append(str(lab.get(r.get("board"), r.get("board"))) + " " + str(r.get("count")) + "家" + ("（" + nm + "）" if nm else ""))
+        if parts:
+            out.append("> 连板梯队：" + "；".join(parts))
+        if hot:
+            out.append("> 热股TOP5：" + "、".join(str(x.get("name") or "") for x in hot[:5]))
+        out.append("")
+        out.append("> 以上为市场情绪统计（同花顺交叉验证），**不构成投资建议**。")
+        return out
+    except Exception:
+        return []
+
+
+def public_md(full_md, sentiment=None):
     """非 VIP：把完整报告降级为“大盘+市场宽度”公开版（风控）。
     隐藏板块资金流TOP、市场情绪与个股、今日速览/操作建议、板块体检、主线锁定；
     免费版仅保留大盘信号与市场宽度纯统计，避免荐股导向内容。"""
@@ -985,6 +1072,10 @@ def public_md(full_md):
             else:
                 continue
         if s.startswith("### 2.6 "):
+            # 免费公开版：原 VIP 情绪小节位置替换为公开市场情绪统计
+            _s6 = _sentiment_public_lines(sentiment)
+            if _s6:
+                out.extend(_s6)
             skip = True
             continue
         # 今日速览（含主攻/观察/总仓/操作建议）→ 隐藏
@@ -1011,7 +1102,13 @@ def public_md(full_md):
             skip = False
         if not skip:
             out.append(ln)
-    return "\n".join(out)
+    base = "\n".join(out)
+    # 兜底：报告模板不含 2.6 小节时（如旧归档），以附录追加，避免情绪缺失
+    if sentiment and "市场情绪（免费公开）" not in base:
+        _sx = _sentiment_public_lines(sentiment, header="## 附、市场情绪（免费公开）")
+        if _sx:
+            base = base + "\n" + "\n".join(_sx)
+    return base
 
 # ---------------- 鉴权/权限 ----------------
 def _vip_of(user_id):
@@ -1081,7 +1178,7 @@ def today_report(user_id: Optional[int] = Depends(get_optional_user_id)):
         md = report.get("md", "")
         html = md_to_html(md) if md else report.get("html", "")
     else:
-        md = public_md(report.get("md", ""))
+        md = public_md(report.get("md", ""), report.get("ths_sentiment"))
         html = md_to_html(md)
     return {"ok": True, "asof": report.get("asof"), "generated_at": report.get("generated_at"),
             "html": html, "md": md, "vip": is_vip}
@@ -1123,6 +1220,6 @@ def by_date(date8: str, user_id: Optional[int] = Depends(get_optional_user_id)):
     if not d:
         raise HTTPException(status_code=404, detail="未找到该日期报告")
     if not is_vip:
-        md = public_md(d.get("md", ""))
+        md = public_md(d.get("md", ""), d.get("ths_sentiment"))
         d = {"date": d.get("date") or date8, "html": md_to_html(md), "md": md}
     return {"ok": True, **d, "vip": is_vip}

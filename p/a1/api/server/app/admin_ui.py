@@ -1673,11 +1673,63 @@ def admin_app_html(admin_base: str) -> str:
             <div class="card">
               <div class="row">
                 <span class="pill">行情路由监控</span>
-                <span class="muted small">看当前是否走 TuShare、以及实际命中的数据源（腾讯/东财等）</span>
-                <button id="btnLoadMarket">刷新</button>
+                <span class="muted small">数据源状态 · 成功率 · 延迟 · 熔断 · 限流门控 · 缓存；新增数据源在 providers.DATA_SOURCE_REGISTRY 注册即自动展示</span>
+                <label style="display:inline-flex;align-items:center;gap:6px;margin:0;">
+                  <input type="checkbox" id="marketAuto" checked style="width:auto;" /> 自动刷新10s
+                </label>
+                <button id="btnLoadMarket">立即刷新</button>
               </div>
               <div class="msg small" id="marketMeta">—</div>
-              <div style="margin-top:10px; overflow:auto;">
+              <div class="card-title" style="margin-top:12px;">数据源状态总览</div>
+              <div style="margin-top:8px; overflow:auto;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th><span class="th-cn">数据源</span><span class="th-en">registry</span></th>
+                      <th style="width:80px;"><span class="th-cn">类型</span><span class="th-en">type</span></th>
+                      <th style="width:110px;"><span class="th-cn">成功/失败</span><span class="th-en">ok/fail</span></th>
+                      <th style="width:90px;"><span class="th-cn">成功率</span><span class="th-en">rate</span></th>
+                      <th style="width:110px;"><span class="th-cn">平均延迟</span><span class="th-en">avg_ms</span></th>
+                      <th style="width:130px;"><span class="th-cn">最近成功</span><span class="th-en">last_ok</span></th>
+                      <th style="width:130px;"><span class="th-cn">最近失败</span><span class="th-en">last_fail</span></th>
+                      <th><span class="th-cn">最近错误/说明</span><span class="th-en">note</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="srcBody"></tbody>
+                </table>
+              </div>
+              <div class="split" style="margin-top:14px;">
+                <div>
+                  <div class="card-title">熔断与上游节流</div>
+                  <div style="margin-top:8px; overflow:auto;">
+                    <table>
+                      <thead><tr><th>通道</th><th style="width:120px;">状态</th><th style="width:150px;">恢复时间</th></tr></thead>
+                      <tbody id="cbBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+                <div>
+                  <div class="card-title">限流门控（60s滑动窗口）</div>
+                  <div style="margin-top:8px; overflow:auto;">
+                    <table>
+                      <thead><tr><th>gate</th><th style="width:70px;">间隔s</th><th style="width:80px;">上限/分</th><th style="width:100px;">已用</th><th style="width:80px;">剩余</th></tr></thead>
+                      <tbody id="gateBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+              <div class="split" style="margin-top:14px;">
+                <div>
+                  <div class="card-title">缓存状态</div>
+                  <div class="msg small" id="cacheMeta" style="margin-top:8px;"></div>
+                </div>
+                <div>
+                  <div class="card-title">同花顺 fuyao 通道</div>
+                  <div class="msg small" id="fuyaoMeta" style="margin-top:8px;"></div>
+                </div>
+              </div>
+              <div class="card-title" style="margin-top:14px;">实际路由命中（本进程）</div>
+              <div style="margin-top:8px; overflow:auto;">
                 <table>
                   <thead>
                     <tr>
@@ -1691,8 +1743,7 @@ def admin_app_html(admin_base: str) -> str:
               </div>
             </div>
           </section>
-
-          <section class="panel-page" id="p-hotspots-test">
+<section class="panel-page" id="p-hotspots-test">
             <div class="card" id="sec-hotspots-test">
               <div class="row">
                 <span class="pill">热点（排行）测试</span>
@@ -3066,6 +3117,9 @@ async function loadEligibleCommissions(){
         if(id === 'p-data'){
           loadConfig().catch(function(e){ setStatus('数据源配置：'+e.message); });
         }
+        if(id === 'p-market'){
+          loadMarket().catch(function(e){ setStatus('刷新行情路由失败：'+e.message); });
+        }
         if(id === 'p-commission'){
           loadEligibleCommissions().catch(function(e){ setStatus('待结算读取失败：'+e.message); });
         }
@@ -3917,9 +3971,84 @@ async function loadEligibleCommissions(){
         var meta =
           '当前付费源 <strong>' + esc(paid.provider || '—') + '</strong> <span class="muted">(paid_provider)</span>' +
           ' · 请求顺序 <span class="mono">' + esc(paid.priority || '—') + '</span>' +
-          ' · TuShare 令牌已配置 <strong>' + (paid.tushare_token_set ? '是' : '否') + '</strong>' +
-          ' · 仅会员使用付费 <strong>' + (paid.vip_only ? '是' : '否') + '</strong>';
+          ' · TuShare 令牌 <strong>' + (paid.tushare_token_set ? '已配置' : '未配置') + '</strong>' +
+          ' · rt_k 实时K <strong>' + (paid.tushare_use_rt_k ? '开' : '关') + '</strong>' +
+          ' · 付费仅会员 <strong>' + (paid.vip_only ? '是' : '否') + '</strong>';
         $('marketMeta').innerHTML = meta;
+        var regMap = {};
+        ((md && md.registry) || []).forEach(function(r){ regMap[r.key] = r; });
+        var srcBody = $('srcBody');
+        srcBody.innerHTML = '';
+        var src = (md && md.sources) ? md.sources : {};
+        var srcKeys = Object.keys(src).sort(function(a,b){ return (src[b].ok||0)-(src[a].ok||0); });
+        if (!srcKeys.length) {
+          srcBody.innerHTML = '<tr><td colspan="8" class="muted">暂无请求记录，先触发几次行情查询。</td></tr>';
+        }
+        srcKeys.forEach(function(k){
+          var it = src[k] || {};
+          var okN = it.ok || 0, failN = it.fail || 0;
+          var total = okN + failN;
+          var rate = total ? Math.round(okN / total * 100) : 100;
+          var avg = it.avg_ms != null ? Math.round(it.avg_ms) + 'ms' : '—';
+          var reg = regMap[k] || {};
+          var cls = rate >= 90 ? 'ok' : (rate >= 60 ? 'warn' : 'bad');
+          var tr = document.createElement('tr');
+          tr.innerHTML =
+            '<td><strong>' + esc(reg.name || k) + '</strong>' + (reg.desc ? '<div class="small muted">' + esc(reg.desc) + '</div>' : '') + '</td>' +
+            '<td class="mono">' + esc(reg.type || '—') + '</td>' +
+            '<td class="mono">' + okN + ' / ' + failN + '</td>' +
+            '<td class="mono ' + cls + '">' + rate + '%</td>' +
+            '<td class="mono">' + avg + '</td>' +
+            '<td class="mono">' + fmtTs(it.last_ok || 0) + '</td>' +
+            '<td class="mono">' + fmtTs(it.last_fail || 0) + '</td>' +
+            '<td class="small">' + esc(it.last_reason || reg.desc || '') + '</td>';
+          srcBody.appendChild(tr);
+        });
+        var cbBody = $('cbBody');
+        cbBody.innerHTML = '';
+        var cbRows = [
+          ['腾讯 K线', md && md.tencent, 'circuit_open', 'circuit_open_until'],
+          ['同花顺 fuyao', md && md.ths, 'circuit_open', 'circuit_open_until'],
+          ['同花顺 Key', md && md.ths, 'key_bad', 'key_bad_until'],
+          ['东财 push2his', md && md.eastmoney, 'his_throttled', 'his_throttled_until'],
+        ];
+        cbRows.forEach(function(c){
+          var obj = c[1] || {};
+          var on = !!obj[c[2]];
+          var tr = document.createElement('tr');
+          tr.innerHTML =
+            '<td>' + esc(c[0]) + '</td>' +
+            '<td class="mono ' + (on ? 'bad' : 'ok') + '">' + (on ? '熔断中' : '正常') + '</td>' +
+            '<td class="mono">' + fmtTs(obj[c[3]] || 0) + '</td>';
+          cbBody.appendChild(tr);
+        });
+        var gateBody = $('gateBody');
+        gateBody.innerHTML = '';
+        ((md && md.gates) || []).forEach(function(g){
+          var used = g.used_60s || 0, cap = g.max_per_minute || 0;
+          var pct = cap ? Math.round(used / cap * 100) : 0;
+          var cls = pct >= 85 ? 'bad' : (pct >= 60 ? 'warn' : 'ok');
+          var tr = document.createElement('tr');
+          tr.innerHTML =
+            '<td class="mono">' + esc(g.name) + '</td>' +
+            '<td class="mono">' + g.min_interval_s + '</td>' +
+            '<td class="mono">' + cap + '</td>' +
+            '<td class="mono ' + cls + '">' + used + ' (' + pct + '%)</td>' +
+            '<td class="mono">' + (g.remaining_60s != null ? g.remaining_60s : '—') + '</td>';
+          gateBody.appendChild(tr);
+        });
+        var cache = (md && md.cache) || {};
+        $('cacheMeta').innerHTML =
+          'K线内存缓存 <strong>' + (cache.mem_entries || 0) + '</strong> 条（TTL ' + (cache.ttl_s || 30) + 's）<br/>' +
+          '板块缓存 <strong>' + (cache.plate_entries || 0) + '</strong> 条（TTL ' + (cache.plate_ttl_s || 1800) + 's）<br/>' +
+          '板块合成兜底缓存 <strong>' + (cache.recon_entries || 0) + '</strong> 条';
+        var fy = (md && md.fuyao) || {};
+        var fg = fy.gate || {};
+        $('fuyaoMeta').innerHTML =
+          '启用 <strong>' + (fy.enabled ? '是' : '否') + '</strong>' +
+          ' · Key <strong>' + esc(fy.key_masked || '—') + '</strong>' +
+          ' · 限流 ' + ((fg.min_interval_s != null) ? (fg.min_interval_s + 's/' + fg.max_per_minute + '次/分') : '—') +
+          (fy.fail_until && Object.keys(fy.fail_until).length ? '<br/>熔断端点: <span class="mono">' + esc(JSON.stringify(fy.fail_until)) + '</span>' : '');
         var body = $('routeBody');
         body.innerHTML = '';
         var keys = Object.keys(route || {}).sort(function(a,b){ return (route[b].hits||0)-(route[a].hits||0); });
@@ -4282,6 +4411,12 @@ async function loadEligibleCommissions(){
         $('btnLoadMarket').addEventListener('click', async function(){
           try{ await loadMarket(); }catch(e){ setStatus('刷新行情路由失败：'+e.message); }
         });
+        setInterval(function(){
+          try{
+            var autoEl = document.getElementById('marketAuto');
+            if (autoEl && autoEl.checked) loadMarket().catch(function(){});
+          }catch(eA){}
+        }, 10000);
         if($('btnFbLoad')) $('btnFbLoad').addEventListener('click', function(){
           fbOffset = 0;
           loadFeedbackAdmin().catch(function(e){ setStatus('用户反馈：'+e.message); });

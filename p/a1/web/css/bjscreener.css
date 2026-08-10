@@ -203,3 +203,18 @@ a.chip.chip-mainline:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba
 :root[data-theme="dark"] .chip-mainline{background:linear-gradient(135deg,rgba(255,214,102,.22),rgba(251,191,36,.16));border:1.5px solid #d99a1b;color:#ffd666;box-shadow:0 2px 10px rgba(217,154,27,.3)}
 :root[data-theme="dark"] .chip-mainline b{color:#ffb347}
 :root[data-theme="dark"] a.chip.chip-mainline:hover{background:linear-gradient(135deg,rgba(255,214,102,.3),rgba(251,191,36,.22));border-color:#f0b429}
+
+/* 决策节奏 + 昨日主推追踪（连续性优化） */
+.bj-rhythm{background:var(--panel);border:1px solid var(--border);border-left:4px solid var(--bj-gold-bd,#f0b429);border-radius:10px;padding:10px 14px;margin:0 0 12px;font-size:12.5px;color:var(--text);line-height:1.75}
+.bj-rhythm b{color:var(--bj-gold,#d48806)}
+.pt-list{display:flex;flex-direction:column;gap:6px;margin:6px 0 10px}
+.pt-item{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:7px 12px;border-radius:9px;background:var(--panel);border:1px solid var(--border);color:var(--text);font-size:13px}
+.pt-item .n{font-weight:800;color:var(--bj-acc);text-decoration:none}
+.pt-item .n:hover{text-decoration:underline}
+.pt-status{margin-left:auto;font-size:12px;font-weight:700;padding:2px 10px;border-radius:999px}
+.pt-status.st-ok{background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7}
+.pt-status.st-warn{background:#fff7e6;color:#8a5b00;border:1px solid #ffd591}
+.pt-status.st-bad{background:#fdecea;color:#b71c1c;border:1px solid #ef9a9a}
+.pt-status.st-muted{background:rgba(128,138,160,.14);color:var(--muted);border:1px solid transparent}
+.pt-note{font-size:11.5px;color:var(--muted);margin:0 0 6px}
+.tier-badge.tier-cont{background:rgba(255,214,102,.28);color:#8a5a00;border:1px solid #f0b429;font-weight:800}

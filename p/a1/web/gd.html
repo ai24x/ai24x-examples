@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
@@ -18,7 +18,52 @@
   </script>
   <link rel="stylesheet" href="/css/base.css?v=53" />
   <link rel="stylesheet" href="/css/tool.css" />
-  <link rel="stylesheet" href="/css/bjscreener.css?v=16" />
+  <link rel="stylesheet" href="/css/bjscreener.css?v=17" />
+<style>
+/* 掘金 · 大盘环境与策略区（复盘同步） */
+.bj-market{display:block;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin:0 0 14px;}
+.bj-market .bj-section{margin-top:0;}
+.bj-mkt-head{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-bottom:10px;}
+.bj-mkt-badge{display:inline-block;padding:3px 12px;border-radius:999px;font-size:13px;font-weight:700;}
+.bj-mkt-badge.ok{background:linear-gradient(135deg,rgba(248,113,113,.20),rgba(251,191,36,.12));color:#dc2626;border:1px solid rgba(220,38,38,.45);}
+.bj-mkt-badge.warn{background:rgba(251,191,36,.14);color:#b45309;border:1px solid rgba(251,191,36,.55);}
+.bj-mkt-badge.risk{background:rgba(220,38,38,.18);color:#991b1b;border:1px solid rgba(220,38,38,.6);}
+.bj-mkt-pts{font-size:13px;color:var(--text);font-weight:700;}
+.bj-mkt-asof{margin-left:auto;font-size:12px;color:var(--muted);}
+.bj-mkt-idx{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:10px;}
+.bj-mkt-idx-item{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:12px;line-height:1.6;}
+.bj-mkt-idx-item .nm{font-weight:700;color:var(--text);font-size:13px;}
+.bj-mkt-idx-item .sg{color:var(--accent);}
+.bj-mkt-idx-item .sc{font-weight:700;color:var(--text);}
+.bj-mkt-strategy{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.8;}
+.bj-mkt-strategy .row{margin:2px 0;}
+.bj-mkt-strategy .lb{color:var(--muted);margin-right:6px;}
+.bj-mkt-strategy .ops{margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);color:var(--text);}
+.bj-mkt-gate{margin-top:10px;font-size:12px;color:var(--muted);line-height:1.7;}
+.bj-mkt-gate a{color:var(--accent);}
+.bj-flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 14px;}
+.bj-flow-step{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--border);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:600;color:var(--text);}
+.bj-flow-step .ic{font-size:15px;line-height:1;}
+.bj-flow-step.now{background:linear-gradient(135deg,rgba(248,113,113,.16),rgba(251,191,36,.10));border-color:rgba(220,38,38,.45);color:#dc2626;}
+.bj-flow-arrow{color:var(--muted);font-size:13px;}
+@media (max-width:560px){.bj-flow{gap:4px;}.bj-flow-step{padding:5px 10px;font-size:12px;}}
+@media (max-width:560px){.bj-mkt-idx{grid-template-columns:repeat(2,1fr);}}
+
+/* 掘金 · 攻守模式横幅 + 实测战绩 */
+.bj-regime{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin:0 0 12px;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.6;}
+.bj-regime b{font-size:14px;padding:2px 10px;border-radius:999px;color:#fff;}
+.bj-regime span{color:var(--text);}
+.bj-regime.attack{background:linear-gradient(135deg,rgba(248,113,113,.22),rgba(251,191,36,.10));border:1px solid rgba(220,38,38,.5);}
+.bj-regime.attack b{background:linear-gradient(135deg,#dc2626,#f59e0b);}
+.bj-regime.stable{background:linear-gradient(135deg,rgba(251,191,36,.16),rgba(245,158,11,.06));border:1px solid rgba(251,191,36,.55);}
+.bj-regime.stable b{background:linear-gradient(135deg,#d97706,#f59e0b);}
+.bj-regime.defensive{background:linear-gradient(135deg,rgba(153,27,27,.28),rgba(220,38,38,.12));border:1px solid rgba(153,27,27,.65);}
+.bj-regime.defensive b{background:linear-gradient(135deg,#7f1d1d,#b91c1c);}
+.winrate-strip{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:10px 14px;background:var(--panel2);border:1px solid var(--border);border-radius:12px;font-size:13px;font-weight:600;}
+.winrate-strip .up{color:var(--rise);}
+.winrate-strip .down{color:var(--fall);}
+.winrate-note{margin-top:6px;font-size:12px;color:var(--muted);line-height:1.7;}
+</style>
 </head>
 <body>
   <header class="site-header" id="site-header"></header>
@@ -26,7 +71,16 @@
     <div class="wrap">
       <section class="card">
         <h1>掘金 <span class="vip-badge">VIP 专属</span></h1>
-        <p class="sub" style="margin:0 0 6px;">每日收盘后自动扫描<strong>沪深京全市场</strong>与<strong>北证全市场</strong>：先看哪些标的在底部异动、归类异动板块观察（主攻主线以「复盘」页为准），再聚焦<strong>底部刚走多、异动拉升后回踩企稳、一路小阳、未大幅拉升</strong>的标的，逐一体检并排查风险。点击板块即可在 AI行情官查看对应行情。</p>
+        <p class="sub" style="margin:0 0 10px;">每晚收盘自动扫描<strong>沪深京 / 北证</strong>，一站式作战参考。</p>
+        <div class="bj-flow" aria-label="掘金使用流程">
+          <span class="bj-flow-step now"><span class="ic">📊</span>大盘环境</span>
+          <span class="bj-flow-arrow">→</span>
+          <span class="bj-flow-step"><span class="ic">🎯</span>今日策略</span>
+          <span class="bj-flow-arrow">→</span>
+          <span class="bj-flow-step"><span class="ic">🗂️</span>主攻板块</span>
+          <span class="bj-flow-arrow">→</span>
+          <span class="bj-flow-step"><span class="ic">⭐</span>潜力个股</span>
+        </div>
 
         <div id="auth-guest" hidden>
           <div class="gate-hero">
@@ -34,10 +88,9 @@
             <div class="gate-sub">每晚收盘自动扫描沪深京 / 北证：先看哪些标的在底部异动、归类异动板块观察（主攻主线以「复盘」页为准），再做多因子体检与风险排查。</div>
           </div>
           <div class="gate-feats">
-            <div class="gate-feat"><b>① 每晚自动扫描</b><span>北证 340+ 只 / 沪深京板块成分池，逐一体检</span></div>
-            <div class="gate-feat"><b>② 底部异动筛选</b><span>底部刚走多 / 异动回踩企稳 / 一路小阳</span></div>
-            <div class="gate-feat"><b>③ 异动板块观察</b><span>从异动标的归类热门板块，叠加资金流榜交叉验证；主攻主线以「复盘」页为准</span></div>
-            <div class="gate-feat"><b>④ 风险排查 + 波段策略</b><span>硬伤排除、警示提示、中线波段策略参考</span></div>
+            <div class="gate-feat"><b>① 每晚自动扫描</b><span>沪深京 / 北证全市场</span></div>
+            <div class="gate-feat"><b>② 底部刚走多筛选</b><span>异动回踩企稳 / 一路小阳</span></div>
+            <div class="gate-feat"><b>③ 风险排查 + 波段策略</b><span>硬伤排除、警示、中线波段参考</span></div>
           </div>
           <div class="auth-card-grid">
             <a class="auth-card is-selected" href="./index.html?mode=login&amp;ch=phone">
@@ -49,7 +102,7 @@
               <div class="d">新用户注册</div>
             </a>
           </div>
-          <p class="sub gate-note">掘金为 VIP 专属功能；非 VIP 用户可先登录体验引导流程，再按需升级。</p>
+          <p class="sub gate-note">大盘环境免费可见；板块与个股分析为 VIP 专属，登录后可查看大盘，升级解锁全部。</p>
           <p class="gate-disclaimer">本页内容仅基于公开行情数据做技术形态统计与信息整理，仅供研究参考，不构成任何证券投资咨询、投资建议或收益承诺；股市有风险，入市需谨慎。</p>
         </div>
 
@@ -70,29 +123,33 @@
           </div>
           <div id="bj-meta" class="bj-meta" hidden></div>
 
+          <div id="bj-market" hidden></div>
+
           <div id="bj-vipgate" class="vip-card" hidden>
             <div class="t">🔒 掘金为 VIP 专属功能</div>
-            <div class="d">开通 VIP 后，每晚收盘即可查看：全市场底部异动扫描结果、疑似主线板块、多因子体检与中线波段策略参考。<br/>当前账号未开通 VIP，升级后可解锁本页全部内容。</div>
+            <div class="d">开通 VIP 后解锁：全市场扫描结果、主攻板块、潜力个股与波段策略。</div>
             <a class="btn" href="./account.html#vip" style="display:inline-block;">去开通 VIP</a>
             <span style="display:inline-block;width:8px;"></span>
             <a class="btn wl-back" href="./demo.html">← 返回行情页</a>
-            <p class="sub" style="margin:10px 0 0;font-size:12px;line-height:1.7;">本功能仅基于公开行情做技术形态统计与信息整理，不构成投资建议，不保证收益。</p>
+            <p class="sub" style="margin:10px 0 0;font-size:12px;line-height:1.7;">仅做技术统计与信息整理，不构成投资建议。</p>
           </div>
 
           <div id="bj-main" hidden>
             
+            <div class="bj-rhythm"><b>决策节奏</b><span>主线以「复盘」定调、延续优先、每日最多新确认 1 个；昨日主推未破位先跟踪，离场信号才换。破止损 / 放量长阴 -8% 无条件离场。</span></div>
             <div id="bj-mainlines"></div>
             <div id="bj-boardrank"></div>
 <div id="bj-ths-sentiment"></div>
             <div id="bj-result"></div>
+        <div id="bj-winrate" hidden></div>
             <div id="bj-history"></div>
             <div id="bj-picksgate" class="vip-card" hidden>
               <div class="t">🔒 个股分析与波段策略为 VIP 专属</div>
-              <div class="d">异动板块与主线方向已为你解锁；开通 VIP 后，每晚收盘还可查看：主推 4 只（主线龙头 2 + 补涨卡位 2）、多因子体检、利空排查、中线波段策略与历史归档。</div>
+              <div class="d">开通 VIP 解锁：主推标的（主线龙头 + 补涨卡位）、体检评分、利空排查与波段策略。</div>
               <a class="btn" href="./account.html#vip" style="display:inline-block;">去开通 VIP</a>
               <p class="sub" style="margin:10px 0 0;font-size:12px;line-height:1.7;">本功能仅基于公开行情做技术形态统计与信息整理，不构成投资建议，不保证收益。</p>
             </div>
-            <p class="sub" style="margin:14px 0 0;font-size:12px;line-height:1.7;">本页仅对公开行情做技术形态统计与信息整理，不构成证券投资咨询与任何买卖建议；北交所 30CM 波动大，破止损或单日放量长阴 -8% 无条件离场。技术指标存在滞后与失效风险，历史表现不代表未来，股市有风险，入市需谨慎，据此操作风险自负。</p>
+            <p class="sub" style="margin:14px 0 0;font-size:12px;line-height:1.7;">仅基于公开行情做技术统计与信息整理，不构成投资建议；北交所 30CM 波动大，破位或放量长阴 -8% 无条件离场。股市有风险，入市需谨慎。</p>
           </div>
         </div>
       </section>
@@ -103,7 +160,7 @@
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("bjscreener"); } catch (e) {}
   </script>
-  <script src="/js/bjscreener.js?v=26"></script>
+  <script src="/js/bjscreener.js?v=39"></script>
   <script>
     (function () {
       var w = window.AI24X_BJScreener;

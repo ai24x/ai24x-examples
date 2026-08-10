@@ -79,8 +79,10 @@ canvas{width:100%;height:190px;display:block;border:1px solid var(--line);border
       <a id="tokedit" href="javascript:void(0)" style="font-size:12px;color:#1e5a8a">(设置)</a>
     </div>
     <div id="tokbox">
+      <form id="tok-form" onsubmit="return false">
       <input id="tokinput" type="password" style="width:60%;padding:7px 9px;border:1px solid #e2e6ec;border-radius:6px" placeholder="粘贴登录 token（eyJhbGciOi...）">
       <button class="btn sm" id="btn-toksave">保存</button>
+      </form>
       <span class="sub" style="margin-left:6px">不填则自动读取本机已登录的 ai24x_a_token</span>
     </div>
     <div class="cfg-toggle" id="cfg-toggle">⚙ 参数设置 ▾</div>

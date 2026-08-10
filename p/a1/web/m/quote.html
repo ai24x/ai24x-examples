@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="robots" content="noindex,nofollow" />
+<title>AI行情官·手机版｜一屏看行情</title>
+<link rel="stylesheet" href="css/m.css?v=20260811a" />
+</head>
+<body>
+
+<div class="topbar">
+  <button class="home" id="btn-home">首页</button>
+  <div class="search">
+    <input id="q" placeholder="代码/名称，如 600519、贵州茅台" enterkeyhint="search" autocomplete="off" />
+    <button class="go" id="btn-go">搜</button>
+    <div class="suggest" id="suggest"></div>
+  </div>
+  <button class="fav-toggle" id="btn-fav" title="自选">☆</button>
+  <button class="more" id="btn-more" title="更多">⋯</button>
+</div>
+
+<div class="quote-strip" id="quote-strip">
+  <span class="nm" id="q-nm">上证指数</span>
+  <span class="px" id="q-px">--</span>
+  <span class="chg" id="q-chg">--</span>
+  <span class="fund" id="q-fund"></span>
+</div>
+
+<div class="env-strip" id="env-strip"></div>
+
+<div class="chart-wrap">
+  <div class="chart-main">
+    <div class="chart-legend" id="k-legend">K线信号</div>
+    <canvas id="k-canvas"></canvas>
+  </div>
+  <div class="chart-macd">
+    <div class="chart-legend" id="m-legend">量能</div>
+    <canvas id="m-canvas"></canvas>
+  </div>
+</div>
+
+<div class="snap" id="snap" hidden>
+  <div class="snap-head" id="snap-head">
+    <span class="snap-label">技术指标快照</span>
+    <span class="snap-score" id="snap-score">--</span>
+    <span class="snap-state" id="snap-state"></span>
+    <span class="snap-mkt" id="snap-mkt"></span>
+    <span class="snap-warn" id="snap-warn" hidden></span>
+    <span style="flex:1"></span>
+    <span class="snap-toggle" id="snap-toggle">详情 ▾</span>
+  </div>
+  <div class="snap-detail" id="snap-detail" hidden>
+    <div class="snap-tags" id="snap-tags"></div>
+    <div class="snap-risk" id="snap-risk"></div>
+    <div class="snap-foot">公开技术指标统计（MACD、均线、量能、RSI、波动等常规指标，0-100 综合分）· 仅供自主决策参考，不构成证券投资咨询，不构成任何买卖建议。</div>
+  </div>
+</div>
+
+<div class="bottombar">
+  <div class="grp" id="period-grp">
+    <button data-p="day" class="on">日线</button>
+    <button data-p="week">周线</button>
+    <button data-p="month">月线</button>
+  </div>
+  <button class="act signal" id="btn-signal">技术信号</button>
+  <div class="spacer"></div>
+  <button class="act share" id="btn-share"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg><span>分享</span></button>
+</div>
+
+<div class="sheet" id="sheet-signal">
+  <div class="card">
+    <button class="close" id="close-signal">×</button>
+    <h3>技术信号</h3>
+    <div id="sig-list"><div class="empty">加载中…</div></div>
+    <h3 style="margin-top:14px">信号说明</h3>
+    <div class="tip-text">
+      <b>下方（转强）</b>：小底 / 底1 / 底2 / 金1 / 金2 / 金3；<br/>
+      <b>上方（风险）</b>：险 / 破 / 顶2；<br/>
+      信号仅供参考，<b>不构成投资建议</b>。
+    </div>
+  </div>
+</div>
+
+<div class="sheet" id="sheet-more">
+  <div class="card">
+    <button class="close" id="close-more">×</button>
+    <h3>快捷入口</h3>
+    <div class="nav-rows">
+      <div class="sig-row nav-row" data-href="index.html"><span class="s">首页</span><span class="t">主站 · 最新行情 →</span></div>
+      <div class="sig-row nav-row" data-href="../gd.html"><span class="s">掘金</span><span class="t">每日掘金 · 板块热点 →</span></div>
+      <div class="sig-row nav-row" data-href="../daily/index.html"><span class="s">复盘</span><span class="t">每日复盘报告 →</span></div>
+      <div class="sig-row nav-row" data-href="../account.html"><span class="s">我的</span><span class="t">会员 · 自选 · 套餐 →</span></div>
+      <div class="sig-row nav-row" data-href="../help.html"><span class="s">帮助</span><span class="t">使用说明 →</span></div>
+      <div class="sig-row nav-row" data-href="../feedback.html"><span class="s">反馈</span><span class="t">意见与建议 →</span></div>
+    </div>
+    <h3>自选列表</h3>
+    <div id="fav-list"><div class="empty">暂无自选，点击 ☆ 收藏</div></div>
+    <div class="sig-row" id="row-desktop" style="cursor:pointer"><span class="s">桌面版</span><span class="t">完整图表 · 信号分享卡 →</span></div>
+    <h3 style="margin-top:14px">使用要领</h3>
+    <div class="tip-text">
+      ① 底部「技术信号」可查看近期信号明细；<br/>
+      ② 上方「首页」返回 AI行情官主站（登录后自动生效）；<br/>
+      ③ 上方大盘条可点击切换上证/深证/中证/北证；<br/>
+      ④ 双指缩放：横=K线根数（20~200），竖=价格区间，量能副图跟随联动；<br/>
+      ⑤ 行情仅供参考，<b>不构成投资建议</b>。
+    </div>
+  </div>
+</div>
+
+<div class="sheet" id="sheet-share">
+  <div class="share-box">
+    <span class="share-title">分享卡片</span>
+    <img class="share-card-img" id="card-img" alt="分享卡片" />
+    <div class="share-actions">
+      <button class="btn primary" id="btn-save-card">保存图片</button>
+      <button class="btn" id="close-share">关闭</button>
+    </div>
+    <div class="share-tip">长按图片可保存到相册 · 也可直接转发给好友<br/>卡片仅供自主决策参考，不构成投资建议</div>
+  </div>
+</div>
+
+<script src="js/m.js?v=20260811f"></script>
+</body>
+</html>

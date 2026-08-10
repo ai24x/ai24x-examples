@@ -197,12 +197,67 @@ def _route_hit(source: str) -> None:
         pass
 
 
-def market_data_status() -> dict[str, Any]:
+DATA_SOURCE_REGISTRY: list[dict[str, Any]] = [
+    {"key": "paid", "name": "TuShare 付费源", "type": "paid", "desc": "日线/板块K线（需token；rt_k需上游积分权限，当前未开通）"},
+    {"key": "tencent", "name": "腾讯行情", "type": "public", "desc": "前复权K线（沪深为主，北证指数不支持→新浪兜底）"},
+    {"key": "ths", "name": "同花顺金融API", "type": "public", "desc": "fuyao.aicubes.cn：K线/龙虎榜/涨停池（盘中当日实时，免费期）"},
+    {"key": "eastmoney", "name": "东方财富", "type": "public", "desc": "板块K线/成分/龙虎榜（push2his易被IP级节流）"},
+    {"key": "sina", "name": "新浪财经", "type": "public", "desc": "指数K线兜底"},
+]
+
+
+def _gate_snapshot(name: str, gate: _RateGate) -> dict[str, Any]:
+    now = time.time()
+    try:
+        win = [t for t in gate._window if now - t < 60.0]
+    except Exception:
+        win = []
     return {
-        "tencent": {"circuit_open_until": int(_TX_OPEN_UNTIL) if _TX_OPEN_UNTIL else 0, "fails_60s": int(len(_TX_FAILS))},
-        "ths": {"circuit_open_until": int(_THS_OPEN_UNTIL) if _THS_OPEN_UNTIL else 0, "fails_60s": int(len(_THS_FAILS)), "key_bad_until": int(_THS_KEY_BAD_UNTIL)},
+        "name": name,
+        "min_interval_s": gate.min_interval_s,
+        "max_per_minute": gate.max_per_minute,
+        "used_60s": int(len(win)),
+        "remaining_60s": int(max(0, gate.max_per_minute - len(win))),
+        "last_ts": round(gate._last_ts, 1) if gate._last_ts else 0,
+    }
+
+
+def market_data_status() -> dict[str, Any]:
+    now = time.time()
+    fuyao = {}
+    try:
+        from .ths_fuyao import fuyao_status
+        fuyao = fuyao_status()
+    except Exception:
+        pass
+    return {
+        "ts": int(now),
+        "registry": DATA_SOURCE_REGISTRY,
+        "tencent": {"circuit_open_until": int(_TX_OPEN_UNTIL) if _TX_OPEN_UNTIL else 0,
+                    "fails_60s": int(len(_TX_FAILS)),
+                    "circuit_open": now < _TX_OPEN_UNTIL},
+        "ths": {"circuit_open_until": int(_THS_OPEN_UNTIL) if _THS_OPEN_UNTIL else 0,
+                "fails_60s": int(len(_THS_FAILS)),
+                "key_bad_until": int(_THS_KEY_BAD_UNTIL) if _THS_KEY_BAD_UNTIL else 0,
+                "circuit_open": now < _THS_OPEN_UNTIL,
+                "key_bad": now < _THS_KEY_BAD_UNTIL},
+        "eastmoney": {"his_throttled_until": int(_EM_HIS_THROTTLED_UNTIL) if _EM_HIS_THROTTLED_UNTIL else 0,
+                      "his_throttled": now < _EM_HIS_THROTTLED_UNTIL},
         "sources": _SRC,
-        "cache": {"mem_entries": int(len(_KLINE_CACHE)), "ttl_s": float(getattr(settings, "kline_cache_ttl_s", 30.0))},
+        "route": _ROUTE,
+        "cache": {
+            "mem_entries": int(len(_KLINE_CACHE)),
+            "ttl_s": float(getattr(settings, "kline_cache_ttl_s", 30.0)),
+            "plate_entries": int(len(_PLATE_CACHE)),
+            "plate_ttl_s": float(_PLATE_CACHE_TTL),
+            "recon_entries": int(len(_PLATE_RECON_CACHE)),
+        },
+        "gates": [
+            _gate_snapshot("em_his(push2hisK线)", _EM_HIS_GATE),
+            _gate_snapshot("tx_kline(腾讯K线)", _TX_KLINE_GATE),
+            _gate_snapshot("em_delay(板块成分)", _EM_DELAY_GATE),
+            _gate_snapshot("ths(fuyao)", _THS_GATE),
+        ],
         "paid": {
             "provider": _effective_paid_provider(),
             "priority": _effective_priority(),
@@ -210,7 +265,7 @@ def market_data_status() -> dict[str, Any]:
             "tushare_token_set": bool(_effective_tushare_token()),
             "vip_only": bool(_effective_paid_vip_only()),
         },
-        "route": _ROUTE,
+        "fuyao": fuyao,
     }
 
 
@@ -3433,6 +3488,13 @@ async def _fetch_tx_kline_core(
         if src == "paid":
             r = await _try_paid()
             if r is not None and _tencent_payload_has_rows(r):
+                # paid 日线盘中/收盘后常缺当日 bar（T+1 更新）→ 记为 stale，
+                # 继续 public 源取更新鲜数据（如 ths:fuyao 当日实时）；
+                # 全链无当日再回退 paid 完整历史。ths: 板块仅 paid 通道，不跳过。
+                if _payload_missing_today(r) and not is_ths:
+                    if best_stale is None:
+                        best_stale = r
+                    continue
                 return r
             if r is not None and not _tencent_payload_has_rows(r):
                 # Treat "not ready / misconfigured" paid provider as a soft-fail:

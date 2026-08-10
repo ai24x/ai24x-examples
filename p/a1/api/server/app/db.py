@@ -111,7 +111,7 @@ def vip_quota_cfg_effective() -> dict[str, int]:
 def watchlist_score_caps() -> dict[str, int]:
     """自选评分榜统计上限：普通注册会员 free / VIP（admin_config 可覆盖 .env 默认）。"""
     return {
-        "free": _cfg_int("wl_score_max_free", int(getattr(settings, "wl_score_max_free", 20) or 20)),
+        "free": _cfg_int("wl_score_max_free", int(getattr(settings, "wl_score_max_free", 50) or 50)),
         "vip": _cfg_int("wl_score_max_vip", int(getattr(settings, "wl_score_max_vip", 100) or 100)),
     }
 
@@ -3328,8 +3328,8 @@ def _effective_free_limits() -> tuple[int, int]:
     - free_weekly
     - free_daily_cap
     """
-    fw = int(getattr(settings, "free_weekly", 50) or 50)
-    fd = int(getattr(settings, "free_daily_cap", 10) or 10)
+    fw = int(getattr(settings, "free_weekly", 100) or 100)
+    fd = int(getattr(settings, "free_daily_cap", 50) or 50)
     try:
         v = admin_config_get("free_weekly")
         if v is not None and str(v).strip() != "":

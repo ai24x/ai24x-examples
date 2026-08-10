@@ -208,6 +208,9 @@ _ANON_KLINE_WHITELIST: set[str] = {
     "0.399001",  # 深证成指
     "0.399006",  # 创业板指
     "0.899050",  # 北证50
+    "1.000300",  # 沪深300
+    "1.000688",  # 科创50
+    "1.000852",  # 中证1000
     "0.000977",  # 浪潮信息（示例）
     "1.300059",  # 东方财富
     "0.300059",  # 东方财富（深）
@@ -216,12 +219,17 @@ _ANON_KLINE_WHITELIST: set[str] = {
     "1.688981",  # 中芯国际
     "1.601398",  # 工商银行
     "0.300750",  # 宁德时代
+    "1.002371",  # 北方华创（半导体设备）
+    "1.688256",  # 寒武纪（AI芯片）
+    "0.002463",  # 沪电股份（PCB）
+    "0.300308",  # 中际旭创（光模块）
+    "1.601899",  # 紫金矿业（有色）
 }
 
 # Anonymous extra trial quota (non-whitelist): allow a few self-selected queries per day.
 # This complements the frontend guest counter but must be enforced server-side too.
 _ANON_DAILY: dict[str, tuple[str, int]] = {}
-_ANON_DAILY_MAX: int = 3
+_ANON_DAILY_MAX: int = 10
 
 
 def _anon_day_key() -> str:
@@ -255,6 +263,15 @@ def _anon_daily_consume(request: "Request") -> None:
         cur_cnt = 0
         cur_day = day
     _ANON_DAILY[k] = (cur_day, int(cur_cnt) + 1)
+
+def _anon_priority(base_pri: str) -> str:
+    """匿名/免费：仅 public 源；同花顺（盘中当日实时）提前，paid 排除。"""
+    items = [x.strip() for x in (base_pri or "").split(",") if x.strip() and x.strip() != "paid"]
+    if "ths" in items:
+        items = ["ths"] + [x for x in items if x != "ths"]
+    if not items:
+        items = ["tencent", "eastmoney", "sina"]
+    return ",".join(items)
 
 
 def _rate_limit(key: str, limit: int, window_s: int = 60) -> None:
@@ -3055,13 +3072,27 @@ async def api_bj_screener(
     if not is_vip:
         # 非 VIP：开放“异动板块”视图（复用当日缓存或轻量扫描），个股分析保持 VIP 专属
         try:
-            return await run_scan_dedup(int(user_id), force=False, cfg_override=None, boards_only=True, market=market)
+            out = await run_scan_dedup(int(user_id), force=False, cfg_override=None, boards_only=True, market=market)
         except HTTPException:
             raise
         except Exception as e:
             from .bj_screener import mark_scan_failed
             mark_scan_failed(market, f"\u626b\u63cf\u5931\u8d25: {type(e).__name__}")
             return {"ok": False, "error": "scan_failed", "message": f"{type(e).__name__}: {str(e)[:160]}"}
+        # 统一剥离（路由级收敛）：无论命中哪条缓存路径，非 VIP 只保留板块排行与市场概览
+        # 注意重建 dict/list，不原地修改共享缓存对象（防污染 _SCAN_CACHE/_BOARDS_CACHE）
+        if isinstance(out, dict):
+            out = dict(out)
+            out["vip_required"] = True
+            out.pop("picks", None)
+            out.pop("runners", None)
+            out.pop("prev_track", None)
+            out.pop("prev_date", None)
+            out["board_rank"] = [dict(_b) for _b in (out.get("board_rank") or []) if isinstance(_b, dict)]
+            for _br in out["board_rank"]:
+                _br.pop("mainline", None)
+            out["mainlines"] = []
+        return out
 
     cfg_override: dict = {}
     if mcap_min > 0:
@@ -3141,6 +3172,59 @@ async def api_bj_history(
         d["vip_required"] = False
         return d
     return {"ok": True, "list": archive_summary(market)}
+
+
+
+@app.get("/api/bj/archive/versions")
+async def api_bj_archive_versions(
+    request: Request,
+    market: str = "",
+    user_id: int = Depends(get_current_user_id),
+) -> dict:
+    """掘金归档版本索引（VIP 专属）：返回全部保留的历史版本文件摘要（含同日多版本），供程序调用。
+
+    页面「往期主推」只展示按最新算法口径的每日最终版；本接口暴露全部存档版本，
+    便于历史回溯 / 报告生成 / 统计等程序化调用。
+    """
+    _rate_limit(f"bj-archive-versions:{user_id}", 30)
+    try:
+        _auth_ip_rate_limit(request)
+    except Exception:
+        pass
+    db.downgrade_expired_vip_plan(int(user_id))
+    quota = db.get_quota_status(int(user_id))
+    plan = str(quota.get("plan") or "anon").strip().lower()
+    is_vip = plan not in ("", "free", "anon")
+    if not is_vip:
+        raise HTTPException(status_code=403, detail="掘金归档索引为 VIP 专属功能，开通 VIP 后即可使用")
+    from .bj_screener import archive_versions
+    return archive_versions(market)
+
+
+@app.get("/api/bj/winrate")
+async def api_bj_winrate(
+    request: Request,
+    days: int = 14,
+    user_id: int = Depends(get_current_user_id),
+) -> dict:
+    """掘金实测战绩（VIP 专属）：回溯最近 N 天主推的 5日/10日 达标率与止损率，用于胜率自检。"""
+    days = int(days or 14)
+    _rate_limit(f"bj-winrate:{user_id}", 30)
+    try:
+        _auth_ip_rate_limit(request)
+    except Exception:
+        pass
+    db.downgrade_expired_vip_plan(int(user_id))
+    quota = db.get_quota_status(int(user_id))
+    plan = str(quota.get("plan") or "anon").strip().lower()
+    is_vip = plan not in ("", "free", "anon")
+    if not is_vip:
+        raise HTTPException(status_code=403, detail="掘金实测战绩为 VIP 专属功能，开通 VIP 后即可使用")
+    from .bj_screener import compute_winrate
+    try:
+        return await compute_winrate(days)
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:160]}
 
 
 @app.get("/api/suggest")
@@ -3224,7 +3308,7 @@ async def api_kline(
                 # 板块查K线：保留 paid（tushare 是唯一数据源）
                 priority_override = base_pri
             else:
-                priority_override = ",".join([x for x in base_pri.split(",") if x.strip() and x.strip() != "paid"])
+                priority_override = _anon_priority(base_pri)
 
             if secid0 in _ANON_KLINE_WHITELIST:
                 # Whitelist: always allowed (onboarding + demo stability).
@@ -3349,7 +3433,7 @@ async def api_signals(
                 if is_ths_plate:
                     priority_override = base_pri
                 else:
-                    priority_override = ",".join([x for x in base_pri.split(",") if x.strip() and x.strip() != "paid"])
+                    priority_override = _anon_priority(base_pri)
                 count_anon = min(int(count), 800)
                 payload = await fetch_tx_kline(
                     secid0,
@@ -3608,7 +3692,7 @@ async def api_kline_with_signals(
 
     is_ths_plate = secid0.lower().startswith("ths:")
     if user_id is None:
-        priority_override = ",".join([x for x in base_pri.split(",") if x.strip() and x.strip() != "paid"])
+        priority_override = _anon_priority(base_pri)
         allow_paid = False
         variant = "anon"
         count = min(int(count), 800)

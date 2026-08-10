@@ -737,6 +737,7 @@
 
             <p class="auth-callout" id="auth-tip-register" hidden>注册请先获取验证码，再填写并提交。</p>
 
+            <form id="auth-form" onsubmit="return false">
             <div class="field-block">
               <label class="field-label" for="identifier" id="label-identifier">手机</label>
               <input id="identifier" type="tel" placeholder="11 位数字" autocomplete="tel" />
@@ -766,6 +767,7 @@
             <div class="field-block" style="margin-top: 12px;">
               <button type="button" class="btn primary" id="btn-submit" style="width:100%;">登录</button>
             </div>
+            </form>
           </div>
 
           <div class="kv" id="quota-kv" hidden>
@@ -1491,6 +1493,24 @@
       refreshMe();
       // Patch register/login links to carry invite code
       try { patchRegisterLinks(); } catch (e) {}
+    })();
+  </script>
+  <script>
+    (function () {
+      // 手机端：行情查询/进入行情 → 手机版行情页 m/quote.html；桌面端不变
+      function mIsTouchMobile() {
+        try { if (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) return true; } catch (e) {}
+        return (window.innerWidth || 0) <= 768;
+      }
+      if (mIsTouchMobile()) {
+        document.addEventListener("click", function (e) {
+          var t = e.target;
+          var a = t && t.closest ? t.closest('a[href*="demo.html"]') : null;
+          if (!a) return;
+          e.preventDefault();
+          try { location.href = "m/quote.html"; } catch (e2) {}
+        }, true);
+      }
     })();
   </script>
 </body>
