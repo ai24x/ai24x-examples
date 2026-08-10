@@ -907,12 +907,25 @@
     .quote-snap .qs-loading { color: var(--muted); }
     .quote-snap a { color: #f43f5e; font-weight: 700; text-decoration: none; }
     .quote-snap a:hover { text-decoration: underline; }
+    .quote-snap .qs-toggle { display: none; }
     @media (max-width: 640px), (max-device-width: 640px) {
-      .quote-snap { padding: 8px 10px; margin-bottom: 8px; }
+      .quote-snap { padding: 8px 10px; margin-bottom: 8px; cursor: pointer; }
       .quote-snap .qs-score { font-size: 17px; }
       .quote-snap .qs-head { gap: 4px 8px; }
+      .quote-snap .qs-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--muted);
+        white-space: nowrap;
+        flex: 0 0 auto;
+      }
+      .quote-snap .qs-detail { display: none; }
+      .quote-snap.is-open .qs-detail { display: block; }
+      .quote-snap .qs-foot { display: none !important; }
       .quote-snap .qs-row { gap: 3px 5px; }
-      .quote-snap .qs-foot { font-size: 10px; line-height: 1.5; }
     }
     .short-term-bar {
       display: none !important;
@@ -1490,6 +1503,29 @@
         margin: 4px 0 0;
         padding: 8px 10px;
       }
+      .top-alert {
+        padding: 8px 10px;
+        gap: 6px;
+        align-items: flex-start;
+        font-size: 12px;
+      }
+      .top-alert .msg { letter-spacing: 0; }
+      .top-alert .msg .sub { margin-top: 2px; font-size: 10px; }
+      .top-alert .actions {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        justify-content: flex-start;
+        gap: 4px;
+        max-width: 100%;
+      }
+      .top-alert .actions .btn-mini {
+        padding: 3px 8px;
+        font-size: 11px;
+        white-space: nowrap;
+        flex: 0 0 auto;
+      }
+      .top-alert .x { padding: 4px 8px; font-size: 11px; flex: 0 0 auto; }
       /* 白名单芯片：与查询行保持适中间距（勿过密） */
       .sample-chips {
         flex-wrap: nowrap;
@@ -1512,6 +1548,15 @@
         display: none;
       }
       .quote-head-title { min-width: 0; max-width: 100%; }
+      #quota-kv {
+        display: inline-flex;
+        align-items: baseline;
+        flex-wrap: nowrap;
+        gap: 2px 6px;
+        font-size: 11px;
+        line-height: 1.5;
+      }
+      #quota-kv span { white-space: nowrap; }
       .period-tools { max-width: 100%; min-width: 0; }
       .watchlist-panel {
         min-width: 0;
@@ -4531,6 +4576,8 @@
   var currentPeriod = 'day';
   var _lastRenderKey = '';
   var _lastChartPeriod = '';
+  /** 手机端查询成功后自动滚动到 K 线（按 secid|period 去重） */
+  var _autoScrolledFor = '';
   /** suggest 单条命中或多条点选时传入，在 renderPack 前写入，避免行情栏仍用上一标的名称 */
   var quoteDisplayHint = null;
 
@@ -5000,7 +5047,9 @@
     html +=
       '<span style="flex:1"></span>' +
       '<a href="./watchscore.html" target="_blank" rel="noopener" title="自选评分榜" style="display:inline-flex; align-items:center; gap:3px; text-decoration:none; color:inherit;"><svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor" aria-hidden="true" style="display:block;"><path d="M2 13.5h2.4V8.6H2v4.9zm4.6 0h2.4V4.2H6.6v9.3zm4.6 0h2.4V6.4h-2.4v7.1z"/></svg>评分榜 ›</a>' +
+      '<span class="qs-toggle">详情 ▾</span>' +
       '</div>';
+    html += '<div class="qs-detail">';
     if (!err) {
       if (tags.length) {
         html += '<div class="qs-row">' + tags.map(function (t) {
@@ -5015,6 +5064,7 @@
     }
     html +=
       '<div class="qs-foot">公开技术指标统计（0-100 综合分）· 仅供自主决策参考，不构成证券投资咨询，不构成任何买卖建议。</div>';
+    html += '</div>';
     snapEl.innerHTML = html;
     snapEl.hidden = false;
     _lastSnapData = d;
@@ -5052,6 +5102,20 @@
         snapEl.innerHTML = '';
       });
   }
+
+  (function bindSnapToggle() {
+    try {
+      if (!snapEl) return;
+      snapEl.addEventListener('click', function (ev) {
+        try {
+          if (ev.target && ev.target.closest && ev.target.closest('a, button')) return;
+          var open = snapEl.classList.toggle('is-open');
+          var tg = snapEl.querySelector('.qs-toggle');
+          if (tg) tg.textContent = open ? '收起 ▲' : '详情 ▾';
+        } catch (e) {}
+      });
+    } catch (e) {}
+  })();
 
   /** Upload browser-side candles for full v3 markers (BK when server cannot reach Eastmoney). */
   function candleTimeToYmd(t) {
@@ -5395,6 +5459,23 @@
     if (macdDeaSeries) try { macdDeaSeries.setData(deas); } catch (e) {}
   }
 
+  function autoScrollToChartForMobile(secid, period) {
+    try {
+      if (!window.matchMedia || !window.matchMedia('(max-width: 640px)').matches) return;
+      var key = String(secid || '') + '|' + String(period || 'day');
+      if (_autoScrolledFor === key) return;
+      _autoScrolledFor = key;
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          var box = document.getElementById('chart-box') || document.getElementById('chart-wrap');
+          if (!box) return;
+          var top = box.getBoundingClientRect().top + (window.pageYOffset || document.documentElement.scrollTop) - 6;
+          try { window.scrollTo({ top: top, behavior: 'smooth' }); } catch (e) { window.scrollTo(0, top); }
+        });
+      });
+    } catch (e) {}
+  }
+
   function renderPack(result) {
     var period = result.period || 'day';
     _lastRenderKey = String(result.secid || currentSecid || '') + '|' + period;
@@ -5651,6 +5732,7 @@
     try { loadQuoteSnapshot(); } catch (eSnap) {}
     setSoftLoading(false);
     syncPeriodTabs();
+    try { autoScrollToChartForMobile(result.secid || currentSecid, period); } catch (eSc) {}
     // Public UI: keep status line simple; avoid exposing upstream vendor mix.
     // Use debug=1 to view detailed data-source notes during development.
     if (typeof DEBUG_UI !== 'undefined' && DEBUG_UI) {
