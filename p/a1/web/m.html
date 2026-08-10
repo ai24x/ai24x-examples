@@ -8,7 +8,7 @@
 <style>
 :root{
   --bg:#0b1220;--panel:#101a2c;--panel2:#152238;--border:#22314d;
-  --text:#e6edf7;--muted:#8aa0bf;--accent:#3b82f6;--up:#f87171;--down:#34d399;
+  --text:#e6edf7;--muted:#8aa0bf;--accent:#3b82f6;--up:#f03a52;--down:#00b578;
   --gold:#fbbf24;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -47,7 +47,7 @@ canvas{width:100%;height:100%;display:block}
 .sheet.show{display:block}
 .sheet .card{position:absolute;left:0;right:0;bottom:0;max-height:70dvh;overflow-y:auto;background:var(--panel);border-radius:16px 16px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom))}
 .sheet .card h3{font-size:15px;margin-bottom:10px}
-.sheet .card .close{position:absolute;right:12px;top:10px;font-size:18px;color:var(--muted)}
+.sheet .card .close{position:absolute;right:12px;top:12px;font-size:18px;color:var(--muted)}
 .legend-item{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;color:var(--text)}
 .legend-item .dot{width:10px;height:10px;border-radius:3px;flex:0 0 auto}
 .sig-row{display:flex;justify-content:space-between;gap:10px;padding:8px 2px;border-bottom:1px solid rgba(148,163,184,.15);font-size:13px}
@@ -66,7 +66,7 @@ canvas{width:100%;height:100%;display:block}
   <button class="home" id="btn-home">首页</button>
   <div class="search">
     <input id="q" placeholder="代码/名称，如 600519、贵州茅台" enterkeyhint="search" />
-    <button class="go" id="btn-go">🔍</button>
+    <button class="go" id="btn-go">搜</button>
   </div>
   <button class="fav-toggle" id="btn-fav" title="自选">☆</button>
   <button class="more" id="btn-more" title="更多">⋯</button>
@@ -82,12 +82,12 @@ canvas{width:100%;height:100%;display:block}
 <div class="env-strip" id="env-strip"></div>
 
 <div class="chart-main">
-  <div class="chart-legend" id="k-legend"></div>
+  <div class="chart-legend" id="k-legend">MA14/MA28/MA57 · 信号标注</div>
   <canvas id="k-canvas"></canvas>
 </div>
 
 <div class="chart-macd">
-  <div class="chart-legend" id="m-legend">动能</div>
+  <div class="chart-legend" id="m-legend">MACD</div>
   <canvas id="m-canvas"></canvas>
 </div>
 
@@ -104,7 +104,7 @@ canvas{width:100%;height:100%;display:block}
 
 <div class="sheet" id="sheet-signal">
   <div class="card">
-    <button class="close" id="close-signal">✕</button>
+    <button class="close" id="close-signal">×</button>
     <h3>近期信号</h3>
     <div id="sig-list"><div class="empty">加载中…</div></div>
     <h3 style="margin-top:14px">信号说明</h3>
@@ -118,7 +118,7 @@ canvas{width:100%;height:100%;display:block}
 
 <div class="sheet" id="sheet-more">
   <div class="card">
-    <button class="close" id="close-more">✕</button>
+    <button class="close" id="close-more">×</button>
     <h3>自选列表</h3>
     <div id="fav-list"><div class="empty">暂无自选，点击 ☆ 收藏</div></div>
     <h3 style="margin-top:14px">使用要领</h3>
@@ -126,7 +126,8 @@ canvas{width:100%;height:100%;display:block}
       ① 底部「信号」可查看近期信号明细；<br/>
       ② 上方「首页」返回 AI行情官主站（登录后自动生效）；<br/>
       ③ 上方大盘条可点击切换上证/深成/创业板等标的；<br/>
-      ④ 行情仅供参考，<b>不构成投资建议</b>。
+      ④ K线图支持双指缩放（20~200根）；<br/>
+      ⑤ 行情仅供参考，<b>不构成投资建议</b>。
     </div>
   </div>
 </div>
@@ -157,9 +158,10 @@ function firstEntry(d){
   return null;
 }
 
-var state = { secid: "1.000001", period: "day", name: "上证指数", favs: [] };
+var state = { secid: "1.000001", period: "day", name: "上证指数", favs: [], vis: 80 };
 try{ state.favs = JSON.parse(localStorage.getItem("ai24x_m_favs") || "[]"); }catch(e){ state.favs = []; }
 var sigCache = [];
+var cacheRows = null, cacheSigs = [];
 
 function codeToSecid(code){
   code = String(code).trim();
@@ -217,19 +219,24 @@ function loadEnv(){
   });
 }
 
-/* ===== K线（带 period 参数，兼容 day/qfqday） ===== */
+/* ===== K线（带 period 参数，兼容 day/qfqday、week/qfqweek、month/qfqmonth） ===== */
 var COUNT = { day: 400, week: 560, month: 660 };
 function loadKline(){
   var cnt = COUNT[state.period] || 400;
   return api("/api/kline", "secid=" + encodeURIComponent(state.secid) + "&period=" + encodeURIComponent(state.period) + "&count=" + cnt).then(function(d){
     var rows = null;
     if (d && d.data) {
+      var order = state.period === "week" ? ["week","qfqweek","day","qfqday"]
+                 : state.period === "month" ? ["month","qfqmonth","day","qfqday"]
+                 : ["day","qfqday","week","qfqweek"];
       var keys = Object.keys(d.data);
-      for (var i=0;i<keys.length;i++){
+      for (var i=0;i<keys.length && !rows;i++){
         var v = d.data[keys[i]];
-        if (!v || typeof v !== "object") continue;
-        if (Array.isArray(v.day) && v.day.length){ rows = v.day; break; }
-        if (Array.isArray(v.qfqday) && v.qfqday.length){ rows = v.qfqday; break; }
+        if (!v || typeof v !== "object" || Array.isArray(v)) continue;
+        for (var k=0;k<order.length;k++){
+          var a = v[order[k]];
+          if (Array.isArray(a) && a.length){ rows = a; break; }
+        }
       }
     }
     if (!rows || !rows.length) throw new Error("no data");
@@ -258,7 +265,7 @@ function macd(rows){
   return { dif: dif, dea: deaFull, hist: hist };
 }
 
-/* ===== 信号（data.markers，带 period 参数） ===== */
+/* ===== 信号（data.markers，保留 shape/position/color，带 period 参数） ===== */
 function classifySig(text){
   text = String(text || "");
   if (text.indexOf("底") >= 0) return { label: "底信号", color: "#fbbf24" };
@@ -271,7 +278,7 @@ function loadSignals(){
     var arr = (d && d.data && Array.isArray(d.data.markers)) ? d.data.markers : [];
     sigCache = arr.map(function(m){
       var c = classifySig(m.text);
-      return { date: m.time || m.date || "", label: c.label, color: c.color, note: m.text || "" };
+      return { date: m.time || m.date || "", label: c.label, color: m.color || c.color, note: m.text || "", shape: m.shape || "circle", position: m.position || "belowBar" };
     });
     return sigCache;
   }).catch(function(){ sigCache = []; return []; });
@@ -287,7 +294,7 @@ function renderSigList(){
   });
 }
 
-/* ===== 绘制（右侧留白） ===== */
+/* ===== 绘制（右侧留白；配色对齐原版） ===== */
 function resize(cv){
   var dpr = window.devicePixelRatio || 1;
   var w = cv.clientWidth, h = cv.clientHeight;
@@ -295,6 +302,21 @@ function resize(cv){
   cv.width = w * dpr; cv.height = h * dpr;
   var ctx = cv.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0);
   return { ctx: ctx, w: w, h: h };
+}
+function drawMarker(ctx, x, y, mk, dir){
+  var color = mk.color || "#60a5fa";
+  ctx.fillStyle = color; ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+  var shape = String(mk.shape || "circle");
+  if (shape === "arrowUp"){
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x-6, y+9); ctx.lineTo(x+6, y+9); ctx.closePath(); ctx.fill();
+  } else if (shape === "arrowDown"){
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x-6, y-9); ctx.lineTo(x+6, y-9); ctx.closePath(); ctx.fill();
+  } else {
+    ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.font = "9px sans-serif"; ctx.textAlign = "center";
+  var txt = String(mk.label || "").slice(0,2);
+  if (txt) ctx.fillText(txt, x, dir > 0 ? y + 16 : y - 10);
 }
 function drawK(rows, sigs){
   var cv = document.getElementById("k-canvas");
@@ -304,11 +326,11 @@ function drawK(rows, sigs){
   if (!rows || !rows.length) { ctx.fillStyle="#8aa0bf"; ctx.font="12px sans-serif"; ctx.fillText("暂无数据",12,20); return; }
   var closes = rows.map(function(r){ return r.c; });
   var ma1 = sma(closes,14), ma2 = sma(closes,28), ma3 = sma(closes,57);
-  var vis = Math.min(rows.length, 80);
+  var vis = Math.max(20, Math.min(rows.length, state.vis));
   var sub = rows.slice(rows.length - vis);
   var lo = Infinity, hi = -Infinity;
   sub.forEach(function(r){ if(r.l<lo)lo=r.l; if(r.h>hi)hi=r.h; });
-  var padL=8, padR=18, padT=18, padB=4;
+  var padL=8, padR=18, padT=18, padB=14;
   var plotW = W - padL - padR, plotH = H - padT - padB;
   var range = (hi - lo) || 1;
   function x(i){ return padL + (i/(vis-1))*plotW; }
@@ -319,7 +341,7 @@ function drawK(rows, sigs){
   for (var i=0;i<vis;i++){
     var r = sub[i], xi = x(i);
     var up = r.c >= r.o;
-    ctx.strokeStyle = up ? "#f87171" : "#34d399"; ctx.fillStyle = up ? "#f87171" : "#34d399";
+    ctx.strokeStyle = up ? "#f03a52" : "#00b578"; ctx.fillStyle = up ? "#f03a52" : "#00b578";
     ctx.beginPath(); ctx.moveTo(xi, y(r.h)); ctx.lineTo(xi, y(r.l)); ctx.stroke();
     ctx.fillRect(xi-cw/2, Math.min(y(r.o),y(r.c)), cw, Math.max(1, Math.abs(y(r.o)-y(r.c))));
   }
@@ -333,18 +355,19 @@ function drawK(rows, sigs){
     }
     ctx.stroke();
   }
-  line(ma1, "#60a5fa"); line(ma2, "#fbbf24"); line(ma3, "#c084fc");
+  line(ma1, "#ff8000"); line(ma2, "#3399ff"); line(ma3, "#00c853");
   if (sigs && sigs.length) {
     var byDate = {}; sigs.forEach(function(s){ if (s.date) byDate[String(s.date)] = s; });
-    ctx.font = "10px sans-serif";
     for (var j=0;j<vis;j++){
       var r = sub[j], s = byDate[String(r.t)];
       if (!s) continue;
-      ctx.fillStyle = s.color || "#60a5fa";
-      ctx.fillText(String(s.label).slice(0,2), x(j)-8, y(r.h)-6);
+      var xi2 = x(j);
+      if (s.position === "aboveBar") drawMarker(ctx, xi2, y(r.h) - 12, s, -1);
+      else if (s.position === "inBar") drawMarker(ctx, xi2, (y(r.h)+y(r.l))/2, s, 0);
+      else drawMarker(ctx, xi2, y(r.l) + 12, s, 1);
     }
   }
-  document.getElementById("k-legend").textContent = "均线（短/中/长） · 信号标注";
+  document.getElementById("k-legend").textContent = "MA14/MA28/MA57 · 信号标注";
 }
 function drawM(rows){
   var cv = document.getElementById("m-canvas");
@@ -353,12 +376,12 @@ function drawM(rows){
   ctx.clearRect(0,0,W,H);
   if (!rows || !rows.length) return;
   var m = macd(rows);
-  var vis = Math.min(rows.length, 80);
+  var vis = Math.max(20, Math.min(rows.length, state.vis));
   var start = rows.length - vis;
   var vals = [];
   for (var i=start;i<rows.length;i++){ if (m.hist[i]!=null) vals.push(m.hist[i]); }
   var mx = 1; vals.forEach(function(v){ var a=Math.abs(v); if(a>mx)mx=a; });
-  var padT=4, padB=4, padL=8, padR=18;
+  var padT=6, padB=4, padL=8, padR=18;
   var plotH = H-padT-padB, plotW = W-padL-padR;
   function x(i){ return padL + (i/(vis-1))*plotW; }
   function y(v){ return padT + (mx-v)/(2*mx)*plotH; }
@@ -368,15 +391,26 @@ function drawM(rows){
   for (var i=0;i<vis;i++){
     var v = m.hist[start+i]; if (v==null) continue;
     var xi = x(i), y0 = y(0), yv = y(v);
-    ctx.fillStyle = v>=0 ? "rgba(248,113,113,.85)" : "rgba(52,211,153,.85)";
+    ctx.fillStyle = v>=0 ? "rgba(239,68,68,.53)" : "rgba(34,197,94,.53)";
     ctx.fillRect(xi-cw/2, Math.min(y0,yv), cw, Math.max(1, Math.abs(y0-yv)));
   }
-  document.getElementById("m-legend").textContent = "动能";
+  function lline(arr, color){
+    ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.beginPath(); var started = false;
+    for (var i=0;i<vis;i++){
+      var v = arr[start+i]; if (v==null) continue;
+      var px = x(i), py = y(v);
+      if (!started){ ctx.moveTo(px,py); started = true; } else ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+  }
+  lline(m.dif, "#e2e8f0"); lline(m.dea, "#f59e0b");
+  document.getElementById("m-legend").textContent = "MACD";
 }
 
 function render(){
   loadKline().then(function(rows){
     return loadSignals().then(function(sigs){
+      cacheRows = rows; cacheSigs = sigs;
       drawK(rows, sigs);
       drawM(rows);
       document.getElementById("q-px").textContent = fmt(rows[rows.length-1].c);
@@ -386,12 +420,13 @@ function render(){
     var R = resize(cv); if (R){ R.ctx.clearRect(0,0,R.w,R.h); R.ctx.fillStyle="#8aa0bf"; R.ctx.font="13px sans-serif"; R.ctx.fillText("数据加载失败，请稍后重试",12,24); }
   });
 }
+function redraw(){ if (cacheRows) { drawK(cacheRows, cacheSigs); drawM(cacheRows); } else render(); }
 function refresh(){ loadQuote(); render(); }
 
 function goto(secid, name){
   if (!secid) return;
   state.secid = secid; if (name) state.name = name;
-  state.period = "day";
+  state.period = "day"; state.vis = 80;
   document.querySelectorAll("#period-grp button").forEach(function(b){ b.classList.toggle("on", b.dataset.p === "day"); });
   document.getElementById("q-nm").textContent = name || secid;
   document.getElementById("q").value = name || secid;
@@ -440,9 +475,37 @@ function renderFavList(){
     el.appendChild(row);
   });
 }
+
+/* ===== 双指缩放（20~200根） ===== */
+(function(){
+  var mainEl = document.querySelector(".chart-main");
+  var touch = null;
+  function dist2(t){ return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); }
+  mainEl.addEventListener("touchstart", function(e){
+    if (e.touches.length === 2){
+      touch = { dist: dist2(e.touches), vis: state.vis };
+      e.preventDefault();
+    }
+  }, { passive: false });
+  mainEl.addEventListener("touchmove", function(e){
+    if (touch && e.touches.length === 2){
+      var d = dist2(e.touches);
+      if (d > 0){
+        var vis = Math.round(touch.vis * touch.dist / d);
+        vis = Math.max(20, Math.min(200, vis));
+        if (vis !== state.vis){ state.vis = vis; redraw(); }
+      }
+      e.preventDefault();
+    }
+  }, { passive: false });
+  function clearTouch(){ touch = null; }
+  mainEl.addEventListener("touchend", clearTouch);
+  mainEl.addEventListener("touchcancel", clearTouch);
+})();
+
 document.getElementById("btn-fav").textContent = (state.favs.indexOf(state.secid)>=0) ? "★" : "☆";
 document.addEventListener("visibilitychange", function(){ if (!document.hidden) refresh(); });
-window.addEventListener("resize", function(){ render(); });
+window.addEventListener("resize", function(){ redraw(); });
 loadEnv();
 refresh();
 })();
