@@ -38,8 +38,8 @@ input{background:var(--panel2);border:1px solid var(--border);color:var(--text);
 .env-chip{flex:0 0 auto;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:11px;color:var(--muted);white-space:nowrap;cursor:pointer}
 .env-chip.active{border-color:var(--accent);color:var(--text)}
 .env-chip b{color:var(--text)}
-.chart-main{flex:1 1 54%;min-height:0;position:relative;background:var(--bg);padding:0 8px 0 4px}
-.chart-macd{flex:0 0 15%;min-height:0;border-top:1px solid var(--border);background:var(--bg);position:relative;padding:0 8px 0 4px}
+.chart-main{flex:1 1 50%;min-height:0;position:relative;background:var(--bg);padding:0 8px 0 4px}
+.chart-macd{flex:0 0 18%;min-height:0;border-top:1px solid var(--border);background:var(--bg);position:relative;padding:0 8px 0 4px}
 canvas{width:100%;height:100%;display:block}
 .chart-legend{position:absolute;left:14px;top:6px;font-size:11px;color:var(--muted);pointer-events:none;white-space:nowrap}
 .bottombar{flex:0 0 auto;display:flex;align-items:center;gap:4px;padding:6px 8px calc(6px + env(safe-area-inset-bottom));background:var(--panel);border-top:1px solid var(--border)}
@@ -102,7 +102,7 @@ canvas{width:100%;height:100%;display:block}
     <button data-p="week">周线</button>
     <button data-p="month">月线</button>
   </div>
-  <button class="act signal" id="btn-signal">信号</button>
+  <button class="act signal" id="btn-signal">技术信号</button>
   <div class="spacer"></div>
   <button class="act" id="btn-desktop">桌面版</button>
 </div>
@@ -110,7 +110,7 @@ canvas{width:100%;height:100%;display:block}
 <div class="sheet" id="sheet-signal">
   <div class="card">
     <button class="close" id="close-signal">×</button>
-    <h3>近期信号</h3>
+    <h3>技术信号</h3>
     <div id="sig-list"><div class="empty">加载中…</div></div>
     <h3 style="margin-top:14px">信号说明</h3>
     <div class="tip-text">
@@ -128,10 +128,10 @@ canvas{width:100%;height:100%;display:block}
     <div id="fav-list"><div class="empty">暂无自选，点击 ☆ 收藏</div></div>
     <h3 style="margin-top:14px">使用要领</h3>
     <div class="tip-text">
-      ① 底部「信号」可查看近期信号明细；<br/>
+      ① 底部「技术信号」可查看近期信号明细；<br/>
       ② 上方「首页」返回 AI行情官主站（登录后自动生效）；<br/>
       ③ 上方大盘条可点击切换上证/深证/中证/北证；<br/>
-      ④ 双指缩放：横=K线根数（20~200），竖=价格区间；<br/>
+      ④ 双指缩放：横=K线根数（20~200），竖=价格区间，量能副图跟随联动；<br/>
       ⑤ 行情仅供参考，<b>不构成投资建议</b>。
     </div>
   </div>
@@ -368,7 +368,7 @@ function renderSigList(){
   });
 }
 
-/* ===== 绘制（K线加宽不瘦长；信号=小圆点+文字留间距；配色对齐原版） ===== */
+/* ===== 绘制（K线加宽不瘦长；信号=小圆点+文字留间距；量能副图跟随缩放） ===== */
 function resize(cv){
   var dpr = window.devicePixelRatio || 1;
   var w = cv.clientWidth, h = cv.clientHeight;
@@ -405,7 +405,7 @@ function drawK(rows, sigs){
   var range = (hi - lo) || 1;
   function x(i){ return padL + (i/(vis-1))*plotW; }
   function y(p){ return padT + (hi-p)/range*plotH; }
-  var cw = Math.max(1.5, plotW/vis*0.78);
+  var cw = Math.max(1.5, plotW/vis*0.8);
   ctx.strokeStyle = "rgba(148,163,184,.12)"; ctx.lineWidth = 1;
   for (var g=1;g<5;g++){ var gy=padT+plotH*g/5; ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke(); }
   for (var i=0;i<vis;i++){
@@ -464,13 +464,14 @@ function drawM(rows){
   var vals = [];
   for (var i=start;i<rows.length;i++){ if (m.hist[i]!=null) vals.push(m.hist[i]); }
   var mx = 1; vals.forEach(function(v){ var a=Math.abs(v); if(a>mx)mx=a; });
+  mx = mx * state.zoom; /* 纵向缩放跟随主图 */
   var padT=6, padB=4, padL=8, padR=18;
   var plotH = H-padT-padB, plotW = W-padL-padR;
   function x(i){ return padL + (i/(vis-1))*plotW; }
   function y(v){ return padT + (mx-v)/(2*mx)*plotH; }
   ctx.strokeStyle = "rgba(148,163,184,.3)"; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(0,y(0)); ctx.lineTo(W,y(0)); ctx.stroke();
-  var cw = Math.max(1.5, plotW/vis*0.78);
+  var cw = Math.max(1.5, plotW/vis*0.8);
   for (var i=0;i<vis;i++){
     var v = m.hist[start+i]; if (v==null) continue;
     var xi = x(i), y0 = y(0), yv = y(v);
@@ -559,7 +560,7 @@ function renderFavList(){
   });
 }
 
-/* ===== 双指缩放：横=K线根数(20~200)，纵=价格区间(0.5~3倍) ===== */
+/* ===== 双指缩放：横=K线根数(20~200)，纵=价格区间(0.5~3倍)，主图/副图联动 ===== */
 (function(){
   var mainEl = document.querySelector(".chart-main");
   var touch = null;
