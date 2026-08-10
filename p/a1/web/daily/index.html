@@ -148,7 +148,7 @@ try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("daily"); } catch (e) {
   }
   function nextAutoText(s) {
     if (!s.auto_scan) return '已关闭';
-    return s.is_weekend ? '下一交易日 ' + (s.auto_scan_time || '15:35') : (s.auto_scan_time || '15:35');
+    return s.is_weekend ? '下一交易日 ' + (s.auto_scan_time || '15:03') : (s.auto_scan_time || '15:03');
   }
 
   function setStatus() {
@@ -188,7 +188,7 @@ try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("daily"); } catch (e) {
   function maybeAutoScan(s) {
     var guide = vipGuide(s);
     if (s.is_weekend) {
-      showNotice('今天是非交易日（周末）。当前展示最近一期报告；<b>下一交易日 ' + (s.auto_scan_time || '15:35') + ' 后打开本页将自动生成当日报告</b>。' + (guide ? '<br>' + guide : ''));
+      showNotice('今天是非交易日（周末）。当前展示最近一期报告；<b>下一交易日 ' + (s.auto_scan_time || '15:03') + ' 后打开本页将自动生成当日报告</b>。' + (guide ? '<br>' + guide : ''));
       loadLastReport();
       return;
     }
@@ -203,11 +203,11 @@ try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("daily"); } catch (e) {
     }
     var now = new Date();
     var hm = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
-    if (hm >= (s.auto_scan_time || '15:35')) {
+    if (hm >= (s.auto_scan_time || '15:03')) {
       showNotice('收盘后首次打开，自动开始生成当日报告（约 1~2 分钟，低频防封限流）。可先看往期报告。');
       startScan(0);
     } else {
-      showNotice('今日尚未收盘（当前 ' + hm + '）。当前展示最近一期报告；<b>今日 ' + (s.auto_scan_time || '15:35') + ' 后打开本页将自动生成当日报告</b>，无需手动点击。' + (guide ? '<br>' + guide : ''));
+      showNotice('今日尚未收盘（当前 ' + hm + '）。当前展示最近一期报告；<b>今日 ' + (s.auto_scan_time || '15:03') + ' 后打开本页将自动生成当日报告</b>，无需手动点击。' + (guide ? '<br>' + guide : ''));
       loadLastReport();
     }
   }

@@ -155,9 +155,13 @@ a.hist-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radi
 a.hist-row:hover{border-color:var(--bj-acc);background:var(--bj-acc-bg)}
 .hist-row .hr-date{flex:0 0 auto;min-width:88px;font-size:12px;font-weight:700;white-space:nowrap;display:flex;flex-direction:column;line-height:1.35}
 .hist-row .hr-date .chip-sub{font-size:10px;color:var(--muted);font-weight:400}
-.hist-row .hr-picks{flex:1 1 auto;min-width:0;font-size:12px;text-align:left;line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.hist-row .hr-picks .t-king{color:var(--bj-acc)}
-.hist-row .hr-picks .t-key{color:rgba(128,138,160,.75);font-size:10px}
+.hist-row .hr-picks{flex:1 1 auto;min-width:0;font-size:12px;text-align:left;line-height:1.55}
+.hist-row .hr-picks .t-king{color:#f59e0b;font-size:13px;font-weight:700}
+.hist-row .hr-picks .t-key{color:var(--bj-acc);font-size:13px;font-weight:700}
+.hist-row .hr-picks b{font-weight:800;color:var(--text)}
+.hist-row .hr-picks .hr-code{color:var(--muted);font-size:10px;margin-left:3px}
+.hist-row .hr-picks .hr-score{display:inline-block;margin-left:5px;padding:0 5px;border-radius:4px;background:var(--bj-acc-bg);color:var(--bj-acc);font-size:10px;font-weight:700;vertical-align:1px}
+.hist-row .hr-picks .hr-sep{margin:0 4px;color:var(--muted)}
 .hist-row .hr-go{margin-left:auto;flex:0 0 auto;font-size:11px;color:var(--bj-acc);font-weight:700;white-space:nowrap}
 /* 进阶数据折叠（板块排行 / 市场情绪） */
 .bj-fold{margin:14px 0;border:1px solid var(--border);border-radius:10px;background:var(--panel2);overflow:hidden}

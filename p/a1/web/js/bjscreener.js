@@ -385,10 +385,12 @@ window.AI24X_BJScreener = (function () {
     return out;
   }
   function historyRow(it, market) {
-    var picks = (it.picks || []).map(function (p) {
-      var t = p.tier === "king" ? '<span class="t-king">\u2b50</span>' : (p.tier === "key" ? '<span class="t-key">\u25cf</span>' : "");
-      return t + esc(p.name);
-    }).join(" \u00b7 ");
+    var picks = (it.picks || []).map(function (p, pi) {
+      var t = p.tier === "king" ? '<span class="t-king">\u2b50</span>' : (p.tier === "key" ? '<span class="t-key">\u2b50</span>' : "");
+      return (p.rank || pi + 1) + '. ' + t + '<b>' + esc(p.name) + '</b>' +
+        '<span class="hr-code">' + esc(p.code || "") + '</span>' +
+        (p.final != null ? '<span class="hr-score">' + esc(p.final) + '</span>' : "");
+    }).join('<span class="hr-sep"> \u00b7 </span>');
     var asofTxt = (it.asof && it.asof !== it.date) ? ('<span class="chip-sub">\u622a\u81f3' + esc(it.asof) + '\u6536\u76d8</span>') : "";
     return '<a class="hist-row" href="gd.html?date=' + encodeURIComponent(it.date) + '&market=' + encodeURIComponent(market) + '" target="_blank" rel="noopener" title="\u626b\u63cf\u65e5 ' + esc(it.date) + '\uff08\u6570\u636e\u622a\u81f3 ' + esc(it.asof || it.date) + ' \u6536\u76d8\uff09\u00b7 \u65b0\u7a97\u53e3\u6253\u5f00\u5f52\u6863">' +
       '<span class="hr-date">' + esc(it.date) + asofTxt + '</span>' +
@@ -464,8 +466,11 @@ window.AI24X_BJScreener = (function () {
       html = '<div class="bj-section">历史归档主推（数据日期 ' + esc(d.asof || d.date || "") + '）</div>';
       html += '<div class="notice stale">📂 以下为历史归档结果，仅供研究参考，不构成投资建议；最新结果请回到页面顶部查看。</div>';
     } else if (d.stale) {
-      html = '<div class="bj-section">上一交易日主推（数据日期 ' + esc(d.stale_from || d.asof || "") + ' · 今日无合格标的）</div>';
-      html += '<div class="notice stale">⚠ 今日（' + esc(d.date || "") + '）扫描无合格标的（可能为盘前或数据未更新），以下为上一交易日（' + esc(d.stale_from || "") + '）收盘结果，仅供研究参考，不构成投资建议。</div>';
+      var _staleNote = d.intraday
+        ? '未到收盘（15:03 后自动更新今日）：当前展示上一交易日（' + esc(d.stale_from || "") + '）收盘结果，仅供研究参考，不构成投资建议。'
+        : '⚠ 今日（' + esc(d.date || "") + '）扫描无合格标的（可能为盘前或数据未更新），以下为上一交易日（' + esc(d.stale_from || "") + '）收盘结果，仅供研究参考，不构成投资建议。'
+      html = '<div class="bj-section">上一交易日主推（数据日期 ' + esc(d.stale_from || d.asof || "") + ' · ' + (d.intraday ? '未到收盘' : '今日无合格标的') + '）</div>';
+      html += '<div class="notice stale">' + _staleNote + '</div>';
     } else {
       var nPicks = picks.length;
       var nLeader = 0, nCatch = 0;
@@ -475,7 +480,7 @@ window.AI24X_BJScreener = (function () {
       if (nCatch) roleTxt += " · 补涨卡位" + nCatch;
       html = '<div class="bj-section">今日主推（王者⭐ + 重点，共 ' + nPicks + ' 只' + roleTxt + '）</div>';
       if (nPicks && nPicks < 3) {
-        html += '<div class="notice">今日合格标的仅 ' + nPicks + ' 只：行情宽度偏弱或筛选条件严格时宁缺毋滥，不强行凑满，供重点跟踪。</div>';
+        html += '<div class="notice">今日合格标的仅 ' + nPicks + ' 只：行情宽度偏弱或筛选严格，已尽力补足备选、不强行凑满，供重点跟踪。</div>';
       }
     }
     html += '<div class="notice">本页仅作研究与信息整理，不构成任何投资建议；30CM 波动大，破止损或单日放量长阴 -8% 无条件离场。</div>';
@@ -596,7 +601,7 @@ window.AI24X_BJScreener = (function () {
       stopProgress();
       if (btn) {
         btn.disabled = false;
-        var fresh = d && d.cached && !d.refresh_locked;
+        var fresh = d && d.cached && !d.refresh_locked && !d.intraday;
         btn.textContent = fresh ? "已是最新" : "重新扫描";
         btn.title = fresh ? "今日结果已生成，点击可强制重新扫描" : "重新扫描全部标的（120 秒限一次）";
       }
@@ -640,7 +645,7 @@ window.AI24X_BJScreener = (function () {
       stopProgress();
       if (btn) {
         btn.disabled = false;
-        var fresh = d && d.cached && !d.refresh_locked;
+        var fresh = false;
         btn.textContent = fresh ? "已是最新" : "重新扫描";
         btn.title = fresh ? "今日结果已生成，点击可强制重新扫描" : "重新扫描全部标的（120 秒限一次）";
       }

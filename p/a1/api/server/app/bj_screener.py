@@ -45,7 +45,7 @@ DEFAULT_CFG: dict[str, Any] = {
     "kw": "", "minSurge": 4.0, "surgeVol": 1.8, "surgeDays": 15,
     "mainline": "score", "hotPct": 4.0, "hotN": 12, "mainlineMemberCap": 60,
     "turnMin": 2.0, "turnMax": 20.0, "useFund": True,
-    "scoreMin": 50.0,
+    "scoreMin": 46.0,
     # 全市场（沪深京）参数：板块先行两阶段筛选
     "mcapMinAll": 15.0, "mcapMaxAll": 200.0, "amountMinAll": 8000.0,
     "hotBoards": 16, "memberCap": 800, "allBackupN": 4,
@@ -875,7 +875,7 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
     pulled = False
     pull_surge_pct = 0.0
     surge_min = 10.0 if market == "bj" else 7.0
-    surge_vol = 2.0 if market == "bj" else 1.8
+    surge_vol = 2.0 if market == "bj" else 1.5
     for i in range(n - 13, last - 1):
         pcti = (c[i] / c[i - 1] - 1) * 100 if c[i - 1] > 0 else 0.0
         if pcti >= surge_min and v[i] >= surge_vol * v20:
@@ -901,6 +901,8 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
     if up_days >= 3 and max_day_pct <= 8 and 0 <= chg5 <= 18:
         patterns["smallYang"] = 1
     # 底部放量异动启动（核心：刚底部异动起来）
+    ms_min = max(float(cfg["minSurge"]), 10.0 if market == "bj" else 7.0)
+    sv_min = max(float(cfg["surgeVol"]), 2.0 if market == "bj" else 1.5)
     surge_days_ago = 0
     surge_idx = -1
     for i in range(max(1, n - int(cfg["surgeDays"]) - 1), last):
@@ -913,7 +915,7 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
                 cnt_v += 1
         v_ma = v_ma / cnt_v if cnt_v else 0.0
         pos_at_i = (c[i] - lo60) / (hi60 - lo60) if hi60 > lo60 else 1.0
-        if float(cfg["minSurge"]) <= pcti <= 14 and v[i] >= float(cfg["surgeVol"]) * v_ma and pos_at_i <= 0.5:
+        if ms_min <= pcti <= 14 and v[i] >= sv_min * v_ma and pos_at_i <= 0.5:
             surge_idx = i
     surge_ok = False
     if surge_idx >= 0:
@@ -940,13 +942,18 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
     if chg60 > float(cfg["max60d"]):
         risks.append(f"60日涨幅过大{chg60:.1f}%")
     has_zt = False
+    zt_day = -1
     zt_th = 25.0 if market == "bj" else 9.5
     for i in range(n - 10, last + 1):
         p0 = (c[i] / c[i - 1] - 1) * 100 if c[i - 1] > 0 else 0.0
         if p0 >= zt_th:
             has_zt = True
+            zt_day = i
     if has_zt and not pulled:
-        risks.append("10日内有涨停/近涨停")
+        if zt_day >= 0 and cl < c[zt_day] * 0.985:
+            risks.append("首板失败(跌破涨停价)")
+        else:
+            risks.append("10日内有涨停/近涨停")
     rr = (h[last] - c[last]) / ((h[last] - l[last]) or 1)
     if (h[last] - cl) / cl >= 0.05 and c[last] < o[last] and rr >= 0.5:
         risks.append("长上影滞涨")
@@ -972,146 +979,47 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
         risks.append(f"乖离偏大(MA5 {bias_ma5:.0f}%)")
     if amp20 and amp20 < 3:
         risks.append("20日振幅过低(死水)")
-    if amp20 and amp20 > 8:
+    if amp20 and amp20 > 35:
         risks.append("20日振幅过大(偏疯)")
     if vol_health == -1:
         risks.append("跌放量出货嫌疑")
     kw_hits = list(cand.get("kwHits") or [])
 
-    # ---- 综合评分（多因子加权，0-100） ----
+    # ---- 综合评分（潜力框架：空间×驱动×时机−风险，0-100） ----
     sc = 0.0
-    # 位置安全边际（0-24）
+    # ① 空间（0-36）：位置 + 距前高空间 + 市值弹性 + 稀缺性
     if pos <= 0.10:
-        sc += 24
-    elif pos <= 0.20:
         sc += 20
-    elif pos <= 0.30:
+    elif pos <= 0.20:
         sc += 16
+    elif pos <= 0.30:
+        sc += 12
     elif pos <= 0.40:
-        sc += 11
-    else:
-        sc += 5
-    # 启动形态（0-37）
-    if patterns.get("surgeStart"):
-        sc += 10
-    if patterns.get("pullback"):
-        sc += 10
-    if patterns.get("ztPullback"):
-        sc += 2
-    if patterns.get("smallYang"):
-        sc += 6
-    if patterns.get("baseUp"):
-        sc += 6
-    if patterns.get("tightBurst"):
-        sc += 3
-    if hist[last] > 0:
-        sc += 2
-    gc = False
-    for i in range(last - 4, last + 1):
-        if dif[i] > dea[i] and dif[i - 1] <= dea[i - 1]:
-            gc = True
-    if gc:
-        sc += 2
-    # 主线龙头确认（龙头层）：资金回流 + 短期趋势走强 + MACD 不弱；
-    # 急跌后强反弹阶段 MA20 往往仍下行，故不要求 MA20 上拐，改为站上或贴近 MA20（>=0.97x）
-    leader_ok = bool(
-        fund > 0 and chg5 > 0 and cl > ma10
-        and cl >= ma20 * 0.97
-        and (hist[last] > 0 or gc)
-    )
-    if leader_ok:
-        patterns["leaderOk"] = 1
-        sc += 6
-    # 均线趋势（0-11）
-    if ma_bull:
         sc += 8
-    elif ma_bull3:
-        sc += 5
-    if ma20 > ma20_3:
-        sc += 3
-    # 量能健康（0-9）
-    if 1.1 <= vol5v20 <= 2.5:
-        sc += 6
-    elif 0.8 <= vol5v20 < 1.1:
-        sc += 3
-    elif 2.5 < vol5v20 <= 4:
+    else:
         sc += 2
-    if 1.1 <= vol_ratio <= 3:
-        sc += 3
-    elif vol_ratio > 0.6:
-        sc += 1
-    # 资金与热度（0-15）
-    fund = _num(cand.get("fundIn") if cand.get("fundIn") is not None else cand.get("fund"))
-    if cfg.get("useFund") and fund > 0:
-        sc += 5
-    if cand.get("hot"):
+    room = (hi60 - cl) / hi60 * 100 if hi60 > 0 else 0.0
+    if 5 <= room <= 25:
+        sc += 10
+    elif 25 < room <= 45:
+        sc += 7
+    elif 2 <= room < 5:
         sc += 6
-    if kw_hits:
+    elif room > 45:
         sc += 4
-    # 估值与市值弹性（0-11）
+    else:
+        sc += 1  # 贴前高(<2%)：空间被压
     pe = _num(cand.get("pe"))
     pb = _num(cand.get("pb"))
     mcap = _num(cand.get("mcap"))
-    if 0 < pe <= 30:
-        sc += 3
-    elif 30 < pe <= 60:
-        sc += 2
-    if 0 < pb <= 3:
-        sc += 2
     mcap_yi = mcap / 1e8
     if 5 <= mcap_yi <= 15:
-        sc += 4
+        sc += 6
     elif 15 < mcap_yi <= 25:
-        sc += 3
+        sc += 4
     elif 25 < mcap_yi <= 40:
-        sc += 2
-    # 动能质量（0-9）
-    if 55 <= rsi14 <= 72:
-        sc += 4
-    elif 40 <= rsi14 < 55:
-        sc += 2
-    if 4 <= atr_pct <= 10:
         sc += 3
-    elif 1.5 <= atr_pct < 4:
-        sc += 2
-    if -3 <= bias6 <= 8:
-        sc += 2
-    # 换手率（0-4）
-    turnover = _num(cand.get("turnover"))
-    if 3 <= turnover <= 12:
-        sc += 4
-    elif 12 < turnover <= float(cfg["turnMax"]):
-        sc += 2
-    elif turnover < float(cfg["turnMin"]):
-        risks.append(("换手" + "过低" + f"{turnover:.1f}%"))
-    else:
-        risks.append(("换手" + "过高" + f"{turnover:.1f}%"))
-    # 新增因子评分：量价健康 / 蓄势 / 资金持续 / 乖离与振幅降权
-    if vol_health == 1:
-        sc += 3
-    if plateau_days >= 20:
-        sc += 3
-    elif plateau_days and plateau_days < 5:
-        sc -= 3
-    if fund_streak:
-        sc += 3
-    if bias_over:
-        sc -= 6
-    if amp20 and amp20 > 8:
-        sc -= 3
-    # 风险扣分
-    warn_risk_hints = ("5日涨幅偏大", "10日涨幅偏大", "20日涨幅过大", "60日涨幅过大",
-                       "换手过低", "换手过高", "乖离偏大", "20日振幅过大(偏疯)", "跌放量出货嫌疑")
-    n_hard_risk = n_warn_risk = 0
-    for _r in risks:
-        if _r == "10日内有涨停/近涨停" or _r.startswith(warn_risk_hints):
-            n_warn_risk += 1
-        else:
-            n_hard_risk += 1
-    sc -= n_hard_risk * 7 + n_warn_risk * 3
-    if not (patterns.get("pullback") or patterns.get("smallYang") or patterns.get("baseUp") or patterns.get("surgeStart")):
-        sc -= 8
-    # 稀缺性（0-6）：行业独苗 + 流通盘占比低（北证小流通盘弹性高）
+    # 稀缺性（0-6）：行业独苗 + 流通盘占比低（小流通盘弹性高）
     ind_cnt = int(_num(cand.get("indCnt"), 0))
     fcap = _num(cand.get("floatMcap"))
     mcap_now = _num(cand.get("mcap"))
@@ -1125,6 +1033,107 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
         scarcity += 3
         scar_tags.append("流通盘稀缺" + f"\u00b7流通占比{float_ratio * 100:.0f}%")
     sc += scarcity
+    # ② 驱动（0-35）：启动证据 + 资金 + 量能 + 热度
+    if patterns.get("ztPullback"):
+        sc += 8
+    if patterns.get("pullback"):
+        sc += 12
+    if patterns.get("surgeStart"):
+        sc += 10
+    if patterns.get("smallYang"):
+        sc += 3  # 吸筹辅助确认（不单独构成启动证据）
+    if cfg.get("useFund") and fund > 0:
+        sc += 5
+    if cfg.get("useFund") and _num(cand.get("fund5")) > 0:
+        sc += 3
+    if cand.get("hot"):
+        sc += 4
+    if kw_hits:
+        sc += 2
+    if vol_health == 1:
+        sc += 3
+    if fund_streak:
+        sc += 2
+    if 1.1 <= vol5v20 <= 2.5:
+        sc += 6
+    elif 0.8 <= vol5v20 < 1.1:
+        sc += 3
+    elif 2.5 < vol5v20 <= 4:
+        sc += 2
+    if 1.1 <= vol_ratio <= 3:
+        sc += 3
+    elif vol_ratio > 0.6:
+        sc += 1
+    # ③ 时机（0-23）：走多确认 + 均线 + MACD + 动能 + 蓄势
+    if patterns.get("baseUp"):
+        sc += 6
+    if patterns.get("tightBurst"):
+        sc += 4
+    if hist[last] > 0:
+        sc += 2
+    gc = False
+    for i in range(last - 4, last + 1):
+        if dif[i] > dea[i] and dif[i - 1] <= dea[i - 1]:
+            gc = True
+    if gc:
+        sc += 2
+    if ma_bull:
+        sc += 6
+    elif ma_bull3:
+        sc += 4
+    if ma20 > ma20_3:
+        sc += 2
+    # 主线龙头确认：资金回流 + 短期趋势走强 + MACD 不弱
+    leader_ok = bool(
+        fund > 0 and chg5 > 0 and cl > ma10
+        and cl >= ma20 * 0.97
+        and (hist[last] > 0 or gc)
+    )
+    if leader_ok:
+        patterns["leaderOk"] = 1
+        sc += 4
+    if 55 <= rsi14 <= 72:
+        sc += 2
+    elif 40 <= rsi14 < 55:
+        sc += 1
+    if 4 <= atr_pct <= 10:
+        sc += 2
+    elif 1.5 <= atr_pct < 4:
+        sc += 1
+    if -3 <= bias6 <= 8:
+        sc += 1
+    if plateau_days >= 20:
+        sc += 2
+    elif plateau_days and plateau_days < 5:
+        sc -= 2
+    # 换手率（0-4）
+    turnover = _num(cand.get("turnover"))
+    if 3 <= turnover <= 12:
+        sc += 4
+    elif 12 < turnover <= float(cfg["turnMax"]):
+        sc += 2
+    elif turnover < float(cfg["turnMin"]):
+        risks.append(("换手" + "过低" + f"{turnover:.1f}%"))
+    else:
+        risks.append(("换手" + "过高" + f"{turnover:.1f}%"))
+    # ④ 风险扣分（hard×8 / warn×3）
+    warn_risk_hints = ("5日涨幅偏大", "10日涨幅偏大", "20日涨幅过大", "60日涨幅过大",
+                       "换手过低", "换手过高", "乖离偏大", "20日振幅过大(偏疯)", "跌放量出货嫌疑")
+    n_hard_risk = n_warn_risk = 0
+    for _r in risks:
+        if _r == "10日内有涨停/近涨停" or _r.startswith(warn_risk_hints):
+            n_warn_risk += 1
+        else:
+            n_hard_risk += 1
+    sc -= n_hard_risk * 8 + n_warn_risk * 3
+    # ⑤ 无启动确认（小阳不算）：异动/回踩/走多一个都没有 → 强扣
+    if not (patterns.get("pullback") or patterns.get("surgeStart") or patterns.get("baseUp")):
+        sc -= 6
+    # ⑥ 动量修正
+    if bias_over:
+        sc -= 4
+    if amp20 and amp20 > 35:
+        sc -= 3
     s1 = min(l[last - 4:])
     s2 = ma20
     p1 = max(h[last - 9:])
@@ -1591,6 +1600,7 @@ def _board_rank(mainlines: list[dict[str, Any]], hot_boards: list[dict[str, Any]
 def _board_rank_funds(boards: list[dict[str, Any]], keep_backup: int = 4, mainline_names: list[str] | None = None) -> list[dict[str, Any]]:
     """全市场板块排行：复盘主线板块优先（资金+技术双确认），其余按 5日主力净流入排序，王者 1 + 辅线 2 + 备选 N。"""
     items = sorted((boards or []), key=lambda x: -float(x.get("f164") or 0))
+    _ml: set[str] = set()
     if mainline_names:
         _ml = {str(n).replace(" ", "") for n in mainline_names if str(n).strip()}
         if _ml:
@@ -1975,6 +1985,11 @@ def _today_off_market() -> bool:
         return time.localtime().tm_wday >= 5
 
 
+def _market_closed() -> bool:
+    """交易日 15:03 后视为收盘，可更新今日数据；盘中（15:03 前）默认展示上一交易日归档。"""
+    return int(time.strftime("%H%M", time.localtime())) >= 1503
+
+
 # 复盘主线 → 东财板块 secid（主线成分补进掘金候选池用；未知板块回落 suggest 解析）
 _MAINLINE_BOARD_MAP: dict[str, list[str]] = {
     "PCB": ["90.BK0877", "90.BK1340"],
@@ -2047,7 +2062,7 @@ async def run_scan(
         cfg["max10d"] = 40.0
         cfg["max20d"] = 40.0
         cfg["max60d"] = 60.0
-        cfg["scoreMin"] = 48.0
+        cfg["scoreMin"] = 44.0
     if cfg_override:
         for k, v in cfg_override.items():
             if k in cfg and v is not None:
@@ -2091,6 +2106,24 @@ async def run_scan(
             _BOARDS_CACHE[boards_key] = (time.time(), out)
             _mark_cached("已加载今日缓存")
             return out
+
+        # 非交易日或盘中（未到 15:03）：直接展示最近归档板块视图，避免盘中半成品
+        if _today_off_market() or not _market_closed():
+            stale = _latest_history(market)
+            if stale:
+                out = dict(stale)
+                out["cached"] = True
+                out["stale"] = True
+                out["vip_required"] = True
+                out["stale_from"] = stale.get("asof") or stale.get("date") or ""
+                out["market_code"] = market
+                out["intraday"] = True
+                out["date"] = stale.get("date") or stale.get("asof") or ""
+                out.pop("picks", None)
+                out.pop("runners", None)
+                _BOARDS_CACHE[boards_key] = (time.time(), out)
+                _mark_cached("盘中/非交易日：展示最近归档板块视图")
+                return out
         cfg["cap"] = min(int(cfg.get("cap") or 60), 30)
         cfg["aiOk"] = False
         cfg["aiTop"] = 0
@@ -2115,6 +2148,19 @@ async def run_scan(
                     out["off_market"] = True
                     out["date"] = stale.get("date") or stale.get("asof") or ""
                     _mark_cached("非交易日：直接展示最近交易日归档（可点「重新扫描」强制刷新）")
+                    return out
+            # 交易日盘中（未到 15:03 收盘）：今日数据尚未生成，展示上一交易日归档
+            if not _market_closed():
+                stale = _latest_history(market)
+                if stale:
+                    out = dict(stale)
+                    out["cached"] = True
+                    out["stale"] = True
+                    out["stale_from"] = stale.get("asof") or stale.get("date") or ""
+                    out["market_code"] = market
+                    out["intraday"] = True
+                    out["date"] = stale.get("date") or stale.get("asof") or ""
+                    _mark_cached("盘中未收盘：展示上一交易日归档（15:03 后自动更新今日）")
                     return out
         else:
             global _LAST_FULL_SCAN_TS
@@ -2267,7 +2313,7 @@ async def run_scan(
     for _c in analyzed:
         if str(_c.get("code") or "") in _board_leader_codes:
             _c["boardLeader"] = True
-            _c["A"]["score"] = min(100, int(_c["A"].get("score") or 0) + 4)
+            _c["A"]["score"] = min(100, int(_c["A"].get("score") or 0) + 2)
 
     rev_mainlines = reverse_mainline(analyzed, hot)
     rev_names = {it["name"] for it in rev_mainlines[:8]}
@@ -2324,9 +2370,16 @@ async def run_scan(
             c["revHit"] = True
             c["revName"] = str(c.get("ind") or "")
         p = a.get("patterns") or {}
-        must_start = bool(
-            p.get("surgeStart") or p.get("smallYang") or p.get("baseUp") or p.get("pullback")
-        )
+        _sv = float(a.get("score") or 0)
+        _sm = float(cfg.get("scoreMin") or 50)
+        if p.get("surgeStart") or p.get("pullback") or p.get("ztPullback"):
+            must_start = _sv >= _sm - 4
+        elif p.get("baseUp") or p.get("tightBurst"):
+            must_start = _sv >= _sm + 2
+        else:
+            must_start = _sv >= _sm + 12 and (
+                bool(p.get("leaderOk")) or bool(a.get("ma_bull3")) or a.get("volHealth") == 1
+            )
         line_ok = cfg.get("mainline") != "must" or bool(
             c.get("hot") or (c.get("kwHits") and len(c["kwHits"]) > 0)
             or (a.get("chg5", 0) >= 8 and c.get("amount", 0) >= 5e7 and a.get("volRatio", 0) >= 1.2)
@@ -2342,12 +2395,12 @@ async def run_scan(
             and not a.get("newHighWeak")
             and not a.get("atHighWeak")
             and not (a.get("amp20") and float(a.get("amp20") or 0) < 3)
-            and must_start and line_ok and a.get("score", 0) >= float(cfg.get("scoreMin") or 50)
+            and must_start and line_ok
         ):
             if c.get("mainHit"):
-                a["score"] = min(100, int(a["score"]) + 10)
+                a["score"] = min(100, int(a["score"]) + 4)
             if c["revHit"]:
-                a["score"] = min(100, int(a["score"]) + 6)
+                a["score"] = min(100, int(a["score"]) + 3)
             fine.append(c)
 
     fine.sort(key=lambda x: (0 if x.get("mainHit") else 1, -int(x["A"].get("score") or 0)))
@@ -2376,9 +2429,9 @@ async def run_scan(
                 s = _num(snap.get("score"))
                 if leader_mode:
                     # 龙头层：AI 复核风险以警示展示，不按 8 分/条同权扣分
-                    c["final"] = int(round(int(c["A"]["score"]) * 0.55 + s * 0.45))
+                    c["final"] = int(round(int(c["A"]["score"]) * 0.70 + s * 0.30))
                 else:
-                    c["final"] = int(round(int(c["A"]["score"]) * 0.55 + s * 0.45 - len(snap.get("risks") or []) * 8))
+                    c["final"] = int(round(int(c["A"]["score"]) * 0.70 + s * 0.30 - len(snap.get("risks") or []) * 8))
             else:
                 c["final"] = int(c["A"]["score"])
 
@@ -2452,7 +2505,7 @@ async def run_scan(
             if a.get("chg20", 0) > float(cfg["max60d"]):
                 continue
             if c.get("_board_tier") == "king":
-                a["score"] = min(100, int(a.get("score") or 0) + 4)
+                a["score"] = min(100, int(a.get("score") or 0) + 2)
             leader_pool.append(c)
         leader_pool.sort(key=lambda x: -int((x.get("A") or {}).get("score") or 0))
         leader_pre = leader_pool[: int(cfg.get("leaderBoards") or 3) * int(cfg.get("leaderPerBoard") or 3)]
@@ -2485,10 +2538,10 @@ async def run_scan(
                     continue
                 _f = int(c.get("final") or 0)
                 if c.get("mainHit"):
-                    if _f < 60:
+                    if _f < 56:
                         continue
                 else:
-                    if _f < 62:
+                    if _f < 58:
                         continue
                     if not (_num(c.get("mcap")) >= float(cfg.get("catchupMcapMin") or 50.0) * 1e8
                             and _num(c.get("mcap")) <= float(cfg.get("catchupMcapMax") or 300.0) * 1e8
@@ -2510,19 +2563,19 @@ async def run_scan(
         king: dict[str, Any] | None = None
         if zero_risk:
             z0 = zero_risk[0]
-            if int(z0.get("final") or 0) >= 62:
+            if int(z0.get("final") or 0) >= 56:
                 king = z0
         if king is None and all_sorted:
             for cand in all_sorted:
-                if int(cand.get("final") or 0) >= 62 and _num((cand.get("A") or {}).get("pe")) > 0:
+                if int(cand.get("final") or 0) >= 56 and _num((cand.get("A") or {}).get("pe")) > 0:
                     king = cand
                     break
             if king is None:
                 for cand in all_sorted:
-                    if int(cand.get("final") or 0) >= 62:
+                    if int(cand.get("final") or 0) >= 56:
                         king = cand
                         break
-        rest = [c for c in pool if c is not king and int(c.get("final") or 0) >= 62]
+        rest = [c for c in pool if c is not king and int(c.get("final") or 0) >= 56]
         keys = rest[:3]
         if king:
             king["tier"] = "king"
@@ -2532,11 +2585,23 @@ async def run_scan(
             c["tier"] = "key"
             c["star"] = False
             picks.append(c)
-    # 主推 2×2 排版：足 4 只显示 4 只；不足 4 只只显示 2 只（避免 3 只缺一格，宁缺毋滥）
+    # 主推 2×2 排版：足 4 只显示 4 只；不足 4 只只显示 2 只（3 只砍为 2 只，避免缺一格）；1 只补足到 2 只
     if len(picks) >= 4:
         picks = picks[:4]
     elif len(picks) == 3:
         picks = picks[:2]
+    # 主推仅 1 只时，从备选池补 1 只到 2 只（final>=50 优先、>=40 兜底），避免单卡孤悬
+    if len(picks) == 1 and all_sorted:
+        _used = {str(c.get("code")) for c in picks}
+        for _bk in all_sorted:
+            if str(_bk.get("code")) in _used:
+                continue
+            if int(_bk.get("final") or 0) >= 40:
+                _bk["tier"] = "key"
+                _bk["star"] = False
+                _bk["pick_role"] = "backup"
+                picks.append(_bk)
+                break
     for c in picks:
         c["strategy"] = build_strategy(c, c.get("tier") or "normal", c.get("pick_role"))
     for i, c in enumerate(picks):
@@ -2688,7 +2753,7 @@ def _mainline_members(names: list[str]) -> dict[str, Any]:
 
 # ---------------- 掘金收盘后定时预生成（服务内自触发） ----------------
 # （同日已有缓存或已预生成过则跳过；force 重扫仍由用户手动触发）
-_AUTO_SCAN_TS = 15 * 3600 + 35 * 60
+_AUTO_SCAN_TS = 15 * 3600 + 3 * 60
 _AUTO_SCAN_DONE: dict[str, bool] = {}
 
 

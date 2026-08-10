@@ -68,7 +68,7 @@ _CFG = None
 def cfg():
     global _CFG
     if _CFG is None:
-        _CFG = {"auto_scan_time": "15:35", "auto_scan": True}
+        _CFG = {"auto_scan_time": "15:03", "auto_scan": True}
         try:
             if os.path.exists(CFG_PATH):
                 _CFG.update(json.load(open(CFG_PATH, encoding="utf-8")))
@@ -89,7 +89,7 @@ def is_weekend():
 def now_hhmm():
     return datetime.now().strftime("%H:%M")
 def _after_close():
-    return now_hhmm() >= str(cfg().get("auto_scan_time") or "15:35")
+    return now_hhmm() >= str(cfg().get("auto_scan_time") or "15:03")
 def report_stale(report):
     """今日已生成但数据截至日早于今日，且已过收盘时间 → 陈旧，需重扫。"""
     if not report or report.get("today8") != today8():
@@ -1092,7 +1092,7 @@ def history(user_id: Optional[int] = Depends(get_optional_user_id)):
 
 class CfgIn(BaseModel):
     auto_scan: bool = True
-    auto_scan_time: str = "15:35"
+    auto_scan_time: str = "15:03"
 
 @router.get("/api/report/config")
 def get_cfg(user_id: Optional[int] = Depends(get_optional_user_id)):
