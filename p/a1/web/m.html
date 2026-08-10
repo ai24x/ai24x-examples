@@ -38,10 +38,11 @@ input{background:var(--panel2);border:1px solid var(--border);color:var(--text);
 .env-chip{flex:0 0 auto;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:11px;color:var(--muted);white-space:nowrap;cursor:pointer}
 .env-chip.active{border-color:var(--accent);color:var(--text)}
 .env-chip b{color:var(--text)}
-.chart-main{flex:1 1 42%;min-height:0;position:relative;background:var(--bg);padding:0 8px 0 4px}
-.chart-macd{flex:0 0 18%;min-height:0;border-top:1px solid var(--border);background:var(--bg);position:relative;padding:0 8px 10px 4px}
+.chart-wrap{flex:0 0 auto;height:56dvh;margin:6px 0 4px;display:flex;flex-direction:column;gap:8px;padding:0 2px;min-height:0}
+.chart-main{flex:4 4 0;min-height:0;position:relative;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:0 8px 0 4px;overflow:hidden}
+.chart-macd{flex:3 3 0;min-height:0;border:1px solid var(--border);background:var(--panel);position:relative;border-radius:10px;padding:0 8px 10px 4px;overflow:hidden}
 canvas{width:100%;height:100%;display:block}
-.chart-legend{position:absolute;left:14px;top:6px;font-size:11px;color:var(--muted);pointer-events:none;white-space:nowrap}
+.chart-legend{position:absolute;left:12px;top:6px;font-size:11px;color:var(--muted);pointer-events:none;white-space:nowrap}
 .bottombar{flex:0 0 auto;display:flex;align-items:center;gap:4px;padding:6px 8px calc(6px + env(safe-area-inset-bottom));background:var(--panel);border-top:1px solid var(--border)}
 .bottombar .grp{display:flex;gap:2px;background:var(--panel2);border-radius:8px;padding:2px}
 .bottombar .grp button{padding:6px 10px;border-radius:6px;font-size:13px;color:var(--muted)}
@@ -86,14 +87,15 @@ canvas{width:100%;height:100%;display:block}
 
 <div class="env-strip" id="env-strip"></div>
 
-<div class="chart-main">
-  <div class="chart-legend" id="k-legend">均线 · 信号标注</div>
-  <canvas id="k-canvas"></canvas>
-</div>
-
-<div class="chart-macd">
-  <div class="chart-legend" id="m-legend">量能</div>
-  <canvas id="m-canvas"></canvas>
+<div class="chart-wrap">
+  <div class="chart-main">
+    <div class="chart-legend" id="k-legend">均线 · 信号标注</div>
+    <canvas id="k-canvas"></canvas>
+  </div>
+  <div class="chart-macd">
+    <div class="chart-legend" id="m-legend">量能</div>
+    <canvas id="m-canvas"></canvas>
+  </div>
 </div>
 
 <div class="bottombar">
@@ -149,19 +151,6 @@ function api(path, qs){
   return fetch(url, { headers: h }).then(function(r){ return r.json().catch(function(){ return {}; }); });
 }
 function fmt(n){ return (n==null||isNaN(n)) ? "--" : Number(n).toFixed(2); }
-function fmtBig(n){ if(n==null||isNaN(n)) return ""; var v=Number(n); var a=Math.abs(v); var s=v<0?"-":"+"; if(a>=1e8) return s+(a/1e8).toFixed(2)+"亿"; if(a>=1e4) return s+(a/1e4).toFixed(1)+"万"; return s+a.toFixed(0); }
-function firstEntry(d){
-  try {
-    var data = d && d.data;
-    if (!data) return null;
-    var keys = Object.keys(data);
-    for (var i=0;i<keys.length;i++){
-      var v = data[keys[i]];
-      if (v && typeof v === "object" && !Array.isArray(v)) return v;
-    }
-  } catch(e){}
-  return null;
-}
 
 var state = { secid: "1.000001", period: "day", name: "上证指数", favs: [], vis: 60, zoom: 1 };
 try{ state.favs = JSON.parse(localStorage.getItem("ai24x_m_favs") || "[]"); }catch(e){ state.favs = []; }
@@ -229,54 +218,22 @@ function doSearch(){
 document.getElementById("btn-go").addEventListener("click", doSearch);
 qEl.addEventListener("keydown", function(e){ if (e.key === "Enter") doSearch(); });
 
-/* ===== 报价 ===== */
-function loadQuote(){
-  api("/api/quote/snapshot", "secid=" + encodeURIComponent(state.secid)).then(function(d){
-    var o = firstEntry(d) || {};
-    var px = o.price ?? o.close ?? o.last ?? null;
-    var chg = o.change_pct ?? o.pct ?? o.change_percent ?? null;
-    var fund = o.main_net_inflow ?? o.fund_net ?? o.mainflow ?? null;
-    var nm = o.name || state.name;
-    state.name = nm;
-    document.getElementById("q-nm").textContent = nm;
-    document.getElementById("q-px").textContent = fmt(px);
-    var chgEl = document.getElementById("q-chg");
-    if (chg != null) {
-      var c = Number(chg);
-      chgEl.textContent = (c>=0?"+":"") + c.toFixed(2) + "%";
-      chgEl.style.color = c>=0 ? "var(--up)" : "var(--down)";
-      document.getElementById("q-px").style.color = c>=0 ? "var(--up)" : "var(--down)";
-    }
-    document.getElementById("q-fund").textContent = fund!=null ? ("主力 " + fmtBig(fund)) : "";
-  }).catch(function(){});
-}
-
-/* ===== 大盘环境条（上证/深证/中证/北证，可点击切换） ===== */
-var ENV = [["1.000001","上证指数"],["0.399001","深证成指"],["1.000852","中证1000"],["0.899050","北证50"]];
-function loadEnv(){
-  var el = document.getElementById("env-strip"); el.innerHTML = "";
-  ENV.forEach(function(e, i){
-    var chip = document.createElement("div"); chip.className = "env-chip";
-    chip.dataset.secid = e[0]; chip.dataset.name = e[1];
-    chip.innerHTML = e[1];
-    if (e[0] === state.secid) chip.classList.add("active");
-    chip.addEventListener("click", function(){
-      if (state.secid === this.dataset.secid) return;
-      goto(this.dataset.secid, this.dataset.name);
-      var cs = el.querySelectorAll(".env-chip"); cs.forEach(function(c){ c.classList.toggle("active", c === chip); });
-    });
-    el.appendChild(chip);
-    api("/api/quote/snapshot", "secid=" + e[0]).then(function(d){
-      var o = firstEntry(d) || {};
-      var c = o.change_pct ?? o.pct ?? null;
-      if (c != null) chip.innerHTML = e[1] + " <b style='color:" + (c>=0?"var(--up)":"var(--down)") + "'>" + (c>=0?"+":"") + Number(c).toFixed(2) + "%</b>";
-    }).catch(function(){});
-  });
-}
-
 /* ===== K线（带 period 参数；遍历兼容 day/qfqday/week/qfqweek/month/qfqmonth 全字段） ===== */
 var COUNT = { day: 400, week: 560, month: 660 };
 var KLINE_KEYS = ["qfqday","day","qfqweek","week","qfqmonth","month"];
+function pickKlineRows(d){
+  if (!d || !d.data) return null;
+  var keys = Object.keys(d.data);
+  for (var k=0;k<KLINE_KEYS.length;k++){
+    for (var i=0;i<keys.length;i++){
+      var v = d.data[keys[i]];
+      if (!v || typeof v !== "object" || Array.isArray(v)) continue;
+      var a = v[KLINE_KEYS[k]];
+      if (Array.isArray(a) && a.length) return a;
+    }
+  }
+  return null;
+}
 function loadKline(){
   var cnt = COUNT[state.period] || 400;
   return api("/api/kline", "secid=" + encodeURIComponent(state.secid) + "&period=" + encodeURIComponent(state.period) + "&count=" + cnt).then(function(d){
@@ -294,16 +251,7 @@ function loadKline(){
           if (Array.isArray(a) && a.length){ rows = a; break; }
         }
       }
-      if (!rows) {
-        for (var i2=0;i2<KLINE_KEYS.length && !rows;i2++){
-          for (var j=0;j<keys.length;j++){
-            var v2 = d.data[keys[j]];
-            if (!v2 || typeof v2 !== "object" || Array.isArray(v2)) continue;
-            var a2 = v2[KLINE_KEYS[i2]];
-            if (Array.isArray(a2) && a2.length){ rows = a2; break; }
-          }
-        }
-      }
+      if (!rows) rows = pickKlineRows(d);
     }
     if (!rows || !rows.length) throw new Error("no data");
     return rows.map(function(r){ return { t:r[0], o:+r[1], c:+r[2], h:+r[3], l:+r[4], v:+r[5] }; });
@@ -329,6 +277,47 @@ function macd(rows){
   for (var i=0;i<closes.length;i++){ if (dif[i]!=null){ deaFull[i]=dea[j]; j++; } }
   var hist = closes.map(function(_,i){ return (dif[i]!=null&&deaFull[i]!=null) ? (dif[i]-deaFull[i])*2 : null; });
   return { dif: dif, dea: deaFull, hist: hist };
+}
+
+/* ===== 报价/涨跌幅：由 K 线收盘价计算（原版同口径，不依赖需登录的快照接口） ===== */
+function updateQuote(rows){
+  if (!rows || rows.length < 2) return;
+  var cur = rows[rows.length-1].c, prev = rows[rows.length-2].c;
+  var chg = prev != null && !isNaN(prev) && prev !== 0 ? (cur - prev) / prev * 100 : null;
+  document.getElementById("q-nm").textContent = state.name || "行情";
+  document.getElementById("q-px").textContent = fmt(cur);
+  var chgEl = document.getElementById("q-chg");
+  if (chg != null){
+    chgEl.textContent = (chg>=0?"+":"") + chg.toFixed(2) + "%";
+    chgEl.style.color = chg>=0 ? "var(--up)" : "var(--down)";
+    document.getElementById("q-px").style.color = chg>=0 ? "var(--up)" : "var(--down)";
+  }
+}
+
+/* ===== 大盘环境条（上证/深证/中证/北证，可点击切换，涨跌幅由K线计算） ===== */
+var ENV = [["1.000001","上证指数"],["0.399001","深证成指"],["1.000852","中证1000"],["0.899050","北证50"]];
+function loadEnv(){
+  var el = document.getElementById("env-strip"); el.innerHTML = "";
+  ENV.forEach(function(e, i){
+    var chip = document.createElement("div"); chip.className = "env-chip";
+    chip.dataset.secid = e[0]; chip.dataset.name = e[1];
+    chip.innerHTML = e[1];
+    if (e[0] === state.secid) chip.classList.add("active");
+    chip.addEventListener("click", function(){
+      if (state.secid === this.dataset.secid) return;
+      goto(this.dataset.secid, this.dataset.name);
+      var cs = el.querySelectorAll(".env-chip"); cs.forEach(function(c){ c.classList.toggle("active", c === chip); });
+    });
+    el.appendChild(chip);
+    api("/api/kline", "secid=" + encodeURIComponent(e[0]) + "&period=day&count=120").then(function(d){
+      var rows = pickKlineRows(d);
+      if (rows && rows.length >= 2){
+        var c1 = +rows[rows.length-1][2], c0 = +rows[rows.length-2][2];
+        var pct = c0 ? (c1 - c0) / c0 * 100 : null;
+        if (pct != null) chip.innerHTML = e[1] + " <b style='color:" + (pct>=0?"var(--up)":"var(--down)") + "'>" + (pct>=0?"+":"") + pct.toFixed(2) + "%</b>";
+      }
+    }).catch(function(){});
+  });
 }
 
 /* ===== 信号（对齐原版文案：下方 小底/底/金，上方 险/破/顶，不出「卖」） ===== */
@@ -368,7 +357,7 @@ function renderSigList(){
   });
 }
 
-/* ===== 绘制（K线加宽不瘦长；信号=小圆点+文字留间距；量能副图跟随缩放且底部大留白防遮挡） ===== */
+/* ===== 绘制（信号=小圆点+文字留间距；量能副图跟随缩放且底部大留白防遮挡） ===== */
 function resize(cv){
   var dpr = window.devicePixelRatio || 1;
   var w = cv.clientWidth, h = cv.clientHeight;
@@ -400,7 +389,7 @@ function drawK(rows, sigs){
   sub.forEach(function(r){ if(r.l<lo)lo=r.l; if(r.h>hi)hi=r.h; });
   var mid = (hi + lo) / 2, half = ((hi - lo) / 2) * state.zoom;
   hi = mid + half; lo = mid - half;
-  var padL=8, padR=18, padT=18, padB=14;
+  var padL=8, padR=18, padT=14, padB=10;
   var plotW = W - padL - padR, plotH = H - padT - padB;
   var range = (hi - lo) || 1;
   function x(i){ return padL + (i/(vis-1))*plotW; }
@@ -500,7 +489,7 @@ function render(){
       cacheRows = rows; cacheSigs = sigs;
       drawK(rows, sigs);
       drawM(rows);
-      document.getElementById("q-px").textContent = fmt(rows[rows.length-1].c);
+      updateQuote(rows);
     });
   }).catch(function(){
     var cv = document.getElementById("k-canvas");
@@ -508,7 +497,7 @@ function render(){
   });
 }
 function redraw(){ if (cacheRows) { drawK(cacheRows, cacheSigs); drawM(cacheRows); } else render(); }
-function refresh(){ loadQuote(); render(); }
+function refresh(){ render(); }
 
 function goto(secid, name){
   if (!secid) return;
