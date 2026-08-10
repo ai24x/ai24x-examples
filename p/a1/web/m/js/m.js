@@ -791,12 +791,72 @@ function openShare(){
     });
   }
 }
+function dataUrlToBlob(dataUrl){
+  try {
+    var idx = dataUrl.indexOf(",");
+    if (idx < 0) return null;
+    var meta = dataUrl.slice(0, idx);
+    var mm = /data:([^;]+)/.exec(meta);
+    var mime = mm ? mm[1] : "image/png";
+    var bin = atob(dataUrl.slice(idx + 1));
+    var arr = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return new Blob([arr], { type: mime });
+  } catch (e) { return null; }
+}
+function showSaveToast(msg){
+  var t = document.createElement("div");
+  t.style.cssText = "position:fixed;left:50%;bottom:14%;transform:translateX(-50%);max-width:82vw;padding:10px 16px;border-radius:10px;background:rgba(11,18,32,.94);color:#e6edf7;font-size:14px;line-height:1.5;z-index:99999;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.4)";
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function(){ t.style.transition = "opacity .3s"; t.style.opacity = "0"; }, 2400);
+  setTimeout(function(){ if (t.parentNode) t.parentNode.removeChild(t); }, 2800);
+}
+function openShareCardPage(src){
+  var filename = (state.name || state.secid) + "_sharecard.png";
+  var mask = document.createElement("div");
+  mask.id = "card-preview";
+  mask.style.cssText = "position:fixed;inset:0;z-index:99998;background:rgba(4,8,16,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;";
+  var closeBtn = document.createElement("div");
+  closeBtn.textContent = "× 关闭";
+  closeBtn.style.cssText = "position:fixed;top:16px;right:18px;color:#8aa0bf;font-size:16px;padding:10px;z-index:2";
+  var inner = document.createElement("div");
+  inner.style.cssText = "display:flex;flex-direction:column;align-items:center;justify-content:center;width:92vw;max-height:88vh";
+  var im = document.createElement("img");
+  im.src = src;
+  im.style.cssText = "max-width:92vw;max-height:74vh;border-radius:12px;background:#fff;box-shadow:0 6px 24px rgba(0,0,0,.5)";
+  var tip = document.createElement("div");
+  tip.style.cssText = "color:#8aa0bf;font-size:14px;line-height:1.7;text-align:center;margin-top:14px;padding:0 8px";
+  tip.innerHTML = "长按图片 → 保存到相册 / 转发<br/>如菜单未弹出，可截图后裁剪使用";
+  var dl = document.createElement("a");
+  dl.textContent = "尝试直接下载";
+  dl.href = src;
+  dl.download = filename;
+  dl.style.cssText = "display:inline-block;margin-top:12px;padding:9px 22px;border-radius:20px;background:#2563eb;color:#fff;font-size:15px;text-decoration:none";
+  inner.appendChild(im); inner.appendChild(tip); inner.appendChild(dl);
+  mask.appendChild(closeBtn); mask.appendChild(inner);
+  function close(){ if (mask.parentNode) mask.parentNode.removeChild(mask); }
+  closeBtn.addEventListener("click", close);
+  mask.addEventListener("click", function(e){ if (e.target === mask) close(); });
+  document.body.appendChild(mask);
+  showSaveToast("长按图片可保存到相册或转发");
+}
 function saveCard(){
   var img = document.getElementById("card-img");
   if (!img || !img.src) return;
-  var a = document.createElement("a");
-  a.href = img.src; a.download = (state.name || state.secid) + "_sharecard.png";
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  var src = img.src;
+  var filename = (state.name || state.secid) + "_sharecard.png";
+  var blob = dataUrlToBlob(src);
+  if (blob && navigator.share && navigator.canShare) {
+    try {
+      var file = new File([blob], filename, { type: "image/png" });
+      if (navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: state.name || "AI行情官", text: "AI行情官 · " + (state.name || state.secid) + " 分享卡片" }).catch(function(){ openShareCardPage(src); });
+        return;
+      }
+    } catch (e) {}
+  }
+  openShareCardPage(src);
 }
 function render(){
   var want = String(state.secid || "");
