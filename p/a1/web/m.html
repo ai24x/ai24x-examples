@@ -14,19 +14,19 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden}
 body{height:100dvh;display:flex;flex-direction:column;background:var(--bg);color:var(--text);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;font-size:14px}
-button{background:none;border:none;color:var(--text);cursor:pointer;font-size:14px}
+button{background:none;border:none;color:var(--text);cursor:pointer;font-size:14px;padding:6px 10px}
 input{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 10px;font-size:14px;outline:none;width:100%}
 
 /* 顶栏 */
-.topbar{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--panel);border-bottom:1px solid var(--border)}
+.topbar{display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--panel);border-bottom:1px solid var(--border)}
+.topbar .home{font-size:13px;color:var(--muted);white-space:nowrap}
 .topbar .search{flex:1;position:relative}
-.topbar .search input{padding-right:30px}
 .topbar .search .go{position:absolute;right:4px;top:50%;transform:translateY(-50%);color:var(--accent);font-size:16px;padding:4px}
 .topbar .fav-toggle{font-size:20px;color:var(--gold)}
 .topbar .more{font-size:18px;color:var(--muted)}
 
 /* 报价条 */
-.quote-strip{display:flex;align-items:baseline;gap:10px;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--border);flex-wrap:nowrap;overflow-x:auto}
+.quote-strip{display:flex;align-items:baseline;gap:10px;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--border);overflow-x:auto}
 .quote-strip .nm{font-size:15px;font-weight:700;white-space:nowrap}
 .quote-strip .px{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
 .quote-strip .chg{font-size:13px;font-weight:700;white-space:nowrap}
@@ -49,6 +49,8 @@ canvas{width:100%;height:100%;display:block}
 .bottombar .grp{display:flex;gap:2px;background:var(--panel2);border-radius:8px;padding:2px}
 .bottombar .grp button{padding:6px 10px;border-radius:6px;font-size:13px;color:var(--muted)}
 .bottombar .grp button.on{background:var(--accent);color:#fff}
+.bottombar .act{font-size:13px;color:var(--text)}
+.bottombar .act.signal{color:var(--gold)}
 .bottombar .spacer{flex:1}
 
 /* 弹出卡片 */
@@ -59,14 +61,21 @@ canvas{width:100%;height:100%;display:block}
 .sheet .card .close{position:absolute;right:12px;top:10px;font-size:18px;color:var(--muted)}
 .legend-item{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;color:var(--text)}
 .legend-item .dot{width:10px;height:10px;border-radius:3px;flex:0 0 auto}
+.sig-row{display:flex;justify-content:space-between;gap:10px;padding:8px 2px;border-bottom:1px solid rgba(148,163,184,.15);font-size:13px}
+.sig-row:last-child{border-bottom:none}
+.sig-row .d{color:var(--muted);white-space:nowrap}
+.sig-row .s{color:var(--gold);font-weight:700;white-space:nowrap}
+.sig-row .t{color:var(--text);text-align:right;flex:1}
 .tip-text{font-size:12px;color:var(--muted);line-height:1.9}
 .tip-text b{color:var(--gold)}
+.empty{color:var(--muted);font-size:13px;padding:12px 2px}
 </style>
 </head>
 <body>
 
 <!-- 顶栏 -->
 <div class="topbar">
+  <button class="home" id="btn-home">首页</button>
   <div class="search">
     <input id="q" placeholder="代码/名称，如 600519、贵州茅台" enterkeyhint="search" />
     <button class="go" id="btn-go">🔍</button>
@@ -94,7 +103,7 @@ canvas{width:100%;height:100%;display:block}
 
 <!-- 迷你MACD -->
 <div class="chart-macd">
-  <div class="chart-legend" style="font-size:10px">MACD(12,26,9)</div>
+  <div class="chart-legend" id="m-legend">动能</div>
   <canvas id="m-canvas"></canvas>
 </div>
 
@@ -105,28 +114,39 @@ canvas{width:100%;height:100%;display:block}
     <button data-p="week">周</button>
     <button data-p="month">月</button>
   </div>
+  <button class="act signal" id="btn-signal">信号</button>
   <div class="spacer"></div>
-  <button id="btn-desktop" style="color:var(--muted);font-size:12px">桌面版↗</button>
+  <button class="act" id="btn-desktop">桌面版</button>
+</div>
+
+<!-- 信号列表弹出卡 -->
+<div class="sheet" id="sheet-signal">
+  <div class="card">
+    <button class="close" id="close-signal">✕</button>
+    <h3>近期信号</h3>
+    <div id="sig-list"><div class="empty">加载中…</div></div>
+    <h3 style="margin-top:14px">信号说明</h3>
+    <div class="tip-text">
+      <b>底/金信号</b>：波段底部或均线金叉提示，代表转强迹象；<br/>
+      <b>风险信号</b>：高位风险提示，代表需谨慎；<br/>
+      信号仅供参考，<b>不构成投资建议</b>。
+    </div>
+  </div>
 </div>
 
 <!-- 更多弹出卡 -->
 <div class="sheet" id="sheet-more">
   <div class="card">
     <button class="close" id="close-more">✕</button>
-    <h3>信号图例</h3>
-    <div class="legend-item"><span class="dot" style="background:#f87171"></span>底1 / 底2：波段底部信号</div>
-    <div class="legend-item"><span class="dot" style="background:#fbbf24"></span>金叉信号：均线金叉</div>
-    <div class="legend-item"><span class="dot" style="background:#60a5fa"></span>风险信号：高位风险提示</div>
-    <div class="legend-item"><span class="dot" style="background:#34d399"></span>MA14/MA28/MA57 双生命线</div>
+    <h3>自选列表</h3>
+    <div id="fav-list"><div class="empty">暂无自选，点击 ☆ 收藏</div></div>
     <h3 style="margin-top:14px">使用要领</h3>
     <div class="tip-text">
-      ① <b>底/金信号</b>用于辅助判断波段节奏，非买卖指令；<br/>
-      ② 主图叠加三条均线（14/28/57），金叉站上生命线偏强；<br/>
-      ③ MACD 红柱增强、绿柱走弱，用于观察动能；<br/>
+      ① 底部「信号」可查看近期信号明细；<br/>
+      ② 上方「首页」返回 AI行情官主站（登录后自动生效）；<br/>
+      ③ 长按截图即可分享当前行情页；<br/>
       ④ 行情仅供参考，<b>不构成投资建议</b>。
     </div>
-    <h3 style="margin-top:14px">分享</h3>
-    <div class="tip-text">当前为手机版一屏视图；长按截图即可分享当前行情页。</div>
   </div>
 </div>
 
@@ -147,15 +167,16 @@ function fmtBig(n){ if(n==null||isNaN(n)) return ""; var v=Number(n); var a=Math
 /* ===== 状态 ===== */
 var state = { secid: "1.000001", period: "day", name: "上证指数", favs: [] };
 try{ state.favs = JSON.parse(localStorage.getItem("ai24x_m_favs") || "[]"); }catch(e){ state.favs = []; }
+var sigCache = [];
 
-/* ===== 标的解析（输入 6 位代码 → secid） ===== */
+/* ===== 标的解析 ===== */
 function codeToSecid(code){
   code = String(code).trim();
   if (/^\d{6}$/.test(code)) {
-    if (code.startsWith("6") || code.startsWith("9") || code.startsWith("4") || code.startsWith("8") || code.startsWith("920")) return "1." + code;
+    if (code.startsWith("6") || code.startsWith("9") || code.startsWith("4") || code.startsWith("8")) return "1." + code;
     return "0." + code;
   }
-  if (/^\d+\.\d{6}$/.test(code)) return code; // 已带市场前缀
+  if (/^\d+\.\d{6}$/.test(code)) return code;
   return null;
 }
 
@@ -182,23 +203,18 @@ function loadQuote(){
 }
 
 /* ===== 大盘环境条 ===== */
-var ENV = [
-  ["1.000001","上证"], ["0.399001","深成"], ["0.399006","创业板"],
-  ["1.000300","沪深300"], ["1.000852","中证1000"], ["0.899050","北证50"]
-];
+var ENV = [["1.000001","上证"],["0.399001","深成"],["0.399006","创业板"],["1.000300","沪深300"],["1.000852","中证1000"],["0.899050","北证50"]];
 function loadEnv(){
   var el = document.getElementById("env-strip"); el.innerHTML = "";
   ENV.forEach(function(e, i){
     var chip = document.createElement("div"); chip.className = "env-chip";
     chip.innerHTML = e[1] + " <b>--</b>";
     el.appendChild(chip);
-    if (i > 2) return; // 前3个实时刷新，其余静态占位
+    if (i > 2) return;
     api("/api/quote/snapshot", "secid=" + e[0]).then(function(d){
       var o = d && d.data ? (d.data[e[0]] || {}) : {};
       var c = o.change_pct ?? o.pct ?? null;
-      if (c != null) {
-        chip.innerHTML = e[1] + " <b style='color:" + (c>=0?"var(--up)":"var(--down)") + "'>" + (c>=0?"+":"") + Number(c).toFixed(2) + "%</b>";
-      }
+      if (c != null) chip.innerHTML = e[1] + " <b style='color:" + (c>=0?"var(--up)":"var(--down)") + "'>" + (c>=0?"+":"") + Number(c).toFixed(2) + "%</b>";
     }).catch(function(){});
   });
 }
@@ -206,9 +222,8 @@ function loadEnv(){
 /* ===== K线数据 ===== */
 var COUNT = { day: 400, week: 560, month: 660 };
 function loadKline(){
-  var secid = state.secid, period = state.period;
-  var cnt = COUNT[period] || 400;
-  return api("/api/kline", "secid=" + encodeURIComponent(secid) + "&count=" + cnt).then(function(d){
+  var cnt = COUNT[state.period] || 400;
+  return api("/api/kline", "secid=" + encodeURIComponent(state.secid) + "&count=" + cnt).then(function(d){
     var rows = null;
     if (d && d.data) {
       var keys = Object.keys(d.data);
@@ -219,29 +234,19 @@ function loadKline(){
       }
     }
     if (!rows || !rows.length) throw new Error("no data");
-    // 行格式 [日期,开,收,高,低,量]
-    return rows.map(function(r){
-      return { t: r[0], o:+r[1], c:+r[2], h:+r[3], l:+r[4], v:+r[5] };
-    });
+    return rows.map(function(r){ return { t:r[0], o:+r[1], c:+r[2], h:+r[3], l:+r[4], v:+r[5] }; });
   });
 }
 
-/* ===== 技术指标 ===== */
+/* ===== 技术指标（内部计算，不展示参数） ===== */
 function sma(arr, p){
   var out = new Array(arr.length).fill(null); var s = 0;
-  for (var i=0;i<arr.length;i++){
-    s += arr[i];
-    if (i >= p) s -= arr[i-p];
-    if (i >= p-1) out[i] = s / p;
-  }
+  for (var i=0;i<arr.length;i++){ s += arr[i]; if (i>=p) s -= arr[i-p]; if (i>=p-1) out[i] = s/p; }
   return out;
 }
 function ema(arr, p){
   var out = new Array(arr.length).fill(null); var k = 2/(p+1); var prev = null;
-  for (var i=0;i<arr.length;i++){
-    prev = (prev==null) ? arr[i] : arr[i]*k + prev*(1-k);
-    out[i] = prev;
-  }
+  for (var i=0;i<arr.length;i++){ prev = (prev==null) ? arr[i] : arr[i]*k + prev*(1-k); out[i] = prev; }
   return out;
 }
 function macd(rows){
@@ -249,31 +254,49 @@ function macd(rows){
   var e12 = ema(closes,12), e26 = ema(closes,26);
   var dif = closes.map(function(_,i){ return (e12[i]!=null&&e26[i]!=null) ? e12[i]-e26[i] : null; });
   var dea = ema(dif.filter(function(v){return v!=null;}), 9);
-  var deaFull = new Array(closes.length).fill(null);
-  var j = 0;
+  var deaFull = new Array(closes.length).fill(null); var j=0;
   for (var i=0;i<closes.length;i++){ if (dif[i]!=null){ deaFull[i]=dea[j]; j++; } }
   var hist = closes.map(function(_,i){ return (dif[i]!=null&&deaFull[i]!=null) ? (dif[i]-deaFull[i])*2 : null; });
   return { dif: dif, dea: deaFull, hist: hist };
 }
 
 /* ===== 信号 ===== */
+function normSig(s){
+  var type = s.type || s.signal || s.name || "";
+  var label = type;
+  if (type.indexOf("底")>=0) label = "底信号";
+  else if (type.indexOf("金")>=0) label = "金信号";
+  else if (type.indexOf("风险")>=0) label = "风险";
+  return { date: s.date || s.day || "", label: label, note: s.note || s.desc || s.info || s.position || "" };
+}
 function loadSignals(){
   return api("/api/signals", "secid=" + encodeURIComponent(state.secid) + "&count=400").then(function(d){
-    if (d && d.code === 0 && Array.isArray(d.signals)) return d.signals;
-    if (d && Array.isArray(d.signals)) return d.signals;
-    if (d && Array.isArray(d.data)) return d.data;
-    return [];
-  }).catch(function(){ return []; });
+    var arr = null;
+    if (d && Array.isArray(d.signals)) arr = d.signals;
+    else if (d && Array.isArray(d.data)) arr = d.data;
+    else if (d && d.data && Array.isArray(d.data.signals)) arr = d.data.signals;
+    sigCache = (arr || []).map(normSig);
+    return sigCache;
+  }).catch(function(){ sigCache = []; return []; });
+}
+function renderSigList(){
+  var el = document.getElementById("sig-list");
+  if (!sigCache.length){ el.innerHTML = '<div class="empty">近期暂无信号</div>'; return; }
+  el.innerHTML = "";
+  sigCache.slice(-15).reverse().forEach(function(s){
+    var row = document.createElement("div"); row.className = "sig-row";
+    row.innerHTML = '<span class="d">' + (s.date||"") + '</span><span class="s">' + s.label + '</span><span class="t">' + (s.note||"") + '</span>';
+    el.appendChild(row);
+  });
 }
 
 /* ===== 绘制 ===== */
 function resize(cv){
   var dpr = window.devicePixelRatio || 1;
   var w = cv.clientWidth, h = cv.clientHeight;
-  if (!w || !h) return;
+  if (!w || !h) return null;
   cv.width = w * dpr; cv.height = h * dpr;
-  var ctx = cv.getContext("2d");
-  ctx.setTransform(dpr,0,0,dpr,0,0);
+  var ctx = cv.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0);
   return { ctx: ctx, w: w, h: h };
 }
 function drawK(rows, sigs){
@@ -281,32 +304,28 @@ function drawK(rows, sigs){
   var R = resize(cv); if (!R) return;
   var ctx = R.ctx, W = R.w, H = R.h;
   ctx.clearRect(0,0,W,H);
-  if (!rows || !rows.length) { ctx.fillStyle="#8aa0bf"; ctx.font="12px sans-serif"; ctx.fillText("暂无数据", 12, 20); return; }
+  if (!rows || !rows.length) { ctx.fillStyle="#8aa0bf"; ctx.font="12px sans-serif"; ctx.fillText("暂无数据",12,20); return; }
   var closes = rows.map(function(r){ return r.c; });
-  var ma14 = sma(closes,14), ma28 = sma(closes,28), ma57 = sma(closes,57);
-  // 可见范围：最近 60 根
+  var ma1 = sma(closes,14), ma2 = sma(closes,28), ma3 = sma(closes,57);
   var vis = Math.min(rows.length, 60);
   var sub = rows.slice(rows.length - vis);
   var lo = Infinity, hi = -Infinity;
   sub.forEach(function(r){ if(r.l<lo)lo=r.l; if(r.h>hi)hi=r.h; });
-  var padR = 6, padT = 18, padB = 4;
+  var padR=6, padT=18, padB=4;
   var plotW = W - padR, plotH = H - padT - padB;
   var range = (hi - lo) || 1;
-  function x(i){ return padR + (i / (vis-1)) * plotW; }
-  function y(p){ return padT + (hi - p) / range * plotH; }
-  var cw = Math.max(1, plotW / vis * 0.6);
-  // 网格
+  function x(i){ return padR + (i/(vis-1))*plotW; }
+  function y(p){ return padT + (hi-p)/range*plotH; }
+  var cw = Math.max(1, plotW/vis*0.6);
   ctx.strokeStyle = "rgba(148,163,184,.12)"; ctx.lineWidth = 1;
-  for (var g=1; g<5; g++){ var gy = padT + plotH*g/5; ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke(); }
-  // K线
+  for (var g=1;g<5;g++){ var gy=padT+plotH*g/5; ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke(); }
   for (var i=0;i<vis;i++){
     var r = sub[i], xi = x(i);
     var up = r.c >= r.o;
     ctx.strokeStyle = up ? "#f87171" : "#34d399"; ctx.fillStyle = up ? "#f87171" : "#34d399";
     ctx.beginPath(); ctx.moveTo(xi, y(r.h)); ctx.lineTo(xi, y(r.l)); ctx.stroke();
-    ctx.fillRect(xi - cw/2, Math.min(y(r.o), y(r.c)), cw, Math.max(1, Math.abs(y(r.o)-y(r.c))));
+    ctx.fillRect(xi-cw/2, Math.min(y(r.o),y(r.c)), cw, Math.max(1, Math.abs(y(r.o)-y(r.c))));
   }
-  // 均线
   function line(arr, color){
     ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.beginPath(); var started = false;
     for (var i=0;i<vis;i++){
@@ -317,25 +336,22 @@ function drawK(rows, sigs){
     }
     ctx.stroke();
   }
-  line(ma14, "#60a5fa"); line(ma28, "#fbbf24"); line(ma57, "#c084fc");
-  // 信号标记
+  line(ma1, "#60a5fa"); line(ma2, "#fbbf24"); line(ma3, "#c084fc");
   if (sigs && sigs.length) {
-    var sigByDate = {};
-    sigs.forEach(function(s){ if (s && s.date) sigByDate[String(s.date)] = s; });
+    var byDate = {}; sigs.forEach(function(s){ if (s.date) byDate[String(s.date)] = s; });
     ctx.font = "10px sans-serif";
     for (var j=0;j<vis;j++){
-      var r = sub[j], s = sigByDate[String(r.t)];
+      var r = sub[j], s = byDate[String(r.t)];
       if (!s) continue;
-      var label = s.type || s.signal || "";
+      var lab = s.label || s.type || "";
       var sy = y(r.h) - 6;
-      if (label.indexOf("底")>=0 || label.indexOf("金")>=0) { ctx.fillStyle = "#fbbf24"; }
-      else if (label.indexOf("风险")>=0) { ctx.fillStyle = "#f87171"; }
+      if (lab.indexOf("底")>=0 || lab.indexOf("金")>=0) ctx.fillStyle = "#fbbf24";
+      else if (lab.indexOf("风险")>=0) ctx.fillStyle = "#f87171";
       else ctx.fillStyle = "#60a5fa";
-      ctx.fillText(label.slice(0,2), x(j)-8, sy);
+      ctx.fillText(String(lab).slice(0,2), x(j)-8, sy);
     }
   }
-  // 图例
-  document.getElementById("k-legend").textContent = "MA14 #60a5fa · MA28 #fbbf24 · MA57 #c084fc";
+  document.getElementById("k-legend").textContent = "均线（短/中/长） · 信号标注";
 }
 function drawM(rows){
   var cv = document.getElementById("m-canvas");
@@ -348,16 +364,13 @@ function drawM(rows){
   var start = rows.length - vis;
   var vals = [];
   for (var i=start;i<rows.length;i++){ if (m.hist[i]!=null) vals.push(m.hist[i]); }
-  var mx = 1;
-  vals.forEach(function(v){ var a=Math.abs(v); if(a>mx)mx=a; });
+  var mx = 1; vals.forEach(function(v){ var a=Math.abs(v); if(a>mx)mx=a; });
   var padT=4, padB=4, padL=4, padR=4;
-  var plotH = H - padT - padB, plotW = W - padL - padR;
+  var plotH = H-padT-padB, plotW = W-padL-padR;
   function x(i){ return padL + (i/(vis-1))*plotW; }
-  function y(v){ return padT + (mx - v)/(2*mx)*plotH; }
-  // 零轴
-  ctx.strokeStyle = "rgba(148,163,184,.3)"; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(0, y(0)); ctx.lineTo(W, y(0)); ctx.stroke();
-  // 柱
+  function y(v){ return padT + (mx-v)/(2*mx)*plotH; }
+  ctx.strokeStyle = "rgba(148,163,184,.3)"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0,y(0)); ctx.lineTo(W,y(0)); ctx.stroke();
   var cw = Math.max(1, plotW/vis*0.6);
   for (var i=0;i<vis;i++){
     var v = m.hist[start+i]; if (v==null) continue;
@@ -365,6 +378,7 @@ function drawM(rows){
     ctx.fillStyle = v>=0 ? "rgba(248,113,113,.85)" : "rgba(52,211,153,.85)";
     ctx.fillRect(xi-cw/2, Math.min(y0,yv), cw, Math.max(1, Math.abs(y0-yv)));
   }
+  document.getElementById("m-legend").textContent = "动能";
 }
 
 /* ===== 加载主流程 ===== */
@@ -377,7 +391,7 @@ function render(){
     });
   }).catch(function(){
     var cv = document.getElementById("k-canvas");
-    var R = resize(cv); if (R){ R.ctx.clearRect(0,0,R.w,R.h); R.ctx.fillStyle="#8aa0bf"; R.ctx.font="13px sans-serif"; R.ctx.fillText("数据加载失败，请稍后重试", 12, 24); }
+    var R = resize(cv); if (R){ R.ctx.clearRect(0,0,R.w,R.h); R.ctx.fillStyle="#8aa0bf"; R.ctx.font="13px sans-serif"; R.ctx.fillText("数据加载失败，请稍后重试",12,24); }
   });
 }
 function refresh(){ loadQuote(); render(); }
@@ -387,9 +401,7 @@ function goto(secid, name){
   if (!secid) return;
   state.secid = secid; if (name) state.name = name;
   state.period = "day";
-  document.querySelectorAll("#period-grp button").forEach(function(b){
-    b.classList.toggle("on", b.dataset.p === "day");
-  });
+  document.querySelectorAll("#period-grp button").forEach(function(b){ b.classList.toggle("on", b.dataset.p === "day"); });
   document.getElementById("q-nm").textContent = name || secid;
   document.getElementById("q").value = name || secid;
   refresh();
@@ -398,7 +410,6 @@ document.getElementById("btn-go").addEventListener("click", function(){
   var v = document.getElementById("q").value.trim();
   var secid = codeToSecid(v);
   if (secid) goto(secid, v);
-  else if (/^\d{6}$/.test(v)) goto(codeToSecid(v), v);
   else { document.getElementById("q").placeholder = "请输入6位代码"; }
 });
 document.getElementById("q").addEventListener("keydown", function(e){ if (e.key === "Enter") document.getElementById("btn-go").click(); });
@@ -413,22 +424,35 @@ document.getElementById("btn-fav").addEventListener("click", function(){
   if (i >= 0){ state.favs.splice(i,1); document.getElementById("btn-fav").textContent = "☆"; }
   else { state.favs.push(state.secid); document.getElementById("btn-fav").textContent = "★"; }
   try{ localStorage.setItem("ai24x_m_favs", JSON.stringify(state.favs)); }catch(e){}
+  renderFavList();
 });
-document.getElementById("btn-more").addEventListener("click", function(){ document.getElementById("sheet-more").classList.add("show"); });
+/* 回首页：跳转主站首页（同源，token 自动生效） */
+document.getElementById("btn-home").addEventListener("click", function(){ location.href = "index.html"; });
+/* 信号入口 */
+document.getElementById("btn-signal").addEventListener("click", function(){
+  renderSigList();
+  document.getElementById("sheet-signal").classList.add("show");
+});
+document.getElementById("close-signal").addEventListener("click", function(){ document.getElementById("sheet-signal").classList.remove("show"); });
+document.getElementById("sheet-signal").addEventListener("click", function(e){ if (e.target === this) this.classList.remove("show"); });
+document.getElementById("btn-more").addEventListener("click", function(){ renderFavList(); document.getElementById("sheet-more").classList.add("show"); });
 document.getElementById("close-more").addEventListener("click", function(){ document.getElementById("sheet-more").classList.remove("show"); });
 document.getElementById("sheet-more").addEventListener("click", function(e){ if (e.target === this) this.classList.remove("show"); });
 document.getElementById("btn-desktop").addEventListener("click", function(){ location.href = "demo.html?force=1"; });
-
-/* 自选快捷（点击报价条名称切换自选列表首个？保持简洁：双击名称轮换自选） */
-document.getElementById("q-nm").addEventListener("dblclick", function(){
-  if (!state.favs.length) return;
-  var idx = state.favs.indexOf(state.secid);
-  var next = state.favs[(idx+1) % state.favs.length];
-  goto(next, next);
-});
+function renderFavList(){
+  var el = document.getElementById("fav-list");
+  if (!state.favs.length){ el.innerHTML = '<div class="empty">暂无自选，点击 ☆ 收藏</div>'; return; }
+  el.innerHTML = "";
+  state.favs.forEach(function(f){
+    var row = document.createElement("div"); row.className = "sig-row";
+    row.innerHTML = '<span class="s">' + f + '</span><span class="t">点击查看</span>';
+    row.addEventListener("click", function(){ goto(f, f); document.getElementById("sheet-more").classList.remove("show"); });
+    el.appendChild(row);
+  });
+}
 document.getElementById("btn-fav").textContent = (state.favs.indexOf(state.secid)>=0) ? "★" : "☆";
 
-/* 防闪烁：首帧稳定背景 */
+/* 防闪烁 */
 document.addEventListener("visibilitychange", function(){ if (!document.hidden) refresh(); });
 window.addEventListener("resize", function(){ render(); });
 
