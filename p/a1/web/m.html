@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="robots" content="noindex,nofollow" />
+<title>AI行情官·手机版｜一屏看行情</title>
+<style>
+:root{
+  --bg:#0b1220;--panel:#101a2c;--panel2:#152238;--border:#22314d;
+  --text:#e6edf7;--muted:#8aa0bf;--accent:#3b82f6;--up:#f87171;--down:#34d399;
+  --gold:#fbbf24;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{height:100dvh;display:flex;flex-direction:column;background:var(--bg);color:var(--text);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;font-size:14px}
+button{background:none;border:none;color:var(--text);cursor:pointer;font-size:14px}
+input{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 10px;font-size:14px;outline:none;width:100%}
+
+/* 顶栏 */
+.topbar{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--panel);border-bottom:1px solid var(--border)}
+.topbar .search{flex:1;position:relative}
+.topbar .search input{padding-right:30px}
+.topbar .search .go{position:absolute;right:4px;top:50%;transform:translateY(-50%);color:var(--accent);font-size:16px;padding:4px}
+.topbar .fav-toggle{font-size:20px;color:var(--gold)}
+.topbar .more{font-size:18px;color:var(--muted)}
+
+/* 报价条 */
+.quote-strip{display:flex;align-items:baseline;gap:10px;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--border);flex-wrap:nowrap;overflow-x:auto}
+.quote-strip .nm{font-size:15px;font-weight:700;white-space:nowrap}
+.quote-strip .px{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+.quote-strip .chg{font-size:13px;font-weight:700;white-space:nowrap}
+.quote-strip .fund{margin-left:auto;font-size:12px;color:var(--muted);white-space:nowrap}
+
+/* 大盘环境条 */
+.env-strip{display:flex;gap:6px;overflow-x:auto;padding:6px 10px;background:var(--bg);border-bottom:1px solid var(--border);scrollbar-width:none}
+.env-strip::-webkit-scrollbar{display:none}
+.env-chip{flex:0 0 auto;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:11px;color:var(--muted);white-space:nowrap}
+.env-chip b{color:var(--text)}
+
+/* 图表区 */
+.chart-main{flex:1 1 58%;min-height:0;position:relative;background:var(--bg)}
+.chart-macd{flex:0 0 14%;min-height:0;border-top:1px solid var(--border);background:var(--bg);position:relative}
+canvas{width:100%;height:100%;display:block}
+.chart-legend{position:absolute;left:10px;top:6px;font-size:11px;color:var(--muted);pointer-events:none;white-space:nowrap}
+
+/* 底部操作条 */
+.bottombar{flex:0 0 auto;display:flex;align-items:center;gap:4px;padding:6px 8px calc(6px + env(safe-area-inset-bottom));background:var(--panel);border-top:1px solid var(--border)}
+.bottombar .grp{display:flex;gap:2px;background:var(--panel2);border-radius:8px;padding:2px}
+.bottombar .grp button{padding:6px 10px;border-radius:6px;font-size:13px;color:var(--muted)}
+.bottombar .grp button.on{background:var(--accent);color:#fff}
+.bottombar .spacer{flex:1}
+
+/* 弹出卡片 */
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;z-index:50}
+.sheet.show{display:block}
+.sheet .card{position:absolute;left:0;right:0;bottom:0;max-height:70dvh;overflow-y:auto;background:var(--panel);border-radius:16px 16px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom))}
+.sheet .card h3{font-size:15px;margin-bottom:10px}
+.sheet .card .close{position:absolute;right:12px;top:10px;font-size:18px;color:var(--muted)}
+.legend-item{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;color:var(--text)}
+.legend-item .dot{width:10px;height:10px;border-radius:3px;flex:0 0 auto}
+.tip-text{font-size:12px;color:var(--muted);line-height:1.9}
+.tip-text b{color:var(--gold)}
+</style>
+</head>
+<body>
+
+<!-- 顶栏 -->
+<div class="topbar">
+  <div class="search">
+    <input id="q" placeholder="代码/名称，如 600519、贵州茅台" enterkeyhint="search" />
+    <button class="go" id="btn-go">🔍</button>
+  </div>
+  <button class="fav-toggle" id="btn-fav" title="自选">☆</button>
+  <button class="more" id="btn-more" title="更多">⋯</button>
+</div>
+
+<!-- 报价条 -->
+<div class="quote-strip" id="quote-strip">
+  <span class="nm" id="q-nm">上证指数</span>
+  <span class="px" id="q-px">--</span>
+  <span class="chg" id="q-chg">--</span>
+  <span class="fund" id="q-fund"></span>
+</div>
+
+<!-- 大盘环境条 -->
+<div class="env-strip" id="env-strip"></div>
+
+<!-- K线主图 -->
+<div class="chart-main">
+  <div class="chart-legend" id="k-legend"></div>
+  <canvas id="k-canvas"></canvas>
+</div>
+
+<!-- 迷你MACD -->
+<div class="chart-macd">
+  <div class="chart-legend" style="font-size:10px">MACD(12,26,9)</div>
+  <canvas id="m-canvas"></canvas>
+</div>
+
+<!-- 底部操作条 -->
+<div class="bottombar">
+  <div class="grp" id="period-grp">
+    <button data-p="day" class="on">日</button>
+    <button data-p="week">周</button>
+    <button data-p="month">月</button>
+  </div>
+  <div class="spacer"></div>
+  <button id="btn-desktop" style="color:var(--muted);font-size:12px">桌面版↗</button>
+</div>
+
+<!-- 更多弹出卡 -->
+<div class="sheet" id="sheet-more">
+  <div class="card">
+    <button class="close" id="close-more">✕</button>
+    <h3>信号图例</h3>
+    <div class="legend-item"><span class="dot" style="background:#f87171"></span>底1 / 底2：波段底部信号</div>
+    <div class="legend-item"><span class="dot" style="background:#fbbf24"></span>金叉信号：均线金叉</div>
+    <div class="legend-item"><span class="dot" style="background:#60a5fa"></span>风险信号：高位风险提示</div>
+    <div class="legend-item"><span class="dot" style="background:#34d399"></span>MA14/MA28/MA57 双生命线</div>
+    <h3 style="margin-top:14px">使用要领</h3>
+    <div class="tip-text">
+      ① <b>底/金信号</b>用于辅助判断波段节奏，非买卖指令；<br/>
+      ② 主图叠加三条均线（14/28/57），金叉站上生命线偏强；<br/>
+      ③ MACD 红柱增强、绿柱走弱，用于观察动能；<br/>
+      ④ 行情仅供参考，<b>不构成投资建议</b>。
+    </div>
+    <h3 style="margin-top:14px">分享</h3>
+    <div class="tip-text">当前为手机版一屏视图；长按截图即可分享当前行情页。</div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var TOKEN_KEY = "ai24x_a_token";
+function token(){ try{ return localStorage.getItem(TOKEN_KEY) || ""; }catch(e){ return ""; } }
+function api(path, qs){
+  var url = path + (qs ? ("?" + qs) : "");
+  var h = { "Content-Type": "application/json" };
+  var t = token(); if (t) h["Authorization"] = "Bearer " + t;
+  return fetch(url, { headers: h }).then(function(r){ return r.json().catch(function(){ return {}; }); });
+}
+function fmt(n){ return (n==null||isNaN(n)) ? "--" : Number(n).toFixed(2); }
+function fmtBig(n){ if(n==null||isNaN(n)) return ""; var v=Number(n); var a=Math.abs(v); var s=v<0?"-":"+"; if(a>=1e8) return s+(a/1e8).toFixed(2)+"亿"; if(a>=1e4) return s+(a/1e4).toFixed(1)+"万"; return s+a.toFixed(0); }
+
+/* ===== 状态 ===== */
+var state = { secid: "1.000001", period: "day", name: "上证指数", favs: [] };
+try{ state.favs = JSON.parse(localStorage.getItem("ai24x_m_favs") || "[]"); }catch(e){ state.favs = []; }
+
+/* ===== 标的解析（输入 6 位代码 → secid） ===== */
+function codeToSecid(code){
+  code = String(code).trim();
+  if (/^\d{6}$/.test(code)) {
+    if (code.startsWith("6") || code.startsWith("9") || code.startsWith("4") || code.startsWith("8") || code.startsWith("920")) return "1." + code;
+    return "0." + code;
+  }
+  if (/^\d+\.\d{6}$/.test(code)) return code; // 已带市场前缀
+  return null;
+}
+
+/* ===== 报价 ===== */
+function loadQuote(){
+  api("/api/quote/snapshot", "secid=" + encodeURIComponent(state.secid)).then(function(d){
+    var o = d && d.data ? (d.data[state.secid] || {}) : {};
+    var px = o.price ?? o.close ?? o.last ?? null;
+    var chg = o.change_pct ?? o.pct ?? o.change_percent ?? null;
+    var fund = o.main_net_inflow ?? o.fund_net ?? o.mainflow ?? null;
+    var nm = o.name || state.name;
+    state.name = nm;
+    document.getElementById("q-nm").textContent = nm;
+    document.getElementById("q-px").textContent = fmt(px);
+    var chgEl = document.getElementById("q-chg");
+    if (chg != null) {
+      var c = Number(chg);
+      chgEl.textContent = (c>=0?"+":"") + c.toFixed(2) + "%";
+      chgEl.style.color = c>=0 ? "var(--up)" : "var(--down)";
+      document.getElementById("q-px").style.color = c>=0 ? "var(--up)" : "var(--down)";
+    }
+    document.getElementById("q-fund").textContent = fund!=null ? ("主力 " + fmtBig(fund)) : "";
+  }).catch(function(){});
+}
+
+/* ===== 大盘环境条 ===== */
+var ENV = [
+  ["1.000001","上证"], ["0.399001","深成"], ["0.399006","创业板"],
+  ["1.000300","沪深300"], ["1.000852","中证1000"], ["0.899050","北证50"]
+];
+function loadEnv(){
+  var el = document.getElementById("env-strip"); el.innerHTML = "";
+  ENV.forEach(function(e, i){
+    var chip = document.createElement("div"); chip.className = "env-chip";
+    chip.innerHTML = e[1] + " <b>--</b>";
+    el.appendChild(chip);
+    if (i > 2) return; // 前3个实时刷新，其余静态占位
+    api("/api/quote/snapshot", "secid=" + e[0]).then(function(d){
+      var o = d && d.data ? (d.data[e[0]] || {}) : {};
+      var c = o.change_pct ?? o.pct ?? null;
+      if (c != null) {
+        chip.innerHTML = e[1] + " <b style='color:" + (c>=0?"var(--up)":"var(--down)") + "'>" + (c>=0?"+":"") + Number(c).toFixed(2) + "%</b>";
+      }
+    }).catch(function(){});
+  });
+}
+
+/* ===== K线数据 ===== */
+var COUNT = { day: 400, week: 560, month: 660 };
+function loadKline(){
+  var secid = state.secid, period = state.period;
+  var cnt = COUNT[period] || 400;
+  return api("/api/kline", "secid=" + encodeURIComponent(secid) + "&count=" + cnt).then(function(d){
+    var rows = null;
+    if (d && d.data) {
+      var keys = Object.keys(d.data);
+      for (var i=0;i<keys.length;i++){
+        var v = d.data[keys[i]];
+        if (v && Array.isArray(v.qfqday) && v.qfqday.length){ rows = v.qfqday; break; }
+        if (v && Array.isArray(v)){ rows = v; break; }
+      }
+    }
+    if (!rows || !rows.length) throw new Error("no data");
+    // 行格式 [日期,开,收,高,低,量]
+    return rows.map(function(r){
+      return { t: r[0], o:+r[1], c:+r[2], h:+r[3], l:+r[4], v:+r[5] };
+    });
+  });
+}
+
+/* ===== 技术指标 ===== */
+function sma(arr, p){
+  var out = new Array(arr.length).fill(null); var s = 0;
+  for (var i=0;i<arr.length;i++){
+    s += arr[i];
+    if (i >= p) s -= arr[i-p];
+    if (i >= p-1) out[i] = s / p;
+  }
+  return out;
+}
+function ema(arr, p){
+  var out = new Array(arr.length).fill(null); var k = 2/(p+1); var prev = null;
+  for (var i=0;i<arr.length;i++){
+    prev = (prev==null) ? arr[i] : arr[i]*k + prev*(1-k);
+    out[i] = prev;
+  }
+  return out;
+}
+function macd(rows){
+  var closes = rows.map(function(r){ return r.c; });
+  var e12 = ema(closes,12), e26 = ema(closes,26);
+  var dif = closes.map(function(_,i){ return (e12[i]!=null&&e26[i]!=null) ? e12[i]-e26[i] : null; });
+  var dea = ema(dif.filter(function(v){return v!=null;}), 9);
+  var deaFull = new Array(closes.length).fill(null);
+  var j = 0;
+  for (var i=0;i<closes.length;i++){ if (dif[i]!=null){ deaFull[i]=dea[j]; j++; } }
+  var hist = closes.map(function(_,i){ return (dif[i]!=null&&deaFull[i]!=null) ? (dif[i]-deaFull[i])*2 : null; });
+  return { dif: dif, dea: deaFull, hist: hist };
+}
+
+/* ===== 信号 ===== */
+function loadSignals(){
+  return api("/api/signals", "secid=" + encodeURIComponent(state.secid) + "&count=400").then(function(d){
+    if (d && d.code === 0 && Array.isArray(d.signals)) return d.signals;
+    if (d && Array.isArray(d.signals)) return d.signals;
+    if (d && Array.isArray(d.data)) return d.data;
+    return [];
+  }).catch(function(){ return []; });
+}
+
+/* ===== 绘制 ===== */
+function resize(cv){
+  var dpr = window.devicePixelRatio || 1;
+  var w = cv.clientWidth, h = cv.clientHeight;
+  if (!w || !h) return;
+  cv.width = w * dpr; cv.height = h * dpr;
+  var ctx = cv.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return { ctx: ctx, w: w, h: h };
+}
+function drawK(rows, sigs){
+  var cv = document.getElementById("k-canvas");
+  var R = resize(cv); if (!R) return;
+  var ctx = R.ctx, W = R.w, H = R.h;
+  ctx.clearRect(0,0,W,H);
+  if (!rows || !rows.length) { ctx.fillStyle="#8aa0bf"; ctx.font="12px sans-serif"; ctx.fillText("暂无数据", 12, 20); return; }
+  var closes = rows.map(function(r){ return r.c; });
+  var ma14 = sma(closes,14), ma28 = sma(closes,28), ma57 = sma(closes,57);
+  // 可见范围：最近 60 根
+  var vis = Math.min(rows.length, 60);
+  var sub = rows.slice(rows.length - vis);
+  var lo = Infinity, hi = -Infinity;
+  sub.forEach(function(r){ if(r.l<lo)lo=r.l; if(r.h>hi)hi=r.h; });
+  var padR = 6, padT = 18, padB = 4;
+  var plotW = W - padR, plotH = H - padT - padB;
+  var range = (hi - lo) || 1;
+  function x(i){ return padR + (i / (vis-1)) * plotW; }
+  function y(p){ return padT + (hi - p) / range * plotH; }
+  var cw = Math.max(1, plotW / vis * 0.6);
+  // 网格
+  ctx.strokeStyle = "rgba(148,163,184,.12)"; ctx.lineWidth = 1;
+  for (var g=1; g<5; g++){ var gy = padT + plotH*g/5; ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke(); }
+  // K线
+  for (var i=0;i<vis;i++){
+    var r = sub[i], xi = x(i);
+    var up = r.c >= r.o;
+    ctx.strokeStyle = up ? "#f87171" : "#34d399"; ctx.fillStyle = up ? "#f87171" : "#34d399";
+    ctx.beginPath(); ctx.moveTo(xi, y(r.h)); ctx.lineTo(xi, y(r.l)); ctx.stroke();
+    ctx.fillRect(xi - cw/2, Math.min(y(r.o), y(r.c)), cw, Math.max(1, Math.abs(y(r.o)-y(r.c))));
+  }
+  // 均线
+  function line(arr, color){
+    ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.beginPath(); var started = false;
+    for (var i=0;i<vis;i++){
+      var v = arr[rows.length - vis + i];
+      if (v == null) continue;
+      var px = x(i), py = y(v);
+      if (!started){ ctx.moveTo(px,py); started = true; } else ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+  }
+  line(ma14, "#60a5fa"); line(ma28, "#fbbf24"); line(ma57, "#c084fc");
+  // 信号标记
+  if (sigs && sigs.length) {
+    var sigByDate = {};
+    sigs.forEach(function(s){ if (s && s.date) sigByDate[String(s.date)] = s; });
+    ctx.font = "10px sans-serif";
+    for (var j=0;j<vis;j++){
+      var r = sub[j], s = sigByDate[String(r.t)];
+      if (!s) continue;
+      var label = s.type || s.signal || "";
+      var sy = y(r.h) - 6;
+      if (label.indexOf("底")>=0 || label.indexOf("金")>=0) { ctx.fillStyle = "#fbbf24"; }
+      else if (label.indexOf("风险")>=0) { ctx.fillStyle = "#f87171"; }
+      else ctx.fillStyle = "#60a5fa";
+      ctx.fillText(label.slice(0,2), x(j)-8, sy);
+    }
+  }
+  // 图例
+  document.getElementById("k-legend").textContent = "MA14 #60a5fa · MA28 #fbbf24 · MA57 #c084fc";
+}
+function drawM(rows){
+  var cv = document.getElementById("m-canvas");
+  var R = resize(cv); if (!R) return;
+  var ctx = R.ctx, W = R.w, H = R.h;
+  ctx.clearRect(0,0,W,H);
+  if (!rows || !rows.length) return;
+  var m = macd(rows);
+  var vis = Math.min(rows.length, 60);
+  var start = rows.length - vis;
+  var vals = [];
+  for (var i=start;i<rows.length;i++){ if (m.hist[i]!=null) vals.push(m.hist[i]); }
+  var mx = 1;
+  vals.forEach(function(v){ var a=Math.abs(v); if(a>mx)mx=a; });
+  var padT=4, padB=4, padL=4, padR=4;
+  var plotH = H - padT - padB, plotW = W - padL - padR;
+  function x(i){ return padL + (i/(vis-1))*plotW; }
+  function y(v){ return padT + (mx - v)/(2*mx)*plotH; }
+  // 零轴
+  ctx.strokeStyle = "rgba(148,163,184,.3)"; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(0, y(0)); ctx.lineTo(W, y(0)); ctx.stroke();
+  // 柱
+  var cw = Math.max(1, plotW/vis*0.6);
+  for (var i=0;i<vis;i++){
+    var v = m.hist[start+i]; if (v==null) continue;
+    var xi = x(i), y0 = y(0), yv = y(v);
+    ctx.fillStyle = v>=0 ? "rgba(248,113,113,.85)" : "rgba(52,211,153,.85)";
+    ctx.fillRect(xi-cw/2, Math.min(y0,yv), cw, Math.max(1, Math.abs(y0-yv)));
+  }
+}
+
+/* ===== 加载主流程 ===== */
+function render(){
+  loadKline().then(function(rows){
+    return loadSignals().then(function(sigs){
+      drawK(rows, sigs);
+      drawM(rows);
+      document.getElementById("q-px").textContent = fmt(rows[rows.length-1].c);
+    });
+  }).catch(function(){
+    var cv = document.getElementById("k-canvas");
+    var R = resize(cv); if (R){ R.ctx.clearRect(0,0,R.w,R.h); R.ctx.fillStyle="#8aa0bf"; R.ctx.font="13px sans-serif"; R.ctx.fillText("数据加载失败，请稍后重试", 12, 24); }
+  });
+}
+function refresh(){ loadQuote(); render(); }
+
+/* ===== 交互 ===== */
+function goto(secid, name){
+  if (!secid) return;
+  state.secid = secid; if (name) state.name = name;
+  state.period = "day";
+  document.querySelectorAll("#period-grp button").forEach(function(b){
+    b.classList.toggle("on", b.dataset.p === "day");
+  });
+  document.getElementById("q-nm").textContent = name || secid;
+  document.getElementById("q").value = name || secid;
+  refresh();
+}
+document.getElementById("btn-go").addEventListener("click", function(){
+  var v = document.getElementById("q").value.trim();
+  var secid = codeToSecid(v);
+  if (secid) goto(secid, v);
+  else if (/^\d{6}$/.test(v)) goto(codeToSecid(v), v);
+  else { document.getElementById("q").placeholder = "请输入6位代码"; }
+});
+document.getElementById("q").addEventListener("keydown", function(e){ if (e.key === "Enter") document.getElementById("btn-go").click(); });
+document.getElementById("period-grp").addEventListener("click", function(e){
+  var b = e.target.closest("button"); if (!b) return;
+  state.period = b.dataset.p;
+  document.querySelectorAll("#period-grp button").forEach(function(x){ x.classList.toggle("on", x===b); });
+  render();
+});
+document.getElementById("btn-fav").addEventListener("click", function(){
+  var i = state.favs.indexOf(state.secid);
+  if (i >= 0){ state.favs.splice(i,1); document.getElementById("btn-fav").textContent = "☆"; }
+  else { state.favs.push(state.secid); document.getElementById("btn-fav").textContent = "★"; }
+  try{ localStorage.setItem("ai24x_m_favs", JSON.stringify(state.favs)); }catch(e){}
+});
+document.getElementById("btn-more").addEventListener("click", function(){ document.getElementById("sheet-more").classList.add("show"); });
+document.getElementById("close-more").addEventListener("click", function(){ document.getElementById("sheet-more").classList.remove("show"); });
+document.getElementById("sheet-more").addEventListener("click", function(e){ if (e.target === this) this.classList.remove("show"); });
+document.getElementById("btn-desktop").addEventListener("click", function(){ location.href = "demo.html?force=1"; });
+
+/* 自选快捷（点击报价条名称切换自选列表首个？保持简洁：双击名称轮换自选） */
+document.getElementById("q-nm").addEventListener("dblclick", function(){
+  if (!state.favs.length) return;
+  var idx = state.favs.indexOf(state.secid);
+  var next = state.favs[(idx+1) % state.favs.length];
+  goto(next, next);
+});
+document.getElementById("btn-fav").textContent = (state.favs.indexOf(state.secid)>=0) ? "★" : "☆";
+
+/* 防闪烁：首帧稳定背景 */
+document.addEventListener("visibilitychange", function(){ if (!document.hidden) refresh(); });
+window.addEventListener("resize", function(){ render(); });
+
+/* 启动 */
+loadEnv();
+refresh();
+})();
+</script>
+</body>
+</html>

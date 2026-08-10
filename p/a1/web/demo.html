@@ -4,6 +4,23 @@
   <meta charset="utf-8" />
   <!-- maximum-scale=1：部分华为/安卓浏览器点输入框会强制放大，仅 16px 字号拦不住 -->
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <script>
+  /* 手机版跳转：≤640px 且为手机 UA 时进 m.html；force=1 可强制留桌面版（2026-08-10 主脑落盘·司令交付） */
+  (function () {
+    try {
+      var ua = String(navigator.userAgent || "").toLowerCase();
+      var isPhone = /iphone|ipad|ipod|android|mobile/i.test(ua);
+      var narrow = window.matchMedia && window.matchMedia("(max-width: 640px)").matches;
+      var forced = /[?&]force=1/.test(location.search);
+      if (forced) { try { sessionStorage.setItem("ai24x_desktop_force", "1"); } catch (e) {} }
+      var skip = false;
+      try { skip = sessionStorage.getItem("ai24x_desktop_force") === "1"; } catch (e) {}
+      if (isPhone && narrow && !skip && !location.pathname.endsWith("/m.html")) {
+        location.replace("m.html");
+      }
+    } catch (e) {}
+  })();
+  </script>
   <meta name="robots" content="index,follow" />
   <title>AI行情官｜灯塔版 — 股票K线信号分析工具，均线指标免费看</title>
   <meta name="description" content="AI行情官灯塔版：免费股票K线信号分析工具。底1底2金信号、MA14/MA28/MA57双生命线、MACD副图指标，一页看清上证指数/深证/北证50的K线结构要点与关键位信号（仅供学习参考，不构成投资建议）。" />
