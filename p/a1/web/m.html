@@ -144,8 +144,17 @@ canvas{width:100%;height:100%;display:block}
 'use strict';
 var TOKEN_KEY = "ai24x_a_token";
 function token(){ try{ return localStorage.getItem(TOKEN_KEY) || ""; }catch(e){ return ""; } }
+/* 本地 18001 静态服务无 /api 反代 → 指向本地后端 18011；生产同源 Nginx 反代保持相对路径 */
+var API_BASE = (function(){
+  try {
+    var host = String(location.hostname || "");
+    var port = String(location.port || "");
+    if ((host === "127.0.0.1" || host === "localhost") && port === "18001") return "http://127.0.0.1:18011";
+  } catch (e) {}
+  return "";
+})();
 function api(path, qs){
-  var url = path + (qs ? ("?" + qs) : "");
+  var url = API_BASE + path + (qs ? ("?" + qs) : "");
   var h = { "Content-Type": "application/json" };
   var t = token(); if (t) h["Authorization"] = "Bearer " + t;
   return fetch(url, { headers: h }).then(function(r){ return r.json().catch(function(){ return {}; }); });
