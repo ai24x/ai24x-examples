@@ -29,12 +29,13 @@ input{background:var(--panel2);border:1px solid var(--border);color:var(--text);
 .quote-strip .fund{margin-left:auto;font-size:12px;color:var(--muted);white-space:nowrap}
 .env-strip{display:flex;gap:6px;overflow-x:auto;padding:6px 10px;background:var(--bg);border-bottom:1px solid var(--border);scrollbar-width:none}
 .env-strip::-webkit-scrollbar{display:none}
-.env-chip{flex:0 0 auto;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:11px;color:var(--muted);white-space:nowrap}
+.env-chip{flex:0 0 auto;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:11px;color:var(--muted);white-space:nowrap;cursor:pointer}
+.env-chip.active{border-color:var(--accent);color:var(--text)}
 .env-chip b{color:var(--text)}
-.chart-main{flex:1 1 58%;min-height:0;position:relative;background:var(--bg)}
-.chart-macd{flex:0 0 14%;min-height:0;border-top:1px solid var(--border);background:var(--bg);position:relative}
+.chart-main{flex:1 1 58%;min-height:0;position:relative;background:var(--bg);padding:0 8px 0 4px}
+.chart-macd{flex:0 0 14%;min-height:0;border-top:1px solid var(--border);background:var(--bg);position:relative;padding:0 8px 0 4px}
 canvas{width:100%;height:100%;display:block}
-.chart-legend{position:absolute;left:10px;top:6px;font-size:11px;color:var(--muted);pointer-events:none;white-space:nowrap}
+.chart-legend{position:absolute;left:14px;top:6px;font-size:11px;color:var(--muted);pointer-events:none;white-space:nowrap}
 .bottombar{flex:0 0 auto;display:flex;align-items:center;gap:4px;padding:6px 8px calc(6px + env(safe-area-inset-bottom));background:var(--panel);border-top:1px solid var(--border)}
 .bottombar .grp{display:flex;gap:2px;background:var(--panel2);border-radius:8px;padding:2px}
 .bottombar .grp button{padding:6px 10px;border-radius:6px;font-size:13px;color:var(--muted)}
@@ -92,9 +93,9 @@ canvas{width:100%;height:100%;display:block}
 
 <div class="bottombar">
   <div class="grp" id="period-grp">
-    <button data-p="day" class="on">日</button>
-    <button data-p="week">周</button>
-    <button data-p="month">月</button>
+    <button data-p="day" class="on">日线</button>
+    <button data-p="week">周线</button>
+    <button data-p="month">月线</button>
   </div>
   <button class="act signal" id="btn-signal">信号</button>
   <div class="spacer"></div>
@@ -124,7 +125,7 @@ canvas{width:100%;height:100%;display:block}
     <div class="tip-text">
       ① 底部「信号」可查看近期信号明细；<br/>
       ② 上方「首页」返回 AI行情官主站（登录后自动生效）；<br/>
-      ③ 长按截图即可分享当前行情页；<br/>
+      ③ 上方大盘条可点击切换上证/深成/创业板等标的；<br/>
       ④ 行情仅供参考，<b>不构成投资建议</b>。
     </div>
   </div>
@@ -143,8 +144,6 @@ function api(path, qs){
 }
 function fmt(n){ return (n==null||isNaN(n)) ? "--" : Number(n).toFixed(2); }
 function fmtBig(n){ if(n==null||isNaN(n)) return ""; var v=Number(n); var a=Math.abs(v); var s=v<0?"-":"+"; if(a>=1e8) return s+(a/1e8).toFixed(2)+"亿"; if(a>=1e4) return s+(a/1e4).toFixed(1)+"万"; return s+a.toFixed(0); }
-
-/* 通用：取 d.data 里第一个非空条目 */
 function firstEntry(d){
   try {
     var data = d && d.data;
@@ -172,7 +171,7 @@ function codeToSecid(code){
   return null;
 }
 
-/* ===== 报价（兼容 data.<sh000001> 结构） ===== */
+/* ===== 报价 ===== */
 function loadQuote(){
   api("/api/quote/snapshot", "secid=" + encodeURIComponent(state.secid)).then(function(d){
     var o = firstEntry(d) || {};
@@ -194,13 +193,20 @@ function loadQuote(){
   }).catch(function(){});
 }
 
-/* ===== 大盘环境条 ===== */
-var ENV = [["1.000001","上证"],["0.399001","深成"],["0.399006","创业板"],["1.000300","沪深300"],["1.000852","中证1000"],["0.899050","北证50"]];
+/* ===== 大盘环境条（可点击切换） ===== */
+var ENV = [["1.000001","上证指数"],["0.399001","深证成指"],["0.399006","创业板指"],["1.000300","沪深300"],["1.000852","中证1000"],["0.899050","北证50"]];
 function loadEnv(){
   var el = document.getElementById("env-strip"); el.innerHTML = "";
   ENV.forEach(function(e, i){
     var chip = document.createElement("div"); chip.className = "env-chip";
+    chip.dataset.secid = e[0]; chip.dataset.name = e[1];
     chip.innerHTML = e[1] + " <b>--</b>";
+    if (e[0] === state.secid) chip.classList.add("active");
+    chip.addEventListener("click", function(){
+      if (state.secid === this.dataset.secid) return;
+      goto(this.dataset.secid, this.dataset.name);
+      var cs = el.querySelectorAll(".env-chip"); cs.forEach(function(c){ c.classList.toggle("active", c === chip); });
+    });
     el.appendChild(chip);
     if (i > 2) return;
     api("/api/quote/snapshot", "secid=" + e[0]).then(function(d){
@@ -211,11 +217,11 @@ function loadEnv(){
   });
 }
 
-/* ===== K线（兼容 data.<key>.day / .qfqday） ===== */
+/* ===== K线（带 period 参数，兼容 day/qfqday） ===== */
 var COUNT = { day: 400, week: 560, month: 660 };
 function loadKline(){
   var cnt = COUNT[state.period] || 400;
-  return api("/api/kline", "secid=" + encodeURIComponent(state.secid) + "&count=" + cnt).then(function(d){
+  return api("/api/kline", "secid=" + encodeURIComponent(state.secid) + "&period=" + encodeURIComponent(state.period) + "&count=" + cnt).then(function(d){
     var rows = null;
     if (d && d.data) {
       var keys = Object.keys(d.data);
@@ -252,7 +258,7 @@ function macd(rows){
   return { dif: dif, dea: deaFull, hist: hist };
 }
 
-/* ===== 信号（data.markers；text 中文短词归类） ===== */
+/* ===== 信号（data.markers，带 period 参数） ===== */
 function classifySig(text){
   text = String(text || "");
   if (text.indexOf("底") >= 0) return { label: "底信号", color: "#fbbf24" };
@@ -261,7 +267,7 @@ function classifySig(text){
   return { label: text || "信号", color: "#60a5fa" };
 }
 function loadSignals(){
-  return api("/api/signals", "secid=" + encodeURIComponent(state.secid) + "&count=400").then(function(d){
+  return api("/api/signals", "secid=" + encodeURIComponent(state.secid) + "&period=" + encodeURIComponent(state.period) + "&count=400").then(function(d){
     var arr = (d && d.data && Array.isArray(d.data.markers)) ? d.data.markers : [];
     sigCache = arr.map(function(m){
       var c = classifySig(m.text);
@@ -274,14 +280,14 @@ function renderSigList(){
   var el = document.getElementById("sig-list");
   if (!sigCache.length){ el.innerHTML = '<div class="empty">近期暂无信号</div>'; return; }
   el.innerHTML = "";
-  sigCache.slice(-15).reverse().forEach(function(s){
+  sigCache.slice(-20).reverse().forEach(function(s){
     var row = document.createElement("div"); row.className = "sig-row";
     row.innerHTML = '<span class="d">' + (s.date||"") + '</span><span class="s" style="color:' + (s.color||"var(--gold)") + '">' + s.label + '</span><span class="t">' + (s.note||"") + '</span>';
     el.appendChild(row);
   });
 }
 
-/* ===== 绘制 ===== */
+/* ===== 绘制（右侧留白） ===== */
 function resize(cv){
   var dpr = window.devicePixelRatio || 1;
   var w = cv.clientWidth, h = cv.clientHeight;
@@ -298,14 +304,14 @@ function drawK(rows, sigs){
   if (!rows || !rows.length) { ctx.fillStyle="#8aa0bf"; ctx.font="12px sans-serif"; ctx.fillText("暂无数据",12,20); return; }
   var closes = rows.map(function(r){ return r.c; });
   var ma1 = sma(closes,14), ma2 = sma(closes,28), ma3 = sma(closes,57);
-  var vis = Math.min(rows.length, 60);
+  var vis = Math.min(rows.length, 80);
   var sub = rows.slice(rows.length - vis);
   var lo = Infinity, hi = -Infinity;
   sub.forEach(function(r){ if(r.l<lo)lo=r.l; if(r.h>hi)hi=r.h; });
-  var padR=6, padT=18, padB=4;
-  var plotW = W - padR, plotH = H - padT - padB;
+  var padL=8, padR=18, padT=18, padB=4;
+  var plotW = W - padL - padR, plotH = H - padT - padB;
   var range = (hi - lo) || 1;
-  function x(i){ return padR + (i/(vis-1))*plotW; }
+  function x(i){ return padL + (i/(vis-1))*plotW; }
   function y(p){ return padT + (hi-p)/range*plotH; }
   var cw = Math.max(1, plotW/vis*0.6);
   ctx.strokeStyle = "rgba(148,163,184,.12)"; ctx.lineWidth = 1;
@@ -328,7 +334,6 @@ function drawK(rows, sigs){
     ctx.stroke();
   }
   line(ma1, "#60a5fa"); line(ma2, "#fbbf24"); line(ma3, "#c084fc");
-  /* 信号标注：按日期匹配 K线（markers.time 如 2026-06-16 与 rows.t 一致） */
   if (sigs && sigs.length) {
     var byDate = {}; sigs.forEach(function(s){ if (s.date) byDate[String(s.date)] = s; });
     ctx.font = "10px sans-serif";
@@ -348,12 +353,12 @@ function drawM(rows){
   ctx.clearRect(0,0,W,H);
   if (!rows || !rows.length) return;
   var m = macd(rows);
-  var vis = Math.min(rows.length, 60);
+  var vis = Math.min(rows.length, 80);
   var start = rows.length - vis;
   var vals = [];
   for (var i=start;i<rows.length;i++){ if (m.hist[i]!=null) vals.push(m.hist[i]); }
   var mx = 1; vals.forEach(function(v){ var a=Math.abs(v); if(a>mx)mx=a; });
-  var padT=4, padB=4, padL=4, padR=4;
+  var padT=4, padB=4, padL=8, padR=18;
   var plotH = H-padT-padB, plotW = W-padL-padR;
   function x(i){ return padL + (i/(vis-1))*plotW; }
   function y(v){ return padT + (mx-v)/(2*mx)*plotH; }
@@ -390,6 +395,7 @@ function goto(secid, name){
   document.querySelectorAll("#period-grp button").forEach(function(b){ b.classList.toggle("on", b.dataset.p === "day"); });
   document.getElementById("q-nm").textContent = name || secid;
   document.getElementById("q").value = name || secid;
+  document.querySelectorAll(".env-chip").forEach(function(c){ c.classList.toggle("active", c.dataset.secid === secid); });
   refresh();
 }
 document.getElementById("btn-go").addEventListener("click", function(){
