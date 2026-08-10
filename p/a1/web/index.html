@@ -67,6 +67,28 @@
       } catch (e1) {}
     })();
   </script>
+  <script>
+  /* 手机访问默认进手机主页 m/（保留邀请码等查询参数）；mode=register/login 的注册登录入口留在桌面页；
+     force=1 或会话强制桌面则不跳；爬虫/分享预览不跳（保护 SEO）。 */
+  (function () {
+    try {
+      var ua = String(navigator.userAgent || "").toLowerCase();
+      if (/bot|crawler|spider|slurp|bingpreview|yandex|baiduspider|duckduckbot|facebookexternalhit|whatsapp|preview/i.test(ua)) return;
+      var isPhone = /iphone|ipad|ipod|android|mobile/i.test(ua);
+      var narrow = window.matchMedia && window.matchMedia("(max-width: 640px)").matches;
+      if (!isPhone || !narrow) return;
+      var forced = /[?&]force=1/.test(location.search);
+      if (forced) { try { sessionStorage.setItem("ai24x_desktop_force", "1"); } catch (e) {} }
+      var skip = false;
+      try { skip = sessionStorage.getItem("ai24x_desktop_force") === "1"; } catch (e) {}
+      if (skip || location.pathname.indexOf("/m/") >= 0) return;
+      var sp = new URLSearchParams(String(location.search || "").replace(/^\?/, ""));
+      var mode = String(sp.get("mode") || "").trim().toLowerCase();
+      if (mode === "register" || mode === "login") return; // 注册/登录留在桌面 auth 卡
+      location.replace("m/" + location.search);
+    } catch (e) {}
+  })();
+  </script>
   <meta name="robots" content="index,follow" />
   <title>AI行情官｜灯塔版 — 股票K线信号分析工具，均线指标免费看</title>
   <meta name="description" content="AI行情官灯塔版：免费股票K线信号分析工具。底1底2B信号、MA14/MA28/MA57双生命线、MACD副图指标、同花顺选股公式，上证/深证/北证50的K线结构要点与关键位信号一页看清。" />
@@ -1513,6 +1535,8 @@
       }
     })();
   </script>
+<!-- 手机版互切入口 -->
+<a id="m-switch" href="m/" style="position:fixed;right:14px;bottom:14px;z-index:9999;background:#101a2c;border:1px solid #3b82f6;color:#e6edf7;font-size:13px;padding:8px 14px;border-radius:999px;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.45)">手机版</a>
 </body>
 </html>
 

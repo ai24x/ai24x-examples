@@ -214,12 +214,12 @@ _ANON_KLINE_WHITELIST: set[str] = {
     "0.000977",  # 浪潮信息（示例）
     "1.300059",  # 东方财富
     "0.300059",  # 东方财富（深）
-    "1.300033",  # 同花顺
+    "0.300033",  # 同花顺（深市创业板）
     "1.600519",  # 贵州茅台
     "1.688981",  # 中芯国际
     "1.601398",  # 工商银行
     "0.300750",  # 宁德时代
-    "1.002371",  # 北方华创（半导体设备）
+    "0.002371",  # 北方华创（半导体设备，深市中小板）
     "1.688256",  # 寒武纪（AI芯片）
     "0.002463",  # 沪电股份（PCB）
     "0.300308",  # 中际旭创（光模块）
@@ -3002,12 +3002,41 @@ async def api_quote_snapshot(
     secid: str = "",
     code: str = "",
     name: str = "",
-    user_id: int = Depends(get_current_user_id),
+    request: "Request" = None,  # type: ignore[assignment]
+    user_id: Optional[int] = Depends(get_optional_user_id),
 ) -> dict:
-    """单票「技术指标快照」：综合分/关键信号/风险 + 大盘环境，与自选评分榜同口径（仅统计，非推荐）。"""
+    """单票「技术指标快照」：综合分/关键信号/风险 + 大盘环境，与自选评分榜同口径（仅统计，非推荐）。
+
+    匿名策略与 /api/kline 一致：白名单（含 ths: 板块）可直接查；非白名单需在游客每日试用额度内。
+    """
     secid = str(secid or "").strip()
     if not secid:
         raise HTTPException(status_code=400, detail="missing secid")
+    if user_id is None:
+        secid0 = str(secid).strip()
+        is_ths_plate = secid0.lower().startswith("ths:")
+        if request is not None:
+            _rate_limit(f"quote-snap-ip:{_client_ip(request)}", 10)
+        md = market_data_status()
+        base_pri = str((md.get("paid") or {}).get("priority") or "").strip().lower()
+        if not base_pri:
+            base_pri = "tencent,eastmoney,sina,paid"
+        if is_ths_plate:
+            priority_override = base_pri
+            allow_paid = True
+        else:
+            priority_override = _anon_priority(base_pri)
+            allow_paid = False
+        if secid0 not in _ANON_KLINE_WHITELIST and not is_ths_plate:
+            if request is None or not _anon_daily_can_consume(request):
+                return {"ok": False, "error": "游客今日体验次数已用完，请登录继续", "secid": secid, "code": str(code or ""), "name": str(name or "")}
+        snap = await _wl_fetch_snapshot(secid, code, name, "anon", priority_override, allow_paid)
+        if snap.get("error"):
+            return {"ok": False, "error": snap["error"], "secid": secid, "code": str(code or ""), "name": str(name or "")}
+        mkt = await _wl_market_env("anon", priority_override, allow_paid)
+        snap["market"] = mkt if mkt.get("name") else None
+        snap["is_vip"] = False
+        return {"ok": True, **snap}
     _rate_limit(f"quote-snap:{user_id}", 10)
     db.downgrade_expired_vip_plan(int(user_id))
     quota = db.get_quota_status(int(user_id))
@@ -3422,29 +3451,47 @@ async def api_signals(
 
     try:
         secid0 = str(secid or "").strip()
-        # Keep the same anon policy as /api/kline.
+        # Keep the same anon policy as /api/kline (whitelist + per-IP daily trial quota).
         if user_id is None:
             is_ths_plate = secid0.lower().startswith("ths:")
+            md = market_data_status()
+            base_pri = str((md.get("paid") or {}).get("priority") or "").strip().lower()
+            if not base_pri:
+                base_pri = "tencent,eastmoney,sina,paid"
+            if is_ths_plate:
+                priority_override = base_pri
+                allow_paid = True
+            else:
+                priority_override = _anon_priority(base_pri)
+                allow_paid = False
+            count_anon = min(int(count), 800)
             if secid0 in _ANON_KLINE_WHITELIST or is_ths_plate:
-                md = market_data_status()
-                base_pri = str((md.get("paid") or {}).get("priority") or "").strip().lower()
-                if not base_pri:
-                    base_pri = "tencent,eastmoney,sina,paid"
-                if is_ths_plate:
-                    priority_override = base_pri
-                else:
-                    priority_override = _anon_priority(base_pri)
-                count_anon = min(int(count), 800)
                 payload = await fetch_tx_kline(
                     secid0,
                     period,
                     count=count_anon,
                     variant="anon",
                     priority_override=priority_override,
-                    allow_paid=is_ths_plate,
+                    allow_paid=allow_paid,
                 )
             else:
-                return {"code": -401, "msg": "请先登录后再查询", "data": {}}
+                if request is None or not _anon_daily_can_consume(request):
+                    return {"code": -401, "msg": "游客今日体验次数已用完，请登录继续", "data": {}}
+                payload = await fetch_tx_kline(
+                    secid0,
+                    period,
+                    count=count_anon,
+                    variant="anon",
+                    priority_override=priority_override,
+                    allow_paid=allow_paid,
+                )
+            # Consume anon daily trial only for non-whitelist success (same as kline_with_signals).
+            try:
+                if secid0 not in _ANON_KLINE_WHITELIST and request is not None:
+                    if isinstance(payload, dict) and int(payload.get("code") or 0) == 0:
+                        _anon_daily_consume(request)
+            except Exception:
+                pass
         else:
             db.downgrade_expired_vip_plan(int(user_id))
             quota = db.get_quota_status(int(user_id))

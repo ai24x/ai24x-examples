@@ -15,6 +15,7 @@
   .brand .v{ font-size:11px; font-weight:600; color:#8aa0bf; border:1px solid #2a3a55; border-radius:999px; padding:1px 7px; margin-left:6px; vertical-align:2px; }
   .my{ font-size:13px; color:#8aa0bf; text-decoration:none; border:1px solid #2a3a55; border-radius:999px; padding:5px 12px; }
   .my:active{ background:#16233a; }
+  .top-links{ display:flex; gap:8px; align-items:center; }
   .hero{ padding:18px 16px 8px; }
   .hero h1{ margin:0 0 6px; font-size:22px; font-weight:800; }
   .hero p{ margin:0 0 16px; font-size:12.5px; line-height:1.7; color:#8aa0bf; }
@@ -35,13 +36,18 @@
   .card.quote{ grid-column:1 / -1; display:flex; align-items:center; gap:12px; background:linear-gradient(135deg,#17233f,#101a2e); border-color:#fbbf24; }
   .card.quote .nm{ margin:0; font-size:16px; color:#fbbf24; }
   .card.quote .ds{ margin:2px 0 0; }
+  .card.reg{ background:linear-gradient(135deg,rgba(59,130,246,.20),rgba(59,130,246,.06)); border-color:#3b82f6; }
+  .card.reg .nm{ color:#8ab8ff; }
   .foot{ margin:18px 16px 0; padding-top:14px; border-top:1px solid #1c2a44; font-size:11px; line-height:1.7; color:#5d7290; text-align:center; }
 </style>
 </head>
 <body>
   <div class="top">
     <span class="brand">AI行情官<b>｜灯塔版</b><span class="v">1.03</span></span>
-    <a class="my" href="../account.html">我的</a>
+    <span class="top-links">
+      <a class="my" href="../index.html" id="link-desktop">桌面版</a>
+      <a class="my" href="../account.html">我的</a>
+    </span>
   </div>
 
   <div class="hero">
@@ -63,6 +69,7 @@
     <a class="card" href="../daily/index.html"><span class="ic">📋</span><span class="nm">复盘</span><span class="ds">每日报告 · 主线研判</span></a>
     <a class="card" href="../account.html"><span class="ic">👤</span><span class="nm">我的</span><span class="ds">会员 · 自选 · 套餐</span></a>
     <a class="card" href="../help.html"><span class="ic">❓</span><span class="nm">帮助</span><span class="ds">使用说明 · 常见问题</span></a>
+    <a class="card reg" id="reg-link" href="../index.html?i=BWPX3Z8B&amp;mode=register"><span class="ic">🎁</span><span class="nm">免费注册</span><span class="ds">手机号验证码注册 · 注册即送免费额度</span></a>
     <a class="card" href="../feedback.html"><span class="ic">💬</span><span class="nm">反馈</span><span class="ds">意见与建议</span></a>
   </div>
 
@@ -90,6 +97,21 @@
   }
   document.getElementById("go").addEventListener("click", go);
   document.getElementById("q").addEventListener("keydown", function(e){ if (e.key === "Enter") go(); });
+})();
+</script>
+<script>
+(function(){
+  // 邀请码：URL 参数 → localStorage → 默认 BWPX3Z8B；免费注册按钮跟随；桌面版入口设强制桌面标记
+  try {
+    var sp = new URLSearchParams(location.search);
+    var raw = sp.get('i') || sp.get('invite') || sp.get('inv') || sp.get('ref') || '';
+    if (raw) localStorage.setItem('ai24x_invite_code', String(raw).trim().toUpperCase());
+    var code = String(localStorage.getItem('ai24x_invite_code') || '').trim().toUpperCase() || 'BWPX3Z8B';
+    var reg = document.getElementById('reg-link');
+    if (reg) reg.href = '../index.html?i=' + encodeURIComponent(code) + '&mode=register';
+    var desk = document.getElementById('link-desktop');
+    if (desk) desk.addEventListener('click', function(){ try { sessionStorage.setItem('ai24x_desktop_force','1'); } catch (e) {} });
+  } catch (e) {}
 })();
 </script>
 </body>

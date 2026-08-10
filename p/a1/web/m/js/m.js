@@ -56,6 +56,7 @@ function favFind(secid){
 }
 try{ state.favs = favNormalize(JSON.parse(localStorage.getItem("ai24x_m_favs") || "[]")); }catch(e){ state.favs = []; }
 var sigCache = [];
+var sigError = "";
 var cacheRows = null, cacheSigs = [];
 
 function codeToSecid(code){
@@ -138,6 +139,7 @@ function pickKlineRows(d){
 function loadKline(){
   var cnt = COUNT[state.period] || 400;
   return api("/api/kline", "secid=" + encodeURIComponent(state.secid) + "&period=" + encodeURIComponent(state.period) + "&count=" + cnt).then(function(d){
+    if (!d || d.code !== 0) throw new Error((d && d.msg) || "no data");
     var rows = null;
     if (d && d.data) {
       var prefer = state.period === "week" ? ["week","qfqweek"]
@@ -232,18 +234,29 @@ function classifySig(text){
 }
 function loadSignals(){
   return api("/api/signals", "secid=" + encodeURIComponent(state.secid) + "&period=" + encodeURIComponent(state.period) + "&count=400").then(function(d){
-    var arr = (d && d.data && Array.isArray(d.data.markers)) ? d.data.markers : [];
+    if (!d || d.code !== 0 || !(d.data && Array.isArray(d.data.markers))) {
+      sigError = (d && d.msg) || "信号加载失败";
+      sigCache = [];
+      return [];
+    }
+    sigError = "";
+    var arr = d.data.markers;
     sigCache = arr.map(function(m){
       var txt = normSig(m.text);
       var c = classifySig(txt);
       return { date: m.time || m.date || "", label: c.label, color: m.color || c.color, note: txt, raw: txt, shape: m.shape || "circle", position: m.position || "belowBar" };
     });
     return sigCache;
-  }).catch(function(){ sigCache = []; return []; });
+  }).catch(function(){ sigError = "信号加载失败"; sigCache = []; return []; });
 }
 function renderSigList(){
   var el = document.getElementById("sig-list");
-  if (!sigCache.length){ el.innerHTML = '<div class="empty">近期暂无信号</div>'; return; }
+  if (!sigCache.length){
+    var dv = document.createElement("div"); dv.className = "empty";
+    dv.textContent = sigError || "近期暂无信号";
+    el.innerHTML = ""; el.appendChild(dv);
+    return;
+  }
   el.innerHTML = "";
   sigCache.slice(-20).reverse().forEach(function(s){
     var row = document.createElement("div"); row.className = "sig-row";
@@ -327,6 +340,12 @@ function drawK(rows, sigs){
       else { dotY = Math.min(y(r.l) + 10, H - 24); dir = 1; }
       drawMarker(ctx, xi2, dotY, s, dir);
     }
+  }
+  if ((!sigs || !sigs.length) && sigError){
+    ctx.fillStyle = "rgba(138,160,191,.95)"; ctx.font = "11px sans-serif"; ctx.textAlign = "right";
+    var hint = sigError === "请先登录后再查询" ? "信号：登录后显示" : sigError;
+    ctx.fillText(hint, W - padR, padT + 12);
+    ctx.textAlign = "left";
   }
   document.getElementById("k-legend").textContent = "K线信号";
 }
@@ -448,7 +467,7 @@ function loadSnap(done){
     arr.forEach(function(w){ try{ w(); }catch(e){} });
   }
   var secid = String(state.secid || "");
-  if (!secid || !token()){ if (snapEl) snapEl.hidden = true; fin(); return; }
+  if (!secid){ if (snapEl) snapEl.hidden = true; fin(); return; }
   var hit = snapCache[secid];
   if (hit && Date.now() - hit.at < 300000){ renderSnap(hit.d); fin(); return; }
   if (snapBusy[secid]){
@@ -496,7 +515,7 @@ function rr(ctx, x, y, w, h, r){
 function drawMiniK(ctx, rows, x0, y0, x1, y1){
   var closes = rows.map(function(r){ return r.c; });
   var ma1 = sma(closes, 14), ma2 = sma(closes, 28), ma3 = sma(closes, 57);
-  var vis = Math.min(80, rows.length);
+  var vis = Math.max(20, Math.min(rows.length, state.vis));
   var sub = rows.slice(rows.length - vis);
   var lo = Infinity, hi = -Infinity;
   sub.forEach(function(r){ if (r.l < lo) lo = r.l; if (r.h > hi) hi = r.h; });
@@ -526,9 +545,10 @@ function drawMiniK(ctx, rows, x0, y0, x1, y1){
     ctx.stroke();
   }
   line(ma1, "rgba(255,128,0,.55)"); line(ma2, "rgba(51,153,255,.55)"); line(ma3, "rgba(0,200,83,.55)");
-  if (sigCache && sigCache.length){
+  var sigsForCard = (cacheSigs && cacheSigs.length) ? cacheSigs : sigCache;
+  if (sigsForCard && sigsForCard.length){
     var byDate = {};
-    sigCache.forEach(function(s){ if (s && s.date) byDate[String(s.date)] = s; });
+    sigsForCard.forEach(function(s){ if (s && s.date) byDate[String(s.date)] = s; });
     var hits = [];
     for (var i = 0; i < vis; i++){
       var sg = byDate[String(sub[i].t)];
@@ -574,7 +594,7 @@ function drawMiniMacd(ctx, rows, x0, y0, x1, y1){
   var dea = ema(dif, 9);
   var hist = [];
   for (i = 0; i < dif.length; i++) hist.push((dif[i] - dea[i]) * 2);
-  var vis = Math.min(80, rows.length);
+  var vis = Math.max(20, Math.min(rows.length, state.vis));
   var hs = hist.slice(hist.length - vis), ds = dif.slice(dif.length - vis), es = dea.slice(dea.length - vis);
   var lo = Infinity, hi = -Infinity;
   hs.forEach(function(v){ if (v < lo) lo = v; if (v > hi) hi = v; });
@@ -711,7 +731,7 @@ function buildShareCard(done){
     }
   } else {
     ctx.fillStyle = MUTED; ctx.font = "24px sans-serif";
-    ctx.fillText("登录后可查看技术指标快照", pad, y);
+    ctx.fillText("技术指标快照暂不可用", pad, y);
     y += 38;
   }
   ctx.fillStyle = GOLD; ctx.font = "bold 26px sans-serif"; ctx.textAlign = "left";
@@ -763,7 +783,7 @@ function openShare(){
     });
   };
   build();
-  if (!(_lastSnapData && String(_lastSnapData.secid) === String(state.secid)) && token()){
+  if (!(_lastSnapData && String(_lastSnapData.secid) === String(state.secid))){
     loadSnap(function(){
       if (_lastSnapData && String(_lastSnapData.secid) === String(state.secid)) build();
     });
@@ -785,10 +805,15 @@ function render(){
       cacheRows = rows; cacheSigs = sigs;
       drawK(rows, sigs); drawM(rows); updateQuote(rows); loadSnap();
     });
-  }).catch(function(){
+  }).catch(function(err){
     if (String(state.secid || "") !== want) return;
     var cv = document.getElementById("k-canvas");
-    var R = resize(cv); if (R){ R.ctx.clearRect(0,0,R.w,R.h); R.ctx.fillStyle="#8aa0bf"; R.ctx.font="13px sans-serif"; R.ctx.fillText("数据加载失败，请稍后重试",12,24); }
+    var R = resize(cv); if (R){
+      R.ctx.clearRect(0,0,R.w,R.h); R.ctx.fillStyle="#8aa0bf"; R.ctx.font="13px sans-serif";
+      var msg = (err && err.message && String(err.message).indexOf("no data") < 0) ? String(err.message) : "数据加载失败，请稍后重试";
+      if (msg.length > 22) msg = msg.slice(0, 21) + "…";
+      R.ctx.fillText(msg, 12, 24);
+    }
   });
 }
 function redraw(){ if (cacheRows) { drawK(cacheRows, cacheSigs); drawM(cacheRows); } else render(); }
