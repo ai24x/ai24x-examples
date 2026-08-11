@@ -2221,6 +2221,32 @@
     return m;
   })();
 
+  // 启动时从后端拉取完整 BK<->THS 板块映射，增强 ths: 查询失败时的东财兜底
+  function loadPlateMapFromApi() {
+    try {
+      fetch((typeof API_BASE !== 'undefined' ? API_BASE : '') + '/api/plate/map')
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (!d || !d.ok || !d.ths_to_bk) return;
+          var merged = false;
+          Object.keys(d.ths_to_bk).forEach(function (six) {
+            var bk = d.ths_to_bk[six];
+            if (bk && !THS_PLATE_TO_EM_SECID[six]) {
+              THS_PLATE_TO_EM_SECID[six] = '90.' + bk;
+              merged = true;
+            }
+          });
+          if (merged) {
+            EM_SECID_TO_THS_PLATE = {};
+            Object.keys(THS_PLATE_TO_EM_SECID).forEach(function (k) {
+              EM_SECID_TO_THS_PLATE[String(THS_PLATE_TO_EM_SECID[k]).toUpperCase()] = k;
+            });
+          }
+        }).catch(function () {});
+    } catch (e) {}
+  }
+  loadPlateMapFromApi();
+
   function isEmPlateSecid(secid) {
     return /^90\.BK\d+$/i.test(String(secid || '').trim());
   }

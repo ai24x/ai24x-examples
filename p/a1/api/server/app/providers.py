@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import re
 import time
 from datetime import datetime
@@ -126,6 +127,16 @@ _ROUTE: dict[str, dict[str, Any]] = {}
 _KLINE_INFLIGHT: dict[Tuple[str, str, str, int], asyncio.Task[Dict[str, Any]]] = {}
 _KLINE_INFLIGHT_LOCK = asyncio.Lock()
 
+# 东财板块(BK) <-> 同花顺板块(88xxxx) 映射表（由 scripts/gen_plate_map.py 生成）
+_PLATE_MAP_BK_TO_THS: dict[str, list[str]] = {}   # "BK1340" -> ["884092", ...] 按优先级
+_PLATE_MAP_THS_TO_BK: dict[str, str] = {}          # "884092" -> "BK1340"
+_PLATE_MAP_LOADED: float = 0.0
+
+# 动态质量排序：按 _SRC 统计每 5 分钟重排一次基础通道优先级
+_DYNAMIC_PRIORITY: list[str] | None = None
+_DYNAMIC_PRIORITY_TS: float = 0.0
+_DYNAMIC_PRIORITY_TTL: float = 300.0
+
 # Admin runtime config cache (MVP): allow switching paid provider/priority without redeploy.
 _ADMIN_CONF: dict[str, str] | None = None
 _ADMIN_CONF_EXP: float = 0.0
@@ -219,6 +230,55 @@ def _route_hit(source: str) -> None:
         pass
 
 
+
+
+# ---------------- 动态质量排序（每 5 分钟按 _SRC 统计重排） ----------------
+def _quality_by_source() -> dict[str, dict[str, Any]]:
+    groups: dict[str, dict[str, Any]] = {}
+    def g(k: str) -> dict[str, Any]:
+        return groups.setdefault(k, {"ok": 0, "fail": 0, "ms": [], "last_ok": 0, "last_fail": 0})
+    for name, s in _SRC.items():
+        key = str(name).split(":")[0].split(".")[0]
+        if key not in ("paid", "tencent", "ths", "eastmoney", "sina"):
+            key = str(name)
+        a = g(key)
+        a["ok"] += int(s.get("ok") or 0)
+        a["fail"] += int(s.get("fail") or 0)
+        if s.get("avg_ms"):
+            a["ms"].append(float(s["avg_ms"]))
+        a["last_ok"] = max(a["last_ok"], int(s.get("last_ok") or 0))
+        a["last_fail"] = max(a["last_fail"], int(s.get("last_fail") or 0))
+    out: dict[str, dict[str, Any]] = {}
+    now = time.time()
+    for k, a in groups.items():
+        tot = a["ok"] + a["fail"]
+        okr = a["ok"] / tot if tot else 1.0
+        avg = sum(a["ms"]) / len(a["ms"]) if a["ms"] else 0.0
+        fresh = 20.0
+        if a["last_fail"] and now - a["last_fail"] < 600:
+            frac = min(1.0, (now - a["last_fail"]) / 600.0)
+            fresh = 20.0 * frac
+        lat = (max(0.0, 1.0 - avg / 2000.0) * 30.0) if avg else 30.0
+        score = okr * 50.0 + lat + fresh
+        out[k] = {"ok": a["ok"], "fail": a["fail"], "ok_rate": round(okr, 3),
+                  "avg_ms": round(avg, 1), "score": round(score, 1)}
+    return out
+
+def _recompute_priority() -> list[str] | None:
+    global _DYNAMIC_PRIORITY, _DYNAMIC_PRIORITY_TS
+    q = _quality_by_source()
+    order = ["tencent", "ths", "paid", "eastmoney", "sina"]
+    ranked = sorted(order, key=lambda k: -float(q.get(k, {}).get("score", 50.0)))
+    _DYNAMIC_PRIORITY = ranked
+    _DYNAMIC_PRIORITY_TS = time.time()
+    return ranked
+
+def _dynamic_priority_enabled() -> bool:
+    v = _admin_conf_get("dynamic_priority", "").strip().lower()
+    if v:
+        return v in ("1", "true", "yes", "on")
+    return bool(getattr(settings, "dynamic_priority", True))
+
 DATA_SOURCE_REGISTRY: list[dict[str, Any]] = [
     {"key": "paid", "name": "TuShare 付费源", "type": "paid", "desc": "日线/板块K线（需token；rt_k需上游积分权限，当前未开通）"},
     {"key": "tencent", "name": "腾讯行情", "type": "public", "desc": "前复权K线（沪深为主，北证指数不支持→新浪兜底）"},
@@ -279,7 +339,16 @@ def market_data_status() -> dict[str, Any]:
             _gate_snapshot("tx_kline(腾讯K线)", _TX_KLINE_GATE),
             _gate_snapshot("em_delay(板块成分)", _EM_DELAY_GATE),
             _gate_snapshot("ths(fuyao)", _THS_GATE),
+            _gate_snapshot("tushare(包年)", _TUSHARE_GATE),
         ],
+        "dynamic": {
+            "enabled": _dynamic_priority_enabled(),
+            "last_recompute_ts": int(_DYNAMIC_PRIORITY_TS) if _DYNAMIC_PRIORITY_TS else 0,
+            "ttl_s": _DYNAMIC_PRIORITY_TTL,
+            "priority": _DYNAMIC_PRIORITY or [],
+            "scores": _quality_by_source(),
+        },
+        "plate_map": plate_map_status(),
         "paid": {
             "provider": _effective_paid_provider(),
             "priority": _effective_priority(),
@@ -556,6 +625,7 @@ async def fetch_tushare_kline(secid: str, period: str, count: int = 500, timeout
     - For day: use pro.daily + adj_factor (qfqday) by default.
     - Optionally use pro.rt_k for today's realtime day bar when AI24X_TUSHARE_USE_RT_K=1 and period=day.
     """
+    await _TUSHARE_GATE.acquire()
     t0 = time.time()
     sid = str(secid).strip()
     def _secid_to_tushare_index_ts_code(s: str) -> str | None:
@@ -861,6 +931,78 @@ def _tx_on_ok(now: int | None = None) -> None:
     _TX_FAILS.clear()
 
 
+
+
+def _load_plate_map(ttl_s: float = 3600.0) -> None:
+    """加载 BK<->THS 板块映射表（data/plate_map_bk_ths.json），失败静默。"""
+    global _PLATE_MAP_BK_TO_THS, _PLATE_MAP_THS_TO_BK, _PLATE_MAP_LOADED
+    now = time.time()
+    if _PLATE_MAP_LOADED and now - _PLATE_MAP_LOADED < ttl_s:
+        return
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "plate_map_bk_ths.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        pairs = data.get("pairs") or []
+        b2t: dict[str, list[str]] = {}
+        t2b: dict[str, str] = {}
+        for x in pairs:
+            bk = str(x.get("bk") or "").upper().strip()
+            ths = str(x.get("ths") or "").strip()
+            if not bk or not ths:
+                continue
+            six = ths.split(".")[0]
+            rank = 0 if str(x.get("tag") or "") == "industry" else 1
+            lst = b2t.setdefault(bk, [])
+            if not any(v[0] == six for v in lst):
+                lst.append((six, rank))
+            if six not in t2b:
+                t2b[six] = bk
+        for bk in b2t:
+            b2t[bk].sort(key=lambda v: v[1])
+            b2t[bk] = [v[0] for v in b2t[bk]]
+        _PLATE_MAP_BK_TO_THS = b2t
+        _PLATE_MAP_THS_TO_BK = t2b
+        _PLATE_MAP_LOADED = now
+    except Exception:
+        _PLATE_MAP_LOADED = now  # 失败也限频，避免每请求重试
+
+
+def bk_to_ths_secid(secid: str) -> str | None:
+    """90.BKxxxx -> 'ths:88xxxx' 主映射（无映射返回 None）。"""
+    sid = str(secid).strip()
+    m = re.fullmatch(r"90\.BK(\d+)", sid, re.I)
+    if not m:
+        return None
+    _load_plate_map()
+    lst = _PLATE_MAP_BK_TO_THS.get("BK" + m.group(1))
+    if not lst:
+        return None
+    return "ths:" + lst[0]
+
+
+def ths_to_bk_secid(secid: str) -> str | None:
+    """'ths:88xxxx' -> '90.BKxxxx'（反向兜底映射）。"""
+    sid = str(secid).strip()
+    m = re.fullmatch(r"ths[:.](\d{6})", sid, re.I)
+    if not m:
+        return None
+    _load_plate_map()
+    bk = _PLATE_MAP_THS_TO_BK.get(m.group(1))
+    if not bk:
+        return None
+    return "90." + bk
+
+
+def plate_map_status() -> dict[str, Any]:
+    _load_plate_map()
+    return {
+        "loaded": bool(_PLATE_MAP_BK_TO_THS),
+        "bk_count": int(len(_PLATE_MAP_BK_TO_THS)),
+        "ths_count": int(len(_PLATE_MAP_THS_TO_BK)),
+        "file": "data/plate_map_bk_ths.json",
+    }
+
 def is_em_plate_secid(secid: str) -> bool:
     """东方财富板块：QuoteID 形如 90.BK0963（与 A 股 0/1.六位 区分）。"""
     return bool(re.fullmatch(r"90\.BK\d+", str(secid).strip(), flags=re.I))
@@ -927,7 +1069,12 @@ def _strip_js_wrapper(s: str) -> str:
 def _secid_to_ths_thscode(secid: str) -> str | None:
     """内部 secid -> 同花顺 thscode（股票/指数）。"""
     s = str(secid).strip()
-    if s.lower().startswith(("ths:", "ths.")) or is_em_plate_secid(s):
+    if s.lower().startswith(("ths:", "ths.")):
+        six = s[4:].strip()
+        if re.fullmatch(r"88\d{4}", six):
+            return f"{six}.TI"
+        return None
+    if is_em_plate_secid(s):
         return None
     sym = secid_to_tencent_symbol(s)
     if sym.startswith("sh"):
@@ -940,6 +1087,8 @@ def _secid_to_ths_thscode(secid: str) -> str | None:
 
 
 def _ths_is_index(secid: str) -> bool:
+    if re.fullmatch(r"ths[:.]88\d{4}", str(secid).strip(), re.I):
+        return True
     sym = secid_to_tencent_symbol(str(secid).strip())
     return bool(re.match(r"^(sh000\d{3}|sz399\d{3}|bj899\d{2})", sym))
 
@@ -2918,6 +3067,9 @@ _THS_FAILS: list[int] = []
 _THS_OPEN_UNTIL: int = 0
 _THS_KEY_BAD_UNTIL: float = 0.0
 
+# TuShare 包年通道：上游 500 次/分钟上限，客户端 480/min 门控留余量（防触发上游限流）
+_TUSHARE_GATE = _RateGate(min_interval_s=0.12, max_per_minute=480)
+
 
 def _ths_allow(now: int | None = None) -> bool:
     now = int(now or time.time())
@@ -3289,13 +3441,51 @@ async def _fetch_tx_kline_core(
     allow_paid: bool = True,
 ) -> Dict[str, Any]:
     if is_em_plate_secid(secid):
+        # 板块优先走同花顺（886xxx/881xxx，口径与同花顺软件一致）；仅日线，失败回退东财
+        ths_sid = bk_to_ths_secid(secid)
+        if ths_sid and period == "day":
+            try:
+                fb = await fetch_ths_fuyao_kline(ths_sid, period, count=count, timeout=timeout)
+                if _tencent_payload_has_rows(fb):
+                    try:
+                        fb["_meta"] = {"source": "ths:fuyao:plate", "secid": secid, "ths_secid": ths_sid, "variant": str(variant), "ts": int(time.time())}
+                    except Exception:
+                        pass
+                    _route_hit("ths:fuyao:plate")
+                    _cache_put("plate", secid, period, count, fb)
+                    return fb
+            except Exception:
+                pass
         payload = await fetch_em_plate_kline(secid, period, count=count, timeout=timeout)
         if _tencent_payload_has_rows(payload):
             _cache_put("plate", secid, period, count, payload)
         return payload
 
+    # ths:88xxxx 板块直连 fuyao a-share-index（免费、当日实时）；失败走下方优先级链（paid ths_daily 兜底）
+    if period == "day" and re.fullmatch(r"ths[:.]88\d{4}", str(secid).strip(), re.I):
+        try:
+            fb2 = await fetch_ths_fuyao_kline(secid, period, count=count, timeout=timeout)
+            if _tencent_payload_has_rows(fb2):
+                try:
+                    fb2["_meta"] = {"source": "ths:fuyao:plate", "secid": secid, "variant": str(variant), "ts": int(time.time())}
+                except Exception:
+                    pass
+                _route_hit("ths:fuyao:plate")
+                _cache_put(variant, secid, period, count, fb2)
+                return fb2
+        except Exception:
+            pass
+
     def _priority() -> list[str]:
-        raw = str(priority_override or _effective_priority() or "").strip().lower()
+        raw_override = str(priority_override or "").strip().lower()
+        if raw_override:
+            raw = raw_override  # 显式覆盖（批量扫描等）尊重调用方配置
+        elif _dynamic_priority_enabled():
+            if _DYNAMIC_PRIORITY is None or time.time() - _DYNAMIC_PRIORITY_TS > _DYNAMIC_PRIORITY_TTL:
+                _recompute_priority()
+            raw = ",".join(_DYNAMIC_PRIORITY) if _DYNAMIC_PRIORITY else str(_effective_priority() or "").strip().lower()
+        else:
+            raw = str(_effective_priority() or "").strip().lower()
         items = [x.strip() for x in raw.split(",") if x.strip()]
         # default: public first, paid last
         if not items:
@@ -3308,8 +3498,8 @@ async def _fetch_tx_kline_core(
         return out
 
     async def _try_ths() -> Dict[str, Any] | None:
-        if is_ths or period != "day":
-            return None  # 同花顺仅日线；ths: 板块代码走 paid 通道
+        if (is_ths and not re.fullmatch(r"ths[:.]88\d{4}", str(secid).strip(), re.I)) or period != "day":
+            return None  # 同花顺仅日线；ths:88xxxx 板块可走 fuyao a-share-index，其余 ths: 走 paid 通道
         if not _ths_allow():
             return {"code": -1, "msg": "ths fuyao kline temporarily unavailable (circuit open)", "data": {}}
         try:

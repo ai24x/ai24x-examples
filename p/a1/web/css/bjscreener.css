@@ -18,7 +18,7 @@
 .vip-badge{display:inline-block;vertical-align:2px;margin-left:6px;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;background:linear-gradient(135deg,#ffd666,#fbbf24);color:#3a2c00}
 .bj-top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:4px 0 8px}
 .bj-status{font-size:13px;color:var(--muted)}
-.bj-meta{font-size:12px;color:var(--muted);background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin:6px 0 10px;line-height:1.7}
+.bj-meta{font-size:12px;color:var(--muted);background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;margin:6px 0 10px;line-height:1.7}
 .bj-meta b{color:var(--bj-acc)}
 .bj-cached{color:var(--bj-down);font-weight:700}
 .bj-section{margin:12px 0 6px;font-size:14px;font-weight:700;border-left:4px solid var(--bj-acc);padding-left:10px;color:var(--text)}
@@ -233,7 +233,7 @@ a.chip.chip-mainline:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba
 :root[data-theme="dark"] .chip-mainline b{color:#ffb347}
 :root[data-theme="dark"] a.chip.chip-mainline:hover{background:linear-gradient(135deg,rgba(255,214,102,.3),rgba(251,191,36,.22));border-color:#f0b429}
 
-/* 决策节奏 + 昨日主推追踪（连续性优化） */
+/* 决策节奏 + 昨日筛选追踪（连续性优化） */
 .bj-rhythm{background:var(--panel);border:1px solid var(--border);border-left:4px solid var(--bj-gold-bd,#f0b429);border-radius:10px;padding:10px 14px;margin:0 0 12px;font-size:12.5px;color:var(--text);line-height:1.75}
 .bj-rhythm b{color:var(--bj-gold,#d48806)}
 .pt-list{display:flex;flex-direction:column;gap:6px;margin:6px 0 10px}
@@ -246,4 +246,4 @@ a.chip.chip-mainline:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba
 .pt-status.st-bad{background:#fdecea;color:#b71c1c;border:1px solid #ef9a9a}
 .pt-status.st-muted{background:rgba(128,138,160,.14);color:var(--muted);border:1px solid transparent}
 .pt-note{font-size:11.5px;color:var(--muted);margin:0 0 6px}
-.tier-badge.tier-cont{background:rgba(255,214,102,.28);color:#8a5a00;border:1px solid #f0b429;font-weight:800}
+.tier-badge.tier-cont{background:linear-gradient(135deg,#ffd666,#f59e0b);color:#3a2c00;border:1px solid #f0b429;font-weight:800}

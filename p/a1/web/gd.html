@@ -18,27 +18,28 @@
   </script>
   <link rel="stylesheet" href="/css/base.css?v=53" />
   <link rel="stylesheet" href="/css/tool.css" />
-  <link rel="stylesheet" href="/css/bjscreener.css?v=24" />
+  <link rel="stylesheet" href="/css/bjscreener.css?v=27" />
 <style>
 /* 掘金 · 大盘环境与策略区（复盘同步） */
-.bj-market{display:block;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin:0 0 14px;}
+.bj-market{display:block;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:10px 14px;margin:0 0 12px;}
 .bj-market .bj-section{margin-top:0;}
-.bj-mkt-head{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-bottom:10px;}
+.bj-mkt-head{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin-bottom:8px;}
 .bj-mkt-badge{display:inline-block;padding:3px 12px;border-radius:999px;font-size:13px;font-weight:700;}
 .bj-mkt-badge.ok{background:linear-gradient(135deg,rgba(248,113,113,.20),rgba(251,191,36,.12));color:#dc2626;border:1px solid rgba(220,38,38,.45);}
 .bj-mkt-badge.warn{background:rgba(251,191,36,.14);color:#b45309;border:1px solid rgba(251,191,36,.55);}
 .bj-mkt-badge.risk{background:rgba(220,38,38,.18);color:#991b1b;border:1px solid rgba(220,38,38,.6);}
 .bj-mkt-pts{font-size:13px;color:var(--text);font-weight:700;}
 .bj-mkt-asof{margin-left:auto;font-size:12px;color:var(--muted);}
-.bj-mkt-idx{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:10px;}
-.bj-mkt-idx-item{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:12px;line-height:1.6;}
-.bj-mkt-idx-item .nm{font-weight:700;color:var(--text);font-size:13px;}
-.bj-mkt-idx-item .sg{color:var(--accent);}
-.bj-mkt-idx-item .sc{font-weight:700;color:var(--text);}
-.bj-mkt-strategy{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.8;}
-.bj-mkt-strategy .row{margin:2px 0;}
+.bj-mkt-idx{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;margin-bottom:8px;}
+.bj-mkt-idx-item{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--border);border-radius:999px;padding:3px 10px;font-size:12px;line-height:1.4;white-space:nowrap;overflow:hidden;}
+.bj-mkt-idx-item .nm{font-weight:700;color:var(--text);}
+.bj-mkt-idx-item .sc{font-weight:700;color:var(--bj-acc);margin-left:auto;}
+.bj-mkt-idx-item .stx{color:var(--muted);overflow:hidden;text-overflow:ellipsis;}
+.bj-mkt-strategy{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:6px 10px;font-size:12px;line-height:1.7;}
+.bj-mkt-strategy .row{margin:0;}
+.bj-mkt-strategy .row-sep{color:var(--muted);margin:0 4px;}
 .bj-mkt-strategy .lb{color:var(--muted);margin-right:6px;}
-.bj-mkt-strategy .ops{margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);color:var(--text);}
+.bj-mkt-strategy .ops{display:none;}
 .bj-mkt-gate{margin-top:10px;font-size:12px;color:var(--muted);line-height:1.7;}
 .bj-mkt-gate a{color:var(--accent);}
 .bj-flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 14px;}
@@ -59,6 +60,8 @@
 .bj-regime.stable b{background:linear-gradient(135deg,#d97706,#f59e0b);}
 .bj-regime.defensive{background:linear-gradient(135deg,rgba(153,27,27,.28),rgba(220,38,38,.12));border:1px solid rgba(153,27,27,.65);}
 .bj-regime.defensive b{background:linear-gradient(135deg,#7f1d1d,#b91c1c);}
+.bj-regime.bj-regime-inline{margin:6px 0 0;padding:6px 10px;font-size:12px;gap:6px 10px;}
+.bj-regime.bj-regime-inline b{font-size:12px;padding:1px 8px;}
 .winrate-strip{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:10px 14px;background:var(--panel2);border:1px solid var(--border);border-radius:12px;font-size:13px;font-weight:600;}
 .winrate-strip .up{color:var(--rise);}
 .winrate-strip .down{color:var(--fall);}
@@ -75,11 +78,11 @@
         <div class="bj-flow" aria-label="掘金使用流程">
           <span class="bj-flow-step now"><span class="ic">📊</span>大盘环境</span>
           <span class="bj-flow-arrow">→</span>
-          <span class="bj-flow-step"><span class="ic">🎯</span>今日策略</span>
+          <span class="bj-flow-step"><span class="ic">🎯</span>今日观察</span>
           <span class="bj-flow-arrow">→</span>
-          <span class="bj-flow-step"><span class="ic">🗂️</span>主攻板块</span>
+          <span class="bj-flow-step"><span class="ic">🗂️</span>板块聚焦</span>
           <span class="bj-flow-arrow">→</span>
-          <span class="bj-flow-step"><span class="ic">⭐</span>潜力个股</span>
+          <span class="bj-flow-step"><span class="ic">⭐</span>AI 筛选</span>
         </div>
 
         <div id="auth-guest" hidden>
@@ -90,7 +93,7 @@
           <div class="gate-feats">
             <div class="gate-feat"><b>① 每晚自动扫描</b><span>沪深京 / 北证全市场</span></div>
             <div class="gate-feat"><b>② 底部刚走多筛选</b><span>异动回踩企稳 / 一路小阳</span></div>
-            <div class="gate-feat"><b>③ 风险排查 + 波段策略</b><span>硬伤排除、警示、中线波段参考</span></div>
+            <div class="gate-feat"><b>③ 风险排查 + 波段参考</b><span>硬伤排除、警示、中线波段参考</span></div>
           </div>
           <div class="auth-card-grid">
             <a class="auth-card is-selected" href="./index.html?mode=login&amp;ch=phone">
@@ -118,8 +121,10 @@
             <div class="bj-progress-text" id="bj-progress-text">正在扫描…</div>
           </div>
           <div class="bj-tabs" id="bj-tabs">
-            <button type="button" class="bj-tab active" data-market="all">沪深京全市场</button>
-            <button type="button" class="bj-tab" data-market="bj">北证全市场</button>
+            <button type="button" class="bj-tab active" data-market="hs">沪深主线</button>
+            <button type="button" class="bj-tab" data-market="kc">科创主线</button>
+            <button type="button" class="bj-tab" data-market="bj">北证主线</button>
+            <button type="button" class="bj-tab" data-market="bj_all">北证全市场</button>
           </div>
           <div id="bj-meta" class="bj-meta" hidden></div>
 
@@ -127,7 +132,7 @@
 
           <div id="bj-vipgate" class="vip-card" hidden>
             <div class="t">🔒 掘金为 VIP 专属功能</div>
-            <div class="d">开通 VIP 后解锁：全市场扫描结果、主攻板块、潜力个股与波段策略。</div>
+            <div class="d">开通 VIP 后解锁：全市场扫描结果、板块聚焦、AI 筛选标的与技术参考。</div>
             <a class="btn" href="./account.html#vip" style="display:inline-block;">去开通 VIP</a>
             <span style="display:inline-block;width:8px;"></span>
             <a class="btn wl-back" href="./demo.html">← 返回行情页</a>
@@ -136,20 +141,19 @@
 
           <div id="bj-main" hidden>
             
-            <div class="bj-rhythm"><b>决策节奏</b><span>主线以「复盘」定调、延续优先、每日最多新确认 1 个；昨日主推未破位先跟踪，离场信号才换。破止损 / 放量长阴 -8% 无条件离场。</span></div>
             <div id="bj-mainlines"></div>
+            <div id="bj-result"></div>
             <div id="bj-boardrank"></div>
 <div id="bj-ths-sentiment"></div>
-            <div id="bj-result"></div>
         <div id="bj-winrate" hidden></div>
             <div id="bj-history"></div>
             <div id="bj-picksgate" class="vip-card" hidden>
-              <div class="t">🔒 个股分析与波段策略为 VIP 专属</div>
-              <div class="d">开通 VIP 解锁：主推标的（主线龙头 + 补涨卡位）、体检评分、利空排查与波段策略。</div>
+              <div class="t">🔒 个股筛选与技术参考为 VIP 专属</div>
+              <div class="d">开通 VIP 解锁：筛选标的（主线龙头 + 补涨卡位）、体检评分、利空排查与技术参考。</div>
               <a class="btn" href="./account.html#vip" style="display:inline-block;">去开通 VIP</a>
               <p class="sub" style="margin:10px 0 0;font-size:12px;line-height:1.7;">本功能仅基于公开行情做技术形态统计与信息整理，不构成投资建议，不保证收益。</p>
             </div>
-            <p class="sub" style="margin:14px 0 0;font-size:12px;line-height:1.7;">仅基于公开行情做技术统计与信息整理，不构成投资建议；北交所 30CM 波动大，破位或放量长阴 -8% 无条件离场。股市有风险，入市需谨慎。</p>
+            <p class="sub" style="margin:14px 0 0;font-size:12px;line-height:1.7;">仅基于公开行情做技术统计与信息整理，不构成投资建议；破位或放量长阴 -8% 无条件离场。</p>
           </div>
         </div>
       </section>
@@ -160,7 +164,7 @@
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("bjscreener"); } catch (e) {}
   </script>
-  <script src="/js/bjscreener.js?v=51"></script>
+  <script src="/js/bjscreener.js?v=59"></script>
   <script>
     (function () {
       var w = window.AI24X_BJScreener;

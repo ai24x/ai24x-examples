@@ -81,6 +81,7 @@ from .providers import (
     hotspots_ths_pct_change_top,
     market_data_status,
 )
+from . import providers as _prov
 from .signals import build_signals_v3, candles_from_tencent_like_pack
 from .schemas import (
     AdminLoginIn,
@@ -3128,15 +3129,15 @@ async def api_bj_screener(
 ) -> dict:
     """掘金（VIP 专属）：北证全市场 / 沪深京全市场扫描 -> 板块先行+主线反推 -> 主推 3 只。
 
-    market=bj 北证全市场（王者1+重点2）；market=all 沪深京“板块先行”两阶段（资金流榜→成分股粗筛→K线精筛），
-    主推“主线龙头 2 + 板块内补涨卡位 2”，小市值底部异动进备选池。
+    market=hs 沪深主线、kc 科创主线（板块先行两阶段）；market=bj 北证主线、bj_all 北证全市场（纯评分）。
+    每栏主推 2 只（王者1⭐ + 重点1），宁缺毋滥；小市值底部异动进备选池。
     算法全部在服务端执行（bj_screener.py），前端仅展示接口返回；非 VIP 一律 403。
     结果按自然日缓存，force=1 强制重扫。不扣查次（VIP 权益功能），仅做频率限制。
     """
     market = str(market or "bj").strip().lower()
-    if market not in ("bj", "all"):
+    if market not in ("bj", "all", "hs", "kc", "bj_all"):
         market = "bj"
-    _rate_limit(f"bj-screener:{user_id}", 6)
+    _rate_limit(f"bj-screener:{user_id}", 24)
     try:
         _auth_ip_rate_limit(request)
     except Exception:
@@ -3212,9 +3213,9 @@ async def api_bj_screener_start(
     → running=false 后 GET /api/bj/screener?market=bj（命中缓存返回最新结果）。
     """
     market = str(market or "bj").strip().lower()
-    if market not in ("bj", "all"):
+    if market not in ("bj", "all", "hs", "kc", "bj_all"):
         market = "bj"
-    _rate_limit(f"bj-screener:{user_id}", 6)
+    _rate_limit(f"bj-screener:{user_id}", 24)
     try:
         _auth_ip_rate_limit(request)
     except Exception:
@@ -3254,7 +3255,7 @@ async def api_bj_screener_progress(
 ) -> dict:
     """掘金扫描进度（前端进度条轮询）；不扣查次，仅做频率限制。"""
     market = str(market or "bj").strip().lower()
-    if market not in ("bj", "all"):
+    if market not in ("bj", "all", "hs", "kc", "bj_all"):
         market = "bj"
     try:
         _rate_limit(f"bj-screener-progress:{user_id}", 90)
@@ -3274,7 +3275,7 @@ async def api_bj_history(
 ) -> dict:
     """掘金历史归档（VIP 专属）：不传 date 返回归档日期摘要，传 date 返回当日完整结果（按市场隔离）。"""
     market = str(market or "bj").strip().lower()
-    if market not in ("bj", "all"):
+    if market not in ("bj", "all", "hs", "kc", "bj_all"):
         market = "bj"
     _rate_limit(f"bj-history:{user_id}", 30)
     try:
@@ -3956,6 +3957,17 @@ async def api_kline_with_signals(
     except Exception as e:
         payload["signals"] = {"code": -1, "msg": f"signals failed ({type(e).__name__})"}
         return payload
+
+
+@app.get("/api/plate/map")
+def api_plate_map():
+    """公开：东财板块(BK) <-> 同花顺板块(88xxxx) 映射，供前端板块查询兜底。"""
+    _prov._load_plate_map()
+    return {
+        "ok": True,
+        "bk_to_ths": {k: v for k, v in _prov._PLATE_MAP_BK_TO_THS.items()},
+        "ths_to_bk": dict(_prov._PLATE_MAP_THS_TO_BK),
+    }
 
 
 @app.get("/api/status/market-data")

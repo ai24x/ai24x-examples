@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>北证每日跟踪 · 低风险潜力股扫描</title>
+<title>北证每日跟踪 · 低风险标的筛选</title>
 <style>
 :root{
   --bg:#f0f2f6; --card:#ffffff; --line:#e2e6ec; --txt:#1f2430; --sub:#5a6472;
@@ -66,8 +66,8 @@ canvas{width:100%;height:190px;display:block;border:1px solid var(--line);border
   <div class="card">
     <div class="head-row">
       <div>
-        <h1>北证每日跟踪 · 低风险潜力股扫描</h1>
-        <div class="sub">北交所 30CM · 每天扫全市场 → 形态优选 → 推荐 3~5 只｜数据源：AI行情官(本地 18011) + 东财公开行情</div>
+        <h1>北证每日跟踪 · 低风险标的筛选</h1>
+        <div class="sub">北交所 30CM · 每天扫全市场 → 形态优选 → 筛选 3~5 只｜数据源：AI行情官(本地 18011) + 东财公开行情</div>
       </div>
       <div>
         <button class="btn" id="btn-run">▶ 开始扫描</button>
@@ -94,7 +94,7 @@ canvas{width:100%;height:190px;display:block;border:1px solid var(--line);border
         <div class="field"><label>5日涨幅上限 %</label><input id="cfg-max5" type="number" value="20"></div>
         <div class="field"><label>10日涨幅上限 %</label><input id="cfg-max10" type="number" value="30"></div>
         <div class="field"><label>AI评分下限</label><input id="cfg-ai" type="number" value="60"></div>
-        <div class="field"><label>推荐数量（3~5）</label><input id="cfg-n" type="number" value="5"></div>
+        <div class="field"><label>筛选数量（3~5）</label><input id="cfg-n" type="number" value="5"></div>
         <div class="field"><label>精筛候选数（每只拉K线，扫描时长≈候选数×2.3秒）</label><input id="cfg-cap" type="number" value="120"></div><div class="field"><label>打开页面自动扫描（当日未扫且已过时间）</label><select id="cfg-autoscan"><option value="1">开启</option><option value="0">关闭</option></select></div><div class="field"><label>自动扫描时间（HH:mm，交易日）</label><input id="cfg-plan" type="text" value="15:35"></div>
         <div class="field" style="grid-column:1/-1"><label>题材关键词加分（逗号分隔，如：机器,煤炭,锂电,算力,光模块；名称命中则加分并打标签，可留空）</label><input id="cfg-kw" type="text" placeholder="机器,煤炭,锂,算力,光,半导体,军,卫,固态,氢"></div>
         <div class="field"><label>底部异动最小涨幅 %（异动区4~14%）</label><input id="cfg-surge" type="number" value="4"></div>
@@ -124,7 +124,7 @@ canvas{width:100%;height:190px;display:block;border:1px solid var(--line);border
 
   <div class="card" id="result-card" style="display:none">
     <div class="head-row">
-      <h2 style="margin-top:2px">今日推荐（北证 · 低风险优选）</h2>
+      <h2 style="margin-top:2px">今日筛选（北证 · 低风险优选）</h2>
       <div>
         <button class="btn sm gold" id="btn-copy">📋 复制简报</button>
         <button class="btn sm ghost" id="btn-savehist">💾 存入历史</button>
@@ -501,7 +501,7 @@ function renderPicks(){
         '<span class="stop">止损 '+num(a.levels.stop,2)+'</span>'+
       '</div>'+
       '<div class="kbox"><canvas data-code="'+c.code+'" data-idx="'+i+'"></canvas></div>'+
-      '<div class="sub">入选逻辑：'+reasonOf(c)+'</div>';
+      '<div class="sub">筛选依据：'+reasonOf(c)+'</div>';
     grid.appendChild(d);
   });
   box.appendChild(grid);
@@ -565,7 +565,7 @@ function copyBrief(){
   if(!LAST.picks.length){alert("先扫描出结果再复制");return}
   var lines=[];
   lines.push("北证每日跟踪 · "+LAST.date+"（数据截至 "+LAST.asof+" 收盘）");
-  lines.push("");lines.push("## 今日推荐（低风险优选）");
+  lines.push("");lines.push("## 今日筛选（低风险优选）");
   LAST.picks.forEach(function(c,i){
     var a=c.A,s=c.snap;
     lines.push("**"+(i+1)+". "+c.name+"("+c.code+")** 现价"+num(c.price,2)+"（"+pct(c.pct)+"）| 位置"+num(a.pos*100,0)+"% | 市值"+money(c.mcap)+" | 5日"+pct(a.chg5)+" | "+(s?"AI综合分"+num(s.score,0):"本地分"+a.score));
@@ -687,7 +687,7 @@ function tagText(a){
       $("asof").textContent=LAST.asof;
       $("result-card").style.display="block";
       renderPicks();
-      log("完成！推荐 "+picks.length+" 只，耗时 "+Math.round((Date.now()-t0)/1000)+"s");
+      log("完成！筛选出 "+picks.length+" 只，耗时 "+Math.round((Date.now()-t0)/1000)+"s");
     }catch(e){
       log("❌ 扫描失败："+e.message);
     }finally{

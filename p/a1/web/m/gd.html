@@ -114,7 +114,7 @@
 <div class="regime" id="regime" style="display:none"></div>
 <div class="meta" id="meta"></div>
 
-<div class="sec-title"><span>今日主推</span><span class="refresh" id="btn-refresh">⟳ 重新扫描</span></div>
+<div class="sec-title"><span>今日 AI 筛选</span><span class="refresh" id="btn-refresh">⟳ 重新扫描</span></div>
 <div class="list" id="list"></div>
 <div class="runner-box" id="runner-box"></div>
 
@@ -238,7 +238,7 @@
     if (!st.entry && !st.period) return '';
     var period = String(st.period || '').trim();
     var entry = String(st.entry || '').replace(/（现价[^）]*）/g, '').replace(/分批建仓/g, '分批').replace(/，[^，。]*追突破/g, '').trim();
-    return '<div class="st"><span class="st-tag">波段策略</span><b>' + esc(period) + '</b> ｜ ' + esc(entry) + ' ｜ <span style="color:#00b578">不追高·缩量回踩·破位/长阴-8%离场</span></div>';
+    return '<div class="st"><span class="st-tag">波段参考</span><b>' + esc(period) + '</b> ｜ ' + esc(entry) + ' ｜ <span style="color:#00b578">不追高·缩量回踩·破位/长阴-8%离场</span></div>';
   }
 
   function card(p){
@@ -265,7 +265,7 @@
         '<span class="stop">止损 ' + num(lv.stop, 2) + '</span>' + posSpan +
       '</div>' +
       stLine(p) +
-      '<div class="reason">入选逻辑：' + esc(reasonOf(p)) + '</div>' +
+      '<div class="reason">筛选依据：' + esc(reasonOf(p)) + '</div>' +
       bearishHtml(p) +
       '<div class="btns">' +
         '<a class="kline" href="quote.html?secid=' + encodeURIComponent(sid) + '&name=' + encodeURIComponent(p.name) + '">看K线 →</a>' +
@@ -304,11 +304,11 @@
     var el = $('list');
     var picks = d.picks || [];
     if (d.vip_required) {
-      el.innerHTML = '<div class="vip-gate"><div class="t">🔒 个股主推为 VIP 专属</div><div class="d">板块热点免费看，个股分析与主线锁定需开通 VIP 后解锁。</div><a href="account.html">去开通 VIP →</a></div>';
+      el.innerHTML = '<div class="vip-gate"><div class="t">🔒 个股筛选为 VIP 专属</div><div class="d">板块热点免费看，个股分析与主线锁定需开通 VIP 后解锁。</div><a href="account.html">去开通 VIP →</a></div>';
       return;
     }
     if (!picks.length) {
-      var txt = d.archive ? '该日期无归档主推记录' : '今日无合格标的：行情整体偏弱或筛选条件过严，宁缺毋滥；可稍后重扫。';
+      var txt = d.archive ? '该日期无归档筛选记录' : '今日无合格标的：行情整体偏弱或筛选条件过严，宁缺毋滥；可稍后重扫。';
       el.innerHTML = '<div class="empty">' + txt + '</div>';
       return;
     }
@@ -372,7 +372,7 @@
       if (!d || d.ok === false || (d && d.detail)) {
         var msg = (d && (d.message || d.msg || d.detail)) || '加载失败，请稍后重试';
         if (/token|login|登录|授权|缺失|无效/i.test(String(msg))) {
-          $('list').innerHTML = '<div class="vip-gate"><div class="t">🔒 掘金主推为登录/VIP 专属</div><div class="d">请先登录或开通 VIP，再查看今日主推与历史归档。</div><a href="account.html">登录 / 开通 VIP →</a></div>';
+          $('list').innerHTML = '<div class="vip-gate"><div class="t">🔒 掘金筛选为登录/VIP 专属</div><div class="d">请先登录或开通 VIP，再查看今日 AI 筛选与历史归档。</div><a href="account.html">登录 / 开通 VIP →</a></div>';
         } else {
           $('list').innerHTML = '<div class="empty">' + esc(msg) + '</div>';
         }

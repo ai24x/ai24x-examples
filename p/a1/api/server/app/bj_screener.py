@@ -24,7 +24,8 @@ from typing import Any
 
 import httpx
 
-from .providers import _RateGate, fetch_em_suggest, fetch_tx_kline, market_data_status
+from .providers import (_RateGate, fetch_em_suggest, fetch_tx_kline, market_data_status,
+                          bk_to_ths_secid)
 from .ths_fuyao import fetch_special as ths_fetch_special
 
 EM_HOSTS = ["https://push2delay.eastmoney.com", "https://push2.eastmoney.com"]
@@ -154,8 +155,8 @@ def _latest_history(market: str = "bj") -> dict[str, Any] | None:
     hist = _load_history()
     prefix = str(market or "bj") + ":"
     for key in reversed(list(hist.keys())):
-        # 兼容旧版无市场前缀的归档
-        if key.startswith(prefix) or ":" not in key:
+        # 兼容旧版无市场前缀的归档（仅北证；hs/kc/bj_all 无旧数据，避免串市场）
+        if key.startswith(prefix) or (str(market or "bj") == "bj" and ":" not in key):
             v = hist.get(key)
             if isinstance(v, dict) and v.get("picks"):
                 return v
@@ -169,7 +170,7 @@ def _prev_day_picks(market: str = "bj") -> tuple[str, list[dict[str, Any]]]:
         prefix = str(market or "bj") + ":"
         today = time.strftime("%Y-%m-%d", time.localtime())
         for key in reversed(list(hist.keys())):
-            if not (key.startswith(prefix) or ":" not in key):
+            if not (key.startswith(prefix) or (str(market or "bj") == "bj" and ":" not in key)):
                 continue
             v = hist.get(key)
             if isinstance(v, dict) and v.get("picks") and str(v.get("date") or "") != today:
@@ -501,7 +502,7 @@ def _rebuild_archive_index() -> None:
             except Exception:
                 continue
             stem = nm[:-5]
-            mm = re.match(r"^(\d{4}-\d{2}-\d{2})-(all|bj)(?:-(\d{4}))?$", stem)
+            mm = re.match(r"^(\d{4}-\d{2}-\d{2})-((?:bj_all|all|bj|hs|kc))(?:-(\d{4}))?$", stem)
             if mm:
                 market = mm.group(2)
                 date_key = mm.group(1)
@@ -544,7 +545,7 @@ def archive_versions(market: str = "") -> dict[str, Any]:
         d = _load_json_file(_ARCHIVE_INDEX_PATH, None) or {}
     items = d.get("items") or []
     market = str(market or "").strip().lower()
-    if market in ("all", "bj"):
+    if market in ("all", "bj", "hs", "kc", "bj_all"):
         items = [it for it in items if it.get("market") == market]
     out = dict(d)
     out["items"] = items
@@ -553,6 +554,16 @@ def archive_versions(market: str = "") -> dict[str, Any]:
 
 def load_archive(market: str, date_key: str) -> dict[str, Any] | None:
     market = str(market or "bj")
+    # 优先当日最终版索引（与历史列表口径一致）；仅普通日期走索引，
+    # 带 (HH:MM) 的多版本日期仍精确读对应文件，避免串版本。
+    if not _MULTI_ARCH_RE.match(str(date_key or "")):
+        try:
+            _hist0 = _load_history()
+            _iv = _hist0.get(f"{market}:{str(date_key).split(' (', 1)[0]}")
+            if isinstance(_iv, dict):
+                return _iv
+        except Exception:
+            pass
     mp = _multi_archive_path(market, date_key)
     if mp:
         d = _load_json_file(mp, None)
@@ -635,20 +646,19 @@ def archive_summary(market: str = "bj") -> list[dict[str, Any]]:
         for day in sorted(by_day, reverse=True)[:_ARCHIVE_KEEP_DAYS]:
             _, nm = by_day[day]
             stem = nm[:-5]
-            mm = re.match(r"^(\d{4}-\d{2}-\d{2})-(all|bj)-(\d{4})$", stem)
+            mm = re.match(r"^(\d{4}-\d{2}-\d{2})-((?:bj_all|all|bj|hs|kc))-(\d{4})$", stem)
             if mm:
                 if mm.group(2) != market:
                     continue
                 date_key = f"{mm.group(1)} ({mm.group(3)[:2]}:{mm.group(3)[2:]})"
             else:
-                if market == "all":
-                    if not stem.endswith("-all"):
-                        continue
-                    date_key = stem[:-4]
+                _suffix = "-" + str(market)
+                if stem.endswith(_suffix):
+                    date_key = stem[: -len(_suffix)]
+                elif str(market) == "bj" and not re.search(r"-(?:all|bj|hs|kc|bj_all)$", stem):
+                    date_key = stem  # 旧版无市场后缀 → 北证
                 else:
-                    if stem.endswith("-all"):
-                        continue
-                    date_key = stem[:-3] if stem.endswith("-bj") else stem
+                    continue
             d = _load_json_file(os.path.join(_ARCHIVE_DIR, nm), None)
             if not isinstance(d, dict):
                 continue
@@ -838,6 +848,19 @@ def board_hit(ind: str, hot: dict[str, Any]) -> str:
     return ""
 
 
+
+
+def _market_ok(code6: str, market: str) -> bool:
+    """按市场过滤 A 股代码：hs=沪深主板(60/00)、kc=科创(创业板30+科创板688)、bj/bj_all=北证。"""
+    code6 = str(code6 or "").strip()
+    if market == "hs":
+        return code6.startswith(("60", "00"))
+    if market == "kc":
+        return code6.startswith(("30", "688"))
+    if market in ("bj", "bj_all"):
+        return code6.startswith(("43", "83", "87", "88", "92"))
+    return True  # all（兼容旧入口）
+
 def coarse(row: dict[str, Any], cfg: dict[str, Any], hot: dict[str, Any]) -> dict[str, Any] | None:
     code = str(row.get("f12") or "")
     name = str(row.get("f14") or "")
@@ -1024,8 +1047,8 @@ async def fetch_board_members(
 async def _collect_candidates(
     cfg: dict[str, Any], market: str
 ) -> tuple[list[dict[str, Any]], dict[str, Any], list[dict[str, Any]] | None, int, list[dict[str, Any]]]:
-    """收集候选池：bj=北证全市场；all=板块先行两阶段（资金流榜→成分股粗筛）。返回 (cands, hot, board_pool, total, rows_all)。"""
-    if market == "all":
+    """收集候选池：bj/bj_all=北证；hs/kc/all=板块先行两阶段（资金流榜→成分股粗筛，按市场过滤）。返回 (cands, hot, board_pool, total, rows_all)。"""
+    if market in ("all", "hs", "kc"):
         funds_task = asyncio.create_task(fetch_hot_boards_funds(cfg))
         hot5_task = asyncio.create_task(fetch_hot_sectors(cfg))
         funds = await funds_task
@@ -1049,12 +1072,14 @@ async def _collect_candidates(
                 ind_count[_ind] = ind_count.get(_ind, 0) + 1
         cands: list[dict[str, Any]] = []
         for row in rows:
+            if not _market_ok(str(row.get("f12") or ""), market):
+                continue
             c = coarse(row, cfg, hot)
             if c:
                 c["indCnt"] = ind_count.get(c.get("ind") or "", 0)
                 cands.append(c)
         return cands, hot, funds, len(rows), rows
-    # 北证全市场
+    # 北证全列表（bj 主线 / bj_all 纯评分共用）
     lst_task = asyncio.create_task(fetch_bj_list())
     hot_task = asyncio.create_task(fetch_hot_sectors(cfg))
     lst = await lst_task
@@ -1234,8 +1259,8 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
     # 异动拉升后回踩企稳（分市场阈值：北证30cm用大阳标准，沪深用涨停/大阳标准）
     pulled = False
     pull_surge_pct = 0.0
-    surge_min = 10.0 if market == "bj" else 7.0
-    surge_vol = 2.0 if market == "bj" else 1.5
+    surge_min = 10.0 if market in ("bj", "bj_all") else 7.0
+    surge_vol = 2.0 if market in ("bj", "bj_all") else 1.5
     for i in range(n - 13, last - 1):
         pcti = (c[i] / c[i - 1] - 1) * 100 if c[i - 1] > 0 else 0.0
         if pcti >= surge_min and v[i] >= surge_vol * v20:
@@ -1256,14 +1281,14 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
                 break
     if pulled:
         patterns["pullback"] = 1
-        if pull_surge_pct >= (20.0 if market == "bj" else 9.5):
+        if pull_surge_pct >= (20.0 if market in ("bj", "bj_all") else 9.5):
             patterns["ztPullback"] = 1  # 涨停级回踩：最强低吸形态
     # 一路小阳
     if up_days >= 3 and max_day_pct <= 8 and 0 <= chg5 <= 18:
         patterns["smallYang"] = 1
     # 底部放量异动启动（核心：刚底部异动起来）
-    ms_min = max(float(cfg["minSurge"]), 10.0 if market == "bj" else 7.0)
-    sv_min = max(float(cfg["surgeVol"]), 2.0 if market == "bj" else 1.5)
+    ms_min = max(float(cfg["minSurge"]), 10.0 if market in ("bj", "bj_all") else 7.0)
+    sv_min = max(float(cfg["surgeVol"]), 2.0 if market in ("bj", "bj_all") else 1.5)
     surge_days_ago = 0
     surge_idx = -1
     for i in range(max(1, n - int(cfg["surgeDays"]) - 1), last):
@@ -1307,7 +1332,7 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
         risks.append(f"60日涨幅过大{chg60:.1f}%")
     has_zt = False
     zt_day = -1
-    zt_th = 25.0 if market == "bj" else 9.5
+    zt_th = 25.0 if market in ("bj", "bj_all") else 9.5
     for i in range(n - 10, last + 1):
         p0 = (c[i] / c[i - 1] - 1) * 100 if c[i - 1] > 0 else 0.0
         if p0 >= zt_th:
@@ -1392,7 +1417,7 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
     scar_tags: list[str] = []
     if 0 < ind_cnt <= 2:
         scarcity += 3
-        scar_tags.append("行业稀缺" + f"\u00b7{('北证仅' if market == 'bj' else '候选池仅')}{ind_cnt}只")
+        scar_tags.append("行业稀缺" + f"\u00b7{('北证仅' if market in ('bj', 'bj_all') else '候选池仅')}{ind_cnt}只")
     if 0 < float_ratio < 0.5:
         scarcity += 3
         scar_tags.append("流通盘稀缺" + f"\u00b7流通占比{float_ratio * 100:.0f}%")
@@ -2136,6 +2161,7 @@ def _board_rank(mainlines: list[dict[str, Any]], hot_boards: list[dict[str, Any]
         return {
             "name": name,
             "secid": str(it.get("secid") or ""),
+            "ths": bk_to_ths_secid(str(it.get("secid") or "")) or "",
             "count": it.get("count"),
             "amount": it.get("amount"),
             "p5": hb.get("p5") if hb is not None else it.get("p5"),
@@ -2192,6 +2218,7 @@ def _board_rank_funds(boards: list[dict[str, Any]], keep_backup: int = 4, mainli
         rank.append({
             "name": str(b.get("name") or ""),
             "secid": str(b.get("secid") or ""),
+            "ths": bk_to_ths_secid(str(b.get("secid") or "")) or "",
             "count": None,
             "amount": None,
             "f62": float(b.get("f62") or 0),
@@ -2649,16 +2676,16 @@ async def run_scan(
 ) -> dict[str, Any]:
     """掘金扫描主流程（服务端执行，VIP 路由层已校验）。
 
-    market: bj=北证全市场；all=沪深京“板块先行”两阶段（资金流榜→成分股粗筛→K线精筛）。
+    market: hs=沪深主线、kc=科创主线（板块先行两阶段）；bj=北证主线、bj_all=北证全市场（纯评分，不跟主线）。
     boards_only=True 用于非 VIP 的“板块视图”：缩小候选池、跳过 AI 快照/基本面体检，
     结果独立缓存，仅返回板块与市场概览（不含个股分析）。
     """
     market = str(market or "bj").strip().lower()
-    if market not in ("bj", "all"):
+    if market not in ("bj", "all", "hs", "kc", "bj_all"):
         market = "bj"
     cfg = dict(DEFAULT_CFG)
     board_rank: list[dict[str, Any]] = []  # 北证路径无板块榜，预置空表防 UnboundLocalError
-    if market == "all":
+    if market in ("all", "hs", "kc"):
         cfg["mcapMin"] = float(cfg.get("mcapMinAll") or 15.0)
         cfg["mcapMax"] = float(cfg.get("mcapMaxAll") or 200.0)
         cfg["amountMin"] = float(cfg.get("amountMinAll") or 8000.0)
@@ -2668,6 +2695,12 @@ async def run_scan(
         cfg["max20d"] = 40.0
         cfg["max60d"] = 60.0
         cfg["scoreMin"] = 44.0
+    elif market == "bj_all":
+        # 北证全市场：纯评分博弹性，位置放宽到 40%（宁缺毋滥，硬风控仍保留）
+        cfg["posMax"] = 40.0
+        cfg["mcapMin"] = 5.0
+        cfg["mcapMax"] = 60.0
+        cfg["scoreMin"] = 46.0
     if cfg_override:
         for k, v in cfg_override.items():
             if k in cfg and v is not None:
@@ -2815,8 +2848,11 @@ async def run_scan(
     _dml_date = (_dml or {}).get("date") or ""
     _dml_src = (_dml or {}).get("src") or ""
     _ml_leaders: dict[str, list[dict[str, Any]]] = {}
-    if market == "all" and _dml_names and not boards_only:
+    if market in ("all", "hs", "kc") and _dml_names and not boards_only:
         _ml_cands, _ml_leaders = await _collect_mainline_cands(cfg, _dml_names, hot)
+        # 主线成分补池按市场隔离（hs/kc 只留对应板块代码，避免跨市场混入）
+        _ml_cands = [_c for _c in _ml_cands if _market_ok(str(_c.get("code")), market)]
+        _ml_leaders = {_k: [_ld for _ld in (_v or []) if _market_ok(str((((_ld.get("_row") if isinstance(_ld, dict) else None) or {}).get("f12") or _ld.get("code") or "")), market)] for _k, _v in (_ml_leaders or {}).items()}
         _have = {str(c.get("code")): c for c in cands}
         for _c in _ml_cands:
             _code = str(_c.get("code"))
@@ -2835,7 +2871,7 @@ async def run_scan(
     # 主线龙头候选：全市场下取板块排行前列（5日主力净流入排序）的板块龙头，
     # 放宽市值至 leaderMcapMax、不做“未大幅拉升”硬约束，用 leaderOk 确认形态与资金。
     leader_cands: list[dict[str, Any]] = []
-    if market == "all" and (board_pool or _ml_leaders):
+    if market in ("all", "hs", "kc") and (board_pool or _ml_leaders):
         seen_leader = {str(c.get("code")) for c in cands}
         # ① 复盘主线板块龙头优先入龙头层（资金+技术双确认）；主线无合格龙头再走资金热度兜底
         for _mn in (_dml_names or []):
@@ -2846,6 +2882,8 @@ async def run_scan(
                 code = str((_row or {}).get("f12") or _ld.get("code") or "")
                 if not re.fullmatch(r"\d{6}", code) or code in seen_leader:
                     continue
+                if not _market_ok(code, market):
+                    continue  # 龙头层按市场隔离（hs=60/00、kc=30/688）
                 name = str((_row or {}).get("f14") or _ld.get("name") or "").strip()
                 if re.search(r"ST|退", name):
                     continue
@@ -2889,6 +2927,8 @@ async def run_scan(
                 code = str(row.get("f12") or "")
                 if not re.fullmatch(r"\d{6}", code) or code in seen_leader:
                     continue
+                if not _market_ok(code, market):
+                    continue  # 龙头层按市场隔离
                 name = str(row.get("f14") or "").strip()
                 if re.search(r"ST|退", name):
                     continue
@@ -2997,7 +3037,7 @@ async def run_scan(
                 )
 
     # 复盘主线板块补齐板块榜：主线不在资金热度池时也入榜（技术双确认优先于资金热度）
-    if market == "all" and _dml_names:
+    if market in ("all", "hs", "kc") and _dml_names:
         try:
             from .daily_report import SECTORS
             _have = {str(b.get("name") or "") for b in (board_pool or [])}
@@ -3250,17 +3290,20 @@ async def run_scan(
         and (_fund_of(c) or {}).get("level", "pass") == "pass"
     ]
     warned = [c for c in fine if c not in zero_risk]
-    zero_risk.sort(key=lambda x: (0 if x.get("mainHit") else 1, -int(x.get("final") or 0)))
-    warned.sort(key=lambda x: (0 if x.get("mainHit") else 1, -int(x.get("final") or 0)))
+        # 北证全市场：不跟主线，纯评分选优（宁缺毋滥）；其余市场主线命中优先
+    _pure = market == "bj_all"
+    _sort_key = (lambda x: -int(x.get("final") or 0)) if _pure else (lambda x: (0 if x.get("mainHit") else 1, -int(x.get("final") or 0)))
+    zero_risk.sort(key=_sort_key)
+    warned.sort(key=_sort_key)
     pool = zero_risk + warned
 
-    all_sorted = sorted(fine, key=lambda x: (0 if x.get("mainHit") else 1, -int(x.get("final") or 0)))
-    # 电风扇风格：回踩企稳优先（低吸为主，不追热度）
-    if style_mode == "fan":
+    all_sorted = sorted(fine, key=_sort_key)
+    # 电风扇风格：回踩企稳优先（低吸为主，不追热度；北证全市场保持纯评分）
+    if style_mode == "fan" and not _pure:
         all_sorted.sort(key=lambda x: (0 if (x.get("revHit") or x.get("mainHit")) else 1, 0 if x.get("revHit") else 1, -int(x.get("final") or 0)))
 
     picks: list[dict[str, Any]] = []
-    if market == "all":
+    if market in ("all", "hs", "kc"):
         # 全市场主推分层：主线龙头 2 + 板块内补涨卡位 1
         # 龙头层：板块排行前列（王者/重点板块）龙头，leaderOk 确认形态与资金；
         # 不要求“未大幅拉升”，但 20 日涨幅超 max60d 仍排除（避免极端追高）。
@@ -3418,9 +3461,9 @@ async def run_scan(
         if _c0 in hard_codes:
             _rec["status"] = "离场（利空/硬伤排查）"; _rec["tag"] = "bad"
         elif _c0 in picked:
-            _rec["status"] = "延续持有（今日入选主推）"; _rec["tag"] = "ok"
+            _rec["status"] = "延续持有（今日入选筛选）"; _rec["tag"] = "ok"
         elif _c0 in fine_codes:
-            _rec["status"] = "延续关注（仍达标，未入主推）"; _rec["tag"] = "ok"
+            _rec["status"] = "延续关注（仍达标，未入筛选）"; _rec["tag"] = "ok"
         elif _cur:
             _a0 = _cur.get("A") or {}
             if (float(_a0.get("pos") or 99) > float(cfg["posMax"]) / 100
@@ -3447,12 +3490,12 @@ async def run_scan(
         await _attach_board_secids(rev_mainlines[:10], hot.get("list") or [])
     except Exception:
         pass
-    if market == "all":
+    if market in ("all", "hs", "kc"):
         board_rank = _board_rank_funds(board_pool or [], int(cfg.get("allBackupN") or 4), mainline_names=_dml_names or None)
     else:
         board_rank = _board_rank(rev_mainlines[:10], hot.get("list") or [])
     # 北证板块排行龙头：从已分析的候选按行业聚合 top3（成交额），零上游成本
-    if market == "bj":
+    if market in ("bj", "bj_all"):
         try:
             _by_ind: dict[str, list[dict[str, Any]]] = {}
             for _c in analyzed:
@@ -3571,7 +3614,7 @@ async def run_scan_dedup(
     - force=True 无任务在跑 → 启动新扫描（后台/同步皆可）；
     - force=False → 优先今日缓存，无缓存才扫描。"""
     market = str(market or "bj").strip().lower()
-    if market not in ("bj", "all"):
+    if market not in ("bj", "all", "hs", "kc", "bj_all"):
         market = "bj"
     today8 = time.strftime("%Y%m%d", time.localtime())
     full_key = f"{market}-scan:" + today8
@@ -3736,7 +3779,7 @@ async def _auto_scan_loop() -> None:
             sec = now.tm_hour * 3600 + now.tm_min * 60 + now.tm_sec
             if now.tm_wday < 5 and sec >= _AUTO_SCAN_TS:
                 today8 = time.strftime("%Y%m%d", time.localtime())
-                for market in ("all", "bj"):
+                for market in ("hs", "kc", "bj", "bj_all"):
                     key = f"{market}-scan:{today8}"
                     if _AUTO_SCAN_DONE.get(key):
                         continue

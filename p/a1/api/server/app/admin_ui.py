@@ -3975,6 +3975,29 @@ async function loadEligibleCommissions(){
           ' · rt_k 实时K <strong>' + (paid.tushare_use_rt_k ? '开' : '关') + '</strong>' +
           ' · 付费仅会员 <strong>' + (paid.vip_only ? '是' : '否') + '</strong>';
         $('marketMeta').innerHTML = meta;
+        // 动态质量排序 + 板块映射状态（防重复插入）
+        var oldDyn = document.getElementById('dynPanel');
+        if (oldDyn) oldDyn.remove();
+        var dyn = (md && md.dynamic) || {};
+        var pm = (md && md.plate_map) || {};
+        var dynHtml = '<div id="dynPanel" class="panel" style="margin-top:8px">' +
+          '<div class="panel-title">动态质量排序 <span class="pill">每' + (dyn.ttl_s || 300) + 's 自动重算</span> <span class="muted">(' + (dyn.enabled ? '已开启' : '已关闭') + ')</span></div>' +
+          '<div style="margin-bottom:6px">当前通道优先级：<span class="mono">' + esc((dyn.priority || []).join(' → ') || '—') + '</span></div>' +
+          '<table class="grid"><tr><th>通道</th><th>质量分</th><th>成功率</th><th>平均延迟</th><th>ok / fail</th></tr>';
+        var sk = Object.keys((dyn.scores) || {}).sort(function(a,b){ return ((dyn.scores[b]||{}).score||0)-((dyn.scores[a]||{}).score||0); });
+        sk.forEach(function(k){
+          var s = (dyn.scores || {})[k] || {};
+          var sc = s.score != null ? s.score : '—';
+          var rate = s.ok_rate != null ? Math.round(s.ok_rate * 100) + '%' : '—';
+          var avg = s.avg_ms ? Math.round(s.avg_ms) + 'ms' : '—';
+          var cls = (s.score || 0) >= 80 ? 'ok' : ((s.score || 0) >= 50 ? 'warn' : 'bad');
+          dynHtml += '<tr><td class="mono">' + esc(k) + '</td><td class="mono ' + cls + '"><strong>' + esc(sc) + '</strong></td><td class="mono">' + rate + '</td><td class="mono">' + avg + '</td><td class="mono">' + (s.ok || 0) + ' / ' + (s.fail || 0) + '</td></tr>';
+        });
+        if (!sk.length) dynHtml += '<tr><td colspan="5" class="muted">暂无统计数据，产生行情请求后自动计算</td></tr>';
+        dynHtml += '</table>';
+        dynHtml += '<div class="muted small" style="margin-top:6px">板块映射：' + (pm.loaded ? '已加载' : '未加载') + '（BK ' + (pm.bk_count || 0) + ' ↔ THS ' + (pm.ths_count || 0) + '）' + (pm.file ? ' · ' + esc(pm.file) : '') + '，板块K线优先走同花顺，失败回退东财存档/合成</div>';
+        dynHtml += '</div>';
+        $('marketMeta').insertAdjacentHTML('afterend', dynHtml);
         var regMap = {};
         ((md && md.registry) || []).forEach(function(r){ regMap[r.key] = r; });
         var srcBody = $('srcBody');
@@ -4414,7 +4437,13 @@ async function loadEligibleCommissions(){
         setInterval(function(){
           try{
             var autoEl = document.getElementById('marketAuto');
-            if (autoEl && autoEl.checked) loadMarket().catch(function(){});
+            if (!autoEl || !autoEl.checked) return;
+            if (document.hidden) return; // 标签页在后台不刷新，省资源
+            var mp = document.getElementById('p-market');
+            if (mp && !mp.className.match(/\bactive\b/)) return; // 未打开行情路由面板不刷新
+            var h = new Date().getHours();
+            if (h >= 23 || h < 8) return; // 深夜 23:00-08:00 不自动刷新
+            loadMarket().catch(function(){});
           }catch(eA){}
         }, 10000);
         if($('btnFbLoad')) $('btnFbLoad').addEventListener('click', function(){
