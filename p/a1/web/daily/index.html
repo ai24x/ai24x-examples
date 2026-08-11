@@ -18,6 +18,7 @@
 })();
 </script>
 <link rel="stylesheet" href="/css/base.css?v=53" />
+<link rel="stylesheet" href="/css/tool.css?v=44" />
 <style>
 .page-main .wrap { max-width: min(1360px, 100%); padding: 12px 14px 26px; }
 .daily-top { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
@@ -44,6 +45,8 @@
 #report tr:nth-child(even) td { background: rgba(128,140,170,.05); }
 #report h1 { font-size: 20px; color: var(--text); }
 #report h2 { font-size: 16px; margin: 22px 0 10px; border-left: 4px solid var(--accent); padding-left: 10px; color: var(--text); }
+#report h2.h2-core{font-size:17px;padding:10px 12px;border-radius:10px;border-left:6px solid var(--rise);background:linear-gradient(90deg,rgba(248,113,113,.16),rgba(248,113,113,.02));box-shadow:0 1px 8px rgba(248,113,113,.14);margin:24px 0 12px}
+#report h2.h2-core.h2-risk{border-left-color:#f59e0b;background:linear-gradient(90deg,rgba(251,191,36,.16),rgba(251,191,36,.02));box-shadow:0 1px 8px rgba(251,191,36,.14)}
 #report h3 { font-size: 14px; color: var(--text); }
 #report .note { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.3); color: var(--warn); font-size: 13px; padding: 8px 12px; border-radius: 10px; margin: 10px 0; }
 #report .note.core { background: linear-gradient(135deg, rgba(251,191,36,.18), rgba(251,191,36,.06)); border: 1px solid rgba(251,191,36,.55); color: var(--text); font-weight: 600; font-size: 14px; }
@@ -92,7 +95,7 @@
       </div>
       <div id="notice" class="notice" style="display:none"></div>
       <div id="prog"><div id="progbar"></div></div>
-      <div id="progtext" class="status">—</div>
+      <div id="progtext" class="status"></div>
       <div id="log"></div>
     </section>
 
@@ -215,6 +218,7 @@ try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("daily"); } catch (e) {
   function startScan(force) {
     api('/api/report/scan' + (force ? '?force=1' : ''), { method: 'POST' }).then(function (j) {
       if (j.ok) {
+        el('prog').style.display = 'block';
         el('btn-run').disabled = true;
         el('btn-force').disabled = true;
         hideNotice();
@@ -234,6 +238,7 @@ try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("daily"); } catch (e) {
         var p = j.progress || {};
         var pct = p.pct || 0;
         el('progbar').style.width = pct + '%';
+        el('progtext').style.display = 'block';
         el('progtext').textContent = (p.step || '') + (p.finished ? ' ｜ ' + p.finished : '');
         if (!j.running) {
           clearInterval(pollTimer); pollTimer = null;
@@ -251,12 +256,15 @@ try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("daily"); } catch (e) {
     }, 1500);
   }
 
+  function hideProg() { var pg = el('prog'); if (pg) pg.style.display = 'none'; var pt = el('progtext'); if (pt) { pt.textContent = ''; pt.style.display = 'none'; } }
+
   function loadToday() {
     api('/api/report/today').then(function (j) {
       if (j.ok) {
         el('f-asof').textContent = j.asof || '-';
         el('f-gen').textContent = j.generated_at || '-';
         el('report').innerHTML = j.html;
+        hideProg();
       } else {
         el('report').innerHTML = '<p class="sub">' + (j.msg || '无报告') + '</p>';
       }
@@ -270,6 +278,7 @@ try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("daily"); } catch (e) {
       var d = items[0].date;
       api('/api/report/' + encodeURIComponent(d)).then(function (h) {
         if (h.ok) {
+          hideProg();
           el('report').innerHTML = '<div class="sub" style="margin-bottom:8px">当前展示最近一期报告（' + d + '），今日收盘后自动更新。</div>' + h.html;
         } else { el('report').innerHTML = '<p class="sub">历史报告读取失败</p>'; }
       });

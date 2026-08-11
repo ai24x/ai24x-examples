@@ -775,76 +775,115 @@ def build_md(data, vip=True):
 def md_to_html(md):
     import html as H
     lines = md.split("\n")
-    out = []
+    blocks = []
+    cur = None
     i = 0
-    fold_open = False
-    FOLD_H2_KW = ("二、资金面",)  # 复盘精简：资金面明细默认折叠，避免信息过载
+    FOLD_KW = ("资金面",)  # 复盘精简：资金面明细默认折叠，避免信息过载
     while i < len(lines):
         ln = lines[i]
         s = ln.strip()
         if s.startswith("# "):
-            out.append("<h1>%s</h1>" % H.escape(s[2:]))
+            if cur: blocks.append(cur); cur = None
+            blocks.append({"title": None, "fold": False, "html": ["<h1>%s</h1>" % H.escape(s[2:])]})
         elif s.startswith("## "):
-            if fold_open:
-                out.append("</details>")
-                fold_open = False
-            if any(kw in s for kw in FOLD_H2_KW):
-                out.append('<details class="fold"><summary>%s（点击展开明细）</summary>' % H.escape(s[3:]))
-                fold_open = True
-            else:
-                out.append("<h2>%s</h2>" % H.escape(s[3:]))
-        elif s.startswith("### "):
-            out.append("<h3>%s</h3>" % H.escape(s[4:]))
-        elif s.startswith("> "):
-            c = s[2:].lstrip()
-            cls = "note"
-            if c.startswith("⚡"):
-                cls = "note core"
-            elif c.startswith("✅"):
-                cls = "note good"
-            elif c.startswith("⚠"):
-                cls = "note bad"
-            out.append('<div class="%s">%s</div>' % (cls, md_inline(c)))
-        elif s.startswith("|"):
-            rows = []
-            while i < len(lines) and lines[i].strip().startswith("|"):
-                cells = [c.strip() for c in lines[i].strip().strip("|").split("|")]
-                if all(re.fullmatch(r":?-{2,}:?", c) for c in cells):
-                    i += 1; continue
-                rows.append(cells)
-                i += 1
-            if rows:
-                is_rank = str(rows[0][0]).strip() in ("排名", "#")
-                def _cell(tag, c, idx):
-                    cls = ""
-                    if is_rank and idx == 0:
-                        cls = ' class="col-rank"'
-                    elif is_rank and idx == 1:
-                        cls = ' class="col-name"'
-                    return "<%s%s>%s</%s>" % (tag, cls, md_inline(c), tag)
-                t = ['<table><thead><tr>%s</tr></thead><tbody>' % "".join(_cell("th", c, i) for i, c in enumerate(rows[0]))]
-                for r in rows[1:]:
-                    t.append("<tr>%s</tr>" % "".join(_cell("td", c, i) for i, c in enumerate(r)))
-                t.append("</tbody></table>")
-                out.append("".join(t))
-            continue
-        elif s.startswith("- "):
-            items = []
-            while i < len(lines) and lines[i].strip().startswith("- "):
-                items.append("<li>%s</li>" % md_inline(lines[i].strip()[2:]))
-                i += 1
-            out.append("<ul>%s</ul>" % "".join(items))
-            continue
-        elif s == "---":
-            out.append("<hr>")
-        elif s:
-            if "**主攻主线" in s:
-                out.append('<div class="mainline">%s</div>' % md_inline(s))
-            else:
-                out.append("<p>%s</p>" % md_inline(s))
+            if cur: blocks.append(cur)
+            title = s[3:]
+            cur = {"title": title, "fold": any(kw in title for kw in FOLD_KW), "html": []}
+        else:
+            if cur is None:
+                cur = {"title": None, "fold": False, "html": []}
+            if s.startswith("### "):
+                cur["html"].append("<h3>%s</h3>" % H.escape(s[4:]))
+            elif s.startswith("> "):
+                c = s[2:].lstrip()
+                cls = "note"
+                if c.startswith("⚡"): cls = "note core"
+                elif c.startswith("✅"): cls = "note good"
+                elif c.startswith("⚠"): cls = "note bad"
+                cur["html"].append('<div class="%s">%s</div>' % (cls, md_inline(c)))
+            elif s.startswith("|"):
+                rows = []
+                while i < len(lines) and lines[i].strip().startswith("|"):
+                    cells = [c.strip() for c in lines[i].strip().strip("|").split("|")]
+                    if all(re.fullmatch(r":?-{2,}:?", c) for c in cells):
+                        i += 1; continue
+                    rows.append(cells)
+                    i += 1
+                if rows:
+                    is_rank = str(rows[0][0]).strip() in ("排名", "#")
+                    def _cell(tag, c, idx):
+                        cls = ""
+                        if is_rank and idx == 0: cls = ' class="col-rank"'
+                        elif is_rank and idx == 1: cls = ' class="col-name"'
+                        return "<%s%s>%s</%s>" % (tag, cls, md_inline(c), tag)
+                    t = ['<table><thead><tr>%s</tr></thead><tbody>' % "".join(_cell("th", c, i) for i, c in enumerate(rows[0]))]
+                    for r in rows[1:]:
+                        t.append("<tr>%s</tr>" % "".join(_cell("td", c, i) for i, c in enumerate(r)))
+                    t.append("</tbody></table>")
+                    cur["html"].append("".join(t))
+            elif s.startswith("- "):
+                items = []
+                while i < len(lines) and lines[i].strip().startswith("- "):
+                    items.append("<li>%s</li>" % md_inline(lines[i].strip()[2:]))
+                    i += 1
+                cur["html"].append("<ul>%s</ul>" % "".join(items))
+            elif s == "---":
+                cur["html"].append("<hr>")
+            elif s:
+                if "**主攻主线" in s:
+                    cur["html"].append('<div class="mainline">%s</div>' % md_inline(s))
+                else:
+                    cur["html"].append("<p>%s</p>" % md_inline(s))
         i += 1
-    if fold_open:
-        out.append("</details>")
+    if cur: blocks.append(cur)
+
+    def _key(title):
+        if not title: return -1
+        if "核心结论" in title: return 0
+        if "主线锁定" in title: return 1
+        if "组合与风控" in title: return 2
+        return 3
+
+    pre = [b for b in blocks if b.get("title") is None]
+    core = [b for b in blocks if _key(b.get("title")) in (0, 1, 2)]
+    rest = [b for b in blocks if b.get("title") is not None and _key(b.get("title")) not in (0, 1, 2)]
+    blocks = pre + core + rest
+
+    # 重排后重新编号（〇保留，其余按 一~六 顺延）
+    CN = ["一", "二", "三", "四", "五", "六", "七"]
+    num = 0
+    for b in blocks:
+        t = b.get("title")
+        if not t or "核心结论" in t: continue
+        m = re.match(r"^([⭐\s]*)([一二三四五六七八九十]+)、(.*)$", t)
+        if m and num < len(CN):
+            t = m.group(1) + CN[num] + "、" + m.group(3)
+            num += 1
+        b["title"] = t
+
+    out = []
+    for b in blocks:
+        title = b.get("title")
+        if title is None:
+            # 标题区（报告标题+日期/声明）下的分隔线冗余，去掉，仅保留章节间分隔
+            for _h in b["html"]:
+                if _h == "<hr>":
+                    continue
+                out.append(_h)
+            continue
+        esc_title = H.escape(title)
+        if b.get("fold"):
+            out.append('<details class="fold"><summary>%s（点击展开明细）</summary>' % esc_title)
+            out.extend(b["html"])
+            out.append("</details>")
+            continue
+        cls = ""
+        if "主线锁定" in title:
+            cls = ' class="h2-core h2-main"'
+        elif "组合与风控" in title:
+            cls = ' class="h2-core h2-risk"'
+        out.append("<h2%s>%s</h2>" % (cls, esc_title))
+        out.extend(b["html"])
     return "\n".join(out)
 
 def md_inline(s):

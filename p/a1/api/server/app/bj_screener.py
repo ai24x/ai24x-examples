@@ -1577,8 +1577,9 @@ async def _fetch_financials(code: str) -> dict[str, Any] | None:
     hit = _FIN_CACHE.get(code)
     if hit and hit[0] == _today8():
         return hit[1]
+    suffix = "BJ" if _is_bj_code(code) else ("SH" if str(code).startswith("6") else "SZ")
     url = ("https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_F10_FINANCE_MAINFINADATA"
-           "&columns=ALL&filter=(SECUCODE%3D%22" + code + ".BJ%22)"
+           "&columns=ALL&filter=(SECUCODE%3D%22" + code + "." + suffix + "%22)"
            "&pageNumber=1&pageSize=4&sortTypes=-1&sortColumns=REPORT_DATE")
     fin: dict[str, Any] | None = None
     try:
@@ -2368,17 +2369,36 @@ def _pick_out(c: dict[str, Any]) -> dict[str, Any]:
         bearish = {"level": "warn", "items": items}
     risk_free = _risk_free(c)
     chart: dict[str, Any] = {}
+    _raw_bars = c.get("_bars") or []
     if a:
         chart = {
             "closes": a.get("closes", [])[-60:], "opens": a.get("opens", [])[-60:],
             "highs": a.get("highs", [])[-60:], "lows": a.get("lows", [])[-60:],
             "vols": a.get("vols", [])[-60:],
+            "dates": [str(b[0]) for b in _raw_bars[-60:]] or [],
             "ma5": _ma_arr(a.get("closes", []), 5)[-60:],
             "ma10": _ma_arr(a.get("closes", []), 10)[-60:],
             "ma20": _ma_arr(a.get("closes", []), 20)[-60:],
+            "ma14": _ma_arr(a.get("closes", []), 14)[-60:],
+            "ma28": _ma_arr(a.get("closes", []), 28)[-60:],
+            "ma57": _ma_arr(a.get("closes", []), 57)[-60:],
             "s1": levels.get("s1"), "s2": levels.get("s2"),
             "p1": levels.get("p1"), "p2": levels.get("p2"),
         }
+        if len(_raw_bars) >= 61:
+            try:
+                from .signals import candles_from_tencent_like_pack, build_signals_v3
+                _candles = candles_from_tencent_like_pack({"day": _raw_bars}, "day")
+                if len(_candles) >= 61:
+                    _sig = build_signals_v3(_candles, cache_key="bjpick_%s" % c.get("code"))
+                    _mk = _sig.get("markers") or []
+                    _last_dates = {str(b[0]) for b in _raw_bars[-60:]}
+                    chart["signals"] = [
+                        {k: m.get(k) for k in ("time", "position", "color", "shape", "text", "size")}
+                        for m in _mk if str(m.get("time") or "") in _last_dates
+                    ]
+            except Exception:
+                chart["signals"] = []
     factors = {
         "rsi14": round(_num(a.get("rsi14")), 1) if a.get("rsi14") is not None else None,
         "boll_pos": round(_num(a.get("boll_pos")), 2) if a.get("boll_pos") is not None else None,
@@ -2764,13 +2784,53 @@ async def run_scan(
     # 主线龙头候选：全市场下取板块排行前列（5日主力净流入排序）的板块龙头，
     # 放宽市值至 leaderMcapMax、不做“未大幅拉升”硬约束，用 leaderOk 确认形态与资金。
     leader_cands: list[dict[str, Any]] = []
-    if market == "all" and board_pool:
+    if market == "all" and (board_pool or _ml_leaders):
+        seen_leader = {str(c.get("code")) for c in cands}
+        # ① 复盘主线板块龙头优先入龙头层（资金+技术双确认）；主线无合格龙头再走资金热度兜底
+        for _mn in (_dml_names or []):
+            _b0 = next((b for b in (board_pool or []) if str(b.get("name") or "").strip() == _mn), None)
+            _lds = (_ml_leaders or {}).get(_mn) or (_b0 or {}).get("leaders") or []
+            for _ld in (_lds or [])[: int(cfg.get("leaderPerBoard") or 3)]:
+                _row = _ld.get("_row") if isinstance(_ld, dict) else None
+                code = str((_row or {}).get("f12") or _ld.get("code") or "")
+                if not re.fullmatch(r"\d{6}", code) or code in seen_leader:
+                    continue
+                name = str((_row or {}).get("f14") or _ld.get("name") or "").strip()
+                if re.search(r"ST|退", name):
+                    continue
+                mcap = _num((_row or {}).get("f20") or _ld.get("mcap") or 0)
+                if mcap and not (0 < mcap <= float(cfg.get("leaderMcapMax") or 800.0) * 1e8):
+                    continue
+                seen_leader.add(code)
+                leader_cands.append({
+                    "code": code, "name": name,
+                    "price": _num((_row or {}).get("f2") or _ld.get("price") or 0),
+                    "pct": _num((_row or {}).get("f3") if (_row or {}).get("f3") is not None else _ld.get("pct") or 0),
+                    "amount": _num((_row or {}).get("f6") or _ld.get("amount") or 0),
+                    "mcap": mcap,
+                    "floatMcap": _num((_row or {}).get("f21") or 0),
+                    "turnover": _num((_row or {}).get("f8") or _ld.get("turnover") or 0),
+                    "pe": _num((_row or {}).get("f9") or 0),
+                    "pb": _num((_row or {}).get("f23") or 0),
+                    "volRatio": _num((_row or {}).get("f10") or 0),
+                    "fund": _num((_row or {}).get("f62") or _ld.get("fund") or 0),
+                    "fundIn": _num((_row or {}).get("f62") or _ld.get("fund") or 0),
+                    "fund5": _num((_row or {}).get("f164") or _ld.get("fund5") or 0),
+                    "ind": str((_row or {}).get("f100") or "").strip(), "indCnt": 0,
+                    "hot": True, "hotName": _mn, "kwHits": [],
+                    "A": None, "snap": None, "final": None,
+                    "revHit": True, "revName": _mn,
+                    "mainline": True, "mainlineName": _mn,
+                    "_board": _mn, "_board_tier": "king",
+                })
+        # ② 资金热度兜底：主线龙头不足时按 5日主力净流入补足
         top_boards = sorted(
             board_pool, key=lambda x: -float(x.get("f164") or 0)
         )[: int(cfg.get("leaderBoards") or 3)]
-        seen_leader = {str(c.get("code")) for c in cands}
         for bi, b in enumerate(top_boards):
             bname = str(b.get("name") or "").strip()
+            if _dml_names and bname in _dml_names:
+                continue  # 主线板块已在 ① 处理
             for ld in (b.get("leaders") or [])[: int(cfg.get("leaderPerBoard") or 3)]:
                 row = ld.get("_row") if isinstance(ld, dict) else None
                 if not isinstance(row, dict):
@@ -2823,6 +2883,7 @@ async def run_scan(
             if not bars:
                 return
             c["A"] = analyze(bars, c, cfg_use or cfg, market)
+            c["_bars"] = bars
             c["lastDate"] = str(bars[-1][0])
             c["bearish"] = bearish_check(c, c["A"])
             prog_kline["n"] += 1
@@ -3177,13 +3238,17 @@ async def run_scan(
             # 板块资金榜确认 + 龙头辨识度加分
             c["final"] = min(100, int(c.get("final") or 0) + 10)
             leader_final.append(c)
+        # 龙头层分数下限（宁缺毋滥）：防守档 62，其余 56
+        _lead_min = 62 if defensive_mode else 56
+        leader_final = [c for c in leader_final if int(c.get("final") or 0) >= _lead_min]
         leader_final.sort(key=lambda x: (0 if x.get("mainHit") else 1, -int(x.get("final") or 0)))
 
+        # 龙头层只占“王者”1 位：主线龙头优先；无主线龙头才用资金热度龙头兜底；空则交给卡位/兜底层
         _main_leaders = [c for c in leader_final if c.get("mainHit")]
-        _lead_src = (_main_leaders or leader_final)[:2]
+        _lead_src = (_main_leaders or leader_final)[:1]
         for c in _lead_src:
-            c["tier"] = "king" if not picks else "key"
-            c["star"] = not bool(picks)
+            c["tier"] = "king"
+            c["star"] = True
             c["pick_role"] = "leader"
             picks.append(c)
         # 卡位层（主线优先）：all_sorted 已按 mainHit 优先排序——
@@ -3395,6 +3460,8 @@ async def run_scan(
         "mainline_date": _dml_date,
         "hot_boards": hot.get("list") or [],
         "mainlines": result_mainlines,
+        "mainline_hit": sorted({str(c.get("mainName") or c.get("mainlineName") or "") for c in picks if c.get("mainHit") and (c.get("mainName") or c.get("mainlineName"))}),
+        "mainline_gap": bool(picks) and not any(c.get("mainHit") for c in picks),
         "board_rank": board_rank,
         "picks": pick_out,
         "runners": run_out,
@@ -3420,7 +3487,10 @@ async def run_scan(
             "fine": result["fine"], "hard_rejected": hard_rejected,
             "generated_ts": result["generated_ts"], "elapsed_s": result["elapsed_s"],
             "market": mkt_env, "regime": regime, "style": style, "hot_boards": hot.get("list") or [],
-            "mainlines": result_mainlines, "board_rank": board_rank,
+            "mainlines": result_mainlines,
+            "mainline_hit": sorted({str(c.get("mainName") or c.get("mainlineName") or "") for c in picks if c.get("mainHit") and (c.get("mainName") or c.get("mainlineName"))}),
+            "mainline_gap": bool(picks) and not any(c.get("mainHit") for c in picks),
+            "board_rank": board_rank,
             "picks": pick_out, "runners": run_out,
         }
         _save_history(f"{market}:{str(today)}", hist_payload)
