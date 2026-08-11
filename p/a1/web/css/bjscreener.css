@@ -72,7 +72,14 @@
 .vip-card .t{font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px}
 .vip-card .d{font-size:13px;color:var(--muted);line-height:1.8;margin-bottom:10px}
 .notice{background:rgba(255,183,77,.14);border:1px solid rgba(255,183,77,.4);color:var(--text);font-size:12px;padding:8px 12px;border-radius:8px;margin:8px 0}
-.notice.stale{background:rgba(255,152,0,.16);border-color:rgba(255,152,0,.5);color:var(--text);font-weight:700}
+.notice.stale{background:rgba(255,152,0,.18);border-color:rgba(255,152,0,.65);color:var(--text);font-weight:700;box-shadow:0 0 12px rgba(255,152,0,.20)}
+/* 「今日无合格标的」点亮突出提示 */
+.bj-empty-alert{display:flex;align-items:center;gap:12px;margin:12px 0 14px;padding:14px 16px;border-radius:12px;background:linear-gradient(135deg,rgba(255,183,77,.22),rgba(255,152,0,.13));border:1.5px solid rgba(255,152,0,.65);box-shadow:0 0 0 1px rgba(255,152,0,.10),0 0 20px rgba(255,152,0,.22);color:var(--text)}
+.bj-empty-alert .ico{font-size:24px;flex:0 0 auto;line-height:1}
+.bj-empty-alert .bd{flex:1 1 auto;min-width:0}
+.bj-empty-alert .bd b{display:block;font-size:15px;font-weight:800;color:#ff9800;margin-bottom:2px;letter-spacing:.5px}
+.bj-empty-alert .bd span{display:block;font-size:12px;color:var(--muted);line-height:1.7}
+.bj-empty-flag{display:inline-block;padding:1px 9px;border-radius:999px;background:linear-gradient(135deg,#ffd666,#fbbf24);color:#3a2c00;font-weight:800;font-size:12px;box-shadow:0 0 8px rgba(251,191,36,.45);vertical-align:1px}
 .strategy{background:rgba(76,175,80,.12);border:1px solid rgba(76,175,80,.35);border-radius:8px;padding:8px 10px;margin:8px 0;font-size:12px;color:var(--text);line-height:1.9}
 .strategy .t{font-weight:800;color:var(--bj-down)}
 .strategy b{color:var(--bj-down)}
@@ -183,6 +190,14 @@ a.hist-row:hover{border-color:var(--bj-acc);background:var(--bj-acc-bg)}
 .bj-progress-text{font-size:12px;color:var(--muted);white-space:nowrap;min-width:130px}
 
 .bj-note{margin:4px 0 10px;padding:8px 10px;border-radius:8px;background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.22);color:var(--text,#333);font-size:12px;line-height:1.7}
+.bj-style{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 0;padding:8px 12px;border-radius:8px;font-size:12px;line-height:1.7;color:var(--text)}
+.bj-style b{font-weight:800;margin-right:2px}
+.bj-style.fan{background:rgba(255,112,67,.13);border:1px solid rgba(255,112,67,.5)}
+.bj-style.fan b{color:#ff7043}
+.bj-style.trend{background:rgba(251,191,36,.13);border:1px solid rgba(251,191,36,.5)}
+.bj-style.trend b{color:#fbbf24}
+.bj-style.chop{background:rgba(96,165,250,.11);border:1px solid rgba(96,165,250,.42)}
+.bj-style.chop b{color:var(--bj-acc)}
 
 .ths-sub{margin:10px 0 4px;font-size:12px;font-weight:700;color:var(--bj-acc,#1e5a8a)}
 .ths-inline{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 4px}

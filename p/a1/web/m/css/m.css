@@ -102,3 +102,7 @@ canvas{width:100%;height:100%;display:block}
 
 .gesture-hint{position:absolute;left:50%;top:12px;transform:translateX(-50%);z-index:30;background:rgba(8,13,24,.85);border:1px solid rgba(59,130,246,.55);color:#e6edf7;font-size:12px;border-radius:999px;padding:6px 12px;white-space:nowrap;pointer-events:none;transition:opacity .5s;max-width:88%;overflow:hidden;text-overflow:ellipsis}
 .gesture-hint.hide{opacity:0}
+
+/* ===== 轻提示 toast ===== */
+.toast{position:fixed;left:50%;top:14%;transform:translateX(-50%);max-width:88vw;background:rgba(220,38,38,.95);color:#fff;font-size:13px;line-height:1.6;padding:10px 16px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.28);z-index:999;opacity:0;pointer-events:none;transition:opacity .25s;text-align:center}
+.toast.show{opacity:1}

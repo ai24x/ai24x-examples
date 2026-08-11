@@ -107,6 +107,21 @@ qEl.addEventListener("input", function(){
   suggestTimer = setTimeout(function(){ apiSuggest(v).then(showSuggest); }, 300);
 });
 document.addEventListener("click", function(e){ if (!e.target.closest(".search")) hideSuggest(); });
+/* ===== 轻提示 toast（未找到/错误可见反馈） ===== */
+var toastEl = null, toastTimer = null;
+function showToast(msg, ms){
+  ms = ms || 2600;
+  if (!toastEl){
+    toastEl = document.createElement("div");
+    toastEl.className = "toast";
+    document.body.appendChild(toastEl);
+  }
+  toastEl.textContent = msg;
+  toastEl.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ toastEl.classList.remove("show"); }, ms);
+}
+
 function doSearch(){
   var v = qEl.value.trim();
   if (!v) return;
@@ -114,7 +129,7 @@ function doSearch(){
   if (secid){ goto(secid, v); hideSuggest(); return; }
   apiSuggest(v).then(function(list){
     if (list.length){ var it = list[0]; goto(it.qid, it.name); hideSuggest(); }
-    else { qEl.placeholder = "未找到，请输入6位代码或名称"; hideSuggest(); }
+    else { qEl.placeholder = "未找到，请输入6位代码或名称"; hideSuggest(); showToast("未找到「" + v + "」：请检查输入是否有误，或换代码/名称（如 600519、贵州茅台）"); }
   });
 }
 document.getElementById("btn-go").addEventListener("click", doSearch);

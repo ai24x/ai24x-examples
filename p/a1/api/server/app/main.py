@@ -10,6 +10,7 @@ import re
 import string
 import time
 import uuid
+import asyncio
 from typing import Optional
 from urllib.parse import quote
 
@@ -3143,6 +3144,52 @@ async def api_bj_screener(
         from .bj_screener import mark_scan_failed
         mark_scan_failed(market, f"\u626b\u63cf\u5931\u8d25: {type(e).__name__}")
         return {"ok": False, "error": "scan_failed", "message": f"{type(e).__name__}: {str(e)[:160]}"}
+
+
+@app.get("/api/bj/screener/start")
+async def api_bj_screener_start(
+    request: Request,
+    market: str = "bj",
+    user_id: int = Depends(get_current_user_id),
+) -> dict:
+    """掘金异步重扫启动：立即返回，后台任务执行扫描（避免 nginx 60s 网关超时 504）。
+
+    用法：GET /api/bj/screener/start?market=bj → {ok, running} → 前端轮询 /api/bj/screener/progress
+    → running=false 后 GET /api/bj/screener?market=bj（命中缓存返回最新结果）。
+    """
+    market = str(market or "bj").strip().lower()
+    if market not in ("bj", "all"):
+        market = "bj"
+    _rate_limit(f"bj-screener:{user_id}", 6)
+    try:
+        _auth_ip_rate_limit(request)
+    except Exception:
+        pass
+    db.downgrade_expired_vip_plan(int(user_id))
+    quota = db.get_quota_status(int(user_id))
+    plan = str(quota.get("plan") or "anon").strip().lower()
+    is_vip = plan not in ("", "free", "anon")
+    if not is_vip:
+        return {"ok": False, "error": "vip_required", "message": "掘金扫描为 VIP 专属，请先开通 VIP。"}
+    from .bj_screener import scan_progress, run_scan_dedup, mark_scan_failed, _RUNNING_SCAN
+    p = scan_progress(market)
+    if p.get("running") or (_RUNNING_SCAN.get(market) is not None and not _RUNNING_SCAN[market].done()):
+        return {"ok": True, "running": True, "msg": "扫描进行中，请稍候…"}
+
+    async def _bg_scan() -> None:
+        try:
+            await run_scan_dedup(int(user_id), force=True, market=market)
+        except Exception as e:
+            try:
+                mark_scan_failed(market, f"扫描失败: {type(e).__name__}: {str(e)[:120]}")
+            except Exception:
+                pass
+
+    try:
+        asyncio.create_task(_bg_scan())
+    except Exception as e:
+        return {"ok": False, "error": "start_failed", "message": f"扫描启动失败，请重试：{type(e).__name__}"}
+    return {"ok": True, "running": True, "msg": "扫描已启动"}
 
 
 @app.get("/api/bj/screener/progress")

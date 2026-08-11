@@ -2586,6 +2586,7 @@ async def run_scan(
     if market not in ("bj", "all"):
         market = "bj"
     cfg = dict(DEFAULT_CFG)
+    board_rank: list[dict[str, Any]] = []  # 北证路径无板块榜，预置空表防 UnboundLocalError
     if market == "all":
         cfg["mcapMin"] = float(cfg.get("mcapMinAll") or 15.0)
         cfg["mcapMax"] = float(cfg.get("mcapMaxAll") or 200.0)
@@ -2738,7 +2739,10 @@ async def run_scan(
     mkt_env = await mkt_task
     _set_prog("kline", 18, "开始K线形态体检…")
     # 复盘主线（资金+技术双确认）：先读主线，把主线板块成分补进候选池（主线小票优先主推）
-    _dml_names = _daily_mainlines() or []
+    _dml = _daily_mainlines()
+    _dml_names = (_dml or {}).get("names") or []
+    _dml_date = (_dml or {}).get("date") or ""
+    _dml_src = (_dml or {}).get("src") or ""
     _ml_leaders: dict[str, list[dict[str, Any]]] = {}
     if market == "all" and _dml_names and not boards_only:
         _ml_cands, _ml_leaders = await _collect_mainline_cands(cfg, _dml_names, hot)
@@ -2847,6 +2851,10 @@ async def run_scan(
         a = c.get("A") or {}
         a["score"] = max(0, min(100, int(a.get("score") or 0) + _regime_delta))
     defensive_mode = regime == "defensive"
+
+    # 行情风格初算（streak 计算后重算覆盖）：电风扇只做回踩低吸、趋势双线、震荡稳健
+    style = _detect_style(regime, _dml_names, board_rank)
+    style_mode = str(style.get("mode") or "chop") if style else "chop"
 
     # 板块龙头确认（成分池标的命中热度板块前3龙头 → 主推优先，加分）
     _board_leader_codes: set[str] = set()
@@ -3135,6 +3143,9 @@ async def run_scan(
     pool = zero_risk + warned
 
     all_sorted = sorted(fine, key=lambda x: (0 if x.get("mainHit") else 1, -int(x.get("final") or 0)))
+    # 电风扇风格：回踩企稳优先（低吸为主，不追热度）
+    if style_mode == "fan":
+        all_sorted.sort(key=lambda x: (0 if (x.get("revHit") or x.get("mainHit")) else 1, 0 if x.get("revHit") else 1, -int(x.get("final") or 0)))
 
     picks: list[dict[str, Any]] = []
     if market == "all":
@@ -3193,6 +3204,8 @@ async def run_scan(
                 else:
                     if _f < (62 if defensive_mode else 58):
                         continue
+                    if style_mode == "fan" and not (c.get("revHit") or c.get("mainHit")):
+                        continue  # 电风扇：只做回踩/主线低吸，不追纯热度
                     # 补涨卡位必须有板块共振（反推/热门/板块龙头任一），避免孤军奋战
                     if not (c.get("revHit") or c.get("hot") or c.get("boardLeader")):
                         continue
@@ -3264,6 +3277,13 @@ async def run_scan(
         if relaxed_used and c.get("pick_role") != "leader":
             c["relaxed"] = True
         c["strategy"] = build_strategy(c, c.get("tier") or "normal", c.get("pick_role"))
+    # 电风扇风格：策略纪律追加“只做回踩低吸、不追涨”
+    if style_mode == "fan":
+        for _c in picks:
+            _st = _c.get("strategy") or {}
+            _extra = "电风扇行情：只做回踩低吸，不追当日大涨，破位即撤。"
+            _st["rules"] = ((_st.get("rules") or "") + "；" if _st.get("rules") else "") + _extra
+            _c["strategy"] = _st
     for i, c in enumerate(picks):
         c["rank"] = i + 1
 
@@ -3357,7 +3377,10 @@ async def run_scan(
 
     result_mainlines = rev_mainlines[:10]
     if _dml_names:
-        result_mainlines = [{"name": n, "src": "daily"} for n in _dml_names] + rev_mainlines[:5]
+        result_mainlines = [{"name": n, "src": "daily"} for n in _dml_names]
+    # 行情风格终算（含板块持续性 streak）：覆盖初算
+    style = _detect_style(regime, _dml_names, board_rank)
+    style_mode = str(style.get("mode") or "chop") if style else "chop"
     result: dict[str, Any] = {
         "ok": True, "cached": False, "date": today, "asof": asof,
         "market_code": market,
@@ -3367,6 +3390,9 @@ async def run_scan(
         "generated_ts": int(time.time()), "elapsed_s": round(time.time() - t0, 1),
         "market": mkt_env,
         "regime": regime,
+        "style": style,
+        "mainline_from": _dml_src or ("daily" if _dml_names else "fallback"),
+        "mainline_date": _dml_date,
         "hot_boards": hot.get("list") or [],
         "mainlines": result_mainlines,
         "board_rank": board_rank,
@@ -3393,7 +3419,7 @@ async def run_scan(
             "total": result["total"], "scanned": result["scanned"],
             "fine": result["fine"], "hard_rejected": hard_rejected,
             "generated_ts": result["generated_ts"], "elapsed_s": result["elapsed_s"],
-            "market": mkt_env, "regime": regime, "hot_boards": hot.get("list") or [],
+            "market": mkt_env, "regime": regime, "style": style, "hot_boards": hot.get("list") or [],
             "mainlines": result_mainlines, "board_rank": board_rank,
             "picks": pick_out, "runners": run_out,
         }
@@ -3408,6 +3434,10 @@ async def run_scan(
 # 并发去重：同 market 非 force 时共享一份扫描，避免多用户同时触发重复全量扫描（浪费资源/触发上游封 IP）
 _SCAN_LOCKS: dict[str, asyncio.Lock] = {}
 
+# 运行中的扫描任务（同市场复用，防重复全量扫描；/start 接口后台任务注册于此）
+_RUNNING_SCAN: dict[str, asyncio.Task] = {}
+
+
 async def run_scan_dedup(
     user_id: int,
     force: bool = False,
@@ -3415,14 +3445,40 @@ async def run_scan_dedup(
     boards_only: bool = False,
     market: str = "bj",
 ) -> dict[str, Any]:
-    """掘金扫描并发去重包装：非 force 时同市场只保留一份扫描，其余请求等待复用结果。"""
+    """掘金扫描并发去重包装：
+    - 同市场已有扫描在跑 → 等待复用该任务结果（force 也复用，避免重复全量扫描浪费上游预算）；
+    - force=True 无任务在跑 → 启动新扫描（后台/同步皆可）；
+    - force=False → 优先今日缓存，无缓存才扫描。"""
     market = str(market or "bj").strip().lower()
     if market not in ("bj", "all"):
         market = "bj"
-    if force:
-        return await run_scan(user_id, force=True, cfg_override=cfg_override, boards_only=boards_only, market=market)
     today8 = time.strftime("%Y%m%d", time.localtime())
     full_key = f"{market}-scan:" + today8
+    running = _RUNNING_SCAN.get(market)
+    if running is not None and not running.done():
+        try:
+            await running
+        except Exception:
+            pass
+        hit = _SCAN_CACHE.get(full_key)
+        if hit and time.time() - hit[0] < 6 * 3600:
+            out = dict(hit[1])
+            out["cached"] = True
+            _SCAN_PROGRESS[market] = {"phase": "done", "pct": 100, "done": 0, "total": 0,
+                                      "msg": "已加载今日扫描缓存", "running": False, "ts": time.time()}
+            return _apply_stale_fallback(out, market)
+        return await run_scan(user_id, force=False, cfg_override=cfg_override, boards_only=boards_only, market=market)
+
+    if force:
+        async def _wrap_scan() -> dict[str, Any]:
+            try:
+                return await run_scan(user_id, force=True, cfg_override=cfg_override, boards_only=boards_only, market=market)
+            finally:
+                _RUNNING_SCAN.pop(market, None)
+        t = asyncio.ensure_future(_wrap_scan())
+        _RUNNING_SCAN[market] = t
+        return await t
+
     lock = _SCAN_LOCKS.setdefault(market, asyncio.Lock())
     async with lock:
         hit = _SCAN_CACHE.get(full_key)
@@ -3439,17 +3495,74 @@ async def run_scan_dedup(
 _load_daily_scan_cache()
 
 
-def _daily_mainlines():
-    """读复盘页当日主攻主线（板块成分评分均值≥62 且当日走强，资金+技术双确认）；无缓存返回 None。"""
+def _detect_style(regime, dml_names, board_rank):
+    """行情风格识别：大盘攻守 + 主线连续性 + 板块持续性（电风扇/趋势/震荡）。
+    - defensive：沿用防守模式（门槛62/最多2只/仅主线回踩热门龙头），风格不重复调参；
+    - trend（趋势）：有复盘主线 且 主线板块连续上榜≥2 天 或 主线≥2 个；
+    - fan（电风扇）：无主线 或 板块榜前8 中一日游（streak≤1）占比≥60%；
+    - chop（震荡）：其余，稳健基准。
+    """
     try:
-        from .daily_report import cache_load, pick_main_lines
+        if regime == "defensive":
+            return {"mode": "defensive", "label": "风格：防守", "note": "大盘走弱：仅主线双确认+零风险标的，最多 2 只，宁可空仓不勉强。"}
+        ranks = [b for b in (board_rank or []) if isinstance(b, dict)][:8]
+        has_streak = bool(ranks) and any(int(b.get('streak') or 0) > 0 for b in ranks)
+        one_day = sum(1 for b in ranks if int(b.get('streak') or 0) <= 1) if has_streak else 0
+        one_day_ratio = (one_day / len(ranks)) if (has_streak and ranks) else 0.0
+        main_streak = 0
+        ml_names = {str(n).replace(" ", "") for n in (dml_names or [])}
+        for b in ranks:
+            nm = str(b.get("name") or "").replace(" ", "")
+            if nm and nm in ml_names:
+                main_streak = max(main_streak, int(b.get("streak") or 0))
+        if ml_names and (main_streak >= 2 or len(ml_names) >= 2):
+            return {"mode": "trend", "label": "风格：趋势", "note": "主线持续（连续上榜≥2 天）：主线龙头+补涨卡位双线推进，回踩低吸为主，不追高。"}
+        if not ml_names or one_day_ratio >= 0.6:
+            return {"mode": "fan", "label": "风格：电风扇", "note": "板块快速轮动、一日游偏多：只做主线/回踩企稳低吸，绝不追当日大涨，破位即撤。"}
+        return {"mode": "chop", "label": "风格：震荡", "note": "方向不明：以主线双确认+零风险标的为主，控制仓位，等主线明朗。"}
+    except Exception:
+        return {"mode": "chop", "label": "风格：震荡", "note": "方向不明：控制仓位，等主线明朗。"}
+
+
+def _daily_mainlines():
+    """读取复盘锁定主线（与复盘页完全同口径，掘金/复盘不再打架）：
+    1) 优先当日复盘归档 mainlines.json（复盘实际生成，最准）；
+    2) 无则用当日 sector_scores 缓存 + 连续性约束重算（与复盘报告口径一致）；
+    3) 再无则回退最近归档日主线（与复盘页展示一致）。
+    返回 {"names": [...], "date": "YYYY-MM-DD", "src": "archive"|"recalc"|"fallback"} 或 None。
+    """
+    try:
+        from .daily_report import ARCHIVE_ROOT, today8, cache_load, pick_main_lines, _prev_mainlines
+        _today = today8()
+        # 1) 当日归档（复盘实际生成的主线）
+        _mj = os.path.join(ARCHIVE_ROOT, _today, "mainlines.json")
+        if os.path.exists(_mj):
+            obj = json.load(open(_mj, encoding="utf-8"))
+            ml = obj.get("mainlines") or []
+            if ml:
+                return {"names": list(ml), "date": _today, "src": "archive"}
+        # 2) 当日板块评分缓存 + 连续性约束重算（与复盘报告口径一致）
         sc = cache_load("sector_scores")
-        if not sc:
-            return None
-        ml, _obs, _av = pick_main_lines(sc)
-        return ml or None
+        if sc:
+            _prev = _prev_mainlines() or {}
+            ml, _obs, _av = pick_main_lines(sc, (_prev.get("mainlines") or []))
+            if ml:
+                return {"names": list(ml), "date": _today, "src": "recalc"}
+        # 3) 最近归档日主线（与复盘页展示一致）
+        import re as _re
+        _archs = sorted([x for x in os.listdir(ARCHIVE_ROOT) if _re.fullmatch(r"\d{8}", x) and os.path.isdir(os.path.join(ARCHIVE_ROOT, x))], reverse=True)
+        for _d in _archs:
+            if _d == _today:
+                continue
+            _p = os.path.join(ARCHIVE_ROOT, _d, "mainlines.json")
+            if os.path.exists(_p):
+                obj = json.load(open(_p, encoding="utf-8"))
+                ml = obj.get("mainlines") or []
+                if ml:
+                    return {"names": list(ml), "date": _d, "src": "fallback"}
     except Exception:
         return None
+    return None
 
 
 # ---------------- 复盘主线板块成分（主线优先推荐） ----------------

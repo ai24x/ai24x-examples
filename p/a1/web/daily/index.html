@@ -213,8 +213,7 @@ try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("daily"); } catch (e) {
   }
 
   function startScan(force) {
-    var url = API + '/api/report/scan' + (force ? '?force=1' : '');
-    api(url, { method: 'POST' }).then(function (j) {
+    api('/api/report/scan' + (force ? '?force=1' : ''), { method: 'POST' }).then(function (j) {
       if (j.ok) {
         el('btn-run').disabled = true;
         el('btn-force').disabled = true;

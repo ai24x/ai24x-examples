@@ -61,11 +61,12 @@ window.AI24X_BJScreener = (function () {
   var state = { loading: false, data: null, market: "all" };
   var reqSeq = 0;
 
-  function setStatus(s, isErr) {
+  function setStatus(s, isErr, isWarn) {
     var el = $("bj-status");
     if (!el) return;
     el.innerHTML = s || "";
-    el.style.color = isErr ? "var(--rise)" : "";
+    el.style.color = isErr ? "var(--rise)" : (isWarn ? "var(--warn)" : "");
+    el.style.fontWeight = isWarn ? "800" : "";
   }
   function statusLoading() {
     setStatus('<span class="spin"></span> 正在扫描' + marketLabel(state.market) + '…（北证约 20~40 秒，沪深京约 30~60 秒）');
@@ -256,8 +257,11 @@ window.AI24X_BJScreener = (function () {
       };
       var rm = regMap[d.regime] || null;
       if (rm) line += '<br/><div class="bj-regime ' + rm.cls + '" style="margin:6px 0 0"><b>' + rm.txt + '</b><span>' + rm.note + '</span></div>';
+      if (d.style && d.style.mode && d.style.mode !== "defensive") {
+        line += '<br/><div class="bj-style ' + d.style.mode + '"><b>' + esc(d.style.label || "") + '</b><span>' + esc(d.style.note || "") + '</span></div>';
+      }
     }
-    if (d.off_market) line += "<br/><span style='color:var(--warn)'>⏸ 非交易日：以下为最近交易日（" + esc(d.stale_from || "") + "）归档结果</span>"; else if (d.stale) line += "<br/><span style='color:var(--warn)'>⚠ 今日无合格标的，以下展示上一交易日（" + esc(d.stale_from || "") + "）结果</span>";
+    if (d.off_market) line += "<br/><span style='color:var(--warn)'>⏸ 非交易日：以下为最近交易日（" + esc(d.stale_from || "") + "）归档结果</span>"; else if (d.stale) line += "<br/><span class='bj-empty-flag'>⚠ 今日无合格标的</span>，以下展示上一交易日（" + esc(d.stale_from || "") + "）结果";
     if (d.cached && !d.vip_required) line += ' <span class="bj-cached">（今日结果已缓存，点「重新扫描」刷新）</span>';
     el.innerHTML = line;
     el.hidden = false;
@@ -266,8 +270,15 @@ window.AI24X_BJScreener = (function () {
     var box = $("bj-mainlines");
     if (!box) return;
     var ml = (d.mainlines || []).filter(function (m) { return m && m.src === "daily"; });
-    if (!ml.length) { box.innerHTML = ""; return; }
-    var h = '<div class="bj-section">主攻主线（同步复盘）</div>' +
+    var mld = d.mainline_date ? ' · ' + esc(d.mainline_date) : '';
+    if (!ml.length) {
+      var emptyMl = d.archive
+        ? '该日未锁定主线（复盘未生成或板块未达标）。'
+        : '今日主线尚未生成（15:03 收盘后复盘自动锁定），可<a href="/daily/" target="_blank" rel="noopener">查看最近一期复盘 ↗</a>。';
+      box.innerHTML = '<div class="bj-note">主攻主线与复盘同步锁定：' + emptyMl + '</div>';
+      return;
+    }
+    var h = '<div class="bj-section">主攻主线（同步复盘' + mld + '）</div>' +
       '<div class="chips">' +
       '<a class="chip chip-mainline" href="/daily/" target="_blank" rel="noopener" title="主线以复盘页为准（资金+技术双确认）· 新窗口打开复盘">' +
       ml.map(function (m) { return '<b>' + esc(m.name || "") + '</b>'; }).join(' <span class="ml-sep">·</span> ') + '↗</a>' +
@@ -488,7 +499,9 @@ window.AI24X_BJScreener = (function () {
     if (!box) return;
     var picks = d.picks || [];
     if (!picks.length) {
-      box.innerHTML = '<div class="notice">今日无合格标的：行情整体偏弱或筛选条件过严，可稍后再扫或放宽参数观察。</div>';
+      var emptyTitle = d.archive ? '该日期无归档主推记录' : '今日无合格标的';
+      var emptySub = d.archive ? '可查看其它日期的历史归档。' : '行情整体偏弱或筛选条件过严，宁缺毋滥；可稍后重扫或放宽参数观察。';
+      box.innerHTML = '<div class="bj-empty-alert"><div class="ico">\ud83d\udca1</div><div class="bd"><b>' + esc(emptyTitle) + '</b><span>' + emptySub + '</span></div></div>';
       return;
     }
     var html;
@@ -508,7 +521,7 @@ window.AI24X_BJScreener = (function () {
       var _staleNote = d.intraday
         ? '未到收盘（15:03 后自动更新今日）：当前展示上一交易日（' + esc(d.stale_from || "") + '）收盘结果，仅供研究参考，不构成投资建议。'
         : '⚠ 今日（' + esc(d.date || "") + '）扫描无合格标的' + (_tfTxt ? '：' + _tfTxt : '（可能为盘前或数据未更新）') + '，以下为上一交易日（' + esc(d.stale_from || "") + '）收盘结果，仅供研究参考，不构成投资建议。'
-      html = '<div class="bj-section">上一交易日主推（数据日期 ' + esc(d.stale_from || d.asof || "") + ' · ' + (d.intraday ? '未到收盘' : '今日无合格标的') + '）</div>';
+      html = '<div class="bj-section">上一交易日主推（数据日期 ' + esc(d.stale_from || d.asof || "") + ' · ' + (d.intraday ? '未到收盘' : '<span class="bj-empty-flag">今日无合格标的</span>') + '）</div>';
       html += '<div class="notice stale">' + _staleNote + '</div>';
     } else {
       var trk = d.prev_track || [];
@@ -648,73 +661,125 @@ window.AI24X_BJScreener = (function () {
     var btn = $("btn-bj-refresh");
     if (btn) { btn.disabled = true; btn.textContent = "扫描中…"; }
     statusLoading();
-    startProgress(state.market, seq);
-    apiFetch("/api/bj/screener?market=" + encodeURIComponent(state.market) + (force ? "&force=1" : "")).then(function (d) {
+    if (force) {
+      // 异步重扫：先启动后台任务，轮询进度，避免长请求触发 nginx 60s 网关超时（504）
+      apiFetch("/api/bj/screener/start?market=" + encodeURIComponent(state.market)).then(function (st) {
+        if (seq !== reqSeq) return;
+        if (!st || st.ok !== true) {
+          state.loading = false;
+          stopProgress();
+          if (btn) { btn.disabled = false; btn.textContent = "重新扫描"; }
+          setStatus("扫描启动失败：" + esc((st && st.message) || "未知错误"), true);
+          return;
+        }
+        waitScanDone(seq, btn);
+      }).catch(function (e) { loadFail(e, seq, btn); });
+      return;
+    }
+    // 非强制：若已有扫描在跑则轮询等待，否则直接拉取（命中缓存秒回）
+    apiFetch("/api/bj/screener/progress?market=" + encodeURIComponent(state.market)).then(function (p) {
       if (seq !== reqSeq) return;
-      state.loading = false;
-      stopProgress();
-      if (btn) {
-        btn.disabled = false;
-        var fresh = d && d.cached && !d.refresh_locked && !d.intraday;
-        btn.textContent = fresh ? "已是最新" : "重新扫描";
-        btn.title = fresh ? "今日结果已生成，点击可强制重新扫描" : "重新扫描全部标的（120 秒限一次）";
-      }
-      if (!d || d.ok === false) {
-        setStatus("扫描失败：" + esc((d && d.message) || (d && d.error) || "未知错误"), true);
-        return;
-      }
-      state.data = d;
-      $("bj-vipgate").hidden = true;
-      $("bj-main").hidden = false;
-      renderMeta(d);
-      renderMainlines(d);
-      renderBoardRank(d);
-      if (d.vip_required) {
-        var pg = $("bj-picksgate");
-        if (pg) pg.hidden = false;
-        var res = $("bj-result");
-        if (res) res.innerHTML = "";
-        var hb = $("bj-history");
-        if (hb) hb.innerHTML = "";
-        var btn2 = $("btn-bj-refresh");
-        if (btn2) btn2.style.display = "none";
-      } else {
-        var pg2 = $("bj-picksgate");
-        if (pg2) pg2.hidden = true;
-        var btn3 = $("btn-bj-refresh");
-        if (btn3) btn3.style.display = "";
-        renderPicks(d);
-        loadHistory();
-      }
-      if (d.stale) {
-        setStatus("今日无合格标的（" + fmtDate() + "），展示上一交易日结果");
-      } else if (d.vip_required) {
-        setStatus(marketLabel(state.market) + "板块视图已解锁（" + fmtDate() + "）" + (d.cached ? " · 已加载今日缓存" : ""));
-      } else {
-        setStatus(marketLabel(state.market) + "扫描完成（" + fmtDate() + "）" + (d.cached ? " · 已加载今日缓存" : ""));
-      }
-    }).catch(function (e) {
+      if (p && p.running === true) { waitScanDone(seq, btn); return; }
+      startProgress(state.market, seq);
+      apiFetch("/api/bj/screener?market=" + encodeURIComponent(state.market)).then(function (d) {
+        applyScanResult(d, seq, btn);
+      }).catch(function (e) { loadFail(e, seq, btn); });
+    }).catch(function () {
       if (seq !== reqSeq) return;
-      state.loading = false;
-      stopProgress();
-      if (btn) {
-        btn.disabled = false;
-        var fresh = false;
-        btn.textContent = fresh ? "已是最新" : "重新扫描";
-        btn.title = fresh ? "今日结果已生成，点击可强制重新扫描" : "重新扫描全部标的（120 秒限一次）";
-      }
-      if (e && e.status === 403) {
-        $("bj-main").hidden = true;
-        $("bj-vipgate").hidden = false;
-        setStatus("当前账号未开通 VIP");
-        return;
-      }
-      if (e && e.status === 401) {
-        setStatus("登录已失效，请重新登录后使用", true);
-        return;
-      }
-      setStatus("加载失败：" + esc(e && e.message ? e.message : "网络错误"), true);
+      startProgress(state.market, seq);
+      apiFetch("/api/bj/screener?market=" + encodeURIComponent(state.market)).then(function (d) {
+        applyScanResult(d, seq, btn);
+      }).catch(function (e) { loadFail(e, seq, btn); });
     });
+  }
+
+  function waitScanDone(seq, btn) {
+    var fill = $("bj-progress-fill"), txt = $("bj-progress-text");
+    apiFetch("/api/bj/screener/progress?market=" + encodeURIComponent(state.market)).then(function (p) {
+      if (seq !== reqSeq) return;
+      var w = $("bj-progress");
+      if (w && p && p.running === true) w.hidden = false;
+      if (fill && p) fill.style.width = Math.max(2, Math.min(100, Number(p.pct) || 0)) + "%";
+      if (txt && p) txt.textContent = (p && p.msg) || "正在扫描…";
+      if (p && p.running === true) {
+        progTimer = setTimeout(function () { waitScanDone(seq, btn); }, 1500);
+        return;
+      }
+      // 扫描完成：重置 loading 后拉最新结果（命中缓存）
+      state.loading = false;
+      load(false);
+    }).catch(function () {
+      if (seq !== reqSeq) return;
+      progTimer = setTimeout(function () { waitScanDone(seq, btn); }, 2000);
+    });
+  }
+
+  function applyScanResult(d, seq, btn) {
+    if (seq !== reqSeq) return;
+    state.loading = false;
+    stopProgress();
+    if (btn) {
+      btn.disabled = false;
+      var fresh = d && d.cached && !d.refresh_locked && !d.intraday;
+      btn.textContent = fresh ? "已是最新" : "重新扫描";
+      btn.title = fresh ? "今日结果已生成，点击可强制重新扫描" : "重新扫描全部标的（120 秒限一次）";
+    }
+    if (!d || d.ok === false) {
+      setStatus("扫描失败：" + esc((d && d.message) || (d && d.error) || "未知错误"), true);
+      return;
+    }
+    state.data = d;
+    $("bj-vipgate").hidden = true;
+    $("bj-main").hidden = false;
+    renderMeta(d);
+    renderMainlines(d);
+    renderBoardRank(d);
+    if (d.vip_required) {
+      var pg = $("bj-picksgate");
+      if (pg) pg.hidden = false;
+      var res = $("bj-result");
+      if (res) res.innerHTML = "";
+      var hb = $("bj-history");
+      if (hb) hb.innerHTML = "";
+      var btn2 = $("btn-bj-refresh");
+      if (btn2) btn2.style.display = "none";
+    } else {
+      var pg2 = $("bj-picksgate");
+      if (pg2) pg2.hidden = true;
+      var btn3 = $("btn-bj-refresh");
+      if (btn3) btn3.style.display = "";
+      renderPicks(d);
+      loadHistory();
+    }
+    if (d.stale) {
+      setStatus("\ud83d\udca1 今日无合格标的（" + fmtDate() + "），展示上一交易日结果", false, true);
+    } else if (d.vip_required) {
+      setStatus(marketLabel(state.market) + "板块视图已解锁（" + fmtDate() + "）" + (d.cached ? " · 已加载今日缓存" : ""));
+    } else {
+      setStatus(marketLabel(state.market) + "扫描完成（" + fmtDate() + "）" + (d.cached ? " · 已加载今日缓存" : ""));
+    }
+  }
+
+  function loadFail(e, seq, btn) {
+    if (seq !== reqSeq) return;
+    state.loading = false;
+    stopProgress();
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "重新扫描";
+      btn.title = "重新扫描全部标的（120 秒限一次）";
+    }
+    if (e && e.status === 403) {
+      $("bj-main").hidden = true;
+      $("bj-vipgate").hidden = false;
+      setStatus("当前账号未开通 VIP");
+      return;
+    }
+    if (e && e.status === 401) {
+      setStatus("登录已失效，请重新登录后使用", true);
+      return;
+    }
+    setStatus("加载失败：" + esc(e && e.message ? e.message : "网络错误"), true);
   }
 
   function bindTabs() {
