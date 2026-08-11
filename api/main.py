@@ -34,6 +34,7 @@ from schemas import (
     TokenPayCreateBody,
     TokenMockFulfillBody,
     TokenQueryFulfillBody,
+    TokenCryptoSubmitBody,
     ChatRequest,
     ChatResponse,
     ErrorResponse,
@@ -2185,6 +2186,43 @@ async def billing_orders_mock_fulfill(
 
     u = _auth_user_from_bearer(request, db)
     return mock_fulfill(db, out_trade_no=body.out_trade_no, auth_user_id=int(u.id))
+
+
+@app.post("/v1/billing/crypto/order")
+async def billing_crypto_order(
+    request: Request, body: TokenPayCreateBody, db: Session = Depends(get_db)
+):
+    """USDT-TRC20 下单：返回收款地址/金额/单号。"""
+    from token_pay_service import create_crypto_order
+
+    u = _auth_user_from_bearer(request, db)
+    return create_crypto_order(db, auth_user_id=int(u.id), plan=body.plan)
+
+
+@app.post("/v1/billing/crypto/submit")
+async def billing_crypto_submit(
+    request: Request, body: TokenCryptoSubmitBody, db: Session = Depends(get_db)
+):
+    """用户提交链上 txid，订单进入 awaiting_verify。"""
+    from token_pay_service import submit_crypto_txid
+
+    u = _auth_user_from_bearer(request, db)
+    return submit_crypto_txid(
+        db, out_trade_no=body.out_trade_no, txid=body.txid, auth_user_id=int(u.id)
+    )
+
+
+@app.post("/v1/billing/crypto/verify")
+async def billing_crypto_verify(
+    request: Request, body: TokenMockFulfillBody, db: Session = Depends(get_db)
+):
+    """v1 人工核验：本地/测试 mock=True 直接入账；生产由 v2 监听自动核验。"""
+    from token_pay_service import verify_crypto_order
+
+    u = _auth_user_from_bearer(request, db)
+    return verify_crypto_order(
+        db, out_trade_no=body.out_trade_no, auth_user_id=int(u.id), mock=True
+    )
 
 
 @app.post("/v1/billing/wechat/query_and_fulfill")

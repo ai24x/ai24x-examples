@@ -183,6 +183,17 @@ img {
   color: var(--accent-ink);
 }
 
+.btn-usdt {
+  background: #26a17b;
+  color: #fff;
+  border-color: transparent;
+}
+
+.btn-usdt:hover {
+  filter: brightness(1.08);
+  color: #fff;
+}
+
 .btn-ghost {
   background: transparent;
 }
@@ -508,6 +519,9 @@ html.i18n-pending body {
 .plan-compare-pay .btn {
   padding: 6px 10px;
   font-size: 0.85rem;
+  min-width: 96px;
+  justify-content: center;
+  white-space: nowrap;
 }
 
 .keys-toolbar {

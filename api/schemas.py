@@ -488,6 +488,11 @@ class TokenQueryFulfillBody(BaseModel):
     out_trade_no: str = Field(..., min_length=4, max_length=32)
 
 
+class TokenCryptoSubmitBody(BaseModel):
+    out_trade_no: str = Field(..., min_length=4, max_length=32)
+    txid: str = Field(..., min_length=8, max_length=128, description="TRC20 transaction hash")
+
+
 class TokenAdminSystemUpdateBody(BaseModel):
     token_pay_enabled: Optional[bool] = None
     token_pay_mock_enabled: Optional[bool] = None

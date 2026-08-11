@@ -87,3 +87,9 @@ body.theme-dark .btn-primary {
   color: var(--accent-ink);
   border-color: transparent;
 }
+
+body.theme-dark .btn-usdt {
+  background: #26a17b;
+  color: #fff;
+  border-color: transparent;
+}

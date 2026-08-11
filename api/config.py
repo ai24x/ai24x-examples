@@ -200,6 +200,13 @@ class Settings(BaseSettings):
         default="https://www.ai24x.com/console.html", validation_alias="CREEM_RETURN_URL"
     )
 
+    # ————— Crypto（USDT-TRC20 加密收款）—————
+    crypto_trc20_address: str = Field(default="", validation_alias="CRYPTO_TRC20_ADDRESS")
+    crypto_enabled: bool = Field(default=False, validation_alias="CRYPTO_ENABLED")
+    crypto_min_confirm: int = Field(default=6, validation_alias="CRYPTO_MIN_CONFIRM")
+    crypto_daily_limit_usd: float = Field(default=1000.0, validation_alias="CRYPTO_DAILY_LIMIT_USD")
+    crypto_order_limit_usd: float = Field(default=500.0, validation_alias="CRYPTO_ORDER_LIMIT_USD")
+
     # —— LLM upstream（默认聚合 OpenRouter；直连为可选）——
     token_llm_upstream: str = Field(default="direct", validation_alias="TOKEN_LLM_UPSTREAM")
     openrouter_api_key: str = Field(default="", validation_alias="OPENROUTER_API_KEY")

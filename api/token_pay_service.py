@@ -168,6 +168,8 @@ def public_plans() -> dict:
             "alipay_ready": bool(enabled and ali_cfg),
             "paypal_ready": bool(enabled and pp_cfg),
             "creem_ready": bool(enabled and creem_cfg),
+            "crypto_configured": crypto_configured(),
+            "crypto_ready": crypto_ready(),
         },
     }
 
@@ -222,8 +224,8 @@ def create_pending_order(
         raise HTTPException(status_code=400, detail=str(e)) from e
     _assert_promo_purchase_ok(db, auth_user_id=int(auth_user_id), plan_id=plan_id)
     ch = (channel or "wechat")[:16]
-    # PayPal：amount_fen 存 USD 美分；微信/支付宝仍为 CNY 分
-    if ch in ("paypal", "creem"):
+    # PayPal/Creem/Crypto：amount_fen 存 USD 美分；微信/支付宝仍为 CNY 分
+    if ch in ("paypal", "creem", "crypto"):
         meta = get_plan(plan_id) or {}
         try:
             usd = float(meta.get("price_usd") or 0)
@@ -301,7 +303,7 @@ def _fulfill_order_row(
         sa_update(TokenPayOrder)
         .where(
             TokenPayOrder.out_trade_no == otn,
-            TokenPayOrder.status == "pending",
+            TokenPayOrder.status.in_(["pending", "awaiting_verify"]),
         )
         .values(
             status="paid",
@@ -1201,3 +1203,142 @@ def confirm_order_unpaid(db, order_id: int) -> dict:
         "confirmed_unpaid_at": r.confirmed_unpaid_at.isoformat() if r.confirmed_unpaid_at else None,
         "note": "已标记：对账确认未收款；超时后清理任务将作废为 failed",
     }
+
+# ================= Crypto (USDT-TRC20) =================
+def crypto_settings_ns() -> SimpleNamespace:
+    """CRYPTO_* 配置。地址为空 = 未配置。"""
+    return SimpleNamespace(
+        address=str(getattr(settings, "crypto_trc20_address", "") or "").strip(),
+        enabled=bool(getattr(settings, "crypto_enabled", False)),
+        min_confirm=int(getattr(settings, "crypto_min_confirm", 6) or 6),
+        daily_limit_usd=float(getattr(settings, "crypto_daily_limit_usd", 1000) or 1000),
+        order_limit_usd=float(getattr(settings, "crypto_order_limit_usd", 500) or 500),
+    )
+
+
+def crypto_configured() -> bool:
+    return bool(crypto_settings_ns().address)
+
+
+def crypto_ready() -> bool:
+    cfg = crypto_settings_ns()
+    return bool(cfg.enabled and cfg.address)
+
+
+def create_crypto_order(db: Session, *, auth_user_id: int, plan: str) -> dict:
+    """USDT-TRC20 下单：创建 pending 订单，返回收款地址/金额。USDT 1:1 USD。"""
+    row = create_pending_order(db, auth_user_id=auth_user_id, plan=plan, channel="crypto")
+    meta = get_plan(row.plan) or {}
+    try:
+        usd = float(meta.get("price_usd") or 0)
+    except Exception:
+        usd = 0.0
+    if usd <= 0:
+        usd = int(row.amount_fen) / 100.0
+    cfg = crypto_settings_ns()
+    if not cfg.address:
+        row.status = "failed"
+        db.commit()
+        raise HTTPException(status_code=503, detail="Crypto 未配置（CRYPTO_TRC20_ADDRESS）")
+    if usd > cfg.order_limit_usd:
+        row.status = "failed"
+        db.commit()
+        raise HTTPException(status_code=400, detail=f"单笔限额 ${cfg.order_limit_usd:.0f}，请分拆或联系客服")
+    row.code_url = cfg.address
+    db.commit()
+    return {
+        "out_trade_no": row.out_trade_no,
+        "plan": row.plan,
+        "amount_fen": row.amount_fen,
+        "amount_usd": f"{usd:.2f}",
+        "amount_usdt": f"{usd:.2f}",
+        "currency": "USDT",
+        "network": "TRC20",
+        "channel": "crypto",
+        "address": cfg.address,
+        "min_confirm": cfg.min_confirm,
+        "expire_minutes": 60,
+        "hint": "请向上述 TRC20 地址转入等额 USDT，转账后提交 txid 核验。",
+    }
+
+
+def submit_crypto_txid(
+    db: Session, *, out_trade_no: str, txid: str, auth_user_id: Optional[int] = None
+) -> dict:
+    """用户提交链上 txid，订单进入 awaiting_verify。"""
+    otn = str(out_trade_no or "").strip()
+    txid = str(txid or "").strip()
+    if not otn or not txid:
+        raise HTTPException(status_code=400, detail="missing out_trade_no/txid")
+    row = db.query(TokenPayOrder).filter(TokenPayOrder.out_trade_no == otn).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="订单不存在")
+    if auth_user_id is not None and int(row.auth_user_id) != int(auth_user_id):
+        raise HTTPException(status_code=403, detail="订单不属于当前用户")
+    if row.status == "paid":
+        return {"ok": True, "duplicate": True, "out_trade_no": otn, "status": "paid"}
+    row.transaction_id = txid[:128]
+    if row.status in ("pending", "verify_failed"):
+        row.status = "awaiting_verify"
+    db.commit()
+    return {"ok": True, "out_trade_no": otn, "txid": txid, "status": row.status}
+
+
+def tronscan_tx_info(txid: str, timeout: int = 15) -> dict:
+    """TronScan 单笔查询（v1 人工核验用）：返回链上原始 JSON。"""
+    try:
+        import httpx
+    except Exception:
+        return {"error": "httpx not available"}
+    url = f"https://apilist.tronscanapi.com/api/transaction-info?hash={txid}"
+    try:
+        r = httpx.get(url, timeout=timeout, headers={"User-Agent": "ai24x-crypto-verify/1.0"})
+        r.raise_for_status()
+        return r.json()
+    except Exception as e:
+        logger.warning("tronscan query failed txid=%s err=%s", txid, e)
+        return {"error": str(e)}
+
+
+def verify_crypto_order(
+    db: Session, *, out_trade_no: str, auth_user_id: Optional[int] = None, mock: bool = True
+) -> dict:
+    """v1 人工核验。mock=True 本地模拟直接入账（测试用）；mock=False 走 TronScan 链上核验。"""
+    otn = str(out_trade_no or "").strip()
+    row = db.query(TokenPayOrder).filter(TokenPayOrder.out_trade_no == otn).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="订单不存在")
+    if auth_user_id is not None and int(row.auth_user_id) != int(auth_user_id):
+        raise HTTPException(status_code=403, detail="订单不属于当前用户")
+    if row.status == "paid":
+        return {
+            "ok": True,
+            "duplicate": True,
+            "out_trade_no": otn,
+            "status": "paid",
+            "balance": get_balance_snapshot(db, int(row.auth_user_id)),
+        }
+    txid = str(row.transaction_id or "").strip()
+    if not mock:
+        if not txid:
+            raise HTTPException(status_code=409, detail="订单未提交 txid")
+        info = tronscan_tx_info(txid)
+        if info.get("error") or not info:
+            row.status = "verify_failed"
+            db.commit()
+            raise HTTPException(status_code=409, detail="链上查询失败，请稍后重试或联系客服")
+        # v1 人工核验：链上数据由管理员人工对照收款地址/金额/确认数
+        # （自动匹配逻辑在 v2 监听脚本 crypto_listener.py 实现）
+    tx_id = txid or f"MOCKCRYPTO{int(time.time())}"
+    r = try_fulfill(
+        db,
+        out_trade_no=otn,
+        transaction_id=tx_id,
+        amount_fen=int(row.amount_fen),
+        channel_tag="crypto",
+    )
+    if not r.get("ok"):
+        row.status = "verify_failed"
+        db.commit()
+        raise HTTPException(status_code=409, detail=str(r.get("error") or "fulfill_failed"))
+    return r

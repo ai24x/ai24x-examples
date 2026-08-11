@@ -571,6 +571,27 @@
     });
   }
 
+  function billingCryptoOrder(plan) {
+    return request("/v1/billing/crypto/order", {
+      method: "POST",
+      body: JSON.stringify({ plan: plan }),
+    });
+  }
+
+  function billingCryptoSubmit(outTradeNo, txid) {
+    return request("/v1/billing/crypto/submit", {
+      method: "POST",
+      body: JSON.stringify({ out_trade_no: outTradeNo, txid: txid }),
+    });
+  }
+
+  function billingCryptoVerify(outTradeNo) {
+    return request("/v1/billing/crypto/verify", {
+      method: "POST",
+      body: JSON.stringify({ out_trade_no: outTradeNo }),
+    });
+  }
+
   function billingQueryFulfill(outTradeNo, channel) {
     var path =
       channel === "alipay"
@@ -839,6 +860,9 @@
     billingPaypalOrder: billingPaypalOrder,
     billingCreemOrder: billingCreemOrder,
     billingOrders: billingOrders,
+    billingCryptoOrder: billingCryptoOrder,
+    billingCryptoSubmit: billingCryptoSubmit,
+    billingCryptoVerify: billingCryptoVerify,
     billingMockFulfill: billingMockFulfill,
     billingQueryFulfill: billingQueryFulfill,
     listModels: listModels,

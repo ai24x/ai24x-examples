@@ -149,6 +149,7 @@
 
   function labelChannel(c) {
     if (c === "creem") return "Creem";
+    if (c === "crypto") return "USDT";
     if (!AI24X_API.isZhUi()) {
       var en = { wechat: "WeChat", alipay: "Alipay", paypal: "PayPal", mock: "Mock" };
       return en[c] || c || "";
@@ -447,7 +448,7 @@
       if (channel === "alipay") {
         return (
           '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
-          '<path fill="#1677FF" d="M21.5 12.2c0-4.6-3.4-8.2-8.3-8.2H5.2v16h8.1c4.8 0 8.2-3.5 8.2-7.8zm-9.9 3.3c-2.2 0-3.4-1-3.4-2.5 0-1.6 1.3-2.5 3.5-2.5.6 0 1.2.1 1.8.2-.3.6-.6 1.3-.9 2.1H10c-.5 0-.8.2-.8.6 0 .4.4.7 1.1.7.7 0 1.4-.2 2-.5.2.6.4 1.1.5 1.5-.9.3-1.8.4-2.7.4zm5.7-1.1c-.4.7-.9 1.4-1.5 2-.2-.5-.4-1.1-.5-1.7.7-.1 1.4-.2 2-.3zm1.3-2.5c-.9.2-1.9.4-2.9.8.3-.8.6-1.5 1-2.1.7.3 1.3.8 1.9 1.3z"/></svg>'
+          '<path fill="#1677FF" d="M19.695 15.07c3.426 1.158 4.203 1.22 4.203 1.22V3.846c0-2.124-1.705-3.845-3.81-3.845H3.914C1.808.001.102 1.722.102 3.846v16.31c0 2.123 1.706 3.845 3.813 3.845h16.173c2.105 0 3.81-1.722 3.81-3.845v-.157s-6.19-2.602-9.315-4.119c-2.096 2.602-4.8 4.181-7.607 4.181-4.75 0-6.361-4.19-4.112-6.949.49-.602 1.324-1.175 2.617-1.497 2.025-.502 5.247.313 8.266 1.317a16.796 16.796 0 0 0 1.341-3.302H5.781v-.952h4.799V6.975H4.77v-.953h5.81V3.591s0-.409.411-.409h2.347v2.84h5.744v.951h-5.744v1.704h4.69a19.453 19.453 0 0 1-1.986 5.06c1.424.52 2.702 1.011 3.654 1.333m-13.81-2.032c-.596.06-1.71.325-2.321.869-1.83 1.608-.735 4.55 2.968 4.55 2.151 0 4.301-1.388 5.99-3.61-2.403-1.182-4.438-2.028-6.637-1.809"/></svg>'
         );
       }
       if (channel === "creem") {
@@ -461,6 +462,12 @@
           '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
           '<path fill="#003087" d="M7.2 20.5h1.7l.5-3.1h1.7c3.3 0 5.5-1.4 6.1-4.3.1-.5.1-.9.1-1.2 0-.2 0-.4-.1-.6H19l.1-.5c.4-2.5-.9-4.2-3.8-4.2H9.2L7.2 20.5zm4.2-11.5h1.7c1.3 0 2 .5 1.8 1.7-.2 1.4-1.2 1.7-2.5 1.7h-1.5l.5-3.4z"/>' +
           '<path fill="#009CDE" d="M9.5 21.5h1.7l.4-2.5H13c2.7 0 4.4-1.1 4.9-3.5.1-.4.1-.7.1-1 0-.1 0-.3 0-.4h1.5l.1-.4c.3-2-.7-3.4-3.1-3.4h-4.3l-1.9 11.2h1.7l.5 3.1h1.4c1.1 0 1.7.4 1.5 1.4-.2 1.1-1 1.4-2.1 1.4H10l.5 3.3z"/></svg>'
+        );
+      }
+      if (channel === "crypto") {
+        return (
+          '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+          '<path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm3.2 11.2c-.1 1.9-1.4 2.9-3.4 3.1v1.7H10.7v-1.7c-2.4-.2-4.2-1.2-4.3-3h2.2c.1 1 1 1.6 2.1 1.7v-4.6c-2.8-.7-4.6-1.9-4.6-3.7 0-1.9 1.7-3.1 4.6-3.3V3h1.1v1.6c2 .2 3.7 1.2 3.8 3h-2.1c0-1-.8-1.6-1.7-1.7v4.3c2.9.8 4.5 1.9 4.5 4zm-2.2-4.2v4.3c1.3-.3 2-1 2-1.9 0-1-.8-1.7-2-2.4z"/></svg>'
         );
       }
       return "";
@@ -547,12 +554,14 @@
       if (pay.alipay_ready) addBtn(tr("支付宝", "Alipay"), "btn", "alipay");
       if (pay.paypal_ready) addBtn("PayPal", "btn btn-primary", "paypal");
       if (pay.creem_ready) addBtn("Creem", "btn btn-primary", "creem");
+      if (pay.crypto_ready) addBtn("USDT", "btn btn-usdt", "crypto");
       if (pay.mock_allowed) addBtn(tr("模拟", "Mock"), "btn", "mock");
       if (
         !pay.wechat_ready &&
         !pay.alipay_ready &&
         !pay.paypal_ready &&
         !pay.creem_ready &&
+        !pay.crypto_ready &&
         !pay.mock_allowed
       ) {
         var disabled = document.createElement("button");
@@ -799,6 +808,52 @@
   var _fulfillPollTimer = null;
   var _lastPayPlanId = null;
   /** 支付后主动查单补履约（异步 notify 未到时的兜底） */
+  function appendCryptoTxidBox(outTradeNo, planId) {
+    var resultEl = $("modal-pay-result");
+    if (!resultEl) return;
+    var oldBox = $("crypto-txid-box");
+    if (oldBox) oldBox.remove();
+    var box = document.createElement("div");
+    box.id = "crypto-txid-box";
+    box.style.marginTop = "10px";
+    box.innerHTML =
+      '<input id="crypto-txid-input" type="text" placeholder="' +
+        tr("粘贴 TRC20 txid", "Paste TRC20 txid") +
+        '" style="width:100%;padding:8px;box-sizing:border-box;border:1px solid #d1d5db;border-radius:6px;">' +
+      '<button id="crypto-txid-btn" class="btn btn-primary" style="margin-top:8px;width:100%;">' +
+        tr("提交核验（本地 mock 入账）", "Submit & verify (mock)") +
+        "</button>";
+    resultEl.appendChild(box);
+    var btn = $("crypto-txid-btn");
+    btn.addEventListener("click", function () {
+      var inputEl = $("crypto-txid-input");
+      var txid = (inputEl && inputEl.value || "").trim();
+      if (txid.length < 8) {
+        showPayResult({
+          isError: true,
+          hint: tr("请先粘贴有效的 txid（至少 8 位）", "Paste a valid txid (min 8 chars)"),
+        });
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = tr("核验中…", "Verifying…");
+      AI24X_API.billingCryptoSubmit(outTradeNo, txid)
+        .then(function () {
+          return AI24X_API.billingCryptoVerify(outTradeNo);
+        })
+        .then(function () {
+          closePayModal();
+          showMsg(msgBox(), tr("Crypto 订单已入账 ✅", "Crypto order fulfilled ✅"), true);
+          return refreshAll();
+        })
+        .catch(function (e) {
+          btn.disabled = false;
+          btn.textContent = tr("提交核验（本地 mock 入账）", "Submit & verify (mock)");
+          showPayResult({ isError: true, hint: e.message || tr("核验失败", "Verify failed") });
+        });
+    });
+  }
+
   function startFulfillPoll(outTradeNo, channel, planId) {
     if (!outTradeNo) return;
     if (planId) _lastPayPlanId = planId;
@@ -914,6 +969,10 @@
                 "正在创建 PayPal 订单，请稍候；若未弹出窗口，用下方按钮打开。",
                 "Creating PayPal order… If no window opens, use the button below."
               )
+          : channel === "crypto"
+            ? tr(
+                "正在创建 Crypto 订单，请稍候…",
+                "Creating Crypto order…")
             : tr("请选择支付方式", "Choose a payment method");
     openPayModal(planTitle + (price ? " · " + price : ""), payBusyHint);
 
@@ -924,7 +983,9 @@
           ? AI24X_API.billingCreemOrder(planId)
           : channel === "paypal"
             ? AI24X_API.billingPaypalOrder(planId)
-            : AI24X_API.billingWechatNative(planId);
+            : channel === "crypto"
+              ? AI24X_API.billingCryptoOrder(planId)
+              : AI24X_API.billingWechatNative(planId);
 
     req
       .then(function (r) {
@@ -1020,6 +1081,26 @@
             openLabel: tr("打开 PayPal", "Open PayPal"),
           });
           startFulfillPoll(r.out_trade_no, "paypal", planId);
+        } else if (channel === "crypto" && r && r.address) {
+          closeCheckoutWin(checkoutWin);
+          showPayResult({
+            hint:
+              tr(
+                "请向下方 TRC20 地址转入 " +
+                  (r.amount_usdt || r.amount_usd || "") +
+                  " USDT（单号 " +
+                  (r.out_trade_no || "") +
+                  "）。转账完成后，在输入框粘贴 txid 并点「提交核验」。",
+                "Send " +
+                  (r.amount_usdt || r.amount_usd || "") +
+                  " USDT to the TRC20 address below (order " +
+                  (r.out_trade_no || "") +
+                  "). After transfer, paste the txid and tap Verify."
+              ),
+            qrData: r.address,
+            urlText: r.address,
+          });
+          appendCryptoTxidBox(r.out_trade_no, planId);
         } else {
           closeCheckoutWin(checkoutWin);
           var badHint = tr(
