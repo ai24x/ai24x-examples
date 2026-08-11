@@ -116,8 +116,52 @@ wire_api = "responses"</div>
           </table>
         </div>
         <p class="sub" data-i18n-html="page.guides.codex.s5n">Full catalog of 20+ named models (Kimi / Qwen / GLM / MiniMax / GPT-5 / Claude / Gemini …): <a href="../models/vip-picks.html">VIP list</a>.</p>
-        <h2 class="mt-2" data-i18n="page.guides.codex.s6">6) Switching models</h2>
-        <p class="sub" data-i18n="page.guides.codex.s6p">Edit <code>model =</code> in config.toml, then restart desktop (or open a new terminal for CLI). Model ids match <code>/v1/models</code> (<code>auto</code> / <code>flash</code> / <code>pro</code> / <code>ultra</code> / <code>shared</code> / <code>vip-*</code>).</p>
+        <h2 class="mt-2">5.1) Full VIP alias catalog (24)</h2>
+        <p class="sub">All 24 <code>vip-*</code> aliases (live on the gateway since 2026-08-11). Use them with <code>-c "model=vip-xxx"</code> (section 6). New additions: <strong>GPT-5 / GPT-5.4 / GPT-5 mini</strong>.</p>
+        <div class="model-table-wrap">
+          <table>
+            <thead>
+              <tr><th>Line</th><th>Alias</th><th>Model</th></tr>
+            </thead>
+            <tbody>
+              <tr><td rowspan="11"><strong>China</strong></td><td><code>vip-ds-flash</code></td><td>DeepSeek V4 Flash</td></tr>
+              <tr><td><code>vip-ds-pro</code></td><td>DeepSeek V4 Pro</td></tr>
+              <tr><td><code>vip-kimi</code></td><td>Kimi K3</td></tr>
+              <tr><td><code>vip-kimi-code</code></td><td>Kimi K2.7 Code</td></tr>
+              <tr><td><code>vip-qwen-max</code></td><td>Qwen Max</td></tr>
+              <tr><td><code>vip-qwen122b</code></td><td>Qwen 122B</td></tr>
+              <tr><td><code>vip-glm</code></td><td>GLM</td></tr>
+              <tr><td><code>vip-minimax</code></td><td>MiniMax</td></tr>
+              <tr><td><code>vip-mimo</code></td><td>MiMo</td></tr>
+              <tr><td><code>vip-hy3</code></td><td>Hunyuan 3</td></tr>
+              <tr><td><code>vip-llama4</code></td><td>Llama 4</td></tr>
+              <tr><td rowspan="13"><strong>International</strong></td><td><code>vip-gpt5</code></td><td>GPT-5</td></tr>
+              <tr><td><code>vip-gpt54</code></td><td>GPT-5.4</td></tr>
+              <tr><td><code>vip-gpt5-mini</code></td><td>GPT-5 mini</td></tr>
+              <tr><td><code>vip-gpt4o</code></td><td>GPT-4o</td></tr>
+              <tr><td><code>vip-gpt4o-mini</code></td><td>GPT-4o mini</td></tr>
+              <tr><td><code>vip-gpt56-luna</code></td><td>GPT-5.6 Luna</td></tr>
+              <tr><td><code>vip-gpt56-terra</code></td><td>GPT-5.6 Terra</td></tr>
+              <tr><td><code>vip-claude-opus</code></td><td>Claude Opus</td></tr>
+              <tr><td><code>vip-claude-sonnet</code></td><td>Claude Sonnet</td></tr>
+              <tr><td><code>vip-claude-haiku</code></td><td>Claude Haiku</td></tr>
+              <tr><td><code>vip-gemini-pro</code></td><td>Gemini Pro</td></tr>
+              <tr><td><code>vip-gemini-flash</code></td><td>Gemini Flash</td></tr>
+              <tr><td><code>vip-grok</code></td><td>Grok</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h2 class="mt-2">6) Pick a model &amp; switch in-session (<code>/model</code>)</h2>
+        <p class="sub"><strong>CLI (recommended):</strong> pass the provider and model on every run so the alias always routes to AI24X:</p>
+        <div class="code-block">codex exec -C /path/to/your/project -c "model_provider=ai24x-prod" -c "model=vip-gpt5" "your task"</div>
+        <p class="sub mt-2">Inside an interactive session, type <code>/model</code> and pick any alias from the catalog above — switch anytime <strong>without starting a new session or losing context</strong>.</p>
+        <h3 class="mt-2">Pitfalls</h3>
+        <ul class="lead" style="padding-left:1.2em">
+          <li><strong><code>-m "provider/model"</code> combined form errors out</strong> — e.g. <code>-m "ai24x/vip-gpt5"</code> is invalid. Do not join provider and model with a slash.</li>
+          <li><strong><code>-m "vip-xxx"</code> alone may route to the wrong provider</strong> — always pair <code>-c "model_provider=…"</code> with <code>-c "model=…"</code>.</li>
+          <li><strong>Desktop model picker does not list AI24X models</strong> — upstream gating, not planned. Use <code>/model</code> or CLI flags; do not expect the picker to show them.</li>
+          <li>Replace <code>ai24x-prod</code> with the provider name defined in your <code>~/.codex/config.toml</code> (the snippet in section 2 names it <code>ai24x</code>).</li>
+        </ul>
 
         <h2 class="mt-2" data-i18n="page.guides.codex.s7">7) Status & pitfalls</h2>
         <ul class="lead" style="padding-left:1.2em">
@@ -127,8 +171,8 @@ wire_api = "responses"</div>
           <li data-i18n-html="page.guides.codex.tip4"><strong>402</strong> — insufficient balance / prepaid needed for the model. Top up in Console.</li>
           <li data-i18n-html="page.guides.codex.tip5"><strong>403 named model needs active membership</strong> — <code>vip-*</code> requires membership + prepaid.</li>
           <li data-i18n-html="page.guides.codex.tip6"><strong>"Model metadata not found" warning is harmless</strong> — custom providers fall back to default metadata; it does not affect usage.</li>
-          <li data-i18n-html="page.guides.codex.tip7"></li>
-          <li data-i18n-html="page.guides.codex.tip8"></li>
+          <li><strong>Don't combine <code>-m "provider/model"</code></strong> — errors out; use <code>-c "model_provider=…"</code> + <code>-c "model=…"</code> (section 6).</li>
+          <li><strong>Desktop picker won't show AI24X models</strong> — upstream gating; switch with <code>/model</code> or CLI flags.</li>
         </ul>
 
         <p class="mt-2">
