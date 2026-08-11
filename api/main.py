@@ -2216,12 +2216,15 @@ async def billing_crypto_submit(
 async def billing_crypto_verify(
     request: Request, body: TokenMockFulfillBody, db: Session = Depends(get_db)
 ):
-    """v1 人工核验：本地/测试 mock=True 直接入账；生产由 v2 监听自动核验。"""
-    from token_pay_service import verify_crypto_order
+    """v1 人工核验：仅 mock 环境（本地/测试）允许模拟入账；生产需 X-Admin-Key 且强制 TronScan 链上核验，防白嫖。"""
+    from token_pay_service import verify_crypto_order, token_pay_mock_allowed
 
+    mock = token_pay_mock_allowed()
+    if not mock:
+        _require_internal_key(request)
     u = _auth_user_from_bearer(request, db)
     return verify_crypto_order(
-        db, out_trade_no=body.out_trade_no, auth_user_id=int(u.id), mock=True
+        db, out_trade_no=body.out_trade_no, auth_user_id=int(u.id), mock=mock
     )
 
 

@@ -1303,7 +1303,9 @@ def tronscan_tx_info(txid: str, timeout: int = 15) -> dict:
 def verify_crypto_order(
     db: Session, *, out_trade_no: str, auth_user_id: Optional[int] = None, mock: bool = True
 ) -> dict:
-    """v1 人工核验。mock=True 本地模拟直接入账（测试用）；mock=False 走 TronScan 链上核验。"""
+    """v1 人工核验。mock=True 仅 mock 开关开启环境模拟入账；否则强制 TronScan 链上核验，防白嫖。"""
+    if mock and not token_pay_mock_allowed():
+        mock = False
     otn = str(out_trade_no or "").strip()
     row = db.query(TokenPayOrder).filter(TokenPayOrder.out_trade_no == otn).first()
     if not row:
