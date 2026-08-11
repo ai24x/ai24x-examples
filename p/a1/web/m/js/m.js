@@ -25,7 +25,7 @@ function api(path, qs){
 function fmt(n){ return (n==null||isNaN(n)) ? "--" : Number(n).toFixed(2); }
 
 var IDX_NAMES = { "1.000001":"上证指数", "0.399001":"深证成指", "1.000852":"中证1000", "0.899050":"北证50" };
-var state = { secid: "1.000001", period: "day", name: "上证指数", favs: [], vis: 80, zoom: 1 };
+var state = { secid: "1.000001", period: "day", name: "上证指数", favs: [], vis: 60, zoom: 1 };
 (function(){
   try{
     var sp = new URLSearchParams(location.search);
@@ -241,11 +241,34 @@ function loadSignals(){
     }
     sigError = "";
     var arr = d.data.markers;
-    sigCache = arr.map(function(m){
+    var byDay = {};
+    arr.forEach(function(m){
+      var dt = m.time || m.date || "";
+      if (!dt) return;
       var txt = normSig(m.text);
+      if (!txt || !txt.replace(/​/g, "").trim()) return;
       var c = classifySig(txt);
-      return { date: m.time || m.date || "", label: c.label, color: m.color || c.color, note: txt, raw: txt, shape: m.shape || "circle", position: m.position || "belowBar" };
+      if (!byDay[dt]) byDay[dt] = [];
+      byDay[dt].push({ label: c.label, color: m.color || c.color, note: txt, raw: txt, shape: m.shape || "circle", position: m.position || "belowBar" });
     });
+    sigCache = Object.keys(byDay).map(function(dt){
+      var list = byDay[dt];
+      var seen = {}, labels = [], notes = [];
+      list.forEach(function(s){
+        if (seen[s.raw]) return;
+        seen[s.raw] = 1;
+        labels.push(s.label);
+        notes.push(s.raw);
+      });
+      var first = list[0];
+      var color = first.color;
+      for (var k2 = 0; k2 < list.length; k2++){
+        var cc = String(list[k2].color || "");
+        if (/ff3d5c|f43f5e|fbbf24|ff1744|e11d48/i.test(cc)){ color = cc; break; }
+      }
+      return { date: dt, label: labels.join(" "), color: color, note: notes.join(" "), raw: notes.join(" "), shape: first.shape, position: first.position };
+    });
+    sigCache.sort(function(a, b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
     return sigCache;
   }).catch(function(){ sigError = "信号加载失败"; sigCache = []; return []; });
 }
@@ -274,18 +297,23 @@ function resize(cv){
   var ctx = cv.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0);
   return { ctx: ctx, w: w, h: h };
 }
-function drawMarker(ctx, x, y, mk, dir){
+function drawMarker(ctx, x, y, mk, dir, flip){
   var color = mk.color || "#60a5fa";
   ctx.fillStyle = color;
   ctx.strokeStyle = "rgba(11,18,32,.9)"; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-  var txt = String(mk.raw || mk.label || "").slice(0, 3).replace(/[·.。]+$/, "");
+  var txt = String(mk.raw || mk.label || "").replace(/\s+/g, "").slice(0, 6).replace(/[·.。]+$/, "");
   if (txt){
-    var ty = dir > 0 ? y + 16 : y - 10;
     ctx.font = "bold 10px sans-serif"; ctx.textAlign = "center";
-    ctx.shadowColor = "rgba(0,0,0,.85)"; ctx.shadowBlur = 3;
+    var tw = ctx.measureText(txt).width;
+    var ty = flip ? (dir > 0 ? y - 14 : y + 22) : (dir > 0 ? y + 22 : y - 14);
+    var bx = x - tw / 2 - 3, by = ty - 7;
+    ctx.fillStyle = "rgba(8,13,24,.8)";
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(bx, by, tw + 6, 15, 4); else ctx.rect(bx, by, tw + 6, 15);
+    ctx.fill();
+    ctx.fillStyle = color;
     ctx.fillText(txt, x, ty);
-    ctx.shadowBlur = 0;
   }
 }
 function drawK(rows, sigs){
@@ -330,6 +358,7 @@ function drawK(rows, sigs){
   line(ma1, "rgba(255,128,0,.55)"); line(ma2, "rgba(51,153,255,.55)"); line(ma3, "rgba(0,200,83,.55)");
   if (sigs && sigs.length) {
     var byDate = {}; sigs.forEach(function(s){ if (s.date) byDate[String(s.date)] = s; });
+    var lastSigX = -1e9, flipSig = false;
     for (var j=0;j<vis;j++){
       var r = sub[j], s = byDate[String(r.t)];
       if (!s) continue;
@@ -338,7 +367,9 @@ function drawK(rows, sigs){
       if (s.position === "aboveBar"){ dotY = Math.max(y(r.h) - 10, padT + 10); dir = -1; }
       else if (s.position === "inBar"){ dotY = (y(r.h)+y(r.l))/2; dir = 0; }
       else { dotY = Math.min(y(r.l) + 10, H - 24); dir = 1; }
-      drawMarker(ctx, xi2, dotY, s, dir);
+      if (xi2 - lastSigX < 30){ flipSig = !flipSig; } else { flipSig = false; }
+      drawMarker(ctx, xi2, dotY, s, dir, flipSig);
+      lastSigX = xi2;
     }
   }
   if ((!sigs || !sigs.length) && sigError){
@@ -527,7 +558,7 @@ function drawMiniK(ctx, rows, x0, y0, x1, y1){
   function Y(p){ return y0 + padT + (hi - p) / range * plotH; }
   ctx.strokeStyle = "rgba(148,163,184,.1)"; ctx.lineWidth = 1;
   for (var g = 1; g < 5; g++){ var gy = y0 + padT + plotH * g / 4; ctx.beginPath(); ctx.moveTo(x0, gy); ctx.lineTo(x1, gy); ctx.stroke(); }
-  var cw = Math.max(1.2, plotW / vis * 0.6);
+  var cw = Math.max(1.2, plotW / vis * 0.72);
   for (var i = 0; i < vis; i++){
     var r = sub[i], xi = X(i);
     var up = r.c >= r.o;
@@ -551,6 +582,7 @@ function drawMiniK(ctx, rows, x0, y0, x1, y1){
     var byDate = {};
     sigsForCard.forEach(function(s){ if (s && s.date) byDate[String(s.date)] = s; });
     var hits = [];
+    var lastSigX2 = -1e9, flip2 = false;
     for (var i = 0; i < vis; i++){
       var sg = byDate[String(sub[i].t)];
       if (sg) hits.push({ i: i, sg: sg });
@@ -561,18 +593,25 @@ function drawMiniK(ctx, rows, x0, y0, x1, y1){
       if (sg.position === "aboveBar"){ dotY = Math.max(Y(r.h) - 10, y0 + 8); dir = -1; }
       else if (sg.position === "inBar"){ dotY = (Y(r.h) + Y(r.l)) / 2; dir = 0; }
       else { dotY = Math.min(Y(r.l) + 10, y1 - 14); dir = 1; }
-      ctx.fillStyle = sg.color || "#fbbf24";
-      ctx.strokeStyle = "#0b1220"; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(mx, dotY, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      var lbl = String(sg.raw || sg.note || sg.label || "").slice(0, 3).replace(/[·.。]+$/, "");
+      var lbl = String(sg.raw || sg.note || sg.label || "").slice(0, 7).replace(/[·.。]+$/, "");
       if (lbl){
-        ctx.font = "bold 18px sans-serif"; ctx.textAlign = "center";
+        ctx.font = "bold 17px sans-serif"; ctx.textAlign = "center";
         var tw = ctx.measureText(lbl).width;
         var nextX = (h + 1 < hits.length) ? X(hits[h + 1].i) : Infinity;
-        var ty = dir > 0 ? dotY + 16 : dotY - 10;
         var tx = Math.max(x0 + tw / 2, Math.min(mx, x1 - tw / 2));
-        if (nextX - mx < 26 && h + 1 < hits.length){ /* 信号过密，只画点不画字 */ }
-        else { ctx.fillStyle = sg.color || "#fbbf24"; ctx.fillText(lbl, tx, ty); }
+        if (nextX - mx < step * 0.9 && h + 1 < hits.length){ /* 信号过密，只画点不画字 */ }
+        else {
+          if (h > 0 && mx - lastSigX2 < tw + 12){ flip2 = !flip2; } else { flip2 = false; }
+          var ty = (dir < 0) ? (flip2 ? dotY + 24 : dotY - 16) : (flip2 ? dotY - 16 : dotY + 24);
+          var bx2 = tx - tw / 2 - 4, by2 = ty - 9;
+          ctx.fillStyle = "rgba(8,13,24,.8)";
+          ctx.beginPath();
+          if (ctx.roundRect) ctx.roundRect(bx2, by2, tw + 8, 19, 5); else ctx.rect(bx2, by2, tw + 8, 19);
+          ctx.fill();
+          ctx.fillStyle = sg.color || "#fbbf24";
+          ctx.fillText(lbl, tx, ty);
+        }
+        lastSigX2 = mx;
       }
     }
   }
@@ -609,7 +648,7 @@ function drawMiniMacd(ctx, rows, x0, y0, x1, y1){
   var zero = Y(0);
   ctx.strokeStyle = "rgba(148,163,184,.14)"; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(x0, zero); ctx.lineTo(x1, zero); ctx.stroke();
-  var cw = Math.max(1.2, plotW / vis * 0.6);
+  var cw = Math.max(1.2, plotW / vis * 0.72);
   var firstRed = -1, firstGreen = -1;
   for (i = 0; i < vis; i++){
     var v = hs[i];
