@@ -72,6 +72,7 @@ window.AI24X_BJScreener = (function () {
     setStatus('<span class="spin"></span> 正在扫描' + marketLabel(state.market) + '…（北证约 20~40 秒，沪深京约 30~60 秒）');
   }
   var progTimer = null;
+  var waitDeadline = 0;
   function stopProgress() {
     if (progTimer) { clearInterval(progTimer); progTimer = null; }
     var w = $("bj-progress");
@@ -744,6 +745,7 @@ window.AI24X_BJScreener = (function () {
     var btn = $("btn-bj-refresh");
     if (btn) { btn.disabled = true; btn.textContent = "扫描中…"; }
     statusLoading();
+    waitDeadline = 0;
     if (force) {
       // 异步重扫：先启动后台任务，轮询进度，避免长请求触发 nginx 60s 网关超时（504）
       apiFetch("/api/bj/screener/start?market=" + encodeURIComponent(state.market)).then(function (st) {
@@ -765,21 +767,30 @@ window.AI24X_BJScreener = (function () {
       if (p && p.running === true) { waitScanDone(seq, btn); return; }
       startProgress(state.market, seq);
       apiFetch("/api/bj/screener?market=" + encodeURIComponent(state.market)).then(function (d) {
-        applyScanResult(d, seq, btn);
+        finishLoad(d, seq, btn);
       }).catch(function (e) { loadFail(e, seq, btn); });
     }).catch(function () {
       if (seq !== reqSeq) return;
       startProgress(state.market, seq);
       apiFetch("/api/bj/screener?market=" + encodeURIComponent(state.market)).then(function (d) {
-        applyScanResult(d, seq, btn);
+        finishLoad(d, seq, btn);
       }).catch(function (e) { loadFail(e, seq, btn); });
     });
   }
 
   function waitScanDone(seq, btn) {
     var fill = $("bj-progress-fill"), txt = $("bj-progress-text");
+    if (!waitDeadline) waitDeadline = Date.now() + 12 * 60 * 1000;
     apiFetch("/api/bj/screener/progress?market=" + encodeURIComponent(state.market)).then(function (p) {
       if (seq !== reqSeq) return;
+      if (Date.now() > waitDeadline) {
+        waitDeadline = 0;
+        state.loading = false;
+        stopProgress();
+        if (btn) { btn.disabled = false; btn.textContent = "重新扫描"; }
+        setStatus("扫描耗时较长（上游数据源限流），请稍后刷新查看或重新扫描", true);
+        return;
+      }
       var w = $("bj-progress");
       if (w && p && p.running === true) w.hidden = false;
       if (fill && p) fill.style.width = Math.max(2, Math.min(100, Number(p.pct) || 0)) + "%";
@@ -789,14 +800,32 @@ window.AI24X_BJScreener = (function () {
         return;
       }
       // 扫描完成：重置 loading 后拉最新结果（命中缓存）
+      waitDeadline = 0;
       state.loading = false;
       load(false);
     }).catch(function () {
       if (seq !== reqSeq) return;
+      if (Date.now() > waitDeadline) {
+        waitDeadline = 0;
+        state.loading = false;
+        stopProgress();
+        if (btn) { btn.disabled = false; btn.textContent = "重新扫描"; }
+        setStatus("扫描耗时较长（上游数据源限流），请稍后刷新查看或重新扫描", true);
+        return;
+      }
       progTimer = setTimeout(function () { waitScanDone(seq, btn); }, 2000);
     });
   }
 
+  function finishLoad(d, seq, btn) {
+    if (seq !== reqSeq) return;
+    if (d && d.scanning === true) {
+      // 后端已启动后台扫描（无缓存时绝不长时间同步等待，防 504）：转轮询进度
+      waitScanDone(seq, btn);
+      return;
+    }
+    applyScanResult(d, seq, btn);
+  }
   function applyScanResult(d, seq, btn) {
     if (seq !== reqSeq) return;
     state.loading = false;

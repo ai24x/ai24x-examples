@@ -123,7 +123,7 @@ def set_progress(**kw):
 def get_progress(): return dict(_PROGRESS)
 
 # ---------------- 扫描任务锁 ----------------
-_RUNNING = {"busy": False, "last_start": 0.0, "thread": None}
+_RUNNING = {"busy": False, "last_start": 0.0, "thread": None, "last_done": 0.0, "last_ok": None, "last_error": ""}
 
 def _start_scan(force: bool, is_vip: bool):
     with _LOCK:
@@ -139,9 +139,31 @@ def _start_scan(force: bool, is_vip: bool):
         finally:
             with _LOCK:
                 _RUNNING["busy"] = False
+                _RUNNING["last_done"] = time.time()
+                _RUNNING["last_ok"] = bool(_PROGRESS.get("ok"))
+                _RUNNING["last_error"] = "" if _PROGRESS.get("ok") else str(_PROGRESS.get("step") or "")[:160]
     t = threading.Thread(target=worker, daemon=True)
     _RUNNING["thread"] = t
     t.start()
+
+
+def _busy() -> bool:
+    """扫描忙判断；线程卡死超时（>30 分钟）自动复位，避免前端进度条永远转。"""
+    with _LOCK:
+        if _RUNNING["busy"] and time.time() - _RUNNING["last_start"] > 1800:
+            _RUNNING["busy"] = False
+            _RUNNING["last_error"] = "扫描超时（>30 分钟），已自动复位，请重试"
+        return _RUNNING["busy"]
+
+
+_AUTO_FAIL_COOLDOWN = 600  # 自动生成失败后冷却 10 分钟，避免无限重扫打上游
+def _auto_blocked() -> bool:
+    with _LOCK:
+        if _RUNNING.get("last_ok") is False and _RUNNING.get("last_done"):
+            if time.time() - _RUNNING["last_done"] < _AUTO_FAIL_COOLDOWN:
+                return True
+    return False
+
 
 # ---------------- 慢速 HTTP（防封核心） ----------------
 _EM_COUNT = {"n": 0, "day": ""}
@@ -1181,8 +1203,11 @@ def status(user_id: Optional[int] = Depends(get_optional_user_id)):
         "needs_refresh": needs_refresh,
         "asof": (report or {}).get("asof"),
         "generated_at": (report or {}).get("generated_at"),
-        "running": bool(_RUNNING["busy"]),
+        "running": _busy(),
         "progress": get_progress(),
+        "last_done": _RUNNING.get("last_done") or 0,
+        "last_error": _RUNNING.get("last_error") or "",
+        "auto_blocked": _auto_blocked(),
         "auto_scan_time": cfg().get("auto_scan_time"),
         "auto_scan": bool(cfg().get("auto_scan", True)),
         "history": list_archive(),
@@ -1191,7 +1216,7 @@ def status(user_id: Optional[int] = Depends(get_optional_user_id)):
 
 @router.get("/api/report/progress")
 def progress():
-    return {"ok": True, "running": bool(_RUNNING["busy"]), "progress": get_progress()}
+    return {"ok": True, "running": _busy(), "progress": get_progress()}
 
 @router.post("/api/report/scan")
 def scan(force: int = 0, user_id: int = Depends(get_current_user_id)):
@@ -1202,6 +1227,8 @@ def scan(force: int = 0, user_id: int = Depends(get_current_user_id)):
         hit = cache_load("report")
         if hit and hit.get("today8") == today8() and not report_stale(hit):
             return {"ok": True, "msg": "今日报告已生成，无需重复扫描（如需重扫请用强制模式）", "cached": True}
+    if not force and _auto_blocked():
+        return {"ok": False, "msg": "上次自动生成失败（%s），为避免重复占用上游预算，请 %d 分钟后重试" % (_RUNNING.get("last_error") or "未知错误", _AUTO_FAIL_COOLDOWN // 60)}
     if is_weekend() and not force:
         return {"ok": False, "msg": "今天是周末，非交易日，不自动扫描（可 force=1 强制）"}
     _start_scan(bool(force), is_vip)

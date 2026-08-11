@@ -342,11 +342,33 @@
     }).join('');
   }
 
+  var pollTm = null, pollDeadline = 0;
+  function pollScanDone(afterFn){
+    if (pollTm) clearInterval(pollTm);
+    if (!pollDeadline) pollDeadline = Date.now() + 12 * 60 * 1000;
+    pollTm = setInterval(function(){
+      api('/api/bj/screener/progress?market=' + encodeURIComponent(state.market)).then(function(p){
+        var pg = p.progress || {};
+        var m = $('meta');
+        if (m) m.innerHTML = '扫描中：' + esc(pg.step || '…') + '（' + num(pg.pct || 0, 0) + '%）';
+        if (!p.running || Date.now() > pollDeadline) {
+          clearInterval(pollTm); pollTm = null; pollDeadline = 0;
+          if (afterFn) afterFn();
+        }
+      }).catch(function(){});
+    }, 2000);
+  }
+
   function load(showLoading){
     var url = '/api/bj/screener?market=' + encodeURIComponent(state.market);
     if (state.date) url += '&date=' + encodeURIComponent(state.date);
     if (showLoading) $('list').innerHTML = '<div class="empty">加载中…</div>';
     api(url).then(function(d){
+      if (d && d.scanning === true) {
+        $('list').innerHTML = '<div class="empty"><span class="spin"></span> 正在生成今日掘金数据（约 1~2 分钟），请稍候…</div>';
+        pollScanDone(function(){ load(true); });
+        return;
+      }
       if (!d || d.ok === false || (d && d.detail)) {
         var msg = (d && (d.message || d.msg || d.detail)) || '加载失败，请稍后重试';
         if (/token|login|登录|授权|缺失|无效/i.test(String(msg))) {
@@ -372,17 +394,7 @@
     toast('已启动扫描，约 1~2 分钟…', true);
     api('/api/bj/screener/start?market=' + encodeURIComponent(state.market) + '&force=1').then(function(st){
       if (!st || st.ok !== true) { toast((st && st.message) || '启动失败', false); return; }
-      var tm = setInterval(function(){
-        api('/api/bj/screener/progress?market=' + encodeURIComponent(state.market)).then(function(p){
-          var pg = p.progress || {};
-          $('meta').innerHTML = '扫描中：' + esc(pg.step || '…') + '（' + num(pg.pct || 0, 0) + '%）';
-          if (!p.running) {
-            clearInterval(tm);
-            load(true);
-            toast('扫描完成', true);
-          }
-        }).catch(function(){});
-      }, 2000);
+      pollScanDone(function(){ load(true); toast('扫描完成', true); });
     }).catch(function(e){ toast('启动失败：' + String(e).slice(0, 60), false); });
   }
 

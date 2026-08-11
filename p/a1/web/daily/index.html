@@ -171,8 +171,12 @@ try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("daily"); } catch (e) {
       var guide = vipGuide(s);
       if (s.has_today && !s.running) {
         if (s.needs_refresh && s.vip) {
-          showNotice('检测到旧数据（截至 ' + s.asof + '），收盘后自动刷新为最新数据…');
-          startScan(0);
+          if (s.auto_blocked) {
+            showNotice('上次自动生成失败（' + (s.last_error || '未知错误') + '），为避免重复占用上游预算，请约 10 分钟后手动重试。');
+          } else {
+            showNotice('检测到旧数据（截至 ' + s.asof + '），收盘后自动刷新为最新数据…');
+            startScan(0);
+          }
         } else {
           if (guide) showNotice(guide); else hideNotice();
           loadToday();
@@ -207,8 +211,13 @@ try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("daily"); } catch (e) {
     var now = new Date();
     var hm = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
     if (hm >= (s.auto_scan_time || '15:03')) {
-      showNotice('收盘后首次打开，自动开始生成当日报告（约 1~2 分钟，低频防封限流）。可先看往期报告。');
-      startScan(0);
+      if (s.auto_blocked) {
+        showNotice('上次自动生成失败（' + (s.last_error || '未知错误') + '），为避免重复占用上游预算，请约 10 分钟后手动重试。');
+        loadLastReport();
+      } else {
+        showNotice('收盘后首次打开，自动开始生成当日报告（约 1~2 分钟，低频防封限流）。可先看往期报告。');
+        startScan(0);
+      }
     } else {
       showNotice('今日尚未收盘（当前 ' + hm + '）。当前展示最近一期报告；<b>今日 ' + (s.auto_scan_time || '15:03') + ' 后打开本页将自动生成当日报告</b>，无需手动点击。' + (guide ? '<br>' + guide : ''));
       loadLastReport();
@@ -231,9 +240,12 @@ try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("daily"); } catch (e) {
     }).catch(function (e) { showNotice('启动失败：' + e); });
   }
 
+  var pollTicks = 0;
   function startPoll() {
     if (pollTimer) clearInterval(pollTimer);
+    pollTicks = 0;
     pollTimer = setInterval(function () {
+      pollTicks++;
       api('/api/report/progress').then(function (j) {
         var p = j.progress || {};
         var pct = p.pct || 0;
@@ -251,11 +263,17 @@ try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("daily"); } catch (e) {
             showNotice('生成失败：' + (p.step || '未知错误'));
           }
           setStatus();
+        } else if (pollTicks > 480) {
+          // 总轮询约 12 分钟仍未结束：停止轮询，避免进度条无限刷新（上游限流时稍后刷新查看）
+          clearInterval(pollTimer); pollTimer = null;
+          el('btn-run').disabled = false;
+          el('btn-force').disabled = false;
+          hideProg();
+          showNotice('生成时间较长（上游数据源限流），请稍后刷新查看结果；也可点「强制重扫」重新生成。');
         }
       }).catch(function () {});
     }, 1500);
   }
-
   function hideProg() { var pg = el('prog'); if (pg) pg.style.display = 'none'; var pt = el('progtext'); if (pt) { pt.textContent = ''; pt.style.display = 'none'; } }
 
   function loadToday() {

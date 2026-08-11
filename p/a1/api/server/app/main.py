@@ -3065,6 +3065,54 @@ async def api_quote_snapshot(
     return {"ok": True, **snap}
 
 
+async def _bj_ensure_scan_or_fast(
+    user_id: int, market: str, force: bool = False,
+    cfg_override: dict | None = None, boards_only: bool = False,
+) -> dict | None:
+    """掘金防 504：能秒回（缓存/归档）返回 None 走正常同步路径；否则后台启动扫描并返回 scanning 提示。
+    绝不在 HTTP 请求内同步等待完整扫描（生产 nginx 60s 网关超时会 504）。
+    """
+    from .bj_screener import (
+        scan_progress, run_scan_dedup, mark_scan_failed,
+        _RUNNING_SCAN, _SCAN_CACHE, _BOARDS_CACHE,
+        _today_off_market, _market_closed, _latest_history,
+    )
+    p = scan_progress(market)
+    if p.get("running") or (_RUNNING_SCAN.get(market) is not None and not _RUNNING_SCAN[market].done()):
+        return {"ok": True, "scanning": True, "msg": "今日掘金数据正在生成中，请稍候…"}
+    today8 = time.strftime("%Y%m%d", time.localtime())
+    full_key = f"{market}-scan:{today8}"
+    boards_key = f"{market}-boards:{today8}"
+    if not force:
+        hit = _SCAN_CACHE.get(full_key)
+        if hit and time.time() - hit[0] < 6 * 3600:
+            return None
+        if boards_only:
+            bh = _BOARDS_CACHE.get(boards_key)
+            if bh and time.time() - bh[0] < 6 * 3600:
+                return None
+        # 非交易日或盘中未收盘：run_scan 会秒回最近归档，不触发长扫
+        if _today_off_market() or not _market_closed():
+            if _latest_history(market):
+                return None
+
+    async def _bg() -> None:
+        try:
+            await run_scan_dedup(int(user_id), force=True, cfg_override=cfg_override,
+                                 boards_only=boards_only, market=market)
+        except Exception as e:
+            try:
+                mark_scan_failed(market, f"\u626b\u63cf\u5931\u8d25: {type(e).__name__}: {str(e)[:120]}")
+            except Exception:
+                pass
+
+    try:
+        asyncio.create_task(_bg())
+    except Exception:
+        pass
+    return {"ok": True, "scanning": True, "msg": "正在生成今日掘金数据（约1-2分钟），请稍候…"}
+
+
 @app.get("/api/bj/screener")
 async def api_bj_screener(
     request: Request,
@@ -3100,6 +3148,9 @@ async def api_bj_screener(
     from .bj_screener import run_scan_dedup
     if not is_vip:
         # 非 VIP：开放“异动板块”视图（复用当日缓存或轻量扫描），个股分析保持 VIP 专属
+        early = await _bj_ensure_scan_or_fast(int(user_id), market, force=False, boards_only=True)
+        if early is not None:
+            return early
         try:
             out = await run_scan_dedup(int(user_id), force=False, cfg_override=None, boards_only=True, market=market)
         except HTTPException:
@@ -3135,7 +3186,10 @@ async def api_bj_screener(
     if top_n > 0:
         cfg_override["topN"] = int(max(3, min(5, top_n)))
     if cap > 0:
-        cfg_override["cap"] = int(max(30, min(120, cap)))
+        cfg_override["cap"] = int(max(30, min(120, cap)))    early = await _bj_ensure_scan_or_fast(int(user_id), market, force=bool(force), cfg_override=cfg_override or None)
+    if early is not None:
+        return early
+
     try:
         return await run_scan_dedup(int(user_id), force=bool(force), cfg_override=cfg_override or None, market=market)
     except HTTPException:

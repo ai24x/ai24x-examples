@@ -175,8 +175,12 @@
       var g = guide(s);
       if (s.has_today && !s.running) {
         if (s.needs_refresh && s.vip) {
-          showNotice('检测到旧数据（截至 ' + esc(s.asof) + '），收盘后自动刷新为最新数据…');
-          startScan(0);
+          if (s.auto_blocked) {
+            showNotice('上次自动生成失败（' + esc(s.last_error || '未知错误') + '），为避免重复占用上游预算，请约 10 分钟后手动重试。');
+          } else {
+            showNotice('检测到旧数据（截至 ' + esc(s.asof) + '），收盘后自动刷新为最新数据…');
+            startScan(0);
+          }
         } else {
           if (g) showNotice(g); else hideNotice();
           loadToday();
@@ -189,8 +193,13 @@
         var now = new Date();
         var hm = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
         if (hm >= (s.auto_scan_time || '15:03')) {
-          showNotice('收盘后首次打开，自动开始生成当日报告（约 1~2 分钟）。可先看往期报告。');
-          startScan(0);
+          if (s.auto_blocked) {
+            showNotice('上次自动生成失败（' + esc(s.last_error || '未知错误') + '），为避免重复占用上游预算，请约 10 分钟后手动重试。');
+            loadLast(s.history || []);
+          } else {
+            showNotice('收盘后首次打开，自动开始生成当日报告（约 1~2 分钟）。可先看往期报告。');
+            startScan(0);
+          }
         } else {
           showNotice('今日尚未收盘（当前 ' + hm + '），展示最近一期报告；' + (s.auto_scan_time || '15:03') + ' 后打开将自动生成。' + (g ? '<br>' + g : ''));
           loadLast(s.history || []);
@@ -214,9 +223,12 @@
     }).catch(function(e){ showNotice('启动失败：' + e); });
   }
 
+  var pollTicks = 0;
   function startPoll(){
     if (pollTimer) clearInterval(pollTimer);
+    pollTicks = 0;
     pollTimer = setInterval(function(){
+      pollTicks++;
       api('/api/report/progress').then(function(j){
         var p = j.progress || {};
         $('progbar').style.width = (p.pct || 0) + '%';
@@ -228,11 +240,16 @@
           if (p.ok) { hideNotice(); loadToday(); }
           else showNotice('生成失败：' + (p.step || '未知错误'));
           setStatus();
+        } else if (pollTicks > 480) {
+          // 总轮询约 12 分钟仍未结束：停止轮询，避免进度条无限刷新（上游限流时稍后刷新查看）
+          clearInterval(pollTimer); pollTimer = null;
+          $('btn-run').disabled = false; $('btn-force').disabled = false;
+          hideProg();
+          showNotice('生成时间较长（上游数据源限流），请稍后刷新查看结果；也可点「强制重扫」重新生成。');
         }
       }).catch(function(){});
     }, 1500);
   }
-
   function hideProg(){ var pg = $('prog'); if (pg) pg.style.display = 'none'; var pt = $('progtext'); if (pt) { pt.textContent = ''; pt.style.display = 'none'; } }
 
   function loadToday(){
