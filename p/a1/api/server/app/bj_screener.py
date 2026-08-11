@@ -24,7 +24,7 @@ from typing import Any
 
 import httpx
 
-from .providers import fetch_em_suggest, fetch_tx_kline, market_data_status
+from .providers import _RateGate, fetch_em_suggest, fetch_tx_kline, market_data_status
 from .ths_fuyao import fetch_special as ths_fetch_special
 
 EM_HOSTS = ["https://push2delay.eastmoney.com", "https://push2.eastmoney.com"]
@@ -35,6 +35,27 @@ _UA = {
         "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
     )
 }
+
+# 东财 push2delay 共享 keep-alive 客户端：避免每次请求新建 TLS 连接（扫 20+ 板块时省时省资源）
+_EM_CLIST_CLIENT: httpx.AsyncClient | None = None
+_EM_CLIST_CLIENT_LOCK = asyncio.Lock()
+# 东财 clist 全局节流：并发拉板块成分时仍保持温和访问，防 IP 级限流
+_EM_CLIST_GATE = _RateGate(min_interval_s=0.08, max_per_minute=150)
+
+async def _get_em_clist_client() -> httpx.AsyncClient:
+    global _EM_CLIST_CLIENT
+    if _EM_CLIST_CLIENT is not None:
+        return _EM_CLIST_CLIENT
+    async with _EM_CLIST_CLIENT_LOCK:
+        if _EM_CLIST_CLIENT is None:
+            _EM_CLIST_CLIENT = httpx.AsyncClient(
+                timeout=httpx.Timeout(12.0, connect=6.0),
+                headers=dict(_UA),
+                limits=httpx.Limits(max_connections=12, max_keepalive_connections=12),
+                follow_redirects=True,
+                verify=False,
+            )
+    return _EM_CLIST_CLIENT
 
 DEFAULT_CFG: dict[str, Any] = {
     "mcapMin": 5.0,      # 市值下限（亿）
@@ -249,6 +270,29 @@ def _kline_cache_load(date8: str) -> tuple[dict[str, Any], dict[str, float]]:
     return obj, {}
 
 
+def _close_epoch_today() -> float:
+    """今日 15:03（收盘）epoch；解析失败返回 0。"""
+    try:
+        lt = time.localtime()
+        return time.mktime((lt.tm_year, lt.tm_mon, lt.tm_mday, 15, 3, 0, 0, 0, -1))
+    except Exception:
+        return 0.0
+
+
+def _kline_entry_valid(date8: str, rows: list[list[Any]] | None, ts: float) -> bool:
+    """K线缓存有效期：盘中 30 分钟 TTL；收盘后仅“收盘后写入且已含今日K线”的缓存视为最终数据，整晚可复用。"""
+    if not isinstance(rows, list) or not rows:
+        return False
+    if _market_closed():
+        if ts < _close_epoch_today():
+            return False
+        try:
+            return str(rows[-1][0])[:10].replace("-", "") == date8
+        except Exception:
+            return False
+    return (time.time() - ts) < _KLINE_TTL
+
+
 def _kline_cache_get(date8: str, code: str) -> list[list[Any]] | None:
     global _KLINE_DAILY
     if _KLINE_DAILY.get("date") != date8:
@@ -256,7 +300,7 @@ def _kline_cache_get(date8: str, code: str) -> list[list[Any]] | None:
         _KLINE_DAILY = {"date": date8, "data": data, "ts": ts}
     rows = _KLINE_DAILY["data"].get(code)
     ts = float(_KLINE_DAILY.get("ts", {}).get(code) or 0)
-    if isinstance(rows, list) and rows and (time.time() - ts) < _KLINE_TTL:
+    if _kline_entry_valid(date8, rows, ts):
         return rows
     return None
 
@@ -672,15 +716,16 @@ def _num(v: Any, d: float = 0.0) -> float:
 
 async def _em_get_json(path: str, params: dict[str, Any]) -> dict[str, Any] | None:
     last_err: Exception | None = None
+    await _EM_CLIST_GATE.acquire()
+    cli = await _get_em_clist_client()
     for host in EM_HOSTS:
         try:
-            async with httpx.AsyncClient(timeout=12.0, headers=_UA) as cli:
-                r = await cli.get(host + path, params=params)
-                if r.status_code != 200:
-                    continue
-                j = r.json()
-                if isinstance(j, dict):
-                    return j
+            r = await cli.get(host + path, params=params)
+            if r.status_code != 200:
+                continue
+            j = r.json()
+            if isinstance(j, dict):
+                return j
         except Exception as e:  # noqa: BLE001
             last_err = e
             continue
@@ -690,28 +735,34 @@ async def _em_get_json(path: str, params: dict[str, Any]) -> dict[str, Any] | No
 
 
 async def fetch_bj_list() -> dict[str, Any]:
-    """东财北证全市场列表（fid=f6 按成交额排序；单页最多 100 行，自动翻页取全量）。"""
+    """东财北证全市场列表（fid=f6 按成交额排序；单页最多 100 行，并发翻页取全量）。"""
+    sem = asyncio.Semaphore(5)
+
+    async def _page(pn: int) -> dict[str, Any]:
+        async with sem:
+            params = {
+                "pn": pn, "pz": 100, "po": 1, "np": 1, "fltt": 2, "invt": 2,
+                "fid": "f6", "fs": "m:0+t:81+s:2048", "fields": EM_LIST_FIELDS,
+            }
+            try:
+                return await _em_get_json("/api/qt/clist/get", params) or {}
+            except Exception:
+                return {}
+
+    pages = await asyncio.gather(*[_page(pn) for pn in range(1, 8)], return_exceptions=True)
     total = 0
     rows: list[dict[str, Any]] = []
-    for pn in range(1, 8):
-        params = {
-            "pn": pn, "pz": 100, "po": 1, "np": 1, "fltt": 2, "invt": 2,
-            "fid": "f6", "fs": "m:0+t:81+s:2048", "fields": EM_LIST_FIELDS,
-        }
-        try:
-            j = await _em_get_json("/api/qt/clist/get", params) or {}
-        except Exception:
-            break
+    for j in pages:
+        if not isinstance(j, dict):
+            continue
         data = j.get("data") or {}
         if not total:
             total = int(_num(data.get("total"), 0))
         diff = data.get("diff") or []
-        if not isinstance(diff, list) or not diff:
-            break
+        if not isinstance(diff, list):
+            continue
         rows.extend(diff)
         if total and len(rows) >= total:
-            break
-        if len(diff) < 100:
             break
     return {"total": total, "rows": rows[:total] if total else rows}
 
@@ -911,62 +962,62 @@ async def fetch_board_members(
                 got += 1
         return got
 
-    for b in boards:
-        bname = str(b.get("name") or "").strip()
-        bk = str(b.get("secid") or "").replace("90.", "").strip()
-        if not bk or not bk.startswith("BK"):
-            continue
-        board_rows: dict[str, dict[str, Any]] = {}
-        # 路1：成交额头部（1~2 页，至 per 只）
-        got = 0
-        for pn in (1, 2):
-            params = {
-                "pn": pn, "pz": 200, "po": 1, "np": 1, "fltt": 2, "invt": 2,
-                "fid": "f6", "fs": "b:" + bk,
-                "fields": "f12,f14,f2,f3,f6,f8,f9,f10,f20,f21,f23,f62,f100,f164",
-            }
-            try:
-                j = await _em_get_json("/api/qt/clist/get", params) or {}
-            except Exception:
-                break
-            data = j.get("data") or {}
-            diff = data.get("diff") or []
-            if not isinstance(diff, list) or not diff:
-                break
-            got += _add_rows(diff, board_rows)
-            total = int(_num(data.get("total")))
-            if len(diff) < 200 or got >= per or len(rows) >= cap:
-                break
-            await asyncio.sleep(0.12)
-        # 路2：当日涨幅头部（1 页，至 per_rise 只）——捕捉底部刚异动、成交额尚未放大者
-        if len(rows) < cap:
-            try:
-                await asyncio.sleep(0.12)
-                j2 = await _em_get_json("/api/qt/clist/get", {
-                    "pn": 1, "pz": 200, "po": 1, "np": 1, "fltt": 2, "invt": 2,
-                    "fid": "f3", "fs": "b:" + bk,
+    sem = asyncio.Semaphore(5)
+
+    async def _one_board(b: dict[str, Any]) -> None:
+        async with sem:
+            bname = str(b.get("name") or "").strip()
+            bk = str(b.get("secid") or "").replace("90.", "").strip()
+            if not bk or not bk.startswith("BK"):
+                return
+            board_rows: dict[str, dict[str, Any]] = {}
+            # 路1：成交额头部（1~2 页，至 per 只）
+            got = 0
+            for pn in (1, 2):
+                params = {
+                    "pn": pn, "pz": 200, "po": 1, "np": 1, "fltt": 2, "invt": 2,
+                    "fid": "f6", "fs": "b:" + bk,
                     "fields": "f12,f14,f2,f3,f6,f8,f9,f10,f20,f21,f23,f62,f100,f164",
-                }) or {}
-            except Exception:
-                j2 = {}
-            diff2 = ((j2.get("data") or {}).get("diff") or [])
-            if isinstance(diff2, list) and diff2:
-                _add_rows(diff2, board_rows)
-        if bname and board_rows:
-            top = sorted(board_rows.values(), key=lambda x: -_num(x.get("f6")))[:3]
-            leaders[bname] = [{
-                "code": str(r.get("f12") or ""),
-                "name": str(r.get("f14") or ""),
-                "pct": _num(r.get("f3")),
-                "amount": _num(r.get("f6")),
-                "mcap": _num(r.get("f20")),
-                "turnover": _num(r.get("f8")),
-                "fund": _num(r.get("f62")),
-                "fund5": _num(r.get("f164")),
-                "_row": r,
-            } for r in top]
-        if len(rows) >= cap:
-            break
+                }
+                try:
+                    j = await _em_get_json("/api/qt/clist/get", params) or {}
+                except Exception:
+                    break
+                data = j.get("data") or {}
+                diff = data.get("diff") or []
+                if not isinstance(diff, list) or not diff:
+                    break
+                got += _add_rows(diff, board_rows)
+                total = int(_num(data.get("total")))
+                if len(diff) < 200 or got >= per or len(rows) >= cap:
+                    break
+            # 路2：当日涨幅头部（1 页，至 per_rise 只）——捕捉底部刚异动、成交额尚未放大者
+            if len(rows) < cap:
+                try:
+                    j2 = await _em_get_json("/api/qt/clist/get", {
+                        "pn": 1, "pz": 200, "po": 1, "np": 1, "fltt": 2, "invt": 2,
+                        "fid": "f3", "fs": "b:" + bk,
+                        "fields": "f12,f14,f2,f3,f6,f8,f9,f10,f20,f21,f23,f62,f100,f164",
+                    }) or {}
+                except Exception:
+                    j2 = {}
+                diff2 = ((j2.get("data") or {}).get("diff") or [])
+                if isinstance(diff2, list) and diff2:
+                    _add_rows(diff2, board_rows)
+            if bname and board_rows:
+                top = sorted(board_rows.values(), key=lambda x: -_num(x.get("f6")))[:3]
+                leaders[bname] = [{
+                    "code": str(r.get("f12") or ""),
+                    "name": str(r.get("f14") or ""),
+                    "pct": _num(r.get("f3")),
+                    "amount": _num(r.get("f6")),
+                    "mcap": _num(r.get("f20")),
+                    "turnover": _num(r.get("f8")),
+                    "fund": _num(r.get("f62")),
+                    "fund5": _num(r.get("f164")),
+                    "_row": r,
+                } for r in top]
+    await asyncio.gather(*[_one_board(b) for b in boards], return_exceptions=True)
     return list(rows.values())[:cap], leaders
 
 
@@ -2894,10 +2945,10 @@ async def run_scan(
     tasks = []
     for c in cands:
         tasks.append(asyncio.create_task(work(c)))
-        await asyncio.sleep(0.10)
+        await asyncio.sleep(0.05)
     for c in leader_cands:
         tasks.append(asyncio.create_task(work(c, leader_cfg)))
-        await asyncio.sleep(0.10)
+        await asyncio.sleep(0.05)
     if tasks:
         await asyncio.gather(*tasks, return_exceptions=True)
 

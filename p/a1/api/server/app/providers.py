@@ -75,6 +75,28 @@ async def _get_em_his_client() -> httpx.AsyncClient:
             )
     return _EM_HIS_CLIENT
 
+# 腾讯K线共享 keep-alive 客户端：扫描/复盘批量拉K线时复用，避免每次新建 TLS 连接
+_TX_SHARED_CLIENT: httpx.AsyncClient | None = None
+_TX_SHARED_CLIENT_LOCK = asyncio.Lock()
+
+async def _get_tx_shared_client() -> httpx.AsyncClient:
+    global _TX_SHARED_CLIENT
+    if _TX_SHARED_CLIENT is not None:
+        return _TX_SHARED_CLIENT
+    async with _TX_SHARED_CLIENT_LOCK:
+        if _TX_SHARED_CLIENT is None:
+            _TX_SHARED_CLIENT = httpx.AsyncClient(
+                timeout=httpx.Timeout(12.0, connect=6.0),
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Referer": "https://gu.qq.com/",
+                },
+                limits=httpx.Limits(max_connections=12, max_keepalive_connections=12),
+                follow_redirects=True,
+                verify=False,
+            )
+    return _TX_SHARED_CLIENT
+
 # 板块K线长缓存：仅成功写入，TTL 30 分钟；失败时回退旧缓存，避免前端"加载失败"。
 _PLATE_CACHE: dict[str, Tuple[float, Dict[str, Any]]] = {}
 _PLATE_CACHE_TTL: float = 1800.0
@@ -2937,11 +2959,10 @@ async def _fetch_tx_daily_rows(sym: str, count: int = 130, timeout: float = 8.0)
     await _TX_KLINE_GATE.acquire()
     url = "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get"
     params = {"param": f"{sym},day,,,{int(count)},qfq"}
-    headers = {"User-Agent": "Mozilla/5.0", "Referer": "https://gu.qq.com/"}
-    async with httpx.AsyncClient(timeout=timeout, headers=headers, verify=False) as client:
-        r = await client.get(url, params=params)
-        r.raise_for_status()
-        j = r.json()
+    client = await _get_tx_shared_client()
+    r = await client.get(url, params=params, timeout=timeout)
+    r.raise_for_status()
+    j = r.json()
     data = j.get("data") or {}
     pack = data.get(sym) or {}
     rows = pack.get("qfqday") or pack.get("day") or []
@@ -3443,33 +3464,32 @@ async def _fetch_tx_kline_core(
         params = {"param": param, "_var": "1"}
         try:
             t2 = time.perf_counter()
-            async with httpx.AsyncClient(timeout=timeout, headers={"User-Agent": "ai24x/1.0"}) as client:
-                r = await client.get(TX_FQ, params=params)
-                r.raise_for_status()
-                txt = r.text
-                j = json.loads(_strip_js_wrapper(txt))
-                _tx_on_ok()
-                if _tencent_payload_has_rows(j):
-                    try:
-                        j["_meta"] = {
-                            "source": "tencent:fqkline",
-                            "variant": str(variant),
-                            "priority": str(priority_override or _effective_priority() or ""),
-                            "ts": int(time.time()),
-                        }
-                    except Exception:
-                        pass
-                    _route_hit("tencent:fqkline")
-                    _cache_put(variant, secid, period, count, j)
-                    _src_ok("tencent.fqkline", (time.perf_counter() - t2) * 1000.0)
-                    return j
-                _src_fail("tencent.fqkline", (time.perf_counter() - t2) * 1000.0, "empty_payload")
-                raise ValueError("empty tencent payload")
+            client = await _get_tx_shared_client()
+            r = await client.get(TX_FQ, params=params, timeout=timeout)
+            r.raise_for_status()
+            txt = r.text
+            j = json.loads(_strip_js_wrapper(txt))
+            _tx_on_ok()
+            if _tencent_payload_has_rows(j):
+                try:
+                    j["_meta"] = {
+                        "source": "tencent:fqkline",
+                        "variant": str(variant),
+                        "priority": str(priority_override or _effective_priority() or ""),
+                        "ts": int(time.time()),
+                    }
+                except Exception:
+                    pass
+                _route_hit("tencent:fqkline")
+                _cache_put(variant, secid, period, count, j)
+                _src_ok("tencent.fqkline", (time.perf_counter() - t2) * 1000.0)
+                return j
+            _src_fail("tencent.fqkline", (time.perf_counter() - t2) * 1000.0, "empty_payload")
+            raise ValueError("empty tencent payload")
         except Exception:
             _src_fail("tencent.fqkline", 0.0, "exception")
             _tx_on_fail()
             return None
-
     last_err: Dict[str, Any] | None = None
     is_ths = str(secid).lower().startswith(("ths:", "ths."))
     best_stale: Dict[str, Any] | None = None  # fallback when all sources are stale

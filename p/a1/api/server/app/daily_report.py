@@ -90,6 +90,15 @@ def now_hhmm():
     return datetime.now().strftime("%H:%M")
 def _after_close():
     return now_hhmm() >= str(cfg().get("auto_scan_time") or "15:03")
+
+def _today_close_epoch() -> float:
+    """今日收盘时刻（auto_scan_time）的 epoch；解析失败返回 0。"""
+    try:
+        t = str(cfg().get("auto_scan_time") or "15:03").strip()
+        hh, mm = t.split(":")
+        return datetime.now().replace(hour=int(hh), minute=int(mm), second=0, microsecond=0).timestamp()
+    except Exception:
+        return 0.0
 def report_stale(report):
     """今日已生成但数据截至日早于今日，且已过收盘时间 → 陈旧，需重扫。"""
     if not report or report.get("today8") != today8():
@@ -97,7 +106,14 @@ def report_stale(report):
     if is_weekend():
         return False
     if _after_close():
-        return (report.get("asof") or "") != today()
+        if (report.get("asof") or "") != today():
+            return True
+        ga = str(report.get("generated_at") or "")
+        try:
+            gt = datetime.strptime(ga, "%Y-%m-%d %H:%M:%S").timestamp()
+        except Exception:
+            gt = 0.0
+        return gt < _today_close_epoch()
     return False
 def data_cache_stale(idx):
     """当日数据缓存是否已过期（收盘后要求上证 last_date == 今天）。"""
@@ -109,7 +125,10 @@ def data_cache_stale(idx):
     if is_weekend():
         return False
     if _after_close():
-        return last != today()
+        if last != today():
+            return True
+        ts = float(idx.get("_ts") or 0)
+        return ts < _today_close_epoch()
     return False
 def is_trading_day():
     return (not is_weekend()) and (today() not in HOLIDAYS)
@@ -374,11 +393,17 @@ async def _fetch_sector_scores(is_vip):
 async def _fetch_internal(is_vip, idx_needed=True, sc_needed=True):
     result = {}
     if idx_needed:
-        set_progress(step="内部直算：8 指数信号（腾讯K线，不扣查次）")
-        result["indexes"] = await _fetch_index_signals(is_vip)
+        try:
+            set_progress(step="内部直算：8 指数信号（腾讯K线，不扣查次）")
+            result["indexes"] = await _fetch_index_signals(is_vip)
+        except Exception:
+            result["indexes"] = None
     if sc_needed:
-        set_progress(step="内部直算：42 只成分股评分（腾讯K线，不扣查次）")
-        result["sector_scores"] = await _fetch_sector_scores(is_vip)
+        try:
+            set_progress(step="内部直算：42 只成分股评分（腾讯K线，不扣查次）")
+            result["sector_scores"] = await _fetch_sector_scores(is_vip)
+        except Exception:
+            result["sector_scores"] = None
     return result
 
 # ---------------- breadth（涨跌家数 + 涨停/跌停池 + 两市主力净流入，共 4 次低频请求） ----------------
@@ -956,21 +981,31 @@ def run_daily(force=False, is_vip=True):
         archive(_data, d8)
         set_progress(phase="done", pct=100, step="完成（缓存数据，耗时 %.1f 分钟）" % ((time.time() - t0) / 60), finished=datetime.now().strftime("%H:%M:%S"), ok=True)
         return _data
-    plates = cache_load("plates")
-    if not plates or force:
-        set_progress(step="抓取板块资金流(东财 4 组 + 同花顺 1 次，低频)")
-        plates = fetch_plates()
-        time.sleep(2)
-        ths = fetch_ths_industry()
-        plates["ths_industry"] = ths
-        cache_save("plates", plates)
     idx = cache_load("indexes")
     sc = cache_load("sector_scores")
-    if (not idx or force) or (not sc or force):
+    stale = data_cache_stale(idx)   # 收盘后昨日/盘中缓存 → 需重拉当日最终数据（修复主线错版）
+    scan_warn = ""
+    plates = cache_load("plates")
+    if not plates or force or stale:
+        set_progress(step="抓取板块资金流(东财 4 组 + 同花顺 1 次，低频)")
+        try:
+            plates = fetch_plates()
+            time.sleep(2)
+            ths = fetch_ths_industry()
+            plates["ths_industry"] = ths
+            cache_save("plates", plates)
+        except Exception as e:
+            plates = cache_load("plates") or {}
+            scan_warn = "板块资金流重拉失败(%s)，沿用旧缓存" % str(e)[:80]
+    if (not idx or force or stale) or (not sc or force or stale):
         set_progress(step="内部直算：指数信号 + 成分股评分（腾讯K线，不扣查次）")
-        got = asyncio.run(_fetch_internal(is_vip, idx_needed=(not idx or force), sc_needed=(not sc or force)))
+        try:
+            got = asyncio.run(_fetch_internal(is_vip, idx_needed=(not idx or force or stale), sc_needed=(not sc or force or stale)))
+        except Exception as e:
+            got = {}
+            scan_warn = "指数/评分重拉失败(%s)，沿用旧缓存" % str(e)[:80]
         if got.get("indexes"):
-            idx = got["indexes"]; cache_save("indexes", idx)
+            idx = got["indexes"]; idx["_ts"] = time.time(); cache_save("indexes", idx)
         if got.get("sector_scores"):
             sc = got["sector_scores"]; cache_save("sector_scores", sc)
     try:
@@ -987,7 +1022,7 @@ def run_daily(force=False, is_vip=True):
         ths_sentiment = cache_load("ths_sentiment") or {}
     data = {"today8": d8, "asof": asof, "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "indexes": idx, "plates": plates, "sector_scores": sc, "breadth": breadth,
-            "ths_sentiment": ths_sentiment}
+            "ths_sentiment": ths_sentiment, "warn": scan_warn or ""}
     data["prev_mainlines"] = _prev_mainlines()
     data["md"] = build_md(data)
     data["html"] = md_to_html(data["md"])
