@@ -153,13 +153,13 @@
     t: t,
     apply: apply,
     LANGS: [
-      { code: "zh", label: "中文" },
       { code: "en", label: "English" },
-      { code: "ja", label: "日本語" },
-      { code: "ko", label: "한국어" },
       { code: "de", label: "Deutsch" },
       { code: "fr", label: "Français" },
       { code: "es", label: "Español" },
+      { code: "zh", label: "中文" },
+      { code: "ko", label: "한국어" },
+      { code: "ja", label: "日本語" },
     ],
   };
 })(typeof window !== "undefined" ? window : this);
