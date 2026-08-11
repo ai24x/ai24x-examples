@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<link rel="icon" href="data:," />
+<meta name="robots" content="noindex,nofollow" />
+<title>反馈 · AI行情官｜手机版</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{background:#0b1220;color:#e6edf7;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;font-size:14px;padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+  a{color:inherit;text-decoration:none}
+  .topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:8px;padding:8px 12px;background:#101a2c;border-bottom:1px solid #22314d}
+  .topbar .home{font-size:13px;color:#8ab8ff;font-weight:700;white-space:nowrap}
+  .topbar .ttl{font-size:16px;font-weight:800;flex:1}
+  .topbar .ttl b{color:#fbbf24}
+  .topbar .desktop{font-size:12px;color:#fbbf24;border:1px solid rgba(251,191,36,.35);border-radius:999px;padding:3px 9px;background:rgba(251,191,36,.08);white-space:nowrap}
+  .card{background:#101a2c;border:1px solid #22314d;border-radius:14px;margin:10px;padding:14px}
+  h1{font-size:18px;font-weight:800;margin-bottom:4px}
+  .sub{font-size:11.5px;color:#8aa0bf;line-height:1.7;margin:6px 0 12px}
+  .field{margin-bottom:10px}
+  .field label{display:block;font-size:12px;color:#8aa0bf;margin-bottom:5px}
+  .field input,.field select,.field textarea{width:100%;border-radius:11px;border:1px solid #2a3a55;background:#152238;color:#e6edf7;font-size:14px;padding:10px 12px;outline:none;font-family:inherit}
+  .field textarea{min-height:120px;resize:vertical}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:#fbbf24}
+  .btn-primary{display:block;width:100%;height:44px;border:0;border-radius:11px;background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#0b1220;font-size:15px;font-weight:800}
+  .btn-primary:active{filter:brightness(.94)}
+  .btn-ghost{display:block;width:100%;height:40px;border:1px solid #2a3a55;border-radius:11px;background:#152238;color:#e6edf7;font-size:13px;font-weight:700;margin-top:8px}
+  .status{font-size:12px;color:#f87171;line-height:1.6;margin-top:10px;min-height:0}
+  .status.ok{color:#4ade80}
+  .guest-box{text-align:center;padding:10px 4px}
+  .guest-box .big{font-size:40px;margin-bottom:8px}
+  .fb-item{border:1px solid #22314d;border-radius:12px;background:#152238;padding:11px 12px;margin-bottom:9px;font-size:12.5px;line-height:1.7;color:#8aa0bf}
+  .fb-item .meta{font-size:11px;color:#8aa0bf;margin-bottom:6px}
+  .fb-item .meta b{color:#e6edf7}
+  .fb-item .reply{margin-top:9px;padding:9px 10px;border-radius:9px;border:1px solid rgba(96,165,250,.35);background:rgba(96,165,250,.08);color:#e6edf7}
+  .pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:10.5px;font-weight:700;margin-right:6px}
+  .pill-open{background:rgba(251,113,133,.18);color:#fb7185}
+  .pill-replied{background:rgba(52,211,153,.18);color:#34d399}
+  .pill-closed{background:rgba(128,138,160,.18);color:#8aa0bf}
+  .foot{margin:16px 14px 8px;padding-top:12px;border-top:1px solid #1c2a44;font-size:10.5px;line-height:1.7;color:#5d7290;text-align:center}
+  .bottombar{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;background:#101a2c;border-top:1px solid #22314d;padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+  .bottombar a{flex:1;text-align:center;font-size:11px;color:#8aa0bf;padding:4px 2px}
+  .bottombar a .ic{display:block;font-size:17px;margin-bottom:1px}
+  .bottombar a.on{color:#fbbf24}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a class="home" href="index.html">‹ 首页</a>
+  <span class="ttl">反馈 <b>工单</b></span>
+  <a class="desktop" href="../feedback.html" id="link-desktop">桌面版</a>
+</div>
+
+<div class="card" id="guest-card" hidden>
+  <div class="guest-box">
+    <div class="big">💬</div>
+    <h1>意见反馈</h1>
+    <p class="sub" style="margin:8px 0 14px">提交工单后可在「我的工单」查看处理进度与管理员回复。<br/><b>须登录</b>后方可填写与提交。</p>
+    <button class="btn-primary" id="btn-go-login">去登录 / 注册</button>
+    <div class="status" id="guest-status"></div>
+  </div>
+</div>
+
+<div class="card" id="user-card" hidden>
+  <h1>意见反馈</h1>
+  <p class="sub">提交工单后会在「我的工单」留下记录，与后台客服处理联动。</p>
+  <div class="field">
+    <label>反馈类型 *</label>
+    <select id="fb-category" required></select>
+  </div>
+  <div class="field">
+    <label>标题（选填）</label>
+    <input id="fb-title" type="text" maxlength="200" placeholder="一句话概括，便于检索" />
+  </div>
+  <div class="field">
+    <label>详细描述 *</label>
+    <textarea id="fb-body" minlength="5" maxlength="8000" placeholder="请说明复现步骤、期望行为等（至少 5 个字）"></textarea>
+  </div>
+  <div class="field">
+    <label>备用联系方式（选填）</label>
+    <input id="fb-contact" type="text" maxlength="200" placeholder="微信号 / 邮箱等" />
+  </div>
+  <button class="btn-primary" id="btn-submit">提交反馈</button>
+  <button class="btn-ghost" id="btn-reload">刷新我的工单</button>
+  <div class="status" id="fb-status"></div>
+</div>
+
+<div class="card" id="history-card" hidden>
+  <div class="sec-head" style="display:flex;align-items:center;justify-content:space-between;font-size:15px;font-weight:800;color:#fbbf24;margin-bottom:8px"><span>我的工单</span><span id="fb-count" style="font-size:11px;color:#8aa0bf"></span></div>
+  <div id="fb-list"></div>
+</div>
+
+<div class="foot">AI行情官 · 灯塔版 1.03 · 意见与建议将助力产品持续优化</div>
+
+<div class="bottombar">
+  <a href="index.html"><span class="ic">🏠</span>首页</a>
+  <a href="quote.html"><span class="ic">📈</span>行情</a>
+  <a href="gd.html"><span class="ic">⛏️</span>掘金</a>
+  <a href="daily.html"><span class="ic">📋</span>复盘</a>
+  <a href="account.html" class="on"><span class="ic">👤</span>我的</a>
+</div>
+
+<script>
+(function(){
+  var TOKEN_KEY = 'ai24x_a_token';
+  var qp = new URLSearchParams(location.search);
+  var iCode = qp.get('i') || qp.get('invite') || qp.get('inv') || qp.get('ref') || '';
+  if (iCode) { try { localStorage.setItem('ai24x_invite_code', String(iCode).trim().toUpperCase()); } catch(e){} }
+  function invite(){ try { return String(localStorage.getItem('ai24x_invite_code') || '').trim().toUpperCase() || 'BWPX3Z8B'; } catch(e){ return 'BWPX3Z8B'; } }
+  var desk = document.getElementById('link-desktop');
+  if (desk) desk.href = '../feedback.html?i=' + encodeURIComponent(invite());
+
+  function apiBase(){
+    try {
+      if (String(location.protocol || '') === 'file:') return 'http://127.0.0.1:18011';
+      var host = String(location.hostname || ''), port = String(location.port || '');
+      if ((host === '127.0.0.1' || host === 'localhost') && (port === '18001' || port === '18003')) return 'http://127.0.0.1:18011';
+    } catch(e){}
+    return '';
+  }
+  var API = apiBase();
+  function tokenGet(){ try { var t = localStorage.getItem(TOKEN_KEY); if (t && t.length > 20) return t; } catch(e){} return ''; }
+  function api(path, opts){
+    opts = opts || {};
+    opts.headers = opts.headers || {};
+    var t = tokenGet();
+    if (t) opts.headers.Authorization = 'Bearer ' + t;
+    opts.cache = 'no-store';
+    return fetch(API + path, opts).then(function(r){ return r.json(); });
+  }
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function setStatus(msg, ok){ var el = $('fb-status'); el.textContent = msg || ''; el.className = 'status' + (ok ? ' ok' : ''); }
+  function fmtTs(ts){
+    if (!ts) return '—';
+    var d = new Date(ts * 1000);
+    function p(n){ return (n < 10 ? '0' : '') + n; }
+    return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+  var catLabels = {};
+  function statusPill(st){
+    st = String(st || 'open');
+    var map = { open: ['待处理', 'pill-open'], replied: ['已回复', 'pill-replied'], closed: ['已关闭', 'pill-closed'] };
+    var m = map[st] || [st, 'pill-closed'];
+    return '<span class="pill ' + m[1] + '">' + esc(m[0]) + '</span>';
+  }
+  function renderList(items){
+    var el = $('fb-list');
+    if (!items || !items.length) {
+      el.innerHTML = '<div style="padding:14px 6px;text-align:center;color:#8aa0bf;font-size:12.5px">暂无工单，提交后在此查看进度。</div>';
+      return;
+    }
+    $('fb-count').textContent = '共 ' + items.length + ' 条';
+    el.innerHTML = items.map(function(it){
+      var h = '<div class="fb-item"><div class="meta">' + statusPill(it.status) + ' #' + esc(it.id) + ' · ' + esc(catLabels[it.category] || it.category) + ' · ' + esc(fmtTs(it.created_at)) + '</div>';
+      if ((it.title || '').trim()) h += '<div><b>' + esc(it.title) + '</b></div>';
+      h += '<div style="white-space:pre-wrap;margin-top:4px">' + esc(it.body || '') + '</div>';
+      if ((it.admin_reply || '').trim()) {
+        h += '<div class="reply"><b>官方回复</b>（' + esc(it.replied_by || '管理员') + ' · ' + esc(fmtTs(it.replied_at)) + '）<br/><span style="white-space:pre-wrap">' + esc(it.admin_reply) + '</span></div>';
+      }
+      return h + '</div>';
+    }).join('');
+  }
+  function loadMine(){
+    if (!tokenGet()) return;
+    api('/api/feedback/mine?limit=50&offset=0').then(function(d){
+      renderList(d.items || []);
+    }).catch(function(e){ renderList(null); });
+  }
+  function applyAuth(){
+    var tok = tokenGet();
+    $('guest-card').hidden = !!tok;
+    $('user-card').hidden = !tok;
+    $('history-card').hidden = !tok;
+    if (tok) { loadCategories(); loadMine(); }
+  }
+  function loadCategories(){
+    api('/api/feedback/categories').then(function(d){
+      var sel = $('fb-category');
+      var items = (d && d.items) || [];
+      items.forEach(function(it){ catLabels[it.id] = it.label; });
+      sel.innerHTML = '<option value="">请选择类型</option>' + items.map(function(it){
+        return '<option value="' + esc(it.id) + '">' + esc(it.label) + '</option>';
+      }).join('');
+    }).catch(function(){
+      $('fb-category').innerHTML = '<option value="">请选择类型</option><option value="bug">问题反馈</option><option value="suggestion">功能建议</option>';
+    });
+  }
+  $('btn-submit').addEventListener('click', function(){
+    if (!tokenGet()) { setStatus('请先登录'); return; }
+    var payload = {
+      category: ($('fb-category').value || '').trim(),
+      title: ($('fb-title').value || '').trim(),
+      body: ($('fb-body').value || '').trim(),
+      contact: ($('fb-contact').value || '').trim()
+    };
+    if (!payload.category) { setStatus('请选择反馈类型'); return; }
+    if (payload.body.length < 5) { setStatus('详细描述至少 5 个字'); return; }
+    setStatus('正在提交…');
+    api('/api/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(function(d){
+      if (d && d.ok !== false) {
+        setStatus('已提交，感谢您的反馈', true);
+        $('fb-title').value = ''; $('fb-body').value = ''; $('fb-contact').value = '';
+        loadMine();
+      } else {
+        setStatus((d && d.detail) || '提交失败', false);
+      }
+    }).catch(function(e){ setStatus('网络异常：' + String(e).slice(0, 40), false); });
+  });
+  $('btn-reload').addEventListener('click', function(){ setStatus(''); loadMine(); });
+  $('btn-go-login').addEventListener('click', function(){
+    location.href = '../index.html?i=' + encodeURIComponent(invite()) + '&mode=login&ch=phone&next=m/feedback.html';
+  });
+  applyAuth();
+})();
+</script>
+</body>
+</html>

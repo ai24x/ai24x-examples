@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<link rel="icon" href="data:," />
+<meta name="robots" content="noindex,nofollow" />
+<title>我的 · AI行情官｜手机版</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{background:#0b1220;color:#e6edf7;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;font-size:14px;padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+  a{color:inherit;text-decoration:none}
+  .topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:8px;padding:8px 12px;background:#101a2c;border-bottom:1px solid #22314d}
+  .topbar .home{font-size:13px;color:#8ab8ff;font-weight:700;white-space:nowrap}
+  .topbar .ttl{font-size:16px;font-weight:800;flex:1}
+  .topbar .ttl b{color:#fbbf24}
+  .topbar .desktop{font-size:12px;color:#fbbf24;border:1px solid rgba(251,191,36,.35);border-radius:999px;padding:3px 9px;background:rgba(251,191,36,.08);white-space:nowrap}
+  .card{background:#101a2c;border:1px solid #22314d;border-radius:14px;margin:10px;padding:14px}
+  h1{font-size:18px;font-weight:800;margin-bottom:4px}
+  .sub{font-size:11.5px;color:#8aa0bf;line-height:1.7;margin:6px 0 12px}
+  .field{margin-bottom:10px}
+  .field input{width:100%;height:44px;border-radius:11px;border:1px solid #2a3a55;background:#152238;color:#e6edf7;font-size:15px;padding:0 13px;outline:none}
+  .field input:focus{border-color:#fbbf24}
+  .btn-primary{display:block;width:100%;height:44px;border:0;border-radius:11px;background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#0b1220;font-size:15px;font-weight:800}
+  .btn-primary:active{filter:brightness(.94)}
+  .btn-ghost{height:36px;border:1px solid #2a3a55;border-radius:9px;background:#152238;color:#e6edf7;font-size:13px;font-weight:700;padding:0 12px}
+  .btn-ghost:active{background:#1a2a45}
+  .links{display:flex;justify-content:space-between;margin-top:12px;font-size:13px}
+  .links a{color:#8ab8ff}
+  .status{font-size:12px;color:#f87171;line-height:1.6;margin-top:10px;min-height:0}
+  .status.ok{color:#4ade80}
+  .acct-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .acct-id{font-size:17px;font-weight:800}
+  .acct-meta{font-size:11.5px;color:#8aa0bf;margin-top:3px}
+  .plan-badge{font-size:12px;font-weight:800;color:#3a2c00;background:linear-gradient(135deg,#ffd666,#fbbf24);border-radius:999px;padding:4px 12px;white-space:nowrap}
+  .plan-badge.free{color:#8aa0bf;background:#152238;border:1px solid #2a3a55}
+  .kv{display:flex;gap:8px;margin-top:12px}
+  .kv span{flex:1;text-align:center;background:#152238;border:1px solid #2a3a55;border-radius:10px;padding:9px 6px;font-size:11.5px;color:#8aa0bf}
+  .kv b{display:block;font-size:17px;color:#fbbf24;margin-top:2px}
+  .kv2{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;font-size:11px;color:#8aa0bf}
+  .kv2 span{background:#152238;border:1px solid #2a3a55;border-radius:999px;padding:3px 10px}
+  .btns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .sec-head{display:flex;align-items:center;justify-content:space-between;font-size:15px;font-weight:800;color:#fbbf24;margin-bottom:8px}
+  .mini{height:30px;border:1px solid rgba(139,184,255,.4);border-radius:999px;background:rgba(139,184,255,.08);color:#8ab8ff;font-size:11.5px;font-weight:700;padding:0 10px}
+  .mini:active{background:rgba(139,184,255,.2)}
+  .wl-market{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.35);border-radius:10px;padding:8px 10px;font-size:11.5px;color:#e6edf7;line-height:1.7;margin-bottom:10px}
+  .wl-market b{color:#fbbf24}
+  .wl-item{display:flex;align-items:center;gap:8px;padding:9px 4px;border-bottom:1px solid #1c2a44}
+  .wl-item:last-child{border-bottom:0}
+  .wl-info{flex:1;min-width:0}
+  .wl-nm{font-size:14px;font-weight:800;color:#e6edf7}
+  .wl-cd{font-size:11px;color:#8aa0bf;margin-left:6px}
+  .wl-tags{font-size:10.5px;color:#8aa0bf;margin-top:3px;line-height:1.6}
+  .wl-tags .up{color:#f03a52}
+  .wl-tags .risk{color:#f87171}
+  .wl-score{font-size:15px;font-weight:800;color:#f43f5e;text-align:right;min-width:44px}
+  .wl-score.mid{color:#fbbf24}
+  .wl-score.low{color:#94a3b8}
+  .wl-del{color:#f87171;font-size:16px;padding:6px;border:0;background:none}
+  .wl-empty{padding:18px 8px;text-align:center;color:#8aa0bf;font-size:12.5px;line-height:1.8}
+  .inv-row{display:flex;gap:8px;margin-bottom:8px}
+  .inv-row input{flex:1;min-width:0;height:40px;border-radius:10px;border:1px solid #2a3a55;background:#152238;color:#e6edf7;font-size:13px;padding:0 11px;outline:none}
+  .inv-sum{display:flex;gap:8px;margin:10px 0 8px}
+  .inv-sum span{flex:1;text-align:center;background:#152238;border:1px solid #2a3a55;border-radius:10px;padding:8px 4px;font-size:11px;color:#8aa0bf}
+  .inv-sum b{display:block;font-size:16px;color:#fbbf24;margin-top:2px}
+  details.fold{border:1px solid #2a3a55;border-radius:10px;background:#152238;overflow:hidden}
+  details.fold summary{padding:10px 12px;font-size:13px;font-weight:700;color:#e6edf7;list-style:none;cursor:pointer}
+  details.fold summary::-webkit-details-marker{display:none}
+  details.fold[open] summary{border-bottom:1px solid #2a3a55}
+  .inv-item{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid #1c2a44;font-size:12px;color:#8aa0bf}
+  .inv-item:last-child{border-bottom:0}
+  .inv-item b{color:#e6edf7;font-weight:700}
+  .inv-item .on{color:#4ade80}
+  .foot{margin:16px 14px 8px;padding-top:12px;border-top:1px solid #1c2a44;font-size:10.5px;line-height:1.7;color:#5d7290;text-align:center}
+  .bottombar{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;background:#101a2c;border-top:1px solid #22314d;padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+  .bottombar a{flex:1;text-align:center;font-size:11px;color:#8aa0bf;padding:4px 2px}
+  .bottombar a .ic{display:block;font-size:17px;margin-bottom:1px}
+  .bottombar a.on{color:#fbbf24}
+  .toast{position:fixed;left:50%;top:14%;transform:translateX(-50%);max-width:88vw;background:rgba(220,38,38,.95);color:#fff;font-size:13px;line-height:1.6;padding:10px 16px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.28);z-index:999;opacity:0;pointer-events:none;transition:opacity .25s;text-align:center}
+  .toast.show{opacity:1}
+  .toast.ok{background:rgba(21,128,61,.95)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a class="home" href="index.html">‹ 首页</a>
+  <span class="ttl">我的 <b>账户</b></span>
+  <a class="desktop" href="../account.html" id="link-desktop">桌面版</a>
+</div>
+
+<div class="card" id="guest-card" hidden>
+  <h1>登录 AI行情官</h1>
+  <p class="sub">登录后查看会员套餐、自选股评分与邀请推广；注册请到主站首页完成。</p>
+  <div class="field"><input id="g-phone" type="tel" placeholder="手机号" inputmode="numeric" maxlength="11" autocomplete="tel" /></div>
+  <div class="field"><input id="g-pass" type="password" placeholder="密码（至少 8 位）" autocomplete="current-password" /></div>
+  <button class="btn-primary" id="btn-login">登 录</button>
+  <div class="links">
+    <a href="../index.html" id="reg-link">免费注册</a>
+    <a href="../index.html" id="forget-link">忘记密码</a>
+  </div>
+  <div class="status" id="login-status"></div>
+</div>
+
+<div id="user-box" hidden>
+  <div class="card">
+    <div class="acct-head">
+      <div>
+        <div class="acct-id" id="u-id">--</div>
+        <div class="acct-meta" id="u-meta"></div>
+      </div>
+      <span class="plan-badge" id="u-plan">--</span>
+    </div>
+    <div class="kv">
+      <span>今日剩余<b id="u-day">-</b></span>
+      <span>本周剩余<b id="u-week">-</b></span>
+    </div>
+    <div class="kv2">
+      <span>日上限 <b id="u-dlimit">-</b></span>
+      <span>周上限 <b id="u-wlimit">-</b></span>
+      <span id="u-expiry"></span>
+    </div>
+    <div class="btns">
+      <button class="btn-ghost" id="btn-refresh-quota">刷新配额</button>
+      <button class="btn-ghost" id="btn-change-pw">修改密码</button>
+      <button class="btn-ghost" id="btn-logout">退出登录</button>
+    </div>
+    <details class="fold" id="pw-box" style="margin-top:10px">
+      <summary>修改密码</summary>
+      <div style="padding:10px">
+        <div class="field"><input id="pw-old" type="password" placeholder="当前密码" autocomplete="current-password" /></div>
+        <div class="field"><input id="pw-new" type="password" placeholder="新密码（至少 8 位）" autocomplete="new-password" /></div>
+        <div class="field"><input id="pw-new2" type="password" placeholder="确认新密码" autocomplete="new-password" /></div>
+        <button class="btn-primary" id="btn-pw-save">保存新密码</button>
+        <div class="status" id="pw-status"></div>
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <div class="sec-head"><span>自选股评分</span><button class="mini" id="btn-wl-refresh">⟳ 刷新评分</button></div>
+    <p class="sub" style="margin:0 0 8px">仅对您自选的标的做公开技术指标统计（MACD、均线、量能、RSI、波动等常规指标，0-100 综合分），不构成证券投资咨询。</p>
+    <div class="status" id="wl-status"></div>
+    <div class="wl-market" id="wl-market" hidden></div>
+    <div id="wl-list"><div class="wl-empty">加载中…</div></div>
+  </div>
+
+  <div class="card">
+    <div class="sec-head"><span>伙伴计划</span></div>
+    <p class="sub" style="margin-bottom:8px">合作 / 代理 / 预存 / 技术支持请前往桌面版「我的 → 伙伴计划」查看档位与申请流程；权益回馈不可提现。</p>
+    <a class="btn-primary" id="link-agent" href="../account.html" style="display:block;text-align:center;line-height:44px">前往伙伴计划 →</a>
+  </div>
+
+  <div class="card">
+    <div class="sec-head"><span>邀请推广</span></div>
+    <p class="sub" id="inv-tip" style="margin-bottom:8px">奖励规则加载中…</p>
+    <div class="inv-row">
+      <input id="inv-code" type="text" readonly placeholder="我的邀请码" />
+      <button class="mini" id="btn-copy-code">复制</button>
+    </div>
+    <div class="inv-row">
+      <input id="inv-link" type="text" readonly placeholder="邀请链接" />
+      <button class="mini" id="btn-copy-link">复制</button>
+    </div>
+    <div class="inv-sum" id="inv-sum"></div>
+    <details class="fold">
+      <summary>邀请记录</summary>
+      <div id="inv-list"><div class="wl-empty">加载中…</div></div>
+    </details>
+  </div>
+</div>
+
+<div class="foot">AI行情官 · 灯塔版 1.03 · 公开技术指标统计仅供自主决策参考，不构成证券投资咨询，不构成任何买卖建议</div>
+
+<div class="bottombar">
+  <a href="index.html"><span class="ic">🏠</span>首页</a>
+  <a href="quote.html"><span class="ic">📈</span>行情</a>
+  <a href="gd.html"><span class="ic">⛏️</span>掘金</a>
+  <a href="daily.html"><span class="ic">📋</span>复盘</a>
+  <a href="account.html" class="on"><span class="ic">👤</span>我的</a>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  var TOKEN_KEY = 'ai24x_a_token';
+  var qp = new URLSearchParams(location.search);
+  var iCode = qp.get('i') || qp.get('invite') || qp.get('inv') || qp.get('ref') || '';
+  if (iCode) { try { localStorage.setItem('ai24x_invite_code', String(iCode).trim().toUpperCase()); } catch(e){} }
+  function invite(){ try { return String(localStorage.getItem('ai24x_invite_code') || '').trim().toUpperCase() || 'BWPX3Z8B'; } catch(e){ return 'BWPX3Z8B'; } }
+  var desk = document.getElementById('link-desktop');
+  if (desk) desk.href = '../account.html?i=' + encodeURIComponent(invite());
+
+  function apiBase(){
+    try {
+      if (String(location.protocol || '') === 'file:') return 'http://127.0.0.1:18011';
+      var host = String(location.hostname || ''), port = String(location.port || '');
+      if ((host === '127.0.0.1' || host === 'localhost') && (port === '18001' || port === '18003')) return 'http://127.0.0.1:18011';
+    } catch(e){}
+    return '';
+  }
+  var API = apiBase();
+  function tokenGet(){ try { var t = localStorage.getItem(TOKEN_KEY); if (t && t.length > 20) return t; } catch(e){} return ''; }
+  function tokenSet(t){ try { localStorage.setItem(TOKEN_KEY, t); } catch(e){} }
+  function tokenClear(){ try { localStorage.removeItem(TOKEN_KEY); } catch(e){} }
+  function api(path, opts){
+    opts = opts || {};
+    opts.headers = opts.headers || {};
+    var t = tokenGet();
+    if (t) opts.headers.Authorization = 'Bearer ' + t;
+    opts.cache = 'no-store';
+    return fetch(API + path, opts).then(function(r){ return r.json(); });
+  }
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function toast(msg, ok){ var t = $('toast'); t.textContent = msg; t.className = 'toast show' + (ok ? ' ok' : ''); clearTimeout(t._tm); t._tm = setTimeout(function(){ t.className = 'toast'; }, 2600); }
+  function setStatus(id, msg, ok){ var el = $(id); if (!el) return; el.textContent = msg || ''; el.className = 'status' + (ok ? ' ok' : ''); }
+  function maskPhone(p){
+    p = String(p || '').trim();
+    if (/^1\d{10}$/.test(p)) return p.slice(0,3) + '****' + p.slice(7);
+    return p;
+  }
+  function maskEmail(e){
+    e = String(e || '').trim();
+    var i = e.indexOf('@');
+    if (i > 1) return e.slice(0,1) + '***' + e.slice(i);
+    return e;
+  }
+  function fmtTs(ts){
+    if (!ts) return '—';
+    var d = new Date(ts * 1000);
+    function p(n){ return (n < 10 ? '0' : '') + n; }
+    return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+  var PLAN = { free: '免费', anon: '游客', vip_trial_99: 'VIP体验卡', vip_month: 'VIP月卡', vip_year_999: 'VIP年卡', agent_growth: '伙伴·成长档', agent_pro: '伙伴·专业档' };
+  function planTitle(p){ return PLAN[p] || (p || '免费'); }
+  function secidOf(code){
+    code = String(code || '');
+    if (/^\d{6}$/.test(code)){
+      if (code.startsWith('6') || code.startsWith('9') || code.startsWith('4') || code.startsWith('8')) return '1.' + code;
+      return '0.' + code;
+    }
+    return '';
+  }
+
+  function applyAuth(){
+    var tok = tokenGet();
+    $('guest-card').hidden = !!tok;
+    $('user-box').hidden = !tok;
+    if (tok) loadMe();
+  }
+
+  function loadMe(){
+    api('/api/me').then(function(d){
+      var u = d.user || {};
+      var q = d.quota || {};
+      var who = maskPhone(u.phone) || maskEmail(u.email) || ('用户 #' + u.id);
+      $('u-id').textContent = who;
+      var meta = 'ID ' + (u.id || '-') + ' · 注册 ' + fmtTs(u.created_at);
+      $('u-meta').textContent = meta;
+      var pl = String(q.plan || 'free');
+      var pb = $('u-plan');
+      pb.textContent = planTitle(pl);
+      pb.className = 'plan-badge' + (pl === 'free' || pl === 'anon' ? ' free' : '');
+      $('u-day').textContent = (q.remaining_day != null ? q.remaining_day : '-');
+      $('u-week').textContent = (q.remaining_week != null ? q.remaining_week : '-');
+      $('u-dlimit').textContent = (q.daily_limit != null ? q.daily_limit : '-');
+      $('u-wlimit').textContent = (q.weekly_limit != null ? q.weekly_limit : '-');
+      $('u-expiry').textContent = q.expires_at ? ('到期 ' + fmtTs(q.expires_at)) : '未开通付费套餐';
+      loadWatchlist(false);
+      loadInvite();
+    }).catch(function(e){
+      setStatus('login-status', '会话失效或网络异常，请重新登录', false);
+      tokenClear();
+      applyAuth();
+    });
+  }
+
+  // ---- watchlist ----
+  function renderWl(items, scoresMap, market){
+    var el = $('wl-list');
+    var mk = $('wl-market');
+    if (market && market.tags) {
+      mk.hidden = false;
+      mk.innerHTML = '<b>大盘环境</b>：' + esc(market.tags.join(' / ')) + (market.weak ? '（偏弱，注意控制仓位）' : '');
+    } else mk.hidden = true;
+    if (!items || !items.length) {
+      el.innerHTML = '<div class="wl-empty">暂无自选。<br/>在「行情」页点右上角 ☆ 即可加入自选。</div>';
+      return;
+    }
+    el.innerHTML = items.map(function(it){
+      var sc = scoresMap[it.secid] || null;
+      if (sc && sc.error) {
+        return '<div class="wl-item"><div class="wl-info"><span class="wl-nm">' + esc(it.name || it.code || it.secid) + '</span><span class="wl-cd">' + esc(it.code) + '</span><div class="wl-tags risk">评分获取失败（' + esc(sc.error) + '）</div></div>' +
+          '<button class="wl-del" data-secid="' + esc(it.secid) + '">✕</button></div>';
+      }
+      var scoreHtml = '—';
+      var scoreCls = 'low';
+      if (sc) {
+        var scv = Number(sc.score);
+        scoreHtml = (scv >= 0 ? scv.toFixed(1) : '—');
+        scoreCls = scv >= 60 ? '' : (scv >= 40 ? 'mid' : 'low');
+        var tags = (sc.tags || []).slice(0, 4);
+        var risks = (sc.risks || []).slice(0, 3);
+        var tagHtml = tags.map(function(t){ return '<span class="up">' + esc(t) + '</span>'; }).join(' · ');
+        if (risks.length) tagHtml += '<span class="risk"> · ⚠ ' + esc(risks.join('；')) + '</span>';
+        scoreHtml = scv >= 0 ? ('<div>' + scv.toFixed(1) + '</div>') : '—';
+        var posTxt = '';
+        return '<a class="wl-item" href="quote.html?secid=' + encodeURIComponent(it.secid) + '&name=' + encodeURIComponent(it.name || '') + '" style="text-decoration:none">' +
+          '<div class="wl-info"><span class="wl-nm">' + esc(it.name || it.code) + '</span><span class="wl-cd">' + esc(it.code) + '</span>' +
+          '<div class="wl-tags">' + tagHtml + '</div></div>' +
+          '<div class="wl-score ' + scoreCls + '">' + scoreHtml + '</div>' +
+          '<span style="padding:4px" data-secid="' + esc(it.secid) + '" class="wl-del" onclick="event.preventDefault();event.stopPropagation();removeWl(this)">✕</span></a>';
+      }
+      return '<div class="wl-item"><div class="wl-info"><span class="wl-nm">' + esc(it.name || it.code || it.secid) + '</span><span class="wl-cd">' + esc(it.code) + '</span><div class="wl-tags">尚未评分，点「刷新评分」</div></div>' +
+        '<div class="wl-score low">' + scoreHtml + '</div>' +
+        '<button class="wl-del" data-secid="' + esc(it.secid) + '">✕</button></div>';
+    }).join('');
+    el.querySelectorAll('.wl-del[data-secid]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var secid = b.getAttribute('data-secid');
+        if (!secid) return;
+        api('/api/watchlist/remove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ secid: secid }) }).then(function(r){
+          if (r && r.ok) { toast('已移除自选', true); loadWatchlist(false); }
+          else toast((r && (r.msg || r.message)) || '移除失败', false);
+        }).catch(function(){ toast('网络异常', false); });
+      });
+    });
+  }
+  function loadWatchlist(doScore){
+    api('/api/watchlist').then(function(d){
+      var items = (d && d.items) || [];
+      if (!doScore) {
+        var m = {};
+        items.forEach(function(it){ m[it.secid] = null; });
+        renderWl(items, m, null);
+        $('wl-status').textContent = '';
+        return;
+      }
+      $('wl-status').textContent = '正在计算评分（约 10~30 秒）…';
+      api('/api/watchlist/scores').then(function(s){
+        $('wl-status').textContent = '';
+        var map = {};
+        (s && s.items || []).forEach(function(it){ map[it.secid] = it; });
+        renderWl(items, map, s && s.market);
+        if (s && s.truncated) {
+          $('wl-status').textContent = '自选超过 ' + s.score_max + ' 只，评分榜仅展示前 ' + s.score_max + ' 只（免费 ' + (s.vip_cap) + ' / VIP 上限更高）。';
+        }
+      }).catch(function(e){ $('wl-status').textContent = '评分失败：' + String(e).slice(0, 60); });
+    }).catch(function(){ $('wl-list').innerHTML = '<div class="wl-empty">自选加载失败</div>'; });
+  }
+  window.removeWl = function(el){
+    var secid = el && el.getAttribute('data-secid');
+    if (!secid) return;
+    api('/api/watchlist/remove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ secid: secid }) }).then(function(r){
+      if (r && r.ok) { toast('已移除', true); loadWatchlist(false); }
+      else toast('移除失败', false);
+    }).catch(function(){ toast('网络异常', false); });
+  };
+
+  // ---- invite ----
+  function loadInvite(){
+    api('/api/invite/my_code').then(function(d){
+      var code = (d && d.code) || invite();
+      $('inv-code').value = code;
+      $('inv-link').value = 'https://a.ai24x.com/index.html?i=' + code;
+      var tip = '邀请好友注册并首次查询，双方均可获得额外查询次数（以页面与后台规则为准）。';
+      api('/api/public/invite/config').then(function(c){
+        if (c && c.ok) {
+          var w = Number(c.invite_reward_inviter_weekly || 0) || 0;
+          var dv = Number(c.invite_reward_inviter_daily || 0) || 0;
+          var cap = Number(c.invite_weekly_cap || 0) || 0;
+          if (w || dv) tip = '每激活一位好友：您 +' + w + '次/周、+' + dv + '次/日；周封顶 ' + cap + ' 次。';
+        }
+        $('inv-tip').textContent = tip;
+      }).catch(function(){});
+      return api('/api/invite/summary');
+    }).then(function(s){
+      var sm = (s && s.summary) || {};
+      $('inv-sum').innerHTML =
+        '<span>邀请总数<b>' + (sm.total || 0) + '</b></span>' +
+        '<span>已激活<b>' + (sm.activated || 0) + '</b></span>' +
+        '<span>已奖励<b>' + (sm.rewarded || 0) + '</b></span>';
+      return api('/api/invite/list?limit=30');
+    }).then(function(d){
+      var items = (d && d.items) || [];
+      var el = $('inv-list');
+      if (!items.length) { el.innerHTML = '<div class="wl-empty">暂无邀请记录</div>'; return; }
+      el.innerHTML = items.map(function(it){
+        var who = maskPhone(it.phone) || maskEmail(it.email) || ('用户 #' + it.invitee_id);
+        var st = it.activated ? '<span class="on">已激活</span>' : '未激活';
+        return '<div class="inv-item"><span style="flex:1">' + esc(fmtTs(it.created_at)) + ' · ' + esc(who) + ' ' + st + '</span><b>+' + (it.reward_amount || 0) + '次</b></div>';
+      }).join('');
+    }).catch(function(){});
+  }
+
+  // ---- events ----
+  $('btn-login').addEventListener('click', function(){
+    var phone = ($('g-phone').value || '').trim();
+    var pass = $('g-pass').value || '';
+    if (!/^1\d{10}$/.test(phone)) { setStatus('login-status', '请输入正确的 11 位手机号', false); return; }
+    if (pass.length < 8) { setStatus('login-status', '密码至少 8 位', false); return; }
+    setStatus('login-status', '正在登录…', false);
+    api('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: phone, password: pass }) }).then(function(d){
+      if (d && d.token) {
+        tokenSet(d.token);
+        setStatus('login-status', '登录成功', true);
+        $('g-pass').value = '';
+        applyAuth();
+        toast('登录成功', true);
+      } else {
+        setStatus('login-status', (d && d.detail) || '登录失败', false);
+      }
+    }).catch(function(e){ setStatus('login-status', '网络异常：' + String(e).slice(0, 40), false); });
+  });
+  $('btn-logout').addEventListener('click', function(){
+    tokenClear();
+    applyAuth();
+    toast('已退出登录', true);
+  });
+  $('btn-refresh-quota').addEventListener('click', function(){ loadMe(); toast('已刷新', true); });
+  $('btn-wl-refresh').addEventListener('click', function(){ loadWatchlist(true); });
+  $('btn-change-pw').addEventListener('click', function(){
+    var box = $('pw-box');
+    box.open = !box.open;
+  });
+  $('btn-pw-save').addEventListener('click', function(){
+    var oldP = $('pw-old').value || '';
+    var newP = $('pw-new').value || '';
+    var new2 = $('pw-new2').value || '';
+    if (newP.length < 8) { setStatus('pw-status', '新密码至少 8 位', false); return; }
+    if (newP !== new2) { setStatus('pw-status', '两次输入的新密码不一致', false); return; }
+    setStatus('pw-status', '正在保存…', false);
+    api('/api/auth/password/change', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ old_password: oldP, new_password: newP }) }).then(function(d){
+      if (d && d.token) {
+        tokenSet(d.token);
+        setStatus('pw-status', '密码已更新', true);
+        $('pw-old').value = ''; $('pw-new').value = ''; $('pw-new2').value = '';
+        setTimeout(function(){ $('pw-box').open = false; }, 1200);
+      } else {
+        setStatus('pw-status', (d && d.detail) || '保存失败', false);
+      }
+    }).catch(function(e){ setStatus('pw-status', '网络异常：' + String(e).slice(0, 40), false); });
+  });
+  function copyText(txt, msg){
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(function(){ toast(msg, true); }).catch(function(){ fallbackCopy(txt, msg); });
+    } else fallbackCopy(txt, msg);
+  }
+  function fallbackCopy(txt, msg){
+    var ta = document.createElement('textarea');
+    ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast(msg, true); } catch(e){ toast('复制失败，请手动复制', false); }
+    document.body.removeChild(ta);
+  }
+  $('btn-copy-code').addEventListener('click', function(){ copyText($('inv-code').value || '', '邀请码已复制'); });
+  $('btn-copy-link').addEventListener('click', function(){ copyText($('inv-link').value || '', '邀请链接已复制'); });
+
+
+  var ag = document.getElementById('link-agent');
+  if (ag) ag.href = '../account.html?i=' + encodeURIComponent(invite());
+
+  var reg = $('reg-link'), fg = $('forget-link');
+  if (reg) reg.href = '../index.html?i=' + encodeURIComponent(invite()) + '&mode=register&ch=phone';
+  if (fg) fg.href = '../index.html?i=' + encodeURIComponent(invite()) + '&mode=login&ch=phone';
+
+  applyAuth();
+})();
+</script>
+</body>
+</html>

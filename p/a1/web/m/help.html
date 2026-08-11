@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<link rel="icon" href="data:," />
+<meta name="robots" content="noindex,nofollow" />
+<title>帮助 · AI行情官｜手机版</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{background:#0b1220;color:#e6edf7;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;font-size:14px;padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+  a{color:inherit;text-decoration:none}
+  .topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:8px;padding:8px 12px;background:#101a2c;border-bottom:1px solid #22314d}
+  .topbar .home{font-size:13px;color:#8ab8ff;font-weight:700;white-space:nowrap}
+  .topbar .ttl{font-size:16px;font-weight:800;flex:1}
+  .topbar .ttl b{color:#fbbf24}
+  .topbar .desktop{font-size:12px;color:#fbbf24;border:1px solid rgba(251,191,36,.35);border-radius:999px;padding:3px 9px;background:rgba(251,191,36,.08);white-space:nowrap}
+  .card{background:#101a2c;border:1px solid #22314d;border-radius:14px;margin:10px;padding:14px}
+  .card h2{font-size:15px;font-weight:800;margin-bottom:8px;color:#fbbf24}
+  .card h2 .no{display:inline-block;min-width:22px;text-align:center;background:#fbbf24;color:#0b1220;border-radius:6px;font-size:12px;padding:2px 5px;margin-right:6px}
+  .card p,.card li{font-size:12.5px;line-height:1.8;color:#8aa0bf}
+  .card ol,.card ul{margin:4px 0 4px 18px}
+  .card li{margin:4px 0}
+  .card li b,.card p b{color:#e6edf7}
+  .note{margin:10px;padding:10px 12px;border-radius:10px;background:rgba(251,191,36,.09);border:1px solid rgba(251,191,36,.35);color:#fbbf24;font-size:12px;line-height:1.7}
+  details.fold{border:1px solid #2a3a55;border-radius:10px;background:#152238;overflow:hidden;margin-bottom:8px}
+  details.fold summary{padding:11px 12px;font-size:13px;font-weight:700;color:#e6edf7;list-style:none;cursor:pointer}
+  details.fold summary::-webkit-details-marker{display:none}
+  details.fold[open] summary{border-bottom:1px solid #2a3a55;color:#fbbf24}
+  details.fold .body{padding:10px 12px;font-size:12.5px;color:#8aa0bf;line-height:1.8}
+  details.fold .body b{color:#e6edf7}
+  .dot{display:inline-block;width:11px;height:11px;border-radius:50%;vertical-align:-1px;margin-right:6px}
+  .d-absorb{background:#22c55e}.d-bottom{background:#38bdf8}.d-buy{background:#ff3d5c}
+  .d-sell{background:#00e68a}.d-risk{background:#ffb300}.d-high{background:#ff0090}
+  .arr-up{color:#f03a52;font-weight:900}.arr-dn{color:#00b578;font-weight:900}
+  .cta{display:flex;gap:8px;margin:12px 10px 0}
+  .cta a{flex:1;text-align:center;height:42px;line-height:42px;border-radius:11px;font-size:14px;font-weight:800}
+  .cta .primary{background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#0b1220}
+  .cta .ghost{background:#152238;border:1px solid #2a3a55;color:#e6edf7}
+  .foot{margin:16px 14px 8px;padding-top:12px;border-top:1px solid #1c2a44;font-size:10.5px;line-height:1.7;color:#5d7290;text-align:center}
+  .bottombar{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;background:#101a2c;border-top:1px solid #22314d;padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+  .bottombar a{flex:1;text-align:center;font-size:11px;color:#8aa0bf;padding:4px 2px}
+  .bottombar a .ic{display:block;font-size:17px;margin-bottom:1px}
+  .bottombar a.on{color:#fbbf24}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a class="home" href="index.html">‹ 首页</a>
+  <span class="ttl">帮助 <b>指南</b></span>
+  <a class="desktop" href="../help.html" id="link-desktop">桌面版</a>
+</div>
+
+<div class="cta">
+  <a class="primary" href="quote.html">打开行情</a>
+  <a class="ghost" href="account.html">我的账户</a>
+  <a class="ghost" href="feedback.html">意见反馈</a>
+</div>
+
+<div class="card">
+  <h2><span class="no">1</span>三步上手</h2>
+  <ol>
+    <li><b>登录</b>：在首页注册/登录。登录后可查询更多标的，并在「我的」查看剩余次数。</li>
+    <li><b>查询</b>：进入「行情」，输入股票名称或代码（如「贵州茅台」「600519」）点查询。同名结果里优先选<b>个股</b>，别误点「热股」等板块名。</li>
+    <li><b>阅读</b>：看 K 线、彩色圆点与箭头；对照主图趋势线与下方副图；可切换日线 / 周线 / 月线。</li>
+  </ol>
+  <p>提示：查询加载中请稍候，避免连点；同一标的当天重复查看或切换周期一般不重复扣次。</p>
+</div>
+
+<div class="card">
+  <h2><span class="no">2</span>标记图例（圆点 + 箭头）</h2>
+  <p>主图 K 线上的<b>彩色圆点 + 箭头 + 短文字</b>是学习对照提示，不是买卖指令，也不代表涨跌承诺。</p>
+  <div style="margin:8px 0;line-height:2.1;font-size:12.5px">
+    <div><span class="dot d-absorb"></span>小底：偏早期关注，可继续观察</div>
+    <div><span class="dot d-bottom"></span>底：偏底部区域关注</div>
+    <div><span class="dot d-buy"></span>金：偏强一侧提示</div>
+    <div><span class="dot d-sell"></span>等：偏弱一侧，宜多等一等</div>
+    <div><span class="dot d-risk"></span>险：风险关注提示</div>
+    <div><span class="dot d-high"></span>顶：高位或过热预警</div>
+  </div>
+  <p><span class="arr-up">▲</span> 向上箭头：多在 K 线下方，偏「关注/偏强」；<span class="arr-dn">▼</span> 向下箭头：多在 K 线上方，偏「谨慎/偏弱」。</p>
+  <p style="margin-top:6px">同一根 K 线可能同时出现圆点与箭头，文字带「金1」「底2」等编号只表示提示更细，不代表强度排序或必涨必跌。</p>
+</div>
+
+<div class="card">
+  <h2><span class="no">3</span>主图趋势线（均线）</h2>
+  <p>彩色曲线用于观察价格与中长期结构的相对位置，是<b>看图辅助</b>，不是操作指令。</p>
+  <ul>
+    <li>橙色线：偏短线节奏参考；蓝色线：偏中期结构；绿色线：偏主趋势结构；虚线：可选短均线。</li>
+    <li>价格在线上/下方只说明相对位置，不自动等于看涨或看跌。</li>
+    <li>线交叉、走平或转向可当作<b>结构变化提醒</b>，请结合 K 线与标记一起看。</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h2><span class="no">4</span>副图（柱状 + 箭头）</h2>
+  <p>主图下方副图用柱形和少量箭头做<b>强弱节奏辅助对照</b>：红/绿柱高矮反映波动强弱对比；副图「金」类提示偏强、「等」类提示偏弱。</p>
+  <p>副图与主图不一致很常见：可把副图当作「第二视角」，以整体结构为准，不要单看一根柱或一个箭头下结论。</p>
+</div>
+
+<div class="card">
+  <h2><span class="no">5</span>免费次数与 VIP</h2>
+  <ul>
+    <li><b>免费用户</b>：每天、每周有查询次数上限，可在「我的」查看今日/本周剩余。</li>
+    <li><b>怎么计次</b>：成功查到一只新标的通常计一次；同一标的当天换周期、刷新重看一般不再另扣。</li>
+    <li><b>次数不足</b>：可开通 VIP / 体验卡，或邀请好友获得额外次数（详见「我的」页）。</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h2><span class="no">6</span>常见问题</h2>
+  <details class="fold"><summary>搜名称点进去是空的？</summary><div class="body">列表里若出现「××热股」等板块名称，部分暂无可用行情。请优先选择带股票代码的<b>个股</b>再查询。</div></details>
+  <details class="fold"><summary>为什么感觉点几下次数就少了？</summary><div class="body">请等加载完成再点，避免连点。同一标的当天重复查看或切换周期一般不另扣；若仍异常，可到「反馈」说明时间与操作步骤。</div></details>
+  <details class="fold"><summary>注册 / 忘记密码收不到短信？</summary><div class="body">请确认手机号无误，稍等一会儿。若持续失败，可改用邮箱，或提交反馈由客服协助。</div></details>
+  <details class="fold"><summary>登录后提示失效 / 要重新登录？</summary><div class="body">登录状态有有效期，过期后请重新登录；换设备、清缓存后一般也需要重新登录。</div></details>
+  <details class="fold"><summary>日线、周线、月线看起来不一样？</summary><div class="body">正常现象：不同周期是不同时间尺度，图上提示也随之变化，请分别理解，不要直接横向对比。</div></details>
+  <details class="fold"><summary>和别的软件里板块点数对不上？</summary><div class="body">不同平台编制与数据可能不同，点数不宜直接对比，本站以页面展示的行情为准。</div></details>
+</div>
+
+<div class="note">风险提示：本产品仅提供公开行情与常规技术指标统计（MACD、均线、量能、RSI、波动等），不涉及任何个股推荐与交易建议。股市有风险，入市需谨慎，请独立决策、自负盈亏。</div>
+
+<div class="foot">AI行情官 · 灯塔版 1.03 · 仅供学习对照，不构成证券投资咨询，不构成任何买卖建议<br/><a href="../terms.html" style="color:#5d7290">服务条款</a> · <a href="../privacy.html" style="color:#5d7290">隐私政策</a></div>
+
+<div class="bottombar">
+  <a href="index.html"><span class="ic">🏠</span>首页</a>
+  <a href="quote.html"><span class="ic">📈</span>行情</a>
+  <a href="gd.html"><span class="ic">⛏️</span>掘金</a>
+  <a href="daily.html"><span class="ic">📋</span>复盘</a>
+  <a href="account.html"><span class="ic">👤</span>我的</a>
+</div>
+
+<script>
+(function(){
+  try {
+    var sp = new URLSearchParams(location.search);
+    var raw = sp.get('i') || sp.get('invite') || sp.get('inv') || sp.get('ref') || '';
+    if (raw) localStorage.setItem('ai24x_invite_code', String(raw).trim().toUpperCase());
+    var code = String(localStorage.getItem('ai24x_invite_code') || '').trim().toUpperCase() || 'BWPX3Z8B';
+    var desk = document.getElementById('link-desktop');
+    if (desk) {
+      desk.href = '../help.html?i=' + encodeURIComponent(code);
+      desk.addEventListener('click', function(){ try { sessionStorage.setItem('ai24x_desktop_force','1'); } catch (e) {} });
+    }
+    var cta = document.querySelectorAll('.cta a');
+    if (cta && cta.length) {
+      cta[0].href = 'quote.html?i=' + encodeURIComponent(code);
+      cta[1].href = 'account.html?i=' + encodeURIComponent(code);
+      cta[2].href = 'feedback.html?i=' + encodeURIComponent(code);
+    }
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>
