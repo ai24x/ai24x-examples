@@ -16,7 +16,13 @@
       var skip = false;
       try { skip = sessionStorage.getItem("ai24x_desktop_force") === "1"; } catch (e) {}
       if (isPhone && narrow && !skip && !location.pathname.endsWith("/m.html")) {
-        location.replace("m.html");
+        var inv = "";
+        try {
+          var sp2 = new URLSearchParams(location.search);
+          inv = String(sp2.get("i") || sp2.get("invite") || "").trim();
+          if (!inv) inv = String(localStorage.getItem("ai24x_invite_code") || "").trim();
+        } catch (e2) {}
+        location.replace("m.html" + (inv ? "?i=" + encodeURIComponent(inv) : ""));
       }
     } catch (e) {}
   })();
@@ -5488,27 +5494,10 @@
   }
 
   (function initStickySearchMobile() {
+    /* 桌面版在手机端访问时，搜索框不浮动吸顶（老板 2026-08-11 定），随页面自然滚动 */
     try {
-      if (!window.matchMedia) return;
-      var mq = window.matchMedia('(max-width: 640px)');
-      var row = document.querySelector('.search-row');
-      if (!row) return;
-      var TOP = 66; // 顶部站点栏 60 + 6
-      function apply() {
-        try {
-          if (!mq.matches) { if (row.style.transform) row.style.transform = ''; return; }
-          var docTop = row.offsetTop || 0;
-          var sc = window.pageYOffset || document.documentElement.scrollTop || 0;
-          var off = docTop - sc;
-          var shift = Math.max(0, TOP - off);
-          var cur = row.style.transform || '';
-          var want = shift > 0 ? 'translateY(' + shift + 'px)' : '';
-          if (cur !== want) row.style.transform = want;
-        } catch (e) {}
-      }
-      window.addEventListener('scroll', apply, { passive: true });
-      window.addEventListener('resize', apply, { passive: true });
-      apply();
+      var row = document.querySelector(".search-row");
+      if (row) { row.style.transform = ""; }
     } catch (e) {}
   })();
 
@@ -7814,5 +7803,20 @@
 
 <!-- 手机版互切入口 -->
 <a id="m-switch" href="m.html" style="position:fixed;right:14px;bottom:14px;z-index:9999;background:#101a2c;border:1px solid #3b82f6;color:#e6edf7;font-size:13px;padding:8px 14px;border-radius:999px;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.45)">手机版</a>
+<script>
+  (function () {
+    try {
+      var a = document.getElementById("m-switch");
+      if (!a) return;
+      var c = "";
+      try {
+        var sp = new URLSearchParams(location.search);
+        c = String(sp.get("i") || sp.get("invite") || "").trim();
+        if (!c) c = String(localStorage.getItem("ai24x_invite_code") || "").trim();
+      } catch (e) {}
+      if (c) a.href = "m.html?i=" + encodeURIComponent(c);
+    } catch (e) {}
+  })();
+</script>
 </body>
 </html>

@@ -302,19 +302,27 @@ function drawMarker(ctx, x, y, mk, dir, flip){
   ctx.fillStyle = color;
   ctx.strokeStyle = "rgba(11,18,32,.9)"; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-  var txt = String(mk.raw || mk.label || "").replace(/\s+/g, "").slice(0, 6).replace(/[·.。]+$/, "");
-  if (txt){
-    ctx.font = "bold 10px sans-serif"; ctx.textAlign = "center";
-    var tw = ctx.measureText(txt).width;
-    var ty = flip ? (dir > 0 ? y - 14 : y + 22) : (dir > 0 ? y + 22 : y - 14);
-    var bx = x - tw / 2 - 3, by = ty - 7;
-    ctx.fillStyle = "rgba(8,13,24,.8)";
-    ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(bx, by, tw + 6, 15, 4); else ctx.rect(bx, by, tw + 6, 15);
-    ctx.fill();
-    ctx.fillStyle = color;
-    ctx.fillText(txt, x, ty);
-  }
+  // 一根K线上多个信号：文字竖排堆叠（最多 4 个），避免横向挤在一起
+  var lines = String(mk.raw || mk.label || "").trim().split(/\s+/).filter(Boolean).slice(0, 4).map(function(t){ return t.slice(0, 4); });
+  if (!lines.length) return;
+  ctx.font = "bold 10px sans-serif"; ctx.textAlign = "center";
+  var tw = 0, i;
+  for (i = 0; i < lines.length; i++){ var w = ctx.measureText(lines[i]).width; if (w > tw) tw = w; }
+  var lh = 13, bh = lines.length * lh + 6, bw = tw + 8;
+  var up = (dir > 0) ? flip : !flip;
+  var bx = x - bw / 2, by = up ? (y - 14 - bh) : (y + 14);
+  var dprC = window.devicePixelRatio || 1;
+  var CH = ctx.canvas.height / dprC, CW = ctx.canvas.width / dprC;
+  if (by < 2) by = 2;
+  if (by + bh > CH - 2) by = CH - 2 - bh;
+  if (bx < 2) bx = 2;
+  if (bx + bw > CW - 2) bx = CW - 2 - bw;
+  ctx.fillStyle = "rgba(8,13,24,.8)";
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, 4); else ctx.rect(bx, by, bw, bh);
+  ctx.fill();
+  ctx.fillStyle = color;
+  for (i = 0; i < lines.length; i++){ ctx.fillText(lines[i], x, by + 10 + i * lh); }
 }
 function drawK(rows, sigs){
   var cv = document.getElementById("k-canvas");
@@ -593,23 +601,30 @@ function drawMiniK(ctx, rows, x0, y0, x1, y1){
       if (sg.position === "aboveBar"){ dotY = Math.max(Y(r.h) - 10, y0 + 8); dir = -1; }
       else if (sg.position === "inBar"){ dotY = (Y(r.h) + Y(r.l)) / 2; dir = 0; }
       else { dotY = Math.min(Y(r.l) + 10, y1 - 14); dir = 1; }
-      var lbl = String(sg.raw || sg.note || sg.label || "").slice(0, 7).replace(/[·.。]+$/, "");
-      if (lbl){
+      var lines2 = String(sg.raw || sg.note || sg.label || "").trim().split(/\s+/).filter(Boolean).slice(0, 4);
+      if (lines2.length){
         ctx.font = "bold 17px sans-serif"; ctx.textAlign = "center";
-        var tw = ctx.measureText(lbl).width;
+        var lh2 = 20, tw = 0, li;
+        for (li = 0; li < lines2.length; li++){ var w2 = ctx.measureText(lines2[li]).width; if (w2 > tw) tw = w2; }
+        if (tw > x1 - x0 - 8) tw = x1 - x0 - 8;
         var nextX = (h + 1 < hits.length) ? X(hits[h + 1].i) : Infinity;
         var tx = Math.max(x0 + tw / 2, Math.min(mx, x1 - tw / 2));
         if (nextX - mx < step * 0.9 && h + 1 < hits.length){ /* 信号过密，只画点不画字 */ }
         else {
           if (h > 0 && mx - lastSigX2 < tw + 12){ flip2 = !flip2; } else { flip2 = false; }
-          var ty = (dir < 0) ? (flip2 ? dotY + 24 : dotY - 16) : (flip2 ? dotY - 16 : dotY + 24);
-          var bx2 = tx - tw / 2 - 4, by2 = ty - 9;
+          var bh2 = lines2.length * lh2 + 8;
+          var ty = (dir < 0) ? (flip2 ? dotY + 30 : dotY - 10 - bh2) : (flip2 ? dotY - 10 - bh2 : dotY + 30);
+          var bx2 = tx - tw / 2 - 4, by2 = ty - 10;
+          if (by2 < y0 + 2) by2 = y0 + 2;
+          if (by2 + bh2 > y1 - 2) by2 = y1 - 2 - bh2;
+          if (bx2 < x0) bx2 = x0;
+          if (bx2 + tw + 8 > x1) bx2 = x1 - tw - 8;
           ctx.fillStyle = "rgba(8,13,24,.8)";
           ctx.beginPath();
-          if (ctx.roundRect) ctx.roundRect(bx2, by2, tw + 8, 19, 5); else ctx.rect(bx2, by2, tw + 8, 19);
+          if (ctx.roundRect) ctx.roundRect(bx2, by2, tw + 8, bh2, 5); else ctx.rect(bx2, by2, tw + 8, bh2);
           ctx.fill();
           ctx.fillStyle = sg.color || "#fbbf24";
-          ctx.fillText(lbl, tx, ty);
+          for (li = 0; li < lines2.length; li++){ ctx.fillText(lines2[li], tx, by2 + 13 + li * lh2); }
         }
         lastSigX2 = mx;
       }
@@ -694,6 +709,15 @@ function drawMiniMacd(ctx, rows, x0, y0, x1, y1){
 }
 
 var INVITE_CODE = "BWPX3Z8B";
+function inviteCode(){
+  try{
+    var sp = new URLSearchParams(location.search);
+    var raw = sp.get("i") || sp.get("invite") || sp.get("inv") || sp.get("ref") || "";
+    if (raw) localStorage.setItem("ai24x_invite_code", String(raw).trim().toUpperCase());
+    var c = String(localStorage.getItem("ai24x_invite_code") || "").trim().toUpperCase();
+    return c || INVITE_CODE;
+  }catch(e){ return INVITE_CODE; }
+}
 function buildShareCard(done){
   if (!cacheRows || !cacheRows.length){ if (typeof done === "function") done(null); return; }
   var rows = cacheRows;
@@ -724,12 +748,13 @@ function buildShareCard(done){
   ctx.font = "bold 30px sans-serif";
   ctx.fillText(chg == null ? "--" : (isUp ? "+" : "") + chg.toFixed(2) + "%", W - pad, 112);
   ctx.strokeStyle = "rgba(148,163,184,.16)"; ctx.beginPath(); ctx.moveTo(pad, 146); ctx.lineTo(W - pad, 146); ctx.stroke();
-  drawMiniK(ctx, rows, pad, 168, W - pad, 408);
-  drawMiniMacd(ctx, rows, pad, 426, W - pad, 558);
-  var y = 586;
+  /* 主图/副图加高并保持与手机页原图一致 5:3（330:198），下方文字间距收紧 */
+  drawMiniK(ctx, rows, pad, 152, W - pad, 482);
+  drawMiniMacd(ctx, rows, pad, 498, W - pad, 696);
+  var y = 716;
   var snap = _lastSnapData;
   ctx.fillStyle = MUTED; ctx.font = "22px sans-serif"; ctx.textAlign = "left";
-  ctx.fillText("技术指标快照", pad, y); y += 44;
+  ctx.fillText("技术指标快照", pad, y); y += 32;
   if (snap && snap.ok){
     var sc = Number(snap.score || 0);
     var cls = sc >= 70 ? UP : sc >= 45 ? GOLD : MUTED;
@@ -737,7 +762,7 @@ function buildShareCard(done){
     ctx.fillText(sc ? sc.toFixed(0) : "--", pad, y);
     ctx.fillStyle = cls; ctx.font = "bold 30px sans-serif";
     ctx.fillText(sc >= 70 ? "偏强" : sc >= 45 ? "中性" : "偏弱", pad + 120, y + 6);
-    y += 46;
+    y += 30;
     var mkt = snap.market;
     if (mkt && mkt.name){
       var mpts = Number(mkt.pts || 0);
@@ -748,14 +773,14 @@ function buildShareCard(done){
       ctx.fillText("大盘环境", pad, y);
       ctx.fillStyle = mcl; ctx.font = "bold 24px sans-serif";
       ctx.fillText(mlbl + " " + mpts.toFixed(1) + "  " + mTags.slice(0, 2).join(" / "), pad + 150, y);
-      y += 42;
+      y += 30;
     }
     var tags = snap.tags || [];
     var tx = pad, ty = y + 14;
     tags.slice(0, 4).forEach(function(t){
       ctx.font = "20px sans-serif";
       var w = ctx.measureText(t).width + 22;
-      if (tx + w > W - pad){ tx = pad; ty += 36; }
+      if (tx + w > W - pad){ tx = pad; ty += 30; }
       rr(ctx, tx, ty - 16, w, 30, 15);
       ctx.fillStyle = "rgba(244,63,94,.12)"; ctx.fill();
       ctx.strokeStyle = "rgba(244,63,94,.35)"; ctx.lineWidth = 1; ctx.stroke();
@@ -763,29 +788,29 @@ function buildShareCard(done){
       ctx.fillText(t, tx + 13, ty);
       tx += w + 8;
     });
-    y = ty + 40;
+    y = ty + 28;
     var risks = snap.risks || [];
     if (risks.length){
       ctx.fillStyle = "#f87171"; ctx.font = "24px sans-serif";
       ctx.fillText("风险：" + risks.slice(0, 3).join(" / ") + (risks.length > 3 ? " 等" : ""), pad, y);
-      y += 38;
+      y += 28;
     }
   } else {
     ctx.fillStyle = MUTED; ctx.font = "24px sans-serif";
     ctx.fillText("技术指标快照暂不可用", pad, y);
-    y += 38;
+    y += 34;
   }
   ctx.fillStyle = GOLD; ctx.font = "bold 26px sans-serif"; ctx.textAlign = "left";
-  ctx.fillText("AI行情官 · 灯塔版", pad, 944);
+  ctx.fillText("AI行情官 · 灯塔版", pad, 928);
   ctx.fillStyle = MUTED; ctx.font = "22px sans-serif";
-  ctx.fillText("邀请码 " + INVITE_CODE, pad, 986);
+  ctx.fillText("邀请码 " + inviteCode(), pad, 958);
   ctx.fillStyle = "rgba(138,160,191,.7)"; ctx.font = "19px sans-serif"; ctx.textAlign = "center";
-  ctx.fillText("数据截至 " + String(rows[rows.length - 1].t) + " · 公开技术指标统计，仅供自主决策参考，不构成投资建议", W / 2, H - 32);
+  ctx.fillText("数据截至 " + String(rows[rows.length - 1].t) + " · 公开技术指标统计，仅供自主决策参考，不构成投资建议", W / 2, H - 30);
   ctx.textAlign = "left";
   var baseUrl = null;
   try { baseUrl = cv.toDataURL("image/png"); } catch (e) { baseUrl = null; }
-  var qrSize = 132, qrX = W - pad - qrSize, qrY = 920;
-  var qrLink = "https://a.ai24x.com/i/" + INVITE_CODE;
+  var qrSize = 132, qrX = W - pad - qrSize, qrY = 908;
+  var qrLink = "https://a.ai24x.com/i/" + inviteCode();
   var sid = String(state.secid || "");
   if (sid) qrLink += "?secid=" + encodeURIComponent(sid) + "&period=" + encodeURIComponent(state.period || "day");
   var qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + encodeURIComponent(qrLink);
@@ -948,7 +973,7 @@ document.getElementById("btn-fav").addEventListener("click", function(){
   try{ localStorage.setItem("ai24x_m_favs", JSON.stringify(state.favs)); }catch(e){}
   renderFavList();
 });
-document.getElementById("btn-home").addEventListener("click", function(){ location.href = "index.html"; });
+document.getElementById("btn-home").addEventListener("click", function(){ var c = inviteCode(); location.href = "index.html" + (c ? "?i=" + encodeURIComponent(c) : ""); });
 document.getElementById("btn-signal").addEventListener("click", function(){
   renderSigList();
   document.getElementById("sheet-signal").classList.add("show");
@@ -959,11 +984,20 @@ document.getElementById("btn-more").addEventListener("click", function(){ render
 document.getElementById("close-more").addEventListener("click", function(){ document.getElementById("sheet-more").classList.remove("show"); });
 document.getElementById("sheet-more").addEventListener("click", function(e){ if (e.target === this) this.classList.remove("show"); });
 document.getElementById("btn-share").addEventListener("click", openShare);
-document.getElementById("row-desktop").addEventListener("click", function(){ document.getElementById("sheet-more").classList.remove("show"); location.href = "../demo.html?force=1"; });
+function goDesktop(){
+  try { sessionStorage.setItem("ai24x_desktop_force", "1"); } catch (e) {}
+  var c = inviteCode();
+  document.getElementById("sheet-more").classList.remove("show");
+  location.href = "../demo.html?force=1" + (c ? "&i=" + encodeURIComponent(c) : "");
+}
+document.getElementById("row-desktop").addEventListener("click", goDesktop);
+var deskTop = document.getElementById("link-desktop-top");
+if (deskTop) deskTop.addEventListener("click", goDesktop);
 document.querySelectorAll(".nav-row").forEach(function(row){
   row.addEventListener("click", function(){
-    var href = row.getAttribute("data-href");
+    var href = row.getAttribute("data-href") || "";
     if (!href) return;
+    if (href.indexOf("index.html") >= 0){ var c = inviteCode(); if (c) href += (href.indexOf("?") >= 0 ? "&" : "?") + "i=" + encodeURIComponent(c); }
     document.getElementById("sheet-more").classList.remove("show");
     location.href = href;
   });
@@ -1032,4 +1066,24 @@ document.addEventListener("visibilitychange", function(){ if (!document.hidden) 
 window.addEventListener("resize", function(){ redraw(); });
 loadEnv();
 refresh();
+})();
+
+/* ===== 双指缩放手势提示（首次显示，双指操作后不再出现） ===== */
+(function(){
+  var hint = document.getElementById("gesture-hint");
+  if (!hint) return;
+  var done = false;
+  try { done = localStorage.getItem("ai24x_m_gesture_done") === "1"; } catch (e) {}
+  if (done) { hint.hidden = true; return; }
+  var t = setTimeout(function(){ try { hint.classList.add("hide"); } catch (e) {} }, 8000);
+  function dismiss(){
+    try { clearTimeout(t); } catch (e) {}
+    try { hint.classList.add("hide"); } catch (e) {}
+    try { localStorage.setItem("ai24x_m_gesture_done", "1"); } catch (e) {}
+  }
+  var mainEl = document.querySelector(".chart-main");
+  if (mainEl) {
+    mainEl.addEventListener("touchstart", function(e){ if (e.touches && e.touches.length >= 2) dismiss(); }, { passive: true });
+  }
+  try { hint.addEventListener("click", dismiss); } catch (e) {}
 })();

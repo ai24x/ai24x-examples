@@ -245,6 +245,35 @@
     .pay-body{ margin-top: 10px; text-align:center; }
     .pay-foot{ margin-top: 10px; }
     .pay-foot .row{ justify-content:center; }
+    .pay-hint.is-wechat{
+      border: 1px solid rgba(7,193,96,.45);
+      background: linear-gradient(135deg, rgba(7,193,96,.16), rgba(7,193,96,.05));
+      border-radius: 12px;
+      padding: 10px 12px;
+      color: var(--text);
+      box-shadow: 0 0 0 4px rgba(7,193,96,.08), 0 6px 18px rgba(7,193,96,.14);
+    }
+    .pay-copy-btn{
+      border-color: rgba(7,193,96,.55) !important;
+      background: rgba(7,193,96,.12) !important;
+      font-weight: 700;
+    }
+    .pay-btn.is-active{
+      border-color: rgba(7,193,96,.65) !important;
+      box-shadow: 0 0 0 4px rgba(7,193,96,.14), 0 6px 18px rgba(7,193,96,.18) !important;
+      transform: translateY(-1px);
+    }
+    .pay-wx-tip{
+      margin-top: 8px;
+      font-size: 12px;
+      line-height: 1.65;
+      color: var(--muted);
+      text-align: left;
+      background: var(--panel2);
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
 
     /* Pay result overlay (success / fail / warn) */
     .pay-result-panel{ max-width: 560px; }
@@ -509,6 +538,16 @@
       .wl-score-mid { color: #fbbf24; font-weight: 700; }
       .wl-score-low { color: #94a3b8; font-weight: 600; }
 
+.pay-confirm{margin:10px 0 0;border:1px solid rgba(59,130,246,.4);background:rgba(59,130,246,.1);border-radius:10px;padding:10px 12px}
+.pay-confirm.ok{border-color:rgba(0,181,120,.45);background:rgba(0,181,120,.1)}
+.pay-confirm.warn{border-color:rgba(251,191,36,.45);background:rgba(251,191,36,.08)}
+.pay-confirm .pc-inner{display:flex;align-items:center;gap:8px;font-size:13px;line-height:1.5;flex-wrap:wrap}
+.pay-confirm .pc-dot{width:8px;height:8px;border-radius:50%;background:#3b82f6;flex:0 0 auto;animation:pcPulse 1.4s infinite}
+@keyframes pcPulse{0%,100%{opacity:1}50%{opacity:.35}}
+.pay-confirm.ok .pc-dot{background:#00b578;animation:none}
+.pay-confirm.warn .pc-dot{background:#fbbf24;animation:none}
+.pay-confirm .pc-text{flex:1;color:var(--text)}
+.pay-confirm .btn{font-size:12px;padding:4px 10px}
 </style>
 </head>
 <body>
@@ -542,6 +581,14 @@
       </div>
 
       <div class="status" id="status" style="margin-top:10px;"></div>
+      <div class="pay-confirm" id="pay-confirm" hidden>
+        <div class="pc-inner">
+          <span class="pc-dot"></span>
+          <span class="pc-text" id="pc-text">—</span>
+          <a class="btn" id="pc-login" hidden>去登录</a>
+          <button class="btn" type="button" id="pc-close" aria-label="关闭">×</button>
+        </div>
+      </div>
 
       <div id="auth-user" hidden>
         <div class="notice-bar" id="notice-bar" hidden>
@@ -637,14 +684,15 @@
           <button class="pay-close" type="button" id="btn-pay-close">关闭</button>
         </div>
         <div class="pay-body">
-          <div class="hint" id="pay-hint" style="margin-bottom:8px">请使用 <b>微信</b> 扫一扫完成支付</div>
+          <div class="hint pay-hint" id="pay-hint" style="margin-bottom:8px">请使用 <b>微信</b> 扫一扫完成支付</div>
+          <div class="pay-wx-tip" id="pay-wx-tip" hidden>手机支付：点下方「复制付款链接到微信打开」→ 打开微信 → 粘贴到任意聊天/文件传输助手 → 点击打开链接即可完成支付。</div>
           <img id="vip-qr-img" alt="微信支付二维码" width="220" height="220" style="display:inline-block; border-radius:12px; border:1px solid var(--border); background:#fff; padding:8px;" />
           <div class="hint" style="margin-top:8px; font-size:12px;">订单号 <code id="vip-out-trade" style="font-size:11px; word-break:break-all;"></code></div>
         </div>
         <div class="pay-foot">
           <div class="row" style="justify-content:center; margin-top:10px; flex-wrap:wrap;">
             <input id="vip-code-url" type="text" readonly style="max-width:420px; flex:1; min-width:200px;" />
-            <button class="btn" type="button" id="btn-copy-paylink">复制付款链接</button>
+            <button class="btn pay-copy-btn" type="button" id="btn-copy-paylink">复制付款链接到微信打开</button>
           </div>
           <div class="hint" style="margin-top:10px; font-size:12px;">
             支付完成后本页会自动检测；如未更新可点上方「刷新配额」或在伙伴计划里点「刷新」。
@@ -1808,6 +1856,76 @@
         } catch (e2) {}
       }
 
+      var payConfirm = $("pay-confirm");
+      var pcText = $("pc-text");
+      var pcLogin = $("pc-login");
+      var pcClose = $("pc-close");
+      function payConfirmShow(kind, text, showLogin){
+        try{
+          if(!payConfirm) return;
+          payConfirm.className = "pay-confirm" + (kind === "ok" ? " ok" : kind === "warn" ? " warn" : "");
+          payConfirm.hidden = false;
+          if(pcText) pcText.textContent = text || "";
+          if(pcLogin){
+            try{
+              var c0 = readInviteFromUrl() || "BWPX3Z8B";
+              pcLogin.href = "./index.html?mode=login&ch=phone&i=" + encodeURIComponent(c0);
+            }catch(eC){}
+            pcLogin.hidden = !showLogin;
+          }
+        }catch(e){}
+      }
+      function payConfirmHide(){
+        try{ if(payConfirm) payConfirm.hidden = true; }catch(e){}
+      }
+      if(pcClose) pcClose.addEventListener("click", payConfirmHide);
+      function clearPendingPayLocal(){
+        try{ localStorage.removeItem("ai24x_last_alipay_otn"); }catch(e0){}
+        try{ localStorage.removeItem("ai24x_last_alipay_plan"); }catch(e1){}
+        try{ localStorage.removeItem("ai24x_last_wechat_otn"); }catch(e2){}
+        try{ localStorage.removeItem("ai24x_last_wechat_plan"); }catch(e3){}
+      }
+            function publicConfirmPay(otn, planCode){
+        // 登录态丢失（支付宝/微信 App 内回跳）时，用免登录兜底接口确认并补发开通。
+        if (!otn) return;
+        var n = 0;
+        function tick(){
+          n += 1;
+          apiFetch("/api/billing/pay/query_and_fulfill_public", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ out_trade_no: otn }),
+          })
+            .then(function (d) {
+              var st = d && d.status ? String(d.status) : "pending";
+              if (st === "paid") {
+                var planName = (d && d.plan ? planTitle(String(d.plan)) : "") || (planCode ? planTitle(String(planCode)) : "") || "VIP";
+                var msg = "支付成功，" + planName + " 已自动开通。请登录会员中心即可使用（重新登录后自动显示）。";
+                var det = "订单号：" + otn;
+                if (d && d.amount_yuan_display) det += " · 实付 ￥" + d.amount_yuan_display;
+                payResultOpen("ok", "支付成功 · 已开通", msg, det);
+                try{ setVipPayStatus(msg); }catch(e1){}
+                payConfirmShow("ok", msg, true);
+                try{ clearPendingPayLocal(); }catch(e6){}
+                return;
+              }
+              if (n < 12) { window.setTimeout(tick, 2500); }
+              else {
+                setVipPayStatus("未检测到支付结果。若您已完成支付，请登录后点「刷新配额」确认开通。");
+                payConfirmShow("warn", "未检测到支付结果。若您已完成支付，请登录后点「刷新配额」确认开通。", true);
+              }
+            })
+            .catch(function () {
+              if (n < 12) { window.setTimeout(tick, 2500); }
+              else {
+                setVipPayStatus("支付确认暂时失败，请登录后点「刷新配额」确认开通。");
+                payConfirmShow("warn", "支付确认暂时失败，请登录后点「刷新配额」确认开通。", true);
+              }
+            });
+        }
+        tick();
+      }
+
       function refreshMe() {
         // If returned from WeChat H5 cashier, resume polling by out_trade_no.
         try{
@@ -1818,7 +1936,10 @@
             vipLastOutTradeNo = otn0;
             try { vipLastPlan = String(localStorage.getItem("ai24x_last_wechat_plan") || vipLastPlan || ""); } catch (eLP) {}
             setVipPayStatus("已返回本页：正在确认支付结果（约每 3 秒）…");
-            startVipPoll();
+            if (!tokenGet()) {
+              payConfirmShow("", "检测到待确认的支付订单，正在确认支付结果（约每 3 秒）…", false);
+              publicConfirmPay(vipLastOutTradeNo, vipLastPlan);
+            } else { startVipPoll(); }
           }
         }catch(eR){}
         // If returned from Alipay cashier (or page reload), resume polling by out_trade_no.
@@ -1834,7 +1955,10 @@
             vipLastOutTradeNo = otn1 || savedOtn;
             if(savedPlan) vipLastPlan = savedPlan;
             setVipPayStatus("已返回本页：正在确认支付结果（约每 3 秒）…");
-            startVipPoll();
+            if (!tokenGet()) {
+              payConfirmShow("", "检测到待确认的支付订单，正在确认支付结果（约每 3 秒）…", false);
+              publicConfirmPay(vipLastOutTradeNo, vipLastPlan);
+            } else { startVipPoll(); }
           }
         }catch(eRA){}
         var t = tokenGet();
@@ -2684,16 +2808,34 @@ function agentCityRefresh() {
         return 0;
       }
 
-      function payOverlayOpen(title, hintHtml){
+      function setPayWxHighlight(on){
+        try{
+          if (payHintEl) {
+            if (on) payHintEl.classList.add("is-wechat"); else payHintEl.classList.remove("is-wechat");
+          }
+          var tip = $("pay-wx-tip");
+          if (tip) tip.hidden = !on;
+          if (btnCopyPaylink) {
+            if (on) btnCopyPaylink.classList.add("pay-copy-btn"); else btnCopyPaylink.classList.remove("pay-copy-btn");
+          }
+          var w1 = $("vip-pay-wechat");
+          var w2 = $("agent-pay-wechat");
+          if (w1) { if (on) w1.classList.add("is-active"); else w1.classList.remove("is-active"); }
+          if (w2) { if (on) w2.classList.add("is-active"); else w2.classList.remove("is-active"); }
+        }catch(e){}
+      }
+      function payOverlayOpen(title, hintHtml, wxMode){
         try{
           if (payTitleEl) payTitleEl.textContent = String(title || "请扫码完成支付");
           if (payHintEl) payHintEl.innerHTML = String(hintHtml || "请使用 <b>微信</b> 扫一扫完成支付");
         }catch(e){}
-        try{ vipTimeoutPopupArmed = true; }catch(e0){}
+        try{ setPayWxHighlight(!!wxMode); }catch(e0){}
+        try{ vipTimeoutPopupArmed = true; }catch(e1){}
         try{ if (payOverlay) payOverlay.hidden = false; }catch(e2){}
       }
       function payOverlayClose(){
         try{ if (payOverlay) payOverlay.hidden = true; }catch(e){}
+        try{ setPayWxHighlight(false); }catch(eWX){}
         // User closed the QR window: stop polling and do not pop timeout modal later.
         try{ vipTimeoutPopupArmed = false; }catch(e0){}
         try{ stopVipPoll(); }catch(e1){}
@@ -2794,6 +2936,7 @@ function agentCityRefresh() {
                   setVipPayStatus(msgA);
                   payResultOpen("ok", "升级成功", msgA, vipLastOutTradeNo ? ("订单号：" + vipLastOutTradeNo) : "");
                   vipCollapseAfterSuccess();
+                  try { clearPendingPayLocal(); } catch (eP0) {}
                   try { agentRefresh(); } catch (e0) {}
                 }
               })
@@ -2809,6 +2952,7 @@ function agentCityRefresh() {
                   setVipPayStatus(msg);
                   payResultOpen("ok", "支付成功", msg, vipLastOutTradeNo ? ("订单号：" + vipLastOutTradeNo) : "");
                   vipCollapseAfterSuccess();
+                  try { clearPendingPayLocal(); } catch (eP1) {}
                   refreshMe();
                 }
               })
@@ -2835,7 +2979,7 @@ function agentCityRefresh() {
         }
         var isAgentPay = String(vipLastPlan || "").indexOf("agent_") === 0;
         var title = isAgentPay ? ("升级：" + planTitle(vipLastPlan)) : ("开通：" + planTitle(vipLastPlan));
-        payOverlayOpen(title, "请使用 <b>微信</b> 扫一扫完成支付");
+        payOverlayOpen(title, "请打开 <b>微信</b> 扫码支付；手机用户可复制下方付款链接到微信中打开", true);
       }
 
       function startWechatNative(plan) {
@@ -3085,7 +3229,7 @@ function agentCityRefresh() {
             return;
           }
           copyText(s)
-            .then(function () { setVipPayStatus("已复制付款链接，可发到微信内打开。"); })
+            .then(function () { setVipPayStatus("已复制！请打开微信，粘贴到任意聊天后点击打开即可支付。"); })
             .catch(function () { setVipPayStatus("复制失败，请手动选择输入框内链接复制。"); });
         });
       }

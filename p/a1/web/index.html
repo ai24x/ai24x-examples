@@ -1530,13 +1530,36 @@
           var a = t && t.closest ? t.closest('a[href*="demo.html"]') : null;
           if (!a) return;
           e.preventDefault();
-          try { location.href = "m/quote.html"; } catch (e2) {}
+          try {
+            var c = "";
+            try {
+              var sp2 = new URLSearchParams(location.search);
+              c = String(sp2.get("i") || sp2.get("invite") || "").trim();
+              if (!c) c = String(localStorage.getItem("ai24x_invite_code") || "").trim();
+            } catch (e3) {}
+            location.href = "m/quote.html" + (c ? "?i=" + encodeURIComponent(c) : "");
+          } catch (e2) {}
         }, true);
       }
     })();
   </script>
 <!-- 手机版互切入口 -->
 <a id="m-switch" href="m/" style="position:fixed;right:14px;bottom:14px;z-index:9999;background:#101a2c;border:1px solid #3b82f6;color:#e6edf7;font-size:13px;padding:8px 14px;border-radius:999px;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.45)">手机版</a>
+<script>
+  (function () {
+    try {
+      var a = document.getElementById("m-switch");
+      if (!a) return;
+      var c = "";
+      try {
+        var sp = new URLSearchParams(location.search);
+        c = String(sp.get("i") || sp.get("invite") || "").trim();
+        if (!c) c = String(localStorage.getItem("ai24x_invite_code") || "").trim();
+      } catch (e) {}
+      if (c) a.href = "m/?i=" + encodeURIComponent(c);
+    } catch (e) {}
+  })();
+</script>
 </body>
 </html>
 

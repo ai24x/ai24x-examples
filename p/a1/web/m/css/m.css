@@ -10,7 +10,9 @@ body{height:100dvh;display:flex;flex-direction:column;background:var(--bg);color
 button{background:none;border:none;color:var(--text);cursor:pointer;font-size:14px;padding:6px 10px}
 input{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 10px;font-size:14px;outline:none;width:100%}
 .topbar{display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--panel);border-bottom:1px solid var(--border)}
-.topbar .home{font-size:13px;color:var(--muted);white-space:nowrap}
+.topbar .home{font-size:13px;color:var(--accent);font-weight:700;white-space:nowrap;display:inline-flex;align-items:center;gap:4px}
+.topbar .home svg{flex:0 0 auto}
+.topbar .desktop{font-size:12px;color:var(--gold);white-space:nowrap;display:inline-flex;align-items:center;gap:3px;border:1px solid rgba(251,191,36,.35);border-radius:999px;padding:3px 8px;background:rgba(251,191,36,.08)}
 .topbar .search{flex:1;position:relative}
 .topbar .search .go{position:absolute;right:4px;top:50%;transform:translateY(-50%);color:var(--accent);font-size:16px;padding:4px}
 .suggest{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--panel);border:1px solid var(--border);border-radius:10px;max-height:52dvh;overflow-y:auto;z-index:60;display:none}
@@ -89,3 +91,14 @@ canvas{width:100%;height:100%;display:block}
 .share-actions .btn{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:9px;padding:10px 18px;font-size:14px}
 .share-actions .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:800}
 .share-tip{font-size:11px;color:var(--muted);line-height:1.7;text-align:center}
+
+.topbar .desktop span{line-height:1}
+@media (max-width:400px){
+  .topbar .desktop{padding:3px 6px}
+  .topbar .desktop span{display:none}
+  .topbar .home{font-size:12px}
+  .topbar .search input{font-size:13px}
+}
+
+.gesture-hint{position:absolute;left:50%;top:12px;transform:translateX(-50%);z-index:30;background:rgba(8,13,24,.85);border:1px solid rgba(59,130,246,.55);color:#e6edf7;font-size:12px;border-radius:999px;padding:6px 12px;white-space:nowrap;pointer-events:none;transition:opacity .5s;max-width:88%;overflow:hidden;text-overflow:ellipsis}
+.gesture-hint.hide{opacity:0}

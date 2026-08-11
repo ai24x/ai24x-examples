@@ -6639,12 +6639,16 @@ def pay_order_try_fulfill_wechat(out_trade_no: str, transaction_id: str, amount_
                 return {"ok": True, "duplicate": True}
             return {"ok": False, "error": "order_already_paid"}
 
-        if int(row["amount_fen"]) != int(amount_fen):
-            return {"ok": False, "error": "amount_mismatch"}
+        expect = int(row["amount_fen"])
+        paid = int(amount_fen)
+        if paid <= 0:
+            return {"ok": False, "error": "invalid_amount"}
+        # 微信支付优惠/红包会使实付低于标价：照常开通，金额差异记流水供后台核查
+        amount_note = f"expect={expect} paid={paid} diff={paid - expect}"
 
         uid = int(row["user_id"])
         plan = str(row["plan"])
-        _fulfill_paid_plan_in_conn(conn, uid, plan, f"wechat:{otn}", now)
+        _fulfill_paid_plan_in_conn(conn, uid, plan, f"wechat:{otn} {amount_note}", now)
 
         # Bind referrer (invite) into order for future settlement/reporting.
         inviter_id: int | None = None
@@ -6698,12 +6702,16 @@ def pay_order_try_fulfill_alipay(out_trade_no: str, trade_no: str, amount_fen: i
                 return {"ok": True, "duplicate": True}
             return {"ok": False, "error": "order_already_paid"}
 
-        if int(row["amount_fen"]) != int(amount_fen):
-            return {"ok": False, "error": "amount_mismatch"}
+        expect = int(row["amount_fen"])
+        paid = int(amount_fen)
+        if paid <= 0:
+            return {"ok": False, "error": "invalid_amount"}
+        # 支付宝优惠/红包会使实付低于标价：照常开通，金额差异记流水供后台核查
+        amount_note = f"expect={expect} paid={paid} diff={paid - expect}"
 
         uid = int(row["user_id"])
         plan = str(row["plan"])
-        _fulfill_paid_plan_in_conn(conn, uid, plan, f"alipay:{otn}", now)
+        _fulfill_paid_plan_in_conn(conn, uid, plan, f"alipay:{otn} {amount_note}", now)
 
         # Bind referrer (invite) into order for future settlement/reporting.
         inviter_id: int | None = None

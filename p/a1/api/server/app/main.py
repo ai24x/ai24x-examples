@@ -4170,8 +4170,100 @@ async def billing_wechat_query_and_fulfill(body: dict, user_id: int = Depends(ge
     return {"ok": True, "status": "paid", "duplicate": bool(r.get("duplicate"))}
 
 
+
+def _build_alipay_return_url(request: Request, ali_cfg: object, otn: str) -> str:
+    """生成带订单号的支付宝同步跳转地址，支付成功回跳后前端可据此续轮询/补发开通。"""
+    base = str(getattr(ali_cfg, "alipay_return_url", "") or "").strip()
+    if not base:
+        try:
+            proto = str(
+                request.headers.get("x-forwarded-proto") or request.url.scheme or "https"
+            ).split(",")[0].strip()
+            host = str(
+                request.headers.get("x-forwarded-host")
+                or request.headers.get("host")
+                or request.url.netloc
+                or ""
+            ).split(",")[0].strip()
+            origin = f"{proto}://{host}" if host else str(request.base_url).rstrip("/")
+        except Exception:
+            origin = str(request.base_url).rstrip("/")
+        base = f"{origin}/account.html"
+    if "otn=" in base:
+        return base
+    sep = "&" if "?" in base else "?"
+    return f"{base}{sep}otn={quote(otn)}&ch=alipay"
+
+
+_PUBLIC_FULFILL_LAST_TS: dict[str, float] = {}
+_PUBLIC_FULFILL_ATTEMPTS: dict[str, int] = {}
+
+
+@app.post("/api/billing/pay/query_and_fulfill_public")
+async def billing_pay_query_and_fulfill_public(body: dict) -> dict:
+    """
+    支付回跳兜底（无需登录）：按 out_trade_no 主动查询支付平台并补发开通。
+    - 适用于手机支付宝/微信支付完成后回跳到本页但登录态丢失的场景；
+    - 幂等：订单已 paid 直接返回成功；
+    - 仅 pending 订单、创建 24 小时内允许触发查询（配合内存限流防刷）；
+    - 金额/签名由支付平台侧校验，本接口只做「确认已支付 → 开通」。
+    """
+    otn = str((body or {}).get("out_trade_no") or "").strip()
+    if not otn:
+        raise HTTPException(status_code=400, detail="missing out_trade_no")
+    row = db.pay_order_get_by_out_trade_no(otn)
+    if not row:
+        raise HTTPException(status_code=404, detail="order_not_found")
+    plan = str(row.get("plan") or "")
+    amount_yuan = _fen_to_yuan_display(int(row.get("amount_fen") or 0))
+    if str(row.get("status") or "") == "paid":
+        return {"ok": True, "status": "paid", "duplicate": True, "plan": plan, "amount_yuan_display": amount_yuan}
+
+    now = int(time.time())
+    created = int(row.get("created_at") or 0)
+    if created <= 0 or now - created > 24 * 3600:
+        return {"ok": True, "status": "expired", "plan": plan}
+
+    # 内存限流：每单最多 8 次主动查询、间隔至少 3 秒，防刷上游。
+    if now - _PUBLIC_FULFILL_LAST_TS.get(otn, 0.0) < 3:
+        return {"ok": True, "status": "pending", "plan": plan}
+    if _PUBLIC_FULFILL_ATTEMPTS.get(otn, 0) >= 8:
+        return {"ok": True, "status": "pending", "plan": plan}
+    _PUBLIC_FULFILL_LAST_TS[otn] = float(now)
+    _PUBLIC_FULFILL_ATTEMPTS[otn] = _PUBLIC_FULFILL_ATTEMPTS.get(otn, 0) + 1
+
+    channel = str(row.get("channel") or "")
+    try:
+        if "wechat" in channel:
+            txn = await wechat_v3.query_transaction_by_out_trade_no(resolve_wechat_pay(), out_trade_no=otn)
+            if str(txn.get("trade_state") or "") != "SUCCESS":
+                return {"ok": True, "status": "pending", "trade_state": str(txn.get("trade_state") or "")}
+            transaction_id = str(txn.get("transaction_id") or "").strip()
+            amount = txn.get("amount") if isinstance(txn.get("amount"), dict) else {}
+            total = int((amount or {}).get("total") or 0)
+            r = db.pay_order_try_fulfill_wechat(otn, transaction_id, total)
+        elif "alipay" in channel:
+            txn = alipay_wap.query_trade(resolve_alipay(), out_trade_no=otn)
+            if str(txn.get("trade_status") or "") not in ("TRADE_SUCCESS", "TRADE_FINISHED"):
+                return {"ok": True, "status": "pending", "trade_status": str(txn.get("trade_status") or "")}
+            trade_no = str(txn.get("trade_no") or "").strip()
+            total_amount = str(txn.get("total_amount") or "").strip()
+            try:
+                total = int(round(float(total_amount) * 100.0))
+            except Exception:
+                total = 0
+            r = db.pay_order_try_fulfill_alipay(otn, trade_no, total)
+        else:
+            return {"ok": True, "status": "pending", "plan": plan}
+    except Exception:
+        return {"ok": True, "status": "pending", "plan": plan}
+    if not r.get("ok"):
+        return {"ok": True, "status": "pending", "plan": plan}
+    return {"ok": True, "status": "paid", "duplicate": bool(r.get("duplicate")), "plan": plan, "amount_yuan_display": amount_yuan}
+
+
 @app.post("/api/billing/alipay/wap", response_model=PayWapOut)
-async def billing_alipay_wap(body: PayWapIn, user_id: int = Depends(get_current_user_id)) -> PayWapOut:
+async def billing_alipay_wap(request: Request, body: PayWapIn, user_id: int = Depends(get_current_user_id)) -> PayWapOut:
     ali_cfg = resolve_alipay()
     b = resolve_billing()
     if not bool(getattr(b, "billing_pay_alipay_enabled", True)):
@@ -4214,7 +4306,7 @@ async def billing_alipay_wap(body: PayWapIn, user_id: int = Depends(get_current_
             out_trade_no=out_trade_no,
             subject=subj,
             total_amount_yuan=_yuan_str_from_fen(charge_fen),
-            return_url=(str(getattr(ali_cfg, "alipay_return_url", "") or "").strip() or None),
+            return_url=_build_alipay_return_url(request, ali_cfg, out_trade_no),
         )
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e)[:800]) from e

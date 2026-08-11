@@ -110,7 +110,10 @@
     var reg = document.getElementById('reg-link');
     if (reg) reg.href = '../index.html?i=' + encodeURIComponent(code) + '&mode=register';
     var desk = document.getElementById('link-desktop');
-    if (desk) desk.addEventListener('click', function(){ try { sessionStorage.setItem('ai24x_desktop_force','1'); } catch (e) {} });
+    if (desk) {
+      desk.href = '../index.html?i=' + encodeURIComponent(code);
+      desk.addEventListener('click', function(){ try { sessionStorage.setItem('ai24x_desktop_force','1'); } catch (e) {} });
+    }
   } catch (e) {}
 })();
 </script>
