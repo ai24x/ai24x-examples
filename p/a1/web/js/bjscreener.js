@@ -281,11 +281,11 @@ window.AI24X_BJScreener = (function () {
       var secid = String(b.secid || "").trim();
       var ths = String(b.ths || "").trim();
       var useSecid = ths || secid;
-      var code = useSecid.replace(/^ths:/i, "").replace(/^\d+\./, "");
+      var thsCode = ths ? ths.replace(/^ths:/i, "").replace(/^\d+\./, "") : "";
       var bkCode = secid.replace(/^\d+\./, "");
       var href = useSecid ? ("demo.html?secid=" + encodeURIComponent(useSecid) + "&period=day" + (b.name ? "&name=" + encodeURIComponent(b.name) : "")) : "#";
-      var nm = '<a class="n" href="' + href + '" target="_blank" rel="noopener" title="在AI行情官中查看 ' + esc(b.name) + (ths ? '（同花顺 ' + esc(code) + (bkCode ? ' · 东财 ' + esc(bkCode) : '') + '）' : (code ? ' (' + esc(code) + ')' : '')) + '">' +
-        esc(b.name) + (code ? ' <span class="br-code">' + esc(code) + '</span>' : '') + ' ↗</a>';
+      var nm = '<a class="n" href="' + href + '" target="_blank" rel="noopener" title="在AI行情官中查看 ' + esc(b.name) + (ths ? '（同花顺 ' + esc(thsCode) + ' · 东财 ' + esc(bkCode) + '）' : (bkCode ? '（东财 ' + esc(bkCode) + '）' : '')) + '">' +
+        esc(b.name) + (thsCode ? ' <span class="br-code">' + esc(thsCode) + '</span>' : '') + ' ↗</a>';
       var st = "";
       if (isAll) {
         if (b.mainline && !b.f164) {

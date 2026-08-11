@@ -561,7 +561,7 @@ def load_archive(market: str, date_key: str) -> dict[str, Any] | None:
             _hist0 = _load_history()
             _iv = _hist0.get(f"{market}:{str(date_key).split(' (', 1)[0]}")
             if isinstance(_iv, dict):
-                return _iv
+                return _reattach_ths(_iv)
         except Exception:
             pass
     mp = _multi_archive_path(market, date_key)
@@ -576,7 +576,7 @@ def load_archive(market: str, date_key: str) -> dict[str, Any] | None:
     if not isinstance(d, dict) and market == "bj":
         # 兼容旧版无市场后缀的归档
         d = _load_json_file(os.path.join(_ARCHIVE_DIR, f"{date_key}.json"), None)
-    return d if isinstance(d, dict) else None
+    return _reattach_ths(d) if isinstance(d, dict) else None
 
 
 
@@ -682,6 +682,20 @@ def archive_summary(market: str = "bj") -> list[dict[str, Any]]:
     return out
 
 
+def _reattach_ths(payload: dict[str, Any]) -> dict[str, Any]:
+    """归档/stale 回退读取时补挂板块 ths（旧归档无 ths 字段，无需重扫即可显示同花顺代码）。"""
+    try:
+        for key in ("board_rank", "mainlines", "hot_boards"):
+            for it in payload.get(key) or []:
+                if isinstance(it, dict):
+                    sid = str(it.get("secid") or "").strip()
+                    if sid and not str(it.get("ths") or "").strip():
+                        it["ths"] = bk_to_ths_secid(sid) or ""
+    except Exception:
+        pass
+    return payload
+
+
 def _apply_stale_fallback(result: dict[str, Any], market: str = "bj") -> dict[str, Any]:
     """今日无合格标的时，回退展示上一交易日结果并打 stale 标记。
 
@@ -689,7 +703,7 @@ def _apply_stale_fallback(result: dict[str, Any], market: str = "bj") -> dict[st
     否则缓存里只剩昨日归档数据，今日真实扫描结果（fine/runner/未达主推线原因）无法核对。
     """
     if result.get("picks"):
-        return result
+        return _reattach_ths(result)
     stale = _latest_history(market)
     if not stale:
         return result
@@ -711,7 +725,7 @@ def _apply_stale_fallback(result: dict[str, Any], market: str = "bj") -> dict[st
             "risks": _t0.get("risks") or [],
         }
     out["today_fine"] = _tf
-    return out
+    return _reattach_ths(out)
 
 
 def _num(v: Any, d: float = 0.0) -> float:
@@ -2774,6 +2788,7 @@ async def run_scan(
                 out.pop("picks", None)
                 out.pop("runners", None)
                 out = _strip_conclusions(out)
+                out = _reattach_ths(out)
                 _BOARDS_CACHE[boards_key] = (time.time(), out)
                 _mark_cached("盘中/非交易日：展示最近归档板块视图")
                 return out
@@ -2800,6 +2815,7 @@ async def run_scan(
                     out["market_code"] = market
                     out["off_market"] = True
                     out["date"] = stale.get("date") or stale.get("asof") or ""
+                    out = _reattach_ths(out)
                     _mark_cached("非交易日：直接展示最近交易日归档（可点「重新扫描」强制刷新）")
                     return out
             # 交易日盘中（未到 15:03 收盘）：今日数据尚未生成，展示上一交易日归档
@@ -2813,6 +2829,7 @@ async def run_scan(
                     out["market_code"] = market
                     out["intraday"] = True
                     out["date"] = stale.get("date") or stale.get("asof") or ""
+                    out = _reattach_ths(out)
                     _mark_cached("盘中未收盘：展示上一交易日归档（15:03 后自动更新今日）")
                     return out
         else:
