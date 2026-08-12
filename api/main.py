@@ -611,6 +611,23 @@ async def openai_responses_create(
     )
     rid = response_id()
 
+    # ⚠️ 主脑 2026-08-12 五修【DIAG】：Codex 完整请求 400 诊断（临时，定位后移除/精简）
+    try:
+        _dt = body.get("tools")
+        _dn = []
+        if isinstance(_dt, list):
+            for _t in _dt[:20]:
+                if isinstance(_t, dict):
+                    _fn = _t.get("function")
+                    _nn = _t.get("name") or (_fn.get("name") if isinstance(_fn, dict) else None)
+                    _dn.append(str(_nn or ""))
+        _di = body.get("input")
+        _dmsgs = len(_di) if isinstance(_di, list) else (1 if isinstance(_di, str) else 0)
+        _dlen = len(json.dumps(body, ensure_ascii=False)) if body else 0
+        logger.warning(f"【DIAG】responses entry model={body.get('model')!r} stream={body.get('stream')} tools_n={len(_dn)} tools={_dn[:20]} input_items={_dmsgs} has_instructions={'instructions' in body} has_reasoning={'reasoning' in body} body_len={_dlen} user={auth_uid}")
+    except Exception:
+        pass
+
     # 真流式：先发 response.created 心跳，边生成边写 SSE 事件（Codex/Cursor 工具循环）
     if want_stream and true_stream_enabled():
         try:
