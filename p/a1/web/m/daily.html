@@ -288,9 +288,31 @@
     }).join('');
   }
 
+  // 历史报告模式：?date=YYYYMMDD
+  function loadDate(d8){
+    document.title = '复盘历史 · ' + d8;
+    var br = $('btn-run'); if (br) br.style.display = 'none';
+    var bf = $('btn-force'); if (bf) bf.style.display = 'none';
+    $('report').innerHTML = '<div class="empty">加载中…</div>';
+    api('/api/report/' + String(d8).replace(/\D/g, '')).then(function(j){
+      if (j && j.ok) {
+        $('report').innerHTML = '<div class="empty" style="padding-bottom:8px">历史报告 · ' + esc(j.date || d8) + '（' + (j.vip ? '完整版' : '公开版') + '）</div>' + j.html;
+        hideProg();
+      } else {
+        $('report').innerHTML = '<div class="empty">' + esc((j && j.msg) || '历史报告读取失败') + '</div>';
+        hideProg();
+      }
+    }).catch(function(e){ $('report').innerHTML = '<div class="empty">加载失败：' + esc(String(e)) + '</div>'; hideProg(); });
+  }
+
   $('btn-run').addEventListener('click', function(){ startScan(0); });
   $('btn-force').addEventListener('click', function(){ startScan(1); });
-  setStatus();
+  var qDate = qp.get('date');
+  if (qDate && String(qDate).replace(/\D/g, '').length >= 8) {
+    loadDate(String(qDate).replace(/\D/g, ''));
+  } else {
+    setStatus();
+  }
 })();
 </script>
 </body>
