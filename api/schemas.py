@@ -10,6 +10,14 @@ class UserType(str, Enum):
 
 
 class ChatRequest(BaseModel):
+    # ⚠️ 主脑 2026-08-12 NUL 清洗：入口统一去 NUL(0x00)，防 PostgreSQL 写库拒绝导致流中断
+    @field_validator("prompt", mode="before")
+    @classmethod
+    def _strip_nul_prompt(cls, v):
+        if v is None:
+            return v
+        return str(v).replace("\x00", "")
+
     prompt: str = Field(..., min_length=1, max_length=200000, description="用户输入的提示词")
     model: Optional[str] = Field(
         default="auto",

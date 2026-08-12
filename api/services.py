@@ -431,7 +431,8 @@ class ChatService:
             request_id=request_id,
             user_id=user.user_id,
             user_type=user.user_type,
-            prompt=request.prompt,
+            # ⚠️ 主脑 2026-08-12 NUL 清洗：Prompt 含 NUL(0x00) 时 PostgreSQL 写库拒绝 → SSE 断流（Codex 大上下文复现），统一清洗
+            prompt=(request.prompt or "").replace("\x00", ""),
             model=request.model,
             temperature=request.temperature,
             max_tokens=request.max_tokens,

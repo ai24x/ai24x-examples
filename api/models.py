@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey, Enum, Float, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import validates
 from sqlalchemy.sql import func
 import enum
 
@@ -63,6 +64,13 @@ class ChatRequest(Base):
     # Billing/usage
     token_count = Column(Integer, default=0)
     cost = Column(Float, default=0.0)
+
+    # ⚠️ 主脑 2026-08-12 NUL 清洗：PostgreSQL 拒绝 NUL(0x00) 字符，写库字符串统一去 NUL 防断流（创建/更新均生效）
+    @validates("prompt", "response", "error_message", "user_agent")
+    def _strip_nul(self, key: str, value):
+        if isinstance(value, str) and "\x00" in value:
+            return value.replace("\x00", "")
+        return value
 
 
 class RateLimit(Base):
