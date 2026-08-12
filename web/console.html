@@ -47,6 +47,20 @@
     .console-panel .card { display: flex; flex-direction: column; }
     .console-panel .card .card-actions { margin-top: auto; }
     .console-panel .btn { min-height: 38px; line-height: 1.2; white-space: nowrap; }
+    /* console: usage 流水表 */
+    .usage-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 4px 0 10px; flex-wrap: wrap; }
+    .usage-toolbar .btn { font-size: 0.8rem; padding: 6px 12px; }
+    .usage-pager { display: flex; align-items: center; gap: 8px; }
+    .usage-page-info { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+    .usage-table-wrap { overflow-x: auto; }
+    .usage-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .usage-table th, .usage-table td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border, #d8e4ef); vertical-align: top; }
+    .usage-table thead th { color: var(--muted); font-weight: 600; white-space: nowrap; background: color-mix(in srgb, var(--accent, #2563eb) 4%, transparent); }
+    .usage-table td.col-time { white-space: nowrap; color: var(--muted); }
+    .usage-table td.col-amount { white-space: nowrap; font-weight: 600; }
+    .usage-table td.col-tokens { white-space: nowrap; text-align: right; }
+    .usage-table td.col-note { max-width: 260px; overflow-wrap: break-word; }
+    .usage-empty { padding: 14px 10px; color: var(--muted); }
     .stats-grid .stat-card { display: flex; flex-direction: column; }
     .stats-grid .stat-card .stat-sub { margin-top: auto; }
     /* 邀请回馈卡 */
@@ -329,7 +343,29 @@
             <div class="card">
               <h3 class="mt-0" data-i18n="page.console.activity.title">Ledger</h3>
               <div id="usageSummary" class="usage-summary" style="display:none"></div>
-              <ul class="list-clean" id="activityList"></ul>
+              <div class="usage-toolbar">
+                <button id="usage-export-btn" class="btn" type="button"></button>
+                <div class="usage-pager">
+                  <button id="usage-prev" class="btn" type="button"></button>
+                  <span id="usage-page-info" class="usage-page-info"></span>
+                  <button id="usage-next" class="btn" type="button"></button>
+                </div>
+              </div>
+              <div class="usage-table-wrap">
+                <table class="usage-table" id="usageTable">
+                  <thead>
+                    <tr>
+                      <th class="col-type"></th>
+                      <th class="col-model"></th>
+                      <th class="col-time"></th>
+                      <th class="col-amount"></th>
+                      <th class="col-tokens"></th>
+                      <th class="col-note"></th>
+                    </tr>
+                  </thead>
+                  <tbody id="activityList"></tbody>
+                </table>
+              </div>
             </div>
           </div>
 
@@ -472,7 +508,7 @@
   <script src="js/i18n.js?v=20260812g"></script>
   <script src="js/shell.js?v=20260808b"></script>
   <script src="js/app.js?v=20260808b"></script>
-  <script src="js/console.js?v=20260812e"></script>
+  <script src="js/console.js?v=20260812h"></script>
   <script src="js/support-widget.js?v=20260809a"></script>
 </body>
 </html>

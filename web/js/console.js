@@ -1228,9 +1228,22 @@
     return String(v);
   }
 
+    var USAGE_PAGE_SIZE = 15;
+  var usagePage = 0;
+  var usageTotal = 0;
+  var usageBindDone = false;
+
+  function fmtUsageTime(iso) {
+    if (!iso) return "--";
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return String(iso);
+    function p(n) { return n < 10 ? "0" + n : "" + n; }
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+  }
+
   function renderUsage(rows, summary) {
-    var box = $("activityList");
-    if (!box) return;
+    var tbody = $("activityList");
+    if (!tbody) return;
     var sm = $("usageSummary");
     if (sm) {
       var fx = Number((summary && summary.usd_cny) || 0) || 7.2;
@@ -1248,48 +1261,133 @@
       );
       sm.style.display = "";
     }
-    box.innerHTML = "";
+    var headTexts = [tr("类型", "Type"), tr("模型", "Model"), tr("时间", "Time"), tr("金额", "Amount"), tr("Tokens", "Tokens"), tr("备注", "Note")];
+    var headCells = document.querySelectorAll("#usageTable thead th");
+    for (var hi = 0; hi < headCells.length && hi < headTexts.length; hi++) headCells[hi].textContent = headTexts[hi];
+    var exportBtn = $("usage-export-btn");
+    if (exportBtn) exportBtn.textContent = tr("导出 CSV", "Export CSV");
+    var prevBtn = $("usage-prev");
+    if (prevBtn) prevBtn.textContent = tr("‹ 上一页", "‹ Prev");
+    var nextBtn = $("usage-next");
+    if (nextBtn) nextBtn.textContent = tr("下一页 ›", "Next ›");
+    var pages = Math.max(1, Math.ceil((usageTotal || 0) / USAGE_PAGE_SIZE));
+    var pageInfo = $("usage-page-info");
+    if (pageInfo) pageInfo.textContent = tr("第 " + (usagePage + 1) + " / " + pages + " 页", "Page " + (usagePage + 1) + " / " + pages);
+    if (prevBtn) prevBtn.disabled = usagePage <= 0;
+    if (nextBtn) nextBtn.disabled = usagePage >= pages - 1;
+
+    tbody.innerHTML = "";
     if (!rows || !rows.length) {
-      box.innerHTML =
-        '<li class="list-item"><span>' +
-        tr("暂无流水", "No ledger entries") +
-        "</span><span></span></li>";
+      var tdE = document.createElement("td");
+      tdE.colSpan = 6;
+      tdE.className = "usage-empty";
+      tdE.textContent = tr("暂无流水", "No ledger entries");
+      var trE = document.createElement("tr");
+      trE.appendChild(tdE);
+      tbody.appendChild(trE);
       return;
     }
-    rows.slice(0, 12).forEach(function (r) {
-      var li = document.createElement("li");
-      li.className = "list-item";
-      var left = document.createElement("span");
-      left.textContent =
-        labelEntryType(r.entry_type) +
-        (r.model ? " · " + brandModelLabel("", "", r.model) : "") +
-        (r.note ? " · " + humanizeLedgerNote(r.note) : "");
-      var right = document.createElement("span");
-      var zh = AI24X_API.isZhUi();
-      var fx = Number((summary && summary.usd_cny) || 0) || 7.2;
+    var fx2 = Number((summary && summary.usd_cny) || 0) || 7.2;
+    rows.forEach(function (r) {
+      var trEl = document.createElement("tr");
+      var tdType = document.createElement("td");
+      tdType.textContent = labelEntryType(r.type || r.entry_type);
+      var tdModel = document.createElement("td");
+      tdModel.textContent = r.model ? brandModelLabel("", "", r.model) : "--";
+      var tdTime = document.createElement("td");
+      tdTime.className = "col-time";
+      tdTime.textContent = fmtUsageTime(r.created_at);
+      var tdAmt = document.createElement("td");
+      tdAmt.className = "col-amount";
       var hasUsd = r.amount_usd != null && Number(r.amount_usd) !== 0;
-      var main = "";
-      var sub = "";
-      if (r.entry_type === "consume") {
-        if (hasUsd) {
-          main = fmtMoneyCents(-Math.abs(Number(r.amount_usd)), fx);
-          sub = fmtTokensCount(r.tokens || r.amount) + (zh ? " tokens" : "");
-        } else {
-          main = (r.amount < 0 ? "" : "+") + fmtTokensCount(r.tokens || r.amount);
-        }
+      if ((r.type || r.entry_type) === "consume") {
+        if (hasUsd) tdAmt.textContent = fmtMoneyCents(-Math.abs(Number(r.amount_usd)), fx2);
+        else tdAmt.textContent = (r.amount < 0 ? "" : "+") + fmtTokensCount(r.tokens || r.amount);
       } else if (hasUsd) {
-        main = fmtMoneyCents(Number(r.amount_usd), fx);
-        sub = fmtTokensCount(r.tokens || r.amount) + (zh ? " tokens" : "");
+        tdAmt.textContent = fmtMoneyCents(Number(r.amount_usd), fx2);
       } else {
-        main = (r.amount > 0 ? "+" : "") + fmtTokensCount(r.amount);
+        tdAmt.textContent = (r.amount > 0 ? "+" : "") + fmtTokensCount(r.amount);
       }
-      right.innerHTML =
-        (main ? '<span style="font-weight:600">' + escapeHtml(main) + "</span>" : "") +
-        (sub ? ' <span style="font-size:11px;color:var(--muted);opacity:.75;margin-left:4px">' + escapeHtml(sub) + "</span>" : "");
-      li.appendChild(left);
-      li.appendChild(right);
-      box.appendChild(li);
+      var tdTok = document.createElement("td");
+      tdTok.className = "col-tokens";
+      tdTok.textContent = r.tokens != null ? fmtTokensCount(r.tokens) : "--";
+      var tdNote = document.createElement("td");
+      tdNote.className = "col-note";
+      tdNote.textContent = r.note ? humanizeLedgerNote(r.note) : "";
+      trEl.appendChild(tdType);
+      trEl.appendChild(tdModel);
+      trEl.appendChild(tdTime);
+      trEl.appendChild(tdAmt);
+      trEl.appendChild(tdTok);
+      trEl.appendChild(tdNote);
+      tbody.appendChild(trEl);
     });
+  }
+
+  function loadUsagePage(page) {
+    usagePage = Math.max(0, page);
+    AI24X_API.billingUsage({ limit: USAGE_PAGE_SIZE, offset: usagePage * USAGE_PAGE_SIZE })
+      .then(function (usage) {
+        usageTotal = (usage && usage.total) != null ? Number(usage.total) : 0;
+        renderUsage((usage && usage.rows) || [], usage && usage.summary);
+      })
+      .catch(function () {
+        var tb = $("activityList");
+        if (tb) tb.innerHTML = "<tr><td colspan=\"6\" class=\"usage-empty\">" + escapeHtml(tr("加载失败，请稍后重试", "Failed to load, try again later")) + "</td></tr>";
+      });
+  }
+
+  function exportUsageCsv() {
+    var btn = $("usage-export-btn");
+    if (btn) { btn.disabled = true; btn.textContent = tr("导出中…", "Exporting…"); }
+    var all = [];
+    var step = 200;
+    var off = 0;
+    function next() {
+      AI24X_API.billingUsage({ limit: step, offset: off })
+        .then(function (u) {
+          var rows = (u && u.rows) || [];
+          all = all.concat(rows);
+          var total = (u && u.total) != null ? Number(u.total) : all.length;
+          off += rows.length;
+          if (rows.length && off < total) { next(); } else { finish(all); }
+        })
+        .catch(function () { finish(all); });
+    }
+    function finish(rows) {
+      var esc = function (v) {
+        v = String(v == null ? "" : v);
+        if (/[",\n\r]/.test(v)) return "\"" + v.replace(/"/g, "\"\"") + "\"";
+        return v;
+      };
+      var head = ["type", "model", "time", "amount_usd", "tokens", "note", "request_id"].map(esc).join(",");
+      var lines = [head];
+      rows.forEach(function (r) {
+        lines.push([r.entry_type, r.model, r.created_at, r.amount_usd != null ? r.amount_usd : "", r.tokens != null ? r.tokens : "", r.note || "", r.request_id || ""].map(esc).join(","));
+      });
+      var csv = "\ufeff" + lines.join("\r\n");
+      var blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "ai24x-usage-" + new Date().toISOString().slice(0, 10) + ".csv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 3000);
+      if (btn) { btn.disabled = false; btn.textContent = tr("导出 CSV", "Export CSV"); }
+    }
+    next();
+  }
+
+  function bindUsageControls() {
+    if (usageBindDone) return;
+    usageBindDone = true;
+    var prev = $("usage-prev");
+    var next = $("usage-next");
+    var exp = $("usage-export-btn");
+    if (prev) prev.addEventListener("click", function () { loadUsagePage(usagePage - 1); });
+    if (next) next.addEventListener("click", function () { loadUsagePage(usagePage + 1); });
+    if (exp) exp.addEventListener("click", exportUsageCsv);
   }
 
   function fillVipPickOptions(isVip) {
@@ -1717,9 +1815,12 @@
         usage && usage.summary && usage.summary.consume_calls != null
           ? Number(usage.summary.consume_calls)
           : rows.filter(function (r) {
-              return r.entry_type === "consume";
+              return (r.type || r.entry_type) === "consume";
             }).length;
       if ($("stat-calls")) $("stat-calls").textContent = String(consumes);
+      usageTotal = (usage && usage.total) != null ? Number(usage.total) : 0;
+      usagePage = 0;
+      bindUsageControls();
       renderUsage(rows, usage && usage.summary);
     } catch (e) {
       if ($("stat-calls")) $("stat-calls").textContent = "--";
