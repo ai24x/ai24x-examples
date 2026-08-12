@@ -72,6 +72,11 @@ def map_model_name(requested: Optional[str]) -> str:
     if not raw:
         return "flash"
     low = raw.lower()
+    # ⚠️ 主脑 2026-08-12：剥离 provider 前缀（ai24x-prod/vip-xxx → vip-xxx），防未知名回退 flash
+    if "/" in low:
+        _maybe = low.split("/", 1)[1].strip()
+        if _maybe and (_maybe.startswith("vip-") or _maybe in ("auto", "flash", "pro", "ultra", "shared")):
+            low = _maybe
     if low in ("free",):
         return "auto"
     if low in ("free-shared", "free_shared"):
