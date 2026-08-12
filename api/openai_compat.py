@@ -1493,6 +1493,9 @@ def iter_true_sse_from_responses_events(
                 "response.completed",
                 {"type": "response.completed", "response": completed},
             )
+            # ⚠️ 主脑 2026-08-12 记账修复：消费完 events，让 stream_chat_request 执行流末记账（status=completed + consume_tokens）
+            for _ in events:
+                pass
             return
         elif et == "error":
             err = str(ev.get("error") or "upstream_error")
