@@ -360,11 +360,14 @@ def collect_alerts(db) -> dict[str, Any]:
         from upstream_health import snapshot as _uh_snapshot
 
         uh = _uh_snapshot()
+        now_ts = int(time.time())
+        win_s = int(uh.get("window_s") or 600)
         for pid, st in (uh.get("recs") or {}).items():
             w = st.get("window") or {}
             w_total = int(w.get("total") or 0)
             w_fail = int(w.get("fail") or 0)
-            if w_total >= 5 and w_fail / max(1, w_total) >= 0.6:
+            # 仅统计窗口未过期（近期确有请求）时的失败率，避免修复后不再请求的历史残留永久告警
+            if (now_ts - int(w.get("start") or 0)) <= win_s and w_total >= 5 and w_fail / max(1, w_total) >= 0.6:
                 rate = round(w_fail * 100.0 / max(1, w_total))
                 add(
                     "error",
@@ -372,7 +375,8 @@ def collect_alerts(db) -> dict[str, Any]:
                     f"上游通道 {pid} 近 10 分钟失败率 {rate}%（{w_fail}/{w_total}），连续失败 {st.get('consec')} 次",
                 )
             for mid, m in (st.get("models") or {}).items():
-                if int(m.get("consec") or 0) >= 3:
+                # 连续失败告警同样要求最近窗口内有该模型活动，历史 stale 计数不再告警
+                if (now_ts - int(m.get("last_ts") or 0)) <= win_s and int(m.get("consec") or 0) >= 3:
                     safe_mid = "".join(c if c.isalnum() else "_" for c in str(mid))
                     add(
                         "warn",
