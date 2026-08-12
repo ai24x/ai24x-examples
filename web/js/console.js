@@ -1329,13 +1329,7 @@
     AI24X_API.billingUsage({ limit: USAGE_PAGE_SIZE, offset: usagePage * USAGE_PAGE_SIZE })
       .then(function (usage) {
         usageTotal = (usage && usage.total) != null ? Number(usage.total) : 0;
-        var consumes =
-          usage && usage.summary && usage.summary.consume_calls != null
-            ? Number(usage.summary.consume_calls)
-            : ((usage && usage.rows) || []).filter(function (r) {
-                return (r.type || r.entry_type) === "consume";
-              }).length;
-        if ($("stat-calls")) $("stat-calls").textContent = String(consumes);
+
         renderUsage((usage && usage.rows) || [], usage && usage.summary);
       })
       .catch(function () {
@@ -1818,9 +1812,7 @@
     try {
       bindUsageControls();
       loadUsagePage(0);
-    } catch (e) {
-      if ($("stat-calls")) $("stat-calls").textContent = "--";
-    }
+    } catch (e) {}
 
     try {
       var plans = await AI24X_API.billingPlans();
