@@ -1856,6 +1856,11 @@ def _stream_openai_compatible(
         body["thinking"] = {"type": "disabled"}
     # 部分上游在 stream 时把 usage 放在最后一包
     body["stream_options"] = {"include_usage": True}
+    # ⚠️ 主脑 2026-08-12 排查：打印上游请求 body（不含 key）定位 OR 400 根因
+    try:
+        print(f"UPSTREAM_BODY_DBG provider={provider} model={model} msgs={len(body.get('messages') or [])} tools={len(body.get('tools') or [])} body={__import__('json').dumps(body, ensure_ascii=False)[:1500]}", flush=True)
+    except Exception:
+        pass
 
     timeout = httpx.Timeout(timeout_s, connect=min(30.0, timeout_s))
     full_parts: list[str] = []
@@ -2325,6 +2330,7 @@ def _run_vip_pick_chat_stream(
         if str(cand["provider"]) != "openrouter":
             targets.append((str(cand["provider"]), str(cand["base"]), str(cand["key"]), str(cand["model"])))
     last_err = ""
+    first_detail = ""
     for provider, base, key, model in targets:
         got_done = False
         for ev in _try_upstream_stream(
@@ -2346,8 +2352,11 @@ def _run_vip_pick_chat_stream(
         ):
             if ev.get("type") == "done":
                 got_done = True
+            elif ev.get("type") == "error" and not first_detail:
+                # ⚠️ 主脑 2026-08-12 排查：保留上游错误细节（含 4xx body）供 error_message 透出定位
+                first_detail = str(ev.get("error") or "")[:500]
             yield ev
         if got_done:
             return
         last_err = f"{provider} failed"
-    yield {"type": "error", "error": last_err or "vip_upstream_failed"}
+    yield {"type": "error", "error": first_detail or last_err or "vip_upstream_failed"}
