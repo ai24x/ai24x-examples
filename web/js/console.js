@@ -1329,6 +1329,13 @@
     AI24X_API.billingUsage({ limit: USAGE_PAGE_SIZE, offset: usagePage * USAGE_PAGE_SIZE })
       .then(function (usage) {
         usageTotal = (usage && usage.total) != null ? Number(usage.total) : 0;
+        var consumes =
+          usage && usage.summary && usage.summary.consume_calls != null
+            ? Number(usage.summary.consume_calls)
+            : ((usage && usage.rows) || []).filter(function (r) {
+                return (r.type || r.entry_type) === "consume";
+              }).length;
+        if ($("stat-calls")) $("stat-calls").textContent = String(consumes);
         renderUsage((usage && usage.rows) || [], usage && usage.summary);
       })
       .catch(function () {
@@ -1363,7 +1370,7 @@
       var head = ["type", "model", "time", "amount_usd", "tokens", "note", "request_id"].map(esc).join(",");
       var lines = [head];
       rows.forEach(function (r) {
-        lines.push([r.entry_type, r.model, r.created_at, r.amount_usd != null ? r.amount_usd : "", r.tokens != null ? r.tokens : "", r.note || "", r.request_id || ""].map(esc).join(","));
+        lines.push([(r.type || r.entry_type), r.model, r.created_at, r.amount_usd != null ? r.amount_usd : "", r.tokens != null ? r.tokens : "", r.note || "", r.request_id || ""].map(esc).join(","));
       });
       var csv = "\ufeff" + lines.join("\r\n");
       var blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
@@ -1809,19 +1816,8 @@
     } catch (e) {}
 
     try {
-      var usage = await AI24X_API.billingUsage({ limit: 30 });
-      var rows = (usage && usage.rows) || [];
-      var consumes =
-        usage && usage.summary && usage.summary.consume_calls != null
-          ? Number(usage.summary.consume_calls)
-          : rows.filter(function (r) {
-              return (r.type || r.entry_type) === "consume";
-            }).length;
-      if ($("stat-calls")) $("stat-calls").textContent = String(consumes);
-      usageTotal = (usage && usage.total) != null ? Number(usage.total) : 0;
-      usagePage = 0;
       bindUsageControls();
-      renderUsage(rows, usage && usage.summary);
+      loadUsagePage(0);
     } catch (e) {
       if ($("stat-calls")) $("stat-calls").textContent = "--";
     }
