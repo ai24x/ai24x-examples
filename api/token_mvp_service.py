@@ -621,6 +621,22 @@ def consume_tokens(
 
     tokens = max(0, int(tokens))
     amount_usd = max(0, int(amount_usd))
+    # 2026-08-12 幂等：同一 request_id 已记过 consume 则跳过（防重试/finally 竞态重复扣费）
+    if request_id:
+        try:
+            dup = (
+                db.query(BillingLedger.id)
+                .filter(
+                    BillingLedger.auth_user_id == int(auth_user_id),
+                    BillingLedger.entry_type == "consume",
+                    BillingLedger.request_id == str(request_id),
+                )
+                .first()
+            )
+            if dup is not None:
+                return get_or_create_wallet(db, auth_user_id)
+        except Exception:
+            pass
     w = ensure_period_bonus(db, get_or_create_wallet(db, auth_user_id))
     if tokens <= 0 and amount_usd <= 0:
         return w

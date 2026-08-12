@@ -411,7 +411,12 @@ class ChatService:
         auth_user_id: Optional[int] = None,
         region_hint: Optional[str] = None,
     ):
-        """真流式：yield meta/delta/done；流末按 usage 扣费（与非流账本一致）。"""
+        """真流式：yield meta/delta/done；记账与生成器解耦（finally 兜底）。
+
+        2026-08-12 根治（P0）：记账移到 finally 收尾——消费方 done 后提前
+        return / 客户端中途断开（GeneratorExit）/ 异常，任何退出路径都不漏记、
+        不重复记（_finalize 幂等）。替换原「yield done 之后记账」的漏记设计。
+        """
         request_id = f"req_{uuid.uuid4().hex[:16]}"
         start_time = time.time()
         billing_mode = "paid"
@@ -431,7 +436,6 @@ class ChatService:
             request_id=request_id,
             user_id=user.user_id,
             user_type=user.user_type,
-            # ⚠️ 主脑 2026-08-12 NUL 清洗：Prompt 含 NUL(0x00) 时 PostgreSQL 写库拒绝 → SSE 断流（Codex 大上下文复现），统一清洗
             prompt=(request.prompt or "").replace("\x00", ""),
             model=request.model,
             temperature=request.temperature,
@@ -450,6 +454,69 @@ class ChatService:
         full_text = ""
         token_count = 0
         billable = True
+        saw_done = False
+        saw_error = False
+        error_detail = ""
+        finalized = False
+
+        def _finalize(status: str, err: str = "") -> None:
+            """记账收尾（不 yield；可被 finally / GeneratorExit 路径调用；幂等）。"""
+            nonlocal finalized
+            if finalized:
+                return
+            finalized = True
+            try:
+                now = datetime.utcnow()
+                chat_request.response_time = now
+                chat_request.processing_duration = time.time() - start_time
+                if status == "completed":
+                    chat_request.response = (full_text or "")[:200000]
+                    chat_request.model = used_model
+                    chat_request.status = "completed"
+                    chat_request.is_success = True
+                    chat_request.token_count = int(token_count) if billable else 0
+                    db.commit()
+                    UserService.increment_request_count(db, user)
+                    if auth_user_id is not None and billable and token_count > 0:
+                        from token_mvp_service import consume_tokens
+                        from free_shared import record_shared_usage
+
+                        if billing_mode == "shared":
+                            record_shared_usage(
+                                db,
+                                auth_user_id=int(auth_user_id),
+                                tokens=int(token_count),
+                                model="shared",
+                                request_id=request_id,
+                                catalog_id=used_shared_catalog,
+                            )
+                        else:
+                            consume_tokens(
+                                db,
+                                auth_user_id=int(auth_user_id),
+                                tokens=int(token_count),
+                                amount_usd=_usd_cents_for_tokens(int(token_count)),
+                                model=public_model,
+                                request_id=request_id,
+                            )
+                else:
+                    chat_request.status = status
+                    if err:
+                        chat_request.error_message = str(err)[:300]
+                    db.commit()
+            except HTTPException:
+                try:
+                    chat_request.status = "failed"
+                    db.commit()
+                except Exception:
+                    pass
+            except Exception as e:
+                try:
+                    chat_request.error_message = str(e)[:300]
+                    chat_request.status = "failed"
+                    db.commit()
+                except Exception:
+                    pass
 
         try:
             from token_mvp_service import get_balance_snapshot
@@ -468,10 +535,10 @@ class ChatService:
             used_shared_catalog = None
             if billing_mode == "shared":
                 if getattr(request, "tools", None):
+                    saw_error = True
+                    error_detail = "tools_need_balance"
+                    _finalize("failed", error_detail)
                     yield {"type": "error", "error": "tools_need_balance"}
-                    chat_request.status = "failed"
-                    chat_request.error_message = "tools_need_balance"
-                    db.commit()
                     return
                 # 共享池：暂用非流整段后单 delta（避免阻塞主路径过久时仍可用）
                 from free_shared import run_shared_pool_chat
@@ -487,10 +554,10 @@ class ChatService:
                         used_shared_catalog = _a["catalog_id"]
                         break
                 if not routed.ok:
+                    saw_error = True
+                    error_detail = str(routed.error or "")[:200]
+                    _finalize("failed", error_detail)
                     yield {"type": "error", "error": routed.error or "shared_failed"}
-                    chat_request.status = "failed"
-                    chat_request.error_message = str(routed.error or "")[:200]
-                    db.commit()
                     return
                 full_text = str(routed.text or "")
                 token_count = max(1, int(routed.token_count or 1))
@@ -506,6 +573,7 @@ class ChatService:
                     "raw_model": routed.model,
                     "provider": routed.provider,
                 }
+                saw_done = True
             else:
                 if auth_user_id is not None:
                     from token_mvp_service import assert_can_spend
@@ -520,7 +588,6 @@ class ChatService:
                         ),
                         model=request.model,
                     )
-                saw_done = False
                 for ev in run_routed_chat_stream(
                     prompt=request.prompt,
                     requested_model=request.model,
@@ -580,63 +647,70 @@ class ChatService:
                             ),
                         }
                     elif et == "error":
+                        saw_error = True
+                        error_detail = str(ev.get("error") or "")[:200]
+                        _finalize("failed", error_detail)
                         yield ev
-                        chat_request.status = "failed"
-                        chat_request.error_message = str(ev.get("error") or "")[:200]
-                        db.commit()
                         return
                 if not saw_done:
+                    saw_error = True
+                    error_detail = "stream_incomplete"
+                    _finalize("failed", error_detail)
                     yield {"type": "error", "error": "stream_incomplete"}
-                    chat_request.status = "failed"
-                    db.commit()
                     return
-
-            processing_time = time.time() - start_time
-            chat_request.response = full_text
-            chat_request.model = used_model
-            chat_request.response_time = datetime.utcnow()
-            chat_request.processing_duration = processing_time
-            chat_request.status = "completed"
-            chat_request.is_success = True
-            chat_request.token_count = int(token_count) if billable else 0
-            db.commit()
-            UserService.increment_request_count(db, user)
-
-            if auth_user_id is not None and billable and token_count > 0:
-                from token_mvp_service import consume_tokens
-                from free_shared import record_shared_usage
-
-                if billing_mode == "shared":
-                    record_shared_usage(
-                        db,
-                        auth_user_id=int(auth_user_id),
-                        tokens=int(token_count),
-                        model="shared",
-                        request_id=request_id,
-                        catalog_id=used_shared_catalog,
-                    )
-                else:
-                    consume_tokens(
-                        db,
-                        auth_user_id=int(auth_user_id),
-                        tokens=int(token_count),
-                        amount_usd=_usd_cents_for_tokens(int(token_count)),
-                        model=public_model,
-                        request_id=request_id,
-                    )
-        except HTTPException:
-            chat_request.status = "failed"
-            chat_request.response_time = datetime.utcnow()
-            chat_request.processing_duration = time.time() - start_time
-            db.commit()
+        except GeneratorExit:
+            # 消费方提前退出（SSE 层 done 后 return / 客户端断开）：已完成补记账，未完成标 interrupted
+            _finalize("completed" if (saw_done and not saw_error) else "interrupted")
             raise
-        except Exception as e:
-            chat_request.error_message = str(e)[:300]
-            chat_request.status = "failed"
-            chat_request.response_time = datetime.utcnow()
-            chat_request.processing_duration = time.time() - start_time
-            db.commit()
-            yield {"type": "error", "error": "server_error"}
+        except HTTPException:
+            _finalize("failed", error_detail)
+            raise
+        except BaseException as e:
+            _finalize("failed", str(e)[:300])
+            raise
+        finally:
+            # 兜底：任何路径（正常/return/异常/GeneratorExit）都保证状态收尾与记账
+            if not finalized:
+                _finalize("completed" if (saw_done and not saw_error) else "interrupted")
+    @staticmethod
+    def preflight_stream(
+        db: Session, request: ChatRequestSchema, auth_user_id: Optional[int]
+    ) -> None:
+        """流式路由启动前预检（2026-08-12）：余额/共享工具限制在首字节前返回 402。
+
+        流一旦开始无法改状态码，预检保证「VIP 拦截/余额不足 → 正确 402/403，
+        不记账」，与 /v1/chat/run 非流式语义一致。
+        """
+        if auth_user_id is None:
+            return
+        from free_shared import resolve_chat_billing_mode
+
+        billing = resolve_chat_billing_mode(
+            db,
+            auth_user_id=int(auth_user_id),
+            requested_model=request.model,
+            force_shared=False,
+        )
+        mode = str(billing.get("mode") or "paid")
+        if mode == "shared":
+            if getattr(request, "tools", None):
+                raise HTTPException(
+                    status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                    detail="工具调用需有可用余额，请先充值后再试。",
+                )
+            return
+        from token_mvp_service import assert_can_spend
+
+        assert_can_spend(
+            db,
+            int(auth_user_id),
+            need_tokens=estimate_need_tokens(
+                model=request.model,
+                max_tokens=int(request.max_tokens or 1000),
+                prompt=str(request.prompt or ""),
+            ),
+            model=request.model,
+        )
 
     @staticmethod
     def _generate_response(prompt: str) -> str:

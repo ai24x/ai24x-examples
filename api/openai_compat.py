@@ -12,7 +12,7 @@ import json
 import os
 import time
 import uuid
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, AsyncIterator, Dict, Iterator, List, Optional, Tuple
 
 from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -25,6 +25,35 @@ def _prompt_max_chars() -> int:
         return max(2000, int(os.getenv("TOKEN_PROMPT_MAX_CHARS") or "120000"))
     except ValueError:
         return 120000
+
+
+# OpenRouter 风格 model id（provider/model）→ 平台 vip id；避免被「未知模型 400」误杀
+_OPENAI_OR_ALIASES: Dict[str, str] = {
+    "deepseek/deepseek-v4-flash": "vip-ds-flash",
+    "deepseek/deepseek-v4-pro": "vip-ds-pro",
+    "openai/gpt-5": "vip-gpt5",
+    "openai/gpt-5-mini": "vip-gpt5-mini",
+    "openai/gpt-5.4": "vip-gpt54",
+    "openai/gpt-4o": "vip-gpt4o",
+    "openai/gpt-4o-mini": "vip-gpt4o-mini",
+    "openai/gpt-5.6-terra": "vip-gpt56-terra",
+    "openai/gpt-5.6-luna": "vip-gpt56-luna",
+    "anthropic/claude-sonnet-5": "vip-claude-sonnet",
+    "anthropic/claude-haiku-4.5": "vip-claude-haiku",
+    "anthropic/claude-opus-5": "vip-claude-opus",
+    "google/gemini-3.1-pro-preview": "vip-gemini-pro",
+    "google/gemini-3.6-flash": "vip-gemini-flash",
+    "x-ai/grok-4.20": "vip-grok",
+    "meta-llama/llama-4-maverick": "vip-llama4",
+    "moonshotai/kimi-k3": "vip-kimi",
+    "moonshotai/kimi-k2.7-code": "vip-kimi-code",
+    "xiaomi/mimo-v2.5-pro": "vip-mimo",
+    "minimax/minimax-m3": "vip-minimax",
+    "qwen/qwen3.7-max": "vip-qwen-max",
+    "tencent/hy3": "vip-hy3",
+    "z-ai/glm-5.2": "vip-glm",
+    "openrouter/auto": "auto",
+}
 
 
 # 生态常用名 → 平台档位；无匹配默认 flash（需求单）
@@ -63,20 +92,26 @@ def extract_api_key(request: Request) -> Optional[str]:
 
 
 def map_model_name(requested: Optional[str]) -> str:
-    """映射到平台 model；未知名默认 flash。
+    """映射到平台 model；未知模型返回 400（2026-08-12 根治：禁止静默回退 flash）。
 
-    顺序：品牌档 → OpenAI 生态 drop-in（gpt-4o→flash 等）→ VIP 点名短别名（kimi/gpt/claude…）
-    → 遗留层名 → flash。Completions 与 /v1/chat/run 共用 VIP 别名表。
+    顺序：品牌档 → provider/ 前缀剥离 → OpenRouter 风格 id → OpenAI 生态 drop-in
+    → VIP 点名短别名 → 遗留层名；全部未命中 → HTTPException(400, unknown_model)。
+    仅空串/缺省回落 flash（客户端不带 model 的默认档）。
     """
     raw = (requested or "").strip()
     if not raw:
         return "flash"
     low = raw.lower()
-    # ⚠️ 主脑 2026-08-12：剥离 provider 前缀（ai24x-prod/vip-xxx → vip-xxx），防未知名回退 flash
+    # OpenRouter 风格完整 id 优先（openai/gpt-5.6-luna → vip-gpt56-luna；
+    # deepseek/deepseek-v4-flash → vip-ds-flash），须在剥前缀前命中
+    if low in _OPENAI_OR_ALIASES:
+        return _OPENAI_OR_ALIASES[low]
+    # 剥离 provider 前缀（ai24x-prod/vip-xxx → vip-xxx；ai24x-prod/gpt-4o → gpt-4o）
     if "/" in low:
-        _maybe = low.split("/", 1)[1].strip()
-        if _maybe and (_maybe.startswith("vip-") or _maybe in ("auto", "flash", "pro", "ultra", "shared")):
-            low = _maybe
+        _head, _tail = low.split("/", 1)
+        _tail = (_tail or "").strip()
+        if _tail:
+            low = _tail
     if low in ("free",):
         return "auto"
     if low in ("free-shared", "free_shared"):
@@ -99,12 +134,20 @@ def map_model_name(requested: Optional[str]) -> str:
     try:
         from model_warehouse import resolve_vip_pick
 
-        pick = resolve_vip_pick(raw)
+        pick = resolve_vip_pick(low)
         if pick and pick.get("id"):
             return str(pick["id"])
     except Exception:
         pass
-    return "flash"
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail={
+            "message_zh": f"未知模型：{raw}（可用模型见 /v1/models）",
+            "message_en": f"Unknown model: {raw} (see /v1/models)",
+            "message": f"Unknown model: {raw}",
+            "code": "unknown_model",
+        },
+    )
 
 
 def _content_to_text(content: Any) -> str:
@@ -610,6 +653,10 @@ def iter_true_sse_from_events(
                     msg = "Tool calling needs available credit balance. Please top up."
                 else:
                     msg = "This model cannot use tools right now. Try flash or pro."
+            elif err in ("insufficient_balance", "prepaid_required", "insufficient_credits"):
+                msg = "Insufficient balance. Please top up and try again."
+            elif err.startswith("upstream_400"):
+                msg = "The request was rejected by the model provider (400). Please try a different model or simplify tools."
             else:
                 msg = "Service temporarily unavailable. Please try again."
             yield pack(
@@ -629,9 +676,6 @@ def iter_true_sse_from_events(
                 }
             )
             yield "data: [DONE]\n\n"
-            # ⚠️ 主脑 2026-08-12：同类修复——消费 events 让 stream_chat_request 执行 error 收尾（status=failed + error_message）
-            for _ in events:
-                pass
             return
         if et == "delta":
             yield from ensure_role()
@@ -715,6 +759,22 @@ def iter_true_sse_from_events(
     yield "data: [DONE]\n\n"
 
 
+async def _sse_close_wrapper(sync_gen: Iterator[str]) -> AsyncIterator[str]:
+    """Async 包装：正常结束 / 客户端断开 / 异常都强制 close 内层同步生成器，
+    让 stream_chat_request 的 finally/GeneratorExit 记账兜底确定性触发
+    （Starlette 对同步迭代器断开时不传播 GeneratorExit，会残留 processing）。"""
+    try:
+        for chunk in sync_gen:
+            yield chunk
+    finally:
+        try:
+            close = getattr(sync_gen, "close", None)
+            if close is not None:
+                close()
+        except Exception:
+            pass
+
+
 def true_streaming_response(
     events: Iterator[Dict[str, Any]],
     *,
@@ -722,8 +782,10 @@ def true_streaming_response(
     cmpl_id: str,
 ) -> StreamingResponse:
     return StreamingResponse(
-        iter_true_sse_from_events(
-            events, requested_model=requested_model, cmpl_id=cmpl_id
+        _sse_close_wrapper(
+            iter_true_sse_from_events(
+                events, requested_model=requested_model, cmpl_id=cmpl_id
+            )
         ),
         media_type="text/event-stream",
         headers={
@@ -1501,9 +1563,6 @@ def iter_true_sse_from_responses_events(
                 "response.completed",
                 {"type": "response.completed", "response": completed},
             )
-            # ⚠️ 主脑 2026-08-12 记账修复：消费完 events，让 stream_chat_request 执行流末记账（status=completed + consume_tokens）
-            for _ in events:
-                pass
             return
         elif et == "error":
             err = str(ev.get("error") or "upstream_error")
@@ -1514,6 +1573,10 @@ def iter_true_sse_from_responses_events(
                     msg = "Tool calling needs available credit balance. Please top up."
                 else:
                     msg = "This model cannot use tools right now. Try flash or pro."
+            elif err in ("insufficient_balance", "prepaid_required", "insufficient_credits"):
+                msg = "Insufficient balance. Please top up and try again."
+            elif err.startswith("upstream_400"):
+                msg = "The request was rejected by the model provider (400). Please try a different model or simplify tools."
             else:
                 msg = "Service temporarily unavailable. Please try again."
             yield pack(
@@ -1531,9 +1594,6 @@ def iter_true_sse_from_responses_events(
                     },
                 },
             )
-            # ⚠️ 主脑 2026-08-12：消费 events 让 stream_chat_request 执行 error 收尾（status=failed + error_message）
-            for _ in events:
-                pass
             return
     yield pack(
         "response.failed",
@@ -1559,8 +1619,10 @@ def true_streaming_responses_response(
     resp_id: str,
 ) -> StreamingResponse:
     return StreamingResponse(
-        iter_true_sse_from_responses_events(
-            events, requested_model=requested_model, resp_id=resp_id
+        _sse_close_wrapper(
+            iter_true_sse_from_responses_events(
+                events, requested_model=requested_model, resp_id=resp_id
+            )
         ),
         media_type="text/event-stream",
         headers={

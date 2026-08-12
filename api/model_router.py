@@ -8,9 +8,12 @@ TOKEN_LLM_UPSTREAM=direct 时回退直连 DeepSeek / 硅基流动 / Qwen 国际�
 """
 from __future__ import annotations
 
+import json
 import logging
 import os
+import re
 import time
+import uuid
 from dataclasses import dataclass, field
 from typing import Any, Iterator, Optional
 
@@ -185,6 +188,150 @@ def _tools_passthrough_enabled() -> bool:
         "no",
         "off",
     )
+
+
+class _UpstreamFormatError(Exception):
+    """上游 400 格式错误：同载荷换聚合上游必然同样 400，直接上报不再 failover。"""
+
+
+def _ensure_strict_schema(params: Any) -> Any:
+    """OpenAI strict 模式要求 object 级 schema 带 additionalProperties: false。
+
+    递归补齐，避免 Requesty/OpenRouter 对 strict=true 但缺 additionalProperties
+    的 schema 报 400（2026-08-12 实锤：Codex tools strict=true 触发三家 400）。
+    """
+    if not isinstance(params, dict):
+        return params
+    t = str(params.get("type") or "").lower()
+    if t == "object" and "additionalProperties" not in params:
+        params["additionalProperties"] = False
+    props = params.get("properties")
+    if isinstance(props, dict):
+        for k, v in props.items():
+            if isinstance(v, dict):
+                params["properties"][k] = _ensure_strict_schema(v)
+    items = params.get("items")
+    if isinstance(items, dict):
+        params["items"] = _ensure_strict_schema(items)
+    return params
+
+
+def _normalize_tools_for_upstream(
+    tools: Optional[list[dict[str, Any]]],
+) -> Optional[list[dict[str, Any]]]:
+    """统一 tools 为 chat/completions 形状并保证 strict 合规（幂等）。
+
+    - Responses 扁平形状（{type,name,parameters}）→ chat 形状（{type,function:{...}}）
+    - strict=true 时递归补齐 additionalProperties: false，防上游 400
+    """
+    if not isinstance(tools, list) or not tools:
+        return None
+    out: list[dict[str, Any]] = []
+    for t in tools:
+        if not isinstance(t, dict):
+            continue
+        if not isinstance(t.get("function"), dict) and t.get("name"):
+            fn: dict[str, Any] = {"name": str(t["name"])}
+            if t.get("description") is not None:
+                fn["description"] = str(t["description"])
+            if t.get("parameters") is not None:
+                fn["parameters"] = t["parameters"]
+            if t.get("strict") is not None:
+                fn["strict"] = bool(t["strict"])
+            t = {"type": "function", "function": fn}
+        fn2 = t.get("function")
+        if isinstance(fn2, dict) and fn2.get("strict"):
+            fn2["parameters"] = _ensure_strict_schema(fn2.get("parameters"))
+        out.append(t)
+    return out or None
+
+
+def _upstream_error_class(e: Exception) -> tuple[str, str]:
+    """把上游异常分成 (kind, detail)。400=格式错误；5xx/超时/网络才允许 failover。"""
+    resp = getattr(e, "response", None)
+    code = getattr(resp, "status_code", None)
+    detail = str(e)[:300]
+    try:
+        body = str(getattr(resp, "text", "") or "")[:600]
+        if body:
+            detail = f"{detail} | body={body}"
+    except Exception:
+        pass
+    try:
+        code = int(code)
+    except (TypeError, ValueError):
+        code = None
+    if code == 400:
+        return "format", detail
+    if code in (401, 403):
+        return "auth", detail
+    if code == 404:
+        return "notfound", detail
+    if code == 429:
+        return "ratelimit", detail
+    if code is not None and 500 <= code < 600:
+        return "server", detail
+    return "network", detail
+
+
+_INVOKE_TAG_RE = re.compile(
+    r"<invoke\s+name=[\"']([^\"']+)[\"']\s*>([\s\S]*?)</invoke>", re.I
+)
+_INVOKE_PARAM_RE = re.compile(
+    r"<parameter\s+name=[\"']([^\"']+)[\"']\s*>([\s\S]*?)</parameter>", re.I
+)
+_COLLAB_LINE_RE = re.compile(r"^\s*collab\s*:\s*([A-Za-z0-9_\-\.]+)\s*$", re.M)
+
+
+def _is_anthropic_upstream(model: str, provider: str = "") -> bool:
+    m = (model or "").lower()
+    p = (provider or "").lower()
+    return "claude" in m or "anthropic" in m or "anthropic" in p or "claude" in p
+
+
+def _parse_invoke_tool_calls(text: str) -> Optional[list[dict[str, Any]]]:
+    """把 Anthropic 文本工具调用转成 chat tool_calls。
+
+    支持 <invoke name=...><parameter name=...>...</parameter></invoke> XML 与
+    collab:tool_name 行两种形态；解析成功才返回，避免误伤普通正文。
+    """
+    if not text or ("<invoke" not in text and "collab:" not in text):
+        return None
+    out: list[dict[str, Any]] = []
+    for m in _INVOKE_TAG_RE.finditer(text):
+        name = (m.group(1) or "").strip() or "tool"
+        params: dict[str, Any] = {}
+        for pm in _INVOKE_PARAM_RE.finditer(m.group(2)):
+            pname = (pm.group(1) or "").strip()
+            pval = (pm.group(2) or "").strip()
+            try:
+                pval = json.loads(pval)
+            except Exception:
+                pass
+            if pname:
+                params[pname] = pval
+        try:
+            args = json.dumps(params, ensure_ascii=False)
+        except Exception:
+            args = "{}"
+        out.append(
+            {
+                "id": "call_" + uuid.uuid4().hex[:16],
+                "type": "function",
+                "function": {"name": name, "arguments": args},
+            }
+        )
+    if not out:
+        cm = _COLLAB_LINE_RE.search(text)
+        if cm:
+            out.append(
+                {
+                    "id": "call_" + uuid.uuid4().hex[:16],
+                    "type": "function",
+                    "function": {"name": cm.group(1), "arguments": "{}"},
+                }
+            )
+    return out or None
 
 
 def _route_ok_from_out(
@@ -897,7 +1044,8 @@ def run_routed_chat(
                 billing_mult=int(pick.get("billing_mult") or 1),
                 public_model=str(pick.get("id") or "vip_pick"),
             )
-        return _run_vip_pick_chat(
+        try:
+            return _run_vip_pick_chat(
                 pick=pick,
                 prompt=prompt,
                 temperature=temperature,
@@ -905,6 +1053,20 @@ def run_routed_chat(
                 messages=messages,
                 tools=use_tools,
                 tool_choice=use_choice,
+            )
+        except _UpstreamFormatError as ufe:
+            # 400=格式错误：直接上报，不再走降级链
+            return RouteResult(
+                ok=False,
+                text="",
+                model="",
+                layer="VIP",
+                provider="",
+                token_count=0,
+                attempts=[],
+                error=f"upstream_400: {ufe}",
+                billing_mult=int(pick.get("billing_mult") or 1),
+                public_model=str(pick.get("id") or "vip_pick"),
             )
 
     attempts: list[dict[str, Any]] = []
@@ -961,6 +1123,29 @@ def run_routed_chat(
                         billing_mult=1,
                     )
                 except Exception as e_ds:
+                    k_ds, d_ds = _upstream_error_class(e_ds)
+                    if k_ds == "format":
+                        # 400=格式错误：直接上报，不再切本层 OR
+                        return RouteResult(
+                            ok=False,
+                            text="",
+                            model="",
+                            layer=layer,
+                            provider="deepseek",
+                            token_count=0,
+                            attempts=attempts + [
+                                {
+                                    "layer": layer,
+                                    "model": ds.get("model"),
+                                    "provider": "deepseek",
+                                    "ok": False,
+                                    "prefer": "deepseek_official",
+                                    "error": d_ds[:200],
+                                }
+                            ],
+                            error=f"upstream_400: {d_ds}",
+                            billing_mult=int(_layer_billing_mult(layer)),
+                        )
                     logger.warning(
                         "deepseek prefer layer=%s failed: %s", layer, e_ds
                     )
@@ -1038,6 +1223,34 @@ def run_routed_chat(
             )
         except Exception as e:
             elapsed = time.time() - t0
+            k_e, d_e = _upstream_error_class(e)
+            if k_e == "format" and provider in (
+                "openrouter",
+                "tokenlab",
+                "requesty",
+                "quickrouter",
+            ):
+                # 400=格式错误：直接上报，不再 failover
+                return RouteResult(
+                    ok=False,
+                    text="",
+                    model="",
+                    layer=layer,
+                    provider=provider,
+                    token_count=0,
+                    attempts=attempts
+                    + [
+                        {
+                            "layer": layer,
+                            "model": logical_model,
+                            "ok": False,
+                            "error": d_e[:200],
+                            "ms": int(elapsed * 1000),
+                        }
+                    ],
+                    error=f"upstream_400: {d_e}",
+                    billing_mult=int(_layer_billing_mult(layer)),
+                )
             logger.warning("route layer=%s model=%s failed: %s", layer, logical_model, e)
             attempts.append(
                 {
@@ -1277,7 +1490,8 @@ def _vip_aggregator_chain(pick: dict[str, Any], or_id: str) -> list[dict[str, st
         from model_warehouse import vip_channel_order
 
         order = vip_channel_order(public_id)
-    except Exception:
+    except Exception as e:
+        logger.warning("vip_channel_order(%s) fallback default: %s", public_id, e)
         order = None
     default_order = ("openrouter", "tokenlab", "requesty", "quickrouter")
     if isinstance(order, list) and order:
@@ -1413,6 +1627,15 @@ def _run_vip_pick_chat(
             if note:
                 row["prefer"] = note
             attempts.append(row)
+            kind, detail = _upstream_error_class(e)
+            if kind == "format" and provider in (
+                "openrouter",
+                "tokenlab",
+                "requesty",
+                "quickrouter",
+            ):
+                # 400=格式错误：同载荷换聚合上游必然同样 400，直接上报停止链
+                raise _UpstreamFormatError(detail) from e
             logger.warning(
                 "vip_pick %s failed id=%s model=%s err=%s",
                 provider,
@@ -1754,7 +1977,7 @@ def _call_openai_compatible(
         "max_tokens": max_tokens,
     }
     if tools and _tools_passthrough_enabled():
-        body["tools"] = tools
+        body["tools"] = _normalize_tools_for_upstream(tools) or tools
         if tool_choice is not None:
             body["tool_choice"] = tool_choice
     # DeepSeek v4 直连时默认关 thinking
@@ -1789,6 +2012,13 @@ def _call_openai_compatible(
     total = int(usage.get("total_tokens") or 0)
     prompt_t = int(usage.get("prompt_tokens") or 0)
     completion_t = int(usage.get("completion_tokens") or 0)
+    # Anthropic 文本工具调用（<invoke> XML / collab:）→ 结构化 tool_calls
+    if not tool_calls and _is_anthropic_upstream(model, provider) and text:
+        parsed_tcs = _parse_invoke_tool_calls(text)
+        if parsed_tcs:
+            tool_calls = parsed_tcs
+            finish_reason = "tool_calls"
+            text = _INVOKE_TAG_RE.sub("", text).strip()
     if total <= 0:
         # tool_calls 无正文时也按最小 1 token 计（避免 0）
         total = max(1, int(len(text.split()) * 1.3)) if text else 1
@@ -1844,7 +2074,7 @@ def _stream_openai_compatible(
         "stream": True,
     }
     if tools and _tools_passthrough_enabled():
-        body["tools"] = tools
+        body["tools"] = _normalize_tools_for_upstream(tools) or tools
         if tool_choice is not None:
             body["tool_choice"] = tool_choice
     if str(model).startswith("deepseek-v4") and (_env("DEEPSEEK_THINKING", "0") or "0").strip() not in (
@@ -1856,11 +2086,19 @@ def _stream_openai_compatible(
         body["thinking"] = {"type": "disabled"}
     # 部分上游在 stream 时把 usage 放在最后一包
     body["stream_options"] = {"include_usage": True}
-    # ⚠️ 主脑 2026-08-12 排查：打印上游请求 body（不含 key）定位 OR 400 根因
-    try:
-        print(f"UPSTREAM_BODY_DBG provider={provider} model={model} msgs={len(body.get('messages') or [])} tools={len(body.get('tools') or [])} body={__import__('json').dumps(body, ensure_ascii=False)[:1500]}", flush=True)
-    except Exception:
-        pass
+    # 上游请求 body 调试（TOKEN_UPSTREAM_BODY_DBG=1 开启，定位 400/转换问题；2026-08-12 根治后默认关）
+    if (_env("TOKEN_UPSTREAM_BODY_DBG") or "0").strip().lower() in ("1", "true", "yes", "on"):
+        try:
+            logger.debug(
+                "UPSTREAM_BODY_DBG provider=%s model=%s msgs=%s tools=%s body=%s",
+                provider,
+                model,
+                len(body.get("messages") or []),
+                len(body.get("tools") or []),
+                json.dumps(body, ensure_ascii=False)[:1500],
+            )
+        except Exception:
+            pass
 
     timeout = httpx.Timeout(timeout_s, connect=min(30.0, timeout_s))
     full_parts: list[str] = []
@@ -1962,17 +2200,15 @@ def _stream_openai_compatible(
                             "provider": provider,
                         }
     except Exception as e:
-        # ⚠️ 主脑 2026-08-12 排查：附带上游 400/4xx 响应体，便于定位 messages/tools 转换问题
-        detail = str(e)[:300]
-        try:
-            resp = getattr(e, "response", None)
-            if resp is not None:
-                body = str(getattr(resp, "text", "") or "")[:500]
-                if body:
-                    detail = f"{detail} | body={body}"
-        except Exception:
-            pass
-        yield {"type": "error", "error": detail, "raw_model": model, "provider": provider}
+        # 附带上游 4xx/5xx 响应体 + 错误分类（format=400 直接上报不再 failover）
+        kind, detail = _upstream_error_class(e)
+        yield {
+            "type": "error",
+            "error": detail,
+            "raw_model": model,
+            "provider": provider,
+            "error_kind": kind,
+        }
         return
 
     full = "".join(full_parts)
@@ -1980,6 +2216,12 @@ def _stream_openai_compatible(
     if tc_acc:
         assembled_tcs = [tc_acc[i] for i in sorted(tc_acc.keys())]
         if finish_reason == "stop":
+            finish_reason = "tool_calls"
+    # Anthropic 文本工具调用（<invoke> XML / collab:）→ 结构化 tool_calls
+    if not assembled_tcs and _is_anthropic_upstream(model, provider) and full:
+        parsed_tcs = _parse_invoke_tool_calls(full)
+        if parsed_tcs:
+            assembled_tcs = parsed_tcs
             finish_reason = "tool_calls"
     if usage_tokens <= 0:
         usage_tokens = max(1, int(len(full.split()) * 1.3)) if full else 1
@@ -2058,14 +2300,17 @@ def _try_upstream_stream(
     ):
         et = ev.get("type")
         if et == "error":
+            err_kind = str(ev.get("error_kind") or "network")
             if not recorded:
-                upstream_health.record_attempt(
-                    provider,
-                    model,
-                    ok=False,
-                    ms=int((time.time() - t0) * 1000),
-                    err=str(ev.get("error") or "")[:160],
-                )
+                # 400 格式错误属载荷问题，不是上游故障：不记健康失败（不触发熔断/误判）
+                if err_kind != "format":
+                    upstream_health.record_attempt(
+                        provider,
+                        model,
+                        ok=False,
+                        ms=int((time.time() - t0) * 1000),
+                        err=str(ev.get("error") or "")[:160],
+                    )
                 recorded = True
             if started:
                 # 已写出部分内容：按已有文本收尾，避免客户端悬空
@@ -2083,6 +2328,15 @@ def _try_upstream_stream(
                     "billing_mult": billing_mult,
                     "public_model": public_model,
                     "degraded_error": str(ev.get("error") or "")[:200],
+                }
+            elif err_kind == "format":
+                # 400=格式错误：同载荷换聚合上游必然同样 400，直接上报停止链
+                yield {
+                    "type": "error",
+                    "error": f"upstream_400: {str(ev.get('error') or '')[:400]}",
+                    "raw_model": model,
+                    "provider": provider,
+                    "error_kind": "format",
                 }
             return
         if et in ("delta", "tool_calls_delta"):
@@ -2270,6 +2524,10 @@ def run_routed_chat_stream(
         ):
             if ev.get("type") == "done":
                 got_done = True
+            elif ev.get("type") == "error" and ev.get("error_kind") == "format":
+                # 400=格式错误：直接上报，不再切下一上游
+                yield {"type": "error", "error": str(ev.get("error") or "upstream_400")}
+                return
             yield ev
         if got_done:
             return
@@ -2314,21 +2572,22 @@ def _run_vip_pick_chat_stream(
         sf = _silicon_vip_upstream(sf_id)
         if sf:
             targets.append(("siliconflow", sf["base"], sf["key"], sf["model"]))
-    # C) OR（国际模主路径；中国模兜底）
-    # C+D) aggregator chain: OR -> TokenLab -> Requesty default; flagship prefers channel via channels field
+    # C+D) aggregator chain: 按仓库 channels 顺序（2026-08-12 修复：
+    # 原硬编码「OR 优先 + break」忽略 channels（luna 应为 tokenlab 链首），
+    # 导致 Codex 流式恒打 OpenRouter，TokenLab 主通道形同虚设）
     _chain = _vip_aggregator_chain(pick, or_id)
     for cand in _chain:
-        if str(cand["provider"]) == "openrouter":
-            targets.append((str(cand["provider"]), str(cand["base"]), str(cand["key"]), str(cand["model"])))
-            break
-    # F) DS silicon sibling fallback (after OR, before other aggregators)
-    if is_ds_pick and sf_id:
+        targets.append((str(cand["provider"]), str(cand["base"]), str(cand["key"]), str(cand["model"])))
+        # F) DS 点名：硅基同族插在 OR 之后、其余聚合商之前
+        if is_ds_pick and sf_id and str(cand["provider"]) == "openrouter":
+            sf = _silicon_vip_upstream(sf_id)
+            if sf:
+                targets.append(("siliconflow", sf["base"], sf["key"], sf["model"]))
+    # F2) DS 点名且聚合链无 OR 时，硅基同族兜底
+    if is_ds_pick and sf_id and not any(t[0] == "siliconflow" for t in targets):
         sf = _silicon_vip_upstream(sf_id)
         if sf:
             targets.append(("siliconflow", sf["base"], sf["key"], sf["model"]))
-    for cand in _chain:
-        if str(cand["provider"]) != "openrouter":
-            targets.append((str(cand["provider"]), str(cand["base"]), str(cand["key"]), str(cand["model"])))
     last_err = ""
     first_detail = ""
     for provider, base, key, model in targets:
@@ -2352,8 +2611,12 @@ def _run_vip_pick_chat_stream(
         ):
             if ev.get("type") == "done":
                 got_done = True
+            elif ev.get("type") == "error" and ev.get("error_kind") == "format":
+                # 400=格式错误：直接上报，不再切下一上游（主脑 2026-08-12 语义修正）
+                yield {"type": "error", "error": str(ev.get("error") or "upstream_400")}
+                return
             elif ev.get("type") == "error" and not first_detail:
-                # ⚠️ 主脑 2026-08-12 排查：保留上游错误细节（含 4xx body）供 error_message 透出定位
+                # 保留上游错误细节（含 4xx body）供 error_message 透出定位
                 first_detail = str(ev.get("error") or "")[:500]
             yield ev
         if got_done:

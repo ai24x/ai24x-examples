@@ -1,4 +1,5 @@
 from pathlib import Path
+import asyncio
 import logging
 import os
 import subprocess
@@ -501,6 +502,8 @@ async def chat_completions(
     # 真流式：边生成边写，流末扣费（OpenClaw / LobeChat）
     if want_stream and true_stream_enabled():
         try:
+            # 2026-08-12：流前余额预检——流中无法改状态码，402/403 必须先返回
+            ChatService.preflight_stream(db=db, request=chat_req, auth_user_id=auth_uid)
             events = ChatService.stream_chat_request(
                 db=db,
                 user=current_user,
@@ -611,6 +614,8 @@ async def openai_responses_create(
     # 真流式：先发 response.created 心跳，边生成边写 SSE 事件（Codex/Cursor 工具循环）
     if want_stream and true_stream_enabled():
         try:
+            # 2026-08-12：流前余额预检——流中无法改状态码，402/403 必须先返回
+            ChatService.preflight_stream(db=db, request=chat_req, auth_user_id=auth_uid)
             events = ChatService.stream_chat_request(
                 db=db,
                 user=current_user,
@@ -742,6 +747,59 @@ async def general_exception_handler(request: Request, exc: Exception):
     )
 
 
+async def _stuck_processing_scan() -> None:
+    """兜底扫描：status=processing 且超时未完成的请求标记 failed（不扣费）。
+
+    2026-08-12 记账根治的一部分——即使主流程异常/进程残留，也不留永续
+    processing；正常完成的请求由 stream_chat_request 的 finally 路径收尾，
+    request_id 幂等防重复扣费。开关：TOKEN_STUCK_SCAN_ENABLED=0 关闭；
+    间隔 TOKEN_STUCK_SCAN_INTERVAL_S（默认 300）、超时 TOKEN_STUCK_SCAN_STALE_S（默认 1800）。
+    """
+    if (os.getenv("TOKEN_STUCK_SCAN_ENABLED") or "1").strip().lower() in ("0", "false", "no", "off"):
+        return
+    try:
+        interval = max(30, int(os.getenv("TOKEN_STUCK_SCAN_INTERVAL_S") or "300"))
+    except (TypeError, ValueError):
+        interval = 300
+    try:
+        stale = max(60, int(os.getenv("TOKEN_STUCK_SCAN_STALE_S") or "1800"))
+    except (TypeError, ValueError):
+        stale = 1800
+    while True:
+        await asyncio.sleep(interval)
+        try:
+            from datetime import datetime, timedelta
+
+            from database import SessionLocal
+            from models import ChatRequest
+
+            db = SessionLocal()
+            try:
+                cutoff = datetime.utcnow() - timedelta(seconds=stale)
+                rows = (
+                    db.query(ChatRequest)
+                    .filter(
+                        ChatRequest.status == "processing",
+                        ChatRequest.request_time < cutoff,
+                    )
+                    .limit(200)
+                    .all()
+                )
+                for r in rows:
+                    r.status = "failed"
+                    r.error_message = (r.error_message or "") + " | stuck_timeout_scan"
+                    r.response_time = datetime.utcnow()
+                if rows:
+                    db.commit()
+                    logger.warning(
+                        "stuck_processing_scan: %d row(s) marked failed", len(rows)
+                    )
+            finally:
+                db.close()
+        except Exception as e:
+            logger.error("stuck_processing_scan error: %s", e)
+
+
 # 应用启动事件
 @app.on_event("startup")
 async def startup_event():
@@ -753,6 +811,10 @@ async def startup_event():
         )
     if getattr(settings, "skip_db_init", False):
         logger.warning("SKIP_DB_INIT enabled: database initialization skipped")
+        try:
+            app.state._stuck_scan_task = asyncio.create_task(_stuck_processing_scan())
+        except Exception as e:
+            logger.error("start stuck scan failed: %s", e)
         return
     try:
         init_db()
@@ -760,12 +822,23 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Failed to initialize database: {str(e)}")
         raise
+    try:
+        app.state._stuck_scan_task = asyncio.create_task(_stuck_processing_scan())
+        logger.info("stuck processing scan started")
+    except Exception as e:
+        logger.error("start stuck scan failed: %s", e)
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """应用关闭时清理资源"""
     logger.info("Shutting down AI24X API...")
+    task = getattr(app.state, "_stuck_scan_task", None)
+    if task is not None:
+        try:
+            task.cancel()
+        except Exception:
+            pass
 
 
 # —— 短信：106 网关（联调；生产务必配置 SMS_INTERNAL_KEY）——
