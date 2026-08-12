@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import asyncio
+import datetime
 import json
 import math
 import os
@@ -1652,10 +1653,31 @@ _NEWS_HARD = ["立案", "行政处罚", "证监会调查", "监管措施", "退�
 _EARN_NEG = ["预亏", "预减", "预降", "大幅下滑", "业绩下滑"]
 _EARN_POS = ["预增", "预盈", "大幅增长", "同比大幅增长", "大幅上升"]
 
-# 警示消息：降权并展示
-_NEWS_WARN = ["减持", "解禁", "质押", "冻结", "问询", "关注函", "警示函", "监管函",
+# 警示消息：降权并展示（减持已拆分为 _jc_flag 分级：进行时/计划=硬伤，落地=警示）
+_NEWS_WARN = ["解禁", "质押", "冻结", "问询", "关注函", "警示函", "监管函",
               "预亏", "业绩预减", "业绩下滑", "商誉减值", "诉讼", "仲裁", "终止",
-              "违规", "通报批评", "公开谴责", "亏损", "担保"]
+              "违规", "通报批评", "公开谴责", "亏损", "担保", "协议转让", "离任", "出售控股子公司"]
+
+# 减持公告分级：进行时/计划=硬伤排除；落地（完毕/届满/过半）=警示；否定承诺=中性
+_JC_NEG = ("承诺不减持", "不减持", "未减持", "无减持", "未发生减持", "暂停减持",
+           "终止减持", "终止股份减持计划", "提前终止", "取消减持", "减持计划终止")
+_JC_DONE = ("减持完成", "减持完毕", "实施完成", "实施结果", "减持结果", "减持股份结果",
+            "减持计划到期", "减持期限届满", "实施完毕", "时间过半", "数量过半",
+            "减持计划实施完毕", "减持计划实施完成", "减持计划期限届满")
+_JC_HARD = ("拟减持", "减持计划", "减持进展", "减持股份", "股东减持", "大股东减持",
+            "控股股东减持", "高管减持", "董事减持", "监事减持", "减持比例",
+            "集中竞价减持", "大宗交易减持", "累计减持", "减持数量", "被动减持", "减持期间")
+
+
+def _jc_flag(t: str) -> str | None:
+    """减持公告分级：hard 硬伤排除 / warn 落地警示 / None 中性（否定承诺）。"""
+    if any(k in t for k in _JC_NEG):
+        return None
+    if any(k in t for k in _JC_DONE):
+        return "warn"
+    if any(k in t for k in _JC_HARD) or "减持" in t:
+        return "hard"
+    return None
 
 
 def _today8() -> str:
@@ -1737,6 +1759,68 @@ async def _fetch_news_ann(code: str) -> list[str]:
         titles = []
     _NEWS_CACHE[code] = (_today8(), titles)
     return titles
+
+
+# 东财限售解禁日历（RPT_LIFT_STAGE）：独立于公告标题的解禁台账，日缓存 + 温和限流
+_UNLOCK_CACHE: dict[str, tuple[str, list[dict[str, Any]]]] = {}
+_EM_DC_GATE = _RateGate(min_interval_s=0.15, max_per_minute=90)
+
+
+async def _fetch_unlock(code: str) -> list[dict[str, Any]]:
+    """东财解禁日历：该股未来解禁事件（解禁日/市值/占流通盘比例）。"""
+    hit = _UNLOCK_CACHE.get(code)
+    if hit and hit[0] == _today8():
+        return hit[1]
+    out: list[dict[str, Any]] = []
+    try:
+        url = ("https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_LIFT_STAGE"
+               "&columns=SECURITY_CODE,SECURITY_NAME_ABBR,FREE_DATE,LIFT_MARKET_CAP,FREE_RATIO,"
+               "TOTAL_RATIO,FREE_SHARES_TYPE,BATCH_HOLDER_NUM"
+               "&filter=(SECURITY_CODE%3D%22" + code + "%22)&source=WEB&client=WEB"
+               "&pageNumber=1&pageSize=20&sortColumns=FREE_DATE&sortTypes=1")
+        await _EM_DC_GATE.acquire()
+        async with httpx.AsyncClient(timeout=12.0, headers=_UA) as cli:
+            j = (await cli.get(url)).json()
+        rows = ((j.get("result") or {}).get("data")) or []
+        today_s = time.strftime("%Y-%m-%d")
+        for r in rows:
+            fd = str(r.get("FREE_DATE") or "")[:10]
+            if not fd or fd < today_s:
+                continue
+            out.append({
+                "date": fd,
+                "ratio": _num(r.get("FREE_RATIO")),
+                "capWan": _num(r.get("LIFT_MARKET_CAP")),
+                "type": str(r.get("FREE_SHARES_TYPE") or ""),
+                "holders": int(_num(r.get("BATCH_HOLDER_NUM"))),
+            })
+        out.sort(key=lambda x: x["date"])
+    except Exception:
+        out = []
+    _UNLOCK_CACHE[code] = (_today8(), out)
+    return out
+
+
+def _unlock_grade(unlocks: list[dict[str, Any]]) -> tuple[list[str], list[str]]:
+    """解禁日历分级：未来120天内解禁且占流通≥2%=硬伤排除（最近解禁一律剔除，含小比例）；
+    120天内极小解禁（<2%）=警示降权；更远期解禁不纳入（超出波段持仓周期）。"""
+    hard: list[str] = []
+    warn: list[str] = []
+    today_s = time.strftime("%Y-%m-%d")
+    for u in unlocks:
+        fd = u.get("date") or ""
+        try:
+            days = (datetime.date.fromisoformat(fd) - datetime.date.fromisoformat(today_s)).days
+        except Exception:
+            days = 999
+        ratio = float(u.get("ratio") or 0)
+        cap_yi = float(u.get("capWan") or 0) / 10000.0
+        tag = f"{fd}解禁{cap_yi:.1f}亿·占流通{ratio * 100:.0f}%"
+        if days <= 120 and ratio >= 0.02:
+            hard.append(tag)
+        elif days <= 120:
+            warn.append(tag)
+    return hard[:2], warn[:2]
 
 
 # ---------------- 分时尾盘强度 + 龙虎榜（第二档：盘中承接/游资席位验证） ----------------
@@ -1961,12 +2045,27 @@ async def _fundamental_check(c: dict[str, Any]) -> dict[str, Any]:
     """业绩成长 + 消息面体检：红旗 hard 排除；警示降权；成长分加成。"""
     fin_task = asyncio.create_task(_fetch_financials(c["code"]))
     news_task = asyncio.create_task(_fetch_news_ann(c["code"]))
+    unlock_task = asyncio.create_task(_fetch_unlock(c["code"]))
     fin = await fin_task
     titles = await news_task
-    news_hard = [t for t in titles if any(k in t for k in _NEWS_HARD)][:4]
-    news_warn = list(dict.fromkeys(
-        t for t in titles if not any(k in t for k in _NEWS_HARD) and any(k in t for k in _NEWS_WARN)
-    ))[:5]
+    unlocks = await unlock_task
+    jc_hard = [t for t in titles if _jc_flag(t) == "hard"][:2]
+    jc_warn = [t for t in titles if _jc_flag(t) == "warn"][:2]
+    unlock_hard, unlock_warn = _unlock_grade(unlocks)
+    news_hard = list(dict.fromkeys(
+        [t for t in titles if any(k in t for k in _NEWS_HARD)] + jc_hard + unlock_hard
+    ))[:4]
+    base_warn = [
+        t for t in titles
+        if not any(k in t for k in _NEWS_HARD) and _jc_flag(t) != "hard"
+        and (any(k in t for k in _NEWS_WARN) or _jc_flag(t) == "warn")
+    ]
+    news_warn = list(dict.fromkeys(base_warn + unlock_warn))[:5]
+    # 组合升级：解禁警示 + 消息面警示（问询/离任/质押等）→ 硬伤（多重利空叠加）
+    if unlock_warn and base_warn:
+        combo = "解禁临近叠加消息面利空"
+        if combo not in news_hard:
+            news_hard = (news_hard + [combo])[:4]
     # 业绩预告方向（公告标题级）：预亏/预减=硬伤，预增/预盈=加分
     earn_neg = list(dict.fromkeys(t for t in titles if any(k in t for k in _EARN_NEG)))[:2]
     earn_pos = list(dict.fromkeys(t for t in titles if any(k in t for k in _EARN_POS)))[:2]
