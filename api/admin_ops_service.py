@@ -315,7 +315,16 @@ def admin_usage_monitor(db: Session, *, days: int = 1, top_n: int = 20) -> dict[
             func.coalesce(func.sum(func.abs(BillingLedger.amount_usd)), 0).label("usd_cents"),
             func.count(BillingLedger.id).label("n"),
         )
-        .filter(BillingLedger.entry_type == "consume", BillingLedger.created_at >= since)
+        .filter(
+            BillingLedger.entry_type == "consume",
+            BillingLedger.created_at >= since,
+            # 白名单用户（内部测试账号）不计入国际名模消耗告警口径
+            ~BillingLedger.auth_user_id.in_(
+                db.query(AuthUser.id).filter(
+                    func.lower(AuthUser.email).in_(list(_BURN_ALERT_EMAIL_WHITELIST))
+                )
+            ),
+        )
         .group_by(func.coalesce(BillingLedger.model, "(empty)"))
         .order_by(func.sum(func.abs(BillingLedger.amount)).desc())
         .limit(top_n)
@@ -372,7 +381,7 @@ def admin_usage_monitor(db: Session, *, days: int = 1, top_n: int = 20) -> dict[
             )
     intl_burn = sum(int(m["consume_tokens"]) for m in top_models if m.get("flag") == "intl_vip")
     intl_usd = sum(int(m.get("consume_usd_cents") or 0) for m in top_models if m.get("flag") == "intl_vip")
-    if intl_burn >= 1_000_000 * days or intl_usd >= 500 * days:
+    if intl_burn >= 2_000_000 * days or intl_usd >= 1_000 * days:
         alerts.append(
             {
                 "level": "warn",
@@ -397,8 +406,8 @@ def admin_usage_monitor(db: Session, *, days: int = 1, top_n: int = 20) -> dict[
             "user_high_per_day": 3_000_000,
             "user_watch_per_day": 1_000_000,
             "user_high_usd_per_day": 10.0,
-            "intl_burn_warn_per_day": 1_000_000,
-            "intl_burn_warn_usd_per_day": 5.0,
+            "intl_burn_warn_per_day": 2_000_000,
+            "intl_burn_warn_usd_per_day": 10.0,
             "alert_email_whitelist": sorted(_BURN_ALERT_EMAIL_WHITELIST),
         },
         "ops_note": (
