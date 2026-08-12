@@ -19,7 +19,7 @@ _AUDIT_PATH = Path(__file__).resolve().parent / "data" / "pricing_audit.jsonl"
 _DEFAULT_LAYER_MULT = {"L0": 1, "L1": 1, "L2": 3, "L3": 7, "QI": 1}  # ⚠️ 主脑 2026-08-08 修改：L3 6→7，消除 price_warn_or_gpt5_mini 低毛利告警
 
 # 极致性价比·超值包（Value Pack）白名单点名模型（catalog id）：
-# 只装「质量过关 + 毛利安全」的低成本名模；2026-08-11 起 gpt-5/gpt-5-mini 走 QuickRouter ×1 实锤成本（0.625/5.0、0.125/1.0）加入白名单；其余国际旗舰（5.4/4o/Claude/Gemini/Grok/Kimi K3）仍不装，防倒挂。
+# 只装「质量过关 + 毛利安全」的低成本名模；2026-08-11 起 gpt-5/gpt-5-mini 走 QuickRouter ×1 实锤成本（0.625/5.0、0.125/1.0）加入白名单；2026-08-12 加 gpt-5.4（TL 主通道毛利 70%，QR 兜底亦不倒挂）；gpt-4o 毛利贴地 26% 暂不点亮，待 QR 补测实拉价；其余国际旗舰（Claude/Gemini/Grok/Kimi K3）仍不装，防倒挂。
 # 由 token_mvp_service.value_pack_allowed_models 判定资格；白名单随质量与成本基线滚动调整。
 VALUE_PACK_ALLOWED_IDS: frozenset[str] = frozenset(
     {
@@ -34,6 +34,7 @@ VALUE_PACK_ALLOWED_IDS: frozenset[str] = frozenset(
         "vip-glm",
         "vip-gpt5",
         "vip-gpt5-mini",
+        "vip-gpt54",
         "vip-gpt4o-mini",
         "vip-gpt56-terra",
         "vip-gpt56-luna",
