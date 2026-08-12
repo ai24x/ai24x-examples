@@ -1957,7 +1957,17 @@ def _stream_openai_compatible(
                             "provider": provider,
                         }
     except Exception as e:
-        yield {"type": "error", "error": str(e)[:300], "raw_model": model, "provider": provider}
+        # ⚠️ 主脑 2026-08-12 排查：附带上游 400/4xx 响应体，便于定位 messages/tools 转换问题
+        detail = str(e)[:300]
+        try:
+            resp = getattr(e, "response", None)
+            if resp is not None:
+                body = str(getattr(resp, "text", "") or "")[:500]
+                if body:
+                    detail = f"{detail} | body={body}"
+        except Exception:
+            pass
+        yield {"type": "error", "error": detail, "raw_model": model, "provider": provider}
         return
 
     full = "".join(full_parts)

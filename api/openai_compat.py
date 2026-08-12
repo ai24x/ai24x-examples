@@ -629,6 +629,9 @@ def iter_true_sse_from_events(
                 }
             )
             yield "data: [DONE]\n\n"
+            # ⚠️ 主脑 2026-08-12：同类修复——消费 events 让 stream_chat_request 执行 error 收尾（status=failed + error_message）
+            for _ in events:
+                pass
             return
         if et == "delta":
             yield from ensure_role()
@@ -1528,6 +1531,9 @@ def iter_true_sse_from_responses_events(
                     },
                 },
             )
+            # ⚠️ 主脑 2026-08-12：消费 events 让 stream_chat_request 执行 error 收尾（status=failed + error_message）
+            for _ in events:
+                pass
             return
     yield pack(
         "response.failed",
