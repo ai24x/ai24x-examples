@@ -395,7 +395,7 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         # 2026-08-06: 保持 OR 主通道（补测 TL 同价无成本优势，OR 稳定性更优）
         # 2026-08-11: 加 QuickRouter failover（分组倍率×1 已账单实测 0.625/5.0，成本降 50%）
-        "channels": ["openrouter", "tokenlab", "requesty", "quickrouter"],
+        "channels": ["quickrouter", "tokenlab", "openrouter"],
         "cost_in": 0.625,
         "cost_out": 5.0,
         "billing_mult": 25,  # 2026-08-05: ceil(5.625/0.35*1.5)=25
@@ -416,6 +416,8 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 16,
         "openrouter_id": "openai/gpt-5-mini",
         "direct_id": None,
+        # ⚠️ 主脑 2026-08-12：QuickRouter 降本 50% 优先化（×1 倍率实测 0.125/1.0）
+        "channels": ["quickrouter", "tokenlab", "openrouter"],
         # 2026-08-11: QuickRouter ×1 实锤 0.125/1.0（原 OR 0.25/2.0）
         "cost_in": 0.125,
         "cost_out": 1.0,
