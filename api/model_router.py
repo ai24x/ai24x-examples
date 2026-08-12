@@ -1428,6 +1428,8 @@ _TOKENLAB_MODEL_MAP: dict[str, str] = {
 _QUICKROUTER_MODEL_MAP: dict[str, str] = {
     "vip-gpt5": "gpt-5",
     "vip-gpt5-mini": "gpt-5-mini",
+    # ⚠️ 主脑 2026-08-12：QR 支持 Luna+tools 实测 200，加映射（降本+绕 TokenLab 400）
+    "vip-gpt56-luna": "gpt-5.6-luna",
 }
 
 _REQUESTY_MODELS: frozenset[str] = frozenset({
