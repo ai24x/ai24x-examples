@@ -191,7 +191,7 @@ Header: X-API-Key: YOUR_API_KEY
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="../config/locales.js?v=20260813b"></script>
+  <script src="../config/locales.js?v=20260813c"></script>
   <script src="../js/api.js?v=20260812e"></script>
   <script src="../js/utm.js?v=20260802a"></script>
 <script src="../js/i18n.js?v=20260812g"></script>
@@ -250,7 +250,7 @@ Header: X-API-Key: YOUR_API_KEY
       }
       function cnBadge(p, isZhNow) {
         if (p.group === "intl") return "";
-        return " <span class='pill-cn' title='" + (isZhNow ? "国产旗舰 · 原厂/硅基国际端点 · 出海" : "China flagship · original/SiliconFlow intl endpoint · global-ready") + "'>" + (isZhNow ? "国产旗舰 · 出海" : "China Flagship · Global") + "</span>";
+        return " <span class='pill-cn' title='" + (isZhNow ? "国产旗舰 · 原厂/硅基国际端点 · 出海" : "Open-source · direct/SiliconFlow international endpoint · global-ready") + "'>" + (isZhNow ? "国产旗舰 · 出海" : "Open-source · Global") + "</span>";
       }
       // flash 售价锚：优先用 API flash_ref_usd_per_m / 各 pick 字段（与后台同源）
       var REF_USD_PER_M = 0.35;
@@ -431,10 +431,10 @@ Header: X-API-Key: YOUR_API_KEY
               p.group === "intl"
                 ? zh
                   ? globeSVG + ' 国际'
-                  : globeSVG + ' Intl'
+                  : globeSVG + ' Frontier'
                 : zh
                   ? flagCN + ' 中国'
-                  : flagCN + ' China';
+                  : globeSVG + ' Open source';
             var lit = !p.locked && p.value_pack_ok;
             return (
               "<tr" + (lit ? " class='vp-lit'" : "") + "><td><span class='pill-vip'>" +
