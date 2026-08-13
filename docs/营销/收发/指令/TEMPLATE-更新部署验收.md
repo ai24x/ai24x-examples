@@ -1,4 +1,4 @@
-﻿# 【指令模板】更新部署验收（主通道 v2 · 司令直连 04 · PowerShell 优先）
+# 【指令模板】更新部署验收（主通道 v2 · 司令直连 04 · PowerShell 优先）
 
 > 三通道：
 > ① 主通道 v2（老板说「04更新」后，最快）：司令 提交→双推 gitee→写指令 md→跑 `scripts\deploy04.ps1 <指令.md>`（scp 到 04 + ssh 驱动 04 的 openclaw，--timeout 600）→ 04 完成部署+验收+飞书群回执。**跳过主脑中转**，主脑不参与部署（只留记忆/飞书）。
@@ -17,13 +17,13 @@
 $ErrorActionPreference = "Stop"
 $REPO = "C:\ai24x01"           # 04 生产仓库根目录
 $SRV  = "AI24X-core"
-$EXP  = "<COMMIT>"              # 期望 HEAD（每次更新只改这一行）
+$EXP  = "<COMMIT-12位或前缀>"   # 期望 HEAD（每次更新只改这一行；比较统一前缀匹配）
 
 Set-Location $REPO
 git pull
 $HEAD = (git rev-parse --short=12 HEAD).Trim()
 "HEAD=$HEAD"
-if ($HEAD -ne $EXP) { Write-Host "!! HEAD 不匹配，期望 $EXP 实际 $HEAD" -ForegroundColor Red; exit 1 }
+if ($HEAD -notlike "$EXP*") { Write-Host "!! HEAD 不匹配，期望前缀 $EXP 实际 $HEAD" -ForegroundColor Red; exit 1 }
 Restart-Service $SRV -Force
 $ok = $false
 for ($i = 0; $i -lt 12; $i++) {
@@ -32,7 +32,7 @@ for ($i = 0; $i -lt 12; $i++) {
 }
 if (-not $ok) { Write-Host "!! /health 未就绪" -ForegroundColor Red; exit 1 }
 "health=$($h.status) commit=$($h.commit)"
-if ($h.commit -ne $EXP) { Write-Host "!! 服务未生效，commit=$($h.commit)" -ForegroundColor Red; exit 1 }
+if ($h.commit -notlike "$EXP*") { Write-Host "!! 服务未生效，commit=$($h.commit)" -ForegroundColor Red; exit 1 }
 Write-Host "=== 部署成功 ✅ ===" -ForegroundColor Green
 ```
 
@@ -58,6 +58,7 @@ Write-Host "=== 部署成功 ✅ ===" -ForegroundColor Green
 - 根因①：主脑中转这跳是纯 LLM 中转（写文件→scp→ssh 驱动 04），scp 遇瞬时网络挂起即拖死整条链；
 - 根因②：--timeout 300 太紧，链路一卡就 abort；实际主脑 abort 前已把任务传给 04 并驱动，04 侧继续执行完成，只是结果回不来 → 误判失败。
 - 教训：部署这类确定性工作别走多层 LLM 中转；直连 04（deploy04.ps1）为默认；主脑中转仅作备用且 --timeout 提到 600。
+- 短哈希校验统一用**前缀匹配**：`$EXP` 填 12 位或 7 位前缀，比较一律 `-notlike "$EXP*"`（`-ne` 严格比较 7 位 vs 12 位必误报；2026-08-13 03/04 两处现场踩坑后定稿）。
 ## 公网验收（部署后必做 · 2026-08-09 司令补充）
 1. 04 本机 8002 health OK 后，必须再验公网：
    - `https://api.ai24x.com/health` → commit 字段必须 = 期望 HEAD
