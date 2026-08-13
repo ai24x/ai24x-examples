@@ -636,7 +636,7 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         # 2026-08-06: 主通道切 TokenLab（补测 24/24 持平且延迟 2.3s < OR 2.8s；TL 实价 $0.06/$0.36 为 OR 60%）
         # ⚠️ 主脑 2026-08-12：QuickRouter 优先（QR 支持 Luna+tools 实测 200，降本+绕 TokenLab 400）
-        "channels": ["tokenlab", "quickrouter", "openrouter"],
+        "channels": ["quickrouter", "openrouter", "tokenlab"],
         "cost_in": 0.06,    # 2026-08-06: TL 实价（原 0.10 = OR）
         "cost_out": 0.36,   # 2026-08-06: TL 实价（原 0.60 = OR）
         "billing_mult": 2,
