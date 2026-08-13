@@ -91,6 +91,15 @@ def extract_api_key(request: Request) -> Optional[str]:
     return None
 
 
+# 旧客户端兼容名（2026-08-13：手机 Codex/旧配置仍传 deepseek-v4-* 系列，映射到平台档）
+_LEGACY_DS_ALIASES = {
+    "deepseek-v4-flash": "flash",
+    "deepseek-v4-pro": "pro",
+    "deepseek-flash": "flash",
+    "deepseek-pro": "pro",
+}
+
+
 def map_model_name(requested: Optional[str]) -> str:
     """映射到平台 model；未知模型返回 400（2026-08-12 根治：禁止静默回退 flash）。
 
@@ -112,6 +121,9 @@ def map_model_name(requested: Optional[str]) -> str:
         _tail = (_tail or "").strip()
         if _tail:
             low = _tail
+    # 旧客户端兼容名优先（deepseek-v4-flash -> flash / deepseek-v4-pro -> pro）
+    if low in _LEGACY_DS_ALIASES:
+        return _LEGACY_DS_ALIASES[low]
     if low in ("free",):
         return "auto"
     if low in ("free-shared", "free_shared"):
