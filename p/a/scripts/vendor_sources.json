@@ -1,8 +1,0 @@
-{
-  "vendor/lightweight-charts.standalone.production.js": {
-    "url": "https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js",
-    "sha256": "46fc69534ec098f095bbcd1d9a26d693d39a8b9eeff7343536765b3dd28c2bdf",
-    "notes": "前端图表库；demo.html 本地优先，失败回退 CDN。"
-  }
-}
-
