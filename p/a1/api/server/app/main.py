@@ -3076,7 +3076,7 @@ async def _bj_ensure_scan_or_fast(
     from .bj_screener import (
         scan_progress, run_scan_dedup, mark_scan_failed,
         _RUNNING_SCAN, _SCAN_CACHE, _BOARDS_CACHE,
-        _today_off_market, _market_closed, _latest_history,
+        _today_off_market, _market_closed, _latest_history, _reattach_ths,
     )
     p = scan_progress(market)
     if p.get("running") or (_RUNNING_SCAN.get(market) is not None and not _RUNNING_SCAN[market].done()):
@@ -3096,6 +3096,31 @@ async def _bj_ensure_scan_or_fast(
         if _today_off_market() or not _market_closed():
             if _latest_history(market):
                 return None
+        # 交易日已收盘但今日数据未生成（15:03 自动预生成失败/未触发）：
+        # 直接返回最近归档并标记 today_missing，绝不在进页时自动开扫（防"进页就扫描"）
+        _stale = _latest_history(market)
+        if _stale:
+            _out = dict(_stale)
+            _out["cached"] = True
+            _out["stale"] = True
+            _out["today_missing"] = True
+            _out["stale_from"] = _stale.get("asof") or _stale.get("date") or ""
+            _out["market_code"] = market
+            _out["date"] = _stale.get("date") or _stale.get("asof") or ""
+            _out = _reattach_ths(_out)
+            if boards_only:
+                # 非 VIP 板块视图：剥离个股分析（重建对象防污染共享缓存）
+                _out = dict(_out)
+                _out["vip_required"] = True
+                _out.pop("picks", None)
+                _out.pop("runners", None)
+                _out.pop("prev_track", None)
+                _out.pop("prev_date", None)
+                _out["board_rank"] = [dict(_b) for _b in (_out.get("board_rank") or []) if isinstance(_b, dict)]
+                for _br in _out["board_rank"]:
+                    _br.pop("mainline", None)
+                _out["mainlines"] = []
+            return _out
 
     async def _bg() -> None:
         try:
@@ -3246,6 +3271,14 @@ async def api_bj_screener_start(
         return {"ok": False, "error": "start_failed", "message": f"扫描启动失败，请重试：{type(e).__name__}"}
     return {"ok": True, "running": True, "msg": "扫描已启动"}
 
+
+@app.get("/api/bj/screener/partial")
+async def api_bj_screener_partial(request: Request, market: str = "bj", user_id: int = Depends(get_current_user_id)) -> dict:
+    market = str(market or "bj").strip().lower()
+    if market not in ("bj", "all", "hs", "kc", "bj_all"):
+        market = "bj"
+    from .bj_screener import get_partial_scan
+    return get_partial_scan(market) or {"ok": True, "partial": False, "stage": "none", "market_code": market}
 
 @app.get("/api/bj/screener/progress")
 async def api_bj_screener_progress(

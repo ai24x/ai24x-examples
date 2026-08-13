@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
@@ -18,7 +18,7 @@
   </script>
   <link rel="stylesheet" href="/css/base.css?v=53" />
   <link rel="stylesheet" href="/css/tool.css" />
-  <link rel="stylesheet" href="/css/bjscreener.css?v=27" />
+  <link rel="stylesheet" href="/css/bjscreener.css?v=31" />
 <style>
 /* 掘金 · 大盘环境与策略区（复盘同步） */
 .bj-market{display:block;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:10px 14px;margin:0 0 12px;}
@@ -66,6 +66,31 @@
 .winrate-strip .up{color:var(--rise);}
 .winrate-strip .down{color:var(--fall);}
 .winrate-note{margin-top:6px;font-size:12px;color:var(--muted);line-height:1.7;}
+.wr-head{cursor:pointer;display:flex;align-items:center;gap:8px;flex-wrap:wrap;transition:opacity .15s;}
+.wr-head:hover{opacity:.85;}
+.wr-see{margin-left:auto;font-size:12px;font-weight:700;color:var(--bj-acc,#60a5fa);border:1px dashed var(--bj-acc-bd,rgba(96,165,250,.38));background:rgba(96,165,250,.08);padding:3px 10px;border-radius:999px;}
+.wr-head[aria-expanded="true"] .wr-see{background:rgba(96,165,250,.25);border-style:solid;}
+.wr-modal{position:fixed;inset:0;background:rgba(10,15,25,.55);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:4vh 16px 24px;}
+.wr-modal[hidden]{display:none;}
+.wr-modal-box{background:var(--panel,#fff);border:1px solid var(--border);border-radius:14px;width:min(980px,100%);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 18px 60px rgba(0,0,0,.35);}
+.wr-modal-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);font-size:15px;}
+.wr-close{border:1px solid var(--border);background:transparent;color:var(--muted);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:14px;line-height:1;}
+.wr-close:hover{color:var(--text);border-color:var(--bj-acc-bd);}
+.wr-modal-body{overflow:auto;padding:12px 16px;}
+.wr-table-scroll{overflow-x:auto;}
+.wr-table{width:100%;border-collapse:collapse;font-size:13px;}
+.wr-table th,.wr-table td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;}
+.wr-table thead th{position:sticky;top:0;background:var(--panel2);font-size:12px;color:var(--muted);font-weight:700;z-index:1;}
+.wr-table tbody tr:hover{background:rgba(96,165,250,.06);}
+.wr-table .win-name{min-width:150px;}
+.wr-link{color:var(--bj-acc,#60a5fa);font-weight:700;text-decoration:none;}
+.wr-link:hover{text-decoration:underline;}
+.win-st{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;}
+.win-hit{background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;}
+.win-stop{background:#fdecea;color:#b71c1c;border:1px solid #ef9a9a;}
+.win-trk{background:#e8f0fe;color:#1a3f8f;border:1px solid #b7cdf0;}
+.win-miss{background:rgba(128,138,160,.12);color:var(--muted);border:1px solid transparent;}
+.wr-modal-foot{padding:10px 16px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);line-height:1.7;}
 </style>
 </head>
 <body>
@@ -88,7 +113,7 @@
         <div id="auth-guest" hidden>
           <div class="gate-hero">
             <div class="gate-title">登录后，每晚收盘解锁「掘金」扫描结果</div>
-            <div class="gate-sub">每晚收盘自动扫描沪深京 / 北证：先看哪些标的在底部异动、归类异动板块观察（主攻主线以「复盘」页为准），再做多因子体检与风险排查。</div>
+            <div class="gate-sub">每晚收盘自动扫描沪深京 / 北证：先看哪些标的在底部异动、归类异动板块观察（主线由市场驾驶舱统一锁定），再做多因子体检与风险排查。</div>
           </div>
           <div class="gate-feats">
             <div class="gate-feat"><b>① 每晚自动扫描</b><span>沪深京 / 北证全市场</span></div>
@@ -160,11 +185,11 @@
     </div>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="/js/shell.js?v=53"></script>
+  <script src="/js/shell.js?v=54"></script>
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("bjscreener"); } catch (e) {}
   </script>
-  <script src="/js/bjscreener.js?v=60"></script>
+  <script src="/js/bjscreener.js?v=68"></script>
   <script>
     (function () {
       var w = window.AI24X_BJScreener;

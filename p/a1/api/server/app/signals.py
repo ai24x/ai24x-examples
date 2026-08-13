@@ -1444,7 +1444,7 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
     )
     # v1.02: signal locking — freeze markers >5 bars old
     # CACHE_VERSION: bump when algorithm OR cache filename scheme changes
-    CACHE_VERSION = 9  # v9: restore ungated 险1/险2 (revert today's life-line gate experiment)
+    CACHE_VERSION = 10  # v10: 重建信号缓存 恢复 7/29 小底 等被冻结缓存吞掉的信号
     if cache_key and len(candles) > 10:
         LOCK_BARS = 5
         freeze_cutoff = candles[-LOCK_BARS - 1].time if len(candles) > LOCK_BARS else ""
@@ -1476,12 +1476,24 @@ def build_markers_v3_js_port(candles: list[Candle], *, cache_key: str = "") -> l
                         if t < freeze_cutoff:
                             locked.append(mk)
                             seen_times.add(t + str(mk.get("id") or ""))
-                    for mk in markers:
-                        t = str(mk.get("time") or "")
-                        key2 = t + str(mk.get("id") or "")
-                        if t >= freeze_cutoff and key2 not in seen_times:
-                            locked.append(mk)
-                    markers = locked
+                    # 自愈：冻结窗口内信号数量与当前算法差异过大则重建
+                    # （旧缓存可能来自实验性算法/旧数据，永久冻结会吞掉信号，如 7/29 小底）
+                    _fresh_old = [m for m in markers if str(m.get("time") or "") < freeze_cutoff]
+                    _cached_old = [m for m in locked if str(m.get("time") or "") < freeze_cutoff]
+                    _rebuild = (len(_cached_old) == 0 and len(_fresh_old) > 0) or (
+                        len(_cached_old) > 0
+                        and (
+                            len(_fresh_old) < len(_cached_old) * 0.5
+                            or len(_fresh_old) > len(_cached_old) * 1.5
+                        )
+                    )
+                    if not _rebuild:
+                        for mk in markers:
+                            t = str(mk.get("time") or "")
+                            key2 = t + str(mk.get("id") or "")
+                            if t >= freeze_cutoff and key2 not in seen_times:
+                                locked.append(mk)
+                        markers = locked
             # Save current markers for next time
             try:
                 with open(cache_path, "w", encoding="utf-8") as fh:

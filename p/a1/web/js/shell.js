@@ -200,7 +200,6 @@
       nav("/index.html", "首页", "index"),
       nav("/demo.html", "行情", "demo"),
       nav("/gd.html", "掘金", "bjscreener"),
-      nav("/daily/index.html", "复盘", "daily"),
       nav("/account.html", "我的", "account"),
       nav("/help.html", "帮助", "help"),
       nav("/feedback.html", "反馈", "feedback"),

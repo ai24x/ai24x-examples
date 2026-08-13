@@ -62,6 +62,39 @@ SECTORS = {
     "创新药CXO": [("603259","药明康德"),("300347","泰格医药"),("002821","凯莱英"),("300759","康龙化成"),("300363","博腾股份"),("300558","贝达药业")],
     "半导体": [("688981","中芯国际"),("002371","北方华创"),("603501","韦尔股份"),("603986","兆易创新"),("688008","澜起科技"),("688256","寒武纪")],
     "AI服务器算力": [("000977","浪潮信息"),("603019","中科曙光"),("601138","工业富联"),("000938","紫光股份"),("688158","优刻得"),("603629","利通电子")],
+    "证券": [("600030","中信证券"),("300059","东方财富"),("300033","同花顺"),("300803","指南针"),("601688","华泰证券"),("601377","兴业证券")],
+    "军工": [("600760","中航沈飞"),("600893","航发动力"),("000768","中航西飞"),("600038","中直股份"),("000738","航发控制"),("300034","钢研高纳")],
+    "机器人": [("002747","埃斯顿"),("300124","汇川技术"),("688017","绿的谐波"),("002472","双环传动"),("603728","鸣志电器"),("300024","机器人")],
+    "光伏设备": [("300724","捷佳伟创"),("300751","迈为股份"),("300316","晶盛机电"),("688516","奥特维"),("300776","帝尔激光"),("603185","上机数控")],
+    "锂电池": [("300750","宁德时代"),("300014","亿纬锂能"),("002074","国轩高科"),("300207","欣旺达"),("002709","天赐材料"),("300769","德方纳米")],
+    "汽车整车": [("002594","比亚迪"),("601633","长城汽车"),("000625","长安汽车"),("601127","赛力斯"),("600418","江淮汽车"),("600733","北汽蓝谷")],
+    "白酒消费": [("600519","贵州茅台"),("000858","五粮液"),("600809","山西汾酒"),("000568","泸州老窖"),("000596","古井贡酒"),("600702","舍得酒业")],
+    "电力": [("600900","长江电力"),("601985","中国核电"),("600886","国投电力"),("600674","川投能源"),("600027","华电国际"),("600011","华能国际")],
+    "机械设备": [("600031","三一重工"),("000157","中联重科"),("000425","徐工机械"),("601100","恒立液压"),("000338","潍柴动力"),("002008","大族激光")],
+}
+
+# 板块 -> 东财资金榜板块名别名（主线资金确认用；not_in 排除同名歧义，如"电力设备"是光伏/风电设备而非电力运营）
+SECTOR_BOARD_ALIASES = {
+    "PCB": ["印制电路板", "PCB"],
+    "煤炭": ["煤炭开采", "焦煤", "动力煤", "煤炭"],
+    "有色": ["工业金属", "小金属", "有色金属", "能源金属", "贵金属", "稀土"],
+    "通信光模块CPO": ["通信设备", "通信网络设备", "光通信", "光模块", "CPO", "通信技术"],
+    "创新药CXO": ["创新药", "化学制药", "医疗服务", "生物制品", "CXO", "医药生物"],
+    "半导体": ["半导体", "芯片", "集成电路", "数字芯片", "存储芯片", "电子化学品"],
+    "AI服务器算力": ["算力", "AI服务器", "数据中心", "东数西算", "云计算", "液冷", "IDC"],
+    "证券": ["证券", "券商"],
+    "军工": ["航天航空", "船舶制造", "军工", "大飞机", "航母"],
+    "机器人": ["机器人", "减速器", "工业母机", "人形机器人"],
+    "光伏设备": ["光伏设备", "光伏", "钙钛矿", "HJT电池"],
+    "锂电池": ["锂电池", "锂电", "固态电池", "动力电池", "电池"],
+    "汽车整车": ["汽车整车", "乘用车", "新能源车", "智能汽车"],
+    "白酒消费": ["白酒", "酿酒", "食品饮料", "啤酒", "乳业"],
+    "电力": ["电力行业", "绿色电力", "绿电", "核电", "火电", "水电", "风电"],
+    "机械设备": ["机械设备", "工程机械", "通用设备", "专用设备", "其他专用设备"],
+}
+SECTOR_BOARD_NOTIN = {
+    "电力": ["设备"],            # 排除"电力设备"（光伏/风电设备属新能源，非电力运营）
+    "汽车整车": ["零部件", "芯片"],  # 排除"汽车零部件""汽车芯片"（属电子/机械）
 }
 
 _CFG = None
@@ -367,6 +400,73 @@ async def _fetch_index_signals(is_vip):
 # ---------------- 板块成分股评分（内部直算，不扣配额） ----------------
 def secid_of(code): return ("1." if code[0] in "56" else "0.") + code
 
+
+def _board_confirm_flags(candles, code):
+    """从日K轻量判定板块情绪：10日内涨停 / 15日内底部放量异动（供主线锁定确认，零额外上游成本）。"""
+    try:
+        closes = [float(c.close) for c in candles]
+        highs = [float(c.high) for c in candles]
+        lows = [float(c.low) for c in candles]
+        vols = [float(c.vol or 0.0) for c in candles]
+        n = len(closes)
+        if n < 25:
+            return False, False
+        c6 = str(code).zfill(6)
+        th = 19.5 if c6.startswith(("30", "68")) else (29.5 if c6.startswith(("8", "43", "92")) else 9.5)
+        zt = False
+        for i in range(max(1, n - 10), n):
+            if closes[i - 1] > 0 and (closes[i] / closes[i - 1] - 1) * 100 >= th - 0.5:
+                zt = True
+                break
+        lo60 = min(lows[max(0, n - 60):])
+        hi60 = max(highs[max(0, n - 60):])
+        surge = False
+        for i in range(max(1, n - 15), n):
+            _win = vols[max(0, i - 20):i]
+            v20 = sum(_win) / max(1, len(_win))
+            if v20 > 0 and vols[i] >= 1.8 * v20 and closes[i - 1] > 0:
+                _pct = (closes[i] / closes[i - 1] - 1) * 100
+                _pos = (closes[i] - lo60) / (hi60 - lo60) if hi60 > lo60 else 1.0
+                if _pct >= 4 and _pos <= 0.5:
+                    surge = True
+                    break
+        return zt, surge
+    except Exception:
+        return False, False
+
+
+def _sector_fund_flow(sec, plates):
+    """板块资金共振：从东财行业/概念资金榜（5日/今日主力净流入）匹配本板块。
+
+    返回 (5日主力净流入, 今日主力净流入)，单位元；无匹配返回 (None, None)。
+    仅用于主线资金确认，不新增任何上游请求。
+    """
+    if not plates:
+        return None, None
+    aliases = SECTOR_BOARD_ALIASES.get(sec) or [sec]
+    not_in = SECTOR_BOARD_NOTIN.get(sec) or []
+    best5 = best_t = None
+    for r in (plates.get("em_em_industry_5d") or []) + (plates.get("em_em_concept_5d") or []):
+        nm = str(r.get("name") or "")
+        if any(a and a in nm for a in aliases) and not any(x and x in nm for x in not_in):
+            try:
+                v = float(r.get("main_5d") or 0)
+                if best5 is None or v > best5:
+                    best5 = v
+            except Exception:
+                pass
+    for r in (plates.get("em_em_industry_today") or []) + (plates.get("em_em_concept_today") or []):
+        nm = str(r.get("name") or "")
+        if any(a and a in nm for a in aliases) and not any(x and x in nm for x in not_in):
+            try:
+                v = float(r.get("main_today") or 0)
+                if best_t is None or v > best_t:
+                    best_t = v
+            except Exception:
+                pass
+    return best5, best_t
+
+
 async def _fetch_sector_scores(is_vip):
     variant, priority_override, allow_paid = _provider_profile(is_vip)
     out = {}
@@ -378,10 +478,12 @@ async def _fetch_sector_scores(is_vip):
             try:
                 candles = await _tx_kline(secid_of(code), 120, variant, priority_override, allow_paid, timeout=8.0)
                 res = score_candles(candles, name=name)
+                _zt, _surge = _board_confirm_flags(candles, code)
                 out[sec].append({
                     "code": code, "name": name, "score": res.get("score"), "tags": res.get("tags") or [],
                     "risks": res.get("risks") or [], "up_pct": res.get("up_pct"), "vol_ratio": res.get("vol_ratio"),
                     "red_days": res.get("red_days"), "latest_time": res.get("latest_time"),
+                    "zt": _zt, "surge": _surge,
                 })
             except Exception as e:
                 out[sec].append({"code": code, "name": name, "error": str(e)[:80]})
@@ -400,7 +502,7 @@ async def _fetch_internal(is_vip, idx_needed=True, sc_needed=True):
             result["indexes"] = None
     if sc_needed:
         try:
-            set_progress(step="内部直算：42 只成分股评分（腾讯K线，不扣查次）")
+            set_progress(step="内部直算：%d 只成分股评分（腾讯K线，不扣查次）" % sum(len(v) for v in SECTORS.values()))
             result["sector_scores"] = await _fetch_sector_scores(is_vip)
         except Exception:
             result["sector_scores"] = None
@@ -496,39 +598,63 @@ def sector_stats(sc):
     names = " / ".join("%s %.1f" % (_stock_link(x["code"], x["name"]), x["score"]) for x in top)
     return mean, names, ok
 
-def pick_main_lines(sector_scores, prev_mainlines=None):
-    """主线锁定（延续约束版，防“一天一个想法”）：
-    - 今日确认主线：评分均值≥62 且（当日平均涨幅≥0，或昨日主线允许小幅回调≥-2%）；
-    - 昨日主线今日回调（均值≥55）→ 观察（延续观察），不直接退潮；
-    - 每日主线最多新增 1 个（有历史主线时），其余新晋先入观察，次日确认再升主线。
+def pick_main_lines(sector_scores, prev_mainlines=None, plates=None):
+    """主线锁定（资金×技术双确认 + 延续约束，防“一天一个想法”也防“一条线霸榜”）：
+    - 技术关：成分股评分均值≥62（或板块内有涨停/异动情绪确认时均值≥58）；
+    - 资金关：当日平均涨幅≥0，或 5日主力净流入≥15亿 且 今日净流入>0 / 今日净流入≥50亿（资金主攻）；
+    - 昨日主线：均值≥62 且回调≤-1.0%，或 均值≥58 且资金仍主攻 → 延续；均值≥55 → 观察，不直接退潮；
+    - 新晋主线：技术+资金双确认；每日新晋最多 2 个（有历史主线时），其余先入观察次日确认；
+    - 资金强但技术未修复（均值50~62）→ 观察（等修复确认），避免漏掉正在启动的轮动板块。
     """
     prev = {str(x) for x in (prev_mainlines or [])}
     main_lines, observes, avoids = [], [], []
+    info = {}
     for sec, sc in sector_scores.items():
         mean, top3, ok = sector_stats(sc)
         if mean is None:
             continue
         ups = [float(x.get("up_pct") or 0) for x in ok]
         avg_up = sum(ups) / len(ups) if ups else 0
-        if mean >= 62 and (avg_up >= 0 or (sec in prev and avg_up >= -2.0)):
-            main_lines.append(sec)
-        elif mean >= 55:
-            observes.append(sec)   # 含昨日主线回调 → 延续观察
+        # 情绪确认：板块内有涨停或≥2只放量异动成分 → 均值≥58 即可升主线（捕捉新主线启动）
+        n_zt = sum(1 for x in ok if x.get("zt"))
+        n_surge = sum(1 for x in ok if x.get("surge"))
+        confirmed = n_zt >= 1 or n_surge >= 2
+        fund5, fund_t = _sector_fund_flow(sec, plates)
+        fund_ok = bool((fund5 is not None and fund5 >= 15e8 and fund_t is not None and fund_t > 0)
+                       or (fund_t is not None and fund_t >= 50e8))
+        info[sec] = {"mean": mean, "avg_up": avg_up, "fund5": fund5, "fund_t": fund_t,
+                     "fund_ok": fund_ok, "confirmed": confirmed}
+        if sec in prev:
+            # 昨日主线：均值≥62 且回调≤-1.0%（可小幅回踩），或 资金仍主攻（均值≥58 且 资金共振）→ 延续；
+            # 回调偏深、资金离场、情绪转弱 → 观察/回避，防止"一条线霸榜"（10日内涨停是滞后证据，不续命）
+            if (mean >= 62 and avg_up >= -1.0) or (mean >= 58 and fund_ok):
+                main_lines.append(sec)
+            elif mean >= 55:
+                observes.append(sec)
+            else:
+                avoids.append(sec)
         else:
-            avoids.append(sec)
+            # 新晋：技术+资金双确认，或情绪确认启动
+            if (mean >= 62 and avg_up >= 0) or (confirmed and mean >= 58) or (fund_ok and mean >= 62 and avg_up >= -0.5):
+                main_lines.append(sec)
+            elif mean >= 55 or (fund_ok and mean >= 50):
+                observes.append(sec)
+            else:
+                avoids.append(sec)
     if prev and len(main_lines) > 0:
-        # 每日主线最多新增 1 个：超出部分先入观察，次日确认再升主线
+        # 每日新晋最多 2 个：超出部分先入观察，次日确认再升主线
         new_ones = [s for s in main_lines if s not in prev]
-        if len(new_ones) > 1:
-            def _mean_of(name):
-                m, _t, _ok = sector_stats(sector_scores[name])
-                return m if m is not None else 0
-            new_sorted = sorted(new_ones, key=lambda s: -float(_mean_of(s)))
-            for s in new_sorted[1:]:
+        if len(new_ones) > 2:
+            new_sorted = sorted(new_ones, key=lambda s: -float(info[s]["mean"]))
+            for s in new_sorted[2:]:
                 main_lines.remove(s)
                 if s not in observes:
                     observes.append(s)
-    return main_lines, observes, avoids
+    # 主次排序：评分均值优先，5日主力净流入次之
+    main_lines.sort(key=lambda s: (-float(info[s]["mean"]), -(info[s]["fund5"] or 0)))
+    observes.sort(key=lambda s: -float(info[s]["mean"]))
+    avoids.sort(key=lambda s: -float(info[s]["mean"]))
+    return main_lines, observes[:3], avoids[:3]
 
 def _prev_mainlines():
     """上一归档日的主线（用于连续性对比）。优先读归档 mainlines.json（当日实际口径），旧归档回退按 sector_score 重算。"""
@@ -585,7 +711,7 @@ def build_md(data, vip=True):
     A("---")
     A("")
     _prev_ml = (data.get("prev_mainlines") or {}).get("mainlines") or []
-    main_lines, observes, avoids = pick_main_lines(sc, _prev_ml)
+    main_lines, observes, avoids = pick_main_lines(sc, _prev_ml, plates)
     data["mainlines"] = main_lines
     data["observes"] = observes
     sh = idx.get("上证指数", {}) or {}
@@ -764,7 +890,7 @@ def build_md(data, vip=True):
             mean, top3, ok = sector_stats(items)
             A("| %s | %s | %s |" % (sec, ("%.1f" % mean) if mean else "-", top3))
         A("")
-        main_lines, observes, avoids = pick_main_lines(sc, (data.get("prev_mainlines") or {}).get("mainlines") or [])
+        main_lines, observes, avoids = pick_main_lines(sc, (data.get("prev_mainlines") or {}).get("mainlines") or [], plates)
         A("---")
         A("")
         A("## ⭐ 四、主线锁定（算法双确认）")

@@ -2113,7 +2113,7 @@
   </main>
   <footer class="site-footer" id="site-footer"></footer>
 
-  <script src="/js/shell.js?v=53"></script>
+  <script src="/js/shell.js?v=54"></script>
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("demo"); } catch (e) {}
   </script>
@@ -3286,6 +3286,15 @@
             try {
               if (!res || !res.pack || isEmPlateSecid(secid)) return res;
               if (res.pack.qt) return res;
+              // 已含当日 bar（后端 ths:fuyao 等实时源）时无需 qt 再合成当日蜡烛，跳过 JSONP 补齐省 1 次跨域请求
+              try {
+                var dayRowsQt = pickTencentKlineRows(res.pack, PERIOD_META.day);
+                if (dayRowsQt && dayRowsQt.length && lastYmdOfRows(dayRowsQt) >= localCalendarYmd()) {
+                  return res;
+                }
+              } catch (e0) {
+                return res;
+              }
             } catch (e0) {
               return res;
             }
@@ -3470,6 +3479,12 @@
     if (!res || !res.pack || meta.scale !== 'day') return Promise.resolve();
     var rows = res.pack[meta.arrKey];
     if (!rows || !rows.length) return Promise.resolve();
+    // 后端已含今日实时 bar（ths:fuyao 等）时，腾讯/新浪双源尾合并无新增数据，跳过省 2 次 K 线调用
+    try {
+      var lastRowT = rows[rows.length - 1];
+      var lastYd = normalizeChartDateStr(lastRowT && lastRowT[0]);
+      if (lastYd && lastYd >= localCalendarYmd()) return Promise.resolve();
+    } catch (e0) {}
     var baseSrc = res.klineSource || '';
     var before = dailyRowsLastSig(rows);
     return mergeDayRowsDualTail(rows, secid).then(function (merged) {
@@ -3863,6 +3878,22 @@
     return null;
   }
 
+  /** 名称兜底：URL 只带 secid 时（如外部入口），从腾讯快照 qt 反查名称 */
+  function nameFromPackQt(pack, tencentKey, secid) {
+    try {
+      var qt = pack && pack.qt;
+      if (!qt) return null;
+      var a = resolveQtRow(qt, tencentKey);
+      if (!a) return null;
+      var nm = String(a[1] || '').trim();
+      var cd = String(a[2] || '').trim();
+      if (!nm || /^[\d.]+$/.test(nm)) return null;
+      return { name: nm, code: cd || formatSecidDisplayCode(secid) };
+    } catch (e) {
+      return null;
+    }
+  }
+
   function localCalendarYmd() {
     var d = new Date();
     return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
@@ -3902,7 +3933,9 @@
     if (!a || !a.length) return false;
     var t = parseQtSnapshotHhmmss(a);
     if (!t || t.length !== 6) return false;
-    // A股连续竞价通常从 09:30 起；集合竞价阶段快照更容易污染 high/low
+    // Never merge pre-open snapshots into a daily candle.
+    if (t < '093000') return true;
+    // After 09:30, retain the existing auction-noise guard for high/low.
     if (t >= '093000') return false;
 
     var prev = parseFloat(a[4]);
@@ -4899,6 +4932,8 @@
   }
 
   var _lastChartSize = null;
+  var _renderSeq = 0;
+  var _visibleRangeApplier = null;
   function syncChartSize() {
     if (!chart || !chartEl) return;
     var w = chartEl.clientWidth;
@@ -4909,6 +4944,10 @@
       try {
         chart.resize(w, h);
       } catch (eS) {}
+      // 尺寸变化后按最新数据重新锚定可见范围，防止右漂
+      try {
+        if (_visibleRangeApplier) _visibleRangeApplier();
+      } catch (eR) {}
     }
   }
   function onResize() {
@@ -5554,6 +5593,16 @@
     var pack = result.pack;
     var key = result.tencentKey;
     var rows = pack[meta.arrKey];
+    // 名称兜底：外部入口只带 secid 时，从腾讯快照 qt 反查并回填输入框/提示
+    try {
+      if (!quoteDisplayHint && !SECID_TO_LABEL[currentSecid]) {
+        var _nh = nameFromPackQt(pack, key, currentSecid);
+        if (_nh) {
+          quoteDisplayHint = _nh;
+          try { inputEl.value = _nh.name; } catch (eN2) {}
+        }
+      }
+    } catch (eN3) {}
     try {
       // Best-effort: update share title/description for browsers that honor dynamic meta.
       // (Some share crawlers won't execute JS; static og:* meta above remains the fallback.)
@@ -5743,39 +5792,45 @@
             });
         });
     })();
-    var n = mainChartCandles.length;
     var ro = CHART_RIGHT_OFFSET_BARS;
-    var vis = computeInitialVisibleBarCount(period, chartEl.clientWidth, n);
     function applyDefaultVisibleRange() {
       try {
-        // 周期切换时图表会重建，此处仅作兜底：先重置 timeScale 残留状态再设可见范围
-        if (chart && chart.timeScale && typeof chart.timeScale.resetTimeScale === 'function') {
-          chart.timeScale().resetTimeScale();
-        }
-      } catch (eTs0) {}
-      try {
-        chart.timeScale().applyOptions({
-          barSpacing: chartBarSpacingForPeriod(period),
-          rightOffset: ro,
-        });
-      } catch (eTs) {}
-      try {
-        if (n > vis) {
-          chart.timeScale().setVisibleLogicalRange({
-            from: n - vis,
-            to: n - 1 + ro,
+        var cur = mainChartCandles || [];
+        var cn = cur.length;
+        if (!cn || !chart) return;
+        var vis = computeInitialVisibleBarCount(period, chartEl.clientWidth, cn);
+        try {
+          chart.timeScale().applyOptions({
+            barSpacing: chartBarSpacingForPeriod(period),
+            rightOffset: ro,
           });
-        } else {
+        } catch (eTs) {}
+        try {
+          // 索引锚定可见范围并在右缘预留 ro 根空白（约几天），主图/副图不贴边；
+          // 不再调用 resetTimeScale：会把可见范围重置回数据开头，且会清掉刚设置的可见范围
+          var fromIdx = Math.max(0, cn - vis);
           chart.timeScale().setVisibleLogicalRange({
-            from: 0,
-            to: n - 1 + ro,
+            from: fromIdx,
+            to: cn - 1 + ro,
           });
-        }
-      } catch (eS) {}
+        } catch (eS) {}
+      } catch (eAll) {}
+    }
+    var renderSeqNow = ++_renderSeq;
+    function reapplyVisibleRangeWhenStable() {
+      if (renderSeqNow !== _renderSeq) return; // 已被更新的渲染取代
+      try {
+        applyDefaultVisibleRange();
+      } catch (eR) {}
     }
     requestAnimationFrame(function () {
       requestAnimationFrame(applyDefaultVisibleRange);
     });
+    // 布局尺寸结算晚于首帧：延迟重应用一次，修复首次查询右漂/显示不全的偶发竞态
+    setTimeout(reapplyVisibleRangeWhenStable, 300);
+    // v4 timeScale 异步结算：1.2s 再锚定一次，切换周期/标的时更快收敛到精确位置
+    setTimeout(reapplyVisibleRangeWhenStable, 1200);
+    _visibleRangeApplier = reapplyVisibleRangeWhenStable;
     setupChartTooltip(chart, series, mainChartCandles, mainChartVols, null, null);
     // 记录一个快照用于调试/复核（导出能力已移除）
     try {
