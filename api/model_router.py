@@ -22,6 +22,14 @@ import upstream_health
 
 logger = logging.getLogger(__name__)
 
+# —— 全局共享 keep-alive 连接池（2026-08-13 优化：避免每请求 TCP+TLS 握手；httpx.Client 线程安全）——
+_CONNECT_TIMEOUT_S = 5.0  # 连接建立独立短超时：连接失败 5s 内快速 failover，不再吃满总超时
+_SHARED_CLIENT = httpx.Client(
+    timeout=httpx.Timeout(60.0, connect=_CONNECT_TIMEOUT_S),
+    limits=httpx.Limits(max_connections=256, max_keepalive_connections=64),
+    follow_redirects=True,
+)
+
 # 逻辑模型名 → 层级
 MODEL_LAYER: dict[str, str] = {
     "auto": "auto",
@@ -1990,8 +1998,12 @@ def _call_openai_compatible(
         "yes",
     ):
         body["thinking"] = {"type": "disabled"}
-    with httpx.Client(timeout=timeout_s) as client:
-        r = client.post(url, headers=headers, json=body)
+    r = _SHARED_CLIENT.post(
+        url,
+        headers=headers,
+        json=body,
+        timeout=httpx.Timeout(timeout_s, connect=min(_CONNECT_TIMEOUT_S, timeout_s)),
+    )
     r.raise_for_status()
     data = r.json()
     choices = data.get("choices") or []
@@ -2004,6 +2016,13 @@ def _call_openai_compatible(
         text = str(msg.get("content") or "").strip()
         if not text:
             text = str(msg.get("reasoning_content") or "").strip()
+        if not text:
+            # OpenRouter 对 Gemini/GLM 等思考模型返回 reasoning / reasoning_details
+            text = str(msg.get("reasoning") or "").strip()
+        if not text:
+            rds = msg.get("reasoning_details")
+            if isinstance(rds, list) and rds and isinstance(rds[0], dict):
+                text = str(rds[0].get("text") or "").strip()
         raw_tcs = msg.get("tool_calls")
         if isinstance(raw_tcs, list) and raw_tcs:
             tool_calls = raw_tcs
@@ -2107,7 +2126,7 @@ def _stream_openai_compatible(
     except Exception:
         pass
 
-    timeout = httpx.Timeout(timeout_s, connect=min(30.0, timeout_s))
+    timeout = httpx.Timeout(timeout_s, connect=min(_CONNECT_TIMEOUT_S, timeout_s))
     full_parts: list[str] = []
     usage_tokens = 0
     usage_prompt_tokens = 0
@@ -2117,8 +2136,9 @@ def _stream_openai_compatible(
     # 拼装流式 tool_calls（按 index）
     tc_acc: dict[int, dict[str, Any]] = {}
     try:
-        with httpx.Client(timeout=timeout) as client:
-            with client.stream("POST", url, headers=headers, json=body) as r:
+        with _SHARED_CLIENT.stream(
+            "POST", url, headers=headers, json=body, timeout=timeout
+        ) as r:
                 r.raise_for_status()
                 for line in r.iter_lines():
                     if not line:
@@ -2197,6 +2217,8 @@ def _stream_openai_compatible(
                     piece = delta.get("content")
                     if piece is None:
                         piece = delta.get("reasoning_content")
+                    if piece is None:
+                        piece = delta.get("reasoning")
                     if piece:
                         text_piece = str(piece)
                         full_parts.append(text_piece)
