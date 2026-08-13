@@ -395,7 +395,7 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": None,
         # 2026-08-06: 保持 OR 主通道（补测 TL 同价无成本优势，OR 稳定性更优）
         # 2026-08-11: 加 QuickRouter failover（分组倍率×1 已账单实测 0.625/5.0，成本降 50%）
-        "channels": ["openrouter", "tokenlab", "requesty", "quickrouter"],
+        "channels": ["quickrouter", "tokenlab", "openrouter"],
         "cost_in": 0.625,
         "cost_out": 5.0,
         "billing_mult": 25,  # 2026-08-05: ceil(5.625/0.35*1.5)=25
@@ -416,6 +416,8 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 16,
         "openrouter_id": "openai/gpt-5-mini",
         "direct_id": None,
+        # ⚠️ 主脑 2026-08-12：QuickRouter 降本 50% 优先化（×1 倍率实测 0.125/1.0）
+        "channels": ["quickrouter", "tokenlab", "openrouter"],
         # 2026-08-11: QuickRouter ×1 实锤 0.125/1.0（原 OR 0.25/2.0）
         "cost_in": 0.125,
         "cost_out": 1.0,
@@ -633,7 +635,8 @@ CATALOG: list[dict[str, Any]] = [
         "openrouter_id": "openai/gpt-5.6-luna",
         "direct_id": None,
         # 2026-08-06: 主通道切 TokenLab（补测 24/24 持平且延迟 2.3s < OR 2.8s；TL 实价 $0.06/$0.36 为 OR 60%）
-        "channels": ["tokenlab", "openrouter", "requesty"],
+        # ⚠️ 主脑 2026-08-12：QuickRouter 优先（QR 支持 Luna+tools 实测 200，降本+绕 TokenLab 400）
+        "channels": ["tokenlab", "quickrouter", "openrouter"],
         "cost_in": 0.06,    # 2026-08-06: TL 实价（原 0.10 = OR）
         "cost_out": 0.36,   # 2026-08-06: TL 实价（原 0.60 = OR）
         "billing_mult": 2,

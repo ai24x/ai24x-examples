@@ -840,7 +840,13 @@ def _responses_tools_to_chat(tools_raw: Any) -> Optional[List[Dict[str, Any]]]:
                 fn["strict"] = bool(t["strict"])
             out.append({"type": "function", "function": fn})
             continue
-        out.append(t)
+        # ⚠️ 主脑 2026-08-12 六修：过滤 Responses 特有非 function 工具（tool_search/web_search/web_preview/computer 等）——Chat Completions 上游（TokenLab/OR/Requesty）不识别非 function 类型会 400（Codex 13 工具拒收根因）
+        try:
+            logger = __import__("logging").getLogger("main")
+            logger.warning("DROP_RESPONSES_TOOL type=%s", str(t.get("type") or "?"))
+        except Exception:
+            pass
+        continue
     if len(out) > 128:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

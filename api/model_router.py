@@ -1428,6 +1428,8 @@ _TOKENLAB_MODEL_MAP: dict[str, str] = {
 _QUICKROUTER_MODEL_MAP: dict[str, str] = {
     "vip-gpt5": "gpt-5",
     "vip-gpt5-mini": "gpt-5-mini",
+    # ⚠️ 主脑 2026-08-12：QR 支持 Luna+tools 实测 200，加映射（降本+绕 TokenLab 400）
+    "vip-gpt56-luna": "gpt-5.6-luna",
 }
 
 _REQUESTY_MODELS: frozenset[str] = frozenset({
@@ -2086,19 +2088,24 @@ def _stream_openai_compatible(
         body["thinking"] = {"type": "disabled"}
     # 部分上游在 stream 时把 usage 放在最后一包
     body["stream_options"] = {"include_usage": True}
-    # 上游请求 body 调试（TOKEN_UPSTREAM_BODY_DBG=1 开启，定位 400/转换问题；2026-08-12 根治后默认关）
-    if (_env("TOKEN_UPSTREAM_BODY_DBG") or "0").strip().lower() in ("1", "true", "yes", "on"):
+    # 上游请求 body 调试（五修 2026-08-12 临时强制开启，定位 400 根因；定位后还原开关）
+    try:
+        logger.warning(
+            "【DIAG】upstream body provider=%s model=%s msgs=%s tools=%s body=%s",
+            provider,
+            model,
+            len(body.get("messages") or []),
+            len(body.get("tools") or []),
+            json.dumps(body, ensure_ascii=False)[:8000],
+        )
         try:
-            logger.debug(
-                "UPSTREAM_BODY_DBG provider=%s model=%s msgs=%s tools=%s body=%s",
-                provider,
-                model,
-                len(body.get("messages") or []),
-                len(body.get("tools") or []),
-                json.dumps(body, ensure_ascii=False)[:1500],
-            )
+            if len(body.get("tools") or []) >= 5:
+                with open(r"C:\ai24x01\ops\codex-request-body.json", "w", encoding="utf-8") as _f:
+                    _f.write(json.dumps(body, ensure_ascii=False, indent=1))
         except Exception:
             pass
+    except Exception:
+        pass
 
     timeout = httpx.Timeout(timeout_s, connect=min(30.0, timeout_s))
     full_parts: list[str] = []
@@ -2202,6 +2209,14 @@ def _stream_openai_compatible(
     except Exception as e:
         # 附带上游 4xx/5xx 响应体 + 错误分类（format=400 直接上报不再 failover）
         kind, detail = _upstream_error_class(e)
+        logger.warning(f"【DIAG】upstream error kind={kind} provider={provider} model={model} {detail}")
+        try:
+            _resp = getattr(e, "response", None)
+            if _resp is not None and getattr(_resp, "status_code", None) == 400:
+                with open(r"C:\ai24x01\ops\tokenlab-400-body.txt", "w", encoding="utf-8") as _f:
+                    _f.write(str(getattr(_resp, "text", "") or "")[:8000])
+        except Exception:
+            pass
         yield {
             "type": "error",
             "error": detail,
