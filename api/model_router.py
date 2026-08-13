@@ -690,6 +690,35 @@ def _layer_upstream(layer: str) -> dict[str, str]:
     }
 
 
+# 2026-08-13: 04 实测 L2/L3 QR 同款 200 稳定且降本（deepseek-v4-pro / gpt-5-mini）；
+# L1 flash 同款在 QR 60% 超时 -> 不接。
+_LAYER_QR_MODEL: dict[str, str] = {
+    "L2": "deepseek-v4-pro",
+    "L3": "gpt-5-mini",
+}
+
+
+def _layer_qr_upstream(layer: str) -> Optional[dict[str, str]]:
+    """Main-layer L2/L3 QuickRouter fallback; returns None when unmapped or key missing (caller skips)."""
+    model = _LAYER_QR_MODEL.get((layer or "").strip().upper())
+    if not model:
+        return None
+    try:
+        from upstream_providers import resolve_provider
+
+        up = resolve_provider("quickrouter")
+        if not up or not up.get("key") or not up.get("base"):
+            return None
+        return {
+            "base": _normalize_openai_base(str(up["base"])),
+            "key": str(up["key"]),
+            "model": model,
+            "provider": "quickrouter",
+        }
+    except Exception:
+        return None
+
+
 def _deepseek_official_upstream() -> dict[str, str]:
     """
     官方 DeepSeek 通道（与 TOKEN_LLM_UPSTREAM 无关）。
@@ -1322,6 +1351,83 @@ def run_routed_chat(
                                 "failover": "deepseek_official",
                                 "error": str(e2)[:200],
                                 "ms": int((time.time() - t_ds) * 1000),
+                            }
+                        )
+            # L2/L3 QR 备用（04 实测 2026-08-13：deepseek-v4-pro / gpt-5-mini 同款 QR 200 稳定且降本）
+            if layer in ("L2", "L3") and _upstream_mode() == "openrouter":
+                qr = _layer_qr_upstream(layer)
+                if qr:
+                    try:
+                        out = _call(
+                            base=qr["base"],
+                            key=qr["key"],
+                            model=qr["model"],
+                            prompt=prompt,
+                            temperature=temperature,
+                            max_tokens=max_tokens,
+                            timeout_s=timeout_s,
+                            provider="quickrouter",
+                        )
+                        used_model = str(out.get("raw_model") or qr["model"])
+                        attempts.append(
+                            {
+                                "layer": layer,
+                                "model": used_model,
+                                "provider": "quickrouter",
+                                "ok": True,
+                                "failover": "quickrouter_layer",
+                                "ms": int((time.time() - t0) * 1000),
+                            }
+                        )
+                        raw_tokens = int(out["tokens"])
+                        mult = int(_layer_billing_mult(layer))
+                        return _route_ok_from_out(
+                            out,
+                            model=used_model,
+                            layer=layer,
+                            provider="quickrouter",
+                            attempts=attempts,
+                            token_count=max(1, raw_tokens * mult),
+                            billing_mult=1,
+                        )
+                    except Exception as e_qr:
+                        k_qr, d_qr = _upstream_error_class(e_qr)
+                        if k_qr == "format" and qr.get("provider") in (
+                            "openrouter",
+                            "tokenlab",
+                            "requesty",
+                            "quickrouter",
+                        ):
+                            return RouteResult(
+                                ok=False,
+                                text="",
+                                model="",
+                                layer=layer,
+                                provider="quickrouter",
+                                token_count=0,
+                                attempts=attempts
+                                + [
+                                    {
+                                        "layer": layer,
+                                        "model": logical_model,
+                                        "ok": False,
+                                        "error": d_qr[:200],
+                                        "ms": int((time.time() - t0) * 1000),
+                                    }
+                                ],
+                                error=f"upstream_400: {d_qr}",
+                                billing_mult=int(_layer_billing_mult(layer)),
+                            )
+                        logger.warning("layer %s QR failover failed: %s", layer, e_qr)
+                        attempts.append(
+                            {
+                                "layer": layer,
+                                "model": qr.get("model"),
+                                "provider": "quickrouter",
+                                "ok": False,
+                                "failover": "quickrouter_layer",
+                                "error": str(e_qr)[:200],
+                                "ms": int((time.time() - t0) * 1000),
                             }
                         )
             continue
@@ -2517,6 +2623,20 @@ def run_routed_chat_stream(
                     mult,
                 )
             )
+            # L2/L3 QR 备用 target（04 实测 2026-08-13：同款 200 稳定且降本）
+            if layer in ("L2", "L3") and _upstream_mode() == "openrouter":
+                qr = _layer_qr_upstream(layer)
+                if qr:
+                    targets.append(
+                        (
+                            layer,
+                            "quickrouter",
+                            str(qr["base"]),
+                            str(qr["key"]),
+                            str(qr["model"]),
+                            mult,
+                        )
+                    )
 
     if not targets:
         stub = _stub_response(prompt, layer="L0", model="stub")
