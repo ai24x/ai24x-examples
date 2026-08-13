@@ -5,6 +5,7 @@ from __future__ import annotations
 import secrets
 import string
 import uuid
+from decimal import Decimal, ROUND_FLOOR
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -76,6 +77,19 @@ def _gen_invite_code(n: int = 8) -> str:
 # —— Wallet / credit lots ——
 
 
+def _usd_to_flash_tokens(usd_cents: int) -> int:
+    """Convert the primary USD wallet balance to the Flash credit unit."""
+    usd_cents = max(0, int(usd_cents or 0))
+    if usd_cents <= 0:
+        return 0
+    from model_warehouse import flash_ref_usd_per_m
+
+    ref = float(flash_ref_usd_per_m() or 0)
+    if ref <= 0:
+        return 0
+    return int((Decimal(usd_cents) / Decimal("100") / Decimal(str(ref)) * Decimal("1000000")).to_integral_value(rounding=ROUND_FLOOR))
+
+
 def model_allows_vip_daily(model: Optional[str]) -> bool:
     """VIP 日赠仅可用于 flash/auto/共享档；pro/ultra/名模必须花预充额度。"""
     m = (model or "flash").strip().lower()
@@ -140,7 +154,13 @@ def spendable_tokens(
         if not allow_vip_daily and _is_vip_daily_lot(db, lot):
             continue
         total += int(lot.amount_remaining or 0)
-    return int(total)
+    wallet = db.query(TokenWallet.balance_usd).filter(
+        TokenWallet.auth_user_id == int(auth_user_id)
+    ).first()
+    usd_cents = int(wallet[0] or 0) if wallet else 0
+    # balance_usd is the primary wallet balance; include it when legacy lots
+    # are exhausted or expired so funded accounts are not rejected.
+    return int(total + _usd_to_flash_tokens(usd_cents))
 
 
 def get_or_create_wallet(db: Session, auth_user_id: int) -> TokenWallet:
@@ -518,6 +538,7 @@ def get_balance_snapshot(db: Session, auth_user_id: int) -> dict:
     total = int(w.balance_tokens or 0)
     usd = int(w.balance_usd or 0)
     prepaid = spendable_tokens(db, int(auth_user_id), allow_vip_daily=False)
+    usd_tokens = _usd_to_flash_tokens(usd)
     vip_daily_left = max(0, total - prepaid)
     au = db.query(AuthUser).filter(AuthUser.id == int(auth_user_id)).first()
     from model_warehouse import flash_ref_usd_per_m as _flash_ref
@@ -539,6 +560,7 @@ def get_balance_snapshot(db: Session, auth_user_id: int) -> dict:
         "usd_cny": round(fx, 4),
         "flash_ref_usd_per_m": round(ref, 4),
         "prepaid_tokens": int(prepaid),
+        "usd_backed_tokens": int(usd_tokens),
         "vip_daily_remaining": int(vip_daily_left),
         "bonus_period": w.bonus_period,
         "free_monthly_bonus": FREE_MONTHLY_BONUS_TOKENS,
