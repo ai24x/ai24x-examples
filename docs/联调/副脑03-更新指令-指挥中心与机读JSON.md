@@ -40,7 +40,7 @@ git log -1 --oneline
 Test-Path web/ai24x.html
 Test-Path web/ops/ai24x-command.json
 Select-String -Path web/ai24x.html -Pattern "v3.9.0" -SimpleMatch
-Select-String -Path web/ops/ai24x-command.json -Pattern "AI24X 运维SG" -SimpleMatch
+Select-String -Path web/ops/ai24x-command.json -Pattern "AI24X国际token" -SimpleMatch
 
 # 3) 确认 www 静态根目录指向仓库 web/（或你现有同步目录已含上述文件）
 #    若 www 是拷贝发布：把 web/ai24x.html 与 web/ops/ 整目录同步到静态根

@@ -47,7 +47,7 @@
     {
       "id": "01",
       "alias": "副脑01",
-      "feishu": "AI24X 国际",
+      "feishu": "AI24X游戏",
       "emoji": "🚀",
       "name": "国际获客",
       "host": "vpn",
@@ -59,7 +59,7 @@
     {
       "id": "02",
       "alias": "副脑02",
-      "feishu": "AI24X 中国",
+      "feishu": "AI24X运营",
       "emoji": "💬",
       "name": "国内获客",
       "host": "cn",
@@ -71,7 +71,7 @@
     {
       "id": "03",
       "alias": "副脑03",
-      "feishu": "AI24X 运维CN",
+      "feishu": "AI24X行情官",
       "emoji": "🛡️",
       "name": "国内生产店长",
       "host": "public_cn",
@@ -84,7 +84,7 @@
     {
       "id": "04",
       "alias": "副脑04",
-      "feishu": "AI24X 运维SG",
+      "feishu": "AI24X国际token",
       "emoji": "🔗",
       "name": "国际生产店长",
       "host": "sg",
@@ -97,14 +97,14 @@
   ],
   "feishu_aliases": {
     "main": {"feishu": "AI24X 指挥", "aka": ["主脑"], "emoji": "♟️"},
-    "01": {"feishu": "AI24X 国际", "aka": ["副脑01", "01"], "emoji": "🚀"},
-    "02": {"feishu": "AI24X 中国", "aka": ["副脑02", "02"], "emoji": "💬"},
-    "03": {"feishu": "AI24X 运维CN", "aka": ["副脑03", "03"], "emoji": "🛡️"},
-    "04": {"feishu": "AI24X 运维SG", "aka": ["副脑04", "04"], "emoji": "🔗"}
+    "01": {"feishu": "AI24X游戏", "aka": ["副脑01", "01"], "emoji": "🚀"},
+    "02": {"feishu": "AI24X运营", "aka": ["副脑02", "02"], "emoji": "💬"},
+    "03": {"feishu": "AI24X行情官", "aka": ["副脑03", "03"], "emoji": "🛡️"},
+    "04": {"feishu": "AI24X国际token", "aka": ["副脑04", "04"], "emoji": "🔗"}
   },
   "naming": {
     "rule": "飞书显示名 + 席位别称双轨；文档/指令里「副脑01～04」「主脑」永久有效",
-    "feishu_display": ["AI24X 指挥", "AI24X 国际", "AI24X 中国", "AI24X 运维CN", "AI24X 运维SG"],
+    "feishu_display": ["AI24X 指挥", "AI24X游戏", "AI24X运营", "AI24X行情官", "AI24X国际token"],
     "seat_alias": ["主脑", "副脑01", "副脑02", "副脑03", "副脑04"],
     "emoji": {"main": "♟️", "01": "🚀", "02": "💬", "03": "🛡️", "04": "🔗"},
     "emoji_note": "B组指挥台：♟️战略拍板 · 🚀出海增长 · 💬种子社媒 · 🛡️国内门禁 · 🔗国际网关"
@@ -134,7 +134,7 @@
   },
   "collab": {
     "hub": "飞书",
-    "intl_flow": ["AI24X 指挥（主脑）做通", "AI24X 运维SG（副脑04）收银", "AI24X 国际（副脑01）拉人", "数据回传"],
-    "a1_flow": ["AI24X 指挥（主脑）开发", "AI24X 运维CN（副脑03）部署", "AI24X 中国（副脑02）运营", "反馈回指挥"]
+    "intl_flow": ["AI24X 指挥（主脑）做通", "AI24X国际token（副脑04）收银", "AI24X游戏（副脑01）拉人", "数据回传"],
+    "a1_flow": ["AI24X 指挥（主脑）开发", "AI24X行情官（副脑03）部署", "AI24X运营（副脑02）运营", "反馈回指挥"]
   }
 }
