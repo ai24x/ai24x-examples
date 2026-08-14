@@ -163,14 +163,25 @@ class FeishuNotify:
     # ---------- 发送 ----------
     @staticmethod
     def _build_post_content(text: str, at_open_id: Optional[str] = None) -> str:
-        esc = str(text or "").replace("\\", "\\\\").replace('"', '\\"')
-        if at_open_id:
-            inner = (
-                '[{"tag":"text","text":"' + esc + '"}],'
-                '[{"tag":"at","user_id":"' + at_open_id + '","user_name":"Xie Lei"}]'
+        # 2026-08-14: 多行文本按 \n 拆成 post 段落，避免控制字符进 JSON（此前含换行 → 230001 拒收）
+        def esc(s: str) -> str:
+            return (
+                str(s or "")
+                .replace("\\", "\\\\")
+                .replace('"', '\\"')
+                .replace("\r", "")
+                .replace("\n", " ")
+                .replace("\t", " ")
             )
+
+        lines = [esc(ln) for ln in str(text or "").split("\n")]
+        if not lines:
+            lines = [""]
+        if at_open_id:
+            inner = ",".join('[{"tag":"text","text":"' + ln + '"}]' for ln in lines)
+            inner += '[{"tag":"at","user_id":"' + at_open_id + '","user_name":"Xie Lei"}]'
         else:
-            inner = '[{"tag":"text","text":"' + esc + '"}]'
+            inner = ",".join('[{"tag":"text","text":"' + ln + '"}]' for ln in lines)
         return '{"zh_cn":{"title":"","content":[' + inner + "]}}"
 
     def send_message(
