@@ -295,6 +295,17 @@ def get_current_user(
     if has_console_jwt or has_sk:
         au = _auth_user_from_api_key_or_jwt(request, db)
         request.state.auth_user_id = int(au.id)
+        # 2026-08-15: 仅当确实用 API Key 鉴权（无有效 JWT）才归属 key；JWT 会话归空
+        request.state.auth_api_key_id = None
+        if has_sk and not has_console_jwt and api_key:
+            try:
+                from token_mvp_service import get_api_key_row
+
+                _krow = get_api_key_row(db, api_key)
+                if _krow:
+                    request.state.auth_api_key_id = int(_krow.id)
+            except Exception:
+                pass
         user = ensure_gateway_user(db, int(au.id))
         allowed, error_msg = UserService.check_rate_limit(db, user)
         if not allowed:
@@ -424,6 +435,7 @@ async def chat_run(
         
         # 处理聊天请求（auth_user_id 由 get_current_user 写入 request.state）
         auth_uid = getattr(http_request.state, "auth_user_id", None)
+        auth_api_key_id = getattr(http_request.state, "auth_api_key_id", None)
         region_hint = (
             (http_request.headers.get("x-ai24x-region") or "").strip()
             or (http_request.headers.get("cf-ipcountry") or "").strip()
@@ -436,6 +448,7 @@ async def chat_run(
             ip_address=ip_address,
             user_agent=user_agent,
             auth_user_id=auth_uid,
+            auth_api_key_id=auth_api_key_id,
             region_hint=region_hint,
         )
         
@@ -491,6 +504,7 @@ async def chat_completions(
     ip_address = http_request.client.host if http_request.client else None
     user_agent = http_request.headers.get("user-agent")
     auth_uid = getattr(http_request.state, "auth_user_id", None)
+    auth_api_key_id = getattr(http_request.state, "auth_api_key_id", None)
     region_hint = (
         (http_request.headers.get("x-ai24x-region") or "").strip()
         or (http_request.headers.get("cf-ipcountry") or "").strip()
@@ -511,6 +525,7 @@ async def chat_completions(
                 ip_address=ip_address,
                 user_agent=user_agent,
                 auth_user_id=auth_uid,
+                auth_api_key_id=auth_api_key_id,
                 region_hint=region_hint,
             )
         except HTTPException:
@@ -539,6 +554,7 @@ async def chat_completions(
             ip_address=ip_address,
             user_agent=user_agent,
             auth_user_id=auth_uid,
+            auth_api_key_id=auth_api_key_id,
             region_hint=region_hint,
         )
     except HTTPException:
@@ -604,6 +620,7 @@ async def openai_responses_create(
     ip_address = http_request.client.host if http_request.client else None
     user_agent = http_request.headers.get("user-agent")
     auth_uid = getattr(http_request.state, "auth_user_id", None)
+    auth_api_key_id = getattr(http_request.state, "auth_api_key_id", None)
     region_hint = (
         (http_request.headers.get("x-ai24x-region") or "").strip()
         or (http_request.headers.get("cf-ipcountry") or "").strip()
@@ -640,6 +657,7 @@ async def openai_responses_create(
                 ip_address=ip_address,
                 user_agent=user_agent,
                 auth_user_id=auth_uid,
+                auth_api_key_id=auth_api_key_id,
                 region_hint=region_hint,
             )
         except HTTPException:
@@ -668,6 +686,7 @@ async def openai_responses_create(
             ip_address=ip_address,
             user_agent=user_agent,
             auth_user_id=auth_uid,
+            auth_api_key_id=auth_api_key_id,
             region_hint=region_hint,
         )
     except HTTPException:
@@ -1952,6 +1971,20 @@ async def billing_usage_models(
 
     u = _auth_user_from_bearer(request, db)
     return usage_models(db, int(u.id), days=days, top_n=top_n)
+
+
+@app.get("/v1/billing/usage/keys")
+async def billing_usage_keys(
+    request: Request,
+    db: Session = Depends(get_db),
+    days: int = 30,
+    top_n: int = 8,
+):
+    """按 API Key 消耗榜：JWT 会话（api_key_id 为空）归为「控制台会话」。"""
+    from token_mvp_service import usage_keys
+
+    u = _auth_user_from_bearer(request, db)
+    return usage_keys(db, int(u.id), days=days, top_n=top_n)
 
 
 @app.get("/v1/referrals/code")

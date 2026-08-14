@@ -123,6 +123,7 @@ class ChatService:
         user_agent: Optional[str] = None,
         auth_user_id: Optional[int] = None,
         region_hint: Optional[str] = None,
+        auth_api_key_id: Optional[int] = None,  # 2026-08-15: 按 API Key 统计
     ) -> ChatResponse:
         """处理聊天请求；若提供 auth_user_id 则走 Token 钱包扣减。"""
         request_id = f"req_{uuid.uuid4().hex[:16]}"
@@ -328,6 +329,9 @@ class ChatService:
                             amount_usd=_usd_cents_for_tokens(int(token_count)),
                             model=public_model,
                             request_id=request_id,
+                            prompt_tokens=getattr(routed, "prompt_tokens", None),
+                            completion_tokens=getattr(routed, "completion_tokens", None),
+                            api_key_id=auth_api_key_id,
                         )
 
                         # P2：累计点名模每日用量（仅成功且计费）
@@ -410,6 +414,7 @@ class ChatService:
         user_agent: Optional[str] = None,
         auth_user_id: Optional[int] = None,
         region_hint: Optional[str] = None,
+        auth_api_key_id: Optional[int] = None,  # 2026-08-15: 按 API Key 统计
     ):
         """真流式：yield meta/delta/done；记账与生成器解耦（finally 兜底）。
 
@@ -453,6 +458,8 @@ class ChatService:
         used_model = public_model
         full_text = ""
         token_count = 0
+        prompt_tokens: Optional[int] = None
+        completion_tokens: Optional[int] = None
         billable = True
         saw_done = False
         saw_error = False
@@ -498,6 +505,9 @@ class ChatService:
                                 amount_usd=_usd_cents_for_tokens(int(token_count)),
                                 model=public_model,
                                 request_id=request_id,
+                                prompt_tokens=prompt_tokens,
+                                completion_tokens=completion_tokens,
+                                api_key_id=auth_api_key_id,
                             )
                 else:
                     chat_request.status = status
@@ -628,6 +638,13 @@ class ChatService:
                         saw_done = True
                         full_text = str(ev.get("text") or full_text)
                         token_count = max(1, int(ev.get("tokens") or 1))
+                        try:
+                            if ev.get("prompt_tokens") is not None:
+                                prompt_tokens = max(0, int(ev.get("prompt_tokens") or 0))
+                            if ev.get("completion_tokens") is not None:
+                                completion_tokens = max(0, int(ev.get("completion_tokens") or 0))
+                        except (TypeError, ValueError):
+                            pass
                         public_model = str(ev.get("public_model") or public_model)
                         used_model = str(ev.get("raw_model") or used_model)
                         provider = str(ev.get("provider") or provider)

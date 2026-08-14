@@ -636,6 +636,9 @@ def consume_tokens(
     model: Optional[str] = None,
     request_id: Optional[str] = None,
     amount_usd: int = 0,  # 2026-08-03: 并行扣 USD 余额（美分，消耗为正数）
+    prompt_tokens: Optional[int] = None,     # 2026-08-15: 输入/输出 Token 拆分
+    completion_tokens: Optional[int] = None,
+    api_key_id: Optional[int] = None,        # 2026-08-15: 按 API Key 统计
 ) -> TokenWallet:
     from sqlalchemy import update as sa_update
 
@@ -752,6 +755,9 @@ def consume_tokens(
             amount_usd=-amount_usd,
             model=(model or "")[:64] or None,
             tokens=int(tokens),
+            prompt_tokens=int(prompt_tokens) if prompt_tokens else None,
+            completion_tokens=int(completion_tokens) if completion_tokens else None,
+            api_key_id=int(api_key_id) if api_key_id else None,
             request_id=request_id,
             note="chat/run",
         )
@@ -919,10 +925,32 @@ def _usage_summary(
         tokens = int(getattr(agg, "tokens", 0) or 0)
     except Exception:
         usd_cents = calls = tokens = 0
+    try:
+        qpt = db.query(func.coalesce(func.sum(BillingLedger.prompt_tokens), 0)).filter(
+            BillingLedger.auth_user_id == int(auth_user_id),
+            BillingLedger.entry_type == "consume",
+        )
+        qct = db.query(func.coalesce(func.sum(BillingLedger.completion_tokens), 0)).filter(
+            BillingLedger.auth_user_id == int(auth_user_id),
+            BillingLedger.entry_type == "consume",
+        )
+        if since is not None:
+            qpt = qpt.filter(BillingLedger.created_at >= since)
+            qct = qct.filter(BillingLedger.created_at >= since)
+        if until is not None:
+            qpt = qpt.filter(BillingLedger.created_at < until)
+            qct = qct.filter(BillingLedger.created_at < until)
+        pt = int(qpt.scalar() or 0)
+        ct = int(qct.scalar() or 0)
+    except Exception:
+        pt = None
+        ct = None
     return {
         "consume_usd_cents": usd_cents,
         "consume_calls": calls,
         "consume_tokens": tokens,
+        "consume_prompt_tokens": pt,
+        "consume_completion_tokens": ct,
         "usd_cny": round(fx, 4),
     }
 
@@ -1020,6 +1048,64 @@ def usage_models(db: Session, auth_user_id: int, *, days: int = 30, top_n: int =
     return {"rows": out, "days": days, "fx": round(fx, 4), "total_tokens": total_tokens, "total_usd_cents": total_usd}
 
 
+def usage_keys(db: Session, auth_user_id: int, *, days: int = 30, top_n: int = 8) -> dict:
+    """按 API Key 消耗榜：api_key_id 为空（JWT 会话）归为「控制台会话」。"""
+    days = max(1, min(365, int(days or 30)))
+    top_n = max(3, min(20, int(top_n or 8)))
+    from token_plans import _usd_cny
+
+    try:
+        fx = float(_usd_cny() or 7.2)
+    except Exception:
+        fx = 7.2
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    since = today - timedelta(days=days - 1)
+    q = (
+        db.query(
+            BillingLedger.api_key_id.label("key_id"),
+            func.coalesce(func.sum(BillingLedger.tokens), 0).label("tokens"),
+            func.coalesce(func.sum(func.abs(BillingLedger.amount_usd)), 0).label("usd_cents"),
+            func.count(BillingLedger.id).label("calls"),
+        )
+        .filter(
+            BillingLedger.auth_user_id == int(auth_user_id),
+            BillingLedger.entry_type == "consume",
+            BillingLedger.created_at >= since,
+            BillingLedger.created_at < today + timedelta(days=1),
+        )
+        .group_by(BillingLedger.api_key_id)
+    )
+    total_rows = q.all()
+    total_usd = sum(int(r.usd_cents or 0) for r in total_rows)
+    ranked = sorted(total_rows, key=lambda r: (int(r.usd_cents or 0), int(r.tokens or 0)), reverse=True)
+    key_names: dict = {}
+    try:
+        rows_k = db.query(ApiKey.id, ApiKey.name, ApiKey.key_prefix).filter(
+            ApiKey.auth_user_id == int(auth_user_id)
+        ).all()
+        for kid, kname, kprefix in rows_k:
+            key_names[int(kid)] = (kname or "Key")[:64]
+    except Exception:
+        pass
+    out = []
+    for r in ranked[:top_n]:
+        kid = int(r.key_id) if r.key_id is not None else None
+        tok = int(r.tokens or 0)
+        usd = int(r.usd_cents or 0)
+        name = key_names.get(kid) if kid is not None else None
+        out.append(
+            {
+                "api_key_id": kid,
+                "name": name or ("控制台会话" if kid is None else "Key #" + str(kid)),
+                "tokens": tok,
+                "usd_cents": usd,
+                "calls": int(r.calls or 0),
+                "usd_pct": round(usd * 100.0 / total_usd, 1) if total_usd else 0.0,
+            }
+        )
+    return {"rows": out, "days": days, "fx": round(fx, 4)}
+
+
 def list_usage(
     db: Session,
     auth_user_id: int,
@@ -1058,6 +1144,9 @@ def list_usage(
                 "amount_usd": r.amount_usd,
                 "model": r.model,
                 "tokens": r.tokens,
+                "prompt_tokens": r.prompt_tokens,
+                "completion_tokens": r.completion_tokens,
+                "api_key_id": r.api_key_id,
                 "request_id": r.request_id,
                 "note": r.note,
                 "created_at": r.created_at.isoformat() if r.created_at else None,

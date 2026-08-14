@@ -62,6 +62,14 @@ def init_db():
                     "ADD COLUMN IF NOT EXISTS confirmed_unpaid_at TIMESTAMP WITH TIME ZONE"
                 )
             )
+            for col, typ in (
+                ("prompt_tokens", "INTEGER"),
+                ("completion_tokens", "INTEGER"),
+                ("api_key_id", "INTEGER"),
+            ):
+                conn.execute(
+                    text(f"ALTER TABLE billing_ledger ADD COLUMN IF NOT EXISTS {col} {typ}")
+                )
             conn.execute(
                 text(
                     "ALTER TABLE auth_users "

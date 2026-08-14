@@ -539,6 +539,12 @@
     return request("/v1/billing/usage/models?" + q, { method: "GET" });
   }
 
+  function billingUsageKeys(days, topN) {
+    var q = "days=" + encodeURIComponent(days == null ? 30 : days);
+    if (topN != null) q += "&top_n=" + encodeURIComponent(topN);
+    return request("/v1/billing/usage/keys?" + q, { method: "GET" });
+  }
+
   function billingPlans() {
     return request("/v1/billing/plans", { method: "GET" });
   }
@@ -868,6 +874,7 @@
     billingUsage: billingUsage,
     billingUsageDaily: billingUsageDaily,
     billingUsageModels: billingUsageModels,
+    billingUsageKeys: billingUsageKeys,
     billingPlans: billingPlans,
     billingWechatNative: billingWechatNative,
     billingAlipayWap: billingAlipayWap,

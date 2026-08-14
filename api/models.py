@@ -222,6 +222,9 @@ class BillingLedger(Base):
     amount_usd = Column(Integer, default=0, nullable=False)  # USD 美分（消耗为负）2026-08-03
     model = Column(String(64), nullable=True)
     tokens = Column(Integer, nullable=True)
+    prompt_tokens = Column(Integer, nullable=True)       # 2026-08-15: 输入 Token 拆分（上游 usage）
+    completion_tokens = Column(Integer, nullable=True)   # 2026-08-15: 输出 Token 拆分
+    api_key_id = Column(Integer, nullable=True, index=True)  # 2026-08-15: 按 API Key 统计（JWT 会话为空）
     request_id = Column(String(64), nullable=True, index=True)
     note = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)

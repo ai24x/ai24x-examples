@@ -1367,6 +1367,50 @@
     });
   }
 
+  function renderUsageKeys(data) {
+    var box = $("usageKeys");
+    if (!box) return;
+    var rows = (data && data.rows) || [];
+    var fx = (data && data.fx) || 7.2;
+    box.innerHTML = "";
+    if (!rows.length) {
+      box.innerHTML = "<div class='usage-empty'>" + tr("该时段暂无 Key 消耗", "No key usage in this period") + "</div>";
+      return;
+    }
+    rows.forEach(function (r) {
+      var row = document.createElement("div");
+      row.className = "usage-model-row";
+      var name = document.createElement("div");
+      name.className = "usage-model-name";
+      name.textContent = r.name || tr("控制台会话", "Console session");
+      name.title = r.name || "";
+      var barWrap = document.createElement("div");
+      barWrap.className = "usage-model-bar-wrap";
+      var bar = document.createElement("div");
+      bar.className = "usage-model-bar";
+      bar.style.width = Math.max(2, Math.min(100, Number(r.usd_pct) || 0)) + "%";
+      barWrap.appendChild(bar);
+      var num = document.createElement("div");
+      num.className = "usage-model-num";
+      num.textContent =
+        fmtUsdSpend(r.usd_cents, fx) +
+        " · " +
+        fmtTokensCount(r.tokens || 0) +
+        " tok · " +
+        (r.calls || 0) +
+        " " +
+        tr("次", "calls");
+      var pct = document.createElement("div");
+      pct.className = "usage-model-pct";
+      pct.textContent = (Number(r.usd_pct) || 0).toFixed(1) + "%";
+      row.appendChild(name);
+      row.appendChild(barWrap);
+      row.appendChild(num);
+      row.appendChild(pct);
+      box.appendChild(row);
+    });
+  }
+
   function initUsageStatsLabels() {
     var rangeMap = {
       month: tr("本月", "This month"),
@@ -1387,6 +1431,8 @@
     if (ct) ct.textContent = tr("每日消耗趋势", "Daily usage trend");
     var mt = $("usage-models-title");
     if (mt) mt.textContent = tr("模型消耗分布", "Usage by model");
+    var kt = $("usage-keys-title");
+    if (kt) kt.textContent = tr("按 API Key 消耗", "Usage by API key");
   }
 
   function loadUsageStats() {
@@ -1409,6 +1455,12 @@
         var b = $("usageModels");
         if (b) b.innerHTML = "<div class='usage-empty'>" + tr("加载失败，请稍后重试", "Failed to load, try again later") + "</div>";
       });
+    AI24X_API.billingUsageKeys(p.days, 8)
+      .then(renderUsageKeys)
+      .catch(function () {
+        var k = $("usageKeys");
+        if (k) k.innerHTML = "<div class='usage-empty'>" + tr("加载失败，请稍后重试", "Failed to load, try again later") + "</div>";
+      });
   }
 
   function fmtUsageTime(iso) {
@@ -1428,14 +1480,22 @@
       var usdCents = Number((summary && summary.consume_usd_cents) || 0) || 0;
       var calls = Number((summary && summary.consume_calls) || 0) || 0;
       var toks = Number((summary && summary.consume_tokens) || 0) || 0;
+      var pt = Number((summary && summary.consume_prompt_tokens) || 0);
+      var ct = Number((summary && summary.consume_completion_tokens) || 0);
       var spent = fmtMoneyCents(usdCents, fx);
       sm.style.fontWeight = "600";
       sm.style.margin = "8px 0 12px";
       sm.style.fontSize = "13px";
       sm.style.color = "var(--muted)";
+      var ioTxt = pt > 0 || ct > 0
+        ? tr(
+            " · 输入 " + fmtTokensCount(pt) + " / 输出 " + fmtTokensCount(ct),
+            " · in " + fmtTokensCount(pt) + " / out " + fmtTokensCount(ct)
+          )
+        : "";
       sm.textContent = tr(
-        "消费 " + spent + " · 请求 " + calls + " 次 · 总消耗 " + fmtTokensCount(toks) + " tokens",
-        "Spent " + spent + " · " + calls + " calls · " + fmtTokensCount(toks) + " tokens total"
+        "消费 " + spent + " · 请求 " + calls + " 次 · 总消耗 " + fmtTokensCount(toks) + " tokens" + ioTxt,
+        "Spent " + spent + " · " + calls + " calls · " + fmtTokensCount(toks) + " tokens total" + ioTxt
       );
       sm.style.display = "";
     }
@@ -1488,7 +1548,20 @@
       }
       var tdTok = document.createElement("td");
       tdTok.className = "col-tokens";
-      tdTok.textContent = r.tokens != null ? fmtTokensCount(r.tokens) : "--";
+      if (r.tokens == null) {
+        tdTok.textContent = "--";
+      } else {
+        tdTok.textContent = fmtTokensCount(r.tokens);
+        if (r.prompt_tokens != null || r.completion_tokens != null) {
+          var ioSub = document.createElement("span");
+          ioSub.className = "usage-tok-sub";
+          ioSub.textContent = tr(
+            "入 " + fmtTokensCount(r.prompt_tokens || 0) + " · 出 " + fmtTokensCount(r.completion_tokens || 0),
+            "in " + fmtTokensCount(r.prompt_tokens || 0) + " · out " + fmtTokensCount(r.completion_tokens || 0)
+          );
+          tdTok.appendChild(ioSub);
+        }
+      }
       var tdNote = document.createElement("td");
       tdNote.className = "col-note";
       tdNote.textContent = r.note ? humanizeLedgerNote(r.note) : "";
@@ -1547,10 +1620,10 @@
         if (/[",\n\r]/.test(v)) return "\"" + v.replace(/"/g, "\"\"") + "\"";
         return v;
       };
-      var head = ["type", "model", "time", "amount_usd", "tokens", "note", "request_id"].map(esc).join(",");
+      var head = ["type", "model", "time", "amount_usd", "tokens", "prompt_tokens", "completion_tokens", "api_key_id", "note", "request_id"].map(esc).join(",");
       var lines = [head];
       rows.forEach(function (r) {
-        lines.push([(r.type || r.entry_type), r.model, r.created_at, r.amount_usd != null ? r.amount_usd : "", r.tokens != null ? r.tokens : "", r.note || "", r.request_id || ""].map(esc).join(","));
+        lines.push([(r.type || r.entry_type), r.model, r.created_at, r.amount_usd != null ? r.amount_usd : "", r.tokens != null ? r.tokens : "", r.prompt_tokens != null ? r.prompt_tokens : "", r.completion_tokens != null ? r.completion_tokens : "", r.api_key_id != null ? r.api_key_id : "", r.note || "", r.request_id || ""].map(esc).join(","));
       });
       var csv = "\ufeff" + lines.join("\r\n");
       var blob = new Blob([csv], { type: "text/csv;charset=utf-8" });

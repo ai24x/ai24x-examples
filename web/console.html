@@ -97,6 +97,7 @@
     .usage-model-bar { height: 100%; background: var(--accent, #2563eb); border-radius: 999px; }
     .usage-model-num { width: 190px; text-align: right; white-space: nowrap; color: var(--muted); }
     .usage-model-pct { width: 56px; text-align: right; font-weight: 600; white-space: nowrap; }
+    .usage-tok-sub { display: block; font-size: 0.72rem; color: var(--muted); font-weight: 400; }
     .stats-grid .stat-card { display: flex; flex-direction: column; }
     .stats-grid .stat-card .stat-sub { margin-top: auto; }
     /* 邀请回馈卡 */
@@ -397,6 +398,8 @@
               <div id="usageChart" class="usage-chart"></div>
               <h3 class="mt-2" id="usage-models-title"></h3>
               <div id="usageModels" class="usage-models"></div>
+              <h3 class="mt-2" id="usage-keys-title"></h3>
+              <div id="usageKeys" class="usage-models"></div>
             </div>
             <div class="card mt-2">
               <h3 class="mt-0" data-i18n="page.console.activity.title">Ledger</h3>
@@ -560,13 +563,13 @@
   </main>
   <footer class="site-footer" id="site-footer"></footer>
   <script src="config/locales.js?v=20260813c"></script>
-  <script src="js/api.js?v=20260814b"></script>
+  <script src="js/api.js?v=20260814c"></script>
   <script src="js/invite.js?v=20260731a"></script>
   <script src="js/utm.js?v=20260802a"></script>
   <script src="js/i18n.js?v=20260812g"></script>
   <script src="js/shell.js?v=20260808b"></script>
   <script src="js/app.js?v=20260808b"></script>
-  <script src="js/console.js?v=20260814b"></script>
+  <script src="js/console.js?v=20260814c"></script>
   <script src="js/support-widget.js?v=20260809a"></script>
 </body>
 </html>

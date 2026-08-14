@@ -182,6 +182,8 @@ class RouteResult:
     layer: str
     provider: str
     token_count: int
+    prompt_tokens: Optional[int] = None       # 2026-08-15: 上游 usage 输入/输出拆分
+    completion_tokens: Optional[int] = None
     attempts: list[dict[str, Any]] = field(default_factory=list)
     error: Optional[str] = None
     billing_mult: int = 1
@@ -362,6 +364,8 @@ def _route_ok_from_out(
         layer=layer,
         provider=provider,
         token_count=max(1, int(token_count)),
+        prompt_tokens=out.get("prompt_tokens"),
+        completion_tokens=out.get("completion_tokens"),
         attempts=attempts,
         billing_mult=billing_mult,
         public_model=public_model,
