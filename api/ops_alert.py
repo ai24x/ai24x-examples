@@ -424,8 +424,31 @@ def collect_alerts(db) -> dict[str, Any]:
 def _push_feishu(cfg: dict[str, Any], text: str) -> bool:
     url = (cfg.get("webhook_url") or "").strip()
     if not url:
-        print("[ops_alert] webhook 未配置，跳过推送", flush=True)
-        return False
+        # 2026-08-14: 未配自定义机器人 webhook 时，回退 04 应用群推送
+        # （feishu_notify 自动探测 openclaw.json，与部署回执同通道，夜间群发不受限）
+        try:
+            import subprocess
+            import sys
+
+            r = subprocess.run(
+                [sys.executable, "feishu_notify.py", "--group", text],
+                cwd=Path(__file__).resolve().parent,
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            if r.returncode == 0:
+                print("[ops_alert] feishu 回退 04 应用群推送成功", flush=True)
+                return True
+            print(
+                f"[ops_alert] feishu 回退失败 rc={r.returncode}: "
+                f"{str(r.stdout or '')[-300:]} {str(r.stderr or '')[-300:]}",
+                flush=True,
+            )
+            return False
+        except Exception as e:
+            print(f"[ops_alert] feishu 回退异常: {e}", flush=True)
+            return False
     try:
         import httpx
 
