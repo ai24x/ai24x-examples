@@ -1910,11 +1910,48 @@ async def billing_usage(
     limit: int = 50,
     offset: int = 0,
     entry_type: str | None = None,
+    since: str | None = None,
+    until: str | None = None,
 ):
     from token_mvp_service import list_usage
 
     u = _auth_user_from_bearer(request, db)
-    return list_usage(db, int(u.id), limit=limit, offset=offset, entry_type=entry_type)
+    return list_usage(
+        db,
+        int(u.id),
+        limit=limit,
+        offset=offset,
+        entry_type=entry_type,
+        since=since,
+        until=until,
+    )
+
+
+@app.get("/v1/billing/usage/daily")
+async def billing_usage_daily(
+    request: Request,
+    db: Session = Depends(get_db),
+    days: int = 30,
+):
+    """每日消耗趋势（UTC 日口径）：tokens / 花费 / 请求次数，缺天补零。"""
+    from token_mvp_service import usage_daily
+
+    u = _auth_user_from_bearer(request, db)
+    return usage_daily(db, int(u.id), days=days)
+
+
+@app.get("/v1/billing/usage/models")
+async def billing_usage_models(
+    request: Request,
+    db: Session = Depends(get_db),
+    days: int = 30,
+    top_n: int = 10,
+):
+    """模型消耗榜：按 model 聚合 tokens / 花费 / 请求次数 + 占比。"""
+    from token_mvp_service import usage_models
+
+    u = _auth_user_from_bearer(request, db)
+    return usage_models(db, int(u.id), days=days, top_n=top_n)
 
 
 @app.get("/v1/referrals/code")

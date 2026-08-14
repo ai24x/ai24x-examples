@@ -1232,6 +1232,184 @@
   var usagePage = 0;
   var usageTotal = 0;
   var usageBindDone = false;
+  var USAGE_RANGE = "month";   // month | 7d | 30d | all
+  var USAGE_METRIC = "usd";    // usd | tokens | calls
+  var _usageChartCache = null;
+
+  function usageRangeParams() {
+    var now = new Date();
+    function iso(d) { return d.toISOString().slice(0, 10); }
+    var y = now.getUTCFullYear(), m = now.getUTCMonth(), d = now.getUTCDate();
+    var since = null, days = 30;
+    if (USAGE_RANGE === "month") {
+      since = iso(new Date(Date.UTC(y, m, 1)));
+      days = 31;
+    } else if (USAGE_RANGE === "7d") {
+      since = iso(new Date(Date.UTC(y, m, d - 6)));
+      days = 7;
+    } else if (USAGE_RANGE === "30d") {
+      since = iso(new Date(Date.UTC(y, m, d - 29)));
+      days = 30;
+    } else {
+      days = 365;
+    }
+    return { since: since, until: iso(new Date(Date.UTC(y, m, d))), days: days };
+  }
+
+  function fmtUsdSpend(usdCents, fx) {
+    return fmtMoneyCents(Number(usdCents) || 0, fx);
+  }
+
+  function renderUsageChart(data) {
+    var wrap = $("usageChart");
+    if (!wrap) return;
+    var rows = (data && data.rows) || [];
+    var fx = (data && data.fx) || 7.2;
+    if (!rows.length) {
+      wrap.innerHTML = "<div class='usage-empty'>" + tr("暂无消耗数据", "No usage data") + "</div>";
+      return;
+    }
+    var metric = USAGE_METRIC;
+    var vals = rows.map(function (r) {
+      return metric === "usd"
+        ? Number(r.usd_cents) || 0
+        : metric === "tokens"
+          ? Number(r.tokens) || 0
+          : Number(r.calls) || 0;
+    });
+    var max = Math.max.apply(null, vals.concat([1]));
+    var W = 720, H = 172, padT = 10, padB = 24;
+    var n = rows.length;
+    var slot = W / n;
+    var barW = Math.max(2, Math.min(18, slot * 0.62));
+    var parts = [];
+    parts.push("<svg viewBox='0 0 " + W + " " + H + "' role='img' aria-label='usage trend' xmlns='http://www.w3.org/2000/svg'>");
+    for (var g = 0; g <= 3; g++) {
+      var gy = padT + ((H - padT - padB) * g) / 3;
+      parts.push("<line x1='0' y1='" + gy + "' x2='" + W + "' y2='" + gy + "' stroke='#e5e7eb' stroke-width='1'/>");
+    }
+    rows.forEach(function (r, i) {
+      var v = vals[i];
+      var bh = v > 0 ? Math.max(2, ((H - padT - padB) * v) / max) : 1;
+      var x = i * slot + (slot - barW) / 2;
+      var y = H - padB - bh;
+      var dateTxt = (r.date || "").slice(5);
+      var tip =
+        dateTxt +
+        " · " +
+        fmtUsdSpend(r.usd_cents, fx) +
+        " · " +
+        fmtTokensCount(r.tokens || 0) +
+        " tok · " +
+        (r.calls || 0) +
+        " " +
+        tr("次", "calls");
+      parts.push(
+        "<rect x='" + x + "' y='" + y + "' width='" + barW + "' height='" + bh + "' rx='2' fill='#2563eb' opacity='0.85'>" +
+        "<title>" + escapeHtml(tip) + "</title></rect>"
+      );
+    });
+    var labelStep = Math.max(1, Math.ceil(n / 12));
+    rows.forEach(function (r, i) {
+      if (i % labelStep !== 0 && i !== n - 1) return;
+      var x = i * slot + slot / 2;
+      parts.push(
+        "<text x='" + x + "' y='" + (H - 8) + "' text-anchor='middle' font-size='10' fill='#888'>" +
+        escapeHtml((r.date || "").slice(5)) +
+        "</text>"
+      );
+    });
+    parts.push("</svg>");
+    wrap.innerHTML = parts.join("");
+  }
+
+  function renderUsageModels(data) {
+    var box = $("usageModels");
+    if (!box) return;
+    var rows = (data && data.rows) || [];
+    var fx = (data && data.fx) || 7.2;
+    box.innerHTML = "";
+    if (!rows.length) {
+      box.innerHTML = "<div class='usage-empty'>" + tr("该时段暂无消耗", "No usage in this period") + "</div>";
+      return;
+    }
+    rows.forEach(function (r) {
+      var row = document.createElement("div");
+      row.className = "usage-model-row";
+      var name = document.createElement("div");
+      name.className = "usage-model-name";
+      name.textContent = brandModelLabel("", "", r.model);
+      name.title = r.model;
+      var barWrap = document.createElement("div");
+      barWrap.className = "usage-model-bar-wrap";
+      var bar = document.createElement("div");
+      bar.className = "usage-model-bar";
+      bar.style.width = Math.max(2, Math.min(100, Number(r.usd_pct) || 0)) + "%";
+      barWrap.appendChild(bar);
+      var num = document.createElement("div");
+      num.className = "usage-model-num";
+      num.textContent =
+        fmtUsdSpend(r.usd_cents, fx) +
+        " · " +
+        fmtTokensCount(r.tokens || 0) +
+        " tok · " +
+        (r.calls || 0) +
+        " " +
+        tr("次", "calls");
+      var pct = document.createElement("div");
+      pct.className = "usage-model-pct";
+      pct.textContent = (Number(r.usd_pct) || 0).toFixed(1) + "%";
+      row.appendChild(name);
+      row.appendChild(barWrap);
+      row.appendChild(num);
+      row.appendChild(pct);
+      box.appendChild(row);
+    });
+  }
+
+  function initUsageStatsLabels() {
+    var rangeMap = {
+      month: tr("本月", "This month"),
+      "7d": tr("近7天", "Last 7 days"),
+      "30d": tr("近30天", "Last 30 days"),
+      all: tr("全部", "All time"),
+    };
+    document.querySelectorAll(".usage-range-btn").forEach(function (b) {
+      b.textContent = rangeMap[b.getAttribute("data-range")] || b.getAttribute("data-range");
+    });
+    var metricMap = { usd: tr("费用", "Cost"), tokens: "Tokens", calls: tr("请求数", "Calls") };
+    document.querySelectorAll(".usage-metric-btn").forEach(function (b) {
+      b.textContent = metricMap[b.getAttribute("data-metric")] || b.getAttribute("data-metric");
+    });
+    var rl = $("usage-range-label");
+    if (rl) rl.textContent = tr("统计范围", "Period");
+    var ct = $("usage-chart-title");
+    if (ct) ct.textContent = tr("每日消耗趋势", "Daily usage trend");
+    var mt = $("usage-models-title");
+    if (mt) mt.textContent = tr("模型消耗分布", "Usage by model");
+  }
+
+  function loadUsageStats() {
+    var card = $("usageStatsCard");
+    if (!card) return;
+    card.style.display = "";
+    var p = usageRangeParams();
+    AI24X_API.billingUsageDaily(p.days)
+      .then(function (d) {
+        _usageChartCache = d;
+        renderUsageChart(d);
+      })
+      .catch(function () {
+        var w = $("usageChart");
+        if (w) w.innerHTML = "<div class='usage-empty'>" + tr("加载失败，请稍后重试", "Failed to load, try again later") + "</div>";
+      });
+    AI24X_API.billingUsageModels(p.days, 10)
+      .then(renderUsageModels)
+      .catch(function () {
+        var b = $("usageModels");
+        if (b) b.innerHTML = "<div class='usage-empty'>" + tr("加载失败，请稍后重试", "Failed to load, try again later") + "</div>";
+      });
+  }
 
   function fmtUsageTime(iso) {
     if (!iso) return "--";
@@ -1326,7 +1504,11 @@
 
   function loadUsagePage(page) {
     usagePage = Math.max(0, page);
-    AI24X_API.billingUsage({ limit: USAGE_PAGE_SIZE, offset: usagePage * USAGE_PAGE_SIZE })
+    var rp = usageRangeParams();
+    var params = { limit: USAGE_PAGE_SIZE, offset: usagePage * USAGE_PAGE_SIZE };
+    if (rp.since) params.since = rp.since;
+    if (rp.until) params.until = rp.until;
+    AI24X_API.billingUsage(params)
       .then(function (usage) {
         usageTotal = (usage && usage.total) != null ? Number(usage.total) : 0;
 
@@ -1341,11 +1523,15 @@
   function exportUsageCsv() {
     var btn = $("usage-export-btn");
     if (btn) { btn.disabled = true; btn.textContent = tr("导出中…", "Exporting…"); }
+    var rp = usageRangeParams();
+    var baseParams = {};
+    if (rp.since) baseParams.since = rp.since;
+    if (rp.until) baseParams.until = rp.until;
     var all = [];
     var step = 200;
     var off = 0;
     function next() {
-      AI24X_API.billingUsage({ limit: step, offset: off })
+      AI24X_API.billingUsage(Object.assign({ limit: step, offset: off }, baseParams))
         .then(function (u) {
           var rows = (u && u.rows) || [];
           all = all.concat(rows);
@@ -1389,6 +1575,28 @@
     if (prev) prev.addEventListener("click", function () { loadUsagePage(usagePage - 1); });
     if (next) next.addEventListener("click", function () { loadUsagePage(usagePage + 1); });
     if (exp) exp.addEventListener("click", exportUsageCsv);
+    initUsageStatsLabels();
+    document.querySelectorAll(".usage-range-btn").forEach(function (b) {
+      b.addEventListener("click", function () {
+        USAGE_RANGE = b.getAttribute("data-range");
+        document.querySelectorAll(".usage-range-btn").forEach(function (x) {
+          x.classList.toggle("is-active", x === b);
+        });
+        usagePage = 0;
+        loadUsagePage(0);
+        loadUsageStats();
+      });
+    });
+    document.querySelectorAll(".usage-metric-btn").forEach(function (b) {
+      b.addEventListener("click", function () {
+        USAGE_METRIC = b.getAttribute("data-metric");
+        document.querySelectorAll(".usage-metric-btn").forEach(function (x) {
+          x.classList.toggle("is-active", x === b);
+        });
+        renderUsageChart(_usageChartCache);
+      });
+    });
+    loadUsageStats();
   }
 
   function fillVipPickOptions(isVip) {
@@ -1865,6 +2073,11 @@
     });
     if (id === "invite") {
       loadInvitees().catch(function () {});
+    }
+    if (id === "usage") {
+      try {
+        loadUsageStats();
+      } catch (e) {}
     }
 
     if (pushHash) {

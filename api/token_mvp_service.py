@@ -867,27 +867,53 @@ def topup_usd(
     return get_balance_snapshot(db, auth_user_id)
 
 
-def _usage_summary(db: Session, auth_user_id: int) -> dict:
-    """\u7528\u91cf\u6c47\u603b\uff08\u5168\u91cf\uff0c\u4e0d\u53d7\u5206\u9875\u5f71\u54cd\uff09\uff1a\u6d88\u8d39\u91d1\u989d / \u8bf7\u6c42\u6b21\u6570 / \u603b tokens\u3002"""
-    from sqlalchemy import func as _sa_func
+def _parse_date_utc(value: Optional[str]) -> Optional[datetime]:
+    """把 'YYYY-MM-DD' 解析为 UTC 当日零点（含时区），非法值返回 None。"""
+    if not value:
+        return None
+    try:
+        return datetime.strptime(str(value).strip()[:10], "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    except Exception:
+        return None
+
+
+def _usage_date_expr(db: Session):
+    """按 UTC 取日期（对齐库内 usage_date='UTC YYYY-MM-DD' 口径）；SQLite 测试回退 date()。"""
+    try:
+        if db.bind is not None and getattr(db.bind, "dialect", None) and db.bind.dialect.name == "sqlite":
+            return func.date(BillingLedger.created_at)
+    except Exception:
+        pass
+    return func.date(func.timezone("UTC", BillingLedger.created_at))
+
+
+def _usage_summary(
+    db: Session, auth_user_id: int, *, since: Optional[datetime] = None, until: Optional[datetime] = None
+) -> dict:
+    """用量汇总（默认全量；传 since/until 则按范围）：消费金额 / 请求次数 / 总 tokens。"""
     from token_plans import _usd_cny
+
     try:
         fx = float(_usd_cny() or 7.2)
     except Exception:
         fx = 7.2
     try:
-        agg = (
+        q = (
             db.query(
-                _sa_func.coalesce(_sa_func.sum(_sa_func.abs(BillingLedger.amount_usd)), 0).label("usd_cents"),
-                _sa_func.count(BillingLedger.id).label("calls"),
-                _sa_func.coalesce(_sa_func.sum(BillingLedger.tokens), 0).label("tokens"),
+                func.coalesce(func.sum(func.abs(BillingLedger.amount_usd)), 0).label("usd_cents"),
+                func.count(BillingLedger.id).label("calls"),
+                func.coalesce(func.sum(BillingLedger.tokens), 0).label("tokens"),
             )
             .filter(
                 BillingLedger.auth_user_id == int(auth_user_id),
                 BillingLedger.entry_type == "consume",
             )
-            .first()
         )
+        if since is not None:
+            q = q.filter(BillingLedger.created_at >= since)
+        if until is not None:
+            q = q.filter(BillingLedger.created_at < until)
+        agg = q.first()
         usd_cents = int(getattr(agg, "usd_cents", 0) or 0)
         calls = int(getattr(agg, "calls", 0) or 0)
         tokens = int(getattr(agg, "tokens", 0) or 0)
@@ -901,6 +927,99 @@ def _usage_summary(db: Session, auth_user_id: int) -> dict:
     }
 
 
+def usage_daily(db: Session, auth_user_id: int, *, days: int = 30) -> dict:
+    """每日消耗趋势（UTC 日口径，含当日）：tokens / 花费美分 / 请求次数，缺天补零。"""
+    days = max(1, min(365, int(days or 30)))
+    from token_plans import _usd_cny
+
+    try:
+        fx = float(_usd_cny() or 7.2)
+    except Exception:
+        fx = 7.2
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    until = today + timedelta(days=1)
+    since = today - timedelta(days=days - 1)
+    rows = (
+        db.query(
+            _usage_date_expr(db).label("day"),
+            func.coalesce(func.sum(BillingLedger.tokens), 0).label("tokens"),
+            func.coalesce(func.sum(func.abs(BillingLedger.amount_usd)), 0).label("usd_cents"),
+            func.count(BillingLedger.id).label("calls"),
+        )
+        .filter(
+            BillingLedger.auth_user_id == int(auth_user_id),
+            BillingLedger.entry_type == "consume",
+            BillingLedger.created_at >= since,
+            BillingLedger.created_at < until,
+        )
+        .group_by(_usage_date_expr(db))
+        .order_by(_usage_date_expr(db))
+        .all()
+    )
+    by_day = {str(r.day): r for r in rows if r.day}
+    out = []
+    for i in range(days):
+        d = (since + timedelta(days=i)).date().isoformat()
+        r = by_day.get(d)
+        out.append(
+            {
+                "date": d,
+                "tokens": int(r.tokens or 0) if r else 0,
+                "usd_cents": int(r.usd_cents or 0) if r else 0,
+                "calls": int(r.calls or 0) if r else 0,
+            }
+        )
+    return {"rows": out, "days": days, "fx": round(fx, 4)}
+
+
+def usage_models(db: Session, auth_user_id: int, *, days: int = 30, top_n: int = 10) -> dict:
+    """模型消耗榜：按 model 聚合 tokens / 花费美分 / 请求次数 + 占比（按花费排序）。"""
+    days = max(1, min(365, int(days or 30)))
+    top_n = max(3, min(20, int(top_n or 10)))
+    from token_plans import _usd_cny
+
+    try:
+        fx = float(_usd_cny() or 7.2)
+    except Exception:
+        fx = 7.2
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    since = today - timedelta(days=days - 1)
+    q = (
+        db.query(
+            BillingLedger.model.label("model"),
+            func.coalesce(func.sum(BillingLedger.tokens), 0).label("tokens"),
+            func.coalesce(func.sum(func.abs(BillingLedger.amount_usd)), 0).label("usd_cents"),
+            func.count(BillingLedger.id).label("calls"),
+        )
+        .filter(
+            BillingLedger.auth_user_id == int(auth_user_id),
+            BillingLedger.entry_type == "consume",
+            BillingLedger.created_at >= since,
+            BillingLedger.created_at < today + timedelta(days=1),
+        )
+        .group_by(BillingLedger.model)
+    )
+    total_rows = q.all()
+    total_tokens = sum(int(r.tokens or 0) for r in total_rows)
+    total_usd = sum(int(r.usd_cents or 0) for r in total_rows)
+    ranked = sorted(total_rows, key=lambda r: (int(r.usd_cents or 0), int(r.tokens or 0)), reverse=True)
+    out = []
+    for r in ranked[:top_n]:
+        tok = int(r.tokens or 0)
+        usd = int(r.usd_cents or 0)
+        out.append(
+            {
+                "model": r.model or "--",
+                "tokens": tok,
+                "usd_cents": usd,
+                "calls": int(r.calls or 0),
+                "token_pct": round(tok * 100.0 / total_tokens, 1) if total_tokens else 0.0,
+                "usd_pct": round(usd * 100.0 / total_usd, 1) if total_usd else 0.0,
+            }
+        )
+    return {"rows": out, "days": days, "fx": round(fx, 4), "total_tokens": total_tokens, "total_usd_cents": total_usd}
+
+
 def list_usage(
     db: Session,
     auth_user_id: int,
@@ -908,8 +1027,16 @@ def list_usage(
     limit: int = 50,
     offset: int = 0,
     entry_type: Optional[str] = None,
+    since: Optional[str] = None,
+    until: Optional[str] = None,
 ) -> dict:
     q = db.query(BillingLedger).filter(BillingLedger.auth_user_id == int(auth_user_id))
+    s = _parse_date_utc(since)
+    u = _parse_date_utc(until)
+    if s is not None:
+        q = q.filter(BillingLedger.created_at >= s)
+    if u is not None:
+        q = q.filter(BillingLedger.created_at < u + timedelta(days=1))
     if entry_type:
         q = q.filter(BillingLedger.entry_type == entry_type)
     total = q.count()
@@ -937,7 +1064,7 @@ def list_usage(
             }
             for r in rows
         ],
-        "summary": _usage_summary(db, int(auth_user_id)),
+        "summary": _usage_summary(db, int(auth_user_id), since=s, until=u),
     }
 
 

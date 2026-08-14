@@ -524,7 +524,19 @@
     if (params.limit != null) q.push("limit=" + encodeURIComponent(params.limit));
     if (params.offset != null) q.push("offset=" + encodeURIComponent(params.offset));
     if (params.entry_type) q.push("entry_type=" + encodeURIComponent(params.entry_type));
+    if (params.since) q.push("since=" + encodeURIComponent(params.since));
+    if (params.until) q.push("until=" + encodeURIComponent(params.until));
     return request("/v1/billing/usage" + (q.length ? "?" + q.join("&") : ""), { method: "GET" });
+  }
+
+  function billingUsageDaily(days) {
+    return request("/v1/billing/usage/daily?days=" + encodeURIComponent(days == null ? 30 : days), { method: "GET" });
+  }
+
+  function billingUsageModels(days, topN) {
+    var q = "days=" + encodeURIComponent(days == null ? 30 : days);
+    if (topN != null) q += "&top_n=" + encodeURIComponent(topN);
+    return request("/v1/billing/usage/models?" + q, { method: "GET" });
   }
 
   function billingPlans() {
@@ -854,6 +866,8 @@
     keysDelete: keysDelete,
     billingBalance: billingBalance,
     billingUsage: billingUsage,
+    billingUsageDaily: billingUsageDaily,
+    billingUsageModels: billingUsageModels,
     billingPlans: billingPlans,
     billingWechatNative: billingWechatNative,
     billingAlipayWap: billingAlipayWap,
