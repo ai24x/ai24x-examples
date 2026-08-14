@@ -329,9 +329,11 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 6,
         "openrouter_id": "qwen/qwen3.7-max",
         "direct_id": None,
-        "siliconflow_id": None,  # .com/.cn 目录无 Qwen3-235B（仅 Qwen3.5-397B/122B，与 qwen3.7-max 不等价）→ 走 OR 主通道
-        "cost_in": 1.475,
-        "cost_out": 4.425,
+        "siliconflow_id": None,  # .com/.cn 目录无 Qwen3-235B（仅 Qwen3.5-397B/122B，与 qwen3.7-max 不等价）→ 走 TL 主通道
+        # 2026-08-14: 主通道切 TokenLab（TL 实价 $0.3529/$1.4118 为 OR 24%，04 价目监控「降本机会」落地）
+        "channels": ["tokenlab", "openrouter", "requesty"],
+        "cost_in": 0.3529,
+        "cost_out": 1.4118,
         "billing_mult": 13,  # 2026-08-05: ceil(2.95/0.35*1.5)=14
         "in_mult": 8,   # ceil(1.475/0.35*1.8)=8
         "out_mult": 16,  # ceil(4.425/0.35*1.2)=16
@@ -529,10 +531,10 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 14,
         "openrouter_id": "anthropic/claude-haiku-4.5",
         "direct_id": None,
-        # 2026-08-06: 保持 OR 主通道（定位"轻量快速"：TL 质量 0.5<0.6 且延迟 3.4s>2.2s；便宜 35% 但绝对值小）
-        "channels": ["openrouter", "tokenlab", "requesty"],
-        "cost_in": 1.0,
-        "cost_out": 5.0,
+        # 2026-08-14: 主通道切 TokenLab（TL 实价 $0.65/$3.25 为 OR 65%，04 价目监控「降本机会」落地）
+        "channels": ["tokenlab", "openrouter", "requesty"],
+        "cost_in": 0.65,
+        "cost_out": 3.25,
         "billing_mult": 13,  # 2026-08-05: ceil(3.0/0.35*1.5)=14
         "in_mult": 6,   # ceil(1.0/0.35*1.8)=6
         "out_mult": 18,  # ceil(5.0/0.35*1.2)=18
@@ -551,8 +553,10 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 10,
         "openrouter_id": "anthropic/claude-opus-5",
         "direct_id": None,
-        "cost_in": 5.0,
-        "cost_out": 25.0,
+        # 2026-08-14: 主通道切 TokenLab（TL 实价 $3.25/$16.25 为 OR 65%，04 价目监控「降本机会」落地）
+        "channels": ["tokenlab", "openrouter", "requesty"],
+        "cost_in": 3.25,
+        "cost_out": 16.25,
         "billing_mult": 65,  # 2026-08-05: ceil(15.0/0.35*1.5)=67
         "in_mult": 26,   # ceil(5.0/0.35*1.8)=26
         "out_mult": 86,  # ceil(25.0/0.35*1.2)=86
