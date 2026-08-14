@@ -70,6 +70,56 @@ _DEFAULT_TL_DETAIL: dict[str, dict[str, float]] = {
 _CACHE_TTL_S = 12 * 3600
 _ROLES = {"default_flash", "default_pro", "default_ultra", "vip_pick"}
 
+# 2026-08-14: 已知上游官方涨价日程（DeepSeek 8/17 峰谷定价）。
+# 闲时价按官方人民币 ÷ 7.14 折算美元；高峰为闲时 2 倍。
+# 作用：① 生效前在后台/飞书提前预警「涨价后毛利」；② 生效后自动按新价算毛利。
+_HIKE_SCHEDULE: dict[str, dict[str, Any]] = {
+    "ds-v4-flash": {
+        "effective": "2026-08-17",
+        "in": 0.21,
+        "out": 0.63,
+        "peak_in": 0.42,
+        "peak_out": 1.26,
+        "note": "DeepSeek 官方涨价（闲时价）",
+    },
+    "ds-v4-pro": {
+        "effective": "2026-08-17",
+        "in": 0.63,
+        "out": 1.89,
+        "peak_in": 1.26,
+        "peak_out": 3.78,
+        "note": "DeepSeek 官方涨价（闲时价）",
+    },
+    "vip-ds-flash": {
+        "effective": "2026-08-17",
+        "in": 0.21,
+        "out": 0.63,
+        "peak_in": 0.42,
+        "peak_out": 1.26,
+        "note": "DeepSeek 官方涨价（闲时价）",
+    },
+    "vip-ds-pro": {
+        "effective": "2026-08-17",
+        "in": 0.63,
+        "out": 1.89,
+        "peak_in": 1.26,
+        "peak_out": 3.78,
+        "note": "DeepSeek 官方涨价（闲时价）",
+    },
+}
+
+
+def _hike_applied(cid: str) -> Optional[dict[str, Any]]:
+    """返回已生效的涨价日程（今天 >= effective），未生效返回 None。"""
+    h = _HIKE_SCHEDULE.get(cid)
+    if not h or not h.get("effective"):
+        return None
+    try:
+        eff = datetime.strptime(str(h["effective"]), "%Y-%m-%d").date()
+    except Exception:
+        return None
+    return h if datetime.now().date() >= eff else None
+
 
 def _cfg(key: str, default: float) -> float:
     v = (os.getenv(key) or "").strip()
@@ -320,6 +370,11 @@ def snapshot() -> dict[str, Any]:
         sell_out = round(ref * out_mult, 4)
         cost_in = float(c.get("cost_in") or 0)
         cost_out = float(c.get("cost_out") or 0)
+        # 已生效的官方涨价：按日程覆盖成本（8/17 后自动切新价，无需改代码）
+        hike_now = _hike_applied(cid)
+        if hike_now:
+            cost_in = float(hike_now.get("in") or cost_in)
+            cost_out = float(hike_now.get("out") or cost_out)
         gm_in = _gm(sell_in, cost_in)
         gm_out = _gm(sell_out, cost_out)
         gm_blend = round((1 - (cost_in + cost_out) / (sell_in + sell_out)) * 100, 1) if (sell_in + sell_out) > 0 else None
@@ -342,6 +397,49 @@ def snapshot() -> dict[str, Any]:
             elif min(gm_in or 999, gm_out or 999) < 10:
                 level = "warn"
                 flags.append("单端毛利低")
+        # 未生效的涨价日程：提前预警「涨价后毛利」，避免 8/17 被打个措手不及
+        hike_meta = None
+        if not hike_now:
+            hike = _HIKE_SCHEDULE.get(cid)
+            if hike:
+                hin = float(hike.get("in") or 0)
+                hout = float(hike.get("out") or 0)
+                pin = float(hike.get("peak_in") or hin)
+                pout = float(hike.get("peak_out") or hout)
+                denom = sell_in + 4 * sell_out
+                g1_off = (
+                    round((1 - (hin + 4 * hout) / denom) * 100, 1)
+                    if denom > 0
+                    else None
+                )
+                g1_peak = (
+                    round((1 - (pin + 4 * pout) / denom) * 100, 1)
+                    if denom > 0
+                    else None
+                )
+                eff = str(hike.get("effective") or "")
+                hike_meta = {
+                    "effective": eff,
+                    "gm_1to4_off": g1_off,
+                    "gm_1to4_peak": g1_peak,
+                    "note": str(hike.get("note") or ""),
+                }
+                txt = (
+                    f"{eff} 起{hike.get('note', '官方涨价')}: "
+                    f"1:4 毛利预计 {g1_off}%(闲时)/{g1_peak}%(高峰)"
+                )
+                if g1_off is not None and g1_off < 0:
+                    flags.append(txt + " → 涨价后倒挂")
+                    level = "alarm"
+                elif g1_peak is not None and g1_peak < red_gm():
+                    flags.append(txt + " → 高峰倒挂")
+                    level = "alarm"
+                elif (g1_off is not None and g1_off < warn_gm()) or (
+                    g1_peak is not None and g1_peak < warn_gm()
+                ):
+                    if level != "alarm":
+                        level = "warn"
+                    flags.append(txt)
         if market and (market[0] > 0 or market[1] > 0):
             mc = cost_in + cost_out
             mp = market[0] + market[1]
@@ -369,6 +467,7 @@ def snapshot() -> dict[str, Any]:
             "rq": prov.get("rq"),
             "market_min": market,
             "channels": c.get("channels") or [],
+            "hike": hike_meta,
             "level": level,
             "flags": flags,
         })
@@ -376,6 +475,7 @@ def snapshot() -> dict[str, Any]:
     alarm_rows = [r for r in rows if r["level"] == "alarm"]
     warn_rows = [r for r in rows if r["level"] == "warn"]
     info_rows = [r for r in rows if r["level"] == "info"]
+    hike_rows = [r for r in rows if r.get("hike")]
     return {
         "ok": True,
         "generated_cst": datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M:%S"),
@@ -391,6 +491,8 @@ def snapshot() -> dict[str, Any]:
             "alarm_ids": [r["id"] for r in alarm_rows],
             "warn_ids": [r["id"] for r in warn_rows],
             "info_ids": [r["id"] for r in info_rows],
+            "hike": len(hike_rows),
+            "hike_ids": [r["id"] for r in hike_rows],
         },
         "rows": rows,
     }

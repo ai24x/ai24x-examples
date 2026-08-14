@@ -195,9 +195,11 @@ CATALOG: list[dict[str, Any]] = [
         "siliconflow_id": "deepseek-ai/DeepSeek-V4-Flash",
         "cost_in": 0.14,
         "cost_out": 0.28,
-        "billing_mult": 2,  # 2026-08-06: 点名溢价（与品牌层 flash 同模型，双价 in1/out2 毛利~60%）
-        "in_mult": 1,   # 输入 $0.35（= flash，2.5x 官方）
-        "out_mult": 2,  # 输出 $0.70（2.5x 官方）
+        # 2026-08-14: DS 官方 8/17 涨价（输出 ¥2→¥4.5 闲时/¥9 高峰）
+        # → 点名价上调 in2/out4（$0.70/$1.40），闲时 1:4 毛利约 56%
+        "billing_mult": 4,
+        "in_mult": 2,
+        "out_mult": 4,
         "quality": "点名专属 · 全程同模型不降级",
         "quality_en": "Named pick · same-model failover",
         "access": "ready",
@@ -216,9 +218,11 @@ CATALOG: list[dict[str, Any]] = [
         "siliconflow_id": "deepseek-ai/DeepSeek-V4-Pro",
         "cost_in": 0.435,
         "cost_out": 0.87,
-        "billing_mult": 4,  # 2026-08-06: 点名溢价（$1.40，毛利~55%；3.2x/1.6x 官方）
-        "in_mult": 4,
-        "out_mult": 4,
+        # 2026-08-14: DS 官方 8/17 涨价（输出 ¥6→¥13.5 闲时/¥27 高峰）
+        # → 点名价上调 in6/out12（$2.10/$4.20），闲时 1:4 毛利约 56%
+        "billing_mult": 12,
+        "in_mult": 6,
+        "out_mult": 12,
         "quality": "更强推理",
         "quality_en": "Stronger reasoning",
         "access": "ready",
@@ -935,7 +939,9 @@ def resolve_vip_pick(requested_model: Optional[str]) -> Optional[dict[str, Any]]
         "qwen3.5": "vip-qwen122b",
         "deepseek": "vip-ds-flash",
         "deepseek-flash": "vip-ds-flash",
+        "deepseek-v4-flash": "vip-ds-flash",
         "deepseek-pro": "vip-ds-pro",
+        "deepseek-v4-pro": "vip-ds-pro",
         "ds-flash": "vip-ds-flash",
         "ds-pro": "vip-ds-pro",
         "gpt5": "vip-gpt5",

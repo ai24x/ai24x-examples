@@ -71,11 +71,13 @@ LAYER_DEFAULT_MODEL = {
 }
 
 # 聚合默认 model id（OpenRouter；可用 OPENROUTER_MODEL_* 覆盖）
-# 成本优先：L1=DS Flash；能力向可改 OPENROUTER_MODEL_L1=xiaomi/mimo-v2.5
+# 2026-08-14：成本优先 L1=MiMo v2.5（DS 官方 8/17 涨价后同价档）；可用 OPENROUTER_MODEL_L1 覆盖
 _OR_DEFAULT_MODELS = {
     "L0": "openrouter/auto",
-    "L1": "deepseek/deepseek-v4-flash",
-    "L2": "deepseek/deepseek-v4-pro",
+    # 2026-08-14: DeepSeek 官方 8/17 涨价（flash 输出 ¥2→¥4.5，高峰 ¥9）
+    # → L1/L2 默认换同价 MiMo 档（$0.14/$0.28、$0.435/$0.87，tools ✅），DS 仅留 vip 点名/兜底
+    "L1": "xiaomi/mimo-v2.5",
+    "L2": "xiaomi/mimo-v2.5-pro",
     "L3": "openai/gpt-5-mini",
     "QI": "qwen/qwen3.7-plus",
 }
@@ -551,6 +553,45 @@ def _openrouter_model_for_layer(layer: str) -> str:
     return _OR_DEFAULT_MODELS.get(layer, _OR_DEFAULT_MODELS["L1"])
 
 
+# 2026-08-14: DS 官方 8/17 涨价 → L1/L2 默认改走 OR 的 MiMo 同价档。
+# 回退官方直连：TOKEN_LLM_L1_UPSTREAM=deepseek（L2 同理）。
+_LAYER_OR_MODEL = {
+    "L1": "xiaomi/mimo-v2.5",
+    "L2": "xiaomi/mimo-v2.5-pro",
+}
+
+
+def _layer_or_upstream_override(layer: str) -> Optional[dict[str, str]]:
+    """L1/L2 直连模式下可选的 OR 通道（默认启用）；无 OR Key 或显式回退时返回 None。"""
+    layer = (layer or "").upper()
+    if layer not in ("L1", "L2"):
+        return None
+    v = (_env(f"TOKEN_LLM_{layer}_UPSTREAM", "") or "").strip().lower()
+    if v in ("deepseek", "direct", "official", "ds"):
+        return None
+    key = _env("OPENROUTER_API_KEY") or _env("TOKEN_LLM_KEY")
+    try:
+        from llm_keys import openrouter_main_key
+
+        key = openrouter_main_key() or key
+    except Exception:
+        pass
+    if not key:
+        return None
+    base = (
+        _env("OPENROUTER_BASE_URL")
+        or _env("TOKEN_LLM_BASE")
+        or "https://openrouter.ai/api/v1"
+    )
+    model = _env(f"OPENROUTER_MODEL_{layer}") or _LAYER_OR_MODEL.get(layer)
+    return {
+        "base": _normalize_openai_base(base),
+        "key": key,
+        "model": model,
+        "provider": "openrouter",
+    }
+
+
 def _layer_upstream(layer: str) -> dict[str, str]:
     """
     openrouter：各层共用 OpenRouter Key，按层选不同 model。
@@ -633,6 +674,9 @@ def _layer_upstream(layer: str) -> dict[str, str]:
         )
         provider = "siliconflow"
     elif layer == "L1":
+        or_up = _layer_or_upstream_override("L1")
+        if or_up:
+            return or_up
         base = (
             _env("TOKEN_LLM_L1_BASE")
             or _env("DEEPSEEK_BASE_URL")
@@ -657,6 +701,9 @@ def _layer_upstream(layer: str) -> dict[str, str]:
         model = _env("TOKEN_LLM_QI_MODEL") or _env("QWEN_INTL_MODEL") or "qwen-turbo"
         provider = "qwen_intl"
     elif layer in ("L2", "L3"):
+        or_up = _layer_or_upstream_override(layer)
+        if or_up:
+            return or_up
         # 直连阶段：VIP 档暂共用 DeepSeek（pro 模型）；OR 充值后再切回聚合档
         base = (
             _env(f"TOKEN_LLM_{layer}_BASE")
@@ -743,8 +790,12 @@ def _ds_failover_enabled() -> bool:
 
 
 def _ds_prefer_paid_enabled() -> bool:
-    """OR 模式下付费 L1/L2：有 DeepSeek Key 时先直连，失败再走 OR（账单更干净）。"""
-    v = (_env("TOKEN_LLM_DS_PREFER_PAID", "1") or "1").strip().lower()
+    """OR 模式下付费 L1/L2 是否先直连 DeepSeek。
+
+    2026-08-14: DS 官方 8/17 涨价后默认关闭（L1/L2 走 MiMo）；
+    需要 DS 优先可设 TOKEN_LLM_DS_PREFER_PAID=1 恢复。
+    """
+    v = (_env("TOKEN_LLM_DS_PREFER_PAID", "0") or "0").strip().lower()
     return v not in ("0", "false", "no", "off")
 
 
@@ -913,7 +964,7 @@ def _upstream_model_id(logical: str, layer_default: str, *, provider: str = "") 
     # （TOKEN_LLM_L0_MODEL / SILICONFLOW_MODEL），不得再按 OR 逻辑名映射（or-fallback→openrouter/auto 会 400）
     if str(provider or "").strip() == "siliconflow":
         return layer_default or logical or "Qwen/Qwen2.5-7B-Instruct"
-    if _upstream_mode() == "openrouter":
+    if str(provider or "").strip() == "openrouter" or _upstream_mode() == "openrouter":
         if "/" in logical and not logical.startswith("or-"):
             return logical
         mapped_layer = LOGICAL_TO_UPSTREAM_MODEL_OR.get(logical)
