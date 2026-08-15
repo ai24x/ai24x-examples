@@ -617,6 +617,11 @@ def _layer_upstream(layer: str) -> dict[str, str]:
             "no",
             "off",
         )
+        l0_up = (_env("TOKEN_LLM_L0_UPSTREAM", "") or "").strip().lower()
+        if layer == "L0" and l0_up in ("mimo", "xiaomi", "mimo-direct"):
+            mi = _mimo_free_upstream()
+            if mi:
+                return mi
         if layer == "L0" and sf_key and use_sf_l0:
             base = (
                 _env("TOKEN_LLM_L0_BASE")
@@ -655,6 +660,11 @@ def _layer_upstream(layer: str) -> dict[str, str]:
         }
 
     if layer == "L0":
+        l0_up = (_env("TOKEN_LLM_L0_UPSTREAM", "") or "").strip().lower()
+        if l0_up in ("mimo", "xiaomi", "mimo-direct"):
+            mi = _mimo_free_upstream()
+            if mi:
+                return mi
         base = (
             _env("TOKEN_LLM_L0_BASE")
             or _env("SILICONFLOW_BASE_URL")
@@ -801,6 +811,23 @@ def _layer_mimo_upstream(layer: str) -> Optional[dict[str, str]]:
 def _mimo_failover_enabled() -> bool:
     v = (_env("TOKEN_LLM_MIMO_FAILOVER", "1") or "1").strip().lower()
     return v not in ("0", "false", "no", "off")
+
+
+def _mimo_free_upstream() -> Optional[dict[str, str]]:
+    """免费通道独立付费 key（MIMO_API_KEY_FREE · 单独记账）作 L0 备用/升级源。"""
+    if not _mimo_failover_enabled():
+        return None
+    key = (_env("MIMO_API_KEY_FREE") or _env("MIMO_API_KEY") or "").strip()
+    if not key:
+        return None
+    base = (_env("MIMO_BASE_URL") or "https://api.xiaomimimo.com/v1").strip()
+    model = (_env("MIMO_L0_MODEL") or _env("TOKEN_LLM_L0_MODEL") or "mimo-v2.5").strip()
+    return {
+        "base": _normalize_openai_base(base),
+        "key": key,
+        "model": model,
+        "provider": "mimo",
+    }
 
 
 def _deepseek_official_upstream() -> dict[str, str]:
@@ -1438,6 +1465,57 @@ def run_routed_chat(
                                 "provider": "mimo",
                                 "ok": False,
                                 "failover": "mimo_official",
+                                "error": str(e_mi)[:200],
+                                "ms": int((time.time() - t_mi) * 1000),
+                            }
+                        )
+            # L0 免费通道：硅基免费失败后切 MiMo 独立付费 key（单独记账）
+            if layer == "L0" and _mimo_failover_enabled():
+                mi = _mimo_free_upstream()
+                if mi:
+                    t_mi = time.time()
+                    try:
+                        out = _call(
+                            base=mi["base"],
+                            key=mi["key"],
+                            model=mi["model"],
+                            prompt=prompt,
+                            temperature=temperature,
+                            max_tokens=max_tokens,
+                            timeout_s=timeout_s,
+                            provider="mimo",
+                        )
+                        used_model = str(out.get("raw_model") or mi["model"])
+                        attempts.append(
+                            {
+                                "layer": "L0",
+                                "model": used_model,
+                                "provider": "mimo",
+                                "ok": True,
+                                "failover": "mimo_free",
+                                "ms": int((time.time() - t_mi) * 1000),
+                            }
+                        )
+                        raw_tokens = int(out["tokens"])
+                        mult = int(_layer_billing_mult("L0"))
+                        return _route_ok_from_out(
+                            out,
+                            model=used_model,
+                            layer="L0",
+                            provider="mimo",
+                            attempts=attempts,
+                            token_count=max(1, raw_tokens * mult),
+                            billing_mult=1,
+                        )
+                    except Exception as e_mi:
+                        logger.warning("mimo free failover failed: %s", e_mi)
+                        attempts.append(
+                            {
+                                "layer": "L0",
+                                "model": mi.get("model"),
+                                "provider": "mimo",
+                                "ok": False,
+                                "failover": "mimo_free",
                                 "error": str(e_mi)[:200],
                                 "ms": int((time.time() - t_mi) * 1000),
                             }
@@ -2788,6 +2866,20 @@ def run_routed_chat_stream(
                 and "mimo" in api_model.lower()
             ):
                 mi = _layer_mimo_upstream(layer)
+                if mi:
+                    targets.append(
+                        (
+                            layer,
+                            "mimo",
+                            str(mi["base"]),
+                            str(mi["key"]),
+                            str(mi["model"]),
+                            mult,
+                        )
+                    )
+            # L0 免费通道：硅基免费失败后切 MiMo 独立付费 key（单独记账）
+            if layer == "L0" and _mimo_failover_enabled():
+                mi = _mimo_free_upstream()
                 if mi:
                     targets.append(
                         (
