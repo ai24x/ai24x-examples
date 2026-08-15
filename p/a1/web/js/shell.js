@@ -349,6 +349,12 @@
     }
     bindChrome();
     refreshAuth();
+    // 跨标签页登录态联动：任一标签页登录/退出，其它标签页 header 即时同步
+    try {
+      window.addEventListener("storage", function (ev) {
+        if (ev && ev.key === "ai24x_a_token") { try { refreshAuth(); } catch (eS0) {} }
+      });
+    } catch (eS1) {}
     try {
       var btnLogoutH = document.getElementById("btn-header-logout");
       if (btnLogoutH) btnLogoutH.addEventListener("click", function () {
