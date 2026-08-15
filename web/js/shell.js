@@ -188,7 +188,9 @@
       '<a href="mailto:support@ai24x.com">support@ai24x.com</a>' +
       "</div>" +
       "</div>" +
-      '<div class="footer-bottom">© 2026 AI24X · <span data-i18n="footer.copy"></span> · <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">浙ICP备10040624号-7</a></div>' +
+      '<div class="footer-bottom">© 2026 AI24X · <a href="' +
+      pre +
+      'api.html" data-i18n="footer.link.api"></a> · <span data-i18n="footer.copy"></span> · <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">浙ICP备10040624号-7</a></div>' +
       "</div>"
     );
   }

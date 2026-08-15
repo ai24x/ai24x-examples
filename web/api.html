@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title data-i18n="page.api.titleTag">AI24X API · Developer Support</title>
+  <meta name="description" content="AI24X API — OpenAI-compatible developer gateway. One key for global models, flash from $0.35/M. Pricing, console, docs and integrations." />
+  <link rel="canonical" href="https://www.ai24x.com/api.html" />
+  <link rel="stylesheet" href="css/base.css?v=20260812e" />
+  <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260812e" data-base="css/themes/" />
+</head>
+<body data-page="api" class="theme-blue">
+  <header class="site-header" id="site-header"></header>
+  <main class="page-main">
+    <section class="hero hero-surface section-tight">
+      <div class="container">
+        <h1 data-i18n="page.api.title"></h1>
+        <p class="lead" data-i18n="page.api.sub"></p>
+        <p class="callout mt-2" data-i18n-html="page.api.banner"></p>
+      </div>
+    </section>
+    <section class="section">
+      <div class="container grid-3">
+        <div class="card">
+          <h3 data-i18n="page.api.card.pricing.t"></h3>
+          <p data-i18n="page.api.card.pricing.p"></p>
+          <p style="margin:12px 0 0;"><a class="btn" href="pricing.html" data-i18n="btn.pricing2">Pricing</a></p>
+        </div>
+        <div class="card">
+          <h3 data-i18n="page.api.card.console.t"></h3>
+          <p data-i18n="page.api.card.console.p"></p>
+          <p style="margin:12px 0 0;"><a class="btn btn-primary" href="console.html" data-i18n="page.api.cta">Open Console</a></p>
+        </div>
+        <div class="card">
+          <h3 data-i18n="page.api.card.docs.t"></h3>
+          <p data-i18n="page.api.card.docs.p"></p>
+          <p style="margin:12px 0 0;"><a class="btn" href="docs.html" data-i18n="btn.docs2">Docs</a></p>
+        </div>
+        <div class="card">
+          <h3 data-i18n="page.api.card.models.t"></h3>
+          <p data-i18n="page.api.card.models.p"></p>
+          <p style="margin:12px 0 0;"><a class="btn" href="models/index.html" data-i18n="btn.models2">Models</a></p>
+        </div>
+        <div class="card">
+          <h3 data-i18n="page.api.card.guides.t"></h3>
+          <p data-i18n="page.api.card.guides.p"></p>
+          <p style="margin:12px 0 0;"><a class="btn" href="guides/index.html" data-i18n="btn.guides2">Guides</a></p>
+        </div>
+        <div class="card">
+          <h3 data-i18n="page.api.card.help.t"></h3>
+          <p data-i18n="page.api.card.help.p"></p>
+          <p style="margin:12px 0 0;"><a class="btn" href="help.html" data-i18n="btn.help2">Help</a></p>
+        </div>
+      </div>
+    </section>
+    <section class="section section-alt">
+      <div class="container" style="max-width:720px;text-align:center">
+        <h2 data-i18n="page.api.quick.title">Quick start</h2>
+        <p class="sub" data-i18n="page.api.quick.sub">OpenAI-compatible <code>POST /v1/chat/completions</code>. Model: <code>flash</code>.</p>
+        <div class="code-block" aria-label="curl-completions">curl -X POST "https://api.ai24x.com/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -d "{\"model\":\"flash\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello AI24X\"}],\"stream\":false}"</div>
+        <p style="margin-top:14px;"><a class="btn" href="status.html" data-i18n="page.api.card.status.t">Service status</a></p>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer" id="site-footer"></footer>
+  <script src="config/locales.js?v=20260817a"></script>
+  <script src="js/api.js?v=20260817a"></script>
+  <script src="js/utm.js?v=20260802a"></script>
+  <script src="js/i18n.js?v=20260812g"></script>
+  <script src="js/shell.js?v=20260817a"></script>
+  <script src="js/app.js?v=20260808b"></script>
+  <script src="js/support-widget.js?v=20260817a"></script>
+</body>
+</html>
