@@ -156,7 +156,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="/css/base.css?v=53" />
+  <link rel="stylesheet" href="/css/base.css?v=54" />
   <link rel="stylesheet" href="/css/tool.css?v=44" />
   <style>
     /* Home layout: left intro + right login panel (no JS changes) */
@@ -1151,7 +1151,7 @@
           setStatus("页面异常，请刷新后重试。");
         });
         window.addEventListener("unhandledrejection", function () {
-          setStatus("网络或服务暂时不可用，请稍后重试。");
+          setStatus("页面加载异常，请刷新重试。");
         });
       } catch (e) {}
 

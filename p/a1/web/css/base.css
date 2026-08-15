@@ -143,6 +143,7 @@ a.btn, button.btn {
 .status { margin-top: 10px; color: var(--muted); font-size: 12px; min-height: 18px; }
 .kv { margin-top: 12px; display:flex; flex-wrap: wrap; gap: 10px 18px; color: var(--muted); }
 .kv b { color: var(--text); font-weight: 700; }
+.kv[hidden] { display: none !important; }
 
 /* Variants (align with main site button naming) */
 .btn-ghost { background: transparent; }
