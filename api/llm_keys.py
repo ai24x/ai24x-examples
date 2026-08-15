@@ -34,6 +34,8 @@ _ALLOWED = (
     "SILICONFLOW_API_KEY_FREE",
     "SILICONFLOW_COM_API_KEY",  # 2026-08-03: 硅基国际站 (.com)
     "DEEPSEEK_API_KEY",
+    "MIMO_API_KEY",  # 2026-08-15: 小米 MiMo 官方直连（国际 api.xiaomimimo.com）
+    "MIMO_API_KEY_FREE",  # 小米 MiMo 免费通道
     "TOGETHER_API_KEY",
     "OPENAI_API_KEY",
     "ANTHROPIC_API_KEY",
@@ -87,6 +89,20 @@ _KEY_CATALOG: tuple[dict[str, str], ...] = (
         "role": "failover",
         "status": "failover",
         "group": "官方直连",
+    },
+    {
+        "name": "MIMO_API_KEY",
+        "title": "小米 MiMo 官方直连（国际 api.xiaomimimo.com）",
+        "role": "failover",
+        "status": "live",
+        "group": "官方直连",
+    },
+    {
+        "name": "MIMO_API_KEY_FREE",
+        "title": "小米 MiMo 免费通道",
+        "role": "free",
+        "status": "live",
+        "group": "免费通道",
     },
     {
         "name": "TOGETHER_API_KEY",

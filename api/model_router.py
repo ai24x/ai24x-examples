@@ -770,6 +770,39 @@ def _layer_qr_upstream(layer: str) -> Optional[dict[str, str]]:
         return None
 
 
+# 2026-08-15: 小米 MiMo 官方直连兜底（国际 api.xiaomimimo.com；官方价=OR 价，同模型 failover）
+_LAYER_MIMO_MODEL: dict[str, str] = {
+    "L1": "mimo-v2.5",
+    "L2": "mimo-v2.5-pro",
+}
+
+
+def _layer_mimo_upstream(layer: str) -> Optional[dict[str, str]]:
+    """L1/L2 OR(MiMo) 失败后的官方直连同模型兜底；无 key / 未启用返回 None。"""
+    model = _LAYER_MIMO_MODEL.get((layer or "").strip().upper())
+    if not model:
+        return None
+    try:
+        from upstream_providers import resolve_provider
+
+        up = resolve_provider("mimo")
+        if not up or not up.get("key") or not up.get("base"):
+            return None
+        return {
+            "base": _normalize_openai_base(str(up["base"])),
+            "key": str(up["key"]),
+            "model": model,
+            "provider": "mimo",
+        }
+    except Exception:
+        return None
+
+
+def _mimo_failover_enabled() -> bool:
+    v = (_env("TOKEN_LLM_MIMO_FAILOVER", "1") or "1").strip().lower()
+    return v not in ("0", "false", "no", "off")
+
+
 def _deepseek_official_upstream() -> dict[str, str]:
     """
     官方 DeepSeek 通道（与 TOKEN_LLM_UPSTREAM 无关）。
@@ -1353,6 +1386,62 @@ def run_routed_chat(
                     "ms": int(elapsed * 1000),
                 }
             )
+            # OR 主档 L1/L2 失败且 OR 模型是 MiMo：先切官方直连（同模型，成本=OR 价）
+            if (
+                layer in ("L1", "L2")
+                and _upstream_mode() == "openrouter"
+                and _mimo_failover_enabled()
+                and "mimo" in str(api_model).lower()
+            ):
+                mi = _layer_mimo_upstream(layer)
+                if mi:
+                    t_mi = time.time()
+                    try:
+                        out = _call(
+                            base=mi["base"],
+                            key=mi["key"],
+                            model=mi["model"],
+                            prompt=prompt,
+                            temperature=temperature,
+                            max_tokens=max_tokens,
+                            timeout_s=timeout_s,
+                            provider="mimo",
+                        )
+                        used_model = str(out.get("raw_model") or mi["model"])
+                        attempts.append(
+                            {
+                                "layer": layer,
+                                "model": used_model,
+                                "provider": "mimo",
+                                "ok": True,
+                                "failover": "mimo_official",
+                                "ms": int((time.time() - t_mi) * 1000),
+                            }
+                        )
+                        raw_tokens = int(out["tokens"])
+                        mult = int(_layer_billing_mult(layer))
+                        return _route_ok_from_out(
+                            out,
+                            model=used_model,
+                            layer=layer,
+                            provider="mimo",
+                            attempts=attempts,
+                            token_count=max(1, raw_tokens * mult),
+                            billing_mult=1,
+                        )
+                    except Exception as e_mi:
+                        logger.warning("mimo official failover failed: %s", e_mi)
+                        attempts.append(
+                            {
+                                "layer": layer,
+                                "model": mi.get("model"),
+                                "provider": "mimo",
+                                "ok": False,
+                                "failover": "mimo_official",
+                                "error": str(e_mi)[:200],
+                                "ms": int((time.time() - t_mi) * 1000),
+                            }
+                        )
             # OR 主档 L1 失败：自动试官方 DeepSeek Flash（有 Key 才走）
             if (
                 layer == "L1"
@@ -1862,6 +1951,19 @@ def _run_vip_pick_chat(
         )
         if got:
             return got
+    # C2) MiMo 点名：聚合链失败后切官方直连（同模型 mimo-v2.5-pro；2026-08-15 直连兜底）
+    if "mimo" in or_id.lower() and _mimo_failover_enabled():
+        mi = _layer_mimo_upstream("L2")
+        if mi:
+            got = _try_call(
+                base=str(mi["base"]),
+                key=str(mi["key"]),
+                model=str(mi["model"]),
+                provider="mimo",
+                note="mimo_official",
+            )
+            if got:
+                return got
     # E) 国际旗舰厂直连 / 其它 VIP 厂直连
     try:
         from upstream_providers import direct_model_for_vip
@@ -2678,6 +2780,25 @@ def run_routed_chat_stream(
                     mult,
                 )
             )
+            # MiMo 官方直连同模型兜底（OR 的 xiaomi/mimo-* 失败后；2026-08-15）
+            if (
+                layer in ("L1", "L2")
+                and _upstream_mode() == "openrouter"
+                and _mimo_failover_enabled()
+                and "mimo" in api_model.lower()
+            ):
+                mi = _layer_mimo_upstream(layer)
+                if mi:
+                    targets.append(
+                        (
+                            layer,
+                            "mimo",
+                            str(mi["base"]),
+                            str(mi["key"]),
+                            str(mi["model"]),
+                            mult,
+                        )
+                    )
             # L2/L3 QR 备用 target（04 实测 2026-08-13：同款 200 稳定且降本）
             if layer in ("L2", "L3") and _upstream_mode() == "openrouter":
                 qr = _layer_qr_upstream(layer)
@@ -2795,6 +2916,11 @@ def _run_vip_pick_chat_stream(
             sf = _silicon_vip_upstream(sf_id)
             if sf:
                 targets.append(("siliconflow", sf["base"], sf["key"], sf["model"]))
+    # C2) MiMo 点名：聚合链失败后官方直连兜底（2026-08-15）
+    if "mimo" in or_id.lower() and _mimo_failover_enabled():
+        mi = _layer_mimo_upstream("L2")
+        if mi:
+            targets.append(("mimo", str(mi["base"]), str(mi["key"]), str(mi["model"])))
     # F2) DS 点名且聚合链无 OR 时，硅基同族兜底
     if is_ds_pick and sf_id and not any(t[0] == "siliconflow" for t in targets):
         sf = _silicon_vip_upstream(sf_id)
