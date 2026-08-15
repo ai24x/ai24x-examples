@@ -216,11 +216,14 @@
             return;
           }
         } catch (e2) {}
-        try {
-          document.documentElement.classList.add("i18n-pending");
-        } catch (e0) {}
         global.AI24X_I18N.setLang(next);
-        global.AI24X_I18N.apply(document);
+        // 切语言必须整页刷新：apply 只重译静态 data-i18n，
+        // JS 动态渲染的文案（控制台工单/账单备注等）不会跟着切，刷新才彻底
+        try {
+          location.reload();
+        } catch (e3) {
+          global.AI24X_I18N.apply(document);
+        }
       });
     }
 
