@@ -1152,12 +1152,19 @@
         });
         window.addEventListener("unhandledrejection", function (ev) {
           var reason = "";
+          var noise = false;
           try {
             var r = ev && ev.reason;
             reason = String((r && (r.message || r.stack)) || r || "").slice(0, 100);
+            // 第三方/浏览器扩展噪音（如钱包扩展注入检查）：仅记录，不打扰用户
+            var low = (String(reason) + " " + String((r && r.stack) || "")).toLowerCase();
+            var kws = ["wallet", "ethereum", "eth_requestaccounts", "metamask", "tokenpocket", "okxwallet", "bitget", "rabby", "phantom", "coinbase", "trustwallet", "chrome-extension://", "moz-extension://", "edge-extension", "user rejected", "at least one account"];
+            for (var i = 0; i < kws.length; i++) {
+              if (low.indexOf(kws[i]) >= 0) { noise = true; break; }
+            }
           } catch (eR) {}
           try { if (window.console && console.warn) console.warn("[unhandledrejection]", ev && ev.reason); } catch (eW) {}
-          setStatus("页面加载异常" + (reason ? "（" + reason + "）" : "") + "，请刷新重试。");
+          if (!noise) setStatus("页面加载异常" + (reason ? "（" + reason + "）" : "") + "，请刷新重试。");
         });
       } catch (e) {}
 
