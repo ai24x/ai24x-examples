@@ -1,4 +1,4 @@
-/* AI24X 掘金 VIP 页（gd.html）—— 前端只负责展示，算法全部在服务端 /api/bj/screener */
+/* AI24X 复盘 VIP 页（gd.html）—— 前端只负责展示，算法全部在服务端 /api/bj/screener */
 window.AI24X_BJScreener = (function () {
   "use strict";
   var TOKEN_KEY = "ai24x_a_token";
@@ -190,8 +190,8 @@ window.AI24X_BJScreener = (function () {
     if (a.smallYang) r.push("连续小阳趋势上拐");
     if (a.baseUp) r.push("站上MA20且均线上拐");
     if (a.tightBurst) r.push("均线粘合后发散");
-    if (p.obsHit && p.obsName) r.push("复盘次主线:" + p.obsName);
-    if (p.mainHit && p.mainName) r.push("复盘主线板块:" + p.mainName);
+    if (p.obsHit && p.obsName) r.push("次主线:" + p.obsName);
+    if (p.mainHit && p.mainName) r.push("主线板块:" + p.mainName);
     if (p.revHit && p.revName) r.push("主线反推共振:" + p.revName);
     if (p.boardLeader) r.push("板块龙头");
     if (p.hotName) r.push("板块共振:" + p.hotName);
@@ -256,9 +256,9 @@ window.AI24X_BJScreener = (function () {
     var mld = d.mainline_date ? ' · ' + esc(d.mainline_date) : '';
     if (!ml.length) {
       var emptyMl = d.archive
-        ? '该日未锁定主线（复盘未生成或板块未达标）。'
-        : '今日主线尚未生成（15:03 收盘后复盘自动锁定），可<a href="/daily/" target="_blank" rel="noopener">查看最近一期复盘 ↗</a>。';
-      box.innerHTML = '<div class="bj-note">主攻主线与复盘同步锁定：' + emptyMl + '</div>';
+        ? '该日未锁定主线（大盘未生成或板块未达标）。'
+        : '今日主线尚未生成（15:03 收盘后大盘自动锁定），可<a href="/daily/" target="_blank" rel="noopener">查看最近一期大盘 ↗</a>。';
+      box.innerHTML = '<div class="bj-note">主攻主线与大盘研判同步锁定：' + emptyMl + '</div>';
       return;
     }
     var h = '<div class="bj-section">主攻主线（市场驾驶舱' + mld + '）</div>' +
@@ -311,7 +311,7 @@ window.AI24X_BJScreener = (function () {
       var st = "";
       if (isAll) {
         if (b.mainline && !b.f164) {
-          st = '复盘主线 · 资金+技术双确认';
+          st = '主线 · 资金+技术双确认';
         } else {
           st = '5日主力 <b>' + moneyYi(b.f164) + '</b> ｜ 今日主力 <b>' + moneyYi(b.f62) + '</b>' + (b.p5 != null ? ' ｜ 5日 ' + pct(b.p5) : '');
         }
@@ -515,7 +515,7 @@ window.AI24X_BJScreener = (function () {
       if (d.mainline_gap) {
         var _mln = (d.mainlines || []).filter(function (m) { return m && m.src === "daily"; })
           .map(function (m) { return esc(m.name || ""); }).filter(Boolean);
-        html += '<div class="bj-gap-alert">⚠️ 主线（' + (_mln.length ? _mln.join('、') : '复盘主线') + '）今日暂无低风险合格标的；以下为资金热度龙头/备选，仅作技术面跟踪，<b>不构成买卖建议</b>。</div>';
+        html += '<div class="bj-gap-alert">⚠️ 主线（' + (_mln.length ? _mln.join('、') : '主线') + '）今日暂无低风险合格标的；以下为资金热度龙头/备选，仅作技术面跟踪，<b>不构成买卖建议</b>。</div>';
       }
       if (d.relaxed) {
         html += '<div class="notice">今日严格档无合格标的，采用放宽兜底档（位置/换手/启动门槛小幅放宽，利空硬伤与主线约束不变）。</div>';
@@ -988,12 +988,12 @@ window.AI24X_BJScreener = (function () {
       renderMarket(d.md, !!d.vip, d.asof || d.date || "", label || "");
     }
     apiFetch("/api/report/today").then(function (d) {
-      if (d && d.ok) { fill(d, "今日复盘"); return; }
+      if (d && d.ok) { fill(d, "今日大盘"); return; }
       apiFetch("/api/report/history").then(function (h) {
         var items = (h && h.items) || [];
         if (!items.length) { box.hidden = true; return; }
         var latest = items[0].date;
-        apiFetch("/api/report/" + encodeURIComponent(latest)).then(function (d2) { fill(d2, "最近复盘 " + latest); })
+        apiFetch("/api/report/" + encodeURIComponent(latest)).then(function (d2) { fill(d2, "最近大盘 " + latest); })
           .catch(function () { box.hidden = true; });
       }).catch(function () { box.hidden = true; });
     }).catch(function () { box.hidden = true; });
@@ -1113,7 +1113,7 @@ window.AI24X_BJScreener = (function () {
       m.hidden = true;
       m.innerHTML =
         '<div class="wr-modal-box">' +
-        '<div class="wr-modal-head"><b>📋 掘金实测跟踪明细（' + items.length + ' 只）</b>' +
+        '<div class="wr-modal-head"><b>📋 复盘实测跟踪明细（' + items.length + ' 只）</b>' +
         '<button type="button" class="wr-close" aria-label="关闭">✕</button></div>' +
         '<div class="wr-modal-body"><div class="wr-table-scroll"><table class="wr-table"><thead><tr>' +
         '<th>入选日</th><th>标的</th><th>入选价</th><th>最新价</th><th>5日最高</th><th>5日涨幅</th><th>10日涨幅</th><th>状态</th>' +

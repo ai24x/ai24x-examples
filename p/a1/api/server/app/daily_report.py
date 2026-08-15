@@ -703,7 +703,7 @@ def build_md(data, vip=True):
         if cd.startswith("BK") and nm:
             return "[%s](/demo.html?secid=90.%s&name=%s) `%s` **%s**" % (nm, cd, urllib.parse.quote(nm), cd, note)
         return "%s **%s**" % (nm, note)
-    A("# 大盘复盘 —— 资金主攻板块与主线锁定")
+    A("# 大盘研判 —— 资金主攻板块与主线锁定")
     A("")
     A("> 报告日期：%s（数据截至 %s 收盘）｜数据源：AI行情官 指数信号/个股评分 + 东方财富/同花顺 板块资金流与涨幅｜性质：大盘择时 × 板块轮动研判" % (today(), asof))
     A("> 声明：本报告由算法自动生成，仅为研究与信息整理，**不构成任何投资建议**。股市有风险，入市需谨慎。")
@@ -901,7 +901,7 @@ def build_md(data, vip=True):
         A("")
         A("**回避/等修复**：" + ("、".join(avoids) if avoids else "无"))
         A("")
-        A("板块级主线以本页为准；个股筛选与异动观察请前往「掘金」页查看对应标的。")
+        A("板块级主线以本页为准；个股筛选与异动观察请前往「复盘」页查看对应标的。")
         prev = data.get("prev_mainlines") or {}
         if prev.get("mainlines"):
             pml = prev["mainlines"]
@@ -942,7 +942,7 @@ def build_md(data, vip=True):
     A("")
     A("---")
     A("")
-    A("*报告生成：AI行情官 复盘（算法自动）｜数据截至 %s 收盘｜方法：逻辑×数据双确认*" % asof)
+    A("*报告生成：AI行情官 大盘研判（算法自动）｜数据截至 %s 收盘｜方法：逻辑×数据双确认*" % asof)
     return "\n".join(L)
 
 def md_to_html(md):

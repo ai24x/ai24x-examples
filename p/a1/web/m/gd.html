@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <link rel="icon" href="data:," />
 <meta name="robots" content="noindex,nofollow" />
-<title>掘金 · AI行情官｜手机版</title>
+<title>复盘 · AI行情官｜手机版</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   body{background:#0b1220;color:#e6edf7;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;font-size:14px;padding-bottom:calc(64px + env(safe-area-inset-bottom))}
@@ -150,7 +150,7 @@
 <body>
 <div class="topbar">
   <a class="home" href="index.html">‹ 首页</a>
-  <span class="ttl">掘金 <b>VIP</b></span>
+  <span class="ttl">复盘 <b>VIP</b></span>
   <a class="desktop" href="../gd.html" id="link-desktop">桌面版</a>
 </div>
 
@@ -183,8 +183,7 @@
 <div class="bottombar">
   <a href="index.html"><span class="ic">🏠</span>首页</a>
   <a href="quote.html"><span class="ic">📈</span>行情</a>
-  <a href="gd.html" class="on"><span class="ic">⛏️</span>掘金</a>
-  <a href="daily.html"><span class="ic">📋</span>复盘</a>
+  <a href="gd.html" class="on"><span class="ic">⛏️</span>复盘</a>
   <a href="account.html"><span class="ic">👤</span>我的</a>
 </div>
 <div class="toast" id="toast"></div>
@@ -269,7 +268,7 @@
     if (a.ztPullback) r.push('涨停级回踩·强势低吸');
     if (a.smallYang) r.push('连续小阳趋势上拐');
     if (a.baseUp) r.push('站上MA20且均线上拐');
-    if (p.mainHit && p.mainName) r.push('复盘主线板块:' + p.mainName);
+    if (p.mainHit && p.mainName) r.push('主线板块:' + p.mainName);
     if (p.boardLeader) r.push('板块龙头');
     if (p.hotName) r.push('板块共振:' + p.hotName);
     if (r.length > 3) r = r.slice(0, 3);
@@ -359,7 +358,7 @@
   }
 
 
-  /* —— 大盘环境（同步复盘 /api/report/*，免费大盘可见） —— */
+  /* —— 大盘环境（同步大盘 /api/report/*，免费大盘可见） —— */
   function stripMdLink(t){
     return String(t || '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/\*\*/g, '').trim();
   }
@@ -371,12 +370,12 @@
       renderMarket(d.md, !!d.vip, d.asof || d.date || '', label || '');
     }
     api('/api/report/today').then(function(d){
-      if (d && d.ok) { fill(d, '今日复盘'); return; }
+      if (d && d.ok) { fill(d, '今日大盘'); return; }
       api('/api/report/history').then(function(h){
         var items = (h && h.items) || [];
         if (!items.length) { box.style.display = 'none'; return; }
         var latest = items[0].date;
-        api('/api/report/' + encodeURIComponent(latest)).then(function(d2){ fill(d2, '最近复盘 ' + latest); })
+        api('/api/report/' + encodeURIComponent(latest)).then(function(d2){ fill(d2, '最近大盘 ' + latest); })
           .catch(function(){ box.style.display = 'none'; });
       }).catch(function(){ box.style.display = 'none'; });
     }).catch(function(){ box.style.display = 'none'; });
@@ -521,7 +520,7 @@
         (thsCode ? ' <span class="br-code">' + esc(thsCode) + '</span>' : '') + ' ↗</a>';
       var st = '';
       if (isAll) {
-        if (b.mainline && !b.f164) st = '复盘主线 · 资金+技术双确认';
+        if (b.mainline && !b.f164) st = '主线 · 资金+技术双确认';
         else st = '5日主力 <b>' + money(b.f164) + '</b> ｜ 今日主力 <b>' + money(b.f62) + '</b>' + (b.p5 != null ? ' ｜ 5日 ' + pct(b.p5) : '');
       } else {
         if (b.count != null) st += b.count + ' 只异动';
@@ -607,14 +606,14 @@
     if (showLoading) $('list').innerHTML = '<div class="empty">加载中…</div>';
     api(url).then(function(d){
       if (d && d.scanning === true) {
-        $('list').innerHTML = '<div class="empty"><span class="spin"></span> 正在生成今日掘金数据（约 1~2 分钟），请稍候…</div>';
+        $('list').innerHTML = '<div class="empty"><span class="spin"></span> 正在生成今日复盘数据（约 1~2 分钟），请稍候…</div>';
         pollScanDone(function(){ load(true); });
         return;
       }
       if (!d || d.ok === false || (d && d.detail)) {
         var msg = (d && (d.message || d.msg || d.detail)) || '加载失败，请稍后重试';
         if (/token|login|登录|授权|缺失|无效/i.test(String(msg))) {
-          $('list').innerHTML = '<div class="vip-gate"><div class="t">🔒 掘金筛选为登录/VIP 专属</div><div class="d">请先登录或开通 VIP，再查看今日 AI 筛选与历史归档。</div><a href="account.html">登录 / 开通 VIP →</a></div>';
+          $('list').innerHTML = '<div class="vip-gate"><div class="t">🔒 复盘筛选为登录/VIP 专属</div><div class="d">请先登录或开通 VIP，再查看今日 AI 筛选与历史归档。</div><a href="account.html">登录 / 开通 VIP →</a></div>';
         } else {
           $('list').innerHTML = '<div class="empty">' + esc(msg) + '</div>';
         }

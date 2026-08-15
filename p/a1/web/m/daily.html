@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <link rel="icon" href="data:," />
 <meta name="robots" content="noindex,nofollow" />
-<title>复盘 · AI行情官｜手机版</title>
+<title>大盘 · AI行情官｜手机版</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   body{background:#0b1220;color:#e6edf7;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;font-size:14px;padding-bottom:calc(64px + env(safe-area-inset-bottom))}
@@ -78,14 +78,14 @@
 <body>
 <div class="topbar">
   <a class="home" href="index.html">‹ 首页</a>
-  <span class="ttl">复盘 <b>日报</b></span>
+  <span class="ttl">大盘 <b>日报</b></span>
   <a class="desktop" href="../daily/index.html" id="link-desktop">桌面版</a>
 </div>
 
 <div class="card">
   <div class="dtop">
     <div>
-      <h1>每日复盘 <span class="vip">大盘 · 主线</span></h1>
+      <h1>每日大盘 <span class="vip">信号 · 主线</span></h1>
       <p>大盘信号 → 资金主攻 → 板块体检 → 主线锁定。自动生成，VIP 解锁完整报告。</p>
     </div>
     <div class="btns">
@@ -109,8 +109,7 @@
 <div class="bottombar">
   <a href="index.html"><span class="ic">🏠</span>首页</a>
   <a href="quote.html"><span class="ic">📈</span>行情</a>
-  <a href="gd.html"><span class="ic">⛏️</span>掘金</a>
-  <a href="daily.html" class="on"><span class="ic">📋</span>复盘</a>
+  <a href="gd.html"><span class="ic">⛏️</span>复盘</a>
   <a href="account.html"><span class="ic">👤</span>我的</a>
 </div>
 <div class="toast" id="toast"></div>
@@ -290,7 +289,7 @@
 
   // 历史报告模式：?date=YYYYMMDD
   function loadDate(d8){
-    document.title = '复盘历史 · ' + d8;
+    document.title = '大盘历史 · ' + d8;
     var br = $('btn-run'); if (br) br.style.display = 'none';
     var bf = $('btn-force'); if (bf) bf.style.display = 'none';
     $('report').innerHTML = '<div class="empty">加载中…</div>';

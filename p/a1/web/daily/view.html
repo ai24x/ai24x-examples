@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <meta name="HandheldFriendly" content="true" />
 <meta name="format-detection" content="telephone=no" />
-<title>历史复盘 · AI行情官｜灯塔版</title>
-<meta name="description" content="AI行情官 复盘历史归档：查看往期大盘信号、资金主攻、板块技术体检与主线锁定。本工具仅基于公开行情做统计与信息整理，不构成投资建议。" />
+<title>历史大盘 · AI行情官｜灯塔版</title>
+<meta name="description" content="AI行情官 大盘历史归档：查看往期大盘信号、资金主攻、板块技术体检与主线锁定。本工具仅基于公开行情做统计与信息整理，不构成投资建议。" />
 <link rel="icon" href="data:," />
 <script>
 (function () {
@@ -57,11 +57,11 @@ a:hover { text-decoration: underline; }
     <section class="card">
       <div class="view-top">
         <div>
-          <h1>历史复盘 <span class="vip-badge">大盘 · 主线</span></h1>
+          <h1>历史大盘 <span class="vip-badge">信号 · 主线</span></h1>
           <p class="sub">往期归档查看：大盘信号 → 资金主攻 → 板块技术体检 → 主线锁定。</p>
         </div>
         <div class="btns" style="margin:0;">
-          <a class="btn" href="/daily/">← 返回复盘</a>
+          <a class="btn" href="/daily/">← 返回大盘</a>
         </div>
       </div>
       <div class="sub" style="margin-top:6px">当前查看：<span class="badge" id="f-date">—</span></div>
@@ -70,7 +70,7 @@ a:hover { text-decoration: underline; }
   </div>
 </main>
 <footer class="site-footer" id="site-footer"></footer>
-<script src="/js/shell.js?v=56"></script>
+<script src="/js/shell.js?v=57"></script>
 <script>
 try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("daily"); } catch (e) {}
 </script>
@@ -96,7 +96,7 @@ try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("daily"); } catch (e) {
     if (j.ok) {
       document.getElementById('report').innerHTML = j.html;
     } else {
-      document.getElementById('report').innerHTML = '<p class="sub">' + (j.msg || ('未找到该日期复盘：' + d)) + '</p>';
+      document.getElementById('report').innerHTML = '<p class="sub">' + (j.msg || ('未找到该日期大盘：' + d)) + '</p>';
     }
   }).catch(function (e) {
     document.getElementById('report').innerHTML = '<p class="sub">服务暂不可用，请稍后重试。</p>';

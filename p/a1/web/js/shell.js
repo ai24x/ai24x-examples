@@ -199,7 +199,7 @@
     var navMain = _el("nav", { class: "nav-main", id: "nav-main", "aria-label": "Main" }, [
       nav("/index.html", "首页", "index"),
       nav("/demo.html", "行情", "demo"),
-      nav("/gd.html", "掘金", "bjscreener"),
+      nav("/gd.html", "复盘", "bjscreener"),
       nav("/account.html", "我的", "account"),
       nav("/help.html", "帮助", "help"),
       nav("/feedback.html", "反馈", "feedback"),
