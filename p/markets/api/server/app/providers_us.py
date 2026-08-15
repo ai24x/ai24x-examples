@@ -285,6 +285,8 @@ async def fetch_sina_kline(symbol: str, count: int = 500) -> List[List[Any]]:
         if body.endswith(");"):
             body = body[:-2]
         items = json.loads(body)
+        if not isinstance(items, list):
+            raise _SourceError("sina bad payload")
         rows: List[List[Any]] = []
         for it in items:
             d = str(it.get("d") or "")
@@ -359,11 +361,15 @@ async def get_quote(symbol: str) -> Dict[str, Any]:
     if cache.exists():
         try:
             obj = json.loads(cache.read_text(encoding="utf-8"))
-            if time.time() - obj.get("ts", 0) < 30:
+            price = obj.get("price")
+            if time.time() - obj.get("ts", 0) < 30 and price and price > 0:
                 return obj
         except Exception:
             pass
     quote = await fetch_tencent_quote(symbol)
+    price = quote.get("price")
+    if price is None or price <= 0:
+        raise _SourceError(f"symbol not found: {symbol}")
     quote["ts"] = time.time()
     try:
         cache.write_text(json.dumps(quote, ensure_ascii=False), encoding="utf-8")
