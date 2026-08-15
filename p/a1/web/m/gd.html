@@ -214,7 +214,28 @@
     var t = token();
     if (t) opts.headers.Authorization = 'Bearer ' + t;
     opts.cache = 'no-store';
-    return fetch(API + path, opts).then(function(r){ return r.json(); });
+    return fetch(API + path, opts).then(function(r){
+      return r.text().then(function(txt){
+        var j = null;
+        try { j = txt ? JSON.parse(txt) : null; } catch(e){ j = null; }
+        if (!r.ok) {
+          var detail = j && (j.detail || j.msg || j.message) ? String(j.detail || j.msg || j.message) : '';
+          var err = new Error(detail || txt || ('HTTP ' + r.status));
+          try { err.status = r.status; } catch(e1){}
+          throw err;
+        }
+        return j;
+      });
+    });
+  }
+  function guestGateHtml(){
+    return '<div class="vip-gate"><div class="t">🔒 复盘筛选为登录/VIP 专属</div><div class="d">请先登录或开通 VIP，再查看今日 AI 筛选、板块排行与历史归档。</div><a href="account.html">登录 / 开通 VIP →</a></div>';
+  }
+  function showGuestGate(){
+    var ids = ['env','regime','win','meta','pt','runner-box','boardrank','hist'];
+    ids.forEach(function(id){ var el = $(id); if (el) { el.style.display = 'none'; el.innerHTML = ''; } });
+    var rf = $('btn-refresh'); if (rf) rf.style.display = 'none';
+    var list = $('list'); if (list) list.innerHTML = guestGateHtml();
   }
   function $(id){ return document.getElementById(id); }
   function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -449,7 +470,7 @@
     var box = $('win');
     if (!box) return;
     api('/api/bj/winrate?days=14').then(function(d){
-      if (!d || d.ok === false) return;
+      if (!d || !d.ok) return;
       var rate = (d.hit5_rate == null) ? '—' : num(d.hit5_rate, 1) + '%';
       var posRate = (d.pos5_rate == null) ? '—' : num(d.pos5_rate, 1) + '%';
       var stop = (d.stop_rate == null) ? '—' : num(d.stop_rate, 1) + '%';
@@ -629,7 +650,13 @@
       renderPrevTrack(d);
       renderBoardRank(d);
     }).catch(function(e){
-      $('list').innerHTML = '<div class="empty">网络异常：' + esc(String(e).slice(0, 80)) + '</div>';
+      var st = (e && e.status) ? Number(e.status) : 0;
+      var msg = (e && e.message) ? String(e.message) : '';
+      if (st === 401 || st === 403 || /token|login|登录|授权|失效/i.test(msg)) {
+        showGuestGate();
+        return;
+      }
+      $('list').innerHTML = '<div class="empty">网络异常：' + esc(msg.slice(0, 80) || String(e).slice(0, 80)) + '</div>';
     });
   }
 
@@ -652,14 +679,18 @@
       history.replaceState(null, '', 'gd.html?i=' + encodeURIComponent(inviteCode()));
       var ptEl = $('pt'); if (ptEl) ptEl.style.display = 'none';
       var brEl = $('boardrank'); if (brEl) brEl.innerHTML = '';
-      var mtEl = $('meta'); if (mtEl) mtEl.innerHTML = '加载中…';
+      var mtEl = $('meta'); if (mtEl) mtEl.innerHTML = '';
+      if (!token()) { loadMarket(); showGuestGate(); return; }
       loadMarket(); loadWinrate();
       load(true);
       renderHist(undefined);
       api('/api/bj/history?market=' + encodeURIComponent(state.market)).then(renderHist).catch(function(){});
     });
   });
-  $('btn-refresh').addEventListener('click', refreshScan);
+  $('btn-refresh').addEventListener('click', function(){
+    if (!token()) { showGuestGate(); return; }
+    refreshScan();
+  });
   $('link-desktop').addEventListener('click', function(){
     try { sessionStorage.setItem('ai24x_desktop_force', '1'); } catch(e){}
   });
@@ -678,6 +709,16 @@
     initTab.classList.add('on');
   }
   // boot
+  if (!token()) {
+    // 游客：大盘环境免费可见；VIP 区域直接显示登录/开通引导，不发 /api/bj/* 请求（与桌面版一致）
+    if (state.date) {
+      load(true);
+      return;
+    }
+    loadMarket();
+    showGuestGate();
+    return;
+  }
   if (!state.date) { loadMarket(); loadWinrate(); }
   load(true);
   api('/api/bj/history?market=' + encodeURIComponent(state.market)).then(renderHist).catch(function(){});
