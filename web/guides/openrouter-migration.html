@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- [AI24X 2026-08-15] Google Ads 暂停 (国际支付无合规渠道，保留待恢复，勿删)：
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18385419220"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', {
+    'ad_storage': 'denied', 'ad_user_data': 'denied', 'ad_personalization': 'denied',
+    'analytics_storage': 'denied', 'personalization_storage': 'denied',
+    'functionality_storage': 'granted', 'security_storage': 'granted', 'wait_for_update': 500
+  });
+  gtag('js', new Date());
+  gtag('config', 'AW-18385419220');
+</script>
+<script src="../config/consent.js?v=20260814a"></script>
+-->
+  <meta charset="UTF-8" />
+  <script>
+(function () {
+  var KEY = "ai24x_lang";
+  try {
+    var raw = String(localStorage.getItem(KEY) || "").trim().toLowerCase().replace(/_/g, "-");
+    var lang = raw.split("-")[0] || "";
+    if (!lang) { lang = "en"; localStorage.setItem(KEY, lang); }
+    document.documentElement.setAttribute("data-ai24x-lang", lang);
+    document.documentElement.classList.add("i18n-pending");
+    if (!document.getElementById("ai24x-i18n-pending")) {
+      var st = document.createElement("style");
+      st.id = "ai24x-i18n-pending";
+      st.textContent = "html.i18n-pending body{visibility:hidden!important}";
+      (document.head || document.documentElement).appendChild(st);
+    }
+    setTimeout(function () { document.documentElement.classList.remove("i18n-pending"); }, 4000);
+  } catch (e) {}
+})();
+</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Migrate from OpenRouter to AI24X | One Key, All Models</title>
+  <meta name="description" content="Switch from OpenRouter to AI24X in minutes: OpenAI-compatible endpoint, one key for GPT-5, Claude, Gemini, DeepSeek, Kimi, Qwen, GLM. Smart routing from $0.35/M." />
+  <link rel="canonical" href="https://www.ai24x.com/guides/openrouter-migration.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Migrate from OpenRouter to AI24X | One Key, All Models" />
+  <meta property="og:description" content="Switch from OpenRouter to AI24X in minutes: OpenAI-compatible endpoint, one key for GPT-5, Claude, Gemini, DeepSeek, Kimi, Qwen, GLM. Smart routing from $0.35/M." />
+  <meta property="og:url" content="https://www.ai24x.com/guides/openrouter-migration.html" />
+  <meta property="og:image" content="https://www.ai24x.com/img/og-share.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://www.ai24x.com/img/og-share.png" />
+  <link rel="stylesheet" href="../css/base.css?v=20260812e" />
+  <link id="theme-css" rel="stylesheet" href="../css/themes/theme-blue.css?v=20260812e" data-base="../css/themes/" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "Migrate from OpenRouter to AI24X",
+    "description": "Move your OpenAI-compatible integrations to AI24X in four steps.",
+    "step": [
+      {"@type": "HowToStep", "name": "Create an account", "text": "Sign up at ai24x.com and create an API key."},
+      {"@type": "HowToStep", "name": "Point base_url to AI24X", "text": "Replace the base URL with https://api.ai24x.com/v1."},
+      {"@type": "HowToStep", "name": "Map model names", "text": "Use flash/pro or any mapped model alias."},
+      {"@type": "HowToStep", "name": "Verify", "text": "Run one chat completion and confirm HTTP 200."}
+    ]
+  }
+  </script>
+</head>
+<body data-page="guides" class="theme-blue">
+  <header class="site-header" id="site-header"></header>
+  <main class="page-main">
+    <section class="hero hero-surface section-tight">
+      <div class="container">
+        <p class="sub"><a href="index.html">Integrations</a></p>
+        <h1>Migrate from OpenRouter to AI24X</h1>
+        <p class="lead">The router market is growing up — keep your stack simple. One OpenAI-compatible key, smart routing, and transparent pricing from $0.35/M.</p>
+      </div>
+    </section>
+    <section class="section">
+      <div class="container" style="max-width:820px">
+
+        <h2>Why developers are looking around</h2>
+        <p>OpenRouter proved the value of a single endpoint for every model — it was recently reported to be in talks for a <strong>~$10B acquisition</strong>. That validates the category. It also makes teams re-check their assumptions: pricing transparency, vendor concentration, and how much of the bill goes to routing fees.</p>
+        <p>AI24X is an independent, OpenAI-compatible gateway: <strong>one key</strong> for GPT-5, Claude, Gemini, DeepSeek, Kimi, Qwen and GLM, with <strong>smart routing</strong> that picks the best channel by price, speed and stability — starting at <strong>$0.35/M</strong> (flash).</p>
+
+        <h2 class="mt-2">Migration in 4 steps (≈10 minutes)</h2>
+
+        <h3>1) Create an account and a key</h3>
+        <div class="code-block"># Register at https://www.ai24x.com/register
+# Create a key in the console → copy it once</div>
+
+        <h3>2) Point your client to AI24X</h3>
+        <p>Everything that speaks the OpenAI protocol works — just change the base URL and the key. For example with the OpenAI SDK:</p>
+        <div class="code-block">from openai import OpenAI
+client = OpenAI(
+    base_url="https://api.ai24x.com/v1",   # was https://openrouter.ai/api/v1
+    api_key="sk-ai24x-..."                  # your AI24X key
+)</div>
+
+        <h3>3) Map model names</h3>
+        <div class="code-block"># OpenAI-compatible model names are accepted and mapped automatically.
+# Short aliases also work:  "flash" | "pro" | "vip-kimi" | "vip-mimo" ...
+# Unknown names fall back to flash (no hard failures).</div>
+
+        <h3>4) Verify with one request</h3>
+        <div class="code-block">curl -sS -X POST "https://api.ai24x.com/v1/chat/completions" \
+  -H "Authorization: Bearer $AI24X_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"flash","messages":[{"role":"user","content":"Hello"}]}'</div>
+        <p class="sub mt-2">Expect HTTP 200 with an OpenAI-style response. <strong>401</strong> = wrong key · <strong>402</strong> = top up credits · <strong>400 with model error</strong> = use a mapped model name.</p>
+
+        <h2 class="mt-2">What stays the same</h2>
+        <ul>
+          <li><strong>Protocol:</strong> POST /v1/chat/completions, Bearer auth, streaming supported (SSE + [DONE]).</li>
+          <li><strong>Your code:</strong> no SDK changes beyond base_url + key.</li>
+          <li><strong>Model choice:</strong> keep calling the models you already use.</li>
+        </ul>
+
+        <h2 class="mt-2">What changes for the better</h2>
+        <ul>
+          <li><strong>Simpler pricing:</strong> flash from $0.35/M, pro tier for heavy reasoning, VIP picks for flagship Chinese models.</li>
+          <li><strong>Smart routing:</strong> AI24X picks the best upstream channel per request — you get one bill, not per-provider surprises.</li>
+          <li><strong>PayPal checkout:</strong> pay with PayPal, no credit card needed to start.</li>
+        </ul>
+
+        <p class="mt-2">
+          <a href="../register.html" class="btn">Get your key</a>
+          &nbsp;·&nbsp; <a href="openrouter-vs-ai24x.html">OpenRouter vs AI24X comparison</a>
+          &nbsp;·&nbsp; <a href="../pricing.html">Pricing</a>
+        </p>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer" id="site-footer"></footer>
+  <script src="../config/locales.js?v=20260817e"></script>
+  <script src="../js/api.js?v=20260817e"></script>
+  <script src="../js/i18n.js?v=20260812g"></script>
+  <script src="../js/shell.js?v=20260817e"></script>
+  <script src="../js/app.js?v=20260808b"></script>
+  <script src="../js/support-widget.js?v=20260817b"></script>
+</body>
+</html>

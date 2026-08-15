@@ -1,18 +1,24 @@
-"""AI24X Markets API — Phase 1: US quotes, K-line, technical indicators."""
+"""AI24X Markets API — Phase 1+2: US quotes, K-line, indicators, watchlist, subscriptions."""
 
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, Query
+import httpx
+from fastapi import FastAPI, Body, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 
 from . import providers_us
 from .a1_engine import signals as a1signals
+from . import billing
+from . import paypal
 
 SERVICE_NAME = "AI24X-markets-api"
 PORT = 18012
 _WEB_DIR = Path(__file__).resolve().parents[3] / "web"
+CORE_BASE = os.environ.get("AI24X_CORE_BASE", "http://127.0.0.1:8000").rstrip("/")
 
 app = FastAPI(
     title="AI24X Markets API",
@@ -97,6 +103,164 @@ async def api_quote(symbol: str = Query(..., min_length=1, max_length=20)):
         return {"code": 0, "data": quote}
     except Exception as e:
         return {"code": -1, "msg": str(e), "data": {}}
+
+
+@app.get("/api/me")
+async def api_me(request: Request):
+    """代验核心层登录态：AI24X Markets 与 www 共用同一账号体系。"""
+    auth = (request.headers.get("Authorization") or "").strip()
+    if not auth.lower().startswith("bearer "):
+        return JSONResponse(status_code=401, content={"code": -1, "msg": "missing bearer token"})
+    try:
+        async with httpx.AsyncClient(timeout=8) as client:
+            r = await client.get(CORE_BASE + "/v1/user/info", headers={"Authorization": auth})
+        if r.status_code != 200:
+            return JSONResponse(
+                status_code=401, content={"code": -1, "msg": "invalid session", "status": r.status_code}
+            )
+        return {"code": 0, "data": r.json()}
+    except Exception as e:
+        return JSONResponse(
+            status_code=502, content={"code": -1, "msg": f"auth service unavailable: {e}"}
+        )
+
+
+async def _auth_user_id(request: Request) -> str:
+    """校验 Bearer 会话并返回核心层 user_id（str）。401 抛异常由上层转 JSON。"""
+    auth = (request.headers.get("Authorization") or "").strip()
+    if not auth.lower().startswith("bearer "):
+        raise ValueError("missing_bearer_token")
+    async with httpx.AsyncClient(timeout=8) as client:
+        r = await client.get(CORE_BASE + "/v1/user/info", headers={"Authorization": auth})
+    if r.status_code != 200:
+        raise ValueError("invalid_session")
+    data = r.json() or {}
+    uid = data.get("user_id")
+    if uid is None:
+        raise ValueError("missing_user_id")
+    return str(uid)
+
+
+@app.get("/api/watchlist")
+async def api_watchlist_list(request: Request):
+    try:
+        uid = await _auth_user_id(request)
+        return {"code": 0, "data": {"symbols": billing.list_watch(uid), "limit": billing.watch_limit(uid)}}
+    except ValueError as e:
+        return JSONResponse(status_code=401, content={"code": -1, "msg": str(e)})
+    except Exception as e:
+        return {"code": -1, "msg": str(e), "data": {}}
+
+
+@app.post("/api/watchlist")
+async def api_watchlist_add(request: Request, payload: dict = Body(...)):
+    try:
+        uid = await _auth_user_id(request)
+        symbol = str((payload or {}).get("symbol") or "").strip()
+        if not symbol:
+            raise ValueError("empty_symbol")
+        info = billing.add_watch(uid, symbol)
+        return {"code": 0, "data": info}
+    except ValueError as e:
+        msg = str(e)
+        if msg.startswith("watch_limit"):
+            return JSONResponse(status_code=403, content={"code": -1, "msg": msg})
+        if msg in ("missing_bearer_token", "invalid_session", "missing_user_id"):
+            return JSONResponse(status_code=401, content={"code": -1, "msg": msg})
+        return JSONResponse(status_code=400, content={"code": -1, "msg": msg})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"code": -1, "msg": str(e)})
+
+
+@app.delete("/api/watchlist")
+async def api_watchlist_remove(request: Request, symbol: str = Query(..., min_length=1, max_length=20)):
+    try:
+        uid = await _auth_user_id(request)
+        removed = billing.remove_watch(uid, symbol)
+        return {"code": 0, "data": {"removed": removed}}
+    except ValueError as e:
+        return JSONResponse(status_code=401, content={"code": -1, "msg": str(e)})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"code": -1, "msg": str(e)})
+
+
+@app.get("/api/subscribe/status")
+async def api_subscribe_status(request: Request):
+    try:
+        uid = await _auth_user_id(request)
+        sub = billing.get_subscription(uid)
+        return {
+            "code": 0,
+            "data": {
+                "pro": sub is not None,
+                "plan": (sub or {}).get("plan"),
+                "expires_at": (sub or {}).get("expires_at"),
+            },
+        }
+    except ValueError as e:
+        return JSONResponse(status_code=401, content={"code": -1, "msg": str(e)})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"code": -1, "msg": str(e)})
+
+
+@app.post("/api/subscribe/checkout")
+async def api_subscribe_checkout(request: Request, payload: dict = Body(...)):
+    try:
+        uid = await _auth_user_id(request)
+        plan = str((payload or {}).get("plan") or "monthly").strip().lower()
+        if plan not in billing.PLANS:
+            raise ValueError(f"unknown_plan:{plan}")
+        result = await paypal.create_checkout(uid, plan)
+        return {"code": 0, "data": result}
+    except ValueError as e:
+        msg = str(e)
+        if msg in ("missing_bearer_token", "invalid_session", "missing_user_id"):
+            return JSONResponse(status_code=401, content={"code": -1, "msg": msg})
+        return JSONResponse(status_code=400, content={"code": -1, "msg": msg})
+    except RuntimeError as e:
+        return JSONResponse(status_code=503, content={"code": -1, "msg": str(e)})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"code": -1, "msg": str(e)})
+
+
+@app.post("/api/subscribe/capture")
+async def api_subscribe_capture(request: Request, payload: dict = Body(...)):
+    """PayPal 支付返回后 Capture + 履约（也可当「确认到账」，幂等）。"""
+    try:
+        uid = await _auth_user_id(request)
+        order_id = str((payload or {}).get("order_id") or "").strip()
+        if not order_id:
+            raise ValueError("missing_order_id")
+        result = await paypal.capture_and_fulfill(order_id)
+        return {"code": 0, "data": result}
+    except ValueError as e:
+        msg = str(e)
+        if msg in ("missing_bearer_token", "invalid_session", "missing_user_id"):
+            return JSONResponse(status_code=401, content={"code": -1, "msg": msg})
+        return JSONResponse(status_code=400, content={"code": -1, "msg": msg})
+    except RuntimeError as e:
+        return JSONResponse(status_code=503, content={"code": -1, "msg": str(e)})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"code": -1, "msg": str(e)})
+
+
+@app.post("/api/paypal/webhook")
+async def api_paypal_webhook(request: Request):
+    body = (await request.body()).decode("utf-8", errors="replace")
+    headers = {
+        "PAYPAL-TRANSMISSION-ID": request.headers.get("paypal-transmission-id", ""),
+        "PAYPAL-TRANSMISSION-TIME": request.headers.get("paypal-transmission-time", ""),
+        "PAYPAL-CERT-URL": request.headers.get("paypal-cert-url", ""),
+        "PAYPAL-AUTH-ALGO": request.headers.get("paypal-auth-algo", ""),
+        "PAYPAL-TRANSMISSION-SIG": request.headers.get("paypal-transmission-sig", ""),
+    }
+    try:
+        result = await paypal.handle_webhook(headers, body)
+        return {"code": 0, "data": result}
+    except PermissionError as e:
+        return JSONResponse(status_code=400, content={"code": -1, "msg": str(e)})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"code": -1, "msg": str(e)})
 
 
 @app.get("/api/kline")

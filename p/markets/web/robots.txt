@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://markets.ai24x.com/sitemap.xml

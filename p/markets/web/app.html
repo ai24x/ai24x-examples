@@ -21,6 +21,11 @@
     .lang-switch { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-right: 4px; }
     .lang-switch button { border: 0; background: #0d1117; color: var(--muted); padding: 6px 10px; cursor: pointer; font-size: 12px; }
     .lang-switch button.active { background: var(--accent); color: #fff; }
+    .auth-link { color: var(--muted); font-size: 13px; margin-left: 8px; white-space: nowrap; }
+    .auth-link:hover { color: var(--text); text-decoration: none; }
+    .auth-btn { background: none; border: 0; padding: 0; color: var(--muted); font-size: 13px; cursor: pointer; }
+    .auth-btn:hover { color: var(--text); }
+    .auth-user { color: var(--muted); font-size: 12px; margin-left: 8px; white-space: nowrap; max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
     #symbol { width: 130px; padding: 8px 10px; background: #0d1117; color: var(--text); border: 1px solid var(--border); border-radius: 6px; font-size: 14px; text-transform: uppercase; }
     button { padding: 7px 11px; background: #0d1117; color: var(--text); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 13px; }
     button:hover { border-color: var(--accent); }
@@ -69,6 +74,7 @@
     <button data-period="week" data-i18n="p.week">1W</button>
     <button data-period="month" data-i18n="p.month">1M</button>
     <button id="refresh" title="Refresh">⟳</button>
+    <span id="auth-area"></span>
     <span id="err" class="err"></span>
   </header>
 
@@ -129,6 +135,11 @@
           legendGc: 'MACD ↑ golden cross', legendDc: '↓ dead cross',
           lgBase: 'Base · watch', lgBottom: 'Bottom · accumulate', lgStrong: 'Strong',
           lgCaution: 'Caution', lgWeak: 'Weak', lgHigh: 'Warning',
+          signIn: 'Sign in',
+          signedInAs: 'Signed in as',
+          console: 'Console',
+          signOut: 'Sign out',
+          authFail: 'Session check unavailable',
         },
         zh: {
           search: '查询',
@@ -148,6 +159,11 @@
           legendGc: 'MACD ↑金叉', legendDc: '↓死叉',
           lgBase: '小底 · 关注', lgBottom: '底部 · 低位关注', lgStrong: '金 · 偏强',
           lgCaution: '险 · 谨慎', lgWeak: '等 · 偏弱', lgHigh: '顶 · 预警',
+          signIn: '登录',
+          signedInAs: '已登录',
+          console: '控制台',
+          signOut: '退出',
+          authFail: '会话校验暂不可用',
         },
       };
 
@@ -596,6 +612,59 @@
         state.symbol = params.get('symbol').toUpperCase();
         $('symbol').value = state.symbol;
       }
+
+      // —— 跨子域登录态：复用核心层账号（www 登录后写 .ai24x.com cookie）——
+      function readCookie(name) {
+        var m = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)'));
+        return m ? decodeURIComponent(m[1]) : '';
+      }
+      function coreUrl() {
+        var h = (location.hostname || '').toLowerCase();
+        return (h === '127.0.0.1' || h === 'localhost') ? 'http://127.0.0.1:8000' : 'https://www.ai24x.com';
+      }
+      function readUserCookie() {
+        try {
+          return JSON.parse(decodeURIComponent(readCookie('ai24x_auth_user')) || 'null');
+        } catch (e) {
+          return null;
+        }
+      }
+      function renderAuth() {
+        var el = $('auth-area');
+        if (!el) return;
+        var token = readCookie('ai24x_auth_token');
+        if (!token) {
+          var n = encodeURIComponent(location.href);
+          el.innerHTML =
+            '<a class="auth-link" href="' + coreUrl() + '/login.html?next=' + n + '">' + t('signIn') + '</a>';
+          return;
+        }
+        var u0 = readUserCookie();
+        el.innerHTML =
+          '<span class="auth-user" id="auth-user">' + t('signedInAs') + ' ' +
+          (u0 && (u0.email || u0.username) ? escHtml(u0.email || u0.username) : '…') + '</span>' +
+          '<a class="auth-link" href="' + coreUrl() + '/console.html">' + t('console') + '</a>' +
+          '<button type="button" class="auth-btn" id="btn-signout">' + t('signOut') + '</button>';
+        fetch('/api/me', { headers: { Authorization: 'Bearer ' + token } })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            var u = $('auth-user');
+            if (!u) return;
+            if (j.code === 0 && j.data && (j.data.email || j.data.username)) {
+              u.textContent = t('signedInAs') + ' ' + escHtml(j.data.email || j.data.username || j.data.user_id);
+            } else if (!u0 || !(u0.email || u0.username)) {
+              u.textContent = t('signedInAs') + ' ✓';
+            }
+          })
+          .catch(function () {});
+        var out = $('btn-signout');
+        if (out) out.addEventListener('click', function () {
+          document.cookie = 'ai24x_auth_token=; path=/; max-age=0; SameSite=Lax';
+          document.cookie = 'ai24x_auth_user=; path=/; max-age=0; SameSite=Lax';
+          renderAuth();
+        });
+      }
+      renderAuth();
       applyLang();
       load();
     })();

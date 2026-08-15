@@ -6,6 +6,16 @@
   var THEME_PICKER_ENABLED = false;
   var DEFAULT_THEME = "blue";
 
+  /** AI24X Markets 产品站地址：本机开发指向本地 18012，公网指向 markets.ai24x.com */
+  function marketsUrl() {
+    try {
+      var h = String(location.hostname || "");
+      if (h === "127.0.0.1" || h === "localhost") return "http://127.0.0.1:18012/";
+    } catch (e) {}
+    return "https://markets.ai24x.com/";
+  }
+  global.AI24X_MARKETS_URL = marketsUrl();
+
   function esc(s) {
     return String(s || "").replace(/"/g, "&quot;");
   }
@@ -74,11 +84,8 @@
       '<button type="button" class="menu-toggle" id="menu-toggle" aria-label="Menu" aria-expanded="false"><span></span></button>' +
       '<nav class="nav-main" id="nav-main" aria-label="Main">' +
       nav("index.html", "nav.home", "index") +
-      nav("product.html", "nav.product", "product") +
       nav("pricing.html", "nav.pricing", "pricing") +
-      nav("https://markets.ai24x.com", "nav.markets", "markets") +
-      nav("models/index.html", "nav.models", "models") +
-      nav("docs.html", "nav.docs", "docs") +
+      nav("product.html", "nav.product", "product") +
       nav("help.html", "nav.help", "help") +
       nav("console.html", "nav.console", "console") +
       nav("login.html", "nav.login", "login") +
@@ -139,28 +146,21 @@
       '<div class="footer-col">' +
       '<div class="footer-title" data-i18n="footer.col.product"></div>' +
       '<a href="' +
-      pre +
-      'product.html" data-i18n="footer.link.product"></a>' +
+      marketsUrl() +
+      '" data-i18n="footer.link.markets"></a>' +
       '<a href="' +
       pre +
       'pricing.html" data-i18n="footer.link.pricing"></a>' +
       '<a href="' +
       pre +
-      'models/index.html" data-i18n="footer.link.models"></a>' +
+      'product.html" data-i18n="footer.link.product"></a>' +
       '<a href="' +
       pre +
       'partner.html" data-i18n="footer.link.partner"></a>' +
-      '<a href="https://markets.ai24x.com/" data-i18n="footer.link.markets"></a>' +
       '<a href="https://a.ai24x.com/" data-i18n="footer.link.marketwatch" data-i18n-zh-only></a>' +
       "</div>" +
       '<div class="footer-col">' +
       '<div class="footer-title" data-i18n="footer.col.dev"></div>' +
-      '<a href="' +
-      pre +
-      'docs.html" data-i18n="footer.link.docs"></a>' +
-      '<a href="' +
-      pre +
-      'guides/index.html" data-i18n="footer.link.guides"></a>' +
       '<a href="' +
       pre +
       'help.html" data-i18n="footer.link.help"></a>' +
@@ -196,6 +196,12 @@
   }
 
   function bindChrome() {
+    try {
+      var mkLinks = document.querySelectorAll("a[data-markets]");
+      for (var i = 0; i < mkLinks.length; i++) {
+        mkLinks[i].setAttribute("href", marketsUrl());
+      }
+    } catch (e) {}
     var toggle = document.getElementById("menu-toggle");
     var nav = document.getElementById("nav-main");
     if (toggle && nav) {

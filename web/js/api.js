@@ -67,15 +67,72 @@
     else localStorage.removeItem(STORAGE_USER);
   }
 
+  /**
+   * 跨子域会话（AI24X Markets 等子站复用同一登录态）：
+   * - 生产：写 Domain=.ai24x.com 的 cookie，www/markets 等子域共享
+   * - 本机：无 Domain 的 host-only cookie（浏览器忽略端口，127.0.0.1 各端口可读）
+   * 注意：cookie 对 .ai24x.com 全部子域可见，仅存登录会话 token，不放 API Key。
+   */
+  var AUTH_COOKIE = "ai24x_auth_token";
+  var AUTH_USER_COOKIE = "ai24x_auth_user";
+  function authCookieDomain() {
+    var h = (location.hostname || "").toLowerCase();
+    return h === "ai24x.com" || h.endsWith(".ai24x.com") ? ".ai24x.com" : "";
+  }
+  function writeAuthCookie(token) {
+    try {
+      if (!token) return;
+      var d = authCookieDomain();
+      var secure = location.protocol === "https:" ? "; Secure" : "";
+      document.cookie =
+        AUTH_COOKIE +
+        "=" +
+        encodeURIComponent(token) +
+        "; path=/; max-age=2592000; SameSite=Lax" +
+        (d ? "; domain=" + d : "") +
+        secure;
+    } catch (e) {}
+  }
+  function writeAuthUserCookie(user) {
+    try {
+      if (!user) return;
+      var d = authCookieDomain();
+      var secure = location.protocol === "https:" ? "; Secure" : "";
+      document.cookie =
+        AUTH_USER_COOKIE +
+        "=" +
+        encodeURIComponent(JSON.stringify(user)) +
+        "; path=/; max-age=2592000; SameSite=Lax" +
+        (d ? "; domain=" + d : "") +
+        secure;
+    } catch (e) {}
+  }
+  function clearAuthCookie() {
+    try {
+      var d = authCookieDomain();
+      document.cookie =
+        AUTH_COOKIE +
+        "=; path=/; max-age=0; SameSite=Lax" +
+        (d ? "; domain=" + d : "");
+      document.cookie =
+        AUTH_USER_COOKIE +
+        "=; path=/; max-age=0; SameSite=Lax" +
+        (d ? "; domain=" + d : "");
+    } catch (e) {}
+  }
+
   function clearAuth() {
     localStorage.removeItem(STORAGE_TOKEN);
     localStorage.removeItem(STORAGE_USER);
+    clearAuthCookie();
   }
 
   function saveAuthSession(data) {
     if (!data || !data.token) return;
     setAuthToken(data.token);
     if (data.user) setAuthUser(data.user);
+    writeAuthCookie(data.token);
+    if (data.user) writeAuthUserCookie(data.user);
   }
 
   /**
