@@ -4021,6 +4021,7 @@ def public_billing_plans() -> dict:
         "pay_methods": {
             "wechat_enabled": bool(getattr(b, "billing_pay_wechat_enabled", True)),
             "alipay_enabled": bool(getattr(b, "billing_pay_alipay_enabled", True)),
+            "wechat_h5_enabled": bool(getattr(b, "wechat_h5_enabled", False)),
         },
         "plans": {
             "vip_trial_99": {
@@ -4184,6 +4185,8 @@ async def billing_wechat_h5(request: Request, body: PayNativeIn, user_id: int = 
     b = resolve_billing()
     if not bool(getattr(b, "billing_pay_wechat_enabled", True)):
         raise HTTPException(status_code=503, detail="微信支付已关闭")
+    if not bool(getattr(b, "wechat_h5_enabled", False)):
+        raise HTTPException(status_code=503, detail="微信 H5 支付尚未开通（商户权限预开通中）。请在微信内使用「复制付款链接」方式支付。")
     if not wechat_v3.wechat_pay_configured(wx_cfg):
         raise HTTPException(status_code=503, detail="在线支付暂未开放，请稍后再试。")
 

@@ -685,7 +685,7 @@
         </div>
         <div class="pay-body">
           <div class="hint pay-hint" id="pay-hint" style="margin-bottom:8px">请使用 <b>微信</b> 扫一扫完成支付</div>
-          <div class="pay-wx-tip" id="pay-wx-tip" hidden>手机支付：点下方「复制付款链接到微信打开」→ 打开微信 → 粘贴到任意聊天/文件传输助手 → 点击打开链接即可完成支付。</div>
+          <div class="pay-wx-tip" id="pay-wx-tip" hidden>手机支付：点下方「复制付款链接到微信打开」→ 粘贴到任意聊天/文件传输助手 → 点击打开链接即可拉起微信支付。</div>
           <img id="vip-qr-img" alt="微信支付二维码" width="220" height="220" style="display:inline-block; border-radius:12px; border:1px solid var(--border); background:#fff; padding:8px;" />
           <div class="hint" style="margin-top:8px; font-size:12px;">订单号 <code id="vip-out-trade" style="font-size:11px; word-break:break-all;"></code></div>
         </div>
@@ -1277,7 +1277,7 @@
       var planTitleMap = null;
       var lastQuotaPlanCode = "";
       var lastQuotaExpiresAt = null;
-      var payMethods = { wechat_enabled: true, alipay_enabled: true };
+      var payMethods = { wechat_enabled: true, alipay_enabled: true, wechat_h5_enabled: false };
       var vipChoiceHintEl = $("vip-choice-hint");
       var vipPlanSelected = "";
       var agentPlanSelected = "";
@@ -1482,6 +1482,7 @@
                 payMethods = {
                   wechat_enabled: d.pay_methods.wechat_enabled !== false,
                   alipay_enabled: d.pay_methods.alipay_enabled !== false,
+                  wechat_h5_enabled: d.pay_methods.wechat_h5_enabled === true,
                 };
               }
             } catch (ePM) {}
@@ -1959,6 +1960,27 @@
             } else { startVipPoll(); }
           }
         }catch(eR){}
+        // WeChat native QR/copy-link flow: resume by saved out_trade_no after page reload.
+        try{
+          var savedWxOtn = "";
+          try { savedWxOtn = String(localStorage.getItem("ai24x_last_wechat_otn") || "").trim(); } catch (eSW) { savedWxOtn = ""; }
+          var savedWxPlan = "";
+          try { savedWxPlan = String(localStorage.getItem("ai24x_last_wechat_plan") || "").trim(); } catch (eSWP) { savedWxPlan = ""; }
+          if(savedWxOtn && !otn0){
+            vipLastOutTradeNo = savedWxOtn;
+            if(savedWxPlan) vipLastPlan = savedWxPlan;
+            setVipPayStatus("检测到待确认的微信支付订单：正在确认支付结果（约每 3 秒）…");
+            if (!tokenGet()) {
+              payConfirmShow("", "检测到待确认的支付订单，正在确认支付结果（约每 3 秒）…", false);
+              publicConfirmPay(vipLastOutTradeNo, vipLastPlan);
+            } else {
+              apiFetch("/api/me", { cache: "no-store" }).then(function (d0) {
+                try { quotaSnapshotBeforePay = d0 && d0.quota ? d0.quota : null; } catch (eQ0) { quotaSnapshotBeforePay = null; }
+                startVipPoll();
+              }).catch(function () { quotaSnapshotBeforePay = null; startVipPoll(); });
+            }
+          }
+        }catch(eSW2){}
         // If returned from Alipay cashier (or page reload), resume polling by out_trade_no.
         try{
           var sp1 = new URLSearchParams(String(location.search || "").replace(/^\?/, ""));
@@ -2856,6 +2878,9 @@ function agentCityRefresh() {
         // User closed the QR window: stop polling and do not pop timeout modal later.
         try{ vipTimeoutPopupArmed = false; }catch(e0){}
         try{ stopVipPoll(); }catch(e1){}
+        // Clear persisted WeChat resume markers so a later reload does not re-poll a closed order.
+        try { localStorage.removeItem("ai24x_last_wechat_otn"); } catch (e9) {}
+        try { localStorage.removeItem("ai24x_last_wechat_plan"); } catch (e10) {}
       }
 
       function vipCollapseAfterSuccess(){
@@ -2982,6 +3007,13 @@ function agentCityRefresh() {
         vipPollTimer = setInterval(tick, 2000);
       }
 
+      function isWeChatEnv(){
+        try{
+          var ua = String(navigator.userAgent || "").toLowerCase();
+          return ua.indexOf("micromessenger") >= 0;
+        }catch(e){ return false; }
+      }
+
       function showVipQr(d) {
         var url = d && d.code_url ? String(d.code_url) : "";
         var otn = d && d.out_trade_no ? String(d.out_trade_no) : "";
@@ -2996,7 +3028,11 @@ function agentCityRefresh() {
         }
         var isAgentPay = String(vipLastPlan || "").indexOf("agent_") === 0;
         var title = isAgentPay ? ("升级：" + planTitle(vipLastPlan)) : ("开通：" + planTitle(vipLastPlan));
-        payOverlayOpen(title, "请打开 <b>微信</b> 扫码支付；手机用户可复制下方付款链接到微信中打开", true);
+        var inWx = isWeChatEnv();
+        var hint = inWx
+          ? "微信内支付：请点下方「复制付款链接」→ 粘贴到任意聊天/文件传输助手 → 点击打开链接，即可拉起微信支付。"
+          : "请打开 <b>微信</b> 扫码支付；手机用户可复制下方付款链接到微信中打开";
+        payOverlayOpen(title, hint, true);
       }
 
       function startWechatNative(plan) {
@@ -3026,21 +3062,32 @@ function agentCityRefresh() {
           : apiFetch("/api/me", { cache: "no-store" }).then(function (d) {
               quotaSnapshotBeforePay = d && d.quota ? d.quota : null;
             }).catch(function () { quotaSnapshotBeforePay = null; });
-        function isWeChatEnv(){
-          try{
-            var ua = String(navigator.userAgent || "").toLowerCase();
-            return ua.indexOf("micromessenger") >= 0;
-          }catch(e){ return false; }
-        }
-
         snapP.then(function () {
-          // In WeChat built-in browser, prefer H5(MWEB) to avoid "long-press QR blocked".
-          var apiPath = isWeChatEnv() ? "/api/billing/wechat/h5" : "/api/billing/wechat/native";
-          return apiFetch(apiPath, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ plan: plan }),
-          });
+          // WeChat built-in browser: 默认走 Native（二维码+复制链接），避免 H5 收银台 NO_AUTH；
+          // 仅当商户平台已开通 H5 支付（后台 wechat_h5_enabled=1）时才直跳 H5。
+          var useH5 = isWeChatEnv() && payMethods.wechat_h5_enabled === true;
+          var orderP;
+          if (useH5) {
+            orderP = apiFetch("/api/billing/wechat/h5", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ plan: plan }),
+            }).catch(function (eH5) {
+              setVipPayStatus("微信 H5 收银台暂不可用，已切换为「复制付款链接」方式。");
+              return apiFetch("/api/billing/wechat/native", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ plan: plan }),
+              });
+            });
+          } else {
+            orderP = apiFetch("/api/billing/wechat/native", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ plan: plan }),
+            });
+          }
+          return orderP;
         })
           .then(function (d) {
             // H5(MWEB) path: redirect to WeChat cashier directly.
@@ -3079,6 +3126,9 @@ function agentCityRefresh() {
             setVipPayStatus(hint);
             showVipQr(d);
             try { vipLastOutTradeNo = d && d.out_trade_no ? String(d.out_trade_no) : ""; } catch (e0) { vipLastOutTradeNo = ""; }
+            // Persist order so reload/return can resume polling (native QR/copy-link flow).
+            try { localStorage.setItem("ai24x_last_wechat_otn", String(vipLastOutTradeNo || "")); } catch (eLS3) {}
+            try { localStorage.setItem("ai24x_last_wechat_plan", String(vipLastPlan || "")); } catch (eLS4) {}
             startVipPoll();
           })
           .catch(function (e) {
@@ -3246,7 +3296,7 @@ function agentCityRefresh() {
             return;
           }
           copyText(s)
-            .then(function () { setVipPayStatus("已复制！请打开微信，粘贴到任意聊天后点击打开即可支付。"); })
+            .then(function () { setVipPayStatus("已复制！请粘贴到任意聊天/文件传输助手，点击打开链接即可拉起微信支付。"); })
             .catch(function () { setVipPayStatus("复制失败，请手动选择输入框内链接复制。"); });
         });
       }

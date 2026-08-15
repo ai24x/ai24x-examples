@@ -77,6 +77,7 @@ def resolve_billing() -> SimpleNamespace:
     - agent_upgrade_growth_enabled / agent_upgrade_pro_enabled
     - billing_dev_real_pay / billing_dev_amount_fen（非 prod 才生效）
     - billing_pay_wechat_enabled / billing_pay_alipay_enabled
+    - wechat_h5_enabled（默认关闭；微信商户平台开通 H5 支付权限后置 1 恢复微信内直跳收银台）
     """
     m = _items()
 
@@ -100,6 +101,14 @@ def resolve_billing() -> SimpleNamespace:
         if v in ("1", "true", "yes", "on"):
             return True
         return True
+
+    def p_bool_default_off(key: str) -> bool:
+        v = (m.get(key) or "").strip().lower()
+        if v in ("1", "true", "yes", "on"):
+            return True
+        if v in ("0", "false", "no", "off"):
+            return False
+        return False
 
     # Only allow dev real-pay in non-prod; same behavior as settings.
     dev_real_pay_raw = (m.get("billing_dev_real_pay") or "").strip().lower()
@@ -129,6 +138,7 @@ def resolve_billing() -> SimpleNamespace:
         billing_dev_amount_fen=p_int("billing_dev_amount_fen", int(settings.billing_dev_amount_fen)),
         billing_pay_wechat_enabled=bool(p_bool_default_on("billing_pay_wechat_enabled")),
         billing_pay_alipay_enabled=bool(p_bool_default_on("billing_pay_alipay_enabled")),
+        wechat_h5_enabled=bool(p_bool_default_off("wechat_h5_enabled")),
     )
 
 
