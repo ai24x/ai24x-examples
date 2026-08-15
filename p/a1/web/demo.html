@@ -1615,11 +1615,6 @@
         padding: 8px 10px;
         font-size: 12px;
       }
-      .invite-banner {
-        margin-bottom: 6px;
-        padding: 6px 8px;
-      }
-      .invite-banner .ib-copy .sub { display: none; }
       .hint { display: none; }
       .usage-hint { margin-top: 8px; padding: 8px 10px; }
     }
@@ -1653,64 +1648,6 @@
       flex: 0 0 auto;
     }
     .disclaimer-bar .x:hover{ background: rgba(255,255,255,.85); }
-
-    /* 邀请落地：先看行情，同时给出明确注册引导 */
-    .invite-banner{
-      display:none;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      flex-wrap:wrap;
-      margin:0 0 10px;
-      padding:10px 12px;
-      border-radius:10px;
-      border:1px solid rgba(37,99,235,.28);
-      background: linear-gradient(180deg, rgba(239,246,255,.95), rgba(219,234,254,.72));
-      color:#1e3a8a;
-      font-size:13px;
-      line-height:1.45;
-    }
-    .invite-banner.is-show{ display:flex; }
-    .invite-banner .ib-copy{ flex:1 1 180px; min-width:0; }
-    .invite-banner .ib-copy b{ font-weight:800; }
-    .invite-banner .ib-copy .sub{
-      display:block;
-      margin-top:2px;
-      font-size:12px;
-      color:#334155;
-      opacity:.92;
-    }
-    .invite-banner .ib-actions{
-      display:inline-flex;
-      gap:8px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
-    .invite-banner .ib-actions a,
-    .invite-banner .ib-actions button{
-      appearance:none;
-      border-radius:8px;
-      padding:7px 12px;
-      font-size:12px;
-      font-weight:700;
-      cursor:pointer;
-      text-decoration:none;
-      border:1px solid rgba(37,99,235,.35);
-      background:#fff;
-      color:#1d4ed8;
-    }
-    .invite-banner .ib-actions a.primary{
-      background:#2563eb;
-      border-color:#2563eb;
-      color:#fff;
-    }
-    .invite-banner .ib-actions .x{
-      border:none;
-      background:transparent;
-      color:#64748b;
-      font-weight:600;
-      padding:6px 8px;
-    }
     .quote-head-title .guest-auth{
       display:inline-flex;
       gap:8px;
@@ -1997,15 +1934,6 @@
     <div class="disclaimer-bar" id="disclaimer-bar" role="note" aria-label="风险提示" style="display:none">
       <span>【<b>内容仅供学习交流，不构成任何建议</b>】</span>
       <button type="button" class="x" id="disclaimer-close">我知道了</button>
-    </div>
-    <div class="invite-banner" id="invite-banner" role="region" aria-label="好友邀请">
-      <div class="ib-copy">
-        <b>好友邀请你试用 AI 行情官</b>
-        <span class="sub">可先免费看几次信号；需要更多次数请点页面顶部「免费注册」（邀请码会自动带上）。</span>
-      </div>
-      <div class="ib-actions">
-        <button type="button" class="x" id="invite-banner-close" aria-label="关闭">关闭</button>
-      </div>
     </div>
     <div class="top-alert" id="top-alert" role="status" aria-live="polite">
       <span class="icon" aria-hidden="true">!</span>
@@ -2769,37 +2697,6 @@
           setQuotaPill(d && d.quota ? d.quota : null);
         })
         .catch(function () {});
-    } catch (e) {}
-  })();
-
-  (function initInviteBanner() {
-    try {
-      var bar = document.getElementById('invite-banner');
-      if (!bar) return;
-      var tok = '';
-      try { tok = localStorage.getItem(AUTH_TOKEN_KEY) || ''; } catch (e0) { tok = ''; }
-      if (String(tok || '').trim()) return;
-      var code = '';
-      try {
-        var sp = new URLSearchParams(String(location.search || '').replace(/^\?/, ''));
-        code = String(sp.get('i') || sp.get('invite') || sp.get('inv') || sp.get('ref') || '').trim().toUpperCase();
-      } catch (e1) {}
-      if (!code) {
-        try { code = String(localStorage.getItem('ai24x_invite_code') || '').trim().toUpperCase(); } catch (e2) {}
-      }
-      if (!code) return;
-      var dismissKey = 'ai24x_invite_banner_dismiss:' + code;
-      try {
-        if (sessionStorage.getItem(dismissKey) === '1') return;
-      } catch (e3) {}
-      bar.classList.add('is-show');
-      var btnClose = document.getElementById('invite-banner-close');
-      if (btnClose) {
-        btnClose.addEventListener('click', function () {
-          try { sessionStorage.setItem(dismissKey, '1'); } catch (e4) {}
-          bar.classList.remove('is-show');
-        });
-      }
     } catch (e) {}
   })();
 
