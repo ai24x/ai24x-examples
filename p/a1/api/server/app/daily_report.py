@@ -1300,7 +1300,7 @@ def public_md(full_md, sentiment=None):
                 out.extend(_s6)
             skip = True
             continue
-        # 今日速览（含主攻/观察/总仓/操作建议）→ 隐藏
+        # 今日速览（含大盘/主攻/观察/风险/节奏）→ 隐藏
         if s.startswith("> ⚡ "):
             continue
         # 环境警示/顺风：保留大盘事实，去掉“低吸/破位即撤”类操作建议
