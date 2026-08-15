@@ -306,3 +306,17 @@ class SupportTicket(Base):
     admin_reply = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class SupportTicketMessage(Base):
+    """工单对话消息（2026-08-15：工单升级为多轮会话）。"""
+
+    __tablename__ = "token_support_ticket_messages"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    ticket_id = Column(
+        Integer, ForeignKey("token_support_tickets.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    sender = Column(String(16), nullable=False, default="user")  # user / system / admin
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)

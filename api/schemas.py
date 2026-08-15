@@ -101,6 +101,12 @@ class SupportTicketReplyBody(BaseModel):
     close: bool = False
 
 
+class SupportTicketUserReplyBody(BaseModel):
+    """用户侧工单追加消息（多轮会话）。"""
+
+    content: str = Field(..., min_length=1, max_length=4000)
+
+
 class ErrorResponse(BaseModel):
     error: str = Field(..., description="错误信息（默认中文短句；勿塞整包 dict）")
     code: str = Field(..., description="错误代码")

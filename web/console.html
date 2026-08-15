@@ -79,6 +79,8 @@
     .usage-table thead th { color: var(--muted); font-weight: 600; white-space: nowrap; background: color-mix(in srgb, var(--accent, #2563eb) 4%, transparent); }
     .usage-table td.col-time { white-space: nowrap; color: var(--muted); }
     .usage-table td.col-amount { white-space: nowrap; font-weight: 600; }
+    .usage-table td.col-amount-pos { color: #16a34a; }
+    .usage-table td.col-amount-neg { color: #dc2626; }
     .usage-table td.col-tokens { white-space: nowrap; text-align: right; }
     .usage-table td.col-note { max-width: 260px; overflow-wrap: break-word; }
     .usage-empty { padding: 14px 10px; color: var(--muted); }
@@ -87,6 +89,8 @@
     .usage-range-group, .usage-metric-group { display: flex; gap: 6px; flex-wrap: wrap; }
     .usage-range-btn, .usage-metric-btn { font-size: 0.8rem; padding: 5px 12px; }
     .usage-range-btn.is-active, .usage-metric-btn.is-active { background: var(--accent, #2563eb); color: #fff; border-color: var(--accent, #2563eb); }
+    .tx-type-btn { font-size: 0.8rem; padding: 5px 12px; }
+    .tx-type-btn.is-active { background: var(--accent, #2563eb); color: #fff; border-color: var(--accent, #2563eb); }
     .usage-stats-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
     .usage-chart { width: 100%; overflow-x: auto; }
     .usage-chart svg { display: block; width: 100%; height: auto; min-width: 480px; }
@@ -116,12 +120,44 @@
     .invite-reward-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
     .invite-reward-table th, .invite-reward-table td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
     .invite-reward-table th { color: var(--muted); font-weight: 600; font-size: 0.8rem; }
-    .invite-reward-empty { color: var(--muted); font-size: 0.9rem; padding: 6px 0; }
-    .badge-active, .badge-pending { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; white-space: nowrap; }
-    .badge-active { background: rgba(34,197,94,.14); color: #16a34a; }
-    .badge-pending { background: rgba(148,163,184,.16); color: #64748b; }
-    @media (max-width: 720px) {
-      .invite-reward-head, .invite-reward-row { flex-direction: column; align-items: stretch; }
+      .invite-reward-empty { color: var(--muted); font-size: 0.9rem; padding: 6px 0; }
+      .badge-active, .badge-pending { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; white-space: nowrap; }
+      .badge-active { background: rgba(34,197,94,.14); color: #16a34a; }
+      .badge-pending { background: rgba(148,163,184,.16); color: #64748b; }
+      /* console: 工单对话 */
+      .support-layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; align-items: stretch; }
+      .support-side { gap: 10px; }
+      .support-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 58vh; padding-right: 4px; }
+      .support-ticket-item { padding: 10px 12px; border: 1px solid var(--border, #d8e4ef); border-radius: 10px; cursor: pointer; background: color-mix(in srgb, var(--accent, #2563eb) 2%, transparent); }
+      .support-ticket-item:hover { border-color: var(--accent, #2563eb); }
+      .support-ticket-item.is-active { border-color: var(--accent, #2563eb); background: color-mix(in srgb, var(--accent, #2563eb) 8%, transparent); }
+      .support-ticket-subj { font-weight: 600; font-size: 0.92rem; overflow-wrap: break-word; }
+      .support-ticket-last { font-size: 0.82rem; color: var(--muted, #64748b); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+      .support-ticket-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: 0.76rem; color: var(--muted, #64748b); }
+      .support-chat { gap: 10px; min-height: 420px; }
+      .support-empty { flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; padding: 40px 16px; }
+      .support-conv-head { border-bottom: 1px solid var(--border, #d8e4ef); padding-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+      .support-conv-head .support-status { margin-left: 8px; }
+      .support-msgs { flex: 1; overflow-y: auto; max-height: 52vh; display: flex; flex-direction: column; gap: 10px; padding: 4px 2px; }
+      .support-msg { display: flex; flex-direction: column; align-items: flex-start; max-width: 82%; }
+      .support-msg.is-user { align-self: flex-end; align-items: flex-end; }
+      .support-bubble { padding: 9px 13px; border-radius: 14px; font-size: 0.9rem; white-space: pre-wrap; overflow-wrap: break-word; line-height: 1.45; }
+      .support-bubble-user { background: var(--accent, #2563eb); color: #fff; border-bottom-right-radius: 4px; }
+      .support-bubble-system { background: color-mix(in srgb, var(--accent, #2563eb) 10%, transparent); border-bottom-left-radius: 4px; }
+      .support-bubble-admin { background: rgba(34,197,94,.14); border-bottom-left-radius: 4px; }
+      .support-msg-meta { font-size: 0.72rem; color: var(--muted, #64748b); margin-top: 3px; }
+      .support-compose { border-top: 1px solid var(--border, #d8e4ef); padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+      .support-status { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.76rem; font-weight: 600; white-space: nowrap; }
+      .support-status.open { background: rgba(34,197,94,.14); color: #16a34a; }
+      .support-status.replied { background: rgba(37,99,235,.14); color: #2563eb; }
+      .support-status.closed { background: rgba(148,163,184,.16); color: #64748b; }
+      @media (max-width: 820px) {
+        .support-layout { grid-template-columns: 1fr; }
+        .support-list { max-height: 220px; }
+        .support-msgs { max-height: 42vh; }
+      }
+      @media (max-width: 720px) {
+        .invite-reward-head, .invite-reward-row { flex-direction: column; align-items: stretch; }
       .invite-reward-stats { justify-content: space-between; }
       .invite-reward-item { flex-wrap: wrap; }
     }
@@ -202,14 +238,12 @@
             <button type="button" class="console-nav-item is-active" data-console-panel="overview" data-i18n="page.console.nav.overview">Overview</button>
             <button type="button" class="console-nav-item" data-console-panel="keys" data-i18n="page.console.nav.keys">API keys</button>
             <button type="button" class="console-nav-item" data-console-panel="billing" data-i18n="page.console.nav.billing">Billing</button>
-            <button type="button" class="console-nav-item" data-console-panel="usage" data-i18n="page.console.nav.usage">Usage</button>
+            <button type="button" class="console-nav-item" data-console-panel="transactions" data-i18n="page.console.nav.transactions">Transactions</button>
             <button type="button" class="console-nav-item" data-console-panel="playground" data-i18n="page.console.nav.playground">Try call</button>
-            <button type="button" class="console-nav-item" data-console-panel="invite" data-i18n="page.console.nav.invite">Invite</button>
             <button type="button" class="console-nav-item" data-console-panel="account" data-i18n="page.console.nav.account">Account</button>
-            <button type="button" class="console-nav-item" id="nav-tickets" data-i18n="page.console.nav.tickets">Tickets</button>
+            <button type="button" class="console-nav-item" data-console-panel="support" data-i18n="page.console.nav.tickets">Tickets</button>
             <button type="button" class="console-nav-item" id="btn-logout" data-i18n="page.console.nav.logout" style="margin-top:auto;opacity:0.7">Logout</button>
-            <span id="ticket-dot" class="badge-dot" style="display:none;position:absolute;margin-left:-4px;margin-top:2px"></span>
-          </nav>
+            </nav>
         </aside>
 
         <div class="console-main">
@@ -371,11 +405,28 @@
             </div>
           </div>
 
-          <!-- Usage -->
-          <div class="console-panel" id="panel-usage" data-console-panel="usage" role="tabpanel" hidden>
+          <!-- Billing: transactions + usage stats -->
+          <div class="console-panel" id="panel-transactions" data-console-panel="transactions" role="tabpanel" hidden>
             <div class="console-panel-head">
-              <h2 class="mt-0" data-i18n="page.console.nav.usage">Usage</h2>
-              <p class="sub" data-i18n="page.console.activity.sub">Top-ups / bonuses / usage / referrals</p>
+              <h2 class="mt-0" data-i18n="page.console.nav.transactions">Transactions</h2>
+              <p class="sub" data-i18n="page.console.transactions.lead">All account transactions: top-ups, usage, bonuses, referrals, and expirations.</p>
+            </div>
+            <div class="stats-grid" id="txSummary" style="margin-bottom:1rem">
+              <div class="stat-card">
+                <div class="stat-label" data-i18n="page.console.transactions.totalIn">Total in</div>
+                <div class="stat-value" id="tx-total-in">--</div>
+                <div class="stat-sub" id="tx-total-in-sub"></div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label" data-i18n="page.console.transactions.totalOut">Total out</div>
+                <div class="stat-value" id="tx-total-out">--</div>
+                <div class="stat-sub" id="tx-total-out-sub"></div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label" data-i18n="page.console.transactions.balance">Balance</div>
+                <div class="stat-value" id="tx-balance">--</div>
+                <div class="stat-sub" data-i18n="page.console.transactions.balance.sub">Tokens</div>
+              </div>
             </div>
             <div class="card usage-rangebar">
               <span class="usage-range-label" id="usage-range-label"></span>
@@ -401,30 +452,39 @@
               <h3 class="mt-2" id="usage-keys-title"></h3>
               <div id="usageKeys" class="usage-models"></div>
             </div>
-            <div class="card mt-2">
-              <h3 class="mt-0" data-i18n="page.console.activity.title">Ledger</h3>
-              <div id="usageSummary" class="usage-summary" style="display:none"></div>
-              <div class="usage-toolbar">
-                <button id="usage-export-btn" class="btn" type="button"></button>
-                <div class="usage-pager">
-                  <button id="usage-prev" class="btn" type="button"></button>
-                  <span id="usage-page-info" class="usage-page-info"></span>
-                  <button id="usage-next" class="btn" type="button"></button>
+            <div class="card">
+              <div class="usage-toolbar" style="align-items:center">
+                <div class="usage-range-group" id="tx-type-group">
+                  <button type="button" class="btn tx-type-btn is-active" data-tx-type="">All</button>
+                  <button type="button" class="btn tx-type-btn" data-tx-type="topup">Top-up</button>
+                  <button type="button" class="btn tx-type-btn" data-tx-type="consume">Usage</button>
+                  <button type="button" class="btn tx-type-btn" data-tx-type="bonus">Bonus</button>
+                  <button type="button" class="btn tx-type-btn" data-tx-type="referral">Referral</button>
+                  <button type="button" class="btn tx-type-btn" data-tx-type="expire">Expired</button>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+                  <button id="usage-export-btn" class="btn" type="button"></button>
+                  <div class="usage-pager">
+                    <button id="tx-prev" class="btn" type="button">‹ Prev</button>
+                    <span id="tx-page-info" class="usage-page-info"></span>
+                    <button id="tx-next" class="btn" type="button">Next ›</button>
+                  </div>
                 </div>
               </div>
               <div class="usage-table-wrap">
-                <table class="usage-table" id="usageTable">
+                <table class="usage-table" id="txTable">
                   <thead>
                     <tr>
-                      <th class="col-type"></th>
-                      <th class="col-model"></th>
-                      <th class="col-time"></th>
-                      <th class="col-amount"></th>
-                      <th class="col-tokens"></th>
-                      <th class="col-note"></th>
+                      <th class="col-time" data-i18n="page.console.transactions.time">Time</th>
+                      <th class="col-type" data-i18n="page.console.transactions.type">Type</th>
+                      <th class="col-model" data-i18n="page.console.transactions.model">Model</th>
+                      <th class="col-amount" data-i18n="page.console.transactions.amount">Amount</th>
+                      <th class="col-tokens" data-i18n="page.console.transactions.tokens">Tokens</th>
+                      <th class="col-tokens" data-i18n="page.console.transactions.balance">Balance</th>
+                      <th class="col-note" data-i18n="page.console.transactions.note">Note</th>
                     </tr>
                   </thead>
-                  <tbody id="activityList"></tbody>
+                  <tbody id="txList"></tbody>
                 </table>
               </div>
             </div>
@@ -557,19 +617,70 @@
               </div>
             </div>
           </div>
+
+            <!-- Support tickets -->
+            <div class="console-panel" id="panel-support" data-console-panel="support" role="tabpanel" hidden>
+              <div class="console-panel-head">
+                <h2 class="mt-0" data-i18n="page.console.nav.tickets">Tickets</h2>
+                <p class="sub" data-i18n="page.console.support.lead">Chat directly with the system — AI replies instantly, every message is kept on record.</p>
+              </div>
+              <div class="support-layout">
+                <div class="card support-side">
+                  <button type="button" class="btn btn-primary" id="btn-support-new" data-i18n="page.console.support.new">New ticket</button>
+                  <div id="support-list" class="support-list"><p class="sub">--</p></div>
+                </div>
+                <div class="card support-chat">
+                  <div id="support-no-select" class="support-empty">
+                    <p class="sub" data-i18n="page.console.support.noSelect">Select a ticket on the left, or create a new one to start chatting.</p>
+                  </div>
+                  <div id="support-new-box" style="display:none">
+                    <h3 class="mt-0" data-i18n="page.console.support.newTitle">New ticket</h3>
+                    <div class="form-group">
+                      <label data-i18n="page.console.ticket.cat">Category</label>
+                      <select class="input" id="support-new-cat">
+                        <option value="api" data-i18n="page.console.ticket.catApi">API / Calls</option>
+                        <option value="billing" data-i18n="page.console.ticket.catBilling">Billing / Orders</option>
+                        <option value="account" data-i18n="page.console.ticket.catAccount">Account</option>
+                        <option value="suggestion" data-i18n="page.console.ticket.catSuggestion">Suggestion</option>
+                        <option value="complaint" data-i18n="page.console.ticket.catComplaint">Complaint</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label data-i18n="page.console.ticket.body">Description</label>
+                      <textarea class="input" id="support-new-body" rows="4" data-i18n-placeholder="page.console.ticket.bodyPh" placeholder="What happened, time, order id (optional)"></textarea>
+                    </div>
+                    <div id="support-new-msg"></div>
+                    <div class="card-actions">
+                      <button type="button" class="btn btn-primary" id="support-new-submit" data-i18n="page.console.ticket.submit">Submit ticket</button>
+                      <button type="button" class="btn" id="support-new-cancel" data-i18n="page.console.support.cancel">Cancel</button>
+                    </div>
+                  </div>
+                  <div id="support-conv-box" style="display:none">
+                    <div id="support-conv-head" class="support-conv-head"></div>
+                    <div id="support-conv-msgs" class="support-msgs"></div>
+                    <div class="support-compose">
+                      <textarea class="input" id="support-reply-input" rows="2" data-i18n-placeholder="page.console.support.placeholder" placeholder="Type a message — Ctrl/⌘+Enter to send…"></textarea>
+                      <div class="card-actions">
+                        <button type="button" class="btn btn-primary" id="support-reply-send" data-i18n="page.console.support.send">Send</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
         </div>
       </div>
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260813c"></script>
-  <script src="js/api.js?v=20260814c"></script>
+  <script src="config/locales.js?v=20260815d"></script>
+  <script src="js/api.js?v=20260815d"></script>
   <script src="js/invite.js?v=20260731a"></script>
   <script src="js/utm.js?v=20260802a"></script>
   <script src="js/i18n.js?v=20260812g"></script>
   <script src="js/shell.js?v=20260808b"></script>
   <script src="js/app.js?v=20260808b"></script>
-  <script src="js/console.js?v=20260814c"></script>
-  <script src="js/support-widget.js?v=20260809a"></script>
+  <script src="js/console.js?v=20260815d"></script>
+  <script src="js/support-widget.js?v=20260815d"></script>
 </body>
 </html>

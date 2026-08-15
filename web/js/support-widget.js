@@ -414,9 +414,9 @@
 
     try {
       var h = String(location.hash || "");
-      if (h === "#help" || h === "#support") {
+      if (h === "#help") {
         setTimeout(function () {
-          openPanel(h === "#support" ? "ticket" : null);
+          openPanel(null);
         }, 120);
       } else {
         setTimeout(showTipOnce, 900);

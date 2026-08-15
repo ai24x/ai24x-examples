@@ -45,6 +45,7 @@ from schemas import (
     SupportAskBody,
     SupportTicketCreateBody,
     SupportTicketReplyBody,
+    SupportTicketUserReplyBody,
     TokenAdminSystemUpdateBody,
     TokenAdminWarehouseUpdateBody,
     TokenAdminFreeSharedUpdateBody,
@@ -1946,6 +1947,31 @@ async def billing_usage(
     )
 
 
+@app.get("/v1/billing/transactions")
+async def billing_transactions(
+    request: Request,
+    db: Session = Depends(get_db),
+    limit: int = 50,
+    offset: int = 0,
+    entry_type: str | None = None,
+    since: str | None = None,
+    until: str | None = None,
+):
+    """账单流水：充值/消耗/赠送/返利/过期全类型 + 交易后余额 + 收支汇总。"""
+    from token_mvp_service import list_transactions
+
+    u = _auth_user_from_bearer(request, db)
+    return list_transactions(
+        db,
+        int(u.id),
+        limit=limit,
+        offset=offset,
+        entry_type=entry_type,
+        since=since,
+        until=until,
+    )
+
+
 @app.get("/v1/billing/usage/daily")
 async def billing_usage_daily(
     request: Request,
@@ -2087,6 +2113,35 @@ async def support_ticket_list(
 
     u = _auth_user_from_bearer(request, db)
     return list_tickets_for_user(db, int(u.id), limit=limit, offset=offset)
+
+
+@app.get("/v1/support/tickets/{ticket_id}")
+async def support_ticket_detail(
+    request: Request, ticket_id: int, db: Session = Depends(get_db)
+):
+    from support_tickets import get_ticket_detail
+
+    u = _auth_user_from_bearer(request, db)
+    r = get_ticket_detail(db, int(u.id), int(ticket_id))
+    if not r.get("ok"):
+        raise HTTPException(status_code=404, detail=r.get("message") or "工单不存在")
+    return r
+
+
+@app.post("/v1/support/tickets/{ticket_id}/reply")
+async def support_ticket_user_reply(
+    request: Request,
+    ticket_id: int,
+    body: SupportTicketUserReplyBody,
+    db: Session = Depends(get_db),
+):
+    from support_tickets import user_reply_ticket
+
+    u = _auth_user_from_bearer(request, db)
+    r = user_reply_ticket(db, int(u.id), int(ticket_id), body.content)
+    if not r.get("ok"):
+        raise HTTPException(status_code=400, detail=r.get("message") or "回复失败")
+    return r
 
 
 @app.get("/v1/admin/token/referrals")

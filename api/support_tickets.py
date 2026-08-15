@@ -6,7 +6,7 @@ from typing import Any, Optional
 
 from sqlalchemy.orm import Session
 
-from models import AuthUser, SupportTicket
+from models import AuthUser, SupportTicket, SupportTicketMessage
 
 _ALLOWED_CAT = {"billing", "api", "account", "suggestion", "complaint"}
 _ALLOWED_STATUS = {"open", "replied", "closed"}
@@ -41,6 +41,39 @@ def _row(t: SupportTicket, *, include_user: bool = False, user: Optional[AuthUse
             "phone": user.phone or "",
         }
     return d
+
+
+def _msg_row(m: SupportTicketMessage) -> dict[str, Any]:
+    return {
+        "id": int(m.id),
+        "sender": m.sender,
+        "content": m.content or "",
+        "created_at": _iso(m.created_at),
+    }
+
+
+def _ai_reply(auth_user_id: int, question: str, lang_hint: str = "en") -> Optional[str]:
+    """AI 自动回复（平台侧，不扣用户余额）；失败/超限返回 None（工单不受影响）。"""
+    try:
+        from support_bot import ask_support
+
+        r = ask_support(auth_user_id=int(auth_user_id), question=question, lang_hint=lang_hint)
+        txt = str((r or {}).get("answer") or "").strip()
+        return txt[:4000] or None
+    except Exception:
+        return None
+
+
+def _append_msg(db: Session, *, ticket_id: int, sender: str, content: str) -> SupportTicketMessage:
+    row = SupportTicketMessage(
+        ticket_id=int(ticket_id),
+        sender=str(sender)[:16],
+        content=str(content or "")[:4000],
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row
 
 
 def create_ticket(
@@ -87,6 +120,11 @@ def create_ticket(
     db.add(row)
     db.commit()
     db.refresh(row)
+    # 多轮会话：写入首条用户消息 + AI 自动回复（即时互动）
+    _append_msg(db, ticket_id=int(row.id), sender="user", content=text)
+    ai = _ai_reply(int(auth_user_id), text, lang_hint="zh")
+    if ai:
+        _append_msg(db, ticket_id=int(row.id), sender="system", content=ai)
     return {"ok": True, "ticket": _row(row)}
 
 
@@ -101,7 +139,72 @@ def list_tickets_for_user(
         .limit(min(50, max(1, int(limit))))
         .all()
     )
-    return {"total": total, "rows": [_row(r) for r in rows]}
+    out = []
+    for r in rows:
+        d = _row(r)
+        last = (
+            db.query(SupportTicketMessage)
+            .filter(SupportTicketMessage.ticket_id == int(r.id))
+            .order_by(SupportTicketMessage.id.desc())
+            .first()
+        )
+        if last is not None:
+            d["last_message"] = last.content[:120]
+            d["last_sender"] = last.sender
+            d["last_at"] = _iso(last.created_at)
+        out.append(d)
+    return {"total": total, "rows": out}
+
+
+def get_ticket_detail(db: Session, auth_user_id: int, ticket_id: int) -> dict[str, Any]:
+    """工单详情：工单信息 + 完整对话消息（按时间正序）。"""
+    row = (
+        db.query(SupportTicket)
+        .filter(
+            SupportTicket.id == int(ticket_id),
+            SupportTicket.auth_user_id == int(auth_user_id),
+        )
+        .first()
+    )
+    if not row:
+        return {"ok": False, "message": "工单不存在"}
+    msgs = (
+        db.query(SupportTicketMessage)
+        .filter(SupportTicketMessage.ticket_id == int(row.id))
+        .order_by(SupportTicketMessage.id.asc())
+        .all()
+    )
+    d = _row(row)
+    d["messages"] = [_msg_row(m) for m in msgs]
+    return {"ok": True, "ticket": d}
+
+
+def user_reply_ticket(
+    db: Session, auth_user_id: int, ticket_id: int, content: str
+) -> dict[str, Any]:
+    """用户追加消息 → 系统 AI 自动回复（多轮会话）。"""
+    row = (
+        db.query(SupportTicket)
+        .filter(
+            SupportTicket.id == int(ticket_id),
+            SupportTicket.auth_user_id == int(auth_user_id),
+        )
+        .first()
+    )
+    if not row:
+        return {"ok": False, "message": "工单不存在"}
+    text = (content or "").strip()
+    if len(text) < 1:
+        return {"ok": False, "message": "请填写消息内容"}
+    if len(text) > 4000:
+        text = text[:4000]
+    _append_msg(db, ticket_id=int(row.id), sender="user", content=text)
+    row.status = "open"
+    db.commit()
+    ai = _ai_reply(int(auth_user_id), text, lang_hint="zh")
+    if ai:
+        _append_msg(db, ticket_id=int(row.id), sender="system", content=ai)
+    return get_ticket_detail(db, int(auth_user_id), int(ticket_id))
 
 
 def admin_list_tickets(
@@ -150,4 +253,6 @@ def admin_reply_ticket(
     row.status = "closed" if close else "replied"
     db.commit()
     db.refresh(row)
+    # 多轮会话：人工回复同步写入消息流
+    _append_msg(db, ticket_id=int(row.id), sender="admin", content=text)
     return {"ok": True, "ticket": _row(row)}

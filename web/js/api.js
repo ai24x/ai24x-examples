@@ -529,6 +529,17 @@
     return request("/v1/billing/usage" + (q.length ? "?" + q.join("&") : ""), { method: "GET" });
   }
 
+  function billingTransactions(params) {
+    params = params || {};
+    var q = [];
+    if (params.limit != null) q.push("limit=" + encodeURIComponent(params.limit));
+    if (params.offset != null) q.push("offset=" + encodeURIComponent(params.offset));
+    if (params.entry_type) q.push("entry_type=" + encodeURIComponent(params.entry_type));
+    if (params.since) q.push("since=" + encodeURIComponent(params.since));
+    if (params.until) q.push("until=" + encodeURIComponent(params.until));
+    return request("/v1/billing/transactions" + (q.length ? "?" + q.join("&") : ""), { method: "GET" });
+  }
+
   function billingUsageDaily(days) {
     return request("/v1/billing/usage/daily?days=" + encodeURIComponent(days == null ? 30 : days), { method: "GET" });
   }
@@ -646,14 +657,25 @@
     });
   }
 
-  function supportTicketList(limit, offset) {
-    var qs = "limit=" + (limit || 20) + "&offset=" + (offset || 0);
-    return request("/v1/support/tickets?" + qs, { method: "GET" });
-  }
+    function supportTicketList(limit, offset) {
+      var qs = "limit=" + (limit || 20) + "&offset=" + (offset || 0);
+      return request("/v1/support/tickets?" + qs, { method: "GET" });
+    }
 
-  function referralsSummary() {
-    return request("/v1/referrals/summary", { method: "GET" });
-  }
+    function supportTicketDetail(ticketId) {
+      return request("/v1/support/tickets/" + encodeURIComponent(ticketId), { method: "GET" });
+    }
+
+    function supportTicketReply(ticketId, content) {
+      return request("/v1/support/tickets/" + encodeURIComponent(ticketId) + "/reply", {
+        method: "POST",
+        body: JSON.stringify({ content: content || "" }),
+      });
+    }
+
+    function referralsSummary() {
+      return request("/v1/referrals/summary", { method: "GET" });
+    }
 
   function referralsCode() {
     return request("/v1/referrals/code", { method: "GET" });
@@ -872,6 +894,7 @@
     keysDelete: keysDelete,
     billingBalance: billingBalance,
     billingUsage: billingUsage,
+    billingTransactions: billingTransactions,
     billingUsageDaily: billingUsageDaily,
     billingUsageModels: billingUsageModels,
     billingUsageKeys: billingUsageKeys,
@@ -887,10 +910,12 @@
     billingMockFulfill: billingMockFulfill,
     billingQueryFulfill: billingQueryFulfill,
     listModels: listModels,
-    supportAsk: supportAsk,
-    supportTicketCreate: supportTicketCreate,
-    supportTicketList: supportTicketList,
-    referralsSummary: referralsSummary,
+      supportAsk: supportAsk,
+      supportTicketCreate: supportTicketCreate,
+      supportTicketList: supportTicketList,
+      supportTicketDetail: supportTicketDetail,
+      supportTicketReply: supportTicketReply,
+      referralsSummary: referralsSummary,
     referralsCode: referralsCode,
     referralsInvitees: referralsInvitees,
     isZhUi: isZhUi,

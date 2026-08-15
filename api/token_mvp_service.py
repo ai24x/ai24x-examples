@@ -1157,6 +1157,101 @@ def list_usage(
     }
 
 
+def list_transactions(
+    db: Session,
+    auth_user_id: int,
+    *,
+    limit: int = 50,
+    offset: int = 0,
+    entry_type: Optional[str] = None,
+    since: Optional[str] = None,
+    until: Optional[str] = None,
+) -> dict:
+    """账单流水（对照 DeepSeek transactions）：全类型（充值/消耗/赠送/返利/过期）。
+
+    每条附「交易后余额」（token 口径，基于全量账本按 id 正序累加，与筛选无关），
+    并返回收支汇总（按筛选范围）。
+    """
+    from token_plans import _usd_cny
+
+    try:
+        fx = float(_usd_cny() or 7.2)
+    except Exception:
+        fx = 7.2
+
+    q = db.query(BillingLedger).filter(BillingLedger.auth_user_id == int(auth_user_id))
+    s = _parse_date_utc(since)
+    u = _parse_date_utc(until)
+    if s is not None:
+        q = q.filter(BillingLedger.created_at >= s)
+    if u is not None:
+        q = q.filter(BillingLedger.created_at < u + timedelta(days=1))
+    if entry_type:
+        q = q.filter(BillingLedger.entry_type == entry_type)
+    total = q.count()
+    rows = (
+        q.order_by(BillingLedger.id.desc())
+        .offset(max(0, int(offset)))
+        .limit(min(200, max(1, int(limit))))
+        .all()
+    )
+
+    # 全量账本：running balance（token 口径）+ 收支汇总（按筛选范围）
+    bal_map: dict[int, int] = {}
+    running = 0
+    token_in = token_out = 0
+    usd_in = usd_out = 0
+    all_amounts = (
+        db.query(BillingLedger.id, BillingLedger.amount, BillingLedger.amount_usd)
+        .filter(BillingLedger.auth_user_id == int(auth_user_id))
+        .order_by(BillingLedger.id.asc())
+        .all()
+    )
+    for rid, amt, usd in all_amounts:
+        amt = int(amt or 0)
+        usd = int(usd or 0)
+        running += amt
+        bal_map[rid] = running
+        if amt > 0:
+            token_in += amt
+        elif amt < 0:
+            token_out += -amt
+        if usd > 0:
+            usd_in += usd
+        elif usd < 0:
+            usd_out += -usd
+
+    return {
+        "total": total,
+        "limit": min(200, max(1, int(limit))),
+        "offset": max(0, int(offset)),
+        "rows": [
+            {
+                "id": r.id,
+                "type": r.entry_type,
+                "amount": r.amount,
+                "amount_usd": r.amount_usd,
+                "model": r.model,
+                "tokens": r.tokens,
+                "request_id": r.request_id,
+                "note": r.note,
+                "balance": bal_map.get(r.id, running),
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+            }
+            for r in rows
+        ],
+        "summary": {
+            "token_in": token_in,
+            "token_out": token_out,
+            "token_net": token_in - token_out,
+            "usd_in_cents": usd_in,
+            "usd_out_cents": usd_out,
+            "current_balance_tokens": running,
+            "fx": round(fx, 4),
+        },
+    }
+
+
 # —— API Keys ——
 
 

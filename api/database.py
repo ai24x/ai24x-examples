@@ -33,11 +33,12 @@ def init_db():
         Base,
         BillingLedger,
         InviteCode,
-        Referral,
-        SupportTicket,
-        TokenCreditLot,
-        TokenPayOrder,
-        TokenWallet,
+          Referral,
+          SupportTicket,
+          SupportTicketMessage,
+          TokenCreditLot,
+          TokenPayOrder,
+          TokenWallet,
     )
 
     Base.metadata.create_all(bind=engine)

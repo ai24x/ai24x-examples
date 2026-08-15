@@ -111,10 +111,11 @@
       VIP: "Token VIP",
       token_pack_10k: "入门包",
       token_pack_100k: "开发包",
-      token_pack_mid: "进阶包",
-      token_vip_month: "VIP 资格包",
-      token_vip_month_50w: "VIP名模包",
-    };
+        token_pack_mid: "进阶包",
+        token_vip_month: "VIP 资格包",
+        token_vip_month_50w: "VIP名模包",
+        token_value_pack: "超值包",
+      };
     if (m[plan]) return m[plan];
     return plan || "--";
   }
@@ -127,10 +128,11 @@
       VIP: "Token VIP",
       token_pack_10k: "Starter",
       token_pack_100k: "Builder",
-      token_pack_mid: "Advanced",
-      token_vip_month: "VIP Pass",
-      token_vip_month_50w: "Scale",
-    };
+        token_pack_mid: "Advanced",
+        token_vip_month: "VIP Pass",
+        token_vip_month_50w: "Scale",
+        token_value_pack: "Value Pack",
+      };
     return m[plan] || plan || "--";
   }
 
@@ -147,16 +149,27 @@
     return m[s] || s || "";
   }
 
-  function labelChannel(c) {
-    if (c === "creem") return "Creem";
-    if (c === "crypto") return "USDT";
-    if (!AI24X_API.isZhUi()) {
-      var en = { wechat: "WeChat", alipay: "Alipay", paypal: "PayPal", mock: "Mock" };
-      return en[c] || c || "";
+    function labelChannel(c) {
+      var ch = String(c || "").replace(/_query|_capture|_webhook/gi, "");
+      if (ch === "creem") return "Creem";
+      if (ch === "crypto") return "USDT";
+      if (
+        ch === "topup" ||
+        ch === "topup_usd" ||
+        ch === "batch_t2" ||
+        ch === "batch_t3" ||
+        ch === "joint_test_topup" ||
+        ch === "smoke_validity"
+      ) {
+        return AI24X_API.isZhUi() ? "充值" : "Top-up";
+      }
+      if (!AI24X_API.isZhUi()) {
+        var en = { wechat: "WeChat", alipay: "Alipay", paypal: "PayPal", mock: "Mock" };
+        return en[ch] || ch || "";
+      }
+      var m = { wechat: "微信", alipay: "支付宝", paypal: "PayPal", mock: "模拟" };
+      return m[ch] || ch || "";
     }
-    var m = { wechat: "微信", alipay: "支付宝", paypal: "PayPal", mock: "模拟" };
-    return m[c] || c || "";
-  }
 
   function humanizeLedgerNote(note) {
     var n = String(note || "");
@@ -180,11 +193,24 @@
     if (/^vip\s*日额度/i.test(n) || /^VIP 日额度/i.test(n)) {
       return zh ? n : n.replace(/vip\s*日额度|VIP 日额度/gi, "VIP daily quota");
     }
+    if (/^FREE\s*月赠额度/i.test(n)) {
+      return zh ? n : n.replace(/FREE\s*月赠额度/gi, "Monthly free quota");
+    }
     if (/^chat\/run$/i.test(n)) return zh ? "API 调用" : "API call";
     if (/^lot_expire\b/i.test(n)) return zh ? "额度到期自动核销" : "Credit lot expired";
-    if (/^(wechat|alipay|paypal|creem|mock|paypal_capture|paypal_webhook|creem_webhook):/i.test(n)) {
+    if (
+      /^batch_t\d+$/i.test(n) ||
+      /^joint_test_topup$/i.test(n) ||
+      /^smoke_validity$/i.test(n)
+    ) {
+      return zh ? "充值到账" : "Top-up";
+    }
+    if (
+      /^(wechat|alipay|paypal|creem|mock|crypto|topup|topup_usd)(_query|_capture|_webhook)?:/i.test(n) ||
+      /^[a-z0-9_]+:T\d+:[a-z0-9_]+$/i.test(n)
+    ) {
       var parts = n.split(":");
-      var ch0 = String(parts[0] || "").replace(/_capture|_webhook/i, "");
+      var ch0 = String(parts[0] || "");
       return (
         labelChannel(ch0) +
         (zh ? "支付到账" : " payment") +
@@ -1228,13 +1254,14 @@
     return String(v);
   }
 
-    var USAGE_PAGE_SIZE = 15;
-  var usagePage = 0;
-  var usageTotal = 0;
-  var usageBindDone = false;
   var USAGE_RANGE = "month";   // month | 7d | 30d | all
   var USAGE_METRIC = "usd";    // usd | tokens | calls
   var _usageChartCache = null;
+  var TX_PAGE_SIZE = 15;
+  var txPage = 0;
+  var txTotal = 0;
+  var txType = "";
+  var txBindDone = false;
 
   function usageRangeParams() {
     var now = new Date();
@@ -1471,140 +1498,19 @@
     return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes());
   }
 
-  function renderUsage(rows, summary) {
-    var tbody = $("activityList");
-    if (!tbody) return;
-    var sm = $("usageSummary");
-    if (sm) {
-      var fx = Number((summary && summary.usd_cny) || 0) || 7.2;
-      var usdCents = Number((summary && summary.consume_usd_cents) || 0) || 0;
-      var calls = Number((summary && summary.consume_calls) || 0) || 0;
-      var toks = Number((summary && summary.consume_tokens) || 0) || 0;
-      var pt = Number((summary && summary.consume_prompt_tokens) || 0);
-      var ct = Number((summary && summary.consume_completion_tokens) || 0);
-      var spent = fmtMoneyCents(usdCents, fx);
-      sm.style.fontWeight = "600";
-      sm.style.margin = "8px 0 12px";
-      sm.style.fontSize = "13px";
-      sm.style.color = "var(--muted)";
-      var ioTxt = pt > 0 || ct > 0
-        ? tr(
-            " · 输入 " + fmtTokensCount(pt) + " / 输出 " + fmtTokensCount(ct),
-            " · in " + fmtTokensCount(pt) + " / out " + fmtTokensCount(ct)
-          )
-        : "";
-      sm.textContent = tr(
-        "消费 " + spent + " · 请求 " + calls + " 次 · 总消耗 " + fmtTokensCount(toks) + " tokens" + ioTxt,
-        "Spent " + spent + " · " + calls + " calls · " + fmtTokensCount(toks) + " tokens total" + ioTxt
-      );
-      sm.style.display = "";
-    }
-    var headTexts = [tr("类型", "Type"), tr("模型", "Model"), tr("时间", "Time"), tr("金额", "Amount"), tr("Tokens", "Tokens"), tr("备注", "Note")];
-    var headCells = document.querySelectorAll("#usageTable thead th");
-    for (var hi = 0; hi < headCells.length && hi < headTexts.length; hi++) headCells[hi].textContent = headTexts[hi];
-    var exportBtn = $("usage-export-btn");
-    if (exportBtn) exportBtn.textContent = tr("导出 CSV", "Export CSV");
-    var prevBtn = $("usage-prev");
-    if (prevBtn) prevBtn.textContent = tr("‹ 上一页", "‹ Prev");
-    var nextBtn = $("usage-next");
-    if (nextBtn) nextBtn.textContent = tr("下一页 ›", "Next ›");
-    var pages = Math.max(1, Math.ceil((usageTotal || 0) / USAGE_PAGE_SIZE));
-    var pageInfo = $("usage-page-info");
-    if (pageInfo) pageInfo.textContent = tr("第 " + (usagePage + 1) + " / " + pages + " 页", "Page " + (usagePage + 1) + " / " + pages);
-    if (prevBtn) prevBtn.disabled = usagePage <= 0;
-    if (nextBtn) nextBtn.disabled = usagePage >= pages - 1;
-
-    tbody.innerHTML = "";
-    if (!rows || !rows.length) {
-      var tdE = document.createElement("td");
-      tdE.colSpan = 6;
-      tdE.className = "usage-empty";
-      tdE.textContent = tr("暂无流水", "No ledger entries");
-      var trE = document.createElement("tr");
-      trE.appendChild(tdE);
-      tbody.appendChild(trE);
-      return;
-    }
-    var fx2 = Number((summary && summary.usd_cny) || 0) || 7.2;
-    rows.forEach(function (r) {
-      var trEl = document.createElement("tr");
-      var tdType = document.createElement("td");
-      tdType.textContent = labelEntryType(r.type || r.entry_type);
-      var tdModel = document.createElement("td");
-      tdModel.textContent = r.model ? brandModelLabel("", "", r.model) : "--";
-      var tdTime = document.createElement("td");
-      tdTime.className = "col-time";
-      tdTime.textContent = fmtUsageTime(r.created_at);
-      var tdAmt = document.createElement("td");
-      tdAmt.className = "col-amount";
-      var hasUsd = r.amount_usd != null && Number(r.amount_usd) !== 0;
-      if ((r.type || r.entry_type) === "consume") {
-        if (hasUsd) tdAmt.textContent = fmtMoneyCents(-Math.abs(Number(r.amount_usd)), fx2);
-        else tdAmt.textContent = (r.amount < 0 ? "" : "+") + fmtTokensCount(r.tokens || r.amount);
-      } else if (hasUsd) {
-        tdAmt.textContent = fmtMoneyCents(Number(r.amount_usd), fx2);
-      } else {
-        tdAmt.textContent = (r.amount > 0 ? "+" : "") + fmtTokensCount(r.amount);
-      }
-      var tdTok = document.createElement("td");
-      tdTok.className = "col-tokens";
-      if (r.tokens == null) {
-        tdTok.textContent = "--";
-      } else {
-        tdTok.textContent = fmtTokensCount(r.tokens);
-        if (r.prompt_tokens != null || r.completion_tokens != null) {
-          var ioSub = document.createElement("span");
-          ioSub.className = "usage-tok-sub";
-          ioSub.textContent = tr(
-            "入 " + fmtTokensCount(r.prompt_tokens || 0) + " · 出 " + fmtTokensCount(r.completion_tokens || 0),
-            "in " + fmtTokensCount(r.prompt_tokens || 0) + " · out " + fmtTokensCount(r.completion_tokens || 0)
-          );
-          tdTok.appendChild(ioSub);
-        }
-      }
-      var tdNote = document.createElement("td");
-      tdNote.className = "col-note";
-      tdNote.textContent = r.note ? humanizeLedgerNote(r.note) : "";
-      trEl.appendChild(tdType);
-      trEl.appendChild(tdModel);
-      trEl.appendChild(tdTime);
-      trEl.appendChild(tdAmt);
-      trEl.appendChild(tdTok);
-      trEl.appendChild(tdNote);
-      tbody.appendChild(trEl);
-    });
-  }
-
-  function loadUsagePage(page) {
-    usagePage = Math.max(0, page);
-    var rp = usageRangeParams();
-    var params = { limit: USAGE_PAGE_SIZE, offset: usagePage * USAGE_PAGE_SIZE };
-    if (rp.since) params.since = rp.since;
-    if (rp.until) params.until = rp.until;
-    AI24X_API.billingUsage(params)
-      .then(function (usage) {
-        usageTotal = (usage && usage.total) != null ? Number(usage.total) : 0;
-
-        renderUsage((usage && usage.rows) || [], usage && usage.summary);
-      })
-      .catch(function () {
-        var tb = $("activityList");
-        if (tb) tb.innerHTML = "<tr><td colspan=\"6\" class=\"usage-empty\">" + escapeHtml(tr("加载失败，请稍后重试", "Failed to load, try again later")) + "</td></tr>";
-      });
-  }
-
-  function exportUsageCsv() {
+  function exportBillingCsv() {
     var btn = $("usage-export-btn");
     if (btn) { btn.disabled = true; btn.textContent = tr("导出中…", "Exporting…"); }
     var rp = usageRangeParams();
     var baseParams = {};
     if (rp.since) baseParams.since = rp.since;
     if (rp.until) baseParams.until = rp.until;
+    if (txType) baseParams.entry_type = txType;
     var all = [];
     var step = 200;
     var off = 0;
     function next() {
-      AI24X_API.billingUsage(Object.assign({ limit: step, offset: off }, baseParams))
+      AI24X_API.billingTransactions(Object.assign({ limit: step, offset: off }, baseParams))
         .then(function (u) {
           var rows = (u && u.rows) || [];
           all = all.concat(rows);
@@ -1620,16 +1526,16 @@
         if (/[",\n\r]/.test(v)) return "\"" + v.replace(/"/g, "\"\"") + "\"";
         return v;
       };
-      var head = ["type", "model", "time", "amount_usd", "tokens", "prompt_tokens", "completion_tokens", "api_key_id", "note", "request_id"].map(esc).join(",");
+      var head = ["type", "model", "time", "amount_tokens", "amount_usd_cents", "tokens", "balance_tokens", "note", "request_id"].map(esc).join(",");
       var lines = [head];
       rows.forEach(function (r) {
-        lines.push([(r.type || r.entry_type), r.model, r.created_at, r.amount_usd != null ? r.amount_usd : "", r.tokens != null ? r.tokens : "", r.prompt_tokens != null ? r.prompt_tokens : "", r.completion_tokens != null ? r.completion_tokens : "", r.api_key_id != null ? r.api_key_id : "", r.note || "", r.request_id || ""].map(esc).join(","));
+        lines.push([(r.type || r.entry_type), r.model, r.created_at, r.amount != null ? r.amount : "", r.amount_usd != null ? r.amount_usd : "", r.tokens != null ? r.tokens : "", r.balance != null ? r.balance : "", humanizeLedgerNote(r.note) || "", r.request_id || ""].map(esc).join(","));
       });
       var csv = "\ufeff" + lines.join("\r\n");
       var blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
       var a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = "ai24x-usage-" + new Date().toISOString().slice(0, 10) + ".csv";
+      a.download = "ai24x-billing-" + new Date().toISOString().slice(0, 10) + ".csv";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -1639,24 +1545,147 @@
     next();
   }
 
-  function bindUsageControls() {
-    if (usageBindDone) return;
-    usageBindDone = true;
-    var prev = $("usage-prev");
-    var next = $("usage-next");
+  function txAmountText(row, fx) {
+    var parts = [];
+    if (row.amount != null && Number(row.amount) !== 0) {
+      parts.push((Number(row.amount) > 0 ? "+" : "") + fmtTokensCount(row.amount) + " tok");
+    }
+    if (row.amount_usd != null && Number(row.amount_usd) !== 0) {
+      parts.push(fmtMoneyCents(row.amount_usd, fx));
+    }
+    return parts.join(" · ") || "--";
+  }
+
+  function txAmountClass(row) {
+    var v = Number(row.amount_usd) || 0;
+    if (v !== 0) return v > 0 ? "col-amount-pos" : "col-amount-neg";
+    return (Number(row.amount) || 0) >= 0 ? "col-amount-pos" : "col-amount-neg";
+  }
+
+  function renderTransactions(d) {
+    var rows = (d && d.rows) || [];
+    var sm = (d && d.summary) || {};
+    var fx = Number(sm.fx) || 7.2;
+    var tbody = $("txList");
+    if (!tbody) return;
+    var sIn = $("tx-total-in");
+    var sOut = $("tx-total-out");
+    var sBal = $("tx-balance");
+    var sInSub = $("tx-total-in-sub");
+    var sOutSub = $("tx-total-out-sub");
+    var zh = AI24X_API.isZhUi();
+    function usdTxt(cents) {
+      return zh ? "¥" + ((Number(cents) || 0) / 100 * fx).toFixed(2) : "$" + ((Number(cents) || 0) / 100).toFixed(2);
+    }
+    if (sIn) sIn.textContent = "+" + fmtTokensCount(sm.token_in) + " tok";
+    if (sInSub) sInSub.textContent = usdTxt(sm.usd_in_cents) + (zh ? " 充值/赠送/返利" : " top-ups/bonuses/ref");
+    if (sOut) sOut.textContent = "-" + fmtTokensCount(sm.token_out) + " tok";
+    if (sOutSub) sOutSub.textContent = usdTxt(sm.usd_out_cents) + (zh ? " 消耗/过期" : " usage/expirations");
+    if (sBal) sBal.textContent = fmtTokensCount(sm.current_balance_tokens);
+    var pages = Math.max(1, Math.ceil((d.total || 0) / TX_PAGE_SIZE));
+    var pi = $("tx-page-info");
+    if (pi) pi.textContent = tr("第 " + (txPage + 1) + " / " + pages + " 页", "Page " + (txPage + 1) + " / " + pages);
+    var pv = $("tx-prev");
+    var nx = $("tx-next");
+    if (pv) pv.disabled = txPage <= 0;
+    if (nx) nx.disabled = txPage >= pages - 1;
+
+    tbody.innerHTML = "";
+    if (!rows.length) {
+      var tdE = document.createElement("td");
+      tdE.colSpan = 7;
+      tdE.className = "usage-empty";
+      tdE.textContent = tr("暂无流水", "No transactions");
+      var trE = document.createElement("tr");
+      trE.appendChild(tdE);
+      tbody.appendChild(trE);
+      return;
+    }
+    rows.forEach(function (r) {
+      var trEl = document.createElement("tr");
+      var tdTime = document.createElement("td");
+      tdTime.className = "col-time";
+      tdTime.textContent = fmtUsageTime(r.created_at);
+      var tdType = document.createElement("td");
+      tdType.textContent = labelEntryType(r.type || r.entry_type);
+      var tdModel = document.createElement("td");
+      tdModel.textContent = r.model ? brandModelLabel("", "", r.model) : "--";
+      var tdAmt = document.createElement("td");
+      tdAmt.className = "col-amount " + txAmountClass(r);
+      tdAmt.textContent = txAmountText(r, fx);
+      var tdTok = document.createElement("td");
+      tdTok.className = "col-tokens";
+      if (r.tokens != null) {
+        tdTok.textContent = fmtTokensCount(r.tokens);
+        if (r.prompt_tokens != null || r.completion_tokens != null) {
+          var ioSub = document.createElement("span");
+          ioSub.className = "usage-tok-sub";
+          ioSub.textContent = tr(
+            "入 " + fmtTokensCount(r.prompt_tokens || 0) + " · 出 " + fmtTokensCount(r.completion_tokens || 0),
+            "in " + fmtTokensCount(r.prompt_tokens || 0) + " · out " + fmtTokensCount(r.completion_tokens || 0)
+          );
+          tdTok.appendChild(ioSub);
+        }
+      } else {
+        tdTok.textContent = "--";
+      }
+      var tdBal = document.createElement("td");
+      tdBal.className = "col-tokens";
+      tdBal.textContent = r.balance != null ? fmtTokensCount(r.balance) : "--";
+      var tdNote = document.createElement("td");
+      tdNote.className = "col-note";
+      var noteTxt = humanizeLedgerNote(r.note);
+      if (!noteTxt && r.request_id) noteTxt = r.request_id.slice(0, 18);
+      tdNote.textContent = noteTxt || "--";
+      trEl.appendChild(tdTime);
+      trEl.appendChild(tdType);
+      trEl.appendChild(tdModel);
+      trEl.appendChild(tdAmt);
+      trEl.appendChild(tdTok);
+      trEl.appendChild(tdBal);
+      trEl.appendChild(tdNote);
+      tbody.appendChild(trEl);
+    });
+  }
+
+  function loadTransactionsPage(page) {
+    txPage = Math.max(0, page);
+    var rp = usageRangeParams();
+    var params = { limit: TX_PAGE_SIZE, offset: txPage * TX_PAGE_SIZE };
+    if (rp.since) params.since = rp.since;
+    if (rp.until) params.until = rp.until;
+    if (txType) params.entry_type = txType;
+    AI24X_API.billingTransactions(params)
+      .then(function (d) {
+        txTotal = Number((d && d.total) || 0);
+        renderTransactions(d);
+      })
+      .catch(function () {
+        var tbody = $("txList");
+        if (tbody) {
+          tbody.innerHTML = "<tr><td colspan=\"7\" class=\"usage-empty\">" + escapeHtml(tr("加载失败，请稍后重试", "Failed to load, try again later")) + "</td></tr>";
+        }
+      });
+  }
+
+  function bindTransactionsControls() {
+    if (txBindDone) return;
+    txBindDone = true;
+    var pv = $("tx-prev");
+    var nx = $("tx-next");
     var exp = $("usage-export-btn");
-    if (prev) prev.addEventListener("click", function () { loadUsagePage(usagePage - 1); });
-    if (next) next.addEventListener("click", function () { loadUsagePage(usagePage + 1); });
-    if (exp) exp.addEventListener("click", exportUsageCsv);
+    if (pv) pv.addEventListener("click", function () { loadTransactionsPage(txPage - 1); });
+    if (nx) nx.addEventListener("click", function () { loadTransactionsPage(txPage + 1); });
+    if (exp) exp.addEventListener("click", exportBillingCsv);
     initUsageStatsLabels();
-    document.querySelectorAll(".usage-range-btn").forEach(function (b) {
+    document.querySelectorAll("#usage-range-group .usage-range-btn").forEach(function (b) {
       b.addEventListener("click", function () {
         USAGE_RANGE = b.getAttribute("data-range");
-        document.querySelectorAll(".usage-range-btn").forEach(function (x) {
+        document.querySelectorAll("#usage-range-group .usage-range-btn").forEach(function (x) {
           x.classList.toggle("is-active", x === b);
         });
-        usagePage = 0;
-        loadUsagePage(0);
+        txPage = 0;
+        loadTransactionsPage(0);
         loadUsageStats();
       });
     });
@@ -1669,6 +1698,19 @@
         renderUsageChart(_usageChartCache);
       });
     });
+    document.querySelectorAll("#tx-type-group .tx-type-btn").forEach(function (b) {
+      var t = b.getAttribute("data-tx-type") || "";
+      b.textContent = t ? labelEntryType(t) : tr("全部", "All");
+      b.addEventListener("click", function () {
+        txType = b.getAttribute("data-tx-type") || "";
+        document.querySelectorAll("#tx-type-group .tx-type-btn").forEach(function (x) {
+          x.classList.toggle("is-active", x === b);
+        });
+        txPage = 0;
+        loadTransactionsPage(0);
+      });
+    });
+    loadTransactionsPage(0);
     loadUsageStats();
   }
 
@@ -1791,13 +1833,316 @@
     if (countEl) countEl.textContent = "(" + total + ")";
   }
 
-  async function loadInvitees() {
-    var data = await AI24X_API.referralsInvitees(50, 0);
-    renderInvitees("overview-invitees-wrap", data);
-    renderInvitees("panel-invitees-wrap", data);
-  }
+    async function loadInvitees() {
+      var data = await AI24X_API.referralsInvitees(50, 0);
+      renderInvitees("overview-invitees-wrap", data);
+      renderInvitees("panel-invitees-wrap", data);
+    }
 
-  async function refreshAll() {
+    // —— 工单：系统私信（多轮对话，全部留档）——
+    var _supportListRows = [];
+    var _supportCurrentTicket = null;
+
+    function escHtml(s) {
+      return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function supportStatusLabel(st) {
+      var map = {
+        open: tr("处理中", "Open"),
+        replied: tr("已回复", "Replied"),
+        closed: tr("已关闭", "Closed"),
+      };
+      return map[st] || st || "--";
+    }
+
+    function supportSenderLabel(sender) {
+      if (sender === "admin") return tr("客服", "Support");
+      if (sender === "system") return tr("AI 助手", "AI assistant");
+      return tr("我", "Me");
+    }
+
+    function supportCatLabel(cat) {
+      var map = {
+        api: tr("API / 调用", "API / Calls"),
+        billing: tr("充值 / 账单", "Billing / Orders"),
+        account: tr("账号", "Account"),
+        suggestion: tr("建议", "Suggestion"),
+        complaint: tr("投诉", "Complaint"),
+      };
+      return map[cat] || cat || "--";
+    }
+
+    function supportTime(iso) {
+      if (!iso) return "";
+      try {
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) return "";
+        var p = function (n) {
+          return (n < 10 ? "0" : "") + n;
+        };
+        return (
+          d.getFullYear() +
+          "-" + p(d.getMonth() + 1) +
+          "-" + p(d.getDate()) +
+          " " + p(d.getHours()) +
+          ":" + p(d.getMinutes())
+        );
+      } catch (e) {
+        return "";
+      }
+    }
+
+    function renderSupportList(rows) {
+      _supportListRows = rows || [];
+      var box = $("support-list");
+      if (!box) return;
+      if (!_supportListRows.length) {
+        box.innerHTML =
+          '<p class="sub">' + escHtml(tr("暂无工单，点上方「新建工单」开始。", "No tickets yet — tap New ticket above to start.")) + "</p>";
+        return;
+      }
+      var html = _supportListRows
+        .map(function (t) {
+          var active =
+            _supportCurrentTicket && Number(t.id) === Number(_supportCurrentTicket) ? " is-active" : "";
+          var last = t.last_message || t.body || "";
+          var senderTag = t.last_sender === "user" ? tr("我", "Me") + ": " : "";
+          return (
+            '<div class="support-ticket-item' + active + '" data-support-ticket="' + Number(t.id) + '">' +
+              '<div class="support-ticket-subj">' + escHtml(t.subject || "#" + t.id) + "</div>" +
+              '<div class="support-ticket-last">' + escHtml(senderTag + last) + "</div>" +
+              '<div class="support-ticket-meta">' +
+                '<span class="support-status ' + escHtml(t.status || "open") + '">' +
+                  escHtml(supportStatusLabel(t.status)) +
+                "</span>" +
+                (t.last_at ? "<span>" + escHtml(supportTime(t.last_at)) + "</span>" : "") +
+              "</div>" +
+            "</div>"
+          );
+        })
+        .join("");
+      box.innerHTML = html;
+      box.querySelectorAll("[data-support-ticket]").forEach(function (el) {
+        el.addEventListener("click", function () {
+          openSupportTicket(Number(el.getAttribute("data-support-ticket")));
+        });
+      });
+    }
+
+    function renderSupportMessages(t) {
+      var msgsBox = $("support-conv-msgs");
+      if (!msgsBox) return;
+      var msgs = (t && t.messages) || [];
+      if (!msgs.length) {
+        msgs = [{ sender: "user", content: t.body || "", created_at: t.created_at }];
+      }
+      msgsBox.innerHTML = msgs
+        .map(function (m) {
+          var isUser = m.sender === "user";
+          var cls = isUser ? "support-msg is-user" : "support-msg";
+          var bubble = isUser
+            ? "user"
+            : m.sender === "admin"
+            ? "admin"
+            : "system";
+          return (
+            '<div class="' + cls + '">' +
+              '<div class="support-bubble support-bubble-' + bubble + '">' +
+                escHtml(m.content || "") +
+              "</div>" +
+              '<div class="support-msg-meta">' +
+                escHtml(supportSenderLabel(m.sender)) +
+                (m.created_at ? " · " + escHtml(supportTime(m.created_at)) : "") +
+              "</div>" +
+            "</div>"
+          );
+        })
+        .join("");
+      msgsBox.scrollTop = msgsBox.scrollHeight;
+    }
+
+    function showSupportConv() {
+      var empty = $("support-no-select");
+      if (empty) empty.style.display = "none";
+      var newBox = $("support-new-box");
+      if (newBox) newBox.style.display = "none";
+      var conv = $("support-conv-box");
+      if (conv) conv.style.display = "flex";
+    }
+
+    function showSupportEmpty() {
+      var conv = $("support-conv-box");
+      if (conv) conv.style.display = "none";
+      var newBox = $("support-new-box");
+      if (newBox) newBox.style.display = "none";
+      var empty = $("support-no-select");
+      if (empty) empty.style.display = "flex";
+    }
+
+    async function openSupportTicket(ticketId, silent) {
+      _supportCurrentTicket = Number(ticketId);
+      renderSupportList(_supportListRows);
+      showSupportConv();
+      var msgsBox = $("support-conv-msgs");
+      if (!msgsBox) return;
+      if (!silent) {
+        msgsBox.innerHTML =
+          '<p class="sub">' + escHtml(tr("加载中…", "Loading…")) + "</p>";
+      }
+      try {
+        var r = await AI24X_API.supportTicketDetail(ticketId);
+        var t = (r && r.ticket) || {};
+        var head = $("support-conv-head");
+        if (head) {
+          head.innerHTML =
+            "<div><strong>" + escHtml(t.subject || "#" + t.id) + "</strong>" +
+              '<span class="support-status ' + escHtml(t.status || "open") + '">' +
+                escHtml(supportStatusLabel(t.status)) +
+              "</span></div>" +
+            '<div class="sub">' +
+              escHtml(supportCatLabel(t.category)) + " · #" + Number(t.id) +
+            "</div>";
+        }
+        renderSupportMessages(t);
+      } catch (e) {
+        if (!silent) {
+          msgsBox.innerHTML =
+            '<p class="sub">' +
+            escHtml((e && e.message) || tr("加载失败，请稍后重试", "Failed to load — please retry")) +
+            "</p>";
+        }
+      }
+    }
+
+    async function loadSupportTickets() {
+      if (!AI24X_API || typeof AI24X_API.supportTicketList !== "function") return;
+      try {
+        var r = await AI24X_API.supportTicketList(50, 0);
+        renderSupportList((r && r.rows) || []);
+        if (_supportCurrentTicket) {
+          var still = _supportListRows.some(function (t) {
+            return Number(t.id) === Number(_supportCurrentTicket);
+          });
+          if (still) openSupportTicket(_supportCurrentTicket, true);
+        }
+      } catch (e) {
+        var box = $("support-list");
+        if (box) {
+          box.innerHTML =
+            '<p class="sub">' +
+            escHtml((e && e.message) || tr("加载失败，请稍后重试", "Failed to load — please retry")) +
+            "</p>";
+        }
+      }
+    }
+
+    async function submitSupportNew() {
+      var bodyEl = $("support-new-body");
+      var msgEl = $("support-new-msg");
+      if (!bodyEl || !msgEl) return;
+      var body = (bodyEl.value || "").trim();
+      if (body.length < 10) {
+        msgEl.innerHTML =
+          '<div class="alert alert-error">' +
+          escHtml(tr("请把问题写清楚一些（至少 10 个字）。", "Please describe the issue in a little more detail (at least 10 characters).")) +
+          "</div>";
+        return;
+      }
+      var cat = (($("support-new-cat") && $("support-new-cat").value) || "api").trim();
+      var btn = $("support-new-submit");
+      if (btn) btn.disabled = true;
+      msgEl.innerHTML = '<div class="alert">' + escHtml(tr("提交中…", "Submitting…")) + "</div>";
+      try {
+        var r = await AI24X_API.supportTicketCreate({ category: cat, body: body });
+        if (!r || !r.ok || !r.ticket) {
+          throw new Error((r && r.message) || tr("提交失败", "Submit failed"));
+        }
+        bodyEl.value = "";
+        msgEl.innerHTML = "";
+        var nb = $("support-new-box");
+        if (nb) nb.style.display = "none";
+        await loadSupportTickets();
+        openSupportTicket(Number(r.ticket.id));
+      } catch (e) {
+        msgEl.innerHTML =
+          '<div class="alert alert-error">' +
+          escHtml((e && e.message) || tr("提交失败", "Submit failed")) +
+          "</div>";
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function sendSupportReply() {
+      if (!_supportCurrentTicket) return;
+      var input = $("support-reply-input");
+      if (!input) return;
+      var text = (input.value || "").trim();
+      if (!text) return;
+      var btn = $("support-reply-send");
+      if (btn) btn.disabled = true;
+      try {
+        var r = await AI24X_API.supportTicketReply(_supportCurrentTicket, text);
+        if (!r || !r.ok || !r.ticket) {
+          throw new Error((r && r.message) || tr("发送失败", "Failed to send"));
+        }
+        input.value = "";
+        renderSupportMessages(r.ticket);
+        loadSupportTickets().catch(function () {});
+      } catch (e) {
+        var msgsBox = $("support-conv-msgs");
+        if (msgsBox) {
+          var div = document.createElement("div");
+          div.className = "alert alert-error";
+          div.textContent = (e && e.message) || tr("发送失败", "Failed to send");
+          msgsBox.appendChild(div);
+          msgsBox.scrollTop = msgsBox.scrollHeight;
+        }
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    function bindSupportPanel() {
+      var btnNew = $("btn-support-new");
+      if (btnNew) {
+        btnNew.addEventListener("click", function () {
+          var empty = $("support-no-select");
+          if (empty) empty.style.display = "none";
+          var conv = $("support-conv-box");
+          if (conv) conv.style.display = "none";
+          var nb = $("support-new-box");
+          if (nb) {
+            nb.style.display = "block";
+            var bodyEl = $("support-new-body");
+            if (bodyEl) bodyEl.focus();
+          }
+        });
+      }
+      var btnCancel = $("support-new-cancel");
+      if (btnCancel) btnCancel.addEventListener("click", showSupportEmpty);
+      var btnSubmit = $("support-new-submit");
+      if (btnSubmit) btnSubmit.addEventListener("click", submitSupportNew);
+      var btnSend = $("support-reply-send");
+      if (btnSend) btnSend.addEventListener("click", sendSupportReply);
+      var input = $("support-reply-input");
+      if (input) {
+        input.addEventListener("keydown", function (ev) {
+          if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) {
+            ev.preventDefault();
+            sendSupportReply();
+          }
+        });
+      }
+    }
+
+    async function refreshAll() {
     if (!requireLogin()) return;
     var user = AI24X_API.getAuthUser() || {};
     var userLabel = user.email || user.phone || user.id || "--";
@@ -2091,8 +2436,7 @@
     } catch (e) {}
 
     try {
-      bindUsageControls();
-      loadUsagePage(0);
+      bindTransactionsControls();
     } catch (e) {}
 
     try {
@@ -2110,10 +2454,11 @@
     "overview",
     "keys",
     "billing",
-    "usage",
+    "transactions",
     "playground",
     "invite",
     "account",
+    "support",
   ];
 
   function normalizeConsolePanel(name) {
@@ -2122,7 +2467,8 @@
       .trim()
       .toLowerCase();
     if (n === "token-plans" || n === "plans" || n === "orders") return "billing";
-    if (n === "activity" || n === "ledger") return "usage";
+    if (n === "usage" || n === "activity" || n === "ledger") return "transactions";
+    if (n === "bills" || n === "bill" || n === "tx" || n === "transactions") return "transactions";
     if (n === "chat" || n === "try") return "playground";
     if (n === "refer" || n === "referral") return "invite";
     if (CONSOLE_PANELS.indexOf(n) >= 0) return n;
@@ -2147,13 +2493,18 @@
     if (id === "invite") {
       loadInvitees().catch(function () {});
     }
-    if (id === "usage") {
-      try {
-        loadUsageStats();
-      } catch (e) {}
-    }
+      if (id === "transactions") {
+        try {
+          bindTransactionsControls();
+        } catch (e) {}
+      }
+      if (id === "support") {
+        try {
+          loadSupportTickets();
+        } catch (e) {}
+      }
 
-    if (pushHash) {
+      if (pushHash) {
       try {
         var next = "#" + id;
         if (location.hash !== next) {
@@ -2195,21 +2546,9 @@
         refreshAll();
       });
     }
-    var navTickets = $("nav-tickets");
-    if (navTickets) {
-      navTickets.addEventListener("click", function (e) {
-        e.preventDefault();
-        if (window.AI24X_SUPPORT_WIDGET && typeof AI24X_SUPPORT_WIDGET.open === "function") {
-          AI24X_SUPPORT_WIDGET.open("ticket");
-        } else {
-          showMsg(
-            msgBox(),
-            tr("请使用右下角「协助」打开工单。", "Use the help widget (bottom-right) for tickets."),
-            true
-          );
-        }
-      });
-    }
+    try {
+      bindSupportPanel();
+    } catch (e) {}
     function openModal(id) {
       var el = $(id);
       if (!el) return;
