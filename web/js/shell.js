@@ -42,15 +42,18 @@
 
     function nav(href, key, id) {
       var c = activePage === id ? " is-active" : "";
+      var ext = /^https?:\/\//i.test(href);
+      var full = ext ? href : pre + href;
       var label = "";
       try {
         if (L && typeof L.t === "function") label = L.t(key) || "";
       } catch (e) {}
       return (
         '<a href="' +
-        pre +
-        href +
-        '" data-i18n="' +
+        full +
+        '"' +
+        (ext ? ' target="_blank" rel="noopener"' : "") +
+        ' data-i18n="' +
         key +
         '" class="' +
         c.trim() +
@@ -73,6 +76,7 @@
       nav("index.html", "nav.home", "index") +
       nav("product.html", "nav.product", "product") +
       nav("pricing.html", "nav.pricing", "pricing") +
+      nav("https://markets.ai24x.com", "nav.markets", "markets") +
       nav("models/index.html", "nav.models", "models") +
       nav("docs.html", "nav.docs", "docs") +
       nav("help.html", "nav.help", "help") +
@@ -146,6 +150,7 @@
       '<a href="' +
       pre +
       'partner.html" data-i18n="footer.link.partner"></a>' +
+      '<a href="https://markets.ai24x.com/" data-i18n="footer.link.markets"></a>' +
       '<a href="https://a.ai24x.com/" data-i18n="footer.link.marketwatch" data-i18n-zh-only></a>' +
       "</div>" +
       '<div class="footer-col">' +
