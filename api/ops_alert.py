@@ -53,6 +53,10 @@ _DEFAULT_CONFIG: dict[str, Any] = {
     "email_enabled": False,
     "alert_email": "",
     "sms_mobiles": "",
+    "balance_alert_enabled": True,
+    "balance_threshold_usd": 5,
+    "balance_threshold_cny": 20,
+    "balance_thresholds": {},
 }
 
 _LEVEL_ICON = {"error": "P0", "warn": "P1", "info": "INFO"}
@@ -70,6 +74,8 @@ _ALERT_LABELS = {
     "upstream_health_collect_fail": "上游健康采集异常",
     "upstream_fail": "上游通道故障",
     "upstream_circuit": "上游熔断触发",
+    "upstream_balance": "上游通道余额预警",
+    "upstream_balance_collect_fail": "余额采集异常",
     "price_monitor_fail": "价格监控采集异常",
     "price_alarm": "价格红线（倒挂）",
     "price_warn": "价格预警（低毛利）",
@@ -93,6 +99,7 @@ def _alert_label(code: str) -> str:
         ("price_alarm_", "价格红线（倒挂）"),
         ("upstream_fail_", "上游通道故障"),
         ("upstream_circuit_", "上游熔断触发"),
+        ("upstream_balance_", "上游通道余额预警"),
     ):
         if c.startswith(prefix):
             return label
@@ -146,6 +153,18 @@ def load_config() -> dict[str, Any]:
         cfg["push_info"] = bool(int(os.getenv("OPS_ALERT_PUSH_INFO", "0")))
     except ValueError:
         cfg["push_info"] = False
+    try:
+        cfg["balance_alert_enabled"] = bool(int(os.getenv("OPS_ALERT_BALANCE_ENABLED", str(int(bool(cfg.get("balance_alert_enabled", True)))))))
+    except ValueError:
+        cfg["balance_alert_enabled"] = True
+    try:
+        cfg["balance_threshold_usd"] = float(os.getenv("OPS_ALERT_BALANCE_USD", str(cfg.get("balance_threshold_usd") or 5)))
+    except ValueError:
+        cfg["balance_threshold_usd"] = 5.0
+    try:
+        cfg["balance_threshold_cny"] = float(os.getenv("OPS_ALERT_BALANCE_CNY", str(cfg.get("balance_threshold_cny") or 20)))
+    except ValueError:
+        cfg["balance_threshold_cny"] = 20.0
     return cfg
 
 
@@ -163,11 +182,26 @@ def save_config(updates: dict[str, Any]) -> dict[str, Any]:
         "email_enabled",
         "alert_email",
         "sms_mobiles",
+        "balance_alert_enabled",
+        "balance_threshold_usd",
+        "balance_threshold_cny",
+        "balance_thresholds",
     ):
         if key in updates and updates[key] is not None:
             cur[key] = updates[key]
     cur["enabled"] = bool(cur.get("enabled"))
     cur["push_info"] = bool(cur.get("push_info"))
+    cur["balance_alert_enabled"] = bool(cur.get("balance_alert_enabled", True))
+    try:
+        cur["balance_threshold_usd"] = float(cur.get("balance_threshold_usd") or 5)
+    except (TypeError, ValueError):
+        cur["balance_threshold_usd"] = 5.0
+    try:
+        cur["balance_threshold_cny"] = float(cur.get("balance_threshold_cny") or 20)
+    except (TypeError, ValueError):
+        cur["balance_threshold_cny"] = 20.0
+    if not isinstance(cur.get("balance_thresholds"), dict):
+        cur["balance_thresholds"] = {}
     cur["sms_enabled"] = bool(cur.get("sms_enabled"))
     try:
         cur["cooldown_minutes"] = max(1, int(cur.get("cooldown_minutes") or 60))
@@ -207,6 +241,10 @@ def public_config() -> dict[str, Any]:
         "email_enabled": bool(cfg.get("email_enabled")),
         "alert_email": cfg.get("alert_email") or "",
         "sms_mobiles": cfg.get("sms_mobiles") or "",
+        "balance_alert_enabled": bool(cfg.get("balance_alert_enabled", True)),
+        "balance_threshold_usd": float(cfg.get("balance_threshold_usd") or 5),
+        "balance_threshold_cny": float(cfg.get("balance_threshold_cny") or 20),
+        "balance_thresholds": cfg.get("balance_thresholds") or {},
         "active_codes": active,
         "last_check": st.get("last_check") or "",
         "last_push_at": st.get("last_push_at") or "",
@@ -417,6 +455,44 @@ def collect_alerts(db) -> dict[str, Any]:
                 )
     except Exception as e:
         add("warn", "price_monitor_fail", f"价格监控采集异常: {e}")
+
+    # 7) 上游通道余额预警（低于阈值才报；无接口/未配 key/未设上限的通道静默跳过，不误报）
+    if bool(cfg.get("balance_alert_enabled", True)):
+        try:
+            from balance_monitor import snapshot as _bal_snapshot
+
+            bal = _bal_snapshot()
+            thresholds = cfg.get("balance_thresholds") or {}
+            usd_th = float(cfg.get("balance_threshold_usd") or 5)
+            cny_th = float(cfg.get("balance_threshold_cny") or 20)
+            for row in bal.get("rows") or []:
+                if row.get("skip_alert") or row.get("deprecated") or row.get("unmetered") or row.get("unavailable"):
+                    continue
+                if not row.get("ok"):
+                    continue
+                balv = row.get("balance")
+                if balv is None:
+                    continue
+                cid = str(row.get("id") or "")
+                cur = str(row.get("currency") or "").upper()
+                th = thresholds.get(cid) if isinstance(thresholds, dict) else None
+                if th is None:
+                    th = usd_th if cur == "USD" else (cny_th if cur == "CNY" else None)
+                if th is None:
+                    continue
+                try:
+                    th = float(th)
+                    balv = float(balv)
+                except (TypeError, ValueError):
+                    continue
+                if balv < th:
+                    add(
+                        "warn",
+                        f"upstream_balance_{cid}",
+                        f"{row.get('title') or cid} 余额 {balv:g} {cur} < 阈值 {th:g} {cur}，请充值",
+                    )
+        except Exception as e:
+            add("warn", "upstream_balance_collect_fail", f"余额采集异常: {e}")
 
     return {"ok": True, "alerts": alerts, "health": health}
 

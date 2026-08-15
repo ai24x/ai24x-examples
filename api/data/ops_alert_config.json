@@ -8,5 +8,9 @@
   "sms_channel": "",
   "email_enabled": false,
   "alert_email": "",
-  "sms_mobiles": ""
+  "sms_mobiles": "",
+  "balance_alert_enabled": true,
+  "balance_threshold_usd": 5,
+  "balance_threshold_cny": 20,
+  "balance_thresholds": {}
 }
