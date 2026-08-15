@@ -68,6 +68,17 @@
     .tag-row a.tag-value { color: #fff; }
     .tag-row a.tag-value:hover { color: #fff; filter: brightness(1.12); text-decoration: none; }
     .tag-row a.tag-value::after { content: " \2192"; font-weight: 600; }
+    .lighthouse-mark {
+      display: inline-block; width: 124px; margin: 0 0 16px; border-radius: 16px;
+      overflow: hidden; border: 1px solid var(--border); background: #0b1020; line-height: 0;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      vertical-align: middle;
+    }
+    .lighthouse-mark:hover {
+      transform: translateY(-2px); text-decoration: none;
+      box-shadow: 0 10px 24px rgba(11, 107, 203, 0.22); border-color: var(--accent);
+    }
+    .lighthouse-mark svg { display: block; width: 100%; height: auto; }
   </style>
   <script type="application/ld+json">
   {
@@ -98,6 +109,47 @@
   <main class="page-main">
     <section class="hero hero-surface">
       <div class="container">
+        <a class="lighthouse-mark" href="https://markets.ai24x.com" target="_blank" rel="noopener" aria-label="Visit AI24X Markets">
+          <svg viewBox="0 0 120 64" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">
+            <rect x="0" y="0" width="120" height="64" fill="#0b1020"/>
+            <g opacity="0.4">
+              <rect x="10" y="8" width="1" height="1" fill="#fff"/>
+              <rect x="28" y="14" width="1" height="1" fill="#fff"/>
+              <rect x="52" y="7" width="1" height="1" fill="#fff"/>
+              <rect x="86" y="12" width="1" height="1" fill="#fff"/>
+              <rect x="104" y="6" width="1" height="1" fill="#fff"/>
+            </g>
+            <rect x="0" y="26" width="120" height="38" fill="#12161d"/>
+            <g opacity="0.25">
+              <rect x="0" y="33" width="120" height="2" fill="#181d26"/>
+              <rect x="0" y="42" width="120" height="2" fill="#181d26"/>
+              <rect x="0" y="51" width="120" height="2" fill="#181d26"/>
+            </g>
+            <rect x="18" y="46" width="20" height="3" rx="1" fill="#252b36"/>
+            <rect x="16" y="48" width="24" height="5" rx="2" fill="#181d26"/>
+            <g>
+              <rect x="29" y="27" width="6" height="22" fill="#181d26" stroke="#252b36" stroke-width="1"/>
+              <rect x="28" y="23" width="8" height="5" fill="#181d26" stroke="#252b36" stroke-width="1"/>
+              <rect x="30" y="19" width="4" height="4" fill="#181d26" stroke="#252b36" stroke-width="1"/>
+              <rect x="30" y="21" width="4" height="2" fill="#fbbf24" opacity="0.95"/>
+              <rect x="32" y="32" width="2" height="4" fill="#ffd56a" opacity="0.9"/>
+            </g>
+            <g data-anim="1">
+              <g>
+                <animateTransform attributeName="transform" type="rotate" values="-6 33 22;6 33 22;-6 33 22" dur="4.2s" repeatCount="indefinite"/>
+                <path d="M33 22 L120 13 L120 33 L33 28 Z" fill="#fbbf24" opacity="0.13"/>
+                <path d="M33 23 L120 19 L120 28 L33 27 Z" fill="#ffd56a" opacity="0.11"/>
+              </g>
+            </g>
+            <g class="beam-boost">
+              <path d="M33 22 L120 17 L120 31 L33 27 Z" fill="#ffd56a" opacity="0.16"/>
+            </g>
+            <g data-anim="1" opacity="0.0">
+              <path d="M52 42 L120 34 L120 42 L52 50 Z" fill="#ffd56a" opacity="0.12"/>
+              <animate attributeName="opacity" values="0;1;0" dur="2.6s" repeatCount="indefinite"/>
+            </g>
+          </svg>
+        </a>
         <h1 data-i18n="page.index.hero.title">AI24X Markets — US Market Intelligence</h1>
         <p class="lead" data-i18n="page.index.hero.lead">Charts, technical indicators and plain-language AI commentary for US stocks, ETFs and indices. Understand the market in minutes — from $9.9/month.</p>
         <div class="tag-row">
