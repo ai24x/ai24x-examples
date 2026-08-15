@@ -73,23 +73,9 @@ _ROLES = {"default_flash", "default_pro", "default_ultra", "vip_pick"}
 # 2026-08-14: 已知上游官方涨价日程（DeepSeek 8/17 峰谷定价）。
 # 闲时价按官方人民币 ÷ 7.14 折算美元；高峰为闲时 2 倍。
 # 作用：① 生效前在后台/飞书提前预警「涨价后毛利」；② 生效后自动按新价算毛利。
+# 2026-08-15 修正：L1/L2 默认档已切 MiMo（xiaomi/mimo-v2.5 / -pro），不背 DS 8/17 新成本，
+#   涨价日程只保留 VIP 点名（vip-ds-*，真正按 DS 官方价扣费），避免默认档误报倒挂。
 _HIKE_SCHEDULE: dict[str, dict[str, Any]] = {
-    "ds-v4-flash": {
-        "effective": "2026-08-17",
-        "in": 0.21,
-        "out": 0.63,
-        "peak_in": 0.42,
-        "peak_out": 1.26,
-        "note": "DeepSeek 官方涨价（闲时价）",
-    },
-    "ds-v4-pro": {
-        "effective": "2026-08-17",
-        "in": 0.63,
-        "out": 1.89,
-        "peak_in": 1.26,
-        "peak_out": 3.78,
-        "note": "DeepSeek 官方涨价（闲时价）",
-    },
     "vip-ds-flash": {
         "effective": "2026-08-17",
         "in": 0.21,
@@ -420,7 +406,19 @@ def snapshot() -> dict[str, Any]:
                 hout = float(hike.get("out") or 0)
                 pin = float(hike.get("peak_in") or hin)
                 pout = float(hike.get("peak_out") or hout)
-                denom = sell_in + 4 * sell_out
+                # 预判用「8/17 后实际售价倍率」（峰时走已拍板 peak_in/out_mult），
+                # 避免拿旧倍率误报「峰时贴线/倒挂」（如 vip-ds-flash 峰 out 4→6 后峰 GM 实为 40%）
+                f_in_mult = in_mult
+                f_out_mult = out_mult
+                _pin_m = c.get("peak_in_mult")
+                _pout_m = c.get("peak_out_mult")
+                if _pin_m is not None:
+                    f_in_mult = max(1, int(_pin_m))
+                if _pout_m is not None:
+                    f_out_mult = max(1, int(_pout_m))
+                f_sell_in = round(ref * f_in_mult, 4)
+                f_sell_out = round(ref * f_out_mult, 4)
+                denom = f_sell_in + 4 * f_sell_out
                 g1_off = (
                     round((1 - (hin + 4 * hout) / denom) * 100, 1)
                     if denom > 0
