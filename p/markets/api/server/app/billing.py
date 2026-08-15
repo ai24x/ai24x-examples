@@ -52,6 +52,13 @@ CREATE TABLE IF NOT EXISTS watchlist (
   created_at TEXT DEFAULT (datetime('now')),
   UNIQUE(user_id, symbol)
 );
+
+CREATE TABLE IF NOT EXISTS ai_brief_usage (
+  user_id TEXT NOT NULL,
+  day TEXT NOT NULL,
+  used INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (user_id, day)
+);
 """
 
 
@@ -206,6 +213,50 @@ def remove_watch(user_id: str, symbol: str) -> bool:
 
 def watch_limit(user_id: str) -> int:
     return PRO_WATCH_LIMIT if is_pro(user_id) else FREE_WATCH_LIMIT
+
+
+# ---------------------------------------------------------------- AI 点评额度
+
+def _today_utc() -> str:
+    import datetime
+
+    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+
+
+def ai_brief_remaining(user_id: str) -> int:
+    """免费档每日剩余次数；Pro 返回 -1（不限）。"""
+    if is_pro(user_id):
+        return -1
+    with _conn() as conn:
+        row = conn.execute(
+            "SELECT used FROM ai_brief_usage WHERE user_id = ? AND day = ?",
+            (user_id, _today_utc()),
+        ).fetchone()
+    used = int(row["used"]) if row else 0
+    return max(0, FREE_AI_BRIEF_DAILY - used)
+
+
+def consume_ai_brief(user_id: str) -> Optional[int]:
+    """消费一次 AI 点评额度，返回剩余次数；Pro 返回 -1；超限返回 None。"""
+    if is_pro(user_id):
+        return -1
+    day = _today_utc()
+    with _conn() as conn:
+        row = conn.execute(
+            "SELECT used FROM ai_brief_usage WHERE user_id = ? AND day = ?",
+            (user_id, day),
+        ).fetchone()
+        used = int(row["used"]) if row else 0
+        if used >= FREE_AI_BRIEF_DAILY:
+            return None
+        conn.execute(
+            """
+            INSERT INTO ai_brief_usage (user_id, day, used) VALUES (?, ?, 1)
+            ON CONFLICT(user_id, day) DO UPDATE SET used = used + 1
+            """,
+            (user_id, day),
+        )
+    return FREE_AI_BRIEF_DAILY - (used + 1)
 
 
 init_db()

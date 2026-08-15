@@ -3,5 +3,7 @@ __pycache__/
 .env
 .venv/
 **/data/cache/
+**/data/*.db-shm
+**/data/*.db-wal
 *.log
 docs/shot_app*.png

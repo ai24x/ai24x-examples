@@ -107,6 +107,29 @@
       <h3 data-i18n="panel.rsi">RSI · 14</h3>
       <div class="chart small" id="chart-rsi"></div>
     </div>
+    <div class="panel">
+      <h3 data-i18n="panel.brief">AI Technical Brief</h3>
+      <div style="padding: 12px 14px;">
+        <div class="brief-actions" style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:10px;">
+          <button id="btn-brief" data-i18n="brief.btn">Generate AI Brief</button>
+          <span id="brief-quota" class="muted" style="color:var(--muted); font-size:12px;"></span>
+          <a id="brief-pro-link" href="#sub" style="color:var(--accent); font-size:12px; display:none;" data-i18n="brief.upgrade">Upgrade to Pro</a>
+        </div>
+        <div id="brief-out" style="color:var(--text); font-size:13px; line-height:1.7; white-space:pre-wrap; word-break:break-word;"></div>
+        <div id="brief-disclaimer" style="color:var(--muted); font-size:11px; margin-top:10px; line-height:1.6;" data-i18n="brief.disclaimer">For educational purposes only — not investment advice. Market data is delayed at least 15 minutes.</div>
+      </div>
+    </div>
+    <div class="panel" id="sub">
+      <h3 data-i18n="panel.sub">Pro Subscription</h3>
+      <div style="padding: 12px 14px;">
+        <div id="sub-status" style="font-size:13px; margin-bottom:10px; color:var(--muted);"></div>
+        <div style="display:flex; flex-wrap:wrap; gap:10px;">
+          <button id="btn-sub-month" data-i18n="sub.month">Upgrade · $14.9/month</button>
+          <button id="btn-sub-year" data-i18n="sub.year">Upgrade · $119/year</button>
+        </div>
+        <div id="sub-msg" style="color:var(--up); font-size:12px; margin-top:10px;"></div>
+      </div>
+    </div>
   </main>
 
   <footer data-i18n="footer">15-minute delayed market data. Sources: Tencent (primary) · Eastmoney · Sina. For educational purposes only — not investment advice.</footer>
@@ -124,6 +147,26 @@
           'panel.main': 'Price · MA14/28/57 · MACD',
           'panel.vol': 'Volume',
           'panel.rsi': 'RSI · 14',
+          'panel.brief': 'AI Technical Brief',
+          'brief.btn': 'Generate AI Brief',
+          'brief.upgrade': 'Upgrade to Pro',
+          'brief.disclaimer': 'For educational purposes only — not investment advice. Market data is delayed at least 15 minutes.',
+          'brief.loading': 'Analyzing…',
+          'brief.login': 'Sign in to generate AI briefs',
+          'brief.quota': '{n} of 3 free briefs left today',
+          'brief.pro': 'Pro — unlimited AI briefs',
+          'brief.err': 'Brief unavailable: ',
+          'brief.quotaExceeded': 'You have used all 3 free AI briefs today. Upgrade to Pro for unlimited commentary.',
+          'brief.offline': 'AI commentary is temporarily unavailable. Please try again later.',
+          'panel.sub': 'Pro Subscription',
+          'sub.month': 'Upgrade · $14.9/month',
+          'sub.year': 'Upgrade · $119/year',
+          'sub.free': 'Free plan — 3 AI briefs/day, watchlist up to 3 symbols.',
+          'sub.pro': 'Pro active — unlimited AI briefs, watchlist up to 50 symbols. Expires {date}.',
+          'sub.checkoutFail': 'Unable to start checkout: ',
+          'sub.captureFail': 'Payment confirmation pending. If you completed payment, your access will activate shortly.',
+          'sub.captureOk': 'Payment confirmed — Pro activated. Thank you!',
+          'sub.reload': 'Refreshing…',
           shortma: 'Short MAs 5/10/20 (dashed)',
           footer: '15-minute delayed market data. Sources: Tencent (primary) · Eastmoney · Sina. For educational purposes only — not investment advice.',
           loading: 'Loading…',
@@ -148,6 +191,26 @@
           'panel.main': 'K线 · MA14/28/57 生命线 · MACD',
           'panel.vol': '成交量',
           'panel.rsi': 'RSI · 14',
+          'panel.brief': 'AI 技术体检点评',
+          'brief.btn': '生成 AI 点评',
+          'brief.upgrade': '升级 Pro',
+          'brief.disclaimer': '内容仅供学习交流，不构成投资建议。行情延迟至少 15 分钟。',
+          'brief.loading': '分析中…',
+          'brief.login': '登录后可生成 AI 点评',
+          'brief.quota': '今日免费点评剩余 {n} 次（共 3 次）',
+          'brief.pro': 'Pro — AI 点评不限次数',
+          'brief.err': '点评暂不可用：',
+          'brief.quotaExceeded': '今日 3 次免费 AI 点评已用完，升级 Pro 可无限使用。',
+          'brief.offline': 'AI 点评服务暂时不可用，请稍后再试。',
+          'panel.sub': 'Pro 订阅',
+          'sub.month': '升级 · $14.9/月',
+          'sub.year': '升级 · $119/年',
+          'sub.free': '免费版 — 每天 3 次 AI 点评，自选最多 3 只。',
+          'sub.pro': 'Pro 生效中 — AI 点评不限次，自选最多 50 只。到期时间 {date}。',
+          'sub.checkoutFail': '无法发起支付：',
+          'sub.captureFail': '支付确认待处理。如已完成支付，稍后会自动生效。',
+          'sub.captureOk': '支付确认成功 — Pro 已激活，感谢支持！',
+          'sub.reload': '刷新中…',
           shortma: '主图叠加短周期均线（虚线）',
           footer: '15 分钟延迟行情。数据源：腾讯（主源）· 东财 · 新浪。内容仅供学习交流与自主决策参考，不构成投资建议。',
           loading: '加载中…',
@@ -665,6 +728,144 @@
         });
       }
       renderAuth();
+      // —— AI 点评 + Pro 订阅（T6）——
+      function getToken() { return readCookie('ai24x_auth_token'); }
+      function loginNext() { location.href = coreUrl() + '/login.html?next=' + encodeURIComponent(location.href); }
+
+      var subState = { pro: false, expiresAt: null, briefRemaining: -1 };
+
+      function fmtDate(s) {
+        if (!s) return '—';
+        var d = new Date(s);
+        if (isNaN(d.getTime())) return s;
+        try { return d.toLocaleDateString(); } catch (e) { return s; }
+      }
+
+      function renderSub() {
+        var el = $('sub-status'); if (!el) return;
+        var token = getToken();
+        if (!token) { el.textContent = t('sub.free'); } else if (subState.pro) {
+          el.textContent = t('sub.pro').replace('{date}', fmtDate(subState.expiresAt));
+        } else { el.textContent = t('sub.free'); }
+        var pl = $('brief-pro-link'); if (pl) pl.style.display = (token && !subState.pro) ? 'inline' : 'none';
+        var q = $('brief-quota');
+        if (q) {
+          if (!token) q.textContent = t('brief.login');
+          else if (subState.pro) q.textContent = t('brief.pro');
+          else q.textContent = t('brief.quota').replace('{n}', String(subState.briefRemaining >= 0 ? subState.briefRemaining : '—'));
+        }
+      }
+
+      function checkSub() {
+        var token = getToken();
+        if (!token) { subState.pro = false; subState.expiresAt = null; subState.briefRemaining = -1; renderSub(); return; }
+        fetch('/api/subscribe/status', { headers: { Authorization: 'Bearer ' + token } })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            if (j.code === 0 && j.data) {
+              subState.pro = !!j.data.pro;
+              subState.expiresAt = j.data.expires_at || null;
+              subState.briefRemaining = (typeof j.data.brief_remaining === 'number') ? j.data.brief_remaining : -1;
+            }
+            renderSub();
+          })
+          .catch(function () { renderSub(); });
+      }
+
+      function showBriefMsg(html) { var o = $('brief-out'); if (o) o.innerHTML = html; }
+
+      function doBrief() {
+        var token = getToken();
+        if (!token) { loginNext(); return; }
+        var o = $('brief-out'); if (o) o.textContent = t('brief.loading');
+        fetch('/api/ai/brief', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ symbol: state.symbol, period: state.period })
+        })
+          .then(function (r) { return r.json().then(function (j) { return { status: r.status, j: j }; }); })
+          .then(function (res) {
+            var j = res.j || {};
+            if (res.status === 401) { loginNext(); return; }
+            if (res.status === 403 && j.msg === 'quota_exceeded') {
+              showBriefMsg('<span style="color:var(--up);">' + escHtml(t('brief.quotaExceeded')) + '</span>');
+              var pl = $('brief-pro-link'); if (pl) pl.style.display = 'inline';
+              return;
+            }
+            if (res.status !== 200 || j.code !== 0 || !j.data || !j.data.brief) {
+              showBriefMsg('<span style="color:var(--up);">' + escHtml(t('brief.err')) + escHtml((j.msg || res.status)) + '</span>');
+              return;
+            }
+            showBriefMsg(escHtml(j.data.brief));
+            if (typeof j.data.remaining_today === 'number' && j.data.remaining_today >= 0) {
+              subState.briefRemaining = j.data.remaining_today;
+              var q = $('brief-quota');
+              if (q && !subState.pro) q.textContent = t('brief.quota').replace('{n}', String(j.data.remaining_today));
+            }
+          })
+          .catch(function (e) { showBriefMsg('<span style="color:var(--up);">' + escHtml(t('brief.err')) + escHtml(String(e)) + '</span>'); });
+      }
+
+      function doCheckout(plan) {
+        var token = getToken();
+        if (!token) { loginNext(); return; }
+        var m = $('sub-msg'); if (m) m.textContent = '';
+        fetch('/api/subscribe/checkout', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan: plan })
+        })
+          .then(function (r) { return r.json().then(function (j) { return { status: r.status, j: j }; }); })
+          .then(function (res) {
+            var j = res.j || {};
+            if (res.status === 401) { loginNext(); return; }
+            if (res.status !== 200 || j.code !== 0 || !j.data || !j.data.pay_url) {
+              if (m) m.textContent = t('sub.checkoutFail') + (j.msg || res.status);
+              return;
+            }
+            location.href = j.data.pay_url;
+          })
+          .catch(function (e) { if (m) m.textContent = t('sub.checkoutFail') + String(e); });
+      }
+
+      function doCapture(orderId) {
+        var token = getToken();
+        if (!token) return;
+        var m = $('sub-msg'); if (m) m.textContent = t('sub.reload');
+        fetch('/api/subscribe/capture', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order_id: orderId })
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            var m2 = $('sub-msg');
+            if (j.code === 0 && j.data && j.data.status === 'activated') {
+              if (m2) m2.textContent = t('sub.captureOk');
+              checkSub();
+            } else if (j.code === 0 && j.data && j.data.status === 'not_completed') {
+              if (m2) m2.textContent = t('sub.captureFail');
+            } else {
+              if (m2) m2.textContent = t('sub.captureFail') + ' ' + (j.msg || '');
+            }
+          })
+          .catch(function () { var m2 = $('sub-msg'); if (m2) m2.textContent = t('sub.captureFail'); });
+      }
+
+      var bBrief = $('btn-brief'); if (bBrief) bBrief.addEventListener('click', doBrief);
+      var bMonth = $('btn-sub-month'); if (bMonth) bMonth.addEventListener('click', function () { doCheckout('monthly'); });
+      var bYear = $('btn-sub-year'); if (bYear) bYear.addEventListener('click', function () { doCheckout('yearly'); });
+
+      // PayPal 回跳：?pay=done&token=<orderId> → capture（幂等）
+      (function handlePayReturn() {
+        var p = new URLSearchParams(location.search);
+        if (p.get('pay') === 'done' && p.get('token')) {
+          doCapture(p.get('token'));
+          try { history.replaceState({}, '', location.pathname + location.hash); } catch (e) {}
+        }
+      })();
+
+      checkSub();
       applyLang();
       load();
     })();

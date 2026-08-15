@@ -14,6 +14,7 @@ from . import providers_us
 from .a1_engine import signals as a1signals
 from . import billing
 from . import paypal
+from . import ai_brief
 
 SERVICE_NAME = "AI24X-markets-api"
 PORT = 18012
@@ -195,6 +196,7 @@ async def api_subscribe_status(request: Request):
                 "pro": sub is not None,
                 "plan": (sub or {}).get("plan"),
                 "expires_at": (sub or {}).get("expires_at"),
+                "brief_remaining": billing.ai_brief_remaining(uid),
             },
         }
     except ValueError as e:
@@ -237,6 +239,30 @@ async def api_subscribe_capture(request: Request, payload: dict = Body(...)):
         msg = str(e)
         if msg in ("missing_bearer_token", "invalid_session", "missing_user_id"):
             return JSONResponse(status_code=401, content={"code": -1, "msg": msg})
+        return JSONResponse(status_code=400, content={"code": -1, "msg": msg})
+    except RuntimeError as e:
+        return JSONResponse(status_code=503, content={"code": -1, "msg": str(e)})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"code": -1, "msg": str(e)})
+
+
+@app.post("/api/ai/brief")
+async def api_ai_brief(request: Request, payload: dict = Body(...)):
+    """AI 技术体检点评（Pro 主力；免费档日 3 次）。描述性输出，不构成投资建议。"""
+    try:
+        uid = await _auth_user_id(request)
+        symbol = str((payload or {}).get("symbol") or "").strip()
+        period = str((payload or {}).get("period") or "day").strip().lower()
+        if not symbol:
+            raise ValueError("empty_symbol")
+        data = await ai_brief.generate_brief(uid, symbol, period)
+        return {"code": 0, "data": data}
+    except ValueError as e:
+        msg = str(e)
+        if msg in ("missing_bearer_token", "invalid_session", "missing_user_id"):
+            return JSONResponse(status_code=401, content={"code": -1, "msg": msg})
+        if msg == "quota_exceeded":
+            return JSONResponse(status_code=403, content={"code": -1, "msg": msg})
         return JSONResponse(status_code=400, content={"code": -1, "msg": msg})
     except RuntimeError as e:
         return JSONResponse(status_code=503, content={"code": -1, "msg": str(e)})
