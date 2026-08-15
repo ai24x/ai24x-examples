@@ -813,7 +813,7 @@
   </main>
   <footer class="site-footer" id="site-footer"></footer>
 
-  <script src="/js/shell.js?v=54"></script>
+  <script src="/js/shell.js?v=55"></script>
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("index"); } catch (e) {}
   </script>
@@ -1234,12 +1234,17 @@
         } catch (e0) {}
       }
 
+      function syncHeaderAuth() {
+        try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.refreshAuth && window.AI24X_A_SHELL.refreshAuth(); } catch (e0) {}
+      }
+
       function refreshMe() {
         var t = tokenGet();
         if (!t) {
           setLoggedUi(false);
           quotaKv.hidden = true;
           setStatus("");
+          syncHeaderAuth();
           return;
         }
         // 有 token：先进入“验证中”状态，避免未登录面板闪现
@@ -1259,6 +1264,7 @@
             qPlan.textContent = planTitle(lastQuotaPlanCode || "-");
             setStatus("");
             setLoggedUi(true);
+            syncHeaderAuth();
           })
           .catch(function (e) {
             var s = (e && (e.status != null)) ? Number(e.status) : null;
@@ -1269,6 +1275,7 @@
             if (isAuthErr) {
               tokenClear();
               setStatus("登录已失效，请重新登录。");
+              syncHeaderAuth();
               return;
             }
             setStatus("账户信息加载失败，请刷新重试。");
@@ -1442,6 +1449,7 @@
           .then(function (d) {
             if (!d || !d.token) throw new Error("no token");
             tokenSet(d.token);
+            syncHeaderAuth();
             var isRegister = authMode === "register";
             var okMsg = isRegister ? "注册成功。" : "登录成功。";
             setStatus(okMsg);

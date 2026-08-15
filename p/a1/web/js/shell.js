@@ -255,26 +255,16 @@
     return wrap;
   }
 
-  function mount(activePage) {
-    var h = document.getElementById("site-header");
-    var f = document.getElementById("site-footer");
-    if (h) {
-      try { h.textContent = ""; } catch (e0) {}
-      h.appendChild(headerDom(activePage));
-    }
-    if (f) {
-      try { f.textContent = ""; } catch (e1) {}
-      f.appendChild(footerDom());
-    }
-    bindChrome();
-    try{
+  function refreshAuth() {
+    try {
       var TOKEN_KEY = "ai24x_a_token";
       var tok = "";
-      try{ tok = localStorage.getItem(TOKEN_KEY) || ""; }catch(e0){ tok = ""; }
+      try { tok = localStorage.getItem(TOKEN_KEY) || ""; } catch (e0) { tok = ""; }
       var authWrap = document.getElementById("auth-actions");
       var btnAuth = document.getElementById("btn-auth");
       var btnVip = document.getElementById("btn-vip");
       var btnLogout = document.getElementById("btn-header-logout");
+      if (!authWrap) return;
       function inviteCode() {
         try {
           var sp = new URLSearchParams(String(location.search || "").replace(/^\?/, ""));
@@ -295,14 +285,14 @@
         if (ic) h += "&i=" + encodeURIComponent(ic);
         return h;
       }
-      function showAuthWrap(){
-        if(!authWrap) return;
-        try{ authWrap.style.display = "inline-flex"; }catch(e0){}
+      function showAuthWrap() {
+        if (!authWrap) return;
+        try { authWrap.style.display = "inline-flex"; } catch (e0) {}
       }
-      function setLoggedOutUi(){
-        try{
-          if(btnAuth) btnAuth.style.display = "";
-          if(btnLogout) btnLogout.style.display = "none";
+      function setLoggedOutUi() {
+        try {
+          if (btnAuth) btnAuth.style.display = "";
+          if (btnLogout) btnLogout.style.display = "none";
           // 游客：登录为次、免费注册为主（仅顶栏出现）
           // 极窄屏用「注册」，减轻华为浏览器顶栏撑宽导致整页右侧裁切
           var narrow = false;
@@ -314,68 +304,61 @@
             );
             narrow = w > 0 && w <= 380;
           } catch (eN) {}
-          if(btnAuth) {
+          if (btnAuth) {
             btnAuth.textContent = "登录";
             btnAuth.className = "btn btn-ghost btn-auth-login";
             btnAuth.setAttribute("href", authHref("login"));
           }
-          if(btnVip) {
+          if (btnVip) {
             btnVip.textContent = narrow ? "注册" : "免费注册";
             btnVip.className = "btn btn-primary btn-auth-register";
             btnVip.setAttribute("href", authHref("register"));
             btnVip.style.display = "";
           }
-        }catch(e0){}
+        } catch (e0) {}
       }
-      function setLoggedInUi(d){
-        try{
+      function setLoggedInUi() {
+        try {
           // 顶栏导航已有「我的」，右上角隐藏账号入口（避免双入口），仅保留「开通 VIP」。
-          if(btnAuth) btnAuth.style.display = "none";
-          if(btnLogout) btnLogout.style.display = "";
-          if(btnVip) {
+          if (btnAuth) btnAuth.style.display = "none";
+          if (btnLogout) btnLogout.style.display = "";
+          if (btnVip) {
             btnVip.textContent = "开通 VIP";
             btnVip.className = "btn btn-primary";
             btnVip.setAttribute("href", "account.html#vip");
             btnVip.style.display = "";
           }
-        }catch(e0){}
+        } catch (e0) {}
       }
-      // Avoid "login flash": hide auth actions until we know state.
-      if(!tok){
-        setLoggedOutUi();
-        showAuthWrap();
-      }else{
-        // Show stable entry immediately when token exists; refine state after /api/me.
-        try{ setLoggedInUi(null); }catch(e0){}
-        showAuthWrap();
-        // Best-effort: if /api/me fails, keep partner hidden.
-        try{
-          var apiBase = getApiBase();
-          fetch((apiBase || "") + "/api/me", { cache: "no-store", headers: { "Authorization": "Bearer " + String(tok) } })
-            .then(function(r){ return r && r.ok ? r.json() : null; })
-            .then(function(d){
-              try{ setLoggedInUi(d); }catch(eU){}
-              showAuthWrap();
-            })
-            .catch(function(){
-              // keep "我的" shown; if token invalid, account page will guide relogin
-            });
-        }catch(e3){
-          // keep "我的" shown
-        }
-      }
-    }catch(eG){}
-      try{
-        var btnLogoutH = document.getElementById("btn-header-logout");
-        if(btnLogoutH) btnLogoutH.addEventListener("click", function(){
-          try{ localStorage.removeItem("ai24x_a_token"); }catch(e0){}
-          try{ localStorage.removeItem("ai24x_a_watchlist"); }catch(e1){}
-          try{ location.href = "index.html"; }catch(e2){}
-        });
-      }catch(eH){}
-
+      if (tok) setLoggedInUi();
+      else setLoggedOutUi();
+      showAuthWrap();
+    } catch (eG) {}
   }
 
-  global.AI24X_A_SHELL = { mount: mount, applyTheme: applyTheme, getApiBase: getApiBase };
+  function mount(activePage) {
+    var h = document.getElementById("site-header");
+    var f = document.getElementById("site-footer");
+    if (h) {
+      try { h.textContent = ""; } catch (e0) {}
+      h.appendChild(headerDom(activePage));
+    }
+    if (f) {
+      try { f.textContent = ""; } catch (e1) {}
+      f.appendChild(footerDom());
+    }
+    bindChrome();
+    refreshAuth();
+    try {
+      var btnLogoutH = document.getElementById("btn-header-logout");
+      if (btnLogoutH) btnLogoutH.addEventListener("click", function () {
+        try { localStorage.removeItem("ai24x_a_token"); } catch (e0) {}
+        try { localStorage.removeItem("ai24x_a_watchlist"); } catch (e1) {}
+        try { location.href = "index.html"; } catch (e2) {}
+      });
+    } catch (eH) {}
+  }
+
+  global.AI24X_A_SHELL = { mount: mount, refreshAuth: refreshAuth, applyTheme: applyTheme, getApiBase: getApiBase };
 })(typeof window !== "undefined" ? window : this);
 

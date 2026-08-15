@@ -1173,7 +1173,7 @@
     </div>
   </div>
 
-  <script src="/js/shell.js?v=54"></script>
+  <script src="/js/shell.js?v=55"></script>
   <script src="/js/watchscore.js?v=6"></script>
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("account"); } catch (e) {}
@@ -2012,6 +2012,10 @@
         tick();
       }
 
+      function syncHeaderAuth() {
+        try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.refreshAuth && window.AI24X_A_SHELL.refreshAuth(); } catch (e0) {}
+      }
+
       function refreshMe() {
         // 支付场景：从支付宝/微信切回本页时自动刷新状态，避免"总是要重新登录"
         try{
@@ -2093,6 +2097,7 @@
           setAccountIdentityVisible(false);
           if (btnBindPhone) btnBindPhone.hidden = true;
           setStatus("");
+          syncHeaderAuth();
           try{ loadNotices(); }catch(eN){}
           return;
         }
@@ -2149,6 +2154,7 @@
               }
             } catch (eL) {}
             setStatus("");
+            syncHeaderAuth();
             tryAutoInviteBind();
             try {
               reloadInviteRecords();
@@ -2176,6 +2182,7 @@
             var isAuthErr = (s === 401 || s === 403) || msg.indexOf("HTTP 401") >= 0 || msg.indexOf("HTTP 403") >= 0;
             if (isAuthErr) {
               tokenClear();
+              syncHeaderAuth();
               if (authGuest) authGuest.hidden = false;
               if (authUser) authUser.hidden = true;
               quotaKv.hidden = true;
