@@ -1150,8 +1150,14 @@
         window.addEventListener("error", function () {
           setStatus("页面异常，请刷新后重试。");
         });
-        window.addEventListener("unhandledrejection", function () {
-          setStatus("页面加载异常，请刷新重试。");
+        window.addEventListener("unhandledrejection", function (ev) {
+          var reason = "";
+          try {
+            var r = ev && ev.reason;
+            reason = String((r && (r.message || r.stack)) || r || "").slice(0, 100);
+          } catch (eR) {}
+          try { if (window.console && console.warn) console.warn("[unhandledrejection]", ev && ev.reason); } catch (eW) {}
+          setStatus("页面加载异常" + (reason ? "（" + reason + "）" : "") + "，请刷新重试。");
         });
       } catch (e) {}
 
@@ -1338,7 +1344,7 @@
             var m = normalizeErrMsg(e);
             setStatus(m || "验证码发送失败，请稍后重试。");
           })
-          .finally(function () { if (btnOtp) btnOtp.disabled = false; });
+          .finally(function () { if (btnOtp) btnOtp.disabled = false; }).catch(function () {});
       }
 
       function readInviteFromUrl() {
@@ -1476,7 +1482,7 @@
                 if (isRegister) setStatus(okMsg + "邀请码未绑定，可在用户中心再试。");
                 else setStatus(okMsg);
               })
-              .finally(finishUi);
+              .finally(finishUi).catch(function () {});
           })
           .catch(function (e) {
             var m = normalizeErrMsg(e);
@@ -1486,7 +1492,7 @@
             }
             setStatus(authMode === "register" ? "注册失败，请检查验证码与密码。" : "登录失败，请检查账号与密码。");
           })
-          .finally(function () { if (btnSubmit) btnSubmit.disabled = false; });
+          .finally(function () { if (btnSubmit) btnSubmit.disabled = false; }).catch(function () {});
       }
 
 
