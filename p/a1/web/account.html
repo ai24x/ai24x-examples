@@ -1052,6 +1052,7 @@
       <h2>修改密码</h2>
       <p class="sub">修改成功后将以新 token 保持登录状态。</p>
       <form id="pw-form-change" onsubmit="return false">
+      <input type="text" autocomplete="username" aria-hidden="true" tabindex="-1" style="display:none;" />
       <label class="pw-field">当前密码
         <input id="pw-ch-old" type="password" autocomplete="current-password" />
       </label>
@@ -1082,7 +1083,7 @@
       </label>
       <label class="pw-field">验证码
         <div class="pw-inline-row">
-          <input id="pw-fg-code" type="text" inputmode="numeric" maxlength="8" placeholder="6 位数字" />
+          <input id="pw-fg-code" type="text" inputmode="numeric" maxlength="8" placeholder="6 位数字" autocomplete="one-time-code" />
           <button type="button" class="btn btn-otp-send" id="pw-fg-send">发送验证码</button>
         </div>
         <div id="fg-sms-captcha-wrap" style="margin-top:10px;" hidden>
@@ -1116,7 +1117,7 @@
       </label>
       <label class="pw-field">短信验证码
         <div class="pw-inline-row">
-          <input id="bind-phone-code" type="text" inputmode="numeric" placeholder="6 位数字" maxlength="16" />
+          <input id="bind-phone-code" type="text" inputmode="numeric" placeholder="6 位数字" maxlength="16" autocomplete="one-time-code" />
           <button type="button" class="btn btn-otp-send" id="btn-bind-phone-send">发送验证码</button>
         </div>
         <div id="bind-sms-captcha-wrap" style="margin-top:10px;" hidden>
