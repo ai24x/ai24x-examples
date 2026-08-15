@@ -193,18 +193,21 @@ CATALOG: list[dict[str, Any]] = [
         "direct_id": "deepseek-v4-flash",
         # 官方直连优先；硅基仅作官方/OR 失败后的同族兜底
         "siliconflow_id": "deepseek-ai/DeepSeek-V4-Flash",
-        "cost_in": 0.14,
-        "cost_out": 0.28,
-        # 2026-08-14: DS 官方 8/17 涨价（输出 ¥2→¥4.5 闲时/¥9 高峰）
-        # → 点名价上调 in2/out4（$0.70/$1.40），闲时 1:4 毛利约 56%
-        "billing_mult": 4,
-        "in_mult": 2,
-        "out_mult": 4,
-        "quality": "点名专属 · 全程同模型不降级",
-        "quality_en": "Named pick · same-model failover",
-        "access": "ready",
-        "modalities": ["text"],
-        "failover_to": ["ds-v4-flash"],
+    "cost_in": 0.14,
+    "cost_out": 0.28,
+    # 2026-08-14: DS 官方 8/17 涨价（输出 ¥2→¥4.5 闲时/¥9 高峰）
+    # → 点名价上调 in2/out4（$0.70/$1.40），闲时 1:4 毛利约 56%
+    "billing_mult": 4,
+    "in_mult": 2,
+    "out_mult": 4,
+    # 2026-08-15 峰谷落地（雷总拍板）：峰时 flash out 4→6（$2.10，峰 GM 40%），in 不变
+    "peak_in_mult": 2,
+    "peak_out_mult": 6,
+    "quality": "点名专属 · 全程同模型不降级",
+    "quality_en": "Named pick · same-model failover",
+    "access": "ready",
+    "modalities": ["text"],
+    "failover_to": ["ds-v4-flash"],
     },
     {
         "id": "vip-ds-pro",
@@ -216,18 +219,21 @@ CATALOG: list[dict[str, Any]] = [
         "openrouter_id": "deepseek/deepseek-v4-pro",
         "direct_id": "deepseek-v4-pro",
         "siliconflow_id": "deepseek-ai/DeepSeek-V4-Pro",
-        "cost_in": 0.435,
-        "cost_out": 0.87,
-        # 2026-08-14: DS 官方 8/17 涨价（输出 ¥6→¥13.5 闲时/¥27 高峰）
-        # → 点名价上调 in6/out12（$2.10/$4.20），闲时 1:4 毛利约 56%
-        "billing_mult": 12,
-        "in_mult": 6,
-        "out_mult": 12,
-        "quality": "更强推理",
-        "quality_en": "Stronger reasoning",
-        "access": "ready",
-        "modalities": ["text"],
-        "failover_to": ["ds-v4-pro"],
+    "cost_in": 0.435,
+    "cost_out": 0.87,
+    # 2026-08-14: DS 官方 8/17 涨价（输出 ¥6→¥13.5 闲时/¥27 高峰）
+    # → 点名价上调 in6/out12（$2.10/$4.20），闲时 1:4 毛利约 56%
+    "billing_mult": 12,
+    "in_mult": 6,
+    "out_mult": 12,
+    # 2026-08-15 峰谷落地（雷总拍板）：峰时 pro out 12→16（$5.60，峰 GM 33%），in 不变
+    "peak_in_mult": 6,
+    "peak_out_mult": 16,
+    "quality": "更强推理",
+    "quality_en": "Stronger reasoning",
+    "access": "ready",
+    "modalities": ["text"],
+    "failover_to": ["ds-v4-pro"],
     },
     {
         "id": "vip-kimi",
@@ -837,6 +843,17 @@ def merge_catalog_row(c: dict[str, Any]) -> dict[str, Any]:
                 row["out_mult"] = max(1, min(200, int(ov["out_mult"])))
             except (TypeError, ValueError):
                 pass
+        # 2026-08-15 峰谷倍率：管理台可单独配置峰时 in/out（缺省回落谷时 in/out）
+        if "peak_in_mult" in ov:
+            try:
+                row["peak_in_mult"] = max(1, min(200, int(ov["peak_in_mult"])))
+            except (TypeError, ValueError):
+                pass
+        if "peak_out_mult" in ov:
+            try:
+                row["peak_out_mult"] = max(1, min(200, int(ov["peak_out_mult"])))
+            except (TypeError, ValueError):
+                pass
         # 双价兜底：缺 in/out 倍率时回落 billing_mult（单费率兼容）
         if isinstance(ov.get("channels"), list) and ov["channels"]:
             row["channels"] = [str(x).strip() for x in ov["channels"] if str(x).strip()]
@@ -1047,12 +1064,19 @@ def list_vip_picks_for_user(
         mult = int(c.get("billing_mult") or 1)
         in_mult = int(c.get("in_mult") or c.get("billing_mult") or 1)
         out_mult = int(c.get("out_mult") or c.get("billing_mult") or 1)
+        # 2026-08-15 峰谷：峰值倍率缺省回落谷时倍率（仅 DS 点名配置了峰谷）
+        peak_in_mult = int(c.get("peak_in_mult") or in_mult)
+        peak_out_mult = int(c.get("peak_out_mult") or out_mult)
         est_usd = round(ref_usd_per_m * mult, 2)
         est_in_usd = round(ref_usd_per_m * in_mult, 2)
         est_out_usd = round(ref_usd_per_m * out_mult, 2)
+        peak_est_in_usd = round(ref_usd_per_m * peak_in_mult, 2)
+        peak_est_out_usd = round(ref_usd_per_m * peak_out_mult, 2)
         est_cny = int(round(est_usd * fx))
         est_in_cny = int(round(est_in_usd * fx))
         est_out_cny = int(round(est_out_usd * fx))
+        peak_est_in_cny = int(round(peak_est_in_usd * fx))
+        peak_est_out_cny = int(round(peak_est_out_usd * fx))
         out.append(
             {
                 "id": c["id"],
@@ -1062,10 +1086,16 @@ def list_vip_picks_for_user(
                 "billing_mult": mult,
                 "in_mult": in_mult,
                 "out_mult": out_mult,
+                "peak_in_mult": peak_in_mult,
+                "peak_out_mult": peak_out_mult,
                 "est_in_usd_per_m": est_in_usd,
                 "est_out_usd_per_m": est_out_usd,
+                "peak_est_in_usd_per_m": peak_est_in_usd,
+                "peak_est_out_usd_per_m": peak_est_out_usd,
                 "est_in_cny_per_m": est_in_cny,
                 "est_out_cny_per_m": est_out_cny,
+                "peak_est_in_cny_per_m": peak_est_in_cny,
+                "peak_est_out_cny_per_m": peak_est_out_cny,
                 # 短标签给用户看；勿塞运维备注
                 "blurb": c.get("quality") or "",
                 "blurb_en": c.get("quality_en") or c.get("quality") or "",

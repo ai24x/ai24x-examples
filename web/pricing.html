@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <!-- Google tag (gtag.js) -->
@@ -138,6 +138,30 @@
       </div>
     </section>
 
+    <section class="section section-alt" id="peakSection">
+      <div class="container" style="max-width:980px;">
+        <h2 style="margin:0 0 10px;" data-i18n="page.pricing.peakTitle">DeepSeek peak/off-peak pricing · effective Aug 17</h2>
+        <p class="sub" style="margin:0 0 14px;" data-i18n="page.pricing.peakSub">DeepSeek named picks follow official peak/off-peak rates from Aug 17 (Beijing time). Peak hours: 09:00-12:00 / 14:00-18:00; nights and other hours are off-peak and cheaper. Everyday flash / pro tiers are not affected.</p>
+        <div class="plan-compare-wrap">
+          <table class="plan-compare">
+            <thead>
+              <tr>
+                <th data-i18n="page.pricing.peakColModel">Model</th>
+                <th data-i18n="page.pricing.peakColOff">Off-peak (in / out $ per 1M)</th>
+                <th data-i18n="page.pricing.peakColOn">Peak (in / out $ per 1M)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>DeepSeek V4 Flash</strong> (named pick)</td><td>$0.70 / $1.40</td><td>$0.70 / $2.10</td></tr>
+              <tr><td><strong>DeepSeek V4 Pro</strong> (named pick)</td><td>$2.10 / $4.20</td><td>$2.10 / $5.60</td></tr>
+              <tr><td><strong>AI24X flash / pro</strong> (everyday tiers)</td><td>$0.35 / $1.05</td><td>unchanged</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="sub small" style="margin:12px 0 0;"><span data-i18n="page.pricing.peakNow">Current period:</span> <strong id="peakNowBadge">—</strong> <span data-i18n="page.pricing.peakNowTip">(Beijing time; final billing on Console)</span></p>
+      </div>
+    </section>
+
     <section class="section section-alt" id="settleSection">
       <div class="container" style="max-width:980px;">
         <h2 style="margin:0 0 10px;" data-i18n="page.pricing.settleTitle">Payment</h2>
@@ -160,15 +184,25 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260815d"></script>
-  <script src="js/api.js?v=20260815d"></script>
+  <script src="config/locales.js?v=20260816x"></script>
+  <script src="js/api.js?v=20260816x"></script>
   <script src="js/utm.js?v=20260802a"></script>
 <script src="js/i18n.js?v=20260812g"></script>
-  <script src="js/shell.js?v=20260815d"></script>
+  <script src="js/shell.js?v=20260816x"></script>
   <script src="js/app.js?v=20260808b"></script>
-  <script src="js/support-widget.js?v=20260815d"></script>
+  <script src="js/support-widget.js?v=20260816x"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function () {
+      // 2026-08-15 峰谷：定价页当前时段（Asia/Shanghai 本地计算）
+      var peakNow = document.getElementById("peakNowBadge");
+      if (peakNow) {
+        var hh = new Date().getUTCHours() + 8;
+        if (hh >= 24) hh -= 24;
+        var isPeak = (hh >= 9 && hh < 12) || (hh >= 14 && hh < 18);
+        peakNow.textContent = isPeak
+          ? t("page.pricing.peakOn", "Peak")
+          : t("page.pricing.peakOff", "Off-peak");
+      }
       var grid = document.getElementById("tokenPlansGrid");
       var st = document.getElementById("tokenPayStatus");
       var settle = document.getElementById("tokenSettleHint");

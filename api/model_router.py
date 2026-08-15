@@ -54,6 +54,52 @@ MODEL_LAYER: dict[str, str] = {
     "gpt-3.5-turbo": "L1",
 }
 
+# —— DeepSeek 峰谷计价（2026-08-15 落地，官方 8/17 00:00 生效）——
+# 官方峰时：北京 09:00-12:00 / 14:00-18:00；其余谷时（18:00-次日 09:00 整夜 15 小时）
+PEAK_WINDOWS: tuple[tuple[int, int], ...] = ((9, 12), (14, 18))
+
+
+def current_period(*, now: Optional[Any] = None) -> str:
+    """返回 DeepSeek 计价时段：'peak' / 'offpeak'（Asia/Shanghai 实时判定，不缓存价格）。"""
+    forced = (os.getenv("TOKEN_LLM_PERIOD") or "").strip().lower()
+    if forced in ("peak", "offpeak"):
+        return forced
+    import datetime as _dt
+
+    t = now or _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=8)))
+    if getattr(t, "tzinfo", None) is None:
+        t = t.replace(tzinfo=_dt.timezone(_dt.timedelta(hours=8)))
+    hh = t.hour
+    return "peak" if any(s <= hh < e for s, e in PEAK_WINDOWS) else "offpeak"
+
+
+def _peak_mults(pick: dict[str, Any]) -> Optional[tuple[int, int]]:
+    """峰时倍率覆盖（仅配置了 peak_in_mult/peak_out_mult 的模型生效，如 vip-ds-flash/pro）。"""
+    import datetime as _dt
+
+    # 官方峰谷 2026-08-17 00:00 生效：生效前保持现行价（前台提前展示，扣费不提前加价）
+    try:
+        _eff = _dt.date.fromisoformat((os.getenv("TOKEN_LLM_PEAK_EFFECTIVE") or "2026-08-17").strip())
+    except ValueError:
+        _eff = _dt.date(2026, 8, 17)
+    if _dt.date.today() < _eff:
+        return None
+    if current_period() != "peak":
+        return None
+    pin = pick.get("peak_in_mult")
+    pout = pick.get("peak_out_mult")
+    if pin is None and pout is None:
+        return None
+    in_m = max(
+        1,
+        int(pin if pin is not None else pick.get("in_mult") or pick.get("billing_mult") or 1),
+    )
+    out_m = max(
+        1,
+        int(pout if pout is not None else pick.get("out_mult") or pick.get("billing_mult") or 1),
+    )
+    return in_m, out_m
+
 # 聚合模式：各层都打同一 OpenRouter，用不同 model id 区分档位
 CHAIN_FREE = ["L1", "L0"]
 # VIP 档：OR 层失败后落到 L0 硅基（免费 Key），避免整站 OR 挂死
@@ -424,6 +470,7 @@ def list_models_public(*, is_vip: bool, allow_names: Optional[set[str]] = None) 
         "default": "auto",
         "chain": CHAIN_VIP if is_vip else CHAIN_FREE,
         "region_routing": _region_routing_enabled(),
+        "period": current_period(),
         "upstream_mode": mode,
         "upstream": {
             "mode": "live" if any_key else "stub",
@@ -1887,6 +1934,10 @@ def _run_vip_pick_chat(
     billing_mult = max(1, int(pick.get("billing_mult") or 1))
     in_mult = max(1, int(pick.get("in_mult") or pick.get("billing_mult") or 1))
     out_mult = max(1, int(pick.get("out_mult") or pick.get("billing_mult") or 1))
+    # 2026-08-15 峰谷：DeepSeek 点名峰时按峰值倍率扣费（实时取时段）
+    _pm = _peak_mults(pick)
+    if _pm:
+        in_mult, out_mult = _pm
     public_id = str(pick.get("id") or "vip_pick")
     or_id = (pick.get("openrouter_id") or "").strip()
     direct_id = (pick.get("direct_id") or "").strip()
@@ -2973,6 +3024,10 @@ def _run_vip_pick_chat_stream(
     billing_mult = max(1, int(pick.get("billing_mult") or 1))
     in_mult = max(1, int(pick.get("in_mult") or pick.get("billing_mult") or 1))
     out_mult = max(1, int(pick.get("out_mult") or pick.get("billing_mult") or 1))
+    # 2026-08-15 峰谷：DeepSeek 点名流式同样按当前时段倍率
+    _pm = _peak_mults(pick)
+    if _pm:
+        in_mult, out_mult = _pm
     public_id = str(pick.get("id") or "vip_pick")
     or_id = (pick.get("openrouter_id") or "").strip()
     direct_id = (pick.get("direct_id") or "").strip()

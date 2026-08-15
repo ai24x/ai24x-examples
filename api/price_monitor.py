@@ -366,15 +366,29 @@ def snapshot() -> dict[str, Any]:
         else:
             in_mult = max(1, int(c.get("in_mult") or c.get("billing_mult") or 1))
             out_mult = max(1, int(c.get("out_mult") or c.get("billing_mult") or 1))
-        sell_in = round(ref * in_mult, 4)
-        sell_out = round(ref * out_mult, 4)
+        # 2026-08-15 峰谷：8/17 官方峰谷生效后，售价与成本都按时段取（峰时走 peak 倍率/peak 成本）
+        from model_router import current_period
+
+        period = current_period()
         cost_in = float(c.get("cost_in") or 0)
         cost_out = float(c.get("cost_out") or 0)
         # 已生效的官方涨价：按日程覆盖成本（8/17 后自动切新价，无需改代码）
         hike_now = _hike_applied(cid)
         if hike_now:
-            cost_in = float(hike_now.get("in") or cost_in)
-            cost_out = float(hike_now.get("out") or cost_out)
+            if period == "peak" and hike_now.get("peak_in") is not None:
+                cost_in = float(hike_now.get("peak_in") or cost_in)
+                cost_out = float(hike_now.get("peak_out") or cost_out)
+                # 售价同步切峰值倍率（仅官方峰谷生效后，避免生效前毛利虚高）
+                _pin = c.get("peak_in_mult")
+                _pout = c.get("peak_out_mult")
+                if _pin is not None or _pout is not None:
+                    in_mult = max(1, int(_pin if _pin is not None else in_mult))
+                    out_mult = max(1, int(_pout if _pout is not None else out_mult))
+            else:
+                cost_in = float(hike_now.get("in") or cost_in)
+                cost_out = float(hike_now.get("out") or cost_out)
+        sell_in = round(ref * in_mult, 4)
+        sell_out = round(ref * out_mult, 4)
         gm_in = _gm(sell_in, cost_in)
         gm_out = _gm(sell_out, cost_out)
         gm_blend = round((1 - (cost_in + cost_out) / (sell_in + sell_out)) * 100, 1) if (sell_in + sell_out) > 0 else None

@@ -1610,6 +1610,23 @@
       tdType.textContent = labelEntryType(r.type || r.entry_type);
       var tdModel = document.createElement("td");
       tdModel.textContent = r.model ? brandModelLabel("", "", r.model) : "--";
+      // 2026-08-15 峰谷：DeepSeek 点名消费标注调用时段（账单透明）
+      if (
+        r.model &&
+        /^vip-ds-(flash|pro)$/.test(r.model) &&
+        (r.type === "consume" || r.entry_type === "consume")
+      ) {
+        var periodEl = document.createElement("span");
+        periodEl.className = "usage-tok-sub";
+        var pd = new Date(r.created_at);
+        var ph = pd.getUTCHours() + 8;
+        if (ph >= 24) ph -= 24;
+        var isPk = (ph >= 9 && ph < 12) || (ph >= 14 && ph < 18);
+        periodEl.textContent = isPk
+          ? tr(" · 峰时", " · peak")
+          : tr(" · 谷时", " · off-peak");
+        tdModel.appendChild(periodEl);
+      }
       var tdAmt = document.createElement("td");
       tdAmt.className = "col-amount " + txAmountClass(r);
       tdAmt.textContent = txAmountText(r, fx);
