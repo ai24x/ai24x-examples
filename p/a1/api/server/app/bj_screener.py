@@ -2307,24 +2307,24 @@ def build_strategy(pick: dict[str, Any], tier: str, role: str | None = None) -> 
             lo, hi = cl * 0.945, cl * 0.99
         stop = max(float(lv.get("stop") or 0), cl * 0.90)
         return {
-            "period": "主线龙头 · 趋势波段 2~8周",
-            "entry": f"回踩MA5/MA10（{lo:.2f}~{hi:.2f}）分批建仓，强势不回踩可轻仓追突破（现价 {cl:.2f}）",
-            "stop": f"{stop:.2f}（收盘跌破MA10或止损价无条件离场）",
+            "period": "主线代表 · 趋势波段 2~8周",
+            "entry": f"回踩参考区间 MA5/MA10（{lo:.2f}~{hi:.2f}）",
+            "stop": f"{stop:.2f}（下方破位参考）",
             "target1": f"{p1:.2f}（近10日压力）",
             "target2": f"{t2:.2f}" + ("（保守目标）" if t2 < lv.get("p2", 0) else "（60日压力）"),
-            "position": f"单票建议仓位 {pos_share}（龙头组合总仓位上限 50%，留机动）",
-            "conditions": "加仓：站稳MA10且MACD红柱延续、主力持续净流入；减仓：冲高放量滞涨或跌破MA5；离场：收盘破MA10或单日放量长阴-8%",
-            "rules": "次日不追高：高开>5%或冲高回落破分时均线→放弃/减半；回踩须缩量（量≤启动日70%）分批低吸；单日放量长阴-8%无条件离场",
+            "position": "",
+            "conditions": "观察：站稳MA10且MACD红柱延续、主力持续净流入；风险信号：冲高放量滞涨、跌破MA5、收盘破MA10或单日放量长阴-8%",
+            "rules": "注意：高开>5%或冲高回落破分时均线时谨慎；回踩缩量（量≤启动日70%）形态更稳；单日放量长阴-8%注意风险",
         }
     period_txt = {"catchup": "补涨卡位 · 区间波段 2~8周"}.get(role, "中线波段 · 2~8周")
     return {
         "period": period_txt,
-        "entry": f"回踩 {entry_lo:.2f}~{entry_hi:.2f} 分批建仓（现价 {cl:.2f}）",
-        "stop": f"{stop:.2f}（收盘跌破无条件离场）",
+        "entry": f"回踩参考区间 {entry_lo:.2f}~{entry_hi:.2f}",
+        "stop": f"{stop:.2f}（下方破位参考）",
         "target1": f"{p1:.2f}（近10日压力）",
         "target2": f"{t2:.2f}" + ("（保守目标）" if t2 < lv.get("p2", 0) else "（60日压力）"),
-        "position": f"单票建议仓位 {pos_share}（波段总仓位上限 60%）",
-        "conditions": "加仓：站稳MA20且MACD红柱持续；减仓：放量滞涨或跌破MA5；离场：破止损或单日放量长阴-8%",
+        "position": "",
+        "conditions": "观察：站稳MA20且MACD红柱持续；风险信号：放量滞涨、跌破MA5、破参考位或单日放量长阴-8%",
         "rules": "次日不追高：高开>5%或冲高回落破分时均线→放弃/减半；回踩须缩量（量≤启动日70%）分批低吸；单日放量长阴-8%无条件离场",
     }
 
