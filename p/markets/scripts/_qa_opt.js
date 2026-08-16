@@ -32,8 +32,8 @@ async function closeOnboard(page) {
 
     const mk = await page.evaluate(() => window.__mkChart());
     log('desktop no rsi chart', !(await page.$('#chart-rsi')), '');
-    log('desktop volume visible', await page.isVisible('#chart-vol'), '');
-    log('desktop volume rendered', (await page.$$('#chart-vol canvas')).length > 0, 'canvases=' + (await page.$$('#chart-vol canvas')).length);
+    log('desktop no volume card', !(await page.$('#chart-vol')) && !(await page.$('.pan-vol')), '');
+    log('desktop price 24.9/199', (await page.textContent('#btn-sub-month')).includes('24.9') && (await page.textContent('#btn-sub-year')).includes('199'), '');
     log('desktop total bars=500', mk.mainBars === 500, 'bars=' + mk.mainBars);
     log('desktop visible ~6m', mk.visibleMain >= 120 && mk.visibleMain <= 170, 'visibleMain=' + mk.visibleMain);
     log('desktop no JS errors', errors.length === 0, errors.slice(0, 2).join('; '));
@@ -100,7 +100,7 @@ async function closeOnboard(page) {
 
     const mk = await page.evaluate(() => window.__mkChart());
     log('mobile no rsi chart', !(await page.$('#chart-rsi')), '');
-    log('mobile volume visible', await page.isVisible('#chart-vol'), '');
+    log('mobile no volume card', !(await page.$('#chart-vol')) && !(await page.$('.pan-vol')), '');
     log('mobile total bars=500', mk.mainBars === 500, 'bars=' + mk.mainBars);
     log('mobile visible ~3m', mk.visibleMain >= 55 && mk.visibleMain <= 90, 'visibleMain=' + mk.visibleMain);
     log('mobile no JS errors', errors.length === 0, errors.slice(0, 2).join('; '));

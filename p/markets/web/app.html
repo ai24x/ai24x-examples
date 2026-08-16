@@ -43,8 +43,6 @@
     .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
     .panel h3 { margin: 0; padding: 8px 14px; font-size: 12px; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.05em; }
     .chart { height: 460px; position: relative; }
-    .chart.small { height: 140px; }
-    .pan-vol { display: block; }
     .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 8px 14px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); }
     .legend .lg-item { display: inline-flex; align-items: center; gap: 4px; }
     .legend .lg-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
@@ -78,7 +76,6 @@
       main { padding: 8px 8px 20px; }
       .panel { margin-bottom: 8px; }
       .chart { height: 380px; }
-      .chart.small { height: 110px; }
       #quote { padding: 8px 10px; }
       footer { padding: 12px 12px 22px; font-size: 11px; }
     }
@@ -89,7 +86,7 @@
     <div class="onboard-card">
       <h2 data-i18n-html="onboard.title">Welcome to AI24X Markets</h2>
       <div class="step"><span class="num">1</span><div data-i18n-html="onboard.step1">Type a ticker above &mdash; try <b>AAPL</b> or <b>SPY</b> &mdash; and hit <b>Search</b>.</div></div>
-      <div class="step"><span class="num">2</span><div data-i18n-html="onboard.step2">Read candles, moving averages, volume and signals on one chart.</div></div>
+      <div class="step"><span class="num">2</span><div data-i18n-html="onboard.step2">Read candles, moving averages and signals on one chart.</div></div>
       <div class="step"><span class="num">3</span><div data-i18n-html="onboard.step3">Click <b>AI Brief</b> for a plain-language technical read (sign in to unlock).</div></div>
       <div class="onboard-actions">
         <button id="onboard-start" type="button" data-i18n="onboard.start" style="flex:1; padding:9px 0; border:0; border-radius:8px; background:var(--accent); color:#fff; font-weight:600; cursor:pointer;">Get started</button>
@@ -140,10 +137,6 @@
       <label class="short-ma"><input type="checkbox" id="chk-short-ma" checked><span data-i18n="shortma">Short MAs 5/10/20 (dashed)</span></label>
       <div class="legend" id="signal-legend"></div>
     </div>
-    <div class="panel pan-vol">
-      <h3 data-i18n="panel.vol">Volume</h3>
-      <div class="chart small" id="chart-vol"></div>
-    </div>
     <div class="panel">
       <h3 data-i18n="panel.brief">AI Technical Brief</h3>
       <div style="padding: 12px 14px;">
@@ -161,8 +154,8 @@
       <div style="padding: 12px 14px;">
         <div id="sub-status" style="font-size:13px; margin-bottom:10px; color:var(--muted);"></div>
         <div style="display:flex; flex-wrap:wrap; gap:10px;">
-          <button id="btn-sub-month" data-i18n="sub.month">Upgrade · $14.9/month</button>
-          <button id="btn-sub-year" data-i18n="sub.year">Upgrade · $119/year</button>
+          <button id="btn-sub-month" data-i18n="sub.month">Upgrade · $24.9/month</button>
+          <button id="btn-sub-year" data-i18n="sub.year">Upgrade · $199/year</button>
         </div>
         <div id="sub-msg" style="color:var(--up); font-size:12px; margin-top:10px;"></div>
         <div id="pro-next" style="display:none; gap:8px; flex-wrap:wrap; margin-top:10px;">
@@ -188,7 +181,6 @@
           popular: 'Popular — tap one to try',
           'p.day': '1D', 'p.week': '1W', 'p.month': '1M',
           'panel.main': 'Price · MA14/28/57 · MACD',
-          'panel.vol': 'Volume',
           'panel.brief': 'AI Technical Brief',
           'brief.btn': 'Generate AI Brief',
           'brief.upgrade': 'Upgrade to Pro',
@@ -201,8 +193,8 @@
           'brief.quotaExceeded': 'You have used all 3 free AI briefs today. Free briefs reset tomorrow — upgrade to Pro for unlimited commentary.',
           'brief.offline': 'AI commentary is temporarily unavailable. Please try again later.',
           'panel.sub': 'Pro Subscription',
-          'sub.month': 'Upgrade · $14.9/month',
-          'sub.year': 'Upgrade · $119/year',
+          'sub.month': 'Upgrade · $24.9/month',
+          'sub.year': 'Upgrade · $199/year',
           'sub.free': 'Free plan — 3 AI briefs/day, watchlist up to 3 symbols.',
           'sub.pro': 'Pro active — unlimited AI briefs, watchlist up to 50 symbols. Expires {date}.',
           'sub.checkoutFail': 'Unable to start checkout: ',
@@ -218,7 +210,7 @@
           didYouMean: 'Did you mean',
           'onboard.title': 'Welcome to AI24X Markets',
           'onboard.step1': 'Type a ticker above — try <b>AAPL</b> or <b>SPY</b> — and hit <b>Search</b>.',
-          'onboard.step2': 'Read candles, moving averages, volume and signals on one chart.',
+          'onboard.step2': 'Read candles, moving averages and signals on one chart.',
           'onboard.step3': 'Click <b>AI Brief</b> for a plain-language technical read (sign in to unlock).',
           'onboard.start': 'Get started',
           'onboard.skip': 'Skip',
@@ -241,7 +233,6 @@
           popular: '常用',
           'p.day': '日线', 'p.week': '周线', 'p.month': '月线',
           'panel.main': 'K线 · MA14/28/57 生命线 · MACD',
-          'panel.vol': '成交量',
           'panel.brief': 'AI 技术体检点评',
           'brief.btn': '生成 AI 点评',
           'brief.upgrade': '升级 Pro',
@@ -254,8 +245,8 @@
           'brief.quotaExceeded': '今日 3 次免费 AI 点评已用完，明日重置。升级 Pro 可无限使用。',
           'brief.offline': 'AI 点评服务暂时不可用，请稍后再试。',
           'panel.sub': 'Pro 订阅',
-          'sub.month': '升级 · $14.9/月',
-          'sub.year': '升级 · $119/年',
+          'sub.month': '升级 · $24.9/月',
+          'sub.year': '升级 · $199/年',
           'sub.free': '免费版 — 每天 3 次 AI 点评，自选最多 3 只。',
           'sub.pro': 'Pro 生效中 — AI 点评不限次，自选最多 50 只。到期时间 {date}。',
           'sub.checkoutFail': '无法发起支付：',
@@ -271,7 +262,7 @@
           didYouMean: '你是不是想查',
           'onboard.title': '欢迎使用 AI24X 行情',
           'onboard.step1': '在上方输入代码（试试 <b>AAPL</b> 或 <b>SPY</b>），点击 <b>查询</b>。',
-          'onboard.step2': '一屏查看 K线、均线、成交量与信号。',
+          'onboard.step2': '一屏查看 K线、均线与信号。',
           'onboard.step3': '点击 <b>AI 点评</b> 获取通俗易懂的技术解读（登录后可用）。',
           'onboard.start': '开始使用',
           'onboard.skip': '跳过',
@@ -325,7 +316,6 @@
         lastQuote: null,
         mainChart: null, mainSeries: null, maSeries: {}, maShort: {},
         macdDif: null, macdDea: null, macdBar: null,
-        volChart: null, volSeries: null,
         tooltipHandler: null,
         maCache: null,
       };
@@ -369,9 +359,9 @@
       }
 
       function disposeCharts() {
-        [state.mainChart, state.volChart].forEach(function (c) { try { if (c) c.remove(); } catch (e) {} });
-        state.mainChart = state.volChart = null;
-        state.mainSeries = state.macdDif = state.macdDea = state.macdBar = state.volSeries = null;
+        [state.mainChart].forEach(function (c) { try { if (c) c.remove(); } catch (e) {} });
+        state.mainChart = null;
+        state.mainSeries = state.macdDif = state.macdDea = state.macdBar = null;
         state.maSeries = {}; state.maShort = {};
         state.tooltipHandler = null;
       }
@@ -401,7 +391,6 @@
         return Math.max(isMobileView() ? 55 : 80, Math.min(cap, Math.floor(w / div)));
       }
       function mainChartHeight() { return isMobileView() ? 380 : 460; }
-      function smallChartHeight() { return isMobileView() ? 110 : 140; }
       var VISIBLE_MAIN = recomputeVisible();
       function showLastN(chart, n) {
         try { chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, n - VISIBLE_MAIN), to: n + 1 }); }
@@ -607,32 +596,6 @@
         chart.subscribeCrosshairMove(state.tooltipHandler);
       }
 
-      function renderVol(data) {
-        // 无成交量数据的标的（如部分指数）隐藏整卡，避免出现空卡片
-        var hasVol = (data.candles || []).some(function (c) { var v = +c[5]; return v && v > 0; });
-        var pan = $('chart-vol') ? $('chart-vol').closest('.panel') : null;
-        if (!hasVol) {
-          if (state.volChart) { try { state.volChart.remove(); } catch (e) {} }
-          state.volChart = null;
-          state.volSeries = null;
-          if (pan) pan.style.display = 'none';
-          return;
-        }
-        if (pan) pan.style.display = '';
-        var el = $('chart-vol');
-        el.innerHTML = '';
-        var chart = createChart(el, smallChartHeight());
-        state.volChart = chart;
-        state.volSeries = chart.addHistogramSeries({ priceFormat: { type: 'volume' }, priceLineVisible: false, lastValueVisible: false });
-        state.volSeries.setData(data.candles.map(function (c) {
-          return {
-            time: c[0], value: +c[5],
-            color: (+c[2] >= +c[1]) ? 'rgba(240,58,82,0.55)' : 'rgba(0,181,120,0.55)',
-          };
-        }));
-        showLastN(chart, data.candles.length);
-      }
-
       function renderLegend() {
         var el = $('signal-legend');
         if (!el) return;
@@ -697,9 +660,7 @@
         var data = state.last;
         disposeCharts();
         $('chart-main').innerHTML = '<div class="loading">' + escHtml(t('loading')) + '</div>';
-        $('chart-vol').innerHTML = '<div class="loading">' + escHtml(t('loading')) + '</div>';
         renderMain(data);
-        renderVol(data);
       }
 
       function load() {
@@ -717,7 +678,6 @@
             state.last = sj.data;
             disposeCharts();
             renderMain(sj.data);
-            renderVol(sj.data);
           } else {
             var _err = new Error((sj && sj.msg) || 'signals failed');
             _err.suggested = (sj && sj.suggested) || '';
@@ -814,7 +774,17 @@
         if (!token) {
           var n = encodeURIComponent(location.href);
           el.innerHTML =
-            '<a class="auth-link" href="' + coreUrl() + '/login.html?next=' + n + '">' + t('signIn') + '</a>';
+            '<a class="auth-link" href="' + coreUrl() + '/login.html?next=' + n + '">' + t('signIn') + '</a>' +
+            '<span id="social-login" style="display:inline-flex; gap:6px; margin-left:6px;"></span>';
+          fetch(coreUrl() + '/v1/auth/providers')
+            .then(function (r) { return r.json(); })
+            .then(function (j) {
+              var sp = $('social-login'); if (!sp) return;
+              var h = '';
+              if (j && j.google) h += '<a class="auth-link" href="' + coreUrl() + '/v1/auth/google/login?next=' + n + '" title="Continue with Google">Google</a>';
+              if (j && j.apple) h += '<a class="auth-link" href="' + coreUrl() + '/v1/auth/apple/login?next=' + n + '" title="Continue with Apple">Apple</a>';
+              sp.innerHTML = h;
+            }).catch(function () {});
           return;
         }
         var u0 = readUserCookie();
@@ -1095,7 +1065,7 @@
           if (state.last) { rerenderCharts(); return; }
         }
         if (!changed) return;
-        [state.mainChart, state.volChart].forEach(function (c) {
+        [state.mainChart].forEach(function (c) {
           if (!c) return;
           try {
             var r = c.timeScale().getVisibleLogicalRange();
@@ -1111,9 +1081,11 @@
           visibleMain: VISIBLE_MAIN,
           mainVr: vr(state.mainChart),
           mainBars: state.mainSeries ? state.mainSeries.data().length : 0,
-          volVr: vr(state.volChart),
         };
       };
+      if (location.hash && location.hash.indexOf('oauth=1') !== -1) {
+        try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+      }
       applyLang();
       load();
       maybeOnboard();
