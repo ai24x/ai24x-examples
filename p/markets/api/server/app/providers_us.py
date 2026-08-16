@@ -408,23 +408,27 @@ async def get_kline_rows(symbol: str, period: str = "day", count: int = 500) -> 
     if cache.exists():
         try:
             obj = json.loads(cache.read_text(encoding="utf-8"))
-            if obj.get("day") == _today_str() and len(obj.get("rows", [])) >= min(count, 30):
+            rows = obj.get("rows", [])
+            # 命中条件：根数足够，或该缓存已标记“上游历史已取完”（短历史标的避免反复重拉）。
+            # 不能用 min(count,30) 兜底：250 根时代的旧缓存会污染 count=500 请求（04 验收实测踩坑）。
+            if obj.get("day") == _today_str() and (len(rows) >= count or obj.get("complete")):
                 return obj
         except Exception:
             pass
 
+    fetch_n = max(count, 500)
     rows: List[List[Any]] = []
     source = ""
     try:
-        rows, _qt = await fetch_tencent_kline(symbol, count)
+        rows, _qt = await fetch_tencent_kline(symbol, fetch_n)
         source = "tencent"
     except Exception:
         try:
-            rows = await fetch_em_kline(symbol, count)
+            rows = await fetch_em_kline(symbol, fetch_n)
             source = "eastmoney"
         except Exception:
             try:
-                rows = await fetch_sina_kline(symbol, count)
+                rows = await fetch_sina_kline(symbol, fetch_n)
                 source = "sina"
             except Exception as e:
                 if cache.exists():
@@ -442,7 +446,14 @@ async def get_kline_rows(symbol: str, period: str = "day", count: int = 500) -> 
 
     if not rows:
         raise _SourceError(f"no data for {symbol}")
-    obj = {"symbol": symbol, "period": period, "day": _today_str(), "rows": rows, "source": source}
+    obj = {
+        "symbol": symbol,
+        "period": period,
+        "day": _today_str(),
+        "rows": rows,
+        "source": source,
+        "complete": len(rows) < fetch_n,  # 上游已无更多历史
+    }
     try:
         cache.write_text(json.dumps(obj, ensure_ascii=False), encoding="utf-8")
     except Exception:
