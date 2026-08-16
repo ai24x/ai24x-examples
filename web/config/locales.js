@@ -809,6 +809,11 @@
     "page.console.transactions.tokens": "Tokens",
     "page.console.transactions.note": "备注",
     "auth.login.title": "登录",
+  "auth.login.divider": "或",
+  "auth.login.google": "使用 Google 登录",
+  "auth.login.apple": "使用 Apple 登录",
+  "auth.login.oauthFail": "第三方登录失败：",
+
     "auth.login.sub": "一个账号同时使用 AI24X Markets（美股行情 + AI 点评）与开发者 API。",
     "auth.login.modeBanner": "",
     "auth.tab.phone": "手机号",
@@ -1811,6 +1816,11 @@
     "page.console.activity.item2": "Billing: orders and top-ups",
     "page.console.activity.item3": "Referrals: invites and rewards",
     "auth.login.title": "Log in",
+  "auth.login.divider": "or",
+  "auth.login.google": "Continue with Google",
+  "auth.login.apple": "Continue with Apple",
+  "auth.login.oauthFail": "Social sign-in failed: ",
+
     "auth.login.sub": "One account for AI24X Markets (US charts + AI commentary) and the developer API.",
     "auth.login.modeBanner":
       "Use <strong>Phone</strong> or <strong>Email</strong> below, then enter your password.",
