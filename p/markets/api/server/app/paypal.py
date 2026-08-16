@@ -60,8 +60,9 @@ async def create_checkout(user_id: str, plan: str) -> Dict[str, Any]:
     return_url = os.environ.get(
         "MARKETS_PAYPAL_RETURN_URL", "https://markets.ai24x.com/app.html?pay=done"
     )
+    # PayPal 批准后会自动向 return_url 追加 &token=<orderId>，前端 handlePayReturn 据此立即确认。
     cancel_url = os.environ.get(
-        "MARKETS_PAYPAL_CANCEL_URL", "https://markets.ai24x.com/pricing.html"
+        "MARKETS_PAYPAL_CANCEL_URL", "https://markets.ai24x.com/app.html#sub"
     )
     order = await pay_paypal.create_checkout_order(
         _S,

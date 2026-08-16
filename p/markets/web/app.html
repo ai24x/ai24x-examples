@@ -18,14 +18,12 @@
     header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--border); }
     .brand { font-weight: 700; font-size: 16px; margin-right: 6px; white-space: nowrap; }
     .brand span { color: var(--accent); }
-    .lang-switch { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-right: 4px; }
-    .lang-switch button { border: 0; background: #0d1117; color: var(--muted); padding: 6px 10px; cursor: pointer; font-size: 12px; }
-    .lang-switch button.active { background: var(--accent); color: #fff; }
-    .auth-link { color: var(--muted); font-size: 13px; margin-left: 8px; white-space: nowrap; }
-    .auth-link:hover { color: var(--text); text-decoration: none; }
-    .auth-btn { background: none; border: 0; padding: 0; color: var(--muted); font-size: 13px; cursor: pointer; }
-    .auth-btn:hover { color: var(--text); }
-    .auth-user { color: var(--muted); font-size: 12px; margin-left: 8px; white-space: nowrap; max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
+    .auth-area { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .auth-link { display: inline-block; padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 12px; white-space: nowrap; text-decoration: none; }
+    .auth-link:hover { color: var(--text); border-color: var(--accent); }
+    .auth-btn { padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; background: transparent; color: var(--muted); font-size: 12px; cursor: pointer; }
+    .auth-btn:hover { color: var(--text); border-color: var(--accent); }
+    .auth-user { color: var(--muted); font-size: 12px; white-space: nowrap; max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
     #symbol { width: 130px; padding: 8px 10px; background: #0d1117; color: var(--text); border: 1px solid var(--border); border-radius: 6px; font-size: 14px; text-transform: uppercase; }
     button { padding: 7px 11px; background: #0d1117; color: var(--text); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 13px; }
     button:hover { border-color: var(--accent); }
@@ -43,7 +41,7 @@
     .panel h3 { margin: 0; padding: 8px 14px; font-size: 12px; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.05em; }
     .chart { height: 460px; position: relative; }
     .chart.small { height: 140px; }
-    .pan-vol { display: none; }
+    .pan-vol { display: block; }
     .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 8px 14px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); }
     .legend .lg-item { display: inline-flex; align-items: center; gap: 4px; }
     .legend .lg-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
@@ -78,7 +76,6 @@
       .panel { margin-bottom: 8px; }
       .chart { height: 380px; }
       .chart.small { height: 110px; }
-      .pan-vol { display: block; }
       #quote { padding: 8px 10px; }
       footer { padding: 12px 12px 22px; font-size: 11px; }
     }
@@ -87,20 +84,19 @@
 <body>
   <div id="onboard" class="onboard-overlay" hidden>
     <div class="onboard-card">
-      <h2>Welcome to AI24X Markets</h2>
-      <div class="step"><span class="num">1</span><div>Type a ticker above &mdash; try <b>AAPL</b> or <b>SPY</b> &mdash; and hit <b>Search</b>.</div></div>
-      <div class="step"><span class="num">2</span><div>Read candles, moving averages, volume and signals on one chart.</div></div>
-      <div class="step"><span class="num">3</span><div>Click <b>AI Brief</b> for a plain-language technical read (sign in to unlock).</div></div>
+      <h2 data-i18n-html="onboard.title">Welcome to AI24X Markets</h2>
+      <div class="step"><span class="num">1</span><div data-i18n-html="onboard.step1">Type a ticker above &mdash; try <b>AAPL</b> or <b>SPY</b> &mdash; and hit <b>Search</b>.</div></div>
+      <div class="step"><span class="num">2</span><div data-i18n-html="onboard.step2">Read candles, moving averages, volume and signals on one chart.</div></div>
+      <div class="step"><span class="num">3</span><div data-i18n-html="onboard.step3">Click <b>AI Brief</b> for a plain-language technical read (sign in to unlock).</div></div>
       <div class="onboard-actions">
-        <button id="onboard-start" type="button" style="flex:1; padding:9px 0; border:0; border-radius:8px; background:var(--accent); color:#fff; font-weight:600; cursor:pointer;">Get started</button>
-        <button id="onboard-skip" type="button" style="padding:9px 14px; border:1px solid var(--border); border-radius:8px; background:transparent; color:var(--muted); cursor:pointer;">Skip</button>
+        <button id="onboard-start" type="button" data-i18n="onboard.start" style="flex:1; padding:9px 0; border:0; border-radius:8px; background:var(--accent); color:#fff; font-weight:600; cursor:pointer;">Get started</button>
+        <button id="onboard-skip" type="button" data-i18n="onboard.skip" style="padding:9px 14px; border:1px solid var(--border); border-radius:8px; background:transparent; color:var(--muted); cursor:pointer;">Skip</button>
       </div>
     </div>
   </div>
 
   <header>
     <div class="brand">AI24X <span>Markets</span></div>
-    <!-- EN-only UI (compliance) -->
     <input id="symbol" value="AAPL" maxlength="20" placeholder="AAPL / SPY / ^GSPC">
     <button id="go" data-i18n="search">Search</button>
     <div class="spacer"></div>
@@ -114,15 +110,8 @@
     <span id="err" class="err"></span>
   </header>
 
-  <div class="samples">
+  <div class="samples" id="samples">
     <span class="samples-hint" data-i18n="popular">Popular — tap one to try</span>
-    <button type="button" data-symbol="AAPL">AAPL</button>
-    <button type="button" data-symbol="NVDA">NVDA</button>
-    <button type="button" data-symbol="SPY">SPY</button>
-    <button type="button" data-symbol="QQQ">QQQ</button>
-    <button type="button" data-symbol="^GSPC">^GSPC</button>
-    <button type="button" data-symbol="^IXIC">^IXIC</button>
-    <button type="button" data-symbol="^DJI">^DJI</button>
   </div>
 
   <div id="watchbar" style="display:none; padding:6px 14px; gap:8px; align-items:center; flex-wrap:wrap;">
@@ -149,10 +138,6 @@
       <div class="chart small" id="chart-vol"></div>
     </div>
     <div class="panel">
-      <h3 data-i18n="panel.rsi">RSI · 14</h3>
-      <div class="chart small" id="chart-rsi"></div>
-    </div>
-    <div class="panel">
       <h3 data-i18n="panel.brief">AI Technical Brief</h3>
       <div style="padding: 12px 14px;">
         <div class="brief-actions" style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:10px;">
@@ -173,12 +158,16 @@
           <button id="btn-sub-year" data-i18n="sub.year">Upgrade · $119/year</button>
         </div>
         <div id="sub-msg" style="color:var(--up); font-size:12px; margin-top:10px;"></div>
+        <div id="pro-next" style="display:none; gap:8px; flex-wrap:wrap; margin-top:10px;">
+          <button type="button" id="btn-next-brief">Generate AI Brief</button>
+          <button type="button" id="btn-next-watch">Star this symbol</button>
+        </div>
       </div>
     </div>
   </main>
 
   <footer data-i18n="footer">15-minute delayed market data. Sources: Tencent (primary) · Eastmoney · Sina. For educational purposes only — not investment advice.</footer>
-  <div style="text-align:center; padding:0 12px 18px; font-size:11px; color:var(--muted);"><a href="/tos.html" style="color:var(--muted);">Terms of Service</a> &nbsp;·&nbsp; <a href="/privacy.html" style="color:var(--muted);">Privacy Policy</a></div>
+  <div style="text-align:center; padding:0 12px 18px; font-size:11px; color:var(--muted);"><a href="/pricing.html" style="color:var(--muted);">Pricing</a> &nbsp;·&nbsp; <a href="/tos.html" style="color:var(--muted);">Terms of Service</a> &nbsp;·&nbsp; <a href="/privacy.html" style="color:var(--muted);">Privacy Policy</a></div>
 
   <script src="vendor/lightweight-charts.standalone.production.js"></script>
   <script>
@@ -188,11 +177,11 @@
       var I18N = {
         en: {
           search: 'Search',
+          searchPh: 'AAPL / SPY / ^GSPC',
           popular: 'Popular — tap one to try',
           'p.day': '1D', 'p.week': '1W', 'p.month': '1M',
           'panel.main': 'Price · MA14/28/57 · MACD',
           'panel.vol': 'Volume',
-          'panel.rsi': 'RSI · 14',
           'panel.brief': 'AI Technical Brief',
           'brief.btn': 'Generate AI Brief',
           'brief.upgrade': 'Upgrade to Pro',
@@ -202,7 +191,7 @@
           'brief.quota': '{n} of 3 free briefs left today',
           'brief.pro': 'Pro — unlimited AI briefs',
           'brief.err': 'Brief unavailable: ',
-          'brief.quotaExceeded': 'You have used all 3 free AI briefs today. Upgrade to Pro for unlimited commentary.',
+          'brief.quotaExceeded': 'You have used all 3 free AI briefs today. Free briefs reset tomorrow — upgrade to Pro for unlimited commentary.',
           'brief.offline': 'AI commentary is temporarily unavailable. Please try again later.',
           'panel.sub': 'Pro Subscription',
           'sub.month': 'Upgrade · $14.9/month',
@@ -219,6 +208,13 @@
           quoteFail: 'Quote unavailable: ',
           loadFail: 'Error: ',
           notFound: 'Symbol not found: {s}. Please check the ticker code.',
+          didYouMean: 'Did you mean',
+          'onboard.title': 'Welcome to AI24X Markets',
+          'onboard.step1': 'Type a ticker above — try <b>AAPL</b> or <b>SPY</b> — and hit <b>Search</b>.',
+          'onboard.step2': 'Read candles, moving averages, volume and signals on one chart.',
+          'onboard.step3': 'Click <b>AI Brief</b> for a plain-language technical read (sign in to unlock).',
+          'onboard.start': 'Get started',
+          'onboard.skip': 'Skip',
           open: 'Open', high: 'High', low: 'Low', close: 'Close', prev: 'Prev close',
           chg: 'Chg', chgPct: 'Chg %', vol: 'Volume', vsPrev: 'vs prev close', vsOpen: 'vs open',
           amplitude: 'Range %', signal: 'Signal', date: 'Date', macd: 'MACD', macdHist: 'Hist',
@@ -232,71 +228,37 @@
           authFail: 'Session check unavailable',
           'watch.title': 'Watchlist',
         },
-        zh: {
-          search: '查询',
-          popular: '常用',
-          'p.day': '日线', 'p.week': '周线', 'p.month': '月线',
-          'panel.main': 'K线 · MA14/28/57 生命线 · MACD',
-          'panel.vol': '成交量',
-          'panel.rsi': 'RSI · 14',
-          'panel.brief': 'AI 技术体检点评',
-          'brief.btn': '生成 AI 点评',
-          'brief.upgrade': '升级 Pro',
-          'brief.disclaimer': '内容仅供学习交流，不构成投资建议。行情延迟至少 15 分钟。',
-          'brief.loading': '分析中…',
-          'brief.login': '登录后可生成 AI 点评',
-          'brief.quota': '今日免费点评剩余 {n} 次（共 3 次）',
-          'brief.pro': 'Pro — AI 点评不限次数',
-          'brief.err': '点评暂不可用：',
-          'brief.quotaExceeded': '今日 3 次免费 AI 点评已用完，升级 Pro 可无限使用。',
-          'brief.offline': 'AI 点评服务暂时不可用，请稍后再试。',
-          'panel.sub': 'Pro 订阅',
-          'sub.month': '升级 · $14.9/月',
-          'sub.year': '升级 · $119/年',
-          'sub.free': '免费版 — 每天 3 次 AI 点评，自选最多 3 只。',
-          'sub.pro': 'Pro 生效中 — AI 点评不限次，自选最多 50 只。到期时间 {date}。',
-          'sub.checkoutFail': '无法发起支付：',
-          'sub.captureFail': '支付确认待处理。如已完成支付，稍后会自动生效。',
-          'sub.captureOk': '支付确认成功 — Pro 已激活，感谢支持！',
-          'sub.reload': '刷新中…',
-          shortma: '主图叠加短周期均线（虚线）',
-          footer: '15 分钟延迟行情。数据源：腾讯（主源）· 东财 · 新浪。内容仅供学习交流与自主决策参考，不构成投资建议。',
-          loading: '加载中…',
-          quoteFail: '行情暂不可用：',
-          loadFail: '加载失败：',
-          notFound: '未找到标的 {s}，请检查代码是否正确。',
-          open: '开', high: '高', low: '低', close: '收', prev: '昨收',
-          chg: '涨跌额', chgPct: '涨跌幅', vol: '成交量', vsPrev: '较昨收', vsOpen: '较开盘',
-          amplitude: '振幅', signal: '信号', date: '日期', macd: 'MACD', macdHist: '柱',
-          legendGc: 'MACD ↑金叉', legendDc: '↓死叉',
-          lgBase: '小底 · 关注', lgBottom: '底部 · 低位关注', lgStrong: '金 · 偏强',
-          lgCaution: '险 · 谨慎', lgWeak: '等 · 偏弱', lgHigh: '顶 · 预警',
-          signIn: '登录',
-          signedInAs: '已登录',
-          console: '控制台',
-          signOut: '退出',
-          authFail: '会话校验暂不可用',
-          'watch.title': '自选',
-        },
       };
 
       var MARKER_MAP = {
-        '小底': { en: 'Base', zh: '小底' },
-        '底1': { en: 'Bottom', zh: '底' },
-        '金1': { en: 'S1', zh: '金1' },
-        '金2': { en: 'S2', zh: '金2' },
-        '金3': { en: 'S3', zh: '金3' },
-        '买2': { en: 'Momentum', zh: '转强' },
-        '险1·破': { en: 'Ca·brk', zh: '险破' },
-        '险2·破': { en: 'Ca·brk', zh: '险破' },
-        '险1': { en: 'Caution', zh: '谨慎' },
-        '险2': { en: 'Caution', zh: '谨慎' },
-        '↗': { en: '↗', zh: '↗' },
-        '↘': { en: '↘', zh: '↘' },
+        '小底': { en: 'Base' },
+        '底1': { en: 'Bottom' },
+        '金1': { en: 'S1' },
+        '金2': { en: 'S2' },
+        '金3': { en: 'S3' },
+        '买2': { en: 'Momentum' },
+        '险1·破': { en: 'Ca·brk' },
+        '险2·破': { en: 'Ca·brk' },
+        '险1': { en: 'Caution' },
+        '险2': { en: 'Caution' },
+        '↗': { en: '↗' },
+        '↘': { en: '↘' },
       };
 
+      // 白名单（指数在前，名称跟随当前语言，点击即查）
+      var SAMPLES = [
+        { sym: '^DJI', en: 'Dow Jones' },
+        { sym: '^IXIC', en: 'Nasdaq Composite' },
+        { sym: '^GSPC', en: 'S&P 500' },
+        { sym: '^VIX', en: 'VIX' },
+        { sym: 'AAPL', en: 'Apple' },
+        { sym: 'NVDA', en: 'NVIDIA' },
+        { sym: 'SPY', en: 'S&P 500 ETF' },
+        { sym: 'QQQ', en: 'Nasdaq 100 ETF' },
+      ];
+
       var state = {
-        lang: (function () { try { return localStorage.getItem('markets_lang') || 'en'; } catch (e) { return 'en'; } })(),
+        lang: 'en',
         symbol: 'AAPL',
         period: 'day',
         last: null,
@@ -304,7 +266,6 @@
         mainChart: null, mainSeries: null, maSeries: {}, maShort: {},
         macdDif: null, macdDea: null, macdBar: null,
         volChart: null, volSeries: null,
-        rsiChart: null, rsiSeries: null,
         tooltipHandler: null,
         maCache: null,
       };
@@ -348,9 +309,9 @@
       }
 
       function disposeCharts() {
-        [state.mainChart, state.volChart, state.rsiChart].forEach(function (c) { try { if (c) c.remove(); } catch (e) {} });
-        state.mainChart = state.volChart = state.rsiChart = null;
-        state.mainSeries = state.macdDif = state.macdDea = state.macdBar = state.volSeries = state.rsiSeries = null;
+        [state.mainChart, state.volChart].forEach(function (c) { try { if (c) c.remove(); } catch (e) {} });
+        state.mainChart = state.volChart = null;
+        state.mainSeries = state.macdDif = state.macdDea = state.macdBar = state.volSeries = null;
         state.maSeries = {}; state.maShort = {};
         state.tooltipHandler = null;
       }
@@ -371,13 +332,13 @@
         return chart;
       }
 
-      // 手机端 K 线清晰度优化：首屏只看最近 N 根（手机 ~40 根、每根约 9px 宽），宽屏自适应
+      // 首屏只展示最近几个月（手机约 3 个月/68 根、宽屏约 6 个月/140 根），总量 2 年（500 根）可左右拖动查看
       function isMobileView() { return (window.innerWidth || 375) <= 640; }
       function recomputeVisible() {
         var w = window.innerWidth || 375;
-        var div = isMobileView() ? 9.2 : 8;
-        var cap = isMobileView() ? 80 : 160;
-        return Math.max(isMobileView() ? 34 : 60, Math.min(cap, Math.floor(w / div)));
+        var div = isMobileView() ? 5.5 : 9;
+        var cap = isMobileView() ? 90 : 170;
+        return Math.max(isMobileView() ? 55 : 80, Math.min(cap, Math.floor(w / div)));
       }
       function mainChartHeight() { return isMobileView() ? 380 : 460; }
       function smallChartHeight() { return isMobileView() ? 110 : 140; }
@@ -602,22 +563,6 @@
         showLastN(chart, data.candles.length);
       }
 
-      function renderRsi(data) {
-        var el = $('chart-rsi');
-        el.innerHTML = '';
-        var chart = createChart(el, smallChartHeight());
-        state.rsiChart = chart;
-        state.rsiSeries = chart.addLineSeries({ color: '#ab6dfe', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-        var times = data.candles.map(function (c) { return c[0]; });
-        state.rsiSeries.setData(data.rsi.map(function (v, i) { return { time: times[i], value: v }; }).filter(function (p) { return p.value !== null && !Number.isNaN(p.value); }));
-        [30, 70].forEach(function (lv) {
-          var ref = chart.addLineSeries({ color: 'rgba(139,148,158,0.5)', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, lineStyle: 2 });
-          ref.setData(times.map(function (tm) { return { time: tm, value: lv }; }));
-        });
-        try { chart.priceScale('right').applyOptions({ minValue: 0, maxValue: 100 }); } catch (e) {}
-        showLastN(chart, times.length);
-      }
-
       function renderLegend() {
         var el = $('signal-legend');
         if (!el) return;
@@ -652,15 +597,26 @@
       }
 
       function applyLang() {
-        state.lang = 'en'; // EN-only UI (compliance)
         document.documentElement.lang = 'en';
+        document.title = 'AI24X Markets · Technical Indicators';
         document.querySelectorAll('[data-i18n]').forEach(function (el) { el.textContent = t(el.getAttribute('data-i18n')); });
-        document.querySelectorAll('#lang-switch button').forEach(function (b) {
-          b.classList.toggle('active', b.getAttribute('data-lang') === state.lang);
-        });
+        document.querySelectorAll('[data-i18n-html]').forEach(function (el) { el.innerHTML = t(el.getAttribute('data-i18n-html')); });
+        var si = $('symbol'); if (si) si.placeholder = t('searchPh');
+        renderSamples();
         renderLegend();
         if (state.lastQuote) renderQuote(state.lastQuote);
         if (state.last) rerenderCharts();
+      }
+
+      function renderSamples() {
+        var wrap = $('samples');
+        if (!wrap) return;
+        var hint = wrap.querySelector('.samples-hint');
+        var html = hint ? hint.outerHTML : '';
+        SAMPLES.forEach(function (it) {
+          html += '<button type="button" data-symbol="' + it.sym + '" title="' + it.sym + '">' + escHtml(it[state.lang] || it.en) + '</button>';
+        });
+        wrap.innerHTML = html;
       }
 
       function rerenderCharts() {
@@ -668,11 +624,9 @@
         var data = state.last;
         disposeCharts();
         $('chart-main').innerHTML = '<div class="loading">' + escHtml(t('loading')) + '</div>';
-        if (isMobileView()) $('chart-vol').innerHTML = '<div class="loading">' + escHtml(t('loading')) + '</div>';
-        $('chart-rsi').innerHTML = '<div class="loading">' + escHtml(t('loading')) + '</div>';
+        $('chart-vol').innerHTML = '<div class="loading">' + escHtml(t('loading')) + '</div>';
         renderMain(data);
         renderVol(data);
-        renderRsi(data);
       }
 
       function load() {
@@ -691,9 +645,10 @@
             disposeCharts();
             renderMain(sj.data);
             renderVol(sj.data);
-            renderRsi(sj.data);
           } else {
-            throw new Error((sj && sj.msg) || 'signals failed');
+            var _err = new Error((sj && sj.msg) || 'signals failed');
+            _err.suggested = (sj && sj.suggested) || '';
+            throw _err;
           }
           if (qj.code === 0 && qj.data) {
             state.lastQuote = qj.data;
@@ -705,7 +660,20 @@
         }).catch(function (e) {
           var msg = String(e.message || '');
           if (/^symbol not found/i.test(msg)) {
-            $('err').textContent = t('notFound').replace('{s}', escHtml(state.symbol));
+            var sugg = String(e.suggested || '').trim();
+            if (sugg) {
+              $('err').innerHTML = t('notFound').replace('{s}', escHtml(state.symbol)) +
+                ' <span style="color:var(--muted)">' + escHtml(t('didYouMean')) + '</span> ' +
+                '<button type="button" data-suggest="' + escHtml(sugg) + '" style="padding:2px 9px; font-size:12px; background:var(--accent); color:#fff; border:0; border-radius:6px; cursor:pointer;">' + escHtml(sugg) + '</button>';
+              var sb = $('err').querySelector('button[data-suggest]');
+              if (sb) sb.addEventListener('click', function () {
+                state.symbol = sugg;
+                $('symbol').value = sugg;
+                load();
+              });
+            } else {
+              $('err').textContent = t('notFound').replace('{s}', escHtml(state.symbol));
+            }
           } else {
             $('err').textContent = t('loadFail') + msg;
           }
@@ -719,15 +687,6 @@
       });
       $('symbol').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('go').click(); });
       $('refresh').addEventListener('click', load);
-      document.querySelectorAll('#lang-switch button').forEach(function (b) {
-        b.addEventListener('click', function () {
-          var l = b.getAttribute('data-lang');
-          if (l === state.lang) return;
-          state.lang = l;
-          try { localStorage.setItem('markets_lang', l); } catch (e) {}
-          applyLang();
-        });
-      });
       document.querySelectorAll('button[data-period]').forEach(function (b) {
         b.addEventListener('click', function () {
           document.querySelectorAll('button[data-period]').forEach(function (x) { x.classList.remove('active'); });
@@ -736,12 +695,12 @@
           load();
         });
       });
-      document.querySelectorAll('.samples button[data-symbol]').forEach(function (b) {
-        b.addEventListener('click', function () {
-          state.symbol = b.getAttribute('data-symbol');
-          $('symbol').value = state.symbol;
-          load();
-        });
+      $('samples').addEventListener('click', function (ev) {
+        var b = ev.target && ev.target.closest ? ev.target.closest('button[data-symbol]') : null;
+        if (!b) return;
+        state.symbol = b.getAttribute('data-symbol');
+        $('symbol').value = state.symbol;
+        load();
       });
 
       var params = new URLSearchParams(location.search);
@@ -825,6 +784,7 @@
           el.textContent = t('sub.pro').replace('{date}', fmtDate(subState.expiresAt));
         } else { el.textContent = t('sub.free'); }
         var pb = $('pro-badge'); if (pb) pb.style.display = (token && subState.pro) ? 'inline-block' : 'none';
+        var pn = $('pro-next'); if (pn) pn.style.display = (token && subState.pro) ? 'flex' : 'none';
         var pl = $('brief-pro-link'); if (pl) pl.style.display = (token && !subState.pro) ? 'inline' : 'none';
         var q = $('brief-quota');
         if (q) {
@@ -921,6 +881,8 @@
             if (j.code === 0 && j.data && j.data.status === 'activated') {
               if (m2) m2.textContent = t('sub.captureOk');
               checkSub();
+              toast('Pro activated! Generate an AI Brief or star this symbol to your watchlist.');
+              var pn2 = $('pro-next'); if (pn2) pn2.style.display = 'flex';
             } else if (j.code === 0 && j.data && j.data.status === 'not_completed') {
               if (m2) m2.textContent = t('sub.captureFail');
             } else {
@@ -1015,6 +977,16 @@
         if (out) { var bp = out.closest('.panel'); if (bp) { try { bp.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} } }
         doBrief();
       });
+      var bNextBrief = $('btn-next-brief');
+      if (bNextBrief) bNextBrief.addEventListener('click', function () {
+        var out = $('brief-out'); if (out) { try { out.closest('.panel').scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }
+        doBrief();
+      });
+      var bNextWatch = $('btn-next-watch');
+      if (bNextWatch) bNextWatch.addEventListener('click', function () {
+        if (!getToken()) { loginNext(); return; }
+        toggleWatch();
+      });
       var bBrief = $('btn-brief'); if (bBrief) bBrief.addEventListener('click', doBrief);
       var bMonth = $('btn-sub-month'); if (bMonth) bMonth.addEventListener('click', function () { doCheckout('monthly'); });
       var bYear = $('btn-sub-year'); if (bYear) bYear.addEventListener('click', function () { doCheckout('yearly'); });
@@ -1041,7 +1013,7 @@
           if (state.last) { rerenderCharts(); return; }
         }
         if (!changed) return;
-        [state.mainChart, state.volChart, state.rsiChart].forEach(function (c) {
+        [state.mainChart, state.volChart].forEach(function (c) {
           if (!c) return;
           try {
             var r = c.timeScale().getVisibleLogicalRange();
@@ -1058,7 +1030,6 @@
           mainVr: vr(state.mainChart),
           mainBars: state.mainSeries ? state.mainSeries.data().length : 0,
           volVr: vr(state.volChart),
-          rsiVr: vr(state.rsiChart),
         };
       };
       applyLang();
