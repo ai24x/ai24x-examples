@@ -18,6 +18,9 @@
     header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--border); }
     .brand { font-weight: 700; font-size: 16px; margin-right: 6px; white-space: nowrap; }
     .brand span { color: var(--accent); }
+    .lang-switch { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-right: 4px; }
+    .lang-switch button { border: 0; background: #0d1117; color: var(--muted); padding: 6px 10px; cursor: pointer; font-size: 12px; }
+    .lang-switch button.active { background: var(--accent); color: #fff; }
     .auth-area { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .auth-link { display: inline-block; padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 12px; white-space: nowrap; text-decoration: none; }
     .auth-link:hover { color: var(--text); border-color: var(--accent); }
@@ -97,6 +100,10 @@
 
   <header>
     <div class="brand">AI24X <span>Markets</span></div>
+    <div class="lang-switch" id="lang-switch">
+      <button type="button" data-lang="en" class="active">EN</button>
+      <button type="button" data-lang="zh">中文</button>
+    </div>
     <input id="symbol" value="AAPL" maxlength="20" placeholder="AAPL / SPY / ^GSPC">
     <button id="go" data-i18n="search">Search</button>
     <div class="spacer"></div>
@@ -228,37 +235,90 @@
           authFail: 'Session check unavailable',
           'watch.title': 'Watchlist',
         },
+        zh: {
+          search: '查询',
+          searchPh: '输入代码，如 AAPL / ^GSPC',
+          popular: '常用',
+          'p.day': '日线', 'p.week': '周线', 'p.month': '月线',
+          'panel.main': 'K线 · MA14/28/57 生命线 · MACD',
+          'panel.vol': '成交量',
+          'panel.brief': 'AI 技术体检点评',
+          'brief.btn': '生成 AI 点评',
+          'brief.upgrade': '升级 Pro',
+          'brief.disclaimer': '内容仅供学习交流，不构成投资建议。行情延迟至少 15 分钟。',
+          'brief.loading': '分析中…',
+          'brief.login': '登录后可生成 AI 点评',
+          'brief.quota': '今日免费点评剩余 {n} 次（共 3 次）',
+          'brief.pro': 'Pro — AI 点评不限次数',
+          'brief.err': '点评暂不可用：',
+          'brief.quotaExceeded': '今日 3 次免费 AI 点评已用完，明日重置。升级 Pro 可无限使用。',
+          'brief.offline': 'AI 点评服务暂时不可用，请稍后再试。',
+          'panel.sub': 'Pro 订阅',
+          'sub.month': '升级 · $14.9/月',
+          'sub.year': '升级 · $119/年',
+          'sub.free': '免费版 — 每天 3 次 AI 点评，自选最多 3 只。',
+          'sub.pro': 'Pro 生效中 — AI 点评不限次，自选最多 50 只。到期时间 {date}。',
+          'sub.checkoutFail': '无法发起支付：',
+          'sub.captureFail': '支付确认待处理。如已完成支付，稍后会自动生效。',
+          'sub.captureOk': '支付确认成功 — Pro 已激活，感谢支持！',
+          'sub.reload': '刷新中…',
+          shortma: '主图叠加短周期均线（虚线）',
+          footer: '15 分钟延迟行情。数据源：腾讯（主源）· 东财 · 新浪。内容仅供学习交流与自主决策参考，不构成投资建议。',
+          loading: '加载中…',
+          quoteFail: '行情暂不可用：',
+          loadFail: '加载失败：',
+          notFound: '未找到标的 {s}，请检查代码是否正确。',
+          didYouMean: '你是不是想查',
+          'onboard.title': '欢迎使用 AI24X 行情',
+          'onboard.step1': '在上方输入代码（试试 <b>AAPL</b> 或 <b>SPY</b>），点击 <b>查询</b>。',
+          'onboard.step2': '一屏查看 K线、均线、成交量与信号。',
+          'onboard.step3': '点击 <b>AI 点评</b> 获取通俗易懂的技术解读（登录后可用）。',
+          'onboard.start': '开始使用',
+          'onboard.skip': '跳过',
+          open: '开', high: '高', low: '低', close: '收', prev: '昨收',
+          chg: '涨跌额', chgPct: '涨跌幅', vol: '成交量', vsPrev: '较昨收', vsOpen: '较开盘',
+          amplitude: '振幅', signal: '信号', date: '日期', macd: 'MACD', macdHist: '柱',
+          legendGc: 'MACD ↑金叉', legendDc: '↓死叉',
+          lgBase: '小底 · 关注', lgBottom: '底部 · 低位关注', lgStrong: '金 · 偏强',
+          lgCaution: '险 · 谨慎', lgWeak: '等 · 偏弱', lgHigh: '顶 · 预警',
+          signIn: '登录',
+          signedInAs: '已登录',
+          console: '控制台',
+          signOut: '退出',
+          authFail: '会话校验暂不可用',
+          'watch.title': '自选',
+        },
       };
 
       var MARKER_MAP = {
-        '小底': { en: 'Base' },
-        '底1': { en: 'Bottom' },
-        '金1': { en: 'S1' },
-        '金2': { en: 'S2' },
-        '金3': { en: 'S3' },
-        '买2': { en: 'Momentum' },
-        '险1·破': { en: 'Ca·brk' },
-        '险2·破': { en: 'Ca·brk' },
-        '险1': { en: 'Caution' },
-        '险2': { en: 'Caution' },
-        '↗': { en: '↗' },
-        '↘': { en: '↘' },
+        '小底': { en: 'Base', zh: '小底' },
+        '底1': { en: 'Bottom', zh: '底' },
+        '金1': { en: 'S1', zh: '金1' },
+        '金2': { en: 'S2', zh: '金2' },
+        '金3': { en: 'S3', zh: '金3' },
+        '买2': { en: 'Momentum', zh: '转强' },
+        '险1·破': { en: 'Ca·brk', zh: '险破' },
+        '险2·破': { en: 'Ca·brk', zh: '险破' },
+        '险1': { en: 'Caution', zh: '谨慎' },
+        '险2': { en: 'Caution', zh: '谨慎' },
+        '↗': { en: '↗', zh: '↗' },
+        '↘': { en: '↘', zh: '↘' },
       };
 
       // 白名单（指数在前，名称跟随当前语言，点击即查）
       var SAMPLES = [
-        { sym: '^DJI', en: 'Dow Jones' },
-        { sym: '^IXIC', en: 'Nasdaq Composite' },
-        { sym: '^GSPC', en: 'S&P 500' },
-        { sym: '^VIX', en: 'VIX' },
-        { sym: 'AAPL', en: 'Apple' },
-        { sym: 'NVDA', en: 'NVIDIA' },
-        { sym: 'SPY', en: 'S&P 500 ETF' },
-        { sym: 'QQQ', en: 'Nasdaq 100 ETF' },
+        { sym: '^DJI', en: 'Dow Jones', zh: '道琼斯' },
+        { sym: '^IXIC', en: 'Nasdaq Composite', zh: '纳斯达克' },
+        { sym: '^GSPC', en: 'S&P 500', zh: '标普500' },
+        { sym: '^VIX', en: 'VIX', zh: 'VIX' },
+        { sym: 'AAPL', en: 'Apple', zh: '苹果' },
+        { sym: 'NVDA', en: 'NVIDIA', zh: '英伟达' },
+        { sym: 'SPY', en: 'S&P 500 ETF', zh: '标普500 ETF' },
+        { sym: 'QQQ', en: 'Nasdaq 100 ETF', zh: '纳指100 ETF' },
       ];
 
       var state = {
-        lang: 'en',
+        lang: (function () { try { return localStorage.getItem('markets_lang') || 'en'; } catch (e) { return 'en'; } })(),
         symbol: 'AAPL',
         period: 'day',
         last: null,
@@ -597,10 +657,13 @@
       }
 
       function applyLang() {
-        document.documentElement.lang = 'en';
-        document.title = 'AI24X Markets · Technical Indicators';
+        document.documentElement.lang = (state.lang === 'zh') ? 'zh-CN' : 'en';
+        document.title = (state.lang === 'zh') ? 'AI24X 行情 · 技术指标' : 'AI24X Markets · Technical Indicators';
         document.querySelectorAll('[data-i18n]').forEach(function (el) { el.textContent = t(el.getAttribute('data-i18n')); });
         document.querySelectorAll('[data-i18n-html]').forEach(function (el) { el.innerHTML = t(el.getAttribute('data-i18n-html')); });
+        document.querySelectorAll('#lang-switch button').forEach(function (b) {
+          b.classList.toggle('active', b.getAttribute('data-lang') === state.lang);
+        });
         var si = $('symbol'); if (si) si.placeholder = t('searchPh');
         renderSamples();
         renderLegend();
@@ -687,6 +750,15 @@
       });
       $('symbol').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('go').click(); });
       $('refresh').addEventListener('click', load);
+      document.querySelectorAll('#lang-switch button').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var l = b.getAttribute('data-lang');
+          if (l === state.lang) return;
+          state.lang = l;
+          try { localStorage.setItem('markets_lang', l); } catch (e) {}
+          applyLang();
+        });
+      });
       document.querySelectorAll('button[data-period]').forEach(function (b) {
         b.addEventListener('click', function () {
           document.querySelectorAll('button[data-period]').forEach(function (x) { x.classList.remove('active'); });
