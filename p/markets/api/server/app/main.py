@@ -293,11 +293,11 @@ async def api_paypal_webhook(request: Request):
 async def api_kline(
     symbol: str = Query(..., min_length=1, max_length=20),
     period: str = Query("day", pattern="^(day|week|month)$"),
-    count: int = Query(250, ge=10, le=1500),
+    count: int = Query(500, ge=10, le=1500),
 ):
     try:
         obj = await providers_us.get_kline_rows(symbol, period, count)
-        candles = _to_candles(obj["rows"], period)
+        candles = _to_candles(obj["rows"][-count:], period)
         data = _base_payload(symbol, period, candles, obj["source"])
         data["candles"] = a1signals.rows_from_candles(candles)
         return {"code": 0, "data": data}
@@ -312,11 +312,11 @@ async def api_kline(
 async def api_signals(
     symbol: str = Query(..., min_length=1, max_length=20),
     period: str = Query("day", pattern="^(day|week|month)$"),
-    count: int = Query(250, ge=10, le=1500),
+    count: int = Query(500, ge=10, le=1500),
 ):
     try:
         obj = await providers_us.get_kline_rows(symbol, period, count)
-        candles = _to_candles(obj["rows"], period)
+        candles = _to_candles(obj["rows"][-count:], period)
         cache_key = f"markets:{symbol.upper()}:{period}:{obj['source']}"
         sig = a1signals.build_signals_v3(candles, cache_key=cache_key)
         closes = [float(c.close) for c in candles]
