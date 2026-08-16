@@ -179,7 +179,7 @@ class FeishuNotify:
             lines = [""]
         if at_open_id:
             inner = ",".join('[{"tag":"text","text":"' + ln + '"}]' for ln in lines)
-            inner += '[{"tag":"at","user_id":"' + at_open_id + '","user_name":"Xie Lei"}]'
+            inner += ',[{"tag":"at","user_id":"' + at_open_id + '","user_name":"Xie Lei"}]'
         else:
             inner = ",".join('[{"tag":"text","text":"' + ln + '"}]' for ln in lines)
         return '{"zh_cn":{"title":"","content":[' + inner + "]}}"
