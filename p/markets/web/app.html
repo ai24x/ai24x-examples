@@ -608,7 +608,17 @@
       }
 
       function renderVol(data) {
-        if (!isMobileView()) return;
+        // 无成交量数据的标的（如部分指数）隐藏整卡，避免出现空卡片
+        var hasVol = (data.candles || []).some(function (c) { var v = +c[5]; return v && v > 0; });
+        var pan = $('chart-vol') ? $('chart-vol').closest('.panel') : null;
+        if (!hasVol) {
+          if (state.volChart) { try { state.volChart.remove(); } catch (e) {} }
+          state.volChart = null;
+          state.volSeries = null;
+          if (pan) pan.style.display = 'none';
+          return;
+        }
+        if (pan) pan.style.display = '';
         var el = $('chart-vol');
         el.innerHTML = '';
         var chart = createChart(el, smallChartHeight());

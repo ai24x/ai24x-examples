@@ -33,6 +33,7 @@ async function closeOnboard(page) {
     const mk = await page.evaluate(() => window.__mkChart());
     log('desktop no rsi chart', !(await page.$('#chart-rsi')), '');
     log('desktop volume visible', await page.isVisible('#chart-vol'), '');
+    log('desktop volume rendered', (await page.$$('#chart-vol canvas')).length > 0, 'canvases=' + (await page.$$('#chart-vol canvas')).length);
     log('desktop total bars=500', mk.mainBars === 500, 'bars=' + mk.mainBars);
     log('desktop visible ~6m', mk.visibleMain >= 120 && mk.visibleMain <= 170, 'visibleMain=' + mk.visibleMain);
     log('desktop no JS errors', errors.length === 0, errors.slice(0, 2).join('; '));
