@@ -129,6 +129,24 @@ class _SourceError(RuntimeError):
     pass
 
 
+# 三源全部失败时区分“标的不存在”与“数据源故障”
+_OUTAGE_MARKERS = (
+    "timeout", "connect", "disconnected", "protocolerror", "status",
+    "httpx", "ssl", "jsondecode", "reset by peer", "eof", "resolve", "errno",
+)
+_EMPTY_MARKERS = (
+    "0 rows", "short (", "bad payload", "empty", "failed: none",
+    "code matched", "missing", "index not supported",
+)
+
+
+def _looks_like_not_found(msg: str) -> bool:
+    low = (msg or "").lower()
+    if any(m in low for m in _OUTAGE_MARKERS):
+        return False
+    return any(m in low for m in _EMPTY_MARKERS)
+
+
 # ---------- Tencent (primary) ----------
 async def fetch_tencent_kline(symbol: str, count: int = 500) -> Tuple[List[List[Any]], List[str]]:
     """Return (rows, qt_fields). rows: [date, open, close, high, low, vol]."""
@@ -344,6 +362,8 @@ async def get_kline_rows(symbol: str, period: str = "day", count: int = 500) -> 
                             return obj
                     except Exception:
                         pass
+                if _looks_like_not_found(str(e)):
+                    raise _SourceError(f"symbol not found: {symbol}") from e
                 raise _SourceError(f"all sources failed for {symbol}: {e}") from e
 
     if not rows:

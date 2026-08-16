@@ -43,6 +43,7 @@
     .panel h3 { margin: 0; padding: 8px 14px; font-size: 12px; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.05em; }
     .chart { height: 460px; position: relative; }
     .chart.small { height: 140px; }
+    .pan-vol { display: none; }
     .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 8px 14px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); }
     .legend .lg-item { display: inline-flex; align-items: center; gap: 4px; }
     .legend .lg-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
@@ -58,6 +59,14 @@
     footer { padding: 14px 18px 26px; color: var(--muted); font-size: 12px; line-height: 1.7; border-top: 1px solid var(--border); }
     .samples { display: flex; gap: 6px; align-items: center; padding: 8px 16px; background: var(--panel); border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted); flex-wrap: wrap; }
     .samples button { padding: 3px 9px; font-size: 12px; }
+    .samples-hint { color: var(--muted); font-size: 11px; }
+    .onboard-overlay { position: fixed; inset: 0; z-index: 999; background: rgba(6,10,18,.92); display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .onboard-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; max-width: 420px; width: 100%; padding: 22px; }
+    .onboard-card h2 { margin: 0 0 8px; font-size: 18px; }
+    .onboard-card .step { display: flex; gap: 10px; margin: 12px 0; font-size: 14px; color: var(--muted); }
+    .onboard-card .num { flex: 0 0 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .onboard-actions { display: flex; gap: 10px; margin-top: 16px; }
+    .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--panel2); border: 1px solid var(--border); color: var(--text); font-size: 13px; padding: 10px 16px; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,.35); z-index: 1000; max-width: 86vw; }
     @media (max-width: 640px) {
       header { padding: 8px 10px; gap: 6px; }
       .brand { font-size: 14px; }
@@ -68,18 +77,29 @@
       .panel { margin-bottom: 8px; }
       .chart { height: 380px; }
       .chart.small { height: 110px; }
+      .pan-vol { display: block; }
       #quote { padding: 8px 10px; }
       footer { padding: 12px 12px 22px; font-size: 11px; }
     }
   </style>
 </head>
 <body>
+  <div id="onboard" class="onboard-overlay" hidden>
+    <div class="onboard-card">
+      <h2>Welcome to AI24X Markets</h2>
+      <div class="step"><span class="num">1</span><div>Type a ticker above &mdash; try <b>AAPL</b> or <b>SPY</b> &mdash; and hit <b>Search</b>.</div></div>
+      <div class="step"><span class="num">2</span><div>Read candles, moving averages, volume and signals on one chart.</div></div>
+      <div class="step"><span class="num">3</span><div>Click <b>AI Brief</b> for a plain-language technical read (sign in to unlock).</div></div>
+      <div class="onboard-actions">
+        <button id="onboard-start" type="button" style="flex:1; padding:9px 0; border:0; border-radius:8px; background:var(--accent); color:#fff; font-weight:600; cursor:pointer;">Get started</button>
+        <button id="onboard-skip" type="button" style="padding:9px 14px; border:1px solid var(--border); border-radius:8px; background:transparent; color:var(--muted); cursor:pointer;">Skip</button>
+      </div>
+    </div>
+  </div>
+
   <header>
     <div class="brand">AI24X <span>Markets</span></div>
-    <div class="lang-switch" id="lang-switch">
-      <button type="button" data-lang="en">EN</button>
-      <button type="button" data-lang="zh">中文</button>
-    </div>
+    <!-- EN-only UI (compliance) -->
     <input id="symbol" value="AAPL" maxlength="20" placeholder="AAPL / SPY / ^GSPC">
     <button id="go" data-i18n="search">Search</button>
     <div class="spacer"></div>
@@ -87,12 +107,14 @@
     <button data-period="week" data-i18n="p.week">1W</button>
     <button data-period="month" data-i18n="p.month">1M</button>
     <button id="refresh" title="Refresh">⟳</button>
+    <button id="btn-watch" title="Add to watchlist" style="border:0; background:transparent; color:var(--muted); font-size:16px; cursor:pointer;">☆</button>
+    <span id="pro-badge" style="display:none; background:var(--accent); color:#fff; font-size:10px; font-weight:700; padding:2px 7px; border-radius:999px;">PRO</span>
     <span id="auth-area"></span>
     <span id="err" class="err"></span>
   </header>
 
   <div class="samples">
-    <span data-i18n="popular">Popular</span>
+    <span class="samples-hint" data-i18n="popular">Popular — tap one to try</span>
     <button type="button" data-symbol="AAPL">AAPL</button>
     <button type="button" data-symbol="NVDA">NVDA</button>
     <button type="button" data-symbol="SPY">SPY</button>
@@ -102,17 +124,26 @@
     <button type="button" data-symbol="^DJI">^DJI</button>
   </div>
 
+  <div id="watchbar" style="display:none; padding:6px 14px; gap:8px; align-items:center; flex-wrap:wrap;">
+    <span style="font-size:12px; color:var(--muted);" data-i18n="watch.title">Watchlist</span>
+    <div id="watch-chips" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+    <span id="watch-quota" style="font-size:11px; color:var(--muted);"></span>
+  </div>
+
   <div id="quote"></div>
 
   <main>
     <div class="panel">
-      <h3 data-i18n="panel.main">Price · MA14/28/57 · MACD</h3>
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <h3 style="margin:0; padding:8px 14px; font-size:12px; font-weight:600; color:var(--muted); border-bottom:0; text-transform:uppercase; letter-spacing:0.05em;" data-i18n="panel.main">Price · MA14/28/57 · MACD</h3>
+        <button id="btn-brief-top" style="margin-right:10px; padding:5px 12px; border-radius:6px; background:var(--accent); border:0; color:#fff; font-size:12px; font-weight:600; cursor:pointer;">AI Brief</button>
+      </div>
       <div class="chart" id="chart-main"></div>
       <div class="tooltip" id="chart-tooltip" hidden></div>
       <label class="short-ma"><input type="checkbox" id="chk-short-ma" checked><span data-i18n="shortma">Short MAs 5/10/20 (dashed)</span></label>
       <div class="legend" id="signal-legend"></div>
     </div>
-    <div class="panel">
+    <div class="panel pan-vol">
       <h3 data-i18n="panel.vol">Volume</h3>
       <div class="chart small" id="chart-vol"></div>
     </div>
@@ -155,7 +186,7 @@
       var I18N = {
         en: {
           search: 'Search',
-          popular: 'Popular',
+          popular: 'Popular — tap one to try',
           'p.day': '1D', 'p.week': '1W', 'p.month': '1M',
           'panel.main': 'Price · MA14/28/57 · MACD',
           'panel.vol': 'Volume',
@@ -185,6 +216,7 @@
           loading: 'Loading…',
           quoteFail: 'Quote unavailable: ',
           loadFail: 'Error: ',
+          notFound: 'Symbol not found: {s}. Please check the ticker code.',
           open: 'Open', high: 'High', low: 'Low', close: 'Close', prev: 'Prev close',
           chg: 'Chg', chgPct: 'Chg %', vol: 'Volume', vsPrev: 'vs prev close', vsOpen: 'vs open',
           amplitude: 'Range %', signal: 'Signal', date: 'Date', macd: 'MACD', macdHist: 'Hist',
@@ -196,6 +228,7 @@
           console: 'Console',
           signOut: 'Sign out',
           authFail: 'Session check unavailable',
+          'watch.title': 'Watchlist',
         },
         zh: {
           search: '查询',
@@ -229,6 +262,7 @@
           loading: '加载中…',
           quoteFail: '行情暂不可用：',
           loadFail: '加载失败：',
+          notFound: '未找到标的 {s}，请检查代码是否正确。',
           open: '开', high: '高', low: '低', close: '收', prev: '昨收',
           chg: '涨跌额', chgPct: '涨跌幅', vol: '成交量', vsPrev: '较昨收', vsOpen: '较开盘',
           amplitude: '振幅', signal: '信号', date: '日期', macd: 'MACD', macdHist: '柱',
@@ -240,6 +274,7 @@
           console: '控制台',
           signOut: '退出',
           authFail: '会话校验暂不可用',
+          'watch.title': '自选',
         },
       };
 
@@ -550,6 +585,7 @@
       }
 
       function renderVol(data) {
+        if (!isMobileView()) return;
         var el = $('chart-vol');
         el.innerHTML = '';
         var chart = createChart(el, smallChartHeight());
@@ -614,7 +650,8 @@
       }
 
       function applyLang() {
-        document.documentElement.lang = state.lang === 'zh' ? 'zh' : 'en';
+        state.lang = 'en'; // EN-only UI (compliance)
+        document.documentElement.lang = 'en';
         document.querySelectorAll('[data-i18n]').forEach(function (el) { el.textContent = t(el.getAttribute('data-i18n')); });
         document.querySelectorAll('#lang-switch button').forEach(function (b) {
           b.classList.toggle('active', b.getAttribute('data-lang') === state.lang);
@@ -629,7 +666,7 @@
         var data = state.last;
         disposeCharts();
         $('chart-main').innerHTML = '<div class="loading">' + escHtml(t('loading')) + '</div>';
-        $('chart-vol').innerHTML = '<div class="loading">' + escHtml(t('loading')) + '</div>';
+        if (isMobileView()) $('chart-vol').innerHTML = '<div class="loading">' + escHtml(t('loading')) + '</div>';
         $('chart-rsi').innerHTML = '<div class="loading">' + escHtml(t('loading')) + '</div>';
         renderMain(data);
         renderVol(data);
@@ -664,7 +701,12 @@
             renderQuote(null);
           }
         }).catch(function (e) {
-          $('err').textContent = t('loadFail') + e.message;
+          var msg = String(e.message || '');
+          if (/^symbol not found/i.test(msg)) {
+            $('err').textContent = t('notFound').replace('{s}', escHtml(state.symbol));
+          } else {
+            $('err').textContent = t('loadFail') + msg;
+          }
         });
       }
 
@@ -760,7 +802,10 @@
       renderAuth();
       // —— AI 点评 + Pro 订阅（T6）——
       function getToken() { return readCookie('ai24x_auth_token'); }
-      function loginNext() { location.href = coreUrl() + '/login.html?next=' + encodeURIComponent(location.href); }
+      function loginNext() {
+        try { localStorage.setItem('markets_pending_login', '1'); } catch (e) {}
+        location.href = coreUrl() + '/login.html?next=' + encodeURIComponent(location.href);
+      }
 
       var subState = { pro: false, expiresAt: null, briefRemaining: -1 };
 
@@ -777,6 +822,7 @@
         if (!token) { el.textContent = t('sub.free'); } else if (subState.pro) {
           el.textContent = t('sub.pro').replace('{date}', fmtDate(subState.expiresAt));
         } else { el.textContent = t('sub.free'); }
+        var pb = $('pro-badge'); if (pb) pb.style.display = (token && subState.pro) ? 'inline-block' : 'none';
         var pl = $('brief-pro-link'); if (pl) pl.style.display = (token && !subState.pro) ? 'inline' : 'none';
         var q = $('brief-quota');
         if (q) {
@@ -882,6 +928,91 @@
           .catch(function () { var m2 = $('sub-msg'); if (m2) m2.textContent = t('sub.captureFail'); });
       }
 
+      // —— 2026-08-16 周复盘自主迭代：toast / onboarding / watchlist / 登录回跳 / AI 首屏入口 ——
+      function toast(msg) {
+        var t = document.createElement('div');
+        t.className = 'toast'; t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(function () { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; }, 2600);
+        setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 3000);
+      }
+      function maybeOnboard() {
+        var el = $('onboard'); if (!el) return;
+        var done = false; try { done = !!localStorage.getItem('markets_onboard_v1'); } catch (e) {}
+        if (done) return;
+        el.hidden = false;
+        function finish() { el.hidden = true; try { localStorage.setItem('markets_onboard_v1', '1'); } catch (e) {} }
+        var b1 = $('onboard-start'); if (b1) b1.addEventListener('click', finish);
+        var b2 = $('onboard-skip'); if (b2) b2.addEventListener('click', finish);
+      }
+      var watchState = { list: [], limit: 3 };
+      function renderWatchList() {
+        var c = $('watch-chips'); if (!c) return; c.innerHTML = '';
+        watchState.list.forEach(function (s) {
+          var b = document.createElement('button');
+          b.type = 'button'; b.textContent = s;
+          b.style.cssText = 'padding:3px 10px; font-size:12px; border-radius:999px; border:1px solid var(--border); background:var(--panel2); color:var(--text); cursor:pointer;';
+          b.addEventListener('click', function () { state.symbol = s; $('symbol').value = s; load(); });
+          c.appendChild(b);
+        });
+        var q = $('watch-quota'); if (q) q.textContent = watchState.list.length + ' / ' + watchState.limit + (watchState.limit > 3 ? ' (Pro)' : ' (Free)');
+      }
+      function renderWatchStar() {
+        var b = $('btn-watch'); if (!b) return;
+        var on = watchState.list.indexOf(state.symbol) >= 0;
+        b.textContent = on ? '★' : '☆';
+        b.style.color = on ? '#fbbf24' : '';
+      }
+      function loadWatch() {
+        var bar = $('watchbar'); if (!bar) return;
+        var token = getToken();
+        if (!token) { bar.style.display = 'none'; renderWatchStar(); return; }
+        fetch('/api/watchlist', { headers: { Authorization: 'Bearer ' + token } })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            if (j.code === 0 && j.data) {
+              watchState.list = j.data.symbols || [];
+              watchState.limit = j.data.limit || 3;
+              renderWatchList(); renderWatchStar();
+              bar.style.display = 'flex';
+            }
+          }).catch(function () {});
+      }
+      function toggleWatch() {
+        var token = getToken();
+        if (!token) { try { localStorage.setItem('markets_pending_login', '1'); } catch (e) {} loginNext(); return; }
+        var s = state.symbol;
+        var on = watchState.list.indexOf(s) >= 0;
+        fetch('/api/watchlist', {
+          method: on ? 'DELETE' : 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: on ? null : JSON.stringify({ symbol: s })
+        })
+          .then(function (r) { return r.json().then(function (j) { return { status: r.status, j: j }; }); })
+          .then(function (res) {
+            var j = res.j || {};
+            if (res.status === 401) { loginNext(); return; }
+            if (res.status === 403) { toast('Free plan: ' + watchState.limit + ' symbols max. Upgrade to Pro for 50.'); return; }
+            if (res.status !== 200 || j.code !== 0) { toast(j.msg || 'Watchlist error'); return; }
+            loadWatch();
+          }).catch(function () {});
+      }
+      function maybeWelcome() {
+        var token = getToken(); if (!token) return;
+        var pending = false; try { pending = !!localStorage.getItem('markets_pending_login'); } catch (e) {}
+        if (!pending) return;
+        try { localStorage.removeItem('markets_pending_login'); } catch (e) {}
+        toast('Welcome back! Try AI Brief on a ticker, or star it to your watchlist.');
+      }
+      var bW = $('btn-watch'); if (bW) bW.addEventListener('click', toggleWatch);
+      var bTop = $('btn-brief-top');
+      if (bTop) bTop.addEventListener('click', function () {
+        var token = getToken();
+        if (!token) { try { localStorage.setItem('markets_pending_login', '1'); } catch (e) {} loginNext(); return; }
+        var out = $('brief-out');
+        if (out) { var bp = out.closest('.panel'); if (bp) { try { bp.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} } }
+        doBrief();
+      });
       var bBrief = $('btn-brief'); if (bBrief) bBrief.addEventListener('click', doBrief);
       var bMonth = $('btn-sub-month'); if (bMonth) bMonth.addEventListener('click', function () { doCheckout('monthly'); });
       var bYear = $('btn-sub-year'); if (bYear) bYear.addEventListener('click', function () { doCheckout('yearly'); });
@@ -897,10 +1028,16 @@
 
       checkSub();
       // 旋转/窗口尺寸变化：重新计算首屏K线数量并同步各图可见范围
+      var lastMobileView = isMobileView();
       window.addEventListener('resize', function () {
         var next = recomputeVisible();
         var changed = next !== VISIBLE_MAIN;
         VISIBLE_MAIN = next;
+        var mv = isMobileView();
+        if (mv !== lastMobileView) {
+          lastMobileView = mv;
+          if (state.last) { rerenderCharts(); return; }
+        }
         if (!changed) return;
         [state.mainChart, state.volChart, state.rsiChart].forEach(function (c) {
           if (!c) return;
@@ -924,6 +1061,9 @@
       };
       applyLang();
       load();
+      maybeOnboard();
+      loadWatch();
+      maybeWelcome();
     })();
   </script>
 </body>
