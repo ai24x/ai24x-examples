@@ -293,7 +293,7 @@ async def api_paypal_webhook(request: Request):
 async def api_kline(
     symbol: str = Query(..., min_length=1, max_length=20),
     period: str = Query("day", pattern="^(day|week|month)$"),
-    count: int = Query(500, ge=10, le=1500),
+    count: int = Query(250, ge=10, le=1500),
 ):
     try:
         obj = await providers_us.get_kline_rows(symbol, period, count)
@@ -309,7 +309,7 @@ async def api_kline(
 async def api_signals(
     symbol: str = Query(..., min_length=1, max_length=20),
     period: str = Query("day", pattern="^(day|week|month)$"),
-    count: int = Query(500, ge=10, le=1500),
+    count: int = Query(250, ge=10, le=1500),
 ):
     try:
         obj = await providers_us.get_kline_rows(symbol, period, count)
