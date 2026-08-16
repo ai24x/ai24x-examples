@@ -488,8 +488,13 @@
       th = localStorage.getItem("ai24x_theme") || DEFAULT_THEME;
       if (!THEME_FILE[th]) th = DEFAULT_THEME;
     } else {
+      // 无主题选择器时跟随 HTML 声明的主题：主页已声明 theme-dark（深色默认），其余页面 theme-blue
+      var linkHref = (document.getElementById("theme-css") || {}).getAttribute ?
+        (document.getElementById("theme-css").getAttribute("href") || "") : "";
+      if (linkHref.indexOf("theme-dark") >= 0) th = "dark";
+      else if (linkHref.indexOf("theme-cards") >= 0) th = "cards";
       try {
-        localStorage.setItem("ai24x_theme", DEFAULT_THEME);
+        localStorage.setItem("ai24x_theme", th);
       } catch (e) {}
     }
     applyTheme(th);

@@ -1,6 +1,6 @@
 """US market data providers (markets subproject).
 
-主链: Tencent -> Eastmoney -> Sina daily -> cache -> error.
+主链: Tencent -> Eastmoney -> cache -> error.（Sina 已于 2026-08-16 移除：US K线接口不稳且熔断后报错泄漏到前端）
 所有源统一返回 Candle rows: [date, open, close, high, low, vol]（与行情官口径一致）。
 """
 from __future__ import annotations
@@ -34,6 +34,86 @@ _TX_INDEX_ALIASES = {
     "DOW": "^DJI",
     "DOWJONES": "^DJI",
 }
+
+# ---------- 名称 -> 代码（en/zh），搜索中文/英文名直接解析，避免把名称当代码去查 ----------
+_NAME_TO_SYMBOL: Dict[str, str] = {}
+
+
+def _reg_names(sym: str, *names: str) -> None:
+    for n in names:
+        if n:
+            _NAME_TO_SYMBOL[n.lower().replace(".", "").replace(" ", "")] = sym
+
+
+_reg_names("^DJI", "道琼斯", "道琼斯指数", "Dow Jones", "Dow")
+_reg_names("^IXIC", "纳斯达克", "纳斯达克综合指数", "Nasdaq", "Nasdaq Composite")
+_reg_names("^GSPC", "标普500", "标普", "标准普尔", "S&P 500", "S&P", "SP 500", "SP500")
+_reg_names("^VIX", "恐慌指数", "VIX Index")
+_reg_names("AAPL", "苹果", "苹果公司", "Apple")
+_reg_names("NVDA", "英伟达", "辉达", "NVIDIA")
+_reg_names("MSFT", "微软", "Microsoft")
+_reg_names("GOOGL", "谷歌", "Alphabet", "Google")
+_reg_names("AMZN", "亚马逊", "Amazon")
+_reg_names("META", "Meta", "Meta Platforms", "Facebook", "脸书")
+_reg_names("TSLA", "特斯拉", "Tesla")
+_reg_names("NFLX", "奈飞", "网飞", "Netflix")
+_reg_names("AMD", "超威半导体", "超微半导体")
+_reg_names("INTC", "英特尔", "Intel")
+_reg_names("TSM", "台积电", "TSMC", "Taiwan Semiconductor")
+_reg_names("BABA", "阿里巴巴", "Alibaba")
+_reg_names("PDD", "拼多多", "Pinduoduo")
+_reg_names("JD", "京东", "JD.com", "Jingdong")
+_reg_names("BIDU", "百度", "Baidu")
+_reg_names("NTES", "网易", "NetEase")
+_reg_names("NIO", "蔚来", "NIO")
+_reg_names("LI", "理想汽车", "理想", "Li Auto")
+_reg_names("XPEV", "小鹏汽车", "小鹏", "XPeng")
+_reg_names("APLM", "冠科美博", "Apollomics", "冠科")
+_reg_names("DIS", "迪士尼", "华特迪士尼", "Disney", "Walt Disney")
+_reg_names("KO", "可口可乐", "Coca Cola", "Coca-Cola")
+_reg_names("NKE", "耐克", "Nike")
+_reg_names("BA", "波音", "Boeing")
+_reg_names("GS", "高盛", "Goldman Sachs")
+_reg_names("JPM", "摩根大通", "JPMorgan", "JP Morgan")
+_reg_names("BAC", "美国银行", "Bank of America")
+_reg_names("WFC", "富国银行", "Wells Fargo")
+_reg_names("C", "花旗", "Citigroup", "Citi")
+_reg_names("CSCO", "思科", "Cisco")
+_reg_names("ORCL", "甲骨文", "Oracle")
+_reg_names("CRM", "赛富时", "Salesforce")
+_reg_names("UBER", "优步", "Uber")
+_reg_names("ABNB", "爱彼迎", "Airbnb")
+_reg_names("SBUX", "星巴克", "Starbucks")
+_reg_names("MCD", "麦当劳", "McDonald's", "McDonalds")
+_reg_names("WMT", "沃尔玛", "Walmart")
+_reg_names("XOM", "埃克森美孚", "ExxonMobil", "Exxon")
+_reg_names("CVX", "雪佛龙", "Chevron")
+_reg_names("V", "Visa", "维萨")
+_reg_names("MA", "Mastercard", "万事达")
+_reg_names("PYPL", "PayPal", "贝宝")
+_reg_names("SPY", "S&P 500 ETF", "标普500ETF", "标普500 ETF")
+_reg_names("QQQ", "Nasdaq 100 ETF", "纳指100ETF", "纳指100 ETF", "纳斯达克100ETF")
+_reg_names("DIA", "Dow Jones ETF", "道琼斯ETF")
+_reg_names("IWM", "Russell 2000", "罗素2000")
+_reg_names("TLT", "20+ Year Treasury", "长债ETF")
+_reg_names("GLD", "Gold ETF", "黄金ETF")
+_reg_names("VOO", "Vanguard S&P 500", "先锋标普500")
+_reg_names("FXI", "China Large-Cap ETF", "中国大盘ETF")
+_reg_names("KWEB", "中概互联", "China Internet ETF")
+_reg_names("SOXX", "半导体ETF", "Semiconductor ETF")
+_reg_names("XLK", "科技ETF", "Technology ETF")
+_reg_names("XLF", "金融ETF", "Financial ETF")
+_reg_names("XLE", "能源ETF", "Energy ETF")
+
+
+def resolve_symbol(symbol: str) -> str:
+    """中文/英文名称归一化为代码；本身是代码或未知名称时原样返回。"""
+    s = (symbol or "").strip()
+    if not s:
+        return symbol
+    return _NAME_TO_SYMBOL.get(s.lower().replace(".", "").replace(" ", ""), symbol)
+
+
 _EM_INDEX_MAP = {
     "usINX": "100.SPX",
     "usIXIC": "100.NDX",
@@ -113,8 +193,6 @@ class _RateGate:
 
 _TX_GATE = _RateGate(0.5, 120)
 _EM_GATE = _RateGate(0.5, 90)
-_SINA_GATE = _RateGate(1.0, 60)
-
 _CIRCUIT: Dict[str, Dict[str, Any]] = {}
 
 
@@ -350,48 +428,6 @@ async def fetch_em_kline(symbol: str, count: int = 500) -> List[List[Any]]:
     raise _SourceError(f"eastmoney kline failed: {last_err}")
 
 
-# ---------- Sina daily (fallback 2, individual stocks only) ----------
-async def fetch_sina_kline(symbol: str, count: int = 500) -> List[List[Any]]:
-    if _circuit_open("sina"):
-        raise _SourceError("sina circuit open")
-    bare = symbol.upper().replace("^", "")
-    if bare.startswith("US"):
-        bare = bare[2:]
-    if bare in ("INX", "IXIC", "DJI", "VIX"):
-        raise _SourceError("sina index not supported")
-    await _SINA_GATE.acquire()
-    try:
-        client = _get_client()
-        url = (
-            "https://stock.finance.sina.com.cn/usstock/api/jsonp.php/var%20_=/US_MinKService.getDailyK"
-            f"?symbol={bare}"
-        )
-        r = await client.get(url)
-        r.raise_for_status()
-        text = r.text
-        marker = "var _="
-        body = text[text.find(marker) + len(marker):].strip()
-        if body.startswith("("):
-            body = body[1:]
-        if body.endswith(");"):
-            body = body[:-2]
-        items = json.loads(body)
-        if not isinstance(items, list):
-            raise _SourceError("sina bad payload")
-        rows: List[List[Any]] = []
-        for it in items:
-            d = str(it.get("d") or "")
-            if len(d) == 10:
-                rows.append([d, it.get("o"), it.get("c"), it.get("h"), it.get("l"), it.get("v")])
-        if not rows:
-            raise _SourceError("sina empty")
-        _circuit_note("sina", True)
-        return rows[-count:]
-    except Exception as e:
-        _circuit_note("sina", False)
-        raise _SourceError(f"sina kline failed: {e}") from e
-
-
 # ---------- cache & orchestration ----------
 def _today_str() -> str:
     return date.today().isoformat()
@@ -404,6 +440,7 @@ def _cache_file(kind: str, symbol: str, period: str) -> Path:
 
 async def get_kline_rows(symbol: str, period: str = "day", count: int = 500) -> Dict[str, Any]:
     period = period or "day"
+    symbol = resolve_symbol(symbol)
     cache = _cache_file("kline", symbol, period)
     if cache.exists():
         try:
@@ -422,27 +459,25 @@ async def get_kline_rows(symbol: str, period: str = "day", count: int = 500) -> 
     try:
         rows, _qt = await fetch_tencent_kline(symbol, fetch_n)
         source = "tencent"
-    except Exception:
+    except Exception as e1:
         try:
             rows = await fetch_em_kline(symbol, fetch_n)
             source = "eastmoney"
-        except Exception:
-            try:
-                rows = await fetch_sina_kline(symbol, fetch_n)
-                source = "sina"
-            except Exception as e:
-                if cache.exists():
-                    try:
-                        obj = json.loads(cache.read_text(encoding="utf-8"))
-                        if obj.get("rows"):
-                            obj["source"] = "cache"
-                            return obj
-                    except Exception:
-                        pass
-                if _looks_like_not_found(str(e)):
-                    suggested = await _suggest_symbol(symbol)
-                    raise SymbolNotFoundError(symbol, suggested) from e
-                raise _SourceError(f"all sources failed for {symbol}: {e}") from e
+        except Exception as e2:
+            if cache.exists():
+                try:
+                    obj = json.loads(cache.read_text(encoding="utf-8"))
+                    if obj.get("rows"):
+                        obj["source"] = "cache"
+                        return obj
+                except Exception:
+                    pass
+            # 任一源给出“标的不存在”信号（如 0 rows/empty）即视为未找到，静默探测建议代码；
+            # 仅当所有失败都是断连/超时/熔断等故障信号时才报“no data available”。
+            if _looks_like_not_found(str(e1)) or _looks_like_not_found(str(e2)):
+                suggested = await _suggest_symbol(symbol)
+                raise SymbolNotFoundError(symbol, suggested) from e2
+            raise _SourceError(f"no data available for {symbol}") from e2
 
     if not rows:
         raise _SourceError(f"no data for {symbol}")
@@ -462,6 +497,7 @@ async def get_kline_rows(symbol: str, period: str = "day", count: int = 500) -> 
 
 
 async def get_quote(symbol: str) -> Dict[str, Any]:
+    symbol = resolve_symbol(symbol)
     cache = _cache_file("quote", symbol, "rt")
     if cache.exists():
         try:

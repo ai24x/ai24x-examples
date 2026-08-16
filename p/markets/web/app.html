@@ -166,7 +166,7 @@
     </div>
   </main>
 
-  <footer data-i18n="footer">15-minute delayed market data. Sources: Tencent (primary) · Eastmoney · Sina. For educational purposes only — not investment advice.</footer>
+  <footer data-i18n="footer">15-minute delayed market data. Sources: Tencent (primary) · Eastmoney. For educational purposes only — not investment advice.</footer>
   <div style="text-align:center; padding:0 12px 18px; font-size:11px; color:var(--muted);"><a href="/pricing.html" style="color:var(--muted);">Pricing</a> &nbsp;·&nbsp; <a href="/tos.html" style="color:var(--muted);">Terms of Service</a> &nbsp;·&nbsp; <a href="/privacy.html" style="color:var(--muted);">Privacy Policy</a></div>
 
   <script src="vendor/lightweight-charts.standalone.production.js"></script>
@@ -202,7 +202,7 @@
           'sub.captureOk': 'Payment confirmed — Pro activated. Thank you!',
           'sub.reload': 'Refreshing…',
           shortma: 'Short MAs 5/10/20 (dashed)',
-          footer: '15-minute delayed market data. Sources: Tencent (primary) · Eastmoney · Sina. For educational purposes only — not investment advice.',
+          footer: '15-minute delayed market data. Sources: Tencent (primary) · Eastmoney. For educational purposes only — not investment advice.',
           loading: 'Loading…',
           quoteFail: 'Quote unavailable: ',
           loadFail: 'Error: ',
@@ -254,7 +254,7 @@
           'sub.captureOk': '支付确认成功 — Pro 已激活，感谢支持！',
           'sub.reload': '刷新中…',
           shortma: '主图叠加短周期均线（虚线）',
-          footer: '15 分钟延迟行情。数据源：腾讯（主源）· 东财 · 新浪。内容仅供学习交流与自主决策参考，不构成投资建议。',
+          footer: '15 分钟延迟行情。数据源：腾讯（主源）· 东财。内容仅供学习交流与自主决策参考，不构成投资建议。',
           loading: '加载中…',
           quoteFail: '行情暂不可用：',
           loadFail: '加载失败：',
@@ -310,7 +310,7 @@
 
       var state = {
         lang: (function () { try { return localStorage.getItem('markets_lang') || 'en'; } catch (e) { return 'en'; } })(),
-        symbol: 'AAPL',
+        symbol: (function () { try { return localStorage.getItem('markets_last_symbol') || 'AAPL'; } catch (e) { return 'AAPL'; } })(),
         period: 'day',
         last: null,
         lastQuote: null,
@@ -676,6 +676,7 @@
           var qj = res[0], sj = res[1];
           if (sj.code === 0 && sj.data && sj.data.candles && sj.data.candles.length) {
             state.last = sj.data;
+            try { localStorage.setItem('markets_last_symbol', state.symbol); } catch (e) {}
             disposeCharts();
             renderMain(sj.data);
           } else {
@@ -748,8 +749,8 @@
       var params = new URLSearchParams(location.search);
       if (params.get('symbol')) {
         state.symbol = params.get('symbol').toUpperCase();
-        $('symbol').value = state.symbol;
       }
+      $('symbol').value = state.symbol;
 
       // —— 跨子域登录态：复用核心层账号（www 登录后写 .ai24x.com cookie）——
       function readCookie(name) {
