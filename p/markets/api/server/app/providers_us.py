@@ -24,6 +24,16 @@ _TX_SYMBOL_MAP = {
     "^DJI": "usDJI",
     "^VIX": "usVIX",
 }
+_TX_INDEX_ALIASES = {
+    "GSPC": "^GSPC",
+    "SP500": "^GSPC",
+    "SPX": "^GSPC",
+    "IXIC": "^IXIC",
+    "NASDAQ": "^IXIC",
+    "DJI": "^DJI",
+    "DOW": "^DJI",
+    "DOWJONES": "^DJI",
+}
 _EM_INDEX_MAP = {
     "usINX": "100.SPX",
     "usIXIC": "100.NDX",
@@ -129,6 +139,16 @@ class _SourceError(RuntimeError):
     pass
 
 
+class SymbolNotFoundError(_SourceError):
+    def __init__(self, symbol: str, suggested: str = ""):
+        self.symbol = symbol
+        self.suggested = suggested
+        msg = f"symbol not found: {symbol}"
+        if suggested:
+            msg += f"; did you mean {suggested}?"
+        super().__init__(msg)
+
+
 # 三源全部失败时区分“标的不存在”与“数据源故障”
 _OUTAGE_MARKERS = (
     "timeout", "connect", "disconnected", "protocolerror", "status",
@@ -145,6 +165,59 @@ def _looks_like_not_found(msg: str) -> bool:
     if any(m in low for m in _OUTAGE_MARKERS):
         return False
     return any(m in low for m in _EMPTY_MARKERS)
+
+
+def _suggest_candidates(symbol: str) -> List[str]:
+    """生成候选代码：指数别名优先，其次尾字母裁剪（如 WETOUR → WETO）。"""
+    raw = (symbol or "").strip().upper()
+    bare = raw.replace("^", "")
+    if bare.startswith("US") and len(bare) > 2:
+        bare = bare[2:]
+    out: List[str] = []
+    if bare in _TX_INDEX_ALIASES:
+        out.append(_TX_INDEX_ALIASES[bare])
+    for cut in (1, 2, 3):
+        if len(bare) > cut + 3:
+            out.append(bare[:-cut])
+    return out
+
+
+async def _quiet_tencent_kline(symbol: str, count: int = 60) -> List[List[Any]]:
+    """建议探测用：直接按候选代码拉腾讯K线，不计熔断、不查行情快照（避免熔断计数被连续探测打爆）。"""
+    s = (symbol or "").strip().upper()
+    tx = to_tencent_symbol(s)
+    if tx in _TX_SYMBOL_MAP.values():
+        codes = [tx]
+    else:
+        bare = s[2:] if s.startswith("US") and len(s) > 2 else s
+        codes = [f"us{bare}{sfx}" for sfx in (".OQ", ".AM", ".N")]
+    await _TX_GATE.acquire()
+    client = _get_client()
+    for code in dict.fromkeys(codes):
+        try:
+            url = f"https://web.ifzq.gtimg.cn/appstock/app/usfqkline/get?param={code},day,,,{count},qfq"
+            r = await client.get(url)
+            r.raise_for_status()
+            payload = r.json()
+            node = (payload.get("data") or {}).get(code) or {}
+            rows = node.get("day") or node.get("qfqday") or []
+            if rows:
+                return rows
+        except Exception:
+            continue
+    return []
+
+
+async def _suggest_symbol(symbol: str) -> str:
+    """标的找不到时静默试候选代码，命中返回建议代码，否则空串。"""
+    for cand in _suggest_candidates(symbol):
+        try:
+            rows = await _quiet_tencent_kline(cand, 60)
+            if rows:
+                return cand
+        except Exception:
+            continue
+    return ""
 
 
 # ---------- Tencent (primary) ----------
@@ -363,7 +436,8 @@ async def get_kline_rows(symbol: str, period: str = "day", count: int = 500) -> 
                     except Exception:
                         pass
                 if _looks_like_not_found(str(e)):
-                    raise _SourceError(f"symbol not found: {symbol}") from e
+                    suggested = await _suggest_symbol(symbol)
+                    raise SymbolNotFoundError(symbol, suggested) from e
                 raise _SourceError(f"all sources failed for {symbol}: {e}") from e
 
     if not rows:
@@ -386,10 +460,17 @@ async def get_quote(symbol: str) -> Dict[str, Any]:
                 return obj
         except Exception:
             pass
-    quote = await fetch_tencent_quote(symbol)
+    try:
+        quote = await fetch_tencent_quote(symbol)
+    except Exception as e:
+        if _looks_like_not_found(str(e)):
+            suggested = await _suggest_symbol(symbol)
+            raise SymbolNotFoundError(symbol, suggested) from e
+        raise
     price = quote.get("price")
     if price is None or price <= 0:
-        raise _SourceError(f"symbol not found: {symbol}")
+        suggested = await _suggest_symbol(symbol)
+        raise SymbolNotFoundError(symbol, suggested)
     quote["ts"] = time.time()
     try:
         cache.write_text(json.dumps(quote, ensure_ascii=False), encoding="utf-8")

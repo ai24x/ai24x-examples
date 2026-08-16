@@ -302,7 +302,10 @@ async def api_kline(
         data["candles"] = a1signals.rows_from_candles(candles)
         return {"code": 0, "data": data}
     except Exception as e:
-        return {"code": -1, "msg": str(e), "data": {}}
+        payload = {"code": -1, "msg": str(e), "data": {}}
+        if isinstance(e, providers_us.SymbolNotFoundError):
+            payload["suggested"] = e.suggested
+        return payload
 
 
 @app.get("/api/signals")
@@ -331,7 +334,10 @@ async def api_signals(
         )
         return {"code": 0, "data": data}
     except Exception as e:
-        return {"code": -1, "msg": str(e), "data": {}}
+        payload = {"code": -1, "msg": str(e), "data": {}}
+        if isinstance(e, providers_us.SymbolNotFoundError):
+            payload["suggested"] = e.suggested
+        return payload
 
 
 app.mount("/", StaticFiles(directory=str(_WEB_DIR), html=True), name="web")
