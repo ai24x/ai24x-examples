@@ -130,6 +130,68 @@ img {
   color: var(--accent-ink);
 }
 
+/* 主导航「Developer」下拉 */
+.nav-drop {
+  position: relative;
+}
+
+.nav-drop-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.nav-drop-btn:hover,
+.nav-drop.is-active .nav-drop-btn {
+  color: var(--text);
+  background: var(--nav-hover-bg);
+}
+
+.nav-drop.is-active .nav-drop-btn {
+  color: var(--accent);
+  background: var(--nav-active-bg);
+}
+
+.nav-caret {
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
+.nav-drop-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 190px;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  z-index: 60;
+}
+
+.nav-drop-menu a {
+  white-space: nowrap;
+}
+
+.nav-drop:hover .nav-drop-menu,
+.nav-drop:focus-within .nav-drop-menu {
+  display: flex;
+}
+
 .header-actions {
   display: flex;
   flex-wrap: wrap;
@@ -258,6 +320,29 @@ img {
 
   .nav-main a {
     padding: 12px 14px;
+  }
+
+  .nav-drop {
+    width: 100%;
+  }
+
+  .nav-drop-btn {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 12px 14px;
+  }
+
+  .nav-drop-menu {
+    position: static;
+    transform: none;
+    min-width: 0;
+    display: flex;
+    margin: 2px 0 4px 14px;
+    border: 0;
+    border-left: 2px solid var(--border);
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
   }
 
   .header-actions .select-mini.theme-select {

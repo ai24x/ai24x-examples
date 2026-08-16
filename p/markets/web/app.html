@@ -223,6 +223,7 @@
           signIn: 'Sign in',
           signedInAs: 'Signed in as',
           console: 'Console',
+          upgrade: 'Upgrade',
           signOut: 'Sign out',
           authFail: 'Session check unavailable',
           'watch.title': 'Watchlist',
@@ -275,6 +276,7 @@
           signIn: '登录',
           signedInAs: '已登录',
           console: '控制台',
+          upgrade: '升级',
           signOut: '退出',
           authFail: '会话校验暂不可用',
           'watch.title': '自选',
@@ -679,6 +681,7 @@
             try { localStorage.setItem('markets_last_symbol', state.symbol); } catch (e) {}
             disposeCharts();
             renderMain(sj.data);
+            flashPlan();
           } else {
             var _err = new Error((sj && sj.msg) || 'signals failed');
             _err.suggested = (sj && sj.suggested) || '';
@@ -793,6 +796,7 @@
           '<span class="auth-user" id="auth-user">' + t('signedInAs') + ' ' +
           (u0 && (u0.email || u0.username) ? escHtml(u0.email || u0.username) : '…') + '</span>' +
           '<a class="auth-link" href="' + coreUrl() + '/console.html">' + t('console') + '</a>' +
+          '<a class="auth-link" id="auth-upgrade" href="#sub" style="display:none;color:var(--accent);font-weight:700;">' + t('upgrade') + '</a>' +
           '<button type="button" class="auth-btn" id="btn-signout">' + t('signOut') + '</button>';
         fetch('/api/me', { headers: { Authorization: 'Bearer ' + token } })
           .then(function (r) { return r.json(); })
@@ -839,6 +843,7 @@
         var pb = $('pro-badge'); if (pb) pb.style.display = (token && subState.pro) ? 'inline-block' : 'none';
         var pn = $('pro-next'); if (pn) pn.style.display = (token && subState.pro) ? 'flex' : 'none';
         var pl = $('brief-pro-link'); if (pl) pl.style.display = (token && !subState.pro) ? 'inline' : 'none';
+        var au = $('auth-upgrade'); if (au) au.style.display = (token && !subState.pro) ? 'inline' : 'none';
         var q = $('brief-quota');
         if (q) {
           if (!token) q.textContent = t('brief.login');
@@ -1043,6 +1048,25 @@
       var bBrief = $('btn-brief'); if (bBrief) bBrief.addEventListener('click', doBrief);
       var bMonth = $('btn-sub-month'); if (bMonth) bMonth.addEventListener('click', function () { doCheckout('monthly'); });
       var bYear = $('btn-sub-year'); if (bYear) bYear.addEventListener('click', function () { doCheckout('yearly'); });
+
+      // 深链：?plan=monthly|yearly#sub → 平滑滚动到订阅面板并高亮对应档位
+      function flashPlan() {
+        var p = new URLSearchParams(location.search);
+        var plan = p.get('plan');
+        if (plan !== 'monthly' && plan !== 'yearly') return;
+        var btn = $('btn-sub-' + (plan === 'yearly' ? 'year' : 'month'));
+        if (!btn) return;
+        btn.style.boxShadow = '0 0 0 2px var(--accent)';
+        clearTimeout(flashPlan._t);
+        flashPlan._t = setTimeout(function () { btn.style.boxShadow = ''; }, 8000);
+      }
+      (function handlePlanDeepLink() {
+        var plan = new URLSearchParams(location.search).get('plan');
+        if (location.hash !== '#sub' && !plan) return;
+        var sub = $('sub');
+        if (sub) { try { sub.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }
+        flashPlan();
+      })();
 
       // PayPal 回跳：?pay=done&token=<orderId> → capture（幂等）
       (function handlePayReturn() {

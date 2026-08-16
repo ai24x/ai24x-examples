@@ -54,10 +54,7 @@
       var c = activePage === id ? " is-active" : "";
       var ext = /^https?:\/\//i.test(href);
       var full = ext ? href : pre + href;
-      var label = "";
-      try {
-        if (L && typeof L.t === "function") label = L.t(key) || "";
-      } catch (e) {}
+      var label = tr(key);
       return (
         '<a href="' +
         full +
@@ -73,6 +70,50 @@
       );
     }
 
+    function tr(key) {
+      try {
+        if (L && typeof L.t === "function") return L.t(key) || "";
+      } catch (e) {}
+      return "";
+    }
+
+    function navDrop(key, items) {
+      var c = items.some(function (it) { return activePage === it.id; })
+        ? " is-active"
+        : "";
+      var links = items
+        .map(function (it) {
+          var cc = activePage === it.id ? " is-active" : "";
+          var full = /^https?:\/\//i.test(it.href) ? it.href : pre + it.href;
+          return (
+            '<a href="' +
+            full +
+            '" data-i18n="' +
+            it.key +
+            '" class="' +
+            cc.trim() +
+            '">' +
+            esc(tr(it.key)) +
+            "</a>"
+          );
+        })
+        .join("");
+      return (
+        '<span class="nav-drop' +
+        c.trim() +
+        '">' +
+        '<button type="button" class="nav-drop-btn" aria-haspopup="true" aria-expanded="false" data-i18n="' +
+        key +
+        '">' +
+        esc(tr(key)) +
+        ' <span class="nav-caret">▾</span></button>' +
+        '<span class="nav-drop-menu" role="menu">' +
+        links +
+        "</span>" +
+        "</span>"
+      );
+    }
+
     return (
       '<div class="container header-inner">' +
       '<a class="brand" href="' +
@@ -83,10 +124,16 @@
       "</a>" +
       '<button type="button" class="menu-toggle" id="menu-toggle" aria-label="Menu" aria-expanded="false"><span></span></button>' +
       '<nav class="nav-main" id="nav-main" aria-label="Main">' +
-      nav("index.html", "nav.home", "index") +
+      nav("https://markets.ai24x.com", "nav.markets", "markets") +
       nav("pricing.html", "nav.pricing", "pricing") +
       nav("product.html", "nav.product", "product") +
       nav("help.html", "nav.help", "help") +
+      navDrop("nav.developer", [
+        { href: "api.html", key: "nav.api", id: "api" },
+        { href: "models/index.html", key: "nav.models", id: "models" },
+        { href: "guides/index.html", key: "nav.guides", id: "guides" },
+        { href: "docs.html", key: "nav.docs", id: "docs" }
+      ]) +
       nav("console.html", "nav.console", "console") +
       nav("login.html", "nav.login", "login") +
       nav("register.html", "nav.register", "register") +
@@ -95,7 +142,7 @@
       '<select id="lang-select" class="select-mini" aria-label="Language">' +
       langOpts +
       "</select>" +
-      /* 国际站默认锁定蓝白；主题切换易 FOUC，先不露出选择器（CSS/逻辑仍保留） */
+      /* 主题跟随 HTML 声明（全站深色）；主题选择器默认不露出（CSS/逻辑仍保留） */
       (THEME_PICKER_ENABLED
         ? '<select id="theme-select" class="select-mini theme-select" aria-label="Theme">' +
           '<option value="blue" data-i18n="theme.blue"></option>' +
@@ -116,6 +163,7 @@
       index: "index.html",
       product: "product.html",
       pricing: "pricing.html",
+      api: "api.html",
       models: "models/index.html",
       guides: "guides/index.html",
       help: "help.html",
@@ -199,7 +247,12 @@
     try {
       var mkLinks = document.querySelectorAll("a[data-markets]");
       for (var i = 0; i < mkLinks.length; i++) {
-        mkLinks[i].setAttribute("href", marketsUrl());
+        // 仅重写指向 markets 根地址的链接（本机开发切 18012）；
+        // 带路径/深链（如 app.html#sub、?plan=yearly）保持原样，避免丢失订阅深链
+        var href = mkLinks[i].getAttribute("href") || "";
+        if (/^https?:\/\/markets\.ai24x\.com\/?$/.test(href)) {
+          mkLinks[i].setAttribute("href", marketsUrl());
+        }
       }
     } catch (e) {}
     var toggle = document.getElementById("menu-toggle");
