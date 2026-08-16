@@ -58,6 +58,19 @@
     footer { padding: 14px 18px 26px; color: var(--muted); font-size: 12px; line-height: 1.7; border-top: 1px solid var(--border); }
     .samples { display: flex; gap: 6px; align-items: center; padding: 8px 16px; background: var(--panel); border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted); flex-wrap: wrap; }
     .samples button { padding: 3px 9px; font-size: 12px; }
+    @media (max-width: 640px) {
+      header { padding: 8px 10px; gap: 6px; }
+      .brand { font-size: 14px; }
+      #symbol { flex: 1; min-width: 90px; }
+      #go { padding: 7px 8px; }
+      .samples { padding: 6px 10px; gap: 5px; }
+      main { padding: 8px 8px 20px; }
+      .panel { margin-bottom: 8px; }
+      .chart { height: 380px; }
+      .chart.small { height: 110px; }
+      #quote { padding: 8px 10px; }
+      footer { padding: 12px 12px 22px; font-size: 11px; }
+    }
   </style>
 </head>
 <body>
@@ -315,9 +328,26 @@
           rightPriceScale: { borderColor: '#252b36' },
           crosshair: { mode: LightweightCharts.CrosshairMode.Normal, vertLine: { labelBackgroundColor: '#252b36' }, horzLine: { labelBackgroundColor: '#252b36' } },
         };
+        try { opts.autoSize = true; } catch (e) {}
         try { opts.attributionLogo = false; } catch (e) {}
         var chart = LightweightCharts.createChart(el, opts);
         return chart;
+      }
+
+      // 手机端 K 线清晰度优化：首屏只看最近 N 根（手机 ~40 根、每根约 9px 宽），宽屏自适应
+      function isMobileView() { return (window.innerWidth || 375) <= 640; }
+      function recomputeVisible() {
+        var w = window.innerWidth || 375;
+        var div = isMobileView() ? 9.2 : 8;
+        var cap = isMobileView() ? 80 : 160;
+        return Math.max(isMobileView() ? 34 : 60, Math.min(cap, Math.floor(w / div)));
+      }
+      function mainChartHeight() { return isMobileView() ? 380 : 460; }
+      function smallChartHeight() { return isMobileView() ? 110 : 140; }
+      var VISIBLE_MAIN = recomputeVisible();
+      function showLastN(chart, n) {
+        try { chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, n - VISIBLE_MAIN), to: n + 1 }); }
+        catch (e) { try { chart.timeScale().fitContent(); } catch (e2) {} }
       }
 
       // 移除 lightweight-charts 左下角 TradingView 归因链接（站内化，不出现站外链接）
@@ -377,7 +407,7 @@
       function renderMain(data) {
         var el = $('chart-main');
         el.innerHTML = '';
-        var chart = createChart(el, 460);
+        var chart = createChart(el, mainChartHeight());
         state.mainChart = chart;
 
         var candles = data.candles.map(function (c) {
@@ -436,7 +466,7 @@
         state.macdDif.setMarkers(buildMacdMarks(data));
 
         state.mainSeries.setMarkers(buildSignalMarks(data));
-        chart.timeScale().fitContent();
+        showLastN(chart, candles.length);
         setupTooltip(chart, state.mainSeries, candles, data);
         wireShortMa(data);
       }
@@ -522,7 +552,7 @@
       function renderVol(data) {
         var el = $('chart-vol');
         el.innerHTML = '';
-        var chart = createChart(el, 140);
+        var chart = createChart(el, smallChartHeight());
         state.volChart = chart;
         state.volSeries = chart.addHistogramSeries({ priceFormat: { type: 'volume' }, priceLineVisible: false, lastValueVisible: false });
         state.volSeries.setData(data.candles.map(function (c) {
@@ -531,13 +561,13 @@
             color: (+c[2] >= +c[1]) ? 'rgba(240,58,82,0.55)' : 'rgba(0,181,120,0.55)',
           };
         }));
-        chart.timeScale().fitContent();
+        showLastN(chart, data.candles.length);
       }
 
       function renderRsi(data) {
         var el = $('chart-rsi');
         el.innerHTML = '';
-        var chart = createChart(el, 140);
+        var chart = createChart(el, smallChartHeight());
         state.rsiChart = chart;
         state.rsiSeries = chart.addLineSeries({ color: '#ab6dfe', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
         var times = data.candles.map(function (c) { return c[0]; });
@@ -547,7 +577,7 @@
           ref.setData(times.map(function (tm) { return { time: tm, value: lv }; }));
         });
         try { chart.priceScale('right').applyOptions({ minValue: 0, maxValue: 100 }); } catch (e) {}
-        chart.timeScale().fitContent();
+        showLastN(chart, times.length);
       }
 
       function renderLegend() {
@@ -866,6 +896,32 @@
       })();
 
       checkSub();
+      // 旋转/窗口尺寸变化：重新计算首屏K线数量并同步各图可见范围
+      window.addEventListener('resize', function () {
+        var next = recomputeVisible();
+        var changed = next !== VISIBLE_MAIN;
+        VISIBLE_MAIN = next;
+        if (!changed) return;
+        [state.mainChart, state.volChart, state.rsiChart].forEach(function (c) {
+          if (!c) return;
+          try {
+            var r = c.timeScale().getVisibleLogicalRange();
+            if (r && r.to && r.to > 0) showLastN(c, Math.round(r.to));
+          } catch (e) {}
+        });
+      });
+
+      // 调试辅助：window.__mkChart() 返回各图可见范围与总K线数（QA 用）
+      window.__mkChart = function () {
+        function vr(c) { try { return c ? c.timeScale().getVisibleLogicalRange() : null; } catch (e) { return null; } }
+        return {
+          visibleMain: VISIBLE_MAIN,
+          mainVr: vr(state.mainChart),
+          mainBars: state.mainSeries ? state.mainSeries.data().length : 0,
+          volVr: vr(state.volChart),
+          rsiVr: vr(state.rsiChart),
+        };
+      };
       applyLang();
       load();
     })();
