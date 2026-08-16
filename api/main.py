@@ -3156,6 +3156,9 @@ async def admin_token_orders_query_fulfill(
     return await admin_query_fulfill_order(db, out_trade_no=body.out_trade_no)
 
 
+from oauth_social import router as oauth_social_router
+app.include_router(oauth_social_router)
+
 # 静态官网（与 API 同端口 8000）；须挂在所有 API 路由之后
 _WEB_ROOT = Path(__file__).resolve().parent.parent / "web"
 if _WEB_ROOT.is_dir():
@@ -3197,9 +3200,6 @@ else:
     logger.warning("web/ not found at %s — static site disabled", _WEB_ROOT)
 
 
-
-from oauth_social import router as oauth_social_router
-app.include_router(oauth_social_router)
 
 if __name__ == "__main__":
     import uvicorn
