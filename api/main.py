@@ -3197,6 +3197,10 @@ else:
     logger.warning("web/ not found at %s — static site disabled", _WEB_ROOT)
 
 
+
+from oauth_social import router as oauth_social_router
+app.include_router(oauth_social_router)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
