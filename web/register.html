@@ -120,6 +120,17 @@
         <div class="callout mt-2" id="auth-closed-banner" role="status" data-i18n-html="auth.closed.banner">
           <strong>Notice</strong>: Sign-up / sign-in are not open in this environment.
         </div>
+        <div id="oauth-panel" class="mt-2" style="display:none">
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <a class="btn" id="btn-oauth-google" href="#" style="justify-content:center;" data-i18n="auth.register.google">Sign up with Google</a>
+            <a class="btn" id="btn-oauth-apple" href="#" style="justify-content:center;" data-i18n="auth.register.apple">Sign up with Apple</a>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; margin:14px 0 4px; color:var(--muted); font-size:12px;">
+            <span style="flex:1; height:1px; background:var(--border);"></span>
+            <span data-i18n="auth.login.divider">or</span>
+            <span style="flex:1; height:1px; background:var(--border);"></span>
+          </div>
+        </div>
         <form class="card mt-2" id="form-register">
           <div style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden" aria-hidden="true">
             <label>Leave this field empty</label>
@@ -169,7 +180,7 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260818c"></script>
+  <script src="config/locales.js?v=20260818d"></script>
   <script src="js/api.js?v=20260817e"></script>
   <script src="js/invite.js?v=20260731a"></script>
   <script src="js/utm.js?v=20260802a"></script>
@@ -197,6 +208,50 @@
         if (h === "markets.ai24x.com" || h === "127.0.0.1" || h === "localhost") return n;
       } catch (e) {}
       return "console.html";
+    }
+
+    function oauthLoginUrl(provider) {
+      return "/v1/auth/" + provider + "/login?next=" + encodeURIComponent(safeNext());
+    }
+    function applyOAuth() {
+      var panel = document.getElementById("oauth-panel");
+      if (!panel) return;
+      fetch("/v1/auth/providers", { method: "GET" })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          var g = !!(j && j.google), a = !!(j && j.apple);
+          var gb = document.getElementById("btn-oauth-google");
+          var ab = document.getElementById("btn-oauth-apple");
+          if (gb) { gb.style.display = g ? "" : "none"; gb.href = oauthLoginUrl("google"); }
+          if (ab) { ab.style.display = a ? "" : "none"; ab.href = oauthLoginUrl("apple"); }
+          panel.style.display = (g || a) ? "" : "none";
+        })
+        .catch(function () { panel.style.display = "none"; });
+    }
+    function handleOAuthReturn() {
+      if (!location.hash || location.hash.indexOf("oauth=1") === -1) return;
+      var token = "", user = "";
+      try {
+        var mt = document.cookie.match(/(?:^|; )ai24x_auth_token=([^;]*)/);
+        if (mt) token = decodeURIComponent(mt[1]);
+        var mu = document.cookie.match(/(?:^|; )ai24x_auth_user=([^;]*)/);
+        if (mu) user = decodeURIComponent(mu[1]);
+      } catch (e) {}
+      try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+      if (token) {
+        try {
+          localStorage.setItem("ai24x_auth_token", token);
+          if (user) localStorage.setItem("ai24x_auth_user", user);
+        } catch (e) {}
+        location.href = safeNext();
+        return;
+      }
+      var err = "";
+      try { err = new URLSearchParams(location.search).get("oauth_error") || ""; } catch (e) {}
+      if (err) {
+        var box = document.getElementById("reg-msg");
+        if (box) box.innerHTML = '<div class="alert alert-error">' + t("auth.login.oauthFail", "Social sign-in failed: ") + err + "</div>";
+      }
     }
 
     var _regCaptchaToken = "";
@@ -337,6 +392,8 @@
         }
       } catch (e) {}
       applyAuthUi();
+      applyOAuth();
+      handleOAuthReturn();
       var capImg = document.getElementById("reg-captcha-img");
       if (capImg) capImg.addEventListener("click", loadRegisterCaptcha);
       loadRegisterCaptcha();
