@@ -1,5 +1,4 @@
 {
-    "auto_scan_time":  "15:03",
-    "token":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzIiwiZW1haWwiOiJzb2hvZGl5QHFxLmNvbSIsInBob25lIjoiMTgwNTc3ODU5OTEiLCJpYXQiOjE3ODYwMjE2NjEsImV4cCI6MTc4NjYyNjQ2MX0.r3ZOIifk16zdp7PZN9I0xGqa0CtqPu5sGI___NP3uVk",
-    "auto_scan":  true
+  "auto_scan_time": "15:03",
+  "auto_scan": true
 }
