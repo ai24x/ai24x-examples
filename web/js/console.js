@@ -2316,7 +2316,7 @@
           if (btnShared) btnShared.style.display = "none";
           if (btnBill) {
             btnBill.style.display = "";
-            btnBill.textContent = tr("去充值", "Top up");
+            btnBill.textContent = tr("去选套餐", "Choose a plan");
           }
         } else if (isVip && walletEmpty && sharedOn) {
           showHowto = true;
@@ -2337,7 +2337,7 @@
           if (btnBill) {
             btnBill.style.display = "";
             btnBill.className = "btn";
-            btnBill.textContent = tr("去充值", "Top up");
+            btnBill.textContent = tr("去选套餐", "Choose a plan");
           }
         } else if (isVip && walletEmpty && !sharedOn) {
           showHowto = true;
@@ -2354,7 +2354,7 @@
           if (btnBill) {
             btnBill.style.display = "";
             btnBill.className = "btn btn-primary";
-            btnBill.textContent = tr("去充值", "Top up");
+            btnBill.textContent = tr("去选套餐", "Choose a plan");
           }
         } else {
           showHowto = false;
@@ -2535,13 +2535,13 @@
     try {
       var token = "";
       try { token = localStorage.getItem("ai24x_auth_token") || ""; } catch (e) {}
-      var msg = $("mk-checkout-msg");
-      if (msg) msg.textContent = "";
+      var msgs = document.querySelectorAll(".mk-checkout-msg");
+      msgs.forEach(function (m) { m.textContent = ""; });
       if (!token) {
         location.href = "login.html?next=" + encodeURIComponent("console.html#billing");
         return;
       }
-      if (msg) msg.textContent = tr("正在跳转 PayPal…", "Redirecting to PayPal…");
+      msgs.forEach(function (m) { m.textContent = tr("正在跳转 PayPal…", "Redirecting to PayPal…"); });
       fetch(marketsApiBase() + "/api/subscribe/checkout", {
         method: "POST",
         headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
@@ -2552,12 +2552,12 @@
           var j = res.j || {};
           if (res.status === 401) { location.href = "login.html?next=" + encodeURIComponent("console.html#billing"); return; }
           if (res.status !== 200 || j.code !== 0 || !j.data || !j.data.pay_url) {
-            if (msg) msg.textContent = tr("无法发起支付：", "Unable to start checkout: ") + (j.msg || res.status);
+            msgs.forEach(function (m) { m.textContent = tr("无法发起支付：", "Unable to start checkout: ") + (j.msg || res.status); });
             return;
           }
           location.href = j.data.pay_url;
         })
-        .catch(function (e) { if (msg) msg.textContent = tr("无法发起支付：", "Unable to start checkout: ") + String(e); });
+        .catch(function (e) { msgs.forEach(function (m) { m.textContent = tr("无法发起支付：", "Unable to start checkout: ") + String(e); }); });
     } catch (e) {}
   }
 
@@ -2659,8 +2659,16 @@
     }
     var bMkM = $("btn-mk-month");
     if (bMkM) bMkM.addEventListener("click", function () { doMarketsCheckout("monthly"); });
+    var bMkW = $("btn-mk-week");
+    if (bMkW) bMkW.addEventListener("click", function () { doMarketsCheckout("weekly"); });
     var bMkY = $("btn-mk-year");
     if (bMkY) bMkY.addEventListener("click", function () { doMarketsCheckout("yearly"); });
+    var bOvW = $("btn-ov-week");
+    if (bOvW) bOvW.addEventListener("click", function () { doMarketsCheckout("weekly"); });
+    var bOvM = $("btn-ov-month");
+    if (bOvM) bOvM.addEventListener("click", function () { doMarketsCheckout("monthly"); });
+    var bOvY = $("btn-ov-year");
+    if (bOvY) bOvY.addEventListener("click", function () { doMarketsCheckout("yearly"); });
     try {
       bindSupportPanel();
     } catch (e) {}

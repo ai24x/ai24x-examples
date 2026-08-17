@@ -20,7 +20,7 @@
     .wrap { max-width:860px; margin:0 auto; padding:36px 20px 60px; }
     h1 { font-size:28px; margin:0 0 6px; }
     .sub { color:var(--muted); margin:0 0 28px; }
-    .grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    .grid-4 { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
     .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:22px; display:flex; flex-direction:column; }
     .card.hot { border-color:var(--accent); }
     .card h2 { font-size:18px; margin:0 0 6px; }
@@ -33,7 +33,8 @@
     footer.site { border-top:1px solid var(--border); padding:20px 22px 30px; text-align:center; color:var(--muted); font-size:12px; }
     footer.site a { color:var(--muted); text-decoration:none; }
     footer.site a:hover { color:var(--text); }
-    @media (max-width: 760px){ .grid-3 { grid-template-columns:1fr; } }
+    @media (max-width: 980px){ .grid-4 { grid-template-columns:repeat(2,1fr); } }
+    @media (max-width: 640px){ .grid-4 { grid-template-columns:1fr; } }
   </style>
 </head>
 <body>
@@ -48,7 +49,7 @@
   <div class="wrap">
     <h1>Simple, transparent pricing</h1>
     <p class="sub">Browse any US symbol free. Upgrade for unlimited AI commentary and a bigger watchlist. Prices in USD, paid via PayPal.</p>
-    <div class="grid-3">
+    <div class="grid-4">
       <div class="card">
         <h2>Free</h2>
         <div class="price">$0 <small>forever</small></div>
@@ -58,6 +59,17 @@
           <li>Watchlist up to 3 symbols</li>
         </ul>
         <a class="btn" href="/app.html">Open chart app</a>
+      </div>
+      <div class="card">
+        <h2>Pro &middot; Weekly</h2>
+        <div class="price">$9.9 <small>/week</small></div>
+        <ul>
+          <li>Unlimited AI commentary</li>
+          <li>Watchlist up to 50 symbols</li>
+          <li>Priority caching</li>
+          <li>Try before committing to a month</li>
+        </ul>
+        <a class="btn btn-primary" href="/app.html#sub">Subscribe &mdash; $9.9/week</a>
       </div>
       <div class="card hot">
         <h2>Pro &middot; Monthly</h2>

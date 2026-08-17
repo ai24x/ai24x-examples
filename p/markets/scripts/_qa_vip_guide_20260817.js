@@ -124,8 +124,8 @@ async function closeOnboard(page) {
     log('app.onboard_skip_on_sub', appHtml.indexOf("location.hash === '#sub'") >= 0, '');
     log('app.anchor_scroll_margin', appHtml.indexOf('scroll-margin-top: 150px') >= 0, '');
 
-    // 版本号纪律：shell/locales 全站 g，console.js h，无旧版残留
-    let shellOld = 0, shellNew = 0, locOld = 0, locNew = 0, conH = 0, conG = 0;
+    // 版本号纪律：shell/locales/console 全站统一 i，无旧版残留
+    let shellOld = 0, shellNew = 0, locOld = 0, locNew = 0, conI = 0, conOld = 0;
     const walk = (dir) => {
       for (const name of fs.readdirSync(dir)) {
         const p = path.join(dir, name);
@@ -133,18 +133,18 @@ async function closeOnboard(page) {
         if (st.isDirectory()) { if (name !== 'node_modules' && name !== '.git') walk(p); continue; }
         if (!/\.html$/i.test(name)) continue;
         const src = fs.readFileSync(p, 'utf8');
-        if (src.indexOf('shell.js?v=20260818f') >= 0) shellOld++;
-        if (src.indexOf('shell.js?v=20260818g') >= 0) shellNew++;
-        if (src.indexOf('locales.js?v=20260818f') >= 0) locOld++;
-        if (src.indexOf('locales.js?v=20260818g') >= 0) locNew++;
-        if (src.indexOf('console.js?v=20260818h') >= 0) conH++;
-        if (src.indexOf('console.js?v=20260818g') >= 0) conG++;
+        if (src.indexOf('shell.js?v=20260818g') >= 0) shellOld++;
+        if (src.indexOf('shell.js?v=20260818i') >= 0) shellNew++;
+        if (src.indexOf('locales.js?v=20260818g') >= 0) locOld++;
+        if (src.indexOf('locales.js?v=20260818i') >= 0) locNew++;
+        if (src.indexOf('console.js?v=20260818i') >= 0) conI++;
+        if (src.indexOf('console.js?v=20260818h') >= 0) conOld++;
       }
     };
     walk(path.join(ROOT, 'web'));
-    log('version.shell_unified_g', shellOld === 0 && shellNew >= 40, 'old=' + shellOld + ' new=' + shellNew);
-    log('version.locales_unified_g', locOld === 0 && locNew >= 40, 'old=' + locOld + ' new=' + locNew);
-    log('version.console_h', conH === 1 && conG === 0, 'h=' + conH + ' g=' + conG);
+    log('version.shell_unified_i', shellOld === 0 && shellNew >= 40, 'old=' + shellOld + ' new=' + shellNew);
+    log('version.locales_unified_i', locOld === 0 && locNew >= 40, 'old=' + locOld + ' new=' + locNew);
+    log('version.console_i', conI === 1 && conOld === 0, 'i=' + conI + ' old=' + conOld);
   }
 
   // ===== 4) www 首页（8000）浏览器：Upgrade VIP pill + 导航 + 无 JS 错误 =====

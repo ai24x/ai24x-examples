@@ -201,6 +201,7 @@
         <div id="sub-status" style="font-size:13px; margin-bottom:10px; color:var(--muted);"></div>
         <div style="font-size:12px; color:var(--muted); margin-bottom:10px;" data-i18n="sub.steps">How it works: 1 · Pick a plan → 2 · PayPal checkout → 3 · Pro activates instantly.</div>
         <div style="display:flex; flex-wrap:wrap; gap:10px;">
+          <button id="btn-sub-week" data-i18n="sub.week">Upgrade · $9.9/week</button>
           <button id="btn-sub-month" data-i18n="sub.month">Upgrade · $24.9/month</button>
           <button id="btn-sub-year" data-i18n="sub.year">Upgrade · $199/year</button>
         </div>
@@ -266,6 +267,7 @@
           'brief.quotaExceeded': 'You have used all 3 free AI briefs today. Free briefs reset tomorrow — upgrade to Pro for unlimited commentary.',
           'brief.offline': 'AI commentary is temporarily unavailable. Please try again later.',
           'panel.sub': 'Pro Subscription',
+          'sub.week': 'Upgrade · $9.9/week',
           'sub.month': 'Upgrade · $24.9/month',
           'sub.year': 'Upgrade · $199/year',
           'sub.free': 'Free plan — 3 AI briefs/day, watchlist up to 3 symbols.',
@@ -327,6 +329,7 @@
           'brief.quotaExceeded': '今日 3 次免费 AI 点评已用完，明日重置。升级 Pro 可无限使用。',
           'brief.offline': 'AI 点评服务暂时不可用，请稍后再试。',
           'panel.sub': 'Pro 订阅',
+          'sub.week': '升级 · $9.9/周',
           'sub.month': '升级 · $24.9/月',
           'sub.year': '升级 · $199/年',
           'sub.free': '免费版 — 每天 3 次 AI 点评，自选最多 3 只。',
@@ -1170,6 +1173,7 @@
         toggleWatch();
       });
       var bBrief = $('btn-brief'); if (bBrief) bBrief.addEventListener('click', doBrief);
+      var bWeek = $('btn-sub-week'); if (bWeek) bWeek.addEventListener('click', function () { doCheckout('weekly'); });
       var bMonth = $('btn-sub-month'); if (bMonth) bMonth.addEventListener('click', function () { doCheckout('monthly'); });
       var bYear = $('btn-sub-year'); if (bYear) bYear.addEventListener('click', function () { doCheckout('yearly'); });
       var fbUp = $('fb-upgrade');
@@ -1183,12 +1187,13 @@
         try { sessionStorage.setItem('markets_free_banner_closed', '1'); } catch (e) {}
       });
 
-      // 深链：?plan=monthly|yearly#sub → 平滑滚动到订阅面板并高亮对应档位
+      // 深链：?plan=weekly|monthly|yearly#sub → 平滑滚动到订阅面板并高亮对应档位
       function flashPlan() {
         var p = new URLSearchParams(location.search);
         var plan = p.get('plan');
-        if (plan !== 'monthly' && plan !== 'yearly') return;
-        var btn = $('btn-sub-' + (plan === 'yearly' ? 'year' : 'month'));
+        if (plan !== 'weekly' && plan !== 'monthly' && plan !== 'yearly') return;
+        var map = { weekly: 'week', monthly: 'month', yearly: 'year' };
+        var btn = $('btn-sub-' + (map[plan] || plan));
         if (!btn) return;
         btn.style.boxShadow = '0 0 0 2px var(--accent)';
         clearTimeout(flashPlan._t);

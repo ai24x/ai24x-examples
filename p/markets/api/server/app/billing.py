@@ -13,6 +13,7 @@ _DB_DIR = Path(__file__).resolve().parents[1] / "data"
 _DB_PATH = _DB_DIR / "markets.db"
 
 PLANS: Dict[str, Dict[str, Any]] = {
+    "weekly": {"usd": 9.9, "days": 7, "label": "Pro Weekly", "description": "AI24X Markets Pro · 1 week"},
     "monthly": {"usd": 24.9, "days": 30, "label": "Pro Monthly", "description": "AI24X Markets Pro · 1 month"},
     "yearly": {"usd": 199.0, "days": 365, "label": "Pro Yearly", "description": "AI24X Markets Pro · 1 year"},
 }
