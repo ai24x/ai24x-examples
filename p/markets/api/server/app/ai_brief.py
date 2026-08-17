@@ -38,7 +38,7 @@ _DISCLAIMER = (
 # 输出黑名单：命中即剔除/降级（合规红线，宁可保守）
 _FORBIDDEN_RE = re.compile(
     r"\b("
-    r"buy|sell|hold|accumulate|recommend|recommendation|signal|signals|"
+    r"buy|sell|hold|accumulate|avoid|recommend|recommendation|signal|signals|"
     r"target|targets|guarantee|guaranteed|tips|picks|broker|"
     r"trade|trading|you should|you must|you can profit|don't miss"
     r")\b",
@@ -274,7 +274,7 @@ _SYSTEM_PROMPT = (
     "charting tool for US equities and ETFs. Describe only the factual technical state "
     "of the symbol from the numeric data provided.\n"
     "HARD RULES:\n"
-    "1. Never give recommendations. Never use words like buy, sell, hold, accumulate, "
+    "1. Never give recommendations. Never use words like buy, sell, hold, accumulate, avoid, "
     "recommend, advice, advisor, signal, target, guarantee, tips, picks, broker, trade, "
     "trading, 'you should', 'you must'.\n"
     "2. Never personalize: do not refer to the user, their portfolio, or their situation.\n"
