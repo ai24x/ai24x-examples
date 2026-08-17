@@ -103,7 +103,7 @@ async function closeOnboard(page) {
     log('locales.console_billsep_keys', locales.indexOf('page.console.billSep.title') >= 0 && locales.indexOf('page.console.markets.upgrade') >= 0, '');
     log('console.markets_card_status', consoleHtml.indexOf('markets-sub-line') >= 0 && consoleHtml.indexOf('markets-sub-cta') >= 0, '');
     log('console.billing_token_dev_banner', consoleHtml.indexOf('page.console.tokenDev.title') >= 0, '');
-    log('console.js_load_markets_sub', consoleJs.indexOf('function loadMarketsSub') >= 0 && consoleJs.indexOf('markets.ai24x.com/api/subscribe/status') >= 0, '');
+    log('console.js_load_markets_sub', consoleJs.indexOf('function loadMarketsSub') >= 0 && consoleJs.indexOf('marketsApiBase() + "/api/subscribe/status"') >= 0, '');
     log('app.html_no_rsi', appHtml.indexOf('RSI') < 0 && appHtml.indexOf('rsi') < 0, '');
     log('index.html_no_rsi', marketsIndex.indexOf('RSI') < 0 && marketsIndex.indexOf('rsi') < 0, '');
     // —— 统一顶栏/底栏：三站品牌 + 导航 + 用户中心 + 开通VIP ——
@@ -115,10 +115,17 @@ async function closeOnboard(page) {
     log('app.unified_footer', appHtml.indexOf('mk-footer') >= 0 && appHtml.indexOf('footer-grid') >= 0, '');
     log('console.markets_pro_card', consoleHtml.indexOf('btn-mk-month') >= 0 && consoleHtml.indexOf('btn-mk-year') >= 0 && consoleHtml.indexOf('page.console.marketsPro.title') >= 0, '');
     log('console.token_dev_card', consoleHtml.indexOf('page.console.tokenDev.title') >= 0, '');
-    log('console.js_checkout_fn', consoleJs.indexOf('function doMarketsCheckout') >= 0 && consoleJs.indexOf('markets.ai24x.com/api/subscribe/checkout') >= 0, '');
+    log('console.js_checkout_fn', consoleJs.indexOf('function doMarketsCheckout') >= 0 && consoleJs.indexOf('marketsApiBase() + "/api/subscribe/checkout"') >= 0, '');
+    log('console.js_local_api_base', consoleJs.indexOf('function marketsApiBase') >= 0 && consoleJs.indexOf('127.0.0.1:18012') >= 0, '');
+    const marketsMain = read('p/markets/api/server/app/main.py');
+    log('backend.auth_service_unavailable', marketsMain.indexOf('auth_service_unavailable') >= 0, '');
+    log('backend.no_raw_500_leak', marketsMain.indexOf('internal_error') >= 0 && marketsMain.indexOf('auth service unavailable:') < 0, '');
+    log('app.header_one_row_desktop', appHtml.indexOf('mk-actions') >= 0 && appHtml.indexOf('<span class="spacer"></span>') < 0, '');
+    log('app.onboard_skip_on_sub', appHtml.indexOf("location.hash === '#sub'") >= 0, '');
+    log('app.anchor_scroll_margin', appHtml.indexOf('scroll-margin-top: 150px') >= 0, '');
 
-    // 版本号纪律：shell/locales 全站 f，console.js f，无旧版残留
-    let shellOld = 0, shellNew = 0, locOld = 0, locNew = 0, conNew = 0;
+    // 版本号纪律：shell/locales 全站 g，console.js h，无旧版残留
+    let shellOld = 0, shellNew = 0, locOld = 0, locNew = 0, conH = 0, conG = 0;
     const walk = (dir) => {
       for (const name of fs.readdirSync(dir)) {
         const p = path.join(dir, name);
@@ -130,13 +137,14 @@ async function closeOnboard(page) {
         if (src.indexOf('shell.js?v=20260818g') >= 0) shellNew++;
         if (src.indexOf('locales.js?v=20260818f') >= 0) locOld++;
         if (src.indexOf('locales.js?v=20260818g') >= 0) locNew++;
-        if (src.indexOf('console.js?v=20260818g') >= 0) conNew++;
+        if (src.indexOf('console.js?v=20260818h') >= 0) conH++;
+        if (src.indexOf('console.js?v=20260818g') >= 0) conG++;
       }
     };
     walk(path.join(ROOT, 'web'));
     log('version.shell_unified_g', shellOld === 0 && shellNew >= 40, 'old=' + shellOld + ' new=' + shellNew);
     log('version.locales_unified_g', locOld === 0 && locNew >= 40, 'old=' + locOld + ' new=' + locNew);
-    log('version.console_g', conNew === 1, 'new=' + conNew);
+    log('version.console_h', conH === 1 && conG === 0, 'h=' + conH + ' g=' + conG);
   }
 
   // ===== 4) www 首页（8000）浏览器：Upgrade VIP pill + 导航 + 无 JS 错误 =====

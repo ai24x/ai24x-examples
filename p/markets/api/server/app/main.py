@@ -1,6 +1,7 @@
 """AI24X Markets API — Phase 1+2: US quotes, K-line, indicators, watchlist, subscriptions."""
 
 import os
+import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -127,8 +128,9 @@ async def api_me(request: Request):
             )
         return {"code": 0, "data": r.json()}
     except Exception as e:
+        print(f"[markets] /api/me auth upstream error: {e!r}", file=sys.stderr)
         return JSONResponse(
-            status_code=502, content={"code": -1, "msg": f"auth service unavailable: {e}"}
+            status_code=502, content={"code": -1, "msg": "auth service unavailable"}
         )
 
 
@@ -137,8 +139,12 @@ async def _auth_user_id(request: Request) -> str:
     auth = (request.headers.get("Authorization") or "").strip()
     if not auth.lower().startswith("bearer "):
         raise ValueError("missing_bearer_token")
-    async with httpx.AsyncClient(timeout=8) as client:
-        r = await client.get(CORE_BASE + "/v1/user/info", headers={"Authorization": auth})
+    try:
+        async with httpx.AsyncClient(timeout=8) as client:
+            r = await client.get(CORE_BASE + "/v1/user/info", headers={"Authorization": auth})
+    except Exception as e:
+        print(f"[markets] _auth_user_id core upstream error: {e!r}", file=sys.stderr)
+        raise RuntimeError("auth_service_unavailable")
     if r.status_code != 200:
         raise ValueError("invalid_session")
     data = r.json() or {}
@@ -187,8 +193,11 @@ async def api_watchlist_remove(request: Request, symbol: str = Query(..., min_le
         return {"code": 0, "data": {"removed": removed}}
     except ValueError as e:
         return JSONResponse(status_code=401, content={"code": -1, "msg": str(e)})
+    except RuntimeError as e:
+        return JSONResponse(status_code=503, content={"code": -1, "msg": str(e)})
     except Exception as e:
-        return JSONResponse(status_code=500, content={"code": -1, "msg": str(e)})
+        print(f"[markets] /api/subscribe/status error: {e!r}", file=sys.stderr)
+        return JSONResponse(status_code=500, content={"code": -1, "msg": "internal_error"})
 
 
 @app.get("/api/subscribe/status")
@@ -228,7 +237,8 @@ async def api_subscribe_checkout(request: Request, payload: dict = Body(...)):
     except RuntimeError as e:
         return JSONResponse(status_code=503, content={"code": -1, "msg": str(e)})
     except Exception as e:
-        return JSONResponse(status_code=500, content={"code": -1, "msg": str(e)})
+        print(f"[markets] /api/subscribe/checkout error: {e!r}", file=sys.stderr)
+        return JSONResponse(status_code=500, content={"code": -1, "msg": "internal_error"})
 
 
 @app.post("/api/subscribe/capture")
@@ -249,7 +259,8 @@ async def api_subscribe_capture(request: Request, payload: dict = Body(...)):
     except RuntimeError as e:
         return JSONResponse(status_code=503, content={"code": -1, "msg": str(e)})
     except Exception as e:
-        return JSONResponse(status_code=500, content={"code": -1, "msg": str(e)})
+        print(f"[markets] /api/subscribe/capture error: {e!r}", file=sys.stderr)
+        return JSONResponse(status_code=500, content={"code": -1, "msg": "internal_error"})
 
 
 @app.post("/api/ai/brief")

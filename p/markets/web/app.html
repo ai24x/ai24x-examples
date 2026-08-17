@@ -25,7 +25,9 @@
     .mk-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
     .mk-nav a { padding: 7px 11px; border-radius: 8px; font-size: 0.88rem; font-weight: 600; color: var(--muted); }
     .mk-nav a:hover { color: var(--text); background: var(--panel2); text-decoration: none; }
+    .mk-actions { display: flex; align-items: center; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
     .mk-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--border); }
+    .panel-anchor { scroll-margin-top: 150px; }
     .lang-switch { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-right: 4px; }
     .lang-switch button { border: 0; background: #0d1117; color: var(--muted); padding: 6px 10px; cursor: pointer; font-size: 12px; }
     .lang-switch button.active { background: var(--accent); color: #fff; }
@@ -128,12 +130,13 @@
         <a href="https://www.ai24x.com/help.html" target="_blank" rel="noopener" data-i18n="nav.help">Help</a>
         <a id="mk-console" href="#" data-i18n="nav.console">Console</a>
       </nav>
-      <span class="spacer"></span>
-      <div class="lang-switch" id="lang-switch">
-        <button type="button" data-lang="en" class="active">EN</button>
-        <button type="button" data-lang="zh">中文</button>
+      <div class="mk-actions">
+        <div class="lang-switch" id="lang-switch">
+          <button type="button" data-lang="en" class="active">EN</button>
+          <button type="button" data-lang="zh">中文</button>
+        </div>
+        <span id="auth-area"></span>
       </div>
-      <span id="auth-area"></span>
     </div>
   </header>
   <div class="mk-toolbar">
@@ -192,7 +195,7 @@
         <div id="brief-disclaimer" style="color:var(--muted); font-size:11px; margin-top:10px; line-height:1.6;" data-i18n="brief.disclaimer">For educational purposes only — not investment advice. Market data is delayed at least 15 minutes.</div>
       </div>
     </div>
-    <div class="panel" id="sub">
+    <div class="panel panel-anchor" id="sub">
       <h3 data-i18n="panel.sub">Pro Subscription</h3>
       <div style="padding: 12px 14px;">
         <div id="sub-status" style="font-size:13px; margin-bottom:10px; color:var(--muted);"></div>
@@ -1081,6 +1084,8 @@
         var el = $('onboard'); if (!el) return;
         var done = false; try { done = !!localStorage.getItem('markets_onboard_v1'); } catch (e) {}
         if (done) return;
+        // 深链直达订阅面板时跳过引导浮层，避免遮挡升级入口
+        try { if (location.hash === '#sub') { localStorage.setItem('markets_onboard_v1', '1'); return; } } catch (e) {}
         el.hidden = false;
         function finish() { el.hidden = true; try { localStorage.setItem('markets_onboard_v1', '1'); } catch (e) {} }
         var b1 = $('onboard-start'); if (b1) b1.addEventListener('click', finish);

@@ -2472,6 +2472,14 @@
   }
 
   /** Markets Pro 订阅状态（与 Token 充值是两套体系，独立直连 markets 后端展示） */
+  function marketsApiBase() {
+    try {
+      var h = String(location.hostname || "").toLowerCase();
+      if (h === "127.0.0.1" || h === "localhost") return "http://127.0.0.1:18012";
+    } catch (e) {}
+    return "https://markets.ai24x.com";
+  }
+
   function loadMarketsSub() {
     try {
       var token = "";
@@ -2488,7 +2496,7 @@
       statuses.forEach(function (st) {
         st.textContent = tr("正在检查 Markets Pro 订阅…", "Checking Markets Pro subscription…");
       });
-      fetch("https://markets.ai24x.com/api/subscribe/status", {
+      fetch(marketsApiBase() + "/api/subscribe/status", {
         headers: { Authorization: "Bearer " + token }
       })
         .then(function (r) { return r.json(); })
@@ -2534,7 +2542,7 @@
         return;
       }
       if (msg) msg.textContent = tr("正在跳转 PayPal…", "Redirecting to PayPal…");
-      fetch("https://markets.ai24x.com/api/subscribe/checkout", {
+      fetch(marketsApiBase() + "/api/subscribe/checkout", {
         method: "POST",
         headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
         body: JSON.stringify({ plan: plan })

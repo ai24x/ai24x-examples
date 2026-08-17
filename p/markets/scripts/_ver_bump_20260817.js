@@ -1,4 +1,4 @@
-// 2026-08-17 全站共享资源版本号统一升级（shell/locales/console.js）· 第二轮 f→g
+// 2026-08-17 全站共享资源版本号统一升级（shell/locales/console.js）· 第二轮 f→g / console g→h
 const fs = require('fs');
 const path = require('path');
 
@@ -9,6 +9,7 @@ const MAP = [
   ['shell.js?v=20260818f', 'shell.js?v=20260818g'],
   ['locales.js?v=20260818f', 'locales.js?v=20260818g'],
   ['console.js?v=20260818f', 'console.js?v=20260818g'],
+  ['console.js?v=20260818g', 'console.js?v=20260818h'],
 ];
 
 function walk(dir) {
