@@ -22,6 +22,7 @@ import httpx
 
 from . import providers_us
 from .a1_engine import signals as a1signals
+from . import screener
 
 _CACHE_DIR = Path(__file__).resolve().parent / ".." / "data" / "cache"
 _CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -247,7 +248,8 @@ def _build_stats(symbol: str, period: str, candles) -> Dict[str, Any]:
 
 def _cache_path(symbol: str, period: str) -> Path:
     day = datetime.now(timezone.utc).strftime("%Y%m%d")
-    return _CACHE_DIR / f"brief_{symbol.upper()}_{period}_{day}.json"
+    # v2：brief 增加技术健康评分字段；旧缓存（无 score）自动失效重生成
+    return _CACHE_DIR / f"brief_v2_{symbol.upper()}_{period}_{day}.json"
 
 
 def _read_cache(symbol: str, period: str) -> Optional[Dict[str, Any]]:
@@ -415,6 +417,7 @@ async def generate_brief(user_id: str, symbol: str, period: str = "day") -> Dict
     closes = [float(c.close) for c in candles]
     sig = a1signals.build_signals_v3(candles, cache_key=f"markets-brief:{symbol}:{period}")
     macd_note = _macd_note(sig)
+    score = screener.compute_score(symbol, period, candles)
 
     brief = ""
     mode = "ai"
@@ -438,6 +441,7 @@ async def generate_brief(user_id: str, symbol: str, period: str = "day") -> Dict
         "symbol": symbol,
         "period": period,
         "brief": brief,
+        "score": score,
         "mode": mode,
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "cached": False,

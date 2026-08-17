@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="AI24X Markets Discover — a daily educational technical screen of US stocks: bottom volume surges, breakouts, uptrends and pullbacks. 15-minute delayed data, not investment advice.">
+  <title>AI24X Markets · Discover</title>
+  <style>
+    :root {
+      --bg: #0a0c10; --panel: #12161d; --panel2: #181d26; --border: #252b36;
+      --text: #d8dee9; --muted: #8b949e; --accent: #4f8cff;
+      --up: #f03a52; --down: #00b578;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .mk-top { position: sticky; top: 0; z-index: 100; background: rgba(18,22,29,.94); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+    .mk-top-inner { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 8px 16px; min-height: 52px; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; font-size: 16px; color: var(--text); white-space: nowrap; }
+    .brand b { color: var(--accent); }
+    .brand:hover { text-decoration: none; }
+    .brand-mark { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; font-size: 0.72rem; font-weight: 900; background: var(--accent); color: #fff; }
+    .mk-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+    .mk-nav a { padding: 7px 11px; border-radius: 8px; font-size: 0.88rem; font-weight: 600; color: var(--muted); }
+    .mk-nav a:hover { color: var(--text); background: var(--panel2); text-decoration: none; }
+    .mk-nav a.is-active { color: var(--accent); background: var(--panel2); }
+    .mk-actions { display: flex; align-items: center; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+    .lang-switch { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+    .lang-switch button { border: 0; background: #0d1117; color: var(--muted); padding: 6px 10px; cursor: pointer; font-size: 12px; }
+    .lang-switch button.active { background: var(--accent); color: #fff; }
+    .auth-link { display: inline-block; padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 12px; white-space: nowrap; text-decoration: none; }
+    .auth-link:hover { color: var(--text); border-color: var(--accent); }
+    main { padding: 16px; max-width: 1080px; margin: 0 auto; }
+    .sr-head { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin-bottom: 14px; }
+    .sr-head h1 { font-size: 20px; margin: 0; }
+    .sr-head p { color: var(--muted); font-size: 12px; margin: 4px 0 0; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip { padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px; background: #0d1117; color: var(--muted); font-size: 12px; cursor: pointer; }
+    .chip:hover { color: var(--text); border-color: var(--accent); }
+    .chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-refresh { padding: 7px 14px; border: 1px solid var(--border); border-radius: 8px; background: #0d1117; color: var(--text); font-size: 13px; cursor: pointer; }
+    .btn-refresh:hover { border-color: var(--accent); }
+    .sr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 12px; }
+    .sr-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px; cursor: pointer; transition: border-color .15s; }
+    .sr-card:hover { border-color: var(--accent); }
+    .sr-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+    .sr-sym { font-weight: 800; font-size: 16px; }
+    .sr-name { color: var(--muted); font-size: 12px; margin-top: 1px; }
+    .sr-score { font-size: 24px; font-weight: 800; line-height: 1; text-align: right; }
+    .sr-score small { font-size: 11px; color: var(--muted); font-weight: 600; }
+    .sr-price { font-size: 18px; font-weight: 700; margin-top: 8px; }
+    .sr-up { color: var(--up); } .sr-down { color: var(--down); }
+    .sr-meta { color: var(--muted); font-size: 11px; margin-top: 4px; }
+    .sr-patterns { margin-top: 8px; }
+    .sr-chip { display: inline-block; padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 11px; margin: 3px 4px 0 0; }
+    .sr-pattern { color: var(--accent); border-color: rgba(79,140,255,.45); font-weight: 600; }
+    .sr-risk { color: #f87171; border-color: rgba(248,113,113,.35); }
+    .loading { padding: 60px; text-align: center; color: var(--muted); }
+    .mk-footer { border-top: 1px solid var(--border); margin-top: 24px; padding: 30px 16px 22px; background: var(--panel); color: var(--muted); font-size: 12px; }
+    .mk-footer-inner { max-width: 1080px; margin: 0 auto; }
+    .footer-bottom { margin-top: 18px; padding-top: 13px; border-top: 1px solid var(--border); font-size: 11px; }
+    @media (max-width: 720px) {
+      .mk-top-inner { grid-template-columns: 1fr; gap: 6px; padding: 8px 10px; }
+      .mk-nav { justify-content: flex-start; }
+      .sr-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="mk-top">
+    <div class="mk-top-inner">
+      <a class="brand" href="/"><span class="brand-mark">AI</span><span>AI24X <b>Markets</b></span></a>
+      <nav class="mk-nav" aria-label="Main">
+        <a href="/" data-i18n="nav.markets">Markets</a>
+        <a href="/app.html" data-i18n="nav.chart">Chart App</a>
+        <a href="/pricing.html" data-i18n="nav.pricing">Pricing</a>
+        <a href="/screener.html" class="is-active" data-i18n="nav.discover">Discover</a>
+        <a href="https://www.ai24x.com/help.html" target="_blank" rel="noopener" data-i18n="nav.help">Help</a>
+        <a href="https://www.ai24x.com/console.html" target="_blank" rel="noopener" data-i18n="nav.console">Console</a>
+      </nav>
+      <div class="mk-actions">
+        <div class="lang-switch" id="lang-switch">
+          <button type="button" data-lang="en" class="active">EN</button>
+          <button type="button" data-lang="zh">中文</button>
+        </div>
+        <a class="auth-link" id="signin-link" href="https://www.ai24x.com/login.html?next=https%3A%2F%2Fmarkets.ai24x.com%2Fapp.html" target="_blank" rel="noopener" data-i18n="signIn">Sign in</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="sr-head">
+      <div>
+        <h1 data-i18n="sr.title">Daily US Market Screen</h1>
+        <p data-i18n="sr.sub">Educational technical scan of major US stocks &amp; ETFs — 15-minute delayed data, not investment advice.</p>
+      </div>
+      <div class="spacer" style="flex:1"></div>
+      <button class="btn-refresh" id="btn-refresh" data-i18n="sr.refresh">Refresh</button>
+    </div>
+    <div class="chips" id="mode-chips">
+      <button class="chip active" data-mode="all" data-i18n="sr.all">All</button>
+      <button class="chip" data-mode="Bottom volume surge" data-i18n="sr.surge">Bottom volume surge</button>
+      <button class="chip" data-mode="Breakout on volume" data-i18n="sr.breakout">Breakout on volume</button>
+      <button class="chip" data-mode="Uptrend building" data-i18n="sr.uptrend">Uptrend building</button>
+      <button class="chip" data-mode="Pullback holding near MAs" data-i18n="sr.pullback">Pullback after surge</button>
+    </div>
+    <div id="sr-note" style="color:var(--muted);font-size:12px;margin:10px 0;"></div>
+    <div id="sr-list" class="loading" data-i18n="sr.loading">Scanning…</div>
+  </main>
+
+  <footer class="mk-footer">
+    <div class="mk-footer-inner">
+      <div data-i18n="footer.note">AI24X Markets provides educational technical analysis tools. Market data is delayed at least 15 minutes. Nothing here is investment advice.</div>
+      <div class="footer-bottom">© 2026 AI24X · <a href="/tos.html" style="color:var(--muted)">Terms</a> · <a href="/privacy.html" style="color:var(--muted)">Privacy</a> · <a href="https://www.ai24x.com/help.html" target="_blank" rel="noopener" style="color:var(--muted)">Help</a></div>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      'use strict';
+      var I18N = {
+        en: {
+          'nav.markets': 'Markets',
+          'nav.chart': 'Chart App',
+          'nav.pricing': 'Pricing',
+          'nav.discover': 'Discover',
+          'nav.help': 'Help',
+          'nav.console': 'Console',
+          signIn: 'Sign in',
+          'sr.title': 'Daily US Market Screen',
+          'sr.sub': 'Educational technical scan of major US stocks &amp; ETFs — 15-minute delayed data, not investment advice.',
+          'sr.refresh': 'Refresh',
+          'sr.all': 'All',
+          'sr.surge': 'Bottom volume surge',
+          'sr.breakout': 'Breakout on volume',
+          'sr.uptrend': 'Uptrend building',
+          'sr.pullback': 'Pullback after surge',
+          'sr.loading': 'Scanning…',
+          'sr.empty': 'No matches in this category today. Try another view or refresh later.',
+          'sr.fail': 'Screen unavailable. Please try again later.',
+          'sr.note': '{n} matches · {s} symbols scanned · updated {t}',
+          'sr.open': 'Open chart →',
+          'sr.pos': '60-day position',
+          'sr.vol': 'Vol ratio',
+          'sr.pct5': '5d',
+          'sr.pct20': '20d',
+          'footer.note': 'AI24X Markets provides educational technical analysis tools. Market data is delayed at least 15 minutes. Nothing here is investment advice.',
+        },
+        zh: {
+          'nav.markets': '行情',
+          'nav.chart': '图表',
+          'nav.pricing': '价格',
+          'nav.discover': '发现',
+          'nav.help': '帮助',
+          'nav.console': '控制台',
+          signIn: '登录',
+          'sr.title': '每日美股扫描',
+          'sr.sub': '主流美股与 ETF 的技术面扫描（教育用途）— 行情延迟至少 15 分钟，不构成投资建议。',
+          'sr.refresh': '刷新',
+          'sr.all': '全部',
+          'sr.surge': '底部放量异动',
+          'sr.breakout': '放量突破',
+          'sr.uptrend': '趋势启动',
+          'sr.pullback': '异动后回踩',
+          'sr.loading': '扫描中…',
+          'sr.empty': '当前类别今日无匹配，试试其它视图或稍后刷新。',
+          'sr.fail': '扫描暂不可用，请稍后重试。',
+          'sr.note': '{n} 只匹配 · 扫描 {s} 只 · 更新于 {t}',
+          'sr.open': '打开图表 →',
+          'sr.pos': '60日位置',
+          'sr.vol': '量比',
+          'sr.pct5': '5日',
+          'sr.pct20': '20日',
+          'footer.note': 'AI24X Markets 提供教育用途的技术分析工具。行情延迟至少 15 分钟，一切内容不构成投资建议。',
+        }
+      };
+      var lang = localStorage.getItem('ai24x_lang') || 'en';
+      if (lang !== 'zh') lang = 'en';
+      function t(k) { return (I18N[lang] && I18N[lang][k]) || I18N.en[k] || k; }
+      function escHtml(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+      }
+      function fmtNum(v) {
+        if (v == null || isNaN(v)) return '—';
+        return Number(v).toLocaleString('en-US', { maximumFractionDigits: 2 });
+      }
+      function scoreColor(v) { return v >= 75 ? '#22c55e' : v >= 60 ? '#f59e0b' : v >= 45 ? '#38bdf8' : '#f87171'; }
+      var mode = 'all';
+      var $ = function (id) { return document.getElementById(id); };
+
+      function applyLang() {
+        document.documentElement.lang = (lang === 'zh') ? 'zh-CN' : 'en';
+        document.querySelectorAll('[data-i18n]').forEach(function (el) { el.textContent = t(el.getAttribute('data-i18n')); });
+        document.querySelectorAll('#lang-switch button').forEach(function (b) {
+          b.classList.toggle('active', b.getAttribute('data-lang') === lang);
+        });
+        renderChips();
+      }
+      function renderChips() {
+        document.querySelectorAll('#mode-chips .chip').forEach(function (c) {
+          c.classList.toggle('active', c.getAttribute('data-mode') === mode);
+          c.textContent = t(c.getAttribute('data-i18n'));
+        });
+      }
+      function renderList(items, meta) {
+        var el = $('sr-list');
+        if (!el) return;
+        if (!items || !items.length) {
+          el.className = 'loading';
+          el.textContent = t('sr.empty');
+          return;
+        }
+        el.className = '';
+        var note = $('sr-note');
+        if (note && meta) {
+          note.textContent = t('sr.note')
+            .replace('{n}', String(meta.count))
+            .replace('{s}', String(meta.scanned))
+            .replace('{t}', String(meta.generated_at || '').replace('T', ' ').slice(0, 16) + ' UTC');
+        }
+        el.innerHTML = '<div class="sr-grid">' + items.map(function (it) {
+          var pc = (Number(it.chg_pct) >= 0) ? 'sr-up' : 'sr-down';
+          var arrow = (Number(it.chg_pct) >= 0) ? '▲' : '▼';
+          var sc = Number(it.score) || 0;
+          var patterns = (it.patterns || []).map(function (p) {
+            return '<span class="sr-chip sr-pattern">' + escHtml(p) + '</span>';
+          }).join('');
+          var tags = (it.tags || []).map(function (x) { return '<span class="sr-chip">' + escHtml(x) + '</span>'; }).join('');
+          var risks = (it.risks || []).map(function (x) { return '<span class="sr-chip sr-risk">' + escHtml(x) + '</span>'; }).join('');
+          return '<div class="sr-card" data-symbol="' + escHtml(it.symbol) + '">' +
+            '<div class="sr-top">' +
+              '<div><div class="sr-sym">' + escHtml(it.symbol) + '</div>' +
+              '<div class="sr-name">' + escHtml(it.name || '') + '</div></div>' +
+              '<div class="sr-score" style="color:' + scoreColor(sc) + '">' + Math.round(sc) + '<small>/100</small></div>' +
+            '</div>' +
+            '<div class="sr-price ' + pc + '">' + fmtNum(it.price) + ' ' + arrow + ' ' + fmtNum(it.chg_pct) + '%</div>' +
+            '<div class="sr-meta">' + t('sr.pct5') + ' ' + fmtNum(it.pct5) + '% · ' + t('sr.pct20') + ' ' + fmtNum(it.pct20) + '% · ' +
+              t('sr.pos') + ' ' + Math.round((Number(it.pos60) || 0) * 100) + '% · ' + t('sr.vol') + ' ' + fmtNum(it.vol_ratio) + '</div>' +
+            (patterns ? '<div class="sr-patterns">' + patterns + '</div>' : '') +
+            (tags || risks ? '<div class="sr-patterns">' + tags + risks + '</div>' : '') +
+            '<div style="margin-top:8px;color:var(--accent);font-size:12px;">' + escHtml(t('sr.open')) + '</div>' +
+          '</div>';
+        }).join('') + '</div>';
+        el.querySelectorAll('.sr-card').forEach(function (card) {
+          card.addEventListener('click', function () {
+            window.open('/app.html?symbol=' + encodeURIComponent(card.getAttribute('data-symbol')), '_blank');
+          });
+        });
+      }
+      function loadScreener() {
+        var el = $('sr-list');
+        el.className = 'loading';
+        el.textContent = t('sr.loading');
+        $('sr-note').textContent = '';
+        fetch('/api/screener?mode=' + encodeURIComponent(mode) + '&limit=24')
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            if (j.code !== 0 || !j.data) { el.className = 'loading'; el.textContent = t('sr.fail'); return; }
+            renderList(j.data.items, j.data);
+          })
+          .catch(function () { el.className = 'loading'; el.textContent = t('sr.fail'); });
+      }
+      document.querySelectorAll('#mode-chips .chip').forEach(function (c) {
+        c.addEventListener('click', function () {
+          mode = c.getAttribute('data-mode');
+          renderChips();
+          loadScreener();
+        });
+      });
+      $('btn-refresh').addEventListener('click', loadScreener);
+      document.querySelectorAll('#lang-switch button').forEach(function (b) {
+        b.addEventListener('click', function () {
+          lang = b.getAttribute('data-lang');
+          localStorage.setItem('ai24x_lang', lang);
+          applyLang();
+        });
+      });
+      applyLang();
+      loadScreener();
+    })();
+  </script>
+</body>
+</html>

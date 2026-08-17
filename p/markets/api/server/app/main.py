@@ -16,6 +16,7 @@ from .a1_engine import signals as a1signals
 from . import billing
 from . import paypal
 from . import ai_brief
+from . import screener
 
 SERVICE_NAME = "AI24X-markets-api"
 PORT = 18012
@@ -339,6 +340,7 @@ async def api_signals(
         closes = [float(c.close) for c in candles]
         ma = {str(n): a1signals._sma(closes, n) for n in (5, 10, 20, 60)}
         data = _base_payload(symbol, period, candles, obj["source"])
+        score = screener.compute_score(symbol, period, candles)
         data.update(
             {
                 "candles": a1signals.rows_from_candles(candles),
@@ -347,6 +349,7 @@ async def api_signals(
                 "macd": sig.get("macd", []),
                 "ma": ma,
                 "rsi": _rsi_series(closes, 14),
+                "score": score,
             }
         )
         return {"code": 0, "data": data}
@@ -355,6 +358,38 @@ async def api_signals(
         if isinstance(e, providers_us.SymbolNotFoundError):
             payload["suggested"] = e.suggested
         return payload
+
+
+@app.get("/api/score")
+async def api_score(
+    symbol: str = Query(..., min_length=1, max_length=20),
+    period: str = Query("day", pattern="^(day|week|month)$"),
+    count: int = Query(300, ge=60, le=800),
+):
+    """0-100 technical health score（免费，仅本地指标，不消耗 AI 额度）。"""
+    try:
+        obj = await providers_us.get_kline_rows(symbol, period, count)
+        candles = _to_candles(obj["rows"][-count:], period)
+        score = screener.compute_score(symbol, period, candles)
+        return {"code": 0, "data": score}
+    except Exception as e:
+        payload = {"code": -1, "msg": str(e), "data": {}}
+        if isinstance(e, providers_us.SymbolNotFoundError):
+            payload["suggested"] = e.suggested
+        return payload
+
+
+@app.get("/api/screener")
+async def api_screener(
+    mode: str = Query("all", pattern="^(all|Bottom volume surge|Breakout on volume|Uptrend building|MACD momentum building|Pullback holding near MAs)$"),
+    limit: int = Query(24, ge=1, le=40),
+):
+    """美股技术扫描：底部放量异动 / 放量突破 / 趋势启动 / 回踩企稳（教育用途）。"""
+    try:
+        data = await screener.run_screener(mode, limit)
+        return {"code": 0, "data": data}
+    except Exception as e:
+        return {"code": -1, "msg": str(e), "data": {}}
 
 
 app.mount("/", StaticFiles(directory=str(_WEB_DIR), html=True), name="web")
