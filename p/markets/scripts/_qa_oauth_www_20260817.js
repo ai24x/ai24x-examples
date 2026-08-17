@@ -33,12 +33,15 @@ function check(name, ok, extra) {
         gDisplay: gcs ? gcs.display : 'no-g',
         gHref: g ? g.getAttribute('href') : '',
         gText: g ? g.textContent.trim() : '',
+        gSvg: g ? !!g.querySelector('svg') : false,
+        gIco: g ? (g.querySelector('svg') ? g.querySelector('svg').getAttribute('width') : '') : '',
         aDisplay: a ? getComputedStyle(a).display : 'no-a',
       };
     });
     check('register.oauth_panel_visible', st.panelDisplay !== 'none', st.panelDisplay);
     check('register.google_visible', st.gDisplay !== 'none', st.gDisplay + ' | ' + st.gText);
     check('register.google_href', st.gHref.indexOf('/v1/auth/google/login?next=') >= 0, st.gHref);
+    check('register.google_icon', st.gSvg && st.gIco === '18', st.gIco);
     check('register.apple_hidden', st.aDisplay === 'none', st.aDisplay);
     check('register.no_js_errors', errors.length === 0, errors.join(' || ').slice(0, 200));
     await page.close();
@@ -91,15 +94,67 @@ function check(name, ok, extra) {
       return {
         gDisplay: g ? getComputedStyle(g).display : 'no-g',
         gHref: g ? g.getAttribute('href') : '',
+        gSvg: g ? !!g.querySelector('svg') : false,
         aDisplay: a ? getComputedStyle(a).display : 'no-a',
         aHref: a ? a.getAttribute('href') : '',
+        aSvg: a ? !!a.querySelector('svg') : false,
       };
     });
     check('login.google_visible', st.gDisplay !== 'none', st.gDisplay);
     check('login.google_href', st.gHref.indexOf('/v1/auth/google/login?next=') >= 0, st.gHref);
+    check('login.google_icon', st.gSvg, '');
     check('login.apple_visible', st.aDisplay !== 'none', st.aDisplay);
     check('login.apple_href', st.aHref.indexOf('/v1/auth/apple/login?next=') >= 0, st.aHref);
+    check('login.apple_icon', st.aSvg, '');
     check('login.no_js_errors', errors.length === 0, errors.join(' || ').slice(0, 200));
+    await page.close();
+  }
+
+  // ---------- api.js 全局会话同步：cookie → localStorage（任意页面加载恢复 OAuth 登录态） ----------
+  {
+    const page = await ctx.newPage();
+    await ctx.addCookies([
+      { name: 'ai24x_auth_token', value: 'sync-cookie-token', url: 'http://127.0.0.1:8000' },
+      { name: 'ai24x_auth_user', value: encodeURIComponent(JSON.stringify({ id: 1, email: 'oauth@example.com' })), url: 'http://127.0.0.1:8000' },
+    ]);
+    await page.goto('http://127.0.0.1:8000/index.html?lang=en&x=q4', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(600);
+    const st = await page.evaluate(() => ({
+      token: localStorage.getItem('ai24x_auth_token') || '',
+      user: localStorage.getItem('ai24x_auth_user') || '',
+    }));
+    check('sync.cookie_to_localstorage', st.token === 'sync-cookie-token', st.token);
+    check('sync.user_saved', st.user.indexOf('oauth@example.com') >= 0, st.user);
+    await ctx.clearCookies();
+    await page.close();
+  }
+
+  // ---------- console 恢复 OAuth 会话：cookie 登录态不被踢回 login ----------
+  {
+    const page = await ctx.newPage();
+    await ctx.addCookies([
+      { name: 'ai24x_auth_token', value: 'console-oauth-token', url: 'http://127.0.0.1:8000' },
+      { name: 'ai24x_auth_user', value: encodeURIComponent(JSON.stringify({ id: 1, email: 'console@example.com' })), url: 'http://127.0.0.1:8000' },
+    ]);
+    await page.route('**/api/me', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, data: { id: 1, email: 'console@example.com' } }) })
+    );
+    await page.route('**/v1/billing/balance', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ balance_usd: 0, balance_tokens: 0, plan: 'free', is_vip_active: false, is_value_pack_active: false, shared_enabled: true, shared_remain_tokens: 0, shared_daily_token_cap: 100000, email: 'console@example.com' }) })
+    );
+    await page.route('**/v1/auth/providers', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ google: true, apple: false }) })
+    );
+    await page.goto('http://127.0.0.1:8000/console.html?lang=en&x=q6', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1200);
+    const st = await page.evaluate(() => ({
+      href: location.href,
+      token: localStorage.getItem('ai24x_auth_token') || '',
+      signedIn: !!document.querySelector('.auth-user, #auth-user, [data-page="console"] .auth-user'),
+      bodyHasLogin: (document.body.innerText || '').indexOf('Log in') >= 0,
+    }));
+    check('console.oauth_session_restored', st.href.indexOf('login.html') === -1 && st.token === 'console-oauth-token', st.href);
+    await ctx.clearCookies();
     await page.close();
   }
 

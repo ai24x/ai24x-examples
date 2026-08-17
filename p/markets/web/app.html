@@ -784,9 +784,11 @@
             .then(function (r) { return r.json(); })
             .then(function (j) {
               var sp = $('social-login'); if (!sp) return;
+              var gSvg = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="vertical-align:-2px;margin-right:4px;"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75z"/></svg>';
+              var aSvg = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="vertical-align:-2px;margin-right:4px;"><path fill="currentColor" d="M16.365 1.43c0 1.14-.42 2.2-1.25 3.17-.99 1.16-2.31 1.83-3.61 1.72-.08-1.1.42-2.26 1.19-3.17 1-.96 2.42-1.61 3.67-1.72zm2.35 16.04c-.59 1.35-.88 1.95-1.64 3.15-1.06 1.67-2.56 3.75-4.42 3.76-1.65.02-2.09-1.08-4.34-1.07-2.25.02-2.73 1.09-4.39 1.07-1.85-.02-3.28-1.91-4.34-3.58C-1.16 18.55-1.9 13.3.73 9.88c1.24-1.62 3.21-2.65 5.06-2.65 1.87 0 3.05 1.07 4.59 1.07 1.51 0 2.43-1.07 4.57-1.07 1.66 0 3.42.9 4.66 2.44-4.1 2.22-3.44 8.01.83 9.8z"/></svg>';
               var h = '';
-              if (j && j.google) h += '<a class="auth-link" href="' + coreUrl() + '/v1/auth/google/login?next=' + n + '" title="Continue with Google">Google</a>';
-              if (j && j.apple) h += '<a class="auth-link" href="' + coreUrl() + '/v1/auth/apple/login?next=' + n + '" title="Continue with Apple">Apple</a>';
+              if (j && j.google) h += '<a class="auth-link" href="' + coreUrl() + '/v1/auth/google/login?next=' + n + '" title="Continue with Google" style="display:inline-flex;align-items:center;">' + gSvg + '<span>Google</span></a>';
+              if (j && j.apple) h += '<a class="auth-link" href="' + coreUrl() + '/v1/auth/apple/login?next=' + n + '" title="Continue with Apple" style="display:inline-flex;align-items:center;">' + aSvg + '<span>Apple</span></a>';
               sp.innerHTML = h;
             }).catch(function () {});
           return;

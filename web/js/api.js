@@ -121,6 +121,38 @@
     } catch (e) {}
   }
 
+  function readCookie(name) {
+    try {
+      var esc = name.replace(/([.$?*|{}()[\]\\/+^])/g, "\\$1");
+      var m = document.cookie.match(new RegExp("(?:^|; )" + esc + "=([^;]*)"));
+      return m ? decodeURIComponent(m[1]) : "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  /**
+   * OAuth（Google/Apple）回调只种 Domain=.ai24x.com 的 cookie，
+   * 而本封装登录态以 localStorage 为准（console 守卫等）。
+   * 页面加载时把 cookie 会话同步到 localStorage，保证任意入口
+   * （login/register 之外直接回跳 console/markets 等）都能恢复登录态。
+   */
+  function syncAuthFromCookie() {
+    try {
+      var token = readCookie(AUTH_COOKIE);
+      if (!token) return;
+      if (localStorage.getItem(STORAGE_TOKEN) === token) return;
+      setAuthToken(token);
+      var raw = readCookie(AUTH_USER_COOKIE);
+      if (raw) {
+        try {
+          setAuthUser(JSON.parse(raw));
+        } catch (e) {}
+      }
+    } catch (e) {}
+  }
+  syncAuthFromCookie();
+
   function clearAuth() {
     localStorage.removeItem(STORAGE_TOKEN);
     localStorage.removeItem(STORAGE_USER);
