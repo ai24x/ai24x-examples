@@ -2348,7 +2348,9 @@ async def billing_alipay_wap(
     from token_pay_service import create_alipay_wap
 
     u = _auth_user_from_bearer(request, db)
-    return await create_alipay_wap(db, auth_user_id=int(u.id), plan=body.plan)
+    return await create_alipay_wap(
+        db, auth_user_id=int(u.id), plan=body.plan, origin=request.headers.get("origin")
+    )
 
 
 @app.post("/v1/billing/paypal/order")
@@ -2358,7 +2360,9 @@ async def billing_paypal_order(
     from token_pay_service import create_paypal_order
 
     u = _auth_user_from_bearer(request, db)
-    return await create_paypal_order(db, auth_user_id=int(u.id), plan=body.plan)
+    return await create_paypal_order(
+        db, auth_user_id=int(u.id), plan=body.plan, origin=request.headers.get("origin")
+    )
 
 
 @app.post("/v1/billing/creem/order")

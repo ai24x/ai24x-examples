@@ -140,6 +140,20 @@ def mk_out_trade_no(auth_user_id: int) -> str:
     return f"T{int(auth_user_id)}{now}{tail}"[:32]
 
 
+def _origin_console_url(origin: Optional[str]) -> Optional[str]:
+    """按下单来源 Origin 选择回跳控制台域名；未知来源返回 None（走配置默认）。
+
+    open 站与 www 站登录态按域名 localStorage 隔离，PayPal/支付宝回跳必须回到
+    下单时的同域控制台，否则用户会被踢到登录页、体验断裂（资金仍安全）。
+    """
+    if not origin:
+        return None
+    origin = origin.strip().lower()
+    if "open.ai24x.com" in origin:
+        return "https://open.ai24x.com/console.html"
+    return None
+
+
 def public_plans() -> dict:
     cfg = pay_settings_ns()
     from pay_alipay_wap import alipay_configured
@@ -728,7 +742,9 @@ async def create_wechat_native(db: Session, *, auth_user_id: int, plan: str) -> 
     }
 
 
-async def create_alipay_wap(db: Session, *, auth_user_id: int, plan: str) -> dict:
+async def create_alipay_wap(
+    db: Session, *, auth_user_id: int, plan: str, origin: Optional[str] = None
+) -> dict:
     row = create_pending_order(db, auth_user_id=auth_user_id, plan=plan, channel="alipay")
     plan_meta = get_plan(row.plan) or {}
     title = str(plan_meta.get("title") or row.plan)
@@ -759,13 +775,14 @@ async def create_alipay_wap(db: Session, *, auth_user_id: int, plan: str) -> dic
             status_code=503,
             detail="支付宝未配置完整，或 TOKEN_ALIPAY_NOTIFY_URL 为空（须指向主站 Token 回调）",
         )
+    _return_url = _origin_console_url(origin) or (cfg.alipay_return_url or None)
     try:
         pay_url = build_wap_pay_url(
             cfg,
             out_trade_no=row.out_trade_no,
             subject=title,
             total_amount_yuan=yuan,
-            return_url=(cfg.alipay_return_url or None),
+            return_url=_return_url,
         )
     except Exception as e:
         logger.exception("alipay wap create failed")
@@ -785,7 +802,9 @@ async def create_alipay_wap(db: Session, *, auth_user_id: int, plan: str) -> dic
     }
 
 
-async def create_paypal_order(db: Session, *, auth_user_id: int, plan: str) -> dict:
+async def create_paypal_order(
+    db: Session, *, auth_user_id: int, plan: str, origin: Optional[str] = None
+) -> dict:
     row = create_pending_order(db, auth_user_id=auth_user_id, plan=plan, channel="paypal")
     plan_meta = get_plan(row.plan) or {}
     title = str(plan_meta.get("title_en") or plan_meta.get("title_zh") or row.plan)
@@ -818,6 +837,10 @@ async def create_paypal_order(db: Session, *, auth_user_id: int, plan: str) -> d
 
     ret = (getattr(cfg, "paypal_return_url", "") or "https://www.ai24x.com/console.html").strip()
     can = (getattr(cfg, "paypal_cancel_url", "") or ret).strip()
+    _same_origin = _origin_console_url(origin)
+    if _same_origin:
+        ret = _same_origin
+        can = _same_origin
     # 带回本站单号，便于 return 页触发 capture
     sep = "&" if "?" in ret else "?"
     ret_q = f"{ret}{sep}paypal=1&out_trade_no={row.out_trade_no}"
