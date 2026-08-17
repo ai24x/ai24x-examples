@@ -46,7 +46,7 @@
 })();
 </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Pricing · AI24X Token API</title>
+  <title data-i18n="page.pricing.titleTag">Pricing · AI24X Token API</title>
   <link rel="canonical" href="https://www.ai24x.com/pricing.html" />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Pricing · AI24X Token API" />
@@ -93,9 +93,9 @@
     <section class="hero hero-surface section-tight">
       <div class="container">
         <h1 data-i18n="page.pricing.title">Pricing</h1>
-        <p class="lead" data-i18n="page.pricing.sub">Everyday flash → Builder/Advanced; named models → Scale or VIP Pass. Pay and manage keys in the Console.</p>
+        <p class="lead" data-i18n="page.pricing.sub">Flash from $0.35/M. Output costs 71-96% less than GPT official pricing (captured 2026-08-05). Buy a pack, top up, manage keys in the Console. WeChat · Alipay · PayPal.</p>
         <p class="callout mt-2" data-i18n="page.pricing.callout">
-          Starter to try · Builder/Advanced for daily credits · Scale (or VIP Pass) to name models.
+          Flash from $0.35/M tokens — output costs 71-96% less than GPT official pricing (captured 2026-08-05). Pay as you go; balance never expires.
         </p>
       </div>
     </section>
@@ -186,13 +186,13 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260816y"></script>
-  <script src="js/api.js?v=20260816y"></script>
+  <script src="config/locales.js?v=20260817z"></script>
+  <script src="js/api.js?v=20260817z"></script>
   <script src="js/utm.js?v=20260802a"></script>
 <script src="js/i18n.js?v=20260812g"></script>
-  <script src="js/shell.js?v=20260816y"></script>
+  <script src="js/shell.js?v=20260817z"></script>
   <script src="js/app.js?v=20260808b"></script>
-  <script src="js/support-widget.js?v=20260816y"></script>
+  <script src="js/support-widget.js?v=20260817z"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       // 2026-08-15 峰谷：定价页当前时段（Asia/Shanghai 本地计算）
@@ -323,13 +323,6 @@
         });
         table.appendChild(tbody);
         grid.appendChild(table);
-        var tip = document.createElement("p");
-        tip.className = "sub";
-        tip.style.marginTop = "12px";
-        tip.textContent = zh
-          ? "要点名选 Scale（资格+预充一次齐）。日常 flash 用开发包即可。"
-          : "Name models with Scale (access + credits). Everyday flash → Builder.";
-        grid.appendChild(tip);
       }
 
       AI24X_API.billingPlans()
