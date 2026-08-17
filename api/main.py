@@ -118,8 +118,8 @@ app = FastAPI(
 _cors_raw = (settings.cors_origins or "*").strip()
 if is_prod() and (_cors_raw == "*" or not _cors_raw):
     # 生产默认收窄，避免任意站跨域带 Cookie；仍可用 CORS_ORIGINS 显式覆盖
-    _cors_raw = "https://www.ai24x.com,https://ai24x.com"
-    logger.warning("CORS_ORIGINS=* in prod — using default www.ai24x.com,ai24x.com")
+    _cors_raw = "https://www.ai24x.com,https://ai24x.com,https://markets.ai24x.com,https://open.ai24x.com"
+    logger.warning("CORS_ORIGINS=* in prod — using default www/ai24x/markets/open.ai24x.com")
 _cors_origins = ["*"] if _cors_raw == "*" else [x.strip() for x in _cors_raw.split(",") if x.strip()]
 app.add_middleware(
     CORSMiddleware,

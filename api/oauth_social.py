@@ -38,7 +38,7 @@ APPLE_PRIVATE_KEY = os.environ.get("APPLE_PRIVATE_KEY", "").strip()
 # 可选：redirect_uri 前缀覆盖（默认 https://www.ai24x.com；本机测试设 http://127.0.0.1:8000）
 OAUTH_REDIRECT_BASE = os.environ.get("OAUTH_REDIRECT_BASE", "https://www.ai24x.com").strip().rstrip("/")
 
-_ALLOWED_HOSTS = {"ai24x.com", "www.ai24x.com", "markets.ai24x.com", "127.0.0.1", "localhost"}
+_ALLOWED_HOSTS = {"ai24x.com", "www.ai24x.com", "markets.ai24x.com", "open.ai24x.com", "127.0.0.1", "localhost"}
 _COOKIE_MAX_AGE = 2592000  # 30 天，与 api.js 一致
 
 
