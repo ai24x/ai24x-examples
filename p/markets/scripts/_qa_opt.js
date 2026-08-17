@@ -83,7 +83,7 @@ async function closeOnboard(page) {
       return el ? el.innerText : '';
     });
     const authLinks = await page.$$('#auth-area .auth-link, #auth-area .auth-btn');
-    log('signed-in auth area pills', authLinks.length === 2 && /lei@itxin\.com/.test(authHtml), authHtml.trim().replace(/\n/g, ' ').slice(0, 100));
+    log('signed-in auth area pills', authLinks.length >= 3 && /lei@itxin\.com/.test(authHtml) && authHtml.includes('升级'), authHtml.trim().replace(/\n/g, ' ').slice(0, 100));
     log('desktop signed-in no JS errors', errors.length === 0, errors.slice(0, 2).join('; '));
     await ctx.close();
   }

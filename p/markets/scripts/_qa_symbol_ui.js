@@ -37,8 +37,8 @@ async function waitChart(page, timeout) {
     await waitChart(page);
     await page.fill('#symbol', 'NVDA');
     await page.click('#go');
-    await page.waitForFunction(() => (document.getElementById('symbol') || {}).value === 'NVDA', { timeout: 30000 });
-    await waitChart(page);
+    // 等 load() 真正完成（localStorage 写入），避免旧图 canvas 提前满足 waitChart 造成时序误判
+    await page.waitForFunction(() => localStorage.getItem('markets_last_symbol') === 'NVDA', { timeout: 30000 });
     const stored = await page.evaluate(() => localStorage.getItem('markets_last_symbol'));
     log('localStorage saved NVDA', stored === 'NVDA', 'stored=' + stored);
     await page.reload({ waitUntil: 'networkidle' });

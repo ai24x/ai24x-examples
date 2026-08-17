@@ -207,6 +207,7 @@
           quoteFail: 'Quote unavailable: ',
           loadFail: 'Error: ',
           notFound: 'Symbol not found: {s}. Please check the ticker code.',
+          noData: 'No data for this symbol. Try a ticker like AAPL, or a Chinese index name like SSE Composite.',
           didYouMean: 'Did you mean',
           'onboard.title': 'Welcome to AI24X Markets',
           'onboard.step1': 'Type a ticker above — try <b>AAPL</b> or <b>SPY</b> — and hit <b>Search</b>.',
@@ -260,6 +261,7 @@
           quoteFail: '行情暂不可用：',
           loadFail: '加载失败：',
           notFound: '未找到标的 {s}，请检查代码是否正确。',
+          noData: '该标的暂无数据。可试试 AAPL 等代码，或直接搜 上证指数 / 恒生指数 等中文名称。',
           didYouMean: '你是不是想查',
           'onboard.title': '欢迎使用 AI24X 行情',
           'onboard.step1': '在上方输入代码（试试 <b>AAPL</b> 或 <b>SPY</b>），点击 <b>查询</b>。',
@@ -300,6 +302,12 @@
 
       // 白名单（指数在前，名称跟随当前语言，点击即查）
       var SAMPLES = [
+        { sym: 'sh000001', en: 'SSE Composite', zh: '上证指数' },
+        { sym: 'sz399001', en: 'SZSE Component', zh: '深证成指' },
+        { sym: 'sz399006', en: 'ChiNext', zh: '创业板指' },
+        { sym: 'sh000688', en: 'STAR 50', zh: '科创50' },
+        { sym: 'sh000300', en: 'CSI 300', zh: '沪深300' },
+        { sym: 'hkHSI', en: 'Hang Seng', zh: '恒生指数' },
         { sym: '^DJI', en: 'Dow Jones', zh: '道琼斯' },
         { sym: '^IXIC', en: 'Nasdaq Composite', zh: '纳斯达克' },
         { sym: '^GSPC', en: 'S&P 500', zh: '标普500' },
@@ -695,6 +703,11 @@
             renderQuote(null);
           }
         }).catch(function (e) {
+          // 搜索失败：清掉旧图与旧报价，避免残留上一标的的 K 线/MACD 造成误读
+          try { disposeCharts(); } catch (e2) {}
+          var cm = $('chart-main');
+          if (cm) cm.innerHTML = '<div class="loading">' + escHtml(t('noData')) + '</div>';
+          try { renderQuote(null); } catch (e3) {}
           var msg = String(e.message || '');
           if (/^symbol not found/i.test(msg)) {
             var sugg = String(e.suggested || '').trim();

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import time
 from datetime import date
 from pathlib import Path
@@ -104,6 +105,30 @@ _reg_names("SOXX", "半导体ETF", "Semiconductor ETF")
 _reg_names("XLK", "科技ETF", "Technology ETF")
 _reg_names("XLF", "金融ETF", "Financial ETF")
 _reg_names("XLE", "能源ETF", "Energy ETF")
+# A股/港股指数（国际版也提供中国指数，腾讯 A 股接口直接可用，未开盘也能看历史日K）
+_reg_names("sh000001", "上证指数", "上证", "Shanghai Composite", "SSE Composite", "SSE", "SHCOMP")
+_reg_names("sh000016", "上证50", "上证50指数", "SSE 50")
+_reg_names("sh000300", "沪深300", "沪深300指数", "CSI 300", "HS300")
+_reg_names("sh000688", "科创50", "科创50指数", "STAR 50", "STAR50")
+_reg_names("sh000905", "中证500", "中证500指数", "CSI 500")
+_reg_names("sh000852", "中证1000", "中证1000指数", "CSI 1000")
+_reg_names("sz399001", "深证成指", "深成指", "Shenzhen Component", "SZSE Component")
+_reg_names("sz399006", "创业板指", "创业板", "ChiNext")
+_reg_names("hkHSI", "恒生指数", "恒指", "Hang Seng", "HSI")
+
+_CN_CODE_RE = re.compile(r"^(sh|sz|bj)\d{6}$")
+_HK_CODE_RE = re.compile(r"^HK[A-Z0-9]+$")
+
+
+def _cn_code(s: str) -> str:
+    """识别中国代码（sh/sz/bj + 6 位数字 或 HK 前缀港股），返回腾讯小写形式；其它返回空串。"""
+    low = (s or "").strip().lower()
+    if _CN_CODE_RE.match(low):
+        return low
+    up = (s or "").strip().upper()
+    if _HK_CODE_RE.match(up):
+        return "hk" + up[2:]
+    return ""
 
 
 def resolve_symbol(symbol: str) -> str:
@@ -139,6 +164,9 @@ def to_tencent_symbol(symbol: str) -> str:
     s = (symbol or "").strip().upper()
     if not s:
         raise ValueError("empty symbol")
+    cn = _cn_code(s)
+    if cn:
+        return cn
     if s in _TX_SYMBOL_MAP:
         return _TX_SYMBOL_MAP[s]
     if s.startswith("US") and len(s) > 2:
@@ -148,6 +176,13 @@ def to_tencent_symbol(symbol: str) -> str:
 
 def _em_secids(symbol: str) -> List[str]:
     s = (symbol or "").strip().upper()
+    cn = _cn_code(s)
+    if cn:
+        if cn.startswith("sh"):
+            return ["1." + cn[2:]]  # 沪市指数 secid=1.xxxxxx
+        if cn.startswith("sz"):
+            return ["0." + cn[2:]]  # 深市指数 secid=0.xxxxxx
+        return []  # 北证指数东财无此通道
     tx = to_tencent_symbol(s)
     if tx in _EM_INDEX_MAP:
         return [_EM_INDEX_MAP[tx]]
@@ -305,8 +340,12 @@ async def fetch_tencent_kline(symbol: str, count: int = 500) -> Tuple[List[List[
     if _circuit_open("tencent"):
         raise _SourceError("tencent circuit open")
 
-    # 指数直接带 us 前缀即可（usINX/usIXIC/usDJI/usVIX）
-    if tx in _TX_SYMBOL_MAP.values():
+    cn = _cn_code(tx)
+    # A股指数/代码走腾讯 A 股接口（未开盘也返回完整历史日K，无当日残缺 bar）
+    if cn:
+        codes = [cn]
+    elif tx in _TX_SYMBOL_MAP.values():
+        # 指数直接带 us 前缀即可（usINX/usIXIC/usDJI/usVIX）
         codes = [tx]
     else:
         # 个股/ETF 必须带市场后缀：AAPL.OQ / SPY.AM / BRK.A.N
@@ -330,7 +369,10 @@ async def fetch_tencent_kline(symbol: str, count: int = 500) -> Tuple[List[List[
         client = _get_client()
         for code in dict.fromkeys(codes):
             try:
-                url = f"https://web.ifzq.gtimg.cn/appstock/app/usfqkline/get?param={code},day,,,{count},qfq"
+                if _cn_code(code):
+                    url = f"https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param={code},day,,,{count},qfq"
+                else:
+                    url = f"https://web.ifzq.gtimg.cn/appstock/app/usfqkline/get?param={code},day,,,{count},qfq"
                 r = await client.get(url)
                 r.raise_for_status()
                 payload = r.json()
@@ -355,10 +397,11 @@ async def fetch_tencent_quote(symbol: str) -> Dict[str, Any]:
     await _TX_GATE.acquire()
     try:
         client = _get_client()
+        cn = _cn_code(tx)
         url = f"https://qt.gtimg.cn/q={tx}"
         r = await client.get(url)
         r.raise_for_status()
-        text = r.text
+        text = r.content.decode("gbk", errors="replace") if cn else r.text
         key = f'v_{tx}="'
         start = text.find(key)
         if start < 0:
@@ -368,6 +411,25 @@ async def fetch_tencent_quote(symbol: str) -> Dict[str, Any]:
         if len(fields) < 40:
             raise _SourceError("tencent quote short")
         _circuit_note("tencent", True)
+        if cn:
+            return {
+                "symbol": symbol.upper(),
+                "name": fields[1] if len(fields) > 1 else symbol.upper(),
+                "market_code": cn,
+                "price": _f(fields[3]),
+                "prev_close": _f(fields[4]),
+                "open": _f(fields[5]),
+                "high": _f(fields[33]) if len(fields) > 33 else None,
+                "low": _f(fields[34]) if len(fields) > 34 else None,
+                "change": _f(fields[31]) if len(fields) > 31 else None,
+                "pct": _f(fields[32]) if len(fields) > 32 else None,
+                "volume": _f(fields[6]),
+                "amount": _f(fields[37]) if len(fields) > 37 else None,
+                "time": fields[30] if len(fields) > 30 else "",
+                "currency": "HKD" if cn.startswith("hk") else "CNY",
+                "pe": _f(fields[39]) if len(fields) > 39 else None,
+                "source": "tencent",
+            }
         name_en = fields[46] if len(fields) > 46 else ""
         return {
             "symbol": symbol.upper(),
