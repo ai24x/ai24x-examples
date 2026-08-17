@@ -2465,6 +2465,60 @@
       var orders = await AI24X_API.billingOrders(20);
       renderOrders((orders && orders.rows) || []);
     } catch (e) {}
+
+    try {
+      loadMarketsSub();
+    } catch (e) {}
+  }
+
+  /** Markets Pro 订阅状态（与 Token 充值是两套体系，独立直连 markets 后端展示） */
+  function loadMarketsSub() {
+    try {
+      var token = "";
+      try { token = localStorage.getItem("ai24x_auth_token") || ""; } catch (e) {}
+      var line = $("markets-sub-line");
+      var status = $("markets-sub-status");
+      var cta = $("markets-sub-cta");
+      if (!line || !status) return;
+      if (!token) {
+        line.style.display = "none";
+        return;
+      }
+      line.style.display = "";
+      status.textContent = tr("正在检查 Markets Pro 订阅…", "Checking Markets Pro subscription…");
+      fetch("https://markets.ai24x.com/api/subscribe/status", {
+        headers: { Authorization: "Bearer " + token }
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j && j.code === 0 && j.data) {
+            var pro = !!j.data.pro;
+            var ds = "--";
+            if (j.data.expires_at) {
+              var d = new Date(j.data.expires_at);
+              if (!isNaN(d.getTime())) { try { ds = d.toLocaleDateString(); } catch (e) {} }
+            }
+            if (pro) {
+              status.textContent = tr("Pro 生效中 — 到期 " + ds, "Pro active — expires " + ds);
+              if (cta) {
+                cta.textContent = tr("管理 / 续费订阅", "Manage / renew");
+                cta.setAttribute("data-i18n", "page.console.markets.manage");
+              }
+            } else {
+              status.textContent = tr("当前免费版 — 每天 3 次 AI 点评、自选 3 只。", "Free plan — 3 AI briefs/day, 3-symbol watchlist.");
+              if (cta) {
+                cta.textContent = tr("升级 Pro", "Upgrade to Pro");
+                cta.setAttribute("data-i18n", "page.console.markets.upgrade");
+              }
+            }
+          } else {
+            status.textContent = tr("订阅状态暂不可用，可直接到 Markets 页面查看。", "Subscription status unavailable — check inside Markets.");
+          }
+        })
+        .catch(function () {
+          status.textContent = tr("订阅状态暂不可用，可直接到 Markets 页面查看。", "Subscription status unavailable — check inside Markets.");
+        });
+    } catch (e) {}
   }
 
   var CONSOLE_PANELS = [

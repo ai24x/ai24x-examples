@@ -124,7 +124,7 @@
       "</a>" +
       '<button type="button" class="menu-toggle" id="menu-toggle" aria-label="Menu" aria-expanded="false"><span></span></button>' +
       '<nav class="nav-main" id="nav-main" aria-label="Main">' +
-      nav("https://markets.ai24x.com", "nav.markets", "markets") +
+      nav("index.html", "nav.home", "home") +
       nav("pricing.html", "nav.pricing", "pricing") +
       nav("product.html", "nav.product", "product") +
       nav("help.html", "nav.help", "help") +

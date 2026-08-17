@@ -1,7 +1,7 @@
 // QA: 2026-08-16 优化回归（RSI移除/成交量/首屏根数/WETOUR建议/语言切换/登录排版）
 // 注意：K 线默认根数 = 500（2026-08-16 最终口径），勿改回 250。
-// 用法: set NODE_PATH=...\node_modules && node _qa_opt.js （需 18012 运行中）
-const { chromium } = require('playwright-core');
+// 用法: node _qa_opt.js （需 18012 运行中）
+const { chromium } = require('C:\\Users\\Admin\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\node_modules\\playwright-core');
 
 const results = [];
 function log(name, ok, detail) {

@@ -62,7 +62,10 @@ async function waitChart(page, timeout) {
     log('desktop.sse_chinese_name', quoteOk, 'quote=' + quote.slice(0, 80).replace(/\n/g, ' '));
     log('desktop.sse_full_kline', api.code === 0 && api.bars >= 100, 'bars=' + api.bars + ' asof=' + api.asof);
     log('desktop.sse_macd_full', api.macd === api.bars, 'macd=' + api.macd);
-    log('desktop.sse_no_today_bar', api.asof === '2026-08-14', 'asof=' + api.asof);
+    // 环境自适应：未开盘时无当日bar（asof=上一交易日）；盘中/收盘后当日bar必须 OHLC 合法（非假大阴线）
+    const last = api.last || [];
+    const lastValid = last.length >= 5 && +last[1] > 0 && +last[2] > 0 && +last[3] > 0 && +last[4] > 0 && +last[3] >= +last[4];
+    log('desktop.sse_last_bar_valid', api.asof >= '2026-08-14' && lastValid, 'asof=' + api.asof + ' last=' + String(last[0]) + ' O' + last[1] + ' C' + last[2] + ' H' + last[3] + ' L' + last[4]);
     log('desktop.sse_no_js_errors', errors.length === 0, errors.slice(0, 2).join('; '));
     await ctx.close();
   }

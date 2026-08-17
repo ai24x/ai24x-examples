@@ -67,6 +67,11 @@
     .onboard-card .num { flex: 0 0 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
     .onboard-actions { display: flex; gap: 10px; margin-top: 16px; }
     .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--panel2); border: 1px solid var(--border); color: var(--text); font-size: 13px; padding: 10px 16px; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,.35); z-index: 1000; max-width: 86vw; }
+    .free-banner { display: none; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 9px 16px; background: linear-gradient(90deg, rgba(251,191,36,.14), rgba(251,191,36,.05)); border-bottom: 1px solid rgba(251,191,36,.35); font-size: 13px; color: var(--text); }
+    .free-banner.show { display: flex; }
+    .free-banner .fb-up { border: 1px solid var(--gold); color: var(--gold); border-radius: 999px; padding: 5px 14px; font-weight: 700; font-size: 12px; text-decoration: none; white-space: nowrap; }
+    .free-banner .fb-up:hover { background: rgba(251,191,36,.12); }
+    .free-banner .fb-close { background: transparent; border: 0; color: var(--muted); font-size: 15px; cursor: pointer; line-height: 1; padding: 4px 6px; }
     @media (max-width: 640px) {
       header { padding: 8px 10px; gap: 6px; }
       .brand { font-size: 14px; }
@@ -114,6 +119,14 @@
     <span id="err" class="err"></span>
   </header>
 
+  <div id="free-banner" class="free-banner" role="region" aria-label="Free plan upgrade">
+    <span id="fb-text"></span>
+    <span style="display:inline-flex; gap:10px; align-items:center;">
+      <a class="fb-up" id="fb-upgrade" href="#sub" data-i18n="banner.upgrade">Upgrade to Pro</a>
+      <button type="button" class="fb-close" id="fb-close" aria-label="Dismiss">✕</button>
+    </span>
+  </div>
+
   <div class="samples" id="samples">
     <span class="samples-hint" data-i18n="popular">Popular — tap one to try</span>
   </div>
@@ -153,6 +166,7 @@
       <h3 data-i18n="panel.sub">Pro Subscription</h3>
       <div style="padding: 12px 14px;">
         <div id="sub-status" style="font-size:13px; margin-bottom:10px; color:var(--muted);"></div>
+        <div style="font-size:12px; color:var(--muted); margin-bottom:10px;" data-i18n="sub.steps">How it works: 1 · Pick a plan → 2 · PayPal checkout → 3 · Pro activates instantly.</div>
         <div style="display:flex; flex-wrap:wrap; gap:10px;">
           <button id="btn-sub-month" data-i18n="sub.month">Upgrade · $24.9/month</button>
           <button id="btn-sub-year" data-i18n="sub.year">Upgrade · $199/year</button>
@@ -201,6 +215,9 @@
           'sub.captureFail': 'Payment confirmation pending. If you completed payment, your access will activate shortly.',
           'sub.captureOk': 'Payment confirmed — Pro activated. Thank you!',
           'sub.reload': 'Refreshing…',
+          'banner.free': 'You are on the Free plan — 3 AI briefs/day and a 3-symbol watchlist. Upgrade to Pro for unlimited briefs and a 50-symbol watchlist.',
+          'banner.upgrade': 'Upgrade to Pro',
+          'sub.steps': 'How it works: 1 · Pick a plan → 2 · PayPal checkout → 3 · Pro activates instantly.',
           shortma: 'Short MAs 5/10/20 (dashed)',
           footer: '15-minute delayed market data. Sources: Tencent (primary) · Eastmoney. For educational purposes only — not investment advice.',
           loading: 'Loading…',
@@ -255,6 +272,9 @@
           'sub.captureFail': '支付确认待处理。如已完成支付，稍后会自动生效。',
           'sub.captureOk': '支付确认成功 — Pro 已激活，感谢支持！',
           'sub.reload': '刷新中…',
+          'banner.free': '当前为免费版 — 每天 3 次 AI 点评、自选最多 3 只。升级 Pro 可无限点评、自选扩至 50 只。',
+          'banner.upgrade': '升级 Pro',
+          'sub.steps': '开通流程：① 选择套餐 → ② PayPal 支付 → ③ 立即生效。',
           shortma: '主图叠加短周期均线（虚线）',
           footer: '15 分钟延迟行情。数据源：腾讯（主源）· 东财。内容仅供学习交流与自主决策参考，不构成投资建议。',
           loading: '加载中…',
@@ -865,6 +885,19 @@
           else if (subState.pro) q.textContent = t('brief.pro');
           else q.textContent = t('brief.quota').replace('{n}', String(subState.briefRemaining >= 0 ? subState.briefRemaining : '—'));
         }
+        // 免费用户升级引导条：已登录 + 免费 + 本次会话未手动关闭
+        var fb = $('free-banner');
+        if (fb) {
+          var dismissed = false;
+          try { dismissed = sessionStorage.getItem('markets_free_banner_closed') === '1'; } catch (e) {}
+          var fbText = $('fb-text');
+          if (token && !subState.pro && !dismissed) {
+            if (fbText) fbText.textContent = t('banner.free');
+            fb.classList.add('show');
+          } else {
+            fb.classList.remove('show');
+          }
+        }
       }
 
       function checkSub() {
@@ -934,6 +967,8 @@
               if (m) m.textContent = t('sub.checkoutFail') + (j.msg || res.status);
               return;
             }
+            var mm = $('sub-msg');
+            if (mm) mm.textContent = t('sub.reload');
             location.href = j.data.pay_url;
           })
           .catch(function (e) { if (m) m.textContent = t('sub.checkoutFail') + String(e); });
@@ -1063,6 +1098,16 @@
       var bBrief = $('btn-brief'); if (bBrief) bBrief.addEventListener('click', doBrief);
       var bMonth = $('btn-sub-month'); if (bMonth) bMonth.addEventListener('click', function () { doCheckout('monthly'); });
       var bYear = $('btn-sub-year'); if (bYear) bYear.addEventListener('click', function () { doCheckout('yearly'); });
+      var fbUp = $('fb-upgrade');
+      if (fbUp) fbUp.addEventListener('click', function () {
+        var sub = $('sub');
+        if (sub) { try { sub.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }
+      });
+      var fbClose = $('fb-close');
+      if (fbClose) fbClose.addEventListener('click', function () {
+        var fb = $('free-banner'); if (fb) fb.classList.remove('show');
+        try { sessionStorage.setItem('markets_free_banner_closed', '1'); } catch (e) {}
+      });
 
       // 深链：?plan=monthly|yearly#sub → 平滑滚动到订阅面板并高亮对应档位
       function flashPlan() {

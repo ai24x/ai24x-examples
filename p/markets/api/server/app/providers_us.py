@@ -9,7 +9,7 @@ import asyncio
 import json
 import re
 import time
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -455,6 +455,39 @@ async def fetch_tencent_quote(symbol: str) -> Dict[str, Any]:
 
 
 # ---------- Eastmoney (fallback 1) ----------
+def _drop_auction_today_bar(rows: List[List[Any]]) -> List[List[Any]]:
+    """集合竞价/开盘前剔除东财当日残缺 bar（与 a1 providers._drop_auction_today_bar 同口径）。
+
+    push2his 在 09:15-09:25 竞价与 09:25-09:30 过渡期会返回未成形当日 K：
+    high/low 常为 0 或撮合价剧烈跳动，画出来像“大阴柱”，MACD 量能柱也被拉成极端负值。
+    - 交易日 09:30 前：当日 bar 无意义，直接剔除；
+    - 09:30 后：保留，但 OHLC 任一非法（<=0）仍剔除。
+    """
+    try:
+        now = datetime.now()
+        if now.weekday() >= 5:
+            return rows
+        today = now.date().isoformat()
+        hhmm = now.strftime("%H%M")
+        out: List[List[Any]] = []
+        for r in rows:
+            if not (isinstance(r, (list, tuple)) and len(r) >= 5) or str(r[0]) != today:
+                out.append(r)
+                continue
+            if hhmm < "093000":
+                continue
+            try:
+                o, c, h, l = float(r[1]), float(r[2]), float(r[3]), float(r[4])
+            except Exception:
+                continue
+            if min(o, c, h, l) <= 0:
+                continue
+            out.append(r)
+        return out
+    except Exception:
+        return rows
+
+
 async def fetch_em_kline(symbol: str, count: int = 500) -> List[List[Any]]:
     if _circuit_open("eastmoney"):
         raise _SourceError("eastmoney circuit open")
@@ -480,7 +513,7 @@ async def fetch_em_kline(symbol: str, count: int = 500) -> List[List[Any]]:
                         rows.append([parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]])
                 if rows:
                     _circuit_note("eastmoney", True)
-                    return rows
+                    return _drop_auction_today_bar(rows)
             except Exception as e:
                 last_err = e
                 continue
@@ -500,17 +533,65 @@ def _cache_file(kind: str, symbol: str, period: str) -> Path:
     return _CACHE_DIR / f"{kind}_{tx}_{period}.json"
 
 
+def _is_bad_intraday_bar(row: List[Any]) -> bool:
+    """当日 bar 是否为占位/异常：竞价或未开盘时腾讯可能返回全 0 / 缺字段，
+    渲染会画出假的大阴线（K线 + MACD 同现）。"""
+    try:
+        if not row or len(row) < 6:
+            return True
+        o, c, h, l, v = (float(row[i]) for i in range(1, 6))
+        if o <= 0 or c <= 0 or h <= 0 or l <= 0 or v <= 0:
+            return True
+        if h < l or c > h or c < l or o > h or o < l:
+            return True
+        return False
+    except Exception:
+        return True
+
+
+def _drop_bad_intraday_bar(rows: List[List[Any]], today: str) -> List[List[Any]]:
+    """剔除最后一根当日异常 bar（竞价占位），保留完整历史。"""
+    if not rows:
+        return rows
+    last = rows[-1]
+    if str(last[0]) == today and _is_bad_intraday_bar(last):
+        return rows[:-1]
+    return rows
+
+
+def _cn_cache_valid(obj: Dict[str, Any], rows: List[List[Any]]) -> bool:
+    """中国代码当日缓存有效期：无当日 bar → 300s（开盘后补当日）；
+    当日有效 bar → 60s（盘中刷新可见最新）；当日异常 bar → 30s（尽快剔除占位）。"""
+    now = time.time()
+    ts = float(obj.get("ts", 0) or 0)
+    if not rows:
+        return now - ts < 30
+    last = rows[-1]
+    if str(last[0]) == _today_str():
+        if _is_bad_intraday_bar(last):
+            return now - ts < 30
+        return now - ts < 60
+    return now - ts < 300
+
+
 async def get_kline_rows(symbol: str, period: str = "day", count: int = 500) -> Dict[str, Any]:
     period = period or "day"
     symbol = resolve_symbol(symbol)
     cache = _cache_file("kline", symbol, period)
+    cn = bool(_cn_code(symbol))
     if cache.exists():
         try:
             obj = json.loads(cache.read_text(encoding="utf-8"))
             rows = obj.get("rows", [])
             # 命中条件：根数足够，或该缓存已标记“上游历史已取完”（短历史标的避免反复重拉）。
             # 不能用 min(count,30) 兜底：250 根时代的旧缓存会污染 count=500 请求（04 验收实测踩坑）。
-            if obj.get("day") == _today_str() and (len(rows) >= count or obj.get("complete")):
+            ok = (
+                obj.get("day") == _today_str()
+                and (len(rows) >= count or obj.get("complete"))
+            )
+            if cn:
+                ok = ok and _cn_cache_valid(obj, rows)
+            if ok:
                 return obj
         except Exception:
             pass
@@ -539,10 +620,18 @@ async def get_kline_rows(symbol: str, period: str = "day", count: int = 500) -> 
             if _looks_like_not_found(str(e1)) or _looks_like_not_found(str(e2)):
                 suggested = await _suggest_symbol(symbol)
                 raise SymbolNotFoundError(symbol, suggested) from e2
+            # 两源都在故障/熔断：静默探测候选（_quiet_tencent_kline 绕过熔断不计失败）。
+            # 候选命中说明用户拼错了代码（如 WETOUR→WETO），应给建议而不是笼统报“无数据”；
+            # 候选全空（真代码在总故障期）仍报“no data available”，不误判为不存在。
+            suggested = await _suggest_symbol(symbol)
+            if suggested:
+                raise SymbolNotFoundError(symbol, suggested) from e2
             raise _SourceError(f"no data available for {symbol}") from e2
 
     if not rows:
         raise _SourceError(f"no data for {symbol}")
+    if cn:
+        rows = _drop_bad_intraday_bar(rows, _today_str())
     obj = {
         "symbol": symbol,
         "period": period,
@@ -550,6 +639,7 @@ async def get_kline_rows(symbol: str, period: str = "day", count: int = 500) -> 
         "rows": rows,
         "source": source,
         "complete": len(rows) < fetch_n,  # 上游已无更多历史
+        "ts": time.time(),
     }
     try:
         cache.write_text(json.dumps(obj, ensure_ascii=False), encoding="utf-8")
