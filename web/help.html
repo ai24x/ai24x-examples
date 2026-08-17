@@ -261,7 +261,7 @@
             </div>
             <div class="card">
               <h3 class="mt-0" data-i18n="page.help.m4t">How do I subscribe to Markets Pro?</h3>
-              <p class="sub" style="margin:0" data-i18n="page.help.m4p">Pro is $24.9/month or $199/year (33% off), paid with PayPal. One account works for both AI24X Markets and the developer API.</p>
+              <p class="sub" style="margin:0" data-i18n="page.help.m4p">Pro is $9.9/week, $24.9/month or $199/year (33% off), paid with PayPal. Activate it inside Markets or from your Account.</p>
             </div>
             <div class="card">
               <h3 class="mt-0" data-i18n="page.help.m5t">Why is the data delayed by 15 minutes?</h3>
@@ -301,81 +301,11 @@
         <section class="help-sec" id="dev">
           <h2 data-i18n="page.help.dev.title">For developers</h2>
           <div class="card">
-            <p class="sub" style="margin:0" data-i18n="page.help.dev.sub">The same account also unlocks the AI24X API — one OpenAI-compatible key for global models, pay as you go.</p>
+            <p class="sub" style="margin:0" data-i18n="page.help.dev.sub">API keys, models, docs and developer tools now live at open.ai24x.com — financial market-data / technical-indicator endpoints and an OpenAI-compatible model API.</p>
             <div class="hero-cta" style="margin-top:12px">
-              <a class="btn btn-primary" href="api.html" data-i18n="page.help.dev.cta">API support page</a>
-              <a class="btn" href="console.html" data-i18n="page.help.dev.console">Go to Account</a>
+              <a class="btn btn-primary" href="https://open.ai24x.com" target="_blank" rel="noopener" data-i18n="page.help.dev.open">Visit open.ai24x.com</a>
             </div>
           </div>
-          <h3 class="help-block-gap" data-i18n="page.help.devFaq">Developer API FAQ</h3>
-          <div class="help-stack">
-            <div class="card">
-              <h3 class="mt-0" data-i18n="page.help.q1t">What model should I send?</h3>
-              <p class="sub" style="margin:0" data-i18n="page.help.q1p">Everyday: flash (about $0.35/M) or pro / ultra / auto. Members can also name global models. New users: start with flash.</p>
-            </div>
-            <div class="card">
-              <h3 class="mt-0" data-i18n="page.help.q2t">International payment</h3>
-              <p class="sub" style="margin:0" data-i18n="page.help.q2p">Pricing → Account → PayPal (USD). China (CNY): WeChat Pay / Alipay in Account.</p>
-            </div>
-            <div class="card">
-              <h3 class="mt-0" data-i18n="page.help.q3t">401 / unauthorized</h3>
-              <p class="sub" style="margin:0" data-i18n="page.help.q3p">Check that your API key is correct, active, and your account is available.</p>
-            </div>
-            <div class="card">
-              <h3 class="mt-0" data-i18n="page.help.q4t">Out of balance? Or need prepaid credits?</h3>
-              <p class="sub" style="margin:0" data-i18n="page.help.q4p">When prepaid credits run out, we auto-continue on the free daily pool (~100k tokens/day). Or set model=shared. pro/ultra and named models need VIP access and consume prepaid credits.</p>
-            </div>
-            <div class="card">
-              <h3 class="mt-0" data-i18n="page.help.q5t">429 / rate limited</h3>
-              <p class="sub" style="margin:0" data-i18n="page.help.q5p">Slow down or upgrade plan.</p>
-            </div>
-            <div class="card">
-              <h3 class="mt-0" data-i18n="page.help.q6t">Referrals</h3>
-              <p class="sub" style="margin:0" data-i18n="page.help.q6p">Share your invite code or link—see the Referrals page.</p>
-            </div>
-            <div class="card">
-              <h3 class="mt-0" data-i18n="page.help.q7t">405 / Responses error?</h3>
-              <p class="sub" style="margin:0" data-i18n="page.help.q7p">POST /v1/responses is supported for text chat. If you still see 405, the Base URL likely includes /chat/completions—stop at /v1. For tools / agent tool-calling, use chat/completions.</p>
-            </div>
-            <div class="card">
-              <h3 class="mt-0" data-i18n="page.help.q8t">Why is my usage/balance running out so fast?</h3>
-              <p class="sub" style="margin:0" data-i18n="page.help.q8p">Each reply re-reads the full conversation history as context, so longer chats cost more per turn.</p>
-            </div>
-            <div class="card">
-              <h3 class="mt-0" data-i18n="page.help.q9t">Getting "We're currently experiencing high demand…" / temporary errors?</h3>
-              <p class="sub" style="margin:0" data-i18n="page.help.q9p">This is a generic message clients show during temporary server-side fluctuations—retrying shortly usually works.</p>
-            </div>
-            <div class="card">
-              <h3 class="mt-0" data-i18n="page.help.q10t">Do prepaid credits expire?</h3>
-              <p class="sub" style="margin:0" data-i18n="page.help.q10p">No. Prepaid credits are valid indefinitely.</p>
-            </div>
-            <div class="card">
-              <h3 class="mt-0" data-i18n="page.help.q11t">Topped up but balance not showing?</h3>
-              <p class="sub" style="margin:0" data-i18n="page.help.q11p">Make sure you're signed into the account used for payment. If it still doesn't match, open a ticket from the chat bubble with the payment order number and we'll investigate.</p>
-            </div>
-            <div class="card">
-              <h3 class="mt-0" data-i18n="page.help.q12t">Can I get a refund for unused credits?</h3>
-              <p class="sub" style="margin:0" data-i18n="page.help.q12p">Yes. Unused balance is refundable—start a refund from Account → Billing. Invoiced or already-consumed amounts are not refundable.</p>
-            </div>
-            <div class="card">
-              <h3 class="mt-0" data-i18n="page.help.q13t">How do I get an invoice?</h3>
-              <p class="sub" style="margin:0" data-i18n="page.help.q13p">Account → Billing lets you request an e-invoice by top-up amount or by consumption amount; you can also void and re-issue from the invoice history.</p>
-            </div>
-            <div class="card">
-              <h3 class="mt-0" data-i18n="page.help.q14t">My API key leaked—what should I do?</h3>
-              <p class="sub" style="margin:0" data-i18n="page.help.q14p">Delete the leaked key in Account → API Keys right away (it stops working immediately), then create a new key and update your app. Never embed keys in web or client code, and don't share them.</p>
-            </div>
-            <div class="card">
-              <h3 class="mt-0" data-i18n="page.help.q15t">How do I check usage per key?</h3>
-              <p class="sub" style="margin:0" data-i18n="page.help.q15p">Account → Usage lets you filter by API key and export data, so each key's consumption is clear.</p>
-            </div>
-            <div class="card">
-              <h3 class="mt-0" data-i18n="page.help.q16t">Request sent but no response / only blank lines?</h3>
-              <p class="sub" style="margin:0" data-i18n="page.help.q16p">Streaming keeps the connection alive while waiting for the first token—please wait. If nothing arrives after ~10 minutes, the upstream is busy: retry later or switch to a more stable model like flash.</p>
-            </div>
-          </div>
-          <h3 class="help-block-gap" data-i18n="page.help.stuck">Still stuck?</h3>
-          <p class="sub" data-i18n="page.help.stuckp">Prefer Instant help → Human support for a tracked ticket. For urgent billing, email from your registered address with approx. time.</p>
         </section>
 
         <section class="help-sec" id="safe">
@@ -386,11 +316,11 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260818i"></script>
+  <script src="config/locales.js?v=20260818j"></script>
   <script src="js/api.js?v=20260818e"></script>
   <script src="js/utm.js?v=20260802a"></script>
-  <script src="js/i18n.js?v=20260812g"></script>
-  <script src="js/shell.js?v=20260818i"></script>
+  <script src="js/i18n.js?v=20260818j"></script>
+  <script src="js/shell.js?v=20260818j"></script>
   <script src="js/app.js?v=20260818b"></script>
   <script src="js/support-widget.js?v=20260817b"></script>
   <script>

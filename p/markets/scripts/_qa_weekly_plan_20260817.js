@@ -37,8 +37,8 @@ function log(name, ok, detail) {
   log('console.bill_week', consoleSrc.indexOf('btn-mk-week') >= 0, '');
   log('console.checkout_msg_class', consoleSrc.indexOf('mk-checkout-msg') >= 0, '');
 
-  // 版本号全站统一 i，无 g/h 残留
-  let oldG = 0, oldH = 0, newI = 0, htmlCount = 0;
+  // 版本号全站统一 j，无 g/h/i 残留
+  let oldG = 0, oldH = 0, oldI = 0, newJ = 0, htmlCount = 0;
   const walk = (dir) => {
     for (const name of fs.readdirSync(dir)) {
       const p = path.join(dir, name);
@@ -49,12 +49,13 @@ function log(name, ok, detail) {
       const s = fs.readFileSync(p, 'utf8');
       if (/(?:locales|console|shell)\.js\?v=20260818g/.test(s)) oldG++;
       if (/(?:locales|console|shell)\.js\?v=20260818h/.test(s)) oldH++;
-      const m = s.match(/(?:locales|console|shell)\.js\?v=20260818i/g);
-      if (m) newI += m.length;
+      if (/(?:locales|console|shell)\.js\?v=20260818i/.test(s)) oldI++;
+      const m = s.match(/(?:locales|console|shell)\.js\?v=20260818j/g);
+      if (m) newJ += m.length;
     }
   };
   walk(path.join(ROOT, 'web'));
-  log('version.unified_i', oldG === 0 && oldH === 0 && newI >= 80, 'pages=' + htmlCount + ' iRefs=' + newI + ' g=' + oldG + ' h=' + oldH);
+  log('version.unified_j', oldG === 0 && oldH === 0 && oldI === 0 && newJ >= 70, 'pages=' + htmlCount + ' jRefs=' + newJ + ' i=' + oldI + ' g=' + oldG + ' h=' + oldH);
 
   const browser = await chromium.launch({ executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' });
 
@@ -79,14 +80,14 @@ function log(name, ok, detail) {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: -1, msg: 'qa_mock_no_pay' }) });
     });
 
-    // zh：导航「套餐」
+    // 官网仅英文：导航统一「Plans」（zh 参数不再生效）
     await page.goto('http://127.0.0.1:8000/console.html?lang=zh#overview', { waitUntil: 'networkidle' });
     await page.waitForTimeout(1600);
     const navZh = await page.evaluate(() => {
       const b = document.querySelector('.console-nav-item[data-console-panel="billing"]');
       return b ? b.textContent.trim() : '';
     });
-    log('console.nav_zh_plans', navZh === '套餐', 'nav=' + navZh);
+    log('console.nav_plans_en', navZh === 'Plans', 'nav=' + navZh);
 
     // Overview 周套餐按钮 → POST weekly
     const ovHas = await page.evaluate(() => {

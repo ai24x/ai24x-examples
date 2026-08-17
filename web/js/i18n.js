@@ -10,6 +10,8 @@
 (function (global) {
   var LANG_KEY = "ai24x_lang";
   var ALLOWED = { zh: 1, en: 1, ja: 1, ko: 1, de: 1, fr: 1, es: 1 };
+  /** 官网仅英文（合规红线，2026-08-17）：www 主站强制英文 UI，忽略 localStorage / ?lang；markets 应用不受影响 */
+  var FORCE_EN = true;
 
   function normalizeLang(code) {
     var c = String(code || "")
@@ -25,6 +27,12 @@
   }
 
   function detectFirstVisitLang() {
+    if (FORCE_EN) {
+      try {
+        localStorage.setItem(LANG_KEY, "en");
+      } catch (e) {}
+      return "en";
+    }
     try {
       var q = new URLSearchParams(window.location.search || "").get("lang");
       var fromQ = normalizeLang(q);
@@ -43,17 +51,20 @@
   }
 
   function getLang() {
+    if (FORCE_EN) return "en";
     var saved = normalizeLang(localStorage.getItem(LANG_KEY));
     if (saved) return saved;
     return detectFirstVisitLang();
   }
 
   function setLang(code) {
+    if (FORCE_EN) code = "en";
     var n = normalizeLang(code) || "en";
     localStorage.setItem(LANG_KEY, n);
   }
 
   function isZh() {
+    if (FORCE_EN) return false;
     return getLang() === "zh";
   }
 

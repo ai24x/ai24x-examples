@@ -188,16 +188,16 @@ function check(name, ok, extra) {
       'http://127.0.0.1:8000/register.html?x=q5',
       'http://127.0.0.1:8000/login.html?x=q5',
       'http://127.0.0.1:8000/index.html?x=q5',
-      'http://127.0.0.1:8000/guides/index.html?x=q5',
-      'http://127.0.0.1:8000/models/index.html?x=q5',
+      'http://127.0.0.1:8000/pricing.html?x=q5',
+      'http://127.0.0.1:8000/help.html?x=q5',
     ];
-    let allI = true, anyC = false;
+    let allJ = true, anyC = false;
     for (const u of pages) {
       const res = await (await fetch(u)).text();
-      if (!res.includes('locales.js?v=20260818i')) allI = false;
+      if (!res.includes('locales.js?v=20260818j')) allJ = false;
       if (res.includes('locales.js?v=20260818c')) anyC = true;
     }
-    check('www.locales_v18i_uniform', allI, pages.join(','));
+    check('www.locales_v18j_uniform', allJ, pages.join(','));
     check('www.locales_old_c_residual', !anyC, '');
   }
 

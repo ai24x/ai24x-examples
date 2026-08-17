@@ -1,4 +1,7 @@
-<!DOCTYPE html>
+const fs = require('fs');
+const path = require('path');
+const ROOT = path.resolve(__dirname, '../../..');
+const stub = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -18,8 +21,21 @@
 <body>
 <div class="box">
   <h1>AI24X Developer Portal</h1>
-  <p>API keys, models, docs and developer tools now live at open.ai24x.com. Redirecting you there…</p>
+  <p>API keys, models, docs and developer tools now live at open.ai24x.com. Redirecting you there\u2026</p>
   <p><a href="https://open.ai24x.com">Continue to open.ai24x.com</a></p>
 </div>
 </body>
 </html>
+`;
+const targets = [
+  'web/api.html',
+  'web/docs.html',
+  'web/models/index.html',
+  'web/guides/index.html',
+];
+for (const t of targets) {
+  const p = path.join(ROOT, t);
+  if (!fs.existsSync(p)) { console.log('MISS ' + t); continue; }
+  fs.writeFileSync(p, stub, 'utf8');
+  console.log('OK ' + t);
+}

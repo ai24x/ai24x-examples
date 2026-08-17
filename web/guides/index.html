@@ -1,159 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- [AI24X 2026-08-15] Google Ads 暂停 (国际支付无合规渠道，保留待恢复，勿删）：
-
-<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18385419220"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('consent', 'default', {
-    'ad_storage': 'denied',
-    'ad_user_data': 'denied',
-    'ad_personalization': 'denied',
-    'analytics_storage': 'denied',
-    'personalization_storage': 'denied',
-    'functionality_storage': 'granted',
-    'security_storage': 'granted',
-    'wait_for_update': 500
-  });
-  gtag('js', new Date());
-
-  gtag('config', 'AW-18385419220');
-</script>
-<script src="../config/consent.js?v=20260814a"></script>
--->
-
-  <meta charset="UTF-8" />
-  <script>
-/* i18n-boot inline v20260808d: language pre-read + FOUC guard (no network dependency) */
-(function () {
-  var KEY = "ai24x_lang";
-  try {
-    var raw = String(localStorage.getItem(KEY) || "").trim().toLowerCase().replace(/_/g, "-");
-    var lang = raw.split("-")[0] || "";
-    if (!lang) { lang = "en"; localStorage.setItem(KEY, lang); }
-    document.documentElement.setAttribute("data-ai24x-lang", lang);
-    document.documentElement.classList.add("i18n-pending");
-    if (!document.getElementById("ai24x-i18n-pending")) {
-      var st = document.createElement("style");
-      st.id = "ai24x-i18n-pending";
-      st.textContent = "html.i18n-pending body{visibility:hidden!important}";
-      (document.head || document.documentElement).appendChild(st);
-    }
-    setTimeout(function () { document.documentElement.classList.remove("i18n-pending"); }, 4000);
-  } catch (e) {}
-})();
-</script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Integrations · AI24X API guides | AI24X</title>
-  <meta name="description" content="Connect AI24X to Codex, Cursor, OpenClaw, Continue, Open WebUI, LiteLLM, LobeChat, curl, Python, Node.js, n8n, Dify, and PowerShell. OpenAI-compatible chat/completions and Responses with streaming and tools." />
-  <link rel="canonical" href="https://www.ai24x.com/guides/index.html" />
-  <meta property="og:type" content="website" />
-  <meta property="og:title" content="Integrations · AI24X API guides | AI24X" />
-  <meta property="og:description" content="Connect AI24X to Codex, Cursor, OpenClaw, Continue, and more." />
-  <meta property="og:url" content="https://www.ai24x.com/guides/index.html" />
-  <meta property="og:image" content="https://www.ai24x.com/img/og-share.png" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:image" content="https://www.ai24x.com/img/og-share.png" />
-  <link rel="stylesheet" href="../css/base.css?v=20260818c" />
-  <link id="theme-css" rel="stylesheet" href="../css/themes/theme-dark.css?v=20260812e" data-base="../css/themes/" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI24X Developer Portal</title>
+<meta http-equiv="refresh" content="0; url=https://open.ai24x.com" />
+<link rel="canonical" href="https://open.ai24x.com" />
+<style>
+  body{margin:0;background:#0b0f14;color:#e6edf3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;}
+  .box{max-width:520px;padding:32px;text-align:center;}
+  h1{font-size:1.35rem;margin:0 0 10px;}
+  p{color:#9aa8b8;line-height:1.6;margin:0 0 18px;}
+  a{color:#60a5fa;text-decoration:none;font-weight:600;}
+</style>
+<script>location.replace('https://open.ai24x.com');</script>
 </head>
-<body data-page="guides" class="theme-dark">
-  <header class="site-header" id="site-header"></header>
-  <main class="page-main">
-    <section class="hero hero-surface section-tight">
-      <div class="container">
-        <h1 data-i18n="page.guides.title">Integrations</h1>
-        <p class="lead" data-i18n="page.guides.lead">Drop AI24X into tools you already use. One Base URL: https://api.ai24x.com/v1. Prefer POST /v1/chat/completions (streaming + tools); /v1/chat/run still works. Paste API keys in full.</p>
-      </div>
-    </section>
-    <section class="section">
-      <div class="container">
-        <div class="grid-3">
-          <div class="card">
-            <h3><a href="codex.html" data-i18n="page.guides.codex.t">Codex</a></h3>
-            <p data-i18n="page.guides.codex.p">config.toml → base_url /v1 + wire_api responses; DeepSeek V4 (vip-ds-flash/pro) and VIP named models.</p>
-          </div>
-          <div class="card">
-            <h3><a href="cursor.html" data-i18n="page.guides.cursor.t">Cursor</a></h3>
-            <p data-i18n="page.guides.cursor.p">Override OpenAI Base URL to /v1, paste your key, use model flash.</p>
-          </div>
-          <div class="card">
-            <h3><a href="openclaw.html" data-i18n="page.guides.openclaw.t">OpenClaw</a></h3>
-            <p data-i18n="page.guides.openclaw.p">baseUrl …/v1; switch flash/pro/shared and vip-kimi, vip-gpt5, etc.; tools need a paid tier.</p>
-          </div>
-          <div class="card">
-            <h3><a href="openrouter-migration.html" data-i18n="page.guides.openrouter.t">OpenRouter → AI24X</a></h3>
-            <p data-i18n="page.guides.openrouter.p">Migrate in 4 steps: base_url + key, same OpenAI protocol, from $0.35/M.</p>
-          </div>
-          <div class="card">
-            <h3><a href="openrouter-vs-ai24x.html" data-i18n="page.guides.openrouter2.t">OpenRouter vs AI24X</a></h3>
-            <p data-i18n="page.guides.openrouter2.p">Pricing, routing and model comparison for your migration decision.</p>
-          </div>
-          <div class="card">
-            <h3><a href="continue.html" data-i18n="page.guides.continue.t">Continue</a></h3>
-            <p data-i18n="page.guides.continue.p">IDE assistant: provider openai, apiBase …/v1, model flash.</p>
-          </div>
-          <div class="card">
-            <h3><a href="curl.html" data-i18n="page.guides.curl.t">curl</a></h3>
-            <p data-i18n="page.guides.curl.p">One-liner smoke test from any terminal.</p>
-          </div>
-          <div class="card">
-            <h3><a href="dify.html" data-i18n="page.guides.dify.t">Dify</a></h3>
-            <p data-i18n="page.guides.dify.p">Custom HTTP / tool call into AI24X from Dify apps.</p>
-          </div>
-          <div class="card">
-            <h3><a href="openai-sdk.html" data-i18n="page.guides.sdk.t">HTTP / Python</a></h3>
-            <p data-i18n="page.guides.sdk.p">Minimal HTTP and Python requests: endpoint + key + flash/pro.</p>
-          </div>
-          <div class="card">
-            <h3><a href="litellm.html" data-i18n="page.guides.litellm.t">LiteLLM</a></h3>
-            <p data-i18n="page.guides.litellm.p">SDK/proxy: openai/flash + api_base https://api.ai24x.com/v1.</p>
-          </div>
-          <div class="card">
-            <h3><a href="lobechat.html" data-i18n="page.guides.lobechat.t">LobeChat</a></h3>
-            <p data-i18n="page.guides.lobechat.p">Custom OpenAI provider to /v1; Responses for text, Completions for tools.</p>
-          </div>
-          <div class="card">
-            <h3><a href="n8n.html" data-i18n="page.guides.n8n.t">n8n</a></h3>
-            <p data-i18n="page.guides.n8n.p">HTTP Request node → AI24X in your workflows.</p>
-          </div>
-          <div class="card">
-            <h3><a href="nodejs.html" data-i18n="page.guides.node.t">Node.js</a></h3>
-            <p data-i18n="page.guides.node.p">fetch() sample for scripts and backends.</p>
-          </div>
-          <div class="card">
-            <h3><a href="open-webui.html" data-i18n="page.guides.openwebui.t">Open WebUI</a></h3>
-            <p data-i18n="page.guides.openwebui.p">Self-hosted chat: OpenAI-compatible connection to api.ai24x.com/v1.</p>
-          </div>
-          <div class="card">
-            <h3><a href="powershell.html" data-i18n="page.guides.ps.t">PowerShell</a></h3>
-            <p data-i18n="page.guides.ps.p">Invoke-RestMethod on Windows servers.</p>
-          </div>
-          <div class="card">
-            <h3><a href="../models/vip-picks.html" data-i18n="page.models.vip.cta">VIP named models</a></h3>
-            <p data-i18n="page.guides.vip.p">After VIP: pick a named model in Console, or send call names like vip-kimi / vip-gpt5.</p>
-          </div>
-        </div>
-        <div class="callout mt-2" data-i18n-html="page.guides.tips"></div>
-        <p class="mt-2">
-          <a href="../models/index.html" data-i18n="btn.models">global models</a>
-          · <a href="../docs.html" data-i18n="nav.docs">Docs</a>
-          · <a href="../register.html" data-i18n="page.index.hero.cta.register">Sign up</a>
-        </p>
-      </div>
-    </section>
-  </main>
-  <footer class="site-footer" id="site-footer"></footer>
-  <script src="../config/locales.js?v=20260818i"></script>
-  <script src="../js/api.js?v=20260818e"></script>
-  <script src="../js/utm.js?v=20260802a"></script>
-<script src="../js/i18n.js?v=20260812g"></script>
-  <script src="../js/shell.js?v=20260818i"></script>
-  <script src="../js/app.js?v=20260818b"></script>
-  <script src="../js/support-widget.js?v=20260817b"></script>
+<body>
+<div class="box">
+  <h1>AI24X Developer Portal</h1>
+  <p>API keys, models, docs and developer tools now live at open.ai24x.com. Redirecting you there…</p>
+  <p><a href="https://open.ai24x.com">Continue to open.ai24x.com</a></p>
+</div>
 </body>
 </html>

@@ -35,52 +35,45 @@ function check(name, ok, extra) {
       };
     });
     check('nav.home_first', nav.links[0] && nav.links[0].href && nav.links[0].href.indexOf('index.html') >= 0 && nav.links[0].text === 'Home', JSON.stringify(nav.links.slice(0, 3)));
-    check('nav.developer_dropdown', !!nav.dropBtnText && nav.dropBtnText.indexOf('Developer') >= 0 && nav.menuLinks.length === 4, nav.dropBtnText + ' | ' + nav.menuLinks.join(','));
-    check('nav.no_markets_item', !nav.links.some((l) => (l.text || '').indexOf('Markets') >= 0 || (l.text || '').indexOf('行情官') >= 0), JSON.stringify(nav.links));
+    const devLink = nav.links.find((l) => l.href && l.href.indexOf('open.ai24x.com') >= 0);
+    check('nav.developer_single_link', !!devLink && devLink.text.indexOf('Developer') >= 0 && !nav.dropBtnText, devLink ? devLink.text : 'no-dev-link');
+    check('nav.no_dropdown', !nav.dropBtnText && nav.menuLinks.length === 0, nav.dropBtnText + ' | ' + nav.menuLinks.join(','));
+    check('nav.no_token_entries', !nav.links.some((l) => (l.text || '').indexOf('Console') >= 0 || (l.text || '').indexOf('Sign up') >= 0 || (l.text || '').indexOf('Markets') >= 0 || (l.text || '').indexOf('行情官') >= 0), JSON.stringify(nav.links.map((l) => l.text)));
+    check('nav.about_login_present', nav.links.some((l) => l.text === 'About') && nav.links.some((l) => l.text === 'Log in'), JSON.stringify(nav.links.map((l) => l.text)));
 
     const body = await page.evaluate(() => {
       const txt = (sel) => (document.querySelector(sel) || {}).textContent || '';
       const hrefs = Array.from(document.querySelectorAll('a[data-markets]')).map((a) => a.getAttribute('href'));
       return {
         free: txt('.plan-card h3') || '',
-        prices: document.body.innerText.match(/\$24\.9|\$199/g) || [],
+        prices: document.body.innerText.match(/\$9\.9|\$24\.9|\$199/g) || [],
         upgradeHrefs: hrefs.filter((h) => h && h.indexOf('app.html') >= 0),
         devSection: !!document.getElementById('devSection'),
         tokenGrid: !!document.getElementById('tokenPlansGrid'),
-        devLinks: Array.from(document.querySelectorAll('.dev-links a')).map((a) => a.getAttribute('href')),
+        devOpenLink: Array.from(document.querySelectorAll('#devSection a')).map((a) => a.getAttribute('href')),
       };
     });
     check('pricing.free_card', body.free === 'Free', body.free);
-    check('pricing.prices', body.prices.length >= 2, body.prices.join(','));
+    check('pricing.prices', body.prices.length >= 3 && body.prices.indexOf('$9.9') >= 0 && body.prices.indexOf('$24.9') >= 0 && body.prices.indexOf('$199') >= 0, body.prices.join(','));
     check('pricing.upgrade_deeplinks', body.upgradeHrefs.length >= 2 && body.upgradeHrefs.some((h) => h.indexOf('plan=yearly') >= 0), body.upgradeHrefs.join(' | '));
-    check('pricing.dev_section', body.devSection && body.tokenGrid && body.devLinks.length === 3, body.devLinks.join(','));
+    check('pricing.dev_section', body.devSection && !body.tokenGrid && body.devOpenLink.some((h) => h && h.indexOf('open.ai24x.com') >= 0), body.devOpenLink.join(','));
     check('pricing.no_js_errors', errors.length === 0, errors.join(' || ').slice(0, 200));
-
-    // 下拉 hover 可见性
-    await page.hover('.nav-drop-btn');
-    await page.waitForTimeout(300);
-    const dropVisible = await page.evaluate(() => {
-      const m = document.querySelector('.nav-drop-menu');
-      const cs = getComputedStyle(m);
-      return cs.display !== 'none' && cs.visibility !== 'hidden';
-    });
-    check('nav.dropdown_hover_opens', dropVisible, '');
     await page.close();
   }
 
-  // ---------- www：zh 语言下导航文案 ----------
+  // ---------- www：官网仅英文（?lang=zh 不再生效） ----------
   {
     const page = await ctx.newPage();
     await page.goto('http://127.0.0.1:8000/pricing.html?lang=zh&x=q2', { waitUntil: 'networkidle' });
     await page.waitForTimeout(600);
-    const zh = await page.evaluate(() => ({
-      drop: (document.querySelector('.nav-drop-btn') || {}).textContent || '',
-      markets: Array.from(document.querySelectorAll('.nav-main a')).map((a) => a.textContent.trim()).filter(Boolean).slice(0, 4),
+    const en = await page.evaluate(() => ({
+      nav: Array.from(document.querySelectorAll('.nav-main a')).map((a) => a.textContent.trim()).filter(Boolean).slice(0, 6),
+      langSelect: !!document.getElementById('lang-select'),
       devTitle: (document.querySelector('#devSection h2') || {}).textContent || '',
     }));
-    check('zh.nav_developer', zh.drop.indexOf('开发者') >= 0, zh.drop);
-    check('zh.nav_home', zh.markets[0] === '首页', zh.markets.join('|'));
-    check('zh.dev_title', zh.devTitle.indexOf('开发者') >= 0, zh.devTitle);
+    check('en.nav_home', en.nav[0] === 'Home', en.nav.join('|'));
+    check('en.no_lang_selector', !en.langSelect, '');
+    check('en.dev_title', en.devTitle.indexOf('open.ai24x.com') >= 0, en.devTitle);
     await page.close();
   }
 
@@ -93,11 +86,11 @@ function check(name, ok, extra) {
     await page.waitForTimeout(600);
     const idx = await page.evaluate(() => {
       const hero = document.querySelector('.hero-cta a.btn-primary');
-      const strip = Array.from(document.querySelectorAll('a')).find((a) => a.getAttribute('href') === 'docs.html');
-      return { heroHref: hero ? hero.getAttribute('href') : null, heroText: hero ? hero.textContent.trim() : '', strip: !!strip };
+      const fleet = document.body.innerText.indexOf('Powered by the AI24X autonomous agent fleet') >= 0;
+      return { heroHref: hero ? hero.getAttribute('href') : null, heroText: hero ? hero.textContent.trim() : '', fleet };
     });
     check('index.hero_start_free', idx.heroHref === 'https://markets.ai24x.com/app.html' && idx.heroText === 'Start free', idx.heroHref + ' ' + idx.heroText);
-    check('index.dev_strip', idx.strip, '');
+    check('index.fleet_line', idx.fleet, '');
     check('index.no_js_errors', errors.length === 0, errors.join(' || ').slice(0, 150));
     await page.close();
   }

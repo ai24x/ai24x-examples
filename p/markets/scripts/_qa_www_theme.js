@@ -11,10 +11,10 @@ const pages = [
   { url: 'http://127.0.0.1:8000/account.html', name: 'account', srcOnly: true },
   { url: 'http://127.0.0.1:8000/console.html', name: 'console' },
   { url: 'http://127.0.0.1:8000/dashboard.html', name: 'dashboard' },
-  { url: 'http://127.0.0.1:8000/api.html', name: 'api' },
+  { url: 'http://127.0.0.1:8000/api.html', name: 'api', redirect: true },
   { url: 'http://127.0.0.1:8000/models/vip-picks.html', name: 'vip-picks' },
-  { url: 'http://127.0.0.1:8000/docs.html', name: 'docs' },
-  { url: 'http://127.0.0.1:8000/guides/index.html', name: 'guides' },
+  { url: 'http://127.0.0.1:8000/docs.html', name: 'docs', redirect: true },
+  { url: 'http://127.0.0.1:8000/guides/index.html', name: 'guides', redirect: true },
   { url: 'http://127.0.0.1:8000/status.html', name: 'status' },
   { url: 'http://127.0.0.1:8000/demo.html', name: 'demo', srcOnly: true },
   { url: 'http://127.0.0.1:8000/privacy.html', name: 'privacy' },
@@ -32,6 +32,15 @@ const pages = [
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   let failed = 0;
   for (const p of pages) {
+    if (p.redirect) {
+      // 开发者中心页已改为 open.ai24x.com 跳转 stub：断言跳转目标即可
+      const res = await fetch(p.url);
+      const html = await res.text();
+      const ok = html.includes('open.ai24x.com') && html.includes('http-equiv="refresh"');
+      if (!ok) failed++;
+      console.log((ok ? 'PASS' : 'FAIL') + ' | ' + p.name + ' (redirect → open.ai24x.com)');
+      continue;
+    }
     if (p.srcOnly) {
       // 跳转页（旧灯塔版 a.ai24x.com 用户中心/行情）：直接断言本地源码已切深色
       const res = await fetch(p.url);

@@ -43,7 +43,7 @@ function log(name, ok, detail) {
   const onBilling = await page.evaluate(() => !document.getElementById('panel-billing').hasAttribute('hidden'));
   const sepVisible = await page.evaluate(() => {
     const panel = document.getElementById('panel-billing');
-    return panel.textContent.indexOf('For API developers') >= 0 || panel.textContent.indexOf('API 开发者') >= 0;
+    return panel.textContent.indexOf('open.ai24x.com') >= 0;
   });
   const sepCta = await page.evaluate(() => {
     const a = Array.from(document.querySelectorAll('#panel-billing a'));

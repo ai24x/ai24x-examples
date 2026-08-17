@@ -30,25 +30,11 @@
 
   function headerHtml(activePage) {
     var L = global.AI24X_I18N;
-    var langs = (L && Array.isArray(L.LANGS) && L.LANGS.length) ? L.LANGS : [{ code: "en", label: "English" }];
     var pre = pathPrefix();
     var curLang = "en";
     try {
       if (L && typeof L.getLang === "function") curLang = L.getLang() || "en";
     } catch (e0) {}
-    var langOpts = langs
-      .map(function (x) {
-        return (
-          '<option value="' +
-          esc(x.code) +
-          '"' +
-          (x.code === curLang ? " selected" : "") +
-          ">" +
-          esc(x.label) +
-          "</option>"
-        );
-      })
-      .join("");
 
     function nav(href, key, id) {
       var c = activePage === id ? " is-active" : "";
@@ -68,6 +54,27 @@
         esc(label) +
         "</a>"
       );
+    }
+
+    /** 官网仅英文（合规红线）：登录态显示 Account + Sign out，未登录显示 Log in */
+    function authToken() {
+      try {
+        return localStorage.getItem("ai24x_auth_token") || "";
+      } catch (e) {
+        return "";
+      }
+    }
+
+    function loginNav() {
+      if (authToken()) {
+        return (
+          nav("console.html", "nav.console", "console") +
+          '<a href="#" id="nav-signout" data-i18n="nav.signout" rel="nofollow">' +
+          esc(tr("nav.signout")) +
+          "</a>"
+        );
+      }
+      return nav("login.html", "nav.login", "login");
     }
 
     function tr(key) {
@@ -128,15 +135,9 @@
       nav("pricing.html", "nav.pricing", "pricing") +
       nav("product.html", "nav.product", "product") +
       nav("help.html", "nav.help", "help") +
-      navDrop("nav.developer", [
-        { href: "api.html", key: "nav.api", id: "api" },
-        { href: "models/index.html", key: "nav.models", id: "models" },
-        { href: "guides/index.html", key: "nav.guides", id: "guides" },
-        { href: "docs.html", key: "nav.docs", id: "docs" }
-      ]) +
-      nav("console.html", "nav.console", "console") +
-      nav("login.html", "nav.login", "login") +
-      nav("register.html", "nav.register", "register") +
+      nav("about.html", "nav.about", "about") +
+      nav("https://open.ai24x.com", "nav.developer", "developer") +
+      loginNav() +
       "</nav>" +
       '<div class="header-actions">' +
       '<a class="header-upgrade" href="' +
@@ -144,9 +145,6 @@
       'app.html#sub" target="_blank" rel="noopener" data-i18n="nav.vipUpgrade" style="display:inline-block; padding:7px 14px; border-radius:999px; background:var(--accent); color:var(--accent-ink,#fff); font-size:0.85rem; font-weight:700; text-decoration:none; white-space:nowrap;">' +
       esc(tr("nav.vipUpgrade")) +
       "</a>" +
-      '<select id="lang-select" class="select-mini" aria-label="Language">' +
-      langOpts +
-      "</select>" +
       /* 主题跟随 HTML 声明（全站深色）；主题选择器默认不露出（CSS/逻辑仍保留） */
       (THEME_PICKER_ENABLED
         ? '<select id="theme-select" class="select-mini theme-select" aria-label="Theme">' +
@@ -210,7 +208,6 @@
       '<a href="' +
       pre +
       'partner.html" data-i18n="footer.link.partner"></a>' +
-      '<a href="https://a.ai24x.com/" data-i18n="footer.link.marketwatch" data-i18n-zh-only></a>' +
       "</div>" +
       '<div class="footer-col">' +
       '<div class="footer-title" data-i18n="footer.col.dev"></div>' +
@@ -220,12 +217,7 @@
       '<a href="' +
       pre +
       'status.html" data-i18n="footer.link.status"></a>' +
-      '<a href="' +
-      pre +
-      'refer.html" data-i18n="footer.link.refer"></a>' +
-      '<a href="' +
-      pre +
-      'console.html" data-i18n="footer.link.console"></a>' +
+      '<a href="https://open.ai24x.com" target="_blank" rel="noopener" data-i18n="footer.link.developer"></a>' +
       "</div>" +
       '<div class="footer-col">' +
       '<div class="footer-title" data-i18n="footer.col.corp"></div>' +
@@ -241,9 +233,8 @@
       '<a href="mailto:support@ai24x.com">support@ai24x.com</a>' +
       "</div>" +
       "</div>" +
-      '<div class="footer-bottom">© 2026 AI24X · <a href="' +
-      pre +
-      'api.html" data-i18n="footer.link.api"></a> · <span data-i18n="footer.copy"></span> · <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">浙ICP备10040624号-7</a></div>' +
+      '<div class="footer-bottom">© 2026 AI24X · <a href="https://open.ai24x.com" target="_blank" rel="noopener" data-i18n="footer.link.developer"></a> · <span data-i18n="footer.copy"></span></div>' +
+      '<div class="footer-bottom" style="opacity:.62;font-size:.78rem;padding-top:0;" data-i18n="footer.fleet">Powered by the AI24X autonomous agent fleet</div>' +
       "</div>"
     );
   }
@@ -258,6 +249,27 @@
         if (/^https?:\/\/markets\.ai24x\.com\/?$/.test(href)) {
           mkLinks[i].setAttribute("href", marketsUrl());
         }
+      }
+      var signout = document.getElementById("nav-signout");
+      if (signout) {
+        signout.addEventListener("click", function (ev) {
+          ev.preventDefault();
+          try {
+            if (global.AI24X_API && typeof global.AI24X_API.logout === "function") {
+              global.AI24X_API.logout();
+            } else if (global.AI24X_API && typeof global.AI24X_API.clearAuth === "function") {
+              global.AI24X_API.clearAuth();
+            } else {
+              try { localStorage.removeItem("ai24x_auth_token"); } catch (e) {}
+              try { localStorage.removeItem("ai24x_auth_user"); } catch (e) {}
+              try {
+                document.cookie = "ai24x_auth_token=; path=/; max-age=0; SameSite=Lax";
+                document.cookie = "ai24x_auth_user=; path=/; max-age=0; SameSite=Lax";
+              } catch (e2) {}
+            }
+          } catch (e3) {}
+          location.href = "login.html";
+        });
       }
     } catch (e) {}
     var toggle = document.getElementById("menu-toggle");
