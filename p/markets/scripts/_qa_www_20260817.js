@@ -34,9 +34,9 @@ function check(name, ok, extra) {
         menuLinks: menu ? Array.from(menu.querySelectorAll('a')).map((a) => a.getAttribute('href')) : [],
       };
     });
-    check('nav.markets_first', nav.links[0] && nav.links[0].href === 'https://markets.ai24x.com', JSON.stringify(nav.links.slice(0, 3)));
+    check('nav.home_first', nav.links[0] && nav.links[0].href && nav.links[0].href.indexOf('index.html') >= 0 && nav.links[0].text === 'Home', JSON.stringify(nav.links.slice(0, 3)));
     check('nav.developer_dropdown', !!nav.dropBtnText && nav.dropBtnText.indexOf('Developer') >= 0 && nav.menuLinks.length === 4, nav.dropBtnText + ' | ' + nav.menuLinks.join(','));
-    check('nav.no_home_item', !nav.links.some((l) => l.href && l.href.indexOf('index.html') >= 0 && l.text === 'Home'), '');
+    check('nav.no_markets_item', !nav.links.some((l) => (l.text || '').indexOf('Markets') >= 0 || (l.text || '').indexOf('行情官') >= 0), JSON.stringify(nav.links));
 
     const body = await page.evaluate(() => {
       const txt = (sel) => (document.querySelector(sel) || {}).textContent || '';
@@ -79,7 +79,7 @@ function check(name, ok, extra) {
       devTitle: (document.querySelector('#devSection h2') || {}).textContent || '',
     }));
     check('zh.nav_developer', zh.drop.indexOf('开发者') >= 0, zh.drop);
-    check('zh.nav_markets', zh.markets[0] === '行情官', zh.markets.join('|'));
+    check('zh.nav_home', zh.markets[0] === '首页', zh.markets.join('|'));
     check('zh.dev_title', zh.devTitle.indexOf('开发者') >= 0, zh.devTitle);
     await page.close();
   }

@@ -102,10 +102,20 @@ async function closeOnboard(page) {
     log('locales.nav_home_exists', locales.indexOf('"nav.home"') >= 0, '');
     log('locales.console_billsep_keys', locales.indexOf('page.console.billSep.title') >= 0 && locales.indexOf('page.console.markets.upgrade') >= 0, '');
     log('console.markets_card_status', consoleHtml.indexOf('markets-sub-line') >= 0 && consoleHtml.indexOf('markets-sub-cta') >= 0, '');
-    log('console.billing_sep_banner', consoleHtml.indexOf('page.console.billSep.title') >= 0, '');
+    log('console.billing_token_dev_banner', consoleHtml.indexOf('page.console.tokenDev.title') >= 0, '');
     log('console.js_load_markets_sub', consoleJs.indexOf('function loadMarketsSub') >= 0 && consoleJs.indexOf('markets.ai24x.com/api/subscribe/status') >= 0, '');
     log('app.html_no_rsi', appHtml.indexOf('RSI') < 0 && appHtml.indexOf('rsi') < 0, '');
     log('index.html_no_rsi', marketsIndex.indexOf('RSI') < 0 && marketsIndex.indexOf('rsi') < 0, '');
+    // —— 统一顶栏/底栏：三站品牌 + 导航 + 用户中心 + 开通VIP ——
+    log('shell.header_has_upgrade_vip', shellJs.indexOf('header-upgrade') >= 0 && shellJs.indexOf('nav.vipUpgrade') >= 0, '');
+    log('locales.vip_key', locales.indexOf('"nav.vipUpgrade"') >= 0, '');
+    log('index.unified_header', marketsIndex.indexOf('brand-mark') >= 0 && marketsIndex.indexOf('upgrade-pill') >= 0 && marketsIndex.indexOf('signin-link') >= 0, '');
+    log('index.unified_footer', marketsIndex.indexOf('footer-grid') >= 0 && marketsIndex.indexOf('footer-bottom') >= 0, '');
+    log('app.unified_topbar', appHtml.indexOf('mk-top') >= 0 && appHtml.indexOf('mk-console') >= 0 && appHtml.indexOf('mk-toolbar') >= 0, '');
+    log('app.unified_footer', appHtml.indexOf('mk-footer') >= 0 && appHtml.indexOf('footer-grid') >= 0, '');
+    log('console.markets_pro_card', consoleHtml.indexOf('btn-mk-month') >= 0 && consoleHtml.indexOf('btn-mk-year') >= 0 && consoleHtml.indexOf('page.console.marketsPro.title') >= 0, '');
+    log('console.token_dev_card', consoleHtml.indexOf('page.console.tokenDev.title') >= 0, '');
+    log('console.js_checkout_fn', consoleJs.indexOf('function doMarketsCheckout') >= 0 && consoleJs.indexOf('markets.ai24x.com/api/subscribe/checkout') >= 0, '');
 
     // 版本号纪律：shell/locales 全站 f，console.js f，无旧版残留
     let shellOld = 0, shellNew = 0, locOld = 0, locNew = 0, conNew = 0;
@@ -116,17 +126,44 @@ async function closeOnboard(page) {
         if (st.isDirectory()) { if (name !== 'node_modules' && name !== '.git') walk(p); continue; }
         if (!/\.html$/i.test(name)) continue;
         const src = fs.readFileSync(p, 'utf8');
-        if (src.indexOf('shell.js?v=20260818c') >= 0) shellOld++;
-        if (src.indexOf('shell.js?v=20260818f') >= 0) shellNew++;
-        if (src.indexOf('locales.js?v=20260818d') >= 0) locOld++;
-        if (src.indexOf('locales.js?v=20260818f') >= 0) locNew++;
-        if (src.indexOf('console.js?v=20260818f') >= 0) conNew++;
+        if (src.indexOf('shell.js?v=20260818f') >= 0) shellOld++;
+        if (src.indexOf('shell.js?v=20260818g') >= 0) shellNew++;
+        if (src.indexOf('locales.js?v=20260818f') >= 0) locOld++;
+        if (src.indexOf('locales.js?v=20260818g') >= 0) locNew++;
+        if (src.indexOf('console.js?v=20260818g') >= 0) conNew++;
       }
     };
     walk(path.join(ROOT, 'web'));
-    log('version.shell_unified_f', shellOld === 0 && shellNew >= 40, 'old=' + shellOld + ' new=' + shellNew);
-    log('version.locales_unified_f', locOld === 0 && locNew >= 40, 'old=' + locOld + ' new=' + locNew);
-    log('version.console_f', conNew === 1, 'new=' + conNew);
+    log('version.shell_unified_g', shellOld === 0 && shellNew >= 40, 'old=' + shellOld + ' new=' + shellNew);
+    log('version.locales_unified_g', locOld === 0 && locNew >= 40, 'old=' + locOld + ' new=' + locNew);
+    log('version.console_g', conNew === 1, 'new=' + conNew);
+  }
+
+  // ===== 4) www 首页（8000）浏览器：Upgrade VIP pill + 导航 + 无 JS 错误 =====
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(String(e)));
+    await page.goto('http://127.0.0.1:8000/index.html', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(800);
+    const header = await page.evaluate(() => {
+      const up = document.querySelector('.header-upgrade');
+      const nav = document.getElementById('nav-main');
+      const home = nav ? Array.from(nav.querySelectorAll('a')).some((a) => a.getAttribute('href') === 'index.html' && a.textContent.indexOf('Home') >= 0) : false;
+      const footer = !!document.getElementById('site-footer');
+      return {
+        upText: up ? up.textContent : '',
+        upHref: up ? up.getAttribute('href') : '',
+        home,
+        footer,
+      };
+    });
+    log('www.header_upgrade_pill', header.upText.length > 0 && header.upHref.indexOf('app.html#sub') >= 0, 'text=' + header.upText + ' href=' + header.upHref);
+    log('www.nav_home_present', header.home, '');
+    log('www.footer_renders', header.footer, '');
+    log('www.no_js_errors', errors.length === 0, errors.slice(0, 2).join('; '));
+    await ctx.close();
   }
 
   const failed = results.filter((r) => !r.ok).length;

@@ -15,9 +15,17 @@
     }
     * { box-sizing: border-box; }
     body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
-    header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--border); }
-    .brand { font-weight: 700; font-size: 16px; margin-right: 6px; white-space: nowrap; }
-    .brand span { color: var(--accent); }
+    /* —— 统一页眉（与 www/Markets 首页同套视觉） —— */
+    .mk-top { position: sticky; top: 0; z-index: 100; background: rgba(18,22,29,.94); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+    .mk-top-inner { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 8px 16px; min-height: 52px; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; font-size: 16px; color: var(--text); white-space: nowrap; }
+    .brand b { color: var(--accent); }
+    .brand:hover { text-decoration: none; }
+    .brand-mark { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; font-size: 0.72rem; font-weight: 900; background: var(--accent); color: #fff; }
+    .mk-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+    .mk-nav a { padding: 7px 11px; border-radius: 8px; font-size: 0.88rem; font-weight: 600; color: var(--muted); }
+    .mk-nav a:hover { color: var(--text); background: var(--panel2); text-decoration: none; }
+    .mk-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--border); }
     .lang-switch { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-right: 4px; }
     .lang-switch button { border: 0; background: #0d1117; color: var(--muted); padding: 6px 10px; cursor: pointer; font-size: 12px; }
     .lang-switch button.active { background: var(--accent); color: #fff; }
@@ -56,6 +64,14 @@
     .tooltip .up { color: var(--up); } .tooltip .down { color: var(--down); }
     .loading { padding: 40px; text-align: center; color: var(--muted); }
     footer { padding: 14px 18px 26px; color: var(--muted); font-size: 12px; line-height: 1.7; border-top: 1px solid var(--border); }
+    /* —— 统一页脚 —— */
+    .mk-footer { border-top: 1px solid var(--border); margin-top: 24px; padding: 30px 16px 22px; background: var(--panel); color: var(--muted); font-size: 12px; }
+    .mk-footer-inner { max-width: 1080px; margin: 0 auto; }
+    .footer-grid { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 22px; }
+    .footer-title { font-weight: 800; color: var(--text); margin-bottom: 9px; }
+    .footer-col a { display: block; padding: 5px 0; color: var(--muted); }
+    .footer-col a:hover { color: var(--accent); }
+    .footer-bottom { margin-top: 24px; padding-top: 13px; border-top: 1px solid var(--border); font-size: 11px; }
     .samples { display: flex; gap: 6px; align-items: center; padding: 8px 16px; background: var(--panel); border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted); flex-wrap: wrap; }
     .samples button { padding: 3px 9px; font-size: 12px; }
     .samples-hint { color: var(--muted); font-size: 11px; }
@@ -73,7 +89,9 @@
     .free-banner .fb-up:hover { background: rgba(251,191,36,.12); }
     .free-banner .fb-close { background: transparent; border: 0; color: var(--muted); font-size: 15px; cursor: pointer; line-height: 1; padding: 4px 6px; }
     @media (max-width: 640px) {
-      header { padding: 8px 10px; gap: 6px; }
+      .mk-top-inner { grid-template-columns: 1fr; gap: 6px; padding: 8px 10px; }
+      .mk-nav { justify-content: flex-start; }
+      .mk-toolbar { padding: 8px 10px; gap: 6px; }
       .brand { font-size: 14px; }
       #symbol { flex: 1; min-width: 90px; }
       #go { padding: 7px 8px; }
@@ -83,6 +101,7 @@
       .chart { height: 380px; }
       #quote { padding: 8px 10px; }
       footer { padding: 12px 12px 22px; font-size: 11px; }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
@@ -100,12 +119,24 @@
     </div>
   </div>
 
-  <header>
-    <div class="brand">AI24X <span>Markets</span></div>
-    <div class="lang-switch" id="lang-switch">
-      <button type="button" data-lang="en" class="active">EN</button>
-      <button type="button" data-lang="zh">中文</button>
+  <header class="mk-top">
+    <div class="mk-top-inner">
+      <a class="brand" href="/"><span class="brand-mark">AI</span><span>AI24X <b>Markets</b></span></a>
+      <nav class="mk-nav" aria-label="Main">
+        <a href="/" data-i18n="nav.markets">Markets</a>
+        <a href="/pricing.html" data-i18n="nav.pricing">Pricing</a>
+        <a href="https://www.ai24x.com/help.html" target="_blank" rel="noopener" data-i18n="nav.help">Help</a>
+        <a id="mk-console" href="#" data-i18n="nav.console">Console</a>
+      </nav>
+      <span class="spacer"></span>
+      <div class="lang-switch" id="lang-switch">
+        <button type="button" data-lang="en" class="active">EN</button>
+        <button type="button" data-lang="zh">中文</button>
+      </div>
+      <span id="auth-area"></span>
     </div>
+  </header>
+  <div class="mk-toolbar">
     <input id="symbol" value="AAPL" maxlength="20" placeholder="AAPL / SPY / ^GSPC">
     <button id="go" data-i18n="search">Search</button>
     <div class="spacer"></div>
@@ -115,9 +146,8 @@
     <button id="refresh" title="Refresh">⟳</button>
     <button id="btn-watch" title="Add to watchlist" style="border:0; background:transparent; color:var(--muted); font-size:16px; cursor:pointer;">☆</button>
     <span id="pro-badge" style="display:none; background:var(--accent); color:#fff; font-size:10px; font-weight:700; padding:2px 7px; border-radius:999px;">PRO</span>
-    <span id="auth-area"></span>
     <span id="err" class="err"></span>
-  </header>
+  </div>
 
   <div id="free-banner" class="free-banner" role="region" aria-label="Free plan upgrade">
     <span id="fb-text"></span>
@@ -180,8 +210,34 @@
     </div>
   </main>
 
-  <footer data-i18n="footer">15-minute delayed market data. Sources: Tencent (primary) · Eastmoney. For educational purposes only — not investment advice.</footer>
-  <div style="text-align:center; padding:0 12px 18px; font-size:11px; color:var(--muted);"><a href="/pricing.html" style="color:var(--muted);">Pricing</a> &nbsp;·&nbsp; <a href="/tos.html" style="color:var(--muted);">Terms of Service</a> &nbsp;·&nbsp; <a href="/privacy.html" style="color:var(--muted);">Privacy Policy</a></div>
+  <footer class="mk-footer">
+    <div class="mk-footer-inner">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <div class="footer-title">AI24X</div>
+          <div data-i18n="footer">15-minute delayed market data. Sources: Tencent (primary) · Eastmoney. For educational purposes only — not investment advice.</div>
+        </div>
+        <div class="footer-col">
+          <div class="footer-title">Product</div>
+          <a href="/">Markets</a>
+          <a href="/pricing.html">Pricing</a>
+        </div>
+        <div class="footer-col">
+          <div class="footer-title">Account</div>
+          <a href="https://www.ai24x.com/console.html" target="_blank" rel="noopener">Console</a>
+          <a href="https://www.ai24x.com/login.html" target="_blank" rel="noopener">Sign in</a>
+          <a href="https://www.ai24x.com/register.html" target="_blank" rel="noopener">Sign up</a>
+        </div>
+        <div class="footer-col">
+          <div class="footer-title">Company</div>
+          <a href="/tos.html">Terms of Service</a>
+          <a href="/privacy.html">Privacy Policy</a>
+          <a href="mailto:support@ai24x.com">support@ai24x.com</a>
+        </div>
+      </div>
+      <div class="footer-bottom">© 2026 AI24X · <a href="https://www.ai24x.com">www.ai24x.com</a></div>
+    </div>
+  </footer>
 
   <script src="vendor/lightweight-charts.standalone.production.js"></script>
   <script>
@@ -238,6 +294,10 @@
           legendGc: 'MACD ↑ golden cross', legendDc: '↓ dead cross',
           lgBase: 'Base · watch', lgBottom: 'Bottom · accumulate', lgStrong: 'Strong',
           lgCaution: 'Caution', lgWeak: 'Weak', lgHigh: 'Warning',
+          'nav.markets': 'Markets',
+          'nav.pricing': 'Pricing',
+          'nav.help': 'Help',
+          'nav.console': 'Console',
           signIn: 'Sign in',
           signedInAs: 'Signed in as',
           console: 'Console',
@@ -295,6 +355,10 @@
           legendGc: 'MACD ↑金叉', legendDc: '↓死叉',
           lgBase: '小底 · 关注', lgBottom: '底部 · 低位关注', lgStrong: '金 · 偏强',
           lgCaution: '险 · 谨慎', lgWeak: '等 · 偏弱', lgHigh: '顶 · 预警',
+          'nav.markets': '行情',
+          'nav.pricing': '价格',
+          'nav.help': '帮助',
+          'nav.console': '控制台',
           signIn: '登录',
           signedInAs: '已登录',
           console: '控制台',
@@ -853,6 +917,11 @@
         });
       }
       renderAuth();
+      // 统一页眉：Console 指向 www 用户中心
+      try {
+        var mkc = $('mk-console');
+        if (mkc) mkc.href = coreUrl() + '/console.html';
+      } catch (e) {}
       // —— AI 点评 + Pro 订阅（T6）——
       function getToken() { return readCookie('ai24x_auth_token'); }
       function loginNext() {

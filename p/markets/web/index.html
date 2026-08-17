@@ -50,13 +50,22 @@
 
     .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
 
-    header.site { display: flex; align-items: center; gap: 12px; padding: 18px 24px; max-width: 1080px; margin: 0 auto; }
-    .brand { font-weight: 700; font-size: 17px; letter-spacing: 0.3px; color: var(--text); }
+    /* —— 统一页眉（与 www/行情 App 同套视觉） —— */
+    .site-header { position: sticky; top: 0; z-index: 100; background: rgba(10,12,16,.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+    .header-inner { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; min-height: 60px; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; font-size: 16px; color: var(--text); white-space: nowrap; }
     .brand b { color: var(--accent); }
     .brand:hover { text-decoration: none; }
-    .spacer { flex: 1; }
-    .nav-link { color: var(--muted); font-size: 14px; margin-left: 14px; }
-    .nav-link:hover { color: var(--text); text-decoration: none; }
+    .brand-mark { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; font-size: 0.72rem; font-weight: 900; background: var(--accent); color: #fff; }
+    .nav-main { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 6px; }
+    .nav-main a { padding: 7px 11px; border-radius: 8px; font-size: 0.88rem; font-weight: 600; color: var(--muted); }
+    .nav-main a:hover { color: var(--text); background: var(--panel2); text-decoration: none; }
+    .nav-main a.is-active { color: var(--accent); background: var(--panel2); }
+    .header-actions { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .upgrade-pill { padding: 8px 15px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 0.82rem; font-weight: 700; white-space: nowrap; }
+    .upgrade-pill:hover { text-decoration: none; filter: brightness(1.1); }
+    .auth-link { padding: 7px 14px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
+    .auth-link:hover { color: var(--text); border-color: var(--accent); text-decoration: none; }
 
     .hero { padding: 56px 0 30px; }
     .hero-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 40px; align-items: center; }
@@ -90,25 +99,41 @@
     .card h3 { margin: 0 0 8px; font-size: 16px; }
     .card p { margin: 0; color: var(--muted); font-size: 14px; }
 
-    footer.site { border-top: 1px solid var(--border); margin-top: 46px; padding: 22px 24px 34px; text-align: center; color: var(--muted); font-size: 12px; }
-    footer.site .legal { margin-top: 6px; opacity: 0.75; }
+    /* —— 统一页脚 —— */
+    .site-footer { border-top: 1px solid var(--border); margin-top: 46px; padding: 36px 0 22px; background: var(--panel); color: var(--muted); font-size: 13px; }
+    .footer-grid { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 24px; }
+    .footer-title { font-weight: 800; color: var(--text); margin-bottom: 10px; }
+    .footer-col a { display: block; padding: 5px 0; color: var(--muted); }
+    .footer-col a:hover { color: var(--accent); }
+    .footer-bottom { margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--border); font-size: 12px; }
 
     @media (max-width: 860px) {
       .hero-grid { grid-template-columns: 1fr; gap: 24px; }
       .hero { padding: 34px 0 18px; }
       .hero h1 { font-size: 32px; }
       .grid-3 { grid-template-columns: 1fr; }
+      .header-inner { grid-template-columns: 1fr; gap: 8px; }
+      .nav-main { justify-content: flex-start; }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
 <body>
-  <header class="site">
-    <a class="brand" href="/">AI24X <b>Markets</b></a>
-    <span class="spacer"></span>
-    <a class="nav-link" href="#features">Features</a>
-    <a class="nav-link" href="/pricing.html">Pricing</a>
-    <a class="nav-link" href="/app.html">Open chart app</a>
-    <a class="nav-link" id="signin-link" href="#">Sign in</a>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="/"><span class="brand-mark">AI</span><span>AI24X <b>Markets</b></span></a>
+      <nav class="nav-main" aria-label="Main">
+        <a href="/" class="is-active">Markets</a>
+        <a href="/pricing.html">Pricing</a>
+        <a href="/app.html">Chart App</a>
+        <a href="https://www.ai24x.com/help.html" target="_blank" rel="noopener">Help</a>
+        <a href="https://www.ai24x.com/console.html" target="_blank" rel="noopener">Console</a>
+      </nav>
+      <div class="header-actions">
+        <a class="upgrade-pill" href="/app.html#sub">Upgrade VIP</a>
+        <a class="auth-link" id="signin-link" href="#">Sign in</a>
+      </div>
+    </div>
   </header>
 
   <main>
@@ -263,9 +288,35 @@
     </section>
   </main>
 
-  <footer class="site">
-    <div>© 2026 AI24X · <a href="https://www.ai24x.com">www.ai24x.com</a></div>
-    <div class="legal"><a href="/pricing.html">Pricing</a> · <a href="/tos.html">Terms of Service</a> · <a href="/privacy.html">Privacy Policy</a></div>
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <div class="footer-title">AI24X</div>
+          <div>Markets intelligence, API and AI commentary — one account, one login.</div>
+        </div>
+        <div class="footer-col">
+          <div class="footer-title">Product</div>
+          <a href="/">Markets</a>
+          <a href="/pricing.html">Pricing</a>
+          <a href="/app.html">Chart App</a>
+        </div>
+        <div class="footer-col">
+          <div class="footer-title">Account</div>
+          <a href="https://www.ai24x.com/console.html" target="_blank" rel="noopener">Console</a>
+          <a href="https://www.ai24x.com/login.html" target="_blank" rel="noopener">Sign in</a>
+          <a href="https://www.ai24x.com/register.html" target="_blank" rel="noopener">Sign up</a>
+        </div>
+        <div class="footer-col">
+          <div class="footer-title">Company</div>
+          <a href="https://www.ai24x.com/about.html" target="_blank" rel="noopener">About</a>
+          <a href="/tos.html">Terms of Service</a>
+          <a href="/privacy.html">Privacy Policy</a>
+          <a href="mailto:support@ai24x.com">support@ai24x.com</a>
+        </div>
+      </div>
+      <div class="footer-bottom">© 2026 AI24X · <a href="https://www.ai24x.com">www.ai24x.com</a> · 15-minute delayed market data · For educational purposes only</div>
+    </div>
   </footer>
 
   <script>

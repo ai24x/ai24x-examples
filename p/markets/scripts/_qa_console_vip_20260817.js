@@ -43,24 +43,32 @@ function log(name, ok, detail) {
   const onBilling = await page.evaluate(() => !document.getElementById('panel-billing').hasAttribute('hidden'));
   const sepVisible = await page.evaluate(() => {
     const panel = document.getElementById('panel-billing');
-    return panel.textContent.indexOf('Two systems') >= 0 || panel.textContent.indexOf('两套体系') >= 0;
+    return panel.textContent.indexOf('For API developers') >= 0 || panel.textContent.indexOf('API 开发者') >= 0;
   });
   const sepCta = await page.evaluate(() => {
     const a = Array.from(document.querySelectorAll('#panel-billing a'));
     return a.some((x) => x.getAttribute('href') === 'https://markets.ai24x.com/app.html#sub');
   });
-  const marketsCard = await page.evaluate(() => {
-    const line = document.getElementById('markets-sub-line');
+  const marketsPro = await page.evaluate(() => {
+    const panel = document.getElementById('panel-billing');
+    const html = panel.innerHTML;
+    const idxPro = html.indexOf('btn-mk-month');
+    const idxToken = html.indexOf('token-plans');
+    const statusEls = document.querySelectorAll('.markets-sub-status');
     return {
-      exists: !!line,
-      status: (document.getElementById('markets-sub-status') || {}).textContent || '',
+      hasMonth: !!document.getElementById('btn-mk-month'),
+      hasYear: !!document.getElementById('btn-mk-year'),
+      proBeforeToken: idxPro >= 0 && idxToken >= 0 && idxPro < idxToken,
+      statusCount: statusEls.length,
+      status: statusEls.length ? statusEls[0].textContent : '',
       cta: (document.getElementById('markets-sub-cta') || { textContent: '' }).textContent,
     };
   });
   log('console.billing_panel_open', onBilling, '');
-  log('console.billing_sep_banner_visible', sepVisible && sepCta, '');
-  log('console.markets_sub_line_renders', marketsCard.exists && marketsCard.status.length > 0, 'status=' + marketsCard.status.slice(0, 70));
-  log('console.markets_cta_present', marketsCard.cta.length > 0, 'cta=' + marketsCard.cta);
+  log('console.billing_token_dev_banner', sepVisible && sepCta, '');
+  log('console.markets_pro_card_first', marketsPro.hasMonth && marketsPro.hasYear && marketsPro.proBeforeToken, 'proIdx=' + marketsPro.proBeforeToken);
+  log('console.markets_bill_line_renders', marketsPro.statusCount >= 2 && marketsPro.status.length > 0, 'count=' + marketsPro.statusCount + ' status=' + marketsPro.status.slice(0, 70));
+  log('console.markets_cta_present', marketsPro.cta.length > 0, 'cta=' + marketsPro.cta);
   log('console.no_js_errors', errors.length === 0, errors.slice(0, 3).join('; '));
 
   // Overview 面板也有 Markets 卡

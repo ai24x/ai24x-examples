@@ -2476,16 +2476,18 @@
     try {
       var token = "";
       try { token = localStorage.getItem("ai24x_auth_token") || ""; } catch (e) {}
-      var line = $("markets-sub-line");
-      var status = $("markets-sub-status");
-      var cta = $("markets-sub-cta");
-      if (!line || !status) return;
+      var lines = document.querySelectorAll(".markets-sub-line");
+      var statuses = document.querySelectorAll(".markets-sub-status");
+      var ctas = document.querySelectorAll(".markets-sub-cta");
+      if (!lines.length || !statuses.length) return;
       if (!token) {
-        line.style.display = "none";
+        lines.forEach(function (ln) { ln.style.display = "none"; });
         return;
       }
-      line.style.display = "";
-      status.textContent = tr("正在检查 Markets Pro 订阅…", "Checking Markets Pro subscription…");
+      lines.forEach(function (ln) { ln.style.display = ""; });
+      statuses.forEach(function (st) {
+        st.textContent = tr("正在检查 Markets Pro 订阅…", "Checking Markets Pro subscription…");
+      });
       fetch("https://markets.ai24x.com/api/subscribe/status", {
         headers: { Authorization: "Bearer " + token }
       })
@@ -2498,26 +2500,56 @@
               var d = new Date(j.data.expires_at);
               if (!isNaN(d.getTime())) { try { ds = d.toLocaleDateString(); } catch (e) {} }
             }
-            if (pro) {
-              status.textContent = tr("Pro 生效中 — 到期 " + ds, "Pro active — expires " + ds);
-              if (cta) {
-                cta.textContent = tr("管理 / 续费订阅", "Manage / renew");
-                cta.setAttribute("data-i18n", "page.console.markets.manage");
-              }
-            } else {
-              status.textContent = tr("当前免费版 — 每天 3 次 AI 点评、自选 3 只。", "Free plan — 3 AI briefs/day, 3-symbol watchlist.");
-              if (cta) {
-                cta.textContent = tr("升级 Pro", "Upgrade to Pro");
-                cta.setAttribute("data-i18n", "page.console.markets.upgrade");
-              }
-            }
+            var text = pro
+              ? tr("Pro 生效中 — 到期 " + ds, "Pro active — expires " + ds)
+              : tr("当前免费版 — 每天 3 次 AI 点评、自选 3 只。", "Free plan — 3 AI briefs/day, 3-symbol watchlist.");
+            statuses.forEach(function (st) { st.textContent = text; });
+            ctas.forEach(function (cta) {
+              cta.textContent = pro ? tr("管理 / 续费订阅", "Manage / renew") : tr("升级 Pro", "Upgrade to Pro");
+              cta.setAttribute("data-i18n", pro ? "page.console.markets.manage" : "page.console.markets.upgrade");
+            });
           } else {
-            status.textContent = tr("订阅状态暂不可用，可直接到 Markets 页面查看。", "Subscription status unavailable — check inside Markets.");
+            statuses.forEach(function (st) {
+              st.textContent = tr("订阅状态暂不可用，可直接到 Markets 页面查看。", "Subscription status unavailable — check inside Markets.");
+            });
           }
         })
         .catch(function () {
-          status.textContent = tr("订阅状态暂不可用，可直接到 Markets 页面查看。", "Subscription status unavailable — check inside Markets.");
+          statuses.forEach(function (st) {
+            st.textContent = tr("订阅状态暂不可用，可直接到 Markets 页面查看。", "Subscription status unavailable — check inside Markets.");
+          });
         });
+    } catch (e) {}
+  }
+
+  /** Billing 面板直接开通 Markets Pro（复用 markets checkout → PayPal 跳转） */
+  function doMarketsCheckout(plan) {
+    try {
+      var token = "";
+      try { token = localStorage.getItem("ai24x_auth_token") || ""; } catch (e) {}
+      var msg = $("mk-checkout-msg");
+      if (msg) msg.textContent = "";
+      if (!token) {
+        location.href = "login.html?next=" + encodeURIComponent("console.html#billing");
+        return;
+      }
+      if (msg) msg.textContent = tr("正在跳转 PayPal…", "Redirecting to PayPal…");
+      fetch("https://markets.ai24x.com/api/subscribe/checkout", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: plan })
+      })
+        .then(function (r) { return r.json().then(function (j) { return { status: r.status, j: j }; }); })
+        .then(function (res) {
+          var j = res.j || {};
+          if (res.status === 401) { location.href = "login.html?next=" + encodeURIComponent("console.html#billing"); return; }
+          if (res.status !== 200 || j.code !== 0 || !j.data || !j.data.pay_url) {
+            if (msg) msg.textContent = tr("无法发起支付：", "Unable to start checkout: ") + (j.msg || res.status);
+            return;
+          }
+          location.href = j.data.pay_url;
+        })
+        .catch(function (e) { if (msg) msg.textContent = tr("无法发起支付：", "Unable to start checkout: ") + String(e); });
     } catch (e) {}
   }
 
@@ -2617,6 +2649,10 @@
         refreshAll();
       });
     }
+    var bMkM = $("btn-mk-month");
+    if (bMkM) bMkM.addEventListener("click", function () { doMarketsCheckout("monthly"); });
+    var bMkY = $("btn-mk-year");
+    if (bMkY) bMkY.addEventListener("click", function () { doMarketsCheckout("yearly"); });
     try {
       bindSupportPanel();
     } catch (e) {}

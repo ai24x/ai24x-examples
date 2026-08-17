@@ -1,4 +1,4 @@
-// 2026-08-17 全站共享资源版本号统一升级（shell/locales/console.js）
+// 2026-08-17 全站共享资源版本号统一升级（shell/locales/console.js）· 第二轮 f→g
 const fs = require('fs');
 const path = require('path');
 
@@ -6,9 +6,9 @@ const ROOT = path.resolve(__dirname, '..', '..', '..'); // repo root
 const WEB = path.join(ROOT, 'web');
 
 const MAP = [
-  ['shell.js?v=20260818c', 'shell.js?v=20260818f'],
-  ['locales.js?v=20260818d', 'locales.js?v=20260818f'],
-  ['console.js?v=20260817e', 'console.js?v=20260818f'],
+  ['shell.js?v=20260818f', 'shell.js?v=20260818g'],
+  ['locales.js?v=20260818f', 'locales.js?v=20260818g'],
+  ['console.js?v=20260818f', 'console.js?v=20260818g'],
 ];
 
 function walk(dir) {

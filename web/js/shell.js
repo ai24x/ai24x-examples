@@ -139,6 +139,11 @@
       nav("register.html", "nav.register", "register") +
       "</nav>" +
       '<div class="header-actions">' +
+      '<a class="header-upgrade" href="' +
+      marketsUrl() +
+      'app.html#sub" target="_blank" rel="noopener" data-i18n="nav.vipUpgrade" style="display:inline-block; padding:7px 14px; border-radius:999px; background:var(--accent); color:var(--accent-ink,#fff); font-size:0.85rem; font-weight:700; text-decoration:none; white-space:nowrap;">' +
+      esc(tr("nav.vipUpgrade")) +
+      "</a>" +
       '<select id="lang-select" class="select-mini" aria-label="Language">' +
       langOpts +
       "</select>" +
