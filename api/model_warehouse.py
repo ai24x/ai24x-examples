@@ -292,7 +292,7 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 4,
         "openrouter_id": "xiaomi/mimo-v2.5-pro",
         "direct_id": None,
-        "siliconflow_id": None,  # 硅基目录暂无稳定同款，走 OR
+        "siliconflow_id": None,  # 硅基目录暂无同款；2026-08-17 起主通道=官方直连（model_router A2）
         "cost_in": 0.435,
         "cost_out": 0.87,
         "billing_mult": 4,  # 2026-08-06: 点名溢价（品牌层无 mimo 替代，$1.40，毛利~55%）

@@ -604,8 +604,9 @@ def _openrouter_model_for_layer(layer: str) -> str:
     return _OR_DEFAULT_MODELS.get(layer, _OR_DEFAULT_MODELS["L1"])
 
 
-# 2026-08-14: DS 官方 8/17 涨价 → L1/L2 默认改走 OR 的 MiMo 同价档。
-# 回退官方直连：TOKEN_LLM_L1_UPSTREAM=deepseek（L2 同理）。
+# 2026-08-14: DS 官方 8/17 涨价 → L1/L2 默认改走 MiMo 同价档。
+# 2026-08-17: MiMo 档主通道=小米官方直连（实测 TTFB 0.44s vs OR 4.0s），OR 转兜底。
+# 强制 OR：TOKEN_LLM_L1_UPSTREAM=or（L2 同理）；强制 DeepSeek：=deepseek。
 _LAYER_OR_MODEL = {
     "L1": "xiaomi/mimo-v2.5",
     "L2": "xiaomi/mimo-v2.5-pro",
@@ -613,13 +614,25 @@ _LAYER_OR_MODEL = {
 
 
 def _layer_or_upstream_override(layer: str) -> Optional[dict[str, str]]:
-    """L1/L2 直连模式下可选的 OR 通道（默认启用）；无 OR Key 或显式回退时返回 None。"""
+    """L1/L2 直连模式下可选通道；MiMo 档默认官方直连，OR 作兜底。
+
+    TOKEN_LLM_{layer}_UPSTREAM：
+      deepseek/direct/official/ds = DeepSeek 直连；
+      or/openrouter/agg/aggregator = 强制 OR；
+      其它/空 = MiMo 档走官方直连（无 key 回落 OR）。
+    """
     layer = (layer or "").upper()
     if layer not in ("L1", "L2"):
         return None
     v = (_env(f"TOKEN_LLM_{layer}_UPSTREAM", "") or "").strip().lower()
     if v in ("deepseek", "direct", "official", "ds"):
         return None
+    model = _env(f"OPENROUTER_MODEL_{layer}") or _LAYER_OR_MODEL.get(layer)
+    forced_or = v in ("or", "openrouter", "agg", "aggregator")
+    if not forced_or and "mimo" in str(model or "").lower():
+        mi = _layer_mimo_upstream(layer)
+        if mi:
+            return mi
     key = _env("OPENROUTER_API_KEY") or _env("TOKEN_LLM_KEY")
     try:
         from llm_keys import openrouter_main_key
@@ -634,12 +647,46 @@ def _layer_or_upstream_override(layer: str) -> Optional[dict[str, str]]:
         or _env("TOKEN_LLM_BASE")
         or "https://openrouter.ai/api/v1"
     )
-    model = _env(f"OPENROUTER_MODEL_{layer}") or _LAYER_OR_MODEL.get(layer)
     return {
         "base": _normalize_openai_base(base),
         "key": key,
         "model": model,
         "provider": "openrouter",
+    }
+
+
+def _layer_ds_direct_upstream(layer: str) -> dict[str, str]:
+    """DeepSeek 官方直连（L1=flash / L2=pro）；层 env 覆盖优先。"""
+    layer = (layer or "").upper()
+    base = (
+        _env(f"TOKEN_LLM_{layer}_BASE")
+        or _env("DEEPSEEK_BASE_URL")
+        or _env("TOKEN_LLM_BASE")
+        or "https://api.deepseek.com/v1"
+    )
+    key = (
+        _env(f"TOKEN_LLM_{layer}_KEY")
+        or _env("DEEPSEEK_API_KEY")
+        or _env("TOKEN_LLM_KEY")
+    )
+    if layer == "L2":
+        model = (
+            _env("TOKEN_LLM_L2_MODEL")
+            or _env("DEEPSEEK_MODEL_PRO")
+            or "deepseek-v4-pro"
+        )
+    else:
+        model = (
+            _env("TOKEN_LLM_L1_MODEL")
+            or _env("DEEPSEEK_MODEL")
+            or _env("TOKEN_LLM_MODEL")
+            or "deepseek-v4-flash"
+        )
+    return {
+        "base": _normalize_openai_base(base),
+        "key": key,
+        "model": model,
+        "provider": "deepseek",
     }
 
 
@@ -649,6 +696,18 @@ def _layer_upstream(layer: str) -> dict[str, str]:
     direct：L0 硅基 / L1 DeepSeek / QI DashScope 国际。
     """
     layer = (layer or "").upper()
+    # 2026-08-17: L1/L2 统一通道决策（openrouter/direct 两种模式一致）：
+    #   TOKEN_LLM_{layer}_UPSTREAM=deepseek/direct/official/ds → DeepSeek 直连；
+    #   =or/openrouter/agg/aggregator → 强制 OR；
+    #   其它/空 → MiMo 档官方直连优先（实测 TTFB 0.44s vs OR 4.0s），OR 兜底，最后 DeepSeek 直连。
+    if layer in ("L1", "L2"):
+        v = (_env(f"TOKEN_LLM_{layer}_UPSTREAM", "") or "").strip().lower()
+        if v in ("deepseek", "direct", "official", "ds"):
+            return _layer_ds_direct_upstream(layer)
+        or_up = _layer_or_upstream_override(layer)
+        if or_up:
+            return or_up
+        return _layer_ds_direct_upstream(layer)
     if _upstream_mode() == "openrouter":
         # L0 若已配硅基：用独立通道作 FREE 降级 / 免费共享，避免 OR 整站挂时无兜底
         sf_key = _env("SILICONFLOW_API_KEY") or _env("TOKEN_LLM_L0_KEY")
@@ -1460,11 +1519,13 @@ def run_routed_chat(
                     "ms": int(elapsed * 1000),
                 }
             )
-            # OR 主档 L1/L2 失败且 OR 模型是 MiMo：先切官方直连（同模型，成本=OR 价）
+            # L1/L2 MiMo 档失败：主档是 OR 时切官方直连（同模型，成本=OR 价）；
+            # 主档已是官方直连（provider=mimo）则不重复重试，直接进下一层。
             if (
                 layer in ("L1", "L2")
                 and _upstream_mode() == "openrouter"
                 and _mimo_failover_enabled()
+                and "mimo" not in str(up.get("provider") or "").lower()
                 and "mimo" in str(api_model).lower()
             ):
                 mi = _layer_mimo_upstream(layer)
@@ -2049,6 +2110,20 @@ def _run_vip_pick_chat(
             if got:
                 return got
 
+    # A2) MiMo 点名：官方直连优先（2026-08-17 实测 TTFB 0.44s vs OR 4.0s）
+    if "mimo" in or_id.lower() and _mimo_failover_enabled():
+        mi = _layer_mimo_upstream("L2")
+        if mi:
+            got = _try_call(
+                base=str(mi["base"]),
+                key=str(mi["key"]),
+                model=str(mi["model"]),
+                provider="mimo",
+                note="mimo_official_first",
+            )
+            if got:
+                return got
+
     # B) 中国模（非国际旗舰）：硅基 .com 优先（原厂价+国际端点，又快又便宜）
     if (
         (not is_intl_flagship)
@@ -2080,7 +2155,7 @@ def _run_vip_pick_chat(
         )
         if got:
             return got
-    # C2) MiMo 点名：聚合链失败后切官方直连（同模型 mimo-v2.5-pro；2026-08-15 直连兜底）
+    # C2) MiMo 点名：聚合链失败后官方直连重试兜底（同模型 mimo-v2.5-pro）
     if "mimo" in or_id.lower() and _mimo_failover_enabled():
         mi = _layer_mimo_upstream("L2")
         if mi:
@@ -2909,11 +2984,13 @@ def run_routed_chat_stream(
                     mult,
                 )
             )
-            # MiMo 官方直连同模型兜底（OR 的 xiaomi/mimo-* 失败后；2026-08-15）
+            # MiMo 官方直连同模型兜底（OR 的 xiaomi/mimo-* 失败后；2026-08-15）。
+            # 主档已是官方直连（provider=mimo）则不重复追加。
             if (
                 layer in ("L1", "L2")
                 and _upstream_mode() == "openrouter"
                 and _mimo_failover_enabled()
+                and "mimo" not in str(up.get("provider") or "").lower()
                 and "mimo" in api_model.lower()
             ):
                 mi = _layer_mimo_upstream(layer)
@@ -3047,6 +3124,11 @@ def _run_vip_pick_chat_stream(
         ds = _deepseek_official_upstream()
         if ds.get("key") and ds.get("base"):
             targets.append(("deepseek", str(ds["base"]), str(ds["key"]), direct_id))
+    # A2) MiMo 点名：官方直连优先（2026-08-17 实测 TTFB 0.44s vs OR 4.0s）
+    if "mimo" in or_id.lower() and _mimo_failover_enabled():
+        mi = _layer_mimo_upstream("L2")
+        if mi:
+            targets.append(("mimo", str(mi["base"]), str(mi["key"]), str(mi["model"])))
     # B) 中国模：硅基 .com 优先（原厂价+国际CDN）
     if (not is_intl) and (not is_ds_pick) and sf_id and _vip_silicon_first_enabled():
         sf = _silicon_vip_upstream(sf_id)
@@ -3063,7 +3145,7 @@ def _run_vip_pick_chat_stream(
             sf = _silicon_vip_upstream(sf_id)
             if sf:
                 targets.append(("siliconflow", sf["base"], sf["key"], sf["model"]))
-    # C2) MiMo 点名：聚合链失败后官方直连兜底（2026-08-15）
+    # C2) MiMo 点名：聚合链失败后官方直连重试兜底
     if "mimo" in or_id.lower() and _mimo_failover_enabled():
         mi = _layer_mimo_upstream("L2")
         if mi:
