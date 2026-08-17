@@ -217,6 +217,47 @@ def _auto_blocked() -> bool:
     return False
 
 
+# ---------------- 自动触发（对齐 bj_screener _auto_scan_loop：交易日收盘后自动 scan，防重复/带锁/周末跳过） ----------------
+_AUTO = {"started": False, "done_date": ""}
+
+def _today_archived_ok() -> bool:
+    """今日归档是否已生成且数据截至今日（防重复触发）。"""
+    try:
+        d = load_report_by_date(today8())
+        return bool(d and (d.get("asof") or "").replace("-", "") == today8())
+    except Exception:
+        return False
+
+
+def _auto_loop():
+    """后台守护线程：交易日收盘（默认 15:03）后自动生成复盘。"""
+    while True:
+        try:
+            if cfg().get("auto_scan", True) and is_trading_day() and _after_close():
+                if _AUTO["done_date"] != today8() and not _busy() and not _auto_blocked():
+                    if _today_archived_ok():
+                        _AUTO["done_date"] = today8()
+                    else:
+                        # 无用户上下文 → 按 VIP 全量跑（服务端自动生成，不依赖外部 token）
+                        _start_scan(force=False, is_vip=True)
+                        deadline = time.time() + 2400  # 等待本轮结束（最多 40 分钟）
+                        while time.time() < deadline:
+                            if not _busy():
+                                break
+                            time.sleep(5)
+                        if _RUNNING.get("last_ok") is True:
+                            _AUTO["done_date"] = today8()
+        except Exception:
+            pass
+        time.sleep(60)
+
+
+def _ensure_auto_loop():
+    if not _AUTO["started"]:
+        _AUTO["started"] = True
+        threading.Thread(target=_auto_loop, daemon=True, name="daily-report-auto").start()
+
+
 # ---------------- 慢速 HTTP（防封核心） ----------------
 _EM_COUNT = {"n": 0, "day": ""}
 _THS_COUNT = {"n": 0, "day": ""}
@@ -251,8 +292,9 @@ def slow_get(url, referer="https://quote.eastmoney.com/", kind="em", tries=3, ti
     raise RuntimeError("上游请求失败(%s): %s" % (kind, str(last)[:100]))
 
 # ---------------- 本地缓存（按日） ----------------
+_CACHE_D8 = ""  # 补跑时按目标日期分目录缓存；为空走 today8()
 def cache_path(name):
-    return os.path.join(CACHE_ROOT, today8(), name)
+    return os.path.join(CACHE_ROOT, _CACHE_D8 or today8(), name)
 def cache_save(name, obj):
     p = cache_path(name); os.makedirs(os.path.dirname(p), exist_ok=True)
     with open(p, "w", encoding="utf-8") as f:
@@ -659,7 +701,9 @@ def pick_main_lines(sector_scores, prev_mainlines=None, plates=None):
 def _prev_mainlines():
     """上一归档日的主线（用于连续性对比）。优先读归档 mainlines.json（当日实际口径），旧归档回退按 sector_score 重算。"""
     try:
-        arch = sorted([x for x in os.listdir(ARCHIVE_ROOT) if os.path.isdir(os.path.join(ARCHIVE_ROOT, x))], reverse=True)
+        arch = sorted([x for x in os.listdir(ARCHIVE_ROOT)
+                       if os.path.isdir(os.path.join(ARCHIVE_ROOT, x)) and re.fullmatch(r"\d{8}", x)],
+                      reverse=True)
         for d in arch:
             if d == today8():
                 continue
@@ -1076,11 +1120,15 @@ def fetch_ths_sentiment(asof):
         return cache_load("ths_sentiment") or {}
 
 
-def run_daily(force=False, is_vip=True):
-    d8 = today8()
+def run_daily(force=False, is_vip=True, d8=None):
+    """生成复盘。d8 指定归档/缓存日期（默认今天），用于补跑历史日期。"""
+    global _CACHE_D8
+    d8 = d8 or today8()
+    _CACHE_D8 = d8
     if not force:
         hit = cache_load("report")
         if hit and hit.get("today8") == d8 and not report_stale(hit):
+            _CACHE_D8 = ""
             return hit
     set_progress(phase="running", pct=1, step="开始（优先用当日缓存数据，防封限流）", started_at=time.time(), finished=None, ok=False)
     t0 = time.time()
@@ -1106,6 +1154,7 @@ def run_daily(force=False, is_vip=True):
         cache_save("report", _data)
         archive(_data, d8)
         set_progress(phase="done", pct=100, step="完成（缓存数据，耗时 %.1f 分钟）" % ((time.time() - t0) / 60), finished=datetime.now().strftime("%H:%M:%S"), ok=True)
+        _CACHE_D8 = ""
         return _data
     idx = cache_load("indexes")
     sc = cache_load("sector_scores")
@@ -1155,6 +1204,7 @@ def run_daily(force=False, is_vip=True):
     cache_save("report", data)
     archive(data, d8)
     set_progress(phase="done", pct=100, step="完成，耗时 %.1f 分钟" % ((time.time() - t0) / 60), finished=datetime.now().strftime("%H:%M:%S"), ok=True)
+    _CACHE_D8 = ""
     return data
 
 def archive(data, d8):
@@ -1180,7 +1230,7 @@ def list_archive():
         return out
     for d in sorted(os.listdir(ARCHIVE_ROOT), reverse=True):
         p = os.path.join(ARCHIVE_ROOT, d)
-        if os.path.isdir(p) and os.path.exists(os.path.join(p, "report.md")):
+        if re.fullmatch(r"\d{8}", d) and os.path.isdir(p) and os.path.exists(os.path.join(p, "report.md")):
             out.append({"date": d, "has_html": os.path.exists(os.path.join(p, "report.html"))})
     return out
 
@@ -1371,6 +1421,7 @@ def status(user_id: Optional[int] = Depends(get_optional_user_id)):
         "auto_blocked": _auto_blocked(),
         "auto_scan_time": cfg().get("auto_scan_time"),
         "auto_scan": bool(cfg().get("auto_scan", True)),
+        "auto_loop": bool(_AUTO.get("started")),
         "history": list_archive(),
         "service_ok": True,
     }
@@ -1442,6 +1493,8 @@ def set_cfg(body: CfgIn, user_id: int = Depends(get_current_user_id)):
 
 @router.get("/api/report/{date8}")
 def by_date(date8: str, user_id: Optional[int] = Depends(get_optional_user_id)):
+    if not re.fullmatch(r"\d{8}", date8 or ""):
+        raise HTTPException(status_code=404, detail="未找到该日期报告")
     is_vip, _plan = _vip_of(user_id)
     d = load_report_by_date(date8)
     if not d:
@@ -1450,3 +1503,19 @@ def by_date(date8: str, user_id: Optional[int] = Depends(get_optional_user_id)):
         md = public_md(d.get("md", ""), d.get("ths_sentiment"))
         d = {"date": d.get("date") or date8, "html": md_to_html(md), "md": md}
     return {"ok": True, **d, "vip": is_vip}
+
+
+# 启动自动触发（随 18011 导入即启，daemon 线程，不依赖外部 token）
+_ensure_auto_loop()
+
+
+if __name__ == "__main__":
+    import argparse
+
+    ap = argparse.ArgumentParser(description="AI24X 复盘生成（补跑/手动）")
+    ap.add_argument("--backfill", help="补跑指定日期 YYYYMMDD")
+    ap.add_argument("--force", action="store_true", help="强制重拉上游数据")
+    _a = ap.parse_args()
+    _data = run_daily(force=_a.force, is_vip=True, d8=_a.backfill)
+    print("today8=%s asof=%s ok=%s generated_at=%s" % (
+        _data.get("today8"), _data.get("asof"), _PROGRESS.get("ok"), _data.get("generated_at")))

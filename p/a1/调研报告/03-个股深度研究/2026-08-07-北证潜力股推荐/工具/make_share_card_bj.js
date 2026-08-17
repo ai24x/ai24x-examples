@@ -13,6 +13,18 @@ const INVITE = String(process.env.AI24X_INVITE || 'BWPX3Z8B').trim().toUpperCase
 const TOKEN = (process.env.AI24X_TOKEN || '')
   || (fs.existsSync(path.join(TOOL_DIR, 'token.txt'))
       ? fs.readFileSync(path.join(TOOL_DIR, 'token.txt'), 'utf8').trim() : '');
+// token 过期自检：JWT exp 为秒级时间戳；过期即告警，避免生成无登录态分享卡
+if (TOKEN) {
+  try {
+    const payload = JSON.parse(Buffer.from(TOKEN.split('.')[1], 'base64').toString());
+    const exp = Number(payload.exp || 0) * 1000;
+    if (exp && exp < Date.now()) {
+      console.warn('⚠️ 注入的 token 已过期（' + new Date(exp).toISOString() + '）：分享卡将不含「技术快照/评分」区。请用环境变量 AI24X_TOKEN 或更新 token.txt（勿提交 git）。');
+    } else if (exp) {
+      console.log('token 有效期至 ' + new Date(exp).toISOString());
+    }
+  } catch (e) { /* 非 JWT 结构，跳过 */ }
+}
 const CODES = process.argv.slice(2);
 
 async function genCard(context, page, code) {
