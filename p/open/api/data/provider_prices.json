@@ -1,0 +1,8362 @@
+{
+  "_meta": {
+    "time": "2026-08-06 23:46:17",
+    "source": "live"
+  },
+  "openrouter": [
+    {
+      "id": "meta/muse-spark-1.2",
+      "pricing": {
+        "in": 1.25,
+        "out": 4.25
+      }
+    },
+    {
+      "id": "qwen/qwen3.8-max",
+      "pricing": {
+        "in": 2.0,
+        "out": 6.0
+      }
+    },
+    {
+      "id": "~deepseek/deepseek-v4-flash-latest",
+      "pricing": {
+        "in": 0.09,
+        "out": 0.18
+      }
+    },
+    {
+      "id": "deepseek/deepseek-v4-flash-0731",
+      "pricing": {
+        "in": 0.09,
+        "out": 0.18
+      }
+    },
+    {
+      "id": "thinkingmachines/inkling-small",
+      "pricing": {
+        "in": 0.5,
+        "out": 1.2
+      }
+    },
+    {
+      "id": "qwen/qwen3.7-flash",
+      "pricing": {
+        "in": 0.03,
+        "out": 0.13
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-5-fast",
+      "pricing": {
+        "in": 10.0,
+        "out": 50.0
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-5",
+      "pricing": {
+        "in": 5.0,
+        "out": 25.0
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-5:batch",
+      "pricing": {
+        "in": 2.5,
+        "out": 12.5
+      }
+    },
+    {
+      "id": "inclusionai/ling-3.0-flash",
+      "pricing": {
+        "in": 0.075,
+        "out": 0.22
+      }
+    },
+    {
+      "id": "poolside/laguna-s-2.1",
+      "pricing": {
+        "in": 0.09,
+        "out": 0.18
+      }
+    },
+    {
+      "id": "poolside/laguna-s-2.1:free",
+      "pricing": null
+    },
+    {
+      "id": "google/gemini-3.6-flash",
+      "pricing": {
+        "in": 1.5,
+        "out": 7.5
+      }
+    },
+    {
+      "id": "google/gemini-3.6-flash:batch",
+      "pricing": {
+        "in": 0.75,
+        "out": 3.75
+      }
+    },
+    {
+      "id": "google/gemini-3.5-flash-lite",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "google/gemini-3.5-flash-lite:batch",
+      "pricing": {
+        "in": 0.15,
+        "out": 1.25
+      }
+    },
+    {
+      "id": "meituan/longcat-2.0",
+      "pricing": {
+        "in": 0.3,
+        "out": 1.2
+      }
+    },
+    {
+      "id": "thinkingmachines/inkling",
+      "pricing": {
+        "in": 1.0,
+        "out": 4.05
+      }
+    },
+    {
+      "id": "thinkingmachines/inkling:batch",
+      "pricing": {
+        "in": 0.5,
+        "out": 2.025
+      }
+    },
+    {
+      "id": "openrouter/auto-beta",
+      "pricing": null
+    },
+    {
+      "id": "moonshotai/kimi-k3",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "meta/muse-spark-1.1",
+      "pricing": {
+        "in": 1.25,
+        "out": 4.25
+      }
+    },
+    {
+      "id": "kwaipilot/kat-coder-air-v2.5",
+      "pricing": {
+        "in": 0.15,
+        "out": 0.6
+      }
+    },
+    {
+      "id": "kwaipilot/kat-coder-pro-v2.5",
+      "pricing": {
+        "in": 0.74,
+        "out": 2.96
+      }
+    },
+    {
+      "id": "openai/gpt-5.6-luna-pro",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.6
+      }
+    },
+    {
+      "id": "openai/gpt-5.6-luna-pro:batch",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.6
+      }
+    },
+    {
+      "id": "openai/gpt-5.6-luna",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.6
+      }
+    },
+    {
+      "id": "openai/gpt-5.6-luna:batch",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.6
+      }
+    },
+    {
+      "id": "openai/gpt-5.6-terra-pro",
+      "pricing": {
+        "in": 1.0,
+        "out": 6.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.6-terra-pro:batch",
+      "pricing": {
+        "in": 1.0,
+        "out": 6.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.6-terra",
+      "pricing": {
+        "in": 1.0,
+        "out": 6.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.6-terra:batch",
+      "pricing": {
+        "in": 1.0,
+        "out": 6.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.6-sol-pro",
+      "pricing": {
+        "in": 5.0,
+        "out": 30.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.6-sol-pro:batch",
+      "pricing": {
+        "in": 2.5,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.6-sol",
+      "pricing": {
+        "in": 5.0,
+        "out": 30.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.6-sol:batch",
+      "pricing": {
+        "in": 2.5,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "x-ai/grok-4.5",
+      "pricing": {
+        "in": 2.0,
+        "out": 6.0
+      }
+    },
+    {
+      "id": "~x-ai/grok-latest",
+      "pricing": {
+        "in": 2.0,
+        "out": 6.0
+      }
+    },
+    {
+      "id": "aion-labs/aion-3.0-mini",
+      "pricing": {
+        "in": 0.7,
+        "out": 1.4
+      }
+    },
+    {
+      "id": "aion-labs/aion-3.0",
+      "pricing": {
+        "in": 3.0,
+        "out": 6.0
+      }
+    },
+    {
+      "id": "tencent/hy3",
+      "pricing": {
+        "in": 0.132,
+        "out": 0.528
+      }
+    },
+    {
+      "id": "poolside/laguna-xs-2.1",
+      "pricing": {
+        "in": 0.06,
+        "out": 0.12
+      }
+    },
+    {
+      "id": "poolside/laguna-xs-2.1:free",
+      "pricing": null
+    },
+    {
+      "id": "anthropic/claude-sonnet-5",
+      "pricing": {
+        "in": 2.0,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "anthropic/claude-sonnet-5:batch",
+      "pricing": {
+        "in": 1.0,
+        "out": 5.0
+      }
+    },
+    {
+      "id": "google/gemini-3.1-flash-lite-image",
+      "pricing": {
+        "in": 0.25,
+        "out": 1.5
+      }
+    },
+    {
+      "id": "nex-agi/nex-n2-mini",
+      "pricing": {
+        "in": 0.025,
+        "out": 0.1
+      }
+    },
+    {
+      "id": "sakana/fugu-ultra",
+      "pricing": {
+        "in": 5.0,
+        "out": 30.0
+      }
+    },
+    {
+      "id": "google/gemini-3.1-flash-image",
+      "pricing": {
+        "in": 0.5,
+        "out": 3.0
+      }
+    },
+    {
+      "id": "google/gemini-3-pro-image",
+      "pricing": {
+        "in": 2.0,
+        "out": 12.0
+      }
+    },
+    {
+      "id": "cohere/north-mini-code:free",
+      "pricing": null
+    },
+    {
+      "id": "z-ai/glm-5.2",
+      "pricing": {
+        "in": 0.546,
+        "out": 1.716
+      }
+    },
+    {
+      "id": "z-ai/glm-5.2:batch",
+      "pricing": {
+        "in": 0.7,
+        "out": 2.2
+      }
+    },
+    {
+      "id": "openrouter/fusion",
+      "pricing": null
+    },
+    {
+      "id": "moonshotai/kimi-k2.7-code",
+      "pricing": {
+        "in": 0.7,
+        "out": 3.5
+      }
+    },
+    {
+      "id": "moonshotai/kimi-k2.7-code:batch",
+      "pricing": {
+        "in": 0.475,
+        "out": 2.0
+      }
+    },
+    {
+      "id": "~anthropic/claude-fable-latest",
+      "pricing": {
+        "in": 10.0,
+        "out": 50.0
+      }
+    },
+    {
+      "id": "anthropic/claude-fable-5",
+      "pricing": {
+        "in": 10.0,
+        "out": 50.0
+      }
+    },
+    {
+      "id": "anthropic/claude-fable-5:batch",
+      "pricing": {
+        "in": 5.0,
+        "out": 25.0
+      }
+    },
+    {
+      "id": "nex-agi/nex-n2-pro",
+      "pricing": {
+        "in": 0.25,
+        "out": 1.0
+      }
+    },
+    {
+      "id": "nvidia/nemotron-3.5-content-safety:free",
+      "pricing": null
+    },
+    {
+      "id": "nvidia/nemotron-3-ultra-550b-a55b",
+      "pricing": {
+        "in": 0.6,
+        "out": 3.6
+      }
+    },
+    {
+      "id": "nvidia/nemotron-3-ultra-550b-a55b:batch",
+      "pricing": {
+        "in": 0.3,
+        "out": 1.8
+      }
+    },
+    {
+      "id": "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "pricing": null
+    },
+    {
+      "id": "qwen/qwen3.7-plus",
+      "pricing": {
+        "in": 0.32,
+        "out": 1.28
+      }
+    },
+    {
+      "id": "minimax/minimax-m3",
+      "pricing": {
+        "in": 0.3,
+        "out": 1.2
+      }
+    },
+    {
+      "id": "minimax/minimax-m3:batch",
+      "pricing": {
+        "in": 0.15,
+        "out": 0.6
+      }
+    },
+    {
+      "id": "stepfun/step-3.7-flash",
+      "pricing": {
+        "in": 0.2,
+        "out": 1.15
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-4.8-fast",
+      "pricing": {
+        "in": 10.0,
+        "out": 50.0
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-4.8",
+      "pricing": {
+        "in": 5.0,
+        "out": 25.0
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-4.8:batch",
+      "pricing": {
+        "in": 2.5,
+        "out": 12.5
+      }
+    },
+    {
+      "id": "qwen/qwen3.7-max",
+      "pricing": {
+        "in": 1.475,
+        "out": 4.425
+      }
+    },
+    {
+      "id": "x-ai/grok-build-0.1",
+      "pricing": {
+        "in": 1.0,
+        "out": 2.0
+      }
+    },
+    {
+      "id": "google/gemini-3.5-flash",
+      "pricing": {
+        "in": 1.5,
+        "out": 9.0
+      }
+    },
+    {
+      "id": "google/gemini-3.5-flash:batch",
+      "pricing": {
+        "in": 0.75,
+        "out": 4.5
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-4.7-fast",
+      "pricing": {
+        "in": 30.0,
+        "out": 150.0
+      }
+    },
+    {
+      "id": "perceptron/perceptron-mk1",
+      "pricing": {
+        "in": 0.15,
+        "out": 1.5
+      }
+    },
+    {
+      "id": "inclusionai/ring-2.6-1t",
+      "pricing": {
+        "in": 0.075,
+        "out": 0.625
+      }
+    },
+    {
+      "id": "google/gemini-3.1-flash-lite",
+      "pricing": {
+        "in": 0.25,
+        "out": 1.5
+      }
+    },
+    {
+      "id": "google/gemini-3.1-flash-lite:batch",
+      "pricing": {
+        "in": 0.125,
+        "out": 0.75
+      }
+    },
+    {
+      "id": "openai/gpt-chat-latest",
+      "pricing": {
+        "in": 5.0,
+        "out": 30.0
+      }
+    },
+    {
+      "id": "x-ai/grok-4.3",
+      "pricing": {
+        "in": 1.25,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "ibm-granite/granite-4.1-8b",
+      "pricing": {
+        "in": 0.05,
+        "out": 0.1
+      }
+    },
+    {
+      "id": "mistralai/mistral-medium-3-5",
+      "pricing": {
+        "in": 1.5,
+        "out": 7.5
+      }
+    },
+    {
+      "id": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+      "pricing": null
+    },
+    {
+      "id": "~anthropic/claude-haiku-latest",
+      "pricing": {
+        "in": 1.0,
+        "out": 5.0
+      }
+    },
+    {
+      "id": "~openai/gpt-mini-latest",
+      "pricing": {
+        "in": 0.75,
+        "out": 4.5
+      }
+    },
+    {
+      "id": "~google/gemini-pro-latest",
+      "pricing": {
+        "in": 2.0,
+        "out": 12.0
+      }
+    },
+    {
+      "id": "~moonshotai/kimi-latest",
+      "pricing": {
+        "in": 2.9,
+        "out": 14.0
+      }
+    },
+    {
+      "id": "~google/gemini-flash-latest",
+      "pricing": {
+        "in": 1.5,
+        "out": 7.5
+      }
+    },
+    {
+      "id": "~anthropic/claude-sonnet-latest",
+      "pricing": {
+        "in": 2.0,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "~openai/gpt-latest",
+      "pricing": {
+        "in": 5.0,
+        "out": 30.0
+      }
+    },
+    {
+      "id": "qwen/qwen3.5-plus-20260420",
+      "pricing": {
+        "in": 0.3,
+        "out": 1.8
+      }
+    },
+    {
+      "id": "qwen/qwen3.6-flash",
+      "pricing": {
+        "in": 0.1875,
+        "out": 1.125
+      }
+    },
+    {
+      "id": "qwen/qwen3.6-35b-a3b",
+      "pricing": {
+        "in": 0.14,
+        "out": 1.0
+      }
+    },
+    {
+      "id": "qwen/qwen3.6-max-preview",
+      "pricing": {
+        "in": 1.027,
+        "out": 6.162
+      }
+    },
+    {
+      "id": "qwen/qwen3.6-27b",
+      "pricing": {
+        "in": 0.6,
+        "out": 3.6
+      }
+    },
+    {
+      "id": "openai/gpt-5.5-pro",
+      "pricing": {
+        "in": 30.0,
+        "out": 180.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.5-pro:batch",
+      "pricing": {
+        "in": 15.0,
+        "out": 90.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.5",
+      "pricing": {
+        "in": 5.0,
+        "out": 30.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.5:batch",
+      "pricing": {
+        "in": 2.5,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "deepseek/deepseek-v4-pro",
+      "pricing": {
+        "in": 0.435,
+        "out": 0.87
+      }
+    },
+    {
+      "id": "deepseek/deepseek-v4-flash",
+      "pricing": {
+        "in": 0.0882,
+        "out": 0.1764
+      }
+    },
+    {
+      "id": "inclusionai/ling-2.6-1t",
+      "pricing": {
+        "in": 0.075,
+        "out": 0.625
+      }
+    },
+    {
+      "id": "tencent/hy3-preview",
+      "pricing": {
+        "in": 0.063,
+        "out": 0.21
+      }
+    },
+    {
+      "id": "xiaomi/mimo-v2.5-pro",
+      "pricing": {
+        "in": 0.435,
+        "out": 0.87
+      }
+    },
+    {
+      "id": "xiaomi/mimo-v2.5",
+      "pricing": {
+        "in": 0.14,
+        "out": 0.28
+      }
+    },
+    {
+      "id": "openai/gpt-5.4-image-2",
+      "pricing": {
+        "in": 8.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "inclusionai/ling-2.6-flash",
+      "pricing": {
+        "in": 0.01,
+        "out": 0.03
+      }
+    },
+    {
+      "id": "~anthropic/claude-opus-latest",
+      "pricing": {
+        "in": 5.0,
+        "out": 25.0
+      }
+    },
+    {
+      "id": "openrouter/pareto-code",
+      "pricing": null
+    },
+    {
+      "id": "moonshotai/kimi-k2.6",
+      "pricing": {
+        "in": 0.57,
+        "out": 2.4
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-4.7",
+      "pricing": {
+        "in": 5.0,
+        "out": 25.0
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-4.7:batch",
+      "pricing": {
+        "in": 2.5,
+        "out": 12.5
+      }
+    },
+    {
+      "id": "z-ai/glm-5.1",
+      "pricing": {
+        "in": 0.952,
+        "out": 2.992
+      }
+    },
+    {
+      "id": "google/gemma-4-26b-a4b-it",
+      "pricing": {
+        "in": 0.07,
+        "out": 0.34
+      }
+    },
+    {
+      "id": "google/gemma-4-26b-a4b-it:free",
+      "pricing": null
+    },
+    {
+      "id": "google/gemma-4-31b-it",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.34
+      }
+    },
+    {
+      "id": "google/gemma-4-31b-it:free",
+      "pricing": null
+    },
+    {
+      "id": "qwen/qwen3.6-plus",
+      "pricing": {
+        "in": 0.325,
+        "out": 1.95
+      }
+    },
+    {
+      "id": "z-ai/glm-5v-turbo",
+      "pricing": {
+        "in": 1.2,
+        "out": 4.0
+      }
+    },
+    {
+      "id": "arcee-ai/trinity-large-thinking",
+      "pricing": {
+        "in": 0.22,
+        "out": 0.85
+      }
+    },
+    {
+      "id": "x-ai/grok-4.20-multi-agent",
+      "pricing": {
+        "in": 1.25,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "x-ai/grok-4.20",
+      "pricing": {
+        "in": 1.25,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "google/lyria-3-pro-preview",
+      "pricing": null
+    },
+    {
+      "id": "google/lyria-3-clip-preview",
+      "pricing": null
+    },
+    {
+      "id": "kwaipilot/kat-coder-pro-v2",
+      "pricing": {
+        "in": 0.3,
+        "out": 1.2
+      }
+    },
+    {
+      "id": "rekaai/reka-edge",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.1
+      }
+    },
+    {
+      "id": "minimax/minimax-m2.7",
+      "pricing": {
+        "in": 0.27,
+        "out": 1.08
+      }
+    },
+    {
+      "id": "openai/gpt-5.4-nano",
+      "pricing": {
+        "in": 0.2,
+        "out": 1.25
+      }
+    },
+    {
+      "id": "openai/gpt-5.4-nano:batch",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.625
+      }
+    },
+    {
+      "id": "openai/gpt-5.4-mini",
+      "pricing": {
+        "in": 0.75,
+        "out": 4.5
+      }
+    },
+    {
+      "id": "openai/gpt-5.4-mini:batch",
+      "pricing": {
+        "in": 0.375,
+        "out": 2.25
+      }
+    },
+    {
+      "id": "mistralai/mistral-small-2603",
+      "pricing": {
+        "in": 0.15,
+        "out": 0.6
+      }
+    },
+    {
+      "id": "z-ai/glm-5-turbo",
+      "pricing": {
+        "in": 1.2,
+        "out": 4.0
+      }
+    },
+    {
+      "id": "nvidia/nemotron-3-super-120b-a12b",
+      "pricing": {
+        "in": 0.085,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "nvidia/nemotron-3-super-120b-a12b:free",
+      "pricing": null
+    },
+    {
+      "id": "bytedance-seed/seed-2.0-lite",
+      "pricing": {
+        "in": 0.25,
+        "out": 2.0
+      }
+    },
+    {
+      "id": "qwen/qwen3.5-9b",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.15
+      }
+    },
+    {
+      "id": "openai/gpt-5.4-pro",
+      "pricing": {
+        "in": 30.0,
+        "out": 180.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.4-pro:batch",
+      "pricing": {
+        "in": 15.0,
+        "out": 90.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.4",
+      "pricing": {
+        "in": 2.5,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.4:batch",
+      "pricing": {
+        "in": 1.25,
+        "out": 7.5
+      }
+    },
+    {
+      "id": "inception/mercury-2",
+      "pricing": {
+        "in": 0.25,
+        "out": 0.75
+      }
+    },
+    {
+      "id": "openai/gpt-5.3-chat",
+      "pricing": {
+        "in": 1.75,
+        "out": 14.0
+      }
+    },
+    {
+      "id": "google/gemini-3.1-flash-lite-preview",
+      "pricing": {
+        "in": 0.25,
+        "out": 1.5
+      }
+    },
+    {
+      "id": "bytedance-seed/seed-2.0-mini",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "google/gemini-3.1-flash-image-preview",
+      "pricing": {
+        "in": 0.5,
+        "out": 3.0
+      }
+    },
+    {
+      "id": "qwen/qwen3.5-35b-a3b",
+      "pricing": {
+        "in": 0.14,
+        "out": 1.0
+      }
+    },
+    {
+      "id": "qwen/qwen3.5-27b",
+      "pricing": {
+        "in": 0.195,
+        "out": 1.56
+      }
+    },
+    {
+      "id": "qwen/qwen3.5-122b-a10b",
+      "pricing": {
+        "in": 0.26,
+        "out": 2.08
+      }
+    },
+    {
+      "id": "qwen/qwen3.5-flash-02-23",
+      "pricing": {
+        "in": 0.065,
+        "out": 0.26
+      }
+    },
+    {
+      "id": "google/gemini-3.1-pro-preview-customtools",
+      "pricing": {
+        "in": 2.0,
+        "out": 12.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.3-codex",
+      "pricing": {
+        "in": 1.75,
+        "out": 14.0
+      }
+    },
+    {
+      "id": "aion-labs/aion-2.0",
+      "pricing": {
+        "in": 0.8,
+        "out": 1.6
+      }
+    },
+    {
+      "id": "google/gemini-3.1-pro-preview",
+      "pricing": {
+        "in": 2.0,
+        "out": 12.0
+      }
+    },
+    {
+      "id": "google/gemini-3.1-pro-preview:batch",
+      "pricing": {
+        "in": 1.0,
+        "out": 6.0
+      }
+    },
+    {
+      "id": "anthropic/claude-sonnet-4.6",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "anthropic/claude-sonnet-4.6:batch",
+      "pricing": {
+        "in": 1.5,
+        "out": 7.5
+      }
+    },
+    {
+      "id": "qwen/qwen3.5-plus-02-15",
+      "pricing": {
+        "in": 0.26,
+        "out": 1.56
+      }
+    },
+    {
+      "id": "qwen/qwen3.5-397b-a17b",
+      "pricing": {
+        "in": 0.39,
+        "out": 2.34
+      }
+    },
+    {
+      "id": "minimax/minimax-m2.5",
+      "pricing": {
+        "in": 0.22,
+        "out": 0.9
+      }
+    },
+    {
+      "id": "z-ai/glm-5",
+      "pricing": {
+        "in": 0.95,
+        "out": 2.55
+      }
+    },
+    {
+      "id": "qwen/qwen3-max-thinking",
+      "pricing": {
+        "in": 0.78,
+        "out": 3.9
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-4.6",
+      "pricing": {
+        "in": 5.0,
+        "out": 25.0
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-4.6:batch",
+      "pricing": {
+        "in": 2.5,
+        "out": 12.5
+      }
+    },
+    {
+      "id": "qwen/qwen3-coder-next",
+      "pricing": {
+        "in": 0.12,
+        "out": 0.8
+      }
+    },
+    {
+      "id": "openrouter/free",
+      "pricing": null
+    },
+    {
+      "id": "stepfun/step-3.5-flash",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.3
+      }
+    },
+    {
+      "id": "moonshotai/kimi-k2.5",
+      "pricing": {
+        "in": 0.57,
+        "out": 2.85
+      }
+    },
+    {
+      "id": "upstage/solar-pro-3",
+      "pricing": {
+        "in": 0.15,
+        "out": 0.6
+      }
+    },
+    {
+      "id": "minimax/minimax-m2-her",
+      "pricing": {
+        "in": 0.3,
+        "out": 1.2
+      }
+    },
+    {
+      "id": "writer/palmyra-x5",
+      "pricing": {
+        "in": 0.6,
+        "out": 6.0
+      }
+    },
+    {
+      "id": "openai/gpt-audio",
+      "pricing": {
+        "in": 2.5,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "openai/gpt-audio-mini",
+      "pricing": {
+        "in": 0.6,
+        "out": 2.4
+      }
+    },
+    {
+      "id": "z-ai/glm-4.7-flash",
+      "pricing": {
+        "in": 0.06,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "openai/gpt-5.2-codex",
+      "pricing": {
+        "in": 1.75,
+        "out": 14.0
+      }
+    },
+    {
+      "id": "bytedance-seed/seed-1.6-flash",
+      "pricing": {
+        "in": 0.075,
+        "out": 0.3
+      }
+    },
+    {
+      "id": "bytedance-seed/seed-1.6",
+      "pricing": {
+        "in": 0.25,
+        "out": 2.0
+      }
+    },
+    {
+      "id": "minimax/minimax-m2.1",
+      "pricing": {
+        "in": 0.3,
+        "out": 1.2
+      }
+    },
+    {
+      "id": "z-ai/glm-4.7",
+      "pricing": {
+        "in": 0.4,
+        "out": 1.75
+      }
+    },
+    {
+      "id": "google/gemini-3-flash-preview",
+      "pricing": {
+        "in": 0.5,
+        "out": 3.0
+      }
+    },
+    {
+      "id": "google/gemini-3-flash-preview:batch",
+      "pricing": {
+        "in": 0.25,
+        "out": 1.5
+      }
+    },
+    {
+      "id": "nvidia/nemotron-3-nano-30b-a3b",
+      "pricing": {
+        "in": 0.05,
+        "out": 0.2
+      }
+    },
+    {
+      "id": "nvidia/nemotron-3-nano-30b-a3b:free",
+      "pricing": null
+    },
+    {
+      "id": "openai/gpt-5.2-chat",
+      "pricing": {
+        "in": 1.75,
+        "out": 14.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.2-pro",
+      "pricing": {
+        "in": 21.0,
+        "out": 168.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.2-pro:batch",
+      "pricing": {
+        "in": 10.5,
+        "out": 84.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.2",
+      "pricing": {
+        "in": 1.75,
+        "out": 14.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.2:batch",
+      "pricing": {
+        "in": 0.875,
+        "out": 7.0
+      }
+    },
+    {
+      "id": "relace/relace-search",
+      "pricing": {
+        "in": 1.0,
+        "out": 3.0
+      }
+    },
+    {
+      "id": "z-ai/glm-4.6v",
+      "pricing": {
+        "in": 0.3,
+        "out": 0.9
+      }
+    },
+    {
+      "id": "openrouter/bodybuilder",
+      "pricing": null
+    },
+    {
+      "id": "openai/gpt-5.1-codex-max",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "amazon/nova-2-lite-v1",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "mistralai/ministral-14b-2512",
+      "pricing": {
+        "in": 0.2,
+        "out": 0.2
+      }
+    },
+    {
+      "id": "mistralai/ministral-8b-2512",
+      "pricing": {
+        "in": 0.15,
+        "out": 0.15
+      }
+    },
+    {
+      "id": "mistralai/ministral-3b-2512",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.1
+      }
+    },
+    {
+      "id": "mistralai/mistral-large-2512",
+      "pricing": {
+        "in": 0.5,
+        "out": 1.5
+      }
+    },
+    {
+      "id": "deepseek/deepseek-v3.2",
+      "pricing": {
+        "in": 0.269,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-4.5",
+      "pricing": {
+        "in": 5.0,
+        "out": 25.0
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-4.5:batch",
+      "pricing": {
+        "in": 2.5,
+        "out": 12.5
+      }
+    },
+    {
+      "id": "allenai/olmo-3-32b-think",
+      "pricing": {
+        "in": 0.15,
+        "out": 0.5
+      }
+    },
+    {
+      "id": "google/gemini-3-pro-image-preview",
+      "pricing": {
+        "in": 2.0,
+        "out": 12.0
+      }
+    },
+    {
+      "id": "deepcogito/cogito-v2.1-671b",
+      "pricing": {
+        "in": 1.25,
+        "out": 1.25
+      }
+    },
+    {
+      "id": "openai/gpt-5.1",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.1:batch",
+      "pricing": {
+        "in": 0.625,
+        "out": 5.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.1-codex",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.1-codex-mini",
+      "pricing": {
+        "in": 0.25,
+        "out": 2.0
+      }
+    },
+    {
+      "id": "moonshotai/kimi-k2-thinking",
+      "pricing": {
+        "in": 0.6,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "amazon/nova-premier-v1",
+      "pricing": {
+        "in": 2.5,
+        "out": 12.5
+      }
+    },
+    {
+      "id": "perplexity/sonar-pro-search",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "mistralai/voxtral-small-24b-2507",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.3
+      }
+    },
+    {
+      "id": "openai/gpt-oss-safeguard-20b",
+      "pricing": {
+        "in": 0.075,
+        "out": 0.3
+      }
+    },
+    {
+      "id": "nvidia/nemotron-nano-12b-v2-vl:free",
+      "pricing": null
+    },
+    {
+      "id": "minimax/minimax-m2",
+      "pricing": {
+        "in": 0.255,
+        "out": 1.02
+      }
+    },
+    {
+      "id": "qwen/qwen3-vl-32b-instruct",
+      "pricing": {
+        "in": 0.104,
+        "out": 0.416
+      }
+    },
+    {
+      "id": "ibm-granite/granite-4.0-h-micro",
+      "pricing": {
+        "in": 0.017,
+        "out": 0.112
+      }
+    },
+    {
+      "id": "openai/gpt-5-image-mini",
+      "pricing": {
+        "in": 2.5,
+        "out": 2.0
+      }
+    },
+    {
+      "id": "anthropic/claude-haiku-4.5",
+      "pricing": {
+        "in": 1.0,
+        "out": 5.0
+      }
+    },
+    {
+      "id": "anthropic/claude-haiku-4.5:batch",
+      "pricing": {
+        "in": 0.5,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "qwen/qwen3-vl-8b-thinking",
+      "pricing": {
+        "in": 0.18,
+        "out": 2.1
+      }
+    },
+    {
+      "id": "qwen/qwen3-vl-8b-instruct",
+      "pricing": {
+        "in": 0.117,
+        "out": 0.455
+      }
+    },
+    {
+      "id": "openai/gpt-5-image",
+      "pricing": {
+        "in": 10.0,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "google/gemini-2.5-flash-image",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "qwen/qwen3-vl-30b-a3b-thinking",
+      "pricing": {
+        "in": 0.2,
+        "out": 2.4
+      }
+    },
+    {
+      "id": "qwen/qwen3-vl-30b-a3b-instruct",
+      "pricing": {
+        "in": 0.15,
+        "out": 0.6
+      }
+    },
+    {
+      "id": "openai/gpt-5-pro",
+      "pricing": {
+        "in": 15.0,
+        "out": 120.0
+      }
+    },
+    {
+      "id": "openai/gpt-5-pro:batch",
+      "pricing": {
+        "in": 7.5,
+        "out": 60.0
+      }
+    },
+    {
+      "id": "z-ai/glm-4.6",
+      "pricing": {
+        "in": 0.5,
+        "out": 2.0
+      }
+    },
+    {
+      "id": "anthropic/claude-sonnet-4.5",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "anthropic/claude-sonnet-4.5:batch",
+      "pricing": {
+        "in": 1.5,
+        "out": 7.5
+      }
+    },
+    {
+      "id": "deepseek/deepseek-v3.2-exp",
+      "pricing": {
+        "in": 0.27,
+        "out": 0.41
+      }
+    },
+    {
+      "id": "thedrummer/cydonia-24b-v4.1",
+      "pricing": {
+        "in": 0.3,
+        "out": 0.5
+      }
+    },
+    {
+      "id": "relace/relace-apply-3",
+      "pricing": {
+        "in": 0.85,
+        "out": 1.25
+      }
+    },
+    {
+      "id": "qwen/qwen3-vl-235b-a22b-thinking",
+      "pricing": {
+        "in": 0.98,
+        "out": 3.95
+      }
+    },
+    {
+      "id": "qwen/qwen3-vl-235b-a22b-instruct",
+      "pricing": {
+        "in": 0.21,
+        "out": 1.9
+      }
+    },
+    {
+      "id": "qwen/qwen3-max",
+      "pricing": {
+        "in": 0.78,
+        "out": 3.9
+      }
+    },
+    {
+      "id": "qwen/qwen3-coder-plus",
+      "pricing": {
+        "in": 0.65,
+        "out": 3.25
+      }
+    },
+    {
+      "id": "openai/gpt-5-codex:batch",
+      "pricing": {
+        "in": 0.625,
+        "out": 5.0
+      }
+    },
+    {
+      "id": "deepseek/deepseek-v3.1-terminus",
+      "pricing": {
+        "in": 0.27,
+        "out": 1.0
+      }
+    },
+    {
+      "id": "qwen/qwen3-coder-flash",
+      "pricing": {
+        "in": 0.195,
+        "out": 0.975
+      }
+    },
+    {
+      "id": "qwen/qwen3-next-80b-a3b-thinking",
+      "pricing": {
+        "in": 0.15,
+        "out": 1.2
+      }
+    },
+    {
+      "id": "qwen/qwen3-next-80b-a3b-instruct",
+      "pricing": {
+        "in": 0.09,
+        "out": 1.1
+      }
+    },
+    {
+      "id": "qwen/qwen-plus-2025-07-28",
+      "pricing": {
+        "in": 0.26,
+        "out": 0.78
+      }
+    },
+    {
+      "id": "qwen/qwen-plus-2025-07-28:thinking",
+      "pricing": {
+        "in": 0.4,
+        "out": 1.2
+      }
+    },
+    {
+      "id": "nvidia/nemotron-nano-9b-v2:free",
+      "pricing": null
+    },
+    {
+      "id": "moonshotai/kimi-k2-0905",
+      "pricing": {
+        "in": 0.6,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "qwen/qwen3-30b-a3b-thinking-2507",
+      "pricing": {
+        "in": 0.2,
+        "out": 2.4
+      }
+    },
+    {
+      "id": "nousresearch/hermes-4-70b",
+      "pricing": {
+        "in": 0.13,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "nousresearch/hermes-4-405b",
+      "pricing": {
+        "in": 1.0,
+        "out": 3.0
+      }
+    },
+    {
+      "id": "deepseek/deepseek-chat-v3.1",
+      "pricing": {
+        "in": 0.25,
+        "out": 0.95
+      }
+    },
+    {
+      "id": "mistralai/mistral-medium-3.1",
+      "pricing": {
+        "in": 0.4,
+        "out": 2.0
+      }
+    },
+    {
+      "id": "z-ai/glm-4.5v",
+      "pricing": {
+        "in": 0.6,
+        "out": 1.8
+      }
+    },
+    {
+      "id": "ai21/jamba-large-1.7",
+      "pricing": {
+        "in": 2.0,
+        "out": 8.0
+      }
+    },
+    {
+      "id": "openai/gpt-5",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "openai/gpt-5:batch",
+      "pricing": {
+        "in": 0.625,
+        "out": 5.0
+      }
+    },
+    {
+      "id": "openai/gpt-5-mini",
+      "pricing": {
+        "in": 0.25,
+        "out": 2.0
+      }
+    },
+    {
+      "id": "openai/gpt-5-mini:batch",
+      "pricing": {
+        "in": 0.125,
+        "out": 1.0
+      }
+    },
+    {
+      "id": "openai/gpt-5-nano",
+      "pricing": {
+        "in": 0.05,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "openai/gpt-5-nano:batch",
+      "pricing": {
+        "in": 0.025,
+        "out": 0.2
+      }
+    },
+    {
+      "id": "openai/gpt-oss-120b",
+      "pricing": {
+        "in": 0.037,
+        "out": 0.17
+      }
+    },
+    {
+      "id": "openai/gpt-oss-20b",
+      "pricing": {
+        "in": 0.03,
+        "out": 0.13
+      }
+    },
+    {
+      "id": "openai/gpt-oss-20b:free",
+      "pricing": null
+    },
+    {
+      "id": "anthropic/claude-opus-4.1",
+      "pricing": {
+        "in": 15.0,
+        "out": 75.0
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-4.1:batch",
+      "pricing": {
+        "in": 7.5,
+        "out": 37.5
+      }
+    },
+    {
+      "id": "mistralai/codestral-2508",
+      "pricing": {
+        "in": 0.3,
+        "out": 0.9
+      }
+    },
+    {
+      "id": "qwen/qwen3-coder-30b-a3b-instruct",
+      "pricing": {
+        "in": 0.07,
+        "out": 0.27
+      }
+    },
+    {
+      "id": "qwen/qwen3-30b-a3b-instruct-2507",
+      "pricing": {
+        "in": 0.04815,
+        "out": 0.19305
+      }
+    },
+    {
+      "id": "z-ai/glm-4.5",
+      "pricing": {
+        "in": 0.6,
+        "out": 2.2
+      }
+    },
+    {
+      "id": "z-ai/glm-4.5-air",
+      "pricing": {
+        "in": 0.13,
+        "out": 0.85
+      }
+    },
+    {
+      "id": "qwen/qwen3-235b-a22b-thinking-2507",
+      "pricing": {
+        "in": 0.23,
+        "out": 2.3
+      }
+    },
+    {
+      "id": "qwen/qwen3-coder",
+      "pricing": {
+        "in": 0.3,
+        "out": 1.0
+      }
+    },
+    {
+      "id": "bytedance/ui-tars-1.5-7b",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.2
+      }
+    },
+    {
+      "id": "google/gemini-2.5-flash-lite",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "google/gemini-2.5-flash-lite:batch",
+      "pricing": {
+        "in": 0.05,
+        "out": 0.2
+      }
+    },
+    {
+      "id": "qwen/qwen3-235b-a22b-2507",
+      "pricing": {
+        "in": 0.09,
+        "out": 0.55
+      }
+    },
+    {
+      "id": "moonshotai/kimi-k2",
+      "pricing": {
+        "in": 0.57,
+        "out": 2.3
+      }
+    },
+    {
+      "id": "cognitivecomputations/dolphin-mistral-24b-venice-edition",
+      "pricing": {
+        "in": 0.2,
+        "out": 0.9
+      }
+    },
+    {
+      "id": "tencent/hunyuan-a13b-instruct",
+      "pricing": {
+        "in": 0.14,
+        "out": 0.57
+      }
+    },
+    {
+      "id": "morph/morph-v3-large",
+      "pricing": {
+        "in": 0.9,
+        "out": 1.9
+      }
+    },
+    {
+      "id": "morph/morph-v3-fast",
+      "pricing": {
+        "in": 0.8,
+        "out": 1.2
+      }
+    },
+    {
+      "id": "baidu/ernie-4.5-vl-424b-a47b",
+      "pricing": {
+        "in": 0.42,
+        "out": 1.25
+      }
+    },
+    {
+      "id": "mistralai/mistral-small-3.2-24b-instruct",
+      "pricing": {
+        "in": 0.09375,
+        "out": 0.25
+      }
+    },
+    {
+      "id": "minimax/minimax-m1",
+      "pricing": {
+        "in": 0.55,
+        "out": 2.2
+      }
+    },
+    {
+      "id": "google/gemini-2.5-flash",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "google/gemini-2.5-flash:batch",
+      "pricing": {
+        "in": 0.15,
+        "out": 1.25
+      }
+    },
+    {
+      "id": "google/gemini-2.5-pro",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "google/gemini-2.5-pro:batch",
+      "pricing": {
+        "in": 0.625,
+        "out": 5.0
+      }
+    },
+    {
+      "id": "openai/o3-pro",
+      "pricing": {
+        "in": 20.0,
+        "out": 80.0
+      }
+    },
+    {
+      "id": "openai/o3-pro:batch",
+      "pricing": {
+        "in": 10.0,
+        "out": 40.0
+      }
+    },
+    {
+      "id": "google/gemini-2.5-pro-preview",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "deepseek/deepseek-r1-0528",
+      "pricing": {
+        "in": 0.5,
+        "out": 2.15
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-4",
+      "pricing": {
+        "in": 15.0,
+        "out": 75.0
+      }
+    },
+    {
+      "id": "anthropic/claude-sonnet-4",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "google/gemma-3n-e4b-it",
+      "pricing": {
+        "in": 0.06,
+        "out": 0.12
+      }
+    },
+    {
+      "id": "mistralai/mistral-medium-3",
+      "pricing": {
+        "in": 0.4,
+        "out": 2.0
+      }
+    },
+    {
+      "id": "google/gemini-2.5-pro-preview-05-06",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "arcee-ai/virtuoso-large",
+      "pricing": {
+        "in": 0.75,
+        "out": 1.2
+      }
+    },
+    {
+      "id": "meta-llama/llama-guard-4-12b",
+      "pricing": {
+        "in": 0.18,
+        "out": 0.18
+      }
+    },
+    {
+      "id": "qwen/qwen3-30b-a3b",
+      "pricing": {
+        "in": 0.12,
+        "out": 0.5
+      }
+    },
+    {
+      "id": "qwen/qwen3-8b",
+      "pricing": {
+        "in": 0.117,
+        "out": 0.455
+      }
+    },
+    {
+      "id": "qwen/qwen3-14b",
+      "pricing": {
+        "in": 0.2275,
+        "out": 0.91
+      }
+    },
+    {
+      "id": "qwen/qwen3-32b",
+      "pricing": {
+        "in": 0.08,
+        "out": 0.28
+      }
+    },
+    {
+      "id": "qwen/qwen3-235b-a22b",
+      "pricing": {
+        "in": 0.455,
+        "out": 1.82
+      }
+    },
+    {
+      "id": "openai/o4-mini-high",
+      "pricing": {
+        "in": 1.1,
+        "out": 4.4
+      }
+    },
+    {
+      "id": "openai/o4-mini-high:batch",
+      "pricing": {
+        "in": 0.55,
+        "out": 2.2
+      }
+    },
+    {
+      "id": "openai/o3",
+      "pricing": {
+        "in": 2.0,
+        "out": 8.0
+      }
+    },
+    {
+      "id": "openai/o3:batch",
+      "pricing": {
+        "in": 1.0,
+        "out": 4.0
+      }
+    },
+    {
+      "id": "openai/o4-mini",
+      "pricing": {
+        "in": 1.1,
+        "out": 4.4
+      }
+    },
+    {
+      "id": "openai/o4-mini:batch",
+      "pricing": {
+        "in": 0.55,
+        "out": 2.2
+      }
+    },
+    {
+      "id": "openai/gpt-4.1",
+      "pricing": {
+        "in": 2.0,
+        "out": 8.0
+      }
+    },
+    {
+      "id": "openai/gpt-4.1:batch",
+      "pricing": {
+        "in": 1.0,
+        "out": 4.0
+      }
+    },
+    {
+      "id": "openai/gpt-4.1-mini",
+      "pricing": {
+        "in": 0.4,
+        "out": 1.6
+      }
+    },
+    {
+      "id": "openai/gpt-4.1-mini:batch",
+      "pricing": {
+        "in": 0.2,
+        "out": 0.8
+      }
+    },
+    {
+      "id": "openai/gpt-4.1-nano",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "openai/gpt-4.1-nano:batch",
+      "pricing": {
+        "in": 0.05,
+        "out": 0.2
+      }
+    },
+    {
+      "id": "meta-llama/llama-4-maverick",
+      "pricing": {
+        "in": 0.2,
+        "out": 0.8
+      }
+    },
+    {
+      "id": "meta-llama/llama-4-scout",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.3
+      }
+    },
+    {
+      "id": "deepseek/deepseek-chat-v3-0324",
+      "pricing": {
+        "in": 0.27,
+        "out": 1.12
+      }
+    },
+    {
+      "id": "openai/o1-pro",
+      "pricing": {
+        "in": 150.0,
+        "out": 600.0
+      }
+    },
+    {
+      "id": "openai/o1-pro:batch",
+      "pricing": {
+        "in": 75.0,
+        "out": 300.0
+      }
+    },
+    {
+      "id": "mistralai/mistral-small-3.1-24b-instruct",
+      "pricing": {
+        "in": 0.351,
+        "out": 0.555
+      }
+    },
+    {
+      "id": "google/gemma-3-4b-it",
+      "pricing": {
+        "in": 0.05,
+        "out": 0.1
+      }
+    },
+    {
+      "id": "google/gemma-3-12b-it",
+      "pricing": {
+        "in": 0.05,
+        "out": 0.15
+      }
+    },
+    {
+      "id": "cohere/command-a",
+      "pricing": {
+        "in": 2.5,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "rekaai/reka-flash-3",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.2
+      }
+    },
+    {
+      "id": "google/gemma-3-27b-it",
+      "pricing": {
+        "in": 0.08,
+        "out": 0.45
+      }
+    },
+    {
+      "id": "thedrummer/skyfall-36b-v2",
+      "pricing": {
+        "in": 0.55,
+        "out": 0.8
+      }
+    },
+    {
+      "id": "perplexity/sonar-reasoning-pro",
+      "pricing": {
+        "in": 2.0,
+        "out": 8.0
+      }
+    },
+    {
+      "id": "perplexity/sonar-pro",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "perplexity/sonar-deep-research",
+      "pricing": {
+        "in": 2.0,
+        "out": 8.0
+      }
+    },
+    {
+      "id": "mistralai/mistral-saba",
+      "pricing": {
+        "in": 0.2,
+        "out": 0.6
+      }
+    },
+    {
+      "id": "openai/o3-mini-high",
+      "pricing": {
+        "in": 1.1,
+        "out": 4.4
+      }
+    },
+    {
+      "id": "openai/o3-mini-high:batch",
+      "pricing": {
+        "in": 0.55,
+        "out": 2.2
+      }
+    },
+    {
+      "id": "aion-labs/aion-rp-llama-3.1-8b",
+      "pricing": {
+        "in": 0.8,
+        "out": 1.6
+      }
+    },
+    {
+      "id": "qwen/qwen2.5-vl-72b-instruct",
+      "pricing": {
+        "in": 0.25,
+        "out": 0.75
+      }
+    },
+    {
+      "id": "qwen/qwen-plus",
+      "pricing": {
+        "in": 0.26,
+        "out": 0.78
+      }
+    },
+    {
+      "id": "openai/o3-mini",
+      "pricing": {
+        "in": 1.1,
+        "out": 4.4
+      }
+    },
+    {
+      "id": "openai/o3-mini:batch",
+      "pricing": {
+        "in": 0.55,
+        "out": 2.2
+      }
+    },
+    {
+      "id": "mistralai/mistral-small-24b-instruct-2501",
+      "pricing": {
+        "in": 0.05,
+        "out": 0.08
+      }
+    },
+    {
+      "id": "perplexity/sonar",
+      "pricing": {
+        "in": 1.0,
+        "out": 1.0
+      }
+    },
+    {
+      "id": "deepseek/deepseek-r1-distill-llama-70b",
+      "pricing": {
+        "in": 0.8,
+        "out": 0.8
+      }
+    },
+    {
+      "id": "deepseek/deepseek-r1",
+      "pricing": {
+        "in": 0.7,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "minimax/minimax-01",
+      "pricing": {
+        "in": 0.2,
+        "out": 1.1
+      }
+    },
+    {
+      "id": "microsoft/phi-4",
+      "pricing": {
+        "in": 0.07,
+        "out": 0.14
+      }
+    },
+    {
+      "id": "deepseek/deepseek-chat",
+      "pricing": {
+        "in": 0.2574,
+        "out": 1.0287
+      }
+    },
+    {
+      "id": "sao10k/l3.3-euryale-70b",
+      "pricing": {
+        "in": 0.65,
+        "out": 0.75
+      }
+    },
+    {
+      "id": "openai/o1",
+      "pricing": {
+        "in": 15.0,
+        "out": 60.0
+      }
+    },
+    {
+      "id": "openai/o1:batch",
+      "pricing": {
+        "in": 7.5,
+        "out": 30.0
+      }
+    },
+    {
+      "id": "cohere/command-r7b-12-2024",
+      "pricing": {
+        "in": 0.0375,
+        "out": 0.15
+      }
+    },
+    {
+      "id": "meta-llama/llama-3.3-70b-instruct",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.32
+      }
+    },
+    {
+      "id": "amazon/nova-lite-v1",
+      "pricing": {
+        "in": 0.06,
+        "out": 0.24
+      }
+    },
+    {
+      "id": "amazon/nova-micro-v1",
+      "pricing": {
+        "in": 0.035,
+        "out": 0.14
+      }
+    },
+    {
+      "id": "amazon/nova-pro-v1",
+      "pricing": {
+        "in": 0.8,
+        "out": 3.2
+      }
+    },
+    {
+      "id": "openai/gpt-4o-2024-11-20",
+      "pricing": {
+        "in": 2.5,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "mistralai/mistral-large-2407",
+      "pricing": {
+        "in": 2.0,
+        "out": 6.0
+      }
+    },
+    {
+      "id": "qwen/qwen-2.5-coder-32b-instruct",
+      "pricing": {
+        "in": 0.66,
+        "out": 1.0
+      }
+    },
+    {
+      "id": "thedrummer/unslopnemo-12b",
+      "pricing": {
+        "in": 0.4,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "anthracite-org/magnum-v4-72b",
+      "pricing": {
+        "in": 3.0,
+        "out": 5.0
+      }
+    },
+    {
+      "id": "qwen/qwen-2.5-7b-instruct",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.2
+      }
+    },
+    {
+      "id": "thedrummer/rocinante-12b",
+      "pricing": {
+        "in": 0.25,
+        "out": 0.5
+      }
+    },
+    {
+      "id": "meta-llama/llama-3.2-1b-instruct",
+      "pricing": {
+        "in": 0.027,
+        "out": 0.201
+      }
+    },
+    {
+      "id": "meta-llama/llama-3.2-3b-instruct",
+      "pricing": {
+        "in": 0.05,
+        "out": 0.33
+      }
+    },
+    {
+      "id": "qwen/qwen-2.5-72b-instruct",
+      "pricing": {
+        "in": 0.36,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "cohere/command-r-08-2024",
+      "pricing": {
+        "in": 0.15,
+        "out": 0.6
+      }
+    },
+    {
+      "id": "cohere/command-r-plus-08-2024",
+      "pricing": {
+        "in": 2.5,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "sao10k/l3.1-euryale-70b",
+      "pricing": {
+        "in": 0.85,
+        "out": 0.85
+      }
+    },
+    {
+      "id": "nousresearch/hermes-3-llama-3.1-70b",
+      "pricing": {
+        "in": 0.7,
+        "out": 0.7
+      }
+    },
+    {
+      "id": "nousresearch/hermes-3-llama-3.1-405b",
+      "pricing": {
+        "in": 1.0,
+        "out": 1.0
+      }
+    },
+    {
+      "id": "sao10k/l3-lunaris-8b",
+      "pricing": {
+        "in": 0.04,
+        "out": 0.05
+      }
+    },
+    {
+      "id": "openai/gpt-4o-2024-08-06",
+      "pricing": {
+        "in": 2.5,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "meta-llama/llama-3.1-70b-instruct",
+      "pricing": {
+        "in": 0.4,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "meta-llama/llama-3.1-8b-instruct",
+      "pricing": {
+        "in": 0.05,
+        "out": 0.08
+      }
+    },
+    {
+      "id": "mistralai/mistral-nemo",
+      "pricing": {
+        "in": 0.019,
+        "out": 0.03
+      }
+    },
+    {
+      "id": "openai/gpt-4o-mini",
+      "pricing": {
+        "in": 0.15,
+        "out": 0.6
+      }
+    },
+    {
+      "id": "openai/gpt-4o-mini-2024-07-18",
+      "pricing": {
+        "in": 0.15,
+        "out": 0.6
+      }
+    },
+    {
+      "id": "openai/gpt-4o-mini:batch",
+      "pricing": {
+        "in": 0.075,
+        "out": 0.3
+      }
+    },
+    {
+      "id": "google/gemma-2-27b-it",
+      "pricing": {
+        "in": 0.65,
+        "out": 0.65
+      }
+    },
+    {
+      "id": "openai/gpt-4o",
+      "pricing": {
+        "in": 2.5,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "openai/gpt-4o-2024-05-13",
+      "pricing": {
+        "in": 5.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "openai/gpt-4o:batch",
+      "pricing": {
+        "in": 1.25,
+        "out": 5.0
+      }
+    },
+    {
+      "id": "mistralai/mixtral-8x22b-instruct",
+      "pricing": {
+        "in": 2.0,
+        "out": 6.0
+      }
+    },
+    {
+      "id": "microsoft/wizardlm-2-8x22b",
+      "pricing": {
+        "in": 0.62,
+        "out": 0.62
+      }
+    },
+    {
+      "id": "openai/gpt-4-turbo",
+      "pricing": {
+        "in": 10.0,
+        "out": 30.0
+      }
+    },
+    {
+      "id": "openai/gpt-4-turbo:batch",
+      "pricing": {
+        "in": 5.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "anthropic/claude-3-haiku",
+      "pricing": {
+        "in": 0.25,
+        "out": 1.25
+      }
+    },
+    {
+      "id": "mistralai/mistral-large",
+      "pricing": {
+        "in": 2.0,
+        "out": 6.0
+      }
+    },
+    {
+      "id": "openai/gpt-3.5-turbo-0613",
+      "pricing": {
+        "in": 1.0,
+        "out": 2.0
+      }
+    },
+    {
+      "id": "openai/gpt-4-turbo-preview",
+      "pricing": {
+        "in": 10.0,
+        "out": 30.0
+      }
+    },
+    {
+      "id": "openrouter/auto",
+      "pricing": null
+    },
+    {
+      "id": "openai/gpt-3.5-turbo-instruct",
+      "pricing": {
+        "in": 1.5,
+        "out": 2.0
+      }
+    },
+    {
+      "id": "openai/gpt-3.5-turbo-16k",
+      "pricing": {
+        "in": 3.0,
+        "out": 4.0
+      }
+    },
+    {
+      "id": "mancer/weaver",
+      "pricing": {
+        "in": 0.5,
+        "out": 0.75
+      }
+    },
+    {
+      "id": "undi95/remm-slerp-l2-13b",
+      "pricing": {
+        "in": 0.45,
+        "out": 0.65
+      }
+    },
+    {
+      "id": "gryphe/mythomax-l2-13b",
+      "pricing": {
+        "in": 0.08,
+        "out": 0.11
+      }
+    },
+    {
+      "id": "openai/gpt-3.5-turbo",
+      "pricing": {
+        "in": 0.5,
+        "out": 1.5
+      }
+    },
+    {
+      "id": "openai/gpt-3.5-turbo:batch",
+      "pricing": {
+        "in": 0.25,
+        "out": 0.75
+      }
+    },
+    {
+      "id": "openai/gpt-4",
+      "pricing": {
+        "in": 30.0,
+        "out": 60.0
+      }
+    }
+  ],
+  "tokenlab": [
+    {
+      "id": "gpt-5.2",
+      "pricing": null
+    },
+    {
+      "id": "gemini-3.6-flash",
+      "pricing": null
+    },
+    {
+      "id": "gpt-5.2-pro",
+      "pricing": null
+    },
+    {
+      "id": "gemini-3.5-flash",
+      "pricing": null
+    },
+    {
+      "id": "gemini-3.5-flash-lite",
+      "pricing": null
+    },
+    {
+      "id": "gemini-3.1-flash-lite",
+      "pricing": null
+    },
+    {
+      "id": "gemini-3-flash-preview",
+      "pricing": null
+    },
+    {
+      "id": "gpt-5.1",
+      "pricing": null
+    },
+    {
+      "id": "gpt-5",
+      "pricing": null
+    },
+    {
+      "id": "gpt-5-pro",
+      "pricing": null
+    },
+    {
+      "id": "gemini-2.5-pro",
+      "pricing": null
+    },
+    {
+      "id": "veo3.1",
+      "pricing": null
+    },
+    {
+      "id": "kling-v2.6-pro",
+      "pricing": null
+    },
+    {
+      "id": "kling-v2.5-turbo-pro",
+      "pricing": null
+    },
+    {
+      "id": "kling-v2.1-master",
+      "pricing": null
+    },
+    {
+      "id": "o4-mini",
+      "pricing": null
+    },
+    {
+      "id": "o3",
+      "pricing": null
+    },
+    {
+      "id": "o3-mini",
+      "pricing": null
+    },
+    {
+      "id": "kling-video-o1-pro",
+      "pricing": null
+    },
+    {
+      "id": "o1-pro",
+      "pricing": null
+    },
+    {
+      "id": "o1",
+      "pricing": null
+    },
+    {
+      "id": "gpt-4o",
+      "pricing": null
+    },
+    {
+      "id": "gpt-4o-mini",
+      "pricing": null
+    },
+    {
+      "id": "gpt-image-1",
+      "pricing": null
+    },
+    {
+      "id": "gpt-image-1.5",
+      "pricing": null
+    },
+    {
+      "id": "gpt-image-1-mini",
+      "pricing": null
+    },
+    {
+      "id": "flux-pro-1.1-ultra",
+      "pricing": null
+    },
+    {
+      "id": "gpt-4.1",
+      "pricing": null
+    },
+    {
+      "id": "qwen-max",
+      "pricing": null
+    },
+    {
+      "id": "aitryon",
+      "pricing": null
+    },
+    {
+      "id": "aitryon-parsing-v1",
+      "pricing": null
+    },
+    {
+      "id": "aitryon-plus",
+      "pricing": null
+    },
+    {
+      "id": "aitryon-refiner",
+      "pricing": null
+    },
+    {
+      "id": "allam-2-7b",
+      "pricing": null
+    },
+    {
+      "id": "animate-anyone-detect-gen2",
+      "pricing": null
+    },
+    {
+      "id": "animate-anyone-gen2",
+      "pricing": null
+    },
+    {
+      "id": "animate-anyone-template-gen2",
+      "pricing": null
+    },
+    {
+      "id": "chatgpt-image-latest",
+      "pricing": null
+    },
+    {
+      "id": "claude-fable-5",
+      "pricing": null
+    },
+    {
+      "id": "claude-haiku-4-5",
+      "pricing": null
+    },
+    {
+      "id": "claude-opus-4-6",
+      "pricing": null
+    },
+    {
+      "id": "claude-opus-4-7",
+      "pricing": null
+    },
+    {
+      "id": "claude-opus-4-8",
+      "pricing": null
+    },
+    {
+      "id": "claude-opus-5",
+      "pricing": null
+    },
+    {
+      "id": "claude-sonnet-4-6",
+      "pricing": null
+    },
+    {
+      "id": "claude-sonnet-5",
+      "pricing": null
+    },
+    {
+      "id": "cosyvoice-v3.5-plus",
+      "pricing": null
+    },
+    {
+      "id": "deepseek-v3-2",
+      "pricing": null
+    },
+    {
+      "id": "deepseek-v4-flash",
+      "pricing": null
+    },
+    {
+      "id": "deepseek-v4-pro",
+      "pricing": null
+    },
+    {
+      "id": "doubao-1.5-pro-32k",
+      "pricing": null
+    },
+    {
+      "id": "doubao-seed-1.6",
+      "pricing": null
+    },
+    {
+      "id": "doubao-seed-1.6-flash",
+      "pricing": null
+    },
+    {
+      "id": "doubao-seed-2.0-code",
+      "pricing": null
+    },
+    {
+      "id": "doubao-seed-2.0-lite",
+      "pricing": null
+    },
+    {
+      "id": "doubao-seed-2.0-mini",
+      "pricing": null
+    },
+    {
+      "id": "doubao-seed-2.0-pro",
+      "pricing": null
+    },
+    {
+      "id": "doubao-seed-2.1-pro",
+      "pricing": null
+    },
+    {
+      "id": "doubao-seed-2.1-turbo",
+      "pricing": null
+    },
+    {
+      "id": "doubao-seed-character",
+      "pricing": null
+    },
+    {
+      "id": "doubao-seed-evolving",
+      "pricing": null
+    },
+    {
+      "id": "doubao-seed-translation",
+      "pricing": null
+    },
+    {
+      "id": "emo-detect-v1",
+      "pricing": null
+    },
+    {
+      "id": "emoji-detect-v1",
+      "pricing": null
+    },
+    {
+      "id": "emoji-v1",
+      "pricing": null
+    },
+    {
+      "id": "emo-v1",
+      "pricing": null
+    },
+    {
+      "id": "facechain-generation",
+      "pricing": null
+    },
+    {
+      "id": "farui-plus",
+      "pricing": null
+    },
+    {
+      "id": "flux-1.1-pro",
+      "pricing": null
+    },
+    {
+      "id": "flux-1.1-pro-ultra",
+      "pricing": null
+    },
+    {
+      "id": "flux-1-dev",
+      "pricing": null
+    },
+    {
+      "id": "flux-2-flex",
+      "pricing": null
+    },
+    {
+      "id": "flux-2-klein-4b",
+      "pricing": null
+    },
+    {
+      "id": "flux-2-klein-9b",
+      "pricing": null
+    },
+    {
+      "id": "flux-2-max",
+      "pricing": null
+    },
+    {
+      "id": "flux-2-pro",
+      "pricing": null
+    },
+    {
+      "id": "flux-fill-pro",
+      "pricing": null
+    },
+    {
+      "id": "flux-kontext-dev",
+      "pricing": null
+    },
+    {
+      "id": "flux-kontext-max",
+      "pricing": null
+    },
+    {
+      "id": "flux-kontext-max-multi",
+      "pricing": null
+    },
+    {
+      "id": "flux-kontext-pro",
+      "pricing": null
+    },
+    {
+      "id": "flux-kontext-pro-multi",
+      "pricing": null
+    },
+    {
+      "id": "flux-pro-1.0-fill",
+      "pricing": null
+    },
+    {
+      "id": "flux-pro-1.1",
+      "pricing": null
+    },
+    {
+      "id": "fun-asr",
+      "pricing": null
+    },
+    {
+      "id": "fun-asr-flash-2026-06-15",
+      "pricing": null
+    },
+    {
+      "id": "fun-asr-realtime",
+      "pricing": null
+    },
+    {
+      "id": "gemini-2.5-flash-image",
+      "pricing": null
+    },
+    {
+      "id": "gemini-3.1-flash-image",
+      "pricing": null
+    },
+    {
+      "id": "gemini-3.1-flash-lite-image",
+      "pricing": null
+    },
+    {
+      "id": "gemini-3.1-pro-preview",
+      "pricing": null
+    },
+    {
+      "id": "gemini-3-pro-image",
+      "pricing": null
+    },
+    {
+      "id": "gemini-embedding-001",
+      "pricing": null
+    },
+    {
+      "id": "glm-4.7",
+      "pricing": null
+    },
+    {
+      "id": "glm-5",
+      "pricing": null
+    },
+    {
+      "id": "glm-5.1",
+      "pricing": null
+    },
+    {
+      "id": "glm-5.2",
+      "pricing": null
+    },
+    {
+      "id": "glm-5-turbo",
+      "pricing": null
+    },
+    {
+      "id": "glm-5v-turbo",
+      "pricing": null
+    },
+    {
+      "id": "gpt-4.1-mini",
+      "pricing": null
+    },
+    {
+      "id": "gpt-4o-mini-transcribe",
+      "pricing": null
+    },
+    {
+      "id": "gpt-4o-mini-tts",
+      "pricing": null
+    },
+    {
+      "id": "gpt-4o-transcribe",
+      "pricing": null
+    },
+    {
+      "id": "gpt-4o-transcribe-diarize",
+      "pricing": null
+    },
+    {
+      "id": "gpt-5.3-codex",
+      "pricing": null
+    },
+    {
+      "id": "gpt-5.3-codex-spark",
+      "pricing": null
+    },
+    {
+      "id": "gpt-5.4",
+      "pricing": null
+    },
+    {
+      "id": "gpt-5.4-mini",
+      "pricing": null
+    },
+    {
+      "id": "gpt-5.4-nano",
+      "pricing": null
+    },
+    {
+      "id": "gpt-5.4-pro",
+      "pricing": null
+    },
+    {
+      "id": "gpt-5.5",
+      "pricing": null
+    },
+    {
+      "id": "gpt-5.5-pro",
+      "pricing": null
+    },
+    {
+      "id": "gpt-5.6-luna",
+      "pricing": null
+    },
+    {
+      "id": "gpt-5.6-sol",
+      "pricing": null
+    },
+    {
+      "id": "gpt-5.6-terra",
+      "pricing": null
+    },
+    {
+      "id": "gpt-5-mini",
+      "pricing": null
+    },
+    {
+      "id": "gpt-5-nano",
+      "pricing": null
+    },
+    {
+      "id": "gpt-5-search-api",
+      "pricing": null
+    },
+    {
+      "id": "gpt-audio",
+      "pricing": null
+    },
+    {
+      "id": "gpt-audio-1.5",
+      "pricing": null
+    },
+    {
+      "id": "gpt-audio-mini",
+      "pricing": null
+    },
+    {
+      "id": "gpt-image-2",
+      "pricing": null
+    },
+    {
+      "id": "gpt-oss-120b",
+      "pricing": null
+    },
+    {
+      "id": "gpt-oss-20b",
+      "pricing": null
+    },
+    {
+      "id": "gpt-realtime",
+      "pricing": null
+    },
+    {
+      "id": "gpt-realtime-1.5",
+      "pricing": null
+    },
+    {
+      "id": "gpt-realtime-2",
+      "pricing": null
+    },
+    {
+      "id": "gpt-realtime-mini",
+      "pricing": null
+    },
+    {
+      "id": "gpt-realtime-translate",
+      "pricing": null
+    },
+    {
+      "id": "grok-4.20",
+      "pricing": null
+    },
+    {
+      "id": "grok-4.20-multi-agent",
+      "pricing": null
+    },
+    {
+      "id": "grok-4.20-non-reasoning",
+      "pricing": null
+    },
+    {
+      "id": "grok-4.3",
+      "pricing": null
+    },
+    {
+      "id": "grok-4.5",
+      "pricing": null
+    },
+    {
+      "id": "grok-4-fast",
+      "pricing": null
+    },
+    {
+      "id": "grok-build-0.1",
+      "pricing": null
+    },
+    {
+      "id": "grok-imagine-image",
+      "pricing": null
+    },
+    {
+      "id": "grok-imagine-image-quality",
+      "pricing": null
+    },
+    {
+      "id": "grok-imagine-video",
+      "pricing": null
+    },
+    {
+      "id": "grok-imagine-video-1.5",
+      "pricing": null
+    },
+    {
+      "id": "grok-imagine-video-1.5-preview",
+      "pricing": null
+    },
+    {
+      "id": "grok-voice-latest",
+      "pricing": null
+    },
+    {
+      "id": "grok-voice-stt",
+      "pricing": null
+    },
+    {
+      "id": "grok-voice-think-fast-1.0",
+      "pricing": null
+    },
+    {
+      "id": "grok-voice-tts",
+      "pricing": null
+    },
+    {
+      "id": "groq-compound",
+      "pricing": null
+    },
+    {
+      "id": "groq-compound-mini",
+      "pricing": null
+    },
+    {
+      "id": "hailuo-2.3",
+      "pricing": null
+    },
+    {
+      "id": "hailuo-2.3-fast",
+      "pricing": null
+    },
+    {
+      "id": "hailuo-2.3-pro",
+      "pricing": null
+    },
+    {
+      "id": "hailuo-2.3-standard",
+      "pricing": null
+    },
+    {
+      "id": "happyhorse-1.0",
+      "pricing": null
+    },
+    {
+      "id": "happyhorse-1.1",
+      "pricing": null
+    },
+    {
+      "id": "hitem3d-2.0",
+      "pricing": null
+    },
+    {
+      "id": "hunyuan-role",
+      "pricing": null
+    },
+    {
+      "id": "hy3",
+      "pricing": null
+    },
+    {
+      "id": "hy3-preview",
+      "pricing": null
+    },
+    {
+      "id": "hy-image-lite",
+      "pricing": null
+    },
+    {
+      "id": "hy-image-v3.0",
+      "pricing": null
+    },
+    {
+      "id": "hy-mt2-pro",
+      "pricing": null
+    },
+    {
+      "id": "hyper3d-gen2",
+      "pricing": null
+    },
+    {
+      "id": "ideogram-edit-v3",
+      "pricing": null
+    },
+    {
+      "id": "ideogram-reframe-v3",
+      "pricing": null
+    },
+    {
+      "id": "ideogram-remix-v3",
+      "pricing": null
+    },
+    {
+      "id": "ideogram-v3",
+      "pricing": null
+    },
+    {
+      "id": "image-background-remover",
+      "pricing": null
+    },
+    {
+      "id": "image-out-painting",
+      "pricing": null
+    },
+    {
+      "id": "image-upscaler",
+      "pricing": null
+    },
+    {
+      "id": "kimi-k2.5",
+      "pricing": null
+    },
+    {
+      "id": "kimi-k2.6",
+      "pricing": null
+    },
+    {
+      "id": "kimi-k2.7-code",
+      "pricing": null
+    },
+    {
+      "id": "kimi-k2.7-code-highspeed",
+      "pricing": null
+    },
+    {
+      "id": "kimi-k3",
+      "pricing": null
+    },
+    {
+      "id": "kling-2.6-motion-control",
+      "pricing": null
+    },
+    {
+      "id": "kling-3.0-motion-control",
+      "pricing": null
+    },
+    {
+      "id": "kling-ai-avatar-pro",
+      "pricing": null
+    },
+    {
+      "id": "kling-ai-avatar-standard",
+      "pricing": null
+    },
+    {
+      "id": "kling-image",
+      "pricing": null
+    },
+    {
+      "id": "kling-image-o1",
+      "pricing": null
+    },
+    {
+      "id": "kling-omni-image",
+      "pricing": null
+    },
+    {
+      "id": "kling-omni-video",
+      "pricing": null
+    },
+    {
+      "id": "kling-v2.6-std",
+      "pricing": null
+    },
+    {
+      "id": "kling-v3.0",
+      "pricing": null
+    },
+    {
+      "id": "kling-video-o1-std",
+      "pricing": null
+    },
+    {
+      "id": "liveportrait",
+      "pricing": null
+    },
+    {
+      "id": "liveportrait-detect",
+      "pricing": null
+    },
+    {
+      "id": "marble-1.0",
+      "pricing": null
+    },
+    {
+      "id": "marble-1.1",
+      "pricing": null
+    },
+    {
+      "id": "marble-1.1-plus",
+      "pricing": null
+    },
+    {
+      "id": "mimo-v2.5",
+      "pricing": null
+    },
+    {
+      "id": "mimo-v2.5-pro",
+      "pricing": null
+    },
+    {
+      "id": "minimax-m2",
+      "pricing": null
+    },
+    {
+      "id": "minimax-m2.1",
+      "pricing": null
+    },
+    {
+      "id": "minimax-m2.1-highspeed",
+      "pricing": null
+    },
+    {
+      "id": "minimax-m2.5",
+      "pricing": null
+    },
+    {
+      "id": "minimax-m2.5-highspeed",
+      "pricing": null
+    },
+    {
+      "id": "minimax-m2.7",
+      "pricing": null
+    },
+    {
+      "id": "minimax-m2.7-highspeed",
+      "pricing": null
+    },
+    {
+      "id": "minimax-m3",
+      "pricing": null
+    },
+    {
+      "id": "nano-banana",
+      "pricing": null
+    },
+    {
+      "id": "nano-banana-2",
+      "pricing": null
+    },
+    {
+      "id": "nano-banana-2-lite",
+      "pricing": null
+    },
+    {
+      "id": "nano-banana-edit",
+      "pricing": null
+    },
+    {
+      "id": "nano-banana-pro",
+      "pricing": null
+    },
+    {
+      "id": "paraformer-8k-v2",
+      "pricing": null
+    },
+    {
+      "id": "paraformer-realtime-8k-v2",
+      "pricing": null
+    },
+    {
+      "id": "paraformer-realtime-v2",
+      "pricing": null
+    },
+    {
+      "id": "paraformer-v2",
+      "pricing": null
+    },
+    {
+      "id": "pixverse-c1",
+      "pricing": null
+    },
+    {
+      "id": "pixverse-v5.6",
+      "pricing": null
+    },
+    {
+      "id": "pixverse-v6",
+      "pricing": null
+    },
+    {
+      "id": "qwen2.5-omni-7b",
+      "pricing": null
+    },
+    {
+      "id": "qwen3.5-27b",
+      "pricing": null
+    },
+    {
+      "id": "qwen3.5-flash",
+      "pricing": null
+    },
+    {
+      "id": "qwen3.5-livetranslate-flash-realtime",
+      "pricing": null
+    },
+    {
+      "id": "qwen3.5-ocr",
+      "pricing": null
+    },
+    {
+      "id": "qwen3.5-omni-flash",
+      "pricing": null
+    },
+    {
+      "id": "qwen3.5-omni-flash-realtime",
+      "pricing": null
+    },
+    {
+      "id": "qwen3.5-omni-plus",
+      "pricing": null
+    },
+    {
+      "id": "qwen3.5-omni-plus-realtime",
+      "pricing": null
+    },
+    {
+      "id": "qwen3.5-plus",
+      "pricing": null
+    },
+    {
+      "id": "qwen3.6-27b",
+      "pricing": null
+    },
+    {
+      "id": "qwen3.6-flash",
+      "pricing": null
+    },
+    {
+      "id": "qwen3.6-max-preview",
+      "pricing": null
+    },
+    {
+      "id": "qwen3.6-plus",
+      "pricing": null
+    },
+    {
+      "id": "qwen3.7-max",
+      "pricing": null
+    },
+    {
+      "id": "qwen3.7-plus",
+      "pricing": null
+    },
+    {
+      "id": "qwen3-asr-flash",
+      "pricing": null
+    },
+    {
+      "id": "qwen3-asr-flash-filetrans",
+      "pricing": null
+    },
+    {
+      "id": "qwen3-asr-flash-realtime",
+      "pricing": null
+    },
+    {
+      "id": "qwen3-coder-flash",
+      "pricing": null
+    },
+    {
+      "id": "qwen3-livetranslate-flash",
+      "pricing": null
+    },
+    {
+      "id": "qwen3-livetranslate-flash-realtime",
+      "pricing": null
+    },
+    {
+      "id": "qwen3-omni-30b-a3b-captioner",
+      "pricing": null
+    },
+    {
+      "id": "qwen3-omni-flash",
+      "pricing": null
+    },
+    {
+      "id": "qwen3-omni-flash-realtime",
+      "pricing": null
+    },
+    {
+      "id": "qwen3-tts-flash",
+      "pricing": null
+    },
+    {
+      "id": "qwen3-tts-flash-realtime",
+      "pricing": null
+    },
+    {
+      "id": "qwen3-tts-instruct-flash",
+      "pricing": null
+    },
+    {
+      "id": "qwen3-tts-instruct-flash-realtime",
+      "pricing": null
+    },
+    {
+      "id": "qwen3-tts-vc-2026-01-22",
+      "pricing": null
+    },
+    {
+      "id": "qwen3-tts-vc-realtime-2026-01-15",
+      "pricing": null
+    },
+    {
+      "id": "qwen3-tts-vd-2026-01-26",
+      "pricing": null
+    },
+    {
+      "id": "qwen3-tts-vd-realtime-2026-01-15",
+      "pricing": null
+    },
+    {
+      "id": "qwen3-vl-embedding",
+      "pricing": null
+    },
+    {
+      "id": "qwen3-vl-plus",
+      "pricing": null
+    },
+    {
+      "id": "qwen3-vl-rerank",
+      "pricing": null
+    },
+    {
+      "id": "qwen-deep-research",
+      "pricing": null
+    },
+    {
+      "id": "qwen-doc-turbo",
+      "pricing": null
+    },
+    {
+      "id": "qwen-flash",
+      "pricing": null
+    },
+    {
+      "id": "qwen-flash-character",
+      "pricing": null
+    },
+    {
+      "id": "qwen-image",
+      "pricing": null
+    },
+    {
+      "id": "qwen-image-2.0",
+      "pricing": null
+    },
+    {
+      "id": "qwen-image-2.0-pro",
+      "pricing": null
+    },
+    {
+      "id": "qwen-image-edit",
+      "pricing": null
+    },
+    {
+      "id": "qwen-image-edit-max",
+      "pricing": null
+    },
+    {
+      "id": "qwen-image-edit-plus",
+      "pricing": null
+    },
+    {
+      "id": "qwen-image-max",
+      "pricing": null
+    },
+    {
+      "id": "qwen-image-plus",
+      "pricing": null
+    },
+    {
+      "id": "qwen-mt-flash",
+      "pricing": null
+    },
+    {
+      "id": "qwen-mt-image",
+      "pricing": null
+    },
+    {
+      "id": "qwen-mt-lite",
+      "pricing": null
+    },
+    {
+      "id": "qwen-mt-plus",
+      "pricing": null
+    },
+    {
+      "id": "qwen-mt-turbo",
+      "pricing": null
+    },
+    {
+      "id": "qwen-omni-turbo",
+      "pricing": null
+    },
+    {
+      "id": "qwen-omni-turbo-realtime",
+      "pricing": null
+    },
+    {
+      "id": "qwen-plus",
+      "pricing": null
+    },
+    {
+      "id": "qwen-plus-character",
+      "pricing": null
+    },
+    {
+      "id": "qwen-vl-ocr",
+      "pricing": null
+    },
+    {
+      "id": "recraft-v3",
+      "pricing": null
+    },
+    {
+      "id": "recraft-v3-svg",
+      "pricing": null
+    },
+    {
+      "id": "recraft-vectorize",
+      "pricing": null
+    },
+    {
+      "id": "sambert-zhiyuan-v1",
+      "pricing": null
+    },
+    {
+      "id": "sd3.5-flash",
+      "pricing": null
+    },
+    {
+      "id": "sd3.5-large",
+      "pricing": null
+    },
+    {
+      "id": "sd3.5-large-turbo",
+      "pricing": null
+    },
+    {
+      "id": "sd3.5-medium",
+      "pricing": null
+    },
+    {
+      "id": "seed3d-2.0",
+      "pricing": null
+    },
+    {
+      "id": "seedance-1.0-pro",
+      "pricing": null
+    },
+    {
+      "id": "seedance-1.0-pro-fast",
+      "pricing": null
+    },
+    {
+      "id": "seedance-1.5-pro",
+      "pricing": null
+    },
+    {
+      "id": "seedance-2.0",
+      "pricing": null
+    },
+    {
+      "id": "seedance-2.0-fast",
+      "pricing": null
+    },
+    {
+      "id": "seedance-2.0-mini",
+      "pricing": null
+    },
+    {
+      "id": "seedream-4.0",
+      "pricing": null
+    },
+    {
+      "id": "seedream-4.5",
+      "pricing": null
+    },
+    {
+      "id": "seedream-5.0",
+      "pricing": null
+    },
+    {
+      "id": "seedream-5.0-lite",
+      "pricing": null
+    },
+    {
+      "id": "seedream-5.0-pro",
+      "pricing": null
+    },
+    {
+      "id": "speech-02-hd",
+      "pricing": null
+    },
+    {
+      "id": "speech-02-turbo",
+      "pricing": null
+    },
+    {
+      "id": "speech-2.6-hd",
+      "pricing": null
+    },
+    {
+      "id": "speech-2.6-turbo",
+      "pricing": null
+    },
+    {
+      "id": "speech-2.8-hd",
+      "pricing": null
+    },
+    {
+      "id": "stability-control-sketch",
+      "pricing": null
+    },
+    {
+      "id": "stability-control-structure",
+      "pricing": null
+    },
+    {
+      "id": "stability-inpaint",
+      "pricing": null
+    },
+    {
+      "id": "stability-style-guide",
+      "pricing": null
+    },
+    {
+      "id": "stability-upscale-conservative",
+      "pricing": null
+    },
+    {
+      "id": "stability-upscale-fast",
+      "pricing": null
+    },
+    {
+      "id": "stable-image-core",
+      "pricing": null
+    },
+    {
+      "id": "stable-image-ultra",
+      "pricing": null
+    },
+    {
+      "id": "step-3.5-flash",
+      "pricing": null
+    },
+    {
+      "id": "step-3.7-flash",
+      "pricing": null
+    },
+    {
+      "id": "suno-lyrics",
+      "pricing": null
+    },
+    {
+      "id": "suno-music",
+      "pricing": null
+    },
+    {
+      "id": "text-embedding-3-large",
+      "pricing": null
+    },
+    {
+      "id": "text-embedding-3-small",
+      "pricing": null
+    },
+    {
+      "id": "text-embedding-ada-002",
+      "pricing": null
+    },
+    {
+      "id": "text-embedding-v4",
+      "pricing": null
+    },
+    {
+      "id": "tongyi-embedding-vision-plus",
+      "pricing": null
+    },
+    {
+      "id": "tongyi-intent-detect-v3",
+      "pricing": null
+    },
+    {
+      "id": "tongyi-xiaomi-analysis-flash",
+      "pricing": null
+    },
+    {
+      "id": "tongyi-xiaomi-analysis-pro",
+      "pricing": null
+    },
+    {
+      "id": "tripo-h3.1",
+      "pricing": null
+    },
+    {
+      "id": "tripo-p1.0",
+      "pricing": null
+    },
+    {
+      "id": "tts-1",
+      "pricing": null
+    },
+    {
+      "id": "tts-1-hd",
+      "pricing": null
+    },
+    {
+      "id": "veo3.1-fast",
+      "pricing": null
+    },
+    {
+      "id": "videoretalk",
+      "pricing": null
+    },
+    {
+      "id": "video-style-transform",
+      "pricing": null
+    },
+    {
+      "id": "viduq2",
+      "pricing": null
+    },
+    {
+      "id": "viduq2-pro",
+      "pricing": null
+    },
+    {
+      "id": "viduq2-pro-fast",
+      "pricing": null
+    },
+    {
+      "id": "viduq2-turbo",
+      "pricing": null
+    },
+    {
+      "id": "viduq3",
+      "pricing": null
+    },
+    {
+      "id": "viduq3-mix",
+      "pricing": null
+    },
+    {
+      "id": "viduq3-pro",
+      "pricing": null
+    },
+    {
+      "id": "viduq3-turbo",
+      "pricing": null
+    },
+    {
+      "id": "wan-2.5",
+      "pricing": null
+    },
+    {
+      "id": "wan-2.6",
+      "pricing": null
+    },
+    {
+      "id": "wan-2.7",
+      "pricing": null
+    },
+    {
+      "id": "wanx2.1-vace-plus",
+      "pricing": null
+    },
+    {
+      "id": "wanx-background-generation-v2",
+      "pricing": null
+    },
+    {
+      "id": "wanx-sketch-to-image-lite",
+      "pricing": null
+    },
+    {
+      "id": "wanx-style-repaint-v1",
+      "pricing": null
+    },
+    {
+      "id": "whisper-1",
+      "pricing": null
+    },
+    {
+      "id": "whisper-large-v3",
+      "pricing": null
+    },
+    {
+      "id": "whisper-large-v3-turbo",
+      "pricing": null
+    },
+    {
+      "id": "wordart-semantic",
+      "pricing": null
+    },
+    {
+      "id": "wordart-texture",
+      "pricing": null
+    },
+    {
+      "id": "z-image",
+      "pricing": null
+    },
+    {
+      "id": "z-image-turbo",
+      "pricing": null
+    }
+  ],
+  "requesty": [
+    {
+      "id": "vertex/gemini-2.5-flash@us-east1",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash-image@us-east5",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/gemini-3-pro-image",
+      "pricing": {
+        "in": 2.0,
+        "out": 12.0
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash-lite@europe-west8",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash@us-west1",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/claude-opus-4-5@us-east5",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "vertex/claude-opus-4-5",
+      "pricing": {
+        "in": 5.0,
+        "out": 25.0
+      }
+    },
+    {
+      "id": "vertex/claude-fable-5@eu",
+      "pricing": {
+        "in": 11.0,
+        "out": 55.0
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash@us-central1",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash@europe-west8",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash-image@europe-west1",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/gemini-3.5-flash-lite@eu",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/claude-haiku-4-5@europe-west1",
+      "pricing": {
+        "in": 1.1,
+        "out": 5.5
+      }
+    },
+    {
+      "id": "vertex/claude-sonnet-4-6@us-east5",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "vertex/claude-opus-4-6@europe-west1",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "vertex/gemini-3.1-flash-lite",
+      "pricing": {
+        "in": 0.25,
+        "out": 1.5
+      }
+    },
+    {
+      "id": "vertex/gemini-3-flash-preview:flex",
+      "pricing": {
+        "in": 0.25,
+        "out": 1.5
+      }
+    },
+    {
+      "id": "vertex/claude-opus-4@us-east5",
+      "pricing": {
+        "in": 15.0,
+        "out": 75.0
+      }
+    },
+    {
+      "id": "vertex/gemini-3.1-flash-image",
+      "pricing": {
+        "in": 0.5,
+        "out": 2.0
+      }
+    },
+    {
+      "id": "vertex/gemini-3-flash-preview",
+      "pricing": {
+        "in": 0.5,
+        "out": 3.0
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-pro@us-east5",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "vertex/claude-opus-4-1@us-east5",
+      "pricing": {
+        "in": 15.0,
+        "out": 75.0
+      }
+    },
+    {
+      "id": "vertex/gemini-3.5-flash",
+      "pricing": {
+        "in": 1.5,
+        "out": 9.0
+      }
+    },
+    {
+      "id": "vertex/gemini-3.5-flash@eu",
+      "pricing": {
+        "in": 1.5,
+        "out": 9.0
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash-image@us-south1",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/claude-opus-4",
+      "pricing": {
+        "in": 15.0,
+        "out": 75.0
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash-lite@europe-central2",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "vertex/claude-fable-5",
+      "pricing": {
+        "in": 10.0,
+        "out": 50.0
+      }
+    },
+    {
+      "id": "vertex/gemini-3-pro-preview",
+      "pricing": {
+        "in": 2.0,
+        "out": 12.0
+      }
+    },
+    {
+      "id": "vertex/gemini-3.1-flash-lite@eu",
+      "pricing": {
+        "in": 0.25,
+        "out": 1.5
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash@us-south1",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash-lite@us-west1",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "vertex/claude-sonnet-4-6",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-pro@europe-west4",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "vertex/claude-opus-4-7@us",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash@europe-west1",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash-image@us-east4",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-pro@us-west1",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "vertex/claude-sonnet-5@eu",
+      "pricing": {
+        "in": 2.2,
+        "out": 11.0
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash-image@us-east1",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash-lite@europe-west4",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-pro@europe-central2",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash-image@us-west4",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/claude-opus-4-8@us",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "vertex/gemini-3.1-pro-preview:flex",
+      "pricing": {
+        "in": 1.0,
+        "out": 6.0
+      }
+    },
+    {
+      "id": "vertex/claude-opus-4-1",
+      "pricing": {
+        "in": 15.0,
+        "out": 75.0
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash-lite@us-east5",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash-lite@us-east1",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "vertex/gemini-3.1-flash-lite@us",
+      "pricing": {
+        "in": 0.25,
+        "out": 1.5
+      }
+    },
+    {
+      "id": "vertex/claude-opus-4-7@eu",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "vertex/claude-opus-5@eu",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash@us-east5",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/gemini-3.6-flash",
+      "pricing": {
+        "in": 1.5,
+        "out": 7.0
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash@europe-west4",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-pro@us-south1",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-pro@europe-north1",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash-image@europe-southwest1",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/claude-sonnet-4-5@us-east5",
+      "pricing": {
+        "in": 3.3,
+        "out": 16.5
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash@europe-central2",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/kimi-k2",
+      "pricing": {
+        "in": 0.6,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash-lite",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "vertex/claude-opus-5@us",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash-image@europe-west4",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash-image@us-central1",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/gemini-3.5-flash@us",
+      "pricing": {
+        "in": 1.5,
+        "out": 9.0
+      }
+    },
+    {
+      "id": "vertex/claude-opus-4-7",
+      "pricing": {
+        "in": 5.0,
+        "out": 25.0
+      }
+    },
+    {
+      "id": "vertex/claude-sonnet-5@us",
+      "pricing": {
+        "in": 2.2,
+        "out": 11.0
+      }
+    },
+    {
+      "id": "vertex/claude-opus-4-8@eu",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-pro@europe-west1",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash-image",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-pro@us-east1",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "vertex/claude-opus-4-6",
+      "pricing": {
+        "in": 5.0,
+        "out": 25.0
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash@europe-north1",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash-lite@europe-north1",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "vertex/claude-sonnet-5",
+      "pricing": {
+        "in": 2.0,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "vertex/deepseek-v3.2",
+      "pricing": {
+        "in": 0.56,
+        "out": 1.68
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash-image@us-west1",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/gemini-3.5-flash-lite",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/claude-sonnet-4@us-east5",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "vertex/claude-sonnet-4-5@europe-west1",
+      "pricing": {
+        "in": 3.3,
+        "out": 16.5
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash-image@europe-north1",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/claude-sonnet-4-5",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash-image@europe-west8",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash-image@europe-central2",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "vertex/claude-sonnet-4-6@europe-west1",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "vertex/claude-haiku-4-5",
+      "pricing": {
+        "in": 1.0,
+        "out": 5.0
+      }
+    },
+    {
+      "id": "vertex/gemini-3.1-pro-preview",
+      "pricing": {
+        "in": 2.0,
+        "out": 12.0
+      }
+    },
+    {
+      "id": "vertex/claude-opus-4-5@europe-west1",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "vertex/claude-sonnet-4@europe-west1",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-pro",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-pro@europe-west8",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "vertex/claude-opus-5",
+      "pricing": {
+        "in": 5.0,
+        "out": 25.0
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-pro@us-central1",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash-lite@us-south1",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "vertex/claude-opus-4-6@us-east5",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash-lite@europe-west1",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "vertex/claude-sonnet-4",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "vertex/claude-opus-4-8",
+      "pricing": {
+        "in": 5.0,
+        "out": 25.0
+      }
+    },
+    {
+      "id": "vertex/gemini-2.5-flash-lite@us-central1",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "vertex/claude-haiku-4-5@us-east5",
+      "pricing": {
+        "in": 1.1,
+        "out": 5.5
+      }
+    },
+    {
+      "id": "openai-responses/gpt-5.4-mini",
+      "pricing": {
+        "in": 0.75,
+        "out": 4.5
+      }
+    },
+    {
+      "id": "openai-responses/gpt-5.6-terra",
+      "pricing": {
+        "in": 2.0,
+        "out": 12.0
+      }
+    },
+    {
+      "id": "openai-responses/gpt-5.3-chat",
+      "pricing": {
+        "in": 1.75,
+        "out": 14.0
+      }
+    },
+    {
+      "id": "openai-responses/gpt-5.5-pro",
+      "pricing": {
+        "in": 30.0,
+        "out": 180.0
+      }
+    },
+    {
+      "id": "openai-responses/gpt-4.1",
+      "pricing": {
+        "in": 2.0,
+        "out": 8.0
+      }
+    },
+    {
+      "id": "openai-responses/gpt-5.4-nano",
+      "pricing": {
+        "in": 0.2,
+        "out": 1.25
+      }
+    },
+    {
+      "id": "openai-responses/gpt-5.6-sol",
+      "pricing": {
+        "in": 5.0,
+        "out": 30.0
+      }
+    },
+    {
+      "id": "openai-responses/gpt-5-codex",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "openai-responses/gpt-5.6-luna",
+      "pricing": {
+        "in": 0.2,
+        "out": 1.2
+      }
+    },
+    {
+      "id": "openai-responses/gpt-5.1-codex",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "openai-responses/gpt-5.4",
+      "pricing": {
+        "in": 2.5,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "openai-responses/o3-mini",
+      "pricing": {
+        "in": 1.1,
+        "out": 4.4
+      }
+    },
+    {
+      "id": "openai-responses/gpt-5-pro",
+      "pricing": {
+        "in": 15.0,
+        "out": 120.0
+      }
+    },
+    {
+      "id": "openai-responses/gpt-5.2",
+      "pricing": {
+        "in": 1.75,
+        "out": 14.0
+      }
+    },
+    {
+      "id": "openai-responses/gpt-5.5",
+      "pricing": {
+        "in": 5.0,
+        "out": 30.0
+      }
+    },
+    {
+      "id": "openai-responses/gpt-5.1",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "openai-responses/gpt-5.4-pro",
+      "pricing": {
+        "in": 30.0,
+        "out": 180.0
+      }
+    },
+    {
+      "id": "openai-responses/gpt-5",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "openai-responses/gpt-5-nano",
+      "pricing": {
+        "in": 0.05,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "openai-responses/gpt-4.1-nano",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "openai-responses/o4-mini",
+      "pricing": {
+        "in": 1.1,
+        "out": 4.4
+      }
+    },
+    {
+      "id": "openai-responses/gpt-5-mini",
+      "pricing": {
+        "in": 0.25,
+        "out": 2.0
+      }
+    },
+    {
+      "id": "openai-responses/o3-pro",
+      "pricing": {
+        "in": 20.0,
+        "out": 80.0
+      }
+    },
+    {
+      "id": "openai-responses/gpt-5.2-codex",
+      "pricing": {
+        "in": 1.75,
+        "out": 14.0
+      }
+    },
+    {
+      "id": "openai-responses/gpt-5.3-codex",
+      "pricing": {
+        "in": 1.75,
+        "out": 14.0
+      }
+    },
+    {
+      "id": "openai-responses/gpt-4.1-mini",
+      "pricing": {
+        "in": 0.4,
+        "out": 1.6
+      }
+    },
+    {
+      "id": "sference/deepseek-v4-flash-0731",
+      "pricing": {
+        "in": 0.14,
+        "out": 0.28
+      }
+    },
+    {
+      "id": "sference/kimi-k3",
+      "pricing": {
+        "in": 2.25,
+        "out": 11.25
+      }
+    },
+    {
+      "id": "sference/glm-5.2",
+      "pricing": {
+        "in": 1.2,
+        "out": 4.2
+      }
+    },
+    {
+      "id": "sference/thinkingcap-qwen3.6-27b",
+      "pricing": {
+        "in": 0.4,
+        "out": 3.0
+      }
+    },
+    {
+      "id": "mistral/mistral-medium-3-5",
+      "pricing": {
+        "in": 1.65,
+        "out": 8.25
+      }
+    },
+    {
+      "id": "mistral/mistral-large-latest",
+      "pricing": {
+        "in": 0.55,
+        "out": 1.65
+      }
+    },
+    {
+      "id": "mistral/devstral-latest",
+      "pricing": {
+        "in": 0.44,
+        "out": 2.2
+      }
+    },
+    {
+      "id": "mistral/mistral-small-latest",
+      "pricing": {
+        "in": 0.165,
+        "out": 0.66
+      }
+    },
+    {
+      "id": "mistral/mistral-small-2503",
+      "pricing": {
+        "in": 0.11,
+        "out": 0.33
+      }
+    },
+    {
+      "id": "mistral/mistral-medium-latest",
+      "pricing": {
+        "in": 0.44,
+        "out": 2.2
+      }
+    },
+    {
+      "id": "mistral/leanstral-1-5",
+      "pricing": null
+    },
+    {
+      "id": "mistral/mistral-small-2603",
+      "pricing": {
+        "in": 0.165,
+        "out": 0.66
+      }
+    },
+    {
+      "id": "mistral/open-mistral-7b",
+      "pricing": {
+        "in": 0.275,
+        "out": 0.275
+      }
+    },
+    {
+      "id": "mistral/devstral-small-latest",
+      "pricing": {
+        "in": 0.11,
+        "out": 0.33
+      }
+    },
+    {
+      "id": "mistral/codestral-latest",
+      "pricing": {
+        "in": 0.33,
+        "out": 0.99
+      }
+    },
+    {
+      "id": "perplexity/sonar",
+      "pricing": {
+        "in": 1.0,
+        "out": 1.0
+      }
+    },
+    {
+      "id": "perplexity/sonar-pro",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "perplexity/sonar-reasoning-pro",
+      "pricing": {
+        "in": 2.0,
+        "out": 8.0
+      }
+    },
+    {
+      "id": "parasail/google/gemma-4-26B-A4B-it",
+      "pricing": {
+        "in": 0.13,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "parasail/parasail-qwen3-235b-a22b-instruct-2507",
+      "pricing": {
+        "in": 0.15,
+        "out": 0.85
+      }
+    },
+    {
+      "id": "parasail/parasail-gemma3-27b-it",
+      "pricing": {
+        "in": 0.3,
+        "out": 0.5
+      }
+    },
+    {
+      "id": "parasail/parasail-deepseek-v4-flash",
+      "pricing": {
+        "in": 0.14,
+        "out": 0.28
+      }
+    },
+    {
+      "id": "parasail/parasail-qwen25-vl-72b-instruct",
+      "pricing": {
+        "in": 0.7,
+        "out": 0.7
+      }
+    },
+    {
+      "id": "parasail/kimi-k2.7-code",
+      "pricing": {
+        "in": 0.75,
+        "out": 3.5
+      }
+    },
+    {
+      "id": "anthropic/claude-sonnet-5",
+      "pricing": {
+        "in": 2.0,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "anthropic/claude-fable-5",
+      "pricing": {
+        "in": 10.0,
+        "out": 50.0
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-4-5",
+      "pricing": {
+        "in": 5.0,
+        "out": 25.0
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-4-6",
+      "pricing": {
+        "in": 5.0,
+        "out": 25.0
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-5",
+      "pricing": {
+        "in": 5.0,
+        "out": 25.0
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-4-8",
+      "pricing": {
+        "in": 5.0,
+        "out": 25.0
+      }
+    },
+    {
+      "id": "anthropic/claude-sonnet-4-6",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-4-7",
+      "pricing": {
+        "in": 5.0,
+        "out": 25.0
+      }
+    },
+    {
+      "id": "anthropic/claude-sonnet-4-5",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-4-1",
+      "pricing": {
+        "in": 15.0,
+        "out": 75.0
+      }
+    },
+    {
+      "id": "anthropic/claude-haiku-4-5",
+      "pricing": {
+        "in": 1.0,
+        "out": 5.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.2-chat",
+      "pricing": {
+        "in": 1.75,
+        "out": 14.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.2",
+      "pricing": {
+        "in": 1.75,
+        "out": 14.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.1-chat",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "openai/gpt-5-nano",
+      "pricing": {
+        "in": 0.05,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "openai/gpt-5:flex",
+      "pricing": {
+        "in": 0.625,
+        "out": 5.0
+      }
+    },
+    {
+      "id": "openai/gpt-5",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "openai/gpt-5-mini:flex",
+      "pricing": {
+        "in": 0.125,
+        "out": 1.0
+      }
+    },
+    {
+      "id": "openai/o1:high",
+      "pricing": {
+        "in": 15.0,
+        "out": 60.0
+      }
+    },
+    {
+      "id": "openai/gpt-5-mini:priority",
+      "pricing": {
+        "in": 0.45,
+        "out": 3.6
+      }
+    },
+    {
+      "id": "openai/gpt-4o-2024-08-06",
+      "pricing": {
+        "in": 2.5,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "openai/gpt-5:priority",
+      "pricing": {
+        "in": 2.5,
+        "out": 20.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.3-chat",
+      "pricing": {
+        "in": 1.75,
+        "out": 14.0
+      }
+    },
+    {
+      "id": "openai/o3-mini",
+      "pricing": {
+        "in": 1.1,
+        "out": 4.4
+      }
+    },
+    {
+      "id": "openai/gpt-5.6-sol",
+      "pricing": {
+        "in": 5.0,
+        "out": 30.0
+      }
+    },
+    {
+      "id": "openai/o3-mini:medium",
+      "pricing": {
+        "in": 1.1,
+        "out": 4.4
+      }
+    },
+    {
+      "id": "openai/gpt-4.1-mini",
+      "pricing": {
+        "in": 0.4,
+        "out": 1.6
+      }
+    },
+    {
+      "id": "openai/gpt-5.4",
+      "pricing": {
+        "in": 2.5,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "openai/o1",
+      "pricing": {
+        "in": 15.0,
+        "out": 60.0
+      }
+    },
+    {
+      "id": "openai/gpt-4o-2024-05-13",
+      "pricing": {
+        "in": 2.5,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "openai/o4-mini:low",
+      "pricing": {
+        "in": 1.1,
+        "out": 4.4
+      }
+    },
+    {
+      "id": "openai/gpt-5-nano:flex",
+      "pricing": {
+        "in": 0.025,
+        "out": 0.2
+      }
+    },
+    {
+      "id": "openai/o4-mini:flex",
+      "pricing": {
+        "in": 0.55,
+        "out": 2.2
+      }
+    },
+    {
+      "id": "openai/gpt-4.1-nano",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "openai/o4-mini:medium",
+      "pricing": {
+        "in": 1.1,
+        "out": 4.4
+      }
+    },
+    {
+      "id": "openai/o1:medium",
+      "pricing": {
+        "in": 15.0,
+        "out": 60.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.1",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "openai/o3",
+      "pricing": {
+        "in": 2.0,
+        "out": 8.0
+      }
+    },
+    {
+      "id": "openai/o1:low",
+      "pricing": {
+        "in": 15.0,
+        "out": 60.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.4-mini",
+      "pricing": {
+        "in": 0.75,
+        "out": 4.5
+      }
+    },
+    {
+      "id": "openai/gpt-5.4-nano",
+      "pricing": {
+        "in": 0.2,
+        "out": 1.25
+      }
+    },
+    {
+      "id": "openai/o4-mini",
+      "pricing": {
+        "in": 1.1,
+        "out": 4.4
+      }
+    },
+    {
+      "id": "openai/gpt-5.6-terra",
+      "pricing": {
+        "in": 2.0,
+        "out": 12.0
+      }
+    },
+    {
+      "id": "openai/o3:flex",
+      "pricing": {
+        "in": 1.0,
+        "out": 4.0
+      }
+    },
+    {
+      "id": "openai/gpt-4o",
+      "pricing": {
+        "in": 2.5,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "openai/o4-mini:high",
+      "pricing": {
+        "in": 1.1,
+        "out": 4.4
+      }
+    },
+    {
+      "id": "openai/gpt-5.5",
+      "pricing": {
+        "in": 5.0,
+        "out": 30.0
+      }
+    },
+    {
+      "id": "openai/gpt-5-mini",
+      "pricing": {
+        "in": 0.25,
+        "out": 2.0
+      }
+    },
+    {
+      "id": "openai/o3-mini:low",
+      "pricing": {
+        "in": 1.1,
+        "out": 4.4
+      }
+    },
+    {
+      "id": "openai/gpt-4o-2024-11-20",
+      "pricing": {
+        "in": 2.5,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "openai/gpt-4o-mini",
+      "pricing": {
+        "in": 0.15,
+        "out": 0.6
+      }
+    },
+    {
+      "id": "openai/gpt-4.1",
+      "pricing": {
+        "in": 2.0,
+        "out": 8.0
+      }
+    },
+    {
+      "id": "openai/gpt-5.6-luna",
+      "pricing": {
+        "in": 0.2,
+        "out": 1.2
+      }
+    },
+    {
+      "id": "openai/o3-mini:high",
+      "pricing": {
+        "in": 1.1,
+        "out": 4.4
+      }
+    },
+    {
+      "id": "sakana/fugu-ultra",
+      "pricing": {
+        "in": 5.0,
+        "out": 30.0
+      }
+    },
+    {
+      "id": "deepinfra/Qwen/Qwen3.5-35B-A3B",
+      "pricing": {
+        "in": 0.14,
+        "out": 1.0
+      }
+    },
+    {
+      "id": "deepinfra/meta-llama/Llama-3.3-70B-Instruct",
+      "pricing": {
+        "in": 0.23,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "deepinfra/microsoft/phi-4",
+      "pricing": {
+        "in": 0.07,
+        "out": 0.14
+      }
+    },
+    {
+      "id": "deepinfra/Qwen/Qwen3.5-397B-A17B",
+      "pricing": {
+        "in": 0.49,
+        "out": 3.6
+      }
+    },
+    {
+      "id": "deepinfra/deepseek-ai/DeepSeek-V4-Pro",
+      "pricing": {
+        "in": 1.3,
+        "out": 2.6
+      }
+    },
+    {
+      "id": "deepinfra/nvidia/NVIDIA-Nemotron-3-Super-120B-A12B",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.5
+      }
+    },
+    {
+      "id": "deepinfra/zai-org/GLM-4.5-Air",
+      "pricing": {
+        "in": 0.2,
+        "out": 1.1
+      }
+    },
+    {
+      "id": "deepinfra/deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
+      "pricing": {
+        "in": 0.23,
+        "out": 0.69
+      }
+    },
+    {
+      "id": "deepinfra/deepseek-v4-flash-0731",
+      "pricing": {
+        "in": 0.09,
+        "out": 0.18
+      }
+    },
+    {
+      "id": "deepinfra/Qwen/Qwen3.5-2B",
+      "pricing": {
+        "in": 0.02,
+        "out": 0.1
+      }
+    },
+    {
+      "id": "deepinfra/ByteDance/Seed-2.0-code",
+      "pricing": {
+        "in": 0.5,
+        "out": 3.0
+      }
+    },
+    {
+      "id": "deepinfra/Qwen/Qwen3-32B",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.3
+      }
+    },
+    {
+      "id": "deepinfra/google/gemma-4-26B-A4B-it",
+      "pricing": {
+        "in": 0.07,
+        "out": 0.34
+      }
+    },
+    {
+      "id": "deepinfra/XiaomiMiMo/MiMo-V2.5",
+      "pricing": {
+        "in": 0.4,
+        "out": 2.0
+      }
+    },
+    {
+      "id": "deepinfra/nvidia/Nemotron-3-Nano-30B-A3B",
+      "pricing": {
+        "in": 0.05,
+        "out": 0.2
+      }
+    },
+    {
+      "id": "deepinfra/Qwen/Qwen3-Max",
+      "pricing": {
+        "in": 1.2,
+        "out": 6.0
+      }
+    },
+    {
+      "id": "deepinfra/Qwen/Qwen3-Coder-480B-A35B-Instruct",
+      "pricing": {
+        "in": 0.4,
+        "out": 1.6
+      }
+    },
+    {
+      "id": "deepinfra/moonshotai/Kimi-K2.6",
+      "pricing": {
+        "in": 0.75,
+        "out": 3.5
+      }
+    },
+    {
+      "id": "deepinfra/Qwen/Qwen3.5-27B",
+      "pricing": {
+        "in": 0.26,
+        "out": 2.6
+      }
+    },
+    {
+      "id": "deepinfra/zai-org/GLM-4.5",
+      "pricing": {
+        "in": 0.6,
+        "out": 2.2
+      }
+    },
+    {
+      "id": "deepinfra/zai-org/GLM-5.1",
+      "pricing": {
+        "in": 1.05,
+        "out": 3.5
+      }
+    },
+    {
+      "id": "deepinfra/meta-llama/Meta-Llama-3.1-405B-Instruct",
+      "pricing": {
+        "in": 0.8,
+        "out": 0.8
+      }
+    },
+    {
+      "id": "deepinfra/Qwen/Qwen2.5-72B-Instruct",
+      "pricing": {
+        "in": 0.23,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "deepinfra/meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+      "pricing": {
+        "in": 0.02,
+        "out": 0.05
+      }
+    },
+    {
+      "id": "deepinfra/ByteDance/Seed-1.8",
+      "pricing": {
+        "in": 0.25,
+        "out": 2.0
+      }
+    },
+    {
+      "id": "deepinfra/Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo",
+      "pricing": {
+        "in": 0.3,
+        "out": 1.0
+      }
+    },
+    {
+      "id": "deepinfra/deepseek-ai/DeepSeek-V3.1",
+      "pricing": {
+        "in": 0.3,
+        "out": 1.0
+      }
+    },
+    {
+      "id": "deepinfra/Qwen/Qwen3-235B-A22B",
+      "pricing": {
+        "in": 0.2,
+        "out": 0.6
+      }
+    },
+    {
+      "id": "deepinfra/meta-llama/Llama-3.2-90B-Vision-Instruct",
+      "pricing": {
+        "in": 0.35,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "deepinfra/google/gemma-4-31B-it",
+      "pricing": {
+        "in": 0.13,
+        "out": 0.38
+      }
+    },
+    {
+      "id": "deepinfra/Qwen/Qwen3-235B-A22B-Instruct-2507",
+      "pricing": {
+        "in": 0.071,
+        "out": 0.1
+      }
+    },
+    {
+      "id": "deepinfra/meta-llama/Meta-Llama-3.1-70B-Instruct",
+      "pricing": {
+        "in": 0.23,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "deepinfra/Qwen/Qwen2.5-Coder-32B-Instruct",
+      "pricing": {
+        "in": 0.07,
+        "out": 0.16
+      }
+    },
+    {
+      "id": "deepinfra/Qwen/Qwen3-235B-A22B-Thinking-2507",
+      "pricing": {
+        "in": 0.23,
+        "out": 2.3
+      }
+    },
+    {
+      "id": "deepinfra/XiaomiMiMo/MiMo-V2.5-Pro",
+      "pricing": {
+        "in": 1.0,
+        "out": 3.0
+      }
+    },
+    {
+      "id": "deepinfra/deepseek-ai/DeepSeek-V4-Flash",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.2
+      }
+    },
+    {
+      "id": "deepinfra/deepseek-ai/DeepSeek-R1",
+      "pricing": {
+        "in": 0.85,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "deepinfra/ByteDance/Seed-2.0-mini",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "deepinfra/meta-llama/Llama-3.3-70B-Instruct-Turbo",
+      "pricing": {
+        "in": 0.12,
+        "out": 0.3
+      }
+    },
+    {
+      "id": "deepinfra/ByteDance/Seed-2.0-pro",
+      "pricing": {
+        "in": 0.5,
+        "out": 3.0
+      }
+    },
+    {
+      "id": "deepinfra/deepseek-ai/DeepSeek-V3",
+      "pricing": {
+        "in": 0.85,
+        "out": 0.9
+      }
+    },
+    {
+      "id": "deepinfra/Kimi K2.5",
+      "pricing": {
+        "in": 0.45,
+        "out": 2.25
+      }
+    },
+    {
+      "id": "zai/GLM-4.7",
+      "pricing": {
+        "in": 0.6,
+        "out": 2.2
+      }
+    },
+    {
+      "id": "zai/GLM-4.6",
+      "pricing": {
+        "in": 0.6,
+        "out": 2.2
+      }
+    },
+    {
+      "id": "zai/glm-5.1",
+      "pricing": {
+        "in": 1.4,
+        "out": 4.4
+      }
+    },
+    {
+      "id": "zai/glm-5.2",
+      "pricing": {
+        "in": 1.4,
+        "out": 4.4
+      }
+    },
+    {
+      "id": "zai/GLM-4.5",
+      "pricing": {
+        "in": 0.6,
+        "out": 2.2
+      }
+    },
+    {
+      "id": "zai/GLM-5",
+      "pricing": {
+        "in": 1.0,
+        "out": 3.2
+      }
+    },
+    {
+      "id": "nvidia/nemotron-3-nano-30b-a3b",
+      "pricing": null
+    },
+    {
+      "id": "nvidia/nemotron-3-super-120b-a12b",
+      "pricing": null
+    },
+    {
+      "id": "nvidia/nemotron-3.5-content-safety",
+      "pricing": null
+    },
+    {
+      "id": "nvidia/nemotron-3-ultra-550b-a55b",
+      "pricing": null
+    },
+    {
+      "id": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+      "pricing": null
+    },
+    {
+      "id": "azure/gpt-5-mini@eastus2",
+      "pricing": {
+        "in": 0.25,
+        "out": 2.0
+      }
+    },
+    {
+      "id": "azure/gpt-4.1-mini@westus3",
+      "pricing": {
+        "in": 0.4,
+        "out": 1.6
+      }
+    },
+    {
+      "id": "azure/gpt-4.1@swedencentral",
+      "pricing": {
+        "in": 2.2,
+        "out": 8.8
+      }
+    },
+    {
+      "id": "azure/gpt-4.1-nano@francecentral",
+      "pricing": {
+        "in": 0.11,
+        "out": 0.44
+      }
+    },
+    {
+      "id": "azure/gpt-5.6-luna@swedencentral",
+      "pricing": {
+        "in": 1.1,
+        "out": 6.6
+      }
+    },
+    {
+      "id": "azure/o4-mini@francecentral",
+      "pricing": {
+        "in": 1.21,
+        "out": 4.84
+      }
+    },
+    {
+      "id": "azure/gpt-5",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "azure/openai-responses/gpt-4.1-nano@eastus2",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "azure/openai-responses/gpt-4.1-mini@francecentral",
+      "pricing": {
+        "in": 0.44,
+        "out": 1.76
+      }
+    },
+    {
+      "id": "azure/gpt-5@uksouth",
+      "pricing": {
+        "in": 1.375,
+        "out": 11.0
+      }
+    },
+    {
+      "id": "azure/gpt-4o-mini@swedencentral",
+      "pricing": {
+        "in": 0.165,
+        "out": 0.66
+      }
+    },
+    {
+      "id": "azure/openai-responses/gpt-5.6-luna@swedencentral",
+      "pricing": {
+        "in": 1.1,
+        "out": 6.6
+      }
+    },
+    {
+      "id": "azure/openai-responses/gpt-4.1-mini@eastus2",
+      "pricing": {
+        "in": 0.4,
+        "out": 1.6
+      }
+    },
+    {
+      "id": "azure/gpt-5.6-terra@eastus2",
+      "pricing": {
+        "in": 2.5,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "azure/gpt-5.4@eastus2",
+      "pricing": {
+        "in": 2.5,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "azure/gpt-4o-mini@eastus2",
+      "pricing": {
+        "in": 0.15,
+        "out": 0.6
+      }
+    },
+    {
+      "id": "azure/openai-responses/gpt-4.1@francecentral",
+      "pricing": {
+        "in": 2.2,
+        "out": 8.8
+      }
+    },
+    {
+      "id": "azure/openai-responses/gpt-5.4@swedencentral",
+      "pricing": {
+        "in": 2.75,
+        "out": 16.5
+      }
+    },
+    {
+      "id": "azure/gpt-5.4",
+      "pricing": {
+        "in": 2.5,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "azure/openai-responses/gpt-4.1-nano@swedencentral",
+      "pricing": {
+        "in": 0.11,
+        "out": 0.44
+      }
+    },
+    {
+      "id": "azure/openai-responses/gpt-5.6-terra@swedencentral",
+      "pricing": {
+        "in": 2.75,
+        "out": 16.5
+      }
+    },
+    {
+      "id": "azure/gpt-5-mini@uksouth",
+      "pricing": {
+        "in": 0.275,
+        "out": 2.2
+      }
+    },
+    {
+      "id": "azure/gpt-4.1-nano@uksouth",
+      "pricing": {
+        "in": 0.11,
+        "out": 0.44
+      }
+    },
+    {
+      "id": "azure/gpt-4.1-nano@eastus2",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "azure/openai-responses/gpt-4.1-mini@westus3",
+      "pricing": {
+        "in": 0.4,
+        "out": 1.6
+      }
+    },
+    {
+      "id": "azure/gpt-5-mini@francecentral",
+      "pricing": {
+        "in": 0.275,
+        "out": 2.2
+      }
+    },
+    {
+      "id": "azure/openai-responses/gpt-4.1-nano",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "azure/openai-responses/gpt-4.1@westus3",
+      "pricing": {
+        "in": 2.0,
+        "out": 8.0
+      }
+    },
+    {
+      "id": "azure/gpt-5-nano@francecentral",
+      "pricing": {
+        "in": 0.055,
+        "out": 0.44
+      }
+    },
+    {
+      "id": "azure/gpt-5.6-sol@swedencentral",
+      "pricing": {
+        "in": 5.5,
+        "out": 33.0
+      }
+    },
+    {
+      "id": "azure/gpt-5.5@swedencentral",
+      "pricing": {
+        "in": 5.0,
+        "out": 30.0
+      }
+    },
+    {
+      "id": "azure/openai-responses/gpt-4.1@eastus2",
+      "pricing": {
+        "in": 2.0,
+        "out": 8.0
+      }
+    },
+    {
+      "id": "azure/gpt-5.3-codex@eastus2",
+      "pricing": {
+        "in": 1.75,
+        "out": 14.0
+      }
+    },
+    {
+      "id": "azure/gpt-5.2-codex@eastus2",
+      "pricing": {
+        "in": 1.75,
+        "out": 14.0
+      }
+    },
+    {
+      "id": "azure/openai-responses/gpt-4.1",
+      "pricing": {
+        "in": 2.0,
+        "out": 8.0
+      }
+    },
+    {
+      "id": "azure/gpt-4.1-mini@francecentral",
+      "pricing": {
+        "in": 0.44,
+        "out": 1.76
+      }
+    },
+    {
+      "id": "azure/gpt-4.1@francecentral",
+      "pricing": {
+        "in": 2.2,
+        "out": 8.8
+      }
+    },
+    {
+      "id": "azure/gpt-5@eastus2",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "azure/gpt-5-mini@swedencentral",
+      "pricing": {
+        "in": 0.275,
+        "out": 2.2
+      }
+    },
+    {
+      "id": "azure/gpt-4.1",
+      "pricing": {
+        "in": 2.0,
+        "out": 8.0
+      }
+    },
+    {
+      "id": "azure/gpt-4.1-mini@uksouth",
+      "pricing": {
+        "in": 0.44,
+        "out": 1.76
+      }
+    },
+    {
+      "id": "azure/gpt-5-nano@eastus2",
+      "pricing": {
+        "in": 0.05,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "azure/gpt-5.5@eastus2",
+      "pricing": {
+        "in": 5.0,
+        "out": 30.0
+      }
+    },
+    {
+      "id": "azure/gpt-5.6-terra@swedencentral",
+      "pricing": {
+        "in": 2.75,
+        "out": 16.5
+      }
+    },
+    {
+      "id": "azure/gpt-4.1@uksouth",
+      "pricing": {
+        "in": 2.2,
+        "out": 8.8
+      }
+    },
+    {
+      "id": "azure/gpt-4.1@westus3",
+      "pricing": {
+        "in": 2.0,
+        "out": 8.0
+      }
+    },
+    {
+      "id": "azure/gpt-4.1-nano@swedencentral",
+      "pricing": {
+        "in": 0.11,
+        "out": 0.44
+      }
+    },
+    {
+      "id": "azure/openai-responses/gpt-5.6-luna@eastus2",
+      "pricing": {
+        "in": 1.0,
+        "out": 6.0
+      }
+    },
+    {
+      "id": "azure/o4-mini@eastus2",
+      "pricing": {
+        "in": 1.1,
+        "out": 4.4
+      }
+    },
+    {
+      "id": "azure/gpt-5-nano",
+      "pricing": {
+        "in": 0.05,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "azure/openai-responses/gpt-5.4-pro@eastus2",
+      "pricing": {
+        "in": 30.0,
+        "out": 180.0
+      }
+    },
+    {
+      "id": "azure/o4-mini@swedencentral",
+      "pricing": {
+        "in": 1.21,
+        "out": 4.84
+      }
+    },
+    {
+      "id": "azure/openai-responses/gpt-5.6-terra@eastus2",
+      "pricing": {
+        "in": 2.5,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "azure/gpt-4.1-mini@eastus2",
+      "pricing": {
+        "in": 0.4,
+        "out": 1.6
+      }
+    },
+    {
+      "id": "azure/gpt-5@francecentral",
+      "pricing": {
+        "in": 1.375,
+        "out": 11.0
+      }
+    },
+    {
+      "id": "azure/openai-responses/gpt-5.4@eastus2",
+      "pricing": {
+        "in": 2.5,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "azure/gpt-5.6-sol@eastus2",
+      "pricing": {
+        "in": 5.0,
+        "out": 30.0
+      }
+    },
+    {
+      "id": "azure/gpt-5.1@francecentral",
+      "pricing": {
+        "in": 1.375,
+        "out": 11.0
+      }
+    },
+    {
+      "id": "azure/openai-responses/gpt-5.4@francecentral",
+      "pricing": {
+        "in": 2.75,
+        "out": 16.5
+      }
+    },
+    {
+      "id": "azure/gpt-5-nano@swedencentral",
+      "pricing": {
+        "in": 0.055,
+        "out": 0.44
+      }
+    },
+    {
+      "id": "azure/gpt-4.1-nano",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "azure/gpt-5.4-mini@eastus2",
+      "pricing": {
+        "in": 0.75,
+        "out": 4.5
+      }
+    },
+    {
+      "id": "azure/gpt-5-mini",
+      "pricing": {
+        "in": 0.25,
+        "out": 2.0
+      }
+    },
+    {
+      "id": "azure/openai-responses/gpt-5.6-sol@swedencentral",
+      "pricing": {
+        "in": 5.5,
+        "out": 33.0
+      }
+    },
+    {
+      "id": "azure/o4-mini@westus3",
+      "pricing": {
+        "in": 1.1,
+        "out": 4.4
+      }
+    },
+    {
+      "id": "azure/openai-responses/gpt-4.1@swedencentral",
+      "pricing": {
+        "in": 2.2,
+        "out": 8.8
+      }
+    },
+    {
+      "id": "azure/gpt-5.4@francecentral",
+      "pricing": {
+        "in": 2.5,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "azure/openai-responses/gpt-5.6-sol@eastus2",
+      "pricing": {
+        "in": 5.0,
+        "out": 30.0
+      }
+    },
+    {
+      "id": "azure/openai-responses/gpt-4.1-nano@westus3",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "azure/gpt-5.4@swedencentral",
+      "pricing": {
+        "in": 2.5,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "azure/gpt-5.1@swedencentral",
+      "pricing": {
+        "in": 1.375,
+        "out": 11.0
+      }
+    },
+    {
+      "id": "azure/openai-responses/gpt-5.5@swedencentral",
+      "pricing": {
+        "in": 5.0,
+        "out": 30.0
+      }
+    },
+    {
+      "id": "azure/openai-responses/gpt-5.5@eastus2",
+      "pricing": {
+        "in": 5.0,
+        "out": 30.0
+      }
+    },
+    {
+      "id": "azure/gpt-4.1-nano@westus3",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "azure/gpt-5.1@eastus2",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "azure/gpt-4.1@eastus2",
+      "pricing": {
+        "in": 2.0,
+        "out": 8.0
+      }
+    },
+    {
+      "id": "azure/gpt-5.4-mini",
+      "pricing": {
+        "in": 0.75,
+        "out": 4.5
+      }
+    },
+    {
+      "id": "azure/gpt-5.1",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "azure/gpt-5@swedencentral",
+      "pricing": {
+        "in": 1.375,
+        "out": 11.0
+      }
+    },
+    {
+      "id": "azure/gpt-5.2@eastus2",
+      "pricing": {
+        "in": 1.75,
+        "out": 14.0
+      }
+    },
+    {
+      "id": "azure/gpt-5.6-luna@eastus2",
+      "pricing": {
+        "in": 1.0,
+        "out": 6.0
+      }
+    },
+    {
+      "id": "azure/openai-responses/gpt-4.1-nano@francecentral",
+      "pricing": {
+        "in": 0.11,
+        "out": 0.44
+      }
+    },
+    {
+      "id": "xai/grok-4",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "xai/grok-3-mini:high",
+      "pricing": {
+        "in": 0.3,
+        "out": 0.5
+      }
+    },
+    {
+      "id": "xai/grok-4-fast",
+      "pricing": {
+        "in": 0.2,
+        "out": 0.5
+      }
+    },
+    {
+      "id": "xai/grok-4.5",
+      "pricing": {
+        "in": 2.0,
+        "out": 6.0
+      }
+    },
+    {
+      "id": "xai/grok-4.3",
+      "pricing": {
+        "in": 1.25,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "xai/grok-build-0.1",
+      "pricing": {
+        "in": 1.0,
+        "out": 2.0
+      }
+    },
+    {
+      "id": "xai/grok-code-fast-1",
+      "pricing": {
+        "in": 0.2,
+        "out": 1.5
+      }
+    },
+    {
+      "id": "xai/grok-3-mini:low",
+      "pricing": {
+        "in": 0.3,
+        "out": 0.5
+      }
+    },
+    {
+      "id": "xai/grok-4-fast-non-reasoning",
+      "pricing": {
+        "in": 0.2,
+        "out": 0.5
+      }
+    },
+    {
+      "id": "xai/grok-3-mini",
+      "pricing": {
+        "in": 0.3,
+        "out": 0.5
+      }
+    },
+    {
+      "id": "xai/grok-4-1-fast-reasoning",
+      "pricing": {
+        "in": 0.2,
+        "out": 0.5
+      }
+    },
+    {
+      "id": "xai/grok-3",
+      "pricing": {
+        "in": 5.0,
+        "out": 25.0
+      }
+    },
+    {
+      "id": "xai/grok-4.2-beta",
+      "pricing": {
+        "in": 2.0,
+        "out": 6.0
+      }
+    },
+    {
+      "id": "xai/grok-4-1-fast-non-reasoning",
+      "pricing": {
+        "in": 0.2,
+        "out": 0.5
+      }
+    },
+    {
+      "id": "moonshot/kimi-k3",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "moonshot/kimi-k2.6",
+      "pricing": {
+        "in": 0.95,
+        "out": 4.0
+      }
+    },
+    {
+      "id": "moonshot/kimi-k2.7-code",
+      "pricing": {
+        "in": 0.95,
+        "out": 4.0
+      }
+    },
+    {
+      "id": "moonshot/kimi-k2.5",
+      "pricing": {
+        "in": 0.6,
+        "out": 3.0
+      }
+    },
+    {
+      "id": "alibaba/qwen3-coder-flash",
+      "pricing": {
+        "in": 0.3,
+        "out": 1.5
+      }
+    },
+    {
+      "id": "alibaba/qwen3.8-max",
+      "pricing": {
+        "in": 2.0,
+        "out": 6.0
+      }
+    },
+    {
+      "id": "alibaba/qwen3-30b-a3b-instruct-2507",
+      "pricing": {
+        "in": 0.2,
+        "out": 0.8
+      }
+    },
+    {
+      "id": "alibaba/qwen-turbo",
+      "pricing": {
+        "in": 0.05,
+        "out": 0.2
+      }
+    },
+    {
+      "id": "alibaba/qwen3-coder-plus",
+      "pricing": {
+        "in": 1.0,
+        "out": 5.0
+      }
+    },
+    {
+      "id": "alibaba/qwen-plus",
+      "pricing": {
+        "in": 0.4,
+        "out": 1.2
+      }
+    },
+    {
+      "id": "alibaba/qwen3.7-max",
+      "pricing": {
+        "in": 2.5,
+        "out": 7.5
+      }
+    },
+    {
+      "id": "alibaba/qwen3.7-plus",
+      "pricing": {
+        "in": 0.32,
+        "out": 1.28
+      }
+    },
+    {
+      "id": "alibaba/qwen3.6-plus",
+      "pricing": {
+        "in": 0.5,
+        "out": 3.0
+      }
+    },
+    {
+      "id": "alibaba/qwen-max",
+      "pricing": {
+        "in": 1.6,
+        "out": 6.4
+      }
+    },
+    {
+      "id": "alibaba/qwen3-max",
+      "pricing": {
+        "in": 0.861,
+        "out": 3.441
+      }
+    },
+    {
+      "id": "fireworks/nemotron-3-ultra-nvfp4",
+      "pricing": {
+        "in": 0.6,
+        "out": 2.4
+      }
+    },
+    {
+      "id": "fireworks/kimi-k3",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "fireworks/minimax-m2.7",
+      "pricing": {
+        "in": 0.3,
+        "out": 1.2
+      }
+    },
+    {
+      "id": "fireworks/gpt-oss-20b",
+      "pricing": {
+        "in": 0.07,
+        "out": 0.3
+      }
+    },
+    {
+      "id": "fireworks/glm-5.1",
+      "pricing": {
+        "in": 1.4,
+        "out": 4.4
+      }
+    },
+    {
+      "id": "fireworks/minimax-m3",
+      "pricing": {
+        "in": 0.3,
+        "out": 1.2
+      }
+    },
+    {
+      "id": "fireworks/qwen3.7-plus",
+      "pricing": {
+        "in": 0.4,
+        "out": 1.6
+      }
+    },
+    {
+      "id": "fireworks/glm-5.2",
+      "pricing": {
+        "in": 1.4,
+        "out": 4.4
+      }
+    },
+    {
+      "id": "fireworks/deepseek-v4-flash-0731",
+      "pricing": {
+        "in": 0.14,
+        "out": 0.28
+      }
+    },
+    {
+      "id": "fireworks/deepseek-v4-flash",
+      "pricing": {
+        "in": 0.14,
+        "out": 0.28
+      }
+    },
+    {
+      "id": "fireworks/kimi-k2.7-code",
+      "pricing": {
+        "in": 0.95,
+        "out": 4.0
+      }
+    },
+    {
+      "id": "fireworks/kimi-k2.6",
+      "pricing": {
+        "in": 0.95,
+        "out": 4.0
+      }
+    },
+    {
+      "id": "fireworks/gpt-oss-120b",
+      "pricing": {
+        "in": 0.15,
+        "out": 0.6
+      }
+    },
+    {
+      "id": "fireworks/glm-5.2-fast",
+      "pricing": {
+        "in": 2.1,
+        "out": 6.6
+      }
+    },
+    {
+      "id": "fireworks/deepseek-v4-pro",
+      "pricing": {
+        "in": 1.74,
+        "out": 3.48
+      }
+    },
+    {
+      "id": "bedrock/kimi-k2.5@us-west-2",
+      "pricing": {
+        "in": 0.6,
+        "out": 3.0
+      }
+    },
+    {
+      "id": "bedrock/minimax-m2.5@eu-west-1",
+      "pricing": {
+        "in": 0.36,
+        "out": 1.44
+      }
+    },
+    {
+      "id": "bedrock/minimax-m2.5@us-east-2",
+      "pricing": {
+        "in": 0.3,
+        "out": 1.2
+      }
+    },
+    {
+      "id": "bedrock/claude-opus-4-8",
+      "pricing": {
+        "in": 5.0,
+        "out": 25.0
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-4@eu-west-3",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "bedrock/gpt-5.4@us-east-2",
+      "pricing": {
+        "in": 2.75,
+        "out": 16.5
+      }
+    },
+    {
+      "id": "bedrock/claude-opus-4-5@us-east-2",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "bedrock/claude-opus-4-8@ap-northeast-1",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-5@us-east-2",
+      "pricing": {
+        "in": 2.2,
+        "out": 11.0
+      }
+    },
+    {
+      "id": "bedrock/claude-opus-5@eu-north-1",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "bedrock/claude-haiku-4-5@eu-west-3",
+      "pricing": {
+        "in": 1.1,
+        "out": 5.5
+      }
+    },
+    {
+      "id": "bedrock/claude-haiku-4-5@ap-northeast-1",
+      "pricing": {
+        "in": 1.1,
+        "out": 5.5
+      }
+    },
+    {
+      "id": "bedrock/kimi-k2.5@eu-west-2",
+      "pricing": {
+        "in": 0.72,
+        "out": 3.6
+      }
+    },
+    {
+      "id": "bedrock/kimi-k2.5@eu-north-1",
+      "pricing": {
+        "in": 0.72,
+        "out": 3.6
+      }
+    },
+    {
+      "id": "bedrock/claude-opus-4-5@us-west-2",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "bedrock/claude-opus-5@eu-west-1",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-5@us-west-2",
+      "pricing": {
+        "in": 2.2,
+        "out": 11.0
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-4-5",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-4-5@eu-central-1",
+      "pricing": {
+        "in": 3.3,
+        "out": 16.5
+      }
+    },
+    {
+      "id": "bedrock/claude-opus-5",
+      "pricing": {
+        "in": 5.0,
+        "out": 25.0
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-4-6",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-4@eu-north-1",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "bedrock/minimax-m2.5@eu-central-1",
+      "pricing": {
+        "in": 0.36,
+        "out": 1.44
+      }
+    },
+    {
+      "id": "bedrock/claude-opus-4-7@eu-west-1",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "bedrock/claude-opus-4-5@eu-north-1",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "bedrock/claude-opus-4-5",
+      "pricing": {
+        "in": 5.0,
+        "out": 25.0
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-4@eu-west-1",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-4-6@eu-central-1",
+      "pricing": {
+        "in": 3.3,
+        "out": 16.5
+      }
+    },
+    {
+      "id": "bedrock/gpt-5.5@us-east-2",
+      "pricing": {
+        "in": 5.5,
+        "out": 33.0
+      }
+    },
+    {
+      "id": "bedrock/claude-haiku-4-5@eu-north-1",
+      "pricing": {
+        "in": 1.1,
+        "out": 5.5
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-4-6@eu-west-3",
+      "pricing": {
+        "in": 3.3,
+        "out": 16.5
+      }
+    },
+    {
+      "id": "bedrock/minimax-m2.5@eu-south-1",
+      "pricing": {
+        "in": 0.36,
+        "out": 1.44
+      }
+    },
+    {
+      "id": "bedrock/claude-opus-4-5@eu-west-3",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-4@us-east-1",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "bedrock/claude-opus-5@eu-west-3",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-5@eu-west-2",
+      "pricing": {
+        "in": 2.2,
+        "out": 11.0
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-4-5@us-west-2",
+      "pricing": {
+        "in": 3.3,
+        "out": 16.5
+      }
+    },
+    {
+      "id": "bedrock/claude-haiku-4-5@us-east-1",
+      "pricing": {
+        "in": 1.1,
+        "out": 5.5
+      }
+    },
+    {
+      "id": "bedrock/claude-opus-4-8@eu-west-1",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-5",
+      "pricing": {
+        "in": 2.0,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-5@us-east-1",
+      "pricing": {
+        "in": 2.2,
+        "out": 11.0
+      }
+    },
+    {
+      "id": "bedrock/claude-haiku-4-5@eu-west-1",
+      "pricing": {
+        "in": 1.1,
+        "out": 5.5
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-4-6@us-west-2",
+      "pricing": {
+        "in": 3.3,
+        "out": 16.5
+      }
+    },
+    {
+      "id": "bedrock/claude-haiku-4-5",
+      "pricing": {
+        "in": 1.0,
+        "out": 5.0
+      }
+    },
+    {
+      "id": "bedrock/gpt-5.4@us-west-2",
+      "pricing": {
+        "in": 2.75,
+        "out": 16.5
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-4-6@us-east-1",
+      "pricing": {
+        "in": 3.3,
+        "out": 16.5
+      }
+    },
+    {
+      "id": "bedrock/claude-opus-4-7@eu-central-1",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-4-5@eu-north-1",
+      "pricing": {
+        "in": 3.3,
+        "out": 16.5
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-4-5@us-east-2",
+      "pricing": {
+        "in": 3.3,
+        "out": 16.5
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-4",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "bedrock/claude-opus-4-7@eu-north-1",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-4@us-west-2",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "bedrock/minimax-m2.5@us-east-1",
+      "pricing": {
+        "in": 0.3,
+        "out": 1.2
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-5@eu-central-1",
+      "pricing": {
+        "in": 2.2,
+        "out": 11.0
+      }
+    },
+    {
+      "id": "bedrock/gpt-5.5@us-east-1",
+      "pricing": {
+        "in": 5.5,
+        "out": 33.0
+      }
+    },
+    {
+      "id": "bedrock/kimi-k2.5@us-east-1",
+      "pricing": {
+        "in": 0.6,
+        "out": 3.0
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-4@eu-central-1",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "bedrock/claude-opus-4-8@eu-north-1",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-4-5@us-east-1",
+      "pricing": {
+        "in": 3.3,
+        "out": 16.5
+      }
+    },
+    {
+      "id": "bedrock/claude-opus-4-7",
+      "pricing": {
+        "in": 5.0,
+        "out": 25.0
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-4-6@us-east-2",
+      "pricing": {
+        "in": 3.3,
+        "out": 16.5
+      }
+    },
+    {
+      "id": "bedrock/gpt-5.4@us-east-1",
+      "pricing": {
+        "in": 2.75,
+        "out": 16.5
+      }
+    },
+    {
+      "id": "bedrock/claude-opus-5@eu-central-1",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-4-6@ap-northeast-1",
+      "pricing": {
+        "in": 3.3,
+        "out": 16.5
+      }
+    },
+    {
+      "id": "bedrock/claude-opus-4-5@eu-central-1",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-5@eu-north-1",
+      "pricing": {
+        "in": 2.2,
+        "out": 11.0
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-4-6@eu-west-1",
+      "pricing": {
+        "in": 3.3,
+        "out": 16.5
+      }
+    },
+    {
+      "id": "bedrock/claude-fable-5@us-east-1",
+      "pricing": {
+        "in": 11.0,
+        "out": 55.0
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-4@us-east-2",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "bedrock/claude-opus-4-6",
+      "pricing": {
+        "in": 5.0,
+        "out": 25.0
+      }
+    },
+    {
+      "id": "bedrock/claude-opus-5@ap-northeast-1",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "bedrock/kimi-k2.5@us-east-2",
+      "pricing": {
+        "in": 0.6,
+        "out": 3.0
+      }
+    },
+    {
+      "id": "bedrock/claude-opus-4-8@eu-central-1",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-4-5@eu-west-1",
+      "pricing": {
+        "in": 3.3,
+        "out": 16.5
+      }
+    },
+    {
+      "id": "bedrock/claude-haiku-4-5@eu-central-1",
+      "pricing": {
+        "in": 1.1,
+        "out": 5.5
+      }
+    },
+    {
+      "id": "bedrock/claude-opus-4-8@eu-west-3",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-5@ap-southeast-2",
+      "pricing": {
+        "in": 2.2,
+        "out": 11.0
+      }
+    },
+    {
+      "id": "bedrock/claude-opus-4-5@eu-west-1",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-4-5@eu-west-3",
+      "pricing": {
+        "in": 3.3,
+        "out": 16.5
+      }
+    },
+    {
+      "id": "bedrock/minimax-m2.5@us-west-2",
+      "pricing": {
+        "in": 0.3,
+        "out": 1.2
+      }
+    },
+    {
+      "id": "bedrock/claude-opus-4-5@us-east-1",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-4-6@eu-north-1",
+      "pricing": {
+        "in": 3.3,
+        "out": 16.5
+      }
+    },
+    {
+      "id": "bedrock/claude-sonnet-5@eu-west-1",
+      "pricing": {
+        "in": 2.2,
+        "out": 11.0
+      }
+    },
+    {
+      "id": "bedrock/minimax-m2.5@eu-north-1",
+      "pricing": {
+        "in": 0.36,
+        "out": 1.44
+      }
+    },
+    {
+      "id": "bedrock/claude-haiku-4-5@us-west-2",
+      "pricing": {
+        "in": 1.1,
+        "out": 5.5
+      }
+    },
+    {
+      "id": "bedrock/claude-haiku-4-5@us-east-2",
+      "pricing": {
+        "in": 1.1,
+        "out": 5.5
+      }
+    },
+    {
+      "id": "bedrock/claude-opus-4-7@eu-west-3",
+      "pricing": {
+        "in": 5.5,
+        "out": 27.5
+      }
+    },
+    {
+      "id": "groq/openai/gpt-oss-20b",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.5
+      }
+    },
+    {
+      "id": "groq/openai/gpt-oss-120b",
+      "pricing": {
+        "in": 0.15,
+        "out": 0.75
+      }
+    },
+    {
+      "id": "coding/gemini-2.5-pro@us-south1",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "coding/gemini-2.5-pro@us-east1",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "coding/gemini-2.5-flash@us-east5",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "coding/gemini-2.5-flash@us-west1",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "coding/gemini-2.5-pro@europe-north1",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "coding/gemini-2.5-pro@europe-west4",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "coding/gemini-2.5-pro@europe-central2",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "coding/gemini-2.5-flash@us-central1",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "coding/gemini-2.5-flash@europe-north1",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "coding/gemini-2.5-pro@europe-west8",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "coding/gemini-2.5-flash@europe-west1",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "coding/gemini-2.5-pro@us-west1",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "coding/gemini-2.5-flash@europe-west4",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "coding/gemini-2.5-flash@us-south1",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "coding/gemini-2.5-pro",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "coding/gemini-2.5-pro@us-central1",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "coding/gemini-2.5-flash@europe-central2",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "coding/gemini-2.5-flash@europe-west8",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "coding/gemini-2.5-flash",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "coding/gemini-2.5-pro@us-east5",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "coding/gemini-2.5-pro@europe-west1",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "coding/gemini-2.5-flash@us-east1",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "deepseek/deepseek-chat",
+      "pricing": {
+        "in": 0.14,
+        "out": 0.28
+      }
+    },
+    {
+      "id": "deepseek/deepseek-v4-flash",
+      "pricing": {
+        "in": 0.14,
+        "out": 0.28
+      }
+    },
+    {
+      "id": "deepseek/deepseek-v4-pro",
+      "pricing": {
+        "in": 0.435,
+        "out": 0.87
+      }
+    },
+    {
+      "id": "deepseek/deepseek-reasoner",
+      "pricing": {
+        "in": 0.14,
+        "out": 0.28
+      }
+    },
+    {
+      "id": "doubleword/nvidia-nemotron-3-ultra",
+      "pricing": {
+        "in": 0.5,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "doubleword/deepseek-v4-pro:flex",
+      "pricing": {
+        "in": 1.31,
+        "out": 2.75
+      }
+    },
+    {
+      "id": "doubleword/deepseek-v4-flash:flex",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.2
+      }
+    },
+    {
+      "id": "doubleword/glm-5.2:flex",
+      "pricing": {
+        "in": 1.05,
+        "out": 3.3
+      }
+    },
+    {
+      "id": "doubleword/nvidia-nemotron-3-ultra:flex",
+      "pricing": {
+        "in": 0.37,
+        "out": 1.87
+      }
+    },
+    {
+      "id": "doubleword/deepseek-v4-flash",
+      "pricing": {
+        "in": 0.14,
+        "out": 0.28
+      }
+    },
+    {
+      "id": "doubleword/deepseek-v4-pro",
+      "pricing": {
+        "in": 1.74,
+        "out": 3.48
+      }
+    },
+    {
+      "id": "doubleword/glm-5.2",
+      "pricing": {
+        "in": 1.4,
+        "out": 4.4
+      }
+    },
+    {
+      "id": "thinkingmachines/inkling",
+      "pricing": {
+        "in": 1.87,
+        "out": 4.68
+      }
+    },
+    {
+      "id": "thinkingmachines/inkling-256k",
+      "pricing": {
+        "in": 1.87,
+        "out": 4.68
+      }
+    },
+    {
+      "id": "poolside/laguna-m.1",
+      "pricing": null
+    },
+    {
+      "id": "poolside/laguna-xs.2",
+      "pricing": null
+    },
+    {
+      "id": "tensorx/deepseek-v4-flash",
+      "pricing": {
+        "in": 0.15,
+        "out": 0.3
+      }
+    },
+    {
+      "id": "tensorx/deepseek-v4-pro",
+      "pricing": {
+        "in": 1.75,
+        "out": 3.5
+      }
+    },
+    {
+      "id": "tensorx/deepseek-v4-flash-0731",
+      "pricing": {
+        "in": 0.25,
+        "out": 0.3
+      }
+    },
+    {
+      "id": "tensorx/glm-5.2",
+      "pricing": {
+        "in": 1.5,
+        "out": 4.5
+      }
+    },
+    {
+      "id": "tensorx/kimi-k3",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "tensorx/kimi-k2.7-code",
+      "pricing": {
+        "in": 1.25,
+        "out": 4.5
+      }
+    },
+    {
+      "id": "tensorx/minimax-m3",
+      "pricing": {
+        "in": 0.4,
+        "out": 2.0
+      }
+    },
+    {
+      "id": "nebius/nvidia/nemotron-3-super-120b-a12b",
+      "pricing": {
+        "in": 0.3,
+        "out": 0.9
+      }
+    },
+    {
+      "id": "nebius/glm-5.2",
+      "pricing": {
+        "in": 1.4,
+        "out": 4.4
+      }
+    },
+    {
+      "id": "nebius/openai/gpt-oss-120b",
+      "pricing": {
+        "in": 0.15,
+        "out": 0.6
+      }
+    },
+    {
+      "id": "nebius/zai-org/glm-5.1",
+      "pricing": {
+        "in": 1.4,
+        "out": 4.4
+      }
+    },
+    {
+      "id": "nebius/nvidia/nemotron-3-nano-omni",
+      "pricing": {
+        "in": 0.06,
+        "out": 0.24
+      }
+    },
+    {
+      "id": "nebius/google/gemma-3-27b-it",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.3
+      }
+    },
+    {
+      "id": "nebius/nousresearch/hermes-4-70b",
+      "pricing": {
+        "in": 0.13,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "nebius/deepseek-ai/deepseek-v4-pro",
+      "pricing": {
+        "in": 1.75,
+        "out": 3.5
+      }
+    },
+    {
+      "id": "nebius/minimaxi/minimax-m2.5",
+      "pricing": {
+        "in": 0.3,
+        "out": 1.2
+      }
+    },
+    {
+      "id": "nebius/meta-llama/Llama-3.3-70B-Instruct",
+      "pricing": {
+        "in": 0.13,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "nebius/qwen/qwen3-235b-a22b-instruct-2507",
+      "pricing": {
+        "in": 0.2,
+        "out": 0.6
+      }
+    },
+    {
+      "id": "nebius/qwen/qwen3-32b",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.3
+      }
+    },
+    {
+      "id": "nebius/nvidia/nemotron-3-ultra-550b-a55b",
+      "pricing": {
+        "in": 1.0,
+        "out": 3.0
+      }
+    },
+    {
+      "id": "nebius/nousresearch/hermes-4-405b",
+      "pricing": {
+        "in": 1.0,
+        "out": 3.0
+      }
+    },
+    {
+      "id": "nebius/kimi-k3",
+      "pricing": {
+        "in": 3.0,
+        "out": 15.0
+      }
+    },
+    {
+      "id": "nebius/qwen/qwen3.5-397b-a17b",
+      "pricing": {
+        "in": 0.6,
+        "out": 3.6
+      }
+    },
+    {
+      "id": "nebius/qwen/qwen3-30b-a3b-instruct-2507",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.3
+      }
+    },
+    {
+      "id": "nebius/moonshotai/kimi-k2.6",
+      "pricing": {
+        "in": 0.95,
+        "out": 4.0
+      }
+    },
+    {
+      "id": "nebius/qwen/qwen3-next-80b-a3b-thinking",
+      "pricing": {
+        "in": 0.15,
+        "out": 1.2
+      }
+    },
+    {
+      "id": "inceptron/glm-5.2",
+      "pricing": {
+        "in": 1.2,
+        "out": 4.2
+      }
+    },
+    {
+      "id": "inceptron/minimax-m2.5",
+      "pricing": {
+        "in": 0.28,
+        "out": 1.1
+      }
+    },
+    {
+      "id": "inceptron/kimi-k2.7-Code",
+      "pricing": {
+        "in": 0.75,
+        "out": 3.5
+      }
+    },
+    {
+      "id": "inceptron/kimi-k2.6",
+      "pricing": {
+        "in": 0.8,
+        "out": 3.5
+      }
+    },
+    {
+      "id": "novita/qwen/qwen3-235b-a22b-fp8",
+      "pricing": {
+        "in": 0.2,
+        "out": 0.8
+      }
+    },
+    {
+      "id": "novita/deepseek/deepseek-r1-turbo",
+      "pricing": {
+        "in": 0.7,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "novita/qwen/qwen-2.5-72b-instruct",
+      "pricing": {
+        "in": 0.38,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "novita/baichuan/baichuan-m2-32b",
+      "pricing": {
+        "in": 0.07,
+        "out": 0.07
+      }
+    },
+    {
+      "id": "novita/GLM-5",
+      "pricing": {
+        "in": 1.0,
+        "out": 3.2
+      }
+    },
+    {
+      "id": "novita/meta-llama/llama-4-maverick-17b-128e-instruct-fp8",
+      "pricing": {
+        "in": 0.2,
+        "out": 0.85
+      }
+    },
+    {
+      "id": "novita/deepseek/deepseek-v3.2",
+      "pricing": {
+        "in": 0.269,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "novita/deepseek/deepseek-v3-turbo",
+      "pricing": {
+        "in": 0.4,
+        "out": 1.3
+      }
+    },
+    {
+      "id": "novita/deepseek/deepseek_v3",
+      "pricing": {
+        "in": 0.89,
+        "out": 0.89
+      }
+    },
+    {
+      "id": "novita/meta-llama/llama-3.1-8b-instruct",
+      "pricing": {
+        "in": 0.05,
+        "out": 0.05
+      }
+    },
+    {
+      "id": "novita/tencent/hy3",
+      "pricing": {
+        "in": 0.14,
+        "out": 0.58
+      }
+    },
+    {
+      "id": "novita/minimax/minimax-m2.7-highspeed",
+      "pricing": {
+        "in": 0.6,
+        "out": 2.4
+      }
+    },
+    {
+      "id": "novita/sao10k/l31-70b-euryale-v2.2",
+      "pricing": {
+        "in": 1.48,
+        "out": 1.48
+      }
+    },
+    {
+      "id": "novita/sao10k/l3-8b-stheno-v3.2",
+      "pricing": {
+        "in": 0.05,
+        "out": 0.05
+      }
+    },
+    {
+      "id": "novita/mistralai/mistral-nemo",
+      "pricing": {
+        "in": 0.17,
+        "out": 0.17
+      }
+    },
+    {
+      "id": "novita/inclusionai/ring-2.6-1t",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "novita/inclusionai/ling-2.6-flash",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.3
+      }
+    },
+    {
+      "id": "novita/deepseek/deepseek-r1-distill-llama-70b",
+      "pricing": {
+        "in": 0.8,
+        "out": 0.8
+      }
+    },
+    {
+      "id": "novita/deepseek/deepseek-v4-flash",
+      "pricing": {
+        "in": 0.14,
+        "out": 0.28
+      }
+    },
+    {
+      "id": "novita/zai-org/glm-5.1",
+      "pricing": {
+        "in": 1.38,
+        "out": 4.4
+      }
+    },
+    {
+      "id": "novita/zai-org/glm-4.6",
+      "pricing": {
+        "in": 0.6,
+        "out": 2.2
+      }
+    },
+    {
+      "id": "novita/gryphe/mythomax-l2-13b",
+      "pricing": {
+        "in": 0.09,
+        "out": 0.09
+      }
+    },
+    {
+      "id": "novita/kwaipilot/kat-coder-pro",
+      "pricing": {
+        "in": 0.3,
+        "out": 1.2
+      }
+    },
+    {
+      "id": "novita/sao10k/l3-8b-lunaris",
+      "pricing": {
+        "in": 0.05,
+        "out": 0.05
+      }
+    },
+    {
+      "id": "novita/deepseek/deepseek-r1",
+      "pricing": {
+        "in": 4.0,
+        "out": 4.0
+      }
+    },
+    {
+      "id": "novita/stepfun/step-3.7-flash",
+      "pricing": {
+        "in": 0.2,
+        "out": 1.15
+      }
+    },
+    {
+      "id": "novita/meta-llama/llama-3.3-70b-instruct",
+      "pricing": {
+        "in": 0.39,
+        "out": 0.39
+      }
+    },
+    {
+      "id": "novita/deepseek/deepseek-v4-flash-0731",
+      "pricing": {
+        "in": 0.14,
+        "out": 0.28
+      }
+    },
+    {
+      "id": "novita/google/gemma-4-26b-a4b-it",
+      "pricing": {
+        "in": 0.13,
+        "out": 0.4
+      }
+    },
+    {
+      "id": "novita/deepseek/deepseek-v3-0324",
+      "pricing": {
+        "in": 0.4,
+        "out": 1.3
+      }
+    },
+    {
+      "id": "novita/inclusionai/ling-2.6-1t",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "novita/qwen/qwen3.8-max",
+      "pricing": {
+        "in": 2.0,
+        "out": 6.0
+      }
+    },
+    {
+      "id": "novita/qwen/qwen3.5-397b-a17b",
+      "pricing": {
+        "in": 0.6,
+        "out": 3.6
+      }
+    },
+    {
+      "id": "novita/microsoft/wizardlm-2-8x22b",
+      "pricing": {
+        "in": 0.62,
+        "out": 0.62
+      }
+    },
+    {
+      "id": "novita/minimax/minimax-m2.7",
+      "pricing": {
+        "in": 0.3,
+        "out": 1.2
+      }
+    },
+    {
+      "id": "novita/moonshotai/kimi-k2-instruct",
+      "pricing": {
+        "in": 0.57,
+        "out": 2.3
+      }
+    },
+    {
+      "id": "minimaxi/minimax-m2",
+      "pricing": {
+        "in": 0.3,
+        "out": 1.2
+      }
+    },
+    {
+      "id": "minimaxi/minimax-m2.7",
+      "pricing": {
+        "in": 0.3,
+        "out": 1.2
+      }
+    },
+    {
+      "id": "minimaxi/minimax-m2.5",
+      "pricing": {
+        "in": 0.3,
+        "out": 1.2
+      }
+    },
+    {
+      "id": "minimaxi/minimax-m3",
+      "pricing": {
+        "in": 0.3,
+        "out": 1.2
+      }
+    },
+    {
+      "id": "minimaxi/minimax-m2.7-highspeed",
+      "pricing": {
+        "in": 0.6,
+        "out": 2.4
+      }
+    },
+    {
+      "id": "minimaxi/minimax-m2.5-highspeed",
+      "pricing": {
+        "in": 0.6,
+        "out": 2.4
+      }
+    },
+    {
+      "id": "xiaomi/mimo-v2.5",
+      "pricing": {
+        "in": 0.14,
+        "out": 0.28
+      }
+    },
+    {
+      "id": "xiaomi/mimo-v2.5-pro",
+      "pricing": {
+        "in": 0.435,
+        "out": 0.87
+      }
+    },
+    {
+      "id": "google/gemma-4-31b-it",
+      "pricing": null
+    },
+    {
+      "id": "google/gemini-2.5-pro",
+      "pricing": {
+        "in": 1.25,
+        "out": 10.0
+      }
+    },
+    {
+      "id": "google/gemini-3.1-pro-preview",
+      "pricing": {
+        "in": 2.0,
+        "out": 12.0
+      }
+    },
+    {
+      "id": "google/gemini-3-pro-preview",
+      "pricing": {
+        "in": 2.0,
+        "out": 12.0
+      }
+    },
+    {
+      "id": "google/gemini-3-flash-preview",
+      "pricing": {
+        "in": 0.5,
+        "out": 3.0
+      }
+    },
+    {
+      "id": "google/gemini-2.5-flash",
+      "pricing": {
+        "in": 0.3,
+        "out": 2.5
+      }
+    },
+    {
+      "id": "google/gemini-3.1-flash-image",
+      "pricing": {
+        "in": 0.5,
+        "out": 2.0
+      }
+    },
+    {
+      "id": "google/gemini-3.1-flash-lite",
+      "pricing": {
+        "in": 0.25,
+        "out": 1.5
+      }
+    },
+    {
+      "id": "google/gemini-2.5-flash-lite",
+      "pricing": {
+        "in": 0.1,
+        "out": 0.4
+      }
+    }
+  ],
+  "tokenlab_detail": {
+    "gpt-5.4": {
+      "in": 0.75,
+      "out": 4.5
+    },
+    "gpt-5": {
+      "in": 1.25,
+      "out": 10.0
+    },
+    "gpt-5-mini": {
+      "in": 0.25,
+      "out": 2.0
+    },
+    "gpt-4o": {
+      "in": 2.5,
+      "out": 10.0
+    },
+    "gpt-4o-mini": {
+      "in": 0.15,
+      "out": 0.6
+    },
+    "gpt-5.6-terra": {
+      "in": 0.6,
+      "out": 3.6
+    },
+    "gpt-5.6-luna": {
+      "in": 0.06,
+      "out": 0.36
+    },
+    "claude-opus-5": {
+      "in": 3.25,
+      "out": 16.25
+    },
+    "claude-sonnet-5": {
+      "in": 1.95,
+      "out": 9.75
+    },
+    "claude-haiku-4.5": {
+      "in": 0.65,
+      "out": 3.25
+    },
+    "gemini-3.6-flash": {
+      "in": 0.75,
+      "out": 3.75
+    },
+    "gemini-3.1-pro-preview": {
+      "in": 1.0,
+      "out": 6.0
+    },
+    "grok-4.20": {
+      "in": 0.625,
+      "out": 1.25
+    },
+    "kimi-k3": {
+      "in": 3.0,
+      "out": 15.0
+    },
+    "kimi-k2.7": {
+      "in": 0.95,
+      "out": 4.0
+    },
+    "deepseek-v4-flash": {
+      "in": 0.14705882,
+      "out": 0.29411765
+    },
+    "deepseek-v4-pro": {
+      "in": 0.44117647,
+      "out": 0.88235294
+    },
+    "mimo-pro": {
+      "in": 0.435,
+      "out": 0.87
+    },
+    "minimax-m3": {
+      "in": 0.3,
+      "out": 1.2
+    },
+    "qwen3-max": {
+      "in": 0.35294117,
+      "out": 1.4117647
+    },
+    "glm-5.2": {
+      "in": 1.17647059,
+      "out": 4.11764706
+    },
+    "qwen3.5-122b": {
+      "in": 0.0882353,
+      "out": 0.70588236
+    },
+    "hunyuan-3": {
+      "in": 0.14705882,
+      "out": 0.58823529
+    },
+    "mimo-v2.5-pro": {
+      "in": 0.435,
+      "out": 0.87
+    },
+    "qwen3.7-max": {
+      "in": 0.35294117,
+      "out": 1.4117647
+    },
+    "hy3": {
+      "in": 0.14705882,
+      "out": 0.58823529
+    },
+    "kimi-k2.7-code": {
+      "in": 0.95,
+      "out": 4.0
+    }
+  }
+}

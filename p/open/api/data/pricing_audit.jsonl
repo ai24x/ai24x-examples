@@ -1,0 +1,2 @@
+{"ts": "2026-08-03T08:07:46.007975+00:00", "actor": "smoke", "changes": [{"id": "vip-gpt5-mini", "old": null, "new": {"billing_mult": 5, "cost_in": 0.2, "cost_out": 1.6}}]}
+{"ts": "2026-08-03T08:07:46.700504+00:00", "actor": "smoke", "changes": [{"id": "vip-gpt5-mini", "old": {"billing_mult": 5, "cost_in": 0.2, "cost_out": 1.6}, "new": {"billing_mult": 5, "cost_in": 0.25, "cost_out": 2.0}}]}

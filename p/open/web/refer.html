@@ -1,0 +1,172 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- [AI24X 2026-08-15] Google Ads 暂停 (国际支付无合规渠道，保留待恢复，勿删）：
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18385419220"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', {
+    'ad_storage': 'denied',
+    'ad_user_data': 'denied',
+    'ad_personalization': 'denied',
+    'analytics_storage': 'denied',
+    'personalization_storage': 'denied',
+    'functionality_storage': 'granted',
+    'security_storage': 'granted',
+    'wait_for_update': 500
+  });
+  gtag('js', new Date());
+
+  gtag('config', 'AW-18385419220');
+</script>
+<script src="config/consent.js?v=20260814a"></script>
+-->
+
+  <meta charset="UTF-8" />
+  <script>
+/* i18n-boot inline v20260808c: language pre-read + FOUC guard (no network dependency) */
+(function () {
+  var KEY = "ai24x_lang";
+  try {
+    var raw = String(localStorage.getItem(KEY) || "").trim().toLowerCase().replace(/_/g, "-");
+    var lang = raw.split("-")[0] || "";
+    if (!lang) { lang = "en"; localStorage.setItem(KEY, lang); }
+    document.documentElement.setAttribute("data-ai24x-lang", lang);
+    document.documentElement.classList.add("i18n-pending");
+    if (!document.getElementById("ai24x-i18n-pending")) {
+      var st = document.createElement("style");
+      st.id = "ai24x-i18n-pending";
+      st.textContent = "html.i18n-pending body{visibility:hidden!important}";
+      (document.head || document.documentElement).appendChild(st);
+    }
+    setTimeout(function () { document.documentElement.classList.remove("i18n-pending"); }, 4000);
+  } catch (e) {}
+})();
+</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Referrals · Invite builders | AI24X</title>
+  <meta name="description" content="Invite developers to AI24X. Both sides earn tokens; share your link for Global models credits." />
+  <link rel="canonical" href="https://www.ai24x.com/refer.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Referrals · Invite builders | AI24X" />
+  <meta property="og:description" content="Invite developers to AI24X. Both sides earn tokens; share your link for Global models credits." />
+  <meta property="og:url" content="https://www.ai24x.com/refer.html" />
+  <meta property="og:image" content="https://www.ai24x.com/img/og-share.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://www.ai24x.com/img/og-share.png" />
+  <link rel="stylesheet" href="css/base.css?v=20260812e" />
+  <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260812e" data-base="css/themes/" />
+</head>
+<body data-page="refer" class="theme-blue">
+  <header class="site-header" id="site-header"></header>
+  <main class="page-main">
+    <section class="hero hero-surface section-tight">
+      <div class="container">
+        <h1 data-i18n="page.refer.title">邀请回馈</h1>
+        <p class="lead" data-i18n="page.refer.sub">注册双方各送 5000 token；被邀请人首次充值后再按一级 10%、二级 2% 以 token 入账（可用于 API 调用，暂不支持提现）。</p>
+      </div>
+    </section>
+    <section class="section">
+      <div class="container grid-3">
+        <div class="card">
+          <h3 class="mt-0" data-i18n="page.refer.code">我的邀请码</h3>
+          <p class="stat-value" id="ref-code" style="font-size:1.6rem;">--</p>
+          <p class="sub" id="ref-link" style="word-break:break-all;font-size:13px;font-weight:600;">--</p>
+          <div class="card-actions">
+            <button type="button" class="btn btn-primary" id="btn-copy-ref" data-i18n="page.refer.copy">复制码</button>
+            <button type="button" class="btn" id="btn-copy-link" data-i18n="page.refer.copyLink">复制短链</button>
+            <button type="button" class="btn" id="btn-copy-share" data-i18n="page.refer.copyShare">复制分享文案</button>
+            <a class="btn" href="login.html?next=refer.html" data-i18n="page.refer.login">登录查看</a>
+          </div>
+        </div>
+        <div class="card">
+          <h3 class="mt-0" data-i18n="page.refer.l1">一级邀请</h3>
+          <p class="stat-value" id="ref-l1">--</p>
+          <p class="sub" data-i18n="page.refer.l1sub">直接邀请人数</p>
+        </div>
+        <div class="card">
+          <h3 class="mt-0" data-i18n="page.refer.earn">已获赠 token</h3>
+          <p class="stat-value" id="ref-earn">--</p>
+          <p class="sub"><span data-i18n="page.refer.pending">含待结算：</span><span id="ref-pending">--</span></p>
+        </div>
+      </div>
+      <div class="container mt-2">
+        <div id="ref-msg"></div>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer" id="site-footer"></footer>
+  <script src="config/locales.js?v=20260816y"></script>
+  <script src="js/api.js?v=20260816y"></script>
+  <script src="js/invite.js?v=20260731a"></script>
+<script src="js/utm.js?v=20260802a"></script>
+  <script src="js/i18n.js?v=20260812g"></script>
+  <script src="js/shell.js?v=20260816y"></script>
+  <script src="js/app.js?v=20260808b"></script>
+  <script src="js/support-widget.js?v=20260816y"></script>
+  <script>
+    function t(key, fallback) {
+      if (window.AI24X_I18N && AI24X_I18N.t) {
+        var v = AI24X_I18N.t(key);
+        if (v && v !== key) return v;
+      }
+      return fallback || key;
+    }
+    function inviteLink(code) {
+      if (window.AI24X_INVITE) return AI24X_INVITE.shortLink(code);
+      return location.origin + "/r/" + encodeURIComponent(String(code || "").trim());
+    }
+    function copyText(txt, okMsg) {
+      if (!txt || txt === "--") return;
+      var done = function () {
+        var msg = document.getElementById("ref-msg");
+        msg.innerHTML = '<div class="alert alert-success">' + (okMsg || t("page.refer.copied", "Copied")) + "</div>";
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(done, function () {});
+      }
+    }
+    document.addEventListener("DOMContentLoaded", function () {
+      var msg = document.getElementById("ref-msg");
+      document.getElementById("btn-copy-ref").addEventListener("click", function () {
+        copyText(document.getElementById("ref-code").textContent || "", t("page.refer.copiedCode", "Invite code copied"));
+      });
+      document.getElementById("btn-copy-link").addEventListener("click", function () {
+        var code = document.getElementById("ref-code").textContent || "";
+        if (!code || code === "--") return;
+        copyText(inviteLink(code), t("page.refer.copiedLink", "Short invite link copied"));
+      });
+      document.getElementById("btn-copy-share").addEventListener("click", function () {
+        var code = document.getElementById("ref-code").textContent || "";
+        if (!code || code === "--") return;
+        var link = inviteLink(code);
+        var zh = AI24X_I18N && AI24X_I18N.isZh && AI24X_I18N.isZh();
+        var text = zh
+          ? ("AI24X：一个 Key 调用中国强模（Kimi/MiMo/MiniMax/GLM/DeepSeek），国际可用 PayPal，flash 约 $0.35/百万。注册双方有赠送：\n" + link)
+          : ("AI24X — one key for Global models (Kimi/MiMo/MiniMax/GLM/DeepSeek). PayPal USD. Flash ~$0.35/M.\nBoth sides get signup tokens:\n" + link);
+        copyText(text, t("page.refer.copiedShare", "Share text copied"));
+      });
+      if (!AI24X_API.getAuthToken()) {
+        msg.innerHTML = '<div class="alert alert-error">' + t("page.refer.needLogin", "Please log in to view referral data.") + "</div>";
+        return;
+      }
+      AI24X_API.referralsSummary()
+        .then(function (r) {
+          var code = r.code || "--";
+          document.getElementById("ref-code").textContent = code;
+          document.getElementById("ref-link").textContent = code !== "--" ? inviteLink(code) : "--";
+          document.getElementById("ref-l1").textContent = String(r.invitees_l1 != null ? r.invitees_l1 : 0);
+          document.getElementById("ref-earn").textContent = String(r.earned_tokens != null ? r.earned_tokens : 0);
+          document.getElementById("ref-pending").textContent = String(r.pending_count != null ? r.pending_count : 0);
+        })
+        .catch(function (e) {
+          msg.innerHTML = '<div class="alert alert-error">' + (e.message || t("page.refer.loadFail", "Failed to load")) + "</div>";
+        });
+    });
+  </script>
+</body>
+</html>

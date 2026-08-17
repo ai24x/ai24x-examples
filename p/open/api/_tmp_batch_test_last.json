@@ -1,0 +1,42 @@
+[
+  {
+    "name": "T11_login_throttle_9th_429",
+    "ok": true,
+    "detail": "first8=[401, 401, 401, 401, 401, 401, 401, 401] 9th=429"
+  },
+  {
+    "name": "T10_otp_5_fail_lock",
+    "ok": true,
+    "detail": "5xFalse locked=False"
+  },
+  {
+    "name": "P2_otp_resend_clears_lock",
+    "ok": true,
+    "detail": "after_resend_correct_code=True (lock cleared by resend = known P2)"
+  },
+  {
+    "name": "T8_client_ip",
+    "ok": true,
+    "detail": "xri=198.51.100.7 xff_right=9.9.9.9 fallback=203.0.113.9"
+  },
+  {
+    "name": "T4_mock_prod_disable",
+    "ok": true,
+    "detail": "dev=True prod=False"
+  },
+  {
+    "name": "T2_precheck_429_and_clamp",
+    "ok": true,
+    "detail": "need=1024 rejected429=True bal_after=0 ledger=-100"
+  },
+  {
+    "name": "T3_dual_ledger_deduct",
+    "ok": true,
+    "detail": "tokens 222222222->222221222 usd 10000->9955"
+  },
+  {
+    "name": "T1_concurrent_webhook_single_credit",
+    "ok": true,
+    "detail": "http=[200, 200] status=paid txid=SMOKE_T1_B_dacda566 bal=40000000"
+  }
+]

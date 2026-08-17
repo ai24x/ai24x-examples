@@ -1,0 +1,35 @@
+{
+  "plans": {
+    "token_pack_10k": {
+      "price_usd": 0.02,
+      "price_fen": 14,
+      "enabled": true
+    },
+    "token_pack_100k": {
+      "price_usd": 0.2,
+      "price_fen": 144,
+      "enabled": true
+    },
+    "token_pack_mid": {
+      "price_usd": 0.49,
+      "price_fen": 353,
+      "enabled": true
+    },
+    "token_vip_month": {
+      "price_usd": 0.15,
+      "price_fen": 108,
+      "enabled": true
+    },
+    "token_vip_month_50w": {
+      "price_usd": 0.99,
+      "price_fen": 713,
+      "enabled": true
+    },
+    "token_value_pack": {
+      "price_usd": 0.099,
+      "price_fen": 71,
+      "enabled": true
+    }
+  },
+  "updated_note": "local_test_x100_small"
+}

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- [AI24X 2026-08-15] Google Ads 暂停 (国际支付无合规渠道，保留待恢复，勿删）：
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18385419220"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', {
+    'ad_storage': 'denied',
+    'ad_user_data': 'denied',
+    'ad_personalization': 'denied',
+    'analytics_storage': 'denied',
+    'personalization_storage': 'denied',
+    'functionality_storage': 'granted',
+    'security_storage': 'granted',
+    'wait_for_update': 500
+  });
+  gtag('js', new Date());
+
+  gtag('config', 'AW-18385419220');
+</script>
+<script src="config/consent.js?v=20260814a"></script>
+-->
+
+  <meta charset="utf-8" />
+  <script>
+/* i18n-boot inline v20260808c: language pre-read + FOUC guard (no network dependency) */
+(function () {
+  var KEY = "ai24x_lang";
+  try {
+    var raw = String(localStorage.getItem(KEY) || "").trim().toLowerCase().replace(/_/g, "-");
+    var lang = raw.split("-")[0] || "";
+    if (!lang) { lang = "en"; localStorage.setItem(KEY, lang); }
+    document.documentElement.setAttribute("data-ai24x-lang", lang);
+    document.documentElement.classList.add("i18n-pending");
+    if (!document.getElementById("ai24x-i18n-pending")) {
+      var st = document.createElement("style");
+      st.id = "ai24x-i18n-pending";
+      st.textContent = "html.i18n-pending body{visibility:hidden!important}";
+      (document.head || document.documentElement).appendChild(st);
+    }
+    setTimeout(function () { document.documentElement.classList.remove("i18n-pending"); }, 4000);
+  } catch (e) {}
+})();
+</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Privacy Policy · AI24X</title>
+  <link rel="canonical" href="https://www.ai24x.com/privacy.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Privacy Policy · AI24X" />
+  <meta property="og:description" content="AI24X privacy policy." />
+  <meta property="og:url" content="https://www.ai24x.com/privacy.html" />
+  <meta property="og:image" content="https://www.ai24x.com/img/og-share.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://www.ai24x.com/img/og-share.png" />
+  <meta name="description" content="AI24X privacy policy." />
+<link rel="stylesheet" href="css/base.css?v=20260812e" />
+</head>
+<body>
+  <main class="wrap" style="max-width:720px;margin:40px auto;padding:0 16px;">
+    <p><a href="index.html">← AI24X</a></p>
+    <h1>Privacy Policy</h1>
+    <p class="sub">Last updated: 2026-08-07</p>
+    <p>AI24X (“we”) provides API access and related developer tools. This page explains what we collect and how we use it.</p>
+    <h2>Data we collect</h2>
+    <ul>
+      <li>Account data: email (and optional phone), password hash, session tokens</li>
+      <li>Billing: plan purchases, payment references (WeChat / Alipay / PayPal), wallet balances</li>
+      <li>Usage: API request metadata needed for metering and abuse prevention</li>
+    </ul>
+    <h2>How we use data</h2>
+    <ul>
+      <li>Provide and secure the service</li>
+      <li>Process payments and credit token balances</li>
+      <li>Prevent fraud and enforce rate limits</li>
+    </ul>
+    <h2>Processors</h2>
+    <p>Payment processors (e.g. WeChat Pay, Alipay, PayPal, Creem) receive only what is required to complete a transaction. Upstream model providers receive prompts you submit via the API.</p>
+    <h2>Contact</h2>
+    <p>Questions: <a href="mailto:support@ai24x.com">support@ai24x.com</a></p>
+  </main>
+</body>
+</html>
