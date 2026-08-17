@@ -30,7 +30,102 @@ from .providers import (_RateGate, fetch_em_suggest, fetch_tx_kline, market_data
 from .ths_fuyao import fetch_special as ths_fetch_special
 
 EM_HOSTS = ["https://push2delay.eastmoney.com", "https://push2.eastmoney.com"]
-EM_LIST_FIELDS = "f12,f14,f2,f3,f5,f6,f8,f9,f10,f20,f21,f23,f62,f100"
+EM_LIST_FIELDS = "f12,f14,f2,f3,f5,f6,f8,f9,f10,f20,f21,f23,f62,f100,f128"
+
+# ---- 涨跌停阈值（按市场统一；coarse 排除线 = 涨停阈值 + 1 容差，避免误删涨停当天） ----
+_ZT_TH_BJ = 29.5     # 北证 30cm
+_ZT_TH_KC = 19.5     # 科创 20cm / 创业 20cm
+_ZT_TH_HS = 9.5      # 沪深主板 10cm
+_DN_TH_BJ = -29.5
+_DN_TH_KC = -19.5
+_DN_TH_HS = -9.5
+
+
+def _is_bj_code6(code6: str) -> bool:
+    return str(code6 or "").zfill(6).startswith(("43", "83", "87", "88", "92"))
+
+
+def _is_kc_code6(code6: str) -> bool:
+    return str(code6 or "").zfill(6).startswith(("30", "68"))
+
+
+def _zt_threshold(code6: str) -> float:
+    """涨停判定阈值：北证 29.5 / 科创·创业 19.5 / 主板 9.5。"""
+    if _is_bj_code6(code6):
+        return _ZT_TH_BJ
+    if _is_kc_code6(code6):
+        return _ZT_TH_KC
+    return _ZT_TH_HS
+
+
+def _down_threshold(code6: str) -> float:
+    """跌停判定阈值（负值）：北证 -29.5 / 科创·创业 -19.5 / 主板 -9.5。"""
+    if _is_bj_code6(code6):
+        return _DN_TH_BJ
+    if _is_kc_code6(code6):
+        return _DN_TH_KC
+    return _DN_TH_HS
+
+
+_WARN_RISK_CODES = {
+    "close_weak", "odds_low", "chg5_high", "chg10_high", "chg20_high", "chg60_high",
+    "surge_stale", "turn_low", "turn_high", "bias_over", "amp_high", "vol_sell",
+}
+
+
+def _risk_codes_of(risks: list[str]) -> list[str]:
+    """把 analyze() 的展示用风险文案映射为结构化风险码（供评分/利空排查机器判断）。"""
+    codes: list[str] = []
+    for r in risks:
+        if r == "收盘偏弱(承接不足)":
+            codes.append("close_weak")
+        elif r.startswith("赔率不足"):
+            codes.append("odds_low")
+        elif r == "板后破位(跌破板日低点/板后长阴)":
+            codes.append("pb_break")
+        elif r == "首板失败(跌破涨停价)":
+            codes.append("zt_fail")
+        elif r.startswith("5日涨幅偏大"):
+            codes.append("chg5_high")
+        elif r.startswith("10日涨幅偏大"):
+            codes.append("chg10_high")
+        elif r.startswith("20日涨幅过大"):
+            codes.append("chg20_high")
+        elif r.startswith("60日涨幅过大"):
+            codes.append("chg60_high")
+        elif r == "长上影滞涨":
+            codes.append("upper_shadow")
+        elif r == "量价背离(3日缩量上涨)":
+            codes.append("ljdv_div")
+        elif r == "跌破MA20且趋势下拐":
+            codes.append("ma20_down")
+        elif r == "放量长阴":
+            codes.append("big_red_vol")
+        elif r == "持续缩量阴跌":
+            codes.append("vol_shrink")
+        elif r == "无量新高":
+            codes.append("high_weak")
+        elif r == "贴前高缩量":
+            codes.append("at_high_weak")
+        elif r.startswith("乖离偏大"):
+            codes.append("bias_over")
+        elif r == "20日振幅过低(死水)":
+            codes.append("amp_low")
+        elif r == "20日振幅过大(偏疯)":
+            codes.append("amp_high")
+        elif r == "跌放量出货嫌疑":
+            codes.append("vol_sell")
+        elif r == "异动过时(>7日未再启动)":
+            codes.append("surge_stale")
+        elif r == "底部异动后未确认企稳":
+            codes.append("surge_unconf")
+        elif r.startswith("换手过低"):
+            codes.append("turn_low")
+        elif r.startswith("换手过高"):
+            codes.append("turn_high")
+        else:
+            codes.append("other")
+    return codes
 _UA = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -73,7 +168,7 @@ DEFAULT_CFG: dict[str, Any] = {
     "scoreMin": 46.0,
     # 全市场（沪深京）参数：板块先行两阶段筛选
     "mcapMinAll": 15.0, "mcapMaxAll": 200.0, "amountMinAll": 8000.0,
-    "hotBoards": 16, "memberCap": 800, "allBackupN": 4,
+    "hotBoards": 16, "memberCap": 800, "allBackupN": 3,
     # 全市场强势股补池：板块先行之外的漏网捕捉（5日涨幅/主力净流入双榜）
     "globalTopN": 200, "globalChg5Min": 3.0, "globalChg5Max": 25.0,
     # 主线龙头层（板块确认后放宽市值/位置约束）与补涨卡位层
@@ -937,7 +1032,8 @@ def coarse(row: dict[str, Any], cfg: dict[str, Any], hot: dict[str, Any]) -> dic
     turn = _num(row.get("f8"))
     if not (float(cfg.get("turnMin") or 0) <= turn <= float(cfg.get("turnMax") or 100)):
         return None
-    if _num(row.get("f3")) > 20:  # 当日已大涨直接排除
+    # 当日涨幅超过涨停上限的异常暴涨（如无涨跌停限制新股）才排除；涨停当天纳入候选
+    if _num(row.get("f3")) > _zt_threshold(code) + 1.0:
         return None
     ind = str(row.get("f100") or "").strip()
     hn = board_hit(ind, hot)
@@ -948,6 +1044,11 @@ def coarse(row: dict[str, Any], cfg: dict[str, Any], hot: dict[str, Any]) -> dic
             k = k.strip()
             if k and k in name:
                 kh.append(k)
+    concepts: list[str] = []
+    for _c in re.split(r"[;,，、]", str(row.get("f128") or "")):
+        _c = _c.strip()
+        if _c and _c != "-" and _c not in concepts:
+            concepts.append(_c)
     return {
         "code": code, "name": name,
         "price": _num(row.get("f2")), "pct": _num(row.get("f3")),
@@ -956,6 +1057,7 @@ def coarse(row: dict[str, Any], cfg: dict[str, Any], hot: dict[str, Any]) -> dic
         "pb": _num(row.get("f23")), "volRatio": _num(row.get("f10")),
         "fund": _num(row.get("f62")), "fundIn": _num(row.get("f62")), "ind": ind, "indCnt": 0,
         "hot": bool(hn), "hotName": hn, "kwHits": kh,
+        "concepts": concepts[:12],
         "A": None, "snap": None, "final": None, "revHit": False, "revName": "",
     }
 
@@ -1067,7 +1169,7 @@ async def fetch_board_members(
                 params = {
                     "pn": pn, "pz": 200, "po": 1, "np": 1, "fltt": 2, "invt": 2,
                     "fid": "f6", "fs": "b:" + bk,
-                    "fields": "f12,f14,f2,f3,f6,f8,f9,f10,f20,f21,f23,f62,f100,f164",
+                    "fields": "f12,f14,f2,f3,f6,f8,f9,f10,f20,f21,f23,f62,f100,f164,f128",
                 }
                 try:
                     j = await _em_get_json("/api/qt/clist/get", params) or {}
@@ -1087,7 +1189,7 @@ async def fetch_board_members(
                     j2 = await _em_get_json("/api/qt/clist/get", {
                         "pn": 1, "pz": 200, "po": 1, "np": 1, "fltt": 2, "invt": 2,
                         "fid": "f3", "fs": "b:" + bk,
-                        "fields": "f12,f14,f2,f3,f6,f8,f9,f10,f20,f21,f23,f62,f100,f164",
+                        "fields": "f12,f14,f2,f3,f6,f8,f9,f10,f20,f21,f23,f62,f100,f164,f128",
                     }) or {}
                 except Exception:
                     j2 = {}
@@ -1116,7 +1218,7 @@ async def fetch_market_strong_rows(cfg: dict[str, Any]) -> list[dict[str, Any]]:
     捕捉“底部刚异动但不在热门板块成分”的漏网标的（板块先行的补充通道）。
     5日涨幅限定在 [globalChg5Min, globalChg5Max] 窗口，主力净流入榜只留净流入为正者。"""
     fs = "m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048"
-    fields = "f12,f14,f2,f3,f6,f8,f9,f10,f20,f21,f23,f62,f100,f164,f109"
+    fields = "f12,f14,f2,f3,f6,f8,f9,f10,f20,f21,f23,f62,f100,f164,f109,f128"
     n = int(cfg.get("globalTopN") or 200)
     c5min = float(cfg.get("globalChg5Min") or 3.0)
     c5max = float(cfg.get("globalChg5Max") or 25.0)
@@ -1396,15 +1498,15 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
                     break
             if pulled:
                 break
+    _c6 = str(cand.get("code") or "").zfill(6)
     if pulled:
         patterns["pullback"] = 1
-        if pull_surge_pct >= (20.0 if market in ("bj", "bj_all") else 9.5):
+        if pull_surge_pct >= _zt_threshold(_c6) - 0.5:
             patterns["ztPullback"] = 1  # 涨停级回踩：最强低吸形态
     # 板后回踩企稳（2周内一个板 + 回踩数日企稳、未破位，最贴合“二波低吸”偏好）
     pb2_ok = False
     pb2_days = 0
-    _c6 = str(cand.get("code") or "").zfill(6)
-    _zt2 = 19.5 if _c6.startswith(("30", "68")) else (29.5 if _c6.startswith(("8", "43", "92")) else 9.5)
+    _zt2 = _zt_threshold(_c6)
     pb2_bi = -1
     for _i in range(max(1, n - 11), last):
         _pi = (c[_i] / c[_i - 1] - 1) * 100 if c[_i - 1] > 0 else 0.0
@@ -1485,6 +1587,22 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
     spread = (max(ma5, ma10, ma20) - min(ma5, ma10, ma20)) / ma20 * 100 if ma20 else 0.0
     if spread <= 2.5 and ma5 > ma10 and ma10 > ma20 and hist[last] > 0:
         patterns["tightBurst"] = 1
+    # MACD 首根红柱（底部金叉第一根红柱 + 量能确认：右侧启动强信号）
+    fr_idx = last - gc_days + 1
+    fr_vol_ok = False
+    if 0 < fr_idx < n:
+        _fr_base = sum(v[max(0, fr_idx - 20):fr_idx]) / max(1, fr_idx)
+        fr_vol_ok = _fr_base > 0 and v[fr_idx] >= 1.2 * _fr_base
+    macd_first_red = bool(
+        1 <= gc_days <= 3
+        and fr_idx >= 1
+        and hist[fr_idx - 1] <= 0
+        and pos <= 0.50
+        and (fr_vol_ok or vol5v20 >= 0.9)
+        and cl >= ma5 * 0.97
+    )
+    if macd_first_red:
+        patterns["macdFirstRed"] = 1
     # 未大幅拉升 + 刚启动约束
     if chg5 <= float(cfg["max5d"]) and chg10 <= float(cfg["max10d"]):
         patterns["notHot"] = 1
@@ -1496,19 +1614,27 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
         risks.append(f"20日涨幅过大{chg20:.1f}%")
     if chg60 > float(cfg["max60d"]):
         risks.append(f"60日涨幅过大{chg60:.1f}%")
-    has_zt = False
+    # 近期涨停（按市场阈值统一）：近 10 日内的涨停日
+    _c6u = _c6 if _c6 else str(cand.get("code") or "").zfill(6)
+    zt_th = _zt_threshold(_c6u)
     zt_day = -1
-    zt_th = 25.0 if market in ("bj", "bj_all") else 9.5
-    for i in range(n - 10, last + 1):
+    for i in range(max(1, n - 10), last + 1):
         p0 = (c[i] / c[i - 1] - 1) * 100 if c[i - 1] > 0 else 0.0
-        if p0 >= zt_th:
-            has_zt = True
+        if p0 >= zt_th - 0.5:
             zt_day = i
-    if has_zt and not (pulled or pb2_ok):
-        if zt_day >= 0 and cl < c[zt_day] * 0.985:
-            risks.append("首板失败(跌破涨停价)")
-        else:
-            risks.append("10日内有涨停/近涨停")
+    # 首板右侧上拐：近 5 日内有涨停 → 回调 ≥1 日、不破涨停日低点/MA5、今日放量上拐
+    first_board_ok = False
+    if zt_day >= 0 and 1 <= (last - zt_day) <= 5:
+        _nb_low = l[last] >= l[zt_day] * 0.97
+        _nb_ma5 = cl >= ma5 * 0.97
+        _up_turn = cl > h[last - 1] or (cl >= ma5 and v[last] >= 1.2 * v20)
+        if _nb_low and _nb_ma5 and _up_turn:
+            first_board_ok = True
+    if first_board_ok and not pb2_ok:
+        patterns["firstBoardRight"] = 1
+    # 涨停后破位才是风险；“刚涨停”不再当作减分项
+    if zt_day >= 0 and not (pulled or pb2_ok) and cl < c[zt_day] * 0.985:
+        risks.append("首板失败(跌破涨停价)")
     rr = (h[last] - c[last]) / ((h[last] - l[last]) or 1)
     if (h[last] - cl) / cl >= 0.05 and c[last] < o[last] and rr >= 0.5:
         risks.append("长上影滞涨")
@@ -1588,60 +1714,76 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
         scarcity += 3
         scar_tags.append("流通盘稀缺" + f"\u00b7流通占比{float_ratio * 100:.0f}%")
     sc += scarcity
-    # ② 驱动（0-35）：启动证据 + 资金 + 量能 + 热度
-    if patterns.get("ztPullback"):
-        sc += 8
-    if patterns.get("pullback"):
-        sc += 12
-    if patterns.get("pullback2"):
-        sc += 10  # 板后回踩（首板回调企稳）：二波低吸最贴合偏好，权重对齐异动回踩
-    if patterns.get("breakout"):
-        sc += 6  # 二波突破：右侧确认，量能放大突破板日/平台高点
-    if patterns.get("surgeStart"):
-        sc += 10
-    if patterns.get("smallYang"):
-        sc += 3  # 吸筹辅助确认（不单独构成启动证据）
-    if cfg.get("useFund") and fund > 0:
-        sc += 5
-    if cfg.get("useFund") and _num(cand.get("fund5")) > 0:
-        sc += 3
-    if cand.get("hot"):
-        sc += 4
-    if kw_hits:
-        sc += 2
+    # ② 启动证据（0-25 封顶）：最强 1 个 + 次强 1 个，不重复累加
+    _START_W = {
+        "ztPullback": 13,      # 涨停级回踩：最强低吸
+        "pullback2": 12,       # 板后回踩企稳
+        "surgeStart": 10,      # 底部放量异动
+        "firstBoardRight": 10, # 首板右侧上拐
+        "pullback": 9,         # 异动回踩
+        "breakout": 8,         # 二波突破
+        "macdFirstRed": 8,     # MACD 首红
+    }
+    _start_vals = sorted((w for k, w in _START_W.items() if patterns.get(k)), reverse=True)
+    sc += min(25, sum(_start_vals[:2]))
+    # ③ 承接与量价（0-15 封顶）
+    q = 0.0
     if vol_health == 1:
-        sc += 3
+        q += 3
     if fund_streak:
-        sc += 2
+        q += 2
+    if patterns.get("smallYang"):
+        q += 2  # 吸筹辅助确认（不单独构成启动证据）
     if 1.1 <= vol5v20 <= 2.5:
-        sc += 6
+        q += 6
     elif 0.8 <= vol5v20 < 1.1:
-        sc += 3
+        q += 3
     elif 2.5 < vol5v20 <= 4:
-        sc += 2
+        q += 2
     if 1.1 <= vol_ratio <= 3:
-        sc += 3
+        q += 3
     elif vol_ratio > 0.6:
-        sc += 1
-    # ③ 时机（0-23）：走多确认 + 均线 + MACD + 动能 + 蓄势
+        q += 1
+    if close_pos >= 0.60:
+        q += 3
+    if odds_use >= 2.0:
+        q += 3
+    elif odds_use >= 1.5:
+        q += 1
+    elif 0 < odds_use < 1.2:
+        q -= 2
+    sc += max(-2, min(15, q))
+    # ④ 资金与主线（0-15 封顶）
+    m = 0.0
+    if cfg.get("useFund") and fund > 0:
+        m += 5
+    if cfg.get("useFund") and _num(cand.get("fund5")) > 0:
+        m += 3
+    if cand.get("hot"):
+        m += 4
+    if kw_hits:
+        m += 2
+    sc += min(15, m)
+    # ⑤ 时机与均线（0-15 封顶）
+    t = 0.0
     if patterns.get("baseUp"):
-        sc += 6
+        t += 6
     if patterns.get("tightBurst"):
-        sc += 4
+        t += 4
     if hist[last] > 0:
-        sc += 2
+        t += 2
     gc = False
     for i in range(last - 4, last + 1):
         if dif[i] > dea[i] and dif[i - 1] <= dea[i - 1]:
             gc = True
     if gc:
-        sc += 2
+        t += 2
     if ma_bull:
-        sc += 6
+        t += 6
     elif ma_bull3:
-        sc += 4
+        t += 4
     if ma20 > ma20_3:
-        sc += 2
+        t += 2
     # 主线龙头确认：资金回流 + 短期趋势走强 + MACD 不弱
     leader_ok = bool(
         fund > 0 and chg5 > 0 and cl > ma10
@@ -1650,55 +1792,46 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
     )
     if leader_ok:
         patterns["leaderOk"] = 1
-        sc += 4
+        t += 3
     if 55 <= rsi14 <= 72:
-        sc += 2
+        t += 2
     elif 40 <= rsi14 < 55:
-        sc += 1
+        t += 1
     if 4 <= atr_pct <= 10:
-        sc += 2
+        t += 2
     elif 1.5 <= atr_pct < 4:
-        sc += 1
+        t += 1
     if -3 <= bias6 <= 8:
-        sc += 1
+        t += 1
     if plateau_days >= 20:
-        sc += 2
+        t += 2
     elif plateau_days and plateau_days < 5:
-        sc -= 2
-    # 收盘承接 + 赔率
-    if close_pos >= 0.60:
-        sc += 3
-    if odds_use >= 2.0:
-        sc += 3
-    elif odds_use >= 1.5:
-        sc += 1
-    elif 0 < odds_use < 1.2:
-        sc -= 2
-    # 换手率（0-4）
+        t -= 2
+    # 换手率
     turnover = _num(cand.get("turnover"))
     if 3 <= turnover <= 12:
-        sc += 4
+        t += 4
     elif 12 < turnover <= float(cfg["turnMax"]):
-        sc += 2
+        t += 2
     elif turnover < float(cfg["turnMin"]):
         risks.append(("换手" + "过低" + f"{turnover:.1f}%"))
     else:
         risks.append(("换手" + "过高" + f"{turnover:.1f}%"))
-    # ④ 风险扣分（hard×8 / warn×3）
-    warn_risk_hints = ("5日涨幅偏大", "10日涨幅偏大", "20日涨幅过大", "60日涨幅过大",
-                       "赔率不足", "收盘偏弱(承接不足)", "异动过时(>7日未再启动)",
-                       "换手过低", "换手过高", "乖离偏大", "20日振幅过大(偏疯)", "跌放量出货嫌疑")
+    sc += max(-2, min(15, t))
+    # ⑥ 风险扣分（hard×8 / warn×3，结构化风险码）
+    risk_codes = _risk_codes_of(risks)
     n_hard_risk = n_warn_risk = 0
-    for _r in risks:
-        if _r == "10日内有涨停/近涨停" or _r.startswith(warn_risk_hints):
+    for _rc in risk_codes:
+        if _rc in _WARN_RISK_CODES:
             n_warn_risk += 1
         else:
             n_hard_risk += 1
     sc -= n_hard_risk * 8 + n_warn_risk * 3
-    # ⑤ 无启动确认（小阳不算）：异动/回踩/走多一个都没有 → 强扣
-    if not (patterns.get("pullback") or patterns.get("pullback2") or patterns.get("surgeStart") or patterns.get("baseUp")):
+    # ⑦ 无启动确认（小阳不算）：异动/回踩/首板/走多一个都没有 → 强扣
+    if not (patterns.get("pullback") or patterns.get("pullback2") or patterns.get("surgeStart")
+            or patterns.get("baseUp") or patterns.get("macdFirstRed") or patterns.get("firstBoardRight")):
         sc -= 6
-    # ⑥ 动量修正
+    # ⑧ 动量修正
     if bias_over:
         sc -= 4
     if amp20 and amp20 > 35:
@@ -1710,9 +1843,10 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
         "pos": pos, "chg1": chg1, "chg5": chg5, "chg10": chg10,
         "chg20": chg20, "chg60": chg60, "volRatio": vol_ratio,
         "vol5v20": vol5v20, "upDays": up_days,
-        "patterns": patterns, "risks": risks,
+        "patterns": patterns, "risks": risks, "riskCodes": risk_codes,
         "score": max(0, min(100, int(round(sc)))),
         "surgeDaysAgo": surge_days_ago, "pullback2Days": pb2_days, "spread": spread,
+        "macdFirstRedDays": gc_days - 1,
         "scarcity": scarcity, "scarcityTags": scar_tags, "floatRatio": round(float_ratio, 4),
         "levels": {"s1": s1, "s2": s2, "p1": p1, "p2": p2, "stop": stop},
         "closePos": round(close_pos, 2), "odds1": round(odds1, 2), "odds2": round(odds2, 2), "oddsUse": round(odds_use, 2),
@@ -1763,9 +1897,10 @@ def bearish_check(cand: dict[str, Any], a: dict[str, Any]) -> dict[str, Any]:
         warn("跌破MA20且趋势下拐")
     if (a.get("chg1") or 0) <= -7 and v[last] >= 1.5 * v20:
         hard("放量长阴")
-    for i in range(n - 10, last + 1):
+    _dn_th = _down_threshold(str(cand.get("code") or ""))
+    for i in range(max(1, n - 10), last + 1):
         p0 = (c[i] / c[i - 1] - 1) * 100 if c[i - 1] > 0 else 0.0
-        if p0 <= -25:
+        if p0 <= _dn_th + 0.5:
             hard("10日内出现跌停/接近跌停")
             break
     if last >= 3:
@@ -1790,13 +1925,19 @@ def bearish_check(cand: dict[str, Any], a: dict[str, Any]) -> dict[str, Any]:
         warn("5日涨幅过热")
     if mcap < 8e8:
         warn("市值偏小(流动性/退市风险)")
-    for r in (a.get("risks") or []):
-        if str(r).startswith("板后破位"):
-            hard("板后破位(跌破板日低点/板后长阴)")
-            break
-        if r in ("长上影滞涨", "量价背离(3日缩量上涨)", "底部异动后未确认企稳", "10日内有涨停/近涨停"):
-            warn(r)
-            break
+    _rc = set(a.get("riskCodes") or _risk_codes_of(a.get("risks") or []))
+    if "pb_break" in _rc:
+        hard("板后破位(跌破板日低点/板后长阴)")
+    elif any(x in _rc for x in ("upper_shadow", "ljdv_div", "surge_unconf")):
+        _warn_text = {
+            "upper_shadow": "长上影滞涨",
+            "ljdv_div": "量价背离(3日缩量上涨)",
+            "surge_unconf": "底部异动后未确认企稳",
+        }
+        for _code in ("upper_shadow", "ljdv_div", "surge_unconf"):
+            if _code in _rc:
+                warn(_warn_text[_code])
+                break
     level = "hard" if any(it["level"] == "hard" for it in items) else ("warn" if items else "pass")
     return {"level": level, "items": items}
 
@@ -2387,21 +2528,32 @@ async def _market_env(variant: str, priority_override: str, allow_paid: bool) ->
 # ---------------- 主线反推 ----------------
 
 def reverse_mainline(cands: list[dict[str, Any]], hot: dict[str, Any]) -> list[dict[str, Any]]:
-    """先看标的异动 → 反推热门主线板块（按行业聚合异动标的数 / 成交额）。"""
+    """先看标的异动 → 反推热门主线题材（优先按 f128 概念聚合，行业名兜底）。
+
+    题材主线（PCB/液冷/算力/机器人等）比东财行业名更能反映资金主线；
+    北证 f128 概念字段大量为 "-"，用 f100 行业名兜底，避免题材主线漏判。
+    """
     buckets: dict[str, dict[str, Any]] = {}
     for c in cands:
         a = c.get("A") or {}
         p = a.get("patterns") or {}
-        if not (p.get("surgeStart") or p.get("pullback") or p.get("pullback2") or p.get("smallYang") or p.get("baseUp")):
+        if not (p.get("surgeStart") or p.get("pullback") or p.get("pullback2")
+                or p.get("smallYang") or p.get("baseUp") or p.get("firstBoardRight")):
             continue
-        ind = str(c.get("ind") or "").strip()
-        if not ind or ind == "-":
-            continue
-        b = buckets.setdefault(ind, {"name": ind, "count": 0, "amount": 0.0, "stocks": []})
-        b["count"] += 1
-        b["amount"] += _num(c.get("amount"))
-        if len(b["stocks"]) < 8 and c.get("name"):
-            b["stocks"].append(str(c["name"]))
+        names = [str(x).strip() for x in (c.get("concepts") or [])
+                 if str(x).strip() and str(x).strip() != "-"]
+        if not names:
+            ind = str(c.get("ind") or "").strip()
+            if ind and ind != "-":
+                names = [ind]
+            else:
+                continue
+        for nm in names:
+            b = buckets.setdefault(nm, {"name": nm, "count": 0, "amount": 0.0, "stocks": []})
+            b["count"] += 1
+            b["amount"] += _num(c.get("amount"))
+            if len(b["stocks"]) < 8 and c.get("name"):
+                b["stocks"].append(str(c["name"]))
     items = sorted(buckets.values(), key=lambda x: (-x["count"], -x["amount"]))
     for it in items:
         hn = board_hit(it["name"], hot)
@@ -2414,7 +2566,7 @@ def reverse_mainline(cands: list[dict[str, Any]], hot: dict[str, Any]) -> list[d
 
 # ---------------- 板块排行（王者 1 + 辅线 2 + 备选 N） ----------------
 
-def _board_rank(mainlines: list[dict[str, Any]], hot_boards: list[dict[str, Any]], keep_backup: int = 4) -> list[dict[str, Any]]:
+def _board_rank(mainlines: list[dict[str, Any]], hot_boards: list[dict[str, Any]], keep_backup: int = 3) -> list[dict[str, Any]]:
     """把主线反推结果排成「王者 1 + 辅线 2 + 备选 N」的板块排行。
 
     - 王者/辅线来自底部异动主线反推（异动家数优先，板块榜确认次之，成交额兜底）；
@@ -2498,7 +2650,39 @@ async def _fetch_mainline_funds(secids: list[str]) -> dict[str, dict[str, Any]]:
     return out
 
 
-def _board_rank_funds(boards: list[dict[str, Any]], keep_backup: int = 4, mainline_names: list[str] | None = None) -> list[dict[str, Any]]:
+async def _fetch_stock_quotes(codes: list[str]) -> dict[str, dict[str, Any]]:
+    """批量拉个股实时行情（东财 ulist.np，按代码聚合 f3/f6/f8/f20/f62/f164）。
+    用于主线板块静态龙头兜底：板块 secid 解不出/上游成分拉取失败时，代表股也要有真实涨跌。"""
+    codes = [str(c or "").strip() for c in (codes or []) if re.fullmatch(r"\d{6}", str(c or ""))]
+    if not codes:
+        return {}
+    out: dict[str, dict[str, Any]] = {}
+    try:
+        j = await _em_get_json("/api/qt/ulist.np/get", {
+            "secids": ",".join(_stock_secid(c) for c in codes),
+            "fields": "f12,f14,f2,f3,f6,f8,f20,f62,f164",
+            "fltt": 2, "invt": 2,
+        }) or {}
+    except Exception:
+        return out
+    for r in ((j.get("data") or {}).get("diff") or []):
+        code = str(r.get("f12") or "")
+        if not re.fullmatch(r"\d{6}", code):
+            continue
+        out[code] = {
+            "code": code,
+            "name": str(r.get("f14") or ""),
+            "pct": _num(r.get("f3")) if r.get("f3") is not None else None,
+            "amount": _num(r.get("f6")),
+            "mcap": _num(r.get("f20")),
+            "turnover": _num(r.get("f8")),
+            "fund": _num(r.get("f62")),
+            "fund5": _num(r.get("f164")),
+        }
+    return out
+
+
+def _board_rank_funds(boards: list[dict[str, Any]], keep_backup: int = 3, mainline_names: list[str] | None = None) -> list[dict[str, Any]]:
     """全市场板块排行：复盘主线板块优先（资金+技术双确认），其余按 5日主力净流入排序，王者 1 + 辅线 2 + 备选 N。"""
     items = sorted((boards or []), key=lambda x: -float(x.get("f164") or 0))
     _ml: set[str] = set()
@@ -2834,6 +3018,7 @@ def _pick_out(c: dict[str, Any]) -> dict[str, Any]:
         "chg20": (a or {}).get("chg20"), "chg60": (a or {}).get("chg60"),
         "surgeDaysAgo": (a or {}).get("surgeDaysAgo"),
         "pullback2Days": (a or {}).get("pullback2Days"),
+        "macdFirstRedDays": (a or {}).get("macdFirstRedDays"),
         "tail": c.get("tail") or {},
         "lhb": c.get("lhb"),
         "patterns": (a or {}).get("patterns") or {}, "risks": (a or {}).get("risks") or [],
@@ -2876,11 +3061,65 @@ def _runner_out(c: dict[str, Any]) -> dict[str, Any]:
         "final": c.get("final"), "score": (a or {}).get("score"),
         "pos": (a or {}).get("pos"), "chg5": (a or {}).get("chg5"),
         "chg20": (a or {}).get("chg20"),
+        "patterns": (a or {}).get("patterns") or {},
+        "surgeDaysAgo": (a or {}).get("surgeDaysAgo"),
+        "pullback2Days": (a or {}).get("pullback2Days"),
+        "macdFirstRedDays": (a or {}).get("macdFirstRedDays"),
         "risks": risks[:3] or ["排名靠后"],
         "bearish_level": bearish.get("level") or "pass",
         "revName": c.get("revName") or "", "hotName": (a or {}).get("hotName") or "",
         "mainHit": bool(c.get("mainHit")), "mainName": c.get("mainName") or "",
     }
+
+
+def _macd_red_out(c: dict[str, Any]) -> dict[str, Any]:
+    """MACD 量能首红专栏条目：底部刚收红 / 1-3 根红柱 + 量能确认的右侧启动标的。"""
+    a = c.get("A") or {}
+    risks = list((a or {}).get("risks") or [])
+    snap = c.get("snap") if isinstance(c.get("snap"), dict) else None
+    if snap and snap.get("risks"):
+        risks = list(snap["risks"]) + risks
+    bearish = c.get("bearish") if isinstance(c.get("bearish"), dict) else {"level": "pass", "items": []}
+    btxt = [it.get("text") for it in (bearish.get("items") or [])]
+    if btxt:
+        risks = btxt + risks
+    lv = (a or {}).get("levels") or {}
+    return {
+        "code": c.get("code"), "name": c.get("name"), "price": c.get("price"),
+        "pct": c.get("pct"), "mcap": c.get("mcap"), "amount": c.get("amount"),
+        "turnover": _num(c.get("turnover")),
+        "final": c.get("final"), "score": (a or {}).get("score"),
+        "pos": (a or {}).get("pos"), "chg5": (a or {}).get("chg5"),
+        "chg20": (a or {}).get("chg20"),
+        "macdFirstRedDays": (a or {}).get("macdFirstRedDays"),
+        "gcDays": (a or {}).get("gc_days"),
+        "patterns": (a or {}).get("patterns") or {},
+        "mainHit": bool(c.get("mainHit")), "mainName": c.get("mainName") or "",
+        "obsHit": bool(c.get("obsHit")), "obsName": c.get("obsName") or "",
+        "revHit": bool(c.get("revHit")), "revName": c.get("revName") or "",
+        "risks": risks[:3] or [],
+        "bearish_level": bearish.get("level") or "pass",
+        "levels": {"s1": lv.get("s1"), "s2": lv.get("s2"), "p1": lv.get("p1"), "p2": lv.get("p2"), "stop": lv.get("stop")},
+        "tail": c.get("tail") or {},
+        "fund": c.get("fundIn"),
+    }
+
+
+def macd_view(out: dict[str, Any]) -> dict[str, Any]:
+    """从沪深京全市场扫描结果提取「MACD 量能首红」专栏（复用 all 扫描与当日缓存）。"""
+    o: dict[str, Any] = {
+        "ok": True, "cached": bool(out.get("cached")), "date": out.get("date"), "asof": out.get("asof"),
+        "market_code": "macd",
+        "total": out.get("total"), "scanned": out.get("scanned"), "fine": out.get("fine"),
+        "generated_ts": out.get("generated_ts"), "elapsed_s": out.get("elapsed_s"),
+        "market": out.get("market"), "regime": out.get("regime"), "style": out.get("style"),
+        "mainlines": out.get("mainlines") or [],
+        "macd_reds": out.get("macd_reds") or [],
+    }
+    for _k in ("stale", "stale_from", "off_market", "intraday", "refresh_locked", "vip_required", "today_missing"):
+        if _k in out:
+            o[_k] = out[_k]
+    return o
 
 
 def _leader_bearish_adjust(c: dict[str, Any], a: dict[str, Any]) -> bool:
@@ -2952,6 +3191,12 @@ _MAINLINE_BOARD_MAP: dict[str, list[str]] = {
     "通信光模块CPO": ["90.BK1128", "90.BK1136"],
     "煤炭": ["90.BK0437", "90.BK1250", "90.BK1493", "90.BK1494"],
     "半导体": ["90.BK1036", "90.BK1325"],
+}
+
+# 主线名 → 真实东财板块 secid 轻量兜底（仅用于排行/链接展示，不改变候选池与龙头来源）：
+# 东财无同名板块时（如 AI服务器算力），映射到成分最贴近的真实板块，保证排行可点击。
+_MAINLINE_SECID_FALLBACK: dict[str, str] = {
+    "AI服务器算力": "90.BK1134",
 }
 
 
@@ -3448,7 +3693,13 @@ async def run_scan(
                 for _mn2 in _dml_names:
                     if _mn2 in _have:
                         continue
-                    _sec2 = (_MAINLINE_BOARD_MAP.get(_mn2) or [""])[0] if _MAINLINE_BOARD_MAP.get(_mn2) else await _resolve_board_secid(_mn2)
+                    _sec2 = ""
+                    try:
+                        _sec2 = (_MAINLINE_BOARD_MAP.get(_mn2) or [""])[0] if _MAINLINE_BOARD_MAP.get(_mn2) else await _resolve_board_secid(_mn2)
+                        if not _sec2:
+                            _sec2 = _MAINLINE_SECID_FALLBACK.get(_mn2) or ""
+                    except Exception:
+                        _sec2 = _MAINLINE_SECID_FALLBACK.get(_mn2) or ""
                     if _sec2:
                         _miss_secs.append((_mn2, _sec2))
                 if _miss_secs:
@@ -3465,22 +3716,35 @@ async def run_scan(
                 _secid = ""
                 try:
                     _secid = (_MAINLINE_BOARD_MAP.get(_mn) or [""])[0] if _MAINLINE_BOARD_MAP.get(_mn) else await _resolve_board_secid(_mn)
+                    if not _secid:
+                        _secid = _MAINLINE_SECID_FALLBACK.get(_mn) or ""
                 except Exception:
-                    _secid = ""
-                # 龙头带真实行情：优先复用主线成分拉取时已获得的 leaders，否则单板块补拉（1~2 次 clist）
+                    _secid = _MAINLINE_SECID_FALLBACK.get(_mn) or ""
+                # 龙头带真实行情：优先复用主线成分拉取时已获得的 leaders；
+                # 板块 secid 解不出的主线用复盘静态代表（SECTORS），仅补实时涨跌，不混入真实板块 top3
                 _ml_lds = (_ml_leaders or {}).get(_mn) or []
-                if not _ml_lds and _secid:
-                    try:
-                        _r2, _ld2 = await fetch_board_members([{"name": _mn, "secid": _secid}], cap=20)
-                        _ml_lds = _ld2.get(_mn) or []
-                    except Exception:
-                        _ml_lds = []
                 if not _ml_lds:
                     _ml_lds = [
                         {"code": _c, "name": _n, "pct": None, "amount": 0.0,
                          "mcap": 0.0, "turnover": 0.0, "fund": 0.0, "fund5": 0.0, "_row": {}}
                         for _c, _n in _members[:3]
                     ]
+                    # 静态龙头补实时行情：板块 secid 解不出/上游失败时，代表股也要有真实涨跌
+                    try:
+                        _qmap = await _fetch_stock_quotes([_ld.get("code") or "" for _ld in _ml_lds])
+                        for _ld in _ml_lds:
+                            _q = _qmap.get(str(_ld.get("code") or ""))
+                            if not _q:
+                                continue
+                            _ld["pct"] = _q.get("pct")
+                            _ld["amount"] = _q.get("amount") or 0.0
+                            _ld["mcap"] = _q.get("mcap") or 0.0
+                            _ld["turnover"] = _q.get("turnover") or 0.0
+                            _ld["fund"] = _q.get("fund") or 0.0
+                            _ld["fund5"] = _q.get("fund5") or 0.0
+                            _ld["_row"] = _q
+                    except Exception:
+                        pass
                 # 主线资金：按别名从资金池匹配真实板块（如 创新药CXO→创新药），匹配不到保持 0
                 _src = None
                 _aliases = _SBA.get(_mn) or [_mn]
@@ -3525,22 +3789,31 @@ async def run_scan(
 
     def _fine_pass(cands: list[dict[str, Any]], relaxed: bool) -> list[dict[str, Any]]:
         out: list[dict[str, Any]] = []
-        _sm = float(cfg.get("scoreMin") or 50) - (2 if relaxed else 0)
+        # 风格门槛调参：电风扇抬高（只做回踩低吸）、震荡保守、趋势放宽、防守沿用现有
+        _style_delta = {"fan": 4, "chop": 2, "trend": -2, "defensive": 0}.get(style_mode, 0)
+        _sm = float(cfg.get("scoreMin") or 50) - (2 if relaxed else 0) + _style_delta
         _pos_max = (float(cfg["posMax"]) + (5 if relaxed else 0)) / 100
         _chg5_max = float(cfg["max5d"]) + (5 if relaxed else 0)
         _turn_min = 1.5 if relaxed else float(cfg["turnMin"])
-        _sm_plain = float(cfg.get("scoreMin") or 50) + (8 if relaxed else 12)
-        _sm_base = float(cfg.get("scoreMin") or 50) + (0 if relaxed else 2)
+        _sm_plain = float(cfg.get("scoreMin") or 50) + (8 if relaxed else 12) + _style_delta
+        _sm_base = float(cfg.get("scoreMin") or 50) + (0 if relaxed else 2) + _style_delta
         for c in cands:
             if (c.get("bearish") or {}).get("level") == "hard":
                 continue
             a = c["A"]
+            p = a.get("patterns") or {}
+            # 电风扇：只做主线/次主线 + 回踩低吸类形态，不追纯热度
+            if style_mode == "fan" and not (
+                c.get("mainHit") or c.get("obsHit") or c.get("revHit")
+                or p.get("pullback") or p.get("ztPullback") or p.get("pullback2") or p.get("firstBoardRight")
+            ):
+                continue
             if str(c.get("ind") or "") in rev_names:
                 c["revHit"] = True
                 c["revName"] = str(c.get("ind") or "")
-            p = a.get("patterns") or {}
             _sv = float(a.get("score") or 0)
-            if p.get("surgeStart") or p.get("pullback") or p.get("ztPullback") or p.get("pullback2"):
+            if p.get("surgeStart") or p.get("pullback") or p.get("ztPullback") or p.get("pullback2") \
+                    or p.get("macdFirstRed") or p.get("firstBoardRight"):
                 must_start = _sv >= _sm - 4
             elif p.get("baseUp") or p.get("tightBurst"):
                 must_start = _sv >= _sm_base
@@ -3979,6 +4252,30 @@ async def run_scan(
     asof = picks[0].get("lastDate") if picks else (today or "")
     pick_out = [_pick_out(c) for c in picks]
     run_out = [_runner_out(c) for c in runners]
+    # MACD 量能首红专栏：全候选池收集“底部刚收红/1-3根红柱+量能确认”标的，
+    # 剔除硬伤，刚收红优先 + 评分排序，最多 8 只（独立于主推/备选）
+    macd_red_pool: list[dict[str, Any]] = []
+    _mr_seen: set[str] = set()
+    for _c in analyzed:
+        _cp = (_c.get("A") or {}).get("patterns") or {}
+        if not _cp.get("macdFirstRed"):
+            continue
+        _ccode = str(_c.get("code") or "")
+        if not _ccode or _ccode in _mr_seen:
+            continue
+        _mr_seen.add(_ccode)
+        if (_c.get("bearish") or {}).get("level") == "hard":
+            continue
+        if (_fund_of(_c) or {}).get("level") == "hard":
+            continue
+        _c["_inFine"] = _ccode in fine_codes
+        macd_red_pool.append(_c)
+    macd_red_pool.sort(key=lambda x: (
+        0 if x.get("_inFine") else 1,
+        int((x.get("A") or {}).get("macdFirstRedDays") or 0),
+        -int(x.get("final") or 0),
+    ))
+    macd_red_out = [_macd_red_out(c) for c in macd_red_pool[:8]]
     # 板块 secid 解析（供前端点击跳转 AI行情官对应板块）
     try:
         await _attach_board_secids(rev_mainlines[:10], hot.get("list") or [])
@@ -4054,6 +4351,7 @@ async def run_scan(
         "board_rank": board_rank,
         "picks": pick_out,
         "runners": run_out,
+        "macd_reds": macd_red_out,
         "prev_date": prev_date_s,
         "prev_track": prev_track,
     }
@@ -4064,6 +4362,7 @@ async def run_scan(
         result["vip_required"] = True
         result.pop("picks", None)
         result.pop("runners", None)
+        result.pop("macd_reds", None)
         # 非 VIP：隐藏主线锁定结论（mainline 标记 + 主线列表），仅保留板块排行数据
         result = _strip_conclusions(result)
         _BOARDS_CACHE[boards_key] = (time.time(), result)
@@ -4081,7 +4380,7 @@ async def run_scan(
             "mainline_hit": sorted({str(c.get("mainName") or c.get("mainlineName") or "") for c in picks if c.get("mainHit") and (c.get("mainName") or c.get("mainlineName"))}),
             "mainline_gap": bool(picks) and market in ("all", "hs", "kc") and not any(c.get("mainHit") or c.get("obsHit") for c in picks),
             "board_rank": board_rank,
-            "picks": pick_out, "runners": run_out,
+            "picks": pick_out, "runners": run_out, "macd_reds": macd_red_out,
         }
         _save_history(f"{market}:{str(today)}", hist_payload)
         _save_archive(market, str(today), hist_payload)
@@ -4172,9 +4471,10 @@ _load_daily_scan_cache()
 def _detect_style(regime, dml_names, board_rank):
     """行情风格识别：大盘攻守 + 主线连续性 + 板块持续性（电风扇/趋势/震荡）。
     - defensive：沿用防守模式（门槛62/最多2只/仅主线回踩热门龙头），风格不重复调参；
-    - trend（趋势）：有复盘主线 且 主线板块连续上榜≥2 天 或 主线≥2 个；
-    - fan（电风扇）：无主线 或 板块榜前8 中一日游（streak≤1）占比≥60%；
-    - chop（震荡）：其余，稳健基准。
+    - trend（趋势）：有复盘主线 且 主线板块连续上榜≥2 天 或 主线≥2 个；门槛放宽 2 分；
+    - fan（电风扇）：无主线 或 板块榜前8 中一日游（streak≤1）占比≥60%；门槛抬高 4 分、
+      且只做主线/回踩低吸类形态（pullback/ztPullback/pullback2/firstBoardRight）；
+    - chop（震荡）：其余，稳健基准（门槛抬高 2 分）。
     """
     try:
         if regime == "defensive":
@@ -4226,7 +4526,7 @@ def _daily_mainlines():
                 return {"names": list(ml), "observes": list(obs or []), "date": _today, "src": "recalc"}
         # 3) 最近归档日主线（与复盘页展示一致）
         import re as _re
-        _archs = sorted([x for x in os.listdir(ARCHIVE_ROOT) if _re.fullmatch(r"\\d{8}", x) and os.path.isdir(os.path.join(ARCHIVE_ROOT, x))], reverse=True)
+        _archs = sorted([x for x in os.listdir(ARCHIVE_ROOT) if _re.fullmatch(r"\d{8}", x) and os.path.isdir(os.path.join(ARCHIVE_ROOT, x))], reverse=True)
         for _d in _archs:
             if _d == _today:
                 continue

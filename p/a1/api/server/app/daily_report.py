@@ -635,26 +635,34 @@ def _stock_link(code, name):
 
 def sector_stats(sc):
     ok = [x for x in sc if x.get("score") is not None]
-    mean = round(sum(float(x["score"]) for x in ok) / len(ok), 1) if ok else None
+    scores = sorted((float(x["score"]) for x in ok), reverse=True)
+    mean = round(sum(scores) / len(scores), 1) if scores else None
     top = sorted(ok, key=lambda x: x["score"], reverse=True)[:3]
     names = " / ".join("%s %.1f" % (_stock_link(x["code"], x["name"]), x["score"]) for x in top)
-    return mean, names, ok
+    top5 = scores[:5]
+    top5_mean = round(sum(top5) / len(top5), 1) if top5 else None
+    median = scores[len(scores) // 2] if scores else None
+    return {"mean": mean, "top3": names, "top5_mean": top5_mean, "median": median, "ok": ok, "n": len(ok)}
 
 def pick_main_lines(sector_scores, prev_mainlines=None, plates=None):
-    """主线锁定（资金×技术双确认 + 延续约束，防“一天一个想法”也防“一条线霸榜”）：
-    - 技术关：成分股评分均值≥62（或板块内有涨停/异动情绪确认时均值≥58）；
+    """主线锁定（加权综合分 + 延续约束，防“一天一个想法”也防“一条线霸榜”）：
+    - 技术关：成分股 Top5 均值（龙头梯队）≥58，或板块内有涨停/异动情绪确认时 Top5 均值≥55；
+      （Top5 均值替代全体均值，避免平庸成分稀释，强势题材不再漏判）
     - 资金关：当日平均涨幅≥0，或 5日主力净流入≥15亿 且 今日净流入>0 / 今日净流入≥50亿（资金主攻）；
-    - 昨日主线：均值≥62 且回调≤-1.0%，或 均值≥58 且资金仍主攻 → 延续；均值≥55 → 观察，不直接退潮；
-    - 新晋主线：技术+资金双确认；每日新晋最多 2 个（有历史主线时），其余先入观察次日确认；
-    - 资金强但技术未修复（均值50~62）→ 观察（等修复确认），避免漏掉正在启动的轮动板块。
+    - 加权综合分（排序用）= Top5均值×0.5 + 5日主力净流入标准化(50亿封顶)×30 + 情绪(涨停×2+异动×0.5，4分封顶)×20；
+    - 昨日主线：Top5 均值≥58 且回调≤-1.0%，或 均值≥55 且资金仍主攻，或 综合分≥55 且情绪确认 → 延续；
+    - 新晋主线：技术+资金/情绪双确认；主线总量最多 3 条，超出部分按综合分降级为观察（次日可再升回）；
+    - 资金强但技术未修复（均值50~58）→ 观察（等修复确认），避免漏掉正在启动的轮动板块。
     """
     prev = {str(x) for x in (prev_mainlines or [])}
     main_lines, observes, avoids = [], [], []
     info = {}
     for sec, sc in sector_scores.items():
-        mean, top3, ok = sector_stats(sc)
+        st = sector_stats(sc)
+        mean = st["mean"]
         if mean is None:
             continue
+        ok = st["ok"]
         ups = [float(x.get("up_pct") or 0) for x in ok]
         avg_up = sum(ups) / len(ups) if ups else 0
         # 情绪确认：板块内有涨停或≥2只放量异动成分 → 均值≥58 即可升主线（捕捉新主线启动）
@@ -664,38 +672,53 @@ def pick_main_lines(sector_scores, prev_mainlines=None, plates=None):
         fund5, fund_t = _sector_fund_flow(sec, plates)
         fund_ok = bool((fund5 is not None and fund5 >= 15e8 and fund_t is not None and fund_t > 0)
                        or (fund_t is not None and fund_t >= 50e8))
-        info[sec] = {"mean": mean, "avg_up": avg_up, "fund5": fund5, "fund_t": fund_t,
-                     "fund_ok": fund_ok, "confirmed": confirmed}
+        fund_std = min(1.0, (fund5 or 0) / 50e8)
+        emotion = min(1.0, (n_zt * 2 + n_surge * 0.5) / 4.0)
+        composite = round((st["top5_mean"] or mean) * 0.5 + fund_std * 30 + emotion * 20, 1)
+        top5m = st["top5_mean"]
+        info[sec] = {"mean": mean, "top5": top5m, "median": st["median"], "avg_up": avg_up,
+                     "fund5": fund5, "fund_t": fund_t, "fund_ok": fund_ok,
+                     "confirmed": confirmed, "composite": composite, "n_zt": n_zt, "n_surge": n_surge}
         if sec in prev:
-            # 昨日主线：均值≥62 且回调≤-1.0%（可小幅回踩），或 资金仍主攻（均值≥58 且 资金共振）→ 延续；
+            # 昨日主线：Top5 均值≥58 且回调≤-1.0%（可小幅回踩），或 资金仍主攻，或 综合分≥55 且情绪确认 → 延续；
             # 回调偏深、资金离场、情绪转弱 → 观察/回避，防止"一条线霸榜"（10日内涨停是滞后证据，不续命）
-            if (mean >= 62 and avg_up >= -1.0) or (mean >= 58 and fund_ok):
+            if (top5m is not None and top5m >= 58 and avg_up >= -1.0) \
+                    or (mean >= 55 and fund_ok) \
+                    or (composite >= 55 and confirmed):
                 main_lines.append(sec)
-            elif mean >= 55:
+            elif mean >= 52:
                 observes.append(sec)
             else:
                 avoids.append(sec)
         else:
-            # 新晋：技术+资金双确认，或情绪确认启动
-            if (mean >= 62 and avg_up >= 0) or (confirmed and mean >= 58) or (fund_ok and mean >= 62 and avg_up >= -0.5):
+            # 新晋：龙头梯队技术确认 + 资金/情绪共振
+            if (top5m is not None and top5m >= 58 and avg_up >= 0) \
+                    or (confirmed and top5m is not None and top5m >= 55) \
+                    or (fund_ok and top5m is not None and top5m >= 55 and avg_up >= -0.5):
                 main_lines.append(sec)
-            elif mean >= 55 or (fund_ok and mean >= 50):
+            elif (top5m is not None and top5m >= 52) or (fund_ok and mean >= 50):
                 observes.append(sec)
             else:
                 avoids.append(sec)
     if prev and len(main_lines) > 0:
-        # 每日新晋最多 2 个：超出部分先入观察，次日确认再升主线
+        # 每日新晋最多 3 个：超出部分先入观察，次日确认再升主线
         new_ones = [s for s in main_lines if s not in prev]
-        if len(new_ones) > 2:
-            new_sorted = sorted(new_ones, key=lambda s: -float(info[s]["mean"]))
-            for s in new_sorted[2:]:
+        if len(new_ones) > 3:
+            new_sorted = sorted(new_ones, key=lambda s: -info[s]["composite"])
+            for s in new_sorted[3:]:
                 main_lines.remove(s)
                 if s not in observes:
                     observes.append(s)
-    # 主次排序：评分均值优先，5日主力净流入次之
-    main_lines.sort(key=lambda s: (-float(info[s]["mean"]), -(info[s]["fund5"] or 0)))
-    observes.sort(key=lambda s: -float(info[s]["mean"]))
-    avoids.sort(key=lambda s: -float(info[s]["mean"]))
+    # 主次排序：加权综合分优先，5日主力净流入次之
+    main_lines.sort(key=lambda s: (-info[s]["composite"], -(info[s]["fund5"] or 0)))
+    observes.sort(key=lambda s: -info[s]["composite"])
+    avoids.sort(key=lambda s: -info[s]["composite"])
+    # 主线最多 3 条：超出部分按综合分降级为观察（不直接丢弃，次日可再升回）
+    if len(main_lines) > 3:
+        for s in main_lines[3:]:
+            if s not in observes:
+                observes.append(s)
+        main_lines = main_lines[:3]
     return main_lines, observes[:3], avoids[:3]
 
 def _prev_mainlines():
@@ -766,7 +789,7 @@ def build_md(data, vip=True):
         sh_lab, ("+%.1f" % ((sh.get("macd_last") or {}).get("bar") or 0)) if ((sh.get("macd_last") or {}).get("bar") or 0) >= 0 else "%.1f" % ((sh.get("macd_last") or {}).get("bar") or 0),
         env.get("pts"), ("顺风（金叉确认）" if "金" in sh_lab else ("底部转多初段" if "底" in sh_lab else "信号不明"))))
     if main_lines and vip:
-        A("2. **主攻主线**：**%s**——资金与技术双确认（成分股评分均值 ≥62 且当日走强）；" % "、".join(main_lines))
+        A("2. **主攻主线**：**%s**——资金与技术双确认（龙头梯队 Top5 评分 + 主力净流入 + 涨停/异动情绪加权）；" % "、".join(main_lines))
     elif not vip:
         A("2. **主攻主线（VIP 专属）**：开通 VIP 后解锁板块技术体检与主线锁定。")
     if vip:
@@ -921,7 +944,7 @@ def build_md(data, vip=True):
         A("")
         A("## ⭐ 四、主线锁定（VIP 专属）")
         A("")
-        A("> 主线锁定算法（板块评分均值≥62 且当日走强 → 主线）为 **VIP 专属**，开通 VIP 后自动解锁。")
+        A("> 主线锁定算法（龙头梯队 Top5 评分 + 资金 + 情绪加权综合分 → 主线）为 **VIP 专属**，开通 VIP 后自动解锁。")
         A("")
     else:
         A("---")
@@ -931,8 +954,8 @@ def build_md(data, vip=True):
         A("| 板块 | 评分均值 | 龙头梯队(前3) |")
         A("|---|---|---|")
         for sec, items in sc.items():
-            mean, top3, ok = sector_stats(items)
-            A("| %s | %s | %s |" % (sec, ("%.1f" % mean) if mean else "-", top3))
+            st = sector_stats(items)
+            A("| %s | %s | %s |" % (sec, ("%.1f" % st["mean"]) if st["mean"] else "-", st["top3"]))
         A("")
         main_lines, observes, avoids = pick_main_lines(sc, (data.get("prev_mainlines") or {}).get("mainlines") or [], plates)
         A("---")

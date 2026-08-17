@@ -24,6 +24,22 @@
   <style>
     .auth-card-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;max-width:440px;}
     @media (max-width:520px){ .auth-card-grid{ grid-template-columns: 1fr; } }
+    /* 邀请活动 · 金色行动按钮（与活动卡同色调，区别于普通蓝色 primary） */
+    .btn-gold{
+      background:linear-gradient(135deg,#fbbf24,#f59e0b) !important;
+      border:1px solid rgba(217,119,6,.6) !important;
+      color:#221a05 !important;
+      font-weight:800 !important;
+      box-shadow:0 2px 10px rgba(251,191,36,.28);
+    }
+    .btn-gold:hover{ filter:brightness(1.06); box-shadow:0 3px 14px rgba(251,191,36,.42); }
+    .btn-gold-outline{
+      background:rgba(251,191,36,.10) !important;
+      border:1px solid rgba(251,191,36,.6) !important;
+      color:var(--accent2,#fbbf24) !important;
+      font-weight:700 !important;
+    }
+    .btn-gold-outline:hover{ background:rgba(251,191,36,.20); }
     .auth-card{
       display:block;padding:12px 14px;border-radius:14px;border:1px solid var(--border);
       background:var(--panel2);text-decoration:none;color:inherit;
@@ -786,6 +802,19 @@
       <h1>邀请获取次数</h1>
       <p>把邀请链接发给朋友即可。对方打开后邀请码会自动带上（也可手动改）。已注册用户也可在下方绑定好友邀请码（仅一次）。</p>
       <p class="sub" style="margin:8px 0 0;" id="invite-reward-tip">奖励规则加载中…</p>
+      <div id="invite-activity-card" class="card" style="display:none; margin:12px 0 14px; padding:12px 14px; background:var(--panel2); border:1px solid var(--accent2, #fbbf24);">
+        <div class="row" style="align-items:center; gap:8px; flex-wrap:wrap; margin:0;">
+          <span class="pill" style="background:rgba(251,191,36,.14); border-color:var(--accent2, #fbbf24); color:var(--accent2, #fbbf24);">限时活动</span>
+          <b id="ia-name" style="font-size:14px;"></b>
+        </div>
+        <div class="muted small" id="ia-desc" style="margin:6px 0 0; line-height:1.6;"></div>
+        <div id="ia-progress" style="margin-top:10px; font-size:13px; line-height:1.6;"></div>
+        <div class="row" style="margin-top:12px; gap:8px; align-items:center; flex-wrap:wrap;">
+          <button class="btn primary btn-gold" id="btn-invite-poster" type="button">生成邀请海报</button>
+          <button class="btn primary btn-gold-outline" id="btn-copy-activity-copy" type="button">复制活动文案</button>
+          <span class="muted small" id="ia-copy-status"></span>
+        </div>
+      </div>
       <div class="row">
         <button class="btn primary" id="btn-my-invite" type="button">获取我的邀请码</button>
         <input id="invite-code" type="text" placeholder="我的邀请码" readonly />
@@ -1175,8 +1204,21 @@
   </div>
 
   <script src="/js/shell.js?v=57"></script>
-  <script src="/js/watchscore.js?v=6"></script>
-  <script>
+    <script src="/js/watchscore.js?v=6"></script>
+
+<div id="invite-poster-overlay" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(5,8,12,.86); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); overflow:auto; padding:24px 16px 40px; text-align:center;">
+  <div style="max-width:420px; margin:0 auto;">
+    <div style="color:#fff; font-size:15px; font-weight:700; margin-bottom:12px;">邀请海报</div>
+    <div id="invite-poster-preview" style="margin:0 auto;"></div>
+    <div class="muted small" style="margin:12px 0 4px; color:#9aa7b8;">微信内：长按图片即可「保存到手机 / 发送给朋友」</div>
+    <div class="row" style="margin-top:12px; gap:10px; justify-content:center; flex-wrap:wrap;">
+      <button class="btn primary" id="btn-invite-poster-download" type="button">保存图片</button>
+      <button class="btn" id="btn-invite-poster-close" type="button">关闭</button>
+    </div>
+    <div class="status" id="invite-poster-status" style="margin-top:10px;"></div>
+  </div>
+</div>
+    <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("account"); } catch (e) {}
   </script>
   <script>
@@ -1556,6 +1598,334 @@
           .catch(function(){
             el.textContent = "邀请奖励：以系统实际发放为准。";
           });
+      }
+
+      function loadInviteActivity(){
+        var card = $("invite-activity-card");
+        if(!card) return;
+        if(!tokenGet()){ card.style.display = "none"; return; }
+        apiFetch("/api/invite/activity", { cache: "no-store" })
+          .then(function(d){
+            if(!d || !d.ok || !d.activity){ card.style.display = "none"; return; }
+            try { window.__ai24x_invite_activity = d.activity; } catch (eCache) {}
+            card.style.display = "";
+            var act = d.activity || {};
+            var pr = d.progress || {};
+            $("ia-name").textContent = String(act.name || "邀请有礼");
+            var desc = String(act.description || "").trim();
+            if(!desc){
+              desc = "成功邀请 " + (act.target_invites || 3) + " 位好友注册并激活使用，即可免费获得 " +
+                (act.reward_days || 7) + " 天 VIP。";
+            }
+            $("ia-desc").textContent = desc;
+            var a = Number(pr.activated || 0);
+            var t = Number(pr.target || 3);
+            var days = Number(act.reward_days || pr.total_days || 7);
+            var done = !!pr.done;
+            var rewarded = !!pr.rewarded;
+            var stackOn = !!pr.stack_enabled;
+            var cap = Number(pr.stack_cap_days || 0);
+            var ms = Number(pr.milestone || 0);
+            var totalDays = Number(pr.total_days || 0);
+            var grantedDays = Number(pr.granted_days || 0);
+            var nextTarget = Math.max(t, Number(pr.next_target || t));
+            var pctBase = nextTarget > 0 ? nextTarget : t;
+            var pct = Math.max(0, Math.min(100, Math.round((pctBase > 0 ? a / pctBase : 0) * 100)));
+            var bar =
+              '<div style="height:8px;border-radius:6px;background:var(--border);overflow:hidden;margin:2px 0 6px;">' +
+              '<div style="height:100%;width:' + String(pct) + '%;background:var(--accent2, #fbbf24);border-radius:6px;"></div>' +
+              '</div>';
+            var state;
+            if(rewarded){
+              if(stackOn){
+                state = '<span style="color:#34d399; font-weight:700;">已领取 ✓ 已到账 ' + String(grantedDays || days) +
+                  ' 天 VIP' + (cap > 0 && grantedDays < cap ? '，可继续邀请叠加至 ' + String(cap) + ' 天' : '') + '</span>';
+              } else {
+                state = '<span style="color:#34d399; font-weight:700;">已领取 ' + String(days) +
+                  ' 天 VIP ✓（奖励已自动到账）</span>';
+              }
+            } else if(done){
+              if(stackOn && ms > 0){
+                state = '<span style="color:#fbbf24; font-weight:700;">已达标第 ' + String(ms) + ' 档 · 累计可得 ' +
+                  String(totalDays) + ' 天 VIP（奖励将自动到账）</span>' +
+                  (cap <= 0 || totalDays < cap
+                    ? '<div class="muted small" style="margin-top:4px;">再邀 ' + String(Math.max(0, nextTarget - a)) +
+                      ' 位升至第 ' + String(ms + 1) + ' 档（+' + String(days) + ' 天）</div>'
+                    : '');
+              } else {
+                state = '<span style="color:#fbbf24; font-weight:700;">已达标，奖励将自动发放到账</span>';
+              }
+            } else {
+              if(stackOn){
+                state = '已激活 <b>' + String(a) + '</b> 位好友 · 第 ' + String(ms + 1) + ' 档：还差 <b>' +
+                  String(Math.max(0, nextTarget - a)) + '</b> 位（+' + String(days) +
+                  ' 天）' + (cap > 0 ? '，最多累计 ' + String(cap) + ' 天' : '');
+              } else {
+                state = '已激活 <b>' + String(a) + '</b> / ' + String(t) + ' 位好友（好友完成首次有效查询即算激活）';
+              }
+            }
+            $("ia-progress").innerHTML = bar + state;
+          })
+          .catch(function(){
+            card.style.display = "none";
+          });
+      }
+
+      function buildActivityCopyText(act, link, code){
+        act = act || {};
+        var target = Number(act.target_invites || 3);
+        var days = Number(act.reward_days || 30);
+        var desc = String(act.description || "").trim();
+        if(!desc){
+          desc = "成功邀请 " + target + " 位好友注册并激活使用，自动升级 " + days + " 天 VIP（活动结束前有效）。";
+        }
+        if(act.stack_enabled){
+          var cap = Number(act.stack_cap_days || 90);
+          desc += " 可叠加：每满 " + target + " 位再 +" + days + " 天，最多累计 " + cap + " 天。";
+        }
+        var lines = ["AI行情官｜灯塔版 限时活动", desc];
+        if(code) lines.push("我的邀请码：" + String(code).toUpperCase());
+        if(link) lines.push("入口：" + link);
+        lines.push("本内容仅基于公开行情做技术形态统计与信息整理，不构成任何证券投资咨询、投资建议或收益承诺；股市有风险，入市需谨慎。");
+        return lines.join("\n");
+      }
+
+      function wrapPosterText(g, text, maxWidth, maxLines){
+        var chars = String(text || "").split("");
+        var lines = [];
+        var line = "";
+        for(var i = 0; i < chars.length; i++){
+          var test = line + chars[i];
+          if(g.measureText(test).width > maxWidth && line){
+            lines.push(line);
+            line = chars[i];
+            if(maxLines && lines.length >= maxLines) break;
+          } else {
+            line = test;
+          }
+        }
+        if(line && !(maxLines && lines.length >= maxLines)) lines.push(line);
+        return lines;
+      }
+
+      function posterRoundRect(g, x, y, w, h, r){
+        r = Math.min(r, w / 2, h / 2);
+        g.beginPath();
+        g.moveTo(x + r, y);
+        g.arcTo(x + w, y, x + w, y + h, r);
+        g.arcTo(x + w, y + h, x, y + h, r);
+        g.arcTo(x, y + h, x, y, r);
+        g.arcTo(x, y, x + w, y, r);
+        g.closePath();
+      }
+
+      function drawInvitePosterCanvas(opts){
+        return new Promise(function(resolve, reject){
+          var W = 720, H = 1180;
+          var c = document.createElement("canvas");
+          c.width = W;
+          c.height = H;
+          var g = c.getContext("2d");
+          var bg = g.createLinearGradient(0, 0, 0, H);
+          bg.addColorStop(0, "#0d1420");
+          bg.addColorStop(1, "#0a0e17");
+          g.fillStyle = bg;
+          g.fillRect(0, 0, W, H);
+          g.fillStyle = "rgba(251,191,36,.05)";
+          g.beginPath();
+          g.arc(W / 2, 170, 260, 0, Math.PI * 2);
+          g.fill();
+          var gold = "#fbbf24";
+          var fontBase = "'PingFang SC','Microsoft YaHei','Helvetica Neue',sans-serif";
+          g.fillStyle = "rgba(251,191,36,.14)";
+          posterRoundRect(g, W / 2 - 100, 88, 200, 58, 29);
+          g.fill();
+          g.strokeStyle = gold;
+          g.lineWidth = 1.5;
+          posterRoundRect(g, W / 2 - 100, 88, 200, 58, 29);
+          g.stroke();
+          g.fillStyle = gold;
+          g.font = "600 30px " + fontBase;
+          g.textAlign = "center";
+          g.textBaseline = "middle";
+          g.fillText("限时活动", W / 2, 117);
+          g.fillStyle = "#8fa0b5";
+          g.font = "26px " + fontBase;
+          g.fillText("AI行情官｜灯塔版", W / 2, 190);
+          // 主口号（金色大标题，重点突出）
+          g.fillStyle = gold;
+          g.font = "700 52px " + fontBase;
+          var sloganLines = wrapPosterText(g, opts.slogan, 580, 2);
+          var sy = 262;
+          sloganLines.forEach(function(ln){ g.fillText(ln, W / 2, sy); sy += 62; });
+          // 利益点副标题（白字加粗）
+          g.fillStyle = "#ffffff";
+          g.font = "700 34px " + fontBase;
+          var bLines = wrapPosterText(g, opts.name, 560, 2);
+          var by = sy + 8;
+          bLines.forEach(function(ln){ g.fillText(ln, W / 2, by); by += 44; });
+          // 一句话价值点
+          g.fillStyle = "#c7d2e0";
+          g.font = "26px " + fontBase;
+          var vLines = wrapPosterText(g, opts.value, 540, 1);
+          var vy = by + 6;
+          vLines.forEach(function(ln){ g.fillText(ln, W / 2, vy); vy += 40; });
+          var dy = vy;
+          g.strokeStyle = "rgba(251,191,36,.55)";
+          g.lineWidth = 2;
+          g.beginPath();
+          g.moveTo(W / 2 - 130, dy + 6);
+          g.lineTo(W / 2 + 130, dy + 6);
+          g.stroke();
+          var qrSize = 264;
+          var qx = (W - qrSize - 40) / 2;
+          var qy = dy + 30;
+          g.fillStyle = "#ffffff";
+          posterRoundRect(g, qx, qy, qrSize + 40, qrSize + 40, 22);
+          g.fill();
+          var qrLink = opts.link || ("https://a.ai24x.com/i/" + encodeURIComponent(opts.code));
+          var qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + encodeURIComponent(qrLink);
+          var qrImg = new Image();
+          qrImg.crossOrigin = "anonymous";
+          var qrLoaded = false;
+          var done = function(){
+            if(qrLoaded){
+              g.drawImage(qrImg, qx + 20, qy + 20, qrSize, qrSize);
+            } else {
+              g.fillStyle = "#0a0e17";
+              g.font = "26px " + fontBase;
+              g.fillText("扫码注册", W / 2, qy + qrSize / 2);
+            }
+            try { window.__ai24x_poster_qr_loaded = qrLoaded; } catch (eQr) {}
+            var uy = qy + qrSize + 62;
+            g.fillStyle = "#8fa0b5";
+            g.font = "26px " + fontBase;
+            g.fillText("扫码注册 · 自动带上邀请码", W / 2, uy);
+            g.fillStyle = gold;
+            g.font = "700 40px " + fontBase;
+            g.fillText("邀请码 " + String(opts.code || "").toUpperCase(), W / 2, uy + 64);
+            g.fillStyle = "#64748b";
+            g.font = "22px " + fontBase;
+            g.fillText("a.ai24x.com/i/" + String(opts.code || "").toUpperCase(), W / 2, uy + 98);
+            // 活动条款缩小放底部
+            g.fillStyle = "#5b6a80";
+            g.font = "20px " + fontBase;
+            var cLines = wrapPosterText(g, opts.desc, 620, 2);
+            var cy = H - 128;
+            cLines.forEach(function(ln){ g.fillText(ln, W / 2, cy); cy += 28; });
+            g.fillStyle = "#526079";
+            g.font = "20px " + fontBase;
+            var footLines = wrapPosterText(g, "仅基于公开行情做技术形态统计与信息整理，不构成任何证券投资咨询、投资建议或收益承诺；股市有风险，入市需谨慎。", 660, 2);
+            var fy = H - 66;
+            footLines.forEach(function(ln){ g.fillText(ln, W / 2, fy); fy += 28; });
+            resolve(c.toDataURL("image/png"));
+          };
+          qrImg.onload = function(){ qrLoaded = true; done(); };
+          qrImg.onerror = function(){ done(); };
+          qrImg.src = qrUrl;
+          setTimeout(function(){ if(!qrLoaded) done(); }, 6000);
+        });
+      }
+
+      function generateInvitePoster(){
+        var overlay = $("invite-poster-overlay");
+        var st = $("invite-poster-status");
+        if(!overlay) return;
+        if(st) st.textContent = "海报生成中…";
+        ensureInviteCode()
+          .then(function(code){
+            var link = makeInviteLink(code);
+            var act = null;
+            try { act = window.__ai24x_invite_activity || null; } catch (e0) {}
+            var days = act && act.reward_days ? Number(act.reward_days) : 30;
+            var target = act && act.target_invites ? Number(act.target_invites) : 3;
+            var name = act && act.name ? String(act.name) : "邀请有礼";
+            var slogan = act && act.slogan ? String(act.slogan).trim() : "";
+            if(!slogan){
+              slogan = "AI 盯盘，看懂行情脉络";
+            }
+            var value = "大盘信号 · 板块主线 · 个股体检，AI 一页看懂";
+            var desc = act && act.description ? String(act.description).trim() : ("成功邀请 " + target + " 位好友注册并激活使用，自动升级 " + days + " 天 VIP（活动结束前有效）。");
+            if(act && act.stack_enabled){
+              var cap = act && act.stack_cap_days ? Number(act.stack_cap_days) : 90;
+              desc += " 可叠加：每满 " + target + " 位再 +" + days + " 天，最多累计 " + cap + " 天。";
+            }
+            return drawInvitePosterCanvas({ slogan: slogan, name: name, value: value, desc: desc, code: code, link: link })
+              .then(function(dataUrl){
+                var preview = $("invite-poster-preview");
+                if(preview){
+                  preview.innerHTML = '<img src="' + dataUrl + '" alt="邀请海报" style="display:block; width:100%; border-radius:14px; box-shadow:0 12px 40px rgba(0,0,0,.5);" />';
+                }
+                overlay.style.display = "";
+                if(st) st.textContent = "";
+                window.__ai24x_poster_dataurl = dataUrl;
+              });
+          })
+          .catch(function(){
+            if(st) st.textContent = "生成失败，请稍后重试。";
+          });
+      }
+
+      function bindInvitePoster(){
+        var btn = $("btn-invite-poster");
+        if(btn) btn.addEventListener("click", generateInvitePoster);
+        var close = $("btn-invite-poster-close");
+        if(close) close.addEventListener("click", function(){
+          var o = $("invite-poster-overlay");
+          if(o) o.style.display = "none";
+        });
+        var dl = $("btn-invite-poster-download");
+        if(dl) dl.addEventListener("click", function(){
+          var st = $("invite-poster-status");
+          try {
+            var url = window.__ai24x_poster_dataurl || "";
+            if(!url){ if(st) st.textContent = "海报尚未生成完成，请稍候。"; return; }
+            var a = document.createElement("a");
+            a.href = url;
+            a.download = "ai24x-invite.png";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            if(st) st.textContent = "已开始下载（微信内请长按图片保存）。";
+          } catch(e){
+            if(st) st.textContent = "当前环境不支持下载，请长按图片保存。";
+          }
+        });
+      }
+
+      function ensureInviteCode(){
+        var code = inviteInput ? String(inviteInput.value || "").trim() : "";
+        if(code) return Promise.resolve(code);
+        return inviteMyCode().then(function(d){
+          var c = d && d.code ? String(d.code).trim() : "";
+          if(inviteInput) inviteInput.value = c;
+          return c;
+        });
+      }
+
+      function bindActivityCopy(){
+        var btn = $("btn-copy-activity-copy");
+        if(!btn) return;
+        btn.addEventListener("click", function(){
+          var st = $("ia-copy-status");
+          if(st) st.textContent = "生成中…";
+          ensureInviteCode()
+            .then(function(code){
+              var link = makeInviteLink(code);
+              var act = null;
+              try { act = window.__ai24x_invite_activity || null; } catch (e0) {}
+              var txt = buildActivityCopyText(act, link, code);
+              return copyText(txt).then(function(){ return txt; });
+            })
+            .then(function(){
+              if(st) st.textContent = "已复制 ✓";
+              setStatus("活动文案已复制，可直接粘贴发给好友。");
+            })
+            .catch(function(){
+              if(st) st.textContent = "复制失败，请重试";
+              setStatus("复制失败，请重试。");
+            });
+        });
       }
 
       function loadBillingPlans() {
@@ -3467,7 +3837,7 @@ function agentCityRefresh() {
         var l = String(link || "").trim();
         var code = extra && extra.code ? String(extra.code || "").trim() : "";
         var head = "AI行情官｜灯塔版";
-        var compliance = "【内容仅供学习交流，不构成任何建议】";
+        var compliance = "本内容仅基于公开行情做技术形态统计与信息整理，不构成任何证券投资咨询、投资建议或收益承诺；股市有风险，入市需谨慎。";
         if (kind === "group") {
           return (
             head + "\n" +
@@ -4208,6 +4578,9 @@ function agentCityRefresh() {
 
       try { loadSmsCaptchaCfg(); } catch (e0) {}
       try { loadInviteRewardTip(); } catch (e0) {}
+      try { loadInviteActivity(); } catch (e0) {}
+      try { bindActivityCopy(); } catch (e0) {}
+      try { bindInvitePoster(); } catch (e0) {}
       refreshMe();
       // Patch register/login links to carry invite code
       try { patchRegisterLinks(); } catch (e) {}
@@ -4234,4 +4607,3 @@ function agentCityRefresh() {
         </script>
 </body>
 </html>
-

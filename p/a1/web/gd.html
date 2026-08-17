@@ -18,11 +18,13 @@
   </script>
   <link rel="stylesheet" href="/css/base.css?v=54" />
   <link rel="stylesheet" href="/css/tool.css" />
-  <link rel="stylesheet" href="/css/bjscreener.css?v=31" />
+  <link rel="stylesheet" href="/css/bjscreener.css?v=73" />
 <style>
 /* 复盘 · 大盘环境与策略区（大盘同步） */
 .bj-market{display:block;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:10px 14px;margin:0 0 12px;}
 .bj-market .bj-section{margin-top:0;}
+#bj-strategy{margin:0 0 12px;}
+#bj-strategy .bj-mkt-gate{margin:0;}
 .bj-mkt-head{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin-bottom:8px;}
 .bj-mkt-badge{display:inline-block;padding:3px 12px;border-radius:999px;font-size:13px;font-weight:700;}
 .bj-mkt-badge.ok{background:linear-gradient(135deg,rgba(248,113,113,.20),rgba(251,191,36,.12));color:#dc2626;border:1px solid rgba(220,38,38,.45);}
@@ -103,9 +105,7 @@
         <div class="bj-flow" aria-label="复盘使用流程">
           <span class="bj-flow-step now"><span class="ic">📊</span>大盘环境</span>
           <span class="bj-flow-arrow">→</span>
-          <span class="bj-flow-step"><span class="ic">🎯</span>今日观察</span>
-          <span class="bj-flow-arrow">→</span>
-          <span class="bj-flow-step"><span class="ic">🗂️</span>板块聚焦</span>
+          <span class="bj-flow-step"><span class="ic">🎯</span>主线观察</span>
           <span class="bj-flow-arrow">→</span>
           <span class="bj-flow-step"><span class="ic">⭐</span>AI 筛选</span>
         </div>
@@ -130,12 +130,10 @@
               <div class="d">新用户注册</div>
             </a>
           </div>
-          <p class="sub gate-note">大盘环境免费可见；板块与个股分析为 VIP 专属，登录后可查看大盘，升级解锁全部。</p>
-          <p class="gate-disclaimer">本页内容仅基于公开行情数据做技术形态统计与信息整理，仅供研究参考，不构成任何证券投资咨询、投资建议或收益承诺；股市有风险，入市需谨慎。</p>
+          <p class="sub gate-note">大盘环境免费可见；主线观察与个股分析为 VIP 专属，登录后可查看大盘，升级解锁全部。</p>
         </div>
 
         <div id="auth-user" hidden>
-          <div class="notice" style="margin:0 0 12px;line-height:1.7;">本页由算法基于公开行情数据自动生成，仅做技术形态统计与信息整理，<b>不构成任何证券投资咨询、投资建议或收益承诺</b>；历史统计不代表未来表现；股市有风险，入市需谨慎。</div>
           <div class="bj-top">
             <span class="bj-status" id="bj-status">正在加载…</span>
             <span style="display:flex;gap:8px;align-items:center;">
@@ -151,6 +149,7 @@
             <button type="button" class="bj-tab" data-market="kc">科创主线</button>
             <button type="button" class="bj-tab" data-market="bj">北证主线</button>
             <button type="button" class="bj-tab" data-market="bj_all">北证全市场</button>
+            <button type="button" class="bj-tab" data-market="macd">MACD首红</button>
           </div>
           <div id="bj-meta" class="bj-meta" hidden></div>
 
@@ -162,24 +161,25 @@
             <a class="btn" href="./account.html#vip" style="display:inline-block;">去开通 VIP</a>
             <span style="display:inline-block;width:8px;"></span>
             <a class="btn wl-back" href="./demo.html">← 返回行情页</a>
-            <p class="sub" style="margin:10px 0 0;font-size:12px;line-height:1.7;">仅做技术统计与信息整理，不构成投资建议。</p>
           </div>
 
           <div id="bj-main" hidden>
-            
             <div id="bj-mainlines"></div>
-            <div id="bj-result"></div>
+            <div id="bj-strategy" hidden></div>
             <div id="bj-boardrank"></div>
-<div id="bj-ths-sentiment"></div>
-        <div id="bj-winrate" hidden></div>
-            <div id="bj-history"></div>
+            <div id="bj-result"></div>
+            <details class="bj-fold" id="bj-more">
+              <summary>更多 · 情绪面 / 实测战绩 / 历史归档</summary>
+              <div id="bj-ths-sentiment"></div>
+              <div id="bj-winrate" hidden></div>
+              <div id="bj-history"></div>
+            </details>
             <div id="bj-picksgate" class="vip-card" hidden>
               <div class="t">🔒 个股筛选与技术参考为 VIP 专属</div>
               <div class="d">开通 VIP 解锁：筛选标的（主线龙头 + 补涨卡位）、体检评分、利空排查与技术参考。</div>
               <a class="btn" href="./account.html#vip" style="display:inline-block;">去开通 VIP</a>
-              <p class="sub" style="margin:10px 0 0;font-size:12px;line-height:1.7;">本功能仅基于公开行情做技术形态统计与信息整理，不构成投资建议，不保证收益。</p>
             </div>
-            <p class="sub" style="margin:14px 0 0;font-size:12px;line-height:1.7;">仅基于公开行情做技术统计与信息整理，不构成投资建议；破位或放量长阴-8% 注意风险。</p>
+            <p class="sub" style="margin:14px 0 0;font-size:12px;line-height:1.7;">本页由算法基于公开行情数据自动生成，仅做技术形态统计与信息整理，<b>不构成任何证券投资咨询、投资建议或收益承诺</b>；历史统计不代表未来表现；破位或放量长阴-8% 注意风险；股市有风险，入市需谨慎。</p>
           </div>
         </div>
       </section>
@@ -190,7 +190,7 @@
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("bjscreener"); } catch (e) {}
   </script>
-  <script src="/js/bjscreener.js?v=69"></script>
+  <script src="/js/bjscreener.js?v=76"></script>
   <script>
     (function () {
       var w = window.AI24X_BJScreener;

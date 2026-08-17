@@ -1155,6 +1155,7 @@ async def fetch_ths_fuyao_kline(
     rows.sort(key=lambda x: x[0])
     if not rows:
         return None
+    rows = _drop_auction_today_bar(rows)
     if count > 0 and len(rows) > count:
         rows = rows[-count:]
     sym = secid_to_tencent_symbol(secid)
@@ -2881,6 +2882,40 @@ async def _em_klt_series(secid: str, klt: int, timeout: float) -> list[list[str]
 _EM_KLINE_SEM = asyncio.Semaphore(2)
 
 
+def _drop_auction_today_bar(rows: list[list[str]]) -> list[list[str]]:
+    """集合竞价/开盘前剔除上游当日残缺 bar（前端 qt 合成当日蜡烛同样有该守卫）。
+
+    东财 push2his（及部分实时源）在 09:15-09:25 竞价与 09:25-09:30 过渡期会返回
+    未成形的当日 K 线：high/low 常为 0 或撮合价剧烈跳动，画出来像“大阴柱”，
+    MACD 量能柱也被拉成极端负值。规则：
+    - 交易日 09:30 前：当日 bar 无意义，直接剔除；
+    - 09:30 连续竞价开始后：保留当日 bar，但 OHLC 任一非法（<=0）仍剔除。
+    """
+    try:
+        now = datetime.now()
+        if now.weekday() >= 5:
+            return rows
+        today = now.strftime("%Y-%m-%d")
+        hhmm = now.strftime("%H%M")
+        out: list[list[str]] = []
+        for r in rows:
+            if not (isinstance(r, (list, tuple)) and len(r) >= 5) or str(r[0]) != today:
+                out.append(r)
+                continue
+            if hhmm < "093000":
+                continue  # 竞价/开盘前：今日 bar 无意义
+            try:
+                o, c, h, l = float(r[1]), float(r[2]), float(r[3]), float(r[4])
+            except Exception:
+                continue
+            if min(o, c, h, l) <= 0:
+                continue
+            out.append(r)
+        return out
+    except Exception:
+        return rows
+
+
 async def _em_kline_day_rows(secid: str, timeout: float, *, max_rounds: int = 2) -> list[list[str]]:
     """拉取日线序列；东财时间窗节流时按 3s 间隔整轮重试（每轮仅 1 次请求，不再放大节流）。
 
@@ -2892,7 +2927,8 @@ async def _em_kline_day_rows(secid: str, timeout: float, *, max_rounds: int = 2)
     for round_no in range(max_rounds):
         try:
             async with _EM_KLINE_SEM:
-                return await _em_klt_series(secid, 101, timeout)
+                rows = await _em_klt_series(secid, 101, timeout)
+                return _drop_auction_today_bar(rows)
         except (httpx.RemoteProtocolError, httpx.ConnectError, httpx.ReadError) as e:
             last_err = e
             _mark_em_his_throttled()

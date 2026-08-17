@@ -1505,6 +1505,39 @@ def admin_invite_tree(
         raise HTTPException(status_code=400, detail=str(e)[:200])
 
 
+@app.get("/api/admin/invite/activity")
+def admin_invite_activity_get(_: bool = Depends(require_admin)) -> dict:
+    """裂变活动：全部活动配置 + 最近发放记录。"""
+    return {
+        "ok": True,
+        "activities": db.invite_activity_get_all(),
+        "rewards": db.activity_rewards_list(limit=100),
+    }
+
+
+@app.post("/api/admin/invite/activity")
+def admin_invite_activity_save(body: dict, _: bool = Depends(require_admin)) -> dict:
+    """新增/更新裂变活动配置。body: id(可选) enabled/name/description/start_at/end_at/
+    target_invites/require_activated/reward_plan/reward_days/reward_weekly/reward_daily。"""
+    try:
+        item = db.invite_activity_save(body)
+        return {"ok": True, "item": item}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e)[:200])
+
+
+@app.post("/api/admin/invite/activity/backfill")
+def admin_invite_activity_backfill(body: dict, _: bool = Depends(require_admin)) -> dict:
+    """补扫：把当前生效活动下「已达标但未发放」的邀请人自动补发。"""
+    try:
+        out = db.backfill_invite_activity_rewards(limit=int(body.get("limit") or 200))
+        return {"ok": True, **out}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e)[:200])
+
+
 @app.get("/api/admin/agent/rank")
 def admin_agent_rank(
     metric: str = "direct_invites",
@@ -2657,6 +2690,16 @@ def invite_list(limit: int = 50, user_id: int = Depends(get_current_user_id)) ->
     return {"items": db.invite_list_for_user(user_id, limit=limit)}
 
 
+@app.get("/api/invite/activity")
+def invite_activity_status(user_id: int = Depends(get_current_user_id)) -> dict:
+    """当前裂变活动 + 我的进度（已激活邀请数 / 是否已领取奖励）。"""
+    act = db.invite_activity_effective()
+    if not act:
+        return {"ok": True, "activity": None, "progress": None}
+    progress = db.invite_activity_progress_for_user(int(user_id), act)
+    return {"ok": True, "activity": act, "progress": progress}
+
+
 # ============ 自选股 watchlist（登录态，跨设备同步） ============
 
 
@@ -3160,8 +3203,10 @@ async def api_bj_screener(
     结果按自然日缓存，force=1 强制重扫。不扣查次（VIP 权益功能），仅做频率限制。
     """
     market = str(market or "bj").strip().lower()
-    if market not in ("bj", "all", "hs", "kc", "bj_all"):
+    macd_mode = market == "macd"
+    if market not in ("bj", "all", "hs", "kc", "bj_all", "macd"):
         market = "bj"
+    scan_market = "all" if macd_mode else market
     _rate_limit(f"bj-screener:{user_id}", 24)
     try:
         _auth_ip_rate_limit(request)
@@ -3171,19 +3216,19 @@ async def api_bj_screener(
     quota = db.get_quota_status(int(user_id))
     plan = str(quota.get("plan") or "anon").strip().lower()
     is_vip = plan not in ("", "free", "anon")
-    from .bj_screener import run_scan_dedup
+    from .bj_screener import run_scan_dedup, macd_view
     if not is_vip:
         # 非 VIP：开放“异动板块”视图（复用当日缓存或轻量扫描），个股分析保持 VIP 专属
-        early = await _bj_ensure_scan_or_fast(int(user_id), market, force=False, boards_only=True)
+        early = await _bj_ensure_scan_or_fast(int(user_id), scan_market, force=False, boards_only=True)
         if early is not None:
             return early
         try:
-            out = await run_scan_dedup(int(user_id), force=False, cfg_override=None, boards_only=True, market=market)
+            out = await run_scan_dedup(int(user_id), force=False, cfg_override=None, boards_only=True, market=scan_market)
         except HTTPException:
             raise
         except Exception as e:
             from .bj_screener import mark_scan_failed
-            mark_scan_failed(market, f"\u626b\u63cf\u5931\u8d25: {type(e).__name__}")
+            mark_scan_failed(scan_market, f"\u626b\u63cf\u5931\u8d25: {type(e).__name__}")
             return {"ok": False, "error": "scan_failed", "message": f"{type(e).__name__}: {str(e)[:160]}"}
         # 统一剥离（路由级收敛）：无论命中哪条缓存路径，非 VIP 只保留板块排行与市场概览
         # 注意重建 dict/list，不原地修改共享缓存对象（防污染 _SCAN_CACHE/_BOARDS_CACHE）
@@ -3192,6 +3237,7 @@ async def api_bj_screener(
             out["vip_required"] = True
             out.pop("picks", None)
             out.pop("runners", None)
+            out.pop("macd_reds", None)
             out.pop("prev_track", None)
             out.pop("prev_date", None)
             out["board_rank"] = [dict(_b) for _b in (out.get("board_rank") or []) if isinstance(_b, dict)]
@@ -3212,17 +3258,18 @@ async def api_bj_screener(
     if top_n > 0:
         cfg_override["topN"] = int(max(3, min(5, top_n)))
     if cap > 0:
-        cfg_override["cap"] = int(max(30, min(120, cap)))    early = await _bj_ensure_scan_or_fast(int(user_id), market, force=bool(force), cfg_override=cfg_override or None)
+        cfg_override["cap"] = int(max(30, min(120, cap)))    early = await _bj_ensure_scan_or_fast(int(user_id), scan_market, force=bool(force), cfg_override=cfg_override or None)
     if early is not None:
-        return early
+        return macd_view(early) if macd_mode else early
 
     try:
-        return await run_scan_dedup(int(user_id), force=bool(force), cfg_override=cfg_override or None, market=market)
+        out = await run_scan_dedup(int(user_id), force=bool(force), cfg_override=cfg_override or None, market=scan_market)
+        return macd_view(out) if macd_mode else out
     except HTTPException:
         raise
     except Exception as e:
         from .bj_screener import mark_scan_failed
-        mark_scan_failed(market, f"\u626b\u63cf\u5931\u8d25: {type(e).__name__}")
+        mark_scan_failed(scan_market, f"\u626b\u63cf\u5931\u8d25: {type(e).__name__}")
         return {"ok": False, "error": "scan_failed", "message": f"{type(e).__name__}: {str(e)[:160]}"}
 
 
@@ -3238,8 +3285,10 @@ async def api_bj_screener_start(
     → running=false 后 GET /api/bj/screener?market=bj（命中缓存返回最新结果）。
     """
     market = str(market or "bj").strip().lower()
-    if market not in ("bj", "all", "hs", "kc", "bj_all"):
+    macd_mode = market == "macd"
+    if market not in ("bj", "all", "hs", "kc", "bj_all", "macd"):
         market = "bj"
+    scan_market = "all" if macd_mode else market
     _rate_limit(f"bj-screener:{user_id}", 24)
     try:
         _auth_ip_rate_limit(request)
@@ -3252,16 +3301,16 @@ async def api_bj_screener_start(
     if not is_vip:
         return {"ok": False, "error": "vip_required", "message": "掘金扫描为 VIP 专属，请先开通 VIP。"}
     from .bj_screener import scan_progress, run_scan_dedup, mark_scan_failed, _RUNNING_SCAN
-    p = scan_progress(market)
-    if p.get("running") or (_RUNNING_SCAN.get(market) is not None and not _RUNNING_SCAN[market].done()):
+    p = scan_progress(scan_market)
+    if p.get("running") or (_RUNNING_SCAN.get(scan_market) is not None and not _RUNNING_SCAN[scan_market].done()):
         return {"ok": True, "running": True, "msg": "扫描进行中，请稍候…"}
 
     async def _bg_scan() -> None:
         try:
-            await run_scan_dedup(int(user_id), force=True, market=market)
+            await run_scan_dedup(int(user_id), force=True, market=scan_market)
         except Exception as e:
             try:
-                mark_scan_failed(market, f"扫描失败: {type(e).__name__}: {str(e)[:120]}")
+                mark_scan_failed(scan_market, f"扫描失败: {type(e).__name__}: {str(e)[:120]}")
             except Exception:
                 pass
 
@@ -3275,6 +3324,8 @@ async def api_bj_screener_start(
 @app.get("/api/bj/screener/partial")
 async def api_bj_screener_partial(request: Request, market: str = "bj", user_id: int = Depends(get_current_user_id)) -> dict:
     market = str(market or "bj").strip().lower()
+    if market == "macd":
+        market = "all"
     if market not in ("bj", "all", "hs", "kc", "bj_all"):
         market = "bj"
     from .bj_screener import get_partial_scan
@@ -3288,6 +3339,8 @@ async def api_bj_screener_progress(
 ) -> dict:
     """掘金扫描进度（前端进度条轮询）；不扣查次，仅做频率限制。"""
     market = str(market or "bj").strip().lower()
+    if market == "macd":
+        market = "all"
     if market not in ("bj", "all", "hs", "kc", "bj_all"):
         market = "bj"
     try:
@@ -4064,9 +4117,33 @@ def public_billing_plans() -> dict:
 def public_invite_config() -> dict:
     """Public invite reward config for frontend display (no auth)."""
     try:
-        return {"ok": True, **(db.invite_cfg_effective() or {})}
+        out: dict = {"ok": True, **(db.invite_cfg_effective() or {})}
     except Exception:
-        return {"ok": True, "invite_reward_inviter_weekly": 0, "invite_reward_invitee_weekly": 0, "invite_weekly_cap": 0}
+        out = {"ok": True, "invite_reward_inviter_weekly": 0, "invite_reward_invitee_weekly": 0, "invite_weekly_cap": 0}
+    try:
+        act = db.invite_activity_effective()
+        out["activity"] = (
+            {
+                k: act.get(k)
+                for k in (
+                    "id",
+                    "name",
+                    "description",
+                    "target_invites",
+                    "reward_plan",
+                    "reward_days",
+                    "stack_enabled",
+                    "stack_cap_days",
+                    "start_at",
+                    "end_at",
+                )
+            }
+            if act
+            else None
+        )
+    except Exception:
+        out["activity"] = None
+    return out
 
 
 def _billing_normalize_plan(plan: str) -> tuple[str, int]:

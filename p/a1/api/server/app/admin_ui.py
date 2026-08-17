@@ -464,6 +464,10 @@ def admin_app_html(admin_base: str) -> str:
               通告管理
               <span class="subt">公告发布、置顶与定向</span>
             </button>
+            <button type="button" class="nav-item" data-panel="p-invite-activity">
+              裂变活动
+              <span class="subt">邀 N 人激活自动升 VIP（后台开关）</span>
+            </button>
           </div>
         </div>
 
@@ -897,6 +901,114 @@ def admin_app_html(admin_base: str) -> str:
               </div>
               <div class="msg small muted" style="margin-top:8px;">
                 说明：MVP 支持发布/置顶/下线与定向；已读状态在用户端自动记录。
+              </div>
+            </div>
+          </section>
+
+          <section class="panel-page" id="p-invite-activity">
+            <div class="card">
+              <div class="row">
+                <span class="pill">裂变活动配置</span>
+                <span class="muted small">后台开启后生效：每满 N 位好友注册并激活，自动升级指定 VIP；开启叠加可累计多档（如 3人=30天/6人=60天）</span>
+                <button type="button" id="btnLoadInviteActivity">读取</button>
+                <button type="button" id="btnSaveInviteActivity">保存</button>
+              </div>
+              <div id="inviteActivityMsg" class="msg small" style="margin:10px 0; line-height:1.65; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--panel2);"></div>
+              <div class="field-row" style="margin-top:10px;">
+                <div class="field" style="min-width:180px;">
+                  <span class="lbl">活动开关</span>
+                  <select id="iaEnabled" style="min-width:130px;">
+                    <option value="0">关闭</option>
+                    <option value="1">开启</option>
+                  </select>
+                </div>
+                <div class="field" style="min-width:200px;">
+                  <span class="lbl">活动名称</span>
+                  <input id="iaName" class="mono" placeholder="邀请 3 人免费用 30 天" />
+                </div>
+                <div class="field" style="min-width:150px;">
+                  <span class="lbl">目标邀请数</span>
+                  <input id="iaTarget" class="mono" placeholder="3" />
+                </div>
+                <div class="field" style="min-width:200px;">
+                  <span class="lbl">激活门槛</span>
+                  <select id="iaRequireActivated">
+                    <option value="1">需首次有效查询（推荐）</option>
+                    <option value="0">绑定即算</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field-row" style="margin-top:10px;">
+                <div class="field" style="min-width:210px;">
+                  <span class="lbl">奖励 VIP 套餐</span>
+                  <select id="iaPlan">
+                    <option value="vip_trial_99">体验卡 vip_trial_99</option>
+                    <option value="vip_month">月卡 vip_month</option>
+                    <option value="vip_year_999">年卡 vip_year_999</option>
+                  </select>
+                </div>
+                <div class="field" style="min-width:130px;">
+                  <span class="lbl">奖励天数</span>
+                  <input id="iaDays" class="mono" placeholder="30" />
+                </div>
+                <div class="field" style="min-width:150px;">
+                  <span class="lbl">额外周配额（0=默认）</span>
+                  <input id="iaWeekly" class="mono" placeholder="0" />
+                </div>
+                <div class="field" style="min-width:150px;">
+                  <span class="lbl">额外日配额（0=默认）</span>
+                  <input id="iaDaily" class="mono" placeholder="0" />
+                </div>
+              </div>
+              <div class="field-row" style="margin-top:10px;">
+                <div class="field" style="min-width:280px;">
+                  <span class="lbl">叠加赠送（每满 target 人 +reward_days 天）</span>
+                  <select id="iaStack" style="min-width:260px;">
+                    <option value="1">开启：3人=30天 / 6人=60天 / 9人=90天…</option>
+                    <option value="0">关闭：只发第 1 档（旧行为）</option>
+                  </select>
+                </div>
+                <div class="field" style="min-width:200px;">
+                  <span class="lbl">叠加上限天数</span>
+                  <input id="iaStackCap" class="mono" placeholder="90" />
+                </div>
+              </div>
+              <div class="field" style="margin-top:10px; max-width:680px;">
+                <span class="lbl">活动说明（用户端展示）</span>
+                <textarea id="iaDesc" rows="2" placeholder="成功邀请 3 位好友注册并激活使用，自动升级 30天 VIP（活动结束前有效）。"></textarea>
+              </div>
+              <div class="field-row" style="margin-top:10px;">
+                <div class="field" style="min-width:210px;">
+                  <span class="lbl">开始时间（空=不限）</span>
+                  <input id="iaStart" class="mono" type="datetime-local" />
+                </div>
+                <div class="field" style="min-width:210px;">
+                  <span class="lbl">结束时间（空=不限）</span>
+                  <input id="iaEnd" class="mono" type="datetime-local" />
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="row">
+                <span class="pill">发放记录与补扫</span>
+                <button type="button" id="btnInviteActivityBackfill">历史补发扫描</button>
+              </div>
+              <p class="muted small" style="margin:8px 0 10px;">
+                补扫按活动起止时间统计窗口内达标但未发放的用户（幂等，不会重复发）；开启活动前已达标的历史用户如需补发，可先把开始时间往前调再补扫。
+              </p>
+              <div id="ia-rewards-wrap" style="overflow:auto; max-height:320px;">
+                <table id="ia-rewards-table" style="width:100%; border-collapse:collapse; font-size:12px; display:none;">
+                  <thead>
+                    <tr>
+                      <th style="text-align:left; padding:8px; border-bottom:1px solid var(--border); color:var(--muted);">时间</th>
+                      <th style="text-align:left; padding:8px; border-bottom:1px solid var(--border); color:var(--muted);">用户</th>
+                      <th style="text-align:left; padding:8px; border-bottom:1px solid var(--border); color:var(--muted);">档位·奖励</th>
+                      <th style="text-align:left; padding:8px; border-bottom:1px solid var(--border); color:var(--muted);">说明</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ia-rewards-tbody"></tbody>
+                </table>
+                <div class="msg small muted" id="ia-rewards-empty" style="margin:8px 0 0;">暂无发放记录</div>
               </div>
             </div>
           </section>
@@ -2438,6 +2550,112 @@ def admin_app_html(admin_base: str) -> str:
         setStatus('已下载 pay_orders_export.csv（当前筛选，最多 5000 条）');
       }
 
+      function tsToLocalInput(ts){
+        try{
+          var d = new Date(Number(ts) * 1000);
+          var p = function(n){ return (n < 10 ? '0' : '') + n; };
+          return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate()) +
+            'T' + p(d.getHours()) + ':' + p(d.getMinutes());
+        }catch(e){ return ''; }
+      }
+
+      function renderInviteActivityRewards(items){
+        var table = $('ia-rewards-table');
+        var tbody = $('ia-rewards-tbody');
+        var empty = $('ia-rewards-empty');
+        if(!table || !tbody) return;
+        tbody.innerHTML = '';
+        if(!items || !items.length){
+          table.style.display = 'none';
+          if(empty) empty.style.display = '';
+          return;
+        }
+        table.style.display = '';
+        if(empty) empty.style.display = 'none';
+        items.forEach(function(r){
+          var who = r.user_phone || r.user_email || ('#' + r.user_id);
+          var reward = '第 ' + (r.milestone || 1) + ' 档 · ' + (r.plan || '') + ' · ' + r.days + ' 天';
+          var tr = document.createElement('tr');
+          tr.innerHTML =
+            '<td style="padding:8px; border-bottom:1px solid var(--border);">' + fmtTs(r.created_at) + '</td>' +
+            '<td style="padding:8px; border-bottom:1px solid var(--border);">' + esc(who) + '</td>' +
+            '<td style="padding:8px; border-bottom:1px solid var(--border);">' + esc(reward) + '</td>' +
+            '<td style="padding:8px; border-bottom:1px solid var(--border);">' + esc(r.note || '') + '</td>';
+          tbody.appendChild(tr);
+        });
+      }
+
+      async function loadInviteActivityPanel(){
+        var d = await api('/api/admin/invite/activity');
+        var acts = d.activities || [];
+        var act = acts.length ? acts[0] : null;
+        var msg = $('inviteActivityMsg');
+        if(msg){
+          msg.textContent = act
+            ? ('当前活动 #' + act.id + '：' + (act.enabled ? '已开启' : '已关闭') + ' · 目标 ' +
+              act.target_invites + ' 人 · 已发放 ' + act.rewards_count + ' 笔')
+            : '尚未创建活动：填写下方配置后点「保存」即创建。';
+        }
+        if(act){
+          $('iaEnabled').value = act.enabled ? '1' : '0';
+          $('iaName').value = act.name || '';
+          $('iaTarget').value = String(act.target_invites || 3);
+          $('iaRequireActivated').value = act.require_activated ? '1' : '0';
+          $('iaPlan').value = act.reward_plan || 'vip_trial_99';
+          $('iaDays').value = String(act.reward_days || 7);
+          $('iaWeekly').value = String(act.reward_weekly || 0);
+          $('iaDaily').value = String(act.reward_daily || 0);
+          $('iaStack').value = act.stack_enabled ? '1' : '0';
+          $('iaStackCap').value = String(act.stack_cap_days || 90);
+          $('iaDesc').value = act.description || '';
+          $('iaStart').value = act.start_at ? tsToLocalInput(act.start_at) : '';
+          $('iaEnd').value = act.end_at ? tsToLocalInput(act.end_at) : '';
+        }
+        renderInviteActivityRewards(d.rewards || []);
+      }
+
+      async function saveInviteActivity(){
+        var act = null;
+        try{
+          var g = await api('/api/admin/invite/activity');
+          act = ((g.activities || []).length ? g.activities[0] : null);
+        }catch(e){}
+        var body = {
+          id: act ? act.id : 0,
+          enabled: Number($('iaEnabled').value) === 1,
+          name: String($('iaName').value || '').trim(),
+          description: String($('iaDesc').value || '').trim(),
+          start_at: String($('iaStart').value || '').trim(),
+          end_at: String($('iaEnd').value || '').trim(),
+          target_invites: Math.max(1, Math.floor(Number($('iaTarget').value) || 3)),
+          require_activated: Number($('iaRequireActivated').value) === 1,
+          reward_plan: String($('iaPlan').value || 'vip_trial_99'),
+          reward_days: Math.max(1, Math.floor(Number($('iaDays').value) || 7)),
+          reward_weekly: Math.max(0, Math.floor(Number($('iaWeekly').value) || 0)),
+          reward_daily: Math.max(0, Math.floor(Number($('iaDaily').value) || 0)),
+          stack_enabled: Number($('iaStack').value) === 1,
+          stack_cap_days: Math.max(0, Math.floor(Number($('iaStackCap').value) || 90))
+        };
+        var d = await api('/api/admin/invite/activity', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(body)
+        });
+        setStatus('裂变活动已保存：#' + (d.item ? d.item.id : '') + (d.item && d.item.enabled ? '（已开启）' : '（已关闭）'));
+        await loadInviteActivityPanel();
+      }
+
+      async function runInviteActivityBackfill(){
+        setStatus('正在历史补发扫描…');
+        var d = await api('/api/admin/invite/activity/backfill', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({limit: 200})
+        });
+        setStatus('补扫完成：扫描 ' + d.scanned + ' 人 · 新发放 ' + d.granted + ' · 已发过 ' + d.already + ' · 失败 ' + d.failed);
+        await loadInviteActivityPanel();
+      }
+
       async function loadCommissionCfg(){
         var d = await api('/api/admin/config');
         var it = d.items || {};
@@ -3093,6 +3311,9 @@ async function loadEligibleCommissions(){
         }
         if(id === 'p-notices'){
           loadNoticesAdmin().catch(function(e){ setStatus('通告：'+e.message); });
+        }
+        if(id === 'p-invite-activity'){
+          loadInviteActivityPanel().catch(function(e){ setStatus('裂变活动：'+e.message); });
         }
         if(id === 'p-orders'){
           ordOffset = 0;
@@ -4252,6 +4473,15 @@ async function loadEligibleCommissions(){
         });
         if($('btnSaveInviteCfg')) $('btnSaveInviteCfg').addEventListener('click', async function(){
           try{ await saveInviteCfg(); }catch(e){ setStatus('保存邀请奖励配置失败：'+e.message); }
+        });
+        if($('btnLoadInviteActivity')) $('btnLoadInviteActivity').addEventListener('click', async function(){
+          try{ await loadInviteActivityPanel(); setStatus('已读取裂变活动配置'); }catch(e){ setStatus('读取裂变活动失败：'+e.message); }
+        });
+        if($('btnSaveInviteActivity')) $('btnSaveInviteActivity').addEventListener('click', async function(){
+          try{ await saveInviteActivity(); }catch(e){ setStatus('保存裂变活动失败：'+e.message); }
+        });
+        if($('btnInviteActivityBackfill')) $('btnInviteActivityBackfill').addEventListener('click', async function(){
+          try{ await runInviteActivityBackfill(); }catch(e){ setStatus('补发扫描失败：'+e.message); }
         });
         $('btnLoadWechat').addEventListener('click', async function(){
           try{ await loadWechat(); setStatus('已读取微信支付配置'); }catch(e){ setStatus('读取失败：'+e.message); }
