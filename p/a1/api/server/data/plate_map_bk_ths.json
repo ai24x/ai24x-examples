@@ -3540,6 +3540,18 @@
    "ths": "886112.TI",
    "name": "MLCC概念",
    "tag": "cn_concept"
+  },
+  {
+   "bk": "BK1136",
+   "ths": "885872.TI",
+   "name": "光通信模块",
+   "tag": "cn_concept"
+  },
+  {
+   "bk": "BK1215",
+   "ths": "881130.TI",
+   "name": "通信",
+   "tag": "industry"
   }
  ],
  "ths_unmatched": [

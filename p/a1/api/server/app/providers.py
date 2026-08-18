@@ -132,6 +132,12 @@ _PLATE_MAP_BK_TO_THS: dict[str, list[str]] = {}   # "BK1340" -> ["884092", ...] 
 _PLATE_MAP_THS_TO_BK: dict[str, str] = {}          # "884092" -> "BK1340"
 _PLATE_MAP_LOADED: float = 0.0
 
+# BK→THS 补充映射（映射表未收录但排行/复盘需要展示的板块；重新生成映射表时也不会丢）
+_PLATE_MAP_EXTRA: dict[str, tuple[str, str]] = {
+    "BK1136": ("885872", "光通信模块"),   # 东财概念「光通信模块」→ 同花顺「光模块」
+    "BK1215": ("881130", "通信"),         # 东财行业「通信」→ 同花顺「通信设备」
+}
+
 # 动态质量排序：按 _SRC 统计每 5 分钟重排一次基础通道优先级
 _DYNAMIC_PRIORITY: list[str] | None = None
 _DYNAMIC_PRIORITY_TS: float = 0.0
@@ -958,6 +964,12 @@ def _load_plate_map(ttl_s: float = 3600.0) -> None:
                 lst.append((six, rank))
             if six not in t2b:
                 t2b[six] = bk
+        for _bk, (_ths6, _nm) in _PLATE_MAP_EXTRA.items():
+            _lst = b2t.setdefault(_bk, [])
+            if not any(v[0] == _ths6 for v in _lst):
+                _lst.append((_ths6, 1))
+            if _ths6 not in t2b:
+                t2b[_ths6] = _bk
         for bk in b2t:
             b2t[bk].sort(key=lambda v: v[1])
             b2t[bk] = [v[0] for v in b2t[bk]]

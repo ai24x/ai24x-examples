@@ -372,31 +372,20 @@ window.AI24X_BJScreener = (function () {
     var rank = d.board_rank || [];
     if (!rank.length) { box.innerHTML = ""; return; }
     var isAll = ["all", "hs", "kc"].indexOf(d.market_code || state.market) >= 0;
-    var showMain = !d.vip_required;
-    var mains = (showMain ? (d.mainlines || []) : []).filter(function (m) { return m && m.src === "daily"; })
-      .map(function (m) { return String(m.name || "").replace(/\s+/g, ""); }).filter(Boolean);
-    function hitMainline(name) {
-      var n = String(name || "").replace(/\s+/g, "");
-      if (!n) return false;
-      for (var i = 0; i < mains.length; i++) {
-        if (n === mains[i]) return true;
-      }
-      return false;
-    }
-    var h = '<div class="bj-section">主线板块排行</div>' +
+    var h = '<div class="bj-section">主线 · 重点关注排行</div>' +
       '<div class="br-strategy">' +
-      '<span class="br-s br-s-main">⭐ 主线</span>' +
-      '<span class="br-s br-s-obs">👀 观察</span>' +
-      '<span class="br-s br-s-avoid">🚫 回避</span>' +
+      '<span class="br-s br-s-main">⭐ 主线（1）</span>' +
+      '<span class="br-s br-s-key">🔍 重点关注（2）</span>' +
+      '<span class="br-s br-s-avoid">备选（3）</span>' +
       '</div>' +
       (isAll
         ? '<div class="bj-note">💡 主线优先；热度≠可追，破位注意风险。</div>'
         : '<div class="bj-note">💡 底部异动观察，关注回踩企稳形态。</div>') +
       '<div class="br-list">';
     rank.forEach(function (b, idx) {
-      var isMain = b.mainline === true || hitMainline(b.name);
-      var t = (isMain ? '<span class="tag ok">主线 ✓</span>' : "") + (b.tier === "king" ? '<span class="tier-badge tier-king">⭐ 评分最高</span>'
-        : (b.tier === "key" ? '<span class="tier-badge tier-key">评分次高</span>'
+      var isMain = b.tier === "king";
+      var t = (isMain ? '<span class="tag ok">主线 ✓</span>' : "") + (b.tier === "king" ? '<span class="tier-badge tier-king">⭐ 今日主线</span>'
+        : (b.tier === "key" ? '<span class="tier-badge tier-key">重点关注</span>'
           : '<span class="tier-badge tier-normal">备选</span>'));
       var secid = String(b.secid || "").trim();
       var ths = String(b.ths || "").trim();
@@ -410,7 +399,7 @@ window.AI24X_BJScreener = (function () {
       var st = "";
       if (isAll) {
         if (b.mainline && !b.f164) {
-          st = '主线 · 资金+技术双确认';
+          st = (b.tier === "king" ? '主线' : '重点关注') + ' · 资金+技术双确认';
         } else {
           st = '5日主力 <b>' + moneyYi(b.f164) + '</b> ｜ 今日主力 <b>' + moneyYi(b.f62) + '</b>' + (b.p5 != null ? ' ｜ 5日 ' + pct(b.p5) : '');
         }

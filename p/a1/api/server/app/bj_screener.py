@@ -2686,23 +2686,27 @@ def _board_rank_funds(boards: list[dict[str, Any]], keep_backup: int = 3, mainli
     """全市场板块排行：复盘主线板块优先（资金+技术双确认），其余按 5日主力净流入排序，王者 1 + 辅线 2 + 备选 N。"""
     items = sorted((boards or []), key=lambda x: -float(x.get("f164") or 0))
     _ml: set[str] = set()
+    _ml_order: dict[str, int] = {}
     _ml_aliases: set[str] = set()
     if mainline_names:
         try:
             from .daily_report import SECTOR_BOARD_ALIASES as _SBA
-            for _n in mainline_names:
+            for _i, _n in enumerate(mainline_names):
                 _n0 = str(_n or "").strip()
                 if not _n0:
                     continue
                 _ml.add(_n0.replace(" ", ""))
+                _ml_order.setdefault(_n0.replace(" ", ""), _i)
                 for _a in (_SBA.get(_n0) or [_n0]):
                     if _a:
                         _ml_aliases.add(str(_a).replace(" ", ""))
         except Exception:
             _ml = {str(n).replace(" ", "") for n in mainline_names if str(n).strip()}
+            _ml_order = {str(n).replace(" ", ""): i for i, n in enumerate(mainline_names) if str(n).strip()}
         if _ml:
+            # 主线按复盘顺序（第 1 个 = 主线 king，其余 = 重点关注 key），非主线按资金靠后
             items.sort(key=lambda x: (
-                0 if (str(x.get("name") or "").replace(" ", "") in _ml) else 1,
+                _ml_order.get(str(x.get("name") or "").replace(" ", ""), 99),
                 -float(x.get("f164") or 0),
             ))
     tiers = ["king", "key", "key"] + ["backup"] * max(0, keep_backup)

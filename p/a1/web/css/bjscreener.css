@@ -175,6 +175,7 @@ button.chip.arch:hover{border-color:var(--bj-acc);background:var(--bj-acc-bg)}
 .br-s{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;line-height:1.6;}
 .br-s-main{background:linear-gradient(135deg,#ffe9a8,#ffd666 60%,#ffc94d);color:#5b3a00;border:1px solid #f0b429;}
 .br-s-obs{background:rgba(96,165,250,.12);color:var(--bj-acc);border:1px solid var(--bj-acc-bd);}
+.br-s-key{background:rgba(96,165,250,.12);color:var(--bj-acc);border:1px solid var(--bj-acc-bd);}
 .br-s-avoid{background:rgba(239,68,68,.10);color:var(--fall,#dc2626);border:1px solid rgba(239,68,68,.35);}
 :root[data-theme="dark"] .br-s-main{background:linear-gradient(135deg,rgba(255,214,102,.22),rgba(251,191,36,.16));color:#ffd666;border-color:#d99a1b;}
 .br-item .st b{color:var(--bj-acc)}
