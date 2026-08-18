@@ -3216,12 +3216,12 @@ async def api_bj_screener(
     quota = db.get_quota_status(int(user_id))
     plan = str(quota.get("plan") or "anon").strip().lower()
     is_vip = plan not in ("", "free", "anon")
-    from .bj_screener import run_scan_dedup, macd_view
+    from .bj_screener import run_scan_dedup, macd_view, _backfill_leader_quotes
     if not is_vip:
         # 非 VIP：开放“异动板块”视图（复用当日缓存或轻量扫描），个股分析保持 VIP 专属
         early = await _bj_ensure_scan_or_fast(int(user_id), scan_market, force=False, boards_only=True)
         if early is not None:
-            return early
+            return await _backfill_leader_quotes(early)
         try:
             out = await run_scan_dedup(int(user_id), force=False, cfg_override=None, boards_only=True, market=scan_market)
         except HTTPException:
@@ -3244,7 +3244,7 @@ async def api_bj_screener(
             for _br in out["board_rank"]:
                 _br.pop("mainline", None)
             out["mainlines"] = []
-        return out
+        return await _backfill_leader_quotes(out)
 
     cfg_override: dict = {}
     if mcap_min > 0:
@@ -3260,11 +3260,13 @@ async def api_bj_screener(
     if cap > 0:
         cfg_override["cap"] = int(max(30, min(120, cap)))    early = await _bj_ensure_scan_or_fast(int(user_id), scan_market, force=bool(force), cfg_override=cfg_override or None)
     if early is not None:
-        return macd_view(early) if macd_mode else early
+        _early = macd_view(early) if macd_mode else early
+        return await _backfill_leader_quotes(_early)
 
     try:
         out = await run_scan_dedup(int(user_id), force=bool(force), cfg_override=cfg_override or None, market=scan_market)
-        return macd_view(out) if macd_mode else out
+        _out = macd_view(out) if macd_mode else out
+        return await _backfill_leader_quotes(_out)
     except HTTPException:
         raise
     except Exception as e:

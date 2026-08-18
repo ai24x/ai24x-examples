@@ -2737,6 +2737,61 @@ async def _fetch_stock_quotes(codes: list[str]) -> dict[str, dict[str, Any]]:
     return out
 
 
+_LEADER_Q_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
+_LEADER_Q_TTL = 60.0
+
+
+async def _backfill_leader_quotes(payload: dict[str, Any]) -> dict[str, Any]:
+    """板块排行代表缺涨跌幅时，用实时行情补一次（带 60s 缓存）。
+
+    旧归档/静态龙头兜底（如 AI服务器算力 走 SECTORS 静态代表、上游失败时 pct 为 null）
+    会让「代表：xxx」无涨跌幅可显示；此函数在 API 返回前统一补齐，不改写归档与扫描缓存。
+    """
+    try:
+        if not isinstance(payload, dict):
+            return payload
+        rank = payload.get("board_rank")
+        if not isinstance(rank, list):
+            return payload
+        miss: list[tuple[dict[str, Any], str]] = []
+        now0 = time.time()
+        for b in rank:
+            if not isinstance(b, dict):
+                continue
+            for ld in (b.get("leaders") or []):
+                if not isinstance(ld, dict):
+                    continue
+                code = str(ld.get("code") or "")
+                if not re.fullmatch(r"\d{6}", code):
+                    continue
+                pct = ld.get("pct")
+                if pct is None or (isinstance(pct, str) and not str(pct).strip()):
+                    hit = _LEADER_Q_CACHE.get(code)
+                    if hit and now0 - hit[0] < _LEADER_Q_TTL:
+                        for _k in ("pct", "amount", "mcap", "turnover", "fund", "fund5"):
+                            if _k in hit[1]:
+                                ld[_k] = hit[1][_k]
+                    else:
+                        miss.append((ld, code))
+        if miss:
+            codes = list(dict.fromkeys(c for _, c in miss))
+            qmap = await _fetch_stock_quotes(codes)
+            now1 = time.time()
+            for _c in codes:
+                if _c in qmap:
+                    _LEADER_Q_CACHE[_c] = (now1, qmap[_c])
+            for ld, code in miss:
+                q = qmap.get(code)
+                if not q:
+                    continue
+                for _k in ("pct", "amount", "mcap", "turnover", "fund", "fund5"):
+                    if _k in q:
+                        ld[_k] = q[_k]
+        return payload
+    except Exception:
+        return payload
+
+
 def _board_rank_funds(boards: list[dict[str, Any]], keep_backup: int = 3, mainline_names: list[str] | None = None) -> list[dict[str, Any]]:
     """全市场板块排行：复盘主线板块优先（资金+技术双确认），其余按 5日主力净流入排序，王者 1 + 辅线 2 + 备选 N。"""
     items = sorted((boards or []), key=lambda x: -float(x.get("f164") or 0))
