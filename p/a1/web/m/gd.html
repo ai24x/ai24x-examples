@@ -590,8 +590,7 @@
       var _bml = b.ml_name ? String(b.ml_name).replace(/\s+/g, '') : '';
       var isTop = !!(b.mainline && _bml && _bml === topMlName);
       var t = '';
-      if (b.mainline) t += '<span class="tier main">主线 ✓</span>';
-      if (isTop && b.tier === 'king') t += '<span class="tier king">⭐ 今日主线</span>';
+      if (isTop && b.tier === 'king') t += '<span class="tier main">主线 ✓</span><span class="tier king">⭐ 今日主线</span>';
       else if (b.mainline) t += '<span class="tier key">重点关注</span>';
       else if (b.tier === 'king') t += '<span class="tier normal">市场强势</span>';
       else if (b.tier === 'key') t += '<span class="tier key">强势关注</span>';

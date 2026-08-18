@@ -404,7 +404,7 @@ window.AI24X_BJScreener = (function () {
       var _bml = b.ml_name ? String(b.ml_name).replace(/\s+/g, "") : "";
       var isTop = !!(b.mainline && _bml && _bml === topMlName);
       var isMain = !!(isTop && b.tier === "king");
-      var t = (b.mainline ? '<span class="tag ok">主线 ✓</span>' : "") + (isMain ? '<span class="tier-badge tier-king">⭐ 今日主线</span>'
+      var t = (isMain ? '<span class="tag ok">主线 ✓</span>' : "") + (isMain ? '<span class="tier-badge tier-king">⭐ 今日主线</span>'
         : (b.mainline ? '<span class="tier-badge tier-key">重点关注</span>'
           : (b.tier === "king" ? '<span class="tier-badge tier-normal">市场强势</span>'
             : (b.tier === "key" ? '<span class="tier-badge tier-key">强势关注</span>'
@@ -422,7 +422,7 @@ window.AI24X_BJScreener = (function () {
       var st = "";
       if (isAll) {
         if (b.mainline && !b.f164) {
-          st = (b.tier === "king" ? '主线' : '重点关注') + ' · 资金+技术双确认';
+          st = (isMain ? '主线' : '重点关注') + ' · 资金+技术双确认';
         } else {
           st = '5日主力 <b>' + moneyYi(b.f164) + '</b> ｜ 今日主力 <b>' + moneyYi(b.f62) + '</b>' + (b.p5 != null ? ' ｜ 5日 ' + pct(b.p5) : '');
         }
