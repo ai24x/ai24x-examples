@@ -384,7 +384,7 @@ window.AI24X_BJScreener = (function () {
     if (!box) return;
     var rank = d.board_rank || [];
     if (!rank.length) { box.innerHTML = ""; return; }
-    var isAll = ["all", "hs", "kc"].indexOf(d.market_code || state.market) >= 0;
+    var isAll = ["all", "hs", "kc", "macd"].indexOf(d.market_code || state.market) >= 0;
     var h = '<div class="bj-section">主线 · 重点关注排行</div>' +
       '<div class="br-strategy">' +
       '<span class="br-s br-s-main">⭐ 主线（1）</span>' +
@@ -396,10 +396,12 @@ window.AI24X_BJScreener = (function () {
         : '<div class="bj-note">💡 底部异动观察，关注回踩企稳形态。</div>') +
       '<div class="br-list">';
     rank.forEach(function (b, idx) {
-      var isMain = b.tier === "king";
-      var t = (isMain ? '<span class="tag ok">主线 ✓</span>' : "") + (b.tier === "king" ? '<span class="tier-badge tier-king">⭐ 今日主线</span>'
-        : (b.tier === "key" ? '<span class="tier-badge tier-key">重点关注</span>'
-          : '<span class="tier-badge tier-normal">备选</span>'));
+      var isMain = !!(b.mainline && b.tier === "king");
+      var t = (isMain ? '<span class="tag ok">主线 ✓</span>' : "") + (isMain ? '<span class="tier-badge tier-king">⭐ 今日主线</span>'
+        : (b.mainline && b.tier === "key" ? '<span class="tier-badge tier-key">重点关注</span>'
+          : (b.tier === "king" ? '<span class="tier-badge tier-normal">市场强势</span>'
+            : (b.tier === "key" ? '<span class="tier-badge tier-key">强势关注</span>'
+              : '<span class="tier-badge tier-normal">备选</span>'))));
       var secid = String(b.secid || "").trim();
       var ths = String(b.ths || "").trim();
       var useSecid = ths || secid;
@@ -408,7 +410,8 @@ window.AI24X_BJScreener = (function () {
       var href = useSecid ? ("demo.html?secid=" + encodeURIComponent(useSecid) + "&period=day" + (b.name ? "&name=" + encodeURIComponent(b.name) : "")) : "#";
       var codeLabel = thsCode || (bkCode ? (bkCode.toUpperCase().indexOf("BK") === 0 ? bkCode.toUpperCase() : "BK" + bkCode) : "");
       var nm = '<a class="n" href="' + href + '" target="_blank" rel="noopener" title="在AI行情官中查看 ' + esc(b.name) + (ths ? '（同花顺 ' + esc(thsCode) + ' · 东财 ' + esc(bkCode) + '）' : (bkCode ? '（东财 ' + esc(bkCode) + '）' : '')) + '">' +
-        esc(b.name) + (codeLabel ? ' <span class="br-code">' + esc(codeLabel) + '</span>' : '') + ' ↗</a>';
+        esc(b.name) + (codeLabel ? ' <span class="br-code">' + esc(codeLabel) + '</span>' : '') +
+        (b.ml_name && b.ml_name !== b.name ? ' <span class="br-code">主线：' + esc(b.ml_name) + '</span>' : '') + ' ↗</a>';
       var st = "";
       if (isAll) {
         if (b.mainline && !b.f164) {

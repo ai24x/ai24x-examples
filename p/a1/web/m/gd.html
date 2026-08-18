@@ -567,7 +567,7 @@
     d = d || {};
     var rank = d.board_rank || [];
     if (!rank.length) { el.innerHTML = '<div class="empty">暂无板块排行</div>'; return; }
-    var isAll = (d.market_code === 'hs' || d.market_code === 'kc');
+    var isAll = (d.market_code === 'hs' || d.market_code === 'kc' || d.market_code === 'macd');
     var mains = (d.mainlines || []).filter(function(m){ return m && m.src === 'daily'; })
       .map(function(m){ return String(m.name || '').replace(/\s+/g, ''); }).filter(Boolean);
     function hitMainline(name){
@@ -581,9 +581,11 @@
     }
     el.innerHTML = rank.map(function(b, idx){
       var t = '';
-      if (hitMainline(b.name)) t += '<span class="tier main">主线 ✓</span>';
-      if (b.tier === 'king') t += '<span class="tier king">⭐ 今日主线</span>';
-      else if (b.tier === 'key') t += '<span class="tier key">重点关注</span>';
+      if (b.mainline) t += '<span class="tier main">主线 ✓</span>';
+      if (b.mainline && b.tier === 'king') t += '<span class="tier king">⭐ 今日主线</span>';
+      else if (b.tier === 'king') t += '<span class="tier normal">市场强势</span>';
+      else if (b.mainline && b.tier === 'key') t += '<span class="tier key">重点关注</span>';
+      else if (b.tier === 'key') t += '<span class="tier key">强势关注</span>';
       else t += '<span class="tier normal">备选</span>';
       var secid = String(b.secid || '').trim();
       var ths = String(b.ths || '').trim();
@@ -591,7 +593,8 @@
       var thsCode = ths ? ths.replace(/^ths:/i, '').replace(/^\d+\./, '') : '';
       var href = useSecid ? ('../demo.html?secid=' + encodeURIComponent(useSecid) + '&period=day' + (b.name ? '&name=' + encodeURIComponent(b.name) : '')) : '#';
       var nm = '<a class="br-name" href="' + href + '" target="_blank" rel="noopener">' + esc(b.name) +
-        (thsCode ? ' <span class="br-code">' + esc(thsCode) + '</span>' : '') + ' ↗</a>';
+        (thsCode ? ' <span class="br-code">' + esc(thsCode) + '</span>' : '') +
+        (b.ml_name && b.ml_name !== b.name ? ' <span class="br-code">主线：' + esc(b.ml_name) + '</span>' : '') + ' ↗</a>';
       var st = '';
       if (isAll) {
         if (b.mainline && !b.f164) st = '主线 · 资金+技术双确认';

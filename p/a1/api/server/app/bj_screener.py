@@ -852,7 +852,7 @@ def _reattach_ths(payload: dict[str, Any]) -> dict[str, Any]:
         if _obs:
             payload["observes"] = [{"name": n, "src": "daily"} for n in _obs]
         # 板块排行与主线口径同步（主线驱动市场）：king=主线首名，key=其余主线，backup=备选
-        if str(payload.get("market_code") or "") in ("all", "hs", "kc"):
+        if str(payload.get("market_code") or "") in ("all", "hs", "kc", "bj", "bj_all"):
             payload["board_rank"] = _sync_rank_mainlines(payload.get("board_rank") or [], _names)
     except Exception:
         pass
@@ -862,8 +862,9 @@ def _reattach_ths(payload: dict[str, Any]) -> dict[str, Any]:
 def _sync_rank_mainlines(board_rank, mainline_names):
     """板块排行与主线口径同步：主线按复盘顺序前置，第1=今日主线(king)、其余=重点关注(key)、其余=备选(backup)。
 
-    修复旧归档/旧算法扫描留下的「排行 king 与主线首名不一致」（如 08-17 旧档按资金排序把
-    通信光模块CPO 排第1，而主线是 AI服务器算力）；主线板块不在榜中时保持原榜不动，避免误伤北证异动榜。
+    支持主线别名匹配（daily_report.SECTOR_BOARD_ALIASES，如 通信技术/CPO概念→通信光模块CPO），
+    使科创/北证板块榜也能与全市场主线对齐；同一主线在榜中只保留 1 个代表板块（优先同名），
+    其余同名/别名板块不再重复标注主线。修复旧归档/旧算法扫描留下的「排行 king 与主线首名不一致」。
     """
     try:
         if not isinstance(board_rank, list) or not mainline_names:
@@ -872,23 +873,54 @@ def _sync_rank_mainlines(board_rank, mainline_names):
         if not _names:
             return board_rank
         _norm = lambda s: re.sub(r"\s+", "", str(s or ""))
-        _ml_set = {_norm(n) for n in _names}
         _order = {_norm(n): i for i, n in enumerate(_names)}
-        _main_br = [b for b in board_rank if isinstance(b, dict) and _norm(b.get("name")) in _ml_set]
+        _alias_items: list[tuple[str, str]] = []  # (归一化别名, 主线名)，按主线顺序
+        try:
+            from .daily_report import SECTOR_BOARD_ALIASES as _SBA
+            for _n in _names:
+                for _a in (_SBA.get(_n) or [_n]):
+                    if _a:
+                        _alias_items.append((_norm(_a), _n))
+        except Exception:
+            _alias_items = [(_norm(n), n) for n in _names]
+
+        def _ml_of(_bn: str) -> str | None:
+            if _bn in _order:
+                return _bn
+            # 别名匹配（板块名包含别名，如 CPO概念 含 CPO / 光通信模块 含 光通信），别名≥2 字防误伤
+            for _a, _ml in _alias_items:
+                if len(_a) >= 2 and _a in _bn:
+                    return _ml
+            return None
+
+        _used: set[str] = set()
+        _main_br: list[tuple[dict[str, Any], str]] = []
+        _other_br: list[dict[str, Any]] = []
+        for b in board_rank:
+            if not isinstance(b, dict):
+                continue
+            _bn = _norm(b.get("name"))
+            _ml = _ml_of(_bn)
+            if _ml and _ml not in _used:
+                _used.add(_ml)
+                b["mainline"] = True
+                b["ml_name"] = _ml
+                _main_br.append((b, _ml))
+            else:
+                b["mainline"] = False
+                b.pop("ml_name", None)
+                _other_br.append(b)
         if not _main_br:
             return board_rank
-        _other_br = [b for b in board_rank if isinstance(b, dict) and _norm(b.get("name")) not in _ml_set]
-        _main_br.sort(key=lambda b: _order.get(_norm(b.get("name")), 99))
-        for _i, _b in enumerate(_main_br):
+        _main_br.sort(key=lambda x: _order.get(_norm(x[1]), 99))
+        _out = [b for b, _ in _main_br]
+        for _i, _b in enumerate(_out):
             _b["tier"] = "king" if _i == 0 else "key"
-            _b["mainline"] = True
         for _b in _other_br:
             _b["tier"] = "backup"
-            _b["mainline"] = False
-        return _main_br + _other_br
+        return _out + _other_br
     except Exception:
         return board_rank
-
 
 def _apply_stale_fallback(result: dict[str, Any], market: str = "bj") -> dict[str, Any]:
     """今日无合格标的时，回退展示上一交易日结果并打 stale 标记。
@@ -3228,6 +3260,7 @@ def macd_view(out: dict[str, Any]) -> dict[str, Any]:
         "generated_ts": out.get("generated_ts"), "elapsed_s": out.get("elapsed_s"),
         "market": out.get("market"), "regime": out.get("regime"), "style": out.get("style"),
         "mainlines": out.get("mainlines") or [],
+        "board_rank": out.get("board_rank") or [],
         "macd_reds": out.get("macd_reds") or [],
     }
     for _k in ("stale", "stale_from", "off_market", "intraday", "refresh_locked", "vip_required", "today_missing"):
@@ -4442,7 +4475,7 @@ async def run_scan(
         pass
 
     # 板块排行与主线口径同步：主线按复盘顺序前置（第1=今日主线 king），与 mainlines 卡片完全一致
-    if market in ("all", "hs", "kc"):
+    if market in ("all", "hs", "kc", "bj", "bj_all"):
         board_rank = _sync_rank_mainlines(board_rank, _dml_names or [])
 
     result_mainlines = rev_mainlines[:10]
