@@ -1304,7 +1304,7 @@ window.AI24X_BJScreener = (function () {
     var d = now.getDay();
     if (d === 0 || d === 6) return { allow: false, note: "非交易日：展示最近收盘归档，无需重新扫描" };
     var hm = now.getHours() * 60 + now.getMinutes();
-    if (hm < 15 * 60 + 10) return { allow: false, note: "盘中数据未定型：15:10 收盘后可重新扫描（避免未定型 K 线污染）" };
+    if (hm < 15 * 60 + 10) return { allow: false, note: "盘中未定型：15:10 后可重新扫描" };
     return { allow: true, note: "" };
   }
   function applyScanGate(btn) {
