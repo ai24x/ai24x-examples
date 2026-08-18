@@ -377,10 +377,14 @@
   }
 
   function renderMeta(d){
-    $('meta').innerHTML =
+    var meta =
       '数据截至 <b>' + esc(d.asof || d.date || '') + '</b> ｜ 扫描 <b>' + (d.scanned || 0) + '</b> 只 ｜ 合格 <b>' + (d.fine || 0) + '</b> 只' +
-      (d.hard_rejected ? ' ｜ 硬伤排除 <b style="color:#f87171">' + d.hard_rejected + '</b> 只' : '') +
-      ' ｜ 耗时 ' + num(d.elapsed_s, 0) + 's';
+      (d.hard_rejected ? ' ｜ 硬伤排除 <b style="color:#f87171">' + d.hard_rejected + '</b> 只' : '');
+    if (d.off_market) meta += ' ｜ ⏸ 非交易日：展示最近交易日（' + esc(d.stale_from || '') + '）';
+    else if (d.intraday) meta += ' ｜ ⚠ 今日未收盘：展示上一交易日收盘（' + esc(d.stale_from || '') + '）';
+    else if (d.stale) meta += ' ｜ ⚠ 今日无合格，展示上一交易日（' + esc(d.stale_from || '') + '）';
+    meta += ' ｜ 耗时 ' + num(d.elapsed_s, 0) + 's';
+    $('meta').innerHTML = meta;
   }
 
 
@@ -470,8 +474,11 @@
     if (em && em[1]) envLine = stripMdLink(em[1]).replace(/（[^）]*）/g, '').replace(/；\s*$/, '');
     var mainlines = '', observe = '', avoid = '', ops = '';
     if (vip) {
-      var mm = md.match(/主攻主线[：:]\s*\*\*([^*]+)\*\*/) || md.match(/主攻[^：:\n]*[：:]\s*\*\*([^*]+)\*\*/);
-      if (mm && mm[1]) mainlines = stripMdLink(mm[1]);
+      var mm = md.match(/主攻主线[：:]\s*([^\n]+)/) || md.match(/主攻[^：:\n]*[：:]\s*([^\n]+)/);
+      if (mm && mm[1]) {
+        var _ml = String(mm[1]).match(/\*\*([^*]+)\*\*/g);
+        mainlines = _ml ? _ml.map(function(s){ return stripMdLink(s); }).join('、') : stripMdLink(mm[1]);
+      }
       var om = md.match(/\*{0,2}观察\*{0,2}[：:]\s*([^\n；;]+)/);
       if (om && om[1]) observe = stripMdLink(om[1]);
       var av = md.match(/回避[^：:\n]*[：:]\s*([^\n；;]+)/);
