@@ -28,6 +28,8 @@
 .chip .n{font-weight:800;color:var(--bj-acc)}
 .chip .amt{color:var(--muted);font-size:11px}
 .chip .chip-sub{color:var(--muted);font-size:11px;font-weight:400;margin-left:2px}
+.ml-basis{margin-top:6px;font-size:12px;line-height:1.8;color:var(--muted)}
+.ml-basis .ml-sep2{margin:0 6px;opacity:.55}
 .pick-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
 /* 仅 3 只时第三张跨两列居中，避免第二行孤零零一张 */
 .pick-grid > .pick-card:last-child:nth-child(3){grid-column:1 / -1;justify-self:center;width:100%;max-width:660px}

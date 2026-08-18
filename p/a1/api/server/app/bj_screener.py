@@ -3432,6 +3432,7 @@ async def run_scan(
     _dml_obs = (_dml or {}).get("observes") or []
     _dml_date = (_dml or {}).get("date") or ""
     _dml_src = (_dml or {}).get("src") or ""
+    _dml_info = (_dml or {}).get("info") or {}
     _ml_leaders: dict[str, list[dict[str, Any]]] = {}
     _obs_leaders: dict[str, list[dict[str, Any]]] = {}
     if market in ("all", "hs", "kc") and _dml_names and not boards_only:
@@ -4331,7 +4332,12 @@ async def run_scan(
 
     result_mainlines = rev_mainlines[:10]
     if _dml_names:
-        result_mainlines = [{"name": n, "src": "daily"} for n in _dml_names]
+        result_mainlines = []
+        for _n in _dml_names:
+            _mi = dict(_dml_info.get(_n) or {})
+            _mi["name"] = _n
+            _mi["src"] = "daily"
+            result_mainlines.append(_mi)
     # 行情风格终算（含板块持续性 streak）：覆盖初算
     style = _detect_style(regime, _dml_names, board_rank)
     style_mode = str(style.get("mode") or "chop") if style else "chop"
@@ -4507,10 +4513,12 @@ def _daily_mainlines():
     1) 优先当日复盘归档 mainlines.json（复盘实际生成，最准）；
     2) 无则用当日 sector_scores 缓存 + 连续性约束重算（与复盘报告口径一致）；
     3) 再无则回退最近归档日主线（与复盘页展示一致）。
-    返回 {"names": [...], "observes": [...], "date": "YYYY-MM-DD", "src": "archive"|"recalc"|"fallback"} 或 None。
+    返回 {"names": [...], "observes": [...], "date": "YYYY-MM-DD", "src": "archive"|"recalc"|"fallback",
+          "info": {主线名: {"top5","fund5","fund_t","n_zt","n_surge",...}}}（判定依据小字）或 None。
     """
     try:
-        from .daily_report import ARCHIVE_ROOT, today8, cache_load, pick_main_lines, _prev_mainlines
+        from .daily_report import (ARCHIVE_ROOT, today8, cache_load, pick_main_lines,
+                                   _prev_mainlines, mainline_judgment)
         _today = today8()
         # 1) 当日归档（复盘实际生成的主线 + 观察板块）
         _mj = os.path.join(ARCHIVE_ROOT, _today, "mainlines.json")
@@ -4519,7 +4527,8 @@ def _daily_mainlines():
             ml = obj.get("mainlines") or []
             obs = obj.get("observes") or []
             if ml:
-                return {"names": list(ml), "observes": list(obs), "date": _today, "src": "archive"}
+                return {"names": list(ml), "observes": list(obs), "date": _today, "src": "archive",
+                        "info": _mainline_info_from_archive(ml, _today)}
         # 2) 当日板块评分缓存 + 连续性约束重算（与复盘报告口径一致）
         sc = cache_load("sector_scores")
         if sc:
@@ -4527,7 +4536,8 @@ def _daily_mainlines():
             _pl = cache_load("plates")
             ml, obs, _av = pick_main_lines(sc, (_prev.get("mainlines") or []), _pl)
             if ml:
-                return {"names": list(ml), "observes": list(obs or []), "date": _today, "src": "recalc"}
+                return {"names": list(ml), "observes": list(obs or []), "date": _today, "src": "recalc",
+                        "info": mainline_judgment(sc, _pl)}
         # 3) 最近归档日主线（与复盘页展示一致）
         import re as _re
         _archs = sorted([x for x in os.listdir(ARCHIVE_ROOT) if _re.fullmatch(r"\d{8}", x) and os.path.isdir(os.path.join(ARCHIVE_ROOT, x))], reverse=True)
@@ -4540,10 +4550,27 @@ def _daily_mainlines():
                 ml = obj.get("mainlines") or []
                 obs = obj.get("observes") or []
                 if ml:
-                    return {"names": list(ml), "observes": list(obs), "date": _d, "src": "fallback"}
+                    return {"names": list(ml), "observes": list(obs), "date": _d, "src": "fallback",
+                            "info": _mainline_info_from_archive(ml, _d)}
     except Exception:
         return None
     return None
+
+
+def _mainline_info_from_archive(names: list[str], d8: str) -> dict[str, dict[str, Any]]:
+    """从复盘归档 sector_score.json + plate_data.json 重算主线判定依据（零上游成本）。"""
+    try:
+        from .daily_report import ARCHIVE_ROOT, mainline_judgment
+        _sp = os.path.join(ARCHIVE_ROOT, d8, "sector_score.json")
+        if not os.path.exists(_sp):
+            return {}
+        sc = json.load(open(_sp, encoding="utf-8"))
+        _pp = os.path.join(ARCHIVE_ROOT, d8, "plate_data.json")
+        plates = json.load(open(_pp, encoding="utf-8")) if os.path.exists(_pp) else None
+        info = mainline_judgment(sc, plates) or {}
+        return {n: info[n] for n in names if n in info}
+    except Exception:
+        return {}
 
 
 # ---------------- 复盘主线板块成分（主线优先推荐） ----------------

@@ -644,18 +644,12 @@ def sector_stats(sc):
     median = scores[len(scores) // 2] if scores else None
     return {"mean": mean, "top3": names, "top5_mean": top5_mean, "median": median, "ok": ok, "n": len(ok)}
 
-def pick_main_lines(sector_scores, prev_mainlines=None, plates=None):
-    """主线锁定（加权综合分 + 延续约束，防“一天一个想法”也防“一条线霸榜”）：
-    - 技术关：成分股 Top5 均值（龙头梯队）≥58，或板块内有涨停/异动情绪确认时 Top5 均值≥55；
-      （Top5 均值替代全体均值，避免平庸成分稀释，强势题材不再漏判）
-    - 资金关：当日平均涨幅≥0，或 5日主力净流入≥15亿 且 今日净流入>0 / 今日净流入≥50亿（资金主攻）；
-    - 加权综合分（排序用）= Top5均值×0.5 + 5日主力净流入标准化(50亿封顶)×30 + 情绪(涨停×2+异动×0.5，4分封顶)×20；
-    - 昨日主线：Top5 均值≥58 且回调≤-1.0%，或 均值≥55 且资金仍主攻，或 综合分≥55 且情绪确认 → 延续；
-    - 新晋主线：技术+资金/情绪双确认；主线总量最多 3 条，超出部分按综合分降级为观察（次日可再升回）；
-    - 资金强但技术未修复（均值50~58）→ 观察（等修复确认），避免漏掉正在启动的轮动板块。
+def mainline_judgment(sector_scores, plates=None):
+    """主线判定依据明细：逐板块计算 技术Top5均值/5日主力/今日主力/涨停/异动 等口径，
+    与 pick_main_lines 完全一致（供复盘/掘金页面展示“主线判定小字”，零上游请求）。
+    返回 {板块名: {"mean","top5","median","avg_up","fund5","fund_t","fund_ok",
+                 "confirmed","composite","n_zt","n_surge"}}。
     """
-    prev = {str(x) for x in (prev_mainlines or [])}
-    main_lines, observes, avoids = [], [], []
     info = {}
     for sec, sc in sector_scores.items():
         st = sector_stats(sc)
@@ -679,6 +673,34 @@ def pick_main_lines(sector_scores, prev_mainlines=None, plates=None):
         info[sec] = {"mean": mean, "top5": top5m, "median": st["median"], "avg_up": avg_up,
                      "fund5": fund5, "fund_t": fund_t, "fund_ok": fund_ok,
                      "confirmed": confirmed, "composite": composite, "n_zt": n_zt, "n_surge": n_surge}
+    return info
+
+
+def pick_main_lines(sector_scores, prev_mainlines=None, plates=None):
+    """主线锁定（加权综合分 + 延续约束，防“一天一个想法”也防“一条线霸榜”）：
+    - 技术关：成分股 Top5 均值（龙头梯队）≥58，或板块内有涨停/异动情绪确认时 Top5 均值≥55；
+      （Top5 均值替代全体均值，避免平庸成分稀释，强势题材不再漏判）
+    - 资金关：当日平均涨幅≥0，或 5日主力净流入≥15亿 且 今日净流入>0 / 今日净流入≥50亿（资金主攻）；
+    - 加权综合分（排序用）= Top5均值×0.5 + 5日主力净流入标准化(50亿封顶)×30 + 情绪(涨停×2+异动×0.5，4分封顶)×20；
+    - 昨日主线：Top5 均值≥58 且回调≤-1.0%，或 均值≥55 且资金仍主攻，或 综合分≥55 且情绪确认 → 延续；
+    - 新晋主线：技术+资金/情绪双确认；主线总量最多 3 条，超出部分按综合分降级为观察（次日可再升回）；
+    - 资金强但技术未修复（均值50~58）→ 观察（等修复确认），避免漏掉正在启动的轮动板块。
+    """
+    prev = {str(x) for x in (prev_mainlines or [])}
+    main_lines, observes, avoids = [], [], []
+    info = mainline_judgment(sector_scores, plates)
+    for sec in sector_scores:
+        it = info.get(sec)
+        if not it:
+            continue
+        mean = it["mean"]
+        top5m = it["top5"]
+        avg_up = it["avg_up"]
+        n_zt = it["n_zt"]
+        n_surge = it["n_surge"]
+        confirmed = it["confirmed"]
+        fund_ok = it["fund_ok"]
+        composite = it["composite"]
         if sec in prev:
             # 昨日主线：Top5 均值≥58 且回调≤-1.0%（可小幅回踩），或 资金仍主攻，或 综合分≥55 且情绪确认 → 延续；
             # 回调偏深、资金离场、情绪转弱 → 观察/回避，防止"一条线霸榜"（10日内涨停是滞后证据，不续命）

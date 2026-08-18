@@ -359,11 +359,24 @@ window.AI24X_BJScreener = (function () {
       box.innerHTML = '<div class="bj-note">主攻主线与大盘研判同步锁定：' + emptyMl + '</div>';
       return;
     }
+    var basis = ml.map(function (m) {
+      var parts = [];
+      if (m.top5 != null) parts.push('技术Top5均值 ' + num(m.top5, 1));
+      if (m.fund5 != null) parts.push('5日主力 ' + moneyYi(m.fund5));
+      if (m.fund_t != null && Number(m.fund_t) > 0) parts.push('今日主力 ' + moneyYi(m.fund_t));
+      if (m.n_zt != null) parts.push('涨停 ' + m.n_zt + '家');
+      if (m.n_surge != null && Number(m.n_surge) > 0) parts.push('异动 ' + m.n_surge + '家');
+      if (!parts.length) return "";
+      return esc(m.name || "") + '：' + parts.join(' · ');
+    }).filter(Boolean);
+    var basisHtml = basis.length
+      ? '<div class="ml-basis">判定依据：' + basis.join('<span class="ml-sep2">｜</span>') + '</div>'
+      : '';
     var h = '<div class="bj-section">主线 · 今天看什么（市场驾驶舱' + mld + '）</div>' +
       '<div class="chips">' +
       '<a class="chip chip-mainline" href="/daily/" target="_blank" rel="noopener" title="市场驾驶舱锁定主线（资金+技术双确认）· 查看完整市场分析">' +
       ml.map(function (m) { return '<b>' + esc(m.name || "") + '</b>'; }).join(' <span class="ml-sep">·</span> ') + '↗</a>' +
-      '</div>';
+      '</div>' + basisHtml;
     box.innerHTML = h;
   }
     function renderBoardRank(d) {
