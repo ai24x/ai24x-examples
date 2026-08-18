@@ -127,6 +127,8 @@
 @keyframes bjsp{to{transform:rotate(360deg)}}
 .btn-blue{border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;background:linear-gradient(180deg,#1e5a8a,#156090);color:#fff}
 .btn-blue:disabled{opacity:.5;cursor:not-allowed}
+.btn-gated{opacity:.55;cursor:not-allowed}
+.bj-refresh-note{font-size:12px;color:#8aa0bf;line-height:1.45;max-width:280px}
 
 /* ---------------- 未登录引导（复盘门禁） ---------------- */
 .gate-hero{background:linear-gradient(135deg,rgba(106,176,243,.08),rgba(106,176,243,.04));border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:6px 0 12px}

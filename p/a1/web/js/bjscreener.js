@@ -891,6 +891,9 @@ window.AI24X_BJScreener = (function () {
           state.loading = false;
           stopProgress();
           if (btn) { btn.disabled = false; btn.textContent = "重新扫描"; }
+        applyScanGate(btn);
+        applyScanGate(btn);
+        applyScanGate(btn);
           setStatus("扫描启动失败：" + esc((st && st.message) || "未知错误"), true);
           return;
         }
@@ -990,6 +993,7 @@ window.AI24X_BJScreener = (function () {
       btn.textContent = fresh ? "已是最新" : "重新扫描";
       btn.title = fresh ? "今日结果已生成，点击可强制重新扫描" : "重新扫描全部标的（120 秒限一次）";
     }
+    applyScanGate(btn);
     if (!d || d.ok === false) {
       setStatus("扫描失败：" + esc((d && d.message) || (d && d.error) || "未知错误"), true);
       return;
@@ -1028,7 +1032,10 @@ window.AI24X_BJScreener = (function () {
       if (d.market_code !== "macd") loadHistory();
     }
     if (d.stale) {
-      setStatus((d.today_missing ? "\ud83d\udca1 今日数据尚未生成（" + fmtDate() + "），展示上一交易日结果" : "\ud83d\udca1 今日无合格标的（" + fmtDate() + "），展示上一交易日结果"), false, true);
+      var staleTxt = d.intraday
+        ? "\ud83d\udca1 今日未收盘：展示上一交易日（" + esc(d.stale_from || fmtDate()) + "）结果"
+        : (d.today_missing ? "\ud83d\udca1 今日数据尚未生成（" + fmtDate() + "），展示上一交易日结果" : "\ud83d\udca1 今日无合格标的（" + fmtDate() + "），展示上一交易日结果");
+      setStatus(staleTxt, false, true);
     } else if (d.vip_required) {
       setStatus(marketLabel(state.market) + "板块视图已解锁（" + fmtDate() + "）" + (d.cached ? " · 已加载今日缓存" : ""));
     } else {
@@ -1045,6 +1052,7 @@ window.AI24X_BJScreener = (function () {
       btn.textContent = "重新扫描";
       btn.title = "重新扫描全部标的（120 秒限一次）";
     }
+    applyScanGate(btn);
     if (e && e.status === 403) {
       $("bj-main").hidden = true;
       $("bj-vipgate").hidden = false;
@@ -1290,6 +1298,32 @@ window.AI24X_BJScreener = (function () {
     }).catch(function () {});
   }
 
+  // —— 重新扫描门控：盘中（15:10 收盘数据定型前）禁止强制重扫，避免未定型 K 线污染当日数据 ——
+  function scanGateState() {
+    var now = new Date();
+    var d = now.getDay();
+    if (d === 0 || d === 6) return { allow: false, note: "非交易日：展示最近收盘归档，无需重新扫描" };
+    var hm = now.getHours() * 60 + now.getMinutes();
+    if (hm < 15 * 60 + 10) return { allow: false, note: "盘中数据未定型：15:10 收盘后可重新扫描（避免未定型 K 线污染）" };
+    return { allow: true, note: "" };
+  }
+  function applyScanGate(btn) {
+    if (!btn) return;
+    var g = scanGateState();
+    var note = $("bj-refresh-note");
+    if (!g.allow) {
+      btn.disabled = true;
+      btn.title = g.note;
+      btn.classList.add("btn-gated");
+      if (note) { note.textContent = g.note; note.hidden = false; }
+    } else {
+      btn.disabled = false;
+      btn.title = "重新扫描全部标的（120 秒限一次）";
+      btn.classList.remove("btn-gated");
+      if (note) note.hidden = true;
+    }
+  }
+
   function boot() {
     var logged = !!tokenGet();
     var guest = $("auth-guest");
@@ -1305,7 +1339,15 @@ window.AI24X_BJScreener = (function () {
     if (guest) guest.hidden = true;
     if (user) user.hidden = false;
     var btn = $("btn-bj-refresh");
-    if (btn) btn.addEventListener("click", function () { load(true); });
+    if (btn) {
+      btn.addEventListener("click", function () {
+        var g = scanGateState();
+        if (!g.allow) { setStatus(g.note, true); return; }
+        load(true);
+      });
+      applyScanGate(btn);
+      setInterval(function () { applyScanGate(btn); }, 30 * 1000);
+    }
     bindTabs();
     var ap = archiveParams();
     if (ap.date) {

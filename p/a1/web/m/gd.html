@@ -82,6 +82,8 @@
   .meta b{color:#e6edf7}
   .sec-title{display:flex;align-items:center;justify-content:space-between;padding:10px 12px 4px;font-size:14px;font-weight:800;color:#fbbf24}
   .sec-title .refresh{font-size:12px;color:#8ab8ff;font-weight:700}
+  .sec-title .refresh.gated{opacity:.5}
+  .rescan-note{font-size:11px;color:#8aa0bf;padding:2px 12px 6px;line-height:1.4}
   .list{padding:4px 10px}
   .pick{background:#101a2c;border:1px solid #22314d;border-radius:14px;padding:12px;margin-bottom:10px}
   .pick.king{border-color:rgba(251,191,36,.55);box-shadow:0 4px 18px rgba(251,191,36,.10)}
@@ -171,6 +173,7 @@
 <div class="pt" id="pt" style="display:none"></div>
 
 <div class="sec-title" id="sec-title"><span>今日 AI 筛选</span><span class="refresh" id="btn-refresh">⟳ 重新扫描</span></div>
+<div class="rescan-note" id="rescan-note" hidden></div>
 <div class="list" id="list"></div>
 <div class="runner-box" id="runner-box"></div>
 
@@ -718,6 +721,29 @@
       pollScanDone(function(){ load(true); toast('扫描完成', true); });
     }).catch(function(e){ toast('启动失败：' + String(e).slice(0, 60), false); });
   }
+  // 重新扫描门控：盘中（15:10 收盘数据定型前）禁止强制重扫，避免未定型 K 线污染当日数据
+  function scanGateState(){
+    var now = new Date();
+    var d = now.getDay();
+    if (d === 0 || d === 6) return { allow: false, note: '非交易日：展示最近收盘归档，无需重新扫描' };
+    var hm = now.getHours() * 60 + now.getMinutes();
+    if (hm < 15 * 60 + 10) return { allow: false, note: '盘中数据未定型：15:10 收盘后可重新扫描（避免未定型K线污染）' };
+    return { allow: true, note: '' };
+  }
+  function applyScanGateMobile(){
+    var rf = $('btn-refresh'), note = $('rescan-note');
+    if (!rf) return;
+    var g = scanGateState();
+    if (!g.allow) {
+      rf.classList.add('gated');
+      rf.title = g.note;
+      if (note) { note.textContent = g.note; note.hidden = false; }
+    } else {
+      rf.classList.remove('gated');
+      rf.title = '';
+      if (note) note.hidden = true;
+    }
+  }
 
   // tabs
   var tabs = document.querySelectorAll('.tabs button');
@@ -740,8 +766,12 @@
   });
   $('btn-refresh').addEventListener('click', function(){
     if (!token()) { showGuestGate(); return; }
+    var g = scanGateState();
+    if (!g.allow) { toast(g.note, false); return; }
     refreshScan();
   });
+  applyScanGateMobile();
+  setInterval(applyScanGateMobile, 30 * 1000);
   $('link-desktop').addEventListener('click', function(){
     try { sessionStorage.setItem('ai24x_desktop_force', '1'); } catch(e){}
   });
