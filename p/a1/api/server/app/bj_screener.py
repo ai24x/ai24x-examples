@@ -834,6 +834,25 @@ def _reattach_ths(payload: dict[str, Any]) -> dict[str, Any]:
                         it["ths"] = bk_to_ths_secid(sid) or ""
     except Exception:
         pass
+    # 主线统一口径：归档/stale 回退时以「最近复盘定型主线」为准重建 mainlines + 判定依据小字
+    # （2026-08-18 事故：15:03 未定型 K 线污染生产 08-17 数据；盘中一律以最近定型收盘为准，
+    #   判定字段 top5/fund5/涨停/异动 从最近 sector_score 零上游补算，旧归档旧名字也被纠正）
+    try:
+        _dml = _daily_mainlines()
+        _names = (_dml or {}).get("names") or []
+        _info = (_dml or {}).get("info") or {}
+        if _names:
+            payload["mainlines"] = []
+            for _n in _names:
+                _mi = dict(_info.get(_n) or {})
+                _mi["name"] = _n
+                _mi["src"] = "daily"
+                payload["mainlines"].append(_mi)
+        _obs = (_dml or {}).get("observes") or []
+        if _obs:
+            payload["observes"] = [{"name": n, "src": "daily"} for n in _obs]
+    except Exception:
+        pass
     return payload
 
 
