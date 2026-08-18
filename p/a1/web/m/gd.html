@@ -248,6 +248,18 @@
   }
   function $(id){ return document.getElementById(id); }
   function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function fmtDate(){ var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  // 数据日统一口径：今日收盘更新完成 → 今日；盘前/盘中/非交易日/今日未生成/今日无合格（展示上一交易日）→ 昨日；归档 → 具体日期
+  function dataDayLabel(d){
+    if (!d) return '今日';
+    if (d.archive) return String(d.asof || d.date || '');
+    if (d.off_market || d.intraday || d.stale || d.today_missing) return '昨日';
+    return '今日';
+  }
+  function reportDayLabel(d){
+    var dt = String((d && (d.date || d.asof)) || '');
+    return (dt && dt === fmtDate() ? '今日' : '昨日') + '大盘';
+  }
   function money(v){ v = Number(v || 0); if (v >= 1e8) return (v/1e8).toFixed(1) + '亿'; if (v >= 1e4) return (v/1e4).toFixed(0) + '万'; return String(Math.round(v)); }
   function num(v, d){ v = Number(v); if (v == null || isNaN(v)) return '—'; return v.toFixed(d == null ? 2 : d); }
   function pct(v){ v = Number(v || 0); return (v > 0 ? '+' : '') + num(v, 2) + '%'; }
@@ -424,7 +436,7 @@
       var parts = [];
       if (m.top5 != null) parts.push('技术Top5均值 ' + num(m.top5, 1));
       if (m.fund5 != null) parts.push('5日主力 ' + money(m.fund5));
-      if (m.fund_t != null && Number(m.fund_t) > 0) parts.push('今日主力 ' + money(m.fund_t));
+      if (m.fund_t != null && Number(m.fund_t) > 0) parts.push(dataDayLabel(d) + '主力 ' + money(m.fund_t));
       if (m.n_zt != null) parts.push('涨停 ' + m.n_zt + '家');
       if (m.n_surge != null && Number(m.n_surge) > 0) parts.push('异动 ' + m.n_surge + '家');
       if (!parts.length) return '';
@@ -444,7 +456,7 @@
       renderMarket(d.md, !!d.vip, d.asof || d.date || '', label || '');
     }
     api('/api/report/today').then(function(d){
-      if (d && d.ok) { fill(d, '今日大盘'); return; }
+      if (d && d.ok) { fill(d, reportDayLabel(d)); return; }
       api('/api/report/history').then(function(h){
         var items = (h && h.items) || [];
         if (!items.length) { box.style.display = 'none'; return; }
@@ -493,6 +505,7 @@
       var op = md.match(/操作原则[：:]\s*([^\n]+)/);
       if (op && op[1]) ops = stripMdLink(op[1]);
     }
+    var dayL = (asof && String(asof) === fmtDate()) ? '今日' : '昨日';
     var h = '<div class="mkt-head"><span class="badge ' + env + '">' + envTxt + '</span>';
     if (pts != null) h += '<span class="pts">pts=' + pts.toFixed(1) + '</span>';
     if (envLine) h += '<span style="font-size:11px;color:#8aa0bf">' + esc(envLine) + '</span>';
@@ -516,7 +529,7 @@
       if (r1.length) h += r1.join(' ｜ ');
       h += '</div>';
     } else if (!vip) {
-      h += '<div class="mkt-gate">🔒 今日观察（板块选择与筛选标的）为 <b>VIP 专属</b>，开通后自动解锁。<a href="account.html">去开通 →</a></div>';
+      h += '<div class="mkt-gate">🔒 ' + dayL + '观察（板块选择与筛选标的）为 <b>VIP 专属</b>，开通后自动解锁。<a href="account.html">去开通 →</a></div>';
     }
     if (state.mlBasis) h += state.mlBasis;
     box.innerHTML = h;
@@ -590,7 +603,7 @@
       var _bml = b.ml_name ? String(b.ml_name).replace(/\s+/g, '') : '';
       var isTop = !!(b.mainline && _bml && _bml === topMlName);
       var t = '';
-      if (isTop && b.tier === 'king') t += '<span class="tier main">主线 ✓</span><span class="tier king">⭐ 今日主线</span>';
+      if (isTop && b.tier === 'king') t += '<span class="tier main">主线 ✓</span><span class="tier king">⭐ ' + dataDayLabel(d) + '主线</span>';
       else if (b.mainline) t += '<span class="tier key">重点关注</span>';
       else if (b.tier === 'king') t += '<span class="tier normal">市场强势</span>';
       else if (b.tier === 'key') t += '<span class="tier key">强势关注</span>';
@@ -606,7 +619,7 @@
       var st = '';
       if (isAll) {
         if (b.mainline && !b.f164) st = '主线 · 资金+技术双确认';
-        else st = '5日主力 <b>' + money(b.f164) + '</b> ｜ 今日主力 <b>' + money(b.f62) + '</b>' + (b.p5 != null ? ' ｜ 5日 ' + pct(b.p5) : '');
+        else st = '5日主力 <b>' + money(b.f164) + '</b> ｜ ' + dataDayLabel(d) + '主力 <b>' + money(b.f62) + '</b>' + (b.p5 != null ? ' ｜ 5日 ' + pct(b.p5) : '');
       } else {
         if (b.count != null) st += b.count + ' 只异动';
         if (b.amount != null) st += (st ? ' ｜ ' : '') + '成交 ' + money(b.amount);
@@ -633,7 +646,7 @@
       return;
     }
     if (!picks.length) {
-      var txt = d.archive ? '该日期无归档筛选记录' : '今日无合格标的：行情整体偏弱或筛选条件过严，宁缺毋滥；可稍后重扫。';
+      var txt = d.archive ? '该日期无归档筛选记录' : dataDayLabel(d) + '无合格标的：行情整体偏弱或筛选条件过严，宁缺毋滥；可稍后重扫。';
       el.innerHTML = '<div class="empty">' + txt + '</div>';
       return;
     }
@@ -707,6 +720,9 @@
       if (state.date) {
         document.title = '历史归档 · ' + state.date;
         $('sec-title').textContent = '历史归档 · ' + (d.asof || state.date);
+      } else {
+        var stNode = $('sec-title');
+        if (stNode && stNode.childNodes.length) stNode.childNodes[0].textContent = dataDayLabel(d) + ' AI 筛选';
       }
       renderEnv(d);
       renderMeta(d);

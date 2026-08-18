@@ -28,7 +28,7 @@ async function assertRanking(page, containerSel, label) {
         i: i + 1,
         text: (r.textContent || '').replace(/\s+/g, ' ').slice(0, 120),
         hasMain: (r.textContent || '').indexOf('主线 ✓') >= 0,
-        hasKing: (r.textContent || '').indexOf('⭐ 今日主线') >= 0,
+        hasKing: (r.textContent || '').indexOf('⭐ 今日主线') >= 0 || (r.textContent || '').indexOf('⭐ 昨日主线') >= 0,
         hasKey: (r.textContent || '').indexOf('重点关注') >= 0,
       };
     });
@@ -40,7 +40,7 @@ async function assertRanking(page, containerSel, label) {
   const kingRows = info.filter(function (r) { return r.hasKing; });
 
   log(label + ' 主线✓ 全局唯一(≤1)', mainRows.length <= 1, 'count=' + mainRows.length + ' -> ' + JSON.stringify(mainRows.map(function (r) { return r.i + ':' + r.text.slice(0, 40); })));
-  log(label + ' 主线✓ 与 ⭐今日主线 同行', kingRows.length === mainRows.length && kingRows.every(function (k) { return k.hasMain; }),
+  log(label + ' 主线✓ 与 ⭐今日/昨日主线 同行', kingRows.length === mainRows.length && kingRows.every(function (k) { return k.hasMain; }),
     'kingRows=' + kingRows.length + ' mainRows=' + mainRows.length);
   if (mainRows.length === 1) {
     log(label + ' 主线✓ 在第 1 名', mainRows[0].i === 1, 'idx=' + mainRows[0].i);
