@@ -394,10 +394,12 @@ def _kline_cache_load(date8: str) -> tuple[dict[str, Any], dict[str, float]]:
 
 
 def _close_epoch_today() -> float:
-    """今日 15:03（收盘）epoch；解析失败返回 0。"""
+    """今日 15:10（收盘后数据定型）epoch；解析失败返回 0。
+    2026-08-18 事故：15:03 自动扫描抓到上游未定型当日 bar（利通电子盘中+10% 被当成收盘），
+    导致 08-17 成分评分/主线排序生产与本地不一致；统一延后到 15:10 再扫描。"""
     try:
         lt = time.localtime()
-        return time.mktime((lt.tm_year, lt.tm_mon, lt.tm_mday, 15, 3, 0, 0, 0, -1))
+        return time.mktime((lt.tm_year, lt.tm_mon, lt.tm_mday, 15, 10, 0, 0, 0, -1))
     except Exception:
         return 0.0
 
@@ -3184,8 +3186,9 @@ def _today_off_market() -> bool:
 
 
 def _market_closed() -> bool:
-    """交易日 15:03 后视为收盘，可更新今日数据；盘中（15:03 前）默认展示上一交易日归档。"""
-    return int(time.strftime("%H%M", time.localtime())) >= 1503
+    """交易日 15:10 后视为收盘，可更新今日数据；盘中（15:10 前）默认展示上一交易日归档。
+    15:10 而非 15:03：15:03 时上游 K 线当日 bar 尚未定型（2026-08-18 事故根因）。"""
+    return int(time.strftime("%H%M", time.localtime())) >= 1510
 
 
 # 复盘主线 → 东财板块 secid（主线成分补进掘金候选池用；未知板块回落 suggest 解析）
@@ -3340,7 +3343,7 @@ async def run_scan(
             _mark_cached("已加载今日缓存")
             return out
 
-        # 非交易日或盘中（未到 15:03）：直接展示最近归档板块视图，避免盘中半成品
+        # 非交易日或盘中（未到 15:10）：直接展示最近归档板块视图，避免盘中半成品
         if _today_off_market() or not _market_closed():
             stale = _latest_history(market)
             if stale:
@@ -3385,7 +3388,7 @@ async def run_scan(
                     out = _reattach_ths(out)
                     _mark_cached("非交易日：直接展示最近交易日归档（可点「重新扫描」强制刷新）")
                     return out
-            # 交易日盘中（未到 15:03 收盘）：今日数据尚未生成，展示上一交易日归档
+            # 交易日盘中（未到 15:10 收盘）：今日数据尚未生成，展示上一交易日归档
             if not _market_closed():
                 stale = _latest_history(market)
                 if stale:
@@ -3397,7 +3400,7 @@ async def run_scan(
                     out["intraday"] = True
                     out["date"] = stale.get("date") or stale.get("asof") or ""
                     out = _reattach_ths(out)
-                    _mark_cached("盘中未收盘：展示上一交易日归档（15:03 后自动更新今日）")
+                    _mark_cached("盘中未收盘：展示上一交易日归档（15:10 后自动更新今日）")
                     return out
         else:
             global _LAST_FULL_SCAN_TS
@@ -4612,7 +4615,7 @@ def _mainline_members(names: list[str]) -> dict[str, Any]:
 
 # ---------------- 掘金收盘后定时预生成（服务内自触发） ----------------
 # （同日已有缓存或已预生成过则跳过；force 重扫仍由用户手动触发）
-_AUTO_SCAN_TS = 15 * 3600 + 3 * 60
+_AUTO_SCAN_TS = 15 * 3600 + 10 * 60
 _AUTO_SCAN_DONE: dict[str, bool] = {}
 
 

@@ -101,7 +101,7 @@ _CFG = None
 def cfg():
     global _CFG
     if _CFG is None:
-        _CFG = {"auto_scan_time": "15:03", "auto_scan": True}
+        _CFG = {"auto_scan_time": "15:10", "auto_scan": True}
         try:
             if os.path.exists(CFG_PATH):
                 _CFG.update(json.load(open(CFG_PATH, encoding="utf-8")))
@@ -122,12 +122,12 @@ def is_weekend():
 def now_hhmm():
     return datetime.now().strftime("%H:%M")
 def _after_close():
-    return now_hhmm() >= str(cfg().get("auto_scan_time") or "15:03")
+    return now_hhmm() >= str(cfg().get("auto_scan_time") or "15:10")
 
 def _today_close_epoch() -> float:
     """今日收盘时刻（auto_scan_time）的 epoch；解析失败返回 0。"""
     try:
-        t = str(cfg().get("auto_scan_time") or "15:03").strip()
+        t = str(cfg().get("auto_scan_time") or "15:10").strip()
         hh, mm = t.split(":")
         return datetime.now().replace(hour=int(hh), minute=int(mm), second=0, microsecond=0).timestamp()
     except Exception:
@@ -230,7 +230,9 @@ def _today_archived_ok() -> bool:
 
 
 def _auto_loop():
-    """后台守护线程：交易日收盘（默认 15:03）后自动生成复盘。"""
+    """后台守护线程：交易日收盘（默认 15:10）后自动生成复盘。
+    15:10 而非 15:03：15:03 时上游 K 线当日 bar 尚未定型（实测 15:03-15:07 抓到盘中未定型 bar，
+    导致成分评分/主线排序失真，见 2026-08-18 本地与生产 08-17 主线顺序不一致事故）。"""
     while True:
         try:
             if cfg().get("auto_scan", True) and is_trading_day() and _after_close():
@@ -1512,7 +1514,7 @@ def history(user_id: Optional[int] = Depends(get_optional_user_id)):
 
 class CfgIn(BaseModel):
     auto_scan: bool = True
-    auto_scan_time: str = "15:03"
+    auto_scan_time: str = "15:10"
 
 @router.get("/api/report/config")
 def get_cfg(user_id: Optional[int] = Depends(get_optional_user_id)):
