@@ -3269,6 +3269,35 @@ def macd_view(out: dict[str, Any]) -> dict[str, Any]:
     return o
 
 
+def pb_view(out: dict[str, Any]) -> dict[str, Any]:
+    """从沪深主线扫描结果提取「首板回踩企稳」专栏（复用 hs 扫描与当日缓存）。
+
+    过滤主推/备选中 ztPullback（涨停级回踩）/ pullback2（板后回踩企稳）/
+    firstBoardRight（首板右侧上拐）形态的标的；板块排行与主线卡片保持 hs 口径一致。
+    """
+    o: dict[str, Any] = {
+        "ok": True, "cached": bool(out.get("cached")), "date": out.get("date"), "asof": out.get("asof"),
+        "market_code": "pb",
+        "total": out.get("total"), "scanned": out.get("scanned"), "fine": out.get("fine"),
+        "generated_ts": out.get("generated_ts"), "elapsed_s": out.get("elapsed_s"),
+        "market": out.get("market"), "regime": out.get("regime"), "style": out.get("style"),
+        "mainlines": out.get("mainlines") or [],
+        "board_rank": out.get("board_rank") or [],
+        "picks": [], "runners": [],
+    }
+    for _k in ("stale", "stale_from", "off_market", "intraday", "refresh_locked", "vip_required", "today_missing"):
+        if _k in out:
+            o[_k] = out[_k]
+
+    def _pb(p: Any) -> bool:
+        pp = p.get("patterns") if isinstance(p, dict) else None
+        return bool(pp and (pp.get("ztPullback") or pp.get("pullback2") or pp.get("firstBoardRight")))
+
+    o["picks"] = [c for c in (out.get("picks") or []) if _pb(c)]
+    o["runners"] = [c for c in (out.get("runners") or []) if _pb(c)]
+    return o
+
+
 def _leader_bearish_adjust(c: dict[str, Any], a: dict[str, Any]) -> bool:
     """龙头层利空判定：允许“历史急跌后资金回流确认”的情形。
 

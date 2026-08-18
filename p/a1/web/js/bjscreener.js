@@ -62,6 +62,7 @@ window.AI24X_BJScreener = (function () {
     if (m === "bj") return "北证主线";
     if (m === "bj_all") return "北证全市场";
     if (m === "macd") return "MACD首红";
+    if (m === "pb") return "回踩企稳";
     return m === "all" ? "沪深京全市场" : "北证全市场";
   }
   function marketScope(d) {
@@ -71,6 +72,7 @@ window.AI24X_BJScreener = (function () {
     if (m === "bj") return "北证主线·北证成分池";
     if (m === "bj_all") return "北证全市场·北证成分池";
     if (m === "macd") return "沪深京全市场·MACD量能首红";
+    if (m === "pb") return "沪深主线·首板回踩企稳";
     return m === "all" ? "沪深京·板块成分池" : "北证全市场";
   }
 
@@ -384,7 +386,7 @@ window.AI24X_BJScreener = (function () {
     if (!box) return;
     var rank = d.board_rank || [];
     if (!rank.length) { box.innerHTML = ""; return; }
-    var isAll = ["all", "hs", "kc", "macd"].indexOf(d.market_code || state.market) >= 0;
+    var isAll = ["all", "hs", "kc", "macd", "pb"].indexOf(d.market_code || state.market) >= 0;
     var h = '<div class="bj-section">主线 · 重点关注排行</div>' +
       '<div class="br-strategy">' +
       '<span class="br-s br-s-main">⭐ 主线（1）</span>' +
@@ -590,8 +592,8 @@ window.AI24X_BJScreener = (function () {
     var picks = d.picks || [];
     var mfrAll = (picks || []).concat(d.runners || []).filter(function (x) { return x && x.patterns && x.patterns.macdFirstRed; });
     if (!picks.length) {
-      var emptyTitle = d.archive ? '该日期无归档筛选记录' : '今日无合格标的';
-      var emptySub = d.archive ? '可查看其它日期的历史归档。' : '行情整体偏弱或筛选条件过严，宁缺毋滥；可稍后重扫或放宽参数观察。';
+      var emptyTitle = d.archive ? '该日期无归档筛选记录' : (d.market_code === 'pb' ? '暂无回踩企稳形态标的' : '今日无合格标的');
+      var emptySub = d.archive ? '可查看其它日期的历史归档。' : (d.market_code === 'pb' ? '首板/涨停后回踩数日企稳、未破位的标的需近期有板且回踩确认；可稍后重扫或查看其它栏目。' : '行情整体偏弱或筛选条件过严，宁缺毋滥；可稍后重扫或放宽参数观察。');
       box.innerHTML = '<div class="bj-empty-alert"><div class="ico">\ud83d\udca1</div><div class="bd"><b>' + esc(emptyTitle) + '</b><span>' + emptySub + '</span></div></div>';
       return;
     }
@@ -1082,6 +1084,7 @@ window.AI24X_BJScreener = (function () {
         var m = String(this.getAttribute("data-market") || "bj");
         if (m === state.market) return;
         state.market = m;
+        try { localStorage.setItem("bj_tab", m); } catch (e) {}
         state.data = null;
         historyState = { loaded: false, list: [] };
         var all = document.querySelectorAll("#bj-tabs .bj-tab");
@@ -1370,6 +1373,18 @@ window.AI24X_BJScreener = (function () {
       if (btn) btn.style.display = "none";
       openArchive(ap.date);
       return;
+    }
+    // 刷新停留：URL market 参数优先，其次上次所在 tab（localStorage），默认沪深主线
+    var savedM = "";
+    try { savedM = String(localStorage.getItem("bj_tab") || "").trim(); } catch (eS) {}
+    var initM = (ap.market && ["hs", "kc", "bj", "bj_all", "macd", "pb"].indexOf(ap.market) >= 0) ? ap.market
+      : ((savedM && ["hs", "kc", "bj", "bj_all", "macd", "pb"].indexOf(savedM) >= 0) ? savedM : "hs");
+    if (initM !== state.market) {
+      state.market = initM;
+      var tabsAll2 = document.querySelectorAll("#bj-tabs .bj-tab");
+      for (var tJ2 = 0; tJ2 < tabsAll2.length; tJ2++) {
+        tabsAll2[tJ2].classList.toggle("active", tabsAll2[tJ2].getAttribute("data-market") === state.market);
+      }
     }
     loadMarket();
     load(false);

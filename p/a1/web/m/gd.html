@@ -163,6 +163,7 @@
   <button id="tab-kc" data-m="kc">科创主线</button>
   <button id="tab-bj" data-m="bj">北证主线</button>
   <button id="tab-bj_all" data-m="bj_all">北证全市场</button>
+  <button id="tab-pb" data-m="pb">回踩企稳</button>
 </div>
 
 <div class="env" id="env"></div>
@@ -210,7 +211,10 @@
   if (iCode) { try { localStorage.setItem('ai24x_invite_code', String(iCode).trim().toUpperCase()); } catch(e){} }
   if (qp.get('date')) { state.date = qp.get('date'); }
   var mk = qp.get('market');
-  if (mk && ['hs','kc','bj','bj_all'].indexOf(mk) >= 0) { state.market = mk; }
+  if (mk && ['hs','kc','bj','bj_all','pb'].indexOf(mk) >= 0) { state.market = mk; }
+  else {
+    try { var _savedM = String(localStorage.getItem('bj_tab') || '').trim(); if (_savedM && ['hs','kc','bj','bj_all','pb'].indexOf(_savedM) >= 0) state.market = _savedM; } catch(e){}
+  }
 
   function token(){ try { var t = localStorage.getItem('ai24x_a_token'); if (t && t.length > 20) return t; } catch(e){} return ''; }
   function api(path, opts){
@@ -567,7 +571,7 @@
     d = d || {};
     var rank = d.board_rank || [];
     if (!rank.length) { el.innerHTML = '<div class="empty">暂无板块排行</div>'; return; }
-    var isAll = (d.market_code === 'hs' || d.market_code === 'kc' || d.market_code === 'macd');
+    var isAll = (d.market_code === 'hs' || d.market_code === 'kc' || d.market_code === 'macd' || d.market_code === 'pb');
     var mains = (d.mainlines || []).filter(function(m){ return m && m.src === 'daily'; })
       .map(function(m){ return String(m.name || '').replace(/\s+/g, ''); }).filter(Boolean);
     function hitMainline(name){
@@ -760,6 +764,7 @@
       tabs.forEach(function(x){ x.classList.remove('on'); });
       b.classList.add('on');
       state.market = b.getAttribute('data-m');
+      try { localStorage.setItem('bj_tab', state.market); } catch(e){}
       state.date = '';
       history.replaceState(null, '', 'gd.html?i=' + encodeURIComponent(inviteCode()));
       var ptEl = $('pt'); if (ptEl) ptEl.style.display = 'none';

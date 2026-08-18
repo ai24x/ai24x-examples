@@ -3204,9 +3204,10 @@ async def api_bj_screener(
     """
     market = str(market or "bj").strip().lower()
     macd_mode = market == "macd"
-    if market not in ("bj", "all", "hs", "kc", "bj_all", "macd"):
+    pb_mode = market == "pb"
+    if market not in ("bj", "all", "hs", "kc", "bj_all", "macd", "pb"):
         market = "bj"
-    scan_market = "all" if macd_mode else market
+    scan_market = "all" if macd_mode else ("hs" if pb_mode else market)
     _rate_limit(f"bj-screener:{user_id}", 24)
     try:
         _auth_ip_rate_limit(request)
@@ -3216,7 +3217,7 @@ async def api_bj_screener(
     quota = db.get_quota_status(int(user_id))
     plan = str(quota.get("plan") or "anon").strip().lower()
     is_vip = plan not in ("", "free", "anon")
-    from .bj_screener import run_scan_dedup, macd_view, _backfill_leader_quotes
+    from .bj_screener import run_scan_dedup, macd_view, pb_view, _backfill_leader_quotes
     if not is_vip:
         # 非 VIP：开放“异动板块”视图（复用当日缓存或轻量扫描），个股分析保持 VIP 专属
         early = await _bj_ensure_scan_or_fast(int(user_id), scan_market, force=False, boards_only=True)
@@ -3260,12 +3261,12 @@ async def api_bj_screener(
     if cap > 0:
         cfg_override["cap"] = int(max(30, min(120, cap)))    early = await _bj_ensure_scan_or_fast(int(user_id), scan_market, force=bool(force), cfg_override=cfg_override or None)
     if early is not None:
-        _early = macd_view(early) if macd_mode else early
+        _early = macd_view(early) if macd_mode else (pb_view(early) if pb_mode else early)
         return await _backfill_leader_quotes(_early)
 
     try:
         out = await run_scan_dedup(int(user_id), force=bool(force), cfg_override=cfg_override or None, market=scan_market)
-        _out = macd_view(out) if macd_mode else out
+        _out = macd_view(out) if macd_mode else (pb_view(out) if pb_mode else out)
         return await _backfill_leader_quotes(_out)
     except HTTPException:
         raise
@@ -3288,9 +3289,10 @@ async def api_bj_screener_start(
     """
     market = str(market or "bj").strip().lower()
     macd_mode = market == "macd"
-    if market not in ("bj", "all", "hs", "kc", "bj_all", "macd"):
+    pb_mode = market == "pb"
+    if market not in ("bj", "all", "hs", "kc", "bj_all", "macd", "pb"):
         market = "bj"
-    scan_market = "all" if macd_mode else market
+    scan_market = "all" if macd_mode else ("hs" if pb_mode else market)
     _rate_limit(f"bj-screener:{user_id}", 24)
     try:
         _auth_ip_rate_limit(request)
@@ -3328,6 +3330,8 @@ async def api_bj_screener_partial(request: Request, market: str = "bj", user_id:
     market = str(market or "bj").strip().lower()
     if market == "macd":
         market = "all"
+    if market == "pb":
+        market = "hs"
     if market not in ("bj", "all", "hs", "kc", "bj_all"):
         market = "bj"
     from .bj_screener import get_partial_scan
@@ -3343,6 +3347,8 @@ async def api_bj_screener_progress(
     market = str(market or "bj").strip().lower()
     if market == "macd":
         market = "all"
+    if market == "pb":
+        market = "hs"
     if market not in ("bj", "all", "hs", "kc", "bj_all"):
         market = "bj"
     try:
