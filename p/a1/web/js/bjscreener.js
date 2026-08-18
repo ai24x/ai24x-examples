@@ -395,10 +395,15 @@ window.AI24X_BJScreener = (function () {
         ? '<div class="bj-note">💡 主线优先；热度≠可追，破位注意风险。</div>'
         : '<div class="bj-note">💡 底部异动观察，关注回踩企稳形态。</div>') +
       '<div class="br-list">';
+    var topMlName = "";
+    var _topMl = (d.mainlines || []).filter(function (m) { return m && m.src === "daily"; })[0];
+    if (_topMl) topMlName = String(_topMl.name || "").replace(/\s+/g, "");
     rank.forEach(function (b, idx) {
-      var isMain = !!(b.mainline && b.tier === "king");
-      var t = (isMain ? '<span class="tag ok">主线 ✓</span>' : "") + (isMain ? '<span class="tier-badge tier-king">⭐ 今日主线</span>'
-        : (b.mainline && b.tier === "key" ? '<span class="tier-badge tier-key">重点关注</span>'
+      var _bml = b.ml_name ? String(b.ml_name).replace(/\s+/g, "") : "";
+      var isTop = !!(b.mainline && _bml && _bml === topMlName);
+      var isMain = !!(isTop && b.tier === "king");
+      var t = (b.mainline ? '<span class="tag ok">主线 ✓</span>' : "") + (isMain ? '<span class="tier-badge tier-king">⭐ 今日主线</span>'
+        : (b.mainline ? '<span class="tier-badge tier-key">重点关注</span>'
           : (b.tier === "king" ? '<span class="tier-badge tier-normal">市场强势</span>'
             : (b.tier === "key" ? '<span class="tier-badge tier-key">强势关注</span>'
               : '<span class="tier-badge tier-normal">备选</span>'))));

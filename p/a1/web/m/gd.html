@@ -580,11 +580,16 @@
       return false;
     }
     el.innerHTML = rank.map(function(b, idx){
+      var topMlName = '';
+      var _topMl = (d.mainlines || []).filter(function(m){ return m && m.src === 'daily'; })[0];
+      if (_topMl) topMlName = String(_topMl.name || '').replace(/\s+/g, '');
+      var _bml = b.ml_name ? String(b.ml_name).replace(/\s+/g, '') : '';
+      var isTop = !!(b.mainline && _bml && _bml === topMlName);
       var t = '';
       if (b.mainline) t += '<span class="tier main">主线 ✓</span>';
-      if (b.mainline && b.tier === 'king') t += '<span class="tier king">⭐ 今日主线</span>';
+      if (isTop && b.tier === 'king') t += '<span class="tier king">⭐ 今日主线</span>';
+      else if (b.mainline) t += '<span class="tier key">重点关注</span>';
       else if (b.tier === 'king') t += '<span class="tier normal">市场强势</span>';
-      else if (b.mainline && b.tier === 'key') t += '<span class="tier key">重点关注</span>';
       else if (b.tier === 'key') t += '<span class="tier key">强势关注</span>';
       else t += '<span class="tier normal">备选</span>';
       var secid = String(b.secid || '').trim();
