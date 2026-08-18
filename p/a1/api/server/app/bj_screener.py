@@ -851,9 +851,43 @@ def _reattach_ths(payload: dict[str, Any]) -> dict[str, Any]:
         _obs = (_dml or {}).get("observes") or []
         if _obs:
             payload["observes"] = [{"name": n, "src": "daily"} for n in _obs]
+        # 板块排行与主线口径同步（主线驱动市场）：king=主线首名，key=其余主线，backup=备选
+        if str(payload.get("market_code") or "") in ("all", "hs", "kc"):
+            payload["board_rank"] = _sync_rank_mainlines(payload.get("board_rank") or [], _names)
     except Exception:
         pass
     return payload
+
+
+def _sync_rank_mainlines(board_rank, mainline_names):
+    """板块排行与主线口径同步：主线按复盘顺序前置，第1=今日主线(king)、其余=重点关注(key)、其余=备选(backup)。
+
+    修复旧归档/旧算法扫描留下的「排行 king 与主线首名不一致」（如 08-17 旧档按资金排序把
+    通信光模块CPO 排第1，而主线是 AI服务器算力）；主线板块不在榜中时保持原榜不动，避免误伤北证异动榜。
+    """
+    try:
+        if not isinstance(board_rank, list) or not mainline_names:
+            return board_rank
+        _names = [n for n in mainline_names if str(n or "").strip()]
+        if not _names:
+            return board_rank
+        _norm = lambda s: re.sub(r"\s+", "", str(s or ""))
+        _ml_set = {_norm(n) for n in _names}
+        _order = {_norm(n): i for i, n in enumerate(_names)}
+        _main_br = [b for b in board_rank if isinstance(b, dict) and _norm(b.get("name")) in _ml_set]
+        if not _main_br:
+            return board_rank
+        _other_br = [b for b in board_rank if isinstance(b, dict) and _norm(b.get("name")) not in _ml_set]
+        _main_br.sort(key=lambda b: _order.get(_norm(b.get("name")), 99))
+        for _i, _b in enumerate(_main_br):
+            _b["tier"] = "king" if _i == 0 else "key"
+            _b["mainline"] = True
+        for _b in _other_br:
+            _b["tier"] = "backup"
+            _b["mainline"] = False
+        return _main_br + _other_br
+    except Exception:
+        return board_rank
 
 
 def _apply_stale_fallback(result: dict[str, Any], market: str = "bj") -> dict[str, Any]:
@@ -4351,6 +4385,10 @@ async def run_scan(
             _b["streak"] = _stk
     except Exception:
         pass
+
+    # 板块排行与主线口径同步：主线按复盘顺序前置（第1=今日主线 king），与 mainlines 卡片完全一致
+    if market in ("all", "hs", "kc"):
+        board_rank = _sync_rank_mainlines(board_rank, _dml_names or [])
 
     result_mainlines = rev_mainlines[:10]
     if _dml_names:
