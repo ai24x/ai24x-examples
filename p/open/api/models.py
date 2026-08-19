@@ -1,4 +1,16 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey, Enum, Float, UniqueConstraint
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    Column,
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import validates
 from sqlalchemy.sql import func
@@ -320,3 +332,90 @@ class SupportTicketMessage(Base):
     sender = Column(String(16), nullable=False, default="user")  # user / system / admin
     content = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class ByokKey(Base):
+    """
+    BYOK 用户自有上游 Key（Bring Your Own Key）。
+
+    合规红线：key 一律 AES-256-GCM 加密后存 key_cipher，日志/响应/前端只暴露
+    key_prefix（前 8 位）；平台不再持有/转售上游 token。
+    """
+
+    __tablename__ = "byok_keys"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    auth_user_id = Column(
+        Integer, ForeignKey("auth_users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    provider = Column(String(32), nullable=False, default="openai")  # openai/deepseek/openrouter/...
+    name = Column(String(64), nullable=False, default="")
+    key_cipher = Column(Text, nullable=False)  # aesgcm:v1:<nonce_b64>:<ct_b64>
+    key_prefix = Column(String(16), nullable=False, default="")  # 展示用：明文前 8 位
+    base_url = Column(Text, nullable=True)  # 自定义 base（custom provider 必填）
+    models = Column(Text, nullable=False, default="[]")  # JSON 数组：可服务的上游模型名；空=全部
+    status = Column(String(16), nullable=False, default="active")  # active / disabled
+    priority = Column(Integer, default=100, nullable=False)  # 数字越小越优先（选路评分之一）
+
+    # 健康度（选路用：成功率 + 最近延迟）
+    last_latency_ms = Column(Integer, nullable=True)
+    success_count = Column(Integer, default=0, nullable=False)
+    fail_count = Column(Integer, default=0, nullable=False)
+    last_error = Column(Text, nullable=True)
+    last_used_at = Column(DateTime(timezone=True), nullable=True)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class ByokUsage(Base):
+    """
+    BYOK 用量/成本明细（每请求一行）。
+
+    成本按模型目录参考价估算（cost_usd_micro = 微美元 1e-6），仅做成本看板展示，
+    不代表上游真实账单。byok_key_id 无外键：删除 key 后历史用量保留。
+    """
+
+    __tablename__ = "byok_usage"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    auth_user_id = Column(Integer, index=True, nullable=False)
+    byok_key_id = Column(Integer, index=True, nullable=True)
+    provider = Column(String(32), nullable=False, default="")
+    model = Column(String(100), nullable=False, default="")  # 逻辑/上游模型名
+    upstream_model = Column(String(100), nullable=True)
+    project = Column(String(64), nullable=True, index=True)  # x-byok-project 请求头
+    request_id = Column(String(64), nullable=True, index=True)
+    prompt_tokens = Column(Integer, default=0, nullable=False)
+    completion_tokens = Column(Integer, default=0, nullable=False)
+    total_tokens = Column(Integer, default=0, nullable=False)
+    cost_usd_micro = Column(BigInteger, default=0, nullable=False)
+    latency_ms = Column(Integer, default=0, nullable=False)
+    success = Column(Boolean, default=True, nullable=False)
+    error_code = Column(String(64), nullable=True)
+    cached = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class ByokSubscription(Base):
+    """
+    BYOK 网关订阅（服务费模式，非 token 差价）。
+
+    BYOK 套餐履约后写入/续期：Pro 月/年订阅解锁无限路由 + 请求缓存 + 成本看板。
+    status: active / expired / cancelled。expires_at 未到即视为有效（无自动续费）。
+    """
+
+    __tablename__ = "byok_subscriptions"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    auth_user_id = Column(
+        Integer, ForeignKey("auth_users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    plan = Column(String(64), nullable=False, default="byok_pro_month")
+    status = Column(String(16), nullable=False, default="active", index=True)
+    started_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    # 最近一次开通/续期的订单号（对账用）
+    source_order = Column(String(32), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

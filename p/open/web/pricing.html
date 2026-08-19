@@ -46,18 +46,18 @@
 })();
 </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title data-i18n="page.pricing.titleTag">Pricing · AI24X Token API</title>
+  <title data-i18n="page.pricing.titleTag">Pricing · AI24X BYOK Gateway</title>
   <link rel="canonical" href="https://www.ai24x.com/pricing.html" />
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Pricing · AI24X Token API" />
-  <meta property="og:description" content="AI24X token plans: choose a pack, pay in Console with PayPal USD (or WeChat/Alipay). Keys and balance in one place." />
+  <meta property="og:title" content="Pricing · AI24X BYOK Gateway" />
+  <meta property="og:description" content="BYOK gateway service fee: $9.9/mo for auto-routing, request caching, and a cost dashboard. Managed (no-key) plans optional. Service fee only." />
   <meta property="og:url" content="https://www.ai24x.com/pricing.html" />
   <meta property="og:image" content="https://www.ai24x.com/img/og-share.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:image" content="https://www.ai24x.com/img/og-share.png" />
-  <meta name="description" content="AI24X token plans: choose a pack, pay in Console with PayPal USD (or WeChat/Alipay). Keys and balance in one place." />
+  <meta name="description" content="BYOK gateway plans: bring your own keys or start instantly. Auto-routing, request caching, and a cost dashboard. BYOK Pro $9.9/mo; managed (no-key) plans optional." />
   <link rel="stylesheet" href="css/base.css?v=20260812e" />
   <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260812e" data-base="css/themes/" />
   <style>
@@ -85,6 +85,25 @@
       flex: 1 1 100%;
       white-space: nowrap;
     }
+    .plan-card-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+    .plan-card { display: flex; flex-direction: column; border: 1px solid var(--border, #d8e4ef); border-radius: 14px; padding: 16px 16px 14px; background: var(--card-bg, #fff); box-shadow: 0 1px 3px rgba(16, 24, 40, 0.06); position: relative; }
+    .plan-card.is-rec { border-color: var(--accent, #2563eb); box-shadow: 0 0 0 1px var(--accent, #2563eb), 0 6px 18px rgba(16, 24, 40, 0.08); }
+    .plan-card .plan-card-rec { position: absolute; top: -9px; right: 12px; background: var(--accent, #2563eb); color: #fff; font-size: 0.72rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; }
+    .plan-card .plan-card-name { font-size: 1.02rem; font-weight: 700; margin: 0 0 2px; }
+    .plan-card .plan-card-price { font-size: 1.45rem; font-weight: 800; color: var(--accent, #2563eb); margin: 6px 0 2px; }
+    .plan-card .plan-card-price small { font-size: 0.78rem; color: var(--muted, #5a6b7b); font-weight: 500; }
+    .plan-card .plan-card-one { font-size: 0.82rem; color: var(--muted, #5a6b7b); margin: 0 0 10px; }
+    .plan-card ul.plan-card-feats { margin: 0 0 12px; padding: 0 0 0 18px; font-size: 0.84rem; line-height: 1.55; color: var(--text, #1f2a37); }
+    .plan-card .plan-card-cta { margin-top: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+    .plan-card .plan-card-cta .btn { flex: 1; min-height: 38px; }
+    /* BYOK 三卡：免费试用 / 月付 / 年付 并排 */
+    #byokPlansGrid { grid-template-columns: repeat(3, 1fr); align-items: stretch; }
+    #byokPlansGrid .plan-card { height: 100%; }
+    .plan-card.is-free-card { border-color: rgba(22, 163, 74, 0.5); box-shadow: 0 0 0 1px rgba(22, 163, 74, 0.25), 0 6px 18px rgba(16, 24, 40, 0.08); }
+    .free-plan-badge { display: inline-block; margin-left: 8px; padding: 1px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; color: #16a34a; border: 1px solid rgba(22, 163, 74, 0.45); background: rgba(22, 163, 74, 0.08); }
+    @media (max-width: 860px) {
+      #byokPlansGrid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body data-page="pricing" class="theme-blue">
@@ -93,32 +112,41 @@
     <section class="hero hero-surface section-tight">
       <div class="container">
         <h1 data-i18n="page.pricing.title">Pricing</h1>
-        <p class="lead" data-i18n="page.pricing.sub">Flash from $0.35/M. Output costs 71-96% less than GPT official pricing (captured 2026-08-05). Buy a pack, top up, manage keys in the Console. WeChat · Alipay · PayPal.</p>
+        <p class="lead" data-i18n="page.pricing.sub">BYOK gateway service fee: BYOK Pro at $9.9/mo (yearly $99, save 17%) includes unlimited auto-routing, failover, request caching, and the cost dashboard. Or start instantly with managed (no-key) access.</p>
         <p class="callout mt-2" data-i18n="page.pricing.callout">
-          Flash from $0.35/M tokens — output costs 71-96% less than GPT official pricing (captured 2026-08-05). Pay as you go; balance never expires.
+          We charge a gateway service fee — never a token markup. Your keys are AES-256 encrypted, never stored or logged in plaintext.
         </p>
       </div>
     </section>
 
-    <section class="section">
+    <section class="section" id="byokSection">
+      <div class="container" style="max-width:1080px;">
+        <h2 style="margin:0 0 10px;" data-i18n="page.pricing.byokTitle">BYOK plans · bring your own key</h2>
+        <p class="sub" id="byokSettleHint" style="margin:0 0 14px;"></p>
+        <div class="plan-card-list" id="byokPlansGrid"></div>
+        <div class="hero-cta" style="margin-top:14px;">
+          <a class="btn btn-primary" href="console.html#billing" data-i18n="page.pricing.byokViewAll">Buy and pay in Console</a>
+          <a class="btn" href="paypal.html" data-i18n="page.pricing.settleIntlLink">PayPal checkout guide</a>
+          <a class="btn" href="login.html?next=console.html%23billing" data-i18n="nav.login">Log in</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 平台托管完整套餐表 -->
+    <section class="section" id="tokenTable">
       <div class="container" style="max-width:980px;">
-        <h2 style="margin:0 0 10px;" data-i18n="page.pricing.tokenTitle">Token plans</h2>
+        <h2 style="margin:0 0 10px;" data-i18n="page.pricing.tokenTitle">Managed token plans (optional)</h2>
         <p class="sub" id="tokenPayStatus" style="margin:0 0 14px;" data-i18n="page.pricing.loading">Loading plans…</p>
         <p class="sub" id="tokenSettleHint" style="margin:0 0 14px;"></p>
         <div class="plan-compare-wrap" id="tokenPlansGrid"></div>
-        <div class="hero-cta" style="margin-top:14px;">
-          <a class="btn btn-primary" href="console.html#token-plans" data-i18n="page.pricing.ctaConsole">Buy / manage keys in Console</a>
-          <a class="btn" href="paypal.html" data-i18n="page.pricing.settleIntlLink">PayPal checkout guide</a>
-          <a class="btn" href="login.html?next=console.html%23token-plans" data-i18n="nav.login">Log in</a>
-        </div>
         <p class="sub" style="margin-top:12px;text-align:center;color:var(--accent,#0f7b4e)" data-i18n="page.pricing.freeHint">Free daily channel always available — auto-activates when your balance runs out.</p>
       </div>
     </section>
 
     <section class="section" id="saveSection">
       <div class="container" style="max-width:980px;">
-        <h2 style="margin:0 0 10px;" data-i18n="page.pricing.saveTitle">Save vs GPT official pricing</h2>
-        <p class="sub" style="margin:0 0 14px;" data-i18n="page.pricing.saveSub">Output-token comparison vs OpenAI list prices (captured 2026-08-05). Input rates may differ — final rates on Console.</p>
+        <h2 style="margin:0 0 10px;" data-i18n="page.pricing.saveTitle">Managed access · reference prices vs GPT official</h2>
+        <p class="sub" style="margin:0 0 14px;" data-i18n="page.pricing.saveSub">Managed access runs hand-picked high-value models at reference prices; BYOK users bring their own keys and pay their provider directly. Final rates on Console.</p>
         <div class="plan-compare-wrap">
           <table class="plan-compare">
             <thead>
@@ -136,13 +164,13 @@
             </tbody>
           </table>
         </div>
-        <p class="sub small" style="margin:12px 0 0;" data-i18n="page.pricing.transparency">AI24X flash / pro runs on hand-picked, high-value models like DeepSeek V4 Flash, V4 Pro and Xiaomi MiMo — one key for every model, no foreign card needed, flexible top-up.</p>
+        <p class="sub small" style="margin:12px 0 0;" data-i18n="page.pricing.transparency">We charge a gateway service fee — never a token markup. Your keys are AES-256 encrypted and never stored in plaintext. Managed rates on Console.</p>
       </div>
     </section>
 
     <section class="section section-alt" id="peakSection">
       <div class="container" style="max-width:980px;">
-        <h2 style="margin:0 0 10px;" data-i18n="page.pricing.peakTitle">DeepSeek peak/off-peak pricing · effective Aug 17</h2>
+        <h2 style="margin:0 0 10px;" data-i18n="page.pricing.peakTitle">DeepSeek peak/off-peak (managed access) · effective Aug 17</h2>
         <p class="sub" style="margin:0 0 14px;" data-i18n="page.pricing.peakSub">DeepSeek named picks follow official peak/off-peak rates from Aug 17 (Beijing time). Peak hours: 09:00-12:00 / 14:00-18:00; nights and other hours are off-peak and cheaper. Everyday flash / pro tiers are not affected.</p>
         <div class="plan-compare-wrap">
           <table class="plan-compare">
@@ -170,8 +198,8 @@
         <div class="grid-2">
           <div class="card" id="settlePaypalCard" style="border-color:color-mix(in srgb, #0070ba 35%, var(--border, #d8e4ef));">
             <h3 style="margin:0 0 8px;" data-i18n="page.pricing.settleIntlTitle">Global · PayPal (USD)</h3>
-            <p class="sub" style="margin:0;" data-i18n="page.pricing.settleIntlBody">Global: tap PayPal (USD) on a Console plan; tokens credit after checkout.</p>
-            <p class="sub" style="margin:8px 0 0;" data-i18n="page.pricing.settleIntlSteps">Choose plan → Console → PayPal → credits.</p>
+            <p class="sub" style="margin:0;" data-i18n="page.pricing.settleIntlBody">Global: choose a plan in Console, then PayPal (USD); BYOK subscription or tokens activate automatically after checkout.</p>
+            <p class="sub" style="margin:8px 0 0;" data-i18n="page.pricing.settleIntlSteps">Choose → Console → pick a payment method → auto-activated.</p>
             <p class="sub" style="margin:12px 0 0;">
               <a class="btn btn-primary" href="login.html?next=console.html%23token-plans" data-i18n="page.pricing.ctaPaypal">PayPal in Console</a>
               <a class="btn" href="paypal.html" data-i18n="page.pricing.settleIntlLink">PayPal checkout guide</a>
@@ -186,8 +214,8 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260817z"></script>
-  <script src="js/api.js?v=20260817z"></script>
+  <script src="config/locales.js?v=20260818l"></script>
+  <script src="js/api.js?v=20260818e"></script>
   <script src="js/utm.js?v=20260802a"></script>
 <script src="js/i18n.js?v=20260812g"></script>
   <script src="js/shell.js?v=20260817z"></script>
@@ -325,10 +353,109 @@
         grid.appendChild(table);
       }
 
+      function byokHref(plan) {
+        var path = "console.html?plan=" + encodeURIComponent(plan) + "#billing";
+        var loggedIn = false;
+        try {
+          loggedIn = !!(window.AI24X_API && AI24X_API.getAuthToken && AI24X_API.getAuthToken());
+        } catch (e) {}
+        if (loggedIn) return path;
+        return "login.html?next=" + encodeURIComponent(path);
+      }
+
+      function renderByokPlans() {
+        var box = document.getElementById("byokPlansGrid");
+        if (!box || !payload) return;
+        var plans = payload.byok_plans || [];
+        var zh = AI24X_API.isZhUi();
+        if (!plans.length) {
+          box.innerHTML = '<p class="sub">' + (zh ? "暂无 BYOK 套餐" : "No BYOK plans yet") + "</p>";
+          return;
+        }
+        var hint = document.getElementById("byokSettleHint");
+        if (hint) {
+          hint.textContent = zh
+            ? "选购后到控制台选微信 / 支付宝 / PayPal 支付，到账自动开通（未登录先引导登录）。"
+            : "Choose a plan, then pay with WeChat / Alipay / PayPal in the Console (sign-in if needed); activates automatically.";
+        }
+        box.innerHTML = "";
+        // 第一张卡：免费试用（静态渲染，跟随语言）
+        var freeCard = document.createElement("div");
+        freeCard.className = "plan-card is-free-card";
+        freeCard.innerHTML =
+          '<h4 class="plan-card-name"><span>' +
+          esc(t("page.pricing.freeTitle", zh ? "免费档 · 注册即用" : "Free plan · start instantly")) +
+          '</span><span class="free-plan-badge">' +
+          esc(t("page.pricing.freeBadge", zh ? "免绑卡" : "No card needed")) +
+          "</span></h4>" +
+          '<div class="plan-card-price">$0<small>' +
+          esc(t("page.pricing.freePeriod", zh ? " / 永久" : " / forever")) +
+          "</small></div>" +
+          '<p class="plan-card-one">' +
+          esc(t("page.pricing.freeOne", zh ? "先跑通，再升级。基础智能路由永久免费。" : "Start instantly, upgrade when you need more. Basic routing is free forever.")) +
+          "</p>" +
+          "<ul class=\"plan-card-feats\">" +
+          "<li>" +
+          esc(t("page.pricing.freeF1", zh ? "OpenAI 兼容接口：/v1/chat/completions" : "OpenAI-compatible endpoint: /v1/chat/completions")) +
+          "</li>" +
+          "<li>" +
+          esc(t("page.pricing.freeF2", zh ? "多把 Key 基础智能路由" : "Basic smart routing across your keys")) +
+          "</li>" +
+          "<li>" +
+          esc(t("page.pricing.freeF3", zh ? "每日免费额度（10 万 token）" : "Daily free quota (100K tokens)")) +
+          "</li>" +
+          "<li>" +
+          esc(t("page.pricing.freeF4", zh ? "Key AES-256 加密存储，明文不落盘" : "AES-256 encrypted key storage, never in plaintext")) +
+          "</li>" +
+          "</ul>" +
+          '<div class="plan-card-cta"><a class="btn btn-primary" href="login.html?next=console.html%23billing">' +
+          esc(t("page.pricing.freeCta", zh ? "免费注册" : "Start free")) +
+          "</a></div>";
+        box.appendChild(freeCard);
+        plans.forEach(function (p) {
+          var card = document.createElement("div");
+          card.className = "plan-card" + (p.recommended ? " is-rec" : "");
+          card.setAttribute("data-plan", String(p.plan));
+          var rec = p.recommended
+            ? '<span class="plan-card-rec">' + (zh ? "推荐" : "Rec") + "</span>"
+            : "";
+          var title = zh ? p.title_zh || p.title_en || p.plan : p.title_en || p.title_zh || p.plan;
+          var one = zh ? p.one_liner_zh || "" : p.one_liner_en || "";
+          var feats = zh ? p.features_zh || [] : p.features_en || [];
+          var price = "$" + Number(p.price_usd || 0).toFixed(2);
+          var period = Number(p.days) === 365 ? (zh ? "/年" : "/year") : (zh ? "/月" : "/month");
+          var featsHtml = (feats || [])
+            .map(function (f) {
+              return "<li>" + esc(f) + "</li>";
+            })
+            .join("");
+          var buyLabel = t("page.pricing.byokCta", zh ? "选购" : "Choose");
+          card.innerHTML =
+            rec +
+            '<h4 class="plan-card-name">' +
+            esc(title) +
+            "</h4>" +
+            '<div class="plan-card-price">' +
+            price +
+            "<small>" +
+            esc(period) +
+            "</small></div>" +
+            (one ? '<p class="plan-card-one">' + esc(one) + "</p>" : "") +
+            (featsHtml ? '<ul class="plan-card-feats">' + featsHtml + "</ul>" : "") +
+            '<div class="plan-card-cta"><a class="btn btn-primary" href="' +
+            esc(byokHref(p.plan)) +
+            '">' +
+            esc(buyLabel) +
+            "</a></div>";
+          box.appendChild(card);
+        });
+      }
+
       AI24X_API.billingPlans()
         .then(function (data) {
           payload = data;
           renderPlans();
+          renderByokPlans();
         })
         .catch(function (e) {
           st.textContent = e.message || t("page.pricing.loadFail", "Failed to load plans");
@@ -339,6 +466,17 @@
         langSel.addEventListener("change", function () {
           renderPlans();
         });
+      }
+
+      // 加载时 hash 兼容：#byok 已在套餐区；#token-plans / #tokenTable 滚动到完整对照表
+      var _h = String(location.hash || "").replace("#", "").toLowerCase();
+      if (_h === "token-plans" || _h === "tokentable") {
+        var _ts = document.getElementById("tokenTable");
+        if (_ts) {
+          try {
+            _ts.scrollIntoView({ block: "start" });
+          } catch (e) {}
+        }
       }
     });
   </script>

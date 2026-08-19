@@ -492,6 +492,7 @@ class BillingTopupBody(BaseModel):
 
 class TokenPayCreateBody(BaseModel):
     plan: str = Field(..., min_length=4, max_length=64)
+    product: str = Field(default="token", max_length=16, description="token / byok")
 
 
 class TokenMockFulfillBody(BaseModel):

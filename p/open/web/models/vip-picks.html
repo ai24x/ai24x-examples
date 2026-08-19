@@ -217,8 +217,8 @@ Header: X-API-Key: YOUR_API_KEY
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="../config/locales.js?v=20260817z"></script>
-  <script src="../js/api.js?v=20260817z"></script>
+  <script src="../config/locales.js?v=20260818l"></script>
+  <script src="../js/api.js?v=20260818e"></script>
   <script src="../js/utm.js?v=20260802a"></script>
 <script src="../js/i18n.js?v=20260812g"></script>
   <script src="../js/shell.js?v=20260817z"></script>
@@ -271,7 +271,7 @@ Header: X-API-Key: YOUR_API_KEY
       function toolsCell(id, isZhNow) {
         var s = TOOLS_SUPPORT[id] || "n/a";
         if (s === "ok") return "<td class='mono tool-ok' title='" + (isZhNow ? "2026-08-13 实测：工具调用正常" : "2026-08-13 probe: tool calling OK") + "'>✅</td>";
-        if (s === "warn") return "<td class='mono tool-warn' title='" + (isZhNow ? "实测 200 但未返回 tool_calls，疑似上游问题" : "200 but no tool_calls; likely upstream issue") + "'>⚠️</td>";
+        if (s === "warn") return "<td class='mono tool-warn' title='" + (isZhNow ? "实测 200 但未返回 tool_calls，疑似模型服务问题" : "200 but no tool_calls; likely provider issue") + "'>⚠️</td>";
         return "<td class='mono'>—</td>";
       }
       function cnBadge(p, isZhNow) {
@@ -413,7 +413,7 @@ Header: X-API-Key: YOUR_API_KEY
         var zh = isZh();
         el.textContent = zh
           ? "为什么点名模价格看似高于官方直连？官方价不含渠道与支付合规成本，且需外币卡 + 海外账号。AI24X 聚合免外币卡、一个 key 全模型，输出端还有优惠（GPT-5.6 Terra 输出比官方省 39%）。最终扣费以 console 账单为准。"
-          : "Why do named picks cost more than official? Official pricing excludes channel & payment compliance, and needs a foreign card + overseas account. AI24X bundles every model under one key with no foreign card needed - and our output side can beat OpenAI (GPT-5.6 Terra output -39%). Final billing: see console.";
+          : "Why do named picks cost more than official? Official pricing excludes channel & payment compliance, and needs a foreign card + overseas account. AI24X routes every model through one gateway with no foreign card needed - and our output side can beat OpenAI (GPT-5.6 Terra output -39%). Final billing: see console.";
       }
 
       function officialBest(picks) {
@@ -445,7 +445,7 @@ Header: X-API-Key: YOUR_API_KEY
         parts.push(
           zh
             ? "限时特惠超值包 ≈ 官方 1/2 价、一个 key 聚合全模型、免外币卡"
-            : "Limited-time Value Pack ≈ half of official, all models under one key, no foreign card"
+            : "Limited-time Value Pack ≈ half of official price, PayPal-friendly, no foreign card needed"
         );
         el.textContent = "⚡ " + parts.join(" ｜ ");
       }

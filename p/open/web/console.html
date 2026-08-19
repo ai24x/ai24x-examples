@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <!-- [AI24X 2026-08-15] Google Ads 暂停 (国际支付无合规渠道，保留待恢复，勿删）：
@@ -70,6 +70,36 @@
     .console-panel .card { display: flex; flex-direction: column; }
     .console-panel .card .card-actions { margin-top: auto; }
     .console-panel .btn { min-height: 38px; line-height: 1.2; white-space: nowrap; }
+    /* console: BYOK 智能网关 */
+    .byok-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+    .byok-form-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; }
+    .byok-form-grid .byok-form-wide { grid-column: 1 / -1; }
+    .byok-stats-grid .stat-card { padding: 12px; }
+    .byok-stats-grid .stat-label { font-size: 0.78rem; }
+    .byok-stats-grid .stat-value { font-size: 1.05rem; }
+    /* console: 套餐商城（BYOK 套餐 / 平台 token 套餐） */
+    .plans-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 2px 0 14px; }
+    .plans-tab { border: 1px solid var(--border, #d8e4ef); background: transparent; color: var(--muted, #5a6b7b); border-radius: 999px; padding: 7px 16px; font-size: 0.88rem; cursor: pointer; }
+    .plans-tab.is-active { background: var(--accent, #2563eb); border-color: var(--accent, #2563eb); color: #fff; font-weight: 600; }
+    .plans-tab[disabled] { opacity: 0.55; cursor: not-allowed; }
+    .plans-group[hidden] { display: none; }
+    .byok-sub-banner { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 14px; border: 1px solid var(--border, #d8e4ef); border-radius: 10px; background: color-mix(in srgb, var(--accent, #2563eb) 5%, transparent); margin-bottom: 14px; }
+    .byok-sub-banner[hidden] { display: none !important; }
+    .byok-sub-banner .byok-sub-plan { font-weight: 700; }
+    .byok-sub-banner.is-pro { border-color: rgba(15, 123, 78, 0.45); background: rgba(15, 123, 78, 0.08); }
+    .plan-card-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+    .plan-card { display: flex; flex-direction: column; border: 1px solid var(--border, #d8e4ef); border-radius: 14px; padding: 16px 16px 14px; background: var(--card-bg, #fff); box-shadow: 0 1px 3px rgba(16, 24, 40, 0.06); position: relative; }
+    .plan-card.is-rec { border-color: var(--accent, #2563eb); box-shadow: 0 0 0 1px var(--accent, #2563eb), 0 6px 18px rgba(16, 24, 40, 0.08); }
+    .plan-card .plan-card-rec { position: absolute; top: -9px; right: 12px; background: var(--accent, #2563eb); color: #fff; font-size: 0.72rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; }
+    .plan-card .plan-card-name { font-size: 1.02rem; font-weight: 700; margin: 0 0 2px; }
+    .plan-card .plan-card-price { font-size: 1.45rem; font-weight: 800; color: var(--accent, #2563eb); margin: 6px 0 2px; }
+    .plan-card .plan-card-price small { font-size: 0.78rem; color: var(--muted, #5a6b7b); font-weight: 500; }
+    .plan-card .plan-card-one { font-size: 0.82rem; color: var(--muted, #5a6b7b); margin: 0 0 10px; }
+    .plan-card ul.plan-card-feats { margin: 0 0 12px; padding: 0 0 0 18px; font-size: 0.84rem; line-height: 1.55; color: var(--text, #1f2a37); }
+    .plan-card .plan-card-cta { margin-top: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+    .plan-card .plan-card-cta .btn { flex: 1; min-height: 38px; }
+    .plan-card .plan-card-active { margin-top: auto; font-size: 0.82rem; font-weight: 600; color: #16a34a; }
+    .plan-card .plan-card-sub { font-size: 0.78rem; color: var(--muted, #5a6b7b); margin-top: 2px; }
     /* console: usage 流水表 */
     .usage-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 4px 0 10px; flex-wrap: wrap; }
     .usage-toolbar .btn { font-size: 0.8rem; padding: 6px 12px; }
@@ -239,7 +269,8 @@
           <nav class="console-nav" id="console-nav">
             <button type="button" class="console-nav-item is-active" data-console-panel="overview" data-i18n="page.console.nav.overview">Overview</button>
             <button type="button" class="console-nav-item" data-console-panel="keys" data-i18n="page.console.nav.keys">API keys</button>
-            <button type="button" class="console-nav-item" data-console-panel="billing" data-i18n="page.console.nav.billing">Billing</button>
+            <button type="button" class="console-nav-item" data-console-panel="byok" data-i18n="page.console.nav.byok">BYOK keys</button>
+            <button type="button" class="console-nav-item" data-console-panel="billing" data-i18n="page.console.nav.plans">Plans</button>
             <button type="button" class="console-nav-item" data-console-panel="transactions" data-i18n="page.console.nav.transactions">Transactions</button>
             <button type="button" class="console-nav-item" data-console-panel="playground" data-i18n="page.console.nav.playground">Try call</button>
             <button type="button" class="console-nav-item" data-console-panel="account" data-i18n="page.console.nav.account">Account</button>
@@ -277,7 +308,7 @@
               <div class="card-actions" style="margin-top:10px">
                 <button type="button" class="btn btn-primary" id="howto-cta-try">Try call</button>
                 <button type="button" class="btn" id="btn-continue-shared" style="display:none">Continue free shared</button>
-                <button type="button" class="btn" id="howto-cta-billing" data-console-panel="billing">Top up</button>
+                <button type="button" class="btn" id="howto-cta-billing" data-console-panel="billing" data-i18n="page.console.nav.plans">Plans</button>
               </div>
             </div>
             <div id="balance-cta" style="display:none" hidden aria-hidden="true"></div>
@@ -350,7 +381,7 @@
               <p class="sub" data-i18n="page.console.overview.quickSub">Most-used steps for connecting and topping up.</p>
               <div class="card-actions">
                 <button type="button" class="btn btn-primary" data-action="create-key" data-i18n="page.console.keys.create">Create key</button>
-                <button type="button" class="btn" data-console-panel="billing" data-i18n="page.console.nav.billing">Billing</button>
+                <button type="button" class="btn" data-console-panel="billing" data-i18n="page.console.nav.plans">Plans</button>
                 <button type="button" class="btn" data-console-panel="playground" data-i18n="page.console.nav.playground">Try call</button>
                 <button type="button" class="btn" id="btn-refresh" data-i18n="page.console.actions.refresh">Refresh data</button>
                 <a class="btn" href="guides/index.html" data-i18n="nav.guides">Integrations</a>
@@ -387,17 +418,204 @@
             </div>
           </div>
 
+          <!-- BYOK keys（用户自带 key） -->
+          <div class="console-panel" id="panel-byok" data-console-panel="byok" role="tabpanel" hidden>
+            <div class="console-panel-head">
+              <h2 class="mt-0">BYOK keys · 自带 Key，即开即用</h2>
+              <p class="sub" id="byok-fee-note">平台只收取网关服务费，不赚差价；你的 key 按你的原厂价消耗。相同请求命中缓存时不消耗额度。</p>
+            </div>
+
+            <div class="card" id="byok-status-card" style="display:none">
+              <div class="stats-grid byok-stats-grid">
+                <div class="stat-card">
+                  <div class="stat-label">网关状态</div>
+                  <div class="stat-value" id="byok-status-enabled">--</div>
+                  <div class="stat-sub">BYOK_ENABLED</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">免费档本月</div>
+                  <div class="stat-value" id="byok-status-free">--</div>
+                  <div class="stat-sub">BYOK 请求 / 上限</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">请求缓存</div>
+                  <div class="stat-value" id="byok-status-cache">--</div>
+                  <div class="stat-sub">TTL / 进程内条目</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">平台回退</div>
+                  <div class="stat-value" id="byok-status-fallback">--</div>
+                  <div class="stat-sub">自有 key 全失败时</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="keys-toolbar">
+                <h3 class="mt-0 mb-0">添加自有 Key</h3>
+              </div>
+              <div class="byok-form-grid mt-2">
+                <label>
+                  <span class="stat-label">Provider</span>
+                  <select class="input" id="byok-provider">
+                    <option value="openai">OpenAI</option>
+                    <option value="anthropic">Anthropic (Messages API)</option>
+                    <option value="deepseek">DeepSeek</option>
+                    <option value="openrouter">OpenRouter</option>
+                    <option value="siliconflow">硅基流动 SiliconFlow</option>
+                    <option value="together">Together AI</option>
+                    <option value="moonshot">Moonshot Kimi</option>
+                    <option value="zhipu">智谱 GLM</option>
+                    <option value="qwen">阿里云百炼 DashScope</option>
+                    <option value="xai">xAI Grok</option>
+                    <option value="groq">Groq</option>
+                    <option value="mistral">Mistral</option>
+                    <option value="custom">自定义 OpenAI 兼容</option>
+                  </select>
+                </label>
+                <label>
+                  <span class="stat-label">名称（可选）</span>
+                  <input class="input" id="byok-name" type="text" maxlength="64" placeholder="如：主力 DeepSeek / 备用 OpenAI" autocomplete="off" />
+                </label>
+                <label class="byok-form-wide">
+                  <span class="stat-label">API Key（AES-256-GCM 加密存储，只显示前缀）</span>
+                  <input class="input" id="byok-api-key" type="password" placeholder="sk-..." autocomplete="off" />
+                </label>
+                <label class="byok-form-wide">
+                  <span class="stat-label">可服务模型（逗号分隔，留空=全部；如 gpt-4o, gpt-4o-mini / deepseek-chat）</span>
+                  <input class="input" id="byok-models" type="text" placeholder="留空可服务该 Provider 任意模型" autocomplete="off" />
+                </label>
+                <label>
+                  <span class="stat-label">自定义 Base URL（custom 必填）</span>
+                  <input class="input" id="byok-base-url" type="text" placeholder="https://..." autocomplete="off" />
+                </label>
+                <label>
+                  <span class="stat-label">优先级（越小越优先）</span>
+                  <input class="input" id="byok-priority" type="number" min="0" max="999" value="100" />
+                </label>
+              </div>
+              <div class="card-actions mt-2">
+                <button type="button" class="btn" id="btn-byok-test">测试 Key（不发请求以外开销）</button>
+                <button type="button" class="btn btn-primary" id="btn-byok-save">保存 Key</button>
+                <span class="sub" id="byok-form-msg"></span>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="keys-toolbar">
+                <h3 class="mt-0 mb-0">我的自有 Key</h3>
+                <button type="button" class="btn" id="btn-byok-refresh-keys">刷新</button>
+              </div>
+              <div class="keys-table-wrap mt-2">
+                <table class="keys-table" aria-label="BYOK keys">
+                  <thead>
+                    <tr>
+                      <th>Provider</th>
+                      <th>名称</th>
+                      <th>Key（前缀）</th>
+                      <th>模型</th>
+                      <th>状态</th>
+                      <th>延迟/成功率</th>
+                      <th>最近使用</th>
+                      <th class="keys-col-actions">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="byokKeysList"></tbody>
+                </table>
+              </div>
+              <p class="sub mt-2">同一模型可挂多把 Key：平台按成功率 / 延迟 / 优先级自动选最优，故障自动切换，请求不中断。</p>
+            </div>
+
+            <div class="card">
+              <div class="keys-toolbar">
+                <h3 class="mt-0 mb-0">用量 &amp; 成本看板</h3>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                  <select class="input" id="byok-usage-days" style="width:auto">
+                    <option value="1">近 1 天</option>
+                    <option value="7" selected>近 7 天</option>
+                    <option value="30">近 30 天</option>
+                  </select>
+                  <select class="input" id="byok-usage-group" style="width:auto">
+                    <option value="key" selected>按 Key</option>
+                    <option value="model">按模型</option>
+                    <option value="project">按项目</option>
+                    <option value="provider">按 Provider</option>
+                  </select>
+                  <button type="button" class="btn" id="btn-byok-refresh-usage">刷新</button>
+                </div>
+              </div>
+              <div class="stats-grid byok-stats-grid mt-2">
+                <div class="stat-card">
+                  <div class="stat-label">请求数</div>
+                  <div class="stat-value" id="byok-usage-req">--</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">成功 / 缓存</div>
+                  <div class="stat-value" id="byok-usage-ok">--</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">Tokens</div>
+                  <div class="stat-value" id="byok-usage-tokens">--</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">估算成本 (USD)</div>
+                  <div class="stat-value" id="byok-usage-cost">--</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">平均延迟</div>
+                  <div class="stat-value" id="byok-usage-latency">--</div>
+                </div>
+              </div>
+              <div class="usage-table-wrap mt-2">
+                <table class="usage-table" aria-label="BYOK usage">
+                  <thead>
+                    <tr>
+                      <th>分组</th>
+                      <th>请求</th>
+                      <th>成功</th>
+                      <th>缓存</th>
+                      <th>Tokens</th>
+                      <th>成本 (USD)</th>
+                      <th>平均延迟</th>
+                    </tr>
+                  </thead>
+                  <tbody id="byokUsageList"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
           <!-- Billing -->
           <div class="console-panel" id="panel-billing" data-console-panel="billing" role="tabpanel" hidden>
             <div class="console-panel-head">
-              <h2 class="mt-0" data-i18n="page.console.nav.billing">Billing</h2>
+              <h2 class="mt-0" data-i18n="page.console.nav.plans">Plans</h2>
               <p class="sub" id="payHint" data-i18n="page.console.plans.loading">Loading…</p>
             </div>
+            <div class="byok-sub-banner" id="byokSubBanner" hidden>
+              <div>
+                <div class="byok-sub-plan" id="byokSubPlan">--</div>
+                <div class="byok-sub-sub" id="byokSubSub"></div>
+              </div>
+              <div class="byok-sub-act" id="byokSubAct"></div>
+            </div>
+            <div class="plans-tabs" role="tablist" aria-label="Plans">
+              <button type="button" class="plans-tab is-active" data-plan-tab="byok" data-i18n="page.console.plans.byokTab">BYOK plans</button>
+              <button type="button" class="plans-tab" data-plan-tab="token" data-i18n="page.console.plans.tokenTab">Token plans</button>
+            </div>
             <div id="token-plans" class="plan-billing-stack">
-              <div class="card">
-                <h3 class="mt-0" data-i18n="page.console.plans.title">Token plans</h3>
-                <p class="sub" data-i18n="page.console.plans.legend">Quick compare: Credits · Named access. Scale and VIP Pass unlock named models; Starter/Builder/Advanced are prepaid credits.</p>
-                <div id="plansList" class="mt-2"></div>
+              <div class="plans-group" id="plansGroupByok">
+                <div class="card">
+                  <h3 class="mt-0" data-i18n="page.console.plans.byokTitle">BYOK plans · bring your own key</h3>
+                  <p class="sub" data-i18n="page.console.plans.byokLead">Service fee only — never a token markup. Your keys, our auto-routing / failover / cache / cost dashboard.</p>
+                  <div id="byokPlansList" class="mt-2"></div>
+                </div>
+              </div>
+              <div class="plans-group" id="plansGroupToken" hidden>
+                <div class="card">
+                  <h3 class="mt-0" data-i18n="page.console.plans.title">Token plans</h3>
+                  <p class="sub" data-i18n="page.console.plans.legend">Quick compare: Credits · Named access. Scale and VIP Pass unlock named models; Starter/Builder/Advanced are prepaid credits.</p>
+                  <div id="plansList" class="mt-2"></div>
+                </div>
               </div>
               <div class="card">
                 <h3 class="mt-0" data-i18n="page.console.orders.title">My orders</h3>
@@ -675,14 +893,14 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260817z"></script>
-  <script src="js/api.js?v=20260817z"></script>
+  <script src="config/locales.js?v=20260818l"></script>
+  <script src="js/api.js?v=20260818e"></script>
   <script src="js/invite.js?v=20260731a"></script>
   <script src="js/utm.js?v=20260802a"></script>
   <script src="js/i18n.js?v=20260812g"></script>
   <script src="js/shell.js?v=20260817z"></script>
   <script src="js/app.js?v=20260808b"></script>
-  <script src="js/console.js?v=20260817z"></script>
+  <script src="js/console.js?v=20260818e"></script>
   <script src="js/support-widget.js?v=20260817z"></script>
 </body>
 </html>

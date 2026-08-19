@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <!-- [AI24X 2026-08-15] Google Ads 暂停 (国际支付无合规渠道，保留待恢复，勿删）：
@@ -47,11 +47,11 @@
 </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Using the Kimi API from outside China: a PayPal-friendly path</title>
-  <meta name="description" content="Kimi (Moonshot) API is great — paying for it from abroad is the annoying part. Here's how we call Kimi and 20+ models through one OpenAI-compatible key, topped up with PayPal." />
+  <meta name="description" content="Kimi (Moonshot) API is great — paying for it from abroad is the annoying part. Here's how to call Kimi and 20+ models through one OpenAI-compatible gateway, with PayPal checkout." />
   <link rel="canonical" href="https://www.ai24x.com/blog/kimi-api-paypal-guide.html" />
   <meta property="og:type" content="article" />
   <meta property="og:title" content="Using the Kimi API from outside China: a PayPal-friendly path" />
-  <meta property="og:description" content="One OpenAI-compatible key for Kimi, DeepSeek, Qwen, GLM and more — pay with PayPal, no local card required." />
+  <meta property="og:description" content="One OpenAI-compatible gateway for Kimi, DeepSeek, Qwen, GLM and more — bring your own key or use managed access, PayPal checkout, no local card required." />
   <meta property="og:url" content="https://www.ai24x.com/blog/kimi-api-paypal-guide.html" />
   <meta property="og:image" content="https://www.ai24x.com/img/og-share.png" />
   <meta property="og:image:width" content="1200" />
@@ -75,7 +75,7 @@
       <div class="container">
         <p class="sub"><a href="index.html">Blog</a> · Engineering notes</p>
         <h1>Kimi API, minus the payment headache</h1>
-        <p class="lead">Kimi (Moonshot) has been one of our favourite models for long-context work. Getting it to accept money from outside mainland China is a different story. This post is the short version of how we route Kimi through one OpenAI-compatible key and pay for it with PayPal.</p>
+        <p class="lead">Kimi (Moonshot) has been one of our favourite models for long-context work. Getting it to accept money from outside mainland China is a different story. This post is the short version of how we call Kimi through one OpenAI-compatible gateway and pay with PayPal.</p>
       </div>
     </section>
 
@@ -83,7 +83,7 @@
       <div class="container blog-wrap">
         <p class="lead">A few months ago I needed Kimi's 128k context for a project, signed up, and immediately hit the usual wall: the models are excellent, but the billing flow assumes you have a mainland payment method. No card, no top-up, no API. If you're building from overseas — or from a team that bills in USD — that wall is real.</p>
 
-        <p>We solved it the boring way: instead of calling each provider directly, we go through an OpenAI-compatible gateway that already holds the upstream connections, and we pay the gateway with PayPal. One key, one dashboard, one invoice line.</p>
+        <p>We solved it the boring way: instead of maintaining separate SDKs and billing for each provider, we call everything through one OpenAI-compatible gateway with auto-routing and failover. Bring your own key or use managed access; checkout with PayPal. One endpoint, one dashboard, one invoice line.</p>
 
         <h2>Why not just call Kimi directly?</h2>
         <p>If you're in China with a working local payment method, by all means call Moonshot directly — it's a solid API. The pain shows up when you're outside that billing system, or when you want Kimi <em>and</em> a couple of other models behind the same code path. Maintaining separate SDKs, separate keys, and separate rate limits for every model family gets old fast.</p>
@@ -91,14 +91,14 @@
 
         <h2>The setup we use</h2>
         <ul>
-          <li><strong>One API key</strong> for Kimi, DeepSeek, Qwen, GLM, GPT-5, Claude and Gemini-family models on the platform.</li>
+          <li><strong>One endpoint</strong> for Kimi, DeepSeek, Qwen, GLM, GPT-5, Claude and Gemini-family models — bring your own key (BYOK) or use managed access.</li>
           <li><strong>OpenAI-compatible</strong>: <code>base_url</code> + <code>Authorization: Bearer</code> — no vendor SDK required.</li>
-          <li><strong>Smart routing</strong> picks the cheapest/healthiest upstream for the model you asked for, so one model name keeps working even if an upstream wobbles.</li>
-          <li><strong>PayPal top-up</strong>, so no local card is needed for most international users.</li>
+          <li><strong>Auto-routing</strong> picks the cheapest/healthiest provider for the model you asked for, so one model name keeps working even if a provider wobbles.</li>
+          <li><strong>PayPal checkout</strong>, so no local card is needed for most international users.</li>
         </ul>
 
         <div class="cta-box">
-          <p class="lead" style="margin:0 0 10px">This is exactly what AI24X does — one key, PayPal billing, 20+ models.</p>
+          <p class="lead" style="margin:0 0 10px">This is exactly what AI24X does — one endpoint, your key or managed access, PayPal billing, 20+ models.</p>
           <a class="btn btn-primary" href="../register.html">Create a free account</a>
           <a class="btn" href="../console.html">Open Console</a>
         </div>
@@ -108,7 +108,7 @@
 
         <h2>Quick start in five steps</h2>
         <p><strong>1) Register and create a key.</strong> Sign up at the <a href="../register.html">registration page</a>, then create an API key in the Console.</p>
-        <p><strong>2) Top up with PayPal.</strong> Add a small balance in Console — PayPal USD billing, no card required for most accounts.</p>
+        <p><strong>2) Pick a plan and pay with PayPal.</strong> Choose BYOK Pro or a managed token plan in Console — PayPal USD, no card required for most accounts.</p>
         <p><strong>3) Point your OpenAI client at the gateway.</strong></p>
         <div class="code-block">from openai import OpenAI
 
@@ -133,19 +133,19 @@ print(resp.choices[0].message.content)</div>
         <ul>
           <li><strong><code>base_url</code> must end with <code>/v1</code>.</strong> Miss it and requests hit wrong paths like <code>/chat/completions</code> instead of <code>/v1/chat/completions</code>.</li>
           <li><strong>Paste the full key.</strong> A truncated key gives a clean <code>401</code> every time and costs you 20 minutes.</li>
-          <li><strong><code>402</code> usually means zero balance.</strong> Top up in Console, then retry — no need to redeploy anything.</li>
+          <li><strong><code>402</code> usually means no quota.</strong> Pick a plan or add managed credits in Console, then retry — no need to redeploy anything.</li>
           <li><strong><code>vip-*</code> models need an active membership.</strong> If you don't have one, start with the non-VIP names; the API behaviour is identical.</li>
           <li><strong>Long-context requests are heavier than they look.</strong> Token counts include your system prompt and full history. Start small, measure, then scale.</li>
         </ul>
 
         <h2>FAQ</h2>
         <p><strong>Is this a replacement for the official Moonshot API?</strong> No — it's an alternative billing and routing path. If the official API already works for you, keep using it.</p>
-        <p><strong>Do I need a mainland payment method?</strong> No, that's the point. PayPal top-up covers most international users; see the Console for the current payment options.</p>
-        <p><strong>Is my data sent somewhere extra?</strong> Your requests are forwarded to the upstream model provider you asked for. Read the platform's privacy policy and pick models accordingly — standard API-consumer judgement applies.</p>
+        <p><strong>Do I need a mainland payment method?</strong> No, that's the point. PayPal checkout covers most international users; see the Console for the current payment options.</p>
+        <p><strong>Is my data sent somewhere extra?</strong> Your requests are forwarded to the model provider you asked for. Read the platform's privacy policy and pick models accordingly — standard API-consumer judgement applies.</p>
         <p><strong>Which models are available?</strong> The Console model list is the live answer. Kimi, DeepSeek, Qwen, GLM and several GPT/Claude models have been on it recently, but the list evolves.</p>
 
         <div class="cta-box">
-          <p class="lead" style="margin:0 0 10px">One key, PayPal, OpenAI-compatible — try it with your next side project.</p>
+          <p class="lead" style="margin:0 0 10px">One endpoint, your key or managed access, PayPal — try it with your next side project.</p>
           <a class="btn btn-primary" href="../register.html">Create account</a>
           <a class="btn" href="../console.html">Console &amp; billing</a>
         </div>
@@ -155,8 +155,8 @@ print(resp.choices[0].message.content)</div>
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="../config/locales.js?v=20260817z"></script>
-  <script src="../js/api.js?v=20260817z"></script>
+  <script src="../config/locales.js?v=20260818l"></script>
+  <script src="../js/api.js?v=20260818e"></script>
   <script src="../js/i18n.js?v=20260812g"></script>
   <script src="../js/shell.js?v=20260817z"></script>
   <script src="../js/app.js?v=20260808b"></script>

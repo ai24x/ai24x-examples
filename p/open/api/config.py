@@ -83,6 +83,20 @@ class Settings(BaseSettings):
     vip_named_daily_calls_per_model: int = Field(default=200, validation_alias="VIP_NAMED_DAILY_CALLS_PER_MODEL")
     vip_named_daily_credits_per_user: int = Field(default=50000, validation_alias="VIP_NAMED_DAILY_CREDITS_PER_USER")
 
+    # —— BYOK 智能网关（2026-08-18）——
+    # 用户自带上游 key，平台只做技术转发 + 智能路由 + 故障转移 + 缓存 + 用量统计，
+    # 按「平台服务费」收费，不再赚 token 差价。
+    byok_enabled: bool = Field(default=True, validation_alias="BYOK_ENABLED")
+    # 用户自有 key 全部失败时是否回退平台 key（内部自用建议开；对外 BYOK 建议关）
+    byok_fallback_to_platform: bool = Field(default=True, validation_alias="BYOK_FALLBACK_TO_PLATFORM")
+    # 相同请求缓存 TTL（秒；0=关）。仅非流式、无 tools 的请求可命中，且按用户隔离
+    byok_cache_ttl_s: int = Field(default=300, validation_alias="BYOK_CACHE_TTL_S")
+    # 免费档月度 BYOK 请求上限（Phase 1 仅统计展示，BYOK_ENFORCE_FREE_CAP=1 才硬限）
+    byok_free_monthly_requests: int = Field(default=1000, validation_alias="BYOK_FREE_MONTHLY_REQUESTS")
+    byok_enforce_free_cap: bool = Field(default=False, validation_alias="BYOK_ENFORCE_FREE_CAP")
+    # 计费口径展示：service_fee=平台服务费（不赚 token 差价）
+    byok_fee_mode: str = Field(default="service_fee", validation_alias="BYOK_FEE_MODE")
+
     # Dev switches
     skip_db_init: bool = Field(default=False, validation_alias="SKIP_DB_INIT")
     

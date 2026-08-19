@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <!-- [AI24X 2026-08-15] Google Ads 暂停 (国际支付无合规渠道，保留待恢复，勿删）：
@@ -47,7 +47,7 @@
 </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Codex + AI24X · DeepSeek & VIP named models</title>
-  <meta name="description" content="Run Codex on AI24X: Responses API base URL https://api.ai24x.com/v1, DeepSeek V4 (vip-ds-flash/vip-ds-pro) and 20+ VIP named models, one key, PayPal." />
+  <meta name="description" content="Run Codex on AI24X: Responses API base URL https://api.ai24x.com/v1, DeepSeek V4 (vip-ds-flash/vip-ds-pro) and 20+ named models. Bring your own keys (BYOK) or managed access." />
   <link rel="canonical" href="https://www.ai24x.com/guides/codex.html" />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Codex + AI24X · DeepSeek & VIP named models" />
@@ -78,7 +78,7 @@
       <div class="container">
         <p class="sub"><a href="index.html" data-i18n="page.guides.title">Integrations</a></p>
         <h1 data-i18n="page.guides.codex.h1">Codex → AI24X</h1>
-        <p class="lead" data-i18n="page.guides.codex.lead">Codex is OpenAI's open-source terminal/desktop coding agent. Point it at AI24X to use the Responses API with DeepSeek V4 and 20+ VIP named models: one key, PayPal USD billing, global signup.</p>
+        <p class="lead" data-i18n="page.guides.codex.lead">Codex is OpenAI's open-source terminal/desktop coding agent. Point it at AI24X to use the Responses API with DeepSeek V4 and 20+ named models: bring your own key (BYOK) or use managed access through one endpoint.</p>
       </div>
     </section>
     <section class="section">
@@ -182,7 +182,7 @@ wire_api = "responses"</div>
         <ul class="lead" style="padding-left:1.2em">
           <li><strong><code>-m "provider/model"</code> combined form errors out</strong> — e.g. <code>-m "ai24x/vip-gpt5"</code> is invalid. Do not join provider and model with a slash.</li>
           <li><strong><code>-m "vip-xxx"</code> alone may route to the wrong provider</strong> — always pair <code>-c "model_provider=…"</code> with <code>-c "model=…"</code>.</li>
-          <li><strong>Desktop model picker does not list AI24X models</strong> — upstream gating, not planned. Use <code>/model</code> or CLI flags; do not expect the picker to show them.</li>
+          <li><strong>Desktop model picker does not list AI24X models</strong> — use <code>/model</code> or CLI flags instead.</li>
           <li>Replace <code>ai24x-prod</code> with the provider name defined in your <code>~/.codex/config.toml</code> (the snippet in section 2 names it <code>ai24x</code>).</li>
         </ul>
 
@@ -195,7 +195,7 @@ wire_api = "responses"</div>
           <li data-i18n-html="page.guides.codex.tip5"><strong>403 named model needs active membership</strong> — <code>vip-*</code> requires membership + prepaid.</li>
           <li data-i18n-html="page.guides.codex.tip6"><strong>"Model metadata not found" warning is harmless</strong> — custom providers fall back to default metadata; it does not affect usage.</li>
           <li><strong>Don't combine <code>-m "provider/model"</code></strong> — errors out; use <code>-c "model_provider=…"</code> + <code>-c "model=…"</code> (section 6).</li>
-          <li><strong>Desktop picker won't show AI24X models</strong> — upstream gating; switch with <code>/model</code> or CLI flags.</li>
+          <li><strong>Desktop picker won't show AI24X models</strong> — switch with <code>/model</code> or CLI flags.</li>
         </ul>
 
         <p class="mt-2">
@@ -209,8 +209,8 @@ wire_api = "responses"</div>
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="../config/locales.js?v=20260817z"></script>
-  <script src="../js/api.js?v=20260817z"></script>
+  <script src="../config/locales.js?v=20260818l"></script>
+  <script src="../js/api.js?v=20260818e"></script>
   <script src="../js/i18n.js?v=20260812g"></script>
   <script src="../js/shell.js?v=20260817z"></script>
   <script src="../js/app.js?v=20260808b"></script>

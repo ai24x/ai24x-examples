@@ -161,7 +161,7 @@
         ch === "joint_test_topup" ||
         ch === "smoke_validity"
       ) {
-        return AI24X_API.isZhUi() ? "充值" : "Top-up";
+        return AI24X_API.isZhUi() ? "转账" : "Transfer";
       }
       if (!AI24X_API.isZhUi()) {
         var en = { wechat: "WeChat", alipay: "Alipay", paypal: "PayPal", mock: "Mock" };
@@ -203,7 +203,7 @@
       /^joint_test_topup$/i.test(n) ||
       /^smoke_validity$/i.test(n)
     ) {
-      return zh ? "充值到账" : "Top-up";
+      return zh ? "转账到账" : "Transfer";
     }
     if (
       /^(wechat|alipay|paypal|creem|mock|crypto|topup|topup_usd)(_query|_capture|_webhook)?:/i.test(n) ||
@@ -418,6 +418,7 @@
     var plans = (data && data.plans) || [];
     var pay = (data && data.pay) || {};
     window.__tokenPay = pay;
+    renderByokPlanCards((data && data.byok_plans) || [], pay);
     var zh = AI24X_API.isZhUi();
     var hint = $("payHint");
     if (hint) {
@@ -436,7 +437,7 @@
         } else if (pay.wechat_configured || pay.alipay_configured || pay.paypal_configured) {
           hint.textContent = "在线支付准备中" + (pay.mock_allowed ? "，可用「模拟到账」。" : "。");
         } else if (pay.mock_allowed) {
-          hint.textContent = "可用「模拟到账」完成体验充值。";
+          hint.textContent = "可用「模拟到账」完成体验支付。";
         } else {
           hint.textContent = "在线支付暂未开放。";
         }
@@ -451,10 +452,10 @@
             "Choose a plan and pay with " +
             enCh.join(" / ") +
             "." +
-            (pay.mock_allowed ? " Mock top-up is also available." : "");
+            (pay.mock_allowed ? " Mock payment is also available." : "");
         } else {
           hint.textContent = pay.mock_allowed
-            ? "Online pay is not open yet. Mock top-up is available."
+            ? "Online pay is not open yet. Mock payment is available."
             : "Online pay is not open yet.";
         }
       }
@@ -462,41 +463,6 @@
     if (!plans.length) {
       box.innerHTML = '<p class="sub">' + tr("暂无套餐", "No plans") + "</p>";
       return;
-    }
-
-    function payIconSvg(channel) {
-      if (channel === "wechat") {
-        return (
-          '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
-          '<path fill="#07C160" d="M9.5 4C5.9 4 3 6.5 3 9.6c0 1.8 1 3.3 2.6 4.4L5 16.2l2.4-1.2c.7.2 1.4.3 2.1.3.2 0 .4 0 .6 0-.2-.5-.3-1-.3-1.6 0-3.2 3.1-5.8 6.9-5.8.2 0 .4 0 .6.1C16.4 5.3 13.2 4 9.5 4zm-2.3 3.1c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zm4.6 0c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zM16.8 9c-3.1 0-5.6 2.1-5.6 4.7s2.5 4.7 5.6 4.7c.6 0 1.2-.1 1.8-.3l1.9.9-.5-1.7c1.2-.9 2-2.2 2-3.6C21.9 11.1 19.5 9 16.8 9zm-1.9 3.1c.3 0 .6.3.6.6s-.3.6-.6.6-.6-.3-.6-.6.3-.6.6-.6zm3.8 0c.3 0 .6.3.6.6s-.3.6-.6.6-.6-.3-.6-.6.3-.6.6-.6z"/></svg>'
-        );
-      }
-      if (channel === "alipay") {
-        return (
-          '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
-          '<path fill="#1677FF" d="M19.695 15.07c3.426 1.158 4.203 1.22 4.203 1.22V3.846c0-2.124-1.705-3.845-3.81-3.845H3.914C1.808.001.102 1.722.102 3.846v16.31c0 2.123 1.706 3.845 3.813 3.845h16.173c2.105 0 3.81-1.722 3.81-3.845v-.157s-6.19-2.602-9.315-4.119c-2.096 2.602-4.8 4.181-7.607 4.181-4.75 0-6.361-4.19-4.112-6.949.49-.602 1.324-1.175 2.617-1.497 2.025-.502 5.247.313 8.266 1.317a16.796 16.796 0 0 0 1.341-3.302H5.781v-.952h4.799V6.975H4.77v-.953h5.81V3.591s0-.409.411-.409h2.347v2.84h5.744v.951h-5.744v1.704h4.69a19.453 19.453 0 0 1-1.986 5.06c1.424.52 2.702 1.011 3.654 1.333m-13.81-2.032c-.596.06-1.71.325-2.321.869-1.83 1.608-.735 4.55 2.968 4.55 2.151 0 4.301-1.388 5.99-3.61-2.403-1.182-4.438-2.028-6.637-1.809"/></svg>'
-        );
-      }
-      if (channel === "creem") {
-        return (
-          '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
-          '<path fill="#7C3AED" d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm0 2v10h16V7H4zm2 2h4v2H6V9zm6 0h6v2h-6V9z"/></svg>'
-        );
-      }
-      if (channel === "paypal") {
-        return (
-          '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
-          '<path fill="#003087" d="M7.2 20.5h1.7l.5-3.1h1.7c3.3 0 5.5-1.4 6.1-4.3.1-.5.1-.9.1-1.2 0-.2 0-.4-.1-.6H19l.1-.5c.4-2.5-.9-4.2-3.8-4.2H9.2L7.2 20.5zm4.2-11.5h1.7c1.3 0 2 .5 1.8 1.7-.2 1.4-1.2 1.7-2.5 1.7h-1.5l.5-3.4z"/>' +
-          '<path fill="#009CDE" d="M9.5 21.5h1.7l.4-2.5H13c2.7 0 4.4-1.1 4.9-3.5.1-.4.1-.7.1-1 0-.1 0-.3 0-.4h1.5l.1-.4c.3-2-.7-3.4-3.1-3.4h-4.3l-1.9 11.2h1.7l.5 3.1h1.4c1.1 0 1.7.4 1.5 1.4-.2 1.1-1 1.4-2.1 1.4H10l.5 3.3z"/></svg>'
-        );
-      }
-      if (channel === "crypto") {
-        return (
-          '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
-          '<path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm3.2 11.2c-.1 1.9-1.4 2.9-3.4 3.1v1.7H10.7v-1.7c-2.4-.2-4.2-1.2-4.3-3h2.2c.1 1 1 1.6 2.1 1.7v-4.6c-2.8-.7-4.6-1.9-4.6-3.7 0-1.9 1.7-3.1 4.6-3.3V3h1.1v1.6c2 .2 3.7 1.2 3.8 3h-2.1c0-1-.8-1.6-1.7-1.7v4.3c2.9.8 4.5 1.9 4.5 4zm-2.2-4.2v4.3c1.3-.3 2-1 2-1.9 0-1-.8-1.7-2-2.4z"/></svg>'
-        );
-      }
-      return "";
     }
 
     var wrap = document.createElement("div");
@@ -918,16 +884,231 @@
     }, 3000);
   }
 
-  function buyPlan(planId, channel, planMeta) {
+  function payIconSvg(channel) {
+    if (channel === "wechat") {
+      return (
+        '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+        '<path fill="#07C160" d="M9.5 4C5.9 4 3 6.5 3 9.6c0 1.8 1 3.3 2.6 4.4L5 16.2l2.4-1.2c.7.2 1.4.3 2.1.3.2 0 .4 0 .6 0-.2-.5-.3-1-.3-1.6 0-3.2 3.1-5.8 6.9-5.8.2 0 .4 0 .6.1C16.4 5.3 13.2 4 9.5 4zm-2.3 3.1c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zm4.6 0c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zM16.8 9c-3.1 0-5.6 2.1-5.6 4.7s2.5 4.7 5.6 4.7c.6 0 1.2-.1 1.8-.3l1.9.9-.5-1.7c1.2-.9 2-2.2 2-3.6C21.9 11.1 19.5 9 16.8 9zm-1.9 3.1c.3 0 .6.3.6.6s-.3.6-.6.6-.6-.3-.6-.6.3-.6.6-.6zm3.8 0c.3 0 .6.3.6.6s-.3.6-.6.6-.6-.3-.6-.6.3-.6.6-.6z"/></svg>'
+      );
+    }
+    if (channel === "alipay") {
+      return (
+        '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+        '<path fill="#1677FF" d="M19.695 15.07c3.426 1.158 4.203 1.22 4.203 1.22V3.846c0-2.124-1.705-3.845-3.81-3.845H3.914C1.808.001.102 1.722.102 3.846v16.31c0 2.123 1.706 3.845 3.813 3.845h16.173c2.105 0 3.81-1.722 3.81-3.845v-.157s-6.19-2.602-9.315-4.119c-2.096 2.602-4.8 4.181-7.607 4.181-4.75 0-6.361-4.19-4.112-6.949.49-.602 1.324-1.175 2.617-1.497 2.025-.502 5.247.313 8.266 1.317a16.796 16.796 0 0 0 1.341-3.302H5.781v-.952h4.799V6.975H4.77v-.953h5.81V3.591s0-.409.411-.409h2.347v2.84h5.744v.951h-5.744v1.704h4.69a19.453 19.453 0 0 1-1.986 5.06c1.424.52 2.702 1.011 3.654 1.333m-13.81-2.032c-.596.06-1.71.325-2.321.869-1.83 1.608-.735 4.55 2.968 4.55 2.151 0 4.301-1.388 5.99-3.61-2.403-1.182-4.438-2.028-6.637-1.809"/></svg>'
+      );
+    }
+    if (channel === "creem") {
+      return (
+        '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+        '<path fill="#7C3AED" d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm0 2v10h16V7H4zm2 2h4v2H6V9zm6 0h6v2h-6V9z"/></svg>'
+      );
+    }
+    if (channel === "paypal") {
+      return (
+        '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+        '<path fill="#003087" d="M7.2 20.5h1.7l.5-3.1h1.7c3.3 0 5.5-1.4 6.1-4.3.1-.5.1-.9.1-1.2 0-.2 0-.4-.1-.6H19l.1-.5c.4-2.5-.9-4.2-3.8-4.2H9.2L7.2 20.5zm4.2-11.5h1.7c1.3 0 2 .5 1.8 1.7-.2 1.4-1.2 1.7-2.5 1.7h-1.5l.5-3.4z"/>' +
+        '<path fill="#009CDE" d="M9.5 21.5h1.7l.4-2.5H13c2.7 0 4.4-1.1 4.9-3.5.1-.4.1-.7.1-1 0-.1 0-.3 0-.4h1.5l.1-.4c.3-2-.7-3.4-3.1-3.4h-4.3l-1.9 11.2h1.7l.5 3.1h1.4c1.1 0 1.7.4 1.5 1.4-.2 1.1-1 1.4-2.1 1.4H10l.5 3.3z"/></svg>'
+      );
+    }
+    if (channel === "crypto") {
+      return (
+        '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+        '<path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm3.2 11.2c-.1 1.9-1.4 2.9-3.4 3.1v1.7H10.7v-1.7c-2.4-.2-4.2-1.2-4.3-3h2.2c.1 1 1 1.6 2.1 1.7v-4.6c-2.8-.7-4.6-1.9-4.6-3.7 0-1.9 1.7-3.1 4.6-3.3V3h1.1v1.6c2 .2 3.7 1.2 3.8 3h-2.1c0-1-.8-1.6-1.7-1.7v4.3c2.9.8 4.5 1.9 4.5 4zm-2.2-4.2v4.3c1.3-.3 2-1 2-1.9 0-1-.8-1.7-2-2.4z"/></svg>'
+      );
+    }
+    return "";
+  }
+
+  function renderByokSubBanner(sub) {
+    var banner = $("byokSubBanner");
+    if (!banner) return;
+    window.__byokSub = sub || {};
+    var zh = AI24X_API.isZhUi();
+    if (!sub || !sub.active) {
+      // 未订阅：显示免费档引导条（不再留 "--" 占位）
+      banner.hidden = false;
+      banner.classList.remove("is-pro");
+      var planEl0 = $("byokSubPlan");
+      if (planEl0) {
+        planEl0.textContent = zh ? "未订阅 · 免费档" : "Free plan · not subscribed";
+      }
+      var subEl0 = $("byokSubSub");
+      if (subEl0) {
+        subEl0.textContent = zh
+          ? "含基础自动择优。升级 BYOK Pro（$9.9/月）解锁完整自动择优 / 自动切换 / 请求缓存 / 成本看板。"
+          : "Basic auto-routing included. Upgrade to BYOK Pro ($9.9/mo) for full auto-routing, failover, request cache, and the cost dashboard.";
+      }
+      var act0 = $("byokSubAct");
+      if (act0) {
+        act0.innerHTML =
+          '<button type="button" class="btn btn-primary" id="byokUpgradeCta">' +
+          (zh ? "选购 BYOK Pro" : "Get BYOK Pro") +
+          "</button>";
+        var upBtn = $("byokUpgradeCta");
+        if (upBtn) {
+          upBtn.addEventListener("click", function () {
+            var cards = $("byokPlansList");
+            if (cards) cards.scrollIntoView({ behavior: "smooth", block: "center" });
+          });
+        }
+      }
+      return;
+    }
+    banner.hidden = false;
+    banner.classList.toggle("is-pro", true);
+    var planName =
+      sub.plan === "byok_pro_year"
+        ? zh ? "BYOK Pro 年付" : "BYOK Pro Yearly"
+        : zh ? "BYOK Pro 月付" : "BYOK Pro Monthly";
+    var planEl = $("byokSubPlan");
+    if (planEl) planEl.textContent = (zh ? "当前订阅：" : "Active plan: ") + planName;
+    var subEl = $("byokSubSub");
+    if (subEl) {
+      subEl.textContent =
+        (zh ? "到期时间：" : "Expires: ") +
+        String(sub.expires_at || "").replace("T", " ").slice(0, 16);
+    }
+    var act = $("byokSubAct");
+    if (act) {
+      act.innerHTML =
+        '<span style="color:#16a34a;font-weight:700">✓ ' + (zh ? "Pro 已开通" : "Pro active") + "</span>";
+    }
+  }
+
+  function bindPlanTabs() {
+    var tabs = document.querySelectorAll(".plans-tab");
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].addEventListener("click", function () {
+        var t = this.getAttribute("data-plan-tab");
+        document.querySelectorAll(".plans-tab").forEach(function (b) {
+          b.classList.toggle("is-active", b.getAttribute("data-plan-tab") === t);
+        });
+        var byokGroup = $("plansGroupByok");
+        var tokenGroup = $("plansGroupToken");
+        if (byokGroup) byokGroup.hidden = t !== "byok";
+        if (tokenGroup) tokenGroup.hidden = t !== "token";
+      });
+    }
+  }
+
+  function renderByokPlanCards(plans, pay) {
+    var box = $("byokPlansList");
+    if (!box) return;
+    box.innerHTML = "";
+    if (!plans || !plans.length) {
+      box.innerHTML = '<p class="sub">' + tr("暂无 BYOK 套餐", "No BYOK plans yet") + "</p>";
+      return;
+    }
+    var zh = AI24X_API.isZhUi();
+    var sub = window.__byokSub || {};
+    plans.forEach(function (p) {
+      var card = document.createElement("div");
+      card.className = "plan-card" + (p.recommended ? " is-rec" : "");
+      card.setAttribute("data-plan", String(p.plan));
+      card.setAttribute("data-product", "byok");
+      var rec = p.recommended ? '<span class="plan-card-rec">' + tr("推荐", "Rec") + "</span>" : "";
+      var title = zh ? p.title_zh || p.title_en || p.plan : p.title_en || p.title_zh || p.plan;
+      var one = zh ? p.one_liner_zh || "" : p.one_liner_en || "";
+      var feats = zh ? p.features_zh || [] : p.features_en || [];
+      var price = "$" + Number(p.price_usd || 0).toFixed(2);
+      var period = Number(p.days) === 365 ? tr("/年", "/year") : tr("/月", "/month");
+      var featsHtml = (feats || [])
+        .map(function (f) {
+          return "<li>" + f + "</li>";
+        })
+        .join("");
+      var isActive = !!(sub.active && sub.plan === String(p.plan));
+      var actHtml = isActive
+        ? '<div class="plan-card-active">✓ ' +
+          tr("已订阅 · 至 ", "Active · until ") +
+          String(sub.expires_at || "").slice(0, 10) +
+          "</div>"
+        : '<div class="plan-card-cta"><button type="button" class="btn btn-primary" data-buy-plan="' +
+          String(p.plan) +
+          '" data-buy-product="byok">' +
+          tr("选购", "Buy") +
+          "</button></div>";
+      card.innerHTML =
+        rec +
+        '<h4 class="plan-card-name">' +
+        title +
+        "</h4>" +
+        '<div class="plan-card-price">' +
+        price +
+        "<small>" +
+        period +
+        "</small></div>" +
+        (one ? '<p class="plan-card-one">' + one + "</p>" : "") +
+        (featsHtml ? '<ul class="plan-card-feats">' + featsHtml + "</ul>" : "") +
+        actHtml;
+      box.appendChild(card);
+    });
+    box.querySelectorAll("[data-buy-plan]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var pid = btn.getAttribute("data-buy-plan");
+        var product = btn.getAttribute("data-buy-product") || "token";
+        var meta = null;
+        (plans || []).forEach(function (p) {
+          if (String(p.plan) === String(pid)) meta = p;
+        });
+        openPlanPayChooser(pid, meta || {}, pay, product);
+      });
+    });
+  }
+
+  /** 选套餐 → 弹窗统一列支付方式 → 点通道即下单（与主站 8000 同款交互） */
+  function openPlanPayChooser(planId, planMeta, pay, product) {
+    var zh = AI24X_API.isZhUi();
+    var title = planMeta
+      ? (zh ? planMeta.title_zh || planMeta.title_en : planMeta.title_en || planMeta.title_zh) || planId
+      : planId;
+    var price =
+      planMeta && Number(planMeta.price_usd)
+        ? "$" + Number(planMeta.price_usd).toFixed(2)
+        : AI24X_API.planPriceLabel(planMeta) || "";
+    openPayModal(
+      title + (price ? " · " + price : ""),
+      tr("选择支付方式后立即开通", "Pick a payment method — activates instantly")
+    );
+    var chEl = $("modal-pay-channels");
+    if (!chEl) return;
+    chEl.innerHTML = "";
+    var channels = [];
+    if (pay.wechat_ready) channels.push(["wechat", tr("微信", "WeChat"), "btn"]);
+    if (pay.alipay_ready) channels.push(["alipay", tr("支付宝", "Alipay"), "btn"]);
+    if (pay.paypal_ready) channels.push(["paypal", "PayPal", "btn btn-primary"]);
+    if (pay.creem_ready) channels.push(["creem", "Creem", "btn btn-primary"]);
+    if (pay.crypto_ready) channels.push(["crypto", "USDT", "btn btn-usdt"]);
+    if (pay.mock_allowed) channels.push(["mock", tr("模拟", "Mock"), "btn"]);
+    if (!channels.length) {
+      chEl.innerHTML = '<p class="sub">' + tr("在线支付暂未开放", "Online pay is not open yet") + "</p>";
+      return;
+    }
+    channels.forEach(function (c) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = c[2] + (c[0] !== "mock" ? " btn-pay" : "");
+      btn.innerHTML = (c[0] !== "mock" ? payIconSvg(c[0]) : "") + "<span>" + c[1] + "</span>";
+      btn.style.width = "100%";
+      btn.style.justifyContent = "center";
+      btn.addEventListener("click", function () {
+        buyPlan(planId, c[0], planMeta, product);
+      });
+      chEl.appendChild(btn);
+    });
+  }
+
+  function buyPlan(planId, channel, planMeta, product) {
     var pay = window.__tokenPay || {};
     var price = AI24X_API.planPriceLabel(planMeta) || "";
     var planTitle = AI24X_API.planTitle(planMeta) || planId;
     var session = ++_payModalSession;
     _lastPayPlanId = planId || null;
+    product = product || (planMeta && planMeta.product) || "token";
 
     if (channel === "mock" || (!pay.wechat_ready && !pay.alipay_ready && pay.mock_allowed)) {
       showMsg(msgBox(), tr("正在创建模拟订单…", "Creating mock order…"), true);
-      AI24X_API.billingWechatNative(planId)
+      AI24X_API.billingWechatNative(planId, product)
         .then(function (r) {
           showMsg(
             msgBox(),
@@ -1004,14 +1185,14 @@
 
     var req =
       channel === "alipay"
-        ? AI24X_API.billingAlipayWap(planId)
+        ? AI24X_API.billingAlipayWap(planId, product)
         : channel === "creem"
-          ? AI24X_API.billingCreemOrder(planId)
+          ? AI24X_API.billingCreemOrder(planId, product)
           : channel === "paypal"
-            ? AI24X_API.billingPaypalOrder(planId)
+            ? AI24X_API.billingPaypalOrder(planId, product)
             : channel === "crypto"
-              ? AI24X_API.billingCryptoOrder(planId)
-              : AI24X_API.billingWechatNative(planId);
+              ? AI24X_API.billingCryptoOrder(planId, product)
+              : AI24X_API.billingWechatNative(planId, product);
 
     req
       .then(function (r) {
@@ -1887,7 +2068,7 @@
     function supportCatLabel(cat) {
       var map = {
         api: tr("API / 调用", "API / Calls"),
-        billing: tr("充值 / 账单", "Billing / Orders"),
+        billing: tr("套餐 / 订单", "Plans / Orders"),
         account: tr("账号", "Account"),
         suggestion: tr("建议", "Suggestion"),
         complaint: tr("投诉", "Complaint"),
@@ -2462,14 +2643,295 @@
     } catch (e) {}
 
     try {
+      loadByokStatus().catch(function () {});
+    } catch (e) {}
+
+    try {
       var orders = await AI24X_API.billingOrders(20);
       renderOrders((orders && orders.rows) || []);
     } catch (e) {}
   }
 
+  /* ================= BYOK 智能网关（2026-08-18） ================= */
+  function byokProviderTitle(pid) {
+    var map = {
+      openai: "OpenAI",
+      anthropic: "Anthropic",
+      deepseek: "DeepSeek",
+      openrouter: "OpenRouter",
+      siliconflow: "硅基流动",
+      together: "Together",
+      moonshot: "Kimi",
+      zhipu: "智谱 GLM",
+      qwen: "百炼 DashScope",
+      xai: "xAI Grok",
+      groq: "Groq",
+      mistral: "Mistral",
+      custom: "自定义",
+    };
+    return map[pid] || pid || "--";
+  }
+
+  function fmtByokTime(iso) {
+    if (!iso) return "--";
+    try {
+      var d = new Date(iso);
+      return d.toLocaleString();
+    } catch (e) {
+      return String(iso).slice(0, 16);
+    }
+  }
+
+  function loadByokAll() {
+    loadByokStatus().catch(function () {});
+    loadByokKeys().catch(function () {});
+    loadByokUsage().catch(function () {});
+    AI24X_API.request("/v1/byok/cache/stats", { method: "GET" })
+      .then(function (r) {
+        var el = $("byok-status-cache");
+        if (el && r) el.textContent = (r.ttl_s || 0) + "s / " + (r.items || 0);
+      })
+      .catch(function () {});
+  }
+
+  function loadByokStatus() {
+    return AI24X_API.request("/v1/byok/status", { method: "GET" }).then(function (r) {
+      if (!r) return;
+      var card = $("byok-status-card");
+      if (card) card.style.display = "";
+      var en = $("byok-status-enabled");
+      if (en) {
+        en.textContent = r.enabled ? "已启用" : "已关闭";
+        en.style.color = r.enabled ? "#16a34a" : "#dc2626";
+      }
+      var fb = $("byok-status-fallback");
+      if (fb) fb.textContent = r.fallback_to_platform ? "开（兜底平台）" : "关（严格 BYOK）";
+      var note = $("byok-fee-note");
+      if (note && r.service_fee_note) note.textContent = r.service_fee_note;
+      renderByokSubBanner(r.subscription);
+      try {
+        var plansData = window.__tokenPlansPayload;
+        if (plansData && plansData.byok_plans) {
+          renderByokPlanCards(plansData.byok_plans, window.__tokenPay || {});
+        }
+      } catch (e) {}
+    });
+  }
+
+  function loadByokKeys() {
+    return AI24X_API.request("/v1/byok/keys", { method: "GET" }).then(function (r) {
+      renderByokKeys((r && r.keys) || []);
+    });
+  }
+
+  function renderByokKeys(keys) {
+    var wrap = $("byokKeysList");
+    if (!wrap) return;
+    if (!keys || !keys.length) {
+      wrap.innerHTML =
+        '<tr><td colspan="8" class="sub">还没有自有 Key。添加一把后，请求将优先走你的 Key（故障自动切换）。</td></tr>';
+      return;
+    }
+    var html = "";
+    keys.forEach(function (k) {
+      var st = k.status === "active" ? "active" : "disabled";
+      var stColor = k.status === "active" ? "#16a34a" : "#9ca3af";
+      var rate =
+        k.success_rate != null
+          ? Math.round(Number(k.success_rate) * 100) + "%"
+          : "--";
+      var lat =
+        k.last_latency_ms != null ? Math.round(Number(k.last_latency_ms)) + "ms" : "--";
+      var models = (k.models && k.models.length)
+        ? k.models.map(function (m) { return '<code>' + escapeHtml(m) + "</code>"; }).join(" ")
+        : '<span class="sub">全部</span>';
+      html +=
+        "<tr>" +
+        "<td>" + byokProviderTitle(k.provider) + "</td>" +
+        '<td class="col-note">' + escapeHtml(k.name || "--") + "</td>" +
+        "<td><code>" + escapeHtml(k.key_prefix || "") + "…</code></td>" +
+        "<td>" + models + "</td>" +
+        '<td style="color:' + stColor + ';font-weight:600">' + st + "</td>" +
+        "<td>" + lat + " · " + rate + "</td>" +
+        "<td class='col-time'>" + fmtByokTime(k.last_used_at) + "</td>" +
+        "<td>" +
+        '<button type="button" class="btn" data-byok-test="' + k.id + '">测试</button> ' +
+        '<button type="button" class="btn" data-byok-toggle="' + k.id + '" data-status="' + (k.status === "active" ? "disabled" : "active") + '">' + (k.status === "active" ? "停用" : "启用") + "</button> " +
+        '<button type="button" class="btn" data-byok-del="' + k.id + '">删除</button>' +
+        "</td></tr>";
+    });
+    wrap.innerHTML = html;
+    wrap.querySelectorAll("[data-byok-test]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        byokTestKey(parseInt(btn.getAttribute("data-byok-test"), 10));
+      });
+    });
+    wrap.querySelectorAll("[data-byok-toggle]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var id = parseInt(btn.getAttribute("data-byok-toggle"), 10);
+        var st = btn.getAttribute("data-status");
+        AI24X_API.request("/v1/byok/keys/" + id, {
+          method: "PATCH",
+          body: JSON.stringify({ status: st }),
+        })
+          .then(function () {
+            showMsg(msgBox(), tr("已更新 Key 状态", "Key status updated"), true);
+            return loadByokKeys();
+          })
+          .catch(function (e) {
+            showMsg(msgBox(), e.message || "更新失败", false);
+          });
+      });
+    });
+    wrap.querySelectorAll("[data-byok-del]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var id = parseInt(btn.getAttribute("data-byok-del"), 10);
+        if (!confirm(tr("确认删除这把自有 Key？（历史用量保留）", "Delete this key? (usage history is kept)"))) return;
+        AI24X_API.request("/v1/byok/keys/" + id, { method: "DELETE" })
+          .then(function () {
+            showMsg(msgBox(), tr("已删除 Key", "Key deleted"), true);
+            return loadByokKeys();
+          })
+          .catch(function (e) {
+            showMsg(msgBox(), e.message || "删除失败", false);
+          });
+      });
+    });
+  }
+
+  function byokFormPayload() {
+    return {
+      provider: ($("byok-provider") && $("byok-provider").value) || "openai",
+      name: ($("byok-name") && $("byok-name").value.trim()) || "",
+      api_key: ($("byok-api-key") && $("byok-api-key").value.trim()) || "",
+      models: (($("byok-models") && $("byok-models").value) || "")
+        .split(/[,，]/)
+        .map(function (s) { return s.trim(); })
+        .filter(Boolean),
+      base_url: ($("byok-base-url") && $("byok-base-url").value.trim()) || null,
+      priority: parseInt(($("byok-priority") && $("byok-priority").value) || "100", 10),
+    };
+  }
+
+  function byokTestKey(keyIdOrNull) {
+    var payload = byokFormPayload();
+    var msgEl = $("byok-form-msg");
+    if (keyIdOrNull) {
+      payload = { key_id: keyIdOrNull };
+    } else if (!payload.api_key) {
+      if (msgEl) msgEl.textContent = tr("请先填入 API Key 再测试", "Enter an API key to test");
+      return;
+    }
+    if (msgEl) msgEl.textContent = tr("测试中…", "Testing…");
+    AI24X_API.request("/v1/byok/keys/test", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+      .then(function (r) {
+        if (msgEl) {
+          if (r && r.ok) {
+            msgEl.style.color = "#16a34a";
+            msgEl.textContent =
+              tr("测试通过：", "Test OK: ") + (r.latency_ms || "--") + "ms · " + (r.model || "");
+          } else {
+            msgEl.style.color = "#dc2626";
+            msgEl.textContent = tr("测试失败：", "Test failed: ") + ((r && r.error) || "unknown");
+          }
+        }
+      })
+      .catch(function (e) {
+        if (msgEl) {
+          msgEl.style.color = "#dc2626";
+          msgEl.textContent = tr("测试请求失败：", "Test request failed: ") + (e.message || "");
+        }
+      });
+  }
+
+  function byokSaveKey() {
+    var payload = byokFormPayload();
+    var msgEl = $("byok-form-msg");
+    if (!payload.api_key || payload.api_key.length < 8) {
+      if (msgEl) {
+        msgEl.style.color = "#dc2626";
+        msgEl.textContent = tr("请填写有效的 API Key", "Enter a valid API key");
+      }
+      return;
+    }
+    var btn = $("btn-byok-save");
+    if (btn) btn.disabled = true;
+    AI24X_API.request("/v1/byok/keys", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+      .then(function () {
+        if (msgEl) {
+          msgEl.style.color = "#16a34a";
+          msgEl.textContent = tr("已保存（AES 加密落库，仅显示前缀）", "Saved (AES-encrypted, prefix only)");
+        }
+        if ($("byok-api-key")) $("byok-api-key").value = "";
+        return loadByokKeys();
+      })
+      .catch(function (e) {
+        if (msgEl) {
+          msgEl.style.color = "#dc2626";
+          msgEl.textContent = (e && e.message) || tr("保存失败", "Save failed");
+        }
+      })
+      .finally(function () {
+        if (btn) btn.disabled = false;
+      });
+  }
+
+  function loadByokUsage() {
+    var days = ($("byok-usage-days") && $("byok-usage-days").value) || "7";
+    var group = ($("byok-usage-group") && $("byok-usage-group").value) || "key";
+    return AI24X_API.request(
+      "/v1/byok/usage?days=" + encodeURIComponent(days) + "&group_by=" + encodeURIComponent(group),
+      { method: "GET" }
+    ).then(function (r) {
+      renderByokUsage(r);
+    });
+  }
+
+  function renderByokUsage(data) {
+    if (!data || !data.totals) return;
+    var t = data.totals;
+    if ($("byok-usage-req")) $("byok-usage-req").textContent = fmtInt(t.requests);
+    if ($("byok-usage-ok")) $("byok-usage-ok").textContent = fmtInt(t.success) + " / " + fmtInt(t.cached);
+    if ($("byok-usage-tokens")) $("byok-usage-tokens").textContent = fmtInt(t.tokens);
+    if ($("byok-usage-cost")) $("byok-usage-cost").textContent = "$" + Number(t.cost_usd || 0).toFixed(4);
+    if ($("byok-usage-latency")) $("byok-usage-latency").textContent = t.avg_latency_ms != null ? t.avg_latency_ms + "ms" : "--";
+    if (data.free_month && $("byok-status-free")) {
+      $("byok-status-free").textContent =
+        fmtInt(data.free_month.month_used_requests) + " / " + fmtInt(data.free_month.month_limit_requests);
+    }
+    var wrap = $("byokUsageList");
+    if (!wrap) return;
+    var groups = data.groups || [];
+    if (!groups.length) {
+      wrap.innerHTML = '<tr><td colspan="7" class="sub">该时段暂无 BYOK 用量。</td></tr>';
+      return;
+    }
+    var html = "";
+    groups.forEach(function (g) {
+      html +=
+        "<tr>" +
+        "<td class='col-note'>" + escapeHtml(g.group) + "</td>" +
+        "<td>" + fmtInt(g.requests) + "</td>" +
+        "<td>" + fmtInt(g.success) + "</td>" +
+        "<td>" + fmtInt(g.cached) + "</td>" +
+        '<td class="col-tokens">' + fmtInt(g.tokens) + "</td>" +
+        '<td class="col-amount">$' + Number(g.cost_usd || 0).toFixed(4) + "</td>" +
+        "<td>" + (g.latency_ms != null ? g.latency_ms + "ms" : "--") + "</td>" +
+        "</tr>";
+    });
+    wrap.innerHTML = html;
+  }
+
   var CONSOLE_PANELS = [
     "overview",
     "keys",
+    "byok",
     "billing",
     "transactions",
     "playground",
@@ -2510,6 +2972,11 @@
     if (id === "invite") {
       loadInvitees().catch(function () {});
     }
+      if (id === "byok") {
+        try {
+          loadByokAll();
+        } catch (e) {}
+      }
       if (id === "transactions") {
         try {
           bindTransactionsControls();
@@ -2561,6 +3028,38 @@
     if (btnRefresh) {
       btnRefresh.addEventListener("click", function () {
         refreshAll();
+      });
+    }
+    var btnByokSave = $("btn-byok-save");
+    if (btnByokSave) btnByokSave.addEventListener("click", byokSaveKey);
+    var btnByokTest = $("btn-byok-test");
+    if (btnByokTest) {
+      btnByokTest.addEventListener("click", function () {
+        byokTestKey(null);
+      });
+    }
+    var btnByokRefreshKeys = $("btn-byok-refresh-keys");
+    if (btnByokRefreshKeys) {
+      btnByokRefreshKeys.addEventListener("click", function () {
+        loadByokKeys().catch(function () {});
+      });
+    }
+    var btnByokRefreshUsage = $("btn-byok-refresh-usage");
+    if (btnByokRefreshUsage) {
+      btnByokRefreshUsage.addEventListener("click", function () {
+        loadByokUsage().catch(function () {});
+      });
+    }
+    var selByokDays = $("byok-usage-days");
+    if (selByokDays) {
+      selByokDays.addEventListener("change", function () {
+        loadByokUsage().catch(function () {});
+      });
+    }
+    var selByokGroup = $("byok-usage-group");
+    if (selByokGroup) {
+      selByokGroup.addEventListener("change", function () {
+        loadByokUsage().catch(function () {});
       });
     }
     try {
@@ -2948,6 +3447,9 @@
     $("api-base").value = AI24X_API.getBase();
     $("api-key").value = AI24X_API.getApiKey();
     bind();
+    try {
+      bindPlanTabs();
+    } catch (e) {}
     refreshAll();
     // PayPal return：?paypal=1&out_trade_no=T…
     try {

@@ -154,6 +154,7 @@ def public_plans() -> dict:
     enabled = token_pay_enabled()
     return {
         "plans": list_public_plans(),
+        "byok_plans": _public_byok_plans(),
         "pay": {
             "enabled": enabled,
             "mock_allowed": token_pay_mock_allowed(),
@@ -172,6 +173,15 @@ def public_plans() -> dict:
             "crypto_ready": crypto_ready(),
         },
     }
+
+
+def _public_byok_plans() -> list[dict[str, Any]]:
+    try:
+        from byok_plans import public_byok_plans
+
+        return public_byok_plans()
+    except Exception:
+        return []
 
 
 def _assert_promo_purchase_ok(db: Session, *, auth_user_id: int, plan_id: str) -> None:
@@ -205,12 +215,25 @@ def _assert_promo_purchase_ok(db: Session, *, auth_user_id: int, plan_id: str) -
         )
 
 
+def _order_plan_meta(row: TokenPayOrder) -> dict[str, Any]:
+    """订单套餐元数据：BYOK 走 byok_plans，token 走 token_plans。"""
+    if str(row.product) == "byok":
+        try:
+            from byok_plans import resolve_byok_plan
+
+            return resolve_byok_plan(str(row.plan)) or {}
+        except Exception:
+            return {}
+    return get_plan(str(row.plan)) or {}
+
+
 def create_pending_order(
     db: Session,
     *,
     auth_user_id: int,
     plan: str,
     channel: str,
+    product: str = "token",
 ) -> TokenPayOrder:
     from auth_user_service import raise_if_frozen
 
@@ -218,15 +241,25 @@ def create_pending_order(
     if not u:
         raise HTTPException(status_code=404, detail="用户不存在")
     raise_if_frozen(u)
-    try:
-        plan_id, price_fen = normalize_plan(plan)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+    product = str(product or "token").strip()[:16] or "token"
+    if product == "byok":
+        from byok_plans import resolve_byok_plan
+
+        bmeta = resolve_byok_plan(plan or "")
+        if not bmeta:
+            raise HTTPException(status_code=400, detail="unknown_byok_plan")
+        plan_id = plan
+        price_fen = int(bmeta.get("price_fen") or 0)
+    else:
+        try:
+            plan_id, price_fen = normalize_plan(plan)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e)) from e
     _assert_promo_purchase_ok(db, auth_user_id=int(auth_user_id), plan_id=plan_id)
     ch = (channel or "wechat")[:16]
     # PayPal/Creem/Crypto：amount_fen 存 USD 美分；微信/支付宝仍为 CNY 分
     if ch in ("paypal", "creem", "crypto"):
-        meta = get_plan(plan_id) or {}
+        meta = resolve_byok_plan(plan_id) if product == "byok" else (get_plan(plan_id) or {})
         try:
             usd = float(meta.get("price_usd") or 0)
         except Exception:
@@ -242,7 +275,7 @@ def create_pending_order(
         amount_fen=int(price_fen),
         channel=ch,
         status="pending",
-        product="token",
+        product=product,
     )
     db.add(row)
     db.commit()
@@ -266,6 +299,15 @@ def _fulfill_order_row(
     txid = str(transaction_id or "").strip()
     if not txid:
         return {"ok": False, "error": "missing_trade_refs"}
+
+    if str(row.product) == "byok":
+        return _fulfill_byok_row(
+            db,
+            row,
+            transaction_id=txid,
+            amount_fen=int(amount_fen),
+            channel_tag=str(channel_tag),
+        )
 
     if str(row.status) == "paid":
         if row.transaction_id and str(row.transaction_id) == txid:
@@ -350,6 +392,77 @@ def _fulfill_order_row(
 
     snap = get_balance_snapshot(db, int(row.auth_user_id))
     return {"ok": True, "out_trade_no": otn, "balance": snap}
+
+
+def _fulfill_byok_row(
+    db: Session,
+    row: TokenPayOrder,
+    *,
+    transaction_id: str,
+    amount_fen: int,
+    channel_tag: str,
+) -> dict[str, Any]:
+    """BYOK 服务费订单履约：激活/续期 BYOK 订阅（不触 token 余额/VIP）。"""
+    from datetime import datetime
+
+    from sqlalchemy import update as sa_update
+
+    otn = str(row.out_trade_no)
+    txid = str(transaction_id or "").strip()
+    if not txid:
+        return {"ok": False, "error": "missing_trade_refs"}
+    if str(row.status) == "paid":
+        if row.transaction_id and str(row.transaction_id) == txid:
+            return {"ok": True, "duplicate": True, "out_trade_no": otn}
+        return {"ok": False, "error": "order_already_paid"}
+    if int(row.amount_fen) != int(amount_fen):
+        return {"ok": False, "error": "amount_mismatch"}
+
+    from byok_plans import resolve_byok_plan
+
+    bmeta = resolve_byok_plan(str(row.plan))
+    if not bmeta:
+        return {"ok": False, "error": "byok_plan_missing"}
+
+    now = datetime.now()
+    claimed = db.execute(
+        sa_update(TokenPayOrder)
+        .where(
+            TokenPayOrder.out_trade_no == otn,
+            TokenPayOrder.status.in_(["pending", "awaiting_verify"]),
+        )
+        .values(
+            status="paid",
+            transaction_id=txid[:128],
+            amount_usd=int(round(float(bmeta.get("price_usd") or 0) * 100)),
+            paid_at=now,
+            updated_at=now,
+        )
+    )
+    if int(getattr(claimed, "rowcount", 0) or 0) != 1:
+        db.rollback()
+        again = db.query(TokenPayOrder).filter(TokenPayOrder.out_trade_no == otn).first()
+        if again and str(again.status) == "paid":
+            if again.transaction_id and str(again.transaction_id) == txid:
+                return {"ok": True, "duplicate": True, "out_trade_no": otn}
+            return {"ok": False, "error": "order_already_paid"}
+        return {"ok": False, "error": "claim_failed"}
+    db.commit()
+
+    from byok import activate_subscription
+
+    sub = activate_subscription(
+        db,
+        auth_user_id=int(row.auth_user_id),
+        plan=str(row.plan),
+        source_order=otn,
+    )
+    return {
+        "ok": True,
+        "out_trade_no": otn,
+        "product": "byok",
+        "subscription": sub,
+    }
 
 
 def try_fulfill(
@@ -673,9 +786,11 @@ async def admin_query_fulfill_order(db: Session, *, out_trade_no: str) -> dict:
     raise HTTPException(status_code=400, detail=f"unsupported_channel:{ch}")
 
 
-async def create_wechat_native(db: Session, *, auth_user_id: int, plan: str) -> dict:
-    row = create_pending_order(db, auth_user_id=auth_user_id, plan=plan, channel="wechat")
-    plan_meta = get_plan(row.plan) or {}
+async def create_wechat_native(db: Session, *, auth_user_id: int, plan: str, product: str = "token") -> dict:
+    row = create_pending_order(
+        db, auth_user_id=auth_user_id, plan=plan, channel="wechat", product=product
+    )
+    plan_meta = _order_plan_meta(row)
     title = str(plan_meta.get("title") or row.plan)
 
     if token_pay_mock_allowed() and not token_pay_enabled():
@@ -728,9 +843,11 @@ async def create_wechat_native(db: Session, *, auth_user_id: int, plan: str) -> 
     }
 
 
-async def create_alipay_wap(db: Session, *, auth_user_id: int, plan: str) -> dict:
-    row = create_pending_order(db, auth_user_id=auth_user_id, plan=plan, channel="alipay")
-    plan_meta = get_plan(row.plan) or {}
+async def create_alipay_wap(db: Session, *, auth_user_id: int, plan: str, product: str = "token") -> dict:
+    row = create_pending_order(
+        db, auth_user_id=auth_user_id, plan=plan, channel="alipay", product=product
+    )
+    plan_meta = _order_plan_meta(row)
     title = str(plan_meta.get("title") or row.plan)
     yuan = f"{int(row.amount_fen) / 100:.2f}"
 
@@ -785,9 +902,11 @@ async def create_alipay_wap(db: Session, *, auth_user_id: int, plan: str) -> dic
     }
 
 
-async def create_paypal_order(db: Session, *, auth_user_id: int, plan: str) -> dict:
-    row = create_pending_order(db, auth_user_id=auth_user_id, plan=plan, channel="paypal")
-    plan_meta = get_plan(row.plan) or {}
+async def create_paypal_order(db: Session, *, auth_user_id: int, plan: str, product: str = "token") -> dict:
+    row = create_pending_order(
+        db, auth_user_id=auth_user_id, plan=plan, channel="paypal", product=product
+    )
+    plan_meta = _order_plan_meta(row)
     title = str(plan_meta.get("title_en") or plan_meta.get("title_zh") or row.plan)
     usd = float(plan_meta.get("price_usd") or 0) or (int(row.amount_fen) / 100.0)
 
@@ -863,10 +982,12 @@ async def create_paypal_order(db: Session, *, auth_user_id: int, plan: str) -> d
     }
 
 
-async def create_creem_order(db: Session, *, auth_user_id: int, plan: str) -> dict:
+async def create_creem_order(db: Session, *, auth_user_id: int, plan: str, product: str = "token") -> dict:
     """Creem Checkout: create order + checkout session (USD cents, same as PayPal)."""
-    row = create_pending_order(db, auth_user_id=int(auth_user_id), plan=plan, channel="creem")
-    meta = get_plan(row.plan) or {}
+    row = create_pending_order(
+        db, auth_user_id=int(auth_user_id), plan=plan, channel="creem", product=product
+    )
+    meta = _order_plan_meta(row)
     try:
         usd = float(meta.get("price_usd") or 0)
     except Exception:
@@ -1225,10 +1346,12 @@ def crypto_ready() -> bool:
     return bool(cfg.enabled and cfg.address)
 
 
-def create_crypto_order(db: Session, *, auth_user_id: int, plan: str) -> dict:
+def create_crypto_order(db: Session, *, auth_user_id: int, plan: str, product: str = "token") -> dict:
     """USDT-TRC20 下单：创建 pending 订单，返回收款地址/金额。USDT 1:1 USD。"""
-    row = create_pending_order(db, auth_user_id=auth_user_id, plan=plan, channel="crypto")
-    meta = get_plan(row.plan) or {}
+    row = create_pending_order(
+        db, auth_user_id=auth_user_id, plan=plan, channel="crypto", product=product
+    )
+    meta = _order_plan_meta(row)
     try:
         usd = float(meta.get("price_usd") or 0)
     except Exception:

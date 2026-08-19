@@ -442,6 +442,7 @@ async def chat_run(
             or (http_request.headers.get("cf-ipcountry") or "").strip()
             or None
         )
+        byok_project = (http_request.headers.get("x-byok-project") or "").strip()[:64] or None
         response = ChatService.process_chat_request(
             db=db,
             user=current_user,
@@ -451,6 +452,7 @@ async def chat_run(
             auth_user_id=auth_uid,
             auth_api_key_id=auth_api_key_id,
             region_hint=region_hint,
+            byok_project=byok_project,
         )
         
         logger.info(f"Chat request processed: {response.request_id} for user: {current_user.user_id}")
@@ -511,6 +513,7 @@ async def chat_completions(
         or (http_request.headers.get("cf-ipcountry") or "").strip()
         or None
     )
+    byok_project = (http_request.headers.get("x-byok-project") or "").strip()[:64] or None
 
     cmpl_id = completion_id()
 
@@ -528,6 +531,7 @@ async def chat_completions(
                 auth_user_id=auth_uid,
                 auth_api_key_id=auth_api_key_id,
                 region_hint=region_hint,
+                byok_project=byok_project,
             )
         except HTTPException:
             raise
@@ -557,6 +561,7 @@ async def chat_completions(
             auth_user_id=auth_uid,
             auth_api_key_id=auth_api_key_id,
             region_hint=region_hint,
+            byok_project=byok_project,
         )
     except HTTPException:
         raise
@@ -627,6 +632,7 @@ async def openai_responses_create(
         or (http_request.headers.get("cf-ipcountry") or "").strip()
         or None
     )
+    byok_project = (http_request.headers.get("x-byok-project") or "").strip()[:64] or None
     rid = response_id()
 
     # ⚠️ 主脑 2026-08-12 五修【DIAG】：Codex 完整请求 400 诊断（临时，定位后移除/精简）
@@ -660,6 +666,7 @@ async def openai_responses_create(
                 auth_user_id=auth_uid,
                 auth_api_key_id=auth_api_key_id,
                 region_hint=region_hint,
+                byok_project=byok_project,
             )
         except HTTPException:
             raise
@@ -689,6 +696,7 @@ async def openai_responses_create(
             auth_user_id=auth_uid,
             auth_api_key_id=auth_api_key_id,
             region_hint=region_hint,
+            byok_project=byok_project,
         )
     except HTTPException:
         raise
@@ -2338,7 +2346,9 @@ async def billing_wechat_native(
     from token_pay_service import create_wechat_native
 
     u = _auth_user_from_bearer(request, db)
-    return await create_wechat_native(db, auth_user_id=int(u.id), plan=body.plan)
+    return await create_wechat_native(
+        db, auth_user_id=int(u.id), plan=body.plan, product=body.product
+    )
 
 
 @app.post("/v1/billing/alipay/wap")
@@ -2348,7 +2358,9 @@ async def billing_alipay_wap(
     from token_pay_service import create_alipay_wap
 
     u = _auth_user_from_bearer(request, db)
-    return await create_alipay_wap(db, auth_user_id=int(u.id), plan=body.plan)
+    return await create_alipay_wap(
+        db, auth_user_id=int(u.id), plan=body.plan, product=body.product
+    )
 
 
 @app.post("/v1/billing/paypal/order")
@@ -2358,7 +2370,9 @@ async def billing_paypal_order(
     from token_pay_service import create_paypal_order
 
     u = _auth_user_from_bearer(request, db)
-    return await create_paypal_order(db, auth_user_id=int(u.id), plan=body.plan)
+    return await create_paypal_order(
+        db, auth_user_id=int(u.id), plan=body.plan, product=body.product
+    )
 
 
 @app.post("/v1/billing/creem/order")
@@ -2368,7 +2382,9 @@ async def billing_creem_order(
     from token_pay_service import create_creem_order
 
     u = _auth_user_from_bearer(request, db)
-    return await create_creem_order(db, auth_user_id=int(u.id), plan=body.plan)
+    return await create_creem_order(
+        db, auth_user_id=int(u.id), plan=body.plan, product=body.product
+    )
 
 
 @app.post("/v1/billing/creem/query")
@@ -2411,7 +2427,9 @@ async def billing_crypto_order(
     from token_pay_service import create_crypto_order
 
     u = _auth_user_from_bearer(request, db)
-    return create_crypto_order(db, auth_user_id=int(u.id), plan=body.plan)
+    return create_crypto_order(
+        db, auth_user_id=int(u.id), plan=body.plan, product=body.product
+    )
 
 
 @app.post("/v1/billing/crypto/submit")
@@ -3154,6 +3172,17 @@ async def admin_token_orders_query_fulfill(
     from token_pay_service import admin_query_fulfill_order
 
     return await admin_query_fulfill_order(db, out_trade_no=body.out_trade_no)
+
+
+# BYOK 智能网关（2026-08-18）：用户自有 key 管理 / 用量统计 / 状态
+# 鉴权复用 get_current_user（JWT 或 sk-），须挂在静态站点 mount 之前
+from byok_routes import router as byok_router
+
+app.include_router(
+    byok_router,
+    prefix="/v1",
+    dependencies=[Depends(get_current_user)],
+)
 
 
 # 静态官网（与 API 同端口 8000）；须挂在所有 API 路由之后
