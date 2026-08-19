@@ -514,6 +514,31 @@ def _sector_fund_flow(sec, plates):
     return best5, best_t
 
 
+def _bar_heat(candles) -> tuple[float | None, float | None]:
+    """零上游成本板块热度：成分股 5 日涨幅(%) 与 60 日位置(%)（防“涨一波后追高”）。"""
+    try:
+        closes = [float(c.close) for c in candles]
+        if len(closes) < 21:
+            return None, None
+        cur = closes[-1]
+        base5 = closes[-6]
+        chg5 = (cur / base5 - 1.0) * 100.0 if base5 > 0 else None
+        seg = closes[-60:]
+        lo, hi = min(seg), max(seg)
+        pos60 = (cur - lo) / (hi - lo) * 100.0 if hi > lo else None
+        return (round(chg5, 1) if chg5 is not None else None,
+                round(pos60, 1) if pos60 is not None else None)
+    except Exception:
+        return None, None
+
+
+def _median_of(arr: list[float]) -> float | None:
+    if not arr:
+        return None
+    a = sorted(arr)
+    return a[len(a) // 2]
+
+
 async def _fetch_sector_scores(is_vip):
     variant, priority_override, allow_paid = _provider_profile(is_vip)
     out = {}
@@ -526,11 +551,12 @@ async def _fetch_sector_scores(is_vip):
                 candles = await _tx_kline(secid_of(code), 120, variant, priority_override, allow_paid, timeout=8.0)
                 res = score_candles(candles, name=name)
                 _zt, _surge = _board_confirm_flags(candles, code)
+                _chg5, _pos60 = _bar_heat(candles)
                 out[sec].append({
                     "code": code, "name": name, "score": res.get("score"), "tags": res.get("tags") or [],
                     "risks": res.get("risks") or [], "up_pct": res.get("up_pct"), "vol_ratio": res.get("vol_ratio"),
                     "red_days": res.get("red_days"), "latest_time": res.get("latest_time"),
-                    "zt": _zt, "surge": _surge,
+                    "zt": _zt, "surge": _surge, "chg5": _chg5, "pos60": _pos60,
                 })
             except Exception as e:
                 out[sec].append({"code": code, "name": name, "error": str(e)[:80]})
@@ -668,6 +694,14 @@ def mainline_judgment(sector_scores, plates=None):
         n_zt = sum(1 for x in ok if x.get("zt"))
         n_surge = sum(1 for x in ok if x.get("surge"))
         confirmed = n_zt >= 1 or n_surge >= 2
+        chg5_med = _median_of([float(x["chg5"]) for x in ok if x.get("chg5") is not None])
+        pos60_med = _median_of([float(x["pos60"]) for x in ok if x.get("pos60") is not None])
+        # 板块过热：60日位置≥85%（已到高位），或 位置≥60% 且 5日涨幅≥25%（中高位大涨）。
+        # 位置<60% 的大涨视为“底部刚启动”，不算过热，避免误伤低位异动。
+        overheat = bool(
+            (pos60_med is not None and pos60_med >= 85)
+            or (pos60_med is not None and pos60_med >= 60 and chg5_med is not None and chg5_med >= 25)
+        )
         fund5, fund_t = _sector_fund_flow(sec, plates)
         fund_ok = bool((fund5 is not None and fund5 >= 15e8 and fund_t is not None and fund_t > 0)
                        or (fund_t is not None and fund_t >= 50e8))
@@ -677,7 +711,8 @@ def mainline_judgment(sector_scores, plates=None):
         top5m = st["top5_mean"]
         info[sec] = {"mean": mean, "top5": top5m, "median": st["median"], "avg_up": avg_up,
                      "fund5": fund5, "fund_t": fund_t, "fund_ok": fund_ok,
-                     "confirmed": confirmed, "composite": composite, "n_zt": n_zt, "n_surge": n_surge}
+                     "confirmed": confirmed, "composite": composite, "n_zt": n_zt, "n_surge": n_surge,
+                     "chg5_med": chg5_med, "pos60_med": pos60_med, "overheat": overheat}
     return info
 
 
@@ -706,6 +741,15 @@ def pick_main_lines(sector_scores, prev_mainlines=None, plates=None):
         confirmed = it["confirmed"]
         fund_ok = it["fund_ok"]
         composite = it["composite"]
+        # 过热抑制（防“涨了一波今天就大跌”追高）：
+        # 板块已过热且当日走弱（avg_up<0）→ 硬性降级观察/回避，跳过主线候选，
+        # 资金/情绪逃生口（fund_ok / composite 续命）一律不再生效；次日修复回踩后再升回。
+        if it.get("overheat") and avg_up < 0:
+            if mean >= 50:
+                observes.append(sec)
+            else:
+                avoids.append(sec)
+            continue
         if sec in prev:
             # 昨日主线：Top5 均值≥58 且回调≤-1.0%（可小幅回踩），或 资金仍主攻，或 综合分≥55 且情绪确认 → 延续；
             # 回调偏深、资金离场、情绪转弱 → 观察/回避，防止"一条线霸榜"（10日内涨停是滞后证据，不续命）

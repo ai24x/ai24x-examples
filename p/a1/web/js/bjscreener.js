@@ -383,6 +383,7 @@ window.AI24X_BJScreener = (function () {
       if (m.fund_t != null && Number(m.fund_t) > 0) parts.push(dataDayLabel(d) + '主力 ' + moneyYi(m.fund_t));
       if (m.n_zt != null) parts.push('涨停 ' + m.n_zt + '家');
       if (m.n_surge != null && Number(m.n_surge) > 0) parts.push('异动 ' + m.n_surge + '家');
+      if (m.overheat) parts.push('⚠ 高位过热');
       if (!parts.length) return "";
       return esc(m.name || "") + '：' + parts.join(' · ');
     }).filter(Boolean);
