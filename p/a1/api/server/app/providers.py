@@ -832,6 +832,8 @@ async def fetch_tushare_kline(secid: str, period: str, count: int = 500, timeout
             if not rows:
                 return {"code": -1, "msg": "tushare index_daily empty", "data": {}}
             day_rows, syn_today = _maybe_append_today_placeholder(rows)
+            # 剔除合成/占位「一字 bar」（OHLC 全相等 + 量 0）：当日缺失交给 stale 判定切到真实源（ths:fuyao）
+            day_rows = [r for r in day_rows if len(r) >= 6 and not _is_flat_placeholder(r)]
             week_rows = _agg_to_week(day_rows)
             month_rows = _agg_to_month(day_rows)
             key = sid.upper()
@@ -908,6 +910,9 @@ async def fetch_tushare_kline(secid: str, period: str, count: int = 500, timeout
 
         key = secid_to_tencent_symbol(secid)
         payload = {"code": 0, "data": {key: {"qfqday": qfq_rows, "day": rows, "qfqweek": _agg_to_week(qfq_rows), "week": _agg_to_week(rows), "qfqmonth": _agg_to_month(qfq_rows), "month": _agg_to_month(rows)}}}
+        # 防御：paid 股票路径也不透传合成/占位 bar（如 rt_k 空转、上游 T+1 占位）
+        payload["data"][key]["qfqday"] = [r for r in (payload["data"][key]["qfqday"] or []) if len(r) >= 6 and not _is_flat_placeholder(r)]
+        payload["data"][key]["day"] = [r for r in (payload["data"][key]["day"] or []) if len(r) >= 6 and not _is_flat_placeholder(r)]
         # Narrow to requested period by trimming other lists is unnecessary; frontend picks by period.
         _src_ok("tushare", (time.time() - t0) * 1000.0)
         return payload
@@ -2895,13 +2900,15 @@ _EM_KLINE_SEM = asyncio.Semaphore(2)
 
 
 def _drop_auction_today_bar(rows: list[list[str]]) -> list[list[str]]:
-    """集合竞价/开盘前剔除上游当日残缺 bar（前端 qt 合成当日蜡烛同样有该守卫）。
+    """剔除上游当日残缺/占位 bar（仅日线；周/月线由调用方自行决定是否调用）。
 
-    东财 push2his（及部分实时源）在 09:15-09:25 竞价与 09:25-09:30 过渡期会返回
-    未成形的当日 K 线：high/low 常为 0 或撮合价剧烈跳动，画出来像“大阴柱”，
-    MACD 量能柱也被拉成极端负值。规则：
+    东财 push2his / 腾讯 fqkline / 同花顺 fuyao 在集合竞价（09:15-09:30）、
+    盘中未定型、盘后数据切换等时点会返回未成形的当日 K 线：
+    OHLC 为 0、high<low、收盘越界或 volume=0，画出来像“大阴柱 / 0 值柱”，
+    MACD 量能柱也被拉成极端负值。规则（仅针对当日 bar）：
     - 交易日 09:30 前：当日 bar 无意义，直接剔除；
-    - 09:30 连续竞价开始后：保留当日 bar，但 OHLC 任一非法（<=0）仍剔除。
+    - 任意时段：当日 bar 若 OHLC 任一 <=0、high<low、close 越界或 volume<0，一律剔除；
+    - 其余历史 bar 原样保留（清洗后当日缺失会触发 stale 判定，继续走后续数据源）。
     """
     try:
         now = datetime.now()
@@ -2918,9 +2925,10 @@ def _drop_auction_today_bar(rows: list[list[str]]) -> list[list[str]]:
                 continue  # 竞价/开盘前：今日 bar 无意义
             try:
                 o, c, h, l = float(r[1]), float(r[2]), float(r[3]), float(r[4])
+                v = float(r[5]) if len(r) >= 6 else 0.0
             except Exception:
                 continue
-            if min(o, c, h, l) <= 0:
+            if min(o, c, h, l) <= 0 or h < l or c > h or c < l or v <= 0:
                 continue
             out.append(r)
         return out
@@ -3709,6 +3717,17 @@ async def _fetch_tx_kline_core(
             j = json.loads(_strip_js_wrapper(txt))
             _tx_on_ok()
             if _tencent_payload_has_rows(j):
+                if period == "day":
+                    try:
+                        _tp = (j.get("data") or {}).get(sym) or {}
+                        for _k2 in ("qfqday", "day"):
+                            _rr = _tp.get(_k2)
+                            if isinstance(_rr, list):
+                                _tp[_k2] = _drop_auction_today_bar(
+                                    [list(x)[:6] if isinstance(x, (list, tuple)) else x for x in _rr]
+                                )
+                    except Exception:
+                        pass
                 try:
                     j["_meta"] = {
                         "source": "tencent:fqkline",
@@ -3916,6 +3935,8 @@ async def fetch_sina_kline(secid: str, period: str, count: int = 500, timeout: f
     # Keep recent N
     if count > 0 and len(day_rows) > count:
         day_rows = day_rows[-count:]
+    if period == "day":
+        day_rows = _drop_auction_today_bar(day_rows)
     week_rows = _agg_to_week(day_rows)
     month_rows = _agg_to_month(day_rows)
 

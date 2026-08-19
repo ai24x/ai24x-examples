@@ -3112,6 +3112,7 @@ async def api_quote_snapshot(
 async def _bj_ensure_scan_or_fast(
     user_id: int, market: str, force: bool = False,
     cfg_override: dict | None = None, boards_only: bool = False,
+    column: str = "",
 ) -> dict | None:
     """掘金防 504：能秒回（缓存/归档）返回 None 走正常同步路径；否则后台启动扫描并返回 scanning 提示。
     绝不在 HTTP 请求内同步等待完整扫描（生产 nginx 60s 网关超时会 504）。
@@ -3168,7 +3169,7 @@ async def _bj_ensure_scan_or_fast(
     async def _bg() -> None:
         try:
             await run_scan_dedup(int(user_id), force=True, cfg_override=cfg_override,
-                                 boards_only=boards_only, market=market)
+                                 boards_only=boards_only, market=market, column=column)
         except Exception as e:
             try:
                 mark_scan_failed(market, f"\u626b\u63cf\u5931\u8d25: {type(e).__name__}: {str(e)[:120]}")
@@ -3218,13 +3219,15 @@ async def api_bj_screener(
     plan = str(quota.get("plan") or "anon").strip().lower()
     is_vip = plan not in ("", "free", "anon")
     from .bj_screener import run_scan_dedup, macd_view, pb_view, _backfill_leader_quotes
+    _col = "pb" if pb_mode else ("macd" if macd_mode else "")
     if not is_vip:
         # 非 VIP：开放“异动板块”视图（复用当日缓存或轻量扫描），个股分析保持 VIP 专属
-        early = await _bj_ensure_scan_or_fast(int(user_id), scan_market, force=False, boards_only=True)
+        early = await _bj_ensure_scan_or_fast(int(user_id), scan_market, force=False, boards_only=True, column=_col)
         if early is not None:
             return await _backfill_leader_quotes(early)
         try:
-            out = await run_scan_dedup(int(user_id), force=False, cfg_override=None, boards_only=True, market=scan_market)
+            out = await run_scan_dedup(int(user_id), force=False, cfg_override=None,
+                                       boards_only=True, market=scan_market, column=_col)
         except HTTPException:
             raise
         except Exception as e:
@@ -3259,13 +3262,16 @@ async def api_bj_screener(
     if top_n > 0:
         cfg_override["topN"] = int(max(3, min(5, top_n)))
     if cap > 0:
-        cfg_override["cap"] = int(max(30, min(120, cap)))    early = await _bj_ensure_scan_or_fast(int(user_id), scan_market, force=bool(force), cfg_override=cfg_override or None)
+        cfg_override["cap"] = int(max(30, min(120, cap)))
+    early = await _bj_ensure_scan_or_fast(int(user_id), scan_market, force=bool(force),
+                                          cfg_override=cfg_override or None, column=_col)
     if early is not None:
         _early = macd_view(early) if macd_mode else (pb_view(early) if pb_mode else early)
         return await _backfill_leader_quotes(_early)
 
     try:
-        out = await run_scan_dedup(int(user_id), force=bool(force), cfg_override=cfg_override or None, market=scan_market)
+        out = await run_scan_dedup(int(user_id), force=bool(force), cfg_override=cfg_override or None,
+                                   market=scan_market, column=_col)
         _out = macd_view(out) if macd_mode else (pb_view(out) if pb_mode else out)
         return await _backfill_leader_quotes(_out)
     except HTTPException:
@@ -3305,13 +3311,14 @@ async def api_bj_screener_start(
     if not is_vip:
         return {"ok": False, "error": "vip_required", "message": "掘金扫描为 VIP 专属，请先开通 VIP。"}
     from .bj_screener import scan_progress, run_scan_dedup, mark_scan_failed, _RUNNING_SCAN
+    _col = "pb" if pb_mode else ("macd" if macd_mode else "")
     p = scan_progress(scan_market)
     if p.get("running") or (_RUNNING_SCAN.get(scan_market) is not None and not _RUNNING_SCAN[scan_market].done()):
         return {"ok": True, "running": True, "msg": "扫描进行中，请稍候…"}
 
     async def _bg_scan() -> None:
         try:
-            await run_scan_dedup(int(user_id), force=True, market=scan_market)
+            await run_scan_dedup(int(user_id), force=True, market=scan_market, column=_col)
         except Exception as e:
             try:
                 mark_scan_failed(scan_market, f"扫描失败: {type(e).__name__}: {str(e)[:120]}")

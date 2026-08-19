@@ -66,6 +66,8 @@
 .tier-leader{background:linear-gradient(135deg,#ff9a62,#f04e30);color:#fff;box-shadow:0 1px 4px rgba(240,78,48,.45)}
 .tier-catchup{background:linear-gradient(135deg,#4ade80,#16a34a);color:#fff}
 .tier-normal{background:var(--bj-acc-bg);color:var(--bj-acc);border:1px solid var(--bj-acc-bd)}
+.tier-ml-new{background:linear-gradient(135deg,#ff9a62,#f04e30);color:#fff;box-shadow:0 1px 4px rgba(240,78,48,.45)}
+.tier-ml-cont{background:linear-gradient(135deg,#4ade80,#16a34a);color:#fff;box-shadow:0 1px 4px rgba(22,163,74,.4)}
 .tier-main{background:linear-gradient(135deg,#ffd666,#f59e0b);color:#3a2c00;box-shadow:0 0 8px rgba(245,158,11,.45)}
 .tier-offmain{background:rgba(128,138,160,.16);color:var(--muted);border:1px solid rgba(128,138,160,.4)}
 .tier-obs{background:linear-gradient(135deg,#a5b4fc,#6366f1);color:#1e1b4b;box-shadow:0 0 8px rgba(99,102,241,.35)}
@@ -83,6 +85,7 @@
 .tag.warn{background:#fff7e6;color:#8a5b00;border:1px solid #ffd591}
 .tag.risk{background:#fdecea;color:#b71c1c;border:1px solid #ef9a9a}
 .tag.info{background:var(--bj-acc-bg);color:var(--bj-acc);border:1px solid var(--bj-acc-bd)}
+.tag.src-tag{background:rgba(128,138,160,.14);color:var(--muted);border:1px solid rgba(128,138,160,.35)}
 .runner-tags{display:block;margin:4px 0 2px;line-height:1.9}
 .levels{display:flex;flex-wrap:wrap;gap:8px;font-size:12px;margin:6px 0;color:var(--text)}
 .levels span{padding:3px 10px;border-radius:6px;background:var(--panel2);border:1px solid var(--border);color:var(--text)}
@@ -183,6 +186,7 @@ button.chip.arch:hover{border-color:var(--bj-acc);background:var(--bj-acc-bg)}
 .br-s-avoid{background:rgba(239,68,68,.10);color:var(--fall,#dc2626);border:1px solid rgba(239,68,68,.35);}
 :root[data-theme="dark"] .br-s-main{background:linear-gradient(135deg,rgba(255,214,102,.22),rgba(251,191,36,.16));color:#ffd666;border-color:#d99a1b;}
 .br-item .st b{color:var(--bj-acc)}
+.br-item .br-mlwhy{font-size:11px;color:var(--muted);background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.2);border-radius:6px;padding:1px 8px;line-height:1.7}
 .br-item .go{margin-left:auto;font-size:11px;color:var(--bj-acc);font-weight:700;text-decoration:none}
 .br-item .go:hover{text-decoration:underline}
 .br-leaders{display:block;font-size:12px;color:var(--muted);margin-top:4px;line-height:1.7}

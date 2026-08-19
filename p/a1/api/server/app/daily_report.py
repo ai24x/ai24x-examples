@@ -76,7 +76,7 @@ SECTORS = {
 # 板块 -> 东财资金榜板块名别名（主线资金确认用；not_in 排除同名歧义，如"电力设备"是光伏/风电设备而非电力运营）
 SECTOR_BOARD_ALIASES = {
     "PCB": ["印制电路板", "PCB"],
-    "煤炭": ["煤炭开采", "焦煤", "动力煤", "煤炭"],
+    "煤炭": ["煤炭开采", "焦煤", "动力煤", "煤化工", "煤化工概念", "煤炭"],
     "有色": ["工业金属", "小金属", "有色金属", "能源金属", "贵金属", "稀土"],
     "通信光模块CPO": ["通信设备", "通信网络设备", "光通信", "光模块", "CPO", "通信技术"],
     "创新药CXO": ["创新药", "化学制药", "医疗服务", "生物制品", "CXO", "医药生物"],
@@ -325,13 +325,16 @@ def em_clist(fs, fid, pz=30):
 
 def fetch_plates():
     out = {}
+    # pz=100：覆盖全部东财行业板块（约 86 个）+ 概念前 100，
+    # 让「2 涨停但资金量小」的板块（如煤炭）也能进入资金榜匹配（P0-1 条件 b 可用），
+    # 请求次数不变（仍 4 次东财 + 1 次同花顺），报告展示仍取 top8 不受影响。
     for key, fs, fid in [
         ("em_em_industry_today", "m:90+t:2+f:!50", "f62"),
         ("em_em_industry_5d", "m:90+t:2+f:!50", "f164"),
         ("em_em_concept_today", "m:90+t:3+f:!50", "f62"),
         ("em_em_concept_5d", "m:90+t:3+f:!50", "f164"),
     ]:
-        out[key] = em_clist(fs, fid)
+        out[key] = em_clist(fs, fid, pz=100)
         time.sleep(1.2)
     return out
 
@@ -715,10 +718,19 @@ def pick_main_lines(sector_scores, prev_mainlines=None, plates=None):
             else:
                 avoids.append(sec)
         else:
-            # 新晋：龙头梯队技术确认 + 资金/情绪共振
-            if (top5m is not None and top5m >= 58 and avg_up >= 0) \
-                    or (confirmed and top5m is not None and top5m >= 55) \
-                    or (fund_ok and top5m is not None and top5m >= 55 and avg_up >= -0.5):
+            # 新晋：龙头梯队技术确认 + 资金/量能二次确认（2026-08-18 P0-1）
+            # a) 今日主力 f62>0 且 5日主力 f164≥10亿；b) 涨停≥2 且 今日主力 f62>0；
+            # 资金缺失（None）一律视为未通过 → 降级观察，杜绝「数据缺失当通过」；
+            # 昨日主线延续不适用本规则（走上方既有延续分支）。
+            _f5 = it.get("fund5")
+            _ft = it.get("fund_t")
+            _fund_confirm = bool(
+                (_ft is not None and _ft > 0 and _f5 is not None and _f5 >= 10e8)
+                or (n_zt >= 2 and _ft is not None and _ft > 0)
+            )
+            if ((top5m is not None and top5m >= 58 and avg_up >= 0 and _fund_confirm) \
+                    or (confirmed and top5m is not None and top5m >= 55 and _fund_confirm) \
+                    or (fund_ok and top5m is not None and top5m >= 55 and avg_up >= -0.5)):
                 main_lines.append(sec)
             elif (top5m is not None and top5m >= 52) or (fund_ok and mean >= 50):
                 observes.append(sec)

@@ -98,6 +98,9 @@
   .tier.main{background:linear-gradient(135deg,#ffd666,#f59e0b);color:#3a2c00}
   .tier.catchup{background:rgba(74,222,128,.16);color:#4ade80;border:1px solid rgba(74,222,128,.4)}
   .tier.normal{background:rgba(128,138,160,.16);color:#8aa0bf;border:1px solid rgba(128,138,160,.4)}
+  .tier.ml-new{background:linear-gradient(135deg,#ff9a62,#f04e30);color:#fff}
+  .tier.ml-cont{background:linear-gradient(135deg,#4ade80,#16a34a);color:#fff}
+  .br-mlwhy{width:100%;font-size:11px;color:#8aa0bf;background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.2);border-radius:6px;padding:2px 8px;line-height:1.6}
   .px{font-size:16px;font-weight:800;margin-left:auto;font-variant-numeric:tabular-nums}
   .chg{font-size:12px;font-weight:700}
   .up{color:#f03a52}.down{color:#00b578}
@@ -137,6 +140,8 @@
   .hist .hr-date{font-size:13px;font-weight:700;color:#fbbf24}
   .hist .hr-sub{font-size:11px;color:#8aa0bf;margin-top:2px}
   .empty{padding:26px 16px;text-align:center;color:#8aa0bf;font-size:13px;line-height:1.8}
+  .em-alert{margin:4px 10px 6px;padding:9px 12px;border-radius:10px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.35);color:#fbbf24;font-size:11.5px;line-height:1.7}
+  .em-note{margin:4px 10px 6px;padding:9px 12px;border-radius:10px;background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.3);color:#4ade80;font-size:11.5px;line-height:1.7}
   .vip-gate{margin:12px;padding:18px 16px;border-radius:14px;text-align:center;background:linear-gradient(135deg,rgba(251,191,36,.14),rgba(251,191,36,.04));border:1px solid rgba(251,191,36,.45)}
   .vip-gate .t{font-size:15px;font-weight:800;color:#fbbf24;margin-bottom:6px}
   .vip-gate .d{font-size:12px;color:#8aa0bf;line-height:1.8;margin-bottom:12px}
@@ -294,6 +299,7 @@
     else if (a.pullback) h.push('<span class="tag ok">异动回踩企稳</span>');
     if (a.baseUp) h.push('<span class="tag ok">底部走多</span>');
     if (a.smallYang) h.push('<span class="tag ok">一路小阳</span>');
+    if (a.steadyUp) h.push('<span class="tag ok">稳步向上·趋势' + (p.trendScore != null ? p.trendScore : '') + '</span>');
     if (p.boardLeader) h.push('<span class="tag ok">板块龙头</span>');
     if (p.hotName) h.push('<span class="tag warn">共振:' + esc(p.hotName) + '</span>');
     var f = p.fund || {};
@@ -310,6 +316,7 @@
     if (a.ztPullback) r.push('涨停级回踩企稳');
     if (a.smallYang) r.push('连续小阳趋势上拐');
     if (a.baseUp) r.push('站上MA20且均线上拐');
+    if (a.steadyUp) r.push('稳步向上·趋势评分' + (p.trendScore != null ? p.trendScore : ''));
     if (p.mainHit && p.mainName) r.push('主线板块:' + p.mainName);
     if (p.boardLeader) r.push('板块龙头');
     if (p.hotName) r.push('板块共振:' + p.hotName);
@@ -396,8 +403,18 @@
   }
 
   function renderMeta(d){
+    function scopeTxt(){
+      var m = (d && d.market_code) || state.market;
+      if (m === 'hs') return '沪深主线·板块成分池';
+      if (m === 'kc') return '科创主线·板块成分池';
+      if (m === 'bj') return '北证主线·北证成分池';
+      if (m === 'bj_all') return '北证全市场·北证成分池';
+      if (m === 'macd') return '沪深京全市场·MACD量能首红';
+      if (m === 'pb') return '沪深京全市场·首板回踩企稳';
+      return m === 'all' ? '沪深京·板块成分池' : '北证全市场';
+    }
     var meta =
-      '数据截至 <b>' + esc(d.asof || d.date || '') + '</b> ｜ 扫描 <b>' + (d.scanned || 0) + '</b> 只 ｜ 合格 <b>' + (d.fine || 0) + '</b> 只' +
+      '数据截至 <b>' + esc(d.asof || d.date || '') + '</b> ｜ ' + scopeTxt() + ' ｜ 扫描 <b>' + (d.scanned || 0) + '</b> 只 ｜ 合格 <b>' + (d.fine || 0) + '</b> 只' +
       (d.hard_rejected ? ' ｜ 硬伤排除 <b style="color:#f87171">' + d.hard_rejected + '</b> 只' : '');
     if (d.off_market) meta += ' ｜ ⏸ 非交易日：展示最近交易日（' + esc(d.stale_from || '') + '）';
     else if (d.intraday) meta += ' ｜ ⚠ 今日未收盘：展示上一交易日收盘（' + esc(d.stale_from || '') + '）';
@@ -608,6 +625,8 @@
       else if (b.tier === 'king') t += '<span class="tier normal">市场强势</span>';
       else if (b.tier === 'key') t += '<span class="tier key">强势关注</span>';
       else t += '<span class="tier normal">备选</span>';
+      if (b.ml_src === 'new') t += '<span class="tier ml-new">新晋</span>';
+      else if (b.ml_src === 'cont') t += '<span class="tier ml-cont">延续</span>';
       var secid = String(b.secid || '').trim();
       var ths = String(b.ths || '').trim();
       var useSecid = ths || secid;
@@ -627,30 +646,49 @@
         if (b.hot) st += ' ｜ ✓板块榜';
       }
       if (b.streak >= 2) st += (st ? ' ｜ ' : '') + '🔥 连续 ' + b.streak + ' 日上榜';
+      var mlWhy = b.ml_why ? '<span class="br-mlwhy">' + esc(b.ml_why) + '</span>' : '';
       var lds = (b.leaders || []).slice(0, 3).map(function(ld){
         return '<a href="../demo.html?secid=' + encodeURIComponent(secidForCode(ld.code)) + '&period=day" target="_blank" rel="noopener">' + esc(ld.name) + ' <span class="' + cls(ld.pct) + '">' + pct(ld.pct) + '</span></a>';
       }).join('　');
       return '<div class="br-item">' +
         '<span class="br-idx' + (b.tier === 'king' ? ' t1' : (b.tier === 'key' ? ' t2' : '')) + '">' + (idx + 1) + '</span>' + t + nm +
         (st ? '<span class="br-st">' + st + '</span>' : '') +
+        mlWhy +
         (lds ? '<span class="br-leaders">龙头 ' + lds + '</span>' : '') +
       '</div>';
     }).join('');
   }
 
+  function emotionBannerMobile(d){
+    var emo = (d.meta && d.meta.emotion) || null;
+    var h = '';
+    if (emo && emo.regime === 'risk_off') {
+      h += '<div class="em-alert">⚠️ 情绪偏冷（温度' + (emo.temperature != null ? emo.temperature : '—') + '）：控制仓位、以回踩低吸为主，回踩企稳门槛额外 +3。</div>';
+    }
+    if (d.market_code === 'pb' && emo && emo.fb) {
+      var _pr = emo.promote_rate != null ? Math.round(emo.promote_rate * 100) : null;
+      var _hint = emo.promote_rate >= 0.25 ? '二波机会偏多' : (emo.promote_rate < 0.15 ? '二波偏难·谨慎' : '二波中性');
+      h += '<div class="em-note">昨日首板 ' + emo.fb + ' 只 · 今日晋级 ' + emo.promote + ' 只' +
+        (_pr != null ? '（晋级率 ' + _pr + '% · ' + _hint + '）' : '') +
+        '：回踩企稳只做「缩量不破位 + 主线共振」的低吸。</div>';
+    }
+    return h;
+  }
+
   function renderList(d){
     var el = $('list');
     var picks = d.picks || [];
+    var emoHtml = emotionBannerMobile(d);
     if (d.vip_required) {
       el.innerHTML = '<div class="vip-gate"><div class="t">🔒 个股筛选为 VIP 专属</div><div class="d">板块热点免费看，个股分析与主线锁定需开通 VIP 后解锁。</div><a href="account.html">去开通 VIP →</a></div>';
       return;
     }
     if (!picks.length) {
       var txt = d.archive ? '该日期无归档筛选记录' : dataDayLabel(d) + '无合格标的：行情整体偏弱或筛选条件过严，宁缺毋滥；可稍后重扫。';
-      el.innerHTML = '<div class="empty">' + txt + '</div>';
+      el.innerHTML = emoHtml + '<div class="empty">' + txt + '</div>';
       return;
     }
-    el.innerHTML = picks.map(card).join('');
+    el.innerHTML = emoHtml + picks.map(card).join('');
     // runners
     var runners = d.runners || [];
     var rb = $('runner-box');

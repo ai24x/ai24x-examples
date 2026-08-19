@@ -3441,6 +3441,8 @@
       var v = parseFloat(row[5]);
       // Drop invalid bars to avoid chart rendering as "all zeros"/blank (NaN breaks series).
       if (!isFinite(o) || !isFinite(c) || !isFinite(h) || !isFinite(l)) continue;
+      // Drop zero/negative OHLC or inconsistent bars (upstream placeholder bars during auction/post-close).
+      if (o <= 0 || c <= 0 || h <= 0 || l <= 0 || h < l || c > h || c < l) continue;
       var ymd = d.split('-').map(Number);
       if (!ymd[0] || isNaN(ymd[1]) || isNaN(ymd[2])) continue;
       byDay[d] = {
