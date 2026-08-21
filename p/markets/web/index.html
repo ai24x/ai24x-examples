@@ -3,6 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <meta name="theme-color" content="#0a0c10">
   <title>AI24X Markets — US Market Intelligence</title>
   <meta name="description" content="Charts, technical indicators and plain-language AI commentary for US stocks, ETFs and indices. Pro from $24.9/month, PayPal.">
   <meta property="og:title" content="AI24X Markets — US Market Intelligence">
@@ -66,6 +70,12 @@
     .upgrade-pill:hover { text-decoration: none; filter: brightness(1.1); }
     .auth-link { padding: 7px 14px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
     .auth-link:hover { color: var(--text); border-color: var(--accent); text-decoration: none; }
+    .auth-link.signin { border-color: color-mix(in srgb, var(--accent) 50%, transparent); color: var(--accent); }
+    .auth-link.signin:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--accent); }
+    .auth-link.signup { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .auth-link.signup:hover { filter: brightness(1.1); background: var(--accent); color: #fff; }
+    #social-login a { border-color: color-mix(in srgb, var(--accent) 40%, transparent); color: var(--muted); padding: 7px 11px; }
+    #social-login a:hover { border-color: var(--accent); color: var(--text); background: color-mix(in srgb, var(--accent) 8%, transparent); }
 
     .hero { padding: 56px 0 30px; }
     .hero-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 40px; align-items: center; }
@@ -132,7 +142,9 @@
       </nav>
       <div class="header-actions">
         <a class="upgrade-pill" href="/app.html#sub">Upgrade VIP</a>
-        <a class="auth-link" id="signin-link" href="#">Sign in</a>
+        <a class="auth-link signin" id="signin-link" href="#">Sign in</a>
+        <a class="auth-link signup" id="signup-link" href="#">Sign up</a>
+        <span id="social-login" style="display:inline-flex; gap:6px;"></span>
       </div>
     </div>
   </header>
@@ -229,7 +241,7 @@
         <p class="sub">Charts are free to browse — no sign-up needed. Sign in for AI Briefs and a personal watchlist.</p>
         <div class="grid-3">
           <div class="card"><h3>1 · Type a ticker</h3><p>Enter <b>AAPL</b>, <b>NVDA</b>, <b>SPY</b> or <b>^GSPC</b>, then hit Search.</p></div>
-          <div class="card"><h3>2 · Read the chart</h3><p>Candles, moving averages, MACD and signal markers — all on one screen.</p></div>
+          <div class="card"><h3>2 · Read the chart</h3><p>Candles, moving averages, MACD and trend markers — all on one screen.</p></div>
           <div class="card"><h3>3 · Ask the AI</h3><p>One click turns the indicators into a plain-language technical brief — sign in to unlock your free daily briefs.</p></div>
         </div>
         <p style="margin-top:20px;"><a class="btn btn-primary" href="/app.html">Try it free →</a></p>
@@ -269,7 +281,7 @@
         <div class="grid-3">
           <div class="card">
             <h3>Free</h3>
-            <p>Charts and indicators for any US symbol. AI commentary up to 3 times a day.</p>
+            <p>Charts and indicators for any US symbol. AI commentary up to 10 times a day.</p>
           </div>
           <div class="card" style="border-color: var(--accent);">
             <h3>Pro · $24.9/month</h3>
@@ -329,6 +341,25 @@
         var back = encodeURIComponent(location.href);
         var s = document.getElementById("signin-link");
         if (s) s.href = coreHost + "/login.html?next=" + back;
+        var su = document.getElementById("signup-link");
+        if (su) su.href = coreHost + "/register.html?next=" + back;
+      } catch (e) {}
+      try {
+        var sp = document.getElementById("social-login");
+        if (sp) {
+          fetch(coreHost + "/v1/auth/providers")
+            .then(function (r) { return r.json(); })
+            .then(function (j) {
+              if (!sp) return;
+              var gSvg = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="vertical-align:-2px;margin-right:4px;"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75z"/></svg>';
+              var aSvg = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="vertical-align:-2px;margin-right:4px;"><path fill="currentColor" d="M16.365 1.43c0 1.14-.42 2.2-1.25 3.17-.99 1.16-2.31 1.83-3.61 1.72-.08-1.1.42-2.26 1.19-3.17 1-.96 2.42-1.61 3.67-1.72zm2.35 16.04c-.59 1.35-.88 1.95-1.64 3.15-1.06 1.67-2.56 3.75-4.42 3.76-1.65.02-2.09-1.08-4.34-1.07-2.25.02-2.73 1.09-4.39 1.07-1.85-.02-3.28-1.91-4.34-3.58C-1.16 18.55-1.9 13.3.73 9.88c1.24-1.62 3.21-2.65 5.06-2.65 1.87 0 3.05 1.07 4.59 1.07 1.51 0 2.43-1.07 4.57-1.07 1.66 0 3.42.9 4.66 2.44-4.1 2.22-3.44 8.01.83 9.8z"/></svg>';
+              var h = "";
+              if (j && j.google) h += '<a class="auth-link" href="' + coreHost + '/v1/auth/google/login?next=' + back + '" title="Continue with Google" style="display:inline-flex;align-items:center;padding:7px 10px;">' + gSvg + "<span>Google</span></a>";
+              if (j && j.apple) h += '<a class="auth-link" href="' + coreHost + '/v1/auth/apple/login?next=' + back + '" title="Continue with Apple" style="display:inline-flex;align-items:center;padding:7px 10px;">' + aSvg + "<span>Apple</span></a>";
+              sp.innerHTML = h;
+            })
+            .catch(function () {});
+        }
       } catch (e) {}
       try {
         var el = document.getElementById("hero-art");
@@ -355,6 +386,9 @@
         window.addEventListener("blur", onLeave);
       } catch (e) {}
     })();
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(function () {});
+    }
   </script>
 </body>
 </html>

@@ -264,6 +264,40 @@ async def api_subscribe_capture(request: Request, payload: dict = Body(...)):
         return JSONResponse(status_code=500, content={"code": -1, "msg": "internal_error"})
 
 
+@app.post("/api/subscribe/fulfill")
+async def api_subscribe_fulfill(request: Request, payload: dict = Body(...)):
+    """统一支付中台回调：验签名 → 幂等激活订阅（webhook/查单重试安全）。
+
+    只接受带 X-Markets-Secret 的服务端调用（核心 pay_products 配置同一密钥），
+    不走用户 Bearer。订单级幂等：已 paid 且 Pro 有效直接返回 already_activated。
+    """
+    secret = os.environ.get("MARKETS_FULFILL_SECRET", "")
+    got = (request.headers.get("x-markets-secret") or "").strip()
+    if not secret or got != secret:
+        return JSONResponse(status_code=403, content={"code": -1, "msg": "bad_secret"})
+    otn = str((payload or {}).get("out_trade_no") or "").strip()
+    uid = str((payload or {}).get("user_id") or "").strip()
+    # 核心 /v1/user/info 返回 user_id=auth_<id>，与 _auth_user_id 口径一致
+    if uid and not uid.startswith("auth_"):
+        uid = "auth_" + uid
+    plan = str((payload or {}).get("plan") or "").strip().lower()
+    source = str((payload or {}).get("source") or "paypal").strip()[:16]
+    if not otn or not uid or plan not in billing.PLANS:
+        return JSONResponse(status_code=400, content={"code": -1, "msg": "bad_payload"})
+    try:
+        existing = billing.get_hub_order(otn)
+        if existing and str(existing.get("status")) == "paid" and billing.is_pro(uid):
+            return {"code": 0, "data": {"status": "already_activated", "out_trade_no": otn}}
+        amount = float(billing.PLANS[plan]["usd"])
+        billing.create_hub_order(otn, f"markets:{uid}:{plan}", amount, plan, source)
+        billing.mark_hub_order_paid(otn)
+        sub = billing.activate_subscription(uid, plan, source=source)
+        return {"code": 0, "data": {"status": "activated", "out_trade_no": otn, "subscription": sub}}
+    except Exception as e:
+        print(f"[markets] /api/subscribe/fulfill error: {e!r}", file=sys.stderr)
+        return JSONResponse(status_code=500, content={"code": -1, "msg": "internal_error"})
+
+
 @app.post("/api/ai/brief")
 async def api_ai_brief(request: Request, payload: dict = Body(...)):
     """AI 技术体检点评（Pro 主力；免费档日 3 次）。描述性输出，不构成投资建议。"""

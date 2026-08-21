@@ -3,6 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <meta name="theme-color" content="#0a0c10">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>AI24X Markets · Technical Indicators</title>
   <style>
     :root {
@@ -26,6 +33,9 @@
     .mk-nav a { padding: 7px 11px; border-radius: 8px; font-size: 0.88rem; font-weight: 600; color: var(--muted); }
     .mk-nav a:hover { color: var(--text); background: var(--panel2); text-decoration: none; }
     .mk-actions { display: flex; align-items: center; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+    .mk-menu-btn { display: none; align-items: center; justify-content: center; width: 38px; height: 38px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel2); color: var(--text); cursor: pointer; font-size: 20px; line-height: 1; }
+    .mk-menu-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .mk-drawer { display: none; }
     .mk-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--border); }
     .panel-anchor { scroll-margin-top: 150px; }
     .lang-switch { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-right: 4px; }
@@ -42,6 +52,15 @@
     button:hover { border-color: var(--accent); }
     button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
     #go { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .sub-plans { display: flex; flex-wrap: wrap; gap: 10px; }
+    .sub-plan { position: relative; flex: 1 1 150px; padding: 13px 12px 12px; border-radius: 10px; background: var(--panel2); border: 1px solid var(--border); color: var(--text); font-size: 13px; font-weight: 700; cursor: pointer; text-align: center; transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease; }
+    .sub-plan:hover { transform: translateY(-1px); border-color: var(--accent); box-shadow: 0 6px 16px rgba(0,0,0,.28); }
+    .sub-plan .plan-price { display: block; font-size: 19px; font-weight: 800; color: #fff; margin-top: 5px; letter-spacing: -0.01em; }
+    .sub-plan .plan-unit { font-size: 12px; font-weight: 600; color: var(--muted); }
+    .sub-plan .plan-note { display: block; font-size: 11px; color: var(--muted); font-weight: 400; margin-top: 4px; }
+    .sub-plan.is-rec { border: 2px solid var(--gold, #fbbf24); background: linear-gradient(180deg, rgba(251,191,36,.13), rgba(251,191,36,.03) 65%, var(--panel2)); box-shadow: 0 0 0 1px rgba(251,191,36,.22), 0 8px 20px rgba(0,0,0,.3); }
+    .sub-plan.is-rec .plan-price { color: var(--gold, #fbbf24); }
+    .sub-plan .badge { position: absolute; top: -10px; right: 12px; background: var(--gold, #fbbf24); color: #221703; font-size: 10px; font-weight: 800; letter-spacing: .04em; padding: 2px 9px; border-radius: 999px; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
     .spacer { flex: 1; }
     .err { color: var(--up); font-size: 13px; }
     #quote { display: flex; flex-wrap: wrap; gap: 16px; align-items: baseline; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--border); font-size: 13px; }
@@ -57,6 +76,14 @@
     .legend .lg-item { display: inline-flex; align-items: center; gap: 4px; }
     .legend .lg-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
     .legend .lg-arrow { font-size: 12px; }
+    /* —— 技术健康评分条 —— */
+    .score-strip { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--border); font-size: 12px; }
+    .score-num { font-size: 26px; font-weight: 800; line-height: 1; }
+    .score-bar { width: 130px; height: 6px; border-radius: 3px; background: var(--panel2); overflow: hidden; margin-top: 4px; }
+    .score-bar i { display: block; height: 100%; border-radius: 3px; }
+    .score-summary { font-weight: 600; }
+    .score-chip { display: inline-block; padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 11px; margin: 2px 4px 0 0; }
+    .score-risk { color: #f87171; border-color: rgba(248,113,113,.35); }
     .short-ma { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); cursor: pointer; user-select: none; }
     .short-ma input { accent-color: var(--accent); }
     .tooltip { position: absolute; z-index: 10; pointer-events: none; background: rgba(10,12,16,0.94); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12px; line-height: 1.65; min-width: 200px; box-shadow: 0 4px 16px rgba(0,0,0,.45); }
@@ -69,13 +96,13 @@
     /* —— 统一页脚 —— */
     .mk-footer { border-top: 1px solid var(--border); margin-top: 24px; padding: 30px 16px 22px; background: var(--panel); color: var(--muted); font-size: 12px; }
     .mk-footer-inner { max-width: 1080px; margin: 0 auto; }
-    .score-strip { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--border); font-size: 12px; }
-    .score-num { font-size: 26px; font-weight: 800; line-height: 1; }
-    .score-bar { width: 130px; height: 6px; border-radius: 3px; background: var(--panel2); overflow: hidden; margin-top: 4px; }
-    .score-bar i { display: block; height: 100%; border-radius: 3px; }
-    .score-summary { font-weight: 600; }
-    .score-chip { display: inline-block; padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 11px; margin: 2px 4px 0 0; }
-    [hidden] { display: none !important; }
+    /* —— 底部订阅引导区 —— */
+    .mk-sub-band { border-top: 1px solid var(--border); margin-top: 24px; padding: 24px 16px; background: linear-gradient(90deg, color-mix(in srgb, var(--accent, #2563eb) 10%, transparent), transparent); }
+    .mk-sub-band-inner { max-width: 1080px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .mk-sub-band h3 { margin: 0 0 4px; font-size: 17px; }
+    .mk-sub-band p { margin: 0; font-size: 13px; }
+    .band-cta { display: inline-block; padding: 10px 20px; border-radius: 8px; background: var(--accent, #2563eb); color: #fff; font-size: 14px; font-weight: 700; text-decoration: none; white-space: nowrap; }
+    .band-cta:hover { text-decoration: none; filter: brightness(1.1); }
     .footer-grid { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 22px; }
     .footer-title { font-weight: 800; color: var(--text); margin-bottom: 9px; }
     .footer-col a { display: block; padding: 5px 0; color: var(--muted); }
@@ -97,9 +124,47 @@
     .free-banner .fb-up { border: 1px solid var(--gold); color: var(--gold); border-radius: 999px; padding: 5px 14px; font-weight: 700; font-size: 12px; text-decoration: none; white-space: nowrap; }
     .free-banner .fb-up:hover { background: rgba(251,191,36,.12); }
     .free-banner .fb-close { background: transparent; border: 0; color: var(--muted); font-size: 15px; cursor: pointer; line-height: 1; padding: 4px 6px; }
+    /* —— 统一支付中台弹窗（Markets Pro 订阅 · 微信/支付宝/PayPal/Creem） —— */
+    .payhub-overlay { position: fixed; inset: 0; z-index: 1001; background: rgba(6,10,18,.92); display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .payhub-overlay[hidden] { display: none; }
+    .payhub-modal { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; max-width: 430px; width: 100%; padding: 20px; max-height: 88vh; overflow-y: auto; }
+    .payhub-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .payhub-title { font-size: 16px; font-weight: 700; }
+    .payhub-sub { color: var(--muted); font-size: 12px; margin-top: 4px; line-height: 1.55; }
+    .payhub-close { background: transparent; border: 0; color: var(--muted); font-size: 22px; line-height: 1; cursor: pointer; padding: 2px 6px; }
+    .payhub-close:hover { color: var(--text); }
+    .payhub-channels { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .payhub-btn { display: flex; align-items: center; gap: 10px; padding: 12px; background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; }
+    .payhub-btn:hover { border-color: var(--accent); background: #1d2530; }
+    .payhub-btn:disabled { opacity: .45; cursor: not-allowed; }
+    .payhub-ico { width: 24px; height: 24px; flex: 0 0 24px; }
+    .payhub-result { margin-top: 14px; }
+    .payhub-hint { font-size: 12px; color: var(--muted); line-height: 1.65; margin-bottom: 12px; white-space: pre-wrap; }
+    .payhub-hint.err { color: var(--up); }
+    .payhub-qr { display: block; width: 220px; height: 220px; margin: 0 auto 12px; border-radius: 10px; background: #fff; padding: 8px; }
+    .payhub-open { display: block; text-align: center; margin-top: 6px; padding: 9px 0; background: var(--accent); color: #fff; border-radius: 8px; font-size: 13px; font-weight: 600; text-decoration: none; }
+    .payhub-open:hover { opacity: .9; }
+    .payhub-back { display: block; margin-top: 12px; text-align: center; background: transparent; border: 0; color: var(--muted); font-size: 12px; cursor: pointer; width: 100%; }
+    .payhub-note { margin-top: 10px; font-size: 11px; color: var(--muted); line-height: 1.5; }
+    [hidden] { display: none !important; }
+    /* —— 手机端底部快捷操作条（桌面隐藏） —— */
+    .mb-bar { display: none; }
     @media (max-width: 640px) {
-      .mk-top-inner { grid-template-columns: 1fr; gap: 6px; padding: 8px 10px; }
-      .mk-nav { justify-content: flex-start; }
+      .mk-top-inner { display: flex; align-items: center; gap: 8px; padding: 8px 10px; min-height: 0; }
+      .mk-top-inner .brand { margin-right: auto; }
+      .mk-nav { display: none; }
+      #auth-area { display: none; }
+      .mk-menu-btn { display: inline-flex; }
+      .mk-drawer { display: block; }
+      .mk-drawer-mask { position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,.55); }
+      .mk-drawer-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 80%; max-width: 320px; z-index: 501; background: var(--panel); border-left: 1px solid var(--border); padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); overflow-y: auto; box-shadow: -10px 0 32px rgba(0,0,0,.45); display: flex; flex-direction: column; gap: 4px; }
+      .mk-drawer-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-size: 14px; font-weight: 700; color: var(--text); }
+      .mk-drawer-close { background: transparent; border: 0; color: var(--muted); font-size: 24px; line-height: 1; cursor: pointer; padding: 2px 6px; }
+      .mk-drawer-close:hover { color: var(--text); }
+      .mk-drawer-nav { display: flex; flex-direction: column; gap: 2px; }
+      .mk-drawer-nav a { display: block; padding: 11px 12px; border-radius: 8px; font-size: 15px; font-weight: 600; color: var(--text); }
+      .mk-drawer-nav a:hover { background: var(--panel2); color: var(--accent); text-decoration: none; }
+      .mk-drawer-auth { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
       .mk-toolbar { padding: 8px 10px; gap: 6px; }
       .brand { font-size: 14px; }
       #symbol { flex: 1; min-width: 90px; }
@@ -107,10 +172,18 @@
       .samples { padding: 6px 10px; gap: 5px; }
       main { padding: 8px 8px 20px; }
       .panel { margin-bottom: 8px; }
-      .chart { height: 380px; }
+      .chart { height: 420px; }
       #quote { padding: 8px 10px; }
       footer { padding: 12px 12px 22px; font-size: 11px; }
       .footer-grid { grid-template-columns: 1fr 1fr; }
+      .mk-sub-band-inner { flex-direction: column; align-items: flex-start; }
+      .payhub-channels { grid-template-columns: 1fr 1fr; }
+      .mb-bar { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 8px; position: fixed; left: 0; right: 0; bottom: 0; z-index: 300; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); background: rgba(10,12,16,.97); backdrop-filter: blur(10px); border-top: 1px solid var(--border); }
+      .mb-btn { display: flex; align-items: center; justify-content: center; border-radius: 10px; padding: 11px 0; font-size: 13px; font-weight: 700; text-align: center; }
+      .mb-btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+      .mb-btn-pro { background: transparent; border: 1px solid var(--gold); color: var(--gold); text-decoration: none; }
+      main { padding-bottom: 84px; }
+      .mk-sub-band { padding-bottom: 92px; }
     }
   </style>
 </head>
@@ -119,8 +192,6 @@
     <div class="onboard-card">
       <h2 data-i18n-html="onboard.title">Welcome to AI24X Markets</h2>
       <div class="step"><span class="num">1</span><div data-i18n-html="onboard.step1">Type a ticker above &mdash; try <b>AAPL</b> or <b>SPY</b> &mdash; and hit <b>Search</b>.</div></div>
-      <div class="step"><span class="num">2</span><div data-i18n-html="onboard.step2">Read candles, moving averages and signals on one chart.</div></div>
-      <div class="step"><span class="num">3</span><div data-i18n-html="onboard.step3">Click <b>AI Brief</b> for a plain-language technical read (sign in to unlock).</div></div>
       <div class="onboard-actions">
         <button id="onboard-start" type="button" data-i18n="onboard.start" style="flex:1; padding:9px 0; border:0; border-radius:8px; background:var(--accent); color:#fff; font-weight:600; cursor:pointer;">Get started</button>
         <button id="onboard-skip" type="button" data-i18n="onboard.skip" style="padding:9px 14px; border:1px solid var(--border); border-radius:8px; background:transparent; color:var(--muted); cursor:pointer;">Skip</button>
@@ -145,8 +216,28 @@
         </div>
         <span id="auth-area"></span>
       </div>
+      <button type="button" id="mk-menu-btn" class="mk-menu-btn" aria-label="Menu" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
     </div>
   </header>
+  <div id="mk-drawer" class="mk-drawer" hidden>
+    <div class="mk-drawer-mask" id="mk-drawer-mask"></div>
+    <div class="mk-drawer-panel" role="dialog" aria-modal="true" aria-label="Menu">
+      <div class="mk-drawer-head">
+        <span data-i18n="menu.title">Menu</span>
+        <button type="button" id="mk-drawer-close" class="mk-drawer-close" aria-label="Close">&times;</button>
+      </div>
+      <nav class="mk-drawer-nav" aria-label="Mobile">
+        <a href="/" data-i18n="nav.markets">Markets</a>
+        <a href="/pricing.html" data-i18n="nav.pricing">Pricing</a>
+        <a href="/screener.html" data-i18n="nav.discover">Discover</a>
+        <a href="https://www.ai24x.com/help.html" target="_blank" rel="noopener" data-i18n="nav.help">Help</a>
+        <a id="mk-console-mob" href="#" data-i18n="nav.console">Console</a>
+      </nav>
+      <div class="mk-drawer-auth" id="auth-area-mob"></div>
+    </div>
+  </div>
   <div class="mk-toolbar">
     <input id="symbol" value="AAPL" maxlength="20" placeholder="AAPL / SPY / ^GSPC">
     <button id="go" data-i18n="search">Search</button>
@@ -177,6 +268,12 @@
     <div id="watch-chips" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
     <span id="watch-quota" style="font-size:11px; color:var(--muted);"></span>
   </div>
+
+  <nav id="mb-bar" class="mb-bar" aria-label="Quick actions">
+    <button type="button" id="mb-discover" class="mb-btn" data-i18n="mb.discover">Discover</button>
+    <button type="button" id="mb-brief" class="mb-btn mb-btn-primary" data-i18n="mb.brief">AI Brief</button>
+    <a id="mb-pro" class="mb-btn mb-btn-pro" href="#sub" data-i18n="mb.pro">Pro</a>
+  </nav>
 
   <div id="quote"></div>
 
@@ -209,11 +306,24 @@
       <h3 data-i18n="panel.sub">Pro Subscription</h3>
       <div style="padding: 12px 14px;">
         <div id="sub-status" style="font-size:13px; margin-bottom:10px; color:var(--muted);"></div>
-        <div style="font-size:12px; color:var(--muted); margin-bottom:10px;" data-i18n="sub.steps">How it works: 1 · Pick a plan → 2 · PayPal checkout → 3 · Pro activates instantly.</div>
-        <div style="display:flex; flex-wrap:wrap; gap:10px;">
-          <button id="btn-sub-week" data-i18n="sub.week">Upgrade · $9.9/week</button>
-          <button id="btn-sub-month" data-i18n="sub.month">Upgrade · $24.9/month</button>
-          <button id="btn-sub-year" data-i18n="sub.year">Upgrade · $199/year</button>
+        <div style="font-size:12px; color:var(--muted); margin-bottom:10px;" data-i18n="sub.steps">How it works: 1 · Pick a plan → 2 · Choose a payment method → 3 · Pro activates instantly.</div>
+        <div class="sub-plans">
+          <button type="button" class="sub-plan" id="btn-sub-week">
+            <span data-i18n="sub.weekT">Weekly</span>
+            <span class="plan-price">$9.9<span class="plan-unit">/week</span></span>
+            <span class="plan-note" data-i18n="sub.weekNote">Flexible start</span>
+          </button>
+          <button type="button" class="sub-plan is-rec" id="btn-sub-month">
+            <span class="badge" data-i18n="sub.popular">POPULAR</span>
+            <span data-i18n="sub.monthT">Monthly</span>
+            <span class="plan-price">$24.9<span class="plan-unit">/month</span></span>
+            <span class="plan-note" data-i18n="sub.monthNote">Most popular choice</span>
+          </button>
+          <button type="button" class="sub-plan" id="btn-sub-year">
+            <span data-i18n="sub.yearT">Yearly</span>
+            <span class="plan-price">$199<span class="plan-unit">/year</span></span>
+            <span class="plan-note" data-i18n="sub.yearNote">Best value · save 33%</span>
+          </button>
         </div>
         <div id="sub-msg" style="color:var(--up); font-size:12px; margin-top:10px;"></div>
         <div id="pro-next" style="display:none; gap:8px; flex-wrap:wrap; margin-top:10px;">
@@ -224,12 +334,23 @@
     </div>
   </main>
 
+  <!-- 底部订阅引导：未登录 → 注册开通；已登录 → 用户中心套餐页 -->
+  <section class="mk-sub-band" id="sub-band" role="region" aria-label="Pro subscription">
+    <div class="mk-sub-band-inner">
+      <div>
+        <h3 data-i18n="band.title">Unlock AI briefs &amp; a 50-symbol watchlist</h3>
+        <p data-i18n="band.sub">Pro from $9.9/week · $24.9/month · $199/year — PayPal, WeChat, Alipay &amp; more.</p>
+      </div>
+      <a class="band-cta" id="band-cta" href="https://www.ai24x.com/console.html#billing" target="_blank" rel="noopener" data-i18n="band.ctaPro">Go to my plans</a>
+    </div>
+  </section>
+
   <footer class="mk-footer">
     <div class="mk-footer-inner">
       <div class="footer-grid">
         <div class="footer-col">
           <div class="footer-title">AI24X</div>
-          <div data-i18n="footer">15-minute delayed market data. Sources: Tencent (primary) · Eastmoney. For educational purposes only — not investment advice.</div>
+          <div data-i18n="footer">15-minute delayed market data. For educational purposes only — not investment advice.</div>
         </div>
         <div class="footer-col">
           <div class="footer-title">Product</div>
@@ -253,6 +374,26 @@
     </div>
   </footer>
 
+  <!-- 统一支付中台：Markets Pro 订阅 · 微信 / 支付宝 / PayPal / Creem -->
+  <div id="payhub" class="payhub-overlay" hidden role="dialog" aria-modal="true" aria-label="Checkout">
+    <div class="payhub-modal">
+      <div class="payhub-head">
+        <div>
+          <div id="payhub-title" class="payhub-title"></div>
+          <div id="payhub-sub" class="payhub-sub"></div>
+        </div>
+        <button type="button" id="payhub-close" class="payhub-close" aria-label="Close">&times;</button>
+      </div>
+      <div id="payhub-channels" class="payhub-channels"></div>
+      <div id="payhub-result" class="payhub-result" hidden>
+        <div id="payhub-hint" class="payhub-hint"></div>
+        <img id="payhub-qr" class="payhub-qr" alt="QR code" hidden>
+        <a id="payhub-open" class="payhub-open" href="#" target="_blank" rel="noopener" hidden></a>
+        <button type="button" id="payhub-back" class="payhub-back"></button>
+      </div>
+    </div>
+  </div>
+
   <script src="vendor/lightweight-charts.standalone.production.js"></script>
   <script>
     (function () {
@@ -262,7 +403,7 @@
         en: {
           search: 'Search',
           searchPh: 'AAPL / SPY / ^GSPC',
-          popular: 'Popular — tap one to try',
+          popular: 'Popular',
           'p.day': '1D', 'p.week': '1W', 'p.month': '1M',
           'panel.main': 'Price · MA14/28/57 · MACD',
           'panel.brief': 'AI Technical Brief',
@@ -271,38 +412,67 @@
           'brief.disclaimer': 'For educational purposes only — not investment advice. Market data is delayed at least 15 minutes.',
           'brief.loading': 'Analyzing…',
           'brief.login': 'Sign in to generate AI briefs',
-          'brief.quota': '{n} of 3 free briefs left today',
+          'brief.quota': '{n} of 10 free briefs left today',
           'brief.pro': 'Pro — unlimited AI briefs',
           'brief.err': 'Brief unavailable: ',
-          'brief.quotaExceeded': 'You have used all 3 free AI briefs today. Free briefs reset tomorrow — upgrade to Pro for unlimited commentary.',
+          'brief.quotaExceeded': 'You have used all 10 free AI briefs today. Free briefs reset tomorrow — upgrade to Pro for unlimited commentary.',
           'brief.offline': 'AI commentary is temporarily unavailable. Please try again later.',
           'panel.sub': 'Pro Subscription',
-          'sub.week': 'Upgrade · $9.9/week',
-          'sub.month': 'Upgrade · $24.9/month',
-          'sub.year': 'Upgrade · $199/year',
-          'sub.free': 'Free plan — 3 AI briefs/day, watchlist up to 3 symbols.',
+          'sub.weekT': 'Weekly',
+          'sub.weekNote': 'Flexible start',
+          'sub.monthT': 'Monthly',
+          'sub.monthNote': 'Most popular choice',
+          'sub.yearT': 'Yearly',
+          'sub.yearNote': 'Best value · save 33%',
+          'sub.popular': 'POPULAR',
+          'sub.free': 'Free plan — 10 AI briefs/day, watchlist up to 10 symbols.',
           'sub.pro': 'Pro active — unlimited AI briefs, watchlist up to 50 symbols. Expires {date}.',
           'sub.checkoutFail': 'Unable to start checkout: ',
           'sub.captureFail': 'Payment confirmation pending. If you completed payment, your access will activate shortly.',
           'sub.captureOk': 'Payment confirmed — Pro activated. Thank you!',
           'sub.reload': 'Refreshing…',
-          'banner.free': 'You are on the Free plan — 3 AI briefs/day and a 3-symbol watchlist. Upgrade to Pro for unlimited briefs and a 50-symbol watchlist.',
+          'banner.free': 'Free plan · 10 AI briefs/day & 10-symbol watchlist — upgrade for more.',
           'banner.upgrade': 'Upgrade to Pro',
-          'sub.steps': 'How it works: 1 · Pick a plan → 2 · PayPal checkout → 3 · Pro activates instantly.',
+          'sub.steps': 'How it works: 1 · Pick a plan → 2 · Choose a payment method → 3 · Pro activates instantly.',
+          'pay.title': 'AI24X Markets Pro',
+          'pay.choose': 'Choose a payment method',
+          'pay.preparingCheckout': 'Opening checkout…',
+          'pay.wechat': 'WeChat Pay',
+          'pay.alipay': 'Alipay',
+          'pay.paypal': 'PayPal',
+          'pay.creem': 'Creem',
+          'pay.mock': 'Mock (test)',
+          'pay.unavailable': 'Not ready',
+          'pay.preparingWechat': 'Preparing WeChat QR…',
+          'pay.wechatHint': 'Scan with WeChat to pay. This page auto-confirms after payment. Order: ',
+          'pay.opened': 'Payment page opened in a new window — finish payment there.',
+          'pay.blocked': 'Popup blocked? Tap the button below to open the payment page.',
+          'pay.autoConfirm': ' This page auto-confirms after payment. Order: ',
+          'pay.openPaypal': 'Open PayPal',
+          'pay.openAlipay': 'Open Alipay',
+          'pay.openCreem': 'Open Creem',
+          'pay.checkoutFail': 'Unable to start checkout: ',
+          'pay.verifyFail': 'Payment confirmation pending. If you completed payment, your access will activate shortly.',
+          'pay.ok': 'Payment confirmed — Pro activated. Thank you!',
+          'pay.back': '← Choose another method',
+          'pay.mockHint': 'Mock order created ({otn}). Tap Confirm below to activate in test mode.',
+          'pay.mockConfirm': 'Confirm mock payment',
+          'pay.polling': 'Waiting for payment… You can keep this tab open.',
+          'pay.unavailableHint': 'This payment method is not available yet. Please choose another one.',
+          'pay.needLogin': 'Sign in to subscribe to Pro.',
           shortma: 'Short MAs 5/10/20 (dashed)',
-          footer: '15-minute delayed market data. Sources: Tencent (primary) · Eastmoney. For educational purposes only — not investment advice.',
+          footer: '15-minute delayed market data. For educational purposes only — not investment advice.',
           loading: 'Loading…',
           quoteFail: 'Quote unavailable: ',
           loadFail: 'Error: ',
           notFound: 'Symbol not found: {s}. Please check the ticker code.',
-          noData: 'No data for this symbol. Try a ticker like AAPL, or a Chinese index name like SSE Composite.',
+          noData: 'No data for this symbol. Try a US ticker like AAPL or NVDA, or a name like Apple.',
           didYouMean: 'Did you mean',
           'onboard.title': 'Welcome to AI24X Markets',
-          'onboard.step1': 'Type a ticker above — try <b>AAPL</b> or <b>SPY</b> — and hit <b>Search</b>.',
-          'onboard.step2': 'Read candles, moving averages and signals on one chart.',
-          'onboard.step3': 'Click <b>AI Brief</b> for a plain-language technical read (sign in to unlock).',
+          'onboard.step1': 'Type a ticker or tap a popular symbol below to see its chart.',
           'onboard.start': 'Get started',
           'onboard.skip': 'Skip',
+          'menu.title': 'Menu',
           open: 'Open', high: 'High', low: 'Low', close: 'Close', prev: 'Prev close',
           chg: 'Chg', chgPct: 'Chg %', vol: 'Volume', vsPrev: 'vs prev close', vsOpen: 'vs open',
           amplitude: 'Range %', signal: 'Signal', date: 'Date', macd: 'MACD', macdHist: 'Hist',
@@ -318,12 +488,20 @@
           'score.na': 'Score needs 60+ days of data',
           'score.viewScreener': 'Explore today\'s screen →',
           signIn: 'Sign in',
+          signUp: 'Sign up',
           signedInAs: 'Signed in as',
           console: 'Console',
           upgrade: 'Upgrade',
           signOut: 'Sign out',
           authFail: 'Session check unavailable',
+          'band.title': 'Unlock AI briefs & a 50-symbol watchlist',
+          'band.sub': 'Pro from $9.9/week · $24.9/month · $199/year — PayPal, WeChat, Alipay & more.',
+          'band.ctaFree': 'Sign up & subscribe',
+          'band.ctaPro': 'Go to my plans',
           'watch.title': 'Watchlist',
+          'mb.discover': 'Discover',
+          'mb.brief': 'AI Brief',
+          'mb.pro': 'Pro',
         },
         zh: {
           search: '查询',
@@ -337,38 +515,67 @@
           'brief.disclaimer': '内容仅供学习交流，不构成投资建议。行情延迟至少 15 分钟。',
           'brief.loading': '分析中…',
           'brief.login': '登录后可生成 AI 点评',
-          'brief.quota': '今日免费点评剩余 {n} 次（共 3 次）',
+          'brief.quota': '今日免费点评剩余 {n} 次（共 10 次）',
           'brief.pro': 'Pro — AI 点评不限次数',
           'brief.err': '点评暂不可用：',
-          'brief.quotaExceeded': '今日 3 次免费 AI 点评已用完，明日重置。升级 Pro 可无限使用。',
+          'brief.quotaExceeded': '今日 10 次免费 AI 点评已用完，明日重置。升级 Pro 可无限使用。',
           'brief.offline': 'AI 点评服务暂时不可用，请稍后再试。',
           'panel.sub': 'Pro 订阅',
-          'sub.week': '升级 · $9.9/周',
-          'sub.month': '升级 · $24.9/月',
-          'sub.year': '升级 · $199/年',
-          'sub.free': '免费版 — 每天 3 次 AI 点评，自选最多 3 只。',
+          'sub.weekT': '周套餐',
+          'sub.weekNote': '灵活体验',
+          'sub.monthT': '月套餐',
+          'sub.monthNote': '最多人选择',
+          'sub.yearT': '年套餐',
+          'sub.yearNote': '超值 · 立省 33%',
+          'sub.popular': '人气推荐',
+          'sub.free': '免费版 — 每天 10 次 AI 点评，自选最多 10 只。',
           'sub.pro': 'Pro 生效中 — AI 点评不限次，自选最多 50 只。到期时间 {date}。',
           'sub.checkoutFail': '无法发起支付：',
           'sub.captureFail': '支付确认待处理。如已完成支付，稍后会自动生效。',
           'sub.captureOk': '支付确认成功 — Pro 已激活，感谢支持！',
           'sub.reload': '刷新中…',
-          'banner.free': '当前为免费版 — 每天 3 次 AI 点评、自选最多 3 只。升级 Pro 可无限点评、自选扩至 50 只。',
+          'banner.free': '免费版 · 每天 10 次点评、10 只自选 — 升级解锁更多。',
           'banner.upgrade': '升级 Pro',
-          'sub.steps': '开通流程：① 选择套餐 → ② PayPal 支付 → ③ 立即生效。',
+          'sub.steps': '开通流程：① 选择套餐 → ② 选择支付方式 → ③ 立即生效。',
+          'pay.title': 'AI24X Markets Pro 订阅',
+          'pay.choose': '请选择支付方式',
+          'pay.preparingCheckout': '正在打开支付页…',
+          'pay.wechat': '微信支付',
+          'pay.alipay': '支付宝',
+          'pay.paypal': 'PayPal',
+          'pay.creem': 'Creem',
+          'pay.mock': '模拟支付（测试）',
+          'pay.unavailable': '暂未开放',
+          'pay.preparingWechat': '正在生成微信支付二维码…',
+          'pay.wechatHint': '请用微信扫码支付，付完本页自动确认到账。单号：',
+          'pay.opened': '已在新窗口打开支付页，请完成付款。',
+          'pay.blocked': '未弹出新窗口？点下方按钮打开支付页。',
+          'pay.autoConfirm': ' 付完返回本页会自动确认到账。单号：',
+          'pay.openPaypal': '打开 PayPal',
+          'pay.openAlipay': '打开支付宝',
+          'pay.openCreem': '打开 Creem',
+          'pay.checkoutFail': '无法发起支付：',
+          'pay.verifyFail': '支付确认待处理。如已完成支付，稍后会自动生效。',
+          'pay.ok': '支付确认成功 — Pro 已激活，感谢支持！',
+          'pay.back': '← 换一种支付方式',
+          'pay.mockHint': '已创建模拟订单（{otn}），点下方按钮模拟到账（测试模式）。',
+          'pay.mockConfirm': '确认模拟到账',
+          'pay.polling': '等待支付结果…本页可以保留打开。',
+          'pay.unavailableHint': '该支付方式暂未开放，请选择其它方式。',
+          'pay.needLogin': '登录后可开通 Pro 订阅。',
           shortma: '主图叠加短周期均线（虚线）',
-          footer: '15 分钟延迟行情。数据源：腾讯（主源）· 东财。内容仅供学习交流与自主决策参考，不构成投资建议。',
+          footer: '15 分钟延迟行情。内容仅供学习交流与自主决策参考，不构成投资建议。',
           loading: '加载中…',
           quoteFail: '行情暂不可用：',
           loadFail: '加载失败：',
           notFound: '未找到标的 {s}，请检查代码是否正确。',
-          noData: '该标的暂无数据。可试试 AAPL 等代码，或直接搜 上证指数 / 恒生指数 等中文名称。',
+          noData: '该标的暂无数据。可试试 AAPL、NVDA、^GSPC 等美股代码，或直接搜 苹果 / 英伟达 等中文名称。',
           didYouMean: '你是不是想查',
           'onboard.title': '欢迎使用 AI24X 行情',
-          'onboard.step1': '在上方输入代码（试试 <b>AAPL</b> 或 <b>SPY</b>），点击 <b>查询</b>。',
-          'onboard.step2': '一屏查看 K线、均线与信号。',
-          'onboard.step3': '点击 <b>AI 点评</b> 获取通俗易懂的技术解读（登录后可用）。',
+          'onboard.step1': '输入美股代码，或点下方热门标的，即可查看行情。',
           'onboard.start': '开始使用',
           'onboard.skip': '跳过',
+          'menu.title': '菜单',
           open: '开', high: '高', low: '低', close: '收', prev: '昨收',
           chg: '涨跌额', chgPct: '涨跌幅', vol: '成交量', vsPrev: '较昨收', vsOpen: '较开盘',
           amplitude: '振幅', signal: '信号', date: '日期', macd: 'MACD', macdHist: '柱',
@@ -384,12 +591,20 @@
           'score.na': '评分需要 60 天以上数据',
           'score.viewScreener': '查看今日扫描 →',
           signIn: '登录',
+          signUp: '注册',
           signedInAs: '已登录',
           console: '控制台',
           upgrade: '升级',
           signOut: '退出',
           authFail: '会话校验暂不可用',
+          'band.title': '解锁 AI 点评不限次 · 自选 50 只',
+          'band.sub': 'Pro 低至 $9.9/周 · $24.9/月 · $199/年 — PayPal、微信、支付宝等',
+          'band.ctaFree': '注册开通',
+          'band.ctaPro': '去用户中心开通',
           'watch.title': '自选',
+          'mb.discover': '扫描',
+          'mb.brief': 'AI 点评',
+          'mb.pro': 'Pro',
         },
       };
 
@@ -410,12 +625,6 @@
 
       // 白名单（指数在前，名称跟随当前语言，点击即查）
       var SAMPLES = [
-        { sym: 'sh000001', en: 'SSE Composite', zh: '上证指数' },
-        { sym: 'sz399001', en: 'SZSE Component', zh: '深证成指' },
-        { sym: 'sz399006', en: 'ChiNext', zh: '创业板指' },
-        { sym: 'sh000688', en: 'STAR 50', zh: '科创50' },
-        { sym: 'sh000300', en: 'CSI 300', zh: '沪深300' },
-        { sym: 'hkHSI', en: 'Hang Seng', zh: '恒生指数' },
         { sym: '^DJI', en: 'Dow Jones', zh: '道琼斯' },
         { sym: '^IXIC', en: 'Nasdaq Composite', zh: '纳斯达克' },
         { sym: '^GSPC', en: 'S&P 500', zh: '标普500' },
@@ -817,8 +1026,8 @@
             state.last = sj.data;
             try { localStorage.setItem('markets_last_symbol', state.symbol); } catch (e) {}
             disposeCharts();
-            renderScore(sj.data.score);
             renderMain(sj.data);
+            renderScore(sj.data.score);
             flashPlan();
           } else {
             var _err = new Error((sj && sj.msg) || 'signals failed');
@@ -915,18 +1124,23 @@
         }
       }
       function renderAuth() {
-        var el = $('auth-area');
-        if (!el) return;
+        updateSubBand(!!readCookie('ai24x_auth_token'));
+        var areas = [$('auth-area'), $('auth-area-mob')];
+        for (var i = 0; i < areas.length; i++) { if (areas[i]) renderAuthInto(areas[i]); }
+      }
+
+      function renderAuthInto(el) {
         var token = readCookie('ai24x_auth_token');
         if (!token) {
           var n = encodeURIComponent(location.href);
           el.innerHTML =
             '<a class="auth-link" href="' + coreUrl() + '/login.html?next=' + n + '">' + t('signIn') + '</a>' +
-            '<span id="social-login" style="display:inline-flex; gap:6px; margin-left:6px;"></span>';
+            '<a class="auth-link" href="' + coreUrl() + '/register.html?next=' + n + '">' + t('signUp') + '</a>' +
+            '<span class="social-login" style="display:inline-flex; gap:6px; margin-left:6px;"></span>';
           fetch(coreUrl() + '/v1/auth/providers')
             .then(function (r) { return r.json(); })
             .then(function (j) {
-              var sp = $('social-login'); if (!sp) return;
+              var sp = el.querySelector('.social-login'); if (!sp) return;
               var gSvg = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="vertical-align:-2px;margin-right:4px;"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75z"/></svg>';
               var aSvg = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="vertical-align:-2px;margin-right:4px;"><path fill="currentColor" d="M16.365 1.43c0 1.14-.42 2.2-1.25 3.17-.99 1.16-2.31 1.83-3.61 1.72-.08-1.1.42-2.26 1.19-3.17 1-.96 2.42-1.61 3.67-1.72zm2.35 16.04c-.59 1.35-.88 1.95-1.64 3.15-1.06 1.67-2.56 3.75-4.42 3.76-1.65.02-2.09-1.08-4.34-1.07-2.25.02-2.73 1.09-4.39 1.07-1.85-.02-3.28-1.91-4.34-3.58C-1.16 18.55-1.9 13.3.73 9.88c1.24-1.62 3.21-2.65 5.06-2.65 1.87 0 3.05 1.07 4.59 1.07 1.51 0 2.43-1.07 4.57-1.07 1.66 0 3.42.9 4.66 2.44-4.1 2.22-3.44 8.01.83 9.8z"/></svg>';
               var h = '';
@@ -938,29 +1152,43 @@
         }
         var u0 = readUserCookie();
         el.innerHTML =
-          '<span class="auth-user" id="auth-user">' + t('signedInAs') + ' ' +
+          '<span class="auth-user">' + t('signedInAs') + ' ' +
           (u0 && (u0.email || u0.username) ? escHtml(u0.email || u0.username) : '…') + '</span>' +
           '<a class="auth-link" href="' + coreUrl() + '/console.html">' + t('console') + '</a>' +
-          '<a class="auth-link" id="auth-upgrade" href="#sub" style="display:none;color:var(--accent);font-weight:700;">' + t('upgrade') + '</a>' +
-          '<button type="button" class="auth-btn" id="btn-signout">' + t('signOut') + '</button>';
+          '<a class="auth-link auth-upgrade" href="#sub" style="display:none;color:var(--accent);font-weight:700;">' + t('upgrade') + '</a>' +
+          '<button type="button" class="auth-btn btn-signout">' + t('signOut') + '</button>';
         fetch('/api/me', { headers: { Authorization: 'Bearer ' + token } })
           .then(function (r) { return r.json(); })
           .then(function (j) {
-            var u = $('auth-user');
-            if (!u) return;
+            var users = el.querySelectorAll('.auth-user');
+            if (!users.length) return;
             if (j.code === 0 && j.data && (j.data.email || j.data.username)) {
-              u.textContent = t('signedInAs') + ' ' + escHtml(j.data.email || j.data.username || j.data.user_id);
+              for (var i = 0; i < users.length; i++) users[i].textContent = t('signedInAs') + ' ' + escHtml(j.data.email || j.data.username || j.data.user_id);
             } else if (!u0 || !(u0.email || u0.username)) {
-              u.textContent = t('signedInAs') + ' ✓';
+              for (var i = 0; i < users.length; i++) users[i].textContent = t('signedInAs') + ' ✓';
             }
           })
           .catch(function () {});
-        var out = $('btn-signout');
+        var out = el.querySelector('.btn-signout');
         if (out) out.addEventListener('click', function () {
           document.cookie = 'ai24x_auth_token=; path=/; max-age=0; SameSite=Lax';
           document.cookie = 'ai24x_auth_user=; path=/; max-age=0; SameSite=Lax';
           renderAuth();
         });
+      }
+
+      /* 底部订阅引导：未登录 → 注册开通；已登录 → 用户中心套餐页 */
+      function updateSubBand(loggedIn) {
+        var cta = $('band-cta');
+        if (!cta) return;
+        if (loggedIn) {
+          cta.href = 'https://www.ai24x.com/console.html#billing';
+          cta.setAttribute('data-i18n', 'band.ctaPro');
+        } else {
+          cta.href = coreUrl() + '/register.html?next=' + encodeURIComponent(location.href);
+          cta.setAttribute('data-i18n', 'band.ctaFree');
+        }
+        cta.textContent = t(cta.getAttribute('data-i18n'));
       }
       renderAuth();
       // 统一页眉：Console 指向 www 用户中心
@@ -968,6 +1196,24 @@
         var mkc = $('mk-console');
         if (mkc) mkc.href = coreUrl() + '/console.html';
       } catch (e) {}
+      try {
+        var mkcm = $('mk-console-mob');
+        if (mkcm) mkcm.href = coreUrl() + '/console.html';
+      } catch (e) {}
+
+      // 手机端汉堡菜单
+      function initMobileMenu() {
+        var btn = $('mk-menu-btn'), drawer = $('mk-drawer'), mask = $('mk-drawer-mask'), close = $('mk-drawer-close');
+        if (!btn || !drawer) return;
+        function openMenu() { drawer.hidden = false; btn.setAttribute('aria-expanded', 'true'); document.body.style.overflow = 'hidden'; }
+        function closeMenu() { drawer.hidden = true; btn.setAttribute('aria-expanded', 'false'); document.body.style.overflow = ''; }
+        btn.addEventListener('click', openMenu);
+        if (close) close.addEventListener('click', closeMenu);
+        if (mask) mask.addEventListener('click', closeMenu);
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeMenu(); });
+        drawer.addEventListener('click', function (e) { if (e.target && e.target.closest && e.target.closest('a')) closeMenu(); });
+      }
+      initMobileMenu();
       // —— AI 点评 + Pro 订阅（T6）——
       function getToken() { return readCookie('ai24x_auth_token'); }
       function loginNext() {
@@ -993,7 +1239,9 @@
         var pb = $('pro-badge'); if (pb) pb.style.display = (token && subState.pro) ? 'inline-block' : 'none';
         var pn = $('pro-next'); if (pn) pn.style.display = (token && subState.pro) ? 'flex' : 'none';
         var pl = $('brief-pro-link'); if (pl) pl.style.display = (token && !subState.pro) ? 'inline' : 'none';
-        var au = $('auth-upgrade'); if (au) au.style.display = (token && !subState.pro) ? 'inline' : 'none';
+        var aus = document.querySelectorAll('.auth-upgrade');
+        for (var ai = 0; ai < aus.length; ai++) aus[ai].style.display = (token && !subState.pro) ? 'inline' : 'none';
+        var mbPro = $('mb-pro'); if (mbPro) mbPro.style.display = (token && subState.pro) ? 'none' : '';
         var q = $('brief-quota');
         if (q) {
           if (!token) q.textContent = t('brief.login');
@@ -1079,30 +1327,6 @@
           .catch(function (e) { showBriefMsg('<span style="color:var(--up);">' + escHtml(t('brief.err')) + escHtml(String(e)) + '</span>'); });
       }
 
-      function doCheckout(plan) {
-        var token = getToken();
-        if (!token) { loginNext(); return; }
-        var m = $('sub-msg'); if (m) m.textContent = '';
-        fetch('/api/subscribe/checkout', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ plan: plan })
-        })
-          .then(function (r) { return r.json().then(function (j) { return { status: r.status, j: j }; }); })
-          .then(function (res) {
-            var j = res.j || {};
-            if (res.status === 401) { loginNext(); return; }
-            if (res.status !== 200 || j.code !== 0 || !j.data || !j.data.pay_url) {
-              if (m) m.textContent = t('sub.checkoutFail') + (j.msg || res.status);
-              return;
-            }
-            var mm = $('sub-msg');
-            if (mm) mm.textContent = t('sub.reload');
-            location.href = j.data.pay_url;
-          })
-          .catch(function (e) { if (m) m.textContent = t('sub.checkoutFail') + String(e); });
-      }
-
       function doCapture(orderId) {
         var token = getToken();
         if (!token) return;
@@ -1129,6 +1353,221 @@
           .catch(function () { var m2 = $('sub-msg'); if (m2) m2.textContent = t('sub.captureFail'); });
       }
 
+      // —— 统一支付中台（Markets Pro · 微信 / 支付宝 / PayPal / Creem） ——
+      var payHub = { plan: null, session: 0, pollTimer: null, payStatus: null, checkoutWin: null };
+
+      function payHubIco(channel) {
+        if (channel === 'wechat') {
+          return '<svg class="payhub-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="#07C160" d="M9.5 4C5.9 4 3 6.5 3 9.6c0 1.8 1 3.3 2.6 4.4L5 16.2l2.4-1.2c.7.2 1.4.3 2.1.3.2 0 .4 0 .6 0-.2-.5-.3-1-.3-1.6 0-3.2 3.1-5.8 6.9-5.8.2 0 .4 0 .6.1C16.4 5.3 13.2 4 9.5 4zm-2.3 3.1c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zm4.6 0c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zM16.8 9c-3.1 0-5.6 2.1-5.6 4.7s2.5 4.7 5.6 4.7c.6 0 1.2-.1 1.8-.3l1.9.9-.5-1.7c1.2-.9 2-2.2 2-3.6C21.9 11.1 19.5 9 16.8 9zm-1.9 3.1c.3 0 .6.3.6.6s-.3.6-.6.6-.6-.3-.6-.6.3-.6.6-.6zm3.8 0c.3 0 .6.3.6.6s-.3.6-.6.6-.6-.3-.6-.6.3-.6.6-.6z"/></svg>';
+        }
+        if (channel === 'alipay') {
+          return '<svg class="payhub-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="#1677FF" d="M19.695 15.07c3.426 1.158 4.203 1.22 4.203 1.22V3.846c0-2.124-1.705-3.845-3.81-3.845H3.914C1.808.001.102 1.722.102 3.846v16.31c0 2.123 1.706 3.845 3.813 3.845h16.173c2.105 0 3.81-1.722 3.81-3.845v-.157s-6.19-2.602-9.315-4.119c-2.096 2.602-4.8 4.181-7.607 4.181-4.75 0-6.361-4.19-4.112-6.949.49-.602 1.324-1.175 2.617-1.497 2.025-.502 5.247.313 8.266 1.317a16.796 16.796 0 0 0 1.341-3.302H5.781v-.952h4.799V6.975H4.77v-.953h5.81V3.591s0-.409.411-.409h2.347v2.84h5.744v.951h-5.744v1.704h4.69a19.453 19.453 0 0 1-1.986 5.06c1.424.52 2.702 1.011 3.654 1.333m-13.81-2.032c-.596.06-1.71.325-2.321.869-1.83 1.608-.735 4.55 2.968 4.55 2.151 0 4.301-1.388 5.99-3.61-2.403-1.182-4.438-2.028-6.637-1.809"/></svg>';
+        }
+        if (channel === 'creem') {
+          return '<svg class="payhub-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="#7C3AED" d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm0 2v10h16V7H4zm2 2h4v2H6V9zm6 0h6v2h-6V9z"/></svg>';
+        }
+        if (channel === 'paypal') {
+          return '<svg class="payhub-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="#003087" d="M7.2 20.5h1.7l.5-3.1h1.7c3.3 0 5.5-1.4 6.1-4.3.1-.5.1-.9.1-1.2 0-.2 0-.4-.1-.6H19l.1-.5c.4-2.5-.9-4.2-3.8-4.2H9.2L7.2 20.5zm4.2-11.5h1.7c1.3 0 2 .5 1.8 1.7-.2 1.4-1.2 1.7-2.5 1.7h-1.5l.5-3.4z"/><path fill="#009CDE" d="M9.5 21.5h1.7l.4-2.5H13c2.7 0 4.4-1.1 4.9-3.5.1-.4.1-.7.1-1 0-.1 0-.3 0-.4h1.5l.1-.4c.3-2-.7-3.4-3.1-3.4h-4.3l-1.9 11.2h1.7l.5 3.1h1.4c1.1 0 1.7.4 1.5 1.4-.2 1.1-1 1.4-2.1 1.4H10l.5 3.3z"/></svg>';
+        }
+        return '';
+      }
+
+      function hubFetch(path, body) {
+        var token = getToken();
+        var headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        return fetch(coreUrl() + path, { method: 'POST', headers: headers, body: JSON.stringify(body || {}) })
+          .then(function (r) {
+            return r.json().then(function (j) { return { status: r.status, j: j }; });
+          })
+          .then(function (res) {
+            if (res.status === 401) { loginNext(); throw new Error('unauthorized'); }
+            if (res.status >= 400) {
+              var d = (res.j && (res.j.detail || res.j.msg)) || res.status;
+              throw new Error(String(d));
+            }
+            return res.j;
+          });
+      }
+
+      function showSubMsg(html) { var m = $('sub-msg'); if (m) m.innerHTML = html; }
+
+      function closePayHub() {
+        payHub.session += 1;
+        if (payHub.pollTimer) { clearInterval(payHub.pollTimer); payHub.pollTimer = null; }
+        if (payHub.checkoutWin) { try { if (!payHub.checkoutWin.closed) payHub.checkoutWin.close(); } catch (e) {} payHub.checkoutWin = null; }
+        var el = $('payhub'); if (el) el.hidden = true;
+      }
+
+      function renderPayChannels(pay) {
+        var box = $('payhub-channels'); if (!box) return;
+        box.innerHTML = '';
+        var ready = {};
+        if (pay && pay.token_pay_enabled === true) {
+          ready.wechat = !!(pay.wechat && pay.wechat.ui_ready);
+          ready.alipay = !!(pay.alipay && pay.alipay.ui_ready);
+          ready.paypal = !!(pay.paypal && pay.paypal.ui_ready);
+          ready.creem = !!(pay.creem && pay.creem.ui_ready);
+        } else {
+          // 无法探测通道时全部可点，后端未配置会返回明确错误提示
+          ready.wechat = ready.alipay = ready.paypal = ready.creem = true;
+        }
+        var mockAllowed = pay ? !!(pay.token_pay_enabled === false && pay.token_pay_mock_enabled) : true;
+        ['wechat', 'alipay', 'paypal', 'creem'].forEach(function (ch) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'payhub-btn';
+          b.innerHTML = payHubIco(ch) + '<span>' + escHtml(t('pay.' + ch)) + '</span>';
+          if (!ready[ch]) {
+            b.disabled = true;
+            b.title = t('pay.unavailable');
+            b.lastChild.textContent += ' · ' + t('pay.unavailable');
+          }
+          b.addEventListener('click', function () { startPayCheckout(payHub.plan, ch); });
+          box.appendChild(b);
+        });
+        if (mockAllowed) {
+          var mb = document.createElement('button');
+          mb.type = 'button';
+          mb.className = 'payhub-btn';
+          mb.innerHTML = '<span class="payhub-ico" style="display:grid;place-items:center;font-size:16px;">🧪</span><span>' + escHtml(t('pay.mock')) + '</span>';
+          mb.addEventListener('click', function () { startPayCheckout(payHub.plan, 'mock'); });
+          box.appendChild(mb);
+        }
+      }
+
+      function openPayHub(plan) {
+        var token = getToken();
+        if (!token) { loginNext(); return; }
+        payHub.session += 1;
+        payHub.plan = plan;
+        var el = $('payhub'); if (!el) return;
+        $('payhub-title').textContent = t('pay.title');
+        var planKey = plan === 'weekly' ? 'week' : plan === 'monthly' ? 'month' : 'year';
+        $('payhub-sub').textContent = t('sub.' + planKey + 'T');
+        var box = $('payhub-channels'); box.hidden = false;
+        var res = $('payhub-result'); res.hidden = true;
+        var backBtn = $('payhub-back'); if (backBtn) backBtn.hidden = true;
+        el.hidden = false;
+        if (payHub.payStatus) { renderPayChannels(payHub.payStatus); }
+        else {
+          box.innerHTML = '<div style="grid-column:1/-1;color:var(--muted);font-size:12px;">' + escHtml(t('loading')) + '</div>';
+          fetch(coreUrl() + '/v1/billing/pay/status')
+            .then(function (r) { return r.json(); })
+            .then(function (j) { payHub.payStatus = j || null; if (!el.hidden) renderPayChannels(j || null); })
+            .catch(function () { if (!el.hidden) renderPayChannels(null); });
+        }
+      }
+
+      function startPayCheckout(plan, channel) {
+        var token = getToken();
+        if (!token) { loginNext(); return; }
+        var session = ++payHub.session;
+        var box = $('payhub-channels'); if (box) box.hidden = true;
+        var res = $('payhub-result'); if (res) res.hidden = false;
+        var hint = $('payhub-hint');
+        var qr = $('payhub-qr');
+        var openLink = $('payhub-open');
+        var backBtn = $('payhub-back');
+        if (hint) { hint.className = 'payhub-hint'; hint.textContent = channel === 'wechat' ? t('pay.preparingWechat') : t('pay.preparingCheckout'); }
+        if (qr) qr.hidden = true;
+        if (openLink) openLink.hidden = true;
+        if (backBtn) { backBtn.hidden = false; backBtn.textContent = t('pay.back'); backBtn.onclick = function () { openPayHub(plan); }; }
+
+        // 需要新窗口的通道：先开空白窗，等 pay_url 再导航（避免被浏览器拦截）
+        var checkoutWin = null;
+        if (channel === 'alipay' || channel === 'paypal' || channel === 'creem') {
+          try {
+            checkoutWin = window.open('about:blank', '_blank');
+            if (checkoutWin) {
+              try { checkoutWin.document.write('<!doctype html><title>Checkout</title><p style="font:14px/1.5 system-ui,sans-serif;padding:24px;color:#334">' + t('pay.preparingCheckout') + '</p>'); } catch (e) {}
+            }
+          } catch (e) { checkoutWin = null; }
+        }
+        payHub.checkoutWin = checkoutWin;
+
+        var path = channel === 'wechat' ? '/v1/billing/wechat/native'
+          : channel === 'alipay' ? '/v1/billing/alipay/wap'
+          : channel === 'paypal' ? '/v1/billing/paypal/order'
+          : channel === 'creem' ? '/v1/billing/creem/order'
+          : '/v1/billing/wechat/native';
+        hubFetch(path, { plan: plan, product: 'markets' })
+          .then(function (r) {
+            if (session !== payHub.session) { if (checkoutWin) { try { if (!checkoutWin.closed) checkoutWin.close(); } catch (e) {} } return; }
+            if (payHub.checkoutWin === checkoutWin) payHub.checkoutWin = null;
+            if (r && r.mock) {
+              if (checkoutWin) { try { if (!checkoutWin.closed) checkoutWin.close(); } catch (e) {} }
+              if (hint) { hint.className = 'payhub-hint'; hint.textContent = t('pay.mockHint').replace('{otn}', r.out_trade_no || ''); }
+              if (backBtn) { backBtn.textContent = t('pay.mockConfirm'); backBtn.onclick = function () { mockConfirmFulfill(r.out_trade_no); }; }
+              return;
+            }
+            if (channel === 'wechat' && r && r.code_url) {
+              if (hint) { hint.className = 'payhub-hint'; hint.textContent = t('pay.wechatHint') + (r.out_trade_no || ''); }
+              if (qr) { qr.src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(r.code_url); qr.hidden = false; }
+              startFulfillPoll(r.out_trade_no, 'wechat');
+              return;
+            }
+            if ((channel === 'alipay' || channel === 'paypal' || channel === 'creem') && r && r.pay_url) {
+              var opened = false;
+              if (checkoutWin && !checkoutWin.closed) {
+                try { checkoutWin.location.href = r.pay_url; opened = true; } catch (e) {}
+              }
+              if (!opened) { try { var w = window.open(r.pay_url, '_blank'); opened = !!w; } catch (e) {} }
+              var label = channel === 'alipay' ? t('pay.openAlipay') : channel === 'paypal' ? t('pay.openPaypal') : t('pay.openCreem');
+              if (hint) { hint.className = 'payhub-hint'; hint.textContent = (opened ? t('pay.opened') : t('pay.blocked')) + t('pay.autoConfirm') + (r.out_trade_no || '') + (r.amount_usd ? ' · $' + r.amount_usd : ''); }
+              if (openLink) { openLink.href = r.pay_url; openLink.textContent = label; openLink.hidden = false; }
+              startFulfillPoll(r.out_trade_no, channel);
+              return;
+            }
+            if (hint) { hint.className = 'payhub-hint err'; hint.textContent = t('pay.checkoutFail') + ((r && (r.detail || r.msg)) || 'unknown'); }
+          })
+          .catch(function (e) {
+            if (session !== payHub.session) return;
+            if (checkoutWin) { try { if (!checkoutWin.closed) checkoutWin.close(); } catch (err) {} }
+            if (hint) { hint.className = 'payhub-hint err'; hint.textContent = t('pay.checkoutFail') + String((e && e.message) || e); }
+          });
+      }
+
+      function mockConfirmFulfill(outTradeNo) {
+        var hint = $('payhub-hint');
+        hubFetch('/v1/billing/orders/mock_fulfill', { out_trade_no: outTradeNo })
+          .then(function () {
+            closePayHub();
+            showSubMsg(t('pay.ok'));
+            checkSub();
+            toast(t('pay.ok'));
+          })
+          .catch(function (e) {
+            if (hint) { hint.className = 'payhub-hint err'; hint.textContent = String((e && e.message) || e); }
+          });
+      }
+
+      function startFulfillPoll(outTradeNo, channel) {
+        if (payHub.pollTimer) { clearInterval(payHub.pollTimer); payHub.pollTimer = null; }
+        var session = payHub.session;
+        var tries = 0, maxTries = 40; // ~2 分钟（每 3 秒）
+        payHub.pollTimer = setInterval(function () {
+          tries += 1;
+          if (tries > maxTries || session !== payHub.session) { clearInterval(payHub.pollTimer); payHub.pollTimer = null; return; }
+          var path = channel === 'alipay' ? '/v1/billing/alipay/query_and_fulfill'
+            : channel === 'paypal' ? '/v1/billing/paypal/query_and_fulfill'
+            : channel === 'creem' ? '/v1/billing/creem/query'
+            : '/v1/billing/wechat/query_and_fulfill';
+          hubFetch(path, { out_trade_no: outTradeNo })
+            .then(function (j) {
+              if (session !== payHub.session) return;
+              if (j && j.ok) {
+                clearInterval(payHub.pollTimer); payHub.pollTimer = null;
+                closePayHub();
+                showSubMsg(t('pay.ok'));
+                checkSub();
+                toast(t('pay.ok'));
+              }
+            })
+            .catch(function () { /* 未支付成功时接口可能 4xx，继续轮询 */ });
+        }, 3000);
+      }
+
       // —— 2026-08-16 周复盘自主迭代：toast / onboarding / watchlist / 登录回跳 / AI 首屏入口 ——
       function toast(msg) {
         var t = document.createElement('div');
@@ -1148,7 +1587,8 @@
         var b1 = $('onboard-start'); if (b1) b1.addEventListener('click', finish);
         var b2 = $('onboard-skip'); if (b2) b2.addEventListener('click', finish);
       }
-      var watchState = { list: [], limit: 3 };
+      var FREE_WATCH_LIMIT = 10;
+      var watchState = { list: [], limit: FREE_WATCH_LIMIT };
       function renderWatchList() {
         var c = $('watch-chips'); if (!c) return; c.innerHTML = '';
         watchState.list.forEach(function (s) {
@@ -1158,7 +1598,7 @@
           b.addEventListener('click', function () { state.symbol = s; $('symbol').value = s; load(); });
           c.appendChild(b);
         });
-        var q = $('watch-quota'); if (q) q.textContent = watchState.list.length + ' / ' + watchState.limit + (watchState.limit > 3 ? ' (Pro)' : ' (Free)');
+        var q = $('watch-quota'); if (q) q.textContent = watchState.list.length + ' / ' + watchState.limit + (watchState.limit > FREE_WATCH_LIMIT ? ' (Pro)' : ' (Free)');
       }
       function renderWatchStar() {
         var b = $('btn-watch'); if (!b) return;
@@ -1175,7 +1615,7 @@
           .then(function (j) {
             if (j.code === 0 && j.data) {
               watchState.list = j.data.symbols || [];
-              watchState.limit = j.data.limit || 3;
+              watchState.limit = j.data.limit || FREE_WATCH_LIMIT;
               renderWatchList(); renderWatchStar();
               bar.style.display = 'flex';
             }
@@ -1227,9 +1667,26 @@
         toggleWatch();
       });
       var bBrief = $('btn-brief'); if (bBrief) bBrief.addEventListener('click', doBrief);
-      var bWeek = $('btn-sub-week'); if (bWeek) bWeek.addEventListener('click', function () { doCheckout('weekly'); });
-      var bMonth = $('btn-sub-month'); if (bMonth) bMonth.addEventListener('click', function () { doCheckout('monthly'); });
-      var bYear = $('btn-sub-year'); if (bYear) bYear.addEventListener('click', function () { doCheckout('yearly'); });
+      /* 手机端底部快捷操作条 */
+      var mbBrief = $('mb-brief');
+      if (mbBrief) mbBrief.addEventListener('click', function () {
+        var token = getToken();
+        if (!token) { try { localStorage.setItem('markets_pending_login', '1'); } catch (e) {} loginNext(); return; }
+        doBrief();
+      });
+      var mbDiscover = $('mb-discover');
+      if (mbDiscover) mbDiscover.addEventListener('click', function () { location.href = '/screener.html'; });
+      var mbPro = $('mb-pro');
+      if (mbPro) mbPro.addEventListener('click', function (e) {
+        if (!getToken()) { e.preventDefault(); loginNext(); return; }
+      });
+      var bWeek = $('btn-sub-week'); if (bWeek) bWeek.addEventListener('click', function () { openPayHub('weekly'); });
+      var bMonth = $('btn-sub-month'); if (bMonth) bMonth.addEventListener('click', function () { openPayHub('monthly'); });
+      var bYear = $('btn-sub-year'); if (bYear) bYear.addEventListener('click', function () { openPayHub('yearly'); });
+      var phClose = $('payhub-close');
+      if (phClose) phClose.addEventListener('click', closePayHub);
+      var phOverlay = $('payhub');
+      if (phOverlay) phOverlay.addEventListener('click', function (e) { if (e.target === phOverlay) closePayHub(); });
       var fbUp = $('fb-upgrade');
       if (fbUp) fbUp.addEventListener('click', function () {
         var sub = $('sub');
@@ -1261,10 +1718,29 @@
         flashPlan();
       })();
 
-      // PayPal 回跳：?pay=done&token=<orderId> → capture（幂等）
+      // 支付回跳：核心中台 return_url 带 ?pay=done&paypal=1&out_trade_no=… / creem=1 / alipay=1
+      // 兼容旧 markets PayPal 直连：?pay=done&token=<orderId> → capture（幂等）
       (function handlePayReturn() {
         var p = new URLSearchParams(location.search);
-        if (p.get('pay') === 'done' && p.get('token')) {
+        var payDone = p.get('pay') === 'done';
+        var otn = p.get('out_trade_no') || '';
+        if (payDone && (p.get('paypal') === '1' || p.get('creem') === '1' || p.get('alipay') === '1') && otn) {
+          var ch = p.get('paypal') === '1' ? 'paypal' : p.get('creem') === '1' ? 'creem' : 'alipay';
+          var token = getToken();
+          if (token) {
+            showSubMsg(t('sub.reload'));
+            var path = ch === 'paypal' ? '/v1/billing/paypal/query_and_fulfill'
+              : ch === 'creem' ? '/v1/billing/creem/query'
+              : '/v1/billing/alipay/query_and_fulfill';
+            hubFetch(path, { out_trade_no: otn })
+              .then(function (j) {
+                if (j && j.ok) { showSubMsg(t('pay.ok')); checkSub(); toast(t('pay.ok')); }
+                else { showSubMsg(t('pay.verifyFail')); }
+              })
+              .catch(function () { showSubMsg(t('pay.verifyFail')); });
+          }
+          try { history.replaceState({}, '', location.pathname + location.hash); } catch (e) {}
+        } else if (payDone && p.get('token')) {
           doCapture(p.get('token'));
           try { history.replaceState({}, '', location.pathname + location.hash); } catch (e) {}
         }
@@ -1309,6 +1785,10 @@
       maybeOnboard();
       loadWatch();
       maybeWelcome();
+      // PWA 离线壳：注册后静态页可离线打开，API 永远走网络
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(function () {});
+      }
     })();
   </script>
 </body>

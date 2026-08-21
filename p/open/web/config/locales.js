@@ -43,6 +43,7 @@
     "footer.link.terms": "服务条款",
     "footer.link.privacy": "隐私政策",
     "footer.copy": "保留所有权利",
+    "page.index.brand": "AI24X — AI-assisted tools for markets & developers.",
     "page.index.hero.title": "一个接口，接入主流大模型",
     "page.index.hero.lead":
       "把 OpenAI / Anthropic / DeepSeek 等模型接进一个接口：自带 Key，或选平台托管即开即用。同一模型多把 Key 自动择优，出错自动切换，请求不中断；成本看板一目了然。OpenAI 兼容，不改代码。",
@@ -896,6 +897,7 @@
     "footer.link.terms": "Terms of Service",
     "footer.link.privacy": "Privacy Policy",
     "footer.copy": "All rights reserved",
+    "page.index.brand": "AI24X — AI-assisted tools for markets & developers.",
     "page.index.hero.title": "One endpoint. Every major model.",
     "page.index.hero.lead":
       "Bring your own keys (OpenAI, Anthropic, DeepSeek, OpenRouter, SiliconFlow…) or start instantly with managed access. Multiple keys per model auto-switch on errors, so requests never fail. OpenAI-compatible, no code changes, per-key cost dashboard included.",

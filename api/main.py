@@ -2072,14 +2072,26 @@ async def referrals_summary(request: Request, db: Session = Depends(get_db)):
 @app.post("/v1/support/ask")
 async def support_ask(request: Request, body: SupportAskBody, db: Session = Depends(get_db)):
     """登录用户即时协助：平台成本，不扣用户 Token；有日帽。"""
-    from support_bot import ask_support
+    from support_bot import ask_support, faq_timeout_answer
 
     u = _auth_user_from_bearer(request, db)
     lang = (body.lang or "").strip().lower()
     if lang not in ("zh", "en"):
         # 粗判：含中文则 zh
         lang = "zh" if any("\u4e00" <= ch <= "\u9fff" for ch in (body.question or "")) else "en"
-    return ask_support(auth_user_id=int(u.id), question=body.question, lang_hint=lang)
+    try:
+        # 模型通道 15s 兜底：超时不抛 500，直接回 FAQ，避免用户干等
+        return await asyncio.wait_for(
+            asyncio.to_thread(
+                ask_support,
+                auth_user_id=int(u.id),
+                question=body.question,
+                lang_hint=lang,
+            ),
+            timeout=15.0,
+        )
+    except asyncio.TimeoutError:
+        return faq_timeout_answer(lang_hint=lang)
 
 
 @app.post("/v1/support/tickets")
@@ -2244,6 +2256,14 @@ async def billing_plans():
     return public_plans()
 
 
+@app.get("/v1/billing/products")
+async def billing_products():
+    """统一产品套餐目录：console「选项目 → 选套餐 → 选支付方式」一次拉全。"""
+    from pay_products import public_products
+
+    return public_products()
+
+
 @app.get("/v1/billing/pay/status")
 async def billing_pay_status():
     """支付通道自检（不含密钥）；与控制台按钮同一套 wechat_pay_configured / alipay_configured。"""
@@ -2338,7 +2358,9 @@ async def billing_wechat_native(
     from token_pay_service import create_wechat_native
 
     u = _auth_user_from_bearer(request, db)
-    return await create_wechat_native(db, auth_user_id=int(u.id), plan=body.plan)
+    return await create_wechat_native(
+        db, auth_user_id=int(u.id), plan=body.plan, product=body.product
+    )
 
 
 @app.post("/v1/billing/alipay/wap")
@@ -2349,7 +2371,11 @@ async def billing_alipay_wap(
 
     u = _auth_user_from_bearer(request, db)
     return await create_alipay_wap(
-        db, auth_user_id=int(u.id), plan=body.plan, origin=request.headers.get("origin")
+        db,
+        auth_user_id=int(u.id),
+        plan=body.plan,
+        origin=request.headers.get("origin"),
+        product=body.product,
     )
 
 
@@ -2361,7 +2387,11 @@ async def billing_paypal_order(
 
     u = _auth_user_from_bearer(request, db)
     return await create_paypal_order(
-        db, auth_user_id=int(u.id), plan=body.plan, origin=request.headers.get("origin")
+        db,
+        auth_user_id=int(u.id),
+        plan=body.plan,
+        origin=request.headers.get("origin"),
+        product=body.product,
     )
 
 
@@ -2372,7 +2402,13 @@ async def billing_creem_order(
     from token_pay_service import create_creem_order
 
     u = _auth_user_from_bearer(request, db)
-    return await create_creem_order(db, auth_user_id=int(u.id), plan=body.plan)
+    return await create_creem_order(
+        db,
+        auth_user_id=int(u.id),
+        plan=body.plan,
+        origin=request.headers.get("origin"),
+        product=body.product,
+    )
 
 
 @app.post("/v1/billing/creem/query")
@@ -2514,7 +2550,7 @@ async def list_models(request: Request, db: Session = Depends(get_db)):
 
 @app.post("/v1/billing/wechat/notify")
 async def billing_wechat_notify(request: Request, db: Session = Depends(get_db)):
-    """微信异步通知 → 仅履约 token_pay_orders（T 前缀）。不碰 a1 pay_orders。"""
+    """微信异步通知 → 按单号履约 token_pay_orders（中台：token/markets 等产品）。不碰 a1 pay_orders。"""
     from token_pay_service import pay_settings_ns, try_fulfill, token_pay_enabled
 
     if not token_pay_enabled():
@@ -2544,7 +2580,7 @@ async def billing_wechat_notify(request: Request, db: Session = Depends(get_db))
 
 @app.post("/v1/billing/alipay/notify")
 async def billing_alipay_notify(request: Request, db: Session = Depends(get_db)):
-    """支付宝异步通知 → 仅履约 token_pay_orders。"""
+    """支付宝异步通知 → 按单号履约 token_pay_orders（中台：token/markets 等产品）。"""
     from token_pay_service import pay_settings_ns, try_fulfill, token_pay_enabled
 
     if not token_pay_enabled():

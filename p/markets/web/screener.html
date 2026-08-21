@@ -3,6 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <meta name="theme-color" content="#0a0c10">
   <meta name="description" content="AI24X Markets Discover — a daily educational technical screen of US stocks: bottom volume surges, breakouts, uptrends and pullbacks. 15-minute delayed data, not investment advice.">
   <title>AI24X Markets · Discover</title>
   <style>
@@ -55,6 +59,11 @@
     .sr-pattern { color: var(--accent); border-color: rgba(79,140,255,.45); font-weight: 600; }
     .sr-risk { color: #f87171; border-color: rgba(248,113,113,.35); }
     .loading { padding: 60px; text-align: center; color: var(--muted); }
+    .sr-progress { max-width: 440px; margin: 26px auto 6px; }
+    .sr-progress-label { font-size: 12px; color: var(--muted); margin-bottom: 9px; text-align: center; }
+    .sr-progress-track { height: 6px; border-radius: 999px; background: var(--panel2); overflow: hidden; position: relative; }
+    .sr-progress-fill { position: absolute; top: 0; bottom: 0; left: 0; width: 40%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), #7aa7ff); animation: srSlide 1.2s ease-in-out infinite; }
+    @keyframes srSlide { 0% { transform: translateX(-110%); } 100% { transform: translateX(290%); } }
     .mk-footer { border-top: 1px solid var(--border); margin-top: 24px; padding: 30px 16px 22px; background: var(--panel); color: var(--muted); font-size: 12px; }
     .mk-footer-inner { max-width: 1080px; margin: 0 auto; }
     .footer-bottom { margin-top: 18px; padding-top: 13px; border-top: 1px solid var(--border); font-size: 11px; }
@@ -104,6 +113,10 @@
       <button class="chip" data-mode="Pullback holding near MAs" data-i18n="sr.pullback">Pullback after surge</button>
     </div>
     <div id="sr-note" style="color:var(--muted);font-size:12px;margin:10px 0;"></div>
+    <div class="sr-progress" id="sr-progress" style="display:none;">
+      <div class="sr-progress-label" data-i18n="sr.scanning">Scanning US universe…</div>
+      <div class="sr-progress-track"><div class="sr-progress-fill"></div></div>
+    </div>
     <div id="sr-list" class="loading" data-i18n="sr.loading">Scanning…</div>
   </main>
 
@@ -135,9 +148,11 @@
           'sr.uptrend': 'Uptrend building',
           'sr.pullback': 'Pullback after surge',
           'sr.loading': 'Scanning…',
+          'sr.scanning': 'Scanning US universe…',
           'sr.empty': 'No matches in this category today. Try another view or refresh later.',
           'sr.fail': 'Screen unavailable. Please try again later.',
           'sr.note': '{n} matches · {s} symbols scanned · updated {t}',
+          'sr.edunote': 'Educational screen — patterns describe market structure, not buy/sell recommendations.',
           'sr.open': 'Open chart →',
           'sr.pos': '60-day position',
           'sr.vol': 'Vol ratio',
@@ -162,9 +177,11 @@
           'sr.uptrend': '趋势启动',
           'sr.pullback': '异动后回踩',
           'sr.loading': '扫描中…',
+          'sr.scanning': '正在扫描美股池…',
           'sr.empty': '当前类别今日无匹配，试试其它视图或稍后刷新。',
           'sr.fail': '扫描暂不可用，请稍后重试。',
           'sr.note': '{n} 只匹配 · 扫描 {s} 只 · 更新于 {t}',
+          'sr.edunote': '教育用途扫描——形态仅描述市场结构，不构成买卖建议。',
           'sr.open': '打开图表 →',
           'sr.pos': '60日位置',
           'sr.vol': '量比',
@@ -204,20 +221,25 @@
         });
       }
       function renderList(items, meta) {
+        var pr = $('sr-progress'); if (pr) pr.style.display = 'none';
         var el = $('sr-list');
         if (!el) return;
         if (!items || !items.length) {
           el.className = 'loading';
+          el.style.display = '';
           el.textContent = t('sr.empty');
           return;
         }
         el.className = '';
+        el.style.display = '';
         var note = $('sr-note');
-        if (note && meta) {
-          note.textContent = t('sr.note')
+        if (note) {
+          var metaLine = meta ? t('sr.note')
             .replace('{n}', String(meta.count))
             .replace('{s}', String(meta.scanned))
-            .replace('{t}', String(meta.generated_at || '').replace('T', ' ').slice(0, 16) + ' UTC');
+            .replace('{t}', String(meta.generated_at || '').replace('T', ' ').slice(0, 16) + ' UTC') : '';
+          note.innerHTML = '<div style="margin-bottom:2px;">' + escHtml(t('sr.edunote')) + '</div>' +
+            (metaLine ? '<div style="opacity:.65;">' + escHtml(metaLine) + '</div>' : '');
         }
         el.innerHTML = '<div class="sr-grid">' + items.map(function (it) {
           var pc = (Number(it.chg_pct) >= 0) ? 'sr-up' : 'sr-down';
@@ -250,16 +272,17 @@
       }
       function loadScreener() {
         var el = $('sr-list');
-        el.className = 'loading';
-        el.textContent = t('sr.loading');
+        el.style.display = 'none';
+        el.className = '';
+        var pr = $('sr-progress'); if (pr) pr.style.display = '';
         $('sr-note').textContent = '';
         fetch('/api/screener?mode=' + encodeURIComponent(mode) + '&limit=24')
           .then(function (r) { return r.json(); })
           .then(function (j) {
-            if (j.code !== 0 || !j.data) { el.className = 'loading'; el.textContent = t('sr.fail'); return; }
+            if (j.code !== 0 || !j.data) { if (pr) pr.style.display = 'none'; el.style.display = ''; el.className = 'loading'; el.textContent = t('sr.fail'); return; }
             renderList(j.data.items, j.data);
           })
-          .catch(function () { el.className = 'loading'; el.textContent = t('sr.fail'); });
+          .catch(function () { if (pr) pr.style.display = 'none'; el.style.display = ''; el.className = 'loading'; el.textContent = t('sr.fail'); });
       }
       document.querySelectorAll('#mode-chips .chip').forEach(function (c) {
         c.addEventListener('click', function () {
@@ -279,6 +302,9 @@
       applyLang();
       loadScreener();
     })();
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(function () {});
+    }
   </script>
 </body>
 </html>

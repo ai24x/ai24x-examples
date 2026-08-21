@@ -74,7 +74,10 @@
           "</a>"
         );
       }
-      return nav("login.html", "nav.login", "login");
+      return (
+        nav("login.html", "nav.login", "login") +
+        nav("register.html", "nav.register", "register")
+      );
     }
 
     function tr(key) {
@@ -136,13 +139,12 @@
       nav("product.html", "nav.product", "product") +
       nav("help.html", "nav.help", "help") +
       nav("about.html", "nav.about", "about") +
-      nav("https://open.ai24x.com", "nav.developer", "developer") +
       loginNav() +
       "</nav>" +
       '<div class="header-actions">' +
       '<a class="header-upgrade" href="' +
-      marketsUrl() +
-      'app.html#sub" target="_blank" rel="noopener" data-i18n="nav.vipUpgrade" style="display:inline-block; padding:7px 14px; border-radius:999px; background:var(--accent); color:var(--accent-ink,#fff); font-size:0.85rem; font-weight:700; text-decoration:none; white-space:nowrap;">' +
+      pre +
+      'console.html#billing" data-i18n="nav.vipUpgrade" style="display:inline-block; padding:7px 14px; border-radius:999px; background:var(--accent); color:var(--accent-ink,#fff); font-size:0.85rem; font-weight:700; text-decoration:none; white-space:nowrap;">' +
       esc(tr("nav.vipUpgrade")) +
       "</a>" +
       /* 主题跟随 HTML 声明（全站深色）；主题选择器默认不露出（CSS/逻辑仍保留） */
@@ -235,6 +237,7 @@
       "</div>" +
       '<div class="footer-bottom">© 2026 AI24X · <a href="https://open.ai24x.com" target="_blank" rel="noopener" data-i18n="footer.link.developer"></a> · <span data-i18n="footer.copy"></span></div>' +
       '<div class="footer-bottom" style="opacity:.62;font-size:.78rem;padding-top:0;" data-i18n="footer.fleet">Powered by the AI24X autonomous agent fleet</div>' +
+      '<div class="footer-bottom" style="opacity:.62;font-size:.78rem;padding-top:0;" data-i18n="footer.disclaimer">For educational purposes only — not investment advice. Market data is delayed at least 15 minutes.</div>' +
       "</div>"
     );
   }

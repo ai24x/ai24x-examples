@@ -109,6 +109,9 @@
       FREE: "免费档",
       vip: "Token VIP",
       VIP: "Token VIP",
+      weekly: "Pro 周卡",
+      monthly: "Pro 月卡",
+      yearly: "Pro 年卡",
       token_pack_10k: "入门包",
       token_pack_100k: "开发包",
         token_pack_mid: "进阶包",
@@ -126,6 +129,9 @@
       FREE: "Free",
       vip: "Token VIP",
       VIP: "Token VIP",
+      weekly: "Pro Weekly",
+      monthly: "Pro Monthly",
+      yearly: "Pro Yearly",
       token_pack_10k: "Starter",
       token_pack_100k: "Builder",
         token_pack_mid: "Advanced",
@@ -289,7 +295,12 @@
 
   function requireLogin() {
     if (!AI24X_API.getAuthToken()) {
-      location.href = "login.html?next=" + encodeURIComponent("console.html");
+      var next = "console.html";
+      try {
+        var h = location.hash || "";
+        if (h && /^#[A-Za-z]/.test(h)) next += h;
+      } catch (e) {}
+      location.href = "login.html?next=" + encodeURIComponent(next);
       return false;
     }
     return true;
@@ -408,210 +419,246 @@
     });
   }
 
-  function renderPlans(data) {
-    var box = $("plansList");
+  function payIconSvg(channel) {
+    if (channel === "wechat") {
+      return (
+        '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+        '<path fill="#07C160" d="M9.5 4C5.9 4 3 6.5 3 9.6c0 1.8 1 3.3 2.6 4.4L5 16.2l2.4-1.2c.7.2 1.4.3 2.1.3.2 0 .4 0 .6 0-.2-.5-.3-1-.3-1.6 0-3.2 3.1-5.8 6.9-5.8.2 0 .4 0 .6.1C16.4 5.3 13.2 4 9.5 4zm-2.3 3.1c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zm4.6 0c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zM16.8 9c-3.1 0-5.6 2.1-5.6 4.7s2.5 4.7 5.6 4.7c.6 0 1.2-.1 1.8-.3l1.9.9-.5-1.7c1.2-.9 2-2.2 2-3.6C21.9 11.1 19.5 9 16.8 9zm-1.9 3.1c.3 0 .6.3.6.6s-.3.6-.6.6-.6-.3-.6-.6.3-.6.6-.6zm3.8 0c.3 0 .6.3.6.6s-.3.6-.6.6-.6-.3-.6-.6.3-.6.6-.6z"/></svg>'
+      );
+    }
+    if (channel === "alipay") {
+      return (
+        '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+        '<path fill="#1677FF" d="M19.695 15.07c3.426 1.158 4.203 1.22 4.203 1.22V3.846c0-2.124-1.705-3.845-3.81-3.845H3.914C1.808.001.102 1.722.102 3.846v16.31c0 2.123 1.706 3.845 3.813 3.845h16.173c2.105 0 3.81-1.722 3.81-3.845v-.157s-6.19-2.602-9.315-4.119c-2.096 2.602-4.8 4.181-7.607 4.181-4.75 0-6.361-4.19-4.112-6.949.49-.602 1.324-1.175 2.617-1.497 2.025-.502 5.247.313 8.266 1.317a16.796 16.796 0 0 0 1.341-3.302H5.781v-.952h4.799V6.975H4.77v-.953h5.81V3.591s0-.409.411-.409h2.347v2.84h5.744v.951h-5.744v1.704h4.69a19.453 19.453 0 0 1-1.986 5.06c1.424.52 2.702 1.011 3.654 1.333m-13.81-2.032c-.596.06-1.71.325-2.321.869-1.83 1.608-.735 4.55 2.968 4.55 2.151 0 4.301-1.388 5.99-3.61-2.403-1.182-4.438-2.028-6.637-1.809"/></svg>'
+      );
+    }
+    if (channel === "creem") {
+      return (
+        '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+        '<path fill="#7C3AED" d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm0 2v10h16V7H4zm2 2h4v2H6V9zm6 0h6v2h-6V9z"/></svg>'
+      );
+    }
+    if (channel === "paypal") {
+      return (
+        '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+        '<path fill="#003087" d="M7.2 20.5h1.7l.5-3.1h1.7c3.3 0 5.5-1.4 6.1-4.3.1-.5.1-.9.1-1.2 0-.2 0-.4-.1-.6H19l.1-.5c.4-2.5-.9-4.2-3.8-4.2H9.2L7.2 20.5zm4.2-11.5h1.7c1.3 0 2 .5 1.8 1.7-.2 1.4-1.2 1.7-2.5 1.7h-1.5l.5-3.4z"/>' +
+        '<path fill="#009CDE" d="M9.5 21.5h1.7l.4-2.5H13c2.7 0 4.4-1.1 4.9-3.5.1-.4.1-.7.1-1 0-.1 0-.3 0-.4h1.5l.1-.4c.3-2-.7-3.4-3.1-3.4h-4.3l-1.9 11.2h1.7l.5 3.1h1.4c1.1 0 1.7.4 1.5 1.4-.2 1.1-1 1.4-2.1 1.4H10l.5 3.3z"/></svg>'
+      );
+    }
+    if (channel === "crypto") {
+      return (
+        '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+        '<path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm3.2 11.2c-.1 1.9-1.4 2.9-3.4 3.1v1.7H10.7v-1.7c-2.4-.2-4.2-1.2-4.3-3h2.2c.1 1 1 1.6 2.1 1.7v-4.6c-2.8-.7-4.6-1.9-4.6-3.7 0-1.9 1.7-3.1 4.6-3.3V3h1.1v1.6c2 .2 3.7 1.2 3.8 3h-2.1c0-1-.8-1.6-1.7-1.7v4.3c2.9.8 4.5 1.9 4.5 4zm-2.2-4.2v4.3c1.3-.3 2-1 2-1.9 0-1-.8-1.7-2-2.4z"/></svg>'
+      );
+    }
+    return "";
+  }
+
+  function updatePayHint(pay, zh) {
+    var hint = $("payHint");
+    if (!hint) return;
+    if (pay.enabled && (pay.wechat_ready || pay.alipay_ready || pay.paypal_ready || pay.creem_ready)) {
+      var ch = [];
+      if (pay.wechat_ready) ch.push(zh ? "微信" : "WeChat");
+      if (pay.alipay_ready) ch.push(zh ? "支付宝" : "Alipay");
+      if (pay.paypal_ready) ch.push("PayPal");
+      if (pay.creem_ready) ch.push("Creem");
+      hint.textContent = zh
+        ? "选择套餐后可用 " + ch.join(" / ") + " 支付。" + (pay.mock_allowed ? " 也可使用「模拟到账」。" : "")
+        : "Pick a plan and pay with " + ch.join(" / ") + "." + (pay.mock_allowed ? " Mock top-up is also available." : "");
+    } else if (pay.wechat_configured || pay.alipay_configured || pay.paypal_configured) {
+      hint.textContent = zh
+        ? "在线支付准备中" + (pay.mock_allowed ? "，可用「模拟到账」。" : "。")
+        : "Online pay is being prepared." + (pay.mock_allowed ? " Mock top-up is available." : "");
+    } else if (pay.mock_allowed) {
+      hint.textContent = zh ? "可用「模拟到账」完成体验充值。" : "Mock top-up is available.";
+    } else {
+      hint.textContent = zh ? "在线支付暂未开放。" : "Online pay is not open yet.";
+    }
+  }
+
+  function findProductPlan(productId, planId) {
+    try {
+      var data = window.__tokenPlansPayload || {};
+      var products = data.products || [];
+      for (var i = 0; i < products.length; i++) {
+        if (String(products[i].product) === String(productId)) {
+          var plans = products[i].plans || [];
+          for (var j = 0; j < plans.length; j++) {
+            if (String(plans[j].plan) === String(planId)) {
+              return { product: products[i], plan: plans[j] };
+            }
+          }
+        }
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  /** 选套餐 → 弹窗统一列支付方式 → 点通道即下单 */
+  function openPlanPayChooser(productId, planMeta, pay, isMarkets) {
+    var zh = AI24X_API.isZhUi();
+    var planId = String(planMeta.plan || "");
+    var title = isMarkets
+      ? (zh ? planMeta.title_zh || planMeta.title : planMeta.title) || planId
+      : AI24X_API.planTitle(planMeta) || planId;
+    var price = isMarkets
+      ? (zh ? planMeta.price_label_zh || planMeta.price_label : planMeta.price_label) || ""
+      : AI24X_API.planPriceLabel(planMeta) || "";
+    openPayModal(
+      title + (price ? " · " + price : ""),
+      tr("选择支付方式后立即开通", "Pick a payment method — activates instantly")
+    );
+    var chEl = $("modal-pay-channels");
+    if (!chEl) return;
+    chEl.innerHTML = "";
+    var channels = [];
+    if (pay.wechat_ready) channels.push("wechat");
+    if (pay.alipay_ready) channels.push("alipay");
+    if (pay.paypal_ready) channels.push("paypal");
+    if (pay.creem_ready) channels.push("creem");
+    if (pay.crypto_ready) channels.push("crypto");
+    if (pay.mock_allowed) channels.push("mock");
+    channels.forEach(function (ch) {
+      var label =
+        ch === "wechat"
+          ? tr("微信支付", "WeChat Pay")
+          : ch === "alipay"
+            ? tr("支付宝", "Alipay")
+            : ch === "paypal"
+              ? "PayPal"
+              : ch === "creem"
+                ? "Creem"
+                : ch === "crypto"
+                  ? tr("USDT", "USDT")
+                  : tr("模拟到账", "Mock pay");
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className =
+        "btn" +
+        (ch === "paypal" || ch === "creem" ? " btn-primary" : "") +
+        (ch === "crypto" ? " btn-usdt" : "");
+      btn.innerHTML = (ch !== "mock" ? payIconSvg(ch) : "") + "<span>" + label + "</span>";
+      btn.setAttribute("data-pay-channel", ch);
+      btn.addEventListener("click", function () {
+        buyPlan(planId, ch, planMeta, productId);
+      });
+      chEl.appendChild(btn);
+    });
+    if (!channels.length) {
+      chEl.innerHTML =
+        '<span class="sub">' + tr("暂无可用的支付方式", "No payment methods available") + "</span>";
+    }
+  }
+
+  /** 统一产品列表：AI行情官 Pro / Token 接口开发 …（以后可无限扩充） */
+  function renderProducts(data) {
+    var box = $("productsList");
     if (!box) return;
     if (data) window.__tokenPlansPayload = data;
     data = data || window.__tokenPlansPayload;
     if (!data) return;
     box.innerHTML = "";
-    var plans = (data && data.plans) || [];
+    var products = (data && data.products) || [];
     var pay = (data && data.pay) || {};
     window.__tokenPay = pay;
     var zh = AI24X_API.isZhUi();
-    var hint = $("payHint");
-    if (hint) {
-      if (zh) {
-        if (pay.enabled && (pay.wechat_ready || pay.alipay_ready || pay.paypal_ready || pay.creem_ready)) {
-          var ch = [];
-          if (pay.wechat_ready) ch.push("微信");
-          if (pay.alipay_ready) ch.push("支付宝");
-          if (pay.paypal_ready) ch.push("PayPal");
-          if (pay.creem_ready) ch.push("Creem");
-          hint.textContent =
-            "选择套餐后可用 " +
-            ch.join(" / ") +
-            " 支付。" +
-            (pay.mock_allowed ? " 也可使用「模拟到账」。" : "");
-        } else if (pay.wechat_configured || pay.alipay_configured || pay.paypal_configured) {
-          hint.textContent = "在线支付准备中" + (pay.mock_allowed ? "，可用「模拟到账」。" : "。");
-        } else if (pay.mock_allowed) {
-          hint.textContent = "可用「模拟到账」完成体验充值。";
-        } else {
-          hint.textContent = "在线支付暂未开放。";
-        }
-      } else {
-        if (pay.enabled && (pay.wechat_ready || pay.alipay_ready || pay.paypal_ready || pay.creem_ready)) {
-          var enCh = [];
-          if (pay.wechat_ready) enCh.push("WeChat");
-          if (pay.alipay_ready) enCh.push("Alipay");
-          if (pay.paypal_ready) enCh.push("PayPal");
-          if (pay.creem_ready) enCh.push("Creem");
-          hint.textContent =
-            "Choose a plan and pay with " +
-            enCh.join(" / ") +
-            "." +
-            (pay.mock_allowed ? " Mock top-up is also available." : "");
-        } else {
-          hint.textContent = pay.mock_allowed
-            ? "Online pay is not open yet. Mock top-up is available."
-            : "Online pay is not open yet.";
-        }
-      }
-    }
-    if (!plans.length) {
+    updatePayHint(pay, zh);
+    if (!products.length) {
       box.innerHTML = '<p class="sub">' + tr("暂无套餐", "No plans") + "</p>";
       return;
     }
-
-    function payIconSvg(channel) {
-      if (channel === "wechat") {
-        return (
-          '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
-          '<path fill="#07C160" d="M9.5 4C5.9 4 3 6.5 3 9.6c0 1.8 1 3.3 2.6 4.4L5 16.2l2.4-1.2c.7.2 1.4.3 2.1.3.2 0 .4 0 .6 0-.2-.5-.3-1-.3-1.6 0-3.2 3.1-5.8 6.9-5.8.2 0 .4 0 .6.1C16.4 5.3 13.2 4 9.5 4zm-2.3 3.1c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zm4.6 0c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zM16.8 9c-3.1 0-5.6 2.1-5.6 4.7s2.5 4.7 5.6 4.7c.6 0 1.2-.1 1.8-.3l1.9.9-.5-1.7c1.2-.9 2-2.2 2-3.6C21.9 11.1 19.5 9 16.8 9zm-1.9 3.1c.3 0 .6.3.6.6s-.3.6-.6.6-.6-.3-.6-.6.3-.6.6-.6zm3.8 0c.3 0 .6.3.6.6s-.3.6-.6.6-.6-.3-.6-.6.3-.6.6-.6z"/></svg>'
-        );
+    products.forEach(function (prod) {
+      var pid = String(prod.product || "");
+      var isMarkets = pid === "markets";
+      var card = document.createElement("div");
+      card.className = "product-card" + (isMarkets ? " is-markets" : "");
+      card.setAttribute("data-product", pid);
+      var head = document.createElement("div");
+      head.className = "product-card-head";
+      var titleEl = document.createElement("h4");
+      titleEl.className = "mt-0 mb-0";
+      titleEl.textContent = zh ? prod.title_zh || prod.title : prod.title || pid;
+      if (isMarkets) {
+        var rec = document.createElement("span");
+        rec.className = "plan-rec";
+        rec.textContent = tr("推荐", "Recommended");
+        titleEl.appendChild(rec);
       }
-      if (channel === "alipay") {
-        return (
-          '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
-          '<path fill="#1677FF" d="M19.695 15.07c3.426 1.158 4.203 1.22 4.203 1.22V3.846c0-2.124-1.705-3.845-3.81-3.845H3.914C1.808.001.102 1.722.102 3.846v16.31c0 2.123 1.706 3.845 3.813 3.845h16.173c2.105 0 3.81-1.722 3.81-3.845v-.157s-6.19-2.602-9.315-4.119c-2.096 2.602-4.8 4.181-7.607 4.181-4.75 0-6.361-4.19-4.112-6.949.49-.602 1.324-1.175 2.617-1.497 2.025-.502 5.247.313 8.266 1.317a16.796 16.796 0 0 0 1.341-3.302H5.781v-.952h4.799V6.975H4.77v-.953h5.81V3.591s0-.409.411-.409h2.347v2.84h5.744v.951h-5.744v1.704h4.69a19.453 19.453 0 0 1-1.986 5.06c1.424.52 2.702 1.011 3.654 1.333m-13.81-2.032c-.596.06-1.71.325-2.321.869-1.83 1.608-.735 4.55 2.968 4.55 2.151 0 4.301-1.388 5.99-3.61-2.403-1.182-4.438-2.028-6.637-1.809"/></svg>'
-        );
+      head.appendChild(titleEl);
+      if (prod.url) {
+        var link = document.createElement("a");
+        link.className = "open-product";
+        link.href = prod.url;
+        link.target = "_blank";
+        link.rel = "noopener";
+        link.innerHTML = tr("打开产品 ↗", "Open product ↗");
+        head.appendChild(link);
       }
-      if (channel === "creem") {
-        return (
-          '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
-          '<path fill="#7C3AED" d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm0 2v10h16V7H4zm2 2h4v2H6V9zm6 0h6v2h-6V9z"/></svg>'
-        );
-      }
-      if (channel === "paypal") {
-        return (
-          '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
-          '<path fill="#003087" d="M7.2 20.5h1.7l.5-3.1h1.7c3.3 0 5.5-1.4 6.1-4.3.1-.5.1-.9.1-1.2 0-.2 0-.4-.1-.6H19l.1-.5c.4-2.5-.9-4.2-3.8-4.2H9.2L7.2 20.5zm4.2-11.5h1.7c1.3 0 2 .5 1.8 1.7-.2 1.4-1.2 1.7-2.5 1.7h-1.5l.5-3.4z"/>' +
-          '<path fill="#009CDE" d="M9.5 21.5h1.7l.4-2.5H13c2.7 0 4.4-1.1 4.9-3.5.1-.4.1-.7.1-1 0-.1 0-.3 0-.4h1.5l.1-.4c.3-2-.7-3.4-3.1-3.4h-4.3l-1.9 11.2h1.7l.5 3.1h1.4c1.1 0 1.7.4 1.5 1.4-.2 1.1-1 1.4-2.1 1.4H10l.5 3.3z"/></svg>'
-        );
-      }
-      if (channel === "crypto") {
-        return (
-          '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
-          '<path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm3.2 11.2c-.1 1.9-1.4 2.9-3.4 3.1v1.7H10.7v-1.7c-2.4-.2-4.2-1.2-4.3-3h2.2c.1 1 1 1.6 2.1 1.7v-4.6c-2.8-.7-4.6-1.9-4.6-3.7 0-1.9 1.7-3.1 4.6-3.3V3h1.1v1.6c2 .2 3.7 1.2 3.8 3h-2.1c0-1-.8-1.6-1.7-1.7v4.3c2.9.8 4.5 1.9 4.5 4zm-2.2-4.2v4.3c1.3-.3 2-1 2-1.9 0-1-.8-1.7-2-2.4z"/></svg>'
-        );
-      }
-      return "";
-    }
-
-    var wrap = document.createElement("div");
-    wrap.className = "plan-compare-wrap";
-    var table = document.createElement("table");
-    table.className = "plan-compare";
-    table.innerHTML =
-      "<thead><tr>" +
-      "<th>" +
-      tr("套餐", "Plan") +
-      "</th><th>" +
-      tr("价格", "Price") +
-      "</th><th>" +
-      tr("额", "Value") +
-      "</th><th>" +
-      tr("点名模", "Name models") +
-      "</th><th>" +
-      tr("有效期", "Validity") +
-      "</th><th>" +
-      tr("适合", "Best for") +
-      "</th><th>" +
-      tr("购买", "Buy") +
-      "</th></tr></thead>";
-    var tbody = document.createElement("tbody");
-    plans.forEach(function (p) {
-      var caps = AI24X_API.planCaps(p);
-      var lit = !!(p.value_pack && window.__isValuePackActive);
-      var trEl = document.createElement("tr");
-      trEl.className = lit ? "vp-lit" : p.recommended ? "is-recommended" : "";
-      if (p.plan) trEl.setAttribute("data-plan", String(p.plan));
-      var nameCell = document.createElement("td");
-      nameCell.className = "vp-name-cell";
-      nameCell.innerHTML =
-        "<strong>" +
-        (AI24X_API.planTitle(p) || "") +
-        "</strong>" +
-        (lit
-          ? '<span class="vp-lit-badge">' + tr("✓ 已点亮", "✓ Lit") + "</span>"
-          : "") +
-        (p.recommended
-          ? '<span class="plan-rec">' + tr("推荐", "Rec") + "</span>"
-          : "");
-      trEl.appendChild(nameCell);
-      function tdText(t) {
-        var td = document.createElement("td");
-        td.textContent = t;
-        return td;
-      }
-      trEl.appendChild(tdText(AI24X_API.planPriceLabel(p)));
-      // Show flash-equivalent value: $X = ~Y flash calls
-      var tokens = Number(p.credit_tokens || 0);
-      var flashVal = tokens > 0
-        ? "≈ " + AI24X_API.planCreditsShort(p) + " flash"
-        : p.set_vip
-          ? tr("无额度", "No credits")
-          : p.price_usd
-            ? "$" + p.price_usd
-            : "—";
-      var td = document.createElement("td");
-      td.textContent = flashVal;
-      trEl.appendChild(td);
-      trEl.appendChild(tdText(AI24X_API.planNameAccess(p)));
-      trEl.appendChild(tdText(AI24X_API.planValidityLabel(p)));
-      trEl.appendChild(tdText(AI24X_API.planOneLiner(p) || "—"));
-      var payTd = document.createElement("td");
-      payTd.className = "plan-compare-pay";
-      var actions = document.createElement("div");
-      actions.className = "card-actions plan-compare-actions";
-      function addBtn(label, cls, channel) {
-        var btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = cls + (channel !== "mock" ? " btn-pay" : "");
-        btn.innerHTML = (channel !== "mock" ? payIconSvg(channel) : "") + "<span>" + label + "</span>";
-        btn.setAttribute("data-pay-channel", channel);
-        btn.addEventListener("click", function () {
-          buyPlan(p.plan, channel, p);
+      card.appendChild(head);
+      var desc = document.createElement("p");
+      desc.className = "sub";
+      desc.style.margin = "4px 0 12px";
+      desc.textContent = zh ? prod.desc_zh || prod.desc : prod.desc || "";
+      card.appendChild(desc);
+      var plansWrap = document.createElement("div");
+      plansWrap.className = "product-plans";
+      var plans = prod.plans || [];
+      if (!plans.length) {
+        var none = document.createElement("p");
+        none.className = "sub";
+        none.textContent = tr("暂无套餐", "No plans");
+        plansWrap.appendChild(none);
+      } else {
+        plans.forEach(function (p) {
+          var row = document.createElement("div");
+          row.className = "product-plan-row" + (p.recommended ? " is-recommended" : "");
+          if (p.plan) row.setAttribute("data-plan", String(p.plan));
+          var info = document.createElement("div");
+          info.className = "product-plan-info";
+          var nm = document.createElement("strong");
+          nm.textContent = isMarkets
+            ? (zh ? p.title_zh || p.title : p.title) || p.plan
+            : AI24X_API.planTitle(p) || p.plan;
+          info.appendChild(nm);
+          var extra = document.createElement("div");
+          extra.className = "sub";
+          extra.style.marginTop = "3px";
+          var parts = [];
+          var price = isMarkets
+            ? (zh ? p.price_label_zh || p.price_label : p.price_label) || ""
+            : AI24X_API.planPriceLabel(p) || "";
+          if (price) parts.push(price);
+          var validity = isMarkets
+            ? p.days
+              ? (zh ? p.days + " 天有效" : p.days + " days")
+              : ""
+            : AI24X_API.planValidityLabel(p) || "";
+          if (validity) parts.push(validity);
+          var perk = isMarkets
+            ? (zh ? p.perk_zh || p.perk : p.perk) || ""
+            : AI24X_API.planOneLiner(p) || "";
+          if (perk) parts.push(perk);
+          extra.textContent = parts.join(" · ");
+          info.appendChild(extra);
+          row.appendChild(info);
+          var act = document.createElement("div");
+          act.className = "product-plan-act";
+          var sel = document.createElement("button");
+          sel.type = "button";
+          sel.className = "btn btn-primary";
+          sel.textContent = tr("选择", "Choose");
+          sel.addEventListener("click", function () {
+            openPlanPayChooser(pid, p, pay, isMarkets);
+          });
+          act.appendChild(sel);
+          row.appendChild(act);
+          plansWrap.appendChild(row);
         });
-        actions.appendChild(btn);
       }
-      if (pay.wechat_ready) addBtn(tr("微信", "WeChat"), "btn", "wechat");
-      if (pay.alipay_ready) addBtn(tr("支付宝", "Alipay"), "btn", "alipay");
-      if (pay.paypal_ready) addBtn("PayPal", "btn btn-primary", "paypal");
-      if (pay.creem_ready) addBtn("Creem", "btn btn-primary", "creem");
-      if (pay.crypto_ready) addBtn("USDT", "btn btn-usdt", "crypto");
-      if (pay.mock_allowed) addBtn(tr("模拟", "Mock"), "btn", "mock");
-      if (
-        !pay.wechat_ready &&
-        !pay.alipay_ready &&
-        !pay.paypal_ready &&
-        !pay.creem_ready &&
-        !pay.crypto_ready &&
-        !pay.mock_allowed
-      ) {
-        var disabled = document.createElement("button");
-        disabled.type = "button";
-        disabled.className = "btn";
-        disabled.disabled = true;
-        disabled.textContent = tr("暂不可买", "Unavailable");
-        actions.appendChild(disabled);
-      }
-      payTd.appendChild(actions);
-      trEl.appendChild(payTd);
-      tbody.appendChild(trEl);
+      card.appendChild(plansWrap);
+      box.appendChild(card);
     });
-    table.appendChild(tbody);
-    wrap.appendChild(table);
-    var tip = document.createElement("p");
-    tip.className = "sub";
-    tip.style.marginTop = "10px";
-    tip.textContent = tr(
-      "Flash $0.35/百万 · Pro $1.05/百万。Scale：12 个月名模资格 + 2 亿额度；已有额度可补购 VIP 资格包。额度到期后剩余自动核销。",
-      "Flash $0.35/M · Pro $1.05/M. Scale = 12-mo named access + 200M credits; VIP Pass adds access if you already have credits. Unused credits expire with the plan."
-    );
-    wrap.appendChild(tip);
-    box.appendChild(wrap);
     if (window.__isValuePackActive) {
       litValuePackRows();
     } else {
@@ -630,14 +677,14 @@
   }
 
   function litValuePackRows() {
-    var box = $("plansList");
+    var box = $("productsList");
     if (!box) return;
-    var rows = box.querySelectorAll('tr[data-plan="token_value_pack"]');
+    var rows = box.querySelectorAll('.product-plan-row[data-plan="token_value_pack"]');
     for (var i = 0; i < rows.length; i++) {
       var row = rows[i];
       if (row.classList.contains("vp-lit")) continue;
       row.classList.add("vp-lit");
-      var nm = row.querySelector(".vp-name-cell");
+      var nm = row.querySelector(".product-plan-info strong");
       if (nm && !nm.querySelector(".vp-lit-badge")) {
         var b = document.createElement("span");
         b.className = "vp-lit-badge";
@@ -668,14 +715,22 @@
       /* 只引导一次：清掉 URL，禁止自动 click（否则无用户手势→弹窗被拦→刷新套餐又自动点→死循环） */
       _payDeepLinkDone = true;
       clearPayDeepLinkFromUrl();
-      var box = $("plansList");
+      var box = $("productsList");
       if (!box) return;
       var card = null;
+      var matched = null;
       if (wantPlan) {
         card = box.querySelector('[data-plan="' + wantPlan.replace(/"/g, "") + '"]');
+        if (card) {
+          var prodCard = null;
+          try { prodCard = card.closest(".product-card"); } catch (eClosest) {}
+          if (prodCard && prodCard.getAttribute("data-product")) {
+            matched = findProductPlan(prodCard.getAttribute("data-product"), wantPlan);
+          }
+        }
       }
-      if (!card) card = box.querySelector("tr[data-plan], .card");
-      var plansAnchor = $("token-plans");
+      if (!card) card = box.querySelector(".product-plan-row");
+      var plansAnchor = $("panel-billing");
       if (plansAnchor) {
         try {
           plansAnchor.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -686,20 +741,23 @@
         card.style.outline = "2px solid #0070ba";
         card.style.outlineOffset = "2px";
       }
-      var chBtn =
-        wantPay && card
-          ? card.querySelector('button[data-pay-channel="' + wantPay + '"]')
-          : null;
-      if (wantPay && chBtn && !chBtn.disabled) {
-        var guide = tr(
-          "已从价格页带入套餐，请点击下方支付按钮完成付款。",
-          "Plan selected from pricing — tap a pay button below to continue."
+      var pay = window.__tokenPay || {};
+      if (matched && (wantPay || wantPlan)) {
+        // 深链：直接弹出该套餐的支付方式选择（modal 非 window.open，不会被拦截）
+        var isMarkets = String(matched.product.product) === "markets";
+        openPlanPayChooser(matched.product.product, matched.plan, pay, isMarkets);
+        showMsg(
+          msgBox(),
+          tr(
+            "已为您选中套餐，请选择支付方式完成付款。",
+            "Plan selected — choose a payment method to continue."
+          ),
+          true
         );
-        showMsg(msgBox(), guide, true);
       } else if (wantPay || wantPlan) {
         var guide2 = tr(
-          "请在下方套餐选择支付方式。",
-          "Choose a payment method on the plan card below."
+          "请在下方选择产品与套餐。",
+          "Pick a product and a plan below."
         );
         showMsg(msgBox(), guide2, true);
       }
@@ -833,6 +891,7 @@
 
   var _fulfillPollTimer = null;
   var _lastPayPlanId = null;
+  var _lastPayProduct = null;
   /** 支付后主动查单补履约（异步 notify 未到时的兜底） */
   function appendCryptoTxidBox(outTradeNo, planId) {
     var resultEl = $("modal-pay-result");
@@ -880,9 +939,10 @@
     });
   }
 
-  function startFulfillPoll(outTradeNo, channel, planId) {
+  function startFulfillPoll(outTradeNo, channel, planId, product) {
     if (!outTradeNo) return;
     if (planId) _lastPayPlanId = planId;
+    if (product) _lastPayProduct = product;
     if (_fulfillPollTimer) {
       clearInterval(_fulfillPollTimer);
       _fulfillPollTimer = null;
@@ -903,7 +963,7 @@
             _fulfillPollTimer = null;
             showMsg(
               msgBox(),
-              AI24X_API.planFulfillMessage(_lastPayPlanId || planId, outTradeNo),
+              AI24X_API.planFulfillMessage(_lastPayPlanId || planId, outTradeNo, _lastPayProduct || product),
               true
             );
             try {
@@ -918,17 +978,35 @@
     }, 3000);
   }
 
-  function buyPlan(planId, channel, planMeta) {
+  function buyPlan(planId, channel, planMeta, product) {
+    product = product || "token";
     var pay = window.__tokenPay || {};
-    var price = AI24X_API.planPriceLabel(planMeta) || "";
-    var planTitle = AI24X_API.planTitle(planMeta) || planId;
+    var zh = AI24X_API.isZhUi();
+    var price =
+      product === "markets"
+        ? (zh ? planMeta.price_label_zh || planMeta.price_label : planMeta.price_label) || ""
+        : AI24X_API.planPriceLabel(planMeta) || "";
+    var planTitle =
+      product === "markets"
+        ? (zh ? planMeta.title_zh || planMeta.title : planMeta.title) || planId
+        : AI24X_API.planTitle(planMeta) || planId;
     var session = ++_payModalSession;
     _lastPayPlanId = planId || null;
+    _lastPayProduct = product;
 
-    if (channel === "mock" || (!pay.wechat_ready && !pay.alipay_ready && pay.mock_allowed)) {
+    var anyReady =
+      pay.wechat_ready ||
+      pay.alipay_ready ||
+      pay.paypal_ready ||
+      pay.creem_ready ||
+      pay.crypto_ready;
+    if (channel === "mock" || (!anyReady && pay.mock_allowed)) {
       showMsg(msgBox(), tr("正在创建模拟订单…", "Creating mock order…"), true);
-      AI24X_API.billingWechatNative(planId)
+      AI24X_API.billingWechatNative(planId, product)
         .then(function (r) {
+          try {
+            closePayModal();
+          } catch (e) {}
           showMsg(
             msgBox(),
             tr(
@@ -1004,14 +1082,14 @@
 
     var req =
       channel === "alipay"
-        ? AI24X_API.billingAlipayWap(planId)
+        ? AI24X_API.billingAlipayWap(planId, product)
         : channel === "creem"
-          ? AI24X_API.billingCreemOrder(planId)
+          ? AI24X_API.billingCreemOrder(planId, product)
           : channel === "paypal"
-            ? AI24X_API.billingPaypalOrder(planId)
+            ? AI24X_API.billingPaypalOrder(planId, product)
             : channel === "crypto"
-              ? AI24X_API.billingCryptoOrder(planId)
-              : AI24X_API.billingWechatNative(planId);
+              ? AI24X_API.billingCryptoOrder(planId, product)
+              : AI24X_API.billingWechatNative(planId, product);
 
     req
       .then(function (r) {
@@ -1044,7 +1122,7 @@
             ),
             qrData: r.code_url,
           });
-          startFulfillPoll(r.out_trade_no, "wechat", planId);
+          startFulfillPoll(r.out_trade_no, "wechat", planId, product);
         } else if (channel === "alipay" && r && r.pay_url) {
           var opened = navigateCheckoutWin(checkoutWin, r.pay_url);
           showPayResult({
@@ -1066,7 +1144,7 @@
             openUrl: r.pay_url,
             openLabel: tr("在新窗口打开支付宝", "Open Alipay in a new window"),
           });
-          startFulfillPoll(r.out_trade_no, "alipay", planId);
+          startFulfillPoll(r.out_trade_no, "alipay", planId, product);
         } else if (channel === "creem" && r && r.pay_url) {
           var crOpened = navigateCheckoutWin(checkoutWin, r.pay_url);
           showPayResult({
@@ -1086,7 +1164,7 @@
             openUrl: r.pay_url,
             openLabel: tr("打开 Creem", "Open Creem"),
           });
-          startFulfillPoll(r.out_trade_no, "creem", planId);
+          startFulfillPoll(r.out_trade_no, "creem", planId, product);
         } else if (channel === "paypal" && r && r.pay_url) {
           var ppOpened = navigateCheckoutWin(checkoutWin, r.pay_url);
           showPayResult({
@@ -1106,7 +1184,7 @@
             openUrl: r.pay_url,
             openLabel: tr("打开 PayPal", "Open PayPal"),
           });
-          startFulfillPoll(r.out_trade_no, "paypal", planId);
+          startFulfillPoll(r.out_trade_no, "paypal", planId, product);
         } else if (channel === "crypto" && r && r.address) {
           closeCheckoutWin(checkoutWin);
           showPayResult({
@@ -1157,6 +1235,14 @@
       });
   }
 
+  /** 订单归属产品：优先订单字段，其次 plan id（markets 为 weekly/monthly/yearly） */
+  function orderProductOf(planId, order) {
+    if (order && String(order.product || "") === "markets") return "markets";
+    var pid = String(planId || "");
+    if (pid === "weekly" || pid === "monthly" || pid === "yearly") return "markets";
+    return _lastPayProduct || "token";
+  }
+
   function renderOrders(rows) {
     var box = $("ordersList");
     if (!box) return;
@@ -1173,9 +1259,9 @@
       li.className = "list-item";
       var left = document.createElement("span");
       var amt = ((Number(o.amount_fen) || 0) / 100).toFixed(2);
-      // PayPal 单 amount_fen 为 USD 美分；微信/支付宝为 CNY 分
+      // PayPal/Creem/Crypto 单 amount_fen 为 USD 美分；微信/支付宝为 CNY 分
       var moneyLabel =
-        o.channel === "paypal" || o.channel === "creem"
+        o.channel === "paypal" || o.channel === "creem" || o.channel === "crypto"
           ? "$" + amt
           : AI24X_API.isZhUi()
             ? "¥" + amt
@@ -1219,7 +1305,11 @@
               showMsg(
                 msgBox(),
                 r && r.ok
-                  ? AI24X_API.planFulfillMessage(o.plan || _lastPayPlanId, o.out_trade_no)
+                  ? AI24X_API.planFulfillMessage(
+                      o.plan || _lastPayPlanId,
+                      o.out_trade_no,
+                      orderProductOf(o.plan, o)
+                    )
                   : tr("尚未支付成功或查单未完成", "Not paid yet / still pending"),
                 !!(r && r.ok)
               );
@@ -2457,8 +2547,8 @@
     } catch (e) {}
 
     try {
-      var plans = await AI24X_API.billingPlans();
-      renderPlans(plans);
+      var products = await AI24X_API.billingProducts();
+      renderProducts(products);
     } catch (e) {}
 
     try {
@@ -2510,7 +2600,7 @@
             }
             var text = pro
               ? tr("Pro 生效中 — 到期 " + ds, "Pro active — expires " + ds)
-              : tr("当前免费版 — 每天 3 次 AI 点评、自选 3 只。", "Free plan — 3 AI briefs/day, 3-symbol watchlist.");
+              : tr("当前免费版 — 每天 10 次 AI 点评、自选 10 只。", "Free plan — 10 AI briefs/day, 10-symbol watchlist.");
             statuses.forEach(function (st) { st.textContent = text; });
             ctas.forEach(function (cta) {
               cta.textContent = pro ? tr("管理 / 续费订阅", "Manage / renew") : tr("升级 Pro", "Upgrade to Pro");
@@ -2657,18 +2747,6 @@
         refreshAll();
       });
     }
-    var bMkM = $("btn-mk-month");
-    if (bMkM) bMkM.addEventListener("click", function () { doMarketsCheckout("monthly"); });
-    var bMkW = $("btn-mk-week");
-    if (bMkW) bMkW.addEventListener("click", function () { doMarketsCheckout("weekly"); });
-    var bMkY = $("btn-mk-year");
-    if (bMkY) bMkY.addEventListener("click", function () { doMarketsCheckout("yearly"); });
-    var bOvW = $("btn-ov-week");
-    if (bOvW) bOvW.addEventListener("click", function () { doMarketsCheckout("weekly"); });
-    var bOvM = $("btn-ov-month");
-    if (bOvM) bOvM.addEventListener("click", function () { doMarketsCheckout("monthly"); });
-    var bOvY = $("btn-ov-year");
-    if (bOvY) bOvY.addEventListener("click", function () { doMarketsCheckout("yearly"); });
     try {
       bindSupportPanel();
     } catch (e) {}
@@ -3087,7 +3165,7 @@
             showMsg(
               msgBox(),
               r && r.ok
-                ? AI24X_API.planFulfillMessage(_lastPayPlanId, null)
+                ? AI24X_API.planFulfillMessage(_lastPayPlanId, null, orderProductOf(_lastPayPlanId, r))
                 : tr("PayPal 尚未完成，可在「我的订单」点确认到账", "PayPal pending — tap Confirm under My orders"),
               !!(r && r.ok)
             );
@@ -3114,7 +3192,7 @@
             showMsg(
               msgBox(),
               r && r.ok
-                ? AI24X_API.planFulfillMessage(_lastPayPlanId, null)
+                ? AI24X_API.planFulfillMessage(_lastPayPlanId, null, orderProductOf(_lastPayPlanId, r))
                 : tr(
                     "Creem 尚未完成，可在「我的订单」点确认到账",
                     "Creem pending — tap Confirm under My orders"

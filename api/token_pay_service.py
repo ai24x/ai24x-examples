@@ -133,11 +133,14 @@ def token_pay_mock_allowed() -> bool:
     return env in ("dev", "local", "test")
 
 
-def mk_out_trade_no(auth_user_id: int) -> str:
-    # 前缀 T 与 a1 的 M 区分；总长 <= 32（微信限制）
+def mk_out_trade_no(auth_user_id: int, product: str = "token") -> str:
+    # 前缀按产品目录（T=token 兼容旧单，M=markets）；总长 <= 32（微信限制）
+    from pay_products import product_prefix
+
+    prefix = product_prefix(product)
     now = int(time.time())
     tail = secrets.token_hex(3)
-    return f"T{int(auth_user_id)}{now}{tail}"[:32]
+    return f"{prefix}{int(auth_user_id)}{now}{tail}"[:32]
 
 
 def _origin_console_url(origin: Optional[str]) -> Optional[str]:
@@ -149,8 +152,12 @@ def _origin_console_url(origin: Optional[str]) -> Optional[str]:
     if not origin:
         return None
     origin = origin.strip().lower()
+    if "127.0.0.1:8000" in origin or "localhost:8000" in origin:
+        return "http://127.0.0.1:8000/console.html"
     if "open.ai24x.com" in origin:
         return "https://open.ai24x.com/console.html"
+    if "ai24x.com" in origin:
+        return "https://www.ai24x.com/console.html"
     return None
 
 
@@ -219,12 +226,55 @@ def _assert_promo_purchase_ok(db: Session, *, auth_user_id: int, plan_id: str) -
         )
 
 
+def _resolve_plan_for_product(
+    product: str, plan: str, channel: str
+) -> tuple[str, str, dict[str, Any], int]:
+    """按产品解析套餐 → (product, plan_id, meta, price_fen)。
+
+    token 沿用 CNY 定价（token_plans）；markets 仅 USD 定价，微信/支付宝通道按
+    _usd_cny 换算成 CNY 分，PayPal/Creem/Crypto 存 USD 美分（与既有约定一致）。
+    """
+    product = (product or "token").strip().lower()
+    if product == "token":
+        plan_id, price_fen = normalize_plan(plan)
+        return product, plan_id, get_plan(plan_id) or {}, int(price_fen)
+    from pay_products import product_plan
+
+    if product != "markets":
+        raise HTTPException(status_code=400, detail="unknown_product")
+    plan_id = str(plan or "").strip().lower()
+    meta = product_plan(product, plan_id) or {}
+    if not meta:
+        raise HTTPException(status_code=400, detail=f"unknown_plan:{plan_id}")
+    try:
+        usd = float(meta.get("price_usd") or 0)
+    except (TypeError, ValueError):
+        usd = 0.0
+    if usd <= 0:
+        raise HTTPException(status_code=400, detail="plan_missing_usd_price")
+    if channel in ("paypal", "creem", "crypto"):
+        price_fen = max(1, int(round(usd * 100)))
+    else:
+        from token_plans import _usd_cny
+
+        fx = _usd_cny()
+        price_fen = max(1, int(round(usd * fx * 100)))
+    return product, plan_id, dict(meta), int(price_fen)
+
+
+def _plan_meta_for(product: str, plan_id: str) -> dict[str, Any]:
+    from pay_products import product_plan
+
+    return product_plan(product, plan_id) or {}
+
+
 def create_pending_order(
     db: Session,
     *,
     auth_user_id: int,
     plan: str,
     channel: str,
+    product: str = "token",
 ) -> TokenPayOrder:
     from auth_user_service import raise_if_frozen
 
@@ -232,23 +282,10 @@ def create_pending_order(
     if not u:
         raise HTTPException(status_code=404, detail="用户不存在")
     raise_if_frozen(u)
-    try:
-        plan_id, price_fen = normalize_plan(plan)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+    product, plan_id, _meta, price_fen = _resolve_plan_for_product(product, plan, channel)
     _assert_promo_purchase_ok(db, auth_user_id=int(auth_user_id), plan_id=plan_id)
     ch = (channel or "wechat")[:16]
-    # PayPal/Creem/Crypto：amount_fen 存 USD 美分；微信/支付宝仍为 CNY 分
-    if ch in ("paypal", "creem", "crypto"):
-        meta = get_plan(plan_id) or {}
-        try:
-            usd = float(meta.get("price_usd") or 0)
-        except Exception:
-            usd = 0.0
-        if usd <= 0:
-            raise HTTPException(status_code=400, detail="plan_missing_usd_price")
-        price_fen = max(1, int(round(usd * 100)))
-    otn = mk_out_trade_no(int(auth_user_id))
+    otn = mk_out_trade_no(int(auth_user_id), product)
     row = TokenPayOrder(
         out_trade_no=otn,
         auth_user_id=int(auth_user_id),
@@ -256,7 +293,7 @@ def create_pending_order(
         amount_fen=int(price_fen),
         channel=ch,
         status="pending",
-        product="token",
+        product=product,
     )
     db.add(row)
     db.commit()
@@ -283,33 +320,46 @@ def _fulfill_order_row(
 
     if str(row.status) == "paid":
         if row.transaction_id and str(row.transaction_id) == txid:
+            if str(row.product) == "markets":
+                # markets 单：已收款但远程履约可能中断过，幂等重试补履约
+                return _fulfill_markets_remote(row, otn, channel_tag)
             return {"ok": True, "duplicate": True, "out_trade_no": otn}
         return {"ok": False, "error": "order_already_paid"}
 
     if int(row.amount_fen) != int(amount_fen):
         return {"ok": False, "error": "amount_mismatch"}
 
-    # 履约可用已下架套餐定义（前台 enabled=false 仍需给已下单用户到账）
-    plan = _resolve_plan(str(row.plan))
-    if not plan:
-        return {"ok": False, "error": "plan_missing"}
-
-    plan_credit = int(plan.get("credit_tokens") or 0)
-    credit = plan_credit
-    set_vip = bool(plan.get("set_vip"))
-    note = f"{channel_tag}:{otn}:{row.plan}"
-
-    fx = _usd_cny()
-    plan_usd = float(plan.get("price_usd") or 0)
-    if plan_usd > 0:
-        usd_cents = int(round(plan_usd * 100))
+    is_markets = str(row.product) == "markets"
+    if is_markets:
+        # markets 产品无 token 套餐：收款后直接回调子服务激活订阅；
+        # amount_fen 微信/支付宝=CNY 分，PayPal/Creem=USD 美分
+        fx = _usd_cny()
+        if str(row.channel) in ("paypal", "creem", "crypto"):
+            usd_cents = max(1, int(row.amount_fen))
+        else:
+            usd_cents = max(1, int(round(int(row.amount_fen) / fx)))
     else:
-        usd_cents = max(1, int(round(int(amount_fen) / fx)))
+        # 履约可用已下架套餐定义（前台 enabled=false 仍需给已下单用户到账）
+        plan = _resolve_plan(str(row.plan))
+        if not plan:
+            return {"ok": False, "error": "plan_missing"}
 
-    if credit <= 0 and set_vip:
-        credit = 1
-    if credit <= 0 and usd_cents <= 0:
-        return {"ok": False, "error": "nothing_to_fulfill"}
+        plan_credit = int(plan.get("credit_tokens") or 0)
+        credit = plan_credit
+        set_vip = bool(plan.get("set_vip"))
+        note = f"{channel_tag}:{otn}:{row.plan}"
+
+        fx = _usd_cny()
+        plan_usd = float(plan.get("price_usd") or 0)
+        if plan_usd > 0:
+            usd_cents = int(round(plan_usd * 100))
+        else:
+            usd_cents = max(1, int(round(int(amount_fen) / fx)))
+
+        if credit <= 0 and set_vip:
+            credit = 1
+        if credit <= 0 and usd_cents <= 0:
+            return {"ok": False, "error": "nothing_to_fulfill"}
 
     now = _utcnow()
     # 原子抢占：仅 pending→paid 成功的一方可入账，防 webhook+手动确认双到账
@@ -336,6 +386,10 @@ def _fulfill_order_row(
             return {"ok": False, "error": "order_already_paid"}
         return {"ok": False, "error": "claim_failed"}
     db.commit()
+
+    # markets 产品：订单收款后签名回调 markets 子服务激活订阅
+    if str(row.product) == "markets":
+        return _fulfill_markets_remote(row, otn, channel_tag)
 
     from models import BillingLedger
     from token_mvp_service import topup_usd
@@ -366,6 +420,45 @@ def _fulfill_order_row(
     return {"ok": True, "out_trade_no": otn, "balance": snap}
 
 
+def _fulfill_markets_remote(row: TokenPayOrder, otn: str, channel_tag: str) -> dict[str, Any]:
+    """markets 订单履约：签名回调子服务激活订阅（幂等，失败可随查单重试）。"""
+    import httpx
+
+    from pay_products import PRODUCTS
+
+    conf = PRODUCTS.get("markets", {}).get("fulfill") or {}
+    url = str(conf.get("url") or "")
+    secret = str(conf.get("secret") or "")
+    if not url:
+        return {"ok": False, "error": "markets_fulfill_not_configured"}
+    payload = {
+        "out_trade_no": otn,
+        "user_id": str(row.auth_user_id),
+        "plan": str(row.plan),
+        "source": str(row.channel or "paypal"),
+        "channel_tag": str(channel_tag or ""),
+    }
+    headers = {"Content-Type": "application/json"}
+    if secret:
+        headers["X-Markets-Secret"] = secret
+    try:
+        r = httpx.post(url, json=payload, headers=headers, timeout=12)
+        ctype = (r.headers.get("content-type") or "").lower()
+        data = r.json() if "application/json" in ctype else {}
+    except Exception as e:
+        logger.warning("markets fulfill http error otn=%s: %r", otn, e)
+        return {"ok": False, "error": f"markets_fulfill_http:{e!r}"}
+    if r.status_code != 200 or (data or {}).get("code") != 0:
+        logger.warning(
+            "markets fulfill rejected otn=%s status=%s body=%s",
+            otn,
+            r.status_code,
+            str(data)[:160],
+        )
+        return {"ok": False, "error": f"markets_fulfill_rejected:{r.status_code}"}
+    return {"ok": True, "out_trade_no": otn, "product": "markets", "fulfilled": True}
+
+
 def try_fulfill(
     db: Session,
     *,
@@ -377,9 +470,6 @@ def try_fulfill(
     otn = str(out_trade_no or "").strip()
     if not otn:
         return {"ok": False, "error": "missing_out_trade_no"}
-    # 只处理 Token 单；非 T 前缀直接忽略，避免误履约
-    if not otn.startswith("T"):
-        return {"ok": False, "error": "not_token_order"}
     row = db.query(TokenPayOrder).filter(TokenPayOrder.out_trade_no == otn).first()
     if not row:
         return {"ok": False, "error": "order_not_found"}
@@ -401,6 +491,11 @@ def mock_fulfill(db: Session, *, out_trade_no: str, auth_user_id: Optional[int] 
         raise HTTPException(status_code=404, detail="订单不存在")
     if auth_user_id is not None and int(row.auth_user_id) != int(auth_user_id):
         raise HTTPException(status_code=403, detail="订单不属于当前用户")
+    if str(row.status) == "paid":
+        # 已付单幂等：markets 补远程履约；token 直接返回 duplicate
+        if str(row.product) == "markets":
+            return _fulfill_markets_remote(row, otn, "mock_retry")
+        return {"ok": True, "duplicate": True, "out_trade_no": otn}
     r = _fulfill_order_row(
         db,
         row,
@@ -426,6 +521,7 @@ def list_orders_for_user(db: Session, auth_user_id: int, *, limit: int = 20) -> 
             {
                 "out_trade_no": r.out_trade_no,
                 "plan": r.plan,
+                "product": str(r.product or "token"),
                 "amount_fen": r.amount_fen,
                 "channel": r.channel,
                 "status": r.status,
@@ -687,9 +783,13 @@ async def admin_query_fulfill_order(db: Session, *, out_trade_no: str) -> dict:
     raise HTTPException(status_code=400, detail=f"unsupported_channel:{ch}")
 
 
-async def create_wechat_native(db: Session, *, auth_user_id: int, plan: str) -> dict:
-    row = create_pending_order(db, auth_user_id=auth_user_id, plan=plan, channel="wechat")
-    plan_meta = get_plan(row.plan) or {}
+async def create_wechat_native(
+    db: Session, *, auth_user_id: int, plan: str, product: str = "token"
+) -> dict:
+    row = create_pending_order(
+        db, auth_user_id=auth_user_id, plan=plan, channel="wechat", product=product
+    )
+    plan_meta = _plan_meta_for(product, row.plan)
     title = str(plan_meta.get("title") or row.plan)
 
     if token_pay_mock_allowed() and not token_pay_enabled():
@@ -743,10 +843,12 @@ async def create_wechat_native(db: Session, *, auth_user_id: int, plan: str) -> 
 
 
 async def create_alipay_wap(
-    db: Session, *, auth_user_id: int, plan: str, origin: Optional[str] = None
+    db: Session, *, auth_user_id: int, plan: str, origin: Optional[str] = None, product: str = "token"
 ) -> dict:
-    row = create_pending_order(db, auth_user_id=auth_user_id, plan=plan, channel="alipay")
-    plan_meta = get_plan(row.plan) or {}
+    row = create_pending_order(
+        db, auth_user_id=auth_user_id, plan=plan, channel="alipay", product=product
+    )
+    plan_meta = _plan_meta_for(product, row.plan)
     title = str(plan_meta.get("title") or row.plan)
     yuan = f"{int(row.amount_fen) / 100:.2f}"
 
@@ -775,7 +877,17 @@ async def create_alipay_wap(
             status_code=503,
             detail="支付宝未配置完整，或 TOKEN_ALIPAY_NOTIFY_URL 为空（须指向主站 Token 回调）",
         )
-    _return_url = _origin_console_url(origin) or (cfg.alipay_return_url or None)
+    from pay_products import product_return_url
+
+    _return_url = (
+        _origin_console_url(origin)
+        or product_return_url(product)
+        or (cfg.alipay_return_url or None)
+    )
+    # 带回本单号与渠道标记，便于前端回跳页自动查单确认（支付宝自身也会追加参数，二者兼容）
+    if _return_url:
+        sep = "&" if "?" in _return_url else "?"
+        _return_url = f"{_return_url}{sep}alipay=1&out_trade_no={row.out_trade_no}"
     try:
         pay_url = build_wap_pay_url(
             cfg,
@@ -803,11 +915,18 @@ async def create_alipay_wap(
 
 
 async def create_paypal_order(
-    db: Session, *, auth_user_id: int, plan: str, origin: Optional[str] = None
+    db: Session, *, auth_user_id: int, plan: str, origin: Optional[str] = None, product: str = "token"
 ) -> dict:
-    row = create_pending_order(db, auth_user_id=auth_user_id, plan=plan, channel="paypal")
-    plan_meta = get_plan(row.plan) or {}
-    title = str(plan_meta.get("title_en") or plan_meta.get("title_zh") or row.plan)
+    row = create_pending_order(
+        db, auth_user_id=auth_user_id, plan=plan, channel="paypal", product=product
+    )
+    plan_meta = _plan_meta_for(product, row.plan)
+    title = str(
+        plan_meta.get("title_en")
+        or plan_meta.get("title_zh")
+        or plan_meta.get("title")
+        or row.plan
+    )
     usd = float(plan_meta.get("price_usd") or 0) or (int(row.amount_fen) / 100.0)
 
     if token_pay_mock_allowed() and not token_pay_enabled():
@@ -835,7 +954,13 @@ async def create_paypal_order(
     if not paypal_configured(cfg):
         raise HTTPException(status_code=503, detail="PayPal 未配置（PAYPAL_CLIENT_ID / SECRET）")
 
-    ret = (getattr(cfg, "paypal_return_url", "") or "https://www.ai24x.com/console.html").strip()
+    from pay_products import product_return_url
+
+    ret = (
+        _origin_console_url(origin)
+        or product_return_url(product)
+        or (getattr(cfg, "paypal_return_url", "") or "https://www.ai24x.com/console.html").strip()
+    )
     can = (getattr(cfg, "paypal_cancel_url", "") or ret).strip()
     _same_origin = _origin_console_url(origin)
     if _same_origin:
@@ -886,15 +1011,19 @@ async def create_paypal_order(
     }
 
 
-async def create_creem_order(db: Session, *, auth_user_id: int, plan: str) -> dict:
+async def create_creem_order(
+    db: Session, *, auth_user_id: int, plan: str, origin: Optional[str] = None, product: str = "token"
+) -> dict:
     """Creem Checkout: create order + checkout session (USD cents, same as PayPal)."""
-    row = create_pending_order(db, auth_user_id=int(auth_user_id), plan=plan, channel="creem")
-    meta = get_plan(row.plan) or {}
+    row = create_pending_order(
+        db, auth_user_id=int(auth_user_id), plan=plan, channel="creem", product=product
+    )
+    meta = _plan_meta_for(product, row.plan)
     try:
         usd = float(meta.get("price_usd") or 0)
     except Exception:
         usd = 0.0
-    title = str(meta.get("title_en") or meta.get("title_zh") or row.plan)
+    title = str(meta.get("title_en") or meta.get("title_zh") or meta.get("title") or row.plan)
 
     cfg = pay_settings_ns()
     from pay_creem import create_checkout_session, creem_configured
@@ -909,7 +1038,13 @@ async def create_creem_order(db: Session, *, auth_user_id: int, plan: str) -> di
     if not product_id:
         raise HTTPException(status_code=503, detail="plan_missing_creem_product_id")
 
-    ret = (getattr(cfg, "creem_return_url", "") or "https://www.ai24x.com/console.html").strip()
+    from pay_products import product_return_url
+
+    ret = (
+        _origin_console_url(origin)
+        or product_return_url(product)
+        or (getattr(cfg, "creem_return_url", "") or "https://www.ai24x.com/console.html").strip()
+    )
     sep = "&" if "?" in ret else "?"
     ret_q = f"{ret}{sep}creem=1&out_trade_no={row.out_trade_no}"
 

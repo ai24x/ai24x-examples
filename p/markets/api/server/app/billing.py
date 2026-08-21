@@ -18,9 +18,9 @@ PLANS: Dict[str, Dict[str, Any]] = {
     "yearly": {"usd": 199.0, "days": 365, "label": "Pro Yearly", "description": "AI24X Markets Pro · 1 year"},
 }
 
-FREE_WATCH_LIMIT = 3
+FREE_WATCH_LIMIT = 10
 PRO_WATCH_LIMIT = 50
-FREE_AI_BRIEF_DAILY = 3
+FREE_AI_BRIEF_DAILY = 10
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS subscriptions (
@@ -38,6 +38,8 @@ CREATE INDEX IF NOT EXISTS idx_sub_user ON subscriptions(user_id);
 CREATE TABLE IF NOT EXISTS orders (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   paypal_order_id TEXT UNIQUE,
+  out_trade_no TEXT UNIQUE,
+  channel TEXT DEFAULT 'paypal',
   custom_id TEXT NOT NULL,
   amount_usd REAL NOT NULL,
   plan TEXT NOT NULL,
@@ -74,6 +76,18 @@ def _conn() -> sqlite3.Connection:
 def init_db() -> None:
     with _conn() as conn:
         conn.executescript(_SCHEMA)
+        # 兼容旧库：hub 单新增列（SQLite ADD COLUMN 幂等）
+        cols = {r["name"] for r in conn.execute("PRAGMA table_info(orders)").fetchall()}
+        if "out_trade_no" not in cols:
+            # SQLite 不支持 ALTER TABLE ADD COLUMN UNIQUE → 普通列 + 唯一索引
+            conn.execute("ALTER TABLE orders ADD COLUMN out_trade_no TEXT")
+            conn.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_out_trade_no "
+                "ON orders(out_trade_no)"
+            )
+        if "channel" not in cols:
+            conn.execute("ALTER TABLE orders ADD COLUMN channel TEXT DEFAULT 'paypal'")
+        conn.commit()
 
 
 # ---------------------------------------------------------------- 订阅
@@ -140,6 +154,42 @@ def expire_overdue() -> int:
 
 
 # ---------------------------------------------------------------- 订单
+
+def create_hub_order(
+    out_trade_no: str, custom_id: str, amount_usd: float, plan: str, channel: str = "paypal"
+) -> Dict[str, Any]:
+    """统一支付中台回调前的本地订单落库（out_trade_no 为外部单号）。"""
+    with _conn() as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO orders (out_trade_no, custom_id, amount_usd, plan, channel) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (out_trade_no, custom_id, amount_usd, plan, channel),
+        )
+        row = conn.execute(
+            "SELECT * FROM orders WHERE out_trade_no = ?", (out_trade_no,)
+        ).fetchone()
+    return dict(row) if row else {}
+
+
+def mark_hub_order_paid(out_trade_no: str) -> Optional[Dict[str, Any]]:
+    with _conn() as conn:
+        conn.execute(
+            "UPDATE orders SET status='paid', paid_at=datetime('now') "
+            "WHERE out_trade_no=? AND status!='paid'",
+            (out_trade_no,),
+        )
+        row = conn.execute(
+            "SELECT * FROM orders WHERE out_trade_no = ?", (out_trade_no,)
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def get_hub_order(out_trade_no: str) -> Optional[Dict[str, Any]]:
+    with _conn() as conn:
+        row = conn.execute(
+            "SELECT * FROM orders WHERE out_trade_no = ?", (out_trade_no,)
+        ).fetchone()
+    return dict(row) if row else None
 
 def create_order(paypal_order_id: str, custom_id: str, amount_usd: float, plan: str) -> Dict[str, Any]:
     with _conn() as conn:

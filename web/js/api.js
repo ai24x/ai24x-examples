@@ -649,32 +649,36 @@
     return request("/v1/billing/plans", { method: "GET" });
   }
 
-  function billingWechatNative(plan) {
+  function billingWechatNative(plan, product) {
     return request("/v1/billing/wechat/native", {
       method: "POST",
-      body: JSON.stringify({ plan: plan }),
+      body: JSON.stringify({ plan: plan, product: product || "token" }),
     });
   }
 
-  function billingAlipayWap(plan) {
+  function billingAlipayWap(plan, product) {
     return request("/v1/billing/alipay/wap", {
       method: "POST",
-      body: JSON.stringify({ plan: plan }),
+      body: JSON.stringify({ plan: plan, product: product || "token" }),
     });
   }
 
-  function billingPaypalOrder(plan) {
+  function billingPaypalOrder(plan, product) {
     return request("/v1/billing/paypal/order", {
       method: "POST",
-      body: JSON.stringify({ plan: plan }),
+      body: JSON.stringify({ plan: plan, product: product || "token" }),
     });
   }
 
-  function billingCreemOrder(plan) {
+  function billingCreemOrder(plan, product) {
     return request("/v1/billing/creem/order", {
       method: "POST",
-      body: JSON.stringify({ plan: plan }),
+      body: JSON.stringify({ plan: plan, product: product || "token" }),
     });
+  }
+
+  function billingProducts() {
+    return request("/v1/billing/products", { method: "GET" });
   }
 
   function billingOrders(limit) {
@@ -689,10 +693,10 @@
     });
   }
 
-  function billingCryptoOrder(plan) {
+  function billingCryptoOrder(plan, product) {
     return request("/v1/billing/crypto/order", {
       method: "POST",
-      body: JSON.stringify({ plan: plan }),
+      body: JSON.stringify({ plan: plan, product: product || "token" }),
     });
   }
 
@@ -923,10 +927,15 @@
     return "";
   }
 
-  function planFulfillMessage(planId, outTradeNo) {
+  function planFulfillMessage(planId, outTradeNo, product) {
     var zh = isZhUi();
     var otn = outTradeNo ? String(outTradeNo) : "";
     var suffix = otn ? (zh ? " 单号：" + otn : " Order: " + otn) : "";
+    if (product === "markets") {
+      return zh
+        ? "AI24X Markets Pro 已开通，行情 App 内立即生效。" + suffix
+        : "AI24X Markets Pro activated — check inside the Markets app." + suffix;
+    }
     if (planId === "token_vip_month") {
       return zh
         ? "VIP 资格已开通（30 天）：可点名名模（消耗预充额度）。" + suffix
@@ -988,6 +997,7 @@
     billingUsageModels: billingUsageModels,
     billingUsageKeys: billingUsageKeys,
     billingPlans: billingPlans,
+    billingProducts: billingProducts,
     billingWechatNative: billingWechatNative,
     billingAlipayWap: billingAlipayWap,
     billingPaypalOrder: billingPaypalOrder,
