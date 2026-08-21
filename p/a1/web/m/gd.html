@@ -168,6 +168,7 @@
   <button id="tab-kc" data-m="kc">科创主线</button>
   <button id="tab-bj" data-m="bj">北证主线</button>
   <button id="tab-bj_all" data-m="bj_all">北证全市场</button>
+  <button id="tab-macd" data-m="macd">MACD首红</button>
   <button id="tab-pb" data-m="pb">回踩企稳</button>
 </div>
 
@@ -184,6 +185,7 @@
 <div class="runner-box" id="runner-box"></div>
 
 <div class="sec-title">板块排行</div>
+<div class="rescan-note">板块资金流·东方财富，主线判定·技术+资金双确认</div>
 <div class="br" id="boardrank"></div>
 
 <div class="sec-title">历史归档</div>
@@ -216,9 +218,9 @@
   if (iCode) { try { localStorage.setItem('ai24x_invite_code', String(iCode).trim().toUpperCase()); } catch(e){} }
   if (qp.get('date')) { state.date = qp.get('date'); }
   var mk = qp.get('market');
-  if (mk && ['hs','kc','bj','bj_all','pb'].indexOf(mk) >= 0) { state.market = mk; }
+  if (mk && ['hs','kc','bj','bj_all','macd','pb'].indexOf(mk) >= 0) { state.market = mk; }
   else {
-    try { var _savedM = String(localStorage.getItem('bj_tab') || '').trim(); if (_savedM && ['hs','kc','bj','bj_all','pb'].indexOf(_savedM) >= 0) state.market = _savedM; } catch(e){}
+    try { var _savedM = String(localStorage.getItem('bj_tab') || '').trim(); if (_savedM && ['hs','kc','bj','bj_all','macd','pb'].indexOf(_savedM) >= 0) state.market = _savedM; } catch(e){}
   }
 
   function token(){ try { var t = localStorage.getItem('ai24x_a_token'); if (t && t.length > 20) return t; } catch(e){} return ''; }
@@ -294,7 +296,11 @@
 
   function tags(p){
     var a = p.patterns || {}, h = [];
+    if (a.firstWeek) h.push('<span class="tag ok">近1周首板·底部右侧</span>');
+    if (a.pb45) h.push('<span class="tag ok">首板4-5日回踩企稳</span>');
+    if (a.washOut) h.push('<span class="tag ok">单日砸盘企稳</span>');
     if (a.surgeStart) h.push('<span class="tag ok">底部异动·' + (p.surgeDaysAgo || 0) + '天前</span>');
+    if (a.surgePullback) h.push('<span class="tag ok">异动回踩企稳·' + (p.surgePullbackDays || 0) + '天前</span>');
     if (a.ztPullback) h.push('<span class="tag ok">涨停级回踩</span>');
     else if (a.pullback) h.push('<span class="tag ok">异动回踩企稳</span>');
     if (a.baseUp) h.push('<span class="tag ok">底部走多</span>');
@@ -311,7 +317,11 @@
 
   function reasonOf(p){
     var a = p.patterns || {}, r = [];
+    if (a.firstWeek) r.push('近1周首板·底部右侧刚启动');
+    if (a.pb45) r.push('首板4-5日回踩·未破位企稳');
+    if (a.washOut) r.push('异动10%+后单日砸盘未破位·缩量企稳');
     if (a.surgeStart) r.push('底部放量异动' + (p.surgeDaysAgo || 0) + '天前启动');
+    if (a.surgePullback) r.push('放量异动后缩量回踩' + (p.surgePullbackDays || 0) + '日企稳未破位');
     if (a.pullback) r.push('异动拉升后缩量回踩企稳');
     if (a.ztPullback) r.push('涨停级回踩企稳');
     if (a.smallYang) r.push('连续小阳趋势上拐');
@@ -342,6 +352,7 @@
   function sanitizeSt(t){
     return String(t || '').replace(/（现价[^）]*）/g, '').replace(/分批建仓/g, '分批').replace(/分批/g, '参考区间')
       .replace(/轻仓/g, '').replace(/追突破/g, '').replace(/建仓/g, '').replace(/低吸/g, '')
+      .replace(/放弃\/减半/g, '').replace(/减半/g, '')
       .replace(/止损价/g, '参考位').replace(/无条件离场/g, '注意风险').replace(/离场/g, '注意风险')
       .replace(/\s+/g, ' ').trim();
   }
@@ -350,7 +361,7 @@
     if (!st.entry && !st.period) return '';
     var period = String(st.period || '').trim();
     var entry = sanitizeSt(st.entry);
-    return '<div class="st"><span class="st-tag">波段参考</span><b>' + esc(period) + '</b> ｜ ' + esc(entry) + ' ｜ <span style="color:#00b578">不追高·缩量回踩·破位/长阴-8%注意风险</span></div>';
+    return '<div class="st"><span class="st-tag">波段参考</span><b>' + esc(period.replace(/补涨卡位/g, '补涨观察')) + '</b> ｜ ' + esc(entry) + ' ｜ <span style="color:#00b578">不追高·缩量回踩·破位/长阴-8%注意风险</span></div>';
   }
 
   function card(p){
@@ -378,6 +389,38 @@
       bearishHtml(p) +
       '<div class="btns">' +
         '<a class="kline" href="quote.html?secid=' + encodeURIComponent(sid) + '&name=' + encodeURIComponent(p.name) + '">看K线 →</a>' +
+        '<a class="demo" href="../demo.html?secid=' + encodeURIComponent(sid) + '&period=day" target="_blank" rel="noopener">桌面详情</a>' +
+      '</div>' +
+    '</div>';
+  }
+
+  /* MACD 量能首红卡片（手机版）：底部金叉第一根红柱 + 量能确认，右侧启动信号 */
+  function redDaysTagMobile(m){
+    var d = m.macdFirstRedDays != null ? m.macdFirstRedDays : 0;
+    if (d === 0) return '<span class="tag ok">今日首红</span>';
+    return '<span class="tag ok">红柱第' + (d + 1) + '天</span>';
+  }
+  function redCard(m){
+    var lv = m.levels || {};
+    var sid = secidForCode(m.code);
+    var badge = m.mainHit ? '<span class="tag ok">主线·' + esc(m.mainName || '') + '</span>'
+      : (m.obsHit ? '<span class="tag ok">次主线·' + esc(m.obsName || '') + '</span>' : '');
+    var riskBadge = m.bearish_level === 'hard' ? '<span class="tag risk">硬伤</span>'
+      : (m.bearish_level === 'warn' ? '<span class="tag warn">警示</span>' : '');
+    return '<div class="pick">' +
+      '<div class="ph">' +
+        '<span class="num">' + (m.rank || 1) + '</span>' +
+        '<a class="nm" href="quote.html?secid=' + encodeURIComponent(sid) + '&name=' + encodeURIComponent(m.name) + '">' + esc(m.name) + '</a>' +
+        '<span class="cd">' + esc(m.code) + '</span>' +
+        redDaysTagMobile(m) + badge + riskBadge +
+        '<span class="px ' + cls(m.pct) + '">' + num(m.price, 2) + '</span>' +
+        '<span class="chg ' + cls(m.pct) + '">' + pct(m.pct) + '</span>' +
+      '</div>' +
+      '<div class="score">最终分 <b class="hl">' + (m.final != null ? m.final : '—') + '</b> ｜ 位置 <b>' + num((m.pos != null ? m.pos * 100 : 0), 0) + '%</b> ｜ 市值 ' + money(m.mcap) + ' ｜ 5日 ' + pct(m.chg5) + '</div>' +
+      (lv.s1 != null ? '<div class="lv"><span class="s">支撑 ' + num(lv.s1, 2) + '</span><span class="p">压力 ' + num(lv.p1, 2) + '</span></div>' : '') +
+      '<div class="reason">筛选依据：' + esc(reasonOf(m)) + '</div>' +
+      '<div class="btns">' +
+        '<a class="kline" href="quote.html?secid=' + encodeURIComponent(sid) + '&name=' + encodeURIComponent(m.name) + '">看K线 →</a>' +
         '<a class="demo" href="../demo.html?secid=' + encodeURIComponent(sid) + '&period=day" target="_blank" rel="noopener">桌面详情</a>' +
       '</div>' +
     '</div>';
@@ -620,9 +663,13 @@
       if (_topMl) topMlName = String(_topMl.name || '').replace(/\s+/g, '');
       var _bml = b.ml_name ? String(b.ml_name).replace(/\s+/g, '') : '';
       var isTop = !!(b.mainline && _bml && _bml === topMlName);
+      var isObs = b.observe || (d.observes || []).some(function(o){
+        return String(o.name || '').replace(/\s+/g, '') === String(b.name || '').replace(/\s+/g, '');
+      });
       var t = '';
       if (isTop && b.tier === 'king') t += '<span class="tier main">主线 ✓</span><span class="tier king">⭐ ' + dataDayLabel(d) + '主线</span>';
       else if (b.mainline) t += '<span class="tier key">重点关注</span>';
+      else if (isObs) t += '<span class="tier key">重点观察</span>';
       else if (b.tier === 'king') t += '<span class="tier normal">市场强势</span>';
       else if (b.tier === 'key') t += '<span class="tier key">强势关注</span>';
       else t += '<span class="tier normal">备选</span>';
@@ -664,14 +711,14 @@
     var emo = (d.meta && d.meta.emotion) || null;
     var h = '';
     if (emo && emo.regime === 'risk_off') {
-      h += '<div class="em-alert">⚠️ 情绪偏冷（温度' + (emo.temperature != null ? emo.temperature : '—') + '）：控制仓位、以回踩低吸为主，回踩企稳门槛额外 +3。</div>';
+      h += '<div class="em-alert">⚠️ 情绪偏冷（温度' + (emo.temperature != null ? emo.temperature : '—') + '）：注意控制仓位、以回踩企稳为主，回踩企稳门槛额外 +3。</div>';
     }
     if (d.market_code === 'pb' && emo && emo.fb) {
       var _pr = emo.promote_rate != null ? Math.round(emo.promote_rate * 100) : null;
-      var _hint = emo.promote_rate >= 0.25 ? '二波机会偏多' : (emo.promote_rate < 0.15 ? '二波偏难·谨慎' : '二波中性');
+      var _hint = emo.promote_rate >= 0.25 ? '晋级率偏高' : (emo.promote_rate < 0.15 ? '晋级率偏低·谨慎' : '晋级率中性');
       h += '<div class="em-note">昨日首板 ' + emo.fb + ' 只 · 今日晋级 ' + emo.promote + ' 只' +
         (_pr != null ? '（晋级率 ' + _pr + '% · ' + _hint + '）' : '') +
-        '：回踩企稳只做「缩量不破位 + 主线共振」的低吸。</div>';
+        '：回踩企稳仅跟踪「缩量不破位 + 主线共振」形态。</div>';
     }
     return h;
   }
@@ -682,6 +729,29 @@
     var emoHtml = emotionBannerMobile(d);
     if (d.vip_required) {
       el.innerHTML = '<div class="vip-gate"><div class="t">🔒 个股筛选为 VIP 专属</div><div class="d">板块热点免费看，个股分析与主线锁定需开通 VIP 后解锁。</div><a href="account.html">去开通 VIP →</a></div>';
+      return;
+    }
+    var isMacd = (d.market_code || state.market) === 'macd';
+    if (isMacd) {
+      var reds = d.macd_reds || [];
+      var mrHtml = emoHtml;
+      if (!reds.length) {
+        mrHtml += '<div class="empty">' + dataDayLabel(d) + '无 MACD 首红标的：大盘红柱延伸期、无新鲜首红属正常，宁缺毋滥；可稍后重扫。</div>';
+      } else {
+        mrHtml += '<div class="sec-title" style="padding:6px 0 4px">🔥 进阶策略 · MACD 量能首红（' + reds.length + ' 只）</div>' +
+          '<div class="rescan-note">底部金叉第一根红柱 + 量能确认（右侧启动强信号），「今日首红 / 红柱第 2-3 天」优先。</div>';
+        mrHtml += reds.map(function(m, i){ m.rank = i + 1; return redCard(m); }).join('');
+      }
+      el.innerHTML = mrHtml;
+      var mrRunners = d.runners || [];
+      var mrRb = $('runner-box');
+      if (mrRunners.length) {
+        mrRb.innerHTML = '<details><summary>备选池（落选原因）' + mrRunners.length + '</summary><table><tr><th>代码</th><th>名称</th><th>评分</th><th>原因</th></tr>' +
+          mrRunners.map(function(r){
+            var bl = r.bearish_level === 'hard' ? '<span style="color:#f87171">硬伤</span>' : (r.bearish_level === 'warn' ? '<span style="color:#fbbf24">警示</span>' : '');
+            return '<tr><td>' + esc(r.code) + '</td><td><a href="quote.html?secid=' + encodeURIComponent(secidForCode(r.code)) + '&name=' + encodeURIComponent(r.name) + '">' + esc(r.name) + '</a></td><td>' + (r.final != null ? r.final : '—') + '</td><td>' + bl + ' ' + esc((r.risks || []).join('；') || '排名靠后') + '</td></tr>';
+          }).join('') + '</table></details>';
+      } else mrRb.innerHTML = '';
       return;
     }
     if (!picks.length) {

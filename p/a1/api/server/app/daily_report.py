@@ -716,19 +716,69 @@ def mainline_judgment(sector_scores, plates=None):
     return info
 
 
+_RECENT_TOP5_CACHE: dict[str, Any] = {"date": "", "data": {}}
+
+
+def _recent_plate_top5(days: int = 3) -> dict[str, list[float]]:
+    """最近 days 个归档日（不含今日）的板块 Top5 均值：{板块名: [top5均值,...]}（日期旧→新）。
+
+    用于主线「动量确认」：板块须先在观察位站稳（历史 Top5 连续达标），今日再达标才升主线，
+    防止电风扇行情下“单日异动直接当主线、第二天就换”。零上游成本，读本地归档。
+    """
+    global _RECENT_TOP5_CACHE
+    d8 = today8()
+    if _RECENT_TOP5_CACHE.get("date") == d8:
+        return _RECENT_TOP5_CACHE["data"]
+    out: dict[str, list[float]] = {}
+    try:
+        import re as _re
+        archs = sorted([x for x in os.listdir(ARCHIVE_ROOT)
+                        if os.path.isdir(os.path.join(ARCHIVE_ROOT, x)) and _re.fullmatch(r"\d{8}", x)],
+                       reverse=True)
+        cnt = 0
+        for d in archs:
+            if d == d8:
+                continue
+            p = os.path.join(ARCHIVE_ROOT, d, "sector_score.json")
+            if not os.path.exists(p):
+                continue
+            try:
+                sc = json.load(open(p, encoding="utf-8"))
+            except Exception:
+                continue
+            for sec, items in sc.items():
+                scores = sorted((float(x.get("score")) for x in items if x.get("score") is not None), reverse=True)[:5]
+                if scores:
+                    out.setdefault(sec, []).append(round(sum(scores) / len(scores), 1))
+            cnt += 1
+            if cnt >= days:
+                break
+    except Exception:
+        pass
+    _RECENT_TOP5_CACHE = {"date": d8, "data": out}
+    return out
+
+
 def pick_main_lines(sector_scores, prev_mainlines=None, plates=None):
     """主线锁定（加权综合分 + 延续约束，防“一天一个想法”也防“一条线霸榜”）：
     - 技术关：成分股 Top5 均值（龙头梯队）≥58，或板块内有涨停/异动情绪确认时 Top5 均值≥55；
       （Top5 均值替代全体均值，避免平庸成分稀释，强势题材不再漏判）
     - 资金关：当日平均涨幅≥0，或 5日主力净流入≥15亿 且 今日净流入>0 / 今日净流入≥50亿（资金主攻）；
     - 加权综合分（排序用）= Top5均值×0.5 + 5日主力净流入标准化(50亿封顶)×30 + 情绪(涨停×2+异动×0.5，4分封顶)×20；
-    - 昨日主线：Top5 均值≥58 且回调≤-1.0%，或 均值≥55 且资金仍主攻，或 综合分≥55 且情绪确认 → 延续；
-    - 新晋主线：技术+资金/情绪双确认；主线总量最多 3 条，超出部分按综合分降级为观察（次日可再升回）；
+    - 昨日主线（惯性保护）：Top5 均值≥55 且回调≤-2.5% 且 5日资金未明显离场，或 均值≥55 且资金仍主攻，
+      或 综合分≥55 且情绪确认 → 延续；轮动市中不因单日小幅回调就换线；
+    - 新晋主线（动量确认）：板块近 2 个归档日 Top5 均值已连续≥55（先在观察站稳）且今日技术+资金双确认
+      → 才升主线；首日异动只进观察，次日延续再升，避免“今天A明天B”。极强信号（≥3涨停 + 5日主力≥15亿
+      + 今日净流入）可当日直升；
+    - 电风扇/弱共识收敛：今日新晋主线≥2 时，主线只保留昨日延续王者（无延续则综合分最强 1 条），
+      其余新晋降为「重点观察」，次日连续确认后再升——轮动市中主线不一天一换；
+    - 主线总量最多 3 条，超出部分按综合分降级为观察（次日可再升回）；
     - 资金强但技术未修复（均值50~58）→ 观察（等修复确认），避免漏掉正在启动的轮动板块。
     """
     prev = {str(x) for x in (prev_mainlines or [])}
     main_lines, observes, avoids = [], [], []
     info = mainline_judgment(sector_scores, plates)
+    _mom = _recent_plate_top5(3)  # 板块近 3 日 Top5 动量（主线 2 日确认用）
     for sec in sector_scores:
         it = info.get(sec)
         if not it:
@@ -751,18 +801,22 @@ def pick_main_lines(sector_scores, prev_mainlines=None, plates=None):
                 avoids.append(sec)
             continue
         if sec in prev:
-            # 昨日主线：Top5 均值≥58 且回调≤-1.0%（可小幅回踩），或 资金仍主攻，或 综合分≥55 且情绪确认 → 延续；
-            # 回调偏深、资金离场、情绪转弱 → 观察/回避，防止"一条线霸榜"（10日内涨停是滞后证据，不续命）
-            if (top5m is not None and top5m >= 58 and avg_up >= -1.0) \
+            # 昨日主线（惯性保护）：回调容忍放宽到 -2.5%，且 5日资金未明显离场才保留；
+            # 轮动市中不因单日小幅回调就换线；资金大幅流出 / 技术破位才降级。
+            _f5c = it.get("fund5")
+            _f5_ok = (_f5c is None) or (_f5c >= 0)
+            if (top5m is not None and top5m >= 55 and avg_up >= -2.5 and _f5_ok) \
                     or (mean >= 55 and fund_ok) \
-                    or (composite >= 55 and confirmed):
+                    or (composite >= 55 and confirmed and _f5_ok):
                 main_lines.append(sec)
             elif mean >= 52:
                 observes.append(sec)
             else:
                 avoids.append(sec)
         else:
-            # 新晋：龙头梯队技术确认 + 资金/量能二次确认（2026-08-18 P0-1）
+            # 新晋（动量确认，防电风扇一日游）：龙头梯队技术确认 + 资金/量能二次确认，
+            # 且板块近 2 个归档日 Top5 已连续≥55（先在观察站稳），今日再达标才升主线；
+            # 极强信号（≥3涨停 + 5日主力≥15亿 + 今日净流入）可当日直升。
             # a) 今日主力 f62>0 且 5日主力 f164≥10亿；b) 涨停≥2 且 今日主力 f62>0；
             # 资金缺失（None）一律视为未通过 → 降级观察，杜绝「数据缺失当通过」；
             # 昨日主线延续不适用本规则（走上方既有延续分支）。
@@ -772,9 +826,13 @@ def pick_main_lines(sector_scores, prev_mainlines=None, plates=None):
                 (_ft is not None and _ft > 0 and _f5 is not None and _f5 >= 10e8)
                 or (n_zt >= 2 and _ft is not None and _ft > 0)
             )
-            if ((top5m is not None and top5m >= 58 and avg_up >= 0 and _fund_confirm) \
-                    or (confirmed and top5m is not None and top5m >= 55 and _fund_confirm) \
-                    or (fund_ok and top5m is not None and top5m >= 55 and avg_up >= -0.5)):
+            _mom_vals = _mom.get(sec) or []
+            _mom_ok = bool(_mom_vals and all(v >= 55 for v in _mom_vals[-2:]))
+            _strong_new = bool(n_zt >= 3 and (_f5 is not None and _f5 >= 15e8) and (_ft is not None and _ft > 0))
+            if (_strong_new and top5m is not None and top5m >= 55 and avg_up >= 0) \
+                    or (_mom_ok and top5m is not None and top5m >= 58 and avg_up >= 0 and _fund_confirm) \
+                    or (_mom_ok and confirmed and top5m is not None and top5m >= 55 and _fund_confirm) \
+                    or (_mom_ok and fund_ok and top5m is not None and top5m >= 55 and avg_up >= -0.5):
                 main_lines.append(sec)
             elif (top5m is not None and top5m >= 52) or (fund_ok and mean >= 50):
                 observes.append(sec)
@@ -789,6 +847,18 @@ def pick_main_lines(sector_scores, prev_mainlines=None, plates=None):
                 main_lines.remove(s)
                 if s not in observes:
                     observes.append(s)
+    # 电风扇/弱共识收敛：今日新晋主线≥2（轮动快、共识弱）时，主线只保留昨日延续王者
+    # （无延续则综合分最强 1 条），其余新晋降为「重点观察」，次日连续确认后再升，
+    # 避免主线一天一个变（曾出现：煤炭单主线 → 次日 CXO/CPO 双双新晋上榜）。
+    _prev_set = {s for s in prev}
+    _new_in_main = [s for s in main_lines if s not in _prev_set]
+    if prev and len(_new_in_main) >= 2 and len(main_lines) > 1:
+        _cont = [s for s in main_lines if s in _prev_set]
+        _keep = _cont if _cont else main_lines[:1]
+        for s in main_lines:
+            if s not in _keep and s not in observes:
+                observes.append(s)
+        main_lines = _keep
     # 主次排序：加权综合分优先，5日主力净流入次之
     main_lines.sort(key=lambda s: (-info[s]["composite"], -(info[s]["fund5"] or 0)))
     observes.sort(key=lambda s: -info[s]["composite"])
@@ -923,21 +993,21 @@ def build_md(data, vip=True):
     A("")
     A("## 二、资金面：谁在真正主攻")
     A("")
-    A("### 2.1 行业板块 5 日主力净流入 TOP")
+    A("### 2.1 行业板块 5 日主力净流入 TOP（东方财富）")
     A("")
     A("| 排名 | 板块 | 5日净流入 | 今日净流入 | 今日涨跌 |")
     A("|---|---|---|---|---|")
     for i, r in enumerate(ind5[:8]):
         A("| %d | %s | +%s 亿 | %s%s 亿 | %s%% |" % (i + 1, _plate_cell(r.get("name"), r.get("code"), tier_note(i)), yi(r["main_5d"]), "+" if (r["main_today"] or 0) >= 0 else "", yi(r["main_today"]), r["pct"]))
     A("")
-    A("### 2.2 行业板块今日主力净流入 TOP")
+    A("### 2.2 行业板块今日主力净流入 TOP（东方财富）")
     A("")
     A("| 排名 | 板块 | 今日净流入 |")
     A("|---|---|---|")
     for i, r in enumerate(ind_t[:8]):
         A("| %d | %s | %s%s 亿 |" % (i + 1, _plate_cell(r.get("name"), r.get("code"), tier_note(i)), "+" if (r["main_today"] or 0) >= 0 else "", yi(r["main_today"])))
     A("")
-    A("### 2.3 概念板块资金流")
+    A("### 2.3 概念板块资金流（东方财富）")
     A("")
     A("**今日净流入 TOP**")
     A("")
