@@ -534,7 +534,7 @@ def gen_stock_page(cfg: Dict[str, str], data: Dict[str, Any], api_base: str) -> 
     body = f"""
 <h1>{name} ({sym}) Chart and Technical Snapshot</h1>
 <p class="sub">{cfg['blurb']} — daily chart with 20-day and 60-day moving averages.</p>
-<p class="meta">Data as of {st['asof']} · source {data['source']} · educational content</p>
+<p class="meta">Data as of {st['asof']} · aggregated market data · educational content</p>
 <div class="chart"><img src="assets/{slug}.svg" alt="{name} ({sym}) daily candlestick chart with MA20 and MA60" width="760" height="420"></div>
 <div class="cards">
 <div class="card"><b>{_f(st['last'])}</b><span>last close</span></div>

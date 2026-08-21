@@ -415,13 +415,19 @@ async def api_score(
 
 @app.get("/api/screener")
 async def api_screener(
+    request: Request,
     mode: str = Query("all", pattern="^(all|Bottom volume surge|Breakout on volume|Uptrend building|MACD momentum building|Pullback holding near MAs)$"),
     limit: int = Query(24, ge=1, le=40),
 ):
-    """美股技术扫描：底部放量异动 / 放量突破 / 趋势启动 / 回踩企稳（教育用途）。"""
+    """美股技术扫描（Pro 专属）：底部放量异动 / 放量突破 / 趋势启动 / 回踩企稳（教育用途）。"""
     try:
+        uid = await _auth_user_id(request)
+        if not billing.is_pro(uid):
+            return JSONResponse(status_code=403, content={"code": -1, "msg": "vip_required"})
         data = await screener.run_screener(mode, limit)
         return {"code": 0, "data": data}
+    except ValueError as e:
+        return JSONResponse(status_code=401, content={"code": -1, "msg": str(e)})
     except Exception as e:
         return {"code": -1, "msg": str(e), "data": {}}
 

@@ -79,10 +79,8 @@
     <div class="mk-top-inner">
       <a class="brand" href="/"><span class="brand-mark">AI</span><span>AI24X <b>Markets</b></span></a>
       <nav class="mk-nav" aria-label="Main">
-        <a href="/" data-i18n="nav.markets">Markets</a>
-        <a href="/app.html" data-i18n="nav.chart">Chart App</a>
+        <a href="https://www.ai24x.com/index.html" data-i18n="nav.home">Home</a>
         <a href="/pricing.html" data-i18n="nav.pricing">Pricing</a>
-        <a href="/screener.html" class="is-active" data-i18n="nav.discover">Discover</a>
         <a href="https://www.ai24x.com/help.html" target="_blank" rel="noopener" data-i18n="nav.help">Help</a>
         <a href="https://www.ai24x.com/console.html" target="_blank" rel="noopener" data-i18n="nav.console">Console</a>
       </nav>
@@ -91,7 +89,7 @@
           <button type="button" data-lang="en" class="active">EN</button>
           <button type="button" data-lang="zh">中文</button>
         </div>
-        <a class="auth-link" id="signin-link" href="https://www.ai24x.com/login.html?next=https%3A%2F%2Fmarkets.ai24x.com%2Fapp.html" target="_blank" rel="noopener" data-i18n="signIn">Sign in</a>
+        <a class="auth-link" id="signin-link" href="https://www.ai24x.com/login.html?next=https%3A%2F%2Fmarkets.ai24x.com%2Fscreener.html" target="_blank" rel="noopener" data-i18n="signIn">Sign in</a>
       </div>
     </div>
   </header>
@@ -104,6 +102,11 @@
       </div>
       <div class="spacer" style="flex:1"></div>
       <button class="btn-refresh" id="btn-refresh" data-i18n="sr.refresh">Refresh</button>
+    </div>
+    <div id="sr-gate" style="display:none; text-align:center; padding:48px 20px 56px;">
+      <h2 id="gate-title" style="font-size:22px; margin:0 0 8px; color:var(--text);">Pro feature</h2>
+      <p id="gate-sub" style="color:var(--muted); margin:0 0 24px; max-width:440px; margin-left:auto; margin-right:auto;"></p>
+      <a id="gate-btn" class="btn-refresh" href="#" style="display:inline-block; padding:11px 26px; border-radius:999px; background:var(--accent); color:#fff; font-weight:700; text-decoration:none;"></a>
     </div>
     <div class="chips" id="mode-chips">
       <button class="chip active" data-mode="all" data-i18n="sr.all">All</button>
@@ -132,13 +135,17 @@
       'use strict';
       var I18N = {
         en: {
-          'nav.markets': 'Markets',
-          'nav.chart': 'Chart App',
+          'nav.home': 'Home',
           'nav.pricing': 'Pricing',
-          'nav.discover': 'Discover',
           'nav.help': 'Help',
           'nav.console': 'Console',
           signIn: 'Sign in',
+          'gate.loginTitle': 'Sign in to use Discover',
+          'gate.loginSub': 'Discover is a Pro-only daily market scan. Sign in to check your plan.',
+          'gate.loginBtn': 'Sign in',
+          'gate.upTitle': 'Discover is a Pro feature',
+          'gate.upSub': 'Unlock the daily US market screen, unlimited AI briefs and a 50-symbol watchlist with Pro.',
+          'gate.upBtn': 'Go to my plans',
           'sr.title': 'Daily US Market Screen',
           'sr.sub': 'Educational technical scan of major US stocks &amp; ETFs — 15-minute delayed data, not investment advice.',
           'sr.refresh': 'Refresh',
@@ -161,13 +168,17 @@
           'footer.note': 'AI24X Markets provides educational technical analysis tools. Market data is delayed at least 15 minutes. Nothing here is investment advice.',
         },
         zh: {
-          'nav.markets': '行情',
-          'nav.chart': '图表',
+          'nav.home': '首页',
           'nav.pricing': '价格',
-          'nav.discover': '发现',
           'nav.help': '帮助',
           'nav.console': '控制台',
           signIn: '登录',
+          'gate.loginTitle': '登录后使用发现',
+          'gate.loginSub': '发现是 Pro 会员专属的每日美股扫描。登录后即可查看你的套餐状态。',
+          'gate.loginBtn': '登录',
+          'gate.upTitle': '发现为 Pro 会员专属',
+          'gate.upSub': '升级 Pro，解锁每日美股扫描、无限 AI 点评与 50 只自选。',
+          'gate.upBtn': '前往我的套餐',
           'sr.title': '每日美股扫描',
           'sr.sub': '主流美股与 ETF 的技术面扫描（教育用途）— 行情延迟至少 15 分钟，不构成投资建议。',
           'sr.refresh': '刷新',
@@ -190,7 +201,7 @@
           'footer.note': 'AI24X Markets 提供教育用途的技术分析工具。行情延迟至少 15 分钟，一切内容不构成投资建议。',
         }
       };
-      var lang = localStorage.getItem('ai24x_lang') || 'en';
+      var lang = localStorage.getItem('markets_lang') || localStorage.getItem('ai24x_lang') || 'en';
       if (lang !== 'zh') lang = 'en';
       function t(k) { return (I18N[lang] && I18N[lang][k]) || I18N.en[k] || k; }
       function escHtml(s) {
@@ -205,6 +216,13 @@
       function scoreColor(v) { return v >= 75 ? '#22c55e' : v >= 60 ? '#f59e0b' : v >= 45 ? '#38bdf8' : '#f87171'; }
       var mode = 'all';
       var $ = function (id) { return document.getElementById(id); };
+      var coreHost = (location.hostname === '127.0.0.1' || location.hostname === 'localhost')
+        ? 'http://127.0.0.1:8000' : 'https://www.ai24x.com';
+      function readCookie(n) {
+        var m = document.cookie.match(new RegExp('(?:^|;\\s*)' + n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '=([^;]*)'));
+        return m ? decodeURIComponent(m[1]) : '';
+      }
+      function getToken() { return readCookie('ai24x_auth_token'); }
 
       function applyLang() {
         document.documentElement.lang = (lang === 'zh') ? 'zh-CN' : 'en';
@@ -284,23 +302,61 @@
           })
           .catch(function () { if (pr) pr.style.display = 'none'; el.style.display = ''; el.className = 'loading'; el.textContent = t('sr.fail'); });
       }
+      function showGate(kind) {
+        var gate = $('sr-gate'); if (!gate) return;
+        var pr = $('sr-progress'); if (pr) pr.style.display = 'none';
+        var el = $('sr-list'); if (el) el.style.display = 'none';
+        var note = $('sr-note'); if (note) note.textContent = '';
+        document.querySelectorAll('#mode-chips .chip').forEach(function (c) { c.disabled = true; c.style.opacity = .45; });
+        var btn = $('btn-refresh'); if (btn) btn.style.display = 'none';
+        var key = (kind === 'login') ? 'login' : 'up';
+        $('gate-title').textContent = t('gate.' + key + 'Title');
+        $('gate-sub').textContent = t('gate.' + key + 'Sub');
+        var b = $('gate-btn');
+        if (kind === 'login') {
+          b.href = coreHost + '/login.html?next=' + encodeURIComponent(location.href);
+          b.textContent = t('gate.loginBtn');
+        } else {
+          b.href = 'https://www.ai24x.com/console.html#billing';
+          b.textContent = t('gate.upBtn');
+        }
+        gate.style.display = '';
+      }
+      function showScreener() {
+        var gate = $('sr-gate'); if (gate) gate.style.display = 'none';
+        document.querySelectorAll('#mode-chips .chip').forEach(function (c) { c.disabled = false; c.style.opacity = ''; });
+        var btn = $('btn-refresh'); if (btn) btn.style.display = '';
+        loadScreener();
+      }
+      function checkVip() {
+        var token = getToken();
+        if (!token) { showGate('login'); return; }
+        fetch('/api/subscribe/status', { headers: { 'Authorization': 'Bearer ' + token } })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            if (j.code === 0 && j.data && j.data.pro) showScreener();
+            else showGate('upgrade');
+          })
+          .catch(function () { showGate('upgrade'); });
+      }
       document.querySelectorAll('#mode-chips .chip').forEach(function (c) {
         c.addEventListener('click', function () {
           mode = c.getAttribute('data-mode');
           renderChips();
-          loadScreener();
+          checkVip();
         });
       });
-      $('btn-refresh').addEventListener('click', loadScreener);
+      $('btn-refresh').addEventListener('click', checkVip);
       document.querySelectorAll('#lang-switch button').forEach(function (b) {
         b.addEventListener('click', function () {
           lang = b.getAttribute('data-lang');
+          localStorage.setItem('markets_lang', lang);
           localStorage.setItem('ai24x_lang', lang);
           applyLang();
         });
       });
       applyLang();
-      loadScreener();
+      checkVip();
     })();
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(function () {});
