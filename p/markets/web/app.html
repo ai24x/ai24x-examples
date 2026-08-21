@@ -607,14 +607,18 @@
       var MARKER_MAP = {
         '小底': { en: 'Base', zh: '小底' },
         '底1': { en: 'Bottom', zh: '底' },
+        '底2': { en: 'Deep', zh: '底2' },
         '金1': { en: 'S1', zh: '金1' },
         '金2': { en: 'S2', zh: '金2' },
         '金3': { en: 'S3', zh: '金3' },
         '买2': { en: 'Momentum', zh: '转强' },
+        '卖1': { en: 'Distribution', zh: '卖1' },
+        '卖2': { en: 'Fade', zh: '卖2' },
         '险1·破': { en: 'Ca·brk', zh: '险破' },
         '险2·破': { en: 'Ca·brk', zh: '险破' },
         '险1': { en: 'Caution', zh: '谨慎' },
         '险2': { en: 'Caution', zh: '谨慎' },
+        '破': { en: 'Brk', zh: '破' },
         '↗': { en: '↗', zh: '↗' },
         '↘': { en: '↘', zh: '↘' },
       };
@@ -672,13 +676,24 @@
       }
       function markerText(text) {
         var key = String(text || '').replace(/\u200b/g, '').trim();
-        var m = MARKER_MAP[key];
-        if (m) return m[state.lang];
+        if (!key) return '';
+        // 组合标签（如 底1·底2 / 卖1·卖2 / 险1·破）逐段翻译，避免英文模式漏中文
         var keys = Object.keys(MARKER_MAP).sort(function (a, b) { return b.length - a.length; });
-        for (var i = 0; i < keys.length; i++) {
-          if (key.indexOf(keys[i]) === 0) return MARKER_MAP[keys[i]][state.lang];
+        var parts = key.split('·');
+        var out = [];
+        for (var i = 0; i < parts.length; i++) {
+          var p = parts[i].trim();
+          if (!p) continue;
+          var m = MARKER_MAP[p];
+          if (!m) {
+            for (var j = 0; j < keys.length; j++) {
+              if (p.indexOf(keys[j]) === 0) { m = MARKER_MAP[keys[j]]; break; }
+            }
+          }
+          // 国际版图表标记固定英文（技术标签跨语言通用，避免中文漏出）
+          out.push(m ? m.en : p);
         }
-        return key || '';
+        return out.join('·');
       }
 
       function disposeCharts() {
