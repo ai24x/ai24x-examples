@@ -105,32 +105,6 @@ _reg_names("SOXX", "半导体ETF", "Semiconductor ETF")
 _reg_names("XLK", "科技ETF", "Technology ETF")
 _reg_names("XLF", "金融ETF", "Financial ETF")
 _reg_names("XLE", "能源ETF", "Energy ETF")
-# A股/港股指数（国际版也提供中国指数，腾讯 A 股接口直接可用，未开盘也能看历史日K）
-_reg_names("sh000001", "上证指数", "上证", "Shanghai Composite", "SSE Composite", "SSE", "SHCOMP")
-_reg_names("sh000016", "上证50", "上证50指数", "SSE 50")
-_reg_names("sh000300", "沪深300", "沪深300指数", "CSI 300", "HS300")
-_reg_names("sh000688", "科创50", "科创50指数", "STAR 50", "STAR50")
-_reg_names("sh000905", "中证500", "中证500指数", "CSI 500")
-_reg_names("sh000852", "中证1000", "中证1000指数", "CSI 1000")
-_reg_names("sz399001", "深证成指", "深成指", "Shenzhen Component", "SZSE Component")
-_reg_names("sz399006", "创业板指", "创业板", "ChiNext")
-_reg_names("hkHSI", "恒生指数", "恒指", "Hang Seng", "HSI")
-
-_CN_CODE_RE = re.compile(r"^(sh|sz|bj)\d{6}$")
-_HK_CODE_RE = re.compile(r"^HK[A-Z0-9]+$")
-
-
-def _cn_code(s: str) -> str:
-    """识别中国代码（sh/sz/bj + 6 位数字 或 HK 前缀港股），返回腾讯小写形式；其它返回空串。"""
-    low = (s or "").strip().lower()
-    if _CN_CODE_RE.match(low):
-        return low
-    up = (s or "").strip().upper()
-    if _HK_CODE_RE.match(up):
-        return "hk" + up[2:]
-    return ""
-
-
 def resolve_symbol(symbol: str) -> str:
     """中文/英文名称归一化为代码；本身是代码或未知名称时原样返回。"""
     s = (symbol or "").strip()
@@ -164,9 +138,6 @@ def to_tencent_symbol(symbol: str) -> str:
     s = (symbol or "").strip().upper()
     if not s:
         raise ValueError("empty symbol")
-    cn = _cn_code(s)
-    if cn:
-        return cn
     if s in _TX_SYMBOL_MAP:
         return _TX_SYMBOL_MAP[s]
     if s.startswith("US") and len(s) > 2:
@@ -176,13 +147,6 @@ def to_tencent_symbol(symbol: str) -> str:
 
 def _em_secids(symbol: str) -> List[str]:
     s = (symbol or "").strip().upper()
-    cn = _cn_code(s)
-    if cn:
-        if cn.startswith("sh"):
-            return ["1." + cn[2:]]  # 沪市指数 secid=1.xxxxxx
-        if cn.startswith("sz"):
-            return ["0." + cn[2:]]  # 深市指数 secid=0.xxxxxx
-        return []  # 北证指数东财无此通道
     tx = to_tencent_symbol(s)
     if tx in _EM_INDEX_MAP:
         return [_EM_INDEX_MAP[tx]]
@@ -340,11 +304,7 @@ async def fetch_tencent_kline(symbol: str, count: int = 500) -> Tuple[List[List[
     if _circuit_open("tencent"):
         raise _SourceError("tencent circuit open")
 
-    cn = _cn_code(tx)
-    # A股指数/代码走腾讯 A 股接口（未开盘也返回完整历史日K，无当日残缺 bar）
-    if cn:
-        codes = [cn]
-    elif tx in _TX_SYMBOL_MAP.values():
+    if tx in _TX_SYMBOL_MAP.values():
         # 指数直接带 us 前缀即可（usINX/usIXIC/usDJI/usVIX）
         codes = [tx]
     else:
@@ -369,10 +329,7 @@ async def fetch_tencent_kline(symbol: str, count: int = 500) -> Tuple[List[List[
         client = _get_client()
         for code in dict.fromkeys(codes):
             try:
-                if _cn_code(code):
-                    url = f"https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param={code},day,,,{count},qfq"
-                else:
-                    url = f"https://web.ifzq.gtimg.cn/appstock/app/usfqkline/get?param={code},day,,,{count},qfq"
+                url = f"https://web.ifzq.gtimg.cn/appstock/app/usfqkline/get?param={code},day,,,{count},qfq"
                 r = await client.get(url)
                 r.raise_for_status()
                 payload = r.json()
@@ -397,11 +354,10 @@ async def fetch_tencent_quote(symbol: str) -> Dict[str, Any]:
     await _TX_GATE.acquire()
     try:
         client = _get_client()
-        cn = _cn_code(tx)
         url = f"https://qt.gtimg.cn/q={tx}"
         r = await client.get(url)
         r.raise_for_status()
-        text = r.content.decode("gbk", errors="replace") if cn else r.text
+        text = r.text
         key = f'v_{tx}="'
         start = text.find(key)
         if start < 0:
@@ -411,25 +367,6 @@ async def fetch_tencent_quote(symbol: str) -> Dict[str, Any]:
         if len(fields) < 40:
             raise _SourceError("tencent quote short")
         _circuit_note("tencent", True)
-        if cn:
-            return {
-                "symbol": symbol.upper(),
-                "name": fields[1] if len(fields) > 1 else symbol.upper(),
-                "market_code": cn,
-                "price": _f(fields[3]),
-                "prev_close": _f(fields[4]),
-                "open": _f(fields[5]),
-                "high": _f(fields[33]) if len(fields) > 33 else None,
-                "low": _f(fields[34]) if len(fields) > 34 else None,
-                "change": _f(fields[31]) if len(fields) > 31 else None,
-                "pct": _f(fields[32]) if len(fields) > 32 else None,
-                "volume": _f(fields[6]),
-                "amount": _f(fields[37]) if len(fields) > 37 else None,
-                "time": fields[30] if len(fields) > 30 else "",
-                "currency": "HKD" if cn.startswith("hk") else "CNY",
-                "pe": _f(fields[39]) if len(fields) > 39 else None,
-                "source": "tencent",
-            }
         name_en = fields[46] if len(fields) > 46 else ""
         return {
             "symbol": symbol.upper(),
@@ -533,52 +470,10 @@ def _cache_file(kind: str, symbol: str, period: str) -> Path:
     return _CACHE_DIR / f"{kind}_{tx}_{period}.json"
 
 
-def _is_bad_intraday_bar(row: List[Any]) -> bool:
-    """当日 bar 是否为占位/异常：竞价或未开盘时腾讯可能返回全 0 / 缺字段，
-    渲染会画出假的大阴线（K线 + MACD 同现）。"""
-    try:
-        if not row or len(row) < 6:
-            return True
-        o, c, h, l, v = (float(row[i]) for i in range(1, 6))
-        if o <= 0 or c <= 0 or h <= 0 or l <= 0 or v <= 0:
-            return True
-        if h < l or c > h or c < l or o > h or o < l:
-            return True
-        return False
-    except Exception:
-        return True
-
-
-def _drop_bad_intraday_bar(rows: List[List[Any]], today: str) -> List[List[Any]]:
-    """剔除最后一根当日异常 bar（竞价占位），保留完整历史。"""
-    if not rows:
-        return rows
-    last = rows[-1]
-    if str(last[0]) == today and _is_bad_intraday_bar(last):
-        return rows[:-1]
-    return rows
-
-
-def _cn_cache_valid(obj: Dict[str, Any], rows: List[List[Any]]) -> bool:
-    """中国代码当日缓存有效期：无当日 bar → 300s（开盘后补当日）；
-    当日有效 bar → 60s（盘中刷新可见最新）；当日异常 bar → 30s（尽快剔除占位）。"""
-    now = time.time()
-    ts = float(obj.get("ts", 0) or 0)
-    if not rows:
-        return now - ts < 30
-    last = rows[-1]
-    if str(last[0]) == _today_str():
-        if _is_bad_intraday_bar(last):
-            return now - ts < 30
-        return now - ts < 60
-    return now - ts < 300
-
-
 async def get_kline_rows(symbol: str, period: str = "day", count: int = 500) -> Dict[str, Any]:
     period = period or "day"
     symbol = resolve_symbol(symbol)
     cache = _cache_file("kline", symbol, period)
-    cn = bool(_cn_code(symbol))
     if cache.exists():
         try:
             obj = json.loads(cache.read_text(encoding="utf-8"))
@@ -589,8 +484,6 @@ async def get_kline_rows(symbol: str, period: str = "day", count: int = 500) -> 
                 obj.get("day") == _today_str()
                 and (len(rows) >= count or obj.get("complete"))
             )
-            if cn:
-                ok = ok and _cn_cache_valid(obj, rows)
             if ok:
                 return obj
         except Exception:
@@ -630,8 +523,6 @@ async def get_kline_rows(symbol: str, period: str = "day", count: int = 500) -> 
 
     if not rows:
         raise _SourceError(f"no data for {symbol}")
-    if cn:
-        rows = _drop_bad_intraday_bar(rows, _today_str())
     obj = {
         "symbol": symbol,
         "period": period,
