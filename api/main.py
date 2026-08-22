@@ -2291,13 +2291,34 @@ def _admin_ip_allowed(request: Request) -> bool:
     return False
 
 
+def _admin_keys() -> tuple[str, str]:
+    """返回 (ADMIN_API_KEY, SMS_INTERNAL_KEY)，已去空白。"""
+    return (
+        (getattr(settings, "admin_api_key", "") or "").strip(),
+        (settings.sms_internal_key or "").strip(),
+    )
+
+
+def _require_admin_key_only(request: Request) -> None:
+    """仅校验管理密钥（X-Admin-Key），供双因素短信通道先验密钥。"""
+    admin, _ = _admin_keys()
+    if not _admin_ip_allowed(request):
+        raise HTTPException(status_code=403, detail="禁止访问")
+    _admin_rate_limited(request)
+    provided = (request.headers.get("X-Admin-Key") or "").strip()
+    if admin and provided == admin:
+        return
+    raise HTTPException(status_code=403, detail="禁止访问")
+
+
 def _require_internal_key(request: Request) -> None:
-    """管理接口鉴权：配了独立 ADMIN_API_KEY 则仅接受该钥（头 X-Admin-Key）；
-    未配时回退 SMS 内部密钥（兼容旧部署，生产建议尽快配置独立管理密钥）。
+    """管理接口鉴权（ADMIN_REQUIRE_SMS 控制强度）：
+    - 双因素模式（生产推荐开启）：仅接受「管理密钥 + 管理员手机验证码」签发的手机会话
+      （会话由 /v1/admin/sms/login 在密钥与验证码双通过后签发，单凭密钥/验证码均不放行）；
+    - 普通模式（本地开发默认）：接受 ADMIN_API_KEY 或 SMS_INTERNAL_KEY 或手机会话。
     附：同 IP 限速 + 可选 ADMIN_IP_WHITELIST 白名单。
     """
-    admin = (getattr(settings, "admin_api_key", "") or "").strip()
-    sms_k = (settings.sms_internal_key or "").strip()
+    admin, sms_k = _admin_keys()
     if not (admin or sms_k):
         raise HTTPException(status_code=503, detail="服务暂不可用，请稍后再试。")
     if not _admin_ip_allowed(request):
@@ -2307,31 +2328,48 @@ def _require_internal_key(request: Request) -> None:
         (request.headers.get("X-Admin-Key") or "").strip()
         or (request.headers.get("X-SMS-Internal-Key") or "").strip()
     )
-    # 管理员手机验证码会话（短期 token）也放行
+    if getattr(settings, "admin_require_sms", False):
+        # 双因素：只有手机会话（已含密钥+验证码双重验证）放行
+        if provided and _admin_session_valid(provided):
+            return
+        raise HTTPException(status_code=403, detail="需要管理密钥与管理员手机验证码双重验证")
+    # 普通模式：手机会话 / 独立管理密钥 / 短信内部密钥均可
     if provided and _admin_session_valid(provided):
         return
-    if admin:
-        # 已配置独立管理密钥：仅接受该钥，SMS 密钥不再放行（防双钥混用/弱钥穿透）
-        if provided and provided == admin:
-            return
-        raise HTTPException(status_code=403, detail="禁止访问")
+    if admin and provided == admin:
+        return
     if sms_k and provided == sms_k:
         return
     raise HTTPException(status_code=403, detail="禁止访问")
 
 
+@app.get("/v1/admin/auth/mode")
+async def admin_auth_mode():
+    """公开探针：管理后台登录模式（仅返回开关状态，不含任何密钥）。"""
+    require_sms = bool(getattr(settings, "admin_require_sms", False))
+    admin_phone = (getattr(settings, "admin_phone", "") or "").strip()
+    return {
+        "require_sms": require_sms,
+        "sms_enabled": require_sms and bool(admin_phone),
+        "sms_key_configured": bool((settings.sms_internal_key or "").strip()),
+    }
 
 
 @app.post("/v1/admin/sms/send")
 async def admin_sms_send(request: Request, body: SmsSendRequest):
-    """管理员手机验证码发送：仅 ADMIN_PHONE 白名单单号；60s 冷却 + 管理限频。"""
+    """管理员手机验证码发送（双因素模式专属）：
+    先验管理密钥 → 仅 ADMIN_PHONE 白名单单号；60s 冷却 + 管理限频。
+    本地模式（ADMIN_REQUIRE_SMS 未开启）不提供该通道。
+    """
+    if not getattr(settings, "admin_require_sms", False):
+        raise HTTPException(status_code=503, detail="本地模式未开启管理员手机验证码登录，请直接用管理密钥")
+    _require_admin_key_only(request)
     admin_phone = (getattr(settings, "admin_phone", "") or "").strip()
     if not admin_phone:
         raise HTTPException(status_code=503, detail="管理员短信登录未启用（未配置 ADMIN_PHONE）")
     mob = normalize_mobile(body.mobile)
     if mob != admin_phone:
         raise HTTPException(status_code=403, detail="该手机号无管理权限")
-    _admin_rate_limited(request)
     now = time.time()
     last = _ADMIN_SMS_SEND_AT.get(mob, 0)
     if now - last < 60:
@@ -2363,14 +2401,19 @@ async def admin_sms_send(request: Request, body: SmsSendRequest):
 
 @app.post("/v1/admin/sms/login")
 async def admin_sms_login(request: Request, body: AdminSmsLoginBody):
-    """管理员手机验证码登录：校验 OTP 后签发 30 分钟管理会话 token。"""
+    """管理员手机验证码登录（双因素模式专属）：
+    密钥 + 验证码双通过后签发 30 分钟管理会话 token；后续管理接口须携带该会话。
+    本地模式（ADMIN_REQUIRE_SMS 未开启）不提供该通道。
+    """
+    if not getattr(settings, "admin_require_sms", False):
+        raise HTTPException(status_code=503, detail="本地模式未开启管理员手机验证码登录，请直接用管理密钥")
+    _require_admin_key_only(request)
     admin_phone = (getattr(settings, "admin_phone", "") or "").strip()
     if not admin_phone:
         raise HTTPException(status_code=503, detail="管理员短信登录未启用（未配置 ADMIN_PHONE）")
     mob = normalize_mobile(body.mobile)
     if mob != admin_phone:
         raise HTTPException(status_code=403, detail="手机号或验证码错误")
-    _admin_rate_limited(request)
     if not verify_and_consume_otp(mob, "admin_login", body.code or ""):
         raise HTTPException(status_code=403, detail="验证码错误或已过期，请重新获取")
     return {"ok": True, "key": _admin_sms_issue_token(), "expires_in": 1800}

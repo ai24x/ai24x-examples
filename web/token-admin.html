@@ -276,7 +276,7 @@
   <div id="gate" class="login-wrap">
     <div class="card login-card">
       <h1>AI24X 运营后台</h1>
-      <p class="muted small">仅供内部运维。请填主站管理密钥（ADMIN_API_KEY，与短信内部密钥独立）。
+      <p class="muted small" id="gateHint">仅供内部运维。请填主站管理密钥（ADMIN_API_KEY）。
         密钥只存本页会话（sessionStorage），关闭标签页即失效。</p>
       <div class="field" style="margin-top:12px;">
         <span class="lbl">API 根地址</span>
@@ -289,17 +289,19 @@
       <div class="row" style="margin-top:14px;">
         <button type="button" class="ok" id="btnEnter">进入工作台</button>
       </div>
-      <div class="muted small" style="margin:16px 0 4px;text-align:center;">—— 或管理员手机验证码登录 ——</div>
-      <div class="field" style="margin-top:8px;">
-        <span class="lbl">管理员手机号</span>
-        <input id="admPhone" type="text" autocomplete="off" value="18958992226" />
-      </div>
-      <div class="row" style="margin-top:8px;">
-        <button type="button" class="ok" id="btnSmsSend" style="flex:1;">获取验证码</button>
-        <input id="admCode" type="text" autocomplete="off" placeholder="6 位验证码" style="flex:1.3;margin-left:8px;" />
-      </div>
-      <div class="row" style="margin-top:8px;">
-        <button type="button" class="ok" id="btnSmsLogin">短信验证登录</button>
+      <div id="smsLoginSection" style="display:none;">
+        <div class="muted small" style="margin:16px 0 4px;text-align:center;">—— 双因素：管理密钥 + 手机验证码 ——</div>
+        <div class="field" style="margin-top:8px;">
+          <span class="lbl">管理员手机号</span>
+          <input id="admPhone" type="text" autocomplete="off" value="18958992226" />
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <button type="button" class="ok" id="btnSmsSend" style="flex:1;">获取验证码</button>
+          <input id="admCode" type="text" autocomplete="off" placeholder="6 位验证码" style="flex:1.3;margin-left:8px;" />
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <button type="button" class="ok" id="btnSmsLogin">密钥 + 验证码登录</button>
+        </div>
       </div>
       <div id="gateMsg" class="muted small" style="margin-top:10px;">生产请填 https://api.ai24x.com（不要用 www）；本机用 http://127.0.0.1:8000</div>
     </div>
@@ -1335,10 +1337,16 @@
 
   function gateFailHint(status, detail) {
     var d = String(detail || "");
+    if (/双重验证/.test(d)) {
+      return (
+        "生产环境要求双因素登录：请先填管理密钥，再点「获取验证码」，用「密钥 + 验证码登录」进入。" +
+        "当前 API：" + state.base
+      );
+    }
     if (status === 403 || /禁止访问/.test(d)) {
       return (
-        "密钥不正确或已失效。请用主站管理密钥 ADMIN_API_KEY（短信内部密钥已不再放行）。" +
-        "本机看 api/.env，生产看 04 已配置的独立管理密钥。当前 API：" + state.base
+        "密钥不正确或已失效。本机用 api/.env 的 ADMIN_API_KEY 或短信内部密钥 iamlei888；" +
+        "生产用 04 已配置的独立管理密钥 + 手机验证码。当前 API：" + state.base
       );
     }
     if (status === 503 || /未配置/.test(d)) {
@@ -3254,20 +3262,21 @@
     gm.textContent = "";
     gm.style.color = "";
     state.base = normBase($("apiBase").value);
+    state.key = scrubKey($("ikey").value);
     if (/^https?:\/\/(www\.)?ai24x\.com\/?$/i.test(state.base)) {
       state.base = "https://api.ai24x.com";
       $("apiBase").value = state.base;
     }
     var mob = String($("admPhone").value || "").trim();
-    if (!state.base || !mob) {
-      gm.textContent = "请填写 API 根地址与管理员手机号";
+    if (!state.base || !state.key || !mob) {
+      gm.textContent = "请先填写 API 根地址、管理密钥与管理员手机号";
       gm.style.color = "var(--bad)";
       return;
     }
     try {
       var r = await fetch(state.base + "/v1/admin/sms/send", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-Admin-Key": state.key },
         body: JSON.stringify({ mobile: mob, purpose: "login" }),
       });
       var j = await r.json().catch(function () { return {}; });
@@ -3299,21 +3308,22 @@
     gm.textContent = "";
     gm.style.color = "";
     state.base = normBase($("apiBase").value);
+    state.key = scrubKey($("ikey").value);
     if (/^https?:\/\/(www\.)?ai24x\.com\/?$/i.test(state.base)) {
       state.base = "https://api.ai24x.com";
       $("apiBase").value = state.base;
     }
     var mob = String($("admPhone").value || "").trim();
     var code = String($("admCode").value || "").trim();
-    if (!state.base || !mob || !code) {
-      gm.textContent = "请填写 API 根地址、手机号与验证码";
+    if (!state.base || !state.key || !mob || !code) {
+      gm.textContent = "请填写 API 根地址、管理密钥、手机号与验证码";
       gm.style.color = "var(--bad)";
       return;
     }
     try {
       var r = await fetch(state.base + "/v1/admin/sms/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-Admin-Key": state.key },
         body: JSON.stringify({ mobile: mob, code: code }),
       });
       var j = await r.json().catch(function () { return {}; });
@@ -3336,7 +3346,39 @@
     $("gate").classList.add("on");
     $("ikey").value = "";
     if (smsCdTimer) clearInterval(smsCdTimer);
+    probeAuthMode();
   };
+
+  function applyAuthMode(m) {
+    var need2fa = !!(m && m.require_sms);
+    $("smsLoginSection").style.display = need2fa ? "" : "none";
+    $("btnEnter").style.display = need2fa ? "none" : "";
+    var hint = $("gateHint");
+    if (need2fa) {
+      hint.textContent =
+        "仅供内部运维（双因素模式）：先填管理密钥，再获取手机验证码，用「密钥 + 验证码登录」进入。" +
+        "密钥只存本页会话（sessionStorage），关闭标签页即失效。";
+    } else {
+      hint.textContent =
+        "仅供内部运维（本地模式）：请填管理密钥 ADMIN_API_KEY 或短信内部密钥。" +
+        "密钥只存本页会话（sessionStorage），关闭标签页即失效。";
+    }
+  }
+
+  function probeAuthMode() {
+    var base = normBase($("apiBase").value);
+    if (/^https?:\/\/(www\.)?ai24x\.com\/?$/i.test(base)) {
+      base = "https://api.ai24x.com";
+      $("apiBase").value = base;
+    }
+    if (!base) return applyAuthMode(null);
+    fetch(base + "/v1/admin/auth/mode", { method: "GET" })
+      .then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(applyAuthMode)
+      .catch(function () { applyAuthMode(null); });
+  }
+
+  $("apiBase").addEventListener("change", probeAuthMode);
 
   $("btnRefresh").onclick = async function () {
     try { await refreshCurrentPanel(); }
@@ -3871,6 +3913,7 @@
       def = "https://api.ai24x.com";
     }
     $("apiBase").value = def;
+    probeAuthMode();
     var s = loadSession();
     if (s && s.base && s.key) {
       state.base = normBase(s.base);

@@ -56,14 +56,15 @@ def main() -> int:
     # 2) core 网关鉴权
     r = httpx.get(CORE + "/v1/admin/products/markets/summary", timeout=10)
     check("core gateway no-key -> 403", r.status_code == 403, f"status={r.status_code}")
+    # 本地模式（ADMIN_REQUIRE_SMS 默认关闭）：短信内部密钥 iamlei888 恢复放行
     r = httpx.get(
         CORE + "/v1/admin/products/markets/summary",
         headers={"X-SMS-Internal-Key": "iamlei888"},
         timeout=10,
     )
     check(
-        "core gateway sms-key-only -> 403 (独立管理密钥已配)",
-        r.status_code == 403,
+        "core gateway sms-key-only(iamlei888) -> 200 (本地模式)",
+        r.status_code == 200,
         f"status={r.status_code}",
     )
     hc = {"X-Admin-Key": admin_key, "X-SMS-Internal-Key": admin_key}

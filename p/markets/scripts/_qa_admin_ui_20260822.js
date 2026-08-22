@@ -34,12 +34,27 @@ function adminKey() {
   log('gate visible', await page.isVisible('#gate'), 'login gate shown');
   const gateTitle = await page.textContent('#gate h1');
   log('gate brand = AI24X 运营后台', gateTitle.includes('AI24X 运营后台'), gateTitle.trim());
+  await page.waitForTimeout(800);
+  log('local gate hides sms section', !(await page.isVisible('#smsLoginSection')), 'smsLoginSection hidden (ADMIN_REQUIRE_SMS off)');
 
   await page.fill('#apiBase', 'http://127.0.0.1:8000');
   await page.fill('#ikey', key);
   await page.click('#btnEnter');
   await page.waitForSelector('#app.on', { timeout: 8000 });
   log('enter workbench with admin key', true, 'app.on');
+
+  // 本地模式短信内部密钥 iamlei888 恢复可用（重新开页直接进）
+  {
+    const p0 = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    await p0.goto('http://127.0.0.1:8000/token-admin.html', { waitUntil: 'domcontentloaded' });
+    await p0.waitForSelector('#gate.on', { timeout: 5000 });
+    await p0.fill('#apiBase', 'http://127.0.0.1:8000');
+    await p0.fill('#ikey', 'iamlei888');
+    await p0.click('#btnEnter');
+    await p0.waitForSelector('#app.on', { timeout: 8000 });
+    log('local iamlei888 can enter workbench', true, 'app.on (短信内部密钥恢复)');
+    await p0.close();
+  }
 
   // 侧栏品牌 + 产品运营分组
   const brand = await page.textContent('.sidebar .brand');
@@ -167,12 +182,12 @@ function adminKey() {
   await page.waitForSelector('#p-prod-summary.active', { timeout: 5000 });
   log('子菜单切回 Markets 总览', true);
 
-  // 旧会话残留（短信内部密钥）→ 应回门禁并给友好提示，而不是裸「禁止访问」
+  // 旧会话残留（失效密钥）→ 应回门禁并给友好提示，而不是裸「禁止访问」
   {
     const p2 = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     await p2.goto('http://127.0.0.1:8000/token-admin.html', { waitUntil: 'domcontentloaded' });
     await p2.evaluate(() => {
-      sessionStorage.setItem('ai24x_token_admin_v1', JSON.stringify({ base: 'http://127.0.0.1:8000', key: 'iamlei888' }));
+      sessionStorage.setItem('ai24x_token_admin_v1', JSON.stringify({ base: 'http://127.0.0.1:8000', key: 'stale-wrong-key-001' }));
       localStorage.setItem('ai24x_token_admin_nav_group', 'g-prod');
     });
     await p2.reload({ waitUntil: 'domcontentloaded' });
@@ -192,7 +207,7 @@ function adminKey() {
     const p3 = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     await p3.goto('http://127.0.0.1:8000/token-admin.html', { waitUntil: 'domcontentloaded' });
     await p3.fill('#apiBase', 'http://127.0.0.1:8000');
-    await p3.fill('#ikey', 'iamlei888');
+    await p3.fill('#ikey', 'wrong-key-123');
     await p3.click('#btnEnter');
     await p3.waitForFunction(() => {
       var g = document.getElementById('gateMsg');

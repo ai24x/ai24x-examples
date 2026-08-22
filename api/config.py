@@ -111,6 +111,9 @@ class Settings(BaseSettings):
     admin_api_key: str = Field(default="", validation_alias="ADMIN_API_KEY")
     # 管理员手机号（可选）。配置后管理后台支持「手机号 + 短信验证码」登录（白名单单号）
     admin_phone: str = Field(default="", validation_alias="ADMIN_PHONE")
+    # 管理员双因素开关：开启后管理接口必须同时满足「管理密钥 + 管理员手机验证码会话」才放行
+    # （本地开发默认关闭，仅密钥即可；生产建议开启）
+    admin_require_sms: bool = Field(default=False, validation_alias="ADMIN_REQUIRE_SMS")
     # 管理接口限速（每分钟每 IP；进程内，多实例建议网关层再限）
     admin_rate_limit_per_min: int = Field(default=60, validation_alias="ADMIN_RATE_LIMIT_PER_MIN")
     # 可选管理接口 IP 白名单：逗号分隔 IP/CIDR；未配置=放行全部（依赖密钥鉴权）
