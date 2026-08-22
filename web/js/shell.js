@@ -456,13 +456,13 @@
       },
       {
         key: "guides",
-        href: root + "guides/index.html",
+        href: "https://open.ai24x.com/guides/",
         i18n: "btn.guides",
         fallback: zhUi ? "接入案例" : "Integrations",
       },
       {
         key: "vip",
-        href: root + "models/vip-picks.html",
+        href: "https://open.ai24x.com/models/vip-picks.html",
         i18n: "page.models.vip.cta",
         fallback: zhUi ? "VIP 点名清单" : "VIP model list",
       },
@@ -477,7 +477,7 @@
     if (activeKey !== "models") {
       items.unshift({
         key: "models",
-        href: root + "models/index.html",
+        href: "https://open.ai24x.com/models/",
         i18n: "page.models.title",
         fallback: zhUi ? "名模" : "Models",
       });

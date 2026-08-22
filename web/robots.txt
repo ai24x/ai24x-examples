@@ -24,5 +24,8 @@ Disallow: /demo.html
 Disallow: /paypal.html
 Disallow: /dashboard.html
 Disallow: /ops/
+Disallow: /v1/
+Disallow: /api/
+Disallow: /r/
 
 Sitemap: https://www.ai24x.com/sitemap.xml
