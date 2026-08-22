@@ -17,6 +17,7 @@ from . import billing
 from . import paypal
 from . import ai_brief
 from . import screener
+from . import admin_api
 
 SERVICE_NAME = "AI24X-markets-api"
 PORT = 18012
@@ -28,6 +29,7 @@ app = FastAPI(
     description="15-min delayed US market data + technical indicators (educational, not investment advice).",
     version="0.1.0",
 )
+app.include_router(admin_api.router)
 
 app.add_middleware(
     CORSMiddleware,

@@ -311,3 +311,127 @@ def consume_ai_brief(user_id: str) -> Optional[int]:
 
 
 init_db()
+
+
+# ---------------------------------------------------------------- 管理只读（P1，供 core 运营后台）
+
+def admin_summary() -> Dict[str, Any]:
+    """运营总览：订阅/订单/收入核心计数 + 最近 10 笔订单 + 套餐分布。"""
+    with _conn() as conn:
+        active = conn.execute(
+            "SELECT COUNT(*) FROM subscriptions WHERE status='active' AND expires_at > datetime('now')"
+        ).fetchone()[0]
+        total_subs = conn.execute("SELECT COUNT(*) FROM subscriptions").fetchone()[0]
+        expiring_7d = conn.execute(
+            "SELECT COUNT(*) FROM subscriptions WHERE status='active' "
+            "AND expires_at > datetime('now') AND expires_at <= datetime('now','+7 days')"
+        ).fetchone()[0]
+        paid = conn.execute("SELECT COUNT(*) FROM orders WHERE status='paid'").fetchone()[0]
+        pending = conn.execute("SELECT COUNT(*) FROM orders WHERE status!='paid'").fetchone()[0]
+        revenue = float(
+            conn.execute(
+                "SELECT COALESCE(SUM(amount_usd),0) FROM orders WHERE status='paid'"
+            ).fetchone()[0]
+            or 0
+        )
+        recent = [
+            dict(r)
+            for r in conn.execute(
+                "SELECT id, out_trade_no, channel, custom_id, amount_usd, plan, status, "
+                "created_at, paid_at FROM orders ORDER BY id DESC LIMIT 10"
+            ).fetchall()
+        ]
+        plans = []
+        for pid, p in PLANS.items():
+            n = conn.execute(
+                "SELECT COUNT(*) FROM subscriptions WHERE plan=?", (pid,)
+            ).fetchone()[0]
+            plans.append(
+                {
+                    "plan": pid,
+                    "label": p.get("label"),
+                    "usd": p.get("usd"),
+                    "days": p.get("days"),
+                    "subs": int(n),
+                }
+            )
+    return {
+        "active_subs": int(active),
+        "total_subs": int(total_subs),
+        "expiring_7d": int(expiring_7d),
+        "paid_orders": int(paid),
+        "pending_orders": int(pending),
+        "revenue_usd": round(revenue, 2),
+        "plans": plans,
+        "recent_orders": recent,
+    }
+
+
+def admin_list_subscriptions(
+    user_id: Optional[str] = None,
+    status: Optional[str] = None,
+    plan: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> Dict[str, Any]:
+    where: list[str] = []
+    args: list[Any] = []
+    if user_id:
+        where.append("user_id=?")
+        args.append(str(user_id))
+    if status:
+        where.append("status=?")
+        args.append(str(status))
+    if plan:
+        where.append("plan=?")
+        args.append(str(plan))
+    cond = (" WHERE " + " AND ".join(where)) if where else ""
+    with _conn() as conn:
+        total = int(
+            conn.execute(f"SELECT COUNT(*) FROM subscriptions{cond}", args).fetchone()[0]
+        )
+        rows = [
+            dict(r)
+            for r in conn.execute(
+                f"SELECT id, user_id, plan, status, started_at, expires_at, source, created_at "
+                f"FROM subscriptions{cond} ORDER BY id DESC LIMIT ? OFFSET ?",
+                args + [max(1, min(200, int(limit))), max(0, int(offset))],
+            ).fetchall()
+        ]
+    return {"total": total, "offset": max(0, int(offset)), "rows": rows}
+
+
+def admin_list_orders(
+    status: Optional[str] = None,
+    channel: Optional[str] = None,
+    q: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> Dict[str, Any]:
+    where: list[str] = []
+    args: list[Any] = []
+    if status:
+        where.append("status=?")
+        args.append(str(status))
+    if channel:
+        where.append("channel=?")
+        args.append(str(channel))
+    qq = (q or "").strip()
+    if qq:
+        where.append("(out_trade_no LIKE ? OR custom_id LIKE ? OR paypal_order_id LIKE ?)")
+        like = f"%{qq}%"
+        args += [like, like, like]
+    cond = (" WHERE " + " AND ".join(where)) if where else ""
+    with _conn() as conn:
+        total = int(
+            conn.execute(f"SELECT COUNT(*) FROM orders{cond}", args).fetchone()[0]
+        )
+        rows = [
+            dict(r)
+            for r in conn.execute(
+                f"SELECT id, paypal_order_id, out_trade_no, channel, custom_id, amount_usd, plan, "
+                f"status, created_at, paid_at FROM orders{cond} ORDER BY id DESC LIMIT ? OFFSET ?",
+                args + [max(1, min(200, int(limit))), max(0, int(offset))],
+            ).fetchall()
+        ]
+    return {"total": total, "offset": max(0, int(offset)), "rows": rows}

@@ -109,6 +109,10 @@ class Settings(BaseSettings):
     sms_internal_key: str = Field(default="", validation_alias="SMS_INTERNAL_KEY")
     # 管理后台专用钥（可选）。未配时管理接口仍接受 SMS_INTERNAL_KEY（兼容旧部署）
     admin_api_key: str = Field(default="", validation_alias="ADMIN_API_KEY")
+    # 管理接口限速（每分钟每 IP；进程内，多实例建议网关层再限）
+    admin_rate_limit_per_min: int = Field(default=60, validation_alias="ADMIN_RATE_LIMIT_PER_MIN")
+    # 可选管理接口 IP 白名单：逗号分隔 IP/CIDR；未配置=放行全部（依赖密钥鉴权）
+    admin_ip_whitelist: str = Field(default="", validation_alias="ADMIN_IP_WHITELIST")
     # 防刷（进程内；多实例需网关/Redis）。当前默认偏宽松，遇盗刷再收紧 .env
     sms_ip_min_interval_s: float = Field(default=2.0, validation_alias="SMS_IP_MIN_INTERVAL_S")
     sms_ip_max_send_per_hour: int = Field(default=150, validation_alias="SMS_IP_MAX_SEND_PER_HOUR")

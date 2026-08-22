@@ -18,6 +18,8 @@ MARKETS_FULFILL_URL = os.environ.get(
     "MARKETS_FULFILL_URL", "http://127.0.0.1:18012/api/subscribe/fulfill"
 )
 MARKETS_FULFILL_SECRET = os.environ.get("MARKETS_FULFILL_SECRET", "")
+# 运营后台网关 → markets 子服务管理接口基址（同机回环；生产同机 18012）
+MARKETS_ADMIN_BASE = os.environ.get("MARKETS_ADMIN_BASE", "http://127.0.0.1:18012").rstrip("/")
 
 MARKETS_RETURN_URL = os.environ.get(
     "MARKETS_PAY_RETURN_URL", "https://markets.ai24x.com/app.html?pay=done"

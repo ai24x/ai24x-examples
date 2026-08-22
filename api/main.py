@@ -2225,25 +2225,73 @@ async def admin_token_ticket_reply(
 # —— Token 套餐 / 在线支付（独立于 a1；默认 TOKEN_PAY_ENABLED=false）——
 
 
+_ADMIN_RATE: dict[str, list[float]] = {}
+
+
+def _admin_rate_limited(request: Request) -> None:
+    """管理接口简单限速：同一 IP 每分钟超过上限直接 429（进程内；多实例建议网关层再限）。"""
+    limit = max(10, int(getattr(settings, "admin_rate_limit_per_min", 0) or 60))
+    ip = client_ip(request)
+    now = time.time()
+    bucket = _ADMIN_RATE.setdefault(ip, [])
+    while bucket and now - bucket[0] > 60:
+        bucket.pop(0)
+    if len(bucket) >= limit:
+        raise HTTPException(status_code=429, detail="请求过于频繁，请稍后再试。")
+    bucket.append(now)
+
+
+def _admin_ip_allowed(request: Request) -> bool:
+    """可选 ADMIN_IP_WHITELIST：逗号分隔 IP/CIDR；未配置=放行全部（依赖密钥鉴权）。"""
+    wl = (getattr(settings, "admin_ip_whitelist", "") or "").strip()
+    if not wl:
+        return True
+    import ipaddress
+
+    ip = client_ip(request)
+    try:
+        addr = ipaddress.ip_address(ip)
+    except Exception:
+        return False
+    for item in wl.split(","):
+        item = item.strip()
+        if not item:
+            continue
+        try:
+            if "/" in item:
+                if addr in ipaddress.ip_network(item, strict=False):
+                    return True
+            elif item == ip:
+                return True
+        except Exception:
+            continue
+    return False
+
+
 def _require_internal_key(request: Request) -> None:
-    """管理接口鉴权：优先 ADMIN_API_KEY（头 X-Admin-Key），兼容旧 X-SMS-Internal-Key。"""
+    """管理接口鉴权：配了独立 ADMIN_API_KEY 则仅接受该钥（头 X-Admin-Key）；
+    未配时回退 SMS 内部密钥（兼容旧部署，生产建议尽快配置独立管理密钥）。
+    附：同 IP 限速 + 可选 ADMIN_IP_WHITELIST 白名单。
+    """
     admin = (getattr(settings, "admin_api_key", "") or "").strip()
     sms_k = (settings.sms_internal_key or "").strip()
-    expected = admin or sms_k
-    if not expected:
+    if not (admin or sms_k):
         raise HTTPException(status_code=503, detail="服务暂不可用，请稍后再试。")
+    if not _admin_ip_allowed(request):
+        raise HTTPException(status_code=403, detail="禁止访问")
+    _admin_rate_limited(request)
     provided = (
         (request.headers.get("X-Admin-Key") or "").strip()
         or (request.headers.get("X-SMS-Internal-Key") or "").strip()
     )
-    # 若配了独立 ADMIN_API_KEY，仅接受该钥（或仍可用 SMS 钥作兼容，方便过渡）
-    ok = False
-    if admin and provided == admin:
-        ok = True
-    elif sms_k and provided == sms_k:
-        ok = True
-    if not ok:
+    if admin:
+        # 已配置独立管理密钥：仅接受该钥，SMS 密钥不再放行（防双钥混用/弱钥穿透）
+        if provided and provided == admin:
+            return
         raise HTTPException(status_code=403, detail="禁止访问")
+    if sms_k and provided == sms_k:
+        return
+    raise HTTPException(status_code=403, detail="禁止访问")
 
 
 
@@ -2849,6 +2897,49 @@ async def admin_token_orders(
         offset=offset,
         include_expired=bool(include_expired),
     )
+
+
+@app.get("/v1/admin/products/markets/{kind}")
+async def admin_products_markets(request: Request, kind: str):
+    """平台运营后台网关：代理 markets 子服务只读管理接口（P1 只读）。
+
+    鉴权：管理密钥（_require_internal_key）→ 服务端到服务端带 X-Markets-Secret 签名
+    转发到同机 markets 子服务；仅放行白名单 kind，不透传任意路径（防开放代理）。
+    """
+    _require_internal_key(request)
+    kind = str(kind or "").strip().lower()
+    allowed = {"summary", "subs", "orders", "plans"}
+    if kind not in allowed:
+        raise HTTPException(status_code=404, detail="未知子接口")
+    import httpx
+
+    from pay_products import MARKETS_ADMIN_BASE, MARKETS_FULFILL_SECRET
+
+    base = (MARKETS_ADMIN_BASE or "").rstrip("/")
+    secret = (MARKETS_FULFILL_SECRET or "").strip()
+    if not base or not secret:
+        raise HTTPException(status_code=503, detail="markets 管理接口未配置")
+    # 只透传白名单查询参数，杜绝任意参数注入
+    params: dict[str, str] = {}
+    for key in ("uid", "status", "plan", "channel", "q", "limit", "offset"):
+        v = request.query_params.get(key)
+        if v not in (None, ""):
+            params[key] = str(v)[:120]
+    url = f"{base}/api/admin/{kind}"
+    headers = {"X-Markets-Secret": secret}
+    try:
+        async with httpx.AsyncClient(timeout=15) as ac:
+            r = await ac.get(url, params=params, headers=headers)
+    except Exception as e:
+        logger.warning("markets admin proxy error kind=%s: %r", kind, e)
+        raise HTTPException(status_code=502, detail="markets 子服务暂不可用")
+    if r.status_code != 200:
+        logger.warning("markets admin proxy status kind=%s status=%s", kind, r.status_code)
+        raise HTTPException(status_code=502, detail=f"markets 子服务返回 {r.status_code}")
+    try:
+        return r.json()
+    except Exception:
+        raise HTTPException(status_code=502, detail="markets 子服务返回异常")
 
 
 @app.get("/v1/admin/token/orders/export.csv")

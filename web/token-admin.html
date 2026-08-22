@@ -275,15 +275,16 @@
 <body>
   <div id="gate" class="login-wrap">
     <div class="card login-card">
-      <h1>Token 管理</h1>
-      <p class="muted small">仅供内部运维。请填主站内部密钥（与行情官管理密钥不是同一个）。密钥只存本页会话。</p>
+      <h1>AI24X 运营后台</h1>
+      <p class="muted small">仅供内部运维。请填主站管理密钥（ADMIN_API_KEY，与短信内部密钥独立）。
+        密钥只存本页会话（sessionStorage），关闭标签页即失效。</p>
       <div class="field" style="margin-top:12px;">
         <span class="lbl">API 根地址</span>
         <input id="apiBase" type="text" autocomplete="off" placeholder="生产 https://api.ai24x.com" />
       </div>
       <div class="field" style="margin-top:10px;">
-        <span class="lbl">内部密钥</span>
-        <input id="ikey" type="password" autocomplete="off" placeholder="内部密钥" />
+        <span class="lbl">管理密钥（ADMIN_API_KEY）</span>
+        <input id="ikey" type="password" autocomplete="off" placeholder="ADMIN_API_KEY" />
       </div>
       <div class="row" style="margin-top:14px;">
         <button type="button" class="ok" id="btnEnter">进入工作台</button>
@@ -295,7 +296,7 @@
   <div id="app">
     <div class="layout">
       <aside class="sidebar">
-        <div class="brand">Token 管理后台</div>
+        <div class="brand">AI24X 运营后台</div>
         <div class="side-hint" id="baseLabel">左侧一级菜单；右侧为子功能页。</div>
 
         <div class="nav-group" data-group="g-overview">
@@ -306,6 +307,34 @@
             <button type="button" class="nav-item" data-panel="p-dash">
               今日常用
               <span class="subt">待履约、通道、最近到账、快捷查用户</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="nav-group" data-group="g-prod">
+          <button type="button" class="nav-l1" data-group-btn="g-prod">
+            <span>产品运营</span><span class="chev">▾</span>
+          </button>
+          <div class="nav-l2">
+            <button type="button" class="nav-item" data-panel="p-prod-summary">
+              Markets 总览
+              <span class="subt">订阅 · 订单 · 收入</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-prod-subs">
+              Markets 订阅
+              <span class="subt">会员列表 · 到期</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-prod-orders">
+              Markets 订单
+              <span class="subt">统一支付中台订单</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-prod-plans">
+              Markets 套餐
+              <span class="subt">周 / 月 / 年 定价目录</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-prod-open">
+              Open BYOK
+              <span class="subt">待接入（P3）</span>
             </button>
           </div>
         </div>
@@ -469,6 +498,166 @@
                 </div>
                 <button type="button" id="btnDashLookup">查找并打开钱包</button>
               </div>
+            </div>
+          </div>
+
+          <div class="panel-page" id="p-prod-summary">
+            <div class="card">
+              <div class="row" style="justify-content:space-between;margin-bottom:8px;">
+                <h2 style="margin:0;">Markets 总览</h2>
+                <button type="button" id="btnMkRefresh">刷新</button>
+              </div>
+              <p class="muted small" style="margin:0 0 10px;">
+                AI行情官国际版 Pro 订阅（数据源：markets 子服务只读接口，P1 仅查询）。
+              </p>
+              <div class="grid" id="mkStats"></div>
+            </div>
+            <div class="card">
+              <div class="row" style="justify-content:space-between;margin-bottom:8px;">
+                <h2 style="margin:0;">套餐分布</h2>
+                <button type="button" id="btnMkPlans">查看套餐目录</button>
+              </div>
+              <div style="overflow:auto;">
+                <table>
+                  <thead>
+                    <tr><th>套餐</th><th>价格</th><th>天数</th><th>订阅数</th></tr>
+                  </thead>
+                  <tbody id="mkPlansBody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card">
+              <div class="row" style="justify-content:space-between;margin-bottom:8px;">
+                <h2 style="margin:0;">最近订单</h2>
+                <button type="button" id="btnMkOrders">全部订单</button>
+              </div>
+              <div style="overflow:auto;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>单号</th><th>用户</th><th>套餐</th><th>金额</th><th>通道</th><th>状态</th><th>时间</th>
+                    </tr>
+                  </thead>
+                  <tbody id="mkRecentBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-page" id="p-prod-subs">
+            <div class="card">
+              <h2>Markets 订阅</h2>
+              <div class="row">
+                <div class="field"><span class="lbl">用户 ID</span>
+                  <input id="mkSubUid" type="text" placeholder="auth_xxx / 数字" />
+                </div>
+                <div class="field"><span class="lbl">状态</span>
+                  <select id="mkSubStatus">
+                    <option value="">全部</option>
+                    <option value="active">active</option>
+                    <option value="expired">expired</option>
+                  </select>
+                </div>
+                <div class="field"><span class="lbl">套餐</span>
+                  <select id="mkSubPlan">
+                    <option value="">全部</option>
+                    <option value="weekly">weekly</option>
+                    <option value="monthly">monthly</option>
+                    <option value="yearly">yearly</option>
+                  </select>
+                </div>
+                <button type="button" id="btnMkSubLoad">查询</button>
+              </div>
+              <div style="overflow:auto;margin-top:12px;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th><th>用户</th><th>套餐</th><th>状态</th><th>开始</th><th>到期</th><th>来源</th>
+                    </tr>
+                  </thead>
+                  <tbody id="mkSubBody"></tbody>
+                </table>
+              </div>
+              <p class="muted small" id="mkSubMeta"></p>
+              <div class="row" style="margin-top:8px;">
+                <button type="button" id="btnMkSubPrev">上一页</button>
+                <button type="button" id="btnMkSubNext">下一页</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-page" id="p-prod-orders">
+            <div class="card">
+              <h2>Markets 订单</h2>
+              <div class="row">
+                <div class="field"><span class="lbl">状态</span>
+                  <select id="mkOrdStatus">
+                    <option value="">全部</option>
+                    <option value="created">created</option>
+                    <option value="paid">paid</option>
+                  </select>
+                </div>
+                <div class="field"><span class="lbl">通道</span>
+                  <select id="mkOrdChannel">
+                    <option value="">全部</option>
+                    <option value="paypal">paypal</option>
+                    <option value="wechat">wechat</option>
+                    <option value="alipay">alipay</option>
+                    <option value="creem">creem</option>
+                    <option value="mock">mock</option>
+                  </select>
+                </div>
+                <div class="field" style="min-width:220px;"><span class="lbl">单号 / 用户关键词</span>
+                  <input id="mkOrdQ" type="text" placeholder="out_trade_no / custom_id / paypal_order_id" />
+                </div>
+                <button type="button" id="btnMkOrdLoad">查询</button>
+              </div>
+              <div style="overflow:auto;margin-top:12px;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>单号</th><th>用户</th><th>套餐</th><th>金额</th><th>通道</th><th>状态</th><th>创建</th><th>支付</th>
+                    </tr>
+                  </thead>
+                  <tbody id="mkOrdBody"></tbody>
+                </table>
+              </div>
+              <p class="muted small" id="mkOrdMeta"></p>
+              <div class="row" style="margin-top:8px;">
+                <button type="button" id="btnMkOrdPrev">上一页</button>
+                <button type="button" id="btnMkOrdNext">下一页</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-page" id="p-prod-plans">
+            <div class="card">
+              <h2>Markets 套餐目录</h2>
+              <p class="muted small">只读：定价源为 markets 子服务 billing.PLANS（与支付中台 pay_products 同源）。</p>
+              <div style="overflow:auto;margin-top:12px;">
+                <table>
+                  <thead>
+                    <tr><th>标识</th><th>名称</th><th>价格 USD</th><th>天数</th><th>说明</th></tr>
+                  </thead>
+                  <tbody id="mkPlansCatalog"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-page" id="p-prod-open">
+            <div class="card">
+              <h2>Open BYOK</h2>
+              <p class="muted small">
+                开放网关（open.ai24x.com）子项目，独立库独立服务。管理接入规划为 P3：
+                待 BYOK 订阅表就绪后，复用同一「产品运营」分组增加面板（订阅 / 订单 / 套餐）。
+              </p>
+              <pre class="mono small" style="margin-top:10px;white-space:pre-wrap;">
+规划：
+  P1（本批）: Markets 只读管理（订阅/订单/套餐/总览）
+  P2       : 管理写操作（延期 / 补发 / 改状态）按需扩展
+  P3       : Open BYOK 接入同款面板
+              </pre>
             </div>
           </div>
 
@@ -1120,7 +1309,7 @@
   function gateFailHint(status, detail) {
     var d = String(detail || "");
     if (status === 403 || /禁止访问/.test(d)) {
-      return "密钥不正确。请用主站内部密钥（不是行情官管理密钥）。当前 API：" + state.base;
+      return "密钥不正确。请用主站管理密钥 ADMIN_API_KEY（生产已配置独立管理密钥，短信内部密钥不再放行）。当前 API：" + state.base;
     }
     if (status === 503 || /未配置/.test(d)) {
       return "服务端未配置内部密钥。请检查配置后重启 API 进程。";
@@ -1197,6 +1386,7 @@
   function groupDefaultPanel(groupId) {
     var pref = {
       "g-overview": "p-dash",
+      "g-prod": "p-prod-summary",
       "g-pay": "p-orders",
       "g-wallet": "p-users",
       "g-sys": "p-usage",
@@ -2642,11 +2832,167 @@
     });
   }
 
+  var mkSubOffset = 0;
+  var mkOrdOffset = 0;
+
+  async function loadMarketsSummary() {
+    var r = await api("/v1/admin/products/markets/summary");
+    var d = (r && r.data) || {};
+    var stats = [
+      _statCard("有效订阅", d.active_subs != null ? d.active_subs : "—"),
+      _statCard("累计订阅", d.total_subs != null ? d.total_subs : "—"),
+      _statCard("7天内到期", d.expiring_7d != null ? d.expiring_7d : "—"),
+      _statCard("已付订单", d.paid_orders != null ? d.paid_orders : "—"),
+      _statCard("待付订单", d.pending_orders != null ? d.pending_orders : "—"),
+      _statCard("累计收入", "$" + Number(d.revenue_usd || 0).toFixed(2)),
+    ];
+    $("mkStats").innerHTML = stats.join("");
+    $("mkPlansBody").innerHTML =
+      (d.plans || [])
+        .map(function (p) {
+          return (
+            "<tr>" +
+            "<td>" + esc(p.label || p.plan) + "</td>" +
+            "<td>$" + Number(p.usd || 0).toFixed(2) + "</td>" +
+            "<td>" + Number(p.days || 0) + "</td>" +
+            "<td>" + Number(p.subs || 0) + "</td>" +
+            "</tr>"
+          );
+        })
+        .join("") || '<tr><td colspan="4" class="muted">无数据</td></tr>';
+    $("mkRecentBody").innerHTML =
+      (d.recent_orders || [])
+        .map(function (r) {
+          return (
+            "<tr>" +
+            '<td class="mono">' + esc(r.out_trade_no || r.id) + "</td>" +
+            "<td>" + esc(r.custom_id || "") + "</td>" +
+            "<td>" + esc(r.plan || "") + "</td>" +
+            "<td>$" + Number(r.amount_usd || 0).toFixed(2) + "</td>" +
+            "<td>" + esc(r.channel || "") + "</td>" +
+            "<td>" + statusPill(r.status) + "</td>" +
+            '<td class="mono">' + esc(r.paid_at || r.created_at || "") + "</td>" +
+            "</tr>"
+          );
+        })
+        .join("") || '<tr><td colspan="7" class="muted">暂无订单</td></tr>';
+  }
+
+  function mkSubQs() {
+    var qs = new URLSearchParams();
+    var uid = (($("mkSubUid") && $("mkSubUid").value) || "").trim();
+    var st = (($("mkSubStatus") && $("mkSubStatus").value) || "").trim();
+    var pl = (($("mkSubPlan") && $("mkSubPlan").value) || "").trim();
+    if (uid) qs.set("uid", uid);
+    if (st) qs.set("status", st);
+    if (pl) qs.set("plan", pl);
+    qs.set("limit", "50");
+    qs.set("offset", String(Math.max(0, mkSubOffset || 0)));
+    return qs;
+  }
+
+  async function loadMarketsSubs() {
+    var data = await api("/v1/admin/products/markets/subs?" + mkSubQs().toString());
+    var rows = (data && data.data && data.data.rows) || [];
+    var total = (data && data.data && data.data.total) || rows.length;
+    $("mkSubMeta").textContent =
+      "共 " + total + " 条订阅 · 本页 " + rows.length + " · offset=" + (mkSubOffset || 0);
+    $("mkSubBody").innerHTML =
+      rows
+        .map(function (s) {
+          var exp = String(s.expires_at || "");
+          var warn = exp <= new Date().toISOString().slice(0, 19).replace("T", " ") && s.status === "active";
+          return (
+            "<tr" + (warn ? ' style="opacity:.6;"' : "") + ">" +
+            "<td>" + s.id + "</td>" +
+            '<td class="mono">' + esc(s.user_id || "") + "</td>" +
+            "<td>" + esc(s.plan || "") + "</td>" +
+            "<td>" + statusPill(s.status) + "</td>" +
+            '<td class="mono">' + esc((s.started_at || "").slice(0, 19)) + "</td>" +
+            '<td class="mono">' + esc(exp.slice(0, 19)) + "</td>" +
+            "<td>" + esc(s.source || "") + "</td>" +
+            "</tr>"
+          );
+        })
+        .join("") || '<tr><td colspan="7" class="muted">无订阅</td></tr>';
+  }
+
+  function mkOrdQs() {
+    var qs = new URLSearchParams();
+    var st = (($("mkOrdStatus") && $("mkOrdStatus").value) || "").trim();
+    var ch = (($("mkOrdChannel") && $("mkOrdChannel").value) || "").trim();
+    var q = (($("mkOrdQ") && $("mkOrdQ").value) || "").trim();
+    if (st) qs.set("status", st);
+    if (ch) qs.set("channel", ch);
+    if (q) qs.set("q", q);
+    qs.set("limit", "50");
+    qs.set("offset", String(Math.max(0, mkOrdOffset || 0)));
+    return qs;
+  }
+
+  async function loadMarketsOrders() {
+    var data = await api("/v1/admin/products/markets/orders?" + mkOrdQs().toString());
+    var rows = (data && data.data && data.data.rows) || [];
+    var total = (data && data.data && data.data.total) || rows.length;
+    $("mkOrdMeta").textContent =
+      "共 " + total + " 条订单 · 本页 " + rows.length + " · offset=" + (mkOrdOffset || 0);
+    $("mkOrdBody").innerHTML =
+      rows
+        .map(function (r) {
+          return (
+            "<tr>" +
+            '<td class="mono">' + esc(r.out_trade_no || r.paypal_order_id || r.id) + "</td>" +
+            '<td class="mono">' + esc((r.custom_id || "").replace(/^markets:/, "")) + "</td>" +
+            "<td>" + esc(r.plan || "") + "</td>" +
+            "<td>$" + Number(r.amount_usd || 0).toFixed(2) + "</td>" +
+            "<td>" + esc(r.channel || "") + "</td>" +
+            "<td>" + statusPill(r.status) + "</td>" +
+            '<td class="mono">' + esc((r.created_at || "").slice(0, 19)) + "</td>" +
+            '<td class="mono">' + esc((r.paid_at || "").slice(0, 19)) + "</td>" +
+            "</tr>"
+          );
+        })
+        .join("") || '<tr><td colspan="8" class="muted">无订单</td></tr>';
+  }
+
+  async function loadMarketsPlansCatalog() {
+    var data = await api("/v1/admin/products/markets/plans");
+    var plans = (data && data.data && data.data.plans) || [];
+    $("mkPlansCatalog").innerHTML =
+      plans
+        .map(function (p) {
+          return (
+            "<tr>" +
+            '<td class="mono">' + esc(p.plan) + "</td>" +
+            "<td>" + esc(p.label || "") + "</td>" +
+            "<td>$" + Number(p.usd || 0).toFixed(2) + "</td>" +
+            "<td>" + Number(p.days || 0) + "</td>" +
+            "<td>" + esc(p.description || "") + "</td>" +
+            "</tr>"
+          );
+        })
+        .join("") || '<tr><td colspan="5" class="muted">无套餐</td></tr>';
+  }
+
   async function refreshCurrentPanel() {
     var p = state.panel || "p-dash";
     if (p === "p-dash") {
       await loadDashHome();
       setMsg("常用页已刷新", "ok");
+    } else if (p === "p-prod-summary") {
+      await loadMarketsSummary();
+      setMsg("Markets 总览已刷新", "ok");
+    } else if (p === "p-prod-subs") {
+      await loadMarketsSubs();
+      setMsg("Markets 订阅已刷新", "ok");
+    } else if (p === "p-prod-orders") {
+      await loadMarketsOrders();
+      setMsg("Markets 订单已刷新", "ok");
+    } else if (p === "p-prod-plans") {
+      await loadMarketsPlansCatalog();
+      setMsg("Markets 套餐已刷新", "ok");
+    } else if (p === "p-prod-open") {
+      setMsg("Open BYOK 待接入（P3）", "ok");
     } else if (p === "p-channels") {
       await loadChannelsDetail();
       setMsg("通道状态已刷新", "ok");
@@ -2787,6 +3133,42 @@
       await loadOrders();
       setMsg("订单已更新", "ok");
     } catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+  $("btnMkRefresh").onclick = async function () {
+    try { await loadMarketsSummary(); setMsg("Markets 总览已刷新", "ok"); }
+    catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+  $("btnMkPlans").onclick = function () { showPanel("p-prod-plans"); };
+  $("btnMkOrders").onclick = function () { showPanel("p-prod-orders"); };
+  $("btnMkSubLoad").onclick = async function () {
+    try {
+      mkSubOffset = 0;
+      await loadMarketsSubs();
+      setMsg("Markets 订阅已更新", "ok");
+    } catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+  $("btnMkSubPrev").onclick = async function () {
+    mkSubOffset = Math.max(0, (mkSubOffset || 0) - 50);
+    try { await loadMarketsSubs(); } catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+  $("btnMkSubNext").onclick = async function () {
+    mkSubOffset = (mkSubOffset || 0) + 50;
+    try { await loadMarketsSubs(); } catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+  $("btnMkOrdLoad").onclick = async function () {
+    try {
+      mkOrdOffset = 0;
+      await loadMarketsOrders();
+      setMsg("Markets 订单已更新", "ok");
+    } catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+  $("btnMkOrdPrev").onclick = async function () {
+    mkOrdOffset = Math.max(0, (mkOrdOffset || 0) - 50);
+    try { await loadMarketsOrders(); } catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+  $("btnMkOrdNext").onclick = async function () {
+    mkOrdOffset = (mkOrdOffset || 0) + 50;
+    try { await loadMarketsOrders(); } catch (e) { setMsg(String(e.message || e), "err"); }
   };
   if ($("btnOrdPrev")) {
     $("btnOrdPrev").onclick = async function () {

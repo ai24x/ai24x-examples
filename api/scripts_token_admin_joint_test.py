@@ -20,11 +20,12 @@ from main import app
 
 
 def main() -> int:
-    key = (settings.sms_internal_key or "").strip()
+    # 2026-08-22：管理接口优先独立 ADMIN_API_KEY，未配才回退 SMS 内部密钥
+    key = (settings.admin_api_key or settings.sms_internal_key or "").strip()
     if not key:
-        print("FAIL: SMS_INTERNAL_KEY missing")
+        print("FAIL: ADMIN_API_KEY / SMS_INTERNAL_KEY missing")
         return 1
-    h = {"X-SMS-Internal-Key": key}
+    h = {"X-Admin-Key": key, "X-SMS-Internal-Key": key}
     c = TestClient(app)
     out = {}
 
