@@ -10,9 +10,21 @@ Phase 1 为统计展示；支付链路（PayPal/微信/支付宝/Creem/Mock）�
 
 from __future__ import annotations
 
+import json
 import os
 from copy import deepcopy
+from pathlib import Path
 from typing import Any
+
+_OVERRIDE_PATH = Path(
+    os.environ.get("BYOK_PLANS_OVERRIDE") or str(Path(__file__).resolve().parent / "data" / "byok_plans_override.json")
+)
+
+# 管理台可覆盖字段（p/open/api/data/byok_plans_override.json）
+_BYOK_EDITABLE = (
+    "title_zh", "title_en", "price_usd", "days", "recommended", "enabled",
+    "one_liner_zh", "one_liner_en", "features_zh", "features_en",
+)
 
 
 def _usd_cny() -> float:
@@ -77,6 +89,27 @@ _BYOK_PLAN_DEFAULTS: dict[str, dict[str, Any]] = {
 }
 
 
+def _load_overrides() -> dict[str, dict[str, Any]]:
+    try:
+        if not _OVERRIDE_PATH.is_file():
+            return {}
+        raw = json.loads(_OVERRIDE_PATH.read_text(encoding="utf-8"))
+        plans = raw.get("plans") if isinstance(raw, dict) else None
+        if not isinstance(plans, dict):
+            return {}
+        return {str(k): (v if isinstance(v, dict) else {}) for k, v in plans.items()}
+    except Exception:
+        return {}
+
+
+def _save_overrides(plans: dict[str, dict[str, Any]]) -> None:
+    _OVERRIDE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _OVERRIDE_PATH.write_text(
+        json.dumps({"plans": plans, "updated_note": "admin_ui"}, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
 def _price_usd(plan_id: str, base: dict[str, Any]) -> float:
     env_key = {
         "byok_pro_month": "BYOK_PRICE_PRO_MONTH_USD",
@@ -91,12 +124,20 @@ def _price_usd(plan_id: str, base: dict[str, Any]) -> float:
 
 
 def resolve_byok_plan(plan_id: str) -> dict[str, Any] | None:
-    """返回 BYOK 套餐快照（含实时价格 / CNY 分），未知 plan 返回 None。"""
+    """返回 BYOK 套餐快照（默认 + 管理台覆盖 + env 价），未知 plan 返回 None。"""
     base = _BYOK_PLAN_DEFAULTS.get(plan_id or "")
     if not base:
         return None
     p = deepcopy(base)
-    usd = _price_usd(plan_id, base)
+    ov = _load_overrides().get(plan_id) or {}
+    for key in _BYOK_EDITABLE:
+        if key in ov and ov[key] is not None:
+            p[key] = ov[key]
+    p.setdefault("enabled", True)
+    if "price_usd" in ov and ov["price_usd"] is not None:
+        usd = float(ov["price_usd"])
+    else:
+        usd = _price_usd(plan_id, base)
     p["price_usd"] = round(usd, 2)
     p["price_fen"] = _fen_from_usd(usd)
     return p
@@ -107,7 +148,7 @@ def public_byok_plans() -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for pid in ("byok_pro_month", "byok_pro_year"):
         p = resolve_byok_plan(pid)
-        if not p:
+        if not p or not p.get("enabled", True):
             continue
         out.append(
             {
@@ -122,10 +163,66 @@ def public_byok_plans() -> list[dict[str, Any]]:
                 "features_en": p.get("features_en") or [],
                 "one_liner_zh": p.get("one_liner_zh") or "",
                 "one_liner_en": p.get("one_liner_en") or "",
+                "enabled": True,
                 "product": "byok",
             }
         )
     return out
+
+
+def list_admin_byok_plans() -> dict[str, Any]:
+    """管理台套餐目录（含覆盖来源标记，供编辑回显）。"""
+    ov = _load_overrides()
+    out = []
+    for pid in ("byok_pro_month", "byok_pro_year"):
+        p = resolve_byok_plan(pid)
+        if not p:
+            continue
+        out.append(
+            {
+                "plan": pid,
+                "title_zh": p.get("title_zh"),
+                "title_en": p.get("title_en"),
+                "price_usd": p.get("price_usd"),
+                "price_fen": p.get("price_fen"),
+                "days": p.get("days"),
+                "recommended": bool(p.get("recommended")),
+                "enabled": bool(p.get("enabled", True)),
+                "one_liner_zh": p.get("one_liner_zh") or "",
+                "one_liner_en": p.get("one_liner_en") or "",
+                "features_zh": p.get("features_zh") or [],
+                "features_en": p.get("features_en") or [],
+                "has_override": bool(ov.get(pid)),
+            }
+        )
+    return {"plans": out}
+
+
+def update_admin_byok_plans(plans: list) -> dict[str, Any]:
+    """写入管理台覆盖（只允许改已知套餐；等于默认值的字段自动清掉）。"""
+    ov = _load_overrides()
+    changed: list[str] = []
+    for item in plans or []:
+        if not isinstance(item, dict):
+            continue
+        pid = str(item.get("plan") or "").strip().lower()
+        base = _BYOK_PLAN_DEFAULTS.get(pid)
+        if not base:
+            continue
+        defaults = dict(base)
+        defaults.setdefault("enabled", True)
+        cur = dict(ov.get(pid) or {})
+        for key in _BYOK_EDITABLE:
+            if key in item and item[key] is not None:
+                cur[key] = item[key]
+        cleaned = {k: v for k, v in cur.items() if v != defaults.get(k)}
+        if cleaned:
+            ov[pid] = cleaned
+        else:
+            ov.pop(pid, None)
+        changed.append(pid)
+    _save_overrides(ov)
+    return {"ok": True, "changed": changed, "note": "byok plans saved"}
 
 
 def is_byok_plan(plan_id: str) -> bool:

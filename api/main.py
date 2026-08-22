@@ -2,6 +2,7 @@ from pathlib import Path
 import asyncio
 import logging
 import os
+import secrets
 import subprocess
 import time
 
@@ -39,6 +40,7 @@ from schemas import (
     ChatRequest,
     ChatResponse,
     ErrorResponse,
+    AdminSmsLoginBody,
     InternalSmsVerifyConsumeIn,
     SmsSendRequest,
     SmsSendResponse,
@@ -2226,6 +2228,27 @@ async def admin_token_ticket_reply(
 
 
 _ADMIN_RATE: dict[str, list[float]] = {}
+# 管理员手机验证码会话（进程内；token -> 过期时间戳）。短期 30 分钟，仅 ADMIN_PHONE 可发起
+_ADMIN_SESSIONS: dict[str, float] = {}
+_ADMIN_SMS_SEND_AT: dict[str, float] = {}
+
+
+def _admin_session_valid(token: str) -> bool:
+    if not token:
+        return False
+    exp = _ADMIN_SESSIONS.get(token)
+    if not exp:
+        return False
+    if time.time() > exp:
+        _ADMIN_SESSIONS.pop(token, None)
+        return False
+    return True
+
+
+def _admin_sms_issue_token() -> str:
+    tok = "adm-session-" + secrets.token_urlsafe(24)
+    _ADMIN_SESSIONS[tok] = time.time() + 1800.0
+    return tok
 
 
 def _admin_rate_limited(request: Request) -> None:
@@ -2284,6 +2307,9 @@ def _require_internal_key(request: Request) -> None:
         (request.headers.get("X-Admin-Key") or "").strip()
         or (request.headers.get("X-SMS-Internal-Key") or "").strip()
     )
+    # 管理员手机验证码会话（短期 token）也放行
+    if provided and _admin_session_valid(provided):
+        return
     if admin:
         # 已配置独立管理密钥：仅接受该钥，SMS 密钥不再放行（防双钥混用/弱钥穿透）
         if provided and provided == admin:
@@ -2294,6 +2320,60 @@ def _require_internal_key(request: Request) -> None:
     raise HTTPException(status_code=403, detail="禁止访问")
 
 
+
+
+@app.post("/v1/admin/sms/send")
+async def admin_sms_send(request: Request, body: SmsSendRequest):
+    """管理员手机验证码发送：仅 ADMIN_PHONE 白名单单号；60s 冷却 + 管理限频。"""
+    admin_phone = (getattr(settings, "admin_phone", "") or "").strip()
+    if not admin_phone:
+        raise HTTPException(status_code=503, detail="管理员短信登录未启用（未配置 ADMIN_PHONE）")
+    mob = normalize_mobile(body.mobile)
+    if mob != admin_phone:
+        raise HTTPException(status_code=403, detail="该手机号无管理权限")
+    _admin_rate_limited(request)
+    now = time.time()
+    last = _ADMIN_SMS_SEND_AT.get(mob, 0)
+    if now - last < 60:
+        raise HTTPException(status_code=429, detail="发送过于频繁，请 60 秒后再试")
+    code = generate_numeric_code(6)
+    template = (settings.sms_106_template or "").strip()
+    try:
+        content = template.format(code=str(code))
+    except Exception:
+        content = f"您的验证码是：{code}。请不要把验证码泄露给其他人。如非本人操作，可不用理会！"
+    try:
+        ok, raw, msg = await send_sms_106(
+            endpoint=settings.sms_106_endpoint,
+            account=settings.sms_106_account,
+            password=settings.sms_106_password,
+            mobile=mob,
+            content=content,
+            sign_name=settings.sms_106_sign_name or None,
+        )
+    except Exception as e:
+        ok, raw, msg = False, "", f"发送异常: {e}"
+    if not ok:
+        raise HTTPException(status_code=502, detail=f"短信发送失败：{msg or raw}")
+    _ADMIN_SMS_SEND_AT[mob] = now
+    store_otp(mob, "admin_login", code, ttl_s=300.0)
+    mark_sent(mob)
+    return {"ok": True, "message": "验证码已发送", "cooldown_s": 60}
+
+
+@app.post("/v1/admin/sms/login")
+async def admin_sms_login(request: Request, body: AdminSmsLoginBody):
+    """管理员手机验证码登录：校验 OTP 后签发 30 分钟管理会话 token。"""
+    admin_phone = (getattr(settings, "admin_phone", "") or "").strip()
+    if not admin_phone:
+        raise HTTPException(status_code=503, detail="管理员短信登录未启用（未配置 ADMIN_PHONE）")
+    mob = normalize_mobile(body.mobile)
+    if mob != admin_phone:
+        raise HTTPException(status_code=403, detail="手机号或验证码错误")
+    _admin_rate_limited(request)
+    if not verify_and_consume_otp(mob, "admin_login", body.code or ""):
+        raise HTTPException(status_code=403, detail="验证码错误或已过期，请重新获取")
+    return {"ok": True, "key": _admin_sms_issue_token(), "expires_in": 1800}
 
 
 @app.get("/v1/billing/plans")
@@ -2899,12 +2979,41 @@ async def admin_token_orders(
     )
 
 
-@app.get("/v1/admin/products/markets/{kind}")
+_ADMIN_PLAN_KEYS = (
+    "plan", "label", "usd", "days", "description", "enabled",
+    "price_usd", "recommended",
+    "title_zh", "title_en", "price_label", "price_label_zh", "perk", "perk_zh",
+)
+
+
+def _clean_plans_body(raw: object) -> dict | None:
+    """网关层白名单清洗套餐保存体（与 markets/open 子服务口径一致）。"""
+    if not isinstance(raw, dict):
+        return None
+    items = raw.get("plans")
+    if not isinstance(items, list):
+        return None
+    cleaned = []
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        pid = str(it.get("plan") or "").strip().lower()
+        if not pid:
+            continue
+        item: dict[str, object] = {"plan": pid}
+        for key in _ADMIN_PLAN_KEYS[1:]:
+            if key in it and it[key] is not None:
+                item[key] = it[key]
+        cleaned.append(item)
+    return {"plans": cleaned}
+
+
+@app.api_route("/v1/admin/products/markets/{kind}", methods=["GET", "POST"])
 async def admin_products_markets(request: Request, kind: str):
-    """平台运营后台网关：代理 markets 子服务只读管理接口（P1 只读）。
+    """平台运营后台网关：代理 markets 子服务管理接口（P1 只读 + 套餐保存）。
 
     鉴权：管理密钥（_require_internal_key）→ 服务端到服务端带 X-Markets-Secret 签名
-    转发到同机 markets 子服务；仅放行白名单 kind，不透传任意路径（防开放代理）。
+    转发到同机 markets 子服务；仅放行白名单 kind 与参数/字段，不透传任意路径（防开放代理）。
     """
     _require_internal_key(request)
     kind = str(kind or "").strip().lower()
@@ -2927,9 +3036,23 @@ async def admin_products_markets(request: Request, kind: str):
             params[key] = str(v)[:120]
     url = f"{base}/api/admin/{kind}"
     headers = {"X-Markets-Secret": secret}
+    payload: dict | None = None
+    if request.method == "POST":
+        if kind != "plans":
+            raise HTTPException(status_code=400, detail="该子接口仅支持查询")
+        try:
+            raw = await request.json()
+        except Exception:
+            raise HTTPException(status_code=400, detail="请求体非 JSON")
+        payload = _clean_plans_body(raw)
+        if payload is None or not payload["plans"]:
+            raise HTTPException(status_code=400, detail="参数无效，请检查后再试。")
     try:
         async with httpx.AsyncClient(timeout=15) as ac:
-            r = await ac.get(url, params=params, headers=headers)
+            if payload is not None:
+                r = await ac.post(url, params=params, json=payload, headers=headers)
+            else:
+                r = await ac.get(url, params=params, headers=headers)
     except Exception as e:
         logger.warning("markets admin proxy error kind=%s: %r", kind, e)
         raise HTTPException(status_code=502, detail="markets 子服务暂不可用")
@@ -2940,6 +3063,56 @@ async def admin_products_markets(request: Request, kind: str):
         return r.json()
     except Exception:
         raise HTTPException(status_code=502, detail="markets 子服务返回异常")
+
+
+@app.api_route("/v1/admin/products/open/{kind}", methods=["GET", "POST"])
+async def admin_products_open(request: Request, kind: str):
+    """平台运营后台网关：代理 open.ai24x.com（BYOK）管理接口。
+
+    鉴权：管理密钥（_require_internal_key）→ 把同一 X-Admin-Key 转发到同机 open 子服务
+    （部署对齐：open 与 core 共用同一 ADMIN_API_KEY）；仅放行白名单 kind。
+    """
+    _require_internal_key(request)
+    kind = str(kind or "").strip().lower()
+    allowed = {"plans"}
+    if kind not in allowed:
+        raise HTTPException(status_code=404, detail="未知子接口")
+    import httpx
+
+    base = (os.environ.get("OPEN_ADMIN_BASE") or "http://127.0.0.1:18080").rstrip("/")
+    admin_key = (request.headers.get("X-Admin-Key") or "").strip()
+    if not admin_key:
+        raise HTTPException(status_code=403, detail="禁止访问")
+    headers = {"X-Admin-Key": admin_key}
+    payload: dict | None = None
+    if request.method == "POST":
+        if kind != "plans":
+            raise HTTPException(status_code=400, detail="该子接口仅支持查询")
+        try:
+            raw = await request.json()
+        except Exception:
+            raise HTTPException(status_code=400, detail="请求体非 JSON")
+        payload = _clean_plans_body(raw)
+        if payload is None or not payload["plans"]:
+            raise HTTPException(status_code=400, detail="参数无效，请检查后再试。")
+    url = f"{base}/v1/admin/byok/{kind}"
+    try:
+        async with httpx.AsyncClient(timeout=15) as ac:
+            if payload is not None:
+                r = await ac.post(url, json=payload, headers=headers)
+            else:
+                r = await ac.get(url, headers=headers)
+    except Exception as e:
+        logger.warning("open admin proxy error kind=%s: %r", kind, e)
+        raise HTTPException(status_code=502, detail="open 子服务暂不可用")
+    if r.status_code != 200:
+        logger.warning("open admin proxy status kind=%s status=%s", kind, r.status_code)
+        raise HTTPException(status_code=502, detail=f"open 子服务返回 {r.status_code}")
+    try:
+        # 与 markets 网关统一响应壳（code/data），前端同一种取数方式
+        return {"code": 0, "data": r.json()}
+    except Exception:
+        raise HTTPException(status_code=502, detail="open 子服务返回异常")
 
 
 @app.get("/v1/admin/token/orders/export.csv")

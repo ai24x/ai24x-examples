@@ -104,6 +104,100 @@ def main() -> int:
     r = httpx.get(CORE + "/v1/admin/products/markets/summary/../../billing/plans", headers=hc, timeout=10)
     check("gateway path escape billing -> 404", r.status_code == 404, f"status={r.status_code}")
 
+    # 4b) 套餐写接口：markets 直连 + core 网关 + open 网关
+    body = {"plans": [{"plan": "monthly", "usd": 25.5}]}
+    r = httpx.post(MK + "/api/admin/plans", json=body, timeout=10)
+    check("markets admin POST no-secret -> 403", r.status_code == 403, f"status={r.status_code}")
+    r = httpx.post(MK + "/api/admin/plans", json=body, headers={"X-Markets-Secret": mk_secret}, timeout=10)
+    ok = r.status_code == 200 and r.json().get("code") == 0 and r.json().get("data", {}).get("changed") == ["monthly"]
+    check("markets admin POST plans -> 200 changed", ok, f"status={r.status_code}")
+    r = httpx.post(CORE + "/v1/admin/products/markets/plans", json=body, timeout=10)
+    check("core gateway POST plans no-key -> 403", r.status_code == 403, f"status={r.status_code}")
+    r = httpx.post(CORE + "/v1/admin/products/markets/plans", json=body, headers=hc, timeout=15)
+    ok = r.status_code == 200 and r.json().get("data", {}).get("changed") == ["monthly"]
+    check("core gateway POST plans -> 200", ok, f"status={r.status_code}")
+    r = httpx.post(CORE + "/v1/admin/products/markets/plans", json={"plans": []}, headers=hc, timeout=15)
+    check("core gateway POST empty plans -> 400", r.status_code == 400, f"status={r.status_code}")
+
+    r = httpx.get(CORE + "/v1/admin/products/open/plans", timeout=10)
+    check("open gateway no-key -> 403", r.status_code == 403, f"status={r.status_code}")
+    r = httpx.get(CORE + "/v1/admin/products/open/plans", headers=hc, timeout=15)
+    ok = r.status_code == 200 and r.json().get("code") == 0 and len(r.json().get("data", {}).get("plans", [])) >= 2
+    check("open gateway GET plans -> 200 code=0", ok, f"status={r.status_code}")
+    r = httpx.get(CORE + "/v1/admin/products/open/plans/../../admin/token/wallet", headers=hc, timeout=10)
+    check("open gateway path escape -> 404", r.status_code == 404, f"status={r.status_code}")
+    r = httpx.get(CORE + "/v1/admin/products/open/subs", headers=hc, timeout=10)
+    check("open gateway unknown kind -> 404", r.status_code == 404, f"status={r.status_code}")
+    body_byok = {"plans": [{"plan": "byok_pro_month", "price_usd": 9.5}]}
+    r = httpx.post(CORE + "/v1/admin/products/open/plans", json=body_byok, headers=hc, timeout=15)
+    ok = r.status_code == 200 and r.json().get("data", {}).get("changed") == ["byok_pro_month"]
+    check("open gateway POST plans -> 200", ok, f"status={r.status_code}")
+
+    # 4b) BYOK 禁用：前台隐藏 + 下单拒绝（管理台保存 → open 子服务 /v1/billing/plans 过滤）
+    r = httpx.post(
+        CORE + "/v1/admin/products/open/plans",
+        json={"plans": [{"plan": "byok_pro_month", "enabled": False}]},
+        headers=hc,
+        timeout=15,
+    )
+    check("disable byok_pro_month saved", r.status_code == 200, f"status={r.status_code}")
+    r = httpx.get("http://127.0.0.1:18080/v1/billing/plans", timeout=10)
+    byok_public = [p["plan"] for p in r.json().get("byok_plans", [])]
+    check(
+        "disabled byok hidden from public",
+        r.status_code == 200 and "byok_pro_month" not in byok_public,
+        ",".join(byok_public),
+    )
+    try:
+        login = httpx.post(
+            "http://127.0.0.1:18080/v1/auth/login",
+            json={"email": "byok.demo@ai24x.local", "password": "ByokDemo#2026"},
+            timeout=10,
+        )
+        tok = login.json().get("token", "")
+        r = httpx.post(
+            "http://127.0.0.1:18080/v1/billing/wechat/native",
+            json={"product": "byok", "plan": "byok_pro_month"},
+            headers={"Authorization": "Bearer " + tok},
+            timeout=10,
+        )
+        check("disabled byok checkout rejected -> 400", r.status_code == 400, f"status={r.status_code}")
+    except Exception as e:
+        check("disabled byok checkout rejected -> 400", False, f"exception={e!r}")
+
+    # 4c) 禁用套餐：前台隐藏 + 履约拒绝；测完恢复默认价
+    r = httpx.post(
+        CORE + "/v1/admin/products/markets/plans",
+        json={"plans": [{"plan": "monthly", "usd": 24.9}, {"plan": "yearly", "enabled": False}]},
+        headers=hc,
+        timeout=15,
+    )
+    check("disable markets yearly saved", r.status_code == 200, f"status={r.status_code}")
+    r = httpx.get(MK + "/api/subscribe/plans", timeout=10)
+    plans_public = [p["plan"] for p in r.json().get("data", {}).get("plans", [])]
+    check("disabled yearly hidden from public", r.status_code == 200 and "yearly" not in plans_public, ",".join(plans_public))
+    r = httpx.post(
+        MK + "/api/subscribe/fulfill",
+        json={"out_trade_no": "QA-DISABLED-20260822", "user_id": "auth_1", "plan": "yearly", "source": "mock"},
+        headers={"X-Markets-Secret": mk_secret},
+        timeout=10,
+    )
+    check("disabled yearly fulfill rejected -> 400", r.status_code == 400, f"status={r.status_code}")
+    r = httpx.post(
+        CORE + "/v1/admin/products/markets/plans",
+        json={"plans": [{"plan": "yearly", "enabled": True}]},
+        headers=hc,
+        timeout=15,
+    )
+    check("re-enable markets yearly", r.status_code == 200, f"status={r.status_code}")
+    r = httpx.post(
+        CORE + "/v1/admin/products/open/plans",
+        json={"plans": [{"plan": "byok_pro_month", "price_usd": 9.9, "enabled": True}]},
+        headers=hc,
+        timeout=15,
+    )
+    check("open plans restore default", r.status_code == 200, f"status={r.status_code}")
+
     # 5) 限速（进程内每 IP 每分钟阈值 60；发 66 次应出现 429）
     got_429 = False
     last = 0

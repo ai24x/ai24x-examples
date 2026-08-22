@@ -246,7 +246,7 @@ def create_pending_order(
         from byok_plans import resolve_byok_plan
 
         bmeta = resolve_byok_plan(plan or "")
-        if not bmeta:
+        if not bmeta or not bmeta.get("enabled", True):
             raise HTTPException(status_code=400, detail="unknown_byok_plan")
         plan_id = plan
         price_fen = int(bmeta.get("price_fen") or 0)

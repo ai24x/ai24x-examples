@@ -51,11 +51,11 @@ def parse_custom_id(custom_id: str) -> Optional[Tuple[str, str]]:
 
 async def create_checkout(user_id: str, plan: str) -> Dict[str, Any]:
     """创建 PayPal Checkout 订单，落库并返回支付跳转链接。"""
-    if plan not in billing.PLANS:
+    plan_info = billing.get_plan(plan)
+    if not plan_info or not plan_info.get("enabled", True):
         raise ValueError(f"unknown_plan:{plan}")
     if not configured():
         raise RuntimeError("paypal_not_configured")
-    plan_info = billing.PLANS[plan]
     cid = make_custom_id(user_id, plan)
     return_url = os.environ.get(
         "MARKETS_PAYPAL_RETURN_URL", "https://markets.ai24x.com/app.html?pay=done"

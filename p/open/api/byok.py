@@ -277,7 +277,7 @@ def activate_subscription(
     from models import ByokSubscription
 
     meta = resolve_byok_plan(plan or "")
-    if not meta:
+    if not meta or not meta.get("enabled", True):
         raise ValueError(f"unknown_byok_plan:{plan}")
     days = int(meta.get("days") or 30)
     now = datetime.now(timezone.utc)

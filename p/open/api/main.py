@@ -3151,6 +3151,29 @@ async def admin_token_plans_update(request: Request):
         raise HTTPException(status_code=400, detail="参数无效，请检查后再试。")
     return update_admin_plans(plans)
 
+
+@app.get("/v1/admin/byok/plans")
+async def admin_byok_plans(request: Request):
+    """BYOK 服务费套餐目录（管理台编辑回显）。"""
+    _require_internal_key(request)
+    from byok_plans import list_admin_byok_plans
+
+    return list_admin_byok_plans()
+
+
+@app.post("/v1/admin/byok/plans")
+async def admin_byok_plans_update(request: Request):
+    """写入 BYOK 套餐覆盖（p/open/api/data/byok_plans_override.json），前台定价页立即生效。"""
+    _require_internal_key(request)
+    from byok_plans import update_admin_byok_plans
+
+    body = await request.json()
+    plans = body.get("plans") if isinstance(body, dict) else None
+    if not isinstance(plans, list):
+        raise HTTPException(status_code=400, detail="参数无效，请检查后再试。")
+    return update_admin_byok_plans(plans)
+
+
 @app.get("/v1/admin/token/alert_config")
 async def admin_alert_config(request: Request):
     "运维预警通道配置（webhook 脱敏返回）。"

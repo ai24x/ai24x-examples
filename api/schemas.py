@@ -184,6 +184,13 @@ class InternalSmsVerifyConsumeIn(BaseModel):
     code: str = Field(..., min_length=4, max_length=16)
 
 
+class AdminSmsLoginBody(BaseModel):
+    """管理员手机验证码登录（手机号必须命中 ADMIN_PHONE 白名单，单号）。"""
+
+    mobile: str = Field(..., min_length=10, max_length=20)
+    code: str = Field(..., min_length=4, max_length=16)
+
+
 class AuthRegisterBody(BaseModel):
     """手机注册须短信验证码；邮箱注册须邮箱验证码（进程内 OTP，生产换 Redis+邮件）。"""
 

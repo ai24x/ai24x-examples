@@ -109,6 +109,8 @@ class Settings(BaseSettings):
     sms_internal_key: str = Field(default="", validation_alias="SMS_INTERNAL_KEY")
     # 管理后台专用钥（可选）。未配时管理接口仍接受 SMS_INTERNAL_KEY（兼容旧部署）
     admin_api_key: str = Field(default="", validation_alias="ADMIN_API_KEY")
+    # 管理员手机号（可选）。配置后管理后台支持「手机号 + 短信验证码」登录（白名单单号）
+    admin_phone: str = Field(default="", validation_alias="ADMIN_PHONE")
     # 管理接口限速（每分钟每 IP；进程内，多实例建议网关层再限）
     admin_rate_limit_per_min: int = Field(default=60, validation_alias="ADMIN_RATE_LIMIT_PER_MIN")
     # 可选管理接口 IP 白名单：逗号分隔 IP/CIDR；未配置=放行全部（依赖密钥鉴权）

@@ -96,18 +96,26 @@ async def admin_orders(
 async def admin_plans(request: Request):
     _guard(request)
     try:
-        out = []
-        for pid, p in billing.PLANS.items():
-            out.append(
-                {
-                    "plan": pid,
-                    "label": p.get("label"),
-                    "usd": p.get("usd"),
-                    "days": p.get("days"),
-                    "description": p.get("description"),
-                }
-            )
-        return {"code": 0, "data": {"plans": out}}
+        return {"code": 0, "data": billing.admin_list_plans()}
     except Exception as e:
         print(f"[markets] /api/admin/plans error: {e!r}", file=sys.stderr)
+        return JSONResponse(status_code=500, content={"code": -1, "msg": "internal_error"})
+
+
+@router.post("/plans")
+async def admin_plans_update(request: Request):
+    """管理台保存套餐（写 markets_plans_override.json，前台/履约同源读取）。"""
+    _guard(request)
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse(status_code=400, content={"code": -1, "msg": "bad_json"})
+    plans = body.get("plans") if isinstance(body, dict) else None
+    if not isinstance(plans, list):
+        return JSONResponse(status_code=400, content={"code": -1, "msg": "bad_payload"})
+    try:
+        result = billing.admin_update_plans(plans)
+        return {"code": 0, "data": result}
+    except Exception as e:
+        print(f"[markets] /api/admin/plans update error: {e!r}", file=sys.stderr)
         return JSONResponse(status_code=500, content={"code": -1, "msg": "internal_error"})

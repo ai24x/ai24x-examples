@@ -59,37 +59,37 @@
         </ul>
         <a class="btn" href="/app.html">Open chart app</a>
       </div>
-      <div class="card">
+      <div class="card" id="card-weekly">
         <h2>Pro &middot; Weekly</h2>
-        <div class="price">$9.9 <small>/week</small></div>
+        <div class="price" id="price-weekly">$9.9 <small>/week</small></div>
         <ul>
           <li>Unlimited AI commentary</li>
           <li>Watchlist up to 50 symbols</li>
           <li>Priority caching</li>
           <li>Try before committing to a month</li>
         </ul>
-        <a class="btn btn-primary" href="/app.html#sub">Subscribe &mdash; $9.9/week</a>
+        <a class="btn btn-primary" href="/app.html#sub" id="btn-weekly">Subscribe &mdash; $9.9/week</a>
       </div>
-      <div class="card hot">
+      <div class="card hot" id="card-monthly">
         <h2>Pro &middot; Monthly</h2>
-        <div class="price">$24.9 <small>/month</small></div>
+        <div class="price" id="price-monthly">$24.9 <small>/month</small></div>
         <ul>
           <li>Unlimited AI commentary</li>
           <li>Watchlist up to 50 symbols</li>
           <li>Priority caching</li>
           <li>Cancel anytime</li>
         </ul>
-        <a class="btn btn-primary" href="/app.html#sub">Subscribe &mdash; $24.9/month</a>
+        <a class="btn btn-primary" href="/app.html#sub" id="btn-monthly">Subscribe &mdash; $24.9/month</a>
       </div>
-      <div class="card">
+      <div class="card" id="card-yearly">
         <h2>Pro &middot; Yearly</h2>
-        <div class="price">$199 <small>/year</small></div>
+        <div class="price" id="price-yearly">$199 <small>/year</small></div>
         <ul>
           <li>Everything in Pro monthly</li>
           <li>33% off the monthly price</li>
           <li>One payment, one year of clarity</li>
         </ul>
-        <a class="btn btn-primary" href="/app.html#sub">Subscribe &mdash; $199/year</a>
+        <a class="btn btn-primary" href="/app.html#sub" id="btn-yearly">Subscribe &mdash; $199/year</a>
       </div>
     </div>
     <p class="note">Prices shown may change; the current price at checkout is final. Unused subscription refunds are available within 14 days of purchase. For educational purposes only &mdash; not investment advice.</p>
@@ -98,5 +98,33 @@
     <div>&copy; 2026 AI24X &middot; <a href="https://www.ai24x.com">www.ai24x.com</a></div>
     <div style="margin-top:6px;"><a href="/app.html">Chart app</a> &middot; <a href="/tos.html">Terms of Service</a> &middot; <a href="/privacy.html">Privacy Policy</a></div>
   </footer>
+  <script>
+    // 2026-08-22：价格/启用状态跟随管理台（/api/subscribe/plans），失败时保留静态兜底
+    (function () {
+      var ids = {
+        weekly: { card: 'card-weekly', price: 'price-weekly', btn: 'btn-weekly', unit: '/week' },
+        monthly: { card: 'card-monthly', price: 'price-monthly', btn: 'btn-monthly', unit: '/month' },
+        yearly: { card: 'card-yearly', price: 'price-yearly', btn: 'btn-yearly', unit: '/year' }
+      };
+      fetch('/api/subscribe/plans')
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j && j.code === 0 && j.data && j.data.plans) {
+            j.data.plans.forEach(function (p) {
+              var meta = ids[p.plan];
+              if (!meta) return;
+              var card = document.getElementById(meta.card);
+              if (p.enabled === false) { if (card) card.style.display = 'none'; return; }
+              if (card) card.style.display = '';
+              var price = document.getElementById(meta.price);
+              if (price && p.usd != null) price.innerHTML = '$' + String(Number(p.usd)) + ' <small>' + meta.unit + '</small>';
+              var btn = document.getElementById(meta.btn);
+              if (btn && p.usd != null) btn.textContent = 'Subscribe — $' + String(Number(p.usd)) + meta.unit;
+            });
+          }
+        })
+        .catch(function () {});
+    })();
+  </script>
 </body>
 </html>

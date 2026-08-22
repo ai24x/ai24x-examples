@@ -5,6 +5,8 @@ PayPal 客户端复用核心层 pay_paypal.py（共享不复制）。
 """
 from __future__ import annotations
 
+import json
+import os
 import sqlite3
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -17,6 +19,109 @@ PLANS: Dict[str, Dict[str, Any]] = {
     "monthly": {"usd": 24.9, "days": 30, "label": "Pro Monthly", "description": "AI24X Markets Pro · 1 month"},
     "yearly": {"usd": 199.0, "days": 365, "label": "Pro Yearly", "description": "AI24X Markets Pro · 1 year"},
 }
+
+_OVERRIDE_PATH = Path(
+    os.environ.get("MARKETS_PLANS_OVERRIDE") or str(_DB_DIR / "markets_plans_override.json")
+)
+
+# 可被管理台覆盖的字段（与核心 pay_products.MARKET_PLANS 对齐）
+_PLAN_EDITABLE = (
+    "label", "usd", "days", "description", "enabled",
+    "title_zh", "title_en", "price_label", "price_label_zh", "perk", "perk_zh",
+)
+
+
+def _load_plans_overrides() -> Dict[str, Dict[str, Any]]:
+    try:
+        if not _OVERRIDE_PATH.is_file():
+            return {}
+        raw = json.loads(_OVERRIDE_PATH.read_text(encoding="utf-8"))
+        plans = raw.get("plans") if isinstance(raw, dict) else None
+        if not isinstance(plans, dict):
+            return {}
+        return {str(k): (v if isinstance(v, dict) else {}) for k, v in plans.items()}
+    except Exception:
+        return {}
+
+
+def _save_plans_overrides(plans: Dict[str, Dict[str, Any]]) -> None:
+    _OVERRIDE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _OVERRIDE_PATH.write_text(
+        json.dumps({"plans": plans, "updated_note": "admin_ui"}, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
+def resolve_plans() -> Dict[str, Dict[str, Any]]:
+    """代码默认 + 管理台覆盖（markets_plans_override.json），统一供订阅/履约/管理/前台读取。"""
+    ov = _load_plans_overrides()
+    out: Dict[str, Dict[str, Any]] = {}
+    for pid, base in PLANS.items():
+        p = dict(base)
+        o = ov.get(pid) or {}
+        for key in _PLAN_EDITABLE:
+            if key in o and o[key] is not None:
+                p[key] = o[key]
+        p.setdefault("enabled", True)
+        out[pid] = p
+    return out
+
+
+def get_plan(plan_id: str) -> Optional[Dict[str, Any]]:
+    return resolve_plans().get(str(plan_id or "").strip().lower())
+
+
+def admin_list_plans() -> Dict[str, Any]:
+    """管理台套餐目录（含覆盖来源标记，供编辑回显）。"""
+    ov = _load_plans_overrides()
+    out = []
+    for pid, p in resolve_plans().items():
+        out.append(
+            {
+                "plan": pid,
+                "label": p.get("label"),
+                "usd": p.get("usd"),
+                "days": p.get("days"),
+                "description": p.get("description"),
+                "enabled": bool(p.get("enabled", True)),
+                "title_zh": p.get("title_zh"),
+                "title_en": p.get("title_en"),
+                "price_label": p.get("price_label"),
+                "price_label_zh": p.get("price_label_zh"),
+                "perk": p.get("perk"),
+                "perk_zh": p.get("perk_zh"),
+                "has_override": bool(ov.get(pid)),
+            }
+        )
+    return {"plans": out}
+
+
+def admin_update_plans(plans: list) -> Dict[str, Any]:
+    """写入管理台覆盖（只允许改已知套餐；等于默认值的字段自动清掉，避免文件膨胀）。"""
+    ov = _load_plans_overrides()
+    changed: list[str] = []
+    for item in plans or []:
+        if not isinstance(item, dict):
+            continue
+        pid = str(item.get("plan") or "").strip().lower()
+        base = PLANS.get(pid)
+        if not base:
+            continue
+        defaults = dict(base)
+        defaults.setdefault("enabled", True)
+        cur = dict(ov.get(pid) or {})
+        for key in _PLAN_EDITABLE:
+            if key in item and item[key] is not None:
+                cur[key] = item[key]
+        cleaned = {k: v for k, v in cur.items() if v != defaults.get(k)}
+        if cleaned:
+            ov[pid] = cleaned
+        else:
+            ov.pop(pid, None)
+        changed.append(pid)
+    _save_plans_overrides(ov)
+    return {"ok": True, "changed": changed, "note": "markets plans saved"}
+
 
 FREE_WATCH_LIMIT = 10
 PRO_WATCH_LIMIT = 50
@@ -112,9 +217,10 @@ def is_pro(user_id: str) -> bool:
 
 def activate_subscription(user_id: str, plan: str, source: str = "paypal") -> Dict[str, Any]:
     """激活/续订：已有未过期订阅则在其到期日上加时长，否则从现在起算。"""
-    if plan not in PLANS:
+    meta = get_plan(plan)
+    if not meta or not meta.get("enabled", True):
         raise ValueError(f"unknown_plan:{plan}")
-    days = int(PLANS[plan]["days"])
+    days = int(meta["days"])
     with _conn() as conn:
         cur = conn.execute(
             """
@@ -342,7 +448,7 @@ def admin_summary() -> Dict[str, Any]:
             ).fetchall()
         ]
         plans = []
-        for pid, p in PLANS.items():
+        for pid, p in resolve_plans().items():
             n = conn.execute(
                 "SELECT COUNT(*) FROM subscriptions WHERE plan=?", (pid,)
             ).fetchone()[0]

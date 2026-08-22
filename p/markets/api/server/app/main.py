@@ -223,12 +223,38 @@ async def api_subscribe_status(request: Request):
         return JSONResponse(status_code=500, content={"code": -1, "msg": str(e)})
 
 
+@app.get("/api/subscribe/plans")
+async def api_subscribe_plans():
+    """公开套餐目录（管理台可改；禁用套餐不展示）。供 app.html 订阅面板动态渲染。"""
+    try:
+        plans = []
+        for pid, p in billing.resolve_plans().items():
+            if not p.get("enabled", True):
+                continue
+            plans.append(
+                {
+                    "plan": pid,
+                    "label": p.get("label"),
+                    "usd": p.get("usd"),
+                    "days": p.get("days"),
+                    "description": p.get("description"),
+                    "price_label": p.get("price_label") or f"${p.get('usd')}",
+                    "price_label_zh": p.get("price_label_zh") or f"${p.get('usd')}",
+                }
+            )
+        return {"code": 0, "data": {"plans": plans}}
+    except Exception as e:
+        print(f"[markets] /api/subscribe/plans error: {e!r}", file=sys.stderr)
+        return JSONResponse(status_code=500, content={"code": -1, "msg": "internal_error"})
+
+
 @app.post("/api/subscribe/checkout")
 async def api_subscribe_checkout(request: Request, payload: dict = Body(...)):
     try:
         uid = await _auth_user_id(request)
         plan = str((payload or {}).get("plan") or "monthly").strip().lower()
-        if plan not in billing.PLANS:
+        meta = billing.get_plan(plan)
+        if not meta or not meta.get("enabled", True):
             raise ValueError(f"unknown_plan:{plan}")
         result = await paypal.create_checkout(uid, plan)
         return {"code": 0, "data": result}
@@ -284,13 +310,14 @@ async def api_subscribe_fulfill(request: Request, payload: dict = Body(...)):
         uid = "auth_" + uid
     plan = str((payload or {}).get("plan") or "").strip().lower()
     source = str((payload or {}).get("source") or "paypal").strip()[:16]
-    if not otn or not uid or plan not in billing.PLANS:
+    meta = billing.get_plan(plan)
+    if not otn or not uid or not meta or not meta.get("enabled", True):
         return JSONResponse(status_code=400, content={"code": -1, "msg": "bad_payload"})
     try:
         existing = billing.get_hub_order(otn)
         if existing and str(existing.get("status")) == "paid" and billing.is_pro(uid):
             return {"code": 0, "data": {"status": "already_activated", "out_trade_no": otn}}
-        amount = float(billing.PLANS[plan]["usd"])
+        amount = float(meta["usd"])
         billing.create_hub_order(otn, f"markets:{uid}:{plan}", amount, plan, source)
         billing.mark_hub_order_paid(otn)
         sub = billing.activate_subscription(uid, plan, source=source)

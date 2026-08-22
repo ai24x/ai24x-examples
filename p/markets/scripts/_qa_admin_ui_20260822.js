@@ -92,7 +92,7 @@ function adminKey() {
   const ordMeta = await page.textContent('#mkOrdMeta');
   log('订单 meta 含 共 N 条', /共 \d+ 条/.test(ordMeta), ordMeta.trim());
 
-  // Markets 套餐目录
+  // Markets 套餐目录（可编辑保存）
   await page.click('#subnav .subnav-item[data-panel="p-prod-plans"]');
   await page.waitForFunction(() => {
     const el = document.getElementById('mkPlansCatalog');
@@ -100,12 +100,67 @@ function adminKey() {
   }, { timeout: 8000 });
   const catText = await page.textContent('#mkPlansCatalog');
   log('套餐目录 周/月/年', /weekly/.test(catText) && /monthly/.test(catText) && /yearly/.test(catText), catText.slice(0, 120));
+  const mkInputs = await page.$$('#mkPlansCatalog .mk-usd');
+  log('Markets 套餐可编辑（USD 输入框>=3）', mkInputs.length >= 3, 'count=' + mkInputs.length);
+  page.on('dialog', (d) => d.accept());
+  const monthlyRow = await page.$('#mkPlansCatalog tr[data-plan="monthly"]');
+  const monthlyUsd = await monthlyRow.$('.mk-usd');
+  await monthlyUsd.fill('25.5');
+  await page.click('#btnMkPlansSave');
+  await page.waitForFunction(() => {
+    const row = document.querySelector('#mkPlansCatalog tr[data-plan="monthly"] .mk-usd');
+    return row && row.value === '25.5';
+  }, { timeout: 8000 });
+  log('Markets 套餐保存生效（monthly=25.5）', true, 'monthly usd saved');
+  const monthlyRow2 = await page.$('#mkPlansCatalog tr[data-plan="monthly"]');
+  const monthlyUsd2 = await monthlyRow2.$('.mk-usd');
+  await monthlyUsd2.fill('24.9');
+  await page.click('#btnMkPlansSave');
+  await page.waitForFunction(() => {
+    const row = document.querySelector('#mkPlansCatalog tr[data-plan="monthly"] .mk-usd');
+    return row && row.value === '24.9';
+  }, { timeout: 8000 });
+  log('Markets 套餐还原默认（monthly=24.9）', true, 'reverted');
 
-  // Open BYOK 占位
+  // Open BYOK 套餐（可编辑保存）
   await page.click('#subnav .subnav-item[data-panel="p-prod-open"]');
-  await page.waitForSelector('#p-prod-open.active', { timeout: 5000 });
-  const openText = await page.textContent('#p-prod-open');
-  log('Open BYOK 占位 P3', /P3/.test(openText), openText.slice(0, 60));
+  await page.waitForFunction(() => {
+    const el = document.getElementById('openPlansBody');
+    return el && el.rows.length >= 2;
+  }, { timeout: 8000 });
+  const openRows = await page.$$('#openPlansBody tr');
+  log('Open BYOK 套餐列表 >= 2', openRows.length >= 2, 'rows=' + openRows.length);
+  const monthRow = await page.$('#openPlansBody tr[data-plan="byok_pro_month"]');
+  const opUsd = await monthRow.$('.op-usd');
+  await opUsd.fill('9.5');
+  await page.click('#btnOpenPlansSave');
+  await page.waitForFunction(() => {
+    const row = document.querySelector('#openPlansBody tr[data-plan="byok_pro_month"] .op-usd');
+    return row && row.value === '9.5';
+  }, { timeout: 8000 });
+  log('Open BYOK 套餐保存生效（byok_pro_month=9.5）', true, 'byok usd saved');
+  const monthRow2 = await page.$('#openPlansBody tr[data-plan="byok_pro_month"]');
+  const opUsd2 = await monthRow2.$('.op-usd');
+  await opUsd2.fill('9.9');
+  await page.click('#btnOpenPlansSave');
+  await page.waitForFunction(() => {
+    const row = document.querySelector('#openPlansBody tr[data-plan="byok_pro_month"] .op-usd');
+    return row && row.value === '9.9';
+  }, { timeout: 8000 });
+  log('Open BYOK 套餐还原默认（byok_pro_month=9.9）', true, 'reverted');
+
+  // Token 托管套餐：已从「支付与订单」移到「产品运营」，标题改名
+  const tokenNav = await page.$('.nav-group[data-group="g-prod"] .nav-item[data-panel="p-plans"]');
+  log('Token 托管套餐在 产品运营 分组', !!tokenNav, tokenNav ? (await tokenNav.textContent()).trim().slice(0, 30) : '');
+  const payPlansNav = await page.$('.nav-group[data-group="g-pay"] .nav-item[data-panel="p-plans"]');
+  log('支付与订单 不再有 价表管理', !payPlansNav, 'removed');
+  await page.click('#subnav .subnav-item[data-panel="p-plans"]');
+  await page.waitForFunction(() => {
+    const h = document.querySelector('#p-plans h2');
+    return h && h.textContent.indexOf('Token 托管套餐') >= 0;
+  }, { timeout: 8000 });
+  const plansTitle = await page.textContent('#p-plans h2');
+  log('Token 托管套餐 面板标题', /Token 托管套餐/.test(plansTitle), plansTitle.trim());
 
   // 顶栏子菜单切换
   await page.click('#subnav .subnav-item[data-panel="p-prod-summary"]');

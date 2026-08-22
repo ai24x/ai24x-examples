@@ -10,7 +10,9 @@
 """
 from __future__ import annotations
 
+import json
 import os
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 # markets 子服务履约回调（服务端到服务端，同机 18012 / 生产同机）
@@ -64,6 +66,59 @@ MARKET_PLANS: Dict[str, Dict[str, Any]] = {
     },
 }
 
+# 与 markets 子服务共享的套餐覆盖文件（管理台保存 → markets 写 → 本文件同源读取）
+_MARKET_OVERRIDE_PATH = Path(
+    os.environ.get("MARKETS_PLANS_OVERRIDE")
+    or str(
+        Path(__file__).resolve().parents[1]
+        / "p" / "markets" / "api" / "server" / "data" / "markets_plans_override.json"
+    )
+)
+_MARKET_EDITABLE = (
+    "label", "usd", "days", "description", "enabled",
+    "title_zh", "title_en", "price_label", "price_label_zh", "perk", "perk_zh",
+)
+
+
+def _load_market_overrides() -> Dict[str, Dict[str, Any]]:
+    try:
+        if not _MARKET_OVERRIDE_PATH.is_file():
+            return {}
+        raw = json.loads(_MARKET_OVERRIDE_PATH.read_text(encoding="utf-8"))
+        plans = raw.get("plans") if isinstance(raw, dict) else None
+        if not isinstance(plans, dict):
+            return {}
+        return {str(k): (v if isinstance(v, dict) else {}) for k, v in plans.items()}
+    except Exception:
+        return {}
+
+
+def resolve_market_plans() -> Dict[str, Dict[str, Any]]:
+    """markets 套餐 = 代码默认 + 管理台覆盖；禁用套餐由 public_products 过滤。"""
+    ov = _load_market_overrides()
+    out: Dict[str, Dict[str, Any]] = {}
+    period = {"weekly": ("week", "周"), "monthly": ("month", "月"), "yearly": ("year", "年")}
+    for pid, base in MARKET_PLANS.items():
+        p = dict(base)
+        o = ov.get(pid) or {}
+        for key in _MARKET_EDITABLE:
+            if key in o and o[key] is not None:
+                p[key] = o[key]
+        p.setdefault("enabled", True)
+        # 管理台以 usd 改价 → 同步到 price_usd 与价格标签（除非显式覆盖）
+        if "usd" in o and o["usd"] is not None:
+            usd = float(o["usd"])
+            p["price_usd"] = usd
+            per = period.get(pid)
+            if per:
+                if "price_label" not in o or o["price_label"] is None:
+                    p["price_label"] = "${:g}/{}".format(usd, per[0])
+                if "price_label_zh" not in o or o["price_label_zh"] is None:
+                    p["price_label_zh"] = "${:g}/{}".format(usd, per[1])
+        out[pid] = p
+    return out
+
+
 PRODUCTS: Dict[str, Dict[str, Any]] = {
     # token：沿用 token_plans 套餐目录 + 核心本地入账（BillingLedger/topup）
     "token": {
@@ -105,6 +160,9 @@ def product_plan(product: str, plan_id: str) -> Optional[Dict[str, Any]]:
 
         return get_plan(plan_id)
     pid = str(plan_id or "").strip().lower()
+    if product == "markets":
+        resolved = resolve_market_plans().get(pid) or {}
+        return dict(resolved) if resolved else None
     return dict(plans.get(pid) or {}) if pid else None
 
 
@@ -125,7 +183,9 @@ def public_products() -> Dict[str, Any]:
     pay = data.get("pay") or {}
 
     markets_plans: list[Dict[str, Any]] = []
-    for pid, p in MARKET_PLANS.items():
+    for pid, p in resolve_market_plans().items():
+        if not p.get("enabled", True):
+            continue
         markets_plans.append(
             {
                 "plan": pid,

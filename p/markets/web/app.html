@@ -1470,6 +1470,32 @@
         }
       }
 
+      // 2026-08-22：订阅面板价格/启用状态跟随管理台（/api/subscribe/plans），失败时保留静态兜底
+      function applySubPlans(plans) {
+        var map = {};
+        (plans || []).forEach(function (p) { if (p && p.plan) map[p.plan] = p; });
+        var ids = { weekly: 'btn-sub-week', monthly: 'btn-sub-month', yearly: 'btn-sub-year' };
+        Object.keys(ids).forEach(function (pid) {
+          var btn = $(ids[pid]);
+          if (!btn) return;
+          var meta = map[pid];
+          if (!meta || meta.enabled === false) { btn.style.display = 'none'; return; }
+          btn.style.display = '';
+          var priceEl = btn.querySelector('.plan-price');
+          if (priceEl && meta.usd != null) {
+            var unitEl = priceEl.querySelector('.plan-unit');
+            var unitHtml = unitEl ? unitEl.outerHTML : '';
+            priceEl.innerHTML = '$' + String(Number(meta.usd)) + unitHtml;
+          }
+        });
+      }
+      fetch('/api/subscribe/plans')
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j && j.code === 0 && j.data && j.data.plans) applySubPlans(j.data.plans);
+        })
+        .catch(function () {});
+
       function startPayCheckout(plan, channel) {
         var token = getToken();
         if (!token) { loginNext(); return; }

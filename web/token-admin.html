@@ -289,6 +289,18 @@
       <div class="row" style="margin-top:14px;">
         <button type="button" class="ok" id="btnEnter">进入工作台</button>
       </div>
+      <div class="muted small" style="margin:16px 0 4px;text-align:center;">—— 或管理员手机验证码登录 ——</div>
+      <div class="field" style="margin-top:8px;">
+        <span class="lbl">管理员手机号</span>
+        <input id="admPhone" type="text" autocomplete="off" value="18958992226" />
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <button type="button" class="ok" id="btnSmsSend" style="flex:1;">获取验证码</button>
+        <input id="admCode" type="text" autocomplete="off" placeholder="6 位验证码" style="flex:1.3;margin-left:8px;" />
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <button type="button" class="ok" id="btnSmsLogin">短信验证登录</button>
+      </div>
       <div id="gateMsg" class="muted small" style="margin-top:10px;">生产请填 https://api.ai24x.com（不要用 www）；本机用 http://127.0.0.1:8000</div>
     </div>
   </div>
@@ -330,11 +342,15 @@
             </button>
             <button type="button" class="nav-item" data-panel="p-prod-plans">
               Markets 套餐
-              <span class="subt">周 / 月 / 年 定价目录</span>
+              <span class="subt">周 / 月 / 年定价 · 可改可存</span>
             </button>
             <button type="button" class="nav-item" data-panel="p-prod-open">
               Open BYOK
-              <span class="subt">待接入（P3）</span>
+              <span class="subt">BYOK 服务费套餐 · 可改可存</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-plans">
+              Token 托管套餐
+              <span class="subt">token 额度 / VIP 价目 · 可改可存</span>
             </button>
           </div>
         </div>
@@ -351,10 +367,6 @@
             <button type="button" class="nav-item" data-panel="p-channels">
               支付通道
               <span class="subt">微信 / 支付宝 / PayPal / Creem / Mock</span>
-            </button>
-            <button type="button" class="nav-item" data-panel="p-plans">
-              价表管理
-              <span class="subt">前后台同源 · 可改价</span>
             </button>
           </div>
         </div>
@@ -632,12 +644,20 @@
 
           <div class="panel-page" id="p-prod-plans">
             <div class="card">
-              <h2>Markets 套餐目录</h2>
-              <p class="muted small">只读：定价源为 markets 子服务 billing.PLANS（与支付中台 pay_products 同源）。</p>
+              <h2>Markets 套餐</h2>
+              <p class="muted small" id="mkPlansNote">
+                管理台可改：改名称 / USD / 天数 / 启用后保存，markets 订阅页、统一支付中台收银台立即生效（禁用=前台隐藏、下单拒绝）。
+              </p>
+              <div class="row" style="margin-top:10px;">
+                <button type="button" id="btnMkPlansRefresh">刷新</button>
+                <button type="button" class="ok" id="btnMkPlansSave">保存 Markets 套餐</button>
+              </div>
               <div style="overflow:auto;margin-top:12px;">
                 <table>
                   <thead>
-                    <tr><th>标识</th><th>名称</th><th>价格 USD</th><th>天数</th><th>说明</th></tr>
+                    <tr>
+                      <th>标识</th><th>名称</th><th>USD</th><th>天数</th><th>启用</th><th>说明</th><th>来源</th>
+                    </tr>
                   </thead>
                   <tbody id="mkPlansCatalog"></tbody>
                 </table>
@@ -647,17 +667,24 @@
 
           <div class="panel-page" id="p-prod-open">
             <div class="card">
-              <h2>Open BYOK</h2>
-              <p class="muted small">
-                开放网关（open.ai24x.com）子项目，独立库独立服务。管理接入规划为 P3：
-                待 BYOK 订阅表就绪后，复用同一「产品运营」分组增加面板（订阅 / 订单 / 套餐）。
+              <h2>Open BYOK 套餐</h2>
+              <p class="muted small" id="openPlansNote">
+                管理台可改：改中文名 / 英文名 / USD / 天数 / 推荐 / 启用后保存，open.ai24x.com 定价页与收银台立即生效（禁用=前台隐藏、下单拒绝）。
               </p>
-              <pre class="mono small" style="margin-top:10px;white-space:pre-wrap;">
-规划：
-  P1（本批）: Markets 只读管理（订阅/订单/套餐/总览）
-  P2       : 管理写操作（延期 / 补发 / 改状态）按需扩展
-  P3       : Open BYOK 接入同款面板
-              </pre>
+              <div class="row" style="margin-top:10px;">
+                <button type="button" id="btnOpenPlansRefresh">刷新</button>
+                <button type="button" class="ok" id="btnOpenPlansSave">保存 BYOK 套餐</button>
+              </div>
+              <div style="overflow:auto;margin-top:12px;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>标识</th><th>中文名</th><th>英文名</th><th>USD</th><th>天数</th><th>推荐</th><th>启用</th><th>来源</th>
+                    </tr>
+                  </thead>
+                  <tbody id="openPlansBody"></tbody>
+                </table>
+              </div>
             </div>
           </div>
 
@@ -728,11 +755,11 @@
 
           <div class="panel-page" id="p-plans">
             <div class="card">
-              <h2>价表管理</h2>
+              <h2>Token 托管套餐</h2>
               <p class="muted small" id="plansOpsNote">前后台同源。改 CNY/USD/到账 token 后点保存，立即对用户收银台生效。</p>
               <div class="row" style="margin-top:10px;">
                 <button type="button" id="btnPlansRefresh">刷新</button>
-                <button type="button" class="ok" id="btnPlansSave">保存改价</button>
+                <button type="button" class="ok" id="btnPlansSave">保存套餐</button>
                 <span class="muted small" id="plansFxMeta"></span>
               </div>
               <div style="overflow:auto;margin-top:12px;">
@@ -2974,23 +3001,110 @@
         .join("") || '<tr><td colspan="8" class="muted">无订单</td></tr>';
   }
 
-  async function loadMarketsPlansCatalog() {
+  async function loadMarketsPlans() {
     var data = await api("/v1/admin/products/markets/plans");
     var plans = (data && data.data && data.data.plans) || [];
     $("mkPlansCatalog").innerHTML =
       plans
         .map(function (p) {
+          var src = p.has_override ? "admin" : "default";
           return (
-            "<tr>" +
+            '<tr data-plan="' + esc(p.plan) + '">' +
             '<td class="mono">' + esc(p.plan) + "</td>" +
-            "<td>" + esc(p.label || "") + "</td>" +
-            "<td>$" + Number(p.usd || 0).toFixed(2) + "</td>" +
-            "<td>" + Number(p.days || 0) + "</td>" +
-            "<td>" + esc(p.description || "") + "</td>" +
+            "<td><input class='mk-label' type='text' value='" + esc(p.label || "") + "' style='width:130px'/></td>" +
+            "<td><input class='mk-usd' type='number' min='0' step='0.01' value='" +
+              (p.usd != null ? Number(p.usd) : "") + "' style='width:78px'/></td>" +
+            "<td><input class='mk-days' type='number' min='1' value='" + Number(p.days || 0) + "' style='width:64px'/></td>" +
+            "<td><input class='mk-on' type='checkbox'" + (p.enabled ? " checked" : "") + "/></td>" +
+            "<td><input class='mk-desc' type='text' value='" + esc(p.description || "") + "' style='width:220px'/></td>" +
+            "<td class='mono small'>" + esc(src) + "</td>" +
             "</tr>"
           );
         })
-        .join("") || '<tr><td colspan="5" class="muted">无套餐</td></tr>';
+        .join("") || '<tr><td colspan="7" class="muted">无套餐</td></tr>';
+  }
+
+  async function saveMarketsPlans() {
+    if (!window.confirm("保存 Markets 套餐将立即对订阅页与收银台生效。确认保存？")) return;
+    var body = $("mkPlansCatalog");
+    if (!body) return;
+    var plans = [];
+    qsa("#mkPlansCatalog tr[data-plan]").forEach(function (tr) {
+      var pid = tr.getAttribute("data-plan");
+      if (!pid) return;
+      var labelEl = tr.querySelector(".mk-label");
+      var usdEl = tr.querySelector(".mk-usd");
+      var daysEl = tr.querySelector(".mk-days");
+      var onEl = tr.querySelector(".mk-on");
+      var descEl = tr.querySelector(".mk-desc");
+      var item = { plan: pid, enabled: !!(onEl && onEl.checked) };
+      if (labelEl && labelEl.value !== "") item.label = labelEl.value;
+      if (usdEl && usdEl.value !== "") item.usd = parseFloat(usdEl.value);
+      if (daysEl && daysEl.value !== "") item.days = parseInt(daysEl.value, 10);
+      if (descEl && descEl.value !== "") item.description = descEl.value;
+      plans.push(item);
+    });
+    if (!plans.length) {
+      setMsg("无套餐可保存", "err");
+      return;
+    }
+    await api("/v1/admin/products/markets/plans", { method: "POST", body: { plans: plans } });
+    setMsg("Markets 套餐已保存，订阅页与收银台立即生效", "ok");
+    await loadMarketsPlans();
+  }
+
+  async function loadOpenPlans() {
+    var data = await api("/v1/admin/products/open/plans");
+    var plans = (data && data.data && data.data.plans) || [];
+    $("openPlansBody").innerHTML =
+      plans
+        .map(function (p) {
+          var src = p.has_override ? "admin" : "default";
+          return (
+            '<tr data-plan="' + esc(p.plan) + '">' +
+            '<td class="mono">' + esc(p.plan) + "</td>" +
+            "<td><input class='op-zh' type='text' value='" + esc(p.title_zh || "") + "' style='width:150px'/></td>" +
+            "<td><input class='op-en' type='text' value='" + esc(p.title_en || "") + "' style='width:150px'/></td>" +
+            "<td><input class='op-usd' type='number' min='0' step='0.01' value='" +
+              (p.price_usd != null ? Number(p.price_usd) : "") + "' style='width:78px'/></td>" +
+            "<td><input class='op-days' type='number' min='1' value='" + Number(p.days || 0) + "' style='width:64px'/></td>" +
+            "<td><input class='op-rec' type='checkbox'" + (p.recommended ? " checked" : "") + "/></td>" +
+            "<td><input class='op-on' type='checkbox'" + (p.enabled ? " checked" : "") + "/></td>" +
+            "<td class='mono small'>" + esc(src) + "</td>" +
+            "</tr>"
+          );
+        })
+        .join("") || '<tr><td colspan="8" class="muted">无套餐</td></tr>';
+  }
+
+  async function saveOpenPlans() {
+    if (!window.confirm("保存 BYOK 套餐将立即对 open.ai24x.com 定价页生效。确认保存？")) return;
+    var body = $("openPlansBody");
+    if (!body) return;
+    var plans = [];
+    qsa("#openPlansBody tr[data-plan]").forEach(function (tr) {
+      var pid = tr.getAttribute("data-plan");
+      if (!pid) return;
+      var zhEl = tr.querySelector(".op-zh");
+      var enEl = tr.querySelector(".op-en");
+      var usdEl = tr.querySelector(".op-usd");
+      var daysEl = tr.querySelector(".op-days");
+      var recEl = tr.querySelector(".op-rec");
+      var onEl = tr.querySelector(".op-on");
+      var item = { plan: pid, enabled: !!(onEl && onEl.checked), recommended: !!(recEl && recEl.checked) };
+      if (zhEl && zhEl.value !== "") item.title_zh = zhEl.value;
+      if (enEl && enEl.value !== "") item.title_en = enEl.value;
+      if (usdEl && usdEl.value !== "") item.price_usd = parseFloat(usdEl.value);
+      if (daysEl && daysEl.value !== "") item.days = parseInt(daysEl.value, 10);
+      plans.push(item);
+    });
+    if (!plans.length) {
+      setMsg("无套餐可保存", "err");
+      return;
+    }
+    await api("/v1/admin/products/open/plans", { method: "POST", body: { plans: plans } });
+    setMsg("BYOK 套餐已保存，open 定价页立即生效", "ok");
+    await loadOpenPlans();
   }
 
   async function refreshCurrentPanel() {
@@ -3008,16 +3122,17 @@
       await loadMarketsOrders();
       setMsg("Markets 订单已刷新", "ok");
     } else if (p === "p-prod-plans") {
-      await loadMarketsPlansCatalog();
+      await loadMarketsPlans();
       setMsg("Markets 套餐已刷新", "ok");
     } else if (p === "p-prod-open") {
-      setMsg("Open BYOK 待接入（P3）", "ok");
+      await loadOpenPlans();
+      setMsg("Open BYOK 套餐已刷新", "ok");
     } else if (p === "p-channels") {
       await loadChannelsDetail();
       setMsg("通道状态已刷新", "ok");
     } else if (p === "p-plans") {
       await loadPlans();
-      setMsg("价表已刷新", "ok");
+      setMsg("Token 托管套餐已刷新", "ok");
     } else if (p === "p-usage") {
       await loadUsageMonitor();
       setMsg("用量监控已刷新", "ok");
@@ -3133,12 +3248,94 @@
     }
   };
 
+  var smsCdTimer = null;
+  $("btnSmsSend").onclick = async function () {
+    var gm = $("gateMsg");
+    gm.textContent = "";
+    gm.style.color = "";
+    state.base = normBase($("apiBase").value);
+    if (/^https?:\/\/(www\.)?ai24x\.com\/?$/i.test(state.base)) {
+      state.base = "https://api.ai24x.com";
+      $("apiBase").value = state.base;
+    }
+    var mob = String($("admPhone").value || "").trim();
+    if (!state.base || !mob) {
+      gm.textContent = "请填写 API 根地址与管理员手机号";
+      gm.style.color = "var(--bad)";
+      return;
+    }
+    try {
+      var r = await fetch(state.base + "/v1/admin/sms/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mobile: mob, purpose: "login" }),
+      });
+      var j = await r.json().catch(function () { return {}; });
+      if (!r.ok) throw new Error(j.detail || j.message || ("HTTP " + r.status));
+      gm.style.color = "var(--ok)";
+      gm.textContent = "验证码已发送，请查收（60 秒后可重发）";
+      var btn = $("btnSmsSend"), left = 60;
+      btn.disabled = true;
+      btn.textContent = "重发(" + left + "s)";
+      if (smsCdTimer) clearInterval(smsCdTimer);
+      smsCdTimer = setInterval(function () {
+        left--;
+        if (left <= 0) {
+          clearInterval(smsCdTimer);
+          btn.disabled = false;
+          btn.textContent = "获取验证码";
+        } else {
+          btn.textContent = "重发(" + left + "s)";
+        }
+      }, 1000);
+    } catch (e) {
+      gm.style.color = "var(--bad)";
+      gm.textContent = "发送失败：" + e.message;
+    }
+  };
+
+  $("btnSmsLogin").onclick = async function () {
+    var gm = $("gateMsg");
+    gm.textContent = "";
+    gm.style.color = "";
+    state.base = normBase($("apiBase").value);
+    if (/^https?:\/\/(www\.)?ai24x\.com\/?$/i.test(state.base)) {
+      state.base = "https://api.ai24x.com";
+      $("apiBase").value = state.base;
+    }
+    var mob = String($("admPhone").value || "").trim();
+    var code = String($("admCode").value || "").trim();
+    if (!state.base || !mob || !code) {
+      gm.textContent = "请填写 API 根地址、手机号与验证码";
+      gm.style.color = "var(--bad)";
+      return;
+    }
+    try {
+      var r = await fetch(state.base + "/v1/admin/sms/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mobile: mob, code: code }),
+      });
+      var j = await r.json().catch(function () { return {}; });
+      if (!r.ok) throw new Error(j.detail || j.message || ("HTTP " + r.status));
+      state.key = j.key;
+      saveSession();
+      await api("/v1/admin/token/summary");
+      await enterApp();
+    } catch (e) {
+      clearSession();
+      gm.style.color = "var(--bad)";
+      gm.textContent = "登录失败：" + (e && e.message ? e.message : String(e));
+    }
+  };
+
   $("btnLogout").onclick = function () {
     clearSession();
     state.key = "";
     $("app").classList.remove("on");
     $("gate").classList.add("on");
     $("ikey").value = "";
+    if (smsCdTimer) clearInterval(smsCdTimer);
   };
 
   $("btnRefresh").onclick = async function () {
@@ -3155,6 +3352,22 @@
   };
   $("btnMkRefresh").onclick = async function () {
     try { await loadMarketsSummary(); setMsg("Markets 总览已刷新", "ok"); }
+    catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+  $("btnMkPlansRefresh").onclick = async function () {
+    try { await loadMarketsPlans(); setMsg("Markets 套餐已刷新", "ok"); }
+    catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+  $("btnMkPlansSave").onclick = async function () {
+    try { await saveMarketsPlans(); }
+    catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+  $("btnOpenPlansRefresh").onclick = async function () {
+    try { await loadOpenPlans(); setMsg("Open BYOK 套餐已刷新", "ok"); }
+    catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+  $("btnOpenPlansSave").onclick = async function () {
+    try { await saveOpenPlans(); }
     catch (e) { setMsg(String(e.message || e), "err"); }
   };
   $("btnMkPlans").onclick = function () { showPanel("p-prod-plans"); };
