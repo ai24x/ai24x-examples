@@ -112,6 +112,42 @@ function adminKey() {
   await page.waitForSelector('#p-prod-summary.active', { timeout: 5000 });
   log('子菜单切回 Markets 总览', true);
 
+  // 旧会话残留（短信内部密钥）→ 应回门禁并给友好提示，而不是裸「禁止访问」
+  {
+    const p2 = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    await p2.goto('http://127.0.0.1:8000/token-admin.html', { waitUntil: 'domcontentloaded' });
+    await p2.evaluate(() => {
+      sessionStorage.setItem('ai24x_token_admin_v1', JSON.stringify({ base: 'http://127.0.0.1:8000', key: 'iamlei888' }));
+      localStorage.setItem('ai24x_token_admin_nav_group', 'g-prod');
+    });
+    await p2.reload({ waitUntil: 'domcontentloaded' });
+    await p2.waitForFunction(() => {
+      var g = document.getElementById('gateMsg');
+      return g && g.textContent.indexOf('会话已失效') >= 0;
+    }, { timeout: 8000 });
+    const gmText = await p2.textContent('#gateMsg');
+    const gateCls = await p2.getAttribute('#gate', 'class');
+    log('旧会话残留回门禁', /login-wrap\s+on/.test(gateCls || '') && /会话已失效/.test(gmText), gmText.slice(0, 60));
+    log('旧会话提示不含裸禁止访问', gmText.indexOf('禁止访问') < 0, gmText.slice(0, 60));
+    await p2.close();
+  }
+
+  // 手工填错密钥 → 门禁友好提示
+  {
+    const p3 = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    await p3.goto('http://127.0.0.1:8000/token-admin.html', { waitUntil: 'domcontentloaded' });
+    await p3.fill('#apiBase', 'http://127.0.0.1:8000');
+    await p3.fill('#ikey', 'iamlei888');
+    await p3.click('#btnEnter');
+    await p3.waitForFunction(() => {
+      var g = document.getElementById('gateMsg');
+      return g && g.textContent.indexOf('密钥不正确或已失效') >= 0;
+    }, { timeout: 8000 });
+    const g3 = await p3.textContent('#gateMsg');
+    log('错误密钥提示友好', /ADMIN_API_KEY/.test(g3), g3.slice(0, 60));
+    await p3.close();
+  }
+
   const realErrors = errors.filter((e) => !/favicon/i.test(e) && !/net::ERR/i.test(e));
   log('无 JS 报错', realErrors.length === 0, realErrors.slice(0, 3).join(' || '));
 

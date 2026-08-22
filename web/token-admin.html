@@ -1309,7 +1309,10 @@
   function gateFailHint(status, detail) {
     var d = String(detail || "");
     if (status === 403 || /禁止访问/.test(d)) {
-      return "密钥不正确。请用主站管理密钥 ADMIN_API_KEY（生产已配置独立管理密钥，短信内部密钥不再放行）。当前 API：" + state.base;
+      return (
+        "密钥不正确或已失效。请用主站管理密钥 ADMIN_API_KEY（短信内部密钥已不再放行）。" +
+        "本机看 api/.env，生产看 04 已配置的独立管理密钥。当前 API：" + state.base
+      );
     }
     if (status === 503 || /未配置/.test(d)) {
       return "服务端未配置内部密钥。请检查配置后重启 API 进程。";
@@ -1318,6 +1321,17 @@
       return "接口不存在（404）。生产请用 https://api.ai24x.com ；本机用 http://127.0.0.1:8000。不要填 www。";
     }
     return d || ("HTTP " + status);
+  }
+
+  function handleAuthFail(e) {
+    clearSession();
+    state.key = "";
+    $("app").classList.remove("on");
+    $("gate").classList.add("on");
+    var gm = $("gateMsg");
+    gm.style.color = "var(--bad)";
+    gm.textContent =
+      "会话已失效：" + gateFailHint(e && e.status, e && (e.detail || e.message));
   }
 
   async function api(path, opts) {
@@ -1351,6 +1365,7 @@
       var err = new Error(msg);
       err.status = r.status;
       err.detail = msg;
+      err.auth = r.status === 403;
       throw err;
     }
     if (j == null || typeof j !== "object") {
@@ -1472,6 +1487,10 @@
     try {
       await refreshCurrentPanel();
     } catch (e) {
+      if (e && e.auth) {
+        handleAuthFail(e);
+        return;
+      }
       setMsg(String(e.message || e), "err");
     }
   }
@@ -3648,12 +3667,10 @@
       }
       state.key = String(s.key);
       $("apiBase").value = state.base;
-      enterApp().catch(function (e) {
-        clearSession();
-        $("gate").classList.add("on");
-        $("app").classList.remove("on");
-        $("gateMsg").textContent = "会话失效：" + (e && e.message ? e.message : String(e));
-      });
+      // 恢复会话前先验证密钥，旧密钥（如短信内部密钥）直接回门禁并给友好提示
+      api("/v1/admin/token/summary")
+        .then(function () { return enterApp(); })
+        .catch(function (e) { handleAuthFail(e); });
     } else {
       $("gate").classList.add("on");
     }
