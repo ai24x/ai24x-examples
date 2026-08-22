@@ -115,6 +115,14 @@ def main() -> int:
     check("prod sms/login key+code -> 200 session", r.status_code == 200 and bool(session), f"status={r.status_code}")
     r = c.get("/v1/admin/token/summary", headers={"X-Admin-Key": session})
     check("prod summary with 2fa session -> 200", r.status_code == 200, f"status={r.status_code}")
+    # 双因素会话透传 open 网关：core 应转发自身 ADMIN_API_KEY，而不是会话 token
+    r = c.get("/v1/admin/products/open/plans", headers={"X-Admin-Key": session})
+    plans = r.json().get("data", {}).get("plans", []) if r.status_code == 200 else []
+    check(
+        "prod open gateway with 2fa session -> 200",
+        r.status_code == 200 and len(plans) >= 2,
+        f"status={r.status_code} plans={len(plans)}",
+    )
 
     # ---------- 本地模式（单密钥即可） ----------
     settings.admin_require_sms = False

@@ -3112,7 +3112,7 @@ async def admin_products_markets(request: Request, kind: str):
 async def admin_products_open(request: Request, kind: str):
     """平台运营后台网关：代理 open.ai24x.com（BYOK）管理接口。
 
-    鉴权：管理密钥（_require_internal_key）→ 把同一 X-Admin-Key 转发到同机 open 子服务
+    鉴权：管理密钥/双因素会话（_require_internal_key）→ 转发时用 core 自身的 ADMIN_API_KEY
     （部署对齐：open 与 core 共用同一 ADMIN_API_KEY）；仅放行白名单 kind。
     """
     _require_internal_key(request)
@@ -3123,9 +3123,10 @@ async def admin_products_open(request: Request, kind: str):
     import httpx
 
     base = (os.environ.get("OPEN_ADMIN_BASE") or "http://127.0.0.1:18080").rstrip("/")
-    admin_key = (request.headers.get("X-Admin-Key") or "").strip()
+    # 双因素模式下入站头是会话 token，open 只认真实密钥 → 用 core 配置的密钥转发
+    admin_key = (getattr(settings, "admin_api_key", "") or "").strip()
     if not admin_key:
-        raise HTTPException(status_code=403, detail="禁止访问")
+        raise HTTPException(status_code=503, detail="core 未配置 ADMIN_API_KEY")
     headers = {"X-Admin-Key": admin_key}
     payload: dict | None = None
     if request.method == "POST":
