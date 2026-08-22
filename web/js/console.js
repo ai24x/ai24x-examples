@@ -297,6 +297,8 @@
     if (!AI24X_API.getAuthToken()) {
       var next = "console.html";
       try {
+        var q = location.search || "";
+        if (q && /[?&]/.test(q)) next += q; // 保留 ?plan=xxx 深链
         var h = location.hash || "";
         if (h && /^#[A-Za-z]/.test(h)) next += h;
       } catch (e) {}
@@ -495,6 +497,122 @@
     return null;
   }
 
+  /** overview Markets 套餐卡片（免费 / 周 / 月 / 年），点卡片直达 billing 下单 */
+  function renderOverviewMarketsPlans(data) {
+    var grid = $("marketsPlansGrid");
+    if (!grid) return;
+    if (data) window.__tokenPlansPayload = data;
+    data = data || window.__tokenPlansPayload;
+    if (!data) return;
+    var products = (data && data.products) || [];
+    var pay = (data && data.pay) || {};
+    var markets = null;
+    for (var i = 0; i < products.length; i++) {
+      if (String(products[i].product) === "markets") { markets = products[i]; break; }
+    }
+    if (!markets) return;
+    var zh = AI24X_API.isZhUi();
+    var plans = markets.plans || [];
+    grid.innerHTML = "";
+
+    // 免费卡
+    var free = document.createElement("div");
+    free.className = "mplan";
+    var freeName = document.createElement("div");
+    freeName.className = "mplan-name";
+    freeName.textContent = tr("免费", "Free");
+    var freePrice = document.createElement("div");
+    freePrice.className = "mplan-price";
+    freePrice.innerHTML = "$0 <small>" + tr("永久", "forever") + "</small>";
+    var freePerk = document.createElement("div");
+    freePerk.className = "mplan-perk";
+    freePerk.textContent = tr("K线/指标/AI 点评每日 10 次 · 自选 10 只", "Charts, indicators & 10 AI briefs a day · watchlist 10");
+    var freeBtn = document.createElement("a");
+    freeBtn.className = "btn mplan-free-cta";
+    freeBtn.href = "https://markets.ai24x.com";
+    freeBtn.target = "_blank";
+    freeBtn.rel = "noopener";
+    freeBtn.textContent = tr("打开行情官", "Open chart app");
+    free.appendChild(freeName); free.appendChild(freePrice); free.appendChild(freePerk); free.appendChild(freeBtn);
+    grid.appendChild(free);
+
+    // 周 / 月 / 年（后台可改价/禁用，禁用不展示）
+    var order = { weekly: 0, monthly: 1, yearly: 2 };
+    var sorted = plans.slice().sort(function (a, b) {
+      return (order[a.plan] != null ? order[a.plan] : 99) - (order[b.plan] != null ? order[b.plan] : 99);
+    });
+    sorted.forEach(function (p) {
+      if (p.enabled === false) return;
+      var isRec = p.plan === "monthly";
+      var card = document.createElement("div");
+      card.className = "mplan" + (isRec ? " is-rec" : "");
+      var nm = document.createElement("div");
+      nm.className = "mplan-name";
+      nm.textContent = zh ? p.title_zh || p.title || p.plan : p.title || p.plan;
+      if (isRec) {
+        var rec = document.createElement("span");
+        rec.className = "mplan-rec";
+        rec.textContent = tr("推荐", "Recommended");
+        nm.appendChild(rec);
+      }
+      var price = document.createElement("div");
+      price.className = "mplan-price";
+      var label = zh ? p.price_label_zh || p.price_label : p.price_label || "";
+      var unit = { weekly: zh ? "/周" : "/week", monthly: zh ? "/月" : "/month", yearly: zh ? "/年" : "/year" };
+      var usd = p.price_usd != null ? p.price_usd : p.usd;
+      price.innerHTML = "$" + String(Number(usd)) + (unit[p.plan] ? " <small>" + unit[p.plan] + "</small>" : "");
+      var perk = document.createElement("div");
+      perk.className = "mplan-perk";
+      perk.textContent = zh ? p.perk_zh || p.perk || "" : p.perk || "";
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn btn-primary";
+      btn.textContent = tr("选择并下单", "Choose");
+      btn.addEventListener("click", function (pid) {
+        return function () { chooseMarketsPlan(pid); };
+      }(p.plan));
+      card.appendChild(nm); card.appendChild(price); card.appendChild(perk); card.appendChild(btn);
+      grid.appendChild(card);
+    });
+  }
+
+  /** overview 卡片点选：进 billing + 打开该套餐支付方式选择 */
+  function chooseMarketsPlan(planId) {
+    showConsolePanel("billing");
+    var pay = window.__tokenPay || {};
+    var matched = findProductPlan("markets", planId);
+    if (matched) {
+      setTimeout(function () {
+        var row = document.querySelector('#productsList [data-plan="' + String(planId).replace(/"/g, "") + '"]');
+        if (row) {
+          row.scrollIntoView({ behavior: "smooth", block: "center" });
+          row.style.outline = "2px solid #0070ba";
+          row.style.outlineOffset = "2px";
+        }
+        openPlanPayChooser("markets", matched.plan, pay, true);
+      }, 180);
+    } else {
+      goMarketsPlans(null);
+    }
+  }
+
+  /** Upgrade to Pro：进 billing 并定位 Markets 套餐区 */
+  function goMarketsPlans(ev) {
+    if (ev && ev.preventDefault) ev.preventDefault();
+    showConsolePanel("billing");
+    setTimeout(function () {
+      var card = document.querySelector("#productsList .product-card.is-markets");
+      if (card) {
+        card.scrollIntoView({ behavior: "smooth", block: "start" });
+        card.style.outline = "2px solid #0070ba";
+        card.style.outlineOffset = "2px";
+      } else {
+        var panel = $("panel-billing");
+        if (panel) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 180);
+  }
+
   /** 选套餐 → 弹窗统一列支付方式 → 点通道即下单 */
   function openPlanPayChooser(productId, planMeta, pay, isMarkets) {
     var zh = AI24X_API.isZhUi();
@@ -673,6 +791,7 @@
           .catch(function () {});
       } catch (eBal) {}
     }
+    renderOverviewMarketsPlans(data);
     tryApplyPayDeepLink();
   }
 
@@ -2795,6 +2914,9 @@
         showConsolePanel(target);
         if (el.getAttribute("data-action") === "create-key") openCreateKeyModal();
       });
+    });
+    document.querySelectorAll(".go-markets-plans").forEach(function (el) {
+      el.addEventListener("click", goMarketsPlans);
     });
     window.addEventListener("hashchange", function () {
       showConsolePanel(location.hash || "overview", { pushHash: false });

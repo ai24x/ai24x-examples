@@ -36,18 +36,19 @@ function check(name, ok, extra) {
     });
     check('nav.home_first', nav.links[0] && nav.links[0].href && nav.links[0].href.indexOf('index.html') >= 0 && nav.links[0].text === 'Home', JSON.stringify(nav.links.slice(0, 3)));
     const devLink = nav.links.find((l) => l.href && l.href.indexOf('open.ai24x.com') >= 0);
-    check('nav.developer_single_link', !!devLink && devLink.text.indexOf('Developer') >= 0 && !nav.dropBtnText, devLink ? devLink.text : 'no-dev-link');
+    check('nav.no_developer', !devLink && !nav.dropBtnText, devLink ? devLink.text : 'no-dev-link');
     check('nav.no_dropdown', !nav.dropBtnText && nav.menuLinks.length === 0, nav.dropBtnText + ' | ' + nav.menuLinks.join(','));
-    check('nav.no_token_entries', !nav.links.some((l) => (l.text || '').indexOf('Console') >= 0 || (l.text || '').indexOf('Sign up') >= 0 || (l.text || '').indexOf('Markets') >= 0 || (l.text || '').indexOf('行情官') >= 0), JSON.stringify(nav.links.map((l) => l.text)));
+    check('nav.no_token_entries', !nav.links.some((l) => (l.text || '').indexOf('Console') >= 0 || (l.text || '').indexOf('Markets') >= 0 || (l.text || '').indexOf('行情官') >= 0), JSON.stringify(nav.links.map((l) => l.text)));
+    check('nav.signup_present', nav.links.some((l) => l.href && l.href.indexOf('register.html') >= 0 && l.text === 'Sign up'), JSON.stringify(nav.links.map((l) => l.text)));
     check('nav.about_login_present', nav.links.some((l) => l.text === 'About') && nav.links.some((l) => l.text === 'Log in'), JSON.stringify(nav.links.map((l) => l.text)));
 
     const body = await page.evaluate(() => {
       const txt = (sel) => (document.querySelector(sel) || {}).textContent || '';
-      const hrefs = Array.from(document.querySelectorAll('a[data-markets]')).map((a) => a.getAttribute('href'));
+      const hrefs = Array.from(document.querySelectorAll('a[href*="console.html"]')).map((a) => a.getAttribute('href'));
       return {
         free: txt('.plan-card h3') || '',
         prices: document.body.innerText.match(/\$9\.9|\$24\.9|\$199/g) || [],
-        upgradeHrefs: hrefs.filter((h) => h && h.indexOf('app.html') >= 0),
+        upgradeHrefs: hrefs.filter((h) => h && /^console\.html\?plan=(weekly|monthly|yearly)#billing$/.test(h)),
         devSection: !!document.getElementById('devSection'),
         tokenGrid: !!document.getElementById('tokenPlansGrid'),
         devOpenLink: Array.from(document.querySelectorAll('#devSection a')).map((a) => a.getAttribute('href')),
@@ -55,7 +56,7 @@ function check(name, ok, extra) {
     });
     check('pricing.free_card', body.free === 'Free', body.free);
     check('pricing.prices', body.prices.length >= 3 && body.prices.indexOf('$9.9') >= 0 && body.prices.indexOf('$24.9') >= 0 && body.prices.indexOf('$199') >= 0, body.prices.join(','));
-    check('pricing.upgrade_deeplinks', body.upgradeHrefs.length >= 2 && body.upgradeHrefs.some((h) => h.indexOf('plan=yearly') >= 0), body.upgradeHrefs.join(' | '));
+    check('pricing.upgrade_deeplinks', body.upgradeHrefs.length >= 3 && body.upgradeHrefs.some((h) => h.indexOf('plan=yearly') >= 0), body.upgradeHrefs.join(' | '));
     check('pricing.dev_section', body.devSection && !body.tokenGrid && body.devOpenLink.some((h) => h && h.indexOf('open.ai24x.com') >= 0), body.devOpenLink.join(','));
     check('pricing.no_js_errors', errors.length === 0, errors.join(' || ').slice(0, 200));
     await page.close();
@@ -133,7 +134,7 @@ function check(name, ok, extra) {
       highlight = 'ok';
     } catch (e) {}
     const mk = await page.evaluate(() => {
-      const social = Array.from(document.querySelectorAll('#social-login a')).map((a) => ({ text: a.textContent.trim(), href: a.getAttribute('href') }));
+      const social = Array.from(document.querySelectorAll('.social-login a')).map((a) => ({ text: a.textContent.trim(), href: a.getAttribute('href') }));
       const subPanel = document.getElementById('sub');
       const btnYear = document.getElementById('btn-sub-year');
       const rect = subPanel ? subPanel.getBoundingClientRect() : null;
@@ -145,7 +146,7 @@ function check(name, ok, extra) {
         subInViewport: !!(rect && rect.top >= -50 && rect.top < window.innerHeight),
       };
     });
-    check('markets.social_buttons', mk.social.length === 2 && mk.social.some((s) => s.text === 'Google') && mk.social.some((s) => s.text === 'Apple'), JSON.stringify(mk.social));
+    check('markets.social_buttons', mk.social.length >= 2 && mk.social.some((s) => s.text === 'Google') && mk.social.some((s) => s.text === 'Apple'), JSON.stringify(mk.social));
     check('markets.deeplink_state', mk.plan === 'yearly' && (mk.hash === '#sub' || mk.hash === ''), mk.plan + ' ' + mk.hash);
     check('markets.year_highlight', highlight === 'ok', highlight);
     check('markets.sub_in_viewport', mk.subInViewport, '');

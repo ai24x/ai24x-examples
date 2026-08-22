@@ -83,6 +83,24 @@
     .product-plan-act .btn { min-width: 84px; justify-content: center; }
     .product-plan-row.vp-lit { background: linear-gradient(90deg, rgba(245, 158, 11, 0.10), rgba(245, 158, 11, 0.02)); box-shadow: inset 3px 0 0 rgba(245, 158, 11, 0.9); }
     .product-plan-row .vp-lit-badge { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; color: #0f7b4e; border: 1px solid rgba(15, 123, 78, 0.55); background: rgba(15, 123, 78, 0.10); }
+    /* console: overview Markets 套餐卡片（免费 / 周 / 月 / 年） */
+    .markets-plans-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .mplan { border: 1px solid var(--border-soft, rgba(148, 163, 184, 0.25)); border-radius: 12px; padding: 14px; background: var(--card-bg, #fff); display: flex; flex-direction: column; gap: 6px; }
+    .mplan.is-rec { border-color: color-mix(in srgb, var(--accent, #2563eb) 55%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent, #2563eb) 15%, transparent); }
+    .mplan .mplan-name { font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .mplan .mplan-rec { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; color: var(--accent, #2563eb); border: 1px solid color-mix(in srgb, var(--accent, #2563eb) 40%, transparent); }
+    .mplan .mplan-price { font-size: 1.15rem; font-weight: 800; }
+    .mplan .mplan-price small { font-size: 0.78rem; color: var(--muted); font-weight: 400; }
+    .mplan .mplan-perk { font-size: 0.78rem; color: var(--muted); flex: 1; line-height: 1.5; }
+    .mplan .btn { min-height: 34px; font-size: 0.82rem; justify-content: center; }
+    .mplan .mplan-free-cta { border-color: var(--border, #d8e4ef); color: var(--muted); }
+    @media (max-width: 860px) { .markets-plans-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 520px) { .markets-plans-grid { grid-template-columns: 1fr; } }
+    /* 手机端：单列轨道允许收缩，导航横向滚动（否则按钮 min-content 会把整页撑出横向滚动条） */
+    @media (max-width: 900px) {
+      .console-layout { grid-template-columns: minmax(0, 1fr); }
+      .console-sidebar { min-width: 0; }
+    }
     #modal-pay-channels { flex-wrap: wrap; }
     #modal-pay-channels .btn { min-width: 132px; justify-content: center; display: inline-flex; align-items: center; gap: 8px; }
     #modal-pay-channels .pay-ico { width: 18px; height: 18px; }
@@ -299,9 +317,10 @@
               <div class="markets-sub-line" id="markets-sub-line" style="display:none; margin-top:12px; padding:10px 12px; border:1px solid var(--border); border-radius:8px; background:color-mix(in srgb, var(--accent, #2563eb) 6%, transparent); font-size:0.9rem;">
                 <span class="markets-sub-status">--</span>
               </div>
+              <div id="marketsPlansGrid" class="markets-plans-grid" style="margin-top:14px;"></div>
               <div class="card-actions" style="margin-top:12px">
                 <a class="btn btn-primary" href="https://markets.ai24x.com" data-markets target="_blank" rel="noopener" data-i18n="page.console.markets.open" style="background:linear-gradient(135deg,var(--accent,#2563eb),#4f46e5);border-color:transparent;box-shadow:0 4px 18px color-mix(in srgb, var(--accent,#2563eb) 45%, transparent);">Open AI24X Markets</a>
-                <a class="btn markets-sub-cta" id="markets-sub-cta" href="https://markets.ai24x.com/app.html#sub" data-markets target="_blank" rel="noopener" style="border-color:color-mix(in srgb, var(--accent,#2563eb) 55%, transparent);color:var(--accent,#2563eb);" data-i18n="page.console.markets.upgrade">Upgrade to Pro</a>
+                <a class="btn markets-sub-cta go-markets-plans" id="markets-sub-cta" href="#billing" rel="noopener" style="border-color:color-mix(in srgb, var(--accent,#2563eb) 55%, transparent);color:var(--accent,#2563eb);" data-i18n="page.console.markets.upgrade">Upgrade to Pro</a>
               </div>
             </div>
             <div id="howto-card" class="card console-alert" style="display:none;margin-bottom:1rem">
@@ -430,7 +449,7 @@
               <p class="sub" style="margin:0" data-i18n="page.console.products.sub">Pick a product, then a plan — choose your payment method. Payment activates instantly.</p>
               <div class="markets-sub-line" id="markets-bill-line" style="display:none; margin-top:12px; padding:10px 12px; border:1px solid var(--border); border-radius:8px; background:color-mix(in srgb, var(--accent, #2563eb) 6%, transparent); font-size:0.9rem;">
                 <span class="markets-sub-status">--</span>
-                <a class="btn markets-sub-cta" id="markets-bill-cta" href="https://markets.ai24x.com/app.html#sub" target="_blank" rel="noopener" style="margin-left:8px" data-i18n="page.console.markets.upgrade">Upgrade to Pro</a>
+                <a class="btn markets-sub-cta go-markets-plans" id="markets-bill-cta" href="#billing" rel="noopener" style="margin-left:8px" data-i18n="page.console.markets.upgrade">Upgrade to Pro</a>
               </div>
               <div id="productsList" class="mt-2"></div>
             </div>
@@ -716,7 +735,7 @@
   <script src="js/i18n.js?v=20260818q"></script>
   <script src="js/shell.js?v=20260822a"></script>
   <script src="js/app.js?v=20260818b"></script>
-  <script src="js/console.js?v=20260821c"></script>
+  <script src="js/console.js?v=20260823a"></script>
   <script src="js/support-widget.js?v=20260817b"></script>
 </body>
 </html>
