@@ -61,6 +61,7 @@ window.AI24X_WatchScore = (function () {
       }
 
       var wlItems = [];
+      var wlRemovedSecids = {};
       var wlState = { filter: "all", search: "", sortKey: "created_at", sortDir: "desc", weakOpen: false, expanded: {} };
       function wlStatus(s, isErr) {
         var el = $("wl-status");
@@ -142,7 +143,12 @@ window.AI24X_WatchScore = (function () {
         }
       }
       function renderWlScores(items) {
-        wlItems = items || [];
+        items = items || [];
+        var kept = [];
+        for (var i = 0; i < items.length; i++) {
+          if (!wlRemovedSecids[String(items[i].secid || "")]) kept.push(items[i]);
+        }
+        wlItems = kept;
         renderWlBoard();
       }
       function wlGroupOf(sc, err) {
@@ -208,7 +214,8 @@ window.AI24X_WatchScore = (function () {
           + '<th class="wl-sort" data-wl-act="sort" data-k="name" title="点击排序">名称' + wlSortMark("name") + '</th>'
           + '<th class="wl-sort" data-wl-act="sort" data-k="score" title="点击排序">综合分' + wlSortMark("score") + '</th>'
           + '<th>技术信号</th><th>风险提示</th>'
-          + '<th class="wl-sort" data-wl-act="sort" data-k="created_at" title="点击排序">添加' + wlSortMark("created_at") + '</th></tr></thead><tbody>';
+          + '<th class="wl-sort" data-wl-act="sort" data-k="created_at" title="点击排序">添加' + wlSortMark("created_at") + '</th>'
+          + '<th>操作</th></tr></thead><tbody>';
         var idx = 0, shown = 0;
         if (flat) {
           for (var i = 0; i < list.length; i++) { idx++; shown++; html += wlRowHtml(list[i], idx); }
@@ -223,7 +230,7 @@ window.AI24X_WatchScore = (function () {
             }
             if (!gitems.length) continue;
             var collapsed = gname === "weak" && !wlState.weakOpen;
-            html += '<tr class="wl-group-row"><td colspan="7"><span class="wl-group-title" data-wl-act="group" data-k="' + gname + '">' + escWl(groups[g][1]) + ' · ' + gitems.length + ' 只' + (gname === "weak" ? (collapsed ? "　▶ 展开" : "　▼ 收起") : "") + '</span></td></tr>';
+            html += '<tr class="wl-group-row"><td colspan="8"><span class="wl-group-title" data-wl-act="group" data-k="' + gname + '">' + escWl(groups[g][1]) + ' · ' + gitems.length + ' 只' + (gname === "weak" ? (collapsed ? "　▶ 展开" : "　▼ 收起") : "") + '</span></td></tr>';
             if (collapsed) continue;
             for (var i = 0; i < gitems.length; i++) { idx++; shown++; html += wlRowHtml(gitems[i], idx); }
           }
@@ -257,14 +264,89 @@ window.AI24X_WatchScore = (function () {
           + '<td class="wl-score-col"><span class="' + cls + '">' + (err ? "—" : sc.toFixed(0)) + '</span></td>'
           + '<td class="wl-tags" title="' + tagsFull + '">' + tagsShow + '</td>'
           + '<td class="wl-risk" title="' + risksFull + '">' + risksShow + '</td>'
-          + '<td class="wl-time">' + wlTimeFmt(it.created_at) + '</td></tr>';
+          + '<td class="wl-time">' + wlTimeFmt(it.created_at) + '</td>'
+          + '<td class="wl-op"><button type="button" class="wl-del" data-wl-act="remove" data-k="' + escWl(secKey) + '" title="从自选中删除">删除</button></td></tr>';
         if (isExp && !err) {
-          html += '<tr class="wl-detail-row"><td colspan="7"><div class="wl-detail-grid">'
+          html += '<tr class="wl-detail-row"><td colspan="8"><div class="wl-detail-grid">'
             + '<div class="wl-detail-col wl-detail-col-tags">技术信号：<span class="wl-detail-tags">' + tagsFull + '</span></div>'
             + '<div class="wl-detail-col wl-detail-col-risks">风险提示：<span class="wl-detail-risks">' + (risksArr.length ? risksFull : "—") + '</span></div>'
             + '</div></td></tr>';
         }
         return html;
+      }
+      function wlRemove(secid) {
+        secid = String(secid || "").trim();
+        if (!secid) return;
+        var it = null;
+        for (var i = 0; i < wlItems.length; i++) {
+          if (String(wlItems[i].secid || "") === secid) { it = wlItems[i]; break; }
+        }
+        var nm = (it && (it.name || it.code)) || secid;
+        wlConfirmBox("确认从自选中删除「" + nm + "」？", function () { wlDoRemove(secid, nm); });
+      }
+      function wlConfirmBox(msg, onOk) {
+        var ov = document.createElement("div");
+        ov.className = "wl-confirm-mask";
+        ov.setAttribute("role", "alertdialog");
+        ov.setAttribute("aria-modal", "true");
+        ov.innerHTML = '<div class="wl-confirm-box"><div class="wl-confirm-text"></div>'
+          + '<div class="wl-confirm-actions">'
+          + '<button type="button" class="wl-confirm-cancel">取消</button>'
+          + '<button type="button" class="wl-confirm-ok">确认删除</button>'
+          + '</div></div>';
+        var box = ov.querySelector(".wl-confirm-box");
+        var textEl = ov.querySelector(".wl-confirm-text");
+        if (textEl) textEl.textContent = msg || "";
+        function close() {
+          document.removeEventListener("keydown", onKey);
+          if (ov.parentNode) ov.parentNode.removeChild(ov);
+        }
+        function onKey(e) { if (e.key === "Escape") { e.preventDefault(); close(); } }
+        ov.addEventListener("click", function (e) { if (e.target === ov) close(); });
+        var cancelBtn = ov.querySelector(".wl-confirm-cancel");
+        var okBtn = ov.querySelector(".wl-confirm-ok");
+        if (cancelBtn) cancelBtn.addEventListener("click", close);
+        if (okBtn) okBtn.addEventListener("click", function () { close(); if (onOk) onOk(); });
+        document.addEventListener("keydown", onKey);
+        document.body.appendChild(ov);
+        if (okBtn) { try { okBtn.focus(); } catch (eF) {} }
+      }
+      function wlDoRemove(secid, nm) {
+        wlStatus("删除中…");
+        apiFetch("/api/watchlist/remove", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ secid: secid })
+        }).then(function () {
+          var remain = [];
+          for (var i = 0; i < wlItems.length; i++) {
+            if (String(wlItems[i].secid || "") !== secid) remain.push(wlItems[i]);
+          }
+          wlItems = remain;
+          wlRemovedSecids[secid] = 1;
+          try {
+            var local = JSON.parse(localStorage.getItem("ai24x_a_watchlist") || "[]");
+            if (Array.isArray(local)) {
+              var kept = [];
+              for (var j = 0; j < local.length; j++) {
+                if (local[j] && String(local[j].secid || "") !== secid) kept.push(local[j]);
+              }
+              localStorage.setItem("ai24x_a_watchlist", JSON.stringify(kept));
+            }
+          } catch (eL) {}
+          var wrap = $("wl-score-wrap");
+          if (!wlItems.length) {
+            if (wrap) wrap.innerHTML = '<div class="muted small">暂无自选。到 <a href="./demo.html">行情页</a> 查询并点「加自选」后，自动生成技术指标统计。</div>';
+            var mEl = $("wl-market"); if (mEl) mEl.style.display = "none";
+            var tEl = $("wl-tier"); if (tEl) tEl.style.display = "none";
+            var hEl = $("wl-score-hint"); if (hEl) hEl.style.display = "none";
+          } else {
+            renderWlBoard();
+          }
+          wlStatus("");
+        }).catch(function (e) {
+          wlStatus("删除失败：" + (e && e.message ? e.message : "网络错误"), true);
+        });
       }
       function renderWlBoard() {
         var wrap = $("wl-score-wrap");
@@ -385,6 +467,7 @@ window.AI24X_WatchScore = (function () {
               if (act === "filter") { wlFilter(String(t.getAttribute("data-k") || "all")); return; }
               if (act === "group") { wlToggleGroup(String(t.getAttribute("data-k") || "")); return; }
               if (act === "expand") { wlToggleExpand(String(t.getAttribute("data-k") || "")); return; }
+              if (act === "remove") { wlRemove(String(t.getAttribute("data-k") || "")); return; }
               t = t.parentNode;
             }
           });
