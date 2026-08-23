@@ -57,7 +57,7 @@ function check(name, ok, extra) {
     check('pricing.free_card', body.free === 'Free', body.free);
     check('pricing.prices', body.prices.length >= 3 && body.prices.indexOf('$9.9') >= 0 && body.prices.indexOf('$24.9') >= 0 && body.prices.indexOf('$199') >= 0, body.prices.join(','));
     check('pricing.upgrade_deeplinks', body.upgradeHrefs.length >= 3 && body.upgradeHrefs.some((h) => h.indexOf('plan=yearly') >= 0), body.upgradeHrefs.join(' | '));
-    check('pricing.dev_section', body.devSection && !body.tokenGrid && body.devOpenLink.some((h) => h && h.indexOf('open.ai24x.com') >= 0), body.devOpenLink.join(','));
+    check('pricing.dev_section', body.devSection && !body.tokenGrid && body.devOpenLink.some((h) => h && h.indexOf('127.0.0.1:18080') >= 0), body.devOpenLink.join(','));
     check('pricing.no_js_errors', errors.length === 0, errors.join(' || ').slice(0, 200));
     await page.close();
   }
@@ -90,7 +90,7 @@ function check(name, ok, extra) {
       const fleet = document.body.innerText.indexOf('Powered by the AI24X autonomous agent fleet') >= 0;
       return { heroHref: hero ? hero.getAttribute('href') : null, heroText: hero ? hero.textContent.trim() : '', fleet };
     });
-    check('index.hero_start_free', idx.heroHref === 'https://markets.ai24x.com/app.html' && idx.heroText === 'Start free', idx.heroHref + ' ' + idx.heroText);
+    check('index.hero_start_free', idx.heroHref === 'http://127.0.0.1:18012/app.html' && idx.heroText === 'Start free', idx.heroHref + ' ' + idx.heroText);
     check('index.fleet_line', idx.fleet, '');
     check('index.no_js_errors', errors.length === 0, errors.join(' || ').slice(0, 150));
     await page.close();

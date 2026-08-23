@@ -15,6 +15,15 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+# 自举加载 api/.env：本模块的 MARKET_PLANS 在导入期读 DODO_PRODUCT_MARKETS_*，
+# 不依赖其它模块（如 llm_keys）先被导入触发 dotenv，避免「首次同步重复建产品」。
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(Path(__file__).resolve().parent / ".env", override=False)
+except Exception:
+    pass
+
 # markets 子服务履约回调（服务端到服务端，同机 18012 / 生产同机）
 MARKETS_FULFILL_URL = os.environ.get(
     "MARKETS_FULFILL_URL", "http://127.0.0.1:18012/api/subscribe/fulfill"
@@ -39,6 +48,7 @@ MARKET_PLANS: Dict[str, Dict[str, Any]] = {
         "perk": "All Pro features for 7 days",
         "perk_zh": "7 天完整 Pro 功能（AI 点评不限次、自选 50 只）",
         "creem_product_id": os.environ.get("CREEM_PRODUCT_MARKETS_WEEKLY", "").strip(),
+        "dodo_product_id": os.environ.get("DODO_PRODUCT_MARKETS_WEEKLY", "").strip(),
     },
     "monthly": {
         "price_usd": 24.9,
@@ -51,6 +61,7 @@ MARKET_PLANS: Dict[str, Dict[str, Any]] = {
         "perk": "30-day Pro — unlimited AI briefs & 50-symbol watchlist",
         "perk_zh": "30 天 Pro — AI 点评不限次、自选 50 只",
         "creem_product_id": os.environ.get("CREEM_PRODUCT_MARKETS_MONTHLY", "").strip(),
+        "dodo_product_id": os.environ.get("DODO_PRODUCT_MARKETS_MONTHLY", "").strip(),
     },
     "yearly": {
         "price_usd": 199.0,
@@ -63,6 +74,7 @@ MARKET_PLANS: Dict[str, Dict[str, Any]] = {
         "perk": "Best value — a full year of Pro",
         "perk_zh": "最划算 — 全年 Pro（约省 33%）",
         "creem_product_id": os.environ.get("CREEM_PRODUCT_MARKETS_YEARLY", "").strip(),
+        "dodo_product_id": os.environ.get("DODO_PRODUCT_MARKETS_YEARLY", "").strip(),
     },
 }
 
@@ -77,6 +89,7 @@ _MARKET_OVERRIDE_PATH = Path(
 _MARKET_EDITABLE = (
     "label", "usd", "days", "description", "enabled",
     "title_zh", "title_en", "price_label", "price_label_zh", "perk", "perk_zh",
+    "dodo_product_id",
 )
 
 
@@ -93,6 +106,27 @@ def _load_market_overrides() -> Dict[str, Dict[str, Any]]:
         return {}
 
 
+def set_market_dodo_product_id(plan_id: str, product_id: str) -> bool:
+    """Dodo 同步创建/改名产品后回写 product_id（持久化，优先于 env 默认值）。"""
+    pid = str(plan_id or "").strip().lower()
+    if pid not in MARKET_PLANS:
+        return False
+    try:
+        cur = _load_market_overrides()
+        row = dict(cur.get(pid) or {})
+        row["dodo_product_id"] = str(product_id or "").strip()
+        cur[pid] = row
+        _MARKET_OVERRIDE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _MARKET_OVERRIDE_PATH.write_text(
+            json.dumps({"plans": cur, "updated_note": "dodo_sync"}, ensure_ascii=False, indent=2)
+            + "\n",
+            encoding="utf-8",
+        )
+        return True
+    except Exception:
+        return False
+
+
 def resolve_market_plans() -> Dict[str, Dict[str, Any]]:
     """markets 套餐 = 代码默认 + 管理台覆盖；禁用套餐由 public_products 过滤。"""
     ov = _load_market_overrides()
@@ -106,6 +140,107 @@ def resolve_market_plans() -> Dict[str, Dict[str, Any]]:
                 p[key] = o[key]
         p.setdefault("enabled", True)
         # 管理台以 usd 改价 → 同步到 price_usd 与价格标签（除非显式覆盖）
+        if "usd" in o and o["usd"] is not None:
+            usd = float(o["usd"])
+            p["price_usd"] = usd
+            per = period.get(pid)
+            if per:
+                if "price_label" not in o or o["price_label"] is None:
+                    p["price_label"] = "${:g}/{}".format(usd, per[0])
+                if "price_label_zh" not in o or o["price_label_zh"] is None:
+                    p["price_label_zh"] = "${:g}/{}".format(usd, per[1])
+        out[pid] = p
+    return out
+
+
+# ————— BYOK 网关服务费套餐（Bring Your Own Key）—————
+# 平台只收网关服务费，不赚上游 token 差价；价格与 p/open byok_plans 默认一致
+# （$9.9/月、$99/年）。支付后端（Dodo 等）商品目录以本登记为同步源。
+BYOK_PLANS: Dict[str, Dict[str, Any]] = {
+    "byok_pro_month": {
+        "price_usd": 9.9,
+        "days": 30,
+        "label": "Pro Monthly",
+        "title": "AI24X BYOK Pro · 1 month",
+        "title_zh": "AI24X BYOK Pro · 月付",
+        "price_label": "$9.9/month",
+        "price_label_zh": "$9.9/月",
+        "perk": "BYOK smart gateway service fee — your own keys",
+        "perk_zh": "BYOK 智能网关服务费 — 使用自有 key",
+        "dodo_product_id": os.environ.get("DODO_PRODUCT_BYOK_MONTH", "").strip(),
+    },
+    "byok_pro_year": {
+        "price_usd": 99.0,
+        "days": 365,
+        "label": "Pro Yearly",
+        "title": "AI24X BYOK Pro · 1 year",
+        "title_zh": "AI24X BYOK Pro · 年付",
+        "price_label": "$99/year",
+        "price_label_zh": "$99/年",
+        "perk": "Best value — a full year of BYOK Pro",
+        "perk_zh": "最划算 — 全年 BYOK Pro",
+        "dodo_product_id": os.environ.get("DODO_PRODUCT_BYOK_YEAR", "").strip(),
+    },
+}
+
+# core 侧 BYOK 覆盖文件（gitignore）：dodo_product_id 回写等；价格默认即正式价
+_BYOK_OVERRIDE_PATH = Path(
+    os.environ.get("BYOK_PLANS_OVERRIDE_CORE")
+    or str(Path(__file__).resolve().parent / "data" / "byok_plans_override.json")
+)
+_BYOK_EDITABLE = (
+    "label", "usd", "days", "description", "enabled",
+    "title_zh", "title_en", "price_label", "price_label_zh", "perk", "perk_zh",
+    "dodo_product_id",
+)
+
+
+def _load_byok_overrides() -> Dict[str, Dict[str, Any]]:
+    try:
+        if not _BYOK_OVERRIDE_PATH.is_file():
+            return {}
+        raw = json.loads(_BYOK_OVERRIDE_PATH.read_text(encoding="utf-8"))
+        plans = raw.get("plans") if isinstance(raw, dict) else None
+        if not isinstance(plans, dict):
+            return {}
+        return {str(k): (v if isinstance(v, dict) else {}) for k, v in plans.items()}
+    except Exception:
+        return {}
+
+
+def set_byok_dodo_product_id(plan_id: str, product_id: str) -> bool:
+    """Dodo 同步创建/改名 BYOK 产品后回写 product_id（优先于 env 默认值）。"""
+    pid = str(plan_id or "").strip().lower()
+    if pid not in BYOK_PLANS:
+        return False
+    try:
+        cur = _load_byok_overrides()
+        row = dict(cur.get(pid) or {})
+        row["dodo_product_id"] = str(product_id or "").strip()
+        cur[pid] = row
+        _BYOK_OVERRIDE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _BYOK_OVERRIDE_PATH.write_text(
+            json.dumps({"plans": cur, "updated_note": "dodo_sync"}, ensure_ascii=False, indent=2)
+            + "\n",
+            encoding="utf-8",
+        )
+        return True
+    except Exception:
+        return False
+
+
+def resolve_byok_plans() -> Dict[str, Dict[str, Any]]:
+    """BYOK 套餐 = 代码默认（正式价）+ core 覆盖；禁用由调用方过滤。"""
+    ov = _load_byok_overrides()
+    out: Dict[str, Dict[str, Any]] = {}
+    period = {"byok_pro_month": ("month", "月"), "byok_pro_year": ("year", "年")}
+    for pid, base in BYOK_PLANS.items():
+        p = dict(base)
+        o = ov.get(pid) or {}
+        for key in _BYOK_EDITABLE:
+            if key in o and o[key] is not None:
+                p[key] = o[key]
+        p.setdefault("enabled", True)
         if "usd" in o and o["usd"] is not None:
             usd = float(o["usd"])
             p["price_usd"] = usd
@@ -200,6 +335,25 @@ def public_products() -> Dict[str, Any]:
             }
         )
 
+    byok_plans: list[Dict[str, Any]] = []
+    for pid, p in resolve_byok_plans().items():
+        if not p.get("enabled", True):
+            continue
+        byok_plans.append(
+            {
+                "plan": pid,
+                "title": str(p.get("label") or pid),
+                "title_zh": str(p.get("title_zh") or p.get("label") or pid),
+                "price_usd": p.get("price_usd"),
+                "price_label": str(p.get("price_label") or f"${p.get('price_usd', '')}"),
+                "price_label_zh": str(p.get("price_label_zh") or f"${p.get('price_usd', '')}"),
+                "days": p.get("days"),
+                "perk": str(p.get("perk") or ""),
+                "perk_zh": str(p.get("perk_zh") or ""),
+                "recommended": pid == "byok_pro_year",
+            }
+        )
+
     return {
         "ok": True,
         "pay": pay,
@@ -230,6 +384,22 @@ def public_products() -> Dict[str, Any]:
                 "desc_zh": "AI24X API 额度与点名模型资格，开发者门户：open.ai24x.com。",
                 "url": "https://open.ai24x.com",
                 "plans": data.get("plans") or [],
+            },
+            {
+                "product": "byok",
+                "title": "BYOK Gateway",
+                "title_zh": "BYOK 智能网关",
+                "desc": (
+                    "Bring your own API keys — smart routing, failover, request cache and a "
+                    "cost dashboard. Platform charges a gateway service fee only. "
+                    "Purchase at open.ai24x.com."
+                ),
+                "desc_zh": (
+                    "自带 API Key：智能路由 + 故障转移 + 请求缓存 + 成本看板，"
+                    "平台只收网关服务费。在 open.ai24x.com 开通。"
+                ),
+                "url": "https://open.ai24x.com/pricing.html",
+                "plans": byok_plans,
             },
         ],
     }

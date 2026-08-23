@@ -209,6 +209,14 @@ class Settings(BaseSettings):
         default="https://www.ai24x.com/console.html", validation_alias="CREEM_RETURN_URL"
     )
 
+    # ————— Dodo Payments（国际 USD，MoR 模式；test / live）—————
+    dodo_api_key: str = Field(default="", validation_alias="DODO_API_KEY")
+    dodo_webhook_secret: str = Field(default="", validation_alias="DODO_WEBHOOK_SECRET")
+    dodo_mode: str = Field(default="test", validation_alias="DODO_MODE")  # test|live
+    dodo_return_url: str = Field(
+        default="https://www.ai24x.com/console.html", validation_alias="DODO_RETURN_URL"
+    )
+
     # ————— Crypto（USDT-TRC20 加密收款）—————
     crypto_trc20_address: str = Field(default="", validation_alias="CRYPTO_TRC20_ADDRESS")
     crypto_enabled: bool = Field(default=False, validation_alias="CRYPTO_ENABLED")

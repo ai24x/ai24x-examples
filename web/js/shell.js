@@ -14,7 +14,17 @@
     } catch (e) {}
     return "https://markets.ai24x.com/";
   }
+
+  /** open.ai24x.com 开发者站地址：本机开发指向本地 18080，公网指向 open.ai24x.com */
+  function openUrl() {
+    try {
+      var h = String(location.hostname || "");
+      if (h === "127.0.0.1" || h === "localhost") return "http://127.0.0.1:18080/";
+    } catch (e) {}
+    return "https://open.ai24x.com/";
+  }
   global.AI24X_MARKETS_URL = marketsUrl();
+  global.AI24X_OPEN_URL = openUrl();
 
   function esc(s) {
     return String(s || "").replace(/"/g, "&quot;");
@@ -219,7 +229,9 @@
       '<a href="' +
       pre +
       'status.html" data-i18n="footer.link.status"></a>' +
-      '<a href="https://open.ai24x.com" target="_blank" rel="noopener" data-i18n="footer.link.developer"></a>' +
+      '<a href="' +
+      openUrl() +
+      '" target="_blank" rel="noopener" data-i18n="footer.link.developer"></a>' +
       "</div>" +
       '<div class="footer-col">' +
       '<div class="footer-title" data-i18n="footer.col.corp"></div>' +
@@ -235,7 +247,9 @@
       '<a href="mailto:support@ai24x.com">support@ai24x.com</a>' +
       "</div>" +
       "</div>" +
-      '<div class="footer-bottom">© 2026 AI24X · <a href="https://open.ai24x.com" target="_blank" rel="noopener" data-i18n="footer.link.developer"></a> · <span data-i18n="footer.copy"></span></div>' +
+      '<div class="footer-bottom">© 2026 AI24X · <a href="' +
+      openUrl() +
+      '" target="_blank" rel="noopener" data-i18n="footer.link.developer"></a> · <span data-i18n="footer.copy"></span></div>' +
       '<div class="footer-bottom" style="opacity:.62;font-size:.78rem;padding-top:0;" data-i18n="footer.fleet">Powered by the AI24X autonomous agent fleet</div>' +
       '<div class="footer-bottom" style="opacity:.62;font-size:.78rem;padding-top:0;" data-i18n="footer.disclaimer">For educational purposes only — not investment advice. Market data is delayed at least 15 minutes.</div>' +
       "</div>"
@@ -246,11 +260,19 @@
     try {
       var mkLinks = document.querySelectorAll("a[data-markets]");
       for (var i = 0; i < mkLinks.length; i++) {
-        // 仅重写指向 markets 根地址的链接（本机开发切 18012）；
-        // 带路径/深链（如 app.html#sub、?plan=yearly）保持原样，避免丢失订阅深链
         var href = mkLinks[i].getAttribute("href") || "";
-        if (/^https?:\/\/markets\.ai24x\.com\/?$/.test(href)) {
-          mkLinks[i].setAttribute("href", marketsUrl());
+        if (/^https?:\/\/markets\.ai24x\.com(?:\/|$)/.test(href)) {
+          // 替换域名主机（保留路径/深链，如 app.html#sub、?plan=yearly），本机开发切 18012
+          var rest = href.replace(/^https?:\/\/markets\.ai24x\.com/, "").replace(/^\//, "");
+          mkLinks[i].setAttribute("href", marketsUrl() + rest);
+        }
+      }
+      var opLinks = document.querySelectorAll("a[data-open]");
+      for (var j = 0; j < opLinks.length; j++) {
+        var ohref = opLinks[j].getAttribute("href") || "";
+        if (/^https?:\/\/open\.ai24x\.com(?:\/|$)/.test(ohref)) {
+          var orest = ohref.replace(/^https?:\/\/open\.ai24x\.com/, "").replace(/^\//, "");
+          opLinks[j].setAttribute("href", openUrl() + orest);
         }
       }
       var signout = document.getElementById("nav-signout");
@@ -456,13 +478,13 @@
       },
       {
         key: "guides",
-        href: "https://open.ai24x.com/guides/",
+        href: openUrl() + "guides/",
         i18n: "btn.guides",
         fallback: zhUi ? "接入案例" : "Integrations",
       },
       {
         key: "vip",
-        href: "https://open.ai24x.com/models/vip-picks.html",
+        href: openUrl() + "models/vip-picks.html",
         i18n: "page.models.vip.cta",
         fallback: zhUi ? "VIP 点名清单" : "VIP model list",
       },
@@ -477,7 +499,7 @@
     if (activeKey !== "models") {
       items.unshift({
         key: "models",
-        href: "https://open.ai24x.com/models/",
+        href: openUrl() + "models/",
         i18n: "page.models.title",
         fallback: zhUi ? "名模" : "Models",
       });

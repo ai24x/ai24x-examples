@@ -194,10 +194,10 @@ function check(name, ok, extra) {
     let allJ = true, anyC = false;
     for (const u of pages) {
       const res = await (await fetch(u)).text();
-      if (!res.includes('locales.js?v=20260818j')) allJ = false;
+      if (!res.includes('locales.js?v=20260823b')) allJ = false;
       if (res.includes('locales.js?v=20260818c')) anyC = true;
     }
-    check('www.locales_v18j_uniform', allJ, pages.join(','));
+    check('www.locales_v18m_uniform', allJ, pages.join(','));
     check('www.locales_old_c_residual', !anyC, '');
   }
 

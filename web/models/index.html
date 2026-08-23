@@ -13,13 +13,14 @@
   p{color:#9aa8b8;line-height:1.6;margin:0 0 18px;}
   a{color:#60a5fa;text-decoration:none;font-weight:600;}
 </style>
-<script>location.replace('https://open.ai24x.com');</script>
+<script>var devBase = (location.hostname === "127.0.0.1" || location.hostname === "localhost") ? "http://127.0.0.1:18080" : "https://open.ai24x.com"; location.replace(devBase);</script>
 </head>
 <body>
 <div class="box">
   <h1>AI24X Developer Portal</h1>
   <p>API keys, models, docs and developer tools now live at open.ai24x.com. Redirecting you there…</p>
-  <p><a href="https://open.ai24x.com">Continue to open.ai24x.com</a></p>
+  <p><a href="https://open.ai24x.com" id="dev-portal-link">Continue to open.ai24x.com</a></p>
+  <script>try { var dl = document.getElementById("dev-portal-link"); dl.href = (location.hostname === "127.0.0.1" || location.hostname === "localhost") ? "http://127.0.0.1:18080" : "https://open.ai24x.com"; } catch (e) {}</script>
 </div>
 </body>
 </html>

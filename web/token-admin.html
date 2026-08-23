@@ -653,7 +653,9 @@
               <div class="row" style="margin-top:10px;">
                 <button type="button" id="btnMkPlansRefresh">刷新</button>
                 <button type="button" class="ok" id="btnMkPlansSave">保存 Markets 套餐</button>
+                <button type="button" class="warn" id="btnDodoSync" title="把 Markets + Token 全部启用套餐同步到 Dodo 后台产品（DODO_MODE 决定 test/live），价格/名称不一致会自动更新">同步 Dodo 产品</button>
               </div>
+              <p class="muted small" id="dodoSyncResult" style="margin-top:8px;"></p>
               <div style="overflow:auto;margin-top:12px;">
                 <table>
                   <thead>
@@ -762,8 +764,10 @@
               <div class="row" style="margin-top:10px;">
                 <button type="button" id="btnPlansRefresh">刷新</button>
                 <button type="button" class="ok" id="btnPlansSave">保存套餐</button>
+                <button type="button" class="warn" id="btnPlansDodoSync" title="把 Markets + Token 全部启用套餐同步到 Dodo 后台产品（DODO_MODE 决定 test/live），价格/名称不一致会自动更新">同步 Dodo 产品</button>
                 <span class="muted small" id="plansFxMeta"></span>
               </div>
+              <p class="muted small" id="plansDodoSyncResult" style="margin-top:8px;"></p>
               <div style="overflow:auto;margin-top:12px;">
                 <table>
                   <thead>
@@ -3061,6 +3065,52 @@
     await loadMarketsPlans();
   }
 
+  async function syncDodoProducts(buttonId, resultId) {
+    var btn = $(buttonId);
+    var box = $(resultId);
+    if (!btn || !box) return;
+    if (!window.confirm("将把 Markets + Token 全部启用套餐同步到 Dodo 后台产品（test/live 由 DODO_MODE 决定），价格/名称不一致会自动更新。确认同步？")) return;
+    var old = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "同步中…";
+    box.textContent = "同步中…";
+    try {
+      var r = await api("/v1/admin/products/dodo/sync", { method: "POST", body: {} });
+      var s = r.summary || {};
+      var lines = [
+        "同步完成（" + esc(r.mode || "test") + " 模式）：新建 " + Number(s.created || 0) +
+        "，更新 " + Number(s.updated || 0) + "，无变化 " + Number(s.unchanged || 0) +
+        "，失败 " + Number(s.errors || 0)
+      ];
+      (r.items || []).forEach(function (it) {
+        var flag =
+          it.action === "created" ? "新建" :
+          it.action === "updated" ? "更新" :
+          it.action === "unchanged" ? "一致" : "失败";
+        lines.push(
+          "[" + flag + "] " + esc(it.product || "") + " / " + esc(it.plan || "") +
+          " → " + esc(it.product_id || "-") +
+          (it.price_usd != null ? " $" + Number(it.price_usd).toFixed(2) : "") +
+          (it.note ? " " + esc(it.note) : "")
+        );
+      });
+      box.innerHTML = lines.join("<br>");
+      if (r.ok) {
+        setMsg("Dodo 产品同步完成", "ok");
+      } else {
+        setMsg("Dodo 同步存在失败项，请查看下方明细", "err");
+      }
+      await loadMarketsPlans();
+      await loadPlans();
+    } catch (e) {
+      box.innerHTML = "同步失败：" + esc((e && e.detail) || (e && e.message) || e);
+      setMsg("Dodo 产品同步失败", "err");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = old;
+    }
+  }
+
   async function loadOpenPlans() {
     var data = await api("/v1/admin/products/open/plans");
     var plans = (data && data.data && data.data.plans) || [];
@@ -3721,6 +3771,16 @@
       } catch (e) {
         setMsg(String(e.message || e), "err");
       }
+    };
+  }
+  if ($("btnDodoSync")) {
+    $("btnDodoSync").onclick = function () {
+      syncDodoProducts("btnDodoSync", "dodoSyncResult");
+    };
+  }
+  if ($("btnPlansDodoSync")) {
+    $("btnPlansDodoSync").onclick = function () {
+      syncDodoProducts("btnPlansDodoSync", "plansDodoSyncResult");
     };
   }
   $("btnDashWallet").onclick = function () { showPanel("p-wallet"); };

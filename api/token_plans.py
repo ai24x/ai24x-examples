@@ -231,6 +231,7 @@ def _resolve_plan(plan_id: str) -> dict[str, Any] | None:
         "vip_days",
         "price_usd",
         "creem_product_id",
+        "dodo_product_id",
         "value_pack",
     ):
         if key in ov and ov[key] is not None:
@@ -401,6 +402,7 @@ def list_admin_plans() -> dict[str, Any]:
                 else None,
                 "note_zh": str(p.get("note_zh") or ""),
                 "creem_product_id": str(p.get("creem_product_id") or ""),
+                "dodo_product_id": str(p.get("dodo_product_id") or ""),
             }
         )
     return {
@@ -458,11 +460,28 @@ def update_admin_plans(updates: list[dict[str, Any]]) -> dict[str, Any]:
             row["note_zh"] = str(item["note_zh"])[:500]
         if "creem_product_id" in item and item["creem_product_id"] is not None:
             row["creem_product_id"] = str(item["creem_product_id"])[:64]
+        if "dodo_product_id" in item and item["dodo_product_id"] is not None:
+            row["dodo_product_id"] = str(item["dodo_product_id"])[:64]
         cur[pid] = row
     _save_overrides(cur)
     global TOKEN_PLANS
     TOKEN_PLANS = resolved_plans()
     return list_admin_plans()
+
+
+def set_dodo_product_id(plan_id: str, product_id: str) -> bool:
+    """Dodo 同步创建/改名产品后回写 product_id（持久化到 override）。"""
+    pid = str(plan_id or "").strip()
+    if pid not in _PLAN_DEFAULTS:
+        return False
+    cur = _load_overrides()
+    row = dict(cur.get(pid) or {})
+    row["dodo_product_id"] = str(product_id or "").strip()
+    cur[pid] = row
+    _save_overrides(cur)
+    global TOKEN_PLANS
+    TOKEN_PLANS = resolved_plans()
+    return True
 
 
 def get_plan(plan_id: str) -> dict[str, Any] | None:

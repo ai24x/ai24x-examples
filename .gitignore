@@ -52,6 +52,7 @@ scripts/_verify_docs.py
 **/.env.bak*
 api/certs/
 api/data/token_plans_override.json
+api/data/byok_plans_override.json
 p/markets/api/server/data/markets_plans_override.json
 p/open/api/data/byok_plans_override.json
 api/data/system_flags_override.json

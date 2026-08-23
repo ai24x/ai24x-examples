@@ -76,6 +76,10 @@ def pay_settings_ns() -> SimpleNamespace:
         "creem_webhook_secret": _s(getattr(settings, "creem_webhook_secret", "") or ""),
         "creem_mode": _s(getattr(settings, "creem_mode", "test") or "test") or "test",
         "creem_return_url": _s(getattr(settings, "creem_return_url", "") or ""),
+        "dodo_api_key": _s(getattr(settings, "dodo_api_key", "") or ""),
+        "dodo_webhook_secret": _s(getattr(settings, "dodo_webhook_secret", "") or ""),
+        "dodo_mode": _s(getattr(settings, "dodo_mode", "test") or "test") or "test",
+        "dodo_return_url": _s(getattr(settings, "dodo_return_url", "") or ""),
     }
 
     if bool(getattr(settings, "token_pay_reuse_a1", True)):
@@ -165,6 +169,7 @@ def public_plans() -> dict:
     cfg = pay_settings_ns()
     from pay_alipay_wap import alipay_configured
     from pay_creem import creem_configured
+    from pay_dodo import dodo_configured
     from pay_paypal import paypal_configured
     from pay_wechat_v3 import wechat_pay_configured
 
@@ -172,6 +177,7 @@ def public_plans() -> dict:
     ali_cfg = alipay_configured(cfg)
     pp_cfg = paypal_configured(cfg)
     creem_cfg = creem_configured(cfg)
+    dodo_cfg = dodo_configured(cfg)
     enabled = token_pay_enabled()
     return {
         "plans": list_public_plans(),
@@ -184,11 +190,14 @@ def public_plans() -> dict:
             "paypal_mode": str(getattr(cfg, "paypal_mode", "sandbox") or "sandbox"),
             "creem_configured": creem_cfg,
             "creem_mode": str(getattr(cfg, "creem_mode", "test") or "test"),
+            "dodo_configured": dodo_cfg,
+            "dodo_mode": str(getattr(cfg, "dodo_mode", "test") or "test"),
             # ready = 可拉真单（开关开 + 商户齐）
             "wechat_ready": bool(enabled and wx_cfg),
             "alipay_ready": bool(enabled and ali_cfg),
             "paypal_ready": bool(enabled and pp_cfg),
             "creem_ready": bool(enabled and creem_cfg),
+            "dodo_ready": bool(enabled and dodo_cfg),
             "crypto_configured": crypto_configured(),
             "crypto_ready": crypto_ready(),
         },
@@ -252,7 +261,7 @@ def _resolve_plan_for_product(
         usd = 0.0
     if usd <= 0:
         raise HTTPException(status_code=400, detail="plan_missing_usd_price")
-    if channel in ("paypal", "creem", "crypto"):
+    if channel in ("paypal", "creem", "crypto", "dodo"):
         price_fen = max(1, int(round(usd * 100)))
     else:
         from token_plans import _usd_cny
@@ -334,7 +343,7 @@ def _fulfill_order_row(
         # markets 产品无 token 套餐：收款后直接回调子服务激活订阅；
         # amount_fen 微信/支付宝=CNY 分，PayPal/Creem=USD 美分
         fx = _usd_cny()
-        if str(row.channel) in ("paypal", "creem", "crypto"):
+        if str(row.channel) in ("paypal", "creem", "crypto", "dodo"):
             usd_cents = max(1, int(row.amount_fen))
         else:
             usd_cents = max(1, int(round(int(row.amount_fen) / fx)))
@@ -780,6 +789,8 @@ async def admin_query_fulfill_order(db: Session, *, out_trade_no: str) -> dict:
         return await query_and_fulfill_paypal(db, out_trade_no=otn, auth_user_id=uid)
     if ch == "creem":
         return await query_creem_order(db, out_trade_no=otn, auth_user_id=uid)
+    if ch == "dodo":
+        return await query_dodo_order(db, out_trade_no=otn, auth_user_id=uid)
     raise HTTPException(status_code=400, detail=f"unsupported_channel:{ch}")
 
 
@@ -1099,6 +1110,97 @@ async def query_creem_order(db: Session, *, out_trade_no: str, auth_user_id: int
             "balance": get_balance_snapshot(db, int(auth_user_id)),
         }
     return {"ok": False, "status": str(row.status), "out_trade_no": otn}
+
+
+async def create_dodo_order(
+    db: Session, *, auth_user_id: int, plan: str, origin: Optional[str] = None, product: str = "token"
+) -> dict:
+    """Dodo Checkout Sessions: create order + checkout session (USD cents)."""
+    row = create_pending_order(
+        db, auth_user_id=int(auth_user_id), plan=plan, channel="dodo", product=product
+    )
+    meta = _plan_meta_for(product, row.plan)
+    try:
+        usd = float(meta.get("price_usd") or 0)
+    except Exception:
+        usd = 0.0
+    title = str(meta.get("title_en") or meta.get("title_zh") or meta.get("title") or row.plan)
+
+    cfg = pay_settings_ns()
+    from pay_dodo import create_checkout_session, dodo_configured
+
+    if not dodo_configured(cfg):
+        raise HTTPException(
+            status_code=503,
+            detail="Dodo not configured (DODO_API_KEY / DODO_WEBHOOK_SECRET)",
+        )
+
+    product_id = str(meta.get("dodo_product_id") or "").strip()
+    if not product_id:
+        raise HTTPException(status_code=503, detail="plan_missing_dodo_product_id")
+
+    from pay_products import product_return_url
+
+    ret = (
+        _origin_console_url(origin)
+        or product_return_url(product)
+        or (getattr(cfg, "dodo_return_url", "") or "https://www.ai24x.com/console.html").strip()
+    )
+    sep = "&" if "?" in ret else "?"
+    ret_q = f"{ret}{sep}dodo=1&out_trade_no={row.out_trade_no}"
+
+    u = db.query(AuthUser).filter(AuthUser.id == int(auth_user_id)).first()
+    customer_email = (u.email if u else "") or ""
+
+    try:
+        session = await create_checkout_session(
+            cfg,
+            product_id=product_id,
+            request_id=row.out_trade_no,
+            success_url=ret_q,
+            customer_email=customer_email,
+            metadata={"plan": row.plan, "out_trade_no": row.out_trade_no, "product": product},
+        )
+    except Exception as e:
+        logger.exception("dodo create failed")
+        row.status = "failed"
+        db.commit()
+        raise HTTPException(status_code=502, detail="Dodo checkout failed, try again later.") from e
+
+    pay_url = str((session or {}).get("checkout_url") or "")
+    chk_id = str((session or {}).get("session_id") or (session or {}).get("id") or "")
+    row.code_url = (pay_url or "")[:2000] or None
+    if chk_id:
+        row.transaction_id = chk_id[:128]
+    db.commit()
+    return {
+        "out_trade_no": row.out_trade_no,
+        "plan": row.plan,
+        "amount_fen": row.amount_fen,
+        "amount_usd": f"{usd:.2f}",
+        "currency": "USD",
+        "channel": "dodo",
+        "pay_url": pay_url,
+        "checkout_id": chk_id,
+        "mock": False,
+    }
+
+
+async def query_dodo_order(db: Session, *, out_trade_no: str, auth_user_id: int) -> dict:
+    """Dodo local order status (webhook is authoritative). No upstream query needed."""
+    otn = str(out_trade_no or "").strip()
+    row = db.query(TokenPayOrder).filter(TokenPayOrder.out_trade_no == otn).first()
+    if not row or int(row.auth_user_id) != int(auth_user_id):
+        raise HTTPException(status_code=404, detail="order_not_found")
+    if str(row.status) == "paid":
+        return {
+            "ok": True,
+            "duplicate": True,
+            "out_trade_no": otn,
+            "balance": get_balance_snapshot(db, int(auth_user_id)),
+        }
+    return {"ok": False, "status": str(row.status), "out_trade_no": otn}
+
 
 async def capture_and_fulfill_paypal(
     db: Session, *, out_trade_no: str, auth_user_id: int, paypal_order_id: str | None = None

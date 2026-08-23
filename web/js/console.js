@@ -158,6 +158,7 @@
     function labelChannel(c) {
       var ch = String(c || "").replace(/_query|_capture|_webhook/gi, "");
       if (ch === "creem") return "Creem";
+      if (ch === "dodo") return "Dodo";
       if (ch === "crypto") return "USDT";
       if (
         ch === "topup" ||
@@ -212,7 +213,7 @@
       return zh ? "充值到账" : "Top-up";
     }
     if (
-      /^(wechat|alipay|paypal|creem|mock|crypto|topup|topup_usd)(_query|_capture|_webhook)?:/i.test(n) ||
+      /^(wechat|alipay|paypal|creem|dodo|mock|crypto|topup|topup_usd)(_query|_capture|_webhook)?:/i.test(n) ||
       /^[a-z0-9_]+:T\d+:[a-z0-9_]+$/i.test(n)
     ) {
       var parts = n.split(":");
@@ -440,6 +441,13 @@
         '<path fill="#7C3AED" d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm0 2v10h16V7H4zm2 2h4v2H6V9zm6 0h6v2h-6V9z"/></svg>'
       );
     }
+    if (channel === "dodo") {
+      return (
+        '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+        '<circle cx="12" cy="12" r="10" fill="#101B3C"/>' +
+        '<path fill="#00D1B2" d="M7.2 15.2h3.2V12H7.2v3.2zm6.4 0h3.2V12h-3.2v3.2zM7.2 8.8h3.2V5.6H7.2v3.2zm6.4 0h3.2V5.6h-3.2v3.2z"/></svg>'
+      );
+    }
     if (channel === "paypal") {
       return (
         '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
@@ -459,12 +467,13 @@
   function updatePayHint(pay, zh) {
     var hint = $("payHint");
     if (!hint) return;
-    if (pay.enabled && (pay.wechat_ready || pay.alipay_ready || pay.paypal_ready || pay.creem_ready)) {
+    if (pay.enabled && (pay.wechat_ready || pay.alipay_ready || pay.paypal_ready || pay.creem_ready || pay.dodo_ready)) {
       var ch = [];
       if (pay.wechat_ready) ch.push(zh ? "微信" : "WeChat");
       if (pay.alipay_ready) ch.push(zh ? "支付宝" : "Alipay");
       if (pay.paypal_ready) ch.push("PayPal");
       if (pay.creem_ready) ch.push("Creem");
+      if (pay.dodo_ready) ch.push("Dodo");
       hint.textContent = zh
         ? "选择套餐后可用 " + ch.join(" / ") + " 支付。" + (pay.mock_allowed ? " 也可使用「模拟到账」。" : "")
         : "Pick a plan and pay with " + ch.join(" / ") + "." + (pay.mock_allowed ? " Mock top-up is also available." : "");
@@ -529,7 +538,7 @@
     freePerk.textContent = tr("K线/指标/AI 点评每日 10 次 · 自选 10 只", "Charts, indicators & 10 AI briefs a day · watchlist 10");
     var freeBtn = document.createElement("a");
     freeBtn.className = "btn mplan-free-cta";
-    freeBtn.href = "https://markets.ai24x.com";
+    freeBtn.href = marketsApiBase() + "/app.html";
     freeBtn.target = "_blank";
     freeBtn.rel = "noopener";
     freeBtn.textContent = tr("打开行情官", "Open chart app");
@@ -635,6 +644,7 @@
     if (pay.alipay_ready) channels.push("alipay");
     if (pay.paypal_ready) channels.push("paypal");
     if (pay.creem_ready) channels.push("creem");
+    if (pay.dodo_ready) channels.push("dodo");
     if (pay.crypto_ready) channels.push("crypto");
     if (pay.mock_allowed) channels.push("mock");
     channels.forEach(function (ch) {
@@ -645,8 +655,10 @@
             ? tr("支付宝", "Alipay")
             : ch === "paypal"
               ? "PayPal"
-              : ch === "creem"
-                ? "Creem"
+            : ch === "creem"
+              ? "Creem"
+              : ch === "dodo"
+                ? "Dodo"
                 : ch === "crypto"
                   ? tr("USDT", "USDT")
                   : tr("模拟到账", "Mock pay");
@@ -654,7 +666,7 @@
       btn.type = "button";
       btn.className =
         "btn" +
-        (ch === "paypal" || ch === "creem" ? " btn-primary" : "") +
+        (ch === "paypal" || ch === "creem" || ch === "dodo" ? " btn-primary" : "") +
         (ch === "crypto" ? " btn-usdt" : "");
       btn.innerHTML = (ch !== "mock" ? payIconSvg(ch) : "") + "<span>" + label + "</span>";
       btn.setAttribute("data-pay-channel", ch);
@@ -689,6 +701,8 @@
     products.forEach(function (prod) {
       var pid = String(prod.product || "");
       var isMarkets = pid === "markets";
+      var isByok = pid === "byok";
+      var likeMarkets = isMarkets || isByok;
       var card = document.createElement("div");
       card.className = "product-card" + (isMarkets ? " is-markets" : "");
       card.setAttribute("data-product", pid);
@@ -707,7 +721,7 @@
       if (prod.url) {
         var link = document.createElement("a");
         link.className = "open-product";
-        link.href = prod.url;
+        link.href = productUrl(prod.url);
         link.target = "_blank";
         link.rel = "noopener";
         link.innerHTML = tr("打开产品 ↗", "Open product ↗");
@@ -735,7 +749,7 @@
           var info = document.createElement("div");
           info.className = "product-plan-info";
           var nm = document.createElement("strong");
-          nm.textContent = isMarkets
+          nm.textContent = likeMarkets
             ? (zh ? p.title_zh || p.title : p.title) || p.plan
             : AI24X_API.planTitle(p) || p.plan;
           info.appendChild(nm);
@@ -743,17 +757,17 @@
           extra.className = "sub";
           extra.style.marginTop = "3px";
           var parts = [];
-          var price = isMarkets
+          var price = likeMarkets
             ? (zh ? p.price_label_zh || p.price_label : p.price_label) || ""
             : AI24X_API.planPriceLabel(p) || "";
           if (price) parts.push(price);
-          var validity = isMarkets
+          var validity = likeMarkets
             ? p.days
               ? (zh ? p.days + " 天有效" : p.days + " days")
               : ""
             : AI24X_API.planValidityLabel(p) || "";
           if (validity) parts.push(validity);
-          var perk = isMarkets
+          var perk = likeMarkets
             ? (zh ? p.perk_zh || p.perk : p.perk) || ""
             : AI24X_API.planOneLiner(p) || "";
           if (perk) parts.push(perk);
@@ -762,14 +776,25 @@
           row.appendChild(info);
           var act = document.createElement("div");
           act.className = "product-plan-act";
-          var sel = document.createElement("button");
-          sel.type = "button";
-          sel.className = "btn btn-primary";
-          sel.textContent = tr("选择", "Choose");
-          sel.addEventListener("click", function () {
-            openPlanPayChooser(pid, p, pay, isMarkets);
-          });
-          act.appendChild(sel);
+          if (isByok) {
+            // BYOK 履约在 open 独立库：用户中心展示套餐，跳 open.ai24x.com 完成开通
+            var byokLink = document.createElement("a");
+            byokLink.className = "btn btn-primary";
+            byokLink.href = openApiBase() + "/pricing.html";
+            byokLink.target = "_blank";
+            byokLink.rel = "noopener";
+            byokLink.textContent = tr("去 open.ai24x.com 开通", "Get BYOK Pro");
+            act.appendChild(byokLink);
+          } else {
+            var sel = document.createElement("button");
+            sel.type = "button";
+            sel.className = "btn btn-primary";
+            sel.textContent = tr("选择", "Choose");
+            sel.addEventListener("click", function () {
+              openPlanPayChooser(pid, p, pay, isMarkets);
+            });
+            act.appendChild(sel);
+          }
           row.appendChild(act);
           plansWrap.appendChild(row);
         });
@@ -1118,6 +1143,7 @@
       pay.alipay_ready ||
       pay.paypal_ready ||
       pay.creem_ready ||
+      pay.dodo_ready ||
       pay.crypto_ready;
     if (channel === "mock" || (!anyReady && pay.mock_allowed)) {
       showMsg(msgBox(), tr("正在创建模拟订单…", "Creating mock order…"), true);
@@ -1161,6 +1187,19 @@
         ),
         true
       );
+    } else if (channel === "dodo") {
+      checkoutWin = openCheckoutPlaceholder(
+        "正在创建 Dodo 订单，请稍候…（勿关闭此窗口）",
+        "Creating Dodo order… Keep this tab open."
+      );
+      showMsg(
+        msgBox(),
+        tr(
+          "正在创建 Dodo 订单，请稍候…（勿关闭此窗口）",
+          "Creating Dodo order… Keep this tab open."
+        ),
+        true
+      );
     } else if (channel === "paypal") {
       checkoutWin = openCheckoutPlaceholder(
         "正在创建 PayPal 订单，请稍候…（勿关闭此窗口）",
@@ -1187,6 +1226,11 @@
                 "正在创建 Creem 订单，请稍候；若未弹出窗口，用下方按钮打开。",
                 "Creating Creem order… If no window opens, use the button below."
               )
+          : channel === "dodo"
+            ? tr(
+                "正在创建 Dodo 订单，请稍候；若未弹出窗口，用下方按钮打开。",
+                "Creating Dodo order… If no window opens, use the button below."
+              )
           : channel === "paypal"
             ? tr(
                 "正在创建 PayPal 订单，请稍候；若未弹出窗口，用下方按钮打开。",
@@ -1204,6 +1248,8 @@
         ? AI24X_API.billingAlipayWap(planId, product)
         : channel === "creem"
           ? AI24X_API.billingCreemOrder(planId, product)
+          : channel === "dodo"
+            ? AI24X_API.billingDodoOrder(planId, product)
           : channel === "paypal"
             ? AI24X_API.billingPaypalOrder(planId, product)
             : channel === "crypto"
@@ -1284,6 +1330,26 @@
             openLabel: tr("打开 Creem", "Open Creem"),
           });
           startFulfillPoll(r.out_trade_no, "creem", planId, product);
+        } else if (channel === "dodo" && r && r.pay_url) {
+          var dodoOpened = navigateCheckoutWin(checkoutWin, r.pay_url);
+          showPayResult({
+            hint:
+              (dodoOpened
+                ? tr("已打开 Dodo，请在新窗口完成付款。", "Dodo opened — finish payment there.")
+                : tr(
+                    "浏览器拦截了新窗口时，请点击下方按钮打开 Dodo。",
+                    "If the browser blocked the window, open Dodo with the button below."
+                  )) +
+              tr(
+                " 付完返回本页会自动确认到账。单号：",
+                " After return, this page auto-confirms. Order: "
+              ) +
+              (r.out_trade_no || "") +
+              (r.amount_usd ? " · $" + r.amount_usd : ""),
+             openUrl: r.pay_url,
+             openLabel: tr("打开 Dodo", "Open Dodo"),
+          });
+          startFulfillPoll(r.out_trade_no, "dodo", planId, product);
         } else if (channel === "paypal" && r && r.pay_url) {
           var ppOpened = navigateCheckoutWin(checkoutWin, r.pay_url);
           showPayResult({
@@ -1380,7 +1446,7 @@
       var amt = ((Number(o.amount_fen) || 0) / 100).toFixed(2);
       // PayPal/Creem/Crypto 单 amount_fen 为 USD 美分；微信/支付宝为 CNY 分
       var moneyLabel =
-        o.channel === "paypal" || o.channel === "creem" || o.channel === "crypto"
+        o.channel === "paypal" || o.channel === "creem" || o.channel === "dodo" || o.channel === "crypto"
           ? "$" + amt
           : AI24X_API.isZhUi()
             ? "¥" + amt
@@ -2689,6 +2755,27 @@
     return "https://markets.ai24x.com";
   }
 
+  /** open.ai24x.com 开发者站地址：本机开发指向本地 18080，公网指向 open.ai24x.com */
+  function openApiBase() {
+    try {
+      var h = String(location.hostname || "").toLowerCase();
+      if (h === "127.0.0.1" || h === "localhost") return "http://127.0.0.1:18080";
+    } catch (e) {}
+    return "https://open.ai24x.com";
+  }
+
+  /** 产品卡片外链：把二级域名换成当前环境（本地开发指 18012/18080），保留路径与深链 */
+  function productUrl(url) {
+    var u = String(url || "");
+    if (/^https?:\/\/markets\.ai24x\.com(?:\/|$)/.test(u)) {
+      return marketsApiBase() + "/" + u.replace(/^https?:\/\/markets\.ai24x\.com/, "").replace(/^\//, "");
+    }
+    if (/^https?:\/\/open\.ai24x\.com(?:\/|$)/.test(u)) {
+      return openApiBase() + "/" + u.replace(/^https?:\/\/open\.ai24x\.com/, "").replace(/^\//, "");
+    }
+    return u;
+  }
+
   function loadMarketsSub() {
     try {
       var token = "";
@@ -3328,6 +3415,36 @@
             showMsg(
               msgBox(),
               (msg || tr("Creem 确认失败", "Creem confirm failed")) +
+                tr(" — 请在「我的订单」点「确认到账」。", " — tap Confirm under My orders"),
+              false
+            );
+          });
+      }
+      if (qs.get("dodo") === "1" && otn) {
+        if (_fulfillPollTimer) {
+          clearInterval(_fulfillPollTimer);
+          _fulfillPollTimer = null;
+        }
+        showMsg(msgBox(), tr("正在确认 Dodo 支付…", "Confirming Dodo…"), true);
+        AI24X_API.billingQueryFulfill(otn, "dodo")
+          .then(function (r) {
+            showMsg(
+              msgBox(),
+              r && r.ok
+                ? AI24X_API.planFulfillMessage(_lastPayPlanId, null, orderProductOf(_lastPayPlanId, r))
+                : tr(
+                    "Dodo 尚未完成，可在「我的订单」点确认到账",
+                    "Dodo pending — tap Confirm under My orders"
+                  ),
+              !!(r && r.ok)
+            );
+            return refreshAll();
+          })
+          .catch(function (e) {
+            var msg = (e && e.message) || "";
+            showMsg(
+              msgBox(),
+              (msg || tr("Dodo 确认失败", "Dodo confirm failed")) +
                 tr(" — 请在「我的订单」点「确认到账」。", " — tap Confirm under My orders"),
               false
             );
