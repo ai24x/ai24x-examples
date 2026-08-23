@@ -2296,13 +2296,17 @@ def _admin_keys() -> tuple[str, str]:
 
 
 def _require_admin_key_only(request: Request) -> None:
-    """仅校验管理密钥（X-Admin-Key），供双因素短信通道先验密钥。"""
-    admin, _ = _admin_keys()
+    """仅校验管理密钥（X-Admin-Key），供双因素短信通道先验密钥。
+
+    双因素模式下接受 ADMIN_API_KEY 或 SMS_INTERNAL_KEY（原登录密码），
+    二者任一正确 + 管理员手机验证码，即可签发管理会话。
+    """
+    admin, sms_k = _admin_keys()
     if not _admin_ip_allowed(request):
         raise HTTPException(status_code=403, detail="禁止访问")
     _admin_rate_limited(request)
     provided = (request.headers.get("X-Admin-Key") or "").strip()
-    if admin and provided == admin:
+    if provided and ((admin and provided == admin) or (sms_k and provided == sms_k)):
         return
     raise HTTPException(status_code=403, detail="禁止访问")
 

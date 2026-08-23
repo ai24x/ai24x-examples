@@ -3527,7 +3527,7 @@
       if (!r.ok) {
         var em = j.detail || j.message || j.error || ("HTTP " + r.status);
         if (r.status === 403 && /禁止|denied|forbidden/i.test(em)) {
-          em += "（管理密钥不正确或未通过双重验证，请确认使用新的 64 位管理密钥）";
+          em += "（管理密钥不正确或未通过双重验证，请使用原登录密码或 64 位管理密钥，并配合手机验证码登录）";
         }
         throw new Error(em);
       }
@@ -3580,7 +3580,7 @@
       if (!r.ok) {
         var em = j.detail || j.message || j.error || ("HTTP " + r.status);
         if (r.status === 403 && /禁止|denied|forbidden/i.test(em)) {
-          em += "（管理密钥不正确或未通过双重验证，请确认使用新的 64 位管理密钥）";
+          em += "（管理密钥不正确或未通过双重验证，请使用原登录密码或 64 位管理密钥，并配合手机验证码登录）";
         }
         throw new Error(em);
       }
