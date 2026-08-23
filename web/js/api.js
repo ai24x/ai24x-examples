@@ -677,6 +677,13 @@
     });
   }
 
+  function billingDodoOrder(plan, product) {
+    return request("/v1/billing/dodo/order", {
+      method: "POST",
+      body: JSON.stringify({ plan: plan, product: product || "token" }),
+    });
+  }
+
   function billingProducts() {
     return request("/v1/billing/products", { method: "GET" });
   }
@@ -722,6 +729,8 @@
           ? "/v1/billing/paypal/capture"
           : channel === "creem"
             ? "/v1/billing/creem/query"
+            : channel === "dodo"
+              ? "/v1/billing/dodo/query"
             : "/v1/billing/wechat/query_and_fulfill";
     return request(path, {
       method: "POST",
@@ -1002,6 +1011,7 @@
     billingAlipayWap: billingAlipayWap,
     billingPaypalOrder: billingPaypalOrder,
     billingCreemOrder: billingCreemOrder,
+    billingDodoOrder: billingDodoOrder,
     billingOrders: billingOrders,
     billingCryptoOrder: billingCryptoOrder,
     billingCryptoSubmit: billingCryptoSubmit,
