@@ -3524,7 +3524,13 @@
         body: JSON.stringify({ mobile: mob, purpose: "login" }),
       });
       var j = await r.json().catch(function () { return {}; });
-      if (!r.ok) throw new Error(j.detail || j.message || ("HTTP " + r.status));
+      if (!r.ok) {
+        var em = j.detail || j.message || j.error || ("HTTP " + r.status);
+        if (r.status === 403 && /禁止|denied|forbidden/i.test(em)) {
+          em += "（管理密钥不正确或未通过双重验证，请确认使用新的 64 位管理密钥）";
+        }
+        throw new Error(em);
+      }
       gm.style.color = "var(--ok)";
       gm.textContent = "验证码已发送，请查收（60 秒后可重发）";
       var btn = $("btnSmsSend"), left = 60;
@@ -3571,7 +3577,13 @@
         body: JSON.stringify({ mobile: mob, code: code }),
       });
       var j = await r.json().catch(function () { return {}; });
-      if (!r.ok) throw new Error(j.detail || j.message || ("HTTP " + r.status));
+      if (!r.ok) {
+        var em = j.detail || j.message || j.error || ("HTTP " + r.status);
+        if (r.status === 403 && /禁止|denied|forbidden/i.test(em)) {
+          em += "（管理密钥不正确或未通过双重验证，请确认使用新的 64 位管理密钥）";
+        }
+        throw new Error(em);
+      }
       state.key = j.key;
       saveSession();
       await api("/v1/admin/token/summary");
