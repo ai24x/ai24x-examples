@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import secrets
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -84,6 +85,88 @@ def authenticate_password(db: Session, *, phone: str | None, email: str | None, 
         return None
     if not verify_password(password, u.password_hash):
         return None
+    return u
+
+
+def resolve_or_create_shadow(
+    db: Session,
+    *,
+    platform_user_id: int | None = None,
+    email: str | None = None,
+    phone: str | None = None,
+) -> Optional[AuthUser]:
+    """国际版统一账号（DEC-0007）：core(www/api.ai24x.com) 用户在本站的影子行。
+
+    查找优先级：platform_user_id 稳定映射 → email/phone 同名复用 → 自动建档。
+    影子行密码为随机不可用哈希（真实密码只在 core 校验，本站不落盘）。
+    """
+    e = norm_email(email) if email else None
+    p = normalize_mobile(phone) if phone else None
+    if platform_user_id:
+        u = (
+            db.query(AuthUser)
+            .filter(AuthUser.platform_user_id == int(platform_user_id))
+            .first()
+        )
+        if u:
+            changed = False
+            if e and not u.email:
+                u.email = e
+                changed = True
+            if p and not u.phone:
+                u.phone = p
+                changed = True
+            if changed:
+                db.commit()
+                db.refresh(u)
+            return u
+    if e:
+        u = get_by_email(db, e)
+        if u:
+            if platform_user_id and not u.platform_user_id:
+                u.platform_user_id = int(platform_user_id)
+                db.commit()
+                db.refresh(u)
+            return u
+    if p:
+        u = get_by_phone(db, p)
+        if u:
+            if platform_user_id and not u.platform_user_id:
+                u.platform_user_id = int(platform_user_id)
+                db.commit()
+                db.refresh(u)
+            return u
+    now = datetime.now(timezone.utc)
+    u = AuthUser(
+        platform_user_id=int(platform_user_id) if platform_user_id else None,
+        phone=p,
+        email=e,
+        password_hash=hash_password(secrets.token_urlsafe(32)),
+        phone_verified_at=now if p else None,
+        email_verified_at=now if e else None,
+    )
+    db.add(u)
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        # 并发竞态：同名 email/phone 已被占用 → 复用现有行
+        if e:
+            u2 = get_by_email(db, e)
+            if u2:
+                if platform_user_id and not u2.platform_user_id:
+                    u2.platform_user_id = int(platform_user_id)
+                    db.commit()
+                return u2
+        if p:
+            u2 = get_by_phone(db, p)
+            if u2:
+                if platform_user_id and not u2.platform_user_id:
+                    u2.platform_user_id = int(platform_user_id)
+                    db.commit()
+                return u2
+        return None
+    db.refresh(u)
     return u
 
 

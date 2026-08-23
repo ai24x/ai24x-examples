@@ -46,11 +46,25 @@
 })();
 </script>
   <script>
-    /* 未登录立刻跳转，减少控制台骨架闪一下再进登录 */
+    /* 未登录立刻跳转，减少控制台骨架闪一下再进登录；
+       先尝试从共享 cookie（主站登录态，Domain=.ai24x.com）恢复会话，
+       避免 api.js 加载前被误判未登录而跳转。 */
     (function () {
       try {
         if (!localStorage.getItem("ai24x_auth_token")) {
-          location.replace("login.html?next=" + encodeURIComponent("console.html"));
+          var m = document.cookie.match(/(?:^|; )ai24x_auth_token=([^;]*)/);
+          var tok = m ? decodeURIComponent(m[1]) : "";
+          if (tok) {
+            localStorage.setItem("ai24x_auth_token", tok);
+            var um = document.cookie.match(/(?:^|; )ai24x_auth_user=([^;]*)/);
+            if (um) {
+              try {
+                localStorage.setItem("ai24x_auth_user", decodeURIComponent(um[1]));
+              } catch (e) {}
+            }
+          } else {
+            location.replace("login.html?next=" + encodeURIComponent("console.html"));
+          }
         }
       } catch (e) {}
     })();
@@ -894,7 +908,7 @@
   </main>
   <footer class="site-footer" id="site-footer"></footer>
   <script src="config/locales.js?v=20260821b"></script>
-  <script src="js/api.js?v=20260823e"></script>
+  <script src="js/api.js?v=20260824a"></script>
   <script src="js/invite.js?v=20260731a"></script>
   <script src="js/utm.js?v=20260802a"></script>
   <script src="js/i18n.js?v=20260812g"></script>

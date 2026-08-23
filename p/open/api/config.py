@@ -57,6 +57,12 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = Field(default=30, validation_alias="ACCESS_TOKEN_EXPIRE_MINUTES")
     # 与行情官 p/a `AI24X_JWT_SECRET` / 过期天数对齐（Bearer 会话）
     auth_jwt_expire_days: int = Field(default=7, validation_alias="AUTH_JWT_EXPIRE_DAYS")
+    # 国际版统一账号（DEC-0007）：身份真源在 core(www/api.ai24x.com)；
+    # open 登录本地无账号时转发 core 校验，并接受 core 签发的 JWT（共享 SECRET_KEY）。
+    ai24x_core_api_base: str = Field(
+        default="https://api.ai24x.com",
+        validation_alias="AI24X_CORE_API_BASE",
+    )
 
     app_env: str = Field(default="dev", validation_alias="APP_ENV")
     

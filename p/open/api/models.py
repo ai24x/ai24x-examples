@@ -123,6 +123,9 @@ class AuthUser(Base):
     __tablename__ = "auth_users"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    # 国际版统一账号（DEC-0007）：core(www/api.ai24x.com) 用户在本站的影子映射。
+    # core 用户首次登录/带 core JWT 访问时自动建档；open 本地注册用户为 NULL。
+    platform_user_id = Column(Integer, unique=True, nullable=True, index=True)
     phone = Column(String(20), unique=True, nullable=True, index=True)
     email = Column(String(255), unique=True, nullable=True, index=True)
     password_hash = Column(String(255), nullable=False)

@@ -75,15 +75,96 @@
     else localStorage.removeItem(STORAGE_USER);
   }
 
+  /**
+   * 国际版统一账号（DEC-0007）：与主站 www/api.ai24x.com 共享登录态。
+   * - 生产：写 Domain=.ai24x.com 的 cookie，www/open 等子域共享
+   * - 本机：无 Domain 的 host-only cookie（浏览器忽略端口，127.0.0.1 各端口可读）
+   * 注意：cookie 对 .ai24x.com 全部子域可见，仅存登录会话 token，不放 API Key。
+   */
+  var AUTH_COOKIE = "ai24x_auth_token";
+  var AUTH_USER_COOKIE = "ai24x_auth_user";
+  function authCookieDomain() {
+    var h = (location.hostname || "").toLowerCase();
+    return h === "ai24x.com" || h.endsWith(".ai24x.com") ? ".ai24x.com" : "";
+  }
+  function readCookie(name) {
+    try {
+      var esc = name.replace(/([.$?*|{}()[\]\\/+^])/g, "\\$1");
+      var m = document.cookie.match(new RegExp("(?:^|; )" + esc + "=([^;]*)"));
+      return m ? decodeURIComponent(m[1]) : "";
+    } catch (e) {
+      return "";
+    }
+  }
+  function writeAuthCookie(token) {
+    try {
+      if (!token) return;
+      var d = authCookieDomain();
+      var secure = location.protocol === "https:" ? "; Secure" : "";
+      document.cookie =
+        AUTH_COOKIE +
+        "=" +
+        encodeURIComponent(token) +
+        "; path=/; max-age=2592000; SameSite=Lax" +
+        (d ? "; domain=" + d : "") +
+        secure;
+    } catch (e) {}
+  }
+  function writeAuthUserCookie(user) {
+    try {
+      if (!user) return;
+      var d = authCookieDomain();
+      var secure = location.protocol === "https:" ? "; Secure" : "";
+      document.cookie =
+        AUTH_USER_COOKIE +
+        "=" +
+        encodeURIComponent(JSON.stringify(user)) +
+        "; path=/; max-age=2592000; SameSite=Lax" +
+        (d ? "; domain=" + d : "") +
+        secure;
+    } catch (e) {}
+  }
+  function clearAuthCookie() {
+    try {
+      var d = authCookieDomain();
+      document.cookie =
+        AUTH_COOKIE + "=; path=/; max-age=0; SameSite=Lax" + (d ? "; domain=" + d : "");
+      document.cookie =
+        AUTH_USER_COOKIE + "=; path=/; max-age=0; SameSite=Lax" + (d ? "; domain=" + d : "");
+    } catch (e) {}
+  }
+  /**
+   * 页面加载时把共享 cookie 会话同步到 localStorage：
+   * 主站登录后打开 open 任意页 → 自动恢复登录态（后端同密钥校验 + 影子用户）。
+   */
+  function syncAuthFromCookie() {
+    try {
+      var token = readCookie(AUTH_COOKIE);
+      if (!token) return;
+      if (localStorage.getItem(STORAGE_TOKEN) === token) return;
+      setAuthToken(token);
+      var raw = readCookie(AUTH_USER_COOKIE);
+      if (raw) {
+        try {
+          setAuthUser(JSON.parse(raw));
+        } catch (e) {}
+      }
+    } catch (e) {}
+  }
+  syncAuthFromCookie();
+
   function clearAuth() {
     localStorage.removeItem(STORAGE_TOKEN);
     localStorage.removeItem(STORAGE_USER);
+    clearAuthCookie();
   }
 
   function saveAuthSession(data) {
     if (!data || !data.token) return;
     setAuthToken(data.token);
     if (data.user) setAuthUser(data.user);
+    writeAuthCookie(data.token);
+    if (data.user) writeAuthUserCookie(data.user);
   }
 
   /**

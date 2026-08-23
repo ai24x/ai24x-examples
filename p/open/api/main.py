@@ -1183,10 +1183,56 @@ async def auth_login(request: Request, body: AuthLoginBody, db: Session = Depend
         password=body.password,
     )
     if not u:
+        # 国际版统一账号（DEC-0007）：本地无此账号 → 转发 core 验证。
+        # core 为身份真源；验证通过后本站自动建档影子用户，密码不落盘。
+        core_res, core_err = await _core_login(
+            phone=body.phone,
+            email=body.email,
+            password=body.password,
+        )
+        if core_res:
+            clear_login_failures(identity=identity, ip=ip)
+            core_user = core_res.get("user") or {}
+            core_token = (core_res.get("token") or "").strip()
+            from auth_user_service import resolve_or_create_shadow
+
+            u = resolve_or_create_shadow(
+                db,
+                platform_user_id=int(core_user.get("id") or 0) or None,
+                email=core_user.get("email") or body.email,
+                phone=core_user.get("phone") or body.phone,
+            )
+            if not u:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="手机号或密码错误，请检查后重试。",
+                )
+            raise_if_frozen(u)
+            if not core_token:
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail="登录服务暂时不可用，请稍后再试。",
+                )
+            return AuthTokenResponse(
+                token=core_token,
+                user={"id": int(u.id), "email": u.email or "", "phone": u.phone or ""},
+            )
+        if core_err == "bad_credentials":
+            record_login_failure(identity=identity, ip=ip)
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="手机号或密码错误，请检查后重试。",
+            )
+        if core_err == "too_many":
+            record_login_failure(identity=identity, ip=ip)
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="尝试过于频繁，请稍后再试。",
+            )
         record_login_failure(identity=identity, ip=ip)
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="手机号或密码错误，请检查后重试。",
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="登录服务暂时不可用，请稍后再试。",
         )
     clear_login_failures(identity=identity, ip=ip)
     raise_if_frozen(u)
@@ -1201,6 +1247,44 @@ async def auth_login(request: Request, body: AuthLoginBody, db: Session = Depend
         token=token,
         user={"id": int(u.id), "email": u.email or "", "phone": u.phone or ""},
     )
+
+
+async def _core_login(*, phone: str | None, email: str | None, password: str):
+    """转发 core /v1/auth/login 校验国际版统一账号（DEC-0007）。
+
+    返回 (payload_dict | None, err_code | "")；密码只经 HTTPS 转发，不落盘、不打日志。
+    """
+    base = (
+        (getattr(settings, "ai24x_core_api_base", "") or "https://api.ai24x.com")
+        .strip()
+        .rstrip("/")
+    )
+    if not base.startswith("http"):
+        return None, "core_base_invalid"
+    body = {"password": password}
+    if email:
+        body["email"] = email
+    if phone:
+        body["phone"] = phone
+    try:
+        import httpx
+
+        async with httpx.AsyncClient(timeout=12.0) as client:
+            r = await client.post(base + "/v1/auth/login", json=body)
+    except Exception:
+        logger.warning("core auth proxy request failed for base=%s", base)
+        return None, "core_unavailable"
+    if r.status_code == 200:
+        try:
+            return r.json(), ""
+        except Exception:
+            return None, "core_bad_response"
+    if r.status_code == 401:
+        return None, "bad_credentials"
+    if r.status_code == 429:
+        return None, "too_many"
+    logger.warning("core auth proxy unexpected status=%s", r.status_code)
+    return None, "core_unavailable"
 
 
 @app.get("/v1/auth/captcha")
@@ -1482,9 +1566,55 @@ def _auth_user_from_bearer(request: Request, db: Session) -> AuthUser:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="登录已失效")
     u = db.query(AuthUser).filter(AuthUser.id == uid).first()
     if not u:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="用户不存在")
+        # 国际版统一账号（DEC-0007）：token 可能由 core（共享 SECRET_KEY）签发，
+        # sub 为 core 用户 id → 自动解析/建档本站影子用户。
+        from auth_user_service import resolve_or_create_shadow
+
+        u = resolve_or_create_shadow(
+            db,
+            platform_user_id=uid,
+            email=str(payload.get("email") or "") or None,
+            phone=str(payload.get("phone") or "") or None,
+        )
+        if not u:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="用户不存在")
     raise_if_frozen(u)
     return u
+
+
+@app.post("/v1/auth/session", response_model=AuthTokenResponse)
+async def auth_session_from_cookie(request: Request, db: Session = Depends(get_db)):
+    """国际版统一账号（DEC-0007）：从共享 cookie 恢复会话。
+
+    主站（www/api.ai24x.com）登录后会写 Domain=.ai24x.com 的 cookie（核心 JWT），
+    open 与 core 共享 SECRET_KEY → 本站直接校验并自动建档影子用户，实现
+    「主站登录 → open 自动登录」。
+    """
+    raw = (request.cookies.get("ai24x_auth_token") or "").strip()
+    if not raw:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="无会话")
+    try:
+        from jose import JWTError, jwt
+
+        payload = jwt.decode(raw, settings.secret_key, algorithms=["HS256"])
+        uid = int(payload["sub"])
+    except (JWTError, ValueError, TypeError, KeyError):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="会话已失效")
+    from auth_user_service import resolve_or_create_shadow
+
+    u = resolve_or_create_shadow(
+        db,
+        platform_user_id=uid,
+        email=str(payload.get("email") or "") or None,
+        phone=str(payload.get("phone") or "") or None,
+    )
+    if not u:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="会话已失效")
+    raise_if_frozen(u)
+    return AuthTokenResponse(
+        token=raw,
+        user={"id": int(u.id), "email": u.email or "", "phone": u.phone or ""},
+    )
 
 
 def _auth_user_from_api_key_or_jwt(request: Request, db: Session) -> AuthUser:
