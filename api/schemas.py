@@ -191,6 +191,17 @@ class AdminSmsLoginBody(BaseModel):
     code: str = Field(..., min_length=4, max_length=16)
 
 
+class AdminSmsConfigBody(BaseModel):
+    """管理后台短信配置保存（写入主站 api/.env 的 SMS_106_*，重启 core 后生效）。"""
+
+    enabled: Optional[bool] = None
+    endpoint: Optional[str] = Field(default=None, max_length=512)
+    account: Optional[str] = Field(default=None, max_length=128)
+    password: Optional[str] = Field(default=None, max_length=128)
+    sign_name: Optional[str] = Field(default=None, max_length=64)
+    template: Optional[str] = Field(default=None, max_length=600)
+
+
 class AuthRegisterBody(BaseModel):
     """手机注册须短信验证码；邮箱注册须邮箱验证码（进程内 OTP，生产换 Redis+邮件）。"""
 

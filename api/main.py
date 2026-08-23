@@ -41,6 +41,7 @@ from schemas import (
     ChatResponse,
     ErrorResponse,
     AdminSmsLoginBody,
+    AdminSmsConfigBody,
     InternalSmsVerifyConsumeIn,
     SmsSendRequest,
     SmsSendResponse,
@@ -1092,11 +1093,9 @@ def _mask_secret_tail(s: str | None, keep_tail: int = 4) -> str:
 
 @app.get("/v1/admin/sms/effective")
 async def admin_sms_effective(request: Request):
-    """管理端读取主站 106 短信“当前生效配置”（便于维护参考）。必须提供 X-SMS-Internal-Key。"""
-    if not (settings.sms_internal_key or "").strip():
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="短信服务暂时不可用，请稍后再试。")
-    if (request.headers.get("X-SMS-Internal-Key") or "").strip() != settings.sms_internal_key:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="禁止访问")
+    """管理端读取主站 106 短信“当前生效配置”（便于维护参考）。
+    鉴权：管理员会话/密钥 或 X-SMS-Internal-Key（子站转发）任一通过即可。"""
+    _require_admin_or_internal(request)
     return {
         "ok": True,
         "sms_106_enabled": bool(settings.sms_106_enabled),
@@ -1124,11 +1123,8 @@ async def admin_sms_logs(
     limit: int = 50,
     offset: int = 0,
 ):
-    """查询短信发送记录（需 X-SMS-Internal-Key）。"""
-    if not (settings.sms_internal_key or "").strip():
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="短信服务暂时不可用，请稍后再试。")
-    if (request.headers.get("X-SMS-Internal-Key") or "").strip() != settings.sms_internal_key:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="禁止访问")
+    """查询短信发送记录（管理员会话/密钥 或 X-SMS-Internal-Key 任一通过）。"""
+    _require_admin_or_internal(request)
     q = db.query(SmsSendLog)
     if phone:
         q = q.filter(SmsSendLog.phone.like(f"%{phone}%"))
@@ -2343,6 +2339,14 @@ def _require_internal_key(request: Request) -> None:
     raise HTTPException(status_code=403, detail="禁止访问")
 
 
+def _require_admin_or_internal(request: Request) -> None:
+    """短信管理接口鉴权：子站转发走 X-SMS-Internal-Key；管理后台走密钥/管理员会话。"""
+    if settings.sms_internal_key:
+        if (request.headers.get("X-SMS-Internal-Key") or "").strip() == settings.sms_internal_key:
+            return
+    _require_internal_key(request)
+
+
 @app.get("/v1/admin/auth/mode")
 async def admin_auth_mode():
     """公开探针：管理后台登录模式（仅返回开关状态，不含任何密钥）。"""
@@ -2417,6 +2421,70 @@ async def admin_sms_login(request: Request, body: AdminSmsLoginBody):
     if not verify_and_consume_otp(mob, "admin_login", body.code or ""):
         raise HTTPException(status_code=403, detail="验证码错误或已过期，请重新获取")
     return {"ok": True, "key": _admin_sms_issue_token(), "expires_in": 1800}
+
+
+def _upsert_env_values(updates: dict[str, str]) -> bool:
+    """把键值写入 api/.env（存在则替换、不存在则追加），UTF-8 无 BOM。"""
+    env_path = Path(__file__).resolve().parent / ".env"
+    if not env_path.exists():
+        return False
+    lines = env_path.read_text(encoding="utf-8").splitlines()
+    pending = dict(updates)
+    out: list[str] = []
+    for ln in lines:
+        key = ln.split("=", 1)[0].strip() if "=" in ln else ""
+        if key in pending:
+            out.append(f"{key}={pending.pop(key)}")
+        else:
+            out.append(ln)
+    for k, v in pending.items():
+        out.append(f"{k}={v}")
+    env_path.write_text("\n".join(out) + "\n", encoding="utf-8")
+    return True
+
+
+@app.put("/v1/admin/sms/config")
+async def admin_sms_config_update(request: Request, body: AdminSmsConfigBody):
+    """保存主站 106 短信配置（SMS_106_*）到 api/.env，重启 core 后生效。
+    仅管理端（密钥/管理员会话）可写；password 留空表示保持原值。"""
+    _require_internal_key(request)
+    updates: dict[str, str] = {}
+    if body.enabled is not None:
+        updates["SMS_106_ENABLED"] = "true" if body.enabled else "false"
+    if body.endpoint is not None:
+        updates["SMS_106_ENDPOINT"] = (body.endpoint or "").strip()
+    if body.account is not None:
+        updates["SMS_106_ACCOUNT"] = (body.account or "").strip()
+    if body.password is not None and (body.password or "").strip():
+        updates["SMS_106_PASSWORD"] = body.password.strip()
+    if body.sign_name is not None:
+        updates["SMS_106_SIGN_NAME"] = (body.sign_name or "").strip()
+    if body.template is not None and (body.template or "").strip():
+        updates["SMS_106_TEMPLATE"] = body.template.strip()
+    if not updates:
+        raise HTTPException(status_code=400, detail="没有需要保存的配置项")
+    if not _upsert_env_values(updates):
+        raise HTTPException(status_code=500, detail="未找到 api/.env，保存失败")
+    return {"ok": True, "message": "配置已保存，重启 core 服务后生效", "restart_required": True}
+
+
+@app.post("/v1/admin/sms/restart")
+async def admin_sms_restart(request: Request):
+    """触发 AI24X-core 服务重启（延迟 1 秒执行，让响应先返回）。"""
+    _require_internal_key(request)
+    if os.name != "nt":
+        raise HTTPException(status_code=501, detail="仅 Windows 服务环境支持")
+    service = os.environ.get("CORE_SERVICE_NAME", "AI24X-core")
+    script = f"Start-Sleep -Seconds 1; Restart-Service {service} -Force"
+    try:
+        subprocess.Popen(
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) | getattr(subprocess, "DETACHED_PROCESS", 0),
+            close_fds=True,
+        )
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=f"触发重启失败：{e}")
+    return {"ok": True, "message": "core 正在重启（约 5-10 秒），请稍候刷新页面", "restarting": True}
 
 
 @app.get("/v1/billing/plans")

@@ -354,6 +354,10 @@
               Token 托管套餐
               <span class="subt">token 额度 / VIP 价目 · 可改可存</span>
             </button>
+            <button type="button" class="nav-item" data-panel="p-sms">
+              短信与统一身份
+              <span class="subt">106 通道状态 · 配置 · 发送记录</span>
+            </button>
           </div>
         </div>
 
@@ -776,6 +780,70 @@
                     </tr>
                   </thead>
                   <tbody id="plansBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-page" id="p-sms">
+            <div class="card">
+              <div class="row" style="justify-content:space-between;align-items:flex-start;">
+                <div>
+                  <h2 style="margin:0;">短信与统一身份</h2>
+                  <p class="muted small" style="margin:6px 0 0;" id="smsOpsNote">
+                    106 网关：当前生效配置只读展示（.env）。修改后点「保存配置」，再点「重启 core 生效」。
+                  </p>
+                </div>
+                <div class="row">
+                  <button type="button" id="btnSmsCfgRefresh">刷新</button>
+                  <button type="button" class="ok" id="btnSmsCfgSave">保存配置</button>
+                  <button type="button" class="warn" id="btnSmsCfgRestart">重启 core 生效</button>
+                </div>
+              </div>
+              <div class="grid" id="smsStatusGrid" style="margin-top:10px;"></div>
+            </div>
+
+            <div class="card">
+              <h2>106 网关配置</h2>
+              <div class="row" style="margin-top:10px;">
+                <div class="field" style="flex:1; min-width:260px;"><span class="lbl">接口地址（endpoint）</span><input id="sms_endpoint" class="mono" style="width:100%;" /></div>
+                <div class="field" style="min-width:160px;"><span class="lbl">账号（account）</span><input id="sms_account" class="mono" autocomplete="off" style="width:100%;" /></div>
+                <div class="field" style="min-width:180px;"><span class="lbl">密码（password，留空不修改）</span><input id="sms_password" type="password" autocomplete="off" style="width:100%;" placeholder="已配置（不回显）" /></div>
+              </div>
+              <div class="row">
+                <div class="field" style="min-width:200px;"><span class="lbl">签名（sign_name）</span><input id="sms_sign_name" style="width:100%;" placeholder="可留空" /></div>
+                <div class="field" style="flex:1; min-width:220px;"><span class="lbl">通道开关</span>
+                  <label style="display:flex;align-items:center;gap:8px;padding-top:4px;">
+                    <input id="sms_enabled" type="checkbox" /> 启用 106 短信通道
+                  </label>
+                </div>
+              </div>
+              <div class="field"><span class="lbl">内容模板（须含 {code}，与 106 平台审核文案一致）</span><textarea id="sms_template" rows="2" style="width:100%; resize:vertical;"></textarea></div>
+              <p class="muted small" id="smsCfgHint" style="margin-top:6px;"></p>
+            </div>
+
+            <div class="card">
+              <div class="row" style="justify-content:space-between;margin-bottom:8px;">
+                <h2 style="margin:0;">发送测试</h2>
+                <div class="row">
+                  <div class="field" style="min-width:180px;"><span class="lbl">手机号</span><input id="sms_test_phone" value="18958992226" style="width:100%;" /></div>
+                  <button type="button" class="ok" id="btnSmsTestSend" style="align-self:flex-end;">发送测试验证码</button>
+                </div>
+              </div>
+              <p class="muted small" style="margin:0;" id="smsTestResult">
+                仅 ADMIN_PHONE（管理员手机号）可收；网关回包可能需 20-40 秒。
+              </p>
+            </div>
+
+            <div class="card">
+              <div class="row" style="justify-content:space-between;margin-bottom:8px;">
+                <h2 style="margin:0;">发送记录</h2>
+                <button type="button" id="btnSmsLogsRefresh">刷新记录</button>
+              </div>
+              <div style="overflow:auto;">
+                <table>
+                  <thead><tr><th>时间</th><th>手机号</th><th>用途</th><th>通道</th><th>状态</th><th>说明</th></tr></thead>
+                  <tbody id="smsLogsBody"></tbody>
                 </table>
               </div>
             </div>
@@ -3165,6 +3233,128 @@
     await loadOpenPlans();
   }
 
+  function _smsMaskPhone(p) {
+    p = String(p || "");
+    if (p.length >= 7) return p.slice(0, 3) + "****" + p.slice(-4);
+    return p;
+  }
+
+  function _smsStatusCell(status) {
+    var s = String(status || "");
+    var ok = s === "ok" || s === "success" || s === "sent";
+    var cls = ok ? "ok" : "bad";
+    return '<span class="pill ' + cls + '">' + esc(s || "-") + "</span>";
+  }
+
+  async function loadSmsConfig() {
+    var grid = $("smsStatusGrid");
+    if (grid) grid.innerHTML = "<p class='muted small'>加载中…</p>";
+    var r = await api("/v1/admin/sms/effective");
+    if (grid) {
+      var items = [
+        ["通道", "106接口网", r.sms_106_enabled ? "启用" : "停用", "pill " + (r.sms_106_enabled ? "ok" : "bad")],
+        ["接口地址", r.sms_106_endpoint || "-", "", ""],
+        ["账号", r.sms_106_account_set ? r.sms_106_account : "-", r.sms_106_account_set ? "已配置" : "未配置", "pill " + (r.sms_106_account_set ? "ok" : "bad")],
+        ["密码", r.sms_106_password_set ? r.sms_106_password_masked : "-", r.sms_106_password_set ? "已配置" : "未配置", "pill " + (r.sms_106_password_set ? "ok" : "bad")],
+        ["签名", r.sms_106_sign_name || "-", "", ""],
+        ["模板", (r.sms_106_template || "-").length > 70 ? (r.sms_106_template || "-").slice(0, 70) + "…" : (r.sms_106_template || "-"), "", ""]
+      ];
+      grid.innerHTML = items.map(function (it) {
+        var badge = it[2]
+          ? '<div style="margin-top:4px;"><span class="' + it[3] + '">' + it[2] + "</span></div>"
+          : "";
+        return (
+          '<div class="card" style="margin:0;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg2,#0f1419);">' +
+          '<div class="muted small">' + it[0] + "</div>" +
+          '<div class="mono small" style="margin-top:4px;word-break:break-all;">' + esc(it[1]) + "</div>" +
+          badge +
+          "</div>"
+        );
+      }).join("");
+    }
+    if ($("sms_endpoint")) $("sms_endpoint").value = r.sms_106_endpoint || "";
+    if ($("sms_account")) $("sms_account").value = r.sms_106_account || "";
+    if ($("sms_password")) $("sms_password").value = "";
+    if ($("sms_sign_name")) $("sms_sign_name").value = r.sms_106_sign_name || "";
+    if ($("sms_template")) $("sms_template").value = r.sms_106_template || "";
+    if ($("sms_enabled")) $("sms_enabled").checked = !!r.sms_106_enabled;
+    var hint = $("smsCfgHint");
+    if (hint) {
+      hint.textContent = r.sms_106_password_set
+        ? "密码已配置（出于安全不回显完整值）。修改后点「保存配置」，再点「重启 core 生效」。"
+        : "当前未配置密码，请填写后保存。";
+    }
+  }
+
+  async function loadSmsLogs() {
+    var body = $("smsLogsBody");
+    if (!body) return;
+    body.innerHTML = "<tr><td colspan='6' class='muted small'>加载中…</td></tr>";
+    try {
+      var r = await api("/v1/admin/sms/logs?limit=50");
+      body.innerHTML = "";
+      if (!r.rows || !r.rows.length) {
+        body.innerHTML = "<tr><td colspan='6' class='muted small'>暂无发送记录</td></tr>";
+        return;
+      }
+      r.rows.forEach(function (row) {
+        var tr = document.createElement("tr");
+        tr.innerHTML =
+          "<td class='mono small'>" + esc(row.created_at || "-") + "</td>" +
+          "<td>" + esc(_smsMaskPhone(row.phone)) + "</td>" +
+          "<td>" + esc(row.purpose || "-") + "</td>" +
+          "<td>" + esc(row.provider || "-") + "</td>" +
+          "<td>" + _smsStatusCell(row.status) + "</td>" +
+          "<td class='muted small'>" + esc(row.error_msg || "-") + "</td>";
+        body.appendChild(tr);
+      });
+    } catch (e) {
+      body.innerHTML = "<tr><td colspan='6' class='muted small'>" + esc(e.message || e) + "</td></tr>";
+    }
+  }
+
+  async function saveSmsConfig() {
+    var body = {
+      enabled: !!( $("sms_enabled") && $("sms_enabled").checked),
+      endpoint: $("sms_endpoint").value.trim(),
+      account: $("sms_account").value.trim(),
+      sign_name: $("sms_sign_name").value.trim(),
+      template: $("sms_template").value.trim()
+    };
+    var pw = $("sms_password").value;
+    if (pw.trim()) body.password = pw.trim();
+    var r = await api("/v1/admin/sms/config", { method: "PUT", body: body });
+    if ($("sms_password")) $("sms_password").value = "";
+    setMsg(r.message || "短信配置已保存，需重启 core 生效", "ok");
+    await loadSmsConfig();
+  }
+
+  async function restartCoreSms() {
+    if (!window.confirm("确认重启 AI24X-core 服务？约 5-10 秒管理后台不可用。")) return;
+    try {
+      var r = await api("/v1/admin/sms/restart", { method: "POST", body: {} });
+      setMsg(r.message || "core 正在重启", "ok");
+    } catch (e) {
+      if (e && e.auth) { handleAuthFail(e); return; }
+      setMsg("已触发重启（若本页无响应属正常，服务重启中，稍后刷新页面即可）。" + (e && e.message ? " 详情：" + e.message : ""), "ok");
+    }
+  }
+
+  async function sendSmsTest() {
+    var phone = String($("sms_test_phone").value || "").trim();
+    var out = $("smsTestResult");
+    if (!phone) { if (out) out.textContent = "请填写手机号"; return; }
+    if (out) out.textContent = "发送中（网关回包可能需 20-40 秒）…";
+    try {
+      var r = await api("/v1/admin/sms/send", { method: "POST", body: { mobile: phone, purpose: "test" } });
+      if (out) out.textContent = "已发送：" + (r.message || "ok") + "（60 秒后可重发）";
+      await loadSmsLogs();
+    } catch (e) {
+      if (e && e.auth) { handleAuthFail(e); return; }
+      if (out) out.textContent = "发送失败：" + (e.message || e);
+    }
+  }
+
   async function refreshCurrentPanel() {
     var p = state.panel || "p-dash";
     if (p === "p-dash") {
@@ -3185,6 +3375,10 @@
     } else if (p === "p-prod-open") {
       await loadOpenPlans();
       setMsg("Open BYOK 套餐已刷新", "ok");
+    } else if (p === "p-sms") {
+      await loadSmsConfig();
+      await loadSmsLogs();
+      setMsg("短信与统一身份已刷新", "ok");
     } else if (p === "p-channels") {
       await loadChannelsDetail();
       setMsg("通道状态已刷新", "ok");
@@ -3460,6 +3654,26 @@
   };
   $("btnOpenPlansSave").onclick = async function () {
     try { await saveOpenPlans(); }
+    catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+  $("btnSmsCfgRefresh").onclick = async function () {
+    try { await loadSmsConfig(); await loadSmsLogs(); setMsg("短信配置已刷新", "ok"); }
+    catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+  $("btnSmsCfgSave").onclick = async function () {
+    try { await saveSmsConfig(); }
+    catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+  $("btnSmsCfgRestart").onclick = async function () {
+    try { await restartCoreSms(); }
+    catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+  $("btnSmsTestSend").onclick = async function () {
+    try { await sendSmsTest(); }
+    catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+  $("btnSmsLogsRefresh").onclick = async function () {
+    try { await loadSmsLogs(); setMsg("发送记录已刷新", "ok"); }
     catch (e) { setMsg(String(e.message || e), "err"); }
   };
   $("btnMkPlans").onclick = function () { showPanel("p-prod-plans"); };
