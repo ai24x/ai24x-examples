@@ -423,12 +423,13 @@
     var hint = $("payHint");
     if (hint) {
       if (zh) {
-        if (pay.enabled && (pay.wechat_ready || pay.alipay_ready || pay.paypal_ready || pay.creem_ready)) {
+        if (pay.enabled && (pay.wechat_ready || pay.alipay_ready || pay.paypal_ready || pay.creem_ready || pay.dodo_ready)) {
           var ch = [];
           if (pay.wechat_ready) ch.push("微信");
           if (pay.alipay_ready) ch.push("支付宝");
           if (pay.paypal_ready) ch.push("PayPal");
           if (pay.creem_ready) ch.push("Creem");
+          if (pay.dodo_ready) ch.push("Dodo");
           hint.textContent =
             "选择套餐后可用 " +
             ch.join(" / ") +
@@ -442,12 +443,13 @@
           hint.textContent = "在线支付暂未开放。";
         }
       } else {
-        if (pay.enabled && (pay.wechat_ready || pay.alipay_ready || pay.paypal_ready || pay.creem_ready)) {
+        if (pay.enabled && (pay.wechat_ready || pay.alipay_ready || pay.paypal_ready || pay.creem_ready || pay.dodo_ready)) {
           var enCh = [];
           if (pay.wechat_ready) enCh.push("WeChat");
           if (pay.alipay_ready) enCh.push("Alipay");
           if (pay.paypal_ready) enCh.push("PayPal");
           if (pay.creem_ready) enCh.push("Creem");
+          if (pay.dodo_ready) enCh.push("Dodo");
           hint.textContent =
             "Choose a plan and pay with " +
             enCh.join(" / ") +
@@ -531,38 +533,16 @@
       payTd.className = "plan-compare-pay";
       var actions = document.createElement("div");
       actions.className = "card-actions plan-compare-actions";
-      function addBtn(label, cls, channel) {
-        var btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = cls + (channel !== "mock" ? " btn-pay" : "");
-        btn.innerHTML = (channel !== "mock" ? payIconSvg(channel) : "") + "<span>" + label + "</span>";
-        btn.setAttribute("data-pay-channel", channel);
-        btn.addEventListener("click", function () {
-          buyPlan(p.plan, channel, p);
-        });
-        actions.appendChild(btn);
-      }
-      if (pay.wechat_ready) addBtn(tr("微信", "WeChat"), "btn", "wechat");
-      if (pay.alipay_ready) addBtn(tr("支付宝", "Alipay"), "btn", "alipay");
-      if (pay.paypal_ready) addBtn("PayPal", "btn btn-primary", "paypal");
-      if (pay.creem_ready) addBtn("Creem", "btn btn-primary", "creem");
-      if (pay.crypto_ready) addBtn("USDT", "btn btn-usdt", "crypto");
-      if (pay.mock_allowed) addBtn(tr("模拟", "Mock"), "btn", "mock");
-      if (
-        !pay.wechat_ready &&
-        !pay.alipay_ready &&
-        !pay.paypal_ready &&
-        !pay.creem_ready &&
-        !pay.crypto_ready &&
-        !pay.mock_allowed
-      ) {
-        var disabled = document.createElement("button");
-        disabled.type = "button";
-        disabled.className = "btn";
-        disabled.disabled = true;
-        disabled.textContent = tr("暂不可买", "Unavailable");
-        actions.appendChild(disabled);
-      }
+      var sel = document.createElement("button");
+      sel.type = "button";
+      sel.className = "btn btn-primary";
+      sel.textContent = tr("选择", "Choose");
+      sel.setAttribute("data-buy-plan", String(p.plan || ""));
+      sel.setAttribute("data-buy-product", "token");
+      sel.addEventListener("click", function () {
+        openPlanPayChooser(p.plan, p, pay, "token");
+      });
+      actions.appendChild(sel);
       payTd.appendChild(actions);
       trEl.appendChild(payTd);
       tbody.appendChild(trEl);
@@ -903,6 +883,13 @@
         '<path fill="#7C3AED" d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm0 2v10h16V7H4zm2 2h4v2H6V9zm6 0h6v2h-6V9z"/></svg>'
       );
     }
+    if (channel === "dodo") {
+      return (
+        '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+        '<circle cx="12" cy="12" r="10" fill="#101B3C"/>' +
+        '<path fill="#00D1B2" d="M7.2 15.2h3.2V12H7.2v3.2zm6.4 0h3.2V12h-3.2v3.2zM7.2 8.8h3.2V5.6H7.2v3.2zm6.4 0h3.2V5.6h-3.2v3.2z"/></svg>'
+      );
+    }
     if (channel === "paypal") {
       return (
         '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
@@ -1001,59 +988,87 @@
     }
     var zh = AI24X_API.isZhUi();
     var sub = window.__byokSub || {};
+    var wrap = document.createElement("div");
+    wrap.className = "plan-compare-wrap";
+    var table = document.createElement("table");
+    table.className = "plan-compare";
+    table.innerHTML =
+      "<thead><tr>" +
+      "<th>" +
+      tr("套餐", "Plan") +
+      "</th><th>" +
+      tr("价格", "Price") +
+      "</th><th>" +
+      tr("权益", "Included") +
+      "</th><th>" +
+      tr("有效期", "Validity") +
+      "</th><th>" +
+      tr("购买", "Buy") +
+      "</th></tr></thead>";
+    var tbody = document.createElement("tbody");
     plans.forEach(function (p) {
-      var card = document.createElement("div");
-      card.className = "plan-card" + (p.recommended ? " is-rec" : "");
-      card.setAttribute("data-plan", String(p.plan));
-      card.setAttribute("data-product", "byok");
-      var rec = p.recommended ? '<span class="plan-card-rec">' + tr("推荐", "Rec") + "</span>" : "";
-      var title = zh ? p.title_zh || p.title_en || p.plan : p.title_en || p.title_zh || p.plan;
+      var trEl = document.createElement("tr");
+      trEl.className = p.recommended ? "is-recommended" : "";
+      if (p.plan) trEl.setAttribute("data-plan", String(p.plan));
+      var nameCell = document.createElement("td");
+      nameCell.className = "vp-name-cell";
+      nameCell.innerHTML =
+        "<strong>" +
+        (zh ? p.title_zh || p.title_en || p.plan : p.title_en || p.title_zh || p.plan) +
+        "</strong>" +
+        (p.recommended ? '<span class="plan-rec">' + tr("推荐", "Rec") + "</span>" : "");
+      trEl.appendChild(nameCell);
+      function tdText(t) {
+        var td = document.createElement("td");
+        td.textContent = t;
+        return td;
+      }
+      trEl.appendChild(tdText("$" + Number(p.price_usd || 0).toFixed(2)));
+      var feats = (zh ? p.features_zh || [] : p.features_en || []) || [];
       var one = zh ? p.one_liner_zh || "" : p.one_liner_en || "";
-      var feats = zh ? p.features_zh || [] : p.features_en || [];
-      var price = "$" + Number(p.price_usd || 0).toFixed(2);
-      var period = Number(p.days) === 365 ? tr("/年", "/year") : tr("/月", "/month");
-      var featsHtml = (feats || [])
-        .map(function (f) {
-          return "<li>" + f + "</li>";
-        })
-        .join("");
+      trEl.appendChild(tdText([one].concat(feats.slice(0, 3)).filter(Boolean).join(" · ") || "—"));
+      var days = Number(p.days || 0);
+      trEl.appendChild(
+        tdText(
+          days === 365
+            ? tr("1 年", "1 year")
+            : days === 30
+              ? tr("1 月", "1 month")
+              : days
+                ? days + tr(" 天", " days")
+                : "—"
+        )
+      );
       var isActive = !!(sub.active && sub.plan === String(p.plan));
-      var actHtml = isActive
-        ? '<div class="plan-card-active">✓ ' +
-          tr("已订阅 · 至 ", "Active · until ") +
-          String(sub.expires_at || "").slice(0, 10) +
-          "</div>"
-        : '<div class="plan-card-cta"><button type="button" class="btn btn-primary" data-buy-plan="' +
-          String(p.plan) +
-          '" data-buy-product="byok">' +
-          tr("选购", "Buy") +
-          "</button></div>";
-      card.innerHTML =
-        rec +
-        '<h4 class="plan-card-name">' +
-        title +
-        "</h4>" +
-        '<div class="plan-card-price">' +
-        price +
-        "<small>" +
-        period +
-        "</small></div>" +
-        (one ? '<p class="plan-card-one">' + one + "</p>" : "") +
-        (featsHtml ? '<ul class="plan-card-feats">' + featsHtml + "</ul>" : "") +
-        actHtml;
-      box.appendChild(card);
-    });
-    box.querySelectorAll("[data-buy-plan]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var pid = btn.getAttribute("data-buy-plan");
-        var product = btn.getAttribute("data-buy-product") || "token";
-        var meta = null;
-        (plans || []).forEach(function (p) {
-          if (String(p.plan) === String(pid)) meta = p;
+      var actTd = document.createElement("td");
+      actTd.className = "plan-compare-pay";
+      var act = document.createElement("div");
+      act.className = "card-actions plan-compare-actions";
+      if (isActive) {
+        var active = document.createElement("span");
+        active.className = "plan-card-active";
+        active.textContent =
+          "✓ " + tr("已订阅 · 至 ", "Active · until ") + String(sub.expires_at || "").slice(0, 10);
+        act.appendChild(active);
+      } else {
+        var sel = document.createElement("button");
+        sel.type = "button";
+        sel.className = "btn btn-primary";
+        sel.textContent = tr("选择", "Choose");
+        sel.setAttribute("data-buy-plan", String(p.plan));
+        sel.setAttribute("data-buy-product", "byok");
+        sel.addEventListener("click", function () {
+          openPlanPayChooser(String(p.plan), p, pay, "byok");
         });
-        openPlanPayChooser(pid, meta || {}, pay, product);
-      });
+        act.appendChild(sel);
+      }
+      actTd.appendChild(act);
+      trEl.appendChild(actTd);
+      tbody.appendChild(trEl);
     });
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    box.appendChild(wrap);
   }
 
   /** 选套餐 → 弹窗统一列支付方式 → 点通道即下单（与主站 8000 同款交互） */
@@ -1078,6 +1093,7 @@
     if (pay.alipay_ready) channels.push(["alipay", tr("支付宝", "Alipay"), "btn"]);
     if (pay.paypal_ready) channels.push(["paypal", "PayPal", "btn btn-primary"]);
     if (pay.creem_ready) channels.push(["creem", "Creem", "btn btn-primary"]);
+    if (pay.dodo_ready) channels.push(["dodo", "Dodo", "btn btn-primary"]);
     if (pay.crypto_ready) channels.push(["crypto", "USDT", "btn btn-usdt"]);
     if (pay.mock_allowed) channels.push(["mock", tr("模拟", "Mock"), "btn"]);
     if (!channels.length) {
@@ -1145,6 +1161,19 @@
         ),
         true
       );
+    } else if (channel === "dodo") {
+      checkoutWin = openCheckoutPlaceholder(
+        "正在创建 Dodo 订单，请稍候…（勿关闭此窗口）",
+        "Creating Dodo order… Keep this tab open."
+      );
+      showMsg(
+        msgBox(),
+        tr(
+          "正在创建 Dodo 订单，请稍候…（勿关闭此窗口）",
+          "Creating Dodo order… Keep this tab open."
+        ),
+        true
+      );
     } else if (channel === "paypal") {
       checkoutWin = openCheckoutPlaceholder(
         "正在创建 PayPal 订单，请稍候…（勿关闭此窗口）",
@@ -1171,6 +1200,11 @@
                 "正在创建 Creem 订单，请稍候；若未弹出窗口，用下方按钮打开。",
                 "Creating Creem order… If no window opens, use the button below."
               )
+          : channel === "dodo"
+            ? tr(
+                "正在创建 Dodo 订单，请稍候；若未弹出窗口，用下方按钮打开。",
+                "Creating Dodo order… If no window opens, use the button below."
+              )
           : channel === "paypal"
             ? tr(
                 "正在创建 PayPal 订单，请稍候；若未弹出窗口，用下方按钮打开。",
@@ -1188,6 +1222,8 @@
         ? AI24X_API.billingAlipayWap(planId, product)
         : channel === "creem"
           ? AI24X_API.billingCreemOrder(planId, product)
+          : channel === "dodo"
+            ? AI24X_API.billingDodoOrder(planId, product)
           : channel === "paypal"
             ? AI24X_API.billingPaypalOrder(planId, product)
             : channel === "crypto"
@@ -1268,6 +1304,26 @@
             openLabel: tr("打开 Creem", "Open Creem"),
           });
           startFulfillPoll(r.out_trade_no, "creem", planId);
+        } else if (channel === "dodo" && r && r.pay_url) {
+          var ddOpened = navigateCheckoutWin(checkoutWin, r.pay_url);
+          showPayResult({
+            hint:
+              (ddOpened
+                ? tr("已打开 Dodo，请在新窗口完成付款。", "Dodo opened — finish payment there.")
+                : tr(
+                    "浏览器拦截了新窗口时，请点击下方按钮打开 Dodo。",
+                    "If the browser blocked the window, open Dodo with the button below."
+                  )) +
+              tr(
+                " 付完返回本页会自动确认到账。单号：",
+                " After return, this page auto-confirms. Order: "
+              ) +
+              (r.out_trade_no || "") +
+              (r.amount_usd ? " · $" + r.amount_usd : ""),
+            openUrl: r.pay_url,
+            openLabel: tr("打开 Dodo", "Open Dodo"),
+          });
+          startFulfillPoll(r.out_trade_no, "dodo", planId);
         } else if (channel === "paypal" && r && r.pay_url) {
           var ppOpened = navigateCheckoutWin(checkoutWin, r.pay_url);
           showPayResult({
@@ -1356,7 +1412,7 @@
       var amt = ((Number(o.amount_fen) || 0) / 100).toFixed(2);
       // PayPal 单 amount_fen 为 USD 美分；微信/支付宝为 CNY 分
       var moneyLabel =
-        o.channel === "paypal" || o.channel === "creem"
+        o.channel === "paypal" || o.channel === "creem" || o.channel === "dodo"
           ? "$" + amt
           : AI24X_API.isZhUi()
             ? "¥" + amt
@@ -3524,6 +3580,36 @@
             showMsg(
               msgBox(),
               (msg || tr("Creem 确认失败", "Creem confirm failed")) +
+                tr(" — 请在「我的订单」点「确认到账」。", " — tap Confirm under My orders"),
+              false
+            );
+          });
+      }
+      if (qs.get("dodo") === "1" && otn) {
+        if (_fulfillPollTimer) {
+          clearInterval(_fulfillPollTimer);
+          _fulfillPollTimer = null;
+        }
+        showMsg(msgBox(), tr("正在确认 Dodo 支付…", "Confirming Dodo…"), true);
+        AI24X_API.billingQueryFulfill(otn, "dodo")
+          .then(function (r) {
+            showMsg(
+              msgBox(),
+              r && r.ok
+                ? AI24X_API.planFulfillMessage(_lastPayPlanId, null)
+                : tr(
+                    "Dodo 尚未完成，可在「我的订单」点确认到账",
+                    "Dodo pending — tap Confirm under My orders"
+                  ),
+              !!(r && r.ok)
+            );
+            return refreshAll();
+          })
+          .catch(function (e) {
+            var msg = (e && e.message) || "";
+            showMsg(
+              msgBox(),
+              (msg || tr("Dodo 确认失败", "Dodo confirm failed")) +
                 tr(" — 请在「我的订单」点「确认到账」。", " — tap Confirm under My orders"),
               false
             );

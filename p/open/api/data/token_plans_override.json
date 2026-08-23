@@ -3,33 +3,39 @@
     "token_pack_10k": {
       "price_usd": 2.0,
       "price_fen": 1440,
-      "enabled": true
+      "enabled": true,
+      "dodo_product_id": "pdt_0Nm0IItKt9s8bgWNsV1wy"
     },
     "token_pack_100k": {
       "price_usd": 20.0,
       "price_fen": 14400,
-      "enabled": true
+      "enabled": true,
+      "dodo_product_id": "pdt_0Nm0IJ66bTV8BkUD58YCi"
     },
     "token_pack_mid": {
       "price_usd": 49.0,
       "price_fen": 35280,
-      "enabled": true
+      "enabled": true,
+      "dodo_product_id": "pdt_0Nm0IJYxZdCgwoRISBOcN"
     },
     "token_vip_month": {
       "price_usd": 15.0,
       "price_fen": 10800,
-      "enabled": true
+      "enabled": true,
+      "dodo_product_id": "pdt_0Nm0IJmVfKxe7f1k4my1F"
     },
     "token_vip_month_50w": {
       "price_usd": 99.0,
       "price_fen": 71280,
-      "enabled": true
+      "enabled": true,
+      "dodo_product_id": "pdt_0Nm0IK2RndgmQYtRGdBfQ"
     },
     "token_value_pack": {
       "price_usd": 9.9,
       "price_fen": 7128,
-      "enabled": true
+      "enabled": true,
+      "dodo_product_id": "pdt_0Nm0IKEFrGIX4J39Gd7IK"
     }
   },
-  "updated_note": "production_prices_20260823"
+  "updated_note": "production_prices_dodo_20260823"
 }

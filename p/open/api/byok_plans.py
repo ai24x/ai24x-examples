@@ -24,6 +24,7 @@ _OVERRIDE_PATH = Path(
 _BYOK_EDITABLE = (
     "title_zh", "title_en", "price_usd", "days", "recommended", "enabled",
     "one_liner_zh", "one_liner_en", "features_zh", "features_en",
+    "dodo_product_id",
 )
 
 
@@ -123,6 +124,20 @@ def _price_usd(plan_id: str, base: dict[str, Any]) -> float:
         return float(base.get("price_usd") or 0)
 
 
+def _dodo_product_id(plan_id: str, p: dict[str, Any]) -> str:
+    """Dodo 商品 ID：管理台覆盖 > env（DODO_PRODUCT_BYOK_*）> 空。"""
+    ov_v = str(p.get("dodo_product_id") or "").strip()
+    if ov_v:
+        return ov_v
+    env_key = {
+        "byok_pro_month": "DODO_PRODUCT_BYOK_MONTH",
+        "byok_pro_year": "DODO_PRODUCT_BYOK_YEAR",
+    }.get(plan_id or "", "")
+    if env_key:
+        return (os.getenv(env_key) or "").strip()
+    return ""
+
+
 def resolve_byok_plan(plan_id: str) -> dict[str, Any] | None:
     """返回 BYOK 套餐快照（默认 + 管理台覆盖 + env 价），未知 plan 返回 None。"""
     base = _BYOK_PLAN_DEFAULTS.get(plan_id or "")
@@ -140,6 +155,7 @@ def resolve_byok_plan(plan_id: str) -> dict[str, Any] | None:
         usd = _price_usd(plan_id, base)
     p["price_usd"] = round(usd, 2)
     p["price_fen"] = _fen_from_usd(usd)
+    p["dodo_product_id"] = _dodo_product_id(plan_id, p)
     return p
 
 
@@ -193,9 +209,23 @@ def list_admin_byok_plans() -> dict[str, Any]:
                 "features_zh": p.get("features_zh") or [],
                 "features_en": p.get("features_en") or [],
                 "has_override": bool(ov.get(pid)),
+                "dodo_product_id": str(p.get("dodo_product_id") or ""),
             }
         )
     return {"plans": out}
+
+
+def set_byok_dodo_product_id(plan_id: str, product_id: str) -> bool:
+    """Dodo 同步回写：把新建/命中商品的 product_id 持久化到覆盖文件。"""
+    pid = (plan_id or "").strip()
+    if pid not in _BYOK_PLAN_DEFAULTS:
+        return False
+    cur = _load_overrides()
+    row = dict(cur.get(pid) or {})
+    row["dodo_product_id"] = str(product_id or "").strip()
+    cur[pid] = row
+    _save_overrides(cur)
+    return True
 
 
 def update_admin_byok_plans(plans: list) -> dict[str, Any]:

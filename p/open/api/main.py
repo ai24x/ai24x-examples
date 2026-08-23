@@ -2445,6 +2445,28 @@ async def billing_creem_query(
     return await query_creem_order(db, out_trade_no=body.out_trade_no, auth_user_id=int(u.id))
 
 
+@app.post("/v1/billing/dodo/order")
+async def billing_dodo_order(
+    request: Request, body: TokenPayCreateBody, db: Session = Depends(get_db)
+):
+    from token_pay_service import create_dodo_order
+
+    u = _auth_user_from_bearer(request, db)
+    return await create_dodo_order(
+        db, auth_user_id=int(u.id), plan=body.plan, product=body.product
+    )
+
+
+@app.post("/v1/billing/dodo/query")
+async def billing_dodo_query(
+    request: Request, body: TokenQueryFulfillBody, db: Session = Depends(get_db)
+):
+    from token_pay_service import query_dodo_order
+
+    u = _auth_user_from_bearer(request, db)
+    return await query_dodo_order(db, out_trade_no=body.out_trade_no, auth_user_id=int(u.id))
+
+
 @app.get("/v1/billing/orders")
 async def billing_orders_mine(request: Request, db: Session = Depends(get_db), limit: int = 20):
     from token_pay_service import list_orders_for_user
@@ -2809,6 +2831,112 @@ async def billing_creem_webhook(request: Request, db: Session = Depends(get_db))
     )
     if not r.get("ok"):
         logger.warning("creem webhook fulfill fail otn=%s err=%s", otn, r.get("error"))
+        return JSONResponse(status_code=200, content={"ok": False, "error": r.get("error")})
+    return JSONResponse(status_code=200, content={"ok": True, "out_trade_no": otn})
+
+
+@app.post("/v1/billing/dodo/webhook")
+async def billing_dodo_webhook(request: Request, db: Session = Depends(get_db)):
+    """Dodo Payments Webhook -> payment.succeeded fulfill (Standard Webhooks verified)."""
+    import json
+
+    from security_util import is_prod
+    from token_pay_service import pay_settings_ns, try_fulfill, token_pay_enabled
+
+    if not token_pay_enabled():
+        return JSONResponse(status_code=200, content={"ok": False, "reason": "disabled"})
+    body_str = (await request.body()).decode("utf-8", errors="replace")
+    headers = {k: v for k, v in request.headers.items()}
+    cfg = pay_settings_ns()
+    from pay_dodo import extract_payment_data, verify_webhook_signature
+
+    mode = str(getattr(cfg, "dodo_mode", "test") or "test").lower()
+    verified = False
+    try:
+        verified = verify_webhook_signature(cfg, headers=headers, body=body_str)
+    except Exception as e:
+        logger.warning("dodo webhook verify error: %s", e)
+    if not verified:
+        if is_prod() or mode in ("live", "production"):
+            return JSONResponse(status_code=400, content={"ok": False, "reason": "verify_failed"})
+        if mode not in ("test", "sandbox", "dev"):
+            return JSONResponse(status_code=400, content={"ok": False, "reason": "verify_failed"})
+        logger.warning("dodo webhook unverified - allowed only in test/sandbox/dev")
+
+    try:
+        event = json.loads(body_str or "{}")
+    except Exception:
+        return JSONResponse(status_code=400, content={"ok": False, "reason": "bad_json"})
+
+    d = extract_payment_data(event)
+    et = d["event_type"]
+    if et not in ("payment.succeeded", "payment.failed"):
+        return JSONResponse(status_code=200, content={"ok": True, "ignored": True, "event": et})
+    otn = d["out_trade_no"]
+    if not otn:
+        return JSONResponse(status_code=200, content={"ok": False, "reason": "missing_out_trade_no"})
+    txid = d["payment_id"] or d["checkout_id"]
+    if not txid:
+        return JSONResponse(status_code=200, content={"ok": False, "reason": "incomplete"})
+
+    from models import TokenPayOrder
+
+    row = db.query(TokenPayOrder).filter(TokenPayOrder.out_trade_no == otn).first()
+    if not row:
+        return JSONResponse(status_code=200, content={"ok": False, "reason": "order_not_found"})
+
+    # 失败事件：pending -> failed（不改已到账单）
+    if et == "payment.failed":
+        if str(row.status) in ("pending", "awaiting_verify"):
+            row.status = "failed"
+            db.commit()
+        return JSONResponse(status_code=200, content={"ok": True, "event": et})
+
+    # 产品校验：BYOK 走 byok_plans；token 走 token_plans
+    if str(row.product) == "byok":
+        from byok_plans import resolve_byok_plan
+
+        meta = resolve_byok_plan(str(row.plan)) or {}
+    else:
+        from token_plans import get_plan
+
+        meta = get_plan(str(row.plan)) or {}
+    expect_pid = str(meta.get("dodo_product_id") or "").strip()
+    if not expect_pid:
+        logger.warning("dodo webhook plan missing product id otn=%s plan=%s", otn, row.plan)
+        return JSONResponse(status_code=200, content={"ok": False, "reason": "product_not_configured"})
+    if d["product_id"] and expect_pid != d["product_id"]:
+        logger.warning(
+            "dodo webhook product mismatch otn=%s expect=%s got=%s",
+            otn,
+            expect_pid,
+            d["product_id"],
+        )
+        return JSONResponse(status_code=200, content={"ok": False, "reason": "product_mismatch"})
+    # Dodo total_amount 为最小货币单位且含税：允许 >= 本地价（容税），不足才拒绝
+    if d["amount"] and int(d["amount"]) < int(row.amount_fen):
+        logger.warning(
+            "dodo webhook amount below local otn=%s local=%s dodo=%s currency=%s",
+            otn,
+            row.amount_fen,
+            d["amount"],
+            d["currency"],
+        )
+        return JSONResponse(status_code=200, content={"ok": False, "reason": "amount_mismatch"})
+    if d["currency"] and d["currency"] != "USD":
+        logger.warning(
+            "dodo webhook non-USD currency otn=%s currency=%s", otn, d["currency"]
+        )
+
+    r = try_fulfill(
+        db,
+        out_trade_no=otn,
+        transaction_id=txid,
+        amount_fen=int(row.amount_fen),
+        channel_tag="dodo_webhook",
+    )
+    if not r.get("ok"):
+        logger.warning("dodo webhook fulfill fail otn=%s err=%s", otn, r.get("error"))
         return JSONResponse(status_code=200, content={"ok": False, "error": r.get("error")})
     return JSONResponse(status_code=200, content={"ok": True, "out_trade_no": otn})
 
