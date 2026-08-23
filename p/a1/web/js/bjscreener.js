@@ -202,7 +202,7 @@ window.AI24X_BJScreener = (function () {
     if (p.pickRole === "leader") return p.obsHit
       ? '<span class="tier-badge tier-obs">次主线代表</span>'
       : '<span class="tier-badge tier-leader">主线代表</span>';
-    if (p.pickRole === "catchup") return '<span class="tier-badge tier-catchup">补涨卡位</span>';
+    if (p.pickRole === "catchup") return '<span class="tier-badge tier-catchup">补涨观察</span>';
     return "";
   }
   function mainBadge(p) {
@@ -227,6 +227,7 @@ window.AI24X_BJScreener = (function () {
     if (a.breakout) h.push('<span class="tag ok strong">二波突破</span>');
     if (a.pullback2) h.push('<span class="tag ok strong">板后回踩\u00b7' + (p.pullback2Days || 0) + '天前</span>');
     if (a.macdFirstRed) h.push('<span class="tag ok strong">MACD首根红柱\u00b7' + (p.macdFirstRedDays > 0 ? p.macdFirstRedDays + '天前' : '今日首红') + '</span>');
+    if (a.weekConfirm) h.push('<span class="tag ok strong">周线金叉·中期确认</span>');
     if (a.steadyUp) h.push('<span class="tag ok strong">稳步向上\u00b7趋势' + (p.trendScore != null ? p.trendScore : "") + '</span>');
     // 主线已在头部徽章显示，标签区不再重复
     if (a.baseUp) h.push('<span class="tag ok">底部走多</span>');
@@ -257,6 +258,7 @@ window.AI24X_BJScreener = (function () {
     if (a.breakout) r.push("放量突破板日/平台高点·二波启动");
     if (a.pullback2) r.push("2周内涨停板后回踩企稳");
     if (a.macdFirstRed) r.push("底部金叉首根红柱" + (p.macdFirstRedDays > 0 ? p.macdFirstRedDays + "天前翻红" : "今日翻红"));
+    if (a.weekConfirm) r.push("周线金叉/拐头+放量·中期确认");
     if (a.steadyUp) r.push("稳步向上·趋势评分" + (p.trendScore != null ? p.trendScore : ""));
     if (a.smallYang) r.push("连续小阳趋势上拐");
     if (a.baseUp) r.push("站上MA20且均线上拐");
@@ -276,6 +278,7 @@ window.AI24X_BJScreener = (function () {
     if (a.pb45) t.push('<span class="tag ok strong">首板4-5日回踩</span>');
     if (a.washOut) t.push('<span class="tag ok strong">单日砸盘企稳</span>');
     if (a.macdFirstRed) t.push('<span class="tag ok strong">MACD首红\u00b7' + (r.macdFirstRedDays > 0 ? r.macdFirstRedDays + '天前' : '今日首红') + '</span>');
+    if (a.weekConfirm) t.push('<span class="tag ok strong">周线金叉</span>');
     if (a.surgeStart) t.push('<span class="tag ok">底部异动·' + (r.surgeDaysAgo || 0) + '天前</span>');
     if (a.surgePullback) t.push('<span class="tag ok strong">异动回踩企稳·' + (r.surgePullbackDays || 0) + '天前</span>');
     if (a.pullback2) t.push('<span class="tag ok strong">板后回踩·' + (r.pullback2Days || 0) + '天前</span>');
@@ -517,7 +520,7 @@ window.AI24X_BJScreener = (function () {
       return '<a class="chip" href="demo.html?secid=' + encodeURIComponent(secidForCode(it.ticker)) + '&period=day' + (it.name ? '&name=' + encodeURIComponent(it.name) : '') + '" target="_blank" rel="noopener" title="在AI行情官中查看 ' + esc(it.name) + '">' + (i + 1) + '. ' + esc(it.name) + '</a>';
     });
     var hm = d.hot_money || [];
-    h += chipsRow('💰 龙虎榜游资净买入 TOP5', hm, function (it, i) {
+    h += chipsRow('💰 龙虎榜资金净买入 TOP5', hm, function (it, i) {
       return '<span class="chip" title="' + esc((it.stocks || []).slice(0, 3).join('、')) + '">' + (i + 1) + '. ' + esc(it.name) + ' <span class="up">+' + money(it.buying) + '</span>' + (it.stocks && it.stocks.length ? ' · ' + esc(it.stocks.slice(0, 2).join('、')) : '') + '</span>';
     });
     var ld = d.ladder || {};
@@ -694,7 +697,7 @@ window.AI24X_BJScreener = (function () {
       if (d.mainline_gap) {
         var _mln = (d.mainlines || []).filter(function (m) { return m && m.src === "daily"; })
           .map(function (m) { return esc(m.name || ""); }).filter(Boolean);
-        html += '<div class="bj-gap-alert">⚠️ 主线（' + (_mln.length ? _mln.join('、') : '主线') + '）' + dataDayLabel(d) + '暂无低风险合格标的；以下为资金热度龙头/备选，仅作技术面跟踪。</div>';
+        html += '<div class="bj-gap-alert">⚠️ 主线（' + (_mln.length ? _mln.join('、') : '主线') + '）' + dataDayLabel(d) + '暂无低风险合格标的；以下为资金热度个券/备选，仅作技术面跟踪。</div>';
       }
       if (d.relaxed) {
         html += '<div class="notice">' + dataDayLabel(d) + '严格档无合格标的，采用放宽兜底档（位置/换手/启动门槛小幅放宽，利空硬伤与主线约束不变）。</div>';
@@ -714,7 +717,7 @@ window.AI24X_BJScreener = (function () {
       if (st && (st.entry || st.period)) {
         var stPeriod = String(st.period || '').trim().replace(/主线龙头/g, '主线代表').replace(/龙头组合/g, '代表组合').replace(/补涨卡位/g, '补涨观察');
         var stEntry = sanitizeSt(st.entry);
-        stLine = '<div class="pick-strategy"><span class="st-tag">波段参考</span>' +
+        stLine = '<div class="pick-strategy"><span class="st-tag">技术参考</span>' +
           '<b>' + esc(stPeriod) + '</b> ｜ ' + esc(stEntry) +
           ' ｜ <span class="st-disc">不追高·缩量回踩·破位/长阴-8%注意风险</span></div>';
       }

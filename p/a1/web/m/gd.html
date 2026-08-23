@@ -306,7 +306,8 @@
     if (a.baseUp) h.push('<span class="tag ok">底部走多</span>');
     if (a.smallYang) h.push('<span class="tag ok">一路小阳</span>');
     if (a.steadyUp) h.push('<span class="tag ok">稳步向上·趋势' + (p.trendScore != null ? p.trendScore : '') + '</span>');
-    if (p.boardLeader) h.push('<span class="tag ok">板块龙头</span>');
+    if (a.weekConfirm) h.push('<span class="tag ok">周线金叉·中期确认</span>');
+    if (p.boardLeader) h.push('<span class="tag ok">板块代表</span>');
     if (p.hotName) h.push('<span class="tag warn">共振:' + esc(p.hotName) + '</span>');
     var f = p.fund || {};
     if (f.earnPos && f.earnPos.length) h.push('<span class="tag ok">业绩预增</span>');
@@ -324,13 +325,14 @@
     if (a.surgePullback) r.push('放量异动后缩量回踩' + (p.surgePullbackDays || 0) + '日企稳未破位');
     if (a.pullback) r.push('异动拉升后缩量回踩企稳');
     if (a.ztPullback) r.push('涨停级回踩企稳');
+    if (a.weekConfirm) r.push('周线金叉·中期确认');
     if (a.smallYang) r.push('连续小阳趋势上拐');
     if (a.baseUp) r.push('站上MA20且均线上拐');
     if (a.steadyUp) r.push('稳步向上·趋势评分' + (p.trendScore != null ? p.trendScore : ''));
     if (p.mainHit && p.mainName) r.push('主线板块:' + p.mainName);
-    if (p.boardLeader) r.push('板块龙头');
+    if (p.boardLeader) r.push('板块代表');
     if (p.hotName) r.push('板块共振:' + p.hotName);
-    if (r.length > 3) r = r.slice(0, 3);
+    if (r.length > 4) r = r.slice(0, 4);
     return r.join('、') || '形态健康';
   }
 
@@ -361,7 +363,7 @@
     if (!st.entry && !st.period) return '';
     var period = String(st.period || '').trim();
     var entry = sanitizeSt(st.entry);
-    return '<div class="st"><span class="st-tag">波段参考</span><b>' + esc(period.replace(/补涨卡位/g, '补涨观察')) + '</b> ｜ ' + esc(entry) + ' ｜ <span style="color:#00b578">不追高·缩量回踩·破位/长阴-8%注意风险</span></div>';
+    return '<div class="st"><span class="st-tag">技术参考</span><b>' + esc(period.replace(/补涨卡位/g, '补涨观察')) + '</b> ｜ ' + esc(entry) + ' ｜ <span style="color:#00b578">不追高·缩量回踩·破位/长阴-8%注意风险</span></div>';
   }
 
   function card(p){
@@ -702,7 +704,7 @@
         '<span class="br-idx' + (b.tier === 'king' ? ' t1' : (b.tier === 'key' ? ' t2' : '')) + '">' + (idx + 1) + '</span>' + t + nm +
         (st ? '<span class="br-st">' + st + '</span>' : '') +
         mlWhy +
-        (lds ? '<span class="br-leaders">龙头 ' + lds + '</span>' : '') +
+        (lds ? '<span class="br-leaders">代表：' + lds + '</span>' : '') +
       '</div>';
     }).join('');
   }

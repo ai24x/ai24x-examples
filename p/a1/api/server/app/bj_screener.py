@@ -2071,6 +2071,80 @@ async def _collect_candidates(
     return cands, hot, None, int(lst.get("total") or 0), []
 
 
+def _weekly_bars(bars):
+    """daily bars -> weekly bars (group by Monday; same as providers._aggregate_week_month_from_day)."""
+    from datetime import datetime, timedelta
+    wmap: dict[str, list[int]] = {}
+    for i, b in enumerate(bars):
+        try:
+            parts = str(b[0]).split("-")
+            y, m, d = int(parts[0]), int(parts[1]), int(parts[2])
+            dt = datetime(y, m, d)
+        except Exception:
+            continue
+        wk = (dt - timedelta(days=dt.weekday())).strftime("%Y-%m-%d")
+        wmap.setdefault(wk, []).append(i)
+    keys = sorted(wmap.keys())
+    if len(keys) < 3:
+        return None
+    w_o, w_c, w_h, w_l, w_v = [], [], [], [], []
+    for k in keys:
+        idx = wmap[k]
+        w_o.append(float(bars[idx[0]][1]))
+        w_c.append(float(bars[idx[-1]][2]))
+        w_h.append(max(float(bars[i][3]) for i in idx))
+        w_l.append(min(float(bars[i][4]) for i in idx))
+        w_v.append(sum(float(bars[i][5]) or 0.0 for i in idx))
+    return w_o, w_c, w_h, w_l, w_v
+
+
+def _weekly_factor(bars):
+    """Weekly mid-term confirm factor (zero upstream cost, aggregated from daily bars):
+    position(52w percentile) / MACD(red hist) / MA(wMA5>wMA10 turning up) /
+    volume(this week >=1.3x prev-4w avg and up week). 2-of-3 hit -> weekConfirm.
+    Returns None when <3 weeks (avoid killing new listings)."""
+    agg = _weekly_bars(bars)
+    if not agg:
+        return None
+    w_o, w_c, w_h, w_l, w_v = agg
+    wn = len(w_c)
+    wl = wn - 1
+    lo52 = min(w_l[max(0, wl - 51):])
+    hi52 = max(w_h[max(0, wl - 51):])
+    w_pos = (w_c[wl] - lo52) / (hi52 - lo52) if hi52 > lo52 else 1.0
+    w_ma5 = sum(w_c[wl - 4: wl + 1]) / 5 if wn >= 5 else sum(w_c) / wn
+    w_ma10 = sum(w_c[max(0, wl - 9): wl + 1]) / min(10, wn)
+    w_ma5_prev = sum(w_c[wl - 5: wl]) / 5 if wn >= 6 else None
+    e12 = _ema(w_c, 12)
+    e26 = _ema(w_c, 26)
+    w_dif = [e12[i] - e26[i] for i in range(wn)]
+    w_dea = _ema(w_dif, 9)
+    w_hist = [(w_dif[i] - w_dea[i]) * 2 for i in range(wn)]
+    w_v4 = sum(w_v[max(0, wl - 4): wl]) / min(4, max(1, wl))
+    w_vr = w_v[wl] / w_v4 if w_v4 > 0 else 0.0
+    week_up = w_c[wl] > w_o[wl]
+    # 金叉：本周或近 2 周内 DIF 上穿 DEA；红柱扩张：红柱且高于上周
+    gold_now = w_dif[wl] > w_dea[wl] and (wl < 1 or w_dif[wl - 1] <= w_dea[wl - 1])
+    gold_prev = wl >= 2 and w_dif[wl - 1] > w_dea[wl - 1] and w_dif[wl - 2] <= w_dea[wl - 2]
+    macd_ok = bool(gold_now or gold_prev)
+    # 拐头：周MA5 > 周MA10 且差幅 >= 0.5%（过滤横盘噪声）且 MA5 上拐
+    ma_ok = bool(w_ma5 > w_ma10 * 1.005 and (w_ma5_prev is None or w_ma5 > w_ma5_prev))
+    vol_ok = bool(week_up and w_vr >= 1.3)
+    confirm = (int(macd_ok) + int(ma_ok) + int(vol_ok)) >= 2
+    return {
+        "weekPos": round(w_pos, 3),
+        "weekMacdOk": macd_ok,
+        "weekMaOk": ma_ok,
+        "weekVolOk": vol_ok,
+        "weekVolRatio": round(w_vr, 2),
+        "weekConfirm": confirm,
+        "weekBars": wn,
+        "weekUp": week_up,
+        "wClose": w_c[wl],
+        "wMa10": w_ma10,
+    }
+
+
 def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], market: str = "bj", loose_macd: bool = False) -> dict[str, Any]:
     n = len(bars)
     o = [float(b[1]) for b in bars]
@@ -2093,6 +2167,7 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
     ma12 = _ma_at(c, 12, last)
     ma20_3 = _ma_at(c, 20, last - 3)
     _su = score_steady_up(o, h, l, c, v, last)
+    wk = _weekly_factor(bars)
     lo60 = min(l[n - 60:])
     hi60 = max(h[n - 60:])
     pos = (cl - lo60) / (hi60 - lo60) if hi60 > lo60 else 1.0
@@ -2562,6 +2637,12 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
         risks.append("贴前高缩量")
     if bias_over:
         risks.append(f"乖离偏大(MA5 {bias_ma5:.0f}%)")
+    # 周线中期维度：高位/走弱警示（零上游，日线本地聚合）
+    if wk:
+        if wk["weekPos"] > 0.85 and pos > 0.80:
+            risks.append("周线高位(52周)")
+        if wk["weekBars"] >= 6 and wk["wClose"] < wk["wMa10"] and not wk["weekMaOk"]:
+            risks.append("周线走弱(周MA10下)")
     if amp20 and amp20 < 3:
         risks.append("20日振幅过低(死水)")
     if amp20 and amp20 > 35:
@@ -2631,6 +2712,7 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
         "breakout": 12,        # 二波放量突破（P0-3 权重 8→12，仍受证据封顶）
         "macdFirstRed": 8,     # MACD 首红（水下降权 4，仅辅助）
         "steadyUp": 8,         # 稳步向上（趋势确认型启动，与 MACD 首红同档辅助）
+        "weekConfirm": 8,     # 周线中期确认（金叉/拐头/放量三选二，仅辅助确认）
     }
     # P0-2 涨停质量权重修正：换手板 +4 / T字板 +1 / 一字板 -3 / 烂板 -5（仍受证据封顶约束）
     _start_w = dict(_START_W)
@@ -2641,6 +2723,9 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
                 _start_w[_k] = max(1, _start_w[_k] + _lq_delta)
     if patterns.get("macdFirstRed") and macd_underwater:
         _start_w["macdFirstRed"] = 4  # 零轴下水下首红：降权仅作辅助
+    # 周线中期确认：仅当已有日线启动证据时启用（周线不单独构成启动）
+    if wk and wk.get("weekConfirm") and any(patterns.get(k) for k in _start_w):
+        patterns["weekConfirm"] = 1
     _start_vals = sorted((w for k, w in _start_w.items() if patterns.get(k)), reverse=True)
     sc += min(25, sum(_start_vals[:2]))
     # ③ 承接与量价（0-15 封顶）
@@ -2792,6 +2877,13 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
         "volShrink": vol_shrink, "newHighWeak": new_high_weak, "atHighWeak": at_high_weak,
         "volHealth": vol_health, "biasMa5": round(bias_ma5, 1), "biasMa20": round(bias_ma20, 1),
         "biasOver": bias_over, "plateauDays": plateau_days, "amp20": round(amp20, 1),
+        "weekPos": wk["weekPos"] if wk else None,
+        "weekConfirm": bool(wk and wk["weekConfirm"]),
+        "weekMacdOk": bool(wk and wk["weekMacdOk"]),
+        "weekMaOk": bool(wk and wk["weekMaOk"]),
+        "weekVolOk": bool(wk and wk["weekVolOk"]),
+        "weekVolRatio": round(wk["weekVolRatio"], 2) if wk else None,
+        "weekBars": wk["weekBars"] if wk else 0,
         "fundStreak": fund_streak,
     }
 
@@ -3467,18 +3559,18 @@ def build_strategy(pick: dict[str, Any], tier: str, role: str | None = None) -> 
             "entry": f"回踩参考区间 MA5/MA10（{lo:.2f}~{hi:.2f}）",
             "stop": f"{stop:.2f}（下方破位参考）",
             "target1": f"{p1:.2f}（近10日压力）",
-            "target2": f"{t2:.2f}" + ("（保守目标）" if t2 < lv.get("p2", 0) else "（60日压力）"),
+            "target2": f"{t2:.2f}" + ("（保守参考）" if t2 < lv.get("p2", 0) else "（60日压力）"),
             "position": "",
             "conditions": "观察：站稳MA10且MACD红柱延续、主力持续净流入；风险信号：冲高放量滞涨、跌破MA5、收盘破MA10或单日放量长阴-8%",
             "rules": "注意：高开>5%或冲高回落破分时均线时谨慎；回踩缩量（量≤启动日70%）形态更稳；单日放量长阴-8%注意风险",
         }
-    period_txt = {"catchup": "补涨卡位 · 区间波段 2~8周"}.get(role, "中线波段 · 2~8周")
+    period_txt = {"catchup": "补涨观察 · 区间波段 2~8周"}.get(role, "中线波段 · 2~8周")
     return {
         "period": period_txt,
         "entry": f"回踩参考区间 {entry_lo:.2f}~{entry_hi:.2f}",
         "stop": f"{stop:.2f}（下方破位参考）",
         "target1": f"{p1:.2f}（近10日压力）",
-        "target2": f"{t2:.2f}" + ("（保守目标）" if t2 < lv.get("p2", 0) else "（60日压力）"),
+        "target2": f"{t2:.2f}" + ("（保守参考）" if t2 < lv.get("p2", 0) else "（60日压力）"),
         "position": "",
         "conditions": "观察：站稳MA20且MACD红柱持续；风险信号：放量滞涨、跌破MA5、破参考位或单日放量长阴-8%",
         "rules": "关注点：高开>5%或冲高回落破分时均线时保持谨慎；回踩缩量（量≤启动日70%）形态更稳；单日放量长阴-8%注意风险",
@@ -5649,9 +5741,9 @@ async def run_scan(
                                 "status": "今日暂无数据", "tag": "muted"}
         _cur = analyzed_by_code.get(_c0)
         if _c0 in hard_codes:
-            _rec["status"] = "离场（利空/硬伤排查）"; _rec["tag"] = "bad"
+            _rec["status"] = "退出观察（利空/硬伤排查）"; _rec["tag"] = "bad"
         elif _c0 in picked:
-            _rec["status"] = "延续持有（今日入选筛选）"; _rec["tag"] = "ok"
+            _rec["status"] = "延续关注（今日入选筛选）"; _rec["tag"] = "ok"
         elif _c0 in fine_codes:
             _rec["status"] = "延续关注（仍达标，未入筛选）"; _rec["tag"] = "ok"
         elif _cur:
@@ -5659,7 +5751,7 @@ async def run_scan(
             if (float(_a0.get("pos") or 99) > float(cfg["posMax"]) / 100
                     or float(_a0.get("chg5") or 999) > float(cfg["max5d"])
                     or float(_a0.get("chg10") or 999) > float(cfg["max10d"])):
-                _rec["status"] = "涨幅过热（止盈观察）"; _rec["tag"] = "warn"
+                _rec["status"] = "涨幅过热（注意风险）"; _rec["tag"] = "warn"
             elif _a0.get("volShrink"):
                 _rec["status"] = "缩量走弱（观望）"; _rec["tag"] = "warn"
             else:
@@ -5919,7 +6011,7 @@ def _detect_style(regime, dml_names, board_rank):
     """
     try:
         if regime == "defensive":
-            return {"mode": "defensive", "label": "风格：防守", "note": "大盘走弱：仅主线双确认+零风险标的，最多 2 只，宁可空仓不勉强。"}
+            return {"mode": "defensive", "label": "风格：防守", "note": "大盘走弱：仅主线双确认+零风险标的，最多 2 只，严格控制标的数量，注意控制仓位风险。"}
         ranks = [b for b in (board_rank or []) if isinstance(b, dict)][:8]
         has_streak = bool(ranks) and any(int(b.get('streak') or 0) > 0 for b in ranks)
         one_day = sum(1 for b in ranks if int(b.get('streak') or 0) <= 1) if has_streak else 0
@@ -5931,9 +6023,9 @@ def _detect_style(regime, dml_names, board_rank):
             if nm and nm in ml_names:
                 main_streak = max(main_streak, int(b.get("streak") or 0))
         if ml_names and (main_streak >= 2 or len(ml_names) >= 2):
-            return {"mode": "trend", "label": "风格：趋势", "note": "主线持续（连续上榜≥2 天）：主线龙头+补涨卡位双线推进，回踩低吸为主，不追高。"}
+            return {"mode": "trend", "label": "风格：趋势", "note": "主线持续（连续上榜≥2 天）：主线代表+补涨观察双线跟踪，以回踩企稳为主，避免追高。"}
         if not ml_names or one_day_ratio >= 0.6:
-            return {"mode": "fan", "label": "风格：电风扇", "note": "板块快速轮动、一日游偏多：只做主线/回踩企稳低吸，绝不追当日大涨，破位即撤。"}
+            return {"mode": "fan", "label": "风格：电风扇", "note": "板块快速轮动、一日游偏多：优先主线/回踩企稳形态，避免追当日大涨，破位注意风险。"}
         return {"mode": "chop", "label": "风格：震荡", "note": "方向不明：以主线双确认+零风险标的为主，控制仓位，等主线明朗。"}
     except Exception:
         return {"mode": "chop", "label": "风格：震荡", "note": "方向不明：控制仓位，等主线明朗。"}

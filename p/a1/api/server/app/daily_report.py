@@ -97,6 +97,17 @@ SECTOR_BOARD_NOTIN = {
     "汽车整车": ["零部件", "芯片"],  # 排除"汽车零部件""汽车芯片"（属电子/机械）
 }
 
+# 资金榜动态候选（同花顺优先、东财兜底）：不占固定桶，普适捕捉资金榜新面孔
+_DYNAMIC_MAX = 5          # 每日最多深评的动态板块数
+_DYNAMIC_TOP = 15         # 板块榜取前 N 做「连续 2 天在榜」判定
+_DYNAMIC_ALIASES: dict = {}  # {动态板块名: [别名]}，用于资金确认匹配
+# 与固定桶高度重叠的近义板块名（避免重复评估；贵金属/医疗服务等刻意不在此列，属独立评估）
+_DUP_COVER = {
+    "通信设备": "通信光模块CPO", "光模块": "通信光模块CPO", "光通信": "通信光模块CPO", "CPO": "通信光模块CPO",
+    "煤炭开采加工": "煤炭", "焦煤": "煤炭", "动力煤": "煤炭",
+    "印制电路板": "PCB",
+}
+
 _CFG = None
 def cfg():
     global _CFG
@@ -490,7 +501,7 @@ def _sector_fund_flow(sec, plates):
     """
     if not plates:
         return None, None
-    aliases = SECTOR_BOARD_ALIASES.get(sec) or [sec]
+    aliases = SECTOR_BOARD_ALIASES.get(sec) or _DYNAMIC_ALIASES.get(sec) or [sec]
     not_in = SECTOR_BOARD_NOTIN.get(sec) or []
     best5 = best_t = None
     for r in (plates.get("em_em_industry_5d") or []) + (plates.get("em_em_concept_5d") or []):
@@ -530,6 +541,118 @@ def _bar_heat(candles) -> tuple[float | None, float | None]:
                 round(pos60, 1) if pos60 is not None else None)
     except Exception:
         return None, None
+
+
+# ---------------- 资金榜动态候选（同花顺优先、东财兜底，普适捕捉新主线） ----------------
+def _prev_plates_top(kind: str, n: int = _DYNAMIC_TOP) -> list:
+    """上一归档日板块榜 TOP（同花顺行业涨幅 / 东财行业+概念 5日资金），读归档零上游成本。"""
+    try:
+        archs = sorted([x for x in os.listdir(ARCHIVE_ROOT)
+                        if os.path.isdir(os.path.join(ARCHIVE_ROOT, x)) and re.fullmatch(r"\d{8}", x)],
+                       reverse=True)
+        for d in archs:
+            if d == (_CACHE_D8 or today8()):
+                continue
+            p = os.path.join(ARCHIVE_ROOT, d, "plate_data.json")
+            if not os.path.exists(p):
+                continue
+            pd = json.load(open(p, encoding="utf-8"))
+            if kind == "ths":
+                rows = pd.get("ths_industry") or []
+                return sorted(rows, key=lambda x: -(x.get("pct") or -99))[:n]
+            rows = (pd.get("em_em_industry_5d") or []) + (pd.get("em_em_concept_5d") or [])
+            return sorted(rows, key=lambda x: -(x.get("main_5d") or 0))[:n]
+    except Exception:
+        pass
+    return []
+
+
+def _board_covered_by_fixed(nm: str) -> bool:
+    """板块名是否已被固定桶直接覆盖（同名或近义重复），避免重复评估。"""
+    if nm in SECTORS:
+        return True
+    if nm in _DUP_COVER:
+        return True
+    return False
+
+
+def _dynamic_plates(plates) -> list[dict]:
+    """资金榜动态候选：同花顺行业涨幅榜优先（今日 TOP ∩ 昨日 TOP），
+    东财行业/概念资金榜兜底；剔除固定桶已覆盖板块；解析东财 BK 代码。
+    返回 [{name, code, pct, src}]，最多 _DYNAMIC_MAX 个。"""
+    ths_today = sorted((plates.get("ths_industry") or []), key=lambda x: -(x.get("pct") or -99))[:_DYNAMIC_TOP]
+    if ths_today:
+        prev_names = {r["name"] for r in _prev_plates_top("ths")}
+        cand = [r for r in ths_today if r["name"] in prev_names
+                and not _board_covered_by_fixed(r["name"]) and (r.get("pct") or 0) >= 2.0]
+        src = "ths"
+    else:
+        em_today = (plates.get("em_em_industry_5d") or []) + (plates.get("em_em_concept_5d") or [])
+        em_today = [r for r in em_today if not _board_covered_by_fixed(str(r.get("name") or ""))]
+        em_today.sort(key=lambda x: -(x.get("main_5d") or 0))
+        prev_names = {r["name"] for r in _prev_plates_top("em")}
+        cand = [r for r in em_today[:_DYNAMIC_TOP] if r["name"] in prev_names and (r.get("main_5d") or 0) >= 15e8]
+        src = "em"
+    em_map = {}
+    for k in ("em_em_industry_5d", "em_em_concept_5d"):
+        for r in plates.get(k) or []:
+            nm = str(r.get("name") or "")
+            if nm and nm not in em_map:
+                em_map[nm] = r.get("code")
+    out = []
+    for r in cand[:_DYNAMIC_MAX]:
+        nm = str(r.get("name") or "")
+        code = em_map.get(nm)
+        if not code:
+            for k, v in em_map.items():
+                if nm and len(nm) >= 2 and (k in nm or nm in k):
+                    code = v
+                    break
+        if code:
+            out.append({"name": nm, "code": code, "pct": r.get("pct"), "src": src})
+    return out
+
+
+async def _fetch_dynamic_scores(plates) -> dict[str, list]:
+    """资金榜动态候选成分评分：同花顺榜粗筛命中 → 东财成分（成交额 top6）→ 腾讯K线评分。"""
+    global _DYNAMIC_ALIASES
+    cands = _dynamic_plates(plates)
+    if not cands:
+        return {}
+    out = {}
+    last_ok = _breadth_date()
+    for c in cands:
+        try:
+            comps = em_clist("b:%s" % c["code"], "f6", pz=8)
+            time.sleep(1.2)
+        except Exception:
+            continue
+        rows = []
+        for comp in comps[:6]:
+            code = str(comp.get("code") or "").zfill(6)
+            name = str(comp.get("name") or "")
+            if not code or not name or name.startswith(("XD", "XR", "DR")):
+                continue
+            try:
+                candles = await _tx_kline(secid_of(code), 120, "daily", None, True, timeout=8.0)
+                bar_date = str(getattr(candles[-1], "time", ""))[:10].replace("-", "")
+                if bar_date < last_ok:  # 剔除 K线停更/滞后成分
+                    continue
+                res = score_candles(candles, name=name)
+                _zt, _surge = _board_confirm_flags(candles, code)
+                _chg5, _pos60 = _bar_heat(candles)
+                rows.append({"code": code, "name": name, "score": res.get("score"), "tags": res.get("tags") or [],
+                             "risks": res.get("risks") or [], "up_pct": res.get("up_pct"),
+                             "vol_ratio": res.get("vol_ratio"), "red_days": res.get("red_days"),
+                             "latest_time": res.get("latest_time"), "zt": _zt, "surge": _surge,
+                             "chg5": _chg5, "pos60": _pos60, "src": "dynamic"})
+            except Exception as e:
+                rows.append({"code": code, "name": name, "error": str(e)[:80], "src": "dynamic"})
+            await asyncio.sleep(0.6)
+        if len([r for r in rows if r.get("score") is not None]) >= 2:
+            out[c["name"]] = rows
+            _DYNAMIC_ALIASES[c["name"]] = [c["name"]]
+    return out
 
 
 def _median_of(arr: list[float]) -> float | None:
@@ -1069,9 +1192,9 @@ def build_md(data, vip=True):
                 A("")
         hm = ts.get("hot_money") or []
         if hm:
-            A("**龙虎榜游资净买入 TOP**")
+            A("**龙虎榜资金净买入 TOP**")
             A("")
-            A("| 游资 | 净买入 | 主要标的 |")
+            A("| 资金 | 净买入 | 主要标的 |")
             A("|---|---|---|")
             for i, r in enumerate(hm[:5]):
                 A("| %d. %s | %s%s 亿 | %s |" % (i + 1, r.get("name"), "+" if (r.get("buying") or 0) >= 0 else "", ("%.1f" % (abs(r.get("buying") or 0) / 1e8)), "、".join(r.get("stocks") or [])))
@@ -1356,6 +1479,18 @@ def run_daily(force=False, is_vip=True, d8=None):
             idx = got["indexes"]; idx["_ts"] = time.time(); cache_save("indexes", idx)
         if got.get("sector_scores"):
             sc = got["sector_scores"]; cache_save("sector_scores", sc)
+        # 资金榜动态候选（同花顺优先、东财兜底）：固定桶外的资金榜新面孔也纳入评分
+        _has_dyn = bool(sc) and any(any(r.get("src") == "dynamic" for r in items) for items in sc.values())
+        if sc and not _has_dyn:
+            try:
+                dyn = asyncio.run(_fetch_dynamic_scores(plates))
+                if dyn:
+                    for sec, rows in dyn.items():
+                        if sec not in sc:
+                            sc[sec] = rows
+                    cache_save("sector_scores", sc)
+            except Exception as e:
+                scan_warn = (scan_warn + " 资金榜动态候选失败(%s)" % str(e)[:60]).strip()
     try:
         breadth = fetch_breadth()
         cache_save("breadth", breadth)
