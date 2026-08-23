@@ -57,7 +57,7 @@ async def send_sms_106(
     mobile: str,
     content: str,
     sign_name: str | None = None,
-    timeout_s: float = 15.0,
+    timeout_s: float = 45.0,
 ) -> tuple[bool, str, str]:
     """
     106 utf8 网关：与浏览器/厂商 GET 示例一致（account、password、mobile、content 走 query）。
