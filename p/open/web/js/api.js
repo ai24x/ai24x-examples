@@ -12,6 +12,14 @@
 
   function getBase() {
     var h = (location.hostname || "").toLowerCase();
+    // open.ai24x.com = 独立 BYOK 网关：一律同源（登录/密钥/套餐/支付都在本服务，
+    // 与 www/core 账号体系隔离，禁止误指向 api.ai24x.com）
+    if (h === "open.ai24x.com") {
+      try {
+        localStorage.removeItem(STORAGE_BASE);
+      } catch (e) {}
+      return (location.origin || "").replace(/\/$/, "") || PRODUCTION;
+    }
     var onProdHost = h === "ai24x.com" || h.endsWith(".ai24x.com");
     var saved = localStorage.getItem(STORAGE_BASE);
     if (saved) {
