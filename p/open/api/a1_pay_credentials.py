@@ -20,8 +20,28 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 API_DIR = Path(__file__).resolve().parent
-REPO = API_DIR.parent
-A1_SERVER = REPO / "p" / "a1" / "api" / "server"
+
+
+def _find_a1_server() -> Path:
+    """从当前包位置向上找仓库根的 p/a1/api/server。
+
+    core（api/）位于仓库根：API_DIR.parent 即仓库根；
+    open（p/open/api/）在子目录：需再向上两级才能回到仓库根。
+    """
+    cur = API_DIR
+    for _ in range(6):
+        cand = cur / "p" / "a1" / "api" / "server"
+        if cand.is_dir():
+            return cand
+        parent = cur.parent
+        if parent == cur:
+            break
+        cur = parent
+    # 兜底：与旧逻辑一致（core 场景），open 场景会由向上查找命中
+    return API_DIR.parent / "p" / "a1" / "api" / "server"
+
+
+A1_SERVER = _find_a1_server()
 
 # a1 admin_config / 逻辑名 -> 供 pay_settings_ns 合并的字段名
 A1_TO_CORE = {

@@ -44,9 +44,9 @@ _PLAN_DEFAULTS: dict[str, dict[str, Any]] = {
         "validity_days": 365,
         "enabled": True,
         "promo": True,
-        "promo_max_purchases": 1,
-        "note_zh": "小额体验包：$2 试水 100 万 token（≈ 数千次 flash 调用）。仅预充额度，不含名模资格；要点名请选 Scale。额度 12 个月有效；每账号限购 1 次。",
-        "note_en": "Starter trial: $2 for 1M tokens (~thousands of flash calls). Credits only—no named-model access; choose Scale to name models. Valid 12 months. 1 purchase per account.",
+        "promo_max_purchases": 0,
+        "note_zh": "小额体验包：$2 试水 100 万 token（≈ 数千次 flash 调用）。仅预充额度，不含名模资格；要点名请选 Scale。额度 12 个月有效。",
+        "note_en": "Starter trial: $2 for 1M tokens (~thousands of flash calls). Credits only—no named-model access; choose Scale to name models. Valid 12 months.",
     },
     "token_pack_100k": {
         "title_zh": "开发包",

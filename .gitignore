@@ -55,6 +55,7 @@ api/data/token_plans_override.json
 api/data/byok_plans_override.json
 p/markets/api/server/data/markets_plans_override.json
 p/open/api/data/byok_plans_override.json
+p/open/api/data/token_plans_override.json
 api/data/system_flags_override.json
 api/data/model_warehouse_override.json
 api/data/free_shared_override.json
