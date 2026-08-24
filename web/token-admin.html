@@ -572,16 +572,16 @@
                 <div class="field"><span class="lbl">状态</span>
                   <select id="mkSubStatus">
                     <option value="">全部</option>
-                    <option value="active">active</option>
-                    <option value="expired">expired</option>
+                    <option value="active">生效中</option>
+                    <option value="expired">已到期</option>
                   </select>
                 </div>
                 <div class="field"><span class="lbl">套餐</span>
                   <select id="mkSubPlan">
                     <option value="">全部</option>
-                    <option value="weekly">weekly</option>
-                    <option value="monthly">monthly</option>
-                    <option value="yearly">yearly</option>
+                    <option value="weekly">周卡</option>
+                    <option value="monthly">月卡</option>
+                    <option value="yearly">年卡</option>
                   </select>
                 </div>
                 <button type="button" id="btnMkSubLoad">查询</button>
@@ -611,22 +611,22 @@
                 <div class="field"><span class="lbl">状态</span>
                   <select id="mkOrdStatus">
                     <option value="">全部</option>
-                    <option value="created">created</option>
-                    <option value="paid">paid</option>
+                    <option value="created">已创建</option>
+                    <option value="paid">已支付</option>
                   </select>
                 </div>
                 <div class="field"><span class="lbl">通道</span>
                   <select id="mkOrdChannel">
                     <option value="">全部</option>
-                    <option value="paypal">paypal</option>
-                    <option value="wechat">wechat</option>
-                    <option value="alipay">alipay</option>
-                    <option value="creem">creem</option>
-                    <option value="mock">mock</option>
+                    <option value="paypal">PayPal</option>
+                    <option value="wechat">微信</option>
+                    <option value="alipay">支付宝</option>
+                    <option value="creem">Creem</option>
+                    <option value="mock">模拟</option>
                   </select>
                 </div>
                 <div class="field" style="min-width:220px;"><span class="lbl">单号 / 用户关键词</span>
-                  <input id="mkOrdQ" type="text" placeholder="out_trade_no / custom_id / paypal_order_id" />
+                  <input id="mkOrdQ" type="text" placeholder="单号 / 用户ID / 渠道订单号" />
                 </div>
                 <button type="button" id="btnMkOrdLoad">查询</button>
               </div>
@@ -703,9 +703,9 @@
                 <div class="field"><span class="lbl">状态</span>
                   <select id="ordStatus">
                     <option value="">全部</option>
-                    <option value="pending">pending</option>
-                    <option value="paid">paid</option>
-                    <option value="failed">failed</option>
+                    <option value="pending">待支付</option>
+                    <option value="paid">已支付</option>
+                    <option value="failed">失败</option>
                   </select>
                 </div>
                 <div class="field"><span class="lbl">含过期未付</span>
@@ -714,11 +714,11 @@
                 <div class="field"><span class="lbl">通道</span>
                   <select id="ordChannel">
                     <option value="">全部</option>
-                    <option value="wechat">wechat</option>
-                    <option value="alipay">alipay</option>
-                    <option value="paypal">paypal</option>
-                    <option value="creem">creem</option>
-                    <option value="mock">mock</option>
+                    <option value="wechat">微信</option>
+                    <option value="alipay">支付宝</option>
+                    <option value="paypal">PayPal</option>
+                    <option value="creem">Creem</option>
+                    <option value="mock">模拟</option>
                   </select>
                 </div>
                 <div class="field"><span class="lbl">用户 ID</span>
@@ -1494,8 +1494,40 @@
     return "¥" + (n / 100).toFixed(2);
   }
   function statusPill(s) {
-    var c = s === "paid" ? "ok" : (s === "pending" ? "warn" : "bad");
-    return '<span class="pill ' + c + '">' + s + "</span>";
+    var zh = {
+      paid: "已支付", pending: "待支付", failed: "失败", expired: "已过期",
+      cancelled: "已取消", refunded: "已退款", created: "已创建",
+      active: "生效中", completed: "已完成", processing: "处理中",
+    };
+    var label = zh[s] || s;
+    var c = s === "paid" || s === "active" || s === "completed"
+      ? "ok"
+      : s === "pending" || s === "processing" || s === "created"
+        ? "warn"
+        : "bad";
+    return '<span class="pill ' + c + '">' + label + "</span>";
+  }
+
+  function userLabel(r) {
+    var em = r && r.user_email;
+    var ph = r && r.user_phone;
+    var name = em || ph || ("#" + r.auth_user_id);
+    var extra = "";
+    if (em && ph) extra = ' <span class="muted small">' + esc(ph) + "</span>";
+    return '<span class="mono small">' + esc(name) + "</span>" + extra;
+  }
+
+  function marketsUserLabel(r) {
+    var cid = String((r && r.custom_id) || "");
+    var m = cid.match(/^markets:([a-zA-Z0-9_]+)(?::(.+))?$/);
+    if (m) {
+      return (
+        '<span class="mono small">#' + esc(m[1]) +
+        (m[2] ? ' <span class="muted">' + esc(m[2]) + "</span>" : "") +
+        "</span>"
+      );
+    }
+    return '<span class="mono small">' + esc(cid || r.out_trade_no || r.id) + "</span>";
   }
 
   function getGroupForPanel(panelId) {
@@ -2734,7 +2766,7 @@
         ? pRows.map(function (r) {
             return "<tr>" +
               '<td class="mono">' + esc(r.out_trade_no) + "</td>" +
-              "<td>" + esc(r.auth_user_id) + "</td>" +
+              "<td>" + userLabel(r) + "</td>" +
               "<td>" + esc(r.plan) + "</td>" +
               "<td>" + fenLabel(r.channel, r.amount_fen) + "</td>" +
               "<td>" + esc(r.channel) + "</td>" +
@@ -2754,7 +2786,7 @@
         ? paidRows.map(function (r) {
             return "<tr>" +
               '<td class="mono">' + esc(r.out_trade_no) + "</td>" +
-              "<td>" + esc(r.auth_user_id) + "</td>" +
+              "<td>" + userLabel(r) + "</td>" +
               "<td>" + esc(r.plan) + "</td>" +
               "<td>" + fenLabel(r.channel, r.amount_fen) + "</td>" +
               "<td>" + esc(r.channel) + "</td>" +
@@ -2810,7 +2842,7 @@
       var rowStyle = r.expired ? ' style="opacity:.5;"' : "";
       return "<tr" + rowStyle + ">" +
         '<td class="mono">' + esc(r.out_trade_no) + "</td>" +
-        "<td>" + esc(r.auth_user_id) + "</td>" +
+        "<td>" + userLabel(r) + "</td>" +
         "<td>" + esc(r.plan) + "</td>" +
         "<td>" + fenLabel(r.channel, r.amount_fen) + "</td>" +
         "<td>" + esc(r.channel) + "</td>" +
@@ -2992,7 +3024,7 @@
           return (
             "<tr>" +
             '<td class="mono">' + esc(r.out_trade_no || r.id) + "</td>" +
-            "<td>" + esc(r.custom_id || "") + "</td>" +
+            "<td>" + marketsUserLabel(r) + "</td>" +
             "<td>" + esc(r.plan || "") + "</td>" +
             "<td>$" + Number(r.amount_usd || 0).toFixed(2) + "</td>" +
             "<td>" + esc(r.channel || "") + "</td>" +
@@ -3068,7 +3100,7 @@
           return (
             "<tr>" +
             '<td class="mono">' + esc(r.out_trade_no || r.paypal_order_id || r.id) + "</td>" +
-            '<td class="mono">' + esc((r.custom_id || "").replace(/^markets:/, "")) + "</td>" +
+            "<td>" + marketsUserLabel(r) + "</td>" +
             "<td>" + esc(r.plan || "") + "</td>" +
             "<td>$" + Number(r.amount_usd || 0).toFixed(2) + "</td>" +
             "<td>" + esc(r.channel || "") + "</td>" +
