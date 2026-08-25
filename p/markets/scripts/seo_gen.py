@@ -50,6 +50,16 @@ STOCKS: List[Dict[str, str]] = [
     {"sym": "AMD", "name": "AMD", "blurb": "CPU and GPU semiconductors"},
     {"sym": "PLTR", "name": "Palantir", "blurb": "data analytics software"},
     {"sym": "NFLX", "name": "Netflix", "blurb": "streaming entertainment"},
+    {"sym": "AVGO", "name": "Broadcom", "blurb": "semiconductors and infrastructure software"},
+    {"sym": "COST", "name": "Costco Wholesale", "blurb": "membership retail warehouse clubs"},
+    {"sym": "CRM", "name": "Salesforce", "blurb": "enterprise cloud software"},
+    {"sym": "ORCL", "name": "Oracle", "blurb": "database and cloud infrastructure"},
+    {"sym": "UBER", "name": "Uber Technologies", "blurb": "ride-hailing and delivery"},
+    {"sym": "ABNB", "name": "Airbnb", "blurb": "short-term rental marketplace"},
+    {"sym": "PYPL", "name": "PayPal", "blurb": "digital payments"},
+    {"sym": "SHOP", "name": "Shopify", "blurb": "e-commerce platform"},
+    {"sym": "SNOW", "name": "Snowflake", "blurb": "cloud data platform"},
+    {"sym": "COIN", "name": "Coinbase", "blurb": "cryptocurrency exchange"},
 ]
 
 INDEX_PAIRS: List[Tuple[str, str, str, str]] = [
@@ -434,7 +444,10 @@ li{margin:6px 0;color:#c9d4df}
 """
 
 
-def page_shell(title: str, desc: str, body: str, canonical: str, jsonld: str) -> str:
+def page_shell(
+    title: str, desc: str, body: str, canonical: str, jsonld: str, url_path: Optional[str] = None
+) -> str:
+    url = f"{APP_URL}/seo/{canonical}" if url_path is None else f"{APP_URL}/{url_path}"
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -442,11 +455,11 @@ def page_shell(title: str, desc: str, body: str, canonical: str, jsonld: str) ->
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{title}</title>
 <meta name="description" content="{desc}">
-<link rel="canonical" href="{APP_URL}/seo/{canonical}">
+<link rel="canonical" href="{url}">
 <meta property="og:type" content="website">
 <meta property="og:title" content="{title}">
 <meta property="og:description" content="{desc}">
-<meta property="og:url" content="{APP_URL}/seo/{canonical}">
+<meta property="og:url" content="{url}">
 <meta name="robots" content="index,follow">
 <style>{CSS}</style>
 <script type="application/ld+json">{jsonld}</script>
@@ -527,7 +540,7 @@ def gen_stock_page(cfg: Dict[str, str], data: Dict[str, Any], api_base: str) -> 
     )
     compliant_assert(ai_summary, slug)
     others = "".join(
-        f'<a href="{o["sym"].lower()}.html">{o["sym"]}</a>&nbsp;·&nbsp;'
+        f'<a href="/stocks/{o["sym"].lower()}">{o["sym"]}</a>&nbsp;·&nbsp;'
         for o in STOCKS
         if o["sym"] != sym
     )
@@ -535,7 +548,7 @@ def gen_stock_page(cfg: Dict[str, str], data: Dict[str, Any], api_base: str) -> 
 <h1>{name} ({sym}) Chart and Technical Snapshot</h1>
 <p class="sub">{cfg['blurb']} — daily chart with 20-day and 60-day moving averages.</p>
 <p class="meta">Data as of {st['asof']} · aggregated market data · educational content</p>
-<div class="chart"><img src="assets/{slug}.svg" alt="{name} ({sym}) daily candlestick chart with MA20 and MA60" width="760" height="420"></div>
+<div class="chart"><img src="{APP_URL}/seo/assets/{slug}.svg" alt="{name} ({sym}) daily candlestick chart with MA20 and MA60" width="760" height="420"></div>
 <div class="cards">
 <div class="card"><b>{_f(st['last'])}</b><span>last close</span></div>
 <div class="card"><b class="{up_down}">{_f(st['day_chg'])}%</b><span>change vs prior bar</span></div>
@@ -560,11 +573,11 @@ def gen_stock_page(cfg: Dict[str, str], data: Dict[str, Any], api_base: str) -> 
 <p>Open {sym} in the interactive AI24X Markets charting workbench — add indicators, switch periods, and get the AI technical-health brief.</p>
 <a class="cta" href="{APP_URL}/app.html?symbol={sym}">Explore {sym} free</a>
 <h2>More Charts</h2>
-<p>{others}<a href="index.html">All guides</a></p>
+<p>{others}<a href="/seo/index.html">All guides</a></p>
 """
     title = f"{name} ({sym}) Chart and Technical Snapshot"
     desc = f"{name} ({sym}) daily chart with moving averages, MACD, RSI and range position. Read a descriptive technical snapshot of {sym} on AI24X Markets."
-    return page_shell(title, desc, body, f"{slug}.html", stock_faq(sym, name, st))
+    return page_shell(title, desc, body, f"{slug}.html", stock_faq(sym, name, st), url_path=f"stocks/{slug}")
 
 
 def gen_pair_page(a: str, b: str, label: str, blurb: str, da: Dict[str, Any], db: Dict[str, Any]) -> str:
@@ -702,7 +715,7 @@ def gen_tutorial_page(cfg: Dict[str, str], data: Dict[str, Any]) -> str:
 
 def gen_index_page(pages: List[Tuple[str, str, str]]) -> str:
     stock_links = "".join(
-        f'<li><a href="{o["sym"].lower()}.html">{o["name"]} ({o["sym"]})</a> — {o["blurb"]}</li>'
+        f'<li><a href="/stocks/{o["sym"].lower()}">{o["name"]} ({o["sym"]})</a> — {o["blurb"]}</li>'
         for o in STOCKS
     )
     pair_links = "".join(
@@ -738,6 +751,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--api", default="http://127.0.0.1:18012")
     ap.add_argument("--force", action="store_true")
+    ap.add_argument("--stocks-only", action="store_true", help="regenerate only stock pages + index (skip pairs/tutorials)")
     args = ap.parse_args()
     WEB.mkdir(parents=True, exist_ok=True)
     ASSETS.mkdir(parents=True, exist_ok=True)
@@ -753,24 +767,25 @@ def main() -> int:
         fp.write_text(html, encoding="utf-8")
         pages.append(fp.name)
         print(f"[ok] {fp.name} (asof {compute_stats(data)['asof']})")
-    for a, b, label, blurb in INDEX_PAIRS:
-        da, db = load_kline(a, args.api), load_kline(b, args.api)
-        if not da or not db:
-            print(f"[warn] missing data for {a} or {b} — skip pair")
-            continue
-        fp = WEB / f"{a.lower()}-vs-{b.lower()}.html"
-        fp.write_text(gen_pair_page(a, b, label, blurb, da, db), encoding="utf-8")
-        pages.append(fp.name)
-        print(f"[ok] {fp.name}")
-    sample_data = load_kline("AAPL", args.api)
-    for t in TUTORIALS:
-        if not sample_data:
-            print(f"[warn] no sample data for tutorial {t['slug']} — skip")
-            continue
-        fp = WEB / f"{t['slug']}.html"
-        fp.write_text(gen_tutorial_page(t, sample_data), encoding="utf-8")
-        pages.append(fp.name)
-        print(f"[ok] {fp.name}")
+    if not args.stocks_only:
+        for a, b, label, blurb in INDEX_PAIRS:
+            da, db = load_kline(a, args.api), load_kline(b, args.api)
+            if not da or not db:
+                print(f"[warn] missing data for {a} or {b} — skip pair")
+                continue
+            fp = WEB / f"{a.lower()}-vs-{b.lower()}.html"
+            fp.write_text(gen_pair_page(a, b, label, blurb, da, db), encoding="utf-8")
+            pages.append(fp.name)
+            print(f"[ok] {fp.name}")
+        sample_data = load_kline("AAPL", args.api)
+        for t in TUTORIALS:
+            if not sample_data:
+                print(f"[warn] no sample data for tutorial {t['slug']} — skip")
+                continue
+            fp = WEB / f"{t['slug']}.html"
+            fp.write_text(gen_tutorial_page(t, sample_data), encoding="utf-8")
+            pages.append(fp.name)
+            print(f"[ok] {fp.name}")
     idx = WEB / "index.html"
     idx.write_text(gen_index_page(pages), encoding="utf-8")
     print(f"generated {len(pages)} pages + index into {WEB} (date {today})")
