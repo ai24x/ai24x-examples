@@ -44,12 +44,14 @@ $c1 = Get-Content "$REPO\api\main.py" -Raw -Encoding UTF8
 $c2 = Get-Content "$REPO\p\markets\api\server\app\alerts.py" -Raw -Encoding UTF8
 $c3 = Get-Content "$REPO\p\markets\api\server\app\key_levels.py" -Raw -Encoding UTF8
 $c4 = Get-Content "$REPO\p\markets\web\daily\index.html" -Raw -Encoding UTF8
-$m1 = $c1.Contains('admin_sms_config') -and $c1.Contains('send_with_failover') -and $c1.Contains('/api/brief/latest') -and $c1.Contains('/api/alerts/evaluate')
+$c5 = Get-Content "$REPO\p\markets\api\server\app\main.py" -Raw -Encoding UTF8
+$m1 = $c1.Contains('admin_sms_config') -and $c1.Contains('send_with_failover')
 $m2 = $c2.Contains('evaluate_user_alerts') -and $c2.Contains('send_alert_email')
 $m3 = $c3.Contains('compute_key_levels') -and $c3.Contains('pos_52w_pct')
 $m4 = $c4.Contains('Daily US Market Brief') -and $c4.Contains('/api/brief/latest')
-"mark_main=$m1 mark_alerts=$m2 mark_keylevels=$m3 mark_daily=$m4"
-if (-not ($m1 -and $m2 -and $m3 -and $m4)) { Write-Host "!! 文件标记缺失" -ForegroundColor Red; exit 1 }
+$m5 = $c5.Contains('/api/brief/latest') -and $c5.Contains('/api/alerts/evaluate')
+"mark_main=$m1 mark_markets_main=$m5 mark_alerts=$m2 mark_keylevels=$m3 mark_daily=$m4"
+if (-not ($m1 -and $m2 -and $m3 -and $m4 -and $m5)) { Write-Host "!! 文件标记缺失" -ForegroundColor Red; exit 1 }
 
 "--- 3) 应用生产短信通道配置补丁（腾讯主源+聚合兜底，含密钥，不入 git）---"
 $PATCH = "C:\Users\Administrator\ops\_patch_prod_sms_config_20260825.py"
