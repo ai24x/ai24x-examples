@@ -21,7 +21,7 @@ Set-Location $REPO
 
 "--- 0) 备份本批文件本地脏改动再还原（防 pull 冲突）---"
 $FILES = @("api/main.py","api/email_smtp.py","api/schemas.py","web/token-admin.html","web/paypal.html","p/markets/api/server/app/main.py","p/markets/api/server/app/ai_brief.py","p/markets/api/server/app/billing.py","p/markets/api/server/app/screener.py","p/markets/api/server/app/providers_us.py","p/markets/web/app.html","p/markets/web/screener.html","p/markets/web/index.html","p/markets/web/sitemap.xml","web/config/locales.js","web/js/shell.js")
-$FILES += Get-ChildItem "$REPO\web" -Recurse -Filter *.html | ForEach-Object { "web\" + $_.FullName.Substring($REPO.Length + 5).Replace("\","/") }
+$FILES += Get-ChildItem "$REPO\web" -Recurse -Filter *.html | ForEach-Object { $_.FullName.Replace("$REPO\","").Replace("\","/") }
 $BK = "C:\backup\markets_phase1_20260825"
 New-Item -ItemType Directory -Force -Path $BK | Out-Null
 foreach ($x in $FILES) {
