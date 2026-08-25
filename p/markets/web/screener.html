@@ -162,7 +162,11 @@
           'sr.edunote': 'Educational screen — patterns describe market structure, not buy/sell recommendations.',
           'sr.open': 'Open chart →',
           'sr.pos': '60-day position',
+          'sr.pos52': '52w',
           'sr.vol': 'Vol ratio',
+          'sr.mcap': 'Mcap',
+          'sr.pe': 'PE',
+          'sr.rsi': 'RSI',
           'sr.pct5': '5d',
           'sr.pct20': '20d',
           'footer.note': 'AI24X Markets provides educational technical analysis tools. Market data is delayed at least 15 minutes. Nothing here is investment advice.',
@@ -195,7 +199,11 @@
           'sr.edunote': '教育用途扫描——形态仅描述市场结构，不构成买卖建议。',
           'sr.open': '打开图表 →',
           'sr.pos': '60日位置',
+          'sr.pos52': '52周',
           'sr.vol': '量比',
+          'sr.mcap': '市值',
+          'sr.pe': 'PE',
+          'sr.rsi': 'RSI',
           'sr.pct5': '5日',
           'sr.pct20': '20日',
           'footer.note': 'AI24X Markets 提供教育用途的技术分析工具。行情延迟至少 15 分钟，一切内容不构成投资建议。',
@@ -212,6 +220,14 @@
       function fmtNum(v) {
         if (v == null || isNaN(v)) return '—';
         return Number(v).toLocaleString('en-US', { maximumFractionDigits: 2 });
+      }
+      function fmtMcap(v) {
+        if (v == null || isNaN(v)) return '—';
+        var x = Number(v);
+        if (x >= 1e12) return '$' + (x / 1e12).toFixed(2) + 'T';
+        if (x >= 1e9) return '$' + (x / 1e9).toFixed(1) + 'B';
+        if (x >= 1e6) return '$' + (x / 1e6).toFixed(1) + 'M';
+        return '$' + x.toFixed(0);
       }
       function scoreColor(v) { return v >= 75 ? '#22c55e' : v >= 60 ? '#f59e0b' : v >= 45 ? '#38bdf8' : '#f87171'; }
       var mode = 'all';
@@ -277,6 +293,8 @@
             '<div class="sr-price ' + pc + '">' + fmtNum(it.price) + ' ' + arrow + ' ' + fmtNum(it.chg_pct) + '%</div>' +
             '<div class="sr-meta">' + t('sr.pct5') + ' ' + fmtNum(it.pct5) + '% · ' + t('sr.pct20') + ' ' + fmtNum(it.pct20) + '% · ' +
               t('sr.pos') + ' ' + Math.round((Number(it.pos60) || 0) * 100) + '% · ' + t('sr.vol') + ' ' + fmtNum(it.vol_ratio) + '</div>' +
+            '<div class="sr-meta">' + t('sr.mcap') + ' ' + fmtMcap(it.mcap_usd) + ' · ' + t('sr.pe') + ' ' + fmtNum(it.pe) + ' · ' +
+              t('sr.rsi') + ' ' + fmtNum(it.rsi) + ' · ' + t('sr.pos52') + ' ' + Math.round((Number(it.pos52w) || 0) * 100) + '%</div>' +
             (patterns ? '<div class="sr-patterns">' + patterns + '</div>' : '') +
             (tags || risks ? '<div class="sr-patterns">' + tags + risks + '</div>' : '') +
             '<div style="margin-top:8px;color:var(--accent);font-size:12px;">' + escHtml(t('sr.open')) + '</div>' +
@@ -294,7 +312,10 @@
         el.className = '';
         var pr = $('sr-progress'); if (pr) pr.style.display = '';
         $('sr-note').textContent = '';
-        fetch('/api/screener?mode=' + encodeURIComponent(mode) + '&limit=24')
+        var headers = {};
+        var token = getToken();
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        fetch('/api/screener?mode=' + encodeURIComponent(mode) + '&limit=24', { headers: headers })
           .then(function (r) { return r.json(); })
           .then(function (j) {
             if (j.code !== 0 || !j.data) { if (pr) pr.style.display = 'none'; el.style.display = ''; el.className = 'loading'; el.textContent = t('sr.fail'); return; }

@@ -25,6 +25,7 @@ _CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 _SCREENER_CACHE_TTL = 900  # 15 分钟
 _SCREENER_CONCURRENCY = 4
+_CACHE_VERSION = 3  # 因子升级后 +1，强制全量重扫（旧缓存缺 mcap/pe/rsi/pos52w）
 
 # ---- 美股扫描池（主流大盘 + 热门科技 + 中概 + 指数 ETF，约 80 只）----
 UNIVERSE: List[Dict[str, str]] = [
@@ -261,6 +262,27 @@ def _sma(values: List[float], n: int) -> List[Optional[float]]:
     return out
 
 
+def _rsi(closes: List[float], period: int = 14) -> Optional[float]:
+    """Wilder-smoothed RSI（与 alerts/main 同口径）。"""
+    if len(closes) <= period:
+        return None
+    gains, losses = 0.0, 0.0
+    for i in range(1, period + 1):
+        chg = closes[i] - closes[i - 1]
+        if chg >= 0:
+            gains += chg
+        else:
+            losses -= chg
+    avg_g, avg_l = gains / period, losses / period
+    for i in range(period + 1, len(closes)):
+        chg = closes[i] - closes[i - 1]
+        avg_g = (avg_g * (period - 1) + max(chg, 0.0)) / period
+        avg_l = (avg_l * (period - 1) + max(-chg, 0.0)) / period
+    if avg_l == 0.0:
+        return 100.0 if avg_g > 0 else 50.0
+    return 100.0 - 100.0 / (1.0 + avg_g / avg_l)
+
+
 def _detect_patterns(
     symbol: str, name: str, candles: List[Any], score: Dict[str, Any]
 ) -> List[str]:
@@ -336,7 +358,7 @@ def _read_cache() -> Optional[Dict[str, Any]]:
         obj = json.loads(p.read_text(encoding="utf-8"))
         if obj.get("day") == datetime.now(timezone.utc).strftime("%Y-%m-%d") and (
             time.time() - obj.get("ts", 0) < _SCREENER_CACHE_TTL
-        ):
+        ) and obj.get("v") == _CACHE_VERSION:
             return obj
     except Exception:
         pass
@@ -364,6 +386,7 @@ async def _scan_one(item: Dict[str, str]) -> Optional[Dict[str, Any]]:
         cur = float(candles[-1].close)
         if cur <= 0 or cur < 2.0:
             return None
+        closes = [float(c.close) for c in candles]
         avg_close = sum(float(c.close) for c in candles[-21:-1]) / 20.0
         avg20_vol = sum(float(c.vol or 0.0) for c in candles[-21:-1]) / 20.0
         if avg_close <= 0 or avg20_vol <= 0 or avg20_vol * avg_close < 2_000_000:
@@ -372,6 +395,19 @@ async def _scan_one(item: Dict[str, str]) -> Optional[Dict[str, Any]]:
         if not patterns and float(score.get("score") or 0) < 50:
             return None
         chg_pct = float(score.get("up_pct") or 0.0)
+        # 行情因子（市值/PE/52周高低）——腾讯 quote，失败则 n/a 不阻断
+        q = None
+        try:
+            q = await providers_us.fetch_tencent_quote(symbol)
+        except Exception:
+            q = None
+        mcap = None
+        if q and q.get("mcap_usd"):
+            mcap = float(q["mcap_usd"])
+        seg52 = closes[-260:] if len(closes) >= 60 else closes
+        lo52, hi52 = min(seg52), max(seg52)
+        pos52 = (cur - lo52) / (hi52 - lo52) if hi52 > lo52 else 0.5
+        rsi = _rsi(closes)
         return {
             "symbol": symbol,
             "name": item.get("name", symbol),
@@ -385,14 +421,68 @@ async def _scan_one(item: Dict[str, str]) -> Optional[Dict[str, Any]]:
             "tags": score.get("tags"),
             "risks": score.get("risks"),
             "pos60": round(float(score.get("cpos") or 0.5), 2),
+            "pos52w": round(float(pos52), 2),
             "vol_ratio": score.get("vol_ratio"),
+            "rsi": round(rsi, 1) if rsi is not None else None,
+            "pe": q.get("pe") if q else None,
+            "mcap_usd": round(mcap, 2) if mcap else None,
+            "high52w": q.get("high52w") if q else None,
+            "low52w": q.get("low52w") if q else None,
             "source": obj.get("source"),
         }
     except Exception:
         return None
 
 
-async def run_screener(mode: str = "all", limit: int = 24) -> Dict[str, Any]:
+def _num(x: Any) -> Optional[float]:
+    if x is None:
+        return None
+    try:
+        v = float(x)
+    except Exception:
+        return None
+    return v
+
+
+def _apply_filters(items: List[Dict[str, Any]], filters: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """多因子筛选：市值/PE/RSI/52周位置/量比（任一项缺省即通过）。"""
+    out: List[Dict[str, Any]] = []
+    for it in items:
+        ok = True
+        mcap = _num(it.get("mcap_usd"))
+        pe = _num(it.get("pe"))
+        rsi = _num(it.get("rsi"))
+        pos52 = _num(it.get("pos52w"))
+        vr = _num(it.get("vol_ratio"))
+        for key, lo, hi, val in (
+            ("min_mcap", "min_mcap", None, mcap),
+            ("max_mcap", None, "max_mcap", mcap),
+            ("min_pe", "min_pe", None, pe),
+            ("max_pe", None, "max_pe", pe),
+            ("min_rsi", "min_rsi", None, rsi),
+            ("max_rsi", None, "max_rsi", rsi),
+            ("min_pos52", "min_pos52", None, pos52),
+            ("max_pos52", None, "max_pos52", pos52),
+            ("min_vol_ratio", "min_vol_ratio", None, vr),
+        ):
+            if val is None:
+                continue
+            if lo and filters.get(lo) is not None and val < _num(filters[lo]):
+                ok = False
+                break
+            if hi and filters.get(hi) is not None and val > _num(filters[hi]):
+                ok = False
+                break
+        if ok:
+            out.append(it)
+    return out
+
+
+async def run_screener(
+    mode: str = "all",
+    limit: int = 24,
+    filters: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
     mode = (mode or "all").strip()
     if mode.lower() != "all" and mode.lower() not in (
         "bottom volume surge",
@@ -423,6 +513,7 @@ async def run_screener(mode: str = "all", limit: int = 24) -> Dict[str, Any]:
         )
         _write_cache(
             {
+                "v": _CACHE_VERSION,
                 "day": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
                 "ts": time.time(),
                 "items": items,
@@ -434,6 +525,8 @@ async def run_screener(mode: str = "all", limit: int = 24) -> Dict[str, Any]:
         items = [
             x for x in items if any(m_low == (p or "").lower() for p in (x.get("patterns") or []))
         ]
+    if filters:
+        items = _apply_filters(items, filters)
     items = items[: max(1, min(40, int(limit) if limit else 24))]
     return {
         "ok": True,
@@ -443,5 +536,6 @@ async def run_screener(mode: str = "all", limit: int = 24) -> Dict[str, Any]:
         "scanned": len(UNIVERSE),
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "items": items,
+        "filters": {k: v for k, v in (filters or {}).items() if v is not None},
         "note": "Educational technical screen — market data delayed at least 15 minutes.",
     }

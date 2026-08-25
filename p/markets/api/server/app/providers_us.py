@@ -368,6 +368,16 @@ async def fetch_tencent_quote(symbol: str) -> Dict[str, Any]:
             raise _SourceError("tencent quote short")
         _circuit_note("tencent", True)
         name_en = fields[46] if len(fields) > 46 else ""
+
+        def _num(idx: int) -> Optional[float]:
+            if len(fields) <= idx:
+                return None
+            try:
+                v = float(fields[idx])
+            except Exception:
+                return None
+            return v if v == v else None
+
         return {
             "symbol": symbol.upper(),
             "name": name_en or fields[2],
@@ -384,6 +394,11 @@ async def fetch_tencent_quote(symbol: str) -> Dict[str, Any]:
             "time": fields[30] if len(fields) > 30 else "",
             "currency": fields[35] if len(fields) > 35 else "USD",
             "pe": _f(fields[39]) if len(fields) > 39 else None,
+            "mcap_usd": (_num(45) * 1e8) if _num(45) else None,
+            "mcap_circulating_usd": (_num(44) * 1e8) if _num(44) else None,
+            "high52w": _num(48),
+            "low52w": _num(49),
+            "vol_ratio": _num(51),
             "source": "tencent",
         }
     except Exception as e:

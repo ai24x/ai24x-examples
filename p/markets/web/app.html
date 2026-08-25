@@ -245,6 +245,7 @@
     <button data-period="month" data-i18n="p.month">1M</button>
     <button id="refresh" title="Refresh">⟳</button>
     <button id="btn-watch" title="Add to watchlist" style="border:0; background:transparent; color:var(--muted); font-size:16px; cursor:pointer;">☆</button>
+    <button id="btn-alerts" title="Price alerts" style="border:0; background:transparent; color:var(--muted); font-size:16px; cursor:pointer;">🔔</button>
     <span id="pro-badge" style="display:none; background:var(--accent); color:#fff; font-size:10px; font-weight:700; padding:2px 7px; border-radius:999px;">PRO</span>
     <span id="err" class="err"></span>
   </div>
@@ -300,11 +301,43 @@
         <div id="brief-disclaimer" style="color:var(--muted); font-size:11px; margin-top:10px; line-height:1.6;" data-i18n="brief.disclaimer">For educational purposes only — not investment advice. Market data is delayed at least 15 minutes.</div>
       </div>
     </div>
+    <div class="panel" id="alerts-panel">
+      <h3 data-i18n="panel.alerts">Price Alerts</h3>
+      <div style="padding: 12px 14px;">
+        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px;">
+          <select id="alert-kind" style="padding:7px 10px; border-radius:8px; border:1px solid var(--border,#333); background:var(--card-bg,#151a20); color:var(--text,#e5e7eb); font-size:13px;">
+            <option value="price_above">Price above</option>
+            <option value="price_below">Price below</option>
+            <option value="breakout">Breakout above 20-bar high</option>
+            <option value="rsi_overbought">RSI-14 ≥ 70</option>
+            <option value="rsi_oversold">RSI-14 ≤ 30</option>
+            <option value="ma_cross">MA5 crosses above MA10</option>
+          </select>
+          <input id="alert-threshold" type="number" step="0.01" min="0" placeholder="Price (for price alerts)"
+                 style="width:150px; padding:7px 10px; border-radius:8px; border:1px solid var(--border,#333); background:var(--card-bg,#151a20); color:var(--text,#e5e7eb); font-size:13px;">
+          <button type="button" id="btn-alert-add">Add alert</button>
+        </div>
+        <div id="alert-quota" class="muted" style="color:var(--muted); font-size:12px; margin-bottom:10px;"></div>
+        <div id="alert-list" style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;"></div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+          <span style="font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em;" data-i18n="alert.events">Recent triggers</span>
+          <button type="button" id="btn-alert-check" style="font-size:12px; padding:5px 12px;" data-i18n="alert.check">Check my alerts now</button>
+        </div>
+        <div id="alert-events" style="display:flex; flex-direction:column; gap:6px;"></div>
+        <div id="alert-msg" style="color:var(--up); font-size:12px; margin-top:8px;"></div>
+      </div>
+    </div>
     <div class="panel panel-anchor" id="sub">
       <h3 data-i18n="panel.sub">Pro Subscription</h3>
       <div style="padding: 12px 14px;">
         <div id="sub-status" style="font-size:13px; margin-bottom:10px; color:var(--muted);"></div>
         <div style="font-size:12px; color:var(--muted); margin-bottom:10px;" data-i18n="sub.steps">How it works: 1 · Pick a plan → 2 · Choose a payment method → 3 · Pro activates instantly.</div>
+        <div id="trial-box" style="display:none; margin-bottom:12px; padding:12px; border:1px solid rgba(251,191,36,.35); border-radius:12px; background:linear-gradient(90deg, rgba(251,191,36,.10), rgba(251,191,36,.03));">
+          <div style="font-weight:700; color:var(--gold);" data-i18n="sub.trialTitle">7-Day Free Pro Trial</div>
+          <div style="font-size:12px; color:var(--muted); margin:4px 0 10px;" data-i18n="sub.trialDesc">Full Pro access for 7 days. No payment method required. One per account.</div>
+          <button type="button" id="btn-trial" class="ok" style="width:100%;" data-i18n="sub.trialBtn">Start Free Trial</button>
+          <div id="trial-msg" style="font-size:12px; margin-top:8px; color:var(--muted);"></div>
+        </div>
         <div class="sub-plans">
           <button type="button" class="sub-plan" id="btn-sub-week">
             <span data-i18n="sub.weekT">Weekly</span>
@@ -354,6 +387,7 @@
           <div class="footer-title">Product</div>
           <a href="/">Markets</a>
           <a href="/pricing.html">Pricing</a>
+          <a href="/daily/">Daily Brief</a>
         </div>
         <div class="footer-col">
           <div class="footer-title">Account</div>
@@ -429,6 +463,13 @@
           'sub.captureFail': 'Payment confirmation pending. If you completed payment, your access will activate shortly.',
           'sub.captureOk': 'Payment confirmed — Pro activated. Thank you!',
           'sub.reload': 'Refreshing…',
+          'sub.trialTitle': '7-Day Free Pro Trial',
+          'sub.trialDesc': 'Full Pro access for 7 days. No payment method required. One per account.',
+          'sub.trialBtn': 'Start Free Trial',
+          'sub.trialActive': 'Free trial active — Pro until {date}.',
+          'sub.trialUsed': 'Free trial already used.',
+          'sub.trialOk': 'Trial activated — enjoy 7 days of Pro!',
+          'sub.trialFail': 'Trial unavailable: ',
           'banner.free': 'Free plan · 10 AI briefs/day & 10-symbol watchlist — upgrade for more.',
           'banner.upgrade': 'Upgrade to Pro',
           'sub.steps': 'How it works: 1 · Pick a plan → 2 · Choose a payment method → 3 · Pro activates instantly.',
@@ -439,6 +480,7 @@
           'pay.alipay': 'Alipay',
           'pay.paypal': 'PayPal',
           'pay.creem': 'Creem',
+          'pay.dodo': 'Dodo',
           'pay.mock': 'Mock (test)',
           'pay.unavailable': 'Not ready',
           'pay.preparingWechat': 'Preparing WeChat QR…',
@@ -448,6 +490,7 @@
           'pay.autoConfirm': ' This page auto-confirms after payment. Order: ',
           'pay.openPaypal': 'Open PayPal',
           'pay.openAlipay': 'Open Alipay',
+          'pay.openDodo': 'Open Dodo',
           'pay.openCreem': 'Open Creem',
           'pay.checkoutFail': 'Unable to start checkout: ',
           'pay.verifyFail': 'Payment confirmation pending. If you completed payment, your access will activate shortly.',
@@ -499,6 +542,29 @@
           'mb.discover': 'Discover',
           'mb.brief': 'AI Brief',
           'mb.pro': 'Pro',
+          'panel.alerts': 'Price Alerts',
+          'alert.quota': 'Free plan — 1 active alert. Upgrade to Pro for unlimited.',
+          'alert.pro': 'Pro — unlimited alerts.',
+          'alert.login': 'Sign in to create price alerts.',
+          'alert.add': 'Add alert',
+          'alert.added': 'Alert added.',
+          'alert.addFail': 'Alert error: ',
+          'alert.limit': 'Free plan allows 1 active alert. Upgrade to Pro for unlimited.',
+          'alert.empty': 'No alerts yet — add one above.',
+          'alert.active': 'Active',
+          'alert.triggered': 'Triggered',
+          'alert.delete': 'Delete',
+          'alert.rearm': 'Re-arm',
+          'alert.check': 'Check my alerts now',
+          'alert.checking': 'Checking…',
+          'alert.noTriggers': 'No alerts triggered in this check.',
+          'alert.triggeredN': '{n} alert(s) triggered.',
+          'alert.checkFail': 'Check failed: ',
+          'alert.events': 'Recent triggers',
+          'alert.eventsEmpty': 'No triggers yet.',
+          'alert.needSymbol': 'Search a symbol first, then add an alert for it.',
+          'alert.needThreshold': 'Enter a threshold price for price alerts.',
+          'alert.on': 'for {s}',
         },
         zh: {
           search: '查询',
@@ -531,6 +597,13 @@
           'sub.captureFail': '支付确认待处理。如已完成支付，稍后会自动生效。',
           'sub.captureOk': '支付确认成功 — Pro 已激活，感谢支持！',
           'sub.reload': '刷新中…',
+          'sub.trialTitle': '7 天免费 Pro 试用',
+          'sub.trialDesc': '7 天完整 Pro 权限，无需绑定支付方式，每个账号限一次。',
+          'sub.trialBtn': '开始免费试用',
+          'sub.trialActive': '免费试用中 — Pro 有效期至 {date}。',
+          'sub.trialUsed': '免费试用已使用过。',
+          'sub.trialOk': '试用已激活，7 天 Pro 体验开始！',
+          'sub.trialFail': '试用领取失败：',
           'banner.free': '免费版 · 每天 10 次点评、10 只自选 — 升级解锁更多。',
           'banner.upgrade': '升级 Pro',
           'sub.steps': '开通流程：① 选择套餐 → ② 选择支付方式 → ③ 立即生效。',
@@ -541,6 +614,7 @@
           'pay.alipay': '支付宝',
           'pay.paypal': 'PayPal',
           'pay.creem': 'Creem',
+          'pay.dodo': 'Dodo',
           'pay.mock': '模拟支付（测试）',
           'pay.unavailable': '暂未开放',
           'pay.preparingWechat': '正在生成微信支付二维码…',
@@ -551,6 +625,7 @@
           'pay.openPaypal': '打开 PayPal',
           'pay.openAlipay': '打开支付宝',
           'pay.openCreem': '打开 Creem',
+          'pay.openDodo': '打开 Dodo',
           'pay.checkoutFail': '无法发起支付：',
           'pay.verifyFail': '支付确认待处理。如已完成支付，稍后会自动生效。',
           'pay.ok': '支付确认成功 — Pro 已激活，感谢支持！',
@@ -601,6 +676,29 @@
           'mb.discover': '扫描',
           'mb.brief': 'AI 点评',
           'mb.pro': 'Pro',
+          'panel.alerts': '价格提醒',
+          'alert.quota': '免费版 — 1 个生效提醒。升级 Pro 不限数量。',
+          'alert.pro': 'Pro — 提醒不限数量。',
+          'alert.login': '登录后可创建价格提醒。',
+          'alert.add': '添加提醒',
+          'alert.added': '提醒已添加。',
+          'alert.addFail': '提醒创建失败：',
+          'alert.limit': '免费版限 1 个生效提醒。升级 Pro 可无限添加。',
+          'alert.empty': '还没有提醒，先添加一个。',
+          'alert.active': '生效中',
+          'alert.triggered': '已触发',
+          'alert.delete': '删除',
+          'alert.rearm': '重新启用',
+          'alert.check': '立即检查提醒',
+          'alert.checking': '检查中…',
+          'alert.noTriggers': '本次检查无触发。',
+          'alert.triggeredN': '触发 {n} 个提醒。',
+          'alert.checkFail': '检查失败：',
+          'alert.events': '最近触发',
+          'alert.eventsEmpty': '暂无触发记录。',
+          'alert.needSymbol': '请先搜索一个标的，再为其添加提醒。',
+          'alert.needThreshold': '价格类提醒需要填写触发价格。',
+          'alert.on': '标的 {s}',
         },
       };
 
@@ -1232,7 +1330,7 @@
         location.href = coreUrl() + '/login.html?next=' + encodeURIComponent(location.href);
       }
 
-      var subState = { pro: false, expiresAt: null, briefRemaining: -1 };
+      var subState = { pro: false, expiresAt: null, briefRemaining: -1, trial: { granted: false, used: false, active: false } };
 
       function fmtDate(s) {
         if (!s) return '—';
@@ -1244,9 +1342,29 @@
       function renderSub() {
         var el = $('sub-status'); if (!el) return;
         var token = getToken();
-        if (!token) { el.textContent = t('sub.free'); } else if (subState.pro) {
+        if (!token) { el.textContent = t('sub.free'); } else if (subState.trial.active) {
+          el.textContent = t('sub.trialActive').replace('{date}', fmtDate(subState.expiresAt));
+        } else if (subState.pro) {
           el.textContent = t('sub.pro').replace('{date}', fmtDate(subState.expiresAt));
         } else { el.textContent = t('sub.free'); }
+        // 7 天试用卡：已登录 + 免费 显示；已用过则禁用提示
+        var tb = $('trial-box');
+        var bTrial = $('btn-trial');
+        var tm = $('trial-msg');
+        if (tb) {
+          if (token && !subState.pro) {
+            tb.style.display = 'block';
+            if (subState.trial.used) {
+              if (bTrial) { bTrial.disabled = true; }
+              if (tm) tm.textContent = t('sub.trialUsed');
+            } else {
+              if (bTrial) { bTrial.disabled = false; }
+              if (tm) tm.textContent = '';
+            }
+          } else {
+            tb.style.display = 'none';
+          }
+        }
         var pb = $('pro-badge'); if (pb) pb.style.display = (token && subState.pro) ? 'inline-block' : 'none';
         var pn = $('pro-next'); if (pn) pn.style.display = (token && subState.pro) ? 'flex' : 'none';
         var pl = $('brief-pro-link'); if (pl) pl.style.display = (token && !subState.pro) ? 'inline' : 'none';
@@ -1284,6 +1402,7 @@
               subState.pro = !!j.data.pro;
               subState.expiresAt = j.data.expires_at || null;
               subState.briefRemaining = (typeof j.data.brief_remaining === 'number') ? j.data.brief_remaining : -1;
+              subState.trial = j.data.trial || { granted: false, used: false, active: false };
             }
             renderSub();
           })
@@ -1377,6 +1496,9 @@
         if (channel === 'creem') {
           return '<svg class="payhub-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="#7C3AED" d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm0 2v10h16V7H4zm2 2h4v2H6V9zm6 0h6v2h-6V9z"/></svg>';
         }
+        if (channel === 'dodo') {
+          return '<svg class="payhub-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#101B3C"/><path fill="#00D1B2" d="M7.2 15.2h3.2V12H7.2v3.2zm6.4 0h3.2V12h-3.2v3.2zM7.2 8.8h3.2V5.6H7.2v3.2zm6.4 0h3.2V5.6h-3.2v3.2z"/></svg>';
+        }
         if (channel === 'paypal') {
           return '<svg class="payhub-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="#003087" d="M7.2 20.5h1.7l.5-3.1h1.7c3.3 0 5.5-1.4 6.1-4.3.1-.5.1-.9.1-1.2 0-.2 0-.4-.1-.6H19l.1-.5c.4-2.5-.9-4.2-3.8-4.2H9.2L7.2 20.5zm4.2-11.5h1.7c1.3 0 2 .5 1.8 1.7-.2 1.4-1.2 1.7-2.5 1.7h-1.5l.5-3.4z"/><path fill="#009CDE" d="M9.5 21.5h1.7l.4-2.5H13c2.7 0 4.4-1.1 4.9-3.5.1-.4.1-.7.1-1 0-.1 0-.3 0-.4h1.5l.1-.4c.3-2-.7-3.4-3.1-3.4h-4.3l-1.9 11.2h1.7l.5 3.1h1.4c1.1 0 1.7.4 1.5 1.4-.2 1.1-1 1.4-2.1 1.4H10l.5 3.3z"/></svg>';
         }
@@ -1419,12 +1541,13 @@
           ready.alipay = !!(pay.alipay && pay.alipay.ui_ready);
           ready.paypal = !!(pay.paypal && pay.paypal.ui_ready);
           ready.creem = !!(pay.creem && pay.creem.ui_ready);
+          ready.dodo = !!(pay.dodo && pay.dodo.ui_ready);
         } else {
           // 无法探测通道时全部可点，后端未配置会返回明确错误提示
-          ready.wechat = ready.alipay = ready.paypal = ready.creem = true;
+          ready.wechat = ready.alipay = ready.paypal = ready.creem = ready.dodo = true;
         }
         var mockAllowed = pay ? !!(pay.token_pay_enabled === false && pay.token_pay_mock_enabled) : true;
-        ['wechat', 'alipay', 'paypal', 'creem'].forEach(function (ch) {
+        ['wechat', 'alipay', 'paypal', 'creem', 'dodo'].forEach(function (ch) {
           var b = document.createElement('button');
           b.type = 'button';
           b.className = 'payhub-btn';
@@ -1513,7 +1636,7 @@
 
         // 需要新窗口的通道：先开空白窗，等 pay_url 再导航（避免被浏览器拦截）
         var checkoutWin = null;
-        if (channel === 'alipay' || channel === 'paypal' || channel === 'creem') {
+        if (channel === 'alipay' || channel === 'paypal' || channel === 'creem' || channel === 'dodo') {
           try {
             checkoutWin = window.open('about:blank', '_blank');
             if (checkoutWin) {
@@ -1527,6 +1650,7 @@
           : channel === 'alipay' ? '/v1/billing/alipay/wap'
           : channel === 'paypal' ? '/v1/billing/paypal/order'
           : channel === 'creem' ? '/v1/billing/creem/order'
+          : channel === 'dodo' ? '/v1/billing/dodo/order'
           : '/v1/billing/wechat/native';
         hubFetch(path, { plan: plan, product: 'markets' })
           .then(function (r) {
@@ -1544,13 +1668,13 @@
               startFulfillPoll(r.out_trade_no, 'wechat');
               return;
             }
-            if ((channel === 'alipay' || channel === 'paypal' || channel === 'creem') && r && r.pay_url) {
+            if ((channel === 'alipay' || channel === 'paypal' || channel === 'creem' || channel === 'dodo') && r && r.pay_url) {
               var opened = false;
               if (checkoutWin && !checkoutWin.closed) {
                 try { checkoutWin.location.href = r.pay_url; opened = true; } catch (e) {}
               }
               if (!opened) { try { var w = window.open(r.pay_url, '_blank'); opened = !!w; } catch (e) {} }
-              var label = channel === 'alipay' ? t('pay.openAlipay') : channel === 'paypal' ? t('pay.openPaypal') : t('pay.openCreem');
+              var label = channel === 'alipay' ? t('pay.openAlipay') : channel === 'paypal' ? t('pay.openPaypal') : channel === 'creem' ? t('pay.openCreem') : t('pay.openDodo');
               if (hint) { hint.className = 'payhub-hint'; hint.textContent = (opened ? t('pay.opened') : t('pay.blocked')) + t('pay.autoConfirm') + (r.out_trade_no || '') + (r.amount_usd ? ' · $' + r.amount_usd : ''); }
               if (openLink) { openLink.href = r.pay_url; openLink.textContent = label; openLink.hidden = false; }
               startFulfillPoll(r.out_trade_no, channel);
@@ -1589,6 +1713,7 @@
           var path = channel === 'alipay' ? '/v1/billing/alipay/query_and_fulfill'
             : channel === 'paypal' ? '/v1/billing/paypal/query_and_fulfill'
             : channel === 'creem' ? '/v1/billing/creem/query'
+            : channel === 'dodo' ? '/v1/billing/dodo/query'
             : '/v1/billing/wechat/query_and_fulfill';
           hubFetch(path, { out_trade_no: outTradeNo })
             .then(function (j) {
@@ -1677,6 +1802,169 @@
             loadWatch();
           }).catch(function () {});
       }
+      /* —— 价格提醒（Alert，Phase 1：免费 1 个 / Pro 无限，纯规则触发）—— */
+      var alertState = { alerts: [], events: [], limit: null, kinds: {} };
+      var ALERT_LABELS = {
+        price_above: 'Price above',
+        price_below: 'Price below',
+        breakout: 'Breakout above 20-bar high',
+        rsi_overbought: 'RSI-14 ≥ 70',
+        rsi_oversold: 'RSI-14 ≤ 30',
+        ma_cross: 'MA5 crosses above MA10'
+      };
+      function alertParamText(a) {
+        var p = a.params || {};
+        var k = a.kind || '';
+        if ((k === 'price_above' || k === 'price_below') && p.threshold) {
+          return ' · $' + Number(p.threshold).toFixed(2);
+        }
+        return '';
+      }
+      function renderAlerts() {
+        var list = $('alert-list'), q = $('alert-quota'), ev = $('alert-events');
+        if (!list) return;
+        var token = getToken();
+        if (!token) {
+          if (q) q.textContent = t('alert.login');
+          list.innerHTML = '';
+          if (ev) ev.innerHTML = '';
+          return;
+        }
+        if (q) q.textContent = alertState.limit === null ? t('alert.pro') : t('alert.quota');
+        if (!alertState.alerts || !alertState.alerts.length) {
+          list.innerHTML = '<div class="muted" style="color:var(--muted); font-size:12px;">' + escHtml(t('alert.empty')) + '</div>';
+        } else {
+          list.innerHTML = alertState.alerts.map(function (a) {
+            var label = (alertState.kinds && alertState.kinds[a.kind]) || ALERT_LABELS[a.kind] || a.kind;
+            var st = a.status === 'triggered'
+              ? '<span style="color:var(--up); font-weight:600;">' + escHtml(t('alert.triggered')) + '</span>'
+              : '<span style="color:var(--ok,#22c55e);">' + escHtml(t('alert.active')) + '</span>';
+            var actions = a.status === 'triggered'
+              ? '<button type="button" class="alert-rearm" data-id="' + a.id + '" style="font-size:11px; padding:2px 8px;">' + escHtml(t('alert.rearm')) + '</button>'
+              : '';
+            return '<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border:1px solid var(--border,#333); border-radius:8px; background:var(--card-bg,#151a20);">' +
+              '<div style="min-width:0;">' +
+                '<div style="font-weight:600; font-size:13px;">' + escHtml(a.symbol) + ' · ' + escHtml(label) + escHtml(alertParamText(a)) + '</div>' +
+                '<div style="font-size:11px; color:var(--muted); margin-top:2px;">' + st + '</div>' +
+              '</div>' +
+              '<div style="display:flex; gap:6px; flex-shrink:0;">' + actions +
+                '<button type="button" class="alert-del" data-id="' + a.id + '" style="font-size:11px; padding:2px 8px;">' + escHtml(t('alert.delete')) + '</button>' +
+              '</div>' +
+            '</div>';
+          }).join('');
+        }
+        if (!alertState.events || !alertState.events.length) {
+          if (ev) ev.innerHTML = '<div class="muted" style="color:var(--muted); font-size:12px;">' + escHtml(t('alert.eventsEmpty')) + '</div>';
+        } else {
+          if (ev) ev.innerHTML = alertState.events.map(function (e) {
+            var label = (alertState.kinds && alertState.kinds[e.kind]) || ALERT_LABELS[e.kind] || e.kind;
+            var ts = e.created_at || '';
+            try { ts = new Date(String(ts).replace(' ', 'T') + 'Z').toLocaleString(); } catch (err) {}
+            return '<div style="padding:7px 10px; border:1px solid var(--border,#333); border-radius:8px; background:var(--card-bg,#151a20); font-size:12px;">' +
+              '<div style="font-weight:600;">' + escHtml(e.symbol) + ' · ' + escHtml(label) + '</div>' +
+              '<div style="color:var(--muted); margin-top:2px;">' + escHtml(e.detail || '') + '</div>' +
+              '<div style="color:var(--muted); font-size:11px; margin-top:2px;">' + escHtml(ts) + '</div>' +
+            '</div>';
+          }).join('');
+        }
+      }
+      function loadAlerts() {
+        var token = getToken();
+        if (!token) { alertState.alerts = []; alertState.events = []; renderAlerts(); return; }
+        fetch('/api/alerts', { headers: { Authorization: 'Bearer ' + token } })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            if (j.code === 0 && j.data) {
+              alertState.alerts = j.data.alerts || [];
+              alertState.events = j.data.events || [];
+              alertState.limit = (typeof j.data.limit === 'number') ? j.data.limit : null;
+              alertState.kinds = j.data.kind_labels || {};
+            }
+            renderAlerts();
+          }).catch(function () { renderAlerts(); });
+      }
+      function addAlert() {
+        var token = getToken();
+        if (!token) { loginNext(); return; }
+        var kind = ($('alert-kind') || {}).value || 'price_above';
+        var thr = parseFloat(($('alert-threshold') || {}).value || '');
+        var params = {};
+        if (kind === 'price_above' || kind === 'price_below') {
+          if (!(thr > 0)) { toast(t('alert.needThreshold')); return; }
+          params.threshold = thr;
+        }
+        if (!state.symbol) { toast(t('alert.needSymbol')); return; }
+        fetch('/api/alerts', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ symbol: state.symbol, kind: kind, params: params })
+        })
+          .then(function (r) { return r.json().then(function (j) { return { status: r.status, j: j }; }); })
+          .then(function (res) {
+            var j = res.j || {};
+            if (res.status === 401) { loginNext(); return; }
+            if (res.status === 403) { toast(t('alert.limit')); return; }
+            if (res.status !== 200 || j.code !== 0) { toast(t('alert.addFail') + (j.msg || res.status)); return; }
+            toast(t('alert.added'));
+            loadAlerts();
+          }).catch(function () {});
+      }
+      function deleteAlert(id) {
+        var token = getToken(); if (!token) return;
+        fetch('/api/alerts?alert_id=' + encodeURIComponent(id), { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } })
+          .then(function (r) { return r.json(); })
+          .then(function (j) { if (j.code === 0) loadAlerts(); }).catch(function () {});
+      }
+      function rearmAlert(id) {
+        var token = getToken(); if (!token) return;
+        fetch('/api/alerts/rearm', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ alert_id: id })
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (j) { if (j.code === 0) { toast(t('alert.added')); loadAlerts(); } }).catch(function () {});
+      }
+      function checkAlerts() {
+        var token = getToken(); if (!token) { loginNext(); return; }
+        var btn = $('btn-alert-check'), msg = $('alert-msg');
+        if (btn) { btn.disabled = true; btn.textContent = t('alert.checking'); }
+        fetch('/api/alerts/evaluate', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } })
+          .then(function (r) { return r.json().then(function (j) { return { status: r.status, j: j }; }); })
+          .then(function (res) {
+            var j = res.j || {};
+            if (res.status === 401) { loginNext(); return; }
+            var n = (j.data && j.data.triggered) ? j.data.triggered.length : 0;
+            if (msg) {
+              if (res.status !== 200 || j.code !== 0) msg.textContent = t('alert.checkFail') + (j.msg || res.status);
+              else if (n > 0) msg.textContent = t('alert.triggeredN').replace('{n}', String(n));
+              else msg.textContent = t('alert.noTriggers');
+            }
+            loadAlerts();
+          }).catch(function () {
+            if (msg) msg.textContent = t('alert.checkFail') + 'network';
+          }).finally(function () {
+            if (btn) { btn.disabled = false; btn.textContent = t('alert.check'); }
+          });
+      }
+      var bAlertsBell = $('btn-alerts');
+      if (bAlertsBell) bAlertsBell.addEventListener('click', function () {
+        var token = getToken();
+        if (!token) { loginNext(); return; }
+        var ap = $('alerts-panel');
+        if (ap) { try { ap.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }
+        loadAlerts();
+      });
+      var bAlertAdd = $('btn-alert-add');
+      if (bAlertAdd) bAlertAdd.addEventListener('click', addAlert);
+      var bAlertCheck = $('btn-alert-check');
+      if (bAlertCheck) bAlertCheck.addEventListener('click', checkAlerts);
+      document.addEventListener('click', function (e) {
+        var del = e.target && e.target.closest ? e.target.closest('.alert-del') : null;
+        if (del) { deleteAlert(parseInt(del.getAttribute('data-id'), 10)); return; }
+        var re = e.target && e.target.closest ? e.target.closest('.alert-rearm') : null;
+        if (re) { rearmAlert(parseInt(re.getAttribute('data-id'), 10)); }
+      });
       function maybeWelcome() {
         var token = getToken(); if (!token) return;
         var pending = false; try { pending = !!localStorage.getItem('markets_pending_login'); } catch (e) {}
@@ -1720,6 +2008,30 @@
       var bWeek = $('btn-sub-week'); if (bWeek) bWeek.addEventListener('click', function () { openPayHub('weekly'); });
       var bMonth = $('btn-sub-month'); if (bMonth) bMonth.addEventListener('click', function () { openPayHub('monthly'); });
       var bYear = $('btn-sub-year'); if (bYear) bYear.addEventListener('click', function () { openPayHub('yearly'); });
+      var bTrial = $('btn-trial');
+      if (bTrial) bTrial.addEventListener('click', function () {
+        var token = getToken();
+        if (!token) { var tm0 = $('trial-msg'); if (tm0) tm0.textContent = t('sub.trialFail') + 'login'; return; }
+        bTrial.disabled = true;
+        fetch('/api/subscribe/trial', { method: 'POST', headers: { Authorization: 'Bearer ' + token } })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            if (j.code === 0 && j.data) {
+              subState.pro = true;
+              subState.expiresAt = j.data.expires_at || null;
+              subState.trial = j.data.trial || { granted: true, used: true, active: true };
+              var tm = $('trial-msg'); if (tm) tm.textContent = t('sub.trialOk');
+              renderSub();
+            } else {
+              bTrial.disabled = false;
+              var tm2 = $('trial-msg'); if (tm2) tm2.textContent = t('sub.trialFail') + (j.msg || '');
+            }
+          })
+          .catch(function () {
+            bTrial.disabled = false;
+            var tm3 = $('trial-msg'); if (tm3) tm3.textContent = t('sub.trialFail') + 'network';
+          });
+      });
       var phClose = $('payhub-close');
       if (phClose) phClose.addEventListener('click', closePayHub);
       var phOverlay = $('payhub');
@@ -1761,13 +2073,14 @@
         var p = new URLSearchParams(location.search);
         var payDone = p.get('pay') === 'done';
         var otn = p.get('out_trade_no') || '';
-        if (payDone && (p.get('paypal') === '1' || p.get('creem') === '1' || p.get('alipay') === '1') && otn) {
-          var ch = p.get('paypal') === '1' ? 'paypal' : p.get('creem') === '1' ? 'creem' : 'alipay';
+        if (payDone && (p.get('paypal') === '1' || p.get('creem') === '1' || p.get('dodo') === '1' || p.get('alipay') === '1') && otn) {
+          var ch = p.get('paypal') === '1' ? 'paypal' : p.get('creem') === '1' ? 'creem' : p.get('dodo') === '1' ? 'dodo' : 'alipay';
           var token = getToken();
           if (token) {
             showSubMsg(t('sub.reload'));
             var path = ch === 'paypal' ? '/v1/billing/paypal/query_and_fulfill'
               : ch === 'creem' ? '/v1/billing/creem/query'
+              : ch === 'dodo' ? '/v1/billing/dodo/query'
               : '/v1/billing/alipay/query_and_fulfill';
             hubFetch(path, { out_trade_no: otn })
               .then(function (j) {
@@ -1821,6 +2134,7 @@
       load();
       maybeOnboard();
       loadWatch();
+      loadAlerts();
       maybeWelcome();
       // PWA 离线壳：注册后静态页可离线打开，API 永远走网络
       if ('serviceWorker' in navigator) {

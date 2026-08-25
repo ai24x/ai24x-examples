@@ -21,7 +21,20 @@ def _clean_password(pwd: str) -> str:
     return (pwd or "").strip().strip('"').strip("'")
 
 
+def _eff_channel(name: str):
+    """管理台覆盖优先；无覆盖时回落 settings。"""
+    try:
+        from admin_email_config import effective_channel
+
+        return effective_channel(name)
+    except Exception:
+        return None
+
+
 def smtp_configured() -> bool:
+    cfg = _eff_channel("smtp")
+    if cfg:
+        return True
     host = (settings.smtp_host or "").strip()
     user = (settings.smtp_user or "").strip()
     password = _clean_password(settings.smtp_password)
@@ -30,6 +43,9 @@ def smtp_configured() -> bool:
 
 
 def smtp_backup_configured() -> bool:
+    cfg = _eff_channel("smtp_backup")
+    if cfg:
+        return True
     host = (settings.smtp_backup_host or "").strip()
     user = (settings.smtp_backup_user or "").strip()
     password = _clean_password(settings.smtp_backup_password)
@@ -86,7 +102,14 @@ def send_otp_email(*, to_email: str, code: str, purpose: str, lang: str = "zh") 
     )
     purpose_label = purpose_en if is_en else purpose_cn
 
-    configured_subject = (settings.email_otp_subject or "").strip()
+    try:
+        from admin_email_config import effective_subject, effective_body_template
+
+        configured_subject = effective_subject()
+        configured_body = effective_body_template()
+    except Exception:
+        configured_subject = (settings.email_otp_subject or "").strip()
+        configured_body = (settings.email_otp_body_template or "").strip()
     if configured_subject:
         subject = configured_subject
         if "{purpose}" in subject:
@@ -96,7 +119,6 @@ def send_otp_email(*, to_email: str, code: str, purpose: str, lang: str = "zh") 
     else:
         subject = f"AI24X {purpose_en} Verification Code" if is_en else f"【AI24X】{purpose_cn}验证码"
 
-    configured_body = (settings.email_otp_body_template or "").strip()
     if configured_body:
         body = configured_body
     elif is_en:
@@ -117,16 +139,28 @@ def send_otp_email(*, to_email: str, code: str, purpose: str, lang: str = "zh") 
         return m
 
     # Primary channel
-    if smtp_configured():
-        host = (settings.smtp_host or "").strip()
-        port = int(settings.smtp_port or 587)
-        user = (settings.smtp_user or "").strip()
-        password = _clean_password(settings.smtp_password)
-        from_addr = (settings.smtp_from or user).strip()
+    primary_cfg = _eff_channel("smtp")
+    if primary_cfg or smtp_configured():
+        if primary_cfg:
+            host = primary_cfg["host"]
+            port = int(primary_cfg.get("port") or 587)
+            user = primary_cfg["user"]
+            password = primary_cfg["password"]
+            from_addr = primary_cfg.get("from") or user
+            use_ssl = bool(primary_cfg.get("use_ssl"))
+            use_tls = bool(primary_cfg.get("use_tls"))
+        else:
+            host = (settings.smtp_host or "").strip()
+            port = int(settings.smtp_port or 587)
+            user = (settings.smtp_user or "").strip()
+            password = _clean_password(settings.smtp_password)
+            from_addr = (settings.smtp_from or user).strip()
+            use_ssl = bool(settings.smtp_use_ssl)
+            use_tls = bool(settings.smtp_use_tls)
         ok, err = _smtp_send(
             host=host, port=port, user=user, password=password,
             from_addr=from_addr,
-            use_ssl=bool(settings.smtp_use_ssl), use_tls=bool(settings.smtp_use_tls),
+            use_ssl=use_ssl, use_tls=use_tls,
             msg=_build_msg(from_addr),
         )
         if ok:
@@ -135,16 +169,28 @@ def send_otp_email(*, to_email: str, code: str, purpose: str, lang: str = "zh") 
         logger.warning("SMTP primary failed host=%s err=%s, trying backup", host, err)
 
     # Backup channel
-    if smtp_backup_configured():
-        host = (settings.smtp_backup_host or "").strip()
-        port = int(settings.smtp_backup_port or 587)
-        user = (settings.smtp_backup_user or "").strip()
-        password = _clean_password(settings.smtp_backup_password)
-        from_addr = (settings.smtp_backup_from or user).strip()
+    backup_cfg = _eff_channel("smtp_backup")
+    if backup_cfg or smtp_backup_configured():
+        if backup_cfg:
+            host = backup_cfg["host"]
+            port = int(backup_cfg.get("port") or 587)
+            user = backup_cfg["user"]
+            password = backup_cfg["password"]
+            from_addr = backup_cfg.get("from") or user
+            use_ssl = bool(backup_cfg.get("use_ssl"))
+            use_tls = bool(backup_cfg.get("use_tls"))
+        else:
+            host = (settings.smtp_backup_host or "").strip()
+            port = int(settings.smtp_backup_port or 587)
+            user = (settings.smtp_backup_user or "").strip()
+            password = _clean_password(settings.smtp_backup_password)
+            from_addr = (settings.smtp_backup_from or user).strip()
+            use_ssl = bool(settings.smtp_backup_use_ssl)
+            use_tls = bool(settings.smtp_backup_use_tls)
         ok, err = _smtp_send(
             host=host, port=port, user=user, password=password,
             from_addr=from_addr,
-            use_ssl=bool(settings.smtp_backup_use_ssl), use_tls=bool(settings.smtp_backup_use_tls),
+            use_ssl=use_ssl, use_tls=use_tls,
             msg=_build_msg(from_addr),
         )
         if ok:
@@ -170,14 +216,26 @@ def email_channel_status() -> dict:
             "use_ssl": bool(ssl),
         }
 
-    primary = _ch(
-        settings.smtp_host, settings.smtp_user, settings.smtp_password,
-        settings.smtp_from, settings.smtp_use_tls, settings.smtp_use_ssl,
-    )
-    backup = _ch(
-        settings.smtp_backup_host, settings.smtp_backup_user, settings.smtp_backup_password,
-        settings.smtp_backup_from, settings.smtp_backup_use_tls, settings.smtp_backup_use_ssl,
-    )
+    def _snap(name: str):
+        cfg = _eff_channel(name)
+        if cfg:
+            return _ch(
+                cfg["host"], cfg["user"], cfg["password"],
+                cfg.get("from") or cfg["user"],
+                cfg.get("use_tls", True), cfg.get("use_ssl", False),
+            )
+        src = "smtp" if name == "smtp" else "smtp_backup"
+        return _ch(
+            getattr(settings, f"{src}_host", ""),
+            getattr(settings, f"{src}_user", ""),
+            getattr(settings, f"{src}_password", ""),
+            getattr(settings, f"{src}_from", ""),
+            getattr(settings, f"{src}_use_tls", True),
+            getattr(settings, f"{src}_use_ssl", False),
+        )
+
+    primary = _snap("smtp")
+    backup = _snap("smtp_backup")
     return {
         "smtp_configured": primary["configured"],
         "smtp_host": primary["host"],  # legacy compat for smoke/admin
@@ -186,3 +244,52 @@ def email_channel_status() -> dict:
         "smtp_backup": backup,
         "app_env": settings.app_env,
     }
+
+
+def send_test_email(*, to_email: str) -> tuple[bool, str]:
+    """管理端测试发信：主通道优先，失败自动切备用通道。"""
+    from email.message import EmailMessage
+
+    if not (smtp_configured() or smtp_backup_configured()):
+        return False, "未配置 SMTP，请先保存发信通道配置。"
+
+    def _build_test_msg(from_addr: str) -> EmailMessage:
+        m = EmailMessage()
+        m["Subject"] = "AI24X 邮件服务测试"
+        m["From"] = from_addr
+        m["To"] = to_email
+        m.set_content("这是一封来自 AI24X 平台的测试邮件。如果收到，说明发信通道配置正常。\n\n— AI24X")
+        return m
+
+    for name in ("smtp", "smtp_backup"):
+        cfg = _eff_channel(name)
+        if not cfg and not (smtp_configured() if name == "smtp" else smtp_backup_configured()):
+            continue
+        if cfg:
+            host = cfg["host"]
+            port = int(cfg.get("port") or 587)
+            user = cfg["user"]
+            password = cfg["password"]
+            from_addr = cfg.get("from") or user
+            use_ssl = bool(cfg.get("use_ssl"))
+            use_tls = bool(cfg.get("use_tls"))
+        else:
+            src = "smtp" if name == "smtp" else "smtp_backup"
+            host = getattr(settings, f"{src}_host", "")
+            port = int(getattr(settings, f"{src}_port", 587) or 587)
+            user = getattr(settings, f"{src}_user", "")
+            password = _clean_password(getattr(settings, f"{src}_password", ""))
+            from_addr = getattr(settings, f"{src}_from", "") or user
+            use_ssl = bool(getattr(settings, f"{src}_use_ssl", False))
+            use_tls = bool(getattr(settings, f"{src}_use_tls", True))
+        ok, err = _smtp_send(
+            host=host, port=port, user=user, password=password,
+            from_addr=from_addr, use_ssl=use_ssl, use_tls=use_tls,
+            msg=_build_test_msg(from_addr),
+        )
+        if ok:
+            logger.info("SMTP test sent channel=%s host=%s to=%s", name, host, to_email)
+            return True, f"测试邮件已发送（{host}），请查收 {to_email}"
+        logger.warning("SMTP test failed channel=%s host=%s err=%s", name, host, err)
+
+    return False, "测试邮件发送失败：主/备用通道均不可用，请检查配置。"

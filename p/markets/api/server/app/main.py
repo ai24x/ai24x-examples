@@ -18,10 +18,12 @@ from . import paypal
 from . import ai_brief
 from . import screener
 from . import admin_api
+from . import alerts
 
 SERVICE_NAME = "AI24X-markets-api"
 PORT = 18012
 _WEB_DIR = Path(__file__).resolve().parents[3] / "web"
+_BRIEF_DIR = Path(__file__).resolve().parents[3] / "data" / "brief"
 CORE_BASE = os.environ.get("AI24X_CORE_BASE", "http://127.0.0.1:8000").rstrip("/")
 
 app = FastAPI(
@@ -215,12 +217,39 @@ async def api_subscribe_status(request: Request):
                 "plan": (sub or {}).get("plan"),
                 "expires_at": (sub or {}).get("expires_at"),
                 "brief_remaining": billing.ai_brief_remaining(uid),
+                "trial": billing.trial_info(uid),
             },
         }
     except ValueError as e:
         return JSONResponse(status_code=401, content={"code": -1, "msg": str(e)})
     except Exception as e:
         return JSONResponse(status_code=500, content={"code": -1, "msg": str(e)})
+
+
+@app.post("/api/subscribe/trial")
+async def api_subscribe_trial(request: Request):
+    """领取 7 天 Pro 体验券（每账号限一次；已 Pro 不可领）。"""
+    try:
+        uid = await _auth_user_id(request)
+        sub = billing.grant_trial(uid)
+        return {
+            "code": 0,
+            "data": {
+                "pro": True,
+                "plan": sub["plan"],
+                "expires_at": sub["expires_at"],
+                "source": "trial",
+                "trial": billing.trial_info(uid),
+            },
+        }
+    except ValueError as e:
+        msg = str(e)
+        if msg in ("trial_used", "already_pro"):
+            return JSONResponse(status_code=403, content={"code": -1, "msg": msg})
+        return JSONResponse(status_code=401, content={"code": -1, "msg": msg})
+    except Exception as e:
+        print(f"[markets] /api/subscribe/trial error: {e!r}", file=sys.stderr)
+        return JSONResponse(status_code=500, content={"code": -1, "msg": "internal_error"})
 
 
 @app.get("/api/subscribe/plans")
@@ -351,6 +380,158 @@ async def api_ai_brief(request: Request, payload: dict = Body(...)):
         return JSONResponse(status_code=500, content={"code": -1, "msg": str(e)})
 
 
+@app.get("/api/alerts")
+async def api_alerts_list(request: Request):
+    """我的提醒列表 + 最近触发事件（免费 1 个，Pro 无限）。"""
+    try:
+        uid = await _auth_user_id(request)
+        return {"code": 0, "data": alerts.list_alerts(uid)}
+    except ValueError as e:
+        return JSONResponse(status_code=401, content={"code": -1, "msg": str(e)})
+    except RuntimeError as e:
+        return JSONResponse(status_code=503, content={"code": -1, "msg": str(e)})
+    except Exception as e:
+        print(f"[markets] /api/alerts list error: {e!r}", file=sys.stderr)
+        return JSONResponse(status_code=500, content={"code": -1, "msg": "internal_error"})
+
+
+def _brief_list() -> List[str]:
+    if not _BRIEF_DIR.is_dir():
+        return []
+    out = []
+    for p in _BRIEF_DIR.iterdir():
+        if p.is_dir() and (p / "brief.md").is_file() and len(p.name) == 8 and p.name.isdigit():
+            out.append(p.name)
+    return sorted(out, reverse=True)
+
+
+@app.get("/api/brief/latest")
+async def api_brief_latest(date: Optional[str] = Query(None, min_length=8, max_length=8)):
+    """最近一份每日简报（公开，全英文，纯规则无模型）。"""
+    try:
+        dates = _brief_list()
+        if not dates:
+            return {"code": 0, "data": {"available": False, "dates": []}}
+        if date and date not in dates:
+            date = dates[0]
+        if not date:
+            date = dates[0]
+        d = _BRIEF_DIR / date
+        html = (d / "brief.html").read_text(encoding="utf-8") if (d / "brief.html").is_file() else ""
+        md = (d / "brief.md").read_text(encoding="utf-8") if (d / "brief.md").is_file() else ""
+        asof = ""
+        import re as _re
+
+        m = _re.search(r"Data as of ([0-9]{4}-[0-9]{2}-[0-9]{2})", html or md)
+        if m:
+            asof = m.group(1)
+        return {
+            "code": 0,
+            "data": {
+                "available": True,
+                "date": date,
+                "asof": asof,
+                "dates": dates,
+                "html": html,
+                "md": md,
+            },
+        }
+    except Exception as e:
+        print(f"[markets] /api/brief/latest error: {e!r}", file=sys.stderr)
+        return JSONResponse(status_code=500, content={"code": -1, "msg": "internal_error"})
+
+
+@app.post("/api/alerts")
+async def api_alerts_create(request: Request, payload: dict = Body(...)):
+    try:
+        uid = await _auth_user_id(request)
+        symbol = str((payload or {}).get("symbol") or "").strip()
+        kind = str((payload or {}).get("kind") or "").strip().lower()
+        params = payload.get("params") if isinstance(payload, dict) else None
+        info = alerts.add_alert(uid, symbol, kind, params)
+        return {"code": 0, "data": info}
+    except ValueError as e:
+        msg = str(e)
+        if msg.startswith("alert_limit"):
+            return JSONResponse(status_code=403, content={"code": -1, "msg": msg})
+        if msg in ("missing_bearer_token", "invalid_session", "missing_user_id"):
+            return JSONResponse(status_code=401, content={"code": -1, "msg": msg})
+        return JSONResponse(status_code=400, content={"code": -1, "msg": msg})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"code": -1, "msg": str(e)})
+
+
+@app.delete("/api/alerts")
+async def api_alerts_delete(request: Request, alert_id: int = Query(..., ge=1)):
+    try:
+        uid = await _auth_user_id(request)
+        removed = alerts.delete_alert(uid, alert_id)
+        return {"code": 0, "data": {"removed": removed}}
+    except ValueError as e:
+        return JSONResponse(status_code=401, content={"code": -1, "msg": str(e)})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"code": -1, "msg": str(e)})
+
+
+@app.post("/api/alerts/rearm")
+async def api_alerts_rearm(request: Request, payload: dict = Body(...)):
+    """重新启用已触发提醒（一次性触发 → active）。"""
+    try:
+        uid = await _auth_user_id(request)
+        alert_id = int((payload or {}).get("alert_id") or 0)
+        if alert_id <= 0:
+            raise ValueError("bad_alert_id")
+        info = alerts.rearm_alert(uid, alert_id)
+        if info is None:
+            return JSONResponse(status_code=404, content={"code": -1, "msg": "alert_not_found"})
+        return {"code": 0, "data": info}
+    except ValueError as e:
+        msg = str(e)
+        if msg in ("missing_bearer_token", "invalid_session", "missing_user_id"):
+            return JSONResponse(status_code=401, content={"code": -1, "msg": msg})
+        return JSONResponse(status_code=400, content={"code": -1, "msg": msg})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"code": -1, "msg": str(e)})
+
+
+@app.post("/api/alerts/evaluate")
+async def api_alerts_evaluate(request: Request):
+    """评估我的全部 active 提醒；命中置 triggered + 写站内事件 + 尽力发邮件。"""
+    try:
+        uid = await _auth_user_id(request)
+        triggered = await alerts.evaluate_user_alerts(uid)
+        email = ""
+        try:
+            async with httpx.AsyncClient(timeout=8) as client:
+                r = await client.get(
+                    CORE_BASE + "/v1/billing/balance",
+                    headers={"Authorization": request.headers.get("Authorization", "")},
+                )
+            if r.status_code == 200:
+                email = str((r.json() or {}).get("email") or "")
+        except Exception as e:
+            print(f"[markets] alerts evaluate email lookup error: {e!r}", file=sys.stderr)
+        sent = 0
+        for ev in triggered:
+            if alerts.send_alert_email(email, ev.get("symbol", ""), ev.get("detail", "")):
+                sent += 1
+        return {
+            "code": 0,
+            "data": {
+                "triggered": triggered,
+                "email_configured": alerts._email_configured(),
+                "email_sent": sent,
+            },
+        }
+    except ValueError as e:
+        return JSONResponse(status_code=401, content={"code": -1, "msg": str(e)})
+    except RuntimeError as e:
+        return JSONResponse(status_code=503, content={"code": -1, "msg": str(e)})
+    except Exception as e:
+        print(f"[markets] /api/alerts/evaluate error: {e!r}", file=sys.stderr)
+        return JSONResponse(status_code=500, content={"code": -1, "msg": "internal_error"})
+
+
 @app.post("/api/paypal/webhook")
 async def api_paypal_webhook(request: Request):
     body = (await request.body()).decode("utf-8", errors="replace")
@@ -447,13 +628,33 @@ async def api_screener(
     request: Request,
     mode: str = Query("all", pattern="^(all|Bottom volume surge|Breakout on volume|Uptrend building|MACD momentum building|Pullback holding near MAs)$"),
     limit: int = Query(24, ge=1, le=40),
+    min_mcap: Optional[float] = Query(None, ge=0),
+    max_mcap: Optional[float] = Query(None, ge=0),
+    min_pe: Optional[float] = Query(None, ge=0),
+    max_pe: Optional[float] = Query(None, ge=0),
+    min_rsi: Optional[float] = Query(None, ge=0, le=100),
+    max_rsi: Optional[float] = Query(None, ge=0, le=100),
+    min_pos52: Optional[float] = Query(None, ge=0, le=1),
+    max_pos52: Optional[float] = Query(None, ge=0, le=1),
+    min_vol_ratio: Optional[float] = Query(None, ge=0),
 ):
-    """美股技术扫描（Pro 专属）：底部放量异动 / 放量突破 / 趋势启动 / 回踩企稳（教育用途）。"""
+    """美股技术扫描（Pro 专属）：多因子（市值/PE/RSI/52周位置/量比）+ 形态模式（教育用途）。"""
     try:
         uid = await _auth_user_id(request)
         if not billing.is_pro(uid):
             return JSONResponse(status_code=403, content={"code": -1, "msg": "vip_required"})
-        data = await screener.run_screener(mode, limit)
+        filters = {
+            "min_mcap": min_mcap,
+            "max_mcap": max_mcap,
+            "min_pe": min_pe,
+            "max_pe": max_pe,
+            "min_rsi": min_rsi,
+            "max_rsi": max_rsi,
+            "min_pos52": min_pos52,
+            "max_pos52": max_pos52,
+            "min_vol_ratio": min_vol_ratio,
+        }
+        data = await screener.run_screener(mode, limit, filters)
         return {"code": 0, "data": data}
     except ValueError as e:
         return JSONResponse(status_code=401, content={"code": -1, "msg": str(e)})

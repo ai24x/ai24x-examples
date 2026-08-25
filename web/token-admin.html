@@ -216,6 +216,14 @@
       color: var(--pri);
     }
     .subnav-item .subt { font-size: 11px; font-weight: 500; color: var(--muted); }
+    .sms-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 14px; }
+    .sms-tab {
+      appearance: none; border: 0; background: transparent; cursor: pointer;
+      color: var(--muted); font-size: 13px; font-weight: 700;
+      padding: 8px 16px; border-bottom: 2px solid transparent; margin-bottom: -2px;
+    }
+    .sms-tab:hover { color: var(--text); }
+    .sms-tab.active { color: var(--pri); border-bottom-color: var(--pri); }
     .main-scroll { flex: 1; overflow: auto; padding: 16px 16px 32px; }
     .panel-page { display: none; }
     .panel-page.active { display: block; }
@@ -354,10 +362,6 @@
               Token 托管套餐
               <span class="subt">token 额度 / VIP 价目 · 可改可存</span>
             </button>
-            <button type="button" class="nav-item" data-panel="p-sms">
-              短信与统一身份
-              <span class="subt">106 通道状态 · 配置 · 发送记录</span>
-            </button>
           </div>
         </div>
 
@@ -407,16 +411,12 @@
 
         <div class="nav-group" data-group="g-sys">
           <button type="button" class="nav-l1" data-group-btn="g-sys">
-            <span>模型与系统</span><span class="chev">▾</span>
+            <span>模型与运维</span><span class="chev">▾</span>
           </button>
           <div class="nav-l2">
             <button type="button" class="nav-item" data-panel="p-usage">
               用量监控
               <span class="subt">高耗用户 · 模型 · 通道</span>
-            </button>
-            <button type="button" class="nav-item" data-panel="p-sys">
-              开关与密钥
-              <span class="subt">支付 / LLM · 上游 Key</span>
             </button>
             <button type="button" class="nav-item" data-panel="p-warehouse">
               模型仓库
@@ -437,6 +437,26 @@
             <button type="button" class="nav-item" data-panel="p-shared">
               免费共享
               <span class="subt">引流池 · 日帽</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="nav-group" data-group="g-config">
+          <button type="button" class="nav-l1" data-group-btn="g-config">
+            <span>系统配置</span><span class="chev">▾</span>
+          </button>
+          <div class="nav-l2">
+            <button type="button" class="nav-item" data-panel="p-sms">
+              短信与统一身份
+              <span class="subt">106 / 腾讯 / 聚合 · 登录通道</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-email">
+              邮件服务
+              <span class="subt">主 / 备 SMTP · 模板 · 测试</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-sys">
+              开关与密钥
+              <span class="subt">支付 / LLM · 上游 Key</span>
             </button>
           </div>
         </div>
@@ -791,35 +811,79 @@
                 <div>
                   <h2 style="margin:0;">短信与统一身份</h2>
                   <p class="muted small" style="margin:6px 0 0;" id="smsOpsNote">
-                    106 网关：当前生效配置只读展示（.env）。修改后点「保存配置」，再点「重启 core 生效」。
+                    多通道热生效（106 / 腾讯 / 聚合），保存即生效、无需重启；密码留空表示保持原值。
+                    发送自动兜底：生效通道优先 → 106 → 聚合（聚合签名未通过，恒在最后；单通道连续失败 3 次自动熔断 5 分钟）。
                   </p>
                 </div>
                 <div class="row">
                   <button type="button" id="btnSmsCfgRefresh">刷新</button>
                   <button type="button" class="ok" id="btnSmsCfgSave">保存配置</button>
-                  <button type="button" class="warn" id="btnSmsCfgRestart">重启 core 生效</button>
                 </div>
               </div>
               <div class="grid" id="smsStatusGrid" style="margin-top:10px;"></div>
-            </div>
-
-            <div class="card">
-              <h2>106 网关配置</h2>
-              <div class="row" style="margin-top:10px;">
-                <div class="field" style="flex:1; min-width:260px;"><span class="lbl">接口地址（endpoint）</span><input id="sms_endpoint" class="mono" style="width:100%;" /></div>
-                <div class="field" style="min-width:160px;"><span class="lbl">账号（account）</span><input id="sms_account" class="mono" autocomplete="off" style="width:100%;" /></div>
-                <div class="field" style="min-width:180px;"><span class="lbl">密码（password，留空不修改）</span><input id="sms_password" type="password" autocomplete="off" style="width:100%;" placeholder="已配置（不回显）" /></div>
-              </div>
-              <div class="row">
-                <div class="field" style="min-width:200px;"><span class="lbl">签名（sign_name）</span><input id="sms_sign_name" style="width:100%;" placeholder="可留空" /></div>
-                <div class="field" style="flex:1; min-width:220px;"><span class="lbl">通道开关</span>
+              <div class="row" style="margin-top:12px;gap:14px;flex-wrap:wrap;align-items:flex-end;">
+                <div class="field" style="min-width:220px;">
+                  <span class="lbl">生效通道</span>
+                  <select id="sms_active_provider">
+                    <option value="106">106 网关（默认）</option>
+                    <option value="tencent">腾讯短信</option>
+                    <option value="juhe">聚合数据</option>
+                  </select>
+                </div>
+                <div class="field" style="min-width:260px;">
+                  <span class="lbl">国内短信总开关（关 = 禁手机注册/发码）</span>
                   <label style="display:flex;align-items:center;gap:8px;padding-top:4px;">
-                    <input id="sms_enabled" type="checkbox" /> 启用 106 短信通道
+                    <input id="sms_master_enabled" type="checkbox" /> 启用国内短信通道
                   </label>
                 </div>
               </div>
-              <div class="field"><span class="lbl">内容模板（须含 {code}，与 106 平台审核文案一致）</span><textarea id="sms_template" rows="2" style="width:100%; resize:vertical;"></textarea></div>
-              <p class="muted small" id="smsCfgHint" style="margin-top:6px;"></p>
+            </div>
+
+            <div class="card">
+              <div class="sms-tabs">
+                <button type="button" class="sms-tab active" data-tab="tab-106">106 网关</button>
+                <button type="button" class="sms-tab" data-tab="tab-tencent">腾讯短信</button>
+                <button type="button" class="sms-tab" data-tab="tab-juhe">聚合数据</button>
+              </div>
+              <div class="sms-tab-content" id="tab-106">
+                <div class="msg small muted" style="margin:0 0 10px;">106 网关 · 模板须含 <span class="mono">{code}</span> 且与平台审核文案一致；接口地址可留空用默认。</div>
+                <div class="row">
+                  <div class="field" style="flex:1; min-width:260px;"><span class="lbl">接口地址（endpoint）</span><input id="sms_106_endpoint" class="mono" style="width:100%;" placeholder="http://sms.106jiekou.com/utf8/sms.aspx" /></div>
+                  <div class="field" style="min-width:160px;"><span class="lbl">账号（account，留空不修改）</span><input id="sms_106_account" class="mono" autocomplete="off" style="width:100%;" placeholder="已配置（不回显）" /></div>
+                  <div class="field" style="min-width:180px;"><span class="lbl">密码（留空不修改）</span><input id="sms_106_password" type="password" autocomplete="off" style="width:100%;" placeholder="已配置（不回显）" /></div>
+                </div>
+                <p class="muted small" id="sms_106_password_hint" style="margin:6px 0 0;"></p>
+                <div class="row" style="margin-top:10px;">
+                  <div class="field" style="min-width:200px;"><span class="lbl">签名（sign_name）</span><input id="sms_106_sign_name" style="width:100%;" placeholder="可留空" /></div>
+                  <div class="field" style="flex:1; min-width:260px;"><span class="lbl">内容模板</span><textarea id="sms_106_template" rows="2" style="width:100%; resize:vertical;"></textarea></div>
+                </div>
+              </div>
+              <div class="sms-tab-content" id="tab-tencent" style="display:none;">
+                <div class="msg small muted" style="margin:0 0 10px;">腾讯云短信 · 需在控制台报备签名与模板；API 采用 TC3-HMAC-SHA256 签名；SecretKey 留空不修改。</div>
+                <div class="row">
+                  <div class="field" style="min-width:220px;"><span class="lbl">SecretId（密钥ID，留空不修改）</span><input id="sms_tencent_secret_id" class="mono" style="width:100%;" placeholder="已配置（不回显）" /></div>
+                  <div class="field" style="min-width:220px;"><span class="lbl">SecretKey（密钥Key）</span><input id="sms_tencent_secret_key" type="password" autocomplete="off" style="width:100%;" placeholder="已配置（不回显）" /></div>
+                </div>
+                <p class="muted small" id="sms_tencent_secret_key_hint" style="margin:6px 0 0;"></p>
+                <div class="row" style="margin-top:10px;">
+                  <div class="field" style="min-width:180px;"><span class="lbl">SDK AppID（应用ID）</span><input id="sms_tencent_sdk_app_id" class="mono" style="width:100%;" placeholder="如：1400006666" /></div>
+                  <div class="field" style="min-width:180px;"><span class="lbl">签名（SignName）</span><input id="sms_tencent_sign" style="width:100%;" placeholder="审核通过的签名" /></div>
+                  <div class="field" style="min-width:180px;"><span class="lbl">模板ID（TemplateId）</span><input id="sms_tencent_template_id" class="mono" style="width:100%;" placeholder="如：1110" /></div>
+                  <div class="field" style="min-width:140px;"><span class="lbl">地域（Region）</span><input id="sms_tencent_region" class="mono" style="width:100%;" placeholder="ap-guangzhou" /></div>
+                </div>
+              </div>
+              <div class="sms-tab-content" id="tab-juhe" style="display:none;">
+                <div class="msg small muted" style="margin:0 0 10px;">聚合数据 · 模板由平台审核，变量 #code#；AppKey 留空不修改。</div>
+                <div class="row">
+                  <div class="field" style="flex:1; min-width:260px;"><span class="lbl">AppKey（应用密钥）</span><input id="sms_juhe_key" class="mono" style="width:100%;" placeholder="聚合数据中心获取" /></div>
+                  <div class="field" style="min-width:200px;"><span class="lbl">模板ID（tpl_id）</span><input id="sms_juhe_tpl_id" class="mono" style="width:100%;" placeholder="审核通过的模板ID" /></div>
+                </div>
+                <p class="muted small" id="sms_juhe_key_hint" style="margin:6px 0 0;"></p>
+                <div class="row" style="margin-top:10px;">
+                  <div class="field" style="min-width:200px;"><span class="lbl">签名（sign）</span><input id="sms_juhe_sign" style="width:100%;" placeholder="报备的短信签名" /></div>
+                  <div class="field" style="flex:1; min-width:260px;"><span class="lbl">内容模板（参考）</span><textarea id="sms_juhe_template" rows="2" style="width:100%; resize:vertical;" placeholder="您的验证码是：#code#"></textarea></div>
+                </div>
+              </div>
             </div>
 
             <div class="card">
@@ -827,11 +891,19 @@
                 <h2 style="margin:0;">发送测试</h2>
                 <div class="row">
                   <div class="field" style="min-width:180px;"><span class="lbl">手机号</span><input id="sms_test_phone" value="18958992226" style="width:100%;" /></div>
+                  <div class="field" style="min-width:160px;"><span class="lbl">通道</span>
+                    <select id="sms_test_provider">
+                      <option value="">跟随生效通道</option>
+                      <option value="106">106 网关</option>
+                      <option value="tencent">腾讯短信</option>
+                      <option value="juhe">聚合数据</option>
+                    </select>
+                  </div>
                   <button type="button" class="ok" id="btnSmsTestSend" style="align-self:flex-end;">发送测试验证码</button>
                 </div>
               </div>
               <p class="muted small" style="margin:0;" id="smsTestResult">
-                仅 ADMIN_PHONE（管理员手机号）可收；网关回包可能需 20-40 秒。
+                发送到测试手机号，验证当前生效通道可用；网关回包可能需 20-40 秒。
               </p>
             </div>
 
@@ -846,6 +918,93 @@
                   <tbody id="smsLogsBody"></tbody>
                 </table>
               </div>
+            </div>
+
+            <div class="card">
+              <h2 style="margin:0 0 10px;">统一身份 · 登录通道状态</h2>
+              <p class="muted small" style="margin:0 0 10px;">国际站以邮箱验证码 + Google 登录为主；国内短信（106/腾讯/聚合）作为国内用户补充通道。</p>
+              <div class="glance-grid" id="authChannelsGrid"></div>
+            </div>
+          </div>
+
+          <div class="panel-page" id="p-email">
+            <div class="card">
+              <div class="row" style="justify-content:space-between;align-items:flex-start;">
+                <div>
+                  <h2 style="margin:0;">邮件服务（SMTP）</h2>
+                  <p class="muted small" style="margin:6px 0 0;" id="emailOpsNote">
+                    主通道 + 备用通道自动切换（主失败自动走备用），保存即热生效；密码留空表示保持原值。
+                  </p>
+                </div>
+                <div class="row">
+                  <button type="button" id="btnEmailRefresh">刷新</button>
+                  <button type="button" class="ok" id="btnEmailSave">保存配置</button>
+                </div>
+              </div>
+              <div class="glance-grid" id="emailStatusGrid" style="margin-top:10px;"></div>
+            </div>
+
+            <div class="card">
+              <h2 style="margin:0;">主发信通道（Primary SMTP）</h2>
+              <p class="muted small" style="margin:6px 0 10px;">日常发信（注册 / 登录 / 重置验证码）默认走主通道。</p>
+              <div class="row">
+                <div class="field" style="flex:1; min-width:240px;"><span class="lbl">服务器（host）</span><input id="smtp_host" class="mono" style="width:100%;" placeholder="smtp.example.com" /></div>
+                <div class="field" style="min-width:110px;"><span class="lbl">端口（port）</span><input id="smtp_port" class="mono" style="width:100%;" placeholder="587" /></div>
+                <div class="field" style="min-width:200px;"><span class="lbl">账号（user，留空不修改）</span><input id="smtp_user" class="mono" autocomplete="off" style="width:100%;" placeholder="已配置（不回显）" /></div>
+                <div class="field" style="min-width:200px;"><span class="lbl">密码（留空不修改）</span><input id="smtp_password" type="password" autocomplete="off" style="width:100%;" placeholder="已配置（不回显）" /></div>
+              </div>
+              <div class="row" style="margin-top:10px;">
+                <div class="field" style="flex:1; min-width:240px;"><span class="lbl">发件人（from）</span><input id="smtp_from" class="mono" style="width:100%;" placeholder="留空用账号" /></div>
+                <div class="field" style="min-width:140px;"><span class="lbl">TLS（STARTTLS）</span>
+                  <select id="smtp_use_tls"><option value="1">开启（默认）</option><option value="0">关闭</option></select>
+                </div>
+                <div class="field" style="min-width:140px;"><span class="lbl">SSL（465）</span>
+                  <select id="smtp_use_ssl"><option value="0">关闭（默认）</option><option value="1">开启</option></select>
+                </div>
+              </div>
+              <p class="muted small" id="smtp_hint" style="margin:8px 0 0;"></p>
+            </div>
+
+            <div class="card">
+              <h2 style="margin:0;">备用发信通道（Backup SMTP）</h2>
+              <p class="muted small" style="margin:6px 0 10px;">主通道失败时自动切换（如 QQ 邮箱个人号应急）。</p>
+              <div class="row">
+                <div class="field" style="flex:1; min-width:240px;"><span class="lbl">服务器（host）</span><input id="smtp_backup_host" class="mono" style="width:100%;" placeholder="smtp.qq.com" /></div>
+                <div class="field" style="min-width:110px;"><span class="lbl">端口（port）</span><input id="smtp_backup_port" class="mono" style="width:100%;" placeholder="587" /></div>
+                <div class="field" style="min-width:200px;"><span class="lbl">账号（user，留空不修改）</span><input id="smtp_backup_user" class="mono" autocomplete="off" style="width:100%;" placeholder="已配置（不回显）" /></div>
+                <div class="field" style="min-width:200px;"><span class="lbl">密码（留空不修改）</span><input id="smtp_backup_password" type="password" autocomplete="off" style="width:100%;" placeholder="已配置（不回显）" /></div>
+              </div>
+              <div class="row" style="margin-top:10px;">
+                <div class="field" style="flex:1; min-width:240px;"><span class="lbl">发件人（from）</span><input id="smtp_backup_from" class="mono" style="width:100%;" placeholder="留空用账号" /></div>
+                <div class="field" style="min-width:140px;"><span class="lbl">TLS（STARTTLS）</span>
+                  <select id="smtp_backup_use_tls"><option value="1">开启（默认）</option><option value="0">关闭</option></select>
+                </div>
+                <div class="field" style="min-width:140px;"><span class="lbl">SSL（465）</span>
+                  <select id="smtp_backup_use_ssl"><option value="0">关闭（默认）</option><option value="1">开启</option></select>
+                </div>
+              </div>
+              <p class="muted small" id="smtp_backup_hint" style="margin:8px 0 0;"></p>
+            </div>
+
+            <div class="card">
+              <h2 style="margin:0 0 10px;">邮件模板</h2>
+              <div class="row">
+                <div class="field" style="flex:1; min-width:260px;"><span class="lbl">主题（支持 {purpose}）</span><input id="email_otp_subject" style="width:100%;" placeholder="如：AI24X 验证码" /></div>
+                <div class="field" style="flex:1.4; min-width:320px;"><span class="lbl">正文模板（支持 {code} / {purpose}，留空用默认中英文）</span><textarea id="email_otp_body_template" rows="3" style="width:100%; resize:vertical;" placeholder="您的 AI24X {purpose}验证码是：{code}"></textarea></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="row" style="justify-content:space-between;margin-bottom:8px;">
+                <h2 style="margin:0;">发送测试</h2>
+                <div class="row">
+                  <div class="field" style="min-width:240px;"><span class="lbl">收件邮箱</span><input id="email_test_addr" style="width:100%;" placeholder="you@example.com" /></div>
+                  <button type="button" class="ok" id="btnEmailTest" style="align-self:flex-end;">发送测试邮件</button>
+                </div>
+              </div>
+              <p class="muted small" style="margin:0;" id="emailTestResult">
+                主通道优先，失败自动切备用通道；收到邮件即表示配置正常。
+              </p>
             </div>
           </div>
 
@@ -1544,6 +1703,7 @@
       "g-pay": "p-orders",
       "g-wallet": "p-users",
       "g-sys": "p-usage",
+      "g-config": "p-sms",
     };
     var pid = pref[groupId] || "p-dash";
     if ($(pid)) return pid;
@@ -3282,40 +3442,65 @@
     var grid = $("smsStatusGrid");
     if (grid) grid.innerHTML = "<p class='muted small'>加载中…</p>";
     var r = await api("/v1/admin/sms/effective");
+    var c106 = r.sms_106 || {};
+    var tc = r.sms_tencent || {};
+    var jh = r.sms_juhe || {};
+    var ap = r.active_provider || "106";
     if (grid) {
-      var items = [
-        ["通道", "106接口网", r.sms_106_enabled ? "启用" : "停用", "pill " + (r.sms_106_enabled ? "ok" : "bad")],
-        ["接口地址", r.sms_106_endpoint || "-", "", ""],
-        ["账号", r.sms_106_account_set ? r.sms_106_account : "-", r.sms_106_account_set ? "已配置" : "未配置", "pill " + (r.sms_106_account_set ? "ok" : "bad")],
-        ["密码", r.sms_106_password_set ? r.sms_106_password_masked : "-", r.sms_106_password_set ? "已配置" : "未配置", "pill " + (r.sms_106_password_set ? "ok" : "bad")],
-        ["签名", r.sms_106_sign_name || "-", "", ""],
-        ["模板", (r.sms_106_template || "-").length > 70 ? (r.sms_106_template || "-").slice(0, 70) + "…" : (r.sms_106_template || "-"), "", ""]
-      ];
-      grid.innerHTML = items.map(function (it) {
-        var badge = it[2]
-          ? '<div style="margin-top:4px;"><span class="' + it[3] + '">' + it[2] + "</span></div>"
-          : "";
-        return (
-          '<div class="card" style="margin:0;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg2,#0f1419);">' +
-          '<div class="muted small">' + it[0] + "</div>" +
-          '<div class="mono small" style="margin-top:4px;word-break:break-all;">' + esc(it[1]) + "</div>" +
-          badge +
-          "</div>"
-        );
-      }).join("");
+      grid.innerHTML =
+        _glanceCard("ok", "生效通道", esc(r.active_provider_label || ap), "保存后立即切换") +
+        _glanceCard(
+          r.sms_106_enabled ? "ok" : "bad",
+          "国内短信总开关",
+          r.sms_106_enabled ? "开" : "关",
+          "关 = 禁手机注册/发码"
+        ) +
+        _glanceCard(c106.account_set ? "ok" : "bad", "106 网关", c106.account_set ? "已配置" : "未配置", "账号 " + (c106.account_masked || "-")) +
+        _glanceCard(tc.secret_id_set ? "ok" : "bad", "腾讯短信", tc.secret_id_set ? "已配置" : "未配置", "SecretId " + (tc.secret_id_masked || "-")) +
+        _glanceCard(jh.key_set ? "ok" : "bad", "聚合数据", jh.key_set ? "已配置" : "未配置", "AppKey " + (jh.key_masked || "-"));
     }
-    if ($("sms_endpoint")) $("sms_endpoint").value = r.sms_106_endpoint || "";
-    if ($("sms_account")) $("sms_account").value = r.sms_106_account || "";
-    if ($("sms_password")) $("sms_password").value = "";
-    if ($("sms_sign_name")) $("sms_sign_name").value = r.sms_106_sign_name || "";
-    if ($("sms_template")) $("sms_template").value = r.sms_106_template || "";
-    if ($("sms_enabled")) $("sms_enabled").checked = !!r.sms_106_enabled;
-    var hint = $("smsCfgHint");
-    if (hint) {
-      hint.textContent = r.sms_106_password_set
-        ? "密码已配置（出于安全不回显完整值）。修改后点「保存配置」，再点「重启 core 生效」。"
-        : "当前未配置密码，请填写后保存。";
+    if ($("sms_active_provider")) $("sms_active_provider").value = ap;
+    if ($("sms_master_enabled")) $("sms_master_enabled").checked = !!r.sms_106_enabled;
+    // 106
+    if ($("sms_106_endpoint")) $("sms_106_endpoint").value = c106.endpoint || "";
+    if ($("sms_106_account")) {
+      $("sms_106_account").value = "";
+      $("sms_106_account").placeholder = c106.account_set ? "当前：" + (c106.account_masked || "***") + "（留空不修改）" : "未配置";
     }
+    if ($("sms_106_password")) $("sms_106_password").value = "";
+    if ($("sms_106_sign_name")) $("sms_106_sign_name").value = c106.sign_name || "";
+    if ($("sms_106_template")) $("sms_106_template").value = c106.template || "";
+    if ($("sms_106_password_hint")) {
+      $("sms_106_password_hint").textContent = c106.password_set
+        ? "当前：" + (c106.password_masked || "***") + "（留空不修改）"
+        : "未配置密码";
+    }
+    // 腾讯
+    if ($("sms_tencent_secret_id")) {
+      $("sms_tencent_secret_id").value = "";
+      $("sms_tencent_secret_id").placeholder = tc.secret_id_set ? "当前：" + (tc.secret_id_masked || "***") + "（留空不修改）" : "未配置";
+    }
+    if ($("sms_tencent_secret_key")) $("sms_tencent_secret_key").value = "";
+    if ($("sms_tencent_sdk_app_id")) $("sms_tencent_sdk_app_id").value = tc.sdk_app_id || "";
+    if ($("sms_tencent_sign")) $("sms_tencent_sign").value = tc.sign || "";
+    if ($("sms_tencent_template_id")) $("sms_tencent_template_id").value = tc.template_id || "";
+    if ($("sms_tencent_region")) $("sms_tencent_region").value = tc.region || "ap-guangzhou";
+    if ($("sms_tencent_secret_key_hint")) {
+      $("sms_tencent_secret_key_hint").textContent = tc.secret_key_set
+        ? "当前：" + (tc.secret_key_masked || "***") + "（留空不修改）"
+        : "未配置 SecretKey";
+    }
+    // 聚合
+    if ($("sms_juhe_key")) $("sms_juhe_key").value = "";
+    if ($("sms_juhe_tpl_id")) $("sms_juhe_tpl_id").value = jh.template_id || "";
+    if ($("sms_juhe_sign")) $("sms_juhe_sign").value = jh.sign || "";
+    if ($("sms_juhe_template")) $("sms_juhe_template").value = jh.template || "";
+    if ($("sms_juhe_key_hint")) {
+      $("sms_juhe_key_hint").textContent = jh.key_set
+        ? "当前：" + (jh.key_masked || "***") + "（留空不修改）"
+        : "未配置 AppKey";
+    }
+    await renderAuthChannels(r);
   }
 
   async function loadSmsLogs() {
@@ -3347,29 +3532,34 @@
 
   async function saveSmsConfig() {
     var body = {
-      enabled: !!( $("sms_enabled") && $("sms_enabled").checked),
-      endpoint: $("sms_endpoint").value.trim(),
-      account: $("sms_account").value.trim(),
-      sign_name: $("sms_sign_name").value.trim(),
-      template: $("sms_template").value.trim()
+      active_provider: $("sms_active_provider") ? $("sms_active_provider").value : "106",
+      sms_106_endpoint: $("sms_106_endpoint") ? $("sms_106_endpoint").value.trim() : "",
+      sms_106_account: $("sms_106_account") ? $("sms_106_account").value.trim() : "",
+      sms_106_sign_name: $("sms_106_sign_name") ? $("sms_106_sign_name").value.trim() : "",
+      sms_106_template: $("sms_106_template") ? $("sms_106_template").value.trim() : "",
+      sms_tencent_secret_id: $("sms_tencent_secret_id") ? $("sms_tencent_secret_id").value.trim() : "",
+      sms_tencent_sdk_app_id: $("sms_tencent_sdk_app_id") ? $("sms_tencent_sdk_app_id").value.trim() : "",
+      sms_tencent_sign: $("sms_tencent_sign") ? $("sms_tencent_sign").value.trim() : "",
+      sms_tencent_template_id: $("sms_tencent_template_id") ? $("sms_tencent_template_id").value.trim() : "",
+      sms_tencent_region: $("sms_tencent_region") ? $("sms_tencent_region").value.trim() : "",
+      sms_juhe_tpl_id: $("sms_juhe_tpl_id") ? $("sms_juhe_tpl_id").value.trim() : "",
+      sms_juhe_sign: $("sms_juhe_sign") ? $("sms_juhe_sign").value.trim() : "",
+      sms_juhe_template: $("sms_juhe_template") ? $("sms_juhe_template").value.trim() : ""
     };
-    var pw = $("sms_password").value;
-    if (pw.trim()) body.password = pw.trim();
+    var pw106 = $("sms_106_password") ? $("sms_106_password").value : "";
+    if (pw106.trim()) body.sms_106_password = pw106.trim();
+    var pwTc = $("sms_tencent_secret_key") ? $("sms_tencent_secret_key").value : "";
+    if (pwTc.trim()) body.sms_tencent_secret_key = pwTc.trim();
+    var keyJh = $("sms_juhe_key") ? $("sms_juhe_key").value : "";
+    if (keyJh.trim()) body.sms_juhe_key = keyJh.trim();
+    var master = $("sms_master_enabled") && $("sms_master_enabled").checked;
+    body.enabled = master;
     var r = await api("/v1/admin/sms/config", { method: "PUT", body: body });
-    if ($("sms_password")) $("sms_password").value = "";
-    setMsg(r.message || "短信配置已保存，需重启 core 生效", "ok");
+    if ($("sms_106_password")) $("sms_106_password").value = "";
+    if ($("sms_tencent_secret_key")) $("sms_tencent_secret_key").value = "";
+    if ($("sms_juhe_key")) $("sms_juhe_key").value = "";
+    setMsg(r.message || "短信配置已保存并立即生效", "ok");
     await loadSmsConfig();
-  }
-
-  async function restartCoreSms() {
-    if (!window.confirm("确认重启 AI24X-core 服务？约 5-10 秒管理后台不可用。")) return;
-    try {
-      var r = await api("/v1/admin/sms/restart", { method: "POST", body: {} });
-      setMsg(r.message || "core 正在重启", "ok");
-    } catch (e) {
-      if (e && e.auth) { handleAuthFail(e); return; }
-      setMsg("已触发重启（若本页无响应属正常，服务重启中，稍后刷新页面即可）。" + (e && e.message ? " 详情：" + e.message : ""), "ok");
-    }
   }
 
   async function sendSmsTest() {
@@ -3377,10 +3567,155 @@
     var out = $("smsTestResult");
     if (!phone) { if (out) out.textContent = "请填写手机号"; return; }
     if (out) out.textContent = "发送中（网关回包可能需 20-40 秒）…";
+    var provider = $("sms_test_provider") ? $("sms_test_provider").value : "";
     try {
-      var r = await api("/v1/admin/sms/send", { method: "POST", body: { mobile: phone, purpose: "test" } });
-      if (out) out.textContent = "已发送：" + (r.message || "ok") + "（60 秒后可重发）";
+      var r = await api("/v1/admin/sms/test", {
+        method: "POST",
+        body: { mobile: phone, purpose: "test", sms_provider: provider || undefined }
+      });
+      if (out) out.textContent = "已发送：" + (r.message || "ok");
       await loadSmsLogs();
+    } catch (e) {
+      if (e && e.auth) { handleAuthFail(e); return; }
+      if (out) out.textContent = "发送失败：" + (e.message || e);
+    }
+  }
+
+  async function renderAuthChannels(smsEff) {
+    var grid = $("authChannelsGrid");
+    if (!grid) return;
+    var em = null;
+    var authProv = null;
+    try {
+      em = await api("/v1/admin/email/effective");
+    } catch (e) { em = null; }
+    try {
+      authProv = await api("/v1/auth/providers");
+    } catch (e) { authProv = null; }
+    var adm = (smsEff && smsEff.admin_sms_otp) || {};
+    var smtpOk = !!(em && (em.smtp_configured || em.smtp_backup_configured));
+    var backOk = !!(em && em.smtp_backup_configured);
+    grid.innerHTML =
+      _glanceCard(
+        smtpOk ? "ok" : "bad",
+        "邮箱验证码",
+        smtpOk ? "已配置" : "未配置",
+        (em && em.smtp_configured ? "主通道就绪" : "主通道未配") +
+          (backOk ? " · 备用就绪" : " · 无备用")
+      ) +
+      _glanceCard(
+        authProv && authProv.google ? "ok" : "bad",
+        "Google 登录",
+        authProv && authProv.google ? "已开启" : "未配置",
+        "OAuth 一键登录"
+      ) +
+      _glanceCard(
+        authProv && authProv.apple ? "ok" : "bad",
+        "Apple 登录",
+        authProv && authProv.apple ? "已开启" : "未配置",
+        "OAuth 一键登录"
+      ) +
+      _glanceCard(
+        adm.enabled ? (adm.phone_set ? "ok" : "warn") : "bad",
+        "管理员短信 OTP",
+        adm.enabled ? (adm.phone_set ? "已开启" : "缺手机号") : "未开启",
+        "ADMIN_REQUIRE_SMS 双因素"
+      );
+  }
+
+  async function loadEmailConfig() {
+    var grid = $("emailStatusGrid");
+    if (grid) grid.innerHTML = "<p class='muted small'>加载中…</p>";
+    var r = await api("/v1/admin/email/effective");
+    var p = r.smtp_primary || {};
+    var b = r.smtp_backup || {};
+    if (grid) {
+      grid.innerHTML =
+        _glanceCard(p.configured ? "ok" : "bad", "主发信通道", p.configured ? "已配置" : "未配置", p.host ? "host " + esc(p.host) : "SMTP_HOST 未配") +
+        _glanceCard(b.configured ? "ok" : "bad", "备用发信通道", b.configured ? "已配置" : "未配置", b.host ? "host " + esc(b.host) : "未配备用") +
+        _glanceCard(p.configured || b.configured ? "ok" : "bad", "邮件验证码", p.configured || b.configured ? "可用" : "不可用", "注册 / 登录 / 重置");
+    }
+    function putVal(id, v, def) {
+      var el = $(id);
+      if (!el) return;
+      el.value = v !== undefined && v !== null && String(v) !== "" ? String(v) : (def !== undefined ? String(def) : "");
+    }
+    putVal("smtp_host", p.host);
+    putVal("smtp_port", p.port, 587);
+    if ($("smtp_user")) {
+      $("smtp_user").value = "";
+      $("smtp_user").placeholder = p.user_set ? "当前：" + (p.user_masked || "***") + "（留空不修改）" : "未配置";
+    }
+    putVal("smtp_password", "");
+    putVal("smtp_from", p.from);
+    putVal("smtp_use_tls", p.use_tls ? "1" : "0", "1");
+    putVal("smtp_use_ssl", p.use_ssl ? "1" : "0", "0");
+    putVal("smtp_backup_host", b.host);
+    putVal("smtp_backup_port", b.port, 587);
+    if ($("smtp_backup_user")) {
+      $("smtp_backup_user").value = "";
+      $("smtp_backup_user").placeholder = b.user_set ? "当前：" + (b.user_masked || "***") + "（留空不修改）" : "未配置";
+    }
+    putVal("smtp_backup_password", "");
+    putVal("smtp_backup_from", b.from);
+    putVal("smtp_backup_use_tls", b.use_tls ? "1" : "0", "1");
+    putVal("smtp_backup_use_ssl", b.use_ssl ? "1" : "0", "0");
+    putVal("email_otp_subject", r.email_otp_subject);
+    putVal("email_otp_body_template", r.email_otp_body_template);
+    if ($("smtp_hint")) {
+      $("smtp_hint").textContent = p.password_set
+        ? "密码已配置（不回显）：" + (p.password_masked || "***") + "；留空不修改"
+        : "未配置密码";
+    }
+    if ($("smtp_backup_hint")) {
+      $("smtp_backup_hint").textContent = b.password_set
+        ? "密码已配置（不回显）：" + (b.password_masked || "***") + "；留空不修改"
+        : "未配置备用密码";
+    }
+  }
+
+  async function saveEmailConfig() {
+    function v(id) { var el = $(id); return el ? String(el.value || "").trim() : ""; }
+    function selBool(id, def) {
+      var el = $(id);
+      if (!el) return def;
+      return String(el.value) === "1";
+    }
+    var body = {
+      smtp_host: v("smtp_host"),
+      smtp_port: v("smtp_port") ? Number(v("smtp_port")) : undefined,
+      smtp_user: v("smtp_user"),
+      smtp_from: v("smtp_from"),
+      smtp_use_tls: selBool("smtp_use_tls", true),
+      smtp_use_ssl: selBool("smtp_use_ssl", false),
+      smtp_backup_host: v("smtp_backup_host"),
+      smtp_backup_port: v("smtp_backup_port") ? Number(v("smtp_backup_port")) : undefined,
+      smtp_backup_user: v("smtp_backup_user"),
+      smtp_backup_from: v("smtp_backup_from"),
+      smtp_backup_use_tls: selBool("smtp_backup_use_tls", true),
+      smtp_backup_use_ssl: selBool("smtp_backup_use_ssl", false),
+      email_otp_subject: v("email_otp_subject"),
+      email_otp_body_template: v("email_otp_body_template")
+    };
+    var pw = v("smtp_password");
+    if (pw) body.smtp_password = pw;
+    var pwb = v("smtp_backup_password");
+    if (pwb) body.smtp_backup_password = pwb;
+    var r = await api("/v1/admin/email/config", { method: "PUT", body: body });
+    if ($("smtp_password")) $("smtp_password").value = "";
+    if ($("smtp_backup_password")) $("smtp_backup_password").value = "";
+    setMsg(r.message || "邮件配置已保存并立即生效", "ok");
+    await loadEmailConfig();
+  }
+
+  async function sendEmailTest() {
+    var em = String(($("email_test_addr") && $("email_test_addr").value) || "").trim();
+    var out = $("emailTestResult");
+    if (!em) { if (out) out.textContent = "请填写收件邮箱"; return; }
+    if (out) out.textContent = "发送中…";
+    try {
+      var r = await api("/v1/admin/email/test", { method: "POST", body: { email: em } });
+      if (out) out.textContent = "已发送：" + (r.message || "ok");
     } catch (e) {
       if (e && e.auth) { handleAuthFail(e); return; }
       if (out) out.textContent = "发送失败：" + (e.message || e);
@@ -3411,6 +3746,9 @@
       await loadSmsConfig();
       await loadSmsLogs();
       setMsg("短信与统一身份已刷新", "ok");
+    } else if (p === "p-email") {
+      await loadEmailConfig();
+      setMsg("邮件服务已刷新", "ok");
     } else if (p === "p-channels") {
       await loadChannelsDetail();
       setMsg("通道状态已刷新", "ok");
@@ -3708,10 +4046,6 @@
     try { await saveSmsConfig(); }
     catch (e) { setMsg(String(e.message || e), "err"); }
   };
-  $("btnSmsCfgRestart").onclick = async function () {
-    try { await restartCoreSms(); }
-    catch (e) { setMsg(String(e.message || e), "err"); }
-  };
   $("btnSmsTestSend").onclick = async function () {
     try { await sendSmsTest(); }
     catch (e) { setMsg(String(e.message || e), "err"); }
@@ -3720,6 +4054,33 @@
     try { await loadSmsLogs(); setMsg("发送记录已刷新", "ok"); }
     catch (e) { setMsg(String(e.message || e), "err"); }
   };
+  $("btnEmailRefresh").onclick = async function () {
+    try { await loadEmailConfig(); setMsg("邮件配置已刷新", "ok"); }
+    catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+  $("btnEmailSave").onclick = async function () {
+    try { await saveEmailConfig(); }
+    catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+  $("btnEmailTest").onclick = async function () {
+    try { await sendEmailTest(); }
+    catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+  // 短信多通道 tab 切换
+  (function initSmsTabs() {
+    var tabs = document.querySelectorAll(".sms-tab[data-tab]");
+    if (!tabs.length) return;
+    tabs.forEach(function (t) {
+      t.addEventListener("click", function () {
+        var tid = t.getAttribute("data-tab");
+        tabs.forEach(function (x) { x.classList.remove("active"); });
+        t.classList.add("active");
+        document.querySelectorAll(".sms-tab-content").forEach(function (c) {
+          c.style.display = c.id === tid ? "block" : "none";
+        });
+      });
+    });
+  })();
   $("btnMkPlans").onclick = function () { showPanel("p-prod-plans"); };
   $("btnMkOrders").onclick = function () { showPanel("p-prod-orders"); };
   $("btnMkSubLoad").onclick = async function () {

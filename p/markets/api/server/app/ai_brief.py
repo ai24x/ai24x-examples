@@ -30,6 +30,8 @@ _CACHE_DIR.mkdir(parents=True, exist_ok=True)
 CORE_BASE = os.environ.get("AI24X_CORE_BASE", "http://127.0.0.1:8000").rstrip("/")
 MODEL_KEY = os.environ.get("AI24X_MARKETS_MODEL_KEY", "").strip()
 MODEL_NAME = os.environ.get("AI24X_MARKETS_MODEL", "flash").strip() or "flash"
+# 降本默认：LLM 点评默认关闭，技术简报走规则模板（零 token 成本）；付费增长后再开。
+LLM_ENABLED = os.environ.get("AI24X_MARKETS_BRIEF_LLM", "0").strip().lower() in ("1", "true", "yes", "on")
 
 _DISCLAIMER = (
     "This content is for educational purposes only and is not investment advice. "
@@ -248,8 +250,8 @@ def _build_stats(symbol: str, period: str, candles) -> Dict[str, Any]:
 
 def _cache_path(symbol: str, period: str) -> Path:
     day = datetime.now(timezone.utc).strftime("%Y%m%d")
-    # v2：brief 增加技术健康评分字段；旧缓存（无 score）自动失效重生成
-    return _CACHE_DIR / f"brief_v2_{symbol.upper()}_{period}_{day}.json"
+    # v3：规则模板默认（零 LLM），含支撑阻力/52周位置/风险提示；旧缓存自动失效
+    return _CACHE_DIR / f"brief_v3_{symbol.upper()}_{period}_{day}.json"
 
 
 def _read_cache(symbol: str, period: str) -> Optional[Dict[str, Any]]:
@@ -368,22 +370,98 @@ def _strip_trailing_disclaimer(text: str) -> str:
     return "\n".join(lines).strip()
 
 
-def _fallback_brief(symbol: str, stats: Dict[str, Any], macd_note: str) -> str:
-    """无模型 key / 模型失败时的确定性兜底点评（仍守合规）。"""
-    trend = stats.get("trend") or "trend context unavailable"
+def _trend_bias(closes: List[float]) -> str:
+    """均线排列 → 多空倾向（纯描述）。"""
+    if len(closes) < 60:
+        return "trend context unavailable (history too short)"
+    ma5 = a1signals._sma(closes, 5)[-1]
+    ma10 = a1signals._sma(closes, 10)[-1]
+    ma20 = a1signals._sma(closes, 20)[-1]
+    ma60 = a1signals._sma(closes, 60)[-1]
+    if None in (ma5, ma10, ma20, ma60):
+        return "trend context unavailable"
+    last = closes[-1]
+    if ma5 > ma10 > ma20 > ma60:
+        return "moving averages are aligned higher (MA5 > MA10 > MA20 > MA60); price is above the 20-day and 60-day averages"
+    if ma5 < ma10 < ma20 < ma60:
+        return "moving averages are aligned lower (MA5 < MA10 < MA20 < MA60); price is below the 20-day and 60-day averages"
+    above20 = last > ma20
+    above60 = last > ma60
+    if above20 and above60:
+        return "moving averages are mixed but price holds above both the 20-day and 60-day averages"
+    if above20:
+        return "moving averages are mixed; price is above the 20-day average but below the 60-day average"
+    if above60:
+        return "moving averages are mixed; price is below the 20-day average but above the 60-day average"
+    return "moving averages are mixed; price is below both the 20-day and 60-day averages"
+
+
+def _risk_notes(score: Dict[str, Any], stats: Dict[str, Any], levels: Dict[str, Any]) -> List[str]:
+    """风险提示：评分风险标签 + 计算型风险（破位/高位/超买），全部描述性措辞。"""
+    notes: List[str] = []
+    seen = set()
+    for r in list(score.get("risks") or [])[:4]:
+        key = r.lower()
+        if key not in seen:
+            seen.add(key)
+            notes.append(r)
+    closes_ok = (stats.get("ma20") is not None and stats.get("ma60") is not None
+                 and stats.get("last_close") is not None)
+    if closes_ok and stats["last_close"] < stats["ma20"] and stats["last_close"] < stats["ma60"]:
+        notes.append("Price is below key moving averages — breakdown caution")
+    rsi = stats.get("rsi14")
+    if rsi is not None and rsi >= 70:
+        notes.append("RSI-14 in the elevated zone")
+    pos52 = levels.get("pos_52w_pct")
+    if pos52 is not None and pos52 >= 90:
+        notes.append("Price near 52-week highs")
+    if pos52 is not None and pos52 <= 10:
+        notes.append("Price near 52-week lows")
+    return notes[:5]
+
+
+def _rule_brief(symbol: str, stats: Dict[str, Any], macd_note: str,
+                score: Dict[str, Any], levels: Dict[str, Any], closes: List[float]) -> str:
+    """规则模板技术简报（零 LLM）：趋势/参考位/风险/教育，全描述性、守合规。"""
+    bias = _trend_bias(closes)
+    sup = levels.get("support")
+    res = levels.get("resistance")
+    ds = levels.get("dist_support_pct")
+    dr = levels.get("dist_resistance_pct")
+    atr = levels.get("atr")
+    atr_pct = levels.get("atr_pct")
+    pos52 = levels.get("pos_52w_pct")
+    risks = _risk_notes(score, stats, levels)
+
     lines = [
         "Technical Snapshot:",
         f"{symbol} closed at {_f(stats['last_close'])} on the latest {stats['period']} bar "
-        f"(change {_f(stats['day_change_pct'])}%). {trend.capitalize()}.",
+        f"(change {_f(stats['day_change_pct'])}%). {bias.capitalize()}.",
         f"{macd_note}. {_rsi_note(stats['rsi14'])}. "
-        f"The price sits at {_f(stats['pos_60d_pct'], 0)}% of its 60-bar range. {stats['volume'].capitalize()}.",
+        f"The price sits at {_f(stats['pos_60d_pct'], 0)}% of its 60-bar range"
+        + (f" and {_f(pos52, 0)}% of its 52-week range" if pos52 is not None else "")
+        + f". {stats['volume'].capitalize()}.",
         "",
-        "Watch Points:",
-        "Monitor whether price maintains its relationship to the 20-day and 60-day averages; "
-        "watch whether MACD histogram direction and RSI readings continue in the same zone.",
+        "Technical Reference Levels:",
+        f"- Near support: {_f(sup)}"
+        + (f" (~{_f(ds, 1)}% below last close)" if ds is not None else "")
+        + f". Near resistance: {_f(res)}"
+        + (f" (~{_f(dr, 1)}% above last close)" if dr is not None else "")
+        + ".",
+        f"- ATR-14: {_f(atr, 2)}"
+        + (f" ({_f(atr_pct, 2)}% of price)" if atr_pct is not None else "")
+        + ". These are technical reference levels based on recent price geometry and volatility, not predictions.",
+        "",
+        "Risk Notes:",
+    ]
+    if risks:
+        lines += [f"- {r}" for r in risks]
+    else:
+        lines.append("- No elevated risk flags detected in the current indicator set.")
+    lines += [
         "",
         "Education:",
-        "Moving averages, MACD, RSI and range position are technical descriptors, not predictions. "
+        "Moving averages, MACD, RSI, range position and ATR are technical descriptors, not predictions. "
         "They summarize past price behavior and can change quickly.",
         "",
         _DISCLAIMER,
@@ -418,20 +496,27 @@ async def generate_brief(user_id: str, symbol: str, period: str = "day") -> Dict
     sig = a1signals.build_signals_v3(candles, cache_key=f"markets-brief:{symbol}:{period}")
     macd_note = _macd_note(sig)
     score = screener.compute_score(symbol, period, candles)
+    from .key_levels import compute_key_levels
+
+    levels = compute_key_levels(candles)
 
     brief = ""
-    mode = "ai"
-    hits = 0
-    try:
-        brief = await _call_model(symbol, stats, macd_note)
-        brief, hits = _sanitize_output(brief)
-        if not brief or hits > 0:
-            # 黑名单命中说明模型跑偏，宁可用保守模板
-            brief = _fallback_brief(symbol, stats, macd_note)
-            mode = "fallback_blacklist" if hits else "fallback_empty"
-    except Exception:
-        brief = _fallback_brief(symbol, stats, macd_note)
-        mode = "fallback_error"
+    mode = "rules"
+    if LLM_ENABLED:
+        try:
+            brief = await _call_model(symbol, stats, macd_note)
+            brief, hits = _sanitize_output(brief)
+            if not brief or hits > 0:
+                # 黑名单命中说明模型跑偏，宁可用保守规则模板
+                brief = ""
+                mode = "fallback_blacklist" if hits else "fallback_empty"
+            else:
+                mode = "ai"
+        except Exception:
+            brief = ""
+            mode = "fallback_error"
+    if not brief:
+        brief = _rule_brief(symbol, stats, macd_note, score, levels, closes)
 
     brief = _strip_trailing_disclaimer(brief)
     if _DISCLAIMER not in brief:
@@ -442,6 +527,8 @@ async def generate_brief(user_id: str, symbol: str, period: str = "day") -> Dict
         "period": period,
         "brief": brief,
         "score": score,
+        "levels": levels,
+        "risks": list(score.get("risks") or [])[:5],
         "mode": mode,
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "cached": False,

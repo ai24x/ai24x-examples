@@ -60,6 +60,8 @@ api/data/system_flags_override.json
 api/data/model_warehouse_override.json
 api/data/free_shared_override.json
 api/data/llm_keys_override.json
+api/data/admin_sms_config.json
+api/data/admin_email_config.json
 **/token-pay-bundle*/
 config.local.*
 deploy-token.txt

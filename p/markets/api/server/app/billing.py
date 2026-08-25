@@ -127,6 +127,10 @@ FREE_WATCH_LIMIT = 10
 PRO_WATCH_LIMIT = 50
 FREE_AI_BRIEF_DAILY = 10
 
+# 7 天 Pro 体验券（每账号限一次；source='trial'，到期自动过期）
+TRIAL_PLAN = "trial7"
+TRIAL_DAYS = 7
+
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS subscriptions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -244,6 +248,58 @@ def activate_subscription(user_id: str, plan: str, source: str = "paypal") -> Di
             )
             params = (user_id, plan, days, source)
         conn.execute(sql, params)
+        row = conn.execute(
+            "SELECT * FROM subscriptions WHERE id = last_insert_rowid()"
+        ).fetchone()
+    return dict(row)
+
+
+def has_used_trial(user_id: str) -> bool:
+    with _conn() as conn:
+        row = conn.execute(
+            "SELECT 1 FROM subscriptions WHERE user_id=? AND source='trial' LIMIT 1",
+            (user_id,),
+        ).fetchone()
+    return row is not None
+
+
+def trial_info(user_id: str) -> Dict[str, Any]:
+    """体验券状态：granted/used/active/到期时间（幂等只读）。"""
+    with _conn() as conn:
+        row = conn.execute(
+            """
+            SELECT plan, status, started_at, expires_at,
+                   CASE WHEN status='active' AND expires_at > datetime('now') THEN 1 ELSE 0 END AS active
+            FROM subscriptions WHERE user_id=? AND source='trial' ORDER BY id DESC LIMIT 1
+            """,
+            (user_id,),
+        ).fetchone()
+    if not row:
+        return {"granted": False, "used": False, "active": False}
+    d = dict(row)
+    return {
+        "granted": True,
+        "used": True,
+        "active": bool(d["active"]),
+        "plan": d["plan"],
+        "status": d["status"],
+        "started_at": d["started_at"],
+        "expires_at": d["expires_at"],
+    }
+
+
+def grant_trial(user_id: str) -> Dict[str, Any]:
+    """发放 7 天 Pro 体验券：已 Pro 或已领过则拒绝；到期自动过期由 expire_overdue 处理。"""
+    if is_pro(user_id):
+        raise ValueError("already_pro")
+    if has_used_trial(user_id):
+        raise ValueError("trial_used")
+    with _conn() as conn:
+        conn.execute(
+            "INSERT INTO subscriptions (user_id, plan, status, started_at, expires_at, source) "
+            "VALUES (?, ?, 'active', datetime('now'), datetime('now', '+' || ? || ' days'), 'trial')",
+            (user_id, TRIAL_PLAN, TRIAL_DAYS),
+        )
         row = conn.execute(
             "SELECT * FROM subscriptions WHERE id = last_insert_rowid()"
         ).fetchone()
@@ -440,6 +496,9 @@ def admin_summary() -> Dict[str, Any]:
             ).fetchone()[0]
             or 0
         )
+        trial_count = int(
+            conn.execute("SELECT COUNT(*) FROM subscriptions WHERE source='trial'").fetchone()[0] or 0
+        )
         recent = [
             dict(r)
             for r in conn.execute(
@@ -468,6 +527,7 @@ def admin_summary() -> Dict[str, Any]:
         "paid_orders": int(paid),
         "pending_orders": int(pending),
         "revenue_usd": round(revenue, 2),
+        "trial_subs": trial_count,
         "plans": plans,
         "recent_orders": recent,
     }

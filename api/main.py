@@ -42,6 +42,8 @@ from schemas import (
     ErrorResponse,
     AdminSmsLoginBody,
     AdminSmsConfigBody,
+    AdminEmailConfigBody,
+    AdminEmailTestBody,
     InternalSmsVerifyConsumeIn,
     SmsSendRequest,
     SmsSendResponse,
@@ -907,17 +909,36 @@ async def auth_sms_send(request: Request, body: SmsSendRequest, db: Session = De
         o = (override or "").strip()
         return o if o else (base or "").strip()
 
-    endpoint = _pick(body.sms_106_endpoint, settings.sms_106_endpoint)
-    account = _pick(body.sms_106_account, settings.sms_106_account)
-    password = _pick(body.sms_106_password, settings.sms_106_password)
-    sign_name_use = _pick(body.sms_106_sign_name, settings.sms_106_sign_name)
-    template_use = _pick(body.sms_106_template, settings.sms_106_template)
+    # 管理台多通道热配置优先（admin_sms_config.json > .env）
+    from admin_sms_config import active_provider as _active_provider
+    from admin_sms_config import effective_106, effective_juhe, effective_tencent
 
-    if not account or not password:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="短信服务暂不可用，请稍后再试。",
-        )
+    c106 = effective_106()
+    endpoint = _pick(body.sms_106_endpoint, c106["endpoint"])
+    account = _pick(body.sms_106_account, c106["account"])
+    password = _pick(body.sms_106_password, c106["password"])
+    sign_name_use = _pick(body.sms_106_sign_name, c106["sign_name"])
+    template_use = _pick(body.sms_106_template, c106["template"])
+    sms_provider = (body.sms_provider or "").strip().lower()
+    if not sms_provider:
+        sms_provider = _active_provider()
+
+    def _provider_configured(p: str) -> bool:
+        if p == "106":
+            return bool(account and password)
+        if p == "tencent":
+            tc = effective_tencent()
+            return bool(
+                (body.sms_tencent_secret_id or tc["secret_id"])
+                and (body.sms_tencent_secret_key or tc["secret_key"])
+                and (body.sms_tencent_sdk_app_id or tc["sdk_app_id"])
+                and (body.sms_tencent_sign or tc["sign"])
+                and (body.sms_tencent_template_id or tc["template_id"])
+            )
+        if p == "juhe":
+            jh = effective_juhe()
+            return bool((body.sms_juhe_key or jh["key"]) and (body.sms_juhe_tpl_id or jh["template_id"]))
+        return False
 
     mob = normalize_mobile(body.mobile)
     if len(mob) != 11 or not mob.isdigit():
@@ -969,40 +990,48 @@ async def auth_sms_send(request: Request, body: SmsSendRequest, db: Session = De
     # 通过同号 60s 冷却后再记入 IP/手机号小时窗口，避免误伤正常重试
     record_attempt(ip, mob)
 
-    # Record SMS send
-    provider_name = "106"
-    try:
-        if body.sms_provider == "juhe" and body.sms_juhe_key:
-            provider_name = "juhe"
-            ok, raw, msg = await send_sms_juhe(
-                app_key=body.sms_juhe_key,
+    # Record SMS send（多通道自动兜底：生效通道优先，聚合恒在最后）
+    from sms_failover import SMS_CIRCUIT, send_with_failover
+
+    async def _dispatch(provider: str):
+        if provider == "juhe":
+            jh = effective_juhe()
+            return await send_sms_juhe(
+                app_key=body.sms_juhe_key or jh["key"],
                 mobile=mob,
-                tpl_id=body.sms_juhe_tpl_id or "",
+                tpl_id=body.sms_juhe_tpl_id or jh["template_id"],
                 tpl_vars={"code": code_for_sms},
             )
-        elif body.sms_provider == "tencent" and body.sms_tencent_secret_id:
-            provider_name = "tencent"
-            ok, raw, msg = await send_sms_tencent(
-                secret_id=body.sms_tencent_secret_id,
-                secret_key=body.sms_tencent_secret_key or "",
-                sdk_app_id=body.sms_tencent_sdk_app_id or "",
-                sign_name=body.sms_tencent_sign or "",
-                template_id=body.sms_tencent_template_id or "",
+        if provider == "tencent":
+            tc = effective_tencent()
+            return await send_sms_tencent(
+                secret_id=body.sms_tencent_secret_id or tc["secret_id"],
+                secret_key=body.sms_tencent_secret_key or tc["secret_key"],
+                sdk_app_id=body.sms_tencent_sdk_app_id or tc["sdk_app_id"],
+                sign_name=body.sms_tencent_sign or tc["sign"],
+                template_id=body.sms_tencent_template_id or tc["template_id"],
                 template_params=[code_for_sms],
                 phone=mob,
-                region=body.sms_tencent_region or "ap-guangzhou",
+                region=body.sms_tencent_region or tc["region"],
             )
-        else:
-            ok, raw, msg = await send_sms_106(
-                endpoint=endpoint or settings.sms_106_endpoint,
-                account=account,
-                password=password,
-                mobile=mob,
-                content=content,
-                sign_name=sign_name_use or None,
-            )
-    except Exception as e:
-        ok, raw, msg = False, "", f"发送异常: {e}"
+        return await send_sms_106(
+            endpoint=endpoint,
+            account=account,
+            password=password,
+            mobile=mob,
+            content=content,
+            sign_name=sign_name_use or None,
+        )
+
+    senders = {p: (lambda p=p: _dispatch(p)) for p in ("tencent", "106", "juhe") if _provider_configured(p)}
+    if not senders:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="短信服务暂不可用，请稍后再试。",
+        )
+    res = await send_with_failover(senders, sms_provider, circuit=SMS_CIRCUIT, label="auth-sms")
+    ok, raw, msg = bool(res["ok"]), res["raw"], res["message"]
+    provider_name = res["provider"]
     if ok:
         mark_sent(mob)
         store_otp(mob, body.purpose, code, ttl_s=300.0)
@@ -1093,24 +1122,22 @@ def _mask_secret_tail(s: str | None, keep_tail: int = 4) -> str:
 
 @app.get("/v1/admin/sms/effective")
 async def admin_sms_effective(request: Request):
-    """管理端读取主站 106 短信“当前生效配置”（便于维护参考）。
+    """管理端读取短信多通道“当前生效配置”（106/腾讯/聚合，密文脱敏）。
     鉴权：管理员会话/密钥 或 X-SMS-Internal-Key（子站转发）任一通过即可。"""
     _require_admin_or_internal(request)
-    return {
-        "ok": True,
-        "sms_106_enabled": bool(settings.sms_106_enabled),
-        "sms_106_endpoint": (settings.sms_106_endpoint or "").strip(),
-        # 完整账号仅内部密钥可读（行情官管理台回填）；对外勿暴露
-        "sms_106_account": (settings.sms_106_account or "").strip(),
-        "sms_106_account_masked": _mask_sms_account(settings.sms_106_account),
-        "sms_106_account_set": bool((settings.sms_106_account or "").strip()),
-        "sms_106_password_set": bool((settings.sms_106_password or "").strip()),
-        "sms_106_password_masked": _mask_secret_tail(settings.sms_106_password, keep_tail=4),
-        "sms_106_sign_name": (settings.sms_106_sign_name or "").strip(),
-        "sms_106_template": (settings.sms_106_template or "").strip(),
-        "intl_sms": False,
-        "intl_note": "国际用户请用邮箱验证码；国际短信本轮不接入。",
-    }
+    from admin_sms_config import admin_snapshot
+
+    snap = admin_snapshot()
+    # 兼容旧版字段：仍提供扁平 sms_106_*（账号完整值仅内部密钥可读）
+    snap["sms_106_endpoint"] = snap["sms_106"]["endpoint"]
+    snap["sms_106_account"] = snap["sms_106"]["account_masked"]
+    snap["sms_106_account_masked"] = snap["sms_106"]["account_masked"]
+    snap["sms_106_account_set"] = snap["sms_106"]["account_set"]
+    snap["sms_106_password_set"] = snap["sms_106"]["password_set"]
+    snap["sms_106_password_masked"] = snap["sms_106"]["password_masked"]
+    snap["sms_106_sign_name"] = snap["sms_106"]["sign_name"]
+    snap["sms_106_template"] = snap["sms_106"]["template"]
+    return snap
 
 
 @app.get("/v1/admin/sms/logs")
@@ -2383,19 +2410,22 @@ async def admin_sms_send(request: Request, body: SmsSendRequest):
     if now - last < 60:
         raise HTTPException(status_code=429, detail="发送过于频繁，请 60 秒后再试")
     code = generate_numeric_code(6)
-    template = (settings.sms_106_template or "").strip()
+    from admin_sms_config import effective_106
+
+    c106 = effective_106()
+    template = c106["template"] or "您的验证码是：{code}。请不要把验证码泄露给其他人。如非本人操作，可不用理会！"
     try:
         content = template.format(code=str(code))
     except Exception:
         content = f"您的验证码是：{code}。请不要把验证码泄露给其他人。如非本人操作，可不用理会！"
     try:
         ok, raw, msg = await send_sms_106(
-            endpoint=settings.sms_106_endpoint,
-            account=settings.sms_106_account,
-            password=settings.sms_106_password,
+            endpoint=c106["endpoint"],
+            account=c106["account"],
+            password=c106["password"],
             mobile=mob,
             content=content,
-            sign_name=settings.sms_106_sign_name or None,
+            sign_name=c106["sign_name"] or None,
         )
     except Exception as e:
         ok, raw, msg = False, "", f"发送异常: {e}"
@@ -2427,6 +2457,95 @@ async def admin_sms_login(request: Request, body: AdminSmsLoginBody):
     return {"ok": True, "key": _admin_sms_issue_token(), "expires_in": 1800}
 
 
+@app.post("/v1/admin/sms/test")
+async def admin_sms_test(request: Request, body: SmsSendRequest):
+    """管理端短信通道测试：按生效通道（或显式 provider）发一条测试验证码，
+    不写入 OTP、不计入用户发送冷却；仅用于验证通道可用。
+    多通道自动兜底：生效通道优先，聚合恒在最后。"""
+    _require_internal_key(request)
+    from admin_sms_config import active_provider, effective_106, effective_juhe, effective_tencent
+
+    mob = normalize_mobile(body.mobile)
+    if len(mob) != 11 or not mob.isdigit():
+        raise HTTPException(status_code=400, detail="手机号格式不正确，请填写 11 位手机号")
+    provider = (body.sms_provider or "").strip().lower()
+    if not provider:
+        provider = active_provider()
+
+    code = generate_numeric_code(6)
+    c106 = effective_106()
+    template = c106["template"] or "您的验证码是：{code}。请不要把验证码泄露给其他人。如非本人操作，可不用理会！"
+    try:
+        content = template.format(code=str(code))
+    except Exception:
+        content = f"您的验证码是：{code}。请不要把验证码泄露给其他人。如非本人操作，可不用理会！"
+
+    def _provider_configured(p: str) -> bool:
+        if p == "106":
+            return bool(c106["account"] and c106["password"])
+        if p == "tencent":
+            tc = effective_tencent()
+            return bool(
+                (body.sms_tencent_secret_id or tc["secret_id"])
+                and (body.sms_tencent_secret_key or tc["secret_key"])
+                and (body.sms_tencent_sdk_app_id or tc["sdk_app_id"])
+                and (body.sms_tencent_sign or tc["sign"])
+                and (body.sms_tencent_template_id or tc["template_id"])
+            )
+        if p == "juhe":
+            jh = effective_juhe()
+            return bool((body.sms_juhe_key or jh["key"]) and (body.sms_juhe_tpl_id or jh["template_id"]))
+        return False
+
+    async def _dispatch(p: str):
+        if p == "juhe":
+            jh = effective_juhe()
+            return await send_sms_juhe(
+                app_key=body.sms_juhe_key or jh["key"],
+                mobile=mob,
+                tpl_id=body.sms_juhe_tpl_id or jh["template_id"],
+                tpl_vars={"code": str(code)},
+            )
+        if p == "tencent":
+            tc = effective_tencent()
+            return await send_sms_tencent(
+                secret_id=body.sms_tencent_secret_id or tc["secret_id"],
+                secret_key=body.sms_tencent_secret_key or tc["secret_key"],
+                sdk_app_id=body.sms_tencent_sdk_app_id or tc["sdk_app_id"],
+                sign_name=body.sms_tencent_sign or tc["sign"],
+                template_id=body.sms_tencent_template_id or tc["template_id"],
+                template_params=[str(code)],
+                phone=mob,
+                region=body.sms_tencent_region or tc["region"],
+            )
+        return await send_sms_106(
+            endpoint=c106["endpoint"],
+            account=c106["account"],
+            password=c106["password"],
+            mobile=mob,
+            content=content,
+            sign_name=c106["sign_name"] or None,
+        )
+
+    from sms_failover import SMS_CIRCUIT, send_with_failover
+
+    senders = {p: (lambda p=p: _dispatch(p)) for p in ("tencent", "106", "juhe") if _provider_configured(p)}
+    if not senders:
+        raise HTTPException(status_code=502, detail="发送失败：未配置任何短信通道")
+    res = await send_with_failover(senders, provider, circuit=SMS_CIRCUIT, label="admin-sms-test")
+    if not res["ok"]:
+        raise HTTPException(
+            status_code=502,
+            detail=f"发送失败（尝试：{' → '.join(res['attempted'])}）：{res['message'] or res['raw']}",
+        )
+    return {
+        "ok": True,
+        "provider": res["provider"],
+        "attempted": res["attempted"],
+        "message": f"测试验证码已发送（{res['provider']}）",
+    }
+
+
 def _upsert_env_values(updates: dict[str, str]) -> bool:
     """把键值写入 api/.env（存在则替换、不存在则追加），UTF-8 无 BOM。"""
     env_path = Path(__file__).resolve().parent / ".env"
@@ -2449,27 +2568,22 @@ def _upsert_env_values(updates: dict[str, str]) -> bool:
 
 @app.put("/v1/admin/sms/config")
 async def admin_sms_config_update(request: Request, body: AdminSmsConfigBody):
-    """保存主站 106 短信配置（SMS_106_*）到 api/.env，重启 core 后生效。
-    仅管理端（密钥/管理员会话）可写；password 留空表示保持原值。"""
+    """保存短信多通道配置（106/腾讯/聚合，热生效无需重启）。
+    enabled 写 system_flags.sms_106_enabled（国内短信总开关）；
+    其余写 api/data/admin_sms_config.json；密码留空表示保持原值。"""
     _require_internal_key(request)
-    updates: dict[str, str] = {}
+    from admin_sms_config import apply_update
+    from system_flags import update_system_flags
+
     if body.enabled is not None:
-        updates["SMS_106_ENABLED"] = "true" if body.enabled else "false"
-    if body.endpoint is not None:
-        updates["SMS_106_ENDPOINT"] = (body.endpoint or "").strip()
-    if body.account is not None:
-        updates["SMS_106_ACCOUNT"] = (body.account or "").strip()
-    if body.password is not None and (body.password or "").strip():
-        updates["SMS_106_PASSWORD"] = body.password.strip()
-    if body.sign_name is not None:
-        updates["SMS_106_SIGN_NAME"] = (body.sign_name or "").strip()
-    if body.template is not None and (body.template or "").strip():
-        updates["SMS_106_TEMPLATE"] = body.template.strip()
-    if not updates:
-        raise HTTPException(status_code=400, detail="没有需要保存的配置项")
-    if not _upsert_env_values(updates):
-        raise HTTPException(status_code=500, detail="未找到 api/.env，保存失败")
-    return {"ok": True, "message": "配置已保存，重启 core 服务后生效", "restart_required": True}
+        update_system_flags({"sms_106_enabled": bool(body.enabled)})
+    snap = apply_update(body.model_dump(exclude_none=True))
+    return {
+        "ok": True,
+        "message": "配置已保存并立即生效",
+        "restart_required": False,
+        "active_provider": snap.get("active_provider", "106"),
+    }
 
 
 @app.post("/v1/admin/sms/restart")
@@ -2489,6 +2603,47 @@ async def admin_sms_restart(request: Request):
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=f"触发重启失败：{e}")
     return {"ok": True, "message": "core 正在重启（约 5-10 秒），请稍候刷新页面", "restarting": True}
+
+
+@app.get("/v1/admin/email/effective")
+async def admin_email_effective(request: Request):
+    """管理端读取邮件服务配置（主/备 SMTP，密文脱敏）。"""
+    _require_admin_or_internal(request)
+    from admin_email_config import admin_snapshot
+
+    return admin_snapshot()
+
+
+@app.put("/v1/admin/email/config")
+async def admin_email_config_update(request: Request, body: AdminEmailConfigBody):
+    """保存邮件服务配置（主 SMTP + 备用 SMTP，热生效无需重启）。
+    密码留空表示保持原值；模板支持 {code} / {purpose} 变量。"""
+    _require_internal_key(request)
+    from admin_email_config import apply_update
+
+    snap = apply_update(body.model_dump(exclude_none=True))
+    return {
+        "ok": True,
+        "message": "邮件配置已保存并立即生效",
+        "restart_required": False,
+        "smtp_configured": snap.get("smtp_configured", False),
+        "smtp_backup_configured": snap.get("smtp_backup_configured", False),
+    }
+
+
+@app.post("/v1/admin/email/test")
+async def admin_email_test(request: Request, body: AdminEmailTestBody):
+    """发送测试邮件（主通道优先，失败自动切备用通道）。"""
+    _require_internal_key(request)
+    from email_smtp import send_test_email
+
+    em = (body.email or "").strip().lower()
+    if not em or "@" not in em or "." not in em.split("@")[-1]:
+        raise HTTPException(status_code=400, detail="邮箱格式不正确")
+    ok, msg = send_test_email(to_email=em)
+    if not ok:
+        raise HTTPException(status_code=502, detail=msg)
+    return {"ok": True, "message": msg}
 
 
 @app.get("/v1/billing/plans")

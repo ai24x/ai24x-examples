@@ -192,14 +192,56 @@ class AdminSmsLoginBody(BaseModel):
 
 
 class AdminSmsConfigBody(BaseModel):
-    """管理后台短信配置保存（写入主站 api/.env 的 SMS_106_*，重启 core 后生效）。"""
+    """管理后台短信多通道配置保存（热生效，写入 api/data/admin_sms_config.json）。
+    password 留空表示保持原值；enabled 仍走 system_flags.sms_106_enabled（国内短信总开关）。"""
 
     enabled: Optional[bool] = None
+    active_provider: Optional[str] = Field(default=None, max_length=16, description="106/tencent/juhe")
     endpoint: Optional[str] = Field(default=None, max_length=512)
     account: Optional[str] = Field(default=None, max_length=128)
     password: Optional[str] = Field(default=None, max_length=128)
     sign_name: Optional[str] = Field(default=None, max_length=64)
     template: Optional[str] = Field(default=None, max_length=600)
+    # 腾讯短信
+    sms_tencent_secret_id: Optional[str] = Field(default=None, max_length=128)
+    sms_tencent_secret_key: Optional[str] = Field(default=None, max_length=128)
+    sms_tencent_sdk_app_id: Optional[str] = Field(default=None, max_length=64)
+    sms_tencent_sign: Optional[str] = Field(default=None, max_length=64)
+    sms_tencent_template_id: Optional[str] = Field(default=None, max_length=64)
+    sms_tencent_region: Optional[str] = Field(default=None, max_length=32)
+    # 聚合数据
+    sms_juhe_key: Optional[str] = Field(default=None, max_length=128)
+    sms_juhe_tpl_id: Optional[str] = Field(default=None, max_length=64)
+    sms_juhe_sign: Optional[str] = Field(default=None, max_length=64)
+    sms_juhe_template: Optional[str] = Field(default=None, max_length=600)
+
+
+class AdminEmailConfigBody(BaseModel):
+    """管理后台邮件服务配置保存（主 SMTP + 备用 SMTP，热生效）。
+    密码留空表示保持原值；模板支持 {code} / {purpose} 变量。"""
+
+    smtp_host: Optional[str] = Field(default=None, max_length=256)
+    smtp_port: Optional[int] = None
+    smtp_user: Optional[str] = Field(default=None, max_length=256)
+    smtp_password: Optional[str] = Field(default=None, max_length=256)
+    smtp_from: Optional[str] = Field(default=None, max_length=256)
+    smtp_use_tls: Optional[bool] = None
+    smtp_use_ssl: Optional[bool] = None
+    smtp_backup_host: Optional[str] = Field(default=None, max_length=256)
+    smtp_backup_port: Optional[int] = None
+    smtp_backup_user: Optional[str] = Field(default=None, max_length=256)
+    smtp_backup_password: Optional[str] = Field(default=None, max_length=256)
+    smtp_backup_from: Optional[str] = Field(default=None, max_length=256)
+    smtp_backup_use_tls: Optional[bool] = None
+    smtp_backup_use_ssl: Optional[bool] = None
+    email_otp_subject: Optional[str] = Field(default=None, max_length=200)
+    email_otp_body_template: Optional[str] = Field(default=None, max_length=2000)
+
+
+class AdminEmailTestBody(BaseModel):
+    """管理后台邮件测试发送。"""
+
+    email: str = Field(..., max_length=256)
 
 
 class AuthRegisterBody(BaseModel):
