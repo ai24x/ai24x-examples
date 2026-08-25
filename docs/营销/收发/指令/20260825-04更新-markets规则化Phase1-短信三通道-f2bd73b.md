@@ -1,6 +1,6 @@
 # 【04 更新】Markets Phase1 规则化改造（简报/试用/Alert/多因子Screener/每日简报页）+ core 短信三通道自动兜底 + markets 管理后台 403 修复 + 右下角 help 即时帮助 + 全站 Upgrade VIP→Upgrade to Pro 统一
 
-> 通道：司令直连 04（deploy04.ps1）｜ 目标提交 **169ac1f**（内含 f2bd73b Phase1 规则化）
+> 通道：司令直连 04（deploy04.ps1）｜ 目标提交 **141a531**（内含 f2bd73b Phase1 规则化）
 > 04 主机：43.160.246.30 · 仓库 C:\ai24x01 · 服务 AI24X-core（NSSM，8002）+ AI24X-markets-api（18012）
 > 前置（司令 scp 到位，勿外传勿提交）：
 > - `C:\Users\Administrator\ops\_patch_prod_sms_config_20260825.py`（腾讯/聚合短信密钥）
