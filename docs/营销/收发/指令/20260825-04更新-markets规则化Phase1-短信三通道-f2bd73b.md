@@ -70,7 +70,7 @@ for ($i = 0; $i -lt 24; $i++) {
     $svc = Get-CimInstance Win32_Service -Filter "Name='AI24X-core'"
     $afterPid = $svc.ProcessId
     $h = Invoke-RestMethod -Uri "http://127.0.0.1:8002/health" -TimeoutSec 10 -UseBasicParsing
-    if ($afterPid -gt 0 -and $afterPid -ne $beforePid -and $h.commit -and $h.commit -like "$EXP*") { $ok = $true; break }
+    if ($afterPid -gt 0 -and $afterPid -ne $beforePid -and $h.commit -and $h.commit -like "$HEAD*") { $ok = $true; break }
   } catch {}
 }
 "core_pid_after=$afterPid health_ok=$ok commit=$($h.commit)"
