@@ -37,19 +37,19 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://markets.ai24x.com/seo/aapl.html</loc>
+    <loc>https://markets.ai24x.com/stocks/aapl</loc>
     <lastmod>2026-08-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://markets.ai24x.com/seo/amd.html</loc>
+    <loc>https://markets.ai24x.com/stocks/amd</loc>
     <lastmod>2026-08-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://markets.ai24x.com/seo/amzn.html</loc>
+    <loc>https://markets.ai24x.com/stocks/amzn</loc>
     <lastmod>2026-08-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -61,7 +61,7 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://markets.ai24x.com/seo/googl.html</loc>
+    <loc>https://markets.ai24x.com/stocks/googl</loc>
     <lastmod>2026-08-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -79,7 +79,7 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://markets.ai24x.com/seo/meta.html</loc>
+    <loc>https://markets.ai24x.com/stocks/meta</loc>
     <lastmod>2026-08-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -91,25 +91,25 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://markets.ai24x.com/seo/msft.html</loc>
+    <loc>https://markets.ai24x.com/stocks/msft</loc>
     <lastmod>2026-08-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://markets.ai24x.com/seo/nflx.html</loc>
+    <loc>https://markets.ai24x.com/stocks/nflx</loc>
     <lastmod>2026-08-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://markets.ai24x.com/seo/nvda.html</loc>
+    <loc>https://markets.ai24x.com/stocks/nvda</loc>
     <lastmod>2026-08-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://markets.ai24x.com/seo/pltr.html</loc>
+    <loc>https://markets.ai24x.com/stocks/pltr</loc>
     <lastmod>2026-08-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -139,7 +139,7 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://markets.ai24x.com/seo/tsla.html</loc>
+    <loc>https://markets.ai24x.com/stocks/tsla</loc>
     <lastmod>2026-08-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
