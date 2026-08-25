@@ -60,6 +60,16 @@ STOCKS: List[Dict[str, str]] = [
     {"sym": "SHOP", "name": "Shopify", "blurb": "e-commerce platform"},
     {"sym": "SNOW", "name": "Snowflake", "blurb": "cloud data platform"},
     {"sym": "COIN", "name": "Coinbase", "blurb": "cryptocurrency exchange"},
+    {"sym": "JPM", "name": "JPMorgan Chase", "blurb": "largest US bank by assets"},
+    {"sym": "V", "name": "Visa", "blurb": "global digital payments network"},
+    {"sym": "LLY", "name": "Eli Lilly", "blurb": "pharmaceutical and biotech innovator"},
+    {"sym": "JNJ", "name": "Johnson & Johnson", "blurb": "healthcare and consumer products"},
+    {"sym": "PFE", "name": "Pfizer", "blurb": "global pharmaceutical company"},
+    {"sym": "XOM", "name": "Exxon Mobil", "blurb": "integrated oil and gas major"},
+    {"sym": "BA", "name": "Boeing", "blurb": "aerospace and defense manufacturer"},
+    {"sym": "CAT", "name": "Caterpillar", "blurb": "construction and mining equipment"},
+    {"sym": "NKE", "name": "Nike", "blurb": "athletic footwear and apparel"},
+    {"sym": "DIS", "name": "Walt Disney", "blurb": "media, streaming and theme parks"},
 ]
 
 INDEX_PAIRS: List[Tuple[str, str, str, str]] = [

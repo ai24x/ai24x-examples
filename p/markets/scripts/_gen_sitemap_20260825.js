@@ -20,6 +20,7 @@ const main = [
 const stocks = [
   "aapl", "amd", "amzn", "googl", "meta", "msft", "nflx", "nvda", "pltr", "tsla",
   "abnb", "avgo", "coin", "cost", "crm", "orcl", "pypl", "shop", "snow", "uber",
+  "ba", "cat", "dis", "jnj", "jpm", "lly", "nke", "pfe", "v", "xom",
 ];
 
 const pairs = [
