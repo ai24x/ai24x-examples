@@ -28,3 +28,9 @@
 - 产能转 SEO + X：01 转产 X 备稿池；02 出 SEO 第四批候选；04 继续 SEO 发布 + X/Reddit 只读养号。
 - **SEO 第三批已上线**：commit `eb5b12b`（+docs `b738b48`）已双推，10 页 /stocks/（JPM/V/LLY/JNJ/PFE/XOM/BA/CAT/NKE/DIS）累计 30 页；sitemap 46 条；QA batch3 32/32 + batch2 回归 22/22；红线词扫尾 0（仅免责否定句式）。
 - 🟡 晨报素材：Reddit r/stocks + r/investing 均禁止 AI 生成内容 → 官方 Reddit 贡献式运营策略冻结（只读养号），引流重心转向 SEO 量产 + X 养号期后发布。
+
+## 追加（2026-08-25 22:10）
+- **X 首发 D1 被账号状态阻断（P1，非风控）**：04 浏览器登录 @xielei1979，@ai24xapp 为 Protected 账号且无 04 登录凭据 → 已发雷总配合请求（收发\指令\20260825-2210-01…），解锁/公开后 04 再发 D1；D2 COIN 明天派发。04 回执：`ops/x-publish-cost-20260825.md`（04 侧）。
+- **01 交付 X 备稿池**：6 组（COST/COIN/AVGO × 单帖/Thread3），全部 ≤280 字符、无品牌无链接、红线 0，已同步 04 `ops\x-pool-20260825\`；建议 D1 COST → D2 COIN → D3 AVGO，每天 ≤1 条间隔 ≥12h。
+- **02 交付第四批候选**：WMT/HD/UNH/CVX/KO/INTC/ADBE/IBM/GM/NEE（含差异化 H2 关键词），待下一轮量产。
+- 记录提交 `7adb2e8` 已双推。
