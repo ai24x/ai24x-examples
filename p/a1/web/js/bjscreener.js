@@ -56,12 +56,20 @@ window.AI24X_BJScreener = (function () {
   function pct(v) { if (v == null || !isFinite(v)) return "—"; return (v >= 0 ? "+" : "") + v.toFixed(2) + "%"; }
   function cls(v) { return v > 0 ? "up" : (v < 0 ? "down" : ""); }
   function fmtDate() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
-  // 数据日统一口径：今日收盘更新完成 → 今日；盘前/盘中/非交易日/今日未生成/今日无合格（展示上一交易日）→ 昨日；归档 → 具体日期
+  // 数据日统一口径：今日收盘更新完成 → 今日；盘前/盘中/非交易日/今日未生成/今日无合格（展示最近归档）→ 昨日；归档 → 具体日期
   function dataDayLabel(d) {
     if (!d) return "今日";
     if (d.archive) return String(d.asof || d.date || "");
     if (d.off_market || d.intraday || d.stale || d.today_missing) return "昨日";
     return "今日";
+  }
+  function staleLabel(d) {
+    var sf = (d && d.stale_from) || "";
+    if (!sf) return "";
+    var sd = (d && d.stale_scan_date && d.stale_scan_date !== sf)
+      ? "（" + esc(d.stale_scan_date) + " 扫描 · 数据截至 " + esc(sf) + " 收盘）"
+      : "（数据截至 " + esc(sf) + " 收盘）";
+    return sd;
   }
   function reportDayLabel(d) {
     var dt = String((d && (d.date || d.asof)) || "");
@@ -74,17 +82,43 @@ window.AI24X_BJScreener = (function () {
     if (m === "bj_all") return "北证全市场";
     if (m === "macd") return "MACD首红";
     if (m === "pb") return "回踩企稳";
+    if (m === "low10") return "10元下";
     return m === "all" ? "沪深京全市场" : "北证全市场";
   }
   function marketScope(d) {
     var m = (d && d.market_code) || state.market;
-    if (m === "hs") return "沪深主线·板块成分池";
-    if (m === "kc") return "科创主线·板块成分池";
-    if (m === "bj") return "北证主线·北证成分池";
-    if (m === "bj_all") return "北证全市场·北证成分池";
-    if (m === "macd") return "沪深京全市场·MACD量能首红";
-    if (m === "pb") return "沪深京全市场·首板回踩企稳";
-    return m === "all" ? "沪深京·板块成分池" : "北证全市场";
+    if (m === "hs") return "沪深主线 · 看主线板块里刚转强的票";
+    if (m === "kc") return "科创主线 · 科创板主线里刚转强的票";
+    if (m === "bj") return "北证主线 · 北证主线里刚转强的票";
+    if (m === "bj_all") return "北证全市场 · 全市场里刚转强的活跃票";
+    if (m === "macd") return "MACD首红 · 底部刚翻红的启动信号";
+    if (m === "pb") return "回踩企稳 · 异动/首板后缩量回踩未破位";
+    if (m === "low10") return "10元下 · 低价且刚右侧走强的活跃票";
+    return m === "all" ? "沪深京全市场" : "北证全市场";
+  }
+  function marketHint(d) {
+    var m = (d && d.market_code) || state.market;
+    var map = {
+      hs: { t: "沪深主线怎么看", s: "先看有没有主线；有则盯主线里「上涨途中 + 股性活跃」的票。没有主线时会提示电风扇行情，只看重点观察板块。" },
+      kc: { t: "科创主线怎么看", s: "科创波动更大：同样只选右侧上涨途中、有量能弹性的标的，下坡阴跌的一律不推。" },
+      bj: { t: "北证主线怎么看", s: "北证弹性大：优先主线共振 + 刚异动/回踩企稳，避免买在阴跌下坡途中。" },
+      bj_all: { t: "北证全市场怎么看", s: "不限主线成分，全市场挑「刚右侧转强、股性活」的票；没有合格就空着，宁缺毋滥。" },
+      macd: { t: "MACD首红怎么看", s: "底部金叉后第一根红柱 + 量能确认 = 右侧启动信号。优先「今日首红 / 红柱第2-3天」，下坡途中的不要。" },
+      pb: { t: "回踩企稳怎么看", s: "异动或首板后缩量回踩、未破关键，再重新转强。适合等回调而不是追当日大涨。" },
+      low10: { t: "10元下怎么看", s: "股价低于10元，且刚右侧走强、股性活跃。低价不等于随便买，下坡和死水票不会出现。" }
+    };
+    var x = map[m];
+    if (!x) return "";
+    return '<div class="col-hint" role="note"><b>' + x.t + '</b><span>' + x.s + '</span></div>';
+  }
+  function pathTags(p) {
+    var h = [];
+    if (p.downSlope) h.push('<span class="tag path-down">下坡途中·已排除</span>');
+    else if (p.pathOk) h.push('<span class="tag path-up">上涨途中</span>');
+    if (p.activeOk) h.push('<span class="tag path-active">股性活跃' + (p.activityScore != null ? '·' + p.activityScore : '') + '</span>');
+    else if (p.activityScore != null && p.activityScore < 35) h.push('<span class="tag path-dull">股性偏弱</span>');
+    if (p.midUpOk && p.pathOk) h.push('<span class="tag path-mid">途中未过热</span>');
+    return h;
   }
 
   var state = { loading: false, data: null, market: "hs", cache: {} };
@@ -200,14 +234,14 @@ window.AI24X_BJScreener = (function () {
   }
   function roleBadge(p) {
     if (p.pickRole === "leader") return p.obsHit
-      ? '<span class="tier-badge tier-obs">次主线代表</span>'
+      ? '<span class="tier-badge tier-obs">重点观察代表</span>'
       : '<span class="tier-badge tier-leader">主线代表</span>';
     if (p.pickRole === "catchup") return '<span class="tier-badge tier-catchup">补涨观察</span>';
     return "";
   }
   function mainBadge(p) {
     if (p.mainHit) return '<span class="tier-badge tier-main">主线·' + esc(p.mainName || "") + '</span>';
-    if (p.obsHit) return '<span class="tier-badge tier-obs">次主线·' + esc(p.obsName || "") + '</span>';
+    if (p.obsHit) return '<span class="tier-badge tier-obs">重点观察·' + esc(p.obsName || "") + '</span>';
     return '<span class="tier-badge tier-offmain">非主线</span>';
   }
   function indBadge(p) {
@@ -215,8 +249,9 @@ window.AI24X_BJScreener = (function () {
     return "";
   }
   function coreTags(p) {
-    var a = p.patterns || {}, h = [];
+    var a = p.patterns || {}, h = pathTags(p);
     if (a.firstWeek) h.push('<span class="tag ok strong">近1周首板\u00b7底部右侧</span>');
+    else if (a.ztWeek) h.push('<span class="tag ok strong">近1周涨停</span>');
     if (a.pb45) h.push('<span class="tag ok strong">首板4-5日回踩企稳</span>');
     if (a.washOut) h.push('<span class="tag ok strong">单日砸盘企稳\u00b7' + (p.washoutDays || 0) + '天前</span>');
     if (a.surgeStart) h.push('<span class="tag ok">底部异动·' + (p.surgeDaysAgo || 0) + '天前</span>');
@@ -242,12 +277,13 @@ window.AI24X_BJScreener = (function () {
     var tl = p.tail || {};
     if (tl.tailPct != null && tl.tailPct >= 0.5) h.push('<span class="tag ok strong">尾盘强承接</span>');
     if (p.lhb && p.lhb.net >= 0) h.push('<span class="tag ok">龙虎榜净买</span>');
-    if (h.length > 3) h = h.slice(0, 3);
+    if (h.length > 5) h = h.slice(0, 5);
     return '<div class="pick-tags">' + h.join('') + '</div>';
   }
   function reasonOf(p) {
     var a = p.patterns || {}, r = [];
     if (a.firstWeek) r.push("近1周首板\u00b7底部右侧刚启动");
+    else if (a.ztWeek && !a.firstBoardRight && !a.ztPullback && !a.pullback2) r.push("近1周有涨停\u00b7强势确认");
     if (a.pb45) r.push("首板4-5日回踩·未破位企稳");
     if (a.washOut) r.push("异动10%+后单日砸盘未破位·缩量企稳");
     if (a.surgeStart) r.push("底部放量异动" + (p.surgeDaysAgo || 0) + "天前启动");
@@ -263,7 +299,7 @@ window.AI24X_BJScreener = (function () {
     if (a.smallYang) r.push("连续小阳趋势上拐");
     if (a.baseUp) r.push("站上MA20且均线上拐");
     if (a.tightBurst) r.push("均线粘合后发散");
-    if (p.obsHit && p.obsName) r.push("次主线:" + p.obsName);
+    if (p.obsHit && p.obsName) r.push("重点观察:" + p.obsName);
     if (p.mainHit && p.mainName) r.push("主线板块:" + p.mainName);
     if (p.revHit && p.revName) r.push("主线反推共振:" + p.revName);
     if (p.boardLeader) r.push("板块代表");
@@ -275,6 +311,7 @@ window.AI24X_BJScreener = (function () {
   function runnerTags(r) {
     var a = r.patterns || {}, t = [];
     if (a.firstWeek) t.push('<span class="tag ok strong">近1周首板</span>');
+    else if (a.ztWeek) t.push('<span class="tag ok strong">近1周涨停</span>');
     if (a.pb45) t.push('<span class="tag ok strong">首板4-5日回踩</span>');
     if (a.washOut) t.push('<span class="tag ok strong">单日砸盘企稳</span>');
     if (a.macdFirstRed) t.push('<span class="tag ok strong">MACD首红\u00b7' + (r.macdFirstRedDays > 0 ? r.macdFirstRedDays + '天前' : '今日首红') + '</span>');
@@ -298,13 +335,13 @@ window.AI24X_BJScreener = (function () {
   function macdRedSection(d) {
     var list = d.macd_reds || [];
     if (!list.length) return "";
-    var h = '<div class="bj-section">🔥 进阶策略 · MACD 量能首红（' + list.length + ' 只）</div>';
-      h += '<div class="bj-note">底部金叉第一根红柱 + 量能确认（右侧启动强信号），「今日首红 / 红柱第 2-3 天」优先。</div>';
+    var h = '<div class="bj-section">🔥 MACD首红 · 底部刚翻红（' + list.length + ' 只）</div>';
+      h += '<div class="bj-note">看两点就够：① 底部刚出现第一根红柱；② 有量配合。优先「今日首红 / 红柱第2-3天」，下坡途中的不会进榜。</div>';
     h += '<div class="mr-grid">';
     list.forEach(function (m, i) {
       var chgCls = cls(m.pct);
       var badge = m.mainHit ? '<span class="tier-badge tier-main">主线·' + esc(m.mainName || "") + '</span>'
-        : (m.obsHit ? '<span class="tier-badge tier-obs">次主线·' + esc(m.obsName || "") + '</span>' : '');
+        : (m.obsHit ? '<span class="tier-badge tier-obs">重点观察·' + esc(m.obsName || "") + '</span>' : '');
       var riskBadge = m.bearish_level === "hard" ? '<span class="tag risk">硬伤</span>'
         : (m.bearish_level === "warn" ? '<span class="tag warn">警示</span>' : '');
       var srcTag = m.src ? '<span class="tag src-tag">' + esc(m.src) + '</span>' : '';
@@ -377,7 +414,8 @@ window.AI24X_BJScreener = (function () {
       if (rm) line += ' ｜ <b style="color:var(--rise)">⚡ ' + rm.txt + '</b>' + (styleTxt ? '·' + esc(styleTxt) : '') + ' · ' + esc(rm.note);
       else if (styleTxt) line += ' ｜ 风格：' + esc(styleTxt);
     }
-    if (d.off_market) line += " ｜ ⏸ 非交易日：展示最近交易日（" + esc(d.stale_from || "") + "）"; else if (d.stale) line += (d.today_missing ? " ｜ ⚠ 今日数据未生成，展示上一交易日（" : " ｜ ⚠ 今日无合格，展示上一交易日（") + esc(d.stale_from || "") + "）";
+    if (d.off_market) line += " ｜ ⏸ 非交易日：展示最近归档" + staleLabel(d);
+    else if (d.stale) line += (d.today_missing ? " ｜ ⚠ 今日数据未生成，展示最近归档" : " ｜ ⚠ 今日无合格，展示最近归档") + staleLabel(d);
     if (d.cached && !d.vip_required) line += ' <span class="bj-cached">· 已缓存，点「重新扫描」刷新</span>';
     el.innerHTML = line;
     el.hidden = false;
@@ -385,12 +423,40 @@ window.AI24X_BJScreener = (function () {
   function renderMainlines(d) {
     var box = $("bj-mainlines");
     if (!box) return;
-    var ml = (d.mainlines || []).filter(function (m) { return m && m.src === "daily"; });
-    var mld = d.mainline_date ? ' · ' + esc(d.mainline_date) : '';
+    var ml = (d.mainlines || []).filter(function (m) {
+      return m && (!m.src || m.src === "daily" || m.src === "archive" || m.src === "recalc" || m.src === "fallback");
+    });
+    var _mld = d.mainline_date ? String(d.mainline_date) : "";
+    var _dated = _mld && _mld.replace(/-/g, "") !== String(d.date || "").replace(/-/g, "");
+    var mld = _dated ? ' · 数据截至 ' + esc(_mld) : '';
     if (!ml.length) {
-      var emptyMl = d.archive
-        ? '该日未锁定主线（大盘未生成或板块未达标）。'
-        : '今日主线尚未生成（15:03 收盘后大盘自动锁定），可<a href="/daily/" target="_blank" rel="noopener">查看最近一期大盘 ↗</a>。';
+      var isFan = !!(d.style && d.style.mode === "fan");
+      var obs = d.observes || [];
+      var finalized = d.archive || d.mainline_from === "archive" || d.mainline_from === "recalc";
+      var emptyMl;
+      if (d.archive) {
+        emptyMl = '该日未锁定主线（大盘未生成或板块未达标）。';
+      } else if (d.mainline_from === "archive" || d.mainline_from === "recalc") {
+        emptyMl = '今日已收盘研判：未锁定主线（板块未达标）。';
+      } else {
+        emptyMl = '今日主线尚未生成（15:01 收盘后大盘自动锁定），可<a href="/daily/" target="_blank" rel="noopener">查看最近一期大盘 ↗</a>。';
+      }
+      // 电风扇 / 已定型无主线：点亮醒目结论条 + 列出重点观察
+      if (isFan || (finalized && obs.length)) {
+        var obsChips = obs.length
+          ? '<div class="chips ml-fan-obs">' + obs.map(function (o) {
+              return '<span class="chip chip-obs">' + esc(o.name || "") + '</span>';
+            }).join("") + '</div>'
+          : '';
+        box.innerHTML =
+          '<div class="ml-fan-banner" role="status">' +
+          '<b>电风扇行情 · 无明确主线</b>' +
+          '<span>轮动快、共识弱；只盯重点观察板块与回踩企稳个股，忌追当日大涨。</span>' +
+          '</div>' +
+          (obsChips ? '<div class="bj-note">重点观察：</div>' + obsChips : '') +
+          '<div class="bj-note">' + emptyMl + '</div>';
+        return;
+      }
       box.innerHTML = '<div class="bj-note">主攻主线与大盘研判同步锁定：' + emptyMl + '</div>';
       return;
     }
@@ -420,19 +486,24 @@ window.AI24X_BJScreener = (function () {
     if (!box) return;
     var rank = d.board_rank || [];
     if (!rank.length) { box.innerHTML = ""; return; }
-    var isAll = ["all", "hs", "kc", "macd", "pb"].indexOf(d.market_code || state.market) >= 0;
-    var h = '<div class="bj-section">主线 · 重点关注排行</div>' +
+    var isAll = ["all", "hs", "kc", "macd", "pb", "low10"].indexOf(d.market_code || state.market) >= 0;
+    var isFan = !!(d.style && d.style.mode === "fan") || !(d.mainlines || []).length;
+    var h = '<div class="bj-section">' + (isFan ? '🔍 重点观察 · 板块排行' : '🔍 主线 · 重点关注排行') + '</div>' +
       '<div class="br-strategy">' +
-      '<span class="br-s br-s-main">⭐ 主线（1）</span>' +
-      '<span class="br-s br-s-key">🔍 重点观察（2）</span>' +
-      '<span class="br-s br-s-avoid">备选（3）</span>' +
+      (isFan
+        ? '<span class="br-s br-s-key">🔍 重点观察</span><span class="br-s br-s-avoid">资金热度备选</span>'
+        : '<span class="br-s br-s-main">⭐ 主线（1）</span><span class="br-s br-s-key">🔍 重点观察（2）</span><span class="br-s br-s-avoid">备选（3）</span>') +
       '</div>' +
-      (isAll
-        ? '<div class="bj-note">💡 主线优先；热度≠可追，破位注意风险。板块资金流·东方财富，主线判定·技术+资金双确认。</div>'
-        : '<div class="bj-note">💡 底部异动观察，关注回踩企稳形态。</div>') +
+      (isFan
+        ? '<div class="bj-note">💡 电风扇日：观察板块优先；资金热度≠可追，破位注意风险。</div>'
+        : (isAll
+          ? '<div class="bj-note">💡 主线优先；热度≠可追，破位注意风险。板块资金流·东方财富，主线判定·技术+资金双确认。</div>'
+          : '<div class="bj-note">💡 底部异动观察，关注回踩企稳形态。</div>')) +
       '<div class="br-list">';
     var topMlName = "";
-    var _topMl = (d.mainlines || []).filter(function (m) { return m && m.src === "daily"; })[0];
+    var _topMl = (d.mainlines || []).filter(function (m) {
+      return m && (!m.src || m.src === "daily" || m.src === "archive" || m.src === "recalc" || m.src === "fallback");
+    })[0];
     if (_topMl) topMlName = String(_topMl.name || "").replace(/\s+/g, "");
     var obsNames = (d.observes || []).map(function (o) { return String(o.name || "").replace(/\s+/g, ""); });
     rank.forEach(function (b, idx) {
@@ -571,10 +642,14 @@ window.AI24X_BJScreener = (function () {
         (p.final != null ? '<span class="hr-score">' + esc(p.final) + '</span>' : "");
     }).join('<span class="hr-sep"> \u00b7 </span>');
     var asofTxt = (it.asof && it.asof !== it.date) ? ('<span class="chip-sub">\u622a\u81f3' + esc(it.asof) + '\u6536\u76d8</span>') : "";
-    return '<a class="hist-row" href="gd.html?date=' + encodeURIComponent(it.date) + '&market=' + encodeURIComponent(market) + '" target="_blank" rel="noopener" title="\u626b\u63cf\u65e5 ' + esc(it.date) + '\uff08\u6570\u636e\u622a\u81f3 ' + esc(it.asof || it.date) + ' \u6536\u76d8\uff09\u00b7 \u65b0\u7a97\u53e3\u6253\u5f00\u5f52\u6863">' +
-      '<span class="hr-date">' + esc(it.date) + asofTxt + '</span>' +
-      '<span class="hr-picks">' + (picks || "\u2014") + '</span>' +
-      '<span class="hr-go">\u2197</span></a>';
+    var _base = 'gd.html?date=' + encodeURIComponent(it.date) + '&market=' + encodeURIComponent(market);
+    return '<div class="hr-wrap">' +
+      '<a class="hist-row" href="' + _base + '" target="_blank" rel="noopener" title="\u626b\u63cf\u65e5 ' + esc(it.date) + '\uff08\u6570\u636e\u622a\u81f3 ' + esc(it.asof || it.date) + ' \u6536\u76d8\uff09\u00b7 \u65b0\u7a97\u53e3\u6253\u5f00\u5f52\u6863">' +
+        '<span class="hr-date">' + esc(it.date) + asofTxt + '</span>' +
+        '<span class="hr-picks">' + (picks || "\u2014") + '</span>' +
+        '<span class="hr-go">\u2197</span></a>' +
+      '<a class="hr-replay" href="' + _base + '&replay=1" target="_blank" rel="noopener" title="\u7528\u6700\u65b0\u7b97\u6cd5\u56de\u653e\u8be5\u65e5\uff08\u53ea\u8bfb\u9884\u89c8\uff09">\u26a1\u56de\u653e</a>' +
+      '</div>';
   }
   function renderHistory(list) {
     var box = $("bj-history");
@@ -617,6 +692,34 @@ window.AI24X_BJScreener = (function () {
       setStatus("归档加载失败：" + esc((e && e.message) || "网络错误"), true);
     });
   }
+  function openReplay(dateKey, market) {
+    if (!dateKey) return;
+    setStatus("正在用最新算法回放 " + dateKey + " …");
+    apiFetch("/api/bj/replay?date=" + encodeURIComponent(dateKey) + "&market=" + encodeURIComponent(market)).then(function (d) {
+      if (!d || d.ok === false) {
+        setStatus("回放失败：" + esc((d && d.message) || "未知错误"), true);
+        return;
+      }
+      d.archive = true;
+      state.data = d;
+      var gMain = $("bj-main"); if (gMain) gMain.hidden = false;
+      var gGate = $("bj-vipgate"); if (gGate) gGate.hidden = true;
+      renderMeta(d);
+      renderMainlines(d);
+      renderBoardRank(d);
+      renderPicks(d);
+      setStatus("最新算法回放 · " + dateKey);
+    }).catch(function (e) {
+      if (e && e.status === 403) {
+        var gMain = $("bj-main"); if (gMain) gMain.hidden = true;
+        var gGate = $("bj-vipgate"); if (gGate) gGate.hidden = false;
+        setStatus("当前账号未开通 VIP");
+        return;
+      }
+      setStatus("回放失败：" + esc((e && e.message) || "网络错误"), true);
+    });
+  }
+  window.openReplay = openReplay;
   function emotionBanner(d) {
     var emo = (d.meta && d.meta.emotion) || null;
     var h = "";
@@ -635,29 +738,37 @@ window.AI24X_BJScreener = (function () {
   function renderPicks(d) {
     var box = $("bj-result");
     if (!box) return;
+    var hint = marketHint(d);
     if ((d && d.market_code) === "macd") {
       var mlist = d.macd_reds || [];
       if (!mlist.length) {
-        box.innerHTML = '<div class="bj-empty-alert"><div class="ico">\ud83d\udca1</div><div class="bd"><b>' + dataDayLabel(d) + '暂无 MACD 量能首红标的</b><span>底部金叉首根红柱 + 量能确认的标的需在大盘/个股从底部刚启动时出现；当前多处于红柱延伸段时较少，属正常，可稍后重扫或查看其它栏目。</span></div></div>';
+        box.innerHTML = hint + '<div class="bj-empty-alert"><div class="ico">\ud83d\udca1</div><div class="bd"><b>' + dataDayLabel(d) + '暂无 MACD 首红标的</b><span>底部刚翻红 + 有量确认的票，多出现在大盘/个股刚启动时；现在若多在红柱延伸段，空着是正常的，可稍后重扫或看其它栏目。</span></div></div>';
         return;
       }
-      box.innerHTML = macdRedSection(d) +
-        '<div class="notice">30CM/题材波动大，注意破位 / 放量长阴-8% 风险。</div>';
+      box.innerHTML = hint + macdRedSection(d) +
+        '<div class="notice">题材波动大，注意破位 / 放量长阴-8% 风险。</div>';
       return;
     }
     var picks = d.picks || [];
     var emoHtml = emotionBanner(d);
     var mfrAll = (picks || []).concat(d.runners || []).filter(function (x) { return x && x.patterns && x.patterns.macdFirstRed; });
     if (!picks.length) {
-      var emptyTitle = d.archive ? '该日期无归档筛选记录' : (d.market_code === 'pb' ? '暂无回踩企稳形态标的' : dataDayLabel(d) + '无合格标的');
-      var emptySub = d.archive ? '可查看其它日期的历史归档。' : (d.market_code === 'pb' ? '首板/涨停后回踩数日企稳、未破位的标的需近期有板且回踩确认；可稍后重扫或查看其它栏目。' : '行情整体偏弱或筛选条件过严，宁缺毋滥；可稍后重扫或放宽参数观察。');
-      box.innerHTML = emoHtml + '<div class="bj-empty-alert"><div class="ico">\ud83d\udca1</div><div class="bd"><b>' + esc(emptyTitle) + '</b><span>' + emptySub + '</span></div></div>';
+      var emptyTitle = d.archive ? '该日期无归档筛选记录' : (d.market_code === 'pb' ? '暂无回踩企稳标的' : (d.market_code === 'low10' ? '暂无10元下合格标的' : dataDayLabel(d) + '暂无合格标的'));
+      var emptySub = d.archive ? '可查看其它日期的历史归档。' : (d.market_code === 'pb' ? '需要近期有异动/首板，再缩量回踩且未破位；当前没有就空着，可稍后重扫或看其它栏目。' : (d.market_code === 'low10' ? '要同时满足：股价<10元、刚右侧转强、股性活跃；不够格就不推，可稍后重扫。' : '只要上涨途中、股性活跃的票；今天没有合格的就空着，宁缺毋滥。'));
+      box.innerHTML = hint + emoHtml + '<div class="bj-empty-alert"><div class="ico">\ud83d\udca1</div><div class="bd"><b>' + esc(emptyTitle) + '</b><span>' + emptySub + '</span></div></div>';
       return;
     }
-    var html = emoHtml;
+    var html = hint + emoHtml;
     if (d.archive) {
-      html += '<div class="bj-section">历史筛选（数据日期 ' + esc(d.asof || d.date || "") + '）</div>';
-      html += '<div class="notice stale">📂 以下为历史归档结果；最新结果请回到页面顶部查看。</div>';
+      var _dkey = d.asof || d.date || "";
+      if (d.replay) {
+        html += '<div class="bj-section">历史筛选 · 最新算法回放（数据日期 ' + esc(_dkey) + '）</div>';
+        html += '<div class="notice stale">⚡ 最新算法 × 历史收盘数据回放（只读预览，未写入归档）。</div>';
+      } else {
+        html += '<div class="bj-section">历史筛选（数据日期 ' + esc(_dkey) + '）</div>';
+        html += '<div class="notice stale">📂 以下为历史归档结果；最新结果请回到页面顶部查看。</div>';
+        html += '<button class="btn-blue" style="margin:8px 0 12px" onclick="window.openReplay(\'' + esc(_dkey) + '\',\'' + esc(state.market) + '\')">⚡ 用最新算法回放该日</button>';
+      }
     } else if (d.stale) {
       var _tf = d.today_fine || {};
       var _tfTxt = '';
@@ -668,10 +779,12 @@ window.AI24X_BJScreener = (function () {
         }
         _tfTxt += '，均未达入选线（宁缺毋滥）。';
       }
+      var _sf = d.stale_from || "";
+      var _sd = staleLabel(d);
       var _staleNote = d.intraday
-        ? '未到收盘（15:03 后自动更新今日）：当前展示上一交易日（' + esc(d.stale_from || "") + '）收盘结果。'
-        : '⚠ 今日（' + esc(d.date || "") + '）扫描无合格标的' + (_tfTxt ? '：' + _tfTxt : '（可能为盘前或数据未更新）') + '，以下为上一交易日（' + esc(d.stale_from || "") + '）收盘结果。'
-      html += '<div class="bj-section">上一交易日筛选（数据日期 ' + esc(d.stale_from || d.asof || "") + ' · ' + (d.intraday ? '未到收盘' : '<span class="bj-empty-flag">今日无合格标的</span>') + '）</div>';
+        ? '未到收盘（15:01 后自动更新今日）：当前展示最近归档' + _sd + '。'
+        : '⚠ 今日（' + esc(d.date || "") + '）扫描无合格标的' + (_tfTxt ? '：' + _tfTxt : '（可能为盘前或数据未更新）') + '，以下为最近归档' + _sd + '。'
+      html += '<div class="bj-section">最近归档筛选（数据日期 ' + esc(_sf || d.asof || "") + (d.stale_scan_date && d.stale_scan_date !== _sf ? ' · ' + esc(d.stale_scan_date) + ' 扫描' : '') + ' · ' + (d.intraday ? '未到收盘' : '<span class="bj-empty-flag">今日无合格标的</span>') + '）</div>';
       html += '<div class="notice stale">' + _staleNote + '</div>';
     } else {
       var trk = d.prev_track || [];
@@ -690,12 +803,14 @@ window.AI24X_BJScreener = (function () {
           '<div class="pt-note">未破位继续跟踪；破位或放量长阴-8% 注意风险；不因新面孔频繁换股。</div>';
       }
       var nPicks = picks.length;
-      html += '<div class="bj-section">' + dataDayLabel(d) + '标的 · 筛选关注（⭐评分最高 + 评分次高 · ' + nPicks + ' 只）</div>';
+      html += '<div class="bj-section">⭐ ' + dataDayLabel(d) + '精选 · 上涨途中+股性活跃（' + nPicks + ' 只）</div>';
       if (mfrAll.length) {
-        html += '<div class="bj-note">🔥 进阶策略 · MACD量能首红：' + mfrAll.length + ' 只命中，详见下方「MACD 量能首红」栏目</div>';
+        html += '<div class="bj-note">🔥 另有 MACD 首红命中 ' + mfrAll.length + ' 只，可切到「MACD首红」栏目查看</div>';
       }
       if (d.mainline_gap) {
-        var _mln = (d.mainlines || []).filter(function (m) { return m && m.src === "daily"; })
+        var _mln = (d.mainlines || []).filter(function (m) {
+          return m && (!m.src || m.src === "daily" || m.src === "archive" || m.src === "recalc" || m.src === "fallback");
+        })
           .map(function (m) { return esc(m.name || ""); }).filter(Boolean);
         html += '<div class="bj-gap-alert">⚠️ 主线（' + (_mln.length ? _mln.join('、') : '主线') + '）' + dataDayLabel(d) + '暂无低风险合格标的；以下为资金热度个券/备选，仅作技术面跟踪。</div>';
       }
@@ -1100,8 +1215,8 @@ window.AI24X_BJScreener = (function () {
     }
     if (d.stale) {
       var staleTxt = d.intraday
-        ? "\ud83d\udca1 今日未收盘：展示上一交易日（" + esc(d.stale_from || fmtDate()) + "）结果"
-        : (d.today_missing ? "\ud83d\udca1 今日数据尚未生成（" + fmtDate() + "），展示上一交易日结果" : "\ud83d\udca1 今日无合格标的（" + fmtDate() + "），展示上一交易日结果");
+        ? "\ud83d\udca1 今日未收盘：展示最近归档" + staleLabel(d) + "结果"
+        : (d.today_missing ? "\ud83d\udca1 今日数据尚未生成（" + fmtDate() + "），展示最近归档" + staleLabel(d) + "结果" : "\ud83d\udca1 今日无合格标的（" + fmtDate() + "），展示最近归档" + staleLabel(d) + "结果");
       setStatus(staleTxt, false, true);
     } else if (d.vip_required) {
       setStatus(marketLabel(state.market) + "板块视图已解锁（" + fmtDate() + "）" + (d.cached ? " · 已加载" + dataDayLabel(d) + "缓存" : ""));
@@ -1156,13 +1271,15 @@ window.AI24X_BJScreener = (function () {
     }
   }
   function archiveParams() {
-    var out = { date: "", market: "" };
+    var out = { date: "", market: "", replay: "" };
     try {
       var q = location.search || "";
       var m1 = q.match(/[?&]date=([^&]+)/);
       if (m1 && m1[1]) out.date = decodeURIComponent(m1[1]).trim();
       var m2 = q.match(/[?&]market=([^&]+)/);
       if (m2 && m2[1]) out.market = decodeURIComponent(m2[1]).trim();
+      var m3 = q.match(/[?&]replay=([^&]+)/);
+      if (m3 && m3[1]) out.replay = m3[1];
     } catch (eA) {}
     return out;
   }
@@ -1367,13 +1484,13 @@ window.AI24X_BJScreener = (function () {
     }).catch(function () {});
   }
 
-  // —— 重新扫描门控：盘中（15:10 收盘数据定型前）禁止强制重扫，避免未定型 K 线污染当日数据 ——
+  // —— 重新扫描门控：盘中（15:01 收盘数据定型前）禁止强制重扫，避免未定型 K 线污染当日数据 ——
   function scanGateState() {
     var now = new Date();
     var d = now.getDay();
     if (d === 0 || d === 6) return { allow: false, note: "非交易日：展示最近收盘归档，无需重新扫描" };
     var hm = now.getHours() * 60 + now.getMinutes();
-    if (hm < 15 * 60 + 10) return { allow: false, note: "盘中未定型：15:10 后可重新扫描" };
+    if (hm < 15 * 60 + 1) return { allow: false, note: "盘中未定型：15:01 后可重新扫描" };
     return { allow: true, note: "" };
   }
   function applyScanGate(btn) {
@@ -1421,7 +1538,7 @@ window.AI24X_BJScreener = (function () {
     var ap = archiveParams();
     if (ap.date) {
       // 历史归档模式：新窗口直达该日结果（不触发扫描）
-      if (ap.market === "bj" || ap.market === "all" || ap.market === "hs" || ap.market === "kc" || ap.market === "bj_all") {
+      if (ap.market === "bj" || ap.market === "all" || ap.market === "hs" || ap.market === "kc" || ap.market === "bj_all" || ap.market === "macd" || ap.market === "pb" || ap.market === "low10") {
         state.market = ap.market;
         var tabsAll = document.querySelectorAll("#bj-tabs .bj-tab");
         for (var tJ = 0; tJ < tabsAll.length; tJ++) {
@@ -1429,14 +1546,18 @@ window.AI24X_BJScreener = (function () {
         }
       }
       if (btn) btn.style.display = "none";
-      openArchive(ap.date);
+      if (ap.replay) {
+        openReplay(ap.date, ap.market);
+      } else {
+        openArchive(ap.date);
+      }
       return;
     }
     // 刷新停留：URL market 参数优先，其次上次所在 tab（localStorage），默认沪深主线
     var savedM = "";
     try { savedM = String(localStorage.getItem("bj_tab") || "").trim(); } catch (eS) {}
-    var initM = (ap.market && ["hs", "kc", "bj", "bj_all", "macd", "pb"].indexOf(ap.market) >= 0) ? ap.market
-      : ((savedM && ["hs", "kc", "bj", "bj_all", "macd", "pb"].indexOf(savedM) >= 0) ? savedM : "hs");
+    var initM = (ap.market && ["hs", "kc", "bj", "bj_all", "macd", "pb", "low10"].indexOf(ap.market) >= 0) ? ap.market
+      : ((savedM && ["hs", "kc", "bj", "bj_all", "macd", "pb", "low10"].indexOf(savedM) >= 0) ? savedM : "hs");
     if (initM !== state.market) {
       state.market = initM;
       var tabsAll2 = document.querySelectorAll("#bj-tabs .bj-tab");

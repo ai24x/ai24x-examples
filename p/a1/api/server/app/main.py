@@ -3206,9 +3206,10 @@ async def api_bj_screener(
     market = str(market or "bj").strip().lower()
     macd_mode = market == "macd"
     pb_mode = market == "pb"
-    if market not in ("bj", "all", "hs", "kc", "bj_all", "macd", "pb"):
+    low10_mode = market == "low10"
+    if market not in ("bj", "all", "hs", "kc", "bj_all", "macd", "pb", "low10"):
         market = "bj"
-    scan_market = "all" if macd_mode else ("hs" if pb_mode else market)
+    scan_market = "all" if (macd_mode or low10_mode) else ("hs" if pb_mode else market)
     _rate_limit(f"bj-screener:{user_id}", 24)
     try:
         _auth_ip_rate_limit(request)
@@ -3218,8 +3219,8 @@ async def api_bj_screener(
     quota = db.get_quota_status(int(user_id))
     plan = str(quota.get("plan") or "anon").strip().lower()
     is_vip = plan not in ("", "free", "anon")
-    from .bj_screener import run_scan_dedup, macd_view, pb_view, _backfill_leader_quotes
-    _col = "pb" if pb_mode else ("macd" if macd_mode else "")
+    from .bj_screener import run_scan_dedup, macd_view, pb_view, low10_view, _backfill_leader_quotes
+    _col = "low10" if low10_mode else ("pb" if pb_mode else ("macd" if macd_mode else ""))
     if not is_vip:
         # 非 VIP：开放“异动板块”视图（复用当日缓存或轻量扫描），个股分析保持 VIP 专属
         early = await _bj_ensure_scan_or_fast(int(user_id), scan_market, force=False, boards_only=True, column=_col)
@@ -3266,13 +3267,15 @@ async def api_bj_screener(
     early = await _bj_ensure_scan_or_fast(int(user_id), scan_market, force=bool(force),
                                           cfg_override=cfg_override or None, column=_col)
     if early is not None:
-        _early = macd_view(early) if macd_mode else (pb_view(early) if pb_mode else early)
+        _early = macd_view(early) if macd_mode else (
+            pb_view(early) if pb_mode else (low10_view(early) if low10_mode else early))
         return await _backfill_leader_quotes(_early)
 
     try:
         out = await run_scan_dedup(int(user_id), force=bool(force), cfg_override=cfg_override or None,
                                    market=scan_market, column=_col)
-        _out = macd_view(out) if macd_mode else (pb_view(out) if pb_mode else out)
+        _out = macd_view(out) if macd_mode else (
+            pb_view(out) if pb_mode else (low10_view(out) if low10_mode else out))
         return await _backfill_leader_quotes(_out)
     except HTTPException:
         raise
@@ -3404,6 +3407,39 @@ async def api_bj_history(
         return d
     return {"ok": True, "list": archive_summary(market)}
 
+
+@app.get("/api/bj/replay")
+async def api_bj_replay(
+    request: Request,
+    date: str = "",
+    market: str = "hs",
+    user_id: int = Depends(get_current_user_id),
+) -> dict:
+    """掘金历史日期回放（VIP 专属）：最新算法 × 指定收盘日数据重放各栏目。
+
+    只读不写、零上游；date=YYYY-MM-DD 或 YYYYMMDD；market=hs/kc/bj/bj_all/macd/pb/low10。
+    数据局限：仅覆盖本机当日扫描过的成分池（bj_kline_cache/{date}.json）。
+    """
+    _rate_limit(f"bj-replay:{user_id}", 24)
+    try:
+        _auth_ip_rate_limit(request)
+    except Exception:
+        pass
+    db.downgrade_expired_vip_plan(int(user_id))
+    quota = db.get_quota_status(int(user_id))
+    plan = str(quota.get("plan") or "anon").strip().lower()
+    is_vip = plan not in ("", "free", "anon")
+    if not is_vip:
+        raise HTTPException(status_code=403, detail="掘金历史日期回放为 VIP 专属功能，开通 VIP 后即可使用")
+    from .bj_screener import replay_scan
+
+    try:
+        return await asyncio.to_thread(replay_scan, date, market)
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"ok": False, "error": "replay_failed",
+                "message": f"{type(e).__name__}: {str(e)[:160]}"}
 
 
 @app.get("/api/bj/archive/versions")

@@ -18,7 +18,7 @@
   </script>
   <link rel="stylesheet" href="/css/base.css?v=54" />
   <link rel="stylesheet" href="/css/tool.css" />
-  <link rel="stylesheet" href="/css/bjscreener.css?v=77" />
+  <link rel="stylesheet" href="/css/bjscreener.css?v=79" />
 <style>
 /* 复盘 · 大盘环境与策略区（大盘同步） */
 .bj-market{display:block;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:10px 14px;margin:0 0 12px;}
@@ -100,7 +100,10 @@
   <main class="page-main">
     <div class="wrap">
       <section class="card">
-        <h1>复盘 <span class="vip-badge">VIP 专属</span></h1>
+        <div style="display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;justify-content:space-between;">
+          <h1 style="margin:0;">复盘 <span class="vip-badge">VIP 专属</span></h1>
+          <a class="btn" href="/daily/?brief=1" style="white-space:nowrap;" title="每日大盘简报：大盘信号与市场宽度（免费公开）">📋 今日简报</a>
+        </div>
         <p class="sub" style="margin:0 0 10px;">每晚收盘自动扫描<strong>沪深京 / 北证</strong>，一站式技术形态参考。</p>
         <div class="bj-flow" aria-label="复盘使用流程">
           <span class="bj-flow-step now"><span class="ic">📊</span>大盘环境</span>
@@ -152,6 +155,7 @@
             <button type="button" class="bj-tab" data-market="bj_all">北证全市场</button>
             <button type="button" class="bj-tab" data-market="macd">MACD首红</button>
             <button type="button" class="bj-tab" data-market="pb">回踩企稳</button>
+            <button type="button" class="bj-tab" data-market="low10">10元下</button>
           </div>
           <div id="bj-meta" class="bj-meta" hidden></div>
 
@@ -192,7 +196,7 @@
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("bjscreener"); } catch (e) {}
   </script>
-  <script src="/js/bjscreener.js?v=97"></script>
+  <script src="/js/bjscreener.js?v=106"></script>
   <script>
     (function () {
       var w = window.AI24X_BJScreener;
@@ -230,3 +234,4 @@
   </script>
 </body>
 </html>
+

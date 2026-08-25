@@ -112,7 +112,7 @@ _CFG = None
 def cfg():
     global _CFG
     if _CFG is None:
-        _CFG = {"auto_scan_time": "15:10", "auto_scan": True}
+        _CFG = {"auto_scan_time": "15:01", "auto_scan": True}
         try:
             if os.path.exists(CFG_PATH):
                 _CFG.update(json.load(open(CFG_PATH, encoding="utf-8")))
@@ -133,12 +133,12 @@ def is_weekend():
 def now_hhmm():
     return datetime.now().strftime("%H:%M")
 def _after_close():
-    return now_hhmm() >= str(cfg().get("auto_scan_time") or "15:10")
+    return now_hhmm() >= str(cfg().get("auto_scan_time") or "15:01")
 
 def _today_close_epoch() -> float:
     """今日收盘时刻（auto_scan_time）的 epoch；解析失败返回 0。"""
     try:
-        t = str(cfg().get("auto_scan_time") or "15:10").strip()
+        t = str(cfg().get("auto_scan_time") or "15:01").strip()
         hh, mm = t.split(":")
         return datetime.now().replace(hour=int(hh), minute=int(mm), second=0, microsecond=0).timestamp()
     except Exception:
@@ -241,9 +241,9 @@ def _today_archived_ok() -> bool:
 
 
 def _auto_loop():
-    """后台守护线程：交易日收盘（默认 15:10）后自动生成复盘。
-    15:10 而非 15:03：15:03 时上游 K 线当日 bar 尚未定型（实测 15:03-15:07 抓到盘中未定型 bar，
-    导致成分评分/主线排序失真，见 2026-08-18 本地与生产 08-17 主线顺序不一致事故）。"""
+    """后台守护线程：交易日收盘（默认 15:01）后自动生成复盘。
+    2026-08-25 雷总定：15:01 收盘后即可重扫（15:03-15:07 曾抓到盘中未定型 bar 的历史事故，
+    由 K 线缓存「收盘后须含今日 K 线」校验兜底，未定型数据不落缓存）。"""
     while True:
         try:
             if cfg().get("auto_scan", True) and is_trading_day() and _after_close():
@@ -805,6 +805,16 @@ def mainline_judgment(sector_scores, plates=None):
                  "confirmed","composite","n_zt","n_surge"}}。
     """
     info = {}
+    _ml_streak = _mainline_streak()
+
+    def _zt_th(code6: str) -> float:
+        c6 = str(code6 or "").zfill(6)
+        if c6.startswith(("8", "43", "92")):
+            return 29.5
+        if c6.startswith(("30", "68")):
+            return 19.5
+        return 9.5
+
     for sec, sc in sector_scores.items():
         st = sector_stats(sc)
         mean = st["mean"]
@@ -816,6 +826,30 @@ def mainline_judgment(sector_scores, plates=None):
         # 情绪确认：板块内有涨停或≥2只放量异动成分 → 均值≥58 即可升主线（捕捉新主线启动）
         n_zt = sum(1 for x in ok if x.get("zt"))
         n_surge = sum(1 for x in ok if x.get("surge"))
+        # 增量动量（P0-1）：今日新增涨停/异动家数 + 今日涨幅 + 量能拐头，
+        # 替代“累计涨幅/累计资金”滞后确认，优先捕捉“刚右侧启动”的板块
+        n_zt_new = sum(1 for x in ok if x.get("up_pct") is not None
+                       and x.get("up_pct") >= _zt_th(x.get("code")) - 0.5)
+        n_surge_new = sum(1 for x in ok if x.get("up_pct") is not None and x.get("up_pct") >= 8)
+        vol_turn_med = _median_of([float(x["vol_ratio"]) for x in ok if x.get("vol_ratio") is not None])
+        mom = 0.0
+        mom += min(45.0, n_zt_new * 15)
+        mom += min(30.0, n_surge_new * 8)
+        if avg_up >= 3:
+            mom += 15
+        elif avg_up >= 1:
+            mom += 10
+        elif avg_up >= 0:
+            mom += 5
+        if vol_turn_med is not None:
+            if vol_turn_med >= 2:
+                mom += 10
+            elif vol_turn_med >= 1.3:
+                mom += 6
+            elif vol_turn_med >= 1.0:
+                mom += 3
+        mom = min(100.0, mom)
+        streak = int(_ml_streak.get(sec) or 0)
         confirmed = n_zt >= 1 or n_surge >= 2
         chg5_med = _median_of([float(x["chg5"]) for x in ok if x.get("chg5") is not None])
         pos60_med = _median_of([float(x["pos60"]) for x in ok if x.get("pos60") is not None])
@@ -825,16 +859,21 @@ def mainline_judgment(sector_scores, plates=None):
             (pos60_med is not None and pos60_med >= 85)
             or (pos60_med is not None and pos60_med >= 60 and chg5_med is not None and chg5_med >= 25)
         )
+        # P0-1 连续上榜 N 日 + 今日转弱 → 高位过热降级（防“涨了一波今天就大跌”追高）
+        if streak >= 3 and avg_up < 0 and pos60_med is not None and pos60_med >= 50:
+            overheat = True
         fund5, fund_t = _sector_fund_flow(sec, plates)
         fund_ok = bool((fund5 is not None and fund5 >= 15e8 and fund_t is not None and fund_t > 0)
                        or (fund_t is not None and fund_t >= 50e8))
         fund_std = min(1.0, (fund5 or 0) / 50e8)
         emotion = min(1.0, (n_zt * 2 + n_surge * 0.5) / 4.0)
-        composite = round((st["top5_mean"] or mean) * 0.5 + fund_std * 30 + emotion * 20, 1)
+        composite = round((st["top5_mean"] or mean) * 0.40 + fund_std * 25 + emotion * 20 + mom * 0.15, 1)
         top5m = st["top5_mean"]
         info[sec] = {"mean": mean, "top5": top5m, "median": st["median"], "avg_up": avg_up,
                      "fund5": fund5, "fund_t": fund_t, "fund_ok": fund_ok,
                      "confirmed": confirmed, "composite": composite, "n_zt": n_zt, "n_surge": n_surge,
+                     "n_zt_new": n_zt_new, "n_surge_new": n_surge_new,
+                     "vol_turn_med": vol_turn_med, "mom": round(mom, 1), "streak": streak,
                      "chg5_med": chg5_med, "pos60_med": pos60_med, "overheat": overheat}
     return info
 
@@ -882,6 +921,49 @@ def _recent_plate_top5(days: int = 3) -> dict[str, list[float]]:
     return out
 
 
+_ML_STREAK_CACHE: dict[str, Any] = {"date": "", "data": {}}
+
+
+def _mainline_streak(max_days: int = 5) -> dict[str, int]:
+    """板块连续上榜主线天数（不含今日）：{板块名: 连续 N 日}。零上游，读归档 mainlines.json。"""
+    global _ML_STREAK_CACHE
+    d8 = today8()
+    if _ML_STREAK_CACHE.get("date") == d8:
+        return _ML_STREAK_CACHE["data"]
+    days: list[set[str]] = []
+    try:
+        archs = sorted([x for x in os.listdir(ARCHIVE_ROOT)
+                        if os.path.isdir(os.path.join(ARCHIVE_ROOT, x)) and re.fullmatch(r"\d{8}", x)],
+                       reverse=True)
+        for d in archs:
+            if d == d8:
+                continue
+            p = os.path.join(ARCHIVE_ROOT, d, "mainlines.json")
+            if not os.path.exists(p):
+                continue
+            try:
+                ml = (json.load(open(p, encoding="utf-8")) or {}).get("mainlines") or []
+            except Exception:
+                ml = []
+            days.append({str(x) for x in ml})
+            if len(days) >= max_days:
+                break
+    except Exception:
+        pass
+    out: dict[str, int] = {}
+    if days:
+        for sec in days[0]:
+            cnt = 0
+            for s in days:
+                if sec in s:
+                    cnt += 1
+                else:
+                    break
+            out[sec] = cnt
+    _ML_STREAK_CACHE = {"date": d8, "data": out}
+    return out
+
+
 def pick_main_lines(sector_scores, prev_mainlines=None, plates=None):
     """主线锁定（加权综合分 + 延续约束，防“一天一个想法”也防“一条线霸榜”）：
     - 技术关：成分股 Top5 均值（龙头梯队）≥58，或板块内有涨停/异动情绪确认时 Top5 均值≥55；
@@ -914,6 +996,9 @@ def pick_main_lines(sector_scores, prev_mainlines=None, plates=None):
         confirmed = it["confirmed"]
         fund_ok = it["fund_ok"]
         composite = it["composite"]
+        # P0-1 首次上榜优先：今日增量动量强（新增涨停/异动多）的新板块小幅前置，防“已涨一波”霸榜
+        if sec not in prev and (it.get("mom") or 0) >= 60:
+            composite = min(100.0, composite + 5)
         # 过热抑制（防“涨了一波今天就大跌”追高）：
         # 板块已过热且当日走弱（avg_up<0）→ 硬性降级观察/回避，跳过主线候选，
         # 资金/情绪逃生口（fund_ok / composite 续命）一律不再生效；次日修复回踩后再升回。
@@ -1775,7 +1860,7 @@ def history(user_id: Optional[int] = Depends(get_optional_user_id)):
 
 class CfgIn(BaseModel):
     auto_scan: bool = True
-    auto_scan_time: str = "15:10"
+    auto_scan_time: str = "15:01"
 
 @router.get("/api/report/config")
 def get_cfg(user_id: Optional[int] = Depends(get_optional_user_id)):
