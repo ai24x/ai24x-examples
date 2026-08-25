@@ -1,12 +1,15 @@
-# 【04 更新】Markets Phase1 规则化改造（简报/试用/Alert/多因子Screener/每日简报页）+ core 短信三通道自动兜底
+# 【04 更新】Markets Phase1 规则化改造（简报/试用/Alert/多因子Screener/每日简报页）+ core 短信三通道自动兜底 + markets 管理后台 403 修复 + 右下角 help 即时帮助
 
-> 通道：司令直连 04（deploy04.ps1）｜ 目标提交 **f2bd73b**
+> 通道：司令直连 04（deploy04.ps1）｜ 目标提交 **6a74bca**（内含 f2bd73b Phase1 规则化）
 > 04 主机：43.160.246.30 · 仓库 C:\ai24x01 · 服务 AI24X-core（NSSM，8002）+ AI24X-markets-api（18012）
-> 前置：`C:\Users\Administrator\ops\_patch_prod_sms_config_20260825.py` 已由司令 scp 到位（含腾讯/聚合短信密钥，勿外传勿提交）
+> 前置（司令 scp 到位，勿外传勿提交）：
+> - `C:\Users\Administrator\ops\_patch_prod_sms_config_20260825.py`（腾讯/聚合短信密钥）
+> - `C:\Users\Administrator\ops\_patch_markets_fulfill_secret_20260825.ps1`（markets 管理密钥补丁）
 
 ## 背景
-老板放行：AI24X Markets 国际版 Phase 1 合规+降本改造（规则技术简报零 LLM / 7 天 Pro 体验券 / Alert 提醒 / Screener 多因子 / 每日简报页），并连带上一批 core 管理后台「短信多通道热配置（tencent→106→juhe 自动兜底）+ 邮件系统配置」。
-本地 QA：`_qa_rule_brief_20260825.py` 17/17、`_qa_phase1_ui_20260825.js` 21/21、Alert E2E + 试用 E2E 全绿、core 导入/重启/health 正常。
+AI24X Markets 国际版 Phase 1 合规+降本改造（规则技术简报零 LLM / 7 天 Pro 体验券 / Alert 提醒 / Screener 多因子 / 每日简报页）+ core 管理后台「短信多通道热配置（tencent→106→juhe 自动兜底）+ 邮件系统配置」。
+本次追加：① 修复 token-admin「产品运营 → markets 子服务返回 403」——根因是 markets 18012 进程未继承 `MARKETS_FULFILL_SECRET` 环境变量（本地已修 `p/markets/scripts/_restart_markets.ps1`；04 生产 NSSM 服务同样缺失，已核）；② markets 首页与行情 App 右下角新增轻量 help 即时帮助组件（`p/markets/web/help-widget.js`，FAQ + 帮助中心/账户/工单/定价入口，双语随 `markets_lang`）。
+本地 QA：`_qa_rule_brief_20260825.py` 17/17、`_qa_phase1_ui_20260825.js` 21/21、`_qa_help_widget_20260825.js` 21/21（含手机 375px 无溢出、FAB 不遮挡移动底部操作条、zh 双语、环境感知链接）、Alert E2E + 试用 E2E 全绿、core 导入/重启/health 正常、管理端点本地 200。
 
 ## 执行步骤（PowerShell，整段复制运行）
 ```powershell
@@ -72,21 +75,11 @@ for ($i = 0; $i -lt 24; $i++) {
 "core_pid_after=$afterPid health_ok=$ok commit=$($h.commit)"
 if (-not $ok) { Write-Host "!! core 未按预期重启或 commit 不符" -ForegroundColor Red; exit 1 }
 
-"--- 5) 重启 markets(18012) ---"
-$mkPids = @(Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match '18012' -and $_.Name -match 'python' } | ForEach-Object { $_.ProcessId })
-foreach ($p in $mkPids) { Stop-Process -Id $p -Force }
-Start-Sleep -Seconds 2
-Start-Process -FilePath $py -ArgumentList @('-m','uvicorn','app.main:app','--host','127.0.0.1','--port','18012') -WorkingDirectory "$REPO\p\markets\api\server" -WindowStyle Hidden -RedirectStandardOutput "$REPO\p\markets\api\server\uvicorn-18012.out.log" -RedirectStandardError "$REPO\p\markets\api\server\uvicorn-18012.err.log"
-$mkOk = $false
-for ($i = 0; $i -lt 20; $i++) {
-  Start-Sleep -Seconds 3
-  try {
-    $mk = Invoke-RestMethod -Uri "http://127.0.0.1:18012/health" -TimeoutSec 5 -UseBasicParsing
-    if ($mk.status -eq "ok") { $mkOk = $true; break }
-  } catch {}
-}
-"markets_ok=$mkOk"
-if (-not $mkOk) { Write-Host "!! markets 未恢复" -ForegroundColor Red; exit 1 }
+"--- 5) markets 管理密钥补丁 + 重启(18012) ---"
+$mkPatch = "C:\Users\Administrator\ops\_patch_markets_fulfill_secret_20260825.ps1"
+if (-not (Test-Path $mkPatch)) { Write-Host "!! markets 密钥补丁不存在: $mkPatch" -ForegroundColor Red; exit 1 }
+powershell -NoProfile -ExecutionPolicy Bypass -File $mkPatch
+if ($LASTEXITCODE -ne 0) { Write-Host "!! markets 密钥补丁失败" -ForegroundColor Red; exit 1 }
 
 "--- 6) markets 静态同步到站点目录（先备份）---"
 $SITE = "C:\sites\markets.ai24x.com"
@@ -99,6 +92,7 @@ Copy-Item "$REPO\p\markets\web\app.html" "$SITE\app.html" -Force
 Copy-Item "$REPO\p\markets\web\screener.html" "$SITE\screener.html" -Force
 Copy-Item "$REPO\p\markets\web\index.html" "$SITE\index.html" -Force
 Copy-Item "$REPO\p\markets\web\sitemap.xml" "$SITE\sitemap.xml" -Force
+Copy-Item "$REPO\p\markets\web\help-widget.js" "$SITE\help-widget.js" -Force
 New-Item -ItemType Directory -Force -Path "$SITE\daily" | Out-Null
 Copy-Item "$REPO\p\markets\web\daily\index.html" "$SITE\daily\index.html" -Force
 "static_synced=yes backup=$STAMP"
@@ -121,16 +115,19 @@ if ($task.State -ne "Ready") { Write-Host "!! 计划任务未就绪" -Foreground
 ```
 
 ## 验收清单（04 回执格式）
-1. HEAD=f2bd73b（12 位短哈希一致）｜ core 8002 health commit 一致
+1. HEAD 含 f2bd73b（merge-base --is-ancestor）｜ core 8002 health commit 一致
 2. markets 18012 healthy；`/api/brief/latest` 返回 available=true（含已有 20260817 样例）
 3. 文件标记 4/4（main/alerts/key_levels/daily）
-4. markets 静态 app/screener/index/sitemap/daily 已同步（备份 .bak-$STAMP）
+4. markets 静态 app/screener/index/sitemap/daily/help-widget.js 已同步（备份 .bak-$STAMP）
 5. 计划任务 AI24X-Markets-DailyBrief = Ready（工作日 04:30）
 6. core 新管理端点存在：/v1/admin/sms/effective、/v1/admin/sms/config、/v1/admin/email/effective、/v1/admin/email/config（200 或 401 均算端点存在）
 7. 短信配置补丁已写入 `api/data/admin_sms_config.json`（active_provider=tencent，含 106/腾讯/聚合三通道）
+8. markets 管理密钥补丁：`nssm get AI24X-markets-api AppEnvironmentExtra` 含 `MARKETS_FULFILL_SECRET=`；直连 `http://127.0.0.1:18012/api/admin/summary`（X-Markets-Secret）返回 code=0
+9. 公网 `https://markets.ai24x.com/` 与 `/app.html` 右下角出现 help 浮钮；点击弹出 FAQ/入口面板；手机 375px 无横向溢出、FAB 在移动底部操作条上方
 
 ## 注意事项
-- 本次为重大项（定价/导航/账户相关），老板已本地过目并放行。
+- 本批为重大项（定价/导航/账户/首页视觉相关），**待老板本地过目后放行**才双推 + 派发 04。
 - 工作树有大量无关 docs 删除/改动，**禁止 git add -A**；04 侧 git pull 前仅还原本批 14 个文件脏改动（第 0 步）。
-- 生产短信通道密钥已在补丁脚本内，勿打印明文、勿进 git、勿发群。
+- 生产短信通道密钥与 markets 管理密钥均在补丁脚本内，勿打印明文、勿进 git、勿发群。
 - 04 每日简报任务运行前先手动跑一次：`python C:\ai24x01\p\markets\scripts\brief_gen.py --api http://127.0.0.1:18012`（生成当日份后再交由计划任务）。
+- 本批新增文件需随代码提交：`p/markets/web/help-widget.js`、`p/markets/scripts/_restart_markets.ps1`、`p/markets/scripts/_qa_help_widget_20260825.js`；04 侧 git pull 会自动带上。
