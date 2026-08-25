@@ -1,6 +1,6 @@
-# 【04 更新】Markets Phase1 规则化改造（简报/试用/Alert/多因子Screener/每日简报页）+ core 短信三通道自动兜底 + markets 管理后台 403 修复 + 右下角 help 即时帮助
+# 【04 更新】Markets Phase1 规则化改造（简报/试用/Alert/多因子Screener/每日简报页）+ core 短信三通道自动兜底 + markets 管理后台 403 修复 + 右下角 help 即时帮助 + 全站 Upgrade VIP→Upgrade to Pro 统一
 
-> 通道：司令直连 04（deploy04.ps1）｜ 目标提交 **6a74bca**（内含 f2bd73b Phase1 规则化）
+> 通道：司令直连 04（deploy04.ps1）｜ 目标提交 **169ac1f**（内含 f2bd73b Phase1 规则化）
 > 04 主机：43.160.246.30 · 仓库 C:\ai24x01 · 服务 AI24X-core（NSSM，8002）+ AI24X-markets-api（18012）
 > 前置（司令 scp 到位，勿外传勿提交）：
 > - `C:\Users\Administrator\ops\_patch_prod_sms_config_20260825.py`（腾讯/聚合短信密钥）
@@ -8,8 +8,8 @@
 
 ## 背景
 AI24X Markets 国际版 Phase 1 合规+降本改造（规则技术简报零 LLM / 7 天 Pro 体验券 / Alert 提醒 / Screener 多因子 / 每日简报页）+ core 管理后台「短信多通道热配置（tencent→106→juhe 自动兜底）+ 邮件系统配置」。
-本次追加：① 修复 token-admin「产品运营 → markets 子服务返回 403」——根因是 markets 18012 进程未继承 `MARKETS_FULFILL_SECRET` 环境变量（本地已修 `p/markets/scripts/_restart_markets.ps1`；04 生产 NSSM 服务同样缺失，已核）；② markets 首页与行情 App 右下角新增轻量 help 即时帮助组件（`p/markets/web/help-widget.js`，FAQ + 帮助中心/账户/工单/定价入口，双语随 `markets_lang`）。
-本地 QA：`_qa_rule_brief_20260825.py` 17/17、`_qa_phase1_ui_20260825.js` 21/21、`_qa_help_widget_20260825.js` 21/21（含手机 375px 无溢出、FAB 不遮挡移动底部操作条、zh 双语、环境感知链接）、Alert E2E + 试用 E2E 全绿、core 导入/重启/health 正常、管理端点本地 200。
+本次追加：① 修复 token-admin「产品运营 → markets 子服务返回 403」——根因是 markets 18012 进程未继承 `MARKETS_FULFILL_SECRET` 环境变量（本地已修 `p/markets/scripts/_restart_markets.ps1`；04 生产 NSSM 服务同样缺失，已核）；② markets 首页与行情 App 右下角新增轻量 help 即时帮助组件（`p/markets/web/help-widget.js`，FAQ + 帮助中心/账户/工单/定价入口，双语随 `markets_lang`）；③ 头部 CTA 与套餐名统一为 Pro——www 全站 header `Upgrade VIP/开通 VIP` → `Upgrade to Pro/升级 Pro`（locales 键 nav.vipUpgrade→nav.goPro + shell.js），markets 首页 pill `Upgrade VIP` → `Upgrade to Pro`；共享资源版本号统一 20260825a（39 页 locales+shell）。
+本地 QA：`_qa_rule_brief_20260825.py` 17/17、`_qa_phase1_ui_20260825.js` 21/21、`_qa_help_widget_20260825.js` 21/21、`_qa_gopro_label_20260825.js` 12/12（www header + markets pill 桌面/手机 + locales 键）、Alert E2E + 试用 E2E 全绿、core 导入/重启/health 正常、管理端点本地 200。
 
 ## 执行步骤（PowerShell，整段复制运行）
 ```powershell
@@ -20,7 +20,8 @@ $EXP  = "f2bd73b"
 Set-Location $REPO
 
 "--- 0) 备份本批文件本地脏改动再还原（防 pull 冲突）---"
-$FILES = @("api/main.py","api/email_smtp.py","api/schemas.py","web/token-admin.html","web/paypal.html","p/markets/api/server/app/main.py","p/markets/api/server/app/ai_brief.py","p/markets/api/server/app/billing.py","p/markets/api/server/app/screener.py","p/markets/api/server/app/providers_us.py","p/markets/web/app.html","p/markets/web/screener.html","p/markets/web/index.html","p/markets/web/sitemap.xml")
+$FILES = @("api/main.py","api/email_smtp.py","api/schemas.py","web/token-admin.html","web/paypal.html","p/markets/api/server/app/main.py","p/markets/api/server/app/ai_brief.py","p/markets/api/server/app/billing.py","p/markets/api/server/app/screener.py","p/markets/api/server/app/providers_us.py","p/markets/web/app.html","p/markets/web/screener.html","p/markets/web/index.html","p/markets/web/sitemap.xml","web/config/locales.js","web/js/shell.js")
+$FILES += Get-ChildItem "$REPO\web" -Recurse -Filter *.html | ForEach-Object { "web\" + $_.FullName.Substring($REPO.Length + 5).Replace("\","/") }
 $BK = "C:\backup\markets_phase1_20260825"
 New-Item -ItemType Directory -Force -Path $BK | Out-Null
 foreach ($x in $FILES) {
@@ -81,7 +82,7 @@ if (-not (Test-Path $mkPatch)) { Write-Host "!! markets 密钥补丁不存在: $
 powershell -NoProfile -ExecutionPolicy Bypass -File $mkPatch
 if ($LASTEXITCODE -ne 0) { Write-Host "!! markets 密钥补丁失败" -ForegroundColor Red; exit 1 }
 
-"--- 6) markets 静态同步到站点目录（先备份）---"
+"--- 6) markets 静态同步到站点目录（先备份；含 help-widget.js 与 index/app 页）---"
 $SITE = "C:\sites\markets.ai24x.com"
 $STAMP = Get-Date -Format "yyyyMMdd-HHmmss"
 Copy-Item "$SITE\app.html" "$SITE\app.html.bak-$STAMP" -Force
@@ -124,6 +125,7 @@ if ($task.State -ne "Ready") { Write-Host "!! 计划任务未就绪" -Foreground
 7. 短信配置补丁已写入 `api/data/admin_sms_config.json`（active_provider=tencent，含 106/腾讯/聚合三通道）
 8. markets 管理密钥补丁：`nssm get AI24X-markets-api AppEnvironmentExtra` 含 `MARKETS_FULFILL_SECRET=`；直连 `http://127.0.0.1:18012/api/admin/summary`（X-Markets-Secret）返回 code=0
 9. 公网 `https://markets.ai24x.com/` 与 `/app.html` 右下角出现 help 浮钮；点击弹出 FAQ/入口面板；手机 375px 无横向溢出、FAB 在移动底部操作条上方
+10. www 全站 header CTA = `Upgrade to Pro`（href → console.html#billing）；markets 首页 pill = `Upgrade to Pro`（href → /app.html#sub）；全站 locales.js/shell.js 版本 `v=20260825a`（39 页残留 0）
 
 ## 注意事项
 - 本批为重大项（定价/导航/账户/首页视觉相关），**待老板本地过目后放行**才双推 + 派发 04。

@@ -154,8 +154,8 @@
       '<div class="header-actions">' +
       '<a class="header-upgrade" href="' +
       pre +
-      'console.html#billing" data-i18n="nav.vipUpgrade" style="display:inline-block; padding:7px 14px; border-radius:999px; background:var(--accent); color:var(--accent-ink,#fff); font-size:0.85rem; font-weight:700; text-decoration:none; white-space:nowrap;">' +
-      esc(tr("nav.vipUpgrade")) +
+      'console.html#billing" data-i18n="nav.goPro" style="display:inline-block; padding:7px 14px; border-radius:999px; background:var(--accent); color:var(--accent-ink,#fff); font-size:0.85rem; font-weight:700; text-decoration:none; white-space:nowrap;">' +
+      esc(tr("nav.goPro")) +
       "</a>" +
       /* 主题跟随 HTML 声明（全站深色）；主题选择器默认不露出（CSS/逻辑仍保留） */
       (THEME_PICKER_ENABLED
