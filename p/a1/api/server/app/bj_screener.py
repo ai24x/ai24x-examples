@@ -244,6 +244,10 @@ def _load_history() -> dict[str, Any]:
 def _save_history(key: str, payload: dict[str, Any]) -> None:
     try:
         hist = _load_history()
+        # 盘中（未收盘，15:01 前）扫描一律不写“当日历史”：未定型盘中数据只做短时缓存，
+        # 不抢占当日最终版，避免本地/生产口径漂移；收盘后（15:01+）自动扫描与手动重扫照常更新。
+        if not _market_closed():
+            return
         hist[str(key)] = payload
         while len(hist) > 12:
             hist.pop(next(iter(hist)))
@@ -654,7 +658,9 @@ def _save_archive(market: str, date_key: str, payload: dict[str, Any]) -> None:
     try:
         if not _MULTI_ARCH_RE.match(str(date_key or "")):
             main = _archive_path(market, date_key)
-            if os.path.exists(main):
+            # 盘中（未收盘）扫描一律存多版本（HH:MM），不写“每日最终版”主文件；
+            # 收盘后首次扫描才创建主版本（之后的收盘重扫仍走 HH:MM 多版本保护）。
+            if not _market_closed() or os.path.exists(main):
                 now = time.strftime("%H%M", time.localtime())
                 date_key = f"{str(date_key)} ({now[:2]}:{now[2:]})"
         target = _multi_archive_path(market, date_key) or _archive_path(market, date_key)
