@@ -129,3 +129,46 @@ p/game/fisher/web/archive/
 /目标：零预算冷启动，3
 
 p/a1/api/server/*.log.*
+
+# ---- local scratch / runtime noise (tidy 2026-08-27) ----
+# agent/ops 临时探测脚本与派发产物（勿入库）
+ops/_*
+ops/diag-*
+ops/fix-*
+ops/check_*
+ops/ds-vs-*
+ops/approve-*
+ops/cleanup_*.py
+ops/eval_*.json
+ops/*.log
+ops/*.log.*
+ops/*.png
+ops/vp-*.png
+ops/mimo-research-pull-*/
+ops/v0*_*.md
+ops/update-04-*.md
+ops/verify_*.py
+ops/*202608*.md
+ops/*202608*.json
+ops/*202608*.ps1
+scripts/_*
+scripts/_*.txt
+scripts/_*.md
+# open 运行态
+p/open/api/data/feishu_notify_state.json
+# a1 浏览器临时档与盘中归档 dump（运行时生成）
+p/a1/.chrome_tmp*/
+p/a1/_*
+p/a1/api/server/_*.ps1
+p/a1/api/server/data/bj_archive/
+p/a1/daily_report/cache/
+p/a1/ops/
+p/a1/scripts/_*
+# markets 本机截图/一次性 QA 脚本
+p/markets/docs/_shot*
+p/markets/docs/_tmp*
+p/markets/docs/_p0*
+p/markets/docs/shot_*.png
+p/markets/scripts/_*.ps1
+p/markets/scripts/_*.js
+p/markets/scripts/_*.py
