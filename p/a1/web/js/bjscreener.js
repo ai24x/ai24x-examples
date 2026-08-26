@@ -328,7 +328,10 @@ window.AI24X_BJScreener = (function () {
     return t.length ? '<span class="runner-tags">' + t.slice(0, 2).join('') + '</span>' : '';
   }
   function redDaysTag(m) {
-    var d = m.macdFirstRedDays != null ? m.macdFirstRedDays : 0;
+    var d = m.macdFirstRedDays;
+    if (d == null && m.red_days != null) d = Math.max(0, Number(m.red_days) - 1);
+    d = Number(d);
+    if (!isFinite(d) || d < 0) d = 0;
     if (d === 0) return '<span class="tag ok strong">今日首红</span>';
     return '<span class="tag ok strong">红柱第' + (d + 1) + '天</span>';
   }
@@ -339,13 +342,22 @@ window.AI24X_BJScreener = (function () {
       h += '<div class="bj-note">看两点就够：① 底部刚出现第一根红柱；② 有量配合。优先「今日首红 / 红柱第2-3天」，下坡途中的不会进榜。</div>';
     h += '<div class="mr-grid">';
     list.forEach(function (m, i) {
-      var chgCls = cls(m.pct);
+      var pchg = (m.pct != null && isFinite(Number(m.pct))) ? Number(m.pct)
+        : ((m.up_pct != null && isFinite(Number(m.up_pct))) ? Number(m.up_pct) : null);
+      var chgCls = cls(pchg);
+      var posV = m.pos;
+      if (posV != null && isFinite(Number(posV)) && Number(posV) > 1.5) posV = Number(posV) / 100;
+      var fin = (m.final != null) ? m.final : m.score;
       var badge = m.mainHit ? '<span class="tier-badge tier-main">主线·' + esc(m.mainName || "") + '</span>'
-        : (m.obsHit ? '<span class="tier-badge tier-obs">重点观察·' + esc(m.obsName || "") + '</span>' : '');
+        : (m.obsHit ? '<span class="tier-badge tier-obs">重点观察·' + esc(m.obsName || m.board || "") + '</span>' : '');
       var riskBadge = m.bearish_level === "hard" ? '<span class="tag risk">硬伤</span>'
         : (m.bearish_level === "warn" ? '<span class="tag warn">警示</span>' : '');
       var srcTag = m.src ? '<span class="tag src-tag">' + esc(m.src) + '</span>' : '';
       var lv = m.levels || {};
+      var reason = reasonOf(m);
+      if ((!m.patterns || !Object.keys(m.patterns).length) && (m.risks || []).length) {
+        reason = "MACD翻红观察 · " + (m.risks || []).slice(0, 2).join("；");
+      }
       h += '<div class="mr-card' + (i < 3 ? ' mr-top' : '') + '">' +
         '<div class="mr-head">' +
           '<span class="mr-rank">' + (i + 1) + '</span>' +
@@ -355,14 +367,14 @@ window.AI24X_BJScreener = (function () {
           (i < 3 ? '<span class="tag ok strong">评分靠前</span>' : '') +
         '</div>' +
         '<div class="mr-body">' +
-          '<span class="mr-price ' + chgCls + '">' + num(m.price, 2) + ' ' + pct(m.pct) + '</span>' +
-          '<span class="mr-k">最终分 <b>' + (m.final != null ? m.final : '—') + '</b></span>' +
-          '<span class="mr-k">位置 <b>' + num((m.pos != null ? m.pos * 100 : 0), 0) + '%</b></span>' +
+          '<span class="mr-price ' + chgCls + '">' + num(m.price, 2) + ' ' + pct(pchg) + '</span>' +
+          '<span class="mr-k">最终分 <b>' + (fin != null ? fin : '—') + '</b></span>' +
+          '<span class="mr-k">位置 <b>' + num((posV != null ? posV * 100 : 0), 0) + '%</b></span>' +
           '<span class="mr-k">5日 <b class="' + cls(m.chg5) + '">' + pct(m.chg5) + '</b></span>' +
           '<span class="mr-k">市值 ' + money(m.mcap) + '</span>' +
           (lv.s1 != null ? '<span class="mr-k">支撑 <b>' + num(lv.s1, 2) + '</b> / 压力 <b>' + num(lv.p1, 2) + '</b></span>' : '') +
         '</div>' +
-        '<div class="mr-reason">' + esc(reasonOf(m)) + '</div>' +
+        '<div class="mr-reason">' + esc(reason) + '</div>' +
         '<a class="view-link" href="' + quoteHref(m) + '" target="_blank" rel="noopener">查看行情 ↗</a>' +
         '</div>';
     });

@@ -4216,9 +4216,12 @@ async def _fetch_stock_quotes(codes: list[str]) -> dict[str, dict[str, Any]]:
         code = str(r.get("f12") or "")
         if not re.fullmatch(r"\d{6}", code):
             continue
+        # fltt=2：现价 f2 / 涨跌幅 f3 已是小数口径，勿再 /100
+        _px = r.get("f2")
         out[code] = {
             "code": code,
             "name": str(r.get("f14") or ""),
+            "price": _num(_px) if _px is not None else None,
             "pct": _num(r.get("f3")) if r.get("f3") is not None else None,
             "amount": _num(r.get("f6")),
             "mcap": _num(r.get("f20")),
@@ -4234,37 +4237,51 @@ _LEADER_Q_TTL = 60.0
 
 
 async def _backfill_leader_quotes(payload: dict[str, Any]) -> dict[str, Any]:
-    """板块排行代表缺涨跌幅时，用实时行情补一次（带 60s 缓存）。
+    """板块排行代表 / MACD首红卡片缺价或缺涨跌时，用实时行情补一次（带 60s 缓存）。
 
     旧归档/静态龙头兜底（如 AI服务器算力 走 SECTORS 静态代表、上游失败时 pct 为 null）
-    会让「代表：xxx」无涨跌幅可显示；此函数在 API 返回前统一补齐，不改写归档与扫描缓存。
+    会让「代表：xxx」无涨跌幅可显示；MACD 复盘样本补齐条目通常无 price，也在此补齐。
+    不改写归档与扫描缓存。
     """
     try:
         if not isinstance(payload, dict):
             return payload
-        rank = payload.get("board_rank")
-        if not isinstance(rank, list):
-            return payload
         miss: list[tuple[dict[str, Any], str]] = []
         now0 = time.time()
-        for b in rank:
-            if not isinstance(b, dict):
-                continue
-            for ld in (b.get("leaders") or []):
-                if not isinstance(ld, dict):
+        _q_keys = ("price", "pct", "amount", "mcap", "turnover", "fund", "fund5", "name")
+
+        def _need_quote(row: dict[str, Any]) -> bool:
+            pct = row.get("pct")
+            pct_miss = pct is None or (isinstance(pct, str) and not str(pct).strip())
+            return row.get("price") is None or pct_miss
+
+        def _apply_cache_or_miss(row: dict[str, Any]) -> None:
+            code = str(row.get("code") or "")
+            if not re.fullmatch(r"\d{6}", code):
+                return
+            if not _need_quote(row):
+                return
+            hit = _LEADER_Q_CACHE.get(code)
+            if hit and now0 - hit[0] < _LEADER_Q_TTL:
+                for _k in _q_keys:
+                    if row.get(_k) is None and _k in hit[1] and hit[1][_k] is not None:
+                        row[_k] = hit[1][_k]
+                if not _need_quote(row):
+                    return
+            miss.append((row, code))
+
+        rank = payload.get("board_rank")
+        if isinstance(rank, list):
+            for b in rank:
+                if not isinstance(b, dict):
                     continue
-                code = str(ld.get("code") or "")
-                if not re.fullmatch(r"\d{6}", code):
-                    continue
-                pct = ld.get("pct")
-                if pct is None or (isinstance(pct, str) and not str(pct).strip()):
-                    hit = _LEADER_Q_CACHE.get(code)
-                    if hit and now0 - hit[0] < _LEADER_Q_TTL:
-                        for _k in ("pct", "amount", "mcap", "turnover", "fund", "fund5"):
-                            if _k in hit[1]:
-                                ld[_k] = hit[1][_k]
-                    else:
-                        miss.append((ld, code))
+                for ld in (b.get("leaders") or []):
+                    if isinstance(ld, dict):
+                        _apply_cache_or_miss(ld)
+        for m in (payload.get("macd_reds") or []):
+            if isinstance(m, dict):
+                _apply_cache_or_miss(m)
+
         if miss:
             codes = list(dict.fromkeys(c for _, c in miss))
             qmap = await _fetch_stock_quotes(codes)
@@ -4272,13 +4289,13 @@ async def _backfill_leader_quotes(payload: dict[str, Any]) -> dict[str, Any]:
             for _c in codes:
                 if _c in qmap:
                     _LEADER_Q_CACHE[_c] = (now1, qmap[_c])
-            for ld, code in miss:
+            for row, code in miss:
                 q = qmap.get(code)
                 if not q:
                     continue
-                for _k in ("pct", "amount", "mcap", "turnover", "fund", "fund5"):
-                    if _k in q:
-                        ld[_k] = q[_k]
+                for _k in _q_keys:
+                    if row.get(_k) is None and _k in q and q[_k] is not None:
+                        row[_k] = q[_k]
         return payload
     except Exception:
         return payload
@@ -4802,16 +4819,42 @@ def _macd_reds_from_report(d8: str | None = None, limit: int = 8) -> list[dict[s
             _risks = [str(x) for x in (r.get("risks") or [])]
             if any(any(_h in str(x) for _h in _hard) for x in _risks):
                 continue
+            # 与全市场扫描 _macd_red_out / 前端 macdRedSection 字段对齐：
+            # red_days=1→今日首红(macdFirstRedDays=0)；pos 用 0~1 小数；pct←up_pct
+            _score = r.get("score")
+            _up = r.get("up_pct")
+            _pos60 = r.get("pos60")
+            if pos is None and _pos60 is not None:
+                try:
+                    pos = float(_pos60)
+                except Exception:
+                    pos = None
+            _pos_frac = (float(pos) / 100.0) if pos is not None else None
+            _final = None
+            try:
+                if _score is not None:
+                    _final = round(float(_score), 1)
+            except Exception:
+                _final = None
             out.append({
                 "code": str(r.get("code") or ""),
                 "name": str(r.get("name") or ""),
-                "score": r.get("score"),
+                "score": _score,
+                "final": _final,
+                "price": None,  # 由 _backfill_leader_quotes 补现价
+                "pct": _up,
+                "up_pct": _up,
+                "chg5": r.get("chg5"),
+                "mcap": None,
                 "red_days": red_days,
-                "up_pct": r.get("up_pct"),
+                "macdFirstRedDays": max(0, int(red_days) - 1),
+                "patterns": {"macdFirstRed": 1},
                 "risks": _risks[:3],
-                "pos": pos,
+                "pos": _pos_frac,
                 "src": "复盘样本",
                 "board": str(_sec or ""),
+                "obsName": str(_sec or ""),
+                "obsHit": bool(_sec),
             })
     out.sort(key=lambda x: -(x.get("score") or 0))
     return out[:limit]
