@@ -416,7 +416,7 @@ window.AI24X_BJScreener = (function () {
     }
     if (d.off_market) line += " ｜ ⏸ 非交易日：展示最近归档" + staleLabel(d);
     else if (d.stale) line += (d.today_missing ? " ｜ ⚠ 今日数据未生成，展示最近归档" : " ｜ ⚠ 今日无合格，展示最近归档") + staleLabel(d);
-    if (d.cached && !d.vip_required) line += ' <span class="bj-cached">· 已缓存，点「重新扫描」刷新</span>';
+    if (d.cached && !d.vip_required) line += ' <span class="bj-cached">· 已缓存（全站共用，一般无需重扫）</span>';
     el.innerHTML = line;
     el.hidden = false;
   }
@@ -782,7 +782,7 @@ window.AI24X_BJScreener = (function () {
       var _sf = d.stale_from || "";
       var _sd = staleLabel(d);
       var _staleNote = d.intraday
-        ? '未到收盘（15:01 后自动更新今日）：当前展示最近归档' + _sd + '。'
+        ? '未到收盘（约 15:05 服务端自动更新今日，全站共用）：当前展示最近归档' + _sd + '。'
         : '⚠ 今日（' + esc(d.date || "") + '）扫描无合格标的' + (_tfTxt ? '：' + _tfTxt : '（可能为盘前或数据未更新）') + '，以下为最近归档' + _sd + '。'
       html += '<div class="bj-section">最近归档筛选（数据日期 ' + esc(_sf || d.asof || "") + (d.stale_scan_date && d.stale_scan_date !== _sf ? ' · ' + esc(d.stale_scan_date) + ' 扫描' : '') + ' · ' + (d.intraday ? '未到收盘' : '<span class="bj-empty-flag">今日无合格标的</span>') + '）</div>';
       html += '<div class="notice stale">' + _staleNote + '</div>';
@@ -1171,9 +1171,14 @@ window.AI24X_BJScreener = (function () {
     stopProgress();
     if (btn) {
       btn.disabled = false;
-      var fresh = d && d.cached && !d.refresh_locked && !d.intraday && !d.stale && !d.today_missing;
+      // 今日已生成即可视为定型：「stale」仅表示今日无主推而展示归档，不等于没扫过
+      var fresh = d && d.cached && !d.refresh_locked && !d.intraday && !d.today_missing;
       btn.textContent = fresh ? "已是最新" : "重新扫描";
-      btn.title = fresh ? "今日结果已生成，点击可强制重新扫描" : "重新扫描全部标的（120 秒限一次）";
+      btn.title = fresh
+        ? (d.stale
+          ? "今日已扫完（暂无主推，展示归档）；一般无需重扫"
+          : "今日结果已由服务端生成（全站共用），一般无需重扫；点击可强制刷新")
+        : "仅异常时再点；正常由服务端约 15:05 自动更新（120 秒限一次）";
     }
     applyScanGate(btn);
     if (!d || d.ok === false) {
@@ -1485,13 +1490,17 @@ window.AI24X_BJScreener = (function () {
   }
 
   // —— 重新扫描门控：盘中（15:01 收盘数据定型前）禁止强制重扫，避免未定型 K 线污染当日数据 ——
+  // 正常路径：约 15:05 服务端预扫一次，全站读缓存；「重新扫描」仅异常/强制时用。
+  var _SCAN_HINT_OK = "约 15:05 自动更新，异常再重扫";
   function scanGateState() {
     var now = new Date();
     var d = now.getDay();
     if (d === 0 || d === 6) return { allow: false, note: "非交易日：展示最近收盘归档，无需重新扫描" };
     var hm = now.getHours() * 60 + now.getMinutes();
-    if (hm < 15 * 60 + 1) return { allow: false, note: "盘中未定型：15:01 后可重新扫描" };
-    return { allow: true, note: "" };
+    if (hm < 15 * 60 + 1) {
+      return { allow: false, note: "盘中未定型：15:01 后可手扫；约 15:05 服务端自动更新（全站共用）" };
+    }
+    return { allow: true, note: _SCAN_HINT_OK };
   }
   function applyScanGate(btn) {
     if (!btn) return;
@@ -1504,9 +1513,11 @@ window.AI24X_BJScreener = (function () {
       if (note) { note.textContent = g.note; note.hidden = false; }
     } else {
       btn.disabled = false;
-      btn.title = "重新扫描全部标的（120 秒限一次）";
+      if (!btn.textContent || btn.textContent === "重新扫描") {
+        btn.title = "仅异常时再点；正常由服务端约 15:05 自动更新（120 秒限一次）";
+      }
       btn.classList.remove("btn-gated");
-      if (note) note.hidden = true;
+      if (note) { note.textContent = g.note; note.hidden = false; }
     }
   }
 

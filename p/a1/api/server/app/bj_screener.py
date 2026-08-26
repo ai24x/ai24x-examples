@@ -17,11 +17,14 @@ from __future__ import annotations
 import asyncio
 import datetime
 import json
+import logging
 import math
 import os
 import re
 import time
 from typing import Any
+
+_log = logging.getLogger("bj_screener")
 
 import httpx
 
@@ -5638,7 +5641,7 @@ async def run_scan(
                     out["intraday"] = True
                     out["date"] = stale.get("date") or stale.get("asof") or ""
                     out = _reattach_ths(out)
-                    _mark_cached("盘中未收盘：展示上一交易日归档（15:01 后自动更新今日）")
+                    _mark_cached("盘中未收盘：展示上一交易日归档（约 15:05 服务端自动更新今日）")
                     return out
         else:
             global _LAST_FULL_SCAN_TS
@@ -7018,26 +7021,35 @@ def _mainline_members(names: list[str]) -> dict[str, Any]:
 
 
 # ---------------- 掘金收盘后定时预生成（服务内自触发） ----------------
-# （同日已有缓存或已预生成过则跳过；force 重扫仍由用户手动触发）
-_AUTO_SCAN_TS = 15 * 3600 + 10 * 60
+# 15:01 收盘定型可看/可手扫；15:05 服务端统一预扫一次，全站读缓存（非按用户扫）。
+# 同日已有「收盘后」缓存或已预生成过则跳过；force 重扫仍由用户手动触发。
+_AUTO_SCAN_HHMM = (15, 5)
+_AUTO_SCAN_TS = _AUTO_SCAN_HHMM[0] * 3600 + _AUTO_SCAN_HHMM[1] * 60
+_AUTO_SCAN_MARKETS = ("hs", "kc", "bj", "bj_all", "all")
 _AUTO_SCAN_DONE: dict[str, bool] = {}
+_AUTO_SCAN_DAY_LOGGED: set[str] = set()
 
 
 async def _auto_scan_loop() -> None:
     try:
         from .daily_report import _today_close_epoch
     except Exception:
-        _today_close_epoch = lambda: 0.0
+        _today_close_epoch = lambda: 0.0  # type: ignore[assignment, misc]
     while True:
         try:
             now = time.localtime()
             sec = now.tm_hour * 3600 + now.tm_min * 60 + now.tm_sec
             if now.tm_wday < 5 and sec >= _AUTO_SCAN_TS:
                 today8 = time.strftime("%Y%m%d", time.localtime())
-                _close_ts = _today_close_epoch()  # 今日收盘定型时刻（auto_scan_time）
+                # 只保留当日标记，避免跨日字典膨胀
+                for k in list(_AUTO_SCAN_DONE):
+                    if not str(k).endswith(f":{today8}"):
+                        _AUTO_SCAN_DONE.pop(k, None)
+                _AUTO_SCAN_DAY_LOGGED.intersection_update({today8})
+                _close_ts = _today_close_epoch()  # 今日收盘定型时刻（auto_scan_time，默认 15:01）
                 # all（沪深京全市场）为 MACD首红 栏目的数据源，必须纳入收盘后自动扫描；
                 # 放最后：先把轻量的 hs/kc/bj/bj_all 定型，再跑最重的全市场
-                for market in ("hs", "kc", "bj", "bj_all", "all"):
+                for market in _AUTO_SCAN_MARKETS:
                     key = f"{market}-scan:{today8}"
                     if _AUTO_SCAN_DONE.get(key):
                         continue
@@ -7046,14 +7058,28 @@ async def _auto_scan_loop() -> None:
                     # 仅在「收盘后已生成且 6h 内」才跳过；盘中缓存（未定型）必须重扫，
                     # 避免 13:xx 盘中扫描把 15:01 收盘定型扫描顶掉（曾致归档保留盘中弱数据）。
                     if hit and time.time() - hit[0] < 6 * 3600 and hit[0] >= _close_ts:
+                        _log.info("bj auto-scan skip cached market=%s date=%s", market, today8)
                         continue
                     try:
                         # 加超时防上游卡死：单市场最多 15 分钟，超时视为失败下轮重试
                         await asyncio.wait_for(run_scan_dedup(0, force=False, market=market), timeout=900)
-                    except Exception:
+                        _log.info("bj auto-scan ok market=%s date=%s", market, today8)
+                    except Exception as e:
                         _AUTO_SCAN_DONE[key] = False  # 失败/超时则下轮重试
+                        _log.warning("bj auto-scan fail market=%s date=%s err=%s", market, today8, e)
+                if (
+                    today8 not in _AUTO_SCAN_DAY_LOGGED
+                    and all(_AUTO_SCAN_DONE.get(f"{m}-scan:{today8}") for m in _AUTO_SCAN_MARKETS)
+                ):
+                    _AUTO_SCAN_DAY_LOGGED.add(today8)
+                    _log.info(
+                        "bj auto-scan complete date=%s markets=%s",
+                        today8,
+                        ",".join(_AUTO_SCAN_MARKETS),
+                    )
             await asyncio.sleep(60)
-        except Exception:
+        except Exception as e:
+            _log.warning("bj auto-scan loop error: %s", e)
             await asyncio.sleep(300)
 
 
@@ -7063,4 +7089,9 @@ def start_bj_auto_scan() -> None:
         loop = asyncio.get_event_loop()
     except RuntimeError:
         return
+    _log.info(
+        "bj auto-scan loop started (weekday >= %02d:%02d, shared cache)",
+        _AUTO_SCAN_HHMM[0],
+        _AUTO_SCAN_HHMM[1],
+    )
     loop.create_task(_auto_scan_loop())

@@ -902,14 +902,17 @@ function renderList(d){
       pollScanDone(function(){ load(true); toast('扫描完成', true); });
     }).catch(function(e){ toast('启动失败：' + String(e).slice(0, 60), false); });
   }
-  // 重新扫描门控：盘中（15:01 收盘数据定型前）禁止强制重扫，避免未定型 K 线污染当日数据
+  // 重新扫描门控：盘中禁止强制重扫；约 15:05 服务端预扫一次，全站读缓存。
+  var _SCAN_HINT_OK = '约 15:05 自动更新，异常再重扫';
   function scanGateState(){
     var now = new Date();
     var d = now.getDay();
     if (d === 0 || d === 6) return { allow: false, note: '非交易日：展示最近收盘归档，无需重新扫描' };
     var hm = now.getHours() * 60 + now.getMinutes();
-    if (hm < 15 * 60 + 1) return { allow: false, note: '盘中未定型：15:01 后可重新扫描' };
-    return { allow: true, note: '' };
+    if (hm < 15 * 60 + 1) {
+      return { allow: false, note: '盘中未定型：15:01 后可手扫；约 15:05 服务端自动更新（全站共用）' };
+    }
+    return { allow: true, note: _SCAN_HINT_OK };
   }
   function applyScanGateMobile(){
     var rf = $('btn-refresh'), note = $('rescan-note');
@@ -921,8 +924,8 @@ function renderList(d){
       if (note) { note.textContent = g.note; note.hidden = false; }
     } else {
       rf.classList.remove('gated');
-      rf.title = '';
-      if (note) note.hidden = true;
+      rf.title = '仅异常时再点；正常由服务端约 15:05 自动更新';
+      if (note) { note.textContent = g.note; note.hidden = false; }
     }
   }
 
