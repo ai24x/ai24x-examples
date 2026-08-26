@@ -116,6 +116,16 @@ def main():
     hs = h.get("hs:2026-08-25") or {}
     picks = hs.get("picks") or []
     print("HS25_PICKS=" + json.dumps([p.get("name") for p in picks[:4]], ensure_ascii=False))
+    # 9) picks 与本地包一致（当日）
+    today8 = time.strftime("%Y%m%d")
+    verify = os.path.join(PKG, "_verify_final_sync.py")
+    if os.path.exists(verify):
+        import subprocess
+        r = subprocess.run([sys.executable, verify, PKG, today8], capture_output=True, text=True, encoding="utf-8")
+        print(r.stdout.strip())
+        if r.returncode != 0:
+            print(r.stderr.strip())
+            raise SystemExit("VERIFY_FAIL")
     print("DONE")
 
 

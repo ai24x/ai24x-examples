@@ -30,6 +30,7 @@ Get-ChildItem "$A1\调研报告\04-每日跟踪\板块主攻研判" -Directory -
 
 # apply 脚本确保 UTF-8 BOM（03 为 PS5.1/GBK，含中文脚本必须 UTF-8 BOM；避免 WriteAllText 双 BOM）
 Copy-Item "$A1\scripts\_apply_final_sync.py" "$PkgLocal\_apply_final_sync.py" -Force
+Copy-Item "$A1\scripts\_verify_final_sync.py" "$PkgLocal\_verify_final_sync.py" -Force
 $pyBytes = [System.IO.File]::ReadAllBytes("$PkgLocal\_apply_final_sync.py")
 if (-not ($pyBytes.Length -ge 3 -and $pyBytes[0] -eq 0xEF -and $pyBytes[1] -eq 0xBB -and $pyBytes[2] -eq 0xBF)) {
   [System.IO.File]::WriteAllBytes("$PkgLocal\_apply_final_sync.py", ([byte[]](0xEF, 0xBB, 0xBF)) + $pyBytes)

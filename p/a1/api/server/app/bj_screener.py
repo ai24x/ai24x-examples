@@ -7127,7 +7127,14 @@ async def _auto_scan_loop() -> None:
 
 
 def start_bj_auto_scan() -> None:
-    """在 startup 时启动掘金定时预生成后台任务。"""
+    """在 startup 时启动掘金定时预生成后台任务。
+
+    03 生产（a.ai24x.com）以本地 sync_final_to_03 同步的 bj_scan_daily 为权威，
+    禁止进程内自动重扫覆盖，避免与本地验收口径漂移。
+    """
+    if os.getenv("AI24X_BJ_AUTO_SCAN", "1").strip().lower() in ("0", "false", "no", "off"):
+        _log.info("bj auto-scan disabled (AI24X_BJ_AUTO_SCAN=0)")
+        return
     try:
         loop = asyncio.get_event_loop()
     except RuntimeError:
