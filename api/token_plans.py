@@ -4,7 +4,7 @@ Token 产品套餐目录（与 a1 行情官 VIP 配额套餐完全独立）。
 定价口径（2026-08-02 终稿）：
 - 钱包 token ≈ flash 当量；对外 flash 锚约 $0.35/M（Builder 约 $0.40/M）
 - 主数据按国际价（USD 锚定）；国内收银台 CNY（微信/支付宝），国际 PayPal USD
-- 入门包为优惠体验档（$2 / 30 万 token），promo_max_purchases=1 防刷
+- 入门包为小额体验档（$2 / 100 万 token）；单位成本高于大包，适合试水
 - VIP 日赠仅可用于 flash/auto/共享档（见 token_mvp_service）
 - 改价优先级：管理台覆盖文件 > env TOKEN_PRICE_*_FEN > 代码默认
 - 前台 /v1/billing/plans 与后台同源 list_public_plans / get_plan

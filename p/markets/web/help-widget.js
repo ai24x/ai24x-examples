@@ -32,7 +32,7 @@
         },
         {
           q: "Something is not working. What now?",
-          a: "Check the Help Center, open a ticket from your console, or email support@ai24x.com — we usually reply within one business day."
+          a: "Check the Help Center, open a ticket from your account, or email support@ai24x.com — we usually reply within one business day."
         }
       ],
       links: [
@@ -68,7 +68,7 @@
         },
         {
           q: "遇到问题怎么办？",
-          a: "先看帮助中心；也可以从控制台提交工单，或发邮件到 support@ai24x.com，一般一个工作日内回复。"
+          a: "先看帮助中心；也可以从账户页提交工单，或发邮件到 support@ai24x.com，一般一个工作日内回复。"
         }
       ],
       links: [
@@ -103,6 +103,10 @@
   }
 
   function wwwBase() {
+    if (typeof AI24X_WWW_BASE === "function") return AI24X_WWW_BASE();
+    try {
+      if (localStorage.getItem("ai24x_local_products") === "0") return "https://www.ai24x.com";
+    } catch (e) {}
     var h = location.hostname || "";
     if (h === "localhost" || h === "127.0.0.1") return "http://127.0.0.1:8000";
     return "https://www.ai24x.com";

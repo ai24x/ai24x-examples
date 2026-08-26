@@ -79,17 +79,17 @@
     <div class="mk-top-inner">
       <a class="brand" href="/"><span class="brand-mark">AI</span><span>AI24X <b>Markets</b></span></a>
       <nav class="mk-nav" aria-label="Main">
-        <a href="https://www.ai24x.com/index.html" data-i18n="nav.home">Home</a>
+        <a href="/" data-i18n="nav.home">Home</a>
         <a href="/pricing.html" data-i18n="nav.pricing">Pricing</a>
         <a href="https://www.ai24x.com/help.html" target="_blank" rel="noopener" data-i18n="nav.help">Help</a>
-        <a href="https://www.ai24x.com/console.html" target="_blank" rel="noopener" data-i18n="nav.console">Console</a>
+        <a href="https://www.ai24x.com/console.html" target="_blank" rel="noopener" data-i18n="nav.console">Account</a>
       </nav>
       <div class="mk-actions">
         <div class="lang-switch" id="lang-switch">
           <button type="button" data-lang="en" class="active">EN</button>
           <button type="button" data-lang="zh">中文</button>
         </div>
-        <a class="auth-link" id="signin-link" href="https://www.ai24x.com/login.html?next=https%3A%2F%2Fmarkets.ai24x.com%2Fscreener.html" target="_blank" rel="noopener" data-i18n="signIn">Sign in</a>
+        <a class="auth-link" id="signin-link" href="https://www.ai24x.com/login.html" target="_blank" rel="noopener" data-i18n="signIn">Sign in</a>
       </div>
     </div>
   </header>
@@ -130,6 +130,7 @@
     </div>
   </footer>
 
+  <script src="/js/www-links.js?v=20260826a"></script>
   <script>
     (function () {
       'use strict';
@@ -138,7 +139,7 @@
           'nav.home': 'Home',
           'nav.pricing': 'Pricing',
           'nav.help': 'Help',
-          'nav.console': 'Console',
+          'nav.console': 'Account',
           signIn: 'Sign in',
           'gate.loginTitle': 'Sign in to use Discover',
           'gate.loginSub': 'Discover is a Pro-only daily market scan. Sign in to check your plan.',
@@ -175,7 +176,7 @@
           'nav.home': '首页',
           'nav.pricing': '价格',
           'nav.help': '帮助',
-          'nav.console': '控制台',
+          'nav.console': '账户',
           signIn: '登录',
           'gate.loginTitle': '登录后使用发现',
           'gate.loginSub': '发现是 Pro 会员专属的每日美股扫描。登录后即可查看你的套餐状态。',
@@ -232,8 +233,17 @@
       function scoreColor(v) { return v >= 75 ? '#22c55e' : v >= 60 ? '#f59e0b' : v >= 45 ? '#38bdf8' : '#f87171'; }
       var mode = 'all';
       var $ = function (id) { return document.getElementById(id); };
-      var coreHost = (location.hostname === '127.0.0.1' || location.hostname === 'localhost')
-        ? 'http://127.0.0.1:8000' : 'https://www.ai24x.com';
+      var coreHost = (typeof AI24X_WWW_BASE === 'function')
+        ? AI24X_WWW_BASE()
+        : ((function () {
+            try { if (localStorage.getItem('ai24x_local_products') === '0') return 'https://www.ai24x.com'; } catch (e) {}
+            return (location.hostname === '127.0.0.1' || location.hostname === 'localhost')
+              ? 'http://127.0.0.1:8000' : 'https://www.ai24x.com';
+          })());
+      try {
+        var s = document.getElementById('signin-link');
+        if (s) s.href = coreHost + '/login.html?next=' + encodeURIComponent(location.href);
+      } catch (e) {}
       function readCookie(n) {
         var m = document.cookie.match(new RegExp('(?:^|;\\s*)' + n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '=([^;]*)'));
         return m ? decodeURIComponent(m[1]) : '';
@@ -338,7 +348,7 @@
           b.href = coreHost + '/login.html?next=' + encodeURIComponent(location.href);
           b.textContent = t('gate.loginBtn');
         } else {
-          b.href = 'https://www.ai24x.com/console.html#billing';
+          b.href = coreHost + '/console.html#billing';
           b.textContent = t('gate.upBtn');
         }
         gate.style.display = '';

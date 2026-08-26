@@ -10,25 +10,25 @@
   var STORAGE_USER = "ai24x_auth_user";
   var PRODUCTION = "https://api.ai24x.com";
 
+  function isPublicAi24xHost() {
+    var h = (location.hostname || "").toLowerCase();
+    return h === "ai24x.com" || h.endsWith(".ai24x.com");
+  }
+
   function getBase() {
     var h = (location.hostname || "").toLowerCase();
-    // open.ai24x.com = 独立 BYOK 网关：一律同源（登录/密钥/套餐/支付都在本服务，
-    // 与 www/core 账号体系隔离，禁止误指向 api.ai24x.com）
-    if (h === "open.ai24x.com") {
-      try {
-        localStorage.removeItem(STORAGE_BASE);
-      } catch (e) {}
-      return (location.origin || "").replace(/\/$/, "") || PRODUCTION;
-    }
-    var onProdHost = h === "ai24x.com" || h.endsWith(".ai24x.com");
+    var onProdHost = isPublicAi24xHost();
     var saved = localStorage.getItem(STORAGE_BASE);
     if (saved) {
       saved = saved.replace(/\/$/, "");
-      // 公网页若误存了本机 API，会导致 Failed to fetch / 无法到账
-      if (onProdHost && /^(https?:\/\/)?(localhost|127\.0\.0\.1|::1)(:|\/|$)/i.test(saved)) {
-        try {
-          localStorage.removeItem(STORAGE_BASE);
-        } catch (e) {}
+      // 公网只允许官方 API；本机地址或其它域名一律清掉，防凭据外泄
+      if (onProdHost) {
+        if (saved !== PRODUCTION && !/^https:\/\/api\.ai24x\.com$/i.test(saved)) {
+          try {
+            localStorage.removeItem(STORAGE_BASE);
+          } catch (e) {}
+          return PRODUCTION;
+        }
         return PRODUCTION;
       }
       return saved;
@@ -39,8 +39,58 @@
   }
 
   function setBase(url) {
+    if (isPublicAi24xHost()) {
+      if (!url || !String(url).trim()) {
+        try {
+          localStorage.removeItem(STORAGE_BASE);
+        } catch (e) {}
+        return;
+      }
+      var n = String(url).replace(/\/$/, "").trim();
+      if (n === PRODUCTION || /^https:\/\/api\.ai24x\.com$/i.test(n)) {
+        localStorage.setItem(STORAGE_BASE, PRODUCTION);
+      }
+      return;
+    }
     if (url) localStorage.setItem(STORAGE_BASE, url.replace(/\/$/, ""));
     else localStorage.removeItem(STORAGE_BASE);
+  }
+
+  /** 登录后 next= 防开放向：仅相对路径或允许的 ai24x / 本机主机 */
+  function safeNextUrl(raw, fallback) {
+    var fb = fallback || "console.html";
+    var s = String(raw || "").trim();
+    if (!s) return fb;
+    if (s.indexOf("//") === 0) return fb;
+    if (s.indexOf("\\") >= 0) return fb;
+    if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(s) && !/^https?:\/\//i.test(s)) return fb;
+    if (s.charAt(0) === "/" && s.charAt(1) !== "/") return s;
+    if (s.indexOf("://") < 0) {
+      if (/[\s<>"']/.test(s)) return fb;
+      return s;
+    }
+    try {
+      var u = new URL(s);
+      var host = (u.hostname || "").toLowerCase();
+      if (
+        host === "localhost" ||
+        host === "127.0.0.1" ||
+        host === "ai24x.com" ||
+        host.endsWith(".ai24x.com")
+      ) {
+        return u.href;
+      }
+    } catch (e) {}
+    return fb;
+  }
+
+  function setAlertMessage(box, message, ok) {
+    if (!box) return;
+    box.innerHTML = "";
+    var d = document.createElement("div");
+    d.className = "alert " + (ok ? "alert-success" : "alert-error");
+    d.textContent = String(message || "");
+    box.appendChild(d);
   }
 
   function getApiKey() {
@@ -284,6 +334,12 @@
         "验证码错误或已过期，请重新获取验证码": "Invalid or expired code. Please request a new one.",
         "邮箱验证码错误或已过期，请重新获取": "Invalid or expired email code. Please request a new one.",
         "手机号或密码错误，请检查后重试。": "Incorrect account or password. Please try again.",
+        "原密码错误": "Current password is incorrect.",
+        "新密码至少 6 位": "New password must be at least 6 characters.",
+        "新密码至少 8 位": "New password must be at least 8 characters.",
+        "密码至少 8 位": "Password must be at least 8 characters.",
+        "密码至少 6 位": "Password must be at least 6 characters.",
+        "手机号注册暂未开放，请使用邮箱注册。": "Phone sign-up is not open. Please use email.",
         "短信服务暂不可用，请稍后再试。": "SMS is temporarily unavailable. Please try again later.",
         "短信服务暂时不可用，请稍后再试。": "SMS is temporarily unavailable. Please try again later.",
         "邮件服务暂不可用，请稍后再试。": "Email is temporarily unavailable. Please try again later.",
@@ -359,6 +415,22 @@
         if (Array.isArray(d)) {
           return d
             .map(function (e) {
+              var loc = (e && e.loc) || [];
+              var locJoined = Array.isArray(loc) ? loc.join(".") : String(loc || "");
+              var typ = String((e && e.type) || "");
+              if (
+                (typ === "string_too_short" || /at least \d+ character/i.test(pickStr(e && e.msg))) &&
+                /password/i.test(locJoined)
+              ) {
+                return isZhUi()
+                  ? "密码至少 8 位"
+                  : "Password must be at least 8 characters";
+              }
+              if (/value is not a valid email/i.test(pickStr(e && e.msg)) || typ === "value_error") {
+                if (/email/i.test(locJoined)) {
+                  return isZhUi() ? "邮箱格式不正确" : "Enter a valid email address.";
+                }
+              }
               return localizeDetail(pickStr(e && (e.msg || e.message)));
             })
             .filter(Boolean)
@@ -963,6 +1035,9 @@
   global.AI24X_API = {
     getBase: getBase,
     setBase: setBase,
+    isPublicAi24xHost: isPublicAi24xHost,
+    safeNextUrl: safeNextUrl,
+    setAlertMessage: setAlertMessage,
     getApiKey: getApiKey,
     setApiKey: setApiKey,
     getAuthToken: getAuthToken,

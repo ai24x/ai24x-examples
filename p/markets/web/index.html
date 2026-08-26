@@ -131,10 +131,10 @@
     <div class="wrap header-inner">
       <a class="brand" href="/"><span class="brand-mark">AI</span><span>AI24X <b>Markets</b></span></a>
       <nav class="nav-main" aria-label="Main">
-        <a href="https://www.ai24x.com/index.html" class="is-active">Home</a>
+        <a href="/" class="is-active">Home</a>
         <a href="/pricing.html">Pricing</a>
         <a href="https://www.ai24x.com/help.html" target="_blank" rel="noopener">Help</a>
-        <a href="https://www.ai24x.com/console.html" target="_blank" rel="noopener">Console</a>
+        <a href="https://www.ai24x.com/console.html" target="_blank" rel="noopener">Account</a>
       </nav>
       <div class="header-actions">
         <a class="upgrade-pill" href="/app.html#sub">Upgrade to Pro</a>
@@ -305,14 +305,14 @@
         </div>
         <div class="footer-col">
           <div class="footer-title">Product</div>
-          <a href="https://www.ai24x.com/index.html">Home</a>
+          <a href="/">Home</a>
           <a href="/pricing.html">Pricing</a>
           <a href="/app.html">Chart App</a>
           <a href="/daily/">Daily Brief</a>
         </div>
         <div class="footer-col">
           <div class="footer-title">Account</div>
-          <a href="https://www.ai24x.com/console.html" target="_blank" rel="noopener">Console</a>
+          <a href="https://www.ai24x.com/console.html" target="_blank" rel="noopener">Account</a>
           <a href="https://www.ai24x.com/login.html" target="_blank" rel="noopener">Sign in</a>
           <a href="https://www.ai24x.com/register.html" target="_blank" rel="noopener">Sign up</a>
         </div>
@@ -328,12 +328,14 @@
     </div>
   </footer>
 
+  <script src="/js/www-links.js?v=20260826a"></script>
   <script>
     (function () {
       try {
-        var coreHost = (location.hostname === "127.0.0.1" || location.hostname === "localhost")
-          ? "http://127.0.0.1:8000"
-          : "https://www.ai24x.com";
+        var coreHost = (typeof AI24X_WWW_BASE === "function" ? AI24X_WWW_BASE() : null) ||
+          ((location.hostname === "127.0.0.1" || location.hostname === "localhost")
+            ? "http://127.0.0.1:8000"
+            : "https://www.ai24x.com");
         var back = encodeURIComponent(location.href);
         var s = document.getElementById("signin-link");
         if (s) s.href = coreHost + "/login.html?next=" + back;

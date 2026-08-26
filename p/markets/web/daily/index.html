@@ -61,14 +61,16 @@
     <div class="mk-top-inner">
       <a class="brand" href="/"><span class="brand-mark">AI</span><span>AI24X <b>Markets</b></span></a>
       <nav class="mk-nav" aria-label="Main">
-        <a href="/">Chart App</a>
+        <a href="/">Home</a>
+        <a href="/app.html">Chart App</a>
         <a href="/screener.html">Discover</a>
         <a href="/pricing.html">Pricing</a>
         <a href="/daily/" class="is-active">Daily Brief</a>
         <a href="https://www.ai24x.com/help.html" target="_blank" rel="noopener">Help</a>
+        <a href="https://www.ai24x.com/console.html" target="_blank" rel="noopener">Account</a>
       </nav>
       <div style="display:flex; align-items:center; gap:8px;">
-        <a href="https://www.ai24x.com/login.html" target="_blank" rel="noopener" style="padding:4px 10px; border:1px solid var(--border); border-radius:999px; color:var(--muted); font-size:12px; text-decoration:none;">Sign in</a>
+        <a id="signin-link" href="https://www.ai24x.com/login.html" target="_blank" rel="noopener" style="padding:4px 10px; border:1px solid var(--border); border-radius:999px; color:var(--muted); font-size:12px; text-decoration:none;">Sign in</a>
       </div>
     </div>
   </header>
@@ -92,9 +94,15 @@
     </div>
   </footer>
 
+  <script src="/js/www-links.js?v=20260826a"></script>
   <script>
     (function () {
       'use strict';
+      try {
+        var base = (typeof AI24X_WWW_BASE === 'function') ? AI24X_WWW_BASE() : 'https://www.ai24x.com';
+        var s = document.getElementById('signin-link');
+        if (s) s.href = base + '/login.html?next=' + encodeURIComponent(location.href);
+      } catch (e) {}
       var $ = function (id) { return document.getElementById(id); };
       var dates = [];
       function esc(s) {

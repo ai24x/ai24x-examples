@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- [AI24X 2026-08-15] Google Ads 暂停 (国际支付无合规渠道，保留待恢复，勿删）：
+<!-- [AI24X 2026-08-15] Google Ads 暂停 (国际支付无合规渠道，保留待恢复，勿删)：
 
 <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18385419220"></script>
 <script>
@@ -46,79 +46,220 @@
 })();
 </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>AI24X Markets — US Market Intelligence & AI Commentary</title>
-  <meta name="description" content="Track US stocks, ETFs and indices with professional charts, technical indicators and AI-powered commentary. Subscription from $24.9/month, PayPal." />
+  <title>AI24X — AI Gateway · One API. Every AI. Spend Smarter.</title>
+  <meta name="description" content="Access leading AI models through one OpenAI-compatible API. BYOK or managed billing, multi-model routing, and usage control — start free." />
   <link rel="canonical" href="https://www.ai24x.com/" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="AI24X" />
-  <meta property="og:title" content="AI24X Markets — US Market Intelligence" />
-  <meta property="og:description" content="US market charts, technical indicators and AI commentary — from $24.9/month, PayPal." />
+  <meta property="og:title" content="AI24X — AI Gateway · One API. Every AI. Spend Smarter." />
+  <meta property="og:description" content="One API for leading AI models. BYOK or managed billing, smart routing, usage control. Start building free." />
   <meta property="og:url" content="https://www.ai24x.com/" />
   <meta property="og:image" content="https://www.ai24x.com/img/og-share.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="AI24X Markets — US Market Intelligence" />
-  <meta name="twitter:description" content="Charts, indicators and AI commentary for US stocks, ETFs and indices. From $24.9/month." />
+  <meta name="twitter:title" content="AI24X — AI Gateway · One API. Every AI. Spend Smarter." />
+  <meta name="twitter:description" content="One API for leading AI models. BYOK or managed billing. Start free." />
   <meta name="twitter:image" content="https://www.ai24x.com/img/og-share.png" />
-  <link rel="stylesheet" href="css/base.css?v=20260818c" />
-  <link id="theme-css" rel="stylesheet" href="css/themes/theme-dark.css?v=20260812e" data-base="css/themes/" />
+  <link rel="stylesheet" href="css/base.css?v=20260826m" />
+  <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260812e" data-base="css/themes/" />
   <style>
-    .tag-row a.tag { text-decoration: none; cursor: pointer; }
-    .tag-row a.tag-value { color: #fff; }
-    .tag-row a.tag-value:hover { color: #fff; filter: brightness(1.12); text-decoration: none; }
-    .tag-row a.tag-value::after { content: " \2192"; font-weight: 600; }
-    .lighthouse-mark {
-      display: inline-block; width: 124px; margin: 0 0 16px; border-radius: 16px;
-      overflow: hidden; border: 1px solid var(--border); background: #0b1020; line-height: 0;
-      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-      vertical-align: middle;
+    .hero-eyebrow {
+      margin: 0 0 12px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: var(--accent);
     }
-    .lighthouse-mark:hover {
-      transform: translateY(-2px); text-decoration: none;
-      box-shadow: 0 10px 24px rgba(11, 107, 203, 0.22); border-color: var(--accent);
+    .hero-slogan {
+      margin: 0 0 12px;
+      font-size: clamp(1.85rem, 4.6vw, 2.85rem);
+      font-weight: 800;
+      line-height: 1.12;
+      letter-spacing: -0.025em;
+      color: var(--hero-title, var(--heading));
+      max-width: none;
+      white-space: nowrap;
     }
-    .lighthouse-mark svg { display: block; width: 100%; height: auto; }
-    .hero-split {
-      display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr);
-      gap: 44px; align-items: center; text-align: left;
+    @media (max-width: 720px) {
+      .hero-slogan {
+        white-space: normal;
+        /* 窄屏允许断行；尽量在第二拍后断开 */
+        max-width: 14em;
+      }
     }
-    .lighthouse-hero {
-      width: 100%; max-width: 400px; margin: 0 auto; border-radius: 18px;
-      box-shadow: 0 18px 44px rgba(11, 107, 203, 0.14);
+    .hero .lead { max-width: 36rem; margin-bottom: 1.1rem; }
+    .hero-proof {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 10px;
+      margin: 1rem 0 0;
+      padding: 0;
+      list-style: none;
     }
-    .lm-label {
-      display: block; text-align: center; padding: 10px 8px 12px;
-      color: #9fb0d0; font-size: 13px; font-weight: 700;
-      letter-spacing: 0.05em; line-height: 1.4;
+    .hero-proof li {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--text);
+      padding: 5px 11px;
+      border-radius: 999px;
+      border: 1px solid var(--border, #d8e4ef);
+      background: color-mix(in srgb, var(--accent, #2563eb) 5%, transparent);
     }
-    @media (max-width: 860px) {
-      .hero-split { grid-template-columns: 1fr; gap: 26px; }
-      .lighthouse-hero { max-width: 330px; }
+    .hero-proof li::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+    }
+    .hero-price-line {
+      margin: 14px 0 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--heading);
+    }
+    .hero-price-line a { color: var(--accent); }
+    .flow-board {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.1fr) auto minmax(0, 1.4fr);
+      gap: 10px 12px;
+      align-items: center;
+      margin-top: 22px;
+      padding: 22px 18px;
+      border: 1px solid var(--border, #d8e4ef);
+      border-radius: var(--radius, 14px);
+      background: var(--card-bg, var(--surface));
+    }
+    .flow-node {
+      margin: 0;
+      padding: 14px 12px;
+      text-align: center;
+      border-radius: 12px;
+      border: 1px solid var(--border, #d8e4ef);
+      background: color-mix(in srgb, var(--accent, #2563eb) 4%, transparent);
+      font-weight: 700;
+    }
+    .flow-node.is-hub {
+      border-color: color-mix(in srgb, var(--accent, #2563eb) 45%, transparent);
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent, #2563eb) 12%, transparent);
+      background: color-mix(in srgb, var(--accent, #2563eb) 10%, transparent);
+      color: var(--accent);
+    }
+    .flow-arrow {
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 1.15rem;
+      text-align: center;
+    }
+    .flow-models {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+    }
+    .flow-models span {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border, #d8e4ef);
+      background: var(--surface, #fff);
+      font-size: 0.82rem;
+      font-weight: 650;
+    }
+    .cost-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+    .cost-card h3 { margin: 0 0 6px; font-size: 1.05rem; }
+    .cost-card .sub { margin: 0; }
+    .audience-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+    .audience-card h3 { margin: 0 0 6px; font-size: 1.05rem; }
+    .audience-card .sub { margin: 0; }
+    .platform-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .platform-tags span {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border, #d8e4ef);
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--grid-gap, 18px);
+      margin-top: 18px;
+    }
+    a.product-tile {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 22px 20px;
+      border: 1px solid var(--card-border, var(--border));
+      border-radius: var(--radius, 14px);
+      background: var(--card-bg, var(--surface));
+      box-shadow: var(--card-shadow, none);
+      color: inherit;
+      text-decoration: none;
+      transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+    }
+    a.product-tile:hover {
+      border-color: var(--accent);
+      color: inherit;
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    a.product-tile.is-primary {
+      border-color: color-mix(in srgb, var(--accent, #2563eb) 45%, transparent);
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent, #2563eb) 10%, transparent);
+    }
+    .product-tile h3 { margin: 0; font-size: 1.15rem; }
+    .product-tile .host {
+      margin: 0;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    .product-tile .sub { margin: 0; flex: 1; }
+    .product-tile .go {
+      margin-top: 6px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    @media (max-width: 900px) {
+      .flow-board {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+      .flow-arrow { transform: rotate(90deg); }
+      .cost-grid { grid-template-columns: 1fr; }
+      .audience-grid { grid-template-columns: 1fr 1fr; }
+      .product-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 560px) {
+      .audience-grid { grid-template-columns: 1fr; }
     }
   </style>
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": "AI24X Markets",
-    "applicationCategory": "FinanceApplication",
-    "operatingSystem": "Web",
-    "url": "https://www.ai24x.com/index.html",
-    "description": "US market charts, technical indicators and AI-powered commentary for stocks, ETFs and indices.",
-    "offers": {
-      "@type": "Offer",
-      "price": "24.9",
-      "priceCurrency": "USD",
-      "description": "Pro monthly subscription"
-    },
-    "provider": {
-      "@type": "Organization",
-      "name": "AI24X",
-      "url": "https://www.ai24x.com/"
-    }
-  }
-  </script>
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -126,165 +267,171 @@
     "name": "AI24X",
     "url": "https://www.ai24x.com/",
     "logo": "https://www.ai24x.com/img/og-share.png",
+    "description": "One API for leading AI models — BYOK or managed billing, multi-model access, and usage control.",
     "sameAs": [
+      "https://open.ai24x.com/",
       "https://markets.ai24x.com/",
       "https://a.ai24x.com/"
     ]
   }
   </script>
 </head>
-<body data-page="index" class="theme-dark">
+<body data-page="index" class="theme-blue">
   <header class="site-header" id="site-header"></header>
 
   <main class="page-main">
+    <!-- 1) Hero: conversion first -->
     <section class="hero hero-surface">
       <div class="container">
-        <div class="hero-split">
-          <div>
-            <p class="hero-eyebrow" style="margin:0 0 10px;font-size:0.92rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--accent,#2563eb)" data-i18n="page.index.brand">AI24X — AI-assisted tools for markets &amp; developers.</p>
-            <h1 data-i18n="page.index.hero.title">AI24X Markets — US Market Intelligence</h1>
-            <p class="lead" data-i18n="page.index.hero.lead">Charts, technical indicators and plain-language AI commentary for US stocks, ETFs and indices. Understand the US market in 3 minutes — start free.</p>
-            <div class="tag-row">
-              <span class="tag" data-i18n="page.index.tag1">US stocks · ETFs · Indices</span>
-              <span class="tag" data-i18n="page.index.tag2">MA · MACD · RSI · Volume</span>
-              <a class="tag tag-value" href="https://markets.ai24x.com" data-markets target="_blank" rel="noopener" data-i18n="page.index.tagMarkets">Explore AI24X Markets</a>
-              <span class="tag tag-free" data-i18n="page.index.tagFree">PayPal subscription</span>
-            </div>
-            <div class="hero-cta">
-              <a class="btn btn-primary" href="https://markets.ai24x.com/app.html" data-markets target="_blank" rel="noopener" data-i18n="page.index.hero.cta.free">Start free</a>
-              <a class="btn" href="pricing.html" data-i18n="nav.pricing">Pricing</a>
-            </div>
+        <p class="hero-eyebrow" data-i18n="page.index.brand">AI24X</p>
+        <h1 class="hero-slogan" data-i18n="page.index.hero.title">One API. Every AI. Spend Smarter.</h1>
+        <p class="lead" data-i18n="page.index.hero.lead">One integration for many models — BYOK or managed. Match the right model to each job to spend smarter.</p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="register.html" data-i18n="page.index.hero.cta.free">Start Building Free</a>
+          <a class="btn" href="https://open.ai24x.com/" data-open target="_blank" rel="noopener" data-i18n="page.index.hero.cta.key">Get API Key</a>
+        </div>
+        <p class="hero-price-line" data-i18n-html="page.index.hero.priceLine">Compare models and pick better price / performance — <a href="pricing.html">see plans</a>.</p>
+        <ul class="hero-proof" aria-label="Key capabilities">
+          <li data-i18n="page.index.proof.compat">OpenAI Compatible</li>
+          <li data-i18n="page.index.proof.byok">BYOK</li>
+          <li data-i18n="page.index.proof.managed">Managed Billing</li>
+          <li data-i18n="page.index.proof.multi">Multi-Model</li>
+          <li data-i18n="page.index.proof.usage">Usage Control</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 2) Why now: one integration -->
+    <section class="section" id="why">
+      <div class="container">
+        <h2 data-i18n="page.index.unify.title">Stop Managing Multiple AI APIs.</h2>
+        <p class="sub" data-i18n="page.index.unify.sub">One integration. Multiple models. One dashboard.</p>
+        <div class="flow-board" aria-hidden="false">
+          <p class="flow-node" data-i18n="page.index.unify.app">Your App</p>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <p class="flow-node is-hub">AI24X</p>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <div class="flow-models">
+            <span>GPT</span>
+            <span>Claude</span>
+            <span>Gemini</span>
+            <span>DeepSeek</span>
+            <span>Qwen</span>
+            <span data-i18n="page.index.unify.more">More</span>
           </div>
-          <a class="lighthouse-mark lighthouse-hero" href="https://markets.ai24x.com" data-markets target="_blank" rel="noopener" aria-label="AI24X Markets">
-            <svg viewBox="0 0 120 64" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">
-              <rect x="0" y="0" width="120" height="64" fill="#0b1020"/>
-              <g opacity="0.4">
-                <rect x="10" y="8" width="1" height="1" fill="#fff"/>
-                <rect x="28" y="14" width="1" height="1" fill="#fff"/>
-                <rect x="52" y="7" width="1" height="1" fill="#fff"/>
-                <rect x="86" y="12" width="1" height="1" fill="#fff"/>
-                <rect x="104" y="6" width="1" height="1" fill="#fff"/>
-              </g>
-              <rect x="0" y="26" width="120" height="38" fill="#12161d"/>
-              <g opacity="0.25">
-                <rect x="0" y="33" width="120" height="2" fill="#181d26"/>
-                <rect x="0" y="42" width="120" height="2" fill="#181d26"/>
-                <rect x="0" y="51" width="120" height="2" fill="#181d26"/>
-              </g>
-              <rect x="18" y="46" width="20" height="3" rx="1" fill="#252b36"/>
-              <rect x="16" y="48" width="24" height="5" rx="2" fill="#181d26"/>
-              <g>
-                <rect x="29" y="27" width="6" height="22" fill="#181d26" stroke="#252b36" stroke-width="1"/>
-                <rect x="28" y="23" width="8" height="5" fill="#181d26" stroke="#252b36" stroke-width="1"/>
-                <rect x="30" y="19" width="4" height="4" fill="#181d26" stroke="#252b36" stroke-width="1"/>
-                <rect x="30" y="21" width="4" height="2" fill="#fbbf24" opacity="0.95"/>
-                <rect x="32" y="32" width="2" height="4" fill="#ffd56a" opacity="0.9"/>
-              </g>
-              <g data-anim="1">
-                <g>
-                  <animateTransform attributeName="transform" type="rotate" values="-6 33 22;6 33 22;-6 33 22" dur="4.2s" repeatCount="indefinite"/>
-                  <path d="M33 22 L120 13 L120 33 L33 28 Z" fill="#fbbf24" opacity="0.13"/>
-                  <path d="M33 23 L120 19 L120 28 L33 27 Z" fill="#ffd56a" opacity="0.11"/>
-                </g>
-              </g>
-              <g class="beam-boost">
-                <path d="M33 22 L120 17 L120 31 L33 27 Z" fill="#ffd56a" opacity="0.16"/>
-              </g>
-              <g data-anim="1" opacity="0.0">
-                <path d="M52 42 L120 34 L120 42 L52 50 Z" fill="#ffd56a" opacity="0.12"/>
-                <animate attributeName="opacity" values="0;1;0" dur="2.6s" repeatCount="indefinite"/>
-              </g>
-            </svg>
-            <span class="lm-label" data-i18n="page.index.lighthouse.label"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3) Cost: honest, no fake % -->
+    <section class="section section-alt" id="cost">
+      <div class="container">
+        <h2 data-i18n="page.index.cost.title">Why Pay More for AI?</h2>
+        <p class="sub" data-i18n="page.index.cost.sub">Match each workload to the right model — smart routing on BYOK Pro; top up managed credits here to control spend without rewriting your app.</p>
+        <div class="cost-grid">
+          <div class="card cost-card">
+            <h3 data-i18n="page.index.cost.c1t">Lower cost options</h3>
+            <p class="sub" data-i18n="page.index.cost.c1p">Use efficient models for everyday work; keep flagships for hard tasks — match the job, not the highest price.</p>
+          </div>
+          <div class="card cost-card">
+            <h3 data-i18n="page.index.cost.c2t">Better routing</h3>
+            <p class="sub" data-i18n="page.index.cost.c2p">One API surface; BYOK Pro adds smart routing and failover so you can switch models without rewriting your app.</p>
+          </div>
+          <div class="card cost-card">
+            <h3 data-i18n="page.index.cost.c3t">One clear bill</h3>
+            <p class="sub" data-i18n="page.index.cost.c3p">Managed billing when you want simplicity; BYOK when you already have provider keys.</p>
+          </div>
+        </div>
+        <div class="hero-cta" style="margin-top:18px">
+          <a class="btn btn-primary" href="pricing.html" data-i18n="page.index.cost.cta">View pricing</a>
+          <a class="btn" href="https://open.ai24x.com/" data-open target="_blank" rel="noopener" data-i18n="page.index.hero.cta.gateway">Open AI Gateway</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4) Who it's for -->
+    <section class="section" id="who">
+      <div class="container">
+        <h2 data-i18n="page.index.who.title">Built for how you ship AI</h2>
+        <p class="sub" data-i18n="page.index.who.sub">Pick your path — same account, same gateway.</p>
+        <div class="audience-grid">
+          <div class="card audience-card">
+            <h3 data-i18n="page.index.who.d.t">Developers</h3>
+            <p class="sub" data-i18n="page.index.who.d.p">Build once. Switch models anytime.</p>
+          </div>
+          <div class="card audience-card">
+            <h3 data-i18n="page.index.who.a.t">AI Agents</h3>
+            <p class="sub" data-i18n="page.index.who.a.p">Connect agents to multiple AI providers through one API.</p>
+          </div>
+          <div class="card audience-card">
+            <h3 data-i18n="page.index.who.b.t">Businesses</h3>
+            <p class="sub" data-i18n="page.index.who.b.p">Control AI usage, cost and API keys in one place.</p>
+          </div>
+          <div class="card audience-card">
+            <h3 data-i18n="page.index.who.p.t">Power users</h3>
+            <p class="sub" data-i18n="page.index.who.p.p">Use BYOK or managed AI access — your choice.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5) Platform vision (demoted) + live products -->
+    <section class="section section-alt" id="platform">
+      <div class="container">
+        <h2 data-i18n="page.index.platform.title">More Than an AI API</h2>
+        <p class="sub" data-i18n="page.index.platform.sub">AI24X is building the layer for AI-powered applications — connect models, run products, optimize cost and reliability.</p>
+        <p class="sub" style="margin-top:8px;font-weight:700;color:var(--heading)" data-i18n="page.index.platform.tagline">Connect. Run. Optimize AI.</p>
+        <div class="platform-tags">
+          <span data-i18n="page.index.platform.t1">AI Gateway</span>
+          <span data-i18n="page.index.platform.t2">AI Routing</span>
+          <span data-i18n="page.index.platform.t3">Cost Control</span>
+          <span data-i18n="page.index.platform.t5">AI Applications</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="products">
+      <div class="container">
+        <h2 data-i18n="page.index.products.title">Live products</h2>
+        <p class="sub" data-i18n="page.index.products.sub">Start with the gateway. Markets is our vertical app on the same account.</p>
+        <div class="product-grid">
+          <a class="product-tile is-primary" href="https://open.ai24x.com/" data-open target="_blank" rel="noopener">
+            <p class="host">open.ai24x.com</p>
+            <h3 data-i18n="page.index.products.gateway.t">AI Gateway</h3>
+            <p class="sub" data-i18n="page.index.products.gateway.p">Multi-model API with BYOK or managed access. Drop into Cursor, Codex, n8n and more.</p>
+            <span class="go" data-i18n="page.index.products.gateway.go">Open gateway →</span>
+          </a>
+          <a class="product-tile" href="https://markets.ai24x.com/" data-markets target="_blank" rel="noopener">
+            <p class="host">markets.ai24x.com</p>
+            <h3 data-i18n="page.index.products.markets.t">AI Markets</h3>
+            <p class="sub" data-i18n="page.index.products.markets.p">US charts, indicators and plain-language AI commentary. Educational use only — not investment advice.</p>
+            <span class="go" data-i18n="page.index.products.markets.go">Open Markets →</span>
           </a>
         </div>
       </div>
     </section>
 
-    <section class="section">
-      <div class="container" style="max-width:800px;margin:0 auto;text-align:center">
-        <h2 data-i18n="page.index.why.title">Why AI24X Markets?</h2>
-        <div class="grid-3" style="margin-top:14px">
-          <div class="card">
-            <h3 data-i18n="page.index.why.title1">Professional charts</h3>
-            <p class="sub" style="margin:0" data-i18n="page.index.why.p1">Daily, weekly and monthly K-lines with MA, MACD, RSI and volume — the indicators that matter, ready to read.</p>
-          </div>
-          <div class="card">
-            <h3 data-i18n="page.index.why.title2">AI commentary</h3>
-            <p class="sub" style="margin:0" data-i18n="page.index.why.p2">A clear technical-health summary of any symbol — what the indicators are saying, in plain language.</p>
-          </div>
-          <div class="card">
-            <h3 data-i18n="page.index.why.title3">Simple subscription</h3>
-            <p class="sub" style="margin:0" data-i18n="page.index.why.p3">Pro from $24.9/month or $199/year — PayPal. No hidden costs, no surprises.</p>
-          </div>
+    <section class="section-tight" style="border-top:1px solid var(--border);">
+      <div class="container" style="text-align:center;max-width:640px;margin:0 auto">
+        <h2 style="font-size:1.35rem;margin:0 0 8px" data-i18n="page.index.next.title">Start in minutes</h2>
+        <p class="sub" data-i18n="page.index.next.sub">Create an account, get a key, call flash — top up when you are ready.</p>
+        <div class="hero-cta" style="justify-content:center;margin-top:14px">
+          <a class="btn btn-primary" href="register.html" data-i18n="page.index.hero.cta.free">Start Building Free</a>
+          <a class="btn" href="https://open.ai24x.com/" data-open target="_blank" rel="noopener" data-i18n="page.index.hero.cta.key">Get API Key</a>
+          <a class="btn" href="pricing.html" data-i18n="page.index.cost.cta">View pricing</a>
+          <a class="btn" href="blog/index.html">Gateway guides</a>
         </div>
-      </div>
-    </section>
-
-    <section class="section section-alt">
-      <div class="container">
-        <h2 data-i18n="page.index.markets.title">Coverage, clarity and AI assistance</h2>
-        <p class="sub" data-i18n="page.index.markets.sub">Everything you need to follow the US market — quotes, charts, indicators and AI commentary in one clean tool.</p>
-        <div class="grid-3" style="margin-top:14px">
-          <div class="card">
-            <h3 data-i18n="page.index.markets.f1t">Full US coverage</h3>
-            <p class="sub" style="margin:0" data-i18n="page.index.markets.f1p">US stocks, ETFs and indices — quotes, charts and indicators in one place.</p>
-          </div>
-          <div class="card">
-            <h3 data-i18n="page.index.markets.f2t">AI descriptive commentary</h3>
-            <p class="sub" style="margin:0" data-i18n="page.index.markets.f2p">Daily per-symbol commentary from our AI engine, cached for stability and cost-efficiency.</p>
-          </div>
-          <div class="card">
-            <h3 data-i18n="page.index.markets.f3t">Subscribe in minutes</h3>
-            <p class="sub" style="margin:0" data-i18n="page.index.markets.f3p">Pro $24.9/month or $199/year, paid via PayPal.</p>
-          </div>
-        </div>
-        <div class="hero-cta" style="justify-content:center;margin-top:16px">
-          <a class="btn btn-primary" href="https://markets.ai24x.com" data-markets target="_blank" rel="noopener" data-i18n="page.index.markets.cta">Explore AI24X Markets</a>
-        </div>
-      </div>
-    </section>
-
-    <section class="section section-alt">
-      <div class="container">
-        <h2 data-i18n="page.index.how.title">How it works</h2>
-        <p class="sub" data-i18n="page.index.how.sub">Three steps to market clarity.</p>
-        <div class="grid-3">
-          <div class="card">
-            <h3 data-i18n="page.index.how.s1t">Search a symbol</h3>
-            <p data-i18n="page.index.how.s1p">AAPL, SPY, ^GSPC — any US stock, ETF or index.</p>
-          </div>
-          <div class="card">
-            <h3 data-i18n="page.index.how.s2t">Read the charts</h3>
-            <p data-i18n="page.index.how.s2p">K-lines with MA, MACD, RSI and volume — plus our AI's technical-health summary.</p>
-          </div>
-          <div class="card">
-            <h3 data-i18n="page.index.how.s3t">Ask AI</h3>
-            <p data-i18n="page.index.how.s3p">AI reads the charts for you — trend, momentum, volume and watch points in plain language.</p>
-          </div>
-        </div>
-        <div class="hero-cta" style="justify-content:center;margin-top:16px">
-          <a class="btn btn-primary" href="https://markets.ai24x.com" data-markets target="_blank" rel="noopener" data-i18n="page.index.how.cta">Try AI24X Markets</a>
-        </div>
-      </div>
-    </section>
-
-    <section class="section-tight" style="border-top:1px solid var(--border, #243040);">
-      <div class="container" style="text-align:center;">
-        <p class="sub" style="margin:0;font-weight:600;color:var(--muted, #9aa8b8);" data-i18n="page.index.fleet">Powered by the AI24X autonomous agent fleet</p>
-        <p class="sub" style="margin:6px 0 0;" data-i18n="page.index.fleetSub">An always-on autonomous agent fleet keeps market data, AI commentary and service running 24/7.</p>
-        <p class="sub" style="margin:10px 0 0;"><a href="about.html" data-i18n="page.index.fleetLink">Learn more about AI24X</a></p>
       </div>
     </section>
   </main>
 
   <footer class="site-footer" id="site-footer"></footer>
 
-  <script src="config/locales.js?v=20260825a"></script>
-  <script src="js/api.js?v=20260823d"></script>
+  <script src="config/locales.js?v=20260826s"></script>
+  <script src="js/api.js?v=20260826s"></script>
   <script src="js/utm.js?v=20260802a"></script>
-  <script src="js/i18n.js?v=20260818q"></script>
-  <script src="js/shell.js?v=20260825a"></script>
+  <script src="js/i18n.js?v=20260826m"></script>
+  <script src="js/shell.js?v=20260826n"></script>
   <script src="js/app.js?v=20260818b"></script>
   <script src="js/support-widget.js?v=20260817b"></script>
 </body>

@@ -194,10 +194,57 @@ img {
 
 .header-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
+  min-width: 0;
+}
+
+.header-actions .header-upgrade,
+.header-actions .header-gateway {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.header-actions .header-upgrade {
+  background: var(--accent);
+  color: var(--accent-ink, #fff);
+  border: 1px solid transparent;
+}
+
+.header-actions .header-upgrade:hover {
+  filter: brightness(1.06);
+  color: var(--accent-ink, #fff);
+  text-decoration: none;
+}
+
+.header-actions .header-gateway {
+  padding: 7px 12px;
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  background: transparent;
+}
+
+.header-actions .header-gateway:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  text-decoration: none;
+}
+
+.header-actions .lang-select {
+  flex-shrink: 0;
+  max-width: 118px;
+  padding: 7px 8px;
 }
 
 .select-mini,
@@ -280,6 +327,13 @@ img {
   box-shadow: 0 5px 0 currentColor, 0 10px 0 currentColor;
 }
 
+@media (max-width: 1100px) {
+  /* 中宽屏：先藏次要「Get API Key」，保住主 CTA + 语言 */
+  .header-actions .header-gateway {
+    display: none;
+  }
+}
+
 @media (max-width: 960px) {
   .header-inner {
     grid-template-columns: auto auto auto;
@@ -298,6 +352,16 @@ img {
 
   .header-actions {
     grid-area: actions;
+    gap: 6px;
+  }
+
+  .header-actions .header-upgrade {
+    padding: 7px 12px;
+    font-size: 0.8rem;
+  }
+
+  .header-actions .lang-select {
+    max-width: 100px;
   }
 
   .nav-main {
@@ -347,6 +411,14 @@ img {
 
   .header-actions .select-mini.theme-select {
     display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  /* 超窄：主 CTA 缩成短标，语言仍在 */
+  .header-actions .header-upgrade {
+    padding: 7px 10px;
+    font-size: 0.75rem;
   }
 }
 

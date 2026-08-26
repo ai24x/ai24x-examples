@@ -364,24 +364,24 @@ def public_products() -> Dict[str, Any]:
                 "title_zh": "AI24X 行情官 · 国际版 Pro",
                 "desc": (
                     "Charts, technical indicators and unlimited AI commentary for "
-                    "US stocks, ETFs and indices. Pay with WeChat, Alipay, PayPal or Creem."
+                    "US stocks, ETFs and indices. Pay with WeChat, Alipay, PayPal or USDT."
                 ),
                 "desc_zh": (
                     "美股/ETF/指数 K线、技术指标与 AI 点评不限次。"
-                    "支持微信、支付宝、PayPal、Creem 支付。"
+                    "支持微信、支付宝、PayPal、USDT 支付。"
                 ),
                 "url": "https://markets.ai24x.com",
                 "plans": markets_plans,
             },
             {
                 "product": "token",
-                "title": "Token API",
-                "title_zh": "Token 接口开发",
+                "title": "AI Gateway credits",
+                "title_zh": "AI Gateway 额度",
                 "desc": (
-                    "Credits and named model access for the AI24X API. "
-                    "Developer portal: open.ai24x.com."
+                    "Top up managed credits and named-model access here. "
+                    "API keys and docs: open.ai24x.com."
                 ),
-                "desc_zh": "AI24X API 额度与点名模型资格，开发者门户：open.ai24x.com。",
+                "desc_zh": "在此充值托管额度与点名资格；API Key 与文档在 open.ai24x.com。",
                 "url": "https://open.ai24x.com",
                 "plans": data.get("plans") or [],
             },

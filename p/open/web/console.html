@@ -76,10 +76,28 @@
   <link rel="stylesheet" href="css/base.css?v=20260812e" />
   <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260812e" data-base="css/themes/" />
   <style>
-    /* console: 超值包已购点亮 */
+    /* console: 套餐行（与主站 console 对齐） */
+    .product-plans { display: flex; flex-direction: column; gap: 8px; }
+    .product-plan-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--border-soft, rgba(148, 163, 184, 0.25)); border-radius: 10px; }
+    .product-plan-row.is-recommended { background: color-mix(in srgb, var(--accent, #2563eb) 6%, transparent); }
+    .product-plan-info { min-width: 0; flex: 1; }
+    .product-plan-info strong { font-size: 0.95rem; display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .product-plan-act { flex-shrink: 0; }
+    .product-plan-act .btn { min-width: 84px; justify-content: center; }
+    .product-plan-row.vp-lit { background: linear-gradient(90deg, rgba(245, 158, 11, 0.10), rgba(245, 158, 11, 0.02)); box-shadow: inset 3px 0 0 rgba(245, 158, 11, 0.9); }
+    .product-plan-row .vp-lit-badge,
+    .plan-compare .vp-lit-badge { display: inline-block; margin-left: 0; padding: 1px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; color: #0f7b4e; border: 1px solid rgba(15, 123, 78, 0.55); background: rgba(15, 123, 78, 0.10); }
+    .product-plan-info .plan-rec { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; color: var(--accent, #2563eb); border: 1px solid color-mix(in srgb, var(--accent, #2563eb) 40%, transparent); }
+    .plan-card-active { font-size: 0.85rem; font-weight: 600; color: var(--accent, #2563eb); }
+    .billing-hub-link { margin: 6px 0 0; font-size: 0.88rem; }
+    @media (max-width: 560px) {
+      .product-plan-row { flex-wrap: wrap; }
+      .product-plan-act { width: 100%; }
+      .product-plan-act .btn { width: 100%; }
+    }
+    /* console: 超值包已购点亮（旧表兼容） */
     .plan-compare tr.vp-lit td { background: linear-gradient(90deg, rgba(245, 158, 11, 0.10), rgba(245, 158, 11, 0.02)); }
     .plan-compare tr.vp-lit td:first-child { box-shadow: inset 3px 0 0 rgba(245, 158, 11, 0.9); }
-    .plan-compare .vp-lit-badge { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; color: #0f7b4e; border: 1px solid rgba(15, 123, 78, 0.55); background: rgba(15, 123, 78, 0.10); }
         /* console: 卡片等高 + 动作贴底 + 按钮统一 */
     .console-panel .card { display: flex; flex-direction: column; }
     .console-panel .card .card-actions { margin-top: auto; }
@@ -432,41 +450,41 @@
             </div>
           </div>
 
-          <!-- BYOK keys（用户自带 key） -->
+          <!-- BYOK keys -->
           <div class="console-panel" id="panel-byok" data-console-panel="byok" role="tabpanel" hidden>
             <div class="console-panel-head">
-              <h2 class="mt-0">BYOK keys · 自带 Key，即开即用</h2>
-              <p class="sub" id="byok-fee-note">平台只收取网关服务费，不赚差价；你的 key 按你的原厂价消耗。相同请求命中缓存时不消耗额度。</p>
+              <h2 class="mt-0" data-i18n="page.console.byok.title">BYOK keys · bring your own keys</h2>
+              <p class="sub" id="byok-fee-note" data-i18n="page.console.byok.feeNote">Gateway service fee only — your keys bill at provider rates. Cache hits do not spend quota.</p>
             </div>
 
             <div class="card" id="byok-status-card" style="display:none">
               <div class="stats-grid byok-stats-grid">
                 <div class="stat-card">
-                  <div class="stat-label">网关状态</div>
+                  <div class="stat-label" data-i18n="page.console.byok.statusLabel">Gateway</div>
                   <div class="stat-value" id="byok-status-enabled">--</div>
-                  <div class="stat-sub">BYOK_ENABLED</div>
+                  <div class="stat-sub" data-i18n="page.console.byok.statusSub">On / off</div>
                 </div>
                 <div class="stat-card">
-                  <div class="stat-label">免费档本月</div>
+                  <div class="stat-label" data-i18n="page.console.byok.freeLabel">Free tier this month</div>
                   <div class="stat-value" id="byok-status-free">--</div>
-                  <div class="stat-sub">BYOK 请求 / 上限</div>
+                  <div class="stat-sub" data-i18n="page.console.byok.freeSub">BYOK requests / limit</div>
                 </div>
                 <div class="stat-card">
-                  <div class="stat-label">请求缓存</div>
+                  <div class="stat-label" data-i18n="page.console.byok.cacheLabel">Request cache</div>
                   <div class="stat-value" id="byok-status-cache">--</div>
-                  <div class="stat-sub">TTL / 进程内条目</div>
+                  <div class="stat-sub" data-i18n="page.console.byok.cacheSub">TTL / in-memory entries</div>
                 </div>
                 <div class="stat-card">
-                  <div class="stat-label">平台回退</div>
+                  <div class="stat-label" data-i18n="page.console.byok.fallbackLabel">Platform fallback</div>
                   <div class="stat-value" id="byok-status-fallback">--</div>
-                  <div class="stat-sub">自有 key 全失败时</div>
+                  <div class="stat-sub" data-i18n="page.console.byok.fallbackSub">When all your keys fail</div>
                 </div>
               </div>
             </div>
 
             <div class="card">
               <div class="keys-toolbar">
-                <h3 class="mt-0 mb-0">添加自有 Key</h3>
+                <h3 class="mt-0 mb-0" data-i18n="page.console.byok.addTitle">Add your key</h3>
               </div>
               <div class="byok-form-grid mt-2">
                 <label>
@@ -476,78 +494,78 @@
                     <option value="anthropic">Anthropic (Messages API)</option>
                     <option value="deepseek">DeepSeek</option>
                     <option value="openrouter">OpenRouter</option>
-                    <option value="siliconflow">硅基流动 SiliconFlow</option>
+                    <option value="siliconflow">SiliconFlow</option>
                     <option value="together">Together AI</option>
                     <option value="moonshot">Moonshot Kimi</option>
-                    <option value="zhipu">智谱 GLM</option>
-                    <option value="qwen">阿里云百炼 DashScope</option>
+                    <option value="zhipu">Zhipu GLM</option>
+                    <option value="qwen">DashScope (Qwen)</option>
                     <option value="xai">xAI Grok</option>
                     <option value="groq">Groq</option>
                     <option value="mistral">Mistral</option>
-                    <option value="custom">自定义 OpenAI 兼容</option>
+                    <option value="custom" data-i18n="page.console.byok.customOpt">Custom OpenAI-compatible</option>
                   </select>
                 </label>
                 <label>
-                  <span class="stat-label">名称（可选）</span>
-                  <input class="input" id="byok-name" type="text" maxlength="64" placeholder="如：主力 DeepSeek / 备用 OpenAI" autocomplete="off" />
+                  <span class="stat-label" data-i18n="page.console.byok.nameLabel">Name (optional)</span>
+                  <input class="input" id="byok-name" type="text" maxlength="64" placeholder="e.g. Primary DeepSeek" data-i18n-placeholder="page.console.byok.namePh" autocomplete="off" />
                 </label>
                 <label class="byok-form-wide">
-                  <span class="stat-label">API Key（AES-256-GCM 加密存储，只显示前缀）</span>
+                  <span class="stat-label" data-i18n="page.console.byok.keyLabel">API Key (encrypted at rest; prefix only shown)</span>
                   <input class="input" id="byok-api-key" type="password" placeholder="sk-..." autocomplete="off" />
                 </label>
                 <label class="byok-form-wide">
-                  <span class="stat-label">可服务模型（逗号分隔，留空=全部；如 gpt-4o, gpt-4o-mini / deepseek-chat）</span>
-                  <input class="input" id="byok-models" type="text" placeholder="留空可服务该 Provider 任意模型" autocomplete="off" />
+                  <span class="stat-label" data-i18n="page.console.byok.modelsLabel">Models (comma-separated; empty = all)</span>
+                  <input class="input" id="byok-models" type="text" placeholder="Leave empty for any model" data-i18n-placeholder="page.console.byok.modelsPh" autocomplete="off" />
                 </label>
                 <label>
-                  <span class="stat-label">自定义 Base URL（custom 必填）</span>
+                  <span class="stat-label" data-i18n="page.console.byok.baseLabel">Custom base URL (required for custom)</span>
                   <input class="input" id="byok-base-url" type="text" placeholder="https://..." autocomplete="off" />
                 </label>
                 <label>
-                  <span class="stat-label">优先级（越小越优先）</span>
+                  <span class="stat-label" data-i18n="page.console.byok.prioLabel">Priority (lower = first)</span>
                   <input class="input" id="byok-priority" type="number" min="0" max="999" value="100" />
                 </label>
               </div>
               <div class="card-actions mt-2">
-                <button type="button" class="btn" id="btn-byok-test">测试 Key（不发请求以外开销）</button>
-                <button type="button" class="btn btn-primary" id="btn-byok-save">保存 Key</button>
+                <button type="button" class="btn" id="btn-byok-test" data-i18n="page.console.byok.testBtn">Test key</button>
+                <button type="button" class="btn btn-primary" id="btn-byok-save" data-i18n="page.console.byok.saveBtn">Save key</button>
                 <span class="sub" id="byok-form-msg"></span>
               </div>
             </div>
 
             <div class="card">
               <div class="keys-toolbar">
-                <h3 class="mt-0 mb-0">我的自有 Key</h3>
-                <button type="button" class="btn" id="btn-byok-refresh-keys">刷新</button>
+                <h3 class="mt-0 mb-0" data-i18n="page.console.byok.listTitle">My BYOK keys</h3>
+                <button type="button" class="btn" id="btn-byok-refresh-keys" data-i18n="page.console.byok.refresh">Refresh</button>
               </div>
               <div class="keys-table-wrap mt-2">
                 <table class="keys-table" aria-label="BYOK keys">
                   <thead>
                     <tr>
                       <th>Provider</th>
-                      <th>名称</th>
-                      <th>Key（前缀）</th>
-                      <th>模型</th>
-                      <th>状态</th>
-                      <th>延迟/成功率</th>
-                      <th>最近使用</th>
-                      <th class="keys-col-actions">操作</th>
+                      <th data-i18n="page.console.byok.colName">Name</th>
+                      <th data-i18n="page.console.byok.colKey">Key prefix</th>
+                      <th data-i18n="page.console.byok.colModels">Models</th>
+                      <th data-i18n="page.console.byok.colStatus">Status</th>
+                      <th data-i18n="page.console.byok.colLatency">Latency / success</th>
+                      <th data-i18n="page.console.byok.colLast">Last used</th>
+                      <th class="keys-col-actions" data-i18n="page.console.keys.col.actions">Actions</th>
                     </tr>
                   </thead>
                   <tbody id="byokKeysList"></tbody>
                 </table>
               </div>
-              <p class="sub mt-2">同一模型可挂多把 Key：平台按成功率 / 延迟 / 优先级自动选最优，故障自动切换，请求不中断。</p>
+              <p class="sub mt-2" data-i18n="page.console.byok.listHint">Multiple keys per model: we pick by success / latency / priority and fail over automatically.</p>
             </div>
 
             <div class="card">
               <div class="keys-toolbar">
-                <h3 class="mt-0 mb-0">用量 &amp; 成本看板</h3>
+                <h3 class="mt-0 mb-0" data-i18n="page.console.byok.usageTitle">Usage &amp; cost</h3>
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                   <select class="input" id="byok-usage-days" style="width:auto">
-                    <option value="1">近 1 天</option>
-                    <option value="7" selected>近 7 天</option>
-                    <option value="30">近 30 天</option>
+                    <option value="1" data-i18n="page.console.byok.days1">Last 1 day</option>
+                    <option value="7" selected data-i18n="page.console.byok.days7">Last 7 days</option>
+                    <option value="30" data-i18n="page.console.byok.days30">Last 30 days</option>
                   </select>
                   <select class="input" id="byok-usage-group" style="width:auto">
                     <option value="key" selected>按 Key</option>
@@ -604,6 +622,9 @@
             <div class="console-panel-head">
               <h2 class="mt-0" data-i18n="page.console.nav.plans">Plans</h2>
               <p class="sub" id="payHint" data-i18n="page.console.plans.loading">Loading…</p>
+              <p class="billing-hub-link sub">
+                <a href="https://www.ai24x.com/console.html#billing" target="_blank" rel="noopener" data-i18n="page.console.plans.wwwHub">Account hub on www · all products</a>
+              </p>
             </div>
             <div class="byok-sub-banner" id="byokSubBanner" hidden>
               <div>
@@ -611,10 +632,6 @@
                 <div class="byok-sub-sub" id="byokSubSub"></div>
               </div>
               <div class="byok-sub-act" id="byokSubAct"></div>
-            </div>
-            <div class="plans-tabs" role="tablist" aria-label="Plans">
-              <button type="button" class="plans-tab is-active" data-plan-tab="byok" data-i18n="page.console.plans.byokTab">BYOK plans</button>
-              <button type="button" class="plans-tab" data-plan-tab="token" data-i18n="page.console.plans.tokenTab">Token plans</button>
             </div>
             <div id="token-plans" class="plan-billing-stack">
               <div class="plans-group" id="plansGroupByok">
@@ -624,14 +641,14 @@
                   <div id="byokPlansList" class="mt-2"></div>
                 </div>
               </div>
-              <div class="plans-group" id="plansGroupToken" hidden>
+              <div class="plans-group" id="plansGroupToken" style="margin-top:1rem">
                 <div class="card">
                   <h3 class="mt-0" data-i18n="page.console.plans.title">Token plans</h3>
                   <p class="sub" data-i18n="page.console.plans.legend">Quick compare: Credits · Named access. Scale and VIP Pass unlock named models; Starter/Builder/Advanced are prepaid credits.</p>
                   <div id="plansList" class="mt-2"></div>
                 </div>
               </div>
-              <div class="card">
+              <div class="card" style="margin-top:1rem">
                 <h3 class="mt-0" data-i18n="page.console.orders.title">My orders</h3>
                 <p class="sub" data-i18n="page.console.orders.sub">Pending orders: confirm payment</p>
                 <ul class="list-clean" id="ordersList"></ul>
@@ -737,6 +754,7 @@
               <div class="form-group mt-2">
                 <label data-i18n="page.console.apiurl">API Base</label>
                 <input type="url" class="input" id="api-base" placeholder="https://api.ai24x.com" />
+                <p class="sub" id="api-base-locked-hint" hidden data-i18n="page.console.apiurl.locked">Production uses the official API host (not editable).</p>
               </div>
               <div class="form-group">
                 <label data-i18n="page.console.apikey">API Key (full secret)</label>
@@ -834,11 +852,11 @@
               </div>
               <div class="form-group">
                 <label for="acct-new-pass" data-i18n="page.console.password.new">New password</label>
-                <input id="acct-new-pass" type="password" class="input" minlength="8" autocomplete="new-password" />
+                <input id="acct-new-pass" type="password" class="input" autocomplete="new-password" />
               </div>
               <div class="form-group">
                 <label for="acct-new-pass2" data-i18n="page.console.password.confirm">Confirm new password</label>
-                <input id="acct-new-pass2" type="password" class="input" minlength="8" autocomplete="new-password" />
+                <input id="acct-new-pass2" type="password" class="input" autocomplete="new-password" />
               </div>
               <div class="card-actions">
                 <button type="button" class="btn btn-primary" id="btn-change-password" data-i18n="page.console.password.change">Change password</button>
@@ -907,14 +925,14 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260821b"></script>
-  <script src="js/api.js?v=20260824a"></script>
+  <script src="config/locales.js?v=20260826s"></script>
+  <script src="js/api.js?v=20260826s"></script>
   <script src="js/invite.js?v=20260731a"></script>
   <script src="js/utm.js?v=20260802a"></script>
   <script src="js/i18n.js?v=20260812g"></script>
-  <script src="js/shell.js?v=20260817z"></script>
+  <script src="js/shell.js?v=20260826k"></script>
   <script src="js/app.js?v=20260808b"></script>
-  <script src="js/console.js?v=20260823b"></script>
+  <script src="js/console.js?v=20260826s"></script>
   <script src="js/support-widget.js?v=20260817z"></script>
 </body>
 </html>

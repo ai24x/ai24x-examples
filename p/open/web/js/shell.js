@@ -6,6 +6,24 @@
   var THEME_PICKER_ENABLED = false;
   var DEFAULT_THEME = "blue";
 
+  function preferLocalWww() {
+    try {
+      var h = String(location.hostname || "").toLowerCase();
+      if (h !== "127.0.0.1" && h !== "localhost") return false;
+      var flag = "";
+      try {
+        flag = String(localStorage.getItem("ai24x_local_products") || "").trim();
+      } catch (e) {}
+      return flag !== "0";
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function wwwBase() {
+    return preferLocalWww() ? "http://127.0.0.1:8000" : "https://www.ai24x.com";
+  }
+
   function esc(s) {
     return String(s || "").replace(/"/g, "&quot;");
   }
@@ -156,6 +174,9 @@
       '<a href="' +
       pre +
       'guides/index.html" data-i18n="footer.link.guides"></a>' +
+      '<a href="' +
+      wwwBase() +
+      '/blog/index.html" target="_blank" rel="noopener" data-i18n="footer.link.blog"></a>' +
       '<a href="' +
       pre +
       'help.html" data-i18n="footer.link.help"></a>' +

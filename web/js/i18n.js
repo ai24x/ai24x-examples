@@ -1,17 +1,17 @@
 /**
  * 国际化 — 语言包为扁平 key：nav.home、page.index.title 等
  *
- * 策略（2026-08-02 · 国际站低调默认英文）：
- * - 已选过语言（localStorage）→ 永远尊重
- * - ?lang=xx 可强制并写入（便于自测 / 运营链接）
- * - 首访：固定英文（不跟浏览器语言自动切中文；中文等靠用户手动切）
- * - 其它语言选项：英文打底，避免缺译回落到中文造成中英混杂
+ * 策略（2026-08-26 恢复多语言壳层）：
+ * - 默认英文；已选语言 / ?lang= 尊重 localStorage
+ * - 不跟浏览器自动切中文（避免国际首访误进中文）
+ * - 其它语言缺译回退英文（正文可保持英文；zh 用完整中文包）
+ * - 导航 / 页脚 / CTA 可切换；长文 SEO 正文以英文为主
  */
 (function (global) {
   var LANG_KEY = "ai24x_lang";
   var ALLOWED = { zh: 1, en: 1, ja: 1, ko: 1, de: 1, fr: 1, es: 1 };
-  /** 官网仅英文（合规红线，2026-08-17）：www 主站强制英文 UI，忽略 localStorage / ?lang；markets 应用不受影响 */
-  var FORCE_EN = true;
+  /** false = 允许语言栏；true 仅英文（历史合规开关，已关闭） */
+  var FORCE_EN = false;
 
   function normalizeLang(code) {
     var c = String(code || "")
@@ -95,11 +95,11 @@
     var htmlMap = {
       zh: "zh-CN",
       en: "en",
-      ja: "en",
-      ko: "en",
-      de: "en",
-      fr: "en",
-      es: "en",
+      ja: "ja",
+      ko: "ko",
+      de: "de",
+      fr: "fr",
+      es: "es",
     };
     var lang = getLang();
     document.documentElement.lang = htmlMap[lang] || (lang === "zh" ? "zh-CN" : "en");

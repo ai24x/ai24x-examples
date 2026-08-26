@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- [AI24X 2026-08-15] Google Ads 暂停 (国际支付无合规渠道，保留待恢复，勿删）：
+<!-- [AI24X 2026-08-15] Google Ads 暂停 (国际支付无合规渠道，保留待恢复，勿删)：
 
 <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18385419220"></script>
 <script>
@@ -46,20 +46,20 @@
 })();
 </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>AI24X Open — AI-assisted developer gateway</title>
-  <meta name="description" content="One OpenAI-compatible endpoint for leading models. Bring your own keys or start instantly — auto-routing, request caching, and a cost dashboard. Service fee only." />
-  <link rel="canonical" href="https://www.ai24x.com/" />
+  <title>AI24X — AI Gateway · One API. Every AI. Pay Less.</title>
+  <meta name="description" content="AI Gateway for developers: one OpenAI-compatible endpoint, BYOK or managed billing, routing, failover, and a cost dashboard. Start free." />
+  <link rel="canonical" href="https://open.ai24x.com/" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="AI24X" />
-  <meta property="og:title" content="AI24X Open — AI-assisted developer gateway" />
-  <meta property="og:description" content="One endpoint for leading models: bring your own keys or start instantly. Auto-routing, caching, and a cost dashboard. Service fee only." />
-  <meta property="og:url" content="https://www.ai24x.com/" />
+  <meta property="og:title" content="AI24X — AI Gateway · One API. Every AI. Pay Less." />
+  <meta property="og:description" content="Developer AI Gateway: OpenAI-compatible API, BYOK or managed, routing and cost control. Start free." />
+  <meta property="og:url" content="https://open.ai24x.com/" />
   <meta property="og:image" content="https://www.ai24x.com/img/og-share.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="AI24X Open — AI-assisted developer gateway" />
-  <meta name="twitter:description" content="One endpoint for leading models. Auto-routing, request cache, cost dashboard. OpenAI-compatible, service fee only." />
+  <meta name="twitter:title" content="AI24X — AI Gateway · One API. Every AI. Pay Less." />
+  <meta name="twitter:description" content="OpenAI-compatible multi-model API for developers. BYOK or managed." />
   <meta name="twitter:image" content="https://www.ai24x.com/img/og-share.png" />
   <link rel="stylesheet" href="css/base.css?v=20260812e" />
   <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260812e" data-base="css/themes/" />
@@ -68,16 +68,98 @@
     .tag-row a.tag-value { color: #fff; }
     .tag-row a.tag-value:hover { color: #fff; filter: brightness(1.12); text-decoration: none; }
     .tag-row a.tag-value::after { content: " \2192"; font-weight: 600; }
+    .hero-eyebrow {
+      margin: 0 0 10px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--accent, #2563eb);
+    }
+    /* Developer path — product diagram, not marketing collage */
+    .gw-path {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.15fr) auto minmax(0, 1.35fr);
+      gap: 10px 12px;
+      align-items: center;
+      margin-top: 20px;
+      padding: 20px 16px;
+      border: 1px solid var(--border, #d8e4ef);
+      border-radius: var(--radius, 14px);
+      background: color-mix(in srgb, var(--accent, #2563eb) 3%, var(--card-bg, #fff));
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.82rem;
+    }
+    .gw-path-node {
+      margin: 0;
+      padding: 12px 10px;
+      text-align: center;
+      border-radius: 10px;
+      border: 1px dashed color-mix(in srgb, var(--accent, #2563eb) 28%, var(--border, #d8e4ef));
+      background: var(--card-bg, #fff);
+      font-weight: 700;
+      color: var(--heading, #0c1a2e);
+    }
+    .gw-path-node.is-hub {
+      border-style: solid;
+      border-color: color-mix(in srgb, var(--accent, #2563eb) 50%, transparent);
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent, #2563eb) 12%, transparent);
+      color: var(--accent, #2563eb);
+    }
+    .gw-path-arrow {
+      color: var(--muted, #64748b);
+      font-weight: 700;
+      user-select: none;
+    }
+    .gw-path-models {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+    }
+    .gw-path-models span {
+      padding: 5px 9px;
+      border-radius: 8px;
+      border: 1px solid var(--border, #d8e4ef);
+      background: color-mix(in srgb, var(--accent, #2563eb) 5%, transparent);
+      font-weight: 600;
+      font-size: 0.78rem;
+    }
+    .try-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+      gap: 22px;
+      align-items: start;
+      margin-top: 18px;
+    }
+    .try-panel h3 { margin: 0 0 8px; font-size: 1.05rem; }
+    .www-hub-note {
+      margin: 28px 0 0;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border, #d8e4ef);
+      background: var(--card-bg, #fff);
+      text-align: center;
+      font-size: 0.92rem;
+    }
+    @media (max-width: 860px) {
+      .try-grid { grid-template-columns: 1fr; }
+      .gw-path {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+      .gw-path-arrow { transform: rotate(90deg); justify-self: center; }
+    }
   </style>
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    "name": "AI24X",
+    "name": "AI24X AI Gateway",
     "applicationCategory": "DeveloperApplication",
     "operatingSystem": "Web",
-    "url": "https://www.ai24x.com/index.html",
-    "description": "A model gateway for developers: bring your own keys or start instantly. Auto-routing, request caching, and a cost dashboard behind one OpenAI-compatible endpoint.",
+    "url": "https://open.ai24x.com/",
+    "description": "AI Gateway for developers: one OpenAI-compatible API for multiple models — BYOK or managed billing, auto-routing, failover, and a cost dashboard.",
     "offers": {
       "@type": "Offer",
       "price": "0",
@@ -98,28 +180,67 @@
   <main class="page-main">
     <section class="hero hero-surface">
       <div class="container">
-        <p class="hero-eyebrow" style="margin:0 0 10px;font-size:0.92rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--accent,#2563eb)" data-i18n="page.index.brand">AI24X — AI-assisted tools for markets &amp; developers.</p>
-        <h1 data-i18n="page.index.hero.title">Your keys. Smarter routing.</h1>
-        <p class="lead" data-i18n="page.index.hero.lead">Bring your own keys (OpenAI, Anthropic, DeepSeek, OpenRouter, SiliconFlow…) or start instantly with managed access. Multiple keys per model auto-switch on errors, so requests never fail. OpenAI-compatible, no code changes, per-key cost dashboard included.</p>
+        <p class="hero-eyebrow" data-i18n="page.index.brand">AI Gateway</p>
+        <h1 data-i18n="page.index.hero.title">One API. Every AI. Pay Less.</h1>
+        <p class="lead" data-i18n="page.index.hero.lead">For developers: one OpenAI-compatible endpoint — bring your own keys or use managed billing. Routing, failover, and a cost dashboard included.</p>
         <div class="tag-row">
-          <span class="tag" data-i18n="page.index.tag1">BYOK · your keys</span>
-          <span class="tag" data-i18n="page.index.tag2">Auto-routing · never interrupted</span>
+          <span class="tag" data-i18n="page.index.tag1">OpenAI Compatible</span>
+          <span class="tag" data-i18n="page.index.tag2">BYOK · Managed</span>
           <a class="tag tag-value" href="pricing.html#byok" data-i18n="page.index.tagValue">BYOK Pro · $9.9/mo</a>
-          <span class="tag tag-free" data-i18n="page.index.tagFree">Free tier</span>
+          <span class="tag tag-free" data-i18n="page.index.tagFree">Start free</span>
         </div>
-        <p class="sub small" style="margin:14px auto 0;max-width:760px;" data-i18n="page.index.compliance">We charge a gateway service fee — never a token markup. Your keys are AES-256 encrypted, never stored or logged in plaintext.</p>
         <div class="hero-cta">
-          <a class="btn btn-primary" href="register.html" data-i18n="page.index.hero.cta.register">Create account</a>
-          <a class="btn" href="pricing.html" data-i18n="nav.pricing">Pricing</a>
-          <a class="btn" href="pricing.html#byok" data-i18n="page.index.hero.cta.a">BYOK plans</a>
+          <a class="btn btn-primary" href="register.html" data-i18n="page.index.hero.cta.register">Start Building Free</a>
+          <a class="btn" href="console.html" data-i18n="page.index.start.btnConsole">Get API Key</a>
+          <a class="btn" href="pricing.html" data-i18n="nav.pricing">View pricing</a>
+        </div>
+        <p class="sub small" style="margin:14px 0 0;max-width:720px" data-i18n="page.index.compliance">Gateway service fee on BYOK — no markup on your provider usage. Keys encrypted at rest; never logged in plaintext.</p>
+      </div>
+    </section>
+
+    <!-- Product surface: code + path (differs from www conversion funnel) -->
+    <section class="section section-alt" id="try">
+      <div class="container">
+        <h2 data-i18n="page.index.try.title">Call it like OpenAI</h2>
+        <p class="sub" data-i18n-html="page.index.try.sub">Point your SDK at <code>https://api.ai24x.com/v1</code>. Same chat completions shape — switch models without rewriting clients.</p>
+        <div class="try-grid">
+          <div class="try-panel">
+            <h3 data-i18n="page.index.try.codeTitle">Quick start</h3>
+            <div class="code-block" aria-label="curl-completions">curl -X POST "https://api.ai24x.com/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -d "{\"model\":\"flash\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello AI24X\"}],\"stream\":false}"</div>
+            <div class="hero-cta" style="margin-top:14px">
+              <a class="btn" href="docs.html" data-i18n="btn.docs">View docs</a>
+              <a class="btn" href="guides/index.html" data-i18n="btn.guides">Integrations</a>
+            </div>
+          </div>
+          <div class="try-panel">
+            <h3 data-i18n="page.index.try.pathTitle">Request path</h3>
+            <div class="gw-path" aria-label="Gateway request path">
+              <p class="gw-path-node" data-i18n="page.index.path.app">Your app / SDK</p>
+              <span class="gw-path-arrow" aria-hidden="true">→</span>
+              <p class="gw-path-node is-hub" data-i18n="page.index.path.hub">AI24X Gateway</p>
+              <span class="gw-path-arrow" aria-hidden="true">→</span>
+              <div class="gw-path-models">
+                <span>GPT</span>
+                <span>Claude</span>
+                <span>Gemini</span>
+                <span>DeepSeek</span>
+                <span>Qwen</span>
+                <span data-i18n="page.index.path.more">More</span>
+              </div>
+            </div>
+            <p class="sub" style="margin:12px 0 0" data-i18n="page.index.path.note">One key on AI24X. Models and provider keys stay behind the gateway.</p>
+          </div>
         </div>
       </div>
     </section>
 
     <section class="section">
-      <div class="container" style="max-width:800px;margin:0 auto;text-align:center">
-        <h2 data-i18n="page.index.why.title">Why the AI24X gateway?</h2>
-        <div class="grid-3" style="margin-top:14px">
+      <div class="container">
+        <h2 style="text-align:center" data-i18n="page.index.why.title">Why AI24X Gateway?</h2>
+        <div class="grid-3" style="margin-top:18px">
           <div class="card">
             <h3 data-i18n="page.index.why.title1">Auto-switch · never interrupted</h3>
             <p class="sub" style="margin:0" data-i18n="page.index.why.p1">Point multiple keys at the same model; busy or failed providers auto-switch to a backup, so requests don't fail.</p>
@@ -136,62 +257,41 @@
       </div>
     </section>
 
-    <section class="section">
-      <div class="container" style="max-width:720px;margin:0 auto;text-align:center">
-        <h2 data-i18n="page.index.start.title">Three steps</h2>
-        <p class="sub" data-i18n="page.index.start.sub">Sign up → add your own key(s) in Console (multiple keys, tags) → call <code>/v1/chat/completions</code>. Subscribe to BYOK Pro ($9.9/mo) for routing, cache, and the cost dashboard.</p>
-        <div class="hero-cta" style="justify-content:center;margin-top:14px">
-          <a class="btn btn-primary" href="register.html" data-i18n="page.index.hero.cta.register">Create account</a>
-          <a class="btn" href="console.html" data-i18n="page.index.start.btnConsole">Open console</a>
-        </div>
-      </div>
-    </section>
-
     <section class="section section-alt">
       <div class="container">
-        <h2 data-i18n="page.index.sec1.title">Built for multi-key, multi-provider developers</h2>
+        <h2 data-i18n="page.index.sec1.title">Built for multi-key developers</h2>
         <p class="sub" data-i18n="page.index.sec1.sub">Building this yourself means writing auto-routing, failover, caching, and dashboards. With AI24X, all four come out of the box.</p>
         <div class="grid-3">
           <div class="card">
             <h3 data-i18n="page.index.c1t">Your keys, auto-routing</h3>
-            <p data-i18n="page.index.c1p">OpenAI / Anthropic / DeepSeek / OpenRouter / SiliconFlow… multiple keys per model, auto-selected by latency, success rate, cost, and remaining quota, with load balancing.</p>
+            <p data-i18n="page.index.c1p">Attach multiple provider keys per model. The gateway picks by latency, success rate, cost, and remaining quota — with failover when a path fails.</p>
           </div>
           <div class="card">
-            <h3 data-i18n="page.index.c2t">Service-fee subscription, transparent</h3>
-            <p data-i18n="page.index.c2p">BYOK Pro at $9.9/mo or $99/yr: unlimited routing + request cache + cost dashboard. We charge a gateway service fee — never a token markup.</p>
+            <h3 data-i18n="page.index.c2t">Service-fee plans, transparent</h3>
+            <p data-i18n="page.index.c2p">BYOK Pro at $9.9/mo or $99/yr: routing + request cache + cost dashboard. Gateway service fee only — never a token markup.</p>
           </div>
           <div class="card">
             <h3 data-i18n="page.index.c4t">Drop into tools you use</h3>
-            <p data-i18n="page.index.c4p">Cursor, Open WebUI, LobeChat, OpenClaw, Continue—see Integrations.</p>
+            <p data-i18n="page.index.c4p">Cursor, Open WebUI, LobeChat, OpenClaw, Continue — see Integrations.</p>
           </div>
         </div>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="container">
-        <h2 data-i18n="page.index.sec2.title">Quick start</h2>
-        <p class="sub" data-i18n="page.index.sec2.sub">OpenAI-compatible <code>POST /v1/chat/completions</code>. Model: <code>flash</code>.</p>
-        <div class="code-block" aria-label="curl-completions">curl -X POST "https://api.ai24x.com/v1/chat/completions" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -d "{\"model\":\"flash\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello AI24X\"}],\"stream\":false}"</div>
-        <div class="hero-cta" style="margin-top:16px">
-          <a class="btn" href="guides/index.html" data-i18n="btn.guides">Integrations</a>
+        <div class="hero-cta" style="margin-top:20px;justify-content:center">
+          <a class="btn btn-primary" href="register.html" data-i18n="page.index.hero.cta.register">Start Building Free</a>
+          <a class="btn" href="console.html" data-i18n="page.index.start.btnConsole">Open console</a>
           <a class="btn" href="models/index.html" data-i18n="btn.models">Models</a>
-          <a class="btn" href="docs.html" data-i18n="btn.docs">View docs</a>
         </div>
+        <p class="www-hub-note" data-i18n-html="page.index.wwwHub">Company site, Markets, and full Account billing live on <a href="https://www.ai24x.com/" target="_blank" rel="noopener">www.ai24x.com</a>.</p>
       </div>
     </section>
   </main>
 
   <footer class="site-footer" id="site-footer"></footer>
 
-  <script src="config/locales.js?v=20260821b"></script>
-  <script src="js/api.js?v=20260824a"></script>
+  <script src="config/locales.js?v=20260826s"></script>
+  <script src="js/api.js?v=20260826s"></script>
   <script src="js/utm.js?v=20260802a"></script>
   <script src="js/i18n.js?v=20260812g"></script>
-  <script src="js/shell.js?v=20260817z"></script>
+  <script src="js/shell.js?v=20260826k"></script>
   <script src="js/app.js?v=20260808b"></script>
   <script src="js/support-widget.js?v=20260817z"></script>
 </body>

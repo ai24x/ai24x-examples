@@ -203,10 +203,10 @@
     <div class="mk-top-inner">
       <a class="brand" href="/"><span class="brand-mark">AI</span><span>AI24X <b>Markets</b></span></a>
       <nav class="mk-nav" aria-label="Main">
-        <a href="https://www.ai24x.com/index.html" data-i18n="nav.home">Home</a>
+        <a href="/" data-i18n="nav.home">Home</a>
         <a href="/pricing.html" data-i18n="nav.pricing">Pricing</a>
         <a href="https://www.ai24x.com/help.html" target="_blank" rel="noopener" data-i18n="nav.help">Help</a>
-        <a id="mk-console" href="#" data-i18n="nav.console">Console</a>
+        <a id="mk-console" href="https://www.ai24x.com/console.html" target="_blank" rel="noopener" data-i18n="nav.console">Account</a>
       </nav>
       <div class="mk-actions">
         <div class="lang-switch" id="lang-switch">
@@ -228,10 +228,10 @@
         <button type="button" id="mk-drawer-close" class="mk-drawer-close" aria-label="Close">&times;</button>
       </div>
       <nav class="mk-drawer-nav" aria-label="Mobile">
-        <a href="https://www.ai24x.com/index.html" data-i18n="nav.home">Home</a>
+        <a href="/" data-i18n="nav.home">Home</a>
         <a href="/pricing.html" data-i18n="nav.pricing">Pricing</a>
         <a href="https://www.ai24x.com/help.html" target="_blank" rel="noopener" data-i18n="nav.help">Help</a>
-        <a id="mk-console-mob" href="#" data-i18n="nav.console">Console</a>
+        <a id="mk-console-mob" href="https://www.ai24x.com/console.html" target="_blank" rel="noopener" data-i18n="nav.console">Account</a>
       </nav>
       <div class="mk-drawer-auth" id="auth-area-mob"></div>
     </div>
@@ -391,7 +391,7 @@
         </div>
         <div class="footer-col">
           <div class="footer-title">Account</div>
-          <a href="https://www.ai24x.com/console.html" target="_blank" rel="noopener">Console</a>
+          <a href="https://www.ai24x.com/console.html" target="_blank" rel="noopener">Account</a>
           <a href="https://www.ai24x.com/login.html" target="_blank" rel="noopener">Sign in</a>
           <a href="https://www.ai24x.com/register.html" target="_blank" rel="noopener">Sign up</a>
         </div>
@@ -426,6 +426,7 @@
     </div>
   </div>
 
+  <script src="/js/www-links.js?v=20260826a"></script>
   <script src="vendor/lightweight-charts.standalone.production.js"></script>
   <script src="/help-widget.js"></script>
   <script>
@@ -524,14 +525,14 @@
           'nav.home': 'Home',
           'nav.pricing': 'Pricing',
           'nav.help': 'Help',
-          'nav.console': 'Console',
+          'nav.console': 'Account',
           'score.title': 'Technical Health Score',
           'score.na': 'Score needs 60+ days of data',
           'score.viewScreener': 'Explore today\'s screen →',
           signIn: 'Sign in',
           signUp: 'Sign up',
           signedInAs: 'Signed in as',
-          console: 'Console',
+          console: 'Account',
           upgrade: 'Upgrade',
           signOut: 'Sign out',
           authFail: 'Session check unavailable',
@@ -658,14 +659,14 @@
           'nav.home': '首页',
           'nav.pricing': '价格',
           'nav.help': '帮助',
-          'nav.console': '控制台',
+          'nav.console': '账户',
           'score.title': '技术健康评分',
           'score.na': '评分需要 60 天以上数据',
           'score.viewScreener': '查看今日扫描 →',
           signIn: '登录',
           signUp: '注册',
           signedInAs: '已登录',
-          console: '控制台',
+          console: '账户',
           upgrade: '升级',
           signOut: '退出',
           authFail: '会话校验暂不可用',
@@ -1223,6 +1224,10 @@
         return m ? decodeURIComponent(m[1]) : '';
       }
       function coreUrl() {
+        if (typeof AI24X_WWW_BASE === 'function') return AI24X_WWW_BASE();
+        try {
+          if (localStorage.getItem('ai24x_local_products') === '0') return 'https://www.ai24x.com';
+        } catch (e) {}
         var h = (location.hostname || '').toLowerCase();
         return (h === '127.0.0.1' || h === 'localhost') ? 'http://127.0.0.1:8000' : 'https://www.ai24x.com';
       }
@@ -1292,7 +1297,7 @@
         var cta = $('band-cta');
         if (!cta) return;
         if (loggedIn) {
-          cta.href = 'https://www.ai24x.com/console.html#billing';
+          cta.href = coreUrl() + '/console.html#billing';
           cta.setAttribute('data-i18n', 'band.ctaPro');
         } else {
           cta.href = coreUrl() + '/register.html?next=' + encodeURIComponent(location.href);

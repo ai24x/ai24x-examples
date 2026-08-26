@@ -376,7 +376,7 @@
             </button>
             <button type="button" class="nav-item" data-panel="p-channels">
               支付通道
-              <span class="subt">微信 / 支付宝 / PayPal / Creem / Mock</span>
+              <span class="subt">PayPal / Dodo / 微信 / 支付宝 / Mock</span>
             </button>
           </div>
         </div>
@@ -639,9 +639,10 @@
                   <select id="mkOrdChannel">
                     <option value="">全部</option>
                     <option value="paypal">PayPal</option>
+                    <option value="dodo">Dodo</option>
                     <option value="wechat">微信</option>
                     <option value="alipay">支付宝</option>
-                    <option value="creem">Creem</option>
+                    <!-- Creem 已停用展示；历史单仍可用「全部」看到 -->
                     <option value="mock">模拟</option>
                   </select>
                 </div>
@@ -734,10 +735,11 @@
                 <div class="field"><span class="lbl">通道</span>
                   <select id="ordChannel">
                     <option value="">全部</option>
+                    <option value="paypal">PayPal</option>
+                    <option value="dodo">Dodo</option>
                     <option value="wechat">微信</option>
                     <option value="alipay">支付宝</option>
-                    <option value="paypal">PayPal</option>
-                    <option value="creem">Creem</option>
+                    <!-- Creem 已停用展示；历史单仍可用「全部」看到 -->
                     <option value="mock">模拟</option>
                   </select>
                 </div>
@@ -1576,8 +1578,8 @@
     }
     if (status === 403 || /禁止访问/.test(d)) {
       return (
-        "密钥不正确或已失效。本机用 api/.env 的 ADMIN_API_KEY 或短信内部密钥 iamlei888；" +
-        "生产用 04 已配置的独立管理密钥 + 手机验证码。当前 API：" + state.base
+        "密钥不正确或已失效。本机请用 api/.env 的 ADMIN_API_KEY（或已配置的短信内部密钥）；" +
+        "生产用独立管理密钥 + 手机验证码。当前 API：" + state.base
       );
     }
     if (status === 503 || /未配置/.test(d)) {
@@ -1649,7 +1651,8 @@
 
   function fenLabel(ch, fen) {
     var n = Number(fen || 0);
-    if (ch === "paypal" || ch === "creem") return "$" + (n / 100).toFixed(2);
+    // PayPal / Dodo / 历史 Creem：amount_fen 存 USD 美分
+    if (ch === "paypal" || ch === "dodo" || ch === "creem") return "$" + (n / 100).toFixed(2);
     return "¥" + (n / 100).toFixed(2);
   }
   function statusPill(s) {
@@ -1819,25 +1822,36 @@
     var wx = r.wechat || {};
     var ali = r.alipay || {};
     var pp = r.paypal || {};
-    var cr = r.creem || {};
+    var dd = r.dodo || {};
+    // Creem 已停用：不再展示状态，避免「未就绪」干扰；后端下单入口仍受 env 关闭保护
+    var mockOn = !!r.token_pay_mock_enabled;
     var pills = [
       ["支付总开关", !!r.token_pay_enabled],
+      ["PayPal", !!pp.ui_ready],
+      ["Dodo", !!dd.ui_ready],
       ["微信", !!wx.ui_ready],
       ["支付宝", !!ali.ui_ready],
-      ["PayPal", !!pp.ui_ready],
-      ["Creem", !!cr.ui_ready],
-      ["Mock", !!r.token_pay_mock_enabled],
+      ["Mock", mockOn],
     ];
     if ($("channelPills")) {
       $("channelPills").innerHTML = pills
         .map(function (p) {
+          var isMock = p[0] === "Mock";
+          var cls = isMock ? (p[1] ? "warn" : "ok") : p[1] ? "ok" : "bad";
+          var state = isMock
+            ? p[1]
+              ? "开（生产勿用）"
+              : "关"
+            : p[1]
+              ? "就绪"
+              : "未就绪";
           return (
             '<span class="pill ' +
-            (p[1] ? "ok" : "bad") +
+            cls +
             '">' +
             p[0] +
             ": " +
-            (p[1] ? "就绪" : "未就绪") +
+            state +
             "</span>"
           );
         })
@@ -1862,18 +1876,36 @@
       "return_url: " + (pp.return_url_set ? "已设" : "未设"),
       "locale/landing: " + (pp.locale || "-") + " / " + (pp.landing_page || "-"),
     ];
-    var crLines = [
-      "商户配置: " + (cr.merchant_configured ? "是" : "否"),
-      "mode: " + (cr.mode || "-"),
-      "webhook_secret: " + (cr.webhook_secret_set ? "已设" : "未设"),
-      "return_url: " + (cr.return_url_set ? "已设" : "未设"),
-      "提示: 每个套餐需在 Creem 后台建商品并填写 product_id",
+    var ddLines = [
+      "商户配置: " + (dd.merchant_configured ? "是" : "否"),
+      "api_key: " + (dd.api_key_set ? "已设" : "未设"),
+      "mode: " + (dd.mode || "-"),
+      "webhook_secret: " + (dd.webhook_secret_set ? "已设" : "未设"),
+      "return_url: " + (dd.return_url_set ? "已设" : "未设"),
+      "提示: 启用套餐需同步到 Dodo 产品；webhook 必须验签，勿关验签",
     ];
+    var mockLines = [
+      "模拟支付: " + (mockOn ? "开（仅联调；生产必须关）" : "关"),
+      "说明: Mock 不会真收款；误开会让前台出现假支付入口",
+    ];
+    var mockBadge = mockOn
+      ? '<span class="pill warn">开（生产勿用）</span>'
+      : '<span class="pill ok">关</span>';
+    var mockCard =
+      '<div class="card" style="margin:0;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg2,#0f1419);">' +
+      '<div class="row" style="justify-content:space-between;align-items:center;"><strong>Mock</strong>' +
+      mockBadge +
+      "</div>" +
+      '<pre class="mono small" style="margin:8px 0 0;white-space:pre-wrap;">' +
+      mockLines.join("\n") +
+      "</pre></div>";
     host.innerHTML =
+      _chanCard("PayPal", !!pp.ui_ready, ppLines) +
+      _chanCard("Dodo", !!dd.ui_ready, ddLines) +
       _chanCard("微信", !!wx.ui_ready, wxLines) +
       _chanCard("支付宝", !!ali.ui_ready, aliLines) +
-      _chanCard("PayPal", !!pp.ui_ready, ppLines) +
-      _chanCard("Creem", !!cr.ui_ready, crLines);
+      mockCard;
+      // Creem 卡片已移除（停用展示）；下单仍受 env / 商户配置约束，勿在管理台造假「手动到账」入口
   }
 
   async function loadPlans() {
@@ -2869,16 +2901,26 @@
   async function refreshSummary() {
     var s = await api("/v1/admin/token/summary");
     var pay = s.pay || {};
+    var mockOn = !!(pay.mock_allowed || pay.mock);
     var pills = [
       ["支付总开关", !!pay.enabled],
+      ["PayPal", !!pay.paypal_ready],
+      ["Dodo", !!pay.dodo_ready],
       ["微信", !!pay.wechat_ready],
       ["支付宝", !!pay.alipay_ready],
-      ["PayPal", !!pay.paypal_ready],
-      ["Creem", !!pay.creem_ready],
-      ["Mock", !!(pay.mock_allowed || pay.mock)],
+      ["Mock", mockOn],
     ];
     var pillsHtml = pills.map(function (p) {
-      return '<span class="pill ' + (p[1] ? "ok" : "bad") + '">' + p[0] + ": " + (p[1] ? "就绪" : "未就绪") + "</span>";
+      var isMock = p[0] === "Mock";
+      var cls = isMock ? (p[1] ? "warn" : "ok") : p[1] ? "ok" : "bad";
+      var state = isMock
+        ? p[1]
+          ? "开（生产勿用）"
+          : "关"
+        : p[1]
+          ? "就绪"
+          : "未就绪";
+      return '<span class="pill ' + cls + '">' + p[0] + ": " + state + "</span>";
     }).join(" ");
     if ($("payPills")) $("payPills").innerHTML = pillsHtml;
     if ($("channelPills")) $("channelPills").innerHTML = pillsHtml;
@@ -2902,10 +2944,10 @@
     if ($("channelStats")) {
       var by = o.by_channel_paid || {};
       var chCells = [
+        ["PayPal 已付单", by.paypal || 0],
+        ["Dodo 已付单", by.dodo || 0],
         ["微信已付单", by.wechat || 0],
         ["支付宝已付单", by.alipay || 0],
-        ["PayPal 已付单", by.paypal || 0],
-        ["Creem 已付单", by.creem || 0],
         ["待履约", o.pending || 0],
       ];
       $("channelStats").innerHTML = chCells.map(function (c) {

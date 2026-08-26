@@ -770,7 +770,8 @@ def admin_token_summary(db: Session) -> dict:
                 "wechat": _cnt("paid", "wechat"),
                 "alipay": _cnt("paid", "alipay"),
                 "paypal": _cnt("paid", "paypal"),
-                "creem": _cnt("paid", "creem"),
+                "dodo": _cnt("paid", "dodo"),
+                "creem": _cnt("paid", "creem"),  # 历史通道；管理台 UI 已不展示
             },
             "paid_amount_cny_fen": int(paid_fen or 0),
             "paid_amount_usd_cents": int(paid_usd_cents or 0),

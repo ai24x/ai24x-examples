@@ -24,4 +24,4 @@ Disallow: /paypal.html
 Disallow: /dashboard.html
 Disallow: /ops/
 
-Sitemap: https://www.ai24x.com/sitemap.xml
+Sitemap: https://open.ai24x.com/sitemap.xml

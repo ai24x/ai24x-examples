@@ -2746,13 +2746,15 @@ async def billing_pay_status():
             "landing_page": str(getattr(cfg, "paypal_landing_page", "") or "BILLING"),
         },
         "console_hint": (
-            "控制台只显示 wechat_ready/alipay_ready/paypal_ready=true 的通道；"
+            "控制台只显示 wechat/alipay/paypal/dodo ready=true 的通道（Creem 已停用展示）；"
+            "勿开 TOKEN_PAY_MOCK；Webhook 必须验签。"
             "看 /v1/billing/plans 的 pay 字段，或本接口 wechat.missing"
         ),
         "next_steps": [
             "确认 TOKEN_*_NOTIFY_URL 与 a1 回调不同，并在商户平台登记 Token 回调",
             "微信缺项见 wechat.missing（常见：serial_no 空，或 api_v3_key 不是正好 32 位）",
             "PayPal：配 PAYPAL_CLIENT_ID/SECRET，MODE=sandbox 联调；Live 仅开在副脑04",
+            "Dodo：配 DODO_* + webhook 验签；启用套餐后管理台同步 Dodo 产品",
             "改完 api/.env 后 pm2 restart core-api-8002 --update-env",
             "实付后核对 token_pay_orders + 钱包；并回归 a1 支付",
         ],

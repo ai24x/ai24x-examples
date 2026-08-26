@@ -51,16 +51,16 @@
   <link rel="canonical" href="https://www.ai24x.com/login.html" />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Log in · AI24X" />
-  <meta property="og:description" content="Sign in to AI24X Markets — charts, technical indicators and AI commentary for US stocks, ETFs and indices." />
+  <meta property="og:description" content="Sign in to AI24X — get your API key, try models, manage billing." />
   <meta property="og:url" content="https://www.ai24x.com/login.html" />
   <meta property="og:image" content="https://www.ai24x.com/img/og-share.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:image" content="https://www.ai24x.com/img/og-share.png" />
-  <meta name="description" content="Sign in to AI24X Markets — charts, technical indicators and AI commentary for US stocks, ETFs and indices." />
-<link rel="stylesheet" href="css/base.css?v=20260818c" />
-  <link id="theme-css" rel="stylesheet" href="css/themes/theme-dark.css?v=20260812e" data-base="css/themes/" />
+  <meta name="description" content="Sign in to AI24X — one account for AI Gateway and AI Markets." />
+  <link rel="stylesheet" href="css/base.css?v=20260826m" />
+  <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260812e" data-base="css/themes/" />
   <style>
     .auth-fieldset-preview {
       border: 0;
@@ -71,25 +71,25 @@
     }
   </style>
 </head>
-<body data-page="login" class="theme-dark">
+<body data-page="login" class="theme-blue">
   <header class="site-header" id="site-header"></header>
   <main class="page-main">
     <section class="section">
       <div class="container" style="max-width:480px">
         <h1 data-i18n="auth.login.title">Log in</h1>
-        <p class="sub" data-i18n="auth.login.sub">Sign in with email (phone login coming later).</p>
+        <p class="sub" data-i18n="auth.login.sub">One AI24X account — get an API key, try models, then top up or subscribe.</p>
         <div class="callout mt-2" id="auth-closed-banner" role="status" aria-live="polite" data-i18n-html="auth.closed.banner">
-          <strong>Notice</strong>: Sign-up / sign-in are not open in this environment.
+          <strong>Notice</strong>: Sign-up / sign-in are temporarily unavailable.
         </div>
-        <form class="card mt-2" id="form-login">
+        <form class="card mt-2" id="form-login" novalidate>
           <fieldset class="auth-fieldset-preview" id="login-fieldset" disabled>
           <div class="form-group">
             <label data-i18n="auth.login.email">Email</label>
-            <input id="login-email" name="email" type="email" class="input" autocomplete="email" required placeholder="you@example.com" />
+            <input id="login-email" name="email" type="email" class="input" autocomplete="email" placeholder="you@example.com" />
           </div>
           <div class="form-group">
             <label data-i18n="auth.login.password">Password</label>
-            <input name="password" type="password" class="input" required autocomplete="current-password" />
+            <input name="password" type="password" class="input" autocomplete="current-password" />
           </div>
           <button type="submit" class="btn btn-primary" data-i18n="auth.login.submit">Continue</button>
           <div id="login-msg"></div>
@@ -112,16 +112,16 @@
             </a>
           </div>
         </div>
-        <p class="mt-2 sub" data-i18n-html="auth.login.footer"><a href="register.html">Sign up</a> · <a href="forgot.html">Forgot password?</a> · <a href="console.html">Console</a></p>
+        <p class="mt-2 sub" data-i18n-html="auth.login.footer"><a href="register.html">Sign up</a> · <a href="forgot.html">Forgot password?</a> · <a href="console.html">Account</a></p>
       </div>
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260825a"></script>
-  <script src="js/api.js?v=20260823d"></script>
+  <script src="config/locales.js?v=20260826s"></script>
+  <script src="js/api.js?v=20260826s"></script>
   <script src="js/utm.js?v=20260802a"></script>
-<script src="js/i18n.js?v=20260818q"></script>
-  <script src="js/shell.js?v=20260825a"></script>
+  <script src="js/i18n.js?v=20260826m"></script>
+  <script src="js/shell.js?v=20260826n"></script>
   <script src="js/app.js?v=20260818b"></script>
   <script>
     function t(key, fallback) {
@@ -135,39 +135,43 @@
       try {
         var u = new URL(location.href);
         var n = u.searchParams.get("next");
-        if (n && isSafeNext(n)) return n;
+        if (n) return AI24X_API.safeNextUrl(n, "console.html");
       } catch (e) {}
       return "console.html";
     }
-    function isSafeNext(url) {
-      if (!url || url.indexOf("http") !== 0) return true; // same-site relative path
-      try {
-        var h = new URL(url).hostname.toLowerCase();
-        return h === "markets.ai24x.com" || h === "127.0.0.1" || h === "localhost";
-      } catch (e) {
-        return false;
-      }
+
+    function showLoginMsg(msg, ok) {
+      AI24X_API.setAlertMessage(document.getElementById("login-msg"), msg, !!ok);
     }
 
     document.getElementById("form-login").addEventListener("submit", function (e) {
       e.preventDefault();
       var box = document.getElementById("login-msg");
-      box.innerHTML = "";
+      if (box) box.innerHTML = "";
       if (!AI24X_API.isLocalAuthOpen()) {
-        box.innerHTML = '<div class="alert alert-error">' + t("auth.closed.submitBlocked", "Not open yet.") + "</div>";
+        showLoginMsg(t("auth.closed.submitBlocked", "Not open yet."), false);
         return;
       }
       var password = (document.querySelector('#form-login input[name="password"]').value || "").trim();
+      var email = (document.getElementById("login-email").value || "").trim();
+      if (!email) {
+        showLoginMsg(t("auth.login.needEmail", "Enter your email"), false);
+        return;
+      }
+      if (!password) {
+        showLoginMsg(t("auth.login.needPassword", "Enter your password"), false);
+        return;
+      }
       var payload = {
         password: password,
-        email: (document.getElementById("login-email").value || "").trim(),
+        email: email,
       };
       AI24X_API.authLogin(payload)
         .then(function () {
           location.href = nextUrl();
         })
         .catch(function (err) {
-          box.innerHTML = '<div class="alert alert-error">' + (err.message || t("auth.login.fail", "Login failed")) + "</div>";
+          showLoginMsg(err.message || t("auth.login.fail", "Login failed"), false);
         });
     });
 
@@ -212,7 +216,7 @@
       try { err = new URLSearchParams(location.search).get("oauth_error") || ""; } catch (e) {}
       if (err) {
         var box = document.getElementById("login-msg");
-        if (box) box.innerHTML = '<div class="alert alert-error">' + t("auth.login.oauthFail", "Social sign-in failed: ") + err + '</div>';
+        if (box) AI24X_API.setAlertMessage(box, t("auth.login.oauthFail", "Social sign-in failed: ") + err, false);
       }
     }
     document.addEventListener("DOMContentLoaded", function () {

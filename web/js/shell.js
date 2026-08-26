@@ -6,20 +6,48 @@
   var THEME_PICKER_ENABLED = false;
   var DEFAULT_THEME = "blue";
 
-  /** AI24X Markets 产品站地址：本机开发指向本地 18012，公网指向 markets.ai24x.com */
+  /**
+   * 本机联调开关（localStorage.ai24x_local_products）：
+   * - 缺省 / "1"：localhost|127.0.0.1 → 本地端口（open 18080 / markets 18012）
+   * - "0"：本机仍链正式站（方便对照生产）
+   * 生产域名永不改写。勿改成 ../p/open 相对路径——多源站/多端口无法共用一条相对链。
+   */
+  function preferLocalProducts() {
+    try {
+      var h = String(location.hostname || "").toLowerCase();
+      if (h !== "127.0.0.1" && h !== "localhost") return false;
+      var flag = "";
+      try {
+        flag = String(localStorage.getItem("ai24x_local_products") || "").trim();
+      } catch (e) {}
+      return flag !== "0";
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /** AI24X Markets：生产域名；本机默认 18012（可用 ai24x_local_products=0 切回正式站） */
   function marketsUrl() {
     try {
       var h = String(location.hostname || "");
-      if (h === "127.0.0.1" || h === "localhost") return "http://127.0.0.1:18012/";
+      if (h === "127.0.0.1" || h === "localhost") {
+        var port = String(location.port || "");
+        if (port === "18012") return "http://127.0.0.1:18012/";
+        if (preferLocalProducts()) return "http://127.0.0.1:18012/";
+      }
     } catch (e) {}
     return "https://markets.ai24x.com/";
   }
 
-  /** open.ai24x.com 开发者站地址：本机开发指向本地 18080，公网指向 open.ai24x.com */
+  /** open.ai24x.com AI Gateway；本机默认 18080（=0 切正式站） */
   function openUrl() {
     try {
       var h = String(location.hostname || "");
-      if (h === "127.0.0.1" || h === "localhost") return "http://127.0.0.1:18080/";
+      if (h === "127.0.0.1" || h === "localhost") {
+        var port = String(location.port || "");
+        if (port === "18080") return "http://127.0.0.1:18080/";
+        if (preferLocalProducts()) return "http://127.0.0.1:18080/";
+      }
     } catch (e) {}
     return "https://open.ai24x.com/";
   }
@@ -33,18 +61,37 @@
   function pathPrefix() {
     try {
       var p = String(location.pathname || "");
-      if (p.indexOf("/models/") >= 0 || p.indexOf("/guides/") >= 0) return "../";
+      if (
+        p.indexOf("/models/") >= 0 ||
+        p.indexOf("/guides/") >= 0 ||
+        p.indexOf("/blog/") >= 0
+      )
+        return "../";
     } catch (e) {}
     return "";
   }
 
   function headerHtml(activePage) {
     var L = global.AI24X_I18N;
+    var langs = L && Array.isArray(L.LANGS) && L.LANGS.length ? L.LANGS : [{ code: "en", label: "English" }];
     var pre = pathPrefix();
     var curLang = "en";
     try {
       if (L && typeof L.getLang === "function") curLang = L.getLang() || "en";
     } catch (e0) {}
+    var langOpts = langs
+      .map(function (x) {
+        return (
+          '<option value="' +
+          esc(x.code) +
+          '"' +
+          (x.code === curLang ? " selected" : "") +
+          ">" +
+          esc(x.label) +
+          "</option>"
+        );
+      })
+      .join("");
 
     function nav(href, key, id) {
       var c = activePage === id ? " is-active" : "";
@@ -66,7 +113,7 @@
       );
     }
 
-    /** 官网仅英文（合规红线）：登录态显示 Account + Sign out，未登录显示 Log in */
+    /** 登录态显示 Account + Sign out，未登录显示 Log in / Sign up */
     function authToken() {
       try {
         return localStorage.getItem("ai24x_auth_token") || "";
@@ -134,6 +181,7 @@
       );
     }
 
+    // 右上排布：次要 CTA → 主 CTA → 语言（最右）；窄屏用 CSS 藏次要 CTA，主 CTA+语言不掉
     return (
       '<div class="container header-inner">' +
       '<a class="brand" href="' +
@@ -147,17 +195,25 @@
       nav("index.html", "nav.home", "home") +
       nav("pricing.html", "nav.pricing", "pricing") +
       nav("product.html", "nav.product", "product") +
+      // Blog 仅放页脚：顶栏露出易像「新站内容池」，转化叙事优先
       nav("help.html", "nav.help", "help") +
       nav("about.html", "nav.about", "about") +
       loginNav() +
       "</nav>" +
       '<div class="header-actions">' +
+      '<a class="header-gateway" href="' +
+      openUrl() +
+      '" target="_blank" rel="noopener" data-i18n="nav.ctaGateway">' +
+      esc(tr("nav.ctaGateway")) +
+      "</a>" +
       '<a class="header-upgrade" href="' +
       pre +
-      'console.html#billing" data-i18n="nav.goPro" style="display:inline-block; padding:7px 14px; border-radius:999px; background:var(--accent); color:var(--accent-ink,#fff); font-size:0.85rem; font-weight:700; text-decoration:none; white-space:nowrap;">' +
-      esc(tr("nav.goPro")) +
+      'register.html" data-i18n="nav.ctaStart">' +
+      esc(tr("nav.ctaStart")) +
       "</a>" +
-      /* 主题跟随 HTML 声明（全站深色）；主题选择器默认不露出（CSS/逻辑仍保留） */
+      '<select id="lang-select" class="select-mini lang-select" aria-label="Language">' +
+      langOpts +
+      "</select>" +
       (THEME_PICKER_ENABLED
         ? '<select id="theme-select" class="select-mini theme-select" aria-label="Theme">' +
           '<option value="blue" data-i18n="theme.blue"></option>' +
@@ -209,6 +265,9 @@
       '<div class="footer-col">' +
       '<div class="footer-title" data-i18n="footer.col.product"></div>' +
       '<a href="' +
+      openUrl() +
+      '" target="_blank" rel="noopener" data-i18n="footer.link.gateway"></a>' +
+      '<a href="' +
       marketsUrl() +
       '" data-i18n="footer.link.markets"></a>' +
       '<a href="' +
@@ -220,6 +279,9 @@
       '<a href="' +
       pre +
       'partner.html" data-i18n="footer.link.partner"></a>' +
+      '<a href="' +
+      pre +
+      'blog/index.html" data-i18n="footer.link.blog"></a>' +
       "</div>" +
       '<div class="footer-col">' +
       '<div class="footer-title" data-i18n="footer.col.dev"></div>' +
@@ -251,7 +313,7 @@
       openUrl() +
       '" target="_blank" rel="noopener" data-i18n="footer.link.developer"></a> · <span data-i18n="footer.copy"></span></div>' +
       '<div class="footer-bottom" style="opacity:.62;font-size:.78rem;padding-top:0;" data-i18n="footer.fleet">Powered by the AI24X autonomous agent fleet</div>' +
-      '<div class="footer-bottom" style="opacity:.62;font-size:.78rem;padding-top:0;" data-i18n="footer.disclaimer">For educational purposes only — not investment advice. Market data is delayed at least 15 minutes.</div>' +
+      '<div class="footer-bottom" style="opacity:.62;font-size:.78rem;padding-top:0;" data-i18n="footer.disclaimer">Educational Markets content only — not investment advice. Market data may be delayed.</div>' +
       "</div>"
     );
   }
@@ -583,7 +645,7 @@
       th = localStorage.getItem("ai24x_theme") || DEFAULT_THEME;
       if (!THEME_FILE[th]) th = DEFAULT_THEME;
     } else {
-      // 无主题选择器时跟随 HTML 声明的主题：主页已声明 theme-dark（深色默认），其余页面 theme-blue
+      // 无主题选择器时跟随 HTML 声明的主题（首页默认 theme-blue 母站气质）
       var linkHref = (document.getElementById("theme-css") || {}).getAttribute ?
         (document.getElementById("theme-css").getAttribute("href") || "") : "";
       if (linkHref.indexOf("theme-dark") >= 0) th = "dark";

@@ -408,6 +408,39 @@
     });
   }
 
+  function isPublicProdHost() {
+    try {
+      var h = String(location.hostname || "").toLowerCase();
+      return h === "open.ai24x.com" || h === "www.ai24x.com" || h === "ai24x.com" || h.endsWith(".ai24x.com");
+    } catch (e) {
+      return false;
+    }
+  }
+  function mockUiAllowed(pay) {
+    return !!(pay && pay.mock_allowed) && !isPublicProdHost();
+  }
+
+  function updatePayHintOpen(pay, zh) {
+    var hint = $("payHint");
+    if (!hint) return;
+    if (pay.enabled && (pay.wechat_ready || pay.alipay_ready || pay.paypal_ready || pay.dodo_ready || pay.crypto_ready)) {
+      var ch = [];
+      if (pay.wechat_ready) ch.push(zh ? "微信" : "WeChat");
+      if (pay.alipay_ready) ch.push(zh ? "支付宝" : "Alipay");
+      if (pay.paypal_ready) ch.push("PayPal");
+      // Creem 已停用：不向用户露出
+      if (pay.dodo_ready) ch.push("Dodo");
+      if (pay.crypto_ready) ch.push("USDT");
+      hint.textContent = zh
+        ? "选择套餐后可用 " + ch.join(" / ") + " 支付。"
+        : "Pick a plan and pay with " + ch.join(" / ") + ".";
+    } else if (pay.wechat_configured || pay.alipay_configured || pay.paypal_configured || pay.dodo_configured || pay.crypto_configured) {
+      hint.textContent = zh ? "在线支付准备中。" : "Online pay is being prepared.";
+    } else {
+      hint.textContent = zh ? "在线支付暂未开放。" : "Online pay is not open yet.";
+    }
+  }
+
   function renderPlans(data) {
     var box = $("plansList");
     if (!box) return;
@@ -419,120 +452,59 @@
     var pay = (data && data.pay) || {};
     window.__tokenPay = pay;
     renderByokPlanCards((data && data.byok_plans) || [], pay);
-    var zh = AI24X_API.isZhUi();
-    var hint = $("payHint");
-    if (hint) {
-      if (zh) {
-        if (pay.enabled && (pay.wechat_ready || pay.alipay_ready || pay.paypal_ready || pay.creem_ready || pay.dodo_ready)) {
-          var ch = [];
-          if (pay.wechat_ready) ch.push("微信");
-          if (pay.alipay_ready) ch.push("支付宝");
-          if (pay.paypal_ready) ch.push("PayPal");
-          if (pay.creem_ready) ch.push("Creem");
-          if (pay.dodo_ready) ch.push("Dodo");
-          hint.textContent =
-            "选择套餐后可用 " +
-            ch.join(" / ") +
-            " 支付。" +
-            (pay.mock_allowed ? " 也可使用「模拟到账」。" : "");
-        } else if (pay.wechat_configured || pay.alipay_configured || pay.paypal_configured) {
-          hint.textContent = "在线支付准备中" + (pay.mock_allowed ? "，可用「模拟到账」。" : "。");
-        } else if (pay.mock_allowed) {
-          hint.textContent = "可用「模拟到账」完成体验支付。";
-        } else {
-          hint.textContent = "在线支付暂未开放。";
-        }
-      } else {
-        if (pay.enabled && (pay.wechat_ready || pay.alipay_ready || pay.paypal_ready || pay.creem_ready || pay.dodo_ready)) {
-          var enCh = [];
-          if (pay.wechat_ready) enCh.push("WeChat");
-          if (pay.alipay_ready) enCh.push("Alipay");
-          if (pay.paypal_ready) enCh.push("PayPal");
-          if (pay.creem_ready) enCh.push("Creem");
-          if (pay.dodo_ready) enCh.push("Dodo");
-          hint.textContent =
-            "Choose a plan and pay with " +
-            enCh.join(" / ") +
-            "." +
-            (pay.mock_allowed ? " Mock payment is also available." : "");
-        } else {
-          hint.textContent = pay.mock_allowed
-            ? "Online pay is not open yet. Mock payment is available."
-            : "Online pay is not open yet.";
-        }
-      }
-    }
+    updatePayHintOpen(pay, AI24X_API.isZhUi());
     if (!plans.length) {
       box.innerHTML = '<p class="sub">' + tr("暂无套餐", "No plans") + "</p>";
       return;
     }
 
     var wrap = document.createElement("div");
-    wrap.className = "plan-compare-wrap";
-    var table = document.createElement("table");
-    table.className = "plan-compare";
-    table.innerHTML =
-      "<thead><tr>" +
-      "<th>" +
-      tr("套餐", "Plan") +
-      "</th><th>" +
-      tr("价格", "Price") +
-      "</th><th>" +
-      tr("额", "Value") +
-      "</th><th>" +
-      tr("点名模", "Name models") +
-      "</th><th>" +
-      tr("有效期", "Validity") +
-      "</th><th>" +
-      tr("适合", "Best for") +
-      "</th><th>" +
-      tr("购买", "Buy") +
-      "</th></tr></thead>";
-    var tbody = document.createElement("tbody");
+    wrap.className = "product-plans";
     plans.forEach(function (p) {
-      var caps = AI24X_API.planCaps(p);
       var lit = !!(p.value_pack && window.__isValuePackActive);
-      var trEl = document.createElement("tr");
-      trEl.className = lit ? "vp-lit" : p.recommended ? "is-recommended" : "";
-      if (p.plan) trEl.setAttribute("data-plan", String(p.plan));
-      var nameCell = document.createElement("td");
-      nameCell.className = "vp-name-cell";
-      nameCell.innerHTML =
-        "<strong>" +
-        (AI24X_API.planTitle(p) || "") +
-        "</strong>" +
-        (lit
-          ? '<span class="vp-lit-badge">' + tr("✓ 已点亮", "✓ Lit") + "</span>"
-          : "") +
-        (p.recommended
-          ? '<span class="plan-rec">' + tr("推荐", "Rec") + "</span>"
-          : "");
-      trEl.appendChild(nameCell);
-      function tdText(t) {
-        var td = document.createElement("td");
-        td.textContent = t;
-        return td;
+      var row = document.createElement("div");
+      row.className =
+        "product-plan-row" +
+        (lit ? " vp-lit" : "") +
+        (p.recommended ? " is-recommended" : "");
+      if (p.plan) row.setAttribute("data-plan", String(p.plan));
+      var info = document.createElement("div");
+      info.className = "product-plan-info";
+      var nm = document.createElement("strong");
+      nm.textContent = AI24X_API.planTitle(p) || p.plan || "";
+      if (lit) {
+        var badge = document.createElement("span");
+        badge.className = "vp-lit-badge";
+        badge.textContent = tr("✓ 已点亮", "✓ Lit");
+        nm.appendChild(document.createTextNode(" "));
+        nm.appendChild(badge);
+      } else if (p.recommended) {
+        var rec = document.createElement("span");
+        rec.className = "plan-rec";
+        rec.textContent = tr("推荐", "Recommended");
+        nm.appendChild(document.createTextNode(" "));
+        nm.appendChild(rec);
       }
-      trEl.appendChild(tdText(AI24X_API.planPriceLabel(p)));
-      // Show flash-equivalent value: $X = ~Y flash calls
+      info.appendChild(nm);
+      var extra = document.createElement("div");
+      extra.className = "sub";
+      extra.style.marginTop = "3px";
+      var parts = [];
+      var price = AI24X_API.planPriceLabel(p) || "";
+      if (price) parts.push(price);
       var tokens = Number(p.credit_tokens || 0);
-      var flashVal = tokens > 0
-        ? "≈ " + AI24X_API.planCreditsShort(p) + " flash"
-        : p.set_vip
-          ? tr("无额度", "No credits")
-          : p.price_usd
-            ? "$" + p.price_usd
-            : "—";
-      var td = document.createElement("td");
-      td.textContent = flashVal;
-      trEl.appendChild(td);
-      trEl.appendChild(tdText(AI24X_API.planNameAccess(p)));
-      trEl.appendChild(tdText(AI24X_API.planValidityLabel(p)));
-      trEl.appendChild(tdText(AI24X_API.planOneLiner(p) || "—"));
-      var payTd = document.createElement("td");
-      payTd.className = "plan-compare-pay";
-      var actions = document.createElement("div");
-      actions.className = "card-actions plan-compare-actions";
+      if (tokens > 0) parts.push("≈ " + AI24X_API.planCreditsShort(p) + " flash");
+      var access = AI24X_API.planNameAccess(p);
+      if (access) parts.push(access);
+      var validity = AI24X_API.planValidityLabel(p);
+      if (validity) parts.push(validity);
+      var one = AI24X_API.planOneLiner(p);
+      if (one) parts.push(one);
+      extra.textContent = parts.join(" · ");
+      info.appendChild(extra);
+      row.appendChild(info);
+      var act = document.createElement("div");
+      act.className = "product-plan-act";
       var sel = document.createElement("button");
       sel.type = "button";
       sel.className = "btn btn-primary";
@@ -542,13 +514,10 @@
       sel.addEventListener("click", function () {
         openPlanPayChooser(p.plan, p, pay, "token");
       });
-      actions.appendChild(sel);
-      payTd.appendChild(actions);
-      trEl.appendChild(payTd);
-      tbody.appendChild(trEl);
+      act.appendChild(sel);
+      row.appendChild(act);
+      wrap.appendChild(row);
     });
-    table.appendChild(tbody);
-    wrap.appendChild(table);
     var tip = document.createElement("p");
     tip.className = "sub";
     tip.style.marginTop = "10px";
@@ -556,8 +525,8 @@
       "Flash $0.35/百万 · Pro $1.05/百万。Scale：12 个月名模资格 + 2 亿额度；已有额度可补购 VIP 资格包。额度到期后剩余自动核销。",
       "Flash $0.35/M · Pro $1.05/M. Scale = 12-mo named access + 200M credits; VIP Pass adds access if you already have credits. Unused credits expire with the plan."
     );
-    wrap.appendChild(tip);
     box.appendChild(wrap);
+    box.appendChild(tip);
     if (window.__isValuePackActive) {
       litValuePackRows();
     } else {
@@ -578,16 +547,17 @@
   function litValuePackRows() {
     var box = $("plansList");
     if (!box) return;
-    var rows = box.querySelectorAll('tr[data-plan="token_value_pack"]');
+    var rows = box.querySelectorAll('.product-plan-row[data-plan="token_value_pack"]');
     for (var i = 0; i < rows.length; i++) {
       var row = rows[i];
       if (row.classList.contains("vp-lit")) continue;
       row.classList.add("vp-lit");
-      var nm = row.querySelector(".vp-name-cell");
+      var nm = row.querySelector(".product-plan-info strong");
       if (nm && !nm.querySelector(".vp-lit-badge")) {
         var b = document.createElement("span");
         b.className = "vp-lit-badge";
         b.textContent = tr("✓ 已点亮", "✓ Lit");
+        nm.appendChild(document.createTextNode(" "));
         nm.appendChild(b);
       }
     }
@@ -620,7 +590,7 @@
       if (wantPlan) {
         card = box.querySelector('[data-plan="' + wantPlan.replace(/"/g, "") + '"]');
       }
-      if (!card) card = box.querySelector("tr[data-plan], .card");
+      if (!card) card = box.querySelector("[data-plan], .product-plan-row, .card");
       var plansAnchor = $("token-plans");
       if (plansAnchor) {
         try {
@@ -982,68 +952,69 @@
     var box = $("byokPlansList");
     if (!box) return;
     box.innerHTML = "";
+    var wrap = document.createElement("div");
+    wrap.className = "product-plans";
+    // Free 引导
+    var free = document.createElement("div");
+    free.className = "product-plan-row";
+    free.setAttribute("data-plan", "free");
+    free.innerHTML =
+      '<div class="product-plan-info"><strong>' +
+      tr("免费", "Free") +
+      '</strong><div class="sub" style="margin-top:3px">' +
+      tr(
+        "$0 · 先添加密钥开始调用，需要再选 Pro",
+        "$0 · Add your keys and start — upgrade to Pro when ready"
+      ) +
+      '</div></div><div class="product-plan-act"><a class="btn" href="#byok">' +
+      tr("管理密钥", "Manage keys") +
+      "</a></div>";
+    wrap.appendChild(free);
     if (!plans || !plans.length) {
-      box.innerHTML = '<p class="sub">' + tr("暂无 BYOK 套餐", "No BYOK plans yet") + "</p>";
+      box.appendChild(wrap);
+      var none = document.createElement("p");
+      none.className = "sub";
+      none.textContent = tr("暂无付费套餐", "No paid plans yet");
+      box.appendChild(none);
       return;
     }
     var zh = AI24X_API.isZhUi();
     var sub = window.__byokSub || {};
-    var wrap = document.createElement("div");
-    wrap.className = "plan-compare-wrap";
-    var table = document.createElement("table");
-    table.className = "plan-compare";
-    table.innerHTML =
-      "<thead><tr>" +
-      "<th>" +
-      tr("套餐", "Plan") +
-      "</th><th>" +
-      tr("价格", "Price") +
-      "</th><th>" +
-      tr("权益", "Included") +
-      "</th><th>" +
-      tr("有效期", "Validity") +
-      "</th><th>" +
-      tr("购买", "Buy") +
-      "</th></tr></thead>";
-    var tbody = document.createElement("tbody");
     plans.forEach(function (p) {
-      var trEl = document.createElement("tr");
-      trEl.className = p.recommended ? "is-recommended" : "";
-      if (p.plan) trEl.setAttribute("data-plan", String(p.plan));
-      var nameCell = document.createElement("td");
-      nameCell.className = "vp-name-cell";
-      nameCell.innerHTML =
-        "<strong>" +
-        (zh ? p.title_zh || p.title_en || p.plan : p.title_en || p.title_zh || p.plan) +
-        "</strong>" +
-        (p.recommended ? '<span class="plan-rec">' + tr("推荐", "Rec") + "</span>" : "");
-      trEl.appendChild(nameCell);
-      function tdText(t) {
-        var td = document.createElement("td");
-        td.textContent = t;
-        return td;
+      var row = document.createElement("div");
+      row.className = "product-plan-row" + (p.recommended ? " is-recommended" : "");
+      if (p.plan) row.setAttribute("data-plan", String(p.plan));
+      var info = document.createElement("div");
+      info.className = "product-plan-info";
+      var nm = document.createElement("strong");
+      nm.textContent = zh ? p.title_zh || p.title_en || p.plan : p.title_en || p.title_zh || p.plan;
+      if (p.recommended) {
+        var rec = document.createElement("span");
+        rec.className = "plan-rec";
+        rec.textContent = tr("推荐", "Recommended");
+        nm.appendChild(document.createTextNode(" "));
+        nm.appendChild(rec);
       }
-      trEl.appendChild(tdText("$" + Number(p.price_usd || 0).toFixed(2)));
-      var feats = (zh ? p.features_zh || [] : p.features_en || []) || [];
-      var one = zh ? p.one_liner_zh || "" : p.one_liner_en || "";
-      trEl.appendChild(tdText([one].concat(feats.slice(0, 3)).filter(Boolean).join(" · ") || "—"));
+      info.appendChild(nm);
+      var extra = document.createElement("div");
+      extra.className = "sub";
+      extra.style.marginTop = "3px";
+      var parts = [];
+      parts.push("$" + Number(p.price_usd || 0).toFixed(2));
       var days = Number(p.days || 0);
-      trEl.appendChild(
-        tdText(
-          days === 365
-            ? tr("1 年", "1 year")
-            : days === 30
-              ? tr("1 月", "1 month")
-              : days
-                ? days + tr(" 天", " days")
-                : "—"
-        )
-      );
-      var isActive = !!(sub.active && sub.plan === String(p.plan));
-      var actTd = document.createElement("td");
-      actTd.className = "plan-compare-pay";
+      if (days === 365) parts.push(tr("1 年", "1 year"));
+      else if (days === 30) parts.push(tr("1 月", "1 month"));
+      else if (days) parts.push(days + tr(" 天", " days"));
+      var one = zh ? p.one_liner_zh || "" : p.one_liner_en || "";
+      var feats = (zh ? p.features_zh || [] : p.features_en || []) || [];
+      if (one) parts.push(one);
+      else if (feats.length) parts.push(feats.slice(0, 2).join(" · "));
+      extra.textContent = parts.join(" · ");
+      info.appendChild(extra);
+      row.appendChild(info);
       var act = document.createElement("div");
-      act.className = "card-actions plan-compare-actions";
+      act.className = "product-plan-act";
+      var isActive = !!(sub.active && sub.plan === String(p.plan));
       if (isActive) {
         var active = document.createElement("span");
         active.className = "plan-card-active";
@@ -1062,12 +1033,9 @@
         });
         act.appendChild(sel);
       }
-      actTd.appendChild(act);
-      trEl.appendChild(actTd);
-      tbody.appendChild(trEl);
+      row.appendChild(act);
+      wrap.appendChild(row);
     });
-    table.appendChild(tbody);
-    wrap.appendChild(table);
     box.appendChild(wrap);
   }
 
@@ -1092,10 +1060,10 @@
     if (pay.wechat_ready) channels.push(["wechat", tr("微信", "WeChat"), "btn"]);
     if (pay.alipay_ready) channels.push(["alipay", tr("支付宝", "Alipay"), "btn"]);
     if (pay.paypal_ready) channels.push(["paypal", "PayPal", "btn btn-primary"]);
-    if (pay.creem_ready) channels.push(["creem", "Creem", "btn btn-primary"]);
+    // if (pay.creem_ready) channels.push(["creem", "Creem", "btn btn-primary"]); // Creem 停用
     if (pay.dodo_ready) channels.push(["dodo", "Dodo", "btn btn-primary"]);
     if (pay.crypto_ready) channels.push(["crypto", "USDT", "btn btn-usdt"]);
-    if (pay.mock_allowed) channels.push(["mock", tr("模拟", "Mock"), "btn"]);
+    if (mockUiAllowed(pay)) channels.push(["mock", tr("体验到账", "Test pay"), "btn"]);
     if (!channels.length) {
       chEl.innerHTML = '<p class="sub">' + tr("在线支付暂未开放", "Online pay is not open yet") + "</p>";
       return;
@@ -1122,15 +1090,15 @@
     _lastPayPlanId = planId || null;
     product = product || (planMeta && planMeta.product) || "token";
 
-    if (channel === "mock" || (!pay.wechat_ready && !pay.alipay_ready && pay.mock_allowed)) {
-      showMsg(msgBox(), tr("正在创建模拟订单…", "Creating mock order…"), true);
+    if (channel === "mock" || (!pay.wechat_ready && !pay.alipay_ready && mockUiAllowed(pay))) {
+      showMsg(msgBox(), tr("正在创建订单…", "Creating order…"), true);
       AI24X_API.billingWechatNative(planId, product)
         .then(function (r) {
           showMsg(
             msgBox(),
             tr(
-              "已创建 " + (r && r.out_trade_no) + "。请在「我的订单」点「模拟到账」。",
-              "Created " + (r && r.out_trade_no) + ". Use Mock pay under My orders."
+              "已创建 " + (r && r.out_trade_no) + "。请在「我的订单」点「体验到账」。",
+              "Created " + (r && r.out_trade_no) + ". Tap Test pay under My orders."
             ),
             true
           );
@@ -1241,12 +1209,12 @@
           closeCheckoutWin(checkoutWin);
           showPayResult({
             hint: tr(
-              "当前仍为模拟单（" +
+              "订单已创建（" +
                 (r.out_trade_no || "") +
-                "）。请关闭后在订单列表点「模拟到账」。",
-              "This is still a mock order (" +
+                "）。请关闭后在订单列表点「体验到账」。",
+              "Order created (" +
                 (r.out_trade_no || "") +
-                "). Close and tap Mock pay in the order list."
+                "). Close and tap Test pay in the order list."
             ),
           });
           return refreshAll();
@@ -1428,27 +1396,27 @@
       var right = document.createElement("span");
       if (o.status === "pending") {
         var payCfg = window.__tokenPay || {};
-        if (payCfg.mock_allowed) {
+        if (mockUiAllowed(payCfg)) {
           var btn = document.createElement("button");
           btn.type = "button";
           btn.className = "btn btn-primary";
-          btn.textContent = tr("模拟到账", "Mock pay");
+          btn.textContent = tr("体验到账", "Test pay");
           btn.addEventListener("click", function () {
             AI24X_API.billingMockFulfill(o.out_trade_no)
               .then(function () {
-                showMsg(msgBox(), tr("模拟到账成功", "Mock pay OK"), true);
+                showMsg(msgBox(), tr("到账成功", "Payment recorded"), true);
                 return refreshAll();
               })
               .catch(function (e) {
-                showMsg(msgBox(), e.message || tr("模拟失败", "Mock failed"), false);
+                showMsg(msgBox(), e.message || tr("操作失败", "Failed"), false);
               });
           });
           right.appendChild(btn);
         }
         var btnQ = document.createElement("button");
         btnQ.type = "button";
-        btnQ.className = payCfg.mock_allowed ? "btn" : "btn btn-primary";
-        if (payCfg.mock_allowed) btnQ.style.marginLeft = "6px";
+        btnQ.className = mockUiAllowed(payCfg) ? "btn" : "btn btn-primary";
+        if (mockUiAllowed(payCfg)) btnQ.style.marginLeft = "6px";
         btnQ.textContent = tr("确认到账", "Confirm");
         btnQ.addEventListener("click", function () {
           AI24X_API.billingQueryFulfill(o.out_trade_no, o.channel || "wechat")
@@ -2757,11 +2725,11 @@
       if (card) card.style.display = "";
       var en = $("byok-status-enabled");
       if (en) {
-        en.textContent = r.enabled ? "已启用" : "已关闭";
+        en.textContent = r.enabled ? tr("已启用", "On") : tr("已关闭", "Off");
         en.style.color = r.enabled ? "#16a34a" : "#dc2626";
       }
       var fb = $("byok-status-fallback");
-      if (fb) fb.textContent = r.fallback_to_platform ? "开（兜底平台）" : "关（严格 BYOK）";
+      if (fb) fb.textContent = r.fallback_to_platform ? tr("开（平台兜底）", "On (platform fallback)") : tr("关（严格 BYOK）", "Off (strict BYOK)");
       var note = $("byok-fee-note");
       if (note && r.service_fee_note) note.textContent = r.service_fee_note;
       renderByokSubBanner(r.subscription);
@@ -2785,7 +2753,7 @@
     if (!wrap) return;
     if (!keys || !keys.length) {
       wrap.innerHTML =
-        '<tr><td colspan="8" class="sub">还没有自有 Key。添加一把后，请求将优先走你的 Key（故障自动切换）。</td></tr>';
+        '<tr><td colspan="8" class="sub">' + tr("还没有自有 Key。添加后将优先走你的 Key（故障自动切换）。", "No BYOK keys yet. Add one to route through your keys with auto failover.") + '</td></tr>';
       return;
     }
     var html = "";
@@ -2800,7 +2768,7 @@
         k.last_latency_ms != null ? Math.round(Number(k.last_latency_ms)) + "ms" : "--";
       var models = (k.models && k.models.length)
         ? k.models.map(function (m) { return '<code>' + escapeHtml(m) + "</code>"; }).join(" ")
-        : '<span class="sub">全部</span>';
+        : '<span class="sub">' + tr("全部", "All") + '</span>';
       html +=
         "<tr>" +
         "<td>" + byokProviderTitle(k.provider) + "</td>" +
@@ -2811,9 +2779,9 @@
         "<td>" + lat + " · " + rate + "</td>" +
         "<td class='col-time'>" + fmtByokTime(k.last_used_at) + "</td>" +
         "<td>" +
-        '<button type="button" class="btn" data-byok-test="' + k.id + '">测试</button> ' +
-        '<button type="button" class="btn" data-byok-toggle="' + k.id + '" data-status="' + (k.status === "active" ? "disabled" : "active") + '">' + (k.status === "active" ? "停用" : "启用") + "</button> " +
-        '<button type="button" class="btn" data-byok-del="' + k.id + '">删除</button>' +
+        '<button type="button" class="btn" data-byok-test="' + k.id + '">' + tr("测试", "Test") + '</button> ' +
+        '<button type="button" class="btn" data-byok-toggle="' + k.id + '" data-status="' + (k.status === "active" ? "disabled" : "active") + '">' + (k.status === "active" ? tr("停用", "Disable") : tr("启用", "Enable")) + "</button> " +
+        '<button type="button" class="btn" data-byok-del="' + k.id + '">' + tr("删除", "Delete") + '</button>' +
         "</td></tr>";
     });
     wrap.innerHTML = html;
@@ -2849,7 +2817,7 @@
             return loadByokKeys();
           })
           .catch(function (e) {
-            showMsg(msgBox(), e.message || "删除失败", false);
+            showMsg(msgBox(), e.message || tr("删除失败", "Delete failed"), false);
           });
       });
     });
@@ -3500,7 +3468,25 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     if (!requireLogin()) return;
+    try {
+      var hub = document.querySelector(".billing-hub-link a");
+      if (hub) {
+        var h = String(location.hostname || "").toLowerCase();
+        if (h === "127.0.0.1" || h === "localhost") {
+          hub.href = "http://127.0.0.1:8000/console.html#billing";
+        }
+      }
+    } catch (eHub) {}
     $("api-base").value = AI24X_API.getBase();
+    if (AI24X_API.isPublicAi24xHost && AI24X_API.isPublicAi24xHost()) {
+      var baseEl = $("api-base");
+      if (baseEl) {
+        baseEl.readOnly = true;
+        baseEl.disabled = true;
+      }
+      var hint = $("api-base-locked-hint");
+      if (hint) hint.hidden = false;
+    }
     $("api-key").value = AI24X_API.getApiKey();
     bind();
     try {
