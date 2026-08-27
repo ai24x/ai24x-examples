@@ -152,8 +152,8 @@ _PLAN_DEFAULTS: dict[str, dict[str, Any]] = {
     "token_test_01": {
         "title_zh": "小额测试包",
         "title_en": "Test Pack",
-        # 支付通道小额实测专用：默认开放 $0.5，后台价表管理可随时关闭
-        "price_usd": 0.5,
+        # 支付通道小额实测专用：默认开放 $0.6，后台价表管理可随时关闭
+        "price_usd": 0.6,
         "default_fen": None,
         "credit_tokens": 1_000_000,
         "set_vip": False,
@@ -161,9 +161,9 @@ _PLAN_DEFAULTS: dict[str, dict[str, Any]] = {
         "enabled": True,
         "promo": False,
         "promo_max_purchases": 0,
-        "note_zh": "小额支付测试包：$0.5 试水 100 万 credits（≈ 数千次 flash 调用）。默认开放；管理员可在后台价表关闭。仅用于支付通道小额实测。额度 12 个月有效。",
+        "note_zh": "小额支付测试包：$0.6 试水 100 万 credits（≈ 数千次 flash 调用）。默认开放；管理员可在后台价表关闭。仅用于支付通道小额实测。额度 12 个月有效。",
         "note_en": (
-            "Small-amount payment test pack: $0.5 for 1M credits (~thousands of flash calls). "
+            "Small-amount payment test pack: $0.6 for 1M credits (~thousands of flash calls). "
             "Enabled by default; admins can disable it from the dashboard. For payment-channel testing. "
             "Valid 12 months."
         ),
