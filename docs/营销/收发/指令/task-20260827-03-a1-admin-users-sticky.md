@@ -12,7 +12,7 @@
 |------|------|
 | `p/a1/api/server/app/admin_ui.py` | 右栏 sticky 置顶；左表限高滚动；窄屏单列时管理卡 `order:-1` 仍在上方 |
 
-目标 commit：`__COMMIT__`（推送后由司令填入；03 以本指令内 Step1 的 SHA 为准）
+目标 commit：`c16bdaf3439a05e31cdfe3ad3919459b726b9aa9`
 
 ## Step 0 备份
 ```powershell
@@ -31,7 +31,7 @@ git fetch gitee master --quiet
 git pull --ff-only gitee master 2>&1 | Select-Object -Last 8
 $HEAD = (git rev-parse HEAD).Trim()
 Write-Output ("HEAD=" + $HEAD)
-$NEED = "__COMMIT__"
+$NEED = "c16bdaf3439a05e31cdfe3ad3919459b726b9aa9"
 if (-not (git merge-base --is-ancestor $NEED HEAD)) { throw ("目标 commit 不在 HEAD: " + $NEED) }
 Select-String -Path p\a1\api\server\app\admin_ui.py -Pattern "users-pane" | Select-Object -First 2
 Select-String -Path p\a1\api\server\app\admin_ui.py -Pattern "position: sticky" | Select-Object -First 3
