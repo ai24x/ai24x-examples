@@ -3140,10 +3140,14 @@ async def _bj_ensure_scan_or_fast(
         if _today_off_market() or not _market_closed():
             if _latest_history(market):
                 return None
-        # 交易日已收盘但今日数据未生成（15:03 自动预生成失败/未触发）：
-        # 直接返回最近归档并标记 today_missing，绝不在进页时自动开扫（防"进页就扫描"）
+        # 交易日已收盘但内存无今日扫描缓存：
+        # - 若磁盘已有「今日」归档 → 不算 missing，交回 run_scan 正常加载（避免重启后误报「今日尚未生成」）
+        # - 仅当最近归档早于今日 → 标记 today_missing，绝不在进页时自动开扫（防"进页就扫描"）
         _stale = _latest_history(market)
         if _stale:
+            _arch_day = str(_stale.get("date") or _stale.get("asof") or "").replace("-", "")[:8]
+            if _arch_day == today8:
+                return None
             _out = dict(_stale)
             _out["cached"] = True
             _out["stale"] = True

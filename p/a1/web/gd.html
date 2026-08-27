@@ -18,7 +18,7 @@
   </script>
   <link rel="stylesheet" href="/css/base.css?v=54" />
   <link rel="stylesheet" href="/css/tool.css" />
-  <link rel="stylesheet" href="/css/bjscreener.css?v=80" />
+  <link rel="stylesheet" href="/css/bjscreener.css?v=92" />
 <style>
 /* 复盘 · 大盘环境与策略区（大盘同步） */
 .bj-market{display:block;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:10px 14px;margin:0 0 12px;}
@@ -31,18 +31,18 @@
 .bj-mkt-badge.warn{background:rgba(251,191,36,.14);color:#b45309;border:1px solid rgba(251,191,36,.55);}
 .bj-mkt-badge.risk{background:rgba(220,38,38,.18);color:#991b1b;border:1px solid rgba(220,38,38,.6);}
 .bj-mkt-pts{font-size:13px;color:var(--text);font-weight:700;}
-.bj-mkt-asof{margin-left:auto;font-size:12px;color:var(--muted);}
+.bj-mkt-asof{margin-left:auto;font-size:13px;color:var(--muted);}
 .bj-mkt-idx{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;margin-bottom:8px;}
-.bj-mkt-idx-item{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--border);border-radius:999px;padding:3px 10px;font-size:12px;line-height:1.4;white-space:nowrap;overflow:hidden;}
+.bj-mkt-idx-item{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--border);border-radius:999px;padding:3px 10px;font-size:13px;line-height:1.4;white-space:nowrap;overflow:hidden;}
 .bj-mkt-idx-item .nm{font-weight:700;color:var(--text);}
 .bj-mkt-idx-item .sc{font-weight:700;color:var(--bj-acc);margin-left:auto;}
 .bj-mkt-idx-item .stx{color:var(--muted);overflow:hidden;text-overflow:ellipsis;}
-.bj-mkt-strategy{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:6px 10px;font-size:12px;line-height:1.7;}
+.bj-mkt-strategy{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:6px 10px;font-size:13px;line-height:1.7;}
 .bj-mkt-strategy .row{margin:0;}
 .bj-mkt-strategy .row-sep{color:var(--muted);margin:0 4px;}
 .bj-mkt-strategy .lb{color:var(--muted);margin-right:6px;}
 .bj-mkt-strategy .ops{display:none;}
-.bj-mkt-gate{margin-top:10px;font-size:12px;color:var(--muted);line-height:1.7;}
+.bj-mkt-gate{margin-top:10px;font-size:13px;color:var(--muted);line-height:1.7;}
 .bj-mkt-gate a{color:var(--accent);}
 .bj-flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 14px;}
 .bj-flow-step{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--border);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:600;color:var(--text);}
@@ -62,15 +62,15 @@
 .bj-regime.stable b{background:linear-gradient(135deg,#d97706,#f59e0b);}
 .bj-regime.defensive{background:linear-gradient(135deg,rgba(153,27,27,.28),rgba(220,38,38,.12));border:1px solid rgba(153,27,27,.65);}
 .bj-regime.defensive b{background:linear-gradient(135deg,#7f1d1d,#b91c1c);}
-.bj-regime.bj-regime-inline{margin:6px 0 0;padding:6px 10px;font-size:12px;gap:6px 10px;}
-.bj-regime.bj-regime-inline b{font-size:12px;padding:1px 8px;}
+.bj-regime.bj-regime-inline{margin:6px 0 0;padding:6px 10px;font-size:13px;gap:6px 10px;}
+.bj-regime.bj-regime-inline b{font-size:13px;padding:1px 8px;}
 .winrate-strip{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:10px 14px;background:var(--panel2);border:1px solid var(--border);border-radius:12px;font-size:13px;font-weight:600;}
 .winrate-strip .up{color:var(--rise);}
 .winrate-strip .down{color:var(--fall);}
-.winrate-note{margin-top:6px;font-size:12px;color:var(--muted);line-height:1.7;}
+.winrate-note{margin-top:6px;font-size:13px;color:var(--muted);line-height:1.7;}
 .wr-head{cursor:pointer;display:flex;align-items:center;gap:8px;flex-wrap:wrap;transition:opacity .15s;}
 .wr-head:hover{opacity:.85;}
-.wr-see{margin-left:auto;font-size:12px;font-weight:700;color:var(--bj-acc,#60a5fa);border:1px dashed var(--bj-acc-bd,rgba(96,165,250,.38));background:rgba(96,165,250,.08);padding:3px 10px;border-radius:999px;}
+.wr-see{margin-left:auto;font-size:13px;font-weight:700;color:var(--bj-acc,#60a5fa);border:1px dashed var(--bj-acc-bd,rgba(96,165,250,.38));background:rgba(96,165,250,.08);padding:3px 10px;border-radius:999px;}
 .wr-head[aria-expanded="true"] .wr-see{background:rgba(96,165,250,.25);border-style:solid;}
 .wr-modal{position:fixed;inset:0;background:rgba(10,15,25,.55);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:4vh 16px 24px;}
 .wr-modal[hidden]{display:none;}
@@ -100,40 +100,29 @@
   <main class="page-main">
     <div class="wrap">
       <section class="card">
-        <div style="display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;justify-content:space-between;">
-          <h1 style="margin:0;">复盘 <span class="vip-badge">VIP 专属</span></h1>
-          <a class="btn" href="/daily/?brief=1" style="white-space:nowrap;" title="每日大盘简报：大盘信号与市场宽度（免费公开）">📋 今日简报</a>
-        </div>
-        <p class="sub" style="margin:0 0 10px;">每晚收盘自动扫描<strong>沪深京 / 北证</strong>，一站式技术形态参考。</p>
-        <div class="bj-flow" aria-label="复盘使用流程">
-          <span class="bj-flow-step now"><span class="ic">📊</span>大盘环境</span>
-          <span class="bj-flow-arrow">→</span>
-          <span class="bj-flow-step"><span class="ic">🎯</span>主线观察</span>
-          <span class="bj-flow-arrow">→</span>
-          <span class="bj-flow-step"><span class="ic">⭐</span>AI 筛选</span>
+        <div class="bj-hero">
+          <div>
+            <h1>复盘 <span class="vip-badge">VIP</span></h1>
+            <p class="sub">收盘定型 · 主线一眼看清</p>
+          </div>
+          <a class="btn" href="/daily/?brief=1" style="white-space:nowrap;">今日简报</a>
         </div>
 
         <div id="auth-guest" hidden>
           <div class="gate-hero">
-            <div class="gate-title">登录后，每晚收盘解锁「复盘」扫描结果</div>
-            <div class="gate-sub">每晚收盘自动扫描沪深京 / 北证：先看哪些标的在底部异动、归类异动板块观察（主线由市场驾驶舱统一锁定），再做多因子体检与风险排查。</div>
-          </div>
-          <div class="gate-feats">
-            <div class="gate-feat"><b>① 每晚自动扫描</b><span>沪深京 / 北证全市场</span></div>
-            <div class="gate-feat"><b>② 底部刚走多筛选</b><span>异动回踩企稳 / 一路小阳</span></div>
-            <div class="gate-feat"><b>③ 风险排查 + 技术参考</b><span>硬伤排除、警示、中线技术参考</span></div>
+            <div class="gate-title">登录后查看</div>
+            <div class="gate-sub">大盘免费 · 主线与精选为 VIP</div>
           </div>
           <div class="auth-card-grid">
             <a class="auth-card is-selected" href="./index.html?mode=login&amp;ch=phone">
               <div class="t">去登录</div>
-              <div class="d">手机号或邮箱登录</div>
+              <div class="d">手机号或邮箱</div>
             </a>
             <a class="auth-card" href="./index.html?mode=register&amp;ch=phone">
               <div class="t">去注册</div>
-              <div class="d">新用户注册</div>
+              <div class="d">新用户</div>
             </a>
           </div>
-          <p class="sub gate-note">大盘环境免费可见；主线观察与个股分析为 VIP 专属，登录后可查看大盘，升级解锁全部。</p>
         </div>
 
         <div id="auth-user" hidden>
@@ -159,33 +148,32 @@
           </div>
           <div id="bj-meta" class="bj-meta" hidden></div>
 
-          <div id="bj-market" hidden></div>
-
           <div id="bj-vipgate" class="vip-card" hidden>
-            <div class="t">🔒 复盘为 VIP 专属功能</div>
-            <div class="d">开通 VIP 后解锁：全市场扫描结果、板块聚焦、AI 筛选标的与技术参考。</div>
-            <a class="btn" href="./account.html#vip" style="display:inline-block;">去开通 VIP</a>
+            <div class="t">VIP 专属</div>
+            <div class="d">开通后查看主线、板块热度与精选标的。</div>
+            <a class="btn" href="./account.html#vip" style="display:inline-block;">开通 VIP</a>
             <span style="display:inline-block;width:8px;"></span>
-            <a class="btn wl-back" href="./demo.html">← 返回行情页</a>
+            <a class="btn wl-back" href="./demo.html">返回行情</a>
           </div>
 
           <div id="bj-main" hidden>
             <div id="bj-mainlines"></div>
+            <div id="bj-market" hidden></div>
             <div id="bj-strategy" hidden></div>
             <div id="bj-boardrank"></div>
             <div id="bj-result"></div>
             <details class="bj-fold" id="bj-more">
-              <summary>更多 · 情绪面 / 回溯检验 / 历史归档</summary>
+              <summary>更多数据</summary>
               <div id="bj-ths-sentiment"></div>
               <div id="bj-winrate" hidden></div>
               <div id="bj-history"></div>
             </details>
             <div id="bj-picksgate" class="vip-card" hidden>
-              <div class="t">🔒 个股筛选与技术参考为 VIP 专属</div>
-              <div class="d">开通 VIP 解锁：筛选标的（主线代表 + 补涨观察）、体检评分、利空排查与技术参考。</div>
-              <a class="btn" href="./account.html#vip" style="display:inline-block;">去开通 VIP</a>
+              <div class="t">精选标的 · VIP</div>
+              <div class="d">开通后查看筛选结果与技术参考。</div>
+              <a class="btn" href="./account.html#vip" style="display:inline-block;">开通 VIP</a>
             </div>
-            <p class="sub" style="margin:14px 0 0;font-size:12px;line-height:1.7;">本页由算法基于公开行情数据自动生成，仅做技术形态统计与信息整理，<b>不构成任何证券投资咨询、投资建议或收益承诺</b>；历史统计不代表未来表现；破位或放量长阴-8% 注意风险；股市有风险，入市需谨慎。</p>
+            <p class="sub" style="margin:14px 0 0;font-size:13px;line-height:1.7;color:var(--muted);">基于公开行情的技术统计，不构成投资建议。</p>
           </div>
         </div>
       </section>
@@ -196,7 +184,7 @@
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("bjscreener"); } catch (e) {}
   </script>
-  <script src="/js/bjscreener.js?v=111"></script>
+  <script src="/js/bjscreener.js?v=122"></script>
   <script>
     (function () {
       var w = window.AI24X_BJScreener;

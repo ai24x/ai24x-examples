@@ -1195,6 +1195,18 @@ def _attach_ml_why(rank: list[dict[str, Any]], dml_names: list[str], dml_info: d
             is_new = ml not in prev
             b["ml_src"] = "new" if is_new else "cont"
             it = dml_info.get(ml) or {}
+            # 补缺资金/涨幅：归档注入主线常 f62=0，先用复盘判定里的 fund_t/fund5/avg_up 填上
+            try:
+                if abs(float(b.get("f62") or 0)) < 1e5 and it.get("fund_t") is not None:
+                    b["f62"] = float(it.get("fund_t") or 0)
+                if abs(float(b.get("f164") or 0)) < 1e5 and it.get("fund5") is not None:
+                    b["f164"] = float(it.get("fund5") or 0)
+                if b.get("pct") is None and it.get("avg_up") is not None:
+                    b["pct"] = round(float(it.get("avg_up") or 0), 2)
+                if b.get("p5") is None and it.get("chg5_med") is not None:
+                    b["p5"] = float(it.get("chg5_med") or 0)
+            except Exception:
+                pass
             top5 = it.get("top5")
             nzt = int(it.get("n_zt") or 0)
             aup = it.get("avg_up")
@@ -4243,14 +4255,83 @@ _LEADER_Q_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
 _LEADER_Q_TTL = 60.0
 
 
+async def _backfill_board_funds(payload: dict[str, Any]) -> dict[str, Any]:
+    """板块排行缺资金/涨幅时补拉（归档补主线常 f62=f164=0 且无 secid）。
+
+    典型场景：复盘新锁定主线（如军工）不在当日掘金资金热度池 → _build_mainline_rank_items
+    零上游合成条目；本函数在出站时一次批量补齐，不写归档。
+    """
+    try:
+        if not isinstance(payload, dict):
+            return payload
+        rank = payload.get("board_rank")
+        if not isinstance(rank, list) or not rank:
+            return payload
+
+        async def _resolve_sid(nm: str) -> str:
+            nm = str(nm or "").strip()
+            if not nm:
+                return ""
+            sid = (_MAINLINE_BOARD_MAP.get(nm) or [""])[0] if _MAINLINE_BOARD_MAP.get(nm) else ""
+            if not sid:
+                sid = _MAINLINE_SECID_FALLBACK.get(nm) or ""
+            if not sid:
+                try:
+                    sid = await _resolve_board_secid(nm) or ""
+                except Exception:
+                    sid = ""
+            return sid
+
+        need: list[dict[str, Any]] = []
+        for b in rank:
+            if not isinstance(b, dict):
+                continue
+            sid = str(b.get("secid") or "").strip()
+            if not sid:
+                sid = await _resolve_sid(str(b.get("name") or ""))
+                if sid:
+                    b["secid"] = sid
+                    if not str(b.get("ths") or "").strip():
+                        b["ths"] = bk_to_ths_secid(sid) or ""
+            if not sid:
+                continue
+            f62 = abs(float(b.get("f62") or 0))
+            f164 = abs(float(b.get("f164") or 0))
+            # 任一缺失都要补拉：常见于「今日有、5日无」的归档判定补丁（如军工）
+            miss_fund = f62 < 1e5 or f164 < 1e5
+            miss_px = b.get("p5") is None or b.get("pct") is None
+            if miss_fund or miss_px:
+                need.append(b)
+        if not need:
+            return payload
+        funds = await _fetch_mainline_funds([str(b.get("secid") or "") for b in need])
+        for b in need:
+            q = funds.get(str(b.get("secid") or ""))
+            if not q:
+                continue
+            if abs(float(b.get("f62") or 0)) < 1e5 and q.get("f62") is not None:
+                b["f62"] = q.get("f62")
+            if abs(float(b.get("f164") or 0)) < 1e5 and q.get("f164") is not None:
+                b["f164"] = q.get("f164")
+            if b.get("p5") is None and q.get("p5") is not None:
+                b["p5"] = q.get("p5")
+            if b.get("pct") is None and q.get("pct") is not None:
+                b["pct"] = q.get("pct")
+        return payload
+    except Exception:
+        return payload
+
+
 async def _backfill_leader_quotes(payload: dict[str, Any]) -> dict[str, Any]:
     """板块排行代表 / MACD首红卡片缺价或缺涨跌时，用实时行情补一次（带 60s 缓存）。
 
     旧归档/静态龙头兜底（如 AI服务器算力 走 SECTORS 静态代表、上游失败时 pct 为 null）
     会让「代表：xxx」无涨跌幅可显示；MACD 复盘样本补齐条目通常无 price，也在此补齐。
+    同时补主线板块缺失的今日/5日主力（见 _backfill_board_funds）。
     不改写归档与扫描缓存。
     """
     try:
+        payload = await _backfill_board_funds(payload)
         if not isinstance(payload, dict):
             return payload
         miss: list[tuple[dict[str, Any], str]] = []
@@ -5462,6 +5543,10 @@ _MAINLINE_BOARD_MAP: dict[str, list[str]] = {
     "通信光模块CPO": ["90.BK1128", "90.BK1136"],
     "煤炭": ["90.BK0437", "90.BK1250", "90.BK1493", "90.BK1494"],
     "半导体": ["90.BK1036", "90.BK1325"],
+    # 军工：概念「军工」优先；行业「国防军工」+ 航天/船舶作备链
+    "军工": ["90.BK0490", "90.BK1204", "90.BK0480", "90.BK0729"],
+    "证券": ["90.BK0473"],
+    "光伏设备": ["90.BK1031", "90.BK1602"],
 }
 
 # 主线名 → 真实东财板块 secid 轻量兜底（仅用于排行/链接展示，不改变候选池与龙头来源）：

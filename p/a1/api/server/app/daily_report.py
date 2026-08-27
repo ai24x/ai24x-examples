@@ -443,9 +443,12 @@ async def _fetch_index_signals(is_vip):
             candles = await _tx_kline(secid, 120, variant, priority_override, allow_paid)
             sc = score_candles(candles, name=name)
             base = float(sc.get("score") or 0.0)
+            _c0 = float(candles[-1].close)
+            _c1 = float(candles[-2].close) if len(candles) >= 2 else 0.0
+            _pct = round((_c0 / _c1 - 1.0) * 100.0, 2) if _c1 else None
             rec = {"secid": secid, "score": round(max(0.0, min(100.0, base + pts)), 1), "pts": pts,
                    "above_ma20": env["above_ma20"], "weak": env["weak"], "tags": env["tags"],
-                   "last_close": candles[-1].close, "last_date": candles[-1].time}
+                   "last_close": _c0, "pct": _pct, "last_date": candles[-1].time}
             sig = build_signals_v3(candles, cache_key="%s_day" % secid)
             mk = (sig or {}).get("markers") or []
             by_day = {}
@@ -1211,10 +1214,9 @@ def build_md(data, vip=True):
         if cd.startswith("BK") and nm:
             return "[%s](/demo.html?secid=90.%s&name=%s) `%s` **%s**" % (nm, cd, urllib.parse.quote(nm), cd, note)
         return "%s **%s**" % (nm, note)
-    A("# 大盘研判 —— 资金主攻板块与主线锁定")
+    A("# 大盘研判 —— 资金主攻与主线")
     A("")
-    A("> 报告日期：%s（数据截至 %s 收盘）｜数据源：AI行情官 指数信号/个股评分 + 东方财富/同花顺 板块资金流与涨幅｜性质：大盘择时 × 板块轮动研判" % (today(), asof))
-    A("> 声明：本报告由算法自动生成，仅为研究与信息整理，**不构成任何投资建议**。股市有风险，入市需谨慎。")
+    A("> 报告日期：%s · 数据截至 %s 收盘 · 算法自动生成，不构成投资建议" % (today(), asof))
     A("")
     A("---")
     A("")
@@ -1226,18 +1228,18 @@ def build_md(data, vip=True):
     sh_lab = " ".join((sh.get("recent_labels") or [])[-2:]) or "-"
     A("## ⭐ 〇、核心结论")
     A("")
-    A("1. **大盘**：上证最新信号「%s」，MACD 红柱 %s，站上 MA20，pts=%s——空转多状态：%s；" % (
+    A("1. **大盘**：上证最新信号「%s」，MACD 红柱 %s，站上 MA20，pts=%s——%s；" % (
         sh_lab, ("+%.1f" % ((sh.get("macd_last") or {}).get("bar") or 0)) if ((sh.get("macd_last") or {}).get("bar") or 0) >= 0 else "%.1f" % ((sh.get("macd_last") or {}).get("bar") or 0),
         env.get("pts"), ("顺风（金叉确认）" if "金" in sh_lab else ("底部转多初段" if "底" in sh_lab else "信号不明"))))
     if main_lines and vip:
-        A("2. **主攻主线**：**%s**——资金与技术双确认（龙头梯队 Top5 评分 + 主力净流入 + 涨停/异动情绪加权）；" % "、".join(main_lines))
+        A("2. **主攻主线**：**%s**；" % "、".join(main_lines))
     elif not vip:
-        A("2. **主攻主线（VIP 专属）**：开通 VIP 后解锁板块技术体检与主线锁定。")
+        A("2. **主攻主线**：VIP · [开通后查看](/account.html#vip)")
     if vip:
         A("3. **观察**：%s；**回避/等修复**：%s。" % ("、".join(observes) if observes else "无", "、".join(avoids) if avoids else "无"))
     else:
-        A("3. **观察/回避（VIP 专属）**：板块技术体检与主线锁定为 VIP 权益，开通后自动解锁。")
-    A("4. 风险提示：注意控制仓位风险、避免盲目追高；**本报告不构成投资建议**。")
+        A("3. **观察/回避**：VIP · [开通后查看](/account.html#vip)")
+    A("4. 风险提示：控制仓位、避免盲目追高。")
     weak_flag = bool(env.get("weak")) or float(env.get("pts") or 0) <= 0
     mkt_lab = "顺风·金叉确认" if "金" in sh_lab else ("底部转多" if "底" in sh_lab else "信号不明")
     A("")
@@ -1255,8 +1257,8 @@ def build_md(data, vip=True):
     A("")
     A("## 一、大盘信号验证")
     A("")
-    A("| 排名 | 指数 | 最新信号 | 评分 | MACD红柱 | 状态 |")
-    A("|---|---|---|---|---|")
+    A("| 排名 | 指数 | 收盘 | 涨跌 | 最新信号 | 评分 | MACD红柱 | 状态 |")
+    A("|---|---|---|---|---|---|---|---|")
     def status_of(r):
         lab = (r.get("recent_labels") or [])
         cur = lab[-1] if lab else ""
@@ -1269,13 +1271,27 @@ def build_md(data, vip=True):
             return float(v)
         except (TypeError, ValueError):
             return -1.0
-    _ranked = sorted(INDEXES.items(), key=lambda kv: _num((idx.get(kv[0]) or {}).get("score")), reverse=True)
-    for i, (name, secid) in enumerate(_ranked):
+    # 展示序：主宽指固定（上证→深证→创业板→北证）→ 风格温度（中证500/1000）→ 其余按评分
+    _PRIMARY_IDX = ("上证指数", "深证成指", "创业板指", "北证50")
+    _STYLE_IDX = ("中证500", "中证1000")
+    _rest = [n for n in INDEXES if n not in _PRIMARY_IDX and n not in _STYLE_IDX]
+    _rest.sort(key=lambda n: _num((idx.get(n) or {}).get("score")), reverse=True)
+    _ordered = [n for n in _PRIMARY_IDX if n in INDEXES] + [n for n in _STYLE_IDX if n in INDEXES] + _rest
+    for i, name in enumerate(_ordered):
+        secid = INDEXES.get(name) or ""
         r = idx.get(name) or {}
         macd = r.get("macd_last") or {}
         bar = macd.get("bar")
         bar_s = ("+%.1f" % bar) if bar is not None and bar >= 0 else ("%.1f" % bar if bar is not None else "-")
-        A("| %d | [%s](/demo.html?secid=%s&name=%s) | %s | %s | %s | %s |" % (i + 1, name, secid, urllib.parse.quote(name), " ".join((r.get("recent_labels") or [])[-2:]) or "-", r.get("score"), bar_s, status_of(r)))
+        close_s = ("%.2f" % _num(r.get("last_close"))) if r.get("last_close") is not None else "-"
+        pct_v = r.get("pct")
+        if pct_v is None:
+            pct_s = "-"
+        else:
+            pct_s = ("%+.2f%%" % float(pct_v))
+        A("| %d | [%s](/demo.html?secid=%s&name=%s) | %s | %s | %s | %s | %s | %s |" % (
+            i + 1, name, secid, urllib.parse.quote(name), close_s, pct_s,
+            " ".join((r.get("recent_labels") or [])[-2:]) or "-", r.get("score"), bar_s, status_of(r)))
     A("")
     A("> 大盘环境：%s（%s，pts=%s）；上证收盘 %s。" % (
         env.get("tags")[0] if env.get("tags") else "-", env.get("tags")[1] if len(env.get("tags", [])) > 1 else "", env.get("pts"), idx.get("上证指数", {}).get("last_close")))
@@ -1284,21 +1300,21 @@ def build_md(data, vip=True):
     A("")
     A("## 二、资金面：谁在真正主攻")
     A("")
-    A("### 2.1 行业板块 5 日主力净流入 TOP（东方财富）")
+    A("### 2.1 行业板块 5 日主力净流入 TOP")
     A("")
     A("| 排名 | 板块 | 5日净流入 | 今日净流入 | 今日涨跌 |")
     A("|---|---|---|---|---|")
     for i, r in enumerate(ind5[:8]):
         A("| %d | %s | +%s 亿 | %s%s 亿 | %s%% |" % (i + 1, _plate_cell(r.get("name"), r.get("code"), tier_note(i)), yi(r["main_5d"]), "+" if (r["main_today"] or 0) >= 0 else "", yi(r["main_today"]), r["pct"]))
     A("")
-    A("### 2.2 行业板块今日主力净流入 TOP（东方财富）")
+    A("### 2.2 行业板块今日主力净流入 TOP")
     A("")
     A("| 排名 | 板块 | 今日净流入 |")
     A("|---|---|---|")
     for i, r in enumerate(ind_t[:8]):
         A("| %d | %s | %s%s 亿 |" % (i + 1, _plate_cell(r.get("name"), r.get("code"), tier_note(i)), "+" if (r["main_today"] or 0) >= 0 else "", yi(r["main_today"])))
     A("")
-    A("### 2.3 概念板块资金流（东方财富）")
+    A("### 2.3 概念板块资金流")
     A("")
     A("**今日净流入 TOP**")
     A("")
@@ -1314,7 +1330,7 @@ def build_md(data, vip=True):
     for i, r in enumerate(con5[:8]):
         A("| %d | %s | %s%s 亿 |" % (i + 1, _plate_cell(r.get("name"), r.get("code"), tier_note(i)), "+" if (r["main_5d"] or 0) >= 0 else "", yi(r["main_5d"])))
     A("")
-    A("### 2.4 今日行业涨幅 TOP（同花顺）")
+    A("### 2.4 今日行业涨幅 TOP")
     A("")
     A("| 排名 | 行业 | 涨幅 | 上涨/下跌 | 领涨股 |")
     A("|---|---|---|---|---|")
@@ -1323,7 +1339,7 @@ def build_md(data, vip=True):
     A("")
     br = data.get("breadth") or {}
     if br.get("total"):
-        A("### 2.5 市场宽度（沪深A股口径 + 全市场涨跌停池）")
+        A("### 2.5 市场宽度")
         A("")
         A("| 项目 | 数值 |")
         A("|---|---|")
@@ -1334,15 +1350,13 @@ def build_md(data, vip=True):
         A("")
     ts = data.get("ths_sentiment") or {}
     if ts.get("ok") and (ts.get("limit_up") or ts.get("hot") or ts.get("hot_money")):
-        A("### 2.6 市场情绪（同花顺 · 交叉验证）")
-        A("")
-        A("> 涨停/连板/热榜/龙虎榜来自同花顺金融数据API，与东财涨跌停池互相印证；两源口径略有差异，仅供参考。")
+        A("### 2.6 市场情绪")
         A("")
         lu = ts.get("limit_up") or {}
         if lu.get("count") is not None:
             A("| 项目 | 数值 |")
             A("|---|---|")
-            A("| 涨停家数（同花顺） | %s 家 |" % lu.get("count"))
+            A("| 涨停家数 | %s 家 |" % lu.get("count"))
             A("| 最高连板 | %s |" % ("%s 连板 · %s" % (lu.get("max_lianban"), lu.get("max_name")) if lu.get("max_lianban") else "-"))
             A("")
         ld = ts.get("ladder") or {}
@@ -1369,7 +1383,7 @@ def build_md(data, vip=True):
             A("")
         hot = ts.get("hot") or []
         if hot:
-            A("**同花顺热股榜 TOP5**")
+            A("**热股榜 TOP5**")
             A("")
             A("| 排名 | 股票 | 热度 |")
             A("|---|---|---|")
@@ -1379,20 +1393,20 @@ def build_md(data, vip=True):
     if not vip:
         A("---")
         A("")
-        A("## ⭐ 三、板块技术体检（VIP 专属）")
+        A("## ⭐ 三、板块技术体检")
         A("")
-        A("> 板块成分股 AI行情官 评分与龙头梯队为 **VIP 专属**，开通 VIP 后自动解锁。")
+        A("> VIP · [开通后查看](/account.html#vip)")
         A("")
-        A("## ⭐ 四、主线锁定（VIP 专属）")
+        A("## ⭐ 四、主线锁定")
         A("")
-        A("> 主线锁定算法（龙头梯队 Top5 评分 + 资金 + 情绪加权综合分 → 主线）为 **VIP 专属**，开通 VIP 后自动解锁。")
+        A("> VIP · [开通后查看](/account.html#vip)")
         A("")
     else:
         A("---")
         A("")
-        A("## ⭐ 三、板块技术体检（AI行情官 成分股评分）")
+        A("## ⭐ 三、板块技术体检")
         A("")
-        A("| 板块 | 评分均值 | 龙头梯队(前3) |")
+        A("| 板块 | 评分均值 | 代表股(前3) |")
         A("|---|---|---|")
         for sec, items in sc.items():
             st = sector_stats(items)
@@ -1401,15 +1415,15 @@ def build_md(data, vip=True):
         main_lines, observes, avoids = pick_main_lines(sc, (data.get("prev_mainlines") or {}).get("mainlines") or [], plates)
         A("---")
         A("")
-        A("## ⭐ 四、主线锁定（算法双确认）")
+        A("## ⭐ 四、主线锁定")
         A("")
-        A("**主攻主线**：" + ("、".join("**%s**" % x for x in main_lines) if main_lines else "今日无评分达标板块，等修复"))
+        A("**主攻主线**：" + ("、".join("**%s**" % x for x in main_lines) if main_lines else "今日无达标板块"))
         A("")
         A("**观察**：" + ("、".join(observes) if observes else "无"))
         A("")
         A("**回避/等修复**：" + ("、".join(avoids) if avoids else "无"))
         A("")
-        A("板块级主线以本页为准；个股筛选与异动观察请前往「复盘」页查看对应标的。")
+        A("个股筛选请前往「复盘」页。")
         prev = data.get("prev_mainlines") or {}
         if prev.get("mainlines"):
             pml = prev["mainlines"]
@@ -1433,24 +1447,24 @@ def build_md(data, vip=True):
     A("")
     A("| 项目 | 建议 |")
     A("|---|---|")
-    A("| 仓位提示 | 注意控制仓位风险、不满仓操作 |")
-    A("| 主线观察 | 关注主线板块代表股回踩企稳形态与主力资金延续性 |")
-    A("| 观察板块 | 仅关注评分最高的代表股，控制参与比例 |")
-    A("| 风险信号 | 跌破 MA20 或上证跌破 MA20 → 注意整体风险 |")
-    A("| 跟踪 | 主线 5 日主力资金延续性、代表股量价、大盘底金状态 |")
+    A("| 仓位提示 | 注意控制仓位、不满仓 |")
+    A("| 主线观察 | 关注代表股回踩企稳与资金延续 |")
+    A("| 观察板块 | 仅看评分最高代表股 |")
+    A("| 风险信号 | 跌破 MA20 → 注意整体风险 |")
+    A("| 跟踪 | 主线资金、代表股量价、大盘信号 |")
     A("")
     A("---")
     A("")
     A("## 六、风险提示")
     A("")
-    A("1. 板块资金流、涨幅与评分为公开数据统计，可能存在口径与滞后差异；")
-    A("2. 个股单日大涨后追高风险大，优先等回踩企稳；")
-    A("3. AI行情官 评分反映历史量价状态，不代表未来走势；")
-    A("4. **本报告为算法自动生成，不构成投资建议**，据此操作风险自负。")
+    A("1. 公开行情统计，可能有滞后；")
+    A("2. 单日大涨后追高风险大，优先等回踩；")
+    A("3. 评分为历史量价状态，不代表未来；")
+    A("4. **算法自动生成，不构成投资建议**。")
     A("")
     A("---")
     A("")
-    A("*报告生成：AI行情官 大盘研判（算法自动）｜数据截至 %s 收盘｜方法：逻辑×数据双确认*" % asof)
+    A("*数据截至 %s 收盘*" % asof)
     return "\n".join(L)
 
 def md_to_html(md):
@@ -1727,9 +1741,31 @@ def load_report_by_date(d8):
             out["ths_sentiment"] = json.load(open(ps, encoding="utf-8"))
         except Exception:
             pass
+    # 指数结构化数据（复盘「今日大盘」卡片用：收盘/涨跌/评分/MACD）
+    pi = os.path.join(ARCHIVE_ROOT, d8, "index_signal.json")
+    if os.path.exists(pi):
+        try:
+            _ix = json.load(open(pi, encoding="utf-8"))
+            if isinstance(_ix, dict):
+                out["indexes"] = _ix
+        except Exception:
+            pass
     return out
 
-def _sentiment_public_lines(sentiment, header="### 2.6 市场情绪（免费公开）"):
+
+def _indexes_public_payload(idx_blob):
+    """对外可展示的指数快照（去掉内部 env 以外的无关字段亦可保留）。"""
+    if not isinstance(idx_blob, dict):
+        return None
+    # 归档/缓存两种形态：{"env":..., "indexes":{...}} 或直接 {名: rec}
+    if isinstance(idx_blob.get("indexes"), dict):
+        return {"env": idx_blob.get("env") or {}, "indexes": idx_blob.get("indexes") or {}}
+    # 已是扁平名→rec
+    if any(k in idx_blob for k in ("上证指数", "深证成指")):
+        return {"env": {}, "indexes": idx_blob}
+    return None
+
+def _sentiment_public_lines(sentiment, header="### 2.6 市场情绪"):
     """公开版市场情绪小节（涨停池/连板梯队/热股TOP5），数据异常时返回空。"""
     try:
         lim = sentiment.get("limit_up") or {}
@@ -1757,10 +1793,149 @@ def _sentiment_public_lines(sentiment, header="### 2.6 市场情绪（免费公�
         if hot:
             out.append("> 热股TOP5：" + "、".join(str(x.get("name") or "") for x in hot[:5]))
         out.append("")
-        out.append("> 以上为市场情绪统计（同花顺交叉验证），**不构成投资建议**。")
         return out
     except Exception:
         return []
+
+
+def load_mainlines_archive(d8: str | None = None) -> dict | None:
+    """读取复盘定型主线（mainlines.json）。简报出站以此为准，避免 report.md 旧稿回退算法。"""
+    d8 = d8 or today8()
+    p = os.path.join(ARCHIVE_ROOT, d8, "mainlines.json")
+    if not os.path.exists(p):
+        return None
+    try:
+        obj = json.load(open(p, encoding="utf-8"))
+        if not isinstance(obj, dict):
+            return None
+        return {
+            "date": str(obj.get("date") or d8),
+            "mainlines": [str(x) for x in (obj.get("mainlines") or []) if str(x).strip()],
+            "observes": [str(x) for x in (obj.get("observes") or []) if str(x).strip()],
+        }
+    except Exception:
+        return None
+
+
+def overlay_md_mainlines(md: str, d8: str | None = None) -> str:
+    """把简报 MD 里的主攻/观察改写成与复盘 mainlines.json 一致（复盘=最新算法）。"""
+    if not md:
+        return md
+    arch = load_mainlines_archive(d8)
+    if not arch:
+        return md
+    ml = arch.get("mainlines") or []
+    obs = arch.get("observes") or []
+    ml_bold = "、".join("**%s**" % x for x in ml) if ml else "今日无达标板块"
+    obs_txt = "、".join(obs) if obs else "无"
+    ml_line = ("2. **主攻主线**：%s；" % ml_bold) if ml else "2. **主攻主线**：今日无达标板块；"
+    text = md
+    text = re.sub(r"^2\.\s*\*\*主攻主线\*\*[：:].*$", ml_line, text, count=1, flags=re.M)
+    text = re.sub(
+        r"^3\.\s*\*\*观察\*\*[：:][^；\n]*；",
+        "3. **观察**：%s；" % obs_txt,
+        text,
+        count=1,
+        flags=re.M,
+    )
+    text = re.sub(
+        r"(今日速览[^\n]*?主攻【)([^】]*)(】[^】]*观察【)([^】]*)(】)",
+        lambda m: m.group(1) + ml_bold + m.group(3) + obs_txt + m.group(5),
+        text,
+        count=1,
+    )
+    text = re.sub(
+        r"^\*\*主攻主线\*\*[：:].*$",
+        "**主攻主线**：" + (ml_bold if ml else "今日无达标板块"),
+        text,
+        count=1,
+        flags=re.M,
+    )
+    text = re.sub(
+        r"^\*\*观察\*\*[：:].*$",
+        "**观察**：%s" % obs_txt,
+        text,
+        count=1,
+        flags=re.M,
+    )
+    return text
+
+
+def slim_report_md(md: str) -> str:
+    """用户端瘦身：去掉数据源/厂商/算法说明书式长文，归档旧稿出站也生效。"""
+    if not md:
+        return md
+    out = []
+    for ln in md.split("\n"):
+        s = ln.strip()
+        # 去掉数据源/API/交叉验证说明书
+        if "数据源：" in s or "金融数据API" in s or "互相印证" in s or "两源口径" in s:
+            if "报告日期" in s or "数据截至" in s:
+                # 压成一行短头
+                m = re.search(r"报告日期[：:]\s*([^\s（(]+)", s)
+                m2 = re.search(r"数据截至\s*([^\s收盘]+)", s)
+                d1 = m.group(1) if m else ""
+                d2 = (m2.group(1).strip() if m2 else "")
+                if d1 or d2:
+                    out.append("> 报告日期：%s · 数据截至 %s 收盘 · 不构成投资建议" % (d1 or "-", d2 or "-"))
+            continue
+        if s.startswith("> 声明：") or "仅为研究与信息整理" in s and s.startswith(">"):
+            continue
+        if "同花顺交叉验证" in s or "方法：逻辑×数据双确认" in s:
+            if s.startswith("*报告生成") or "数据截至" in s:
+                m2 = re.search(r"数据截至\s*([^\s收盘|｜]+)", s)
+                if m2:
+                    out.append("*数据截至 %s 收盘*" % m2.group(1).strip())
+            continue
+        # VIP 闸：长说明 → 短句
+        if "VIP 专属" in s and ("开通" in s or "解锁" in s):
+            if s.startswith("## "):
+                title = re.sub(r"[（(]VIP[^）)]*[）)]", "", s).rstrip()
+                out.append(title)
+                continue
+            if s.startswith("2. ") or s.startswith("3. ") or s.startswith("4. "):
+                num = s[:3]
+                out.append("%s**%s**：VIP · [开通后查看](/account.html#vip)" % (
+                    num, "主攻主线" if "主攻" in s else ("观察/回避" if "观察" in s else "组合与风控")))
+                continue
+            if s.startswith(">"):
+                out.append("> VIP · [开通后查看](/account.html#vip)")
+                continue
+        # 标题去厂商名
+        s2 = s
+        for a, b in (
+            ("（东方财富）", ""),
+            ("（同花顺）", ""),
+            ("（同花顺 · 交叉验证）", ""),
+            ("（沪深A股口径 + 全市场涨跌停池）", ""),
+            ("（免费公开）", ""),
+            ("（算法双确认）", ""),
+            ("（AI行情官 成分股评分）", ""),
+            ("（VIP 专属）", ""),
+            ("同花顺热股榜", "热股榜"),
+            ("涨停家数（同花顺）", "涨停家数"),
+            ("龙头梯队(前3)", "代表股(前3)"),
+            ("资金与技术双确认（龙头梯队 Top5 评分 + 主力净流入 + 涨停/异动情绪加权）", ""),
+            ("——资金与技术双确认（龙头梯队 Top5 评分 + 主力净流入 + 涨停/异动情绪加权）", ""),
+        ):
+            s2 = s2.replace(a, b)
+        if "主线锁定算法" in s2 and s2.startswith(">"):
+            out.append("> VIP · [开通后查看](/account.html#vip)")
+            continue
+        if "板块资金流排行、市场情绪与个股信息" in s2 and s2.startswith(">"):
+            out.append("> 资金明细与主线为 VIP · [开通后查看](/account.html#vip)")
+            continue
+        if s2 != s:
+            # 保留原前缀空白
+            out.append(ln[: len(ln) - len(ln.lstrip())] + s2 if ln[:1].isspace() else s2)
+        else:
+            out.append(ln)
+    text = "\n".join(out)
+    # 清理「主线**煤炭**——；」这类删说明后残留的破折号
+    text = re.sub(r"(主攻主线[^*]*\*\*[^*]+\*\*)——+[^；\n]*", r"\1", text)
+    text = re.sub(r"——+；", "；", text)
+    text = re.sub(r"\*\*——\*\*", "", text)
+    return text
 
 
 def public_md(full_md, sentiment=None):
@@ -1781,35 +1956,35 @@ def public_md(full_md, sentiment=None):
             skip = True
             if "s3" not in inserted:
                 inserted.add("s3")
-                out.append("## 三、板块技术体检（VIP 专属）")
+                out.append("## 三、板块技术体检")
                 out.append("")
-                out.append("> 板块资金流、板块成分 AI行情官 评分与龙头梯队为 **VIP 专属**，开通 VIP 后自动解锁。")
+                out.append("> VIP · [开通后查看](/account.html#vip)")
                 out.append("")
             continue
         if _h2("四、主线锁定"):
             skip = True
             if "s4" not in inserted:
                 inserted.add("s4")
-                out.append("## 四、主线锁定（VIP 专属）")
+                out.append("## 四、主线锁定")
                 out.append("")
-                out.append("> 主线锁定算法（板块评分均值≥62 且当日走强 → 主线）为 **VIP 专属**，开通 VIP 后自动解锁。")
+                out.append("> VIP · [开通后查看](/account.html#vip)")
                 out.append("")
             continue
         if _h2("五、组合与风控"):
             skip = True
             if "s5" not in inserted:
                 inserted.add("s5")
-                out.append("## 五、组合与风控（VIP 专属）")
+                out.append("## 五、组合与风控")
                 out.append("")
-                out.append("> 风险提示与观察要点为 **VIP 专属**，开通 VIP 后自动解锁。")
+                out.append("> VIP · [开通后查看](/account.html#vip)")
                 out.append("")
             continue
         # 二、资金面：仅保留 2.5 市场宽度（纯统计），隐藏 2.1~2.4 板块资金流TOP 与 2.6 市场情绪个股
         if _h2("二、资金面"):
             in_s2 = True
-            out.append("## 二、市场宽度（免费公开）")
+            out.append("## 二、市场宽度")
             out.append("")
-            out.append("> 板块资金流排行、市场情绪与个股信息为 **VIP 专属**；免费版仅保留大盘信号与市场宽度统计。")
+            out.append("> 资金明细与主线为 VIP · [开通后查看](/account.html#vip)")
             out.append("")
             continue
         if in_s2:
@@ -1820,43 +1995,38 @@ def public_md(full_md, sentiment=None):
             else:
                 continue
         if s.startswith("### 2.6 "):
-            # 免费公开版：原 VIP 情绪小节位置替换为公开市场情绪统计
             _s6 = _sentiment_public_lines(sentiment)
             if _s6:
                 out.extend(_s6)
             skip = True
             continue
-        # 今日速览（含大盘/主攻/观察/风险/节奏）→ 隐藏
         if s.startswith("> ⚡ "):
             continue
-        # 环境警示/顺风：保留大盘事实，去掉“低吸/破位即撤”类操作建议
         if s.startswith("> ⚠️ **环境警示**"):
             out.append("> ⚠️ **大盘环境**：跌破 MA20 / MACD 绿柱（转弱），注意控制仓位。")
             continue
         if s.startswith("> ✅ **环境顺风**"):
             out.append("> ✅ **大盘环境**：MACD 翻红且站上 MA20（顺风）。")
             continue
-        # 核心结论：非 VIP 隐藏主攻/观察板块与操作原则，仅留声明
         if s.startswith("2. **主攻主线**"):
-            out.append("2. **主攻主线（VIP 专属）**：开通 VIP 后解锁板块技术体检与主线锁定。")
+            out.append("2. **主攻主线**：VIP · [开通后查看](/account.html#vip)")
             continue
         if s.startswith("3. **观察**"):
-            out.append("3. **观察/回避（VIP 专属）**：板块技术体检与主线锁定为 VIP 权益，开通后自动解锁。")
+            out.append("3. **观察/回避**：VIP · [开通后查看](/account.html#vip)")
             continue
-        if s.startswith("4. 操作原则"):
-            out.append("4. 本报告由算法基于公开行情自动生成，仅供研究与信息整理，**不构成投资建议**；股市有风险，入市需谨慎。")
+        if s.startswith("4. 操作原则") or s.startswith("4. 风险提示"):
+            out.append("4. 算法自动生成，**不构成投资建议**。")
             continue
         if skip and s.startswith("## "):
             skip = False
         if not skip:
             out.append(ln)
     base = "\n".join(out)
-    # 兜底：报告模板不含 2.6 小节时（如旧归档），以附录追加，避免情绪缺失
-    if sentiment and "市场情绪（免费公开）" not in base:
-        _sx = _sentiment_public_lines(sentiment, header="## 附、市场情绪（免费公开）")
+    if sentiment and "市场情绪" not in base:
+        _sx = _sentiment_public_lines(sentiment, header="## 附、市场情绪")
         if _sx:
             base = base + "\n" + "\n".join(_sx)
-    return base
+    return slim_report_md(base)
 
 # ---------------- 鉴权/权限 ----------------
 def _vip_of(user_id):
@@ -1928,14 +2098,25 @@ def today_report(user_id: Optional[int] = Depends(get_optional_user_id)):
     report = cache_load("report")
     if not report:
         return {"ok": False, "msg": "今日报告尚未生成"}
+    _ix = _indexes_public_payload(report.get("indexes"))
+    # 优先用当日归档 index_signal（含补全后的涨跌等），避免内存缓存缺字段
+    try:
+        _d8 = report.get("today8") or today8()
+        _pi = os.path.join(ARCHIVE_ROOT, _d8, "index_signal.json")
+        if os.path.exists(_pi):
+            _arch_ix = _indexes_public_payload(json.load(open(_pi, encoding="utf-8")))
+            if _arch_ix:
+                _ix = _arch_ix
+    except Exception:
+        pass
     if is_vip:
-        md = report.get("md", "")
+        md = slim_report_md(overlay_md_mainlines(report.get("md", ""), report.get("today8") or today8()))
         html = md_to_html(md) if md else report.get("html", "")
     else:
-        md = public_md(report.get("md", ""), report.get("ths_sentiment"))
+        md = public_md(overlay_md_mainlines(report.get("md", ""), report.get("today8") or today8()), report.get("ths_sentiment"))
         html = md_to_html(md)
     return {"ok": True, "asof": report.get("asof"), "generated_at": report.get("generated_at"),
-            "html": html, "md": md, "vip": is_vip}
+            "html": html, "md": md, "vip": is_vip, "indexes": _ix}
 
 @router.get("/api/report/history")
 def history(user_id: Optional[int] = Depends(get_optional_user_id)):
@@ -1975,9 +2156,14 @@ def by_date(date8: str, user_id: Optional[int] = Depends(get_optional_user_id)):
     d = load_report_by_date(date8)
     if not d:
         raise HTTPException(status_code=404, detail="未找到该日期报告")
+    _ix = _indexes_public_payload(d.get("indexes"))
+    _d8 = d.get("date") or date8
     if not is_vip:
-        md = public_md(d.get("md", ""), d.get("ths_sentiment"))
-        d = {"date": d.get("date") or date8, "html": md_to_html(md), "md": md}
+        md = public_md(overlay_md_mainlines(d.get("md", ""), _d8), d.get("ths_sentiment"))
+        d = {"date": _d8, "html": md_to_html(md), "md": md, "indexes": _ix}
+    else:
+        md = slim_report_md(overlay_md_mainlines(d.get("md", ""), _d8))
+        d = {**d, "md": md, "html": md_to_html(md) if md else d.get("html", ""), "indexes": _ix}
     return {"ok": True, **d, "vip": is_vip}
 
 

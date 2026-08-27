@@ -41,23 +41,32 @@
   .br-code{font-size:10.5px;color:#8aa0bf;font-weight:600}
   .br-st{width:100%;font-size:11px;color:#8aa0bf;line-height:1.6}
   .br-st b{color:#e6edf7}
-  .br-leaders{width:100%;font-size:11px;color:#8aa0bf;line-height:1.7}
-  .br-leaders a{color:#8ab8ff}
   /* 大盘环境 */
   .mkt{margin:2px 12px 8px;background:#101a2c;border:1px solid #22314d;border-radius:14px;padding:11px 12px}
   .mkt-head{display:flex;flex-wrap:wrap;align-items:center;gap:5px 8px}
-  .mkt .badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:800}
+  .mkt .badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:800}
   .mkt .badge.ok{background:rgba(240,58,82,.16);color:#f03a52;border:1px solid rgba(240,58,82,.5)}
   .mkt .badge.warn{background:rgba(251,191,36,.14);color:#fbbf24;border:1px solid rgba(251,191,36,.45)}
   .mkt .badge.risk{background:rgba(0,181,120,.14);color:#00b578;border:1px solid rgba(0,181,120,.45)}
   .mkt .pts{font-size:12px;font-weight:800;color:#fbbf24}
-  .mkt-asof{font-size:10.5px;color:#5d7290;margin-left:auto}
-  .mkt-idx{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px}
-  .mi{background:#152238;border:1px solid #2a3a55;border-radius:9px;padding:6px 8px;font-size:11px;line-height:1.5}
-  .mi .nm{color:#e6edf7;font-weight:700;display:block}
-  .mi .sc{color:#fbbf24;font-weight:800;font-size:13px}
-  .mi .stx{color:#8aa0bf;display:block;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .mkt-gate{margin-top:8px;padding:8px 10px;border-radius:9px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);font-size:11.5px;color:#8aa0bf;line-height:1.7}
+  .mkt-asof{font-size:11px;color:#5d7290;margin-left:auto}
+  .mkt-idx{display:flex;flex-direction:column;gap:3px;margin-top:8px}
+  .mkt-colh,.mkt-row{display:grid;grid-template-columns:minmax(48px,1fr) minmax(58px,.9fr) minmax(52px,.85fr) minmax(40px,.55fr);gap:4px 6px;align-items:center;font-variant-numeric:tabular-nums}
+  .mkt-colh{font-size:11px;color:#5d7290;padding:0 4px 4px;border-bottom:1px solid #1c2a44;font-weight:600}
+  .mkt-row{padding:5px 4px;border-radius:8px;font-size:13px;line-height:1.35;background:#152238}
+  .mkt-row:nth-child(odd){background:transparent}
+  .mkt-row.slim{opacity:.9;font-size:12.5px}
+  .mkt-row .nm{font-weight:700;color:#e6edf7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mkt-row .px{font-weight:800}
+  .mkt-row .cl,.mkt-row .sc{color:#8aa0bf;font-weight:600}
+  .mkt-row .sc{color:#fbbf24}
+  .ic-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;vertical-align:1px}
+  .ic-dot.gold{background:radial-gradient(circle at 30% 30%,#ffe9a8,#f59e0b 55%,#d97706);box-shadow:0 0 6px rgba(245,158,11,.55)}
+  .ic-dot.cool{background:radial-gradient(circle at 30% 30%,#bae6fd,#38bdf8 55%,#0284c7);box-shadow:0 0 6px rgba(56,189,248,.5)}
+  .ic-dot.rose{background:radial-gradient(circle at 30% 30%,#fecaca,#f87171 55%,#dc2626);box-shadow:0 0 6px rgba(248,113,113,.45)}
+  .br-leaders{width:100%;font-size:12px;color:#8aa0bf;line-height:1.7;white-space:normal;overflow:visible}
+  .br-leaders a{color:#8ab8ff}
+  .mkt-gate{margin-top:8px;padding:8px 10px;border-radius:9px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);font-size:12px;color:#8aa0bf;line-height:1.7}
   .mkt-gate b{color:#fbbf24}
   .mkt-gate a{color:#8ab8ff;font-weight:700}
   /* 战绩条 */
@@ -192,7 +201,6 @@
 <div class="runner-box" id="runner-box"></div>
 
 <div class="sec-title">🔍 板块排行</div>
-<div class="rescan-note">板块资金流·东方财富，主线判定·技术+资金双确认</div>
 <div class="br" id="boardrank"></div>
 
 <div class="sec-title">历史归档</div>
@@ -530,7 +538,7 @@
     if (!box) return;
     function fill(d, label){
       if (!d || !d.ok || !d.md) { box.style.display = 'none'; return; }
-      renderMarket(d.md, !!d.vip, d.asof || d.date || '', label || '');
+      renderMarket(d.md, !!d.vip, d.asof || d.date || '', label || '', d.indexes || null);
     }
     api('/api/report/today').then(function(d){
       if (d && d.ok) { fill(d, reportDayLabel(d)); return; }
@@ -543,7 +551,7 @@
       }).catch(function(){ box.style.display = 'none'; });
     }).catch(function(){ box.style.display = 'none'; });
   }
-  function renderMarket(md, vip, asof, label){
+  function renderMarket(md, vip, asof, label, indexesBlob){
     var box = $('mkt');
     if (!box || !md) return;
     var pts = null, pm = md.match(/pts\s*=\s*([\d.]+)/);
@@ -554,21 +562,56 @@
     else if (pts != null && pts >= 3) env = 'ok';
     else if (pts != null && pts <= 0) env = 'risk';
     var envTxt = env === 'ok' ? '顺风' : (env === 'risk' ? '警示' : '中性');
-    var idxRows = [];
-    var lines = String(md).split('\n');
-    for (var i = 0; i < lines.length && idxRows.length < 4; i++) {
-      var L = lines[i].trim();
-      var m = L.match(/^\|\s*\d+\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([\d.]+)\s*\|/);
-      if (m) {
-        var rest = L.split('|');
-        var st = rest.length > 6 ? stripMdLink(rest[6]) : (rest.length > 5 ? 'MACD ' + stripMdLink(rest[5]) : '');
-        idxRows.push({ name: stripMdLink(m[1]), sig: stripMdLink(m[2]).replace(/　/g, ' '), score: m[3], st: st });
+    var PRIMARY = ['上证指数', '深证成指', '创业板指', '北证50'];
+    var STYLE = ['中证500', '中证1000'];
+    var idxMap = {};
+    var ixRoot = indexesBlob && typeof indexesBlob === 'object' ? indexesBlob : null;
+    var ixDict = ixRoot && ixRoot.indexes && typeof ixRoot.indexes === 'object' ? ixRoot.indexes : (ixRoot || null);
+    if (ixRoot && ixRoot.env && pts == null && ixRoot.env.pts != null) pts = Number(ixRoot.env.pts);
+    if (ixDict) {
+      Object.keys(ixDict).forEach(function(k){
+        var r = ixDict[k] || {};
+        if (!r || r.error) return;
+        var labs = r.recent_labels || [];
+        var macd = r.macd_last || {};
+        idxMap[k] = { name: k, close: r.last_close, pct: r.pct, score: r.score, bar: macd.bar,
+          sig: labs.length ? String(labs[labs.length - 1]).replace(/　/g, ' ') : '' };
+      });
+    }
+    if (!Object.keys(idxMap).length) {
+      var lines = String(md).split('\n');
+      for (var i = 0; i < lines.length; i++) {
+        var L = lines[i].trim();
+        if (!/^\|\s*\d+\s*\|/.test(L) || /排名/.test(L)) continue;
+        var parts = L.split('|').map(function(x){ return String(x || '').trim(); }).filter(function(_, idx2){ return idx2 > 0; });
+        if (parts.length < 5) continue;
+        var nm = stripMdLink(parts[1]);
+        var closeV = null, pctV = null, sig = '', score = '', bar = null;
+        if (parts.length >= 8 && /[\d.]/.test(parts[2]) && /%|-/.test(parts[3])) {
+          closeV = parseFloat(parts[2]);
+          pctV = parseFloat(String(parts[3]).replace('%', ''));
+          sig = stripMdLink(parts[4]); score = parts[5]; bar = parseFloat(parts[6]);
+        } else {
+          sig = stripMdLink(parts[2]); score = parts[3]; bar = parseFloat(parts[4]);
+        }
+        idxMap[nm] = { name: nm, close: isFinite(closeV) ? closeV : null, pct: isFinite(pctV) ? pctV : null, score: score, bar: isFinite(bar) ? bar : null, sig: sig };
       }
     }
-    var envLine = '';
-    var em = md.match(/大盘环境[：:]\s*([^\n]+)/);
-    if (em && em[1]) envLine = stripMdLink(em[1]).replace(/（[^）]*）/g, '').replace(/；\s*$/, '');
-    var mainlines = '', observe = '', avoid = '', ops = '';
+    function shortName(n){ return String(n || '').replace(/指数$/, '').replace(/成指$/, '成指'); }
+    function rowHtml(it, slim){
+      if (!it) return '';
+      var pctN = it.pct != null && isFinite(Number(it.pct)) ? Number(it.pct) : null;
+      var pctCls = pctN == null ? '' : (pctN > 0 ? ' up' : (pctN < 0 ? ' down' : ''));
+      var pctTxt = pctN == null ? '—' : ((pctN > 0 ? '+' : '') + pctN.toFixed(2) + '%');
+      var closeTxt = it.close != null && isFinite(Number(it.close)) ? Number(it.close).toFixed(Number(it.close) >= 1000 ? 0 : 2) : '—';
+      var scTxt = it.score != null && it.score !== '' ? String(it.score) : '—';
+      return '<div class="mkt-row' + (slim ? ' slim' : '') + '">' +
+        '<span class="nm">' + esc(shortName(it.name)) + '</span>' +
+        '<span class="px' + pctCls + '">' + esc(pctTxt) + '</span>' +
+        '<span class="cl">' + esc(closeTxt) + '</span>' +
+        '<span class="sc">' + esc(scTxt) + '</span></div>';
+    }
+    var mainlines = '', observe = '', avoid = '';
     if (vip) {
       var mm = md.match(/主攻主线[：:]\s*([^\n]+)/) || md.match(/主攻[^：:\n]*[：:]\s*([^\n]+)/);
       if (mm && mm[1]) {
@@ -579,41 +622,38 @@
       if (om && om[1]) observe = stripMdLink(om[1]);
       var av = md.match(/回避[^：:\n]*[：:]\s*([^\n；;]+)/);
       if (av && av[1]) avoid = stripMdLink(av[1]);
-      var op = md.match(/操作原则[：:]\s*([^\n]+)/);
-      if (op && op[1]) ops = stripMdLink(op[1]);
     }
     var dayL = (asof && String(asof) === fmtDate()) ? '今日' : '昨日';
     var h = '<div class="mkt-head"><span class="badge ' + env + '">' + envTxt + '</span>';
-    if (pts != null) h += '<span class="pts">pts=' + pts.toFixed(1) + '</span>';
-    if (envLine) h += '<span style="font-size:11px;color:#8aa0bf">' + esc(envLine) + '</span>';
-    if (label) h += '<span class="mkt-asof">' + esc(label) + (asof ? ' · 截至 ' + esc(asof) : '') + '</span>';
+    if (pts != null) h += '<span class="pts">' + pts.toFixed(1) + '</span>';
+    if (label) h += '<span class="mkt-asof">' + esc(label) + '</span>';
     h += '</div>';
-    if (idxRows.length) {
-      h += '<div class="mkt-idx">';
-      for (var j = 0; j < idxRows.length; j++) {
-        h += '<div class="mi"><span class="nm">' + esc(idxRows[j].name) + '</span><span class="sc">' + esc(idxRows[j].score) + '</span>' +
-          (idxRows[j].st ? '<span class="stx">' + esc(idxRows[j].st) + '</span>' : '') + '</div>';
-      }
-      h += '</div>';
+    h += '<div class="mkt-idx"><div class="mkt-colh"><span>指数</span><span>涨跌</span><span>收盘</span><span>评分</span></div>';
+    var any = false;
+    for (var j = 0; j < PRIMARY.length; j++) {
+      if (idxMap[PRIMARY[j]]) { h += rowHtml(idxMap[PRIMARY[j]], false); any = true; }
     }
-    if (vip && (mainlines || observe || avoid || ops)) {
+    for (var k = 0; k < STYLE.length; k++) {
+      if (idxMap[STYLE[k]]) { h += rowHtml(idxMap[STYLE[k]], true); any = true; }
+    }
+    if (!any) h += '<div style="color:#8aa0bf;font-size:12px;padding:6px">大盘信号已更新</div>';
+    h += '</div>';
+    if (vip && (mainlines || observe || avoid)) {
       h += '<div class="mkt-gate" style="border-color:rgba(240,58,82,.35);background:rgba(240,58,82,.08)">';
       var r1 = [];
       if (!mainlines && observe) {
         r1.push('<b style="color:#e64a19">电风扇行情 · 无明确主线</b>');
-        r1.push('👀 重点观察：' + esc(observe));
+        r1.push('<i class="ic-dot cool"></i>👀 观察：' + esc(observe));
       } else {
-        if (mainlines) r1.push('🎯 主攻：' + esc(mainlines));
-        if (observe) r1.push('👀 观察：' + esc(observe));
+        if (mainlines) r1.push('<i class="ic-dot gold"></i>主攻：' + esc(mainlines));
+        if (observe) r1.push('<i class="ic-dot cool"></i>👀 观察：' + esc(observe));
       }
-      if (avoid) r1.push('🚫 回避：' + esc(avoid));
-      if (ops) r1.push('📐 风险提示：' + esc(sanitizeOpsMobile(ops)));
-      if (r1.length) h += r1.join(' ｜ ');
+      if (avoid) r1.push('<i class="ic-dot rose"></i>回避：' + esc(avoid));
+      if (r1.length) h += r1.join('<br>');
       h += '</div>';
     } else if (!vip) {
-      h += '<div class="mkt-gate">🔒 ' + dayL + '观察（板块选择与筛选标的）为 <b>VIP 专属</b>，开通后自动解锁。<a href="account.html">去开通 →</a></div>';
+      h += '<div class="mkt-gate">🔒 ' + dayL + '观察为 <b>VIP 专属</b> · <a href="account.html">去开通 →</a></div>';
     }
-    if (state.mlBasis) h += state.mlBasis;
     box.innerHTML = h;
     box.style.display = 'block';
   }
