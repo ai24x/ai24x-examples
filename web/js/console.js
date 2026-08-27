@@ -1681,16 +1681,28 @@
           : Number(r.calls) || 0;
     });
     var max = Math.max.apply(null, vals.concat([1]));
-    var W = 720, H = 172, padT = 10, padB = 24;
+    var W = 720, H = 172, padT = 14, padB = 24, padL = 8;
     var n = rows.length;
     var slot = W / n;
     var barW = Math.max(2, Math.min(18, slot * 0.62));
+    var gridStroke = "color-mix(in srgb, var(--border, #334155) 85%, transparent)";
     var parts = [];
     parts.push("<svg viewBox='0 0 " + W + " " + H + "' role='img' aria-label='usage trend' xmlns='http://www.w3.org/2000/svg'>");
     for (var g = 0; g <= 3; g++) {
       var gy = padT + ((H - padT - padB) * g) / 3;
-      parts.push("<line x1='0' y1='" + gy + "' x2='" + W + "' y2='" + gy + "' stroke='#e5e7eb' stroke-width='1'/>");
+      parts.push("<line x1='0' y1='" + gy + "' x2='" + W + "' y2='" + gy + "' stroke='" + gridStroke + "' stroke-width='1'/>");
     }
+    var maxTip =
+      metric === "usd"
+        ? fmtUsdSpend(max, fx)
+        : metric === "tokens"
+          ? fmtTokensCount(max)
+          : String(Math.round(max));
+    parts.push(
+      "<text x='" + padL + "' y='" + (padT - 2) + "' font-size='10' fill='var(--muted,#888)'>" +
+        escapeHtml(maxTip) +
+        "</text>"
+    );
     rows.forEach(function (r, i) {
       var v = vals[i];
       var bh = v > 0 ? Math.max(2, ((H - padT - padB) * v) / max) : 1;
@@ -1717,7 +1729,7 @@
       if (i % labelStep !== 0 && i !== n - 1) return;
       var x = i * slot + slot / 2;
       parts.push(
-        "<text x='" + x + "' y='" + (H - 8) + "' text-anchor='middle' font-size='10' fill='#888'>" +
+        "<text x='" + x + "' y='" + (H - 8) + "' text-anchor='middle' font-size='10' fill='var(--muted,#888)'>" +
         escapeHtml((r.date || "").slice(5)) +
         "</text>"
       );

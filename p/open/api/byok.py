@@ -26,10 +26,13 @@ from typing import Any, Iterator, Optional
 
 logger = logging.getLogger(__name__)
 
-# 进程内请求缓存：{cache_key: (expire_ts, payload)}；跨 worker 不共享（多实例建议后续上 Redis）
+# 请求缓存：优先 Redis（多 worker / 多实例共享）；不可用时回落进程内存
 _CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
 _CACHE_LOCK = threading.Lock()
 _CACHE_MAX_ITEMS = 20000
+_REDIS: Any = None
+_REDIS_INIT = False
+_REDIS_PREFIX = "byok:rc:"
 
 
 class ByokEntitlementError(Exception):
@@ -227,6 +230,7 @@ def service_status() -> dict[str, Any]:
         "service_fee_note": "平台只收取网关服务费，不赚取上游 token 差价；用户 key 直接调用其自有上游额度。",
         "fallback_to_platform": _fallback_to_platform(),
         "cache_ttl_s": _cache_ttl_s(),
+        "cache_backend": cache_stats().get("backend"),
         "free_monthly_requests": _free_monthly_limit(),
         "enforce_free_cap": _enforce_free_cap(),
         "providers": sorted(BYOK_PROVIDERS.keys()),
@@ -253,6 +257,7 @@ def subscription_status(db, auth_user_id: int) -> dict[str, Any]:
             "started_at": None,
             "expires_at": None,
             "active": False,
+            "days_left": None,
         }
     now = datetime.now(timezone.utc)
     active = str(row.status) == "active" and row.expires_at is not None and row.expires_at > now
@@ -262,6 +267,9 @@ def subscription_status(db, auth_user_id: int) -> dict[str, Any]:
             db.commit()
         except Exception:
             db.rollback()
+    days_left = None
+    if active and row.expires_at is not None:
+        days_left = max(0, int((row.expires_at - now).total_seconds() // 86400))
     return {
         "plan": str(row.plan or ""),
         "tier": "pro" if active else "free",
@@ -269,6 +277,7 @@ def subscription_status(db, auth_user_id: int) -> dict[str, Any]:
         "started_at": row.started_at.isoformat() if row.started_at else None,
         "expires_at": row.expires_at.isoformat() if row.expires_at else None,
         "active": active,
+        "days_left": days_left,
     }
 
 
@@ -451,8 +460,41 @@ def resolve_upstream_model(requested: str, provider: str, key_models: list[str])
 
 
 # ---------------------------------------------------------------------------
-# 请求缓存（用户隔离；仅非流式、无 tools）
+# 请求缓存（用户隔离；仅非流式、无 tools；Redis 优先）
 # ---------------------------------------------------------------------------
+def _redis_url() -> str:
+    try:
+        from config import settings
+
+        return str(getattr(settings, "redis_url", "") or "").strip()
+    except Exception:
+        return ""
+
+
+def _redis_client() -> Any:
+    """Lazy Redis；连不上则永久回落内存（本进程内不再重试，避免热路径抖动）。"""
+    global _REDIS, _REDIS_INIT
+    if _REDIS_INIT:
+        return _REDIS
+    _REDIS_INIT = True
+    url = _redis_url()
+    if not url:
+        _REDIS = None
+        return None
+    try:
+        import redis as _redis_mod  # type: ignore
+
+        client = _redis_mod.from_url(url, socket_connect_timeout=1.5, socket_timeout=1.5)
+        client.ping()
+        _REDIS = client
+        logger.info("BYOK request cache: Redis connected")
+        return _REDIS
+    except Exception as e:
+        logger.warning("BYOK request cache: Redis unavailable, using memory (%s)", str(e)[:120])
+        _REDIS = None
+        return None
+
+
 def _cacheable(request: Any) -> bool:
     if getattr(request, "stream", False):
         return False
@@ -475,7 +517,7 @@ def _cache_key(auth_user_id: int, provider: str, model: str, request: Any) -> st
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
-def _cache_get(k: str) -> Optional[dict[str, Any]]:
+def _mem_get(k: str) -> Optional[dict[str, Any]]:
     with _CACHE_LOCK:
         item = _CACHE.get(k)
         if item and item[0] > time.time():
@@ -484,10 +526,7 @@ def _cache_get(k: str) -> Optional[dict[str, Any]]:
     return None
 
 
-def _cache_put(k: str, data: dict[str, Any]) -> None:
-    ttl = _cache_ttl_s()
-    if ttl <= 0:
-        return
+def _mem_put(k: str, data: dict[str, Any], ttl: int) -> None:
     with _CACHE_LOCK:
         now = time.time()
         _CACHE[k] = (now + ttl, data)
@@ -495,16 +534,61 @@ def _cache_put(k: str, data: dict[str, Any]) -> None:
             expired = [kk for kk, v in _CACHE.items() if v[0] < now]
             for kk in expired:
                 _CACHE.pop(kk, None)
-            # 仍超限：按插入序清最老的一半
             if len(_CACHE) > _CACHE_MAX_ITEMS:
                 for kk in list(_CACHE.keys())[: _CACHE_MAX_ITEMS // 4]:
                     _CACHE.pop(kk, None)
 
 
+def _cache_get(k: str) -> Optional[dict[str, Any]]:
+    r = _redis_client()
+    if r is not None:
+        try:
+            raw = r.get(_REDIS_PREFIX + k)
+            if raw:
+                if isinstance(raw, bytes):
+                    raw = raw.decode("utf-8")
+                data = json.loads(raw)
+                if isinstance(data, dict):
+                    return data
+        except Exception as e:
+            logger.debug("BYOK Redis get failed: %s", str(e)[:120])
+    return _mem_get(k)
+
+
+def _cache_put(k: str, data: dict[str, Any]) -> None:
+    ttl = _cache_ttl_s()
+    if ttl <= 0:
+        return
+    r = _redis_client()
+    if r is not None:
+        try:
+            r.setex(_REDIS_PREFIX + k, int(ttl), json.dumps(data, ensure_ascii=False, default=str))
+            return
+        except Exception as e:
+            logger.debug("BYOK Redis set failed: %s", str(e)[:120])
+    _mem_put(k, data, ttl)
+
+
 def cache_stats() -> dict[str, Any]:
-    with _CACHE_LOCK:
-        n = len(_CACHE)
-    return {"items": n, "ttl_s": _cache_ttl_s()}
+    backend = "memory"
+    items: Any = 0
+    r = _redis_client()
+    if r is not None:
+        backend = "redis"
+        try:
+            # 粗略计数；大 key 空间时 SCAN 过贵，仅返回本前缀近似
+            n = 0
+            for _ in r.scan_iter(match=_REDIS_PREFIX + "*", count=200):
+                n += 1
+                if n >= 5000:
+                    break
+            items = n if n < 5000 else f"{n}+"
+        except Exception:
+            items = None
+    else:
+        with _CACHE_LOCK:
+            items = len(_CACHE)
+    return {"items": items, "ttl_s": _cache_ttl_s(), "backend": backend}
 
 
 # ---------------------------------------------------------------------------
@@ -1767,6 +1851,83 @@ def usage_summary(
         "groups": sorted(groups.values(), key=lambda x: -x["requests"]),
         "free_month": free_month_usage(db, auth_user_id),
     }
+
+
+def usage_daily(db, *, auth_user_id: int, days: int = 7) -> dict[str, Any]:
+    """BYOK 每日趋势（UTC 日口径，缺天补零）：请求 / tokens / 估算成本。"""
+    from datetime import datetime, timedelta, timezone
+
+    from models import ByokUsage
+
+    try:
+        days = max(1, min(90, int(days)))
+    except (TypeError, ValueError):
+        days = 7
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    until = today + timedelta(days=1)
+    since = today - timedelta(days=days - 1)
+    rows = (
+        db.query(ByokUsage)
+        .filter(
+            ByokUsage.auth_user_id == int(auth_user_id),
+            ByokUsage.created_at >= since,
+            ByokUsage.created_at < until,
+        )
+        .all()
+    )
+    by_day: dict[str, dict[str, Any]] = {}
+    for r in rows:
+        if not r.created_at:
+            continue
+        ts = r.created_at
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+        d = ts.astimezone(timezone.utc).date().isoformat()
+        g = by_day.setdefault(
+            d,
+            {"requests": 0, "success": 0, "cached": 0, "tokens": 0, "cost_usd_micro": 0, "lat_sum": 0, "lat_n": 0},
+        )
+        g["requests"] += 1
+        if r.success:
+            g["success"] += 1
+            if r.latency_ms:
+                g["lat_sum"] += int(r.latency_ms)
+                g["lat_n"] += 1
+        if r.cached:
+            g["cached"] += 1
+        g["tokens"] += int(r.total_tokens or 0)
+        g["cost_usd_micro"] += int(r.cost_usd_micro or 0)
+
+    out = []
+    for i in range(days):
+        d = (since + timedelta(days=i)).date().isoformat()
+        g = by_day.get(d)
+        if not g:
+            out.append(
+                {
+                    "date": d,
+                    "requests": 0,
+                    "success": 0,
+                    "cached": 0,
+                    "tokens": 0,
+                    "cost_usd": 0.0,
+                    "avg_latency_ms": None,
+                }
+            )
+            continue
+        avg_lat = round(g["lat_sum"] / g["lat_n"], 1) if g["lat_n"] else None
+        out.append(
+            {
+                "date": d,
+                "requests": int(g["requests"]),
+                "success": int(g["success"]),
+                "cached": int(g["cached"]),
+                "tokens": int(g["tokens"]),
+                "cost_usd": round(int(g["cost_usd_micro"]) / 1e6, 6),
+                "avg_latency_ms": avg_lat,
+            }
+        )
+    return {"days": days, "rows": out}
 
 
 def models_catalog() -> dict[str, Any]:

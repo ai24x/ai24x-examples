@@ -3490,6 +3490,28 @@ async def admin_alerts_latest(request: Request):
     return latest_alert()
 
 
+@app.post("/v1/admin/byok/renewal-remind")
+async def admin_byok_renewal_remind(request: Request, db: Session = Depends(get_db)):
+    """BYOK Pro 续费提醒：默认 dry-run；body {\"apply\": true} 才发信。"""
+    _require_internal_key(request)
+    apply = False
+    lang = "en"
+    try:
+        body = await request.json()
+        if isinstance(body, dict):
+            v = body.get("apply", False)
+            if isinstance(v, bool):
+                apply = v
+            else:
+                apply = str(v).strip().lower() in ("1", "true", "yes")
+            lang = str(body.get("lang") or "en").strip().lower() or "en"
+    except Exception:
+        apply = False
+    from byok_renewal import run_renewal_reminders
+
+    return run_renewal_reminders(db=db, apply=apply, lang=lang)
+
+
 
 
 @app.post("/v1/admin/token/orders/query_fulfill")

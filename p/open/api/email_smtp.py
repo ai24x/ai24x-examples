@@ -152,7 +152,63 @@ def send_otp_email(*, to_email: str, code: str, purpose: str, lang: str = "zh") 
             return True, "验证码已发送到邮箱，请查收"
         logger.error("SMTP backup failed host=%s err=%s", host, err)
 
-    return False, "邮件发送失败，请稍后重试或联系管理员检查发信配置。"
+    return False, "邮件发送失败，请稍后重试。"
+
+
+def send_text_email(*, to_email: str, subject: str, body: str) -> tuple[bool, str]:
+    """
+    发送纯文本通知邮件（续费提醒等）。返回 (ok, message)。
+    message 面向用户/运维日志，勿含 SMTP 主机细节给浏览器。
+    """
+    to_email = (to_email or "").strip()
+    if not to_email or "@" not in to_email:
+        return False, "invalid_email"
+    if not smtp_configured() and not smtp_backup_configured():
+        return False, "邮件服务暂不可用，请稍后再试。"
+
+    def _build_msg(from_addr: str) -> EmailMessage:
+        m = EmailMessage()
+        m["Subject"] = (subject or "AI24X").strip()[:200]
+        m["From"] = from_addr
+        m["To"] = to_email
+        m.set_content((body or "").strip() + "\n")
+        return m
+
+    if smtp_configured():
+        host = (settings.smtp_host or "").strip()
+        port = int(settings.smtp_port or 587)
+        user = (settings.smtp_user or "").strip()
+        password = _clean_password(settings.smtp_password)
+        from_addr = (settings.smtp_from or user).strip()
+        ok, err = _smtp_send(
+            host=host, port=port, user=user, password=password,
+            from_addr=from_addr,
+            use_ssl=bool(settings.smtp_use_ssl), use_tls=bool(settings.smtp_use_tls),
+            msg=_build_msg(from_addr),
+        )
+        if ok:
+            logger.info("SMTP text mail sent (primary) to=%s subject=%s", to_email, subject[:60])
+            return True, "ok"
+        logger.warning("SMTP primary text mail failed host=%s err=%s", host, err)
+
+    if smtp_backup_configured():
+        host = (settings.smtp_backup_host or "").strip()
+        port = int(settings.smtp_backup_port or 587)
+        user = (settings.smtp_backup_user or "").strip()
+        password = _clean_password(settings.smtp_backup_password)
+        from_addr = (settings.smtp_backup_from or user).strip()
+        ok, err = _smtp_send(
+            host=host, port=port, user=user, password=password,
+            from_addr=from_addr,
+            use_ssl=bool(settings.smtp_backup_use_ssl), use_tls=bool(settings.smtp_backup_use_tls),
+            msg=_build_msg(from_addr),
+        )
+        if ok:
+            logger.info("SMTP text mail sent (backup) to=%s subject=%s", to_email, subject[:60])
+            return True, "ok"
+        logger.error("SMTP backup text mail failed host=%s err=%s", host, err)
+
+    return False, "邮件发送失败，请稍后重试。"
 
 
 def email_channel_status() -> dict:

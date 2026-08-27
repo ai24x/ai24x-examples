@@ -906,6 +906,8 @@
       // 未订阅：显示免费档引导条（不再留 "--" 占位）
       banner.hidden = false;
       banner.classList.remove("is-pro");
+      banner.style.borderColor = "";
+      banner.style.background = "";
       var planEl0 = $("byokSubPlan");
       if (planEl0) {
         planEl0.textContent = zh ? "未订阅 · 免费档" : "Free plan · not subscribed";
@@ -934,22 +936,54 @@
     }
     banner.hidden = false;
     banner.classList.toggle("is-pro", true);
+    var daysLeft = sub.days_left != null ? Number(sub.days_left) : null;
+    var renewSoon = daysLeft != null && daysLeft <= 7;
+    if (renewSoon) {
+      banner.style.borderColor = "#d97706";
+      banner.style.background = "rgba(217,119,6,0.08)";
+    } else {
+      banner.style.borderColor = "";
+      banner.style.background = "";
+    }
     var planName =
       sub.plan === "byok_pro_year"
         ? zh ? "BYOK Pro 年付" : "BYOK Pro Yearly"
         : zh ? "BYOK Pro 月付" : "BYOK Pro Monthly";
     var planEl = $("byokSubPlan");
-    if (planEl) planEl.textContent = (zh ? "当前订阅：" : "Active plan: ") + planName;
+    if (planEl) {
+      planEl.textContent = renewSoon
+        ? (zh ? "即将到期 · " : "Renew soon · ") + planName
+        : (zh ? "当前订阅：" : "Active plan: ") + planName;
+    }
     var subEl = $("byokSubSub");
     if (subEl) {
-      subEl.textContent =
-        (zh ? "到期时间：" : "Expires: ") +
-        String(sub.expires_at || "").replace("T", " ").slice(0, 16);
+      var expTxt = String(sub.expires_at || "").replace("T", " ").slice(0, 16);
+      if (renewSoon) {
+        subEl.textContent = zh
+          ? "到期 " + expTxt + "（约剩 " + daysLeft + " 天）。续费从当前到期日顺延，不中断。"
+          : "Expires " + expTxt + " (~" + daysLeft + " day(s) left). Renewing extends from current expiry.";
+      } else {
+        subEl.textContent = (zh ? "到期时间：" : "Expires: ") + expTxt;
+      }
     }
     var act = $("byokSubAct");
     if (act) {
-      act.innerHTML =
-        '<span style="color:#16a34a;font-weight:700">✓ ' + (zh ? "Pro 已开通" : "Pro active") + "</span>";
+      if (renewSoon) {
+        act.innerHTML =
+          '<button type="button" class="btn btn-primary" id="byokRenewCta">' +
+          (zh ? "立即续费" : "Renew now") +
+          "</button>";
+        var renewBtn = $("byokRenewCta");
+        if (renewBtn) {
+          renewBtn.addEventListener("click", function () {
+            var cards = $("byokPlansList");
+            if (cards) cards.scrollIntoView({ behavior: "smooth", block: "center" });
+          });
+        }
+      } else {
+        act.innerHTML =
+          '<span style="color:#16a34a;font-weight:700">✓ ' + (zh ? "Pro 已开通" : "Pro active") + "</span>";
+      }
     }
   }
 
@@ -1619,16 +1653,28 @@
           : Number(r.calls) || 0;
     });
     var max = Math.max.apply(null, vals.concat([1]));
-    var W = 720, H = 172, padT = 10, padB = 24;
+    var W = 720, H = 172, padT = 14, padB = 24, padL = 8;
     var n = rows.length;
     var slot = W / n;
     var barW = Math.max(2, Math.min(18, slot * 0.62));
+    var gridStroke = "color-mix(in srgb, var(--border, #334155) 85%, transparent)";
     var parts = [];
     parts.push("<svg viewBox='0 0 " + W + " " + H + "' role='img' aria-label='usage trend' xmlns='http://www.w3.org/2000/svg'>");
     for (var g = 0; g <= 3; g++) {
       var gy = padT + ((H - padT - padB) * g) / 3;
-      parts.push("<line x1='0' y1='" + gy + "' x2='" + W + "' y2='" + gy + "' stroke='#e5e7eb' stroke-width='1'/>");
+      parts.push("<line x1='0' y1='" + gy + "' x2='" + W + "' y2='" + gy + "' stroke='" + gridStroke + "' stroke-width='1'/>");
     }
+    var maxTip =
+      metric === "usd"
+        ? fmtUsdSpend(max, fx)
+        : metric === "tokens"
+          ? fmtTokensCount(max)
+          : String(Math.round(max));
+    parts.push(
+      "<text x='" + padL + "' y='" + (padT - 2) + "' font-size='10' fill='var(--muted,#888)'>" +
+        escapeHtml(maxTip) +
+        "</text>"
+    );
     rows.forEach(function (r, i) {
       var v = vals[i];
       var bh = v > 0 ? Math.max(2, ((H - padT - padB) * v) / max) : 1;
@@ -1655,7 +1701,7 @@
       if (i % labelStep !== 0 && i !== n - 1) return;
       var x = i * slot + slot / 2;
       parts.push(
-        "<text x='" + x + "' y='" + (H - 8) + "' text-anchor='middle' font-size='10' fill='#888'>" +
+        "<text x='" + x + "' y='" + (H - 8) + "' text-anchor='middle' font-size='10' fill='var(--muted,#888)'>" +
         escapeHtml((r.date || "").slice(5)) +
         "</text>"
       );
@@ -3012,12 +3058,139 @@
   function loadByokUsage() {
     var days = ($("byok-usage-days") && $("byok-usage-days").value) || "7";
     var group = ($("byok-usage-group") && $("byok-usage-group").value) || "key";
+    var title = $("byok-usage-chart-title");
+    if (title) {
+      title.textContent = tr("每日趋势", "Daily trend");
+    }
+    var metricMap = {
+      cost: tr("费用", "Cost"),
+      tokens: "Tokens",
+      requests: tr("请求数", "Calls"),
+    };
+    document.querySelectorAll("[data-byok-metric]").forEach(function (b) {
+      var m = b.getAttribute("data-byok-metric");
+      b.textContent = metricMap[m] || m;
+      b.classList.toggle("is-active", m === BYOK_USAGE_METRIC);
+    });
+    AI24X_API.request(
+      "/v1/byok/usage/daily?days=" + encodeURIComponent(days),
+      { method: "GET" }
+    )
+      .then(function (d) {
+        _byokDailyCache = d;
+        renderByokUsageChart(d);
+      })
+      .catch(function () {
+        var w = $("byokUsageChart");
+        if (w) {
+          w.innerHTML =
+            "<div class='usage-empty'>" +
+            tr("趋势加载失败，请稍后重试", "Failed to load trend") +
+            "</div>";
+        }
+      });
     return AI24X_API.request(
       "/v1/byok/usage?days=" + encodeURIComponent(days) + "&group_by=" + encodeURIComponent(group),
       { method: "GET" }
     ).then(function (r) {
       renderByokUsage(r);
     });
+  }
+
+  var BYOK_USAGE_METRIC = "cost"; // cost | tokens | requests
+  var _byokDailyCache = null;
+
+  function renderByokUsageChart(data) {
+    var wrap = $("byokUsageChart");
+    if (!wrap) return;
+    var rows = (data && data.rows) || [];
+    if (!rows.length) {
+      wrap.innerHTML = "<div class='usage-empty'>" + tr("暂无用量数据", "No usage data") + "</div>";
+      return;
+    }
+    var metric = BYOK_USAGE_METRIC;
+    var vals = rows.map(function (r) {
+      return metric === "tokens"
+        ? Number(r.tokens) || 0
+        : metric === "requests"
+          ? Number(r.requests) || 0
+          : Number(r.cost_usd) || 0;
+    });
+    var max = Math.max.apply(null, vals.concat([0]));
+    if (max <= 0) max = 1;
+    var W = 720, H = 172, padT = 14, padB = 24, padL = 8;
+    var n = rows.length;
+    var slot = W / n;
+    var barW = Math.max(2, Math.min(18, slot * 0.62));
+    var grid = "color-mix(in srgb, var(--border, #334155) 80%, transparent)";
+    var parts = [];
+    parts.push(
+      "<svg viewBox='0 0 " + W + " " + H + "' role='img' aria-label='BYOK usage trend' xmlns='http://www.w3.org/2000/svg'>"
+    );
+    for (var g = 0; g <= 3; g++) {
+      var gy = padT + ((H - padT - padB) * g) / 3;
+      parts.push(
+        "<line x1='0' y1='" + gy + "' x2='" + W + "' y2='" + gy + "' stroke='" + grid + "' stroke-width='1'/>"
+      );
+    }
+    var maxLabel =
+      metric === "cost"
+        ? "$" + max.toFixed(max >= 1 ? 2 : 4)
+        : metric === "tokens"
+          ? fmtTokensCount(max)
+          : String(Math.round(max));
+    parts.push(
+      "<text x='" + padL + "' y='" + (padT - 2) + "' font-size='10' fill='var(--muted,#888)'>" +
+        escapeHtml(maxLabel) +
+        "</text>"
+    );
+    rows.forEach(function (r, i) {
+      var v = vals[i];
+      var bh = v > 0 ? Math.max(2, ((H - padT - padB) * v) / max) : 1;
+      var x = i * slot + (slot - barW) / 2;
+      var y = H - padB - bh;
+      var dateTxt = (r.date || "").slice(5);
+      var tip =
+        dateTxt +
+        " · $" +
+        Number(r.cost_usd || 0).toFixed(4) +
+        " · " +
+        fmtTokensCount(r.tokens || 0) +
+        " tok · " +
+        (r.requests || 0) +
+        " " +
+        tr("次", "calls");
+      parts.push(
+        "<rect x='" +
+          x +
+          "' y='" +
+          y +
+          "' width='" +
+          barW +
+          "' height='" +
+          bh +
+          "' rx='2' fill='#2563eb' opacity='0.85'>" +
+          "<title>" +
+          escapeHtml(tip) +
+          "</title></rect>"
+      );
+    });
+    var labelStep = Math.max(1, Math.ceil(n / 12));
+    rows.forEach(function (r, i) {
+      if (i % labelStep !== 0 && i !== n - 1) return;
+      var x = i * slot + slot / 2;
+      parts.push(
+        "<text x='" +
+          x +
+          "' y='" +
+          (H - 8) +
+          "' text-anchor='middle' font-size='10' fill='var(--muted,#888)'>" +
+          escapeHtml((r.date || "").slice(5)) +
+          "</text>"
+      );
+    });
+    parts.push("</svg>");
+    wrap.innerHTML = parts.join("");
   }
 
   function renderByokUsage(data) {
@@ -3217,6 +3390,15 @@
         loadByokUsage().catch(function () {});
       });
     }
+    document.querySelectorAll("[data-byok-metric]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        BYOK_USAGE_METRIC = b.getAttribute("data-byok-metric") || "cost";
+        document.querySelectorAll("[data-byok-metric]").forEach(function (x) {
+          x.classList.toggle("is-active", x.getAttribute("data-byok-metric") === BYOK_USAGE_METRIC);
+        });
+        if (_byokDailyCache) renderByokUsageChart(_byokDailyCache);
+      });
+    });
     try {
       bindSupportPanel();
     } catch (e) {}

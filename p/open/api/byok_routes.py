@@ -183,6 +183,13 @@ def byok_usage(request: Request, days: int = 7, group_by: str = "key", db=Depend
     return usage_summary(db, auth_user_id=_auth_user_id(request), days=days, group_by=group_by)
 
 
+@router.get("/byok/usage/daily")
+def byok_usage_daily(request: Request, days: int = 7, db=Depends(get_db)):
+    from byok import usage_daily
+
+    return usage_daily(db, auth_user_id=_auth_user_id(request), days=days)
+
+
 @router.get("/byok/cache/stats")
 def byok_cache_stats(request: Request):
     from byok import cache_stats
