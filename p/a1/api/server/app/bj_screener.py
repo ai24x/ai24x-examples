@@ -7073,7 +7073,7 @@ def _mainline_members(names: list[str]) -> dict[str, Any]:
 # ---------------- 掘金收盘后定时预生成（服务内自触发） ----------------
 # 15:01 收盘定型可看/可手扫；15:05 服务端统一预扫一次，全站读缓存（非按用户扫）。
 # 同日已有「收盘后」缓存或已预生成过则跳过；force 重扫仍由用户手动触发。
-_AUTO_SCAN_HHMM = (15, 5)
+_AUTO_SCAN_HHMM = (15, 15)
 _AUTO_SCAN_TS = _AUTO_SCAN_HHMM[0] * 3600 + _AUTO_SCAN_HHMM[1] * 60
 _AUTO_SCAN_MARKETS = ("hs", "kc", "bj", "bj_all", "all")
 _AUTO_SCAN_DONE: dict[str, bool] = {}
