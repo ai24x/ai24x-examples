@@ -305,10 +305,11 @@ async def _sync_one(
             item["product_id"] = pid
             cur_cents = _item_price_cents(existing)
             cur_name = str(existing.get("name") or "")
+            cur_desc = str(existing.get("description") or "")
             if existing.get("_dodo_archived"):
                 await _unarchive_product(cfg, product_id=pid)
                 item["note"] = "archived→unarchived"
-            if cur_cents == cents and cur_name == name:
+            if cur_cents == cents and cur_name == name and cur_desc == description:
                 item["action"] = "unchanged"
             else:
                 await _update_product(
