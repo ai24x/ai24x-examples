@@ -706,6 +706,22 @@
     } catch (e) {}
     return false;
   }
+
+  /** 移动端检测：iOS Safari / 华为等 Android 浏览器对「about:blank 占位窗 + 异步导航」
+   *  支持差，会一直卡在「正在打开安全支付页」，此时改走本页跳转。 */
+  function isMobileCheckout() {
+    try {
+      if (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "")) return true;
+      if (
+        window.matchMedia &&
+        window.matchMedia("(max-width: 820px)").matches &&
+        ("ontouchstart" in window || (navigator.maxTouchPoints || 0) > 0)
+      ) {
+        return true;
+      }
+    } catch (e) {}
+    return false;
+  }
   /** @deprecated 兼容旧名 */
   function openAlipayInNewWindow(payUrl) {
     return openPayInNewWindow(payUrl);
@@ -1149,6 +1165,7 @@
     var price = AI24X_API.planPriceLabel(planMeta) || "";
     var planTitle = AI24X_API.planTitle(planMeta) || planId;
     var session = ++_payModalSession;
+    var mobileCheckout = isMobileCheckout();
     _lastPayPlanId = planId || null;
     product = product || (planMeta && planMeta.product) || "token";
 
@@ -1173,7 +1190,16 @@
     }
 
     var checkoutWin = null;
-    if (channel === "alipay") {
+    if (mobileCheckout) {
+      // 移动端不预开空白窗：等 pay_url 后本页跳转，支付完成由 ?dodo=1 / ?paypal=1 回跳自动确认
+      showMsg(
+        msgBox(),
+        channel === "paypal"
+          ? tr("正在创建 PayPal 订单…", "Creating PayPal order…")
+          : tr("正在打开安全支付页…", "Opening secure checkout…"),
+        true
+      );
+    } else if (channel === "alipay") {
       checkoutWin = openCheckoutPlaceholder(
         "正在打开支付宝，请稍候…",
         "Opening Alipay…"
@@ -1245,6 +1271,12 @@
                 "正在创建 Crypto 订单，请稍候…",
                 "Creating Crypto order…")
             : tr("请选择支付方式", "Choose a payment method");
+    if (
+      mobileCheckout &&
+      (channel === "alipay" || channel === "creem" || channel === "dodo" || channel === "paypal")
+    ) {
+      payBusyHint = tr("正在打开安全支付页…", "Opening secure checkout…");
+    }
     openPayModal(planTitle + (price ? " · " + price : ""), payBusyHint);
 
     var req =
@@ -1293,6 +1325,10 @@
           });
           startFulfillPoll(r.out_trade_no, "wechat", planId);
         } else if (channel === "alipay" && r && r.pay_url) {
+          if (mobileCheckout) {
+            try { window.location.href = r.pay_url; } catch (e) {}
+            return;
+          }
           var opened = navigateCheckoutWin(checkoutWin, r.pay_url);
           showPayResult({
             hint:
@@ -1315,6 +1351,10 @@
           });
           startFulfillPoll(r.out_trade_no, "alipay", planId);
         } else if (channel === "creem" && r && r.pay_url) {
+          if (mobileCheckout) {
+            try { window.location.href = r.pay_url; } catch (e) {}
+            return;
+          }
           var crOpened = navigateCheckoutWin(checkoutWin, r.pay_url);
           showPayResult({
             hint:
@@ -1335,6 +1375,10 @@
           });
           startFulfillPoll(r.out_trade_no, "creem", planId);
         } else if (channel === "dodo" && r && r.pay_url) {
+          if (mobileCheckout) {
+            try { window.location.href = r.pay_url; } catch (e) {}
+            return;
+          }
           var ddOpened = navigateCheckoutWin(checkoutWin, r.pay_url);
           showPayResult({
             hint:
@@ -1355,6 +1399,10 @@
           });
           startFulfillPoll(r.out_trade_no, "dodo", planId);
         } else if (channel === "paypal" && r && r.pay_url) {
+          if (mobileCheckout) {
+            try { window.location.href = r.pay_url; } catch (e) {}
+            return;
+          }
           var ppOpened = navigateCheckoutWin(checkoutWin, r.pay_url);
           showPayResult({
             hint:

@@ -1659,9 +1659,13 @@
         if (openLink) openLink.hidden = true;
         if (backBtn) { backBtn.hidden = false; backBtn.textContent = t('pay.back'); backBtn.onclick = function () { openPayHub(plan); }; }
 
-        // 需要新窗口的通道：先开空白窗，等 pay_url 再导航（避免被浏览器拦截）
+        // 移动端（iOS Safari / 华为等 Android 浏览器）对「空白窗 + 异步导航」支持差，
+        // 会卡死在 preparingCheckout：改走本页跳转，支付完成由 ?pay=done&dodo=1 回跳自动确认。
+        var mobileCheckout = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '') ||
+          (window.matchMedia && window.matchMedia('(max-width: 820px)').matches &&
+            ('ontouchstart' in window || (navigator.maxTouchPoints || 0) > 0));
         var checkoutWin = null;
-        if (channel === 'alipay' || channel === 'paypal' || channel === 'creem' || channel === 'dodo') {
+        if (!mobileCheckout && (channel === 'alipay' || channel === 'paypal' || channel === 'creem' || channel === 'dodo')) {
           try {
             checkoutWin = window.open('about:blank', '_blank');
             if (checkoutWin) {
@@ -1694,6 +1698,10 @@
               return;
             }
             if ((channel === 'alipay' || channel === 'paypal' || channel === 'creem' || channel === 'dodo') && r && r.pay_url) {
+              if (mobileCheckout) {
+                try { window.location.href = r.pay_url; } catch (e) {}
+                return;
+              }
               var opened = false;
               if (checkoutWin && !checkoutWin.closed) {
                 try { checkoutWin.location.href = r.pay_url; opened = true; } catch (e) {}
