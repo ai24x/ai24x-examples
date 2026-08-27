@@ -793,6 +793,15 @@
           nm.textContent = likeMarkets
             ? (zh ? p.title_zh || p.title : p.title) || p.plan
             : AI24X_API.planTitle(p) || p.plan;
+          if (p.recommended) {
+            var rec = document.createElement("span");
+            rec.className = "plan-rec";
+            rec.textContent =
+              (zh ? p.recommend_badge_zh : p.recommend_badge_en) ||
+              tr("推荐", "Recommended");
+            nm.appendChild(document.createTextNode(" "));
+            nm.appendChild(rec);
+          }
           info.appendChild(nm);
           var extra = document.createElement("div");
           extra.className = "sub";

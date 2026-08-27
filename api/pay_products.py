@@ -165,8 +165,8 @@ BYOK_PLANS: Dict[str, Dict[str, Any]] = {
         "title_zh": "AI24X BYOK Pro · 月付",
         "price_label": "$9.9/month",
         "price_label_zh": "$9.9/月",
-        "perk": "BYOK smart gateway service fee — your own keys",
-        "perk_zh": "BYOK 智能网关服务费 — 使用自有 key",
+        "perk": "BYOK gateway — routing/failover/cache available with your keys; Pro for ongoing use",
+        "perk_zh": "BYOK 网关 — 添加 Key 即可路由/切换/缓存；Pro 适合长期使用",
         "dodo_product_id": os.environ.get("DODO_PRODUCT_BYOK_MONTH", "").strip(),
     },
     "byok_pro_year": {
@@ -177,8 +177,8 @@ BYOK_PLANS: Dict[str, Dict[str, Any]] = {
         "title_zh": "AI24X BYOK Pro · 年付",
         "price_label": "$99/year",
         "price_label_zh": "$99/年",
-        "perk": "Best value — a full year of BYOK Pro",
-        "perk_zh": "最划算 — 全年 BYOK Pro",
+        "perk": "BYOK gateway service fee — yearly saves 17%",
+        "perk_zh": "BYOK 网关服务费 — 年付省 17%",
         "dodo_product_id": os.environ.get("DODO_PRODUCT_BYOK_YEAR", "").strip(),
     },
 }

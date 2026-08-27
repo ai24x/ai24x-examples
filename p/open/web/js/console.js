@@ -482,7 +482,9 @@
       } else if (p.recommended) {
         var rec = document.createElement("span");
         rec.className = "plan-rec";
-        rec.textContent = tr("推荐", "Recommended");
+        rec.textContent =
+          (zh ? p.recommend_badge_zh : p.recommend_badge_en) ||
+          tr("推荐", "Recommended");
         nm.appendChild(document.createTextNode(" "));
         nm.appendChild(rec);
       }
@@ -523,8 +525,8 @@
     tip.className = "sub";
     tip.style.marginTop = "10px";
     tip.textContent = tr(
-      "Flash $0.35/百万 · Pro $1.05/百万。Scale：12 个月名模资格 + 2 亿额度；已有额度可补购 VIP 资格包。额度到期后剩余自动核销。",
-      "Flash $0.35/M · Pro $1.05/M. Scale = 12-mo named access + 200M credits; VIP Pass adds access if you already have credits. Unused credits expire with the plan."
+      "Flash $0.35/百万 · Pro $1.05/百万。入门首选 Value Pack；名模首选 Scale（12 个月资格 + 2.5 亿额度）。已有额度可补购 VIP 资格包。",
+      "Flash $0.35/M · Pro $1.05/M. Best start: Value Pack. Best for named models: Scale (12-mo access + 250M credits). VIP Pass if you already have credits."
     );
     box.appendChild(wrap);
     box.appendChild(tip);
@@ -911,8 +913,8 @@
       var subEl0 = $("byokSubSub");
       if (subEl0) {
         subEl0.textContent = zh
-          ? "含基础自动择优。升级 BYOK Pro（$9.9/月）解锁完整自动择优 / 自动切换 / 请求缓存 / 成本看板。"
-          : "Basic auto-routing included. Upgrade to BYOK Pro ($9.9/mo) for full auto-routing, failover, request cache, and the cost dashboard.";
+          ? "路由 / 故障切换 / 缓存 / 用量现已可用。免费档每月 1000 次 BYOK 请求；超出需开通 Pro（年付更省）。"
+          : "Routing, failover, cache and usage are available. Free tier: 1000 BYOK requests/month — subscribe to Pro (yearly saves more) when you hit the cap.";
       }
       var act0 = $("byokSubAct");
       if (act0) {
@@ -982,8 +984,8 @@
       tr("免费", "Free") +
       '</strong><div class="sub" style="margin-top:3px">' +
       tr(
-        "$0 · 先添加密钥开始调用，需要再选 Pro",
-        "$0 · Add your keys and start — upgrade to Pro when ready"
+        "$0 · 添加 Key 即可用；免费档每月 1000 次，超出开通 Pro",
+        "$0 · Add keys to start; free tier 1000 req/mo — Pro removes the cap"
       ) +
       '</div></div><div class="product-plan-act"><a class="btn" href="#byok">' +
       tr("管理密钥", "Manage keys") +
@@ -1010,7 +1012,7 @@
       if (p.recommended) {
         var rec = document.createElement("span");
         rec.className = "plan-rec";
-        rec.textContent = tr("推荐", "Recommended");
+        rec.textContent = tr("年付优选", "Best yearly");
         nm.appendChild(document.createTextNode(" "));
         nm.appendChild(rec);
       }
@@ -3027,8 +3029,36 @@
     if ($("byok-usage-cost")) $("byok-usage-cost").textContent = "$" + Number(t.cost_usd || 0).toFixed(4);
     if ($("byok-usage-latency")) $("byok-usage-latency").textContent = t.avg_latency_ms != null ? t.avg_latency_ms + "ms" : "--";
     if (data.free_month && $("byok-status-free")) {
-      $("byok-status-free").textContent =
-        fmtInt(data.free_month.month_used_requests) + " / " + fmtInt(data.free_month.month_limit_requests);
+      var fm = data.free_month;
+      if (fm.unlimited || fm.tier === "pro") {
+        $("byok-status-free").textContent = tr("Pro · 不限次", "Pro · unlimited");
+      } else {
+        $("byok-status-free").textContent =
+          fmtInt(fm.month_used_requests) + " / " + fmtInt(fm.month_limit_requests);
+      }
+      if (fm.over_cap && fm.enforce) {
+        var warn = $("byokFreeCapWarn");
+        if (!warn) {
+          var host = $("byokSubBanner") || $("byokPlansList");
+          if (host && host.parentNode) {
+            warn = document.createElement("p");
+            warn.id = "byokFreeCapWarn";
+            warn.className = "sub";
+            warn.style.color = "#b45309";
+            warn.style.margin = "8px 0 0";
+            host.parentNode.insertBefore(warn, host.nextSibling);
+          }
+        }
+        if (warn) {
+          warn.textContent = tr(
+            "本月免费 BYOK 请求已用完。请开通 Pro 继续，或下月再试。",
+            "Free BYOK allowance used up this month. Subscribe to Pro, or try again next month."
+          );
+        }
+      } else {
+        var w0 = $("byokFreeCapWarn");
+        if (w0) w0.remove();
+      }
     }
     var wrap = $("byokUsageList");
     if (!wrap) return;

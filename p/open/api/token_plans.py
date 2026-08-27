@@ -370,17 +370,27 @@ def list_public_plans() -> list[dict[str, Any]]:
                 "cap_credits": int(p.get("credit_tokens") or 0) > 0,
                 "cap_vip": bool(p.get("set_vip")) or bool(p.get("value_pack")),
                 "cap_named_ready": (bool(p.get("set_vip")) or bool(p.get("value_pack"))) and int(p.get("credit_tokens") or 0) > 0,
-                "recommended": plan_id == "token_vip_month_50w",
+                "recommended": plan_id in ("token_value_pack", "token_vip_month_50w"),
+                "recommend_badge_zh": (
+                    "入门首选"
+                    if plan_id == "token_value_pack"
+                    else ("名模首选" if plan_id == "token_vip_month_50w" else "")
+                ),
+                "recommend_badge_en": (
+                    "Best start"
+                    if plan_id == "token_value_pack"
+                    else ("Best for named models" if plan_id == "token_vip_month_50w" else "")
+                ),
             }
         )
-    # Scale 优先，其次入门/开发
     _ORDER = {
         "token_value_pack": 0,
-        "token_pack_10k": 1,
-        "token_vip_month": 2,
-        "token_pack_100k": 3,
-        "token_pack_mid": 4,
-        "token_vip_month_50w": 5,
+        "token_vip_month_50w": 1,
+        "token_pack_100k": 2,
+        "token_pack_mid": 3,
+        "token_vip_month": 4,
+        "token_pack_10k": 5,
+        "token_test_01": 6,
     }
     out.sort(key=lambda row: _ORDER.get(str(row.get("plan") or ""), 99))
     return out

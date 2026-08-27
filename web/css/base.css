@@ -455,7 +455,13 @@ body[data-page="register"] .page-main > .section:first-child {
   margin: 16px 0 0;
   font-size: 1.125rem;
   color: var(--hero-lead, var(--muted));
-  max-width: 42em;
+  max-width: 46em;
+  text-wrap: pretty;
+  line-break: strict;
+}
+
+.hero .lead .nowrap {
+  white-space: nowrap;
 }
 
 .hero .lead strong {

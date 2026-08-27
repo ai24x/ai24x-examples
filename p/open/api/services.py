@@ -164,7 +164,7 @@ class ChatService:
         byok_result = None
         if auth_user_id is not None:
             try:
-                from byok import route_byok_chat
+                from byok import ByokEntitlementError, route_byok_chat
 
                 byok_result = route_byok_chat(
                     db,
@@ -173,6 +173,11 @@ class ChatService:
                     region_hint=region_hint,
                     project=byok_project,
                 )
+            except ByokEntitlementError as e:
+                raise HTTPException(
+                    status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                    detail=str(e.message or e),
+                ) from e
             except Exception:
                 byok_result = None
                 logger.exception("byok route failed, fallback platform")
@@ -504,7 +509,7 @@ class ChatService:
         byok_stream = None
         if auth_user_id is not None:
             try:
-                from byok import stream_byok_chat
+                from byok import ByokEntitlementError, stream_byok_chat
 
                 byok_stream = stream_byok_chat(
                     db,
@@ -513,6 +518,11 @@ class ChatService:
                     region_hint=region_hint,
                     project=byok_project,
                 )
+            except ByokEntitlementError as e:
+                raise HTTPException(
+                    status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                    detail=str(e.message or e),
+                ) from e
             except Exception:
                 byok_stream = None
                 logger.exception("byok stream setup failed, fallback platform")

@@ -32,6 +32,15 @@ _CACHE_LOCK = threading.Lock()
 _CACHE_MAX_ITEMS = 20000
 
 
+class ByokEntitlementError(Exception):
+    """免费档门控：勿回落平台路由，应由 API 层直接返回给用户。"""
+
+    def __init__(self, code: str, message: str):
+        self.code = str(code or "byok_entitlement")
+        self.message = str(message or "BYOK entitlement required")
+        super().__init__(self.message)
+
+
 # ---------------------------------------------------------------------------
 # Provider 注册表（OpenAI 兼容直连；Anthropic 走 Messages 适配器）
 # ---------------------------------------------------------------------------
@@ -610,7 +619,7 @@ def _update_key_stats(db, key: Any, *, ok: bool, latency_ms: Optional[int], err:
 
 
 def free_month_usage(db, auth_user_id: int) -> dict[str, Any]:
-    """当月 BYOK 用量（免费档统计展示；Phase 1 不硬限，BYOK_ENFORCE_FREE_CAP=1 才限）。"""
+    """当月 BYOK 用量；免费档在 enforce 开启且超限时硬拦（Pro 订阅不限）。"""
     try:
         from datetime import datetime, timezone
         from sqlalchemy import func
@@ -631,12 +640,37 @@ def free_month_usage(db, auth_user_id: int) -> dict[str, Any]:
     except Exception:
         used, tokens = 0, 0
     limit = _free_monthly_limit()
+    sub = subscription_status(db, auth_user_id)
+    pro = bool(sub.get("active"))
+    enforce = _enforce_free_cap()
+    over = bool((not pro) and limit and used >= limit)
     return {
         "month_used_requests": used,
         "month_used_tokens": tokens,
-        "month_limit_requests": limit,
-        "over_cap": bool(limit and used >= limit),
+        "month_limit_requests": None if pro else limit,
+        "over_cap": over,
+        "tier": "pro" if pro else "free",
+        "unlimited": pro,
+        "enforce": enforce,
+        "remaining_requests": None if pro else max(0, int(limit) - int(used)),
     }
+
+
+def assert_byok_entitlement(db, auth_user_id: int) -> dict[str, Any]:
+    """Pro 放行；免费档在 enforce 开启且当月请求达上限时抛 ByokEntitlementError。"""
+    usage = free_month_usage(db, auth_user_id)
+    if usage.get("unlimited") or not usage.get("enforce"):
+        return usage
+    if not usage.get("over_cap"):
+        return usage
+    limit = int(usage.get("month_limit_requests") or 0)
+    raise ByokEntitlementError(
+        "byok_free_cap",
+        (
+            f"This month's free BYOK allowance ({limit} requests) is used up. "
+            "Subscribe to BYOK Pro to continue, or try again next month."
+        ),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1080,6 +1114,7 @@ def route_byok_chat(
     """BYOK 非流式路由；返回 None = 无可用 key 或全部失败且允许回退平台。"""
     if not _enabled():
         return None
+    assert_byok_entitlement(db, int(auth_user_id))
     from models import ByokKey
 
     keys = (
@@ -1262,6 +1297,7 @@ def stream_byok_chat(
     无可用 key 时返回 None（调用方回退平台路由）。"""
     if not _enabled():
         return None
+    assert_byok_entitlement(db, int(auth_user_id))
     from models import ByokKey
 
     keys = (

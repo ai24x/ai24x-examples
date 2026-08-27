@@ -97,9 +97,9 @@ class Settings(BaseSettings):
     byok_fallback_to_platform: bool = Field(default=True, validation_alias="BYOK_FALLBACK_TO_PLATFORM")
     # 相同请求缓存 TTL（秒；0=关）。仅非流式、无 tools 的请求可命中，且按用户隔离
     byok_cache_ttl_s: int = Field(default=300, validation_alias="BYOK_CACHE_TTL_S")
-    # 免费档月度 BYOK 请求上限（Phase 1 仅统计展示，BYOK_ENFORCE_FREE_CAP=1 才硬限）
+    # 免费档月度 BYOK 请求上限；BYOK_ENFORCE_FREE_CAP=1（默认开）时硬限，Pro 订阅不限
     byok_free_monthly_requests: int = Field(default=1000, validation_alias="BYOK_FREE_MONTHLY_REQUESTS")
-    byok_enforce_free_cap: bool = Field(default=False, validation_alias="BYOK_ENFORCE_FREE_CAP")
+    byok_enforce_free_cap: bool = Field(default=True, validation_alias="BYOK_ENFORCE_FREE_CAP")
     # 计费口径展示：service_fee=平台服务费（不赚 token 差价）
     byok_fee_mode: str = Field(default="service_fee", validation_alias="BYOK_FEE_MODE")
 
