@@ -232,10 +232,23 @@ def _auto_blocked() -> bool:
 _AUTO = {"started": False, "done_date": ""}
 
 def _today_archived_ok() -> bool:
-    """今日归档是否已生成且数据截至今日（防重复触发）。"""
+    """今日复盘归档是否已定型（防重复触发）。
+
+    注意：load_report_by_date() 只返回 html/md，不含 asof，不能用来判定。
+    以当日 mainlines.json 的 date + report.md/html 存在为准。
+    """
     try:
-        d = load_report_by_date(today8())
-        return bool(d and (d.get("asof") or "").replace("-", "") == today8())
+        d8 = today8()
+        mj = os.path.join(ARCHIVE_ROOT, d8, "mainlines.json")
+        if not os.path.exists(mj):
+            return False
+        obj = json.load(open(mj, encoding="utf-8"))
+        if str(obj.get("date") or "").replace("-", "") != d8:
+            return False
+        return (
+            os.path.exists(os.path.join(ARCHIVE_ROOT, d8, "report.md"))
+            or os.path.exists(os.path.join(ARCHIVE_ROOT, d8, "report.html"))
+        )
     except Exception:
         return False
 
