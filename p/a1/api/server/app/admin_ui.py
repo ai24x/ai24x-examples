@@ -80,8 +80,23 @@ _COMMON_CSS = """
       tr:hover td { background: rgba(255,255,255,0.02); }
       .mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
       .muted { color: var(--muted); }
-      .split { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 12px; }
-      @media (max-width: 960px) { .split { grid-template-columns: 1fr; } }
+      .split { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 12px; align-items: start; }
+      /* 用户页：左表可滚动、右栏管理卡 sticky 置顶；窄屏叠成单列时管理卡仍排在上方 */
+      .card.split > .users-pane { min-width: 0; }
+      .card.split > .users-pane .users-table-wrap {
+        margin-top: 12px; max-height: calc(100vh - 200px); overflow: auto;
+      }
+      .card.split > .user-detail {
+        position: sticky; top: 8px; align-self: start; min-width: 0;
+        max-height: calc(100vh - 24px); overflow: auto;
+      }
+      @media (max-width: 1100px) {
+        .split { grid-template-columns: 1fr; }
+        .card.split > .user-detail {
+          position: static; max-height: none; overflow: visible; order: -1;
+        }
+        .card.split > .users-pane .users-table-wrap { max-height: min(52vh, 520px); }
+      }
       .msg { margin-top: 10px; font-size: 12px; color: var(--muted); min-height: 1.2em; }
       .msg strong { color: var(--text); }
       .danger { color: var(--warn); }
@@ -576,14 +591,14 @@ def admin_app_html(admin_base: str) -> str:
 
           <section class="panel-page active" id="p-users">
             <div class="card split">
-              <div>
+              <div class="users-pane">
                 <div class="row">
                   <label>搜索用户</label>
                   <input id="q" placeholder="手机号片段 或 用户 ID" style="min-width: 240px" title="支持按手机号模糊、或按 userId 精确查找" />
                   <button id="btnSearch">查询</button>
                   <span class="muted small">进入本页自动加载最新用户；可再点查询筛选</span>
                 </div>
-                <div style="margin-top:12px; overflow:auto;">
+                <div class="users-table-wrap">
                   <table>
                     <thead>
                       <tr>
