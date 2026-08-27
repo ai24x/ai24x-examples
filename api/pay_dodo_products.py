@@ -157,7 +157,7 @@ def _plan_display(product: str, plan_id: str, plan: dict[str, Any]) -> tuple[str
             "- Unlimited AI commentary\n"
             "- Watchlist up to 50 symbols\n"
             "- Full charting with technical indicators\n\n"
-            "For educational purposes only."
+            "For educational purposes only — not investment advice."
         )
         return name, desc
     if product == "byok":
@@ -175,16 +175,18 @@ def _plan_display(product: str, plan_id: str, plan: dict[str, Any]) -> tuple[str
         )
         return name, desc
     title = str(plan.get("title_en") or plan.get("title_zh") or plan_id)
-    name = f"AI24X Token · {title}"
-    lines = [f"AI24X API credits for the {title} plan. ${usd:g}."]
+    name = f"AI24X AI Gateway Credits · {title}"
+    lines = [f"AI24X AI Gateway credits for the {title} plan. ${usd:g} one-time."]
     credits = int(plan.get("credit_tokens") or 0)
-    if credits > 0:
-        lines.append(f"Credits: {credits:,} tokens.")
+    days = int(plan.get("validity_days") or 0)
+    if credits > 0 and days > 0:
+        lines.append(f"Includes {credits:,} credits · valid {days} days.")
+    elif credits > 0:
+        lines.append(f"Includes {credits:,} credits.")
+    elif days > 0:
+        lines.append(f"Valid {days} days.")
     if plan.get("set_vip"):
         lines.append("Includes named-model VIP access.")
-    days = int(plan.get("validity_days") or 0)
-    if days > 0:
-        lines.append(f"Valid {days} days.")
     lines.append("For developers. Educational purposes only.")
     return name, "\n".join(lines)
 

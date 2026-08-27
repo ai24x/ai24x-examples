@@ -152,6 +152,7 @@
     function labelChannel(c) {
       var ch = String(c || "").replace(/_query|_capture|_webhook/gi, "");
       if (ch === "creem") return "Creem";
+      if (ch === "dodo") return AI24X_API.isZhUi() ? "银行卡" : "Card";
       if (ch === "crypto") return "USDT";
       if (
         ch === "topup" ||
@@ -429,7 +430,7 @@
       if (pay.alipay_ready) ch.push(zh ? "支付宝" : "Alipay");
       if (pay.paypal_ready) ch.push("PayPal");
       // Creem 已停用：不向用户露出
-      if (pay.dodo_ready) ch.push("Dodo");
+      if (pay.dodo_ready) ch.push(zh ? "银行卡" : "Card");
       if (pay.crypto_ready) ch.push("USDT");
       hint.textContent = zh
         ? "选择套餐后可用 " + ch.join(" / ") + " 支付。"
@@ -856,8 +857,10 @@
     if (channel === "dodo") {
       return (
         '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
-        '<circle cx="12" cy="12" r="10" fill="#101B3C"/>' +
-        '<path fill="#00D1B2" d="M7.2 15.2h3.2V12H7.2v3.2zm6.4 0h3.2V12h-3.2v3.2zM7.2 8.8h3.2V5.6H7.2v3.2zm6.4 0h3.2V5.6h-3.2v3.2z"/></svg>'
+        '<rect x="2.5" y="5" width="19" height="14" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/>' +
+        '<line x1="2.5" y1="9.8" x2="21.5" y2="9.8" stroke="currentColor" stroke-width="1.8"/>' +
+        '<line x1="6" y1="14.2" x2="10.2" y2="14.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>' +
+        '<line x1="12.6" y1="14.2" x2="16.2" y2="14.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
       );
     }
     if (channel === "paypal") {
@@ -1056,30 +1059,89 @@
     var chEl = $("modal-pay-channels");
     if (!chEl) return;
     chEl.innerHTML = "";
-    var channels = [];
-    if (pay.wechat_ready) channels.push(["wechat", tr("微信", "WeChat"), "btn"]);
-    if (pay.alipay_ready) channels.push(["alipay", tr("支付宝", "Alipay"), "btn"]);
-    if (pay.paypal_ready) channels.push(["paypal", "PayPal", "btn btn-primary"]);
-    // if (pay.creem_ready) channels.push(["creem", "Creem", "btn btn-primary"]); // Creem 停用
-    if (pay.dodo_ready) channels.push(["dodo", "Dodo", "btn btn-primary"]);
-    if (pay.crypto_ready) channels.push(["crypto", "USDT", "btn btn-usdt"]);
-    if (mockUiAllowed(pay)) channels.push(["mock", tr("体验到账", "Test pay"), "btn"]);
-    if (!channels.length) {
+    var primary = [];
+    var more = [];
+    if (pay.dodo_ready) primary.push("dodo");
+    if (pay.paypal_ready) primary.push("paypal");
+    if (pay.wechat_ready) more.push("wechat");
+    if (pay.alipay_ready) more.push("alipay");
+    if (pay.crypto_ready) more.push("crypto");
+    if (mockUiAllowed(pay)) more.push("mock");
+
+    function payChannelLabel(c) {
+      return c === "wechat"
+        ? tr("微信支付", "WeChat Pay")
+        : c === "alipay"
+          ? tr("支付宝", "Alipay")
+          : c === "paypal"
+            ? "PayPal"
+          : c === "dodo"
+              ? tr("银行卡", "Card")
+              : c === "crypto"
+                ? tr("USDT", "USDT")
+                : tr("体验到账", "Test pay");
+    }
+    function payChannelSub(c) {
+      return c === "dodo"
+        ? tr("Visa · Mastercard · Apple Pay · Google Pay", "Cards · Apple Pay · Google Pay")
+        : c === "crypto"
+          ? "TRC20"
+          : "";
+    }
+    function makePayBtn(c) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className =
+        "btn" +
+        (c === "paypal" || c === "dodo" ? " btn-primary" : "") +
+        (c === "crypto" ? " btn-usdt" : "");
+      var sub = payChannelSub(c);
+      btn.innerHTML =
+        (c !== "mock" ? payIconSvg(c) : "") +
+        "<span>" +
+        escHtml(payChannelLabel(c)) +
+        (sub ? '<small class="pay-sub">' + escHtml(sub) + "</small>" : "") +
+        "</span>";
+      btn.setAttribute("data-pay-channel", c);
+      btn.addEventListener("click", function () {
+        buyPlan(planId, c, planMeta, product);
+      });
+      return btn;
+    }
+
+    var all = primary.concat(more);
+    if (!all.length) {
       chEl.innerHTML = '<p class="sub">' + tr("在线支付暂未开放", "Online pay is not open yet") + "</p>";
       return;
     }
-    channels.forEach(function (c) {
-      var btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = c[2] + (c[0] !== "mock" ? " btn-pay" : "");
-      btn.innerHTML = (c[0] !== "mock" ? payIconSvg(c[0]) : "") + "<span>" + c[1] + "</span>";
-      btn.style.width = "100%";
-      btn.style.justifyContent = "center";
-      btn.addEventListener("click", function () {
-        buyPlan(planId, c[0], planMeta, product);
+
+    if (primary.length) {
+      primary.forEach(function (c) {
+        var b = makePayBtn(c);
+        b.className += " pay-btn-block";
+        chEl.appendChild(b);
       });
-      chEl.appendChild(btn);
-    });
+      if (more.length) {
+        var label = document.createElement("div");
+        label.className = "pay-more-label";
+        label.textContent = tr("其它支付方式", "Other payment methods");
+        chEl.appendChild(label);
+        var moreBox = document.createElement("div");
+        moreBox.className = "pay-more-box";
+        more.forEach(function (c) { moreBox.appendChild(makePayBtn(c)); });
+        chEl.appendChild(moreBox);
+        var note = document.createElement("div");
+        note.className = "pay-note";
+        note.textContent = tr("银行卡支付由 Dodo Payments 安全收单", "Card payments powered by Dodo Payments");
+        chEl.appendChild(note);
+      }
+    } else {
+      more.forEach(function (c) {
+        var b = makePayBtn(c);
+        b.className += " pay-btn-block";
+        chEl.appendChild(b);
+      });
+    }
   }
 
   function buyPlan(planId, channel, planMeta, product) {
@@ -1131,14 +1193,14 @@
       );
     } else if (channel === "dodo") {
       checkoutWin = openCheckoutPlaceholder(
-        "正在创建 Dodo 订单，请稍候…（勿关闭此窗口）",
-        "Creating Dodo order… Keep this tab open."
+        "正在打开安全支付页，请稍候…（勿关闭此窗口）",
+        "Opening secure checkout… Keep this tab open."
       );
       showMsg(
         msgBox(),
         tr(
-          "正在创建 Dodo 订单，请稍候…（勿关闭此窗口）",
-          "Creating Dodo order… Keep this tab open."
+          "正在打开安全支付页，请稍候…（勿关闭此窗口）",
+          "Opening secure checkout… Keep this tab open."
         ),
         true
       );
@@ -1170,8 +1232,8 @@
               )
           : channel === "dodo"
             ? tr(
-                "正在创建 Dodo 订单，请稍候；若未弹出窗口，用下方按钮打开。",
-                "Creating Dodo order… If no window opens, use the button below."
+                "正在打开安全支付页，请稍候；若未弹出窗口，用下方按钮打开。",
+                "Opening secure checkout… If no window opens, use the button below."
               )
           : channel === "paypal"
             ? tr(
@@ -1277,10 +1339,10 @@
           showPayResult({
             hint:
               (ddOpened
-                ? tr("已打开 Dodo，请在新窗口完成付款。", "Dodo opened — finish payment there.")
+                ? tr("已打开安全支付页，请在新窗口完成付款。", "Secure checkout opened — finish payment there.")
                 : tr(
-                    "浏览器拦截了新窗口时，请点击下方按钮打开 Dodo。",
-                    "If the browser blocked the window, open Dodo with the button below."
+                    "浏览器拦截了新窗口时，请点击下方按钮打开支付页。",
+                    "If the browser blocked the window, open the payment page with the button below."
                   )) +
               tr(
                 " 付完返回本页会自动确认到账。单号：",
@@ -1289,7 +1351,7 @@
               (r.out_trade_no || "") +
               (r.amount_usd ? " · $" + r.amount_usd : ""),
             openUrl: r.pay_url,
-            openLabel: tr("打开 Dodo", "Open Dodo"),
+            openLabel: tr("打开支付页", "Open payment page"),
           });
           startFulfillPoll(r.out_trade_no, "dodo", planId);
         } else if (channel === "paypal" && r && r.pay_url) {
@@ -3576,7 +3638,7 @@
           clearInterval(_fulfillPollTimer);
           _fulfillPollTimer = null;
         }
-        showMsg(msgBox(), tr("正在确认 Dodo 支付…", "Confirming Dodo…"), true);
+        showMsg(msgBox(), tr("正在确认支付…", "Confirming payment…"), true);
         AI24X_API.billingQueryFulfill(otn, "dodo")
           .then(function (r) {
             showMsg(
@@ -3584,8 +3646,8 @@
               r && r.ok
                 ? AI24X_API.planFulfillMessage(_lastPayPlanId, null)
                 : tr(
-                    "Dodo 尚未完成，可在「我的订单」点确认到账",
-                    "Dodo pending — tap Confirm under My orders"
+                    "支付尚未完成，可在「我的订单」点确认到账",
+                    "Payment pending — tap Confirm under My orders"
                   ),
               !!(r && r.ok)
             );
@@ -3595,7 +3657,7 @@
             var msg = (e && e.message) || "";
             showMsg(
               msgBox(),
-              (msg || tr("Dodo 确认失败", "Dodo confirm failed")) +
+              (msg || tr("支付确认失败", "Payment confirm failed")) +
                 tr(" — 请在「我的订单」点「确认到账」。", " — tap Confirm under My orders"),
               false
             );

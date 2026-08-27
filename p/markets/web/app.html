@@ -124,7 +124,7 @@
     .free-banner .fb-up { border: 1px solid var(--gold); color: var(--gold); border-radius: 999px; padding: 5px 14px; font-weight: 700; font-size: 12px; text-decoration: none; white-space: nowrap; }
     .free-banner .fb-up:hover { background: rgba(251,191,36,.12); }
     .free-banner .fb-close { background: transparent; border: 0; color: var(--muted); font-size: 15px; cursor: pointer; line-height: 1; padding: 4px 6px; }
-    /* —— 统一支付中台弹窗（Markets Pro 订阅 · 微信/支付宝/PayPal/Creem） —— */
+    /* —— 统一支付中台弹窗（Markets Pro 订阅 · Card/PayPal + 更多） —— */
     .payhub-overlay { position: fixed; inset: 0; z-index: 1001; background: rgba(6,10,18,.92); display: flex; align-items: center; justify-content: center; padding: 16px; }
     .payhub-overlay[hidden] { display: none; }
     .payhub-modal { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; max-width: 430px; width: 100%; padding: 20px; max-height: 88vh; overflow-y: auto; }
@@ -145,7 +145,10 @@
     .payhub-open { display: block; text-align: center; margin-top: 6px; padding: 9px 0; background: var(--accent); color: #fff; border-radius: 8px; font-size: 13px; font-weight: 600; text-decoration: none; }
     .payhub-open:hover { opacity: .9; }
     .payhub-back { display: block; margin-top: 12px; text-align: center; background: transparent; border: 0; color: var(--muted); font-size: 12px; cursor: pointer; width: 100%; }
-    .payhub-note { margin-top: 10px; font-size: 11px; color: var(--muted); line-height: 1.5; }
+    .payhub-note { grid-column: 1 / -1; margin-top: 10px; font-size: 11px; color: var(--muted); line-height: 1.5; }
+    .payhub-btn-block { grid-column: 1 / -1; }
+    .payhub-btn-sub { display: block; font-size: 11px; font-weight: 400; opacity: 0.72; margin-top: 1px; }
+    .payhub-more-label { grid-column: 1 / -1; margin: 2px 0 0; font-size: 12px; color: var(--muted); text-align: center; }
     [hidden] { display: none !important; }
     /* —— 手机端底部快捷操作条（桌面隐藏） —— */
     .mb-bar { display: none; }
@@ -406,7 +409,7 @@
     </div>
   </footer>
 
-  <!-- 统一支付中台：Markets Pro 订阅 · 微信 / 支付宝 / PayPal / Creem -->
+  <!-- 统一支付中台：Markets Pro 订阅 · Card / PayPal / 微信 / 支付宝 -->
   <div id="payhub" class="payhub-overlay" hidden role="dialog" aria-modal="true" aria-label="Checkout">
     <div class="payhub-modal">
       <div class="payhub-head">
@@ -482,7 +485,10 @@
           'pay.alipay': 'Alipay',
           'pay.paypal': 'PayPal',
           'pay.creem': 'Creem',
-          'pay.dodo': 'Dodo',
+          'pay.dodo': 'Card',
+          'pay.dodoSub': 'Cards · Apple Pay · Google Pay',
+          'pay.others': 'Other payment methods',
+          'pay.dodoNote': 'Card payments powered by Dodo Payments',
           'pay.mock': 'Mock (test)',
           'pay.unavailable': 'Not ready',
           'pay.preparingWechat': 'Preparing WeChat QR…',
@@ -492,7 +498,7 @@
           'pay.autoConfirm': ' This page auto-confirms after payment. Order: ',
           'pay.openPaypal': 'Open PayPal',
           'pay.openAlipay': 'Open Alipay',
-          'pay.openDodo': 'Open Dodo',
+          'pay.openPay': 'Open payment page',
           'pay.openCreem': 'Open Creem',
           'pay.checkoutFail': 'Unable to start checkout: ',
           'pay.verifyFail': 'Payment confirmation pending. If you completed payment, your access will activate shortly.',
@@ -616,7 +622,10 @@
           'pay.alipay': '支付宝',
           'pay.paypal': 'PayPal',
           'pay.creem': 'Creem',
-          'pay.dodo': 'Dodo',
+          'pay.dodo': '银行卡',
+          'pay.dodoSub': 'Visa · Mastercard · Apple Pay · Google Pay',
+          'pay.others': '其它支付方式',
+          'pay.dodoNote': '银行卡支付由 Dodo Payments 安全收单',
           'pay.mock': '模拟支付（测试）',
           'pay.unavailable': '暂未开放',
           'pay.preparingWechat': '正在生成微信支付二维码…',
@@ -627,7 +636,7 @@
           'pay.openPaypal': '打开 PayPal',
           'pay.openAlipay': '打开支付宝',
           'pay.openCreem': '打开 Creem',
-          'pay.openDodo': '打开 Dodo',
+          'pay.openPay': '打开支付页',
           'pay.checkoutFail': '无法发起支付：',
           'pay.verifyFail': '支付确认待处理。如已完成支付，稍后会自动生效。',
           'pay.ok': '支付确认成功 — Pro 已激活，感谢支持！',
@@ -1489,7 +1498,7 @@
           .catch(function () { var m2 = $('sub-msg'); if (m2) m2.textContent = t('sub.captureFail'); });
       }
 
-      // —— 统一支付中台（Markets Pro · 微信 / 支付宝 / PayPal / Creem） ——
+      // —— 统一支付中台（Markets Pro · Card / PayPal / 更多） ——
       var payHub = { plan: null, session: 0, pollTimer: null, payStatus: null, checkoutWin: null };
 
       function payHubIco(channel) {
@@ -1503,7 +1512,7 @@
           return '<svg class="payhub-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="#7C3AED" d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm0 2v10h16V7H4zm2 2h4v2H6V9zm6 0h6v2h-6V9z"/></svg>';
         }
         if (channel === 'dodo') {
-          return '<svg class="payhub-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#101B3C"/><path fill="#00D1B2" d="M7.2 15.2h3.2V12H7.2v3.2zm6.4 0h3.2V12h-3.2v3.2zM7.2 8.8h3.2V5.6H7.2v3.2zm6.4 0h3.2V5.6h-3.2v3.2z"/></svg>';
+          return '<svg class="payhub-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><line x1="2.5" y1="9.8" x2="21.5" y2="9.8" stroke="currentColor" stroke-width="1.8"/><line x1="6" y1="14.2" x2="10.2" y2="14.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="12.6" y1="14.2" x2="16.2" y2="14.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
         }
         if (channel === 'paypal') {
           return '<svg class="payhub-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="#003087" d="M7.2 20.5h1.7l.5-3.1h1.7c3.3 0 5.5-1.4 6.1-4.3.1-.5.1-.9.1-1.2 0-.2 0-.4-.1-.6H19l.1-.5c.4-2.5-.9-4.2-3.8-4.2H9.2L7.2 20.5zm4.2-11.5h1.7c1.3 0 2 .5 1.8 1.7-.2 1.4-1.2 1.7-2.5 1.7h-1.5l.5-3.4z"/><path fill="#009CDE" d="M9.5 21.5h1.7l.4-2.5H13c2.7 0 4.4-1.1 4.9-3.5.1-.4.1-.7.1-1 0-.1 0-.3 0-.4h1.5l.1-.4c.3-2-.7-3.4-3.1-3.4h-4.3l-1.9 11.2h1.7l.5 3.1h1.4c1.1 0 1.7.4 1.5 1.4-.2 1.1-1 1.4-2.1 1.4H10l.5 3.3z"/></svg>';
@@ -1546,34 +1555,44 @@
           ready.wechat = !!(pay.wechat && pay.wechat.ui_ready);
           ready.alipay = !!(pay.alipay && pay.alipay.ui_ready);
           ready.paypal = !!(pay.paypal && pay.paypal.ui_ready);
-          ready.creem = !!(pay.creem && pay.creem.ui_ready);
           ready.dodo = !!(pay.dodo && pay.dodo.ui_ready);
         } else {
-          // 无法探测通道时全部可点，后端未配置会返回明确错误提示
-          ready.wechat = ready.alipay = ready.paypal = ready.creem = ready.dodo = true;
+          // 状态探测失败时只给确定接入的通道（Creem 已下线，不提供入口）
+          ready.wechat = ready.alipay = ready.paypal = ready.dodo = true;
         }
-        var mockAllowed = pay ? !!(pay.token_pay_enabled === false && pay.token_pay_mock_enabled) : true;
-        ['wechat', 'alipay', 'paypal', 'creem', 'dodo'].forEach(function (ch) {
+        var mockAllowed = !!(pay && pay.token_pay_enabled === false && pay.token_pay_mock_enabled);
+        var primary = [];
+        if (ready.dodo) primary.push('dodo');
+        if (ready.paypal) primary.push('paypal');
+        var more = [];
+        if (ready.wechat) more.push('wechat');
+        if (ready.alipay) more.push('alipay');
+        if (mockAllowed) more.push('mock');
+        function makeBtn(ch, block) {
           var b = document.createElement('button');
           b.type = 'button';
-          b.className = 'payhub-btn';
-          b.innerHTML = payHubIco(ch) + '<span>' + escHtml(t('pay.' + ch)) + '</span>';
-          if (!ready[ch]) {
-            b.disabled = true;
-            b.title = t('pay.unavailable');
-            b.lastChild.textContent += ' · ' + t('pay.unavailable');
-          }
+          b.className = 'payhub-btn' + (block ? ' payhub-btn-block' : '');
+          b.innerHTML = payHubIco(ch) + '<span>' + escHtml(t('pay.' + ch)) + (ch === 'dodo' ? '<small class="payhub-btn-sub">' + escHtml(t('pay.dodoSub')) + '</small>' : '') + '</span>';
+          b.setAttribute('data-pay-channel', ch);
           b.addEventListener('click', function () { startPayCheckout(payHub.plan, ch); });
-          box.appendChild(b);
-        });
-        if (mockAllowed) {
-          var mb = document.createElement('button');
-          mb.type = 'button';
-          mb.className = 'payhub-btn';
-          mb.innerHTML = '<span class="payhub-ico" style="display:grid;place-items:center;font-size:16px;">🧪</span><span>' + escHtml(t('pay.mock')) + '</span>';
-          mb.addEventListener('click', function () { startPayCheckout(payHub.plan, 'mock'); });
-          box.appendChild(mb);
+          return b;
         }
+        if (!primary.length && !more.length) {
+          box.innerHTML = '<div style="grid-column:1/-1;color:var(--muted);font-size:12px;">' + escHtml(t('pay.unavailableHint')) + '</div>';
+          return;
+        }
+        primary.forEach(function (ch) { box.appendChild(makeBtn(ch, true)); });
+        if (more.length) {
+          var label = document.createElement('div');
+          label.className = 'payhub-more-label';
+          label.textContent = t('pay.others');
+          box.appendChild(label);
+          more.forEach(function (ch) { box.appendChild(makeBtn(ch, false)); });
+        }
+        var note = document.createElement('div');
+        note.className = 'payhub-note';
+        note.textContent = t('pay.dodoNote');
+        box.appendChild(note);
       }
 
       function openPayHub(plan) {
@@ -1680,7 +1699,7 @@
                 try { checkoutWin.location.href = r.pay_url; opened = true; } catch (e) {}
               }
               if (!opened) { try { var w = window.open(r.pay_url, '_blank'); opened = !!w; } catch (e) {} }
-              var label = channel === 'alipay' ? t('pay.openAlipay') : channel === 'paypal' ? t('pay.openPaypal') : channel === 'creem' ? t('pay.openCreem') : t('pay.openDodo');
+              var label = channel === 'alipay' ? t('pay.openAlipay') : channel === 'paypal' ? t('pay.openPaypal') : channel === 'creem' ? t('pay.openCreem') : t('pay.openPay');
               if (hint) { hint.className = 'payhub-hint'; hint.textContent = (opened ? t('pay.opened') : t('pay.blocked')) + t('pay.autoConfirm') + (r.out_trade_no || '') + (r.amount_usd ? ' · $' + r.amount_usd : ''); }
               if (openLink) { openLink.href = r.pay_url; openLink.textContent = label; openLink.hidden = false; }
               startFulfillPoll(r.out_trade_no, channel);
