@@ -929,6 +929,13 @@ def _reattach_ths(payload: dict[str, Any]) -> dict[str, Any]:
         _obs = (_dml or {}).get("observes") or []
         if _obs:
             payload["observes"] = [{"name": n, "src": _src} for n in _obs]
+        # 日期/来源与复盘对齐：掘金常在 15:05 预扫、复盘约 15:10 才落归档，
+        # 若不回写 mainline_date，前端会一直显示「数据截至 昨日」。
+        if _dml:
+            _dd = str((_dml.get("date") or "")).replace("-", "").strip()
+            if _dd:
+                payload["mainline_date"] = _dd
+            payload["mainline_from"] = _src
         # 板块排行与主线口径同步（主线驱动市场）：king=主线首名，key=其余主线，backup=备选
         if str(payload.get("market_code") or "") in ("all", "hs", "kc", "bj", "bj_all"):
             _rank = payload.get("board_rank")
