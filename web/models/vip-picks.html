@@ -218,7 +218,7 @@ Header: X-API-Key: YOUR_API_KEY
   </main>
   <footer class="site-footer" id="site-footer"></footer>
   <script src="../config/locales.js?v=20260826q"></script>
-  <script src="../js/api.js?v=20260823d"></script>
+  <script src="../js/api.js?v=20260827c"></script>
   <script src="../js/utm.js?v=20260802a"></script>
 <script src="../js/i18n.js?v=20260826m"></script>
   <script src="../js/shell.js?v=20260826n"></script>
@@ -282,7 +282,6 @@ Header: X-API-Key: YOUR_API_KEY
       var REF_USD_PER_M = 0.35;
       function estByMult(mult) {
         var m = Number(mult || 1) || 1;
-        if (isZh()) return "约¥" + Math.round(REF_USD_PER_M * 7.2 * m * 100) / 100 + "/百万";
         return "~$" + Math.round(REF_USD_PER_M * m * 100) / 100 + "/1M";
       }
       function pickEst(p) {
@@ -299,14 +298,7 @@ Header: X-API-Key: YOUR_API_KEY
           p.est_out_usd_per_m != null
             ? p.est_out_usd_per_m
             : Math.round(ref * outMult * 100) / 100;
-        var base;
-        if (isZh()) {
-          var inCny = Math.round(inUsd * 7.2 * 100) / 100;
-          var outCny = Math.round(outUsd * 7.2 * 100) / 100;
-          base = "入 ¥" + inCny + " · 出 ¥" + outCny + "/百万";
-        } else {
-          base = "in $" + inUsd + " · out $" + outUsd + "/1M";
-        }
+        var base = "in $" + inUsd + " · out $" + outUsd + "/1M";
         // 2026-08-15 峰谷：DeepSeek 点名展示峰时费率（8/17 起生效）
         var pk = pickPeakEst(p);
         return pk ? base + (isZh() ? "（" + pk + "）" : " (" + pk + ")") : base;
@@ -329,11 +321,6 @@ Header: X-API-Key: YOUR_API_KEY
           p.peak_est_out_usd_per_m != null
             ? Number(p.peak_est_out_usd_per_m)
             : Math.round(ref * (pout > 0 ? pout : outMult) * 100) / 100;
-        if (isZh()) {
-          var pInCny = Math.round(pInUsd * 7.2 * 100) / 100;
-          var pOutCny = Math.round(pOutUsd * 7.2 * 100) / 100;
-          return "峰时 入 ¥" + pInCny + " · 出 ¥" + pOutCny + "/百万";
-        }
         return "peak in $" + pInUsd + " · out $" + pOutUsd + "/1M";
       }
       function peakBadge(p) {
@@ -585,9 +572,7 @@ Header: X-API-Key: YOUR_API_KEY
         var price =
           window.AI24X_API && AI24X_API.planPriceLabel
             ? AI24X_API.planPriceLabel(vp)
-            : zh
-              ? "¥71.28"
-              : "$9.9";
+            : "$9.9";
         var credits =
           window.AI24X_API && AI24X_API.planCreditsShort
             ? AI24X_API.planCreditsShort(vp)

@@ -1492,9 +1492,7 @@
       var moneyLabel =
         o.channel === "paypal" || o.channel === "creem" || o.channel === "dodo"
           ? "$" + amt
-          : AI24X_API.isZhUi()
-            ? "¥" + amt
-            : "CNY " + amt;
+          : "CNY " + amt;
       left.textContent =
         labelPlanForUi(o.plan) +
         " · " +
@@ -1555,11 +1553,10 @@
   }
 
   function fmtMoneyCents(cents, fx) {
-    var zh = AI24X_API.isZhUi();
     var v = (Number(cents) || 0) / 100;
     var sign = v < 0 ? "-" : "+";
     var abs = Math.abs(v);
-    return zh ? sign + "¥" + (abs * fx).toFixed(2) : sign + "$" + abs.toFixed(2);
+    return sign + "$" + abs.toFixed(2);
   }
 
   function fmtTokensCount(n) {
@@ -1890,7 +1887,7 @@
     var sOutSub = $("tx-total-out-sub");
     var zh = AI24X_API.isZhUi();
     function usdTxt(cents) {
-      return zh ? "¥" + ((Number(cents) || 0) / 100 * fx).toFixed(2) : "$" + ((Number(cents) || 0) / 100).toFixed(2);
+      return "$" + ((Number(cents) || 0) / 100).toFixed(2);
     }
     if (sIn) sIn.textContent = "+" + fmtTokensCount(sm.token_in) + " tok";
     if (sInSub) sInSub.textContent = usdTxt(sm.usd_in_cents) + (zh ? " 充值/赠送/返利" : " top-ups/bonuses/ref");
@@ -2067,9 +2064,7 @@
           var zhUi = AI24X_API.isZhUi();
           var est = "";
           if (p.est_cny_per_m != null || p.est_usd_per_m != null) {
-            est = zhUi
-              ? " · 约¥" + (p.est_cny_per_m != null ? p.est_cny_per_m : "—") + "/百万"
-              : " · ~$" + (p.est_usd_per_m != null ? p.est_usd_per_m : "—") + "/1M";
+            est = " · ~$" + (p.est_usd_per_m != null ? p.est_usd_per_m : "—") + "/1M";
           }
           var title =
             !zhUi && p.title_en ? p.title_en : p.title || p.id;
@@ -2543,13 +2538,9 @@
         } catch (eMerge) {}
       }
       // 2026-08-04: 口径只剩两条——充值余额 vs 今日免费 shared；不再叠「余额不足+欢迎卡+日赠」
-      // 2026-08-09: 余额按语言展示——中文界面人民币(¥)，英文及其它语言美元($)
+      // 国际站统一美元余额展示
       var usd = Number(bal.balance_usd) || 0;
-      var fx = Number(bal.usd_cny) || 7.2;
-      var usdDisplay = tr(
-        bal.balance_cny_display || "¥" + (usd / 100 * fx).toFixed(2),
-        "$" + (usd / 100).toFixed(2)
-      );
+      var usdDisplay = "$" + (usd / 100).toFixed(2);
       var planIsFree = String(bal.plan || "").toLowerCase() === "free";
       var isVip = !!bal.is_vip_active;
       var vpLine = $("vp-active-line");

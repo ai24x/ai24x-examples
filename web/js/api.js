@@ -869,7 +869,7 @@
     return request("/v1/referrals/invitees?" + qs, { method: "GET" });
   }
 
-  /** 中文 UI 只展示人民币；其它语言（含 en/ja/ko…）展示美元与英文文案 */
+  /** 国际站统一美元计价（中文界面同样显示 $）；其它语言用英文文案 */
   function isZhUi() {
     try {
       if (global.AI24X_I18N && typeof global.AI24X_I18N.isZh === "function") {
@@ -893,8 +893,7 @@
 
   function planPriceLabel(p) {
     if (!p) return "";
-    if (isZhUi()) return "¥" + (p.price_yuan || "");
-    return p.price_usd ? "$" + p.price_usd : "¥" + (p.price_yuan || "");
+    return p.price_usd != null ? "$" + p.price_usd : "$—";
   }
 
   function planNote(p) {
