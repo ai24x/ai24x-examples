@@ -12,12 +12,19 @@ Token 产品套餐目录（与 a1 行情官 VIP 配额套餐完全独立）。
 from __future__ import annotations
 
 import json
+import logging
 import os
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
+logger = logging.getLogger(__name__)
+
 _OVERRIDE_PATH = Path(__file__).resolve().parent / "data" / "token_plans_override.json"
+# 管理台保存时镜像同步到 open 子站（同仓库 p/open/api/data），实现一个开关管两端
+_OPEN_OVERRIDE_PATH = (
+    Path(__file__).resolve().parents[1] / "p" / "open" / "api" / "data" / "token_plans_override.json"
+)
 
 _VIP_DAILY_WAN = 10  # 日赠约 10 万 token（与 VIP_DAILY_BONUS_TOKENS=100_000 对齐）
 
@@ -142,6 +149,25 @@ _PLAN_DEFAULTS: dict[str, dict[str, Any]] = {
             "The whitelist rotates with quality & cost baselines."
         ),
     },
+    "token_test_01": {
+        "title_zh": "小额测试包",
+        "title_en": "Test Pack",
+        # 支付通道小额实测专用：默认停用，后台价表管理开启后前台可见
+        "price_usd": 0.1,
+        "default_fen": None,
+        "credit_tokens": 1_000_000,
+        "set_vip": False,
+        "validity_days": 365,
+        "enabled": False,
+        "promo": False,
+        "promo_max_purchases": 0,
+        "note_zh": "小额支付测试包：$0.1 试水 100 万 credits（≈ 数千次 flash 调用）。默认停用，由管理员后台开启；仅用于支付通道小额实测。额度 12 个月有效。",
+        "note_en": (
+            "Small-amount payment test pack: $0.1 for 1M credits (~thousands of flash calls). "
+            "Disabled by default; admins enable it from the dashboard for payment-channel testing. "
+            "Valid 12 months."
+        ),
+    },
 }
 
 
@@ -197,6 +223,14 @@ def _save_overrides(plans: dict[str, dict[str, Any]]) -> None:
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
+    try:
+        if _OPEN_OVERRIDE_PATH.is_file():
+            _OPEN_OVERRIDE_PATH.write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+    except Exception as e:  # open 子站不在同仓库/不可写时仅告警，不影响主站保存
+        logger.warning("token plans mirror to open failed: %r", e)
 
 
 def _default_fen_for(plan_id: str, base: dict[str, Any]) -> int:
