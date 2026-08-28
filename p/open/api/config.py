@@ -63,6 +63,9 @@ class Settings(BaseSettings):
         default="https://api.ai24x.com",
         validation_alias="AI24X_CORE_API_BASE",
     )
+    # 服务间调用专用密钥（open → core 支付中台代理下单/查单；X-Billing-Service-Key）。
+    # 与 core .env BILLING_SERVICE_KEY 同值；独立于管理员双因素。
+    billing_service_key: str = Field(default="", validation_alias="BILLING_SERVICE_KEY")
 
     app_env: str = Field(default="dev", validation_alias="APP_ENV")
     

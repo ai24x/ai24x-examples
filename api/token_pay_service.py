@@ -274,7 +274,7 @@ def _resolve_plan_for_product(
         return product, plan_id, meta, int(price_fen)
     from pay_products import product_plan
 
-    if product != "markets":
+    if product not in ("markets", "byok"):
         raise HTTPException(status_code=400, detail="unknown_product")
     plan_id = str(plan or "").strip().lower()
     meta = product_plan(product, plan_id) or {}
@@ -353,25 +353,29 @@ def _fulfill_order_row(
     if not txid:
         return {"ok": False, "error": "missing_trade_refs"}
 
+    is_remote = str(row.product) in ("markets", "byok")
+
     if str(row.status) == "paid":
         if row.transaction_id and str(row.transaction_id) == txid:
             if str(row.product) == "markets":
                 # markets 单：已收款但远程履约可能中断过，幂等重试补履约
                 return _fulfill_markets_remote(row, otn, channel_tag)
+            if str(row.product) == "byok":
+                # byok 单：同上，幂等重试补履约（open 侧按 source_order 幂等）
+                return _fulfill_byok_remote(db, row, otn, channel_tag)
             return {"ok": True, "duplicate": True, "out_trade_no": otn}
         return {"ok": False, "error": "order_already_paid"}
 
     settle = _order_settle_amount_fen(row)
     paid = int(amount_fen)
     ch = str(row.channel or "").lower()
-    is_markets = str(row.product) == "markets"
-    if ch in _USD_CHANNELS and not is_markets:
+    if ch in _USD_CHANNELS and not is_remote:
         if paid < settle:
             return {"ok": False, "error": "amount_mismatch"}
     elif int(row.amount_fen) != paid:
         return {"ok": False, "error": "amount_mismatch"}
-    if is_markets:
-        # markets 产品无 token 套餐：收款后直接回调子服务激活订阅；
+    if is_remote:
+        # markets/byok 产品无 token 套餐：收款后直接回调子服务激活订阅；
         # amount_fen 微信/支付宝=CNY 分，PayPal/Creem=USD 美分
         fx = _usd_cny()
         if str(row.channel) in ("paypal", "creem", "crypto", "dodo"):
@@ -427,9 +431,11 @@ def _fulfill_order_row(
         return {"ok": False, "error": "claim_failed"}
     db.commit()
 
-    # markets 产品：订单收款后签名回调 markets 子服务激活订阅
+    # markets/byok 产品：订单收款后签名回调子服务激活订阅
     if str(row.product) == "markets":
         return _fulfill_markets_remote(row, otn, channel_tag)
+    if str(row.product) == "byok":
+        return _fulfill_byok_remote(db, row, otn, channel_tag)
 
     from models import BillingLedger
     from token_mvp_service import topup_usd
@@ -497,6 +503,50 @@ def _fulfill_markets_remote(row: TokenPayOrder, otn: str, channel_tag: str) -> d
         )
         return {"ok": False, "error": f"markets_fulfill_rejected:{r.status_code}"}
     return {"ok": True, "out_trade_no": otn, "product": "markets", "fulfilled": True}
+
+
+def _fulfill_byok_remote(
+    db: Session, row: TokenPayOrder, otn: str, channel_tag: str
+) -> dict[str, Any]:
+    """BYOK 服务费订单履约：签名回调 open 子服务激活订阅（幂等，失败可随查单重试）。"""
+    import httpx
+
+    from pay_products import BYOK_FULFILL_URL
+
+    url = str(BYOK_FULFILL_URL or "").strip()
+    if not url:
+        return {"ok": False, "error": "byok_fulfill_not_configured"}
+    u = db.query(AuthUser).filter(AuthUser.id == int(row.auth_user_id)).first()
+    email = (u.email if u else "") or ""
+    if not email:
+        return {"ok": False, "error": "byok_user_no_email"}
+    secret = str(getattr(settings, "admin_api_key", "") or "").strip()
+    payload = {
+        "email": email,
+        "plan": str(row.plan),
+        "source_order": otn,
+        "channel_tag": str(channel_tag or ""),
+        "amount_fen": int(row.amount_fen),
+    }
+    headers = {"Content-Type": "application/json"}
+    if secret:
+        headers["X-Admin-Key"] = secret
+    try:
+        r = httpx.post(url, json=payload, headers=headers, timeout=12)
+        ctype = (r.headers.get("content-type") or "").lower()
+        data = r.json() if "application/json" in ctype else {}
+    except Exception as e:
+        logger.warning("byok fulfill http error otn=%s: %r", otn, e)
+        return {"ok": False, "error": f"byok_fulfill_http:{e!r}"}
+    if r.status_code != 200 or (data or {}).get("code") != 0:
+        logger.warning(
+            "byok fulfill rejected otn=%s status=%s body=%s",
+            otn,
+            r.status_code,
+            str(data)[:160],
+        )
+        return {"ok": False, "error": f"byok_fulfill_rejected:{r.status_code}"}
+    return {"ok": True, "out_trade_no": otn, "product": "byok", "fulfilled": True}
 
 
 def try_fulfill(

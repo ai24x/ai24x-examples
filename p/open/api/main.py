@@ -35,6 +35,7 @@ from schemas import (
     TokenPayCreateBody,
     TokenMockFulfillBody,
     TokenQueryFulfillBody,
+    AdminByokFulfillBody,
     TokenCryptoSubmitBody,
     ChatRequest,
     ChatResponse,
@@ -1285,6 +1286,41 @@ async def _core_login(*, phone: str | None, email: str | None, password: str):
         return None, "too_many"
     logger.warning("core auth proxy unexpected status=%s", r.status_code)
     return None, "core_unavailable"
+
+
+async def _core_billing_proxy(
+    method: str, path: str, *, json: dict | None = None, params: dict | None = None
+) -> dict:
+    """服务代理 core 支付中台（统一账单：订单在 core，open 只做前端入口）。"""
+    import httpx
+
+    base = (
+        (getattr(settings, "ai24x_core_api_base", "") or "https://api.ai24x.com")
+        .strip()
+        .rstrip("/")
+    )
+    if not base.startswith("http"):
+        raise HTTPException(status_code=502, detail="服务暂时不可用，请稍后再试。")
+    key = (getattr(settings, "billing_service_key", "") or "").strip()
+    headers = {"Content-Type": "application/json"}
+    if key:
+        headers["X-Billing-Service-Key"] = key
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            r = await client.request(method, base + path, json=json, params=params, headers=headers)
+    except Exception:
+        logger.warning("core billing proxy failed path=%s", path)
+        raise HTTPException(status_code=502, detail="服务暂时不可用，请稍后再试。")
+    if r.status_code >= 400:
+        try:
+            detail = (r.json() or {}).get("detail") or r.text
+        except Exception:
+            detail = r.text
+        raise HTTPException(status_code=r.status_code, detail=str(detail)[:200])
+    try:
+        return r.json()
+    except Exception:
+        return {}
 
 
 @app.get("/v1/auth/captcha")
@@ -2579,11 +2615,18 @@ async def billing_creem_query(
 async def billing_dodo_order(
     request: Request, body: TokenPayCreateBody, db: Session = Depends(get_db)
 ):
-    from token_pay_service import create_dodo_order
-
+    """BYOK 下单：服务代理 core 支付中台（订单统一在 core，本库不再建新单）。"""
     u = _auth_user_from_bearer(request, db)
-    return await create_dodo_order(
-        db, auth_user_id=int(u.id), plan=body.plan, product=body.product
+    return await _core_billing_proxy(
+        "POST",
+        "/v1/admin/billing/dodo/order",
+        json={
+            "email": (u.email or "").strip(),
+            "phone": (u.phone or "").strip(),
+            "plan": body.plan,
+            "product": "byok",
+            "origin": request.headers.get("origin"),
+        },
     )
 
 
@@ -2591,18 +2634,94 @@ async def billing_dodo_order(
 async def billing_dodo_query(
     request: Request, body: TokenQueryFulfillBody, db: Session = Depends(get_db)
 ):
-    from token_pay_service import query_dodo_order
-
+    """BYOK 查单：服务代理 core（webhook/到账状态真源在 core）。"""
     u = _auth_user_from_bearer(request, db)
-    return await query_dodo_order(db, out_trade_no=body.out_trade_no, auth_user_id=int(u.id))
+    return await _core_billing_proxy(
+        "POST",
+        "/v1/admin/billing/dodo/query",
+        json={"out_trade_no": body.out_trade_no},
+    )
 
 
 @app.get("/v1/billing/orders")
 async def billing_orders_mine(request: Request, db: Session = Depends(get_db), limit: int = 20):
+    """订单列表：本地存量（含旧 token/byok 单）+ core 新订单合并展示（按时间倒序）。"""
     from token_pay_service import list_orders_for_user
 
     u = _auth_user_from_bearer(request, db)
-    return list_orders_for_user(db, int(u.id), limit=limit)
+    local_rows = list_orders_for_user(db, int(u.id), limit=limit).get("rows", [])
+    merged = list(local_rows)
+    try:
+        core_rows = (
+            await _core_billing_proxy(
+                "GET",
+                "/v1/admin/billing/orders",
+                params={"email": (u.email or "").strip(), "limit": str(limit)},
+            )
+        ).get("rows", [])
+        merged.extend(core_rows or [])
+    except Exception:
+        pass
+    merged.sort(key=lambda r: str(r.get("created_at") or ""), reverse=True)
+    return {"rows": merged[: max(1, min(100, int(limit)))]}
+
+
+@app.post("/v1/admin/byok/fulfill")
+async def admin_byok_fulfill(
+    request: Request, body: AdminByokFulfillBody, db: Session = Depends(get_db)
+):
+    """core 支付中台履约回调：激活/续期 BYOK 订阅（幂等，source_order 去重）。"""
+    _require_internal_key(request)
+    email = (body.email or "").strip().lower()
+    if not email:
+        raise HTTPException(status_code=400, detail="email_required")
+    u = db.query(AuthUser).filter(AuthUser.email == email).first()
+    if not u:
+        raise HTTPException(status_code=404, detail="open_user_not_found")
+
+    from byok import activate_subscription
+    from byok_plans import resolve_byok_plan
+    from models import ByokSubscription
+
+    otn = str(body.source_order or "").strip()
+    plan = str(body.plan or "byok_pro_month").strip()
+    meta = resolve_byok_plan(plan)
+    if not meta or not meta.get("enabled", True):
+        raise HTTPException(status_code=400, detail=f"unknown_byok_plan:{plan}")
+    # 幂等：同一订单已激活（最新订阅行 source_order 匹配）→ 直接 ok，防 webhook 重发双续期
+    latest = (
+        db.query(ByokSubscription)
+        .filter(ByokSubscription.auth_user_id == int(u.id))
+        .order_by(ByokSubscription.expires_at.desc())
+        .first()
+    )
+    if (
+        latest
+        and str(latest.status) == "active"
+        and otn
+        and str(latest.source_order or "") == otn
+        and str(latest.plan) == plan
+    ):
+        return {
+            "code": 0,
+            "ok": True,
+            "duplicate": True,
+            "out_trade_no": otn,
+            "subscription": {
+                "plan": str(latest.plan),
+                "tier": "pro",
+                "expires_at": latest.expires_at.isoformat() if latest.expires_at else None,
+                "source_order": str(latest.source_order or ""),
+            },
+        }
+
+    sub = activate_subscription(
+        db,
+        auth_user_id=int(u.id),
+        plan=plan,
+        source_order=otn,
+    )
+    return {"code": 0, "ok": True, "out_trade_no": otn, "subscription": sub}
 
 
 @app.post("/v1/billing/orders/mock_fulfill")
@@ -2925,7 +3044,8 @@ async def billing_creem_webhook(request: Request, db: Session = Depends(get_db))
 
     row = db.query(TokenPayOrder).filter(TokenPayOrder.out_trade_no == otn).first()
     if not row:
-        return JSONResponse(status_code=200, content={"ok": False, "reason": "order_not_found"})
+        # 统一账单后 core byok 订单在 open 库不存在 → 幂等忽略（core 侧履约）
+        return JSONResponse(status_code=200, content={"ok": True, "ignored": True, "reason": "order_not_found"})
     meta = get_plan(str(row.plan)) or {}
     expect_pid = str(meta.get("creem_product_id") or "").strip()
     if not expect_pid:

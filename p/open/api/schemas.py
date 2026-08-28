@@ -503,6 +503,16 @@ class TokenQueryFulfillBody(BaseModel):
     out_trade_no: str = Field(..., min_length=4, max_length=32)
 
 
+class AdminByokFulfillBody(BaseModel):
+    """core 支付中台履约回调：激活/续期 BYOK 订阅（幂等，source_order 去重）。"""
+
+    email: str = Field(..., max_length=255)
+    plan: str = Field("byok_pro_month", max_length=64)
+    source_order: str = Field("", max_length=32)
+    channel_tag: str = Field("", max_length=64)
+    amount_fen: int = Field(0)
+
+
 class TokenCryptoSubmitBody(BaseModel):
     out_trade_no: str = Field(..., min_length=4, max_length=32)
     txid: str = Field(..., min_length=8, max_length=128, description="TRC20 transaction hash")

@@ -109,6 +109,9 @@ class Settings(BaseSettings):
     sms_internal_key: str = Field(default="", validation_alias="SMS_INTERNAL_KEY")
     # 管理后台专用钥（可选）。未配时管理接口仍接受 SMS_INTERNAL_KEY（兼容旧部署）
     admin_api_key: str = Field(default="", validation_alias="ADMIN_API_KEY")
+    # 服务间调用专用密钥（子服务 ↔ core 支付中台；X-Billing-Service-Key）。
+    # 独立于管理员双因素体系（生产 ADMIN_REQUIRE_SMS 下裸 X-Admin-Key 不放行）。
+    billing_service_key: str = Field(default="", validation_alias="BILLING_SERVICE_KEY")
     # 管理员手机号（可选）。配置后管理后台支持「手机号 + 短信验证码」登录（白名单单号）
     admin_phone: str = Field(default="", validation_alias="ADMIN_PHONE")
     # 管理员双因素开关：开启后管理接口必须同时满足「管理密钥 + 管理员手机验证码会话」才放行

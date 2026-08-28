@@ -563,6 +563,20 @@ class TokenQueryFulfillBody(BaseModel):
     out_trade_no: str = Field(..., min_length=4, max_length=32)
 
 
+class AdminBillingDodoOrderBody(BaseModel):
+    """子服务代理下单（服务密钥鉴权，如 open BYOK）。email/phone 至少一项定位 core 用户。"""
+
+    email: str = Field("", max_length=255)
+    phone: str = Field("", max_length=20)
+    plan: str = Field(..., min_length=4, max_length=64)
+    product: str = Field("byok", max_length=16)
+    origin: Optional[str] = Field(None, max_length=255)
+
+
+class AdminBillingDodoQueryBody(BaseModel):
+    out_trade_no: str = Field(..., min_length=4, max_length=32)
+
+
 class TokenCryptoSubmitBody(BaseModel):
     out_trade_no: str = Field(..., min_length=4, max_length=32)
     txid: str = Field(..., min_length=8, max_length=128, description="TRC20 transaction hash")

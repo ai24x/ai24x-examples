@@ -36,6 +36,11 @@ MARKETS_RETURN_URL = os.environ.get(
     "MARKETS_PAY_RETURN_URL", "https://markets.ai24x.com/app.html?pay=done"
 )
 
+# open（BYOK 子服务）履约回调：服务端到服务端，同机 18080 / 生产同机
+BYOK_FULFILL_URL = os.environ.get(
+    "BYOK_FULFILL_URL", "http://127.0.0.1:18080/v1/admin/byok/fulfill"
+)
+
 MARKET_PLANS: Dict[str, Dict[str, Any]] = {
     "weekly": {
         "price_usd": 9.9,
@@ -273,6 +278,17 @@ PRODUCTS: Dict[str, Dict[str, Any]] = {
             "secret": MARKETS_FULFILL_SECRET,
         },
     },
+    # byok：BYOK 网关服务费订阅（订单统一在 core，付完回调 open 子服务激活）
+    "byok": {
+        "prefix": "B",
+        "plans": BYOK_PLANS,
+        "return_url": None,  # None = 按下单来源 Origin 回跳（_origin_console_url）
+        "fulfill": {
+            "type": "http",
+            "url": BYOK_FULFILL_URL,
+            "secret": "",  # 运行时从 settings.admin_api_key 取（避免导入期 env 失效）
+        },
+    },
 }
 
 
@@ -297,6 +313,9 @@ def product_plan(product: str, plan_id: str) -> Optional[Dict[str, Any]]:
     pid = str(plan_id or "").strip().lower()
     if product == "markets":
         resolved = resolve_market_plans().get(pid) or {}
+        return dict(resolved) if resolved else None
+    if product == "byok":
+        resolved = resolve_byok_plans().get(pid) or {}
         return dict(resolved) if resolved else None
     return dict(plans.get(pid) or {}) if pid else None
 

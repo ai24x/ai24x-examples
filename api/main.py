@@ -36,6 +36,8 @@ from schemas import (
     TokenPayCreateBody,
     TokenMockFulfillBody,
     TokenQueryFulfillBody,
+    AdminBillingDodoOrderBody,
+    AdminBillingDodoQueryBody,
     TokenCryptoSubmitBody,
     ChatRequest,
     ChatResponse,
@@ -2436,6 +2438,21 @@ def _require_internal_key(request: Request) -> None:
     raise HTTPException(status_code=403, detail="禁止访问")
 
 
+def _require_billing_service_key(request: Request) -> None:
+    """服务间调用鉴权（子服务 ↔ core 支付中台）：X-Billing-Service-Key。
+
+    独立于管理员双因素（生产 ADMIN_REQUIRE_SMS 下裸 X-Admin-Key 不放行），
+    供 open 等服务端代理下单/查单/取订单列表使用。
+    """
+    expect = (getattr(settings, "billing_service_key", "") or "").strip()
+    if not expect:
+        raise HTTPException(status_code=503, detail="billing_service_key_not_configured")
+    provided = (request.headers.get("X-Billing-Service-Key") or "").strip()
+    if provided and provided == expect:
+        return
+    raise HTTPException(status_code=403, detail="禁止访问")
+
+
 def _require_admin_or_internal(request: Request) -> None:
     """短信管理接口鉴权：子站转发走 X-SMS-Internal-Key；管理后台走密钥/管理员会话。"""
     if settings.sms_internal_key:
@@ -2934,6 +2951,77 @@ async def billing_dodo_query(
     return await query_dodo_order(db, out_trade_no=body.out_trade_no, auth_user_id=int(u.id))
 
 
+@app.post("/v1/admin/billing/dodo/order")
+async def admin_billing_dodo_order(
+    request: Request, body: AdminBillingDodoOrderBody, db: Session = Depends(get_db)
+):
+    """子服务代理下单（open BYOK 等）：服务密钥鉴权 + email/phone 定位 core 用户。
+
+    订单统一落在 core token_pay_orders（product=byok），Dodo checkout 由 core 创建，
+    回跳地址按 origin 自动指向下单来源站点（_origin_console_url）。
+    """
+    from token_pay_service import create_dodo_order
+
+    _require_billing_service_key(request)
+    identity = (body.email or "").strip().lower()
+    phone = (body.phone or "").strip()
+    if not identity and not phone:
+        raise HTTPException(status_code=400, detail="email_or_phone_required")
+    q = db.query(AuthUser)
+    if identity:
+        u = q.filter(AuthUser.email == identity).first()
+    else:
+        u = q.filter(AuthUser.phone == phone).first()
+    if not u:
+        raise HTTPException(status_code=404, detail="core_user_not_found")
+    return await create_dodo_order(
+        db,
+        auth_user_id=int(u.id),
+        plan=body.plan,
+        origin=body.origin or request.headers.get("origin"),
+        product=body.product or "byok",
+    )
+
+
+@app.post("/v1/admin/billing/dodo/query")
+async def admin_billing_dodo_query(
+    request: Request, body: AdminBillingDodoQueryBody, db: Session = Depends(get_db)
+):
+    """子服务代理查单（open 轮询/回跳确认）：服务密钥鉴权。"""
+    from token_pay_service import query_dodo_order
+
+    _require_billing_service_key(request)
+    from models import TokenPayOrder
+
+    otn = str(body.out_trade_no or "").strip()
+    row = db.query(TokenPayOrder).filter(TokenPayOrder.out_trade_no == otn).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="order_not_found")
+    return await query_dodo_order(db, out_trade_no=otn, auth_user_id=int(row.auth_user_id))
+
+
+@app.get("/v1/admin/billing/orders")
+async def admin_billing_orders(
+    request: Request, db: Session = Depends(get_db), email: str = "", phone: str = "", limit: int = 20
+):
+    """子服务代理取用户订单列表（open 合并展示 core 新订单）：服务密钥鉴权。"""
+    from token_pay_service import list_orders_for_user
+
+    _require_billing_service_key(request)
+    identity = (email or "").strip().lower()
+    phone_s = (phone or "").strip()
+    if not identity and not phone_s:
+        raise HTTPException(status_code=400, detail="email_or_phone_required")
+    q = db.query(AuthUser)
+    if identity:
+        u = q.filter(AuthUser.email == identity).first()
+    else:
+        u = q.filter(AuthUser.phone == phone_s).first()
+    if not u:
+        return {"rows": []}
+    return list_orders_for_user(db, int(u.id), limit=limit)
+
+
 @app.get("/v1/billing/orders")
 async def billing_orders_mine(request: Request, db: Session = Depends(get_db), limit: int = 20):
     from token_pay_service import list_orders_for_user
@@ -3260,8 +3348,13 @@ async def billing_creem_webhook(request: Request, db: Session = Depends(get_db))
 
     row = db.query(TokenPayOrder).filter(TokenPayOrder.out_trade_no == otn).first()
     if not row:
-        return JSONResponse(status_code=200, content={"ok": False, "reason": "order_not_found"})
-    meta = get_plan(str(row.plan)) or {}
+        return JSONResponse(status_code=200, content={"ok": True, "ignored": True, "reason": "order_not_found"})
+    if str(row.product) in ("markets", "byok"):
+        from pay_products import product_plan
+
+        meta = product_plan(str(row.product), str(row.plan)) or {}
+    else:
+        meta = get_plan(str(row.plan)) or {}
     expect_pid = str(meta.get("creem_product_id") or "").strip()
     if not expect_pid:
         logger.warning("creem webhook plan missing product id otn=%s plan=%s", otn, row.plan)
@@ -3360,9 +3453,9 @@ async def billing_dodo_webhook(request: Request, db: Session = Depends(get_db)):
             db.commit()
         return JSONResponse(status_code=200, content={"ok": True, "event": et})
 
-    # 产品校验：按 row.product 分流（markets=pay_products；token=token_plans）
-    if str(row.product) == "markets":
-        meta = product_plan("markets", str(row.plan)) or {}
+    # 产品校验：按 row.product 分流（markets/byok=pay_products；token=token_plans）
+    if str(row.product) in ("markets", "byok"):
+        meta = product_plan(str(row.product), str(row.plan)) or {}
     else:
         meta = get_plan(str(row.plan)) or {}
     expect_pid = str(meta.get("dodo_product_id") or "").strip()
@@ -3378,7 +3471,7 @@ async def billing_dodo_webhook(request: Request, db: Session = Depends(get_db)):
         )
         return JSONResponse(status_code=200, content={"ok": False, "reason": "product_mismatch"})
     # Dodo total_amount 为最小货币单位且含税：允许 >= 本地价（容税），不足才拒绝
-    settle = _order_settle_amount_fen(row)
+    settle = order_settle_amount_fen(row)
     if d["amount"] and int(d["amount"]) < settle:
         logger.warning(
             "dodo webhook amount below local otn=%s local=%s settle=%s dodo=%s currency=%s",
