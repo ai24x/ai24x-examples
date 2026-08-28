@@ -146,8 +146,10 @@
     .payhub-open:hover { opacity: .9; }
     .payhub-back { display: block; margin-top: 12px; text-align: center; background: transparent; border: 0; color: var(--muted); font-size: 12px; cursor: pointer; width: 100%; }
     .payhub-note { grid-column: 1 / -1; margin-top: 10px; font-size: 11px; color: var(--muted); line-height: 1.5; }
-    .payhub-btn-block { grid-column: 1 / -1; }
-    .payhub-btn-sub { display: block; font-size: 11px; font-weight: 400; opacity: 0.72; margin-top: 1px; }
+    .payhub-btn-block { grid-column: 1 / -1; align-items: flex-start; }
+    .payhub-btn-block .payhub-btn-text { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+    .payhub-btn-block .payhub-btn-title-row { display: inline-flex; align-items: center; gap: 10px; line-height: 1.25; }
+    .payhub-btn-sub { display: block; font-size: 11px; font-weight: 400; opacity: 0.72; margin-top: 3px; padding-left: 34px; line-height: 1.35; }
     .payhub-more-label { grid-column: 1 / -1; margin: 2px 0 0; font-size: 12px; color: var(--muted); text-align: center; }
     [hidden] { display: none !important; }
     /* —— 手机端底部快捷操作条（桌面隐藏） —— */
@@ -1572,7 +1574,15 @@
           var b = document.createElement('button');
           b.type = 'button';
           b.className = 'payhub-btn' + (block ? ' payhub-btn-block' : '');
-          b.innerHTML = payHubIco(ch) + '<span>' + escHtml(t('pay.' + ch)) + (ch === 'dodo' ? '<small class="payhub-btn-sub">' + escHtml(t('pay.dodoSub')) + '</small>' : '') + '</span>';
+          var sub = ch === 'dodo' ? t('pay.dodoSub') : '';
+          if (sub) {
+            b.innerHTML =
+              '<span class="payhub-btn-text">' +
+              '<span class="payhub-btn-title-row">' + payHubIco(ch) + '<span>' + escHtml(t('pay.' + ch)) + '</span></span>' +
+              '<small class="payhub-btn-sub">' + escHtml(sub) + '</small></span>';
+          } else {
+            b.innerHTML = payHubIco(ch) + '<span>' + escHtml(t('pay.' + ch)) + '</span>';
+          }
           b.setAttribute('data-pay-channel', ch);
           b.addEventListener('click', function () { startPayCheckout(payHub.plan, ch); });
           return b;

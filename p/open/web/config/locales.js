@@ -778,6 +778,8 @@
 
     "page.console.actions.logout": "退出登录",
     "page.console.plans.title": "托管套餐",
+    "page.console.plans.creditsTitle": "AI Gateway 额度 · Token 套餐",
+    "page.console.plans.creditsLead": "可选 · 不想自备 Key？充值即用 flash / pro / ultra 与点名名模。",
     "page.console.plans.loading": "加载中…",
     "page.console.plans.legend": "一次充值，按量扣费。flash $0.35/百万起；Scale 或 VIP 资格包可点名模。",
     "page.console.orders.title": "我的订单",
@@ -1711,6 +1713,8 @@
 
     "page.console.actions.logout": "Log out",
     "page.console.plans.title": "Token plans",
+    "page.console.plans.creditsTitle": "AI Gateway credits · Token plans",
+    "page.console.plans.creditsLead": "Optional — no upstream keys? Top up for flash / pro / ultra and named models.",
     "page.console.plans.loading": "Loading…",
     "page.console.plans.legend": "Top up once, pay as you go. Flash from $0.35/M. Scale or VIP Pass unlock named models.",
     "page.console.orders.title": "My orders",
