@@ -21,19 +21,40 @@
 
 ## 📌 更新指令统一规范（2026-08-28 主脑签发 · Codex + Cursor 共同执行）
 
-**背景：** 8/27-28 副脑03/04 更新延迟不执行，群无回执。根因：①指令文件落盘后未 push 到 Gitee（untracked 未提交）②主脑侧有 gitee / origin 两个 remote，副脑只拉 origin，只推 gitee 副脑收不到。
+**背景：** 8/27–8/28 副脑03/04 更新延迟不执行、群无回执。根因：
+1. 指令文件落盘后 **未 commit / 未 push**（untracked 躺在工作区）
+2. 主脑侧有 **gitee** 与 **origin** 两个 remote；**副脑03/04 只拉 `origin`**（`gitee.com/ai24x/ai24x-website.git`）。只推 gitee、不推 origin = **副脑收不到**
 
-**统一规则（每次更新/派发必做）：**
-1. **落盘即提交**：指令文件、任务书、代码改动完成后，立即 `git add` + `git commit`（信息写清 日期+对象+内容）
-2. **双推才算送达**：commit 后必须推**两个 remote**：
-   - `git push gitee master`（→ gitee.com/ai24x/ai24x01.git）
-   - `git push origin master`（→ gitee.com/ai24x/ai24x-website.git，**副脑实际拉取的仓库**）
-   - 缺一不可，只推一个 = 没送达
-3. **推送后自检**：`git status` 确认无未提交的指令/任务书文件；`git log origin/master -1` 确认最新提交已同步
-4. **指令命名**：统一 `YYYYMMDD-HHMM-对象-动作-摘要.md`，落盘到对应收发目录
-5. **不要重复派发**：已提交/已执行的任务不重复驱动；确认状态先查 git log 与回复目录
+### 统一规则（每次更新/派发必做）
 
-**验证标准：** 副脑 `git pull` 能拉到最新提交 + 收到指令文件 + 回执到位，才算一次成功派发。
+| # | 规则 | 说明 |
+|---|------|------|
+| 1 | **落盘即提交** | 指令、任务书、代码改动完成后，立即 `git add <本次文件>` + `git commit`（信息含 **日期+对象+内容**）。**严禁** `git add -A` |
+| 2 | **双推才算送达** | commit 后**必须**推两个 remote，缺一不可： |
+|   | | `git push gitee master` → `gitee.com/ai24x/ai24x01.git` |
+|   | | `git push origin master` → `gitee.com/ai24x/ai24x-website.git`（**副脑实际拉的仓库**） |
+| 3 | **推送后自检** | `git status` 无未提交的指令/任务书；`git log origin/master -1` 确认最新 commit 已同步 |
+| 4 | **指令命名** | `YYYYMMDD-HHMM-对象-动作-摘要.md`（例：`20260828-1810-04更新-GSC收录优化-d23b51d.md`），落盘到对应 `收发/指令/` |
+| 5 | **不要重复派发** | 已提交/已执行的任务不重复 `deploy03/04.ps1`；先查 `git log` + `收发/回复/` + 群消息 |
+| 6 | **副脑执行后群确认** | 03/04 openclaw 跑完部署脚本后，指挥部飞书群发 **一条** 精简 ✅/⚠️（见 `.cursor/rules/deploy-brain04.mdc` 模板） |
+
+### 副脑派发通道（代码/生产更新）
+
+| 对象 | 主机 | 派发命令 | 副脑 pull |
+|------|------|----------|-----------|
+| **04** 国际生产 | `43.160.246.30` | `scripts\deploy04.ps1` + 指令 `.ps1` | `git pull --ff-only origin master` |
+| **03** 国内行情 | `123.207.199.238` | `scripts\deploy03.ps1` + 指令 `.ps1` | `git pull --ff-only origin master` |
+
+- 文件通道（本目录 `指令/*.md`）= 审计 + 总司令 cron 轮询；**生产部署主通道仍是 SSH 派发**
+- 04 完整流程：`.cursor/rules/deploy-brain04.mdc`；经验文档：`docs/营销/收发/2026-08-28-副脑04更新流程经验.md`
+
+### 验证标准（一次成功派发）
+
+- [ ] 副脑 `git pull` 能拉到**含目标 SHA** 的最新提交
+- [ ] 副脑收到指令文件（仓库内或 scp 到 ops）
+- [ ] 公网/health 验收通过（04 看 `api.ai24x.com/health` 的 commit）
+- [ ] `收发/回复/*-out.md` 回执到位
+- [ ] 指挥部群有精简 ✅/⚠️ 一行
 
 ## 副脑速查
 - 01 42.192.1.93（游戏生产+构建测试）｜02 118.89.111.23（运营）｜03 123.207.199.238（国内生产）｜04 43.160.246.30（国际生产/PayPal）

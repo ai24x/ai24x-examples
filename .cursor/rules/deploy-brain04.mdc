@@ -5,6 +5,8 @@ alwaysApply: true
 
 # 副脑04 生产更新流程（AI24X）
 
+> **前置规范**：所有派发必先遵守 `docs/营销/收发/AGENTS.md` →「📌 更新指令统一规范」（落盘即提交、**gitee+origin 双推**、推送后自检）。副脑只拉 **origin**，只推 gitee = 未送达。
+
 当用户说 **「04更新」**、**「副脑04更新」**、**「派发04」** 或要求上线国际生产时，**必须走完整流程**，不能只 push Gitee + 写 .md。
 
 ## 一、全流程（按序，缺一不可）
@@ -12,17 +14,24 @@ alwaysApply: true
 1. 本地改代码 → 本地 QA 全绿
 2. **重大项**：关键页面清单给老板 → 老板回复「放行」后才可双推（首页/导航/定价/支付/登录/账户/视觉/多页批量）
 3. `git add <本次文件>` — **严禁** `git add -A` / `git add .`
-4. `git commit` → `git push gitee master` → `git push origin master`
-5. 写 **部署脚本** `docs/营销/收发/指令/YYYYMMDD-HHMM-04更新-<简述>-<短SHA>.ps1`（UTF-8 **带 BOM**）
-6. 写配套说明 `.md`（可选，记录 nginx/人工项）
-7. **commit 指令** → 再双推
-8. **`deploy04.ps1` 派发**（同步 600s，主通道）：
+4. `git commit` → **双推（缺一不可）**：
+   ```powershell
+   git push gitee master
+   git push origin master   # 副脑04 只拉此 remote
+   ```
+5. **推送后自检**：`git status` 无未提交指令；`git log origin/master -1` 确认已同步
+6. 写 **部署脚本** `docs/营销/收发/指令/YYYYMMDD-HHMM-04更新-<简述>-<短SHA>.ps1`（UTF-8 **带 BOM**）
+7. 写配套说明 `.md`（可选，记录 nginx/人工项）
+8. **commit 指令** → 再双推 + 自检
+9. **`deploy04.ps1` 派发**（同步 600s，主通道）：
    ```powershell
    powershell -NoProfile -ExecutionPolicy Bypass -File scripts\deploy04.ps1 "docs\营销\收发\指令\<指令名>.ps1"
    ```
-9. 遇 `EmbeddedAttemptSessionTakeoverError`：scp 已送达可先查 04 会话是否在跑，再重试
-10. **04 必须在指挥部飞书群发精简确认**（见下方模板；openclaw 跑完脚本后执行，不可省略）
-11. `scp` 拉回执 → 更新 `memory/daily/YYYY-MM-DD.md` → 显式 add 回执+记忆 → 双推收尾
+10. 遇 `EmbeddedAttemptSessionTakeoverError`：scp 已送达可先查 04 会话是否在跑，再重试
+11. **04 必须在指挥部飞书群发精简确认**（见下方模板；openclaw 跑完脚本后执行，不可省略）
+12. `scp` 拉回执 → 更新 `memory/daily/YYYY-MM-DD.md` → 显式 add 回执+记忆 → 双推收尾 + 自检
+
+**03更新** 同理：遵守 AGENTS.md 双推规范 + `deploy03.ps1`；03 也只拉 **origin**。
 
 ## 二、04 环境事实
 
