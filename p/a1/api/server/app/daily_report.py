@@ -91,6 +91,8 @@ SECTOR_BOARD_ALIASES = {
     "白酒消费": ["白酒", "酿酒", "食品饮料", "啤酒", "乳业"],
     "电力": ["电力行业", "绿色电力", "绿电", "核电", "火电", "水电", "风电"],
     "机械设备": ["机械设备", "工程机械", "通用设备", "专用设备", "其他专用设备"],
+    # 同花顺行业「种植业与林业」(881101) → 东财概念/行业资金榜近义
+    "种植业与林业": ["种植业", "农林牧渔", "林业", "农业"],
 }
 SECTOR_BOARD_NOTIN = {
     "电力": ["设备"],            # 排除"电力设备"（光伏/风电设备属新能源，非电力运营）
@@ -1113,6 +1115,8 @@ def pick_main_lines(sector_scores, prev_mainlines=None, plates=None):
         if s in _prev_set or s in _challengers:
             continue
         it = info.get(s) or {}
+        if it.get("overheat"):
+            continue
         if it.get("top5") is not None and it["top5"] >= 55 and _flow_ok(it) and float(it.get("avg_up") or 0) >= 0:
             _challengers.append(s)
     if _cont and _challengers:
@@ -1127,6 +1131,8 @@ def pick_main_lines(sector_scores, prev_mainlines=None, plates=None):
             best_score = None
             for ch in _challengers:
                 ci = info.get(ch) or {}
+                if ci.get("overheat"):
+                    continue
                 c_top = float(ci.get("top5") or 0)
                 c_comp = float(ci.get("composite") or 0)
                 if c_top < o_top:

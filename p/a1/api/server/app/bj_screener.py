@@ -767,10 +767,9 @@ def archive_versions(market: str = "") -> dict[str, Any]:
     return out
 
 
-def load_archive(market: str, date_key: str) -> dict[str, Any] | None:
+def _load_archive_raw(market: str, date_key: str) -> dict[str, Any] | None:
+    """按市场读取归档（不含 pb 视图层）。"""
     market = str(market or "bj")
-    # 优先当日最终版索引（与历史列表口径一致）；仅普通日期走索引，
-    # 带 (HH:MM) 的多版本日期仍精确读对应文件，避免串版本。
     if not _MULTI_ARCH_RE.match(str(date_key or "")):
         try:
             _hist0 = _load_history()
@@ -789,11 +788,314 @@ def load_archive(market: str, date_key: str) -> dict[str, Any] | None:
             date_key = m.group(1)
     d = _load_json_file(_archive_path(market, date_key), None)
     if not isinstance(d, dict) and market == "bj":
-        # 兼容旧版无市场后缀的归档
         d = _load_json_file(os.path.join(_ARCHIVE_DIR, f"{date_key}.json"), None)
     return _reattach_ths(d) if isinstance(d, dict) else None
 
 
+def load_archive(market: str, date_key: str) -> dict[str, Any] | None:
+    market = str(market or "bj")
+    if market in ("pb", "breakout", "leader"):
+        hs = _load_archive_raw("hs", date_key)
+        return apply_column_view(market, hs) if isinstance(hs, dict) else None
+    return _load_archive_raw(market, date_key)
+
+
+
+
+# 回踩企稳 · 仅首板系形态（不含普通异动回踩/砸盘企稳等宽口径）
+_PB_BOARD_KEYS = ("pb45", "firstWeek", "firstBoardRight", "pullback2", "ztPullback")
+_PB_LEDGER_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "..", "data", "pb_pick_ledger.json"
+)
+_PB_TRACK_CACHE_PATH = os.path.join(_ARCHIVE_DIR, "pb_track_cache.json")
+_PB_TRACK_CACHE: dict[str, Any] = {}
+
+
+def _pb_board_only(p: dict[str, Any]) -> bool:
+    """仅首板系：首板4-5日回踩 / 近1周首板右侧 / 首板右侧上拐 / 板后回踩 / 涨停级回踩。"""
+    pp = p.get("patterns") if isinstance(p.get("patterns"), dict) else {}
+    return any(pp.get(k) for k in _PB_BOARD_KEYS)
+
+
+def _pb_evp_score(p: dict[str, Any]) -> int:
+    """首板系形态优先级（pb 专栏专用）。"""
+    pp = p.get("patterns") if isinstance(p.get("patterns"), dict) else {}
+    if pp.get("firstWeek"):
+        return 5
+    if pp.get("pb45"):
+        return 4
+    if pp.get("firstBoardRight"):
+        return 5 if pp.get("breakout") else 4
+    if pp.get("pullback2"):
+        return 4 if pp.get("breakout") else 3
+    if pp.get("ztPullback"):
+        return 2
+    return 0
+
+
+def _pb_pattern_label(p: dict[str, Any]) -> str:
+    """历史列表展示用：取最强首板系形态标签。"""
+    pp = p.get("patterns") if isinstance(p.get("patterns"), dict) else {}
+    if pp.get("firstWeek"):
+        return "近1周首板·底部右侧"
+    if pp.get("pb45"):
+        return "首板4-5日回踩"
+    if pp.get("firstBoardRight"):
+        return "首板右侧上拐" + ("·二波突破" if pp.get("breakout") else "")
+    if pp.get("pullback2"):
+        return "板后回踩" + ("·二波突破" if pp.get("breakout") else "")
+    if pp.get("ztPullback"):
+        return "涨停级回踩"
+    return ""
+
+
+def _hist_pick_brief(p: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "code": p.get("code"), "name": p.get("name"),
+        "tier": p.get("tier") or "normal",
+        "final": p.get("final"), "price": p.get("price"), "pct": p.get("pct"),
+        "pattern": _pb_pattern_label(p),
+    }
+
+
+def _load_pb_ledger_file() -> list[dict[str, Any]]:
+    raw = _load_json_file(_PB_LEDGER_PATH, {}) or {}
+    items = raw.get("items") if isinstance(raw, dict) else raw
+    return [x for x in (items or []) if isinstance(x, dict) and x.get("code")]
+
+
+def _save_pb_ledger_file(items: list[dict[str, Any]]) -> None:
+    try:
+        os.makedirs(os.path.dirname(_PB_LEDGER_PATH), exist_ok=True)
+        _save_json_file(_PB_LEDGER_PATH, {"ver": 1, "items": items[-800:]})
+    except Exception:
+        pass
+
+
+def append_pb_ledger(date: str, asof: str, picks: list[dict[str, Any]]) -> None:
+    """收盘扫描后追加首板系入选记录（供后期跟踪二次涨停概率）。"""
+    day = str(date or "").split(" (", 1)[0]
+    if not day or not picks:
+        return
+    items = _load_pb_ledger_file()
+    seen = {(str(x.get("date") or ""), str(x.get("code") or "")) for x in items}
+    for p in picks:
+        if not isinstance(p, dict) or not _pb_board_only(p):
+            continue
+        code = str(p.get("code") or "")
+        if not code:
+            continue
+        key = (day, code)
+        if key in seen:
+            continue
+        seen.add(key)
+        items.append({
+            "date": day,
+            "asof": str(asof or day),
+            "code": code,
+            "name": str(p.get("name") or ""),
+            "final": p.get("final"),
+            "price": p.get("price"),
+            "pct": p.get("pct"),
+            "pattern": _pb_pattern_label(p),
+            "tier": p.get("tier") or "normal",
+        })
+    items.sort(key=lambda x: (str(x.get("date") or ""), str(x.get("code") or "")))
+    _save_pb_ledger_file(items)
+
+
+def pb_ledger(limit: int = 120) -> list[dict[str, Any]]:
+    """首板系回踩历史入选台账（持久化 + 归档回溯，board-only）。"""
+    rows: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    for it in _load_pb_ledger_file():
+        d, c = str(it.get("date") or ""), str(it.get("code") or "")
+        if not d or not c or (d, c) in seen:
+            continue
+        seen.add((d, c))
+        rows.append(dict(it))
+    for it in archive_summary("pb"):
+        day = str(it.get("date") or "")
+        if not day:
+            continue
+        for p in it.get("picks") or []:
+            if not isinstance(p, dict):
+                continue
+            code = str(p.get("code") or "")
+            if not code or (day, code) in seen:
+                continue
+            seen.add((day, code))
+            rows.append({
+                "date": day,
+                "asof": it.get("asof") or day,
+                "code": code,
+                "name": p.get("name"),
+                "final": p.get("final"),
+                "price": p.get("price"),
+                "pct": p.get("pct"),
+                "pattern": p.get("pattern") or "",
+            })
+    rows.sort(key=lambda x: (str(x.get("date") or ""), str(x.get("code") or "")), reverse=True)
+    return rows[: max(1, min(int(limit or 120), 500))]
+
+
+def _pb_relimit_in_window(rows: list, idx: int, code: str, within: int) -> bool:
+    """信号日收盘后 within 个交易日内是否再次涨停。"""
+    th = _zt_threshold(str(code or "").zfill(6))
+    for j in range(idx + 1, min(idx + 1 + within, len(rows))):
+        prev = float(rows[j - 1][2]) if j > 0 else float(rows[j][2])
+        if prev <= 0:
+            continue
+        pct = (float(rows[j][2]) / prev - 1) * 100
+        if pct >= th - 0.5:
+            return True
+    return False
+
+
+async def compute_pb_track(days: int = 90, variant: str = "vip",
+                           priority_override: str = "", allow_paid: bool = True) -> dict[str, Any]:
+    """首板系回踩入选 · 后期跟踪：T+N 收益与再次涨停（二板）概率。"""
+    days = max(7, min(int(days or 90), 180))
+    today8 = _today8()
+    cache = _PB_TRACK_CACHE or _load_json_file(_PB_TRACK_CACHE_PATH, {}) or {}
+    if cache.get("ver") == 1 and cache.get("asof") == today8 and cache.get("ok"):
+        return cache
+    # 首次跟踪：把归档回溯条目写入持久台账
+    try:
+        file_items = _load_pb_ledger_file()
+        seen_f = {(str(x.get("date") or ""), str(x.get("code") or "")) for x in file_items}
+        for row in pb_ledger(500):
+            d, c = str(row.get("date") or ""), str(row.get("code") or "")
+            if d and c and (d, c) not in seen_f:
+                file_items.append(dict(row))
+                seen_f.add((d, c))
+        if len(file_items) > len(_load_pb_ledger_file()):
+            _save_pb_ledger_file(file_items)
+    except Exception:
+        pass
+    cutoff_ts = time.time() - days * 86400
+    jobs: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    for row in pb_ledger(500):
+        d = str(row.get("date") or "")
+        code = str(row.get("code") or "")
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", d) or not code:
+            continue
+        try:
+            if time.mktime(time.strptime(d, "%Y-%m-%d")) < cutoff_ts:
+                continue
+        except Exception:
+            continue
+        if (d, code) in seen:
+            continue
+        seen.add((d, code))
+        jobs.append(row)
+    results: list[dict[str, Any]] = []
+    for row in jobs[:80]:
+        code = str(row.get("code") or "")
+        asof = str(row.get("asof") or row.get("date") or "")
+        try:
+            kl = await _kline_with_retry(code, variant, priority_override, allow_paid, use_cache=True)
+        except Exception:
+            continue
+        if not kl:
+            continue
+        dates = [str(r[0]) for r in kl]
+        idx = None
+        for i, dd in enumerate(dates):
+            if dd == asof:
+                idx = i
+                break
+        if idx is None:
+            for i in range(len(dates) - 1, -1, -1):
+                if dates[i] <= asof:
+                    idx = i
+                    break
+        entry = float(row.get("price") or 0) or (
+            float(kl[idx][2]) if idx is not None else float(kl[-1][2])
+        )
+        if entry <= 0:
+            continue
+        base: dict[str, Any] = {
+            "date": row.get("date"), "asof": asof, "code": code,
+            "name": str(row.get("name") or ""), "pattern": str(row.get("pattern") or ""),
+            "final": row.get("final"), "entry": round(entry, 2),
+            "last": round(float(kl[-1][2]), 2), "lastDate": str(kl[-1][0]),
+        }
+        if idx is None or idx >= len(kl) - 1:
+            base.update({
+                "state": "tracking",
+                "since": round((float(kl[-1][2]) / entry - 1) * 100, 1),
+                "fwd1": None, "fwd3": None, "fwd5": None, "fwd10": None,
+                "relimit5": None, "relimit10": None,
+            })
+            results.append(base)
+            continue
+
+        def _fwd(nn: int) -> float | None:
+            j = idx + nn
+            return round((float(kl[j][2]) / entry - 1) * 100, 1) if j < len(kl) else None
+
+        base.update({
+            "state": "done",
+            "fwd1": _fwd(1), "fwd3": _fwd(3), "fwd5": _fwd(5),
+            "fwd10": _fwd(10),
+            "relimit5": _pb_relimit_in_window(kl, idx, code, 5),
+            "relimit10": _pb_relimit_in_window(kl, idx, code, 10),
+            "since": round((float(kl[-1][2]) / entry - 1) * 100, 1),
+        })
+        results.append(base)
+    results.sort(key=lambda r: str(r.get("date") or ""), reverse=True)
+    done = [r for r in results if r.get("state") == "done"]
+    n_done = len(done)
+    r5 = [r for r in done if r.get("relimit5") is not None]
+    r10 = [r for r in done if r.get("relimit10") is not None]
+
+    def _rate(items: list[dict[str, Any]], key: str) -> float | None:
+        vals = [r for r in items if r.get(key) is not None]
+        if not vals:
+            return None
+        return round(sum(1 for r in vals if r.get(key)) / len(vals) * 100, 1)
+
+    def _mean_fwd(k: str) -> float | None:
+        vals = [float(r[k]) for r in done if r.get(k) is not None]
+        return round(sum(vals) / len(vals), 1) if vals else None
+
+    by_pat: dict[str, list[dict[str, Any]]] = {}
+    for r in done:
+        pat = str(r.get("pattern") or "其他").split("·")[0]
+        by_pat.setdefault(pat, []).append(r)
+
+    out = {
+        "ok": True, "asof": today8, "ver": 1,
+        "days": days, "n": len(results), "n_done": n_done,
+        "tracking": sum(1 for r in results if r.get("state") == "tracking"),
+        "relimit5_rate": _rate(r5, "relimit5"),
+        "relimit10_rate": _rate(r10, "relimit10"),
+        "mean_fwd5": _mean_fwd("fwd5"),
+        "mean_fwd10": _mean_fwd("fwd10"),
+        "pos5_rate": round(sum(1 for r in done if (r.get("fwd5") or 0) >= 0) / n_done * 100, 1) if n_done else None,
+        "relimit_def": "信号日收盘后 N 个交易日内再次触及涨停阈值计为「再次涨停」",
+        "by_pattern": {
+            k: {
+                "n": len(v),
+                "relimit5_rate": _rate(v, "relimit5"),
+                "relimit10_rate": _rate(v, "relimit10"),
+                "mean_fwd5": round(sum(float(x["fwd5"]) for x in v if x.get("fwd5") is not None) /
+                                   max(1, sum(1 for x in v if x.get("fwd5") is not None)), 1)
+                if any(x.get("fwd5") is not None for x in v) else None,
+            }
+            for k, v in by_pat.items()
+        },
+        "items": results,
+    }
+    _PB_TRACK_CACHE.clear()
+    _PB_TRACK_CACHE.update(out)
+    try:
+        _save_json_file(_PB_TRACK_CACHE_PATH, out)
+    except Exception:
+        pass
+    return out
 
 
 def archive_summary(market: str = "bj") -> list[dict[str, Any]]:
@@ -803,8 +1105,53 @@ def archive_summary(market: str = "bj") -> list[dict[str, Any]]:
     避免按归档文件名倒序误选早盘临时版/旧主版本（如 08-10 北证 11:44 版 57/54 压过
     16:09 收盘版 68/60）。索引缺失的旧日期（如 2026-08-06 无市场前缀）回退扫描归档文件。
     同日多版本文件一律保留在磁盘，详情打开仍可寻址。
+    pb = 从 hs 归档套用 pb_view 过滤（支持历史回溯，无需单独存盘）。
     """
     market = str(market or "bj")
+    if market in ("pb", "breakout", "leader"):
+        out_col: list[dict[str, Any]] = []
+        try:
+            hist = _load_history()
+            days_seen: set[str] = set()
+            for k, v in hist.items():
+                if not isinstance(v, dict):
+                    continue
+                mk = k.split(":", 1)[0] if ":" in k else "bj"
+                dk = k.split(":", 1)[1] if ":" in k else k
+                if mk == market:
+                    picks = v.get("picks") or []
+                    if picks:
+                        out_col.append({
+                            "date": dk,
+                            "asof": v.get("asof") or dk,
+                            "total": v.get("total"),
+                            "fine": v.get("fine"),
+                            "picks": [_hist_pick_brief(p) for p in picks[:4] if isinstance(p, dict)],
+                        })
+                        days_seen.add(dk)
+            for k, v in hist.items():
+                if not isinstance(v, dict) or not k.startswith("hs:"):
+                    continue
+                dk = k.split(":", 1)[1]
+                if dk in days_seen:
+                    continue
+                snap = apply_column_view(market, v)
+                picks = snap.get("picks") or []
+                if not picks:
+                    continue
+                out_col.append({
+                    "date": dk,
+                    "asof": snap.get("asof") or dk,
+                    "total": snap.get("total"),
+                    "fine": snap.get("fine"),
+                    "picks": [_hist_pick_brief(p) for p in picks[:4] if isinstance(p, dict)],
+                })
+            out_col.sort(key=lambda x: str(x.get("date") or ""), reverse=True)
+            if out_col:
+                return out_col[:_ARCHIVE_KEEP_DAYS]
+        except Exception:
+            pass
+        return out_col
     out: list[dict[str, Any]] = []
     try:
         hist = _load_history()
@@ -1499,13 +1846,13 @@ async def compute_emotion_snapshot(trade_date8: str | None = None) -> dict[str, 
 
 
 def apply_emotion_gate(cfg: dict[str, Any], emotion: dict[str, Any], column: str = "") -> dict[str, Any] | None:
-    """情绪 Gate：risk_off 时所有栏目 scoreMin+5、候选数上限减半；回踩企稳(pb)额外 +3。
+    """情绪 Gate：risk_off 时所有栏目 scoreMin+5、候选数上限减半；首板系/龙头系专栏额外 +3。
     返回调整后的 cfg 副本；未触发返回 None（调用方保持原 cfg）。"""
     if not (emotion and emotion.get("gate_active") and emotion.get("regime") == "risk_off"):
         return None
     adj = dict(cfg)
     adj["scoreMin"] = float(adj.get("scoreMin") or 0) + 5.0
-    if column == "pb":
+    if column in ("pb", "breakout", "leader"):
         adj["scoreMin"] += 3.0
     adj["cap"] = max(20, int(adj.get("cap") or 60) // 2)
     return adj
@@ -5042,8 +5389,8 @@ def macd_view(out: dict[str, Any]) -> dict[str, Any]:
 def pb_view(out: dict[str, Any]) -> dict[str, Any]:
     """从沪深主线扫描结果提取「首板回踩企稳」专栏（复用 hs 扫描与当日缓存）。
 
-    过滤主推/备选中 ztPullback（涨停级回踩）/ pullback2（板后回踩企稳）/
-    firstBoardRight（首板右侧上拐）形态的标的；板块排行与主线卡片保持 hs 口径一致。
+    仅首板系形态：pb45 / firstWeek / firstBoardRight / pullback2 / ztPullback。
+    不含普通异动回踩、砸盘企稳等非首板宽口径。
     """
     o: dict[str, Any] = {
         "ok": True, "cached": bool(out.get("cached")), "date": out.get("date"), "asof": out.get("asof"),
@@ -5060,21 +5407,158 @@ def pb_view(out: dict[str, Any]) -> dict[str, Any]:
         if _k in out:
             o[_k] = out[_k]
 
-    def _pb(p: Any) -> bool:
-        pp = p.get("patterns") if isinstance(p, dict) else None
-        # 事件回踩：近1周首板/涨停级回踩/板后回踩/首板右侧/异动回踩/单日砸盘企稳
-        # （1-2 周内首板或异动 8-10%+ 后企稳未破位）
-        return bool(pp and (pp.get("ztPullback") or pp.get("pullback2")
-                            or pp.get("firstBoardRight") or pp.get("washOut")
-                            or pp.get("firstWeek") or pp.get("eventPullback")))
+    def _pb_sort_key(c: dict[str, Any]) -> tuple:
+        pp = c.get("patterns") or {}
+        return (
+            -_pb_evp_score(c),
+            0 if pp.get("breakout") else 1,
+            0 if pp.get("ztWeek") else 1,
+            0 if pp.get("strongMom") else 1,
+            0 if c.get("mainHit") else (1 if c.get("obsHit") else 2),
+            -int(c.get("final") or 0),
+        )
 
-    # 回踩企稳只展示真实扫描命中的标的，最多 2 只（少而精）：
-    # 不再用复盘样本稀疏补齐——补齐记录只有 code/name/score 等少量字段，
-    # 前端渲染成空白卡片（价格 0.00 / 无 K 线 / 无关键位），用户明确「2个就够了」。
-    # 路径门：禁下坡；优先股性活跃（事件形态可豁免）。
-    o["picks"] = [c for c in (out.get("picks") or []) if _pb(c) and _path_gate(c, require_active=True)][:2]
-    o["runners"] = [c for c in (out.get("runners") or []) if _pb(c) and _path_gate(c)]
+    pool = [c for c in ((out.get("picks") or []) + (out.get("runners") or []))
+            if isinstance(c, dict) and _pb_board_only(c) and _path_gate(c, require_active=True)]
+    pool.sort(key=_pb_sort_key)
+    o["picks"] = pool[:2]
+    o["runners"] = [c for c in pool[2:8]]
     return o
+
+
+def _hs_column_shell(out: dict[str, Any], market_code: str) -> dict[str, Any]:
+    o: dict[str, Any] = {
+        "ok": True, "cached": bool(out.get("cached")), "date": out.get("date"), "asof": out.get("asof"),
+        "market_code": market_code,
+        "meta": out.get("meta"),
+        "total": out.get("total"), "scanned": out.get("scanned"), "fine": out.get("fine"),
+        "generated_ts": out.get("generated_ts"), "elapsed_s": out.get("elapsed_s"),
+        "market": out.get("market"), "regime": out.get("regime"), "style": out.get("style"),
+        "mainlines": out.get("mainlines") or [],
+        "board_rank": out.get("board_rank") or [],
+        "picks": [], "runners": [],
+    }
+    for _k in ("stale", "stale_from", "off_market", "intraday", "refresh_locked", "vip_required", "today_missing"):
+        if _k in out:
+            o[_k] = out[_k]
+    return o
+
+
+def breakout_view(out: dict[str, Any]) -> dict[str, Any]:
+    """二波突破：板后/首板回踩之后，近3日放量突破板日或平台高点（右侧加速确认）。"""
+    o = _hs_column_shell(out, "breakout")
+
+    def _match(c: dict[str, Any]) -> bool:
+        pp = c.get("patterns") or {}
+        if not pp.get("breakout"):
+            return False
+        lq = str(c.get("limitQuality") or "")
+        if lq in ("one_word", "rotten_board"):
+            return False
+        return _path_gate(c, require_active=True)
+
+    def _sort_key(c: dict[str, Any]) -> tuple:
+        pp = c.get("patterns") or {}
+        tier = 0
+        if pp.get("firstBoardRight"):
+            tier = 3
+        elif pp.get("pb45") or pp.get("pullback2"):
+            tier = 2
+        elif pp.get("ztPullback") or pp.get("firstWeek"):
+            tier = 1
+        lq = str(c.get("limitQuality") or "")
+        lq_ok = 0 if lq in ("turnover_board", "t_board", "normal", "") else 1
+        return (-tier, lq_ok, 0 if c.get("mainHit") else (1 if c.get("obsHit") else 2),
+                0 if pp.get("strongMom") else 1, -int(c.get("final") or 0))
+
+    pool = [c for c in ((out.get("picks") or []) + (out.get("runners") or []))
+            if isinstance(c, dict) and _match(c)]
+    pool.sort(key=_sort_key)
+    o["picks"] = pool[:2]
+    o["runners"] = pool[2:8]
+    return o
+
+
+def leader_view(out: dict[str, Any]) -> dict[str, Any]:
+    """主线龙头：当日主攻板块内 leaderOk + strongMom + 主线命中，宁缺毋滥。"""
+    o = _hs_column_shell(out, "leader")
+
+    def _match(c: dict[str, Any]) -> bool:
+        if not c.get("mainHit"):
+            return False
+        pp = c.get("patterns") or {}
+        if not (pp.get("leaderOk") and pp.get("strongMom")):
+            return False
+        if str(c.get("limitQuality") or "") == "one_word":
+            return False
+        if (c.get("bearish") or {}).get("level") == "hard":
+            return False
+        return _path_gate(c, require_active=True)
+
+    def _sort_key(c: dict[str, Any]) -> tuple:
+        pp = c.get("patterns") or {}
+        return (
+            0 if c.get("boardLeader") else 1,
+            0 if pp.get("breakout") else 1,
+            0 if c.get("tier") == "king" else (1 if c.get("tier") == "key" else 2),
+            -int(c.get("final") or 0),
+        )
+
+    pool = [c for c in ((out.get("picks") or []) + (out.get("runners") or []))
+            if isinstance(c, dict) and _match(c)]
+    pool.sort(key=_sort_key)
+    o["picks"] = pool[:2]
+    o["runners"] = pool[2:8]
+    return o
+
+
+_HS_COLUMN_MARKETS = frozenset({"pb", "breakout", "leader"})
+
+
+def scan_market_for(market_code: str) -> str:
+    mc = str(market_code or "bj").strip().lower()
+    if mc in ("macd", "low10"):
+        return "all"
+    if mc in _HS_COLUMN_MARKETS:
+        return "hs"
+    return mc
+
+
+def apply_column_view(market_code: str, out: dict[str, Any]) -> dict[str, Any]:
+    mc = str(market_code or "").strip().lower()
+    if not isinstance(out, dict):
+        return out
+    if mc == "macd":
+        return macd_view(out)
+    if mc == "low10":
+        return low10_view(out)
+    if mc == "pb":
+        return pb_view(out)
+    if mc == "breakout":
+        return breakout_view(out)
+    if mc == "leader":
+        return leader_view(out)
+    return out
+
+
+def _save_hs_column_histories(today: str, asof: str, hist_payload: dict[str, Any],
+                              result: dict[str, Any]) -> None:
+    """沪深扫描完成后，写入 pb / 二波突破 / 主线龙头 专栏历史。"""
+    for mc, vf in (("pb", pb_view), ("breakout", breakout_view), ("leader", leader_view)):
+        try:
+            snap = vf(result)
+            picks = snap.get("picks") or []
+            if not picks:
+                continue
+            col_hist = dict(hist_payload)
+            col_hist["market_code"] = mc
+            col_hist["picks"] = picks
+            col_hist["runners"] = snap.get("runners") or []
+            _save_history(f"{mc}:{str(today)}", col_hist)
+            if mc == "pb":
+                append_pb_ledger(str(today), asof, picks)
+        except Exception:
+            pass
 
 
 def low10_view(out: dict[str, Any]) -> dict[str, Any]:
@@ -5419,12 +5903,36 @@ def replay_scan(date8: str, market: str = "hs") -> dict[str, Any]:
     elif market == "macd":
         fine = _replay_fine_pass(recs, cfg, style_mode)
         macd_reds = [_pick_out(c) for c in fine if (c.get("A") or {}).get("patterns", {}).get("macdFirstRed")][:8]
+    elif market == "breakout":
+        fine = _replay_fine_pass(recs, cfg, style_mode)
+        _bo = [c for c in fine if bool((c.get("A") or {}).get("patterns", {}).get("breakout"))]
+        def _bo_key(c: dict[str, Any]) -> tuple:
+            pp = (c.get("A") or {}).get("patterns") or {}
+            tier = 3 if pp.get("firstBoardRight") else (2 if pp.get("pullback2") or pp.get("pb45") else 1)
+            return (-tier, 0 if c.get("mainHit") else 1, -int(c.get("final") or 0))
+        _bo.sort(key=_bo_key)
+        picks = [_pick_out(c) for c in _bo[:2]]
+        runners = [_pick_out(c) for c in _bo[2:8]]
+    elif market == "leader":
+        fine = _replay_fine_pass(recs, cfg, style_mode)
+        _ld = [c for c in fine if c.get("mainHit")
+               and (c.get("A") or {}).get("patterns", {}).get("leaderOk")
+               and (c.get("A") or {}).get("patterns", {}).get("strongMom")]
+        _ld.sort(key=lambda c: (0 if c.get("boardLeader") else 1, -int(c.get("final") or 0)))
+        picks = [_pick_out(c) for c in _ld[:2]]
+        runners = [_pick_out(c) for c in _ld[2:8]]
     elif market == "pb":
         fine = _replay_fine_pass(recs, cfg, style_mode)
-        _pb = [c for c in fine if any((c.get("A") or {}).get("patterns", {}).get(k)
-                                       for k in ("ztPullback", "pullback2", "firstBoardRight",
-                                                 "washOut", "firstWeek", "eventPullback"))]
-        _pb.sort(key=_replay_sort_key)
+        _pb = [c for c in fine if _pb_board_only({"patterns": (c.get("A") or {}).get("patterns") or {}})]
+        def _pb_replay_key(c: dict[str, Any]) -> tuple:
+            pp = (c.get("A") or {}).get("patterns") or {}
+            evp = 5 if pp.get("firstWeek") else (
+                4 if pp.get("pb45") or (pp.get("firstBoardRight") and pp.get("breakout")) else
+                4 if pp.get("firstBoardRight") else
+                4 if pp.get("pullback2") and pp.get("breakout") else
+                3 if pp.get("pullback2") else (2 if pp.get("ztPullback") else 0))
+            return (-evp, 0 if pp.get("breakout") else 1, 0 if pp.get("ztWeek") else 1, -int(c.get("final") or 0))
+        _pb.sort(key=_pb_replay_key)
         picks = [_pick_out(c) for c in _pb[:2]]
         runners = [_pick_out(c) for c in _pb[2:8]]
     elif market == "low10":
@@ -5547,6 +6055,8 @@ _MAINLINE_BOARD_MAP: dict[str, list[str]] = {
     "军工": ["90.BK0490", "90.BK1204", "90.BK0480", "90.BK0729"],
     "证券": ["90.BK0473"],
     "光伏设备": ["90.BK1031", "90.BK1602"],
+    # 同花顺行业 881101；东财「种植业」BK1261 资金/成分最接近
+    "种植业与林业": ["90.BK1261", "90.BK0433"],
 }
 
 # 主线名 → 真实东财板块 secid 轻量兜底（仅用于排行/链接展示，不改变候选池与龙头来源）：
@@ -6936,6 +7446,8 @@ async def run_scan(
         }
         _save_history(f"{market}:{str(today)}", hist_payload)
         _save_archive(market, str(today), hist_payload)
+        if market == "hs":
+            _save_hs_column_histories(str(today), asof, hist_payload, result)
     if not pick_out and not _market_closed():
         # 盘中空结果（盘前/数据未就绪）：仅短时负缓存，不入盘、不污染整日 6h 缓存
         result["_bad"] = True

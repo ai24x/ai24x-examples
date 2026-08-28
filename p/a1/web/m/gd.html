@@ -185,6 +185,8 @@
   <button id="tab-bj_all" data-m="bj_all">北证全市场</button>
   <button id="tab-macd" data-m="macd">MACD首红</button>
   <button id="tab-pb" data-m="pb">回踩企稳</button>
+  <button id="tab-breakout" data-m="breakout">二波突破</button>
+  <button id="tab-leader" data-m="leader">主线龙头</button>
   <button id="tab-low10" data-m="low10">10元下</button>
 </div>
 
@@ -472,7 +474,9 @@
       if (m === 'bj') return '北证主线 · 北证主线刚转强的票';
       if (m === 'bj_all') return '北证全市场 · 全市场刚转强活跃票';
       if (m === 'macd') return 'MACD首红 · 底部刚翻红启动信号';
-      if (m === 'pb') return '回踩企稳 · 异动后缩量回踩未破位';
+      if (m === 'pb') return '回踩企稳 · 首板/涨停级回踩后缩量企稳';
+      if (m === 'breakout') return '二波突破 · 板后放量突破平台高点';
+      if (m === 'leader') return '主线龙头 · 主攻板块最强代表';
       if (m === 'low10') return '10元下 · 低价且刚右侧活跃票';
       return m === 'all' ? '沪深京·板块成分池' : '北证全市场';
     }
@@ -793,7 +797,9 @@
       bj: { t: '北证主线怎么看', s: '优先主线共振 + 刚异动/回踩企稳，避免买在下坡途中。' },
       bj_all: { t: '北证全市场怎么看', s: '全市场挑刚右侧转强、股性活的票；没有合格就空着。' },
       macd: { t: 'MACD首红怎么看', s: '底部刚翻红 + 有量 = 右侧启动。优先今日首红/红柱第2-3天。' },
-      pb: { t: '回踩企稳怎么看', s: '异动或首板后缩量回踩未破位，再转强。适合等回调。' },
+      pb: { t: '回踩企稳怎么看', s: '首板/涨停后缩量回踩未破位，再转强。适合等回调。' },
+      breakout: { t: '二波突破怎么看', s: '板后回踩后放量突破板日或平台高点，右侧加速确认。' },
+      leader: { t: '主线龙头怎么看', s: '当日主攻板块内资金+动量最强的代表股，宁缺毋滥。' },
       low10: { t: '10元下怎么看', s: '股价<10元且刚右侧走强、股性活跃；下坡和死水不推。' }
     };
     var x = map[m];

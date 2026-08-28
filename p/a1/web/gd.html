@@ -18,7 +18,7 @@
   </script>
   <link rel="stylesheet" href="/css/base.css?v=54" />
   <link rel="stylesheet" href="/css/tool.css" />
-  <link rel="stylesheet" href="/css/bjscreener.css?v=92" />
+  <link rel="stylesheet" href="/css/bjscreener.css?v=95" />
 <style>
 /* 复盘 · 大盘环境与策略区（大盘同步） */
 .bj-market{display:block;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:10px 14px;margin:0 0 12px;}
@@ -144,6 +144,8 @@
             <button type="button" class="bj-tab" data-market="bj_all">北证全市场</button>
             <button type="button" class="bj-tab" data-market="macd">MACD首红</button>
             <button type="button" class="bj-tab" data-market="pb">回踩企稳</button>
+            <button type="button" class="bj-tab" data-market="breakout">二波突破</button>
+            <button type="button" class="bj-tab" data-market="leader">主线龙头</button>
             <button type="button" class="bj-tab" data-market="low10">10元下</button>
           </div>
           <div id="bj-meta" class="bj-meta" hidden></div>
@@ -162,6 +164,7 @@
             <div id="bj-strategy" hidden></div>
             <div id="bj-boardrank"></div>
             <div id="bj-result"></div>
+            <div id="bj-pb-ledger" hidden></div>
             <details class="bj-fold" id="bj-more">
               <summary>更多数据</summary>
               <div id="bj-ths-sentiment"></div>
@@ -184,7 +187,7 @@
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("bjscreener"); } catch (e) {}
   </script>
-  <script src="/js/bjscreener.js?v=122"></script>
+  <script src="/js/bjscreener.js?v=126"></script>
   <script>
     (function () {
       var w = window.AI24X_BJScreener;
