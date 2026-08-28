@@ -3800,6 +3800,13 @@
           creditsCta.href = "http://127.0.0.1:8000/console.html#billing";
         }
       }
+      var creditsOvCta = document.getElementById("creditsOvCta");
+      if (creditsOvCta) {
+        var chOv = String(location.hostname || "").toLowerCase();
+        if (chOv === "127.0.0.1" || chOv === "localhost") {
+          creditsOvCta.href = "http://127.0.0.1:8000/console.html#billing";
+        }
+      }
     } catch (eHub) {}
     $("api-base").value = AI24X_API.getBase();
     if (AI24X_API.isPublicAi24xHost && AI24X_API.isPublicAi24xHost()) {
