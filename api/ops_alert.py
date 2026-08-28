@@ -719,6 +719,16 @@ def run_check(db, *, push: bool = True, dry_run: bool = False) -> dict[str, Any]
         lines.append("（无变化，冷却中静默）")
     text = "\n".join(lines)
 
+    # 2026-08-28 Boss order: no change -> silent (no feishu/email/sms), state only
+    if not new_push and not recovered:
+        save_state = {"codes": codes_state, "last_check": _cst_now().isoformat(),
+                      "last_push_at": state.get("last_push_at") or "",
+                      "last_push_text": state.get("last_push_text") or "",
+                      "last_silent_at": _cst_now().isoformat()}
+        _save_json(_STATE_PATH, save_state)
+        return {"ok": True, "pushed": False, "silent": True, "health": health,
+                "alerts": alerts, "new_push": [], "recovered": [], "text": text}
+
     pushed_feishu = _push_feishu(cfg, text)
     pushed_email = _push_email(cfg, text) if cfg.get("email_enabled") else False
     pushed_sms = _push_sms(cfg, text) if (cfg.get("sms_enabled") and n_err > 0) else False
