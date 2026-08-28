@@ -1483,6 +1483,42 @@ async def auth_register(request: Request, body: AuthRegisterBody, db: Session = 
     )
 
 
+def _client_ip(request: Request) -> str:
+    xff = (request.headers.get("X-Forwarded-For") or "").strip()
+    if xff:
+        ip = xff.split(",")[0].strip()
+        if ip:
+            return ip[:64]
+    if request.client and request.client.host:
+        return str(request.client.host)[:64]
+    return "unknown"
+
+
+def _optional_auth_user(request: Request, db: Session) -> AuthUser | None:
+    """有效 JWT → 用户；无头 / 无效 token → None（游客 Help）。"""
+    h = (request.headers.get("Authorization") or "").strip()
+    if not h.lower().startswith("bearer "):
+        return None
+    raw = h[7:].strip()
+    if not raw:
+        return None
+    try:
+        from jose import JWTError, jwt
+
+        payload = jwt.decode(raw, settings.secret_key, algorithms=["HS256"])
+        uid = int(payload["sub"])
+    except (JWTError, ValueError, TypeError, KeyError):
+        return None
+    u = db.query(AuthUser).filter(AuthUser.id == uid).first()
+    if not u:
+        return None
+    try:
+        raise_if_frozen(u)
+    except HTTPException:
+        return None
+    return u
+
+
 def _auth_user_from_bearer(request: Request, db: Session) -> AuthUser:
     h = (request.headers.get("Authorization") or "").strip()
     if not h.lower().startswith("bearer "):
@@ -1804,6 +1840,33 @@ async def admin_token_order_confirm_unpaid(
     return confirm_order_unpaid(db, order_id=order_id)
 
 
+@app.api_route(
+    "/v1/admin/token/orders/reconcile_amounts",
+    methods=["GET", "POST"],
+)
+async def admin_token_orders_reconcile_amounts(
+    request: Request,
+    db: Session = Depends(get_db),
+    dry_run: bool = True,
+    limit: int = 500,
+):
+    """纠偏未付国际通道订单 amount_fen（历史 CNY 分误存）。默认 dry_run=true。"""
+    _require_internal_key(request)
+    if request.method == "POST":
+        try:
+            body = await request.json()
+            if isinstance(body, dict):
+                if "dry_run" in body:
+                    dry_run = bool(body.get("dry_run"))
+                if body.get("limit") is not None:
+                    limit = int(body.get("limit"))
+        except Exception:
+            pass
+    from token_pay_service import admin_reconcile_order_amounts
+
+    return admin_reconcile_order_amounts(db, dry_run=bool(dry_run), limit=int(limit))
+
+
 @app.get("/v1/admin/token/usage_monitor")
 async def admin_token_usage_monitor(
     request: Request,
@@ -2096,10 +2159,11 @@ async def referrals_summary(request: Request, db: Session = Depends(get_db)):
 
 @app.post("/v1/support/ask")
 async def support_ask(request: Request, body: SupportAskBody, db: Session = Depends(get_db)):
-    """登录用户即时协助：平台成本，不扣用户 Token；有日帽。"""
+    """即时协助：登录用户日帽 40；游客按 IP 日帽 8（FAQ 优先，不扣用户 Token）。"""
     from support_bot import ask_support, faq_timeout_answer
 
-    u = _auth_user_from_bearer(request, db)
+    u = _optional_auth_user(request, db)
+    client_ip = _client_ip(request)
     lang = (body.lang or "").strip().lower()
     if lang not in ("zh", "en"):
         # 粗判：含中文则 zh
@@ -2109,7 +2173,8 @@ async def support_ask(request: Request, body: SupportAskBody, db: Session = Depe
         return await asyncio.wait_for(
             asyncio.to_thread(
                 ask_support,
-                auth_user_id=int(u.id),
+                auth_user_id=int(u.id) if u else None,
+                client_ip=client_ip,
                 question=body.question,
                 lang_hint=lang,
             ),
@@ -2251,7 +2316,8 @@ async def admin_token_ticket_reply(
 
 
 _ADMIN_RATE: dict[str, list[float]] = {}
-# 管理员手机验证码会话（进程内；token -> 过期时间戳）。短期 30 分钟，仅 ADMIN_PHONE 可发起
+# 管理员手机验证码会话（进程内；token -> 过期时间戳）。默认 12 小时，仅 ADMIN_PHONE 可发起
+_ADMIN_SESSION_TTL_S = 43200
 _ADMIN_SESSIONS: dict[str, float] = {}
 _ADMIN_SMS_SEND_AT: dict[str, float] = {}
 
@@ -2270,7 +2336,7 @@ def _admin_session_valid(token: str) -> bool:
 
 def _admin_sms_issue_token() -> str:
     tok = "adm-session-" + secrets.token_urlsafe(24)
-    _ADMIN_SESSIONS[tok] = time.time() + 1800.0
+    _ADMIN_SESSIONS[tok] = time.time() + float(_ADMIN_SESSION_TTL_S)
     return tok
 
 
@@ -2440,7 +2506,7 @@ async def admin_sms_send(request: Request, body: SmsSendRequest):
 @app.post("/v1/admin/sms/login")
 async def admin_sms_login(request: Request, body: AdminSmsLoginBody):
     """管理员手机验证码登录（双因素模式专属）：
-    密钥 + 验证码双通过后签发 30 分钟管理会话 token；后续管理接口须携带该会话。
+    密钥 + 验证码双通过后签发 12 小时管理会话 token；后续管理接口须携带该会话。
     本地模式（ADMIN_REQUIRE_SMS 未开启）不提供该通道。
     """
     if not getattr(settings, "admin_require_sms", False):
@@ -2454,7 +2520,7 @@ async def admin_sms_login(request: Request, body: AdminSmsLoginBody):
         raise HTTPException(status_code=403, detail="手机号或验证码错误")
     if not verify_and_consume_otp(mob, "admin_login", body.code or ""):
         raise HTTPException(status_code=403, detail="验证码错误或已过期，请重新获取")
-    return {"ok": True, "key": _admin_sms_issue_token(), "expires_in": 1800}
+    return {"ok": True, "key": _admin_sms_issue_token(), "expires_in": _ADMIN_SESSION_TTL_S}
 
 
 @app.post("/v1/admin/sms/test")
@@ -2649,17 +2715,27 @@ async def admin_email_test(request: Request, body: AdminEmailTestBody):
 @app.get("/v1/billing/plans")
 async def billing_plans():
     """公开套餐目录 + 支付通道就绪状态（不含密钥）。"""
+    from fastapi.responses import JSONResponse
+
     from token_pay_service import public_plans
 
-    return public_plans()
+    return JSONResponse(
+        content=public_plans(),
+        headers={"Cache-Control": "public, max-age=60, stale-while-revalidate=120"},
+    )
 
 
 @app.get("/v1/billing/products")
 async def billing_products():
     """统一产品套餐目录：console「选项目 → 选套餐 → 选支付方式」一次拉全。"""
+    from fastapi.responses import JSONResponse
+
     from pay_products import public_products
 
-    return public_products()
+    return JSONResponse(
+        content=public_products(),
+        headers={"Cache-Control": "public, max-age=60, stale-while-revalidate=120"},
+    )
 
 
 @app.get("/v1/billing/pay/status")
@@ -3231,6 +3307,7 @@ async def billing_dodo_webhook(request: Request, db: Session = Depends(get_db)):
 
     from security_util import is_prod
     from token_pay_service import pay_settings_ns, try_fulfill, token_pay_enabled
+    from billing_money import order_settle_amount_fen as _order_settle_amount_fen, _order_settle_amount_fen
 
     if not token_pay_enabled():
         return JSONResponse(status_code=200, content={"ok": False, "reason": "disabled"})
@@ -3301,11 +3378,13 @@ async def billing_dodo_webhook(request: Request, db: Session = Depends(get_db)):
         )
         return JSONResponse(status_code=200, content={"ok": False, "reason": "product_mismatch"})
     # Dodo total_amount 为最小货币单位且含税：允许 >= 本地价（容税），不足才拒绝
-    if d["amount"] and int(d["amount"]) < int(row.amount_fen):
+    settle = _order_settle_amount_fen(row)
+    if d["amount"] and int(d["amount"]) < settle:
         logger.warning(
-            "dodo webhook amount below local otn=%s local=%s dodo=%s currency=%s",
+            "dodo webhook amount below local otn=%s local=%s settle=%s dodo=%s currency=%s",
             otn,
             row.amount_fen,
+            settle,
             d["amount"],
             d["currency"],
         )
@@ -3319,7 +3398,7 @@ async def billing_dodo_webhook(request: Request, db: Session = Depends(get_db)):
         db,
         out_trade_no=otn,
         transaction_id=txid,
-        amount_fen=int(row.amount_fen),
+        amount_fen=settle,
         channel_tag="dodo_webhook",
     )
     if not r.get("ok"):
@@ -3372,7 +3451,11 @@ async def admin_token_orders(
     auth_user_id: int | None = None,
     status: str | None = None,
     channel: str | None = None,
+    product: str | None = None,
     q: str | None = None,
+    since: str | None = None,
+    until: str | None = None,
+    date_field: str = "created",
     limit: int = 50,
     offset: int = 0,
     include_expired: int = 0,
@@ -3385,7 +3468,11 @@ async def admin_token_orders(
         auth_user_id=auth_user_id,
         status=status,
         channel=channel,
+        product=product,
         q=q,
+        since=since,
+        until=until,
+        date_field=date_field,
         limit=limit,
         offset=offset,
         include_expired=bool(include_expired),
@@ -3553,7 +3640,11 @@ async def admin_token_orders_export(
     auth_user_id: int | None = None,
     status: str | None = None,
     channel: str | None = None,
+    product: str | None = None,
     q: str | None = None,
+    since: str | None = None,
+    until: str | None = None,
+    date_field: str = "created",
     limit: int = 2000,
 ):
     """订单 CSV 导出（内部密钥）。"""
@@ -3567,7 +3658,11 @@ async def admin_token_orders_export(
         auth_user_id=auth_user_id,
         status=status,
         channel=channel,
+        product=product,
         q=q,
+        since=since,
+        until=until,
+        date_field=date_field,
         limit=limit,
     )
     return Response(

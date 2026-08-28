@@ -371,8 +371,8 @@
           </button>
           <div class="nav-l2">
             <button type="button" class="nav-item" data-panel="p-orders">
-              Token 订单
-              <span class="subt">筛选、查单履约、导出 CSV</span>
+              支付订单
+              <span class="subt">按产品/通道/时间筛选 · 导出 CSV</span>
             </button>
             <button type="button" class="nav-item" data-panel="p-channels">
               支付通道
@@ -719,8 +719,17 @@
 
           <div class="panel-page" id="p-orders">
             <div class="card">
-              <h2>Token 订单</h2>
+              <h2>支付订单</h2>
+              <p class="muted small">统一收银台订单；库内 <code>product</code> 区分 token / byok / markets。单号前缀 T=额度、M=行情。</p>
               <div class="row">
+                <div class="field"><span class="lbl">产品</span>
+                  <select id="ordProduct">
+                    <option value="">全部产品</option>
+                    <option value="token">Gateway 托管额度</option>
+                    <option value="byok">BYOK Pro</option>
+                    <option value="markets">行情官 Pro</option>
+                  </select>
+                </div>
                 <div class="field"><span class="lbl">状态</span>
                   <select id="ordStatus">
                     <option value="">全部</option>
@@ -749,15 +758,27 @@
                 <div class="field" style="min-width:220px;"><span class="lbl">单号关键词</span>
                   <input id="ordQ" type="text" placeholder="out_trade_no / 交易号" />
                 </div>
+                <div class="field"><span class="lbl">时间字段</span>
+                  <select id="ordDateField" title="按下单时间或支付时间筛选">
+                    <option value="created">下单时间</option>
+                    <option value="paid">支付时间</option>
+                  </select>
+                </div>
+                <div class="field"><span class="lbl">起止日期</span>
+                  <input id="ordSince" type="date" title="含当日 00:00（东八区）" />
+                  <span class="muted small">—</span>
+                  <input id="ordUntil" type="date" title="含当日 23:59（东八区）" />
+                </div>
                 <button type="button" id="btnLoadOrders">查询</button>
                 <button type="button" id="btnExportCsv">导出 CSV</button>
                 <button type="button" class="warn" id="btnCleanupExpired" title="作废超过支付窗口仍未付款且无渠道交易号的订单（微信/支付宝 24h、PayPal 72h）；有交易号的保留待对账">清理过期单</button>
+                <button type="button" id="btnReconcileAmounts" title="纠偏未付国际通道订单标价（历史 CNY 分误存为 USD 展示）">纠偏标价</button>
               </div>
               <div style="overflow:auto;margin-top:12px;">
                 <table>
                   <thead>
                     <tr>
-                      <th>单号</th><th>用户</th><th>套餐</th><th>金额</th><th>通道</th><th>状态</th><th>时间</th><th></th>
+                      <th>单号</th><th>产品</th><th>用户</th><th>套餐</th><th>金额</th><th>通道</th><th>状态</th><th>时间</th><th></th>
                     </tr>
                   </thead>
                   <tbody id="ordBody"></tbody>
@@ -1649,11 +1670,66 @@
     return j;
   }
 
+  function fmtAdminTime(rowOrIso, kind) {
+    if (rowOrIso && typeof rowOrIso === "object" && !rowOrIso.getTime) {
+      var dk = kind === "paid" ? "paid_at_display" : "created_at_display";
+      if (rowOrIso[dk]) return rowOrIso[dk];
+      rowOrIso = kind === "paid" ? (rowOrIso.paid_at || rowOrIso.created_at) : rowOrIso.created_at;
+    }
+    var iso = rowOrIso;
+    if (!iso) return "—";
+    try {
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return String(iso).slice(0, 16);
+      var now = new Date();
+      var tz = { timeZone: "Asia/Shanghai" };
+      function ymd(dt) {
+        var p = new Intl.DateTimeFormat("zh-CN", Object.assign({ year: "numeric", month: "2-digit", day: "2-digit" }, tz)).formatToParts(dt);
+        var y = "", m = "", dd = "";
+        p.forEach(function (x) {
+          if (x.type === "year") y = x.value;
+          if (x.type === "month") m = x.value;
+          if (x.type === "day") dd = x.value;
+        });
+        return y + "-" + m + "-" + dd;
+      }
+      function hm(dt) {
+        var p = new Intl.DateTimeFormat("zh-CN", Object.assign({ hour: "2-digit", minute: "2-digit", hour12: false }, tz)).formatToParts(dt);
+        var h = "", mi = "";
+        p.forEach(function (x) {
+          if (x.type === "hour") h = x.value;
+          if (x.type === "minute") mi = x.value;
+        });
+        return h + ":" + mi;
+      }
+      var td = ymd(now), od = ymd(d);
+      var t = hm(d);
+      if (td === od) return t;
+      if (ymd(new Date(now.getTime() - 86400000)) === od) return "昨天 " + t;
+      var md = d.toLocaleString("zh-CN", { timeZone: "Asia/Shanghai", month: "2-digit", day: "2-digit" }).replace(/\//g, "-");
+      return md + " " + t;
+    } catch (e) {
+      return String(iso).slice(0, 16);
+    }
+  }
+
   function fenLabel(ch, fen) {
     var n = Number(fen || 0);
-    // PayPal / Dodo / 历史 Creem：amount_fen 存 USD 美分
-    if (ch === "paypal" || ch === "dodo" || ch === "creem") return "$" + (n / 100).toFixed(2);
-    return "¥" + (n / 100).toFixed(2);
+    if (ch === "paypal" || ch === "dodo" || ch === "creem" || ch === "crypto") return "$" + (n / 100).toFixed(2);
+    return "CNY " + (n / 100).toFixed(2);
+  }
+
+  function orderMoneyCell(r) {
+    if (!r) return "—";
+    var main = r.amount_label || fenLabel(r.channel, r.amount_fen);
+    var html = esc(main);
+    if (r.amount_mismatch) {
+      html += ' <span class="pill warn" title="库内原始分 ' + esc(String(r.amount_stored_fen || "")) + '">纠偏</span>';
+    }
+    if (r.amount_usd_label && (r.currency !== "USD" || r.amount_mismatch)) {
+      html += '<div class="muted small">到账 ' + esc(r.amount_usd_label) + "</div>";
+    }
+    return html;
   }
   function statusPill(s) {
     var zh = {
@@ -2013,7 +2089,7 @@
             st +
             "</td>" +
             "<td class='mono small'>" +
-            esc((u.created_at || "").slice(0, 19)) +
+            esc(fmtAdminTime(u.created_at)) +
             "</td>" +
             "<td><button type='button' class='btnUserWallet' data-uid='" +
             u.id +
@@ -2970,9 +3046,9 @@
               '<td class="mono">' + esc(r.out_trade_no) + "</td>" +
               "<td>" + userLabel(r) + "</td>" +
               "<td>" + esc(r.plan) + "</td>" +
-              "<td>" + fenLabel(r.channel, r.amount_fen) + "</td>" +
+              "<td>" + orderMoneyCell(r) + "</td>" +
               "<td>" + esc(r.channel) + "</td>" +
-              '<td class="mono">' + esc(r.created_at || "") + "</td>" +
+              '<td class="mono">' + esc(fmtAdminTime(r, "created")) + "</td>" +
               '<td><button type="button" data-otn="' + String(r.out_trade_no).replace(/"/g, "") + '" class="btnFulfill">查单履约</button></td>' +
               "</tr>";
           }).join("")
@@ -2990,25 +3066,38 @@
               '<td class="mono">' + esc(r.out_trade_no) + "</td>" +
               "<td>" + userLabel(r) + "</td>" +
               "<td>" + esc(r.plan) + "</td>" +
-              "<td>" + fenLabel(r.channel, r.amount_fen) + "</td>" +
+              "<td>" + orderMoneyCell(r) + "</td>" +
               "<td>" + esc(r.channel) + "</td>" +
-              '<td class="mono">' + esc(r.paid_at || r.created_at || "") + "</td>" +
+              '<td class="mono">' + esc(fmtAdminTime(r, "paid")) + "</td>" +
               "</tr>";
           }).join("")
         : '<tr><td colspan="6" class="muted">暂无已支付订单</td></tr>';
     }
   }
 
+  function productLabel(r) {
+    if (!r) return "—";
+    return esc(r.product_label || r.product || "token");
+  }
+
   function orderFilterQs(extraLimit) {
     var qs = new URLSearchParams();
     var st = ($("ordStatus").value || "").trim();
     var ch = ($("ordChannel").value || "").trim();
+    var prod = ($("ordProduct") && $("ordProduct").value || "").trim();
     var uid = ($("ordUid").value || "").trim();
     var q = ($("ordQ").value || "").trim();
+    var since = ($("ordSince") && $("ordSince").value || "").trim();
+    var until = ($("ordUntil") && $("ordUntil").value || "").trim();
+    var df = ($("ordDateField") && $("ordDateField").value || "created").trim();
     if (st) qs.set("status", st);
     if (ch) qs.set("channel", ch);
+    if (prod) qs.set("product", prod);
     if (uid) qs.set("auth_user_id", uid);
     if (q) qs.set("q", q);
+    if (since) qs.set("since", since);
+    if (until) qs.set("until", until);
+    if (df && df !== "created") qs.set("date_field", df);
     var inc = $("ordIncludeExpired") && $("ordIncludeExpired").checked;
     qs.set("include_expired", inc ? "1" : "0");
     qs.set("limit", String(extraLimit || 50));
@@ -3044,15 +3133,16 @@
       var rowStyle = r.expired ? ' style="opacity:.5;"' : "";
       return "<tr" + rowStyle + ">" +
         '<td class="mono">' + esc(r.out_trade_no) + "</td>" +
+        "<td>" + productLabel(r) + "</td>" +
         "<td>" + userLabel(r) + "</td>" +
         "<td>" + esc(r.plan) + "</td>" +
-        "<td>" + fenLabel(r.channel, r.amount_fen) + "</td>" +
+        "<td>" + orderMoneyCell(r) + "</td>" +
         "<td>" + esc(r.channel) + "</td>" +
         "<td>" + statusPill(r.status) + expTag + "</td>" +
-        '<td class="mono">' + esc(r.paid_at || r.created_at || "") + "</td>" +
+        '<td class="mono">' + esc(fmtAdminTime(r, "paid")) + "</td>" +
         "<td>" + fulfill + "</td>" +
         "</tr>";
-    }).join("") || '<tr><td colspan="8" class="muted">无订单</td></tr>';
+    }).join("") || '<tr><td colspan="9" class="muted">无订单</td></tr>';
   }
 
   async function loadLedger() {
@@ -3078,7 +3168,7 @@
         "<td>" + esc(r.tokens) + "</td>" +
         "<td>" + esc(r.model || "") + "</td>" +
         '<td class="mono">' + esc(r.note || "") + "</td>" +
-        '<td class="mono">' + esc(r.created_at || "") + "</td>" +
+        '<td class="mono">' + esc(fmtAdminTime(r.created_at)) + "</td>" +
         "</tr>";
     }).join("") || '<tr><td colspan="7" class="muted">无流水</td></tr>';
   }
@@ -3139,7 +3229,7 @@
         "#" + r.id + " L" + r.level + " referee=" + r.referee_id +
           " " + (r.referee_email || r.referee_phone || "") +
           " reward=" + r.reward_tokens + " " + r.status +
-          " " + ((r.created_at || "").slice(0, 19))
+          " " + fmtAdminTime(r.created_at)
       );
     });
     if ($("refDetailOut")) $("refDetailOut").textContent = lines.join("\n");
@@ -3170,7 +3260,7 @@
             "<td>" + esc(t.category) + "</td>" +
             "<td>" + esc((t.subject || "").slice(0, 40)) + "</td>" +
             "<td>" + esc(t.status) + "</td>" +
-            "<td class='mono small'>" + esc((t.created_at || "").slice(0, 19)) + "</td>" +
+            "<td class='mono small'>" + esc(fmtAdminTime(t.created_at)) + "</td>" +
             "<td><button type='button' data-tk-id='" + t.id + "'>查看</button></td>" +
             "</tr>"
           );
@@ -3231,7 +3321,7 @@
             "<td>$" + Number(r.amount_usd || 0).toFixed(2) + "</td>" +
             "<td>" + esc(r.channel || "") + "</td>" +
             "<td>" + statusPill(r.status) + "</td>" +
-            '<td class="mono">' + esc(r.paid_at || r.created_at || "") + "</td>" +
+            '<td class="mono">' + esc(fmtAdminTime(r, "paid")) + "</td>" +
             "</tr>"
           );
         })
@@ -3307,8 +3397,8 @@
             "<td>$" + Number(r.amount_usd || 0).toFixed(2) + "</td>" +
             "<td>" + esc(r.channel || "") + "</td>" +
             "<td>" + statusPill(r.status) + "</td>" +
-            '<td class="mono">' + esc((r.created_at || "").slice(0, 19)) + "</td>" +
-            '<td class="mono">' + esc((r.paid_at || "").slice(0, 19)) + "</td>" +
+            '<td class="mono">' + esc(fmtAdminTime(r.created_at)) + "</td>" +
+            '<td class="mono">' + esc(fmtAdminTime(r.paid_at)) + "</td>" +
             "</tr>"
           );
         })
@@ -3559,7 +3649,7 @@
       r.rows.forEach(function (row) {
         var tr = document.createElement("tr");
         tr.innerHTML =
-          "<td class='mono small'>" + esc(row.created_at || "-") + "</td>" +
+          "<td class='mono small'>" + esc(fmtAdminTime(row.created_at)) + "</td>" +
           "<td>" + esc(_smsMaskPhone(row.phone)) + "</td>" +
           "<td>" + esc(row.purpose || "-") + "</td>" +
           "<td>" + esc(row.provider || "-") + "</td>" +
@@ -4482,7 +4572,7 @@
       var blob = await r.blob();
       var a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = "token_orders.csv";
+      a.download = "pay_orders.csv";
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -4507,6 +4597,28 @@
       setMsg("已作废 " + (r.voided || 0) + " 笔超时未付订单；保留待对账 " + (r.kept_for_reconcile || 0) + " 笔", "ok");
       if (typeof refreshSummary === "function") await refreshSummary();
       loadOrders();
+    } catch (e) { setMsg(String(e.message || e), "err"); }
+  };
+
+  $("btnReconcileAmounts").onclick = async function () {
+    try {
+      var pre = await api("/v1/admin/token/orders/reconcile_amounts", {
+        method: "POST",
+        body: { dry_run: true, limit: 500 },
+      });
+      var n = (pre && pre.count) || 0;
+      if (!n) {
+        setMsg("暂无需要纠偏的未付国际通道订单", "ok");
+        return;
+      }
+      if (!window.confirm("将纠偏 " + n + " 笔未付订单的标价（amount_fen）。到账额度仍按套餐 USD，不影响已付单。确认执行？")) return;
+      var r = await api("/v1/admin/token/orders/reconcile_amounts", {
+        method: "POST",
+        body: { dry_run: false, limit: 500 },
+      });
+      setMsg("已纠偏 " + ((r && r.count) || 0) + " 笔订单标价", "ok");
+      loadOrders();
+      if (typeof refreshSummary === "function") await refreshSummary();
     } catch (e) { setMsg(String(e.message || e), "err"); }
   };
 

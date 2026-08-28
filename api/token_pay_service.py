@@ -24,6 +24,16 @@ from models import AuthUser, TokenPayOrder
 from token_mvp_service import get_balance_snapshot, topup_tokens
 from token_plans import get_plan, list_public_plans, normalize_plan
 
+from billing_money import (
+    USD_CHANNELS as _USD_CHANNELS,
+    admin_order_row_extras,
+    cn_pay_channels_enabled,
+    international_billing_profile,
+    order_credit_usd_cents,
+    order_money_fields,
+    order_settle_amount_fen as _order_settle_amount_fen,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -179,11 +189,15 @@ def public_plans() -> dict:
     creem_cfg = creem_configured(cfg)
     dodo_cfg = dodo_configured(cfg)
     enabled = token_pay_enabled()
+    cn_on = cn_pay_channels_enabled()
+    intl = international_billing_profile()
     return {
         "plans": list_public_plans(),
         "pay": {
             "enabled": enabled,
             "mock_allowed": token_pay_mock_allowed(),
+            "cn_channels_enabled": cn_on,
+            "display_currency": "USD" if intl else "MULTI",
             "wechat_configured": wx_cfg,
             "alipay_configured": ali_cfg,
             "paypal_configured": pp_cfg,
@@ -192,9 +206,9 @@ def public_plans() -> dict:
             "creem_mode": str(getattr(cfg, "creem_mode", "test") or "test"),
             "dodo_configured": dodo_cfg,
             "dodo_mode": str(getattr(cfg, "dodo_mode", "test") or "test"),
-            # ready = 可拉真单（开关开 + 商户齐）
-            "wechat_ready": bool(enabled and wx_cfg),
-            "alipay_ready": bool(enabled and ali_cfg),
+            # ready = 可拉真单（开关开 + 商户齐）；国际站默认隐藏微信/支付宝（仅收 CNY）
+            "wechat_ready": bool(enabled and wx_cfg and cn_on),
+            "alipay_ready": bool(enabled and ali_cfg and cn_on),
             "paypal_ready": bool(enabled and pp_cfg),
             "creem_ready": bool(enabled and creem_cfg),
             "dodo_ready": bool(enabled and dodo_cfg),
@@ -240,13 +254,24 @@ def _resolve_plan_for_product(
 ) -> tuple[str, str, dict[str, Any], int]:
     """按产品解析套餐 → (product, plan_id, meta, price_fen)。
 
-    token 沿用 CNY 定价（token_plans）；markets 仅 USD 定价，微信/支付宝通道按
-    _usd_cny 换算成 CNY 分，PayPal/Creem/Crypto 存 USD 美分（与既有约定一致）。
+    token：微信/支付宝存 CNY 分；PayPal/Creem/Dodo/Crypto 存 USD 美分（与 pay_dodo 约定一致）。
+    markets 仅 USD 定价，微信/支付宝通道按 _usd_cny 换算成 CNY 分。
     """
     product = (product or "token").strip().lower()
     if product == "token":
-        plan_id, price_fen = normalize_plan(plan)
-        return product, plan_id, get_plan(plan_id) or {}, int(price_fen)
+        plan_id, price_fen_cny = normalize_plan(plan)
+        meta = get_plan(plan_id) or {}
+        if channel in _USD_CHANNELS:
+            try:
+                usd = float(meta.get("price_usd") or 0)
+            except (TypeError, ValueError):
+                usd = 0.0
+            if usd <= 0:
+                raise HTTPException(status_code=400, detail="plan_missing_usd_price")
+            price_fen = max(1, int(round(usd * 100)))
+        else:
+            price_fen = int(price_fen_cny)
+        return product, plan_id, meta, int(price_fen)
     from pay_products import product_plan
 
     if product != "markets":
@@ -304,6 +329,7 @@ def create_pending_order(
         status="pending",
         product=product,
     )
+    row.amount_usd = int(order_credit_usd_cents(row))
     db.add(row)
     db.commit()
     db.refresh(row)
@@ -335,10 +361,15 @@ def _fulfill_order_row(
             return {"ok": True, "duplicate": True, "out_trade_no": otn}
         return {"ok": False, "error": "order_already_paid"}
 
-    if int(row.amount_fen) != int(amount_fen):
-        return {"ok": False, "error": "amount_mismatch"}
-
+    settle = _order_settle_amount_fen(row)
+    paid = int(amount_fen)
+    ch = str(row.channel or "").lower()
     is_markets = str(row.product) == "markets"
+    if ch in _USD_CHANNELS and not is_markets:
+        if paid < settle:
+            return {"ok": False, "error": "amount_mismatch"}
+    elif int(row.amount_fen) != paid:
+        return {"ok": False, "error": "amount_mismatch"}
     if is_markets:
         # markets 产品无 token 套餐：收款后直接回调子服务激活订阅；
         # amount_fen 微信/支付宝=CNY 分，PayPal/Creem=USD 美分
@@ -525,13 +556,22 @@ def list_orders_for_user(db: Session, auth_user_id: int, *, limit: int = 20) -> 
         .limit(min(100, max(1, int(limit))))
     )
     rows = q.all()
-    return {
-        "rows": [
+    out_rows: list[dict[str, Any]] = []
+    for r in rows:
+        ch = str(r.channel or "").lower()
+        money = order_money_fields(r)
+        out_rows.append(
             {
                 "out_trade_no": r.out_trade_no,
                 "plan": r.plan,
                 "product": str(r.product or "token"),
-                "amount_fen": r.amount_fen,
+                "amount_fen": money["amount_fen"],
+                "amount_stored_fen": money["amount_stored_fen"],
+                "amount_usd_cents": money["amount_usd_cents"],
+                "amount_usd_label": money["amount_usd_label"],
+                "amount_mismatch": money["amount_mismatch"],
+                "currency": money["currency"],
+                "amount_label": money["amount_label"],
                 "channel": r.channel,
                 "status": r.status,
                 "code_url": r.code_url,
@@ -539,9 +579,8 @@ def list_orders_for_user(db: Session, auth_user_id: int, *, limit: int = 20) -> 
                 "created_at": r.created_at.isoformat() if r.created_at else None,
                 "paid_at": r.paid_at.isoformat() if r.paid_at else None,
             }
-            for r in rows
-        ]
-    }
+        )
+    return {"rows": out_rows}
 
 
 def pending_order_expired(r, now=None) -> bool:
@@ -587,11 +626,17 @@ def admin_list_orders(
     auth_user_id: Optional[int] = None,
     status: Optional[str] = None,
     channel: Optional[str] = None,
+    product: Optional[str] = None,
     q: Optional[str] = None,
+    since: Optional[str] = None,
+    until: Optional[str] = None,
+    date_field: str = "created",
     limit: int = 50,
     offset: int = 0,
     include_expired: bool = False,
 ) -> dict:
+    from billing_money import admin_product_label, parse_admin_date_bound
+
     query = db.query(TokenPayOrder)
     if auth_user_id is not None:
         query = query.filter(TokenPayOrder.auth_user_id == int(auth_user_id))
@@ -600,6 +645,9 @@ def admin_list_orders(
     ch = (channel or "").strip().lower()
     if ch:
         query = query.filter(TokenPayOrder.channel == ch)
+    prod = (product or "").strip().lower()
+    if prod:
+        query = query.filter(TokenPayOrder.product == prod)
     qq = (q or "").strip()
     if qq:
         like = f"%{qq}%"
@@ -607,6 +655,14 @@ def admin_list_orders(
             (TokenPayOrder.out_trade_no.ilike(like))
             | (TokenPayOrder.transaction_id.ilike(like))
         )
+    df = str(date_field or "created").strip().lower()
+    col = TokenPayOrder.paid_at if df == "paid" else TokenPayOrder.created_at
+    since_dt = parse_admin_date_bound(since, end_of_day=False)
+    until_dt = parse_admin_date_bound(until, end_of_day=True)
+    if since_dt is not None:
+        query = query.filter(col >= since_dt)
+    if until_dt is not None:
+        query = query.filter(col <= until_dt)
     total = query.count()
     total_expired = 0
     if not include_expired and (not status or str(status).strip() == "pending"):
@@ -629,6 +685,7 @@ def admin_list_orders(
     out_rows = []
     for r in rows:
         u = db.query(AuthUser).filter(AuthUser.id == int(r.auth_user_id)).first()
+        extras = admin_order_row_extras(r)
         out_rows.append(
             {
                 "id": r.id,
@@ -636,13 +693,24 @@ def admin_list_orders(
                 "auth_user_id": r.auth_user_id,
                 "user_email": (u.email if u else None) or None,
                 "user_phone": (u.phone if u else None) or None,
+                "product": str(r.product or "token"),
+                "product_label": admin_product_label(str(r.product or "token")),
                 "plan": r.plan,
-                "amount_fen": r.amount_fen,
+                "amount_fen": extras["amount_fen"],
+                "amount_stored_fen": extras["amount_stored_fen"],
+                "amount_usd": int(r.amount_usd or 0) or extras["amount_usd_cents"],
+                "amount_usd_cents": extras["amount_usd_cents"],
+                "amount_usd_label": extras["amount_usd_label"],
+                "amount_mismatch": extras["amount_mismatch"],
+                "currency": extras["currency"],
+                "amount_label": extras["amount_label"],
                 "channel": r.channel,
                 "status": r.status,
                 "transaction_id": r.transaction_id,
-                "created_at": r.created_at.isoformat() if r.created_at else None,
-                "paid_at": r.paid_at.isoformat() if r.paid_at else None,
+                "created_at": extras["created_at"],
+                "paid_at": extras["paid_at"],
+                "created_at_display": extras["created_at_display"],
+                "paid_at_display": extras["paid_at_display"],
                 "expired": pending_order_expired(r),
                 "confirmed_unpaid_at": r.confirmed_unpaid_at.isoformat() if r.confirmed_unpaid_at else None,
                 "utm_source": (getattr(u, "utm_source", None) if u else None) or None,
@@ -660,7 +728,11 @@ def admin_orders_csv_text(
     auth_user_id: Optional[int] = None,
     status: Optional[str] = None,
     channel: Optional[str] = None,
+    product: Optional[str] = None,
     q: Optional[str] = None,
+    since: Optional[str] = None,
+    until: Optional[str] = None,
+    date_field: str = "created",
     limit: int = 2000,
 ) -> str:
     """导出订单 CSV（UTF-8 BOM，Excel 可直接打开）。"""
@@ -672,9 +744,14 @@ def admin_orders_csv_text(
         auth_user_id=auth_user_id,
         status=status,
         channel=channel,
+        product=product,
         q=q,
+        since=since,
+        until=until,
+        date_field=date_field,
         limit=min(5000, max(1, int(limit))),
         offset=0,
+        include_expired=True,
     )
     buf = io.StringIO()
     w = csv.writer(buf)
@@ -685,8 +762,15 @@ def admin_orders_csv_text(
             "auth_user_id",
             "user_email",
             "user_phone",
+            "product",
+            "product_label",
             "plan",
+            "currency",
+            "amount_label",
+            "amount_usd_label",
             "amount_fen",
+            "amount_stored_fen",
+            "amount_mismatch",
             "channel",
             "status",
             "transaction_id",
@@ -702,8 +786,15 @@ def admin_orders_csv_text(
                 r.get("auth_user_id"),
                 r.get("user_email") or "",
                 r.get("user_phone") or "",
+                r.get("product") or "token",
+                r.get("product_label") or "",
                 r.get("plan"),
+                r.get("currency") or "",
+                r.get("amount_label") or "",
+                r.get("amount_usd_label") or "",
                 r.get("amount_fen"),
+                r.get("amount_stored_fen"),
+                r.get("amount_mismatch"),
                 r.get("channel"),
                 r.get("status"),
                 r.get("transaction_id") or "",
@@ -1194,7 +1285,7 @@ async def create_dodo_order(
 
 
 async def query_dodo_order(db: Session, *, out_trade_no: str, auth_user_id: int) -> dict:
-    """Dodo local order status (webhook is authoritative). No upstream query needed."""
+    """Dodo：先查本地；pending 时轮询 checkout session 并尝试履约（补 webhook 延迟）。"""
     otn = str(out_trade_no or "").strip()
     row = db.query(TokenPayOrder).filter(TokenPayOrder.out_trade_no == otn).first()
     if not row or int(row.auth_user_id) != int(auth_user_id):
@@ -1206,6 +1297,35 @@ async def query_dodo_order(db: Session, *, out_trade_no: str, auth_user_id: int)
             "out_trade_no": otn,
             "balance": get_balance_snapshot(db, int(auth_user_id)),
         }
+
+    chk_id = str(row.transaction_id or "").strip()
+    if chk_id:
+        cfg = pay_settings_ns()
+        from pay_dodo import dodo_api_key_ready, get_checkout_session
+
+        if dodo_api_key_ready(cfg):
+            try:
+                sess = await get_checkout_session(cfg, chk_id)
+                status = str(sess.get("payment_status") or "").strip().lower()
+                payment_id = str(sess.get("payment_id") or "").strip()
+                if status == "succeeded" and payment_id:
+                    settle = _order_settle_amount_fen(row)
+                    r = try_fulfill(
+                        db,
+                        out_trade_no=otn,
+                        transaction_id=payment_id,
+                        amount_fen=settle,
+                        channel_tag="dodo_query",
+                    )
+                    if r.get("ok"):
+                        return {
+                            "ok": True,
+                            "out_trade_no": otn,
+                            "balance": get_balance_snapshot(db, int(auth_user_id)),
+                        }
+            except Exception:
+                logger.exception("dodo checkout poll failed otn=%s", otn)
+
     return {"ok": False, "status": str(row.status), "out_trade_no": otn}
 
 
@@ -1470,6 +1590,55 @@ def confirm_order_unpaid(db, order_id: int) -> dict:
         "confirmed_unpaid_at": r.confirmed_unpaid_at.isoformat() if r.confirmed_unpaid_at else None,
         "note": "已标记：对账确认未收款；超时后清理任务将作废为 failed",
     }
+
+
+def admin_reconcile_order_amounts(
+    db: Session, *, dry_run: bool = True, limit: int = 500
+) -> dict[str, Any]:
+    """纠偏 pending 国际通道订单的 amount_fen（历史误存 CNY 分 → USD 美分）。
+
+    仅改订单标价字段，不影响已付单；履约额度始终按套餐 price_usd。
+    """
+    lim = min(2000, max(1, int(limit)))
+    rows = (
+        db.query(TokenPayOrder)
+        .filter(TokenPayOrder.status.in_(["pending", "awaiting_verify"]))
+        .order_by(TokenPayOrder.id.desc())
+        .limit(lim)
+        .all()
+    )
+    fixes: list[dict[str, Any]] = []
+    for r in rows:
+        ch = str(r.channel or "").lower()
+        if ch not in _USD_CHANNELS:
+            continue
+        settle = _order_settle_amount_fen(r)
+        stored = int(r.amount_fen or 0)
+        if stored == settle:
+            continue
+        item = {
+            "id": r.id,
+            "out_trade_no": r.out_trade_no,
+            "channel": r.channel,
+            "plan": r.plan,
+            "amount_stored_fen": stored,
+            "amount_fen": settle,
+            "amount_usd_label": order_money_fields(r)["amount_usd_label"],
+        }
+        fixes.append(item)
+        if not dry_run:
+            r.amount_fen = settle
+            r.amount_usd = int(order_credit_usd_cents(r))
+    if not dry_run and fixes:
+        db.commit()
+    return {
+        "ok": True,
+        "dry_run": bool(dry_run),
+        "count": len(fixes),
+        "rows": fixes,
+        "note": "仅修正未付单标价；到账额度仍以套餐 USD 为准",
+    }
+
 
 # ================= Crypto (USDT-TRC20) =================
 def crypto_settings_ns() -> SimpleNamespace:

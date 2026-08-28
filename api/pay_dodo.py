@@ -97,6 +97,32 @@ async def create_checkout_session(
     return payload if isinstance(payload, dict) else {}
 
 
+async def get_checkout_session(s: Any, session_id: str) -> dict[str, Any]:
+    """GET /checkouts/{id} — payment_status / payment_id for manual fulfill."""
+    if not dodo_api_key_ready(s):
+        raise RuntimeError("dodo_not_configured")
+    sid = str(session_id or "").strip()
+    if not sid:
+        raise RuntimeError("missing_checkout_session_id")
+    url = f"{dodo_api_base(s)}/checkouts/{sid}"
+    key = str(getattr(s, "dodo_api_key", "") or "").strip()
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        r = await client.get(
+            url,
+            headers={
+                "Authorization": f"Bearer {key}",
+                "Accept": "application/json",
+            },
+        )
+    try:
+        payload = r.json()
+    except Exception:
+        payload = {"raw": r.text}
+    if r.status_code >= 400:
+        raise RuntimeError(f"dodo_get_checkout {r.status_code}: {payload}")
+    return payload if isinstance(payload, dict) else {}
+
+
 def _webhook_key_bytes(secret: str) -> bytes:
     """Standard Webhooks signing key = whsec_ stripped, then base64-decoded."""
     stripped = secret

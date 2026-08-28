@@ -359,6 +359,18 @@ def public_products() -> Dict[str, Any]:
         "pay": pay,
         "products": [
             {
+                "product": "token",
+                "title": "AI Gateway credits",
+                "title_zh": "AI Gateway 额度 · Token 套餐",
+                "desc": (
+                    "Top up managed API credits (Token plans) for flash / pro / ultra and VIP named models. "
+                    "API keys and docs: open.ai24x.com."
+                ),
+                "desc_zh": "充值托管 API 额度（Token 套餐），用于 flash / pro / ultra 及点名名模；API Key 与文档在 open.ai24x.com。",
+                "url": "https://open.ai24x.com",
+                "plans": data.get("plans") or [],
+            },
+            {
                 "product": "markets",
                 "title": "AI24X Markets Pro",
                 "title_zh": "AI24X 行情官 · 国际版 Pro",
@@ -372,18 +384,6 @@ def public_products() -> Dict[str, Any]:
                 ),
                 "url": "https://markets.ai24x.com",
                 "plans": markets_plans,
-            },
-            {
-                "product": "token",
-                "title": "AI Gateway credits",
-                "title_zh": "AI Gateway 额度",
-                "desc": (
-                    "Top up managed credits and named-model access here. "
-                    "API keys and docs: open.ai24x.com."
-                ),
-                "desc_zh": "在此充值托管额度与点名资格；API Key 与文档在 open.ai24x.com。",
-                "url": "https://open.ai24x.com",
-                "plans": data.get("plans") or [],
             },
             {
                 "product": "byok",

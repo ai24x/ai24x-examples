@@ -152,13 +152,64 @@ def faq_timeout_answer(lang_hint: str = "en") -> dict[str, Any]:
         "remaining_today": max(0, _DAILY_CAP - _daily.get(0, (_day(), 0))[1]),
     }
 
-# 简易内存日帽：auth_user_id -> (day, count)
+# 简易内存日帽：登录用户 auth_user_id -> (day, count)；游客 client_ip -> (day, count)
 _daily: dict[int, tuple[str, int]] = {}
+_guest_daily: dict[str, tuple[str, int]] = {}
 _DAILY_CAP = 40
+_GUEST_DAILY_CAP = 8
+
+# 游客不可答账户私有信息（防探测 / 省模型成本）
+_ACCOUNT_KEYS = (
+    "我的余额",
+    "my balance",
+    "我的订单",
+    "my order",
+    "我的账户",
+    "my account",
+    "我付了",
+    "i paid",
+    "没到账",
+    "not credited",
+    "refund",
+    "退款",
+    "发票",
+    "invoice",
+    "order #",
+    "订单号",
+    "out_trade",
+    "api key 泄漏",
+    "key leak",
+    "泄漏的 key",
+)
 
 
 def _day() -> str:
     return time.strftime("%Y-%m-%d", time.gmtime())
+
+
+def _norm_ip(client_ip: str) -> str:
+    ip = (client_ip or "").strip()[:64]
+    return ip or "unknown"
+
+
+def _needs_account_context(question: str) -> bool:
+    low = (question or "").strip().lower()
+    if not low:
+        return False
+    return any(k in low for k in _ACCOUNT_KEYS)
+
+
+def _guest_sign_in_hint(lang_hint: str) -> str:
+    if lang_hint == "zh":
+        return (
+            "这类问题需要登录后才能查看你的账户数据。\n"
+            "请先登录用户中心，再打开右下角协助；或到「套餐 → 我的订单」核对。\n"
+            "涉及账单可登录后点「转人工」提交工单。"
+        )
+    return (
+        "Sign in to view account-specific details (balance, orders, refunds).\n"
+        "Open Console → Plans or My orders after login, or use Human support for billing."
+    )
 
 
 def _under_cap(auth_user_id: int) -> bool:
@@ -170,6 +221,33 @@ def _under_cap(auth_user_id: int) -> bool:
     return prev[1] < _DAILY_CAP
 
 
+def _guest_under_cap(client_ip: str) -> bool:
+    d = _day()
+    key = _norm_ip(client_ip)
+    prev = _guest_daily.get(key)
+    if not prev or prev[0] != d:
+        _guest_daily[key] = (d, 0)
+        return True
+    return prev[1] < _GUEST_DAILY_CAP
+
+
+def _remaining_user(auth_user_id: int) -> int:
+    d = _day()
+    prev = _daily.get(int(auth_user_id))
+    if not prev or prev[0] != d:
+        return _DAILY_CAP
+    return max(0, _DAILY_CAP - prev[1])
+
+
+def _remaining_guest(client_ip: str) -> int:
+    d = _day()
+    key = _norm_ip(client_ip)
+    prev = _guest_daily.get(key)
+    if not prev or prev[0] != d:
+        return _GUEST_DAILY_CAP
+    return max(0, _GUEST_DAILY_CAP - prev[1])
+
+
 def _bump(auth_user_id: int) -> None:
     d = _day()
     prev = _daily.get(int(auth_user_id))
@@ -179,15 +257,52 @@ def _bump(auth_user_id: int) -> None:
         _daily[int(auth_user_id)] = (d, prev[1] + 1)
 
 
-def ask_support(*, auth_user_id: int, question: str, lang_hint: str = "en") -> dict[str, Any]:
+def _guest_bump(client_ip: str) -> None:
+    d = _day()
+    key = _norm_ip(client_ip)
+    prev = _guest_daily.get(key)
+    if not prev or prev[0] != d:
+        _guest_daily[key] = (d, 1)
+    else:
+        _guest_daily[key] = (d, prev[1] + 1)
+
+
+def ask_support(
+    *,
+    auth_user_id: int | None,
+    client_ip: str = "",
+    question: str,
+    lang_hint: str = "en",
+) -> dict[str, Any]:
     q = (question or "").strip()
     if len(q) < 2:
         return {"ok": False, "message": "Please enter a question." if lang_hint != "zh" else "请输入问题。"}
     if len(q) > 2000:
         q = q[:2000]
-    if not _under_cap(int(auth_user_id)):
+
+    is_guest = auth_user_id is None
+    if is_guest:
+        if not _guest_under_cap(client_ip):
+            return {
+                "ok": False,
+                "guest": True,
+                "message": "Daily guest help limit reached. Sign in for more, or try tomorrow."
+                if lang_hint != "zh"
+                else "游客今日帮助次数已用完，请登录后继续使用或明日再试。",
+            }
+        if _needs_account_context(q):
+            _guest_bump(client_ip)
+            return {
+                "ok": True,
+                "guest": True,
+                "answer": _guest_sign_in_hint(lang_hint),
+                "model": "sign_in",
+                "remaining_today": _remaining_guest(client_ip),
+            }
+    elif not _under_cap(int(auth_user_id)):
         return {
             "ok": False,
+            "guest": False,
             "message": "Daily help limit reached. See Help center or try tomorrow."
             if lang_hint != "zh"
             else "今日帮助次数已用完，请查阅帮助中心或明日再试。",
@@ -196,39 +311,58 @@ def ask_support(*, auth_user_id: int, question: str, lang_hint: str = "en") -> d
     # 常见问题关键词命中：秒回，不调模型
     hit = faq_answer_for(q, lang_hint)
     if hit:
+        if is_guest:
+            _guest_bump(client_ip)
+            return {
+                "ok": True,
+                "guest": True,
+                "answer": hit,
+                "model": "faq",
+                "remaining_today": _remaining_guest(client_ip),
+            }
         _bump(int(auth_user_id))
         return {
             "ok": True,
+            "guest": False,
             "answer": hit,
             "model": "faq",
-            "remaining_today": max(0, _DAILY_CAP - _daily[int(auth_user_id)][1]),
+            "remaining_today": _remaining_user(int(auth_user_id)),
         }
 
     from model_router import run_routed_chat
 
     prompt = f"[AI24X Help]\nUser question:\n{q}"
-    # 注入系统身份：走 DeepSeek 官方直连 flash（实测 ~2s 稳定）；
-    # FAQ 命中已覆盖高频问题，模型只处理长尾，平台成本可控（不扣用户费）。
-    # system 由 model_router 默认 AI24X 提示，另加 help 前缀
+    if is_guest:
+        prompt = (
+            "[Visitor — not signed in; answer only general product/API/pricing questions. "
+            "Do not guess account balance or orders.]\n" + prompt
+        )
     routed = run_routed_chat(
         prompt=_SYSTEM + "\n\n" + prompt,
         requested_model="deepseek-flash",
-        is_vip=True,  # 帮助通道走 VIP 链更稳；不计用户费
+        is_vip=True,
         temperature=0.3,
-        max_tokens=300,
+        max_tokens=200 if is_guest else 300,
     )
-    _bump(int(auth_user_id))
+    if is_guest:
+        _guest_bump(client_ip)
+        remain = _remaining_guest(client_ip)
+    else:
+        _bump(int(auth_user_id))
+        remain = _remaining_user(int(auth_user_id))
     if routed.ok and (routed.text or "").strip():
         return {
             "ok": True,
+            "guest": is_guest,
             "answer": routed.text.strip(),
             "model": "help",
-            "remaining_today": max(0, _DAILY_CAP - _daily[int(auth_user_id)][1]),
+            "remaining_today": remain,
         }
     fb = _FAQ_FALLBACK_ZH if lang_hint == "zh" else _FAQ_FALLBACK_EN
     return {
         "ok": True,
+        "guest": is_guest,
         "answer": fb,
         "model": "faq_fallback",
-        "remaining_today": max(0, _DAILY_CAP - _daily.get(int(auth_user_id), (_day(), 0))[1]),
+        "remaining_today": remain,
     }

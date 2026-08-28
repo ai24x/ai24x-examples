@@ -358,6 +358,18 @@ def list_public_plans() -> list[dict[str, Any]]:
         title_en = str(p.get("title_en") or title_zh)
         note_zh = str(p.get("note_zh") or p.get("note") or "")
         note_en = str(p.get("note_en") or note_zh)
+        try:
+            from billing_money import cn_pay_channels_enabled
+
+            intl = not cn_pay_channels_enabled()
+        except Exception:
+            intl = False
+        settle_zh = "支持银行卡、PayPal（美元）" if intl else "支持微信支付、支付宝"
+        settle_en = (
+            "Pay with card or PayPal (USD)"
+            if intl
+            else "WeChat Pay or Alipay (CNY); PayPal (USD) on international checkout"
+        )
         out.append(
             {
                 "plan": plan_id,
@@ -367,6 +379,7 @@ def list_public_plans() -> list[dict[str, Any]]:
                 "price_fen": fen,
                 "price_yuan": f"{fen / 100:.2f}",
                 "price_usd": f"{usd:.2f}" if usd else None,
+                "display_currency": "USD",
                 "usd_cny": fx,
                 "credit_tokens": int(p.get("credit_tokens") or 0),
                 "set_vip": bool(p.get("set_vip")),
@@ -379,8 +392,8 @@ def list_public_plans() -> list[dict[str, Any]]:
                 "note_en": note_en,
                 "promo": bool(p.get("promo")),
                 "promo_max_purchases": int(p.get("promo_max_purchases") or 0) or None,
-                "settle_hint_zh": "支持微信支付、支付宝",
-                "settle_hint_en": "Pay with PayPal (USD) on the international site",
+                "settle_hint_zh": settle_zh,
+                "settle_hint_en": settle_en,
                 # 前台能力标签（避免用户误会）
                 "cap_credits": int(p.get("credit_tokens") or 0) > 0,
                 "cap_vip": bool(p.get("set_vip")) or bool(p.get("value_pack")),

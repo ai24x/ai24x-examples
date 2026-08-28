@@ -825,6 +825,7 @@
   function supportAsk(question, lang) {
     return request("/v1/support/ask", {
       method: "POST",
+      preferApiKey: false,
       body: JSON.stringify({
         question: question || "",
         lang: lang || (isZhUi() ? "zh" : "en"),

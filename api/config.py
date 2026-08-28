@@ -156,6 +156,10 @@ class Settings(BaseSettings):
     # 默认关闭真实支付；本地可 TOKEN_PAY_MOCK_ENABLED=true 测履约
     token_pay_enabled: bool = Field(default=False, validation_alias="TOKEN_PAY_ENABLED")
     token_pay_mock_enabled: bool = Field(default=False, validation_alias="TOKEN_PAY_MOCK_ENABLED")
+    # 国际站（副脑04）：false 隐藏微信/支付宝（国内接口仅收 CNY，与国际 USD 定价易混淆）
+    token_pay_cn_channels_enabled: bool = Field(
+        default=True, validation_alias="TOKEN_PAY_CN_CHANNELS_ENABLED"
+    )
     # 为 true 时：core 未配齐的商户字段自动从行情官 a1（admin_config / a1 .env）补齐；仍不复用 a1 回调
     token_pay_reuse_a1: bool = Field(default=True, validation_alias="TOKEN_PAY_REUSE_A1")
     token_wechat_notify_url: str = Field(default="", validation_alias="TOKEN_WECHAT_NOTIFY_URL")

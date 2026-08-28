@@ -15,6 +15,29 @@
     return h === "ai24x.com" || h.endsWith(".ai24x.com");
   }
 
+  /** open 站页面：BYOK 与 open 计费走同源 open-api，账号/余额仍走 api.ai24x.com */
+  function isOpenSitePage() {
+    var h = (location.hostname || "").toLowerCase();
+    if (h === "open.ai24x.com") return true;
+    if ((h === "localhost" || h === "127.0.0.1" || h === "::1") && /:18080\b/.test(location.host || ""))
+      return true;
+    return false;
+  }
+
+  function getOpenSiteApiBase() {
+    if (!isOpenSitePage()) return null;
+    if (isLocalHost()) return (location.origin || "").replace(/\/$/, "") || PRODUCTION;
+    return "https://open.ai24x.com";
+  }
+
+  function resolveRequestBase(path) {
+    var p = String(path || "");
+    if (isOpenSitePage() && (p.indexOf("/v1/byok") === 0 || p.indexOf("/v1/billing") === 0)) {
+      return getOpenSiteApiBase() || getBase();
+    }
+    return getBase();
+  }
+
   function getBase() {
     var h = (location.hostname || "").toLowerCase();
     var onProdHost = isPublicAi24xHost();
@@ -244,7 +267,7 @@
     options = options || {};
     // true=只用 Key；false=只用登录会话；undefined=自动（有 JWT 不带 Key，无 JWT 才带 Key）
     var preferApiKey = options.preferApiKey;
-    var url = getBase() + path;
+    var url = resolveRequestBase(path) + path;
     var headers = Object.assign(
       { Accept: "application/json" },
       options.headers || {}
@@ -813,6 +836,7 @@
   function supportAsk(question, lang) {
     return request("/v1/support/ask", {
       method: "POST",
+      preferApiKey: false,
       body: JSON.stringify({
         question: question || "",
         lang: lang || (isZhUi() ? "zh" : "en"),

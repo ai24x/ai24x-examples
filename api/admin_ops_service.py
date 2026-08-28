@@ -204,17 +204,31 @@ def admin_economics(db: Session, *, days: int = 7) -> dict[str, Any]:
         or 0
     )
     paid_usd_cents = int(
-        db.query(func.coalesce(func.sum(TokenPayOrder.amount_fen), 0))
+        db.query(func.coalesce(func.sum(TokenPayOrder.amount_usd), 0))
         .filter(
             TokenPayOrder.status == "paid",
-            TokenPayOrder.channel == "paypal",
+            TokenPayOrder.channel.in_(("paypal", "dodo", "creem", "crypto")),
             TokenPayOrder.paid_at >= since,
         )
         .scalar()
         or 0
     )
-    # CNY→USD 粗算 7.2
-    rev_usd = round(paid_cny_fen / 100.0 / 7.2 + paid_usd_cents / 100.0, 4)
+    if paid_usd_cents <= 0:
+        paid_usd_cents = int(
+            db.query(func.coalesce(func.sum(TokenPayOrder.amount_fen), 0))
+            .filter(
+                TokenPayOrder.status == "paid",
+                TokenPayOrder.channel.in_(("paypal", "dodo", "creem", "crypto")),
+                TokenPayOrder.paid_at >= since,
+            )
+            .scalar()
+            or 0
+        )
+    from token_plans import _usd_cny
+
+    fx = _usd_cny()
+    # CNY→USD 按 TOKEN_USD_CNY；国际通道用 amount_usd（到账美分）
+    rev_usd = round(paid_cny_fen / 100.0 / fx + paid_usd_cents / 100.0, 4)
     margin = round(rev_usd - est_cost_usd, 4)
 
     new_users = int(

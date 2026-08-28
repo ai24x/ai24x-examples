@@ -212,6 +212,22 @@
       });
   }
 
+  function syncHelpSub() {
+    var sub = $("sw-help-subline");
+    if (!sub) return;
+    if (loggedIn()) {
+      sub.textContent = tr(
+        "接入、计费常见问题，不扣 Token。查余额/订单可直接问。",
+        "API & billing FAQ — doesn’t use your credits. You can ask about balance or orders."
+      );
+    } else {
+      sub.textContent = tr(
+        "通用产品问题可直接问（每日限额）；查余额/订单/工单请先登录。",
+        "Ask general product questions (daily limit). Sign in for balance, orders, or tickets."
+      );
+    }
+  }
+
   function openPanel(mode) {
     var panel = $("sw-panel");
     var fab = $("sw-fab");
@@ -224,6 +240,7 @@
     setBackdrop(true);
     bindViewportWatch();
     bindFieldFocus(panel);
+    syncHelpSub();
     if (mode === "ticket") {
       var box = $("sw-ticket-box");
       if (box) box.style.display = "block";
@@ -280,7 +297,7 @@
       '<h3 class="mt-0" id="sw-title" data-i18n="page.console.help.title">即时协助</h3>' +
       '<button type="button" class="sw-close btn" id="sw-close" aria-label="Close">×</button>' +
       "</div>" +
-      '<p class="sub" data-i18n="page.console.help.sub">接入、计费常见问题，不扣 Token。</p>' +
+      '<p class="sub" id="sw-help-subline" data-i18n="page.console.help.sub">接入、计费常见问题，不扣 Token。</p>' +
       '<div class="form-group">' +
       '<textarea class="input" id="sw-help-q" rows="2" placeholder="How do I call flash with PayPal credits?"></textarea>' +
       "</div>" +
@@ -325,6 +342,7 @@
     } catch (e2) {}
 
     applyI18n(wrap);
+    syncHelpSub();
 
     $("sw-fab").addEventListener("click", function () {
       togglePanel();
@@ -344,18 +362,21 @@
         setMsg(tr("请输入问题", "Enter a question"), false);
         return;
       }
-      if (!loggedIn()) {
-        setMsg(tr("请先登录后再提问", "Please sign in to ask"), false);
-        return;
-      }
       out.textContent = tr("思考中…", "Thinking…");
       AI24X_API.supportAsk(q)
         .then(function (r) {
+          if (r && r.ok === false) {
+            setMsg((r && r.message) || tr("失败", "Failed"), false);
+            out.textContent = "--";
+            return;
+          }
           out.textContent = (r && r.answer) || JSON.stringify(r);
           if (r && r.remaining_today != null) {
             out.textContent +=
               "\n\n(" +
-              tr("今日剩余帮助次数 ", "Help remaining today ") +
+              (r.guest
+                ? tr("游客今日剩余 ", "Guest help remaining today ")
+                : tr("今日剩余帮助次数 ", "Help remaining today ")) +
               r.remaining_today +
               ")";
           }
