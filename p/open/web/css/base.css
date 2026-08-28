@@ -1390,6 +1390,7 @@ body[data-page="help"] #support {
   }
   .console-sidebar {
     position: static;
+    min-width: 0;
   }
   .console-nav {
     flex-direction: row;

@@ -443,17 +443,17 @@
   }
 
   function renderPlans(data) {
-    var box = $("plansList");
-    if (!box) return;
     if (data) window.__tokenPlansPayload = data;
     data = data || window.__tokenPlansPayload;
     if (!data) return;
-    box.innerHTML = "";
     var plans = (data && data.plans) || [];
     var pay = (data && data.pay) || {};
     window.__tokenPay = pay;
     renderByokPlanCards((data && data.byok_plans) || [], pay);
     updatePayHintOpen(pay, AI24X_API.isZhUi());
+    var box = $("plansList");
+    if (!box) return;
+    box.innerHTML = "";
     if (!plans.length) {
       box.innerHTML = '<p class="sub">' + tr("暂无套餐", "No plans") + "</p>";
       return;
@@ -3791,6 +3791,13 @@
         var h = String(location.hostname || "").toLowerCase();
         if (h === "127.0.0.1" || h === "localhost") {
           hub.href = "http://127.0.0.1:8000/console.html#billing";
+        }
+      }
+      var creditsCta = document.getElementById("creditsTopupCta");
+      if (creditsCta) {
+        var ch = String(location.hostname || "").toLowerCase();
+        if (ch === "127.0.0.1" || ch === "localhost") {
+          creditsCta.href = "http://127.0.0.1:8000/console.html#billing";
         }
       }
     } catch (eHub) {}
