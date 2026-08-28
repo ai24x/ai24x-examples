@@ -1,29 +1,74 @@
 ---
-description: 用户说「04更新」时自动推 Gitee 并派发副脑04任务指令
+description: 副脑04 生产更新全流程（git 双推 + deploy04.ps1 派发 + 回执收尾）
 alwaysApply: true
 ---
 
-# 副脑04 部署派发协议
+# 副脑04 生产更新流程（AI24X）
 
-当用户说 **「04更新」**、**「副脑04更新」**、**「派发04」** 或在本轮已完成本地改动并要求上线 04 时：
+当用户说 **「04更新」**、**「副脑04更新」**、**「派发04」** 或要求上线国际生产时，**必须走完整流程**，不能只 push Gitee + 写 .md。
 
-## 必须完成的动作（按序）
+## 一、全流程（按序，缺一不可）
 
-1. **确认有可部署的 git commit**（无则先完成改动并 commit）
-2. **写任务指令**：`docs/营销/收发/指令/YYYYMMDD-HHMM-04更新-<简述>-<短SHA>.md`
-   - 模板字段：`需求类型：②需副脑办(副脑04)` + 需求描述 + 验收标准
-   - 正文含：目标提交 SHA、变更摘要、04 可复制 PowerShell、nginx 项（若有）、回滚、验收清单
-   - 复杂任务同步写回执模板：`docs/营销/收发/回复/<同名>-out.md`（可先发空壳待 04 填）
-3. **commit 指令文件**（若尚未提交）
-4. **push 到 Gitee**：`git push gitee master`（必要时 `git push origin master`）
-5. **告知用户**：已 push 的 SHA、指令文件路径、04 需做的 nginx/GSC 要点
+1. 本地改代码 → 本地 QA 全绿
+2. **重大项**：关键页面清单给老板 → 老板回复「放行」后才可双推（首页/导航/定价/支付/登录/账户/视觉/多页批量）
+3. `git add <本次文件>` — **严禁** `git add -A` / `git add .`
+4. `git commit` → `git push gitee master` → `git push origin master`
+5. 写 **部署脚本** `docs/营销/收发/指令/YYYYMMDD-HHMM-04更新-<简述>-<短SHA>.ps1`（UTF-8 **带 BOM**）
+6. 写配套说明 `.md`（可选，记录 nginx/人工项）
+7. **commit 指令** → 再双推
+8. **`deploy04.ps1` 派发**（同步 600s，主通道）：
+   ```powershell
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\deploy04.ps1 "docs\营销\收发\指令\<指令名>.ps1"
+   ```
+9. 遇 `EmbeddedAttemptSessionTakeoverError`：scp 已送达可先查 04 会话是否在跑，再重试
+10. `scp` 拉回执 → 更新 `memory/daily/YYYY-MM-DD.md` → 显式 add 回执+记忆 → 双推收尾
 
-## 默认范围
+## 二、04 环境事实
 
-- **副脑04** = 国际生产 `43.160.246.30`（www + open + API）
-- 静态：`web/`、`p/open/web/`；API：`api/` + 重启 `AI24X-core`
-- **禁止**在规则流程中 Write 覆盖生产 `.env`
+| 项 | 值 |
+|---|---|
+| SSH | `Administrator@43.160.246.30`，本机免密，需静态路由 `route add 43.160.246.30 mask 255.255.255.255 192.168.2.1 metric 1` |
+| 仓库 | `C:\ai24x01`，**只有 origin**（无 gitee） |
+| 远端 shell | cmd；远程 PowerShell 用 `powershell -File xxx.ps1` |
+| AI24X-core | NSSM **8002** = www + api.ai24x.com |
+| AI24X-markets-api | **18012**；静态同步 `C:\sites\markets.ai24x.com` |
+| AI24X-open-api | **18080**；独立 venv + 库 `ai24x_open_cn` |
+| 公网验证 | **在 04 上** `Invoke-WebRequest -UseBasicParsing`（本机公网不稳） |
 
-## 指令命名
+## 三、部署 .ps1 写法要点
 
-`20260828-1810-04更新-GSC收录优化-d23b51d.md` 格式：`日期-时间-04更新-简述-短SHA`
+1. **UTF-8 BOM**：中文脚本必须 BOM，否则 04 PS5.1 按 GBK 误读
+2. **HEAD 校验**：`git merge-base --is-ancestor $EXP HEAD`；health 用完整 12 位 hash，**禁止** `-notlike "$EXP*"` 前缀匹配
+3. **04 pull**：`git fetch origin` + `git pull --ff-only origin master`（不是 gitee）
+4. 所有 `Invoke-WebRequest`/`Invoke-RestMethod` 带 **`-UseBasicParsing`**
+5. 改生产配置先 `Copy-Item` 备份 `.bak-时间戳`
+6. www：pull + **Restart-Service AI24X-core**（纯静态也要重启，health 带 commit）
+7. markets：同步 `C:\sites\markets.ai24x.com` + 重启 markets-api
+8. open：pull + 重启 AI24X-open-api
+9. 版本号：`locales.js`/`api.js`/`console.js`/`shell.js` 的 `?v=` 全站统一升，与内容同批提交
+10. 脚本末尾：`Write-Host "DONE EXP=$EXP HEAD=$HEAD"`
+
+## 四、与 03 的差异
+
+| | 03 | 04 |
+|---|---|---|
+| 脚本 | `deploy03.ps1` | `deploy04.ps1` |
+| 主机 | `123.207.199.238` | `43.160.246.30` |
+| 服务 | AI24X-a1-api **8001** | AI24X-core **8002** |
+| health | 无 commit 字段，看进程时间 | 有 commit，用 merge-base 验 |
+
+## 五、派发后如何确认完成
+
+1. 本机 `ops/deploy04-*.log` 无 throw
+2. 04 群消息 ✅/⚠️
+3. `docs/营销/收发/回复/<任务>-out.md`（scp 拉回）
+4. 公网：`api.ai24x.com/health` 的 commit 含目标 SHA（www 静态看页面 marker）
+
+## 六、常见 partial deploy 原因
+
+- 只 push 未 `deploy04.ps1`
+- 04 指令写 `git pull gitee`（04 无 gitee remote）
+- pull 成功但未 `Restart-Service` → health 仍是旧 commit
+- markets 只 pull 未 copy 到 `C:\sites`
+- nginx 手工项未做（GSC 301/404 类）
+- 只写 `.md` 未写可执行的 `.ps1`
