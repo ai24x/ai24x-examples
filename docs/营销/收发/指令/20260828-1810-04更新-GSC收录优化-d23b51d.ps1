@@ -1,4 +1,4 @@
-﻿﻿$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 $work = "C:\ai24x01"
 $EXP  = "d23b51d"
 Set-Location $work
@@ -49,3 +49,6 @@ Write-Host "== 5. nginx manual (operator) ==" -ForegroundColor Yellow
 Write-Host "REMINDER: shell pages 301->open; junk paths 404; old /blog/* 301; then GSC resubmit sitemap"
 
 Write-Host ("DONE EXP=" + $EXP + " HEAD=" + $HEAD + " health=" + $h.commit) -ForegroundColor Green
+
+# --- 04 openclaw：脚本成功后请在指挥部飞书群发一条精简确认（勿省略）---
+# ✅ 04更新完成｜GSC收录优化｜EXP=d23b51d HEAD=<HEAD> health=<commit>｜公网验收通过｜待办：nginx 301+GSC

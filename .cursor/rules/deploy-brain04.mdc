@@ -21,7 +21,8 @@ alwaysApply: true
    powershell -NoProfile -ExecutionPolicy Bypass -File scripts\deploy04.ps1 "docs\营销\收发\指令\<指令名>.ps1"
    ```
 9. 遇 `EmbeddedAttemptSessionTakeoverError`：scp 已送达可先查 04 会话是否在跑，再重试
-10. `scp` 拉回执 → 更新 `memory/daily/YYYY-MM-DD.md` → 显式 add 回执+记忆 → 双推收尾
+10. **04 必须在指挥部飞书群发精简确认**（见下方模板；openclaw 跑完脚本后执行，不可省略）
+11. `scp` 拉回执 → 更新 `memory/daily/YYYY-MM-DD.md` → 显式 add 回执+记忆 → 双推收尾
 
 ## 二、04 环境事实
 
@@ -47,6 +48,29 @@ alwaysApply: true
 8. open：pull + 重启 AI24X-open-api
 9. 版本号：`locales.js`/`api.js`/`console.js`/`shell.js` 的 `?v=` 全站统一升，与内容同批提交
 10. 脚本末尾：`Write-Host "DONE EXP=$EXP HEAD=$HEAD"`
+11. **脚本末尾或配套 .md 必须写明群确认要求**（04 openclaw 执行完 PowerShell 后发送）：
+
+## 四-b、指挥部群精简确认（04 必发）
+
+部署脚本跑通后，04 openclaw **立即**在指挥部飞书群发 **一条**（勿刷屏、勿贴长日志）：
+
+**成功：**
+```
+✅ 04更新完成｜<简述，≤15字>｜EXP=<短SHA> HEAD=<12位> health=<12位>｜公网验收通过
+```
+
+**失败 / 部分完成：**
+```
+⚠️ 04更新未完成｜<简述>｜原因：<一句话>｜已回滚/待人工：<nginx|.env|…>
+```
+
+**示例：**
+```
+✅ 04更新完成｜GSC收录优化｜EXP=d23b51d HEAD=ea57ea806c61 health=ea57ea806c61｜公网验收通过｜待办：nginx 301+GSC
+```
+
+- 本机（Cursor）**不代发**群消息；只负责写进 `.ps1`/`.md` 并让 `deploy04.ps1` 派发
+- 用户问「04 做完了吗」→ 查群消息 + `ops/deploy04-*.log` + `health.commit` + 回执文件
 
 ## 四、与 03 的差异
 
@@ -59,8 +83,8 @@ alwaysApply: true
 
 ## 五、派发后如何确认完成
 
-1. 本机 `ops/deploy04-*.log` 无 throw
-2. 04 群消息 ✅/⚠️
+1. 本机 `ops/deploy04-*.log` 无 throw，末尾有 `DONE EXP=...`
+2. **指挥部飞书群**有 04 的 ✅/⚠️ 精简一行（必查）
 3. `docs/营销/收发/回复/<任务>-out.md`（scp 拉回）
 4. 公网：`api.ai24x.com/health` 的 commit 含目标 SHA（www 静态看页面 marker）
 
