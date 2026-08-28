@@ -25,7 +25,10 @@
   <title>OpenAI Compatible API — one client, multiple models · AI24X</title>
   <meta name="description" content="Use an OpenAI-compatible API to call multiple models with one client. Change base_url and key — keep your SDK. Start free on AI24X Gateway." />
   <link rel="canonical" href="https://www.ai24x.com/blog/openai-compatible-api.html" />
-  <meta property="og:type" content="article" />
+    <link rel="alternate" hreflang="en" href="https://www.ai24x.com/blog/openai-compatible-api.html" />
+  <link rel="alternate" hreflang="zh-CN" href="https://www.ai24x.com/blog/openai-compatible-api.html" />
+  <link rel="alternate" hreflang="x-default" href="https://www.ai24x.com/blog/openai-compatible-api.html" />
+<meta property="og:type" content="article" />
   <meta property="og:title" content="OpenAI Compatible API — one client, multiple models" />
   <meta property="og:description" content="Keep your OpenAI client. Point base_url at a gateway and switch models without rewriting your app." />
   <meta property="og:url" content="https://www.ai24x.com/blog/openai-compatible-api.html" />
@@ -85,6 +88,38 @@
         <h2>Why pair it with a gateway</h2>
         <p>Compatibility alone is not enough in production. You still need somewhere to put <strong>multiple keys</strong>, <strong>failover</strong>, and <strong>cost visibility</strong>. That is the gateway layer: one OpenAI-compatible multi-model API, with BYOK or managed billing.</p>
 
+        <h2>Python OpenAI SDK example</h2>
+        <pre>from openai import OpenAI
+
+client = OpenAI(
+    api_key="YOUR_GATEWAY_KEY",
+    base_url="https://api.ai24x.com/v1",
+)
+
+resp = client.chat.completions.create(
+    model="flash",
+    messages=[{"role": "user", "content": "Summarize BYOK in one sentence."}],
+)
+print(resp.choices[0].message.content)</pre>
+        <p>Swap <code>model</code> when you need a different capability tier. Your application code stays the same; only configuration changes.</p>
+
+        <h2>Streaming and advanced features</h2>
+        <p>Streaming uses the same endpoint with <code>stream=true</code>. Tool calling and vision depend on the upstream model — test the exact path you ship. If an agent framework lets you set a custom base URL, it is usually compatible with the chat completions path even when vendor-specific SDKs are not.</p>
+        <h3>Clients that work well with a custom base URL</h3>
+        <ul>
+          <li>Cursor, Continue, Codex-style agents, Open WebUI, LobeChat</li>
+          <li>n8n HTTP nodes, LangChain OpenAI wrappers, many RAG stacks</li>
+          <li>Any script using the official OpenAI SDK with <code>base_url</code> override</li>
+        </ul>
+        <p>For step-by-step IDE setup, see integration guides on <a href="https://open.ai24x.com/guides/" data-open target="_blank" rel="noopener">open.ai24x.com/guides</a>.</p>
+
+        <h2>Errors you will see in production</h2>
+        <p>OpenAI-compatible gateways surface familiar HTTP codes. <strong>401</strong> means fix the gateway API key. <strong>429</strong> often means rate limits on an upstream path — retry with backoff or let failover pick another pool. <strong>502/503</strong> usually means an upstream outage; check status pages before you blame your app. Logging the model name and request id in your app makes these incidents much shorter.</p>
+
+        <h2>Security habits</h2>
+        <p>Never ship provider secrets in mobile apps or browser bundles. Issue a gateway key with spend limits, rotate it from the console, and keep BYOK provider keys in the gateway vault instead of scattered env files. If you expose a key, revoke it in one place rather than hunting through six repos.</p>
+        <p>When you are ready to compare plans, start on the <a href="../pricing.html">pricing page</a> and top up from <a href="../console.html#billing">Account → Billing</a> after your first successful test call.</p>
+
         <h2>Next steps</h2>
         <ol>
           <li><a href="../register.html">Sign up free</a></li>
@@ -99,7 +134,7 @@
           <a class="btn" href="https://open.ai24x.com/" data-open target="_blank" rel="noopener">Get API Key</a>
         </div>
 
-        <p class="sub" style="margin-top:24px">Related: <a href="what-is-ai-gateway.html">What is an AI Gateway?</a> · <a href="one-api-multiple-models.html">One API for multiple AI models</a></p>
+        <p class="sub" style="margin-top:24px">Related: <a href="what-is-ai-gateway.html">What is an AI Gateway?</a> · <a href="one-api-multiple-models.html">One API for multiple AI models</a> · <a href="byok-ai-gateway.html">BYOK AI Gateway</a></p>
       </div>
     </section>
   </main>

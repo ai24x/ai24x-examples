@@ -61,18 +61,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="description" content="Manage your AI24X account — AI Gateway and AI Markets in one place." />
   <meta name="robots" content="noindex, nofollow" />
+  <link rel="canonical" href="https://www.ai24x.com/console.html" />
+  <link rel="alternate" hreflang="en" href="https://www.ai24x.com/console.html" />
+  <link rel="alternate" hreflang="zh-CN" href="https://www.ai24x.com/console.html" />
+  <link rel="alternate" hreflang="x-default" href="https://www.ai24x.com/console.html" />
   <title>Account · AI24X</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="dns-prefetch" href="https://api.ai24x.com" />
+  <link rel="preconnect" href="https://api.ai24x.com" crossorigin />
   <link rel="stylesheet" href="css/base.css?v=20260826m" />
   <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260812e" data-base="css/themes/" />
   <style>
     /* console: 统一产品套餐列表（选项目 → 选套餐 → 选支付方式） */
     .product-card { border: 1px solid var(--border, #d8e4ef); border-radius: var(--radius, 12px); padding: 14px 16px; margin-bottom: 14px; background: var(--card-bg, #fff); }
     .product-card.is-markets { border-color: color-mix(in srgb, var(--accent, #2563eb) 35%, transparent); }
+    .product-card.is-token { border-color: color-mix(in srgb, var(--accent, #2563eb) 50%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent, #2563eb) 18%, transparent); }
     .product-card.is-gateway { border-color: color-mix(in srgb, var(--accent, #2563eb) 55%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent, #2563eb) 14%, transparent); }
     .product-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
     .product-card-head h4 { display: inline-flex; align-items: center; gap: 8px; margin: 0; }
     .product-plan-info .plan-rec { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; color: var(--accent, #2563eb); border: 1px solid color-mix(in srgb, var(--accent, #2563eb) 40%, transparent); vertical-align: middle; }
+    .product-card-head .plan-rec-muted { color: var(--muted, #5a6b7b); border-color: var(--border, #d8e4ef); font-weight: 500; }
 .product-plans { display: flex; flex-direction: column; gap: 8px; }
 .product-card-head .open-product { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; border: 1px solid color-mix(in srgb, var(--accent,#2563eb) 45%, transparent); border-radius: 999px; font-size: .78rem; font-weight: 600; color: var(--accent,#2563eb); text-decoration: none; transition: background .15s ease, box-shadow .15s ease; }
 .product-card-head .open-product:hover { background: color-mix(in srgb, var(--accent,#2563eb) 10%, transparent); box-shadow: 0 2px 10px color-mix(in srgb, var(--accent,#2563eb) 25%, transparent); text-decoration: none; }
@@ -164,8 +172,10 @@
     #modal-pay-channels { flex-wrap: wrap; }
     #modal-pay-channels .btn { min-width: 132px; justify-content: center; display: inline-flex; align-items: center; gap: 8px; }
     #modal-pay-channels .pay-ico { width: 18px; height: 18px; }
-    #modal-pay-channels .pay-btn-block { width: 100%; margin-bottom: 8px; }
-    #modal-pay-channels .pay-btn-block .pay-sub { display: block; font-size: 11px; font-weight: 400; opacity: 0.72; margin-top: 1px; }
+    #modal-pay-channels .pay-btn-block { width: 100%; margin-bottom: 8px; justify-content: flex-start; text-align: left; }
+    #modal-pay-channels .pay-btn-block .pay-btn-text { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+    #modal-pay-channels .pay-btn-block .pay-btn-title-row { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; line-height: 1.25; }
+    #modal-pay-channels .pay-btn-block .pay-sub { display: block; font-size: 11px; font-weight: 400; opacity: 0.72; margin-top: 3px; padding-left: 26px; line-height: 1.35; }
     #modal-pay-channels .pay-more-label { width: 100%; margin: 2px 0 6px; font-size: 12px; color: var(--muted); text-align: center; }
     #modal-pay-channels .pay-more-box { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
     #modal-pay-channels .pay-more-box .btn { width: 100%; min-width: 0; }
@@ -349,6 +359,7 @@
           <nav class="console-nav" id="console-nav">
             <button type="button" class="console-nav-item is-active" data-console-panel="overview" data-i18n="page.console.nav.overview">Overview</button>
             <button type="button" class="console-nav-item" data-console-panel="billing" data-i18n="page.console.nav.billing">Billing</button>
+            <button type="button" class="console-nav-item" data-console-panel="orders" data-i18n="page.console.nav.orders">Orders</button>
             <button type="button" class="console-nav-item" data-console-panel="account" data-i18n="page.console.nav.account">Account</button>
             <button type="button" class="console-nav-item" data-console-panel="support" data-i18n="page.console.nav.tickets">Tickets</button>
             <button type="button" class="console-nav-item" id="btn-logout" data-i18n="page.console.nav.logout" style="margin-top:auto;opacity:0.7">Logout</button>
@@ -522,6 +533,7 @@
             <div class="console-panel-head">
               <h2 class="mt-0" data-i18n="page.console.nav.billing">Billing</h2>
               <p class="sub" id="payHint" data-i18n="page.console.plans.loading">Loading…</p>
+              <div id="billingMsg" data-console-msg></div>
             </div>
             <!-- 统一产品套餐：选项目 → 选套餐 → 选支付方式 -->
             <div class="card" style="margin-bottom:1rem">
@@ -530,10 +542,35 @@
               <p class="sub" id="billSepHint" style="margin:8px 0 0" data-i18n="page.console.billSep.sub">Managed credits power API keys &amp; Playground. BYOK Pro is opened on open.ai24x.com. Markets Pro unlocks charts &amp; AI briefs.</p>
               <div id="productsList" class="mt-2"></div>
             </div>
+            <p class="sub">
+              <a href="#orders" id="linkBillingOrders" data-i18n="page.console.orders.viewAll">View order history &amp; confirm payments →</a>
+            </p>
+          </div>
+
+          <!-- Orders -->
+          <div class="console-panel" id="panel-orders" data-console-panel="orders" role="tabpanel" hidden>
+            <div class="console-panel-head">
+              <h2 class="mt-0" data-i18n="page.console.orders.title">My orders</h2>
+              <p class="sub" data-i18n="page.console.orders.sub">Pending orders: use Confirm after paying. Paid time and amount are shown for reconciliation.</p>
+              <div id="ordersMsg" data-console-msg></div>
+            </div>
             <div class="card">
-              <h3 class="mt-0" data-i18n="page.console.orders.title">My orders</h3>
-              <p class="sub" data-i18n="page.console.orders.sub">Pending orders: confirm payment</p>
-              <ul class="list-clean" id="ordersList"></ul>
+              <div class="usage-table-wrap">
+                <table class="usage-table" id="ordersTable" aria-label="Orders">
+                  <thead>
+                    <tr>
+                      <th data-i18n="page.console.orders.col.time">Time</th>
+                      <th data-i18n="page.console.orders.col.plan">Plan</th>
+                      <th data-i18n="page.console.orders.col.amount">Amount</th>
+                      <th data-i18n="page.console.orders.col.channel">Channel</th>
+                      <th data-i18n="page.console.orders.col.status">Status</th>
+                      <th data-i18n="page.console.orders.col.id">Order ID</th>
+                      <th data-i18n="page.console.orders.col.actions">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ordersList"></tbody>
+                </table>
+              </div>
             </div>
           </div>
 
@@ -813,7 +850,7 @@
   <script src="js/i18n.js?v=20260826m"></script>
   <script src="js/shell.js?v=20260826n"></script>
   <script src="js/app.js?v=20260818b"></script>
-  <script src="js/console.js?v=20260828a"></script>
-  <script src="js/support-widget.js?v=20260817b"></script>
+  <script src="js/console.js?v=20260828h"></script>
+  <script src="js/support-widget.js?v=20260828f"></script>
 </body>
 </html>
