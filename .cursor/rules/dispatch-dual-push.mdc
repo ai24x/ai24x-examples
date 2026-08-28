@@ -1,0 +1,27 @@
+---
+description: 更新/派发指令统一规范：落盘即提交、双推 gitee+origin、推送后自检（副脑只拉 origin）
+alwaysApply: true
+---
+
+# 更新指令统一规范（主脑签发）
+
+完整协议：`docs/营销/收发/AGENTS.md` §「更新指令统一规范」。
+
+## 每次更新/派发必做
+
+1. **落盘即提交**：指令、任务书、代码改完 → 显式 `git add <文件>`（禁 `git add -A`）→ commit（日期+对象+内容）
+2. **双推才算送达**（缺一不可）：
+   - `git push gitee master` → gitee.com/ai24x/ai24x01.git
+   - `git push origin master` → gitee.com/ai24x/ai24x-website.git（**副脑 03/04 实际 pull 的仓库**）
+3. **推送后自检**：`git status` 无未提交指令/任务书；`git log origin/master -1` 为本次 commit
+4. **指令命名**：`YYYYMMDD-HHMM-对象-动作-摘要.md` → `docs/营销/收发/指令/`
+5. **不重复派发**：先查 `git log` 与 `回复/` 目录
+
+## 成功标准
+
+副脑 `git pull origin master` 拉到最新 + 指令文件存在 + 群回执到位。
+
+## 根因备忘（8/27-28）
+
+- 指令 untracked 未 commit → 副脑 pull 收不到
+- 只推 gitee 不推 origin → 03/04 拉 origin 仍为旧码

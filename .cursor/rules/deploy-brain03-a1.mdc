@@ -1,0 +1,41 @@
+---
+description: 用户说「03更新」时：副脑03(a1·AI行情官国内版)标准部署流程
+alwaysApply: true
+---
+
+# 副脑03 更新（a1 · AI行情官国内版）
+
+用户发 **「03更新」** 或等价指令时，按本规则执行，勿即兴改流程。
+
+## 环境事实
+
+- 主机：`Administrator@123.207.199.238`，仓库 `C:\ai24x01`（本地 `E:\AI24X\ai24x-website\ai24x01`，产品 `p\a1\`）
+- 服务：`AI24X-a1-api`（NSSM，8001，公网 a.ai24x.com）；库 `ai24x_a_cn`
+- **03 无 D 盘**：备份 `C:\backup\ai24x_a\`
+- **/health 无 commit**：验收看进程 CreationDate + 公网行为 + 关键文件 md5
+- **8001 纯 API**：页面验收取 `https://a.ai24x.com/xxx`，勿 curl 127.0.0.1:8001 静态路径
+
+## 标准五步
+
+1. 本地 18011 自测全绿
+2. **显式 `git add <本次文件>`**（禁 `git add -A`）→ **双推**（见 `dispatch-dual-push.mdc`：`git push gitee master` + `git push origin master`，副脑只拉 origin）
+3. 部署二选一（推荐确定性）：
+   - LLM：`scripts\deploy03.ps1 <指令.md>`（同步，禁 deploy03_async）
+   - **推荐**：写 ps1 → scp → `ssh … powershell -NoProfile -ExecutionPolicy Bypass -File xxx.ps1`
+4. 验收：服务新建时间 + 公网行为 + md5 与本地一致
+5. 回执：✅/⚠️ 精简发指挥部群
+
+## 代码 vs 数据（DEC-0012）
+
+- **代码**：03 上 `git pull origin master` + `Restart-Service AI24X-a1-api -Force`
+- **收盘数据**：本机权威 → `p\a1\scripts\sync_final_to_03.ps1`（打包 scp apply 重启）；**deploy03 不带数据**
+- 03 NSSM：`AI24X_BJ_AUTO_SCAN=0`（禁自动重扫防漂移）
+- `daily_report\config.json` 的 `auto_scan_time` = **15:10**
+
+## 必守坑位
+
+- 03 远端默认 **cmd**：跑 PS 必须 `-File`；长命令禁 ssh 内嵌引号
+- 含中文 **.ps1 必须 UTF-8 BOM**（`EF BB BF`）
+- 改复盘/掘金：**同步 `web\m\gd.html`**
+- 改共享 js/css：**全站统一升 `?v=`**
+- git pull 遇 untracked 冲突：先删/移再 pull
