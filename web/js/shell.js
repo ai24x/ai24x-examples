@@ -54,6 +54,23 @@
   global.AI24X_MARKETS_URL = marketsUrl();
   global.AI24X_OPEN_URL = openUrl();
 
+  function wwwBase() {
+    if (global.AI24X_CHROME && global.AI24X_CHROME.wwwBase) return global.AI24X_CHROME.wwwBase();
+    return "https://www.ai24x.com";
+  }
+
+  function resolveActiveProduct(activePage) {
+    if (global.AI24X_CHROME && global.AI24X_CHROME.resolveActiveProduct) {
+      return global.AI24X_CHROME.resolveActiveProduct(activePage);
+    }
+    if (activePage === "console" || activePage === "account") return "account";
+    return null;
+  }
+
+  function isAi24xHref(href) {
+    return /^(https?:\/\/)?([a-z0-9-]+\.)?ai24x\.com(\/|$)/i.test(String(href || ""));
+  }
+
   function esc(s) {
     return String(s || "").replace(/"/g, "&quot;");
   }
@@ -75,10 +92,14 @@
     var L = global.AI24X_I18N;
     var langs = L && Array.isArray(L.LANGS) && L.LANGS.length ? L.LANGS : [{ code: "en", label: "English" }];
     var pre = pathPrefix();
+    var isConsole = false;
+    try {
+      isConsole = document.body && document.body.getAttribute("data-page") === "console";
+    } catch (e0) {}
     var curLang = "en";
     try {
       if (L && typeof L.getLang === "function") curLang = L.getLang() || "en";
-    } catch (e0) {}
+    } catch (e1) {}
     var langOpts = langs
       .map(function (x) {
         return (
@@ -93,16 +114,61 @@
       })
       .join("");
 
+    /** 轻量产品切换器：仅在控制台页显示，避免全站视觉变化（腾讯云式全局顶栏的轻量版） */
+    function ps(href, label, on) {
+      return (
+        '<a href="' +
+        href +
+        '" class="' +
+        (on ? "is-on" : "") +
+        '">' +
+        label +
+        "</a>"
+      );
+    }
+    var psHtml = "";
+    if (global.AI24X_CHROME && typeof global.AI24X_CHROME.productBarHtml === "function") {
+      var showBar = true;
+      if (typeof global.AI24X_CHROME.shouldShowProductBar === "function") {
+        showBar = global.AI24X_CHROME.shouldShowProductBar(activePage);
+      }
+      if (showBar) {
+        psHtml = global.AI24X_CHROME.productBarHtml(resolveActiveProduct(activePage));
+      }
+    } else {
+      var wideEnough = true;
+      try {
+        wideEnough = (window.innerWidth || 1280) >= 860;
+      } catch (e2) {}
+      if (isConsole && wideEnough) {
+        var gwHref = openUrl();
+        var mkHref = marketsUrl();
+        var acHref = pre + "console.html";
+        psHtml =
+          '<div class="product-switch-bar">' +
+          '<div class="container">' +
+          '<span class="product-switch-label">Products</span>' +
+          '<span class="product-switch">' +
+          ps(gwHref, "AI Gateway", activePage === "gateway") +
+          ps(mkHref, "AI Markets", activePage === "markets") +
+          ps(acHref, "Account", activePage === "account" || activePage === "console") +
+          "</span>" +
+          "</div>" +
+          "</div>";
+      }
+    }
+
     function nav(href, key, id) {
       var c = activePage === id ? " is-active" : "";
       var ext = /^https?:\/\//i.test(href);
       var full = ext ? href : pre + href;
+      var newTab = ext && !isAi24xHref(full);
       var label = tr(key);
       return (
         '<a href="' +
         full +
         '"' +
-        (ext ? ' target="_blank" rel="noopener"' : "") +
+        (newTab ? ' target="_blank" rel="noopener"' : "") +
         ' data-i18n="' +
         key +
         '" class="' +
@@ -115,6 +181,7 @@
 
     /** 登录态显示 Account + Sign out，未登录显示 Log in / Sign up */
     function authToken() {
+      if (global.AI24X_CHROME && global.AI24X_CHROME.authToken) return global.AI24X_CHROME.authToken();
       try {
         return localStorage.getItem("ai24x_auth_token") || "";
       } catch (e) {
@@ -123,14 +190,7 @@
     }
 
     function loginNav() {
-      if (authToken()) {
-        return (
-          nav("console.html", "nav.console", "console") +
-          '<a href="#" id="nav-signout" data-i18n="nav.signout" rel="nofollow">' +
-          esc(tr("nav.signout")) +
-          "</a>"
-        );
-      }
+      if (authToken()) return "";
       return (
         nav("login.html", "nav.login", "login") +
         nav("register.html", "nav.register", "register")
@@ -183,6 +243,7 @@
 
     // 右上排布：次要 CTA → 主 CTA → 语言（最右）；窄屏用 CSS 藏次要 CTA，主 CTA+语言不掉
     return (
+      psHtml +
       '<div class="container header-inner">' +
       '<a class="brand" href="' +
       pre +
@@ -202,8 +263,8 @@
       "</nav>" +
       '<div class="header-actions">' +
       '<a class="header-gateway" href="' +
-      openUrl() +
-      '" target="_blank" rel="noopener" data-i18n="nav.ctaGateway">' +
+      pre +
+      'console.html" data-i18n="nav.ctaGateway">' +
       esc(tr("nav.ctaGateway")) +
       "</a>" +
       '<a class="header-upgrade" href="' +
@@ -266,7 +327,7 @@
       '<div class="footer-title" data-i18n="footer.col.product"></div>' +
       '<a href="' +
       openUrl() +
-      '" target="_blank" rel="noopener" data-i18n="footer.link.gateway"></a>' +
+      '" data-i18n="footer.link.gateway"></a>' +
       '<a href="' +
       marketsUrl() +
       '" data-i18n="footer.link.markets"></a>' +
@@ -293,7 +354,7 @@
       'status.html" data-i18n="footer.link.status"></a>' +
       '<a href="' +
       openUrl() +
-      '" target="_blank" rel="noopener" data-i18n="footer.link.developer"></a>' +
+      '" data-i18n="footer.link.developer"></a>' +
       "</div>" +
       '<div class="footer-col">' +
       '<div class="footer-title" data-i18n="footer.col.corp"></div>' +
@@ -339,24 +400,31 @@
       }
       var signout = document.getElementById("nav-signout");
       if (signout) {
-        signout.addEventListener("click", function (ev) {
-          ev.preventDefault();
-          try {
-            if (global.AI24X_API && typeof global.AI24X_API.logout === "function") {
-              global.AI24X_API.logout();
-            } else if (global.AI24X_API && typeof global.AI24X_API.clearAuth === "function") {
-              global.AI24X_API.clearAuth();
-            } else {
-              try { localStorage.removeItem("ai24x_auth_token"); } catch (e) {}
-              try { localStorage.removeItem("ai24x_auth_user"); } catch (e) {}
-              try {
-                document.cookie = "ai24x_auth_token=; path=/; max-age=0; SameSite=Lax";
-                document.cookie = "ai24x_auth_user=; path=/; max-age=0; SameSite=Lax";
-              } catch (e2) {}
-            }
-          } catch (e3) {}
-          location.href = "login.html";
-        });
+        if (global.AI24X_CHROME && global.AI24X_CHROME.bindSignOut) {
+          global.AI24X_CHROME.bindSignOut("#nav-signout");
+        } else {
+          signout.addEventListener("click", function (ev) {
+            ev.preventDefault();
+            try {
+              if (global.AI24X_API && typeof global.AI24X_API.logout === "function") {
+                global.AI24X_API.logout();
+              } else if (global.AI24X_API && typeof global.AI24X_API.clearAuth === "function") {
+                global.AI24X_API.clearAuth();
+              } else {
+                try { localStorage.removeItem("ai24x_auth_token"); } catch (e) {}
+                try { localStorage.removeItem("ai24x_auth_user"); } catch (e) {}
+                try {
+                  document.cookie = "ai24x_auth_token=; path=/; max-age=0; SameSite=Lax";
+                  document.cookie = "ai24x_auth_user=; path=/; max-age=0; SameSite=Lax";
+                } catch (e2) {}
+              }
+            } catch (e3) {}
+            location.href = "login.html";
+          });
+        }
+      }
+      if (global.AI24X_CHROME && global.AI24X_CHROME.stripInAppNewTab) {
+        global.AI24X_CHROME.stripInAppNewTab(document);
       }
     } catch (e) {}
     var toggle = document.getElementById("menu-toggle");

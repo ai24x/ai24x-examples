@@ -62,7 +62,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:image" content="https://www.ai24x.com/img/og-share.png" />
   <meta name="description" content="Sign up free for AI24X — one API for leading models. BYOK or managed. No credit card required." />
-<link rel="stylesheet" href="css/base.css?v=20260826m" />
+<link rel="stylesheet" href="css/base.css?v=20260829c" />
   <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260812e" data-base="css/themes/" />
   <style>
     .auth-fieldset-preview {
@@ -116,10 +116,7 @@
     <section class="section">
       <div class="container" style="max-width:480px">
         <h1 data-i18n="auth.register.title">Sign up</h1>
-        <p class="lead" data-i18n="auth.register.lead">Sign up free — get an API key, try models, top up when ready. No credit card required.</p>
-        <div class="card" style="padding:10px 14px;margin-bottom:12px">
-          <p class="sub" style="margin:0" data-i18n="auth.register.perks">✓ Free trial access · ✓ One key, multi-model · ✓ Top up anytime</p>
-        </div>
+        <p class="lead" data-i18n="auth.register.lead">Free sign-up — get an API key and try models.</p>
         <div class="callout mt-2" id="auth-closed-banner" role="status" data-i18n-html="auth.closed.banner">
           <strong>Notice</strong>: Sign-up / sign-in are temporarily unavailable.
         </div>
@@ -156,7 +153,7 @@
               <input id="reg-captcha-answer" name="captcha_answer" type="text" maxlength="8" class="input" autocomplete="off" data-i18n-placeholder="auth.register.captchaPh" placeholder="Type the code" />
               <img id="reg-captcha-img" src="" alt="" title="Click to refresh" style="height:42px;width:120px;object-fit:cover;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:#f6f8fc;opacity:0;transition:opacity .15s" />
             </div>
-            <p class="sub" style="margin:4px 0 0" data-i18n="auth.register.captchaRefresh">Click the image to refresh</p>
+            <p class="sub" style="margin:4px 0 0" data-i18n="auth.register.captchaRefresh">Click image to refresh</p>
           </div>
           <div class="form-group form-group-otp-inline">
             <label data-i18n="auth.register.emailCode">Email code</label>
@@ -177,32 +174,23 @@
           <div class="form-group">
             <label data-i18n="auth.register.invite">Invite code (optional)</label>
             <input id="reg-invite" name="invite_code" type="text" class="input" maxlength="32" data-i18n-placeholder="auth.register.invitePh" placeholder="Optional" />
-            <p class="sub" style="margin:6px 0 0;" data-i18n="auth.register.inviteHint">Valid invite: both sides get a signup bonus.</p>
           </div>
           <button type="submit" class="btn btn-primary" data-i18n="auth.register.submit">Create account</button>
           <div id="reg-msg"></div>
           </fieldset>
         </form>
-        <p class="sub mt-2" style="text-align:center;color:var(--accent,#0f7b4e)" data-i18n="auth.register.free">Free sign-up · try first, top up when ready</p>
-        <div class="card mt-2" style="padding:14px 16px">
-          <p class="sub" style="margin:0 0 10px;font-weight:700" data-i18n="auth.register.nextTitle">After you sign up</p>
-          <div class="hero-cta" style="margin:0">
-            <a class="btn btn-primary" href="https://open.ai24x.com/" data-open target="_blank" rel="noopener" data-i18n="auth.register.next1">Get API Key</a>
-            <a class="btn" href="pricing.html" data-i18n="auth.register.next2">See pricing</a>
-            <a class="btn" href="console.html#billing" data-i18n="auth.register.next3">Top up</a>
-          </div>
-        </div>
-        <p class="mt-2 sub" data-i18n-html="auth.closed.footerRegister"><a href="login.html">Log in</a> · <a href="console.html">Account</a></p>
+        <p class="mt-2 sub" style="text-align:center" data-i18n-html="auth.register.footer"><a href="login.html">Log in</a></p>
       </div>
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260826s"></script>
+  <script src="config/locales.js?v=20260829k"></script>
   <script src="js/api.js?v=20260827c"></script>
   <script src="js/invite.js?v=20260731a"></script>
   <script src="js/utm.js?v=20260802a"></script>
   <script src="js/i18n.js?v=20260826m"></script>
-  <script src="js/shell.js?v=20260826n"></script>
+  <script src="js/ai24x-chrome.js?v=20260829c"></script>
+  <script src="js/shell.js?v=20260829c"></script>
   <script src="js/app.js?v=20260818b"></script>
   <script>
     function t(key, fallback) {

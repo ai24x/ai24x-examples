@@ -72,10 +72,22 @@
       .mk-nav { justify-content: flex-start; }
       .sr-grid { grid-template-columns: 1fr; }
     }
+  
+    /* —— 全站产品切换条 —— */
+    .ai24x-product-bar { border-bottom: 1px solid var(--border); background: rgba(10,12,16,.95); }
+    .ai24x-product-bar-inner { max-width: 1200px; margin: 0 auto; padding: 6px 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .ai24x-product-bar-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
+    .product-switch { display: inline-flex; align-items: center; gap: 2px; }
+    .product-switch a { font-size: 0.8rem; font-weight: 600; padding: 5px 10px; border-radius: 999px; text-decoration: none; }
+    .product-switch a.is-on { color: #fff; background: var(--accent); }
+    .product-switch a:not(.is-on) { color: var(--muted); }
+    .product-switch a:not(.is-on):hover { color: var(--text); background: var(--panel2); }
+
   </style>
 </head>
 <body>
-  <header class="mk-top">
+    <div id="mk-product-bar"></div>
+<header class="mk-top">
     <div class="mk-top-inner">
       <a class="brand" href="/"><span class="brand-mark">AI</span><span>AI24X <b>Markets</b></span></a>
       <nav class="mk-nav" aria-label="Main">
@@ -130,8 +142,10 @@
     </div>
   </footer>
 
-  <script src="/js/www-links.js?v=20260826a"></script>
-  <script>
+    <script src="/js/ai24x-chrome.js?v=20260829c"></script>
+  <script src="/js/www-links.js?v=20260829c"></script>
+  <script src="/js/mk-chrome.js?v=20260829c"></script>
+<script>
     (function () {
       'use strict';
       var I18N = {

@@ -21,7 +21,49 @@
   }
 
   function wwwBase() {
+    if (global.AI24X_CHROME && global.AI24X_CHROME.wwwBase) return global.AI24X_CHROME.wwwBase();
     return preferLocalWww() ? "http://127.0.0.1:8000" : "https://www.ai24x.com";
+  }
+
+  /** open.ai24x.com AI Gateway；本机默认 18080 */
+  function openUrl() {
+    if (global.AI24X_CHROME && global.AI24X_CHROME.openUrl) return global.AI24X_CHROME.openUrl();
+    try {
+      var h = String(location.hostname || "").toLowerCase();
+      if (h === "127.0.0.1" || h === "localhost") {
+        var port = String(location.port || "");
+        if (port === "18080") return "http://127.0.0.1:18080/";
+        if (preferLocalWww()) return "http://127.0.0.1:18080/";
+      }
+    } catch (e) {}
+    return "https://open.ai24x.com/";
+  }
+
+  /** AI24X Markets：生产域名；本机默认 18012（可用 ai24x_local_products=0 切回正式站） */
+  function marketsUrl() {
+    try {
+      var h = String(location.hostname || "").toLowerCase();
+      if (h === "127.0.0.1" || h === "localhost") {
+        var port = String(location.port || "");
+        if (port === "18012") return "http://127.0.0.1:18012/";
+        if (preferLocalWww()) return "http://127.0.0.1:18012/";
+      }
+    } catch (e) {}
+    return "https://markets.ai24x.com/";
+  }
+  global.AI24X_MARKETS_URL = marketsUrl();
+  global.AI24X_OPEN_URL = openUrl();
+
+  function resolveActiveProduct(activePage) {
+    if (global.AI24X_CHROME && global.AI24X_CHROME.resolveActiveProduct) {
+      return global.AI24X_CHROME.resolveActiveProduct(activePage);
+    }
+    if (activePage === "console" || activePage === "account") return "account";
+    return "gateway";
+  }
+
+  function isAi24xHref(href) {
+    return /^(https?:\/\/)?([a-z0-9-]+\.)?ai24x\.com(\/|$)/i.test(String(href || ""));
   }
 
   function esc(s) {
@@ -36,10 +78,27 @@
     return "";
   }
 
+  function isGatewayWorkspace(activePage) {
+    return activePage === "console" || activePage === "dashboard";
+  }
+
+  function authToken() {
+    if (global.AI24X_CHROME && global.AI24X_CHROME.authToken) return global.AI24X_CHROME.authToken();
+    try {
+      return localStorage.getItem("ai24x_auth_token") || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
   function headerHtml(activePage) {
     var L = global.AI24X_I18N;
     var langs = (L && Array.isArray(L.LANGS) && L.LANGS.length) ? L.LANGS : [{ code: "en", label: "English" }];
     var pre = pathPrefix();
+    var isConsole = false;
+    try {
+      isConsole = document.body && document.body.getAttribute("data-page") === "console";
+    } catch (e0) {}
     var curLang = "en";
     try {
       if (L && typeof L.getLang === "function") curLang = L.getLang() || "en";
@@ -57,6 +116,9 @@
         );
       })
       .join("");
+
+    /** open 站自有导航，不展示跨产品顶栏（Gateway 即本站） */
+    var psHtml = "";
 
     function nav(href, key, id) {
       var c = activePage === id ? " is-active" : "";
@@ -78,31 +140,86 @@
       );
     }
 
+    function tr(key) {
+      try {
+        if (L && typeof L.t === "function") return L.t(key) || "";
+      } catch (e) {}
+      return "";
+    }
+
+    function loginNav() {
+      if (authToken()) return "";
+      return (
+        nav("login.html", "nav.login", "login") +
+        nav("register.html", "nav.register", "register")
+      );
+    }
+
+    var workspace = isGatewayWorkspace(activePage) || isConsole;
+    var authed = !!authToken();
+
+    function siteNavHtml() {
+      var html =
+        nav("index.html", "nav.home", "index") +
+        nav("product.html", "nav.product", "product") +
+        nav("pricing.html", "nav.pricing", "pricing") +
+        nav("models/index.html", "nav.models", "models") +
+        nav("docs.html", "nav.docs", "docs") +
+        nav("guides/index.html", "nav.guides", "guides") +
+        nav("help.html", "nav.help", "help");
+      html += loginNav();
+      return html;
+    }
+
+    var navHtml = siteNavHtml();
+
+    var hubHref = wwwBase() + "/console.html";
+    var brandHref = pre + "index.html";
+    var actionHtml = "";
+    if (workspace) {
+      actionHtml =
+        '<a class="header-hub-link" href="' +
+        hubHref +
+        '" data-www data-i18n="nav.accountHub">' +
+        esc(tr("nav.accountHub")) +
+        "</a>";
+    } else if (authed) {
+      actionHtml =
+        '<a class="header-upgrade" href="' +
+        pre +
+        'console.html" data-i18n="nav.console">' +
+        esc(tr("nav.console")) +
+        "</a>";
+    } else {
+      actionHtml =
+        '<a class="header-upgrade" href="' +
+        pre +
+        'console.html" data-i18n="nav.openWorkspace">' +
+        esc(tr("nav.openWorkspace")) +
+        "</a>";
+    }
+
     return (
-      '<div class="container header-inner">' +
+      psHtml +
+      '<div class="container header-inner open-header-inner' +
+      (workspace ? " is-workspace" : "") +
+      '">' +
       '<a class="brand" href="' +
-      pre +
-      'index.html">' +
+      brandHref +
+      '" title="AI Gateway Home">' +
       '<span class="brand-mark">AI</span>' +
       "<span>AI24X</span>" +
+      '<span class="brand-suffix"> Gateway</span>' +
       "</a>" +
       '<button type="button" class="menu-toggle" id="menu-toggle" aria-label="Menu" aria-expanded="false"><span></span></button>' +
       '<nav class="nav-main" id="nav-main" aria-label="Main">' +
-      nav("index.html", "nav.home", "index") +
-      nav("product.html", "nav.product", "product") +
-      nav("pricing.html", "nav.pricing", "pricing") +
-      nav("models/index.html", "nav.models", "models") +
-      nav("docs.html", "nav.docs", "docs") +
-      nav("help.html", "nav.help", "help") +
-      nav("console.html", "nav.console", "console") +
-      nav("login.html", "nav.login", "login") +
-      nav("register.html", "nav.register", "register") +
+      navHtml +
       "</nav>" +
       '<div class="header-actions">' +
+      actionHtml +
       '<select id="lang-select" class="select-mini" aria-label="Language">' +
       langOpts +
       "</select>" +
-      /* 国际站默认锁定蓝白；主题切换易 FOUC，先不露出选择器（CSS/逻辑仍保留） */
       (THEME_PICKER_ENABLED
         ? '<select id="theme-select" class="select-mini theme-select" aria-label="Theme">' +
           '<option value="blue" data-i18n="theme.blue"></option>' +
@@ -164,7 +281,7 @@
       '<a href="' +
       pre +
       'partner.html" data-i18n="footer.link.partner"></a>' +
-      '<a href="https://a.ai24x.com/" data-i18n="footer.link.marketwatch" data-i18n-zh-only></a>' +
+      '<a href="https://a.ai24x.com/" data-hub-external target="_blank" rel="noopener noreferrer" data-i18n="footer.link.marketwatch" data-i18n-zh-only></a>' +
       "</div>" +
       '<div class="footer-col">' +
       '<div class="footer-title" data-i18n="footer.col.dev"></div>' +
@@ -210,6 +327,55 @@
   }
 
   function bindChrome() {
+    try {
+      var ww = wwwBase();
+      var wwwLinks = document.querySelectorAll("a[data-www]");
+      for (var i = 0; i < wwwLinks.length; i++) {
+        var href = wwwLinks[i].getAttribute("href") || "";
+        if (/^https?:\/\/www\.ai24x\.com(?:\/|$)/.test(href)) {
+          var rest = href.replace(/^https?:\/\/www\.ai24x\.com/, "").replace(/^\//, "");
+          wwwLinks[i].setAttribute("href", ww + "/" + rest);
+        }
+      }
+      var mkLinks = document.querySelectorAll("a[data-markets]");
+      for (var mi = 0; mi < mkLinks.length; mi++) {
+        var mhref = mkLinks[mi].getAttribute("href") || "";
+        if (/^https?:\/\/markets\.ai24x\.com(?:\/|$)/.test(mhref)) {
+          var mrest = mhref.replace(/^https?:\/\/markets\.ai24x\.com/, "").replace(/^\//, "");
+          mkLinks[mi].setAttribute("href", marketsUrl() + mrest);
+        }
+      }
+      var opLinks = document.querySelectorAll("a[data-open]");
+      for (var oi = 0; oi < opLinks.length; oi++) {
+        var ohref = opLinks[oi].getAttribute("href") || "";
+        if (/^https?:\/\/open\.ai24x\.com(?:\/|$)/.test(ohref)) {
+          var orest = ohref.replace(/^https?:\/\/open\.ai24x\.com/, "").replace(/^\//, "");
+          opLinks[oi].setAttribute("href", openUrl() + orest);
+        }
+      }
+      var signout = document.getElementById("nav-signout");
+      if (signout) {
+        if (global.AI24X_CHROME && global.AI24X_CHROME.bindSignOut) {
+          global.AI24X_CHROME.bindSignOut("#nav-signout");
+        } else {
+          signout.addEventListener("click", function (ev) {
+            ev.preventDefault();
+            try {
+              if (global.AI24X_API && typeof global.AI24X_API.logout === "function") {
+                global.AI24X_API.logout();
+              } else {
+                try { localStorage.removeItem("ai24x_auth_token"); } catch (e) {}
+                try { localStorage.removeItem("ai24x_auth_user"); } catch (e) {}
+              }
+            } catch (e2) {}
+            location.href = "login.html";
+          });
+        }
+      }
+      if (global.AI24X_CHROME && global.AI24X_CHROME.stripInAppNewTab) {
+        global.AI24X_CHROME.stripInAppNewTab(document);
+      }
+    } catch (e) {}
     var toggle = document.getElementById("menu-toggle");
     var nav = document.getElementById("nav-main");
     if (toggle && nav) {

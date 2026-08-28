@@ -22,18 +22,35 @@
     return preferLocal() ? "http://127.0.0.1:8000" : "https://www.ai24x.com";
   }
 
+  function openBase() {
+    return preferLocal() ? "http://127.0.0.1:18080" : "https://open.ai24x.com";
+  }
+
   function rewrite() {
     var base = wwwBase();
-    if (base === "https://www.ai24x.com") return;
-    var nodes = document.querySelectorAll('a[href^="https://www.ai24x.com"]');
-    for (var i = 0; i < nodes.length; i++) {
-      var a = nodes[i];
-      var href = a.getAttribute("href") || "";
-      a.setAttribute("href", href.replace(/^https:\/\/www\.ai24x\.com/, base));
+    if (base !== "https://www.ai24x.com") {
+      var nodes = document.querySelectorAll('a[href^="https://www.ai24x.com"]');
+      for (var i = 0; i < nodes.length; i++) {
+        var a = nodes[i];
+        var href = a.getAttribute("href") || "";
+        a.setAttribute("href", href.replace(/^https:\/\/www\.ai24x\.com/, base));
+      }
+    }
+    var ob = openBase();
+    if (ob !== "https://open.ai24x.com") {
+      var onodes = document.querySelectorAll("a[data-open]");
+      for (var j = 0; j < onodes.length; j++) {
+        var oa = onodes[j];
+        var ohref = oa.getAttribute("href") || "";
+        if (/^https?:\/\/open\.ai24x\.com(?:\/|$)/.test(ohref)) {
+          oa.setAttribute("href", ohref.replace(/^https:\/\/open\.ai24x\.com/, ob));
+        }
+      }
     }
   }
 
   window.AI24X_WWW_BASE = wwwBase;
+  window.AI24X_OPEN_BASE = openBase;
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", rewrite);
   } else {

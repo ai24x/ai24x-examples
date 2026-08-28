@@ -24,6 +24,15 @@
     body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
     /* —— 统一页眉（与 www/Markets 首页同套视觉） —— */
     .mk-top { position: sticky; top: 0; z-index: 100; background: rgba(18,22,29,.94); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+    /* —— 全站产品切换条 —— */
+    .ai24x-product-bar { border-bottom: 1px solid var(--border); background: rgba(10,12,16,.95); }
+    .ai24x-product-bar-inner { max-width: 1200px; margin: 0 auto; padding: 6px 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .ai24x-product-bar-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
+    .product-switch { display: inline-flex; align-items: center; gap: 2px; }
+    .product-switch a { font-size: 0.8rem; font-weight: 600; padding: 5px 10px; border-radius: 999px; text-decoration: none; }
+    .product-switch a.is-on { color: #fff; background: var(--accent); }
+    .product-switch a:not(.is-on) { color: var(--muted); }
+    .product-switch a:not(.is-on):hover { color: var(--text); background: var(--panel2); }
     .mk-top-inner { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 8px 16px; min-height: 52px; }
     .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; font-size: 16px; color: var(--text); white-space: nowrap; }
     .brand b { color: var(--accent); }
@@ -204,6 +213,7 @@
     </div>
   </div>
 
+  <div id="mk-product-bar"></div>
   <header class="mk-top">
     <div class="mk-top-inner">
       <a class="brand" href="/"><span class="brand-mark">AI</span><span>AI24X <b>Markets</b></span></a>
@@ -211,7 +221,8 @@
         <a href="/" data-i18n="nav.home">Home</a>
         <a href="/pricing.html" data-i18n="nav.pricing">Pricing</a>
         <a href="https://www.ai24x.com/help.html" target="_blank" rel="noopener" data-i18n="nav.help">Help</a>
-        <a id="mk-console" href="https://www.ai24x.com/console.html" target="_blank" rel="noopener" data-i18n="nav.console">Account</a>
+        <a href="https://open.ai24x.com/" data-open target="_blank" rel="noopener" data-i18n="nav.gateway">AI Gateway</a>
+        <a id="mk-console" href="https://www.ai24x.com/console.html?from=markets" target="_blank" rel="noopener" data-i18n="nav.console">Account</a>
       </nav>
       <div class="mk-actions">
         <div class="lang-switch" id="lang-switch">
@@ -225,6 +236,7 @@
       </button>
     </div>
   </header>
+  <div id="mk-back-bar" class="mk-back-bar" hidden style="background:color-mix(in srgb, var(--accent,#3b82f6) 8%, transparent);border-bottom:1px solid var(--border,#d8e4ef);padding:0 max(14px, calc((100% - 1200px)/2))"></div>
   <div id="mk-drawer" class="mk-drawer" hidden>
     <div class="mk-drawer-mask" id="mk-drawer-mask"></div>
     <div class="mk-drawer-panel" role="dialog" aria-modal="true" aria-label="Menu">
@@ -236,7 +248,8 @@
         <a href="/" data-i18n="nav.home">Home</a>
         <a href="/pricing.html" data-i18n="nav.pricing">Pricing</a>
         <a href="https://www.ai24x.com/help.html" target="_blank" rel="noopener" data-i18n="nav.help">Help</a>
-        <a id="mk-console-mob" href="https://www.ai24x.com/console.html" target="_blank" rel="noopener" data-i18n="nav.console">Account</a>
+        <a href="https://open.ai24x.com/" data-open target="_blank" rel="noopener" data-i18n="nav.gateway">AI Gateway</a>
+        <a id="mk-console-mob" href="https://www.ai24x.com/console.html?from=markets" target="_blank" rel="noopener" data-i18n="nav.console">Account</a>
       </nav>
       <div class="mk-drawer-auth" id="auth-area-mob"></div>
     </div>
@@ -377,7 +390,7 @@
         <h3 data-i18n="band.title">Unlock AI briefs &amp; a 50-symbol watchlist</h3>
         <p data-i18n="band.sub">Pro from $9.9/week · $24.9/month · $199/year — PayPal, WeChat, Alipay &amp; more.</p>
       </div>
-      <a class="band-cta" id="band-cta" href="https://www.ai24x.com/console.html#billing" target="_blank" rel="noopener" data-i18n="band.ctaPro">Go to my plans</a>
+      <a class="band-cta" id="band-cta" href="https://www.ai24x.com/console.html?from=markets#billing" target="_blank" rel="noopener" data-i18n="band.ctaPro">Go to my plans</a>
     </div>
   </section>
 
@@ -396,7 +409,7 @@
         </div>
         <div class="footer-col">
           <div class="footer-title">Account</div>
-          <a href="https://www.ai24x.com/console.html" target="_blank" rel="noopener">Account</a>
+          <a href="https://www.ai24x.com/console.html?from=markets" target="_blank" rel="noopener">Account</a>
           <a href="https://www.ai24x.com/login.html" target="_blank" rel="noopener">Sign in</a>
           <a href="https://www.ai24x.com/register.html" target="_blank" rel="noopener">Sign up</a>
         </div>
@@ -431,7 +444,9 @@
     </div>
   </div>
 
-  <script src="/js/www-links.js?v=20260826a"></script>
+  <script src="/js/ai24x-chrome.js?v=20260829c"></script>
+  <script src="/js/www-links.js?v=20260829c"></script>
+  <script src="/js/mk-chrome.js?v=20260829c"></script>
   <script src="vendor/lightweight-charts.standalone.production.js"></script>
   <script src="/help-widget.js"></script>
   <script>
@@ -533,7 +548,9 @@
           'nav.home': 'Home',
           'nav.pricing': 'Pricing',
           'nav.help': 'Help',
+          'nav.gateway': 'AI Gateway',
           'nav.console': 'Account',
+          backAccount: 'Back to Account',
           'score.title': 'Technical Health Score',
           'score.na': 'Score needs 60+ days of data',
           'score.viewScreener': 'Explore today\'s screen →',
@@ -670,7 +687,9 @@
           'nav.home': '首页',
           'nav.pricing': '价格',
           'nav.help': '帮助',
+          'nav.gateway': 'AI Gateway',
           'nav.console': '账户',
+          backAccount: '返回账户中心',
           'score.title': '技术健康评分',
           'score.na': '评分需要 60 天以上数据',
           'score.viewScreener': '查看今日扫描 →',
@@ -1297,8 +1316,14 @@
           .catch(function () {});
         var out = el.querySelector('.btn-signout');
         if (out) out.addEventListener('click', function () {
-          document.cookie = 'ai24x_auth_token=; path=/; max-age=0; SameSite=Lax';
-          document.cookie = 'ai24x_auth_user=; path=/; max-age=0; SameSite=Lax';
+          if (window.AI24X_CHROME && typeof window.AI24X_CHROME.clearAuthSession === 'function') {
+            window.AI24X_CHROME.clearAuthSession();
+          } else {
+            var d = (location.hostname === 'ai24x.com' || /\.ai24x\.com$/i.test(location.hostname)) ? '; domain=.ai24x.com' : '';
+            var secure = location.protocol === 'https:' ? '; Secure' : '';
+            document.cookie = 'ai24x_auth_token=; path=/; max-age=0; SameSite=Lax' + d + secure;
+            document.cookie = 'ai24x_auth_user=; path=/; max-age=0; SameSite=Lax' + d + secure;
+          }
           renderAuth();
         });
       }
@@ -1320,12 +1345,24 @@
       // 统一页眉：Console 指向 www 用户中心
       try {
         var mkc = $('mk-console');
-        if (mkc) mkc.href = coreUrl() + '/console.html';
+        if (mkc) mkc.href = coreUrl() + '/console.html?from=markets';
       } catch (e) {}
       try {
         var mkcm = $('mk-console-mob');
-        if (mkcm) mkcm.href = coreUrl() + '/console.html';
+        if (mkcm) mkcm.href = coreUrl() + '/console.html?from=markets';
       } catch (e) {}
+
+      // 跨站回跳条：从 www 账户中心跳过来时显示「返回账户」入口
+      function mountBackBar() {
+        var bar = $('mk-back-bar');
+        if (!bar) return;
+        var from = '';
+        try { from = String(new URLSearchParams(location.search).get('from') || '').toLowerCase(); } catch (e) {}
+        if (from !== 'account') return;
+        bar.hidden = false;
+        bar.innerHTML = '<a href="' + coreUrl() + '/console.html?from=markets" style="display:inline-flex;align-items:center;gap:6px;font-size:.85rem;font-weight:600;color:var(--accent,#3b82f6);text-decoration:none;">\u2190 ' + t('backAccount') + '</a>';
+      }
+      try { mountBackBar(); } catch (e) {}
 
       // 手机端汉堡菜单
       function initMobileMenu() {

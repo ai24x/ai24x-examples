@@ -844,9 +844,19 @@
       if (prod.url) {
         var link = document.createElement("a");
         link.className = "open-product";
-        link.href = productUrl(prod.url);
-        link.target = "_blank";
-        link.rel = "noopener";
+        var resolved = productUrl(prod.url);
+        var href = resolved;
+        if (isMarkets) {
+          href = marketsApiBase() + "/?from=account";
+        } else if (isByok) {
+          href = openApiBase() + "/pricing.html?from=account";
+        } else if (isToken || /open\.ai24x\.com|127\.0\.0\.1:18080/i.test(resolved)) {
+          href = openApiBase() + "/console.html?from=account";
+        }
+        link.href = href;
+        link.setAttribute("data-hub-external", "");
+        link.setAttribute("target", "_blank");
+        link.setAttribute("rel", "noopener noreferrer");
         link.innerHTML = tr("打开产品 ↗", "Open product ↗");
         head.appendChild(link);
       }
@@ -1195,6 +1205,8 @@
   var _fulfillPollTimer = null;
   var _lastPayPlanId = null;
   var _lastPayProduct = null;
+  var _ordersAll = null;
+  var _ordersFilter = "all";
   /** 支付后主动查单补履约（异步 notify 未到时的兜底） */
   function appendCryptoTxidBox(outTradeNo, planId) {
     var resultEl = $("modal-pay-result");
@@ -1612,10 +1624,58 @@
 
   /** 订单归属产品：优先订单字段，其次 plan id（markets 为 weekly/monthly/yearly） */
   function orderProductOf(planId, order) {
-    if (order && String(order.product || "") === "markets") return "markets";
+    if (order && String(order.product || "")) {
+      var p = String(order.product).toLowerCase();
+      if (p === "markets") return "markets";
+      if (p === "byok") return "byok";
+      if (p === "token") return "gateway";
+    }
     var pid = String(planId || "");
     if (pid === "weekly" || pid === "monthly" || pid === "yearly") return "markets";
-    return _lastPayProduct || "token";
+    if (/^byok_/i.test(pid)) return "byok";
+    var lp = String(_lastPayProduct || "token").toLowerCase();
+    if (lp === "byok") return "byok";
+    if (lp === "markets") return "markets";
+    return "gateway";
+  }
+
+  /** 跨站回跳条：从 open/markets 跳过来时显示「返回」入口 */
+  function mountBackBar() {
+    var box = $("back-bar");
+    if (!box) return;
+    var from = "";
+    try {
+      from = String(new URLSearchParams(location.search).get("from") || "").toLowerCase();
+    } catch (e) {}
+    var map = {
+      gateway: { label: tr("返回 AI Gateway", "Back to AI Gateway"), href: openApiBase() + "/" },
+      markets: { label: tr("返回 AI Markets", "Back to AI Markets"), href: marketsApiBase() + "/" },
+    };
+    var c = map[from];
+    if (!c) return;
+    box.innerHTML =
+      '<a class="back-bar-link" href="' +
+      c.href +
+      '" style="display:inline-flex;align-items:center;gap:6px;font-size:.85rem;font-weight:600;color:var(--accent,#2563eb);text-decoration:none;padding:9px 4px 1px">' +
+      "\u2190 " +
+      c.label +
+      "</a>";
+  }
+
+  /** 订单按产品筛选（全部 / AI Gateway / BYOK / AI Markets） */
+  function bindOrdersFilter() {
+    var box = $("ordersFilter");
+    if (!box) return;
+    var btns = box.querySelectorAll(".orders-filter-btn");
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].addEventListener("click", function () {
+        _ordersFilter = this.getAttribute("data-orders-filter") || "all";
+        for (var j = 0; j < btns.length; j++) {
+          btns[j].classList.toggle("is-active", btns[j] === this);
+        }
+        renderOrders();
+      });
+    }
   }
 
   function orderMoneyLabel(o) {
@@ -1660,8 +1720,15 @@
   function renderOrders(rows) {
     var box = $("ordersList");
     if (!box) return;
+    if (rows) _ordersAll = rows;
+    var list = (_ordersAll || []).slice();
+    if (_ordersFilter && _ordersFilter !== "all") {
+      list = list.filter(function (o) {
+        return orderProductOf(o && o.plan, o) === _ordersFilter;
+      });
+    }
     box.innerHTML = "";
-    if (!rows || !rows.length) {
+    if (!list || !list.length) {
       var tr0 = document.createElement("tr");
       var td0 = document.createElement("td");
       td0.colSpan = 7;
@@ -1670,20 +1737,20 @@
       box.appendChild(tr0);
       return;
     }
-    rows.forEach(function (o) {
-      var tr = document.createElement("tr");
+    list.forEach(function (o) {
+      var trEl = document.createElement("tr");
       function td(text, cls) {
         var cell = document.createElement("td");
         if (cls) cell.className = cls;
         cell.textContent = text || "";
         return cell;
       }
-      tr.appendChild(td(fmtOrderTime(o), "col-time"));
-      tr.appendChild(td(labelPlanForUi(o.plan)));
-      tr.appendChild(td(orderMoneyLabel(o), "col-amount"));
-      tr.appendChild(td(o.channel ? labelChannel(o.channel) : "—"));
-      tr.appendChild(td(labelOrderStatus(o.status)));
-      tr.appendChild(td(o.out_trade_no || "—", "col-note"));
+      trEl.appendChild(td(fmtOrderTime(o), "col-time"));
+      trEl.appendChild(td(labelPlanForUi(o.plan)));
+      trEl.appendChild(td(orderMoneyLabel(o), "col-amount"));
+      trEl.appendChild(td(o.channel ? labelChannel(o.channel) : "—"));
+      trEl.appendChild(td(labelOrderStatus(o.status)));
+      trEl.appendChild(td(o.out_trade_no || "—", "col-note"));
 
       var tdAct = document.createElement("td");
       if (o.status === "pending") {
@@ -1734,8 +1801,8 @@
       } else {
         tdAct.textContent = o.transaction_id || "—";
       }
-      tr.appendChild(tdAct);
-      box.appendChild(tr);
+      trEl.appendChild(tdAct);
+      box.appendChild(trEl);
     });
   }
 
@@ -3611,6 +3678,12 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     if (!requireLogin()) return;
+    try {
+      mountBackBar();
+    } catch (e) {}
+    try {
+      bindOrdersFilter();
+    } catch (e) {}
     $("api-base").value = AI24X_API.getBase();
     if (AI24X_API.isPublicAi24xHost && AI24X_API.isPublicAi24xHost()) {
       var baseEl = $("api-base");

@@ -2770,7 +2770,8 @@
 
     try {
       var ref = await AI24X_API.referralsSummary();
-      $("stat-referrals").textContent = String(ref.invitees_l1 != null ? ref.invitees_l1 : 0);
+      var refStat = $("stat-referrals");
+      if (refStat) refStat.textContent = String(ref.invitees_l1 != null ? ref.invitees_l1 : 0);
       if ($("inviteCode")) $("inviteCode").textContent = ref.code || "--";
       window._ai24xInviteCode = ref.code || "";
       if ($("inviteShortLink")) {
@@ -2803,7 +2804,8 @@
         $("overview-invite-earned").textContent = earnedOv >= 1000 ? (earnedOv / 1000).toFixed(1).replace(/\.0$/, "") + "k" : String(earnedOv);
       }
     } catch (e) {
-      $("stat-referrals").textContent = "--";
+      var refStatErr = $("stat-referrals");
+      if (refStatErr) refStatErr.textContent = "--";
     }
 
     try {
@@ -2821,6 +2823,7 @@
 
     try {
       loadByokStatus().catch(function () {});
+      loadByokKeys().catch(function () {});
     } catch (e) {}
 
     try {
@@ -2902,6 +2905,10 @@
   }
 
   function renderByokKeys(keys) {
+    var countEl = $("stat-byok-keys");
+    if (countEl) {
+      countEl.textContent = keys && keys.length ? String(keys.length) : "0";
+    }
     var wrap = $("byokKeysList");
     if (!wrap) return;
     if (!keys || !keys.length) {
@@ -3783,28 +3790,91 @@
     }
   }
 
+  /** 本机默认本地端口；ai24x_local_products=0 切正式站 */
+  function preferLocalProducts() {
+    try {
+      var h = String(location.hostname || "").toLowerCase();
+      if (h !== "127.0.0.1" && h !== "localhost") return false;
+      var flag = "";
+      try {
+        flag = String(localStorage.getItem("ai24x_local_products") || "").trim();
+      } catch (e) {}
+      return flag !== "0";
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function marketsBase() {
+    try {
+      var h = String(location.hostname || "").toLowerCase();
+      if (h === "127.0.0.1" || h === "localhost") {
+        if (preferLocalProducts()) return "http://127.0.0.1:18012";
+      }
+    } catch (e) {}
+    return "https://markets.ai24x.com";
+  }
+
+  function wwwConsoleBase() {
+    try {
+      var h = String(location.hostname || "").toLowerCase();
+      if (h === "127.0.0.1" || h === "localhost") {
+        if (preferLocalProducts()) return "http://127.0.0.1:8000/console.html";
+      }
+    } catch (e) {}
+    return "https://www.ai24x.com/console.html";
+  }
+
+  /** 跨站回跳条：从 www 账户中心 / markets 跳过来时显示「返回」入口 */
+  function mountBackBar() {
+    var box = $("back-bar");
+    if (!box) return;
+    var from = "";
+    try {
+      from = String(new URLSearchParams(location.search).get("from") || "").toLowerCase();
+    } catch (e) {}
+    /* 从 Hub 点进 Gateway 工作台：顶栏已有「账户中心」，不再重复回跳条 */
+    if (from === "account") return;
+    var map = {
+      account: { label: tr("返回账户中心", "Back to Account"), href: wwwConsoleBase() },
+      markets: { label: tr("返回 AI Markets", "Back to AI Markets"), href: marketsBase() + "/" },
+    };
+    var c = map[from];
+    if (!c) return;
+    box.innerHTML =
+      '<a class="back-bar-link" href="' +
+      c.href +
+      '" style="display:inline-flex;align-items:center;gap:6px;font-size:.85rem;font-weight:600;color:var(--accent,#2563eb);text-decoration:none;padding:9px 4px 1px">' +
+      "\u2190 " +
+      c.label +
+      "</a>";
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     if (!requireLogin()) return;
+    try {
+      mountBackBar();
+    } catch (e) {}
     try {
       var hub = document.querySelector(".billing-hub-link a");
       if (hub) {
         var h = String(location.hostname || "").toLowerCase();
         if (h === "127.0.0.1" || h === "localhost") {
-          hub.href = "http://127.0.0.1:8000/console.html#billing";
+          hub.href = "http://127.0.0.1:8000/console.html?from=gateway#billing";
         }
       }
       var creditsCta = document.getElementById("creditsTopupCta");
       if (creditsCta) {
         var ch = String(location.hostname || "").toLowerCase();
         if (ch === "127.0.0.1" || ch === "localhost") {
-          creditsCta.href = "http://127.0.0.1:8000/console.html#billing";
+          creditsCta.href = "http://127.0.0.1:8000/console.html?from=gateway#billing";
         }
       }
       var creditsOvCta = document.getElementById("creditsOvCta");
       if (creditsOvCta) {
         var chOv = String(location.hostname || "").toLowerCase();
         if (chOv === "127.0.0.1" || chOv === "localhost") {
-          creditsOvCta.href = "http://127.0.0.1:8000/console.html#billing";
+          creditsOvCta.href = "http://127.0.0.1:8000/console.html?from=gateway#billing";
         }
       }
     } catch (eHub) {}

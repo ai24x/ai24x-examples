@@ -50,6 +50,16 @@
     (function () {
       try {
         if (!localStorage.getItem("ai24x_auth_token")) {
+          var m = document.cookie.match(/(?:^|; )ai24x_auth_token=([^;]*)/);
+          var tok = m ? decodeURIComponent(m[1]) : "";
+          if (tok) {
+            localStorage.setItem("ai24x_auth_token", tok);
+            var mu = document.cookie.match(/(?:^|; )ai24x_auth_user=([^;]*)/);
+            if (mu) {
+              try { localStorage.setItem("ai24x_auth_user", decodeURIComponent(mu[1])); } catch (e2) {}
+            }
+            return;
+          }
           var next = "console.html";
           var h = location.hash || "";
           if (h && /^#[A-Za-z]/.test(h)) next += h;
@@ -69,7 +79,7 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="dns-prefetch" href="https://api.ai24x.com" />
   <link rel="preconnect" href="https://api.ai24x.com" crossorigin />
-  <link rel="stylesheet" href="css/base.css?v=20260826m" />
+  <link rel="stylesheet" href="css/base.css?v=20260829c" />
   <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260812e" data-base="css/themes/" />
   <style>
     /* console: 统一产品套餐列表（选项目 → 选套餐 → 选支付方式） */
@@ -82,8 +92,10 @@
     .product-plan-info .plan-rec { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; color: var(--accent, #2563eb); border: 1px solid color-mix(in srgb, var(--accent, #2563eb) 40%, transparent); vertical-align: middle; }
     .product-card-head .plan-rec-muted { color: var(--muted, #5a6b7b); border-color: var(--border, #d8e4ef); font-weight: 500; }
 .product-plans { display: flex; flex-direction: column; gap: 8px; }
-.product-card-head .open-product { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; border: 1px solid color-mix(in srgb, var(--accent,#2563eb) 45%, transparent); border-radius: 999px; font-size: .78rem; font-weight: 600; color: var(--accent,#2563eb); text-decoration: none; transition: background .15s ease, box-shadow .15s ease; }
-.product-card-head .open-product:hover { background: color-mix(in srgb, var(--accent,#2563eb) 10%, transparent); box-shadow: 0 2px 10px color-mix(in srgb, var(--accent,#2563eb) 25%, transparent); text-decoration: none; }
+.product-card-head .open-product { display: inline-flex; align-items: center; gap: 5px; padding: 7px 15px; border-radius: 999px; font-size: .8rem; font-weight: 700; color: #fff; text-decoration: none; background: linear-gradient(180deg, color-mix(in srgb, var(--accent,#2563eb) 92%, #fff), var(--accent,#2563eb)); border: 1px solid color-mix(in srgb, var(--accent,#2563eb) 70%, #1e3a5f); box-shadow: 0 2px 10px color-mix(in srgb, var(--accent,#2563eb) 38%, transparent); transition: filter .15s ease, box-shadow .15s ease, transform .12s ease; white-space: nowrap; }
+.product-card-head .open-product:hover { filter: brightness(1.07); box-shadow: 0 4px 16px color-mix(in srgb, var(--accent,#2563eb) 48%, transparent); transform: translateY(-1px); text-decoration: none; color: #fff; }
+.console-panel-head .linkish { background: none; border: 0; padding: 0; font: inherit; color: var(--accent,#2563eb); font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.console-panel-head .linkish:hover { filter: brightness(1.1); }
     .product-plan-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--border-soft, rgba(148, 163, 184, 0.25)); border-radius: 10px; }
     .product-plan-row.is-recommended { background: color-mix(in srgb, var(--accent, #2563eb) 6%, transparent); }
     .product-plan-info { min-width: 0; flex: 1; }
@@ -114,55 +126,50 @@
       text-transform: uppercase;
       color: var(--muted);
     }
-    .ov-doors {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-      margin-top: 14px;
-    }
-    .ov-door {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      padding: 20px 18px;
-      border: 1px solid var(--border, #d8e4ef);
-      border-radius: var(--radius, 14px);
-      background: var(--card-bg, #fff);
-      box-shadow: var(--card-shadow, none);
-      margin: 0;
-      transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
-    }
-    .ov-door.is-gateway {
-      border-color: color-mix(in srgb, var(--accent, #2563eb) 45%, transparent);
-      box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent, #2563eb) 12%, transparent),
-        0 10px 28px color-mix(in srgb, var(--accent, #2563eb) 10%, transparent);
-    }
-    .ov-door.is-markets {
-      border-color: color-mix(in srgb, var(--accent, #2563eb) 22%, transparent);
-    }
-    .ov-door .ov-kicker {
-      margin: 0;
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--accent);
-    }
-    .ov-door h3 { margin: 0; font-size: 1.2rem; }
-    .ov-door .ov-host {
-      margin: 0;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--muted);
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    }
-    .ov-door .sub { margin: 0; flex: 1; }
-    .ov-door .card-actions { margin-top: 10px; }
-    .ov-door .markets-sub-line { margin-top: 4px; }
     .ov-stats-wrap { margin-top: 4px; }
     .ov-stats-wrap .stats-grid { margin-top: 0; }
-    @media (max-width: 860px) {
-      .ov-doors { grid-template-columns: 1fr; }
+    .hub-launch-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin: 0 0 1.25rem;
+    }
+    .hub-launch-card {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 14px 16px;
+      border: 1px solid var(--border, #d8e4ef);
+      border-radius: var(--radius, 12px);
+      background: var(--card-bg, #fff);
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    button.hub-launch-card {
+      cursor: pointer;
+      font: inherit;
+      text-align: left;
+      width: 100%;
+    }
+    .hub-launch-card:hover {
+      border-color: color-mix(in srgb, var(--accent, #2563eb) 45%, transparent);
+      box-shadow: 0 4px 14px color-mix(in srgb, var(--accent, #2563eb) 10%, transparent);
+      text-decoration: none;
+      color: inherit;
+    }
+    .hub-launch-card .hub-launch-kicker {
+      margin: 0;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .hub-launch-card strong { font-size: 0.98rem; }
+    .hub-launch-card .sub { margin: 0; font-size: 0.82rem; }
+    @media (max-width: 640px) {
+      .hub-launch-grid { grid-template-columns: 1fr; }
     }
     /* 手机端：单列轨道允许收缩，导航横向滚动（否则按钮 min-content 会把整页撑出横向滚动条） */
     @media (max-width: 900px) {
@@ -284,9 +291,10 @@
     }
   </style>
 </head>
-<body data-page="console" class="theme-blue">
+<body data-page="console" data-console-mode="hub" class="theme-blue">
   <header class="site-header" id="site-header"></header>
   <main class="page-main">
+    <div id="back-bar" class="back-bar"></div>
     <div class="ui-modal-root" id="modal-create-key" aria-hidden="true">
       <div class="ui-modal-backdrop" data-close-modal="modal-create-key"></div>
       <div class="ui-modal-card" role="dialog" aria-labelledby="modal-create-key-title">
@@ -347,9 +355,9 @@
 
     <section class="hero hero-surface section-tight console-hero">
       <div class="container">
-        <p class="hero-eyebrow" data-i18n="page.console.brand">One API. Every AI.</p>
-        <h1 data-i18n="page.console.title">Account</h1>
-        <p class="lead" data-i18n="page.console.sub">Your AI24X account — AI Gateway and AI Markets.</p>
+        <p class="hero-eyebrow" data-i18n="page.console.hub.eyebrow">AI24X Hub</p>
+        <h1 data-i18n="page.console.title">Account Hub</h1>
+        <p class="lead" data-i18n="page.console.hub.sub">Billing and orders stay here — open a product below.</p>
       </div>
     </section>
 
@@ -372,7 +380,7 @@
           <div class="console-panel is-active" id="panel-overview" data-console-panel="overview" role="tabpanel">
             <div class="console-panel-head">
               <h2 class="mt-0" data-i18n="page.console.nav.overview">Overview</h2>
-              <p class="sub" data-i18n="page.console.overview.lead">Gateway first for models; Markets for charts — same account.</p>
+              <p class="sub" data-i18n-html="page.console.overview.lead">Account snapshot below. See the <a href="product.html">product matrix</a>, or open <strong>Plans</strong> and use <strong>Open product ↗</strong> on each card.</p>
             </div>
             <div class="card console-identity" id="overview-identity">
               <div class="console-identity-row">
@@ -391,31 +399,28 @@
               </div>
             </div>
 
-            <p class="ov-section-label" data-i18n="page.console.overview.products">Your products</p>
-            <div class="ov-doors">
-              <div class="ov-door is-gateway">
-                <p class="ov-kicker" data-i18n="page.console.dev.kicker">Connect</p>
-                <h3 data-i18n="page.console.dev.title">AI Gateway</h3>
-                <p class="ov-host">open.ai24x.com</p>
-                <p class="sub" data-i18n="page.console.dev.sub">API keys, models, docs and developer tools live on AI Gateway.</p>
-                <div class="card-actions">
-                  <a class="btn btn-primary" href="https://open.ai24x.com" data-open target="_blank" rel="noopener" data-i18n="page.console.dev.open">Open AI Gateway</a>
-                  <button type="button" class="btn" data-console-panel="billing" data-i18n="page.console.nav.billing">Plans</button>
-                </div>
-              </div>
-              <div class="ov-door is-markets">
-                <p class="ov-kicker" data-i18n="page.console.markets.kicker">Run</p>
-                <h3 data-i18n="page.console.markets.title">AI Markets</h3>
-                <p class="ov-host">markets.ai24x.com</p>
-                <p class="sub" data-i18n="page.console.markets.sub">US stocks, ETFs and indices — charts, indicators and AI commentary. Same account, one login.</p>
-                <div class="markets-sub-line" id="markets-sub-line" style="display:none; padding:10px 12px; border:1px solid var(--border); border-radius:8px; background:color-mix(in srgb, var(--accent, #2563eb) 6%, transparent); font-size:0.9rem;">
-                  <span class="markets-sub-status">--</span>
-                </div>
-                <div class="card-actions">
-                  <a class="btn btn-primary" href="https://markets.ai24x.com" data-markets target="_blank" rel="noopener" data-i18n="page.console.markets.open">Open AI Markets</a>
-                  <a class="btn markets-sub-cta go-markets-plans" id="markets-sub-cta" href="#billing" rel="noopener" style="border-color:color-mix(in srgb, var(--accent,#2563eb) 55%, transparent);color:var(--accent,#2563eb);" data-i18n="page.console.markets.upgrade">Upgrade to Pro</a>
-                </div>
-              </div>
+            <p class="ov-section-label" data-i18n="page.console.hub.products">Open a product</p>
+            <div class="hub-launch-grid">
+              <a class="hub-launch-card is-gateway" href="https://open.ai24x.com/console.html?from=account" data-open data-hub-external target="_blank" rel="noopener noreferrer">
+                <span class="hub-launch-kicker">AI Gateway</span>
+                <strong data-i18n="page.console.dev.open">Open Gateway workspace</strong>
+                <span class="sub" data-i18n="page.console.hub.gatewayHint">Keys, BYOK and try-call</span>
+              </a>
+              <a class="hub-launch-card is-markets" href="https://markets.ai24x.com/?from=account" data-markets data-hub-external target="_blank" rel="noopener noreferrer">
+                <span class="hub-launch-kicker">AI Markets</span>
+                <strong data-i18n="page.console.markets.open">Open Markets home</strong>
+                <span class="sub" data-i18n="page.console.hub.marketsHint">Charts and AI briefs</span>
+              </a>
+              <button type="button" class="hub-launch-card" data-console-panel="billing">
+                <span class="hub-launch-kicker" data-i18n="page.console.nav.billing">Billing</span>
+                <strong data-i18n="page.console.hub.plansCta">Plans &amp; top up</strong>
+                <span class="sub" data-i18n="page.console.hub.plansHint">Credits and subscriptions</span>
+              </button>
+              <button type="button" class="hub-launch-card" data-console-panel="orders">
+                <span class="hub-launch-kicker" data-i18n="page.console.nav.orders">Orders</span>
+                <strong data-i18n="page.console.hub.ordersCta">Order history</strong>
+                <span class="sub" data-i18n="page.console.hub.ordersHint">Confirm payments</span>
+              </button>
             </div>
 
             <div id="howto-card" class="card console-alert mt-2" style="display:none;margin-bottom:1rem">
@@ -538,7 +543,7 @@
             <!-- 统一产品套餐：选项目 → 选套餐 → 选支付方式 -->
             <div class="card" style="margin-bottom:1rem">
               <h3 class="mt-0" data-i18n="page.console.products.title">Products &amp; plans</h3>
-              <p class="sub" style="margin:0" data-i18n="page.console.products.sub">Three lanes: managed credits (pay here) · BYOK Pro (buy on AI Gateway) · Markets Pro (pay here).</p>
+              <p class="sub" style="margin:0" data-i18n="page.console.products.sub">One account, three ways to use AI24X: AI Gateway credits · BYOK Pro · AI Markets Pro.</p>
               <p class="sub" id="billSepHint" style="margin:8px 0 0" data-i18n="page.console.billSep.sub">Managed credits power API keys &amp; Playground. BYOK Pro is opened on open.ai24x.com. Markets Pro unlocks charts &amp; AI briefs.</p>
               <div id="productsList" class="mt-2"></div>
             </div>
@@ -553,6 +558,12 @@
               <h2 class="mt-0" data-i18n="page.console.orders.title">My orders</h2>
               <p class="sub" data-i18n="page.console.orders.sub">Pending orders: use Confirm after paying. Paid time and amount are shown for reconciliation.</p>
               <div id="ordersMsg" data-console-msg></div>
+              <div id="ordersFilter" style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 12px">
+                <button type="button" class="btn orders-filter-btn is-active" data-orders-filter="all" data-i18n="page.console.orders.filterAll">All</button>
+                <button type="button" class="btn orders-filter-btn" data-orders-filter="gateway" data-i18n="page.console.orders.filterGateway">AI Gateway</button>
+                <button type="button" class="btn orders-filter-btn" data-orders-filter="byok" data-i18n="page.console.orders.filterByok">BYOK</button>
+                <button type="button" class="btn orders-filter-btn" data-orders-filter="markets" data-i18n="page.console.orders.filterMarkets">AI Markets</button>
+              </div>
             </div>
             <div class="card">
               <div class="usage-table-wrap">
@@ -843,14 +854,15 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260826s"></script>
+  <script src="config/locales.js?v=20260829j"></script>
   <script src="js/api.js?v=20260827c"></script>
   <script src="js/invite.js?v=20260731a"></script>
   <script src="js/utm.js?v=20260802a"></script>
   <script src="js/i18n.js?v=20260826m"></script>
-  <script src="js/shell.js?v=20260826n"></script>
+  <script src="js/ai24x-chrome.js?v=20260829d"></script>
+  <script src="js/shell.js?v=20260829d"></script>
   <script src="js/app.js?v=20260818b"></script>
-  <script src="js/console.js?v=20260828i"></script>
+  <script src="js/console.js?v=20260829g"></script>
   <script src="js/support-widget.js?v=20260828f"></script>
 </body>
 </html>

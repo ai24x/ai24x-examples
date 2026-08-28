@@ -114,6 +114,16 @@
     .footer-col a:hover { color: var(--accent); }
     .footer-bottom { margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--border); font-size: 12px; }
 
+    /* —— 全站产品切换条 —— */
+    .ai24x-product-bar { border-bottom: 1px solid var(--border); background: rgba(10,12,16,.95); }
+    .ai24x-product-bar-inner { max-width: 1080px; margin: 0 auto; padding: 6px 24px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .ai24x-product-bar-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
+    .product-switch { display: inline-flex; align-items: center; gap: 2px; }
+    .product-switch a { font-size: 0.8rem; font-weight: 600; padding: 5px 10px; border-radius: 999px; text-decoration: none; }
+    .product-switch a.is-on { color: #fff; background: var(--accent); }
+    .product-switch a:not(.is-on) { color: var(--muted); }
+    .product-switch a:not(.is-on):hover { color: var(--text); background: var(--panel2); }
+
     @media (max-width: 860px) {
       .hero-grid { grid-template-columns: 1fr; gap: 24px; }
       .hero { padding: 34px 0 18px; }
@@ -127,6 +137,7 @@
   </style>
 </head>
 <body>
+  <div id="mk-product-bar"></div>
   <header class="site-header">
     <div class="wrap header-inner">
       <a class="brand" href="/"><span class="brand-mark">AI</span><span>AI24X <b>Markets</b></span></a>
@@ -134,7 +145,8 @@
         <a href="/" class="is-active">Home</a>
         <a href="/pricing.html">Pricing</a>
         <a href="https://www.ai24x.com/help.html" target="_blank" rel="noopener">Help</a>
-        <a href="https://www.ai24x.com/console.html" target="_blank" rel="noopener">Account</a>
+        <a href="https://open.ai24x.com/" data-open target="_blank" rel="noopener">AI Gateway</a>
+        <a href="https://www.ai24x.com/console.html?from=markets" target="_blank" rel="noopener">Account</a>
       </nav>
       <div class="header-actions">
         <a class="upgrade-pill" href="/app.html#sub">Upgrade to Pro</a>
@@ -143,6 +155,7 @@
       </div>
     </div>
   </header>
+  <div id="mk-back-bar" class="mk-back-bar" hidden style="background:color-mix(in srgb, var(--accent,#3b82f6) 8%, transparent);border-bottom:1px solid var(--border,#d8e4ef);padding:0 max(14px, calc((100% - 1200px)/2))"></div>
 
   <main>
     <section class="hero">
@@ -312,7 +325,7 @@
         </div>
         <div class="footer-col">
           <div class="footer-title">Account</div>
-          <a href="https://www.ai24x.com/console.html" target="_blank" rel="noopener">Account</a>
+          <a href="https://www.ai24x.com/console.html?from=markets" target="_blank" rel="noopener">Account</a>
           <a href="https://www.ai24x.com/login.html" target="_blank" rel="noopener">Sign in</a>
           <a href="https://www.ai24x.com/register.html" target="_blank" rel="noopener">Sign up</a>
         </div>
@@ -328,7 +341,9 @@
     </div>
   </footer>
 
-  <script src="/js/www-links.js?v=20260826a"></script>
+  <script src="/js/ai24x-chrome.js?v=20260829c"></script>
+  <script src="/js/www-links.js?v=20260829c"></script>
+  <script src="/js/mk-chrome.js?v=20260829c"></script>
   <script>
     (function () {
       try {
@@ -342,6 +357,17 @@
         var su = document.getElementById("signup-link");
         if (su) su.href = coreHost + "/register.html?next=" + back;
       } catch (e) {}
+      try {
+        var from = "";
+        try { from = String(new URLSearchParams(location.search).get("from") || "").toLowerCase(); } catch (e2) {}
+        if (from === "account") {
+          var bar = document.getElementById("mk-back-bar");
+          if (bar) {
+            bar.hidden = false;
+            bar.innerHTML = '<a href="' + coreHost + '/console.html?from=markets" style="display:inline-flex;align-items:center;gap:6px;font-size:.85rem;font-weight:600;color:var(--accent,#3b82f6);text-decoration:none;">\u2190 Back to Account</a>';
+          }
+        }
+      } catch (e3) {}
       try {
         var el = document.getElementById("hero-art");
         if (!el) return;
