@@ -115,14 +115,19 @@
     .plans-tab.is-active { background: var(--accent, #2563eb); border-color: var(--accent, #2563eb); color: #fff; font-weight: 600; }
     .plans-tab[disabled] { opacity: 0.55; cursor: not-allowed; }
     .plans-group[hidden] { display: none; }
+    .plans-card-primary { border-color: color-mix(in srgb, var(--accent, #2563eb) 50%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent, #2563eb) 16%, transparent); }
     .byok-sub-banner { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 14px; border: 1px solid var(--border, #d8e4ef); border-radius: 10px; background: color-mix(in srgb, var(--accent, #2563eb) 5%, transparent); margin-bottom: 14px; }
     .byok-sub-banner[hidden] { display: none !important; }
     .byok-sub-banner .byok-sub-plan { font-weight: 700; }
     .byok-sub-banner.is-pro { border-color: rgba(15, 123, 78, 0.45); background: rgba(15, 123, 78, 0.08); }
     /* console: 支付方式弹窗（主推 Card/PayPal + 其它支付方式分组） */
-    #modal-pay-channels .pay-ico { width: 18px; height: 18px; }
-    #modal-pay-channels .pay-btn-block { width: 100%; margin-bottom: 8px; }
-    #modal-pay-channels .pay-btn-block .pay-sub { display: block; font-size: 11px; font-weight: 400; opacity: 0.72; margin-top: 1px; }
+    #modal-pay-channels { flex-wrap: wrap; }
+    #modal-pay-channels .btn { min-width: 132px; justify-content: center; display: inline-flex; align-items: center; gap: 8px; }
+    #modal-pay-channels .pay-ico { width: 18px; height: 18px; flex-shrink: 0; }
+    #modal-pay-channels .pay-btn-block { width: 100%; margin-bottom: 8px; justify-content: flex-start; text-align: left; }
+    #modal-pay-channels .pay-btn-block .pay-btn-text { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+    #modal-pay-channels .pay-btn-block .pay-btn-title-row { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; line-height: 1.25; }
+    #modal-pay-channels .pay-btn-block .pay-sub { display: block; font-size: 11px; font-weight: 400; opacity: 0.72; margin-top: 3px; padding-left: 26px; line-height: 1.35; }
     #modal-pay-channels .pay-more-label { width: 100%; margin: 2px 0 6px; font-size: 12px; color: var(--muted, #5a6b7b); text-align: center; }
     #modal-pay-channels .pay-more-box { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
     #modal-pay-channels .pay-more-box .btn { width: 100%; min-width: 0; }
@@ -652,7 +657,7 @@
             </div>
             <div id="token-plans" class="plan-billing-stack">
               <div class="plans-group" id="plansGroupByok">
-                <div class="card">
+                <div class="card plans-card-primary">
                   <h3 class="mt-0" data-i18n="page.console.plans.byokTitle">BYOK plans · bring your own key</h3>
                   <p class="sub" data-i18n="page.console.plans.byokLead">Service fee only — never a token markup. Your keys, our auto-routing / failover / cache / cost dashboard.</p>
                   <div id="byokPlansList" class="mt-2"></div>
@@ -660,8 +665,9 @@
               </div>
               <div class="plans-group" id="plansGroupToken" style="margin-top:1rem">
                 <div class="card">
-                  <h3 class="mt-0" data-i18n="page.console.plans.title">Token plans</h3>
-                  <p class="sub" data-i18n="page.console.plans.legend">Quick compare: Credits · Named access. Scale and VIP Pass unlock named models; Starter/Builder/Advanced are prepaid credits.</p>
+                  <h3 class="mt-0" data-i18n="page.console.plans.creditsTitle">AI Gateway credits · Token plans</h3>
+                  <p class="sub" data-i18n="page.console.plans.creditsLead">Optional — no upstream keys? Top up for flash / pro / ultra and named models.</p>
+                  <p class="sub" style="margin-top:4px" data-i18n="page.console.plans.legend">Quick compare: Credits · Named access. Scale and VIP Pass unlock named models; Starter/Builder/Advanced are prepaid credits.</p>
                   <div id="plansList" class="mt-2"></div>
                 </div>
               </div>
@@ -949,7 +955,7 @@
   <script src="js/i18n.js?v=20260812g"></script>
   <script src="js/shell.js?v=20260826k"></script>
   <script src="js/app.js?v=20260808b"></script>
-  <script src="js/console.js?v=20260828b"></script>
+  <script src="js/console.js?v=20260828i"></script>
   <script src="js/support-widget.js?v=20260817z"></script>
 </body>
 </html>

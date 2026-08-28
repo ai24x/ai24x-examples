@@ -459,6 +459,7 @@
       return;
     }
 
+    var zh = AI24X_API.isZhUi();
     var wrap = document.createElement("div");
     wrap.className = "product-plans";
     plans.forEach(function (p) {
@@ -1149,9 +1150,12 @@
         (c === "crypto" ? " btn-usdt" : "");
       var sub = payChannelSub(c);
       btn.innerHTML =
+        '<span class="pay-btn-text">' +
+        '<span class="pay-btn-title-row">' +
         (c !== "mock" ? payIconSvg(c) : "") +
-        "<span>" +
+        '<span class="pay-btn-label">' +
         escHtml(payChannelLabel(c)) +
+        "</span></span>" +
         (sub ? '<small class="pay-sub">' + escHtml(sub) + "</small>" : "") +
         "</span>";
       btn.setAttribute("data-pay-channel", c);

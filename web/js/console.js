@@ -19,6 +19,15 @@
     return en;
   }
 
+  function escHtml(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
   function fmtInt(v) {
     var n = Number(v);
     if (!isFinite(n)) return "--";
@@ -485,6 +494,72 @@
     return !!(pay && pay.mock_allowed) && !isPublicProdHost();
   }
 
+  var BILLING_CATALOG_KEY = "ai24x_billing_catalog_v2";
+  var BILLING_CATALOG_TTL_MS = 5 * 60 * 1000;
+
+  function readBillingCatalogCache() {
+    try {
+      var raw = sessionStorage.getItem(BILLING_CATALOG_KEY);
+      if (!raw) return null;
+      var o = JSON.parse(raw);
+      if (!o || !o.ts || !o.data) return null;
+      if (Date.now() - Number(o.ts) > BILLING_CATALOG_TTL_MS) return null;
+      return o.data;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function writeBillingCatalogCache(data) {
+    try {
+      if (!data || !Array.isArray(data.products) || !data.products.length) return;
+      sessionStorage.setItem(
+        BILLING_CATALOG_KEY,
+        JSON.stringify({ ts: Date.now(), data: data })
+      );
+    } catch (e) {}
+  }
+
+  function billingCatalogLoadErrorMsg() {
+    return tr(
+      "套餐加载失败。请确认 API 已启动（本机常见为 127.0.0.1:8000），或在控制台设置正确的 API 地址后刷新。",
+      "Could not load plans. Ensure the API is running (often 127.0.0.1:8000 locally) or set the API base in Console, then refresh."
+    );
+  }
+
+  /** 套餐目录：session 缓存 + 后台刷新；与余额等接口并行拉取 */
+  function fetchBillingCatalog() {
+    var cached = readBillingCatalogCache();
+    if (cached) {
+      renderProducts(cached);
+      return AI24X_API.billingProducts()
+        .then(function (fresh) {
+          writeBillingCatalogCache(fresh);
+          renderProducts(fresh);
+          return fresh;
+        })
+        .catch(function () {
+          return cached;
+        });
+    }
+    return AI24X_API.billingProducts()
+      .then(function (data) {
+        writeBillingCatalogCache(data);
+        renderProducts(data);
+        return data;
+      })
+      .catch(function (e) {
+        var box = $("productsList");
+        if (box && !box.children.length) {
+          box.innerHTML =
+            '<p class="sub" style="color:var(--danger,#c62828);">' +
+            escHtml(billingCatalogLoadErrorMsg()) +
+            "</p>";
+        }
+        throw e;
+      });
+  }
+
   function updatePayHint(pay, zh) {
     var hint = $("payHint");
     if (!hint) return;
@@ -657,9 +732,12 @@
         (ch === "crypto" ? " btn-usdt" : "");
       var sub = payChannelSub(ch);
       btn.innerHTML =
+        '<span class="pay-btn-text">' +
+        '<span class="pay-btn-title-row">' +
         (ch !== "mock" ? payIconSvg(ch) : "") +
-        "<span>" +
+        '<span class="pay-btn-label">' +
         escHtml(payChannelLabel(ch)) +
+        "</span></span>" +
         (sub ? '<small class="pay-sub">' + escHtml(sub) + "</small>" : "") +
         "</span>";
       btn.setAttribute("data-pay-channel", ch);
@@ -722,13 +800,14 @@
       box.innerHTML = '<p class="sub">' + tr("暂无套餐", "No plans") + "</p>";
       return;
     }
-    // Gateway / BYOK first, then token, then Markets
+    // Token 托管额度优先，其次 Markets，最后 BYOK（外站开通）
     products = products.slice().sort(function (a, b) {
       function rank(p) {
         var id = String((p && p.product) || "");
-        if (id === "byok") return 0;
-        if (id === "markets") return 2;
-        return 1;
+        if (id === "token") return 0;
+        if (id === "markets") return 1;
+        if (id === "byok") return 2;
+        return 3;
       }
       return rank(a) - rank(b);
     });
@@ -736,10 +815,12 @@
       var pid = String(prod.product || "");
       var isMarkets = pid === "markets";
       var isByok = pid === "byok";
+      var isToken = pid === "token";
       var likeMarkets = isMarkets || isByok;
       var card = document.createElement("div");
       card.className =
         "product-card" +
+        (isToken ? " is-token" : "") +
         (isByok ? " is-gateway" : "") +
         (isMarkets ? " is-markets" : "");
       card.setAttribute("data-product", pid);
@@ -748,11 +829,16 @@
       var titleEl = document.createElement("h4");
       titleEl.className = "mt-0 mb-0";
       titleEl.textContent = zh ? prod.title_zh || prod.title : prod.title || pid;
-      if (isByok) {
-        var rec = document.createElement("span");
-        rec.className = "plan-rec";
-        rec.textContent = tr("推荐", "Recommended");
-        titleEl.appendChild(rec);
+      if (isToken) {
+        var tokRec = document.createElement("span");
+        tokRec.className = "plan-rec";
+        tokRec.textContent = tr("主力充值", "Top up here");
+        titleEl.appendChild(tokRec);
+      } else if (isByok) {
+        var byokHint = document.createElement("span");
+        byokHint.className = "plan-rec plan-rec-muted";
+        byokHint.textContent = tr("在 Gateway 开通", "On AI Gateway");
+        titleEl.appendChild(byokHint);
       }
       head.appendChild(titleEl);
       if (prod.url) {
@@ -1532,65 +1618,103 @@
     return _lastPayProduct || "token";
   }
 
+  function orderMoneyLabel(o) {
+    if (o && o.amount_label) return o.amount_label;
+    var cents = Number(o.amount_fen) || 0;
+    var amt = (cents / 100).toFixed(2);
+    if (o.currency === "USD") return "$" + amt;
+    if (o.currency === "CNY") return "CNY " + amt;
+    if (
+      o.channel === "paypal" ||
+      o.channel === "creem" ||
+      o.channel === "dodo" ||
+      o.channel === "crypto"
+    ) {
+      return "$" + amt;
+    }
+    return "CNY " + amt;
+  }
+
+  function fmtOrderTime(o) {
+    var iso = (o.status === "paid" && o.paid_at) || o.created_at || "";
+    if (!iso) return "—";
+    try {
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return iso;
+      return d.toLocaleString(undefined, {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (e) {
+      return iso;
+    }
+  }
+
+  function ordersMsgBox() {
+    return $("ordersMsg") || msgBox();
+  }
+
   function renderOrders(rows) {
     var box = $("ordersList");
     if (!box) return;
     box.innerHTML = "";
     if (!rows || !rows.length) {
-      box.innerHTML =
-        '<li class="list-item"><span>' +
-        tr("暂无订单", "No orders") +
-        "</span><span></span></li>";
+      var tr0 = document.createElement("tr");
+      var td0 = document.createElement("td");
+      td0.colSpan = 7;
+      td0.textContent = tr("暂无订单", "No orders");
+      tr0.appendChild(td0);
+      box.appendChild(tr0);
       return;
     }
     rows.forEach(function (o) {
-      var li = document.createElement("li");
-      li.className = "list-item";
-      var left = document.createElement("span");
-      var amt = ((Number(o.amount_fen) || 0) / 100).toFixed(2);
-      // PayPal/Creem/Crypto 单 amount_fen 为 USD 美分；微信/支付宝为 CNY 分
-      var moneyLabel =
-        o.channel === "paypal" || o.channel === "creem" || o.channel === "dodo" || o.channel === "crypto"
-          ? "$" + amt
-          : "CNY " + amt;
-      left.textContent =
-        labelPlanForUi(o.plan) +
-        " · " +
-        moneyLabel +
-        " · " +
-        labelOrderStatus(o.status) +
-        (o.channel ? " · " + labelChannel(o.channel) : "") +
-        (o.out_trade_no ? " · " + o.out_trade_no : "");
-      var right = document.createElement("span");
+      var tr = document.createElement("tr");
+      function td(text, cls) {
+        var cell = document.createElement("td");
+        if (cls) cell.className = cls;
+        cell.textContent = text || "";
+        return cell;
+      }
+      tr.appendChild(td(fmtOrderTime(o), "col-time"));
+      tr.appendChild(td(labelPlanForUi(o.plan)));
+      tr.appendChild(td(orderMoneyLabel(o), "col-amount"));
+      tr.appendChild(td(o.channel ? labelChannel(o.channel) : "—"));
+      tr.appendChild(td(labelOrderStatus(o.status)));
+      tr.appendChild(td(o.out_trade_no || "—", "col-note"));
+
+      var tdAct = document.createElement("td");
       if (o.status === "pending") {
         var payCfg = window.__tokenPay || {};
         if (mockUiAllowed(payCfg)) {
           var btn = document.createElement("button");
           btn.type = "button";
           btn.className = "btn btn-primary";
+          btn.style.marginRight = "6px";
           btn.textContent = tr("体验到账", "Test pay");
           btn.addEventListener("click", function () {
             AI24X_API.billingMockFulfill(o.out_trade_no)
               .then(function () {
-                showMsg(msgBox(), tr("到账成功", "Payment recorded"), true);
+                showMsg(ordersMsgBox(), tr("到账成功", "Payment recorded"), true);
                 return refreshAll();
               })
               .catch(function (e) {
-                showMsg(msgBox(), e.message || tr("操作失败", "Failed"), false);
+                showMsg(ordersMsgBox(), e.message || tr("操作失败", "Failed"), false);
               });
           });
-          right.appendChild(btn);
+          tdAct.appendChild(btn);
         }
         var btnQ = document.createElement("button");
         btnQ.type = "button";
         btnQ.className = mockUiAllowed(payCfg) ? "btn" : "btn btn-primary";
-        if (mockUiAllowed(payCfg)) btnQ.style.marginLeft = "6px";
         btnQ.textContent = tr("确认到账", "Confirm");
         btnQ.addEventListener("click", function () {
           AI24X_API.billingQueryFulfill(o.out_trade_no, o.channel || "wechat")
             .then(function (r) {
               showMsg(
-                msgBox(),
+                ordersMsgBox(),
                 r && r.ok
                   ? AI24X_API.planFulfillMessage(
                       o.plan || _lastPayPlanId,
@@ -1603,16 +1727,15 @@
               return refreshAll();
             })
             .catch(function (e) {
-              showMsg(msgBox(), e.message || tr("查单失败", "Query failed"), false);
+              showMsg(ordersMsgBox(), e.message || tr("查单失败", "Query failed"), false);
             });
         });
-        right.appendChild(btnQ);
+        tdAct.appendChild(btnQ);
       } else {
-        right.textContent = o.transaction_id || o.out_trade_no || "";
+        tdAct.textContent = o.transaction_id || "—";
       }
-      li.appendChild(left);
-      li.appendChild(right);
-      box.appendChild(li);
+      tr.appendChild(tdAct);
+      box.appendChild(tr);
     });
   }
 
@@ -2556,6 +2679,17 @@
       tr("未绑定", "Not bound");
     if ($("acct-phone")) $("acct-phone").textContent = user.phone || phoneUnset;
 
+    var catalogP = fetchBillingCatalog().catch(function () {});
+    var keysP = AI24X_API.keysList().catch(function () {
+      return null;
+    });
+    var refP = AI24X_API.referralsSummary().catch(function () {
+      return null;
+    });
+    var ordersP = AI24X_API.billingOrders(20).catch(function () {
+      return null;
+    });
+
     try {
       var bal = await AI24X_API.billingBalance();
       // 会话串号防护：余额接口邮箱 vs 本地登录身份不一致 → 强制重登
@@ -2784,7 +2918,7 @@
     }
 
     try {
-      var keysRes = await AI24X_API.keysList();
+      var keysRes = await keysP;
       var keys = (keysRes && keysRes.keys) || [];
       $("stat-keys").textContent = String(keys.length);
       renderKeys(keys);
@@ -2793,7 +2927,7 @@
     }
 
     try {
-      var ref = await AI24X_API.referralsSummary();
+      var ref = await refP;
       $("stat-referrals").textContent = String(ref.invitees_l1 != null ? ref.invitees_l1 : 0);
       if ($("inviteCode")) $("inviteCode").textContent = ref.code || "--";
       window._ai24xInviteCode = ref.code || "";
@@ -2839,12 +2973,11 @@
     } catch (e) {}
 
     try {
-      var products = await AI24X_API.billingProducts();
-      renderProducts(products);
+      await catalogP;
     } catch (e) {}
 
     try {
-      var orders = await AI24X_API.billingOrders(20);
+      var orders = await ordersP;
       renderOrders((orders && orders.rows) || []);
     } catch (e) {}
 
@@ -2987,6 +3120,7 @@
     "overview",
     "keys",
     "billing",
+    "orders",
     "transactions",
     "playground",
     "invite",
@@ -2999,7 +3133,7 @@
       .replace(/^#/, "")
       .trim()
       .toLowerCase();
-    if (n === "token-plans" || n === "plans" || n === "orders") return "billing";
+    if (n === "token-plans" || n === "plans") return "billing";
     if (n === "usage" || n === "activity" || n === "ledger") return "transactions";
     if (n === "bills" || n === "bill" || n === "tx" || n === "transactions") return "transactions";
     if (n === "chat" || n === "try") return "playground";
@@ -3035,6 +3169,12 @@
         try {
           loadSupportTickets();
         } catch (e) {}
+      }
+      if (id === "billing") {
+        var plist = $("productsList");
+        if (plist && !plist.children.length) {
+          fetchBillingCatalog().catch(function () {});
+        }
       }
 
       if (pushHash) {
@@ -3131,6 +3271,13 @@
     document.querySelectorAll(".go-markets-plans").forEach(function (el) {
       el.addEventListener("click", goMarketsPlans);
     });
+    var linkOrders = $("linkBillingOrders");
+    if (linkOrders) {
+      linkOrders.addEventListener("click", function (ev) {
+        ev.preventDefault();
+        showConsolePanel("orders");
+      });
+    }
     window.addEventListener("hashchange", function () {
       showConsolePanel(location.hash || "overview", { pushHash: false });
     });
@@ -3486,7 +3633,8 @@
           clearInterval(_fulfillPollTimer);
           _fulfillPollTimer = null;
         }
-        showMsg(msgBox(), tr("正在确认 PayPal 支付…", "Confirming PayPal…"), true);
+        showConsolePanel("orders", { pushHash: true });
+        showMsg(ordersMsgBox(), tr("正在确认 PayPal 支付…", "Confirming PayPal…"), true);
         function tryPaypalCapture(attempt) {
           return AI24X_API.billingQueryFulfill(otn, "paypal").catch(function (e) {
             var msg = (e && e.message) || "";
@@ -3507,7 +3655,7 @@
         tryPaypalCapture(1)
           .then(function (r) {
             showMsg(
-              msgBox(),
+              ordersMsgBox(),
               r && r.ok
                 ? AI24X_API.planFulfillMessage(_lastPayPlanId, null, orderProductOf(_lastPayPlanId, r))
                 : tr("PayPal 尚未完成，可在「我的订单」点确认到账", "PayPal pending — tap Confirm under My orders"),
@@ -3518,7 +3666,7 @@
           .catch(function (e) {
             var msg = (e && e.message) || "";
             showMsg(
-              msgBox(),
+              ordersMsgBox(),
               (msg || tr("PayPal 确认失败", "PayPal confirm failed")) +
                 tr(" — 请在「我的订单」点「确认到账」", " — tap Confirm under My orders"),
               false
@@ -3530,11 +3678,12 @@
           clearInterval(_fulfillPollTimer);
           _fulfillPollTimer = null;
         }
-        showMsg(msgBox(), tr("正在确认 Creem 支付…", "Confirming Creem…"), true);
+        showConsolePanel("orders", { pushHash: true });
+        showMsg(ordersMsgBox(), tr("正在确认 Creem 支付…", "Confirming Creem…"), true);
         AI24X_API.billingQueryFulfill(otn, "creem")
           .then(function (r) {
             showMsg(
-              msgBox(),
+              ordersMsgBox(),
               r && r.ok
                 ? AI24X_API.planFulfillMessage(_lastPayPlanId, null, orderProductOf(_lastPayPlanId, r))
                 : tr(
@@ -3548,7 +3697,7 @@
           .catch(function (e) {
             var msg = (e && e.message) || "";
             showMsg(
-              msgBox(),
+              ordersMsgBox(),
               (msg || tr("Creem 确认失败", "Creem confirm failed")) +
                 tr(" — 请在「我的订单」点「确认到账」。", " — tap Confirm under My orders"),
               false
@@ -3560,11 +3709,12 @@
           clearInterval(_fulfillPollTimer);
           _fulfillPollTimer = null;
         }
-        showMsg(msgBox(), tr("正在确认支付…", "Confirming payment…"), true);
+        showConsolePanel("orders", { pushHash: true });
+        showMsg(ordersMsgBox(), tr("正在确认支付…", "Confirming payment…"), true);
         AI24X_API.billingQueryFulfill(otn, "dodo")
           .then(function (r) {
             showMsg(
-              msgBox(),
+              ordersMsgBox(),
               r && r.ok
                 ? AI24X_API.planFulfillMessage(_lastPayPlanId, null, orderProductOf(_lastPayPlanId, r))
                 : tr(
@@ -3578,7 +3728,7 @@
           .catch(function (e) {
             var msg = (e && e.message) || "";
             showMsg(
-              msgBox(),
+              ordersMsgBox(),
               (msg || tr("支付确认失败", "Payment confirm failed")) +
                 tr(" — 请在「我的订单」点「确认到账」。", " — tap Confirm under My orders"),
               false
