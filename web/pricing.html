@@ -112,6 +112,23 @@
     .plan-card.is-rec {
       border-color: var(--accent, #c9a227);
     }
+    .plan-card.is-free {
+      border-color: color-mix(in srgb, var(--accent, #2563eb) 40%, var(--border, #d8e4ef));
+      background: color-mix(in srgb, var(--accent, #2563eb) 4%, #fff);
+    }
+    .plan-free-badge {
+      position: absolute;
+      top: -12px;
+      left: 14px;
+      background: var(--accent, #2563eb);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      padding: 4px 10px;
+      border-radius: 999px;
+      box-shadow: var(--shadow-md);
+    }
     .plan-rec-badge {
       position: absolute;
       top: -12px;
@@ -158,7 +175,8 @@
         <h2 style="margin:0 0 10px;" data-i18n="page.pricing.creditsTitle">AI Gateway · Managed credits</h2>
         <p class="sub" style="margin:0 0 14px;" data-i18n="page.pricing.creditsSub">No vendor keys needed — top up in Account, call flash / pro and more. Keys &amp; docs live on AI Gateway.</p>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;align-items:stretch;margin-top:18px;">
-          <div class="card plan-card">
+          <div class="card plan-card is-free">
+            <span class="plan-free-badge" data-i18n="page.pricing.freeBadge">Free to start</span>
             <h3 style="margin:0;" data-i18n="page.pricing.creditsFreeTitle">Start free</h3>
             <div class="plan-price"><strong>$0</strong></div>
             <ul>
@@ -329,7 +347,7 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260829n"></script>
+  <script src="config/locales.js?v=20260829u"></script>
   <script src="js/api.js?v=20260829n"></script>
   <script src="js/utm.js?v=20260802a"></script>
   <script src="js/i18n.js?v=20260826m"></script>

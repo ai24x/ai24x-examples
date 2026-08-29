@@ -43,6 +43,7 @@ from schemas import (
     ChatResponse,
     ErrorResponse,
     AdminSmsLoginBody,
+    AdminSmsSendBody,
     AdminSmsConfigBody,
     AdminEmailConfigBody,
     AdminEmailTestBody,
@@ -2464,24 +2465,38 @@ def _require_admin_or_internal(request: Request) -> None:
 @app.get("/v1/admin/auth/mode")
 async def admin_auth_mode():
     """公开探针：管理后台登录模式（仅返回开关状态，不含任何密钥）。"""
+    from captcha_guard import captcha_enabled
+
     require_sms = bool(getattr(settings, "admin_require_sms", False))
     admin_phone = (getattr(settings, "admin_phone", "") or "").strip()
     return {
         "require_sms": require_sms,
         "sms_enabled": require_sms and bool(admin_phone),
         "sms_key_configured": bool((settings.sms_internal_key or "").strip()),
+        "captcha_required": captcha_enabled(),
     }
 
 
 @app.post("/v1/admin/sms/send")
-async def admin_sms_send(request: Request, body: SmsSendRequest):
+async def admin_sms_send(request: Request, body: AdminSmsSendBody):
     """管理员手机验证码发送（双因素模式专属）：
     先验管理密钥 → 仅 ADMIN_PHONE 白名单单号；60s 冷却 + 管理限频。
     本地模式（ADMIN_REQUIRE_SMS 未开启）不提供该通道。
     """
+    from captcha_guard import captcha_enabled, verify_captcha
+
     if not getattr(settings, "admin_require_sms", False):
         raise HTTPException(status_code=503, detail="本地模式未开启管理员手机验证码登录，请直接用管理密钥")
     _require_admin_key_only(request)
+    _peer = ""
+    try:
+        _peer = (request.client.host if request.client else "") or ""
+    except Exception:
+        _peer = ""
+    if captcha_enabled() and not verify_captcha(
+        body.captcha_token or "", body.captcha_answer or "", bypass_ip=_peer
+    ):
+        raise HTTPException(status_code=400, detail="图形验证码错误或已过期，请刷新后重试")
     admin_phone = (getattr(settings, "admin_phone", "") or "").strip()
     if not admin_phone:
         raise HTTPException(status_code=503, detail="管理员短信登录未启用（未配置 ADMIN_PHONE）")

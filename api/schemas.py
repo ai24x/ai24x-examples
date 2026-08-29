@@ -191,6 +191,14 @@ class AdminSmsLoginBody(BaseModel):
     code: str = Field(..., min_length=4, max_length=16)
 
 
+class AdminSmsSendBody(BaseModel):
+    """管理员发码（双因素模式）；生产环境可要求图形验证码。"""
+
+    mobile: str = Field(..., min_length=10, max_length=32)
+    captcha_token: Optional[str] = Field(default=None, max_length=64)
+    captcha_answer: Optional[str] = Field(default=None, max_length=16)
+
+
 class AdminSmsConfigBody(BaseModel):
     """管理后台短信多通道配置保存（热生效，写入 api/data/admin_sms_config.json）。
     password 留空表示保持原值；enabled 仍走 system_flags.sms_106_enabled（国内短信总开关）。"""

@@ -625,6 +625,13 @@
       );
       link.href = openApiBase() + "/";
       link.textContent = tr("打开 AI Gateway", "Open AI Gateway");
+    } else if (kind === "token") {
+      extra.textContent = tr(
+        "$0 · 注册拿 Key；余额为空时每日约 10 万 tokens 免费共享",
+        "$0 · Sign up for an API key; ~100K tokens/day free shared when balance is empty"
+      );
+      link.href = openApiBase() + "/console.html?from=account";
+      link.textContent = tr("打开 Gateway 控制台", "Open Gateway console");
     } else {
       extra.textContent = tr(
         "$0 · K线/指标/AI 点评每日 10 次 · 自选 10 只",
@@ -866,13 +873,24 @@
       desc.style.margin = "4px 0 12px";
       desc.textContent = zh ? prod.desc_zh || prod.desc : prod.desc || "";
       card.appendChild(desc);
+      if (isToken) {
+        var legend = document.createElement("p");
+        legend.className = "sub plan-legend";
+        legend.style.margin = "0 0 10px";
+        legend.textContent = tr(
+          "按量扣费 · flash 约 $0.35/百万起 · 下方为预充值包（折合单价见每行）",
+          "Pay as you go · flash from ~$0.35/M · prepaid packs below (effective $/M on each row)"
+        );
+        card.appendChild(legend);
+      }
       var plansWrap = document.createElement("div");
       plansWrap.className = "product-plans";
       var plans = prod.plans || [];
+      if (isToken) appendFreePlanGuide(plansWrap, "token");
       if (isByok) appendFreePlanGuide(plansWrap, "byok");
       if (isMarkets) appendFreePlanGuide(plansWrap, "markets");
       if (!plans.length) {
-        if (!isByok && !isMarkets) {
+        if (!isByok && !isMarkets && !isToken) {
           var none = document.createElement("p");
           none.className = "sub";
           none.textContent = tr("暂无套餐", "No plans");
@@ -913,6 +931,23 @@
               : ""
             : AI24X_API.planValidityLabel(p) || "";
           if (validity) parts.push(validity);
+          if (isToken) {
+            var credN = Number(p.credit_tokens || 0);
+            var usdN = parseFloat(p.price_usd);
+            if (credN > 0) {
+              parts.push(
+                tr("含 ", "Includes ") +
+                  AI24X_API.planCreditsShort(p) +
+                  tr(" credits", " credits")
+              );
+              if (usdN > 0) {
+                var perM = usdN / (credN / 1e6);
+                parts.push(
+                  tr("折合约 $", "≈ $") + perM.toFixed(2) + tr("/百万", "/M")
+                );
+              }
+            }
+          }
           var perk = likeMarkets
             ? (zh ? p.perk_zh || p.perk : p.perk) || ""
             : AI24X_API.planOneLiner(p) || "";

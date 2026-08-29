@@ -380,12 +380,15 @@ def public_products() -> Dict[str, Any]:
             {
                 "product": "token",
                 "title": "AI Gateway credits",
-                "title_zh": "AI Gateway 额度 · Token 套餐",
+                "title_zh": "AI Gateway 额度",
                 "desc": (
-                    "Top up managed API credits (Token plans) for flash / pro / ultra and VIP named models. "
-                    "API keys and docs: open.ai24x.com."
+                    "Top up prepaid credits for flash / pro / ultra and named models. "
+                    "Pay as you go from about $0.35/M (flash). Free daily shared pool when balance is empty."
                 ),
-                "desc_zh": "充值托管 API 额度（Token 套餐），用于 flash / pro / ultra 及点名名模；API Key 与文档在 open.ai24x.com。",
+                "desc_zh": (
+                    "充值托管 API 额度，用于 flash / pro / ultra 及点名名模。"
+                    "按量约 $0.35/百万起（flash）；余额为空时仍有每日免费共享额度。"
+                ),
                 "url": "https://open.ai24x.com",
                 "plans": data.get("plans") or [],
             },
