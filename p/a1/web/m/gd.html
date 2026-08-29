@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <link rel="icon" href="data:," />
 <meta name="robots" content="noindex,nofollow" />
-<title>复盘 · AI行情官｜手机版</title>
+<title>AI复盘 · AI行情官｜手机版</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   body{background:#0b1220;color:#e6edf7;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;font-size:14px;padding-bottom:calc(64px + env(safe-area-inset-bottom))}
@@ -173,7 +173,7 @@
 <body>
 <div class="topbar">
   <a class="home" href="index.html">‹ 首页</a>
-  <span class="ttl">复盘 <b>VIP</b></span>
+  <span class="ttl">AI复盘 <b>VIP</b></span>
   <a class="brief" href="/daily/?brief=1">📋 今日简报</a>
   <a class="desktop" href="../gd.html" id="link-desktop">桌面版</a>
 </div>
@@ -185,6 +185,7 @@
   <button id="tab-bj_all" data-m="bj_all">北证全市场</button>
   <button id="tab-macd" data-m="macd">MACD首红</button>
   <button id="tab-pb" data-m="pb">回踩企稳</button>
+  <button id="tab-mlpb" data-m="mlpb">主线回踩低吸</button>
   <button id="tab-breakout" data-m="breakout">二波突破</button>
   <button id="tab-leader" data-m="leader">主线龙头</button>
   <button id="tab-low10" data-m="low10">10元下</button>
@@ -213,7 +214,7 @@
 <div class="bottombar">
   <a href="index.html"><span class="ic">🏠</span>首页</a>
   <a href="quote.html"><span class="ic">📈</span>行情</a>
-  <a href="gd.html" class="on"><span class="ic">⛏️</span>复盘</a>
+  <a href="gd.html" class="on"><span class="ic">⛏️</span>AI复盘</a>
   <a href="account.html"><span class="ic">👤</span>我的</a>
 </div>
 <div class="toast" id="toast"></div>
@@ -235,9 +236,9 @@
   if (iCode) { try { localStorage.setItem('ai24x_invite_code', String(iCode).trim().toUpperCase()); } catch(e){} }
   if (qp.get('date')) { state.date = qp.get('date'); }
   var mk = qp.get('market');
-  if (mk && ['hs','kc','bj','bj_all','macd','pb','low10'].indexOf(mk) >= 0) { state.market = mk; }
+  if (mk && ['hs','kc','bj','bj_all','macd','pb','mlpb','breakout','leader','low10'].indexOf(mk) >= 0) { state.market = mk; }
   else {
-    try { var _savedM = String(localStorage.getItem('bj_tab') || '').trim(); if (_savedM && ['hs','kc','bj','bj_all','macd','pb','low10'].indexOf(_savedM) >= 0) state.market = _savedM; } catch(e){}
+    try { var _savedM = String(localStorage.getItem('bj_tab') || '').trim(); if (_savedM && ['hs','kc','bj','bj_all','macd','pb','mlpb','breakout','leader','low10'].indexOf(_savedM) >= 0) state.market = _savedM; } catch(e){}
   }
 
   function token(){ try { var t = localStorage.getItem('ai24x_a_token'); if (t && t.length > 20) return t; } catch(e){} return ''; }
@@ -262,7 +263,7 @@
     });
   }
   function guestGateHtml(){
-    return '<div class="vip-gate"><div class="t">🔒 复盘筛选为登录/VIP 专属</div><div class="d">请先登录或开通 VIP，再查看今日 AI 筛选、板块排行与历史归档。</div><a href="account.html">登录 / 开通 VIP →</a></div>';
+    return '<div class="vip-gate"><div class="t">🔒 AI复盘筛选为登录/VIP 专属</div><div class="d">请先登录或开通 VIP，再查看今日 AI 筛选、板块排行与历史归档。</div><a href="account.html">登录 / 开通 VIP →</a></div>';
   }
   function showGuestGate(){
     var ids = ['env','regime','win','meta','pt','runner-box','boardrank','hist'];
@@ -475,6 +476,7 @@
       if (m === 'bj_all') return '北证全市场 · 全市场刚转强活跃票';
       if (m === 'macd') return 'MACD首红 · 底部刚翻红启动信号';
       if (m === 'pb') return '回踩企稳 · 首板/涨停级回踩后缩量企稳';
+      if (m === 'mlpb') return '主线回踩低吸 · 主攻板块内回踩低吸、位置不过热';
       if (m === 'breakout') return '二波突破 · 板后放量突破平台高点';
       if (m === 'leader') return '主线龙头 · 主攻板块最强代表';
       if (m === 'low10') return '10元下 · 低价且刚右侧活跃票';
@@ -710,7 +712,7 @@
     d = d || {};
     var rank = d.board_rank || [];
     if (!rank.length) { el.innerHTML = '<div class="empty">暂无板块排行</div>'; return; }
-    var isAll = (d.market_code === 'hs' || d.market_code === 'kc' || d.market_code === 'macd' || d.market_code === 'pb' || d.market_code === 'low10');
+    var isAll = (d.market_code === 'hs' || d.market_code === 'kc' || d.market_code === 'macd' || d.market_code === 'pb' || d.market_code === 'mlpb' || d.market_code === 'breakout' || d.market_code === 'leader' || d.market_code === 'low10');
     var mains = (d.mainlines || []).filter(function(m){ return m && (!m.src || m.src === 'daily' || m.src === 'archive' || m.src === 'recalc' || m.src === 'fallback'); })
       .map(function(m){ return String(m.name || '').replace(/\s+/g, ''); }).filter(Boolean);
     function hitMainline(name){
@@ -798,6 +800,7 @@
       bj_all: { t: '北证全市场怎么看', s: '全市场挑刚右侧转强、股性活的票；没有合格就空着。' },
       macd: { t: 'MACD首红怎么看', s: '底部刚翻红 + 有量 = 右侧启动。优先今日首红/红柱第2-3天。' },
       pb: { t: '回踩企稳怎么看', s: '首板/涨停后缩量回踩未破位，再转强。适合等回调。' },
+      mlpb: { t: '主线回踩低吸怎么看', s: '必须落在当日主攻板块内，回踩低吸且位置/涨幅不过热；已突破的票不进本栏。' },
       breakout: { t: '二波突破怎么看', s: '板后回踩后放量突破板日或平台高点，右侧加速确认。' },
       leader: { t: '主线龙头怎么看', s: '当日主攻板块内资金+动量最强的代表股，宁缺毋滥。' },
       low10: { t: '10元下怎么看', s: '股价<10元且刚右侧走强、股性活跃；下坡和死水不推。' }
@@ -833,15 +836,8 @@ function renderList(d){
         mrHtml += reds.map(function(m, i){ m.rank = i + 1; return redCard(m); }).join('');
       }
       el.innerHTML = mrHtml;
-      var mrRunners = d.runners || [];
       var mrRb = $('runner-box');
-      if (mrRunners.length) {
-        mrRb.innerHTML = '<details><summary>备选池（落选原因）' + mrRunners.length + '</summary><table><tr><th>代码</th><th>名称</th><th>评分</th><th>原因</th></tr>' +
-          mrRunners.map(function(r){
-            var bl = r.bearish_level === 'hard' ? '<span style="color:#f87171">硬伤</span>' : (r.bearish_level === 'warn' ? '<span style="color:#fbbf24">警示</span>' : '');
-            return '<tr><td>' + esc(r.code) + '</td><td><a href="quote.html?secid=' + encodeURIComponent(secidForCode(r.code)) + '&name=' + encodeURIComponent(r.name) + '">' + esc(r.name) + '</a></td><td>' + (r.final != null ? r.final : '—') + '</td><td>' + bl + ' ' + esc((r.risks || []).join('；') || '排名靠后') + '</td></tr>';
-          }).join('') + '</table></details>';
-      } else mrRb.innerHTML = '';
+      if (mrRb) mrRb.innerHTML = '';
       return;
     }
     if (!picks.length) {
@@ -850,16 +846,9 @@ function renderList(d){
       return;
     }
     el.innerHTML = emoHtml + picks.map(card).join('');
-    // runners
-    var runners = d.runners || [];
+    // 备选池已下线：只保留主推；历史入选走跟踪台账
     var rb = $('runner-box');
-    if (runners.length) {
-      rb.innerHTML = '<details><summary>备选池（落选原因）' + runners.length + '</summary><table><tr><th>代码</th><th>名称</th><th>评分</th><th>原因</th></tr>' +
-        runners.map(function(r){
-          var bl = r.bearish_level === 'hard' ? '<span style="color:#f87171">硬伤</span>' : (r.bearish_level === 'warn' ? '<span style="color:#fbbf24">警示</span>' : '');
-          return '<tr><td>' + esc(r.code) + '</td><td><a href="quote.html?secid=' + encodeURIComponent(secidForCode(r.code)) + '&name=' + encodeURIComponent(r.name) + '">' + esc(r.name) + '</a></td><td>' + (r.final != null ? r.final : '—') + '</td><td>' + bl + ' ' + esc((r.risks || []).join('；') || '排名靠后') + '</td></tr>';
-        }).join('') + '</table></details>';
-    } else rb.innerHTML = '';
+    if (rb) rb.innerHTML = '';
   }
 
   function renderHist(d){
@@ -904,14 +893,14 @@ function renderList(d){
     if (showLoading) $('list').innerHTML = '<div class="empty">加载中…</div>';
     api(url).then(function(d){
       if (d && d.scanning === true) {
-        $('list').innerHTML = '<div class="empty"><span class="spin"></span> 正在生成今日复盘数据（约 1~2 分钟），请稍候…</div>';
+        $('list').innerHTML = '<div class="empty"><span class="spin"></span> 正在生成今日AI复盘数据（约 1~2 分钟），请稍候…</div>';
         pollScanDone(function(){ load(true); });
         return;
       }
       if (!d || d.ok === false || (d && d.detail)) {
         var msg = (d && (d.message || d.msg || d.detail)) || '加载失败，请稍后重试';
         if (/token|login|登录|授权|缺失|无效/i.test(String(msg))) {
-          $('list').innerHTML = '<div class="vip-gate"><div class="t">🔒 复盘筛选为登录/VIP 专属</div><div class="d">请先登录或开通 VIP，再查看今日 AI 筛选与历史归档。</div><a href="account.html">登录 / 开通 VIP →</a></div>';
+          $('list').innerHTML = '<div class="vip-gate"><div class="t">🔒 AI复盘筛选为登录/VIP 专属</div><div class="d">请先登录或开通 VIP，再查看今日 AI 筛选与历史归档。</div><a href="account.html">登录 / 开通 VIP →</a></div>';
         } else {
           $('list').innerHTML = '<div class="empty">' + esc(msg) + '</div>';
         }

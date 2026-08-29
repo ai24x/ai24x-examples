@@ -1257,7 +1257,15 @@ def build_md(data, vip=True):
     if weak_flag:
         A("> ⚠️ **环境警示**：大盘环境转弱（跌破MA20 / MACD绿柱），主线多为超跌反弹，注意从严控制仓位，等重新站上 MA20 再观察。")
     elif env.get("pts") is not None and float(env.get("pts")) >= 3:
-        A("> ✅ **环境顺风**：大盘 MACD 翻红且站上 MA20，关注主线回踩企稳形态；注意不追高、破位风险。")
+        _sh_pct = None
+        try:
+            _sh_pct = float((idx.get("上证指数") or {}).get("pct"))
+        except Exception:
+            _sh_pct = None
+        if _sh_pct is not None and _sh_pct < 0:
+            A("> ⚖️ **结构偏多·当日承压**：中期 MACD 仍偏多/站上 MA20，但上证今日收跌（%+.2f%%），板块走弱时先看承压，不按顺风加仓。" % _sh_pct)
+        else:
+            A("> ✅ **环境顺风**：大盘 MACD 翻红且站上 MA20，关注主线回踩企稳形态；注意不追高、破位风险。")
     A("")
     A("---")
     A("")

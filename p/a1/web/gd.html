@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
   <meta name="robots" content="noindex,nofollow" />
-  <title>复盘 · VIP专属 · AI行情官｜灯塔版</title>
+  <title>AIAI复盘 · VIP专属 · AI行情官｜灯塔版</title>
   <meta name="description" content="AI行情官 VIP 专属功能：每日收盘后扫描沪深京 / 北证全市场，板块先行反推主线，再筛选底部刚走多、异动回踩企稳、未大幅拉升的标的。本工具仅基于公开行情做技术形态统计与信息整理，不构成投资建议，不保证收益。" />
   <link rel="icon" href="data:," />
   <script>
@@ -16,9 +16,9 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="/css/base.css?v=54" />
+  <link rel="stylesheet" href="/css/base.css?v=56" />
   <link rel="stylesheet" href="/css/tool.css" />
-  <link rel="stylesheet" href="/css/bjscreener.css?v=95" />
+  <link rel="stylesheet" href="/css/bjscreener.css?v=98" />
 <style>
 /* 复盘 · 大盘环境与策略区（大盘同步） */
 .bj-market{display:block;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:10px 14px;margin:0 0 12px;}
@@ -102,7 +102,7 @@
       <section class="card">
         <div class="bj-hero">
           <div>
-            <h1>复盘 <span class="vip-badge">VIP</span></h1>
+            <h1>AI复盘 <span class="vip-badge">VIP</span></h1>
             <p class="sub">收盘定型 · 主线一眼看清</p>
           </div>
           <a class="btn" href="/daily/?brief=1" style="white-space:nowrap;">今日简报</a>
@@ -144,6 +144,7 @@
             <button type="button" class="bj-tab" data-market="bj_all">北证全市场</button>
             <button type="button" class="bj-tab" data-market="macd">MACD首红</button>
             <button type="button" class="bj-tab" data-market="pb">回踩企稳</button>
+            <button type="button" class="bj-tab" data-market="mlpb">主线回踩低吸</button>
             <button type="button" class="bj-tab" data-market="breakout">二波突破</button>
             <button type="button" class="bj-tab" data-market="leader">主线龙头</button>
             <button type="button" class="bj-tab" data-market="low10">10元下</button>
@@ -164,6 +165,7 @@
             <div id="bj-strategy" hidden></div>
             <div id="bj-boardrank"></div>
             <div id="bj-result"></div>
+            <div id="bj-raceboard" hidden></div>
             <div id="bj-pb-ledger" hidden></div>
             <details class="bj-fold" id="bj-more">
               <summary>更多数据</summary>
@@ -183,11 +185,11 @@
     </div>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="/js/shell.js?v=57"></script>
+  <script src="/js/shell.js?v=61"></script>
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("bjscreener"); } catch (e) {}
   </script>
-  <script src="/js/bjscreener.js?v=126"></script>
+  <script src="/js/bjscreener.js?v=132"></script>
   <script>
     (function () {
       var w = window.AI24X_BJScreener;

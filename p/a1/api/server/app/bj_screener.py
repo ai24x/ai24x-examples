@@ -481,13 +481,14 @@ async def compute_winrate(days: int = 14, variant: str = "vip", priority_overrid
     days = max(1, min(int(days or 14), 30))
     cache = _winrate_cache_load()
     today8 = _today8()
-    if cache.get("ver") == 3 and cache.get("asof") == today8 and cache.get("ok"):
+    if cache.get("ver") == 4 and cache.get("asof") == today8 and cache.get("ok"):
         return cache
     hist = _load_history() or {}
     cutoff = time.time() - days * 86400
-    jobs: list[tuple[str, str, dict[str, Any]]] = []
-    seen: set[tuple[str, str]] = set()
+    jobs: list[tuple[str, str, str, dict[str, Any]]] = []
+    seen: set[tuple[str, str, str]] = set()
     for key, payload in hist.items():
+        mk = str(key).split(":", 1)[0] if ":" in str(key) else "bj"
         d = str(key).split(":")[-1]
         if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", d):
             continue
@@ -499,11 +500,11 @@ async def compute_winrate(days: int = 14, variant: str = "vip", priority_overrid
             continue
         for p in (payload.get("picks") or []):
             code = str(p.get("code") or "")
-            asof = str(p.get("lastDate") or p.get("asof") or "")
-            if not code or not asof or (code, asof) in seen:
+            asof = str(p.get("lastDate") or p.get("asof") or d)
+            if not code or not asof or (mk, code, asof) in seen:
                 continue
-            seen.add((code, asof))
-            jobs.append((code, asof, p))
+            seen.add((mk, code, asof))
+            jobs.append((mk, code, asof, p))
     jobs = jobs[:50]
     _PRIO = ("ztPullback", "pullback2", "firstBoardRight", "surgeStart", "surgePullback", "steadyUp", "macdFirstRed")
 
@@ -528,7 +529,7 @@ async def compute_winrate(days: int = 14, variant: str = "vip", priority_overrid
         return "<50"
 
     results: list[dict[str, Any]] = []
-    for code, asof, p in jobs:
+    for mk, code, asof, p in jobs:
         try:
             rows = await _kline_with_retry(code, variant, priority_override, allow_paid, use_cache=True)
         except Exception:
@@ -549,7 +550,7 @@ async def compute_winrate(days: int = 14, variant: str = "vip", priority_overrid
         entry = float(p.get("price") or (rows[idx][2] if idx is not None else rows[-1][2])) or 1.0
         last = float(rows[-1][2])
         base = {
-            "code": code, "asof": asof, "name": str(p.get("name") or ""),
+            "market": mk, "code": code, "asof": asof, "name": str(p.get("name") or ""),
             "tier": str(p.get("tier") or "normal"), "role": str(p.get("pickRole") or ""),
             "final": p.get("final"),
             "pattern": _pattern_of(p), "emotionRegime": str(p.get("emotionRegime") or "unknown"),
@@ -628,6 +629,10 @@ async def compute_winrate(days: int = 14, variant: str = "vip", priority_overrid
         b["n"] += 1
         if r["fwd5"] >= 5.0:
             b["hit"] += 1
+    by_market: dict[str, list[dict[str, Any]]] = {}
+    for r in results:
+        by_market.setdefault(str(r.get("market") or "bj"), []).append(r)
+
     out = {
         "ok": True, "asof": today8, "n": n, "tracking": tracking,
         "hit5_rate": round(hit5 / n * 100, 1) if n else None,
@@ -638,7 +643,8 @@ async def compute_winrate(days: int = 14, variant: str = "vip", priority_overrid
         "by_pattern": {k: _grp(v) for k, v in by_pattern.items()},
         "by_regime": {k: _grp(v) for k, v in by_regime.items()},
         "by_score": {k: _grp(v) for k, v in by_score.items()},
-        "ver": 3,
+        "by_market": {k: _grp(v) for k, v in by_market.items()},
+        "ver": 4,
         "items": results,
         "recent": results[:12],
     }
@@ -794,7 +800,7 @@ def _load_archive_raw(market: str, date_key: str) -> dict[str, Any] | None:
 
 def load_archive(market: str, date_key: str) -> dict[str, Any] | None:
     market = str(market or "bj")
-    if market in ("pb", "breakout", "leader"):
+    if market in ("pb", "mlpb", "breakout", "leader"):
         hs = _load_archive_raw("hs", date_key)
         return apply_column_view(market, hs) if isinstance(hs, dict) else None
     return _load_archive_raw(market, date_key)
@@ -1075,6 +1081,7 @@ async def compute_pb_track(days: int = 90, variant: str = "vip",
         "mean_fwd5": _mean_fwd("fwd5"),
         "mean_fwd10": _mean_fwd("fwd10"),
         "pos5_rate": round(sum(1 for r in done if (r.get("fwd5") or 0) >= 0) / n_done * 100, 1) if n_done else None,
+        "hit5_rate": round(sum(1 for r in done if (r.get("fwd5") or 0) >= 5) / n_done * 100, 1) if n_done else None,
         "relimit_def": "信号日收盘后 N 个交易日内再次触及涨停阈值计为「再次涨停」",
         "by_pattern": {
             k: {
@@ -1098,6 +1105,156 @@ async def compute_pb_track(days: int = 90, variant: str = "vip",
     return out
 
 
+
+def column_ledger(market: str = "pb", limit: int = 120) -> list[dict[str, Any]]:
+    """各栏目历史主推台账（不含备选池），供后期跟踪对比算法。"""
+    market = str(market or "pb").strip().lower()
+    lim = max(1, min(int(limit or 120), 500))
+    if market == "pb":
+        rows = pb_ledger(lim)
+        for r in rows:
+            if isinstance(r, dict):
+                r.setdefault("market", "pb")
+        return rows
+    rows: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    for it in archive_summary(market):
+        day = str(it.get("date") or "")
+        asof = str(it.get("asof") or day)
+        if not day:
+            continue
+        for p in it.get("picks") or []:
+            if not isinstance(p, dict):
+                continue
+            code = str(p.get("code") or "")
+            if not code or (day, code) in seen:
+                continue
+            seen.add((day, code))
+            rows.append({
+                "date": day, "asof": asof, "code": code,
+                "name": p.get("name"), "final": p.get("final"),
+                "price": p.get("price") if p.get("price") is not None else (p.get("close") or p.get("last")),
+                "pct": p.get("pct"),
+                "pattern": p.get("pattern") or "",
+                "tier": p.get("tier") or "normal",
+                "market": market,
+            })
+    rows.sort(key=lambda x: (str(x.get("date") or ""), str(x.get("code") or "")), reverse=True)
+    return rows[:lim]
+
+
+async def compute_column_track(market: str = "pb", days: int = 90, variant: str = "vip",
+                               priority_override: str = "", allow_paid: bool = True) -> dict[str, Any]:
+    """栏目主推跟踪：入选后 T+5/T+10 收益与成功率（各栏目算法对比）。"""
+    market = str(market or "pb").strip().lower()
+    if market == "pb":
+        out = await compute_pb_track(days, variant, priority_override, allow_paid)
+        out = dict(out)
+        out["market"] = "pb"
+        return out
+    days = max(7, min(int(days or 90), 180))
+    today8 = _today8()
+    cache_path = os.path.join(_ARCHIVE_DIR, "col_track_%s.json" % market)
+    cache = _load_json_file(cache_path, {}) or {}
+    if cache.get("ver") == 1 and cache.get("asof") == today8 and cache.get("ok") and cache.get("market") == market:
+        return cache
+    cutoff_ts = time.time() - days * 86400
+    jobs: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    for row in column_ledger(market, 500):
+        d = str(row.get("date") or "")
+        code = str(row.get("code") or "")
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", d) or not code:
+            continue
+        try:
+            if time.mktime(time.strptime(d, "%Y-%m-%d")) < cutoff_ts:
+                continue
+        except Exception:
+            continue
+        if (d, code) in seen:
+            continue
+        seen.add((d, code))
+        jobs.append(row)
+    results: list[dict[str, Any]] = []
+    for row in jobs[:80]:
+        code = str(row.get("code") or "")
+        asof = str(row.get("asof") or row.get("date") or "")
+        try:
+            kl = await _kline_with_retry(code, variant, priority_override, allow_paid, use_cache=True)
+        except Exception:
+            continue
+        if not kl:
+            continue
+        dates = [str(r[0]) for r in kl]
+        idx = None
+        for i, dd in enumerate(dates):
+            if dd == asof:
+                idx = i
+                break
+        if idx is None:
+            for i in range(len(dates) - 1, -1, -1):
+                if dates[i] <= asof:
+                    idx = i
+                    break
+        entry = float(row.get("price") or 0) or (
+            float(kl[idx][2]) if idx is not None else float(kl[-1][2])
+        )
+        if entry <= 0:
+            continue
+        base: dict[str, Any] = {
+            "date": row.get("date"), "asof": asof, "code": code, "market": market,
+            "name": str(row.get("name") or ""), "pattern": str(row.get("pattern") or ""),
+            "final": row.get("final"), "entry": round(entry, 2),
+            "last": round(float(kl[-1][2]), 2), "lastDate": str(kl[-1][0]),
+        }
+        if idx is None or idx >= len(kl) - 1:
+            base.update({
+                "state": "tracking",
+                "since": round((float(kl[-1][2]) / entry - 1) * 100, 1),
+                "fwd1": None, "fwd3": None, "fwd5": None, "fwd10": None,
+                "relimit5": None, "relimit10": None,
+            })
+            results.append(base)
+            continue
+
+        def _fwd(nn: int, _idx=idx, _kl=kl, _entry=entry) -> float | None:
+            j = _idx + nn
+            return round((float(_kl[j][2]) / _entry - 1) * 100, 1) if j < len(_kl) else None
+
+        base.update({
+            "state": "done",
+            "fwd1": _fwd(1), "fwd3": _fwd(3), "fwd5": _fwd(5), "fwd10": _fwd(10),
+            "relimit5": None, "relimit10": None,
+            "since": round((float(kl[-1][2]) / entry - 1) * 100, 1),
+        })
+        results.append(base)
+    results.sort(key=lambda r: str(r.get("date") or ""), reverse=True)
+    done = [r for r in results if r.get("state") == "done"]
+    n_done = len(done)
+
+    def _mean_fwd(k: str) -> float | None:
+        vals = [float(r[k]) for r in done if r.get(k) is not None]
+        return round(sum(vals) / len(vals), 1) if vals else None
+
+    out = {
+        "ok": True, "asof": today8, "ver": 1, "market": market,
+        "days": days, "n": len(results), "n_done": n_done,
+        "tracking": sum(1 for r in results if r.get("state") == "tracking"),
+        "relimit5_rate": None, "relimit10_rate": None,
+        "mean_fwd5": _mean_fwd("fwd5"), "mean_fwd10": _mean_fwd("fwd10"),
+        "pos5_rate": round(sum(1 for r in done if (r.get("fwd5") or 0) >= 0) / n_done * 100, 1) if n_done else None,
+        "hit5_rate": round(sum(1 for r in done if (r.get("fwd5") or 0) >= 5) / n_done * 100, 1) if n_done else None,
+        "relimit_def": "本栏目统计入选后收盘收益；强势=5日收益≥+5%",
+        "by_pattern": {},
+        "items": results,
+    }
+    try:
+        _save_json_file(cache_path, out)
+    except Exception:
+        pass
+    return out
+
+
 def archive_summary(market: str = "bj") -> list[dict[str, Any]]:
     """历史归档选择器（按市场隔离）：优先以 bj_scan_history.json 索引为准。
 
@@ -1108,35 +1265,48 @@ def archive_summary(market: str = "bj") -> list[dict[str, Any]]:
     pb = 从 hs 归档套用 pb_view 过滤（支持历史回溯，无需单独存盘）。
     """
     market = str(market or "bj")
-    if market in ("pb", "breakout", "leader"):
+    if market in ("pb", "mlpb", "breakout", "leader", "macd", "low10"):
         out_col: list[dict[str, Any]] = []
         try:
             hist = _load_history()
             days_seen: set[str] = set()
+            src_prefix = "all" if market in ("macd", "low10") else "hs"
+
+            def _col_picks_from_snap(snap: dict[str, Any]) -> list[dict[str, Any]]:
+                if market == "macd":
+                    raw = snap.get("macd_reds") or snap.get("picks") or []
+                else:
+                    raw = snap.get("picks") or []
+                return [_hist_pick_brief(p) for p in raw[:6] if isinstance(p, dict)]
+
             for k, v in hist.items():
                 if not isinstance(v, dict):
                     continue
                 mk = k.split(":", 1)[0] if ":" in k else "bj"
                 dk = k.split(":", 1)[1] if ":" in k else k
                 if mk == market:
-                    picks = v.get("picks") or []
+                    picks = _col_picks_from_snap(v)
+                    if not picks and market == "macd":
+                        picks = [_hist_pick_brief(p) for p in (v.get("macd_reds") or [])[:4] if isinstance(p, dict)]
+                    if not picks:
+                        picks = [_hist_pick_brief(p) for p in (v.get("picks") or [])[:6] if isinstance(p, dict)]
                     if picks:
                         out_col.append({
                             "date": dk,
                             "asof": v.get("asof") or dk,
                             "total": v.get("total"),
                             "fine": v.get("fine"),
-                            "picks": [_hist_pick_brief(p) for p in picks[:4] if isinstance(p, dict)],
+                            "picks": picks,
                         })
                         days_seen.add(dk)
             for k, v in hist.items():
-                if not isinstance(v, dict) or not k.startswith("hs:"):
+                if not isinstance(v, dict) or not k.startswith(src_prefix + ":"):
                     continue
                 dk = k.split(":", 1)[1]
                 if dk in days_seen:
                     continue
                 snap = apply_column_view(market, v)
-                picks = snap.get("picks") or []
+                picks = _col_picks_from_snap(snap)
                 if not picks:
                     continue
                 out_col.append({
@@ -1144,7 +1314,7 @@ def archive_summary(market: str = "bj") -> list[dict[str, Any]]:
                     "asof": snap.get("asof") or dk,
                     "total": snap.get("total"),
                     "fine": snap.get("fine"),
-                    "picks": [_hist_pick_brief(p) for p in picks[:4] if isinstance(p, dict)],
+                    "picks": picks,
                 })
             out_col.sort(key=lambda x: str(x.get("date") or ""), reverse=True)
             if out_col:
@@ -1852,7 +2022,7 @@ def apply_emotion_gate(cfg: dict[str, Any], emotion: dict[str, Any], column: str
         return None
     adj = dict(cfg)
     adj["scoreMin"] = float(adj.get("scoreMin") or 0) + 5.0
-    if column in ("pb", "breakout", "leader"):
+    if column in ("pb", "mlpb", "breakout", "leader"):
         adj["scoreMin"] += 3.0
     adj["cap"] = max(20, int(adj.get("cap") or 60) // 2)
     return adj
@@ -5206,7 +5376,7 @@ def _runner_out(c: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _macd_reds_from_report(d8: str | None = None, limit: int = 8) -> list[dict[str, Any]]:
+def _macd_reds_from_report(d8: str | None = None, limit: int = 4) -> list[dict[str, Any]]:
     """MACD首红数据源拓宽（P1-2 A）：从每日复盘 sector_score.json 全量体检样本提取
     「MACD翻红第 1-3 天 + 位置≤50% + 无 hard 风险」标的，保证今日必有内容（零上游成本）。"""
     try:
@@ -5367,7 +5537,7 @@ def macd_view(out: dict[str, Any]) -> dict[str, Any]:
         for _x in _mr:
             if isinstance(_x, dict):
                 _x.setdefault("src", "全市场扫描")
-        _need = max(0, 8 - len(_mr))
+        _need = max(0, 4 - len(_mr))
         if _need > 0:
             _fill = _macd_reds_from_report(limit=_need + 4)
             _have_codes = {str(x.get("code") or "") for x in _mr}
@@ -5376,11 +5546,11 @@ def macd_view(out: dict[str, Any]) -> dict[str, Any]:
                     continue
                 _mr.append(_x)
                 _have_codes.add(str(_x.get("code") or ""))
-                if len(_mr) >= 8:
+                if len(_mr) >= 4:
                     break
         # 路径门：禁下坡，优先右侧上涨途中 + 股性活跃
         _mr = [x for x in _mr if isinstance(x, dict) and _path_gate(x, require_active=True)]
-        o["macd_reds"] = _mr[:8]
+        o["macd_reds"] = _mr[:4]
     except Exception:
         pass
     return o
@@ -5421,8 +5591,105 @@ def pb_view(out: dict[str, Any]) -> dict[str, Any]:
     pool = [c for c in ((out.get("picks") or []) + (out.get("runners") or []))
             if isinstance(c, dict) and _pb_board_only(c) and _path_gate(c, require_active=True)]
     pool.sort(key=_pb_sort_key)
-    o["picks"] = pool[:2]
-    o["runners"] = [c for c in pool[2:8]]
+
+    def _has_chart(x: dict[str, Any]) -> bool:
+        ch = x.get("chart") if isinstance(x, dict) else None
+        if not isinstance(ch, dict):
+            return False
+        return bool(ch.get("closes") or ch.get("c") or ch.get("dates"))
+
+    # 主推只要带完整 K 线的；无图的备选不上主推卡（避免「有名无图」）
+    with_chart = [c for c in pool if _has_chart(c)]
+    use = with_chart[:2] if with_chart else []
+    ranked: list[dict[str, Any]] = []
+    for i, c in enumerate(use):
+        cc = dict(c)
+        cc["rank"] = i + 1
+        ranked.append(cc)
+    o["picks"] = ranked
+    o["runners"] = []  # 备选池已下线
+    return o
+
+
+# 主线回踩低吸：偏「低吸」子集（相对回踩企稳：硬 mainHit、排除已突破、位置/涨幅更严）
+_MLPB_CORE_KEYS = ("pb45", "pullback2", "ztPullback", "firstWeek")
+_MLPB_WIDE_KEYS = ("pullback", "washOut", "surgePullback", "eventPullback")
+
+
+def _pos_frac(c: dict[str, Any]) -> float:
+    """候选位置 0~1；兼容百分制字段。"""
+    p = c.get("pos")
+    if p is None and isinstance(c.get("A"), dict):
+        p = (c.get("A") or {}).get("pos")
+    try:
+        v = float(p)
+    except Exception:
+        return 99.0
+    return v / 100.0 if v > 1.5 else v
+
+
+def _chg_n(c: dict[str, Any], key: str) -> float:
+    v = c.get(key)
+    if v is None and isinstance(c.get("A"), dict):
+        v = (c.get("A") or {}).get(key)
+    try:
+        return float(v)
+    except Exception:
+        return 999.0
+
+
+def mlpb_view(out: dict[str, Any]) -> dict[str, Any]:
+    """主线回踩低吸：当日主攻板块内回踩/低吸，硬要求 mainHit；排除已突破（留给二波突破栏）。
+
+    与「回踩企稳」差异：mainHit 硬门；形态偏低吸；pos≤0.50 且 chg5/chg10 不过热；宁缺带图主推最多 2 只。
+    """
+    o = _hs_column_shell(out, "mlpb")
+
+    def _match(c: dict[str, Any]) -> bool:
+        if not c.get("mainHit"):
+            return False
+        pp = c.get("patterns") or {}
+        if pp.get("breakout"):
+            return False
+        core = any(pp.get(k) for k in _MLPB_CORE_KEYS)
+        wide = any(pp.get(k) for k in _MLPB_WIDE_KEYS)
+        if not (core or wide):
+            return False
+        if _pos_frac(c) > 0.50:
+            return False
+        if _chg_n(c, "chg5") > 18.0 or _chg_n(c, "chg10") > 30.0:
+            return False
+        return _path_gate(c, require_active=True)
+
+    def _sort_key(c: dict[str, Any]) -> tuple:
+        pp = c.get("patterns") or {}
+        core = 0 if any(pp.get(k) for k in _MLPB_CORE_KEYS) else 1
+        return (
+            core,
+            -_pb_evp_score(c),
+            _pos_frac(c),
+            _chg_n(c, "chg5"),
+            -int(c.get("final") or 0),
+        )
+
+    def _has_chart(x: dict[str, Any]) -> bool:
+        ch = x.get("chart") if isinstance(x, dict) else None
+        if not isinstance(ch, dict):
+            return False
+        return bool(ch.get("closes") or ch.get("c") or ch.get("dates"))
+
+    pool = [c for c in ((out.get("picks") or []) + (out.get("runners") or []))
+            if isinstance(c, dict) and _match(c)]
+    pool.sort(key=_sort_key)
+    with_chart = [c for c in pool if _has_chart(c)]
+    use = with_chart[:2] if with_chart else []
+    ranked: list[dict[str, Any]] = []
+    for i, c in enumerate(use):
+        cc = dict(c)
+        cc["rank"] = i + 1
+        ranked.append(cc)
+    o["picks"] = ranked
+    o["runners"] = []
     return o
 
 
@@ -5512,7 +5779,7 @@ def leader_view(out: dict[str, Any]) -> dict[str, Any]:
     return o
 
 
-_HS_COLUMN_MARKETS = frozenset({"pb", "breakout", "leader"})
+_HS_COLUMN_MARKETS = frozenset({"pb", "mlpb", "breakout", "leader"})
 
 
 def scan_market_for(market_code: str) -> str:
@@ -5534,6 +5801,8 @@ def apply_column_view(market_code: str, out: dict[str, Any]) -> dict[str, Any]:
         return low10_view(out)
     if mc == "pb":
         return pb_view(out)
+    if mc == "mlpb":
+        return mlpb_view(out)
     if mc == "breakout":
         return breakout_view(out)
     if mc == "leader":
@@ -5541,10 +5810,34 @@ def apply_column_view(market_code: str, out: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+
+def _save_all_column_histories(today: str, asof: str, hist_payload: dict[str, Any],
+                               result: dict[str, Any]) -> None:
+    """全市场扫描完成后，写入 macd / low10 专栏历史（供跟踪台账）。"""
+    for mc, vf in (("macd", macd_view), ("low10", low10_view)):
+        try:
+            snap = vf(result)
+            if mc == "macd":
+                picks = snap.get("macd_reds") or snap.get("picks") or []
+            else:
+                picks = snap.get("picks") or []
+            if not picks:
+                continue
+            col_hist = dict(hist_payload)
+            col_hist["market_code"] = mc
+            col_hist["picks"] = picks[:8]
+            if mc == "macd":
+                col_hist["macd_reds"] = picks[:4]
+            col_hist["runners"] = []
+            _save_history(f"{mc}:{str(today)}", col_hist)
+        except Exception:
+            pass
+
+
 def _save_hs_column_histories(today: str, asof: str, hist_payload: dict[str, Any],
                               result: dict[str, Any]) -> None:
-    """沪深扫描完成后，写入 pb / 二波突破 / 主线龙头 专栏历史。"""
-    for mc, vf in (("pb", pb_view), ("breakout", breakout_view), ("leader", leader_view)):
+    """沪深扫描完成后，写入 pb / 主线回踩低吸 / 二波突破 / 主线龙头 专栏历史。"""
+    for mc, vf in (("pb", pb_view), ("mlpb", mlpb_view), ("breakout", breakout_view), ("leader", leader_view)):
         try:
             snap = vf(result)
             picks = snap.get("picks") or []
@@ -5800,7 +6093,7 @@ def replay_scan(date8: str, market: str = "hs") -> dict[str, Any]:
     if not re.fullmatch(r"\d{8}", date8):
         return {"ok": False, "error": "bad_date", "message": "日期格式应为 YYYY-MM-DD 或 YYYYMMDD"}
     market = str(market or "hs").strip().lower()
-    if market not in ("hs", "kc", "bj", "bj_all", "all", "macd", "pb", "low10"):
+    if market not in ("hs", "kc", "bj", "bj_all", "all", "macd", "pb", "mlpb", "breakout", "leader", "low10"):
         market = "hs"
     dash = f"{date8[:4]}-{date8[4:6]}-{date8[6:]}"
     t0 = time.time()
@@ -5902,7 +6195,7 @@ def replay_scan(date8: str, market: str = "hs") -> dict[str, Any]:
         runners = [_pick_out(c) for c in fine[2:8]]
     elif market == "macd":
         fine = _replay_fine_pass(recs, cfg, style_mode)
-        macd_reds = [_pick_out(c) for c in fine if (c.get("A") or {}).get("patterns", {}).get("macdFirstRed")][:8]
+        macd_reds = [_pick_out(c) for c in fine if (c.get("A") or {}).get("patterns", {}).get("macdFirstRed")][:4]
     elif market == "breakout":
         fine = _replay_fine_pass(recs, cfg, style_mode)
         _bo = [c for c in fine if bool((c.get("A") or {}).get("patterns", {}).get("breakout"))]
@@ -5935,6 +6228,38 @@ def replay_scan(date8: str, market: str = "hs") -> dict[str, Any]:
         _pb.sort(key=_pb_replay_key)
         picks = [_pick_out(c) for c in _pb[:2]]
         runners = [_pick_out(c) for c in _pb[2:8]]
+    elif market == "mlpb":
+        fine = _replay_fine_pass(recs, cfg, style_mode)
+        def _mlpb_ok(c: dict[str, Any]) -> bool:
+            if not c.get("mainHit"):
+                return False
+            pp = (c.get("A") or {}).get("patterns") or {}
+            if pp.get("breakout"):
+                return False
+            core = any(pp.get(k) for k in _MLPB_CORE_KEYS)
+            wide = any(pp.get(k) for k in _MLPB_WIDE_KEYS)
+            if not (core or wide):
+                return False
+            a = c.get("A") or {}
+            try:
+                pos = float(a.get("pos") if a.get("pos") is not None else c.get("pos") or 99)
+            except Exception:
+                pos = 99.0
+            if pos > 1.5:
+                pos = pos / 100.0
+            if pos > 0.50:
+                return False
+            try:
+                chg5 = float(a.get("chg5") if a.get("chg5") is not None else c.get("chg5") or 999)
+                chg10 = float(a.get("chg10") if a.get("chg10") is not None else c.get("chg10") or 999)
+            except Exception:
+                return False
+            return chg5 <= 18.0 and chg10 <= 30.0
+        _ml = [c for c in fine if _mlpb_ok(c)]
+        _ml.sort(key=lambda c: (0 if any(((c.get("A") or {}).get("patterns") or {}).get(k) for k in _MLPB_CORE_KEYS) else 1,
+                                 -int(c.get("final") or 0)))
+        picks = [_pick_out(c) for c in _ml[:2]]
+        runners = [_pick_out(c) for c in _ml[2:8]]
     elif market == "low10":
         lcfg = _replay_cfg("low10")
         for c in recs:
@@ -7448,6 +7773,8 @@ async def run_scan(
         _save_archive(market, str(today), hist_payload)
         if market == "hs":
             _save_hs_column_histories(str(today), asof, hist_payload, result)
+        if market == "all":
+            _save_all_column_histories(str(today), asof, hist_payload, result)
     if not pick_out and not _market_closed():
         # 盘中空结果（盘前/数据未就绪）：仅短时负缓存，不入盘、不污染整日 6h 缓存
         result["_bad"] = True

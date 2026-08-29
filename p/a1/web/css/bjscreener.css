@@ -362,14 +362,14 @@ a.chip.chip-mainline:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba
 .ml-empty{padding:16px 14px;border-radius:14px;border:1px dashed var(--border);text-align:center;color:var(--muted);font-size:13px;line-height:1.6}
 .ml-empty b{display:block;font-size:16px;color:var(--text);margin-bottom:4px}
 
-/* 今日大盘：紧凑表格式（告别大卡片） */
-.mkt-signal.compact{display:grid;grid-template-columns:68px 1fr;gap:10px 12px;align-items:stretch;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:var(--panel);margin:0 0 12px}
-.mkt-badge-sm{min-width:60px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900;letter-spacing:.04em;padding:10px 4px}
+/* 今日大盘：顶栏横排环境 + 指数表（长文案不再挤进窄竖条） */
+.mkt-signal.compact{display:flex;flex-direction:column;gap:10px;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:var(--panel);margin:0 0 12px}
+.mkt-badge-sm{min-width:0;border-radius:10px;display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:12px;font-weight:900;letter-spacing:.02em;padding:8px 12px}
 .mkt-badge-sm.ok{background:linear-gradient(160deg,rgba(248,113,113,.2),rgba(251,191,36,.1));color:#dc2626;border:1px solid rgba(220,38,38,.3)}
 .mkt-badge-sm.warn{background:rgba(251,191,36,.12);color:#b45309;border:1px solid rgba(251,191,36,.35)}
 .mkt-badge-sm.risk{background:rgba(220,38,38,.12);color:#991b1b;border:1px solid rgba(220,38,38,.35)}
-.mkt-badge-sm .big{font-size:15px;line-height:1.2}
-.mkt-badge-sm .sm{font-size:12px;opacity:.85;margin-top:3px;font-weight:700}
+.mkt-badge-sm .big{font-size:14px;line-height:1.35;font-weight:800;text-align:left;flex:1;min-width:0}
+.mkt-badge-sm .sm{font-size:18px;line-height:1;opacity:1;margin-top:0;font-weight:900;flex-shrink:0;font-variant-numeric:tabular-nums}
 .mkt-idx-wrap{min-width:0;display:flex;flex-direction:column;gap:3px}
 .mkt-head,.mkt-row{display:grid;grid-template-columns:minmax(56px,.9fr) minmax(60px,.85fr) minmax(56px,.85fr) minmax(44px,.6fr) minmax(48px,.65fr);gap:4px 8px;align-items:center;font-variant-numeric:tabular-nums}
 .mkt-head{font-size:12px;color:var(--muted);padding:0 6px 5px;border-bottom:1px solid var(--border);margin-bottom:2px;font-weight:600}
@@ -385,8 +385,9 @@ a.chip.chip-mainline:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba
 .mkt-row .sc{color:var(--text);opacity:.85}
 .mkt-empty{color:var(--muted);font-size:13px;padding:6px}
 @media (max-width:560px){
-  .mkt-signal.compact{grid-template-columns:1fr}
-  .mkt-badge-sm{flex-direction:row;gap:8px;justify-content:flex-start;padding:6px 10px}
+  .mkt-badge-sm{padding:7px 10px;gap:10px}
+  .mkt-badge-sm .big{font-size:13px}
+  .mkt-badge-sm .sm{font-size:16px}
   .mkt-head span:nth-child(n+4),.mkt-row .sc,.mkt-row .bar{display:none}
   .mkt-head,.mkt-row{grid-template-columns:minmax(52px,1fr) minmax(62px,.9fr) minmax(56px,.85fr)}
 }
@@ -419,6 +420,24 @@ a.chip.chip-mainline:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba
 .br-clean .br-leaders .sep{margin:0 4px;opacity:.4;flex:0 0 auto}
 .br-clean .br-leaders span.up,.br-clean .br-leaders span.down{margin-left:2px;font-weight:700}
 .ml-names{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+
+/* 栏目赛马周报看板 */
+.race-card{margin:14px 0 12px;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:var(--panel)}
+.race-title{margin:0 0 6px;font-size:14px;font-weight:800;letter-spacing:.04em}
+.race-desc{margin:0 0 10px;font-size:12px;line-height:1.55;color:var(--muted)}
+.race-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.race-table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.race-table th,.race-table td{padding:7px 8px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+.race-table th{font-size:12px;color:var(--muted);font-weight:700}
+.race-table tr.race-top td{background:linear-gradient(90deg,rgba(251,191,36,.14),transparent 70%)}
+.race-table tr.race-empty td{color:var(--muted);font-size:12px}
+.race-table .up{color:#dc2626;font-weight:700}
+.race-table .dn{color:#16a34a;font-weight:700}
+@media (max-width:560px){
+  .race-card{padding:10px 12px}
+  .race-table{font-size:12px}
+  .race-table th:nth-child(4),.race-table td:nth-child(4){display:none}
+}
 
 .sec-label{margin:18px 0 10px;font-size:13px;letter-spacing:.12em;font-weight:800;color:var(--muted);text-transform:uppercase}
 #bj-mainlines > .sec-label:first-child,

@@ -97,6 +97,7 @@ window.AI24X_BJScreener = (function () {
     if (m === "bj_all") return "北证全市场";
     if (m === "macd") return "MACD首红";
     if (m === "pb") return "回踩企稳";
+    if (m === "mlpb") return "主线回踩低吸";
     if (m === "breakout") return "二波突破";
     if (m === "leader") return "主线龙头";
     if (m === "low10") return "10元下";
@@ -110,6 +111,7 @@ window.AI24X_BJScreener = (function () {
     if (m === "bj_all") return "北证全市场 · 全市场里刚转强的活跃票";
     if (m === "macd") return "MACD首红 · 底部刚翻红的启动信号";
     if (m === "pb") return "回踩企稳 · 首板/涨停级回踩后缩量企稳未破位";
+    if (m === "mlpb") return "主线回踩低吸 · 主攻板块内回踩低吸，位置不过热";
     if (m === "breakout") return "二波突破 · 板后放量突破平台/板日高点";
     if (m === "leader") return "主线龙头 · 主攻板块内资金+动量最强代表";
     if (m === "low10") return "10元下 · 低价且刚右侧走强的活跃票";
@@ -121,6 +123,7 @@ window.AI24X_BJScreener = (function () {
     var one = {
       macd: "底部刚翻红 + 有量",
       pb: "异动后缩量回踩、未破位",
+      mlpb: "主攻板块内回踩低吸、位置不过热",
       breakout: "板后突破确认、右侧加速",
       leader: "主攻板块龙头、强动量",
       low10: "股价 <10 元且刚转强",
@@ -356,7 +359,7 @@ window.AI24X_BJScreener = (function () {
     return '<span class="tag ok strong">红柱第' + (d + 1) + '天</span>';
   }
   function macdRedSection(d) {
-    var list = d.macd_reds || [];
+    var list = (d.macd_reds || []).slice(0, 4);
     if (!list.length) return "";
     var h = '<div class="bj-section">🔥 MACD首红 · 底部刚翻红（' + list.length + ' 只）</div>';
       h += '<div class="bj-note">看两点就够：① 底部刚出现第一根红柱；② 有量配合。优先「今日首红 / 红柱第2-3天」，下坡途中的不会进榜。</div>';
@@ -681,15 +684,16 @@ window.AI24X_BJScreener = (function () {
     });
   }
   var historyState = { loaded: false, market: "" };
-  function loadPbLedger() {
+  function loadColumnLedger() {
     var box = $("bj-pb-ledger");
-    if (!box || state.market !== "pb") return;
-    apiFetch("/api/bj/history?market=pb&ledger=1&track=1").then(function (d) {
-      renderPbLedger((d && d.ledger) || [], d && d.track);
+    if (!box) return;
+    apiFetch("/api/bj/history?market=" + encodeURIComponent(state.market) + "&ledger=1&track=1").then(function (d) {
+      renderColumnLedger((d && d.ledger) || [], d && d.track);
     }).catch(function () {
-      renderPbLedger([], null);
+      renderColumnLedger([], null);
     });
   }
+  function loadPbLedger() { loadColumnLedger(); }
   function fmtPct(v, suffix) {
     if (v == null || v === "") return "—";
     var n = Number(v);
@@ -697,10 +701,9 @@ window.AI24X_BJScreener = (function () {
     var cls = n > 0 ? "up" : (n < 0 ? "dn" : "");
     return '<span class="' + cls + '">' + (n > 0 ? "+" : "") + esc(n) + (suffix || "%") + "</span>";
   }
-  function renderPbLedger(rows, track) {
+  function renderColumnLedger(rows, track) {
     var box = $("bj-pb-ledger");
     if (!box) return;
-    if (state.market !== "pb") { box.innerHTML = ""; box.hidden = true; return; }
     box.hidden = false;
     var trackMap = {};
     if (track && track.items) {
@@ -709,18 +712,23 @@ window.AI24X_BJScreener = (function () {
       });
     }
     var h = '<div class="hist-card pb-ledger-card">' +
-      '<div class="bj-section hist-title">历史入选 · 首板系回踩</div>' +
-      '<p class="hist-desc">仅记录首板/涨停级回踩形态；收盘后自动入库，可跟踪再次涨停概率。</p>';
+      '<div class="bj-section hist-title">历史入选 · 跟踪（' + marketLabel(state.market) + '）</div>' +
+      '<p class="hist-desc">记录本栏目每日主推（不含备选池）；收盘后自动入库，用于对比各栏目算法历史涨幅与成功率。</p>';
     if (track && track.n_done > 0) {
       h += '<div class="pb-track-stats">' +
-        '<span><b>样本</b> ' + esc(track.n_done) + ' 条</span>' +
-        '<span><b>5日内再次涨停</b> ' + (track.relimit5_rate != null ? esc(track.relimit5_rate) + "%" : "—") + '</span>' +
-        '<span><b>10日内再次涨停</b> ' + (track.relimit10_rate != null ? esc(track.relimit10_rate) + "%" : "—") + '</span>' +
-        '<span><b>均5日收益</b> ' + (track.mean_fwd5 != null ? esc(track.mean_fwd5) + "%" : "—") + '</span>' +
+        '<span><b>样本</b> ' + esc(track.n_done) + ' 条</span>';
+      if (state.market === "pb") {
+        h += '<span><b>5日内再次涨停</b> ' + (track.relimit5_rate != null ? esc(track.relimit5_rate) + "%" : "—") + '</span>' +
+          '<span><b>10日内再次涨停</b> ' + (track.relimit10_rate != null ? esc(track.relimit10_rate) + "%" : "—") + '</span>';
+      } else {
+        h += '<span><b>5日强势率</b> ' + (track.hit5_rate != null ? esc(track.hit5_rate) + "%" : "—") + '</span>' +
+          '<span><b>5日收正率</b> ' + (track.pos5_rate != null ? esc(track.pos5_rate) + "%" : "—") + '</span>';
+      }
+      h += '<span><b>均5日收益</b> ' + (track.mean_fwd5 != null ? esc(track.mean_fwd5) + "%" : "—") + '</span>' +
         '</div>';
       if (track.relimit_def) h += '<p class="hist-desc pb-track-def">' + esc(track.relimit_def) + '</p>';
     } else if (!rows.length) {
-      h += '<p class="hist-desc">暂无记录（需 VIP · 收盘扫描有首板系命中）</p></div>';
+      h += '<p class="hist-desc">暂无记录（需 VIP；有收盘主推后自动入库）</p></div>';
       box.innerHTML = h;
       return;
     }
@@ -729,7 +737,7 @@ window.AI24X_BJScreener = (function () {
       '<th>5日</th><th>10日</th><th>再板5日</th><th>再板10日</th>' +
       '</tr></thead><tbody>';
     rows.forEach(function (r) {
-      var href = "gd.html?date=" + encodeURIComponent(r.date) + "&market=pb";
+      var href = "gd.html?date=" + encodeURIComponent(r.date) + "&market=" + encodeURIComponent(state.market);
       var tk = trackMap[(r.date || "") + "|" + (r.code || "")] || null;
       var rel5 = tk && tk.relimit5 != null ? (tk.relimit5 ? '<span class="up">是</span>' : '<span class="dn">否</span>') : "—";
       var rel10 = tk && tk.relimit10 != null ? (tk.relimit10 ? '<span class="up">是</span>' : '<span class="dn">否</span>') : "—";
@@ -754,7 +762,7 @@ window.AI24X_BJScreener = (function () {
     if (historyState.loaded && historyState.market === state.market) return;
     historyState.loaded = true;
     historyState.market = state.market;
-    if (state.market === "pb") loadPbLedger();
+    loadColumnLedger();
     apiFetch("/api/bj/history?market=" + encodeURIComponent(state.market)).then(function (d) {
       renderHistory((d && d.list) || []);
     }).catch(function () {
@@ -880,7 +888,7 @@ window.AI24X_BJScreener = (function () {
     if (!box) return;
     var hint = marketHint(d);
     if ((d && d.market_code) === "macd") {
-      var mlist = d.macd_reds || [];
+      var mlist = (d.macd_reds || []).slice(0, 4);
       if (!mlist.length) {
         box.innerHTML = hint + '<div class="bj-empty-alert"><div class="ico">\ud83d\udca1</div><div class="bd"><b>' + dataDayLabel(d) + '暂无 MACD 首红标的</b><span>底部刚翻红 + 有量确认的票，多出现在大盘/个股刚启动时；现在若多在红柱延伸段，空着是正常的，可稍后重扫或看其它栏目。</span></div></div>';
         return;
@@ -889,7 +897,15 @@ window.AI24X_BJScreener = (function () {
         '<div class="notice">题材波动大，注意破位 / 放量长阴-8% 风险。</div>';
       return;
     }
-    var picks = d.picks || [];
+    var picks = (d.picks || []).filter(function (p) {
+      // 主推卡必须有 K 线；无图的（多来自旧备选池）直接丢掉，避免双「1」空图
+      var ch = p && p.chart;
+      return !!(ch && (ch.closes || ch.c || ch.dates));
+    }).map(function (p, i) {
+      var cp = Object.assign({}, p);
+      cp.rank = i + 1;
+      return cp;
+    });
     var emoHtml = emotionBanner(d);
     var mfrAll = (picks || []).concat(d.runners || []).filter(function (x) { return x && x.patterns && x.patterns.macdFirstRed; });
     if (!picks.length) {
@@ -971,7 +987,7 @@ window.AI24X_BJScreener = (function () {
     if (nPicks && nPicks < 3) _disc = dataDayLabel(d) + '仅 ' + nPicks + ' 只合格，少而精不凑满；' + _disc;
     html += '<div class="notice">' + _disc + '</div>';
     html += '<div class="pick-grid">';
-    picks.forEach(function (p) {
+    picks.forEach(function (p, i) {
       var chgCls = cls(p.pct);
       var isKing = p.tier === "king";
       var lv = p.levels || {};
@@ -988,7 +1004,7 @@ window.AI24X_BJScreener = (function () {
       html +=
         '<div class="pick-card' + (isKing ? " king" : (p.tier === "key" ? " key" : "")) + '">' +
         '<div class="pick-head">' +
-          '<div class="ph-l"><span class="pick-num">' + (p.rank || 1) + '</span> ' +
+          '<div class="ph-l"><span class="pick-num">' + (p.rank != null ? p.rank : (i + 1)) + '</span> ' +
             '<a class="pick-name" href="' + quoteHref(p) + '" target="_blank" rel="noopener">' + esc(p.name) + '</a> ' +
             '<span class="pick-code">' + esc(p.code) + '</span>' +
             tierBadge(p) + roleBadge(p) + mainBadge(p) + indBadge(p) +
@@ -1001,7 +1017,7 @@ window.AI24X_BJScreener = (function () {
         coreTags(p) +
         '<div class="pick-sub">最终分 <b>' + (p.final != null ? p.final : "—") + '</b> ｜ 位置 <b>' + num((p.pos != null ? p.pos * 100 : 0), 0) + '%</b> ｜ 市值 ' + money(p.mcap) +
         ' ｜ 成交 ' + money(p.amount) + ' ｜ 5日 ' + pct(p.chg5) + ' ｜ 换手 ' + num(p.turnover, 1) + '%' + '</div>' +
-        '<div class="kbox"><canvas data-bj-code="' + esc(p.code) + '"></canvas></div>' +
+        (p.chart && (p.chart.closes || p.chart.c) ? '<div class="kbox"><canvas data-bj-code="' + esc(p.code) + '"></canvas></div>' : '<div class="kbox kbox-empty">暂无K线数据，可点名称查看行情</div>') +
         '<div class="levels">' +
           '<span class="s">支撑 ' + num(lv.s1, 2) + ' / ' + num(lv.s2, 2) + '</span>' +
           '<span class="p">压力 ' + num(lv.p1, 2) + ' / ' + num(lv.p2, 2) + '</span>' +
@@ -1015,17 +1031,7 @@ window.AI24X_BJScreener = (function () {
     });
     html += '</div>';
     html += macdRedSection(d);
-    // runners
-    var runners = d.runners || [];
-    if (runners.length) {
-      html += '<div class="bj-section">备选池（落选原因）</div>';
-      html += '<div class="table-scroll"><table class="bj-table"><tr><th>#</th><th>代码</th><th>名称</th><th>现价</th><th>涨跌</th><th>最终分</th><th>位置</th><th>市值</th><th>5日</th><th>20日</th><th>落选原因</th></tr>';
-      runners.forEach(function (r, ri) {
-        var blBadge = r.bearish_level === "hard" ? "<span style='color:var(--rise)'>硬伤</span>" : (r.bearish_level === "warn" ? "<span style='color:var(--warn)'>警示</span>" : "");
-        html += '<tr><td style="color:var(--muted)">' + (ri + 1) + '</td><td style="color:var(--muted)">' + esc(r.code) + '</td><td><a href="demo.html?secid=' + encodeURIComponent(secidForCode(r.code)) + '&period=day" target="_blank" rel="noopener" style="color:var(--bj-acc)">' + esc(r.name) + '</a>' + runnerTags(r) + '</td><td class="' + cls(r.pct) + '">' + num(r.price, 2) + '</td><td class="' + cls(r.pct) + '">' + pct(r.pct) + '</td><td>' + (r.final != null ? r.final : "—") + '</td><td>' + num((r.pos != null ? r.pos * 100 : 0), 0) + '%</td><td>' + money(r.mcap) + '</td><td class="' + cls(r.chg5) + '">' + pct(r.chg5) + '</td><td class="' + cls(r.chg20) + '">' + pct(r.chg20) + '</td><td>' + blBadge + ' ' + esc((r.risks || []).join("；") || "排名靠后") + '</td></tr>';
-      });
-      html += '</table></div>';
-    }
+    // 备选池已下线：只保留主推；历史入选走各栏目跟踪台账
     box.innerHTML = html;
     requestAnimationFrame(function () {
       picks.forEach(function (p) {
@@ -1365,7 +1371,7 @@ window.AI24X_BJScreener = (function () {
       var btn3 = $("btn-bj-refresh");
       if (btn3) btn3.style.display = "";
       renderPicks(d);
-      if (d.market_code !== "macd") loadHistory();
+      loadHistory();
     }
     if (d.stale) {
       var staleTxt = d.intraday
@@ -1540,6 +1546,22 @@ window.AI24X_BJScreener = (function () {
         '<span class="sc">' + esc(scTxt) + '</span>' +
         '<span class="bar">' + esc(barTxt) + '</span></div>';
     }
+    // 当日主要指数多数收绿：结构偏多也降为「中性/承压」，避免板块普跌仍显示顺风
+    (function () {
+      var names = ["上证指数", "深证成指", "创业板指"];
+      var down = 0, n = 0;
+      names.forEach(function (nm) {
+        var it = idxMap[nm];
+        if (!it || it.pct == null || !isFinite(Number(it.pct))) return;
+        n++;
+        if (Number(it.pct) < 0) down++;
+      });
+      if (n >= 2 && down >= Math.ceil(n * 0.66) && env === "ok") {
+        env = "warn";
+        envTxt = "结构顺 · 当日承压";
+        envCls = "warn";
+      }
+    })();
     var envLine = "";
     var em = md.match(/大盘环境[：:]\s*([^\n]+)/);
     if (em && em[1]) envLine = stripMdLink(em[1]).replace(/（[^）]*）/g, "").replace(/；\s*$/, "");
@@ -1553,8 +1575,9 @@ window.AI24X_BJScreener = (function () {
     }
 
     var dayL = (asof && String(asof) === fmtDate()) ? "今日" : "昨日";
+    var envShow = String(envTxt || "").replace(/·/g, " · ").replace(/\s{2,}/g, " ").trim();
     var h = '<div class="sec-label">' + esc(label || (dayL + "大盘")) + '</div>';
-    h += '<div class="mkt-signal compact"><div class="mkt-badge-sm ' + envCls + '"><span class="big">' + envTxt + '</span>';
+    h += '<div class="mkt-signal compact"><div class="mkt-badge-sm ' + envCls + '"><span class="big">' + esc(envShow) + '</span>';
     if (pts != null) h += '<span class="sm">' + pts.toFixed(1) + '</span>';
     h += '</div><div class="mkt-idx-wrap">';
     h += '<div class="mkt-head"><span>指数</span><span>涨跌</span><span>收盘</span><span>评分</span><span>MACD</span></div>';
@@ -1651,6 +1674,82 @@ window.AI24X_BJScreener = (function () {
     var h = document.querySelector(".wr-head");
     if (h) h.setAttribute("aria-expanded", "false");
   }
+
+  // 栏目赛马周报：并行拉各栏 track 摘要（收盘收益口径），放到主区可见
+  var _RACE_MARKETS = ["pb", "mlpb", "breakout", "leader", "macd", "low10"];
+  function fmtRacePct(v) {
+    if (v == null || v === "") return "—";
+    var n = Number(v);
+    if (isNaN(n)) return "—";
+    var cls = n > 0 ? "up" : (n < 0 ? "dn" : "");
+    return '<span class="' + cls + '">' + (n > 0 ? "+" : "") + esc(n) + "%</span>";
+  }
+  function loadRaceBoard() {
+    var box = $("bj-raceboard");
+    if (!box) return;
+    box.hidden = false;
+    box.innerHTML = '<div class="race-card"><div class="bj-section race-title">栏目赛马 · 周报看板</div>' +
+      '<p class="race-desc">正在汇总各栏目主推跟踪…</p></div>';
+    Promise.all(_RACE_MARKETS.map(function (m) {
+      return apiFetch("/api/bj/history?market=" + encodeURIComponent(m) + "&ledger=1&track=1")
+        .then(function (d) {
+          var tr = (d && d.track) || {};
+          return {
+            market: m,
+            n_done: tr.n_done || 0,
+            mean_fwd5: tr.mean_fwd5,
+            mean_fwd10: tr.mean_fwd10,
+            hit5_rate: tr.hit5_rate,
+            pos5_rate: tr.pos5_rate,
+            relimit5_rate: tr.relimit5_rate
+          };
+        })
+        .catch(function () {
+          return { market: m, n_done: 0, mean_fwd5: null, mean_fwd10: null, hit5_rate: null, pos5_rate: null };
+        });
+    })).then(function (rows) {
+      rows.sort(function (a, b) {
+        var ma = a.mean_fwd5 != null ? Number(a.mean_fwd5) : -999;
+        var mb = b.mean_fwd5 != null ? Number(b.mean_fwd5) : -999;
+        if (mb !== ma) return mb - ma;
+        var ha = a.hit5_rate != null ? Number(a.hit5_rate) : -1;
+        var hb = b.hit5_rate != null ? Number(b.hit5_rate) : -1;
+        return hb - ha;
+      });
+      var h = '<div class="race-card">' +
+        '<div class="bj-section race-title">栏目赛马 · 周报看板</div>' +
+        '<p class="race-desc">口径：入选后收盘收益；强势=5日收益≥+5%。样本不足时显示「—」。用于对比栏目算法，不代表未来表现。</p>' +
+        '<div class="race-wrap"><table class="race-table"><thead><tr>' +
+        '<th>栏目</th><th>样本</th><th>均5日</th><th>均10日</th><th>5日强势</th><th>5日收正</th>' +
+        '</tr></thead><tbody>';
+      var any = false;
+      rows.forEach(function (r, i) {
+        if (!r.n_done) {
+          h += '<tr class="race-empty"><td>' + esc(marketLabel(r.market)) + '</td><td colspan="5">暂无已完成跟踪样本</td></tr>';
+          return;
+        }
+        any = true;
+        var rankCls = i === 0 ? " race-top" : "";
+        h += '<tr class="' + rankCls + '">' +
+          '<td><b>' + esc(marketLabel(r.market)) + "</b></td>" +
+          "<td>" + esc(r.n_done) + "</td>" +
+          "<td>" + fmtRacePct(r.mean_fwd5) + "</td>" +
+          "<td>" + fmtRacePct(r.mean_fwd10) + "</td>" +
+          "<td>" + (r.hit5_rate != null ? esc(r.hit5_rate) + "%" : "—") + "</td>" +
+          "<td>" + (r.pos5_rate != null ? esc(r.pos5_rate) + "%" : "—") + "</td>" +
+          "</tr>";
+      });
+      if (!any) {
+        h += '<tr><td colspan="6">各栏目暂无足够跟踪样本；收盘主推入库并过 T+5 后会自动出现。</td></tr>';
+      }
+      h += "</tbody></table></div></div>";
+      box.innerHTML = h;
+    }).catch(function () {
+      box.innerHTML = '<div class="race-card"><div class="bj-section race-title">栏目赛马 · 周报看板</div>' +
+        '<p class="race-desc">看板加载失败，请稍后再试。</p></div>';
+    });
+  }
+
   function loadWinrate() {
     var box = $("bj-winrate");
     if (!box) return;
@@ -1667,13 +1766,33 @@ window.AI24X_BJScreener = (function () {
         });
       }
       _winrateItems = d.items || [];
+      
+      var byM = d.by_market || {};
+      var mKeys = Object.keys(byM).filter(function (k) { return byM[k] && byM[k].n; });
+      var byMHtml = '';
+      if (mKeys.length) {
+        mKeys.sort(function (a, b) {
+          var ma = byM[a].hit5_rate != null ? byM[a].hit5_rate : -1;
+          var mb = byM[b].hit5_rate != null ? byM[b].hit5_rate : -1;
+          return mb - ma;
+        });
+        byMHtml = '<div class="bj-section" style="margin-top:8px">各栏目主推对比</div>' +
+          '<div class="table-scroll"><table class="bj-table"><tr><th>栏目</th><th>样本</th><th>5日强势</th><th>5日收正</th></tr>';
+        mKeys.forEach(function (k) {
+          var b = byM[k] || {};
+          byMHtml += '<tr><td>' + esc(marketLabel(k)) + '</td><td>' + esc(b.n) + '</td>' +
+            '<td>' + (b.hit5_rate != null ? esc(b.hit5_rate) + '%' : '—') + '</td>' +
+            '<td>' + (b.pos5_rate != null ? esc(b.pos5_rate) + '%' : '—') + '</td></tr>';
+        });
+        byMHtml += '</table></div>';
+      }
       box.innerHTML =
         '<div class="bj-section wr-head" role="button" tabindex="0" aria-expanded="false" title="点击查看逐只统计明细">形态回溯统计（近 ' + d.n + ' 只 · ' + esc(d.asof) + '）<span class="wr-see">📋 点击查看明细</span></div>' +
         '<div class="winrate-strip"><span>5日强势占比 <b class="up">' + rate + '</b></span>' +
         '<span>5日收正占比 <b class="up">' + posRate + '</b></span>' +
         '<span>10日破位占比 <b class="down">' + stop + '</b></span>' +
         '<span>跟踪中 ' + d.tracking + ' 只</span>' + tierTxt + '</div>' +
-    '<div class="winrate-note">口径：以入选后5日内最高涨幅≥+5% 统计"强势"、10日内跌破参考位统计"破位"，仅作算法回溯检验；历史统计不代表未来表现。</div>';
+    byMHtml + '<div class="winrate-note">口径：以入选后5日内最高涨幅≥+5% 统计"强势"、10日内跌破参考位统计"破位"，仅作算法回溯检验；历史统计不代表未来表现。</div>';
       var head = box.querySelector(".wr-head");
       if (head) {
         head.addEventListener("click", openWinrateDetail);
@@ -1743,7 +1862,7 @@ window.AI24X_BJScreener = (function () {
     var ap = archiveParams();
     if (ap.date) {
       // 历史归档模式：新窗口直达该日结果（不触发扫描）
-      if (ap.market === "bj" || ap.market === "all" || ap.market === "hs" || ap.market === "kc" || ap.market === "bj_all" || ap.market === "macd" || ap.market === "pb" || ap.market === "low10") {
+      if (ap.market === "bj" || ap.market === "all" || ap.market === "hs" || ap.market === "kc" || ap.market === "bj_all" || ap.market === "macd" || ap.market === "pb" || ap.market === "mlpb" || ap.market === "breakout" || ap.market === "leader" || ap.market === "low10") {
         state.market = ap.market;
         var tabsAll = document.querySelectorAll("#bj-tabs .bj-tab");
         for (var tJ = 0; tJ < tabsAll.length; tJ++) {
@@ -1761,8 +1880,9 @@ window.AI24X_BJScreener = (function () {
     // 刷新停留：URL market 参数优先，其次上次所在 tab（localStorage），默认沪深主线
     var savedM = "";
     try { savedM = String(localStorage.getItem("bj_tab") || "").trim(); } catch (eS) {}
-    var initM = (ap.market && ["hs", "kc", "bj", "bj_all", "macd", "pb", "low10"].indexOf(ap.market) >= 0) ? ap.market
-      : ((savedM && ["hs", "kc", "bj", "bj_all", "macd", "pb", "low10"].indexOf(savedM) >= 0) ? savedM : "hs");
+    var _TAB_OK = ["hs", "kc", "bj", "bj_all", "macd", "pb", "mlpb", "breakout", "leader", "low10"];
+    var initM = (ap.market && _TAB_OK.indexOf(ap.market) >= 0) ? ap.market
+      : ((savedM && _TAB_OK.indexOf(savedM) >= 0) ? savedM : "hs");
     if (initM !== state.market) {
       state.market = initM;
       var tabsAll2 = document.querySelectorAll("#bj-tabs .bj-tab");
@@ -1773,6 +1893,7 @@ window.AI24X_BJScreener = (function () {
     loadMarket();
     load(false);
     loadThsSentiment();
+    loadRaceBoard();
     loadWinrate();
   }
 

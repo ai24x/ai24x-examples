@@ -175,6 +175,8 @@
     return node;
   }
 
+  // 国内版与国际站独立运营：不再挂顶部生态跳转条（www / open / markets）
+
   function headerDom(active) {
     function nav(href, label, id) {
       href = withInvite(href);
@@ -199,7 +201,7 @@
     var navMain = _el("nav", { class: "nav-main", id: "nav-main", "aria-label": "Main" }, [
       nav("/index.html", "首页", "index"),
       nav("/demo.html", "行情", "demo"),
-      nav("/gd.html", "复盘", "bjscreener"),
+      nav("/gd.html", "AI复盘", "bjscreener"),
       nav("/account.html", "我的", "account"),
       nav("/help.html", "帮助", "help"),
       nav("/feedback.html", "反馈", "feedback"),

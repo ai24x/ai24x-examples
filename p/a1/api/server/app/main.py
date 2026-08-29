@@ -3208,11 +3208,11 @@ async def api_bj_screener(
     结果按自然日缓存，force=1 强制重扫。不扣查次（VIP 权益功能），仅做频率限制。
     """
     market = str(market or "bj").strip().lower()
-    if market not in ("bj", "all", "hs", "kc", "bj_all", "macd", "pb", "low10", "breakout", "leader"):
+    if market not in ("bj", "all", "hs", "kc", "bj_all", "macd", "pb", "mlpb", "low10", "breakout", "leader"):
         market = "bj"
     from .bj_screener import run_scan_dedup, apply_column_view, scan_market_for, _backfill_leader_quotes
     scan_market = scan_market_for(market)
-    _col = market if market in ("pb", "breakout", "leader", "macd", "low10") else ""
+    _col = market if market in ("pb", "mlpb", "breakout", "leader", "macd", "low10") else ""
     _rate_limit(f"bj-screener:{user_id}", 24)
     try:
         _auth_ip_rate_limit(request)
@@ -3294,7 +3294,7 @@ async def api_bj_screener_start(
     → running=false 后 GET /api/bj/screener?market=bj（命中缓存返回最新结果）。
     """
     market = str(market or "bj").strip().lower()
-    if market not in ("bj", "all", "hs", "kc", "bj_all", "macd", "pb", "breakout", "leader"):
+    if market not in ("bj", "all", "hs", "kc", "bj_all", "macd", "pb", "mlpb", "breakout", "leader", "low10"):
         market = "bj"
     from .bj_screener import scan_market_for
     scan_market = scan_market_for(market)
@@ -3310,7 +3310,7 @@ async def api_bj_screener_start(
     if not is_vip:
         return {"ok": False, "error": "vip_required", "message": "掘金扫描为 VIP 专属，请先开通 VIP。"}
     from .bj_screener import scan_progress, run_scan_dedup, mark_scan_failed, _RUNNING_SCAN
-    _col = market if market in ("pb", "breakout", "leader", "macd") else ""
+    _col = market if market in ("pb", "mlpb", "breakout", "leader", "macd", "low10") else ""
     p = scan_progress(scan_market)
     if p.get("running") or (_RUNNING_SCAN.get(scan_market) is not None and not _RUNNING_SCAN[scan_market].done()):
         return {"ok": True, "running": True, "msg": "扫描进行中，请稍候…"}
@@ -3336,7 +3336,7 @@ async def api_bj_screener_partial(request: Request, market: str = "bj", user_id:
     market = str(market or "bj").strip().lower()
     if market == "macd":
         market = "all"
-    if market in ("pb", "breakout", "leader"):
+    if market in ("pb", "mlpb", "breakout", "leader"):
         market = "hs"
     if market not in ("bj", "all", "hs", "kc", "bj_all"):
         market = "bj"
@@ -3353,7 +3353,7 @@ async def api_bj_screener_progress(
     market = str(market or "bj").strip().lower()
     if market == "macd":
         market = "all"
-    if market in ("pb", "breakout", "leader"):
+    if market in ("pb", "mlpb", "breakout", "leader"):
         market = "hs"
     if market not in ("bj", "all", "hs", "kc", "bj_all"):
         market = "bj"
@@ -3375,7 +3375,7 @@ async def api_bj_history(
 ) -> dict:
     """掘金历史归档（VIP 专属）：不传 date 返回归档日期摘要，传 date 返回当日完整结果（按市场隔离）。"""
     market = str(market or "bj").strip().lower()
-    if market not in ("bj", "all", "hs", "kc", "bj_all", "pb", "low10", "breakout", "leader"):
+    if market not in ("bj", "all", "hs", "kc", "bj_all", "macd", "pb", "mlpb", "low10", "breakout", "leader"):
         market = "bj"
     _rate_limit(f"bj-history:{user_id}", 30)
     try:
@@ -3388,15 +3388,15 @@ async def api_bj_history(
     is_vip = plan not in ("", "free", "anon")
     if not is_vip:
         raise HTTPException(status_code=403, detail="北证掘金历史归档为 VIP 专属功能，开通 VIP 后即可使用")
-    from .bj_screener import archive_summary, load_archive, pb_ledger, compute_pb_track
+    from .bj_screener import archive_summary, load_archive, column_ledger, compute_column_track
 
     date = str(date or "").strip()
     ledger = str(request.query_params.get("ledger") or "").strip() in ("1", "true", "yes")
-    track_pb = str(request.query_params.get("track") or "").strip() in ("1", "true", "yes")
-    if ledger and market == "pb":
-        out: dict[str, Any] = {"ok": True, "market_code": "pb", "ledger": pb_ledger()}
-        if track_pb:
-            out["track"] = await compute_pb_track()
+    track_on = str(request.query_params.get("track") or "").strip() in ("1", "true", "yes")
+    if ledger:
+        out: dict[str, Any] = {"ok": True, "market_code": market, "ledger": column_ledger(market)}
+        if track_on:
+            out["track"] = await compute_column_track(market)
         return out
     if date:
         d = load_archive(market, date)
