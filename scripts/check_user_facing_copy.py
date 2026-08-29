@@ -34,18 +34,34 @@ WEB_GLOBS = [
     "web/config/locales.js",
     "web/**/*.html",
     "web/js/*.js",
+    "p/open/web/config/locales.js",
+    "p/open/web/**/*.html",
+    "p/open/web/js/*.js",
 ]
 
-# Internal / ops pages (not end-user product copy)
+# Internal / ops / intentional competitor SEO (not generic product copy)
 SKIP_REL = {
     "web/ai24x.html",
     "web/AI行情官.灯塔版V1.02.html",
+    "web/token-admin.html",
+    "web/competitor-ranking.html",
+    "web/guides/openrouter-migration.html",
+    "web/guides/openrouter-vs-ai24x.html",
+    "p/open/web/ai24x.html",
+    "p/open/web/token-admin.html",
 }
 
 SKIP_DIR_PARTS = {"ops", "archive", "bak", "vendor"}
 
+# OpenRouter is OK only as intentional competitor SEO / guide titles
+OPENROUTER_OK = re.compile(
+    r"openrouter|page\.guides\.openrouter",
+    re.I,
+)
+
 API_GLOBS = [
     "api/*.py",
+    "p/open/api/*.py",
 ]
 API_LINE_HINT = re.compile(
     r"HTTPException|detail\s*=|message\s*=|AuthEmail|\.message\s*=",
@@ -70,10 +86,14 @@ def iter_web_files() -> list[Path]:
     for pattern in WEB_GLOBS:
         files.extend(ROOT.glob(pattern))
     out = []
+    seen: set[str] = set()
     for p in files:
         if not p.is_file():
             continue
         rel = p.relative_to(ROOT).as_posix()
+        if rel in seen:
+            continue
+        seen.add(rel)
         if rel in SKIP_REL:
             continue
         if any(part in SKIP_DIR_PARTS for part in p.parts):
@@ -87,9 +107,14 @@ def iter_api_files() -> list[Path]:
     for pattern in API_GLOBS:
         files.extend(ROOT.glob(pattern))
     out = []
+    seen: set[str] = set()
     for p in files:
         if not p.is_file():
             continue
+        rel = p.relative_to(ROOT).as_posix()
+        if rel in seen:
+            continue
+        seen.add(rel)
         if p.name.startswith("scripts_") or p.name.endswith("_test.py"):
             continue
         out.append(p)
@@ -101,8 +126,11 @@ def scan_line(rel: str, i: int, line: str, hits: list[str]) -> None:
     if is_comment_line(stripped):
         return
     for label, rx in BANNED:
-        if rx.search(line):
-            hits.append(f"{rel}:{i}: [{label}] {stripped[:160]}")
+        if not rx.search(line):
+            continue
+        if label == "OpenRouter" and OPENROUTER_OK.search(rel + " " + line):
+            continue
+        hits.append(f"{rel}:{i}: [{label}] {stripped[:160]}")
 
 
 def main() -> int:

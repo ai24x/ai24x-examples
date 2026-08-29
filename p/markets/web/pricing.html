@@ -7,58 +7,49 @@
   <meta name="description" content="AI24X Markets pricing: free charts with 10 AI briefs a day, or Pro with unlimited AI commentary and a 50-symbol watchlist. From $24.9/month, paid via PayPal.">
   <meta name="robots" content="index,follow">
   <link rel="canonical" href="https://markets.ai24x.com/pricing.html">
+  <link rel="stylesheet" href="/css/mk-site.css?v=20260829r" />
   <style>
-    :root { --bg:#0a0c10; --panel:#12161d; --panel2:#181d26; --border:#252b36; --text:#d8dee9; --muted:#8b949e; --accent:#4f8cff; }
-    * { box-sizing:border-box; }
-    body { margin:0; background:var(--bg); color:var(--text); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.7; }
-    header.site { display:flex; align-items:center; gap:14px; padding:14px 22px; background:var(--panel); border-bottom:1px solid var(--border); }
-    .brand { font-weight:700; font-size:16px; color:var(--text); text-decoration:none; }
-    .brand span { color:var(--accent); }
-    nav.site { margin-left:auto; display:flex; gap:14px; }
-    nav.site a { color:var(--muted); text-decoration:none; font-size:13px; }
-    nav.site a:hover { color:var(--text); }
-    .wrap { max-width:860px; margin:0 auto; padding:36px 20px 60px; }
-    h1 { font-size:28px; margin:0 0 6px; }
-    .sub { color:var(--muted); margin:0 0 28px; }
-    .grid-4 { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
-    .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:22px; display:flex; flex-direction:column; }
-    .card.hot { border-color:var(--accent); }
-    .card h2 { font-size:18px; margin:0 0 6px; }
-    .price { font-size:24px; font-weight:700; margin:8px 0 2px; }
-    .price small { font-size:13px; color:var(--muted); font-weight:400; }
-    .card ul { margin:14px 0 18px; padding-left:18px; font-size:13px; color:var(--muted); }
-    .btn { display:inline-block; text-align:center; padding:9px 14px; border-radius:8px; background:var(--panel2); border:1px solid var(--border); color:var(--text); text-decoration:none; font-size:13px; }
-    .btn-primary { background:var(--accent); border-color:var(--accent); color:#fff; }
-    .note { margin-top:24px; font-size:12px; color:var(--muted); }
-    footer.site { border-top:1px solid var(--border); padding:20px 22px 30px; text-align:center; color:var(--muted); font-size:12px; }
-    footer.site a { color:var(--muted); text-decoration:none; }
-    footer.site a:hover { color:var(--text); }
-    @media (max-width: 980px){ .grid-4 { grid-template-columns:repeat(2,1fr); } }
-    @media (max-width: 640px){ .grid-4 { grid-template-columns:1fr; } }
-  
-    /* —— 全站产品切换条 —— */
-    .ai24x-product-bar { border-bottom: 1px solid var(--border); background: rgba(10,12,16,.95); }
-    .ai24x-product-bar-inner { max-width: 1200px; margin: 0 auto; padding: 6px 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .ai24x-product-bar-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
-    .product-switch { display: inline-flex; align-items: center; gap: 2px; }
-    .product-switch a { font-size: 0.8rem; font-weight: 600; padding: 5px 10px; border-radius: 999px; text-decoration: none; }
-    .product-switch a.is-on { color: #fff; background: var(--accent); }
-    .product-switch a:not(.is-on) { color: var(--muted); }
-    .product-switch a:not(.is-on):hover { color: var(--text); background: var(--panel2); }
-
+    * { box-sizing: border-box; }
+    .page-body h1 { font-size: 28px; margin: 0 0 6px; }
+    .page-body > .sub { color: var(--muted); margin: 0 0 28px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .card { display: flex; flex-direction: column; }
+    .card.hot { border-color: var(--accent); }
+    .card h2 { font-size: 18px; margin: 0 0 6px; }
+    .price { font-size: 24px; font-weight: 700; margin: 8px 0 2px; }
+    .price small { font-size: 13px; color: var(--muted); font-weight: 400; }
+    .card ul { margin: 14px 0 18px; padding-left: 18px; font-size: 13px; color: var(--muted); }
+    .card .btn { margin-top: auto; text-align: center; padding: 9px 14px; font-size: 13px; }
+    .note { margin-top: 24px; font-size: 12px; color: var(--muted); }
+    .site-footer { border-top: 1px solid var(--border); margin-top: 40px; padding: 28px 0 22px; background: var(--panel); color: var(--muted); font-size: 13px; text-align: center; }
+    .site-footer a { color: var(--muted); }
+    .site-footer a:hover { color: var(--accent); }
+    @media (max-width: 980px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 640px) { .grid-4 { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
-    <div id="mk-product-bar"></div>
-<header class="site">
-    <a class="brand" href="/">AI24X <span>Markets</span></a>
-    <nav class="site">
-      <a href="/">Home</a>
-      <a href="/pricing.html">Pricing</a>
-      <a href="https://www.ai24x.com/console.html" target="_blank" rel="noopener">Account</a>
-    </nav>
+  <div id="mk-product-bar"></div>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <div class="brand-group" data-hub-split="1">
+        <a class="brand brand-hub" href="https://www.ai24x.com/" data-www title="Back to AI24X Home"><span class="brand-mark">AI</span><span>AI24X</span></a>
+        <span class="brand-sep" aria-hidden="true">·</span>
+        <a class="brand brand-local" href="/"><b>Markets</b></a>
+      </div>
+      <nav class="nav-main" aria-label="Main">
+        <a href="/">Home</a>
+        <a href="/pricing.html" class="is-active">Pricing</a>
+        <a href="/help.html">Help</a>
+      </nav>
+      <div class="header-actions">
+        <a class="upgrade-pill" href="/app.html#sub">Upgrade to Pro</a>
+        <a class="auth-link signin" id="signin-link" href="#">Sign in</a>
+        <a class="auth-link signup" id="signup-link" href="#">Sign up</a>
+      </div>
+    </div>
   </header>
-  <div class="wrap">
+  <main class="page-body">
     <h1>Simple, transparent pricing</h1>
     <p class="sub">Browse any US symbol free. Upgrade for unlimited AI commentary and a bigger watchlist. Prices in USD, paid via PayPal.</p>
     <div class="grid-4">
@@ -106,16 +97,17 @@
       </div>
     </div>
     <p class="note">Prices shown may change; the current price at checkout is final. Unused subscription refunds are available within 14 days of purchase. For educational purposes only &mdash; not investment advice.</p>
-  </div>
-  <footer class="site">
-    <div>&copy; 2026 AI24X &middot; <a href="https://www.ai24x.com">www.ai24x.com</a></div>
-    <div style="margin-top:6px;"><a href="/app.html">Chart app</a> &middot; <a href="/tos.html">Terms of Service</a> &middot; <a href="/privacy.html">Privacy Policy</a></div>
+  </main>
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>&copy; 2026 AI24X &middot; <a href="https://www.ai24x.com">www.ai24x.com</a></div>
+      <div style="margin-top:6px;"><a href="/app.html">Chart app</a> &middot; <a href="/help.html">Help</a> &middot; <a href="/tos.html">Terms</a> &middot; <a href="/privacy.html">Privacy</a></div>
+    </div>
   </footer>
-    <script src="/js/ai24x-chrome.js?v=20260829c"></script>
-  <script src="/js/www-links.js?v=20260829c"></script>
-  <script src="/js/mk-chrome.js?v=20260829c"></script>
-<script>
-    // 2026-08-22：价格/启用状态跟随管理台（/api/subscribe/plans），失败时保留静态兜底
+  <script src="/js/ai24x-chrome.js?v=20260829r"></script>
+  <script src="/js/www-links.js?v=20260829r"></script>
+  <script src="/js/mk-chrome.js?v=20260829r"></script>
+  <script>
     (function () {
       var ids = {
         weekly: { card: 'card-weekly', price: 'price-weekly', btn: 'btn-weekly', unit: '/week' },
@@ -125,19 +117,23 @@
       fetch('/api/subscribe/plans')
         .then(function (r) { return r.json(); })
         .then(function (j) {
-          if (j && j.code === 0 && j.data && j.data.plans) {
-            j.data.plans.forEach(function (p) {
-              var meta = ids[p.plan];
-              if (!meta) return;
-              var card = document.getElementById(meta.card);
-              if (p.enabled === false) { if (card) card.style.display = 'none'; return; }
-              if (card) card.style.display = '';
-              var price = document.getElementById(meta.price);
-              if (price && p.usd != null) price.innerHTML = '$' + String(Number(p.usd)) + ' <small>' + meta.unit + '</small>';
-              var btn = document.getElementById(meta.btn);
-              if (btn && p.usd != null) btn.textContent = 'Subscribe — $' + String(Number(p.usd)) + meta.unit;
-            });
-          }
+          var plans = (j && j.data && j.data.plans) || (j && j.plans) || [];
+          if (!Array.isArray(plans)) return;
+          plans.forEach(function (p) {
+            var key = String((p && p.plan) || (p && p.id) || '').toLowerCase();
+            var m = ids[key];
+            if (!m) return;
+            var priceEl = document.getElementById(m.price);
+            var btn = document.getElementById(m.btn);
+            var card = document.getElementById(m.card);
+            if (p.enabled === false) {
+              if (card) card.style.display = 'none';
+              return;
+            }
+            var usd = p.usd != null ? p.usd : p.price_usd != null ? p.price_usd : p.price;
+            if (priceEl && usd != null) priceEl.innerHTML = '$' + usd + ' <small>' + m.unit + '</small>';
+            if (btn && usd != null) btn.textContent = 'Subscribe — $' + usd + m.unit;
+          });
         })
         .catch(function () {});
     })();

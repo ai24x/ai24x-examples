@@ -33,12 +33,12 @@
     .product-switch a.is-on { color: #fff; background: var(--accent); }
     .product-switch a:not(.is-on) { color: var(--muted); }
     .product-switch a:not(.is-on):hover { color: var(--text); background: var(--panel2); }
-    .mk-top-inner { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 8px 16px; min-height: 52px; }
+    .mk-top-inner { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 8px 24px; min-height: 60px; max-width: 1080px; margin: 0 auto; }
     .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; font-size: 16px; color: var(--text); white-space: nowrap; }
     .brand b { color: var(--accent); }
     .brand:hover { text-decoration: none; }
     .brand-mark { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; font-size: 0.72rem; font-weight: 900; background: var(--accent); color: #fff; }
-    .mk-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+    .mk-nav { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px; }
     .mk-nav a { padding: 7px 11px; border-radius: 8px; font-size: 0.88rem; font-weight: 600; color: var(--muted); }
     .mk-nav a:hover { color: var(--text); background: var(--panel2); text-decoration: none; }
     .mk-actions { display: flex; align-items: center; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
@@ -220,9 +220,7 @@
       <nav class="mk-nav" aria-label="Main">
         <a href="/" data-i18n="nav.home">Home</a>
         <a href="/pricing.html" data-i18n="nav.pricing">Pricing</a>
-        <a href="https://www.ai24x.com/help.html" target="_blank" rel="noopener" data-i18n="nav.help">Help</a>
-        <a href="https://open.ai24x.com/" data-open target="_blank" rel="noopener" data-i18n="nav.gateway">AI Gateway</a>
-        <a id="mk-console" href="https://www.ai24x.com/console.html?from=markets" target="_blank" rel="noopener" data-i18n="nav.console">Account</a>
+        <a href="/help.html" data-i18n="nav.help">Help</a>
       </nav>
       <div class="mk-actions">
         <div class="lang-switch" id="lang-switch">
@@ -247,9 +245,7 @@
       <nav class="mk-drawer-nav" aria-label="Mobile">
         <a href="/" data-i18n="nav.home">Home</a>
         <a href="/pricing.html" data-i18n="nav.pricing">Pricing</a>
-        <a href="https://www.ai24x.com/help.html" target="_blank" rel="noopener" data-i18n="nav.help">Help</a>
-        <a href="https://open.ai24x.com/" data-open target="_blank" rel="noopener" data-i18n="nav.gateway">AI Gateway</a>
-        <a id="mk-console-mob" href="https://www.ai24x.com/console.html?from=markets" target="_blank" rel="noopener" data-i18n="nav.console">Account</a>
+        <a href="/help.html" data-i18n="nav.help">Help</a>
       </nav>
       <div class="mk-drawer-auth" id="auth-area-mob"></div>
     </div>
@@ -444,9 +440,9 @@
     </div>
   </div>
 
-  <script src="/js/ai24x-chrome.js?v=20260829c"></script>
-  <script src="/js/www-links.js?v=20260829c"></script>
-  <script src="/js/mk-chrome.js?v=20260829c"></script>
+  <script src="/js/ai24x-chrome.js?v=20260829o"></script>
+  <script src="/js/www-links.js?v=20260829o"></script>
+  <script src="/js/mk-chrome.js?v=20260829o"></script>
   <script src="vendor/lightweight-charts.standalone.production.js"></script>
   <script src="/help-widget.js"></script>
   <script>
@@ -545,9 +541,10 @@
           legendGc: 'MACD ↑ golden cross', legendDc: '↓ dead cross',
           lgBase: 'Base · watch', lgBottom: 'Bottom · accumulate', lgStrong: 'Strong',
           lgCaution: 'Caution', lgWeak: 'Weak', lgHigh: 'Warning',
-          'nav.home': 'Home',
+          'nav.charts': 'Charts',
           'nav.pricing': 'Pricing',
           'nav.help': 'Help',
+          'nav.home': 'Home',
           'nav.gateway': 'AI Gateway',
           'nav.console': 'Account',
           backAccount: 'Back to Account',
@@ -684,9 +681,10 @@
           legendGc: 'MACD ↑金叉', legendDc: '↓死叉',
           lgBase: '小底 · 关注', lgBottom: '底部 · 低位关注', lgStrong: '金 · 偏强',
           lgCaution: '险 · 谨慎', lgWeak: '等 · 偏弱', lgHigh: '顶 · 预警',
-          'nav.home': '首页',
+          'nav.charts': '图表',
           'nav.pricing': '价格',
           'nav.help': '帮助',
+          'nav.home': '首页',
           'nav.gateway': 'AI Gateway',
           'nav.console': '账户',
           backAccount: '返回账户中心',

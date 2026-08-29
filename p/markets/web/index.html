@@ -39,41 +39,14 @@
     "provider": { "@type": "Organization", "name": "AI24X", "url": "https://www.ai24x.com/" }
   }
   </script>
+  <link rel="stylesheet" href="/css/mk-site.css?v=20260829r" />
   <style>
-    :root {
-      --bg: #0a0c10; --panel: #12161d; --panel2: #181d26; --border: #252b36;
-      --text: #d8dee9; --muted: #8b949e; --accent: #4f8cff;
-      --up: #f03a52; --down: #00b578;
-      --gold: #fbbf24; --gold-light: #ffd56a;
-    }
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.6; }
     a { color: var(--accent); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
-    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
-
-    /* —— 统一页眉（与 www/行情 App 同套视觉） —— */
-    .site-header { position: sticky; top: 0; z-index: 100; background: rgba(10,12,16,.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
-    .header-inner { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; min-height: 60px; }
-    .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; font-size: 16px; color: var(--text); white-space: nowrap; }
-    .brand b { color: var(--accent); }
-    .brand:hover { text-decoration: none; }
-    .brand-mark { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; font-size: 0.72rem; font-weight: 900; background: var(--accent); color: #fff; }
-    .nav-main { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 6px; }
-    .nav-main a { padding: 7px 11px; border-radius: 8px; font-size: 0.88rem; font-weight: 600; color: var(--muted); }
-    .nav-main a:hover { color: var(--text); background: var(--panel2); text-decoration: none; }
-    .nav-main a.is-active { color: var(--accent); background: var(--panel2); }
-    .header-actions { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .upgrade-pill { padding: 8px 15px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 0.82rem; font-weight: 700; white-space: nowrap; }
-    .upgrade-pill:hover { text-decoration: none; filter: brightness(1.1); }
-    .auth-link { padding: 7px 14px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
-    .auth-link:hover { color: var(--text); border-color: var(--accent); text-decoration: none; }
-    .auth-link.signin { border-color: color-mix(in srgb, var(--accent) 50%, transparent); color: var(--accent); }
-    .auth-link.signin:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--accent); }
-    .auth-link.signup { background: var(--accent); border-color: var(--accent); color: #fff; }
-    .auth-link.signup:hover { filter: brightness(1.1); background: var(--accent); color: #fff; }
     .hero { padding: 56px 0 30px; }
     .hero-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 40px; align-items: center; }
     .kicker { display: inline-block; padding: 4px 12px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
@@ -83,13 +56,16 @@
     .price-line { color: var(--muted); font-size: 14px; margin: 0 0 22px; }
     .price-line b { color: var(--text); }
     .hero-cta { display: flex; flex-wrap: wrap; gap: 10px; }
-    .btn { display: inline-block; padding: 11px 20px; border-radius: 8px; font-size: 15px; font-weight: 600; border: 1px solid var(--border); color: var(--text); background: var(--panel2); cursor: pointer; }
-    .btn:hover { text-decoration: none; border-color: var(--accent); }
-    .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-    .btn-primary:hover { filter: brightness(1.1); }
 
-    .hero-art { position: relative; width: 100%; max-width: 520px; margin: 0 auto; transform-style: preserve-3d; transform: perspective(700px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform 0.18s ease-out; }
-    .hero-art svg { display: block; width: 100%; height: auto; border-radius: 14px; border: 1px solid var(--border); background: var(--bg); }
+    .hero-art {
+      position: relative; display: block; width: 100%; max-width: 520px; margin: 0 auto;
+      transform-style: preserve-3d; transform: perspective(700px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+      transition: transform 0.18s ease-out, filter 0.18s ease;
+      text-decoration: none; cursor: pointer;
+    }
+    .hero-art:hover { text-decoration: none; filter: brightness(1.06); }
+    .hero-art:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 14px; }
+    .hero-art svg { display: block; width: 100%; height: auto; border-radius: 14px; border: 1px solid var(--border); background: var(--bg); pointer-events: none; }
     .beam-boost { opacity: 0; transition: opacity 0.35s ease; }
     .hero-art:hover .beam-boost { opacity: 1; }
     @media (prefers-reduced-motion: reduce) {
@@ -102,11 +78,7 @@
     .section h2 { font-size: 26px; margin: 0 0 6px; }
     .section .sub { color: var(--muted); margin: 0 0 22px; }
     .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
-    .card h3 { margin: 0 0 8px; font-size: 16px; }
-    .card p { margin: 0; color: var(--muted); font-size: 14px; }
 
-    /* —— 统一页脚 —— */
     .site-footer { border-top: 1px solid var(--border); margin-top: 46px; padding: 36px 0 22px; background: var(--panel); color: var(--muted); font-size: 13px; }
     .footer-grid { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 24px; }
     .footer-title { font-weight: 800; color: var(--text); margin-bottom: 10px; }
@@ -114,24 +86,11 @@
     .footer-col a:hover { color: var(--accent); }
     .footer-bottom { margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--border); font-size: 12px; }
 
-    /* —— 全站产品切换条 —— */
-    .ai24x-product-bar { border-bottom: 1px solid var(--border); background: rgba(10,12,16,.95); }
-    .ai24x-product-bar-inner { max-width: 1080px; margin: 0 auto; padding: 6px 24px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .ai24x-product-bar-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
-    .product-switch { display: inline-flex; align-items: center; gap: 2px; }
-    .product-switch a { font-size: 0.8rem; font-weight: 600; padding: 5px 10px; border-radius: 999px; text-decoration: none; }
-    .product-switch a.is-on { color: #fff; background: var(--accent); }
-    .product-switch a:not(.is-on) { color: var(--muted); }
-    .product-switch a:not(.is-on):hover { color: var(--text); background: var(--panel2); }
-
     @media (max-width: 860px) {
       .hero-grid { grid-template-columns: 1fr; gap: 24px; }
       .hero { padding: 34px 0 18px; }
       .hero h1 { font-size: 32px; }
       .grid-3 { grid-template-columns: 1fr; }
-      .header-inner { grid-template-columns: 1fr; gap: 8px; }
-      .nav-main { justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
-      .nav-main::-webkit-scrollbar { display: none; }
       .footer-grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
@@ -140,13 +99,15 @@
   <div id="mk-product-bar"></div>
   <header class="site-header">
     <div class="wrap header-inner">
-      <a class="brand" href="/"><span class="brand-mark">AI</span><span>AI24X <b>Markets</b></span></a>
+      <div class="brand-group" data-hub-split="1">
+        <a class="brand brand-hub" href="https://www.ai24x.com/" data-www title="Back to AI24X Home"><span class="brand-mark">AI</span><span>AI24X</span></a>
+        <span class="brand-sep" aria-hidden="true">·</span>
+        <a class="brand brand-local" href="/"><b>Markets</b></a>
+      </div>
       <nav class="nav-main" aria-label="Main">
         <a href="/" class="is-active">Home</a>
         <a href="/pricing.html">Pricing</a>
-        <a href="https://www.ai24x.com/help.html" target="_blank" rel="noopener">Help</a>
-        <a href="https://open.ai24x.com/" data-open target="_blank" rel="noopener">AI Gateway</a>
-        <a href="https://www.ai24x.com/console.html?from=markets" target="_blank" rel="noopener">Account</a>
+        <a href="/help.html">Help</a>
       </nav>
       <div class="header-actions">
         <a class="upgrade-pill" href="/app.html#sub">Upgrade to Pro</a>
@@ -171,8 +132,8 @@
             <a class="btn" href="/app.html#sub" style="border-color: var(--gold); color: var(--gold);">Upgrade to Pro →</a>
           </div>
         </div>
-        <div class="hero-art" id="hero-art" aria-hidden="true">
-          <svg viewBox="0 0 240 120" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Lighthouse beacon over the US market">
+        <a class="hero-art" id="hero-art" href="/app.html" aria-label="Open chart app">
+          <svg viewBox="0 0 240 120" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">
             <rect x="0" y="0" width="240" height="120" fill="var(--bg)"/>
 
             <g opacity="0.18">
@@ -239,7 +200,7 @@
               <animateTransform attributeName="transform" type="translate" values="-30 0;320 0" dur="5.8s" repeatCount="indefinite"/>
             </g>
           </svg>
-        </div>
+        </a>
       </div>
     </section>
 
@@ -321,6 +282,7 @@
           <a href="/">Home</a>
           <a href="/pricing.html">Pricing</a>
           <a href="/app.html">Chart App</a>
+          <a href="/help.html">Help</a>
           <a href="/daily/">Daily Brief</a>
         </div>
         <div class="footer-col">
@@ -341,9 +303,9 @@
     </div>
   </footer>
 
-  <script src="/js/ai24x-chrome.js?v=20260829c"></script>
-  <script src="/js/www-links.js?v=20260829c"></script>
-  <script src="/js/mk-chrome.js?v=20260829c"></script>
+  <script src="/js/ai24x-chrome.js?v=20260829r"></script>
+  <script src="/js/www-links.js?v=20260829r"></script>
+  <script src="/js/mk-chrome.js?v=20260829r"></script>
   <script>
     (function () {
       try {

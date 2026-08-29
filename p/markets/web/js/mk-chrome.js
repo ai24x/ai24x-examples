@@ -1,19 +1,26 @@
 /**
- * Markets 站：挂载全站产品切换条 + 品牌归属 + 同 tab 站内链
+ * Markets 站：品牌归属（回 Hub）+ 站内链；不再挂全站产品切换条
  */
 (function () {
   function splitMarketsBrand() {
     var C = window.AI24X_CHROME;
     if (!C) return;
     var www = C.wwwBase().replace(/\/$/, "") + "/";
+    // 已静态写好 brand-group：只改写 Hub 本机地址，避免再替换造成顶栏跳动
+    var hubs = document.querySelectorAll(".brand-group .brand-hub[data-www], .brand-group a.brand-hub");
+    for (var h = 0; h < hubs.length; h++) {
+      hubs[h].setAttribute("href", www);
+    }
     var brands = document.querySelectorAll("header .brand, .site-header .brand, .mk-top .brand");
     for (var i = 0; i < brands.length; i++) {
       var brand = brands[i];
+      if (brand.closest(".brand-group")) continue;
       if (brand.getAttribute("data-hub-split") === "1") continue;
       var parent = brand.parentNode;
       if (!parent) continue;
       var group = document.createElement("div");
       group.className = "brand-group";
+      group.setAttribute("data-hub-split", "1");
       group.innerHTML =
         '<a class="brand brand-hub" href="' +
         www +
@@ -22,26 +29,29 @@
         '<span class="brand-sep" aria-hidden="true">·</span>' +
         '<a class="brand brand-local" href="/"><b>Markets</b></a>';
       parent.replaceChild(group, brand);
-      brand.setAttribute("data-hub-split", "1");
     }
   }
 
   function injectEcoStyles() {
-    if (document.getElementById("mk-chrome-style")) return;
-    var st = document.createElement("style");
-    st.id = "mk-chrome-style";
-    st.textContent =
-      ".brand-group{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}" +
-      ".brand-sep{color:var(--muted);font-weight:700;user-select:none}" +
-      ".brand-hub,.brand-local{display:inline-flex;align-items:center;gap:10px;font-weight:800;font-size:16px;color:var(--text);text-decoration:none;white-space:nowrap}" +
-      ".brand-hub:hover,.brand-local:hover{text-decoration:none;color:var(--text)}" +
-      ".brand-local b{color:var(--accent)}" +
-      ".ai24x-hub-brand{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:.9rem;color:var(--text);text-decoration:none;margin-right:4px}" +
-      ".ai24x-hub-mark{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;font-size:.62rem;font-weight:900;background:var(--accent);color:#fff}" +
-      ".ai24x-hub-brand.is-on .ai24x-hub-name{color:var(--accent)}" +
-      ".ai24x-eco-hint{margin-left:auto;font-size:.72rem;color:var(--muted);white-space:nowrap}" +
-      "@media(max-width:720px){.ai24x-eco-hint{display:none}}";
-    (document.head || document.documentElement).appendChild(st);
+    // 样式已进 mk-site.css；保留空实现兼容旧页
+  }
+
+  function wireAuthLinks() {
+    var C = window.AI24X_CHROME;
+    var www = "";
+    try {
+      if (C && typeof C.wwwBase === "function") www = C.wwwBase().replace(/\/$/, "");
+      else if (typeof window.AI24X_WWW_BASE === "function") www = String(window.AI24X_WWW_BASE() || "").replace(/\/$/, "");
+    } catch (e) {}
+    if (!www) {
+      var h = String(location.hostname || "").toLowerCase();
+      www = h === "127.0.0.1" || h === "localhost" ? "http://127.0.0.1:8000" : "https://www.ai24x.com";
+    }
+    var back = encodeURIComponent(location.href);
+    var s = document.getElementById("signin-link");
+    if (s) s.href = www + "/login.html?next=" + back;
+    var su = document.getElementById("signup-link");
+    if (su) su.href = www + "/register.html?next=" + back;
   }
 
   function init() {
@@ -50,10 +60,9 @@
     injectEcoStyles();
     C.syncAuthFromCookie();
     splitMarketsBrand();
+    wireAuthLinks();
     var host = document.getElementById("mk-product-bar");
-    if (host && typeof C.mountProductBar === "function") {
-      C.mountProductBar(host, "markets");
-    }
+    if (host) host.innerHTML = "";
     if (typeof C.stripInAppNewTab === "function") {
       C.stripInAppNewTab(document);
     }

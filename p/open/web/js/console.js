@@ -110,7 +110,7 @@
       vip: "Token VIP",
       VIP: "Token VIP",
       token_pack_10k: "入门包",
-      token_pack_100k: "开发包",
+      token_pack_100k: "常用包",
         token_pack_mid: "进阶包",
         token_vip_month: "VIP 资格包",
         token_vip_month_50w: "VIP名模包",
@@ -3875,6 +3875,13 @@
         var chOv = String(location.hostname || "").toLowerCase();
         if (chOv === "127.0.0.1" || chOv === "localhost") {
           creditsOvCta.href = "http://127.0.0.1:8000/console.html?from=gateway#billing";
+        }
+      }
+      var howtoBill = document.getElementById("howto-cta-billing");
+      if (howtoBill && howtoBill.tagName === "A") {
+        var chBill = String(location.hostname || "").toLowerCase();
+        if (chBill === "127.0.0.1" || chBill === "localhost") {
+          howtoBill.href = "http://127.0.0.1:8000/console.html?from=gateway#billing";
         }
       }
     } catch (eHub) {}

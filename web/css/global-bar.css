@@ -1,0 +1,61 @@
+/* 全站产品切换条（www / open / markets 共用） */
+.ai24x-product-bar {
+  border-bottom: 1px solid var(--border, #e2e8f0);
+  background: var(--header-bg, rgba(255, 255, 255, 0.92));
+  position: sticky;
+  top: 0;
+  z-index: 120;
+}
+
+.ai24x-product-bar-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ai24x-product-bar-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted, #64748b);
+  margin-right: 4px;
+}
+
+.ai24x-product-bar .product-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+.ai24x-product-bar .product-switch a {
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 5px 10px;
+  border-radius: 999px;
+  text-decoration: none;
+  white-space: nowrap;
+  color: var(--muted, #64748b);
+}
+
+.ai24x-product-bar .product-switch a.is-on {
+  color: #fff;
+  background: var(--accent, #2563eb);
+}
+
+.ai24x-product-bar .product-switch a:not(.is-on):hover {
+  color: var(--text, #0f172a);
+  background: color-mix(in srgb, var(--accent, #2563eb) 8%, transparent);
+}
+
+@media (max-width: 640px) {
+  .ai24x-product-bar-label {
+    display: none;
+  }
+}

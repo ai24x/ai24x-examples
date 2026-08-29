@@ -47,47 +47,23 @@
 </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Pricing · AI Gateway &amp; Markets · AI24X</title>
-  <meta name="description" content="AI24X pricing: AI Gateway BYOK and managed plans first, then Markets Pro. Start free — PayPal worldwide." />
+  <meta name="description" content="AI24X pricing: managed Gateway credits first (save vs official rates), then BYOK, then Markets Pro. Start free — PayPal worldwide." />
   <link rel="canonical" href="https://www.ai24x.com/pricing.html" />
     <link rel="alternate" hreflang="en" href="https://www.ai24x.com/pricing.html" />
   <link rel="alternate" hreflang="zh-CN" href="https://www.ai24x.com/pricing.html" />
   <link rel="alternate" hreflang="x-default" href="https://www.ai24x.com/pricing.html" />
 <meta property="og:type" content="website" />
   <meta property="og:title" content="Pricing · AI Gateway &amp; Markets · AI24X" />
-  <meta property="og:description" content="AI Gateway plans first (BYOK / managed), then Markets Pro — PayPal worldwide." />
+  <meta property="og:description" content="Managed Gateway credits first, then BYOK, then Markets Pro — PayPal worldwide." />
   <meta property="og:url" content="https://www.ai24x.com/pricing.html" />
   <meta property="og:image" content="https://www.ai24x.com/img/og-share.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:image" content="https://www.ai24x.com/img/og-share.png" />
-  <link rel="stylesheet" href="css/base.css?v=20260829c" />
+  <link rel="stylesheet" href="css/base.css?v=20260829d" />
   <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260812e" data-base="css/themes/" />
   <style>
-    /* Equal-height plan cards; actions stick to bottom */
-    #tokenPlansGrid {
-      align-items: stretch;
-    }
-    #tokenPlansGrid > .card {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      min-height: 100%;
-    }
-    .pricing-plan-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: stretch;
-      margin-top: auto;
-      padding-top: 14px;
-    }
-    .pricing-plan-actions .btn {
-      box-sizing: border-box;
-      min-height: 40px;
-      flex: 1 1 100%;
-      white-space: nowrap;
-    }
     .plan-card {
       display: flex;
       flex-direction: column;
@@ -109,6 +85,12 @@
     .plan-card .plan-price span {
       color: var(--muted);
       font-size: 0.9rem;
+    }
+    .plan-card .plan-equiv {
+      margin: 0 0 4px;
+      font-size: 0.85rem;
+      color: var(--accent, #c9a227);
+      font-weight: 700;
     }
     .plan-card ul {
       margin: 12px 0 18px;
@@ -143,12 +125,11 @@
       border-radius: 999px;
       box-shadow: var(--shadow-md);
     }
-    .dev-links {
+    .pricing-jump {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px 18px;
-      margin-top: 10px;
-      font-size: 0.9rem;
+      gap: 8px;
+      margin-top: 14px;
     }
   </style>
 </head>
@@ -158,57 +139,114 @@
     <section class="hero hero-surface section-tight">
       <div class="container">
         <h1 data-i18n="page.pricing.title">Pricing</h1>
-        <p class="lead" data-i18n="page.pricing.sub">Prices by product: AI Gateway first (BYOK / managed), then AI Markets subscriptions.</p>
+        <p class="lead" data-i18n="page.pricing.sub">Managed Gateway credits first, then BYOK, then AI Markets subscriptions.</p>
         <p class="callout mt-2" data-i18n="page.pricing.callout">
-          Start free, get an API key, then pick a plan. Markets Pro is a separate subscription for US charts.
+          Start free, top up credits when ready, or bring your own keys. Markets Pro is a separate subscription for US charts.
         </p>
-        <div class="hero-cta" style="margin-top:14px">
+        <div class="pricing-jump">
           <a class="btn btn-primary" href="register.html" data-i18n="page.pricing.ctaRegister">Start Building Free</a>
-          <a class="btn" href="#byokSection" data-i18n="page.pricing.jumpGateway">AI Gateway plans</a>
+          <a class="btn" href="#creditsSection" data-i18n="page.pricing.jumpCredits">Managed credits</a>
+          <a class="btn" href="#byokSection" data-i18n="page.pricing.jumpByok">BYOK plans</a>
+          <a class="btn" href="#marketsSection" data-i18n="page.pricing.jumpMarkets">AI Markets</a>
           <a class="btn" href="console.html#billing" data-i18n="page.pricing.ctaTopup">Top up / order</a>
         </div>
+      </div>
+    </section>
+
+    <section class="section section-alt" id="creditsSection">
+      <div class="container" style="max-width:980px;">
+        <h2 style="margin:0 0 10px;" data-i18n="page.pricing.creditsTitle">AI Gateway · Managed credits</h2>
+        <p class="sub" style="margin:0 0 14px;" data-i18n="page.pricing.creditsSub">No vendor keys needed — top up in Account, call flash / pro and more. Keys &amp; docs live on AI Gateway.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;align-items:stretch;margin-top:18px;">
+          <div class="card plan-card">
+            <h3 style="margin:0;" data-i18n="page.pricing.creditsFreeTitle">Start free</h3>
+            <div class="plan-price"><strong>$0</strong></div>
+            <ul>
+              <li data-i18n="page.pricing.creditsFreeFeat1">Sign up and create an API key</li>
+              <li data-i18n="page.pricing.creditsFreeFeat2">Free shared channel when balance is empty — 100K tokens/day</li>
+              <li data-i18n="page.pricing.creditsFreeFeat3">OpenAI-compatible endpoint — paste and go</li>
+            </ul>
+            <div class="plan-actions">
+              <a class="btn" href="register.html" data-i18n="page.pricing.ctaRegister">Start Building Free</a>
+            </div>
+          </div>
+          <div class="card plan-card is-rec">
+            <span class="plan-rec-badge" data-i18n="page.pricing.creditsRecBadge">Recommended</span>
+            <h3 style="margin:0;" data-i18n="page.pricing.creditsPayTitle">Top up credits</h3>
+            <p class="plan-equiv" data-i18n="page.pricing.creditsPayHook">Output often ~71–96% less than GPT list rates</p>
+            <p class="sub" style="margin:8px 0 0;" data-i18n="page.pricing.creditsPayLead">Pay as you go in Account Hub. One wallet across products.</p>
+            <ul>
+              <li data-i18n="page.pricing.creditsPayFeat1">flash / pro everyday tiers — high value by default</li>
+              <li data-i18n="page.pricing.creditsPayFeat2">Named models when you need them</li>
+              <li data-i18n="page.pricing.creditsPayFeat3">PayPal · activates after checkout</li>
+            </ul>
+            <div class="plan-actions">
+              <a class="btn btn-primary" href="console.html#billing" data-i18n="page.pricing.ctaConsole">Top up in Account</a>
+              <a class="btn" href="https://open.ai24x.com/" data-open target="_blank" rel="noopener" data-i18n="page.pricing.devCta">Open AI Gateway</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="saveSection">
+      <div class="container" style="max-width:980px;">
+        <h2 style="margin:0 0 10px;" data-i18n="page.pricing.saveTitle">Save vs GPT official pricing</h2>
+        <p class="sub" style="margin:0 0 14px;" data-i18n="page.pricing.saveSub">Output-token comparison vs OpenAI list prices (Luna $1.20 / Terra $12.00 / Sol $30.00 per M, captured 2026-08-15; refreshed every 1-2 days). Input rates may differ — final rates on Console.</p>
+        <div class="plan-compare-wrap">
+          <table class="plan-compare">
+            <thead>
+              <tr>
+                <th data-i18n="page.pricing.saveColPlan">Plan</th>
+                <th data-i18n="page.pricing.saveColAi24x">AI24X output $/M</th>
+                <th data-i18n="page.pricing.saveColGpt">GPT official output $/M</th>
+                <th data-i18n="page.pricing.saveColSave">You save</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>AI24X flash</strong></td><td>$0.35</td><td>GPT Luna · $1.20</td><td><strong>71%</strong></td></tr>
+              <tr><td><strong>AI24X pro</strong></td><td>$1.05</td><td>GPT Terra · $12.00</td><td><strong>91%</strong></td></tr>
+              <tr><td><strong>AI24X pro</strong></td><td>$1.05</td><td>GPT Sol · $30.00</td><td><strong>96%</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="sub small" style="margin:12px 0 0;" data-i18n="page.pricing.transparency">AI24X flash / pro pick high-value models — one key, flexible top-ups. Final prices on Console.</p>
+        <p class="sub" style="margin:10px 0 0;">
+          <a class="btn" href="https://open.ai24x.com/pricing.html#saveSection" data-open target="_blank" rel="noopener" data-i18n="page.pricing.saveMoreOpen">Full Gateway pricing →</a>
+        </p>
       </div>
     </section>
 
     <section class="section section-alt" id="byokSection">
       <div class="container" style="max-width:980px;">
         <h2 style="margin:0 0 10px;" data-i18n="page.pricing.byokTitle">BYOK smart gateway · AI Gateway</h2>
-        <p class="sub" style="margin:0 0 8px;" data-i18n="page.pricing.byokSub">Bring your own API keys — smart routing, automatic switching and a cost dashboard. Platform charges a gateway service fee only — no markup on model usage.</p>
-        <p class="sub" style="margin:0 0 14px;" data-i18n="page.pricing.devSub">API keys, models, docs and managed access also live on AI Gateway (open.ai24x.com).</p>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:16px;align-items:stretch;margin-top:18px;">
+        <p class="sub" style="margin:0 0 14px;" data-i18n="page.pricing.byokSub">Already have provider keys? Add them for routing, failover, cache and a cost dashboard. Gateway service fee only — model usage billed by your provider.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;align-items:stretch;margin-top:18px;">
           <div class="card plan-card">
             <h3 style="margin:0;" data-i18n="page.pricing.byokMonthTitle">BYOK Pro · Monthly</h3>
             <div class="plan-price"><strong>$9.9</strong><span data-i18n="page.pricing.perMonth">/month</span></div>
             <ul>
-              <li data-i18n="page.pricing.byokFeat1">Unlimited BYOK smart routing (your own keys)</li>
-              <li data-i18n="page.pricing.byokFeat2">Multi-key load balancing + automatic switching</li>
-              <li data-i18n="page.pricing.byokFeat3">Request cache (saves your key tokens)</li>
-              <li data-i18n="page.pricing.byokFeat4">Full cost dashboard: by key / model / project</li>
-              <li data-i18n="page.pricing.byokFeat5">Multiple tagged keys + quota monitoring</li>
+              <li data-i18n="page.pricing.byokFeat1">Routing / failover / cache / usage (once you add keys)</li>
+              <li data-i18n="page.pricing.byokFeat2">Pro status — better for ongoing use</li>
+              <li data-i18n="page.pricing.byokFeat3">Gateway service fee only — no provider markup</li>
+              <li data-i18n="page.pricing.byokFeat4">Tagged keys and quota monitoring</li>
             </ul>
             <div class="plan-actions">
-              <a class="btn btn-primary" href="https://open.ai24x.com/pricing.html" data-open target="_blank" rel="noopener" data-i18n="page.pricing.byokCta">Get BYOK Pro</a>
+              <a class="btn btn-primary" href="https://open.ai24x.com/pricing.html#byokSection" data-open target="_blank" rel="noopener" data-i18n="page.pricing.byokCta">Get BYOK Pro</a>
             </div>
           </div>
           <div class="card plan-card is-rec">
-            <span class="plan-rec-badge" data-i18n="page.pricing.byokYearSave">Save 17%</span>
+            <span class="plan-rec-badge" data-i18n="page.pricing.recommended">Best value</span>
             <h3 style="margin:0;" data-i18n="page.pricing.byokYearTitle">BYOK Pro · Yearly</h3>
             <div class="plan-price"><strong>$99</strong><span data-i18n="page.pricing.perYear">/year</span></div>
+            <p class="plan-equiv" data-i18n="page.pricing.byokYearEquiv">≈ $8.25/mo · Save 17%</p>
             <ul>
-              <li data-i18n="page.pricing.byokYearFeat1">Everything in BYOK Pro Monthly</li>
-              <li data-i18n="page.pricing.byokYearFeat2">Priority automatic switching + larger cache</li>
-              <li data-i18n="page.pricing.byokYearFeat3">Developer docs & community support</li>
+              <li data-i18n="page.pricing.byokYearFeat1">Everything in monthly Pro</li>
+              <li data-i18n="page.pricing.byokYearFeat2">Save 17% vs monthly ($9.9×12 → $99)</li>
+              <li data-i18n="page.pricing.byokYearFeat3">Docs and community; priority for future upgrades</li>
             </ul>
             <div class="plan-actions">
-              <a class="btn btn-primary" href="https://open.ai24x.com/pricing.html" data-open target="_blank" rel="noopener" data-i18n="page.pricing.byokCta">Get BYOK Pro</a>
-            </div>
-          </div>
-          <div class="card plan-card">
-            <h3 style="margin:0;" data-i18n="page.pricing.devTitle">Managed credits</h3>
-            <p class="sub" style="margin:10px 0 0;" data-i18n="page.pricing.tokenTitle">Top up Gateway credits in Account. Keys &amp; docs stay on AI Gateway.</p>
-            <p class="sub" style="margin:8px 0 0;" data-i18n="page.pricing.freeHint">Balance ran out? Auto free channel kicks in — 100K tokens/day, always free.</p>
-            <div class="plan-actions" style="margin-top:14px">
-              <a class="btn btn-primary" href="console.html#billing" data-i18n="page.pricing.ctaConsole">Top up in Account</a>
+              <a class="btn btn-primary" href="https://open.ai24x.com/pricing.html#byokSection" data-open target="_blank" rel="noopener" data-i18n="page.pricing.byokCta">Get BYOK Pro</a>
             </div>
           </div>
         </div>
@@ -229,7 +267,7 @@
               <li data-i18n="page.help.plan.free3">Watchlist up to 10 symbols</li>
             </ul>
             <div class="plan-actions">
-              <a class="btn" href="https://markets.ai24x.com" data-markets target="_blank" rel="noopener" data-i18n="page.pricing.freeCta">Try free</a>
+              <a class="btn" href="https://markets.ai24x.com" data-markets data-hub-external target="_blank" rel="noopener" data-i18n="page.pricing.freeCta">Try free</a>
             </div>
           </div>
           <div class="card plan-card">
@@ -260,7 +298,7 @@
             <span class="plan-rec-badge" data-i18n="page.pricing.recommended">Best value</span>
             <h3 style="margin:0;" data-i18n="page.pricing.proYearly">Pro · Yearly</h3>
             <div class="plan-price"><strong>$199</strong><span data-i18n="page.pricing.perYear">/year</span></div>
-            <p class="sub" style="margin:0;" data-i18n="page.pricing.saveBadge">Save 33%</p>
+            <p class="plan-equiv" data-i18n="page.pricing.marketsYearEquiv">≈ $16.6/mo · Save 33%</p>
             <ul>
               <li data-i18n="page.help.plan.pro1">Unlimited AI commentary</li>
               <li data-i18n="page.help.plan.pro2">Watchlist up to 50 symbols</li>
@@ -291,12 +329,12 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260828a"></script>
-  <script src="js/api.js?v=20260827c"></script>
+  <script src="config/locales.js?v=20260829n"></script>
+  <script src="js/api.js?v=20260829n"></script>
   <script src="js/utm.js?v=20260802a"></script>
   <script src="js/i18n.js?v=20260826m"></script>
-  <script src="js/ai24x-chrome.js?v=20260829c"></script>
-  <script src="js/shell.js?v=20260829c"></script>
+  <script src="js/ai24x-chrome.js?v=20260829o"></script>
+  <script src="js/shell.js?v=20260829o"></script>
   <script src="js/app.js?v=20260818b"></script>
   <script src="js/support-widget.js?v=20260817b"></script>
 </body>

@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <meta name="theme-color" content="#0a0c10">
+  <title>Help — AI24X Markets</title>
+  <meta name="description" content="AI24X Markets help: search symbols, read charts and indicators, AI commentary, Free vs Pro, FAQ. Educational use only.">
+  <link rel="canonical" href="https://markets.ai24x.com/help.html">
+  <meta property="og:title" content="Help — AI24X Markets">
+  <meta property="og:description" content="How to use AI24X Markets: charts, indicators, AI commentary, pricing and FAQ.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://markets.ai24x.com/help.html">
+  <meta property="og:image" content="https://www.ai24x.com/img/og-share.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {"@type":"Question","name":"How do I search a stock, ETF or index?","acceptedAnswer":{"@type":"Answer","text":"Type a ticker such as AAPL, SPY or ^GSPC into the search box and press Search. Quotes, K-lines and indicators load automatically."}},
+      {"@type":"Question","name":"What does the AI commentary tell me?","acceptedAnswer":{"@type":"Answer","text":"A plain-language technical snapshot: trend, momentum, volume and watch points. Educational only — not investment advice."}},
+      {"@type":"Question","name":"How do I subscribe to Markets Pro?","acceptedAnswer":{"@type":"Answer","text":"Pro is $9.9/week, $24.9/month or $199/year, paid with PayPal. Activate inside Markets or from your Account Hub."}},
+      {"@type":"Question","name":"Can I trade based on the AI commentary?","acceptedAnswer":{"@type":"Answer","text":"No. Commentary, indicators and charts are educational references only. Make your own decisions."}}
+    ]
+  }
+  </script>
+  <link rel="stylesheet" href="/css/mk-site.css?v=20260829r" />
+  <style>
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.6; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hero { padding: 40px 0 18px; }
+    .hero h1 { font-size: 32px; line-height: 1.2; margin: 0 0 10px; letter-spacing: -0.01em; }
+    .hero .lead { color: var(--muted); font-size: 16px; margin: 0 0 16px; max-width: 560px; }
+    .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+    .toc a { display: inline-block; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); font-size: 13px; font-weight: 600; }
+    .toc a:hover { color: var(--text); border-color: var(--accent); text-decoration: none; }
+    .section { padding: 28px 0; border-top: 1px solid var(--border); }
+    .section h2 { font-size: 22px; margin: 0 0 6px; }
+    .section .sub { color: var(--muted); margin: 0 0 16px; font-size: 14px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    .card { margin-bottom: 10px; }
+    .card h3 { margin: 0 0 8px; font-size: 15px; }
+    .card p, .card li { margin: 0; color: var(--muted); font-size: 14px; }
+    .card ul { margin: 0; padding-left: 1.15em; color: var(--muted); font-size: 14px; }
+    .card ul li + li { margin-top: 6px; }
+    .card.hot { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+    .chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; background: var(--panel2); border: 1px solid var(--border); font-size: 13px; color: var(--muted); }
+    .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .dot-o { background: #f59e0b; }
+    .dot-b { background: #4f8cff; }
+    .dot-g { background: #22c55e; }
+    .dot-d { background: transparent; border: 1.5px dashed #94a3b8; }
+    .cta-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+    .notice { border-left: 3px solid var(--gold); background: color-mix(in srgb, var(--gold) 8%, var(--panel)); padding: 14px 16px; border-radius: 0 10px 10px 0; color: var(--muted); font-size: 14px; }
+    .site-footer { border-top: 1px solid var(--border); margin-top: 36px; padding: 28px 0 22px; background: var(--panel); color: var(--muted); font-size: 13px; }
+    .footer-bottom { font-size: 12px; }
+    .footer-bottom a { color: var(--muted); }
+    .footer-bottom a:hover { color: var(--accent); }
+    @media (max-width: 860px) {
+      .grid-3, .grid-2 { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 26px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="mk-product-bar"></div>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <div class="brand-group" data-hub-split="1">
+        <a class="brand brand-hub" href="https://www.ai24x.com/" data-www title="Back to AI24X Home"><span class="brand-mark">AI</span><span>AI24X</span></a>
+        <span class="brand-sep" aria-hidden="true">·</span>
+        <a class="brand brand-local" href="/"><b>Markets</b></a>
+      </div>
+      <nav class="nav-main" aria-label="Main">
+        <a href="/">Home</a>
+        <a href="/pricing.html">Pricing</a>
+        <a href="/help.html" class="is-active">Help</a>
+      </nav>
+      <div class="header-actions">
+        <a class="upgrade-pill" href="/app.html#sub">Upgrade to Pro</a>
+        <a class="auth-link signin" id="signin-link" href="#">Sign in</a>
+        <a class="auth-link signup" id="signup-link" href="#">Sign up</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap">
+        <h1>Markets help</h1>
+        <p class="lead">Search symbols, read charts and AI commentary. Same AI24X account as Account Hub — educational use only, not investment advice.</p>
+        <ul class="toc" aria-label="On this page">
+          <li><a href="#start">Get started</a></li>
+          <li><a href="#charts">Charts</a></li>
+          <li><a href="#ai">AI commentary</a></li>
+          <li><a href="#plan">Free vs Pro</a></li>
+          <li><a href="#faq">FAQ</a></li>
+          <li><a href="#safe">Risk notice</a></li>
+        </ul>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="/app.html">Open chart app</a>
+          <a class="btn" href="/pricing.html">View pricing</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="start">
+      <div class="wrap">
+        <h2>Get started in three steps</h2>
+        <p class="sub">From sign-in to reading the chart.</p>
+        <div class="grid-3">
+          <div class="card">
+            <h3>1. Sign in or register</h3>
+            <p>One AI24X account works for Markets and Account Hub. Start free — no card required.</p>
+          </div>
+          <div class="card">
+            <h3>2. Search a symbol</h3>
+            <p>Type a ticker like AAPL, SPY or ^GSPC and press Search. Quotes, K-lines and indicators load automatically.</p>
+          </div>
+          <div class="card">
+            <h3>3. Read the charts</h3>
+            <p>Switch daily / weekly / monthly and read the AI commentary under the chart.</p>
+          </div>
+        </div>
+        <p class="sub" style="margin-top:12px">Tip: wait for charts to finish loading before searching again; rapid repeated searches can hit data-source rate limits.</p>
+      </div>
+    </section>
+
+    <section class="section" id="charts">
+      <div class="wrap">
+        <h2>Reading the charts</h2>
+        <p class="sub">K-lines, moving averages and indicators — what you see and what it means.</p>
+        <div class="card">
+          <h3>K-lines (daily / weekly / monthly)</h3>
+          <p>Each bar shows open, high, low and close for that period. Switch timeframes to see short-term rhythm or long-term structure.</p>
+        </div>
+        <div class="card">
+          <h3>Moving averages (overlay)</h3>
+          <div class="chips">
+            <span class="chip"><span class="dot dot-o" aria-hidden="true"></span>Orange · shorter-term rhythm</span>
+            <span class="chip"><span class="dot dot-b" aria-hidden="true"></span>Blue · medium-term structure</span>
+            <span class="chip"><span class="dot dot-g" aria-hidden="true"></span>Green · long-term trend</span>
+            <span class="chip"><span class="dot dot-d" aria-hidden="true"></span>Dashed short MA · optional</span>
+          </div>
+        </div>
+        <div class="card">
+          <h3>MACD · RSI · Volume</h3>
+          <p>MACD and RSI in the subchart show momentum and overbought/oversold conditions; volume bars show activity.</p>
+        </div>
+        <p class="sub">Indicators describe the current picture — they don’t predict the future. Read them together with price action.</p>
+      </div>
+    </section>
+
+    <section class="section" id="ai">
+      <div class="wrap">
+        <h2>AI commentary</h2>
+        <p class="sub">A plain-language technical snapshot for every symbol, generated daily.</p>
+        <div class="grid-3">
+          <div class="card">
+            <h3>Trend &amp; structure</h3>
+            <p>Where price sits relative to key moving averages and recent ranges.</p>
+          </div>
+          <div class="card">
+            <h3>Momentum &amp; volume</h3>
+            <p>What MACD, RSI and volume are saying right now.</p>
+          </div>
+          <div class="card">
+            <h3>Watch points</h3>
+            <p>Levels and patterns worth watching — educational, not advice.</p>
+          </div>
+        </div>
+        <p class="sub" style="margin-top:12px">Free accounts get 10 AI commentaries per day; Pro is unlimited.</p>
+      </div>
+    </section>
+
+    <section class="section" id="plan">
+      <div class="wrap">
+        <h2>Free vs Pro</h2>
+        <p class="sub">Start free, upgrade when you want more.</p>
+        <div class="grid-2">
+          <div class="card">
+            <h3>Free</h3>
+            <ul>
+              <li>Charts and indicators for any US symbol</li>
+              <li>10 AI commentaries per day</li>
+              <li>Watchlist up to 10 symbols</li>
+            </ul>
+          </div>
+          <div class="card hot">
+            <h3>Pro</h3>
+            <ul>
+              <li>Unlimited AI commentary</li>
+              <li>Watchlist up to 50 symbols</li>
+              <li>Priority caching</li>
+              <li>$9.9/week · $24.9/month · $199/year · PayPal</li>
+            </ul>
+            <div class="cta-row"><a class="btn btn-primary" href="/pricing.html">See pricing</a></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="faq">
+      <div class="wrap">
+        <h2>FAQ</h2>
+        <div class="card">
+          <h3>How do I search a stock, ETF or index?</h3>
+          <p>Type a ticker such as AAPL, SPY or ^GSPC into the search box and press Search.</p>
+        </div>
+        <div class="card">
+          <h3>What indicators are available?</h3>
+          <p>Daily, weekly and monthly K-lines with MA, MACD, RSI and volume.</p>
+        </div>
+        <div class="card">
+          <h3>What does the AI commentary tell me?</h3>
+          <p>A plain-language technical snapshot of trend, momentum, volume and watch points. Educational only — not investment advice.</p>
+        </div>
+        <div class="card">
+          <h3>How do I subscribe to Markets Pro?</h3>
+          <p>Pay with PayPal inside Markets (Upgrade to Pro) or from Account Hub. Plans: $9.9/week, $24.9/month or $199/year.</p>
+        </div>
+        <div class="card">
+          <h3>Why is the data delayed by 15 minutes?</h3>
+          <p>We use delayed market feeds. Sources are credited on the page; content is for educational purposes only.</p>
+        </div>
+        <div class="card">
+          <h3>Do I need a separate account for Markets?</h3>
+          <p>No — use the same AI24X account. Sign in from Markets; manage billing in Account Hub when needed.</p>
+        </div>
+        <div class="card">
+          <h3>Searching a symbol returns nothing?</h3>
+          <p>Check the ticker spelling (e.g. ^GSPC for the S&amp;P 500). Some symbols on free feeds may be temporarily unavailable.</p>
+        </div>
+        <div class="card">
+          <h3>Why do daily, weekly and monthly look different?</h3>
+          <p>Different timeframes use different scales, so markers and indicators naturally differ.</p>
+        </div>
+        <div class="card">
+          <h3>Can I trade based on the AI commentary?</h3>
+          <p>No. Commentary, indicators and charts are educational references only. Markets involve risk; make your own decisions.</p>
+        </div>
+        <div class="card">
+          <h3>How do I manage or cancel my subscription?</h3>
+          <p>Sign in to Account Hub (same login as Markets). Cancel anytime; access continues until the paid period ends.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="safe">
+      <div class="wrap">
+        <h2>Risk notice</h2>
+        <div class="notice">
+          All content on AI24X Markets is for educational purposes only and does not constitute investment advice.
+          Market data may be delayed. Please make your own independent decisions; any losses are your own responsibility.
+        </div>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="/app.html">Open chart app</a>
+          <a class="btn" href="/tos.html">Terms</a>
+          <a class="btn" href="/privacy.html">Privacy</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-bottom">
+      © 2026 AI24X · <a href="/">Markets home</a> · <a href="/pricing.html">Pricing</a> · <a href="/tos.html">Terms</a> · <a href="/privacy.html">Privacy</a>
+    </div>
+  </footer>
+
+  <script src="/js/ai24x-chrome.js?v=20260829r"></script>
+  <script src="/js/www-links.js?v=20260829r"></script>
+  <script src="/js/mk-chrome.js?v=20260829r"></script>
+</body>
+</html>

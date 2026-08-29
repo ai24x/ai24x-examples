@@ -8,6 +8,7 @@ Disallow: /register.html
 Disallow: /forgot.html
 Disallow: /account.html
 Disallow: /token-admin.html
+Disallow: /competitor-ranking.html
 Disallow: /command-center.html
 Disallow: /demo.html
 Disallow: /paypal.html

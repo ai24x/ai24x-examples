@@ -146,27 +146,26 @@
     return /^(https?:\/\/)?([a-z0-9-]+\.)?ai24x\.com(\/|$)/i.test(String(href || ""));
   }
 
-  /** 站内链接默认同 tab；仅非 ai24x 外链保留新窗口 */
+  /** 站内默认同 tab；Markets / data-hub-external 保留新窗口（独立产品） */
   function stripInAppNewTab(root) {
     var scope = root || document;
     var nodes = scope.querySelectorAll('a[target="_blank"]');
     for (var i = 0; i < nodes.length; i++) {
       var a = nodes[i];
-      if (a.hasAttribute("data-hub-external")) continue;
+      if (a.hasAttribute("data-hub-external") || a.hasAttribute("data-markets")) continue;
       var href = a.getAttribute("href") || "";
-      if (isAi24xUrl(href) || a.hasAttribute("data-open") || a.hasAttribute("data-markets") || a.hasAttribute("data-www")) {
+      if (isAi24xUrl(href) || a.hasAttribute("data-open") || a.hasAttribute("data-www")) {
         a.removeAttribute("target");
         if (!a.getAttribute("rel")) a.removeAttribute("rel");
       }
     }
   }
 
-  /** 控制台/Hub 页不展示产品条；Gateway 营销站自有顶栏，也不展示 */
+  /** 控制台/Hub/Gateway/Markets 均不挂产品条（各站自有顶栏） */
   function shouldShowProductBar(activePage) {
     if (activePage === "console" || activePage === "dashboard") return false;
     var sk = siteKind();
-    if (sk === "gateway") return false;
-    if (sk === "markets") return true;
+    if (sk === "gateway" || sk === "markets") return false;
     return false;
   }
 

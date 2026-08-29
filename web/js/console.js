@@ -122,7 +122,7 @@
       monthly: "Pro 月卡",
       yearly: "Pro 年卡",
       token_pack_10k: "入门包",
-      token_pack_100k: "开发包",
+      token_pack_100k: "常用包",
         token_pack_mid: "进阶包",
         token_vip_month: "VIP 资格包",
         token_vip_month_50w: "VIP名模包",

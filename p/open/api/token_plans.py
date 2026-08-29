@@ -49,7 +49,7 @@ _PLAN_DEFAULTS: dict[str, dict[str, Any]] = {
         "note_en": "Starter trial: $2 for 1M tokens (~thousands of flash calls). Credits only—no named-model access; choose Scale to name models. Valid 12 months.",
     },
     "token_pack_100k": {
-        "title_zh": "开发包",
+        "title_zh": "常用包",
         "title_en": "Builder",
         "price_usd": 20.0,
         "default_fen": None,  # 由 USD×汇率推算

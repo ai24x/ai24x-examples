@@ -182,6 +182,55 @@
     }
     .cost-card h3 { margin: 0 0 6px; font-size: 1.05rem; }
     .cost-card .sub { margin: 0; }
+    .save-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+    a.save-chip {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 16px 16px 14px;
+      border-radius: var(--radius, 14px);
+      border: 1px solid color-mix(in srgb, var(--accent, #2563eb) 35%, var(--border, #d8e4ef));
+      background: color-mix(in srgb, var(--accent, #2563eb) 7%, var(--card-bg, var(--surface)));
+      color: inherit;
+      text-decoration: none;
+      transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+    }
+    a.save-chip:hover {
+      border-color: var(--accent);
+      color: inherit;
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    .save-chip .save-pct {
+      font-size: clamp(1.55rem, 3.2vw, 1.85rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      color: var(--accent);
+    }
+    .save-chip .save-label {
+      margin: 0;
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--heading);
+    }
+    .save-chip .save-note {
+      margin: 0;
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .save-foot {
+      margin: 12px 0 0;
+      font-size: 0.84rem;
+      color: var(--muted);
+    }
+    .save-foot a { color: var(--accent); font-weight: 700; }
     .audience-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -249,6 +298,90 @@
       font-weight: 700;
       color: var(--accent);
     }
+    .guide-section {
+      border-top: 1px solid var(--border);
+    }
+    .guide-section .container {
+      max-width: 980px;
+      margin: 0 auto;
+    }
+    .guide-section-head {
+      text-align: center;
+      margin-bottom: 22px;
+    }
+    .guide-section-head h2 {
+      font-size: 1.35rem;
+      margin: 0 0 8px;
+    }
+    .guide-section-head .sub {
+      margin: 0 auto;
+      max-width: 36rem;
+    }
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    a.guide-card {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 148px;
+      padding: 18px 18px 16px;
+      border: 1px solid var(--card-border, var(--border));
+      border-radius: var(--radius, 14px);
+      background: var(--card-bg, var(--surface));
+      box-shadow: var(--card-shadow, none);
+      color: inherit;
+      text-decoration: none;
+      transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+    }
+    a.guide-card:hover {
+      border-color: var(--accent);
+      color: inherit;
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    .guide-card .guide-idx {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.55rem;
+      height: 1.55rem;
+      border-radius: 8px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent, #2563eb) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent, #2563eb) 28%, transparent);
+    }
+    .guide-card h3 {
+      margin: 0;
+      font-size: 1.02rem;
+      line-height: 1.35;
+      letter-spacing: -0.01em;
+    }
+    .guide-card .sub {
+      margin: 0;
+      flex: 1;
+      font-size: 0.86rem;
+      line-height: 1.45;
+    }
+    .guide-card .go {
+      margin-top: 4px;
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .guide-more {
+      text-align: center;
+      margin: 18px 0 0;
+    }
+    .guide-more a {
+      font-weight: 700;
+      color: var(--accent);
+    }
     @media (max-width: 900px) {
       .flow-board {
         grid-template-columns: 1fr;
@@ -256,11 +389,15 @@
       }
       .flow-arrow { transform: rotate(90deg); }
       .cost-grid { grid-template-columns: 1fr; }
+      .save-strip { grid-template-columns: 1fr; }
       .audience-grid { grid-template-columns: 1fr 1fr; }
       .product-grid { grid-template-columns: 1fr; }
+      .guide-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 560px) {
       .audience-grid { grid-template-columns: 1fr; }
+      .guide-grid { grid-template-columns: 1fr; }
+      a.guide-card { min-height: 0; }
     }
   </style>
   <script type="application/ld+json">
@@ -326,11 +463,29 @@
       </div>
     </section>
 
-    <!-- 3) Cost: honest, no fake % -->
+    <!-- 3) Cost: light savings hooks + why -->
     <section class="section section-alt" id="cost">
       <div class="container">
         <h2 data-i18n="page.index.cost.title">Why Pay More for AI?</h2>
-        <p class="sub" data-i18n="page.index.cost.sub">Match each workload to the right model — smart routing on BYOK Pro; top up managed credits here to control spend without rewriting your app.</p>
+        <p class="sub" data-i18n="page.index.cost.sub">Managed flash / pro often cost far less on output than GPT list rates. Match the model to the job — top up credits here, or use BYOK when you already have keys.</p>
+        <div class="save-strip" aria-label="Managed access savings">
+          <a class="save-chip" href="pricing.html#saveSection">
+            <span class="save-pct">~71%</span>
+            <p class="save-label" data-i18n="page.index.cost.s1t">flash vs GPT Luna</p>
+            <p class="save-note" data-i18n="page.index.cost.s1p">$0.35 / M output · everyday tier</p>
+          </a>
+          <a class="save-chip" href="pricing.html#saveSection">
+            <span class="save-pct">~91%</span>
+            <p class="save-label" data-i18n="page.index.cost.s2t">pro vs GPT Terra</p>
+            <p class="save-note" data-i18n="page.index.cost.s2p">$1.05 / M output · quality tier</p>
+          </a>
+          <a class="save-chip" href="pricing.html#saveSection">
+            <span class="save-pct">~96%</span>
+            <p class="save-label" data-i18n="page.index.cost.s3t">pro vs GPT Sol</p>
+            <p class="save-note" data-i18n="page.index.cost.s3p">Same pro rate · vs top list price</p>
+          </a>
+        </div>
+        <p class="save-foot" data-i18n-html="page.index.cost.saveFoot">Output-token reference vs GPT list prices (captured 2026-08-15). Final rates on Console. <a href="pricing.html#saveSection">Full comparison →</a></p>
         <div class="cost-grid">
           <div class="card cost-card">
             <h3 data-i18n="page.index.cost.c1t">Lower cost options</h3>
@@ -338,7 +493,7 @@
           </div>
           <div class="card cost-card">
             <h3 data-i18n="page.index.cost.c2t">Better routing</h3>
-            <p class="sub" data-i18n="page.index.cost.c2p">One API surface; BYOK Pro adds smart routing and failover so you can switch models without rewriting your app.</p>
+            <p class="sub" data-i18n="page.index.cost.c2p">One API surface; BYOK Pro adds smart routing and automatic failover so you can switch models without rewriting your app.</p>
           </div>
           <div class="card cost-card">
             <h3 data-i18n="page.index.cost.c3t">One clear bill</h3>
@@ -404,7 +559,7 @@
             <p class="sub" data-i18n="page.index.products.gateway.p">Multi-model API with BYOK or managed access. Drop into Cursor, Codex, n8n and more.</p>
             <span class="go" data-i18n="page.index.products.gateway.go">Open gateway →</span>
           </a>
-          <a class="product-tile" href="https://markets.ai24x.com/" data-markets>
+          <a class="product-tile" href="https://markets.ai24x.com/" data-markets data-hub-external target="_blank" rel="noopener">
             <p class="host">markets.ai24x.com</p>
             <h3 data-i18n="page.index.products.markets.t">AI Markets</h3>
             <p class="sub" data-i18n="page.index.products.markets.p">US charts, indicators and plain-language AI commentary. Educational use only — not investment advice.</p>
@@ -414,33 +569,51 @@
       </div>
     </section>
 
-    <section class="section-tight" style="border-top:1px solid var(--border);">
-      <div class="container" style="max-width:920px;margin:0 auto">
-        <h2 style="font-size:1.35rem;margin:0 0 6px;text-align:center">AI Gateway guides</h2>
-        <p class="sub" style="text-align:center;margin:0 0 18px">Practical reads on multi-model APIs, BYOK, and cost routing — written for developers shipping to production.</p>
-        <div class="product-grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px">
-          <a class="product-tile" href="blog/what-is-ai-gateway.html" style="padding:16px 18px">
-            <h3 style="font-size:1rem;margin:0 0 6px">What is an AI Gateway?</h3>
-            <p class="sub" style="margin:0;font-size:0.88rem">One API in front of many models — routing, failover, and billing.</p>
+    <section class="section-tight guide-section">
+      <div class="container">
+        <div class="guide-section-head">
+          <h2>AI Gateway guides</h2>
+          <p class="sub">Practical reads on multi-model APIs, BYOK, and cost routing — written for developers shipping to production.</p>
+        </div>
+        <div class="guide-grid">
+          <a class="guide-card" href="blog/what-is-ai-gateway.html">
+            <span class="guide-idx">01</span>
+            <h3>What is an AI Gateway?</h3>
+            <p class="sub">One API in front of many models — routing, automatic failover, and billing.</p>
+            <span class="go">Read →</span>
           </a>
-          <a class="product-tile" href="blog/openai-compatible-api.html" style="padding:16px 18px">
-            <h3 style="font-size:1rem;margin:0 0 6px">OpenAI-compatible API</h3>
-            <p class="sub" style="margin:0;font-size:0.88rem">Keep your SDK. Change base URL and switch models.</p>
+          <a class="guide-card" href="blog/openai-compatible-api.html">
+            <span class="guide-idx">02</span>
+            <h3>OpenAI-compatible API</h3>
+            <p class="sub">Keep your SDK. Change base URL and switch models.</p>
+            <span class="go">Read →</span>
           </a>
-          <a class="product-tile" href="blog/one-api-multiple-models.html" style="padding:16px 18px">
-            <h3 style="font-size:1rem;margin:0 0 6px">One API, multiple models</h3>
-            <p class="sub" style="margin:0;font-size:0.88rem">Stop juggling separate provider integrations.</p>
+          <a class="guide-card" href="blog/one-api-multiple-models.html">
+            <span class="guide-idx">03</span>
+            <h3>One API, multiple models</h3>
+            <p class="sub">Stop juggling separate provider integrations.</p>
+            <span class="go">Read →</span>
           </a>
-          <a class="product-tile" href="blog/byok-ai-gateway.html" style="padding:16px 18px">
-            <h3 style="font-size:1rem;margin:0 0 6px">BYOK AI Gateway</h3>
-            <p class="sub" style="margin:0;font-size:0.88rem">Bring your own keys with routing and cost visibility.</p>
+          <a class="guide-card" href="blog/byok-ai-gateway.html">
+            <span class="guide-idx">04</span>
+            <h3>BYOK AI Gateway</h3>
+            <p class="sub">Bring your own keys with routing and cost visibility.</p>
+            <span class="go">Read →</span>
           </a>
-          <a class="product-tile" href="blog/ai-api-cost-basics.html" style="padding:16px 18px">
-            <h3 style="font-size:1rem;margin:0 0 6px">AI API cost basics</h3>
-            <p class="sub" style="margin:0;font-size:0.88rem">Task routing beats using the strongest model everywhere.</p>
+          <a class="guide-card" href="blog/ai-api-cost-basics.html">
+            <span class="guide-idx">05</span>
+            <h3>AI API cost basics</h3>
+            <p class="sub">Task routing beats using the strongest model everywhere.</p>
+            <span class="go">Read →</span>
+          </a>
+          <a class="guide-card" href="blog/kimi-api-paypal-guide.html">
+            <span class="guide-idx">06</span>
+            <h3>Kimi API + PayPal</h3>
+            <p class="sub">Call Kimi through AI24X with PayPal billing worldwide.</p>
+            <span class="go">Read →</span>
           </a>
         </div>
-        <p style="text-align:center;margin:16px 0 0"><a href="blog/index.html">All Gateway guides →</a></p>
+        <p class="guide-more"><a href="blog/index.html">All Gateway guides →</a></p>
       </div>
     </section>
 
@@ -460,12 +633,12 @@
 
   <footer class="site-footer" id="site-footer"></footer>
 
-  <script src="config/locales.js?v=20260829c"></script>
-  <script src="js/api.js?v=20260827c"></script>
+  <script src="config/locales.js?v=20260829n"></script>
+  <script src="js/api.js?v=20260829n"></script>
   <script src="js/utm.js?v=20260802a"></script>
   <script src="js/i18n.js?v=20260826m"></script>
-  <script src="js/ai24x-chrome.js?v=20260829c"></script>
-  <script src="js/shell.js?v=20260829k"></script>
+  <script src="js/ai24x-chrome.js?v=20260829o"></script>
+  <script src="js/shell.js?v=20260829o"></script>
   <script src="js/app.js?v=20260818b"></script>
   <script src="js/support-widget.js?v=20260828f"></script>
 </body>

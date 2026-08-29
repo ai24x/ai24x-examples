@@ -116,7 +116,7 @@
     if (key === "pricing") return "/pricing.html";
     if (key === "billing") return wwwBase() + "/console.html#billing";
     if (key === "support") return wwwBase() + "/console.html#support";
-    return wwwBase() + "/help.html";
+    return "/help.html";
   }
 
   function esc(s) {
@@ -146,7 +146,7 @@
       .map(function (l) {
         return (
           '<a class="mk-hw-link" href="' + hrefFor(l.href) + '"' +
-          (l.href === "pricing" ? "" : ' target="_blank" rel="noopener"') +
+          (l.href === "pricing" || l.href === "help" ? "" : ' target="_blank" rel="noopener"') +
           ">" + esc(l.label) + "</a>"
         );
       })
@@ -210,7 +210,7 @@
       '<div class="mk-hw-sec-title">' + esc(x.faqTitle) + "</div>" + faqHtml +
       '<div class="mk-hw-sec-title">' + esc(x.linksTitle) + "</div>" +
       '<div class="mk-hw-links">' + linksHtml + "</div>" +
-      '<a class="mk-hw-ai" href="' + wwwBase() + "/help.html#support" + '" target="_blank" rel="noopener">' +
+      '<a class="mk-hw-ai" href="/help.html#faq" rel="noopener">' +
       '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.1-1.3A10 10 0 1 0 12 2zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-3 .8.8-3-.2-.3A8 8 0 1 1 12 20z"/></svg>' +
       esc(x.ai) + "</a>" +
       '<a class="mk-hw-contact" href="mailto:support@ai24x.com">' +
