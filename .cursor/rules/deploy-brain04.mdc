@@ -1,107 +1,143 @@
 ---
-description: 副脑04 生产更新全流程（git 双推 + deploy04.ps1 派发 + 回执收尾）
+description: 副脑04 生产更新全流程（双推 + TEMPLATE 指令 + deploy04_direct 默认 / openclaw 复杂）
 alwaysApply: true
 ---
 
 # 副脑04 生产更新流程（AI24X）
 
-> **前置规范**：所有派发必先遵守 `docs/营销/收发/AGENTS.md` →「📌 更新指令统一规范」（落盘即提交、**gitee+origin 双推**、推送后自检）。副脑只拉 **origin**，只推 gitee = 未送达。
+> **定稿**：2026-08-29 与司令 Codex 统一。细则模板见 `docs/营销/收发/指令/TEMPLATE-更新部署验收.md`。  
+> **前置**：`docs/营销/收发/AGENTS.md` →「📌 更新指令统一规范」（落盘即提交、**gitee+origin 双推**）。副脑只拉 **origin**，只推 gitee = 未送达。
 
-当用户说 **「04更新」**、**「副脑04更新」**、**「派发04」** 或要求上线国际生产时，**必须走完整流程**，不能只 push Gitee + 写 .md。
+当用户说 **「04更新」**、**「副脑04更新」**、**「派发04」** 或要求上线国际生产时，**必须走完整流程**，不能只 push + 写 .md。
 
-## 一、全流程（按序，缺一不可）
+## 一、部署前
 
-1. 本地改代码 → 本地 QA 全绿
-2. **重大项**：关键页面清单给老板 → 老板回复「放行」后才可双推（首页/导航/定价/支付/登录/账户/视觉/多页批量）
-3. `git add <本次文件>` — **严禁** `git add -A` / `git add .`
-4. `git commit` → **双推（缺一不可）**：
+1. **本地 QA 全绿**
+   - 涉及 markets：跑 `p/markets/scripts/_qa_*.js`（或当次约定的回归脚本）
+   - 涉及 www / open：跑对应页面/接口回归
+2. **重大项须放行**：首页 / 导航 / 定价 / 支付 / 登录 / 账户 / 审美 / 多页批量 / 版本号批量  
+   → 先列「关键页面清单 + 预期效果」给老板，等回复 **「放行」** 才可提交派发。  
+   → 常规小修（错字 / 单点价格 / 单点 bug）可走快速通道。
+
+## 二、提交与双推
+
+3. **只** `git add <本次显式文件清单>` — **严禁** `git add -A` / `git add .`（工作树常有无关 docs 清理）
+4. 本地 commit 后 **双推**（缺一不可）：
    ```powershell
-   git push gitee master
-   git push origin master   # 副脑04 只拉此 remote
+   git push gitee master    # → ai24x/ai24x01.git
+   git push origin master   # → ai24x/ai24x-website.git（04 只拉此 remote）
    ```
-5. **推送后自检**：`git status` 无未提交指令；`git log origin/master -1` 确认已同步
-6. 写 **部署脚本** `docs/营销/收发/指令/YYYYMMDD-HHMM-04更新-<简述>-<短SHA>.ps1`（UTF-8 **带 BOM**）
-7. 写配套说明 `.md`（可选，记录 nginx/人工项）
-8. **commit 指令** → 再双推 + 自检
-9. **`deploy04.ps1` 派发**（同步 600s，主通道）：
-   ```powershell
-   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\deploy04.ps1 "docs\营销\收发\指令\<指令名>.ps1"
-   ```
-10. 遇 `EmbeddedAttemptSessionTakeoverError`：scp 已送达可先查 04 会话是否在跑，再重试
-11. **04 必须在指挥部飞书群发精简确认**（见下方模板；openclaw 跑完脚本后执行，不可省略）
-12. `scp` 拉回执 → 更新 `memory/daily/YYYY-MM-DD.md` → 显式 add 回执+记忆 → 双推收尾 + 自检
+5. **推送后自检**：`git status` 无未提交指令；`git log origin/master -1` 已含目标 commit
 
-**03更新** 同理：遵守 AGENTS.md 双推规范 + `deploy03.ps1`；03 也只拉 **origin**。
+## 三、生成更新指令
 
-## 二、04 环境事实
+6. **从模板复制**，另存为唯一新文件（禁止覆盖派发器）：
+   - 源：`docs/营销/收发/指令/TEMPLATE-更新部署验收.md`
+   - 目标：`docs/营销/收发/指令/YYYYMMDD-HHMM-04更新-<标题>-<EXP>.ps1`
+7. **填表**（必改）：
+   - `EXP`：目标提交 **12 位**短哈希（`git rev-parse --short=12 HEAD`）
+   - 标题、marker 校验（**含新 `?v=` 断言**）、是否同步 markets、重启服务列表、公网验收断言
+   - **末行保留**群回执模板（`deploy04_direct` 依赖解析）：
+     ```
+     # ✅ 04更新完成｜<标题>｜EXP=<EXP> HEAD=<HEAD> health=<commit>｜<验收结论>
+     ```
+8. **命名隔离**：
+   - `scripts/deploy04.ps1` / `scripts/deploy04_direct.ps1` = **本机派发器**，禁止写入或覆盖
+   - 指令永远是 `docs/营销/收发/指令/` 下唯一新文件，**不要**叫 `deploy04.ps1`
+9. 可选：同名 `.md` 记 nginx / 人工项；**指令 .ps1 commit 后再双推**
+
+## 四、派发（二选一）
+
+### 默认 · 标准代码更新 → `deploy04_direct`
+
+适用：pull + marker +（可选）markets 静态同步 + 重启 + 公网验收。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\deploy04_direct.ps1 "docs\营销\收发\指令\<指令名>.ps1"
+```
+
+- 直连 ssh 跑脚本，**无 LLM 层**
+- 自动转 UTF-8 BOM 再 scp
+- 成功后本机 `api/feishu_notify.py` **自动发指挥部群**（解析指令末行 `# ✅ …`，填充 `<HEAD>` / `<commit>`）
+- 日志：`ops/deploy04-direct-*.log`
+
+可选：`-DryRun`（只校验 BOM/回执行）、`-NoGroup`（不发群）
+
+### 例外 · 复杂任务 → `deploy04.ps1`（openclaw）
+
+适用：DB 迁移 / nginx 编辑 / 后台操作 / 需判断的步骤。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\deploy04.ps1 "docs\营销\收发\指令\<指令名>.ps1"
+```
+
+- 走 04 openclaw 主 agent；指令须 **自带 UTF-8 BOM**
+- 脚本成功后由 **04 openclaw** 发群（勿省略）
+- 遇 `EmbeddedAttemptSessionTakeoverError`：scp 已送达可先查 04 会话，再重试
+- 日志：`ops/deploy04-*.log`（非 `direct`）
+
+**禁止**用 `deploy04_async.ps1` 做标准更新。
+
+## 五、硬纪律
+
+10. 中文指令：**UTF-8 带 BOM**（`direct` 会自动转；openclaw 模式须自己保证）。PS 5.1 无 BOM 按 GBK 误读会直接失败。
+11. 共享 js/css/locales 改内容 → **全站统一升 `?v=`**，并写入 marker；禁止各页各版本。
+12. 远端 `Invoke-WebRequest` / `Invoke-RestMethod` 一律 **`-UseBasicParsing`**。
+13. HEAD / health 校验：`git merge-base --is-ancestor $EXP HEAD`（或 health.commit），**禁止**前缀字符串相等。
+14. `robocopy` 退出码 **< 8** 算成功；markets 同步前备份 `C:\sites\markets.ai24x.com.bak-<时间戳>`。
+15. 失败：先读完整日志（优先 `ops/deploy04-direct-*.log`）再决定重试/回滚；**禁止**盲目重发或绕过脚本直接 ssh 改生产。
+
+## 六、04 环境事实
 
 | 项 | 值 |
 |---|---|
-| SSH | `Administrator@43.160.246.30`，本机免密，需静态路由 `route add 43.160.246.30 mask 255.255.255.255 192.168.2.1 metric 1` |
+| SSH | `Administrator@43.160.246.30`（本机免密；需静态路由时：`route add 43.160.246.30 mask 255.255.255.255 192.168.2.1 metric 1`） |
 | 仓库 | `C:\ai24x01`，**只有 origin**（无 gitee） |
-| 远端 shell | cmd；远程 PowerShell 用 `powershell -File xxx.ps1` |
+| 远端 shell | 默认 cmd；跑 PS 用 `powershell -NoProfile -ExecutionPolicy Bypass -File` |
 | AI24X-core | NSSM **8002** = www + api.ai24x.com |
-| AI24X-markets-api | **18012**；静态同步 `C:\sites\markets.ai24x.com` |
-| AI24X-open-api | **18080**；独立 venv + 库 `ai24x_open_cn` |
-| 公网验证 | **在 04 上** `Invoke-WebRequest -UseBasicParsing`（本机公网不稳） |
+| AI24X-markets-api | **18012**；静态目录 `C:\sites\markets.ai24x.com` |
+| AI24X-open-api | **18080** |
+| 公网验收 | **在 04 上**执行（本机公网可能不稳） |
 
-## 三、部署 .ps1 写法要点
+## 七、群回执与收尾
 
-1. **UTF-8 BOM**：中文脚本必须 BOM，否则 04 PS5.1 按 GBK 误读
-2. **HEAD 校验**：`git merge-base --is-ancestor $EXP HEAD`；health 用完整 12 位 hash，**禁止** `-notlike "$EXP*"` 前缀匹配
-3. **04 pull**：`git fetch origin` + `git pull --ff-only origin master`（不是 gitee）
-4. 所有 `Invoke-WebRequest`/`Invoke-RestMethod` 带 **`-UseBasicParsing`**
-5. 改生产配置先 `Copy-Item` 备份 `.bak-时间戳`
-6. www：pull + **Restart-Service AI24X-core**（纯静态也要重启，health 带 commit）
-7. markets：同步 `C:\sites\markets.ai24x.com` + 重启 markets-api
-8. open：pull + 重启 AI24X-open-api
-9. 版本号：`locales.js`/`api.js`/`console.js`/`shell.js` 的 `?v=` 全站统一升，与内容同批提交
-10. 脚本末尾：`Write-Host "DONE EXP=$EXP HEAD=$HEAD"`
-11. **脚本末尾或配套 .md 必须写明群确认要求**（04 openclaw 执行完 PowerShell 后发送）：
-
-## 四-b、指挥部群精简确认（04 必发）
-
-部署脚本跑通后，04 openclaw **立即**在指挥部飞书群发 **一条**（勿刷屏、勿贴长日志）：
-
-**成功：**
+**成功模板（指令末行 / 群消息）：**
 ```
 ✅ 04更新完成｜<简述，≤15字>｜EXP=<短SHA> HEAD=<12位> health=<12位>｜公网验收通过
 ```
 
-**失败 / 部分完成：**
+**失败：**
 ```
 ⚠️ 04更新未完成｜<简述>｜原因：<一句话>｜已回滚/待人工：<nginx|.env|…>
 ```
 
-**示例：**
-```
-✅ 04更新完成｜GSC收录优化｜EXP=d23b51d HEAD=ea57ea806c61 health=ea57ea806c61｜公网验收通过｜待办：nginx 301+GSC
-```
+- **direct 模式**：本机派发器自动发群（勿再让 Cursor「手搓」飞书）
+- **openclaw 模式**：04 agent 发群
+- 完成后：写 `docs/营销/收发/回复/<任务>-out.md` → 更新 `memory/daily/YYYY-MM-DD.md` → 显式 add → 双推收尾
+- 用户问「04 做完了吗」→ 查群消息 + `ops/deploy04-direct-*.log`（或 openclaw 日志）+ `health.commit` + 回执文件
 
-- 本机（Cursor）**不代发**群消息；只负责写进 `.ps1`/`.md` 并让 `deploy04.ps1` 派发
-- 用户问「04 做完了吗」→ 查群消息 + `ops/deploy04-*.log` + `health.commit` + 回执文件
-
-## 四、与 03 的差异
+## 八、与 03 的差异
 
 | | 03 | 04 |
 |---|---|---|
-| 脚本 | `deploy03.ps1` | `deploy04.ps1` |
+| 派发 | `deploy03.ps1` 等 | **默认** `deploy04_direct.ps1`；复杂才 `deploy04.ps1` |
 | 主机 | `123.207.199.238` | `43.160.246.30` |
-| 服务 | AI24X-a1-api **8001** | AI24X-core **8002** |
-| health | 无 commit 字段，看进程时间 | 有 commit，用 merge-base 验 |
+| 服务 | AI24X-a1-api **8001** | AI24X-core **8002** 等 |
+| health | 无 commit 字段 | 有 commit，用 merge-base 验 |
 
-## 五、派发后如何确认完成
+## 九、禁止
 
-1. 本机 `ops/deploy04-*.log` 无 throw，末尾有 `DONE EXP=...`
-2. **指挥部飞书群**有 04 的 ✅/⚠️ 精简一行（必查）
-3. `docs/营销/收发/回复/<任务>-out.md`（scp 拉回）
-4. 公网：`api.ai24x.com/health` 的 commit 含目标 SHA（www 静态看页面 marker）
+- 发明新的临时部署脚本顶替派发器
+- 直接 ssh 改生产配置 / 静态文件绕过指令
+- 绕过重大项「放行」
+- 把密钥写进指令或日志
+- 只 push 不派发；指令写 `git pull gitee`；markets 只 pull 不同步 `C:\sites`
 
-## 六、常见 partial deploy 原因
+## 十、常见 partial deploy 原因
 
-- 只 push 未 `deploy04.ps1`
-- 04 指令写 `git pull gitee`（04 无 gitee remote）
-- pull 成功但未 `Restart-Service` → health 仍是旧 commit
-- markets 只 pull 未 copy 到 `C:\sites`
-- nginx 手工项未做（GSC 301/404 类）
-- 只写 `.md` 未写可执行的 `.ps1`
+- 只推 gitee 未推 origin
+- 标准更新误走 openclaw / 或只写 `.md` 未写 `.ps1`
+- pull 成功但未 `Restart-Service` → health 仍旧
+- markets 未 robocopy 到 `C:\sites`
+- `?v=` 未统一升 / marker 未断言新版本
+- nginx 手工项未做却标「完成」

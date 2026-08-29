@@ -35,7 +35,14 @@
 
 **验证标准：** 副脑 `git pull origin master` 能拉到最新提交 + 收到指令文件 + 回执到位，才算一次成功派发。
 
-> Cursor/Codex 执行细则见仓库根 `.cursor/rules/dispatch-dual-push.mdc`、`.cursor/rules/deploy-brain03-a1.mdc`。
+### 04 派发通道（2026-08-29 与 Codex 定稿统一）
+
+- **标准代码更新（默认）**：`powershell -File scripts\deploy04_direct.ps1 <指令.ps1>` —— ssh 直跑、无 LLM、成功自动发指挥部群
+- **复杂任务**（DB / nginx / 后台操作）：`powershell -File scripts\deploy04.ps1 <指令.ps1>` —— 04 openclaw
+- 指令从 `docs/营销/收发/指令/TEMPLATE-更新部署验收.md` 生成；末行保留 `# ✅ 04更新完成｜…`
+- Cursor 细则：`.cursor/rules/deploy-brain04.mdc`
+
+> Cursor/Codex 执行细则见仓库根 `.cursor/rules/dispatch-dual-push.mdc`、`.cursor/rules/deploy-brain04.mdc`、`.cursor/rules/deploy-brain03-a1.mdc`。
 
 ## 副脑速查
 - 01 42.192.1.93（游戏生产+构建测试）｜02 118.89.111.23（运营）｜03 123.207.199.238（国内生产）｜04 43.160.246.30（国际生产/PayPal）
