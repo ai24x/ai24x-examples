@@ -3,7 +3,7 @@
 param(
     [string]$RepoRoot = "",
     [string]$EnvFile = "",
-    [string]$PgDump = "C:\Program Files\PostgreSQL\15\bin\pg_dump.exe"
+    [string]$PgDump = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -14,6 +14,16 @@ if (-not $RepoRoot) {
 }
 if (-not $EnvFile) {
     $EnvFile = Join-Path $RepoRoot "api\.env"
+}
+if (-not $PgDump) {
+    foreach ($c in @(
+        "C:\AI24X\postgresql\pgsql\bin\pg_dump.exe",
+        "C:\Program Files\PostgreSQL\16\bin\pg_dump.exe",
+        "C:\Program Files\PostgreSQL\15\bin\pg_dump.exe",
+        "C:\Program Files\PostgreSQL\14\bin\pg_dump.exe"
+    )) {
+        if (Test-Path -LiteralPath $c) { $PgDump = $c; break }
+    }
 }
 
 $codeDir = Join-Path $bundle "code"
@@ -147,4 +157,7 @@ Write-Host "OK bundle=$bundle"
 Write-Host "git=$gitShort files=$($copied.Count) db=$($dbResult.ok)"
 if ($dbResult.ok) {
     Write-Host "db: $($dbResult.database) @ $($dbResult.host)"
+} else {
+    $msg = if ($dbResult.message) { $dbResult.message } else { "database backup failed" }
+    throw "database backup incomplete: $msg"
 }

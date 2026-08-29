@@ -23,12 +23,17 @@ TABLES = (
 
 
 def _pg_bin(name: str) -> str:
-    for ver in ("16", "15", "14", "13"):
-        p = Path(rf"C:\Program Files\PostgreSQL\{ver}\bin") / f"{name}.exe"
+    candidates = [
+        Path(rf"C:\AI24X\postgresql\pgsql\bin") / f"{name}.exe",
+        Path(rf"C:\Program Files\PostgreSQL\16\bin") / f"{name}.exe",
+        Path(rf"C:\Program Files\PostgreSQL\15\bin") / f"{name}.exe",
+        Path(rf"C:\Program Files\PostgreSQL\14\bin") / f"{name}.exe",
+        Path(rf"C:\Program Files\PostgreSQL\13\bin") / f"{name}.exe",
+    ]
+    for p in candidates:
         if p.is_file():
             return str(p)
-    w = name
-    return w
+    return name
 
 
 def main() -> int:
