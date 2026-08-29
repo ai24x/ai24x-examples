@@ -102,6 +102,8 @@
       font-size: 13px; line-height: 1.65; color: var(--text, #152c43);
     }
     .help-stack .card { margin-bottom: 10px; }
+    /* 卡片网格跟首页同宽；FAQ/风险说明保持适中阅读宽 */
+    .help-prose { max-width: 980px; }
   </style>
   <script type="application/ld+json">
   {
@@ -145,7 +147,7 @@
     </section>
 
     <section class="section">
-      <div class="container" style="max-width:860px">
+      <div class="container">
         <section class="help-sec" id="doors" style="margin-top:0">
           <h2 data-i18n="page.help.doors.title">Which product do you need?</h2>
           <p class="sub" data-i18n="page.help.doors.sub">Same AI24X account — different doors.</p>
@@ -279,6 +281,7 @@
           </div>
         </section>
 
+        <div class="help-prose">
         <section class="help-sec" id="faq">
           <h2 data-i18n="page.help.faq.title">FAQ</h2>
           <div class="help-stack" style="margin-top:12px">
@@ -337,6 +340,7 @@
           <h2 data-i18n="page.help.safe.title">Risk notice</h2>
           <div class="help-note" data-i18n="page.help.safe.p">All content on AI24X Markets is for educational purposes only and does not constitute investment advice. Market data may be delayed. Please make your own independent decisions; any losses are your own responsibility.</div>
         </section>
+        </div>
       </div>
     </section>
   </main>
