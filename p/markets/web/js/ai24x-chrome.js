@@ -5,6 +5,32 @@
 (function (global) {
   var AUTH_COOKIE = "ai24x_auth_token";
   var AUTH_USER_COOKIE = "ai24x_auth_user";
+  var WWW_PROD = "https://www.ai24x.com";
+  var API_PROD = "https://api.ai24x.com";
+
+  /** 计费 API 基址（markets 支付弹窗用 api 子域，非 www 静态站） */
+  function apiBase() {
+    try {
+      var h = String(location.hostname || "").toLowerCase();
+      if (h === "127.0.0.1" || h === "localhost") return "http://127.0.0.1:8000";
+    } catch (e) {}
+    return API_PROD;
+  }
+
+  // 兜底：EdgeOne/浏览器若仍缓存旧 app.html（hubFetch 打 www），改写为 api.ai24x.com
+  if (typeof global.fetch === "function" && !global.__ai24xBillingFetchPatched) {
+    global.__ai24xBillingFetchPatched = true;
+    var nativeFetch = global.fetch.bind(global);
+    global.fetch = function (input, init) {
+      var url = typeof input === "string" ? input : input && input.url;
+      if (typeof url === "string" && url.indexOf(WWW_PROD + "/v1/billing") === 0) {
+        var fixed = API_PROD + url.slice(WWW_PROD.length);
+        if (typeof input === "string") input = fixed;
+        else input = new Request(fixed, input);
+      }
+      return nativeFetch(input, init);
+    };
+  }
 
   function preferLocalProducts() {
     try {
@@ -253,6 +279,7 @@
 
   global.AI24X_CHROME = {
     wwwBase: wwwBase,
+    apiBase: apiBase,
     openUrl: openUrl,
     marketsUrl: marketsUrl,
     marketsHomeUrl: marketsHomeUrl,

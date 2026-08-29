@@ -440,9 +440,9 @@
     </div>
   </div>
 
-  <script src="/js/ai24x-chrome.js?v=20260829o"></script>
-  <script src="/js/www-links.js?v=20260829o"></script>
-  <script src="/js/mk-chrome.js?v=20260829o"></script>
+  <script src="/js/ai24x-chrome.js?v=20260830p"></script>
+  <script src="/js/www-links.js?v=20260830p"></script>
+  <script src="/js/mk-chrome.js?v=20260830p"></script>
   <script src="vendor/lightweight-charts.standalone.production.js"></script>
   <script src="/help-widget.js"></script>
   <script>
@@ -1259,8 +1259,11 @@
         var h = (location.hostname || '').toLowerCase();
         return (h === '127.0.0.1' || h === 'localhost') ? 'http://127.0.0.1:8000' : 'https://www.ai24x.com';
       }
-      // 支付/计费 API 在 api.ai24x.com（www 静态站不反代 /v1/billing → 会 Failed to fetch）
+      // 支付/计费 API 在 api.ai24x.com（www 静态站不反代 /v1/billing）
       function apiUrl() {
+        if (window.AI24X_CHROME && typeof window.AI24X_CHROME.apiBase === 'function') {
+          return window.AI24X_CHROME.apiBase();
+        }
         try {
           if (localStorage.getItem('ai24x_local_products') === '0') return 'https://api.ai24x.com';
         } catch (e) {}
