@@ -45,7 +45,17 @@ _DN_TH_HS = -9.5
 
 
 def _is_bj_code6(code6: str) -> bool:
-    return str(code6 or "").zfill(6).startswith(("43", "83", "87", "88", "92"))
+    """北证代码：43/83/87/88/89/92 开头（含部分历史码段）。"""
+    c = str(code6 or "").zfill(6)
+    return c.startswith(("43", "83", "87", "88", "89", "92"))
+
+
+def _is_hs_kc_code6(code6: str) -> bool:
+    """沪深主板 + 创业/科创（大波段栏目允许范围；明确排除北证）。"""
+    c = str(code6 or "").zfill(6)
+    if _is_bj_code6(c):
+        return False
+    return c.startswith(("00", "60", "30", "68"))
 
 
 def _is_kc_code6(code6: str) -> bool:
@@ -803,6 +813,9 @@ def load_archive(market: str, date_key: str) -> dict[str, Any] | None:
     if market in ("pb", "mlpb", "breakout", "leader"):
         hs = _load_archive_raw("hs", date_key)
         return apply_column_view(market, hs) if isinstance(hs, dict) else None
+    if market in ("macd", "low10", "tight"):
+        raw = _load_archive_raw("all", date_key) or _load_archive_raw(market, date_key)
+        return apply_column_view(market, raw) if isinstance(raw, dict) else None
     return _load_archive_raw(market, date_key)
 
 
@@ -1265,12 +1278,12 @@ def archive_summary(market: str = "bj") -> list[dict[str, Any]]:
     pb = 从 hs 归档套用 pb_view 过滤（支持历史回溯，无需单独存盘）。
     """
     market = str(market or "bj")
-    if market in ("pb", "mlpb", "breakout", "leader", "macd", "low10"):
+    if market in ("pb", "mlpb", "breakout", "leader", "macd", "low10", "tight"):
         out_col: list[dict[str, Any]] = []
         try:
             hist = _load_history()
             days_seen: set[str] = set()
-            src_prefix = "all" if market in ("macd", "low10") else "hs"
+            src_prefix = "all" if market in ("macd", "low10", "tight") else "hs"
 
             def _col_picks_from_snap(snap: dict[str, Any]) -> list[dict[str, Any]]:
                 if market == "macd":
@@ -1749,28 +1762,61 @@ def _attach_ml_why(rank: list[dict[str, Any]], dml_names: list[str], dml_info: d
         return rank
 
 
-def _apply_stale_fallback(result: dict[str, Any], market: str = "bj") -> dict[str, Any]:
+_COLUMN_VIEW_MARKETS = frozenset({"macd", "low10", "tight", "pb", "mlpb", "breakout", "leader"})
+
+
+def _apply_stale_fallback(result: dict[str, Any], market: str = "bj", column: str = "") -> dict[str, Any]:
     """今日无合格标的时，回退展示上一交易日结果并打 stale 标记。
 
-    不原地修改 result：先浅拷贝再合并，避免污染 _SCAN_CACHE / 磁盘缓存——
-    否则缓存里只剩昨日归档数据，今日真实扫描结果（fine/runner/未达主推线原因）无法核对。
+    专栏（tight/macd/low10 等）须按栏目口径判空/回退，禁止把 all 市场主推（含北证/MACD）原样透传。
+    不原地修改 result：先浅拷贝再合并，避免污染 _SCAN_CACHE / 磁盘缓存。
     """
     result = dict(result)
     result.pop("_bad", None)
-    if result.get("picks"):
-        return _reattach_ths(result)
-    stale = _latest_history(market)
+    col = str(column or "").strip().lower()
+
+    def _view(r: dict[str, Any]) -> dict[str, Any]:
+        if col in _COLUMN_VIEW_MARKETS:
+            return apply_column_view(col, r)
+        return r
+
+    def _has_picks(r: dict[str, Any]) -> bool:
+        v = _view(r)
+        if col == "macd":
+            return bool(v.get("macd_reds") or v.get("picks"))
+        return bool(v.get("picks"))
+
+    if _has_picks(result):
+        out = _view(result)
+        out.pop("_bad", None)
+        return _reattach_ths(out)
+
+    stale = None
+    if col in _COLUMN_VIEW_MARKETS:
+        stale = _latest_history(col)
     if not stale:
-        return result
+        stale = _latest_history(market)
+    if not stale:
+        out = _view(result)
+        out.pop("_bad", None)
+        return _reattach_ths(out)
+
     out = dict(result)
     out["stale"] = True
     out["stale_from"] = stale.get("asof") or stale.get("date") or ""
     out["stale_scan_date"] = stale.get("date") or ""
-    out["picks"] = stale.get("picks") or []
-    out["runners"] = stale.get("runners") or []
-    if not out.get("mainlines"):
-        # 今日已定型（含“无主线”）→ 沿用今日判定，不回退旧归档主线；
-        # 仅当日完全无判定数据时才用上一交易日归档主线（与 _daily_mainlines 15:30 修复同口径）。
+    merged = dict(stale)
+    # 保留归档自身的 date/asof（供专栏回放对齐 K 线日）；今日扫描字段仅作 meta/透明度
+    for _k in ("cached", "total", "scanned", "fine", "hard_rejected",
+               "generated_ts", "elapsed_s", "market", "regime", "style", "meta"):
+        if _k in out and out.get(_k) is not None:
+            merged[_k] = out[_k]
+    # 展示用：主结果日期仍标「今日」，真实数据日写在 stale_from
+    if result.get("date"):
+        merged["date"] = result.get("date")
+    if not merged.get("asof"):
+        merged["asof"] = out["stale_from"]
+    if not merged.get("mainlines"):
         try:
             _dml0 = _daily_mainlines()
             _dml0_src = (_dml0 or {}).get("src") or ""
@@ -1778,8 +1824,14 @@ def _apply_stale_fallback(result: dict[str, Any], market: str = "bj") -> dict[st
         except Exception:
             _dml0_src, _dml0_names = "", []
         if not (_dml0_names or _dml0_src in ("archive", "recalc")):
-            out["mainlines"] = stale.get("mainlines") or []
-    # 今日扫描透明度：即使回退展示上一交易日，也保留今日扫描结论供前端说明（避免“空算法”疑虑）
+            merged["mainlines"] = stale.get("mainlines") or []
+    merged["stale"] = True
+    merged["stale_from"] = out["stale_from"]
+    merged["stale_scan_date"] = out["stale_scan_date"]
+    if out.get("intraday"):
+        merged["intraday"] = True
+    if out.get("today_missing"):
+        merged["today_missing"] = True
     _tf: dict[str, Any] = {"fine": int(result.get("fine") or 0), "hard": int(result.get("hard_rejected") or 0)}
     _top = (result.get("runners") or [])[:1]
     if _top:
@@ -1789,8 +1841,23 @@ def _apply_stale_fallback(result: dict[str, Any], market: str = "bj") -> dict[st
             "final": _t0.get("final"), "score": _t0.get("score"),
             "risks": _t0.get("risks") or [],
         }
-    out["today_fine"] = _tf
-    return _reattach_ths(out)
+    merged["today_fine"] = _tf
+    # 专栏回放必须用归档 asof；临时把 asof 指回归档日再 view
+    _asof_keep = stale.get("asof") or stale.get("date") or out["stale_from"]
+    if _asof_keep:
+        merged["asof"] = _asof_keep
+    viewed = _view(merged)
+    viewed["stale"] = True
+    viewed["stale_from"] = out["stale_from"]
+    viewed["stale_scan_date"] = out["stale_scan_date"]
+    viewed["today_fine"] = _tf
+    if result.get("date"):
+        viewed["date"] = result.get("date")
+    if out.get("intraday"):
+        viewed["intraday"] = True
+    if out.get("today_missing"):
+        viewed["today_missing"] = True
+    return _reattach_ths(viewed)
 
 
 def _num(v: Any, d: float = 0.0) -> float:
@@ -3346,6 +3413,114 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
     spread = (max(ma5, ma10, ma20) - min(ma5, ma10, ma20)) / ma20 * 100 if ma20 else 0.0
     if spread <= 2.5 and ma5 > ma10 and ma10 > ma20 and hist[last] > 0:
         patterns["tightBurst"] = 1
+    # 大波段（同花顺「多头粘合涨停」落地）：仅沪深主板+创业/科创，硬排除北证
+    # 对齐原式核心；过严处放宽：大周期双路径、粘合窗10日、年涨停改软门、额/位置略松
+    tight_zt = False
+    tight_zt_meta: dict[str, Any] = {}
+    try:
+        _name_u = str(cand.get("name") or "")
+        _not_st = not bool(re.search(r"(?:\*?ST)|退", _name_u, flags=re.I))
+        _hs_kc = _is_hs_kc_code6(_c6)
+        _listed_ok = n > 120
+        ma30 = _ma_at(c, 30, last)
+        ma144 = _ma_at(c, 144, last) if n >= 144 else 0.0
+        ma144_prev5 = _ma_at(c, 144, last - 5) if n >= 149 else 0.0
+        # 大周期：路径A=原式（5/10/20/30>60 且 60>144）；路径B=短多头贴近60/144（防空仓）
+        _path_a = bool(
+            n >= 144 and ma5 > ma60 and ma10 > ma60 and ma20 > ma60 and ma30 > ma60
+            and ma144 > 0 and ma60 > ma144
+        )
+        _path_b = bool(
+            ma5 > ma10 > ma20 and ma20 >= ma60 * 0.98
+            and (ma144 <= 0 or ma60 >= ma144 * 0.98)
+        )
+        _big_ok = _path_a or _path_b
+        _ma144_up = bool(ma144 > 0 and ma144_prev5 > 0 and ma144 >= ma144_prev5 * 0.997)
+        # 粘合阈 3%：近10日≥2日粘合，或今日价差≤3.5%；发散=MA5>10>20 且 MA5 不下行
+        _glue_th = 0.03
+        _glue_cnt = 0
+        for _gi in range(max(19, last - 9), last + 1):
+            _g5 = _ma_at(c, 5, _gi)
+            _g10 = _ma_at(c, 10, _gi)
+            _g20 = _ma_at(c, 20, _gi)
+            if _g5 > 0 and _g10 > 0 and _g20 > 0 \
+                    and abs(_g5 / _g20 - 1) <= _glue_th \
+                    and abs(_g10 / _g20 - 1) <= _glue_th \
+                    and abs(_g5 / _g10 - 1) <= _glue_th:
+                _glue_cnt += 1
+        _ma5_1 = _ma_at(c, 5, last - 1) if last >= 1 else 0.0
+        _ma5_2 = _ma_at(c, 5, last - 2) if last >= 2 else 0.0
+        _diverge_strict = bool(ma5 > ma10 > ma20 and ma5 > _ma5_1 > 0 and _ma5_1 > _ma5_2 > 0)
+        _diverge = bool(ma5 > ma10 > ma20 and ma5 >= _ma5_1 > 0)
+        _spread_now = (max(ma5, ma10, ma20) - min(ma5, ma10, ma20)) / ma20 * 100 if ma20 else 99.0
+        _glue_up = bool((_glue_cnt >= 2 or _spread_now <= 3.5) and _diverge)
+        _amt_scale = 100.0
+        _snap_amt = _num(cand.get("amount"))
+        if _snap_amt > 0 and c[last] > 0 and v[last] > 0:
+            _amt_scale = _snap_amt / (c[last] * v[last])
+
+        def _bar_amt(i: int) -> float:
+            return float(c[i]) * float(v[i]) * _amt_scale if c[i] > 0 and v[i] > 0 else 0.0
+
+        def _vol_confirm_at(i: int) -> bool:
+            if i < 4:
+                return False
+            _v5i = sum(v[i - 4: i + 1]) / 5.0
+            return _v5i > 0 and v[i] >= 1.2 * _v5i
+
+        _zt_th_tz = _zt_threshold(_c6)
+        _zt_amt_min = 3.0e7  # 原式 5000 万，放宽至 3000 万
+        _good_zt_idx = -1
+        for _zi in range(max(1, last - 9), last + 1):
+            _zp = (c[_zi] / c[_zi - 1] - 1) * 100 if c[_zi - 1] > 0 else 0.0
+            if _zp < _zt_th_tz - 0.3:
+                continue
+            _zt_px = c[_zi - 1] * (1.0 + _zt_th_tz / 100.0)
+            if l[_zi] >= _zt_px * 0.997:
+                continue
+            if _bar_amt(_zi) < _zt_amt_min:
+                continue
+            _good_zt_idx = _zi
+        _near_zt = _good_zt_idx >= 0
+        _vol_ok = _vol_confirm_at(last) or (_good_zt_idx >= 0 and _vol_confirm_at(_good_zt_idx))
+        _look = min(last, 169)
+        _yr_zt = 0
+        for _yi in range(max(1, last - _look + 1), last + 1):
+            _yp = (c[_yi] / c[_yi - 1] - 1) * 100 if c[_yi - 1] > 0 else 0.0
+            if _yp >= _zt_th_tz - 0.3:
+                _yr_zt += 1
+        # 年涨停：原式 5–10 作软加分；硬门只要求近窗有效涨停
+        _yr_ideal = 5 <= _yr_zt <= 10
+        _yr_soft = 3 <= _yr_zt <= 12
+        _llv60 = min(l[max(0, last - 59): last + 1]) if n >= 2 else cl
+        _pos_from_low = (cl / _llv60 - 1.0) if _llv60 > 0 else 99.0
+        _pos_ok = _pos_from_low <= 0.70  # 原式 0.65，略放宽
+        _amt20 = sum(_bar_amt(i) for i in range(max(0, last - 19), last + 1)) / 20.0
+        _liq_ok = _amt20 > 5.0e7  # 原式 1 亿，放宽至 5000 万
+        _big_dn = -10.0 if _is_kc_code6(_c6) else -7.0
+        _no_big_yin = True
+        for _yi in range(max(1, last - 9), last + 1):
+            _yd = (c[_yi] / c[_yi - 1] - 1) * 100 if c[_yi - 1] > 0 else 0.0
+            if _yd <= _big_dn:
+                _no_big_yin = False
+                break
+        tight_zt = bool(
+            _hs_kc and _not_st and _listed_ok and _big_ok and _glue_up
+            and _near_zt and _pos_ok and _liq_ok and _no_big_yin and _vol_ok
+        )
+        tight_zt_meta = {
+            "glueDays": _glue_cnt, "yrZt": _yr_zt, "yrSoft": _yr_ideal or _yr_soft,
+            "ma144Up": _ma144_up, "aboveMa144": bool(ma144 > 0 and ma60 > ma144),
+            "pathA": _path_a, "divergeStrict": _diverge_strict,
+            "posFromLow": round(_pos_from_low, 3),
+            "ztDaysAgo": (last - _good_zt_idx) if _good_zt_idx >= 0 else None,
+            "spread": round(_spread_now, 2),
+            "amt20yi": round(_amt20 / 1e8, 2),
+        }
+        if tight_zt:
+            patterns["tightZt"] = 1
+    except Exception:
+        tight_zt = False
     # MACD 首根红柱（底部金叉第一根红柱 + 量能确认：右侧启动强信号）
     fr_idx = last - gc_days + 1
     # P1-2 B：all（沪深京全市场）扫描时放宽首红量能与位置门槛，减少漏检（1.2×→1.0×、位置≤50%→≤60%）
@@ -3659,6 +3834,14 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
         t += 6
     if patterns.get("tightBurst"):
         t += 4
+    if patterns.get("tightZt"):
+        t += 5
+        if tight_zt_meta.get("yrSoft"):
+            t += 1
+        if tight_zt_meta.get("ma144Up"):
+            t += 1
+        if tight_zt_meta.get("aboveMa144"):
+            t += 1
     if hist[last] > 0:
         t += 2
     gc = False
@@ -3721,7 +3904,7 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
             or patterns.get("surgePullback")
             or patterns.get("baseUp") or patterns.get("macdFirstRed") or patterns.get("firstBoardRight")
             or patterns.get("steadyUp") or patterns.get("washOut") or patterns.get("firstWeek")
-            or patterns.get("strongMom")):
+            or patterns.get("strongMom") or patterns.get("tightZt")):
         sc -= 6
     # ⑧ 动量修正
     if bias_over:
@@ -3770,6 +3953,7 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
         "trendScore": _su["trendScore"], "steadyUpParts": _su["parts"],
         "ma_bull": ma_bull, "ma_bull3": ma_bull3, "gc_days": gc_days,
         "leaderOk": leader_ok,
+        "tightZtMeta": tight_zt_meta,
         "momScore": mom["momScore"], "momParts": mom["momParts"],
         "strongMom": bool(mom["strongMom"]), "momTags": mom["momTags"],
         "pe": pe, "pb": pb, "mcap": mcap,
@@ -4858,7 +5042,10 @@ async def _backfill_leader_quotes(payload: dict[str, Any]) -> dict[str, Any]:
         def _need_quote(row: dict[str, Any]) -> bool:
             pct = row.get("pct")
             pct_miss = pct is None or (isinstance(pct, str) and not str(pct).strip())
-            return row.get("price") is None or pct_miss
+            code = str(row.get("code") or "").strip()
+            name = str(row.get("name") or "").strip()
+            name_miss = (not name) or (name == code)
+            return row.get("price") is None or pct_miss or name_miss
 
         def _apply_cache_or_miss(row: dict[str, Any]) -> None:
             code = str(row.get("code") or "")
@@ -4869,6 +5056,11 @@ async def _backfill_leader_quotes(payload: dict[str, Any]) -> dict[str, Any]:
             hit = _LEADER_Q_CACHE.get(code)
             if hit and now0 - hit[0] < _LEADER_Q_TTL:
                 for _k in _q_keys:
+                    if _k == "name":
+                        _nm = str(row.get("name") or "").strip()
+                        if (not _nm or _nm == code) and hit[1].get("name"):
+                            row["name"] = hit[1]["name"]
+                        continue
                     if row.get(_k) is None and _k in hit[1] and hit[1][_k] is not None:
                         row[_k] = hit[1][_k]
                 if not _need_quote(row):
@@ -4884,6 +5076,9 @@ async def _backfill_leader_quotes(payload: dict[str, Any]) -> dict[str, Any]:
                     if isinstance(ld, dict):
                         _apply_cache_or_miss(ld)
         for m in (payload.get("macd_reds") or []):
+            if isinstance(m, dict):
+                _apply_cache_or_miss(m)
+        for m in (payload.get("picks") or []) + (payload.get("runners") or []):
             if isinstance(m, dict):
                 _apply_cache_or_miss(m)
 
@@ -5080,6 +5275,92 @@ def _stock_secid(code: str) -> str:
     return "0." + c
 
 
+_NAME_CACHE: dict[str, str] = {}
+
+
+def _tencent_symbol(code6: str) -> str:
+    c = str(code6 or "").zfill(6)
+    if c.startswith(("5", "6", "9")):
+        return "sh" + c
+    if _is_bj_code6(c):
+        return "bj" + c
+    return "sz" + c
+
+
+def _resolve_stock_names(codes: list[str]) -> dict[str, str]:
+    """批量补股票简称（腾讯行情，同步、短超时）。回放池常只有代码无名称时用。"""
+    out: dict[str, str] = {}
+    need: list[str] = []
+    for c0 in codes or []:
+        c = str(c0 or "").strip().zfill(6)
+        if not re.fullmatch(r"\d{6}", c):
+            continue
+        hit = _NAME_CACHE.get(c)
+        if hit:
+            out[c] = hit
+        else:
+            need.append(c)
+    if not need:
+        return out
+    # 去重保序，单次最多 40 只
+    uniq = list(dict.fromkeys(need))[:40]
+    try:
+        import urllib.request
+        q = ",".join(_tencent_symbol(c) for c in uniq)
+        req = urllib.request.Request(
+            "http://qt.gtimg.cn/q=" + q,
+            headers={"User-Agent": "Mozilla/5.0", "Referer": "https://finance.qq.com/"},
+        )
+        raw = urllib.request.urlopen(req, timeout=4).read()
+        try:
+            text = raw.decode("gbk", errors="replace")
+        except Exception:
+            text = raw.decode("utf-8", errors="replace")
+        for part in text.split(";"):
+            part = part.strip()
+            if not part or "~" not in part:
+                continue
+            # v_sz003030="51~祖名股份~003030~...
+            try:
+                body = part.split("=", 1)[1].strip().strip('"')
+                fields = body.split("~")
+                if len(fields) < 3:
+                    continue
+                name = str(fields[1] or "").strip()
+                code = str(fields[2] or "").strip().zfill(6)
+                if name and re.fullmatch(r"\d{6}", code) and name != code:
+                    _NAME_CACHE[code] = name
+                    out[code] = name
+            except Exception:
+                continue
+    except Exception:
+        pass
+    return out
+
+
+def _fill_missing_names(rows: list[dict[str, Any]] | None) -> None:
+    """就地补全 name 为空或等于代码的条目。"""
+    if not rows:
+        return
+    miss = []
+    for r in rows:
+        if not isinstance(r, dict):
+            continue
+        code = str(r.get("code") or "").strip().zfill(6)
+        name = str(r.get("name") or "").strip()
+        if re.fullmatch(r"\d{6}", code) and (not name or name == code):
+            miss.append(code)
+    if not miss:
+        return
+    nmap = _resolve_stock_names(miss)
+    for r in rows:
+        if not isinstance(r, dict):
+            continue
+        code = str(r.get("code") or "").strip().zfill(6)
+        name = str(r.get("name") or "").strip()
+        if (not name or name == code) and code in nmap:
+            r["name"] = nmap[code]
+
 async def _kline_with_retry(
     code: str,
     variant: str,
@@ -5259,6 +5540,7 @@ def _pick_out(c: dict[str, Any]) -> dict[str, Any]:
         "ma_bull": bool(a.get("ma_bull")), "gc_days": int(a.get("gc_days") or 0),
         "closePos": a.get("closePos"), "odds1": a.get("odds1"), "oddsUse": a.get("oddsUse"),
         "pe": _num(a.get("pe")), "pb": _num(a.get("pb")), "mcap_yi": round(_num(a.get("mcap")) / 1e8, 1),
+        "tightZtMeta": a.get("tightZtMeta") or {},
     }
     return {
         "rank": c.get("rank"), "code": c.get("code"), "name": c.get("name"),
@@ -5779,12 +6061,134 @@ def leader_view(out: dict[str, Any]) -> dict[str, Any]:
     return o
 
 
+def _recent_tight_replay_preview(max_try: int = 12) -> tuple[str, list[dict[str, Any]]]:
+    """今日无大波段标的时，从近若干交易日 K 线缓存回放，供前端展示可验证的历史样本。"""
+    dates: list[str] = []
+    seen: set[str] = set()
+    try:
+        hist = _load_history()
+        for k in reversed(list(hist.keys())):
+            mk = k.split(":", 1)[0] if ":" in k else "bj"
+            dk = k.split(":", 1)[1] if ":" in k else k
+            if mk not in ("all", "tight"):
+                continue
+            d8 = re.sub(r"\D", "", str(dk))[-8:]
+            if not re.fullmatch(r"\d{8}", d8) or d8 in seen:
+                continue
+            seen.add(d8)
+            dates.append(d8)
+    except Exception:
+        pass
+    for d8 in dates[:max_try]:
+        try:
+            rp = replay_scan(d8, "tight")
+            picks = [
+                p for p in (rp.get("picks") or [])
+                if isinstance(p, dict) and _is_hs_kc_code6(str(p.get("code") or ""))
+            ]
+            if picks:
+                return d8, picks[:2]
+        except Exception:
+            continue
+    return "", []
+
+
+def tight_view(out: dict[str, Any]) -> dict[str, Any]:
+    """大波段：多头粘合涨停（沪深+创业/科创，不含北证；复用 all 扫描）。"""
+    o: dict[str, Any] = {
+        "ok": True, "cached": bool(out.get("cached")), "date": out.get("date"), "asof": out.get("asof"),
+        "market_code": "tight",
+        "meta": out.get("meta"),
+        "total": out.get("total"), "scanned": out.get("scanned"), "fine": out.get("fine"),
+        "generated_ts": out.get("generated_ts"), "elapsed_s": out.get("elapsed_s"),
+        "market": out.get("market"), "regime": out.get("regime"), "style": out.get("style"),
+        "mainlines": out.get("mainlines") or [],
+        # 专栏不展示全市场板块热度（含北证代表），避免与「大波段」推荐混淆
+        "board_rank": [],
+        "picks": [], "runners": [],
+    }
+    for _k in ("stale", "stale_from", "off_market", "intraday", "refresh_locked", "vip_required", "today_missing"):
+        if _k in out:
+            o[_k] = out[_k]
+
+    def _is_tight(x: dict[str, Any]) -> bool:
+        if not isinstance(x, dict):
+            return False
+        # 硬排除北证：仅允许沪深主板 / 创业 / 科创
+        if not _is_hs_kc_code6(str(x.get("code") or "")):
+            return False
+        if re.search(r"(?:\*?ST)|退", str(x.get("name") or ""), flags=re.I):
+            return False
+        if str(x.get("limitQuality") or "") == "one_word":
+            return False
+        if (x.get("bearish") or {}).get("level") == "hard":
+            return False
+        pp = x.get("patterns") or {}
+        return bool(pp.get("tightZt"))
+
+    def _has_chart(x: dict[str, Any]) -> bool:
+        ch = x.get("chart") if isinstance(x, dict) else None
+        return bool(ch and (ch.get("closes") or ch.get("dates")))
+
+    def _sort_key(c: dict[str, Any]) -> tuple:
+        pp = c.get("patterns") or {}
+        meta = {}
+        if isinstance(c.get("factors"), dict):
+            meta = (c.get("factors") or {}).get("tightZtMeta") or {}
+        if not meta and isinstance(c.get("A"), dict):
+            meta = (c.get("A") or {}).get("tightZtMeta") or {}
+        return (
+            0 if meta.get("pathA") else 1,
+            0 if meta.get("yrSoft") else 1,
+            0 if meta.get("ma144Up") else 1,
+            0 if meta.get("divergeStrict") else 1,
+            0 if c.get("mainHit") else (1 if c.get("obsHit") else 2),
+            0 if pp.get("tightBurst") else 1,
+            -int(c.get("final") or 0),
+        )
+
+    lst = [x for x in (out.get("tight") or []) if _is_tight(x) and _has_chart(x)]
+    if len(lst) < 2:
+        _asof = str(out.get("asof") or out.get("date") or "")
+        _d8 = re.sub(r"\D", "", _asof)[-8:]
+        if re.fullmatch(r"\d{8}", _d8):
+            try:
+                _rp = replay_scan(_d8, "tight")
+                _have = {str(x.get("code")) for x in lst}
+                for _x in (_rp.get("picks") or [])[:8]:
+                    if str(_x.get("code")) in _have:
+                        continue
+                    if not _is_tight(_x) or not _has_chart(_x):
+                        continue
+                    lst.append(_x)
+                    _have.add(str(_x.get("code")))
+                    if len(lst) >= 2:
+                        break
+            except Exception:
+                pass
+    lst = [x for x in lst if _path_gate(x, require_active=True)]
+    lst.sort(key=_sort_key)
+    lst = lst[:2]
+    for _i, _it in enumerate(lst):
+        _it["tier"] = "king" if _i == 0 else "key"
+        _it["rank"] = _i + 1
+    o["picks"] = lst
+    o["runners"] = []
+    # 今日无标的（含 stale 归档回退仍无大波段命中）→ 近几日 K 线回放，供打开验证
+    if not lst:
+        _rd8, _rpicks = _recent_tight_replay_preview()
+        if _rpicks:
+            _dash = f"{_rd8[:4]}-{_rd8[4:6]}-{_rd8[6:]}" if len(_rd8) == 8 else _rd8
+            o["replay_preview"] = {"date": _dash, "date8": _rd8, "picks": _rpicks, "replay": True}
+    return o
+
+
 _HS_COLUMN_MARKETS = frozenset({"pb", "mlpb", "breakout", "leader"})
 
 
 def scan_market_for(market_code: str) -> str:
     mc = str(market_code or "bj").strip().lower()
-    if mc in ("macd", "low10"):
+    if mc in ("macd", "low10", "tight"):
         return "all"
     if mc in _HS_COLUMN_MARKETS:
         return "hs"
@@ -5799,6 +6203,8 @@ def apply_column_view(market_code: str, out: dict[str, Any]) -> dict[str, Any]:
         return macd_view(out)
     if mc == "low10":
         return low10_view(out)
+    if mc == "tight":
+        return tight_view(out)
     if mc == "pb":
         return pb_view(out)
     if mc == "mlpb":
@@ -5813,8 +6219,8 @@ def apply_column_view(market_code: str, out: dict[str, Any]) -> dict[str, Any]:
 
 def _save_all_column_histories(today: str, asof: str, hist_payload: dict[str, Any],
                                result: dict[str, Any]) -> None:
-    """全市场扫描完成后，写入 macd / low10 专栏历史（供跟踪台账）。"""
-    for mc, vf in (("macd", macd_view), ("low10", low10_view)):
+    """全市场扫描完成后，写入 macd / low10 / tight 专栏历史（供跟踪台账）。"""
+    for mc, vf in (("macd", macd_view), ("low10", low10_view), ("tight", tight_view)):
         try:
             snap = vf(result)
             if mc == "macd":
@@ -5828,6 +6234,8 @@ def _save_all_column_histories(today: str, asof: str, hist_payload: dict[str, An
             col_hist["picks"] = picks[:8]
             if mc == "macd":
                 col_hist["macd_reds"] = picks[:4]
+            if mc == "tight":
+                col_hist["tight"] = picks[:8]
             col_hist["runners"] = []
             _save_history(f"{mc}:{str(today)}", col_hist)
         except Exception:
@@ -6008,7 +6416,8 @@ def _replay_fine_pass(recs: list[dict[str, Any]], cfg: dict[str, Any],
             continue
         sv = float(a.get("score") or 0)
         if p.get("surgeStart") or p.get("pullback") or p.get("ztPullback") or p.get("pullback2") \
-                or p.get("macdFirstRed") or p.get("firstBoardRight") or p.get("washOut") or p.get("firstWeek"):
+                or p.get("macdFirstRed") or p.get("firstBoardRight") or p.get("washOut") or p.get("firstWeek") \
+                or p.get("tightZt"):
             must_start = sv >= sm - 4
         elif p.get("baseUp") or p.get("tightBurst"):
             must_start = sv >= sm_base
@@ -6093,7 +6502,7 @@ def replay_scan(date8: str, market: str = "hs") -> dict[str, Any]:
     if not re.fullmatch(r"\d{8}", date8):
         return {"ok": False, "error": "bad_date", "message": "日期格式应为 YYYY-MM-DD 或 YYYYMMDD"}
     market = str(market or "hs").strip().lower()
-    if market not in ("hs", "kc", "bj", "bj_all", "all", "macd", "pb", "mlpb", "breakout", "leader", "low10"):
+    if market not in ("hs", "kc", "bj", "bj_all", "all", "macd", "pb", "mlpb", "breakout", "leader", "low10", "tight"):
         market = "hs"
     dash = f"{date8[:4]}-{date8[4:6]}-{date8[6:]}"
     t0 = time.time()
@@ -6121,9 +6530,16 @@ def replay_scan(date8: str, market: str = "hs") -> dict[str, Any]:
             _d = json.load(open(_p, encoding="utf-8"))
         except Exception:
             continue
-        for _x in (_d.get("picks") or []) + (_d.get("runners") or []) + (_d.get("macd_reds") or []):
+        for _x in (_d.get("picks") or []) + (_d.get("runners") or []) + (_d.get("macd_reds") or []) \
+                + (_d.get("low10") or []) + (_d.get("tight") or []):
             if isinstance(_x, dict) and _x.get("code"):
                 cand_map.setdefault(str(_x.get("code")), dict(_x))
+        for _b in (_d.get("board_rank") or []):
+            if not isinstance(_b, dict):
+                continue
+            for _ld in (_b.get("leaders") or []):
+                if isinstance(_ld, dict) and _ld.get("code"):
+                    cand_map.setdefault(str(_ld.get("code")), dict(_ld))
         if mk == market and not board_rank:
             board_rank = _d.get("board_rank") or []
             market_env = _d.get("market") or {}
@@ -6269,11 +6685,27 @@ def replay_scan(date8: str, market: str = "hs") -> dict[str, Any]:
         fine = _replay_fine_pass(pool, lcfg, style_mode)
         fine.sort(key=_replay_sort_key)
         picks = [_pick_out(c) for c in fine[:8]]
+    elif market == "tight":
+        # 不经主线精筛门槛：直接在 analyze 全池筛 tightZt（否则易空）
+        _tz = [
+            c for c in recs
+            if (c.get("A") or {}).get("patterns", {}).get("tightZt")
+            and _is_hs_kc_code6(str(c.get("code") or ""))
+            and not re.search(r"(?:\*?ST)|退", str(c.get("name") or ""), flags=re.I)
+            and not _re_oneword(c)
+            and (c.get("bearish") or {}).get("level") != "hard"
+        ]
+        _tz.sort(key=_replay_sort_key)
+        fine = _tz
+        picks = [_pick_out(c) for c in _tz[:8]]
     meta = {
         "replay": True, "date": dash, "asof": dash,
         "coverage": len(recs), "kline_cached": len(kl),
         "note": "最新算法 × 历史收盘数据回放（只读，未写入归档）",
     }
+    _fill_missing_names(picks)
+    _fill_missing_names(runners)
+    _fill_missing_names(macd_reds)
     return {
         "ok": True, "archive": True, "replay": True,
         "date": dash, "asof": dash, "market_code": market,
@@ -6284,6 +6716,7 @@ def replay_scan(date8: str, market: str = "hs") -> dict[str, Any]:
         "mainlines": mainlines, "observes": observes,
         "board_rank": board_rank,
         "picks": picks, "runners": runners, "macd_reds": macd_reds,
+        "tight": picks if market == "tight" else [],
         "meta": meta,
     }
 
@@ -6580,7 +7013,7 @@ async def run_scan(
                 out = dict(hit[1])
                 out["cached"] = True
                 _mark_cached("已加载今日扫描缓存")
-                return _apply_stale_fallback(out, market)
+                return _apply_stale_fallback(out, market, column)
             # 非交易日（周末/休市）：不重复扫描，直接展示最近归档，节省上游与系统资源
             if _today_off_market():
                 stale = _latest_history(market)
@@ -6622,7 +7055,7 @@ async def run_scan(
                     out["cached"] = True
                     out["refresh_locked"] = True
                     _mark_cached("已加载今日扫描缓存")
-                    return _apply_stale_fallback(out, market)
+                    return _apply_stale_fallback(out, market, column)
             _LAST_FULL_SCAN_TS = time.time()
 
     md = market_data_status()
@@ -7041,7 +7474,7 @@ async def run_scan(
             _sv = float(a.get("score") or 0)
             if p.get("surgeStart") or p.get("pullback") or p.get("ztPullback") or p.get("pullback2") \
                     or p.get("macdFirstRed") or p.get("firstBoardRight") or p.get("washOut") \
-                    or p.get("firstWeek"):
+                    or p.get("firstWeek") or p.get("tightZt"):
                 must_start = _sv >= _sm - 4
             elif p.get("baseUp") or p.get("tightBurst"):
                 must_start = _sv >= _sm_base
@@ -7710,12 +8143,23 @@ async def run_scan(
     # P2「10元下」：全市场优质 <10 元标的（复用 fine 池，零额外上游成本）。
     # 硬伤排除：ST/退市（coarse 已排）、面值退市警戒 <2 元、一字板不可交易、流动性（amountMin 已保证）
     low10_list: list[dict[str, Any]] = []
+    tight_list: list[dict[str, Any]] = []
     if market == "all":
         _l10 = [c for c in fine
                 if 2.0 <= _num(c.get("price")) < 10.0
                 and str((c.get("A") or {}).get("limitQuality") or "") != "one_word"]
         _l10.sort(key=_sort_key)
         low10_list = [_pick_out(c) for c in _l10[:8]]
+        _tz = [
+            c for c in analyzed
+            if (c.get("A") or {}).get("patterns", {}).get("tightZt")
+            and _is_hs_kc_code6(str(c.get("code") or ""))
+            and not re.search(r"(?:\*?ST)|退", str(c.get("name") or ""), flags=re.I)
+            and str((c.get("A") or {}).get("limitQuality") or "") != "one_word"
+            and (c.get("bearish") or {}).get("level") != "hard"
+        ]
+        _tz.sort(key=_sort_key)
+        tight_list = [_pick_out(c) for c in _tz[:8]]
     result: dict[str, Any] = {
         "ok": True, "cached": False, "date": today, "asof": asof,
         "market_code": market,
@@ -7739,6 +8183,7 @@ async def run_scan(
         "runners": run_out,
         "macd_reds": macd_red_out,
         "low10": low10_list,
+        "tight": tight_list,
         "prev_date": prev_date_s,
         "prev_track": prev_track,
     }
@@ -7768,6 +8213,7 @@ async def run_scan(
             "mainline_gap": bool(picks) and market in ("all", "hs", "kc") and not any(c.get("mainHit") or c.get("obsHit") for c in picks),
             "board_rank": board_rank,
             "picks": pick_out, "runners": run_out, "macd_reds": macd_red_out,
+            "low10": low10_list, "tight": tight_list,
         }
         _save_history(f"{market}:{str(today)}", hist_payload)
         _save_archive(market, str(today), hist_payload)
@@ -7783,7 +8229,7 @@ async def run_scan(
     _SCAN_CACHE[full_key] = (time.time(), result)
     _BOARDS_CACHE.pop(boards_key, None)
     _persist_daily_scan_cache()
-    return _apply_stale_fallback(result, market)
+    return _apply_stale_fallback(result, market, column)
 
 
 def get_partial_scan(market: str) -> dict[str, Any] | None:
@@ -7831,7 +8277,7 @@ async def run_scan_dedup(
             out["cached"] = True
             _SCAN_PROGRESS[market] = {"phase": "done", "pct": 100, "done": 0, "total": 0,
                                       "msg": "已加载今日扫描缓存", "running": False, "ts": time.time()}
-            return _apply_stale_fallback(out, market)
+            return _apply_stale_fallback(out, market, column)
         return await run_scan(user_id, force=False, cfg_override=cfg_override,
                               boards_only=boards_only, market=market, column=column)
 
@@ -7854,7 +8300,7 @@ async def run_scan_dedup(
             out["cached"] = True
             _SCAN_PROGRESS[market] = {"phase": "done", "pct": 100, "done": 0, "total": 0,
                                       "msg": "已加载今日扫描缓存", "running": False, "ts": time.time()}
-            return _apply_stale_fallback(out, market)
+            return _apply_stale_fallback(out, market, column)
         return await run_scan(user_id, force=False, cfg_override=cfg_override,
                               boards_only=boards_only, market=market, column=column)
 

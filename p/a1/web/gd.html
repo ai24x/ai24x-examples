@@ -18,10 +18,10 @@
   </script>
   <link rel="stylesheet" href="/css/base.css?v=56" />
   <link rel="stylesheet" href="/css/tool.css" />
-  <link rel="stylesheet" href="/css/bjscreener.css?v=98" />
+  <link rel="stylesheet" href="/css/bjscreener.css?v=99" />
 <style>
 /* 复盘 · 大盘环境与策略区（大盘同步） */
-.bj-market{display:block;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:10px 14px;margin:0 0 12px;}
+.bj-market{display:block;margin:0 0 12px;padding:0;background:transparent;border:none;border-radius:0}
 .bj-market .bj-section{margin-top:0;}
 #bj-strategy{margin:0 0 12px;}
 #bj-strategy .bj-mkt-gate{margin:0;}
@@ -148,6 +148,7 @@
             <button type="button" class="bj-tab" data-market="breakout">二波突破</button>
             <button type="button" class="bj-tab" data-market="leader">主线龙头</button>
             <button type="button" class="bj-tab" data-market="low10">10元下</button>
+            <button type="button" class="bj-tab" data-market="tight">大波段</button>
           </div>
           <div id="bj-meta" class="bj-meta" hidden></div>
 
@@ -189,7 +190,7 @@
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("bjscreener"); } catch (e) {}
   </script>
-  <script src="/js/bjscreener.js?v=132"></script>
+  <script src="/js/bjscreener.js?v=139"></script>
   <script>
     (function () {
       var w = window.AI24X_BJScreener;

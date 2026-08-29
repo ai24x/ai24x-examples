@@ -3208,11 +3208,11 @@ async def api_bj_screener(
     结果按自然日缓存，force=1 强制重扫。不扣查次（VIP 权益功能），仅做频率限制。
     """
     market = str(market or "bj").strip().lower()
-    if market not in ("bj", "all", "hs", "kc", "bj_all", "macd", "pb", "mlpb", "low10", "breakout", "leader"):
+    if market not in ("bj", "all", "hs", "kc", "bj_all", "macd", "pb", "mlpb", "low10", "breakout", "leader", "tight"):
         market = "bj"
     from .bj_screener import run_scan_dedup, apply_column_view, scan_market_for, _backfill_leader_quotes
     scan_market = scan_market_for(market)
-    _col = market if market in ("pb", "mlpb", "breakout", "leader", "macd", "low10") else ""
+    _col = market if market in ("pb", "mlpb", "breakout", "leader", "macd", "low10", "tight") else ""
     _rate_limit(f"bj-screener:{user_id}", 24)
     try:
         _auth_ip_rate_limit(request)
@@ -3294,7 +3294,7 @@ async def api_bj_screener_start(
     → running=false 后 GET /api/bj/screener?market=bj（命中缓存返回最新结果）。
     """
     market = str(market or "bj").strip().lower()
-    if market not in ("bj", "all", "hs", "kc", "bj_all", "macd", "pb", "mlpb", "breakout", "leader", "low10"):
+    if market not in ("bj", "all", "hs", "kc", "bj_all", "macd", "pb", "mlpb", "breakout", "leader", "low10", "tight"):
         market = "bj"
     from .bj_screener import scan_market_for
     scan_market = scan_market_for(market)
@@ -3310,7 +3310,7 @@ async def api_bj_screener_start(
     if not is_vip:
         return {"ok": False, "error": "vip_required", "message": "掘金扫描为 VIP 专属，请先开通 VIP。"}
     from .bj_screener import scan_progress, run_scan_dedup, mark_scan_failed, _RUNNING_SCAN
-    _col = market if market in ("pb", "mlpb", "breakout", "leader", "macd", "low10") else ""
+    _col = market if market in ("pb", "mlpb", "breakout", "leader", "macd", "low10", "tight") else ""
     p = scan_progress(scan_market)
     if p.get("running") or (_RUNNING_SCAN.get(scan_market) is not None and not _RUNNING_SCAN[scan_market].done()):
         return {"ok": True, "running": True, "msg": "扫描进行中，请稍候…"}
@@ -3333,15 +3333,23 @@ async def api_bj_screener_start(
 
 @app.get("/api/bj/screener/partial")
 async def api_bj_screener_partial(request: Request, market: str = "bj", user_id: int = Depends(get_current_user_id)) -> dict:
-    market = str(market or "bj").strip().lower()
-    if market == "macd":
-        market = "all"
-    if market in ("pb", "mlpb", "breakout", "leader"):
-        market = "hs"
-    if market not in ("bj", "all", "hs", "kc", "bj_all"):
-        market = "bj"
-    from .bj_screener import get_partial_scan
-    return get_partial_scan(market) or {"ok": True, "partial": False, "stage": "none", "market_code": market}
+    col_market = str(market or "bj").strip().lower()
+    market = col_market
+    if market in ("macd", "low10", "tight"):
+        scan_market = "all"
+    elif market in ("pb", "mlpb", "breakout", "leader"):
+        scan_market = "hs"
+    elif market not in ("bj", "all", "hs", "kc", "bj_all"):
+        scan_market = "bj"
+    else:
+        scan_market = market
+    from .bj_screener import get_partial_scan, apply_column_view
+    raw = get_partial_scan(scan_market)
+    if not raw:
+        return {"ok": True, "partial": False, "stage": "none", "market_code": col_market}
+    if col_market in ("macd", "low10", "tight") and raw.get("partial"):
+        return apply_column_view(col_market, dict(raw))
+    return raw
 
 @app.get("/api/bj/screener/progress")
 async def api_bj_screener_progress(
@@ -3351,7 +3359,7 @@ async def api_bj_screener_progress(
 ) -> dict:
     """掘金扫描进度（前端进度条轮询）；不扣查次，仅做频率限制。"""
     market = str(market or "bj").strip().lower()
-    if market == "macd":
+    if market in ("macd", "low10", "tight"):
         market = "all"
     if market in ("pb", "mlpb", "breakout", "leader"):
         market = "hs"
@@ -3375,7 +3383,7 @@ async def api_bj_history(
 ) -> dict:
     """掘金历史归档（VIP 专属）：不传 date 返回归档日期摘要，传 date 返回当日完整结果（按市场隔离）。"""
     market = str(market or "bj").strip().lower()
-    if market not in ("bj", "all", "hs", "kc", "bj_all", "macd", "pb", "mlpb", "low10", "breakout", "leader"):
+    if market not in ("bj", "all", "hs", "kc", "bj_all", "macd", "pb", "mlpb", "low10", "breakout", "leader", "tight"):
         market = "bj"
     _rate_limit(f"bj-history:{user_id}", 30)
     try:
