@@ -1307,6 +1307,9 @@ def _cache_put(variant: str, secid: str, period: str, count: int, payload: Dict[
     ttl = float(getattr(settings, "kline_cache_ttl_s", 30.0))
     if ttl <= 0:
         return
+    # 禁止缓存空成功包，否则北证50 等会把后续 sina 兜底堵死一整段 TTL
+    if not _tencent_payload_has_rows(payload):
+        return
     k = (str(variant or ""), str(secid), str(period), int(count))
     _KLINE_CACHE[k] = (time.time() + ttl, payload)
     # Redis cache (shared across workers)
@@ -3448,7 +3451,15 @@ async def fetch_em_index_kline(
         return {"code": -1, "msg": "invalid eastmoney index secid", "data": {}}
 
     key = sid.upper()
-    day_rows = await _em_kline_day_rows(sid, timeout)
+    day_rows: list[list[str]] = []
+    try:
+        day_rows = await _em_kline_day_rows(sid, timeout)
+    except Exception:
+        # httpx/schannel 偶发断连时，北证指数改走标准库 urllib 兜底（本机实测更稳）
+        if sid == "0.899050" or bool(re.fullmatch(r"0\.89\d{4}", sid)):
+            day_rows = await asyncio.to_thread(_em_index_kline_urllib, sid, int(count) if count else 500, float(timeout))
+        else:
+            raise
     week_rows, month_rows = _aggregate_week_month_from_day(day_rows)
 
     def tail(rows: list[list[str]]) -> list[list[str]]:
@@ -3471,6 +3482,40 @@ async def fetch_em_index_kline(
         "month": m,
     }
     return {"code": 0, "data": {key: pack}}
+
+
+def _em_index_kline_urllib(secid: str, count: int = 500, timeout: float = 15.0) -> list[list[str]]:
+    """东财指数日线 urllib 兜底（避免 httpx 在 Windows 上偶发 RST）。"""
+    import urllib.parse
+    import urllib.request
+
+    q = urllib.parse.urlencode(
+        {
+            "fields1": "f1,f2,f3,f4,f5,f6",
+            "fields2": "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61",
+            "beg": "0",
+            "end": "20500101",
+            "ut": "fa5fd1943c7b386f172d6893dbfba10b",
+            "rtntype": "6",
+            "secid": str(secid).strip(),
+            "klt": "101",
+            "fqt": "1",
+            "lmt": str(max(50, int(count) + 10)),
+        }
+    )
+    url = f"{EM_PLATE_KLINE}?{q}"
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "Mozilla/5.0",
+            "Referer": "https://quote.eastmoney.com/",
+        },
+        method="GET",
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        payload = json.loads(resp.read().decode("utf-8", "ignore"))
+    rows = _em_kline_rows_from_payload(payload)
+    return _drop_auction_today_bar(rows)
 
 
 async def _em_stock_kline_fallback(
@@ -3545,7 +3590,13 @@ async def _fetch_tx_kline_core(
         items = [x.strip() for x in raw.split(",") if x.strip()]
         # default: public first, paid last
         if not items:
-            return ["tencent", "eastmoney", "sina", "paid"]
+            items = ["tencent", "eastmoney", "sina", "paid"]
+        # 北证指数：腾讯无日线；东财易 RST。固定 eastmoney→sina→paid，
+        # 避免 paid/ths 插队返回缺当日的“成功空包/昨收”，复盘涨跌停在昨日。
+        sid0 = str(secid).strip()
+        if sid0 == "0.899050" or bool(re.fullmatch(r"0\.89\d{4}", sid0)):
+            rest = [x for x in items if x not in ("eastmoney", "sina", "tencent", "ths")]
+            items = ["eastmoney", "sina"] + rest
         # ensure uniqueness while preserving order
         out: list[str] = []
         for it in items:
@@ -3619,13 +3670,11 @@ async def _fetch_tx_kline_core(
         return None
 
     async def _try_eastmoney() -> Dict[str, Any] | None:
-        # Index fallback: for BSE indices (北证50 etc.), skip eastmoney entirely.
-        # Eastmoney push2his has SSL renegotiation issues on Windows (schannel),
-        # and tencent doesn't support BSE indices either. Go straight to sina.
+        # 北证指数（北证50 等）：腾讯无日线，改走东财 push2his；失败再回落新浪。
+        # 旧逻辑直接 return None 会逼新浪，收盘后常缺最新一根 → 复盘涨跌显示成昨日。
         sid_str = str(secid).strip()
         is_bse_index = sid_str == "0.899050" or bool(re.fullmatch(r"0\.89\d{4}", sid_str))
         if is_bse_index:
-            return None
             try:
                 t0 = time.perf_counter()
                 em_payload = await fetch_em_index_kline(secid, period, count=count, timeout=timeout)
@@ -3648,6 +3697,7 @@ async def _fetch_tx_kline_core(
             except Exception:
                 _src_fail("eastmoney.index", 0.0, "exception")
                 return None
+            return None
         # Stock fallback
         em_stock = await _em_stock_kline_fallback(secid, period, count, timeout)
         if em_stock is not None:
@@ -3845,7 +3895,9 @@ async def _fetch_tx_kline_core(
 
     # If Tencent failed later in the chain, retry once with its existing fallbacks.
     # This keeps legacy behavior when priority does not include eastmoney/sina.
-    if last_err is None:
+    if last_err is None or (
+        isinstance(last_err, dict) and not _tencent_payload_has_rows(last_err)
+    ):
         last_err = {"code": -1, "msg": "kline temporarily unavailable", "data": {}}
     return last_err
 

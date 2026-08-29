@@ -471,6 +471,40 @@ async def _fetch_index_signals(is_vip):
             await asyncio.sleep(0.5)
         except Exception as e:
             result[name] = {"secid": secid, "error": str(e)[:80]}
+    # 北证50：东财易断、新浪偶发缺最新一根 → last_date 落后上证时强制 sina 重拉
+    try:
+        _sh_name = next((n for n in INDEXES if "上证" in n), None)
+        _bj_name = next((n for n in INDEXES if "北证" in n), None)
+        if _sh_name and _bj_name:
+            _sh = result.get(_sh_name) or {}
+            _bj = result.get(_bj_name) or {}
+            _sh_d = str(_sh.get("last_date") or "")[:10]
+            _bj_d = str(_bj.get("last_date") or "")[:10]
+            _need = bool(_sh_d) and (
+                (not _bj_d) or _bj_d < _sh_d or _bj.get("error") or _bj.get("pct") is None
+            )
+            if _need:
+                _bj_sid = INDEXES[_bj_name]
+                candles = await _tx_kline(_bj_sid, 120, variant, "sina", allow_paid)
+                sc = score_candles(candles, name=_bj_name)
+                base = float(sc.get("score") or 0.0)
+                _c0 = float(candles[-1].close)
+                _c1 = float(candles[-2].close) if len(candles) >= 2 else 0.0
+                _pct = round((_c0 / _c1 - 1.0) * 100.0, 2) if _c1 else None
+                result[_bj_name] = {
+                    "secid": _bj_sid,
+                    "score": round(max(0.0, min(100.0, base + pts)), 1),
+                    "pts": pts,
+                    "above_ma20": env["above_ma20"],
+                    "weak": env["weak"],
+                    "tags": env["tags"],
+                    "last_close": _c0,
+                    "pct": _pct,
+                    "last_date": candles[-1].time,
+                    "src": "sina:lag-retry",
+                }
+    except Exception:
+        pass
     return {"env": env, "indexes": result}
 
 # ---------------- 板块成分股评分（内部直算，不扣配额） ----------------
