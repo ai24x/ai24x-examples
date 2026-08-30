@@ -180,6 +180,31 @@ button.chip.arch:hover{border-color:var(--bj-acc);background:var(--bj-acc-bg)}
 .bj-tab{border:1px solid var(--border);background:var(--panel2);color:var(--muted);border-radius:999px;padding:7px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
 .bj-tab:hover{border-color:var(--bj-acc);color:var(--bj-acc)}
 .bj-tab.active{background:linear-gradient(180deg,#1e5a8a,#156090);color:#fff;border-color:#156090}
+.bj-tab-ext{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.bj-tab-ext:hover{border-color:var(--bj-acc);color:var(--bj-acc)}
+.bj-tab-radar{
+  background:linear-gradient(135deg,rgba(255,233,168,.55),rgba(255,214,102,.38) 55%,rgba(251,191,36,.28));
+  border:1.5px solid #f0b429;
+  color:#7a4f00;
+  font-weight:800;
+  box-shadow:0 1px 6px rgba(251,191,36,.22), inset 0 1px 0 rgba(255,255,255,.35);
+}
+.bj-tab-radar:hover{
+  background:linear-gradient(135deg,#ffe9a8,#ffd666 60%,#ffc94d);
+  border-color:#e6a817;
+  color:#5b3a00;
+  box-shadow:0 2px 10px rgba(251,191,36,.32);
+}
+:root[data-theme="dark"] .bj-tab-radar{
+  background:linear-gradient(135deg,rgba(255,214,102,.22),rgba(251,191,36,.14));
+  border-color:#d99a1b;
+  color:#ffd666;
+  box-shadow:0 1px 8px rgba(251,191,36,.18);
+}
+:root[data-theme="dark"] .bj-tab-radar:hover{
+  background:linear-gradient(135deg,rgba(255,214,102,.32),rgba(251,191,36,.22));
+  color:#ffe08a;
+}
 .br-list{display:flex;flex-direction:column;gap:8px;margin:8px 0 12px}
 .br-item{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:9px 12px;border-radius:10px;background:var(--panel);border:1px solid var(--border);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.06)}
 .br-item:hover{border-color:var(--bj-acc);background:var(--bj-acc-bg)}
@@ -338,6 +363,18 @@ a.chip.chip-mainline:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba
 
 .ml-deck{display:grid;grid-template-columns:1.35fr 1fr;gap:10px;margin:0 0 14px}
 @media (max-width:860px){.ml-deck{grid-template-columns:1fr}}
+/* 主攻 / 观察 / 回避 三卡横排 */
+.ml-trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 14px}
+@media (max-width:900px){.ml-trio{grid-template-columns:1fr}}
+.ml-card{border-radius:14px;padding:12px 14px;background:var(--panel);border:1px solid var(--border);min-height:76px;display:flex;flex-direction:column;gap:8px}
+.ml-card-attack{border-color:rgba(245,158,11,.35);background:linear-gradient(145deg,rgba(251,191,36,.08),var(--panel))}
+.ml-card-obs{border-color:rgba(56,189,248,.28)}
+.ml-card-avoid{border-color:rgba(220,38,38,.28);background:rgba(220,38,38,.04)}
+.ml-card-body{display:flex;flex-wrap:wrap;gap:7px;align-items:center;min-height:36px}
+.ml-none{opacity:.55;font-size:13px;font-weight:700;color:var(--muted)}
+.ml-hint{display:block;width:100%;font-size:12px;color:var(--muted);line-height:1.45;margin-top:2px}
+.ml-avoid{display:inline-block;padding:6px 12px;border-radius:999px;border:1px solid rgba(220,38,38,.28);background:rgba(220,38,38,.07);font-size:13px;font-weight:700;color:#b91c1c;text-decoration:none}
+a.ml-avoid:hover{border-color:rgba(220,38,38,.45);color:#991b1b}
 .ml-hero{position:relative;overflow:hidden;border-radius:14px;padding:14px 16px 12px;background:
   radial-gradient(90% 70% at 0% 0%, rgba(251,191,36,.16), transparent 52%),
   linear-gradient(145deg, var(--panel) 0%, var(--panel2) 100%);
@@ -362,6 +399,14 @@ a.chip.chip-mainline:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba
 .ml-empty{padding:16px 14px;border-radius:14px;border:1px dashed var(--border);text-align:center;color:var(--muted);font-size:13px;line-height:1.6}
 .ml-empty b{display:block;font-size:16px;color:var(--text);margin-bottom:4px}
 
+/* 今日大盘：默认折叠，summary 一行展示环境徽章 */
+.mkt-fold{border:1px solid var(--border);border-radius:12px;background:var(--panel);margin:0 0 12px;overflow:hidden}
+.mkt-fold-sum{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;cursor:pointer;list-style:none;user-select:none}
+.mkt-fold-sum::-webkit-details-marker{display:none}
+.mkt-fold-title{font-size:13px;letter-spacing:.12em;font-weight:800;color:var(--muted);text-transform:uppercase;flex-shrink:0}
+.mkt-fold[open] .mkt-fold-sum{border-bottom:1px solid var(--border)}
+.mkt-fold .mkt-signal.compact{margin:0;border:none;border-radius:0;padding:10px 14px 12px}
+.mkt-fold .mkt-badge-sm{flex:1;max-width:min(100%,520px)}
 /* 今日大盘：顶栏横排环境 + 指数表（长文案不再挤进窄竖条） */
 .mkt-signal.compact{display:flex;flex-direction:column;gap:10px;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:var(--panel);margin:0 0 12px}
 .mkt-badge-sm{min-width:0;border-radius:10px;display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:12px;font-weight:900;letter-spacing:.02em;padding:8px 12px}
