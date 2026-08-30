@@ -11,7 +11,12 @@
    - **Gateway 轨**（落 open.ai24x.com / www Blog）：场景类（for X）、问题类（how to / what is / why）、对比类（vs / alternatives / comparison）、成本类（reduce / save / cheaper / pricing）长尾，如 "how to reduce LLM API costs"、"openai compatible api python"、"best AI gateway for startups"
    - **Markets 轨**（落 markets.ai24x.com）：技术分析/指标/场景长尾，如 "NVDA technical analysis today"、"RSI MACD stock screener"（避开已上线 symbol 页；可用已上线 30 页之外的 ticker）
 3. 每个词交付字段：`关键词 | 搜索意图 | 竞争/难度判断（低/中/高 + 依据）| 差异化 H2 建议 | 落地页建议（Blog/对比页/FAQ聚合/工具页）| 备注`
-4. 调研手段：Google/Bing autocomplete、SERP 观察（免费工具 Ubersuggest 免费版等，**不给预算**）、竞品站点（llmgateway.io 等）词覆盖分析
+4. **深度调研验证（雷总 08-30 10:35 补充：Google 等实搜验证，找最合适的）**：
+   - 每个候选词必须经 Google/Bing **实搜验证**：SERP 结果类型（知识图谱/广告/竞品页/Blog）、首页竞品强度、搜索意图匹配度，记录验证依据
+   - 用 autocomplete + related searches（searches related to…）扩展验证词频
+   - 竞争评估：对照首页竞品（llmgateway.io 等），判断我们的落地页能否进入前 20（DA/内容类型/意图匹配）
+   - **只保留有验证依据的词**；每轨 Top 30 标注「最合适」= 意图匹配 + 竞争可行 + 我们有内容优势
+   - 可经主脑协调 04 对 markets 词做公网页面/收录校验
 5. 产出两轨各 30-50 个候选，**每轨按质量排序 Top 30** 标注
 
 ## 纪律
