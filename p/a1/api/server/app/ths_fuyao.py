@@ -173,8 +173,78 @@ def _cache_save(path: str, payload: dict) -> None:
         pass
 
 
+async def fetch_historical_kline(
+    thscode: str,
+    days: int = 400,
+    adjust: str = "forward",
+    force: bool = False,
+    gate: Optional[_RateGate] = _FUYAO_GATE,
+) -> dict[str, Any]:
+    """A 股日 K（与独立 HTML 选股器同口径：adjust=forward，保留 turnover）。"""
+    global _KEY_BAD_UNTIL
+    thscode = str(thscode or "").strip().upper()
+    if not thscode:
+        return {"ok": False, "code": "bad_code", "msg": "无效 thscode"}
+    if not _enabled():
+        return {"ok": False, "code": "disabled", "msg": "同花顺数据源未启用"}
+    api_key = fuyao_config()["api_key"]
+    if not api_key:
+        return {"ok": False, "code": "no_key", "msg": "未配置同花顺 API Key"}
+    now = time.time()
+    if now < _KEY_BAD_UNTIL:
+        return {"ok": False, "code": "key_bad", "msg": "Key 熔断中"}
+
+    days_n = max(90, min(int(days or 400), 800))
+    params = {"thscode": thscode, "days": days_n, "adjust": str(adjust or "forward")}
+    cpath = _cache_path("historical-kline", params)
+    if not force:
+        hit = _cache_load(cpath, _cache_ttl("historical-kline"))
+        if hit is not None:
+            hit["_cached"] = True
+            return hit
+
+    end_ms = int(time.time() * 1000)
+    start_ms = end_ms - days_n * 86400 * 1000
+    req = {
+        "thscode": thscode,
+        "interval": "1d",
+        "start": start_ms,
+        "end": end_ms,
+        "adjust": str(adjust or "forward"),
+    }
+    if gate is not None:
+        await gate.acquire()
+    url = fuyao_config()["base_url"] + "/api/a-share/prices/historical"
+    headers = {"X-api-key": api_key, "User-Agent": _UA}
+    try:
+        client = await _client()
+        resp = await client.get(url, params=req, headers=headers)
+        try:
+            data = resp.json()
+        except Exception:
+            data = {"code": -1, "message": f"非 JSON HTTP {resp.status_code}"}
+        code = data.get("code")
+        msg = data.get("message") or data.get("msg") or ""
+        if code == 0:
+            items = (data.get("data") or {}).get("item") or []
+            payload = {"ok": True, "code": 0, "thscode": thscode, "items": items, "params": req}
+            _cache_save(cpath, payload)
+            return payload
+        if code in (2001, 2003):
+            _KEY_BAD_UNTIL = time.time() + _KEY_BAD_TTL_S
+        elif code == 4001:
+            _FAIL_UNTIL["historical-kline"] = time.time() + _FAIL_TTL_S
+        else:
+            _FAIL_UNTIL["historical-kline"] = time.time() + _FAIL_TTL_S
+        return {"ok": False, "code": str(code), "msg": msg or f"上游 {code}"}
+    except Exception as e:  # noqa: BLE001
+        _FAIL_UNTIL["historical-kline"] = time.time() + _FAIL_TTL_S
+        return {"ok": False, "code": "network", "msg": f"{type(e).__name__}: {e}"}
+
+
 async def fetch_special(name: str, params: Optional[dict[str, Any]] = None,
-                        force: bool = False) -> dict[str, Any]:
+                        force: bool = False,
+                        gate: Optional[_RateGate] = _FUYAO_GATE) -> dict[str, Any]:
     """拉取同花顺特色数据（涨停池/连板天梯/飙升/热榜/异动/龙虎榜）。"""
     global _KEY_BAD_UNTIL
     params = dict(params or {})
@@ -205,7 +275,8 @@ async def fetch_special(name: str, params: Optional[dict[str, Any]] = None,
             hit["_cached"] = True
             return hit
 
-    await _FUYAO_GATE.acquire()
+    if gate is not None:
+        await gate.acquire()
     url = fuyao_config()["base_url"] + path
     headers = {"X-api-key": api_key, "User-Agent": _UA}
     try:
@@ -219,7 +290,6 @@ async def fetch_special(name: str, params: Optional[dict[str, Any]] = None,
         msg = data.get("message") or data.get("msg") or ""
         if code == 0:
             data_node = data.get("data") or {}
-            # 龙虎榜等端点数据放在 data.stock_items / data.hot_money_items
             item = data_node.get("item") if data_node.get("item") is not None else data_node
             payload = {"ok": True, "code": 0, "name": name, "params": params,
                        "item": item, "request_id": data.get("request_id"),

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
+  <meta name="robots" content="noindex,nofollow,noarchive" />
+  <title>AI雷达 · VIP专属 · AI行情官</title>
+  <meta name="description" content="AI雷达：从热门涨停池筛选粘合启动与回踩二波信号，仅供 VIP 学习研究。" />
+  <link rel="icon" href="data:," />
+  <script>
+    (function () {
+      try {
+        var t = String(localStorage.getItem("ai24x_a_theme") || "").trim() || "light";
+        document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="/css/base.css?v=56" />
+  <link rel="stylesheet" href="/css/tool.css" />
+  <link rel="stylesheet" href="/css/bjscreener.css?v=101" />
+  <link rel="stylesheet" href="/css/radar.css?v=7" />
+</head>
+<body>
+  <header class="site-header" id="site-header"></header>
+  <main class="page-main">
+    <div class="wrap">
+      <section class="card">
+        <div class="bj-hero">
+          <div>
+            <h1>AI雷达 <span class="vip-badge">VIP</span></h1>
+            <p class="sub">近30日热门涨停池 · 粘合启动与回踩二波筛选</p>
+          </div>
+          <a class="btn" href="/gd.html">返回 AI复盘</a>
+        </div>
+
+        <div id="radar-guest" hidden>
+          <div class="gate-hero">
+            <div class="gate-title">登录后使用 AI雷达</div>
+            <div class="gate-sub">请先登录并开通 VIP</div>
+          </div>
+          <div class="auth-card-grid">
+            <a class="auth-card is-selected" href="./index.html?mode=login&amp;ch=phone"><div class="t">去登录</div></a>
+            <a class="auth-card" href="./account.html#vip"><div class="t">开通 VIP</div></a>
+          </div>
+        </div>
+
+        <div id="radar-vipgate" class="vip-card" hidden>
+          <div class="t">VIP 专属</div>
+          <div class="d">AI雷达扫描为 VIP 功能，开通后可查看筛选结果。</div>
+          <a class="btn" href="./account.html#vip">开通 VIP</a>
+        </div>
+
+        <div id="radar-main" hidden>
+          <div class="bj-top">
+            <span class="bj-status" id="radar-status">就绪</span>
+            <span class="radar-actions">
+              <button class="btn-blue" id="radar-scan" type="button">开始扫描</button>
+              <button class="btn btn-ghost" id="radar-scan-full" type="button" title="重新汇总近30日热门股">完整重扫</button>
+              <button class="btn btn-ghost" id="radar-stop" type="button" hidden>停止</button>
+              <button class="btn btn-ghost" id="radar-clear" type="button" hidden>清空结果</button>
+            </span>
+          </div>
+          <div class="radar-progress" id="radar-progress" hidden>
+            <div class="radar-progress-head">
+              <span class="radar-progress-stage" id="radar-progress-stage">扫描中</span>
+              <span class="radar-progress-pct" id="radar-progress-pct">0%</span>
+            </div>
+            <div class="radar-progress-bar"><div class="radar-progress-fill" id="radar-progress-fill"></div></div>
+            <div class="radar-progress-detail" id="radar-progress-text">请稍候…</div>
+          </div>
+
+          <div class="radar-settings">
+            <label><span>信号类型</span>
+              <select id="radar-signal">
+                <option value="both" selected>两者都要</option>
+                <option value="bond">仅粘合启动</option>
+                <option value="pullback">仅回踩二波</option>
+              </select>
+            </label>
+            <label><span>条件松紧</span>
+              <select id="radar-strict">
+                <option value="balanced" selected>标准</option>
+                <option value="strict">严格</option>
+                <option value="loose">宽松</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="chips" id="radar-chips" hidden></div>
+          <p class="sub radar-pool-hint" id="radar-pool-hint">收盘后会自动更新今日结果，打开页面即可查看。「完整重扫」仅在结果异常时使用。</p>
+
+          <div id="radar-filter-stats" class="filter-stats" hidden>
+            <h4>未入选概况</h4>
+            <div id="radar-filter-grid" class="filter-stats-grid"></div>
+          </div>
+
+          <div id="radar-result-section" class="radar-result-section" hidden>
+            <div class="radar-result-head">
+              <h3>筛选结果 <span id="radar-count" class="radar-count">0</span></h3>
+            </div>
+            <div class="radar-table-wrap">
+              <table class="radar-table" id="radar-table">
+                <thead>
+                  <tr>
+                    <th>信号</th><th>匹配</th><th>名称</th><th>代码</th><th>现价</th>
+                    <th>回撤</th><th>距涨停</th><th>企稳分</th><th>粘合</th>
+                    <th>近涨停</th><th>年涨停</th><th>60日涨</th><th>20日均额</th><th>扫描时间</th>
+                  </tr>
+                </thead>
+                <tbody id="radar-results"></tbody>
+              </table>
+            </div>
+            <p class="radar-table-note">带「—」的格子表示该信号不含此项：粘合启动侧重粘合次数；回踩二波侧重回撤、距涨停与企稳分。</p>
+          </div>
+
+          <div id="radar-empty" class="radar-empty" hidden>
+            <p>暂无入选标的，可试试选「宽松」，或稍后再扫。</p>
+          </div>
+
+          <div id="radar-history" class="radar-history" hidden>
+            <div class="radar-history-head">
+              <h3>扫描记录</h3>
+              <button type="button" class="btn btn-ghost btn-sm" id="radar-history-clear">清空记录</button>
+            </div>
+            <div id="radar-history-list" class="radar-history-list"></div>
+          </div>
+
+          <p class="sub radar-foot">基于公开行情的技术统计，不构成投资建议。</p>
+        </div>
+      </section>
+    </div>
+  </main>
+  <footer class="site-footer" id="site-footer"></footer>
+
+  <div id="radar-confirm" class="radar-modal" hidden role="dialog" aria-modal="true" aria-labelledby="radar-confirm-title">
+    <div class="radar-modal-card" role="document">
+      <div class="radar-modal-head">
+        <h4 id="radar-confirm-title">请确认</h4>
+        <button type="button" class="radar-modal-close" id="radar-confirm-close" aria-label="关闭">×</button>
+      </div>
+      <div class="radar-modal-body">
+        <p id="radar-confirm-msg"></p>
+        <ul class="radar-modal-notes" id="radar-confirm-notes" hidden></ul>
+      </div>
+      <div class="radar-modal-foot">
+        <button type="button" class="btn btn-ghost" id="radar-confirm-cancel">取消</button>
+        <button type="button" class="btn-blue" id="radar-confirm-ok">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/shell.js?v=62"></script>
+  <script>try{window.AI24X_A_SHELL&&window.AI24X_A_SHELL.mount("radar");}catch(e){}</script>
+  <script src="/js/radar.js?v=20"></script>
+  <script>
+    (function(){
+      try{
+        var sp=new URLSearchParams(String(location.search||"").replace(/^\?/,""));
+        var raw=String(sp.get("i")||sp.get("invite")||"").trim().toUpperCase();
+        if(raw){try{localStorage.setItem("ai24x_invite_code",raw);}catch(e){}}
+      }catch(e){}
+    })();
+  </script>
+  <script>
+    (function(){
+      var w=window.AI24X_Radar;
+      if(!w)return;
+      if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){w.boot();});
+      else w.boot();
+    })();
+  </script>
+</body>
+</html>

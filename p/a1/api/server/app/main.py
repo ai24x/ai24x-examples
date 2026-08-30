@@ -583,6 +583,11 @@ def _startup() -> None:
         start_bj_auto_scan()
     except Exception:
         logging.getLogger(__name__).exception("bj auto scan task start failed")
+    try:
+        from .radar_screener import start_radar_auto_scan
+        start_radar_auto_scan()
+    except Exception:
+        logging.getLogger(__name__).exception("radar auto scan task start failed")
 
 
 @app.get("/health")
@@ -3503,6 +3508,246 @@ async def api_bj_winrate(
         return await compute_winrate(days)
     except Exception as e:
         return {"ok": False, "error": str(e)[:160]}
+
+
+@app.get("/api/radar/screener")
+async def api_radar_screener(
+    request: Request,
+    signal: str = "both",
+    strictness: str = "balanced",
+    force: int = 0,
+    user_id: int = Depends(get_current_user_id),
+) -> dict:
+    """AI雷达（VIP）：粘合启动 + 回踩二波；候选池 fuyao 优先，K 线走系统多源链，Key 仅服务端。"""
+    signal = str(signal or "both").strip().lower()
+    if signal not in ("both", "bond", "pullback"):
+        signal = "both"
+    strictness = str(strictness or "balanced").strip().lower()
+    if strictness not in ("strict", "balanced", "loose"):
+        strictness = "balanced"
+    _rate_limit(f"radar-screener:{user_id}", 12)
+    try:
+        _auth_ip_rate_limit(request)
+    except Exception:
+        pass
+    db.downgrade_expired_vip_plan(int(user_id))
+    quota = db.get_quota_status(int(user_id))
+    plan = str(quota.get("plan") or "anon").strip().lower()
+    if plan in ("", "free", "anon"):
+        raise HTTPException(status_code=403, detail="AI雷达为 VIP 专属功能，请先开通 VIP。")
+    from .radar_screener import run_radar_dedup, radar_progress, check_force_rescan_allowed
+    if bool(int(force or 0)):
+        _rate_limit(f"radar-force:{user_id}", 1, window_s=600)
+        blocked = check_force_rescan_allowed()
+        if blocked:
+            raise HTTPException(status_code=429, detail=blocked)
+    if radar_progress().get("running"):
+        return {"ok": True, "running": True, "message": "扫描进行中，请稍候…"}
+    try:
+        return await run_radar_dedup(signal=signal, strictness=strictness, force=bool(force))
+    except Exception as e:
+        return {"ok": False, "error": "scan_failed", "message": f"{type(e).__name__}: {str(e)[:160]}"}
+
+
+@app.get("/api/radar/screener/start")
+async def api_radar_screener_start(
+    request: Request,
+    signal: str = "both",
+    strictness: str = "balanced",
+    force: int = 1,
+    user_id: int = Depends(get_current_user_id),
+) -> dict:
+    """AI雷达异步启动（防网关超时）。"""
+    signal = str(signal or "both").strip().lower()
+    strictness = str(strictness or "balanced").strip().lower()
+    _rate_limit(f"radar-screener:{user_id}", 12)
+    try:
+        _auth_ip_rate_limit(request)
+    except Exception:
+        pass
+    db.downgrade_expired_vip_plan(int(user_id))
+    quota = db.get_quota_status(int(user_id))
+    plan = str(quota.get("plan") or "anon").strip().lower()
+    if plan in ("", "free", "anon"):
+        raise HTTPException(status_code=403, detail="AI雷达为 VIP 专属功能，请先开通 VIP。")
+    from .radar_screener import start_radar_background, radar_task_running, check_force_rescan_allowed
+    import asyncio as _asyncio
+    if bool(int(force or 0)):
+        _rate_limit(f"radar-force:{user_id}", 1, window_s=600)
+        blocked = check_force_rescan_allowed()
+        if blocked:
+            raise HTTPException(status_code=429, detail=blocked)
+    if radar_task_running():
+        return {"ok": True, "running": True}
+    _asyncio.create_task(start_radar_background(
+        signal=signal, strictness=strictness, force=bool(int(force or 0))
+    ))
+    return {"ok": True, "running": True, "message": "已开始扫描"}
+
+
+@app.get("/api/radar/screener/progress")
+async def api_radar_screener_progress(
+    request: Request,
+    user_id: int = Depends(get_current_user_id),
+) -> dict:
+    _rate_limit(f"radar-progress:{user_id}", 60)
+    from .radar_screener import radar_progress
+    p = radar_progress()
+    return {"ok": True, **p}
+
+
+@app.get("/api/radar/screener/result")
+async def api_radar_screener_result(
+    request: Request,
+    signal: str = "both",
+    strictness: str = "balanced",
+    user_id: int = Depends(get_current_user_id),
+) -> dict:
+    """只读当日扫描结果（不触发新扫描）。"""
+    signal = str(signal or "both").strip().lower()
+    if signal not in ("both", "bond", "pullback"):
+        signal = "both"
+    strictness = str(strictness or "balanced").strip().lower()
+    if strictness not in ("strict", "balanced", "loose"):
+        strictness = "balanced"
+    _rate_limit(f"radar-result:{user_id}", 60)
+    try:
+        _auth_ip_rate_limit(request)
+    except Exception:
+        pass
+    db.downgrade_expired_vip_plan(int(user_id))
+    quota = db.get_quota_status(int(user_id))
+    plan = str(quota.get("plan") or "anon").strip().lower()
+    if plan in ("", "free", "anon"):
+        raise HTTPException(status_code=403, detail="AI雷达为 VIP 专属功能，请先开通 VIP。")
+    from .radar_screener import get_radar_cached_result, radar_progress, radar_task_running
+    if radar_task_running() or radar_progress().get("running"):
+        p = radar_progress()
+        return {"ok": True, "running": True, "message": "扫描进行中，请稍候…", **p}
+    hit = get_radar_cached_result(signal=signal, strictness=strictness)
+    if hit:
+        return hit
+    return {"ok": False, "error": "no_cache", "message": "暂无扫描结果，请先开始扫描。"}
+
+
+@app.get("/api/radar/proxy/special")
+async def api_radar_proxy_special(
+    request: Request,
+    name: str,
+    user_id: int = Depends(get_current_user_id),
+) -> dict:
+    """VIP：代请求 fuyao 特色数据（Key 仅服务端，前端不暴露）。"""
+    from .radar_screener import assert_radar_vip, _RADAR_PROXY_SPECIAL
+    from .ths_fuyao import fetch_special
+    name = str(name or "").strip().lower()
+    if name not in _RADAR_PROXY_SPECIAL:
+        raise HTTPException(status_code=400, detail="不支持的查询类型")
+    _rate_limit(f"radar-proxy-special:{user_id}", 180)
+    try:
+        _auth_ip_rate_limit(request)
+    except Exception:
+        pass
+    assert_radar_vip(int(user_id))
+    params = {k: v for k, v in request.query_params.items() if k != "name"}
+    r = await fetch_special(name, params, gate=None)
+    if not r.get("ok"):
+        return {"ok": False, "message": str(r.get("msg") or "上游查询失败")}
+    items = r.get("item") or []
+    if isinstance(items, dict):
+        items = items.get("item") or []
+    if name == "limit-up-ladder":
+        flat: list[dict] = []
+        for row in items:
+            if isinstance(row, dict) and row.get("thscode"):
+                flat.append(row)
+                continue
+            boards = (row or {}).get("boards") if isinstance(row, dict) else None
+            if not isinstance(boards, dict):
+                continue
+            for arr in boards.values():
+                if isinstance(arr, list):
+                    flat.extend(x for x in arr if isinstance(x, dict))
+        items = flat
+    return {"ok": True, "items": items}
+
+
+@app.get("/api/radar/proxy/kline")
+async def api_radar_proxy_kline(
+    request: Request,
+    thscode: str,
+    days: int = 400,
+    adjust: str = "forward",
+    user_id: int = Depends(get_current_user_id),
+) -> dict:
+    """VIP：代请求 fuyao 前复权日 K（与独立选股器同口径）。"""
+    thscode = str(thscode or "").strip().upper()
+    if not re.fullmatch(r"\d{6}\.(SH|SZ)", thscode):
+        raise HTTPException(status_code=400, detail="无效股票代码")
+    _rate_limit(f"radar-proxy-kline:{user_id}", 600)
+    try:
+        _auth_ip_rate_limit(request)
+    except Exception:
+        pass
+    from .radar_screener import assert_radar_vip
+    from .ths_fuyao import fetch_historical_kline
+    assert_radar_vip(int(user_id))
+    r = await fetch_historical_kline(thscode, days=max(90, min(int(days or 400), 800)), adjust=str(adjust or "forward"), gate=None)
+    if not r.get("ok"):
+        return {"ok": False, "message": str(r.get("msg") or "K线获取失败")}
+    return {"ok": True, "thscode": thscode, "items": r.get("items") or []}
+
+
+_RADAR_KLINE_BATCH_SEM = asyncio.Semaphore(8)
+
+
+@app.post("/api/radar/proxy/kline-batch")
+async def api_radar_proxy_kline_batch(
+    request: Request,
+    body: dict,
+    user_id: int = Depends(get_current_user_id),
+) -> dict:
+    """VIP：批量代请求 fuyao 前复权日 K（并行拉取，避免全局限流串行）。"""
+    from .radar_screener import assert_radar_vip
+    from .ths_fuyao import fetch_historical_kline
+
+    assert_radar_vip(int(user_id))
+    raw = body.get("thscodes") or body.get("codes") or []
+    if not isinstance(raw, list):
+        raise HTTPException(status_code=400, detail="无效股票列表")
+    codes: list[str] = []
+    for c in raw:
+        code = str(c or "").strip().upper()
+        if re.fullmatch(r"\d{6}\.(SH|SZ)", code):
+            codes.append(code)
+    codes = codes[:32]
+    if not codes:
+        raise HTTPException(status_code=400, detail="无效股票列表")
+    _rate_limit(f"radar-proxy-kline:{user_id}", 600)
+    try:
+        _auth_ip_rate_limit(request)
+    except Exception:
+        pass
+    days = max(90, min(int(body.get("days") or 400), 800))
+    adjust = str(body.get("adjust") or "forward")
+
+    async def _one(code: str) -> tuple[str, list]:
+        for attempt in range(3):
+            async with _RADAR_KLINE_BATCH_SEM:
+                r = await fetch_historical_kline(code, days=days, adjust=adjust, gate=None)
+            if r.get("ok"):
+                rows = r.get("items") or []
+                if rows:
+                    return code, rows
+            msg = str(r.get("msg") or r.get("code") or "")
+            if "4001" in msg or "限流" in msg:
+                await asyncio.sleep(0.4 * (attempt + 1))
+                continue
+            break
+        return code, []
+
+    pairs = await asyncio.gather(*[_one(c) for c in codes])
+    items = {code: rows for code, rows in pairs if rows}
+    return {"ok": True, "count": len(items), "items": items}
 
 
 @app.get("/api/suggest")

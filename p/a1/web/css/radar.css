@@ -1,0 +1,83 @@
+.radar-settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:12px 0 8px;padding:14px 16px;background:var(--panel2);border:1px solid var(--border);border-radius:12px}
+.radar-settings label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}
+.radar-settings select{padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:14px}
+.radar-count{font-size:14px;color:var(--bj-acc);margin-left:6px;font-weight:700}
+.radar-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.radar-pool-hint{margin:4px 0 10px;font-size:12px;line-height:1.6}
+.radar-foot{margin-top:16px;font-size:12px;line-height:1.7}
+#radar-status.is-err{color:var(--fall,#dc2626);font-weight:700}
+
+.radar-progress{margin:0 0 12px;padding:12px 14px;background:var(--panel2);border:1px solid var(--border);border-radius:12px}
+.radar-progress[hidden]{display:none!important}
+.radar-progress-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;font-size:13px}
+.radar-progress-stage{font-weight:700;color:var(--text)}
+.radar-progress-pct{font-weight:700;color:var(--bj-acc);font-variant-numeric:tabular-nums}
+.radar-progress-bar{height:8px;background:rgba(128,138,160,.18);border-radius:5px;overflow:hidden}
+.radar-progress-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--bj-acc),#f0b429);border-radius:5px;transition:width .28s ease}
+.radar-progress-detail{margin-top:8px;font-size:12px;line-height:1.55;color:var(--muted);font-variant-numeric:tabular-nums;min-height:18px}
+
+.radar-result-section{margin:12px 0 8px}
+.radar-result-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.radar-result-head h3{font-size:16px;font-weight:800;margin:0;color:var(--text)}
+.radar-table-wrap{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:auto;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.radar-table{width:100%;border-collapse:collapse;font-size:13px;min-width:1100px}
+.radar-table thead th{background:var(--panel2);padding:11px 10px;text-align:left;font-weight:700;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap}
+.radar-table tbody td{padding:11px 10px;border-bottom:1px solid rgba(128,138,160,.12);vertical-align:middle}
+.radar-table tbody tr:hover{background:var(--bj-acc-bg,rgba(96,165,250,.06))}
+.radar-table .stock-name{color:var(--bj-acc);font-weight:700;text-decoration:none}
+.radar-table .stock-name:hover{text-decoration:underline}
+.radar-table .code{color:var(--muted);font-family:Consolas,monospace;font-size:12px}
+.radar-table .price{color:var(--fall,#dc2626);font-weight:700;font-family:Consolas,monospace}
+.tag-radar-bond{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:800;background:rgba(14,165,233,.28);color:#0284c7;letter-spacing:.03em;text-shadow:0 0 1px rgba(255,255,255,.6)}
+.tag-radar-pull{background:rgba(217,70,239,.26);color:#c026d3;display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:800;letter-spacing:.03em;text-shadow:0 0 1px rgba(255,255,255,.6)}
+.tag-radar-both{background:linear-gradient(135deg,rgba(255,214,102,.62),rgba(251,191,36,.45));color:#ea580c;display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:800;border:1px solid rgba(251,191,36,.72);letter-spacing:.03em;text-shadow:0 0 1px rgba(255,255,255,.55)}
+.tag-match{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:rgba(34,197,94,.12);color:var(--rise,#16a34a)}
+.tag-zt{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:rgba(239,68,68,.12);color:var(--fall,#dc2626)}
+.tag-rise{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:rgba(34,197,94,.12);color:var(--rise,#16a34a)}
+.radar-na{color:var(--muted);opacity:.72;font-weight:500}
+.radar-table-note{margin:8px 2px 0;font-size:11px;line-height:1.55;color:var(--muted)}
+:root[data-theme="dark"] .tag-radar-bond{background:rgba(56,189,248,.24);color:#7dd3fc;text-shadow:0 0 8px rgba(56,189,248,.35)}
+:root[data-theme="dark"] .tag-radar-pull{background:rgba(232,121,249,.22);color:#f0abfc;text-shadow:0 0 8px rgba(232,121,249,.35)}
+:root[data-theme="dark"] .tag-radar-both{background:linear-gradient(135deg,rgba(255,214,102,.38),rgba(251,191,36,.28));color:#fde047;border-color:rgba(251,191,36,.55);text-shadow:0 0 8px rgba(251,191,36,.25)}
+
+.filter-stats{margin:12px 0;padding:14px 16px;background:var(--panel2);border:1px solid var(--border);border-radius:12px}
+.filter-stats h4{font-size:13px;color:var(--muted);margin:0 0 10px}
+.filter-stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 12px;font-size:13px}
+.filter-stat-item{display:flex;justify-content:space-between;border-bottom:1px solid rgba(128,138,160,.15);padding:3px 0}
+.filter-stat-item .num{color:var(--bj-up);font-weight:700}
+
+.radar-empty{text-align:center;padding:40px 16px;color:var(--muted);font-size:14px}
+.radar-history{margin-top:24px;padding-top:8px;border-top:1px dashed var(--border)}
+.radar-history-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.radar-history-head h3{font-size:15px;font-weight:700;color:var(--muted);margin:0}
+.btn-sm{padding:6px 12px;font-size:12px}
+.radar-history-list{display:flex;flex-direction:column;gap:8px}
+.radar-history-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;background:var(--panel2);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:border-color .15s}
+.radar-history-item:hover{border-color:var(--bj-gold-bd,#f0b429)}
+.radar-history-item .info{font-size:13px;color:var(--muted);flex:1;min-width:0}
+.radar-history-item .info b{color:var(--text);margin-right:8px}
+.radar-history-item .time{font-size:12px;color:var(--muted);white-space:nowrap}
+.radar-history-item .del{color:var(--muted);font-size:12px;padding:4px 8px;border-radius:6px;cursor:pointer}
+.radar-history-item .del:hover{color:var(--fall,#dc2626);background:rgba(239,68,68,.08)}
+
+.radar-modal{position:fixed;inset:0;z-index:10050;display:flex;align-items:center;justify-content:center;padding:20px 16px;background:rgba(15,23,42,.52);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.radar-modal[hidden]{display:none!important}
+body.radar-modal-open{overflow:hidden}
+.radar-modal-card{width:min(420px,100%);background:var(--panel,#fff);border:1px solid var(--border);border-radius:16px;box-shadow:0 20px 50px rgba(15,23,42,.22);overflow:hidden;animation:radarModalIn .22s ease-out}
+@keyframes radarModalIn{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+.radar-modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px 12px;border-bottom:1px solid var(--border)}
+.radar-modal-head h4{margin:0;font-size:17px;font-weight:800;color:var(--text);letter-spacing:.02em}
+.radar-modal-close{border:0;background:transparent;color:var(--muted);font-size:22px;line-height:1;width:32px;height:32px;border-radius:8px;cursor:pointer;padding:0}
+.radar-modal-close:hover{color:var(--text);background:var(--panel2)}
+.radar-modal-body{padding:14px 18px 6px}
+.radar-modal-body p{margin:0;font-size:14px;line-height:1.75;color:var(--text)}
+.radar-modal-notes{margin:12px 0 0;padding:12px 14px 12px 28px;background:var(--panel2);border:1px solid var(--border);border-radius:12px;font-size:13px;line-height:1.7;color:var(--muted)}
+.radar-modal-notes li+li{margin-top:6px}
+.radar-modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:14px 18px 16px;border-top:1px solid var(--border)}
+.radar-modal-foot .btn{min-width:88px}
+.radar-modal-foot .btn-blue{min-width:108px}
+@media (max-width:480px){
+  .radar-modal{align-items:flex-end;padding:0}
+  .radar-modal-card{width:100%;border-radius:16px 16px 0 0;animation:radarModalUp .24s ease-out}
+  @keyframes radarModalUp{from{transform:translateY(100%)}to{transform:none}}
+}

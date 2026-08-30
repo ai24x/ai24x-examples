@@ -64,7 +64,7 @@
   <meta property="og:image:type" content="image/svg+xml" />
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="/css/base.css?v=54" />
+  <link rel="stylesheet" href="/css/base.css?v=56" />
   <link rel="stylesheet" href="/css/tool.css" />
   <script>
     (function () {
@@ -890,32 +890,51 @@
       font-size: 12px;
       color: var(--muted);
       margin: 0 0 10px;
-      line-height: 1.6;
-      padding: 10px 12px;
+      line-height: 1.5;
+      padding: 7px 10px;
       background: var(--panel2);
       border-radius: 6px;
       border: 1px solid var(--border);
-      transition: opacity 180ms ease, transform 180ms ease;
+      transition: opacity 180ms ease;
+      cursor: pointer;
+      user-select: none;
     }
     .quote-snap.is-soft-loading { opacity: 0.55; }
-    .quote-snap .qs-head { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; }
-    .quote-snap .qs-sep { color: var(--muted); opacity: 0.5; }
-    .quote-snap .qs-mkt-inline { display: inline-flex; align-items: baseline; gap: 3px; flex-wrap: wrap; }
-    .quote-snap .qs-mkt-inline .mkt-label { color: #f43f5e; font-weight: 800; }
+    .quote-snap .qs-head {
+      display: flex;
+      align-items: center;
+      gap: 6px 10px;
+      flex-wrap: nowrap;
+      min-width: 0;
+      white-space: nowrap;
+    }
+    .quote-snap .qs-sep { color: var(--muted); opacity: 0.5; flex: 0 0 auto; }
+    .quote-snap .qs-mkt-inline {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 3px;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .quote-snap .qs-mkt-inline .mkt-label { color: #f43f5e; font-weight: 800; flex: 0 0 auto; }
     .quote-snap .qs-mkt-inline .mkt-up { color: #f43f5e; font-weight: 700; }
     .quote-snap .qs-mkt-inline .mkt-down { color: #3b82f6; font-weight: 700; }
     .quote-snap .qs-mkt-inline .mkt-flat { color: #94a3b8; font-weight: 700; }
-    .quote-snap .qs-mkt-inline .qs-mkt-tags { color: var(--muted); }
-    .quote-snap .qs-risk-inline { color: #f87171; }
-    .quote-snap .qs-label { font-size: 11px; letter-spacing: 0.08em; color: var(--muted); }
-    .quote-snap .qs-score { font-size: 20px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+    .quote-snap .qs-mkt-inline .qs-mkt-tags { color: var(--muted); display: none; }
+    .quote-snap.is-open .qs-mkt-inline .qs-mkt-tags { display: inline; }
+    .quote-snap .qs-risk-inline { color: #f87171; display: none; }
+    .quote-snap.is-open .qs-risk-inline { display: inline; }
+    .quote-snap .qs-label { font-size: 11px; letter-spacing: 0.08em; color: var(--muted); flex: 0 0 auto; }
+    .quote-snap .qs-score { font-size: 18px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; flex: 0 0 auto; }
     .quote-snap .qs-score.up { color: #f43f5e; }
     .quote-snap .qs-score.mid { color: #fbbf24; }
     .quote-snap .qs-score.low { color: #94a3b8; }
-    .quote-snap .qs-state { font-weight: 700; }
+    .quote-snap .qs-state { font-weight: 700; flex: 0 0 auto; }
     .quote-snap .qs-state.up { color: #f43f5e; }
     .quote-snap .qs-state.mid { color: #fbbf24; }
     .quote-snap .qs-state.low { color: #94a3b8; }
+    .quote-snap .qs-spacer { flex: 1 1 auto; min-width: 4px; }
     .quote-snap .qs-row { margin: 6px 0 0; display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: baseline; }
     .quote-snap .qs-tag { display: inline-flex; align-items: center; padding: 1px 8px; border-radius: 999px; background: rgba(244,63,94,.10); border: 1px solid rgba(244,63,94,.30); color: #f43f5e; font-size: 11px; white-space: nowrap; }
     .quote-snap .qs-tag.amber { background: rgba(245,158,11,.10); border-color: rgba(245,158,11,.32); color: #fbbf24; }
@@ -928,27 +947,33 @@
     .quote-snap .qs-market .mkt-flat { color: #94a3b8; font-weight: 700; }
     .quote-snap .qs-foot { margin-top: 7px; font-size: 11px; color: var(--muted); opacity: 0.85; }
     .quote-snap .qs-loading { color: var(--muted); }
-    .quote-snap a { color: #f43f5e; font-weight: 700; text-decoration: none; }
+    .quote-snap a { color: #f43f5e; font-weight: 700; text-decoration: none; flex: 0 0 auto; }
     .quote-snap a:hover { text-decoration: underline; }
-    .quote-snap .qs-toggle { display: none; }
+    .quote-snap .qs-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(148,163,184,.08);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
+      flex: 0 0 auto;
+      transition: transform 160ms ease, color 160ms ease, border-color 160ms ease;
+    }
+    .quote-snap .qs-toggle::before { content: "▾"; }
+    .quote-snap.is-open .qs-toggle { color: #f43f5e; border-color: rgba(244,63,94,.35); transform: rotate(180deg); }
+    .quote-snap .qs-detail { display: none; margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--border); }
+    .quote-snap.is-open .qs-detail { display: block; }
     @media (max-width: 640px), (max-device-width: 640px) {
-      .quote-snap { padding: 8px 10px; margin-bottom: 8px; cursor: pointer; }
-      .quote-snap .qs-score { font-size: 17px; }
-      .quote-snap .qs-head { gap: 4px 8px; }
-      .quote-snap .qs-toggle {
-        display: inline-flex;
-        align-items: center;
-        gap: 2px;
-        font-size: 10px;
-        font-weight: 700;
-        color: var(--muted);
-        white-space: nowrap;
-        flex: 0 0 auto;
-      }
-      .quote-snap .qs-detail { display: none; }
-      .quote-snap.is-open .qs-detail { display: block; }
-      .quote-snap .qs-foot { display: none !important; }
-      .quote-snap .qs-row { gap: 3px 5px; }
+      .quote-snap { padding: 7px 9px; margin-bottom: 8px; }
+      .quote-snap .qs-score { font-size: 16px; }
+      .quote-snap .qs-head { gap: 4px 7px; }
+      .quote-snap .qs-link { display: none; }
     }
     .short-term-bar {
       display: none !important;
@@ -2041,7 +2066,7 @@
   </main>
   <footer class="site-footer" id="site-footer"></footer>
 
-  <script src="/js/shell.js?v=57"></script>
+  <script src="/js/shell.js?v=62"></script>
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("demo"); } catch (e) {}
   </script>
@@ -5013,9 +5038,11 @@
     if (!d || d.ok === false) {
       snapEl.hidden = true;
       snapEl.innerHTML = '';
+      snapEl.classList.remove('is-open');
       _lastSnapData = null;
       return;
     }
+    var wasOpen = snapEl.classList.contains('is-open');
     var sc = Number(d.score || 0);
     var err = String(d.error || '');
     var cls = snapScoreCls(sc, err);
@@ -5023,31 +5050,40 @@
     var risks = d.risks || [];
     var mkt = d.market;
     var risksShow = risks.length ? escHtml(risks.slice(0, 2).join(' / ') + (risks.length > 2 ? ' 等' : '')) : '';
+    var mTags = [];
+    var mpts = 0;
+    var mcls = 'mkt-flat';
+    var mlbl = '';
+    if (mkt && mkt.name) {
+      mpts = Number(mkt.pts || 0);
+      mcls = mpts >= 2 ? 'mkt-up' : mpts <= -2 ? 'mkt-down' : 'mkt-flat';
+      mlbl = mpts >= 2 ? '顺风' : mpts <= -2 ? '逆风' : '中性';
+      mTags = (mkt.tags || []).map(function (t) { return String(t).replace(/^大盘/, ''); });
+    }
     var html =
       '<div class="qs-head">' +
       '<span class="qs-label">技术指标快照</span>' +
       '<span class="qs-score ' + cls + '">' + (err ? '—' : sc.toFixed(0)) + '</span>' +
       '<span class="qs-state ' + cls + '">' + snapStateText(sc, err) + '</span>';
-    if (mkt && mkt.name) {
-      var mpts = Number(mkt.pts || 0);
-      var mcls = mpts >= 2 ? 'mkt-up' : mpts <= -2 ? 'mkt-down' : 'mkt-flat';
-      var mlbl = mpts >= 2 ? '顺风' : mpts <= -2 ? '逆风' : '中性';
-      var mTags = (mkt.tags || []).map(function (t) { return String(t).replace(/^大盘/, ''); });
+    if (mlbl) {
       html +=
         '<span class="qs-sep">·</span>' +
-        '<span class="qs-mkt-inline"><span class="mkt-label">大盘环境</span> <span class="' + mcls + '">' + mlbl + '</span>' +
-        (mTags.length ? '<span class="qs-mkt-tags">（' + escHtml(mTags.slice(0, 2).join(' / ') + (mTags.length > 2 ? ' 等' : '')) + '）</span>' : '') +
-        '</span>';
-    }
-    if (risksShow) {
-      html += '<span class="qs-sep">·</span><span class="qs-risk-inline">风险：' + risksShow + '</span>';
+        '<span class="qs-mkt-inline"><span class="mkt-label">大盘</span> <span class="' + mcls + '">' + mlbl + '</span></span>';
     }
     html +=
-      '<span style="flex:1"></span>' +
-      '<a href="./watchscore.html" target="_blank" rel="noopener" title="自选评分榜" style="display:inline-flex; align-items:center; gap:3px; text-decoration:none; color:inherit;"><svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor" aria-hidden="true" style="display:block;"><path d="M2 13.5h2.4V8.6H2v4.9zm4.6 0h2.4V4.2H6.6v9.3zm4.6 0h2.4V6.4h-2.4v7.1z"/></svg>评分榜 ›</a>' +
-      '<span class="qs-toggle">详情 ▾</span>' +
+      '<span class="qs-spacer"></span>' +
+      '<a class="qs-link" href="./watchscore.html" target="_blank" rel="noopener" title="自选评分榜" style="display:inline-flex; align-items:center; gap:3px; text-decoration:none; color:inherit;"><svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor" aria-hidden="true" style="display:block;"><path d="M2 13.5h2.4V8.6H2v4.9zm4.6 0h2.4V4.2H6.6v9.3zm4.6 0h2.4V6.4h-2.4v7.1z"/></svg>评分榜 ›</a>' +
+      '<span class="qs-toggle" aria-label="展开详情" title="展开/收起"></span>' +
       '</div>';
     html += '<div class="qs-detail">';
+    if (mlbl && mTags.length) {
+      html +=
+        '<div class="qs-row qs-market"><span class="mkt-label">大盘环境</span> <span class="' + mcls + '">' + mlbl + '</span>' +
+        '<span class="qs-mkt-tags">（' + escHtml(mTags.slice(0, 3).join(' / ') + (mTags.length > 3 ? ' 等' : '')) + '）</span></div>';
+    }
+    if (risksShow) {
+      html += '<div class="qs-row qs-risk">风险：' + risksShow + '</div>';
+    }
     if (!err) {
       if (tags.length) {
         html += '<div class="qs-row">' + tags.map(function (t) {
@@ -5065,6 +5101,8 @@
     html += '</div>';
     snapEl.innerHTML = html;
     snapEl.hidden = false;
+    if (wasOpen) snapEl.classList.add('is-open');
+    else snapEl.classList.remove('is-open');
     _lastSnapData = d;
   }
 
@@ -5109,7 +5147,7 @@
           if (ev.target && ev.target.closest && ev.target.closest('a, button')) return;
           var open = snapEl.classList.toggle('is-open');
           var tg = snapEl.querySelector('.qs-toggle');
-          if (tg) tg.textContent = open ? '收起 ▲' : '详情 ▾';
+          if (tg) tg.setAttribute('aria-label', open ? '收起详情' : '展开详情');
         } catch (e) {}
       });
     } catch (e) {}

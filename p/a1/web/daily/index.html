@@ -6,7 +6,7 @@
 <meta name="HandheldFriendly" content="true" />
 <meta name="format-detection" content="telephone=no" />
 <title>大盘 · AI行情官｜灯塔版</title>
-<meta name="description" content="AI行情官 大盘研判：每日收盘后自动生成大盘信号、资金主攻、板块技术体检与主线锁定。大盘与资金面免费可见，板块体检与主线锁定为 VIP 专属。本工具仅基于公开行情做统计与信息整理，不构成投资建议。" />
+<meta name="description" content="AI行情官大盘研判：收盘定型，大盘信号与市场宽度免费可见，主线与板块体检为 VIP。" />
 <link rel="icon" href="data:," />
 <script>
 (function () {
@@ -17,7 +17,7 @@
   } catch (e) {}
 })();
 </script>
-<link rel="stylesheet" href="/css/base.css?v=54" />
+<link rel="stylesheet" href="/css/base.css?v=56" />
 <link rel="stylesheet" href="/css/tool.css?v=44" />
 <style>
 .page-main .wrap { max-width: min(1360px, 100%); padding: 12px 14px 26px; }
@@ -86,28 +86,28 @@
       <div class="daily-top">
         <div>
           <h1>大盘 <span class="vip-badge">信号 · 主线</span></h1>
-          <p class="sub" id="sub-title">每日收盘后自动生成：大盘信号 → 资金主攻 → 板块技术体检 → 主线锁定。大盘与资金面免费可见，板块体检与主线锁定为 VIP 专属。</p>
+          <p class="sub" id="sub-title">收盘定型 · 大盘免费 · 主线 VIP</p>
         </div>
         <div class="btns" id="btn-bar" style="margin:0;">
-          <button class="btn btn-primary" id="btn-run" type="button">▶ 立即生成</button>
+          <button class="btn btn-primary" id="btn-run" type="button">立即生成</button>
           <button class="btn" id="btn-force" type="button">强制重扫</button>
-          <a class="btn" id="btn-brief" href="?brief=1">📋 公开简报</a>
+          <a class="btn" id="btn-brief" href="?brief=1">公开简报</a>
         </div>
       </div>
       <div class="daily-status">
         <span>今日：<b id="f-today">—</b></span>
-        <span>数据截至：<b id="f-asof">—</b></span>
-        <span>生成时间：<b id="f-gen">—</b></span>
-        <span>自动更新：<b id="f-next">—</b></span>
-        <span>账户：<b id="f-tok">—</b></span>
+        <span>截至：<b id="f-asof">—</b></span>
+        <span>生成：<b id="f-gen">—</b></span>
+        <span>自动：<b id="f-next">—</b></span>
+        <span><b id="f-tok">—</b></span>
       </div>
       <div id="brief-bar" class="brief-bar" hidden>
         <div class="brief-dates" id="brief-dates"></div>
         <div class="brief-guide" id="brief-guide"></div>
       </div>
       <div id="notice" class="notice" style="display:none"></div>
-      <div id="prog"><div id="progbar"></div></div>
-      <div id="progtext" class="status"></div>
+      <div id="prog" style="display:none"><div id="progbar"></div></div>
+      <div id="progtext" class="status" style="display:none"></div>
       <div id="log"></div>
     </section>
 
@@ -117,13 +117,13 @@
     </section>
 
     <section class="card">
-      <h2>往期报告（历史归档）</h2>
+      <h2>往期报告</h2>
       <div id="history"><p class="sub">加载中…</p></div>
     </section>
   </div>
 </main>
 <footer class="site-footer" id="site-footer"></footer>
-<script src="/js/shell.js?v=57"></script>
+<script src="/js/shell.js?v=62"></script>
 <script>
 try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("daily"); } catch (e) {}
 </script>
@@ -157,8 +157,8 @@ try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("daily"); } catch (e) {
     return s.vip ? '<span class="badge gold">VIP</span>' : '<span class="badge red">免费版</span>';
   }
   function vipGuide(s) {
-    if (!s.logged_in) return '大盘信号与资金面<b>免费可见</b>；自动生成与板块体检/主线锁定需登录并开通 VIP。请先 <a href="/account.html">登录/注册</a>。';
-    if (!s.vip) return '当前为免费账户：大盘信号与资金面公开可见；自动生成、板块体检与主线锁定为 <b>VIP 专属</b>，请前往 <a href="/account.html">我的</a> 开通 VIP。';
+    if (!s.logged_in) return '大盘免费可见；主线与板块体检需登录并开通 VIP。请先 <a href="/account.html">登录</a>。';
+    if (!s.vip) return '当前免费账户可看大盘；主线与板块体检为 <b>VIP</b>，请前往 <a href="/account.html">我的</a> 开通。';
     return '';
   }
   function nextAutoText(s) {
@@ -181,7 +181,7 @@ try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("daily"); } catch (e) {
     var h1 = document.querySelector('.daily-top h1');
     if (h1) h1.innerHTML = '每日大盘简报 <span class="vip-badge">信号 · 市场宽度</span>';
     var sub = el('sub-title');
-    if (sub) sub.textContent = '每日收盘后自动生成的大盘信号与市场宽度快报；板块体检、主线锁定与个股信息为 VIP 专属。本简报仅基于公开行情做统计与信息整理，不构成投资建议。';
+    if (sub) sub.textContent = '收盘自动生成 · 大盘与宽度公开 · 主线 VIP';
   }
 
   function renderBriefDates(active) {
@@ -260,9 +260,9 @@ try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("daily"); } catch (e) {
       if (s.has_today && !s.running) {
         if (s.needs_refresh && s.vip) {
           if (s.auto_blocked) {
-            showNotice('上次自动生成失败（' + (s.last_error || '未知错误') + '），为避免重复占用上游预算，请约 10 分钟后手动重试。');
+            showNotice('上次自动生成失败，请约 10 分钟后重试。');
           } else {
-            showNotice('检测到旧数据（截至 ' + s.asof + '），收盘后自动刷新为最新数据…');
+            showNotice('数据已过期，正在刷新为最新…');
             startScan(0);
           }
         } else {
@@ -283,7 +283,7 @@ try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("daily"); } catch (e) {
   function maybeAutoScan(s) {
     var guide = vipGuide(s);
     if (s.is_weekend) {
-      showNotice('今天是非交易日（周末）。当前展示最近一期报告；<b>下一交易日 ' + (s.auto_scan_time || '15:03') + ' 后打开本页将自动生成当日报告</b>。' + (guide ? '<br>' + guide : ''));
+      showNotice('今天非交易日。当前展示最近一期；下一交易日 ' + (s.auto_scan_time || '15:03') + ' 后自动生成。' + (guide ? '<br>' + guide : ''));
       loadLastReport();
       return;
     }
@@ -292,7 +292,7 @@ try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("daily"); } catch (e) {
       return;
     }
     if (!s.vip) {
-      showNotice(guide || 'VIP 专属功能：开通 VIP 后，收盘后打开本页将自动生成当日报告。');
+      showNotice(guide || '开通 VIP 后，收盘打开本页将自动生成当日报告。');
       loadLastReport();
       return;
     }
@@ -300,14 +300,14 @@ try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("daily"); } catch (e) {
     var hm = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
     if (hm >= (s.auto_scan_time || '15:03')) {
       if (s.auto_blocked) {
-        showNotice('上次自动生成失败（' + (s.last_error || '未知错误') + '），为避免重复占用上游预算，请约 10 分钟后手动重试。');
+        showNotice('上次自动生成失败，请约 10 分钟后重试。');
         loadLastReport();
       } else {
-        showNotice('收盘后首次打开，自动开始生成当日报告（约 1~2 分钟，低频防封限流）。可先看往期报告。');
+        showNotice('收盘后首次打开，正在生成当日报告（约 1～2 分钟）…');
         startScan(0);
       }
     } else {
-      showNotice('今日尚未收盘（当前 ' + hm + '）。当前展示最近一期报告；<b>今日 ' + (s.auto_scan_time || '15:03') + ' 后打开本页将自动生成当日报告</b>，无需手动点击。' + (guide ? '<br>' + guide : ''));
+      showNotice('今日尚未收盘（' + hm + '）。当前展示最近一期；今日 ' + (s.auto_scan_time || '15:03') + ' 后自动生成。' + (guide ? '<br>' + guide : ''));
       loadLastReport();
     }
   }
@@ -357,7 +357,7 @@ try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("daily"); } catch (e) {
           el('btn-run').disabled = false;
           el('btn-force').disabled = false;
           hideProg();
-          showNotice('生成时间较长（上游数据源限流），请稍后刷新查看结果；也可点「强制重扫」重新生成。');
+          showNotice('生成时间较长，请稍后刷新；也可点「强制重扫」。');
         }
       }).catch(function () {});
     }, 1500);
@@ -411,7 +411,7 @@ try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("daily"); } catch (e) {
 
   el('btn-run').addEventListener('click', function () { startScan(0); });
   el('btn-force').addEventListener('click', function () {
-    if (!confirm('强制重扫将重新抓取上游数据（约 1~2 分钟，消耗当日上游预算），确定？')) return;
+    if (!confirm('强制重扫将重新抓取最新数据（约 1～2 分钟），确定？')) return;
     startScan(1);
   });
 

@@ -202,6 +202,7 @@
       nav("/index.html", "首页", "index"),
       nav("/demo.html", "行情", "demo"),
       nav("/gd.html", "AI复盘", "bjscreener"),
+      nav("/radar.html", "AI雷达", "radar"),
       nav("/account.html", "我的", "account"),
       nav("/help.html", "帮助", "help"),
       nav("/feedback.html", "反馈", "feedback"),
