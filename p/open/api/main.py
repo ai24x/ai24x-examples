@@ -1323,6 +1323,42 @@ async def _core_billing_proxy(
         return {}
 
 
+async def _core_balance_proxy(token: str) -> dict:
+    """服务代理 core 余额真源（统一账单：主站 Account Hub 钱包 = open 控制台余额）。
+
+    国际版统一账号（DEC-0007）下，core 用户的 JWT 在 core 侧有效；
+    open 只转发同 Token，不落盘、不复制余额，避免「www VIP / open Free」双账本。
+    """
+    import httpx
+
+    base = (
+        (getattr(settings, "ai24x_core_api_base", "") or "https://api.ai24x.com")
+        .strip()
+        .rstrip("/")
+    )
+    if not base.startswith("http"):
+        raise HTTPException(status_code=502, detail="服务暂时不可用，请稍后再试。")
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            r = await client.get(
+                base + "/v1/billing/balance",
+                headers={"Authorization": "Bearer " + token},
+            )
+    except Exception:
+        logger.warning("core balance proxy request failed for base=%s", base)
+        raise HTTPException(status_code=502, detail="服务暂时不可用，请稍后再试。")
+    if r.status_code >= 400:
+        try:
+            detail = (r.json() or {}).get("detail") or r.text
+        except Exception:
+            detail = r.text
+        raise HTTPException(status_code=r.status_code, detail=str(detail)[:200])
+    try:
+        return r.json()
+    except Exception:
+        return {}
+
+
 @app.get("/v1/auth/captcha")
 async def auth_captcha(request: Request):
     """图形验证码（注册/找回密码发码前必填；ENABLE_CAPTCHA=0 关闭）。"""
@@ -2069,10 +2105,29 @@ async def keys_delete(key_id: int, request: Request, db: Session = Depends(get_d
 
 @app.get("/v1/billing/balance", response_model=BillingBalanceOut)
 async def billing_balance(request: Request, db: Session = Depends(get_db)):
-    """登录 JWT 或 API Key 均可。用调试 Key 调本接口可核对 is_vip_active / 是否同一账号。"""
+    """主站 Account Hub 同一钱包（统一账单）：平台用户 + core JWT → 转发 core 真源；
+
+    open 本地原生用户 / 仅 API Key（无 core 会话）→ 返回本地快照（BYOK 侧）。
+    """
     from token_mvp_service import get_balance_snapshot
 
     u = _auth_user_from_api_key_or_jwt(request, db)
+    auth = (request.headers.get("Authorization") or "").strip()
+    bearer = auth[7:].strip() if auth.lower().startswith("bearer ") else ""
+    is_core_jwt = bool(
+        getattr(u, "platform_user_id", None)
+        and bearer
+        and not bearer.startswith("sk-")
+        and bearer.count(".") >= 2
+    )
+    if is_core_jwt:
+        try:
+            return await _core_balance_proxy(bearer)
+        except HTTPException:
+            raise
+        except Exception:
+            # core 不可达时回退本地快照，控制台不因上游挂掉
+            logger.warning("core balance proxy fallback to local snapshot uid=%s", int(u.id))
     return get_balance_snapshot(db, int(u.id))
 
 
