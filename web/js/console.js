@@ -2860,7 +2860,7 @@
           if ($("overview-user")) $("overview-user").textContent = bal.email;
         } catch (eMerge) {}
       }
-      // 2026-08-04: 口径只剩两条——充值余额 vs 今日免费 shared；不再叠「余额不足+欢迎卡+日赠」
+      // 2026-08-04: 口径只剩两条——积分 vs 今日免费 shared；不再叠「余额不足+欢迎卡+日赠」
       // 2026-08-31: 主数值默认展示 Tokens（积分）；仅在存在美元余额时才以 USD 为主
       var usd = Number(bal.balance_usd) || 0;
       var usdDisplay = "$" + (usd / 100).toFixed(2);
