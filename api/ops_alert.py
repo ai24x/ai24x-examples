@@ -46,6 +46,7 @@ _DEFAULT_CONFIG: dict[str, Any] = {
     "enabled": True,
     "webhook_url": "",
     "cooldown_minutes": 60,
+    "daily_push_limit": 2,
     "push_info": False,
     "base_url": "http://127.0.0.1:8000",
     "sms_enabled": False,
@@ -150,6 +151,12 @@ def load_config() -> dict[str, Any]:
     except ValueError:
         cfg["cooldown_minutes"] = 60
     try:
+        cfg["daily_push_limit"] = max(
+            1, int(os.getenv("OPS_ALERT_DAILY_LIMIT", str(cfg.get("daily_push_limit") or 2)))
+        )
+    except ValueError:
+        cfg["daily_push_limit"] = 2
+    try:
         cfg["push_info"] = bool(int(os.getenv("OPS_ALERT_PUSH_INFO", "0")))
     except ValueError:
         cfg["push_info"] = False
@@ -175,6 +182,7 @@ def save_config(updates: dict[str, Any]) -> dict[str, Any]:
         "enabled",
         "webhook_url",
         "cooldown_minutes",
+        "daily_push_limit",
         "push_info",
         "base_url",
         "sms_enabled",
@@ -207,6 +215,10 @@ def save_config(updates: dict[str, Any]) -> dict[str, Any]:
         cur["cooldown_minutes"] = max(1, int(cur.get("cooldown_minutes") or 60))
     except (TypeError, ValueError):
         cur["cooldown_minutes"] = 60
+    try:
+        cur["daily_push_limit"] = max(1, int(cur.get("daily_push_limit") or 2))
+    except (TypeError, ValueError):
+        cur["daily_push_limit"] = 2
     cur["webhook_url"] = str(cur.get("webhook_url") or "").strip()
     cur["base_url"] = str(cur.get("base_url") or "").strip() or "http://127.0.0.1:8000"
     cur["sms_channel"] = str(cur.get("sms_channel") or "").strip()
@@ -724,17 +736,36 @@ def run_check(db, *, push: bool = True, dry_run: bool = False) -> dict[str, Any]
         save_state = {"codes": codes_state, "last_check": _cst_now().isoformat(),
                       "last_push_at": state.get("last_push_at") or "",
                       "last_push_text": state.get("last_push_text") or "",
-                      "last_silent_at": _cst_now().isoformat()}
+                      "last_silent_at": _cst_now().isoformat(),
+                      "push_daily": state.get("push_daily") or {}}
         _save_json(_STATE_PATH, save_state)
         return {"ok": True, "pushed": False, "silent": True, "health": health,
                 "alerts": alerts, "new_push": [], "recovered": [], "text": text}
+
+    # 2026-08-30 Boss order: 非正常预警每日限频（默认 2 条/天），达限额静默落盘
+    daily_limit = max(1, int(cfg.get("daily_push_limit") or 2))
+    push_daily = state.get("push_daily") or {}
+    today = _cst_now().strftime("%Y-%m-%d")
+    if push_daily.get("date") != today:
+        push_daily = {"date": today, "count": 0}
+    if int(push_daily.get("count") or 0) >= daily_limit:
+        save_state = {"codes": codes_state, "last_check": _cst_now().isoformat(),
+                      "last_push_at": state.get("last_push_at") or "",
+                      "last_push_text": state.get("last_push_text") or "",
+                      "last_silent_at": _cst_now().isoformat(),
+                      "push_daily": push_daily}
+        _save_json(_STATE_PATH, save_state)
+        return {"ok": True, "pushed": False, "rate_limited": True, "health": health,
+                "alerts": alerts, "new_push": new_push, "recovered": recovered, "text": text}
 
     pushed_feishu = _push_feishu(cfg, text)
     pushed_email = _push_email(cfg, text) if cfg.get("email_enabled") else False
     pushed_sms = _push_sms(cfg, text) if (cfg.get("sms_enabled") and n_err > 0) else False
     pushed = pushed_feishu or pushed_email or pushed_sms
 
-    save_state = {"codes": codes_state, "last_check": _cst_now().isoformat()}
+    push_daily["count"] = int(push_daily.get("count") or 0) + 1
+    save_state = {"codes": codes_state, "last_check": _cst_now().isoformat(),
+                  "push_daily": push_daily}
     if new_push or recovered:
         save_state["last_push_at"] = _cst_now().isoformat()
         save_state["last_push_text"] = text

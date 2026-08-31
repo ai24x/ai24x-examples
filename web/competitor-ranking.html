@@ -39,10 +39,10 @@
 <body>
 <div class="container">
   <h1>🏆 AI24X 竞品综合排名榜单</h1>
-  <div class="meta">更新：2026-08-24 ｜ 内部参考 · 每周一刷新</div>
+  <div class="meta">更新：2026-08-31 ｜ 内部参考 · 每周一刷新</div>
   <div class="note"><b>口径</b>：综合排名 = 实力 50% + 价格 30% + 速度 20% 加权。<br>
   速度列标注「实测」= LLM 真实 chat 调用 TTFB（新加坡节点 3 样本中位），其余为官网响应（推理未实测）。<br>
-  <b>本周变更</b>：<span class="changed">Blackmagic AI 新入榜（替换 LAYSO）</span>；Portkey 被 Palo Alto Networks 收购并更名 PRISMA AIRS AI Gateway；Requesty 模型数从 400+ 升至 600+；LiteLLM 模型数从 100+ 升至 1,800+。</div>
+  <b>本周变更</b>：<span class="changed">LLM Gateway 新入榜（替换 Pateway，开源 + 5% markup + 200+ 模型）</span>；Requesty 模型数从 600+ 升至 694+；LiteLLM stars 22k+ 持续增长；Portkey（PRISMA AIRS）1600+ 模型目录稳居第一。</div>
 
   <h2>表一 · 综合排名</h2>
   <div class="sub">实力 50% + 价格 30% + 速度 20% 加权</div>
@@ -90,11 +90,11 @@
         <td class="rank">4</td>
         <td class="platform">Requesty <span class="changed">↑</span></td>
         <td><a href="https://requesty.ai" target="_blank">requesty.ai</a></td>
-        <td>5% markup</td>
+        <td>5% markup（新平台优惠期）</td>
         <td>官网 57ms（推理未实测）</td>
         <td><span class="badge b-low">SOC2/低中</span></td>
         <td class="tag-need">未实测</td>
-        <td>600+ 模型（↑自400+），70k+ 开发者，90B+ tokens/日，智能路由+缓存</td>
+        <td>694+ 端点 / 208 模型 / 34 提供商（↑自 600+），70k+ 开发者</td>
         <td>5% markup 非最低，EU 数据驻留仅企业版</td>
       </tr>
       <tr>
@@ -116,7 +116,7 @@
         <td>官网 71ms（推理未实测）</td>
         <td><span class="badge b-low">开源 22k+ stars/低</span></td>
         <td class="tag-mid">一般（镜像）</td>
-        <td>1,800+ 模型（↑自100+），NVIDIA/Netflix/Okta 生产部署</td>
+        <td>1,800+ 模型，NVIDIA/Netflix/Okta 生产部署</td>
         <td>自运维，无托管 SLA</td>
       </tr>
       <tr>
@@ -143,7 +143,7 @@
       </tr>
       <tr>
         <td class="rank">9</td>
-        <td class="platform">Blackmagic AI <span class="new-badge">NEW</span></td>
+        <td class="platform">Blackmagic AI <span class="changed">↑</span></td>
         <td><a href="https://blackmagic.engineering" target="_blank">blackmagic.engineering</a></td>
         <td>48-74% off，预付信用</td>
         <td>官网 380ms（推理未实测）</td>
@@ -154,20 +154,20 @@
       </tr>
       <tr>
         <td class="rank">10</td>
-        <td class="platform">Pateway</td>
-        <td><a href="https://pateway.ai" target="_blank">pateway.ai</a></td>
-        <td>官方 8 折+赠 $3</td>
-        <td>未实测</td>
-        <td><span class="badge b-mid">中文向/中</span></td>
-        <td class="tag-ok">✅ 直连</td>
-        <td>$1 起充，支付宝直付，Claude 全系列</td>
-        <td>无价格优势，信任待验</td>
+        <td class="platform">LLM Gateway <span class="new-badge">NEW</span></td>
+        <td><a href="https://llmgateway.io" target="_blank">llmgateway.io</a></td>
+        <td>5% markup（信用充值），BYOK 免费，自托管免费</td>
+        <td>官网 0.51s（推理未实测）</td>
+        <td><span class="badge b-low">开源 AGPLv3/低</span></td>
+        <td class="tag-need">需代理</td>
+        <td>200+ 模型 / 40+ 提供商，自托管免费，BYOK 零费，开源社区活跃</td>
+        <td>较新，生态规模小于 LiteLLM/OpenRouter</td>
       </tr>
     </tbody>
   </table>
 
   <h2>表二 · 双维度排名（价格 vs 实力）</h2>
-  <div class="sub">价格排名 = 降本/零售价优势（批发价&gt;折扣零售&gt;零markup&gt;附加费）；实力排名 = 可靠性/背书（上市公司&gt;生态/开源&gt;新锐&gt;无背书）</div>
+  <div class="sub">价格排名 = 降本/零售价优势（批发价>折扣零售>零markup>附加费）；实力排名 = 可靠性/背书（上市公司>生态/开源>新锐>无背书）</div>
   <table>
     <thead>
       <tr>
@@ -180,7 +180,7 @@
         <td>批发价最优（Kimi -70% 等）</td><td>老牌平台，中国模型最全最深，运营稳定</td>
       </tr>
       <tr>
-        <td class="cell-num">2</td><td class="platform">Blackmagic AI <span class="new-badge">NEW</span></td><td class="cell-num">9</td>
+        <td class="cell-num">2</td><td class="platform">Blackmagic AI</td><td class="cell-num">9</td>
         <td>48-74% off，预付信用无订阅</td><td>新锐平台，OpenRouter 替代品，品牌认知度待建</td>
       </tr>
       <tr>
@@ -192,28 +192,28 @@
         <td>零 markup（自托管，无中间层）</td><td>开源统治（22k+ stars），NVIDIA/Netflix 生产部署</td>
       </tr>
       <tr>
-        <td class="cell-num">5</td><td class="platform">OpenRouter</td><td class="cell-num">3</td>
+        <td class="cell-num">5</td><td class="platform">LLM Gateway <span class="new-badge">NEW</span></td><td class="cell-num">5</td>
+        <td>5% markup / BYOK 免费 / 自托管免费</td><td>开源 AGPLv3，200+ 模型，40+ 提供商，自托管选项</td>
+      </tr>
+      <tr>
+        <td class="cell-num">6</td><td class="platform">OpenRouter</td><td class="cell-num">3</td>
         <td>+5.5% markup，免费层 25+ 模型</td><td>聚合生态标杆，模型上新最快</td>
       </tr>
       <tr>
-        <td class="cell-num">6</td><td class="platform">Requesty</td><td class="cell-num">4</td>
-        <td>5% markup（新平台优惠期）</td><td>SOC 2，600+ 模型，70k+ 开发者，90B+ tokens/日</td>
+        <td class="cell-num">7</td><td class="platform">Requesty</td><td class="cell-num">4</td>
+        <td>5% markup（新平台优惠期）</td><td>SOC 2，694+ 端点，70k+ 开发者</td>
       </tr>
       <tr>
-        <td class="cell-num">7</td><td class="platform">Portkey → PRISMA AIRS</td><td class="cell-num">2</td>
+        <td class="cell-num">8</td><td class="platform">Portkey → PRISMA AIRS</td><td class="cell-num">2</td>
         <td>per-log 网关费（模型价外附加）</td><td>被 Palo Alto Networks 收购，企业级安全，1600+ 模型</td>
       </tr>
       <tr>
-        <td class="cell-num">8</td><td class="platform">Cloudflare AI Gateway</td><td class="cell-num">1</td>
+        <td class="cell-num">9</td><td class="platform">Cloudflare AI Gateway</td><td class="cell-num">1</td>
         <td>按请求计费（附加成本）</td><td>上市公司，全球边缘网络，企业级</td>
       </tr>
       <tr>
-        <td class="cell-num">9</td><td class="platform">Kong AI Gateway</td><td class="cell-num">1</td>
+        <td class="cell-num">10</td><td class="platform">Kong AI Gateway</td><td class="cell-num">1</td>
         <td>企业 license（最贵档）</td><td>上市公司，API 网关老兵，K8s 生态</td>
-      </tr>
-      <tr>
-        <td class="cell-num">10</td><td class="platform">Pateway</td><td class="cell-num">10</td>
-        <td>官方 8 折+赠 $3（无长期优势）</td><td>中文向中转，运营稳定度待验</td>
       </tr>
     </tbody>
   </table>
@@ -227,16 +227,28 @@
     </thead>
     <tbody>
       <tr>
+        <td class="platform">Pateway <span class="changed">↓ 移出</span></td>
+        <td><a href="https://pateway.ai" target="_blank">pateway.ai</a></td>
+        <td>$1 起充，支付宝直付，Claude 全系列</td>
+        <td>无价格优势，信任待验，被 LLM Gateway 替换入榜</td>
+      </tr>
+      <tr>
+        <td class="platform">Not Diamond</td>
+        <td><a href="https://notdiamond.ai" target="_blank">notdiamond.ai</a></td>
+        <td>智能模型路由（非网关），SOC-2 + ISO 27001，10K 免费路由/月</td>
+        <td>路由层而非网关聚合，属上游组件</td>
+      </tr>
+      <tr>
         <td class="platform">DeepInfra</td>
         <td><a href="https://deepinfra.com" target="_blank">deepinfra.com</a></td>
         <td>$107M B 轮，推理云，OpenAI 兼容</td>
         <td>定位为推理基础设施而非 LLM 网关聚合，属上游</td>
       </tr>
       <tr>
-        <td class="platform">Hypereal AI</td>
-        <td><a href="https://hypereal.cloud" target="_blank">hypereal.cloud</a></td>
-        <td>视频/图像生成基础设施</td>
-        <td>非 LLM API 聚合，属垂直赛道</td>
+        <td class="platform">Merge Gateway</td>
+        <td><a href="https://merge.dev" target="_blank">merge.dev</a></td>
+        <td>SOC 2 + HIPAA，LLM 路由 + 数据集成统一平台</td>
+        <td>偏企业数据集成方向，非纯 LLM API 聚合</td>
       </tr>
       <tr>
         <td class="platform">Eden AI</td>
@@ -248,8 +260,9 @@
   </table>
 
   <div style="margin-top:20px; padding:12px; background:#f7f8fa; border-radius:8px; font-size:12px; color:#8a919f; line-height:1.6;">
-    <b>数据来源</b>：DuckDuckGo SERP + 各竞品官网 + apidog.com/202606 + benchlm.ai/20260822 + costgoat.com/20260822<br>
+    <b>数据来源</b>：DuckDuckGo SERP + 各竞品官网 + costgoat.com/20260830 + requesty.ai/models + llmgateway.io/pricing + benchlm.ai/20260829<br>
     <b>调研方法</b>：官网 HEAD/GET 检活 + 定价页抓取 + 模型目录/API 验证。TTFB 实测仅限有 API key 的平台（本次无新实测）。<br>
+    <b>本周新入榜</b>：LLM Gateway（开源 AGPLv3，200+ 模型 / 40+ 提供商，5% markup / BYOK 免费 / 自托管免费），替换 Pateway。<br>
     <b>免责声明</b>：排名基于公开信息与加权算法，仅供参考，不构成商业建议。
   </div>
 </div>
