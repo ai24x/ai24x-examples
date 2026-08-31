@@ -1958,14 +1958,22 @@ def _vip_aggregator_chain(pick: dict[str, Any], or_id: str) -> list[dict[str, st
         if pid == "openrouter":
             if not or_id or _upstream_mode() != "openrouter":
                 continue
-            up = _layer_upstream("L1")
-            if not (up.get("key") and up.get("base")):
+            # OR 候选必须使用 OpenRouter 专用通道，不得复用 L1/L2 层配置
+            # （L1 在未配置 TOKEN_LLM_L1_UPSTREAM 时可能解析为 MiMo 直连，导致 400/503）
+            try:
+                from llm_keys import openrouter_main_key
+
+                or_key = openrouter_main_key()
+            except Exception:
+                or_key = ""
+            or_base = _env("OPENROUTER_BASE_URL") or "https://openrouter.ai/api/v1"
+            if not or_key:
                 continue
             out.append(
                 {
                     "provider": "openrouter",
-                    "base": str(up["base"]),
-                    "key": str(up["key"]),
+                    "base": _normalize_openai_base(or_base),
+                    "key": or_key,
                     "model": or_id,
                 }
             )
