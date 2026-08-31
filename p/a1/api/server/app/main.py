@@ -3379,6 +3379,36 @@ async def api_bj_screener_progress(
     return scan_progress(market)
 
 
+@app.get("/api/bj/screener/result")
+async def api_bj_screener_result(
+    request: Request,
+    market: str = "bj",
+    user_id: int = Depends(get_current_user_id),
+) -> dict:
+    """只读当日扫描结果（不触发新扫描），对齐 AI 雷达 /result 口径。"""
+    market = str(market or "bj").strip().lower()
+    if market not in ("bj", "all", "hs", "kc", "bj_all", "macd", "pb", "mlpb", "low10", "breakout", "leader", "tight"):
+        market = "bj"
+    _rate_limit(f"bj-screener-result:{user_id}", 60)
+    try:
+        _auth_ip_rate_limit(request)
+    except Exception:
+        pass
+    db.downgrade_expired_vip_plan(int(user_id))
+    quota = db.get_quota_status(int(user_id))
+    plan = str(quota.get("plan") or "anon").strip().lower()
+    is_vip = plan not in ("", "free", "anon")
+    from .bj_screener import get_bj_screener_cached_result, scan_market_for, _backfill_leader_quotes
+    scan_market = scan_market_for(market)
+    _col = market if market in ("pb", "mlpb", "breakout", "leader", "macd", "low10", "tight") else ""
+    hit = get_bj_screener_cached_result(scan_market, column=_col, boards_only=not is_vip)
+    if hit.get("running"):
+        return hit
+    if hit.get("ok") is not False:
+        return await _backfill_leader_quotes(hit)
+    return hit
+
+
 @app.get("/api/bj/history")
 async def api_bj_history(
     request: Request,

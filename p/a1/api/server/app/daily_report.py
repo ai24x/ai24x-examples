@@ -28,6 +28,7 @@ from pydantic import BaseModel
 from . import db
 from .auth import get_current_user_id, get_optional_user_id
 from .providers import fetch_tx_kline, market_data_status
+from .big_cycle import ma_tier_from_closes, sector_ma_gate, TIER_LABEL
 from .scoring import score_candles, _ma, _slope_ratio, _red_days
 from .signals import build_signals_v3, candles_from_tencent_like_pack, _compute_macd_arrays
 from .ths_fuyao import build_sentiment as _ths_build_sentiment
@@ -723,8 +724,10 @@ async def _fetch_sector_scores(is_vip):
         out[sec] = []
         for code, name in items:
             try:
-                candles = await _tx_kline(secid_of(code), 120, variant, priority_override, allow_paid, timeout=8.0)
+                candles = await _tx_kline(secid_of(code), 180, variant, priority_override, allow_paid, timeout=8.0)
                 res = score_candles(candles, name=name)
+                _closes = [float(x.close) for x in candles]
+                _ma_tier = ma_tier_from_closes(_closes)
                 _zt, _surge = _board_confirm_flags(candles, code)
                 _chg5, _pos60 = _bar_heat(candles)
                 out[sec].append({
@@ -732,6 +735,7 @@ async def _fetch_sector_scores(is_vip):
                     "risks": res.get("risks") or [], "up_pct": res.get("up_pct"), "vol_ratio": res.get("vol_ratio"),
                     "red_days": res.get("red_days"), "latest_time": res.get("latest_time"),
                     "zt": _zt, "surge": _surge, "chg5": _chg5, "pos60": _pos60,
+                    "ma_tier": _ma_tier,
                 })
             except Exception as e:
                 out[sec].append({"code": code, "name": name, "error": str(e)[:80]})
@@ -921,12 +925,17 @@ def mainline_judgment(sector_scores, plates=None):
         emotion = min(1.0, (n_zt * 2 + n_surge * 0.5) / 4.0)
         composite = round((st["top5_mean"] or mean) * 0.40 + fund_std * 25 + emotion * 20 + mom * 0.15, 1)
         top5m = st["top5_mean"]
+        _top5_ok = sorted(ok, key=lambda x: -(float(x.get("score") or 0)))[:5]
+        _ma_tiers = [str(x.get("ma_tier") or "") for x in _top5_ok if x.get("ma_tier")]
+        _ma_gate = sector_ma_gate(_ma_tiers, for_main=True)
         info[sec] = {"mean": mean, "top5": top5m, "median": st["median"], "avg_up": avg_up,
                      "fund5": fund5, "fund_t": fund_t, "fund_ok": fund_ok,
                      "confirmed": confirmed, "composite": composite, "n_zt": n_zt, "n_surge": n_surge,
                      "n_zt_new": n_zt_new, "n_surge_new": n_surge_new,
                      "vol_turn_med": vol_turn_med, "mom": round(mom, 1), "streak": streak,
-                     "chg5_med": chg5_med, "pos60_med": pos60_med, "overheat": overheat}
+                     "chg5_med": chg5_med, "pos60_med": pos60_med, "overheat": overheat,
+                     "ma_tiers": _ma_tiers, "ma_gate": _ma_gate,
+                     "ma_best": _ma_gate.get("best") or "", "ma_label": _ma_gate.get("label") or ""}
     return info
 
 
@@ -1186,6 +1195,28 @@ def pick_main_lines(sector_scores, prev_mainlines=None, plates=None):
                 main_lines.append(best)
             if best in observes:
                 observes.remove(best)
+
+    # 大周期门：新晋主线须板块成分 A+ 达标；未达标降为观察（续任略松，无均线数据不误杀）
+    _ml2, _obs2 = [], list(observes)
+    for _sec in main_lines:
+        _it = info.get(_sec) or {}
+        _tiers = _it.get("ma_tiers") or []
+        _gate = _it.get("ma_gate") or sector_ma_gate(_tiers, for_main=True)
+        if not _tiers:
+            _ml2.append(_sec)
+            continue
+        if _sec in prev:
+            _gate_b = sector_ma_gate(_tiers, for_main=False)
+            if _gate.get("ok") or _gate_b.get("ok"):
+                _ml2.append(_sec)
+            elif _sec not in _obs2:
+                _obs2.append(_sec)
+        else:
+            if _gate.get("ok"):
+                _ml2.append(_sec)
+            elif _sec not in _obs2:
+                _obs2.append(_sec)
+    main_lines, observes = _ml2, _obs2
 
     main_lines.sort(key=lambda s: (-info[s]["composite"], -(info[s]["fund5"] or 0)))
     observes.sort(key=lambda s: -info[s]["composite"])

@@ -28,6 +28,11 @@ _log = logging.getLogger("bj_screener")
 
 import httpx
 
+from .big_cycle import (
+    TIER_LABEL, TIER_RANK, above_ma144_structure, above_ma60_structure,
+    count_ma60_strong_days, ma60_strong_ok, ma_tier_from_values,
+    pick_ma_ok, pick_strong_ok,
+)
 from .providers import (_RateGate, fetch_em_suggest, fetch_tx_kline, market_data_status,
                           bk_to_ths_secid)
 from .ths_fuyao import fetch_special as ths_fetch_special
@@ -173,7 +178,7 @@ DEFAULT_CFG: dict[str, Any] = {
     "amountMin": 3000.0, # 最低成交额（万）
     "posMax": 30.0,      # 60日位置上限 %
     "max5d": 20.0, "max10d": 30.0, "max20d": 30.0, "max60d": 45.0,
-    "aiMin": 60.0, "topN": 5, "cap": 42, "aiTop": 5, "aiOk": True,
+    "aiMin": 60.0, "topN": 5, "cap": 160, "aiTop": 5, "aiOk": True,
     "kw": "", "minSurge": 4.0, "surgeVol": 1.8, "surgeDays": 15,
     "mainline": "score", "hotPct": 4.0, "hotN": 12, "mainlineMemberCap": 60,
     "obsMemberCap": 30,
@@ -193,7 +198,14 @@ DEFAULT_CFG: dict[str, Any] = {
     "leaderBoards": 3, "leaderPerBoard": 2, "leaderMcapMax": 5000.0,
     "catchupMcapMin": 50.0, "catchupMcapMax": 300.0,
     "catchupChg5Max": 15.0, "catchupPosMax": 0.40,
+    # 强势主推：三档门（上144 → 远高于60持续 → 站上60+涨停热门）+ 涨停池扩容
+    "ztPoolDays": 30, "pickMinMaTier": "A", "pickRequireZt": True,
+    "pickZtMaxDays": 25,
+    "pickPreferMa144": True,
+    "pickMa60StrongRatio": 1.02, "pickMa60StrongDays": 3,
+    "pickMaxN": 4, "ztHotExtraCap": 80,
 }
+
 
 # 扫描结果缓存：同自然日重复请求直接返回（force=1 强制重扫）
 _SCAN_CACHE: dict[str, tuple[float, dict]] = {}
@@ -2817,6 +2829,50 @@ async def fetch_market_strong_rows(cfg: dict[str, Any]) -> list[dict[str, Any]]:
     return list(rows.values())
 
 
+
+async def _fetch_recent_zt_rows(cfg: dict[str, Any], market: str, days: int = 30) -> list[dict[str, Any]]:
+    """近 N 日东财涨停池并集 → 批量行情，供 hs/kc 候选扩池（对齐雷达「近期涨停强势股」）。"""
+    days = max(5, min(int(days or 30), 60))
+    codes: list[str] = []
+    seen: set[str] = set()
+    d8 = time.strftime("%Y%m%d", time.localtime())
+    for _ in range(days + 12):
+        try:
+            pools = await _emo_pools(d8)
+        except Exception:
+            pools = {}
+        for c in (pools.get("zt_codes") or []):
+            c6 = re.sub(r"\D", "", str(c or ""))[-6:].zfill(6)
+            if len(c6) != 6 or c6 in seen:
+                continue
+            if not _market_ok(c6, market):
+                continue
+            seen.add(c6)
+            codes.append(c6)
+        d8 = _prev_date8(d8)
+        if len(codes) >= 400:
+            break
+    if not codes:
+        return []
+    # 批量 ulist 行情（每批 80）
+    fields = "f12,f14,f2,f3,f6,f8,f9,f10,f20,f21,f23,f62,f100,f164,f109,f128"
+    rows: list[dict[str, Any]] = []
+    for i in range(0, len(codes), 80):
+        batch = codes[i:i + 80]
+        try:
+            j = await _em_get_json("/api/qt/ulist.np/get", {
+                "secids": ",".join(_stock_secid(c) for c in batch),
+                "fields": fields, "fltt": 2, "invt": 2,
+            }) or {}
+        except Exception:
+            continue
+        for r in ((j.get("data") or {}).get("diff") or []):
+            if isinstance(r, dict) and r.get("f12"):
+                rows.append(r)
+        await asyncio.sleep(0.15)
+    return rows
+
+
 async def _collect_candidates(
     cfg: dict[str, Any], market: str, with_global: bool = True
 ) -> tuple[list[dict[str, Any]], dict[str, Any], list[dict[str, Any]] | None, int, list[dict[str, Any]]]:
@@ -2865,6 +2921,27 @@ async def _collect_candidates(
                 if _c:
                     _c["indCnt"] = ind_count.get(_c.get("ind") or "", 0)
                     _c["global"] = True
+                    cands.append(_c)
+                    _have_c.add(_code)
+        # 近 N 日涨停池扩容（对齐雷达）：优先进入精筛，标记 zt_hot
+        if with_global:
+            try:
+                _zt_rows = await _fetch_recent_zt_rows(cfg, market, int(cfg.get("ztPoolDays") or 30))
+            except Exception:
+                _zt_rows = []
+            _have_c = {str(c.get("code")) for c in cands}
+            for _row in _zt_rows:
+                _code = str(_row.get("f12") or "")
+                if _code in _have_c or not _market_ok(_code, market):
+                    continue
+                # 涨停池放宽市值粗筛：临时抬高 mcapMax
+                _cfg2 = dict(cfg)
+                _cfg2["mcapMax"] = max(float(cfg.get("mcapMax") or 40), float(cfg.get("mcapMaxAll") or 200))
+                _cfg2["mcapMin"] = min(float(cfg.get("mcapMin") or 5), float(cfg.get("mcapMinAll") or 15))
+                _c = coarse(_row, _cfg2, hot)
+                if _c:
+                    _c["indCnt"] = ind_count.get(_c.get("ind") or "", 0)
+                    _c["zt_hot"] = True
                     cands.append(_c)
                     _have_c.add(_code)
         return cands, hot, funds, len(rows), rows
@@ -3072,7 +3149,11 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
     ma5 = _ma_at(c, 5, last)
     ma10 = _ma_at(c, 10, last)
     ma20 = _ma_at(c, 20, last)
+    ma30 = _ma_at(c, 30, last)
     ma60 = _ma_at(c, 60, last)
+    ma144 = _ma_at(c, 144, last) if n >= 144 else 0.0
+    ma144_prev = _ma_at(c, 144, last - 5) if n >= 149 else 0.0
+    ma144_prev10 = _ma_at(c, 144, last - 10) if n >= 154 else 0.0
     ma6 = _ma_at(c, 6, last)
     ma12 = _ma_at(c, 12, last)
     ma20_3 = _ma_at(c, 20, last - 3)
@@ -3138,6 +3219,33 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
     bias12 = (cl - ma12) / ma12 * 100 if ma12 else 0.0
     ma_bull = bool(ma5 > ma10 > ma20 > ma60)
     ma_bull3 = bool(ma5 > ma10 > ma20)
+    # 大周期档位（与 AI 雷达 5/10/20/30/60/144 对齐）：S/A/B/""
+    ma_tier = ma_tier_from_values(
+        ma5=ma5, ma10=ma10, ma20=ma20, ma30=ma30, ma60=ma60,
+        ma144=ma144, ma144_prev=ma144_prev, ma144_prev10=ma144_prev10,
+        n_bars=n,
+    )
+    above_ma60 = above_ma60_structure(
+        ma5=ma5, ma10=ma10, ma20=ma20, ma30=ma30, ma60=ma60,
+        ma144=ma144, n_bars=n,
+    )
+    above_ma144 = above_ma144_structure(
+        ma5=ma5, ma10=ma10, ma20=ma20, ma30=ma30, ma60=ma60,
+        ma144=ma144, n_bars=n,
+    )
+    _r60 = float(cfg.get("pickMa60StrongRatio") or 1.03)
+    ma60_strong_days = count_ma60_strong_days(c, ratio=_r60, lookback=25)
+    ma60_strong = ma60_strong_ok(
+        ma5=ma5, ma10=ma10, ma20=ma20, ma30=ma30, ma60=ma60,
+        strong_days=ma60_strong_days,
+        min_days=int(cfg.get("pickMa60StrongDays") or 5),
+        ratio=_r60,
+    )
+    # 若档位为空但结构已站上144，记为 S；站上60记 A（三档门底线可读）
+    if not ma_tier and above_ma144:
+        ma_tier = "S"
+    elif not ma_tier and (above_ma60 or ma60_strong):
+        ma_tier = "A"
     gc_days = 0
     for i in range(last, -1, -1):
         if dif[i] > dea[i]:
@@ -3854,6 +3962,13 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
         t += 6
     elif ma_bull3:
         t += 4
+    # 大周期档位加分（雷达同口径）
+    if ma_tier == "S":
+        t += 5
+    elif ma_tier == "A":
+        t += 3
+    elif ma_tier == "B":
+        t += 1
     if ma20 > ma20_3:
         t += 2
     # 主线龙头确认：资金回流 + 短期趋势走强 + MACD 不弱
@@ -3952,6 +4067,13 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
         "tradability": lq.get("tradability"), "qualityConfidence": lq.get("qualityConfidence"),
         "trendScore": _su["trendScore"], "steadyUpParts": _su["parts"],
         "ma_bull": ma_bull, "ma_bull3": ma_bull3, "gc_days": gc_days,
+        "ma_tier": ma_tier, "ma_tier_label": TIER_LABEL.get(ma_tier, ""),
+        "above_ma60": bool(above_ma60),
+        "above_ma144": bool(above_ma144),
+        "ma60_strong": bool(ma60_strong),
+        "ma60_strong_days": int(ma60_strong_days),
+        "daysSinceZt": (int(last - zt_day) if zt_day >= 0 else None),
+        "ma30": ma30, "ma144": ma144,
         "leaderOk": leader_ok,
         "tightZtMeta": tight_zt_meta,
         "momScore": mom["momScore"], "momParts": mom["momParts"],
@@ -5378,7 +5500,7 @@ async def _kline_with_retry(
     for i in range(tries):
         try:
             payload = await fetch_tx_kline(
-                _stock_secid(code), "day", count=170, timeout=8.0,
+                _stock_secid(code), "day", count=180, timeout=8.0,
                 variant=variant, priority_override=priority_override, allow_paid=allow_paid,
             )
             rows = _rows_from_payload(payload)
@@ -5480,6 +5602,203 @@ def _risk_free(c: dict[str, Any]) -> bool:
     return True
 
 
+
+def _ma_tier_ok(c: dict[str, Any], *, min_tier: str = "A") -> bool:
+    """主推大周期门：优先短均站上144（S/above_ma144）；不再用空档或仅 bull3 放行。"""
+    a = c.get("A") or {}
+    if a.get("above_ma144"):
+        return True
+    tier = str(a.get("ma_tier") or "")
+    if not tier and a.get("ma60_strong") and a.get("above_ma60"):
+        tier = "A"
+    if not tier:
+        return False
+    return TIER_RANK.get(tier, 0) >= TIER_RANK.get(str(min_tier or "A").upper(), 2)
+
+
+def _pick_zt_ok(c: dict[str, Any], *, max_days: int = 20) -> bool:
+    """近期涨停基因：近 max_days 有涨停，或涨停相关形态。"""
+    a = c.get("A") or {}
+    p = a.get("patterns") or {}
+    ds = a.get("daysSinceZt")
+    if ds is not None:
+        try:
+            if 0 <= int(ds) <= int(max_days):
+                return True
+        except Exception:
+            pass
+    return bool(
+        p.get("ztWeek") or p.get("firstWeek") or p.get("ztPullback")
+        or p.get("tightZt") or p.get("firstBoardRight") or p.get("pullback2")
+        or p.get("surgeStart")
+    )
+
+
+def _pick_ma144_ok(c: dict[str, Any]) -> bool:
+    """优先门：短均站上 MA144（或趋势 S）。"""
+    a = c.get("A") or {}
+    if a.get("above_ma144"):
+        return True
+    return TIER_RANK.get(str(a.get("ma_tier") or ""), 0) >= TIER_RANK["S"]
+
+
+def _pick_ma60_strong_ok(c: dict[str, Any]) -> bool:
+    """次优门：短均远高于 MA60 且已持续一段时间。"""
+    a = c.get("A") or {}
+    if a.get("ma60_strong"):
+        return True
+    # 兼容：已有 A/S 且站上60（旧字段）
+    if a.get("above_ma60") and TIER_RANK.get(str(a.get("ma_tier") or ""), 0) >= TIER_RANK["A"]:
+        return True
+    return False
+
+
+def _pick_above60_ok(c: dict[str, Any]) -> bool:
+    """底线门：短均站上 MA60（用户底线；不含仅 bull3）。"""
+    a = c.get("A") or {}
+    if a.get("above_ma60") or a.get("ma_bull"):
+        return True
+    return TIER_RANK.get(str(a.get("ma_tier") or ""), 0) >= TIER_RANK["A"]
+
+
+def _pick_strong_gate(
+    c: dict[str, Any],
+    *,
+    min_tier: str = "S",
+    require_zt: bool = True,
+    prefer_144: bool = True,
+    allow_above60: bool = False,
+) -> bool:
+    """主推强势总门。prefer_144 / 远高于60 / 站上60（allow_above60）三档。"""
+    if prefer_144:
+        if not _pick_ma144_ok(c):
+            return False
+    elif allow_above60:
+        if not (_pick_ma144_ok(c) or _pick_ma60_strong_ok(c) or _pick_above60_ok(c)):
+            return False
+    else:
+        if not (_pick_ma144_ok(c) or _pick_ma60_strong_ok(c)):
+            return False
+    if require_zt:
+        # 涨停池补入的热门票视为具备涨停基因
+        if not (_pick_zt_ok(c) or c.get("zt_hot")):
+            return False
+    return True
+
+
+def _filter_strong_picks(
+    cands: list[dict[str, Any]],
+    *,
+    require_zt: bool = True,
+) -> list[dict[str, Any]]:
+    """主推门（严）：上144优先，否则远高于60持续；不含「仅站上60」。"""
+    hard = [
+        c for c in cands
+        if _pick_strong_gate(c, min_tier="S", require_zt=require_zt, prefer_144=True)
+    ]
+    if hard:
+        return hard
+    return [
+        c for c in cands
+        if _pick_strong_gate(c, min_tier="A", require_zt=require_zt, prefer_144=False, allow_above60=False)
+    ]
+
+
+def _filter_watch_picks(
+    cands: list[dict[str, Any]],
+    *,
+    exclude_codes: set[str] | None = None,
+    require_zt: bool = True,
+    limit: int = 6,
+) -> list[dict[str, Any]]:
+    """观察池（宽）：短均站上60 + 近期涨停/热门；不含已进主推者。"""
+    ex = exclude_codes or set()
+    out: list[dict[str, Any]] = []
+    for c in cands:
+        code = str(c.get("code") or "")
+        if not code or code in ex:
+            continue
+        if not _pick_strong_gate(c, min_tier="A", require_zt=require_zt, prefer_144=False, allow_above60=True):
+            continue
+        # 观察池不要再塞已经能进主推严门的（避免重复）
+        if _pick_ma144_ok(c) or _pick_ma60_strong_ok(c):
+            continue
+        out.append(c)
+    out.sort(key=lambda x: (-_ma_tier_rank(x), -int(x.get("final") or 0)))
+    return out[: max(0, int(limit))]
+
+
+def build_decision(pick: dict[str, Any], *, lane: str = "pick") -> dict[str, Any]:
+    """用户可见决策条：动作 / 失效 / 确认标签（避免运维黑话）。"""
+    a = pick.get("A") or {}
+    dual = bool(
+        (a.get("above_ma144") or _pick_ma144_ok(pick))
+        and (pick.get("zt_hot") or _pick_zt_ok(pick) or a.get("daysSinceZt") is not None)
+    )
+    if a.get("above_ma144") or _pick_ma144_ok(pick):
+        trend = "短均站上中长期均线"
+        action = "可跟踪，优先等回踩再考虑"
+        invalid = "收盘跌破近端支撑，或单日放量长阴约 8%，建议先观望"
+    elif a.get("ma60_strong") or _pick_ma60_strong_ok(pick):
+        trend = "短均明显高于中期均线，且已持续一段时间"
+        action = "可列入关注，回踩企稳后再看"
+        invalid = "短均重新跌回中期均线下方，或放量滞涨，建议降级观望"
+    else:
+        trend = "短均刚站上中期均线"
+        action = "仅观察，暂不作为重点"
+        invalid = "重新跌回均线下方，或热度退潮，可移出观察"
+    if lane == "watch":
+        action = "观察池：确认站稳后再考虑，勿追高"
+    if pick.get("mainHit"):
+        confirm = "主线内强势"
+    elif pick.get("zt_hot") or pick.get("hot"):
+        confirm = "热门活跃"
+    else:
+        confirm = "结构达标"
+    if dual:
+        confirm = "热门强势·双确认"
+    ds = a.get("daysSinceZt")
+    zt_note = ""
+    if ds is not None:
+        try:
+            dsi = int(ds)
+            if dsi == 0:
+                zt_note = "今日有过涨停表现"
+            elif 0 < dsi <= 25:
+                zt_note = f"近 {dsi} 日内有过涨停"
+        except Exception:
+            pass
+    elif pick.get("zt_hot"):
+        zt_note = "近期涨停活跃"
+    return {
+        "lane": "watch" if lane == "watch" else "pick",
+        "laneLabel": "观察" if lane == "watch" else "精选",
+        "action": action,
+        "invalid": invalid,
+        "trend": trend,
+        "confirm": confirm,
+        "dualConfirm": dual,
+        "ztNote": zt_note,
+        "algo": "strong-layer-v2",
+    }
+
+
+def _pick_strength_rank(c: dict[str, Any]) -> int:
+    """排序用：上144 > 强60 > 站上60 > 其它。"""
+    a = c.get("A") or {}
+    if a.get("above_ma144") or TIER_RANK.get(str(a.get("ma_tier") or ""), 0) >= TIER_RANK["S"]:
+        return 3
+    if a.get("ma60_strong"):
+        return 2
+    if _pick_above60_ok(c):
+        return 1
+    return 0
+
+
+def _ma_tier_rank(c: dict[str, Any]) -> int:
+    a = c.get("A") or {}
+    return int(TIER_RANK.get(str(a.get("ma_tier") or ""), 0)) + _pick_strength_rank(c) * 10
+
 def _pick_out(c: dict[str, Any]) -> dict[str, Any]:
     a = c.get("A") or {}
     levels = a.get("levels") or {}
@@ -5538,6 +5857,13 @@ def _pick_out(c: dict[str, Any]) -> dict[str, Any]:
         "trendScore": a.get("trendScore"),
         "bias6": round(_num(a.get("bias6")), 1) if a.get("bias6") is not None else None,
         "ma_bull": bool(a.get("ma_bull")), "gc_days": int(a.get("gc_days") or 0),
+        "maTier": str(a.get("ma_tier") or ""),
+        "aboveMa60": bool(a.get("above_ma60")),
+        "aboveMa144": bool(a.get("above_ma144")),
+        "ma60Strong": bool(a.get("ma60_strong")),
+        "ma60StrongDays": a.get("ma60_strong_days"),
+        "daysSinceZt": a.get("daysSinceZt"),
+        "maTierLabel": str(a.get("ma_tier_label") or TIER_LABEL.get(str(a.get("ma_tier") or ""), "")),
         "closePos": a.get("closePos"), "odds1": a.get("odds1"), "oddsUse": a.get("oddsUse"),
         "pe": _num(a.get("pe")), "pb": _num(a.get("pb")), "mcap_yi": round(_num(a.get("mcap")) / 1e8, 1),
         "tightZtMeta": a.get("tightZtMeta") or {},
@@ -5604,6 +5930,20 @@ def _pick_out(c: dict[str, Any]) -> dict[str, Any]:
         "snap": ({"score": snap.get("score"), "risks": snap.get("risks") or [], "tags": snap.get("tags") or []}
                  if snap and not snap.get("error") else None),
         "chart": chart,
+        # 决策层字段（前端一眼可读；缺 maTier 视为旧结果）
+        "maTier": str(a.get("ma_tier") or ""),
+        "aboveMa60": bool(a.get("above_ma60")),
+        "aboveMa144": bool(a.get("above_ma144")),
+        "ma60Strong": bool(a.get("ma60_strong")),
+        "ma60StrongDays": a.get("ma60_strong_days"),
+        "daysSinceZt": a.get("daysSinceZt"),
+        "ztHot": bool(c.get("zt_hot")),
+        "dualConfirm": bool(
+            (a.get("above_ma144") or False)
+            and (c.get("zt_hot") or _pick_zt_ok(c) or a.get("daysSinceZt") is not None)
+        ),
+        "decision": c.get("decision") or build_decision(c, lane=str(c.get("pick_lane") or "pick")),
+        "algo": "strong-layer-v2",
     }
 
 
@@ -6600,6 +6940,7 @@ def replay_scan(date8: str, market: str = "hs") -> dict[str, Any]:
         recs.append(rec)
     # 分栏目
     picks: list[dict[str, Any]] = []
+    watch_list: list[dict[str, Any]] = []
     runners: list[dict[str, Any]] = []
     macd_reds: list[dict[str, Any]] = []
     fine: list[dict[str, Any]] = []
@@ -6778,6 +7119,107 @@ def scan_progress(market: str) -> dict[str, Any]:
         return {"ok": True, "running": False, "phase": "idle", "pct": 0,
                 "done": 0, "total": 0, "msg": "", "ts": 0}
     return {"ok": True, **p}
+
+
+def _strip_boards_conclusions(o: dict[str, Any]) -> dict[str, Any]:
+    """非 VIP 板块视图：隐藏主线锁定结论。"""
+    o = dict(o)
+    o["board_rank"] = [dict(_b) for _b in (o.get("board_rank") or []) if isinstance(_b, dict)]
+    for _br in o["board_rank"]:
+        _br.pop("mainline", None)
+    o["mainlines"] = []
+    o.pop("prev_track", None)
+    o.pop("prev_date", None)
+    return o
+
+
+def get_bj_screener_cached_result(
+    market: str = "bj",
+    column: str = "",
+    boards_only: bool = False,
+) -> dict[str, Any]:
+    """只读当日缓存/归档；绝不触发扫描。无数据时 ok=False error=no_cache。"""
+    market = str(market or "bj").strip().lower()
+    if market not in ("bj", "all", "hs", "kc", "bj_all", "macd", "pb", "mlpb", "low10", "breakout", "leader", "tight"):
+        market = "bj"
+    col = str(column or "").strip().lower()
+    if col not in _COLUMN_VIEW_MARKETS:
+        col = market if market in _COLUMN_VIEW_MARKETS else ""
+    scan_m = scan_market_for(col or market)
+
+    running_task = _RUNNING_SCAN.get(scan_m)
+    if running_task is not None and not running_task.done():
+        p = scan_progress(scan_m)
+        return {"ok": True, "running": True, "scanning": True, "message": "扫描进行中，请稍候…", **p}
+    p = scan_progress(scan_m)
+    if p.get("running"):
+        return {"ok": True, "running": True, "scanning": True, "message": "扫描进行中，请稍候…", **p}
+
+    today8 = time.strftime("%Y%m%d", time.localtime())
+    full_key = f"{scan_m}-scan:{today8}"
+    boards_key = f"{scan_m}-boards:{today8}"
+
+    def _finish(out: dict[str, Any]) -> dict[str, Any]:
+        out = dict(out)
+        out["ok"] = True
+        if boards_only:
+            out["vip_required"] = True
+            out = _strip_boards_conclusions(out)
+            out.pop("picks", None)
+            out.pop("runners", None)
+            out.pop("macd_reds", None)
+        elif col:
+            out = apply_column_view(col, out)
+        return out
+
+    if boards_only:
+        bh = _BOARDS_CACHE.get(boards_key)
+        if bh and time.time() - bh[0] < 6 * 3600:
+            out = dict(bh[1])
+            out["cached"] = True
+            return _finish(out)
+
+    hit = _scan_cache_hit(full_key)
+    if hit:
+        out = dict(hit[1])
+        out["cached"] = True
+        if not boards_only:
+            out = _apply_stale_fallback(out, scan_m, col)
+        return _finish(out)
+
+    hist_m = col if col in _COLUMN_VIEW_MARKETS else scan_m
+    stale = _latest_history(hist_m)
+
+    if _today_off_market() or not _market_closed():
+        if stale:
+            out = dict(stale)
+            out["cached"] = True
+            out["stale"] = True
+            out["stale_from"] = stale.get("asof") or stale.get("date") or ""
+            out["stale_scan_date"] = stale.get("date") or ""
+            out["market_code"] = scan_m
+            out["intraday"] = True
+            out["date"] = stale.get("date") or stale.get("asof") or ""
+            out = _reattach_ths(out)
+            return _finish(out)
+
+    if stale:
+        _arch_day = str(stale.get("date") or stale.get("asof") or "").replace("-", "")[:8]
+        out = dict(stale)
+        out["cached"] = True
+        out["stale"] = True
+        out["stale_from"] = stale.get("asof") or stale.get("date") or ""
+        out["stale_scan_date"] = stale.get("date") or ""
+        out["market_code"] = scan_m
+        out["date"] = stale.get("date") or stale.get("asof") or ""
+        if _arch_day != today8:
+            out["today_missing"] = True
+            if _today_off_market():
+                out["off_market"] = True
+        out = _reattach_ths(out)
+        return _finish(out)
+
+    return {"ok": False, "error": "no_cache", "message": "暂无扫描结果，请点「重新扫描」生成。"}
 
 
 def mark_scan_failed(market: str, msg: str = "扫描失败") -> None:
@@ -7108,12 +7550,24 @@ async def run_scan(
                 _have2[_code]["obslineName"] = _c.get("obslineName") or _have2[_code].get("obslineName") or ""
             else:
                 cands.append(_c)
-    # 全局补池最后：板块/主线/次主线成分优先占用 K线精筛名额
-    cands.sort(key=lambda x: (1 if x.get("global") else 0, -(x.get("amount") or 0)))
+    # 全局补池最后：涨停热门/主线/观察优先占用 K线精筛名额
+    cands.sort(key=lambda x: (0 if x.get("zt_hot") or x.get("mainline") or x.get("obsline") else (1 if x.get("global") else 2), -(x.get("amount") or 0)))
     if len(cands) > int(cfg["cap"]):
         _trunc = cands[: int(cfg["cap"])]
+        _have_t = {str(c.get("code")) for c in _trunc}
         _ml_extra = [_c for _c in cands[int(cfg["cap"]):] if _c.get("mainline") or _c.get("obsline")]
-        _trunc.extend(_ml_extra[: int(cfg.get("mainlineMemberCap") or 40) + int(cfg.get("obsMemberCap") or 30)])
+        for _c in _ml_extra[: int(cfg.get("mainlineMemberCap") or 40) + int(cfg.get("obsMemberCap") or 30)]:
+            _cd = str(_c.get("code"))
+            if _cd not in _have_t:
+                _trunc.append(_c)
+                _have_t.add(_cd)
+        # 涨停池票尽量不因 cap 被丢弃（对齐雷达：热门易涨停优先精筛）
+        _zt_extra = [_c for _c in cands[int(cfg["cap"]):] if _c.get("zt_hot")]
+        for _c in _zt_extra[: int(cfg.get("ztHotExtraCap") or 80)]:
+            _cd = str(_c.get("code"))
+            if _cd not in _have_t:
+                _trunc.append(_c)
+                _have_t.add(_cd)
         cands = _trunc
 
     # 主线龙头候选：全市场下取板块排行前列（5日主力净流入排序）的板块龙头，
@@ -7790,6 +8244,7 @@ async def run_scan(
         ))
 
     picks: list[dict[str, Any]] = []
+    watch_list: list[dict[str, Any]] = []
     if market in ("all", "hs", "kc"):
         # 全市场主推分层：主线龙头 2 + 板块内补涨卡位 1
         # 龙头层：板块排行前列（王者/重点板块）龙头，leaderOk 确认形态与资金；
@@ -7823,11 +8278,13 @@ async def run_scan(
         _lead_min = 62 if defensive_mode else 56
         leader_final = [c for c in leader_final if int(c.get("final") or 0) >= _lead_min]
 
-        # 主线代表必须「低位右侧刚启动」硬门槛（2026-08-20 凯莱英教训：81% 位置 + 658亿 +
-        # 布林 90% 高位 + 解禁，仍被 obs 兜底当 king 代表 → 用户判定“大涨一波、非底部右侧”）。
-        # 位置≤60%、10日≤40%、市值≤600亿；数据缺失不误杀（视为通过）。
+        # 低位右侧优先；已站上144/远高于60/涨停热门站上60 时放宽，避免滤光真强势
         def _low_right_ok(c, pos_lo=0.60, c10_hi=40.0, mcap_hi=600.0):
             a = c.get("A") or {}
+            if a.get("above_ma144") or a.get("ma60_strong") or (
+                a.get("above_ma60") and (c.get("zt_hot") or _pick_zt_ok(c))
+            ):
+                pos_lo, c10_hi, mcap_hi = 0.88, 60.0, 1200.0
             try:
                 _p = float(a.get("pos") if a.get("pos") is not None else c.get("pos") or 0)
             except Exception:
@@ -7839,57 +8296,76 @@ async def run_scan(
             _mc = float(c.get("mcap") or 0) / 1e8
             return _p <= pos_lo and _c10 <= c10_hi and _mc <= mcap_hi
         leader_final = [c for c in leader_final if _low_right_ok(c)]
-        # 路径门：禁下坡；主推要求上涨途中（股性：事件形态可豁免）
         leader_final = [c for c in leader_final if _path_gate(c, require_active=True)]
-        # 事件回踩优先：龙头同为 1-2 周内首板/异动回踩企稳者排前（同一主线内先选回踩低吸）
         leader_final.sort(key=lambda x: (-_evp(x), _ztw(x), _mom_tier(x),
                                          0 if x.get("mainHit") else 1, -int(x.get("final") or 0)))
 
-        # 龙头层只占“王者”1 位：主线龙头优先 → 重点观察龙头次之；非主线/非观察成分
-        # 不再兜底当王者代表（用户要求主推只选主线/次主线成分，且须低位右侧刚启动）。
-        # 电风扇且无主线：王者必须带事件形态（1-2周异动/回踩），宁缺勿用慢涨龙头凑数。
+        # 王者：主线/观察强势优先；全空则涨停热门强势兜底（对齐雷达出票）
         _main_leaders = [c for c in leader_final if c.get("mainHit")]
         _obs_leaders = [c for c in leader_final if not c.get("mainHit") and c.get("obsHit")]
+        _rq_zt = bool(cfg.get("pickRequireZt", True))
+        _ml_ma = _filter_strong_picks(_main_leaders, require_zt=_rq_zt)
+        _ol_ma = _filter_strong_picks(_obs_leaders, require_zt=_rq_zt)
+        _main_leaders = sorted(_ml_ma, key=lambda x: (-_ma_tier_rank(x), -int(x.get("final") or 0)))
+        _obs_leaders = sorted(_ol_ma, key=lambda x: (-_ma_tier_rank(x), -int(x.get("final") or 0)))
         if style_mode == "fan" and not _dml_names:
             _main_leaders = [c for c in _main_leaders if _evp(c) >= 1]
             _obs_leaders = [c for c in _obs_leaders if _evp(c) >= 1]
         _lead_src = (_main_leaders or _obs_leaders)[:1]
+        _pick_role0 = "leader"
+        if not _lead_src:
+            _hot_pool = [
+                c for c in all_sorted
+                if (c.get("zt_hot") or c.get("hot") or c.get("global")
+                    or c.get("mainHit") or c.get("obsHit"))
+                and _path_gate(c, require_active=True) and _low_right_ok(c)
+            ]
+            _hot_strong = _filter_strong_picks(_hot_pool or all_sorted, require_zt=_rq_zt)
+            _hot_strong = sorted(_hot_strong, key=lambda x: (-_ma_tier_rank(x), -int(x.get("final") or 0)))
+            _lead_src = _hot_strong[:1]
+            _pick_role0 = "hot_strong"
         for c in _lead_src:
             c["tier"] = "king"
             c["star"] = True
-            c["pick_role"] = "leader"
+            c["pick_role"] = _pick_role0
             picks.append(c)
-        # 卡位层（主线优先）：all_sorted 已按 mainHit 优先排序——
-        # 主线命中 final≥60 即占位；非主线补涨需低风险约束（位置<40%、5日<15%、50-300亿、主力净流入为正）且 final≥62。
-        if len(picks) < 2:  # 主推收敛：王者1⭐ + 重点1
+        # 卡位：最多 pickMaxN；涨停热门强势可走简化通道
+        _pick_max = max(2, int(cfg.get("pickMaxN") or 4))
+        if market == "bj_all":
+            _pick_max = max(_pick_max, 4)
+        if len(picks) < _pick_max:
             used = {str(c.get("code")) for c in picks}
             ind_used: dict[str, int] = {}
             for c in picks:
                 _ik = str(c.get("ind") or "-")
                 ind_used[_ik] = ind_used.get(_ik, 0) + 1
+            _rq_key = bool(cfg.get("pickRequireZt", True))
+            _strong_codes = {
+                str(c.get("code"))
+                for c in _filter_strong_picks(all_sorted, require_zt=_rq_key)
+            }
             for c in all_sorted:
-                if str(c.get("code")) in used:
+                if str(c.get("code")) in used or str(c.get("code")) not in _strong_codes:
                     continue
                 _f = int(c.get("final") or 0)
-                if c.get("mainHit"):
-                    if _f < (62 if defensive_mode else 56) or not _low_right_ok(c):
+                if c.get("mainHit") or c.get("obsHit"):
+                    if _f < (62 if defensive_mode else 52) or not _low_right_ok(c):
                         continue
-                elif c.get("obsHit"):
-                    # 次主线（观察板块）成分：门槛对齐主线，自带板块共振
-                    if _f < (62 if defensive_mode else 56) or not _low_right_ok(c):
+                    if (style_mode == "fan" and not _dml_names and c.get("obsHit")
+                            and not c.get("mainHit") and _evp(c) < 1):
                         continue
-                    # 电风扇且无主线：必须带异动/回踩事件，忌慢涨龙头凑数
-                    if style_mode == "fan" and not _dml_names and _evp(c) < 1:
+                    c["pick_role"] = "catchup"
+                elif c.get("zt_hot") or c.get("hot") or c.get("global"):
+                    if _f < (58 if defensive_mode else 48) or not _low_right_ok(c):
                         continue
+                    if not _path_gate(c, require_active=True):
+                        continue
+                    c["pick_role"] = "hot_strong"
                 else:
-                    # 电风扇无主线：只推观察板块事件票，不追资金热补涨
                     if style_mode == "fan" and not _dml_names:
                         continue
-                    if _f < (62 if defensive_mode else 58):
+                    if _f < (62 if defensive_mode else 55):
                         continue
-                    if style_mode == "fan" and not (c.get("revHit") or c.get("mainHit") or c.get("obsHit")):
-                        continue  # 电风扇：只做回踩/主线低吸，不追纯热度
-                    # 补涨卡位必须有板块共振（反推/热门/板块龙头任一），避免孤军奋战
                     if not (c.get("revHit") or c.get("obsHit") or c.get("hot") or c.get("boardLeader")):
                         continue
                     if not (_num(c.get("mcap")) >= float(cfg.get("catchupMcapMin") or 50.0) * 1e8
@@ -7898,30 +8374,33 @@ async def run_scan(
                             and (c.get("A") or {}).get("pos", 99) <= float(cfg.get("catchupPosMax") or 0.40)
                             and _num(c.get("fundIn")) > 0):
                         continue
-                        continue
+                    c["pick_role"] = "catchup"
                 _ik = str(c.get("ind") or "-")
                 if ind_used.get(_ik, 0) >= 2:
-                    continue  # 同行业主推最多 2 只，防板块拥挤
+                    continue
                 c["tier"] = "key"
                 c["star"] = False
-                c["pick_role"] = "catchup"
                 picks.append(c)
                 used.add(str(c.get("code")))
                 ind_used[_ik] = ind_used.get(_ik, 0) + 1
-                if len(picks) >= 2:
+                if len(picks) >= _pick_max:
                     break
 
     if not picks:
-        # 北证 / 龙头不足兜底：王者(1⭐) + 重点(最多3)
-        # 宁缺毋滥：与主线标准一致 final>=62（all_sorted 已按主线命中优先排序）；
-        # 北证全市场池子小（348只），入选线下调至 52（防守档 58），主推最多 2⭐+2 重点
+        # 北证 / 龙头不足兜底：王者(1⭐) + 重点；仍须强势两段门，宁缺勿推弱势
         _tier_min = 58 if defensive_mode else (52 if market == "bj_all" else 56)
+        _rq_zt = bool(cfg.get("pickRequireZt", True))
+        _fb_src = list(pool or []) or list(all_sorted or [])
+        _fb_strong = {
+            str(c.get("code"))
+            for c in _filter_strong_picks(_fb_src, require_zt=_rq_zt)
+        }
+        def _strong_enough(c):
+            return str(c.get("code")) in _fb_strong
         king: dict[str, Any] | None = None
-        _z_pool = zero_risk
+        _z_pool = [c for c in zero_risk if _strong_enough(c)]
         if market == "bj_all":
             # 北证全市场：王者优先「刚异动/首板后回踩企稳」事件标的（evp≥1）。
-            # 排序：① 零风险事件 → ② 带警示但形态强（回踩企稳仍是目标）→ ③ 零风险纯技术 → ④ 其它
-            # 避免无事件的 steadyUp 纯技术票（如阴跌中的零风险票）当王者。
             def _king_rank(c):
                 _ev = _evp(c) >= 1
                 _mo = bool((c.get("A") or {}).get("patterns", {}).get("strongMom"))
@@ -7936,9 +8415,11 @@ async def run_scan(
                             (5 if (_ev and _zr) else
                              (6 if _mo else (7 if _ev else (8 if _zr else 9)))))))),
                         -int(c.get("final") or 0))
-            _king_pool = sorted([c for c in pool if int(c.get("final") or 0) >= _tier_min],
-                                key=_king_rank)
-            _z_pool = _king_pool or zero_risk
+            _king_pool = sorted(
+                [c for c in pool if int(c.get("final") or 0) >= _tier_min and _strong_enough(c)],
+                key=_king_rank,
+            )
+            _z_pool = _king_pool or _z_pool
         if _z_pool:
             z0 = _z_pool[0]
             if int(z0.get("final") or 0) >= _tier_min:
@@ -7946,17 +8427,21 @@ async def run_scan(
                     king = z0
         if king is None and all_sorted:
             for cand in all_sorted:
+                if not _strong_enough(cand):
+                    continue
                 if int(cand.get("final") or 0) >= _tier_min and _num((cand.get("A") or {}).get("pe")) > 0:
                     if not defensive_mode or (cand.get("mainHit") or cand.get("revHit") or cand.get("hot") or cand.get("boardLeader")):
                         king = cand
                         break
             if king is None:
                 for cand in all_sorted:
+                    if not _strong_enough(cand):
+                        continue
                     if int(cand.get("final") or 0) >= _tier_min:
                         if not defensive_mode or (cand.get("mainHit") or cand.get("revHit") or cand.get("hot") or cand.get("boardLeader")):
                             king = cand
                             break
-        rest = [c for c in pool if c is not king and int(c.get("final") or 0) >= _tier_min]
+        rest = [c for c in pool if c is not king and int(c.get("final") or 0) >= _tier_min and _strong_enough(c)]
         if market == "bj_all":
             rest.sort(key=_sort_key)  # 北证全市场：刚异动/首板回踩形态优先入主推（仍须过 final 入选线）
         keys = rest[:3] if market == "bj_all" else rest[:1]  # 北证全市场 2⭐+2 重点；其余收敛为 1⭐+1 重点
@@ -7975,35 +8460,71 @@ async def run_scan(
             picks = picks[:4]
         elif len(picks) == 3:
             picks = picks[:2]
-    elif len(picks) > 2:
-        picks = picks[:2]  # 主推收敛：王者 1⭐ + 重点 1，最多 2 只
-    # 主推仅 1 只时，从备选池补 1 只到 2 只（final>=50 优先、>=40 兜底），避免单卡孤悬
+    else:
+        _pm = max(2, int(cfg.get("pickMaxN") or 4))
+        if len(picks) > _pm:
+            picks = picks[:_pm]
+    # 主推仅 1 只时，从备选池补 1 只到 2 只（仍须强势两段门），避免单卡孤悬；无强势则宁缺
     if len(picks) == 1 and all_sorted:
         _used = {str(c.get("code")) for c in picks}
+        _rq_zt2 = bool(cfg.get("pickRequireZt", True))
+        _bk_ok = {
+            str(c.get("code"))
+            for c in _filter_strong_picks(all_sorted, require_zt=_rq_zt2)
+        }
         for _bk in all_sorted:
             if str(_bk.get("code")) in _used:
                 continue
-            if int(_bk.get("final") or 0) >= 40:
-                _bk["tier"] = "key"
-                _bk["star"] = False
-                _bk["pick_role"] = "backup"
-                picks.append(_bk)
-                break
+            if int(_bk.get("final") or 0) < 40:
+                continue
+            if str(_bk.get("code")) not in _bk_ok:
+                continue
+            _bk["tier"] = "key"
+            _bk["star"] = False
+            _bk["pick_role"] = "backup"
+            picks.append(_bk)
+            break
+    # 情绪控量：偏冷时精选最多 1 只；正常最多 pickMaxN
+    _emo_reg = str((emotion or {}).get("regime") or "")
+    if _emo_reg == "risk_off":
+        picks = picks[:1]
+    else:
+        _pm2 = max(1, int(cfg.get("pickMaxN") or 4))
+        if market == "bj_all":
+            _pm2 = max(_pm2, 4)
+        picks = picks[:_pm2]
+
     for c in picks:
         if relaxed_used and c.get("pick_role") != "leader":
             c["relaxed"] = True
+        c["pick_lane"] = "pick"
+        c["decision"] = build_decision(c, lane="pick")
         c["strategy"] = build_strategy(c, c.get("tier") or "normal", c.get("pick_role"))
-    # 电风扇风格：策略纪律追加“只做回踩低吸、不追涨”
+    # 轮动偏快时：追加一句用户可读纪律（非运维说明）
     if style_mode == "fan":
         for _c in picks:
             _st = _c.get("strategy") or {}
-            _extra = "电风扇行情：优先跟踪回踩企稳形态，避免追高，破位注意风险。"
+            _extra = "行情轮动偏快：优先等回踩再看，避免追高；破位先观望。"
             _st["rules"] = ((_st.get("rules") or "") + "；" if _st.get("rules") else "") + _extra
             _c["strategy"] = _st
     for i, c in enumerate(picks):
         c["rank"] = i + 1
 
     picked = {str(c.get("code")) for c in picks}
+    # 观察池：站上60+涨停热门，但不达精选严门
+    _watch_src = list(all_sorted or []) or list(pool or [])
+    _rq_w = bool(cfg.get("pickRequireZt", True))
+    watch_list = _filter_watch_picks(_watch_src, exclude_codes=picked, require_zt=_rq_w, limit=6)
+    if _emo_reg == "risk_off":
+        watch_list = watch_list[:2]
+    for i, c in enumerate(watch_list):
+        c["tier"] = "watch"
+        c["star"] = False
+        c["pick_role"] = "watch"
+        c["pick_lane"] = "watch"
+        c["rank"] = i + 1
+        c["decision"] = build_decision(c, lane="watch")
+        c["strategy"] = build_strategy(c, "normal", "watch")
     # 昨日主推 → 今日状态追踪（持有/延续/止盈观察/离场），防“每天推新、用户追着换股”
     cand_codes = {str(c.get("code")) for c in cands}
     prev_track: list[dict[str, Any]] = []
@@ -8016,11 +8537,11 @@ async def run_scan(
                                 "status": "今日暂无数据", "tag": "muted"}
         _cur = analyzed_by_code.get(_c0)
         if _c0 in hard_codes:
-            _rec["status"] = "退出观察（利空/硬伤排查）"; _rec["tag"] = "bad"
+            _rec["status"] = "建议先放下（出现硬伤）"; _rec["tag"] = "bad"
         elif _c0 in picked:
-            _rec["status"] = "延续关注（今日入选筛选）"; _rec["tag"] = "ok"
+            _rec["status"] = "可继续跟踪（今日仍在精选）"; _rec["tag"] = "ok"
         elif _c0 in fine_codes:
-            _rec["status"] = "延续关注（仍达标，未入筛选）"; _rec["tag"] = "ok"
+            _rec["status"] = "可继续跟踪（仍达标，未进精选）"; _rec["tag"] = "ok"
         elif _cur:
             _a0 = _cur.get("A") or {}
             if (float(_a0.get("pos") or 99) > float(cfg["posMax"]) / 100
@@ -8041,6 +8562,7 @@ async def run_scan(
 
     asof = picks[0].get("lastDate") if picks else (today or "")
     pick_out = [_pick_out(c) for c in picks]
+    watch_out = [_pick_out(c) for c in watch_list]
     run_out = [_runner_out(c) for c in runners]
     # MACD 量能首红专栏：全候选池收集“底部刚收红/1-3根红柱+量能确认”标的，
     # 剔除硬伤，刚收红优先 + 评分排序，最多 8 只（独立于主推/备选）
@@ -8180,8 +8702,11 @@ async def run_scan(
         "mainline_gap": bool(picks) and market in ("all", "hs", "kc") and not any(c.get("mainHit") or c.get("obsHit") for c in picks),
         "board_rank": board_rank,
         "picks": pick_out,
+        "watch": watch_out,
         "runners": run_out,
         "macd_reds": macd_red_out,
+        "algo": "strong-layer-v2",
+        "pickLaneNote": "精选看趋势更强的；观察仅作跟踪，不与精选等同",
         "low10": low10_list,
         "tight": tight_list,
         "prev_date": prev_date_s,
@@ -8212,8 +8737,8 @@ async def run_scan(
             "mainline_hit": sorted({str(c.get("mainName") or c.get("mainlineName") or "") for c in picks if c.get("mainHit") and (c.get("mainName") or c.get("mainlineName"))}),
             "mainline_gap": bool(picks) and market in ("all", "hs", "kc") and not any(c.get("mainHit") or c.get("obsHit") for c in picks),
             "board_rank": board_rank,
-            "picks": pick_out, "runners": run_out, "macd_reds": macd_red_out,
-            "low10": low10_list, "tight": tight_list,
+            "picks": pick_out, "watch": watch_out, "runners": run_out, "macd_reds": macd_red_out,
+            "low10": low10_list, "tight": tight_list, "algo": "strong-layer-v2",
         }
         _save_history(f"{market}:{str(today)}", hist_payload)
         _save_archive(market, str(today), hist_payload)

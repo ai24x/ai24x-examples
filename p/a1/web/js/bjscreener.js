@@ -275,17 +275,101 @@ window.AI24X_BJScreener = (function () {
       .trim();
     return s2;
   }
+  function maTierBadge(p) {
+    var t = String(p.maTier || (p.factors && p.factors.maTier) || "").toUpperCase();
+    if (p.aboveMa144 || t === "S") return '<span class="tier-badge tier-ma-s" title="短均站上中长期均线">趋势更强</span>';
+    if (p.ma60Strong) return '<span class="tier-badge tier-ma-a" title="短均明显高于中期均线且已持续">趋势良好</span>';
+    if (p.aboveMa60 || t === "A") return '<span class="tier-badge tier-ma-a" title="短均站上中期均线">刚站上中期</span>';
+    if (t === "B") return '<span class="tier-badge tier-ma-b" title="中期均线开始走好">启动初期</span>';
+    return "";
+  }
+  function dualBadge(p) {
+    if (p.dualConfirm || (p.decision && p.decision.dualConfirm)) {
+      return '<span class="tier-badge tier-dual">热门强势·双确认</span>';
+    }
+    return "";
+  }
+  function decisionStrip(p) {
+    var d = p.decision || {};
+    if (!d.action && !d.invalid) return "";
+    var lane = (d.laneLabel || (p.tier === "watch" ? "观察" : "精选"));
+    var bits = [];
+    bits.push('<span class="dec-lane">' + esc(lane) + '</span>');
+    if (d.confirm) bits.push('<span class="dec-confirm">' + esc(d.confirm) + '</span>');
+    if (d.ztNote) bits.push('<span class="dec-zt">' + esc(d.ztNote) + '</span>');
+    if (d.trend) bits.push('<span class="dec-trend">' + esc(d.trend) + '</span>');
+    return '<div class="pick-decision">' +
+      '<div class="dec-row">' + bits.join("") + '</div>' +
+      (d.action ? '<div class="dec-action">怎么看：' + esc(d.action) + '</div>' : '') +
+      (d.invalid ? '<div class="dec-invalid">何时先放下：' + esc(d.invalid) + '</div>' : '') +
+      '</div>';
+  }
+  function staleAlgoBanner(d, picks) {
+    var list = picks || d.picks || [];
+    if (!list.length) return "";
+    var hasNew = list.some(function (p) {
+      return p && (p.algo || p.maTier || p.aboveMa60 || p.aboveMa144 || p.ma60Strong
+        || (p.factors && (p.factors.maTier || p.factors.aboveMa60 || p.factors.aboveMa144)));
+    });
+    if (hasNew || d.algo === "strong-layer-v2") return "";
+    return '<div class="bj-stale-algo">当前结果可能不是最新筛选标准生成的。请点击「重新扫描」后再看精选与观察。</div>';
+  }
   function tierBadge(p) {
-    if (p.tier === "king") return '<span class="tier-badge tier-king">⭐ 评分最高</span>';
-    if (p.tier === "key") return '<span class="tier-badge tier-key">评分次高</span>';
+    if (p.tier === "king") return '<span class="tier-badge tier-king">⭐ 今日精选</span>';
+    if (p.tier === "key") return '<span class="tier-badge tier-key">精选</span>';
+    if (p.tier === "watch") return '<span class="tier-badge tier-watch">观察</span>';
     return "";
   }
   function roleBadge(p) {
     if (p.pickRole === "leader") return p.obsHit
       ? '<span class="tier-badge tier-obs">重点观察代表</span>'
       : '<span class="tier-badge tier-leader">主线代表</span>';
+    if (p.pickRole === "hot_strong") return '<span class="tier-badge tier-hot">热门强势</span>';
     if (p.pickRole === "catchup") return '<span class="tier-badge tier-catchup">补涨观察</span>';
+    if (p.pickRole === "watch") return '<span class="tier-badge tier-watch">跟踪观察</span>';
     return "";
+  }
+  function pickCardHtml(p, i) {
+    var chgCls = cls(p.pct);
+    var isKing = p.tier === "king";
+    var isWatch = p.tier === "watch";
+    var lv = p.levels || {};
+    var st = p.strategy || {};
+    var stLine = "";
+    if (st && (st.entry || st.period)) {
+      var stPeriod = String(st.period || "").trim().replace(/主线龙头/g, "主线代表").replace(/龙头组合/g, "代表组合").replace(/补涨卡位/g, "补涨观察");
+      var stEntry = sanitizeSt(st.entry);
+      stLine = '<div class="pick-strategy"><span class="st-tag">技术参考</span>' +
+        '<b>' + esc(stPeriod) + '</b> ｜ ' + esc(stEntry) +
+        ' ｜ <span class="st-disc">不追高·缩量回踩·破位/长阴约8%先观望</span></div>';
+    }
+    return '<div class="pick-card' + (isKing ? " king" : (p.tier === "key" ? " key" : (isWatch ? " watch" : ""))) + '">' +
+      '<div class="pick-head">' +
+        '<div class="ph-l"><span class="pick-num">' + (p.rank != null ? p.rank : (i + 1)) + '</span> ' +
+          '<a class="pick-name" href="' + quoteHref(p) + '" target="_blank" rel="noopener">' + esc(p.name) + '</a> ' +
+          '<span class="pick-code">' + esc(p.code) + '</span>' +
+          tierBadge(p) + maTierBadge(p) + dualBadge(p) + roleBadge(p) + mainBadge(p) + indBadge(p) +
+          (p.relaxed ? '<span class="tier-badge tier-key">放宽档</span>' : '') +
+          (p.cont ? '<span class="tier-badge tier-cont">延续</span>' : '') +
+        '</div>' +
+        '<div class="ph-r"><span class="pick-price ' + chgCls + '">' + num(p.price, 2) + '</span> <span class="' + chgCls + '">' + pct(p.pct) + '</span>' +
+          '<a class="view-link" href="' + quoteHref(p) + '" target="_blank" rel="noopener">查看行情 ↗</a></div>' +
+      '</div>' +
+      coreTags(p) +
+      decisionStrip(p) +
+      '<div class="pick-sub">综合分 <b>' + (p.final != null ? p.final : "—") + '</b> ｜ 位置 <b>' + num((p.pos != null ? p.pos * 100 : 0), 0) + '%</b> ｜ 市值 ' + money(p.mcap) +
+      ' ｜ 成交 ' + money(p.amount) + ' ｜ 5日 ' + pct(p.chg5) + ' ｜ 换手 ' + num(p.turnover, 1) + '%</div>' +
+      (p.chart && (p.chart.closes || p.chart.c) ? '<div class="kbox"><canvas data-bj-code="' + esc(p.code) + '"></canvas></div>' : '<div class="kbox kbox-empty">暂无K线，可点名称查看行情</div>') +
+      '<div class="levels">' +
+        '<span class="s">支撑 ' + num(lv.s1, 2) + ' / ' + num(lv.s2, 2) + '</span>' +
+        '<span class="p">压力 ' + num(lv.p1, 2) + ' / ' + num(lv.p2, 2) + '</span>' +
+        '<span class="stop">破位参考 ' + num(lv.stop, 2) + '</span>' +
+      '</div>' +
+      stLine +
+      fundHtml(p) +
+      '<div class="pick-reason">为什么入选：' + esc(reasonOf(p)) + '</div>' +
+      bearishHtml(p) +
+      '</div>';
   }
   function mainBadge(p) {
     if (p.mainHit) return '<span class="tier-badge tier-main">主线·' + esc(p.mainName || "") + '</span>';
@@ -988,7 +1072,6 @@ window.AI24X_BJScreener = (function () {
       }
     }
     var emoHtml = emotionBanner(d);
-    var mfrAll = (picks || []).concat(d.runners || []).filter(function (x) { return x && x.patterns && x.patterns.macdFirstRed; });
     if (!picks.length) {
       var emptyTitle = d.archive ? '该日期无归档筛选记录' : (
         mkt === 'pb' ? '暂无回踩企稳标的' :
@@ -1002,8 +1085,25 @@ window.AI24X_BJScreener = (function () {
         mkt === 'leader' ? '需要命中当日主攻且资金+强动量确认；没有就空着。' :
         mkt === 'low10' ? '要同时满足：股价<10元、刚右侧转强、股性活跃；不够格就不推。' :
         mkt === 'tight' ? '需要多头粘合后再发散，且近期有过有效涨停（不含北证）；没有就空着。可查看下方历史归档或点「回放」验证算法。' :
-        '只要上涨途中、股性活跃的票；今天没有合格的就空着，宁缺毋滥。');
-      box.innerHTML = hint + emoHtml + '<div class="bj-empty-alert"><div class="ico">\ud83d\udca1</div><div class="bd"><b>' + esc(emptyTitle) + '</b><span>' + emptySub + '</span></div></div>';
+        '今天没有达到精选标准的票就空着；若有观察池会单独列出，仅供跟踪。');
+      var _watch0 = d.watch || [];
+      var _emptyHtml = hint + emoHtml + staleAlgoBanner(d, picks) +
+        '<div class="bj-empty-alert"><div class="ico">\ud83d\udca1</div><div class="bd"><b>' + esc(emptyTitle) + '</b><span>' + emptySub + '</span></div></div>';
+      if (_watch0.length) {
+        _emptyHtml += '<div class="sec-label">' + dataDayLabel(d) + '观察 · ' + _watch0.length + ' 只</div>';
+        _emptyHtml += '<div class="bj-note">今日暂无精选；以下为观察池，适合跟踪，不建议当作重点。</div><div class="pick-grid watch-grid">';
+        _watch0.forEach(function (p, i) { _emptyHtml += pickCardHtml(p, i); });
+        _emptyHtml += '</div>';
+      }
+      box.innerHTML = _emptyHtml;
+      if (_watch0.length) {
+        requestAnimationFrame(function () {
+          _watch0.forEach(function (p) {
+            var cv = document.querySelector('canvas[data-bj-code="' + p.code + '"]');
+            if (cv && p.chart) drawChart(cv, p.chart);
+          });
+        });
+      }
       return;
     }
     var html = hint + emoHtml;
@@ -1058,10 +1158,9 @@ window.AI24X_BJScreener = (function () {
           '<div class="pt-note">未破位继续跟踪；破位或放量长阴-8% 注意风险；不因新面孔频繁换股。</div>';
       }
       var nPicks = picks.length;
+      html += staleAlgoBanner(d, picks);
       html += '<div class="sec-label">' + dataDayLabel(d) + '精选 · ' + nPicks + ' 只</div>';
-      if (mfrAll.length) {
-        html += '<div class="bj-note">另有 MACD 首红 ' + mfrAll.length + ' 只 · 可切「MACD首红」</div>';
-      }
+      if (d.pickLaneNote) html += '<div class="bj-note">' + esc(d.pickLaneNote) + '</div>';
       if (d.mainline_gap) {
         var _mln = (d.mainlines || []).filter(function (m) {
           return m && (!m.src || m.src === "daily" || m.src === "archive" || m.src === "recalc" || m.src === "fallback");
@@ -1077,54 +1176,19 @@ window.AI24X_BJScreener = (function () {
     if (nPicks && nPicks < 3) _disc = dataDayLabel(d) + "仅 " + nPicks + " 只合格，少而精不凑满。";
     if (_disc) html += '<div class="notice">' + _disc + "</div>";
     html += '<div class="pick-grid">';
-    picks.forEach(function (p, i) {
-      var chgCls = cls(p.pct);
-      var isKing = p.tier === "king";
-      var lv = p.levels || {};
-      var st = p.strategy || {};
-      var posSpan = '';
-      var stLine = '';
-      if (st && (st.entry || st.period)) {
-        var stPeriod = String(st.period || '').trim().replace(/主线龙头/g, '主线代表').replace(/龙头组合/g, '代表组合').replace(/补涨卡位/g, '补涨观察');
-        var stEntry = sanitizeSt(st.entry);
-        stLine = '<div class="pick-strategy"><span class="st-tag">技术参考</span>' +
-          '<b>' + esc(stPeriod) + '</b> ｜ ' + esc(stEntry) +
-          ' ｜ <span class="st-disc">不追高·缩量回踩·破位/长阴-8%注意风险</span></div>';
-      }
-      html +=
-        '<div class="pick-card' + (isKing ? " king" : (p.tier === "key" ? " key" : "")) + '">' +
-        '<div class="pick-head">' +
-          '<div class="ph-l"><span class="pick-num">' + (p.rank != null ? p.rank : (i + 1)) + '</span> ' +
-            '<a class="pick-name" href="' + quoteHref(p) + '" target="_blank" rel="noopener">' + esc(p.name) + '</a> ' +
-            '<span class="pick-code">' + esc(p.code) + '</span>' +
-            tierBadge(p) + roleBadge(p) + mainBadge(p) + indBadge(p) +
-            (p.relaxed ? '<span class="tier-badge tier-key">放宽档</span>' : '') +
-            (p.cont ? '<span class="tier-badge tier-cont">延续⭐</span>' : '') +
-          '</div>' +
-          '<div class="ph-r"><span class="pick-price ' + chgCls + '">' + num(p.price, 2) + '</span> <span class="' + chgCls + '">' + pct(p.pct) + '</span>' +
-            '<a class="view-link" href="' + quoteHref(p) + '" target="_blank" rel="noopener">查看行情 ↗</a></div>' +
-        '</div>' +
-        coreTags(p) +
-        '<div class="pick-sub">最终分 <b>' + (p.final != null ? p.final : "—") + '</b> ｜ 位置 <b>' + num((p.pos != null ? p.pos * 100 : 0), 0) + '%</b> ｜ 市值 ' + money(p.mcap) +
-        ' ｜ 成交 ' + money(p.amount) + ' ｜ 5日 ' + pct(p.chg5) + ' ｜ 换手 ' + num(p.turnover, 1) + '%' + '</div>' +
-        (p.chart && (p.chart.closes || p.chart.c) ? '<div class="kbox"><canvas data-bj-code="' + esc(p.code) + '"></canvas></div>' : '<div class="kbox kbox-empty">暂无K线数据，可点名称查看行情</div>') +
-        '<div class="levels">' +
-          '<span class="s">支撑 ' + num(lv.s1, 2) + ' / ' + num(lv.s2, 2) + '</span>' +
-          '<span class="p">压力 ' + num(lv.p1, 2) + ' / ' + num(lv.p2, 2) + '</span>' +
-          '<span class="stop">破位参考 ' + num(lv.stop, 2) + '</span>' + posSpan +
-        '</div>' +
-        stLine +
-        fundHtml(p) +
-        '<div class="pick-reason">筛选依据：' + esc(reasonOf(p)) + '</div>' +
-        bearishHtml(p) +
-        '</div>';
-    });
+    picks.forEach(function (p, i) { html += pickCardHtml(p, i); });
     html += '</div>';
-    if (!isColNoMacd(mkt)) html += macdRedSection(d);
-    // 备选池已下线：只保留主推；历史入选走各栏目跟踪台账
+    var watch = d.watch || [];
+    if (watch.length) {
+      html += '<div class="sec-label">' + dataDayLabel(d) + '观察 · ' + watch.length + ' 只</div>';
+      html += '<div class="bj-note">观察不等于精选：结构刚达标或热度尚可，适合跟踪，不建议当作今日重点。</div>';
+      html += '<div class="pick-grid watch-grid">';
+      watch.forEach(function (p, i) { html += pickCardHtml(p, i); });
+      html += '</div>';
+    }
     box.innerHTML = html;
     requestAnimationFrame(function () {
-      picks.forEach(function (p) {
+      picks.concat(watch).forEach(function (p) {
         var cv = document.querySelector('canvas[data-bj-code="' + p.code + '"]');
         if (cv && p.chart) drawChart(cv, p.chart);
       });
@@ -1292,9 +1356,21 @@ window.AI24X_BJScreener = (function () {
     }
   }
 
+  function fetchCachedResult() {
+    // 只读缓存；旧后端无 /result 路由时回退为「无缓存」，避免整页「加载失败：Not Found」
+    return apiFetch("/api/bj/screener/result?market=" + encodeURIComponent(state.market)).catch(function (e) {
+      var st = e && e.status;
+      var msg = String((e && e.message) || "");
+      if (st === 404 || /not\s*found/i.test(msg)) {
+        return { ok: false, error: "no_cache", message: "暂无今日结果，请点「开始扫描」" };
+      }
+      throw e;
+    });
+  }
+
   function load(force) {
     if (state.loading) return;
-    // 会话缓存：同一市场 10 分钟内已加载过，直接秒回不再请求，避免快速切栏触发后端限流（429）
+    // 会话缓存：同一市场 10 分钟内已加载过，直接秒回
     if (!force) {
       var hit = state.cache[state.market];
       if (hit && Date.now() - hit.ts < 10 * 60 * 1000) {
@@ -1306,21 +1382,20 @@ window.AI24X_BJScreener = (function () {
     state.loading = true;
     var seq = ++reqSeq;
     var btn = $("btn-bj-refresh");
-    if (btn) { btn.disabled = true; btn.textContent = "扫描中…"; }
-    statusLoading();
-    waitDeadline = 0;
+    if (btn) btn.disabled = true;
     if (force) {
       delete state.cache[state.market];
-      // 异步重扫：先启动后台任务，轮询进度，避免长请求触发 nginx 60s 网关超时（504）
+      if (btn) btn.textContent = "扫描中…";
+      statusLoading();
+      waitDeadline = 0;
+      // 异步重扫：先启动后台任务，轮询进度
       apiFetch("/api/bj/screener/start?market=" + encodeURIComponent(state.market)).then(function (st) {
         if (seq !== reqSeq) return;
         if (!st || st.ok !== true) {
           state.loading = false;
           stopProgress();
           if (btn) { btn.disabled = false; btn.textContent = "重新扫描"; }
-        applyScanGate(btn);
-        applyScanGate(btn);
-        applyScanGate(btn);
+          applyScanGate(btn);
           setStatus("扫描启动失败：" + esc((st && st.message) || "未知错误"), true);
           return;
         }
@@ -1328,21 +1403,39 @@ window.AI24X_BJScreener = (function () {
       }).catch(function (e) { loadFail(e, seq, btn); });
       return;
     }
-    // 非强制：若已有扫描在跑则轮询等待，否则直接拉取（命中缓存秒回）
-    apiFetch("/api/bj/screener/progress?market=" + encodeURIComponent(state.market)).then(function (p) {
+    // 非强制：只读服务端缓存/归档，不触发扫描（对齐 AI 雷达）
+    setStatus("正在载入…", false);
+    fetchCachedResult().then(function (d) {
       if (seq !== reqSeq) return;
-      if (p && p.running === true) { waitScanDone(seq, btn); return; }
-      startProgress(state.market, seq);
-      apiFetch("/api/bj/screener?market=" + encodeURIComponent(state.market)).then(function (d) {
-        finishLoad(d, seq, btn);
-      }).catch(function (e) { loadFail(e, seq, btn); });
-    }).catch(function () {
-      if (seq !== reqSeq) return;
-      startProgress(state.market, seq);
-      apiFetch("/api/bj/screener?market=" + encodeURIComponent(state.market)).then(function (d) {
-        finishLoad(d, seq, btn);
-      }).catch(function (e) { loadFail(e, seq, btn); });
-    });
+      if (d && (d.running === true || d.scanning === true)) {
+        if (btn) btn.textContent = "扫描中…";
+        statusLoading();
+        waitDeadline = Date.now() + 12 * 60 * 1000;
+        waitScanDone(seq, btn);
+        return;
+      }
+      if (d && d.ok !== false && !d.running) {
+        applyScanResult(d, seq, btn);
+        return;
+      }
+      state.loading = false;
+      stopProgress();
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "开始扫描";
+        btn.title = "今日结果尚未生成时可手动扫描；正常由服务端收盘后自动更新";
+      }
+      applyScanGate(btn);
+      $("bj-vipgate").hidden = true;
+      $("bj-main").hidden = false;
+      var meta = $("bj-meta");
+      if (meta) meta.hidden = true;
+      ["bj-result", "bj-history", "bj-boardrank", "bj-pb-ledger"].forEach(function (id) {
+        var el = $(id);
+        if (el) { el.innerHTML = ""; if (id === "bj-pb-ledger") el.hidden = true; }
+      });
+      setStatus((d && d.message) || "暂无今日结果，请点「开始扫描」或稍后再试", false, true);
+    }).catch(function (e) { loadFail(e, seq, btn); });
   }
 
   function waitScanDone(seq, btn) {
@@ -1366,10 +1459,19 @@ window.AI24X_BJScreener = (function () {
         progTimer = setTimeout(function () { waitScanDone(seq, btn); }, 1500);
         return;
       }
-      // 扫描完成：重置 loading 后拉最新结果（命中缓存）
+      // 扫描完成：拉只读结果（命中缓存秒回）
       waitDeadline = 0;
       state.loading = false;
-      load(false);
+      fetchCachedResult().then(function (d) {
+        if (seq !== reqSeq) return;
+        if (d && d.ok !== false && !d.running) {
+          applyScanResult(d, seq, btn);
+        } else {
+          stopProgress();
+          if (btn) { btn.disabled = false; btn.textContent = "重新扫描"; }
+          setStatus("扫描完成，但结果暂不可用，请稍后再试", true);
+        }
+      }).catch(function (e) { loadFail(e, seq, btn); });
     }).catch(function () {
       if (seq !== reqSeq) return;
       if (Date.now() > waitDeadline) {
@@ -1469,9 +1571,11 @@ window.AI24X_BJScreener = (function () {
         : (d.today_missing ? "\ud83d\udca1 今日数据尚未生成（" + fmtDate() + "），展示最近归档" + staleLabel(d) + "结果" : "\ud83d\udca1 今日无合格标的（" + fmtDate() + "），展示最近归档" + staleLabel(d) + "结果");
       setStatus(staleTxt, false, true);
     } else if (d.vip_required) {
-      setStatus(marketLabel(state.market) + "板块视图已解锁（" + fmtDate() + "）" + (d.cached ? " · 已加载" + dataDayLabel(d) + "缓存" : ""));
+      setStatus(marketLabel(state.market) + "板块视图（" + fmtDate() + "）" + (d.cached ? " · 已载入" + dataDayLabel(d) + "结果" : ""));
+    } else if (d.cached) {
+      setStatus(marketLabel(state.market) + " · 已载入" + dataDayLabel(d) + "结果", false);
     } else {
-      setStatus(marketLabel(state.market) + "扫描完成（" + fmtDate() + "）" + (d.cached ? " · 已加载" + dataDayLabel(d) + "缓存" : ""));
+      setStatus(marketLabel(state.market) + "扫描完成（" + fmtDate() + "）");
     }
   }
 
@@ -1951,7 +2055,7 @@ window.AI24X_BJScreener = (function () {
     var ap = archiveParams();
     if (ap.date) {
       // 历史归档模式：新窗口直达该日结果（不触发扫描）
-      if (ap.market === "bj" || ap.market === "all" || ap.market === "hs" || ap.market === "kc" || ap.market === "bj_all" || ap.market === "macd" || ap.market === "pb" || ap.market === "mlpb" || ap.market === "breakout" || ap.market === "leader" || ap.market === "low10" || ap.market === "tight") {
+      if (ap.market === "bj" || ap.market === "all" || ap.market === "hs" || ap.market === "kc" || ap.market === "bj_all" || ap.market === "pb" || ap.market === "mlpb" || ap.market === "breakout" || ap.market === "leader" || ap.market === "low10" || ap.market === "tight") {
         state.market = ap.market;
         var tabsAll = document.querySelectorAll("#bj-tabs .bj-tab");
         for (var tJ = 0; tJ < tabsAll.length; tJ++) {
@@ -1969,9 +2073,11 @@ window.AI24X_BJScreener = (function () {
     // 刷新停留：URL market 参数优先，其次上次所在 tab（localStorage），默认沪深主线
     var savedM = "";
     try { savedM = String(localStorage.getItem("bj_tab") || "").trim(); } catch (eS) {}
-    var _TAB_OK = ["hs", "kc", "bj", "bj_all", "macd", "pb", "mlpb", "breakout", "leader", "low10", "tight"];
+    var _TAB_OK = ["hs", "kc", "bj_all", "mlpb", "tight"];
     var initM = (ap.market && _TAB_OK.indexOf(ap.market) >= 0) ? ap.market
       : ((savedM && _TAB_OK.indexOf(savedM) >= 0) ? savedM : "hs");
+    // 已下线栏目回落到沪深主线
+    if (["macd", "bj", "pb", "breakout", "leader", "low10"].indexOf(ap.market || savedM) >= 0) initM = "hs";
     if (initM !== state.market) {
       state.market = initM;
       var tabsAll2 = document.querySelectorAll("#bj-tabs .bj-tab");

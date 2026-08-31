@@ -10,6 +10,7 @@ import time
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
+from .big_cycle import check_big_cycle
 from .bj_screener import _resolve_stock_names
 from .ths_fuyao import fetch_historical_kline, fetch_special, fuyao_config
 
@@ -232,27 +233,8 @@ def _zt_stats(k: dict[str, list[float]], cfg: dict[str, Any], code: str = "") ->
 
 
 def _check_big_cycle(cfg: dict, MA, ma5, ma10, ma20, ma30, ma60, ma144, last) -> tuple[bool, str]:
-    ma144_prev = MA(144, last - int(cfg.get("ma144Lookback") or 5))
-    mode = cfg.get("bigCycleMode") or "medium"
-    if not ma60 or not ma144 or not ma144_prev:
-        return False, "均线数据不足"
-    if mode == "full":
-        if not (ma5 and ma10 and ma20 and ma30 and ma5 > ma60 and ma10 > ma60 and ma20 > ma60 and ma30 > ma60):
-            return False, "短均线未全部站上MA60"
-        if ma60 <= ma144 or ma144 <= ma144_prev:
-            return False, "大周期多头不足"
-        return True, ""
-    if mode == "medium":
-        if not (ma20 and ma30 and ma20 > ma60 and ma30 > ma60 and ma60 > ma144):
-            return False, "MA20/30未站上MA60"
-        ma144_10 = MA(144, last - 10)
-        flat = float(cfg.get("ma144FlatPct") or 0.998)
-        if not (ma144 >= ma144_prev * flat or (ma144_10 and ma144 >= ma144_10 * 0.995)):
-            return False, "MA144未走平向上"
-        return True, ""
-    if ma60 <= ma144 or ma144 < ma144_prev * float(cfg.get("ma144FlatPct") or 0.995):
-        return False, "MA60/MA144不足"
-    return True, ""
+    """委托公共模块 big_cycle.check_big_cycle（与复盘/主线同口径）。"""
+    return check_big_cycle(cfg, MA, ma5, ma10, ma20, ma30, ma60, ma144, last)
 
 
 def _analyze_bond(k: dict[str, list[float]], code: str, name: str, cfg: dict[str, Any]) -> Optional[dict[str, Any]]:
