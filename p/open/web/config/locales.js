@@ -1345,7 +1345,7 @@
     "page.guides.openclaw.s4": "7) Field notes (what actually broke setups)",
     "page.guides.openclaw.tip1": "<strong>405 / “stuck retries”</strong> — Base URL missing /v1. Use https://api.ai24x.com/v1. If you see /v1/v1, switch to the root host once.",
     "page.guides.openclaw.tip2": "<strong>401</strong> — Invalid key, truncated key (ellipsis), or revoked key. Paste the full key from Console; create a new one if unsure. Revoked keys return a clearer “revoked” style error when the platform is up to date.",
-    "page.guides.openclaw.tip3": "<strong>Chat works, tools never run</strong> — Not “flash is too weak”. Confirm Completions + tools, paid balance, and a clean session. Start with flash; use pro for harder tasks.",
+    "page.guides.openclaw.tip3": "<strong>Chat works, tools never run</strong> — Not “flash is too weak”. Confirm Completions + tools, credit balance, and a clean session. Start with flash; use pro for harder tasks.",
     "page.guides.openclaw.tip4": "<strong>Session overrides</strong> — A pinned session model can override your global default. Use a new session when testing AI24X vs another provider.",
     "page.guides.openclaw.tip5": "<strong>402</strong> — Insufficient balance / prepaid needed for the model. Top up in Console.",
     "page.guides.openclaw.tip6": "<strong>VIP names</strong> — Need active VIP + prepaid; add exact vip-* ids to the provider models list.",
