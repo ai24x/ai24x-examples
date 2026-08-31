@@ -1606,6 +1606,17 @@
     return String(v);
   }
 
+  function fmtTokensCompact(n) {
+    var v = Number(n) || 0;
+    function trim(z) {
+      return z.indexOf(".") >= 0 ? z.replace(/0+$/, "").replace(/\.$/, "") : z;
+    }
+    if (v >= 1e9) return trim((v / 1e9).toFixed(2)) + "B";
+    if (v >= 1e6) return trim((v / 1e6).toFixed(2)) + "M";
+    if (v >= 1e3) return trim((v / 1e3).toFixed(1)) + "k";
+    return String(Math.round(v));
+  }
+
   var USAGE_RANGE = "month";   // month | 7d | 30d | all
   var USAGE_METRIC = "usd";    // usd | tokens | calls
   var _usageChartCache = null;
@@ -2590,7 +2601,7 @@
         } catch (eMerge) {}
       }
       // 2026-08-04: 口径只剩两条——充值余额 vs 今日免费 shared；不再叠「余额不足+欢迎卡+日赠」
-      // 国际站统一美元余额展示
+      // 2026-08-31: 主数值默认展示 Tokens（积分）；仅在存在美元余额时才以 USD 为主
       var usd = Number(bal.balance_usd) || 0;
       var usdDisplay = "$" + (usd / 100).toFixed(2);
       var planIsFree = String(bal.plan || "").toLowerCase() === "free";
@@ -2605,22 +2616,25 @@
       var sharedCap = Number(bal.shared_daily_token_cap) || 0;
 
       var tokenDisplay = fmtInt(walletTokens);
-      if ($("stat-balance")) $("stat-balance").textContent = usdDisplay;
+      var tokenCompact = fmtTokensCompact(walletTokens);
+      if ($("stat-balance"))
+        $("stat-balance").textContent =
+          usd > 0 ? usdDisplay : tokenCompact + " tokens";
       var balSub = $("stat-balance-sub");
       if (balSub) {
         if (usd > 0) {
           balSub.textContent =
             "≈ " +
-            tokenDisplay +
+            Number(walletTokens).toLocaleString("en-US") +
             " tokens" +
             (bal.credits_expire_at
               ? tr(" · 最早到期 ", " · earliest ") + String(bal.credits_expire_at).slice(0, 10)
               : "");
         } else if (walletTokens > 0) {
-          balSub.textContent =
-            tokenDisplay +
-            " tokens" +
-            tr(" · 可用于 flash / pro", " · for flash / pro");
+          balSub.textContent = tr(
+            "用于 flash / pro / 点名模",
+            "for flash / pro / named models"
+          );
         } else {
           balSub.textContent = tr(
             "充值后可用 flash / pro / 点名模",
@@ -2680,7 +2694,7 @@
           showHowto = true;
           howto.style.borderColor = "#d4a84b";
           if (howtoTitle)
-            howtoTitle.textContent = tr("充值余额已用完", "Paid balance is empty");
+            howtoTitle.textContent = tr("积分已用完", "No credits left");
           if (howtoBody)
             howtoBody.textContent = tr(
               "flash / pro 需要充值。今日仍可用免费 shared（见右侧「今日免费」）。",
@@ -2701,7 +2715,7 @@
           showHowto = true;
           howto.style.borderColor = "#d4a84b";
           if (howtoTitle)
-            howtoTitle.textContent = tr("充值余额已用完", "Paid balance is empty");
+            howtoTitle.textContent = tr("积分已用完", "No credits left");
           if (howtoBody)
             howtoBody.textContent = tr(
               "请充值后续用 flash / pro / 点名模。",
