@@ -858,7 +858,7 @@
         } else if (isByok) {
           href = openApiBase() + "/pricing.html?from=account";
         } else if (isToken || /open\.ai24x\.com|127\.0\.0\.1:18080/i.test(resolved)) {
-          href = openApiBase() + "/console.html?from=account";
+          href = openApiBase() + "/";
         }
         link.href = href;
         link.setAttribute("data-hub-external", "");

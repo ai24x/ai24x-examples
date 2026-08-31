@@ -58,6 +58,7 @@
     "page.index.tag4": "用量与成本看板",
     "page.index.tagFree": "免费开始",
     "page.index.tagValue": "BYOK Pro · $9.9/月",
+    "page.index.tagDs": "DeepSeek V4 · 输出 $0.35/M 起",
     "page.index.try.title": "像调用 OpenAI 一样接入",
     "page.index.try.sub":
       "把 SDK 指到 <code>https://api.ai24x.com/v1</code>。同样的 chat completions 形状——换模型不用改客户端。",
@@ -1017,6 +1018,7 @@
     "page.index.tag4": "Cost dashboard",
     "page.index.tagFree": "Start free",
     "page.index.tagValue": "BYOK Pro · $9.9/mo",
+    "page.index.tagDs": "DeepSeek V4 · output from $0.35/M",
     "page.index.try.title": "Call it like OpenAI",
     "page.index.try.sub":
       "Point your SDK at <code>https://api.ai24x.com/v1</code>. Same chat completions shape — switch models without rewriting clients.",

@@ -328,7 +328,7 @@ img {
 
 @media (max-width: 960px) {
   .header-inner {
-    grid-template-columns: auto auto auto;
+    grid-template-columns: auto auto minmax(0, 1fr);
     grid-template-areas: "brand toggle actions";
   }
 

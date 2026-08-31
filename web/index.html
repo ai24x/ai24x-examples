@@ -47,22 +47,21 @@
 </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>AI24X — AI Gateway · One API. Every AI. Spend Smarter.</title>
-  <meta name="description" content="Access leading AI models through one OpenAI-compatible API. BYOK or managed billing, multi-model routing, and usage control — start free." />
+  <meta name="description" content="Access DeepSeek, Qwen, GLM, Kimi and more through one OpenAI-compatible API. BYOK or managed billing, multi-model routing, usage control — start free." />
   <link rel="canonical" href="https://www.ai24x.com/" />
     <link rel="alternate" hreflang="en" href="https://www.ai24x.com" />
-  <link rel="alternate" hreflang="zh-CN" href="https://www.ai24x.com" />
   <link rel="alternate" hreflang="x-default" href="https://www.ai24x.com" />
 <meta property="og:type" content="website" />
   <meta property="og:site_name" content="AI24X" />
   <meta property="og:title" content="AI24X — AI Gateway · One API. Every AI. Spend Smarter." />
-  <meta property="og:description" content="One API for leading AI models. BYOK or managed billing, smart routing, usage control. Start building free." />
+  <meta property="og:description" content="One API for DeepSeek, Qwen, GLM, Kimi + frontier models. BYOK or managed billing, smart routing, usage control. Start building free." />
   <meta property="og:url" content="https://www.ai24x.com/" />
   <meta property="og:image" content="https://www.ai24x.com/img/og-share.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="AI24X — AI Gateway · One API. Every AI. Spend Smarter." />
-  <meta name="twitter:description" content="One API for leading AI models. BYOK or managed billing. Start free." />
+  <meta name="twitter:description" content="One API for DeepSeek, Qwen, GLM, Kimi + frontier models. BYOK or managed billing. Start free." />
   <meta name="twitter:image" content="https://www.ai24x.com/img/og-share.png" />
   <link rel="stylesheet" href="css/base.css?v=20260829c" />
   <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260812e" data-base="css/themes/" />
@@ -173,6 +172,22 @@
       background: var(--surface, #fff);
       font-size: 0.82rem;
       font-weight: 650;
+    }
+    .flow-models a {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border, #d8e4ef);
+      background: var(--surface, #fff);
+      font-size: 0.82rem;
+      font-weight: 650;
+      color: var(--accent, #2563eb);
+      text-decoration: none;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .flow-models a:hover {
+      border-color: var(--accent, #2563eb);
+      background: color-mix(in srgb, var(--accent, #2563eb) 7%, transparent);
     }
     .flow-models .flow-ellipsis {
       border: none;
@@ -415,7 +430,7 @@
     "name": "AI24X",
     "url": "https://www.ai24x.com/",
     "logo": "https://www.ai24x.com/img/og-share.png",
-    "description": "One API for leading AI models — BYOK or managed billing, multi-model access, and usage control.",
+    "description": "One API for DeepSeek, Qwen, GLM, Kimi and frontier models — BYOK or managed billing, multi-model access, and usage control.",
     "sameAs": [
       "https://open.ai24x.com/",
       "https://markets.ai24x.com/",
@@ -464,9 +479,9 @@
             <span>Claude</span>
             <span>Gemini</span>
             <span>Grok</span>
-            <span>DeepSeek</span>
-            <span>Qwen</span>
-            <span>Kimi</span>
+            <a href="models/index.html">DeepSeek</a>
+            <a href="models/index.html">Qwen</a>
+            <a href="blog/kimi-api-paypal-guide.html">Kimi</a>
             <span>MiMo</span>
             <span class="flow-ellipsis" aria-hidden="true">…</span>
             <span data-i18n="page.index.unify.more">More</span>
