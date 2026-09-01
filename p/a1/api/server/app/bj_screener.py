@@ -203,7 +203,8 @@ DEFAULT_CFG: dict[str, Any] = {
     "pickZtMaxDays": 25,
     "pickPreferMa144": True,
     "pickMa60StrongRatio": 1.02, "pickMa60StrongDays": 3,
-    "pickMaxN": 4, "ztHotExtraCap": 80,
+    # 各栏目精选上限 2：宁缺毋滥，不凑数
+    "pickMaxN": 2, "ztHotExtraCap": 80,
 }
 
 
@@ -8329,10 +8330,8 @@ async def run_scan(
             c["star"] = True
             c["pick_role"] = _pick_role0
             picks.append(c)
-        # 卡位：最多 pickMaxN；涨停热门强势可走简化通道
-        _pick_max = max(2, int(cfg.get("pickMaxN") or 4))
-        if market == "bj_all":
-            _pick_max = max(_pick_max, 4)
+        # 卡位：最多 pickMaxN（默认 2）；涨停热门强势可走简化通道
+        _pick_max = max(1, min(2, int(cfg.get("pickMaxN") or 2)))
         if len(picks) < _pick_max:
             used = {str(c.get("code")) for c in picks}
             ind_used: dict[str, int] = {}
@@ -8443,8 +8442,8 @@ async def run_scan(
                             break
         rest = [c for c in pool if c is not king and int(c.get("final") or 0) >= _tier_min and _strong_enough(c)]
         if market == "bj_all":
-            rest.sort(key=_sort_key)  # 北证全市场：刚异动/首板回踩形态优先入主推（仍须过 final 入选线）
-        keys = rest[:3] if market == "bj_all" else rest[:1]  # 北证全市场 2⭐+2 重点；其余收敛为 1⭐+1 重点
+            rest.sort(key=_sort_key)  # 北证全市场：刚异动/首板回踩形态优先
+        keys = rest[:1]  # 各栏目最多 1⭐+1 重点 = 2 只，不凑数
         if king:
             king["tier"] = "king"
             king["star"] = True
@@ -8453,46 +8452,16 @@ async def run_scan(
             c["tier"] = "key"
             c["star"] = False
             picks.append(c)
-    # 主推 2×2 排版：足 4 只显示 4 只；不足 4 只只显示 2 只（3 只砍为 2 只，避免缺一格）；1 只补足到 2 只。
-    # 北证全市场放宽到最多 4 只（2⭐+2 重点），其余市场仍收敛为最多 2 只
-    if market == "bj_all":
-        if len(picks) > 4:
-            picks = picks[:4]
-        elif len(picks) == 3:
-            picks = picks[:2]
-    else:
-        _pm = max(2, int(cfg.get("pickMaxN") or 4))
-        if len(picks) > _pm:
-            picks = picks[:_pm]
-    # 主推仅 1 只时，从备选池补 1 只到 2 只（仍须强势两段门），避免单卡孤悬；无强势则宁缺
-    if len(picks) == 1 and all_sorted:
-        _used = {str(c.get("code")) for c in picks}
-        _rq_zt2 = bool(cfg.get("pickRequireZt", True))
-        _bk_ok = {
-            str(c.get("code"))
-            for c in _filter_strong_picks(all_sorted, require_zt=_rq_zt2)
-        }
-        for _bk in all_sorted:
-            if str(_bk.get("code")) in _used:
-                continue
-            if int(_bk.get("final") or 0) < 40:
-                continue
-            if str(_bk.get("code")) not in _bk_ok:
-                continue
-            _bk["tier"] = "key"
-            _bk["star"] = False
-            _bk["pick_role"] = "backup"
-            picks.append(_bk)
-            break
-    # 情绪控量：偏冷时精选最多 1 只；正常最多 pickMaxN
+    # 各栏目精选硬顶 2：够格才上，1 只不硬凑第 2 只
+    _pm = max(1, min(2, int(cfg.get("pickMaxN") or 2)))
+    if len(picks) > _pm:
+        picks = picks[:_pm]
+    # 情绪控量：偏冷时精选最多 1 只；正常最多 pickMaxN（≤2）
     _emo_reg = str((emotion or {}).get("regime") or "")
     if _emo_reg == "risk_off":
         picks = picks[:1]
     else:
-        _pm2 = max(1, int(cfg.get("pickMaxN") or 4))
-        if market == "bj_all":
-            _pm2 = max(_pm2, 4)
-        picks = picks[:_pm2]
+        picks = picks[:_pm]
 
     for c in picks:
         if relaxed_used and c.get("pick_role") != "leader":
@@ -8514,9 +8483,10 @@ async def run_scan(
     # 观察池：站上60+涨停热门，但不达精选严门
     _watch_src = list(all_sorted or []) or list(pool or [])
     _rq_w = bool(cfg.get("pickRequireZt", True))
-    watch_list = _filter_watch_picks(_watch_src, exclude_codes=picked, require_zt=_rq_w, limit=6)
+    # 观察池也收敛：避免页面看起来像「又推了一堆」
+    watch_list = _filter_watch_picks(_watch_src, exclude_codes=picked, require_zt=_rq_w, limit=2)
     if _emo_reg == "risk_off":
-        watch_list = watch_list[:2]
+        watch_list = watch_list[:1]
     for i, c in enumerate(watch_list):
         c["tier"] = "watch"
         c["star"] = False
@@ -8706,7 +8676,7 @@ async def run_scan(
         "runners": run_out,
         "macd_reds": macd_red_out,
         "algo": "strong-layer-v2",
-        "pickLaneNote": "精选看趋势更强的；观察仅作跟踪，不与精选等同",
+        "pickLaneNote": "各栏目精选最多 2 只，够格才上；观察仅作跟踪",
         "low10": low10_list,
         "tight": tight_list,
         "prev_date": prev_date_s,

@@ -84,6 +84,12 @@
                 <option value="loose">宽松</option>
               </select>
             </label>
+            <label><span>股价</span>
+              <select id="radar-price" title="限制现价区间；与复盘「10元下」口径一致">
+                <option value="any" selected>不限</option>
+                <option value="under10">10元下</option>
+              </select>
+            </label>
           </div>
 
           <div class="chips" id="radar-chips" hidden></div>
@@ -151,7 +157,7 @@
 
   <script src="/js/shell.js?v=62"></script>
   <script>try{window.AI24X_A_SHELL&&window.AI24X_A_SHELL.mount("radar");}catch(e){}</script>
-  <script src="/js/radar.js?v=20"></script>
+  <script src="/js/radar.js?v=21"></script>
   <script>
     (function(){
       try{

@@ -285,6 +285,17 @@
     return ($("radar-signal") && $("radar-signal").value) || "both";
   }
 
+  function getPriceBand() {
+    var v = ($("radar-price") && $("radar-price").value) || "any";
+    return v === "under10" ? "under10" : "any";
+  }
+
+  function priceInBand(px) {
+    if (getPriceBand() !== "under10") return true;
+    var v = Number(px);
+    return isFinite(v) && v >= 2 && v < 10;
+  }
+
   function getPullbackCfg(cfg) {
     var strict = ($("radar-strict") && $("radar-strict").value) || "balanced";
     var base = { pullMin: 0.08, pullMax: 0.25, volShrink: 0.72, minScore: 6, ztDaysMin: 5, ztDaysMax: 20, volLaunch: 1.15, ma20Tol: 0.98 };
@@ -467,6 +478,7 @@
     var base = parseKlineBase(klineItems, stock);
     if (!base) return { pass: false, reason: "[粘合]数据不足" };
     if (base.closes.length < cfg.minListDays + 30) return { pass: false, reason: "[粘合]上市不足" };
+    if (!priceInBand(base.closes[base.last])) return { pass: false, reason: "[粘合]股价不符" };
     var zt = calcZtStats(base, cfg);
     if (zt.zt250 < cfg.ztYearMin || zt.zt250 > cfg.ztYearMax) return { pass: false, reason: "[粘合]年涨停不符" };
     if (zt.ztRecent < 1 || !zt.hasQualifiedZt) return { pass: false, reason: "[粘合]近端涨停不符" };
@@ -508,6 +520,7 @@
     var pb = getPullbackCfg(cfg);
     var base = parseKlineBase(klineItems, stock);
     if (!base) return { pass: false, reason: "[回踩]数据不足" };
+    if (!priceInBand(base.closes[base.last])) return { pass: false, reason: "[回踩]股价不符" };
     if (base.meta.is300 || base.meta.is688) pb.pullMax = Math.min(pb.pullMax + 0.05, 0.35);
     var zt = calcZtStats(base, cfg);
     if (zt.zt250 < cfg.ztYearMin || zt.zt250 > cfg.ztYearMax) return { pass: false, reason: "[回踩]年涨停" };
@@ -850,7 +863,8 @@
       "回撤": "回调幅度不符",
       "破MA20": "跌破20日均线",
       "未缩量": "回调未缩量",
-      "评分不足": "企稳评分偏低"
+      "评分不足": "企稳评分偏低",
+      "股价不符": "现价不在所选区间（10元下为 2～10 元）"
     };
     return map[s] || s;
   }
@@ -946,9 +960,10 @@
     } catch (e) { return []; }
   }
 
-  function historyFingerprint(items, signal, strictness) {
+  function historyFingerprint(items, signal, strictness, price) {
     var sig = String(signal || "both");
     var st = String(strictness || "balanced");
+    var px = String(price || "any");
     var core = (items || []).slice().sort(function (a, b) {
       return String(a.code || "").localeCompare(String(b.code || ""));
     }).map(function (it) {
@@ -962,26 +977,27 @@
         it.stabScore != null ? it.stabScore : ""
       ].join(":");
     }).join("|");
-    return sig + ";" + st + ";" + core;
+    return sig + ";" + st + ";" + px + ";" + core;
   }
 
   function entryFingerprint(entry) {
     if (!entry) return "";
     if (entry.fp) return entry.fp;
-    return historyFingerprint(entry.items || [], entry.signal || "both", entry.strictness || "balanced");
+    return historyFingerprint(entry.items || [], entry.signal || "both", entry.strictness || "balanced", entry.price || "any");
   }
 
   function saveHistoryEntry(payload) {
     if (!payload.results || !payload.results.length) return;
     var signal = ($("radar-signal") && $("radar-signal").value) || "both";
     var strictness = ($("radar-strict") && $("radar-strict").value) || "balanced";
-    var fp = historyFingerprint(payload.results, signal, strictness);
+    var price = getPriceBand();
+    var fp = historyFingerprint(payload.results, signal, strictness, price);
     var hist = loadHistory();
     for (var i = 0; i < hist.length; i++) {
       if (entryFingerprint(hist[i]) === fp) return;
     }
     hist.unshift({
-      id: Date.now(), time: Date.now(), fp: fp, signal: signal, strictness: strictness,
+      id: Date.now(), time: Date.now(), fp: fp, signal: signal, strictness: strictness, price: price,
       count: payload.results.length, scanned: payload.scanned,
       elapsed_s: payload.elapsed_s, items: payload.results.slice(),
       filterStats: payload.filterStats || {}
@@ -1110,7 +1126,10 @@
   function scanQuery() {
     var signal = getSignalMode();
     var strictness = ($("radar-strict") && $("radar-strict").value) || "balanced";
-    return "signal=" + encodeURIComponent(signal) + "&strictness=" + encodeURIComponent(strictness);
+    var price = getPriceBand();
+    return "signal=" + encodeURIComponent(signal)
+      + "&strictness=" + encodeURIComponent(strictness)
+      + "&price=" + encodeURIComponent(price);
   }
 
   function humanServerProgress(p) {
@@ -1324,6 +1343,7 @@
     $("radar-stop").addEventListener("click", stopScan);
     $("radar-signal").addEventListener("change", function () { tryLoadServerResult(); });
     $("radar-strict").addEventListener("change", function () { tryLoadServerResult(); });
+    if ($("radar-price")) $("radar-price").addEventListener("change", function () { tryLoadServerResult(); });
     if ($("radar-clear")) $("radar-clear").addEventListener("click", function () {
       showEmpty("已清空展示");
       renderFilterStats({});

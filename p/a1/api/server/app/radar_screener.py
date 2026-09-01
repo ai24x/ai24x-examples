@@ -88,8 +88,50 @@ def _date8() -> str:
     return time.strftime("%Y%m%d", time.localtime())
 
 
-def _cache_key(signal: str, strictness: str) -> str:
+def _norm_price_band(price: str | None) -> str:
+    p = str(price or "any").strip().lower()
+    if p in ("under10", "low10", "lt10", "10", "under_10"):
+        return "under10"
+    return "any"
+
+
+def _price_in_band(px: Any, band: str) -> bool:
+    """与复盘 10元下一致：2 ≤ 现价 < 10（排除面值退市警戒）。"""
+    if band != "under10":
+        return True
+    try:
+        v = float(px or 0)
+    except Exception:
+        return False
+    return 2.0 <= v < 10.0
+
+
+def _cache_key(signal: str, strictness: str, price: str = "any") -> str:
+    band = _norm_price_band(price)
+    if band == "under10":
+        return f"{_date8()}:{signal}:{strictness}:under10"
     return f"{_date8()}:{signal}:{strictness}"
+
+
+def _apply_price_band(payload: dict[str, Any], band: str) -> dict[str, Any]:
+    """从「不限」结果切出 10元下子集（当日已有全量缓存时可免重扫）。"""
+    band = _norm_price_band(band)
+    out = dict(payload)
+    out["price"] = band
+    out["priceLabel"] = "10元下" if band == "under10" else "不限"
+    if band != "under10":
+        return out
+    items = [x for x in (out.get("items") or []) if isinstance(x, dict) and _price_in_band(x.get("price"), band)]
+    out["items"] = items
+    out["count"] = len(items)
+    stats = dict(out.get("filterStats") or {})
+    dropped = int((payload.get("count") or len(payload.get("items") or [])) - len(items))
+    if dropped > 0:
+        stats["股价不符"] = stats.get("股价不符", 0) + dropped
+    out["filterStats"] = stats
+    out["cached"] = True
+    out["priceDerived"] = True
+    return out
 
 
 def _disk_scan_path(key: str) -> str:
@@ -108,21 +150,35 @@ def _load_disk_scan(key: str) -> Optional[dict[str, Any]]:
         return None
 
 
-def get_radar_cached_result(signal: str = "both", strictness: str = "balanced") -> Optional[dict[str, Any]]:
+def get_radar_cached_result(
+    signal: str = "both",
+    strictness: str = "balanced",
+    price: str = "any",
+) -> Optional[dict[str, Any]]:
     """只读当日缓存（内存或磁盘），不触发扫描。"""
     signal = signal if signal in ("both", "bond", "pullback") else "both"
     strictness = strictness if strictness in _PRESETS else "balanced"
-    key = _cache_key(signal, strictness)
+    band = _norm_price_band(price)
+    key = _cache_key(signal, strictness, band)
     if key in _SCAN_CACHE:
         out = dict(_SCAN_CACHE[key])
         out["cached"] = True
+        out["price"] = band
+        out["priceLabel"] = "10元下" if band == "under10" else "不限"
         return out
     disk = _load_disk_scan(key)
     if disk:
         _SCAN_CACHE[key] = disk
         out = dict(disk)
         out["cached"] = True
+        out["price"] = band
+        out["priceLabel"] = "10元下" if band == "under10" else "不限"
         return out
+    # 10元下：若无专属缓存，从「不限」当日结果即时切片
+    if band == "under10":
+        base = get_radar_cached_result(signal, strictness, "any")
+        if base and base.get("ok") is not False and isinstance(base.get("items"), list):
+            return _apply_price_band(base, "under10")
     return None
 
 
@@ -575,13 +631,15 @@ async def run_radar_scan(
     signal: str = "both",
     strictness: str = "balanced",
     force: bool = False,
+    price: str = "any",
 ) -> dict[str, Any]:
     global _RUNNING, _LAST_FORCE_SCAN_END
     signal = signal if signal in ("both", "bond", "pullback") else "both"
     strictness = strictness if strictness in _PRESETS else "balanced"
-    key = _cache_key(signal, strictness)
+    band = _norm_price_band(price)
+    key = _cache_key(signal, strictness, band)
     if not force:
-        hit = get_radar_cached_result(signal, strictness)
+        hit = get_radar_cached_result(signal, strictness, band)
         if hit:
             return hit
 
@@ -635,22 +693,26 @@ async def run_radar_scan(
                 stats["数据不足"] = stats.get("数据不足", 0) + 1
             else:
                 name = st.get("name") or code
-                if signal in ("bond", "both"):
-                    r = _analyze_bond(k, code, name, cfg)
-                    if r:
-                        r["scanTime"] = scan_ts
-                        r["thscode"] = st.get("thscode") or _code_to_thscode(code)
-                        _merge_hits(hits, r)
-                    else:
-                        stats["[粘合]未达标"] = stats.get("[粘合]未达标", 0) + 1
-                if signal in ("pullback", "both"):
-                    r2 = _analyze_pullback(k, code, name, cfg, strictness)
-                    if r2:
-                        r2["scanTime"] = scan_ts
-                        r2["thscode"] = st.get("thscode") or _code_to_thscode(code)
-                        _merge_hits(hits, r2)
-                    else:
-                        stats["[回踩]未达标"] = stats.get("[回踩]未达标", 0) + 1
+                last_px = float(k["closes"][-1]) if k.get("closes") else 0.0
+                if not _price_in_band(last_px, band):
+                    stats["股价不符"] = stats.get("股价不符", 0) + 1
+                else:
+                    if signal in ("bond", "both"):
+                        r = _analyze_bond(k, code, name, cfg)
+                        if r:
+                            r["scanTime"] = scan_ts
+                            r["thscode"] = st.get("thscode") or _code_to_thscode(code)
+                            _merge_hits(hits, r)
+                        else:
+                            stats["[粘合]未达标"] = stats.get("[粘合]未达标", 0) + 1
+                    if signal in ("pullback", "both"):
+                        r2 = _analyze_pullback(k, code, name, cfg, strictness)
+                        if r2:
+                            r2["scanTime"] = scan_ts
+                            r2["thscode"] = st.get("thscode") or _code_to_thscode(code)
+                            _merge_hits(hits, r2)
+                        else:
+                            stats["[回踩]未达标"] = stats.get("[回踩]未达标", 0) + 1
             async with prog_lock:
                 hit_n = len(hits)
             _touch_progress(hits=hit_n, msg=f"已筛选 {sn}/{total} · 入选 {hit_n}{_fmt_eta(eta)}")
@@ -674,6 +736,8 @@ async def run_radar_scan(
         "signal": signal,
         "strictness": strictness,
         "strictnessLabel": cfg.get("name"),
+        "price": band,
+        "priceLabel": "10元下" if band == "under10" else "不限",
         "scanned": total,
         "count": len(items),
         "items": items,
@@ -713,22 +777,28 @@ async def start_radar_background(
     signal: str = "both",
     strictness: str = "balanced",
     force: bool = True,
+    price: str = "any",
 ) -> None:
     global _RUNNING
     if _RUNNING is not None and not _RUNNING.done():
         return
-    _RUNNING = asyncio.create_task(run_radar_scan(signal, strictness, force=force))
+    _RUNNING = asyncio.create_task(run_radar_scan(signal, strictness, force=force, price=price))
     try:
         await _RUNNING
     finally:
         _RUNNING = None
 
 
-async def run_radar_dedup(signal: str = "both", strictness: str = "balanced", force: bool = False) -> dict[str, Any]:
+async def run_radar_dedup(
+    signal: str = "both",
+    strictness: str = "balanced",
+    force: bool = False,
+    price: str = "any",
+) -> dict[str, Any]:
     global _RUNNING
     if _RUNNING is not None and not _RUNNING.done():
         return {"ok": True, "running": True, "message": "扫描进行中", **radar_progress()}
-    _RUNNING = asyncio.create_task(run_radar_scan(signal, strictness, force))
+    _RUNNING = asyncio.create_task(run_radar_scan(signal, strictness, force, price=price))
     try:
         return await _RUNNING
     finally:

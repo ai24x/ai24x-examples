@@ -1054,13 +1054,14 @@ window.AI24X_BJScreener = (function () {
     if (mkt === "tight") picks = filterTightPicks(picks);
     var replayMode = false;
     var replayDateKey = "";
-    picks = picks.filter(hasPickChart).map(function (p, i) {
+    // 各栏目展示硬顶 2：旧缓存也可能 >2，前端兜底截断
+    picks = picks.filter(hasPickChart).slice(0, 2).map(function (p, i) {
       var cp = Object.assign({}, p);
       cp.rank = i + 1;
       return cp;
     });
     if (!picks.length && mkt === "tight" && d.replay_preview && d.replay_preview.picks) {
-      var rpicks = filterTightPicks(d.replay_preview.picks).filter(hasPickChart).map(function (p, i) {
+      var rpicks = filterTightPicks(d.replay_preview.picks).filter(hasPickChart).slice(0, 2).map(function (p, i) {
         var cp = Object.assign({}, p);
         cp.rank = i + 1;
         return cp;
@@ -1086,7 +1087,7 @@ window.AI24X_BJScreener = (function () {
         mkt === 'low10' ? '要同时满足：股价<10元、刚右侧转强、股性活跃；不够格就不推。' :
         mkt === 'tight' ? '需要多头粘合后再发散，且近期有过有效涨停（不含北证）；没有就空着。可查看下方历史归档或点「回放」验证算法。' :
         '今天没有达到精选标准的票就空着；若有观察池会单独列出，仅供跟踪。');
-      var _watch0 = d.watch || [];
+      var _watch0 = (d.watch || []).slice(0, 2);
       var _emptyHtml = hint + emoHtml + staleAlgoBanner(d, picks) +
         '<div class="bj-empty-alert"><div class="ico">\ud83d\udca1</div><div class="bd"><b>' + esc(emptyTitle) + '</b><span>' + emptySub + '</span></div></div>';
       if (_watch0.length) {
@@ -1173,12 +1174,12 @@ window.AI24X_BJScreener = (function () {
       }
     }
     var _disc = "";
-    if (nPicks && nPicks < 3) _disc = dataDayLabel(d) + "仅 " + nPicks + " 只合格，少而精不凑满。";
+    if (picks.length && picks.length < 2) _disc = dataDayLabel(d) + "仅 " + picks.length + " 只够格，少而精不凑满。";
     if (_disc) html += '<div class="notice">' + _disc + "</div>";
     html += '<div class="pick-grid">';
     picks.forEach(function (p, i) { html += pickCardHtml(p, i); });
     html += '</div>';
-    var watch = d.watch || [];
+    var watch = (d.watch || []).slice(0, 2);
     if (watch.length) {
       html += '<div class="sec-label">' + dataDayLabel(d) + '观察 · ' + watch.length + ' 只</div>';
       html += '<div class="bj-note">观察不等于精选：结构刚达标或热度尚可，适合跟踪，不建议当作今日重点。</div>';
@@ -2073,11 +2074,11 @@ window.AI24X_BJScreener = (function () {
     // 刷新停留：URL market 参数优先，其次上次所在 tab（localStorage），默认沪深主线
     var savedM = "";
     try { savedM = String(localStorage.getItem("bj_tab") || "").trim(); } catch (eS) {}
-    var _TAB_OK = ["hs", "kc", "bj_all", "mlpb", "tight"];
+    var _TAB_OK = ["hs", "kc", "bj_all", "mlpb", "low10", "tight"];
     var initM = (ap.market && _TAB_OK.indexOf(ap.market) >= 0) ? ap.market
       : ((savedM && _TAB_OK.indexOf(savedM) >= 0) ? savedM : "hs");
     // 已下线栏目回落到沪深主线
-    if (["macd", "bj", "pb", "breakout", "leader", "low10"].indexOf(ap.market || savedM) >= 0) initM = "hs";
+    if (["macd", "bj", "pb", "breakout", "leader"].indexOf(ap.market || savedM) >= 0) initM = "hs";
     if (initM !== state.market) {
       state.market = initM;
       var tabsAll2 = document.querySelectorAll("#bj-tabs .bj-tab");

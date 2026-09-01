@@ -183,6 +183,7 @@
   <button id="tab-kc" data-m="kc">科创主线</button>
   <button id="tab-bj_all" data-m="bj_all">北证全市场</button>
   <button id="tab-mlpb" data-m="mlpb">主线回踩低吸</button>
+  <button id="tab-low10" data-m="low10">10元下</button>
   <button id="tab-tight" data-m="tight">大波段</button>
 </div>
 
@@ -231,9 +232,9 @@
   if (iCode) { try { localStorage.setItem('ai24x_invite_code', String(iCode).trim().toUpperCase()); } catch(e){} }
   if (qp.get('date')) { state.date = qp.get('date'); }
   var mk = qp.get('market');
-  if (mk && ['hs','kc','bj_all','mlpb','tight'].indexOf(mk) >= 0) { state.market = mk; }
+  if (mk && ['hs','kc','bj_all','mlpb','low10','tight'].indexOf(mk) >= 0) { state.market = mk; }
   else {
-    try { var _savedM = String(localStorage.getItem('bj_tab') || '').trim(); if (_savedM && ['hs','kc','bj_all','mlpb','tight'].indexOf(_savedM) >= 0) state.market = _savedM; } catch(e){}
+    try { var _savedM = String(localStorage.getItem('bj_tab') || '').trim(); if (_savedM && ['hs','kc','bj_all','mlpb','low10','tight'].indexOf(_savedM) >= 0) state.market = _savedM; } catch(e){}
   }
 
   function token(){ try { var t = localStorage.getItem('ai24x_a_token'); if (t && t.length > 20) return t; } catch(e){} return ''; }

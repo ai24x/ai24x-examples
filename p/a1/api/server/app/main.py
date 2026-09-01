@@ -3545,6 +3545,7 @@ async def api_radar_screener(
     request: Request,
     signal: str = "both",
     strictness: str = "balanced",
+    price: str = "any",
     force: int = 0,
     user_id: int = Depends(get_current_user_id),
 ) -> dict:
@@ -3555,6 +3556,9 @@ async def api_radar_screener(
     strictness = str(strictness or "balanced").strip().lower()
     if strictness not in ("strict", "balanced", "loose"):
         strictness = "balanced"
+    price = str(price or "any").strip().lower()
+    if price not in ("any", "under10", "low10", "lt10"):
+        price = "any"
     _rate_limit(f"radar-screener:{user_id}", 12)
     try:
         _auth_ip_rate_limit(request)
@@ -3574,7 +3578,7 @@ async def api_radar_screener(
     if radar_progress().get("running"):
         return {"ok": True, "running": True, "message": "扫描进行中，请稍候…"}
     try:
-        return await run_radar_dedup(signal=signal, strictness=strictness, force=bool(force))
+        return await run_radar_dedup(signal=signal, strictness=strictness, force=bool(force), price=price)
     except Exception as e:
         return {"ok": False, "error": "scan_failed", "message": f"{type(e).__name__}: {str(e)[:160]}"}
 
@@ -3584,12 +3588,16 @@ async def api_radar_screener_start(
     request: Request,
     signal: str = "both",
     strictness: str = "balanced",
+    price: str = "any",
     force: int = 1,
     user_id: int = Depends(get_current_user_id),
 ) -> dict:
     """AI雷达异步启动（防网关超时）。"""
     signal = str(signal or "both").strip().lower()
     strictness = str(strictness or "balanced").strip().lower()
+    price = str(price or "any").strip().lower()
+    if price not in ("any", "under10", "low10", "lt10"):
+        price = "any"
     _rate_limit(f"radar-screener:{user_id}", 12)
     try:
         _auth_ip_rate_limit(request)
@@ -3610,7 +3618,7 @@ async def api_radar_screener_start(
     if radar_task_running():
         return {"ok": True, "running": True}
     _asyncio.create_task(start_radar_background(
-        signal=signal, strictness=strictness, force=bool(int(force or 0))
+        signal=signal, strictness=strictness, force=bool(int(force or 0)), price=price
     ))
     return {"ok": True, "running": True, "message": "已开始扫描"}
 
@@ -3631,6 +3639,7 @@ async def api_radar_screener_result(
     request: Request,
     signal: str = "both",
     strictness: str = "balanced",
+    price: str = "any",
     user_id: int = Depends(get_current_user_id),
 ) -> dict:
     """只读当日扫描结果（不触发新扫描）。"""
@@ -3640,6 +3649,9 @@ async def api_radar_screener_result(
     strictness = str(strictness or "balanced").strip().lower()
     if strictness not in ("strict", "balanced", "loose"):
         strictness = "balanced"
+    price = str(price or "any").strip().lower()
+    if price not in ("any", "under10", "low10", "lt10"):
+        price = "any"
     _rate_limit(f"radar-result:{user_id}", 60)
     try:
         _auth_ip_rate_limit(request)
@@ -3654,7 +3666,7 @@ async def api_radar_screener_result(
     if radar_task_running() or radar_progress().get("running"):
         p = radar_progress()
         return {"ok": True, "running": True, "message": "扫描进行中，请稍候…", **p}
-    hit = get_radar_cached_result(signal=signal, strictness=strictness)
+    hit = get_radar_cached_result(signal=signal, strictness=strictness, price=price)
     if hit:
         return hit
     return {"ok": False, "error": "no_cache", "message": "暂无扫描结果，请先开始扫描。"}

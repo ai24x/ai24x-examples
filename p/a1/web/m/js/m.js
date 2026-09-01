@@ -69,20 +69,89 @@ function codeToSecid(code){
   return null;
 }
 
-/* ===== 搜索（名称/代码，走 /api/suggest） ===== */
+/* ===== 搜索（名称/代码/板块，走 /api/suggest） ===== */
+var PLATE_ALIAS = {
+  "证券": "90.BK0473", "煤炭": "90.BK0437", "军工": "90.BK0490", "国防军工": "90.BK1204",
+  "半导体": "90.BK1036", "光伏设备": "90.BK1031", "PCB": "90.BK1340",
+  "通信光模块CPO": "90.BK1128", "光通信模块": "90.BK1136", "通信": "90.BK1215",
+  "创新药CXO": "90.BK1600", "AI服务器算力": "90.BK1134", "种植业与林业": "90.BK1261"
+};
+function normKw(s){ return String(s || "").trim().replace(/\s+/g, ""); }
+function isPlateQid(qid){
+  qid = String(qid || "");
+  return /^90\.BK\d+$/i.test(qid) || /^ths:\d{6}$/i.test(qid);
+}
+function suggestSortKey(r, keyword){
+  var cl = String(r.Classify != null ? r.Classify : "");
+  var qid = String(r.QuoteID || "");
+  var code = String(r.Code || "");
+  var base = 4;
+  if (cl === "AStock" || cl === "NEEQ" || /^[01]\.\d{6}$/.test(qid) || /^92\d{4}$/.test(code)) base = 0;
+  else if (cl === "Index" || cl === "34") base = 1;
+  else if (cl.toUpperCase() === "BK" || /^90\.BK\d+$/i.test(qid)) base = 2;
+  else if (cl.toUpperCase() === "THS" || /^ths:\d{6}$/i.test(qid)) base = 3;
+  var kw = normKw(keyword);
+  var name = String(r.Name || "").replace(/\s+/g, "");
+  if (kw && name === kw) base -= 20;
+  else if (kw && name.indexOf(kw) === 0) base -= 10;
+  return base;
+}
+function mapSuggestRow(r, keyword){
+  var qid = String(r.QuoteID || "").trim();
+  var code = String(r.Code || "");
+  var name = String(r.Name || r.Code || qid);
+  var kind = "";
+  if (/^90\.BK/i.test(qid)) {
+    kind = "板块";
+    if (name.indexOf("板块") < 0 && name.indexOf("东财") < 0) name = name + "（板块）";
+  } else if (/^ths:/i.test(qid)) {
+    kind = "同花顺";
+    if (name.indexOf("同花顺") < 0) name = name + "（同花顺）";
+  } else if (String(r.Classify || "") === "Index" || String(r.Classify || "") === "34") {
+    kind = "指数";
+  }
+  return { qid: qid, name: name, code: code, kind: kind, sort: suggestSortKey(r, keyword) };
+}
+function filterSuggestRows(rows, keyword){
+  rows = rows || [];
+  var hasPlate = rows.some(function(r){ return isPlateQid(r && r.QuoteID); });
+  var out = [], seen = {};
+  rows.forEach(function(r){
+    if (!r) return;
+    var qid = String(r.QuoteID || "").trim();
+    var cl = String(r.Classify || "");
+    var code = String(r.Code || "");
+    if (!qid) return;
+    var key = qid.toUpperCase();
+    if (seen[key]) return;
+    var ok = false;
+    if (/^90\.BK\d+$/i.test(qid)) ok = true;
+    else if (/^ths:\d{6}$/i.test(qid)) ok = true;
+    else if (cl === "AStock" || cl === "NEEQ") ok = /^[01]\.\d{6}$/.test(qid);
+    else if (/^[01]\.\d{6}$/.test(qid)) ok = true;
+    else if (/^92\d{4}$/.test(code)) ok = true;
+    else if (!hasPlate && (cl === "Index" || cl === "34")) ok = true;
+    if (!ok) return;
+    seen[key] = 1;
+    out.push(mapSuggestRow(r, keyword));
+  });
+  out.sort(function(a, b){ return a.sort - b.sort || String(a.name).localeCompare(String(b.name)); });
+  return out;
+}
+function resolvePlateAlias(keyword){
+  var k = normKw(keyword);
+  if (!k) return null;
+  if (PLATE_ALIAS[k]) return PLATE_ALIAS[k];
+  for (var nm in PLATE_ALIAS){
+    if (!Object.prototype.hasOwnProperty.call(PLATE_ALIAS, nm)) continue;
+    if (normKw(nm) === k) return PLATE_ALIAS[nm];
+  }
+  return null;
+}
 function apiSuggest(kw){
   return api("/api/suggest", "q=" + encodeURIComponent(kw) + "&include_plates=1").then(function(json){
     var rows = (json && json.QuotationCodeTable && json.QuotationCodeTable.Data) || [];
-    var out = [], seen = {};
-    rows.forEach(function(r){
-      var qid = String(r.QuoteID || "");
-      var cl = String(r.Classify || "");
-      if (!/^[01]\.\d{6}$/.test(qid)) return;
-      if (cl !== "AStock" && cl !== "NEEQ" && cl !== "Index") return;
-      if (seen[qid]) return; seen[qid] = 1;
-      out.push({ qid: qid, name: String(r.Name || r.Code || qid), code: String(r.Code || "") });
-    });
-    return out.slice(0, 8);
+    return filterSuggestRows(rows, kw).slice(0, 10);
   }).catch(function(){ return []; });
 }
 var qEl = document.getElementById("q");
@@ -93,8 +162,9 @@ function showSuggest(list){
   suggestEl.innerHTML = "";
   list.forEach(function(it){
     var d = document.createElement("div"); d.className = "sg";
-    d.innerHTML = '<span class="nm">' + it.name + '</span><span class="cd">' + (it.code || it.qid) + '</span>';
-    d.addEventListener("click", function(){ goto(it.qid, it.name); hideSuggest(); });
+    var cd = it.kind ? it.kind : (it.code || String(it.qid || "").replace(/^90\./i, ""));
+    d.innerHTML = '<span class="nm">' + it.name + '</span><span class="cd">' + cd + '</span>';
+    d.addEventListener("click", function(){ goto(it.qid, it.name.replace(/（.*?）/g, "")); hideSuggest(); });
     suggestEl.appendChild(d);
   });
   suggestEl.classList.add("show");
@@ -127,9 +197,23 @@ function doSearch(){
   if (!v) return;
   var secid = codeToSecid(v);
   if (secid){ goto(secid, v); hideSuggest(); return; }
+  var plateSid = resolvePlateAlias(v);
   apiSuggest(v).then(function(list){
-    if (list.length){ var it = list[0]; goto(it.qid, it.name); hideSuggest(); }
-    else { qEl.placeholder = "未找到，请输入6位代码或名称"; hideSuggest(); showToast("未找到「" + v + "」：请检查输入是否有误，或换代码/名称（如 600519、贵州茅台）"); }
+    if (list.length){
+      var pick = list[0];
+      var kw = normKw(v);
+      for (var i = 0; i < list.length; i++){
+        var nm = normKw(String(list[i].name || "").replace(/（.*?）/g, ""));
+        if (nm === kw || (list[i].kind === "板块" && nm.indexOf(kw) === 0)){ pick = list[i]; break; }
+      }
+      goto(pick.qid, String(pick.name || "").replace(/（.*?）/g, ""));
+      hideSuggest();
+      return;
+    }
+    if (plateSid){ goto(plateSid, v); hideSuggest(); return; }
+    qEl.placeholder = "未找到，请输入6位代码或名称";
+    hideSuggest();
+    showToast("未找到「" + v + "」：请检查输入是否有误，或换代码/名称（如 600519、贵州茅台、证券）");
   });
 }
 document.getElementById("btn-go").addEventListener("click", doSearch);
