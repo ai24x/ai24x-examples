@@ -43,6 +43,14 @@ def get_by_email(db: Session, email: str) -> Optional[AuthUser]:
     return db.query(AuthUser).filter(AuthUser.email == e).first()
 
 
+def get_by_platform_user_id(db: Session, platform_user_id: int) -> Optional[AuthUser]:
+    """core(www) auth_users.id → open shadow user (DEC-0007)."""
+    pid = int(platform_user_id or 0)
+    if pid <= 0:
+        return None
+    return db.query(AuthUser).filter(AuthUser.platform_user_id == pid).first()
+
+
 def create_user_phone(db: Session, phone: str, password: str) -> AuthUser:
     p = normalize_mobile(phone)
     now = datetime.now(timezone.utc)

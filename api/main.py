@@ -450,6 +450,7 @@ async def chat_run(
             or (http_request.headers.get("cf-ipcountry") or "").strip()
             or None
         )
+        byok_project = (http_request.headers.get("x-byok-project") or "").strip()[:64] or None
         response = ChatService.process_chat_request(
             db=db,
             user=current_user,
@@ -459,6 +460,7 @@ async def chat_run(
             auth_user_id=auth_uid,
             auth_api_key_id=auth_api_key_id,
             region_hint=region_hint,
+            byok_project=byok_project,
         )
         
         logger.info(f"Chat request processed: {response.request_id} for user: {current_user.user_id}")
@@ -519,6 +521,7 @@ async def chat_completions(
         or (http_request.headers.get("cf-ipcountry") or "").strip()
         or None
     )
+    byok_project = (http_request.headers.get("x-byok-project") or "").strip()[:64] or None
 
     cmpl_id = completion_id()
 
@@ -536,6 +539,7 @@ async def chat_completions(
                 auth_user_id=auth_uid,
                 auth_api_key_id=auth_api_key_id,
                 region_hint=region_hint,
+                byok_project=byok_project,
             )
         except HTTPException:
             raise
@@ -565,6 +569,7 @@ async def chat_completions(
             auth_user_id=auth_uid,
             auth_api_key_id=auth_api_key_id,
             region_hint=region_hint,
+            byok_project=byok_project,
         )
     except HTTPException:
         raise
@@ -635,6 +640,7 @@ async def openai_responses_create(
         or (http_request.headers.get("cf-ipcountry") or "").strip()
         or None
     )
+    byok_project = (http_request.headers.get("x-byok-project") or "").strip()[:64] or None
     rid = response_id()
 
     # ⚠️ 主脑 2026-08-12 五修【DIAG】：Codex 完整请求 400 诊断（临时，定位后移除/精简）
@@ -668,6 +674,7 @@ async def openai_responses_create(
                 auth_user_id=auth_uid,
                 auth_api_key_id=auth_api_key_id,
                 region_hint=region_hint,
+                byok_project=byok_project,
             )
         except HTTPException:
             raise
@@ -697,6 +704,7 @@ async def openai_responses_create(
             auth_user_id=auth_uid,
             auth_api_key_id=auth_api_key_id,
             region_hint=region_hint,
+            byok_project=byok_project,
         )
     except HTTPException:
         raise
@@ -3665,8 +3673,28 @@ async def admin_products_markets(request: Request, kind: str):
         logger.warning("markets admin proxy error kind=%s: %r", kind, e)
         raise HTTPException(status_code=502, detail="markets 子服务暂不可用")
     if r.status_code != 200:
-        logger.warning("markets admin proxy status kind=%s status=%s", kind, r.status_code)
-        raise HTTPException(status_code=502, detail=f"markets 子服务返回 {r.status_code}")
+        detail_txt = ""
+        try:
+            detail_txt = (r.text or "")[:200]
+        except Exception:
+            detail_txt = ""
+        logger.warning(
+            "markets admin proxy status kind=%s status=%s body=%s",
+            kind,
+            r.status_code,
+            detail_txt,
+        )
+        # 把子服务 reason 简短带回，便于区分 bad_secret / loopback_only（不含密钥）
+        reason = ""
+        try:
+            j = r.json()
+            reason = str((j or {}).get("detail") or (j or {}).get("msg") or "")[:80]
+        except Exception:
+            reason = ""
+        msg = f"markets 子服务返回 {r.status_code}"
+        if reason:
+            msg = f"{msg}（{reason}）"
+        raise HTTPException(status_code=502, detail=msg)
     try:
         return r.json()
     except Exception:

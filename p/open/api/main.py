@@ -3703,7 +3703,9 @@ async def admin_token_orders_query_fulfill(
 # BYOK 智能网关（2026-08-18）：用户自有 key 管理 / 用量统计 / 状态
 # 鉴权复用 get_current_user（JWT 或 sk-），须挂在静态站点 mount 之前
 from byok_routes import router as byok_router
+from byok_internal import router as byok_internal_router
 
+app.include_router(byok_internal_router)
 app.include_router(
     byok_router,
     prefix="/v1",

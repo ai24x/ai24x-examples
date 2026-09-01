@@ -270,5 +270,13 @@ class Settings(BaseSettings):
     )
     token_llm_timeout_s: float = Field(default=30.0, validation_alias="TOKEN_LLM_TIMEOUT_S")
 
+    # BYOK One API bridge: core chat → open internal BYOK router
+    byok_bridge_enabled: bool = Field(default=False, validation_alias="BYOK_BRIDGE_ENABLED")
+    open_api_base: str = Field(
+        default="http://127.0.0.1:18080",
+        validation_alias="OPEN_API_BASE",
+        description="open gateway loopback (AI24X-open-api 18080 on 04)",
+    )
+
 
 settings = Settings()

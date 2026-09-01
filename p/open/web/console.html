@@ -338,7 +338,7 @@
       <div class="container">
         <p class="hero-eyebrow" data-i18n="page.console.workspace.eyebrow">AI Gateway Workspace</p>
         <h1 data-i18n="page.console.title">AI Gateway Console</h1>
-        <p class="lead" data-i18n="page.console.workspace.sub">Keys, BYOK and try-call live here — billing stays on Account Hub.</p>
+        <p class="lead" data-i18n="page.console.workspace.sub">Keys, BYOK and try-call live here — top-ups, orders and transactions stay on Account Hub.</p>
       </div>
     </section>
 
@@ -347,10 +347,10 @@
         <aside class="console-sidebar" aria-label="Console navigation">
           <nav class="console-nav" id="console-nav">
             <button type="button" class="console-nav-item is-active" data-console-panel="overview" data-i18n="page.console.nav.overview">Overview</button>
-            <button type="button" class="console-nav-item" data-console-panel="billing" data-i18n="page.console.nav.plans">Plans</button>
+            <button type="button" class="console-nav-item" data-console-panel="billing" data-i18n="page.console.nav.plans">BYOK plans</button>
             <button type="button" class="console-nav-item" data-console-panel="keys" data-i18n="page.console.nav.keys">API keys</button>
             <button type="button" class="console-nav-item" data-console-panel="byok" data-i18n="page.console.nav.byok">BYOK keys</button>
-            <button type="button" class="console-nav-item" data-console-panel="transactions" data-i18n="page.console.nav.transactions">Transactions</button>
+            <a class="console-nav-item" href="https://www.ai24x.com/console.html?from=gateway#transactions" data-www data-hub-external rel="noopener noreferrer" data-i18n="page.console.nav.transactionsHub">Transactions ↗</a>
             <button type="button" class="console-nav-item" data-console-panel="playground" data-i18n="page.console.nav.playground">Try call</button>
             <button type="button" class="console-nav-item" id="btn-logout" data-i18n="page.console.nav.logout" style="margin-top:auto;opacity:0.7">Logout</button>
             </nav>
@@ -364,12 +364,13 @@
               <h2 class="mt-0" data-i18n="page.console.nav.overview">Overview</h2>
               <p class="sub" data-i18n="page.console.overview.lead">Create a key, run a test call, or attach BYOK keys. Balance below is the same wallet as Account Hub.</p>
             </div>
-            <p class="ws-hub-note" data-i18n-html="page.console.overview.hubNote">Credits are shared with Account Hub. Top up, orders and invites stay on <a href="https://www.ai24x.com/console.html?from=gateway" data-www>Account Hub</a>.</p>
+            <p class="ws-hub-note" data-i18n-html="page.console.overview.hubNote">Credits are shared with Account Hub. Top up, orders, transactions and invites stay on <a href="https://www.ai24x.com/console.html?from=gateway" data-www>Account Hub</a>.</p>
             <div class="ws-quick-actions">
               <button type="button" class="btn btn-primary" data-console-panel="keys" data-i18n="page.console.overview.quickKeys">API keys</button>
               <button type="button" class="btn" data-console-panel="playground" data-i18n="page.console.overview.quickPlayground">Try call</button>
               <button type="button" class="btn" data-console-panel="byok" data-i18n="page.console.overview.quickByok">BYOK keys</button>
-              <a class="btn" href="https://www.ai24x.com/console.html?from=gateway#billing" data-www data-hub-external target="_blank" rel="noopener noreferrer" data-i18n="page.console.overview.quickBilling">Top up credits</a>
+              <a class="btn" href="https://www.ai24x.com/console.html?from=gateway#billing" data-www data-hub-external rel="noopener noreferrer" data-i18n="page.console.overview.quickBilling">Top up credits</a>
+              <a class="btn" href="https://www.ai24x.com/console.html?from=gateway#transactions" data-www data-hub-external rel="noopener noreferrer" data-i18n="page.console.overview.quickTx">Transactions</a>
             </div>
             <div class="card console-identity" id="overview-identity">
               <div class="console-identity-row">
@@ -382,7 +383,7 @@
                   <div class="console-identity-value" id="overview-plan">--</div>
                 </div>
                 <div class="console-identity-actions">
-                  <a class="btn" href="https://www.ai24x.com/console.html?from=gateway#account" data-www target="_blank" rel="noopener" data-i18n="page.console.overview.accountLink">Account details</a>
+                  <a class="btn" href="https://www.ai24x.com/console.html?from=gateway#account" data-www data-hub-external rel="noopener noreferrer" data-i18n="page.console.overview.accountLink">Account details</a>
                 </div>
               </div>
             </div>
@@ -392,7 +393,7 @@
               <div class="card-actions" style="margin-top:10px">
                 <button type="button" class="btn btn-primary" id="howto-cta-try">Try call</button>
                 <button type="button" class="btn" id="btn-continue-shared" style="display:none">Continue free shared</button>
-                <a class="btn" id="howto-cta-billing" href="https://www.ai24x.com/console.html?from=gateway#billing" data-www data-hub-external target="_blank" rel="noopener noreferrer" data-i18n="page.console.stat.creditsCta">Top up credits</a>
+                <a class="btn" id="howto-cta-billing" href="https://www.ai24x.com/console.html?from=gateway#billing" data-www data-hub-external rel="noopener noreferrer" data-i18n="page.console.stat.creditsCta">Top up credits</a>
               </div>
             </div>
             <div id="balance-cta" style="display:none" hidden aria-hidden="true"></div>
@@ -406,7 +407,7 @@
                 <div class="stat-sub" id="stat-balance-sub" data-i18n="page.console.stat.balance.sub">For flash / pro / named models</div>
                 <div class="stat-sub" style="margin-top:6px" data-i18n="page.console.stat.balanceHubHint">Same wallet as Account Hub</div>
                 <div style="margin-top:10px">
-                  <a class="btn btn-primary" id="creditsOvCta" href="https://www.ai24x.com/console.html?from=gateway#billing" data-www data-hub-external target="_blank" rel="noopener noreferrer" data-i18n="page.console.stat.creditsCta">Top up on Account Hub</a>
+                  <a class="btn btn-primary" id="creditsOvCta" href="https://www.ai24x.com/console.html?from=gateway#billing" data-www data-hub-external rel="noopener noreferrer" data-i18n="page.console.stat.creditsCta">Top up on Account Hub</a>
                 </div>
               </div>
               <div class="stat-card" id="stat-shared-card">
@@ -430,7 +431,7 @@
               <p class="sub" data-i18n="page.console.overview.quickSub">Most-used steps for connecting and topping up.</p>
               <div class="card-actions">
                 <button type="button" class="btn btn-primary" data-action="create-key" data-i18n="page.console.keys.create">Create key</button>
-                <button type="button" class="btn" data-console-panel="billing" data-i18n="page.console.nav.plans">Plans</button>
+                <button type="button" class="btn" data-console-panel="billing" data-i18n="page.console.nav.plans">BYOK plans</button>
                 <button type="button" class="btn" data-console-panel="playground" data-i18n="page.console.nav.playground">Try call</button>
                 <button type="button" class="btn" id="btn-refresh" data-i18n="page.console.actions.refresh">Refresh data</button>
                 <a class="btn" href="guides/index.html" data-i18n="nav.guides">Integrations</a>
@@ -472,6 +473,7 @@
             <div class="console-panel-head">
               <h2 class="mt-0" data-i18n="page.console.byok.title">BYOK keys · bring your own keys</h2>
               <p class="sub" id="byok-fee-note" data-i18n="page.console.byok.feeNote">Gateway service fee only — your keys bill at provider rates. Cache hits do not spend quota.</p>
+              <p class="sub" data-i18n="page.console.byok.apiHint">Calls: create your API key in Account Hub and use https://api.ai24x.com/v1. Manage upstream keys on this page only.</p>
             </div>
 
             <div class="card" id="byok-status-card" style="display:none">
@@ -505,7 +507,7 @@
               </div>
               <div class="byok-form-grid mt-2">
                 <label>
-                  <span class="stat-label">Provider</span>
+                  <span class="stat-label" data-i18n="page.console.byok.providerLabel">Provider</span>
                   <select class="input" id="byok-provider">
                     <option value="openai">OpenAI</option>
                     <option value="anthropic">Anthropic (Messages API)</option>
@@ -559,7 +561,7 @@
                 <table class="keys-table" aria-label="BYOK keys">
                   <thead>
                     <tr>
-                      <th>Provider</th>
+                      <th data-i18n="page.console.byok.providerLabel">Provider</th>
                       <th data-i18n="page.console.byok.colName">Name</th>
                       <th data-i18n="page.console.byok.colKey">Key prefix</th>
                       <th data-i18n="page.console.byok.colModels">Models</th>
@@ -595,11 +597,11 @@
               </div>
               <div class="stats-grid byok-stats-grid mt-2">
                 <div class="stat-card">
-                  <div class="stat-label">请求数</div>
+                  <div class="stat-label" data-i18n="page.console.byok.statReq">Requests</div>
                   <div class="stat-value" id="byok-usage-req">--</div>
                 </div>
                 <div class="stat-card">
-                  <div class="stat-label">成功 / 缓存</div>
+                  <div class="stat-label" data-i18n="page.console.byok.statOk">Success / cache</div>
                   <div class="stat-value" id="byok-usage-ok">--</div>
                 </div>
                 <div class="stat-card">
@@ -607,16 +609,16 @@
                   <div class="stat-value" id="byok-usage-tokens">--</div>
                 </div>
                 <div class="stat-card">
-                  <div class="stat-label">估算成本 (USD)</div>
+                  <div class="stat-label" data-i18n="page.console.byok.statCost">Est. cost (USD)</div>
                   <div class="stat-value" id="byok-usage-cost">--</div>
                 </div>
                 <div class="stat-card">
-                  <div class="stat-label">平均延迟</div>
+                  <div class="stat-label" data-i18n="page.console.byok.statLatency">Avg latency</div>
                   <div class="stat-value" id="byok-usage-latency">--</div>
                 </div>
               </div>
               <div class="usage-stats-head mt-3">
-                <h4 class="mt-0 mb-0" id="byok-usage-chart-title">Daily trend</h4>
+                <h4 class="mt-0 mb-0" id="byok-usage-chart-title" data-i18n="page.console.byok.chartTitle">Daily trend</h4>
                 <div class="usage-metric-group" id="byok-usage-metric-group">
                   <button type="button" class="btn usage-metric-btn is-active" data-byok-metric="cost">Cost</button>
                   <button type="button" class="btn usage-metric-btn" data-byok-metric="tokens">Tokens</button>
@@ -628,13 +630,13 @@
                 <table class="usage-table" aria-label="BYOK usage">
                   <thead>
                     <tr>
-                      <th>分组</th>
-                      <th>请求</th>
-                      <th>成功</th>
-                      <th>缓存</th>
+                      <th data-i18n="page.console.byok.colGroup">Group</th>
+                      <th data-i18n="page.console.byok.colReq">Requests</th>
+                      <th data-i18n="page.console.byok.colSuccess">Success</th>
+                      <th data-i18n="page.console.byok.colCache">Cache</th>
                       <th>Tokens</th>
-                      <th>成本 (USD)</th>
-                      <th>平均延迟</th>
+                      <th data-i18n="page.console.byok.colCost">Cost (USD)</th>
+                      <th data-i18n="page.console.byok.colAvgLat">Avg latency</th>
                     </tr>
                   </thead>
                   <tbody id="byokUsageList"></tbody>
@@ -643,13 +645,13 @@
             </div>
           </div>
 
-          <!-- Billing -->
+          <!-- Billing / BYOK plans -->
           <div class="console-panel" id="panel-billing" data-console-panel="billing" role="tabpanel" hidden>
             <div class="console-panel-head">
-              <h2 class="mt-0" data-i18n="page.console.nav.plans">Plans</h2>
+              <h2 class="mt-0" data-i18n="page.console.nav.plans">BYOK plans</h2>
               <p class="sub" id="payHint" data-i18n="page.console.plans.loading">Loading…</p>
               <p class="billing-hub-link sub">
-                <a href="https://www.ai24x.com/console.html?from=gateway#billing" data-www target="_blank" rel="noopener" data-i18n="page.console.plans.wwwHub">Open account hub — credits, orders and usage for every product.</a>
+                <a href="https://www.ai24x.com/console.html?from=gateway#billing" data-www data-hub-external rel="noopener noreferrer" data-i18n="page.console.plans.wwwHub">Open account hub — credits, orders and usage for every product.</a>
               </p>
             </div>
             <div class="byok-sub-banner" id="byokSubBanner" hidden>
@@ -670,102 +672,28 @@
               <div class="plans-group" id="plansGroupToken" style="margin-top:1rem">
                 <div class="card" style="border-color: color-mix(in srgb, var(--accent, #2563eb) 45%, transparent);">
                   <h3 class="mt-0" data-i18n="page.console.plans.creditsTitle">AI Gateway credits</h3>
-                  <p class="sub" data-i18n="page.console.plans.creditsLead">One wallet across all products. Top up here; orders and usage live in your account hub.</p>
-                  <p class="sub" style="margin-top:4px" data-i18n="page.console.plans.creditsRedirectNote">BYOK plans and orders are listed below on this page.</p>
-                  <div class="mt-2">
-                    <a class="btn btn-primary" id="creditsTopupCta" href="https://www.ai24x.com/console.html?from=gateway#billing" data-www target="_blank" rel="noopener" data-i18n="page.console.plans.creditsRedirectCta">Top up credits</a>
+                  <p class="sub" data-i18n="page.console.plans.creditsLead">One wallet across all products. Top up in Account Hub; orders and usage live there too.</p>
+                  <p class="sub" style="margin-top:4px" data-i18n="page.console.plans.creditsRedirectNote">Gateway credits, order history and the ledger stay on Account Hub.</p>
+                  <div class="mt-2" style="display:flex;gap:8px;flex-wrap:wrap">
+                    <a class="btn btn-primary" id="creditsTopupCta" href="https://www.ai24x.com/console.html?from=gateway#billing" data-www data-hub-external rel="noopener noreferrer" data-i18n="page.console.plans.creditsRedirectCta">Top up credits</a>
+                    <a class="btn" href="https://www.ai24x.com/console.html?from=gateway#orders" data-www data-hub-external rel="noopener noreferrer" data-i18n="page.console.orders.viewAll">View order history →</a>
                   </div>
                 </div>
-              </div>
-              <div class="card" style="margin-top:1rem">
-                <h3 class="mt-0" data-i18n="page.console.orders.title">My orders</h3>
-                <p class="sub" data-i18n="page.console.orders.sub">Pending orders: confirm payment</p>
-                <ul class="list-clean" id="ordersList"></ul>
               </div>
             </div>
           </div>
 
-          <!-- Billing: transactions + usage stats -->
+          <!-- Transactions: redirect interstitial (ledger lives on Account Hub) -->
           <div class="console-panel" id="panel-transactions" data-console-panel="transactions" role="tabpanel" hidden>
             <div class="console-panel-head">
               <h2 class="mt-0" data-i18n="page.console.nav.transactions">Transactions</h2>
-              <p class="sub" data-i18n="page.console.transactions.lead">All account transactions: top-ups, usage, bonuses, referrals, and expirations.</p>
-            </div>
-            <div class="stats-grid" id="txSummary" style="margin-bottom:1rem">
-              <div class="stat-card">
-                <div class="stat-label" data-i18n="page.console.transactions.totalIn">Total in</div>
-                <div class="stat-value" id="tx-total-in">--</div>
-                <div class="stat-sub" id="tx-total-in-sub"></div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-label" data-i18n="page.console.transactions.totalOut">Total out</div>
-                <div class="stat-value" id="tx-total-out">--</div>
-                <div class="stat-sub" id="tx-total-out-sub"></div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-label" data-i18n="page.console.transactions.balance">Balance</div>
-                <div class="stat-value" id="tx-balance">--</div>
-                <div class="stat-sub" data-i18n="page.console.transactions.balance.sub">Tokens</div>
-              </div>
-            </div>
-            <div class="card usage-rangebar">
-              <span class="usage-range-label" id="usage-range-label"></span>
-              <div class="usage-range-group" id="usage-range-group">
-                <button type="button" class="btn usage-range-btn is-active" data-range="month"></button>
-                <button type="button" class="btn usage-range-btn" data-range="7d"></button>
-                <button type="button" class="btn usage-range-btn" data-range="30d"></button>
-                <button type="button" class="btn usage-range-btn" data-range="all"></button>
-              </div>
-            </div>
-            <div class="card mt-2" id="usageStatsCard" style="display:none">
-              <div class="usage-stats-head">
-                <h3 class="mt-0" id="usage-chart-title"></h3>
-                <div class="usage-metric-group" id="usage-metric-group">
-                  <button type="button" class="btn usage-metric-btn is-active" data-metric="usd"></button>
-                  <button type="button" class="btn usage-metric-btn" data-metric="tokens"></button>
-                  <button type="button" class="btn usage-metric-btn" data-metric="calls"></button>
-                </div>
-              </div>
-              <div id="usageChart" class="usage-chart"></div>
-              <h3 class="mt-2" id="usage-models-title"></h3>
-              <div id="usageModels" class="usage-models"></div>
-              <h3 class="mt-2" id="usage-keys-title"></h3>
-              <div id="usageKeys" class="usage-models"></div>
+              <p class="sub" data-i18n-html="page.console.transactions.hubRedirect">Top-ups, usage and bonuses are on Account Hub — the same wallet as the balance above.</p>
             </div>
             <div class="card">
-              <div class="usage-toolbar" style="align-items:center">
-                <div class="usage-range-group" id="tx-type-group">
-                  <button type="button" class="btn tx-type-btn is-active" data-tx-type="">All</button>
-                  <button type="button" class="btn tx-type-btn" data-tx-type="topup">Top-up</button>
-                  <button type="button" class="btn tx-type-btn" data-tx-type="consume">Usage</button>
-                  <button type="button" class="btn tx-type-btn" data-tx-type="bonus">Bonus</button>
-                  <button type="button" class="btn tx-type-btn" data-tx-type="referral">Referral</button>
-                  <button type="button" class="btn tx-type-btn" data-tx-type="expire">Expired</button>
-                </div>
-                <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
-                  <button id="usage-export-btn" class="btn" type="button"></button>
-                  <div class="usage-pager">
-                    <button id="tx-prev" class="btn" type="button">‹ Prev</button>
-                    <span id="tx-page-info" class="usage-page-info"></span>
-                    <button id="tx-next" class="btn" type="button">Next ›</button>
-                  </div>
-                </div>
-              </div>
-              <div class="usage-table-wrap">
-                <table class="usage-table" id="txTable">
-                  <thead>
-                    <tr>
-                      <th class="col-time" data-i18n="page.console.transactions.time">Time</th>
-                      <th class="col-type" data-i18n="page.console.transactions.type">Type</th>
-                      <th class="col-model" data-i18n="page.console.transactions.model">Model</th>
-                      <th class="col-amount" data-i18n="page.console.transactions.amount">Amount</th>
-                      <th class="col-tokens" data-i18n="page.console.transactions.tokens">Tokens</th>
-                      <th class="col-tokens" data-i18n="page.console.transactions.balance">Balance</th>
-                      <th class="col-note" data-i18n="page.console.transactions.note">Note</th>
-                    </tr>
-                  </thead>
-                  <tbody id="txList"></tbody>
-                </table>
+              <p class="sub" data-i18n="page.console.transactions.hubRedirectHint">BYOK usage for your own keys stays under BYOK keys on this page.</p>
+              <div class="card-actions" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+                <a class="btn btn-primary" id="tx-hub-cta" href="https://www.ai24x.com/console.html?from=gateway#transactions" data-www data-hub-external rel="noopener noreferrer" data-i18n="page.console.transactions.hubCta">Open Account Hub transactions</a>
+                <button type="button" class="btn" data-console-panel="byok" data-i18n="page.console.nav.byok">BYOK keys</button>
               </div>
             </div>
           </div>
@@ -954,15 +882,15 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260831b"></script>
-  <script src="js/api.js?v=20260829n"></script>
+  <script src="config/locales.js?v=20260902a"></script>
+  <script src="js/api.js?v=20260901b"></script>
   <script src="js/invite.js?v=20260731a"></script>
   <script src="js/utm.js?v=20260802a"></script>
   <script src="js/i18n.js?v=20260812g"></script>
   <script src="js/ai24x-chrome.js?v=20260829n"></script>
   <script src="js/shell.js?v=20260829n"></script>
   <script src="js/app.js?v=20260808b"></script>
-  <script src="js/console.js?v=20260831b"></script>
+  <script src="js/console.js?v=20260901c"></script>
   <script src="js/support-widget.js?v=20260817z"></script>
 </body>
 </html>

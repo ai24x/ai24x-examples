@@ -1,5 +1,6 @@
 import uuid
 import time
+import logging
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from sqlalchemy.orm import Session
@@ -9,6 +10,8 @@ from models import User, ChatRequest, UserType
 from schemas import ChatRequest as ChatRequestSchema, ChatResponse
 from config import settings
 from security_util import attribution_block
+
+logger = logging.getLogger(__name__)
 
 
 def _usd_cents_for_tokens(token_count: int) -> int:
@@ -124,6 +127,7 @@ class ChatService:
         auth_user_id: Optional[int] = None,
         region_hint: Optional[str] = None,
         auth_api_key_id: Optional[int] = None,  # 2026-08-15: 按 API Key 统计
+        byok_project: Optional[str] = None,
     ) -> ChatResponse:
         """处理聊天请求；若提供 auth_user_id 则走 Token 钱包扣减。"""
         request_id = f"req_{uuid.uuid4().hex[:16]}"
@@ -159,6 +163,28 @@ class ChatService:
         db.add(chat_request)
         db.commit()
 
+        # BYOK（One API）：Hub key @ api.ai24x.com → open 内部路由
+        byok_result = None
+        if auth_user_id is not None:
+            try:
+                from byok_bridge import ByokEntitlementError, route_byok_chat
+
+                byok_result = route_byok_chat(
+                    db,
+                    auth_user_id=int(auth_user_id),
+                    request=request,
+                    region_hint=region_hint,
+                    project=byok_project,
+                )
+            except ByokEntitlementError as e:
+                raise HTTPException(
+                    status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                    detail=str(e.message or e),
+                ) from e
+            except Exception:
+                byok_result = None
+                logger.exception("byok bridge failed, fallback platform")
+
         try:
             from token_mvp_service import get_balance_snapshot
             from model_router import run_routed_chat
@@ -176,7 +202,9 @@ class ChatService:
             routed_tool_calls = None
             routed_finish = None
             used_shared_catalog = None
-            if billing_mode == "shared":
+            if byok_result is not None:
+                routed = byok_result
+            elif billing_mode == "shared":
                 from free_shared import run_shared_pool_chat
 
                 # 共享池：工具调用仍走付费路由语义；无余额降级时暂不支持 tools
@@ -262,6 +290,16 @@ class ChatService:
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail="当前模型暂不支持工具调用，请改用 flash 或 pro，或稍后再试。",
                     )
+                if (routed.error or "").startswith("byok_all_failed"):
+                    raise HTTPException(
+                        status_code=status.HTTP_502_BAD_GATEWAY,
+                        detail={
+                            "message_zh": "你的所有上游 Key 均调用失败，且平台回退已关闭。请到 Gateway 工作区检查 Key 状态或更换 Key。",
+                            "message_en": "All your upstream keys failed and platform fallback is disabled. Check your keys in the Gateway workspace.",
+                            "message": "All BYOK upstream keys failed.",
+                            "code": "byok_all_failed",
+                        },
+                    )
                 raise HTTPException(
                     status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                     detail="模型服务暂时繁忙，请稍后再试。",
@@ -321,7 +359,10 @@ class ChatService:
                     snap = get_balance_snapshot(db, int(auth_user_id))
                     remaining_quota = int(snap.get("shared_remain_tokens") or 0)
                 else:
-                    if billable and token_count > 0:
+                    byok_used = getattr(routed, "byok_key_id", None) is not None
+                    if byok_used:
+                        pass
+                    elif billable and token_count > 0:
                         consume_tokens(
                             db,
                             auth_user_id=int(auth_user_id),
@@ -346,13 +387,14 @@ class ChatService:
                     snap = get_balance_snapshot(db, int(auth_user_id))
                     remaining_quota = int(snap.get("balance_tokens") or 0)
 
-            if billing_mode == "shared":
+            byok_key_id = getattr(routed, "byok_key_id", None)
+            if billing_mode == "shared" and byok_key_id is None:
                 public_model = "shared"
 
             attr = attribution_block(
                 request_id=request_id, auth_user_id=auth_user_id
             )
-            if billing_mode == "shared":
+            if billing_mode == "shared" and byok_key_id is None:
                 attr["billing_mode"] = "shared"
                 attr["auto_degraded"] = bool(billing.get("auto_degraded"))
                 if billing.get("auto_degraded"):
@@ -377,6 +419,10 @@ class ChatService:
                         attr["shared_remain_req"] = shared_info.get("remain_req")
             else:
                 attr["billing_mode"] = "paid"
+                if byok_key_id is not None:
+                    attr["billing_mode"] = "byok"
+                    attr["fee_note_zh"] = "本次走你自有的上游 Key，平台不扣托管余额，仅计网关服务。"
+                    attr["fee_note_en"] = "This request used your own upstream key. We charge a gateway service fee only, no token markup."
 
             return ChatResponse(
                 request_id=request_id,
@@ -387,9 +433,9 @@ class ChatService:
                 user_type=user.user_type,
                 remaining_quota=remaining_quota,
                 created_at=datetime.utcnow(),
-                layer=None,
-                provider="ai24x",
-                route_attempts=None,
+                layer="BYOK" if byok_key_id is not None else None,
+                provider="byok" if byok_key_id is not None else "ai24x",
+                route_attempts=getattr(routed, "attempts", None) if byok_key_id is not None else None,
                 attribution=attr,
                 tool_calls=routed_tool_calls,
                 finish_reason=routed_finish
@@ -415,6 +461,7 @@ class ChatService:
         auth_user_id: Optional[int] = None,
         region_hint: Optional[str] = None,
         auth_api_key_id: Optional[int] = None,  # 2026-08-15: 按 API Key 统计
+        byok_project: Optional[str] = None,
     ):
         """真流式：yield meta/delta/done；记账与生成器解耦（finally 兜底）。
 
@@ -452,6 +499,27 @@ class ChatService:
         db.add(chat_request)
         db.commit()
 
+        byok_stream = None
+        if auth_user_id is not None:
+            try:
+                from byok_bridge import ByokEntitlementError, stream_byok_chat
+
+                byok_stream = stream_byok_chat(
+                    db,
+                    auth_user_id=int(auth_user_id),
+                    request=request,
+                    region_hint=region_hint,
+                    project=byok_project,
+                )
+            except ByokEntitlementError as e:
+                raise HTTPException(
+                    status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                    detail=str(e.message or e),
+                ) from e
+            except Exception:
+                byok_stream = None
+                logger.exception("byok bridge stream setup failed, fallback platform")
+
         msgs = getattr(request, "messages", None)
         public_model = request.model or "flash"
         provider = "ai24x"
@@ -461,6 +529,7 @@ class ChatService:
         prompt_tokens: Optional[int] = None
         completion_tokens: Optional[int] = None
         billable = True
+        byok_used = byok_stream is not None
         saw_done = False
         saw_error = False
         error_detail = ""
@@ -484,7 +553,7 @@ class ChatService:
                     chat_request.token_count = int(token_count) if billable else 0
                     db.commit()
                     UserService.increment_request_count(db, user)
-                    if auth_user_id is not None and billable and token_count > 0:
+                    if auth_user_id is not None and billable and token_count > 0 and not byok_used:
                         from token_mvp_service import consume_tokens
                         from free_shared import record_shared_usage
 
@@ -543,7 +612,7 @@ class ChatService:
                     allow_names = value_pack_allowed_models(db, int(auth_user_id))
 
             used_shared_catalog = None
-            if billing_mode == "shared":
+            if billing_mode == "shared" and byok_stream is None:
                 if getattr(request, "tools", None):
                     saw_error = True
                     error_detail = "tools_need_balance"
@@ -585,7 +654,7 @@ class ChatService:
                 }
                 saw_done = True
             else:
-                if auth_user_id is not None:
+                if auth_user_id is not None and byok_stream is None:
                     from token_mvp_service import assert_can_spend
 
                     assert_can_spend(
@@ -598,18 +667,21 @@ class ChatService:
                         ),
                         model=request.model,
                     )
-                for ev in run_routed_chat_stream(
-                    prompt=request.prompt,
-                    requested_model=request.model,
-                    is_vip=is_vip,
-                    allow_names=allow_names,
-                    temperature=float(request.temperature or 0.7),
-                    max_tokens=int(request.max_tokens or 1000),
-                    region_hint=region_hint,
-                    messages=msgs if isinstance(msgs, list) else None,
-                    tools=getattr(request, "tools", None),
-                    tool_choice=getattr(request, "tool_choice", None),
-                ):
+                stream_iter = byok_stream
+                if stream_iter is None:
+                    stream_iter = run_routed_chat_stream(
+                        prompt=request.prompt,
+                        requested_model=request.model,
+                        is_vip=is_vip,
+                        allow_names=allow_names,
+                        temperature=float(request.temperature or 0.7),
+                        max_tokens=int(request.max_tokens or 1000),
+                        region_hint=region_hint,
+                        messages=msgs if isinstance(msgs, list) else None,
+                        tools=getattr(request, "tools", None),
+                        tool_choice=getattr(request, "tool_choice", None),
+                    )
+                for ev in stream_iter:
                     et = ev.get("type")
                     if et == "meta":
                         public_model = str(
@@ -700,6 +772,13 @@ class ChatService:
         """
         if auth_user_id is None:
             return
+        try:
+            from byok_bridge import has_byok_coverage
+
+            if has_byok_coverage(db, int(auth_user_id), request.model):
+                return
+        except Exception:
+            pass
         from free_shared import resolve_chat_billing_mode
 
         billing = resolve_chat_billing_mode(
