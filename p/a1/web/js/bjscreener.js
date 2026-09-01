@@ -1179,10 +1179,12 @@ window.AI24X_BJScreener = (function () {
     html += '<div class="pick-grid">';
     picks.forEach(function (p, i) { html += pickCardHtml(p, i); });
     html += '</div>';
-    var watch = (d.watch || []).slice(0, 2);
+    // 推荐位硬顶 2：精选优先；仅精选不足时用观察补位，精选已满则不展示观察
+    var watchSlots = Math.max(0, 2 - picks.length);
+    var watch = watchSlots ? (d.watch || []).slice(0, watchSlots) : [];
     if (watch.length) {
       html += '<div class="sec-label">' + dataDayLabel(d) + '观察 · ' + watch.length + ' 只</div>';
-      html += '<div class="bj-note">观察不等于精选：结构刚达标或热度尚可，适合跟踪，不建议当作今日重点。</div>';
+      html += '<div class="bj-note">今日精选不足 2 只；观察仅作跟踪补位，不与精选等同。</div>';
       html += '<div class="pick-grid watch-grid">';
       watch.forEach(function (p, i) { html += pickCardHtml(p, i); });
       html += '</div>';

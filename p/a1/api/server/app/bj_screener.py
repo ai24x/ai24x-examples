@@ -8483,10 +8483,14 @@ async def run_scan(
     # 观察池：站上60+涨停热门，但不达精选严门
     _watch_src = list(all_sorted or []) or list(pool or [])
     _rq_w = bool(cfg.get("pickRequireZt", True))
-    # 观察池也收敛：避免页面看起来像「又推了一堆」
-    watch_list = _filter_watch_picks(_watch_src, exclude_codes=picked, require_zt=_rq_w, limit=2)
+    # 观察仅补位：精选已满 2 只则不返回观察，避免页面像推了 3+ 只
+    _watch_cap = max(0, 2 - len(picks))
     if _emo_reg == "risk_off":
-        watch_list = watch_list[:1]
+        _watch_cap = min(_watch_cap, 1)
+    watch_list = (
+        _filter_watch_picks(_watch_src, exclude_codes=picked, require_zt=_rq_w, limit=_watch_cap)
+        if _watch_cap > 0 else []
+    )
     for i, c in enumerate(watch_list):
         c["tier"] = "watch"
         c["star"] = False
@@ -8676,7 +8680,7 @@ async def run_scan(
         "runners": run_out,
         "macd_reds": macd_red_out,
         "algo": "strong-layer-v2",
-        "pickLaneNote": "各栏目精选最多 2 只，够格才上；观察仅作跟踪",
+        "pickLaneNote": "各栏目推荐最多 2 只：精选优先，观察仅在精选不足时补位",
         "low10": low10_list,
         "tight": tight_list,
         "prev_date": prev_date_s,
