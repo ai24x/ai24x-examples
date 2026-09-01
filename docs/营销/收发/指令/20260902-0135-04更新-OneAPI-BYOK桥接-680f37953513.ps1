@@ -17,12 +17,14 @@ $coreSvc = Get-Content (Join-Path $work "api\services.py") -Raw -Encoding UTF8
 $coreBridge = Get-Content (Join-Path $work "api\byok_bridge.py") -Raw -Encoding UTF8
 $openInternal = Get-Content (Join-Path $work "p\open\api\byok_internal.py") -Raw -Encoding UTF8
 $helpHtml = Get-Content (Join-Path $work "p\open\web\help.html") -Raw -Encoding UTF8
+$conHtml = Get-Content (Join-Path $work "p\open\web\console.html") -Raw -Encoding UTF8
 $locales = Get-Content (Join-Path $work "p\open\web\config\locales.js") -Raw -Encoding UTF8
 if ($coreBridge -notlike '*route_byok_chat*') { throw "api/byok_bridge.py missing route_byok_chat" }
 if ($coreSvc -notlike '*from byok_bridge import*') { throw "api/services.py missing byok_bridge integration" }
 if ($openInternal -notlike '*internal_byok_route*') { throw "byok_internal.py missing route endpoint" }
 if ($helpHtml -notlike '*page.help.oneApi.title*') { throw "help.html missing One API section" }
-if ($locales -notlike '*20260902a*') { throw "locales.js cache bust 20260902a missing" }
+if ($helpHtml -notlike '*locales.js?v=20260902a*') { throw "help.html locales cache bust 20260902a missing" }
+if ($conHtml -notlike '*locales.js?v=20260902a*') { throw "console.html locales cache bust 20260902a missing" }
 if ($locales -notlike '*page.console.byok.apiHint*') { throw "locales missing byok apiHint" }
 Write-Host "markers OK" -ForegroundColor Green
 
