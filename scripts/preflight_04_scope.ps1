@@ -31,6 +31,8 @@ function Test-Watched([string]$path) {
   if ($p -match '(^|/)(_qa_shots|_shots_|_shot_)') { return $false }
   if ($p -match '(^|/)docs/') { return $false }
   if ($p -match '/_tmp_' -or $p -match '/_qa_') { return $false }
+  # intentionally not for standard 04 updates (see deploy-brain04.mdc)
+  if ($p -match 'deploy04_async') { return $false }
   foreach ($w in $Watch) {
     if ($p.StartsWith($w) -or $p -like ($w.TrimEnd("/") + "/*")) { return $true }
     # allow scripts/deploy04*.ps1 prefix match
@@ -83,3 +85,4 @@ if ($dirty.Count -gt 0) {
 Write-Host "Tip: if you changed console/locales, bump ?v= in the same commit." -ForegroundColor DarkGray
 Write-Host "preflight OK" -ForegroundColor Green
 exit 0
+
