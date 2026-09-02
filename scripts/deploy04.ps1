@@ -1,4 +1,4 @@
-﻿# === AI24X 指令直连 04 部署派发（主通道 v2）===
+﻿# === AI24X 指令直连 04 部署派发（openclaw 模式；标准代码更新请用 deploy04_direct.ps1）===
 # 用法: powershell -File scripts\deploy04.ps1 <任务.ps1 或 .md>
 # 说明: 跳过主脑中转, 直接 scp 指令到 04 并 ssh 驱动 04 的 openclaw 执行部署+验收+飞书群回执
 # 04 主机: 运维SG 43.160.246.30（国际生产 www/api/open/markets）

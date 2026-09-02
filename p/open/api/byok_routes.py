@@ -97,7 +97,7 @@ def byok_plans_catalog(request: Request):
             "creem_ready": bool(enabled and creem),
             "creem_mode": str(getattr(cfg, "creem_mode", "test") or "test"),
         },
-        "service_fee_note": "平台只收取网关服务费，不赚取上游 token 差价；用户 key 直接调用其自有上游额度。",
+        "service_fee_note": "Gateway service fee only — no markup on your keys. You are billed by your provider at their rates.",
     }
 
 

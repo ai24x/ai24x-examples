@@ -5,6 +5,14 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+# 自举 .env（NSSM 未注入时也能读到 MARKETS_FULFILL_SECRET 等；不覆盖已有环境变量）
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(Path(__file__).resolve().parent.parent / ".env", override=False)
+except Exception:
+    pass
+
 import httpx
 from fastapi import FastAPI, Body, Query, Request
 from fastapi.middleware.cors import CORSMiddleware

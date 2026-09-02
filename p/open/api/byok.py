@@ -227,7 +227,7 @@ def service_status() -> dict[str, Any]:
     return {
         "enabled": _enabled(),
         "fee_mode": fee_mode,
-        "service_fee_note": "平台只收取网关服务费，不赚取上游 token 差价；用户 key 直接调用其自有上游额度。",
+        "service_fee_note": "Gateway service fee only — no markup on your keys. You are billed by your provider at their rates.",
         "fallback_to_platform": _fallback_to_platform(),
         "cache_ttl_s": _cache_ttl_s(),
         "cache_backend": cache_stats().get("backend"),
