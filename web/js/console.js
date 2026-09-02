@@ -1869,6 +1869,8 @@
   var USAGE_RANGE = "month";   // month | 7d | 30d | all
   var USAGE_METRIC = "usd";    // usd | tokens | calls
   var _usageChartCache = null;
+  var _usageModelsCache = null;
+  var _usageKeysCache = null;
   var TX_PAGE_SIZE = 15;
   var txPage = 0;
   var txTotal = 0;
@@ -1984,6 +1986,7 @@
       box.innerHTML = "<div class='usage-empty'>" + tr("该时段暂无消耗", "No usage in this period") + "</div>";
       return;
     }
+    var metric = USAGE_METRIC;
     rows.forEach(function (r) {
       var row = document.createElement("div");
       row.className = "usage-model-row";
@@ -1995,21 +1998,68 @@
       barWrap.className = "usage-model-bar-wrap";
       var bar = document.createElement("div");
       bar.className = "usage-model-bar";
-      bar.style.width = Math.max(2, Math.min(100, Number(r.usd_pct) || 0)) + "%";
+      var pctVal =
+        metric === "tokens"
+          ? Number(r.token_pct) || 0
+          : metric === "calls"
+            ? 0
+            : Number(r.usd_pct) || 0;
+      if (metric === "calls") {
+        var maxCalls = Math.max.apply(
+          null,
+          rows.map(function (x) {
+            return Number(x.calls) || 0;
+          }).concat([1])
+        );
+        pctVal = ((Number(r.calls) || 0) * 100.0) / maxCalls;
+      }
+      bar.style.width = Math.max(2, Math.min(100, pctVal)) + "%";
       barWrap.appendChild(bar);
       var num = document.createElement("div");
       num.className = "usage-model-num";
-      num.textContent =
-        fmtUsdSpend(r.usd_cents, fx) +
-        " · " +
-        fmtTokensCount(r.tokens || 0) +
-        " tok · " +
-        (r.calls || 0) +
-        " " +
-        tr("次", "calls");
+      if (metric === "tokens") {
+        num.textContent =
+          fmtTokensCount(r.tokens || 0) +
+          " tok · " +
+          fmtUsdSpend(r.usd_cents, fx) +
+          " · " +
+          (r.calls || 0) +
+          " " +
+          tr("次", "calls");
+      } else if (metric === "calls") {
+        num.textContent =
+          (r.calls || 0) +
+          " " +
+          tr("次", "calls") +
+          " · " +
+          fmtTokensCount(r.tokens || 0) +
+          " tok · " +
+          fmtUsdSpend(r.usd_cents, fx);
+      } else {
+        num.textContent =
+          fmtUsdSpend(r.usd_cents, fx) +
+          " · " +
+          fmtTokensCount(r.tokens || 0) +
+          " tok · " +
+          (r.calls || 0) +
+          " " +
+          tr("次", "calls");
+      }
       var pct = document.createElement("div");
       pct.className = "usage-model-pct";
-      pct.textContent = (Number(r.usd_pct) || 0).toFixed(1) + "%";
+      if (metric === "calls") {
+        var totCalls = rows.reduce(function (s, x) {
+          return s + (Number(x.calls) || 0);
+        }, 0);
+        pct.textContent =
+          totCalls > 0
+            ? (((Number(r.calls) || 0) * 100.0) / totCalls).toFixed(1) + "%"
+            : "0.0%";
+      } else if (metric === "tokens") {
+        pct.textContent = (Number(r.token_pct) || 0).toFixed(1) + "%";
+      } else {
+        pct.textContent = (Number(r.usd_pct) || 0).toFixed(1) + "%";
+      }
       row.appendChild(name);
       row.appendChild(barWrap);
       row.appendChild(num);
@@ -2028,6 +2078,7 @@
       box.innerHTML = "<div class='usage-empty'>" + tr("该时段暂无 Key 消耗", "No key usage in this period") + "</div>";
       return;
     }
+    var metric = USAGE_METRIC;
     rows.forEach(function (r) {
       var row = document.createElement("div");
       row.className = "usage-model-row";
@@ -2039,27 +2090,104 @@
       barWrap.className = "usage-model-bar-wrap";
       var bar = document.createElement("div");
       bar.className = "usage-model-bar";
-      bar.style.width = Math.max(2, Math.min(100, Number(r.usd_pct) || 0)) + "%";
+      var pctVal =
+        metric === "tokens"
+          ? Number(r.token_pct) || 0
+          : metric === "calls"
+            ? 0
+            : Number(r.usd_pct) || 0;
+      if (metric === "calls") {
+        var maxCalls = Math.max.apply(
+          null,
+          rows.map(function (x) {
+            return Number(x.calls) || 0;
+          }).concat([1])
+        );
+        pctVal = ((Number(r.calls) || 0) * 100.0) / maxCalls;
+      }
+      bar.style.width = Math.max(2, Math.min(100, pctVal)) + "%";
       barWrap.appendChild(bar);
       var num = document.createElement("div");
       num.className = "usage-model-num";
-      num.textContent =
-        fmtUsdSpend(r.usd_cents, fx) +
-        " · " +
-        fmtTokensCount(r.tokens || 0) +
-        " tok · " +
-        (r.calls || 0) +
-        " " +
-        tr("次", "calls");
+      if (metric === "tokens") {
+        num.textContent =
+          fmtTokensCount(r.tokens || 0) +
+          " tok · " +
+          fmtUsdSpend(r.usd_cents, fx) +
+          " · " +
+          (r.calls || 0) +
+          " " +
+          tr("次", "calls");
+      } else if (metric === "calls") {
+        num.textContent =
+          (r.calls || 0) +
+          " " +
+          tr("次", "calls") +
+          " · " +
+          fmtTokensCount(r.tokens || 0) +
+          " tok · " +
+          fmtUsdSpend(r.usd_cents, fx);
+      } else {
+        num.textContent =
+          fmtUsdSpend(r.usd_cents, fx) +
+          " · " +
+          fmtTokensCount(r.tokens || 0) +
+          " tok · " +
+          (r.calls || 0) +
+          " " +
+          tr("次", "calls");
+      }
       var pct = document.createElement("div");
       pct.className = "usage-model-pct";
-      pct.textContent = (Number(r.usd_pct) || 0).toFixed(1) + "%";
+      if (metric === "calls") {
+        var totCalls = rows.reduce(function (s, x) {
+          return s + (Number(x.calls) || 0);
+        }, 0);
+        pct.textContent =
+          totCalls > 0
+            ? (((Number(r.calls) || 0) * 100.0) / totCalls).toFixed(1) + "%"
+            : "0.0%";
+      } else if (metric === "tokens") {
+        pct.textContent = (Number(r.token_pct) || 0).toFixed(1) + "%";
+      } else {
+        pct.textContent = (Number(r.usd_pct) || 0).toFixed(1) + "%";
+      }
       row.appendChild(name);
       row.appendChild(barWrap);
       row.appendChild(num);
       row.appendChild(pct);
       box.appendChild(row);
     });
+  }
+
+  function setUsageMetric(metric, opts) {
+    opts = opts || {};
+    USAGE_METRIC = metric || "usd";
+    document.querySelectorAll(".usage-metric-btn").forEach(function (x) {
+      x.classList.toggle("is-active", x.getAttribute("data-metric") === USAGE_METRIC);
+    });
+    var hint = $("usage-metric-hint");
+    if (hint) {
+      if (opts.tokenOnly) {
+        hint.textContent = tr(
+          "当前账户以 Token 扣费为主，已切换到 Tokens 视图。「费用」仅统计美元钱包扣款。",
+          "This account is billed mainly in tokens — switched to Tokens view. Cost only counts USD-wallet charges."
+        );
+        hint.style.display = "";
+      } else if (USAGE_METRIC === "usd") {
+        hint.textContent = tr(
+          "「费用」= 美元钱包实际扣款；Token 包用户请看 Tokens。",
+          "Cost = USD-wallet charges; token-pack users should use Tokens."
+        );
+        hint.style.display = "";
+      } else {
+        hint.textContent = "";
+        hint.style.display = "none";
+      }
+    }
+    if (_usageChartCache) renderUsageChart(_usageChartCache);
+    if (_usageModelsCache) renderUsageModels(_usageModelsCache);
+    if (_usageKeysCache) renderUsageKeys(_usageKeysCache);
   }
 
   function initUsageStatsLabels() {
@@ -2094,20 +2222,38 @@
     AI24X_API.billingUsageDaily(p.days)
       .then(function (d) {
         _usageChartCache = d;
-        renderUsageChart(d);
+        var rows = (d && d.rows) || [];
+        var sumUsd = 0;
+        var sumTok = 0;
+        rows.forEach(function (r) {
+          sumUsd += Number(r.usd_cents) || 0;
+          sumTok += Number(r.tokens) || 0;
+        });
+        // Token 钱包用户：流水无美元扣款 → 默认切 Tokens，避免「全 0」误判无用量
+        if (sumTok > 0 && sumUsd <= 0) {
+          setUsageMetric("tokens", { tokenOnly: true });
+        } else {
+          setUsageMetric(USAGE_METRIC || "usd", { tokenOnly: false });
+        }
       })
       .catch(function () {
         var w = $("usageChart");
         if (w) w.innerHTML = "<div class='usage-empty'>" + tr("加载失败，请稍后重试", "Failed to load, try again later") + "</div>";
       });
     AI24X_API.billingUsageModels(p.days, 10)
-      .then(renderUsageModels)
+      .then(function (d) {
+        _usageModelsCache = d;
+        renderUsageModels(d);
+      })
       .catch(function () {
         var b = $("usageModels");
         if (b) b.innerHTML = "<div class='usage-empty'>" + tr("加载失败，请稍后重试", "Failed to load, try again later") + "</div>";
       });
     AI24X_API.billingUsageKeys(p.days, 8)
-      .then(renderUsageKeys)
+      .then(function (d) {
+        _usageKeysCache = d;
+        renderUsageKeys(d);
+      })
       .catch(function () {
         var k = $("usageKeys");
         if (k) k.innerHTML = "<div class='usage-empty'>" + tr("加载失败，请稍后重试", "Failed to load, try again later") + "</div>";
@@ -2332,11 +2478,7 @@
     });
     document.querySelectorAll(".usage-metric-btn").forEach(function (b) {
       b.addEventListener("click", function () {
-        USAGE_METRIC = b.getAttribute("data-metric");
-        document.querySelectorAll(".usage-metric-btn").forEach(function (x) {
-          x.classList.toggle("is-active", x === b);
-        });
-        renderUsageChart(_usageChartCache);
+        setUsageMetric(b.getAttribute("data-metric") || "usd", { tokenOnly: false });
       });
     });
     document.querySelectorAll("#tx-type-group .tx-type-btn").forEach(function (b) {

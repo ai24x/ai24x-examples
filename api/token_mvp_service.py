@@ -1077,6 +1077,7 @@ def usage_keys(db: Session, auth_user_id: int, *, days: int = 30, top_n: int = 8
     )
     total_rows = q.all()
     total_usd = sum(int(r.usd_cents or 0) for r in total_rows)
+    total_tokens = sum(int(r.tokens or 0) for r in total_rows)
     ranked = sorted(total_rows, key=lambda r: (int(r.usd_cents or 0), int(r.tokens or 0)), reverse=True)
     key_names: dict = {}
     try:
@@ -1100,10 +1101,11 @@ def usage_keys(db: Session, auth_user_id: int, *, days: int = 30, top_n: int = 8
                 "tokens": tok,
                 "usd_cents": usd,
                 "calls": int(r.calls or 0),
+                "token_pct": round(tok * 100.0 / total_tokens, 1) if total_tokens else 0.0,
                 "usd_pct": round(usd * 100.0 / total_usd, 1) if total_usd else 0.0,
             }
         )
-    return {"rows": out, "days": days, "fx": round(fx, 4)}
+    return {"rows": out, "days": days, "fx": round(fx, 4), "total_tokens": total_tokens, "total_usd_cents": total_usd}
 
 
 def list_usage(
