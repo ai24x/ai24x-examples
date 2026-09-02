@@ -12,6 +12,12 @@ alwaysApply: true
 
 ## 一、部署前
 
+0. **防漏推（必做）**：派发前跑 / 或由 `deploy04_direct` 自动跑  
+   `powershell -File scripts\preflight_04_scope.ps1`  
+   - 监视路径：`api/` `web/` `p/open/api|web/` `p/markets/api|web/` + `scripts/deploy04*`（docs/截图/.env 不拦）  
+   - 这些路径有**未提交改动**，或本地 commit **未推 origin** → **默认失败**  
+   - 故意只上部分：显式 `-AllowDirty`（须在对话写清「故意不带」清单）  
+   - Cursor/司令在写指令前：对本会话改过的全部生产文件列清单，再 `git add`；禁止「只 commit 桥接、留下 console UX」
 1. **本地 QA 全绿**
    - 涉及 markets：跑 `p/markets/scripts/_qa_*.js`（或当次约定的回归脚本）
    - 涉及 www / open：跑对应页面/接口回归
@@ -21,13 +27,15 @@ alwaysApply: true
 
 ## 二、提交与双推
 
-3. **只** `git add <本次显式文件清单>` — **严禁** `git add -A` / `git add .`（工作树常有无关 docs 清理）
+3. **只** `git add <本次显式文件清单>` — **严禁** `git add -A` / `git add .`（工作树常有无关 docs 清理）  
+   - 清单必须覆盖**本会话全部生产改动**（含 HTML/`?v=`/locales/js），不要只 add 后端漏前端  
+   - 提交前再跑一遍 `preflight_04_scope.ps1`，确认生产路径干净
 4. 本地 commit 后 **双推**（缺一不可）：
    ```powershell
    git push gitee master    # → ai24x/ai24x01.git
    git push origin master   # → ai24x/ai24x-website.git（04 只拉此 remote）
    ```
-5. **推送后自检**：`git status` 无未提交指令；`git log origin/master -1` 已含目标 commit
+5. **推送后自检**：`git status` 无未提交指令；`git log origin/master -1` 已含目标 commit；`preflight_04_scope` 通过
 
 ## 三、生成更新指令
 

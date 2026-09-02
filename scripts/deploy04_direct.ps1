@@ -1,5 +1,5 @@
 ﻿# === AI24X 04 直连部署（确定性更新，绕过 openclaw LLM 层）===
-# 用法: powershell -File scripts\deploy04_direct.ps1 <指令.ps1> [-DryRun] [-NoGroup]
+# 用法: powershell -File scripts\deploy04_direct.ps1 <指令.ps1> [-DryRun] [-NoGroup] [-AllowDirty]
 # 适用: 标准代码更新（git pull + marker 校验 + 静态同步 + 重启 + 公网验收）
 # 不适用: 需要判断的任务（DB 迁移 / nginx 编辑 / 后台操作）-> 仍走 deploy04.ps1 (openclaw)
 # 原理: scp 指令 -> ssh 直跑 powershell -File（无 LLM 层）-> 解析 DONE 行 -> 飞书群回执
@@ -7,10 +7,12 @@
 #   - 04 远端默认 shell 是 cmd，跑 PS 必须 powershell -NoProfile -ExecutionPolicy Bypass -File
 #   - 指令含中文必须 UTF-8 带 BOM，否则 PS5.1 按 GBK 误读直接解析失败（本脚本自动转 BOM）
 #   - 指令末行必须有群回执模板：# ✅ 04更新完成｜标题｜EXP=<EXP> HEAD=<HEAD> health=<commit>｜验收结论
+#   - 派发前跑 preflight_04_scope：生产路径有未提交改动 / 未推 origin 则失败（防漏推）
 param(
   [Parameter(Mandatory = $true)][string]$TaskFile,
   [switch]$DryRun,
-  [switch]$NoGroup
+  [switch]$NoGroup,
+  [switch]$AllowDirty
 )
 
 $ErrorActionPreference = "Stop"
@@ -24,6 +26,18 @@ $RemoteTask = "$RemoteOps\$RemoteName"
 $RepoRoot = Split-Path $PSScriptRoot -Parent
 $Log = Join-Path $RepoRoot "ops\deploy04-direct-$(Get-Date -Format yyyyMMdd-HHmmss).log"
 $Staging = Join-Path $env:TEMP ("deploy04-" + [guid]::NewGuid().ToString("N") + ".ps1")
+
+# 0) 本地范围自检：防「代码改了但没 commit / 没推 origin」导致 04 只更新一部分
+$preflight = Join-Path $PSScriptRoot "preflight_04_scope.ps1"
+if (Test-Path -LiteralPath $preflight) {
+  Write-Host "==> preflight_04_scope" -ForegroundColor Cyan
+  $pfArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $preflight, "-RepoRoot", $RepoRoot)
+  if ($AllowDirty) { $pfArgs += "-AllowDirty" }
+  & powershell @pfArgs
+  if ($LASTEXITCODE -ne 0) { throw "preflight_04_scope 失败：请先提交并双推生产相关改动，或显式 -AllowDirty" }
+} else {
+  Write-Host "WARN: 缺少 scripts\preflight_04_scope.ps1，跳过脏树检查" -ForegroundColor Yellow
+}
 
 # 1) 读取源文件并转 UTF-8 带 BOM（防远端 GBK 误读中文）
 $src = [System.IO.File]::ReadAllText((Resolve-Path $TaskFile), [System.Text.Encoding]::UTF8)
