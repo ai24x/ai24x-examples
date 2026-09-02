@@ -1219,6 +1219,7 @@ def _deepseek_upstream_for_layer(layer: str) -> dict[str, str]:
 
 
 def _timeout_s() -> float:
+    """非流式整请求超时（秒）。默认 15：卡住时尽快失败并 failover，勿拖死线程。"""
     try:
         return max(2.0, float(_env("TOKEN_LLM_TIMEOUT_S", "15") or "15"))
     except ValueError:
@@ -1226,11 +1227,25 @@ def _timeout_s() -> float:
 
 
 def _stream_timeout_s() -> float:
-    """流式读超时（秒）；长会话 / OpenClaw 默认放宽。"""
+    """流式读空闲超时（秒）：两次 SSE chunk 间隔上限。
+    默认 90（原 300 过长，单请求可占满 worker/线程导致 /health 无响应）。
+    OpenClaw 长工具循环可按需调高 TOKEN_LLM_STREAM_TIMEOUT_S。
+    """
     try:
-        return max(30.0, float(_env("TOKEN_LLM_STREAM_TIMEOUT_S", "300") or "300"))
+        return max(30.0, float(_env("TOKEN_LLM_STREAM_TIMEOUT_S", "90") or "90"))
     except ValueError:
-        return 300.0
+        return 90.0
+
+
+def _httpx_timeout(timeout_s: float) -> httpx.Timeout:
+    """连接短、读写跟 timeout_s；避免把 connect 也拉到上百秒。"""
+    t = max(2.0, float(timeout_s))
+    return httpx.Timeout(
+        connect=min(_CONNECT_TIMEOUT_S, t),
+        read=t,
+        write=min(60.0, t),
+        pool=min(10.0, t),
+    )
 
 
 def true_stream_enabled() -> bool:
@@ -2729,12 +2744,15 @@ def _call_openai_compatible(
             body["tool_choice"] = tool_choice
     # 中国模：默认向上游关 thinking（与客户端出口过滤分离）
     _apply_upstream_thinking_controls(body, model=model, provider=provider)
-    r = _SHARED_CLIENT.post(
-        url,
-        headers=headers,
-        json=body,
-        timeout=httpx.Timeout(timeout_s, connect=min(_CONNECT_TIMEOUT_S, timeout_s)),
-    )
+    from upstream_gate import upstream_slot
+
+    with upstream_slot():
+        r = _SHARED_CLIENT.post(
+            url,
+            headers=headers,
+            json=body,
+            timeout=_httpx_timeout(timeout_s),
+        )
     r.raise_for_status()
     data = r.json()
     choices = data.get("choices") or []
@@ -2852,7 +2870,7 @@ def _stream_openai_compatible(
     except Exception:
         pass
 
-    timeout = httpx.Timeout(timeout_s, connect=min(_CONNECT_TIMEOUT_S, timeout_s))
+    timeout = _httpx_timeout(timeout_s)
     full_parts: list[str] = []
     usage_tokens = 0
     usage_prompt_tokens = 0
@@ -2861,162 +2879,176 @@ def _stream_openai_compatible(
     tool_calls_streamed = False
     # 拼装流式 tool_calls（按 index）
     tc_acc: dict[int, dict[str, Any]] = {}
+    from upstream_gate import release_upstream_slot, try_acquire_upstream_slot
+
+    if not try_acquire_upstream_slot():
+        yield {
+            "type": "error",
+            "error": "upstream_busy",
+            "raw_model": model,
+            "provider": provider,
+            "error_kind": "busy",
+        }
+        return
     try:
-        with _SHARED_CLIENT.stream(
-            "POST", url, headers=headers, json=body, timeout=timeout
-        ) as r:
-                r.raise_for_status()
-                for line in r.iter_lines():
-                    if not line:
-                        continue
-                    if isinstance(line, bytes):
-                        line = line.decode("utf-8", errors="replace")
-                    s = str(line).strip()
-                    if not s.startswith("data:"):
-                        continue
-                    data = s[5:].strip()
-                    if data == "[DONE]":
-                        break
-                    try:
-                        obj = _json.loads(data)
-                    except Exception:
-                        continue
-                    usage = obj.get("usage") or {}
-                    if usage.get("total_tokens"):
+        try:
+            with _SHARED_CLIENT.stream(
+                "POST", url, headers=headers, json=body, timeout=timeout
+            ) as r:
+                    r.raise_for_status()
+                    for line in r.iter_lines():
+                        if not line:
+                            continue
+                        if isinstance(line, bytes):
+                            line = line.decode("utf-8", errors="replace")
+                        s = str(line).strip()
+                        if not s.startswith("data:"):
+                            continue
+                        data = s[5:].strip()
+                        if data == "[DONE]":
+                            break
                         try:
-                            usage_tokens = int(usage.get("total_tokens") or 0)
+                            obj = _json.loads(data)
+                        except Exception:
+                            continue
+                        usage = obj.get("usage") or {}
+                        if usage.get("total_tokens"):
+                            try:
+                                usage_tokens = int(usage.get("total_tokens") or 0)
+                            except (TypeError, ValueError):
+                                pass
+                        try:
+                            if usage.get("prompt_tokens") is not None:
+                                usage_prompt_tokens = int(usage.get("prompt_tokens") or 0)
+                            if usage.get("completion_tokens") is not None:
+                                usage_completion_tokens = int(usage.get("completion_tokens") or 0)
                         except (TypeError, ValueError):
                             pass
-                    try:
-                        if usage.get("prompt_tokens") is not None:
-                            usage_prompt_tokens = int(usage.get("prompt_tokens") or 0)
-                        if usage.get("completion_tokens") is not None:
-                            usage_completion_tokens = int(usage.get("completion_tokens") or 0)
-                    except (TypeError, ValueError):
-                        pass
-                    choices = obj.get("choices") or []
-                    if not choices:
-                        continue
-                    ch0 = choices[0] or {}
-                    fr = ch0.get("finish_reason")
-                    if fr:
-                        finish_reason = str(fr)
-                    delta = ch0.get("delta") or {}
-                    tcs = delta.get("tool_calls")
-                    if isinstance(tcs, list) and tcs:
-                        tool_calls_streamed = True
-                        for piece_tc in tcs:
-                            if not isinstance(piece_tc, dict):
-                                continue
-                            try:
-                                idx = int(piece_tc.get("index") or 0)
-                            except (TypeError, ValueError):
-                                idx = 0
-                            slot = tc_acc.setdefault(
-                                idx,
-                                {
-                                    "id": "",
-                                    "type": "function",
-                                    "function": {"name": "", "arguments": ""},
-                                },
-                            )
-                            if piece_tc.get("id"):
-                                slot["id"] = str(piece_tc.get("id"))
-                            if piece_tc.get("type"):
-                                slot["type"] = str(piece_tc.get("type"))
-                            fn = piece_tc.get("function") or {}
-                            if isinstance(fn, dict):
-                                if fn.get("name"):
-                                    slot["function"]["name"] = str(
-                                        slot["function"].get("name") or ""
-                                    ) + str(fn.get("name"))
-                                if fn.get("arguments") is not None:
-                                    slot["function"]["arguments"] = str(
-                                        slot["function"].get("arguments") or ""
-                                    ) + str(fn.get("arguments"))
-                        yield {
-                            "type": "tool_calls_delta",
-                            "tool_calls": tcs,
-                            "raw_model": model,
-                            "provider": provider,
-                        }
-                    piece = stream_delta_visible_piece(
-                        delta if isinstance(delta, dict) else {},
-                        include_reasoning=include_reasoning,
-                    )
-                    if piece:
-                        text_piece = scrubber.feed(str(piece))
-                        if text_piece:
-                            full_parts.append(text_piece)
+                        choices = obj.get("choices") or []
+                        if not choices:
+                            continue
+                        ch0 = choices[0] or {}
+                        fr = ch0.get("finish_reason")
+                        if fr:
+                            finish_reason = str(fr)
+                        delta = ch0.get("delta") or {}
+                        tcs = delta.get("tool_calls")
+                        if isinstance(tcs, list) and tcs:
+                            tool_calls_streamed = True
+                            for piece_tc in tcs:
+                                if not isinstance(piece_tc, dict):
+                                    continue
+                                try:
+                                    idx = int(piece_tc.get("index") or 0)
+                                except (TypeError, ValueError):
+                                    idx = 0
+                                slot = tc_acc.setdefault(
+                                    idx,
+                                    {
+                                        "id": "",
+                                        "type": "function",
+                                        "function": {"name": "", "arguments": ""},
+                                    },
+                                )
+                                if piece_tc.get("id"):
+                                    slot["id"] = str(piece_tc.get("id"))
+                                if piece_tc.get("type"):
+                                    slot["type"] = str(piece_tc.get("type"))
+                                fn = piece_tc.get("function") or {}
+                                if isinstance(fn, dict):
+                                    if fn.get("name"):
+                                        slot["function"]["name"] = str(
+                                            slot["function"].get("name") or ""
+                                        ) + str(fn.get("name"))
+                                    if fn.get("arguments") is not None:
+                                        slot["function"]["arguments"] = str(
+                                            slot["function"].get("arguments") or ""
+                                        ) + str(fn.get("arguments"))
                             yield {
-                                "type": "delta",
-                                "text": text_piece,
+                                "type": "tool_calls_delta",
+                                "tool_calls": tcs,
                                 "raw_model": model,
                                 "provider": provider,
                             }
-    except Exception as e:
-        # 附带上游 4xx/5xx 响应体 + 错误分类（format=400 直接上报不再 failover）
-        kind, detail = _upstream_error_class(e)
-        logger.warning(f"【DIAG】upstream error kind={kind} provider={provider} model={model} {detail}")
-        try:
-            _resp = getattr(e, "response", None)
-            if _resp is not None and getattr(_resp, "status_code", None) == 400:
-                with open(r"C:\ai24x01\ops\tokenlab-400-body.txt", "w", encoding="utf-8") as _f:
-                    _f.write(str(getattr(_resp, "text", "") or "")[:8000])
-        except Exception:
-            pass
-        yield {
-            "type": "error",
-            "error": detail,
-            "raw_model": model,
-            "provider": provider,
-            "error_kind": kind,
-        }
-        return
+                        piece = stream_delta_visible_piece(
+                            delta if isinstance(delta, dict) else {},
+                            include_reasoning=include_reasoning,
+                        )
+                        if piece:
+                            text_piece = scrubber.feed(str(piece))
+                            if text_piece:
+                                full_parts.append(text_piece)
+                                yield {
+                                    "type": "delta",
+                                    "text": text_piece,
+                                    "raw_model": model,
+                                    "provider": provider,
+                                }
+        except Exception as e:
+            # 附带上游 4xx/5xx 响应体 + 错误分类（format=400 直接上报不再 failover）
+            kind, detail = _upstream_error_class(e)
+            logger.warning(f"【DIAG】upstream error kind={kind} provider={provider} model={model} {detail}")
+            try:
+                _resp = getattr(e, "response", None)
+                if _resp is not None and getattr(_resp, "status_code", None) == 400:
+                    with open(r"C:\ai24x01\ops\tokenlab-400-body.txt", "w", encoding="utf-8") as _f:
+                        _f.write(str(getattr(_resp, "text", "") or "")[:8000])
+            except Exception:
+                pass
+            yield {
+                "type": "error",
+                "error": detail,
+                "raw_model": model,
+                "provider": provider,
+                "error_kind": kind,
+            }
+            return
 
-    tail = scrubber.flush()
-    if tail:
-        full_parts.append(tail)
+        tail = scrubber.flush()
+        if tail:
+            full_parts.append(tail)
+            yield {
+                "type": "delta",
+                "text": tail,
+                "raw_model": model,
+                "provider": provider,
+            }
+        full = "".join(full_parts)
+        assembled_tcs = None
+        if tc_acc:
+            assembled_tcs = [tc_acc[i] for i in sorted(tc_acc.keys())]
+            if finish_reason == "stop":
+                finish_reason = "tool_calls"
+        # Anthropic 文本工具调用（<invoke> XML / collab:）→ 结构化 tool_calls
+        if not assembled_tcs and _is_anthropic_upstream(model, provider) and full:
+            parsed_tcs = _parse_invoke_tool_calls(full)
+            if parsed_tcs:
+                assembled_tcs = parsed_tcs
+                finish_reason = "tool_calls"
+        if usage_tokens <= 0:
+            usage_tokens = max(1, int(len(full.split()) * 1.3)) if full else 1
+        if usage_prompt_tokens <= 0 and usage_completion_tokens <= 0:
+            prompt_est = max(1, int(len(prompt) / 4)) if prompt else max(1, usage_tokens // 2)
+            usage_prompt_tokens = min(prompt_est, max(1, usage_tokens - 1))
+            usage_completion_tokens = max(1, usage_tokens - usage_prompt_tokens)
+        elif usage_prompt_tokens <= 0:
+            usage_prompt_tokens = max(0, usage_tokens - usage_completion_tokens)
+        elif usage_completion_tokens <= 0:
+            usage_completion_tokens = max(1, usage_tokens - usage_prompt_tokens)
         yield {
-            "type": "delta",
-            "text": tail,
+            "type": "done",
+            "text": full,
+            "tokens": usage_tokens,
+            "prompt_tokens": usage_prompt_tokens,
+            "completion_tokens": usage_completion_tokens,
             "raw_model": model,
             "provider": provider,
+            "tool_calls": assembled_tcs,
+            "finish_reason": finish_reason,
+            "tool_calls_streamed": tool_calls_streamed,
         }
-    full = "".join(full_parts)
-    assembled_tcs = None
-    if tc_acc:
-        assembled_tcs = [tc_acc[i] for i in sorted(tc_acc.keys())]
-        if finish_reason == "stop":
-            finish_reason = "tool_calls"
-    # Anthropic 文本工具调用（<invoke> XML / collab:）→ 结构化 tool_calls
-    if not assembled_tcs and _is_anthropic_upstream(model, provider) and full:
-        parsed_tcs = _parse_invoke_tool_calls(full)
-        if parsed_tcs:
-            assembled_tcs = parsed_tcs
-            finish_reason = "tool_calls"
-    if usage_tokens <= 0:
-        usage_tokens = max(1, int(len(full.split()) * 1.3)) if full else 1
-    if usage_prompt_tokens <= 0 and usage_completion_tokens <= 0:
-        prompt_est = max(1, int(len(prompt) / 4)) if prompt else max(1, usage_tokens // 2)
-        usage_prompt_tokens = min(prompt_est, max(1, usage_tokens - 1))
-        usage_completion_tokens = max(1, usage_tokens - usage_prompt_tokens)
-    elif usage_prompt_tokens <= 0:
-        usage_prompt_tokens = max(0, usage_tokens - usage_completion_tokens)
-    elif usage_completion_tokens <= 0:
-        usage_completion_tokens = max(1, usage_tokens - usage_prompt_tokens)
-    yield {
-        "type": "done",
-        "text": full,
-        "tokens": usage_tokens,
-        "prompt_tokens": usage_prompt_tokens,
-        "completion_tokens": usage_completion_tokens,
-        "raw_model": model,
-        "provider": provider,
-        "tool_calls": assembled_tcs,
-        "finish_reason": finish_reason,
-        "tool_calls_streamed": tool_calls_streamed,
-    }
+    finally:
+        release_upstream_slot()
 
 
 def _stub_response(prompt: str, *, layer: str, model: str) -> dict[str, Any]:

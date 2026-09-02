@@ -187,6 +187,16 @@ def wrap(fn):
         try:
             out = fn(*args, **kwargs)
         except Exception as e:  # noqa: BLE001
+            # 本地并发闸门满：不是上游故障，勿记入熔断窗口
+            try:
+                from upstream_gate import UpstreamBusyError
+
+                if isinstance(e, UpstreamBusyError):
+                    raise
+            except UpstreamBusyError:
+                raise
+            except Exception:
+                pass
             record_attempt(
                 provider,
                 model,

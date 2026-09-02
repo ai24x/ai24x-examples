@@ -252,19 +252,29 @@ class ChatService:
                             # 保护不可用时不阻断主链路（fail-open），告警交给运维日志
                             pass
                 msgs = getattr(request, "messages", None)
-                routed = run_routed_chat(
-                    prompt=request.prompt,
-                    requested_model=route_model,
-                    is_vip=is_vip,
-                    allow_names=allow_names,
-                    temperature=float(request.temperature or 0.7),
-                    max_tokens=int(request.max_tokens or 1000),
-                    region_hint=region_hint,
-                    messages=msgs if isinstance(msgs, list) else None,
-                    tools=getattr(request, "tools", None),
-                    tool_choice=getattr(request, "tool_choice", None),
-                    include_reasoning=bool(getattr(request, "include_reasoning", False)),
-                )
+                try:
+                    routed = run_routed_chat(
+                        prompt=request.prompt,
+                        requested_model=route_model,
+                        is_vip=is_vip,
+                        allow_names=allow_names,
+                        temperature=float(request.temperature or 0.7),
+                        max_tokens=int(request.max_tokens or 1000),
+                        region_hint=region_hint,
+                        messages=msgs if isinstance(msgs, list) else None,
+                        tools=getattr(request, "tools", None),
+                        tool_choice=getattr(request, "tool_choice", None),
+                        include_reasoning=bool(getattr(request, "include_reasoning", False)),
+                    )
+                except Exception as _ue:
+                    from upstream_gate import UpstreamBusyError
+
+                    if isinstance(_ue, UpstreamBusyError):
+                        raise HTTPException(
+                            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail="模型服务暂时繁忙，请稍后再试。",
+                        ) from _ue
+                    raise
             if not routed.ok:
                 if (routed.error or "") == "vip_required":
                     raise HTTPException(
@@ -766,6 +776,12 @@ class ChatService:
                     elif et == "error":
                         saw_error = True
                         error_detail = str(ev.get("error") or "")[:200]
+                        if error_detail == "upstream_busy" or ev.get("error_kind") == "busy":
+                            _finalize("failed", "upstream_busy")
+                            raise HTTPException(
+                                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                                detail="模型服务暂时繁忙，请稍后再试。",
+                            )
                         _finalize("failed", error_detail)
                         yield ev
                         return
