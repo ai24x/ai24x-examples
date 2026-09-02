@@ -29,10 +29,10 @@ $ts = Get-Date -Format "yyyyMMdd-HHmmss"
 
 function Set-UvicornWorkers([string]$Service, [string]$ExpectPort, [int]$Workers = 4) {
   $old = & $Nssm get $Service AppParameters 2>$null
-  if (-not $old) { throw "cannot read AppParameters for $Service" }
+  if (-not $old) { throw ("cannot read AppParameters for " + $Service) }
   $old = [string]$old
   Set-Content -LiteralPath (Join-Path $bakDir "$Service-AppParameters-$ts.txt") -Value $old -Encoding UTF8
-  Write-Host ("  $Service OLD: " + $old)
+  Write-Host ("  " + $Service + " OLD: " + $old)
   # Keep host/port; ensure --workers N
   $parts = $old -split '\s+' | Where-Object { $_ -ne '' }
   $newParts = New-Object System.Collections.Generic.List[string]
@@ -45,15 +45,18 @@ function Set-UvicornWorkers([string]$Service, [string]$ExpectPort, [int]$Workers
   [void]$newParts.Add('--workers')
   [void]$newParts.Add([string]$Workers)
   $new = ($newParts -join ' ')
-  if ($new -notlike "*--port $ExpectPort*" -and $new -notlike "*=$ExpectPort*") {
-    # soft check: port string present
-    if ($new -notlike "*$ExpectPort*") { Write-Host "  WARN: port $ExpectPort not obvious in: $new" -ForegroundColor Yellow }
+  if ($new -notlike ("*--port " + $ExpectPort + "*") -and $new -notlike ("*=" + $ExpectPort + "*")) {
+    if ($new -notlike ("*" + $ExpectPort + "*")) {
+      Write-Host ("  WARN: port " + $ExpectPort + " not obvious in: " + $new) -ForegroundColor Yellow
+    }
   }
   & $Nssm set $Service AppParameters $new
-  if ($LASTEXITCODE -ne 0) { throw "nssm set failed for $Service" }
+  if ($LASTEXITCODE -ne 0) { throw ("nssm set failed for " + $Service) }
   $got = [string](& $Nssm get $Service AppParameters)
-  Write-Host ("  $Service NEW: " + $got)
-  if ($got -notlike "*--workers $Workers*") { throw "workers not applied for $Service: $got" }
+  Write-Host ("  " + $Service + " NEW: " + $got)
+  if ($got -notlike ("*--workers " + $Workers + "*")) {
+    throw ("workers not applied for " + $Service + " got=" + $got)
+  }
 }
 
 Set-UvicornWorkers -Service "AI24X-core" -ExpectPort "8002" -Workers 4
