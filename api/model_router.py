@@ -538,6 +538,33 @@ def _env(name: str, default: str = "") -> str:
     return default
 
 
+def _is_deepseek_v4_upstream_model(model: str) -> bool:
+    """True when upstream model id is DeepSeek v4 (direct or OpenRouter-prefixed).
+
+    Brand tiers (flash / vip-ds-flash) resolve to deepseek-v4-* or deepseek/deepseek-v4-*;
+    the old startswith('deepseek-v4') check missed OpenRouter ids.
+    """
+    m = str(model or "").strip().lower()
+    if not m:
+        return False
+    base = m.split("/", 1)[-1]
+    return base.startswith("deepseek-v4")
+
+
+def _deepseek_thinking_enabled() -> bool:
+    """Default off; set DEEPSEEK_THINKING=1 to allow DeepSeek v4 reasoning."""
+    return (_env("DEEPSEEK_THINKING", "0") or "0").strip() in (
+        "1",
+        "true",
+        "TRUE",
+        "yes",
+    )
+
+
+def _should_disable_deepseek_thinking(model: str) -> bool:
+    return _is_deepseek_v4_upstream_model(model) and not _deepseek_thinking_enabled()
+
+
 def _upstream_mode() -> str:
     """
     direct | openrouter
@@ -2465,13 +2492,9 @@ def _call_openai_compatible(
         body["tools"] = _normalize_tools_for_upstream(tools) or tools
         if tool_choice is not None:
             body["tool_choice"] = tool_choice
-    # DeepSeek v4 直连时默认关 thinking
-    if str(model).startswith("deepseek-v4") and (_env("DEEPSEEK_THINKING", "0") or "0").strip() not in (
-        "1",
-        "true",
-        "TRUE",
-        "yes",
-    ):
+    # DeepSeek v4（含 OR 前缀 deepseek/deepseek-v4-*）：默认关 thinking
+    disable_ds_thinking = _should_disable_deepseek_thinking(model)
+    if disable_ds_thinking:
         body["thinking"] = {"type": "disabled"}
     r = _SHARED_CLIENT.post(
         url,
@@ -2489,12 +2512,12 @@ def _call_openai_compatible(
         ch0 = choices[0] or {}
         msg = ch0.get("message") or {}
         text = str(msg.get("content") or "").strip()
-        if not text:
+        if not text and not disable_ds_thinking:
             text = str(msg.get("reasoning_content") or "").strip()
-        if not text:
+        if not text and not disable_ds_thinking:
             # OpenRouter 对 Gemini/GLM 等思考模型返回 reasoning / reasoning_details
             text = str(msg.get("reasoning") or "").strip()
-        if not text:
+        if not text and not disable_ds_thinking:
             rds = msg.get("reasoning_details")
             if isinstance(rds, list) and rds and isinstance(rds[0], dict):
                 text = str(rds[0].get("text") or "").strip()
@@ -2573,12 +2596,8 @@ def _stream_openai_compatible(
         body["tools"] = _normalize_tools_for_upstream(tools) or tools
         if tool_choice is not None:
             body["tool_choice"] = tool_choice
-    if str(model).startswith("deepseek-v4") and (_env("DEEPSEEK_THINKING", "0") or "0").strip() not in (
-        "1",
-        "true",
-        "TRUE",
-        "yes",
-    ):
+    disable_ds_thinking = _should_disable_deepseek_thinking(model)
+    if disable_ds_thinking:
         body["thinking"] = {"type": "disabled"}
     # 部分上游在 stream 时把 usage 放在最后一包
     body["stream_options"] = {"include_usage": True}
@@ -2690,9 +2709,9 @@ def _stream_openai_compatible(
                             "provider": provider,
                         }
                     piece = delta.get("content")
-                    if piece is None:
+                    if piece is None and not disable_ds_thinking:
                         piece = delta.get("reasoning_content")
-                    if piece is None:
+                    if piece is None and not disable_ds_thinking:
                         piece = delta.get("reasoning")
                     if piece:
                         text_piece = str(piece)
