@@ -1217,7 +1217,7 @@
             msgBox(),
             tr(
               "已创建 " + (r && r.out_trade_no) + "。请在「我的订单」点「体验到账」。",
-              "Created " + (r && r.out_trade_no) + ". Tap Test pay under My orders."
+              "Created " + (r && r.out_trade_no) + ". Confirm under Account Hub → Orders."
             ),
             true
           );
@@ -1356,9 +1356,9 @@
         if (channel === "wechat" && r && r.code_url) {
           showPayResult({
             hint: tr(
-              "请用微信扫码支付。付完后本页会自动查单到账；也可到「我的订单」点「确认到账」。单号：" +
+              "请用微信扫码支付。付完后本页会自动查单到账；也可到账户中心「我的订单」点「确认到账」。单号：" +
                 (r.out_trade_no || ""),
-              "Scan with WeChat. This page auto-confirms after pay; or tap Confirm under My orders. Order: " +
+              "Scan with WeChat. This page auto-confirms after pay; or confirm under Account Hub → Orders. Order: " +
                 (r.out_trade_no || "")
             ),
             qrData: r.code_url,
@@ -2061,6 +2061,8 @@
   }
 
   function bindTransactionsControls() {
+    // Ledger UI moved to Account Hub; skip if local table removed.
+    if (!$("txList") || !$("txTable")) return;
     if (txBindDone) return;
     txBindDone = true;
     var pv = $("tx-prev");
@@ -2841,8 +2843,10 @@
     } catch (e) {}
 
     try {
-      var orders = await AI24X_API.billingOrders(20);
-      renderOrders((orders && orders.rows) || []);
+      if ($("ordersList")) {
+        var orders = await AI24X_API.billingOrders(20);
+        renderOrders((orders && orders.rows) || []);
+      }
     } catch (e) {}
   }
 
@@ -2853,15 +2857,15 @@
       anthropic: "Anthropic",
       deepseek: "DeepSeek",
       openrouter: "OpenRouter",
-      siliconflow: "硅基流动",
+      siliconflow: "SiliconFlow",
       together: "Together",
       moonshot: "Kimi",
-      zhipu: "智谱 GLM",
-      qwen: "百炼 DashScope",
+      zhipu: "Zhipu GLM",
+      qwen: "DashScope (Qwen)",
       xai: "xAI Grok",
       groq: "Groq",
       mistral: "Mistral",
-      custom: "自定义",
+      custom: tr("自定义", "Custom"),
     };
     return map[pid] || pid || "--";
   }
@@ -2900,8 +2904,7 @@
       }
       var fb = $("byok-status-fallback");
       if (fb) fb.textContent = r.fallback_to_platform ? tr("开（平台兜底）", "On (platform fallback)") : tr("关（严格 BYOK）", "Off (strict BYOK)");
-      var note = $("byok-fee-note");
-      if (note && r.service_fee_note) note.textContent = r.service_fee_note;
+      // fee note 用 locales（data-i18n），不用 API 返回文案覆盖（避免英文界面被盖成中文）
       renderByokSubBanner(r.subscription);
       try {
         var plansData = window.__tokenPlansPayload;
@@ -3262,7 +3265,10 @@
     if (!wrap) return;
     var groups = data.groups || [];
     if (!groups.length) {
-      wrap.innerHTML = '<tr><td colspan="7" class="sub">该时段暂无 BYOK 用量。</td></tr>';
+      wrap.innerHTML =
+        '<tr><td colspan="7" class="sub">' +
+        tr("该时段暂无 BYOK 用量。", "No BYOK usage in this period.") +
+        "</td></tr>";
       return;
     }
     var html = "";
@@ -3298,17 +3304,40 @@
       .replace(/^#/, "")
       .trim()
       .toLowerCase();
-    if (n === "token-plans" || n === "plans" || n === "orders") return "billing";
+    if (n === "token-plans" || n === "plans") return "billing";
+    if (n === "orders") return "orders";
     if (n === "usage" || n === "activity" || n === "ledger") return "transactions";
     if (n === "bills" || n === "bill" || n === "tx" || n === "transactions") return "transactions";
     if (n === "chat" || n === "try") return "playground";
     if (n === "refer" || n === "referral") return "invite";
+    if (n === "tickets" || n === "ticket") return "support";
     if (CONSOLE_PANELS.indexOf(n) >= 0) return n;
     return "overview";
   }
 
   function showConsolePanel(name, opts) {
     var id = normalizeConsolePanel(name);
+    // Hub-owned surfaces: leave Gateway workspace
+    if (id === "transactions") {
+      redirectTransactionsToHub();
+      return;
+    }
+    if (id === "orders") {
+      redirectToHub("orders");
+      return;
+    }
+    if (id === "invite") {
+      redirectToHub("invite");
+      return;
+    }
+    if (id === "account") {
+      redirectToHub("account");
+      return;
+    }
+    if (id === "support") {
+      redirectToHub("support");
+      return;
+    }
     var pushHash = !opts || opts.pushHash !== false;
     document.querySelectorAll(".console-panel").forEach(function (panel) {
       var match = panel.getAttribute("data-console-panel") === id;
@@ -3322,36 +3351,19 @@
         btn.getAttribute("data-console-panel") === id
       );
     });
-    if (id === "invite") {
-      loadInvitees().catch(function () {});
+    if (id === "byok") {
+      try {
+        loadByokAll();
+      } catch (e) {}
     }
-      if (id === "byok") {
-        try {
-          loadByokAll();
-        } catch (e) {}
-      }
-      if (id === "transactions") {
-        try {
-          bindTransactionsControls();
-        } catch (e) {}
-      }
-      if (id === "support") {
-        try {
-          loadSupportTickets();
-        } catch (e) {}
-      }
 
-      if (pushHash) {
+    if (pushHash) {
       try {
         var next = "#" + id;
         if (location.hash !== next) {
           history.replaceState(null, "", next);
         }
       } catch (e) {}
-    }
-    var msg = msgBox();
-    if (msg && id !== "overview") {
-      /* keep message visible across panels */
     }
   }
 
@@ -3839,6 +3851,37 @@
     return "https://www.ai24x.com/console.html";
   }
 
+  function hubUrl(hash) {
+    var h = String(hash || "").replace(/^#/, "");
+    return wwwConsoleBase() + "?from=gateway" + (h ? "#" + h : "");
+  }
+
+  function hubTransactionsUrl() {
+    return hubUrl("transactions");
+  }
+
+  function redirectToHub(hash) {
+    var url = hubUrl(hash || "overview");
+    try {
+      var key = "__ai24xHubRedirect_" + String(hash || "overview");
+      if (!window[key]) {
+        window[key] = true;
+        location.href = url;
+      }
+    } catch (e) {
+      try {
+        location.href = url;
+      } catch (e2) {}
+    }
+  }
+
+  function redirectTransactionsToHub() {
+    var url = hubTransactionsUrl();
+    var cta = $("tx-hub-cta");
+    if (cta) cta.setAttribute("href", url);
+    redirectToHub("transactions");
+  }
+
   /** 跨站回跳条：从 www 账户中心 / markets 跳过来时显示「返回」入口 */
   function mountBackBar() {
     var box = $("back-bar");
@@ -3898,6 +3941,14 @@
           howtoBill.href = "http://127.0.0.1:8000/console.html?from=gateway#billing";
         }
       }
+      var txHub = hubTransactionsUrl();
+      document.querySelectorAll('a[href*="#transactions"]').forEach(function (a) {
+        try {
+          var h = String(location.hostname || "").toLowerCase();
+          if (h === "127.0.0.1" || h === "localhost") a.href = txHub;
+          else if (a.id === "tx-hub-cta" || (a.classList && a.classList.contains("console-nav-item"))) a.href = txHub;
+        } catch (e2) {}
+      });
     } catch (eHub) {}
     $("api-base").value = AI24X_API.getBase();
     if (AI24X_API.isPublicAi24xHost && AI24X_API.isPublicAi24xHost()) {
@@ -3948,7 +3999,7 @@
               msgBox(),
               r && r.ok
                 ? AI24X_API.planFulfillMessage(_lastPayPlanId, null)
-                : tr("PayPal 尚未完成，可在「我的订单」点确认到账", "PayPal pending — tap Confirm under My orders"),
+                : tr("PayPal 尚未完成，请到账户中心「我的订单」确认到账", "PayPal pending — confirm under Account Hub → Orders"),
               !!(r && r.ok)
             );
             return refreshAll();
@@ -3958,7 +4009,7 @@
             showMsg(
               msgBox(),
               (msg || tr("PayPal 确认失败", "PayPal confirm failed")) +
-                tr(" — 请在「我的订单」点「确认到账」", " — tap Confirm under My orders"),
+                tr(" — 请到账户中心「我的订单」点「确认到账」", " — confirm under Account Hub → Orders"),
               false
             );
           });
@@ -3976,8 +4027,8 @@
               r && r.ok
                 ? AI24X_API.planFulfillMessage(_lastPayPlanId, null)
                 : tr(
-                    "Creem 尚未完成，可在「我的订单」点确认到账",
-                    "Creem pending — tap Confirm under My orders"
+                    "Creem 尚未完成，请到账户中心「我的订单」确认到账",
+                    "Creem pending — confirm under Account Hub → Orders"
                   ),
               !!(r && r.ok)
             );
@@ -3988,7 +4039,7 @@
             showMsg(
               msgBox(),
               (msg || tr("Creem 确认失败", "Creem confirm failed")) +
-                tr(" — 请在「我的订单」点「确认到账」。", " — tap Confirm under My orders"),
+                tr(" — 请到账户中心「我的订单」点「确认到账」。", " — confirm under Account Hub → Orders"),
               false
             );
           });
@@ -4006,8 +4057,8 @@
               r && r.ok
                 ? AI24X_API.planFulfillMessage(_lastPayPlanId, null)
                 : tr(
-                    "支付尚未完成，可在「我的订单」点确认到账",
-                    "Payment pending — tap Confirm under My orders"
+                    "支付尚未完成，请到账户中心「我的订单」确认到账",
+                    "Payment pending — confirm under Account Hub → Orders"
                   ),
               !!(r && r.ok)
             );
@@ -4018,7 +4069,7 @@
             showMsg(
               msgBox(),
               (msg || tr("支付确认失败", "Payment confirm failed")) +
-                tr(" — 请在「我的订单」点「确认到账」。", " — tap Confirm under My orders"),
+                tr(" — 请到账户中心「我的订单」点「确认到账」。", " — confirm under Account Hub → Orders"),
               false
             );
           });

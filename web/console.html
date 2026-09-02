@@ -356,7 +356,7 @@
       <div class="container">
         <p class="hero-eyebrow" data-i18n="page.console.hub.eyebrow">AI24X Hub</p>
         <h1 data-i18n="page.console.title">Account Hub</h1>
-        <p class="lead" data-i18n="page.console.hub.sub">Billing and orders stay here — open a product below.</p>
+        <p class="lead" data-i18n="page.console.hub.sub">Billing, orders and transactions stay here — open a product below.</p>
       </div>
     </section>
 
@@ -367,6 +367,7 @@
             <button type="button" class="console-nav-item is-active" data-console-panel="overview" data-i18n="page.console.nav.overview">Overview</button>
             <button type="button" class="console-nav-item" data-console-panel="billing" data-i18n="page.console.nav.billing">Billing</button>
             <button type="button" class="console-nav-item" data-console-panel="orders" data-i18n="page.console.nav.orders">Orders</button>
+            <button type="button" class="console-nav-item" data-console-panel="transactions" data-i18n="page.console.nav.transactions">Transactions</button>
             <button type="button" class="console-nav-item" data-console-panel="account" data-i18n="page.console.nav.account">Account</button>
             <button type="button" class="console-nav-item" data-console-panel="support" data-i18n="page.console.nav.tickets">Tickets</button>
             <button type="button" class="console-nav-item" id="btn-logout" data-i18n="page.console.nav.logout" style="margin-top:auto;opacity:0.7">Logout</button>
@@ -379,7 +380,7 @@
           <div class="console-panel is-active" id="panel-overview" data-console-panel="overview" role="tabpanel">
             <div class="console-panel-head">
               <h2 class="mt-0" data-i18n="page.console.nav.overview">Overview</h2>
-              <p class="sub" data-i18n-html="page.console.overview.lead">Account snapshot below. See the <a href="product.html">product matrix</a>, or open <strong>Plans</strong> and use <strong>Open product ↗</strong> on each card.</p>
+              <p class="sub" data-i18n-html="page.console.overview.lead">Account snapshot below. Top up, orders and transactions stay on this hub — open a product workspace for keys and tools. See the <a href="product.html">product matrix</a>.</p>
             </div>
             <div class="card console-identity" id="overview-identity">
               <div class="console-identity-row">
@@ -419,6 +420,11 @@
                 <span class="hub-launch-kicker" data-i18n="page.console.nav.orders">Orders</span>
                 <strong data-i18n="page.console.hub.ordersCta">Order history</strong>
                 <span class="sub" data-i18n="page.console.hub.ordersHint">Confirm payments</span>
+              </button>
+              <button type="button" class="hub-launch-card" data-console-panel="transactions">
+                <span class="hub-launch-kicker" data-i18n="page.console.nav.transactions">Transactions</span>
+                <strong data-i18n="page.console.hub.txCta">Usage &amp; ledger</strong>
+                <span class="sub" data-i18n="page.console.hub.txHint">Top-ups, usage and bonuses</span>
               </button>
             </div>
 
@@ -504,32 +510,14 @@
             </div>
           </div>
 
-          <!-- API keys -->
+          <!-- API keys: managed on Gateway workspace -->
           <div class="console-panel" id="panel-keys" data-console-panel="keys" role="tabpanel" hidden>
             <div class="console-panel-head">
               <h2 class="mt-0" data-i18n="page.console.nav.keys">API keys</h2>
-              <p class="sub" data-i18n="page.console.keys.sub">Full key is shown only once at creation; list shows prefixes. One account can have many keys sharing the same balance.</p>
+              <p class="sub" data-i18n="page.console.keys.hubRedirect">API keys and try-call live on the AI Gateway workspace.</p>
             </div>
             <div class="card">
-              <div class="keys-toolbar">
-                <h3 class="mt-0 mb-0" data-i18n="page.console.keys.title">API Key</h3>
-                <button type="button" class="btn btn-primary" id="btn-create-key" data-action="create-key" data-i18n="page.console.keys.create">Create key</button>
-              </div>
-              <div class="keys-table-wrap mt-2">
-                <table class="keys-table" aria-label="API keys">
-                  <thead>
-                    <tr>
-                      <th data-i18n="page.console.keys.col.name">Name</th>
-                      <th data-i18n="page.console.keys.col.key">Key</th>
-                      <th data-i18n="page.console.keys.col.created">Created</th>
-                      <th data-i18n="page.console.keys.col.lastUsed">Last used</th>
-                      <th class="keys-col-actions" data-i18n="page.console.keys.col.actions">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="keysList"></tbody>
-                </table>
-              </div>
-              <p class="sub mt-2" data-i18n="page.console.keys.hint">Paste a saved full key into Playground call settings when testing. Top-ups do not require a new key.</p>
+              <a class="btn btn-primary" id="keys-open-cta" href="https://open.ai24x.com/console.html?from=account#keys" data-open data-hub-external rel="noopener noreferrer" data-i18n="page.console.dev.open">Open Gateway workspace</a>
             </div>
           </div>
 
@@ -549,6 +537,7 @@
             </div>
             <p class="sub">
               <a href="#orders" id="linkBillingOrders" data-i18n="page.console.orders.viewAll">View order history &amp; confirm payments →</a>
+              <a href="#transactions" id="linkBillingTx" style="margin-left:12px" data-i18n="page.console.transactions.viewAll">View transactions &amp; usage →</a>
             </p>
           </div>
 
@@ -670,55 +659,14 @@
             </div>
           </div>
 
-          <!-- Playground -->
+          <!-- Playground: managed on Gateway workspace -->
           <div class="console-panel" id="panel-playground" data-console-panel="playground" role="tabpanel" hidden>
             <div class="console-panel-head">
-              <h2 class="mt-0" data-i18n="page.console.nav.playground">Playground</h2>
-              <p class="sub" data-i18n="page.console.chat.sub">Login session by default. shared=connectivity / free pool; flash·auto=quality (needs balance). Product Q&A: Instant Help (bottom-right). Check Use API key only to send with the key below.</p>
-              <p class="sub"><a href="https://open.ai24x.com/models/vip-picks.html" data-open data-i18n="page.models.vip.cta">VIP model list</a></p>
+              <h2 class="mt-0" data-i18n="page.console.nav.playground">Try call</h2>
+              <p class="sub" data-i18n="page.console.playground.hubRedirect">Try-call and API keys live on the AI Gateway workspace.</p>
             </div>
             <div class="card">
-              <h3 class="mt-0" data-i18n="page.console.apisettings.title">Call settings</h3>
-              <p class="sub" data-i18n="page.console.apisettings.sub">Optional. Try-call uses your login by default. Only paste a key if you check “Use API key” below.</p>
-              <div class="form-group mt-2" id="api-base-wrap">
-                <label data-i18n="page.console.apiurl">API Base</label>
-                <input type="url" class="input" id="api-base" placeholder="https://api.ai24x.com" />
-                <p class="sub" id="api-base-locked-hint" hidden data-i18n="page.console.apiurl.locked">Production uses the official API host (not editable).</p>
-              </div>
-              <div class="form-group">
-                <label data-i18n="page.console.apikey">API Key (full secret)</label>
-                <input type="password" class="input" id="api-key" placeholder="sk-..." autocomplete="off" />
-              </div>
-              <label class="sub" style="display:flex;align-items:center;gap:8px;margin:8px 0">
-                <input type="checkbox" id="chat-use-api-key" />
-                <span data-i18n="page.console.chat.useKey">Use API key to send (otherwise use login session)</span>
-              </label>
-              <div class="card-actions">
-                <button type="button" class="btn btn-primary" id="btn-save-api" data-i18n="page.console.save">Save</button>
-                <button type="button" class="btn" data-console-panel="keys" data-i18n="page.console.nav.keys">API keys</button>
-              </div>
-            </div>
-            <div class="card mt-2">
-              <h3 class="mt-0" data-i18n="page.console.chat.title">Try chat/run</h3>
-              <div class="form-group">
-                <label data-i18n="page.console.chat.prompt">Prompt</label>
-                <textarea class="input" id="chat-prompt" rows="3" placeholder="Hello" data-i18n-placeholder="page.console.chat.promptPh">Hello</textarea>
-              </div>
-              <div class="form-group">
-                <label data-i18n="page.console.chat.model">Tier / named</label>
-                <select class="input" id="chat-model">
-                  <option value="auto" selected>auto</option>
-                  <option value="flash">flash</option>
-                  <option value="pro">pro</option>
-                  <option value="ultra">ultra</option>
-                  <option value="shared">shared (free pool)</option>
-                </select>
-              </div>
-              <div id="playgroundMsg" class="console-panel-msg" data-console-msg></div>
-              <div class="card-actions">
-                <button type="button" class="btn btn-primary" id="btn-chat-run" data-i18n="page.console.chat.send">Send</button>
-              </div>
-              <pre id="chat-out" class="code-block mt-2" style="white-space:pre-wrap;min-height:80px;">--</pre>
+              <a class="btn btn-primary" id="playground-open-cta" href="https://open.ai24x.com/console.html?from=account#playground" data-open data-hub-external rel="noopener noreferrer" data-i18n="page.console.dev.open">Open Gateway workspace</a>
             </div>
           </div>
 
@@ -854,15 +802,15 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260831b"></script>
-  <script src="js/api.js?v=20260829n"></script>
+  <script src="config/locales.js?v=20260902c"></script>
+  <script src="js/api.js?v=20260902c"></script>
   <script src="js/invite.js?v=20260731a"></script>
   <script src="js/utm.js?v=20260802a"></script>
   <script src="js/i18n.js?v=20260826m"></script>
   <script src="js/ai24x-chrome.js?v=20260829o"></script>
   <script src="js/shell.js?v=20260829o"></script>
   <script src="js/app.js?v=20260818b"></script>
-  <script src="js/console.js?v=20260831b"></script>
+  <script src="js/console.js?v=20260902c"></script>
   <script src="js/support-widget.js?v=20260828f"></script>
 </body>
 </html>

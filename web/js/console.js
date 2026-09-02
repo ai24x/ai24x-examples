@@ -3253,13 +3253,39 @@
     if (n === "usage" || n === "activity" || n === "ledger") return "transactions";
     if (n === "bills" || n === "bill" || n === "tx" || n === "transactions") return "transactions";
     if (n === "chat" || n === "try") return "playground";
+    if (n === "keys" || n === "apikey" || n === "api-keys") return "keys";
     if (n === "refer" || n === "referral") return "invite";
     if (CONSOLE_PANELS.indexOf(n) >= 0) return n;
     return "overview";
   }
 
+  function openWorkspaceUrl(hash) {
+    var h = String(hash || "").replace(/^#/, "");
+    return openApiBase() + "/console.html?from=account" + (h ? "#" + h : "");
+  }
+
+  function redirectToOpenWorkspace(hash) {
+    var url = openWorkspaceUrl(hash || "overview");
+    try {
+      var key = "__ai24xOpenRedirect_" + String(hash || "overview");
+      if (!window[key]) {
+        window[key] = true;
+        location.href = url;
+      }
+    } catch (e) {
+      try {
+        location.href = url;
+      } catch (e2) {}
+    }
+  }
+
   function showConsolePanel(name, opts) {
     var id = normalizeConsolePanel(name);
+    // Gateway-owned surfaces live on open.ai24x.com
+    if (id === "keys" || id === "playground") {
+      redirectToOpenWorkspace(id);
+      return;
+    }
     var pushHash = !opts || opts.pushHash !== false;
     document.querySelectorAll(".console-panel").forEach(function (panel) {
       var match = panel.getAttribute("data-console-panel") === id;
@@ -3276,34 +3302,30 @@
     if (id === "invite") {
       loadInvitees().catch(function () {});
     }
-      if (id === "transactions") {
-        try {
-          bindTransactionsControls();
-        } catch (e) {}
+    if (id === "transactions") {
+      try {
+        bindTransactionsControls();
+      } catch (e) {}
+    }
+    if (id === "support") {
+      try {
+        loadSupportTickets();
+      } catch (e) {}
+    }
+    if (id === "billing") {
+      var plist = $("productsList");
+      if (plist && !plist.children.length) {
+        fetchBillingCatalog().catch(function () {});
       }
-      if (id === "support") {
-        try {
-          loadSupportTickets();
-        } catch (e) {}
-      }
-      if (id === "billing") {
-        var plist = $("productsList");
-        if (plist && !plist.children.length) {
-          fetchBillingCatalog().catch(function () {});
-        }
-      }
+    }
 
-      if (pushHash) {
+    if (pushHash) {
       try {
         var next = "#" + id;
         if (location.hash !== next) {
           history.replaceState(null, "", next);
         }
       } catch (e) {}
-    }
-    var msg = msgBox();
-    if (msg && id !== "overview") {
-      /* keep message visible across panels */
     }
   }
 
@@ -3611,21 +3633,7 @@
       });
     }
     function goTryShared() {
-      var sel = $("chat-model");
-      if (sel) sel.value = "shared";
-      var howto = $("howto-card");
-      if (howto) howto.style.display = "none";
-      showConsolePanel("playground");
-      showMsg(
-        msgBox("playgroundMsg"),
-        tr(
-          "已选 shared。点发送即可用今日免费额度（登录会话，不必勾 API Key）。",
-          "model=shared selected. Tap Send to use today’s free pool (login session — no API key needed)."
-        ),
-        true
-      );
-      var prompt = $("chat-prompt");
-      if (prompt && !(prompt.value || "").trim()) prompt.value = "Hello";
+      redirectToOpenWorkspace("playground");
     }
     var btnShared = $("btn-continue-shared");
     if (btnShared) btnShared.addEventListener("click", goTryShared);
@@ -3733,7 +3741,7 @@
     try {
       bindOrdersFilter();
     } catch (e) {}
-    $("api-base").value = AI24X_API.getBase();
+    if ($("api-base")) $("api-base").value = AI24X_API.getBase();
     if (AI24X_API.isPublicAi24xHost && AI24X_API.isPublicAi24xHost()) {
       var baseEl = $("api-base");
       if (baseEl) {
@@ -3743,7 +3751,15 @@
       var hint = $("api-base-locked-hint");
       if (hint) hint.hidden = false;
     }
-    $("api-key").value = AI24X_API.getApiKey();
+    if ($("api-key")) $("api-key").value = AI24X_API.getApiKey();
+    try {
+      var openKeys = openWorkspaceUrl("keys");
+      var openPlay = openWorkspaceUrl("playground");
+      var kcta = $("keys-open-cta");
+      if (kcta) kcta.href = openKeys;
+      var pcta = $("playground-open-cta");
+      if (pcta) pcta.href = openPlay;
+    } catch (eOpen) {}
     bind();
     refreshAll();
     // PayPal return：?paypal=1&out_trade_no=T…

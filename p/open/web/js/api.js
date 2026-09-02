@@ -213,7 +213,16 @@
   function syncAuthFromCookie() {
     try {
       var token = readCookie(AUTH_COOKIE);
-      if (!token) return;
+      if (!token) {
+        // 生产子域共享 cookie：他站已登出（cookie 清空）时，清掉本站残留 LS，避免假登录
+        if (authCookieDomain()) {
+          try {
+            if (localStorage.getItem(STORAGE_TOKEN)) localStorage.removeItem(STORAGE_TOKEN);
+            if (localStorage.getItem(STORAGE_USER)) localStorage.removeItem(STORAGE_USER);
+          } catch (e2) {}
+        }
+        return;
+      }
       if (localStorage.getItem(STORAGE_TOKEN) === token) return;
       setAuthToken(token);
       var raw = readCookie(AUTH_USER_COOKIE);
