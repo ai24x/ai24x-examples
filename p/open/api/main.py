@@ -5,7 +5,7 @@ import os
 import subprocess
 import time
 
-from fastapi import FastAPI, Depends, HTTPException, Request, status
+from fastapi import FastAPI, Depends, HTTPException, Request, status, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -403,8 +403,9 @@ async def health_check():
 
 
 # 主接口：/v1/chat/run
+# P0 阻塞加固：用同步 def（FastAPI 自动进线程池），避免 async 内嵌同步 ChatService 卡死事件循环
 @app.post("/v1/chat/run", response_model=ChatResponse)
-async def chat_run(
+def chat_run(
     http_request: Request,
     request: ChatRequest,
     current_user=Depends(get_current_user),
@@ -461,9 +462,11 @@ async def chat_run(
 
 
 # OpenAI 兼容：/v1/chat/completions（与 /v1/chat/run 并存，复用鉴权计费）
+# P0：同步 def → 线程池，慢上游不阻塞 /health 事件循环
 @app.post("/v1/chat/completions")
-async def chat_completions(
+def chat_completions(
     http_request: Request,
+    body: dict = Body(...),
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -481,13 +484,6 @@ async def chat_completions(
     )
     from model_router import true_stream_enabled
 
-    try:
-        body = await http_request.json()
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="请求体必须是 JSON",
-        )
     if not isinstance(body, dict):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -581,8 +577,9 @@ async def chat_completions(
 
 
 @app.post("/v1/responses")
-async def openai_responses_create(
+def openai_responses_create(
     http_request: Request,
+    body: dict = Body(...),
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -590,6 +587,7 @@ async def openai_responses_create(
     OpenAI Responses API 兼容（Codex / Cursor / LobeChat 等）。
     鉴权计费与 /v1/chat/completions 相同；支持 tools / function_call 工具循环；
     流式优先真流式透传上游 SSE（与 chat/completions 对齐，避免客户端空闲断连）。
+    P0：同步 def → 线程池，慢上游不阻塞 /health 事件循环。
     """
     from openai_compat import (
         build_chat_request_from_responses,
@@ -599,14 +597,8 @@ async def openai_responses_create(
         true_streaming_responses_response,
     )
     from model_router import true_stream_enabled
+    import json
 
-    try:
-        body = await http_request.json()
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="请求体必须是 JSON",
-        )
     if not isinstance(body, dict):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -842,6 +834,17 @@ async def _stuck_processing_scan() -> None:
 async def startup_event():
     """应用启动时初始化数据库"""
     logger.info("Starting AI24X API...")
+    # P0 阻塞加固：sync chat 路由走 anyio 线程池；默认 40 在长阻塞上游时易打满
+    try:
+        import anyio
+
+        _lim = anyio.to_thread.current_default_thread_limiter()
+        _n = int(os.getenv("API_THREAD_LIMIT", "64") or "64")
+        if _n > 0:
+            _lim.total_tokens = _n
+            logger.info("anyio thread limiter = %s", _n)
+    except Exception as e:
+        logger.warning("thread limiter adjust skipped: %s", e)
     if getattr(settings, "sms_106_enabled", False) and not getattr(settings, "sms_internal_key", ""):
         logger.warning(
             "SMS_106_ENABLED=true but SMS_INTERNAL_KEY empty — anyone can call /v1/auth/sms/send; set SMS_INTERNAL_KEY for production."
