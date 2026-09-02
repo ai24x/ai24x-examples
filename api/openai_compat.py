@@ -440,6 +440,23 @@ def openai_error_response(exc: HTTPException) -> JSONResponse:
     return JSONResponse(status_code=status_code, content=body)
 
 
+def _default_max_tokens(*, has_tools: bool = False) -> int:
+    """客户端未传 max_tokens 时的默认值。
+
+    旧默认 1000 会让 Codex/Agent 长回复 + 工具调用中途截断（断片）。
+    可用 TOKEN_LLM_DEFAULT_MAX_TOKENS / AI24X_DEFAULT_MAX_TOKENS 覆盖。
+    """
+    for key in ("TOKEN_LLM_DEFAULT_MAX_TOKENS", "AI24X_DEFAULT_MAX_TOKENS"):
+        raw = (os.environ.get(key) or "").strip()
+        if not raw:
+            continue
+        try:
+            return max(1, min(16384, int(raw)))
+        except (TypeError, ValueError):
+            pass
+    return 8192 if has_tools else 4096
+
+
 def build_chat_request_schema(body: Dict[str, Any]) -> ChatRequestSchema:
     model = map_model_name(body.get("model"))
     raw_messages = body.get("messages")
@@ -451,10 +468,13 @@ def build_chat_request_schema(body: Dict[str, Any]) -> ChatRequestSchema:
     except (TypeError, ValueError):
         temperature = 0.7
     temperature = max(0.0, min(2.0, temperature))
+    default_max = _default_max_tokens(has_tools=bool(tools))
     try:
-        max_tokens = int(body.get("max_tokens") if body.get("max_tokens") is not None else 1000)
+        max_tokens = int(
+            body.get("max_tokens") if body.get("max_tokens") is not None else default_max
+        )
     except (TypeError, ValueError):
-        max_tokens = 1000
+        max_tokens = default_max
     max_tokens = max(1, min(16384, max_tokens))
     return ChatRequestSchema(
         prompt=prompt,
@@ -1068,13 +1088,15 @@ def build_chat_request_from_responses(body: Dict[str, Any]) -> ChatRequestSchema
     except (TypeError, ValueError):
         temperature = 0.7
     temperature = max(0.0, min(2.0, temperature))
+    tools = _responses_tools_to_chat(body.get("tools"))
+    default_max = _default_max_tokens(has_tools=bool(tools))
     max_raw = body.get("max_output_tokens")
     if max_raw is None:
         max_raw = body.get("max_tokens")
     try:
-        max_tokens = int(max_raw if max_raw is not None else 1000)
+        max_tokens = int(max_raw if max_raw is not None else default_max)
     except (TypeError, ValueError):
-        max_tokens = 1000
+        max_tokens = default_max
     # 与 Completions 对齐（不再单独卡 4000）
     max_tokens = max(1, min(16384, max_tokens))
     return ChatRequestSchema(
@@ -1084,7 +1106,7 @@ def build_chat_request_from_responses(body: Dict[str, Any]) -> ChatRequestSchema
         max_tokens=max_tokens,
         stream=bool(body.get("stream")),
         messages=normalize_messages_for_upstream(messages),
-        tools=_responses_tools_to_chat(body.get("tools")),
+        tools=tools,
         tool_choice=_responses_tool_choice_to_chat(body.get("tool_choice")),
     )
 
