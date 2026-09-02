@@ -385,14 +385,7 @@ def _git_head_short():
 # 健康检查端点
 @app.get("/health")
 async def health_check():
-    """进程存活 + 只读上游摘要（不探活、不泄露密钥）。"""
-    from model_router import _layer_upstream, _upstream_mode
-
-    mode = _upstream_mode()
-    layers = {}
-    for ly in ("L0", "L1", "L2", "L3", "QI"):
-        up = _layer_upstream(ly)
-        layers[ly] = {"key_set": bool(up.get("key")), "provider": up.get("provider") or ""}
+    """进程存活探针。不返回上游厂商/层路由（防公网与客户端探路）。"""
     build = (
         (os.environ.get("AI24X_BUILD_STAMP") or "").strip()
         or (os.environ.get("BUILD_STAMP") or "").strip()
@@ -405,8 +398,6 @@ async def health_check():
         "version": "1.0.0",
         "build_stamp": build or None,
         "commit": _git_head_short(),
-        "upstream_mode": mode,
-        "layers": layers,
         "timestamp": time.time(),
     }
 
@@ -2896,6 +2887,11 @@ async def list_models(request: Request, db: Session = Depends(get_db)):
     except HTTPException:
         pass
     m = list_models_public(is_vip=is_vip, allow_names=allow_names)
+    # 公网目录：去掉上游厂商 / 真实 model id（运维见 /v1/admin/token/routing）
+    m.pop("upstream_mode", None)
+    up = m.get("upstream")
+    if isinstance(up, dict):
+        m["upstream"] = {"mode": up.get("mode") or "stub"}
     from openai_compat import openai_models_payload
     return {**m, **openai_models_payload(m)}
 

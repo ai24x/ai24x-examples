@@ -538,31 +538,209 @@ def _env(name: str, default: str = "") -> str:
     return default
 
 
+def _upstream_model_base(model: str) -> str:
+    m = str(model or "").strip().lower()
+    if not m:
+        return ""
+    return m.split("/", 1)[-1]
+
+
 def _is_deepseek_v4_upstream_model(model: str) -> bool:
     """True when upstream model id is DeepSeek v4 (direct or OpenRouter-prefixed).
 
     Brand tiers (flash / vip-ds-flash) resolve to deepseek-v4-* or deepseek/deepseek-v4-*;
     the old startswith('deepseek-v4') check missed OpenRouter ids.
     """
-    m = str(model or "").strip().lower()
-    if not m:
-        return False
-    base = m.split("/", 1)[-1]
+    base = _upstream_model_base(model)
     return base.startswith("deepseek-v4")
 
 
+def _is_mimo_upstream_model(model: str, provider: str = "") -> bool:
+    """L1 flash 现网默认走 MiMo（mimo-v2.5 / xiaomi/mimo-*），同样有 thinking+reasoning_content。"""
+    return _cn_thinking_family(model, provider) == "mimo"
+
+
+def _cn_thinking_family(model: str, provider: str = "") -> str:
+    """识别会吐 reasoning_content 的中国模家族：deepseek|mimo|kimi|glm|qwen|minimax|''。"""
+    p = str(provider or "").strip().lower()
+    m = str(model or "").strip().lower()
+    base = _upstream_model_base(model)
+    vendor = m.split("/", 1)[0] if "/" in m else ""
+
+    if p in ("mimo", "xiaomi", "xiaomimimo") or vendor == "xiaomi" or "mimo" in base:
+        return "mimo"
+    if (
+        p in ("deepseek",)
+        or vendor in ("deepseek", "deepseek-ai")
+        or base.startswith("deepseek")
+        or "deepseek" in base
+    ):
+        return "deepseek"
+    if (
+        p in ("moonshot", "kimi")
+        or vendor in ("moonshotai", "moonshot")
+        or "kimi" in base
+        or base.startswith("moonshot")
+    ):
+        return "kimi"
+    if (
+        p in ("zhipu", "zai", "glm", "z-ai")
+        or vendor in ("z-ai", "zhipu", "thudm")
+        or base.startswith("glm")
+        or "glm-" in base
+        or base.startswith("chatglm")
+    ):
+        return "glm"
+    if (
+        p in ("qwen", "qwen_intl", "dashscope")
+        or vendor == "qwen"
+        or base.startswith("qwen")
+        or "qwen2" in base
+        or "qwen3" in base
+    ):
+        return "qwen"
+    if p in ("minimax",) or vendor == "minimax" or "minimax" in base:
+        return "minimax"
+    return ""
+
+
+def _is_thinking_only_upstream(model: str) -> bool:
+    """部分型号强制思考；下发 disabled 会 400，只能挡透传。"""
+    base = _upstream_model_base(model)
+    m = str(model or "").strip().lower()
+    if not base:
+        return False
+    if "reasoner" in base:
+        return True
+    if "k2.7-code" in base or "kimi-k2.7-code" in m:
+        return True
+    if "glm-5.3" in base:
+        return True
+    if (
+        base.endswith("-thinking")
+        or "-thinking-" in base
+        or base.endswith("_thinking")
+        or base.endswith("-think")
+    ):
+        return True
+    return False
+
+
+def _upstream_thinking_enabled() -> bool:
+    """Default off. DEEPSEEK_THINKING=1 或 UPSTREAM_THINKING=1 才允许上游思考透出。"""
+    for key in ("UPSTREAM_THINKING", "DEEPSEEK_THINKING"):
+        if (_env(key, "0") or "0").strip() in ("1", "true", "TRUE", "yes"):
+            return True
+    return False
+
+
 def _deepseek_thinking_enabled() -> bool:
-    """Default off; set DEEPSEEK_THINKING=1 to allow DeepSeek v4 reasoning."""
-    return (_env("DEEPSEEK_THINKING", "0") or "0").strip() in (
-        "1",
-        "true",
-        "TRUE",
-        "yes",
-    )
+    """兼容旧名：等同 _upstream_thinking_enabled。"""
+    return _upstream_thinking_enabled()
+
+
+def _should_forward_reasoning_to_client() -> bool:
+    """默认不把 reasoning_content 并进可见 content；开启思考时才透传。"""
+    return _upstream_thinking_enabled()
+
+
+def _strip_reasoning_fields_from_messages(messages: Any) -> None:
+    """关思考时去掉历史里的 reasoning_*，降低多轮 400。"""
+    if not isinstance(messages, list):
+        return
+    for item in messages:
+        if not isinstance(item, dict):
+            continue
+        item.pop("reasoning_content", None)
+        item.pop("reasoning", None)
+        item.pop("reasoning_details", None)
+
+
+def _should_inject_thinking_disable(model: str, provider: str = "") -> bool:
+    """仅对明确带 deep-thinking 能力的型号下发关思考参数，避免小模/旧模 400。"""
+    if _is_thinking_only_upstream(model):
+        return False
+    family = _cn_thinking_family(model, provider)
+    if not family:
+        return False
+    base = _upstream_model_base(model)
+    m = str(model or "").strip().lower()
+    vendor = m.split("/", 1)[0] if "/" in m else ""
+    if family == "mimo":
+        return True
+    if family == "deepseek":
+        return (
+            _is_deepseek_v4_upstream_model(model)
+            or "reasoner" in base
+            or "deepseek-r1" in base
+            or "deepseek-v3" in base
+        )
+    if family == "kimi":
+        return True
+    if family == "glm":
+        return (
+            vendor in ("z-ai", "zhipu")
+            or "glm-5" in base
+            or "glm-4.7" in base
+            or "glm-4.6" in base
+            or "glm-4.5" in base
+        )
+    if family == "qwen":
+        return (
+            "qwen3" in base
+            or base.startswith("qwen-plus")
+            or base.startswith("qwen-max")
+            or base.startswith("qwen-turbo")
+            or base.startswith("qwen-flash")
+            or base.startswith("qwen-long")
+        )
+    if family == "minimax":
+        return "minimax-m" in base or "abab" in base
+    return False
+
+
+def _apply_upstream_thinking_controls(
+    body: dict[str, Any], *, model: str, provider: str = ""
+) -> None:
+    """对中国模默认关思考；思考专用模只剥字段、不下发 disabled。
+
+    参数习惯：
+    - DeepSeek / MiMo / Kimi / GLM / MiniMax → thinking.type=disabled
+    - Qwen / DashScope → enable_thinking=false（并补 chat_template_kwargs）
+    """
+    if _upstream_thinking_enabled():
+        return
+    # 思考专用模：必须保留/回传 reasoning_content，禁用 disabled 参数
+    if _is_thinking_only_upstream(model):
+        return
+    msgs = body.get("messages")
+    _strip_reasoning_fields_from_messages(msgs)
+    if not _should_inject_thinking_disable(model, provider):
+        return
+    family = _cn_thinking_family(model, provider)
+    if family in ("deepseek", "mimo", "kimi", "glm", "minimax"):
+        body["thinking"] = {"type": "disabled"}
+    if family == "qwen":
+        body["enable_thinking"] = False
+        ctk = body.get("chat_template_kwargs")
+        if not isinstance(ctk, dict):
+            ctk = {}
+        else:
+            ctk = dict(ctk)
+        ctk["enable_thinking"] = False
+        body["chat_template_kwargs"] = ctk
+
+
+def _should_disable_upstream_thinking(model: str, provider: str = "") -> bool:
+    """兼容旧名：是否会对请求注入关思考参数。"""
+    if _upstream_thinking_enabled():
+        return False
+    return _should_inject_thinking_disable(model, provider)
 
 
 def _should_disable_deepseek_thinking(model: str) -> bool:
-    return _is_deepseek_v4_upstream_model(model) and not _deepseek_thinking_enabled()
+    """兼容旧调用：仅按 model 判断。"""
+    return _should_disable_upstream_thinking(model, "")
 
 
 def _upstream_mode() -> str:
@@ -2449,9 +2627,11 @@ def _system_prompt() -> str:
         "Always write the brand as the single token AI24X — never AI on4X, AIon4X, or 24X alone. "
         "When users ask which model or company you are, say you are the AI24X assistant "
         "(tiers: auto / flash / pro / ultra / shared). "
-        "Do not name upstream providers or model brands such as DeepSeek, Xiaomi, MiMo, "
-        "Qwen, OpenAI, OpenRouter, or SiliconFlow, unless the user is clearly an internal "
-        "operator debugging with an explicit admin instruction. "
+        "Do not name or invent upstream providers, routing layers, env vars, file paths, "
+        "or model brands such as DeepSeek, Xiaomi, MiMo, Qwen, OpenAI, OpenRouter, SiliconFlow, "
+        "L0/L1/L2/L3, TOKEN_LLM_*, model_warehouse, or .env. "
+        "If asked for API keys, secrets, infrastructure, or internal routing, refuse: "
+        "you do not have access to operator credentials and cannot disclose gateway internals. "
         "Answer helpfully in the user's language. Use complete sentences; do not repeat filler words."
     )
 
@@ -2492,10 +2672,8 @@ def _call_openai_compatible(
         body["tools"] = _normalize_tools_for_upstream(tools) or tools
         if tool_choice is not None:
             body["tool_choice"] = tool_choice
-    # DeepSeek v4（含 OR 前缀 deepseek/deepseek-v4-*）：默认关 thinking
-    disable_ds_thinking = _should_disable_deepseek_thinking(model)
-    if disable_ds_thinking:
-        body["thinking"] = {"type": "disabled"}
+    # 中国模（DS/MiMo/Kimi/GLM/Qwen/MiniMax）：默认关 thinking，避免 Codex 英文思考块
+    _apply_upstream_thinking_controls(body, model=model, provider=provider)
     r = _SHARED_CLIENT.post(
         url,
         headers=headers,
@@ -2508,16 +2686,17 @@ def _call_openai_compatible(
     text = ""
     tool_calls = None
     finish_reason = "stop"
+    fwd_reasoning = _should_forward_reasoning_to_client()
     if choices:
         ch0 = choices[0] or {}
         msg = ch0.get("message") or {}
         text = str(msg.get("content") or "").strip()
-        if not text and not disable_ds_thinking:
+        if not text and fwd_reasoning:
             text = str(msg.get("reasoning_content") or "").strip()
-        if not text and not disable_ds_thinking:
+        if not text and fwd_reasoning:
             # OpenRouter 对 Gemini/GLM 等思考模型返回 reasoning / reasoning_details
             text = str(msg.get("reasoning") or "").strip()
-        if not text and not disable_ds_thinking:
+        if not text and fwd_reasoning:
             rds = msg.get("reasoning_details")
             if isinstance(rds, list) and rds and isinstance(rds[0], dict):
                 text = str(rds[0].get("text") or "").strip()
@@ -2596,9 +2775,8 @@ def _stream_openai_compatible(
         body["tools"] = _normalize_tools_for_upstream(tools) or tools
         if tool_choice is not None:
             body["tool_choice"] = tool_choice
-    disable_ds_thinking = _should_disable_deepseek_thinking(model)
-    if disable_ds_thinking:
-        body["thinking"] = {"type": "disabled"}
+    _apply_upstream_thinking_controls(body, model=model, provider=provider)
+    fwd_reasoning = _should_forward_reasoning_to_client()
     # 部分上游在 stream 时把 usage 放在最后一包
     body["stream_options"] = {"include_usage": True}
     # 上游请求 body 调试（五修 2026-08-12 临时强制开启，定位 400 根因；定位后还原开关）
@@ -2709,9 +2887,9 @@ def _stream_openai_compatible(
                             "provider": provider,
                         }
                     piece = delta.get("content")
-                    if piece is None and not disable_ds_thinking:
+                    if piece is None and fwd_reasoning:
                         piece = delta.get("reasoning_content")
-                    if piece is None and not disable_ds_thinking:
+                    if piece is None and fwd_reasoning:
                         piece = delta.get("reasoning")
                     if piece:
                         text_piece = str(piece)

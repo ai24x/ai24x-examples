@@ -350,6 +350,9 @@ def normalize_messages_for_upstream(messages: Any) -> Optional[List[Dict[str, An
                 "content": text if text else None,
                 "tool_calls": tcs,
             }
+            # 客户端若带回 reasoning_content（思考模多轮/工具），原样回传上游
+            if m.get("reasoning_content") is not None:
+                item["reasoning_content"] = m.get("reasoning_content")
             out.append(item)
             continue
         # 对于 string content 跳过空串；list 类型（multipart）始终保留
