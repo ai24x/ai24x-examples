@@ -31,6 +31,7 @@ class ChatRequest(BaseModel):
     # OpenAI tools / tool_choice（OpenClaw function calling）
     tools: Optional[List[Dict[str, Any]]] = Field(default=None, description="OpenAI tools")
     tool_choice: Optional[Any] = Field(default=None, description="OpenAI tool_choice")
+    include_reasoning: Optional[bool] = Field(default=False, description="是否向客户端返回推理内容（默认否）")
 
     class Config:
         json_schema_extra = {

@@ -8,6 +8,7 @@ TOKEN_LLM_UPSTREAM=direct 时回退直连 DeepSeek / 硅基流动 / Qwen 国际�
 """
 from __future__ import annotations
 
+import contextvars
 import json
 import logging
 import os
@@ -21,6 +22,11 @@ import httpx
 import upstream_health
 
 logger = logging.getLogger(__name__)
+
+# 请求级：是否允许向客户端展示推理（默认 False；由 run_routed_* 注入）
+_INCLUDE_REASONING_CV: contextvars.ContextVar[bool] = contextvars.ContextVar(
+    "ai24x_include_reasoning", default=False
+)
 
 # —— 全局共享 keep-alive 连接池（2026-08-13 优化：避免每请求 TCP+TLS 握手；httpx.Client 线程安全）——
 _CONNECT_TIMEOUT_S = 5.0  # 连接建立独立短超时：连接失败 5s 内快速 failover，不再吃满总超时
@@ -627,11 +633,16 @@ def _is_thinking_only_upstream(model: str) -> bool:
 
 
 def _upstream_thinking_enabled() -> bool:
-    """Default off. DEEPSEEK_THINKING=1 或 UPSTREAM_THINKING=1 才允许上游思考透出。"""
-    for key in ("UPSTREAM_THINKING", "DEEPSEEK_THINKING"):
-        if (_env(key, "0") or "0").strip() in ("1", "true", "TRUE", "yes"):
-            return True
-    return False
+    """是否允许向上游开启思考（env）；与客户端是否可见无关。"""
+    try:
+        from reasoning_filter import env_allows_upstream_thinking
+
+        return env_allows_upstream_thinking()
+    except Exception:
+        for key in ("UPSTREAM_THINKING", "DEEPSEEK_THINKING"):
+            if (_env(key, "0") or "0").strip() in ("1", "true", "TRUE", "yes"):
+                return True
+        return False
 
 
 def _deepseek_thinking_enabled() -> bool:
@@ -639,21 +650,29 @@ def _deepseek_thinking_enabled() -> bool:
     return _upstream_thinking_enabled()
 
 
-def _should_forward_reasoning_to_client() -> bool:
-    """默认不把 reasoning_content 并进可见 content；开启思考时才透传。"""
-    return _upstream_thinking_enabled()
+def _should_forward_reasoning_to_client(*, include_reasoning: bool = False) -> bool:
+    """客户端可见推理：仅请求显式开启（不再用全局 env 放开出口）。"""
+    try:
+        from reasoning_filter import client_may_see_reasoning
+
+        return client_may_see_reasoning(include_reasoning=include_reasoning)
+    except Exception:
+        return bool(include_reasoning)
 
 
 def _strip_reasoning_fields_from_messages(messages: Any) -> None:
-    """关思考时去掉历史里的 reasoning_*，降低多轮 400。"""
-    if not isinstance(messages, list):
-        return
-    for item in messages:
-        if not isinstance(item, dict):
-            continue
-        item.pop("reasoning_content", None)
-        item.pop("reasoning", None)
-        item.pop("reasoning_details", None)
+    try:
+        from reasoning_filter import strip_reasoning_fields_from_messages
+
+        strip_reasoning_fields_from_messages(messages)
+    except Exception:
+        if not isinstance(messages, list):
+            return
+        for item in messages:
+            if isinstance(item, dict):
+                item.pop("reasoning_content", None)
+                item.pop("reasoning", None)
+                item.pop("reasoning_details", None)
 
 
 def _should_inject_thinking_disable(model: str, provider: str = "") -> bool:
@@ -702,11 +721,11 @@ def _should_inject_thinking_disable(model: str, provider: str = "") -> bool:
 def _apply_upstream_thinking_controls(
     body: dict[str, Any], *, model: str, provider: str = ""
 ) -> None:
-    """对中国模默认关思考；思考专用模只剥字段、不下发 disabled。
+    """向上游注入关思考参数（与客户端过滤分离）。
 
-    参数习惯：
-    - DeepSeek / MiMo / Kimi / GLM / MiniMax → thinking.type=disabled
-    - Qwen / DashScope → enable_thinking=false（并补 chat_template_kwargs）
+    - env / 请求允许上游思考时：不注入 disabled
+    - 思考专用模：保留 history reasoning_content，不下发 disabled
+    - 否则：剥 history 推理字段 + 按家族注入 thinking/enable_thinking
     """
     if _upstream_thinking_enabled():
         return
@@ -1383,6 +1402,38 @@ def resolve_chain(
 
 
 def run_routed_chat(
+    *,
+    prompt: str,
+    requested_model: Optional[str],
+    is_vip: bool,
+    allow_names: Optional[set[str]] = None,
+    temperature: float = 0.7,
+    max_tokens: int = 1000,
+    region_hint: Optional[str] = None,
+    messages: Optional[list[dict[str, Any]]] = None,
+    tools: Optional[list[dict[str, Any]]] = None,
+    tool_choice: Any = None,
+    include_reasoning: bool = False,
+) -> RouteResult:
+    tok = _INCLUDE_REASONING_CV.set(bool(include_reasoning))
+    try:
+        return _run_routed_chat_inner(
+            prompt=prompt,
+            requested_model=requested_model,
+            is_vip=is_vip,
+            allow_names=allow_names,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            region_hint=region_hint,
+            messages=messages,
+            tools=tools,
+            tool_choice=tool_choice,
+        )
+    finally:
+        _INCLUDE_REASONING_CV.reset(tok)
+
+
+def _run_routed_chat_inner(
     *,
     prompt: str,
     requested_model: Optional[str],
@@ -2568,7 +2619,12 @@ def _call_openai_compatible(
     tools: Optional[list[dict[str, Any]]] = None,
     tool_choice: Any = None,
     system_prompt: Optional[str] = None,
+    include_reasoning: Optional[bool] = None,
 ) -> dict[str, Any]:
+    from reasoning_filter import extract_client_visible_text
+
+    if include_reasoning is None:
+        include_reasoning = bool(_INCLUDE_REASONING_CV.get())
     url = f"{base}/chat/completions"
     headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
     # OpenRouter 推荐带上站点头（排行榜 / 风控识别）
@@ -2589,7 +2645,7 @@ def _call_openai_compatible(
         body["tools"] = _normalize_tools_for_upstream(tools) or tools
         if tool_choice is not None:
             body["tool_choice"] = tool_choice
-    # 中国模（DS/MiMo/Kimi/GLM/Qwen/MiniMax）：默认关 thinking，避免 Codex 英文思考块
+    # 中国模：默认向上游关 thinking（与客户端出口过滤分离）
     _apply_upstream_thinking_controls(body, model=model, provider=provider)
     r = _SHARED_CLIENT.post(
         url,
@@ -2603,21 +2659,15 @@ def _call_openai_compatible(
     text = ""
     tool_calls = None
     finish_reason = "stop"
-    fwd_reasoning = _should_forward_reasoning_to_client()
     if choices:
         ch0 = choices[0] or {}
         msg = ch0.get("message") or {}
-        text = str(msg.get("content") or "").strip()
-        if not text and fwd_reasoning:
-            text = str(msg.get("reasoning_content") or "").strip()
-        if not text and fwd_reasoning:
-            # OpenRouter 对 Gemini/GLM 等思考模型返回 reasoning / reasoning_details
-            text = str(msg.get("reasoning") or "").strip()
-        if not text and fwd_reasoning:
-            rds = msg.get("reasoning_details")
-            if isinstance(rds, list) and rds and isinstance(rds[0], dict):
-                text = str(rds[0].get("text") or "").strip()
-        raw_tcs = msg.get("tool_calls")
+        # 出口强制过滤：默认不把 reasoning_* 填进正文
+        text = extract_client_visible_text(
+            msg if isinstance(msg, dict) else {},
+            include_reasoning=include_reasoning,
+        )
+        raw_tcs = msg.get("tool_calls") if isinstance(msg, dict) else None
         if isinstance(raw_tcs, list) and raw_tcs:
             tool_calls = raw_tcs
         finish_reason = str(
@@ -2670,10 +2720,15 @@ def _stream_openai_compatible(
     messages: Optional[list[dict[str, Any]]] = None,
     tools: Optional[list[dict[str, Any]]] = None,
     tool_choice: Any = None,
+    include_reasoning: Optional[bool] = None,
 ):
     """上游真流式。yield dict: delta / tool_calls_delta / done / error。"""
     import json as _json
 
+    from reasoning_filter import ThinkTagStreamScrubber, stream_delta_visible_piece
+
+    if include_reasoning is None:
+        include_reasoning = bool(_INCLUDE_REASONING_CV.get())
     url = f"{base}/chat/completions"
     headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
     if provider == "openrouter" or "openrouter.ai" in (base or ""):
@@ -2693,7 +2748,7 @@ def _stream_openai_compatible(
         if tool_choice is not None:
             body["tool_choice"] = tool_choice
     _apply_upstream_thinking_controls(body, model=model, provider=provider)
-    fwd_reasoning = _should_forward_reasoning_to_client()
+    scrubber = ThinkTagStreamScrubber(include_reasoning=include_reasoning)
     # 部分上游在 stream 时把 usage 放在最后一包
     body["stream_options"] = {"include_usage": True}
     # 上游请求 body 调试（五修 2026-08-12 临时强制开启，定位 400 根因；定位后还原开关）
@@ -2803,20 +2858,20 @@ def _stream_openai_compatible(
                             "raw_model": model,
                             "provider": provider,
                         }
-                    piece = delta.get("content")
-                    if piece is None and fwd_reasoning:
-                        piece = delta.get("reasoning_content")
-                    if piece is None and fwd_reasoning:
-                        piece = delta.get("reasoning")
+                    piece = stream_delta_visible_piece(
+                        delta if isinstance(delta, dict) else {},
+                        include_reasoning=include_reasoning,
+                    )
                     if piece:
-                        text_piece = str(piece)
-                        full_parts.append(text_piece)
-                        yield {
-                            "type": "delta",
-                            "text": text_piece,
-                            "raw_model": model,
-                            "provider": provider,
-                        }
+                        text_piece = scrubber.feed(str(piece))
+                        if text_piece:
+                            full_parts.append(text_piece)
+                            yield {
+                                "type": "delta",
+                                "text": text_piece,
+                                "raw_model": model,
+                                "provider": provider,
+                            }
     except Exception as e:
         # 附带上游 4xx/5xx 响应体 + 错误分类（format=400 直接上报不再 failover）
         kind, detail = _upstream_error_class(e)
@@ -2837,6 +2892,15 @@ def _stream_openai_compatible(
         }
         return
 
+    tail = scrubber.flush()
+    if tail:
+        full_parts.append(tail)
+        yield {
+            "type": "delta",
+            "text": tail,
+            "raw_model": model,
+            "provider": provider,
+        }
     full = "".join(full_parts)
     assembled_tcs = None
     if tc_acc:
@@ -3031,8 +3095,41 @@ def run_routed_chat_stream(
     messages: Optional[list[dict[str, Any]]] = None,
     tools: Optional[list[dict[str, Any]]] = None,
     tool_choice: Any = None,
+    include_reasoning: bool = False,
 ) -> Iterator[dict[str, Any]]:
     """真流式路由。事件：meta → delta* / tool_calls_delta* → done；全部失败则 error。"""
+    tok = _INCLUDE_REASONING_CV.set(bool(include_reasoning))
+    try:
+        yield from _run_routed_chat_stream_inner(
+            prompt=prompt,
+            requested_model=requested_model,
+            is_vip=is_vip,
+            allow_names=allow_names,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            region_hint=region_hint,
+            messages=messages,
+            tools=tools,
+            tool_choice=tool_choice,
+        )
+    finally:
+        _INCLUDE_REASONING_CV.reset(tok)
+
+
+def _run_routed_chat_stream_inner(
+    *,
+    prompt: str,
+    requested_model: Optional[str],
+    is_vip: bool,
+    allow_names: Optional[set[str]] = None,
+    temperature: float = 0.7,
+    max_tokens: int = 1000,
+    region_hint: Optional[str] = None,
+    messages: Optional[list[dict[str, Any]]] = None,
+    tools: Optional[list[dict[str, Any]]] = None,
+    tool_choice: Any = None,
+) -> Iterator[dict[str, Any]]:
+    """真流式路由内核。"""
     use_tools = tools if (tools and _tools_passthrough_enabled()) else None
     use_choice = tool_choice if use_tools is not None else None
     pick = None

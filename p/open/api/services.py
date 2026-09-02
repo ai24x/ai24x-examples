@@ -260,6 +260,7 @@ class ChatService:
                     messages=msgs if isinstance(msgs, list) else None,
                     tools=getattr(request, "tools", None),
                     tool_choice=getattr(request, "tool_choice", None),
+                    include_reasoning=bool(getattr(request, "include_reasoning", False)),
                 )
             if not routed.ok:
                 if (routed.error or "") == "vip_required":
@@ -687,6 +688,7 @@ class ChatService:
                         messages=msgs if isinstance(msgs, list) else None,
                         tools=getattr(request, "tools", None),
                         tool_choice=getattr(request, "tool_choice", None),
+                        include_reasoning=bool(getattr(request, "include_reasoning", False)),
                     )
                 for ev in stream_iter:
                     et = ev.get("type")

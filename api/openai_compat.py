@@ -476,6 +476,8 @@ def build_chat_request_schema(body: Dict[str, Any]) -> ChatRequestSchema:
     except (TypeError, ValueError):
         max_tokens = default_max
     max_tokens = max(1, min(16384, max_tokens))
+    from reasoning_filter import parse_include_reasoning_from_body
+
     return ChatRequestSchema(
         prompt=prompt,
         model=model,
@@ -485,6 +487,7 @@ def build_chat_request_schema(body: Dict[str, Any]) -> ChatRequestSchema:
         messages=msgs,
         tools=tools,
         tool_choice=tool_choice,
+        include_reasoning=parse_include_reasoning_from_body(body),
     )
 
 
@@ -1099,6 +1102,8 @@ def build_chat_request_from_responses(body: Dict[str, Any]) -> ChatRequestSchema
         max_tokens = default_max
     # 与 Completions 对齐（不再单独卡 4000）
     max_tokens = max(1, min(16384, max_tokens))
+    from reasoning_filter import parse_include_reasoning_from_body
+
     return ChatRequestSchema(
         prompt=messages_to_prompt(messages),
         model=model,
@@ -1108,6 +1113,7 @@ def build_chat_request_from_responses(body: Dict[str, Any]) -> ChatRequestSchema
         messages=normalize_messages_for_upstream(messages),
         tools=tools,
         tool_choice=_responses_tool_choice_to_chat(body.get("tool_choice")),
+        include_reasoning=parse_include_reasoning_from_body(body),
     )
 
 def to_openai_response(

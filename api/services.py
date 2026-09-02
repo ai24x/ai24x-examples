@@ -263,6 +263,7 @@ class ChatService:
                     messages=msgs if isinstance(msgs, list) else None,
                     tools=getattr(request, "tools", None),
                     tool_choice=getattr(request, "tool_choice", None),
+                    include_reasoning=bool(getattr(request, "include_reasoning", False)),
                 )
             if not routed.ok:
                 if (routed.error or "") == "vip_required":
@@ -309,6 +310,10 @@ class ChatService:
             used_model = routed.model
             routed_tool_calls = getattr(routed, "tool_calls", None)
             routed_finish = getattr(routed, "finish_reason", None)
+            if not bool(getattr(request, "include_reasoning", False)):
+                from reasoning_filter import scrub_think_tags
+
+                response_text = scrub_think_tags(str(response_text or ""))
             from model_router import public_tier_name
 
             public_model = getattr(routed, "public_model", None) or public_tier_name(
@@ -680,7 +685,17 @@ class ChatService:
                         messages=msgs if isinstance(msgs, list) else None,
                         tools=getattr(request, "tools", None),
                         tool_choice=getattr(request, "tool_choice", None),
+                        include_reasoning=bool(
+                            getattr(request, "include_reasoning", False)
+                        ),
                     )
+                from reasoning_filter import ThinkTagStreamScrubber, scrub_think_tags
+
+                _reason_scrub = ThinkTagStreamScrubber(
+                    include_reasoning=bool(
+                        getattr(request, "include_reasoning", False)
+                    )
+                )
                 for ev in stream_iter:
                     et = ev.get("type")
                     if et == "meta":
@@ -702,13 +717,26 @@ class ChatService:
                             "layer": ev.get("layer"),
                         }
                     elif et == "delta":
-                        full_text += str(ev.get("text") or "")
+                        raw_piece = str(ev.get("text") or "")
+                        if not bool(getattr(request, "include_reasoning", False)):
+                            raw_piece = _reason_scrub.feed(raw_piece)
+                        if not raw_piece:
+                            continue
+                        full_text += raw_piece
+                        ev = {**ev, "text": raw_piece}
                         yield ev
                     elif et == "tool_calls_delta":
                         yield ev
                     elif et == "done":
+                        if not bool(getattr(request, "include_reasoning", False)):
+                            _tail = _reason_scrub.flush()
+                            if _tail:
+                                full_text += _tail
+                                yield {"type": "delta", "text": _tail}
                         saw_done = True
                         full_text = str(ev.get("text") or full_text)
+                        if not bool(getattr(request, "include_reasoning", False)):
+                            full_text = scrub_think_tags(full_text)
                         token_count = max(1, int(ev.get("tokens") or 1))
                         try:
                             if ev.get("prompt_tokens") is not None:
