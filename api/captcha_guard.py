@@ -3,7 +3,7 @@
 图形验证码（进程内实现，防批量注册/发码刷子）。
 
 - 纯 Python + Pillow 生成 4 位字符图（轻微仿射扭曲 + 噪点 + 干扰线）
-- token -> 答案 存进程内 dict，一次性消费，TTL 5 分钟
+- token -> 答案 存进程内 dict，一次性消费，TTL 10 分钟
 - ENABLE_CAPTCHA=0 可整体关闭（回滚兜底）
 - 每 IP 5 分钟最多生成 20 张，防图片接口被刷爆
 """
@@ -22,7 +22,7 @@ _CAPTCHA_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
 _store: dict[str, tuple[str, float]] = {}
 _ip_window: dict[str, list[float]] = {}
 _lock = threading.Lock()
-_TTL_S = 300.0
+_TTL_S = 600.0
 _IP_MAX = 20
 _IP_WINDOW_S = 300.0
 
