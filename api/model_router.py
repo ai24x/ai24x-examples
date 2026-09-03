@@ -2135,6 +2135,7 @@ _TOKENLAB_MODEL_MAP: dict[str, str] = {
     "vip-gemini-flash": "gemini-3.6-flash",
     "vip-gpt56-terra": "gpt-5.6-terra",
     "vip-gpt56-luna": "gpt-5.6-luna",
+    "vip-gpt56-sol": "gpt-5.6-sol",
     "vip-grok": "grok-4.20",
 }
 
@@ -2160,6 +2161,7 @@ _REQUESTY_MODELS: frozenset[str] = frozenset({
     "google/gemini-3.1-pro-preview",
     "openai/gpt-5.6-terra",
     "openai/gpt-5.6-luna",
+    "openai/gpt-5.6-sol",
 })
 
 
