@@ -474,7 +474,7 @@
               <h2 class="mt-0" data-i18n="page.console.byok.title">BYOK keys · bring your own keys</h2>
               <p class="sub" id="byok-fee-note" data-i18n="page.console.byok.feeNote">Gateway service fee only — your keys bill at provider rates. Cache hits do not spend quota.</p>
               <p class="sub" data-i18n="page.console.byok.apiHint">Calls: create your API key in Account Hub and use https://api.ai24x.com/v1. Manage upstream keys on this page only.</p>
-              <p class="sub" data-i18n="page.console.byok.providerGuide">Pick a model family (China / world). Fill that vendor’s official API key — not an AI24X platform key. Aggregators are optional under Advanced.</p>
+              <p class="sub" data-i18n="page.console.byok.providerGuide">Pick a model family (China / world). Fill that vendor’s official API key — not an AI24X platform key. Use Custom for other OpenAI-compatible endpoints.</p>
             </div>
 
             <div class="card" id="byok-status-card" style="display:none">
@@ -512,21 +512,18 @@
                   <select class="input" id="byok-provider">
                     <optgroup label="中国名模" data-i18n-label="page.console.byok.groupChina">
                       <option value="deepseek" selected>DeepSeek</option>
+                      <option value="qwen">Qwen（通义千问）</option>
                       <option value="moonshot">Kimi（月之暗面）</option>
                       <option value="zhipu">智谱 GLM</option>
-                      <option value="qwen">通义千问（百炼）</option>
+                      <option value="minimax">MiniMax</option>
+                      <option value="mimo">小米 MiMo</option>
                     </optgroup>
                     <optgroup label="世界名模" data-i18n-label="page.console.byok.groupWorld">
                       <option value="openai">OpenAI（GPT）</option>
                       <option value="anthropic">Anthropic（Claude）</option>
+                      <option value="gemini">Google Gemini</option>
                       <option value="xai">xAI（Grok）</option>
                       <option value="mistral">Mistral</option>
-                    </optgroup>
-                    <optgroup label="高级 · 多模聚合（可选）" data-i18n-label="page.console.byok.groupAdvanced">
-                      <option value="openrouter">OpenRouter（多模聚合）</option>
-                      <option value="siliconflow">SiliconFlow（多模聚合）</option>
-                      <option value="together">Together AI（多模聚合）</option>
-                      <option value="groq">Groq（推理加速）</option>
                     </optgroup>
                     <optgroup label="其它" data-i18n-label="page.console.byok.groupOther">
                       <option value="custom" data-i18n="page.console.byok.customOpt">Custom OpenAI-compatible</option>
@@ -892,7 +889,7 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260904b"></script>
+  <script src="config/locales.js?v=20260904c"></script>
   <script src="js/api.js?v=20260902c"></script>
   <script src="js/invite.js?v=20260731a"></script>
   <script src="js/utm.js?v=20260802a"></script>
@@ -900,7 +897,7 @@
   <script src="js/ai24x-chrome.js?v=20260829n"></script>
   <script src="js/shell.js?v=20260829n"></script>
   <script src="js/app.js?v=20260808b"></script>
-  <script src="js/console.js?v=20260904b"></script>
+  <script src="js/console.js?v=20260904c"></script>
   <script src="js/support-widget.js?v=20260817z"></script>
 </body>
 </html>

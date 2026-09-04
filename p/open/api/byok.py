@@ -46,11 +46,14 @@ class ByokEntitlementError(Exception):
 
 # ---------------------------------------------------------------------------
 # Provider 注册表（OpenAI 兼容直连；Anthropic 走 Messages 适配器）
-# group: china=中国名模官方 | world=世界名模官方 | advanced=多模聚合/加速（可选）| other
+# group: china=中国名模 | world=世界名模 | other=自定义
+# 排序 = 知名度 × 性价比（BYOK 官方 Key 场景）；聚合平台不下拉展示（防引流），ID 仍保留兼容旧 Key
 BYOK_PROVIDERS: dict[str, dict[str, Any]] = {
+    # —— 中国名模（下拉顺序）——
     "deepseek": {
         "title": "DeepSeek",
         "group": "china",
+        "rank": 10,
         "key_hint": "填写 DeepSeek 官方 API Key（platform.deepseek.com）",
         "base": "https://api.deepseek.com/v1",
         "openai_compatible": True,
@@ -61,9 +64,19 @@ BYOK_PROVIDERS: dict[str, dict[str, Any]] = {
             "ultra": "deepseek-reasoner",
         },
     },
+    "qwen": {
+        "title": "Qwen（通义千问）",
+        "group": "china",
+        "rank": 20,
+        "key_hint": "填写阿里云百炼 / DashScope API Key（Qwen）",
+        "base": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "openai_compatible": True,
+        "tiers": {"auto": "qwen-plus", "flash": "qwen-turbo", "pro": "qwen-plus", "ultra": "qwen-max"},
+    },
     "moonshot": {
         "title": "Kimi（月之暗面）",
         "group": "china",
+        "rank": 30,
         "key_hint": "填写 Moonshot / Kimi 官方 API Key",
         "base": "https://api.moonshot.cn/v1",
         "openai_compatible": True,
@@ -72,22 +85,45 @@ BYOK_PROVIDERS: dict[str, dict[str, Any]] = {
     "zhipu": {
         "title": "智谱 GLM",
         "group": "china",
+        "rank": 40,
         "key_hint": "填写智谱开放平台 API Key（bigmodel.cn）",
         "base": "https://open.bigmodel.cn/api/paas/v4",
         "openai_compatible": True,
         "tiers": {"auto": "glm-4-flash", "flash": "glm-4-flash", "pro": "glm-4-plus", "ultra": "glm-4-plus"},
     },
-    "qwen": {
-        "title": "通义千问（百炼）",
+    "minimax": {
+        "title": "MiniMax",
         "group": "china",
-        "key_hint": "填写阿里云百炼 / DashScope API Key",
-        "base": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "rank": 50,
+        "key_hint": "填写 MiniMax 官方 API Key（OpenAI 兼容端点）",
+        "base": "https://api.minimaxi.com/v1",
         "openai_compatible": True,
-        "tiers": {"auto": "qwen-plus", "flash": "qwen-turbo", "pro": "qwen-plus", "ultra": "qwen-max"},
+        "tiers": {
+            "auto": "MiniMax-M2.5",
+            "flash": "MiniMax-M2.5",
+            "pro": "MiniMax-M2.5",
+            "ultra": "MiniMax-M2.5",
+        },
     },
+    "mimo": {
+        "title": "小米 MiMo",
+        "group": "china",
+        "rank": 60,
+        "key_hint": "填写小米 MiMo 官方 API Key（api.xiaomimimo.com）",
+        "base": "https://api.xiaomimimo.com/v1",
+        "openai_compatible": True,
+        "tiers": {
+            "auto": "mimo-v2.5",
+            "flash": "mimo-v2.5",
+            "pro": "mimo-v2.5-pro",
+            "ultra": "mimo-v2.5-pro",
+        },
+    },
+    # —— 世界名模 ——
     "openai": {
         "title": "OpenAI（GPT）",
         "group": "world",
+        "rank": 10,
         "key_hint": "填写 OpenAI 官方 API Key（platform.openai.com）",
         "base": "https://api.openai.com/v1",
         "openai_compatible": True,
@@ -96,6 +132,7 @@ BYOK_PROVIDERS: dict[str, dict[str, Any]] = {
     "anthropic": {
         "title": "Anthropic（Claude）",
         "group": "world",
+        "rank": 20,
         "key_hint": "填写 Anthropic 官方 API Key（Messages API）",
         "base": "https://api.anthropic.com",
         "openai_compatible": False,
@@ -106,9 +143,24 @@ BYOK_PROVIDERS: dict[str, dict[str, Any]] = {
             "ultra": "claude-opus-5-0",
         },
     },
+    "gemini": {
+        "title": "Google Gemini",
+        "group": "world",
+        "rank": 30,
+        "key_hint": "填写 Google AI Studio / Gemini API Key（OpenAI 兼容端点）",
+        "base": "https://generativelanguage.googleapis.com/v1beta/openai/",
+        "openai_compatible": True,
+        "tiers": {
+            "auto": "gemini-2.0-flash",
+            "flash": "gemini-2.0-flash",
+            "pro": "gemini-2.0-flash",
+            "ultra": "gemini-2.5-pro",
+        },
+    },
     "xai": {
         "title": "xAI（Grok）",
         "group": "world",
+        "rank": 40,
         "key_hint": "填写 xAI 官方 API Key",
         "base": "https://api.x.ai/v1",
         "openai_compatible": True,
@@ -117,23 +169,29 @@ BYOK_PROVIDERS: dict[str, dict[str, Any]] = {
     "mistral": {
         "title": "Mistral",
         "group": "world",
+        "rank": 50,
         "key_hint": "填写 Mistral 官方 API Key",
         "base": "https://api.mistral.ai/v1",
         "openai_compatible": True,
         "tiers": {"auto": "mistral-small-latest", "flash": "mistral-small-latest", "pro": "mistral-medium-latest", "ultra": "mistral-large-latest"},
     },
+    # —— 聚合：不下拉（ui_hidden），仅兼容历史 Key ——
     "openrouter": {
         "title": "OpenRouter（多模聚合）",
-        "group": "advanced",
-        "key_hint": "高级：填写 OpenRouter 平台 Key（一把可调多家模型，非单一名模官方 Key）",
+        "group": "legacy",
+        "rank": 900,
+        "ui_hidden": True,
+        "key_hint": "历史兼容：OpenRouter 平台 Key",
         "base": "https://openrouter.ai/api/v1",
         "openai_compatible": True,
         "tiers": {"auto": "openrouter/auto", "flash": "openrouter/auto", "pro": "openrouter/auto", "ultra": "openrouter/auto"},
     },
     "siliconflow": {
         "title": "SiliconFlow（多模聚合）",
-        "group": "advanced",
-        "key_hint": "高级：填写 SiliconFlow 平台 Key（聚合通道，非单一名模官方 Key）",
+        "group": "legacy",
+        "rank": 910,
+        "ui_hidden": True,
+        "key_hint": "历史兼容：SiliconFlow 平台 Key",
         "base": "https://api.siliconflow.com/v1",
         "openai_compatible": True,
         "tiers": {
@@ -145,16 +203,20 @@ BYOK_PROVIDERS: dict[str, dict[str, Any]] = {
     },
     "together": {
         "title": "Together AI（多模聚合）",
-        "group": "advanced",
-        "key_hint": "高级：填写 Together AI 平台 Key",
+        "group": "legacy",
+        "rank": 920,
+        "ui_hidden": True,
+        "key_hint": "历史兼容：Together AI 平台 Key",
         "base": "https://api.together.xyz/v1",
         "openai_compatible": True,
         "tiers": {"auto": "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo", "flash": "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo", "pro": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo", "ultra": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"},
     },
     "groq": {
         "title": "Groq（推理加速）",
-        "group": "advanced",
-        "key_hint": "高级：填写 Groq 平台 Key（加速推理，非单一名模官方）",
+        "group": "legacy",
+        "rank": 930,
+        "ui_hidden": True,
+        "key_hint": "历史兼容：Groq 平台 Key",
         "base": "https://api.groq.com/openai/v1",
         "openai_compatible": True,
         "tiers": {"auto": "llama-3.3-70b-versatile", "flash": "llama-3.1-8b-instant", "pro": "llama-3.3-70b-versatile", "ultra": "llama-3.3-70b-versatile"},
@@ -162,7 +224,8 @@ BYOK_PROVIDERS: dict[str, dict[str, Any]] = {
     "custom": {
         "title": "自定义 OpenAI 兼容端点",
         "group": "other",
-        "key_hint": "填写兼容端点的 API Key，并填写下方 Base URL",
+        "rank": 100,
+        "key_hint": "填写兼容端点的 API Key，并填写下方 Base URL（可用此接入其它官方/私有端点）",
         "base": "",
         "openai_compatible": True,
         "tiers": {},
@@ -1958,7 +2021,7 @@ def usage_daily(db, *, auth_user_id: int, days: int = 7) -> dict[str, Any]:
 
 def models_catalog() -> dict[str, Any]:
     """控制台「可服务模型」清单：provider + 平台目录推荐。"""
-    group_order = ("china", "world", "advanced", "other")
+    group_order = ("china", "world", "other", "legacy")
     providers = []
     for pid, p in BYOK_PROVIDERS.items():
         providers.append(
@@ -1966,6 +2029,8 @@ def models_catalog() -> dict[str, Any]:
                 "id": pid,
                 "title": p.get("title", pid),
                 "group": p.get("group") or "other",
+                "rank": int(p.get("rank") or 999),
+                "ui_hidden": bool(p.get("ui_hidden")),
                 "key_hint": p.get("key_hint") or "",
                 "base": p.get("base", ""),
                 "openai_compatible": bool(p.get("openai_compatible")),
@@ -1975,6 +2040,7 @@ def models_catalog() -> dict[str, Any]:
     providers.sort(
         key=lambda x: (
             group_order.index(x["group"]) if x["group"] in group_order else 99,
+            int(x.get("rank") or 999),
             str(x.get("title") or x.get("id") or ""),
         )
     )
@@ -1997,11 +2063,12 @@ def models_catalog() -> dict[str, Any]:
         pass
     return {
         "providers": providers,
+        "providers_ui": [p for p in providers if not p.get("ui_hidden")],
         "groups": [
             {"id": "china", "title": "中国名模"},
             {"id": "world", "title": "世界名模"},
-            {"id": "advanced", "title": "高级 · 多模聚合（可选）"},
             {"id": "other", "title": "其它"},
         ],
         "catalog": catalog_rows,
+        "note": "聚合平台不在下拉展示；已保存的历史 Key 仍可用。其它端点请用「自定义」。",
     }
