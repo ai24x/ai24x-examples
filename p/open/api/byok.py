@@ -502,6 +502,11 @@ def resolve_upstream_model(requested: str, provider: str, key_models: list[str])
     if not req:
         return None
     req_l = req.lower()
+    # 2026-09-04 司令修复：vip-* 平台托管专属模型（vip-gpt56-luna/sol/terra/gpt54/kimi/claude/gemini 等）
+    # 一律不归 BYOK——用户自带 key 无权顶替平台托管档，命中即回退平台（扣充值余额走 OR/官方上游）。
+    # 否则 deepseek key models='[]' 会把 vip-gpt56-luna 原样透传 DeepSeek → 400。
+    if req_l.startswith("vip-"):
+        return None
     # 1) key.models 精确匹配（含 OpenRouter 风格前缀 openai/gpt-4o 的 basename 匹配）
     if key_models:
         for m in key_models:
@@ -544,8 +549,12 @@ def resolve_upstream_model(requested: str, provider: str, key_models: list[str])
     # 4) OpenRouter 风格 "openai/gpt-4o"：拆掉前缀
     if "/" in req_l and req_l.split("/", 1)[0] in ("openrouter", "openai", "anthropic", "deepseek"):
         return req
-    # 5) 直接透传（key.models 为空 = 该 key 可服务任意模型）
-    return req
+    # 5) 直接透传仅限 openrouter 类 key（其 key 确实可调任意 openrouter 模型名）。
+    #    其余 provider（deepseek/openai/anthropic/siliconflow）key 空 models 时对未知裸模型名一律不覆盖
+    #    （回退平台），避免把 vip-* / ds-* 等平台模型原样透传上游 → 400。
+    if provider == "openrouter":
+        return req
+    return None
 
 
 # ---------------------------------------------------------------------------
