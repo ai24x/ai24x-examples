@@ -4,6 +4,7 @@
 管理端：
   GET  /v1/admin/price/monitor   → snapshot()
   POST /v1/admin/price/refresh   → 实拉 OR/TL/Requesty 价目 + snapshot()
+  POST /v1/admin/price/apply-hero → 一键切主通道（写回仓库 channels / 上游模式）
 
 数据落盘：api/data/provider_prices.json（gitignored；12h 内不重复实拉）
 阈值（env，默认值）：
@@ -496,6 +497,157 @@ def _suggest_action(row: dict[str, Any], cheap: Optional[dict[str, Any]], stable
     return {"action": action, "headline": headline, "notes": actions, "flags": flags}
 
 
+_AGG_PROVIDERS = ("openrouter", "tokenlab", "requesty", "quickrouter")
+_PREF_PRICE_KEY = {"openrouter": "or", "tokenlab": "tl", "requesty": "rq"}
+
+
+def _apply_plan(
+    row: dict[str, Any],
+    cheap: Optional[dict[str, Any]],
+    stable: Optional[dict[str, Any]],
+    sug: dict[str, Any],
+) -> dict[str, Any]:
+    """给出一键按钮是否可点、目标通道与写回种类。"""
+    action = str(sug.get("action") or "keep")
+    prefer: Optional[str] = None
+    if action in ("switch_cheaper", "hero") and cheap and cheap.get("provider"):
+        prefer = str(cheap["provider"])
+    elif action in ("prefer_stable", "avoid_unstable") and stable and stable.get("provider"):
+        prefer = str(stable["provider"])
+    elif cheap and cheap.get("provider"):
+        # keep / fix_margin：仍可手动确认最省通道（fix_margin 默认不推荐点）
+        if action != "fix_margin":
+            prefer = str(cheap["provider"])
+    role = str(row.get("role") or "")
+    kind: Optional[str] = None
+    reason = ""
+    if prefer in _AGG_PROVIDERS:
+        if role == "vip_pick":
+            kind = "vip_channels"
+            reason = f"将 VIP 聚合链首切至 {_PROVIDER_LABEL.get(prefer, prefer)}，其余保留为兜底"
+        elif role in ("default_flash", "default_pro", "default_ultra"):
+            if prefer == "openrouter":
+                kind = "upstream_mode"
+                reason = "将档位上游模式切为 OpenRouter（立即生效）"
+            else:
+                reason = "档位主通道仅支持切 OpenRouter；TokenLab/Requesty 请对 VIP 点名使用一键"
+        else:
+            reason = "该模型不支持一键切通道"
+    elif prefer:
+        reason = f"目标通道 {_PROVIDER_LABEL.get(prefer, prefer)} 暂不支持一键写回"
+    else:
+        reason = "无明确目标通道"
+    return {
+        "applyable": kind is not None,
+        "apply_kind": kind,
+        "prefer": prefer,
+        "prefer_label": _PROVIDER_LABEL.get(prefer or "", prefer or ""),
+        "reason": reason,
+    }
+
+
+def apply_hero_pick(
+    *,
+    model_id: str,
+    prefer: str,
+    update_cost: bool = True,
+    actor: str = "admin",
+) -> dict[str, Any]:
+    """一键应用主打通道：VIP 写 channels；档位仅允许切 openrouter 上游模式。"""
+    cid = str(model_id or "").strip()
+    prefer_n = str(prefer or "").strip().lower()
+    if not cid:
+        raise ValueError("缺少模型 id")
+    if prefer_n not in _AGG_PROVIDERS:
+        raise ValueError("目标通道无效，仅支持 openrouter / tokenlab / requesty / quickrouter")
+
+    cat = next((c for c in mw.catalog_merged() if str(c.get("id") or "") == cid), None)
+    if not cat:
+        raise ValueError("未知模型")
+    role = str(cat.get("role") or "")
+    applied: list[dict[str, Any]] = []
+
+    if role == "vip_pick":
+        base_ch = [
+            str(x).strip().lower()
+            for x in (cat.get("channels") or [])
+            if str(x).strip().lower() in _AGG_PROVIDERS
+        ]
+        if not base_ch:
+            base_ch = ["openrouter", "tokenlab", "requesty"]
+        if prefer_n not in base_ch:
+            new_ch = [prefer_n] + base_ch
+        else:
+            new_ch = [prefer_n] + [c for c in base_ch if c != prefer_n]
+        patch: dict[str, Any] = {"id": cid, "channels": new_ch}
+        cost_note = ""
+        cost_synced = False
+        if update_cost:
+            pk = _PREF_PRICE_KEY.get(prefer_n)
+            try:
+                snap_row = next(
+                    (r for r in snapshot().get("rows") or [] if str(r.get("id")) == cid),
+                    None,
+                )
+                pair = (snap_row or {}).get(pk) if pk else None
+                if pair and len(pair) >= 2:
+                    patch["cost_in"] = float(pair[0] or 0)
+                    patch["cost_out"] = float(pair[1] or 0)
+            except Exception:
+                pass
+        try:
+            mw.update_warehouse({"vip_rates": [patch]}, actor=str(actor or "admin")[:64])
+            cost_synced = "cost_in" in patch
+            if cost_synced:
+                cost_note = f"；账本成本已同步为 {_PROVIDER_LABEL.get(prefer_n, prefer_n)} 价目"
+        except ValueError as e:
+            # 成本护栏拒绝时：去掉成本只写 channels
+            if update_cost and ("cost_in" in patch or "cost_out" in patch):
+                patch.pop("cost_in", None)
+                patch.pop("cost_out", None)
+                mw.update_warehouse({"vip_rates": [patch]}, actor=str(actor or "admin")[:64])
+                cost_note = f"；成本未改（{e}）"
+            else:
+                raise
+        applied.append(
+            {
+                "type": "vip_channels",
+                "channels": new_ch,
+                "cost_synced": cost_synced,
+            }
+        )
+        msg = f"已将 {cid} 主通道切至 {_PROVIDER_LABEL.get(prefer_n, prefer_n)}{cost_note}"
+    elif role in ("default_flash", "default_pro", "default_ultra"):
+        if prefer_n != "openrouter":
+            raise ValueError(
+                "档位主通道仅支持切至 OpenRouter；TokenLab/Requesty 请对 VIP 点名使用一键。"
+            )
+        from system_flags import update_system_flags
+
+        update_system_flags({"token_llm_upstream": "openrouter"})
+        applied.append({"type": "upstream_mode", "mode": "openrouter"})
+        msg = f"已将档位上游模式切为 OpenRouter（模型 {cid}）"
+    else:
+        raise ValueError("该模型不支持一键切通道")
+
+    out = snapshot()
+    return {
+        "ok": True,
+        "message": msg,
+        "model_id": cid,
+        "prefer": prefer_n,
+        "prefer_label": _PROVIDER_LABEL.get(prefer_n, prefer_n),
+        "applied": applied,
+        "hero_picks": out.get("hero_picks"),
+        "summary": out.get("summary"),
+        "generated_cst": out.get("generated_cst"),
+        "rows": out.get("rows"),
+        "provider_prices_time": out.get("provider_prices_time"),
+        "thresholds": out.get("thresholds"),
+        "flash_ref": out.get("flash_ref"),
+    }
+
+
 def build_hero_picks(rows: list[dict[str, Any]], health: Optional[dict[str, Any]] = None) -> dict[str, Any]:
     """按档位给出「主打建议」：最省供货商 / 最稳上游 / 账本毛利 / 动作。"""
     health = health or {"circuit": {}, "recs": {}}
@@ -509,6 +661,7 @@ def build_hero_picks(rows: list[dict[str, Any]], health: Optional[dict[str, Any]
             cat = next((c for c in mw.catalog_merged() if str(c.get("id")) == str(r.get("id"))), None)
             if cat:
                 r["failover_hint"] = list(cat.get("failover_to") or [])
+                r["role"] = cat.get("role") or role
                 if not r.get("channels"):
                     ch = []
                     if cat.get("openrouter_id"):
@@ -518,6 +671,8 @@ def build_hero_picks(rows: list[dict[str, Any]], health: Optional[dict[str, Any]
                     if cat.get("direct_id"):
                         ch.append("direct")
                     r["channels"] = ch
+                elif cat.get("channels"):
+                    r["channels"] = list(cat.get("channels") or [])
         except Exception:
             pass
         if role in _TIER_ROLE:
@@ -532,10 +687,12 @@ def build_hero_picks(rows: list[dict[str, Any]], health: Optional[dict[str, Any]
         cheap = _cheapest_supplier(r)
         stable = _most_stable(r, health)
         sug = _suggest_action(r, cheap, stable)
+        plan = _apply_plan(r, cheap, stable, sug)
         return {
             "tier": tier,
             "id": r.get("id"),
             "title": r.get("title"),
+            "role": r.get("role"),
             "level": r.get("level"),
             "gm_blend": r.get("gm_blend"),
             "gm_1to4": r.get("gm_1to4"),
@@ -547,6 +704,7 @@ def build_hero_picks(rows: list[dict[str, Any]], health: Optional[dict[str, Any]
             "cheapest": cheap,
             "most_stable": stable,
             "suggest": sug,
+            "apply": plan,
         }
 
     tiers = []
@@ -570,7 +728,7 @@ def build_hero_picks(rows: list[dict[str, Any]], health: Optional[dict[str, Any]
         if (info or {}).get("open")
     ]
     return {
-        "note": "对内作战台：对外仍主推 flash/pro/auto 档位；通道名仅管理端可见。",
+        "note": "对内作战台：对外仍主推 flash/pro/auto；一键应用会写回仓库通道或上游模式并立即生效。",
         "tiers": tiers,
         "vip_watch": vip_watch,
         "health": {

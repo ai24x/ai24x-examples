@@ -1318,7 +1318,7 @@
                 <div class="field"><span class="lbl">降本机会</span><div id="pmInfo" style="font-size:13px;">—</div></div>
               </div>
               <div class="section-label">主打建议 · 最省钱 × 最稳 × 毛利（对内）</div>
-              <p class="muted small" id="pmHeroNote" style="margin:0 0 8px;">对外仍主推 flash / pro / auto；此处通道名仅作战台可见。</p>
+              <p class="muted small" id="pmHeroNote" style="margin:0 0 8px;">对外仍主推 flash / pro / auto；一键应用会写回通道/上游并立即生效（通道名仅作战台可见）。</p>
               <div id="pmHeroCircuits" class="muted small" style="margin:0 0 8px;"></div>
               <div class="glance-grid" id="pmHeroTiers" style="margin-bottom:10px;"></div>
               <div class="section-label">VIP 关注（告警优先，最多 6）</div>
@@ -1326,10 +1326,10 @@
                 <table id="pmHeroVip">
                   <thead>
                     <tr>
-                      <th>点名</th><th>动作</th><th>建议</th><th>最省</th><th>最稳</th><th>GM1:4</th>
+                      <th>点名</th><th>动作</th><th>建议</th><th>最省</th><th>最稳</th><th>GM1:4</th><th>操作</th>
                     </tr>
                   </thead>
-                  <tbody><tr><td colspan="6" class="muted">加载中…</td></tr></tbody>
+                  <tbody><tr><td colspan="7" class="muted">加载中…</td></tr></tbody>
                 </table>
               </div>
               <div class="section-label">逐模型监控</div>
@@ -5036,7 +5036,7 @@
   function renderHeroPicks(r) {
     var hero = r.hero_picks || {};
     if ($("pmHeroNote")) {
-      $("pmHeroNote").textContent = hero.note || "对外仍主推 flash / pro / auto；此处通道名仅作战台可见。";
+      $("pmHeroNote").textContent = hero.note || "对外仍主推 flash / pro / auto；一键应用会写回通道/上游并立即生效。";
     }
     var health = hero.health || {};
     var circuits = health.open_circuits || [];
@@ -5056,6 +5056,7 @@
       } else {
         tierBox.innerHTML = tiers.map(function (t) {
           var sug = t.suggest || {};
+          var ap = t.apply || {};
           var act = sug.action || "keep";
           var actColor = act === "fix_margin" || act === "avoid_unstable" ? "var(--bad)"
             : (act === "switch_cheaper" || act === "prefer_stable" ? "var(--warn)" : "var(--ok)");
@@ -5068,6 +5069,12 @@
                 : (t.most_stable.score == null ? "·样本少"
                   : ("·稳" + Math.round(Number(t.most_stable.score) * 100) + "%"))))
             : "—";
+          var btn = ap.applyable
+            ? ('<button type="button" class="ok btn-hero-apply" style="margin-top:10px;" data-id="' +
+              esc(t.id || "") + '" data-prefer="' + esc(ap.prefer || "") +
+              '" title="' + esc(ap.reason || "") + '">一键切 ' + esc(ap.prefer_label || ap.prefer || "") + "</button>")
+            : ('<button type="button" disabled style="margin-top:10px;" title="' +
+              esc(ap.reason || "不可一键") + '">不可一键</button>');
           return '<div class="field" style="border:1px solid rgba(148,163,184,.25);border-radius:10px;padding:10px;">' +
             '<div class="row" style="justify-content:space-between;gap:8px;">' +
             "<strong>" + esc(String(t.tier || "").toUpperCase()) + "</strong>" +
@@ -5076,6 +5083,7 @@
             '<div style="margin-top:8px;font-size:13px;line-height:1.5;">' + esc(sug.headline || "—") + "</div>" +
             '<div class="muted small" style="margin-top:8px;">最省 ' + cheap + " · 最稳 " + stab +
             " · GM1:4 " + (t.gm_1to4 == null ? "—" : (t.gm_1to4 + "%")) + "</div>" +
+            btn +
             "</div>";
         }).join("");
       }
@@ -5084,19 +5092,51 @@
     if (vipTb) {
       var vips = hero.vip_watch || [];
       if (!vips.length) {
-        vipTb.innerHTML = '<tr><td colspan="6" class="muted">无 VIP 关注项</td></tr>';
+        vipTb.innerHTML = '<tr><td colspan="7" class="muted">无 VIP 关注项</td></tr>';
       } else {
         vipTb.innerHTML = vips.map(function (t) {
           var sug = t.suggest || {};
+          var ap = t.apply || {};
           var cheap = t.cheapest ? esc(t.cheapest.label) : "—";
           var stab = t.most_stable ? esc(t.most_stable.label) : "—";
+          var btn = ap.applyable
+            ? ('<button type="button" class="ok btn-hero-apply" data-id="' + esc(t.id || "") +
+              '" data-prefer="' + esc(ap.prefer || "") + '" title="' + esc(ap.reason || "") +
+              '">切 ' + esc(ap.prefer_label || ap.prefer || "") + "</button>")
+            : ('<span class="muted small" title="' + esc(ap.reason || "") + '">—</span>');
           return "<tr><td>" + esc(t.title || t.id || "") + "</td>" +
             '<td class="mono">' + esc(sug.action || "—") + "</td>" +
             "<td>" + esc(sug.headline || "—") + "</td>" +
             "<td>" + cheap + "</td><td>" + stab + "</td>" +
-            '<td class="mono">' + fmtGm(t.gm_1to4) + "</td></tr>";
+            '<td class="mono">' + fmtGm(t.gm_1to4) + "</td>" +
+            "<td>" + btn + "</td></tr>";
         }).join("");
       }
+    }
+    document.querySelectorAll(".btn-hero-apply").forEach(function (btn) {
+      btn.onclick = function () {
+        applyHeroChannel(btn.getAttribute("data-id"), btn.getAttribute("data-prefer"));
+      };
+    });
+  }
+  async function applyHeroChannel(modelId, prefer) {
+    if (!modelId || !prefer) {
+      setMsg("缺少目标通道", "err");
+      return;
+    }
+    if (!window.confirm("确认将「" + modelId + "」主通道切至 " + prefer + "？\n立即写回配置并生效。")) {
+      return;
+    }
+    try {
+      setMsg("正在应用主通道…", "ok");
+      var out = await api("/v1/admin/price/apply-hero", {
+        method: "POST",
+        body: { model_id: modelId, prefer: prefer, update_cost: true },
+      });
+      renderSupply(out);
+      setMsg(out.message || ("已切至 " + prefer), "ok");
+    } catch (e) {
+      setMsg(String(e.message || e), "err");
     }
   }
   function renderSupply(r) {

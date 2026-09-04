@@ -1426,6 +1426,18 @@ def update_warehouse(patch: dict[str, Any], *, actor: str = "admin") -> dict[str
                     raise ValueError(f"{cid}: cost_out 无效")
             if "enabled" in item and item["enabled"] is not None:
                 new_row["enabled"] = bool(item["enabled"])
+            if "channels" in item and item["channels"] is not None:
+                if not isinstance(item["channels"], list):
+                    raise ValueError(f"{cid}: channels 须为数组")
+                allowed_ch = ("openrouter", "tokenlab", "requesty", "quickrouter")
+                ch: list[str] = []
+                for x in item["channels"]:
+                    p = str(x or "").strip().lower()
+                    if p in allowed_ch and p not in ch:
+                        ch.append(p)
+                if not ch:
+                    raise ValueError(f"{cid}: channels 不能为空")
+                new_row["channels"] = ch
 
             mult = int(
                 new_row.get("billing_mult")

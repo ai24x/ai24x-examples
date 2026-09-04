@@ -55,6 +55,7 @@ from schemas import (
     SupportTicketReplyBody,
     SupportTicketUserReplyBody,
     TokenAdminSystemUpdateBody,
+    TokenAdminApplyHeroBody,
     TokenAdminWarehouseUpdateBody,
     TokenAdminFreeSharedUpdateBody,
     TokenAdminLlmKeysUpdateBody,
@@ -3946,6 +3947,23 @@ async def admin_price_refresh(request: Request):
     snap = snapshot()
     snap["refresh"] = {k: v for k, v in rep.items() if k in ("ok", "cached", "age_s", "providers")}
     return snap
+
+
+@app.post("/v1/admin/price/apply-hero")
+async def admin_price_apply_hero(request: Request, body: TokenAdminApplyHeroBody):
+    """运维：一键切主通道 — VIP 重排 channels；档位仅允许切 OpenRouter 上游模式。立即生效。"""
+    _require_internal_key(request)
+    from price_monitor import apply_hero_pick
+
+    try:
+        return apply_hero_pick(
+            model_id=body.model_id,
+            prefer=body.prefer,
+            update_cost=bool(body.update_cost),
+            actor="admin",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e) or "无法应用主通道建议") from e
 
 
 @app.get("/v1/admin/token/system")

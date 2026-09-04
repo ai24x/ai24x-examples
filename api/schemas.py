@@ -614,6 +614,7 @@ class TokenAdminVipRatePatch(BaseModel):
     cost_in: Optional[float] = Field(default=None, ge=0, le=1000)
     cost_out: Optional[float] = Field(default=None, ge=0, le=1000)
     enabled: Optional[bool] = None
+    channels: Optional[list[str]] = Field(default=None, max_length=8)
 
 
 class TokenAdminWarehouseUpdateBody(BaseModel):
@@ -623,6 +624,13 @@ class TokenAdminWarehouseUpdateBody(BaseModel):
     note: Optional[str] = Field(default=None, max_length=200)
     vip_rates: Optional[list[TokenAdminVipRatePatch]] = Field(default=None, max_length=64)
     layer_mult: Optional[dict[str, int]] = None
+
+
+class TokenAdminApplyHeroBody(BaseModel):
+    """供应链监控：一键切主通道（VIP=channels 重排；档位=上游模式）。"""
+    model_id: str = Field(..., min_length=1, max_length=64)
+    prefer: str = Field(..., min_length=1, max_length=32)
+    update_cost: bool = True
 
 
 class TokenAdminFreeSharedUpdateBody(BaseModel):
