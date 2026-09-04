@@ -1318,7 +1318,8 @@
                 <div class="field"><span class="lbl">降本机会</span><div id="pmInfo" style="font-size:13px;">—</div></div>
               </div>
               <div class="section-label">Flash / Auto 通道价表 · 成本从低到高</div>
-              <p class="muted small" id="pmFlashNote" style="margin:0 0 8px;">对外仍是 flash / auto；此处按上游成本（1 入+4 出）排序，可一键切当前主通道。</p>
+              <!-- flash-lanes-v20260904d -->
+              <p class="muted small" id="pmFlashNote" style="margin:0 0 8px;">对外仍是 flash / auto；此处按上游成本（1 入+4 出）排序，可一键切当前主通道。登录 API 须为 https://api.ai24x.com。</p>
               <div class="muted small" id="pmFlashActive" style="margin:0 0 8px;"></div>
               <div style="overflow-x:auto;margin-bottom:12px;">
                 <table id="pmFlashLanes">
@@ -5363,7 +5364,13 @@
     $("btnPmRefresh").onclick = async function () {
       try {
         setMsg("正在实拉 OR/TL/Requesty 价目…", "ok");
-        renderSupply(await api("/v1/admin/price/refresh", { method: "POST" }));
+        var bust = "?_=" + Date.now();
+        var r = await api("/v1/admin/price/refresh", { method: "POST" });
+        try {
+          var fl = await api("/v1/admin/price/flash-lanes" + bust);
+          if (fl && (fl.lanes || fl.active)) r.flash_lanes = fl;
+        } catch (e2) { /* keep snapshot flash_lanes */ }
+        renderSupply(r);
         setMsg("价目已刷新（12h 缓存）", "ok");
       } catch (e) { setMsg(String(e.message || e), "err"); }
     };
