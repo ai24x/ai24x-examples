@@ -49,13 +49,19 @@ if ($text.Contains($marker)) {
   Write-Host "nginx.conf written"
 }
 
-$nginx = "C:\nginx\nginx.exe"
+$nginxRoot = "C:\nginx"
+$nginx = Join-Path $nginxRoot "nginx.exe"
 if (-not (Test-Path $nginx)) { throw "nginx.exe missing" }
-$test = & $nginx -t 2>&1 | Out-String
-Write-Host $test
-if ($LASTEXITCODE -ne 0) {
-  Copy-Item -LiteralPath $bak -Destination $conf -Force
-  throw "nginx -t failed; restored backup"
+Push-Location $nginxRoot
+try {
+  $test = & $nginx -t 2>&1 | Out-String
+  Write-Host $test
+  if ($LASTEXITCODE -ne 0) {
+    Copy-Item -LiteralPath $bak -Destination $conf -Force
+    throw "nginx -t failed; restored backup"
+  }
+  & $nginx -s reload 2>&1 | Out-String | Write-Host
+  Write-Host "nginx reloaded OK backup=$bak"
+} finally {
+  Pop-Location
 }
-& $nginx -s reload 2>&1 | Out-String | Write-Host
-Write-Host "nginx reloaded OK backup=$bak"
