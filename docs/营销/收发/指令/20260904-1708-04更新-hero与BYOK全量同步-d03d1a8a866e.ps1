@@ -25,9 +25,10 @@ $ta = Get-Content "web\token-admin.html" -Raw -Encoding UTF8
 if ($ta -notlike "*btn-hero-apply*") { throw "token-admin missing apply btn" }
 if ($ta -notlike "*pmHeroPending*") { throw "token-admin missing pending strip" }
 $byok = Get-Content "p\open\api\byok.py" -Raw -Encoding UTF8
-if ($byok -notlike '*"id": "gemini"*') -and ($byok -notlike '*"gemini":*') { throw "byok missing gemini" }
+if ($byok -notlike "*gemini*") { throw "byok missing gemini" }
 if ($byok -notlike "*minimax*") { throw "byok missing minimax" }
 if ($byok -notlike "*ui_hidden*") { throw "byok missing ui_hidden aggregators" }
+if ($byok -notlike "*mimo*") { throw "byok missing mimo" }
 $html = Get-Content "p\open\web\console.html" -Raw -Encoding UTF8
 if ($html -notlike "*Google Gemini*") { throw "console missing Gemini" }
 if ($html -notlike "*MiniMax*") { throw "console missing MiniMax" }
