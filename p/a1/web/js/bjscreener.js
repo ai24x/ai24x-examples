@@ -136,7 +136,7 @@ window.AI24X_BJScreener = (function () {
     if (m === "bj_all") return "北证全市场 · 全市场里刚转强的活跃票";
     if (m === "macd") return "MACD首红 · 底部刚翻红的启动信号";
     if (m === "pb") return "回踩企稳 · 首板/涨停级回踩后缩量企稳未破位";
-    if (m === "mlpb") return "主线回踩低吸 · 主攻板块内回踩低吸，位置不过热";
+    if (m === "mlpb") return "主线回踩低吸 · 主攻/观察板块内回踩低吸，位置不过热";
     if (m === "breakout") return "二波突破 · 板后放量突破平台/板日高点";
     if (m === "leader") return "主线龙头 · 主攻板块内资金+动量最强代表";
     if (m === "low10") return "10元下 · 低价且刚右侧走强的活跃票";
@@ -149,7 +149,7 @@ window.AI24X_BJScreener = (function () {
     var one = {
       macd: "底部刚翻红 + 有量",
       pb: "异动后缩量回踩、未破位",
-      mlpb: "主攻板块内回踩低吸、位置不过热",
+      mlpb: "主攻/观察板块内回踩低吸、位置不过热",
       breakout: "板后突破确认、右侧加速",
       leader: "主攻板块龙头、强动量",
       low10: "股价 <10 元且刚转强",
@@ -311,7 +311,7 @@ window.AI24X_BJScreener = (function () {
       return p && (p.algo || p.maTier || p.aboveMa60 || p.aboveMa144 || p.ma60Strong
         || (p.factors && (p.factors.maTier || p.factors.aboveMa60 || p.factors.aboveMa144)));
     });
-    if (hasNew || d.algo === "strong-layer-v2") return "";
+    if (hasNew || d.algo === "bond-break-v1" || d.algo === "strong-layer-v2") return "";
     return '<div class="bj-stale-algo">当前结果可能不是最新筛选标准生成的。请点击「重新扫描」后再看精选与观察。</div>';
   }
   function tierBadge(p) {
@@ -399,7 +399,8 @@ window.AI24X_BJScreener = (function () {
     // 主线已在头部徽章显示，标签区不再重复
     if (a.baseUp) h.push('<span class="tag ok">底部走多</span>');
     if (a.smallYang) h.push('<span class="tag ok">一路小阳</span>');
-    if (a.tightBurst) h.push('<span class="tag ok">均线发散</span>');
+    if (a.maBondBreak || a.tightBurst) h.push('<span class="tag ok strong">粘合刚突破</span>');
+    else if (a.maBondReady) h.push('<span class="tag ok">粘合待突破</span>');
     if (a.tightZt) h.push('<span class="tag ok strong">大波段</span>');
     if (p.boardLeader) h.push('<span class="tag ok strong">板块代表</span>');
     if (a.leaderOk) h.push('<span class="tag ok strong">龙头确认</span>');
@@ -432,7 +433,8 @@ window.AI24X_BJScreener = (function () {
     if (a.steadyUp) r.push("稳步向上·趋势评分" + (p.trendScore != null ? p.trendScore : ""));
     if (a.smallYang) r.push("连续小阳趋势上拐");
     if (a.baseUp) r.push("站上MA20且均线上拐");
-    if (a.tightBurst) r.push("均线粘合后发散");
+    if (a.maBondBreak || a.tightBurst) r.push("短均刚粘合、继续向上突破");
+    else if (a.maBondReady) r.push("短均粘合、等待向上突破");
     if (a.tightZt) r.push("大波段·多头粘合涨停");
     if (p.obsHit && p.obsName) r.push("重点观察:" + p.obsName);
     if (p.mainHit && p.mainName) r.push("主线板块:" + p.mainName);
@@ -565,58 +567,88 @@ window.AI24X_BJScreener = (function () {
     el.innerHTML = pills.join("");
     el.hidden = false;
   }
+  // 复盘主线桶名 → 行情页可用 secid（同花顺优先；东财 90.BK 兜底）
+  var BOARD_LINK_THS = {
+    "军工": "ths:881166", "国防军工": "ths:881166", "煤炭": "ths:881105",
+    "证券": "ths:881157", "PCB": "ths:884092", "半导体": "ths:881121",
+    "光伏设备": "ths:881279", "通信光模块CPO": "ths:886033",
+    "种植业与林业": "ths:881101",
+    "白酒消费": "ths:881273", "白酒": "ths:881273", "酿酒": "ths:881273",
+    "电力": "ths:881145", "电力行业": "ths:881145", "绿色电力": "ths:881145",
+    "食品饮料": "ths:881273", "机器人": "ths:885728",
+    "汽车整车": "ths:881127", "锂电池": "ths:885556", "机械设备": "ths:881130",
+    "有色": "ths:881109", "创新药CXO": "ths:881119"
+  };
+  var BOARD_LINK_BK = {
+    "军工": "90.BK0490", "煤炭": "90.BK0437", "证券": "90.BK0473",
+    "PCB": "90.BK1340", "半导体": "90.BK1036", "光伏设备": "90.BK1031",
+    "通信光模块CPO": "90.BK1128", "国防军工": "90.BK1204",
+    "种植业与林业": "90.BK1261",
+    "白酒消费": "90.BK0896", "白酒": "90.BK0896", "酿酒": "90.BK0896",
+    "电力": "90.BK0428", "电力行业": "90.BK0428", "绿色电力": "90.BK0428",
+    "食品饮料": "90.BK0438", "机器人": "90.BK1049",
+    "汽车整车": "90.BK1029", "锂电池": "90.BK1033", "机械设备": "90.BK0457",
+    "有色": "90.BK0478", "创新药CXO": "90.BK1045"
+  };
+  // 主线桶名在资金榜里的近义名（用于从 board_rank 取已有 ths/secid）
+  var BOARD_NAME_ALIASES = {
+    "白酒消费": ["白酒", "白酒Ⅱ", "白酒Ⅲ", "酿酒", "酿酒概念", "食品饮料"],
+    "电力": ["电力", "电力行业", "绿色电力", "绿电", "核电", "火电", "水电"],
+    "证券": ["证券", "券商"],
+    "军工": ["军工", "航天航空", "国防军工"],
+    "PCB": ["PCB", "印制电路板"],
+    "通信光模块CPO": ["通信光模块CPO", "光模块", "CPO", "通信设备"],
+    "种植业与林业": ["种植业与林业", "种植业", "农林牧渔"]
+  };
+  function boardKey(name) {
+    return String(name || "").replace(/\s+/g, "");
+  }
+  function resolveBoardMeta(name, rankBy) {
+    var key = boardKey(name);
+    var rb = (rankBy && rankBy[key]) || null;
+    if (rb && (rb.ths || rb.secid)) return rb;
+    var aliases = BOARD_NAME_ALIASES[key] || [];
+    for (var i = 0; i < aliases.length; i++) {
+      var ak = boardKey(aliases[i]);
+      var hit = rankBy && rankBy[ak];
+      if (hit && (hit.ths || hit.secid)) {
+        return { name: name, ths: hit.ths, secid: hit.secid };
+      }
+    }
+    return rb || { name: name };
+  }
   function boardHref(b) {
-    // 板块查询优先同花顺 ths:88xxxx（行情页主路径）；无映射再回退东财 90.BK
+    // 板块查询优先同花顺 ths:88xxxx；无映射再回退东财 90.BK
     if (!b) return "#";
     var secid = String(b.secid || "").trim();
     var ths = String(b.ths || "").trim();
-    var fallThs = {
-      "军工": "ths:881166", "国防军工": "ths:881166", "煤炭": "ths:881105",
-      "证券": "ths:881157", "PCB": "ths:884092", "半导体": "ths:881121",
-      "光伏设备": "ths:881279", "通信光模块CPO": "ths:886033"
-    };
-    var fallBk = {
-      "军工": "90.BK0490", "煤炭": "90.BK0437", "证券": "90.BK0473",
-      "PCB": "90.BK1340", "半导体": "90.BK1036", "光伏设备": "90.BK1031",
-      "通信光模块CPO": "90.BK1128", "国防军工": "90.BK1204"
-    };
-    var key = String(b.name || "").replace(/\s+/g, "");
-    var use = ths || fallThs[key] || "";
+    var key = boardKey(b.name);
+    var use = ths || BOARD_LINK_THS[key] || "";
     if (use && /^\d{6}$/.test(use)) use = "ths:" + use;
     if (use && !/^ths:/i.test(use) && /^88\d{4}$/.test(use)) use = "ths:" + use;
-    if (!use) use = secid || fallBk[key] || "";
+    if (!use) use = secid || BOARD_LINK_BK[key] || "";
     if (!use) return "#";
     return "demo.html?secid=" + encodeURIComponent(use) + "&period=day" +
       (b.name ? "&name=" + encodeURIComponent(b.name) : "");
   }
   function enrichBoardRank(d) {
     // 前端兜底：把主线判定里的 fund_t/fund5/avg_up 填进空壳板块；补 secid/ths
-    var fallBk = { "军工": "90.BK0490", "煤炭": "90.BK0437", "证券": "90.BK0473",
-      "PCB": "90.BK1340", "半导体": "90.BK1036", "光伏设备": "90.BK1031",
-      "通信光模块CPO": "90.BK1128", "国防军工": "90.BK1204",
-      "种植业与林业": "90.BK1261" };
-    var fallThs = {
-      "军工": "ths:881166", "国防军工": "ths:881166", "煤炭": "ths:881105",
-      "证券": "ths:881157", "PCB": "ths:884092", "半导体": "ths:881121",
-      "光伏设备": "ths:881279", "通信光模块CPO": "ths:886033",
-      "种植业与林业": "ths:881101"
-    };
     var by = {};
     (d.mainlines || []).forEach(function (m) {
-      if (m && m.name) by[String(m.name).replace(/\s+/g, "")] = m;
+      if (m && m.name) by[boardKey(m.name)] = m;
     });
     (d.board_rank || []).forEach(function (b) {
       if (!b) return;
-      var key = String(b.name || "").replace(/\s+/g, "");
-      var m = by[key] || by[String(b.ml_name || "").replace(/\s+/g, "")] || null;
+      var key = boardKey(b.name);
+      var m = by[key] || by[boardKey(b.ml_name)] || null;
       if (m) {
         if (!(Math.abs(Number(b.f62) || 0) >= 1e5) && m.fund_t != null) b.f62 = m.fund_t;
         if (!(Math.abs(Number(b.f164) || 0) >= 1e5) && m.fund5 != null) b.f164 = m.fund5;
         if (b.pct == null && m.avg_up != null) b.pct = m.avg_up;
         if (b.p5 == null && m.chg5_med != null) b.p5 = m.chg5_med;
       }
-      if (!String(b.secid || "").trim() && fallBk[key]) b.secid = fallBk[key];
-      if (!String(b.ths || "").trim() && fallThs[key]) b.ths = fallThs[key];
+      if (!String(b.secid || "").trim() && BOARD_LINK_BK[key]) b.secid = BOARD_LINK_BK[key];
+      if (!String(b.ths || "").trim() && BOARD_LINK_THS[key]) b.ths = BOARD_LINK_THS[key];
     });
   }
   function renderMainlines(d) {
@@ -629,21 +661,25 @@ window.AI24X_BJScreener = (function () {
     var obs = resolveObserves(d);
     var rankBy = {};
     (d.board_rank || []).forEach(function (b) {
-      if (b && b.name) rankBy[String(b.name).replace(/\s+/g, "")] = b;
+      if (b && b.name) rankBy[boardKey(b.name)] = b;
     });
 
     function obsChipsHtml(list) {
       if (!list || !list.length) return '<span class="ml-none">暂无</span>';
       return '<div class="ml-obs-row">' + list.map(function (o) {
         var nm = (o && o.name) ? o.name : o;
-        var rb = rankBy[String(nm || "").replace(/\s+/g, "")] || { name: nm };
-        return '<a class="ml-obs" href="' + boardHref(rb) + '" target="_blank" rel="noopener">' + esc(nm || "") + "</a>";
+        var rb = resolveBoardMeta(nm, rankBy);
+        var href = boardHref(rb);
+        if (href && href !== "#") {
+          return '<a class="ml-obs" href="' + href + '" target="_blank" rel="noopener">' + esc(nm || "") + "</a>";
+        }
+        return '<span class="ml-obs" title="暂无板块代码">' + esc(nm || "") + "</span>";
       }).join("") + "</div>";
     }
     function avoidChipsHtml(names) {
       if (!names || !names.length) return '<span class="ml-none">暂无</span>';
       return '<div class="ml-obs-row">' + names.map(function (nm) {
-        var rb = rankBy[String(nm || "").replace(/\s+/g, "")] || { name: nm };
+        var rb = resolveBoardMeta(nm, rankBy);
         var href = boardHref(rb);
         if (href && href !== "#") {
           return '<a class="ml-avoid" href="' + href + '" target="_blank" rel="noopener">' + esc(nm) + "</a>";
@@ -654,8 +690,12 @@ window.AI24X_BJScreener = (function () {
     function attackBodyHtml() {
       if (ml.length) {
         return '<div class="ml-names">' + ml.map(function (m, i) {
-          var rb = rankBy[String(m.name || "").replace(/\s+/g, "")] || { name: m.name };
-          return '<a class="ml-name" href="' + boardHref(rb) + '" target="_blank" rel="noopener"><span class="ord">' + (i + 1) + "</span>" + esc(m.name || "") + "</a>";
+          var rb = resolveBoardMeta(m.name, rankBy);
+          var href = boardHref(rb);
+          if (href && href !== "#") {
+            return '<a class="ml-name" href="' + href + '" target="_blank" rel="noopener"><span class="ord">' + (i + 1) + "</span>" + esc(m.name || "") + "</a>";
+          }
+          return '<span class="ml-name"><span class="ord">' + (i + 1) + "</span>" + esc(m.name || "") + "</span>";
         }).join("") + "</div>";
       }
       var isFan = !!(d.style && d.style.mode === "fan");
@@ -1076,17 +1116,24 @@ window.AI24X_BJScreener = (function () {
     if (!picks.length) {
       var emptyTitle = d.archive ? '该日期无归档筛选记录' : (
         mkt === 'pb' ? '暂无回踩企稳标的' :
+        mkt === 'mlpb' ? '暂无主线回踩低吸标的' :
         mkt === 'breakout' ? '暂无二波突破标的' :
         mkt === 'leader' ? '暂无主线龙头标的' :
         mkt === 'low10' ? '暂无10元下合格标的' :
         mkt === 'tight' ? '暂无大波段标的' : dataDayLabel(d) + '暂无合格标的');
       var emptySub = d.archive ? '可查看其它日期的历史归档。' : (
         mkt === 'pb' ? '需要近期首板/涨停后缩量回踩且未破位；没有就空着。' :
+        mkt === 'mlpb' ? '需命中当日主攻或观察板块，且为回踩企稳（非突破追高）；不够格就不推。' :
         mkt === 'breakout' ? '需要板后回踩后放量突破板日/平台高点；没有就空着。' :
         mkt === 'leader' ? '需要命中当日主攻且资金+强动量确认；没有就空着。' :
-        mkt === 'low10' ? '要同时满足：股价<10元、刚右侧转强、股性活跃；不够格就不推。' :
-        mkt === 'tight' ? '需要多头粘合后再发散，且近期有过有效涨停（不含北证）；没有就空着。可查看下方历史归档或点「回放」验证算法。' :
+        mkt === 'low10' ? '要同时满足：股价2～10元、短均刚粘合向上突破、股性活跃；不够格就不推。依赖全市场扫描。' :
+        mkt === 'tight' ? '需要多头粘合后再发散，且近期有过有效涨停（不含北证）；没有就空着。依赖全市场扫描。' :
         '今天没有达到精选标准的票就空着；若有观察池会单独列出，仅供跟踪。');
+      if (d.intraday || d.today_missing) {
+        emptySub = (d.intraday
+          ? '盘中展示最近收盘归档；今日结果约 15:15 自动更新。'
+          : '今日结果尚未生成；约 15:15 自动更新，或收盘后点「开始扫描」。') + emptySub;
+      }
       var _watch0 = (d.watch || []).slice(0, 2);
       var _emptyHtml = hint + emoHtml + staleAlgoBanner(d, picks) +
         '<div class="bj-empty-alert"><div class="ico">\ud83d\udca1</div><div class="bd"><b>' + esc(emptyTitle) + '</b><span>' + emptySub + '</span></div></div>';
@@ -1373,7 +1420,7 @@ window.AI24X_BJScreener = (function () {
 
   function load(force) {
     if (state.loading) return;
-    // 会话缓存：同一市场 10 分钟内已加载过，直接秒回
+    // 会话缓存：同一市场 10 分钟内已加载过，直接秒回（完整重扫除外）
     if (!force) {
       var hit = state.cache[state.market];
       if (hit && Date.now() - hit.ts < 10 * 60 * 1000) {
@@ -1385,28 +1432,30 @@ window.AI24X_BJScreener = (function () {
     state.loading = true;
     var seq = ++reqSeq;
     var btn = $("btn-bj-refresh");
+    var btnFull = $("btn-bj-scan-full");
     if (btn) btn.disabled = true;
+    if (btnFull) btnFull.disabled = true;
     if (force) {
       delete state.cache[state.market];
       if (btn) btn.textContent = "扫描中…";
       statusLoading();
       waitDeadline = 0;
-      // 异步重扫：先启动后台任务，轮询进度
-      apiFetch("/api/bj/screener/start?market=" + encodeURIComponent(state.market)).then(function (st) {
+      // 异步完整重扫：force=1 + 服务端限频
+      apiFetch("/api/bj/screener/start?market=" + encodeURIComponent(state.market) + "&force=1").then(function (st) {
         if (seq !== reqSeq) return;
         if (!st || st.ok !== true) {
           state.loading = false;
           stopProgress();
-          if (btn) { btn.disabled = false; btn.textContent = "重新扫描"; }
+          resetScanButtons(btn, btnFull);
           applyScanGate(btn);
           setStatus("扫描启动失败：" + esc((st && st.message) || "未知错误"), true);
           return;
         }
-        waitScanDone(seq, btn);
+        waitScanDone(seq, btn, { awaitStart: true });
       }).catch(function (e) { loadFail(e, seq, btn); });
       return;
     }
-    // 非强制：只读服务端缓存/归档，不触发扫描（对齐 AI 雷达）
+    // 非强制：只读服务端缓存/归档；无缓存且已过 15:01 才轻量启动（force=0）
     setStatus("正在载入…", false);
     fetchCachedResult().then(function (d) {
       if (seq !== reqSeq) return;
@@ -1417,41 +1466,70 @@ window.AI24X_BJScreener = (function () {
         waitScanDone(seq, btn);
         return;
       }
-      if (d && d.ok !== false && !d.running) {
+      // 有任何可读快照（含空精选/昨日归档）都直接展示，避免误判成「没扫过」
+      if (d && d.ok !== false && !d.running && d.error !== "no_cache") {
         applyScanResult(d, seq, btn);
+        return;
+      }
+      var g0 = scanGateState();
+      if (g0.allow) {
+        if (btn) btn.textContent = "扫描中…";
+        statusLoading();
+        waitDeadline = 0;
+        apiFetch("/api/bj/screener/start?market=" + encodeURIComponent(state.market) + "&force=0").then(function (st) {
+          if (seq !== reqSeq) return;
+          if (!st || st.ok !== true) {
+            state.loading = false;
+            stopProgress();
+            resetScanButtons(btn, btnFull);
+            applyScanGate(btn);
+            setStatus("扫描启动失败：" + esc((st && st.message) || "未知错误"), true);
+            return;
+          }
+          waitScanDone(seq, btn, { awaitStart: true });
+        }).catch(function (e) { loadFail(e, seq, btn); });
         return;
       }
       state.loading = false;
       stopProgress();
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = "开始扫描";
-        btn.title = "今日结果尚未生成时可手动扫描；正常由服务端收盘后自动更新";
-      }
+      resetScanButtons(btn, btnFull);
       applyScanGate(btn);
       $("bj-vipgate").hidden = true;
       $("bj-main").hidden = false;
       var meta = $("bj-meta");
       if (meta) meta.hidden = true;
-      ["bj-result", "bj-history", "bj-boardrank", "bj-pb-ledger"].forEach(function (id) {
-        var el = $(id);
-        if (el) { el.innerHTML = ""; if (id === "bj-pb-ledger") el.hidden = true; }
-      });
-      setStatus((d && d.message) || "暂无今日结果，请点「开始扫描」或稍后再试", false, true);
+      var resBox = $("bj-result");
+      if (resBox) {
+        resBox.innerHTML = '<div class="bj-empty-alert"><div class="ico">\ud83d\udca1</div><div class="bd">' +
+          '<b>今日结果尚未生成</b><span>' + esc(g0.note) +
+          ' 「完整重扫」盘中不可用，避免未定型数据污染当日结果。</span></div></div>';
+      }
+      setStatus(g0.note, false, true);
     }).catch(function (e) { loadFail(e, seq, btn); });
   }
 
-  function waitScanDone(seq, btn) {
+  function resetScanButtons(btn, btnFull) {
+    if (btn) { btn.disabled = false; btn.textContent = "开始扫描"; }
+    if (btnFull) { btnFull.disabled = false; btnFull.textContent = "完整重扫"; }
+  }
+
+  function waitScanDone(seq, btn, opts) {
+    opts = opts || {};
     var fill = $("bj-progress-fill"), txt = $("bj-progress-text");
     if (!waitDeadline) waitDeadline = Date.now() + 12 * 60 * 1000;
+    if (opts.awaitStart && opts._sawRunning == null) {
+      opts._sawRunning = false;
+      opts._startedAt = Date.now();
+    }
     apiFetch("/api/bj/screener/progress?market=" + encodeURIComponent(state.market)).then(function (p) {
       if (seq !== reqSeq) return;
       if (Date.now() > waitDeadline) {
         waitDeadline = 0;
         state.loading = false;
         stopProgress();
-        if (btn) { btn.disabled = false; btn.textContent = "重新扫描"; }
-        setStatus("扫描耗时较长（上游数据源限流），请稍后刷新查看或重新扫描", true);
+        resetScanButtons(btn, $("btn-bj-scan-full"));
+        applyScanGate(btn);
+        setStatus("扫描耗时较长（上游数据源限流），请稍后点「开始扫描」查看或再完整重扫", true);
         return;
       }
       var w = $("bj-progress");
@@ -1459,7 +1537,14 @@ window.AI24X_BJScreener = (function () {
       if (fill && p) fill.style.width = Math.max(2, Math.min(100, Number(p.pct) || 0)) + "%";
       if (txt && p) txt.textContent = (p && p.msg) || "正在扫描…";
       if (p && p.running === true) {
-        progTimer = setTimeout(function () { waitScanDone(seq, btn); }, 1500);
+        if (opts.awaitStart) opts._sawRunning = true;
+        progTimer = setTimeout(function () { waitScanDone(seq, btn, opts); }, 1500);
+        return;
+      }
+      // 刚点完启动：进度可能仍是上一轮的 done，需等到真正 running 过一次再收尾
+      if (opts.awaitStart && !opts._sawRunning && (Date.now() - (opts._startedAt || 0)) < 12000) {
+        if (txt) txt.textContent = "正在启动扫描…";
+        progTimer = setTimeout(function () { waitScanDone(seq, btn, opts); }, 800);
         return;
       }
       // 扫描完成：拉只读结果（命中缓存秒回）
@@ -1467,13 +1552,29 @@ window.AI24X_BJScreener = (function () {
       state.loading = false;
       fetchCachedResult().then(function (d) {
         if (seq !== reqSeq) return;
-        if (d && d.ok !== false && !d.running) {
+        if (d && d.ok !== false && !d.running && d.error !== "no_cache") {
           applyScanResult(d, seq, btn);
-        } else {
-          stopProgress();
-          if (btn) { btn.disabled = false; btn.textContent = "重新扫描"; }
-          setStatus("扫描完成，但结果暂不可用，请稍后再试", true);
+          return;
         }
+        // 结果尚未落盘：再等一轮（扫完写缓存有短暂空隙）
+        if (!opts._retryResult) {
+          opts._retryResult = true;
+          state.loading = true;
+          waitDeadline = Date.now() + 30 * 1000;
+          if (txt) txt.textContent = "扫描已结束，正在载入结果…";
+          progTimer = setTimeout(function () { waitScanDone(seq, btn, opts); }, 1200);
+          return;
+        }
+        stopProgress();
+        resetScanButtons(btn, $("btn-bj-scan-full"));
+        applyScanGate(btn);
+        var why = (d && (d.message || d.msg)) ? String(d.message || d.msg) : "";
+        setStatus(
+          why
+            ? ("扫描已结束，但还读不到结果：" + why)
+            : "扫描已结束，但结果尚未写入。请稍等几秒再点「开始扫描」；若仍无，可再试一次完整重扫。",
+          true
+        );
       }).catch(function (e) { loadFail(e, seq, btn); });
     }).catch(function () {
       if (seq !== reqSeq) return;
@@ -1481,11 +1582,12 @@ window.AI24X_BJScreener = (function () {
         waitDeadline = 0;
         state.loading = false;
         stopProgress();
-        if (btn) { btn.disabled = false; btn.textContent = "重新扫描"; }
-        setStatus("扫描耗时较长（上游数据源限流），请稍后刷新查看或重新扫描", true);
+        resetScanButtons(btn, $("btn-bj-scan-full"));
+        applyScanGate(btn);
+        setStatus("扫描耗时较长（上游数据源限流），请稍后点「开始扫描」查看或再完整重扫", true);
         return;
       }
-      progTimer = setTimeout(function () { waitScanDone(seq, btn); }, 2000);
+      progTimer = setTimeout(function () { waitScanDone(seq, btn, opts); }, 2000);
     });
   }
 
@@ -1521,14 +1623,14 @@ window.AI24X_BJScreener = (function () {
     stopProgress();
     if (btn) {
       btn.disabled = false;
-      // 今日已生成即可视为定型：「stale」仅表示今日无主推而展示归档，不等于没扫过
-      var fresh = d && d.cached && !d.refresh_locked && !d.intraday && !d.today_missing;
-      btn.textContent = fresh ? "已是最新" : "重新扫描";
-      btn.title = fresh
-        ? (d.stale
-          ? "今日已扫完（暂无主推，展示归档）；一般无需重扫"
-          : "今日结果已由服务端生成（全站共用），一般无需重扫；点击可强制刷新")
-        : "仅异常时再点；正常由服务端约 15:15 自动更新（120 秒限一次）";
+      btn.textContent = "开始扫描";
+      btn.title = "载入今日结果；尚无结果时会轻量启动扫描";
+    }
+    var btnFull = $("btn-bj-scan-full");
+    if (btnFull) {
+      btnFull.disabled = false;
+      btnFull.textContent = "完整重扫";
+      btnFull.title = "强制重新扫描今日全市场（约 10 分钟限一次）";
     }
     applyScanGate(btn);
     if (!d || d.ok === false) {
@@ -1560,11 +1662,15 @@ window.AI24X_BJScreener = (function () {
       if (hb) hb.innerHTML = "";
       var btn2 = $("btn-bj-refresh");
       if (btn2) btn2.style.display = "none";
+      var bfHide = $("btn-bj-scan-full");
+      if (bfHide) bfHide.style.display = "none";
     } else {
       var pg2 = $("bj-picksgate");
       if (pg2) pg2.hidden = true;
       var btn3 = $("btn-bj-refresh");
       if (btn3) btn3.style.display = "";
+      var bfShow = $("btn-bj-scan-full");
+      if (bfShow) bfShow.style.display = "";
       renderPicks(d);
       loadHistory();
     }
@@ -1588,8 +1694,13 @@ window.AI24X_BJScreener = (function () {
     stopProgress();
     if (btn) {
       btn.disabled = false;
-      btn.textContent = "重新扫描";
-      btn.title = "重新扫描全部标的（120 秒限一次）";
+      btn.textContent = "开始扫描";
+      btn.title = "载入今日结果；尚无结果时会轻量启动扫描";
+    }
+    var btnFull = $("btn-bj-scan-full");
+    if (btnFull) {
+      btnFull.disabled = false;
+      btnFull.textContent = "完整重扫";
     }
     applyScanGate(btn);
     if (e && e.status === 403) {
@@ -1600,6 +1711,10 @@ window.AI24X_BJScreener = (function () {
     }
     if (e && e.status === 401) {
       setStatus("登录已失效，请重新登录后使用", true);
+      return;
+    }
+    if (e && e.status === 429) {
+      setStatus(esc((e && e.message) || "完整重扫过于频繁，请稍后再试"), true);
       return;
     }
     setStatus("加载失败：" + esc(e && e.message ? e.message : "网络错误"), true);
@@ -1743,7 +1858,7 @@ window.AI24X_BJScreener = (function () {
         '<span class="sc">' + esc(scTxt) + '</span>' +
         '<span class="bar">' + esc(barTxt) + '</span></div>';
     }
-    // 当日主要指数多数收绿：结构偏多也降为「中性/承压」，避免板块普跌仍显示顺风
+    // 动态降级：中期结构偏多时，结合当日涨跌与深成/创业板 MACD 走空
     (function () {
       var names = ["上证指数", "深证成指", "创业板指"];
       var down = 0, n = 0;
@@ -1753,7 +1868,23 @@ window.AI24X_BJScreener = (function () {
         n++;
         if (Number(it.pct) < 0) down++;
       });
-      if (n >= 2 && down >= Math.ceil(n * 0.66) && env === "ok") {
+      var growthBear = 0;
+      ["深证成指", "创业板指"].forEach(function (nm) {
+        var it = idxMap[nm];
+        if (!it) return;
+        var barN = it.bar != null && isFinite(Number(it.bar)) ? Number(it.bar) : null;
+        var pctN = it.pct != null && isFinite(Number(it.pct)) ? Number(it.pct) : null;
+        var sig = String(it.sig || "");
+        if ((barN != null && barN < 0) || /偏弱|风险|险/.test(sig) || (pctN != null && pctN < -0.8)) {
+          growthBear++;
+        }
+      });
+      if (env !== "ok") return;
+      if (growthBear >= 2) {
+        env = "warn";
+        envTxt = "结构顺 · 成长走空";
+        envCls = "warn";
+      } else if (n >= 2 && down >= Math.ceil(n * 0.66)) {
         env = "warn";
         envTxt = "结构顺 · 当日承压";
         envCls = "warn";
@@ -1775,8 +1906,12 @@ window.AI24X_BJScreener = (function () {
     var envShow = String(envTxt || "").replace(/·/g, " · ").replace(/\s{2,}/g, " ").trim();
     var labelText = label || (dayL + "大盘");
     var h = '<details class="mkt-fold">' +
-      '<summary class="mkt-fold-sum">' +
+      '<summary class="mkt-fold-sum" title="点击展开查看各指数">' +
+      '<span class="mkt-fold-left">' +
       '<span class="mkt-fold-title">' + esc(labelText) + "</span>" +
+      '<span class="mkt-fold-chev" aria-hidden="true"></span>' +
+      '<span class="mkt-fold-tip">各指数</span>' +
+      "</span>" +
       '<span class="mkt-badge-sm ' + envCls + '"><span class="big">' + esc(envShow) + "</span>";
     if (pts != null) h += '<span class="sm">' + pts.toFixed(1) + "</span>";
     h += "</span></summary>";
@@ -1998,35 +2133,105 @@ window.AI24X_BJScreener = (function () {
     }).catch(function () {});
   }
 
-  // —— 重新扫描门控：盘中（15:01 收盘数据定型前）禁止强制重扫，避免未定型 K 线污染当日数据 ——
-  // 正常路径：约 15:15 服务端预扫一次，全站读缓存；「重新扫描」仅异常/强制时用。
-  var _SCAN_HINT_OK = "约 15:15 自动更新，异常再重扫";
+  // —— 扫描门控：盘中（15:01 前）禁止完整重扫；约 15:15 自动预扫，全站读缓存 ——
+  var _SCAN_HINT_OK = "";
+  var _confirmResolve = null;
+  function closeBjConfirm(ok) {
+    var box = $("bj-confirm");
+    if (box) box.hidden = true;
+    try { document.body.classList.remove("bj-modal-open"); } catch (e0) {}
+    if (_confirmResolve) {
+      var fn = _confirmResolve;
+      _confirmResolve = null;
+      fn(!!ok);
+    }
+  }
+  function showBjConfirm(opts) {
+    opts = opts || {};
+    return new Promise(function (resolve) {
+      var box = $("bj-confirm");
+      if (!box) { resolve(!!opts.defaultOk); return; }
+      var titleEl = $("bj-confirm-title");
+      var msgEl = $("bj-confirm-msg");
+      var notesEl = $("bj-confirm-notes");
+      var okBtn = $("bj-confirm-ok");
+      var cancelBtn = $("bj-confirm-cancel");
+      if (titleEl) titleEl.textContent = opts.title || "请确认";
+      if (msgEl) msgEl.textContent = opts.message || "";
+      if (notesEl) {
+        var list = opts.notes || [];
+        if (list.length) {
+          notesEl.hidden = false;
+          notesEl.innerHTML = list.map(function (n) { return "<li>" + esc(n) + "</li>"; }).join("");
+        } else {
+          notesEl.hidden = true;
+          notesEl.innerHTML = "";
+        }
+      }
+      if (okBtn) okBtn.textContent = opts.okText || "确定";
+      if (cancelBtn) cancelBtn.textContent = opts.cancelText || "取消";
+      _confirmResolve = resolve;
+      box.hidden = false;
+      try { document.body.classList.add("bj-modal-open"); } catch (e1) {}
+      setTimeout(function () { if (okBtn) okBtn.focus(); }, 40);
+    });
+  }
+  function bindBjConfirm() {
+    var box = $("bj-confirm");
+    if (!box || box.__bound) return;
+    box.__bound = true;
+    var okBtn = $("bj-confirm-ok");
+    var cancelBtn = $("bj-confirm-cancel");
+    var closeBtn = $("bj-confirm-close");
+    if (okBtn) okBtn.addEventListener("click", function () { closeBjConfirm(true); });
+    if (cancelBtn) cancelBtn.addEventListener("click", function () { closeBjConfirm(false); });
+    if (closeBtn) closeBtn.addEventListener("click", function () { closeBjConfirm(false); });
+    box.addEventListener("click", function (ev) {
+      if (ev.target === box) closeBjConfirm(false);
+    });
+    document.addEventListener("keydown", function (ev) {
+      if (box.hidden) return;
+      if (ev.key === "Escape") {
+        ev.preventDefault();
+        closeBjConfirm(false);
+      }
+    });
+  }
   function scanGateState() {
     var now = new Date();
     var d = now.getDay();
-    if (d === 0 || d === 6) return { allow: false, note: "非交易日：展示最近收盘归档，无需重新扫描" };
+    if (d === 0 || d === 6) {
+      return { allow: false, softOk: true, note: "非交易日，展示最近收盘结果" };
+    }
     var hm = now.getHours() * 60 + now.getMinutes();
     if (hm < 15 * 60 + 1) {
-      return { allow: false, note: "盘中未定型：15:01 后可手扫；约 15:15 服务端自动更新（全站共用）" };
+      return { allow: false, softOk: true, note: "盘中展示昨日结果" };
     }
-    return { allow: true, note: _SCAN_HINT_OK };
+    return { allow: true, softOk: true, note: _SCAN_HINT_OK };
   }
   function applyScanGate(btn) {
-    if (!btn) return;
     var g = scanGateState();
     var note = $("bj-refresh-note");
-    if (!g.allow) {
-      btn.disabled = true;
-      btn.title = g.note;
-      btn.classList.add("btn-gated");
-      if (note) { note.textContent = g.note; note.hidden = false; }
-    } else {
+    var btnFull = $("btn-bj-scan-full");
+    if (btn && !state.loading) {
       btn.disabled = false;
-      if (!btn.textContent || btn.textContent === "重新扫描") {
-        btn.title = "仅异常时再点；正常由服务端约 15:15 自动更新（120 秒限一次）";
-      }
       btn.classList.remove("btn-gated");
-      if (note) { note.textContent = g.note; note.hidden = false; }
+      btn.title = "载入今日结果";
+    }
+    if (btnFull) {
+      if (!g.allow) {
+        if (!state.loading) btnFull.disabled = true;
+        btnFull.title = g.note || "暂不可用";
+        btnFull.classList.add("btn-gated");
+      } else {
+        if (!state.loading) btnFull.disabled = false;
+        btnFull.title = "结果异常时再使用";
+        btnFull.classList.remove("btn-gated");
+      }
+    }
+    if (note) {
+      if (g.note) { note.textContent = g.note; note.hidden = false; }
+      else { note.textContent = ""; note.hidden = true; }
     }
   }
 
@@ -2044,16 +2249,31 @@ window.AI24X_BJScreener = (function () {
     }
     if (guest) guest.hidden = true;
     if (user) user.hidden = false;
+    bindBjConfirm();
     var btn = $("btn-bj-refresh");
+    var btnFull = $("btn-bj-scan-full");
     if (btn) {
       btn.addEventListener("click", function () {
+        load(false);
+      });
+    }
+    if (btnFull) {
+      btnFull.addEventListener("click", function () {
         var g = scanGateState();
         if (!g.allow) { setStatus(g.note, true); return; }
-        load(true);
+        showBjConfirm({
+          title: "确认完整重扫",
+          message: "将重新扫描今日结果，约 1～3 分钟，请勿连续点击。",
+          notes: [],
+          okText: "继续重扫",
+          cancelText: "取消"
+        }).then(function (ok) {
+          if (ok) load(true);
+        });
       });
-      applyScanGate(btn);
-      setInterval(function () { applyScanGate(btn); }, 30 * 1000);
     }
+    applyScanGate(btn);
+    setInterval(function () { applyScanGate(btn); }, 30 * 1000);
     bindTabs();
     var ap = archiveParams();
     if (ap.date) {
@@ -2066,6 +2286,7 @@ window.AI24X_BJScreener = (function () {
         }
       }
       if (btn) btn.style.display = "none";
+      if (btnFull) btnFull.style.display = "none";
       if (ap.replay) {
         openReplay(ap.date, ap.market);
       } else {

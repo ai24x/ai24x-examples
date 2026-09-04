@@ -92,7 +92,10 @@
   .meta b{color:#e6edf7}
   .sec-title{display:flex;align-items:center;justify-content:space-between;padding:10px 12px 4px;font-size:14px;font-weight:800;color:#fbbf24}
   .sec-title .refresh{font-size:12px;color:#8ab8ff;font-weight:700}
+  .sec-title .refresh-wrap{display:flex;gap:10px;align-items:center}
+  .sec-title .refresh.full{color:#94a3b8;font-weight:700}
   .sec-title .refresh.gated{opacity:.5}
+  .auto-hint{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;font-size:11px;font-weight:700;color:#93c5fd;background:rgba(96,165,250,.16);border:1px solid rgba(147,197,253,.4);box-shadow:0 0 10px rgba(96,165,250,.25);white-space:nowrap}
   .rescan-note{font-size:11px;color:#8aa0bf;padding:2px 12px 6px;line-height:1.4}
   .list{padding:4px 10px}
   .pick{background:#101a2c;border:1px solid #22314d;border-radius:14px;padding:12px;margin-bottom:10px}
@@ -194,7 +197,7 @@
 <div class="meta" id="meta"></div>
 <div class="pt" id="pt" style="display:none"></div>
 
-<div class="sec-title" id="sec-title"><span>⭐ 今日 AI 筛选</span><span class="refresh" id="btn-refresh">⟳ 重新扫描</span></div>
+<div class="sec-title" id="sec-title"><span>⭐ 今日 AI 筛选</span><span class="refresh-wrap"><span class="refresh" id="btn-refresh">⟳ 开始扫描</span><span class="refresh full" id="btn-refresh-full">完整重扫</span><span class="auto-hint">约 15:15 自动更新</span></span></div>
 <div class="rescan-note" id="rescan-note" hidden></div>
 <div class="list" id="list"></div>
 <div class="runner-box" id="runner-box"></div>
@@ -961,37 +964,49 @@ function renderList(d){
     });
   }
 
-  function refreshScan(){
-    toast('已启动扫描，约 1~2 分钟…', true);
-    api('/api/bj/screener/start?market=' + encodeURIComponent(state.market) + '&force=1').then(function(st){
+  function refreshScan(forceFull){
+    var force = forceFull ? 1 : 0;
+    toast(force ? '完整重扫已启动，约 1~3 分钟…' : '已启动扫描…', true);
+    api('/api/bj/screener/start?market=' + encodeURIComponent(state.market) + '&force=' + force).then(function(st){
       if (!st || st.ok !== true) { toast((st && st.message) || '启动失败', false); return; }
       pollScanDone(function(){ load(true); toast('扫描完成', true); });
-    }).catch(function(e){ toast('启动失败：' + String(e).slice(0, 60), false); });
+    }).catch(function(e){
+      var msg = (e && e.message) ? String(e.message) : String(e);
+      toast((e && e.status === 429 ? msg : ('启动失败：' + msg)).slice(0, 80), false);
+    });
   }
-  // 重新扫描门控：盘中禁止强制重扫；约 15:15 服务端预扫一次，全站读缓存。
-  var _SCAN_HINT_OK = '约 15:15 自动更新，异常再重扫';
+  // 完整重扫门控：盘中禁止；约 15:15 服务端预扫，全站读缓存。
+  var _SCAN_HINT_OK = '';
   function scanGateState(){
     var now = new Date();
     var d = now.getDay();
-    if (d === 0 || d === 6) return { allow: false, note: '非交易日：展示最近收盘归档，无需重新扫描' };
+    if (d === 0 || d === 6) return { allow: false, note: '非交易日，展示最近收盘结果' };
     var hm = now.getHours() * 60 + now.getMinutes();
     if (hm < 15 * 60 + 1) {
-      return { allow: false, note: '盘中未定型：15:01 后可手扫；约 15:15 服务端自动更新（全站共用）' };
+      return { allow: false, note: '盘中展示昨日结果' };
     }
     return { allow: true, note: _SCAN_HINT_OK };
   }
   function applyScanGateMobile(){
-    var rf = $('btn-refresh'), note = $('rescan-note');
-    if (!rf) return;
+    var rf = $('btn-refresh'), full = $('btn-refresh-full'), note = $('rescan-note');
+    if (!rf && !full) return;
     var g = scanGateState();
-    if (!g.allow) {
-      rf.classList.add('gated');
-      rf.title = g.note;
-      if (note) { note.textContent = g.note; note.hidden = false; }
-    } else {
+    if (rf) {
       rf.classList.remove('gated');
-      rf.title = '仅异常时再点；正常由服务端约 15:15 自动更新';
-      if (note) { note.textContent = g.note; note.hidden = false; }
+      rf.title = '载入今日结果';
+    }
+    if (full) {
+      if (!g.allow) {
+        full.classList.add('gated');
+        full.title = g.note || '暂不可用';
+      } else {
+        full.classList.remove('gated');
+        full.title = '结果异常时再使用';
+      }
+    }
+    if (note) {
+      if (g.note) { note.textContent = g.note; note.hidden = false; }
+      else { note.textContent = ''; note.hidden = true; }
     }
   }
 
@@ -1017,9 +1032,15 @@ function renderList(d){
   });
   $('btn-refresh').addEventListener('click', function(){
     if (!token()) { showGuestGate(); return; }
+    load(true);
+  });
+  var btnFullM = $('btn-refresh-full');
+  if (btnFullM) btnFullM.addEventListener('click', function(){
+    if (!token()) { showGuestGate(); return; }
     var g = scanGateState();
     if (!g.allow) { toast(g.note, false); return; }
-    refreshScan();
+    if (!window.confirm('确认完整重扫？\n将强制重扫今日结果（约 1～3 分钟，10 分钟限一次）。')) return;
+    refreshScan(true);
   });
   applyScanGateMobile();
   setInterval(applyScanGateMobile, 30 * 1000);

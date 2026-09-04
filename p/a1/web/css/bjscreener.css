@@ -164,7 +164,37 @@
 .btn-blue{border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;background:linear-gradient(180deg,#1e5a8a,#156090);color:#fff}
 .btn-blue:disabled{opacity:.5;cursor:not-allowed}
 .btn-gated{opacity:.55;cursor:not-allowed}
-.bj-refresh-note{font-size:12px;color:#8aa0bf;line-height:1.45;max-width:420px}
+.bj-refresh-note{font-size:12px;color:#8aa0bf;line-height:1.45;max-width:280px}
+.bj-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bj-auto-hint{
+  display:inline-flex;align-items:center;height:32px;padding:0 12px;border-radius:999px;
+  font-size:12.5px;font-weight:700;letter-spacing:.02em;white-space:nowrap;
+  color:var(--bj-acc,#1d4ed8);background:var(--bj-acc-bg,rgba(29,78,216,.12));
+  border:1px solid var(--bj-acc-bd,rgba(29,78,216,.35));
+  box-shadow:0 0 0 1px rgba(96,165,250,.12),0 0 12px rgba(96,165,250,.18);
+}
+:root[data-theme="dark"] .bj-auto-hint{
+  color:#93c5fd;background:rgba(96,165,250,.16);border-color:rgba(147,197,253,.42);
+  box-shadow:0 0 0 1px rgba(147,197,253,.12),0 0 14px rgba(96,165,250,.28);
+}
+.bj-modal{position:fixed;inset:0;z-index:10050;display:flex;align-items:center;justify-content:center;padding:20px 16px;background:rgba(15,23,42,.52);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.bj-modal[hidden]{display:none!important}
+body.bj-modal-open{overflow:hidden}
+.bj-modal-card{width:min(420px,100%);background:var(--panel,#fff);border:1px solid var(--border);border-radius:16px;box-shadow:0 20px 50px rgba(15,23,42,.22);overflow:hidden}
+.bj-modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px 12px;border-bottom:1px solid var(--border)}
+.bj-modal-head h4{margin:0;font-size:17px;font-weight:800;color:var(--text);letter-spacing:.02em}
+.bj-modal-close{border:0;background:transparent;color:var(--muted);font-size:22px;line-height:1;width:32px;height:32px;border-radius:8px;cursor:pointer;padding:0}
+.bj-modal-close:hover{color:var(--text);background:var(--panel2)}
+.bj-modal-body{padding:14px 18px 6px}
+.bj-modal-body p{margin:0;font-size:14px;line-height:1.75;color:var(--text)}
+.bj-modal-notes{margin:12px 0 0;padding:12px 14px 12px 28px;background:var(--panel2);border:1px solid var(--border);border-radius:12px;font-size:13px;line-height:1.7;color:var(--muted)}
+.bj-modal-notes li+li{margin-top:6px}
+.bj-modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:14px 18px 16px;border-top:1px solid var(--border)}
+.bj-modal-foot .btn,.bj-modal-foot .btn-blue{min-width:88px}
+@media(max-width:640px){
+  .bj-modal{align-items:flex-end;padding:0}
+  .bj-modal-card{width:100%;border-radius:16px 16px 0 0}
+}
 
 /* ---------------- 未登录引导（复盘门禁） ---------------- */
 .gate-hero{background:linear-gradient(135deg,rgba(106,176,243,.08),rgba(106,176,243,.04));border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:6px 0 12px}
@@ -424,7 +454,17 @@ a.ml-avoid:hover{border-color:rgba(220,38,38,.45);color:#991b1b}
 .mkt-fold{border:1px solid var(--border);border-radius:12px;background:var(--panel);margin:0 0 12px;overflow:hidden}
 .mkt-fold-sum{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;cursor:pointer;list-style:none;user-select:none}
 .mkt-fold-sum::-webkit-details-marker{display:none}
-.mkt-fold-title{font-size:13px;letter-spacing:.12em;font-weight:800;color:var(--muted);text-transform:uppercase;flex-shrink:0}
+.mkt-fold-left{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;min-width:0}
+.mkt-fold-title{font-size:13px;letter-spacing:.12em;font-weight:800;color:var(--muted);text-transform:uppercase}
+.mkt-fold-chev{
+  display:inline-flex;width:18px;height:18px;align-items:center;justify-content:center;
+  border-radius:999px;font-size:11px;line-height:1;font-weight:900;color:var(--bj-acc,#1d4ed8);
+  background:var(--bj-acc-bg,rgba(29,78,216,.12));border:1px solid var(--bj-acc-bd,rgba(29,78,216,.35));
+  transition:transform .18s ease;
+}
+.mkt-fold-chev::before{content:"▾"}
+.mkt-fold[open] .mkt-fold-chev{transform:rotate(180deg)}
+.mkt-fold-tip{font-size:11px;font-weight:700;color:var(--bj-acc,#1d4ed8);opacity:.85;letter-spacing:.04em}
 .mkt-fold[open] .mkt-fold-sum{border-bottom:1px solid var(--border)}
 .mkt-fold .mkt-signal.compact{margin:0;border:none;border-radius:0;padding:10px 14px 12px}
 .mkt-fold .mkt-badge-sm{flex:1;max-width:min(100%,520px)}

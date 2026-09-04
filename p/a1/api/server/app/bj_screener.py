@@ -203,8 +203,11 @@ DEFAULT_CFG: dict[str, Any] = {
     "pickZtMaxDays": 25,
     "pickPreferMa144": True,
     "pickMa60StrongRatio": 1.02, "pickMa60StrongDays": 3,
-    # 各栏目精选上限 2：宁缺毋滥，不凑数
+    # 各栏目精选目标 2：分层够格优先凑满，仍不拿明显弱势硬凑
     "pickMaxN": 2, "ztHotExtraCap": 80,
+    # 精选时机：粘合刚突破优先；不足时放宽到粘合待突破 / 回踩后再突破
+    "pickRequireBondBreak": True,
+    "pickFillToN": True,
 }
 
 
@@ -248,9 +251,30 @@ _ARCHIVE_INDEX_PATH = os.path.join(_ARCHIVE_DIR, "archive_index.json")
 # 归档文件名白名单：仅 "YYYY-MM-DD..." 才算归档，排除 winrate_cache 等内部缓存文件
 _ARCH_FILE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}")
 
-# 强制重扫最小间隔（秒）：防止高频重扫打爆上游行情源
-_FORCE_MIN_INTERVAL = 120.0
+# 强制重扫最小间隔（秒）：与雷达「完整重扫」对齐，防多用户连点耗上游
+_FORCE_MIN_INTERVAL = 600.0
 _LAST_FULL_SCAN_TS: float = 0.0
+
+
+def check_force_rescan_allowed(market: str = "") -> str | None:
+    """完整重扫全站冷却。返回用户可见拒绝原因；允许时返回 None。"""
+    try:
+        _scan_m = scan_market_for(str(market or "hs"))
+    except Exception:
+        _scan_m = str(market or "hs").strip().lower() or "hs"
+    running = _RUNNING_SCAN.get(_scan_m)
+    if running is not None and not running.done():
+        return "扫描正在进行中，请稍候"
+    p = _SCAN_PROGRESS.get(_scan_m) or {}
+    if p.get("running"):
+        return "扫描正在进行中，请稍候"
+    if _LAST_FULL_SCAN_TS > 0:
+        left = _FORCE_MIN_INTERVAL - (time.time() - _LAST_FULL_SCAN_TS)
+        if left > 0:
+            mins = max(1, int((left + 59) // 60))
+            return f"完整重扫过于频繁，请 {mins} 分钟后再试"
+    return None
+
 
 # 非 VIP“异动板块”视图独立缓存（当日）
 _BOARDS_CACHE: dict[str, tuple[float, dict]] = {}
@@ -275,7 +299,8 @@ def _save_history(key: str, payload: dict[str, Any]) -> None:
         if not _market_closed():
             return
         hist[str(key)] = payload
-        while len(hist) > 12:
+        # 多市场+专栏共用索引：过小会被沪深专栏挤掉，导致科创/北证空窗无法回退
+        while len(hist) > 48:
             hist.pop(next(iter(hist)))
         os.makedirs(os.path.dirname(_HIST_PATH), exist_ok=True)
         tmp = _HIST_PATH + ".tmp"
@@ -286,8 +311,53 @@ def _save_history(key: str, payload: dict[str, Any]) -> None:
         pass
 
 
+def _latest_archive_with_picks(market: str = "bj") -> dict[str, Any] | None:
+    """从 bj_archive 取该市场最近一份 picks 非空的最终档（索引被挤掉时的回退）。"""
+    for d in _iter_archives_with_picks(market, limit=1):
+        return d
+    return None
+
+
+def _iter_archives_with_picks(market: str = "bj", limit: int = 20):
+    """按日期倒序产出该市场 picks 非空的归档（同日优先最终档）。"""
+    market = str(market or "bj").strip().lower()
+    if not market or not os.path.isdir(_ARCHIVE_DIR):
+        return
+    by_day: dict[str, list[tuple[int, str, str]]] = {}
+    try:
+        for nm in os.listdir(_ARCHIVE_DIR):
+            if not (nm.endswith(".json") and _ARCH_FILE_RE.match(nm)):
+                continue
+            mm = re.match(
+                rf"^(\d{{4}}-\d{{2}}-\d{{2}})-{re.escape(market)}(?:-(\d{{4}}))?\.json$",
+                nm,
+            )
+            if not mm:
+                continue
+            day, hhmm = mm.group(1), (mm.group(2) or "")
+            by_day.setdefault(day, []).append((0 if not hhmm else 1, hhmm, nm))
+    except Exception:
+        return
+    n = 0
+    for day in sorted(by_day.keys(), reverse=True):
+        for _, _, nm in sorted(by_day[day]):
+            try:
+                d = _load_json_file(os.path.join(_ARCHIVE_DIR, nm), None)
+            except Exception:
+                d = None
+            if isinstance(d, dict) and d.get("picks"):
+                yield d
+                n += 1
+                if n >= max(1, int(limit)):
+                    return
+
+
 def _latest_history(market: str = "bj") -> dict[str, Any] | None:
-    """返回最近一次有标的（picks 非空）的扫描结果（按市场隔离）。"""
+    """返回最近一次有标的（picks 非空）的扫描结果（按市场隔离）。
+
+    优先 bj_scan_history.json；该索引容量很小且「空结果不写入」，
+    科创/北证连续空窗时会被沪深专栏挤掉 → 再回退 bj_archive 磁盘档。
+    """
     hist = _load_history()
     prefix = str(market or "bj") + ":"
     for key in reversed(list(hist.keys())):
@@ -296,7 +366,7 @@ def _latest_history(market: str = "bj") -> dict[str, Any] | None:
             v = hist.get(key)
             if isinstance(v, dict) and v.get("picks"):
                 return v
-    return None
+    return _latest_archive_with_picks(market)
 
 def _prev_day_picks(market: str = "bj") -> tuple[str, list[dict[str, Any]]]:
     """上一交易日主推（按市场隔离）：取 date != 今天 且 picks 非空的最新一条。
@@ -1776,6 +1846,7 @@ def _attach_ml_why(rank: list[dict[str, Any]], dml_names: list[str], dml_info: d
 
 
 _COLUMN_VIEW_MARKETS = frozenset({"macd", "low10", "tight", "pb", "mlpb", "breakout", "leader"})
+_HS_COLUMN_MARKETS = frozenset({"pb", "mlpb", "breakout", "leader"})
 
 
 def _apply_stale_fallback(result: dict[str, Any], market: str = "bj", column: str = "") -> dict[str, Any]:
@@ -1804,11 +1875,43 @@ def _apply_stale_fallback(result: dict[str, Any], market: str = "bj", column: st
         out.pop("_bad", None)
         return _reattach_ths(out)
 
-    stale = None
+    # 候选回退源：专栏自身历史 → 父市场历史 → 父市场磁盘归档（按栏目口径再筛，避免「有票但栏目仍空」）
+    stales: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+
+    def _add_stale(r: dict[str, Any] | None) -> None:
+        if not isinstance(r, dict):
+            return
+        rid = "|".join([
+            str(r.get("date") or ""),
+            str(r.get("asof") or ""),
+            str(r.get("market_code") or r.get("market") or ""),
+            ",".join(str(x.get("code") or "") for x in (r.get("picks") or [])[:4] if isinstance(x, dict)),
+        ])
+        if rid in seen_ids:
+            return
+        seen_ids.add(rid)
+        stales.append(r)
+
     if col in _COLUMN_VIEW_MARKETS:
-        stale = _latest_history(col)
-    if not stale:
-        stale = _latest_history(market)
+        _add_stale(_latest_history(col))
+    _add_stale(_latest_history(market))
+    parent = ""
+    if col in ("macd", "low10", "tight"):
+        parent = "all"
+    elif col in _HS_COLUMN_MARKETS:
+        parent = "hs"
+    elif not col:
+        parent = str(market or "")
+    if parent:
+        for arch in _iter_archives_with_picks(parent, limit=20):
+            _add_stale(arch)
+
+    stale = None
+    for cand in stales:
+        if _has_picks(cand):
+            stale = cand
+            break
     if not stale:
         out = _view(result)
         out.pop("_bad", None)
@@ -3518,10 +3621,53 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
                         break
     if wash_ok:
         patterns["washOut"] = 1
-    # 均线粘合后发散（启动初期）
-    spread = (max(ma5, ma10, ma20) - min(ma5, ma10, ma20)) / ma20 * 100 if ma20 else 0.0
-    if spread <= 2.5 and ma5 > ma10 and ma10 > ma20 and hist[last] > 0:
-        patterns["tightBurst"] = 1
+    # 均线粘合刚突破（主推时机门）：近窗曾粘合 + 今日短均向上发散，且价差尚未拉大
+    # 与「大波段 tightZt」同源但更轻：不要求涨停/年涨停，供沪深/科创/北证/10元下精选硬门
+    spread = (max(ma5, ma10, ma20) - min(ma5, ma10, ma20)) / ma20 * 100 if ma20 else 99.0
+    ma_bond_meta: dict[str, Any] = {}
+    try:
+        _glue_th = 0.03
+        _glue_cnt = 0
+        _last_glue_i = -1
+        for _gi in range(max(19, last - 9), last + 1):
+            _g5 = _ma_at(c, 5, _gi)
+            _g10 = _ma_at(c, 10, _gi)
+            _g20 = _ma_at(c, 20, _gi)
+            if _g5 > 0 and _g10 > 0 and _g20 > 0 \
+                    and abs(_g5 / _g20 - 1) <= _glue_th \
+                    and abs(_g10 / _g20 - 1) <= _glue_th \
+                    and abs(_g5 / _g10 - 1) <= _glue_th:
+                _glue_cnt += 1
+                _last_glue_i = _gi
+        _ma5_1 = _ma_at(c, 5, last - 1) if last >= 1 else 0.0
+        _ma5_2 = _ma_at(c, 5, last - 2) if last >= 2 else 0.0
+        _diverge = bool(ma5 > ma10 > ma20 and ma5 >= _ma5_1 > 0)
+        _diverge_strict = bool(ma5 > ma10 > ma20 and ma5 > _ma5_1 > 0 and _ma5_1 > _ma5_2 > 0)
+        _glue_recent = bool(
+            _glue_cnt >= 2
+            or spread <= 3.5
+            or (_last_glue_i >= 0 and (last - _last_glue_i) <= 3)
+        )
+        # 刚突破：近期粘合 + 今日发散 + 价差未过度拉开（避免追已发散很久）
+        if _glue_recent and _diverge and spread <= 5.5:
+            patterns["maBondBreak"] = 1
+            patterns["tightBurst"] = 1
+        elif spread <= 2.5 and ma5 > ma10 and ma10 > ma20 and hist[last] > 0:
+            # 兼容旧 tightBurst：当日仍紧粘合且向上
+            patterns["tightBurst"] = 1
+            patterns["maBondBreak"] = 1
+        # 观察宽门：近窗粘合、尚未发散（短均仍缠绕/贴近）
+        if _glue_recent and not _diverge and ma5 >= ma20 * 0.97:
+            patterns["maBondReady"] = 1
+        ma_bond_meta = {
+            "glueDays": _glue_cnt,
+            "spread": round(float(spread), 2),
+            "diverge": bool(_diverge),
+            "divergeStrict": bool(_diverge_strict),
+            "lastGlueAgo": (last - _last_glue_i) if _last_glue_i >= 0 else None,
+        }
+    except Exception:
+        ma_bond_meta = {}
     # 大波段（同花顺「多头粘合涨停」落地）：仅沪深主板+创业/科创，硬排除北证
     # 对齐原式核心；过严处放宽：大周期双路径、粘合窗10日、年涨停改软门、额/位置略松
     tight_zt = False
@@ -3547,16 +3693,17 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
         _ma144_up = bool(ma144 > 0 and ma144_prev5 > 0 and ma144 >= ma144_prev5 * 0.997)
         # 粘合阈 3%：近10日≥2日粘合，或今日价差≤3.5%；发散=MA5>10>20 且 MA5 不下行
         _glue_th = 0.03
-        _glue_cnt = 0
-        for _gi in range(max(19, last - 9), last + 1):
-            _g5 = _ma_at(c, 5, _gi)
-            _g10 = _ma_at(c, 10, _gi)
-            _g20 = _ma_at(c, 20, _gi)
-            if _g5 > 0 and _g10 > 0 and _g20 > 0 \
-                    and abs(_g5 / _g20 - 1) <= _glue_th \
-                    and abs(_g10 / _g20 - 1) <= _glue_th \
-                    and abs(_g5 / _g10 - 1) <= _glue_th:
-                _glue_cnt += 1
+        _glue_cnt = int(ma_bond_meta.get("glueDays") or 0)
+        if not _glue_cnt:
+            for _gi in range(max(19, last - 9), last + 1):
+                _g5 = _ma_at(c, 5, _gi)
+                _g10 = _ma_at(c, 10, _gi)
+                _g20 = _ma_at(c, 20, _gi)
+                if _g5 > 0 and _g10 > 0 and _g20 > 0 \
+                        and abs(_g5 / _g20 - 1) <= _glue_th \
+                        and abs(_g10 / _g20 - 1) <= _glue_th \
+                        and abs(_g5 / _g10 - 1) <= _glue_th:
+                    _glue_cnt += 1
         _ma5_1 = _ma_at(c, 5, last - 1) if last >= 1 else 0.0
         _ma5_2 = _ma_at(c, 5, last - 2) if last >= 2 else 0.0
         _diverge_strict = bool(ma5 > ma10 > ma20 and ma5 > _ma5_1 > 0 and _ma5_1 > _ma5_2 > 0)
@@ -3628,6 +3775,8 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
         }
         if tight_zt:
             patterns["tightZt"] = 1
+            patterns["maBondBreak"] = 1
+            patterns["tightBurst"] = 1
     except Exception:
         tight_zt = False
     # MACD 首根红柱（底部金叉第一根红柱 + 量能确认：右侧启动强信号）
@@ -4077,6 +4226,7 @@ def analyze(bars: list[list[Any]], cand: dict[str, Any], cfg: dict[str, Any], ma
         "ma30": ma30, "ma144": ma144,
         "leaderOk": leader_ok,
         "tightZtMeta": tight_zt_meta,
+        "maBondMeta": ma_bond_meta,
         "momScore": mom["momScore"], "momParts": mom["momParts"],
         "strongMom": bool(mom["strongMom"]), "momTags": mom["momTags"],
         "pe": pe, "pb": pb, "mcap": mcap,
@@ -5617,6 +5767,70 @@ def _ma_tier_ok(c: dict[str, Any], *, min_tier: str = "A") -> bool:
     return TIER_RANK.get(tier, 0) >= TIER_RANK.get(str(min_tier or "A").upper(), 2)
 
 
+def _pick_bond_break_ok(c: dict[str, Any]) -> bool:
+    """精选时机门：短均刚粘合并向上发散（刚想突破）。"""
+    a = c.get("A") or {}
+    p = a.get("patterns") or c.get("patterns") or {}
+    if not isinstance(p, dict):
+        p = {}
+    return bool(p.get("maBondBreak") or p.get("tightBurst") or p.get("tightZt") or a.get("maBondBreak"))
+
+
+def _pick_bond_ready_ok(c: dict[str, Any]) -> bool:
+    """观察时机宽门：近窗粘合、尚未发散；或已达刚突破。"""
+    a = c.get("A") or {}
+    p = a.get("patterns") or c.get("patterns") or {}
+    if not isinstance(p, dict):
+        p = {}
+    if p.get("maBondReady"):
+        return True
+    return _pick_bond_break_ok(c)
+
+
+def _pick_ma_stack_ok(c: dict[str, Any]) -> bool:
+    """用户主口径：5/10/20 短多头，并站在 60（及可选 30/144）中长均之上。"""
+    a = c.get("A") or {}
+    if a.get("ma_bull") or a.get("above_ma144") or a.get("ma60_strong"):
+        return True
+    if a.get("ma_bull3") and (a.get("above_ma60") or a.get("ma_bull")):
+        return True
+    try:
+        ma5 = float(a.get("ma5") or 0)
+        ma10 = float(a.get("ma10") or 0)
+        ma20 = float(a.get("ma20") or 0)
+        ma30 = float(a.get("ma30") or 0)
+        ma60 = float(a.get("ma60") or 0)
+        ma144 = float(a.get("ma144") or 0)
+    except Exception:
+        return False
+    if not (ma5 > 0 and ma10 > 0 and ma20 > 0 and ma5 > ma10 > ma20):
+        return False
+    mid_ok = bool(
+        (ma60 > 0 and ma20 >= ma60 * 0.98)
+        or (ma30 > 0 and ma20 >= ma30 * 0.98)
+        or (ma144 > 0 and ma60 >= ma144 * 0.98)
+    )
+    return mid_ok
+
+
+def _pick_timing_soft_ok(c: dict[str, Any]) -> bool:
+    """时机宽门：粘合刚突破 / 粘合待突破 / 回踩企稳后再走多。"""
+    if _pick_bond_break_ok(c) or _pick_bond_ready_ok(c):
+        return True
+    a = c.get("A") or {}
+    p = a.get("patterns") or {}
+    if not isinstance(p, dict):
+        p = {}
+    pb = bool(
+        p.get("pullback") or p.get("pullback2") or p.get("ztPullback")
+        or p.get("surgePullback") or p.get("pb45") or p.get("washOut")
+        or p.get("firstBoardRight")
+    )
+    if pb and (_pick_ma_stack_ok(c) or p.get("baseUp") or p.get("breakout") or p.get("steadyUp")):
+        return True
+    return bool(p.get("baseUp") or p.get("steadyUp") or p.get("breakout"))
+
+
 def _pick_zt_ok(c: dict[str, Any], *, max_days: int = 20) -> bool:
     """近期涨停基因：近 max_days 有涨停，或涨停相关形态。"""
     a = c.get("A") or {}
@@ -5669,8 +5883,9 @@ def _pick_strong_gate(
     require_zt: bool = True,
     prefer_144: bool = True,
     allow_above60: bool = False,
+    require_bond_break: bool = False,
 ) -> bool:
-    """主推强势总门。prefer_144 / 远高于60 / 站上60（allow_above60）三档。"""
+    """主推强势总门。prefer_144 / 远高于60 / 站上60（allow_above60）三档；可选粘合刚突破。"""
     if prefer_144:
         if not _pick_ma144_ok(c):
             return False
@@ -5684,6 +5899,8 @@ def _pick_strong_gate(
         # 涨停池补入的热门票视为具备涨停基因
         if not (_pick_zt_ok(c) or c.get("zt_hot")):
             return False
+    if require_bond_break and not _pick_bond_break_ok(c):
+        return False
     return True
 
 
@@ -5691,18 +5908,72 @@ def _filter_strong_picks(
     cands: list[dict[str, Any]],
     *,
     require_zt: bool = True,
+    require_bond_break: bool | None = None,
+    fill_to: int | None = None,
 ) -> list[dict[str, Any]]:
-    """主推门（严）：上144优先，否则远高于60持续；不含「仅站上60」。"""
-    hard = [
+    """主推分层：严门优先，不足时按用户均线口径逐级放宽，尽量凑满 fill_to。"""
+    if require_bond_break is None:
+        require_bond_break = bool(DEFAULT_CFG.get("pickRequireBondBreak", True))
+    want = int(fill_to if fill_to is not None else (DEFAULT_CFG.get("pickMaxN") or 2))
+    if want < 1:
+        want = 2
+    do_fill = bool(DEFAULT_CFG.get("pickFillToN", True))
+
+    def _uniq(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        seen: set[str] = set()
+        out: list[dict[str, Any]] = []
+        for c in rows:
+            code = str(c.get("code") or "")
+            if not code or code in seen:
+                continue
+            seen.add(code)
+            out.append(c)
+        return out
+
+    # L1：上144 + 时机硬门（粘合刚突破）
+    l1 = [
         c for c in cands
-        if _pick_strong_gate(c, min_tier="S", require_zt=require_zt, prefer_144=True)
+        if _pick_strong_gate(
+            c, min_tier="S", require_zt=require_zt, prefer_144=True,
+            require_bond_break=bool(require_bond_break),
+        )
     ]
-    if hard:
-        return hard
-    return [
+    out = _uniq(l1)
+    if len(out) >= want:
+        return out[: max(want * 3, want)]
+
+    # L2：远高于60 + 时机硬门
+    l2 = [
         c for c in cands
-        if _pick_strong_gate(c, min_tier="A", require_zt=require_zt, prefer_144=False, allow_above60=False)
+        if _pick_strong_gate(
+            c, min_tier="A", require_zt=require_zt, prefer_144=False, allow_above60=False,
+            require_bond_break=bool(require_bond_break),
+        )
     ]
+    out = _uniq(out + l2)
+    if len(out) >= want:
+        return out[: max(want * 3, want)]
+
+    if not do_fill:
+        return out
+
+    # L3：短均站上中长均 + 时机宽门（粘合待突破/回踩后再突破）；涨停仍优先
+    l3 = [
+        c for c in cands
+        if _pick_ma_stack_ok(c) and _pick_timing_soft_ok(c)
+        and (not require_zt or _pick_zt_ok(c) or c.get("zt_hot") or _pick_bond_break_ok(c))
+    ]
+    out = _uniq(out + sorted(l3, key=lambda x: (-_ma_tier_rank(x), -int(x.get("final") or 0))))
+    if len(out) >= want:
+        return out[: max(want * 3, want)]
+
+    # L4：仅均线结构达标（短多头站上中长均），用于把栏目尽量凑到 2 只
+    l4 = [
+        c for c in cands
+        if _pick_ma_stack_ok(c) and _pick_above60_ok(c)
+    ]
+    out = _uniq(out + sorted(l4, key=lambda x: (-_ma_tier_rank(x), -int(x.get("final") or 0))))
+    return out[: max(want * 3, want)]
 
 
 def _filter_watch_picks(
@@ -5712,30 +5983,43 @@ def _filter_watch_picks(
     require_zt: bool = True,
     limit: int = 6,
 ) -> list[dict[str, Any]]:
-    """观察池（宽）：短均站上60 + 近期涨停/热门；不含已进主推者。"""
+    """观察池（宽）：站上60+涨停热门；优先「粘合未发散」，不含已达精选严门者。"""
     ex = exclude_codes or set()
-    out: list[dict[str, Any]] = []
+    ready: list[dict[str, Any]] = []
+    soft: list[dict[str, Any]] = []
     for c in cands:
         code = str(c.get("code") or "")
         if not code or code in ex:
             continue
         if not _pick_strong_gate(c, min_tier="A", require_zt=require_zt, prefer_144=False, allow_above60=True):
+            # 观察也可认短均站上中长均结构
+            if not (_pick_ma_stack_ok(c) and (c.get("zt_hot") or _pick_zt_ok(c) or _pick_timing_soft_ok(c))):
+                continue
+        # 已能过精选严门（含粘合刚突破）的不进观察
+        if (_pick_ma144_ok(c) or _pick_ma60_strong_ok(c)) and _pick_bond_break_ok(c):
             continue
-        # 观察池不要再塞已经能进主推严门的（避免重复）
-        if _pick_ma144_ok(c) or _pick_ma60_strong_ok(c):
-            continue
-        out.append(c)
-    out.sort(key=lambda x: (-_ma_tier_rank(x), -int(x.get("final") or 0)))
+        if _pick_bond_ready_ok(c) and not _pick_bond_break_ok(c):
+            ready.append(c)
+        elif not _pick_bond_break_ok(c):
+            soft.append(c)
+    ready.sort(key=lambda x: (-_ma_tier_rank(x), -int(x.get("final") or 0)))
+    soft.sort(key=lambda x: (-_ma_tier_rank(x), -int(x.get("final") or 0)))
+    out = ready + soft
     return out[: max(0, int(limit))]
 
 
 def build_decision(pick: dict[str, Any], *, lane: str = "pick") -> dict[str, Any]:
     """用户可见决策条：动作 / 失效 / 确认标签（避免运维黑话）。"""
     a = pick.get("A") or {}
+    p = a.get("patterns") or pick.get("patterns") or {}
+    if not isinstance(p, dict):
+        p = {}
     dual = bool(
         (a.get("above_ma144") or _pick_ma144_ok(pick))
         and (pick.get("zt_hot") or _pick_zt_ok(pick) or a.get("daysSinceZt") is not None)
     )
+    bond_break = bool(p.get("maBondBreak") or p.get("tightBurst") or p.get("tightZt"))
+    bond_ready = bool(p.get("maBondReady")) and not bond_break
     if a.get("above_ma144") or _pick_ma144_ok(pick):
         trend = "短均站上中长期均线"
         action = "可跟踪，优先等回踩再考虑"
@@ -5748,8 +6032,17 @@ def build_decision(pick: dict[str, Any], *, lane: str = "pick") -> dict[str, Any
         trend = "短均刚站上中期均线"
         action = "仅观察，暂不作为重点"
         invalid = "重新跌回均线下方，或热度退潮，可移出观察"
-    if lane == "watch":
-        action = "观察池：确认站稳后再考虑，勿追高"
+    # 时机口径：精选偏「粘合刚向上」；观察偏「粘合未发散」
+    if bond_break and lane != "watch":
+        trend = "短均刚粘合、继续向上突破"
+        action = "刚想突破阶段，可跟踪；追高谨慎，优先等回踩确认"
+        invalid = "短均重新缠绕走弱，或放量长阴跌破近端支撑，建议先观望"
+    elif bond_ready or lane == "watch":
+        if bond_ready:
+            trend = "短均仍粘合，尚未向上发散"
+        action = "观察池：等粘合后向上突破再考虑，勿追高"
+        if lane == "watch":
+            invalid = "继续缠绕走弱或跌回均线下方，可移出观察"
     if pick.get("mainHit"):
         confirm = "主线内强势"
     elif pick.get("zt_hot") or pick.get("hot"):
@@ -5758,6 +6051,10 @@ def build_decision(pick: dict[str, Any], *, lane: str = "pick") -> dict[str, Any
         confirm = "结构达标"
     if dual:
         confirm = "热门强势·双确认"
+    if bond_break and lane != "watch":
+        confirm = ("粘合刚突破·" + confirm) if confirm else "粘合刚突破"
+    elif bond_ready:
+        confirm = ("粘合待突破·" + confirm) if confirm else "粘合待突破"
     ds = a.get("daysSinceZt")
     zt_note = ""
     if ds is not None:
@@ -5780,7 +6077,9 @@ def build_decision(pick: dict[str, Any], *, lane: str = "pick") -> dict[str, Any
         "confirm": confirm,
         "dualConfirm": dual,
         "ztNote": zt_note,
-        "algo": "strong-layer-v2",
+        "bondBreak": bond_break,
+        "bondReady": bond_ready,
+        "algo": "bond-break-v1",
     }
 
 
@@ -5868,6 +6167,9 @@ def _pick_out(c: dict[str, Any]) -> dict[str, Any]:
         "closePos": a.get("closePos"), "odds1": a.get("odds1"), "oddsUse": a.get("oddsUse"),
         "pe": _num(a.get("pe")), "pb": _num(a.get("pb")), "mcap_yi": round(_num(a.get("mcap")) / 1e8, 1),
         "tightZtMeta": a.get("tightZtMeta") or {},
+        "maBondMeta": a.get("maBondMeta") or {},
+        "maBondBreak": bool(_pick_bond_break_ok(c)),
+        "maBondReady": bool((a.get("patterns") or {}).get("maBondReady")),
     }
     return {
         "rank": c.get("rank"), "code": c.get("code"), "name": c.get("name"),
@@ -5943,8 +6245,10 @@ def _pick_out(c: dict[str, Any]) -> dict[str, Any]:
             (a.get("above_ma144") or False)
             and (c.get("zt_hot") or _pick_zt_ok(c) or a.get("daysSinceZt") is not None)
         ),
+        "maBondBreak": bool(_pick_bond_break_ok(c)),
+        "maBondReady": bool((a.get("patterns") or {}).get("maBondReady")),
         "decision": c.get("decision") or build_decision(c, lane=str(c.get("pick_lane") or "pick")),
-        "algo": "strong-layer-v2",
+        "algo": "bond-break-v1",
     }
 
 
@@ -6234,8 +6538,8 @@ def pb_view(out: dict[str, Any]) -> dict[str, Any]:
     return o
 
 
-# 主线回踩低吸：偏「低吸」子集（相对回踩企稳：硬 mainHit、排除已突破、位置/涨幅更严）
-_MLPB_CORE_KEYS = ("pb45", "pullback2", "ztPullback", "firstWeek")
+# 主线回踩低吸：偏「低吸」子集（相对回踩企稳：主线/观察板块内，排除已突破、位置/涨幅更严）
+_MLPB_CORE_KEYS = ("pb45", "pullback2", "ztPullback", "firstWeek", "firstBoardRight")
 _MLPB_WIDE_KEYS = ("pullback", "washOut", "surgePullback", "eventPullback")
 
 
@@ -6261,33 +6565,49 @@ def _chg_n(c: dict[str, Any], key: str) -> float:
         return 999.0
 
 
-def mlpb_view(out: dict[str, Any]) -> dict[str, Any]:
-    """主线回踩低吸：当日主攻板块内回踩/低吸，硬要求 mainHit；排除已突破（留给二波突破栏）。
+def _cand_patterns(c: dict[str, Any]) -> dict[str, Any]:
+    """兼容 patterns 在顶层或 A.patterns。"""
+    pp = c.get("patterns")
+    if isinstance(pp, dict) and pp:
+        return pp
+    a = c.get("A")
+    if isinstance(a, dict):
+        pp2 = a.get("patterns")
+        if isinstance(pp2, dict):
+            return pp2
+    return pp if isinstance(pp, dict) else {}
 
-    与「回踩企稳」差异：mainHit 硬门；形态偏低吸；pos≤0.50 且 chg5/chg10 不过热；宁缺带图主推最多 2 只。
+
+def mlpb_view(out: dict[str, Any]) -> dict[str, Any]:
+    """主线回踩低吸：主攻/重点观察板块内回踩低吸；排除已突破（留给二波突破栏）。
+
+    与「回踩企稳」差异：须命中主线或观察板块；形态偏低吸；pos≤0.55 且 chg5/chg10 不过热；最多 2 只。
     """
     o = _hs_column_shell(out, "mlpb")
 
     def _match(c: dict[str, Any]) -> bool:
-        if not c.get("mainHit"):
+        # 主攻优先，观察板块也算「主线回踩」覆盖（否则军工主线强、观察里有回踩时长期空窗）
+        if not (c.get("mainHit") or c.get("obsHit")):
             return False
-        pp = c.get("patterns") or {}
+        pp = _cand_patterns(c)
         if pp.get("breakout"):
             return False
         core = any(pp.get(k) for k in _MLPB_CORE_KEYS)
         wide = any(pp.get(k) for k in _MLPB_WIDE_KEYS)
         if not (core or wide):
             return False
-        if _pos_frac(c) > 0.50:
+        if _pos_frac(c) > 0.55:
             return False
         if _chg_n(c, "chg5") > 18.0 or _chg_n(c, "chg10") > 30.0:
             return False
         return _path_gate(c, require_active=True)
 
     def _sort_key(c: dict[str, Any]) -> tuple:
-        pp = c.get("patterns") or {}
+        pp = _cand_patterns(c)
         core = 0 if any(pp.get(k) for k in _MLPB_CORE_KEYS) else 1
+        lane = 0 if c.get("mainHit") else 1
         return (
+            lane,
             core,
             -_pb_evp_score(c),
             _pos_frac(c),
@@ -6305,7 +6625,8 @@ def mlpb_view(out: dict[str, Any]) -> dict[str, Any]:
             if isinstance(c, dict) and _match(c)]
     pool.sort(key=_sort_key)
     with_chart = [c for c in pool if _has_chart(c)]
-    use = with_chart[:2] if with_chart else []
+    # 优先带图；无图时仍展示够格标的，避免「有回踩却整栏空白」
+    use = (with_chart or pool)[:2]
     ranked: list[dict[str, Any]] = []
     for i, c in enumerate(use):
         cc = dict(c)
@@ -6522,9 +6843,6 @@ def tight_view(out: dict[str, Any]) -> dict[str, Any]:
             _dash = f"{_rd8[:4]}-{_rd8[4:6]}-{_rd8[6:]}" if len(_rd8) == 8 else _rd8
             o["replay_preview"] = {"date": _dash, "date8": _rd8, "picks": _rpicks, "replay": True}
     return o
-
-
-_HS_COLUMN_MARKETS = frozenset({"pb", "mlpb", "breakout", "leader"})
 
 
 def scan_market_for(market_code: str) -> str:
@@ -6948,6 +7266,7 @@ def replay_scan(date8: str, market: str = "hs") -> dict[str, Any]:
     if market in ("hs", "kc", "bj", "bj_all"):
         pool = [c for c in recs if _market_ok(str(c.get("code")), market)]
         fine = _replay_fine_pass(pool, cfg, style_mode)
+        fine = _filter_strong_picks(fine, require_zt=bool(cfg.get("pickRequireZt", True)))
         fine.sort(key=_replay_sort_key)
         picks = [_pick_out(c) for c in fine[:2]]
         runners = [_pick_out(c) for c in fine[2:8]]
@@ -6989,7 +7308,7 @@ def replay_scan(date8: str, market: str = "hs") -> dict[str, Any]:
     elif market == "mlpb":
         fine = _replay_fine_pass(recs, cfg, style_mode)
         def _mlpb_ok(c: dict[str, Any]) -> bool:
-            if not c.get("mainHit"):
+            if not (c.get("mainHit") or c.get("obsHit")):
                 return False
             pp = (c.get("A") or {}).get("patterns") or {}
             if pp.get("breakout"):
@@ -7005,7 +7324,7 @@ def replay_scan(date8: str, market: str = "hs") -> dict[str, Any]:
                 pos = 99.0
             if pos > 1.5:
                 pos = pos / 100.0
-            if pos > 0.50:
+            if pos > 0.55:
                 return False
             try:
                 chg5 = float(a.get("chg5") if a.get("chg5") is not None else c.get("chg5") or 999)
@@ -7025,6 +7344,7 @@ def replay_scan(date8: str, market: str = "hs") -> dict[str, Any]:
                 c["price"] = (c.get("A") or {}).get("closes", [0])[-1]
         pool = [c for c in recs if 2.0 <= _num(c.get("price")) < 10.0 and not _re_oneword(c)]
         fine = _replay_fine_pass(pool, lcfg, style_mode)
+        fine = [c for c in fine if (_pick_bond_break_ok(c) or _pick_timing_soft_ok(c) or _pick_ma_stack_ok(c))]
         fine.sort(key=_replay_sort_key)
         picks = [_pick_out(c) for c in fine[:8]]
     elif market == "tight":
@@ -7188,8 +7508,11 @@ def get_bj_screener_cached_result(
             out = _apply_stale_fallback(out, scan_m, col)
         return _finish(out)
 
+    # 专栏优先读本栏归档；没有则回退父市场（hs/all）归档再套栏目视图
     hist_m = col if col in _COLUMN_VIEW_MARKETS else scan_m
     stale = _latest_history(hist_m)
+    if not stale and col and hist_m != scan_m:
+        stale = _latest_history(scan_m)
 
     if _today_off_market() or not _market_closed():
         if stale:
@@ -7198,7 +7521,7 @@ def get_bj_screener_cached_result(
             out["stale"] = True
             out["stale_from"] = stale.get("asof") or stale.get("date") or ""
             out["stale_scan_date"] = stale.get("date") or ""
-            out["market_code"] = scan_m
+            out["market_code"] = col or scan_m
             out["intraday"] = True
             out["date"] = stale.get("date") or stale.get("asof") or ""
             out = _reattach_ths(out)
@@ -7211,7 +7534,7 @@ def get_bj_screener_cached_result(
         out["stale"] = True
         out["stale_from"] = stale.get("asof") or stale.get("date") or ""
         out["stale_scan_date"] = stale.get("date") or ""
-        out["market_code"] = scan_m
+        out["market_code"] = col or scan_m
         out["date"] = stale.get("date") or stale.get("asof") or ""
         if _arch_day != today8:
             out["today_missing"] = True
@@ -7220,7 +7543,11 @@ def get_bj_screener_cached_result(
         out = _reattach_ths(out)
         return _finish(out)
 
-    return {"ok": False, "error": "no_cache", "message": "暂无扫描结果，请点「重新扫描」生成。"}
+    return {
+        "ok": False,
+        "error": "no_cache",
+        "message": "暂无扫描结果。盘中请看昨日归档；收盘后约 15:15 自动更新，或点「开始扫描」。",
+    }
 
 
 def mark_scan_failed(market: str, msg: str = "扫描失败") -> None:
@@ -8452,14 +8779,34 @@ async def run_scan(
             c["tier"] = "key"
             c["star"] = False
             picks.append(c)
-    # 各栏目精选硬顶 2：够格才上，1 只不硬凑第 2 只
+    # 各栏目精选硬顶 2：分层够格优先凑满 2 只
     _pm = max(1, min(2, int(cfg.get("pickMaxN") or 2)))
+    if len(picks) < _pm and bool(cfg.get("pickFillToN", True)):
+        used = {str(c.get("code")) for c in picks}
+        _fill_src = _filter_strong_picks(
+            list(all_sorted or []) or list(pool or []),
+            require_zt=bool(cfg.get("pickRequireZt", True)),
+            fill_to=_pm,
+        )
+        for c in _fill_src:
+            code = str(c.get("code") or "")
+            if not code or code in used:
+                continue
+            if (c.get("bearish") or {}).get("level") == "hard":
+                continue
+            c["tier"] = "key" if picks else "king"
+            c["star"] = not bool(picks)
+            c["pick_role"] = c.get("pick_role") or "ma_stack"
+            picks.append(c)
+            used.add(code)
+            if len(picks) >= _pm:
+                break
     if len(picks) > _pm:
         picks = picks[:_pm]
-    # 情绪控量：偏冷时精选最多 1 只；正常最多 pickMaxN（≤2）
+    # 情绪控量：偏冷时仍尽量给 1～2 只（有均线结构才上）
     _emo_reg = str((emotion or {}).get("regime") or "")
     if _emo_reg == "risk_off":
-        picks = picks[:1]
+        picks = picks[: max(1, min(2, _pm))]
     else:
         picks = picks[:_pm]
 
@@ -8643,9 +8990,14 @@ async def run_scan(
     if market == "all":
         _l10 = [c for c in fine
                 if 2.0 <= _num(c.get("price")) < 10.0
-                and str((c.get("A") or {}).get("limitQuality") or "") != "one_word"]
+                and str((c.get("A") or {}).get("limitQuality") or "") != "one_word"
+                and (_pick_bond_break_ok(c) or _pick_timing_soft_ok(c) or _pick_ma_stack_ok(c))]
         _l10.sort(key=_sort_key)
-        low10_list = [_pick_out(c) for c in _l10[:8]]
+        # 优先粘合刚突破，再补结构达标，尽量 2 只
+        _l10_hard = [c for c in _l10 if _pick_bond_break_ok(c)]
+        _hard_codes = {str(c.get("code")) for c in _l10_hard}
+        _l10_use = _l10_hard + [c for c in _l10 if str(c.get("code")) not in _hard_codes]
+        low10_list = [_pick_out(c) for c in _l10_use[:8]]
         _tz = [
             c for c in analyzed
             if (c.get("A") or {}).get("patterns", {}).get("tightZt")
@@ -8679,8 +9031,8 @@ async def run_scan(
         "watch": watch_out,
         "runners": run_out,
         "macd_reds": macd_red_out,
-        "algo": "strong-layer-v2",
-        "pickLaneNote": "各栏目推荐最多 2 只：精选优先，观察仅在精选不足时补位",
+        "algo": "bond-break-v1",
+        "pickLaneNote": "精选优先短均站上中长均、粘合突破或回踩后再突破；各栏目标 2 只，分层够格凑满",
         "low10": low10_list,
         "tight": tight_list,
         "prev_date": prev_date_s,
@@ -8712,7 +9064,7 @@ async def run_scan(
             "mainline_gap": bool(picks) and market in ("all", "hs", "kc") and not any(c.get("mainHit") or c.get("obsHit") for c in picks),
             "board_rank": board_rank,
             "picks": pick_out, "watch": watch_out, "runners": run_out, "macd_reds": macd_red_out,
-            "low10": low10_list, "tight": tight_list, "algo": "strong-layer-v2",
+            "low10": low10_list, "tight": tight_list, "algo": "bond-break-v1",
         }
         _save_history(f"{market}:{str(today)}", hist_payload)
         _save_archive(market, str(today), hist_payload)

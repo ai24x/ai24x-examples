@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
   <meta name="robots" content="noindex,nofollow" />
-  <title>AIAI复盘 · VIP专属 · AI行情官｜灯塔版</title>
+  <title>AI复盘 · VIP专属 · AI行情官｜灯塔版</title>
   <meta name="description" content="AI行情官 VIP 专属功能：每日收盘后扫描沪深京 / 北证全市场，板块先行反推主线，再筛选底部刚走多、异动回踩企稳、未大幅拉升的标的。本工具仅基于公开行情做技术形态统计与信息整理，不构成投资建议，不保证收益。" />
   <link rel="icon" href="data:," />
   <script>
@@ -18,7 +18,7 @@
   </script>
   <link rel="stylesheet" href="/css/base.css?v=56" />
   <link rel="stylesheet" href="/css/tool.css" />
-  <link rel="stylesheet" href="/css/bjscreener.css?v=104" />
+  <link rel="stylesheet" href="/css/bjscreener.css?v=108" />
 <style>
 /* 复盘 · 大盘环境与策略区（大盘同步） */
 .bj-market{display:block;margin:0 0 12px;padding:0;background:transparent;border:none;border-radius:0}
@@ -128,8 +128,10 @@
         <div id="auth-user" hidden>
           <div class="bj-top">
             <span class="bj-status" id="bj-status">正在加载…</span>
-            <span style="display:flex;gap:8px;align-items:center;">
-              <button class="btn-blue" id="btn-bj-refresh" type="button">重新扫描</button>
+            <span class="bj-actions">
+              <button class="btn-blue" id="btn-bj-refresh" type="button">开始扫描</button>
+              <button class="btn btn-ghost" id="btn-bj-scan-full" type="button" title="强制重新扫描今日全市场结果">完整重扫</button>
+              <span class="bj-auto-hint" id="bj-auto-hint">收盘后约 15:15 自动更新</span>
               <span class="bj-refresh-note" id="bj-refresh-note" hidden></span>
             </span>
           </div>
@@ -180,12 +182,28 @@
       </section>
     </div>
   </main>
+  <div id="bj-confirm" class="bj-modal" hidden role="dialog" aria-modal="true" aria-labelledby="bj-confirm-title">
+    <div class="bj-modal-card">
+      <div class="bj-modal-head">
+        <h4 id="bj-confirm-title">请确认</h4>
+        <button type="button" class="bj-modal-close" id="bj-confirm-close" aria-label="关闭">×</button>
+      </div>
+      <div class="bj-modal-body">
+        <p id="bj-confirm-msg"></p>
+        <ul class="bj-modal-notes" id="bj-confirm-notes" hidden></ul>
+      </div>
+      <div class="bj-modal-foot">
+        <button type="button" class="btn btn-ghost" id="bj-confirm-cancel">取消</button>
+        <button type="button" class="btn-blue" id="bj-confirm-ok">确定</button>
+      </div>
+    </div>
+  </div>
   <footer class="site-footer" id="site-footer"></footer>
   <script src="/js/shell.js?v=62"></script>
   <script>
     try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("bjscreener"); } catch (e) {}
   </script>
-  <script src="/js/bjscreener.js?v=151"></script>
+  <script src="/js/bjscreener.js?v=161"></script>
   <script>
     (function () {
       var w = window.AI24X_BJScreener;

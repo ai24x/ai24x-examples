@@ -3291,12 +3291,13 @@ async def api_bj_screener(
 async def api_bj_screener_start(
     request: Request,
     market: str = "bj",
+    force: int = 0,
     user_id: int = Depends(get_current_user_id),
 ) -> dict:
-    """掘金异步重扫启动：立即返回，后台任务执行扫描（避免 nginx 60s 网关超时 504）。
+    """掘金异步扫描启动：立即返回，后台任务执行扫描（避免 nginx 60s 网关超时 504）。
 
-    用法：GET /api/bj/screener/start?market=bj → {ok, running} → 前端轮询 /api/bj/screener/progress
-    → running=false 后 GET /api/bj/screener?market=bj（命中缓存返回最新结果）。
+    force=0：优先读今日缓存，无缓存才扫；force=1：完整重扫（有全站冷却与用户限频）。
+    用法：GET /api/bj/screener/start?market=hs&force=1 → 轮询 progress → 拉 result。
     """
     market = str(market or "bj").strip().lower()
     if market not in ("bj", "all", "hs", "kc", "bj_all", "macd", "pb", "mlpb", "breakout", "leader", "low10", "tight"):
@@ -3314,15 +3315,31 @@ async def api_bj_screener_start(
     is_vip = plan not in ("", "free", "anon")
     if not is_vip:
         return {"ok": False, "error": "vip_required", "message": "掘金扫描为 VIP 专属，请先开通 VIP。"}
-    from .bj_screener import scan_progress, run_scan_dedup, mark_scan_failed, _RUNNING_SCAN
+    force_b = bool(int(force or 0))
+    from .bj_screener import (
+        scan_progress, run_scan_dedup, mark_scan_failed, _RUNNING_SCAN, check_force_rescan_allowed,
+    )
+    if force_b:
+        _rate_limit(f"bj-force:{user_id}", 1, window_s=600)
+        blocked = check_force_rescan_allowed(scan_market)
+        if blocked:
+            raise HTTPException(status_code=429, detail=str(blocked))
     _col = market if market in ("pb", "mlpb", "breakout", "leader", "macd", "low10", "tight") else ""
     p = scan_progress(scan_market)
     if p.get("running") or (_RUNNING_SCAN.get(scan_market) is not None and not _RUNNING_SCAN[scan_market].done()):
         return {"ok": True, "running": True, "msg": "扫描进行中，请稍候…"}
 
+    # 先标记 running，避免前端在后台任务尚未置位时误判「已完成」
+    from .bj_screener import _SCAN_PROGRESS
+    _SCAN_PROGRESS[scan_market] = {
+        "phase": "start", "pct": 1, "done": 0, "total": 0,
+        "msg": "完整重扫启动中…" if force_b else "扫描启动中…",
+        "running": True, "ts": time.time(),
+    }
+
     async def _bg_scan() -> None:
         try:
-            await run_scan_dedup(int(user_id), force=True, market=scan_market, column=_col)
+            await run_scan_dedup(int(user_id), force=force_b, market=scan_market, column=_col)
         except Exception as e:
             try:
                 mark_scan_failed(scan_market, f"扫描失败: {type(e).__name__}: {str(e)[:120]}")
@@ -3332,8 +3349,14 @@ async def api_bj_screener_start(
     try:
         asyncio.create_task(_bg_scan())
     except Exception as e:
-        return {"ok": False, "error": "start_failed", "message": f"扫描启动失败，请重试：{type(e).__name__}"}
-    return {"ok": True, "running": True, "msg": "扫描已启动"}
+        mark_scan_failed(scan_market, f"扫描启动失败: {type(e).__name__}")
+        return {"ok": False, "error": "start_failed", "message": f"{type(e).__name__}: {str(e)[:120]}"}
+    return {
+        "ok": True,
+        "running": True,
+        "force": force_b,
+        "msg": "完整重扫已启动，约 1～3 分钟…" if force_b else "扫描已启动，请稍候…",
+    }
 
 
 @app.get("/api/bj/screener/partial")
