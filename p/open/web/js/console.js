@@ -2852,22 +2852,68 @@
 
   /* ================= BYOK 智能网关（2026-08-18） ================= */
   function byokProviderTitle(pid) {
+    var key = "page.console.byok.prov." + String(pid || "");
+    try {
+      if (window.AI24X_I18N && typeof window.AI24X_I18N.t === "function") {
+        var loc = window.AI24X_I18N.t(key);
+        if (loc && loc !== key) return loc;
+      }
+    } catch (e) {}
     var map = {
-      openai: "OpenAI",
-      anthropic: "Anthropic",
+      openai: "OpenAI（GPT）",
+      anthropic: "Anthropic（Claude）",
       deepseek: "DeepSeek",
-      openrouter: "OpenRouter",
-      siliconflow: "SiliconFlow",
-      together: "Together",
-      moonshot: "Kimi",
-      zhipu: "Zhipu GLM",
-      qwen: "DashScope (Qwen)",
-      xai: "xAI Grok",
-      groq: "Groq",
+      openrouter: "OpenRouter（多模聚合）",
+      siliconflow: "SiliconFlow（多模聚合）",
+      together: "Together AI（多模聚合）",
+      moonshot: "Kimi（月之暗面）",
+      zhipu: "智谱 GLM",
+      qwen: "通义千问（百炼）",
+      xai: "xAI（Grok）",
+      groq: "Groq（推理加速）",
       mistral: "Mistral",
-      custom: tr("自定义", "Custom"),
+      custom: tr("自定义兼容端点", "Custom"),
     };
     return map[pid] || pid || "--";
+  }
+
+  function byokI18n(key, fallback) {
+    try {
+      if (window.AI24X_I18N && typeof window.AI24X_I18N.t === "function") {
+        var v = window.AI24X_I18N.t(key);
+        if (v && v !== key) return v;
+      }
+    } catch (e) {}
+    return fallback || key;
+  }
+
+  function byokSyncProviderHint() {
+    var sel = $("byok-provider");
+    var hint = $("byok-provider-hint");
+    if (!hint) return;
+    var pid = (sel && sel.value) || "deepseek";
+    var text = byokI18n(
+      "page.console.byok.keyHint." + pid,
+      byokI18n(
+        "page.console.byok.keyHintDefault",
+        tr(
+          "填写该名模官方 API Key，不是 AI24X 平台密钥。",
+          "Fill that vendor’s official API key (not an AI24X platform key)."
+        )
+      )
+    );
+    hint.textContent = text;
+  }
+
+  function byokApplyOptgroupI18n() {
+    var sel = $("byok-provider");
+    if (!sel) return;
+    Array.prototype.forEach.call(sel.querySelectorAll("optgroup[data-i18n-label]"), function (og) {
+      var k = og.getAttribute("data-i18n-label");
+      if (!k) return;
+      var lab = byokI18n(k, "");
+      if (lab) og.setAttribute("label", lab);
+    });
   }
 
   function fmtByokTime(iso) {
@@ -2881,6 +2927,8 @@
   }
 
   function loadByokAll() {
+    byokApplyOptgroupI18n();
+    byokSyncProviderHint();
     loadByokStatus().catch(function () {});
     loadByokKeys().catch(function () {});
     loadByokUsage().catch(function () {});
@@ -3002,7 +3050,7 @@
 
   function byokFormPayload() {
     return {
-      provider: ($("byok-provider") && $("byok-provider").value) || "openai",
+      provider: ($("byok-provider") && $("byok-provider").value) || "deepseek",
       name: ($("byok-name") && $("byok-name").value.trim()) || "",
       api_key: ($("byok-api-key") && $("byok-api-key").value.trim()) || "",
       models: (($("byok-models") && $("byok-models").value) || "")
@@ -3402,6 +3450,12 @@
       btnByokTest.addEventListener("click", function () {
         byokTestKey(null);
       });
+    }
+    var selByokProvider = $("byok-provider");
+    if (selByokProvider) {
+      selByokProvider.addEventListener("change", byokSyncProviderHint);
+      byokApplyOptgroupI18n();
+      byokSyncProviderHint();
     }
     var btnByokRefreshKeys = $("btn-byok-refresh-keys");
     if (btnByokRefreshKeys) {

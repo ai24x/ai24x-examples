@@ -46,27 +46,12 @@ class ByokEntitlementError(Exception):
 
 # ---------------------------------------------------------------------------
 # Provider 注册表（OpenAI 兼容直连；Anthropic 走 Messages 适配器）
-# ---------------------------------------------------------------------------
+# group: china=中国名模官方 | world=世界名模官方 | advanced=多模聚合/加速（可选）| other
 BYOK_PROVIDERS: dict[str, dict[str, Any]] = {
-    "openai": {
-        "title": "OpenAI",
-        "base": "https://api.openai.com/v1",
-        "openai_compatible": True,
-        "tiers": {"auto": "gpt-4o-mini", "flash": "gpt-4o-mini", "pro": "gpt-4o", "ultra": "gpt-4o"},
-    },
-    "anthropic": {
-        "title": "Anthropic (Messages API)",
-        "base": "https://api.anthropic.com",
-        "openai_compatible": False,
-        "tiers": {
-            "auto": "claude-haiku-4-5",
-            "flash": "claude-haiku-4-5",
-            "pro": "claude-sonnet-5-0",
-            "ultra": "claude-opus-5-0",
-        },
-    },
     "deepseek": {
         "title": "DeepSeek",
+        "group": "china",
+        "key_hint": "填写 DeepSeek 官方 API Key（platform.deepseek.com）",
         "base": "https://api.deepseek.com/v1",
         "openai_compatible": True,
         "tiers": {
@@ -76,14 +61,79 @@ BYOK_PROVIDERS: dict[str, dict[str, Any]] = {
             "ultra": "deepseek-reasoner",
         },
     },
+    "moonshot": {
+        "title": "Kimi（月之暗面）",
+        "group": "china",
+        "key_hint": "填写 Moonshot / Kimi 官方 API Key",
+        "base": "https://api.moonshot.cn/v1",
+        "openai_compatible": True,
+        "tiers": {"auto": "moonshot-v1-8k", "flash": "moonshot-v1-8k", "pro": "moonshot-v1-32k", "ultra": "moonshot-v1-128k"},
+    },
+    "zhipu": {
+        "title": "智谱 GLM",
+        "group": "china",
+        "key_hint": "填写智谱开放平台 API Key（bigmodel.cn）",
+        "base": "https://open.bigmodel.cn/api/paas/v4",
+        "openai_compatible": True,
+        "tiers": {"auto": "glm-4-flash", "flash": "glm-4-flash", "pro": "glm-4-plus", "ultra": "glm-4-plus"},
+    },
+    "qwen": {
+        "title": "通义千问（百炼）",
+        "group": "china",
+        "key_hint": "填写阿里云百炼 / DashScope API Key",
+        "base": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "openai_compatible": True,
+        "tiers": {"auto": "qwen-plus", "flash": "qwen-turbo", "pro": "qwen-plus", "ultra": "qwen-max"},
+    },
+    "openai": {
+        "title": "OpenAI（GPT）",
+        "group": "world",
+        "key_hint": "填写 OpenAI 官方 API Key（platform.openai.com）",
+        "base": "https://api.openai.com/v1",
+        "openai_compatible": True,
+        "tiers": {"auto": "gpt-4o-mini", "flash": "gpt-4o-mini", "pro": "gpt-4o", "ultra": "gpt-4o"},
+    },
+    "anthropic": {
+        "title": "Anthropic（Claude）",
+        "group": "world",
+        "key_hint": "填写 Anthropic 官方 API Key（Messages API）",
+        "base": "https://api.anthropic.com",
+        "openai_compatible": False,
+        "tiers": {
+            "auto": "claude-haiku-4-5",
+            "flash": "claude-haiku-4-5",
+            "pro": "claude-sonnet-5-0",
+            "ultra": "claude-opus-5-0",
+        },
+    },
+    "xai": {
+        "title": "xAI（Grok）",
+        "group": "world",
+        "key_hint": "填写 xAI 官方 API Key",
+        "base": "https://api.x.ai/v1",
+        "openai_compatible": True,
+        "tiers": {"auto": "grok-2-latest", "flash": "grok-2-latest", "pro": "grok-2-latest", "ultra": "grok-3"},
+    },
+    "mistral": {
+        "title": "Mistral",
+        "group": "world",
+        "key_hint": "填写 Mistral 官方 API Key",
+        "base": "https://api.mistral.ai/v1",
+        "openai_compatible": True,
+        "tiers": {"auto": "mistral-small-latest", "flash": "mistral-small-latest", "pro": "mistral-medium-latest", "ultra": "mistral-large-latest"},
+    },
     "openrouter": {
-        "title": "OpenRouter",
+        "title": "OpenRouter（多模聚合）",
+        "group": "advanced",
+        "key_hint": "高级：填写 OpenRouter 平台 Key（一把可调多家模型，非单一名模官方 Key）",
         "base": "https://openrouter.ai/api/v1",
         "openai_compatible": True,
         "tiers": {"auto": "openrouter/auto", "flash": "openrouter/auto", "pro": "openrouter/auto", "ultra": "openrouter/auto"},
     },
     "siliconflow": {
-        "title": "硅基流动 SiliconFlow",
+        "title": "SiliconFlow（多模聚合）",
+        "group": "advanced",
+        "key_hint": "高级：填写 SiliconFlow 平台 Key（聚合通道，非单一名模官方 Key）",
         "base": "https://api.siliconflow.com/v1",
         "openai_compatible": True,
         "tiers": {
@@ -94,49 +144,25 @@ BYOK_PROVIDERS: dict[str, dict[str, Any]] = {
         },
     },
     "together": {
-        "title": "Together AI",
+        "title": "Together AI（多模聚合）",
+        "group": "advanced",
+        "key_hint": "高级：填写 Together AI 平台 Key",
         "base": "https://api.together.xyz/v1",
         "openai_compatible": True,
         "tiers": {"auto": "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo", "flash": "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo", "pro": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo", "ultra": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"},
     },
-    "moonshot": {
-        "title": "Moonshot Kimi",
-        "base": "https://api.moonshot.cn/v1",
-        "openai_compatible": True,
-        "tiers": {"auto": "moonshot-v1-8k", "flash": "moonshot-v1-8k", "pro": "moonshot-v1-32k", "ultra": "moonshot-v1-128k"},
-    },
-    "zhipu": {
-        "title": "智谱 GLM",
-        "base": "https://open.bigmodel.cn/api/paas/v4",
-        "openai_compatible": True,
-        "tiers": {"auto": "glm-4-flash", "flash": "glm-4-flash", "pro": "glm-4-plus", "ultra": "glm-4-plus"},
-    },
-    "qwen": {
-        "title": "阿里云百炼 DashScope",
-        "base": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-        "openai_compatible": True,
-        "tiers": {"auto": "qwen-plus", "flash": "qwen-turbo", "pro": "qwen-plus", "ultra": "qwen-max"},
-    },
-    "xai": {
-        "title": "xAI Grok",
-        "base": "https://api.x.ai/v1",
-        "openai_compatible": True,
-        "tiers": {"auto": "grok-2-latest", "flash": "grok-2-latest", "pro": "grok-2-latest", "ultra": "grok-3"},
-    },
     "groq": {
-        "title": "Groq",
+        "title": "Groq（推理加速）",
+        "group": "advanced",
+        "key_hint": "高级：填写 Groq 平台 Key（加速推理，非单一名模官方）",
         "base": "https://api.groq.com/openai/v1",
         "openai_compatible": True,
         "tiers": {"auto": "llama-3.3-70b-versatile", "flash": "llama-3.1-8b-instant", "pro": "llama-3.3-70b-versatile", "ultra": "llama-3.3-70b-versatile"},
     },
-    "mistral": {
-        "title": "Mistral",
-        "base": "https://api.mistral.ai/v1",
-        "openai_compatible": True,
-        "tiers": {"auto": "mistral-small-latest", "flash": "mistral-small-latest", "pro": "mistral-medium-latest", "ultra": "mistral-large-latest"},
-    },
     "custom": {
         "title": "自定义 OpenAI 兼容端点",
+        "group": "other",
+        "key_hint": "填写兼容端点的 API Key，并填写下方 Base URL",
         "base": "",
         "openai_compatible": True,
         "tiers": {},
@@ -1932,17 +1958,26 @@ def usage_daily(db, *, auth_user_id: int, days: int = 7) -> dict[str, Any]:
 
 def models_catalog() -> dict[str, Any]:
     """控制台「可服务模型」清单：provider + 平台目录推荐。"""
+    group_order = ("china", "world", "advanced", "other")
     providers = []
     for pid, p in BYOK_PROVIDERS.items():
         providers.append(
             {
                 "id": pid,
                 "title": p.get("title", pid),
+                "group": p.get("group") or "other",
+                "key_hint": p.get("key_hint") or "",
                 "base": p.get("base", ""),
                 "openai_compatible": bool(p.get("openai_compatible")),
                 "tiers": p.get("tiers") or {},
             }
         )
+    providers.sort(
+        key=lambda x: (
+            group_order.index(x["group"]) if x["group"] in group_order else 99,
+            str(x.get("title") or x.get("id") or ""),
+        )
+    )
     catalog_rows = []
     try:
         from model_warehouse import catalog_merged
@@ -1960,4 +1995,13 @@ def models_catalog() -> dict[str, Any]:
             )
     except Exception:
         pass
-    return {"providers": providers, "catalog": catalog_rows}
+    return {
+        "providers": providers,
+        "groups": [
+            {"id": "china", "title": "中国名模"},
+            {"id": "world", "title": "世界名模"},
+            {"id": "advanced", "title": "高级 · 多模聚合（可选）"},
+            {"id": "other", "title": "其它"},
+        ],
+        "catalog": catalog_rows,
+    }
