@@ -80,6 +80,8 @@ _ALERT_LABELS = {
     "price_monitor_fail": "价格监控采集异常",
     "price_alarm": "价格红线（倒挂）",
     "price_warn": "价格预警（低毛利）",
+    "hero_pending": "主通道待确认（持续建议）",
+    "hero_gm_risk": "一键切通道后毛利变差",
     "pay_pending_backlog": "待履约订单积压",
     "pay_pending": "待履约订单",
     "llm_l1_no_key": "L1 主档未配置密钥",
@@ -98,6 +100,8 @@ def _alert_label(code: str) -> str:
     for prefix, label in (
         ("price_warn_", "价格预警（低毛利）"),
         ("price_alarm_", "价格红线（倒挂）"),
+        ("hero_pending_", "主通道待确认（持续建议）"),
+        ("hero_gm_risk_", "一键切通道后毛利变差"),
         ("upstream_fail_", "上游通道故障"),
         ("upstream_circuit_", "上游熔断触发"),
         ("upstream_balance_", "上游通道余额预警"),
@@ -465,6 +469,18 @@ def collect_alerts(db) -> dict[str, Any]:
                     f"价格预警: {r.get('title')} 混合毛利={r.get('gm_blend')}% "
                     f"({'; '.join(r.get('flags') or [])})",
                 )
+        # 主通道：持续建议待确认 + 一键后毛利变差（只告警，不自动切）
+        try:
+            from price_monitor import list_hero_ops_alerts
+
+            for ha in list_hero_ops_alerts() or []:
+                add(
+                    str(ha.get("level") or "warn"),
+                    str(ha.get("code") or "hero_pending"),
+                    str(ha.get("message") or "主通道建议待确认"),
+                )
+        except Exception as e_hero:
+            add("warn", "hero_ops_alert_fail", f"主通道待办采集异常: {e_hero}")
     except Exception as e:
         add("warn", "price_monitor_fail", f"价格监控采集异常: {e}")
 

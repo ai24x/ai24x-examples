@@ -1320,7 +1320,10 @@
               <div class="section-label">主打建议 · 最省钱 × 最稳 × 毛利（对内）</div>
               <p class="muted small" id="pmHeroNote" style="margin:0 0 8px;">对外仍主推 flash / pro / auto；一键应用会写回通道/上游并立即生效（通道名仅作战台可见）。</p>
               <div id="pmHeroCircuits" class="muted small" style="margin:0 0 8px;"></div>
+              <div id="pmHeroPending" class="muted small" style="margin:0 0 8px;"></div>
+              <div id="pmHeroRisks" class="muted small" style="margin:0 0 8px;"></div>
               <div class="glance-grid" id="pmHeroTiers" style="margin-bottom:10px;"></div>
+              <div class="muted small" id="pmHeroRecent" style="margin:0 0 10px;"></div>
               <div class="section-label">VIP 关注（告警优先，最多 6）</div>
               <div style="overflow-x:auto;margin-bottom:12px;">
                 <table id="pmHeroVip">
@@ -4852,6 +4855,8 @@
     "price_monitor_fail": "价格监控采集异常",
     "price_alarm": "价格红线（倒挂）",
     "price_warn": "价格预警（低毛利）",
+    "hero_pending": "主通道待确认（持续建议）",
+    "hero_gm_risk": "一键切通道后毛利变差",
     "pay_pending_backlog": "待履约订单积压",
     "pay_pending": "待履约订单",
     "llm_l1_no_key": "L1 主档未配置密钥",
@@ -4867,6 +4872,8 @@
     var c = String(code || "");
     if (c.indexOf("price_warn_") === 0) return "价格预警（低毛利）";
     if (c.indexOf("price_alarm_") === 0) return "价格红线（倒挂）";
+    if (c.indexOf("hero_pending_") === 0) return "主通道待确认（持续建议）";
+    if (c.indexOf("hero_gm_risk_") === 0) return "一键切通道后毛利变差";
     if (c.indexOf("upstream_fail_") === 0) return "上游通道故障";
     if (c.indexOf("upstream_circuit_") === 0) return "上游熔断触发";
     return ALERT_LABELS[c] || c;
@@ -5048,6 +5055,39 @@
         $("pmHeroCircuits").innerHTML = '<span style="color:var(--ok);">上游熔断：无</span>';
       }
     }
+    if ($("pmHeroPending")) {
+      var pend = hero.pending_alerts || [];
+      if (pend.length) {
+        $("pmHeroPending").innerHTML = '<span style="color:var(--warn);">持续待确认（满 ' +
+          esc(String(hero.pending_hours || 2)) + "h，不自动切）：</span> " +
+          pend.map(function (p) {
+            return esc(p.title || p.id) + "→" + esc(p.prefer_label || p.prefer) +
+              "（" + esc(String(p.hours)) + "h）";
+          }).join("；");
+      } else {
+        $("pmHeroPending").innerHTML = '<span class="muted">持续待办：无（建议需连续满阈值小时才进巡检）</span>';
+      }
+    }
+    if ($("pmHeroRisks")) {
+      var risks = hero.gm_risks || [];
+      if (risks.length) {
+        $("pmHeroRisks").innerHTML = '<span class="bad">切后毛利风险：</span> ' +
+          risks.map(function (x) { return esc(x.message || JSON.stringify(x)); }).join("；");
+      } else {
+        $("pmHeroRisks").innerHTML = "";
+      }
+    }
+    if ($("pmHeroRecent")) {
+      var recent = hero.recent_applies || [];
+      if (recent.length) {
+        $("pmHeroRecent").innerHTML = "最近一键：" + recent.map(function (a) {
+          return esc(a.model_id || "") + "→" + esc(a.prefer || "") +
+            (a.risk_warning ? "⚠" : "");
+        }).join(" · ");
+      } else {
+        $("pmHeroRecent").textContent = "";
+      }
+    }
     var tierBox = $("pmHeroTiers");
     if (tierBox) {
       var tiers = hero.tiers || [];
@@ -5072,6 +5112,7 @@
           var btn = ap.applyable
             ? ('<button type="button" class="ok btn-hero-apply" style="margin-top:10px;" data-id="' +
               esc(t.id || "") + '" data-prefer="' + esc(ap.prefer || "") +
+              '" data-reason="' + esc(ap.reason || "") +
               '" title="' + esc(ap.reason || "") + '">一键切 ' + esc(ap.prefer_label || ap.prefer || "") + "</button>")
             : ('<button type="button" disabled style="margin-top:10px;" title="' +
               esc(ap.reason || "不可一键") + '">不可一键</button>');
@@ -5101,7 +5142,8 @@
           var stab = t.most_stable ? esc(t.most_stable.label) : "—";
           var btn = ap.applyable
             ? ('<button type="button" class="ok btn-hero-apply" data-id="' + esc(t.id || "") +
-              '" data-prefer="' + esc(ap.prefer || "") + '" title="' + esc(ap.reason || "") +
+              '" data-prefer="' + esc(ap.prefer || "") + '" data-reason="' + esc(ap.reason || "") +
+              '" title="' + esc(ap.reason || "") +
               '">切 ' + esc(ap.prefer_label || ap.prefer || "") + "</button>")
             : ('<span class="muted small" title="' + esc(ap.reason || "") + '">—</span>');
           return "<tr><td>" + esc(t.title || t.id || "") + "</td>" +
@@ -5115,16 +5157,23 @@
     }
     document.querySelectorAll(".btn-hero-apply").forEach(function (btn) {
       btn.onclick = function () {
-        applyHeroChannel(btn.getAttribute("data-id"), btn.getAttribute("data-prefer"));
+        applyHeroChannel(
+          btn.getAttribute("data-id"),
+          btn.getAttribute("data-prefer"),
+          btn.getAttribute("data-reason")
+        );
       };
     });
   }
-  async function applyHeroChannel(modelId, prefer) {
+  async function applyHeroChannel(modelId, prefer, reason) {
     if (!modelId || !prefer) {
       setMsg("缺少目标通道", "err");
       return;
     }
-    if (!window.confirm("确认将「" + modelId + "」主通道切至 " + prefer + "？\n立即写回配置并生效。")) {
+    var tip = "确认将「" + modelId + "」主通道切至 " + prefer + "？\n立即写回配置并生效。";
+    if (reason) tip += "\n\n" + reason;
+    tip += "\n\n切后若毛利变差会标风险并进入巡检告警。";
+    if (!window.confirm(tip)) {
       return;
     }
     try {
@@ -5134,7 +5183,11 @@
         body: { model_id: modelId, prefer: prefer, update_cost: true },
       });
       renderSupply(out);
-      setMsg(out.message || ("已切至 " + prefer), "ok");
+      if (out.risk_warning) {
+        setMsg(out.risk_warning, "err");
+      } else {
+        setMsg(out.message || ("已切至 " + prefer), "ok");
+      }
     } catch (e) {
       setMsg(String(e.message || e), "err");
     }

@@ -34,6 +34,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import model_warehouse as mw
 
 _DATA_PATH = Path(__file__).resolve().parent / "data" / "provider_prices.json"
+_HERO_STATE_PATH = Path(__file__).resolve().parent / "data" / "hero_channel_state.json"
+_HERO_AUDIT_PATH = Path(__file__).resolve().parent / "data" / "hero_apply_audit.jsonl"
 
 # TokenLab /models 接口不带价；此为 2026-08-06 实拉验证的 TL 价表（$/1M），
 # 作为 tokenlab_detail 兜底，确保 refresh 后 TL 比价不丢（后续实拉可覆盖）。
@@ -501,34 +503,289 @@ _AGG_PROVIDERS = ("openrouter", "tokenlab", "requesty", "quickrouter")
 _PREF_PRICE_KEY = {"openrouter": "or", "tokenlab": "tl", "requesty": "rq"}
 
 
+def _hero_pending_hours() -> float:
+    """持续「更省/更稳」满该小时才进巡检待办（默认 2h，env HERO_PENDING_HOURS）。"""
+    return max(0.25, float(_cfg("HERO_PENDING_HOURS", 2.0)))
+
+
+def _hero_gm_risk_drop() -> float:
+    """一键后 GM1:4 下降超过该百分点 → 风险提示（默认 5）。"""
+    return max(0.5, float(_cfg("HERO_GM_RISK_DROP", 5.0)))
+
+
+def _load_hero_state() -> dict[str, Any]:
+    try:
+        if _HERO_STATE_PATH.is_file():
+            raw = json.loads(_HERO_STATE_PATH.read_text(encoding="utf-8"))
+            return raw if isinstance(raw, dict) else {}
+    except Exception:
+        pass
+    return {}
+
+
+def _save_hero_state(data: dict[str, Any]) -> None:
+    try:
+        _HERO_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _HERO_STATE_PATH.write_text(
+            json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+    except Exception:
+        pass
+
+
+def _append_hero_audit(entry: dict[str, Any]) -> None:
+    try:
+        _HERO_AUDIT_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with _HERO_AUDIT_PATH.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+    try:
+        mw.append_pricing_audit(entry)
+    except Exception:
+        pass
+
+
+def _recent_hero_audits(limit: int = 8) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    try:
+        if not _HERO_AUDIT_PATH.is_file():
+            return []
+        lines = _HERO_AUDIT_PATH.read_text(encoding="utf-8").splitlines()
+        for line in reversed(lines):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+            except Exception:
+                continue
+            if isinstance(row, dict):
+                out.append(row)
+            if len(out) >= max(1, limit):
+                break
+    except Exception:
+        return []
+    return out
+
+
+def _clear_hero_pending(model_id: str) -> None:
+    st = _load_hero_state()
+    models = st.get("models") if isinstance(st.get("models"), dict) else {}
+    cid = str(model_id or "").strip()
+    if cid in models:
+        models.pop(cid, None)
+        st["models"] = models
+        _save_hero_state(st)
+
+
+def _set_gm_risk(model_id: str, payload: dict[str, Any]) -> None:
+    st = _load_hero_state()
+    risks = dict(st.get("gm_risks") or {}) if isinstance(st.get("gm_risks"), dict) else {}
+    risks[str(model_id)] = payload
+    st["gm_risks"] = risks
+    _save_hero_state(st)
+
+
+def _clear_gm_risk(model_id: str) -> None:
+    st = _load_hero_state()
+    risks = dict(st.get("gm_risks") or {}) if isinstance(st.get("gm_risks"), dict) else {}
+    if str(model_id) in risks:
+        risks.pop(str(model_id), None)
+        st["gm_risks"] = risks
+        _save_hero_state(st)
+
+
+def tick_hero_pending(packs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """跟踪持续建议；满 HERO_PENDING_HOURS 才进待办（只告警，不自动切）。"""
+    st = _load_hero_state()
+    models: dict[str, Any] = dict(st.get("models") or {}) if isinstance(st.get("models"), dict) else {}
+    now = time.time()
+    hours = _hero_pending_hours()
+    seen: set[str] = set()
+    pending: list[dict[str, Any]] = []
+
+    for p in packs:
+        ap = p.get("apply") or {}
+        sug = p.get("suggest") or {}
+        cid = str(p.get("id") or "").strip()
+        if not cid or not ap.get("applyable"):
+            continue
+        action = str(sug.get("action") or "keep")
+        if action not in ("switch_cheaper", "prefer_stable", "hero", "avoid_unstable"):
+            continue
+        prefer = str(ap.get("prefer") or "").strip().lower()
+        if prefer not in _AGG_PROVIDERS:
+            continue
+        ch0 = ""
+        chs = p.get("channels") or []
+        if isinstance(chs, list) and chs:
+            ch0 = str(chs[0] or "").strip().lower()
+        # 已在目标主通道 → 清待办
+        if ch0 == prefer:
+            models.pop(cid, None)
+            continue
+        seen.add(cid)
+        sig = f"{prefer}|{action}"
+        row = models.get(cid) if isinstance(models.get(cid), dict) else None
+        if not row or str(row.get("sig") or "") != sig:
+            row = {
+                "sig": sig,
+                "prefer": prefer,
+                "action": action,
+                "first_ts": now,
+                "last_ts": now,
+                "title": p.get("title") or cid,
+                "tier": p.get("tier") or "",
+            }
+        else:
+            row["last_ts"] = now
+            row["title"] = p.get("title") or row.get("title") or cid
+        models[cid] = row
+        dur_h = (now - float(row.get("first_ts") or now)) / 3600.0
+        if dur_h + 1e-9 >= hours:
+            pending.append(
+                {
+                    "id": cid,
+                    "title": row.get("title") or cid,
+                    "tier": row.get("tier") or "",
+                    "prefer": prefer,
+                    "prefer_label": _PROVIDER_LABEL.get(prefer, prefer),
+                    "action": action,
+                    "hours": round(dur_h, 2),
+                    "threshold_hours": hours,
+                    "message": (
+                        f"{row.get('title') or cid} 持续 {round(dur_h, 1)}h 建议切至 "
+                        f"{_PROVIDER_LABEL.get(prefer, prefer)}（不自动切换，请人工一键确认）"
+                    ),
+                }
+            )
+
+    # 本轮未见的条目：超过 7 天丢弃，否则保留（价目未刷时不误清）
+    for cid in list(models.keys()):
+        if cid in seen:
+            continue
+        row = models.get(cid) or {}
+        if now - float(row.get("last_ts") or 0) > 7 * 86400:
+            models.pop(cid, None)
+
+    st["models"] = models
+    _save_hero_state(st)
+    pending.sort(key=lambda x: -float(x.get("hours") or 0))
+    return pending
+
+
+def list_hero_ops_alerts() -> list[dict[str, Any]]:
+    """供 ops_alert 巡检：持续待办 + 一键后毛利变差。"""
+    st = _load_hero_state()
+    now = time.time()
+    hours = _hero_pending_hours()
+    out: list[dict[str, Any]] = []
+    models = st.get("models") if isinstance(st.get("models"), dict) else {}
+    for cid, row in models.items():
+        if not isinstance(row, dict):
+            continue
+        first = float(row.get("first_ts") or 0)
+        if first <= 0:
+            continue
+        dur_h = (now - first) / 3600.0
+        if dur_h + 1e-9 < hours:
+            continue
+        prefer = str(row.get("prefer") or "")
+        rid = "".join(c if c.isalnum() else "_" for c in str(cid))[:40]
+        out.append(
+            {
+                "level": "warn",
+                "code": f"hero_pending_{rid}",
+                "message": (
+                    f"主通道待确认: {row.get('title') or cid} 已持续 {round(dur_h, 1)}h 建议切至 "
+                    f"{_PROVIDER_LABEL.get(prefer, prefer)}（请管理台一键，勿静默自动切）"
+                ),
+            }
+        )
+    risks = st.get("gm_risks") if isinstance(st.get("gm_risks"), dict) else {}
+    for cid, row in risks.items():
+        if not isinstance(row, dict):
+            continue
+        if now - float(row.get("ts") or 0) > 86400:
+            continue
+        rid = "".join(c if c.isalnum() else "_" for c in str(cid))[:40]
+        lvl = "error" if str(row.get("level") or "") == "alarm" else "warn"
+        out.append(
+            {
+                "level": lvl,
+                "code": f"hero_gm_risk_{rid}",
+                "message": str(row.get("message") or f"一键切通道后毛利变差: {cid}"),
+            }
+        )
+    return out
+
+
+def _prefer_not_circuit(
+    cheap: Optional[dict[str, Any]],
+    stable: Optional[dict[str, Any]],
+    health: Optional[dict[str, Any]],
+) -> Optional[str]:
+    """避开熔断：优先未开路的最省，其次未开路的最稳。"""
+    health = health or {}
+    for cand in (cheap, stable):
+        if not cand or not cand.get("provider"):
+            continue
+        pid = str(cand["provider"])
+        if (_provider_health(health, pid) or {}).get("circuit_open"):
+            continue
+        if pid in _AGG_PROVIDERS:
+            return pid
+    return None
+
+
 def _apply_plan(
     row: dict[str, Any],
     cheap: Optional[dict[str, Any]],
     stable: Optional[dict[str, Any]],
     sug: dict[str, Any],
+    health: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """给出一键按钮是否可点、目标通道与写回种类。"""
+    health = health or {}
     action = str(sug.get("action") or "keep")
     prefer: Optional[str] = None
-    if action in ("switch_cheaper", "hero") and cheap and cheap.get("provider"):
+    if action == "avoid_unstable":
+        prefer = _prefer_not_circuit(cheap, stable, health)
+    elif action in ("switch_cheaper", "hero") and cheap and cheap.get("provider"):
         prefer = str(cheap["provider"])
-    elif action in ("prefer_stable", "avoid_unstable") and stable and stable.get("provider"):
+    elif action == "prefer_stable" and stable and stable.get("provider"):
         prefer = str(stable["provider"])
     elif cheap and cheap.get("provider"):
-        # keep / fix_margin：仍可手动确认最省通道（fix_margin 默认不推荐点）
+        # keep：仍可手动确认最省；fix_margin 不推荐一键
         if action != "fix_margin":
             prefer = str(cheap["provider"])
+
     role = str(row.get("role") or "")
     kind: Optional[str] = None
     reason = ""
     if prefer in _AGG_PROVIDERS:
-        if role == "vip_pick":
+        ph = _provider_health(health, prefer)
+        if ph.get("circuit_open"):
+            reason = f"{_PROVIDER_LABEL.get(prefer, prefer)} 熔断中，禁止一键切至该通道"
+            prefer = None
+        elif role == "vip_pick":
             kind = "vip_channels"
             reason = f"将 VIP 聚合链首切至 {_PROVIDER_LABEL.get(prefer, prefer)}，其余保留为兜底"
         elif role in ("default_flash", "default_pro", "default_ultra"):
             if prefer == "openrouter":
-                kind = "upstream_mode"
-                reason = "将档位上游模式切为 OpenRouter（立即生效）"
+                already_or = False
+                try:
+                    from model_router import _upstream_mode
+
+                    already_or = _upstream_mode() == "openrouter"
+                except Exception:
+                    already_or = False
+                if already_or:
+                    reason = "档位已是 OpenRouter 上游模式，无需再切"
+                else:
+                    kind = "upstream_mode"
+                    reason = "将档位上游模式切为 OpenRouter（立即生效）"
             else:
                 reason = "档位主通道仅支持切 OpenRouter；TokenLab/Requesty 请对 VIP 点名使用一键"
         else:
@@ -536,7 +793,7 @@ def _apply_plan(
     elif prefer:
         reason = f"目标通道 {_PROVIDER_LABEL.get(prefer, prefer)} 暂不支持一键写回"
     else:
-        reason = "无明确目标通道"
+        reason = reason or "无明确目标通道"
     return {
         "applyable": kind is not None,
         "apply_kind": kind,
@@ -560,6 +817,26 @@ def apply_hero_pick(
         raise ValueError("缺少模型 id")
     if prefer_n not in _AGG_PROVIDERS:
         raise ValueError("目标通道无效，仅支持 openrouter / tokenlab / requesty / quickrouter")
+
+    before_snap = snapshot()
+    before_row = next(
+        (r for r in (before_snap.get("rows") or []) if str(r.get("id")) == cid),
+        None,
+    )
+    gm_before = (before_row or {}).get("gm_1to4")
+    level_before = (before_row or {}).get("level")
+
+    # 熔断护栏
+    try:
+        from upstream_health import snapshot as _uh_snapshot
+
+        uh = _uh_snapshot() or {}
+    except Exception:
+        uh = {}
+    if (_provider_health(uh, prefer_n) or {}).get("circuit_open"):
+        raise ValueError(
+            f"{_PROVIDER_LABEL.get(prefer_n, prefer_n)} 当前熔断中，禁止一键切换，请待冷却后再试。"
+        )
 
     cat = next((c for c in mw.catalog_merged() if str(c.get("id") or "") == cid), None)
     if not cat:
@@ -585,11 +862,7 @@ def apply_hero_pick(
         if update_cost:
             pk = _PREF_PRICE_KEY.get(prefer_n)
             try:
-                snap_row = next(
-                    (r for r in snapshot().get("rows") or [] if str(r.get("id")) == cid),
-                    None,
-                )
-                pair = (snap_row or {}).get(pk) if pk else None
+                pair = (before_row or {}).get(pk) if pk else None
                 if pair and len(pair) >= 2:
                     patch["cost_in"] = float(pair[0] or 0)
                     patch["cost_out"] = float(pair[1] or 0)
@@ -601,7 +874,6 @@ def apply_hero_pick(
             if cost_synced:
                 cost_note = f"；账本成本已同步为 {_PROVIDER_LABEL.get(prefer_n, prefer_n)} 价目"
         except ValueError as e:
-            # 成本护栏拒绝时：去掉成本只写 channels
             if update_cost and ("cost_in" in patch or "cost_out" in patch):
                 patch.pop("cost_in", None)
                 patch.pop("cost_out", None)
@@ -630,7 +902,63 @@ def apply_hero_pick(
     else:
         raise ValueError("该模型不支持一键切通道")
 
+    _clear_hero_pending(cid)
     out = snapshot()
+    after_row = next((r for r in (out.get("rows") or []) if str(r.get("id")) == cid), None)
+    gm_after = (after_row or {}).get("gm_1to4")
+    level_after = (after_row or {}).get("level")
+
+    risk_warning = ""
+    risk_level = ""
+    try:
+        drop = _hero_gm_risk_drop()
+        worse_level = str(level_after or "") in ("alarm", "warn") and str(level_before or "") == "ok"
+        gm_drop = (
+            gm_before is not None
+            and gm_after is not None
+            and float(gm_after) + drop < float(gm_before)
+        )
+        if worse_level or gm_drop:
+            risk_level = "alarm" if str(level_after) == "alarm" else "warn"
+            risk_warning = (
+                f"切后毛利需复查：GM1:4 {gm_before}% → {gm_after}%"
+                f"（级别 {level_before} → {level_after}）。通道已生效，请核对倍率/售价。"
+            )
+            _set_gm_risk(
+                cid,
+                {
+                    "ts": time.time(),
+                    "level": risk_level,
+                    "gm_before": gm_before,
+                    "gm_after": gm_after,
+                    "prefer": prefer_n,
+                    "message": f"一键切通道后毛利变差: {cid} — {risk_warning}",
+                },
+            )
+        else:
+            _clear_gm_risk(cid)
+    except Exception:
+        pass
+
+    audit = {
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "kind": "hero_apply",
+        "actor": str(actor or "admin")[:64],
+        "model_id": cid,
+        "prefer": prefer_n,
+        "role": role,
+        "applied": applied,
+        "gm_1to4_before": gm_before,
+        "gm_1to4_after": gm_after,
+        "level_before": level_before,
+        "level_after": level_after,
+        "risk_warning": risk_warning or None,
+    }
+    _append_hero_audit(audit)
+
+    if risk_warning:
+        msg = msg + " ⚠ " + risk_warning
+
     return {
         "ok": True,
         "message": msg,
@@ -638,6 +966,10 @@ def apply_hero_pick(
         "prefer": prefer_n,
         "prefer_label": _PROVIDER_LABEL.get(prefer_n, prefer_n),
         "applied": applied,
+        "gm_before": gm_before,
+        "gm_after": gm_after,
+        "risk_warning": risk_warning or None,
+        "risk_level": risk_level or None,
         "hero_picks": out.get("hero_picks"),
         "summary": out.get("summary"),
         "generated_cst": out.get("generated_cst"),
@@ -676,7 +1008,6 @@ def build_hero_picks(rows: list[dict[str, Any]], health: Optional[dict[str, Any]
         except Exception:
             pass
         if role in _TIER_ROLE:
-            # 同档取 priority 最高（catalog 已按角色筛过，通常一条）
             prev = by_role.get(role)
             if prev is None or int(r.get("priority") or 0) >= int(prev.get("priority") or 0):
                 by_role[role] = r
@@ -687,7 +1018,7 @@ def build_hero_picks(rows: list[dict[str, Any]], health: Optional[dict[str, Any]
         cheap = _cheapest_supplier(r)
         stable = _most_stable(r, health)
         sug = _suggest_action(r, cheap, stable)
-        plan = _apply_plan(r, cheap, stable, sug)
+        plan = _apply_plan(r, cheap, stable, sug, health)
         return {
             "tier": tier,
             "id": r.get("id"),
@@ -712,7 +1043,6 @@ def build_hero_picks(rows: list[dict[str, Any]], health: Optional[dict[str, Any]
         if role in by_role:
             tiers.append(_pack(tier, by_role[role]))
 
-    # VIP：优先告警/预警，其次有降本机会，最多 6 条
     vip_rows.sort(
         key=lambda x: (
             {"alarm": 0, "warn": 1, "info": 2, "ok": 3}.get(str(x.get("level")), 9),
@@ -722,15 +1052,26 @@ def build_hero_picks(rows: list[dict[str, Any]], health: Optional[dict[str, Any]
     )
     vip_watch = [_pack("vip", r) for r in vip_rows[:6]]
 
+    pending = tick_hero_pending(tiers + vip_watch)
     open_circuits = [
         {"provider": pid, "label": _PROVIDER_LABEL.get(pid, pid), **(info or {})}
         for pid, info in (health.get("circuit") or {}).items()
         if (info or {}).get("open")
     ]
+    st_now = _load_hero_state()
+    gm_risks_map = st_now.get("gm_risks") if isinstance(st_now.get("gm_risks"), dict) else {}
+    gm_risk_list = [v for v in gm_risks_map.values() if isinstance(v, dict)][:8]
     return {
-        "note": "对内作战台：对外仍主推 flash/pro/auto；一键应用会写回仓库通道或上游模式并立即生效。",
+        "note": (
+            "对内作战台：对外仍主推 flash/pro/auto；一键写回后立即生效。"
+            f"持续更省/更稳满 {_hero_pending_hours():g}h 仅告警不自动切；切后毛利变差会标风险并进巡检。"
+        ),
         "tiers": tiers,
         "vip_watch": vip_watch,
+        "pending_alerts": pending,
+        "pending_hours": _hero_pending_hours(),
+        "recent_applies": _recent_hero_audits(6),
+        "gm_risks": gm_risk_list,
         "health": {
             "open_circuits": open_circuits,
             "circuit_enabled": bool(health.get("circuit_enabled")),

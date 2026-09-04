@@ -809,6 +809,11 @@ def _append_pricing_audit(entry: dict[str, Any]) -> None:
         pass
 
 
+def append_pricing_audit(entry: dict[str, Any]) -> None:
+    """公开审计写入（管理台一键切通道等）。"""
+    _append_pricing_audit(entry)
+
+
 def merge_catalog_row(c: dict[str, Any]) -> dict[str, Any]:
     """CATALOG 行 + override（vip_rates / 成本与倍率）。"""
     row = deepcopy(c)
