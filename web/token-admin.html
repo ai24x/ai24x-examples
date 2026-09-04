@@ -1317,6 +1317,21 @@
                 <div class="field"><span class="lbl">风险提示</span><div id="pmWarn" style="font-size:13px;">—</div></div>
                 <div class="field"><span class="lbl">降本机会</span><div id="pmInfo" style="font-size:13px;">—</div></div>
               </div>
+              <div class="section-label">主打建议 · 最省钱 × 最稳 × 毛利（对内）</div>
+              <p class="muted small" id="pmHeroNote" style="margin:0 0 8px;">对外仍主推 flash / pro / auto；此处通道名仅作战台可见。</p>
+              <div id="pmHeroCircuits" class="muted small" style="margin:0 0 8px;"></div>
+              <div class="glance-grid" id="pmHeroTiers" style="margin-bottom:10px;"></div>
+              <div class="section-label">VIP 关注（告警优先，最多 6）</div>
+              <div style="overflow-x:auto;margin-bottom:12px;">
+                <table id="pmHeroVip">
+                  <thead>
+                    <tr>
+                      <th>点名</th><th>动作</th><th>建议</th><th>最省</th><th>最稳</th><th>GM1:4</th>
+                    </tr>
+                  </thead>
+                  <tbody><tr><td colspan="6" class="muted">加载中…</td></tr></tbody>
+                </table>
+              </div>
               <div class="section-label">逐模型监控</div>
               <div style="overflow-x:auto;">
                 <table id="pmTable">
@@ -5018,6 +5033,72 @@
     var c = v < 0 ? "var(--bad)" : (v < 20 ? "var(--warn)" : "var(--ok)");
     return '<span style="color:' + c + ';">' + v + "%</span>";
   }
+  function renderHeroPicks(r) {
+    var hero = r.hero_picks || {};
+    if ($("pmHeroNote")) {
+      $("pmHeroNote").textContent = hero.note || "对外仍主推 flash / pro / auto；此处通道名仅作战台可见。";
+    }
+    var health = hero.health || {};
+    var circuits = health.open_circuits || [];
+    if ($("pmHeroCircuits")) {
+      if (circuits.length) {
+        $("pmHeroCircuits").innerHTML = '<span class="bad">熔断中：' +
+          esc(circuits.map(function (c) { return c.label || c.provider; }).join("、")) + "</span>";
+      } else {
+        $("pmHeroCircuits").innerHTML = '<span style="color:var(--ok);">上游熔断：无</span>';
+      }
+    }
+    var tierBox = $("pmHeroTiers");
+    if (tierBox) {
+      var tiers = hero.tiers || [];
+      if (!tiers.length) {
+        tierBox.innerHTML = '<div class="muted">暂无档位建议</div>';
+      } else {
+        tierBox.innerHTML = tiers.map(function (t) {
+          var sug = t.suggest || {};
+          var act = sug.action || "keep";
+          var actColor = act === "fix_margin" || act === "avoid_unstable" ? "var(--bad)"
+            : (act === "switch_cheaper" || act === "prefer_stable" ? "var(--warn)" : "var(--ok)");
+          var cheap = t.cheapest
+            ? (esc(t.cheapest.label) + " $" + Number(t.cheapest.sum).toFixed(4))
+            : "—";
+          var stab = t.most_stable
+            ? (esc(t.most_stable.label) +
+              (t.most_stable.circuit_open ? "·熔断"
+                : (t.most_stable.score == null ? "·样本少"
+                  : ("·稳" + Math.round(Number(t.most_stable.score) * 100) + "%"))))
+            : "—";
+          return '<div class="field" style="border:1px solid rgba(148,163,184,.25);border-radius:10px;padding:10px;">' +
+            '<div class="row" style="justify-content:space-between;gap:8px;">' +
+            "<strong>" + esc(String(t.tier || "").toUpperCase()) + "</strong>" +
+            '<span class="mono small" style="color:' + actColor + ';">' + esc(act) + "</span></div>" +
+            '<div class="muted small" style="margin-top:4px;">' + esc(t.title || t.id || "") + "</div>" +
+            '<div style="margin-top:8px;font-size:13px;line-height:1.5;">' + esc(sug.headline || "—") + "</div>" +
+            '<div class="muted small" style="margin-top:8px;">最省 ' + cheap + " · 最稳 " + stab +
+            " · GM1:4 " + (t.gm_1to4 == null ? "—" : (t.gm_1to4 + "%")) + "</div>" +
+            "</div>";
+        }).join("");
+      }
+    }
+    var vipTb = $("pmHeroVip") && $("pmHeroVip").querySelector("tbody");
+    if (vipTb) {
+      var vips = hero.vip_watch || [];
+      if (!vips.length) {
+        vipTb.innerHTML = '<tr><td colspan="6" class="muted">无 VIP 关注项</td></tr>';
+      } else {
+        vipTb.innerHTML = vips.map(function (t) {
+          var sug = t.suggest || {};
+          var cheap = t.cheapest ? esc(t.cheapest.label) : "—";
+          var stab = t.most_stable ? esc(t.most_stable.label) : "—";
+          return "<tr><td>" + esc(t.title || t.id || "") + "</td>" +
+            '<td class="mono">' + esc(sug.action || "—") + "</td>" +
+            "<td>" + esc(sug.headline || "—") + "</td>" +
+            "<td>" + cheap + "</td><td>" + stab + "</td>" +
+            '<td class="mono">' + fmtGm(t.gm_1to4) + "</td></tr>";
+        }).join("");
+      }
+    }
+  }
   function renderSupply(r) {
     var s = r.summary || {};
     $("pmTime").textContent = r.generated_cst || "—";
@@ -5031,6 +5112,7 @@
     $("pmInfo").innerHTML = s.info
       ? '<span class="muted">' + s.info + " 个：" + esc((s.info_ids || []).join(", ")) + "</span>"
       : '<span class="muted">0</span>';
+    renderHeroPicks(r);
     var tb = $("pmTable").querySelector("tbody");
     var rows = r.rows || [];
     if (!rows.length) { tb.innerHTML = '<tr><td colspan="12" class="muted">无在售模型</td></tr>'; return; }

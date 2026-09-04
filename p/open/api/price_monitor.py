@@ -333,6 +333,253 @@ def _gm(sell: float, cost: float) -> Optional[float]:
     return round((sell - cost) / sell * 100, 1) if sell > 0 else None
 
 
+# —— 主打建议（对内作战台：最省钱 × 最稳 × 当前成本/毛利）——
+_PROVIDER_LABEL = {
+    "or": "OpenRouter",
+    "tl": "TokenLab",
+    "rq": "Requesty",
+    "openrouter": "OpenRouter",
+    "tokenlab": "TokenLab",
+    "requesty": "Requesty",
+    "siliconflow": "SiliconFlow",
+    "deepseek": "DeepSeek官方",
+    "qwen_intl": "Qwen国际",
+    "openai_compatible": "兼容直连",
+}
+_HEALTH_PID = {"or": "openrouter", "tl": "tokenlab", "rq": "requesty"}
+_TIER_ROLE = {
+    "default_flash": "flash",
+    "default_pro": "pro",
+    "default_ultra": "ultra",
+}
+
+
+def _pair_sum(pair: Optional[tuple[float, float]]) -> Optional[float]:
+    if not pair:
+        return None
+    return float(pair[0] or 0) + float(pair[1] or 0)
+
+
+def _cheapest_supplier(row: dict[str, Any]) -> Optional[dict[str, Any]]:
+    cands: list[tuple[float, str, tuple[float, float]]] = []
+    for key in ("or", "tl", "rq"):
+        pair = row.get(key)
+        if not pair:
+            continue
+        s = _pair_sum(pair)
+        if s is None or s <= 0:
+            continue
+        cands.append((s, key, (float(pair[0] or 0), float(pair[1] or 0))))
+    if not cands:
+        return None
+    cands.sort(key=lambda x: x[0])
+    s, key, pair = cands[0]
+    return {
+        "key": key,
+        "provider": _HEALTH_PID.get(key, key),
+        "label": _PROVIDER_LABEL.get(key, key),
+        "in": pair[0],
+        "out": pair[1],
+        "sum": round(s, 4),
+    }
+
+
+def _provider_health(health: dict[str, Any], pid: str) -> dict[str, Any]:
+    pid = str(pid or "").strip()
+    circuit = (health.get("circuit") or {}).get(pid) or {}
+    rec = (health.get("recs") or {}).get(pid) or {}
+    win = rec.get("window") or {}
+    total = int(win.get("total") or 0)
+    fail = int(win.get("fail") or 0)
+    rate = float(win.get("rate") if win.get("rate") is not None else (fail / max(1, total)))
+    open_c = bool(circuit.get("open"))
+    # 分数：熔断=0；样本不足=None；否则 1-失败率
+    score: Optional[float]
+    if open_c:
+        score = 0.0
+    elif total < 5:
+        score = None
+    else:
+        score = round(max(0.0, 1.0 - rate), 4)
+    return {
+        "provider": pid,
+        "label": _PROVIDER_LABEL.get(pid, pid),
+        "circuit_open": open_c,
+        "sample": total,
+        "fail": fail,
+        "fail_rate": round(rate, 3),
+        "score": score,
+        "reason": str(circuit.get("reason") or ""),
+    }
+
+
+def _most_stable(row: dict[str, Any], health: dict[str, Any]) -> Optional[dict[str, Any]]:
+    keys = [k for k in ("or", "tl", "rq") if row.get(k)]
+    if not keys:
+        # 无供货商价目时，仍可看 failover / channels 对应健康
+        extra = []
+        for ch in row.get("channels") or []:
+            extra.append(str(ch))
+        for ch in row.get("failover_hint") or []:
+            extra.append(str(ch))
+        pids = []
+        for x in extra:
+            xl = x.lower()
+            if "openrouter" in xl or xl == "or":
+                pids.append("openrouter")
+            elif "tokenlab" in xl or xl == "tl":
+                pids.append("tokenlab")
+            elif "requesty" in xl or xl == "rq":
+                pids.append("requesty")
+            elif "silicon" in xl:
+                pids.append("siliconflow")
+            elif "deepseek" in xl:
+                pids.append("deepseek")
+        seen = set()
+        ranked = []
+        for pid in pids:
+            if pid in seen:
+                continue
+            seen.add(pid)
+            ranked.append(_provider_health(health, pid))
+    else:
+        ranked = [_provider_health(health, _HEALTH_PID[k]) for k in keys]
+    if not ranked:
+        return None
+    # 优先：未熔断 + 有分数的最高分；否则样本不足但未熔断
+    scored = [h for h in ranked if h.get("score") is not None and not h.get("circuit_open")]
+    if scored:
+        scored.sort(key=lambda h: (-float(h["score"]), -int(h.get("sample") or 0)))
+        return scored[0]
+    soft = [h for h in ranked if not h.get("circuit_open")]
+    if soft:
+        soft.sort(key=lambda h: -int(h.get("sample") or 0))
+        return soft[0]
+    ranked.sort(key=lambda h: (1 if h.get("circuit_open") else 0, float(h.get("fail_rate") or 1)))
+    return ranked[0]
+
+
+def _suggest_action(row: dict[str, Any], cheap: Optional[dict[str, Any]], stable: Optional[dict[str, Any]]) -> dict[str, Any]:
+    level = str(row.get("level") or "ok")
+    flags = list(row.get("flags") or [])
+    our_sum = float(row.get("cost_in") or 0) + float(row.get("cost_out") or 0)
+    actions: list[str] = []
+    action = "keep"
+    if level == "alarm":
+        action = "fix_margin"
+        actions.append("毛利告警：优先调倍率/换上游或暂停下架点名")
+    elif level == "warn":
+        action = "fix_margin"
+        actions.append("毛利偏低：复查成本与售价倍率")
+    if cheap and our_sum > 0 and float(cheap.get("sum") or 0) > 0:
+        if our_sum > float(cheap["sum"]) * cost_markup():
+            actions.append(f"可切更省：{cheap['label']} 合计 ${cheap['sum']}/1M（当前账本成本 ${round(our_sum, 4)}）")
+            if action == "keep":
+                action = "switch_cheaper"
+    if stable:
+        if stable.get("circuit_open"):
+            actions.append(f"避开熔断：{stable['label']} 电路开路")
+            if action == "keep":
+                action = "avoid_unstable"
+        elif stable.get("score") is not None and float(stable["score"]) < 0.9 and int(stable.get("sample") or 0) >= 20:
+            actions.append(f"稳健优先：{stable['label']} 窗口失败率 {stable.get('fail_rate')}")
+            if action == "keep":
+                action = "prefer_stable"
+    if not actions:
+        actions.append("主打保持：毛利与通道健康正常")
+    # 合成一句主文案
+    headline = actions[0]
+    if cheap and stable and cheap.get("provider") == stable.get("provider") and action in ("keep", "switch_cheaper", "prefer_stable"):
+        headline = f"主打建议：{cheap['label']}（同通道兼最省+较稳）"
+        if action == "keep":
+            action = "hero"
+    return {"action": action, "headline": headline, "notes": actions, "flags": flags}
+
+
+def build_hero_picks(rows: list[dict[str, Any]], health: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+    """按档位给出「主打建议」：最省供货商 / 最稳上游 / 账本毛利 / 动作。"""
+    health = health or {"circuit": {}, "recs": {}}
+    by_role: dict[str, dict[str, Any]] = {}
+    vip_rows: list[dict[str, Any]] = []
+    for r in rows:
+        role = str(r.get("role") or "")
+        # 附带 failover 提示供稳定评估
+        r = dict(r)
+        try:
+            cat = next((c for c in mw.catalog_merged() if str(c.get("id")) == str(r.get("id"))), None)
+            if cat:
+                r["failover_hint"] = list(cat.get("failover_to") or [])
+                if not r.get("channels"):
+                    ch = []
+                    if cat.get("openrouter_id"):
+                        ch.append("openrouter")
+                    if cat.get("siliconflow_id"):
+                        ch.append("siliconflow")
+                    if cat.get("direct_id"):
+                        ch.append("direct")
+                    r["channels"] = ch
+        except Exception:
+            pass
+        if role in _TIER_ROLE:
+            # 同档取 priority 最高（catalog 已按角色筛过，通常一条）
+            prev = by_role.get(role)
+            if prev is None or int(r.get("priority") or 0) >= int(prev.get("priority") or 0):
+                by_role[role] = r
+        elif role == "vip_pick":
+            vip_rows.append(r)
+
+    def _pack(tier: str, r: dict[str, Any]) -> dict[str, Any]:
+        cheap = _cheapest_supplier(r)
+        stable = _most_stable(r, health)
+        sug = _suggest_action(r, cheap, stable)
+        return {
+            "tier": tier,
+            "id": r.get("id"),
+            "title": r.get("title"),
+            "level": r.get("level"),
+            "gm_blend": r.get("gm_blend"),
+            "gm_1to4": r.get("gm_1to4"),
+            "cost_in": r.get("cost_in"),
+            "cost_out": r.get("cost_out"),
+            "sell_in": r.get("sell_in"),
+            "sell_out": r.get("sell_out"),
+            "channels": r.get("channels") or [],
+            "cheapest": cheap,
+            "most_stable": stable,
+            "suggest": sug,
+        }
+
+    tiers = []
+    for role, tier in (("default_flash", "flash"), ("default_pro", "pro"), ("default_ultra", "ultra")):
+        if role in by_role:
+            tiers.append(_pack(tier, by_role[role]))
+
+    # VIP：优先告警/预警，其次有降本机会，最多 6 条
+    vip_rows.sort(
+        key=lambda x: (
+            {"alarm": 0, "warn": 1, "info": 2, "ok": 3}.get(str(x.get("level")), 9),
+            -(float(x.get("gm_1to4") or 0) if x.get("gm_1to4") is not None else 999),
+            str(x.get("id") or ""),
+        )
+    )
+    vip_watch = [_pack("vip", r) for r in vip_rows[:6]]
+
+    open_circuits = [
+        {"provider": pid, "label": _PROVIDER_LABEL.get(pid, pid), **(info or {})}
+        for pid, info in (health.get("circuit") or {}).items()
+        if (info or {}).get("open")
+    ]
+    return {
+        "note": "对内作战台：对外仍主推 flash/pro/auto 档位；通道名仅管理端可见。",
+        "tiers": tiers,
+        "vip_watch": vip_watch,
+        "health": {
+            "open_circuits": open_circuits,
+            "circuit_enabled": bool(health.get("circuit_enabled")),
+        },
+    }
+
+
 # —— 快照 ——
 def snapshot() -> dict[str, Any]:
     pp = _load()
@@ -463,6 +710,7 @@ def snapshot() -> dict[str, Any]:
             "id": cid,
             "title": str(c.get("title") or cid),
             "role": role,
+            "priority": int(c.get("priority") or 0),
             "enabled": bool(c.get("pick_enabled", True)),
             "in_mult": in_mult,
             "out_mult": out_mult,
@@ -488,6 +736,14 @@ def snapshot() -> dict[str, Any]:
     warn_rows = [r for r in rows if r["level"] == "warn"]
     info_rows = [r for r in rows if r["level"] == "info"]
     hike_rows = [r for r in rows if r.get("hike")]
+    health: dict[str, Any] = {}
+    try:
+        from upstream_health import snapshot as _uh_snapshot
+
+        health = _uh_snapshot() or {}
+    except Exception:
+        health = {"circuit": {}, "recs": {}, "circuit_enabled": False}
+    hero = build_hero_picks(rows, health)
     return {
         "ok": True,
         "generated_cst": datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M:%S"),
@@ -507,6 +763,7 @@ def snapshot() -> dict[str, Any]:
             "hike_ids": [r["id"] for r in hike_rows],
         },
         "rows": rows,
+        "hero_picks": hero,
     }
 
 
