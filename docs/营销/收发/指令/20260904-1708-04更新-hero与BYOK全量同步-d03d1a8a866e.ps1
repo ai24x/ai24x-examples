@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 $work = "C:\ai24x01"
-$EXP  = "d03d1a8a866e"
+$EXP  = "928a89ae9601"
 # 含：主打一键切通道安全优化 + BYOK 名模排序/去聚合（f2300e6）
 Set-Location $work
 
