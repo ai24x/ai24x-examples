@@ -3937,6 +3937,35 @@ async def admin_price_monitor(request: Request):
     return snapshot()
 
 
+@app.get("/v1/admin/price/flash-lanes")
+async def admin_price_flash_lanes(request: Request):
+    """运维只读：flash/auto（L1）候选通道价表（独立接口，避免大快照/缓存干扰）。"""
+    _require_internal_key(request)
+    from flash_lanes import build_flash_lanes
+
+    health: dict = {}
+    try:
+        from upstream_health import snapshot as _uh_snapshot
+
+        health = _uh_snapshot() or {}
+    except Exception:
+        health = {"circuit": {}, "recs": {}}
+    out = build_flash_lanes(health)
+    out["ok"] = True
+    try:
+        from model_router import _layer_upstream
+
+        live = _layer_upstream("L1")
+        out["runtime"] = {
+            "provider": live.get("provider"),
+            "model": live.get("model"),
+            "key_set": bool(live.get("key")),
+        }
+    except Exception:
+        out["runtime"] = {}
+    return out
+
+
 @app.post("/v1/admin/price/refresh")
 async def admin_price_refresh(request: Request):
     """运维：实拉 OR/TL/Requesty 价目并返回最新监控快照（12h 缓存，force 强制）。"""

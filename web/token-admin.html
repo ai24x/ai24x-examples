@@ -5054,7 +5054,7 @@
     return '<span style="color:' + c + ';">' + v + "%</span>";
   }
   function renderFlashLanes(r) {
-    var fl = r.flash_lanes || {};
+    var fl = (r && r.flash_lanes) || {};
     if ($("pmFlashNote")) {
       $("pmFlashNote").textContent = fl.note ||
         "对外仍是 flash / auto；此处按上游成本（1 入+4 出）排序，可一键切当前主通道。";
@@ -5063,17 +5063,20 @@
       var act = fl.active || "—";
       var ov = fl.admin_override ? ("（管理台覆盖：" + fl.admin_override + "）") : "（跟随默认路由）";
       var cheap = fl.cheapest_ready || "—";
+      var baseTip = state.base ? (' · API <span class="mono">' + esc(state.base) + "</span>") : "";
       $("pmFlashActive").innerHTML =
         "当前主通道：<strong>" + esc(act) + "</strong> " + esc(ov) +
-        " · 现网最省就绪：<strong>" + esc(cheap) + "</strong>";
+        " · 现网最省就绪：<strong>" + esc(cheap) + "</strong>" + baseTip;
     }
     var tb = $("pmFlashLanes") && $("pmFlashLanes").querySelector("tbody");
     if (!tb) return;
     var lanes = fl.lanes || [];
     if (!lanes.length) {
-      var miss = !r.flash_lanes;
+      var miss = !(r && r.flash_lanes);
       var tip = miss
-        ? "接口未返回通道表：请确认已部署 flash_lanes 并重启 core-api，然后点「刷新监控」。"
+        ? ("接口未返回通道表。请确认登录框 API 为 https://api.ai24x.com（当前：" +
+          (state.base || "未填") +
+          "），强制刷新页面后点「刷新监控」。")
         : (fl.note || "暂无通道数据");
       tb.innerHTML = '<tr><td colspan="9" class="muted">' + esc(tip) + "</td></tr>";
       return;
@@ -5330,7 +5333,25 @@
     }).join("");
   }
   async function loadSupplyMonitor() {
-    renderSupply(await api("/v1/admin/price/monitor"));
+    var bust = "?_=" + Date.now();
+    var r = await api("/v1/admin/price/monitor" + bust);
+    // 通道表独立拉取，避免大快照缺字段 / 中间缓存
+    try {
+      var fl = await api("/v1/admin/price/flash-lanes" + bust);
+      if (fl && (fl.lanes || fl.active)) {
+        r.flash_lanes = fl;
+      }
+    } catch (e) {
+      if (!r.flash_lanes) {
+        r.flash_lanes = {
+          note: "通道表独立接口失败：" + String((e && e.message) || e) +
+            "（API=" + (state.base || "") + "）",
+          lanes: [],
+          active: null,
+        };
+      }
+    }
+    renderSupply(r);
   }
   if ($("btnPmLoad")) {
     $("btnPmLoad").onclick = async function () {
