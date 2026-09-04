@@ -110,6 +110,8 @@ api/data/ops_alert_state.json
 api/data/upstream_health.json
 api/data/provider_prices.json
 api/data/pricing_audit.jsonl
+api/data/hero_channel_state.json
+api/data/hero_apply_audit.jsonl
 scripts/_*.py
 scripts/_*.js
 p/a1/api/server/_tmp_*.json
