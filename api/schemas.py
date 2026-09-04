@@ -599,6 +599,7 @@ class TokenAdminSystemUpdateBody(BaseModel):
     token_pay_mock_enabled: Optional[bool] = None
     sms_106_enabled: Optional[bool] = None
     token_llm_upstream: Optional[str] = Field(default=None, max_length=32)
+    token_llm_l1_lane: Optional[str] = Field(default=None, max_length=32)
     clear: Optional[list[str]] = Field(default=None, max_length=16)
 
 
@@ -631,6 +632,11 @@ class TokenAdminApplyHeroBody(BaseModel):
     model_id: str = Field(..., min_length=1, max_length=64)
     prefer: str = Field(..., min_length=1, max_length=32)
     update_cost: bool = True
+
+
+class TokenAdminApplyFlashLaneBody(BaseModel):
+    """供应链监控：一键切 flash/auto（L1）主通道。"""
+    lane: str = Field(..., min_length=1, max_length=32)
 
 
 class TokenAdminFreeSharedUpdateBody(BaseModel):

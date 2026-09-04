@@ -1243,6 +1243,12 @@ def snapshot() -> dict[str, Any]:
     except Exception:
         health = {"circuit": {}, "recs": {}, "circuit_enabled": False}
     hero = build_hero_picks(rows, health)
+    try:
+        from flash_lanes import build_flash_lanes
+
+        flash_lanes = build_flash_lanes(health)
+    except Exception as e:
+        flash_lanes = {"note": f"flash 通道表暂不可用：{e}", "lanes": [], "active": None}
     return {
         "ok": True,
         "generated_cst": datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M:%S"),
@@ -1263,6 +1269,7 @@ def snapshot() -> dict[str, Any]:
         },
         "rows": rows,
         "hero_picks": hero,
+        "flash_lanes": flash_lanes,
     }
 
 

@@ -15,8 +15,10 @@ from typing import Any, Optional
 _OVERRIDE_PATH = Path(__file__).resolve().parent / "data" / "system_flags_override.json"
 
 _ALLOWED_BOOL = ("token_pay_enabled", "token_pay_mock_enabled", "sms_106_enabled")
-_ALLOWED_STR = ("token_llm_upstream",)
+_ALLOWED_STR = ("token_llm_upstream", "token_llm_l1_lane")
 _LLM_MODES = ("direct", "openrouter")
+# flash/auto（L1）主通道：管理台一键切换；优先于 .env TOKEN_LLM_L1_UPSTREAM
+_L1_LANES = ("mimo_official", "or_mimo", "or_deepseek", "deepseek_official")
 
 
 def _load() -> dict[str, Any]:
@@ -93,6 +95,18 @@ def effective_llm_upstream_override() -> Optional[str]:
     return None
 
 
+def effective_l1_lane() -> Optional[str]:
+    """flash/auto L1 主通道；无管理台覆盖则 None（走代码/env 默认）。"""
+    raw = flag_str("token_llm_l1_lane")
+    if not raw:
+        return None
+    return raw if raw in _L1_LANES else None
+
+
+def list_l1_lanes() -> list[str]:
+    return list(_L1_LANES)
+
+
 def list_system_flags() -> dict[str, Any]:
     """管理台展示：当前生效值 + 是否有管理台覆盖。"""
     from config import settings
@@ -127,6 +141,9 @@ def list_system_flags() -> dict[str, Any]:
             "upstream_editable": True,
             "upstream_source": _src("token_llm_upstream"),
             "options": list(_LLM_MODES),
+            "l1_lane": effective_l1_lane(),
+            "l1_lane_source": _src("token_llm_l1_lane"),
+            "l1_lane_options": list(_L1_LANES),
         },
         "sms": {
             "enabled": sms_on,
@@ -171,6 +188,22 @@ def update_system_flags(patch: dict[str, Any]) -> dict[str, Any]:
         if mode not in _LLM_MODES:
             raise ValueError(f"invalid_token_llm_upstream:{mode}")
         cur["token_llm_upstream"] = mode
+    if "token_llm_l1_lane" in patch and patch["token_llm_l1_lane"] is not None:
+        lane = str(patch["token_llm_l1_lane"]).strip().lower()
+        aliases = {
+            "mimo": "mimo_official",
+            "xiaomi": "mimo_official",
+            "or-mimo": "or_mimo",
+            "openrouter_mimo": "or_mimo",
+            "or-deepseek": "or_deepseek",
+            "openrouter_deepseek": "or_deepseek",
+            "ds": "deepseek_official",
+            "deepseek": "deepseek_official",
+        }
+        lane = aliases.get(lane, lane)
+        if lane not in _L1_LANES:
+            raise ValueError(f"invalid_token_llm_l1_lane:{lane}")
+        cur["token_llm_l1_lane"] = lane
 
     # 可选：清除某键覆盖，回退 env
     clear = patch.get("clear") or []

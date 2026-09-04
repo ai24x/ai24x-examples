@@ -836,6 +836,75 @@ _LAYER_OR_MODEL = {
 }
 
 
+def _openrouter_upstream_with_model(model: str) -> Optional[dict[str, str]]:
+    mid = (model or "").strip()
+    if not mid:
+        return None
+    key = _env("OPENROUTER_API_KEY") or _env("TOKEN_LLM_KEY")
+    try:
+        from llm_keys import openrouter_main_key
+
+        key = openrouter_main_key() or key
+    except Exception:
+        pass
+    if not key:
+        return None
+    base = (
+        _env("OPENROUTER_BASE_URL")
+        or _env("TOKEN_LLM_BASE")
+        or "https://openrouter.ai/api/v1"
+    )
+    return {
+        "base": _normalize_openai_base(base),
+        "key": key,
+        "model": mid,
+        "provider": "openrouter",
+    }
+
+
+def _effective_l1_lane() -> Optional[str]:
+    try:
+        from system_flags import effective_l1_lane
+
+        return effective_l1_lane()
+    except Exception:
+        return None
+
+
+def _upstream_from_flash_lane(lane: str) -> Optional[dict[str, str]]:
+    lane = (lane or "").strip().lower()
+    if lane == "mimo_official":
+        return _layer_mimo_upstream("L1")
+    if lane == "deepseek_official":
+        up = _deepseek_upstream_for_layer("L1")
+        return up if up.get("key") else None
+    if lane == "or_mimo":
+        return _openrouter_upstream_with_model("xiaomi/mimo-v2.5")
+    if lane == "or_deepseek":
+        return _openrouter_upstream_with_model("deepseek/deepseek-v4-flash")
+    return None
+
+
+def detect_active_flash_lane() -> str:
+    ov = _effective_l1_lane()
+    if ov:
+        return ov
+    up = _layer_upstream("L1")
+    provider = str(up.get("provider") or "").lower()
+    model = str(up.get("model") or "").lower()
+    if provider == "mimo":
+        return "mimo_official"
+    if provider == "deepseek":
+        return "deepseek_official"
+    if provider == "openrouter":
+        if "deepseek" in model:
+            return "or_deepseek"
+        return "or_mimo"
+    if _layer_mimo_upstream("L1"):
+        return "mimo_official"
+    return "or_mimo"
+
+
 def _layer_or_upstream_override(layer: str) -> Optional[dict[str, str]]:
     """L1/L2 直连模式下可选的 OR 通道（默认启用）；无 OR Key 或显式回退时返回 None。"""
     layer = (layer or "").upper()
@@ -858,7 +927,7 @@ def _layer_or_upstream_override(layer: str) -> Optional[dict[str, str]]:
         or _env("TOKEN_LLM_BASE")
         or "https://openrouter.ai/api/v1"
     )
-    model = _env(f"OPENROUTER_MODEL_{layer}") or _LAYER_OR_MODEL.get(layer)
+    model = _openrouter_model_for_layer(layer)
     return {
         "base": _normalize_openai_base(base),
         "key": key,
@@ -873,6 +942,12 @@ def _layer_upstream(layer: str) -> dict[str, str]:
     direct：L0 硅基 / L1 DeepSeek / QI DashScope 国际。
     """
     layer = (layer or "").upper()
+    if layer == "L1":
+        lane = _effective_l1_lane()
+        if lane:
+            got = _upstream_from_flash_lane(lane)
+            if got and got.get("key"):
+                return got
     if _upstream_mode() == "openrouter":
         # L0 若已配硅基：用独立通道作 FREE 降级 / 免费共享，避免 OR 整站挂时无兜底
         sf_key = _env("SILICONFLOW_API_KEY") or _env("TOKEN_LLM_L0_KEY")

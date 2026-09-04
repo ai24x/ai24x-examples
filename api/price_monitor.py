@@ -5,6 +5,7 @@
   GET  /v1/admin/price/monitor   → snapshot()
   POST /v1/admin/price/refresh   → 实拉 OR/TL/Requesty 价目 + snapshot()
   POST /v1/admin/price/apply-hero → 一键切主通道（写回仓库 channels / 上游模式）
+  POST /v1/admin/price/apply-flash-lane → flash/auto 切 L1 主通道（MiMo/OR/DeepSeek）
 
 数据落盘：api/data/provider_prices.json（gitignored；12h 内不重复实拉）
 阈值（env，默认值）：
@@ -346,6 +347,7 @@ _PROVIDER_LABEL = {
     "requesty": "Requesty",
     "siliconflow": "SiliconFlow",
     "deepseek": "DeepSeek官方",
+    "mimo": "MiMo官方",
     "qwen_intl": "Qwen国际",
     "openai_compatible": "兼容直连",
 }
@@ -1243,6 +1245,12 @@ def snapshot() -> dict[str, Any]:
     except Exception:
         health = {"circuit": {}, "recs": {}, "circuit_enabled": False}
     hero = build_hero_picks(rows, health)
+    try:
+        from flash_lanes import build_flash_lanes
+
+        flash_lanes = build_flash_lanes(health)
+    except Exception as e:
+        flash_lanes = {"note": f"flash 通道表暂不可用：{e}", "lanes": [], "active": None}
     return {
         "ok": True,
         "generated_cst": datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M:%S"),
@@ -1263,6 +1271,7 @@ def snapshot() -> dict[str, Any]:
         },
         "rows": rows,
         "hero_picks": hero,
+        "flash_lanes": flash_lanes,
     }
 
 

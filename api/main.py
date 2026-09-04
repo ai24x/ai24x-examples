@@ -56,6 +56,7 @@ from schemas import (
     SupportTicketUserReplyBody,
     TokenAdminSystemUpdateBody,
     TokenAdminApplyHeroBody,
+    TokenAdminApplyFlashLaneBody,
     TokenAdminWarehouseUpdateBody,
     TokenAdminFreeSharedUpdateBody,
     TokenAdminLlmKeysUpdateBody,
@@ -3964,6 +3965,18 @@ async def admin_price_apply_hero(request: Request, body: TokenAdminApplyHeroBody
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e) or "无法应用主通道建议") from e
+
+
+@app.post("/v1/admin/price/apply-flash-lane")
+async def admin_price_apply_flash_lane(request: Request, body: TokenAdminApplyFlashLaneBody):
+    """运维：一键切 flash/auto（L1）主通道 — MiMo 官方 / OR MiMo / OR DeepSeek / DeepSeek 官方。"""
+    _require_internal_key(request)
+    from flash_lanes import apply_flash_lane
+
+    try:
+        return apply_flash_lane(lane_id=body.lane, actor="admin")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e) or "无法切换 flash 通道") from e
 
 
 @app.get("/v1/admin/token/system")

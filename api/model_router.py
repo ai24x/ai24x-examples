@@ -836,26 +836,11 @@ _LAYER_OR_MODEL = {
 }
 
 
-def _layer_or_upstream_override(layer: str) -> Optional[dict[str, str]]:
-    """L1/L2 直连模式下可选通道；MiMo 档默认官方直连，OR 作兜底。
-
-    TOKEN_LLM_{layer}_UPSTREAM：
-      deepseek/direct/official/ds = DeepSeek 直连；
-      or/openrouter/agg/aggregator = 强制 OR；
-      其它/空 = MiMo 档走官方直连（无 key 回落 OR）。
-    """
-    layer = (layer or "").upper()
-    if layer not in ("L1", "L2"):
+def _openrouter_upstream_with_model(model: str) -> Optional[dict[str, str]]:
+    """强制走 OpenRouter，指定 model id。"""
+    mid = (model or "").strip()
+    if not mid:
         return None
-    v = (_env(f"TOKEN_LLM_{layer}_UPSTREAM", "") or "").strip().lower()
-    if v in ("deepseek", "direct", "official", "ds"):
-        return None
-    model = _env(f"OPENROUTER_MODEL_{layer}") or _LAYER_OR_MODEL.get(layer)
-    forced_or = v in ("or", "openrouter", "agg", "aggregator")
-    if not forced_or and "mimo" in str(model or "").lower():
-        mi = _layer_mimo_upstream(layer)
-        if mi:
-            return mi
     key = _env("OPENROUTER_API_KEY") or _env("TOKEN_LLM_KEY")
     try:
         from llm_keys import openrouter_main_key
@@ -873,9 +858,79 @@ def _layer_or_upstream_override(layer: str) -> Optional[dict[str, str]]:
     return {
         "base": _normalize_openai_base(base),
         "key": key,
-        "model": model,
+        "model": mid,
         "provider": "openrouter",
     }
+
+
+def _effective_l1_lane() -> Optional[str]:
+    try:
+        from system_flags import effective_l1_lane
+
+        return effective_l1_lane()
+    except Exception:
+        return None
+
+
+def _upstream_from_flash_lane(lane: str) -> Optional[dict[str, str]]:
+    """按管理台 flash 通道 id 解析 L1 upstream。"""
+    lane = (lane or "").strip().lower()
+    if lane == "mimo_official":
+        return _layer_mimo_upstream("L1")
+    if lane == "deepseek_official":
+        up = _layer_ds_direct_upstream("L1")
+        return up if up.get("key") else None
+    if lane == "or_mimo":
+        return _openrouter_upstream_with_model("xiaomi/mimo-v2.5")
+    if lane == "or_deepseek":
+        return _openrouter_upstream_with_model("deepseek/deepseek-v4-flash")
+    return None
+
+
+def detect_active_flash_lane() -> str:
+    """推断当前 flash/auto 实际主通道（含管理台覆盖）。"""
+    ov = _effective_l1_lane()
+    if ov:
+        return ov
+    up = _layer_upstream("L1")
+    provider = str(up.get("provider") or "").lower()
+    model = str(up.get("model") or "").lower()
+    if provider == "mimo":
+        return "mimo_official"
+    if provider == "deepseek":
+        return "deepseek_official"
+    if provider == "openrouter":
+        if "deepseek" in model:
+            return "or_deepseek"
+        return "or_mimo"
+    # 回落：与代码默认一致
+    if _layer_mimo_upstream("L1"):
+        return "mimo_official"
+    return "or_mimo"
+
+
+def _layer_or_upstream_override(layer: str) -> Optional[dict[str, str]]:
+    """L1/L2 直连模式下可选通道；MiMo 档默认官方直连，OR 作兜底。
+
+    TOKEN_LLM_{layer}_UPSTREAM：
+      deepseek/direct/official/ds = DeepSeek 直连；
+      or/openrouter/agg/aggregator = 强制 OR；
+      其它/空 = MiMo 档走官方直连（无 key 回落 OR）。
+    """
+    layer = (layer or "").upper()
+    if layer not in ("L1", "L2"):
+        return None
+    v = (_env(f"TOKEN_LLM_{layer}_UPSTREAM", "") or "").strip().lower()
+    if v in ("deepseek", "direct", "official", "ds"):
+        return None
+    # 仓库 layer model 覆盖优先于 env / 代码默认
+    model = _openrouter_model_for_layer(layer)
+    forced_or = v in ("or", "openrouter", "agg", "aggregator")
+    if not forced_or and "mimo" in str(model or "").lower():
+        mi = _layer_mimo_upstream(layer)
+        if mi:
+            return mi
+    return _openrouter_upstream_with_model(model)
 
 
 def _layer_ds_direct_upstream(layer: str) -> dict[str, str]:
@@ -923,7 +978,14 @@ def _layer_upstream(layer: str) -> dict[str, str]:
     #   TOKEN_LLM_{layer}_UPSTREAM=deepseek/direct/official/ds → DeepSeek 直连；
     #   =or/openrouter/agg/aggregator → 强制 OR；
     #   其它/空 → MiMo 档官方直连优先（实测 TTFB 0.44s vs OR 4.0s），OR 兜底，最后 DeepSeek 直连。
+    # 2026-09-04: L1 额外支持管理台 token_llm_l1_lane（flash/auto 一键切通道）。
     if layer in ("L1", "L2"):
+        if layer == "L1":
+            lane = _effective_l1_lane()
+            if lane:
+                got = _upstream_from_flash_lane(lane)
+                if got and got.get("key"):
+                    return got
         v = (_env(f"TOKEN_LLM_{layer}_UPSTREAM", "") or "").strip().lower()
         if v in ("deepseek", "direct", "official", "ds"):
             return _layer_ds_direct_upstream(layer)

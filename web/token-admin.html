@@ -1317,6 +1317,19 @@
                 <div class="field"><span class="lbl">风险提示</span><div id="pmWarn" style="font-size:13px;">—</div></div>
                 <div class="field"><span class="lbl">降本机会</span><div id="pmInfo" style="font-size:13px;">—</div></div>
               </div>
+              <div class="section-label">Flash / Auto 通道价表 · 成本从低到高</div>
+              <p class="muted small" id="pmFlashNote" style="margin:0 0 8px;">对外仍是 flash / auto；此处按上游成本（1 入+4 出）排序，可一键切当前主通道。</p>
+              <div class="muted small" id="pmFlashActive" style="margin:0 0 8px;"></div>
+              <div style="overflow-x:auto;margin-bottom:12px;">
+                <table id="pmFlashLanes">
+                  <thead>
+                    <tr>
+                      <th>#</th><th>通道</th><th>模型</th><th>成本入/出</th><th>1:4成本</th><th>GM1:4</th><th>稳定</th><th>状态</th><th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody><tr><td colspan="9" class="muted">加载中…</td></tr></tbody>
+                </table>
+              </div>
               <div class="section-label">主打建议 · 最省钱 × 最稳 × 毛利（对内）</div>
               <p class="muted small" id="pmHeroNote" style="margin:0 0 8px;">对外仍主推 flash / pro / auto；一键应用会写回通道/上游并立即生效（通道名仅作战台可见）。</p>
               <div id="pmHeroCircuits" class="muted small" style="margin:0 0 8px;"></div>
@@ -5040,6 +5053,87 @@
     var c = v < 0 ? "var(--bad)" : (v < 20 ? "var(--warn)" : "var(--ok)");
     return '<span style="color:' + c + ';">' + v + "%</span>";
   }
+  function renderFlashLanes(r) {
+    var fl = r.flash_lanes || {};
+    if ($("pmFlashNote")) {
+      $("pmFlashNote").textContent = fl.note ||
+        "对外仍是 flash / auto；此处按上游成本（1 入+4 出）排序，可一键切当前主通道。";
+    }
+    if ($("pmFlashActive")) {
+      var act = fl.active || "—";
+      var ov = fl.admin_override ? ("（管理台覆盖：" + fl.admin_override + "）") : "（跟随默认路由）";
+      var cheap = fl.cheapest_ready || "—";
+      $("pmFlashActive").innerHTML =
+        "当前主通道：<strong>" + esc(act) + "</strong> " + esc(ov) +
+        " · 现网最省就绪：<strong>" + esc(cheap) + "</strong>";
+    }
+    var tb = $("pmFlashLanes") && $("pmFlashLanes").querySelector("tbody");
+    if (!tb) return;
+    var lanes = fl.lanes || [];
+    if (!lanes.length) {
+      var miss = !r.flash_lanes;
+      var tip = miss
+        ? "接口未返回通道表：请确认已部署 flash_lanes 并重启 core-api，然后点「刷新监控」。"
+        : (fl.note || "暂无通道数据");
+      tb.innerHTML = '<tr><td colspan="9" class="muted">' + esc(tip) + "</td></tr>";
+      return;
+    }
+    tb.innerHTML = lanes.map(function (x, i) {
+      var stab = x.stability || {};
+      var stabTxt = x.circuit_open ? '<span class="bad">熔断</span>'
+        : (stab.score == null
+          ? '<span class="muted">样本少</span>'
+          : ('<span style="color:var(--ok);">稳 ' + Math.round(Number(stab.score) * 100) + "%</span>"));
+      var st = x.active
+        ? '<span style="color:var(--ok);">使用中</span>'
+        : (!x.ready ? '<span class="bad">未就绪</span>'
+          : (x.circuit_open ? '<span class="bad">熔断</span>' : '<span class="muted">可选</span>'));
+      var btn = x.applyable
+        ? ('<button type="button" class="ok btn-flash-lane" data-lane="' + esc(x.id || "") +
+          '" data-label="' + esc(x.label || "") + '" title="' + esc(x.apply_reason || "") +
+          '">切到此通道</button>')
+        : ('<span class="muted small" title="' + esc(x.apply_reason || "") + '">' +
+          (x.active ? "当前" : "—") + "</span>");
+      var rowStyle = x.active ? ' style="background:rgba(34,197,94,.08);"' : "";
+      return "<tr" + rowStyle + ">" +
+        '<td class="mono">' + (i + 1) + "</td>" +
+        "<td><strong>" + esc(x.label || x.id || "") + "</strong>" +
+        '<div class="muted small">' + esc(x.via || "") + " · " + esc(x.family || "") + "</div></td>" +
+        '<td class="mono small">' + esc(x.model || "") +
+        '<div class="muted small">' + esc(x.quality_note || "") + "</div></td>" +
+        '<td class="mono">' + fmtPr([x.cost_in, x.cost_out]) +
+        '<div class="muted small">' + esc(x.cost_source || "") + "</div></td>" +
+        '<td class="mono">' + (x.cost_1to4 == null ? "—" : Number(x.cost_1to4).toFixed(4)) + "</td>" +
+        '<td class="mono">' + fmtGm(x.gm_1to4) + "</td>" +
+        "<td>" + stabTxt + "</td>" +
+        "<td>" + st + "</td>" +
+        "<td>" + btn + "</td></tr>";
+    }).join("");
+    document.querySelectorAll(".btn-flash-lane").forEach(function (btn) {
+      btn.onclick = function () {
+        applyFlashLane(btn.getAttribute("data-lane"), btn.getAttribute("data-label"));
+      };
+    });
+  }
+  async function applyFlashLane(lane, label) {
+    if (!lane) {
+      setMsg("缺少目标通道", "err");
+      return;
+    }
+    var tip = "确认将 flash / auto 主通道切至「" + (label || lane) + "」？\n立即写回配置并生效（用户侧仍显示 flash/auto）。";
+    if (!window.confirm(tip)) return;
+    try {
+      setMsg("正在切换 flash 通道…", "ok");
+      var out = await api("/v1/admin/price/apply-flash-lane", {
+        method: "POST",
+        body: { lane: lane },
+      });
+      renderSupply(out);
+      setMsg(out.message || ("已切至 " + (label || lane)), "ok");
+    } catch (e) {
+      setMsg(String(e.message || e), "err");
+    }
+  }
   function renderHeroPicks(r) {
     var hero = r.hero_picks || {};
     if ($("pmHeroNote")) {
@@ -5205,6 +5299,7 @@
     $("pmInfo").innerHTML = s.info
       ? '<span class="muted">' + s.info + " 个：" + esc((s.info_ids || []).join(", ")) + "</span>"
       : '<span class="muted">0</span>';
+    renderFlashLanes(r);
     renderHeroPicks(r);
     var tb = $("pmTable").querySelector("tbody");
     var rows = r.rows || [];
