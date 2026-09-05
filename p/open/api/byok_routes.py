@@ -10,11 +10,17 @@ from __future__ import annotations
 from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from database import get_db
 
 router = APIRouter()
+
+_NO_STORE = {
+    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+    "Pragma": "no-cache",
+}
 
 
 class ByokKeyCreateBody(BaseModel):
@@ -105,7 +111,10 @@ def byok_plans_catalog(request: Request):
 def byok_keys_list(request: Request, db=Depends(get_db)):
     from byok import list_keys
 
-    return {"keys": list_keys(db, _auth_user_id(request))}
+    return JSONResponse(
+        content={"keys": list_keys(db, _auth_user_id(request))},
+        headers=_NO_STORE,
+    )
 
 
 @router.post("/byok/keys")
@@ -125,7 +134,7 @@ def byok_keys_create(body: ByokKeyCreateBody, request: Request, db=Depends(get_d
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    return {"key": row}
+    return JSONResponse(content={"key": row}, headers=_NO_STORE)
 
 
 @router.post("/byok/keys/test")
@@ -154,7 +163,7 @@ def byok_keys_update(key_id: int, body: ByokKeyUpdateBody, request: Request, db=
     row = update_key(db, auth_user_id=_auth_user_id(request), key_id=key_id, patch=patch)
     if row is None:
         raise HTTPException(status_code=404, detail="key not found")
-    return {"key": row}
+    return JSONResponse(content={"key": row}, headers=_NO_STORE)
 
 
 @router.delete("/byok/keys/{key_id}")

@@ -279,9 +279,11 @@
           box.innerHTML = "";
         });
       }
-      try {
-        box.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      } catch (eScroll) {}
+      if (!opts.noScroll) {
+        try {
+          box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        } catch (eScroll) {}
+      }
     }
     if (opts.toast || opts.toastOnly || (!box && !opts.noToast)) {
       showToast(msg, ok);
@@ -2992,30 +2994,77 @@
 
   function applyByokKeyStatus(id, st) {
     var msgEl = byokMsgBox();
+    var msgOpts = { noScroll: true };
     showMsg(
       msgEl,
       st === "disabled"
         ? tr("正在关闭…", "Turning off…")
         : tr("正在打开…", "Turning on…"),
-      true
+      true,
+      msgOpts
     );
+    // 乐观更新：按钮=下一步动作；状态列=当前状态
+    try {
+      var wrap = $("byokKeysList");
+      if (wrap) {
+        var btn = wrap.querySelector('[data-byok-toggle="' + id + '"]');
+        if (btn) {
+          var row = btn.closest("tr");
+          var nextActive = st === "active";
+          var stateLabel = byokStatusLabel(nextActive ? "active" : "disabled");
+          var actionLabel = nextActive ? "Off" : "On";
+          btn.className = "btn " + (nextActive ? "btn-byok-off" : "btn-byok-on");
+          btn.textContent = actionLabel;
+          btn.setAttribute("data-status", nextActive ? "disabled" : "active");
+          btn.setAttribute(
+            "title",
+            nextActive ? tr("关闭这把 Key", "Turn this key Off") : tr("打开这把 Key", "Turn this key On")
+          );
+          if (row) {
+            var badge = row.querySelector(".byok-key-state");
+            if (badge) {
+              badge.className = "byok-key-state " + (nextActive ? "is-on" : "is-off");
+              badge.textContent = stateLabel;
+            }
+          }
+        }
+      }
+    } catch (eOpt) {}
     return AI24X_API.request("/v1/byok/keys/" + id, {
       method: "PATCH",
       body: JSON.stringify({ status: st }),
+      cache: "no-store",
     })
       .then(function (r) {
         var next = (r && r.key && r.key.status) || st;
+        if (next !== st) {
+          throw new Error(
+            tr("状态未变更，请刷新后重试。", "Status did not change. Refresh and try again.")
+          );
+        }
         showMsg(
           msgEl,
           next === "disabled"
             ? tr("这把 Key 已 Off，调用不再使用它。", "This key is Off — it will not be used for calls.")
             : tr("这把 Key 已 On，将重新参与路由。", "This key is On — it will join routing again."),
-          true
+          true,
+          msgOpts
         );
-        return loadByokKeys();
+        return loadByokKeys().then(function () {
+          return true;
+        });
       })
       .catch(function (e) {
-        showMsg(msgEl, e.message || tr("更新失败", "Update failed"), false);
+        var errText = (e && e.message) || tr("更新失败", "Update failed");
+        showMsg(msgEl, errText, false, msgOpts);
+        var sub = $("modal-byok-toggle-sub");
+        if (sub) sub.textContent = errText;
+        // 失败则强制重拉，回到服务器真状态
+        return loadByokKeys()
+          .catch(function () {})
+          .then(function () {
+            return false;
+          });
       });
   }
 
@@ -3052,7 +3101,10 @@
   }
 
   function loadByokKeys() {
-    return AI24X_API.request("/v1/byok/keys", { method: "GET" }).then(function (r) {
+    return AI24X_API.request("/v1/byok/keys?_=" + Date.now(), {
+      method: "GET",
+      cache: "no-store",
+    }).then(function (r) {
       renderByokKeys((r && r.keys) || []);
     });
   }
@@ -3073,6 +3125,9 @@
     keys.forEach(function (k) {
       var isActive = k.status === "active";
       var stLabel = byokStatusLabel(isActive ? "active" : "disabled");
+      // 按钮文案 = 下一步动作：开着→点 Off 关闭；关着→点 On 打开
+      var actionLabel = isActive ? "Off" : "On";
+      var actionClass = isActive ? "btn-byok-off" : "btn-byok-on";
       var rate =
         k.success_rate != null
           ? Math.round(Number(k.success_rate) * 100) + "%"
@@ -3093,7 +3148,7 @@
         "<td class='col-time'>" + fmtByokTime(k.last_used_at) + "</td>" +
         "<td>" +
         '<button type="button" class="btn" data-byok-test="' + k.id + '">' + tr("测试", "Test") + '</button> ' +
-        '<button type="button" class="btn ' + (isActive ? "btn-byok-on" : "btn-byok-off") + '" data-byok-toggle="' + k.id + '" data-status="' + (isActive ? "disabled" : "active") + '" data-prefix="' + escapeHtml(k.key_prefix || "") + '" title="' + (isActive ? tr("点击关闭", "Click to turn Off") : tr("点击打开", "Click to turn On")) + '">' + stLabel + "</button> " +
+        '<button type="button" class="btn ' + actionClass + '" data-byok-toggle="' + k.id + '" data-status="' + (isActive ? "disabled" : "active") + '" data-prefix="' + escapeHtml(k.key_prefix || "") + '" title="' + (isActive ? tr("关闭这把 Key", "Turn this key Off") : tr("打开这把 Key", "Turn this key On")) + '">' + actionLabel + "</button> " +
         '<button type="button" class="btn" data-byok-del="' + k.id + '">' + tr("删除", "Delete") + '</button>' +
         "</td></tr>";
     });
@@ -3548,11 +3603,16 @@
         var pending = _byokTogglePending;
         if (!pending || !pending.id || !pending.status) return;
         btnByokToggleConfirm.disabled = true;
-        applyByokKeyStatus(pending.id, pending.status).finally(function () {
-          _byokTogglePending = null;
-          closeUiModal("modal-byok-toggle");
-          btnByokToggleConfirm.disabled = false;
-        });
+        applyByokKeyStatus(pending.id, pending.status)
+          .then(function (ok) {
+            if (ok) {
+              _byokTogglePending = null;
+              closeUiModal("modal-byok-toggle");
+            }
+          })
+          .finally(function () {
+            btnByokToggleConfirm.disabled = false;
+          });
       });
     }
     var btnByokRefreshUsage = $("btn-byok-refresh-usage");
