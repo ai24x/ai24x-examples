@@ -15,7 +15,7 @@
     return h === "ai24x.com" || h.endsWith(".ai24x.com");
   }
 
-  /** open 站页面：BYOK 与 open 计费走同源 open-api，账号/余额仍走 api.ai24x.com */
+  /** open 站页面：BYOK 走 open-api；共享钱包余额/流水与 www 一样走 api.ai24x.com */
   function isOpenSitePage() {
     var h = (location.hostname || "").toLowerCase();
     if (h === "open.ai24x.com") return true;
@@ -32,7 +32,21 @@
 
   function resolveRequestBase(path) {
     var p = String(path || "");
-    if (isOpenSitePage() && (p.indexOf("/v1/byok") === 0 || p.indexOf("/v1/billing") === 0)) {
+    if (!isOpenSitePage()) return getBase();
+    // BYOK 密钥与路由：必须走 open-api
+    if (p.indexOf("/v1/byok") === 0) {
+      return getOpenSiteApiBase() || getBase();
+    }
+    // 共享钱包（Credits）真源在 core：与 www 控制台同一接口，避免经 open 代理后刷新时点观感不一致
+    if (
+      p === "/v1/billing/balance" ||
+      p.indexOf("/v1/billing/transactions") === 0 ||
+      p.indexOf("/v1/billing/usage") === 0
+    ) {
+      return getBase();
+    }
+    // 下单/履约/套餐目录等仍走 open（open 再按产品代理 core / 本地 BYOK）
+    if (p.indexOf("/v1/billing") === 0) {
       return getOpenSiteApiBase() || getBase();
     }
     return getBase();

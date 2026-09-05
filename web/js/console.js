@@ -3228,6 +3228,8 @@
 
     try {
       bindTransactionsControls();
+      loadTransactionsPage(0);
+      loadUsageStats();
     } catch (e) {}
 
     try {
@@ -3447,6 +3449,9 @@
     if (id === "transactions") {
       try {
         bindTransactionsControls();
+        // 每次进入流水页都重拉，避免只绑一次事件导致列表停在旧数据
+        loadTransactionsPage(0);
+        loadUsageStats();
       } catch (e) {}
     }
     if (id === "support") {

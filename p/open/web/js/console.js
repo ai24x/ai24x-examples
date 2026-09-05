@@ -2966,6 +2966,93 @@
     });
   }
 
+  function byokMsgBox() {
+    return $("byokPanelMsg") || msgBox();
+  }
+
+  var _byokTogglePending = null;
+
+  function openUiModal(id) {
+    var el = $(id);
+    if (!el) return;
+    el.classList.add("is-open");
+    el.setAttribute("aria-hidden", "false");
+  }
+
+  function closeUiModal(id) {
+    var el = $(id);
+    if (!el) return;
+    el.classList.remove("is-open");
+    el.setAttribute("aria-hidden", "true");
+  }
+
+  function byokStatusLabel(status) {
+    return status === "active"
+      ? tr("启用中", "Active")
+      : tr("已停用", "Disabled");
+  }
+
+  function applyByokKeyStatus(id, st) {
+    var msgEl = byokMsgBox();
+    showMsg(
+      msgEl,
+      st === "disabled"
+        ? tr("正在停用…", "Disabling…")
+        : tr("正在启用…", "Enabling…"),
+      true
+    );
+    return AI24X_API.request("/v1/byok/keys/" + id, {
+      method: "PATCH",
+      body: JSON.stringify({ status: st }),
+    })
+      .then(function (r) {
+        var next = (r && r.key && r.key.status) || st;
+        showMsg(
+          msgEl,
+          next === "disabled"
+            ? tr("已停用该 Key，调用将不再使用它。", "Key disabled — it will not be used for calls.")
+            : tr("已重新启用该 Key。", "Key enabled again."),
+          true
+        );
+        return loadByokKeys();
+      })
+      .catch(function (e) {
+        showMsg(msgEl, e.message || tr("更新失败", "Update failed"), false);
+      });
+  }
+
+  function openByokToggleConfirm(id, st, prefix) {
+    _byokTogglePending = { id: id, status: st };
+    var title = $("modal-byok-toggle-title");
+    var sub = $("modal-byok-toggle-sub");
+    var confirmBtn = $("btn-byok-toggle-confirm");
+    var label = prefix ? String(prefix) + "…" : "#" + id;
+    if (title) {
+      title.textContent =
+        st === "disabled"
+          ? tr("确认停用这把 Key？", "Disable this key?")
+          : tr("确认启用这把 Key？", "Enable this key?");
+    }
+    if (sub) {
+      sub.textContent =
+        st === "disabled"
+          ? tr(
+              "停用后「" + label + "」不再参与路由；网关总开关不受影响。可随时再启用。",
+              "After disable, “" + label + "” will leave routing. Gateway On/Off is unchanged. You can enable it again anytime."
+            )
+          : tr(
+              "启用后「" + label + "」将重新参与路由（仍受网关总开关约束）。",
+              "After enable, “" + label + "” will join routing again (still subject to Gateway On/Off)."
+            );
+    }
+    if (confirmBtn) {
+      confirmBtn.textContent =
+        st === "disabled" ? tr("确认停用", "Disable") : tr("确认启用", "Enable");
+      confirmBtn.disabled = false;
+    }
+    openUiModal("modal-byok-toggle");
+  }
+
   function loadByokKeys() {
     return AI24X_API.request("/v1/byok/keys", { method: "GET" }).then(function (r) {
       renderByokKeys((r && r.keys) || []);
@@ -2986,8 +3073,9 @@
     }
     var html = "";
     keys.forEach(function (k) {
-      var st = k.status === "active" ? "active" : "disabled";
-      var stColor = k.status === "active" ? "#16a34a" : "#9ca3af";
+      var isActive = k.status === "active";
+      var stLabel = byokStatusLabel(isActive ? "active" : "disabled");
+      var stColor = isActive ? "#16a34a" : "#9ca3af";
       var rate =
         k.success_rate != null
           ? Math.round(Number(k.success_rate) * 100) + "%"
@@ -3003,12 +3091,12 @@
         '<td class="col-note">' + escapeHtml(k.name || "--") + "</td>" +
         "<td><code>" + escapeHtml(k.key_prefix || "") + "…</code></td>" +
         "<td>" + models + "</td>" +
-        '<td style="color:' + stColor + ';font-weight:600">' + st + "</td>" +
+        '<td style="color:' + stColor + ';font-weight:600">' + stLabel + "</td>" +
         "<td>" + lat + " · " + rate + "</td>" +
         "<td class='col-time'>" + fmtByokTime(k.last_used_at) + "</td>" +
         "<td>" +
         '<button type="button" class="btn" data-byok-test="' + k.id + '">' + tr("测试", "Test") + '</button> ' +
-        '<button type="button" class="btn" data-byok-toggle="' + k.id + '" data-status="' + (k.status === "active" ? "disabled" : "active") + '">' + (k.status === "active" ? tr("停用", "Disable") : tr("启用", "Enable")) + "</button> " +
+        '<button type="button" class="btn' + (isActive ? "" : " btn-primary") + '" data-byok-toggle="' + k.id + '" data-status="' + (isActive ? "disabled" : "active") + '" data-prefix="' + escapeHtml(k.key_prefix || "") + '">' + (isActive ? tr("停用", "Disable") : tr("启用", "Enable")) + "</button> " +
         '<button type="button" class="btn" data-byok-del="' + k.id + '">' + tr("删除", "Delete") + '</button>' +
         "</td></tr>";
     });
@@ -3022,17 +3110,8 @@
       btn.addEventListener("click", function () {
         var id = parseInt(btn.getAttribute("data-byok-toggle"), 10);
         var st = btn.getAttribute("data-status");
-        AI24X_API.request("/v1/byok/keys/" + id, {
-          method: "PATCH",
-          body: JSON.stringify({ status: st }),
-        })
-          .then(function () {
-            showMsg(msgBox(), tr("已更新 Key 状态", "Key status updated"), true);
-            return loadByokKeys();
-          })
-          .catch(function (e) {
-            showMsg(msgBox(), e.message || "更新失败", false);
-          });
+        var prefix = btn.getAttribute("data-prefix") || "";
+        openByokToggleConfirm(id, st, prefix);
       });
     });
     wrap.querySelectorAll("[data-byok-del]").forEach(function (btn) {
@@ -3041,11 +3120,11 @@
         if (!confirm(tr("确认删除这把自有 Key？（历史用量保留）", "Delete this key? (usage history is kept)"))) return;
         AI24X_API.request("/v1/byok/keys/" + id, { method: "DELETE" })
           .then(function () {
-            showMsg(msgBox(), tr("已删除 Key", "Key deleted"), true);
+            showMsg(byokMsgBox(), tr("已删除 Key", "Key deleted"), true);
             return loadByokKeys();
           })
           .catch(function (e) {
-            showMsg(msgBox(), e.message || tr("删除失败", "Delete failed"), false);
+            showMsg(byokMsgBox(), e.message || tr("删除失败", "Delete failed"), false);
           });
       });
     });
@@ -3464,6 +3543,19 @@
     if (btnByokRefreshKeys) {
       btnByokRefreshKeys.addEventListener("click", function () {
         loadByokKeys().catch(function () {});
+      });
+    }
+    var btnByokToggleConfirm = $("btn-byok-toggle-confirm");
+    if (btnByokToggleConfirm) {
+      btnByokToggleConfirm.addEventListener("click", function () {
+        var pending = _byokTogglePending;
+        if (!pending || !pending.id || !pending.status) return;
+        btnByokToggleConfirm.disabled = true;
+        applyByokKeyStatus(pending.id, pending.status).finally(function () {
+          _byokTogglePending = null;
+          closeUiModal("modal-byok-toggle");
+          btnByokToggleConfirm.disabled = false;
+        });
       });
     }
     var btnByokRefreshUsage = $("btn-byok-refresh-usage");
