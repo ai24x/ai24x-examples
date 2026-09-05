@@ -291,6 +291,48 @@ img {
   color: var(--accent-ink);
 }
 
+/* BYOK 单 Key：按钮显示当前 On/Off 状态（绿=开，灰=关） */
+.btn-byok-on {
+  background: #16a34a;
+  color: #fff;
+  border-color: transparent;
+  font-weight: 700;
+  min-width: 3.4em;
+}
+.btn-byok-on:hover {
+  filter: brightness(1.06);
+  color: #fff;
+}
+.btn-byok-off {
+  background: #e5e7eb;
+  color: #6b7280;
+  border-color: #d1d5db;
+  font-weight: 700;
+  min-width: 3.4em;
+}
+.btn-byok-off:hover {
+  background: #d1d5db;
+  color: #374151;
+}
+.byok-key-state {
+  display: inline-block;
+  min-width: 2.6em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.4;
+}
+.byok-key-state.is-on {
+  background: rgba(22, 163, 74, 0.12);
+  color: #15803d;
+}
+.byok-key-state.is-off {
+  background: rgba(107, 114, 128, 0.12);
+  color: #6b7280;
+}
+
 .btn-usdt {
   background: #26a17b;
   color: #fff;

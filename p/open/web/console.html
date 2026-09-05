@@ -73,7 +73,7 @@
   <meta name="description" content="AI24X console: balance, API keys, plans, and usage." />
   <title>Console · AI24X</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="css/base.css?v=20260831a" />
+  <link rel="stylesheet" href="css/base.css?v=20260905a" />
   <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260812e" data-base="css/themes/" />
   <style>
     .console-hero .hero-eyebrow {
@@ -494,7 +494,7 @@
                 <div class="stat-card">
                   <div class="stat-label" data-i18n="page.console.byok.statusLabel">Gateway</div>
                   <div class="stat-value" id="byok-status-enabled">--</div>
-                  <div class="stat-sub" data-i18n="page.console.byok.statusSub">On / off</div>
+                  <div class="stat-sub" data-i18n="page.console.byok.statusSub">Platform master switch (not per-key)</div>
                 </div>
                 <div class="stat-card">
                   <div class="stat-label" data-i18n="page.console.byok.freeLabel">Free tier this month</div>
@@ -584,7 +584,7 @@
                       <th data-i18n="page.console.byok.colName">Name</th>
                       <th data-i18n="page.console.byok.colKey">Key prefix</th>
                       <th data-i18n="page.console.byok.colModels">Models</th>
-                      <th data-i18n="page.console.byok.colStatus">Status</th>
+                      <th data-i18n="page.console.byok.colStatus">On / Off</th>
                       <th data-i18n="page.console.byok.colLatency">Latency / success</th>
                       <th data-i18n="page.console.byok.colLast">Last used</th>
                       <th class="keys-col-actions" data-i18n="page.console.keys.col.actions">Actions</th>
@@ -593,7 +593,7 @@
                   <tbody id="byokKeysList"></tbody>
                 </table>
               </div>
-              <p class="sub mt-2" data-i18n="page.console.byok.listHint">Multiple keys per model: we pick by success / latency / priority and fail over automatically.</p>
+              <p class="sub mt-2" data-i18n="page.console.byok.listHint">Per-key On/Off is in the Status column and the green/gray button. Off keys are skipped; we pick among On keys by success / latency / priority.</p>
             </div>
 
             <div class="card">
@@ -901,7 +901,7 @@
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="config/locales.js?v=20260904c"></script>
+  <script src="config/locales.js?v=20260905d"></script>
   <script src="js/api.js?v=20260905a"></script>
   <script src="js/invite.js?v=20260731a"></script>
   <script src="js/utm.js?v=20260802a"></script>
@@ -909,7 +909,7 @@
   <script src="js/ai24x-chrome.js?v=20260829n"></script>
   <script src="js/shell.js?v=20260829n"></script>
   <script src="js/app.js?v=20260808b"></script>
-  <script src="js/console.js?v=20260905c"></script>
+  <script src="js/console.js?v=20260905d"></script>
   <script src="js/support-widget.js?v=20260817z"></script>
 </body>
 </html>

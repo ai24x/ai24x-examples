@@ -2987,9 +2987,7 @@
   }
 
   function byokStatusLabel(status) {
-    return status === "active"
-      ? tr("启用中", "Active")
-      : tr("已停用", "Disabled");
+    return status === "active" ? "On" : "Off";
   }
 
   function applyByokKeyStatus(id, st) {
@@ -2997,8 +2995,8 @@
     showMsg(
       msgEl,
       st === "disabled"
-        ? tr("正在停用…", "Disabling…")
-        : tr("正在启用…", "Enabling…"),
+        ? tr("正在关闭…", "Turning off…")
+        : tr("正在打开…", "Turning on…"),
       true
     );
     return AI24X_API.request("/v1/byok/keys/" + id, {
@@ -3010,8 +3008,8 @@
         showMsg(
           msgEl,
           next === "disabled"
-            ? tr("已停用该 Key，调用将不再使用它。", "Key disabled — it will not be used for calls.")
-            : tr("已重新启用该 Key。", "Key enabled again."),
+            ? tr("这把 Key 已 Off，调用不再使用它。", "This key is Off — it will not be used for calls.")
+            : tr("这把 Key 已 On，将重新参与路由。", "This key is On — it will join routing again."),
           true
         );
         return loadByokKeys();
@@ -3030,24 +3028,24 @@
     if (title) {
       title.textContent =
         st === "disabled"
-          ? tr("确认停用这把 Key？", "Disable this key?")
-          : tr("确认启用这把 Key？", "Enable this key?");
+          ? tr("确认关闭这把 Key？", "Turn this key Off?")
+          : tr("确认打开这把 Key？", "Turn this key On?");
     }
     if (sub) {
       sub.textContent =
         st === "disabled"
           ? tr(
-              "停用后「" + label + "」不再参与路由；网关总开关不受影响。可随时再启用。",
-              "After disable, “" + label + "” will leave routing. Gateway On/Off is unchanged. You can enable it again anytime."
+              "关闭后「" + label + "」不再参与路由。上方「网关」总开关不受影响；列表状态会显示 Off。",
+              "After Off, “" + label + "” leaves routing. The Gateway master switch is unchanged; Status will show Off."
             )
           : tr(
-              "启用后「" + label + "」将重新参与路由（仍受网关总开关约束）。",
-              "After enable, “" + label + "” will join routing again (still subject to Gateway On/Off)."
+              "打开后「" + label + "」将重新参与路由（仍受上方网关总开关约束）；列表状态会显示 On。",
+              "After On, “" + label + "” joins routing again (still subject to Gateway). Status will show On."
             );
     }
     if (confirmBtn) {
       confirmBtn.textContent =
-        st === "disabled" ? tr("确认停用", "Disable") : tr("确认启用", "Enable");
+        st === "disabled" ? tr("确认 Off", "Confirm Off") : tr("确认 On", "Confirm On");
       confirmBtn.disabled = false;
     }
     openUiModal("modal-byok-toggle");
@@ -3075,7 +3073,6 @@
     keys.forEach(function (k) {
       var isActive = k.status === "active";
       var stLabel = byokStatusLabel(isActive ? "active" : "disabled");
-      var stColor = isActive ? "#16a34a" : "#9ca3af";
       var rate =
         k.success_rate != null
           ? Math.round(Number(k.success_rate) * 100) + "%"
@@ -3091,12 +3088,12 @@
         '<td class="col-note">' + escapeHtml(k.name || "--") + "</td>" +
         "<td><code>" + escapeHtml(k.key_prefix || "") + "…</code></td>" +
         "<td>" + models + "</td>" +
-        '<td style="color:' + stColor + ';font-weight:600">' + stLabel + "</td>" +
+        '<td><span class="byok-key-state ' + (isActive ? "is-on" : "is-off") + '">' + stLabel + "</span></td>" +
         "<td>" + lat + " · " + rate + "</td>" +
         "<td class='col-time'>" + fmtByokTime(k.last_used_at) + "</td>" +
         "<td>" +
         '<button type="button" class="btn" data-byok-test="' + k.id + '">' + tr("测试", "Test") + '</button> ' +
-        '<button type="button" class="btn' + (isActive ? "" : " btn-primary") + '" data-byok-toggle="' + k.id + '" data-status="' + (isActive ? "disabled" : "active") + '" data-prefix="' + escapeHtml(k.key_prefix || "") + '">' + (isActive ? tr("停用", "Disable") : tr("启用", "Enable")) + "</button> " +
+        '<button type="button" class="btn ' + (isActive ? "btn-byok-on" : "btn-byok-off") + '" data-byok-toggle="' + k.id + '" data-status="' + (isActive ? "disabled" : "active") + '" data-prefix="' + escapeHtml(k.key_prefix || "") + '" title="' + (isActive ? tr("点击关闭", "Click to turn Off") : tr("点击打开", "Click to turn On")) + '">' + stLabel + "</button> " +
         '<button type="button" class="btn" data-byok-del="' + k.id + '">' + tr("删除", "Delete") + '</button>' +
         "</td></tr>";
     });
