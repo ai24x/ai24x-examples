@@ -1,6 +1,6 @@
-﻿$ErrorActionPreference = "Stop"
+﻿﻿$ErrorActionPreference = "Stop"
 $work = "C:\ai24x01"
-$EXP  = "3f8a7a264e7c"
+$EXP  = "deed347918e5"
 Set-Location $work
 
 Write-Host "== 1. fetch + pull ==" -ForegroundColor Cyan
@@ -52,4 +52,4 @@ $pubWww = (Invoke-WebRequest -UseBasicParsing -Uri ("https://www.ai24x.com/conso
 if ($pubWww -notlike "*console.js?v=20260905e*") { throw "public www console.js version stale" }
 
 Write-Host ("DONE EXP=$EXP HEAD=$HEAD health=$($ph.commit)") -ForegroundColor Green
-# ✅ 04更新完成｜open Credits+BYOK停用UX｜EXP=3f8a7a264e7c HEAD=<HEAD> health=<commit>｜公网验收通过
+# ✅ 04更新完成｜open Credits+BYOK停用UX｜EXP=deed347918e5 HEAD=<HEAD> health=<commit>｜公网验收通过
