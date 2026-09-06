@@ -1760,10 +1760,12 @@
     headers["X-SMS-Internal-Key"] = state.key;
     headers["X-Admin-Key"] = state.key;
     if (opts.body && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
+    // 管理台一律不走 HTTP 缓存：部署前对缺失接口的 404 若被缓存，换 hours 等参数会「假 404」
     var r = await fetch(state.base + path, {
       method: opts.method || "GET",
       headers: headers,
       body: opts.body ? JSON.stringify(opts.body) : undefined,
+      cache: "no-store",
     });
     var text = "";
     try { text = await r.text(); } catch (e) { text = ""; }
@@ -1781,7 +1783,14 @@
       } else if (d && typeof d === "object") {
         msg = String(d.message_zh || d.message || d.message_en || d.msg || "").trim();
       }
-      if (!msg) msg = "HTTP " + r.status;
+      if (!msg) {
+        msg = /<\s*html/i.test(text || "")
+          ? ("HTTP " + r.status + "（非 JSON，请确认 API 为 https://api.ai24x.com）")
+          : ("HTTP " + r.status);
+      }
+      if (r.status === 404 && /channel_calls/.test(String(path || ""))) {
+        msg = "通道流水接口 404（可能是旧缓存）。请 Ctrl+F5 强刷本页后重试；若仍失败则需重启 core。";
+      }
       var err = new Error(msg);
       err.status = r.status;
       err.detail = msg;
@@ -2708,7 +2717,9 @@
   }
 
   async function loadChannelLog() {
-    var hours = Number(($("chLogHours") && $("chLogHours").value) || 24);
+    var hours = parseInt(($("chLogHours") && $("chLogHours").value) || "24", 10);
+    if (!isFinite(hours) || hours < 1) hours = 24;
+    if (hours > 168) hours = 168;
     var provider = (($("chLogProvider") && $("chLogProvider").value) || "").trim();
     var q = (($("chLogQ") && $("chLogQ").value) || "").trim();
     var qs =
@@ -2716,7 +2727,9 @@
       encodeURIComponent(hours) +
       "&limit=150" +
       (provider ? "&provider=" + encodeURIComponent(provider) : "") +
-      (q ? "&q=" + encodeURIComponent(q) : "");
+      (q ? "&q=" + encodeURIComponent(q) : "") +
+      "&_=" +
+      encodeURIComponent(String(Date.now()));
     var r = await api("/v1/admin/token/channel_calls?" + qs);
     if ($("channelLogNote") && r.ops_note) $("channelLogNote").textContent = r.ops_note;
     if ($("channelLogByProv")) {
@@ -4837,6 +4850,16 @@
       try {
         await loadChannelLog();
         setMsg("通道×用户流水已刷新", "ok");
+      } catch (e) {
+        setMsg(String(e.message || e), "err");
+      }
+    };
+  }
+  if ($("chLogHours")) {
+    $("chLogHours").onchange = async function () {
+      try {
+        await loadChannelLog();
+        setMsg("已按 " + (($("chLogHours") && $("chLogHours").value) || "") + " 小时刷新", "ok");
       } catch (e) {
         setMsg(String(e.message || e), "err");
       }

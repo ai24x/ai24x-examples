@@ -1899,16 +1899,25 @@ async def admin_token_channel_calls(
     db: Session = Depends(get_db),
 ):
     """上游通道×用户调用流水（含对外档 / 上游型号 / token）。"""
+    from fastapi.responses import JSONResponse
+
     _require_internal_key(request)
     from admin_ops_service import admin_channel_calls
 
-    return admin_channel_calls(
+    payload = admin_channel_calls(
         db,
         hours=hours,
         limit=limit,
         provider=provider,
         auth_user_id=auth_user_id,
         q=q,
+    )
+    return JSONResponse(
+        content=payload,
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+            "Pragma": "no-cache",
+        },
     )
 
 
