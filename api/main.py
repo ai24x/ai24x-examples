@@ -1888,9 +1888,9 @@ async def admin_token_usage_monitor(
     return admin_usage_monitor(db, days=days, top_n=top_n)
 
 
-@app.get("/v1/admin/token/channel_calls")
-@app.post("/v1/admin/token/channel_calls")
-@app.post("/v1/admin/token/channel_log")
+@app.api_route("/v1/admin/token/channel_calls", methods=["GET", "POST"])
+@app.api_route("/v1/admin/token/channel_log", methods=["GET", "POST"])
+@app.api_route("/v1/admin/token/channel_flow", methods=["GET", "POST"])
 async def admin_token_channel_calls(
     request: Request,
     hours: int = 24,
@@ -1902,12 +1902,12 @@ async def admin_token_channel_calls(
 ):
     """上游通道×用户调用流水（含对外档 / 上游型号 / token）。
 
-    管理台请用 POST /v1/admin/token/channel_log（JSON body），避免 CDN 把旧 GET 404 缓存 7 天。
+    管理台主路径：GET /v1/admin/token/channel_flow（新路径，避开 CDN 旧 404/方法缓存）。
     """
     from fastapi.responses import JSONResponse
 
     _require_internal_key(request)
-    # POST JSON 可覆盖 query（前端主路径）
+    # POST JSON 可覆盖 query
     if request.method.upper() == "POST":
         try:
             body = await request.json()
