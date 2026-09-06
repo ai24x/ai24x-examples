@@ -1788,8 +1788,9 @@
           ? ("HTTP " + r.status + "（非 JSON，请确认 API 为 https://api.ai24x.com）")
           : ("HTTP " + r.status);
       }
-      if (r.status === 404 && /channel_calls/.test(String(path || ""))) {
-        msg = "通道流水接口 404（可能是旧缓存）。请 Ctrl+F5 强刷本页后重试；若仍失败则需重启 core。";
+      if (r.status === 404 && /channel_(calls|log)/.test(String(path || ""))) {
+        msg =
+          "通道流水接口 404。请确认 API 根地址为 https://api.ai24x.com（不要用 www），并 Ctrl+F5 强刷管理台。";
       }
       var err = new Error(msg);
       err.status = r.status;
@@ -2722,15 +2723,11 @@
     if (hours > 168) hours = 168;
     var provider = (($("chLogProvider") && $("chLogProvider").value) || "").trim();
     var q = (($("chLogQ") && $("chLogQ").value) || "").trim();
-    var qs =
-      "hours=" +
-      encodeURIComponent(hours) +
-      "&limit=150" +
-      (provider ? "&provider=" + encodeURIComponent(provider) : "") +
-      (q ? "&q=" + encodeURIComponent(q) : "") +
-      "&_=" +
-      encodeURIComponent(String(Date.now()));
-    var r = await api("/v1/admin/token/channel_calls?" + qs);
+    // POST + 新路径：避开 EdgeOne 对旧 GET /channel_calls?hours=72 的 7 天 404 缓存
+    var r = await api("/v1/admin/token/channel_log", {
+      method: "POST",
+      body: { hours: hours, limit: 150, provider: provider, q: q },
+    });
     if ($("channelLogNote") && r.ops_note) $("channelLogNote").textContent = r.ops_note;
     if ($("channelLogByProv")) {
       var bp = r.by_provider || [];

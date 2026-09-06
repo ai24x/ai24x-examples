@@ -1889,6 +1889,8 @@ async def admin_token_usage_monitor(
 
 
 @app.get("/v1/admin/token/channel_calls")
+@app.post("/v1/admin/token/channel_calls")
+@app.post("/v1/admin/token/channel_log")
 async def admin_token_channel_calls(
     request: Request,
     hours: int = 24,
@@ -1898,10 +1900,31 @@ async def admin_token_channel_calls(
     q: str = "",
     db: Session = Depends(get_db),
 ):
-    """上游通道×用户调用流水（含对外档 / 上游型号 / token）。"""
+    """上游通道×用户调用流水（含对外档 / 上游型号 / token）。
+
+    管理台请用 POST /v1/admin/token/channel_log（JSON body），避免 CDN 把旧 GET 404 缓存 7 天。
+    """
     from fastapi.responses import JSONResponse
 
     _require_internal_key(request)
+    # POST JSON 可覆盖 query（前端主路径）
+    if request.method.upper() == "POST":
+        try:
+            body = await request.json()
+        except Exception:
+            body = None
+        if isinstance(body, dict):
+            if body.get("hours") is not None:
+                hours = int(body.get("hours") or hours)
+            if body.get("limit") is not None:
+                limit = int(body.get("limit") or limit)
+            if body.get("provider") is not None:
+                provider = str(body.get("provider") or "")
+            if body.get("auth_user_id") is not None and str(body.get("auth_user_id")).strip() != "":
+                auth_user_id = int(body.get("auth_user_id"))
+            if body.get("q") is not None:
+                q = str(body.get("q") or "")
+
     from admin_ops_service import admin_channel_calls
 
     payload = admin_channel_calls(
@@ -1915,8 +1938,10 @@ async def admin_token_channel_calls(
     return JSONResponse(
         content=payload,
         headers={
-            "Cache-Control": "no-store, no-cache, must-revalidate",
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
             "Pragma": "no-cache",
+            "CDN-Cache-Control": "no-store",
+            "Edge-Control": "no-store",
         },
     )
 
