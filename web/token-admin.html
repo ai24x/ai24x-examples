@@ -1705,7 +1705,26 @@
   function clearSession() { sessionStorage.removeItem(SK); }
 
   function normBase(b) {
-    return String(b || "").trim().replace(/\/+$/, "");
+    var s = String(b || "").trim().replace(/\/+$/, "");
+    // 生产管理台绝不能打到 www（静态站无 /v1，会 404）
+    if (/^https?:\/\/(www\.)?ai24x\.com$/i.test(s)) {
+      s = "https://api.ai24x.com";
+    }
+    if (/^https?:\/\/www\.ai24x\.com\//i.test(s)) {
+      s = "https://api.ai24x.com";
+    }
+    return s;
+  }
+  function ensureApiBase() {
+    var fixed = normBase(state.base);
+    if (fixed && fixed !== state.base) {
+      state.base = fixed;
+      try {
+        if ($("apiBase")) $("apiBase").value = fixed;
+        saveSession();
+      } catch (e) {}
+    }
+    return state.base;
   }
   function scrubKey(s) {
     return String(s || "")
@@ -1756,12 +1775,14 @@
 
   async function api(path, opts) {
     opts = opts || {};
+    ensureApiBase();
     var headers = Object.assign({}, opts.headers || {});
     headers["X-SMS-Internal-Key"] = state.key;
     headers["X-Admin-Key"] = state.key;
     if (opts.body && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
+    var url = state.base + path;
     // 管理台一律不走 HTTP 缓存：部署前对缺失接口的 404 若被缓存，换 hours 等参数会「假 404」
-    var r = await fetch(state.base + path, {
+    var r = await fetch(url, {
       method: opts.method || "GET",
       headers: headers,
       body: opts.body ? JSON.stringify(opts.body) : undefined,
@@ -1790,10 +1811,17 @@
       }
       if (r.status === 404 && /channel_(calls|log|flow)/.test(String(path || ""))) {
         msg =
-          "通道流水接口不可用。请确认 API 为 https://api.ai24x.com，Ctrl+F5 强刷管理台后再试。";
+          "通道流水 404。当前请求：" +
+          url +
+          "。生产必须用 https://api.ai24x.com（不要用 www）。请改登录页 API 地址后重新登录。";
       }
       if (r.status === 405) {
-        msg = "请求方法不被接受（405）。请 Ctrl+F5 强刷管理台；若仍失败请检查 API 根地址是否为 api.ai24x.com。";
+        msg =
+          "请求方法不被接受（405）。当前：" +
+          (opts.method || "GET") +
+          " " +
+          url +
+          "。请 Ctrl+F5 后重试。";
       }
       var err = new Error(msg);
       err.status = r.status;
