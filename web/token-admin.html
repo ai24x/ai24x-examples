@@ -4393,6 +4393,7 @@
   }
 
   async function enterApp() {
+    ensureApiBase();
     $("gate").classList.remove("on");
     $("app").classList.add("on");
     $("baseLabel").textContent = "API：" + state.base + " · 左侧一级菜单，右侧子功能";
