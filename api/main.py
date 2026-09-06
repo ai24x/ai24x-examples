@@ -1888,6 +1888,30 @@ async def admin_token_usage_monitor(
     return admin_usage_monitor(db, days=days, top_n=top_n)
 
 
+@app.get("/v1/admin/token/channel_calls")
+async def admin_token_channel_calls(
+    request: Request,
+    hours: int = 24,
+    limit: int = 100,
+    provider: str = "",
+    auth_user_id: int | None = None,
+    q: str = "",
+    db: Session = Depends(get_db),
+):
+    """上游通道×用户调用流水（含对外档 / 上游型号 / token）。"""
+    _require_internal_key(request)
+    from admin_ops_service import admin_channel_calls
+
+    return admin_channel_calls(
+        db,
+        hours=hours,
+        limit=limit,
+        provider=provider,
+        auth_user_id=auth_user_id,
+        q=q,
+    )
+
+
 @app.post("/v1/admin/users/{user_id}/freeze")
 async def admin_user_freeze(
     user_id: int,

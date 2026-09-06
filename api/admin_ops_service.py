@@ -432,6 +432,159 @@ def admin_usage_monitor(db: Session, *, days: int = 1, top_n: int = 20) -> dict[
     }
 
 
+def admin_channel_calls(
+    db: Session,
+    *,
+    hours: int = 24,
+    limit: int = 100,
+    provider: str = "",
+    auth_user_id: int | None = None,
+    q: str = "",
+) -> dict[str, Any]:
+    """上游通道×用户调用流水（chat_requests）。
+
+    新请求写入 auth_user_id / public_model / provider；历史行尽量从 user_id=auth_{id} 反推用户。
+    """
+    from models import ChatRequest
+
+    hours = max(1, min(168, int(hours or 24)))
+    limit = max(10, min(500, int(limit or 100)))
+    since = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=hours)
+    prov_f = str(provider or "").strip().lower()
+    q = str(q or "").strip()
+
+    qry = db.query(ChatRequest).filter(ChatRequest.request_time >= since)
+    if auth_user_id is not None:
+        uid = int(auth_user_id)
+        qry = qry.filter(
+            or_(
+                ChatRequest.auth_user_id == uid,
+                ChatRequest.user_id == f"auth_{uid}",
+            )
+        )
+    if prov_f:
+        qry = qry.filter(func.lower(ChatRequest.provider) == prov_f)
+    rows = qry.order_by(ChatRequest.id.desc()).limit(limit).all()
+
+    # 批量取邮箱
+    auth_ids: set[int] = set()
+    for r in rows:
+        if getattr(r, "auth_user_id", None):
+            auth_ids.add(int(r.auth_user_id))
+        else:
+            uid_s = str(r.user_id or "")
+            if uid_s.startswith("auth_"):
+                try:
+                    auth_ids.add(int(uid_s.split("_", 1)[1]))
+                except Exception:
+                    pass
+    email_map: dict[int, str] = {}
+    if auth_ids:
+        for u in db.query(AuthUser).filter(AuthUser.id.in_(list(auth_ids))).all():
+            email_map[int(u.id)] = (u.email or "") or ""
+
+    if q:
+        ql = q.lower()
+
+        def _match(r) -> bool:
+            aid = getattr(r, "auth_user_id", None)
+            if aid is None:
+                uid_s = str(r.user_id or "")
+                if uid_s.startswith("auth_"):
+                    try:
+                        aid = int(uid_s.split("_", 1)[1])
+                    except Exception:
+                        aid = None
+            em = email_map.get(int(aid), "") if aid is not None else ""
+            blob = " ".join(
+                [
+                    str(aid or ""),
+                    em,
+                    str(r.user_id or ""),
+                    str(getattr(r, "provider", None) or ""),
+                    str(getattr(r, "public_model", None) or ""),
+                    str(r.model or ""),
+                    str(r.request_id or ""),
+                ]
+            ).lower()
+            return ql in blob
+
+        rows = [r for r in rows if _match(r)]
+
+    out_rows = []
+    for r in rows:
+        aid = getattr(r, "auth_user_id", None)
+        if aid is None:
+            uid_s = str(r.user_id or "")
+            if uid_s.startswith("auth_"):
+                try:
+                    aid = int(uid_s.split("_", 1)[1])
+                except Exception:
+                    aid = None
+        out_rows.append(
+            {
+                "id": int(r.id),
+                "request_id": r.request_id,
+                "request_time": r.request_time.isoformat() if r.request_time else None,
+                "auth_user_id": int(aid) if aid is not None else None,
+                "email": email_map.get(int(aid), "") if aid is not None else "",
+                "gateway_user_id": r.user_id,
+                "public_model": getattr(r, "public_model", None) or None,
+                "provider": getattr(r, "provider", None) or None,
+                "upstream_model": r.model,
+                "token_count": int(r.token_count or 0),
+                "status": r.status,
+                "is_success": bool(r.is_success),
+                "error": (r.error_message or "")[:160] or None,
+                "duration_sec": float(r.processing_duration)
+                if r.processing_duration is not None
+                else None,
+            }
+        )
+
+    # 按通道汇总（同时间窗）
+    from sqlalchemy import case
+
+    agg_rows = (
+        db.query(
+            func.coalesce(ChatRequest.provider, "(unknown)").label("provider"),
+            func.count(ChatRequest.id).label("n"),
+            func.coalesce(func.sum(ChatRequest.token_count), 0).label("tokens"),
+            func.coalesce(
+                func.sum(case((ChatRequest.is_success.is_(True), 1), else_=0)),
+                0,
+            ).label("ok_n"),
+        )
+        .filter(ChatRequest.request_time >= since)
+        .group_by(func.coalesce(ChatRequest.provider, "(unknown)"))
+        .order_by(func.sum(ChatRequest.token_count).desc())
+        .limit(30)
+        .all()
+    )
+    by_provider = [
+        {
+            "provider": str(p or "(unknown)"),
+            "calls": int(n or 0),
+            "tokens": int(tok or 0),
+            "ok_calls": int(ok or 0),
+        }
+        for p, n, tok, ok in agg_rows
+    ]
+
+    return {
+        "ok": True,
+        "hours": hours,
+        "since": since.isoformat(),
+        "limit": limit,
+        "rows": out_rows,
+        "by_provider": by_provider,
+        "ops_note": (
+            "明细来自 chat_requests：用户 + 对外档 + 上游通道/型号 + token。"
+            "部署后新请求会写满 provider/public_model；历史行可能缺通道名，仍可按用户反查。"
+        ),
+    }
+
+
 def admin_ops_alerts(db: Session) -> dict[str, Any]:
     """轻量告警：不发飞书，只返回列表供管理台展示。"""
     from model_router import _layer_upstream, _upstream_mode

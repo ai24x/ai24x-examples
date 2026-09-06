@@ -37,10 +37,14 @@ class ChatRequest(Base):
     request_id = Column(String(255), unique=True, index=True, nullable=False)
     user_id = Column(String(255), index=True, nullable=False)
     user_type = Column(Enum(UserType), nullable=False)
+    # 运维：通道×用户流水（可空=历史行；新请求写入）
+    auth_user_id = Column(Integer, nullable=True, index=True)
+    public_model = Column(String(64), nullable=True, index=True)  # 对外档 flash/shared/vip-*
+    provider = Column(String(64), nullable=True, index=True)  # 上游厂/通道名
 
     # Request data
     prompt = Column(Text, nullable=False)
-    model = Column(String(100), nullable=True)
+    model = Column(String(100), nullable=True)  # 完成后记上游真实 model id
     temperature = Column(Float, default=0.7)
     max_tokens = Column(Integer, default=1000)
 

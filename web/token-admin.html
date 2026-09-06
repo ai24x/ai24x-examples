@@ -421,29 +421,41 @@
             <span>模型与运维</span><span class="chev">▾</span>
           </button>
           <div class="nav-l2">
+            <button type="button" class="nav-item" data-panel="p-ops-home">
+              运维总览
+              <span class="subt">告警 · 高耗 · 熔断 · 共享池 · 一屏值班</span>
+            </button>
             <button type="button" class="nav-item" data-panel="p-usage">
-              用量监控
-              <span class="subt">高耗用户 · 模型 · 通道</span>
+              用量与异常
+              <span class="subt">高耗用户 · 对外模型 · Key 就绪</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-channel-log">
+              通道×用户流水
+              <span class="subt">上游调用明细 · 按通道汇总 · 对应用户</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-alert">
+              预警中心
+              <span class="subt">实时告警 · 飞书巡检 · 推送配置</span>
             </button>
             <button type="button" class="nav-item" data-panel="p-warehouse">
               模型仓库
-              <span class="subt">档位 · 层 · 容灾</span>
-            </button>
-            <button type="button" class="nav-item" data-panel="p-econ">
-              毛利与告警
-              <span class="subt">流水粗算 · 探活</span>
-            </button>
-            <button type="button" class="nav-item" data-panel="p-supply">
-              供应链监控
-              <span class="subt">价格 · 毛利 · 供货商比价</span>
-            </button>
-            <button type="button" class="nav-item" data-panel="p-alert">
-              预警通道
-              <span class="subt">飞书告警 · 定时巡检 · 测试推送</span>
+              <span class="subt">档位 · 层 · VIP 费率 · 容灾</span>
             </button>
             <button type="button" class="nav-item" data-panel="p-shared">
               免费共享
-              <span class="subt">引流池 · 日帽</span>
+              <span class="subt">引流池 · 日帽 · 调度</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-sys">
+              上游密钥
+              <span class="subt">支付/LLM 开关 · Key 掩码覆盖</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-supply">
+              供应链
+              <span class="subt">Flash 通道价表 · 比价 · 切换建议</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="p-econ">
+              毛利粗算
+              <span class="subt">流水估毛利 · 上游探活</span>
             </button>
           </div>
         </div>
@@ -460,10 +472,6 @@
             <button type="button" class="nav-item" data-panel="p-email">
               邮件服务
               <span class="subt">主 / 备 SMTP · 模板 · 测试</span>
-            </button>
-            <button type="button" class="nav-item" data-panel="p-sys">
-              开关与密钥
-              <span class="subt">支付 / LLM · 上游 Key</span>
             </button>
           </div>
         </div>
@@ -1038,12 +1046,50 @@
             </div>
           </div>
 
+          <div class="panel-page" id="p-ops-home">
+            <div class="card">
+              <div class="row" style="justify-content:space-between;align-items:flex-start;">
+                <div>
+                  <h2 style="margin:0;">运维总览</h2>
+                  <p class="muted small" style="margin:6px 0 0;">值班一屏：告警、高耗用户、上游熔断、共享池。细查请用下方快捷入口。</p>
+                </div>
+                <div class="row">
+                  <button type="button" class="ok" id="btnOpsHomeRefresh">刷新总览</button>
+                </div>
+              </div>
+              <div class="section-label">今日摘要</div>
+              <div class="grid" id="opsHomeSummary"></div>
+              <div class="section-label">当前告警</div>
+              <div id="opsHomeAlerts" style="font-size:13px;margin-bottom:8px;">—</div>
+              <div class="row" style="gap:8px;margin:0 0 12px;flex-wrap:wrap;">
+                <button type="button" class="ops-goto" data-goto="p-alert">打开预警中心</button>
+                <button type="button" class="ops-goto" data-goto="p-usage">用量与异常</button>
+                <button type="button" class="ops-goto" data-goto="p-channel-log">通道×用户流水</button>
+                <button type="button" class="ops-goto" data-goto="p-shared">免费共享</button>
+                <button type="button" class="ops-goto" data-goto="p-supply">供应链</button>
+                <button type="button" class="ops-goto" data-goto="p-sys">上游密钥</button>
+              </div>
+              <div class="section-label">高消耗用户（近 1 日）</div>
+              <div style="overflow:auto;max-height:240px;">
+                <table>
+                  <thead><tr><th>用户</th><th>Token</th><th>$</th><th>标记</th><th></th></tr></thead>
+                  <tbody id="opsHomeUsers"></tbody>
+                </table>
+              </div>
+              <div class="section-label">上游熔断 / 健康</div>
+              <div class="glance-grid" id="opsHomeCircuits"></div>
+              <div class="section-label">免费共享池今日</div>
+              <div class="grid" id="opsHomeShared"></div>
+              <p class="muted small" style="margin:12px 0 0;">细查调用请打开「通道×用户流水」；高耗汇总见「用量与异常」。</p>
+            </div>
+          </div>
+
           <div class="panel-page" id="p-usage">
             <div class="card">
               <div class="row" style="justify-content:space-between;align-items:flex-start;">
                 <div>
-                  <h2 style="margin:0;">用量与通道监控</h2>
-                  <p class="muted small" style="margin:6px 0 0;" id="usageOpsNote">按用户 / 模型看平台额度消耗；高耗可去「用户与钱包」冻结。通道 ready=已填 Key（各厂账户余额请看厂商控制台）。</p>
+                  <h2 style="margin:0;">用量与异常</h2>
+                  <p class="muted small" style="margin:6px 0 0;" id="usageOpsNote">按用户 / 对外模型看平台额度消耗；高耗可跳钱包冻结。Key 就绪≠厂商账户有余额。</p>
                 </div>
                 <div class="row">
                   <div class="field" style="min-width:110px;"><span class="lbl">监控天数</span>
@@ -1054,27 +1100,71 @@
                     </select>
                   </div>
                   <button type="button" class="ok" id="btnUsageRefresh">刷新监控</button>
+                  <button type="button" class="ops-goto" data-goto="p-alert">预警中心</button>
                 </div>
               </div>
               <div class="section-label">摘要</div>
               <div class="grid" id="usageSummaryGrid"></div>
               <div class="row" id="usageAlertPills" style="margin:10px 0;"></div>
-              <div class="section-label">高消耗用户</div>
+              <div class="section-label">高消耗用户（含用户标识）</div>
               <div style="overflow:auto;max-height:280px;">
                 <table>
-                  <thead><tr><th>用户</th><th>消耗</th><th>流水笔数</th><th>标记</th><th></th></tr></thead>
+                  <thead><tr><th>用户</th><th>Token</th><th>$</th><th>流水笔数</th><th>标记</th><th></th></tr></thead>
                   <tbody id="usageUserBody"></tbody>
                 </table>
               </div>
-              <div class="section-label">高消耗模型</div>
+              <div class="section-label">高消耗对外模型</div>
               <div style="overflow:auto;max-height:280px;">
                 <table>
                   <thead><tr><th>模型</th><th>消耗</th><th>流水笔数</th><th>标记</th></tr></thead>
                   <tbody id="usageModelBody"></tbody>
                 </table>
               </div>
-              <div class="section-label">上游通道就绪</div>
+              <div class="section-label">上游 Key 就绪（非调用流水）</div>
+              <p class="muted small" style="margin:0 0 8px;">此处只看 Key 是否配置。真实调用明细见「通道×用户流水」。</p>
               <div class="glance-grid" id="usageProviderGrid"></div>
+            </div>
+          </div>
+
+          <div class="panel-page" id="p-channel-log">
+            <div class="card">
+              <div class="row" style="justify-content:space-between;align-items:flex-start;">
+                <div>
+                  <h2 style="margin:0;">通道×用户流水</h2>
+                  <p class="muted small" style="margin:6px 0 0;" id="channelLogNote">谁在调哪条上游：用户 · 对外档 · 通道/型号 · token。新请求部署后字段更完整；历史行可能缺通道名。</p>
+                </div>
+                <div class="row" style="flex-wrap:wrap;">
+                  <div class="field" style="min-width:100px;"><span class="lbl">近 N 小时</span>
+                    <select id="chLogHours">
+                      <option value="6">6</option>
+                      <option value="24" selected>24</option>
+                      <option value="72">72</option>
+                      <option value="168">168</option>
+                    </select>
+                  </div>
+                  <div class="field" style="min-width:140px;"><span class="lbl">通道</span>
+                    <input id="chLogProvider" type="text" placeholder="如 openrouter" />
+                  </div>
+                  <div class="field" style="min-width:160px;"><span class="lbl">用户搜索</span>
+                    <input id="chLogQ" type="text" placeholder="邮箱 / ID / model" />
+                  </div>
+                  <button type="button" class="ok" id="btnChannelLogRefresh">刷新</button>
+                  <button type="button" class="ops-goto" data-goto="p-usage">用量与异常</button>
+                </div>
+              </div>
+              <div class="section-label">按通道汇总</div>
+              <div class="glance-grid" id="channelLogByProv"></div>
+              <div class="section-label">调用明细</div>
+              <div style="overflow:auto;max-height:480px;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>时间</th><th>用户</th><th>对外档</th><th>通道</th><th>上游型号</th><th>Token</th><th>状态</th><th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="channelLogBody"></tbody>
+                </table>
+              </div>
             </div>
           </div>
 
@@ -1082,7 +1172,7 @@
             <div class="card">
               <div class="row" style="justify-content:space-between;align-items:flex-start;">
                 <div>
-                  <h2 style="margin:0;">开关与密钥</h2>
+                  <h2 style="margin:0;">上游密钥与开关</h2>
                   <p class="muted small" style="margin:6px 0 0;" id="sysOpsNote">支付 / LLM 开关；上游 Key 掩码与临时覆盖。改 .env 后须重启 API。</p>
                 </div>
                 <div class="row">
@@ -1197,8 +1287,8 @@
             <div class="card">
               <div class="row" style="justify-content:space-between;align-items:flex-start;">
                 <div>
-                  <h2 style="margin:0;">毛利与告警</h2>
-                  <p class="muted small" style="margin:6px 0 0;">流水粗算毛利（Flash 均价，会低估 Claude）；精确对账看厂商账单。异常会出现在下方告警条。</p>
+                  <h2 style="margin:0;">毛利粗算</h2>
+                  <p class="muted small" style="margin:6px 0 0;">流水粗算毛利（Flash 均价，会低估 Claude）；精确对账看厂商账单。运维告警请到「预警中心」。</p>
                 </div>
                 <div class="row">
                   <div class="field" style="min-width:110px;"><span class="lbl">毛利天数</span>
@@ -1211,12 +1301,13 @@
                   <button type="button" id="btnEconRefresh">刷新毛利</button>
                   <button type="button" id="btnUpstreamProbe">上游摘要</button>
                   <button type="button" id="btnUpstreamLive">探活 L0/L1</button>
+                  <button type="button" class="ops-goto" data-goto="p-alert">预警中心</button>
                 </div>
               </div>
               <div class="section-label">成本毛利（流水粗算）</div>
               <div class="grid" id="sysEconGrid"></div>
-              <div class="section-label">运维告警</div>
-              <div class="row" id="alertPills" style="margin-top:4px;"></div>
+              <div class="section-label">快捷说明</div>
+              <p class="muted small" id="econAlertHint" style="margin:0;">告警已集中到「预警中心」；本页只做毛利与探活。</p>
               <details class="sys-detail" id="sysDetailBox" style="margin-top:12px;">
                 <summary>原始详情 / 探活结果（默认收起）</summary>
                 <pre id="sysDetailOut" class="mono small">—</pre>
@@ -1224,7 +1315,7 @@
             </div>
           </div>
 
-                    <div class="panel-page" id="p-alert">
+          <div class="panel-page" id="p-alert">
             <div class="card">
               <div class="row" style="justify-content:space-between;align-items:flex-start;">
                 <div>
@@ -1302,7 +1393,7 @@
             <div class="card">
               <div class="row" style="justify-content:space-between;align-items:flex-start;">
                 <div>
-                  <h2 style="margin:0;">供应链监控 · 价格 / 毛利 / 供货商比价</h2>
+                  <h2 style="margin:0;">供应链 · 价格 / 毛利 / 供货商比价</h2>
                   <p class="muted small" style="margin:6px 0 0;">逐模型监控双口径毛利（输入端 / 输出端 / 1:1 混合 / 1:4 加权）；倒挂（GM&lt;0）标红、混合毛利&lt;20% 标黄；与 OR/TL/Requesty 实拉价对比，成本高于市场最低 1.2 倍提示可切通道。预警已接入巡检：倒挂=P0，低毛利=P1。</p>
                 </div>
                 <div class="row">
@@ -1587,6 +1678,7 @@
 (function () {
   var SK = "ai24x_token_admin_v1";
   var NAV_GROUP_KEY = "ai24x_token_admin_nav_group";
+  var NAV_PANEL_KEY = "ai24x_token_admin_nav_panels";
   var $ = function (id) { return document.getElementById(id); };
   var state = { base: "", key: "", panel: "p-dash", ordOffset: 0, usersOffset: 0 };
 
@@ -1646,7 +1738,7 @@
       return "服务端未配置内部密钥。请检查配置后重启 API 进程。";
     }
     if (status === 404) {
-      return "接口不存在（404）。生产请用 https://api.ai24x.com ；本机用 http://127.0.0.1:8000。不要填 www。";
+      return "接口不存在（404）。生产请用 https://api.ai24x.com ；本机用 http://127.0.0.1:8000。不要填 www。若刚加新菜单，需先更新并重启 core-api。";
     }
     return d || ("HTTP " + status);
   }
@@ -1814,13 +1906,41 @@
     return g ? String(g.getAttribute("data-group") || "") : "";
   }
 
+  function loadPanelMap() {
+    try {
+      var raw = localStorage.getItem(NAV_PANEL_KEY);
+      var map = raw ? JSON.parse(raw) : {};
+      return map && typeof map === "object" ? map : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function rememberPanel(panelId) {
+    panelId = String(panelId || "");
+    var gid = getGroupForPanel(panelId);
+    if (!gid || !panelId) return;
+    try {
+      var map = loadPanelMap();
+      map[gid] = panelId;
+      localStorage.setItem(NAV_PANEL_KEY, JSON.stringify(map));
+      localStorage.setItem(NAV_GROUP_KEY, gid);
+    } catch (e) {}
+  }
+
+  function rememberedPanel(groupId) {
+    var pid = String(loadPanelMap()[groupId] || "");
+    if (pid && $(pid) && getGroupForPanel(pid) === groupId) return pid;
+    return "";
+  }
+
   function groupDefaultPanel(groupId) {
     var pref = {
       "g-overview": "p-dash",
       "g-prod": "p-prod-summary",
       "g-pay": "p-orders",
       "g-wallet": "p-users",
-      "g-sys": "p-usage",
+      "g-sys": "p-ops-home",
       "g-config": "p-sms",
     };
     var pid = pref[groupId] || "p-dash";
@@ -1879,9 +1999,11 @@
     });
     try { localStorage.setItem(NAV_GROUP_KEY, groupId); } catch (e) {}
     renderSubnav(groupId);
-    var next = forcePanel || (
-      getGroupForPanel(state.panel) === groupId ? state.panel : groupDefaultPanel(groupId)
-    );
+    // 优先：显式指定 → 当前已在本栏 → 本栏上次停留页 → 栏目默认页
+    var next = forcePanel ||
+      (getGroupForPanel(state.panel) === groupId ? state.panel : "") ||
+      rememberedPanel(groupId) ||
+      groupDefaultPanel(groupId);
     return showPanel(next);
   }
 
@@ -1889,6 +2011,7 @@
     panelId = String(panelId || "p-dash");
     if (!$(panelId)) panelId = "p-dash";
     state.panel = panelId;
+    rememberPanel(panelId);
     qsa(".panel-page").forEach(function (p) {
       p.classList.toggle("active", p.id === panelId);
     });
@@ -2277,7 +2400,6 @@
     var sys = await api("/v1/admin/token/system");
     var routing = await api("/v1/admin/token/routing");
     var econ = await api("/v1/admin/token/economics?days=" + days);
-    var alerts = await api("/v1/admin/token/alerts");
 
     if ($("sysEconGrid")) {
       $("sysEconGrid").innerHTML =
@@ -2288,25 +2410,196 @@
         _statCard("新用户", econ.new_users);
     }
 
-    if ($("alertPills")) {
-      var list = alerts.alerts || [];
-      $("alertPills").innerHTML = list.length
-        ? list
-            .map(function (al) {
-              var cls = al.level === "error" ? "bad" : al.level === "warn" ? "warn" : "ok";
-              return '<span class="pill ' + cls + '">' + esc(al.msg || al.code) + "</span>";
-            })
-            .join(" ")
-        : '<span class="pill ok">暂无告警</span>';
-    }
-
     if ($("sysDetailOut")) {
       $("sysDetailOut").textContent = JSON.stringify(
-        { system: sys, routing: routing, economics: econ, alerts: alerts },
+        { system: sys, routing: routing, economics: econ },
         null,
         2
       );
     }
+    _bindOpsGoto();
+  }
+
+  function _fmtUsdCents(cents) {
+    var n = Number(cents || 0) / 100;
+    return "$" + n.toFixed(2);
+  }
+
+  function _bindGotoWalletButtons(selector) {
+    qsa(selector).forEach(function (btn) {
+      btn.onclick = function () {
+        var uid = btn.getAttribute("data-uid");
+        if ($("wUid")) $("wUid").value = uid || "";
+        showPanel("p-wallet").then(function () {
+          if ($("btnWallet")) $("btnWallet").click();
+        });
+      };
+    });
+  }
+
+  function _bindOpsGoto() {
+    qsa(".ops-goto[data-goto]").forEach(function (btn) {
+      btn.onclick = function () {
+        var pid = btn.getAttribute("data-goto");
+        if (pid) showPanel(pid);
+      };
+    });
+  }
+
+  async function loadOpsHome() {
+    if ($("opsHomeSummary")) $("opsHomeSummary").innerHTML = '<div class="muted small">加载中…</div>';
+    var usage = await api("/v1/admin/token/usage_monitor?days=1&top_n=8");
+    var live = {};
+    try {
+      live = await api("/v1/admin/token/alerts/live");
+    } catch (eLive) {
+      live = {};
+    }
+    var health = {};
+    try {
+      health = await api("/v1/admin/upstream/health");
+    } catch (eH) {
+      health = {};
+    }
+    var shared = {};
+    try {
+      shared = await api("/v1/admin/token/free_shared");
+    } catch (eS) {
+      shared = {};
+    }
+
+    var alerts = (live && live.alerts) || [];
+    var warnN = alerts.filter(function (a) {
+      return a.level === "error" || a.level === "warn";
+    }).length;
+    var highUsers = (usage.top_users || []).filter(function (u) {
+      return u.flag === "high" || u.flag === "watch";
+    });
+    var circuit = (health && health.circuit) || {};
+    var openCircuits = Object.keys(circuit).filter(function (k) {
+      return circuit[k] && circuit[k].open;
+    });
+    var today = (shared && shared.today) || {};
+    var breaker = (shared && shared.pool_breaker) || {};
+
+    if ($("opsHomeSummary")) {
+      $("opsHomeSummary").innerHTML =
+        _glanceCard(warnN ? "warn" : "ok", "告警", String(warnN), "error/warn · 实时") +
+        _glanceCard(
+          highUsers.length ? "warn" : "ok",
+          "高耗用户",
+          String(highUsers.length),
+          "近 1 日 high/watch"
+        ) +
+        _glanceCard(
+          openCircuits.length ? "bad" : "ok",
+          "熔断通道",
+          String(openCircuits.length),
+          "upstream circuit open"
+        ) +
+        _glanceCard(
+          "ok",
+          "共享请求",
+          String(today.requests != null ? today.requests : "—"),
+          "今日 · 用户 " + (today.users != null ? today.users : "—")
+        ) +
+        _glanceCard(
+          breaker.active ? "warn" : "ok",
+          "共享熔断",
+          breaker.active ? "触发" : "正常",
+          String(breaker.action || "—")
+        ) +
+        _glanceCard(
+          "ok",
+          "总消耗",
+          String(usage.total_consume_tokens || 0),
+          "平台 token · 近 1 日"
+        );
+    }
+
+    if ($("opsHomeAlerts")) {
+      var show = alerts.filter(function (a) {
+        return a.level === "error" || a.level === "warn";
+      });
+      $("opsHomeAlerts").innerHTML = show.length
+        ? show
+            .slice(0, 12)
+            .map(function (al) {
+              var cls = al.level === "error" ? "bad" : "warn";
+              return (
+                '<div style="margin:4px 0;"><span class="pill ' +
+                cls +
+                '">' +
+                esc(al.level || "") +
+                "</span> " +
+                esc(al.msg || al.code || "") +
+                "</div>"
+              );
+            })
+            .join("")
+        : '<span class="pill ok">暂无 error/warn 告警</span>';
+    }
+
+    if ($("opsHomeUsers")) {
+      var users = usage.top_users || [];
+      $("opsHomeUsers").innerHTML = users.length
+        ? users
+            .map(function (u) {
+              var label = u.email || u.phone || "#" + u.auth_user_id;
+              var flag = u.flag || "ok";
+              return (
+                "<tr><td>" +
+                esc(label) +
+                ' <span class="muted small">#' +
+                esc(u.auth_user_id) +
+                "</span></td><td>" +
+                esc(u.consume_tokens) +
+                "</td><td>" +
+                esc(_fmtUsdCents(u.consume_usd_cents)) +
+                '</td><td><span class="pill ' +
+                (flag === "high" ? "bad" : flag === "watch" ? "warn" : "ok") +
+                '">' +
+                esc(flag) +
+                '</span></td><td><button type="button" class="ops-home-wallet" data-uid="' +
+                esc(u.auth_user_id) +
+                '">钱包</button></td></tr>'
+              );
+            })
+            .join("")
+        : '<tr><td colspan="5" class="muted">暂无消耗</td></tr>';
+      _bindGotoWalletButtons(".ops-home-wallet");
+    }
+
+    if ($("opsHomeCircuits")) {
+      if (openCircuits.length) {
+        $("opsHomeCircuits").innerHTML = openCircuits
+          .map(function (pid) {
+            var info = circuit[pid] || {};
+            return (
+              '<div class="glance-card bad"><div class="gk">' +
+              esc(pid) +
+              '</div><div class="gv">OPEN</div><div class="gs">' +
+              esc(info.reason || "") +
+              "</div></div>"
+            );
+          })
+          .join("");
+      } else {
+        $("opsHomeCircuits").innerHTML =
+          '<div class="glance-card ok"><div class="gk">上游熔断</div><div class="gv">无</div><div class="gs">circuit 均未打开</div></div>';
+      }
+    }
+
+    if ($("opsHomeShared")) {
+      var lim = (shared && shared.pool_limits) || {};
+      $("opsHomeShared").innerHTML =
+        _statCard("今日请求", today.requests) +
+        _statCard("今日用户", today.users) +
+        _statCard("告警阈值 token", lim.alert_tokens) +
+        _statCard("熔断阈值 token", lim.break_tokens);
+    }
+
+    _bindOpsGoto();
   }
 
   async function loadUsageMonitor() {
@@ -2341,13 +2634,17 @@
             .map(function (u) {
               var label = u.email || u.phone || "#" + u.auth_user_id;
               var flag = u.flag || "ok";
+              var frozen = u.frozen ? ' <span class="pill bad">已冻</span>' : "";
               return (
                 "<tr><td>" +
                 esc(label) +
+                frozen +
                 ' <span class="muted small">#' +
                 esc(u.auth_user_id) +
                 "</span></td><td>" +
                 esc(u.consume_tokens) +
+                "</td><td>" +
+                esc(_fmtUsdCents(u.consume_usd_cents)) +
                 "</td><td>" +
                 esc(u.ledger_rows) +
                 '</td><td><span class="pill ' +
@@ -2360,16 +2657,8 @@
               );
             })
             .join("")
-        : '<tr><td colspan="5" class="muted">暂无消耗</td></tr>';
-      qsa(".usage-goto-wallet").forEach(function (btn) {
-        btn.onclick = function () {
-          var uid = btn.getAttribute("data-uid");
-          if ($("wUid")) $("wUid").value = uid || "";
-          showPanel("p-wallet").then(function () {
-            if ($("btnWallet")) $("btnWallet").click();
-          });
-        };
-      });
+        : '<tr><td colspan="6" class="muted">暂无消耗</td></tr>';
+      _bindGotoWalletButtons(".usage-goto-wallet");
     }
     if ($("usageModelBody")) {
       var models = r.top_models || [];
@@ -2415,6 +2704,86 @@
             .join("")
         : '<div class="muted small">通道列表空</div>';
     }
+    _bindOpsGoto();
+  }
+
+  async function loadChannelLog() {
+    var hours = Number(($("chLogHours") && $("chLogHours").value) || 24);
+    var provider = (($("chLogProvider") && $("chLogProvider").value) || "").trim();
+    var q = (($("chLogQ") && $("chLogQ").value) || "").trim();
+    var qs =
+      "hours=" +
+      encodeURIComponent(hours) +
+      "&limit=150" +
+      (provider ? "&provider=" + encodeURIComponent(provider) : "") +
+      (q ? "&q=" + encodeURIComponent(q) : "");
+    var r = await api("/v1/admin/token/channel_calls?" + qs);
+    if ($("channelLogNote") && r.ops_note) $("channelLogNote").textContent = r.ops_note;
+    if ($("channelLogByProv")) {
+      var bp = r.by_provider || [];
+      $("channelLogByProv").innerHTML = bp.length
+        ? bp
+            .map(function (p) {
+              return (
+                '<div class="glance-card ok"><div class="gk">' +
+                esc(p.provider) +
+                '</div><div class="gv">' +
+                esc(p.tokens) +
+                '</div><div class="gs">' +
+                esc(p.calls) +
+                " 次 · 成功 " +
+                esc(p.ok_calls) +
+                "</div></div>"
+              );
+            })
+            .join("")
+        : '<div class="muted small">本窗口暂无按通道汇总（历史请求可能未写 provider）</div>';
+    }
+    if ($("channelLogBody")) {
+      var rows = r.rows || [];
+      $("channelLogBody").innerHTML = rows.length
+        ? rows
+            .map(function (row) {
+              var label = row.email || (row.auth_user_id != null ? "#" + row.auth_user_id : row.gateway_user_id || "—");
+              var st = row.is_success ? "ok" : row.status === "failed" ? "bad" : "warn";
+              var uidAttr =
+                row.auth_user_id != null
+                  ? ' data-uid="' + esc(row.auth_user_id) + '"'
+                  : "";
+              return (
+                "<tr><td class='mono small'>" +
+                esc((row.request_time || "").replace("T", " ").slice(0, 19)) +
+                "</td><td>" +
+                esc(label) +
+                (row.auth_user_id != null
+                  ? ' <span class="muted small">#' + esc(row.auth_user_id) + "</span>"
+                  : "") +
+                "</td><td class='mono'>" +
+                esc(row.public_model || "—") +
+                "</td><td class='mono'>" +
+                esc(row.provider || "—") +
+                "</td><td class='mono small'>" +
+                esc(row.upstream_model || "—") +
+                "</td><td>" +
+                esc(row.token_count) +
+                '</td><td><span class="pill ' +
+                st +
+                '">' +
+                esc(row.status || (row.is_success ? "ok" : "fail")) +
+                "</span></td><td>" +
+                (row.auth_user_id != null
+                  ? '<button type="button" class="chlog-wallet"' +
+                    uidAttr +
+                    ">钱包</button>"
+                  : "—") +
+                "</td></tr>"
+              );
+            })
+            .join("")
+        : '<tr><td colspan="8" class="muted">暂无记录</td></tr>';
+      _bindGotoWalletButtons(".chlog-wallet");
+    }
+    _bindOpsGoto();
   }
 
   async function loadLlmKeys() {
@@ -3926,9 +4295,15 @@
     } else if (p === "p-plans") {
       await loadPlans();
       setMsg("Token 托管套餐已刷新", "ok");
+    } else if (p === "p-ops-home") {
+      await loadOpsHome();
+      setMsg("运维总览已刷新", "ok");
     } else if (p === "p-usage") {
       await loadUsageMonitor();
-      setMsg("用量监控已刷新", "ok");
+      setMsg("用量与异常已刷新", "ok");
+    } else if (p === "p-channel-log") {
+      await loadChannelLog();
+      setMsg("通道×用户流水已刷新", "ok");
     } else if (p === "p-sys" || p === "p-routing" || p === "p-system") {
       if (p !== "p-sys") {
         state.panel = "p-sys";
@@ -3937,19 +4312,19 @@
         });
       }
       await loadSysOverview();
-      setMsg("开关与密钥已刷新", "ok");
+      setMsg("上游密钥已刷新", "ok");
     } else if (p === "p-warehouse") {
       await loadWarehouse();
       setMsg("模型仓库已刷新", "ok");
     } else if (p === "p-econ") {
       await loadEconPanel();
-      setMsg("毛利与告警已刷新", "ok");
+      setMsg("毛利粗算已刷新", "ok");
     } else if (p === "p-alert") {
       await loadAlertConfig();
-      setMsg("预警通道已刷新", "ok");
+      setMsg("预警中心已刷新", "ok");
     } else if (p === "p-supply") {
       await loadSupplyMonitor();
-      setMsg("供应链监控已刷新", "ok");
+      setMsg("供应链已刷新", "ok");
     } else if (p === "p-shared") {
       await loadFreeShared();
       setMsg("免费共享已刷新", "ok");
@@ -3978,7 +4353,9 @@
     setMsg("");
     var gid = "g-overview";
     try { gid = localStorage.getItem(NAV_GROUP_KEY) || gid; } catch (e) {}
-    await setActiveGroup(gid, gid === "g-overview" ? "p-dash" : null);
+    // 恢复上次子页；勿一律落到栏目默认页（否则 F5/重登会从「通道流水」跳回「运维总览」）
+    var stay = rememberedPanel(gid) || (gid === "g-overview" ? "p-dash" : null);
+    await setActiveGroup(gid, stay);
   }
 
   function initMainNav() {
@@ -4227,8 +4604,13 @@
   $("apiBase").addEventListener("change", probeAuthMode);
 
   $("btnRefresh").onclick = async function () {
-    try { await refreshCurrentPanel(); }
-    catch (e) { setMsg(String(e.message || e), "err"); }
+    // 只刷新当前子页数据，绝不切换栏目/子菜单
+    try {
+      rememberPanel(state.panel || "p-dash");
+      await refreshCurrentPanel();
+    } catch (e) {
+      setMsg(String(e.message || e), "err");
+    }
   };
 
   $("btnLoadOrders").onclick = async function () {
@@ -4414,7 +4796,7 @@
     $("btnSysRefresh").onclick = async function () {
       try {
         await loadSysOverview();
-        setMsg("开关与密钥已刷新", "ok");
+        setMsg("上游密钥已刷新", "ok");
       } catch (e) {
         setMsg(String(e.message || e), "err");
       }
@@ -4424,7 +4806,17 @@
     $("btnEconRefresh").onclick = async function () {
       try {
         await loadEconPanel();
-        setMsg("毛利与告警已刷新", "ok");
+        setMsg("毛利粗算已刷新", "ok");
+      } catch (e) {
+        setMsg(String(e.message || e), "err");
+      }
+    };
+  }
+  if ($("btnOpsHomeRefresh")) {
+    $("btnOpsHomeRefresh").onclick = async function () {
+      try {
+        await loadOpsHome();
+        setMsg("运维总览已刷新", "ok");
       } catch (e) {
         setMsg(String(e.message || e), "err");
       }
@@ -4434,7 +4826,17 @@
     $("btnUsageRefresh").onclick = async function () {
       try {
         await loadUsageMonitor();
-        setMsg("用量监控已刷新", "ok");
+        setMsg("用量与异常已刷新", "ok");
+      } catch (e) {
+        setMsg(String(e.message || e), "err");
+      }
+    };
+  }
+  if ($("btnChannelLogRefresh")) {
+    $("btnChannelLogRefresh").onclick = async function () {
+      try {
+        await loadChannelLog();
+        setMsg("通道×用户流水已刷新", "ok");
       } catch (e) {
         setMsg(String(e.message || e), "err");
       }
@@ -4896,7 +5298,7 @@
   function renderAlertLive(live) {
     var box = $("alertOverview");
     if (!box) return;
-    // 「当前告警」只展示真正的告警（error/warn）；info 级属正常业务信息，看「毛利与告警」
+    // 「当前告警」只展示真正的告警（error/warn）；info 级属正常业务信息，看「毛利粗算 / 供应链」
     var alerts = ((live && live.alerts) || []).filter(function (a) {
       var lv = String(a.level || "info");
       return lv === "error" || lv === "warn";

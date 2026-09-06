@@ -27,6 +27,28 @@ def _usd_cents_for_tokens(token_count: int) -> int:
     return max(0, int(round(max(0, int(token_count)) / 1_000_000.0 * ref * 100)))
 
 
+def _stamp_chat_route(
+    chat_request: ChatRequest,
+    *,
+    auth_user_id: Optional[int] = None,
+    public_model: Optional[str] = None,
+    provider: Optional[str] = None,
+    upstream_model: Optional[str] = None,
+) -> None:
+    """写入运维用通道×用户字段（不 commit）。"""
+    if auth_user_id is not None:
+        try:
+            chat_request.auth_user_id = int(auth_user_id)
+        except Exception:
+            pass
+    if public_model is not None:
+        chat_request.public_model = str(public_model or "")[:64] or None
+    if provider is not None:
+        chat_request.provider = str(provider or "")[:64] or None
+    if upstream_model is not None:
+        chat_request.model = str(upstream_model or "")[:100] or None
+
+
 def estimate_need_tokens(*, model: Optional[str], max_tokens: int, prompt: str = "") -> int:
     """预检用量：粗估 (prompt/4 + min(max_tokens,1024)) × 档位/名模倍率。
 
@@ -147,7 +169,6 @@ class ChatService:
             )
             billing_mode = str(billing.get("mode") or "paid")
 
-        # 创建请求记录
         chat_request = ChatRequest(
             request_id=request_id,
             user_id=user.user_id,
@@ -159,6 +180,12 @@ class ChatService:
             ip_address=ip_address,
             user_agent=user_agent,
             status="processing",
+        )
+        _stamp_chat_route(
+            chat_request,
+            auth_user_id=auth_user_id,
+            public_model=request.model,
+            provider=None,
         )
         db.add(chat_request)
         db.commit()
@@ -343,13 +370,19 @@ class ChatService:
 
             # 更新请求记录（库内仍记上游型号便于运维）
             chat_request.response = response_text
-            chat_request.model = used_model
             chat_request.response_time = datetime.utcnow()
             chat_request.processing_duration = processing_time
             chat_request.status = "completed"
             chat_request.is_success = True
             chat_request.token_count = int(token_count)
             chat_request.cost = token_count * (0.000002 if user.user_type == UserType.FREE else 0.000001)
+            _stamp_chat_route(
+                chat_request,
+                auth_user_id=auth_user_id,
+                public_model=public_model,
+                provider=getattr(routed, "provider", None) or ("byok" if byok_result else None),
+                upstream_model=used_model,
+            )
             db.commit()
 
             # 增加用户请求计数
@@ -511,6 +544,12 @@ class ChatService:
             user_agent=user_agent,
             status="processing",
         )
+        _stamp_chat_route(
+            chat_request,
+            auth_user_id=auth_user_id,
+            public_model=request.model,
+            provider=None,
+        )
         db.add(chat_request)
         db.commit()
 
@@ -562,10 +601,16 @@ class ChatService:
                 chat_request.processing_duration = time.time() - start_time
                 if status == "completed":
                     chat_request.response = (full_text or "")[:200000]
-                    chat_request.model = used_model
                     chat_request.status = "completed"
                     chat_request.is_success = True
                     chat_request.token_count = int(token_count) if billable else 0
+                    _stamp_chat_route(
+                        chat_request,
+                        auth_user_id=auth_user_id,
+                        public_model=public_model,
+                        provider=provider,
+                        upstream_model=used_model,
+                    )
                     db.commit()
                     UserService.increment_request_count(db, user)
                     if auth_user_id is not None and billable and token_count > 0 and not byok_used:

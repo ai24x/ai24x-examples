@@ -89,5 +89,28 @@ def init_db():
                 conn.execute(
                     text(f"ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS {col} {typ}")
                 )
+            for col, typ in (
+                ("auth_user_id", "INTEGER"),
+                ("public_model", "VARCHAR(64)"),
+                ("provider", "VARCHAR(64)"),
+            ):
+                conn.execute(
+                    text(f"ALTER TABLE chat_requests ADD COLUMN IF NOT EXISTS {col} {typ}")
+                )
+            try:
+                conn.execute(
+                    text(
+                        "CREATE INDEX IF NOT EXISTS ix_chat_requests_auth_user_id "
+                        "ON chat_requests (auth_user_id)"
+                    )
+                )
+                conn.execute(
+                    text(
+                        "CREATE INDEX IF NOT EXISTS ix_chat_requests_provider "
+                        "ON chat_requests (provider)"
+                    )
+                )
+            except Exception:
+                pass
     except Exception:
         pass
