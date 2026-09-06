@@ -126,6 +126,8 @@
       try {
         if (L && typeof L.t === "function") label = L.t(key) || "";
       } catch (e) {}
+      // locales 未加载/语法失败时 t() 会原样返回 key，勿把 nav.home 画进导航
+      if (!label || label === key) label = "";
       return (
         '<a href="' +
         pre +
@@ -142,7 +144,10 @@
 
     function tr(key) {
       try {
-        if (L && typeof L.t === "function") return L.t(key) || "";
+        if (L && typeof L.t === "function") {
+          var v = L.t(key) || "";
+          if (v && v !== key) return v;
+        }
       } catch (e) {}
       return "";
     }
