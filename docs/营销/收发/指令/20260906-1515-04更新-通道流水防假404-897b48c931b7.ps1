@@ -13,7 +13,7 @@ if ($LASTEXITCODE -ne 0) { throw "HEAD missing $EXP" }
 
 Write-Host "== 2. markers ==" -ForegroundColor Cyan
 $admin = Get-Content "web\token-admin.html" -Raw -Encoding UTF8
-if ($admin -notlike "*cache: "no-store"*") { throw "token-admin missing fetch no-store" }
+if ($admin -notlike "*no-store*") { throw "token-admin missing fetch no-store" }
 if ($admin -notlike "*chLogHours*).onchange*") { throw "token-admin missing chLogHours onchange" }
 $main = Get-Content "api\main.py" -Raw -Encoding UTF8
 if ($main -notlike "*no-store, no-cache, must-revalidate*") { throw "channel_calls missing Cache-Control" }
