@@ -693,7 +693,10 @@
   }
 
   function billingBalance() {
-    return request("/v1/billing/balance", { method: "GET" });
+    return request("/v1/billing/balance?_=" + Date.now(), {
+      method: "GET",
+      cache: "no-store",
+    });
   }
 
   function billingUsage(params) {
@@ -715,7 +718,11 @@
     if (params.entry_type) q.push("entry_type=" + encodeURIComponent(params.entry_type));
     if (params.since) q.push("since=" + encodeURIComponent(params.since));
     if (params.until) q.push("until=" + encodeURIComponent(params.until));
-    return request("/v1/billing/transactions" + (q.length ? "?" + q.join("&") : ""), { method: "GET" });
+    q.push("_=" + Date.now());
+    return request("/v1/billing/transactions?" + q.join("&"), {
+      method: "GET",
+      cache: "no-store",
+    });
   }
 
   function billingUsageDaily(days) {

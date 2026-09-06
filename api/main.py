@@ -1988,13 +1988,21 @@ async def keys_delete(key_id: int, request: Request, db: Session = Depends(get_d
     return delete_api_key(db, int(u.id), int(key_id))
 
 
-@app.get("/v1/billing/balance", response_model=BillingBalanceOut)
+@app.get("/v1/billing/balance")
 async def billing_balance(request: Request, db: Session = Depends(get_db)):
     """登录 JWT 或 API Key 均可。用调试 Key 调本接口可核对 is_vip_active / 是否同一账号。"""
     from token_mvp_service import get_balance_snapshot
 
     u = _auth_user_from_api_key_or_jwt(request, db)
-    return get_balance_snapshot(db, int(u.id))
+    data = get_balance_snapshot(db, int(u.id))
+    # 控制台 overview 充值后需即时刷新；禁中间层/浏览器缓存旧余额
+    return JSONResponse(
+        content=data,
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+        },
+    )
 
 
 @app.post("/v1/billing/topup", response_model=BillingBalanceOut)
@@ -2056,7 +2064,7 @@ async def billing_transactions(
     from token_mvp_service import list_transactions
 
     u = _auth_user_from_bearer(request, db)
-    return list_transactions(
+    data = list_transactions(
         db,
         int(u.id),
         limit=limit,
@@ -2064,6 +2072,14 @@ async def billing_transactions(
         entry_type=entry_type,
         since=since,
         until=until,
+    )
+    # 控制台流水需实时；禁中间层/浏览器缓存，避免软进页仍显示旧列表
+    return JSONResponse(
+        content=data,
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+        },
     )
 
 

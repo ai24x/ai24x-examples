@@ -2097,32 +2097,38 @@ async def keys_delete(key_id: int, request: Request, db: Session = Depends(get_d
     return delete_api_key(db, int(u.id), int(key_id))
 
 
-@app.get("/v1/billing/balance", response_model=BillingBalanceOut)
+@app.get("/v1/billing/balance")
 async def billing_balance(request: Request, db: Session = Depends(get_db)):
     """主站 Account Hub 同一钱包（统一账单）：平台用户 + core JWT → 转发 core 真源；
 
     open 本地原生用户 / 仅 API Key（无 core 会话）→ 返回本地快照（BYOK 侧）。
+    已绑定 platform_user_id 的账号禁止回落本地空钱包（避免 www 有余额 / open 显示 0）。
     """
+    from fastapi.responses import JSONResponse
     from token_mvp_service import get_balance_snapshot
 
     u = _auth_user_from_api_key_or_jwt(request, db)
     auth = (request.headers.get("Authorization") or "").strip()
     bearer = auth[7:].strip() if auth.lower().startswith("bearer ") else ""
+    linked = getattr(u, "platform_user_id", None)
     is_core_jwt = bool(
-        getattr(u, "platform_user_id", None)
+        linked
         and bearer
         and not bearer.startswith("sk-")
         and bearer.count(".") >= 2
     )
+    no_store = {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Pragma": "no-cache",
+    }
     if is_core_jwt:
-        try:
-            return await _core_balance_proxy(bearer)
-        except HTTPException:
-            raise
-        except Exception:
-            # core 不可达时回退本地快照，控制台不因上游挂掉
-            logger.warning("core balance proxy fallback to local snapshot uid=%s", int(u.id))
-    return get_balance_snapshot(db, int(u.id))
+        data = await _core_balance_proxy(bearer)
+        return JSONResponse(content=data, headers=no_store)
+    if linked:
+        # 有平台映射但无 core JWT：勿返回 open 本地 0，避免双账本错觉
+        raise HTTPException(status_code=401, detail="请重新登录后再查看余额。")
+    data = get_balance_snapshot(db, int(u.id))
+    return JSONResponse(content=data, headers=no_store)
 
 
 @app.post("/v1/billing/topup", response_model=BillingBalanceOut)

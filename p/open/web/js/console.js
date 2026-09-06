@@ -3538,6 +3538,12 @@
         loadByokAll();
       } catch (e) {}
     }
+    // 与 www 同一钱包真源：进 overview/billing 必重拉，避免充值后软导航仍显示旧余额
+    if (id === "overview" || id === "billing") {
+      try {
+        if (typeof refreshAll === "function") refreshAll();
+      } catch (eBal) {}
+    }
 
     if (pushHash) {
       try {

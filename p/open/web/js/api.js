@@ -722,7 +722,10 @@
   }
 
   function billingBalance() {
-    return request("/v1/billing/balance", { method: "GET" });
+    return request("/v1/billing/balance?_=" + Date.now(), {
+      method: "GET",
+      cache: "no-store",
+    });
   }
 
   function billingUsage(params) {

@@ -1298,34 +1298,61 @@
       _fulfillPollTimer = null;
     }
     var tries = 0;
-    var maxTries = 40; // ~2 分钟（每 3 秒）
-    _fulfillPollTimer = setInterval(function () {
+    var maxTries = 40; // ~2 分钟（每 3 秒）+ 首次立即查
+    function tick() {
       tries += 1;
       if (tries > maxTries) {
-        clearInterval(_fulfillPollTimer);
-        _fulfillPollTimer = null;
+        if (_fulfillPollTimer) {
+          clearInterval(_fulfillPollTimer);
+          _fulfillPollTimer = null;
+        }
         return;
       }
       AI24X_API.billingQueryFulfill(outTradeNo, channel || "wechat")
         .then(function (r) {
-          if (r && r.ok) {
+          if (!(r && r.ok)) return;
+          if (_fulfillPollTimer) {
             clearInterval(_fulfillPollTimer);
             _fulfillPollTimer = null;
-            showMsg(
-              msgBox(),
-              AI24X_API.planFulfillMessage(_lastPayPlanId || planId, outTradeNo, _lastPayProduct || product),
-              true
-            );
-            try {
-              closePayModal();
-            } catch (e) {}
-            return refreshAll();
           }
+          var msg = AI24X_API.planFulfillMessage(
+            _lastPayPlanId || planId,
+            outTradeNo,
+            _lastPayProduct || product
+          );
+          // 到账后立刻带上当前余额，避免用户切到 Overview 仍以为未入账
+          try {
+            var bal = r.balance;
+            if (bal) {
+              var usd = Number(bal.balance_usd) || 0;
+              var tok = Number(bal.balance_tokens) || 0;
+              if (usd > 0) {
+                msg +=
+                  tr(" 当前余额 $", " Balance now $") + (usd / 100).toFixed(2);
+              } else if (tok > 0) {
+                msg +=
+                  tr(" 当前余额 ", " Balance now ") +
+                  Number(tok).toLocaleString("en-US") +
+                  " tokens";
+              }
+            }
+          } catch (eBalMsg) {}
+          showMsg(msgBox(), msg, true);
+          try {
+            closePayModal();
+          } catch (e) {}
+          return refreshAll().then(function () {
+            try {
+              showConsolePanel("overview");
+            } catch (eOv) {}
+          });
         })
         .catch(function () {
           /* 未支付成功时接口可能 4xx，继续轮询 */
         });
-    }, 3000);
+    }
+    tick();
+    _fulfillPollTimer = setInterval(tick, 3000);
   }
 
   function buyPlan(planId, channel, planMeta, product) {
@@ -2461,9 +2488,16 @@
     var pv = $("tx-prev");
     var nx = $("tx-next");
     var exp = $("usage-export-btn");
+    var txRefresh = $("btn-tx-refresh");
     if (pv) pv.addEventListener("click", function () { loadTransactionsPage(txPage - 1); });
     if (nx) nx.addEventListener("click", function () { loadTransactionsPage(txPage + 1); });
     if (exp) exp.addEventListener("click", exportBillingCsv);
+    if (txRefresh) {
+      txRefresh.addEventListener("click", function () {
+        loadTransactionsPage(0);
+        loadUsageStats();
+      });
+    }
     initUsageStatsLabels();
     document.querySelectorAll("#usage-range-group .usage-range-btn").forEach(function (b) {
       b.addEventListener("click", function () {
@@ -3465,6 +3499,12 @@
         fetchBillingCatalog().catch(function () {});
       }
     }
+    // 充值后切回 overview / billing：必须重拉余额（真源已入账，软导航不能停在旧 UI）
+    if (id === "overview" || id === "billing") {
+      try {
+        if (typeof refreshAll === "function") refreshAll();
+      } catch (eBal) {}
+    }
 
     if (pushHash) {
       try {
@@ -3565,6 +3605,25 @@
     }
     window.addEventListener("hashchange", function () {
       showConsolePanel(location.hash || "overview", { pushHash: false });
+    });
+    // 从其它页签/Gateway 回来时，若正停在流水页则自动重拉（无需 F5）
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState !== "visible") return;
+      try {
+        if (normalizeConsolePanel(location.hash || "") === "transactions") {
+          loadTransactionsPage(txPage || 0);
+          loadUsageStats();
+        }
+      } catch (eVis) {}
+    });
+    window.addEventListener("pageshow", function (ev) {
+      if (!ev || !ev.persisted) return;
+      try {
+        if (normalizeConsolePanel(location.hash || "") === "transactions") {
+          loadTransactionsPage(0);
+          loadUsageStats();
+        }
+      } catch (ePs) {}
     });
     showConsolePanel(location.hash || "overview", { pushHash: true });
     var btnConfirmKey = $("btn-create-key-confirm");
