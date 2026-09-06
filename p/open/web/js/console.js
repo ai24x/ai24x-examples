@@ -2661,8 +2661,14 @@
                 fmtInt(sharedLeft) +
                 " / " +
                 fmtInt(sharedCap) +
-                tr(" · 档位选 shared", " · pick model=shared")
-              : tr("档位选 shared 即可试用", "Pick model=shared to try");
+                tr(
+                  " · 仅文本，不支持工具 · 选 shared",
+                  " · text only, no tools · model=shared"
+                )
+              : tr(
+                  "选 shared 试用文本；工具调用需充值",
+                  "Pick shared for text; tools need a top-up"
+                );
         }
       }
 
