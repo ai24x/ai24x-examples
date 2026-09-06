@@ -416,7 +416,10 @@
     "page.guides.sdk.vipLead": "开通 VIP 后，将 model 设为点名 id（见 VIP 清单）。",
     "page.guides.tips": "<strong>点名名模前先记住两点。</strong>① 推理型模型（如 <code>vip-gpt5</code>）会先消耗内部推理 token，<code>max_tokens</code> 至少设 400，否则可能空回复（<code>finish_reason: length</code>）。② 限时特惠·超值包只能点名白名单 13 款名模；全量 VIP 会员可点名全部 24 款（含 GPT-5 / Claude / Gemini / Grok / Kimi K3 等国际旗舰）。",
     "page.guides.codex.tip7": "<strong>推理型模型需更大 max_tokens</strong>——<code>vip-gpt5</code> 等会先消耗内部推理 token，建议 <code>max_tokens</code> ≥ 400，否则输出可能为空（<code>finish_reason: length</code>）。",
-    "page.guides.codex.tip8": "<strong>超值包 ≠ 全量 VIP</strong>——限时特惠·超值包仅白名单 13 款可点名；GPT-5 / Claude / Gemini / Grok 等国际旗舰需全量 VIP 会员。",
+    "page.guides.codex.tip8": "<strong>超值包 ≠ 全量 VIP</strong>——限时特惠·超值包仅白名单 13 款可点名；GPT-5 / Claude / Gemini / Grok 等国际旗舰需全量 VIP 会员。"
+    "page.guides.codex.tip9": "<strong>长会话大幅增加输入 token 消耗</strong>——Codex 每次调用会重传完整上下文，单请求峰值曾达 110 万 token。建议每完成大型任务归档开新会话，或使用 flash / vip-ds-flash 等低倍率模型跑长上下文任务。",
+    "page.guides.codex.tip10": "<strong>自带 Key（BYOK）可绕过平台托管加价</strong>——如果你已有 DeepSeek/OpenAI 等上游直连 Key，注册后选 BYOK 模式，平台只收网关服务费，模型调用走你自己 Key 的原始价格。",
+    "page.guides.codex.tip11": "<strong>成本最优推荐</strong>——日常用 flash（~$0.35/M）或 vip-ds-flash（同价）；需要更强推理时切 pro（~$1.05/M）；MiMo（vip-mimo）在缓存命中时输入仅 $0.02/M，适合大量重复前缀场景。"
     "page.guides.sdk.vipNote": "推理型模型（如 <code>vip-gpt5</code>）请把 <code>max_tokens</code> 设为 ≥400，否则内部推理会先耗尽上限导致空回复。",
     "page.help.title": "帮助中心",
     "page.help.lead": "常见接入问题可先在这里解决；也可点右下角聊天气泡提问或转人工。",
@@ -1440,7 +1443,10 @@
     "page.guides.sdk.vipLead": "After VIP is active, set model to a named id (see the VIP list).",
     "page.guides.tips": "<strong>Two things to know before calling named models.</strong> ① Reasoning models (e.g. <code>vip-gpt5</code>) spend tokens on internal reasoning first — set <code>max_tokens</code> to at least 400, or the reply may come back empty (<code>finish_reason: length</code>). ② The limited-time Value Pack unlocks only the 13 whitelisted named models; full VIP membership unlocks all 24, including GPT-5, Claude, Gemini, Grok and Kimi K3.",
     "page.guides.codex.tip7": "<strong>Reasoning models need a larger max_tokens</strong> — <code>vip-gpt5</code> and friends spend tokens on internal reasoning first; keep <code>max_tokens</code> ≥ 400 or the output can come back empty (<code>finish_reason: length</code>).",
-    "page.guides.codex.tip8": "<strong>Value Pack ≠ full VIP</strong> — the limited-time Value Pack unlocks only 13 whitelisted named models; international flagships (GPT-5, Claude, Gemini, Grok) need full VIP membership.",
+    "page.guides.codex.tip8": "<strong>Value Pack ≠ full VIP</strong> — the limited-time Value Pack unlocks only 13 whitelisted named models; international flagships (GPT-5, Claude, Gemini, Grok) need full VIP membership."
+    "page.guides.codex.tip9": "<strong>Long sessions burn input tokens fast</strong> — Codex resends the full context on every call; a single request once peaked at 1.1M tokens. Archive and start a new session after each major task, or use flash/vip-ds-flash for long-context work.",
+    "page.guides.codex.tip10": "<strong>Bring Your Own Key (BYOK) bypasses platform markup</strong> — if you already have a DeepSeek/OpenAI key, switch to BYOK mode. The platform charges only a gateway service fee; model calls use your key's original price.",
+    "page.guides.codex.tip11": "<strong>Cost-optimized picks</strong> — use flash (~$0.35/M) or vip-ds-flash (same price) daily; switch to pro (~$1.05/M) for harder reasoning; MiMo (vip-mimo) costs only $0.02/M input on cache hits, ideal for repetitive prefix workloads."
     "page.guides.sdk.vipNote": "For reasoning models (e.g. <code>vip-gpt5</code>), set <code>max_tokens</code> to ≥ 400 — internal reasoning can eat the limit and the reply comes back empty.",
     "page.help.title": "Help center",
     "page.help.lead": "Most setup questions are answered here. You can also tap the chat bubble at the bottom-right to ask or open a ticket.",
