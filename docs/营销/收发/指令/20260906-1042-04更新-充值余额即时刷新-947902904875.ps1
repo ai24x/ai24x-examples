@@ -52,9 +52,5 @@ $open = Invoke-WebRequest -UseBasicParsing -Uri "https://open.ai24x.com/console.
 if ($open.Content -notlike "*api.js?v=20260906a*") { throw "public open console missing api.js v20260906a" }
 if ($open.Content -notlike "*console.js?v=20260906a*") { throw "public open console missing console.js v20260906a" }
 
-$balHdr = Invoke-WebRequest -UseBasicParsing -Uri "https://api.ai24x.com/v1/billing/balance" -TimeoutSec 20 -ErrorAction SilentlyContinue
-# 未登录应 401，但仍应能看到防缓存头（若网关透传）
-Write-Host ("balance_probe status=" + $(if ($balHdr) { $balHdr.StatusCode } else { "n/a" }))
-
 Write-Host ("DONE EXP=$EXP HEAD=$HEAD health=$($ph.commit)") -ForegroundColor Green
 # ✅ 04更新完成｜充值余额即时刷新｜EXP=947902904875 HEAD=<HEAD> health=<commit>｜公网验收通过
