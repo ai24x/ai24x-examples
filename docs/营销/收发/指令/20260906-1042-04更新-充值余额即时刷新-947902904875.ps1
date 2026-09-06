@@ -18,15 +18,17 @@ if ($wwwConsole -notlike "*console.js?v=20260906a*") { throw "www console missin
 $apiJs = Get-Content "web\js\api.js" -Raw -Encoding UTF8
 if ($apiJs -notlike "*billing/balance?_=*") { throw "www api.js missing balance cache bust" }
 $consoleJs = Get-Content "web\js\console.js" -Raw -Encoding UTF8
-if ($consoleJs -notlike "*进 overview / billing*") { throw "www console.js missing overview refresh" }
-if ($consoleJs -notlike "*当前余额*") { throw "www console.js missing balance toast" }
+if ($consoleJs -notlike '*id === "overview" || id === "billing"*') { throw "www console.js missing overview/billing refresh" }
+if ($consoleJs -notlike "*Balance now $*") { throw "www console.js missing balance toast" }
+if ($consoleJs -notlike "*typeof refreshAll === `"function`"*") { throw "www console.js missing refreshAll call" }
 $openConsole = Get-Content "p\open\web\console.html" -Raw -Encoding UTF8
 if ($openConsole -notlike "*api.js?v=20260906a*") { throw "open console missing api.js?v=20260906a" }
 if ($openConsole -notlike "*console.js?v=20260906a*") { throw "open console missing console.js?v=20260906a" }
 $openMain = Get-Content "p\open\api\main.py" -Raw -Encoding UTF8
-if ($openMain -notlike "*禁止回落本地空钱包*") { throw "open main missing no-local-fallback marker" }
+if ($openMain -notlike "*no-store, no-cache, must-revalidate*") { throw "open main missing balance no-store" }
+if ($openMain -notlike "*linked = getattr(u, `"platform_user_id`"*") { throw "open main missing linked platform guard" }
 $coreMain = Get-Content "api\main.py" -Raw -Encoding UTF8
-if ($coreMain -notlike "*禁中间层/浏览器缓存旧余额*") { throw "core main missing balance no-store" }
+if ($coreMain -notlike "*no-store, no-cache, must-revalidate*") { throw "core main missing balance no-store" }
 Write-Host "markers OK" -ForegroundColor Green
 
 Write-Host "== 3. restart core + open ==" -ForegroundColor Cyan
