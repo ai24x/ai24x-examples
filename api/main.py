@@ -858,6 +858,21 @@ async def startup_event():
         logger.warning(
             "SMS_106_ENABLED=true but SMS_INTERNAL_KEY empty — anyone can call /v1/auth/sms/send; set SMS_INTERNAL_KEY for production."
         )
+    # 上线前 S4/S7：生产闸门核对（不改密钥，只告警）
+    try:
+        if is_prod():
+            if not bool(getattr(settings, "admin_require_sms", False)):
+                logger.warning(
+                    "PROD: ADMIN_REQUIRE_SMS=false — admin APIs accept bare X-Admin-Key; set ADMIN_REQUIRE_SMS=true for launch."
+                )
+            if not bool(getattr(settings, "strict_auth", False)):
+                logger.warning(
+                    "PROD: STRICT_AUTH=false — unauthenticated calls may fall through; set STRICT_AUTH=true for launch."
+                )
+            if bool(getattr(settings, "disable_docs_in_prod", True)) is False:
+                logger.warning("PROD: API docs enabled — confirm DISABLE_DOCS_IN_PROD is intended.")
+    except Exception:
+        pass
     if getattr(settings, "skip_db_init", False):
         logger.warning("SKIP_DB_INIT enabled: database initialization skipped")
         try:
@@ -1225,6 +1240,53 @@ async def auth_login(request: Request, body: AuthLoginBody, db: Session = Depend
         token=token,
         user={"id": int(u.id), "email": u.email or "", "phone": u.phone or ""},
     )
+
+
+@app.get("/v1/auth/session")
+async def auth_session_from_cookie(request: Request, db: Session = Depends(get_db)):
+    """HttpOnly cookie → 签发同源可读会话（供 www/open/markets 写入 localStorage）。
+
+    上线前 S3：OAuth cookie 改为 HttpOnly 后，前端无法再读 document.cookie。
+    """
+    raw = (request.cookies.get("ai24x_auth_token") or "").strip()
+    if not raw or raw.startswith("sk-") or raw.count(".") < 2:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="no_session")
+    try:
+        from jose import JWTError, jwt
+
+        payload = jwt.decode(raw, settings.secret_key, algorithms=["HS256"])
+        uid = int(payload["sub"])
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="登录已失效")
+    u = db.query(AuthUser).filter(AuthUser.id == uid).first()
+    if not u:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="用户不存在")
+    raise_if_frozen(u)
+    user = {"id": int(u.id), "email": u.email or "", "phone": u.phone or ""}
+    return {"access_token": raw, "token": raw, "user": user}
+
+
+@app.post("/v1/auth/logout")
+async def auth_logout(request: Request):
+    """清除 HttpOnly 会话 cookie（JS 无法删 HttpOnly）。"""
+    from fastapi.responses import JSONResponse
+
+    h = (request.url.hostname or "").lower()
+    domain = ".ai24x.com" if (h == "ai24x.com" or h.endswith(".ai24x.com")) else None
+    secure = (request.url.scheme or "").lower() == "https"
+    resp = JSONResponse({"ok": True})
+    for name in ("ai24x_auth_token", "ai24x_auth_user"):
+        resp.delete_cookie(
+            name,
+            path="/",
+            domain=domain,
+            secure=secure,
+            httponly=True,
+            samesite="lax",
+        )
+        # 兼容历史非 Domain / 非 HttpOnly 残留
+        resp.delete_cookie(name, path="/", secure=secure, samesite="lax")
+    return resp
 
 
 @app.get("/v1/auth/captcha")

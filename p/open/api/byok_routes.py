@@ -160,7 +160,10 @@ def byok_keys_update(key_id: int, body: ByokKeyUpdateBody, request: Request, db=
     from byok import update_key
 
     patch = {k: v for k, v in body.model_dump().items() if v is not None}
-    row = update_key(db, auth_user_id=_auth_user_id(request), key_id=key_id, patch=patch)
+    try:
+        row = update_key(db, auth_user_id=_auth_user_id(request), key_id=key_id, patch=patch)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     if row is None:
         raise HTTPException(status_code=404, detail="key not found")
     return JSONResponse(content={"key": row}, headers=_NO_STORE)

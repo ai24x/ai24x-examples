@@ -221,7 +221,7 @@ class BillingLedger(Base):
     auth_user_id = Column(
         Integer, ForeignKey("auth_users.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    entry_type = Column(String(16), nullable=False)  # consume / topup / bonus / referral / expire
+    entry_type = Column(String(16), nullable=False)  # consume / topup / bonus / referral / expire / hold / hold_void / refund
     amount = Column(Integer, nullable=False)
     amount_usd = Column(Integer, default=0, nullable=False)  # USD 美分（消耗为负）2026-08-03
     model = Column(String(64), nullable=True)

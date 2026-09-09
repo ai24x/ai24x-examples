@@ -108,6 +108,32 @@
     return readCookie(AUTH_COOKIE) || "";
   }
 
+  function ingestOauthFragment() {
+    try {
+      var hash = (location.hash || "").replace(/^#/, "");
+      if (!hash || hash.indexOf("oauth=1") < 0) return;
+      var params = new URLSearchParams(hash);
+      var tok = params.get("access_token") || "";
+      if (!tok) return;
+      try {
+        localStorage.setItem("ai24x_auth_token", tok);
+      } catch (e0) {}
+      var rawUser = params.get("user");
+      if (rawUser) {
+        try {
+          localStorage.setItem("ai24x_auth_user", rawUser);
+        } catch (e1) {}
+      }
+      try {
+        history.replaceState(null, "", location.pathname + (location.search || ""));
+      } catch (e2) {
+        try {
+          location.hash = "";
+        } catch (e3) {}
+      }
+    } catch (e) {}
+  }
+
   function syncAuthFromCookie() {
     try {
       var token = readCookie(AUTH_COOKIE);
@@ -120,6 +146,36 @@
           localStorage.setItem("ai24x_auth_user", raw);
         } catch (e) {}
       }
+    } catch (e) {}
+  }
+
+  function bootstrapAuthFromSession() {
+    try {
+      var ls = "";
+      try {
+        ls = localStorage.getItem("ai24x_auth_token") || "";
+      } catch (e0) {}
+      if (ls) return;
+      if (!authCookieDomain()) return;
+      fetch("https://api.ai24x.com/v1/auth/session", {
+        method: "GET",
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      })
+        .then(function (r) {
+          return r.ok ? r.json() : null;
+        })
+        .then(function (data) {
+          if (!data) return;
+          var tok = data.access_token || data.token;
+          if (!tok) return;
+          try {
+            localStorage.setItem("ai24x_auth_token", tok);
+            if (data.user)
+              localStorage.setItem("ai24x_auth_user", JSON.stringify(data.user));
+          } catch (e1) {}
+        })
+        .catch(function () {});
     } catch (e) {}
   }
 
@@ -140,6 +196,13 @@
       document.cookie = AUTH_COOKIE + "=; path=/; max-age=0; SameSite=Lax" + (d ? "; domain=" + d : "") + secure;
       document.cookie = AUTH_USER_COOKIE + "=; path=/; max-age=0; SameSite=Lax" + (d ? "; domain=" + d : "") + secure;
     } catch (e3) {}
+    try {
+      fetch("https://api.ai24x.com/v1/auth/logout", {
+        method: "POST",
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      }).catch(function () {});
+    } catch (e4) {}
   }
 
   function isAi24xUrl(href) {
@@ -241,7 +304,9 @@
     });
   }
 
+  ingestOauthFragment();
   syncAuthFromCookie();
+  bootstrapAuthFromSession();
 
   function resolveActiveProduct(activePage) {
     if (activePage === "console" || activePage === "account") return "account";

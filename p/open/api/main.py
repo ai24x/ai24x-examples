@@ -849,6 +849,18 @@ async def startup_event():
         logger.warning(
             "SMS_106_ENABLED=true but SMS_INTERNAL_KEY empty — anyone can call /v1/auth/sms/send; set SMS_INTERNAL_KEY for production."
         )
+    try:
+        if is_prod():
+            if not bool(getattr(settings, "admin_require_sms", False)):
+                logger.warning(
+                    "PROD: ADMIN_REQUIRE_SMS=false — admin APIs accept bare X-Admin-Key; set ADMIN_REQUIRE_SMS=true for launch."
+                )
+            if not bool(getattr(settings, "strict_auth", False)):
+                logger.warning(
+                    "PROD: STRICT_AUTH=false — unauthenticated calls may fall through; set STRICT_AUTH=true for launch."
+                )
+    except Exception:
+        pass
     if getattr(settings, "skip_db_init", False):
         logger.warning("SKIP_DB_INIT enabled: database initialization skipped")
         try:

@@ -190,24 +190,47 @@
   }
 
   /**
-   * OAuth（Google/Apple）回调只种 Domain=.ai24x.com 的 cookie，
-   * 而本封装登录态以 localStorage 为准（console 守卫等）。
-   * 页面加载时把 cookie 会话同步到 localStorage，保证任意入口
-   * （login/register 之外直接回跳 console/markets 等）都能恢复登录态。
+   * OAuth 回跳：#oauth=1&access_token=…&user=… → localStorage，并清掉 hash。
+   * Cookie 已 HttpOnly，必须靠 fragment 或 /v1/auth/session。
+   */
+  function ingestOauthFragment() {
+    try {
+      var hash = (location.hash || "").replace(/^#/, "");
+      if (!hash || hash.indexOf("oauth=1") < 0) return;
+      var params = new URLSearchParams(hash);
+      var tok = params.get("access_token") || "";
+      if (tok) {
+        setAuthToken(tok);
+        var rawUser = params.get("user");
+        if (rawUser) {
+          try {
+            setAuthUser(JSON.parse(rawUser));
+          } catch (e0) {}
+        }
+      }
+      try {
+        history.replaceState(
+          null,
+          "",
+          location.pathname + (location.search || "")
+        );
+      } catch (e1) {
+        try {
+          location.hash = "";
+        } catch (e2) {}
+      }
+    } catch (e) {}
+  }
+
+  /**
+   * OAuth（Google/Apple）回调种 Domain=.ai24x.com 的 HttpOnly cookie；
+   * 可读 cookie（密码登录 JS 写入）仍同步到 localStorage。
+   * 不再在「读不到 cookie」时清空 LS——HttpOnly 时读不到是正常的。
    */
   function syncAuthFromCookie() {
     try {
       var token = readCookie(AUTH_COOKIE);
-      if (!token) {
-        // 生产子域共享 cookie：他站已登出（cookie 清空）时，清掉本站残留 LS，避免假登录
-        if (authCookieDomain()) {
-          try {
-            if (localStorage.getItem(STORAGE_TOKEN)) localStorage.removeItem(STORAGE_TOKEN);
-            if (localStorage.getItem(STORAGE_USER)) localStorage.removeItem(STORAGE_USER);
-          } catch (e2) {}
-        }
-        return;
-      }
+      if (!token) return;
       if (localStorage.getItem(STORAGE_TOKEN) === token) return;
       setAuthToken(token);
       var raw = readCookie(AUTH_USER_COOKIE);
@@ -218,12 +241,49 @@
       }
     } catch (e) {}
   }
+
+  /** 本站无 LS 时，凭 HttpOnly cookie 向 API 拉会话（跨子域 SSO）。 */
+  function bootstrapAuthFromSession() {
+    try {
+      if (getAuthToken()) return;
+      var h = (location.hostname || "").toLowerCase();
+      var local =
+        h === "localhost" || h === "127.0.0.1" || h === "::1";
+      if (!authCookieDomain() && !local) return;
+      fetch(getBase() + "/v1/auth/session", {
+        method: "GET",
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      })
+        .then(function (r) {
+          return r.ok ? r.json() : null;
+        })
+        .then(function (data) {
+          if (!data) return;
+          var tok = data.access_token || data.token;
+          if (!tok) return;
+          setAuthToken(tok);
+          if (data.user) setAuthUser(data.user);
+        })
+        .catch(function () {});
+    } catch (e) {}
+  }
+
+  ingestOauthFragment();
   syncAuthFromCookie();
+  bootstrapAuthFromSession();
 
   function clearAuth() {
     localStorage.removeItem(STORAGE_TOKEN);
     localStorage.removeItem(STORAGE_USER);
     clearAuthCookie();
+    try {
+      fetch(getBase() + "/v1/auth/logout", {
+        method: "POST",
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      }).catch(function () {});
+    } catch (e) {}
   }
 
   function saveAuthSession(data) {

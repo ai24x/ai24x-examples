@@ -2915,22 +2915,15 @@ def _stream_openai_compatible(
     scrubber = ThinkTagStreamScrubber(include_reasoning=include_reasoning)
     # 部分上游在 stream 时把 usage 放在最后一包
     body["stream_options"] = {"include_usage": True}
-    # 上游请求 body 调试（五修 2026-08-12 临时强制开启，定位 400 根因；定位后还原开关）
+    # 上线前 S2：禁止全量 prompt 落日志/落盘（仅保留轻量元数据）
     try:
-        logger.warning(
-            "【DIAG】upstream body provider=%s model=%s msgs=%s tools=%s body=%s",
+        logger.debug(
+            "upstream stream provider=%s model=%s msgs=%s tools=%s",
             provider,
             model,
             len(body.get("messages") or []),
             len(body.get("tools") or []),
-            json.dumps(body, ensure_ascii=False)[:8000],
         )
-        try:
-            if len(body.get("tools") or []) >= 5:
-                with open(r"C:\ai24x01\ops\codex-request-body.json", "w", encoding="utf-8") as _f:
-                    _f.write(json.dumps(body, ensure_ascii=False, indent=1))
-        except Exception:
-            pass
     except Exception:
         pass
 
@@ -3051,14 +3044,13 @@ def _stream_openai_compatible(
         except Exception as e:
             # 附带上游 4xx/5xx 响应体 + 错误分类（format=400 直接上报不再 failover）
             kind, detail = _upstream_error_class(e)
-            logger.warning(f"【DIAG】upstream error kind={kind} provider={provider} model={model} {detail}")
-            try:
-                _resp = getattr(e, "response", None)
-                if _resp is not None and getattr(_resp, "status_code", None) == 400:
-                    with open(r"C:\ai24x01\ops\tokenlab-400-body.txt", "w", encoding="utf-8") as _f:
-                        _f.write(str(getattr(_resp, "text", "") or "")[:8000])
-            except Exception:
-                pass
+            logger.warning(
+                "upstream error kind=%s provider=%s model=%s detail=%s",
+                kind,
+                provider,
+                model,
+                str(detail)[:500],
+            )
             yield {
                 "type": "error",
                 "error": detail,

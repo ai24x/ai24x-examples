@@ -117,8 +117,29 @@ def _default_next(request: Request) -> str:
     return "https://www.ai24x.com"
 
 
-def _with_oauth_fragment(url: str) -> str:
-    frag = "oauth=1"
+def _with_oauth_fragment(
+    url: str,
+    *,
+    access_token: str = "",
+    user: Optional[Dict[str, Any]] = None,
+) -> str:
+    """回跳 URL 带 #oauth=1&access_token=…（fragment 不进 Referer/服务端日志）。
+
+    Cookie 改为 HttpOnly 后，前端无法再 document.cookie 读 token；
+    必须靠 fragment 写入各站 localStorage，或凭 cookie 调 /v1/auth/session。
+    """
+    parts = ["oauth=1"]
+    if access_token:
+        parts.append("access_token=" + quote(str(access_token), safe=""))
+    if user is not None:
+        parts.append(
+            "user="
+            + quote(
+                json.dumps(user, ensure_ascii=False, separators=(",", ":")),
+                safe="",
+            )
+        )
+    frag = "&".join(parts)
     if "#" in url:
         base, _, f = url.partition("#")
         return base + "#" + ((f + "&") if f else "") + frag
@@ -158,14 +179,18 @@ def _finish_oauth(db: Session, *, email: str, next_raw: str, request: Request, f
     user_dict = {"id": int(u.id), "email": u.email or "", "phone": u.phone or ""}
     domain = _cookie_domain(request.url.hostname or "")
     secure = (request.url.scheme or "").lower() == "https"
-    resp = RedirectResponse(_with_oauth_fragment(target), status_code=302)
+    resp = RedirectResponse(
+        _with_oauth_fragment(target, access_token=token, user=user_dict),
+        status_code=302,
+    )
+    # HttpOnly：防 XSS 读 cookie；跨站靠 fragment + /v1/auth/session
     resp.set_cookie(
         "ai24x_auth_token", token, max_age=_COOKIE_MAX_AGE, path="/",
-        domain=domain or None, secure=secure, httponly=False, samesite="lax",
+        domain=domain or None, secure=secure, httponly=True, samesite="lax",
     )
     resp.set_cookie(
         "ai24x_auth_user", json.dumps(user_dict, ensure_ascii=False), max_age=_COOKIE_MAX_AGE, path="/",
-        domain=domain or None, secure=secure, httponly=False, samesite="lax",
+        domain=domain or None, secure=secure, httponly=True, samesite="lax",
     )
     return resp
 

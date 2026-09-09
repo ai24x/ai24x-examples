@@ -628,6 +628,189 @@ def assert_can_spend(
     return w
 
 
+def _find_hold_ledger(
+    db: Session, auth_user_id: int, request_id: Optional[str]
+) -> Optional[BillingLedger]:
+    if not request_id:
+        return None
+    try:
+        return (
+            db.query(BillingLedger)
+            .filter(
+                BillingLedger.auth_user_id == int(auth_user_id),
+                BillingLedger.entry_type == "hold",
+                BillingLedger.request_id == str(request_id),
+            )
+            .first()
+        )
+    except Exception:
+        return None
+
+
+def _deduct_lots_exact(
+    db: Session,
+    *,
+    auth_user_id: int,
+    tokens: int,
+    allow_vip: bool,
+    now: datetime,
+) -> int:
+    """原子 FIFO 扣批次；返回实际扣到的数量。不足时不夹断（调用方负责回滚/退回）。"""
+    from sqlalchemy import update as sa_update
+
+    left = max(0, int(tokens))
+    got = 0
+    guard = 0
+    while left > 0 and guard < 64:
+        guard += 1
+        lot = None
+        for cand in _active_lots_q(db, int(auth_user_id), now).all():
+            if not allow_vip and _is_vip_daily_lot(db, cand):
+                continue
+            if int(cand.amount_remaining or 0) <= 0:
+                continue
+            lot = cand
+            break
+        if lot is None:
+            break
+        take = min(int(lot.amount_remaining or 0), left)
+        if take <= 0:
+            break
+        res = db.execute(
+            sa_update(TokenCreditLot)
+            .where(
+                TokenCreditLot.id == int(lot.id),
+                TokenCreditLot.amount_remaining >= int(take),
+            )
+            .values(amount_remaining=TokenCreditLot.amount_remaining - int(take))
+        )
+        if int(getattr(res, "rowcount", 0) or 0) == 1:
+            left -= take
+            got += take
+        else:
+            db.expire(lot)
+            continue
+    return int(got)
+
+
+def reserve_tokens(
+    db: Session,
+    auth_user_id: int,
+    need_tokens: int = 1,
+    *,
+    model: Optional[str] = None,
+    request_id: Optional[str] = None,
+) -> TokenWallet:
+    """上游调用前预扣（entry_type=hold），堵住「先检后扣」并发透支窗口（上线前 S5）。
+
+    成功后必须 settle（consume_tokens）或 release_hold；同一 request_id 幂等。
+    """
+    need = max(1, int(need_tokens))
+    if request_id:
+        existing = _find_hold_ledger(db, int(auth_user_id), request_id)
+        if existing is not None:
+            return get_or_create_wallet(db, auth_user_id)
+        # 已结算过则不再预扣
+        try:
+            done = (
+                db.query(BillingLedger.id)
+                .filter(
+                    BillingLedger.auth_user_id == int(auth_user_id),
+                    BillingLedger.entry_type == "consume",
+                    BillingLedger.request_id == str(request_id),
+                )
+                .first()
+            )
+            if done is not None:
+                return get_or_create_wallet(db, auth_user_id)
+        except Exception:
+            pass
+
+    w = assert_can_spend(db, int(auth_user_id), need_tokens=need, model=model)
+    allow_vip = model_allows_vip_daily(model)
+    now = _utcnow()
+    got = _deduct_lots_exact(
+        db,
+        auth_user_id=int(auth_user_id),
+        tokens=need,
+        allow_vip=allow_vip,
+        now=now,
+    )
+    if got < need:
+        # 并发抢光：退回已扣部分
+        if got > 0:
+            _credit_lot(
+                db,
+                auth_user_id=int(auth_user_id),
+                amount=got,
+                entry_type="refund",
+                source="hold_rel",
+                validity_days=365,
+                note=f"hold_fail_rollback:{request_id or ''}"[:255],
+                commit=False,
+            )
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail={
+                "message_zh": f"额度不足（并发占用中，本次需约 {need} token）",
+                "message_en": f"Not enough credits under concurrency (need about {need}).",
+                "message": f"额度不足（并发占用中，本次需约 {need} token）",
+                "code": "insufficient_credits",
+            },
+        )
+    w.balance_tokens = _sum_active_lots(db, int(auth_user_id), now)
+    w.updated_at = now
+    db.add(
+        BillingLedger(
+            auth_user_id=int(auth_user_id),
+            entry_type="hold",
+            amount=-int(need),
+            amount_usd=0,
+            model=(model or "")[:64] or None,
+            tokens=int(need),
+            request_id=request_id,
+            note="pre_upstream_hold",
+        )
+    )
+    db.commit()
+    db.refresh(w)
+    return w
+
+
+def release_hold(
+    db: Session,
+    *,
+    auth_user_id: int,
+    request_id: Optional[str],
+) -> None:
+    """上游失败/不计费时退回预扣。"""
+    if not request_id:
+        return
+    hold = _find_hold_ledger(db, int(auth_user_id), request_id)
+    if hold is None:
+        return
+    reserved = abs(int(hold.amount or hold.tokens or 0))
+    if reserved <= 0:
+        hold.entry_type = "hold_void"
+        hold.note = "empty_hold"
+        db.commit()
+        return
+    _credit_lot(
+        db,
+        auth_user_id=int(auth_user_id),
+        amount=reserved,
+        entry_type="refund",
+        source="hold_rel",
+        validity_days=365,
+        note=f"hold_release:{request_id}"[:255],
+        commit=False,
+    )
+    hold.entry_type = "hold_void"
+    hold.note = (f"released:{hold.note or ''}")[:255]
+    db.commit()
+
+
 def consume_tokens(
     db: Session,
     *,
@@ -662,6 +845,66 @@ def consume_tokens(
                 return get_or_create_wallet(db, auth_user_id)
         except Exception:
             pass
+
+    # S5：若有预扣 hold，按实耗结算（多退少补），不再二次全额扣
+    hold = _find_hold_ledger(db, int(auth_user_id), request_id)
+    if hold is not None:
+        reserved = abs(int(hold.amount or hold.tokens or 0))
+        actual = int(tokens)
+        allow_vip = model_allows_vip_daily(model)
+        now = _utcnow()
+        if actual < reserved:
+            refund = reserved - actual
+            if refund > 0:
+                _credit_lot(
+                    db,
+                    auth_user_id=int(auth_user_id),
+                    amount=refund,
+                    entry_type="refund",
+                    source="hold_rel",
+                    validity_days=365,
+                    note=f"hold_settle_refund:{request_id}"[:255],
+                    commit=False,
+                )
+        elif actual > reserved:
+            extra = actual - reserved
+            got = _deduct_lots_exact(
+                db,
+                auth_user_id=int(auth_user_id),
+                tokens=extra,
+                allow_vip=allow_vip,
+                now=now,
+            )
+            actual = reserved + got  # 额外额度不够则夹断
+        w = get_or_create_wallet(db, auth_user_id)
+        if amount_usd > 0:
+            usd_take = min(amount_usd, max(0, int(w.balance_usd or 0)))
+            if usd_take > 0:
+                res_u = db.execute(
+                    sa_update(TW)
+                    .where(TW.id == int(w.id), TW.balance_usd >= int(usd_take))
+                    .values(balance_usd=TW.balance_usd - int(usd_take))
+                )
+                if int(getattr(res_u, "rowcount", 0) or 0) != 1:
+                    w.balance_usd = max(0, int(w.balance_usd or 0) - usd_take)
+                amount_usd = usd_take
+            else:
+                amount_usd = 0
+        hold.entry_type = "consume"
+        hold.amount = -int(actual)
+        hold.amount_usd = -int(amount_usd)
+        hold.tokens = int(actual)
+        hold.prompt_tokens = int(prompt_tokens) if prompt_tokens else None
+        hold.completion_tokens = int(completion_tokens) if completion_tokens else None
+        hold.api_key_id = int(api_key_id) if api_key_id else None
+        hold.model = (model or hold.model or "")[:64] or None
+        hold.note = "chat/run"
+        w.balance_tokens = _sum_active_lots(db, int(auth_user_id), now)
+        w.updated_at = now
+        db.commit()
+        db.refresh(w)
+        return w
+
     w = ensure_period_bonus(db, get_or_create_wallet(db, auth_user_id))
     if tokens <= 0 and amount_usd <= 0:
         return w

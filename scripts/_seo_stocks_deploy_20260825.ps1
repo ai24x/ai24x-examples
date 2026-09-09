@@ -20,6 +20,7 @@ if ($txt.Contains($marker)) {
   if ($idx -lt 0) { throw "anchor not found: markets access_log" }
   $block = "        # SEO /stocks/ route 2026-08-25`n" +
            "        location ^~ /stocks/ {`n" +
+           "            rewrite ^/stocks/([a-zA-Z0-9._-]+)\.html$ /seo/`$1.html last;`n" +
            "            rewrite ^/stocks/([a-zA-Z0-9._-]+)/?$ /seo/`$1.html last;`n" +
            "            rewrite ^/stocks/?$ /seo/index.html last;`n" +
            "        }`n`n"

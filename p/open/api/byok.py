@@ -15,14 +15,17 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import ipaddress
 import json
 import logging
 import secrets
+import socket
 import threading
 import time
 import uuid
 from dataclasses import dataclass, field
 from typing import Any, Iterator, Optional
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -494,6 +497,97 @@ def dump_models_json(models: Optional[list[str]]) -> str:
 def provider_default_base(provider: str) -> str:
     p = BYOK_PROVIDERS.get(provider)
     return str(p.get("base") or "") if p else ""
+
+
+# ---------------------------------------------------------------------------
+# BYOK base_url SSRF 防护（上线前 S1）：禁止指向本机 / 内网 / 链路本地 / 云元数据
+# ---------------------------------------------------------------------------
+_BYOK_BLOCKED_HOSTS = frozenset(
+    {
+        "localhost",
+        "localhost.localdomain",
+        "metadata",
+        "metadata.google.internal",
+        "metadata.goog",
+        "kubernetes.default",
+        "kubernetes.default.svc",
+    }
+)
+_BYOK_BLOCKED_HOST_SUFFIXES = (".local", ".internal", ".localhost", ".lan", ".corp")
+
+
+def _byok_ip_blocked(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    if (
+        ip.is_private
+        or ip.is_loopback
+        or ip.is_link_local
+        or ip.is_multicast
+        or ip.is_reserved
+        or ip.is_unspecified
+    ):
+        return True
+    if isinstance(ip, ipaddress.IPv4Address):
+        # CGNAT / 常见云元数据网段
+        if ip in ipaddress.ip_network("100.64.0.0/10"):
+            return True
+        if ip in ipaddress.ip_network("169.254.0.0/16"):
+            return True
+    return False
+
+
+def assert_safe_byok_base_url(raw: str) -> str:
+    """校验用户自定义 BYOK base_url。通过则返回 strip 后的原文；否则 ValueError。"""
+    s = str(raw or "").strip()
+    if not s:
+        raise ValueError("empty base_url")
+    if len(s) > 512:
+        raise ValueError("base_url too long")
+    if any(ch.isspace() for ch in s):
+        raise ValueError("base_url contains whitespace")
+    parsed = urlparse(s)
+    scheme = (parsed.scheme or "").lower()
+    if scheme != "https":
+        raise ValueError("base_url must use https")
+    if parsed.username is not None or parsed.password is not None:
+        raise ValueError("base_url must not contain credentials")
+    host = (parsed.hostname or "").strip().lower().rstrip(".")
+    if not host:
+        raise ValueError("base_url missing host")
+    if host in _BYOK_BLOCKED_HOSTS or any(host.endswith(suf) for suf in _BYOK_BLOCKED_HOST_SUFFIXES):
+        raise ValueError("base_url host is not allowed")
+    # 字面量 IP
+    try:
+        literal = ipaddress.ip_address(host)
+    except ValueError:
+        literal = None
+    if literal is not None and _byok_ip_blocked(literal):
+        raise ValueError("base_url points to a non-public IP")
+    # DNS 解析：任一解析结果落内网即拒（防 DNS rebinding 至本机）
+    try:
+        infos = socket.getaddrinfo(host, parsed.port or 443, type=socket.SOCK_STREAM)
+    except socket.gaierror as e:
+        raise ValueError(f"base_url host resolve failed: {e}") from e
+    if not infos:
+        raise ValueError("base_url host resolve failed")
+    for info in infos:
+        sockaddr = info[4]
+        if not sockaddr:
+            continue
+        try:
+            ip = ipaddress.ip_address(sockaddr[0])
+        except ValueError:
+            continue
+        if _byok_ip_blocked(ip):
+            raise ValueError("base_url resolves to a non-public IP")
+    return s
+
+
+def sanitize_byok_base_url(raw: Optional[str]) -> Optional[str]:
+    """空 → None；非空则 assert_safe，失败抛 ValueError。"""
+    s = str(raw or "").strip()
+    if not s:
+        return None
+    return assert_safe_byok_base_url(s)
 
 
 def resolve_upstream_model(requested: str, provider: str, key_models: list[str]) -> Optional[str]:
@@ -1368,6 +1462,11 @@ def route_byok_chat(
             last_err = f"{provider}: missing base_url"
             continue
         try:
+            base = assert_safe_byok_base_url(base)
+        except ValueError as e:
+            last_err = f"{provider}: unsafe base_url ({e})"
+            continue
+        try:
             plain = decrypt_key(k.key_cipher)
             t0 = time.time()
             out = _upstream_call(
@@ -1508,6 +1607,11 @@ def stream_byok_chat(
             base = str(k.base_url or "").strip() or provider_default_base(provider)
             if not base:
                 last_err = f"{provider}: missing base_url"
+                continue
+            try:
+                base = assert_safe_byok_base_url(base)
+            except ValueError as e:
+                last_err = f"{provider}: unsafe base_url ({e})"
                 continue
             started = False
             got_done = False
@@ -1720,13 +1824,14 @@ def create_key(
     raw = str(api_key or "").strip()
     if len(raw) < 8:
         raise ValueError("api_key too short")
+    safe_base = sanitize_byok_base_url(base_url)
     key = ByokKey(
         auth_user_id=int(auth_user_id),
         provider=p,
         name=str(name or "").strip()[:64],
         key_cipher=encrypt_key(raw),
         key_prefix=key_prefix(raw),
-        base_url=str(base_url or "").strip() or None,
+        base_url=safe_base,
         models=dump_models_json(models),
         status="active",
         priority=max(0, min(999, int(priority or 100))),
@@ -1761,7 +1866,7 @@ def update_key(db, *, auth_user_id: int, key_id: int, patch: dict[str, Any]) -> 
     if "models" in patch:
         row.models = dump_models_json(patch.get("models"))
     if "base_url" in patch:
-        row.base_url = str(patch.get("base_url") or "").strip() or None
+        row.base_url = sanitize_byok_base_url(patch.get("base_url"))
     if "provider" in patch:
         p = str(patch.get("provider") or "").strip().lower()
         if p in BYOK_PROVIDERS:
@@ -1827,7 +1932,12 @@ def test_key(
         raw = str(api_key or "").strip()
     if len(raw) < 8:
         return {"ok": False, "error": "api_key too short"}
-    base = str(base_url or "").strip() or provider_default_base(p)
+    try:
+        base = sanitize_byok_base_url(base_url) or provider_default_base(p)
+        if base:
+            base = assert_safe_byok_base_url(base)
+    except ValueError as e:
+        return {"ok": False, "error": str(e)}
     if not base:
         return {"ok": False, "error": "missing base_url"}
 

@@ -186,6 +186,7 @@ class ChatService:
             from token_mvp_service import get_balance_snapshot
             from model_router import run_routed_chat
 
+            hold_active = False
             is_vip = False
             route_model = request.model
             allow_names = None
@@ -222,10 +223,10 @@ class ChatService:
                         break
             else:
                 if auth_user_id is not None:
-                    from token_mvp_service import assert_can_spend
+                    from token_mvp_service import release_hold, reserve_tokens
 
-                    # 预检：pro/名模不可只靠日赠；flash/auto 可用日赠
-                    assert_can_spend(
+                    # S5：上游前预扣，堵住并发透支；失败/不计费须 release
+                    reserve_tokens(
                         db,
                         int(auth_user_id),
                         need_tokens=estimate_need_tokens(
@@ -234,7 +235,9 @@ class ChatService:
                             prompt=str(request.prompt or ""),
                         ),
                         model=route_model,
+                        request_id=request_id,
                     )
+                    hold_active = True
 
                     # P2：点名模每日上限（单模型次数 / 单用户 credits），超限 429
                     from vip_named_guard import check_named_daily_limit
@@ -244,6 +247,16 @@ class ChatService:
                         try:
                             check_named_daily_limit(db, int(auth_user_id), str(route_model))
                         except HTTPException:
+                            if hold_active:
+                                try:
+                                    release_hold(
+                                        db,
+                                        auth_user_id=int(auth_user_id),
+                                        request_id=request_id,
+                                    )
+                                    hold_active = False
+                                except Exception:
+                                    pass
                             raise
                         except Exception:
                             # 保护不可用时不阻断主链路（fail-open），告警交给运维日志
@@ -351,7 +364,7 @@ class ChatService:
             remaining_quota = user.daily_request_limit - user.current_daily_requests
             snap = None
             if auth_user_id is not None:
-                from token_mvp_service import consume_tokens, get_balance_snapshot
+                from token_mvp_service import consume_tokens, get_balance_snapshot, release_hold
                 from free_shared import record_shared_usage
 
                 if billing_mode == "shared":
@@ -383,6 +396,7 @@ class ChatService:
                             completion_tokens=getattr(routed, "completion_tokens", None),
                             api_key_id=auth_api_key_id,
                         )
+                        hold_active = False
 
                         # P2：累计点名模每日用量（仅成功且计费）
                         from vip_named_guard import record_named_usage
@@ -393,6 +407,16 @@ class ChatService:
                                 record_named_usage(db, int(auth_user_id), str(request.model), int(token_count))
                             except Exception:
                                 pass
+                    if hold_active:
+                        try:
+                            release_hold(
+                                db,
+                                auth_user_id=int(auth_user_id),
+                                request_id=request_id,
+                            )
+                        except Exception:
+                            pass
+                        hold_active = False
                     snap = get_balance_snapshot(db, int(auth_user_id))
                     remaining_quota = int(snap.get("balance_tokens") or 0)
 
@@ -460,6 +484,18 @@ class ChatService:
             )
 
         except Exception as e:
+            # S5：上游失败时退回预扣
+            try:
+                if auth_user_id is not None and locals().get("hold_active"):
+                    from token_mvp_service import release_hold
+
+                    release_hold(
+                        db,
+                        auth_user_id=int(auth_user_id),
+                        request_id=request_id,
+                    )
+            except Exception:
+                pass
             # 记录错误
             chat_request.error_message = str(e)
             chat_request.status = "failed"
@@ -552,10 +588,11 @@ class ChatService:
         saw_error = False
         error_detail = ""
         finalized = False
+        hold_active = False
 
         def _finalize(status: str, err: str = "") -> None:
             """记账收尾（不 yield；可被 finally / GeneratorExit 路径调用；幂等）。"""
-            nonlocal finalized
+            nonlocal finalized, hold_active
             if finalized:
                 return
             finalized = True
@@ -596,17 +633,54 @@ class ChatService:
                                 completion_tokens=completion_tokens,
                                 api_key_id=auth_api_key_id,
                             )
+                            hold_active = False
+                    if hold_active and auth_user_id is not None:
+                        try:
+                            from token_mvp_service import release_hold
+
+                            release_hold(
+                                db,
+                                auth_user_id=int(auth_user_id),
+                                request_id=request_id,
+                            )
+                        except Exception:
+                            pass
+                        hold_active = False
                 else:
                     chat_request.status = status
                     if err:
                         chat_request.error_message = str(err)[:300]
                     db.commit()
+                    if hold_active and auth_user_id is not None:
+                        try:
+                            from token_mvp_service import release_hold
+
+                            release_hold(
+                                db,
+                                auth_user_id=int(auth_user_id),
+                                request_id=request_id,
+                            )
+                        except Exception:
+                            pass
+                        hold_active = False
             except HTTPException:
                 try:
                     chat_request.status = "failed"
                     db.commit()
                 except Exception:
                     pass
+                if hold_active and auth_user_id is not None:
+                    try:
+                        from token_mvp_service import release_hold
+
+                        release_hold(
+                            db,
+                            auth_user_id=int(auth_user_id),
+                            request_id=request_id,
+                        )
+                    except Exception:
+                        pass
+                    hold_active = False
             except Exception as e:
                 try:
                     chat_request.error_message = str(e)[:300]
@@ -614,6 +688,18 @@ class ChatService:
                     db.commit()
                 except Exception:
                     pass
+                if hold_active and auth_user_id is not None:
+                    try:
+                        from token_mvp_service import release_hold
+
+                        release_hold(
+                            db,
+                            auth_user_id=int(auth_user_id),
+                            request_id=request_id,
+                        )
+                    except Exception:
+                        pass
+                    hold_active = False
 
         try:
             from token_mvp_service import get_balance_snapshot
@@ -673,9 +759,9 @@ class ChatService:
                 saw_done = True
             else:
                 if auth_user_id is not None and byok_stream is None:
-                    from token_mvp_service import assert_can_spend
+                    from token_mvp_service import reserve_tokens
 
-                    assert_can_spend(
+                    reserve_tokens(
                         db,
                         int(auth_user_id),
                         need_tokens=estimate_need_tokens(
@@ -684,7 +770,9 @@ class ChatService:
                             prompt=str(request.prompt or ""),
                         ),
                         model=request.model,
+                        request_id=request_id,
                     )
+                    hold_active = True
                 stream_iter = byok_stream
                 if stream_iter is None:
                     stream_iter = run_routed_chat_stream(
