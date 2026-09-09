@@ -1245,13 +1245,13 @@ def _timeout_s() -> float:
 
 def _stream_timeout_s() -> float:
     """流式读空闲超时（秒）：两次 SSE chunk 间隔上限。
-    默认 90（原 300 过长，单请求可占满 worker/线程导致 /health 无响应）。
-    OpenClaw 长工具循环可按需调高 TOKEN_LLM_STREAM_TIMEOUT_S。
+    默认 180（配合 SSE keepalive，覆盖推理/工具间隙；过长会占满 worker）。
+    OpenClaw / Codex 长循环可按需调 TOKEN_LLM_STREAM_TIMEOUT_S。
     """
     try:
-        return max(30.0, float(_env("TOKEN_LLM_STREAM_TIMEOUT_S", "90") or "90"))
+        return max(30.0, float(_env("TOKEN_LLM_STREAM_TIMEOUT_S", "180") or "180"))
     except ValueError:
-        return 90.0
+        return 180.0
 
 
 def _httpx_timeout(timeout_s: float) -> httpx.Timeout:

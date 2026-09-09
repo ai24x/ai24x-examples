@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import json
 import os
+import queue
+import threading
 import time
 import uuid
 from typing import Any, AsyncIterator, Dict, Iterator, List, Optional, Tuple
@@ -18,6 +20,53 @@ from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from schemas import ChatRequest as ChatRequestSchema, ChatResponse
+
+
+def _sse_keepalive_interval_s() -> float:
+    """流式空闲心跳间隔（秒）。Codex/Cursor 对长时间无 chunk 敏感，默认 15s。"""
+    try:
+        return max(5.0, float(os.getenv("TOKEN_LLM_SSE_KEEPALIVE_S") or "15"))
+    except ValueError:
+        return 15.0
+
+
+def _iter_events_with_keepalive(
+    events: Iterator[Dict[str, Any]],
+    *,
+    interval_s: Optional[float] = None,
+) -> Iterator[Dict[str, Any]]:
+    """上游事件空闲时注入 type=_keepalive，供 SSE 层发注释心跳。"""
+    interval = float(interval_s if interval_s is not None else _sse_keepalive_interval_s())
+    q: "queue.Queue[tuple[str, Any]]" = queue.Queue()
+    sentinel = object()
+
+    def _worker() -> None:
+        try:
+            for ev in events:
+                q.put(("ev", ev))
+        except Exception as e:  # noqa: BLE001 — 原样交给消费端
+            q.put(("err", e))
+        finally:
+            q.put(("end", sentinel))
+
+    th = threading.Thread(target=_worker, name="sse-ka", daemon=True)
+    th.start()
+    while True:
+        try:
+            kind, payload = q.get(timeout=interval)
+        except queue.Empty:
+            yield {"type": "_keepalive"}
+            continue
+        if kind == "end":
+            break
+        if kind == "err":
+            raise payload
+        yield payload  # type: ignore[misc]
+
+
+def _sse_comment_keepalive() -> str:
+    # SSE 注释行：多数客户端忽略，但能刷新中间代理/客户端空闲计时
+    return ": keepalive\n\n"
 
 
 def _prompt_max_chars() -> int:
@@ -676,8 +725,11 @@ def iter_true_sse_from_events(
             }
         )
 
-    for ev in events:
+    for ev in _iter_events_with_keepalive(events):
         et = ev.get("type")
+        if et == "_keepalive":
+            yield _sse_comment_keepalive()
+            continue
         if et == "meta":
             model_out = str(ev.get("public_model") or ev.get("raw_model") or model_out)
             continue
@@ -1396,8 +1448,11 @@ def iter_true_sse_from_responses_events(
     fc_state: Dict[int, Dict[str, Any]] = {}
     out_index = 0
 
-    for ev in events:
+    for ev in _iter_events_with_keepalive(events):
         et = ev.get("type")
+        if et == "_keepalive":
+            yield _sse_comment_keepalive()
+            continue
         if et == "meta":
             model_out = str(
                 ev.get("public_model") or ev.get("raw_model") or model_out
