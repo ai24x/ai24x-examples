@@ -1402,6 +1402,23 @@ def list_usage(
     }
 
 
+def _is_user_hidden_ledger(*, entry_type: Optional[str], note: Optional[str]) -> bool:
+    """预扣 hold / 释放 / 多退少补 的内部账，不在用户 Transactions 展示。
+
+    结算后 hold 行已改写为 consume（实耗）；配套的 refund 仅用于 lot 回补，
+    若暴露会像「退款」且抬高入账汇总。
+    """
+    et = str(entry_type or "").strip().lower()
+    if et in ("hold", "hold_void"):
+        return True
+    if et != "refund":
+        return False
+    n = str(note or "").strip().lower()
+    return n.startswith(
+        ("hold_settle_refund:", "hold_release:", "hold_fail_rollback:")
+    )
+
+
 def list_transactions(
     db: Session,
     auth_user_id: int,
@@ -1412,11 +1429,13 @@ def list_transactions(
     since: Optional[str] = None,
     until: Optional[str] = None,
 ) -> dict:
-    """账单流水（对照 DeepSeek transactions）：全类型（充值/消耗/赠送/返利/过期）。
+    """账单流水（对照 DeepSeek transactions）：充值/消耗/赠送/返利/过期。
 
-    每条附「交易后余额」（token 口径，基于全量账本按 id 正序累加，与筛选无关），
-    并返回收支汇总（按筛选范围）。
+    每条附「交易后余额」（token 口径；内部预扣流水不计入展示与汇总），
+    当前余额以钱包 lots 为准。
     """
+    from sqlalchemy import and_, not_, or_
+
     from token_plans import _usd_cny
 
     try:
@@ -1424,7 +1443,20 @@ def list_transactions(
     except Exception:
         fx = 7.2
 
+    hide_hold_refund = or_(
+        BillingLedger.entry_type.in_(("hold", "hold_void")),
+        and_(
+            BillingLedger.entry_type == "refund",
+            or_(
+                BillingLedger.note.like("hold_settle_refund:%"),
+                BillingLedger.note.like("hold_release:%"),
+                BillingLedger.note.like("hold_fail_rollback:%"),
+            ),
+        ),
+    )
+
     q = db.query(BillingLedger).filter(BillingLedger.auth_user_id == int(auth_user_id))
+    q = q.filter(not_(hide_hold_refund))
     s = _parse_date_utc(since)
     u = _parse_date_utc(until)
     if s is not None:
@@ -1441,22 +1473,30 @@ def list_transactions(
         .all()
     )
 
-    # 全量账本：running balance（token 口径）+ 收支汇总（按筛选范围）
+    # 全量账本：running / 汇总均跳过内部预扣流水，避免 refund 虚增「入账」
     bal_map: dict[int, int] = {}
     running = 0
     token_in = token_out = 0
     usd_in = usd_out = 0
-    all_amounts = (
-        db.query(BillingLedger.id, BillingLedger.amount, BillingLedger.amount_usd)
+    all_rows = (
+        db.query(
+            BillingLedger.id,
+            BillingLedger.amount,
+            BillingLedger.amount_usd,
+            BillingLedger.entry_type,
+            BillingLedger.note,
+        )
         .filter(BillingLedger.auth_user_id == int(auth_user_id))
         .order_by(BillingLedger.id.asc())
         .all()
     )
-    for rid, amt, usd in all_amounts:
+    for rid, amt, usd, et, note in all_rows:
+        if _is_user_hidden_ledger(entry_type=et, note=note):
+            continue
         amt = int(amt or 0)
         usd = int(usd or 0)
         running += amt
-        bal_map[rid] = running
+        bal_map[int(rid)] = running
         if amt > 0:
             token_in += amt
         elif amt < 0:
@@ -1465,6 +1505,11 @@ def list_transactions(
             usd_in += usd
         elif usd < 0:
             usd_out += -usd
+
+    try:
+        wallet_bal = int(get_or_create_wallet(db, int(auth_user_id)).balance_tokens or 0)
+    except Exception:
+        wallet_bal = running
 
     return {
         "total": total,
@@ -1478,6 +1523,8 @@ def list_transactions(
                 "amount_usd": r.amount_usd,
                 "model": r.model,
                 "tokens": r.tokens,
+                "prompt_tokens": getattr(r, "prompt_tokens", None),
+                "completion_tokens": getattr(r, "completion_tokens", None),
                 "request_id": r.request_id,
                 "note": r.note,
                 "balance": bal_map.get(r.id, running),
@@ -1491,7 +1538,7 @@ def list_transactions(
             "token_net": token_in - token_out,
             "usd_in_cents": usd_in,
             "usd_out_cents": usd_out,
-            "current_balance_tokens": running,
+            "current_balance_tokens": wallet_bal,
             "fx": round(fx, 4),
         },
     }

@@ -99,6 +99,9 @@
         bonus: "Bonus",
         referral: "Referral",
         expire: "Expired",
+        refund: "Adjustment",
+        hold: "Hold",
+        hold_void: "Hold released",
       };
       return en[t] || t || "";
     }
@@ -108,6 +111,9 @@
       bonus: "赠送",
       referral: "邀请奖励",
       expire: "过期核销",
+      refund: "额度调整",
+      hold: "预扣",
+      hold_void: "预扣取消",
     };
     return m[t] || t || "";
   }
@@ -213,6 +219,12 @@
       return zh ? n : n.replace(/FREE\s*月赠额度/gi, "Monthly free quota");
     }
     if (/^chat\/run$/i.test(n)) return zh ? "API 调用" : "API call";
+    if (/^hold_settle_refund:/i.test(n)) {
+      return zh ? "预扣多退（按实耗结算）" : "Unused hold returned after settle";
+    }
+    if (/^hold_release:/i.test(n) || /^hold_fail_rollback:/i.test(n)) {
+      return zh ? "预扣退回（未计费）" : "Hold released (not billed)";
+    }
     if (/^lot_expire\b/i.test(n)) return zh ? "额度到期自动核销" : "Credit lot expired";
     if (
       /^batch_t\d+$/i.test(n) ||

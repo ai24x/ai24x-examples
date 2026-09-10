@@ -19,6 +19,15 @@
     return en;
   }
 
+  function escHtml(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
   function fmtInt(v) {
     var n = Number(v);
     if (!isFinite(n)) return "--";
@@ -90,6 +99,9 @@
         bonus: "Bonus",
         referral: "Referral",
         expire: "Expired",
+        refund: "Adjustment",
+        hold: "Hold",
+        hold_void: "Hold released",
       };
       return en[t] || t || "";
     }
@@ -99,6 +111,9 @@
       bonus: "赠送",
       referral: "邀请奖励",
       expire: "过期核销",
+      refund: "额度调整",
+      hold: "预扣",
+      hold_void: "预扣取消",
     };
     return m[t] || t || "";
   }
@@ -109,6 +124,9 @@
       FREE: "免费档",
       vip: "Token VIP",
       VIP: "Token VIP",
+      weekly: "Pro 周卡",
+      monthly: "Pro 月卡",
+      yearly: "Pro 年卡",
       token_pack_10k: "入门包",
       token_pack_100k: "常用包",
         token_pack_mid: "进阶包",
@@ -126,6 +144,9 @@
       FREE: "Free",
       vip: "Token VIP",
       VIP: "Token VIP",
+      weekly: "Pro Weekly",
+      monthly: "Pro Monthly",
+      yearly: "Pro Yearly",
       token_pack_10k: "Starter",
       token_pack_100k: "Builder",
         token_pack_mid: "Advanced",
@@ -162,7 +183,7 @@
         ch === "joint_test_topup" ||
         ch === "smoke_validity"
       ) {
-        return AI24X_API.isZhUi() ? "转账" : "Transfer";
+        return AI24X_API.isZhUi() ? "充值" : "Top-up";
       }
       if (!AI24X_API.isZhUi()) {
         var en = { wechat: "WeChat", alipay: "Alipay", paypal: "PayPal", mock: "Mock" };
@@ -198,16 +219,22 @@
       return zh ? n : n.replace(/FREE\s*月赠额度/gi, "Monthly free quota");
     }
     if (/^chat\/run$/i.test(n)) return zh ? "API 调用" : "API call";
+    if (/^hold_settle_refund:/i.test(n)) {
+      return zh ? "预扣多退（按实耗结算）" : "Unused hold returned after settle";
+    }
+    if (/^hold_release:/i.test(n) || /^hold_fail_rollback:/i.test(n)) {
+      return zh ? "预扣退回（未计费）" : "Hold released (not billed)";
+    }
     if (/^lot_expire\b/i.test(n)) return zh ? "额度到期自动核销" : "Credit lot expired";
     if (
       /^batch_t\d+$/i.test(n) ||
       /^joint_test_topup$/i.test(n) ||
       /^smoke_validity$/i.test(n)
     ) {
-      return zh ? "转账到账" : "Transfer";
+      return zh ? "充值到账" : "Top-up";
     }
     if (
-      /^(wechat|alipay|paypal|creem|mock|crypto|topup|topup_usd)(_query|_capture|_webhook)?:/i.test(n) ||
+      /^(wechat|alipay|paypal|creem|dodo|mock|crypto|topup|topup_usd)(_query|_capture|_webhook)?:/i.test(n) ||
       /^[a-z0-9_]+:T\d+:[a-z0-9_]+$/i.test(n)
     ) {
       var parts = n.split(":");
@@ -279,11 +306,9 @@
           box.innerHTML = "";
         });
       }
-      if (!opts.noScroll) {
-        try {
-          box.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        } catch (eScroll) {}
-      }
+      try {
+        box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      } catch (eScroll) {}
     }
     if (opts.toast || opts.toastOnly || (!box && !opts.noToast)) {
       showToast(msg, ok);
@@ -292,7 +317,14 @@
 
   function requireLogin() {
     if (!AI24X_API.getAuthToken()) {
-      location.href = "login.html?next=" + encodeURIComponent("console.html");
+      var next = "console.html";
+      try {
+        var q = location.search || "";
+        if (q && /[?&]/.test(q)) next += q; // 保留 ?plan=xxx 深链
+        var h = location.hash || "";
+        if (h && /^#[A-Za-z]/.test(h)) next += h;
+      } catch (e) {}
+      location.href = "login.html?next=" + encodeURIComponent(next);
       return false;
     }
     return true;
@@ -411,10 +443,61 @@
     });
   }
 
+  function payIconSvg(channel) {
+    if (channel === "wechat") {
+      return (
+        '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+        '<path fill="#07C160" d="M9.5 4C5.9 4 3 6.5 3 9.6c0 1.8 1 3.3 2.6 4.4L5 16.2l2.4-1.2c.7.2 1.4.3 2.1.3.2 0 .4 0 .6 0-.2-.5-.3-1-.3-1.6 0-3.2 3.1-5.8 6.9-5.8.2 0 .4 0 .6.1C16.4 5.3 13.2 4 9.5 4zm-2.3 3.1c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zm4.6 0c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zM16.8 9c-3.1 0-5.6 2.1-5.6 4.7s2.5 4.7 5.6 4.7c.6 0 1.2-.1 1.8-.3l1.9.9-.5-1.7c1.2-.9 2-2.2 2-3.6C21.9 11.1 19.5 9 16.8 9zm-1.9 3.1c.3 0 .6.3.6.6s-.3.6-.6.6-.6-.3-.6-.6.3-.6.6-.6zm3.8 0c.3 0 .6.3.6.6s-.3.6-.6.6-.6-.3-.6-.6.3-.6.6-.6z"/></svg>'
+      );
+    }
+    if (channel === "alipay") {
+      return (
+        '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+        '<path fill="#1677FF" d="M19.695 15.07c3.426 1.158 4.203 1.22 4.203 1.22V3.846c0-2.124-1.705-3.845-3.81-3.845H3.914C1.808.001.102 1.722.102 3.846v16.31c0 2.123 1.706 3.845 3.813 3.845h16.173c2.105 0 3.81-1.722 3.81-3.845v-.157s-6.19-2.602-9.315-4.119c-2.096 2.602-4.8 4.181-7.607 4.181-4.75 0-6.361-4.19-4.112-6.949.49-.602 1.324-1.175 2.617-1.497 2.025-.502 5.247.313 8.266 1.317a16.796 16.796 0 0 0 1.341-3.302H5.781v-.952h4.799V6.975H4.77v-.953h5.81V3.591s0-.409.411-.409h2.347v2.84h5.744v.951h-5.744v1.704h4.69a19.453 19.453 0 0 1-1.986 5.06c1.424.52 2.702 1.011 3.654 1.333m-13.81-2.032c-.596.06-1.71.325-2.321.869-1.83 1.608-.735 4.55 2.968 4.55 2.151 0 4.301-1.388 5.99-3.61-2.403-1.182-4.438-2.028-6.637-1.809"/></svg>'
+      );
+    }
+    if (channel === "creem") {
+      return (
+        '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+        '<path fill="#7C3AED" d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm0 2v10h16V7H4zm2 2h4v2H6V9zm6 0h6v2h-6V9z"/></svg>'
+      );
+    }
+    if (channel === "dodo") {
+      return (
+        '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+        '<rect x="2.5" y="5" width="19" height="14" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/>' +
+        '<line x1="2.5" y1="9.8" x2="21.5" y2="9.8" stroke="currentColor" stroke-width="1.8"/>' +
+        '<line x1="6" y1="14.2" x2="10.2" y2="14.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>' +
+        '<line x1="12.6" y1="14.2" x2="16.2" y2="14.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
+      );
+    }
+    if (channel === "paypal") {
+      return (
+        '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+        '<path fill="#003087" d="M7.2 20.5h1.7l.5-3.1h1.7c3.3 0 5.5-1.4 6.1-4.3.1-.5.1-.9.1-1.2 0-.2 0-.4-.1-.6H19l.1-.5c.4-2.5-.9-4.2-3.8-4.2H9.2L7.2 20.5zm4.2-11.5h1.7c1.3 0 2 .5 1.8 1.7-.2 1.4-1.2 1.7-2.5 1.7h-1.5l.5-3.4z"/>' +
+        '<path fill="#009CDE" d="M9.5 21.5h1.7l.4-2.5H13c2.7 0 4.4-1.1 4.9-3.5.1-.4.1-.7.1-1 0-.1 0-.3 0-.4h1.5l.1-.4c.3-2-.7-3.4-3.1-3.4h-4.3l-1.9 11.2h1.7l.5 3.1h1.4c1.1 0 1.7.4 1.5 1.4-.2 1.1-1 1.4-2.1 1.4H10l.5 3.3z"/></svg>'
+      );
+    }
+    if (channel === "crypto") {
+      return (
+        '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+        '<path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm3.2 11.2c-.1 1.9-1.4 2.9-3.4 3.1v1.7H10.7v-1.7c-2.4-.2-4.2-1.2-4.3-3h2.2c.1 1 1 1.6 2.1 1.7v-4.6c-2.8-.7-4.6-1.9-4.6-3.7 0-1.9 1.7-3.1 4.6-3.3V3h1.1v1.6c2 .2 3.7 1.2 3.8 3h-2.1c0-1-.8-1.6-1.7-1.7v4.3c2.9.8 4.5 1.9 4.5 4zm-2.2-4.2v4.3c1.3-.3 2-1 2-1.9 0-1-.8-1.7-2-2.4z"/></svg>'
+      );
+    }
+    return "";
+  }
+
+  /** 公网域名：永不在用户文案里提 Mock；本机/内网仅按钮可用，hint 也不提 */
   function isPublicProdHost() {
     try {
       var h = String(location.hostname || "").toLowerCase();
-      return h === "open.ai24x.com" || h === "www.ai24x.com" || h === "ai24x.com" || h.endsWith(".ai24x.com");
+      return (
+        h === "www.ai24x.com" ||
+        h === "ai24x.com" ||
+        h === "open.ai24x.com" ||
+        h === "markets.ai24x.com" ||
+        h.endsWith(".ai24x.com")
+      );
     } catch (e) {
       return false;
     }
@@ -423,7 +506,73 @@
     return !!(pay && pay.mock_allowed) && !isPublicProdHost();
   }
 
-  function updatePayHintOpen(pay, zh) {
+  var BILLING_CATALOG_KEY = "ai24x_billing_catalog_v2";
+  var BILLING_CATALOG_TTL_MS = 5 * 60 * 1000;
+
+  function readBillingCatalogCache() {
+    try {
+      var raw = sessionStorage.getItem(BILLING_CATALOG_KEY);
+      if (!raw) return null;
+      var o = JSON.parse(raw);
+      if (!o || !o.ts || !o.data) return null;
+      if (Date.now() - Number(o.ts) > BILLING_CATALOG_TTL_MS) return null;
+      return o.data;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function writeBillingCatalogCache(data) {
+    try {
+      if (!data || !Array.isArray(data.products) || !data.products.length) return;
+      sessionStorage.setItem(
+        BILLING_CATALOG_KEY,
+        JSON.stringify({ ts: Date.now(), data: data })
+      );
+    } catch (e) {}
+  }
+
+  function billingCatalogLoadErrorMsg() {
+    return tr(
+      "套餐加载失败。请确认 API 已启动（本机常见为 127.0.0.1:8000），或在控制台设置正确的 API 地址后刷新。",
+      "Could not load plans. Ensure the API is running (often 127.0.0.1:8000 locally) or set the API base in Console, then refresh."
+    );
+  }
+
+  /** 套餐目录：session 缓存 + 后台刷新；与余额等接口并行拉取 */
+  function fetchBillingCatalog() {
+    var cached = readBillingCatalogCache();
+    if (cached) {
+      renderProducts(cached);
+      return AI24X_API.billingProducts()
+        .then(function (fresh) {
+          writeBillingCatalogCache(fresh);
+          renderProducts(fresh);
+          return fresh;
+        })
+        .catch(function () {
+          return cached;
+        });
+    }
+    return AI24X_API.billingProducts()
+      .then(function (data) {
+        writeBillingCatalogCache(data);
+        renderProducts(data);
+        return data;
+      })
+      .catch(function (e) {
+        var box = $("productsList");
+        if (box && !box.children.length) {
+          box.innerHTML =
+            '<p class="sub" style="color:var(--danger,#c62828);">' +
+            escHtml(billingCatalogLoadErrorMsg()) +
+            "</p>";
+        }
+        throw e;
+      });
+  }
+
+  function updatePayHint(pay, zh) {
     var hint = $("payHint");
     if (!hint) return;
     if (pay.enabled && (pay.wechat_ready || pay.alipay_ready || pay.paypal_ready || pay.dodo_ready || pay.crypto_ready)) {
@@ -444,95 +593,416 @@
     }
   }
 
-  function renderPlans(data) {
-    if (data) window.__tokenPlansPayload = data;
-    data = data || window.__tokenPlansPayload;
-    if (!data) return;
-    var plans = (data && data.plans) || [];
-    var pay = (data && data.pay) || {};
-    window.__tokenPay = pay;
-    renderByokPlanCards((data && data.byok_plans) || [], pay);
-    updatePayHintOpen(pay, AI24X_API.isZhUi());
-    var box = $("plansList");
-    if (!box) return;
-    box.innerHTML = "";
-    if (!plans.length) {
-      box.innerHTML = '<p class="sub">' + tr("暂无套餐", "No plans") + "</p>";
+  function findProductPlan(productId, planId) {
+    try {
+      var data = window.__tokenPlansPayload || {};
+      var products = data.products || [];
+      for (var i = 0; i < products.length; i++) {
+        if (String(products[i].product) === String(productId)) {
+          var plans = products[i].plans || [];
+          for (var j = 0; j < plans.length; j++) {
+            if (String(plans[j].plan) === String(planId)) {
+              return { product: products[i], plan: plans[j] };
+            }
+          }
+        }
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  /** Plans：在付费档前插入 Free 引导行（不走下单） */
+  function appendFreePlanGuide(plansWrap, kind) {
+    var row = document.createElement("div");
+    row.className = "product-plan-row";
+    row.setAttribute("data-plan", "free");
+    var info = document.createElement("div");
+    info.className = "product-plan-info";
+    var nm = document.createElement("strong");
+    nm.textContent = tr("免费", "Free");
+    info.appendChild(nm);
+    var extra = document.createElement("div");
+    extra.className = "sub";
+    extra.style.marginTop = "3px";
+    var act = document.createElement("div");
+    act.className = "product-plan-act";
+    var link = document.createElement("a");
+    link.className = "btn";
+    link.target = "_blank";
+    link.rel = "noopener";
+    if (kind === "byok") {
+      extra.textContent = tr(
+        "$0 · 先拿 Key 开始调用，需要再选 Pro 或充值",
+        "$0 · Get an API key and start — upgrade to Pro or top up when ready"
+      );
+      link.href = openApiBase() + "/";
+      link.textContent = tr("打开 AI Gateway", "Open AI Gateway");
+    } else if (kind === "token") {
+      extra.textContent = tr(
+        "$0 · 注册拿 Key；余额为空时每日约 10 万 tokens 免费共享",
+        "$0 · Sign up for an API key; ~100K tokens/day free shared when balance is empty"
+      );
+      link.href = openApiBase() + "/console.html?from=account";
+      link.textContent = tr("打开 Gateway 控制台", "Open Gateway console");
+    } else {
+      extra.textContent = tr(
+        "$0 · K线/指标/AI 点评每日 10 次 · 自选 10 只",
+        "$0 · Charts, indicators & 10 AI briefs/day · watchlist 10"
+      );
+      link.href = marketsApiBase() + "/app.html";
+      link.textContent = tr("打开行情", "Open chart app");
+    }
+    info.appendChild(extra);
+    row.appendChild(info);
+    act.appendChild(link);
+    row.appendChild(act);
+    plansWrap.appendChild(row);
+  }
+
+  /** overview 卡片点选：进 billing + 打开该套餐支付方式选择（Markets 门「升级 Pro」仍可用） */
+  function chooseMarketsPlan(planId) {
+    showConsolePanel("billing");
+    var pay = window.__tokenPay || {};
+    var matched = findProductPlan("markets", planId);
+    if (matched) {
+      setTimeout(function () {
+        var row = document.querySelector('#productsList [data-plan="' + String(planId).replace(/"/g, "") + '"]');
+        if (row) {
+          row.scrollIntoView({ behavior: "smooth", block: "center" });
+          row.style.outline = "2px solid #0070ba";
+          row.style.outlineOffset = "2px";
+        }
+        openPlanPayChooser("markets", matched.plan, pay, true);
+      }, 180);
+    } else {
+      goMarketsPlans(null);
+    }
+  }
+
+  /** Upgrade to Pro：进 billing 并定位 Markets 套餐区 */
+  function goMarketsPlans(ev) {
+    if (ev && ev.preventDefault) ev.preventDefault();
+    showConsolePanel("billing");
+    setTimeout(function () {
+      var card = document.querySelector("#productsList .product-card.is-markets");
+      if (card) {
+        card.scrollIntoView({ behavior: "smooth", block: "start" });
+        card.style.outline = "2px solid #0070ba";
+        card.style.outlineOffset = "2px";
+      } else {
+        var panel = $("panel-billing");
+        if (panel) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 180);
+  }
+
+  /** 选套餐 → 弹窗统一列支付方式 → 点通道即下单 */
+  function openPlanPayChooser(productId, planMeta, pay, isMarkets) {
+    var zh = AI24X_API.isZhUi();
+    var planId = String(planMeta.plan || "");
+    var title = isMarkets
+      ? (zh ? planMeta.title_zh || planMeta.title : planMeta.title) || planId
+      : AI24X_API.planTitle(planMeta) || planId;
+    var price = isMarkets
+      ? (zh ? planMeta.price_label_zh || planMeta.price_label : planMeta.price_label) || ""
+      : AI24X_API.planPriceLabel(planMeta) || "";
+    openPayModal(
+      title + (price ? " · " + price : ""),
+      tr("选择支付方式后立即开通", "Pick a payment method — activates instantly")
+    );
+    var chEl = $("modal-pay-channels");
+    if (!chEl) return;
+    chEl.innerHTML = "";
+    var primary = [];
+    var more = [];
+    if (pay.dodo_ready) primary.push("dodo");
+    if (pay.paypal_ready) primary.push("paypal");
+    if (pay.wechat_ready) more.push("wechat");
+    if (pay.alipay_ready) more.push("alipay");
+    if (pay.crypto_ready) more.push("crypto");
+    if (mockUiAllowed(pay)) more.push("mock");
+
+    function payChannelLabel(ch) {
+      return ch === "wechat"
+        ? tr("微信支付", "WeChat Pay")
+        : ch === "alipay"
+          ? tr("支付宝", "Alipay")
+          : ch === "paypal"
+            ? "PayPal"
+          : ch === "dodo"
+              ? tr("银行卡", "Card")
+              : ch === "crypto"
+                ? tr("USDT", "USDT")
+                : tr("体验到账", "Test pay");
+    }
+    function payChannelSub(ch) {
+      return ch === "dodo"
+        ? tr("Visa · Mastercard · Apple Pay · Google Pay", "Cards · Apple Pay · Google Pay")
+        : ch === "crypto"
+          ? "TRC20"
+          : "";
+    }
+    function makePayBtn(ch) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className =
+        "btn" +
+        (ch === "paypal" || ch === "dodo" ? " btn-primary" : "") +
+        (ch === "crypto" ? " btn-usdt" : "");
+      var sub = payChannelSub(ch);
+      btn.innerHTML =
+        '<span class="pay-btn-text">' +
+        '<span class="pay-btn-title-row">' +
+        (ch !== "mock" ? payIconSvg(ch) : "") +
+        '<span class="pay-btn-label">' +
+        escHtml(payChannelLabel(ch)) +
+        "</span></span>" +
+        (sub ? '<small class="pay-sub">' + escHtml(sub) + "</small>" : "") +
+        "</span>";
+      btn.setAttribute("data-pay-channel", ch);
+      btn.addEventListener("click", function () {
+        buyPlan(planId, ch, planMeta, productId);
+      });
+      return btn;
+    }
+
+    var all = primary.concat(more);
+    if (!all.length) {
+      chEl.innerHTML =
+        '<span class="sub">' + tr("暂无可用的支付方式", "No payment methods available") + "</span>";
       return;
     }
 
-    var zh = AI24X_API.isZhUi();
-    var wrap = document.createElement("div");
-    wrap.className = "product-plans";
-    plans.forEach(function (p) {
-      var lit = !!(p.value_pack && window.__isValuePackActive);
-      var row = document.createElement("div");
-      row.className =
-        "product-plan-row" +
-        (lit ? " vp-lit" : "") +
-        (p.recommended ? " is-recommended" : "");
-      if (p.plan) row.setAttribute("data-plan", String(p.plan));
-      var info = document.createElement("div");
-      info.className = "product-plan-info";
-      var nm = document.createElement("strong");
-      nm.textContent = AI24X_API.planTitle(p) || p.plan || "";
-      if (lit) {
-        var badge = document.createElement("span");
-        badge.className = "vp-lit-badge";
-        badge.textContent = tr("✓ 已点亮", "✓ Lit");
-        nm.appendChild(document.createTextNode(" "));
-        nm.appendChild(badge);
-      } else if (p.recommended) {
-        var rec = document.createElement("span");
-        rec.className = "plan-rec";
-        rec.textContent =
-          (zh ? p.recommend_badge_zh : p.recommend_badge_en) ||
-          tr("推荐", "Recommended");
-        nm.appendChild(document.createTextNode(" "));
-        nm.appendChild(rec);
-      }
-      info.appendChild(nm);
-      var extra = document.createElement("div");
-      extra.className = "sub";
-      extra.style.marginTop = "3px";
-      var parts = [];
-      var price = AI24X_API.planPriceLabel(p) || "";
-      if (price) parts.push(price);
-      var tokens = Number(p.credit_tokens || 0);
-      if (tokens > 0) parts.push("≈ " + AI24X_API.planCreditsShort(p) + " flash");
-      var access = AI24X_API.planNameAccess(p);
-      if (access) parts.push(access);
-      var validity = AI24X_API.planValidityLabel(p);
-      if (validity) parts.push(validity);
-      var one = AI24X_API.planOneLiner(p);
-      if (one) parts.push(one);
-      extra.textContent = parts.join(" · ");
-      info.appendChild(extra);
-      row.appendChild(info);
-      var act = document.createElement("div");
-      act.className = "product-plan-act";
-      var sel = document.createElement("button");
-      sel.type = "button";
-      sel.className = "btn btn-primary";
-      sel.textContent = tr("选择", "Choose");
-      sel.setAttribute("data-buy-plan", String(p.plan || ""));
-      sel.setAttribute("data-buy-product", "token");
-      sel.addEventListener("click", function () {
-        openPlanPayChooser(p.plan, p, pay, "token");
+    if (primary.length) {
+      primary.forEach(function (ch) {
+        var b = makePayBtn(ch);
+        b.className += " pay-btn-block";
+        chEl.appendChild(b);
       });
-      act.appendChild(sel);
-      row.appendChild(act);
-      wrap.appendChild(row);
+      if (more.length) {
+        var label = document.createElement("div");
+        label.className = "pay-more-label";
+        label.textContent = tr("其它支付方式", "Other payment methods");
+        chEl.appendChild(label);
+        var moreBox = document.createElement("div");
+        moreBox.className = "pay-more-box";
+        more.forEach(function (ch) { moreBox.appendChild(makePayBtn(ch)); });
+        chEl.appendChild(moreBox);
+        var note = document.createElement("div");
+        note.className = "pay-note";
+        note.textContent = tr("银行卡支付由 Dodo Payments 安全收单", "Card payments powered by Dodo Payments");
+        chEl.appendChild(note);
+      }
+    } else {
+      more.forEach(function (ch) {
+        var b = makePayBtn(ch);
+        b.className += " pay-btn-block";
+        chEl.appendChild(b);
+      });
+    }
+  }
+
+  /** 统一产品列表：AI行情官 Pro / Token 接口开发 …（以后可无限扩充） */
+  function renderProducts(data) {
+    var box = $("productsList");
+    if (!box) return;
+    if (data) window.__tokenPlansPayload = data;
+    data = data || window.__tokenPlansPayload;
+    if (!data) return;
+    box.innerHTML = "";
+    var products = (data && data.products) || [];
+    var pay = (data && data.pay) || {};
+    window.__tokenPay = pay;
+    var zh = AI24X_API.isZhUi();
+    updatePayHint(pay, zh);
+    if (!products.length) {
+      box.innerHTML = '<p class="sub">' + tr("暂无套餐", "No plans") + "</p>";
+      return;
+    }
+    // Token 托管额度优先，其次 Markets，最后 BYOK（外站开通）
+    products = products.slice().sort(function (a, b) {
+      function rank(p) {
+        var id = String((p && p.product) || "");
+        if (id === "token") return 0;
+        if (id === "markets") return 1;
+        if (id === "byok") return 2;
+        return 3;
+      }
+      return rank(a) - rank(b);
     });
-    var tip = document.createElement("p");
-    tip.className = "sub";
-    tip.style.marginTop = "10px";
-    tip.textContent = tr(
-      "Flash $0.35/百万 · Pro $1.05/百万。入门首选 Value Pack；名模首选 Scale（12 个月资格 + 2.5 亿额度）。已有额度可补购 VIP 资格包。",
-      "Flash $0.35/M · Pro $1.05/M. Best start: Value Pack. Best for named models: Scale (12-mo access + 250M credits). VIP Pass if you already have credits."
-    );
-    box.appendChild(wrap);
-    box.appendChild(tip);
+    products.forEach(function (prod) {
+      var pid = String(prod.product || "");
+      var isMarkets = pid === "markets";
+      var isByok = pid === "byok";
+      var isToken = pid === "token";
+      var likeMarkets = isMarkets || isByok;
+      var card = document.createElement("div");
+      card.className =
+        "product-card" +
+        (isToken ? " is-token" : "") +
+        (isByok ? " is-gateway" : "") +
+        (isMarkets ? " is-markets" : "");
+      card.setAttribute("data-product", pid);
+      var head = document.createElement("div");
+      head.className = "product-card-head";
+      var titleEl = document.createElement("h4");
+      titleEl.className = "mt-0 mb-0";
+      titleEl.textContent = zh ? prod.title_zh || prod.title : prod.title || pid;
+      if (isToken) {
+        var tokRec = document.createElement("span");
+        tokRec.className = "plan-rec";
+        tokRec.textContent = tr("主力充值", "Top up here");
+        titleEl.appendChild(tokRec);
+      } else if (isByok) {
+        var byokHint = document.createElement("span");
+        byokHint.className = "plan-rec plan-rec-muted";
+        byokHint.textContent = tr("在 Gateway 开通", "On AI Gateway");
+        titleEl.appendChild(byokHint);
+      }
+      head.appendChild(titleEl);
+      if (prod.url) {
+        var link = document.createElement("a");
+        link.className = "open-product";
+        var resolved = productUrl(prod.url);
+        var href = resolved;
+        if (isMarkets) {
+          href = marketsApiBase() + "/?from=account";
+        } else if (isByok) {
+          href = openApiBase() + "/pricing.html?from=account";
+        } else if (isToken || /open\.ai24x\.com|127\.0\.0\.1:18080/i.test(resolved)) {
+          href = openApiBase() + "/";
+        }
+        link.href = href;
+        link.setAttribute("data-hub-external", "");
+        link.setAttribute("target", "_blank");
+        link.setAttribute("rel", "noopener noreferrer");
+        link.innerHTML = tr("打开产品 ↗", "Open product ↗");
+        head.appendChild(link);
+      }
+      card.appendChild(head);
+      var desc = document.createElement("p");
+      desc.className = "sub";
+      desc.style.margin = "4px 0 12px";
+      desc.textContent = zh ? prod.desc_zh || prod.desc : prod.desc || "";
+      card.appendChild(desc);
+      if (isToken) {
+        var legend = document.createElement("p");
+        legend.className = "sub plan-legend";
+        legend.style.margin = "0 0 10px";
+        legend.textContent = tr(
+          "按量扣费 · flash 约 $0.35/百万起 · 下方为预充值包（折合单价见每行）",
+          "Pay as you go · flash from ~$0.35/M · prepaid packs below (effective $/M on each row)"
+        );
+        card.appendChild(legend);
+      }
+      var plansWrap = document.createElement("div");
+      plansWrap.className = "product-plans";
+      var plans = prod.plans || [];
+      if (isToken) appendFreePlanGuide(plansWrap, "token");
+      if (isByok) appendFreePlanGuide(plansWrap, "byok");
+      if (isMarkets) appendFreePlanGuide(plansWrap, "markets");
+      if (!plans.length) {
+        if (!isByok && !isMarkets && !isToken) {
+          var none = document.createElement("p");
+          none.className = "sub";
+          none.textContent = tr("暂无套餐", "No plans");
+          plansWrap.appendChild(none);
+        }
+      } else {
+        plans.forEach(function (p) {
+          var row = document.createElement("div");
+          row.className = "product-plan-row" + (p.recommended ? " is-recommended" : "");
+          if (p.plan) row.setAttribute("data-plan", String(p.plan));
+          var info = document.createElement("div");
+          info.className = "product-plan-info";
+          var nm = document.createElement("strong");
+          nm.textContent = likeMarkets
+            ? (zh ? p.title_zh || p.title : p.title) || p.plan
+            : AI24X_API.planTitle(p) || p.plan;
+          if (p.recommended) {
+            var rec = document.createElement("span");
+            rec.className = "plan-rec";
+            rec.textContent =
+              (zh ? p.recommend_badge_zh : p.recommend_badge_en) ||
+              tr("推荐", "Recommended");
+            nm.appendChild(document.createTextNode(" "));
+            nm.appendChild(rec);
+          }
+          info.appendChild(nm);
+          var extra = document.createElement("div");
+          extra.className = "sub";
+          extra.style.marginTop = "3px";
+          var parts = [];
+          var price = likeMarkets
+            ? (zh ? p.price_label_zh || p.price_label : p.price_label) || ""
+            : AI24X_API.planPriceLabel(p) || "";
+          if (price) parts.push(price);
+          var validity = likeMarkets
+            ? p.days
+              ? (zh ? p.days + " 天有效" : p.days + " days")
+              : ""
+            : AI24X_API.planValidityLabel(p) || "";
+          if (validity) parts.push(validity);
+          if (isToken) {
+            var credN = Number(p.credit_tokens || 0);
+            var usdN = parseFloat(p.price_usd);
+            if (credN > 0) {
+              parts.push(
+                tr("含 ", "Includes ") +
+                  AI24X_API.planCreditsShort(p) +
+                  tr(" credits", " credits")
+              );
+              if (usdN > 0) {
+                var perM = usdN / (credN / 1e6);
+                parts.push(
+                  tr("折合约 $", "≈ $") + perM.toFixed(2) + tr("/百万", "/M")
+                );
+              }
+            }
+          }
+          var perk = likeMarkets
+            ? (zh ? p.perk_zh || p.perk : p.perk) || ""
+            : AI24X_API.planOneLiner(p) || "";
+          if (perk) parts.push(perk);
+          extra.textContent = parts.join(" · ");
+          info.appendChild(extra);
+          row.appendChild(info);
+          var act = document.createElement("div");
+          act.className = "product-plan-act";
+          if (isByok) {
+            // BYOK 履约在 open 独立库：用户中心展示套餐，跳 open.ai24x.com 完成开通
+            var byokLink = document.createElement("a");
+            byokLink.className = "btn btn-primary";
+            byokLink.href = openApiBase() + "/pricing.html";
+            byokLink.target = "_blank";
+            byokLink.rel = "noopener";
+            byokLink.textContent = tr("在 AI Gateway 开通 →", "Buy on AI Gateway →");
+            act.appendChild(byokLink);
+            var byokHint = document.createElement("div");
+            byokHint.className = "sub";
+            byokHint.style.marginTop = "6px";
+            byokHint.textContent = tr(
+              "网关服务费在 open.ai24x.com 开通，不在本页扣款。",
+              "Gateway fee is billed on open.ai24x.com — not on this page."
+            );
+            act.appendChild(byokHint);
+          } else {
+            var sel = document.createElement("button");
+            sel.type = "button";
+            sel.className = "btn btn-primary";
+            sel.textContent = tr("选择", "Choose");
+            sel.addEventListener("click", function () {
+              openPlanPayChooser(pid, p, pay, isMarkets);
+            });
+            act.appendChild(sel);
+          }
+          row.appendChild(act);
+          plansWrap.appendChild(row);
+        });
+      }
+      card.appendChild(plansWrap);
+      box.appendChild(card);
+    });
     if (window.__isValuePackActive) {
       litValuePackRows();
     } else {
@@ -551,7 +1021,7 @@
   }
 
   function litValuePackRows() {
-    var box = $("plansList");
+    var box = $("productsList");
     if (!box) return;
     var rows = box.querySelectorAll('.product-plan-row[data-plan="token_value_pack"]');
     for (var i = 0; i < rows.length; i++) {
@@ -563,7 +1033,6 @@
         var b = document.createElement("span");
         b.className = "vp-lit-badge";
         b.textContent = tr("✓ 已点亮", "✓ Lit");
-        nm.appendChild(document.createTextNode(" "));
         nm.appendChild(b);
       }
     }
@@ -590,14 +1059,22 @@
       /* 只引导一次：清掉 URL，禁止自动 click（否则无用户手势→弹窗被拦→刷新套餐又自动点→死循环） */
       _payDeepLinkDone = true;
       clearPayDeepLinkFromUrl();
-      var box = $("plansList");
+      var box = $("productsList");
       if (!box) return;
       var card = null;
+      var matched = null;
       if (wantPlan) {
         card = box.querySelector('[data-plan="' + wantPlan.replace(/"/g, "") + '"]');
+        if (card) {
+          var prodCard = null;
+          try { prodCard = card.closest(".product-card"); } catch (eClosest) {}
+          if (prodCard && prodCard.getAttribute("data-product")) {
+            matched = findProductPlan(prodCard.getAttribute("data-product"), wantPlan);
+          }
+        }
       }
-      if (!card) card = box.querySelector("[data-plan], .product-plan-row, .card");
-      var plansAnchor = $("token-plans");
+      if (!card) card = box.querySelector(".product-plan-row");
+      var plansAnchor = $("panel-billing");
       if (plansAnchor) {
         try {
           plansAnchor.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -608,20 +1085,23 @@
         card.style.outline = "2px solid #0070ba";
         card.style.outlineOffset = "2px";
       }
-      var chBtn =
-        wantPay && card
-          ? card.querySelector('button[data-pay-channel="' + wantPay + '"]')
-          : null;
-      if (wantPay && chBtn && !chBtn.disabled) {
-        var guide = tr(
-          "已从价格页带入套餐，请点击下方支付按钮完成付款。",
-          "Plan selected from pricing — tap a pay button below to continue."
+      var pay = window.__tokenPay || {};
+      if (matched && (wantPay || wantPlan)) {
+        // 深链：直接弹出该套餐的支付方式选择（modal 非 window.open，不会被拦截）
+        var isMarkets = String(matched.product.product) === "markets";
+        openPlanPayChooser(matched.product.product, matched.plan, pay, isMarkets);
+        showMsg(
+          msgBox(),
+          tr(
+            "已为您选中套餐，请选择支付方式完成付款。",
+            "Plan selected — choose a payment method to continue."
+          ),
+          true
         );
-        showMsg(msgBox(), guide, true);
       } else if (wantPay || wantPlan) {
         var guide2 = tr(
-          "请在下方套餐选择支付方式。",
-          "Choose a payment method on the plan card below."
+          "请在下方选择产品与套餐。",
+          "Pick a product and a plan below."
         );
         showMsg(msgBox(), guide2, true);
       }
@@ -771,6 +1251,9 @@
 
   var _fulfillPollTimer = null;
   var _lastPayPlanId = null;
+  var _lastPayProduct = null;
+  var _ordersAll = null;
+  var _ordersFilter = "all";
   /** 支付后主动查单补履约（异步 notify 未到时的兜底） */
   function appendCryptoTxidBox(outTradeNo, planId) {
     var resultEl = $("modal-pay-result");
@@ -818,408 +1301,107 @@
     });
   }
 
-  function startFulfillPoll(outTradeNo, channel, planId) {
+  function startFulfillPoll(outTradeNo, channel, planId, product) {
     if (!outTradeNo) return;
     if (planId) _lastPayPlanId = planId;
+    if (product) _lastPayProduct = product;
     if (_fulfillPollTimer) {
       clearInterval(_fulfillPollTimer);
       _fulfillPollTimer = null;
     }
     var tries = 0;
-    var maxTries = 40; // ~2 分钟（每 3 秒）
-    _fulfillPollTimer = setInterval(function () {
+    var maxTries = 40; // ~2 分钟（每 3 秒）+ 首次立即查
+    function tick() {
       tries += 1;
       if (tries > maxTries) {
-        clearInterval(_fulfillPollTimer);
-        _fulfillPollTimer = null;
+        if (_fulfillPollTimer) {
+          clearInterval(_fulfillPollTimer);
+          _fulfillPollTimer = null;
+        }
         return;
       }
       AI24X_API.billingQueryFulfill(outTradeNo, channel || "wechat")
         .then(function (r) {
-          if (r && r.ok) {
+          if (!(r && r.ok)) return;
+          if (_fulfillPollTimer) {
             clearInterval(_fulfillPollTimer);
             _fulfillPollTimer = null;
-            showMsg(
-              msgBox(),
-              AI24X_API.planFulfillMessage(_lastPayPlanId || planId, outTradeNo),
-              true
-            );
-            try {
-              closePayModal();
-            } catch (e) {}
-            return refreshAll();
           }
+          var msg = AI24X_API.planFulfillMessage(
+            _lastPayPlanId || planId,
+            outTradeNo,
+            _lastPayProduct || product
+          );
+          // 到账后立刻带上当前余额，避免用户切到 Overview 仍以为未入账
+          try {
+            var bal = r.balance;
+            if (bal) {
+              var usd = Number(bal.balance_usd) || 0;
+              var tok = Number(bal.balance_tokens) || 0;
+              if (usd > 0) {
+                msg +=
+                  tr(" 当前余额 $", " Balance now $") + (usd / 100).toFixed(2);
+              } else if (tok > 0) {
+                msg +=
+                  tr(" 当前余额 ", " Balance now ") +
+                  Number(tok).toLocaleString("en-US") +
+                  " tokens";
+              }
+            }
+          } catch (eBalMsg) {}
+          showMsg(msgBox(), msg, true);
+          try {
+            closePayModal();
+          } catch (e) {}
+          return refreshAll().then(function () {
+            try {
+              showConsolePanel("overview");
+            } catch (eOv) {}
+          });
         })
         .catch(function () {
           /* 未支付成功时接口可能 4xx，继续轮询 */
         });
-    }, 3000);
-  }
-
-  function payIconSvg(channel) {
-    if (channel === "wechat") {
-      return (
-        '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
-        '<path fill="#07C160" d="M9.5 4C5.9 4 3 6.5 3 9.6c0 1.8 1 3.3 2.6 4.4L5 16.2l2.4-1.2c.7.2 1.4.3 2.1.3.2 0 .4 0 .6 0-.2-.5-.3-1-.3-1.6 0-3.2 3.1-5.8 6.9-5.8.2 0 .4 0 .6.1C16.4 5.3 13.2 4 9.5 4zm-2.3 3.1c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zm4.6 0c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zM16.8 9c-3.1 0-5.6 2.1-5.6 4.7s2.5 4.7 5.6 4.7c.6 0 1.2-.1 1.8-.3l1.9.9-.5-1.7c1.2-.9 2-2.2 2-3.6C21.9 11.1 19.5 9 16.8 9zm-1.9 3.1c.3 0 .6.3.6.6s-.3.6-.6.6-.6-.3-.6-.6.3-.6.6-.6zm3.8 0c.3 0 .6.3.6.6s-.3.6-.6.6-.6-.3-.6-.6.3-.6.6-.6z"/></svg>'
-      );
     }
-    if (channel === "alipay") {
-      return (
-        '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
-        '<path fill="#1677FF" d="M19.695 15.07c3.426 1.158 4.203 1.22 4.203 1.22V3.846c0-2.124-1.705-3.845-3.81-3.845H3.914C1.808.001.102 1.722.102 3.846v16.31c0 2.123 1.706 3.845 3.813 3.845h16.173c2.105 0 3.81-1.722 3.81-3.845v-.157s-6.19-2.602-9.315-4.119c-2.096 2.602-4.8 4.181-7.607 4.181-4.75 0-6.361-4.19-4.112-6.949.49-.602 1.324-1.175 2.617-1.497 2.025-.502 5.247.313 8.266 1.317a16.796 16.796 0 0 0 1.341-3.302H5.781v-.952h4.799V6.975H4.77v-.953h5.81V3.591s0-.409.411-.409h2.347v2.84h5.744v.951h-5.744v1.704h4.69a19.453 19.453 0 0 1-1.986 5.06c1.424.52 2.702 1.011 3.654 1.333m-13.81-2.032c-.596.06-1.71.325-2.321.869-1.83 1.608-.735 4.55 2.968 4.55 2.151 0 4.301-1.388 5.99-3.61-2.403-1.182-4.438-2.028-6.637-1.809"/></svg>'
-      );
-    }
-    if (channel === "creem") {
-      return (
-        '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
-        '<path fill="#7C3AED" d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm0 2v10h16V7H4zm2 2h4v2H6V9zm6 0h6v2h-6V9z"/></svg>'
-      );
-    }
-    if (channel === "dodo") {
-      return (
-        '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
-        '<rect x="2.5" y="5" width="19" height="14" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/>' +
-        '<line x1="2.5" y1="9.8" x2="21.5" y2="9.8" stroke="currentColor" stroke-width="1.8"/>' +
-        '<line x1="6" y1="14.2" x2="10.2" y2="14.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>' +
-        '<line x1="12.6" y1="14.2" x2="16.2" y2="14.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
-      );
-    }
-    if (channel === "paypal") {
-      return (
-        '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
-        '<path fill="#003087" d="M7.2 20.5h1.7l.5-3.1h1.7c3.3 0 5.5-1.4 6.1-4.3.1-.5.1-.9.1-1.2 0-.2 0-.4-.1-.6H19l.1-.5c.4-2.5-.9-4.2-3.8-4.2H9.2L7.2 20.5zm4.2-11.5h1.7c1.3 0 2 .5 1.8 1.7-.2 1.4-1.2 1.7-2.5 1.7h-1.5l.5-3.4z"/>' +
-        '<path fill="#009CDE" d="M9.5 21.5h1.7l.4-2.5H13c2.7 0 4.4-1.1 4.9-3.5.1-.4.1-.7.1-1 0-.1 0-.3 0-.4h1.5l.1-.4c.3-2-.7-3.4-3.1-3.4h-4.3l-1.9 11.2h1.7l.5 3.1h1.4c1.1 0 1.7.4 1.5 1.4-.2 1.1-1 1.4-2.1 1.4H10l.5 3.3z"/></svg>'
-      );
-    }
-    if (channel === "crypto") {
-      return (
-        '<svg class="pay-ico" viewBox="0 0 24 24" aria-hidden="true">' +
-        '<path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm3.2 11.2c-.1 1.9-1.4 2.9-3.4 3.1v1.7H10.7v-1.7c-2.4-.2-4.2-1.2-4.3-3h2.2c.1 1 1 1.6 2.1 1.7v-4.6c-2.8-.7-4.6-1.9-4.6-3.7 0-1.9 1.7-3.1 4.6-3.3V3h1.1v1.6c2 .2 3.7 1.2 3.8 3h-2.1c0-1-.8-1.6-1.7-1.7v4.3c2.9.8 4.5 1.9 4.5 4zm-2.2-4.2v4.3c1.3-.3 2-1 2-1.9 0-1-.8-1.7-2-2.4z"/></svg>'
-      );
-    }
-    return "";
-  }
-
-  function renderByokSubBanner(sub) {
-    var banner = $("byokSubBanner");
-    if (!banner) return;
-    window.__byokSub = sub || {};
-    var zh = AI24X_API.isZhUi();
-    if (!sub || !sub.active) {
-      // 未订阅：显示免费档引导条（不再留 "--" 占位）
-      banner.hidden = false;
-      banner.classList.remove("is-pro");
-      banner.style.borderColor = "";
-      banner.style.background = "";
-      var planEl0 = $("byokSubPlan");
-      if (planEl0) {
-        planEl0.textContent = zh ? "未订阅 · 免费档" : "Free plan · not subscribed";
-      }
-      var subEl0 = $("byokSubSub");
-      if (subEl0) {
-        subEl0.textContent = zh
-          ? "路由 / 故障切换 / 缓存 / 用量现已可用。免费档每月 1000 次 BYOK 请求；超出需开通 Pro（年付更省）。"
-          : "Routing, failover, cache and usage are available. Free tier: 1000 BYOK requests/month — subscribe to Pro (yearly saves more) when you hit the cap.";
-      }
-      var act0 = $("byokSubAct");
-      if (act0) {
-        act0.innerHTML =
-          '<button type="button" class="btn btn-primary" id="byokUpgradeCta">' +
-          (zh ? "选购 BYOK Pro" : "Get BYOK Pro") +
-          "</button>";
-        var upBtn = $("byokUpgradeCta");
-        if (upBtn) {
-          upBtn.addEventListener("click", function () {
-            var cards = $("byokPlansList");
-            if (cards) cards.scrollIntoView({ behavior: "smooth", block: "center" });
-          });
-        }
-      }
-      return;
-    }
-    banner.hidden = false;
-    banner.classList.toggle("is-pro", true);
-    var daysLeft = sub.days_left != null ? Number(sub.days_left) : null;
-    var renewSoon = daysLeft != null && daysLeft <= 7;
-    if (renewSoon) {
-      banner.style.borderColor = "#d97706";
-      banner.style.background = "rgba(217,119,6,0.08)";
-    } else {
-      banner.style.borderColor = "";
-      banner.style.background = "";
-    }
-    var planName =
-      sub.plan === "byok_pro_year"
-        ? zh ? "BYOK Pro 年付" : "BYOK Pro Yearly"
-        : zh ? "BYOK Pro 月付" : "BYOK Pro Monthly";
-    var planEl = $("byokSubPlan");
-    if (planEl) {
-      planEl.textContent = renewSoon
-        ? (zh ? "即将到期 · " : "Renew soon · ") + planName
-        : (zh ? "当前订阅：" : "Active plan: ") + planName;
-    }
-    var subEl = $("byokSubSub");
-    if (subEl) {
-      var expTxt = String(sub.expires_at || "").replace("T", " ").slice(0, 16);
-      if (renewSoon) {
-        subEl.textContent = zh
-          ? "到期 " + expTxt + "（约剩 " + daysLeft + " 天）。续费从当前到期日顺延，不中断。"
-          : "Expires " + expTxt + " (~" + daysLeft + " day(s) left). Renewing extends from current expiry.";
-      } else {
-        subEl.textContent = (zh ? "到期时间：" : "Expires: ") + expTxt;
-      }
-    }
-    var act = $("byokSubAct");
-    if (act) {
-      if (renewSoon) {
-        act.innerHTML =
-          '<button type="button" class="btn btn-primary" id="byokRenewCta">' +
-          (zh ? "立即续费" : "Renew now") +
-          "</button>";
-        var renewBtn = $("byokRenewCta");
-        if (renewBtn) {
-          renewBtn.addEventListener("click", function () {
-            var cards = $("byokPlansList");
-            if (cards) cards.scrollIntoView({ behavior: "smooth", block: "center" });
-          });
-        }
-      } else {
-        act.innerHTML =
-          '<span style="color:#16a34a;font-weight:700">✓ ' + (zh ? "Pro 已开通" : "Pro active") + "</span>";
-      }
-    }
-  }
-
-  function bindPlanTabs() {
-    var tabs = document.querySelectorAll(".plans-tab");
-    for (var i = 0; i < tabs.length; i++) {
-      tabs[i].addEventListener("click", function () {
-        var t = this.getAttribute("data-plan-tab");
-        document.querySelectorAll(".plans-tab").forEach(function (b) {
-          b.classList.toggle("is-active", b.getAttribute("data-plan-tab") === t);
-        });
-        var byokGroup = $("plansGroupByok");
-        var tokenGroup = $("plansGroupToken");
-        if (byokGroup) byokGroup.hidden = t !== "byok";
-        if (tokenGroup) tokenGroup.hidden = t !== "token";
-      });
-    }
-  }
-
-  function renderByokPlanCards(plans, pay) {
-    var box = $("byokPlansList");
-    if (!box) return;
-    box.innerHTML = "";
-    var wrap = document.createElement("div");
-    wrap.className = "product-plans";
-    // Free 引导
-    var free = document.createElement("div");
-    free.className = "product-plan-row";
-    free.setAttribute("data-plan", "free");
-    free.innerHTML =
-      '<div class="product-plan-info"><strong>' +
-      tr("免费", "Free") +
-      '</strong><div class="sub" style="margin-top:3px">' +
-      tr(
-        "$0 · 添加 Key 即可用；免费档每月 1000 次，超出开通 Pro",
-        "$0 · Add keys to start; free tier 1000 req/mo — Pro removes the cap"
-      ) +
-      '</div></div><div class="product-plan-act"><a class="btn" href="#byok">' +
-      tr("管理密钥", "Manage keys") +
-      "</a></div>";
-    wrap.appendChild(free);
-    if (!plans || !plans.length) {
-      box.appendChild(wrap);
-      var none = document.createElement("p");
-      none.className = "sub";
-      none.textContent = tr("暂无付费套餐", "No paid plans yet");
-      box.appendChild(none);
-      return;
-    }
-    var zh = AI24X_API.isZhUi();
-    var sub = window.__byokSub || {};
-    plans.forEach(function (p) {
-      var row = document.createElement("div");
-      row.className = "product-plan-row" + (p.recommended ? " is-recommended" : "");
-      if (p.plan) row.setAttribute("data-plan", String(p.plan));
-      var info = document.createElement("div");
-      info.className = "product-plan-info";
-      var nm = document.createElement("strong");
-      nm.textContent = zh ? p.title_zh || p.title_en || p.plan : p.title_en || p.title_zh || p.plan;
-      if (p.recommended) {
-        var rec = document.createElement("span");
-        rec.className = "plan-rec";
-        rec.textContent = tr("年付优选", "Best yearly");
-        nm.appendChild(document.createTextNode(" "));
-        nm.appendChild(rec);
-      }
-      info.appendChild(nm);
-      var extra = document.createElement("div");
-      extra.className = "sub";
-      extra.style.marginTop = "3px";
-      var parts = [];
-      parts.push("$" + Number(p.price_usd || 0).toFixed(2));
-      var days = Number(p.days || 0);
-      if (days === 365) parts.push(tr("1 年", "1 year"));
-      else if (days === 30) parts.push(tr("1 月", "1 month"));
-      else if (days) parts.push(days + tr(" 天", " days"));
-      var one = zh ? p.one_liner_zh || "" : p.one_liner_en || "";
-      var feats = (zh ? p.features_zh || [] : p.features_en || []) || [];
-      if (one) parts.push(one);
-      else if (feats.length) parts.push(feats.slice(0, 2).join(" · "));
-      extra.textContent = parts.join(" · ");
-      info.appendChild(extra);
-      row.appendChild(info);
-      var act = document.createElement("div");
-      act.className = "product-plan-act";
-      var isActive = !!(sub.active && sub.plan === String(p.plan));
-      if (isActive) {
-        var active = document.createElement("span");
-        active.className = "plan-card-active";
-        active.textContent =
-          "✓ " + tr("已订阅 · 至 ", "Active · until ") + String(sub.expires_at || "").slice(0, 10);
-        act.appendChild(active);
-      } else {
-        var sel = document.createElement("button");
-        sel.type = "button";
-        sel.className = "btn btn-primary";
-        sel.textContent = tr("选择", "Choose");
-        sel.setAttribute("data-buy-plan", String(p.plan));
-        sel.setAttribute("data-buy-product", "byok");
-        sel.addEventListener("click", function () {
-          openPlanPayChooser(String(p.plan), p, pay, "byok");
-        });
-        act.appendChild(sel);
-      }
-      row.appendChild(act);
-      wrap.appendChild(row);
-    });
-    box.appendChild(wrap);
-  }
-
-  /** 选套餐 → 弹窗统一列支付方式 → 点通道即下单（与主站 8000 同款交互） */
-  function openPlanPayChooser(planId, planMeta, pay, product) {
-    var zh = AI24X_API.isZhUi();
-    var title = planMeta
-      ? (zh ? planMeta.title_zh || planMeta.title_en : planMeta.title_en || planMeta.title_zh) || planId
-      : planId;
-    var price =
-      planMeta && Number(planMeta.price_usd)
-        ? "$" + Number(planMeta.price_usd).toFixed(2)
-        : AI24X_API.planPriceLabel(planMeta) || "";
-    openPayModal(
-      title + (price ? " · " + price : ""),
-      tr("选择支付方式后立即开通", "Pick a payment method — activates instantly")
-    );
-    var chEl = $("modal-pay-channels");
-    if (!chEl) return;
-    chEl.innerHTML = "";
-    var primary = [];
-    var more = [];
-    if (pay.dodo_ready) primary.push("dodo");
-    if (pay.paypal_ready) primary.push("paypal");
-    if (pay.wechat_ready) more.push("wechat");
-    if (pay.alipay_ready) more.push("alipay");
-    if (pay.crypto_ready) more.push("crypto");
-    if (mockUiAllowed(pay)) more.push("mock");
-
-    function payChannelLabel(c) {
-      return c === "wechat"
-        ? tr("微信支付", "WeChat Pay")
-        : c === "alipay"
-          ? tr("支付宝", "Alipay")
-          : c === "paypal"
-            ? "PayPal"
-          : c === "dodo"
-              ? tr("银行卡", "Card")
-              : c === "crypto"
-                ? tr("USDT", "USDT")
-                : tr("体验到账", "Test pay");
-    }
-    function payChannelSub(c) {
-      return c === "dodo"
-        ? tr("Visa · Mastercard · Apple Pay · Google Pay", "Cards · Apple Pay · Google Pay")
-        : c === "crypto"
-          ? "TRC20"
-          : "";
-    }
-    function makePayBtn(c) {
-      var btn = document.createElement("button");
-      btn.type = "button";
-      btn.className =
-        "btn" +
-        (c === "paypal" || c === "dodo" ? " btn-primary" : "") +
-        (c === "crypto" ? " btn-usdt" : "");
-      var sub = payChannelSub(c);
-      btn.innerHTML =
-        '<span class="pay-btn-text">' +
-        '<span class="pay-btn-title-row">' +
-        (c !== "mock" ? payIconSvg(c) : "") +
-        '<span class="pay-btn-label">' +
-        escHtml(payChannelLabel(c)) +
-        "</span></span>" +
-        (sub ? '<small class="pay-sub">' + escHtml(sub) + "</small>" : "") +
-        "</span>";
-      btn.setAttribute("data-pay-channel", c);
-      btn.addEventListener("click", function () {
-        buyPlan(planId, c, planMeta, product);
-      });
-      return btn;
-    }
-
-    var all = primary.concat(more);
-    if (!all.length) {
-      chEl.innerHTML = '<p class="sub">' + tr("在线支付暂未开放", "Online pay is not open yet") + "</p>";
-      return;
-    }
-
-    if (primary.length) {
-      primary.forEach(function (c) {
-        var b = makePayBtn(c);
-        b.className += " pay-btn-block";
-        chEl.appendChild(b);
-      });
-      if (more.length) {
-        var label = document.createElement("div");
-        label.className = "pay-more-label";
-        label.textContent = tr("其它支付方式", "Other payment methods");
-        chEl.appendChild(label);
-        var moreBox = document.createElement("div");
-        moreBox.className = "pay-more-box";
-        more.forEach(function (c) { moreBox.appendChild(makePayBtn(c)); });
-        chEl.appendChild(moreBox);
-        var note = document.createElement("div");
-        note.className = "pay-note";
-        note.textContent = tr("银行卡支付由 Dodo Payments 安全收单", "Card payments powered by Dodo Payments");
-        chEl.appendChild(note);
-      }
-    } else {
-      more.forEach(function (c) {
-        var b = makePayBtn(c);
-        b.className += " pay-btn-block";
-        chEl.appendChild(b);
-      });
-    }
+    tick();
+    _fulfillPollTimer = setInterval(tick, 3000);
   }
 
   function buyPlan(planId, channel, planMeta, product) {
+    product = product || "token";
     var pay = window.__tokenPay || {};
-    var price = AI24X_API.planPriceLabel(planMeta) || "";
-    var planTitle = AI24X_API.planTitle(planMeta) || planId;
+    var zh = AI24X_API.isZhUi();
+    var price =
+      product === "markets"
+        ? (zh ? planMeta.price_label_zh || planMeta.price_label : planMeta.price_label) || ""
+        : AI24X_API.planPriceLabel(planMeta) || "";
+    var planTitle =
+      product === "markets"
+        ? (zh ? planMeta.title_zh || planMeta.title : planMeta.title) || planId
+        : AI24X_API.planTitle(planMeta) || planId;
     var session = ++_payModalSession;
     var mobileCheckout = isMobileCheckout();
     _lastPayPlanId = planId || null;
-    product = product || (planMeta && planMeta.product) || "token";
+    _lastPayProduct = product;
 
-    if (channel === "mock" || (!pay.wechat_ready && !pay.alipay_ready && mockUiAllowed(pay))) {
+    var anyReady =
+      pay.wechat_ready ||
+      pay.alipay_ready ||
+      pay.paypal_ready ||
+      pay.dodo_ready ||
+      pay.crypto_ready;
+    if (channel === "mock" || (!anyReady && mockUiAllowed(pay))) {
       showMsg(msgBox(), tr("正在创建订单…", "Creating order…"), true);
       AI24X_API.billingWechatNative(planId, product)
         .then(function (r) {
+          try {
+            closePayModal();
+          } catch (e) {}
           showMsg(
             msgBox(),
             tr(
               "已创建 " + (r && r.out_trade_no) + "。请在「我的订单」点「体验到账」。",
-              "Created " + (r && r.out_trade_no) + ". Confirm under Account Hub → Orders."
+              "Created " + (r && r.out_trade_no) + ". Tap Test pay under My orders."
             ),
             true
           );
@@ -1358,14 +1540,14 @@
         if (channel === "wechat" && r && r.code_url) {
           showPayResult({
             hint: tr(
-              "请用微信扫码支付。付完后本页会自动查单到账；也可到账户中心「我的订单」点「确认到账」。单号：" +
+              "请用微信扫码支付。付完后本页会自动查单到账；也可到「我的订单」点「确认到账」。单号：" +
                 (r.out_trade_no || ""),
-              "Scan with WeChat. This page auto-confirms after pay; or confirm under Account Hub → Orders. Order: " +
+              "Scan with WeChat. This page auto-confirms after pay; or tap Confirm under My orders. Order: " +
                 (r.out_trade_no || "")
             ),
             qrData: r.code_url,
           });
-          startFulfillPoll(r.out_trade_no, "wechat", planId);
+          startFulfillPoll(r.out_trade_no, "wechat", planId, product);
         } else if (channel === "alipay" && r && r.pay_url) {
           if (mobileCheckout) {
             try { window.location.href = r.pay_url; } catch (e) {}
@@ -1391,7 +1573,7 @@
             openUrl: r.pay_url,
             openLabel: tr("在新窗口打开支付宝", "Open Alipay in a new window"),
           });
-          startFulfillPoll(r.out_trade_no, "alipay", planId);
+          startFulfillPoll(r.out_trade_no, "alipay", planId, product);
         } else if (channel === "creem" && r && r.pay_url) {
           if (mobileCheckout) {
             try { window.location.href = r.pay_url; } catch (e) {}
@@ -1415,16 +1597,16 @@
             openUrl: r.pay_url,
             openLabel: tr("打开 Creem", "Open Creem"),
           });
-          startFulfillPoll(r.out_trade_no, "creem", planId);
+          startFulfillPoll(r.out_trade_no, "creem", planId, product);
         } else if (channel === "dodo" && r && r.pay_url) {
           if (mobileCheckout) {
             try { window.location.href = r.pay_url; } catch (e) {}
             return;
           }
-          var ddOpened = navigateCheckoutWin(checkoutWin, r.pay_url);
+          var dodoOpened = navigateCheckoutWin(checkoutWin, r.pay_url);
           showPayResult({
             hint:
-              (ddOpened
+              (dodoOpened
                 ? tr("已打开安全支付页，请在新窗口完成付款。", "Secure checkout opened — finish payment there.")
                 : tr(
                     "浏览器拦截了新窗口时，请点击下方按钮打开支付页。",
@@ -1436,10 +1618,10 @@
               ) +
               (r.out_trade_no || "") +
               (r.amount_usd ? " · $" + r.amount_usd : ""),
-            openUrl: r.pay_url,
-            openLabel: tr("打开支付页", "Open payment page"),
+             openUrl: r.pay_url,
+             openLabel: tr("打开支付页", "Open payment page"),
           });
-          startFulfillPoll(r.out_trade_no, "dodo", planId);
+          startFulfillPoll(r.out_trade_no, "dodo", planId, product);
         } else if (channel === "paypal" && r && r.pay_url) {
           if (mobileCheckout) {
             try { window.location.href = r.pay_url; } catch (e) {}
@@ -1463,7 +1645,7 @@
             openUrl: r.pay_url,
             openLabel: tr("打开 PayPal", "Open PayPal"),
           });
-          startFulfillPoll(r.out_trade_no, "paypal", planId);
+          startFulfillPoll(r.out_trade_no, "paypal", planId, product);
         } else if (channel === "crypto" && r && r.address) {
           closeCheckoutWin(checkoutWin);
           showPayResult({
@@ -1514,83 +1696,187 @@
       });
   }
 
+  /** 订单归属产品：优先订单字段，其次 plan id（markets 为 weekly/monthly/yearly） */
+  function orderProductOf(planId, order) {
+    if (order && String(order.product || "")) {
+      var p = String(order.product).toLowerCase();
+      if (p === "markets") return "markets";
+      if (p === "byok") return "byok";
+      if (p === "token") return "gateway";
+    }
+    var pid = String(planId || "");
+    if (pid === "weekly" || pid === "monthly" || pid === "yearly") return "markets";
+    if (/^byok_/i.test(pid)) return "byok";
+    var lp = String(_lastPayProduct || "token").toLowerCase();
+    if (lp === "byok") return "byok";
+    if (lp === "markets") return "markets";
+    return "gateway";
+  }
+
+  /** 跨站回跳条：从 open/markets 跳过来时显示「返回」入口 */
+  function mountBackBar() {
+    var box = $("back-bar");
+    if (!box) return;
+    var from = "";
+    try {
+      from = String(new URLSearchParams(location.search).get("from") || "").toLowerCase();
+    } catch (e) {}
+    var map = {
+      gateway: { label: tr("返回 AI Gateway", "Back to AI Gateway"), href: openApiBase() + "/" },
+      markets: { label: tr("返回 AI Markets", "Back to AI Markets"), href: marketsApiBase() + "/" },
+    };
+    var c = map[from];
+    if (!c) return;
+    box.innerHTML =
+      '<a class="back-bar-link" href="' +
+      c.href +
+      '" style="display:inline-flex;align-items:center;gap:6px;font-size:.85rem;font-weight:600;color:var(--accent,#2563eb);text-decoration:none;padding:9px 4px 1px">' +
+      "\u2190 " +
+      c.label +
+      "</a>";
+  }
+
+  /** 订单按产品筛选（全部 / AI Gateway / BYOK / AI Markets） */
+  function bindOrdersFilter() {
+    var box = $("ordersFilter");
+    if (!box) return;
+    var btns = box.querySelectorAll(".orders-filter-btn");
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].addEventListener("click", function () {
+        _ordersFilter = this.getAttribute("data-orders-filter") || "all";
+        for (var j = 0; j < btns.length; j++) {
+          btns[j].classList.toggle("is-active", btns[j] === this);
+        }
+        renderOrders();
+      });
+    }
+  }
+
+  function orderMoneyLabel(o) {
+    if (o && o.amount_label) return o.amount_label;
+    var cents = Number(o.amount_fen) || 0;
+    var amt = (cents / 100).toFixed(2);
+    if (o.currency === "USD") return "$" + amt;
+    if (o.currency === "CNY") return "CNY " + amt;
+    if (
+      o.channel === "paypal" ||
+      o.channel === "creem" ||
+      o.channel === "dodo" ||
+      o.channel === "crypto"
+    ) {
+      return "$" + amt;
+    }
+    return "CNY " + amt;
+  }
+
+  function fmtOrderTime(o) {
+    var iso = (o.status === "paid" && o.paid_at) || o.created_at || "";
+    if (!iso) return "—";
+    try {
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return iso;
+      return d.toLocaleString(undefined, {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (e) {
+      return iso;
+    }
+  }
+
+  function ordersMsgBox() {
+    return $("ordersMsg") || msgBox();
+  }
+
   function renderOrders(rows) {
     var box = $("ordersList");
     if (!box) return;
+    if (rows) _ordersAll = rows;
+    var list = (_ordersAll || []).slice();
+    if (_ordersFilter && _ordersFilter !== "all") {
+      list = list.filter(function (o) {
+        return orderProductOf(o && o.plan, o) === _ordersFilter;
+      });
+    }
     box.innerHTML = "";
-    if (!rows || !rows.length) {
-      box.innerHTML =
-        '<li class="list-item"><span>' +
-        tr("暂无订单", "No orders") +
-        "</span><span></span></li>";
+    if (!list || !list.length) {
+      var tr0 = document.createElement("tr");
+      var td0 = document.createElement("td");
+      td0.colSpan = 7;
+      td0.textContent = tr("暂无订单", "No orders");
+      tr0.appendChild(td0);
+      box.appendChild(tr0);
       return;
     }
-    rows.forEach(function (o) {
-      var li = document.createElement("li");
-      li.className = "list-item";
-      var left = document.createElement("span");
-      var amt = ((Number(o.amount_fen) || 0) / 100).toFixed(2);
-      // PayPal 单 amount_fen 为 USD 美分；微信/支付宝为 CNY 分
-      var moneyLabel =
-        o.channel === "paypal" || o.channel === "creem" || o.channel === "dodo"
-          ? "$" + amt
-          : "CNY " + amt;
-      left.textContent =
-        labelPlanForUi(o.plan) +
-        " · " +
-        moneyLabel +
-        " · " +
-        labelOrderStatus(o.status) +
-        (o.channel ? " · " + labelChannel(o.channel) : "") +
-        (o.out_trade_no ? " · " + o.out_trade_no : "");
-      var right = document.createElement("span");
+    list.forEach(function (o) {
+      var trEl = document.createElement("tr");
+      function td(text, cls) {
+        var cell = document.createElement("td");
+        if (cls) cell.className = cls;
+        cell.textContent = text || "";
+        return cell;
+      }
+      trEl.appendChild(td(fmtOrderTime(o), "col-time"));
+      trEl.appendChild(td(labelPlanForUi(o.plan)));
+      trEl.appendChild(td(orderMoneyLabel(o), "col-amount"));
+      trEl.appendChild(td(o.channel ? labelChannel(o.channel) : "—"));
+      trEl.appendChild(td(labelOrderStatus(o.status)));
+      trEl.appendChild(td(o.out_trade_no || "—", "col-note"));
+
+      var tdAct = document.createElement("td");
       if (o.status === "pending") {
         var payCfg = window.__tokenPay || {};
         if (mockUiAllowed(payCfg)) {
           var btn = document.createElement("button");
           btn.type = "button";
           btn.className = "btn btn-primary";
+          btn.style.marginRight = "6px";
           btn.textContent = tr("体验到账", "Test pay");
           btn.addEventListener("click", function () {
             AI24X_API.billingMockFulfill(o.out_trade_no)
               .then(function () {
-                showMsg(msgBox(), tr("到账成功", "Payment recorded"), true);
+                showMsg(ordersMsgBox(), tr("到账成功", "Payment recorded"), true);
                 return refreshAll();
               })
               .catch(function (e) {
-                showMsg(msgBox(), e.message || tr("操作失败", "Failed"), false);
+                showMsg(ordersMsgBox(), e.message || tr("操作失败", "Failed"), false);
               });
           });
-          right.appendChild(btn);
+          tdAct.appendChild(btn);
         }
         var btnQ = document.createElement("button");
         btnQ.type = "button";
         btnQ.className = mockUiAllowed(payCfg) ? "btn" : "btn btn-primary";
-        if (mockUiAllowed(payCfg)) btnQ.style.marginLeft = "6px";
         btnQ.textContent = tr("确认到账", "Confirm");
         btnQ.addEventListener("click", function () {
           AI24X_API.billingQueryFulfill(o.out_trade_no, o.channel || "wechat")
             .then(function (r) {
               showMsg(
-                msgBox(),
+                ordersMsgBox(),
                 r && r.ok
-                  ? AI24X_API.planFulfillMessage(o.plan || _lastPayPlanId, o.out_trade_no)
+                  ? AI24X_API.planFulfillMessage(
+                      o.plan || _lastPayPlanId,
+                      o.out_trade_no,
+                      orderProductOf(o.plan, o)
+                    )
                   : tr("尚未支付成功或查单未完成", "Not paid yet / still pending"),
                 !!(r && r.ok)
               );
               return refreshAll();
             })
             .catch(function (e) {
-              showMsg(msgBox(), e.message || tr("查单失败", "Query failed"), false);
+              showMsg(ordersMsgBox(), e.message || tr("查单失败", "Query failed"), false);
             });
         });
-        right.appendChild(btnQ);
+        tdAct.appendChild(btnQ);
       } else {
-        right.textContent = o.transaction_id || o.out_trade_no || "";
+        tdAct.textContent = o.transaction_id || "—";
       }
-      li.appendChild(left);
-      li.appendChild(right);
-      box.appendChild(li);
+      trEl.appendChild(tdAct);
+      box.appendChild(trEl);
     });
   }
 
@@ -1622,6 +1908,8 @@
   var USAGE_RANGE = "month";   // month | 7d | 30d | all
   var USAGE_METRIC = "usd";    // usd | tokens | calls
   var _usageChartCache = null;
+  var _usageModelsCache = null;
+  var _usageKeysCache = null;
   var TX_PAGE_SIZE = 15;
   var txPage = 0;
   var txTotal = 0;
@@ -1737,6 +2025,7 @@
       box.innerHTML = "<div class='usage-empty'>" + tr("该时段暂无消耗", "No usage in this period") + "</div>";
       return;
     }
+    var metric = USAGE_METRIC;
     rows.forEach(function (r) {
       var row = document.createElement("div");
       row.className = "usage-model-row";
@@ -1748,21 +2037,68 @@
       barWrap.className = "usage-model-bar-wrap";
       var bar = document.createElement("div");
       bar.className = "usage-model-bar";
-      bar.style.width = Math.max(2, Math.min(100, Number(r.usd_pct) || 0)) + "%";
+      var pctVal =
+        metric === "tokens"
+          ? Number(r.token_pct) || 0
+          : metric === "calls"
+            ? 0
+            : Number(r.usd_pct) || 0;
+      if (metric === "calls") {
+        var maxCalls = Math.max.apply(
+          null,
+          rows.map(function (x) {
+            return Number(x.calls) || 0;
+          }).concat([1])
+        );
+        pctVal = ((Number(r.calls) || 0) * 100.0) / maxCalls;
+      }
+      bar.style.width = Math.max(2, Math.min(100, pctVal)) + "%";
       barWrap.appendChild(bar);
       var num = document.createElement("div");
       num.className = "usage-model-num";
-      num.textContent =
-        fmtUsdSpend(r.usd_cents, fx) +
-        " · " +
-        fmtTokensCount(r.tokens || 0) +
-        " tok · " +
-        (r.calls || 0) +
-        " " +
-        tr("次", "calls");
+      if (metric === "tokens") {
+        num.textContent =
+          fmtTokensCount(r.tokens || 0) +
+          " tok · " +
+          fmtUsdSpend(r.usd_cents, fx) +
+          " · " +
+          (r.calls || 0) +
+          " " +
+          tr("次", "calls");
+      } else if (metric === "calls") {
+        num.textContent =
+          (r.calls || 0) +
+          " " +
+          tr("次", "calls") +
+          " · " +
+          fmtTokensCount(r.tokens || 0) +
+          " tok · " +
+          fmtUsdSpend(r.usd_cents, fx);
+      } else {
+        num.textContent =
+          fmtUsdSpend(r.usd_cents, fx) +
+          " · " +
+          fmtTokensCount(r.tokens || 0) +
+          " tok · " +
+          (r.calls || 0) +
+          " " +
+          tr("次", "calls");
+      }
       var pct = document.createElement("div");
       pct.className = "usage-model-pct";
-      pct.textContent = (Number(r.usd_pct) || 0).toFixed(1) + "%";
+      if (metric === "calls") {
+        var totCalls = rows.reduce(function (s, x) {
+          return s + (Number(x.calls) || 0);
+        }, 0);
+        pct.textContent =
+          totCalls > 0
+            ? (((Number(r.calls) || 0) * 100.0) / totCalls).toFixed(1) + "%"
+            : "0.0%";
+      } else if (metric === "tokens") {
+        pct.textContent = (Number(r.token_pct) || 0).toFixed(1) + "%";
+      } else {
+        pct.textContent = (Number(r.usd_pct) || 0).toFixed(1) + "%";
+      }
       row.appendChild(name);
       row.appendChild(barWrap);
       row.appendChild(num);
@@ -1781,6 +2117,7 @@
       box.innerHTML = "<div class='usage-empty'>" + tr("该时段暂无 Key 消耗", "No key usage in this period") + "</div>";
       return;
     }
+    var metric = USAGE_METRIC;
     rows.forEach(function (r) {
       var row = document.createElement("div");
       row.className = "usage-model-row";
@@ -1792,27 +2129,104 @@
       barWrap.className = "usage-model-bar-wrap";
       var bar = document.createElement("div");
       bar.className = "usage-model-bar";
-      bar.style.width = Math.max(2, Math.min(100, Number(r.usd_pct) || 0)) + "%";
+      var pctVal =
+        metric === "tokens"
+          ? Number(r.token_pct) || 0
+          : metric === "calls"
+            ? 0
+            : Number(r.usd_pct) || 0;
+      if (metric === "calls") {
+        var maxCalls = Math.max.apply(
+          null,
+          rows.map(function (x) {
+            return Number(x.calls) || 0;
+          }).concat([1])
+        );
+        pctVal = ((Number(r.calls) || 0) * 100.0) / maxCalls;
+      }
+      bar.style.width = Math.max(2, Math.min(100, pctVal)) + "%";
       barWrap.appendChild(bar);
       var num = document.createElement("div");
       num.className = "usage-model-num";
-      num.textContent =
-        fmtUsdSpend(r.usd_cents, fx) +
-        " · " +
-        fmtTokensCount(r.tokens || 0) +
-        " tok · " +
-        (r.calls || 0) +
-        " " +
-        tr("次", "calls");
+      if (metric === "tokens") {
+        num.textContent =
+          fmtTokensCount(r.tokens || 0) +
+          " tok · " +
+          fmtUsdSpend(r.usd_cents, fx) +
+          " · " +
+          (r.calls || 0) +
+          " " +
+          tr("次", "calls");
+      } else if (metric === "calls") {
+        num.textContent =
+          (r.calls || 0) +
+          " " +
+          tr("次", "calls") +
+          " · " +
+          fmtTokensCount(r.tokens || 0) +
+          " tok · " +
+          fmtUsdSpend(r.usd_cents, fx);
+      } else {
+        num.textContent =
+          fmtUsdSpend(r.usd_cents, fx) +
+          " · " +
+          fmtTokensCount(r.tokens || 0) +
+          " tok · " +
+          (r.calls || 0) +
+          " " +
+          tr("次", "calls");
+      }
       var pct = document.createElement("div");
       pct.className = "usage-model-pct";
-      pct.textContent = (Number(r.usd_pct) || 0).toFixed(1) + "%";
+      if (metric === "calls") {
+        var totCalls = rows.reduce(function (s, x) {
+          return s + (Number(x.calls) || 0);
+        }, 0);
+        pct.textContent =
+          totCalls > 0
+            ? (((Number(r.calls) || 0) * 100.0) / totCalls).toFixed(1) + "%"
+            : "0.0%";
+      } else if (metric === "tokens") {
+        pct.textContent = (Number(r.token_pct) || 0).toFixed(1) + "%";
+      } else {
+        pct.textContent = (Number(r.usd_pct) || 0).toFixed(1) + "%";
+      }
       row.appendChild(name);
       row.appendChild(barWrap);
       row.appendChild(num);
       row.appendChild(pct);
       box.appendChild(row);
     });
+  }
+
+  function setUsageMetric(metric, opts) {
+    opts = opts || {};
+    USAGE_METRIC = metric || "usd";
+    document.querySelectorAll(".usage-metric-btn").forEach(function (x) {
+      x.classList.toggle("is-active", x.getAttribute("data-metric") === USAGE_METRIC);
+    });
+    var hint = $("usage-metric-hint");
+    if (hint) {
+      if (opts.tokenOnly) {
+        hint.textContent = tr(
+          "当前账户以 Token 扣费为主，已切换到 Tokens 视图。「费用」仅统计美元钱包扣款。",
+          "This account is billed mainly in tokens — switched to Tokens view. Cost only counts USD-wallet charges."
+        );
+        hint.style.display = "";
+      } else if (USAGE_METRIC === "usd") {
+        hint.textContent = tr(
+          "「费用」= 美元钱包实际扣款；Token 包用户请看 Tokens。",
+          "Cost = USD-wallet charges; token-pack users should use Tokens."
+        );
+        hint.style.display = "";
+      } else {
+        hint.textContent = "";
+        hint.style.display = "none";
+      }
+    }
+    if (_usageChartCache) renderUsageChart(_usageChartCache);
+    if (_usageModelsCache) renderUsageModels(_usageModelsCache);
+    if (_usageKeysCache) renderUsageKeys(_usageKeysCache);
   }
 
   function initUsageStatsLabels() {
@@ -1847,20 +2261,38 @@
     AI24X_API.billingUsageDaily(p.days)
       .then(function (d) {
         _usageChartCache = d;
-        renderUsageChart(d);
+        var rows = (d && d.rows) || [];
+        var sumUsd = 0;
+        var sumTok = 0;
+        rows.forEach(function (r) {
+          sumUsd += Number(r.usd_cents) || 0;
+          sumTok += Number(r.tokens) || 0;
+        });
+        // Token 钱包用户：流水无美元扣款 → 默认切 Tokens，避免「全 0」误判无用量
+        if (sumTok > 0 && sumUsd <= 0) {
+          setUsageMetric("tokens", { tokenOnly: true });
+        } else {
+          setUsageMetric(USAGE_METRIC || "usd", { tokenOnly: false });
+        }
       })
       .catch(function () {
         var w = $("usageChart");
         if (w) w.innerHTML = "<div class='usage-empty'>" + tr("加载失败，请稍后重试", "Failed to load, try again later") + "</div>";
       });
     AI24X_API.billingUsageModels(p.days, 10)
-      .then(renderUsageModels)
+      .then(function (d) {
+        _usageModelsCache = d;
+        renderUsageModels(d);
+      })
       .catch(function () {
         var b = $("usageModels");
         if (b) b.innerHTML = "<div class='usage-empty'>" + tr("加载失败，请稍后重试", "Failed to load, try again later") + "</div>";
       });
     AI24X_API.billingUsageKeys(p.days, 8)
-      .then(renderUsageKeys)
+      .then(function (d) {
+        _usageKeysCache = d;
+        renderUsageKeys(d);
+      })
       .catch(function () {
         var k = $("usageKeys");
         if (k) k.innerHTML = "<div class='usage-empty'>" + tr("加载失败，请稍后重试", "Failed to load, try again later") + "</div>";
@@ -2063,16 +2495,21 @@
   }
 
   function bindTransactionsControls() {
-    // Ledger UI moved to Account Hub; skip if local table removed.
-    if (!$("txList") || !$("txTable")) return;
     if (txBindDone) return;
     txBindDone = true;
     var pv = $("tx-prev");
     var nx = $("tx-next");
     var exp = $("usage-export-btn");
+    var txRefresh = $("btn-tx-refresh");
     if (pv) pv.addEventListener("click", function () { loadTransactionsPage(txPage - 1); });
     if (nx) nx.addEventListener("click", function () { loadTransactionsPage(txPage + 1); });
     if (exp) exp.addEventListener("click", exportBillingCsv);
+    if (txRefresh) {
+      txRefresh.addEventListener("click", function () {
+        loadTransactionsPage(0);
+        loadUsageStats();
+      });
+    }
     initUsageStatsLabels();
     document.querySelectorAll("#usage-range-group .usage-range-btn").forEach(function (b) {
       b.addEventListener("click", function () {
@@ -2087,11 +2524,7 @@
     });
     document.querySelectorAll(".usage-metric-btn").forEach(function (b) {
       b.addEventListener("click", function () {
-        USAGE_METRIC = b.getAttribute("data-metric");
-        document.querySelectorAll(".usage-metric-btn").forEach(function (x) {
-          x.classList.toggle("is-active", x === b);
-        });
-        renderUsageChart(_usageChartCache);
+        setUsageMetric(b.getAttribute("data-metric") || "usd", { tokenOnly: false });
       });
     });
     document.querySelectorAll("#tx-type-group .tx-type-btn").forEach(function (b) {
@@ -2264,7 +2697,7 @@
     function supportCatLabel(cat) {
       var map = {
         api: tr("API / 调用", "API / Calls"),
-        billing: tr("套餐 / 订单", "Plans / Orders"),
+        billing: tr("充值 / 账单", "Billing / Orders"),
         account: tr("账号", "Account"),
         suggestion: tr("建议", "Suggestion"),
         complaint: tr("投诉", "Complaint"),
@@ -2547,6 +2980,17 @@
       tr("未绑定", "Not bound");
     if ($("acct-phone")) $("acct-phone").textContent = user.phone || phoneUnset;
 
+    var catalogP = fetchBillingCatalog().catch(function () {});
+    var keysP = AI24X_API.keysList().catch(function () {
+      return null;
+    });
+    var refP = AI24X_API.referralsSummary().catch(function () {
+      return null;
+    });
+    var ordersP = AI24X_API.billingOrders(20).catch(function () {
+      return null;
+    });
+
     try {
       var bal = await AI24X_API.billingBalance();
       // 会话串号防护：余额接口邮箱 vs 本地登录身份不一致 → 强制重登
@@ -2698,7 +3142,7 @@
           if (btnShared) btnShared.style.display = "none";
           if (btnBill) {
             btnBill.style.display = "";
-            btnBill.textContent = tr("去充值", "Top up");
+            btnBill.textContent = tr("去选套餐", "Choose a plan");
           }
         } else if (isVip && walletEmpty && sharedOn) {
           showHowto = true;
@@ -2719,7 +3163,7 @@
           if (btnBill) {
             btnBill.style.display = "";
             btnBill.className = "btn";
-            btnBill.textContent = tr("去充值", "Top up");
+            btnBill.textContent = tr("去选套餐", "Choose a plan");
           }
         } else if (isVip && walletEmpty && !sharedOn) {
           showHowto = true;
@@ -2736,7 +3180,7 @@
           if (btnBill) {
             btnBill.style.display = "";
             btnBill.className = "btn btn-primary";
-            btnBill.textContent = tr("去充值", "Top up");
+            btnBill.textContent = tr("去选套餐", "Choose a plan");
           }
         } else {
           showHowto = false;
@@ -2784,7 +3228,7 @@
     }
 
     try {
-      var keysRes = await AI24X_API.keysList();
+      var keysRes = await keysP;
       var keys = (keysRes && keysRes.keys) || [];
       $("stat-keys").textContent = String(keys.length);
       renderKeys(keys);
@@ -2793,9 +3237,8 @@
     }
 
     try {
-      var ref = await AI24X_API.referralsSummary();
-      var refStat = $("stat-referrals");
-      if (refStat) refStat.textContent = String(ref.invitees_l1 != null ? ref.invitees_l1 : 0);
+      var ref = await refP;
+      $("stat-referrals").textContent = String(ref.invitees_l1 != null ? ref.invitees_l1 : 0);
       if ($("inviteCode")) $("inviteCode").textContent = ref.code || "--";
       window._ai24xInviteCode = ref.code || "";
       if ($("inviteShortLink")) {
@@ -2828,8 +3271,7 @@
         $("overview-invite-earned").textContent = earnedOv >= 1000 ? (earnedOv / 1000).toFixed(1).replace(/\.0$/, "") + "k" : String(earnedOv);
       }
     } catch (e) {
-      var refStatErr = $("stat-referrals");
-      if (refStatErr) refStatErr.textContent = "--";
+      $("stat-referrals").textContent = "--";
     }
 
     try {
@@ -2838,648 +3280,159 @@
 
     try {
       bindTransactionsControls();
+      loadTransactionsPage(0);
+      loadUsageStats();
     } catch (e) {}
 
     try {
-      var plans = await AI24X_API.billingPlans();
-      renderPlans(plans);
+      await catalogP;
     } catch (e) {}
 
     try {
-      loadByokStatus().catch(function () {});
-      loadByokKeys().catch(function () {});
+      var orders = await ordersP;
+      renderOrders((orders && orders.rows) || []);
     } catch (e) {}
 
     try {
-      if ($("ordersList")) {
-        var orders = await AI24X_API.billingOrders(20);
-        renderOrders((orders && orders.rows) || []);
-      }
+      loadMarketsSub();
     } catch (e) {}
   }
 
-  /* ================= BYOK 智能网关（2026-08-18） ================= */
-  function byokProviderTitle(pid) {
-    var key = "page.console.byok.prov." + String(pid || "");
+  /** 与 shell.js 一致：本机默认本地端口；ai24x_local_products=0 切正式站 */
+  function preferLocalProducts() {
     try {
-      if (window.AI24X_I18N && typeof window.AI24X_I18N.t === "function") {
-        var loc = window.AI24X_I18N.t(key);
-        if (loc && loc !== key) return loc;
-      }
-    } catch (e) {}
-    var map = {
-      openai: "OpenAI（GPT）",
-      anthropic: "Anthropic（Claude）",
-      gemini: "Google Gemini",
-      deepseek: "DeepSeek",
-      qwen: "Qwen（通义千问）",
-      moonshot: "Kimi（月之暗面）",
-      zhipu: "智谱 GLM",
-      minimax: "MiniMax",
-      mimo: "小米 MiMo",
-      openrouter: "OpenRouter（历史）",
-      siliconflow: "SiliconFlow（历史）",
-      together: "Together AI（历史）",
-      xai: "xAI（Grok）",
-      groq: "Groq（历史）",
-      mistral: "Mistral",
-      custom: tr("自定义兼容端点", "Custom"),
-    };
-    return map[pid] || pid || "--";
-  }
-
-  function byokI18n(key, fallback) {
-    try {
-      if (window.AI24X_I18N && typeof window.AI24X_I18N.t === "function") {
-        var v = window.AI24X_I18N.t(key);
-        if (v && v !== key) return v;
-      }
-    } catch (e) {}
-    return fallback || key;
-  }
-
-  function byokSyncProviderHint() {
-    var sel = $("byok-provider");
-    var hint = $("byok-provider-hint");
-    if (!hint) return;
-    var pid = (sel && sel.value) || "deepseek";
-    var text = byokI18n(
-      "page.console.byok.keyHint." + pid,
-      byokI18n(
-        "page.console.byok.keyHintDefault",
-        tr(
-          "填写该名模官方 API Key，不是 AI24X 平台密钥。",
-          "Fill that vendor’s official API key (not an AI24X platform key)."
-        )
-      )
-    );
-    hint.textContent = text;
-  }
-
-  function byokApplyOptgroupI18n() {
-    var sel = $("byok-provider");
-    if (!sel) return;
-    Array.prototype.forEach.call(sel.querySelectorAll("optgroup[data-i18n-label]"), function (og) {
-      var k = og.getAttribute("data-i18n-label");
-      if (!k) return;
-      var lab = byokI18n(k, "");
-      if (lab) og.setAttribute("label", lab);
-    });
-  }
-
-  function fmtByokTime(iso) {
-    if (!iso) return "--";
-    try {
-      var d = new Date(iso);
-      return d.toLocaleString();
-    } catch (e) {
-      return String(iso).slice(0, 16);
-    }
-  }
-
-  function loadByokAll() {
-    byokApplyOptgroupI18n();
-    byokSyncProviderHint();
-    loadByokStatus().catch(function () {});
-    loadByokKeys().catch(function () {});
-    loadByokUsage().catch(function () {});
-    AI24X_API.request("/v1/byok/cache/stats", { method: "GET" })
-      .then(function (r) {
-        var el = $("byok-status-cache");
-        if (el && r) el.textContent = (r.ttl_s || 0) + "s / " + (r.items || 0);
-      })
-      .catch(function () {});
-  }
-
-  function loadByokStatus() {
-    return AI24X_API.request("/v1/byok/status", { method: "GET" }).then(function (r) {
-      if (!r) return;
-      var card = $("byok-status-card");
-      if (card) card.style.display = "";
-      var en = $("byok-status-enabled");
-      if (en) {
-        en.textContent = r.enabled ? tr("已启用", "On") : tr("已关闭", "Off");
-        en.style.color = r.enabled ? "#16a34a" : "#dc2626";
-      }
-      var fb = $("byok-status-fallback");
-      if (fb) fb.textContent = r.fallback_to_platform ? tr("开（平台兜底）", "On (platform fallback)") : tr("关（严格 BYOK）", "Off (strict BYOK)");
-      // fee note 用 locales（data-i18n），不用 API 返回文案覆盖（避免英文界面被盖成中文）
-      renderByokSubBanner(r.subscription);
+      var h = String(location.hostname || "").toLowerCase();
+      if (h !== "127.0.0.1" && h !== "localhost") return false;
+      var flag = "";
       try {
-        var plansData = window.__tokenPlansPayload;
-        if (plansData && plansData.byok_plans) {
-          renderByokPlanCards(plansData.byok_plans, window.__tokenPay || {});
-        }
+        flag = String(localStorage.getItem("ai24x_local_products") || "").trim();
       } catch (e) {}
-    });
+      return flag !== "0";
+    } catch (e) {
+      return false;
+    }
   }
 
-  function byokMsgBox() {
-    return $("byokPanelMsg") || msgBox();
-  }
-
-  var _byokTogglePending = null;
-
-  function openUiModal(id) {
-    var el = $(id);
-    if (!el) return;
-    el.classList.add("is-open");
-    el.setAttribute("aria-hidden", "false");
-  }
-
-  function closeUiModal(id) {
-    var el = $(id);
-    if (!el) return;
-    el.classList.remove("is-open");
-    el.setAttribute("aria-hidden", "true");
-  }
-
-  function byokStatusLabel(status) {
-    return status === "active" ? "On" : "Off";
-  }
-
-  function applyByokKeyStatus(id, st) {
-    var msgEl = byokMsgBox();
-    var msgOpts = { noScroll: true };
-    showMsg(
-      msgEl,
-      st === "disabled"
-        ? tr("正在关闭…", "Turning off…")
-        : tr("正在打开…", "Turning on…"),
-      true,
-      msgOpts
-    );
-    // 乐观更新：按钮=下一步动作；状态列=当前状态
+  /** Markets：本机默认 18012 */
+  function marketsApiBase() {
     try {
-      var wrap = $("byokKeysList");
-      if (wrap) {
-        var btn = wrap.querySelector('[data-byok-toggle="' + id + '"]');
-        if (btn) {
-          var row = btn.closest("tr");
-          var nextActive = st === "active";
-          var stateLabel = byokStatusLabel(nextActive ? "active" : "disabled");
-          var actionLabel = nextActive ? "Off" : "On";
-          btn.className = "btn " + (nextActive ? "btn-byok-off" : "btn-byok-on");
-          btn.textContent = actionLabel;
-          btn.setAttribute("data-status", nextActive ? "disabled" : "active");
-          btn.setAttribute(
-            "title",
-            nextActive ? tr("关闭这把 Key", "Turn this key Off") : tr("打开这把 Key", "Turn this key On")
-          );
-          if (row) {
-            var badge = row.querySelector(".byok-key-state");
-            if (badge) {
-              badge.className = "byok-key-state " + (nextActive ? "is-on" : "is-off");
-              badge.textContent = stateLabel;
+      var h = String(location.hostname || "").toLowerCase();
+      if (h === "127.0.0.1" || h === "localhost") {
+        var port = String(location.port || "");
+        if (port === "18012") return "http://127.0.0.1:18012";
+        if (preferLocalProducts()) return "http://127.0.0.1:18012";
+      }
+    } catch (e) {}
+    return "https://markets.ai24x.com";
+  }
+
+  /** open Gateway：本机默认 18080 */
+  function openApiBase() {
+    try {
+      var h = String(location.hostname || "").toLowerCase();
+      if (h === "127.0.0.1" || h === "localhost") {
+        var port = String(location.port || "");
+        if (port === "18080") return "http://127.0.0.1:18080";
+        if (preferLocalProducts()) return "http://127.0.0.1:18080";
+      }
+    } catch (e) {}
+    return "https://open.ai24x.com";
+  }
+
+  /** 产品卡片外链：把二级域名换成当前环境（本地开发指 18012/18080），保留路径与深链 */
+  function productUrl(url) {
+    var u = String(url || "");
+    if (/^https?:\/\/markets\.ai24x\.com(?:\/|$)/.test(u)) {
+      return marketsApiBase() + "/" + u.replace(/^https?:\/\/markets\.ai24x\.com/, "").replace(/^\//, "");
+    }
+    if (/^https?:\/\/open\.ai24x\.com(?:\/|$)/.test(u)) {
+      return openApiBase() + "/" + u.replace(/^https?:\/\/open\.ai24x\.com/, "").replace(/^\//, "");
+    }
+    return u;
+  }
+
+  function loadMarketsSub() {
+    try {
+      var token = "";
+      try { token = localStorage.getItem("ai24x_auth_token") || ""; } catch (e) {}
+      var lines = document.querySelectorAll(".markets-sub-line");
+      var statuses = document.querySelectorAll(".markets-sub-status");
+      var ctas = document.querySelectorAll(".markets-sub-cta");
+      if (!lines.length || !statuses.length) return;
+      if (!token) {
+        lines.forEach(function (ln) { ln.style.display = "none"; });
+        return;
+      }
+      lines.forEach(function (ln) { ln.style.display = ""; });
+      statuses.forEach(function (st) {
+        st.textContent = tr("正在检查 Markets Pro 订阅…", "Checking Markets Pro subscription…");
+      });
+      fetch(marketsApiBase() + "/api/subscribe/status", {
+        headers: { Authorization: "Bearer " + token }
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j && j.code === 0 && j.data) {
+            var pro = !!j.data.pro;
+            var ds = "--";
+            if (j.data.expires_at) {
+              var d = new Date(j.data.expires_at);
+              if (!isNaN(d.getTime())) { try { ds = d.toLocaleDateString(); } catch (e) {} }
             }
-          }
-        }
-      }
-    } catch (eOpt) {}
-    return AI24X_API.request("/v1/byok/keys/" + id, {
-      method: "PATCH",
-      body: JSON.stringify({ status: st }),
-      cache: "no-store",
-    })
-      .then(function (r) {
-        var next = (r && r.key && r.key.status) || st;
-        if (next !== st) {
-          throw new Error(
-            tr("状态未变更，请刷新后重试。", "Status did not change. Refresh and try again.")
-          );
-        }
-        showMsg(
-          msgEl,
-          next === "disabled"
-            ? tr("这把 Key 已 Off，调用不再使用它。", "This key is Off — it will not be used for calls.")
-            : tr("这把 Key 已 On，将重新参与路由。", "This key is On — it will join routing again."),
-          true,
-          msgOpts
-        );
-        return loadByokKeys().then(function () {
-          return true;
-        });
-      })
-      .catch(function (e) {
-        var errText = (e && e.message) || tr("更新失败", "Update failed");
-        showMsg(msgEl, errText, false, msgOpts);
-        var sub = $("modal-byok-toggle-sub");
-        if (sub) sub.textContent = errText;
-        // 失败则强制重拉，回到服务器真状态
-        return loadByokKeys()
-          .catch(function () {})
-          .then(function () {
-            return false;
-          });
-      });
-  }
-
-  function openByokToggleConfirm(id, st, prefix) {
-    _byokTogglePending = { id: id, status: st };
-    var title = $("modal-byok-toggle-title");
-    var sub = $("modal-byok-toggle-sub");
-    var confirmBtn = $("btn-byok-toggle-confirm");
-    var label = prefix ? String(prefix) + "…" : "#" + id;
-    if (title) {
-      title.textContent =
-        st === "disabled"
-          ? tr("确认关闭这把 Key？", "Turn this key Off?")
-          : tr("确认打开这把 Key？", "Turn this key On?");
-    }
-    if (sub) {
-      sub.textContent =
-        st === "disabled"
-          ? tr(
-              "关闭后「" + label + "」不再参与路由。上方「网关」总开关不受影响；列表状态会显示 Off。",
-              "After Off, “" + label + "” leaves routing. The Gateway master switch is unchanged; Status will show Off."
-            )
-          : tr(
-              "打开后「" + label + "」将重新参与路由（仍受上方网关总开关约束）；列表状态会显示 On。",
-              "After On, “" + label + "” joins routing again (still subject to Gateway). Status will show On."
-            );
-    }
-    if (confirmBtn) {
-      confirmBtn.textContent =
-        st === "disabled" ? tr("确认 Off", "Confirm Off") : tr("确认 On", "Confirm On");
-      confirmBtn.disabled = false;
-    }
-    openUiModal("modal-byok-toggle");
-  }
-
-  function loadByokKeys() {
-    return AI24X_API.request("/v1/byok/keys?_=" + Date.now(), {
-      method: "GET",
-      cache: "no-store",
-    }).then(function (r) {
-      renderByokKeys((r && r.keys) || []);
-    });
-  }
-
-  function renderByokKeys(keys) {
-    var countEl = $("stat-byok-keys");
-    if (countEl) {
-      countEl.textContent = keys && keys.length ? String(keys.length) : "0";
-    }
-    var wrap = $("byokKeysList");
-    if (!wrap) return;
-    if (!keys || !keys.length) {
-      wrap.innerHTML =
-        '<tr><td colspan="8" class="sub">' + tr("还没有自有 Key。添加后将优先走你的 Key（故障自动切换）。", "No BYOK keys yet. Add one to route through your keys with auto failover.") + '</td></tr>';
-      return;
-    }
-    var html = "";
-    keys.forEach(function (k) {
-      var isActive = k.status === "active";
-      var stLabel = byokStatusLabel(isActive ? "active" : "disabled");
-      // 按钮文案 = 下一步动作：开着→点 Off 关闭；关着→点 On 打开
-      var actionLabel = isActive ? "Off" : "On";
-      var actionClass = isActive ? "btn-byok-off" : "btn-byok-on";
-      var rate =
-        k.success_rate != null
-          ? Math.round(Number(k.success_rate) * 100) + "%"
-          : "--";
-      var lat =
-        k.last_latency_ms != null ? Math.round(Number(k.last_latency_ms)) + "ms" : "--";
-      var models = (k.models && k.models.length)
-        ? k.models.map(function (m) { return '<code>' + escapeHtml(m) + "</code>"; }).join(" ")
-        : '<span class="sub">' + tr("全部", "All") + '</span>';
-      html +=
-        "<tr>" +
-        "<td>" + byokProviderTitle(k.provider) + "</td>" +
-        '<td class="col-note">' + escapeHtml(k.name || "--") + "</td>" +
-        "<td><code>" + escapeHtml(k.key_prefix || "") + "…</code></td>" +
-        "<td>" + models + "</td>" +
-        '<td><span class="byok-key-state ' + (isActive ? "is-on" : "is-off") + '">' + stLabel + "</span></td>" +
-        "<td>" + lat + " · " + rate + "</td>" +
-        "<td class='col-time'>" + fmtByokTime(k.last_used_at) + "</td>" +
-        "<td>" +
-        '<button type="button" class="btn" data-byok-test="' + k.id + '">' + tr("测试", "Test") + '</button> ' +
-        '<button type="button" class="btn ' + actionClass + '" data-byok-toggle="' + k.id + '" data-status="' + (isActive ? "disabled" : "active") + '" data-prefix="' + escapeHtml(k.key_prefix || "") + '" title="' + (isActive ? tr("关闭这把 Key", "Turn this key Off") : tr("打开这把 Key", "Turn this key On")) + '">' + actionLabel + "</button> " +
-        '<button type="button" class="btn" data-byok-del="' + k.id + '">' + tr("删除", "Delete") + '</button>' +
-        "</td></tr>";
-    });
-    wrap.innerHTML = html;
-    wrap.querySelectorAll("[data-byok-test]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        byokTestKey(parseInt(btn.getAttribute("data-byok-test"), 10));
-      });
-    });
-    wrap.querySelectorAll("[data-byok-toggle]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var id = parseInt(btn.getAttribute("data-byok-toggle"), 10);
-        var st = btn.getAttribute("data-status");
-        var prefix = btn.getAttribute("data-prefix") || "";
-        openByokToggleConfirm(id, st, prefix);
-      });
-    });
-    wrap.querySelectorAll("[data-byok-del]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var id = parseInt(btn.getAttribute("data-byok-del"), 10);
-        if (!confirm(tr("确认删除这把自有 Key？（历史用量保留）", "Delete this key? (usage history is kept)"))) return;
-        AI24X_API.request("/v1/byok/keys/" + id, { method: "DELETE" })
-          .then(function () {
-            showMsg(byokMsgBox(), tr("已删除 Key", "Key deleted"), true);
-            return loadByokKeys();
-          })
-          .catch(function (e) {
-            showMsg(byokMsgBox(), e.message || tr("删除失败", "Delete failed"), false);
-          });
-      });
-    });
-  }
-
-  function byokFormPayload() {
-    return {
-      provider: ($("byok-provider") && $("byok-provider").value) || "deepseek",
-      name: ($("byok-name") && $("byok-name").value.trim()) || "",
-      api_key: ($("byok-api-key") && $("byok-api-key").value.trim()) || "",
-      models: (($("byok-models") && $("byok-models").value) || "")
-        .split(/[,，]/)
-        .map(function (s) { return s.trim(); })
-        .filter(Boolean),
-      base_url: ($("byok-base-url") && $("byok-base-url").value.trim()) || null,
-      priority: parseInt(($("byok-priority") && $("byok-priority").value) || "100", 10),
-    };
-  }
-
-  function byokTestKey(keyIdOrNull) {
-    var payload = byokFormPayload();
-    var msgEl = $("byok-form-msg");
-    if (keyIdOrNull) {
-      payload = { key_id: keyIdOrNull };
-    } else if (!payload.api_key) {
-      if (msgEl) msgEl.textContent = tr("请先填入 API Key 再测试", "Enter an API key to test");
-      return;
-    }
-    if (msgEl) msgEl.textContent = tr("测试中…", "Testing…");
-    AI24X_API.request("/v1/byok/keys/test", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    })
-      .then(function (r) {
-        if (msgEl) {
-          if (r && r.ok) {
-            msgEl.style.color = "#16a34a";
-            msgEl.textContent =
-              tr("测试通过：", "Test OK: ") + (r.latency_ms || "--") + "ms · " + (r.model || "");
+            var text = pro
+              ? tr("Pro 生效中 — 到期 " + ds, "Pro · expires " + ds)
+              : tr("当前免费版 — 每天 10 次 AI 点评、自选 10 只。", "Free plan — 10 AI briefs/day, 10-symbol watchlist.");
+            statuses.forEach(function (st) { st.textContent = text; });
+            ctas.forEach(function (cta) {
+              cta.textContent = pro ? tr("管理 / 续费订阅", "Manage / renew") : tr("升级 Pro", "Upgrade to Pro");
+              cta.setAttribute("data-i18n", pro ? "page.console.markets.manage" : "page.console.markets.upgrade");
+            });
           } else {
-            msgEl.style.color = "#dc2626";
-            msgEl.textContent = tr("测试失败：", "Test failed: ") + ((r && r.error) || "unknown");
+            statuses.forEach(function (st) { st.textContent = ""; });
           }
-        }
-      })
-      .catch(function (e) {
-        if (msgEl) {
-          msgEl.style.color = "#dc2626";
-          msgEl.textContent = tr("测试请求失败：", "Test request failed: ") + (e.message || "");
-        }
-      });
+        })
+        .catch(function () {
+          statuses.forEach(function (st) { st.textContent = ""; });
+        });
+    } catch (e) {}
   }
 
-  function byokSaveKey() {
-    var payload = byokFormPayload();
-    var msgEl = $("byok-form-msg");
-    if (!payload.api_key || payload.api_key.length < 8) {
-      if (msgEl) {
-        msgEl.style.color = "#dc2626";
-        msgEl.textContent = tr("请填写有效的 API Key", "Enter a valid API key");
+  /** Billing 面板直接开通 Markets Pro（复用 markets checkout → PayPal 跳转） */
+  function doMarketsCheckout(plan) {
+    try {
+      var token = "";
+      try { token = localStorage.getItem("ai24x_auth_token") || ""; } catch (e) {}
+      var msgs = document.querySelectorAll(".mk-checkout-msg");
+      msgs.forEach(function (m) { m.textContent = ""; });
+      if (!token) {
+        location.href = "login.html?next=" + encodeURIComponent("console.html#billing");
+        return;
       }
-      return;
-    }
-    var btn = $("btn-byok-save");
-    if (btn) btn.disabled = true;
-    AI24X_API.request("/v1/byok/keys", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    })
-      .then(function () {
-        if (msgEl) {
-          msgEl.style.color = "#16a34a";
-          msgEl.textContent = tr("已保存（AES 加密落库，仅显示前缀）", "Saved (AES-encrypted, prefix only)");
-        }
-        if ($("byok-api-key")) $("byok-api-key").value = "";
-        return loadByokKeys();
+      msgs.forEach(function (m) { m.textContent = tr("正在跳转 PayPal…", "Redirecting to PayPal…"); });
+      fetch(marketsApiBase() + "/api/subscribe/checkout", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: plan })
       })
-      .catch(function (e) {
-        if (msgEl) {
-          msgEl.style.color = "#dc2626";
-          msgEl.textContent = (e && e.message) || tr("保存失败", "Save failed");
-        }
-      })
-      .finally(function () {
-        if (btn) btn.disabled = false;
-      });
-  }
-
-  function loadByokUsage() {
-    var days = ($("byok-usage-days") && $("byok-usage-days").value) || "7";
-    var group = ($("byok-usage-group") && $("byok-usage-group").value) || "key";
-    var title = $("byok-usage-chart-title");
-    if (title) {
-      title.textContent = tr("每日趋势", "Daily trend");
-    }
-    var metricMap = {
-      cost: tr("费用", "Cost"),
-      tokens: "Tokens",
-      requests: tr("请求数", "Calls"),
-    };
-    document.querySelectorAll("[data-byok-metric]").forEach(function (b) {
-      var m = b.getAttribute("data-byok-metric");
-      b.textContent = metricMap[m] || m;
-      b.classList.toggle("is-active", m === BYOK_USAGE_METRIC);
-    });
-    AI24X_API.request(
-      "/v1/byok/usage/daily?days=" + encodeURIComponent(days),
-      { method: "GET" }
-    )
-      .then(function (d) {
-        _byokDailyCache = d;
-        renderByokUsageChart(d);
-      })
-      .catch(function () {
-        var w = $("byokUsageChart");
-        if (w) {
-          w.innerHTML =
-            "<div class='usage-empty'>" +
-            tr("趋势加载失败，请稍后重试", "Failed to load trend") +
-            "</div>";
-        }
-      });
-    return AI24X_API.request(
-      "/v1/byok/usage?days=" + encodeURIComponent(days) + "&group_by=" + encodeURIComponent(group),
-      { method: "GET" }
-    ).then(function (r) {
-      renderByokUsage(r);
-    });
-  }
-
-  var BYOK_USAGE_METRIC = "cost"; // cost | tokens | requests
-  var _byokDailyCache = null;
-
-  function renderByokUsageChart(data) {
-    var wrap = $("byokUsageChart");
-    if (!wrap) return;
-    var rows = (data && data.rows) || [];
-    if (!rows.length) {
-      wrap.innerHTML = "<div class='usage-empty'>" + tr("暂无用量数据", "No usage data") + "</div>";
-      return;
-    }
-    var metric = BYOK_USAGE_METRIC;
-    var vals = rows.map(function (r) {
-      return metric === "tokens"
-        ? Number(r.tokens) || 0
-        : metric === "requests"
-          ? Number(r.requests) || 0
-          : Number(r.cost_usd) || 0;
-    });
-    var max = Math.max.apply(null, vals.concat([0]));
-    if (max <= 0) max = 1;
-    var W = 720, H = 172, padT = 14, padB = 24, padL = 8;
-    var n = rows.length;
-    var slot = W / n;
-    var barW = Math.max(2, Math.min(18, slot * 0.62));
-    var grid = "color-mix(in srgb, var(--border, #334155) 80%, transparent)";
-    var parts = [];
-    parts.push(
-      "<svg viewBox='0 0 " + W + " " + H + "' role='img' aria-label='BYOK usage trend' xmlns='http://www.w3.org/2000/svg'>"
-    );
-    for (var g = 0; g <= 3; g++) {
-      var gy = padT + ((H - padT - padB) * g) / 3;
-      parts.push(
-        "<line x1='0' y1='" + gy + "' x2='" + W + "' y2='" + gy + "' stroke='" + grid + "' stroke-width='1'/>"
-      );
-    }
-    var maxLabel =
-      metric === "cost"
-        ? "$" + max.toFixed(max >= 1 ? 2 : 4)
-        : metric === "tokens"
-          ? fmtTokensCount(max)
-          : String(Math.round(max));
-    parts.push(
-      "<text x='" + padL + "' y='" + (padT - 2) + "' font-size='10' fill='var(--muted,#888)'>" +
-        escapeHtml(maxLabel) +
-        "</text>"
-    );
-    rows.forEach(function (r, i) {
-      var v = vals[i];
-      var bh = v > 0 ? Math.max(2, ((H - padT - padB) * v) / max) : 1;
-      var x = i * slot + (slot - barW) / 2;
-      var y = H - padB - bh;
-      var dateTxt = (r.date || "").slice(5);
-      var tip =
-        dateTxt +
-        " · $" +
-        Number(r.cost_usd || 0).toFixed(4) +
-        " · " +
-        fmtTokensCount(r.tokens || 0) +
-        " tok · " +
-        (r.requests || 0) +
-        " " +
-        tr("次", "calls");
-      parts.push(
-        "<rect x='" +
-          x +
-          "' y='" +
-          y +
-          "' width='" +
-          barW +
-          "' height='" +
-          bh +
-          "' rx='2' fill='#2563eb' opacity='0.85'>" +
-          "<title>" +
-          escapeHtml(tip) +
-          "</title></rect>"
-      );
-    });
-    var labelStep = Math.max(1, Math.ceil(n / 12));
-    rows.forEach(function (r, i) {
-      if (i % labelStep !== 0 && i !== n - 1) return;
-      var x = i * slot + slot / 2;
-      parts.push(
-        "<text x='" +
-          x +
-          "' y='" +
-          (H - 8) +
-          "' text-anchor='middle' font-size='10' fill='var(--muted,#888)'>" +
-          escapeHtml((r.date || "").slice(5)) +
-          "</text>"
-      );
-    });
-    parts.push("</svg>");
-    wrap.innerHTML = parts.join("");
-  }
-
-  function renderByokUsage(data) {
-    if (!data || !data.totals) return;
-    var t = data.totals;
-    if ($("byok-usage-req")) $("byok-usage-req").textContent = fmtInt(t.requests);
-    if ($("byok-usage-ok")) $("byok-usage-ok").textContent = fmtInt(t.success) + " / " + fmtInt(t.cached);
-    if ($("byok-usage-tokens")) $("byok-usage-tokens").textContent = fmtInt(t.tokens);
-    if ($("byok-usage-cost")) $("byok-usage-cost").textContent = "$" + Number(t.cost_usd || 0).toFixed(4);
-    if ($("byok-usage-latency")) $("byok-usage-latency").textContent = t.avg_latency_ms != null ? t.avg_latency_ms + "ms" : "--";
-    if (data.free_month && $("byok-status-free")) {
-      var fm = data.free_month;
-      if (fm.unlimited || fm.tier === "pro") {
-        $("byok-status-free").textContent = tr("Pro · 不限次", "Pro · unlimited");
-      } else {
-        $("byok-status-free").textContent =
-          fmtInt(fm.month_used_requests) + " / " + fmtInt(fm.month_limit_requests);
-      }
-      if (fm.over_cap && fm.enforce) {
-        var warn = $("byokFreeCapWarn");
-        if (!warn) {
-          var host = $("byokSubBanner") || $("byokPlansList");
-          if (host && host.parentNode) {
-            warn = document.createElement("p");
-            warn.id = "byokFreeCapWarn";
-            warn.className = "sub";
-            warn.style.color = "#b45309";
-            warn.style.margin = "8px 0 0";
-            host.parentNode.insertBefore(warn, host.nextSibling);
+        .then(function (r) { return r.json().then(function (j) { return { status: r.status, j: j }; }); })
+        .then(function (res) {
+          var j = res.j || {};
+          if (res.status === 401) { location.href = "login.html?next=" + encodeURIComponent("console.html#billing"); return; }
+          if (res.status !== 200 || j.code !== 0 || !j.data || !j.data.pay_url) {
+            msgs.forEach(function (m) { m.textContent = tr("无法发起支付：", "Unable to start checkout: ") + (j.msg || res.status); });
+            return;
           }
-        }
-        if (warn) {
-          warn.textContent = tr(
-            "本月免费 BYOK 请求已用完。请开通 Pro 继续，或下月再试。",
-            "Free BYOK allowance used up this month. Subscribe to Pro, or try again next month."
-          );
-        }
-      } else {
-        var w0 = $("byokFreeCapWarn");
-        if (w0) w0.remove();
-      }
-    }
-    var wrap = $("byokUsageList");
-    if (!wrap) return;
-    var groups = data.groups || [];
-    if (!groups.length) {
-      wrap.innerHTML =
-        '<tr><td colspan="7" class="sub">' +
-        tr("该时段暂无 BYOK 用量。", "No BYOK usage in this period.") +
-        "</td></tr>";
-      return;
-    }
-    var html = "";
-    groups.forEach(function (g) {
-      html +=
-        "<tr>" +
-        "<td class='col-note'>" + escapeHtml(g.group) + "</td>" +
-        "<td>" + fmtInt(g.requests) + "</td>" +
-        "<td>" + fmtInt(g.success) + "</td>" +
-        "<td>" + fmtInt(g.cached) + "</td>" +
-        '<td class="col-tokens">' + fmtInt(g.tokens) + "</td>" +
-        '<td class="col-amount">$' + Number(g.cost_usd || 0).toFixed(4) + "</td>" +
-        "<td>" + (g.latency_ms != null ? g.latency_ms + "ms" : "--") + "</td>" +
-        "</tr>";
-    });
-    wrap.innerHTML = html;
+          location.href = j.data.pay_url;
+        })
+        .catch(function (e) { msgs.forEach(function (m) { m.textContent = tr("无法发起支付：", "Unable to start checkout: ") + String(e); }); });
+    } catch (e) {}
   }
 
   var CONSOLE_PANELS = [
     "overview",
     "keys",
-    "byok",
     "billing",
+    "orders",
     "transactions",
     "playground",
     "invite",
@@ -3493,37 +3446,40 @@
       .trim()
       .toLowerCase();
     if (n === "token-plans" || n === "plans") return "billing";
-    if (n === "orders") return "orders";
     if (n === "usage" || n === "activity" || n === "ledger") return "transactions";
     if (n === "bills" || n === "bill" || n === "tx" || n === "transactions") return "transactions";
     if (n === "chat" || n === "try") return "playground";
+    if (n === "keys" || n === "apikey" || n === "api-keys") return "keys";
     if (n === "refer" || n === "referral") return "invite";
-    if (n === "tickets" || n === "ticket") return "support";
     if (CONSOLE_PANELS.indexOf(n) >= 0) return n;
     return "overview";
   }
 
+  function openWorkspaceUrl(hash) {
+    var h = String(hash || "").replace(/^#/, "");
+    return openApiBase() + "/console.html?from=account" + (h ? "#" + h : "");
+  }
+
+  function redirectToOpenWorkspace(hash) {
+    var url = openWorkspaceUrl(hash || "overview");
+    try {
+      var key = "__ai24xOpenRedirect_" + String(hash || "overview");
+      if (!window[key]) {
+        window[key] = true;
+        location.href = url;
+      }
+    } catch (e) {
+      try {
+        location.href = url;
+      } catch (e2) {}
+    }
+  }
+
   function showConsolePanel(name, opts) {
     var id = normalizeConsolePanel(name);
-    // Hub-owned surfaces: leave Gateway workspace
-    if (id === "transactions") {
-      redirectTransactionsToHub();
-      return;
-    }
-    if (id === "orders") {
-      redirectToHub("orders");
-      return;
-    }
-    if (id === "invite") {
-      redirectToHub("invite");
-      return;
-    }
-    if (id === "account") {
-      redirectToHub("account");
-      return;
-    }
-    if (id === "support") {
-      redirectToHub("support");
+    // Gateway-owned surfaces live on open.ai24x.com
+    if (id === "keys" || id === "playground") {
+      redirectToOpenWorkspace(id);
       return;
     }
     var pushHash = !opts || opts.pushHash !== false;
@@ -3539,12 +3495,29 @@
         btn.getAttribute("data-console-panel") === id
       );
     });
-    if (id === "byok") {
+    if (id === "invite") {
+      loadInvitees().catch(function () {});
+    }
+    if (id === "transactions") {
       try {
-        loadByokAll();
+        bindTransactionsControls();
+        // 每次进入流水页都重拉，避免只绑一次事件导致列表停在旧数据
+        loadTransactionsPage(0);
+        loadUsageStats();
       } catch (e) {}
     }
-    // 与 www 同一钱包真源：进 overview/billing 必重拉，避免充值后软导航仍显示旧余额
+    if (id === "support") {
+      try {
+        loadSupportTickets();
+      } catch (e) {}
+    }
+    if (id === "billing") {
+      var plist = $("productsList");
+      if (plist && !plist.children.length) {
+        fetchBillingCatalog().catch(function () {});
+      }
+    }
+    // 充值后切回 overview / billing：必须重拉余额（真源已入账，软导航不能停在旧 UI）
     if (id === "overview" || id === "billing") {
       try {
         if (typeof refreshAll === "function") refreshAll();
@@ -3589,71 +3562,6 @@
         refreshAll();
       });
     }
-    var btnByokSave = $("btn-byok-save");
-    if (btnByokSave) btnByokSave.addEventListener("click", byokSaveKey);
-    var btnByokTest = $("btn-byok-test");
-    if (btnByokTest) {
-      btnByokTest.addEventListener("click", function () {
-        byokTestKey(null);
-      });
-    }
-    var selByokProvider = $("byok-provider");
-    if (selByokProvider) {
-      selByokProvider.addEventListener("change", byokSyncProviderHint);
-      byokApplyOptgroupI18n();
-      byokSyncProviderHint();
-    }
-    var btnByokRefreshKeys = $("btn-byok-refresh-keys");
-    if (btnByokRefreshKeys) {
-      btnByokRefreshKeys.addEventListener("click", function () {
-        loadByokKeys().catch(function () {});
-      });
-    }
-    var btnByokToggleConfirm = $("btn-byok-toggle-confirm");
-    if (btnByokToggleConfirm) {
-      btnByokToggleConfirm.addEventListener("click", function () {
-        var pending = _byokTogglePending;
-        if (!pending || !pending.id || !pending.status) return;
-        btnByokToggleConfirm.disabled = true;
-        applyByokKeyStatus(pending.id, pending.status)
-          .then(function (ok) {
-            if (ok) {
-              _byokTogglePending = null;
-              closeUiModal("modal-byok-toggle");
-            }
-          })
-          .finally(function () {
-            btnByokToggleConfirm.disabled = false;
-          });
-      });
-    }
-    var btnByokRefreshUsage = $("btn-byok-refresh-usage");
-    if (btnByokRefreshUsage) {
-      btnByokRefreshUsage.addEventListener("click", function () {
-        loadByokUsage().catch(function () {});
-      });
-    }
-    var selByokDays = $("byok-usage-days");
-    if (selByokDays) {
-      selByokDays.addEventListener("change", function () {
-        loadByokUsage().catch(function () {});
-      });
-    }
-    var selByokGroup = $("byok-usage-group");
-    if (selByokGroup) {
-      selByokGroup.addEventListener("change", function () {
-        loadByokUsage().catch(function () {});
-      });
-    }
-    document.querySelectorAll("[data-byok-metric]").forEach(function (b) {
-      b.addEventListener("click", function () {
-        BYOK_USAGE_METRIC = b.getAttribute("data-byok-metric") || "cost";
-        document.querySelectorAll("[data-byok-metric]").forEach(function (x) {
-          x.classList.toggle("is-active", x.getAttribute("data-byok-metric") === BYOK_USAGE_METRIC);
-        });
-        if (_byokDailyCache) renderByokUsageChart(_byokDailyCache);
-      });
-    });
     try {
       bindSupportPanel();
     } catch (e) {}
@@ -3703,8 +3611,37 @@
         if (el.getAttribute("data-action") === "create-key") openCreateKeyModal();
       });
     });
+    document.querySelectorAll(".go-markets-plans").forEach(function (el) {
+      el.addEventListener("click", goMarketsPlans);
+    });
+    var linkOrders = $("linkBillingOrders");
+    if (linkOrders) {
+      linkOrders.addEventListener("click", function (ev) {
+        ev.preventDefault();
+        showConsolePanel("orders");
+      });
+    }
     window.addEventListener("hashchange", function () {
       showConsolePanel(location.hash || "overview", { pushHash: false });
+    });
+    // 从其它页签/Gateway 回来时，若正停在流水页则自动重拉（无需 F5）
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState !== "visible") return;
+      try {
+        if (normalizeConsolePanel(location.hash || "") === "transactions") {
+          loadTransactionsPage(txPage || 0);
+          loadUsageStats();
+        }
+      } catch (eVis) {}
+    });
+    window.addEventListener("pageshow", function (ev) {
+      if (!ev || !ev.persisted) return;
+      try {
+        if (normalizeConsolePanel(location.hash || "") === "transactions") {
+          loadTransactionsPage(0);
+          loadUsageStats();
+        }
+      } catch (ePs) {}
     });
     showConsolePanel(location.hash || "overview", { pushHash: true });
     var btnConfirmKey = $("btn-create-key-confirm");
@@ -3920,21 +3857,7 @@
       });
     }
     function goTryShared() {
-      var sel = $("chat-model");
-      if (sel) sel.value = "shared";
-      var howto = $("howto-card");
-      if (howto) howto.style.display = "none";
-      showConsolePanel("playground");
-      showMsg(
-        msgBox("playgroundMsg"),
-        tr(
-          "已选 shared。点发送即可用今日免费额度（登录会话，不必勾 API Key）。",
-          "model=shared selected. Tap Send to use today’s free pool (login session — no API key needed)."
-        ),
-        true
-      );
-      var prompt = $("chat-prompt");
-      if (prompt && !(prompt.value || "").trim()) prompt.value = "Hello";
+      redirectToOpenWorkspace("playground");
     }
     var btnShared = $("btn-continue-shared");
     if (btnShared) btnShared.addEventListener("click", goTryShared);
@@ -4034,141 +3957,15 @@
     }
   }
 
-  /** 本机默认本地端口；ai24x_local_products=0 切正式站 */
-  function preferLocalProducts() {
-    try {
-      var h = String(location.hostname || "").toLowerCase();
-      if (h !== "127.0.0.1" && h !== "localhost") return false;
-      var flag = "";
-      try {
-        flag = String(localStorage.getItem("ai24x_local_products") || "").trim();
-      } catch (e) {}
-      return flag !== "0";
-    } catch (e) {
-      return false;
-    }
-  }
-
-  function marketsBase() {
-    try {
-      var h = String(location.hostname || "").toLowerCase();
-      if (h === "127.0.0.1" || h === "localhost") {
-        if (preferLocalProducts()) return "http://127.0.0.1:18012";
-      }
-    } catch (e) {}
-    return "https://markets.ai24x.com";
-  }
-
-  function wwwConsoleBase() {
-    try {
-      var h = String(location.hostname || "").toLowerCase();
-      if (h === "127.0.0.1" || h === "localhost") {
-        if (preferLocalProducts()) return "http://127.0.0.1:8000/console.html";
-      }
-    } catch (e) {}
-    return "https://www.ai24x.com/console.html";
-  }
-
-  function hubUrl(hash) {
-    var h = String(hash || "").replace(/^#/, "");
-    return wwwConsoleBase() + "?from=gateway" + (h ? "#" + h : "");
-  }
-
-  function hubTransactionsUrl() {
-    return hubUrl("transactions");
-  }
-
-  function redirectToHub(hash) {
-    var url = hubUrl(hash || "overview");
-    try {
-      var key = "__ai24xHubRedirect_" + String(hash || "overview");
-      if (!window[key]) {
-        window[key] = true;
-        location.href = url;
-      }
-    } catch (e) {
-      try {
-        location.href = url;
-      } catch (e2) {}
-    }
-  }
-
-  function redirectTransactionsToHub() {
-    var url = hubTransactionsUrl();
-    var cta = $("tx-hub-cta");
-    if (cta) cta.setAttribute("href", url);
-    redirectToHub("transactions");
-  }
-
-  /** 跨站回跳条：从 www 账户中心 / markets 跳过来时显示「返回」入口 */
-  function mountBackBar() {
-    var box = $("back-bar");
-    if (!box) return;
-    var from = "";
-    try {
-      from = String(new URLSearchParams(location.search).get("from") || "").toLowerCase();
-    } catch (e) {}
-    /* 从 Hub 点进 Gateway 工作台：顶栏已有「账户中心」，不再重复回跳条 */
-    if (from === "account") return;
-    var map = {
-      account: { label: tr("返回账户中心", "Back to Account"), href: wwwConsoleBase() },
-      markets: { label: tr("返回 AI Markets", "Back to AI Markets"), href: marketsBase() + "/" },
-    };
-    var c = map[from];
-    if (!c) return;
-    box.innerHTML =
-      '<a class="back-bar-link" href="' +
-      c.href +
-      '" style="display:inline-flex;align-items:center;gap:6px;font-size:.85rem;font-weight:600;color:var(--accent,#2563eb);text-decoration:none;padding:9px 4px 1px">' +
-      "\u2190 " +
-      c.label +
-      "</a>";
-  }
-
   document.addEventListener("DOMContentLoaded", function () {
     if (!requireLogin()) return;
     try {
       mountBackBar();
     } catch (e) {}
     try {
-      var hub = document.querySelector(".billing-hub-link a");
-      if (hub) {
-        var h = String(location.hostname || "").toLowerCase();
-        if (h === "127.0.0.1" || h === "localhost") {
-          hub.href = "http://127.0.0.1:8000/console.html?from=gateway#billing";
-        }
-      }
-      var creditsCta = document.getElementById("creditsTopupCta");
-      if (creditsCta) {
-        var ch = String(location.hostname || "").toLowerCase();
-        if (ch === "127.0.0.1" || ch === "localhost") {
-          creditsCta.href = "http://127.0.0.1:8000/console.html?from=gateway#billing";
-        }
-      }
-      var creditsOvCta = document.getElementById("creditsOvCta");
-      if (creditsOvCta) {
-        var chOv = String(location.hostname || "").toLowerCase();
-        if (chOv === "127.0.0.1" || chOv === "localhost") {
-          creditsOvCta.href = "http://127.0.0.1:8000/console.html?from=gateway#billing";
-        }
-      }
-      var howtoBill = document.getElementById("howto-cta-billing");
-      if (howtoBill && howtoBill.tagName === "A") {
-        var chBill = String(location.hostname || "").toLowerCase();
-        if (chBill === "127.0.0.1" || chBill === "localhost") {
-          howtoBill.href = "http://127.0.0.1:8000/console.html?from=gateway#billing";
-        }
-      }
-      var txHub = hubTransactionsUrl();
-      document.querySelectorAll('a[href*="#transactions"]').forEach(function (a) {
-        try {
-          var h = String(location.hostname || "").toLowerCase();
-          if (h === "127.0.0.1" || h === "localhost") a.href = txHub;
-          else if (a.id === "tx-hub-cta" || (a.classList && a.classList.contains("console-nav-item"))) a.href = txHub;
-        } catch (e2) {}
-      });
-    } catch (eHub) {}
-    $("api-base").value = AI24X_API.getBase();
+      bindOrdersFilter();
+    } catch (e) {}
+    if ($("api-base")) $("api-base").value = AI24X_API.getBase();
     if (AI24X_API.isPublicAi24xHost && AI24X_API.isPublicAi24xHost()) {
       var baseEl = $("api-base");
       if (baseEl) {
@@ -4178,11 +3975,16 @@
       var hint = $("api-base-locked-hint");
       if (hint) hint.hidden = false;
     }
-    $("api-key").value = AI24X_API.getApiKey();
-    bind();
+    if ($("api-key")) $("api-key").value = AI24X_API.getApiKey();
     try {
-      bindPlanTabs();
-    } catch (e) {}
+      var openKeys = openWorkspaceUrl("keys");
+      var openPlay = openWorkspaceUrl("playground");
+      var kcta = $("keys-open-cta");
+      if (kcta) kcta.href = openKeys;
+      var pcta = $("playground-open-cta");
+      if (pcta) pcta.href = openPlay;
+    } catch (eOpen) {}
+    bind();
     refreshAll();
     // PayPal return：?paypal=1&out_trade_no=T…
     try {
@@ -4193,7 +3995,8 @@
           clearInterval(_fulfillPollTimer);
           _fulfillPollTimer = null;
         }
-        showMsg(msgBox(), tr("正在确认 PayPal 支付…", "Confirming PayPal…"), true);
+        showConsolePanel("orders", { pushHash: true });
+        showMsg(ordersMsgBox(), tr("正在确认 PayPal 支付…", "Confirming PayPal…"), true);
         function tryPaypalCapture(attempt) {
           return AI24X_API.billingQueryFulfill(otn, "paypal").catch(function (e) {
             var msg = (e && e.message) || "";
@@ -4214,10 +4017,10 @@
         tryPaypalCapture(1)
           .then(function (r) {
             showMsg(
-              msgBox(),
+              ordersMsgBox(),
               r && r.ok
-                ? AI24X_API.planFulfillMessage(_lastPayPlanId, null)
-                : tr("PayPal 尚未完成，请到账户中心「我的订单」确认到账", "PayPal pending — confirm under Account Hub → Orders"),
+                ? AI24X_API.planFulfillMessage(_lastPayPlanId, null, orderProductOf(_lastPayPlanId, r))
+                : tr("PayPal 尚未完成，可在「我的订单」点确认到账", "PayPal pending — tap Confirm under My orders"),
               !!(r && r.ok)
             );
             return refreshAll();
@@ -4225,9 +4028,9 @@
           .catch(function (e) {
             var msg = (e && e.message) || "";
             showMsg(
-              msgBox(),
+              ordersMsgBox(),
               (msg || tr("PayPal 确认失败", "PayPal confirm failed")) +
-                tr(" — 请到账户中心「我的订单」点「确认到账」", " — confirm under Account Hub → Orders"),
+                tr(" — 请在「我的订单」点「确认到账」", " — tap Confirm under My orders"),
               false
             );
           });
@@ -4237,16 +4040,17 @@
           clearInterval(_fulfillPollTimer);
           _fulfillPollTimer = null;
         }
-        showMsg(msgBox(), tr("正在确认 Creem 支付…", "Confirming Creem…"), true);
+        showConsolePanel("orders", { pushHash: true });
+        showMsg(ordersMsgBox(), tr("正在确认 Creem 支付…", "Confirming Creem…"), true);
         AI24X_API.billingQueryFulfill(otn, "creem")
           .then(function (r) {
             showMsg(
-              msgBox(),
+              ordersMsgBox(),
               r && r.ok
-                ? AI24X_API.planFulfillMessage(_lastPayPlanId, null)
+                ? AI24X_API.planFulfillMessage(_lastPayPlanId, null, orderProductOf(_lastPayPlanId, r))
                 : tr(
-                    "Creem 尚未完成，请到账户中心「我的订单」确认到账",
-                    "Creem pending — confirm under Account Hub → Orders"
+                    "Creem 尚未完成，可在「我的订单」点确认到账",
+                    "Creem pending — tap Confirm under My orders"
                   ),
               !!(r && r.ok)
             );
@@ -4255,9 +4059,9 @@
           .catch(function (e) {
             var msg = (e && e.message) || "";
             showMsg(
-              msgBox(),
+              ordersMsgBox(),
               (msg || tr("Creem 确认失败", "Creem confirm failed")) +
-                tr(" — 请到账户中心「我的订单」点「确认到账」。", " — confirm under Account Hub → Orders"),
+                tr(" — 请在「我的订单」点「确认到账」。", " — tap Confirm under My orders"),
               false
             );
           });
@@ -4267,16 +4071,17 @@
           clearInterval(_fulfillPollTimer);
           _fulfillPollTimer = null;
         }
-        showMsg(msgBox(), tr("正在确认支付…", "Confirming payment…"), true);
+        showConsolePanel("orders", { pushHash: true });
+        showMsg(ordersMsgBox(), tr("正在确认支付…", "Confirming payment…"), true);
         AI24X_API.billingQueryFulfill(otn, "dodo")
           .then(function (r) {
             showMsg(
-              msgBox(),
+              ordersMsgBox(),
               r && r.ok
-                ? AI24X_API.planFulfillMessage(_lastPayPlanId, null)
+                ? AI24X_API.planFulfillMessage(_lastPayPlanId, null, orderProductOf(_lastPayPlanId, r))
                 : tr(
-                    "支付尚未完成，请到账户中心「我的订单」确认到账",
-                    "Payment pending — confirm under Account Hub → Orders"
+                    "支付尚未完成，可在「我的订单」点确认到账",
+                    "Payment pending — tap Confirm under My orders"
                   ),
               !!(r && r.ok)
             );
@@ -4285,9 +4090,9 @@
           .catch(function (e) {
             var msg = (e && e.message) || "";
             showMsg(
-              msgBox(),
+              ordersMsgBox(),
               (msg || tr("支付确认失败", "Payment confirm failed")) +
-                tr(" — 请到账户中心「我的订单」点「确认到账」。", " — confirm under Account Hub → Orders"),
+                tr(" — 请在「我的订单」点「确认到账」。", " — tap Confirm under My orders"),
               false
             );
           });
