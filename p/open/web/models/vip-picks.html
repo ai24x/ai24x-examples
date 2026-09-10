@@ -58,8 +58,8 @@
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:image" content="https://www.ai24x.com/img/og-share.png" />
-  <link rel="stylesheet" href="../css/base.css?v=20260831a" />
-  <link id="theme-css" rel="stylesheet" href="../css/themes/theme-blue.css?v=20260812e" data-base="../css/themes/" />
+  <link rel="stylesheet" href="../css/base.css?v=20260829c" />
+  <link id="theme-css" rel="stylesheet" href="../css/themes/theme-dark.css?v=20260812e" data-base="../css/themes/" />
   <style>
     .model-table-wrap { overflow: auto; margin: 10px 0 22px; border: 1px solid var(--border, #d8e4ef); border-radius: 10px; }
     .model-table-wrap table { margin: 0; width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -92,8 +92,8 @@
       background: rgba(37, 99, 235, 0.08);
       white-space: nowrap;
     }
-    .model-table-wrap td.est-cell { white-space: normal; min-width: 150px; }
-    .model-table-wrap th.col-est { white-space: nowrap; min-width: 150px; }
+    .model-table-wrap td.est-cell { white-space: nowrap; min-width: 190px; }
+    .model-table-wrap th.col-est { white-space: nowrap; min-width: 190px; }
     .pill-vip {
       display: inline-block;
       font-size: 11px;
@@ -117,13 +117,13 @@
     .tool-warn { color: #b45309; font-weight: 700; }
   </style>
 </head>
-<body data-page="models" class="theme-blue">
+<body data-page="models" class="theme-dark">
   <header class="site-header" id="site-header"></header>
   <main class="page-main">
     <section class="hero hero-surface section-tight">
       <div class="container">
         <h1 data-i18n="page.models.vip.h1">点名模</h1>
-        <p class="lead" data-i18n="page.models.vip.lead">下方中国名模适合点名调用；国际旗舰为附属。倍率越高，余额消耗越快。优先用 flash（$0.35/百万起）；flash / pro 精选 DeepSeek V4 Flash、V4 Pro、小米 MiMo 等高性价比模型。</p>
+        <p class="lead" data-i18n="page.models.vip.lead">下方中国名模适合点名调用；国际旗舰为附属。倍率越高，余额消耗越快。优先用 flash（$0.35/百万起）；DeepSeek 点名为 V4.1 Flash（峰谷价），V4 Pro 自 9/14 起官方并轨 Flash 计费。</p>
         <p class="sub" style="margin-top:10px;" data-i18n="page.models.vip.dualRate">点名模按输入/输出双费率计费（表格列出 in/out 每百万单价）；品牌档 flash/pro/auto 仍单费率。输出重负载（coding / agent / 长文）请先核算输出价。</p>
         <div id="peakStrip" style="display:none;margin-top:12px;padding:10px 14px;border-radius:10px;border:1px solid rgba(37,99,235,.35);background:rgba(37,99,235,.06);font-size:13px;line-height:1.6;">
           <span data-i18n="page.models.vip.peakTip">DeepSeek 点名价 8/17 起随官方峰谷动态：高峰时段（北京 9:00-12:00 / 14:00-18:00）输出费率上浮，夜间谷时更省。当前时段：</span><strong id="peakNow">—</strong>
@@ -134,7 +134,7 @@
       </div>
     </section>
     <section class="section section-tight" id="valuePackBanner" style="display:none;">
-      <div class="container" style="max-width:960px">
+      <div class="container">
         <div style="border:1px solid rgba(245,158,11,.55);border-radius:12px;background:linear-gradient(135deg,rgba(245,158,11,.10),rgba(37,99,235,.06));padding:16px 18px;">
           <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;">
             <div style="min-width:240px;flex:1;">
@@ -149,7 +149,7 @@
       </div>
     </section>
     <section class="section">
-      <div class="container" style="max-width:960px">
+      <div class="container">
         <h2 data-i18n="page.models.vip.how">怎么用</h2>
         <ol>
           <li data-i18n="page.models.vip.s1">注册并创建 API Key</li>
@@ -217,14 +217,14 @@ Header: X-API-Key: YOUR_API_KEY
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="../config/locales.js?v=20260906c"></script>
-  <script src="../js/api.js?v=20260905a"></script>
+  <script src="../config/locales.js?v=20260910a"></script>
+  <script src="../js/api.js?v=20260829n"></script>
   <script src="../js/utm.js?v=20260802a"></script>
-<script src="../js/i18n.js?v=20260812g"></script>
+<script src="../js/i18n.js?v=20260826m"></script>
   <script src="../js/ai24x-chrome.js?v=20260829n"></script>
-  <script src="../js/shell.js?v=20260906c"></script>
-  <script src="../js/app.js?v=20260808b"></script>
-  <script src="../js/support-widget.js?v=20260817z"></script>
+  <script src="../js/shell.js?v=20260829n"></script>
+  <script src="../js/app.js?v=20260818b"></script>
+  <script src="../js/support-widget.js?v=20260817b"></script>
   <script>
     (function () {
       function esc(s) {
@@ -266,13 +266,14 @@ Header: X-API-Key: YOUR_API_KEY
         "vip-qwen122b": "ok", "vip-glm": "ok", "vip-gpt5": "ok", "vip-gpt5-mini": "ok",
         "vip-gpt54": "ok", "vip-gpt4o": "ok", "vip-gpt4o-mini": "ok", "vip-claude-sonnet": "ok",
         "vip-claude-haiku": "ok", "vip-claude-opus": "ok", "vip-gemini-pro": "ok",
-        "vip-gemini-flash": "ok", "vip-gpt56-terra": "ok", "vip-gpt56-luna": "ok",
+        "vip-gemini-flash": "ok", "vip-gpt6-astra": "ok", "vip-gpt56-terra": "ok", "vip-gpt56-luna": "ok",
+        "vip-gpt56-sol": "ok",
         "vip-grok": "ok", "vip-llama4": "ok"
       };
       function toolsCell(id, isZhNow) {
         var s = TOOLS_SUPPORT[id] || "n/a";
         if (s === "ok") return "<td class='mono tool-ok' title='" + (isZhNow ? "2026-08-13 实测：工具调用正常" : "2026-08-13 probe: tool calling OK") + "'>✅</td>";
-        if (s === "warn") return "<td class='mono tool-warn' title='" + (isZhNow ? "实测 200 但未返回 tool_calls，疑似模型服务问题" : "200 but no tool_calls; likely provider issue") + "'>⚠️</td>";
+        if (s === "warn") return "<td class='mono tool-warn' title='" + (isZhNow ? "实测 200 但未返回 tool_calls，疑似上游问题" : "200 but no tool_calls; likely upstream issue") + "'>⚠️</td>";
         return "<td class='mono'>—</td>";
       }
       function cnBadge(p, isZhNow) {
@@ -364,12 +365,14 @@ Header: X-API-Key: YOUR_API_KEY
               ? "🌙 低谷（费率更省）"
               : "🌙 Off-peak (lower rate)";
       }
-      // 官方直连价对照（$ / 1M tokens，in/out；OpenAI 官网价；2026-08-06 校验）
+      // 官方直连价对照（$ / 1M tokens，in/out；OpenAI 官网价；2026-09-10 校验含 Astra）
       var OFFICIAL_PRICE = {
+        "vip-gpt6-astra": [10.0, 50.0],
         "vip-gpt54": [2.5, 15.0],
         "vip-gpt5": [1.25, 10.0],
         "vip-gpt56-terra": [2.0, 12.0],
         "vip-gpt56-luna": [0.2, 1.2],
+        "vip-gpt56-sol": [2.0, 10.0],
         "vip-gpt5-mini": [0.25, 2.0],
         "vip-gpt4o": [2.5, 10.0],
         "vip-gpt4o-mini": [0.15, 0.6]
@@ -400,8 +403,8 @@ Header: X-API-Key: YOUR_API_KEY
         if (!el) return;
         var zh = isZh();
         el.textContent = zh
-          ? "为什么点名模价格看似高于官方直连？官方价不含渠道与支付合规成本，且需外币卡 + 海外账号。AI24X 聚合免外币卡、一个 key 全模型，输出端还有优惠（GPT-5.6 Terra 输出比官方省 39%）。最终扣费以 console 账单为准。"
-          : "Why do named picks cost more than official? Official pricing excludes channel & payment compliance, and needs a foreign card + overseas account. AI24X routes every model through one gateway with no foreign card needed - and our output side can beat OpenAI (GPT-5.6 Terra output -39%). Final billing: see console.";
+          ? "为什么点名模价格看似高于官方直连？官方价不含渠道与支付合规成本，且需外币卡 + 海外账号。AI24X 聚合免外币卡、一个 key 全模型；旗舰如 GPT-6 Astra / GPT-5.6 系列输出端常有渠道优惠。最终扣费以 console 账单为准。"
+          : "Why do named picks cost more than official? Official pricing excludes channel & payment compliance, and needs a foreign card + overseas account. AI24X bundles every model under one key with no foreign card needed — flagships like GPT-6 Astra / GPT-5.6 often beat list on the output side. Final billing: see console.";
       }
 
       function officialBest(picks) {
@@ -433,7 +436,7 @@ Header: X-API-Key: YOUR_API_KEY
         parts.push(
           zh
             ? "限时特惠超值包 ≈ 官方 1/2 价、一个 key 聚合全模型、免外币卡"
-            : "Limited-time Value Pack ≈ half of official price, PayPal-friendly, no foreign card needed"
+            : "Limited-time Value Pack ≈ half of official, all models under one key, no foreign card"
         );
         el.textContent = "⚡ " + parts.join(" ｜ ");
       }

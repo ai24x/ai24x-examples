@@ -85,21 +85,21 @@
           <li><strong>Off-peak hours</strong>: everything else (including all of Saturday and Sunday)</li>
         </ul>
         <p>Off-peak rates are <strong>half</strong> of peak rates. That means your bill depends on <em>when</em> you call, not just <em>what</em> you call.</p>
-        <p>Official rates (captured 2026-08-31 from https://api-docs.deepseek.com/quick_start/pricing; model versions DeepSeek-V4-Flash-0731 and DeepSeek-V4-Pro-0813):</p>
+        <p>Official rates (captured 2026-09-10 from https://api-docs.deepseek.com/quick_start/pricing; preferred model <code>deepseek-flash</code> → DeepSeek-V4.1-Flash; Pro still listed as DeepSeek-V4-Pro-0813):</p>
         <table>
           <thead>
             <tr><th>Model</th><th>Input (cache miss) off-peak</th><th>Input (cache miss) peak</th><th>Output off-peak</th><th>Output peak</th></tr>
           </thead>
           <tbody>
-            <tr><td><code>deepseek-v4-flash</code></td><td>$0.22 / 1M</td><td>$0.44 / 1M</td><td>$0.66 / 1M</td><td>$1.32 / 1M</td></tr>
-            <tr><td><code>deepseek-v4-pro</code></td><td>$0.66 / 1M</td><td>$1.32 / 1M</td><td>$1.98 / 1M</td><td>$3.96 / 1M</td></tr>
+            <tr><td><code>deepseek-flash</code> (V4.1)</td><td>$0.15 / 1M</td><td>$0.30 / 1M</td><td>$0.60 / 1M</td><td>$1.20 / 1M</td></tr>
+            <tr><td><code>deepseek-v4-pro</code> *</td><td>$0.66 / 1M</td><td>$1.32 / 1M</td><td>$1.98 / 1M</td><td>$3.96 / 1M</td></tr>
           </tbody>
         </table>
-        <p>Cache hits are dramatically cheaper (e.g., Flash input with cache hit: $0.007 off-peak / $0.014 peak per 1M), and both models support 1M-token context with tool calls, JSON output, and the Responses API.</p>
+        <p>Cache hits are dramatically cheaper (Flash input with cache hit: $0.003 off-peak / $0.006 peak per 1M). Both list 1M context, up to 384K max output, tool calls, JSON, and the Responses API. Flash also supports vision.</p>
         <p>Two honest notes:</p>
         <ol>
-          <li><strong>DeepSeek adjusted pricing in mid-August 2026</strong> (official announcement around 8-13, per their docs/changelog). The table above reflects the current official page; if you read older blog posts with different numbers, trust the official page.</li>
-          <li><strong>The peak/off-peak split is a real planning factor.</strong> If you run batch or cron workloads, shifting them to off-peak UTC hours can roughly halve the input/output rate on the official platform.</li>
+          <li><strong>V4.1 Flash is cheaper than the mid-August V4 Flash sheet</strong> ($0.22/$0.66 → $0.15/$0.60 off-peak). Legacy <code>deepseek-v4-flash</code> still works but is served as V4.1 Flash.</li>
+          <li><strong>From 12:00 Beijing time on 2026-09-14</strong>, official docs say <code>deepseek-v4-pro</code> requests are routed to V4.1 Flash and billed at Flash rates until V4.1 Pro ships. Peak windows remain UTC Mon–Fri 01:00–04:00 &amp; 06:00–10:00.</li>
         </ol>
 
         <h2 id="sec-china-signup">2. The problem for international users: China-only signup</h2>
@@ -260,7 +260,7 @@ wire_api = "chat"</code></pre>
     </section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>
-  <script src="../config/locales.js?v=20260831b"></script>
+  <script src="../config/locales.js?v=20260910a"></script>
   <script src="../js/api.js?v=20260829n"></script>
   <script src="../js/utm.js?v=20260802a"></script>
   <script src="../js/i18n.js?v=20260826m"></script>

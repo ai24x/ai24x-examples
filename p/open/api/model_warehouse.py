@@ -54,15 +54,16 @@ def _env_flag(name: str, default: bool = True) -> bool:
 CATALOG: list[dict[str, Any]] = [
     {
         "id": "ds-v4-flash",
-        "title": "DeepSeek V4 Flash",
+        "title": "DeepSeek V4.1 Flash",
         "brand_tiers": ["auto", "flash"],
         "layer": "L1",
         "role": "default_flash",
         "priority": 1,
         "openrouter_id": "deepseek/deepseek-v4-flash",
-        "direct_id": "deepseek-v4-flash",
-        "cost_in": 0.14,
-        "cost_out": 0.28,
+        "direct_id": "deepseek-flash",
+        # 2026-09-10 官网：闲时 $0.15/$0.60（高峰双倍）；默认档仍优先 MiMo，此行作 DS 口径/兜底
+        "cost_in": 0.15,
+        "cost_out": 0.60,
         "quality": "高性价比默认",
         "access": "live",  # live | ready | planned
         "failover_to": ["silicon-qwen", "or-auto"],
@@ -76,8 +77,9 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 1,
         "openrouter_id": "deepseek/deepseek-v4-pro",
         "direct_id": "deepseek-v4-pro",
-        "cost_in": 0.435,
-        "cost_out": 0.87,
+        # 官网表仍列 Pro 价；9/14 12:00 起官方将并轨 Flash（见 vip-ds-pro / hike）
+        "cost_in": 0.66,
+        "cost_out": 1.98,
         "quality": "推理加强",
         "access": "live",
         "failover_to": ["ds-v4-flash"],
@@ -184,34 +186,35 @@ CATALOG: list[dict[str, Any]] = [
     # —— VIP 自选：中国名模（按国际知名度排序：Kimi → DeepSeek → Qwen → GLM → MiniMax → MiMo）——
     {
         "id": "vip-ds-flash",
-        "title": "DeepSeek V4 Flash",
+        "title": "DeepSeek V4.1 Flash",
+        "title_en": "DeepSeek V4.1 Flash",
         "brand_tiers": ["vip_pick"],
         "layer": "VIP",
         "role": "vip_pick",
         "priority": 2,
         "openrouter_id": "deepseek/deepseek-v4-flash",
-        "direct_id": "deepseek-v4-flash",
-        # 官方直连优先；硅基仅作官方/OR 失败后的同族兜底
+        "direct_id": "deepseek-flash",
+        # 官方直连优先；聚合链 OR/TL/RQ 作兜底（管理台可一键切最省/最稳）
         "siliconflow_id": "deepseek-ai/DeepSeek-V4-Flash",
-    "cost_in": 0.14,
-    "cost_out": 0.28,
-    # 2026-08-14: DS 官方 8/17 涨价（输出 ¥2→¥4.5 闲时/¥9 高峰）
-    # → 点名价上调 in2/out4（$0.70/$1.40），闲时 1:4 毛利约 56%
-    "billing_mult": 4,
-    "in_mult": 2,
-    "out_mult": 4,
-    # 2026-08-15 峰谷落地（雷总拍板）：峰时 flash out 4→6（$2.10，峰 GM 40%），in 不变
-    "peak_in_mult": 2,
-    "peak_out_mult": 6,
-    "quality": "点名专属 · 全程同模型不降级",
-    "quality_en": "Named pick · same-model failover",
-    "access": "ready",
-    "modalities": ["text"],
-    "failover_to": ["ds-v4-flash"],
+        "channels": ["openrouter", "tokenlab", "requesty"],
+        # 2026-09-10 官网 V4.1 Flash 闲时 $0.15/$0.60（高峰双倍）
+        "cost_in": 0.15,
+        "cost_out": 0.60,
+        "billing_mult": 3,
+        "in_mult": 1,   # ceil(0.15/0.35*1.8)=1 → ~$0.35
+        "out_mult": 3,  # ceil(0.60/0.35*1.2)=3 → ~$1.05
+        "peak_in_mult": 2,   # 峰成本 $0.30 → ~$0.70
+        "peak_out_mult": 6,  # 峰成本 $1.20 → ~$2.10
+        "quality": "点名 · V4.1 Flash · 官方峰谷价",
+        "quality_en": "Named · V4.1 Flash · peak/off-peak",
+        "access": "ready",
+        "modalities": ["text", "image"],
+        "failover_to": ["ds-v4-flash", "vip-ds-pro"],
     },
     {
         "id": "vip-ds-pro",
         "title": "DeepSeek V4 Pro",
+        "title_en": "DeepSeek V4 Pro",
         "brand_tiers": ["vip_pick"],
         "layer": "VIP",
         "role": "vip_pick",
@@ -219,21 +222,20 @@ CATALOG: list[dict[str, Any]] = [
         "openrouter_id": "deepseek/deepseek-v4-pro",
         "direct_id": "deepseek-v4-pro",
         "siliconflow_id": "deepseek-ai/DeepSeek-V4-Pro",
-    "cost_in": 0.435,
-    "cost_out": 0.87,
-    # 2026-08-14: DS 官方 8/17 涨价（输出 ¥6→¥13.5 闲时/¥27 高峰）
-    # → 点名价上调 in6/out12（$2.10/$4.20），闲时 1:4 毛利约 56%
-    "billing_mult": 12,
-    "in_mult": 6,
-    "out_mult": 12,
-    # 2026-08-15 峰谷落地（雷总拍板）：峰时 pro out 12→16（$5.60，峰 GM 33%），in 不变
-    "peak_in_mult": 6,
-    "peak_out_mult": 16,
-    "quality": "更强推理",
-    "quality_en": "Stronger reasoning",
-    "access": "ready",
-    "modalities": ["text"],
-    "failover_to": ["ds-v4-pro"],
+        "channels": ["openrouter", "tokenlab", "requesty"],
+        # 官网现行 Pro 闲时 $0.66/$1.98；9/14 12:00 起官方并轨 Flash 计费（hike 覆盖）
+        "cost_in": 0.66,
+        "cost_out": 1.98,
+        "billing_mult": 12,
+        "in_mult": 6,   # ~$2.10
+        "out_mult": 12,  # ~$4.20
+        "peak_in_mult": 6,
+        "peak_out_mult": 16,
+        "quality": "更强推理 · 9/14 起官方并轨 Flash 价",
+        "quality_en": "Stronger reasoning · Flash price from Sep 14",
+        "access": "ready",
+        "modalities": ["text"],
+        "failover_to": ["vip-ds-flash", "ds-v4-flash"],
     },
     {
         "id": "vip-kimi",
@@ -292,7 +294,7 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 4,
         "openrouter_id": "xiaomi/mimo-v2.5-pro",
         "direct_id": None,
-        "siliconflow_id": None,  # 硅基目录暂无稳定同款，走 OR
+        "siliconflow_id": None,  # 硅基目录暂无同款；2026-08-17 起主通道=官方直连（model_router A2）
         "cost_in": 0.435,
         "cost_out": 0.87,
         "billing_mult": 4,  # 2026-08-06: 点名溢价（品牌层无 mimo 替代，$1.40，毛利~55%）
@@ -441,6 +443,29 @@ CATALOG: list[dict[str, Any]] = [
         "access": "ready",
         "modalities": ["text"],
         "failover_to": ["vip-gpt4o-mini", "vip-ds-flash"],
+    },
+    {
+        # 2026-09-10：GPT-6 Astra 上架（OR $10/$50；Requesty $5/$25 → RQ 主通道）
+        "id": "vip-gpt6-astra",
+        "title": "GPT-6 Astra",
+        "title_en": "GPT-6 Astra",
+        "brand_tiers": ["vip_pick"],
+        "layer": "VIP",
+        "role": "vip_pick",
+        "priority": 7,
+        "openrouter_id": "openai/gpt-6-astra",
+        "direct_id": None,
+        "channels": ["requesty", "openrouter", "tokenlab"],
+        "cost_in": 5.0,     # Requesty 实价（OR 半价）
+        "cost_out": 25.0,
+        "billing_mult": 65,  # ceil(((5+25)/2)/0.35*1.5)=65
+        "in_mult": 26,       # ceil(5/0.35*1.8)=26 → 售 ~$9.1/1M
+        "out_mult": 90,      # ceil(25/0.35*1.2)=86 → 抬到 90 保输出端 ≥20% 毛利
+        "quality": "最强旗舰",
+        "quality_en": "Frontier flagship",
+        "access": "ready",
+        "modalities": ["text", "image"],
+        "failover_to": ["vip-gpt54", "vip-gpt56-terra", "vip-ds-pro"],
     },
     {
         "id": "vip-gpt54",
@@ -640,6 +665,27 @@ CATALOG: list[dict[str, Any]] = [
         "failover_to": ["vip-gpt56-luna", "vip-ds-pro"],
     },
     {
+        "id": "vip-gpt56-sol",
+        "title": "GPT-5.6 Sol",
+        "brand_tiers": ["vip_pick"],
+        "layer": "VIP",
+        "role": "vip_pick",
+        "priority": 14,
+        "openrouter_id": "openai/gpt-5.6-sol",
+        "direct_id": None,
+        "channels": ["openrouter", "tokenlab", "requesty"],
+        "cost_in": 2.0,
+        "cost_out": 10.0,
+        "billing_mult": 26,
+        "in_mult": 11,
+        "out_mult": 35,
+        "quality": "标准旗舰·平衡",
+        "quality_en": "Standard flagship · balanced",
+        "access": "ready",
+        "modalities": ["text", "image"],
+        "failover_to": ["vip-gpt56-luna", "vip-ds-pro"],
+    },
+    {
         "id": "vip-gpt56-luna",
         "title": "GPT-5.6 Luna",
         "brand_tiers": ["vip_pick"],
@@ -648,11 +694,10 @@ CATALOG: list[dict[str, Any]] = [
         "priority": 20,
         "openrouter_id": "openai/gpt-5.6-luna",
         "direct_id": None,
-        # 2026-08-06: 主通道切 TokenLab（补测 24/24 持平且延迟 2.3s < OR 2.8s；TL 实价 $0.06/$0.36 为 OR 60%）
-        # ⚠️ 主脑 2026-08-12：QuickRouter 优先（QR 支持 Luna+tools 实测 200，降本+绕 TokenLab 400）
-        "channels": ["quickrouter", "openrouter", "tokenlab"],
-        "cost_in": 0.06,    # 2026-08-06: TL 实价（原 0.10 = OR）
-        "cost_out": 0.36,   # 2026-08-06: TL 实价（原 0.60 = OR）
+        # 2026-09-10 04 实拉：RQ $0.10/$0.60（OR 半价）；TL $0.14/$0.84；QR 无覆盖 → 去掉
+        "channels": ["requesty", "tokenlab", "openrouter"],
+        "cost_in": 0.10,    # Requesty 实价
+        "cost_out": 0.60,
         "billing_mult": 2,
         "in_mult": 1,   # ceil(0.1/0.35*1.8)=1
         "out_mult": 3,  # ceil(0.6/0.35*1.2)=3
@@ -814,6 +859,42 @@ def append_pricing_audit(entry: dict[str, Any]) -> None:
     _append_pricing_audit(entry)
 
 
+def _apply_ds_live_schedule(row: dict[str, Any]) -> dict[str, Any]:
+    """DeepSeek 官方日程：V4.1 Flash 价已写入目录；Pro 自 2026-09-14 起并轨 Flash 计费/直连。"""
+    from datetime import date
+
+    cid = str(row.get("id") or "")
+    if cid not in ("vip-ds-pro", "ds-v4-pro"):
+        return row
+    try:
+        # 北京时间 9/14 起并轨；用日期 >= 9/14（可用 TOKEN_LLM_DS_PRO_MERGE=1/0 强制）
+        eff = date(2026, 9, 14)
+        forced = (os.getenv("TOKEN_LLM_DS_PRO_MERGE") or "").strip().lower()
+        if forced in ("0", "false", "no", "off"):
+            return row
+        if forced in ("1", "true", "yes", "on"):
+            merged = True
+        else:
+            merged = date.today() >= eff
+    except Exception:
+        merged = False
+    if not merged:
+        return row
+    row = dict(row)
+    row["cost_in"] = 0.15
+    row["cost_out"] = 0.60
+    row["billing_mult"] = 3
+    row["in_mult"] = 1
+    row["out_mult"] = 3
+    row["peak_in_mult"] = 2
+    row["peak_out_mult"] = 6
+    row["direct_id"] = "deepseek-flash"
+    row["quality"] = "官方并轨 V4.1 Flash 计费"
+    row["quality_en"] = "Official routing · billed as V4.1 Flash"
+    row["schedule_note"] = "ds_pro_merge_flash_20260914"
+    return row
+
+
 def merge_catalog_row(c: dict[str, Any]) -> dict[str, Any]:
     """CATALOG 行 + override（vip_rates / 成本与倍率）。"""
     row = deepcopy(c)
@@ -868,6 +949,14 @@ def merge_catalog_row(c: dict[str, Any]) -> dict[str, Any]:
     else:
         row["pick_enabled"] = True
         row["rate_source"] = "catalog"
+    # 管理台未覆盖时，应用官方并轨日程
+    if not (_vip_rates_map().get(str(row.get("id") or "")) or {}):
+        row = _apply_ds_live_schedule(row)
+    elif str(row.get("id") or "") in ("vip-ds-pro", "ds-v4-pro"):
+        # 有 override 仍切换直连模型名（成本/倍率以 override 为准）
+        live = _apply_ds_live_schedule({"id": row.get("id"), "direct_id": row.get("direct_id")})
+        if live.get("direct_id"):
+            row["direct_id"] = live["direct_id"]
     return row
 
 
@@ -966,9 +1055,11 @@ def resolve_vip_pick(requested_model: Optional[str]) -> Optional[dict[str, Any]]
         "deepseek": "vip-ds-flash",
         "deepseek-flash": "vip-ds-flash",
         "deepseek-v4-flash": "vip-ds-flash",
+        "deepseek-v4.1-flash": "vip-ds-flash",
+        "deepseek-v41-flash": "vip-ds-flash",
+        "ds-flash": "vip-ds-flash",
         "deepseek-pro": "vip-ds-pro",
         "deepseek-v4-pro": "vip-ds-pro",
-        "ds-flash": "vip-ds-flash",
         "ds-pro": "vip-ds-pro",
         "gpt5": "vip-gpt5",
         "gpt-5": "vip-gpt5",
@@ -1006,6 +1097,12 @@ def resolve_vip_pick(requested_model: Optional[str]) -> Optional[dict[str, Any]]
         "gemini-3.1-pro": "vip-gemini-pro",
         "gemini-3.1-pro-preview": "vip-gemini-pro",
         "gemini-3.1": "vip-gemini-pro",
+        # GPT-6 Astra（2026-09-10）
+        "gpt6": "vip-gpt6-astra",
+        "gpt-6": "vip-gpt6-astra",
+        "gpt6-astra": "vip-gpt6-astra",
+        "gpt-6-astra": "vip-gpt6-astra",
+        "astra": "vip-gpt6-astra",
         # GPT-5.6 系列（2026-08-03）
         "gpt56": "vip-gpt56-terra",
         "gpt-5.6": "vip-gpt56-terra",
@@ -1016,6 +1113,9 @@ def resolve_vip_pick(requested_model: Optional[str]) -> Optional[dict[str, Any]]
         "gpt56-luna": "vip-gpt56-luna",
         "gpt-5.6-luna": "vip-gpt56-luna",
         "luna": "vip-gpt56-luna",
+        "gpt56-sol": "vip-gpt56-sol",
+        "gpt-5.6-sol": "vip-gpt56-sol",
+        "sol": "vip-gpt56-sol",
         "grok": "vip-grok",
         "grok-4": "vip-grok",
         "grok-4.20": "vip-grok",
@@ -1407,6 +1507,18 @@ def update_warehouse(patch: dict[str, Any], *, actor: str = "admin") -> dict[str
                     raise ValueError(f"{cid}: cost_out 无效")
             if "enabled" in item and item["enabled"] is not None:
                 new_row["enabled"] = bool(item["enabled"])
+            if "channels" in item and item["channels"] is not None:
+                if not isinstance(item["channels"], list):
+                    raise ValueError(f"{cid}: channels 须为数组")
+                allowed_ch = ("openrouter", "tokenlab", "requesty", "quickrouter")
+                ch: list[str] = []
+                for x in item["channels"]:
+                    p = str(x or "").strip().lower()
+                    if p in allowed_ch and p not in ch:
+                        ch.append(p)
+                if not ch:
+                    raise ValueError(f"{cid}: channels 不能为空")
+                new_row["channels"] = ch
 
             mult = int(
                 new_row.get("billing_mult")

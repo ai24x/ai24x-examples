@@ -47,7 +47,8 @@ _DEFAULT_TL_DETAIL: dict[str, dict[str, float]] = {
     "gpt-4o": {"in": 2.5, "out": 10.0},
     "gpt-4o-mini": {"in": 0.15, "out": 0.6},
     "gpt-5.6-terra": {"in": 0.6, "out": 3.6},
-    "gpt-5.6-luna": {"in": 0.06, "out": 0.36},
+    "gpt-5.6-luna": {"in": 0.14, "out": 0.84},  # 2026-09-10 04 实拉
+    "gpt-6-astra": {"in": 5.0, "out": 25.0},  # 对齐 Requesty；TL 无覆盖时作占位
     "claude-opus-5": {"in": 3.25, "out": 16.25},
     "claude-sonnet-5": {"in": 1.95, "out": 9.75},
     "claude-haiku-4.5": {"in": 0.65, "out": 3.25},
@@ -56,8 +57,9 @@ _DEFAULT_TL_DETAIL: dict[str, dict[str, float]] = {
     "grok-4.20": {"in": 0.625, "out": 1.25},
     "kimi-k3": {"in": 3.0, "out": 15.0},
     "kimi-k2.7": {"in": 0.95, "out": 4.0},
-    "deepseek-v4-flash": {"in": 0.14705882, "out": 0.29411765},
-    "deepseek-v4-pro": {"in": 0.44117647, "out": 0.88235294},
+    "deepseek-v4-flash": {"in": 0.15, "out": 0.60},
+    "deepseek-flash": {"in": 0.15, "out": 0.60},
+    "deepseek-v4-pro": {"in": 0.66, "out": 1.98},
     "mimo-pro": {"in": 0.435, "out": 0.87},
     "minimax-m3": {"in": 0.3, "out": 1.2},
     "qwen3-max": {"in": 0.35294117, "out": 1.4117647},
@@ -79,36 +81,69 @@ _ROLES = {"default_flash", "default_pro", "default_ultra", "vip_pick"}
 # 作用：① 生效前在后台/飞书提前预警「涨价后毛利」；② 生效后自动按新价算毛利。
 # 2026-08-15 修正：L1/L2 默认档已切 MiMo（xiaomi/mimo-v2.5 / -pro），不背 DS 8/17 新成本，
 #   涨价日程只保留 VIP 点名（vip-ds-*，真正按 DS 官方价扣费），避免默认档误报倒挂。
+# 2026-09-10: DeepSeek 官网 V4.1 Flash 新价 + Pro 9/14 并轨 Flash。
+# 闲时价 $/1M；高峰=闲时×2（UTC 周一至五 01-04 / 06-10）。
 _HIKE_SCHEDULE: dict[str, dict[str, Any]] = {
     "vip-ds-flash": {
         "effective": "2026-08-17",
-        "in": 0.21,
-        "out": 0.63,
-        "peak_in": 0.42,
-        "peak_out": 1.26,
-        "note": "DeepSeek 官方涨价（闲时价）",
+        "in": 0.15,
+        "out": 0.60,
+        "peak_in": 0.30,
+        "peak_out": 1.20,
+        "note": "DeepSeek V4.1 Flash 官方价（闲时）",
     },
     "vip-ds-pro": {
         "effective": "2026-08-17",
-        "in": 0.63,
-        "out": 1.89,
-        "peak_in": 1.26,
-        "peak_out": 3.78,
-        "note": "DeepSeek 官方涨价（闲时价）",
+        "in": 0.66,
+        "out": 1.98,
+        "peak_in": 1.32,
+        "peak_out": 3.96,
+        "note": "DeepSeek V4 Pro 官方价（闲时；9/14 起并轨见下）",
+    },
+    # 9/14 12:00 北京后：官方 Pro 请求改走 V4.1 Flash 并按 Flash 计费
+    "vip-ds-pro-merge-flash": {
+        "effective": "2026-09-14",
+        "target": "vip-ds-pro",
+        "in": 0.15,
+        "out": 0.60,
+        "peak_in": 0.30,
+        "peak_out": 1.20,
+        "in_mult": 1,
+        "out_mult": 3,
+        "peak_in_mult": 2,
+        "peak_out_mult": 6,
+        "billing_mult": 3,
+        "direct_id": "deepseek-flash",
+        "note": "官方 Pro 并轨 V4.1 Flash 计费",
     },
 }
 
 
 def _hike_applied(cid: str) -> Optional[dict[str, Any]]:
-    """返回已生效的涨价日程（今天 >= effective），未生效返回 None。"""
-    h = _HIKE_SCHEDULE.get(cid)
-    if not h or not h.get("effective"):
+    """返回已生效的涨价/并轨日程（今天 >= effective）；同 cid 多条时取 effective 最新。"""
+    cid = str(cid or "").strip()
+    if not cid:
         return None
-    try:
-        eff = datetime.strptime(str(h["effective"]), "%Y-%m-%d").date()
-    except Exception:
-        return None
-    return h if datetime.now().date() >= eff else None
+    today = datetime.now().date()
+    best: Optional[dict[str, Any]] = None
+    best_eff = None
+    for key, h in _HIKE_SCHEDULE.items():
+        if not isinstance(h, dict) or not h.get("effective"):
+            continue
+        target = str(h.get("target") or key).strip()
+        if target != cid and key != cid:
+            continue
+        try:
+            eff = datetime.strptime(str(h["effective"]), "%Y-%m-%d").date()
+        except Exception:
+            continue
+        if today < eff:
+            continue
+        if best is None or (best_eff is not None and eff >= best_eff) or best_eff is None:
+            best = dict(h)
+            best["schedule_key"] = key
+            best_eff = eff
+    return best
 
 
 def _cfg(key: str, default: float) -> float:
@@ -198,15 +233,41 @@ def _parse_pricing(pid: str, raw: Any) -> Optional[dict[str, float]]:
             if p > 0 or c > 0:
                 return {"in": round(p, 6), "out": round(c, 6)}
         elif pid == "tokenlab":
+            # TokenLab /models：pricing 可能为 {in,out}，或 {input_per_1m,output_per_1m}
+            # （04 2026-09-10：漏解析 input_per_1m → 全部 price=null）
+            blob = raw
             if isinstance(raw, dict):
-                def _num(v):
-                    if isinstance(v, (int, float)):
-                        return float(v)
-                    s = str(v or "").replace("$", "").strip()
-                    return float(s) if s else 0.0
-                p, c = _num(raw.get("in")), _num(raw.get("out"))
+                nested = raw.get("pricing")
+                if isinstance(nested, dict) and (
+                    nested.get("input_per_1m") is not None
+                    or nested.get("output_per_1m") is not None
+                    or nested.get("in") is not None
+                    or nested.get("out") is not None
+                ):
+                    blob = nested
+
+            def _num(v: Any) -> float:
+                if isinstance(v, (int, float)):
+                    return float(v)
+                s = str(v or "").replace("$", "").replace(",", "").strip()
+                return float(s) if s else 0.0
+
+            if isinstance(blob, dict):
+                p = _num(
+                    blob.get("in")
+                    if blob.get("in") is not None
+                    else blob.get("input_per_1m")
+                )
+                c = _num(
+                    blob.get("out")
+                    if blob.get("out") is not None
+                    else blob.get("output_per_1m")
+                )
+                if p <= 0 and c <= 0:
+                    p = _num(blob.get("prompt_per_1m") or blob.get("input"))
+                    c = _num(blob.get("completion_per_1m") or blob.get("output"))
                 if p > 0 or c > 0:
-                    return {"in": p, "out": c}
+                    return {"in": round(p, 6), "out": round(c, 6)}
     except Exception:
         pass
     return None
@@ -229,10 +290,16 @@ def _fetch_provider(pid: str, timeout_s: int = 20) -> list[dict[str, Any]]:
     items = data.get("data") if isinstance(data, dict) else data
     out = []
     for it in items or []:
+        if not isinstance(it, dict):
+            continue
         mid = str(it.get("id") or "")
         if not mid:
             continue
-        p = _parse_pricing(pid, it.get("pricing"))
+        # TokenLab 偶发把价挂在 item 根或 tokenlab 嵌套下
+        raw_price = it.get("pricing")
+        if raw_price is None and pid == "tokenlab":
+            raw_price = it.get("tokenlab") or it
+        p = _parse_pricing(pid, raw_price)
         out.append({"id": mid, "pricing": p})
     return out
 
@@ -273,11 +340,18 @@ def refresh_provider_prices(force: bool = False) -> dict[str, Any]:
                 old = cur.get(pid)
                 fetched[pid] = old if isinstance(old, list) else []
                 results[pid] = {"ok": False, "error": str(e)[:120], "ms": -1, "fallback_old": isinstance(old, list)}
-    # 保留已有 tokenlab_detail（TL models 接口不带价，detail 为已核价目）
+    # tokenlab_detail：默认表 + 旧缓存 + 本次实拉有价条目（覆盖）
+    detail: dict[str, Any] = dict(_DEFAULT_TL_DETAIL)
     if isinstance(cur.get("tokenlab_detail"), dict) and cur["tokenlab_detail"]:
-        fetched["tokenlab_detail"] = cur["tokenlab_detail"]
-    else:
-        fetched["tokenlab_detail"] = {}
+        detail.update(cur["tokenlab_detail"])
+    for row in fetched.get("tokenlab") or []:
+        if not isinstance(row, dict):
+            continue
+        pr = row.get("pricing")
+        mid = str(row.get("id") or "").strip()
+        if mid and isinstance(pr, dict) and (pr.get("in") or pr.get("out")):
+            detail[mid] = {"in": float(pr["in"]), "out": float(pr["out"])}
+    fetched["tokenlab_detail"] = detail
     _save(fetched)
     out = {k: v for k, v in fetched.items() if k != "_meta"}
     return {"ok": True, "cached": False, "age_s": 0, "providers": results, **out}
@@ -979,6 +1053,120 @@ def apply_hero_pick(
         "provider_prices_time": out.get("provider_prices_time"),
         "thresholds": out.get("thresholds"),
         "flash_ref": out.get("flash_ref"),
+        "flash_lanes": out.get("flash_lanes"),
+        "vip_board": out.get("vip_board"),
+    }
+
+
+def build_vip_channel_board(
+    rows: list[dict[str, Any]],
+    health: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
+    """VIP 主通道看板：各聚合供货商价 + 当前主通道 + 一键可切。"""
+    health = health or {"circuit": {}, "recs": {}}
+    models: list[dict[str, Any]] = []
+    for r in rows:
+        if str(r.get("role") or "") != "vip_pick":
+            continue
+        if not r.get("enabled", True):
+            continue
+        chans = [
+            str(x).strip().lower()
+            for x in (r.get("channels") or [])
+            if str(x).strip()
+        ]
+        active = str(r.get("active_channel") or (chans[0] if chans else "") or "").strip().lower()
+        suppliers: list[dict[str, Any]] = []
+        for key, pid in (("or", "openrouter"), ("tl", "tokenlab"), ("rq", "requesty")):
+            pair = r.get(key)
+            ph = _provider_health(health, pid)
+            circuit = bool(ph.get("circuit_open"))
+            has_price = bool(pair and (float(pair[0] or 0) > 0 or float(pair[1] or 0) > 0))
+            in_chain = pid in chans
+            is_active = active == pid
+            applyable = (has_price or in_chain) and (not is_active) and (not circuit)
+            reason = ""
+            if is_active:
+                reason = "当前主通道"
+            elif circuit:
+                reason = "熔断中"
+            elif not has_price and not in_chain:
+                reason = "无价目且不在链中"
+            suppliers.append(
+                {
+                    "key": key,
+                    "provider": pid,
+                    "label": _PROVIDER_LABEL.get(pid, pid),
+                    "in": float(pair[0]) if pair else None,
+                    "out": float(pair[1]) if pair else None,
+                    "sum": round(_pair_sum(pair) or 0, 4) if pair else None,
+                    "active": is_active,
+                    "in_chain": in_chain,
+                    "circuit_open": circuit,
+                    "applyable": applyable,
+                    "apply_reason": reason,
+                }
+            )
+        # QuickRouter：无统一价目，仅在链中展示
+        if "quickrouter" in chans or active == "quickrouter":
+            is_active = active == "quickrouter"
+            suppliers.append(
+                {
+                    "key": "qr",
+                    "provider": "quickrouter",
+                    "label": "QuickRouter",
+                    "in": None,
+                    "out": None,
+                    "sum": None,
+                    "active": is_active,
+                    "in_chain": "quickrouter" in chans,
+                    "circuit_open": bool(_provider_health(health, "quickrouter").get("circuit_open")),
+                    "applyable": (not is_active)
+                    and (not bool(_provider_health(health, "quickrouter").get("circuit_open"))),
+                    "apply_reason": "当前主通道" if is_active else "",
+                }
+            )
+        cheap = None
+        priced = [s for s in suppliers if s.get("sum") and float(s["sum"]) > 0 and not s.get("circuit_open")]
+        if priced:
+            cheap = min(priced, key=lambda x: float(x["sum"]))
+        models.append(
+            {
+                "id": r.get("id"),
+                "title": r.get("title") or r.get("id"),
+                "level": r.get("level"),
+                "gm_1to4": r.get("gm_1to4"),
+                "cost_in": r.get("cost_in"),
+                "cost_out": r.get("cost_out"),
+                "channels": chans,
+                "active_channel": active or None,
+                "active_label": _PROVIDER_LABEL.get(active, active) if active else None,
+                "suppliers": suppliers,
+                "cheapest": (
+                    {
+                        "provider": cheap["provider"],
+                        "label": cheap["label"],
+                        "sum": cheap["sum"],
+                    }
+                    if cheap
+                    else None
+                ),
+                "flags": r.get("flags") or [],
+            }
+        )
+    models.sort(
+        key=lambda x: (
+            {"alarm": 0, "warn": 1, "info": 2, "ok": 3}.get(str(x.get("level")), 9),
+            str(x.get("id") or ""),
+        )
+    )
+    return {
+        "note": (
+            "VIP 点名模型：左侧为当前主通道（channels[0]）；"
+            "OR/TL/RQ 显示实拉价（$/1M）；点「切」立即写回仓库并可选同步账本成本。"
+        ),
+        "models": models,
+        "count": len(models),
     }
 
 
@@ -1052,7 +1240,7 @@ def build_hero_picks(rows: list[dict[str, Any]], health: Optional[dict[str, Any]
             str(x.get("id") or ""),
         )
     )
-    vip_watch = [_pack("vip", r) for r in vip_rows[:6]]
+    vip_watch = [_pack("vip", r) for r in vip_rows[:12]]
 
     pending = tick_hero_pending(tiers + vip_watch)
     open_circuits = [
@@ -1109,12 +1297,17 @@ def snapshot() -> dict[str, Any]:
         # 已生效的官方涨价：按日程覆盖成本（8/17 后自动切新价，无需改代码）
         hike_now = _hike_applied(cid)
         if hike_now:
+            # 并轨类日程可同时改倍率（如 Pro→Flash）
+            if hike_now.get("in_mult") is not None:
+                in_mult = max(1, int(hike_now["in_mult"]))
+            if hike_now.get("out_mult") is not None:
+                out_mult = max(1, int(hike_now["out_mult"]))
             if period == "peak" and hike_now.get("peak_in") is not None:
                 cost_in = float(hike_now.get("peak_in") or cost_in)
                 cost_out = float(hike_now.get("peak_out") or cost_out)
                 # 售价同步切峰值倍率（仅官方峰谷生效后，避免生效前毛利虚高）
-                _pin = c.get("peak_in_mult")
-                _pout = c.get("peak_out_mult")
+                _pin = hike_now.get("peak_in_mult", c.get("peak_in_mult"))
+                _pout = hike_now.get("peak_out_mult", c.get("peak_out_mult"))
                 if _pin is not None or _pout is not None:
                     in_mult = max(1, int(_pin if _pin is not None else in_mult))
                     out_mult = max(1, int(_pout if _pout is not None else out_mult))
@@ -1228,6 +1421,11 @@ def snapshot() -> dict[str, Any]:
             "rq": prov.get("rq"),
             "market_min": market,
             "channels": c.get("channels") or [],
+            "active_channel": (
+                str((c.get("channels") or [None])[0]).strip().lower()
+                if (c.get("channels") or [])
+                else None
+            ),
             "hike": hike_meta,
             "level": level,
             "flags": flags,
@@ -1245,6 +1443,7 @@ def snapshot() -> dict[str, Any]:
     except Exception:
         health = {"circuit": {}, "recs": {}, "circuit_enabled": False}
     hero = build_hero_picks(rows, health)
+    vip_board = build_vip_channel_board(rows, health)
     try:
         from flash_lanes import build_flash_lanes
 
@@ -1271,6 +1470,7 @@ def snapshot() -> dict[str, Any]:
         },
         "rows": rows,
         "hero_picks": hero,
+        "vip_board": vip_board,
         "flash_lanes": flash_lanes,
     }
 

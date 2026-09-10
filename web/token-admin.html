@@ -1422,6 +1422,19 @@
                   <tbody><tr><td colspan="9" class="muted">加载中…</td></tr></tbody>
                 </table>
               </div>
+              <div class="section-label">VIP 主通道看板 · OR / TL / RQ 一目了然</div>
+              <!-- vip-board-v20260910a -->
+              <p class="muted small" id="pmVipNote" style="margin:0 0 8px;">点名 VIP：当前主通道高亮；可一键切到 OR / TokenLab / Requesty（写回 channels 并同步账本成本）。</p>
+              <div style="overflow-x:auto;margin-bottom:12px;">
+                <table id="pmVipBoard">
+                  <thead>
+                    <tr>
+                      <th>模型</th><th>当前主通道</th><th>OR</th><th>TL</th><th>RQ</th><th>链</th><th>GM1:4</th><th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody><tr><td colspan="8" class="muted">加载中…</td></tr></tbody>
+                </table>
+              </div>
               <div class="section-label">主打建议 · 最省钱 × 最稳 × 毛利（对内）</div>
               <p class="muted small" id="pmHeroNote" style="margin:0 0 8px;">对外仍主推 flash / pro / auto；一键应用会写回通道/上游并立即生效（通道名仅作战台可见）。</p>
               <div id="pmHeroCircuits" class="muted small" style="margin:0 0 8px;"></div>
@@ -1445,11 +1458,11 @@
                 <table id="pmTable">
                   <thead>
                     <tr>
-                      <th>模型</th><th>售价 入/出</th><th>成本 入/出</th><th>GM入</th><th>GM出</th><th>GM混合</th><th>GM1:4</th>
-                      <th>OR 入/出</th><th>TL 入/出</th><th>RQ 入/出</th><th>市场最低</th><th>状态</th>
+                      <th>模型</th><th>主通道</th><th>售价 入/出</th><th>成本 入/出</th><th>GM入</th><th>GM出</th><th>GM混合</th><th>GM1:4</th>
+                      <th>OR 入/出</th><th>TL 入/出</th><th>RQ 入/出</th><th>市场最低</th><th>状态</th><th>切换</th>
                     </tr>
                   </thead>
-                  <tbody><tr><td colspan="12" class="muted">加载中…</td></tr></tbody>
+                  <tbody><tr><td colspan="14" class="muted">加载中…</td></tr></tbody>
                 </table>
               </div>
               <p class="muted small" style="margin:8px 0 0;">GM入/GM出 = 单端毛利；GM混合 = 1:1 综合；GM1:4 = 输入1输出4 加权（贴近实际流量）。红色=倒挂/破红线，黄色=低毛利或成本高于市场最低。</p>
@@ -5597,6 +5610,76 @@
       setMsg(String(e.message || e), "err");
     }
   }
+  function _provCell(sup) {
+    if (!sup) return '<span class="muted">—</span>';
+    var price = (sup.in != null || sup.out != null)
+      ? ('<span class="mono">' + fmtPr([sup.in, sup.out]) + "</span>")
+      : '<span class="muted">无价</span>';
+    var mark = sup.active
+      ? ' <span style="color:var(--ok);font-weight:600;">●使用中</span>'
+      : (sup.circuit_open ? ' <span class="bad">熔断</span>' : "");
+    return price + mark;
+  }
+  function renderVipBoard(r) {
+    var board = (r && r.vip_board) || {};
+    if ($("pmVipNote")) {
+      $("pmVipNote").textContent = board.note ||
+        "VIP 点名：当前主通道高亮；可一键切 OR / TokenLab / Requesty。";
+    }
+    var tb = $("pmVipBoard") && $("pmVipBoard").querySelector("tbody");
+    if (!tb) return;
+    var models = board.models || [];
+    if (!models.length) {
+      tb.innerHTML = '<tr><td colspan="8" class="muted">暂无 VIP 点名模型</td></tr>';
+      return;
+    }
+    var labelMap = { openrouter: "OR", tokenlab: "TL", requesty: "RQ", quickrouter: "QR" };
+    tb.innerHTML = models.map(function (m) {
+      var by = {};
+      (m.suppliers || []).forEach(function (s) { by[s.provider] = s; });
+      var active = m.active_channel || "";
+      var rowStyle = m.level === "alarm" ? ' style="background:rgba(251,113,133,.12);"'
+        : (m.level === "warn" ? ' style="background:rgba(251,191,36,.08);"' : "");
+      var actHtml = active
+        ? ('<strong style="color:var(--ok);">' + esc(m.active_label || active) + "</strong>")
+        : '<span class="muted">—</span>';
+      var chain = (m.channels || []).map(function (c) {
+        var short = labelMap[c] || c;
+        return c === active
+          ? ('<span style="color:var(--ok);font-weight:600;">' + esc(short) + "</span>")
+          : esc(short);
+      }).join(" → ");
+      var btns = (m.suppliers || []).filter(function (s) { return s.applyable; }).map(function (s) {
+        return '<button type="button" class="ok btn-vip-ch" style="margin:2px;" data-id="' +
+          esc(m.id || "") + '" data-prefer="' + esc(s.provider || "") +
+          '" title="切至 ' + esc(s.label || "") + '">切' +
+          esc(labelMap[s.provider] || s.label || "") + "</button>";
+      }).join("");
+      if (!btns) btns = '<span class="muted small">—</span>';
+      var cheapTip = m.cheapest
+        ? ('<div class="muted small">最省 ' + esc(m.cheapest.label) + "</div>")
+        : "";
+      return "<tr" + rowStyle + ">" +
+        "<td><strong>" + esc(m.title || m.id || "") + "</strong>" +
+        '<div class="muted small mono">' + esc(m.id || "") + "</div>" + cheapTip + "</td>" +
+        "<td>" + actHtml + "</td>" +
+        "<td>" + _provCell(by.openrouter) + "</td>" +
+        "<td>" + _provCell(by.tokenlab) + "</td>" +
+        "<td>" + _provCell(by.requesty) + "</td>" +
+        '<td class="mono small">' + (chain || "—") + "</td>" +
+        '<td class="mono">' + fmtGm(m.gm_1to4) + "</td>" +
+        "<td>" + btns + "</td></tr>";
+    }).join("");
+    document.querySelectorAll(".btn-vip-ch").forEach(function (btn) {
+      btn.onclick = function () {
+        applyHeroChannel(
+          btn.getAttribute("data-id"),
+          btn.getAttribute("data-prefer"),
+          "VIP 看板一键切换"
+        );
+      };
+    });
+  }
   function renderHeroPicks(r) {
     var hero = r.hero_picks || {};
     if ($("pmHeroNote")) {
@@ -5763,21 +5846,49 @@
       ? '<span class="muted">' + s.info + " 个：" + esc((s.info_ids || []).join(", ")) + "</span>"
       : '<span class="muted">0</span>';
     renderFlashLanes(r);
+    renderVipBoard(r);
     renderHeroPicks(r);
     var tb = $("pmTable").querySelector("tbody");
     var rows = r.rows || [];
-    if (!rows.length) { tb.innerHTML = '<tr><td colspan="12" class="muted">无在售模型</td></tr>'; return; }
+    if (!rows.length) { tb.innerHTML = '<tr><td colspan="14" class="muted">无在售模型</td></tr>'; return; }
+    var shortMap = { openrouter: "OR", tokenlab: "TL", requesty: "RQ", quickrouter: "QR" };
     tb.innerHTML = rows.map(function (x) {
       var cls = x.level === "alarm" ? ' style="background:rgba(251,113,133,.14);"'
         : (x.level === "warn" ? ' style="background:rgba(251,191,36,.08);"' : "");
       var flagTxt = (x.flags || []).length ? (x.flags || []).join("；") : "ok";
-      var chTxt = (x.channels || []).join("/");
+      var chans = x.channels || [];
+      var active = x.active_channel || (chans[0] || "");
+      var chTxt = chans.map(function (c) {
+        var s = shortMap[c] || c;
+        return c === active ? ("【" + s + "】") : s;
+      }).join("/");
+      var actLabel = shortMap[active] || active || "—";
+      var actHtml = active
+        ? ('<span style="color:var(--ok);font-weight:600;">' + esc(actLabel) + "</span>")
+        : '<span class="muted">—</span>';
       var stTxt = x.level === "alarm" ? '<span class="bad">' + esc(flagTxt) + "</span>"
         : x.level === "warn" ? '<span style="color:var(--warn);">' + esc(flagTxt) + "</span>"
         : x.level === "info" ? '<span class="muted">' + esc(flagTxt) + "</span>"
         : '<span style="color:var(--ok);">' + esc(flagTxt) + "</span>";
+      var switchHtml = "—";
+      if (String(x.role || "") === "vip_pick") {
+        var opts = [
+          { id: "requesty", lab: "RQ", pair: x.rq },
+          { id: "tokenlab", lab: "TL", pair: x.tl },
+          { id: "openrouter", lab: "OR", pair: x.or },
+        ].filter(function (o) {
+          return o.id !== active && o.pair && (Number(o.pair[0]) > 0 || Number(o.pair[1]) > 0);
+        });
+        switchHtml = opts.length
+          ? opts.map(function (o) {
+              return '<button type="button" class="ok btn-vip-ch" style="margin:1px;padding:2px 6px;font-size:12px;" data-id="' +
+                esc(x.id || "") + '" data-prefer="' + esc(o.id) + '">切' + esc(o.lab) + "</button>";
+            }).join("")
+          : '<span class="muted small">当前</span>';
+      }
       return "<tr" + cls + ">" +
-        "<td>" + esc(x.title) + (chTxt ? '<span class="muted small"> · ' + esc(chTxt) + "</span>" : "") + "</td>" +
+        "<td>" + esc(x.title) + (chTxt ? '<div class="muted small">' + esc(chTxt) + "</div>" : "") + "</td>" +
+        "<td>" + actHtml + "</td>" +
         '<td class="mono">' + fmtPr([x.sell_in, x.sell_out]) + "</td>" +
         '<td class="mono">' + fmtPr([x.cost_in, x.cost_out]) + "</td>" +
         '<td class="mono">' + fmtGm(x.gm_in) + "</td>" +
@@ -5789,8 +5900,18 @@
         "<td class='mono'>" + (x.rq ? fmtPr(x.rq) : "—") + "</td>" +
         "<td class='mono'>" + (x.market_min ? fmtPr(x.market_min) : "—") + "</td>" +
         "<td>" + stTxt + "</td>" +
+        "<td>" + switchHtml + "</td>" +
         "</tr>";
     }).join("");
+    document.querySelectorAll("#pmTable .btn-vip-ch").forEach(function (btn) {
+      btn.onclick = function () {
+        applyHeroChannel(
+          btn.getAttribute("data-id"),
+          btn.getAttribute("data-prefer"),
+          "逐模型表一键切换"
+        );
+      };
+    });
   }
   async function loadSupplyMonitor() {
     var bust = "?_=" + Date.now();

@@ -60,13 +60,13 @@ MODEL_LAYER: dict[str, str] = {
     "gpt-3.5-turbo": "L1",
 }
 
-# —— DeepSeek 峰谷计价（2026-08-15 落地，官方 8/17 00:00 生效）——
-# 官方峰时：北京 09:00-12:00 / 14:00-18:00；其余谷时（18:00-次日 09:00 整夜 15 小时）
+# —— DeepSeek 峰谷计价（官方：UTC 周一至五 01:00-04:00 / 06:00-10:00 = 北京 09:00-12:00 / 14:00-18:00）——
+# 周末全日闲时；可用 TOKEN_LLM_PERIOD=peak|offpeak 强制。
 PEAK_WINDOWS: tuple[tuple[int, int], ...] = ((9, 12), (14, 18))
 
 
 def current_period(*, now: Optional[Any] = None) -> str:
-    """返回 DeepSeek 计价时段：'peak' / 'offpeak'（Asia/Shanghai 实时判定，不缓存价格）。"""
+    """返回 DeepSeek 计价时段：'peak' / 'offpeak'（Asia/Shanghai；周末一律闲时）。"""
     forced = (os.getenv("TOKEN_LLM_PERIOD") or "").strip().lower()
     if forced in ("peak", "offpeak"):
         return forced
@@ -75,6 +75,9 @@ def current_period(*, now: Optional[Any] = None) -> str:
     t = now or _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=8)))
     if getattr(t, "tzinfo", None) is None:
         t = t.replace(tzinfo=_dt.timezone(_dt.timedelta(hours=8)))
+    # 官方：Peak 仅周一至五
+    if int(t.weekday()) >= 5:
+        return "offpeak"
     hh = t.hour
     return "peak" if any(s <= hh < e for s, e in PEAK_WINDOWS) else "offpeak"
 
@@ -138,18 +141,18 @@ _OR_DEFAULT_MODELS = {
 LOGICAL_TO_UPSTREAM_MODEL_DIRECT = {
     "glm-4-flash": "THUDM/glm-4-9b-chat",
     "siliconflow-free": "Qwen/Qwen2.5-7B-Instruct",
-    "flash": "deepseek-v4-flash",
-    "deepseek-flash": "deepseek-v4-flash",
-    "deepseek-chat": "deepseek-v4-flash",
-    "deepseek-v4-flash": "deepseek-v4-flash",
+    "flash": "deepseek-flash",
+    "deepseek-flash": "deepseek-flash",
+    "deepseek-chat": "deepseek-flash",
+    "deepseek-v4-flash": "deepseek-flash",
     "pro": "deepseek-v4-pro",
     "deepseek-pro": "deepseek-v4-pro",
     "deepseek-reasoner": "deepseek-v4-pro",
     "deepseek-v4-pro": "deepseek-v4-pro",
     "ultra": "deepseek-v4-pro",
-    "gpt-3.5-turbo": "deepseek-v4-flash",
-    "auto": "deepseek-v4-flash",
-    "free": "deepseek-v4-flash",
+    "gpt-3.5-turbo": "deepseek-flash",
+    "auto": "deepseek-flash",
+    "free": "deepseek-flash",
     "qwen-intl-turbo": "qwen-turbo",
     "qwen-intl-plus": "qwen-plus",
     "qwen-plus": "qwen-plus",
@@ -558,7 +561,12 @@ def _is_deepseek_v4_upstream_model(model: str) -> bool:
     the old startswith('deepseek-v4') check missed OpenRouter ids.
     """
     base = _upstream_model_base(model)
-    return base.startswith("deepseek-v4")
+    return base.startswith("deepseek-v4") or base in (
+        "deepseek-flash",
+        "deepseek-chat",
+        "deepseek-reasoner",
+        "deepseek-pro",
+    )
 
 
 def _is_mimo_upstream_model(model: str, provider: str = "") -> bool:
@@ -729,7 +737,6 @@ def _apply_upstream_thinking_controls(
     """
     if _upstream_thinking_enabled():
         return
-    # 思考专用模：必须保留/回传 reasoning_content，禁用 disabled 参数
     if _is_thinking_only_upstream(model):
         return
     msgs = body.get("messages")
@@ -828,8 +835,9 @@ def _openrouter_model_for_layer(layer: str) -> str:
     return _OR_DEFAULT_MODELS.get(layer, _OR_DEFAULT_MODELS["L1"])
 
 
-# 2026-08-14: DS 官方 8/17 涨价 → L1/L2 默认改走 OR 的 MiMo 同价档。
-# 回退官方直连：TOKEN_LLM_L1_UPSTREAM=deepseek（L2 同理）。
+# 2026-08-14: DS 官方 8/17 涨价 → L1/L2 默认改走 MiMo 同价档。
+# 2026-08-17: MiMo 档主通道=小米官方直连（实测 TTFB 0.44s vs OR 4.0s），OR 转兜底。
+# 强制 OR：TOKEN_LLM_L1_UPSTREAM=or（L2 同理）；强制 DeepSeek：=deepseek。
 _LAYER_OR_MODEL = {
     "L1": "xiaomi/mimo-v2.5",
     "L2": "xiaomi/mimo-v2.5-pro",
@@ -837,6 +845,7 @@ _LAYER_OR_MODEL = {
 
 
 def _openrouter_upstream_with_model(model: str) -> Optional[dict[str, str]]:
+    """强制走 OpenRouter，指定 model id。"""
     mid = (model or "").strip()
     if not mid:
         return None
@@ -872,11 +881,12 @@ def _effective_l1_lane() -> Optional[str]:
 
 
 def _upstream_from_flash_lane(lane: str) -> Optional[dict[str, str]]:
+    """按管理台 flash 通道 id 解析 L1 upstream。"""
     lane = (lane or "").strip().lower()
     if lane == "mimo_official":
         return _layer_mimo_upstream("L1")
     if lane == "deepseek_official":
-        up = _deepseek_upstream_for_layer("L1")
+        up = _layer_ds_direct_upstream("L1")
         return up if up.get("key") else None
     if lane == "or_mimo":
         return _openrouter_upstream_with_model("xiaomi/mimo-v2.5")
@@ -886,6 +896,7 @@ def _upstream_from_flash_lane(lane: str) -> Optional[dict[str, str]]:
 
 
 def detect_active_flash_lane() -> str:
+    """推断当前 flash/auto 实际主通道（含管理台覆盖）。"""
     ov = _effective_l1_lane()
     if ov:
         return ov
@@ -900,39 +911,68 @@ def detect_active_flash_lane() -> str:
         if "deepseek" in model:
             return "or_deepseek"
         return "or_mimo"
+    # 回落：与代码默认一致
     if _layer_mimo_upstream("L1"):
         return "mimo_official"
     return "or_mimo"
 
 
 def _layer_or_upstream_override(layer: str) -> Optional[dict[str, str]]:
-    """L1/L2 直连模式下可选的 OR 通道（默认启用）；无 OR Key 或显式回退时返回 None。"""
+    """L1/L2 直连模式下可选通道；MiMo 档默认官方直连，OR 作兜底。
+
+    TOKEN_LLM_{layer}_UPSTREAM：
+      deepseek/direct/official/ds = DeepSeek 直连；
+      or/openrouter/agg/aggregator = 强制 OR；
+      其它/空 = MiMo 档走官方直连（无 key 回落 OR）。
+    """
     layer = (layer or "").upper()
     if layer not in ("L1", "L2"):
         return None
     v = (_env(f"TOKEN_LLM_{layer}_UPSTREAM", "") or "").strip().lower()
     if v in ("deepseek", "direct", "official", "ds"):
         return None
-    key = _env("OPENROUTER_API_KEY") or _env("TOKEN_LLM_KEY")
-    try:
-        from llm_keys import openrouter_main_key
-
-        key = openrouter_main_key() or key
-    except Exception:
-        pass
-    if not key:
-        return None
-    base = (
-        _env("OPENROUTER_BASE_URL")
-        or _env("TOKEN_LLM_BASE")
-        or "https://openrouter.ai/api/v1"
-    )
+    # 仓库 layer model 覆盖优先于 env / 代码默认
     model = _openrouter_model_for_layer(layer)
+    forced_or = v in ("or", "openrouter", "agg", "aggregator")
+    if not forced_or and "mimo" in str(model or "").lower():
+        mi = _layer_mimo_upstream(layer)
+        if mi:
+            return mi
+    return _openrouter_upstream_with_model(model)
+
+
+def _layer_ds_direct_upstream(layer: str) -> dict[str, str]:
+    """DeepSeek 官方直连（L1=flash / L2=pro）；层 env 覆盖优先。"""
+    layer = (layer or "").upper()
+    base = (
+        _env(f"TOKEN_LLM_{layer}_BASE")
+        or _env("DEEPSEEK_BASE_URL")
+        or _env("TOKEN_LLM_BASE")
+        or "https://api.deepseek.com/v1"
+    )
+    key = (
+        _env(f"TOKEN_LLM_{layer}_KEY")
+        or _env("DEEPSEEK_API_KEY")
+        or _env("TOKEN_LLM_KEY")
+    )
+    if layer == "L2":
+        model = (
+            _env("TOKEN_LLM_L2_MODEL")
+            or _env("DEEPSEEK_MODEL_PRO")
+            or "deepseek-v4-pro"
+        )
+    else:
+        model = (
+            _env("TOKEN_LLM_L1_MODEL")
+            or _env("DEEPSEEK_MODEL")
+            or _env("TOKEN_LLM_MODEL")
+            or "deepseek-v4-flash"
+        )
     return {
         "base": _normalize_openai_base(base),
         "key": key,
         "model": model,
-        "provider": "openrouter",
+        "provider": "deepseek",
     }
 
 
@@ -942,12 +982,25 @@ def _layer_upstream(layer: str) -> dict[str, str]:
     direct：L0 硅基 / L1 DeepSeek / QI DashScope 国际。
     """
     layer = (layer or "").upper()
-    if layer == "L1":
-        lane = _effective_l1_lane()
-        if lane:
-            got = _upstream_from_flash_lane(lane)
-            if got and got.get("key"):
-                return got
+    # 2026-08-17: L1/L2 统一通道决策（openrouter/direct 两种模式一致）：
+    #   TOKEN_LLM_{layer}_UPSTREAM=deepseek/direct/official/ds → DeepSeek 直连；
+    #   =or/openrouter/agg/aggregator → 强制 OR；
+    #   其它/空 → MiMo 档官方直连优先（实测 TTFB 0.44s vs OR 4.0s），OR 兜底，最后 DeepSeek 直连。
+    # 2026-09-04: L1 额外支持管理台 token_llm_l1_lane（flash/auto 一键切通道）。
+    if layer in ("L1", "L2"):
+        if layer == "L1":
+            lane = _effective_l1_lane()
+            if lane:
+                got = _upstream_from_flash_lane(lane)
+                if got and got.get("key"):
+                    return got
+        v = (_env(f"TOKEN_LLM_{layer}_UPSTREAM", "") or "").strip().lower()
+        if v in ("deepseek", "direct", "official", "ds"):
+            return _layer_ds_direct_upstream(layer)
+        or_up = _layer_or_upstream_override(layer)
+        if or_up:
+            return or_up
+        return _layer_ds_direct_upstream(layer)
     if _upstream_mode() == "openrouter":
         # L0 若已配硅基：用独立通道作 FREE 降级 / 免费共享，避免 OR 整站挂时无兜底
         sf_key = _env("SILICONFLOW_API_KEY") or _env("TOKEN_LLM_L0_KEY")
@@ -1185,7 +1238,7 @@ def _deepseek_official_upstream() -> dict[str, str]:
     if not key:
         return {"base": "", "key": "", "model": "", "provider": "deepseek"}
     base = (_env("DEEPSEEK_BASE_URL") or "https://api.deepseek.com/v1").strip()
-    model = (_env("DEEPSEEK_MODEL") or "deepseek-v4-flash").strip()
+    model = (_env("DEEPSEEK_MODEL") or "deepseek-flash").strip()
     return {
         "base": _normalize_openai_base(base),
         "key": key,
@@ -1225,7 +1278,7 @@ def _deepseek_upstream_for_layer(layer: str) -> dict[str, str]:
         model = (
             _env("DEEPSEEK_MODEL")
             or _env("TOKEN_LLM_L1_MODEL")
-            or "deepseek-v4-flash"
+            or "deepseek-flash"
         ).strip()
     return {
         "base": _normalize_openai_base(base),
@@ -1806,11 +1859,13 @@ def _run_routed_chat_inner(
                     "ms": int(elapsed * 1000),
                 }
             )
-            # OR 主档 L1/L2 失败且 OR 模型是 MiMo：先切官方直连（同模型，成本=OR 价）
+            # L1/L2 MiMo 档失败：主档是 OR 时切官方直连（同模型，成本=OR 价）；
+            # 主档已是官方直连（provider=mimo）则不重复重试，直接进下一层。
             if (
                 layer in ("L1", "L2")
                 and _upstream_mode() == "openrouter"
                 and _mimo_failover_enabled()
+                and "mimo" not in str(up.get("provider") or "").lower()
                 and "mimo" in str(api_model).lower()
             ):
                 mi = _layer_mimo_upstream(layer)
@@ -2130,7 +2185,7 @@ def _silicon_vip_upstream(model_id: str) -> Optional[dict[str, str]]:
 # —— 国际聚合备用（#2 TokenLab / #3 Requesty）：仅 OR 失败后进入，优先级在厂直连之前 ——
 _TOKENLAB_MODEL_MAP: dict[str, str] = {
     "vip-hy3": "hy3",
-    "vip-ds-flash": "deepseek-v4-flash",
+    "vip-ds-flash": "deepseek-flash",
     "vip-ds-pro": "deepseek-v4-pro",
     "vip-kimi": "kimi-k3",
     "vip-kimi-code": "kimi-k2.7-code",
@@ -2150,6 +2205,8 @@ _TOKENLAB_MODEL_MAP: dict[str, str] = {
     "vip-gemini-flash": "gemini-3.6-flash",
     "vip-gpt56-terra": "gpt-5.6-terra",
     "vip-gpt56-luna": "gpt-5.6-luna",
+    "vip-gpt56-sol": "gpt-5.6-sol",
+    "vip-gpt6-astra": "gpt-6-astra",
     "vip-grok": "grok-4.20",
 }
 
@@ -2175,6 +2232,8 @@ _REQUESTY_MODELS: frozenset[str] = frozenset({
     "google/gemini-3.1-pro-preview",
     "openai/gpt-5.6-terra",
     "openai/gpt-5.6-luna",
+    "openai/gpt-5.6-sol",
+    "openai/gpt-6-astra",
 })
 
 
@@ -2243,14 +2302,22 @@ def _vip_aggregator_chain(pick: dict[str, Any], or_id: str) -> list[dict[str, st
         if pid == "openrouter":
             if not or_id or _upstream_mode() != "openrouter":
                 continue
-            up = _layer_upstream("L1")
-            if not (up.get("key") and up.get("base")):
+            # OR 候选必须使用 OpenRouter 专用通道，不得复用 L1/L2 层配置
+            # （L1 在未配置 TOKEN_LLM_L1_UPSTREAM 时可能解析为 MiMo 直连，导致 400/503）
+            try:
+                from llm_keys import openrouter_main_key
+
+                or_key = openrouter_main_key()
+            except Exception:
+                or_key = ""
+            or_base = _env("OPENROUTER_BASE_URL") or "https://openrouter.ai/api/v1"
+            if not or_key:
                 continue
             out.append(
                 {
                     "provider": "openrouter",
-                    "base": str(up["base"]),
-                    "key": str(up["key"]),
+                    "base": _normalize_openai_base(or_base),
+                    "key": or_key,
                     "model": or_id,
                 }
             )
@@ -2395,6 +2462,20 @@ def _run_vip_pick_chat(
             if got:
                 return got
 
+    # A2) MiMo 点名：官方直连优先（2026-08-17 实测 TTFB 0.44s vs OR 4.0s）
+    if "mimo" in or_id.lower() and _mimo_failover_enabled():
+        mi = _layer_mimo_upstream("L2")
+        if mi:
+            got = _try_call(
+                base=str(mi["base"]),
+                key=str(mi["key"]),
+                model=str(mi["model"]),
+                provider="mimo",
+                note="mimo_official_first",
+            )
+            if got:
+                return got
+
     # B) 中国模（非国际旗舰）：硅基 .com 优先（原厂价+国际端点，又快又便宜）
     if (
         (not is_intl_flagship)
@@ -2426,7 +2507,7 @@ def _run_vip_pick_chat(
         )
         if got:
             return got
-    # C2) MiMo 点名：聚合链失败后切官方直连（同模型 mimo-v2.5-pro；2026-08-15 直连兜底）
+    # C2) MiMo 点名：聚合链失败后官方直连重试兜底（同模型 mimo-v2.5-pro）
     if "mimo" in or_id.lower() and _mimo_failover_enabled():
         mi = _layer_mimo_upstream("L2")
         if mi:
@@ -3036,8 +3117,6 @@ def _stream_openai_compatible(
         release_upstream_slot()
 
 
-
-
 def _stub_response(prompt: str, *, layer: str, model: str) -> dict[str, Any]:
     preview = (prompt or "")[:80]
     text = (
@@ -3304,11 +3383,13 @@ def _run_routed_chat_stream_inner(
                     mult,
                 )
             )
-            # MiMo 官方直连同模型兜底（OR 的 xiaomi/mimo-* 失败后；2026-08-15）
+            # MiMo 官方直连同模型兜底（OR 的 xiaomi/mimo-* 失败后；2026-08-15）。
+            # 主档已是官方直连（provider=mimo）则不重复追加。
             if (
                 layer in ("L1", "L2")
                 and _upstream_mode() == "openrouter"
                 and _mimo_failover_enabled()
+                and "mimo" not in str(up.get("provider") or "").lower()
                 and "mimo" in api_model.lower()
             ):
                 mi = _layer_mimo_upstream(layer)
@@ -3442,6 +3523,11 @@ def _run_vip_pick_chat_stream(
         ds = _deepseek_official_upstream()
         if ds.get("key") and ds.get("base"):
             targets.append(("deepseek", str(ds["base"]), str(ds["key"]), direct_id))
+    # A2) MiMo 点名：官方直连优先（2026-08-17 实测 TTFB 0.44s vs OR 4.0s）
+    if "mimo" in or_id.lower() and _mimo_failover_enabled():
+        mi = _layer_mimo_upstream("L2")
+        if mi:
+            targets.append(("mimo", str(mi["base"]), str(mi["key"]), str(mi["model"])))
     # B) 中国模：硅基 .com 优先（原厂价+国际CDN）
     if (not is_intl) and (not is_ds_pick) and sf_id and _vip_silicon_first_enabled():
         sf = _silicon_vip_upstream(sf_id)
@@ -3458,7 +3544,7 @@ def _run_vip_pick_chat_stream(
             sf = _silicon_vip_upstream(sf_id)
             if sf:
                 targets.append(("siliconflow", sf["base"], sf["key"], sf["model"]))
-    # C2) MiMo 点名：聚合链失败后官方直连兜底（2026-08-15）
+    # C2) MiMo 点名：聚合链失败后官方直连重试兜底
     if "mimo" in or_id.lower() and _mimo_failover_enabled():
         mi = _layer_mimo_upstream("L2")
         if mi:

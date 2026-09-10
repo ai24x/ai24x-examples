@@ -79,6 +79,7 @@ def _prompt_max_chars() -> int:
 # OpenRouter 风格 model id（provider/model）→ 平台 vip id；避免被「未知模型 400」误杀
 _OPENAI_OR_ALIASES: Dict[str, str] = {
     "deepseek/deepseek-v4-flash": "vip-ds-flash",
+    "deepseek/deepseek-flash": "vip-ds-flash",
     "deepseek/deepseek-v4-pro": "vip-ds-pro",
     "openai/gpt-5": "vip-gpt5",
     "openai/gpt-5-mini": "vip-gpt5-mini",
@@ -87,6 +88,8 @@ _OPENAI_OR_ALIASES: Dict[str, str] = {
     "openai/gpt-4o-mini": "vip-gpt4o-mini",
     "openai/gpt-5.6-terra": "vip-gpt56-terra",
     "openai/gpt-5.6-luna": "vip-gpt56-luna",
+    "openai/gpt-5.6-sol": "vip-gpt56-sol",
+    "openai/gpt-6-astra": "vip-gpt6-astra",
     "anthropic/claude-sonnet-5": "vip-claude-sonnet",
     "anthropic/claude-haiku-4.5": "vip-claude-haiku",
     "anthropic/claude-opus-5": "vip-claude-opus",
@@ -115,6 +118,9 @@ _OPENAI_MODEL_ALIASES: Dict[str, str] = {
     "gpt-3.5-turbo-16k": "flash",
     "gpt-5-mini": "flash",
     "gpt-5": "pro",
+    "gpt-6-astra": "vip-gpt6-astra",
+    "gpt-6": "vip-gpt6-astra",
+    "astra": "vip-gpt6-astra",
     "claude-3-5-sonnet": "pro",
     "claude-3-5-haiku": "flash",
     "claude-3-haiku": "flash",

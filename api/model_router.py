@@ -60,13 +60,13 @@ MODEL_LAYER: dict[str, str] = {
     "gpt-3.5-turbo": "L1",
 }
 
-# —— DeepSeek 峰谷计价（2026-08-15 落地，官方 8/17 00:00 生效）——
-# 官方峰时：北京 09:00-12:00 / 14:00-18:00；其余谷时（18:00-次日 09:00 整夜 15 小时）
+# —— DeepSeek 峰谷计价（官方：UTC 周一至五 01:00-04:00 / 06:00-10:00 = 北京 09:00-12:00 / 14:00-18:00）——
+# 周末全日闲时；可用 TOKEN_LLM_PERIOD=peak|offpeak 强制。
 PEAK_WINDOWS: tuple[tuple[int, int], ...] = ((9, 12), (14, 18))
 
 
 def current_period(*, now: Optional[Any] = None) -> str:
-    """返回 DeepSeek 计价时段：'peak' / 'offpeak'（Asia/Shanghai 实时判定，不缓存价格）。"""
+    """返回 DeepSeek 计价时段：'peak' / 'offpeak'（Asia/Shanghai；周末一律闲时）。"""
     forced = (os.getenv("TOKEN_LLM_PERIOD") or "").strip().lower()
     if forced in ("peak", "offpeak"):
         return forced
@@ -75,6 +75,9 @@ def current_period(*, now: Optional[Any] = None) -> str:
     t = now or _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=8)))
     if getattr(t, "tzinfo", None) is None:
         t = t.replace(tzinfo=_dt.timezone(_dt.timedelta(hours=8)))
+    # 官方：Peak 仅周一至五
+    if int(t.weekday()) >= 5:
+        return "offpeak"
     hh = t.hour
     return "peak" if any(s <= hh < e for s, e in PEAK_WINDOWS) else "offpeak"
 
@@ -138,18 +141,18 @@ _OR_DEFAULT_MODELS = {
 LOGICAL_TO_UPSTREAM_MODEL_DIRECT = {
     "glm-4-flash": "THUDM/glm-4-9b-chat",
     "siliconflow-free": "Qwen/Qwen2.5-7B-Instruct",
-    "flash": "deepseek-v4-flash",
-    "deepseek-flash": "deepseek-v4-flash",
-    "deepseek-chat": "deepseek-v4-flash",
-    "deepseek-v4-flash": "deepseek-v4-flash",
+    "flash": "deepseek-flash",
+    "deepseek-flash": "deepseek-flash",
+    "deepseek-chat": "deepseek-flash",
+    "deepseek-v4-flash": "deepseek-flash",
     "pro": "deepseek-v4-pro",
     "deepseek-pro": "deepseek-v4-pro",
     "deepseek-reasoner": "deepseek-v4-pro",
     "deepseek-v4-pro": "deepseek-v4-pro",
     "ultra": "deepseek-v4-pro",
-    "gpt-3.5-turbo": "deepseek-v4-flash",
-    "auto": "deepseek-v4-flash",
-    "free": "deepseek-v4-flash",
+    "gpt-3.5-turbo": "deepseek-flash",
+    "auto": "deepseek-flash",
+    "free": "deepseek-flash",
     "qwen-intl-turbo": "qwen-turbo",
     "qwen-intl-plus": "qwen-plus",
     "qwen-plus": "qwen-plus",
@@ -558,7 +561,12 @@ def _is_deepseek_v4_upstream_model(model: str) -> bool:
     the old startswith('deepseek-v4') check missed OpenRouter ids.
     """
     base = _upstream_model_base(model)
-    return base.startswith("deepseek-v4")
+    return base.startswith("deepseek-v4") or base in (
+        "deepseek-flash",
+        "deepseek-chat",
+        "deepseek-reasoner",
+        "deepseek-pro",
+    )
 
 
 def _is_mimo_upstream_model(model: str, provider: str = "") -> bool:
@@ -1230,7 +1238,7 @@ def _deepseek_official_upstream() -> dict[str, str]:
     if not key:
         return {"base": "", "key": "", "model": "", "provider": "deepseek"}
     base = (_env("DEEPSEEK_BASE_URL") or "https://api.deepseek.com/v1").strip()
-    model = (_env("DEEPSEEK_MODEL") or "deepseek-v4-flash").strip()
+    model = (_env("DEEPSEEK_MODEL") or "deepseek-flash").strip()
     return {
         "base": _normalize_openai_base(base),
         "key": key,
@@ -1270,7 +1278,7 @@ def _deepseek_upstream_for_layer(layer: str) -> dict[str, str]:
         model = (
             _env("DEEPSEEK_MODEL")
             or _env("TOKEN_LLM_L1_MODEL")
-            or "deepseek-v4-flash"
+            or "deepseek-flash"
         ).strip()
     return {
         "base": _normalize_openai_base(base),
@@ -2177,7 +2185,7 @@ def _silicon_vip_upstream(model_id: str) -> Optional[dict[str, str]]:
 # —— 国际聚合备用（#2 TokenLab / #3 Requesty）：仅 OR 失败后进入，优先级在厂直连之前 ——
 _TOKENLAB_MODEL_MAP: dict[str, str] = {
     "vip-hy3": "hy3",
-    "vip-ds-flash": "deepseek-v4-flash",
+    "vip-ds-flash": "deepseek-flash",
     "vip-ds-pro": "deepseek-v4-pro",
     "vip-kimi": "kimi-k3",
     "vip-kimi-code": "kimi-k2.7-code",
@@ -2198,6 +2206,7 @@ _TOKENLAB_MODEL_MAP: dict[str, str] = {
     "vip-gpt56-terra": "gpt-5.6-terra",
     "vip-gpt56-luna": "gpt-5.6-luna",
     "vip-gpt56-sol": "gpt-5.6-sol",
+    "vip-gpt6-astra": "gpt-6-astra",
     "vip-grok": "grok-4.20",
 }
 
@@ -2224,6 +2233,7 @@ _REQUESTY_MODELS: frozenset[str] = frozenset({
     "openai/gpt-5.6-terra",
     "openai/gpt-5.6-luna",
     "openai/gpt-5.6-sol",
+    "openai/gpt-6-astra",
 })
 
 

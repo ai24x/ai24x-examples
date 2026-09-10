@@ -313,6 +313,7 @@ def apply_flash_lane(*, lane_id: str, actor: str = "admin") -> dict[str, Any]:
         },
         **{k: snap.get(k) for k in (
             "flash_lanes",
+            "vip_board",
             "hero_picks",
             "summary",
             "rows",
