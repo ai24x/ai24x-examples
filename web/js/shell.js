@@ -342,9 +342,6 @@
       'partner.html" data-i18n="footer.link.partner"></a>' +
       '<a href="' +
       pre +
-      'tools.html" data-i18n="footer.link.tools"></a>' +
-      '<a href="' +
-      pre +
       'blog/index.html" data-i18n="footer.link.blog"></a>' +
       "</div>" +
       '<div class="footer-col">' +
@@ -358,6 +355,9 @@
       '<a href="' +
       openUrl() +
       '" data-i18n="footer.link.developer"></a>' +
+      '<a href="' +
+      pre +
+      'tools.html" data-i18n="footer.link.tools"></a>' +
       "</div>" +
       '<div class="footer-col">' +
       '<div class="footer-title" data-i18n="footer.col.corp"></div>' +
