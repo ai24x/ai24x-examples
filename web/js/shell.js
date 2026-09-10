@@ -342,6 +342,9 @@
       'partner.html" data-i18n="footer.link.partner"></a>' +
       '<a href="' +
       pre +
+      'tools.html" data-i18n="footer.link.tools"></a>' +
+      '<a href="' +
+      pre +
       'blog/index.html" data-i18n="footer.link.blog"></a>' +
       "</div>" +
       '<div class="footer-col">' +

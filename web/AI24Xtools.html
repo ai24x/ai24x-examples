@@ -1,0 +1,2650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />
+<title>AI Free Tools · AI24X (Offline)</title>
+<meta name="description" content="Curated free AI tools - no-login priority, China-friendly. Chat, image, music, video, coding." />
+<style>
+/* === base.css === */
+/* AI24X — 全局基础（与主题文件叠加，无第三方框架） */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  /* 避免「有/无纵向滚动条」时视口宽度变化，导致 sticky 顶栏左右轻微跳动 */
+  scrollbar-gutter: stable;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--text);
+  background: var(--bg);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+a {
+  color: var(--link);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--link-hover);
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+.container {
+  width: 100%;
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+.page-main {
+  flex: 1;
+}
+
+/* —— Header —— */
+.site-topbar {
+  display: none;
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: var(--header-blur);
+}
+
+.header-inner {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--header-h);
+}
+
+/* 控制台产品切换条（仅控制台页，≥860px 显示；独立一行，避免挤压主导航） */
+.product-switch-bar {
+  border-top: 1px solid var(--border);
+  background: var(--header-bg);
+}
+
+.product-switch-bar .container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px var(--gutter);
+}
+
+.product-switch-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-right: 8px;
+  white-space: nowrap;
+}
+
+.product-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.product-switch a {
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 5px 10px;
+  border-radius: 999px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.product-switch a.is-on {
+  color: #fff;
+  background: var(--accent);
+}
+
+.product-switch a:not(.is-on) {
+  color: var(--muted);
+  background: transparent;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+
+.brand-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  display: grid;
+  place-items: center;
+  font-size: 0.75rem;
+  font-weight: 900;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.nav-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 8px;
+}
+
+.nav-main a {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.nav-main a:hover {
+  color: var(--text);
+  background: var(--nav-hover-bg);
+}
+
+.nav-main a.is-active {
+  color: var(--accent);
+  background: var(--nav-active-bg);
+}
+
+/* 主导航里的「注册」高亮，避免远程/窄屏误以为没有入口 */
+.nav-main a[href="register.html"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border: 1px solid transparent;
+}
+.nav-main a[href="register.html"]:hover {
+  filter: brightness(1.06);
+  color: var(--accent-ink);
+}
+
+/* 主导航「Developer」下拉 */
+.nav-drop {
+  position: relative;
+}
+
+.nav-drop-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.nav-drop-btn:hover,
+.nav-drop.is-active .nav-drop-btn {
+  color: var(--text);
+  background: var(--nav-hover-bg);
+}
+
+.nav-drop.is-active .nav-drop-btn {
+  color: var(--accent);
+  background: var(--nav-active-bg);
+}
+
+.nav-caret {
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
+.nav-drop-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 190px;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  z-index: 60;
+}
+
+.nav-drop-menu a {
+  white-space: nowrap;
+}
+
+.nav-drop:hover .nav-drop-menu,
+.nav-drop:focus-within .nav-drop-menu {
+  display: flex;
+}
+
+.header-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.header-actions .header-upgrade,
+.header-actions .header-gateway {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.header-actions .header-upgrade {
+  background: var(--accent);
+  color: var(--accent-ink, #fff);
+  border: 1px solid transparent;
+}
+
+.header-actions .header-upgrade:hover {
+  filter: brightness(1.06);
+  color: var(--accent-ink, #fff);
+  text-decoration: none;
+}
+
+.header-actions .header-gateway {
+  padding: 7px 12px;
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  background: transparent;
+}
+
+.header-actions .header-gateway:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  text-decoration: none;
+}
+
+.header-actions .lang-select {
+  flex-shrink: 0;
+  max-width: 118px;
+  padding: 7px 8px;
+}
+
+.select-mini,
+.btn {
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.select-mini {
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  max-width: 110px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: transparent;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.06);
+  color: var(--accent-ink);
+}
+
+.btn-usdt {
+  background: #26a17b;
+  color: #fff;
+  border-color: transparent;
+}
+
+.btn-usdt:hover {
+  filter: brightness(1.08);
+  color: #fff;
+}
+
+.btn-ghost {
+  background: transparent;
+}
+
+.menu-toggle {
+  display: none;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.menu-toggle span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: currentColor;
+  box-shadow: 0 5px 0 currentColor, 0 10px 0 currentColor;
+}
+
+@media (max-width: 1100px) {
+  /* 中宽屏：先藏次要「Get API Key」，保住主 CTA + 语言 */
+  .header-actions .header-gateway {
+    display: none;
+  }
+}
+
+@media (max-width: 960px) {
+  .header-inner {
+    grid-template-columns: auto auto auto;
+    grid-template-areas: "brand toggle actions";
+  }
+
+  .brand {
+    grid-area: brand;
+  }
+
+  .menu-toggle {
+    grid-area: toggle;
+    display: inline-flex;
+    justify-self: start;
+  }
+
+  .header-actions {
+    grid-area: actions;
+    gap: 6px;
+  }
+
+  .header-actions .header-upgrade {
+    padding: 7px 12px;
+    font-size: 0.8rem;
+  }
+
+  .header-actions .lang-select {
+    max-width: 100px;
+  }
+
+  .nav-main {
+    display: none;
+    position: absolute;
+    top: var(--header-h);
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px var(--gutter) 16px;
+    background: var(--header-bg);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow-md);
+  }
+
+  .nav-main.is-open {
+    display: flex;
+  }
+
+  .nav-main a {
+    padding: 12px 14px;
+  }
+
+  .nav-drop {
+    width: 100%;
+  }
+
+  .nav-drop-btn {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 12px 14px;
+  }
+
+  .nav-drop-menu {
+    position: static;
+    transform: none;
+    min-width: 0;
+    display: flex;
+    margin: 2px 0 4px 14px;
+    border: 0;
+    border-left: 2px solid var(--border);
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .header-actions .select-mini.theme-select {
+    display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  /* 超窄：主 CTA 缩成短标，语言仍在 */
+  .header-actions .header-upgrade {
+    padding: 7px 10px;
+    font-size: 0.75rem;
+  }
+}
+
+/* —— Sections —— */
+.section {
+  padding: clamp(40px, 6vw, 72px) 0;
+}
+
+.section-tight {
+  padding: clamp(28px, 4vw, 48px) 0;
+}
+
+/* 登录 / 注册：主内容区整体上移（仍保留可读留白） */
+body[data-page="login"] .page-main > .section:first-child,
+body[data-page="register"] .page-main > .section:first-child {
+  padding-top: clamp(16px, 2.5vw, 32px);
+  padding-bottom: clamp(28px, 4vw, 56px);
+}
+
+.hero {
+  padding: clamp(48px, 8vw, 88px) 0;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(2rem, 4.5vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  color: var(--hero-title, var(--text));
+}
+
+.hero .lead {
+  margin: 16px 0 0;
+  font-size: 1.125rem;
+  color: var(--hero-lead, var(--muted));
+  max-width: 46em;
+  text-wrap: pretty;
+  line-break: strict;
+}
+
+.hero .lead .nowrap {
+  white-space: nowrap;
+}
+
+.hero .lead strong {
+  color: var(--hero-strong, var(--text));
+}
+
+.tag-row {
+  margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1px solid var(--tag-border);
+  background: var(--tag-bg);
+  color: var(--tag-text);
+}
+
+.tag-free {
+  background: #0f7b4e;
+  color: #fff;
+  border-color: #0f7b4e;
+}
+.tag-value {
+  background: #d97706;
+  color: #fff;
+  border-color: #d97706;
+}
+
+.badge-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #dc2626;
+  margin-left: -6px;
+  vertical-align: super;
+}
+
+.tag code {
+  font-size: 0.75em;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--code-bg);
+  border: 0;
+}
+
+.callout {
+  margin-top: 20px;
+  padding: 16px 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--callout-border);
+  background: var(--callout-bg);
+  color: var(--callout-text);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.callout strong {
+  color: var(--callout-strong);
+}
+
+.callout code {
+  background: var(--callout-code-bg);
+  color: var(--callout-code-text);
+  border: 0;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 0.85em;
+}
+
+.hero-cta {
+  margin-top: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* 探索子导航：复用 .hero-cta 排版（标题/导语下方） */
+.hero-cta.page-explore-cta {
+  margin-top: 24px;
+}
+
+/* 非中文：整页先藏，等 i18n.apply 后再露（防闪中文；boot 内联同规则兜底） */
+html.i18n-pending body {
+  visibility: hidden !important;
+}
+
+/* 名模 / VIP / 价格 / 接入 / 注册 / 邀请：统一次级导航 */
+.page-subnav {
+  border-bottom: 1px solid var(--border, #d8e4ef);
+  background: color-mix(in srgb, var(--surface, #fff) 88%, var(--bg, #f4f7fb));
+}
+.page-subnav-inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 0;
+}
+.page-subnav-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border, #d8e4ef);
+  background: var(--surface, #fff);
+  color: var(--muted, #64748b);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  line-height: 1.2;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.page-subnav-link:hover {
+  color: var(--text, #0f172a);
+  border-color: color-mix(in srgb, var(--accent, #2563eb) 45%, var(--border, #d8e4ef));
+}
+.page-subnav-link.is-active {
+  color: #fff;
+  background: var(--accent, #2563eb);
+  border-color: var(--accent, #2563eb);
+}
+.page-subnav-link.is-active:hover {
+  color: #fff;
+}
+
+.section h2 {
+  margin: 0;
+  font-size: clamp(1.5rem, 2.5vw, 1.85rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--heading);
+}
+
+.section .sub {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--grid-gap);
+  margin-top: 24px;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--grid-gap);
+  margin-top: 24px;
+}
+
+.plan-billing-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--grid-gap);
+  margin-top: 8px;
+}
+
+.plan-compare-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.plan-compare {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.plan-compare th,
+.plan-compare td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border, #d8e4ef);
+  vertical-align: middle;
+}
+
+.plan-compare thead th {
+  color: var(--muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.plan-compare tr.is-recommended {
+  background: color-mix(in srgb, var(--accent, #2563eb) 8%, transparent);
+}
+
+.plan-compare .plan-rec {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent, #2563eb);
+  border: 1px solid color-mix(in srgb, var(--accent, #2563eb) 40%, transparent);
+}
+
+.plan-compare-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+.plan-compare-pay .btn {
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  min-width: 96px;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.keys-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.keys-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.keys-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.keys-table th,
+.keys-table td {
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border, #d8e4ef);
+  vertical-align: middle;
+}
+
+.keys-table thead th {
+  color: var(--muted);
+  font-weight: 600;
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+
+.keys-table .keys-name {
+  font-weight: 600;
+  max-width: 160px;
+  word-break: break-word;
+}
+
+.keys-table .keys-prefix {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.keys-table .keys-date {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.keys-table .keys-col-actions,
+.keys-table .keys-actions {
+  white-space: nowrap;
+  text-align: right;
+  width: 1%;
+}
+
+.keys-table .keys-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.keys-table .keys-empty td {
+  color: var(--muted);
+  text-align: center;
+  padding: 28px 14px;
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-icon:hover {
+  background: color-mix(in srgb, var(--accent, #2563eb) 10%, transparent);
+  color: var(--accent, #2563eb);
+  border-color: color-mix(in srgb, var(--accent, #2563eb) 25%, transparent);
+}
+
+.btn-icon-danger:hover {
+  background: color-mix(in srgb, #dc2626 10%, transparent);
+  color: #dc2626;
+  border-color: color-mix(in srgb, #dc2626 25%, transparent);
+}
+
+.mb-0 {
+  margin-bottom: 0 !important;
+}
+
+@media (min-width: 901px) {
+  .console-help-sticky {
+    position: sticky;
+    top: 84px;
+    align-self: start;
+  }
+}
+
+/* 右侧客服浮钮 + 弹层 */
+.sw-fab-wrap {
+  position: fixed;
+  right: max(20px, env(safe-area-inset-right, 0px));
+  bottom: calc(max(28px, env(safe-area-inset-bottom, 0px) + 12px) + var(--sw-kb, 0px));
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  transition: bottom 0.15s ease;
+}
+.sw-tip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 220px;
+  padding: 8px 10px 8px 12px;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  background: var(--card-bg);
+  color: var(--text);
+  box-shadow: var(--card-shadow);
+  font-size: 0.875rem;
+  line-height: 1.35;
+  position: relative;
+  animation: sw-tip-in 0.28s ease;
+}
+.sw-tip::after {
+  content: "";
+  position: absolute;
+  right: 22px;
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  background: var(--card-bg);
+  border-right: 1px solid var(--card-border);
+  border-bottom: 1px solid var(--card-border);
+  transform: rotate(45deg);
+}
+.sw-tip-x {
+  border: 0;
+  background: transparent;
+  color: var(--muted, #64748b);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0 2px;
+}
+.sw-fab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  padding: 12px 16px 12px 14px;
+  background: var(--accent, #2563eb);
+  color: var(--accent-ink, #fff);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.sw-fab:hover,
+.sw-fab:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.2);
+  outline: none;
+}
+.sw-fab[aria-expanded="true"] {
+  background: var(--card-bg);
+  color: var(--text);
+}
+.sw-fab-ico {
+  flex: 0 0 auto;
+  display: block;
+}
+.sw-fab-label {
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+.sw-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1190;
+  background: rgba(15, 23, 42, 0.28);
+}
+.sw-panel {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px) + var(--sw-kb, 0px));
+  z-index: 1210;
+  width: min(400px, calc(100vw - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+  max-height: calc(min(78vh, 640px) - var(--sw-kb, 0px));
+  overflow: auto;
+  margin: 0;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
+  animation: sw-panel-in 0.2s ease;
+  transition: bottom 0.15s ease, max-height 0.15s ease;
+  -webkit-overflow-scrolling: touch;
+}
+.sw-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.sw-close {
+  min-width: 36px;
+  padding: 4px 10px;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+.sw-ticket-box {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.sw-ticket-row {
+  margin: 8px 0;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+@keyframes sw-tip-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes sw-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 600px) {
+  .sw-fab-wrap {
+    right: max(12px, env(safe-area-inset-right, 0px));
+    bottom: calc(max(16px, env(safe-area-inset-bottom, 0px) + 8px) + var(--sw-kb, 0px));
+  }
+  .sw-fab {
+    padding: 14px;
+    border-radius: 50%;
+    min-width: 48px;
+    min-height: 48px;
+    justify-content: center;
+  }
+  .sw-fab-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+  .sw-tip {
+    max-width: min(200px, calc(100vw - 88px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+  }
+  .sw-panel {
+    right: max(8px, env(safe-area-inset-right, 0px));
+    left: max(8px, env(safe-area-inset-left, 0px));
+    width: auto;
+    bottom: calc(80px + env(safe-area-inset-bottom, 0px) + var(--sw-kb, 0px));
+    max-height: calc(100dvh - 96px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - var(--sw-kb, 0px));
+  }
+}
+
+@media (max-width: 900px) {
+  .grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .grid-3,
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 20px;
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
+}
+
+.card h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--heading);
+}
+
+.card p {
+  margin: 10px 0 0;
+  font-size: 0.9375rem;
+  color: var(--muted);
+}
+
+.card ul {
+  margin: 10px 0 0;
+  padding-left: 1.2em;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--grid-gap);
+  margin-top: 24px;
+}
+
+@media (max-width: 900px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stat-card {
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
+}
+
+.stat-label {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.stat-value {
+  margin-top: 10px;
+  font-size: 1.6rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--heading);
+}
+
+.stat-sub {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.card-actions {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.btn-pay {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-pay .pay-ico {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  display: block;
+}
+
+.list-clean {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+}
+
+.list-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-soft, rgba(148, 163, 184, 0.25));
+  color: var(--text);
+  font-size: 0.9375rem;
+}
+
+.list-item:last-child {
+  border-bottom: 0;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.code-block {
+  margin-top: 14px;
+  padding: 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--codeblock-border);
+  background: var(--codeblock-bg);
+  color: var(--codeblock-text);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Forms */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+
+.input,
+.textarea {
+  width: 100%;
+  max-width: 400px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.9375rem;
+}
+
+.textarea {
+  max-width: 100%;
+  min-height: 100px;
+  resize: vertical;
+}
+
+.form-hint {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.alert {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  margin-top: 12px;
+}
+
+.alert-error {
+  background: var(--alert-error-bg);
+  color: var(--alert-error-text);
+  border: 1px solid var(--alert-error-border);
+}
+
+.alert-success {
+  background: var(--alert-ok-bg);
+  color: var(--alert-ok-text);
+  border: 1px solid var(--alert-ok-border);
+}
+
+/* 控制台等：支付弹窗打开时页顶消息易被挡住，用底部浮层补一眼 */
+.ai24x-toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 10050;
+  max-width: min(440px, calc(100vw - 32px));
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  box-shadow: 0 10px 32px rgba(15, 23, 42, 0.2);
+  pointer-events: none;
+}
+.ai24x-toast[hidden] {
+  display: none !important;
+}
+.ai24x-toast.is-error {
+  background: var(--alert-error-bg);
+  color: var(--alert-error-text);
+  border: 1px solid var(--alert-error-border);
+}
+.ai24x-toast.is-ok {
+  background: var(--alert-ok-bg);
+  color: var(--alert-ok-text);
+  border: 1px solid var(--alert-ok-border);
+}
+
+#consoleMsg .console-inline-alert {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+  position: sticky;
+  top: 8px;
+  z-index: 20;
+}
+#consoleMsg .console-alert-dismiss {
+  flex: 0 0 auto;
+  padding: 2px 10px;
+  font-size: 0.8rem;
+}
+
+/* console panel alerts: see .console-panel-msg near .console-identity */
+
+/* 登录 / 注册：手机号与邮箱切换 */
+.auth-tabs {
+  display: flex;
+  margin-bottom: 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.auth-tabs button {
+  flex: 1;
+  padding: 12px 14px;
+  border: none;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  min-height: 46px;
+}
+.auth-tabs button + button {
+  border-left: 1px solid var(--border);
+}
+.auth-tabs button.is-active {
+  background: var(--card-bg);
+  color: var(--text);
+  font-weight: 700;
+}
+.auth-field-hidden {
+  display: none !important;
+}
+
+.form-row-sms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+}
+.form-row-sms .grow {
+  flex: 1;
+  min-width: 140px;
+}
+
+/* 验证码输入与「获取验证码」同一行 */
+.form-group-otp-inline .form-otp-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 6px;
+}
+.form-group-otp-inline .form-otp-row .input {
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+}
+.form-group-otp-inline .form-otp-row .btn-otp-send {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  align-self: stretch;
+  padding-left: 14px;
+  padding-right: 14px;
+}
+
+/* Footer */
+.site-footer {
+  margin-top: auto;
+  padding: 40px 0 24px;
+  border-top: 1px solid var(--border);
+  background: var(--footer-bg);
+  color: var(--footer-text);
+  font-size: 0.875rem;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1.4fr repeat(3, 1fr);
+  gap: 24px;
+}
+
+@media (max-width: 800px) {
+  .footer-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.footer-title {
+  font-weight: 800;
+  color: var(--footer-heading);
+  margin-bottom: 10px;
+}
+
+.footer-col a {
+  display: block;
+  padding: 5px 0;
+  color: var(--footer-link);
+}
+
+.footer-col a:hover {
+  color: var(--accent);
+}
+
+.footer-bottom {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+/* Utility */
+.mt-0 {
+  margin-top: 0;
+}
+.mt-2 {
+  margin-top: 8px;
+}
+
+/* 帮助中心：FAQ 卡片纵向间距（mt-2=8px 偏紧） */
+body[data-page="help"] .help-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  margin-top: 1.25rem;
+}
+body[data-page="help"] .help-stack > .card {
+  margin-top: 0;
+}
+body[data-page="help"] .help-block-gap {
+  margin-top: 2.5rem;
+}
+body[data-page="help"] #support {
+  margin-bottom: 0.25rem;
+}
+
+.flex-gap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Lightweight modal card (console / auth) */
+.ui-modal-root {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.ui-modal-root.is-open {
+  display: flex;
+}
+.ui-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+}
+.ui-modal-card {
+  position: relative;
+  z-index: 1;
+  width: min(420px, 100%);
+  background: var(--surface, #fff);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18);
+  padding: 20px 20px 16px;
+}
+.ui-modal-card h3 {
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+}
+.ui-modal-card .ui-modal-sub {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.ui-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+.ui-modal-key {
+  margin-top: 8px;
+  padding: 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface, #fff));
+  border: 1px dashed var(--border);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  word-break: break-all;
+  line-height: 1.45;
+}
+
+/* Console: left nav + right panels */
+.console-hero .lead {
+  max-width: 40rem;
+}
+.console-section {
+  padding-top: 0.5rem;
+}
+.console-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 1.25rem 1.75rem;
+  align-items: start;
+}
+.console-sidebar {
+  position: sticky;
+  top: 5.5rem;
+}
+.console-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+}
+.console-nav-item {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 550;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  cursor: pointer;
+  line-height: 1.3;
+}
+.console-nav-item:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.console-nav-item.is-active {
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface, #fff));
+  color: var(--accent);
+  font-weight: 650;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.console-main {
+  min-width: 0;
+}
+.console-panel[hidden] {
+  display: none !important;
+}
+.console-panel-head {
+  margin-bottom: 1rem;
+}
+.console-panel-head h2 {
+  font-size: 1.35rem;
+  margin-bottom: 0.35rem;
+}
+.console-alert {
+  margin-bottom: 1rem;
+}
+.console-identity {
+  margin-bottom: 1rem;
+  padding: 14px 16px;
+}
+.console-identity-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 12px 1.25rem;
+  align-items: start;
+}
+.console-identity-col .stat-label {
+  min-height: 1.25em;
+}
+.console-identity-value {
+  font-weight: 650;
+  font-size: 1.05rem;
+  word-break: break-all;
+  margin-top: 0.2rem;
+}
+.console-identity-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  align-self: center;
+}
+.console-panel-msg:empty {
+  display: none;
+}
+.console-panel-msg .console-inline-alert,
+#consoleMainMsg .console-inline-alert,
+#consoleMsg .console-inline-alert {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+  position: sticky;
+  top: 8px;
+  z-index: 20;
+}
+.console-panel-msg .console-alert-dismiss,
+#consoleMainMsg .console-alert-dismiss,
+#consoleMsg .console-alert-dismiss {
+  flex: 0 0 auto;
+  padding: 2px 10px;
+  font-size: 0.8rem;
+}
+@media (max-width: 700px) {
+  .console-identity-row {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+  .console-identity-actions {
+    justify-content: flex-start;
+    align-self: start;
+  }
+}
+@media (max-width: 900px) {
+  .console-layout {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .console-sidebar {
+    position: static;
+  }
+  .console-nav {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 6px;
+    padding: 8px;
+  }
+  .console-nav-item {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    padding: 0.55rem 0.8rem;
+  }
+  .console-nav-item.is-active {
+    box-shadow: none;
+  }
+}
+
+/* —— 全站产品切换条（ai24x-chrome.js） —— */
+.ai24x-product-bar {
+  border-bottom: 1px solid var(--border, #e2e8f0);
+  background: var(--header-bg, rgba(255, 255, 255, 0.92));
+  position: relative;
+  z-index: 3;
+}
+
+.ai24x-product-bar-inner {
+  max-width: var(--max-w, 1200px);
+  margin: 0 auto;
+  padding: 6px var(--gutter, 16px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ai24x-hub-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: var(--text, #0f172a);
+  text-decoration: none;
+  margin-right: 4px;
+  white-space: nowrap;
+}
+
+.ai24x-hub-brand:hover {
+  color: var(--accent, #2563eb);
+  text-decoration: none;
+}
+
+.ai24x-hub-brand.is-on .ai24x-hub-name {
+  color: var(--accent, #2563eb);
+}
+
+.ai24x-hub-mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  font-size: 0.62rem;
+  font-weight: 900;
+  background: var(--accent, #2563eb);
+  color: #fff;
+  flex: 0 0 26px;
+}
+
+.ai24x-eco-hint {
+  margin-left: auto;
+  font-size: 0.72rem;
+  color: var(--muted, #64748b);
+  white-space: nowrap;
+}
+
+.ai24x-product-bar .product-switch a:not(.is-on):hover {
+  color: var(--text, #0f172a);
+  background: color-mix(in srgb, var(--accent, #2563eb) 8%, transparent);
+}
+
+.brand-suffix {
+  font-weight: 600;
+  color: var(--muted, #64748b);
+  font-size: 0.88em;
+}
+
+.header-hub-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent, #2563eb) 40%, transparent);
+  color: var(--accent, #2563eb);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.header-hub-link:hover {
+  background: color-mix(in srgb, var(--accent, #2563eb) 8%, transparent);
+  text-decoration: none;
+}
+.open-header-inner.is-landing .header-upgrade {
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .ai24x-eco-hint {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .ai24x-product-bar-label {
+    display: none;
+  }
+}
+
+/* === theme-blue.css === */
+/* 主题 ① 极简科技蓝白 */
+body.theme-blue {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", Inter, sans-serif;
+  --maxw: 1140px;
+  --gutter: 18px;
+  --header-h: 64px;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --grid-gap: 18px;
+
+  --bg: #f4f8fc;
+  --surface: #ffffff;
+  --text: #0c1a2e;
+  --muted: #5a6d82;
+  --heading: #0c1a2e;
+  --border: #d8e4ef;
+  --link: #0b6bcb;
+  --link-hover: #0958ad;
+
+  --accent: #0b6bcb;
+  --accent-ink: #ffffff;
+
+  --header-bg: rgba(255, 255, 255, 0.92);
+  --header-blur: blur(12px);
+  --nav-hover-bg: rgba(11, 107, 203, 0.08);
+  --nav-active-bg: rgba(11, 107, 203, 0.12);
+  --shadow-md: 0 12px 40px rgba(12, 26, 46, 0.08);
+
+  --hero-title: #0c1a2e;
+  --hero-lead: #4a5f75;
+  --hero-strong: #0c1a2e;
+
+  --tag-border: #c5d9eb;
+  --tag-bg: #ffffff;
+  --tag-text: #2c4a63;
+  --code-bg: #e8f2fa;
+
+  --callout-border: #b3d4f5;
+  --callout-bg: #e8f4ff;
+  --callout-text: #1a3a52;
+  --callout-strong: #0b6bcb;
+  --callout-code-bg: rgba(255, 255, 255, 0.85);
+  --callout-code-text: #0b3d91;
+
+  --card-border: #d8e4ef;
+  --card-bg: #ffffff;
+  --card-shadow: 0 4px 20px rgba(12, 26, 46, 0.06);
+
+  --codeblock-border: #1a3a52;
+  --codeblock-bg: #0f2744;
+  --codeblock-text: #e8f1f8;
+
+  --footer-bg: #ffffff;
+  --footer-text: #5a6d82;
+  --footer-heading: #0c1a2e;
+  --footer-link: #5a6d82;
+
+  --alert-error-bg: #fef2f2;
+  --alert-error-text: #991b1b;
+  --alert-error-border: #fecaca;
+  --alert-ok-bg: #ecfdf5;
+  --alert-ok-text: #065f46;
+  --alert-ok-border: #a7f3d0;
+}
+
+body.theme-blue .hero.hero-surface {
+  background: linear-gradient(180deg, #ffffff 0%, #f4f8fc 100%);
+  border-bottom: 1px solid var(--border);
+}
+
+body.theme-blue .section-alt {
+  background: #eef4fa;
+}
+
+/* === tools page custom styles === */
+:root{--tools-maxw:1200px}
+.tools-hero{padding:48px 0 32px;text-align:center}
+.tools-hero h1{font-size:2rem;margin:0 0 8px;color:var(--heading)}
+.tools-hero p{color:var(--muted);max-width:640px;margin:0 auto 20px;font-size:15px;line-height:1.6}
+.tools-lang-bar{display:flex;justify-content:center;gap:10px;margin-bottom:28px;flex-wrap:wrap}
+.tools-lang-btn{padding:8px 22px;border-radius:999px;border:1px solid var(--border);background:var(--card-bg);color:var(--text);cursor:pointer;font-size:14px;transition:all .15s;font-family:inherit}
+.tools-lang-btn.active{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
+.tools-lang-btn:not(.active):hover{border-color:var(--accent)}
+.tools-section{margin-bottom:36px}
+.tools-section h2{font-size:1.2rem;margin:0 0 14px;display:flex;align-items:center;gap:8px;color:var(--heading)}
+.tools-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.tools-card{border:1px solid var(--border);border-radius:var(--radius);background:var(--card-bg);padding:16px 18px;transition:box-shadow .15s,border-color .15s}
+.tools-card:hover{border-color:var(--accent);box-shadow:0 4px 16px rgba(11,107,203,.08)}
+.tools-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px}
+.tools-card-name{font-weight:600;font-size:15px}
+.tools-card-name a{color:var(--heading);text-decoration:none}
+.tools-card-name a:hover{color:var(--accent)}
+.tools-card-desc{font-size:13px;color:var(--muted);line-height:1.5}
+.tools-badge{font-size:11px;padding:2px 8px;border-radius:999px;font-weight:500;flex-shrink:0;white-space:nowrap}
+.tools-badge.blue{background:rgba(11,107,203,.1);color:#0b6bcb}
+.tools-badge.green{background:rgba(16,185,129,.12);color:#0d7a4f}
+.tools-badge.purple{background:rgba(139,92,246,.12);color:#7c3aed}
+.tools-badge.teal{background:rgba(20,184,166,.12);color:#0f766e}
+.tools-badge.amber{background:rgba(251,191,36,.15);color:#b45309}
+.tools-notice{margin-top:28px;padding:14px 18px;border-radius:var(--radius);border:1px solid rgba(251,191,36,.35);background:rgba(251,191,36,.08);font-size:13px;color:var(--muted);line-height:1.6}
+.tools-notice strong{color:var(--text)}
+.tools-count{font-size:13px;color:var(--muted);margin-bottom:20px}
+@media(max-width:640px){
+  .tools-hero h1{font-size:1.5rem}
+  .tools-grid{grid-template-columns:1fr}
+  .tools-section h2{font-size:1.1rem}
+}
+</style>
+</head>
+<body data-page="tools" class="theme-blue">
+<header class="site-header" id="site-header">
+<div class="container" style="display:flex;align-items:center;height:var(--header-h);gap:24px">
+<a href="https://www.ai24x.com" class="logo" aria-label="AI24X Home" style="font-weight:700;font-size:1.1rem;color:var(--heading);text-decoration:none">AI24X</a>
+<nav class="nav-main" style="display:flex;gap:10px;margin-left:auto">
+<a href="https://www.ai24x.com" style="padding:6px 12px;color:var(--text);text-decoration:none;font-size:14px">Home</a>
+<a href="https://www.ai24x.com/pricing.html" style="padding:6px 12px;color:var(--text);text-decoration:none;font-size:14px">Pricing</a>
+<a href="https://www.ai24x.com/help.html" style="padding:6px 12px;color:var(--text);text-decoration:none;font-size:14px">Help</a>
+<a href="https://www.ai24x.com/tools.html" style="padding:6px 12px;color:var(--accent);text-decoration:none;font-size:14px;font-weight:600">Tools</a>
+</nav>
+</div>
+</header>
+<main class="page-main">
+<div class="container" style="max-width:var(--tools-maxw)">
+<section class="tools-hero">
+<h1 data-i18n="tools.title">AI Free Tools</h1>
+<p data-i18n="tools.subtitle">Curated free AI tools — no-login priority, China-friendly. Chat, image, music, video, coding.</p>
+<div class="tools-lang-bar">
+<button class="tools-lang-btn active" data-tab="cn" data-i18n="tools.tabCn">中国资源</button>
+<button class="tools-lang-btn" data-tab="global" data-i18n="tools.tabGlobal">Global Resources</button>
+</div>
+</section>
+<div id="tools-tab-cn">
+<p class="tools-count" data-i18n="tools.countCn">共 51 个工具</p>
+<section class="tools-section" id="cn-">
+  <h2>国内可直接访问（免登录/低门槛）</h2>
+  <div class="tools-grid">
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://chat.deepseek.com" target="_blank" rel="noopener">DeepSeek</a></div>
+    <span class="tools-badge green">国内·官方</span>
+  </div>
+  <div class="tools-card-desc">国产最强开源模型，有时免登录直接聊，弹登录则需注册；国内直连速度快</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://kimi.moonshot.cn" target="_blank" rel="noopener">Kimi</a></div>
+    <span class="tools-badge green">国内·官方</span>
+  </div>
+  <div class="tools-card-desc">月之暗面出品，超长上下文（200万字），国内直接访问，免费用户有每日额度</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://www.doubao.com" target="_blank" rel="noopener">豆包</a></div>
+    <span class="tools-badge green">国内·官方</span>
+  </div>
+  <div class="tools-card-desc">字节跳动出品，国内直接访问，免费额度充足，支持多模态</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://chatglm.cn" target="_blank" rel="noopener">智谱清言</a></div>
+    <span class="tools-badge green">国内·官方</span>
+  </div>
+  <div class="tools-card-desc">智谱AI出品（GLM系列），国内直接访问，免费额度不错</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://tongyi.aliyun.com" target="_blank" rel="noopener">通义千问</a></div>
+    <span class="tools-badge green">国内·官方</span>
+  </div>
+  <div class="tools-card-desc">阿里巴巴出品，国内直接访问，免费额度充足，支持文档/图片分析</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://xinghuo.xfyun.cn" target="_blank" rel="noopener">讯飞星火</a></div>
+    <span class="tools-badge green">国内·官方</span>
+  </div>
+  <div class="tools-card-desc">科大讯飞出品，国内直接访问，免费，支持语音输入</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://www.baichuan-ai.com" target="_blank" rel="noopener">百川智能</a></div>
+    <span class="tools-badge green">国内·官方</span>
+  </div>
+  <div class="tools-card-desc">百川出品，国内直接访问，免费试用</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://yuanbao.tencent.com" target="_blank" rel="noopener">腾讯元宝</a></div>
+    <span class="tools-badge green">国内·官方</span>
+  </div>
+  <div class="tools-card-desc">腾讯出品，国内直接访问，免费</div>
+</div>
+  </div>
+</section>
+<section class="tools-section" id="cn-">
+  <h2>国际名模官网（中国大陆需加速器）</h2>
+  <div class="tools-grid">
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://chat.openai.com" target="_blank" rel="noopener">ChatGPT</a></div>
+    <span class="tools-badge blue">官方旗舰</span>
+  </div>
+  <div class="tools-card-desc">OpenAI 旗舰，GPT-4o / GPT-4.5 / o3 系列，全球最强综合模型；免费版有限额度</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://claude.ai" target="_blank" rel="noopener">Claude</a></div>
+    <span class="tools-badge blue">官方旗舰</span>
+  </div>
+  <div class="tools-card-desc">Anthropic 出品，Claude Opus 4 / Sonnet 4，长上下文、编程/写作极强，免费版有限额度</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://gemini.google.com" target="_blank" rel="noopener">Gemini</a></div>
+    <span class="tools-badge blue">官方旗舰</span>
+  </div>
+  <div class="tools-card-desc">Google 出品，Gemini 2.5 Pro / Flash，多模态原生，免费版可用</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://x.ai" target="_blank" rel="noopener">Grok</a></div>
+    <span class="tools-badge blue">官方旗舰</span>
+  </div>
+  <div class="tools-card-desc">xAI（Elon Musk）出品，实时信息强，X/Twitter 深度集成，免费用户有额度</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://chat.mistral.ai" target="_blank" rel="noopener">Mistral Chat</a></div>
+    <span class="tools-badge blue">官方旗舰</span>
+  </div>
+  <div class="tools-card-desc">法国 Mistral AI 出品，开源强模 Le Chat，免费可用，欧洲隐私友好</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://www.meta.ai" target="_blank" rel="noopener">Llama (Meta)</a></div>
+    <span class="tools-badge blue">官方旗舰</span>
+  </div>
+  <div class="tools-card-desc">Meta 开源旗舰 Llama 4 系列，免费聊天，需注册</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://www.perplexity.ai" target="_blank" rel="noopener">Perplexity</a></div>
+    <span class="tools-badge blue">官方旗舰</span>
+  </div>
+  <div class="tools-card-desc">AI 搜索引擎，带来源引用，实时联网搜索极强，免费版每日有额度</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://chat.deepseek.com" target="_blank" rel="noopener">DeepSeek</a></div>
+    <span class="tools-badge green">国内·官方</span>
+  </div>
+  <div class="tools-card-desc">中国最强开源模型，国际版也受欢迎，有时免登录</div>
+</div>
+  </div>
+</section>
+<section class="tools-section" id="cn-ai">
+  <h2>AI 图片生成</h2>
+  <div class="tools-grid">
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://www.midjourney.com" target="_blank" rel="noopener">Midjourney</a></div>
+    <span class="tools-badge purple">付费</span>
+  </div>
+  <div class="tools-card-desc">全球最强AI绘图之一，需Discord使用，付费订阅</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://labs.openai.com" target="_blank" rel="noopener">DALL·E</a></div>
+    <span class="tools-badge purple">付费</span>
+  </div>
+  <div class="tools-card-desc">OpenAI 出品，集成在 ChatGPT 中，文本生图质量高</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://stability.ai" target="_blank" rel="noopener">Stable Diffusion</a></div>
+    <span class="tools-badge teal">开源</span>
+  </div>
+  <div class="tools-card-desc">Stability AI 开源模型，本地可跑，免费在线版也有</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://ideogram.ai" target="_blank" rel="noopener">Ideogram</a></div>
+    <span class="tools-badge purple">免费+付费</span>
+  </div>
+  <div class="tools-card-desc">文字渲染最强的AI绘图工具，免费版每日有额度</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://leonardo.ai" target="_blank" rel="noopener">Leonardo AI</a></div>
+    <span class="tools-badge purple">免费+付费</span>
+  </div>
+  <div class="tools-card-desc">游戏资产/概念图生成，免费版每日额度充足</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://www.recraft.ai" target="_blank" rel="noopener">Recraft AI</a></div>
+    <span class="tools-badge purple">免费+付费</span>
+  </div>
+  <div class="tools-card-desc">矢量图/图标/品牌设计AI，免费版可用</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://tongyi.aliyun.com/wanxiang" target="_blank" rel="noopener">通义万相</a></div>
+    <span class="tools-badge green">国内·免费</span>
+  </div>
+  <div class="tools-card-desc">阿里巴巴出品，国内直接访问，免费生图</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://yige.baidu.com" target="_blank" rel="noopener">文心一格</a></div>
+    <span class="tools-badge green">国内·免费</span>
+  </div>
+  <div class="tools-card-desc">百度出品，国内直接访问，免费额度</div>
+</div>
+  </div>
+</section>
+<section class="tools-section" id="cn-ai">
+  <h2>AI 音乐/音频生成</h2>
+  <div class="tools-grid">
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://suno.com" target="_blank" rel="noopener">Suno</a></div>
+    <span class="tools-badge purple">免费+付费</span>
+  </div>
+  <div class="tools-card-desc">AI 音乐生成最强之一，文本生成完整歌曲（含人声），免费版每日有额度</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://www.udio.com" target="_blank" rel="noopener">Udio</a></div>
+    <span class="tools-badge purple">免费+付费</span>
+  </div>
+  <div class="tools-card-desc">AI 音乐生成，风格覆盖广，音质优秀，免费版每日有额度</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://elevenlabs.io" target="_blank" rel="noopener">ElevenLabs</a></div>
+    <span class="tools-badge purple">免费+付费</span>
+  </div>
+  <div class="tools-card-desc">AI 语音合成最强，声音克隆/多语言配音，免费版有月度额度</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://huggingface.co/spaces/facebook/MusicGen" target="_blank" rel="noopener">MusicGen (Meta)</a></div>
+    <span class="tools-badge teal">开源·免费</span>
+  </div>
+  <div class="tools-card-desc">Meta 开源音乐生成模型，HuggingFace 免费在线体验</div>
+</div>
+  </div>
+</section>
+<section class="tools-section" id="cn-ai">
+  <h2>AI 视频生成</h2>
+  <div class="tools-grid">
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://sora.com" target="_blank" rel="noopener">Sora</a></div>
+    <span class="tools-badge purple">付费</span>
+  </div>
+  <div class="tools-card-desc">OpenAI 出品，文本/图片生成视频，画质极高，需订阅 ChatGPT Pro/Plus</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://runwayml.com" target="_blank" rel="noopener">Runway Gen-3</a></div>
+    <span class="tools-badge purple">免费+付费</span>
+  </div>
+  <div class="tools-card-desc">专业AI视频编辑/生成，电影级效果，免费版有限额度</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://pika.art" target="_blank" rel="noopener">Pika</a></div>
+    <span class="tools-badge purple">免费+付费</span>
+  </div>
+  <div class="tools-card-desc">AI视频生成，易上手，风格多样，免费版每日有额度</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://kling.kuaishou.com" target="_blank" rel="noopener">Kling (可灵)</a></div>
+    <span class="tools-badge green">国内·免费</span>
+  </div>
+  <div class="tools-card-desc">快手出品，国内直接访问，视频生成效果惊艳，免费有额度</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://deepmind.google/technologies/veo" target="_blank" rel="noopener">Veo 3</a></div>
+    <span class="tools-badge purple">内测</span>
+  </div>
+  <div class="tools-card-desc">Google DeepMind 出品，高质量视频生成，需 Google Labs 申请</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://jimeng.jiangyueai.com" target="_blank" rel="noopener">即梦 (Jimeng)</a></div>
+    <span class="tools-badge green">国内·免费</span>
+  </div>
+  <div class="tools-card-desc">字节跳动出品，国内直接访问，图生视频/文生视频，免费额度</div>
+</div>
+  </div>
+</section>
+<section class="tools-section" id="cn-ai">
+  <h2>AI 编程/开发工具</h2>
+  <div class="tools-grid">
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://github.com/features/copilot" target="_blank" rel="noopener">GitHub Copilot</a></div>
+    <span class="tools-badge purple">免费+付费</span>
+  </div>
+  <div class="tools-card-desc">微软/GitHub 出品，IDE 内 AI 编程助手，免费版有限额度</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://cursor.com" target="_blank" rel="noopener">Cursor</a></div>
+    <span class="tools-badge purple">免费+付费</span>
+  </div>
+  <div class="tools-card-desc">AI-first 代码编辑器，内置多模型，免费版有额度</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://replit.com" target="_blank" rel="noopener">Replit</a></div>
+    <span class="tools-badge purple">免费+付费</span>
+  </div>
+  <div class="tools-card-desc">在线 IDE + AI 编程助手，免费版可用</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://docs.anthropic.com/en/docs/claude-code" target="_blank" rel="noopener">Claude Code</a></div>
+    <span class="tools-badge purple">付费</span>
+  </div>
+  <div class="tools-card-desc">Anthropic 出品，终端内 AI 编程代理，需 Anthropic API key</div>
+</div>
+  </div>
+</section>
+<section class="tools-section" id="agg-第三方">
+  <h2>第三方聚合（免登录，非官方，稳定性不一）</h2>
+  <div class="tools-grid">
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://chat100.ai" target="_blank" rel="noopener">Chat100</a></div>
+    <span class="tools-badge amber">聚合</span>
+  </div>
+  <div class="tools-card-desc">宣称免登录聚合多模型，额度/稳定性不保</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://doitong.com/chat" target="_blank" rel="noopener">Doitong</a></div>
+    <span class="tools-badge amber">聚合</span>
+  </div>
+  <div class="tools-card-desc">访客可聊，额度有限</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://aifreeforever.com/chat" target="_blank" rel="noopener">AIFreeForever</a></div>
+    <span class="tools-badge amber">聚合</span>
+  </div>
+  <div class="tools-card-desc">免登录聚合，非厂商官网</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://plai.chat" target="_blank" rel="noopener">PLAI</a></div>
+    <span class="tools-badge amber">聚合</span>
+  </div>
+  <div class="tools-card-desc">免登录多模型聚合聊天</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://poe.com" target="_blank" rel="noopener">Poe</a></div>
+    <span class="tools-badge amber">聚合·需注册</span>
+  </div>
+  <div class="tools-card-desc">Quora出品，聚合GPT-4/Claude/Gemini等数十个模型，免费版每日有额度（需注册）</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://www.coze.com" target="_blank" rel="noopener">Coze (扣子)</a></div>
+    <span class="tools-badge amber">聚合·需注册</span>
+  </div>
+  <div class="tools-card-desc">字节跳动出品，聚合多模型+Bot搭建平台，免费额度充足；国内版coze.cn直接访问</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://lobe-chat.com" target="_blank" rel="noopener">LobeChat</a></div>
+    <span class="tools-badge amber">聚合·开源</span>
+  </div>
+  <div class="tools-card-desc">开源多模型聊天客户端，可自部署或使用云版，聚合OpenAI/Claude/Gemini等</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://chathub.gg" target="_blank" rel="noopener">ChatHub</a></div>
+    <span class="tools-badge amber">聚合·插件</span>
+  </div>
+  <div class="tools-card-desc">浏览器插件，侧边栏聚合ChatGPT/Gemini/Claude/Kimi等同时对话对比</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://flowgpt.com" target="_blank" rel="noopener">FlowGPT</a></div>
+    <span class="tools-badge amber">聚合·需注册</span>
+  </div>
+  <div class="tools-card-desc">Prompt分享社区+在线聊天，聚合多模型，免费版有限额度</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://cloud.dify.ai" target="_blank" rel="noopener">Dify</a></div>
+    <span class="tools-badge amber">聚合·开源</span>
+  </div>
+  <div class="tools-card-desc">开源LLMOps平台，可视化编排AI应用，免费云版有额度，支持多模型切换</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://openrouter.ai" target="_blank" rel="noopener">OpenRouter</a></div>
+    <span class="tools-badge amber">聚合·API</span>
+  </div>
+  <div class="tools-card-desc">AI模型API聚合平台，200+模型统一接口，免费版有每日试用额度（需注册）</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://nat.dev" target="_blank" rel="noopener">Nat.dev</a></div>
+    <span class="tools-badge amber">聚合·需注册</span>
+  </div>
+  <div class="tools-card-desc">Nat Friedman (GitHub前CEO) 出品，多模型对比沙盒，免费试用</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://berri.ai" target="_blank" rel="noopener">Berri AI</a></div>
+    <span class="tools-badge amber">聚合·需注册</span>
+  </div>
+  <div class="tools-card-desc">AI应用快速搭建平台，聚合多模型，免费版可用</div>
+</div>
+  </div>
+</section>
+</div>
+<div id="tools-tab-global" style="display:none">
+<p class="tools-count" data-i18n="tools.countGlobal">47 tools</p>
+<section class="tools-section" id="global-chinaaccessiblenologinlowbarrier">
+  <h2>China-Accessible (No Login / Low Barrier)</h2>
+  <div class="tools-grid">
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://chat.deepseek.com" target="_blank" rel="noopener">DeepSeek</a></div>
+    <span class="tools-badge green">China Official</span>
+  </div>
+  <div class="tools-card-desc">China's strongest open-source model, sometimes free, fast direct access</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://kimi.moonshot.cn" target="_blank" rel="noopener">Kimi</a></div>
+    <span class="tools-badge green">China Official</span>
+  </div>
+  <div class="tools-card-desc">Moonshot AI, 2M context window, free daily quota, direct access</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://www.doubao.com" target="_blank" rel="noopener">Doubao</a></div>
+    <span class="tools-badge green">China Official</span>
+  </div>
+  <div class="tools-card-desc">ByteDance, generous free tier, multimodal, direct access</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://chatglm.cn" target="_blank" rel="noopener">ChatGLM</a></div>
+    <span class="tools-badge green">China Official</span>
+  </div>
+  <div class="tools-card-desc">Zhipu AI (GLM series), free quota, direct access</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://tongyi.aliyun.com" target="_blank" rel="noopener">Tongyi</a></div>
+    <span class="tools-badge green">China Official</span>
+  </div>
+  <div class="tools-card-desc">Alibaba, generous free tier, document/image analysis</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://xinghuo.xfyun.cn" target="_blank" rel="noopener">Xinghuo</a></div>
+    <span class="tools-badge green">China Official</span>
+  </div>
+  <div class="tools-card-desc">iFlytek, free, voice input supported, direct access</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://www.baichuan-ai.com" target="_blank" rel="noopener">Baichuan</a></div>
+    <span class="tools-badge green">China Official</span>
+  </div>
+  <div class="tools-card-desc">Baichuan AI, free trial, direct access</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://yuanbao.tencent.com" target="_blank" rel="noopener">Yuanbao</a></div>
+    <span class="tools-badge green">China Official</span>
+  </div>
+  <div class="tools-card-desc">Tencent, free, direct access</div>
+</div>
+  </div>
+</section>
+<section class="tools-section" id="global-flagshipaichatofficialmayneedlogin">
+  <h2>Flagship AI Chat (Official, may need login)</h2>
+  <div class="tools-grid">
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://chat.openai.com" target="_blank" rel="noopener">ChatGPT</a></div>
+    <span class="tools-badge blue">Flagship</span>
+  </div>
+  <div class="tools-card-desc">OpenAI flagship, GPT-4o / o3, strongest all-round model, free tier available</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://claude.ai" target="_blank" rel="noopener">Claude</a></div>
+    <span class="tools-badge blue">Flagship</span>
+  </div>
+  <div class="tools-card-desc">Anthropic, Claude Opus 4 / Sonnet 4, excellent at coding/writing, free tier</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://gemini.google.com" target="_blank" rel="noopener">Gemini</a></div>
+    <span class="tools-badge blue">Flagship</span>
+  </div>
+  <div class="tools-card-desc">Google, Gemini 2.5 Pro/Flash, native multimodal, free tier available</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://x.ai" target="_blank" rel="noopener">Grok</a></div>
+    <span class="tools-badge blue">Flagship</span>
+  </div>
+  <div class="tools-card-desc">xAI (Elon Musk), strong real-time info, X/Twitter integrated, free quota</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://chat.mistral.ai" target="_blank" rel="noopener">Mistral Chat</a></div>
+    <span class="tools-badge blue">Flagship</span>
+  </div>
+  <div class="tools-card-desc">France Mistral AI, open-source strong models, free, privacy-friendly</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://www.meta.ai" target="_blank" rel="noopener">Meta AI (Llama)</a></div>
+    <span class="tools-badge blue">Flagship</span>
+  </div>
+  <div class="tools-card-desc">Meta Llama 4 series, free chat, registration required</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://www.perplexity.ai" target="_blank" rel="noopener">Perplexity</a></div>
+    <span class="tools-badge blue">Flagship</span>
+  </div>
+  <div class="tools-card-desc">AI search engine with sourced real-time answers, free daily quota</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://chat.deepseek.com" target="_blank" rel="noopener">DeepSeek</a></div>
+    <span class="tools-badge green">China Official</span>
+  </div>
+  <div class="tools-card-desc">China's strongest open-source model, sometimes free to chat</div>
+</div>
+  </div>
+</section>
+<section class="tools-section" id="global-aiimagegeneration">
+  <h2>AI Image Generation</h2>
+  <div class="tools-grid">
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://www.midjourney.com" target="_blank" rel="noopener">Midjourney</a></div>
+    <span class="tools-badge purple">Paid</span>
+  </div>
+  <div class="tools-card-desc">Best AI image generation, via Discord, paid subscription</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://labs.openai.com" target="_blank" rel="noopener">DALL·E</a></div>
+    <span class="tools-badge purple">Paid</span>
+  </div>
+  <div class="tools-card-desc">OpenAI, integrated in ChatGPT, high quality text-to-image</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://stability.ai" target="_blank" rel="noopener">Stable Diffusion</a></div>
+    <span class="tools-badge teal">Open Source</span>
+  </div>
+  <div class="tools-card-desc">Stability AI open-source, run locally or free online</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://ideogram.ai" target="_blank" rel="noopener">Ideogram</a></div>
+    <span class="tools-badge purple">Free+Paid</span>
+  </div>
+  <div class="tools-card-desc">Best text rendering in AI images, free daily quota</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://leonardo.ai" target="_blank" rel="noopener">Leonardo AI</a></div>
+    <span class="tools-badge purple">Free+Paid</span>
+  </div>
+  <div class="tools-card-desc">Game assets/concept art, generous free daily quota</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://www.recraft.ai" target="_blank" rel="noopener">Recraft AI</a></div>
+    <span class="tools-badge purple">Free+Paid</span>
+  </div>
+  <div class="tools-card-desc">Vector/icon/brand design AI, free tier available</div>
+</div>
+  </div>
+</section>
+<section class="tools-section" id="global-aimusicaudio">
+  <h2>AI Music & Audio</h2>
+  <div class="tools-grid">
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://suno.com" target="_blank" rel="noopener">Suno</a></div>
+    <span class="tools-badge purple">Free+Paid</span>
+  </div>
+  <div class="tools-card-desc">Best AI music generation, full songs with vocals, free daily quota</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://www.udio.com" target="_blank" rel="noopener">Udio</a></div>
+    <span class="tools-badge purple">Free+Paid</span>
+  </div>
+  <div class="tools-card-desc">AI music generation, wide style coverage, excellent quality, free daily quota</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://elevenlabs.io" target="_blank" rel="noopener">ElevenLabs</a></div>
+    <span class="tools-badge purple">Free+Paid</span>
+  </div>
+  <div class="tools-card-desc">Best AI voice synthesis, voice cloning, multilingual, free monthly quota</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://huggingface.co/spaces/facebook/MusicGen" target="_blank" rel="noopener">MusicGen</a></div>
+    <span class="tools-badge teal">Open Source</span>
+  </div>
+  <div class="tools-card-desc">Meta open-source music generation, free on HuggingFace</div>
+</div>
+  </div>
+</section>
+<section class="tools-section" id="global-aivideogeneration">
+  <h2>AI Video Generation</h2>
+  <div class="tools-grid">
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://sora.com" target="_blank" rel="noopener">Sora</a></div>
+    <span class="tools-badge purple">Paid</span>
+  </div>
+  <div class="tools-card-desc">OpenAI, text/image to video, stunning quality, ChatGPT Pro/Plus required</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://runwayml.com" target="_blank" rel="noopener">Runway Gen-3</a></div>
+    <span class="tools-badge purple">Free+Paid</span>
+  </div>
+  <div class="tools-card-desc">Professional AI video editing/generation, free limited quota</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://pika.art" target="_blank" rel="noopener">Pika</a></div>
+    <span class="tools-badge purple">Free+Paid</span>
+  </div>
+  <div class="tools-card-desc">Easy-to-use AI video generation, diverse styles, free daily quota</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://deepmind.google/technologies/veo" target="_blank" rel="noopener">Veo 3</a></div>
+    <span class="tools-badge purple">Preview</span>
+  </div>
+  <div class="tools-card-desc">Google DeepMind, high quality video generation, waitlist</div>
+</div>
+  </div>
+</section>
+<section class="tools-section" id="global-aicodingdevtools">
+  <h2>AI Coding / Dev Tools</h2>
+  <div class="tools-grid">
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://github.com/features/copilot" target="_blank" rel="noopener">GitHub Copilot</a></div>
+    <span class="tools-badge purple">Free+Paid</span>
+  </div>
+  <div class="tools-card-desc">Microsoft/GitHub, AI coding assistant in IDE, free limited tier</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://cursor.com" target="_blank" rel="noopener">Cursor</a></div>
+    <span class="tools-badge purple">Free+Paid</span>
+  </div>
+  <div class="tools-card-desc">AI-first code editor, multi-model built-in, free quota available</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://replit.com" target="_blank" rel="noopener">Replit</a></div>
+    <span class="tools-badge purple">Free+Paid</span>
+  </div>
+  <div class="tools-card-desc">Online IDE with AI coding assistant, free tier available</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://docs.anthropic.com/en/docs/claude-code" target="_blank" rel="noopener">Claude Code</a></div>
+    <span class="tools-badge purple">Paid</span>
+  </div>
+  <div class="tools-card-desc">Anthropic, terminal AI coding agent, needs API key</div>
+</div>
+  </div>
+</section>
+<section class="tools-section" id="agg-Thi">
+  <h2>Third-party Aggregators (no login, not official)</h2>
+  <div class="tools-grid">
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://chat100.ai" target="_blank" rel="noopener">Chat100</a></div>
+    <span class="tools-badge amber">Aggregator</span>
+  </div>
+  <div class="tools-card-desc">Multi-model aggregator, claims no login</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://doitong.com/chat" target="_blank" rel="noopener">Doitong</a></div>
+    <span class="tools-badge amber">Aggregator</span>
+  </div>
+  <div class="tools-card-desc">Guest chat, limited quota</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://aifreeforever.com/chat" target="_blank" rel="noopener">AIFreeForever</a></div>
+    <span class="tools-badge amber">Aggregator</span>
+  </div>
+  <div class="tools-card-desc">Free aggregator, not official</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://plai.chat" target="_blank" rel="noopener">PLAI</a></div>
+    <span class="tools-badge amber">Aggregator</span>
+  </div>
+  <div class="tools-card-desc">Free multi-model aggregate chat</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://poe.com" target="_blank" rel="noopener">Poe</a></div>
+    <span class="tools-badge amber">Aggregator</span>
+  </div>
+  <div class="tools-card-desc">Quora, aggregates GPT-4/Claude/Gemini etc, free daily quota (registration required)</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://www.coze.com" target="_blank" rel="noopener">Coze</a></div>
+    <span class="tools-badge amber">Aggregator</span>
+  </div>
+  <div class="tools-card-desc">ByteDance, multi-model + bot platform, generous free tier</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://lobe-chat.com" target="_blank" rel="noopener">LobeChat</a></div>
+    <span class="tools-badge amber">Open Source</span>
+  </div>
+  <div class="tools-card-desc">Open-source multi-model chat client, self-host or cloud</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://chathub.gg" target="_blank" rel="noopener">ChatHub</a></div>
+    <span class="tools-badge amber">Extension</span>
+  </div>
+  <div class="tools-card-desc">Browser extension, side-by-side ChatGPT/Gemini/Claude comparison</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://flowgpt.com" target="_blank" rel="noopener">FlowGPT</a></div>
+    <span class="tools-badge amber">Aggregator</span>
+  </div>
+  <div class="tools-card-desc">Prompt community + chat, multi-model, free limited quota</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://cloud.dify.ai" target="_blank" rel="noopener">Dify</a></div>
+    <span class="tools-badge amber">Open Source</span>
+  </div>
+  <div class="tools-card-desc">Open-source LLMOps platform, visual AI app builder, free cloud tier</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://openrouter.ai" target="_blank" rel="noopener">OpenRouter</a></div>
+    <span class="tools-badge amber">API</span>
+  </div>
+  <div class="tools-card-desc">200+ model API aggregator, free daily trial quota</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://nat.dev" target="_blank" rel="noopener">Nat.dev</a></div>
+    <span class="tools-badge amber">Aggregator</span>
+  </div>
+  <div class="tools-card-desc">Multi-model comparison sandbox by GitHub ex-CEO, free trial</div>
+</div>
+<div class="tools-card">
+  <div class="tools-card-top">
+    <div class="tools-card-name"><a href="https://berri.ai" target="_blank" rel="noopener">Berri AI</a></div>
+    <span class="tools-badge amber">Aggregator</span>
+  </div>
+  <div class="tools-card-desc">Rapid AI app builder, multi-model, free tier</div>
+</div>
+  </div>
+</section>
+</div>
+<div class="tools-notice" data-i18n="tools.notice">
+<strong>≠ 投资建议</strong> 这些工具仅供个人参考收藏，不构成任何形式的投资建议。部分国际服务可能需要加速器，部分功能需付费，请自行判断。<br/>
+<strong>· Last updated: 2026-09-10</strong>
+</div>
+</div>
+</main>
+<footer class="site-footer" id="site-footer">
+<div class="container" style="padding:32px 18px;text-align:center;color:var(--muted);font-size:13px">
+<div style="margin-bottom:8px"><a href="https://www.ai24x.com" style="color:var(--muted)">AI24X</a> — One API. Every AI. Pay Less.</div>
+<div>&copy; 2026 AI24X. All rights reserved.</div>
+</div>
+</footer>
+<script>
+// === locales.js (minimal: tools keys only) ===
+(function(g){var zh={"nav.tools":"工具","tools.title":"AI Free Tools","tools.subtitle":"精选免费AI工具 — 免登录优先，国内友好。","tools.tabCn":"中国资源","tools.tabGlobal":"Global Resources","tools.countCn":"共 51 个工具","tools.countGlobal":"47 tools","tools.notice":""};var en={"nav.tools":"Tools","tools.title":"AI Free Tools","tools.subtitle":"Curated free AI tools — no-login priority, China-friendly.","tools.tabCn":"中国资源","tools.tabGlobal":"Global Resources","tools.countCn":"共 51 个工具","tools.countGlobal":"47 tools","tools.notice":""};g.AI24X_LOCALES={zh:zh,en:en}})(typeof window!=='undefined'?window:this);
+// === i18n apply ===
+(function(){var L=(function(){try{var r=String(localStorage.getItem('ai24x_lang')||'').trim().toLowerCase().replace(/_/g,'-');return r.split('-')[0]||'en'}catch(e){return 'en'}})();document.documentElement.setAttribute('data-ai24x-lang',L);var D=window.AI24X_LOCALES;var M=D&&D[L]?D[L]:D&&D['en']?D['en']:{};if(M){document.querySelectorAll('[data-i18n]').forEach(function(el){var k=el.getAttribute('data-i18n');if(M[k]){if(el.tagName==='INPUT'||el.tagName==='TEXTAREA'){el.placeholder=M[k]}else{el.textContent=M[k]}}})}})();
+// === tab switching ===
+(function(){var tabs=document.querySelectorAll('[data-tab]');var panels={cn:document.getElementById('tools-tab-cn'),global:document.getElementById('tools-tab-global')};function switchTab(t){tabs.forEach(function(b){b.classList.toggle('active',b.getAttribute('data-tab')===t)});Object.keys(panels).forEach(function(k){panels[k].style.display=k===t?'block':'none'})}tabs.forEach(function(b){b.addEventListener('click',function(){switchTab(b.getAttribute('data-tab'))})});var lang=String(document.documentElement.getAttribute('data-ai24x-lang')||'');if(lang==='zh')switchTab('cn')})();
+</script>
+</body>
+</html>
