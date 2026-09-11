@@ -19,6 +19,11 @@
   gm_blend = 1 - (cost_in+cost_out)/(sell_in+sell_out)      （1:1 混合）
   gm_1to4  = 1 - (cost_in+4*cost_out)/(sell_in+4*sell_out)  （1:4 加权，贴近实际流量）
 倒挂判定：gm_in < 0 或 gm_out < 0 或 gm_blend < 0。
+
+成本优先级：
+  管理台 vip_rates 已写 cost_in/out（一键切通道同步实采价）时，官方涨价日程
+  不得盖掉账面成本，否则会出现「成本高于市场最低 294%」假警报。
+  并轨类日程（带 in_mult/out_mult，如 Pro→Flash）仍可改成本口径。
 """
 from __future__ import annotations
 
@@ -1294,26 +1299,47 @@ def snapshot() -> dict[str, Any]:
         period = current_period()
         cost_in = float(c.get("cost_in") or 0)
         cost_out = float(c.get("cost_out") or 0)
+        # 管理台已写入实采成本时，勿被官方涨价日程盖回（假「高于市场最低」）
+        admin_ov = mw._vip_rates_map().get(cid) or {}
+        cost_from_admin = ("cost_in" in admin_ov) or ("cost_out" in admin_ov)
         # 已生效的官方涨价：按日程覆盖成本（8/17 后自动切新价，无需改代码）
         hike_now = _hike_applied(cid)
+        hike_meta = None
+        cost_source = "admin" if cost_from_admin else "catalog"
         if hike_now:
             # 并轨类日程可同时改倍率（如 Pro→Flash）
             if hike_now.get("in_mult") is not None:
                 in_mult = max(1, int(hike_now["in_mult"]))
             if hike_now.get("out_mult") is not None:
                 out_mult = max(1, int(hike_now["out_mult"]))
-            if period == "peak" and hike_now.get("peak_in") is not None:
-                cost_in = float(hike_now.get("peak_in") or cost_in)
-                cost_out = float(hike_now.get("peak_out") or cost_out)
-                # 售价同步切峰值倍率（仅官方峰谷生效后，避免生效前毛利虚高）
+            # 带 in_mult/out_mult 的并轨日程仍可改成本；纯涨价日程尊重管理台实采价
+            apply_hike_cost = (not cost_from_admin) or (
+                hike_now.get("in_mult") is not None or hike_now.get("out_mult") is not None
+            )
+            if apply_hike_cost:
+                if period == "peak" and hike_now.get("peak_in") is not None:
+                    cost_in = float(hike_now.get("peak_in") or cost_in)
+                    cost_out = float(hike_now.get("peak_out") or cost_out)
+                    cost_source = "hike_peak"
+                else:
+                    cost_in = float(hike_now.get("in") or cost_in)
+                    cost_out = float(hike_now.get("out") or cost_out)
+                    cost_source = "hike"
+            elif cost_from_admin:
+                cost_source = "admin"
+                hike_meta = {
+                    "effective": str(hike_now.get("effective") or ""),
+                    "note": str(hike_now.get("note") or ""),
+                    "skipped_cost": True,
+                    "reason": "管理台已锁实采成本，未用官方日程覆盖",
+                }
+            # 峰时售价倍率：有峰成本或已锁管理台成本时都按 peak_*_mult 展示
+            if period == "peak":
                 _pin = hike_now.get("peak_in_mult", c.get("peak_in_mult"))
                 _pout = hike_now.get("peak_out_mult", c.get("peak_out_mult"))
                 if _pin is not None or _pout is not None:
                     in_mult = max(1, int(_pin if _pin is not None else in_mult))
                     out_mult = max(1, int(_pout if _pout is not None else out_mult))
-            else:
-                cost_in = float(hike_now.get("in") or cost_in)
-                cost_out = float(hike_now.get("out") or cost_out)
         sell_in = round(ref * in_mult, 4)
         sell_out = round(ref * out_mult, 4)
         gm_in = _gm(sell_in, cost_in)
@@ -1323,6 +1349,11 @@ def snapshot() -> dict[str, Any]:
         or_id = str(c.get("openrouter_id") or "")
         prov = _providers_for(pp, or_id, cid)
         market = _market_min(prov)
+        active_ch = (
+            str((c.get("channels") or [None])[0]).strip().lower()
+            if (c.get("channels") or [])
+            else None
+        )
         flags: list[str] = []
         level = "ok"
         if (gm_in is not None and gm_in < 0) or (gm_out is not None and gm_out < 0) or (gm_blend is not None and gm_blend < 0):
@@ -1339,8 +1370,7 @@ def snapshot() -> dict[str, Any]:
                 level = "warn"
                 flags.append("单端毛利低")
         # 未生效的涨价日程：提前预警「涨价后毛利」，避免 8/17 被打个措手不及
-        hike_meta = None
-        if not hike_now:
+        if hike_meta is None and not hike_now:
             hike = _HIKE_SCHEDULE.get(cid)
             if hike:
                 hin = float(hike.get("in") or 0)
@@ -1397,7 +1427,23 @@ def snapshot() -> dict[str, Any]:
             mc = cost_in + cost_out
             mp = market[0] + market[1]
             if mp > 0 and mc > mp * cost_markup():
-                flags.append(f"成本高于市场最低 {mc / mp:.0%}")
+                # 账面成本已贴近主通道挂牌 → 不算「可降本」提示
+                pk = {"openrouter": "or", "tokenlab": "tl", "requesty": "rq"}.get(
+                    str(active_ch or "")
+                )
+                ch_pair = prov.get(pk) if pk else None
+                near_active = False
+                if ch_pair and (ch_pair[0] > 0 or ch_pair[1] > 0):
+                    ch_sum = float(ch_pair[0] or 0) + float(ch_pair[1] or 0)
+                    if ch_sum > 0 and abs(mc - ch_sum) / ch_sum <= 0.08:
+                        near_active = True
+                if not near_active:
+                    if cost_source in ("hike", "hike_peak"):
+                        flags.append(
+                            f"官方成本高于聚合商最低 {mc / mp:.0%}（主通道若为聚合可切并同步成本）"
+                        )
+                    else:
+                        flags.append(f"成本高于市场最低 {mc / mp:.0%}")
         if level == "ok" and flags:
             level = "info"  # 仅有降本机会（成本高于市场最低），不算风险，面板灰显、不推预警
         rows.append({
@@ -1412,6 +1458,7 @@ def snapshot() -> dict[str, Any]:
             "sell_out": sell_out,
             "cost_in": round(cost_in, 4),
             "cost_out": round(cost_out, 4),
+            "cost_source": cost_source,
             "gm_in": gm_in,
             "gm_out": gm_out,
             "gm_blend": gm_blend,
@@ -1421,11 +1468,7 @@ def snapshot() -> dict[str, Any]:
             "rq": prov.get("rq"),
             "market_min": market,
             "channels": c.get("channels") or [],
-            "active_channel": (
-                str((c.get("channels") or [None])[0]).strip().lower()
-                if (c.get("channels") or [])
-                else None
-            ),
+            "active_channel": active_ch,
             "hike": hike_meta,
             "level": level,
             "flags": flags,
