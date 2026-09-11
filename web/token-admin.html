@@ -5550,14 +5550,8 @@
   function copyPmCmd() {
     var cmd = 'cd /d C:\\ai24x01\\api && run_feishu_alert_poll.cmd --digest';
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(cmd).then(function () { setMsg("已复制：04 早晚摘要命令", "ok"); });
-    } else {
-      setMsg(cmd, "ok");
-    }
-  }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(cmd)
-        .then(function () { setMsg("已复制私信测试命令，到副脑04 云主机执行", "ok"); })
+        .then(function () { setMsg("已复制：04 早晚摘要命令", "ok"); })
         .catch(function () { fallbackCopy(cmd); });
     } else {
       fallbackCopy(cmd);
