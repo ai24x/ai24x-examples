@@ -343,9 +343,9 @@ class ChatService:
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail={
-                            "message_zh": "点名模型需有效会员权益。请确认当前 API Key 属于已开通会员的账号（控制台可用同一 Key 访问余额接口核对）。",
-                            "message_en": "Named models need an active membership on the account that owns this API key. Check /v1/billing/balance with the same key.",
-                            "message": "点名模型需有效会员权益。请确认当前 API Key 属于已开通会员的账号。",
+                            "message_zh": "点名模型需要有效会员。余额仍可用于 flash / auto；续费会员后再点名。",
+                            "message_en": "Named models need an active membership. Your credits still work for flash/auto — renew membership only for named models.",
+                            "message": "点名模型需要有效会员。余额仍可用于 flash / auto；续费会员后再点名。",
                             "code": "vip_required",
                         },
                     )

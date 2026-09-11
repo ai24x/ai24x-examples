@@ -744,7 +744,7 @@ def iter_true_sse_from_events(
             # 用户可读短句（避免堆栈/上游原文）
             if err in ("tools_unsupported", "vip_required", "tools_need_balance"):
                 if err == "vip_required":
-                    msg = "VIP required for this model."
+                    msg = "Named models need membership. Your credits still work for flash/auto."
                 elif err == "tools_need_balance":
                     msg = "Tool calling needs available credit balance. Please top up."
                 else:
@@ -1678,7 +1678,7 @@ def iter_true_sse_from_responses_events(
             err = str(ev.get("error") or "upstream_error")
             if err in ("tools_unsupported", "vip_required", "tools_need_balance"):
                 if err == "vip_required":
-                    msg = "VIP required for this model."
+                    msg = "Named models need membership. Your credits still work for flash/auto."
                 elif err == "tools_need_balance":
                     msg = "Tool calling needs available credit balance. Please top up."
                 else:

@@ -572,6 +572,20 @@ def get_balance_snapshot(db: Session, auth_user_id: int) -> dict:
         "is_vip_active": wallet_vip_active(w),
         "is_value_pack_active": bool(value_pack_allowed_models(db, int(auth_user_id))),
     }
+    # 对外口径：余额管 flash；VIP 只管点名模 / pro·ultra（避免「会员过期=整号不能用」）
+    vip_on = bool(out["is_vip_active"])
+    has_credits = int(total or 0) > 0 or int(usd or 0) > 0
+    out["vip_scope"] = "named_models"
+    out["flash_needs_vip"] = False
+    if vip_on:
+        out["membership_note_zh"] = "会员有效：可点名模，也可用余额调用 flash / pro。"
+        out["membership_note_en"] = "Membership active: named models unlocked; flash/pro still use your credits."
+    elif has_credits:
+        out["membership_note_zh"] = "会员未开通或已过期：不影响余额；flash / auto 有余额即可继续调用。点名模需续费会员。"
+        out["membership_note_en"] = "Membership inactive/expired: your credits still work for flash/auto. Renew membership only if you need named models."
+    else:
+        out["membership_note_zh"] = "充值后可用 flash；点名模另需会员资格。"
+        out["membership_note_en"] = "Top up to use flash; named models also need membership."
     try:
         from free_shared import user_shared_quota_snapshot
 

@@ -102,8 +102,8 @@ _FAQ_RULES: list[dict[str, Any]] = [
     {
         "name": "vip",
         "keys": ["vip", "点名", "named model", "kimi", "glm", "qwen", "deepseek", "资格包", "会员"],
-        "en": "VIP named China models (Kimi / GLM / Qwen / DeepSeek etc.) need an active VIP pass + credits. See Console → Plans → VIP pass, or the Models page.",
-        "zh": "点名中国名模（Kimi / GLM / Qwen / DeepSeek 等）需要有效的 VIP 资格包 + 额度：到用户中心「套餐」选 VIP 资格包，或查看 Models 名模清单页。",
+        "en": "Membership unlocks named models (Kimi / GLM / Qwen / DeepSeek picks, etc.). flash/auto keep working with credits after VIP expires — renew membership only if you need named models. See Console → Plans.",
+        "zh": "会员用于点名模（Kimi / GLM / Qwen / DeepSeek 等）。会员过期后，有余额仍可继续调用 flash / auto；只有点名才需要续费会员。见用户中心「套餐」。",
     },
     {
         "name": "tiers",

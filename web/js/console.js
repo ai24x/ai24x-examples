@@ -3070,7 +3070,16 @@
           usd > 0 ? usdDisplay : tokenCompact + " tokens";
       var balSub = $("stat-balance-sub");
       if (balSub) {
-        if (usd > 0) {
+        if (!isVip && walletTokens > 0) {
+          balSub.textContent = tkey(
+            "page.console.vip.expiredHint",
+            "Membership expired: credits & flash still work; renew only for named models"
+          );
+          if (bal.credits_expire_at) {
+            balSub.textContent +=
+              tr(" · 最早到期 ", " · earliest ") + String(bal.credits_expire_at).slice(0, 10);
+          }
+        } else if (usd > 0) {
           balSub.textContent =
             "≈ " +
             Number(walletTokens).toLocaleString("en-US") +
@@ -3079,14 +3088,14 @@
               ? tr(" · 最早到期 ", " · earliest ") + String(bal.credits_expire_at).slice(0, 10)
               : "");
         } else if (walletTokens > 0) {
-          balSub.textContent = tr(
-            "用于 flash / pro / 点名模",
-            "for flash / pro / named models"
+          balSub.textContent = tkey(
+            "page.console.stat.balance.sub",
+            "Credits work for flash; membership needed for named models"
           );
         } else {
           balSub.textContent = tr(
-            "充值后可用 flash / pro / 点名模",
-            "Top up for flash / pro / named models"
+            "充值后可用 flash；点名模另需会员",
+            "Top up for flash; named models also need membership"
           );
         }
       }
@@ -3125,19 +3134,50 @@
       var btnBill = $("howto-cta-billing");
       if (howto) {
         var showHowto = false;
-        if (!isVip && sharedOn) {
+        if (!isVip && !walletEmpty) {
+          // VIP 过期/未开，但积分仍在：强调 flash 仍可用
+          showHowto = true;
+          howto.style.borderColor = "#0f7b4e";
+          if (howtoTitle)
+            howtoTitle.textContent = tr("积分仍可用", "Credits still work");
+          if (howtoBody)
+            howtoBody.textContent = tkey(
+              "page.console.howto.creditsOk",
+              "With credits you can call flash/auto. Membership is only for named models — renew when you need those picks."
+            );
+          if (btnTry) {
+            btnTry.style.display = "";
+            btnTry.textContent = tr("去试调用（flash）", "Try call (flash)");
+            btnTry.onclick = function () {
+              try {
+                var sel = $("chat-model");
+                if (sel) sel.value = "flash";
+              } catch (_) {}
+              try {
+                showPage("playground");
+              } catch (_) {}
+            };
+          }
+          if (btnShared) btnShared.style.display = "none";
+          if (btnBill) {
+            btnBill.style.display = "";
+            btnBill.className = "btn";
+            btnBill.textContent = tr("开通 VIP（点名模）", "Get VIP (named models)");
+          }
+        } else if (!isVip && sharedOn) {
           showHowto = true;
           howto.style.borderColor = "#0f7b4e";
           if (howtoTitle)
             howtoTitle.textContent = tr("怎么开始", "How to start");
           if (howtoBody)
             howtoBody.textContent = tr(
-              "两条路：① 试调用选 shared，用今日免费额度；② 充值后可用 flash / pro。两者分开看，互不顶替。",
-              "Two paths: ① Try-call with model=shared (free daily pool); ② Top up for flash/pro. Separate quotas."
+              "两条路：① 试调用选 shared，用今日免费额度；② 充值后可用 flash。点名模与 pro / ultra 需 VIP。",
+              "Two paths: ① Try-call with model=shared (free daily pool); ② Top up for flash. Named models / pro / ultra need VIP."
             );
           if (btnTry) {
             btnTry.style.display = "";
             btnTry.textContent = tr("去试调用（shared）", "Try call (shared)");
+            btnTry.onclick = null;
           }
           if (btnShared) btnShared.style.display = "none";
           if (btnBill) {
@@ -3198,22 +3238,29 @@
       if (isVip && bal.vip_expires_at && !planIsFree) {
         planLabel +=
           tr(" · 到期 ", " · expires ") + String(bal.vip_expires_at).slice(0, 10);
+      } else if (!isVip && !walletEmpty) {
+        planLabel = tkey(
+          "page.console.plan.freeWithCredits",
+          "Free (credits on · flash OK)"
+        );
       } else if (!planIsFree && !isVip && bal.vip_expires_at) {
-        planLabel = tr("免费档（VIP 已过期）", "Free (VIP expired)");
+        planLabel = tkey(
+          "page.console.plan.vipExpired",
+          "Membership expired · flash still OK"
+        );
       } else if (planIsFree) {
         planLabel = labelPlanForUi("free");
       }
       if ($("acct-plan")) $("acct-plan").textContent = planLabel;
       if ($("overview-plan")) $("overview-plan").textContent = planLabel;
       window._ai24xIsVip = isVip;
-      // 免费档：先默认 shared，再填 VIP 选项（避免异步重建把选中值打回 auto）
+      // 仅「无余额」的非会员默认 shared；有余额则保持 flash（余额仍可用）
       var chatSel = $("chat-model");
-      if (chatSel && !isVip && bal.shared_enabled) {
+      if (chatSel && !isVip && walletEmpty && bal.shared_enabled) {
         if (!window._ai24xFreeModelBootstrapped) {
           chatSel.value = "shared";
           window._ai24xFreeModelBootstrapped = true;
         } else if (!chatSel.value || chatSel.value === "auto") {
-          // 刷新后若仍停在 auto，拉回 shared（免费档 flash/auto 易撞余额不足）
           chatSel.value = "shared";
         }
       }
