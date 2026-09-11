@@ -105,35 +105,58 @@ class UserService:
         return user
     
     @staticmethod
-    def check_rate_limit(db: Session, user: User) -> tuple[bool, Optional[str]]:
-        """检查用户是否超出速率限制"""
+    def check_rate_limit(db: Session, user: User) -> tuple[bool, Optional[str | dict]]:
+        """检查用户是否超出日/月请求上限。
+
+        按 UTC 自然日 / 自然月重置（不再用 updated_at 滚动 24h，避免 Agent 重试永远不清零）。
+        """
         now = datetime.utcnow()
-        
-        # 检查每日限制
-        if user.current_daily_requests >= user.daily_request_limit:
-            # 检查是否是新的一天
-            if user.updated_at and (now - user.updated_at.replace(tzinfo=None)).days >= 1:
-                user.current_daily_requests = 0
-                db.commit()
-            else:
-                return False, "超出每日请求限制"
-        
-        # 检查每月限制
-        if user.current_monthly_requests >= user.monthly_request_limit:
-            # 检查是否是新的一月
-            if user.updated_at and (now - user.updated_at.replace(tzinfo=None)).days >= 30:
-                user.current_monthly_requests = 0
-                db.commit()
-            else:
-                return False, "超出每月请求限制"
-        
+        today = now.date()
+        last = user.updated_at
+        last_naive = None
+        if last is not None:
+            last_naive = last.replace(tzinfo=None) if getattr(last, "tzinfo", None) else last
+        last_day = last_naive.date() if last_naive is not None else None
+
+        dirty = False
+        if last_day is not None and last_day < today and int(user.current_daily_requests or 0) != 0:
+            user.current_daily_requests = 0
+            dirty = True
+        if last_day is not None and (
+            (last_day.year, last_day.month) != (today.year, today.month)
+        ) and int(user.current_monthly_requests or 0) != 0:
+            user.current_monthly_requests = 0
+            dirty = True
+        if dirty:
+            # 仅推进重置水位；不把「无请求」算进当日用量
+            user.updated_at = now
+            db.commit()
+
+        daily_lim = max(0, int(user.daily_request_limit or 0))
+        monthly_lim = max(0, int(user.monthly_request_limit or 0))
+        if daily_lim > 0 and int(user.current_daily_requests or 0) >= daily_lim:
+            return False, {
+                "message_zh": "今日请求次数已用完，请明天再试，或开通会员 / 提高额度。",
+                "message_en": "Daily request limit reached. Try again tomorrow, or upgrade for a higher limit.",
+                "message": "今日请求次数已用完，请明天再试，或开通会员 / 提高额度。",
+                "code": "daily_request_limit",
+            }
+        if monthly_lim > 0 and int(user.current_monthly_requests or 0) >= monthly_lim:
+            return False, {
+                "message_zh": "本月请求次数已用完，请下月再试或开通会员。",
+                "message_en": "Monthly request limit reached. Try again next month, or upgrade.",
+                "message": "本月请求次数已用完，请下月再试或开通会员。",
+                "code": "monthly_request_limit",
+            }
         return True, None
-    
+
     @staticmethod
     def increment_request_count(db: Session, user: User):
         """增加用户请求计数"""
-        user.current_daily_requests += 1
-        user.current_monthly_requests += 1
+        # 跨日先归零再累加，避免「昨日打满、今日首包仍被挡」
+        UserService.check_rate_limit(db, user)
+        user.current_daily_requests = int(user.current_daily_requests or 0) + 1
+        user.current_monthly_requests = int(user.current_monthly_requests or 0) + 1
         user.updated_at = datetime.utcnow()
         db.commit()
 

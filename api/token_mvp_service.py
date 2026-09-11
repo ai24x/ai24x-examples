@@ -617,7 +617,7 @@ def assert_can_spend(
         )
     if bal < int(need_tokens):
         raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
             detail={
                 "message_zh": f"额度不足（可用 {bal} token，本次预估 {need_tokens}）",
                 "message_en": f"Not enough credits (available {bal}, this request needs about {need_tokens}).",
@@ -751,7 +751,7 @@ def reserve_tokens(
             )
         db.commit()
         raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
             detail={
                 "message_zh": f"额度不足（并发占用中，本次需约 {need} token）",
                 "message_en": f"Not enough credits under concurrency (need about {need}).",
@@ -1666,34 +1666,58 @@ def touch_api_key(db: Session, row: ApiKey) -> None:
 # 网关日/月请求上限（与总纲 Phase 1：FREE 日 100 防刷一致）
 GATEWAY_FREE_DAILY_REQ = 100
 GATEWAY_FREE_MONTHLY_REQ = 3_000
+# 已预充余额的 FREE：抬高请求帽，避免 Agent/飞书「有钱无次数」
+GATEWAY_PREPAID_DAILY_REQ = 10_000
+GATEWAY_PREPAID_MONTHLY_REQ = 300_000
 GATEWAY_VIP_DAILY_REQ = 100_000
 GATEWAY_VIP_MONTHLY_REQ = 3_000_000
 
 
-def _gateway_limits(ut: UserType) -> tuple[int, int]:
+def _gateway_limits(ut: UserType, *, prepaid: bool = False) -> tuple[int, int]:
     if ut == UserType.VIP:
         return GATEWAY_VIP_DAILY_REQ, GATEWAY_VIP_MONTHLY_REQ
+    if prepaid:
+        return GATEWAY_PREPAID_DAILY_REQ, GATEWAY_PREPAID_MONTHLY_REQ
     return GATEWAY_FREE_DAILY_REQ, GATEWAY_FREE_MONTHLY_REQ
+
+
+def _wallet_has_prepaid(wallet: TokenWallet) -> bool:
+    try:
+        return int(wallet.balance_tokens or 0) > 0 or int(wallet.balance_usd or 0) > 0
+    except Exception:
+        return False
 
 
 def ensure_gateway_user(db: Session, auth_user_id: int) -> User:
     """chat/run 仍走 User 表；用 auth_{id} 作为稳定 user_id。"""
     uid = f"auth_{int(auth_user_id)}"
     w = get_or_create_wallet(db, auth_user_id)
-    ut = UserType.VIP if w.plan == BillingPlan.VIP else UserType.FREE
-    daily, monthly = _gateway_limits(ut)
+    w = ensure_vip_status(db, w)
+    ut = UserType.VIP if wallet_vip_active(w) else UserType.FREE
+    prepaid = _wallet_has_prepaid(w) and ut != UserType.VIP
+    daily, monthly = _gateway_limits(ut, prepaid=prepaid)
     u = db.query(User).filter(User.user_id == uid).first()
     if u:
         # 同步档位与限额（纠正历史 FREE=10000 等宽限）
         dirty = False
+        was_vip = u.user_type == UserType.VIP
+        old_daily = int(u.daily_request_limit or 0)
         if u.user_type != ut:
             u.user_type = ut
             dirty = True
-        if int(u.daily_request_limit or 0) != daily:
+        if old_daily != daily:
             u.daily_request_limit = daily
             dirty = True
         if int(u.monthly_request_limit or 0) != monthly:
             u.monthly_request_limit = monthly
+            dirty = True
+        # VIP→FREE 断崖：清零当日计数，给满 FREE/预充日帽，避免「过期瞬间永久 429」
+        if was_vip and ut != UserType.VIP:
+            u.current_daily_requests = 0
+            dirty = True
+        elif int(u.current_daily_requests or 0) > daily:
+            # 限额下调或历史超量：夹断并重新给满新日帽
+            u.current_daily_requests = 0
             dirty = True
         if dirty:
             db.commit()

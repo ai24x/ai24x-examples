@@ -479,7 +479,7 @@ def map_http_exception_to_openai(exc: HTTPException) -> Tuple[int, Dict[str, Any
         return code, openai_error_body(
             msg or "Rate limit exceeded",
             err_type="rate_limit_error",
-            code="rate_limit_exceeded",
+            code=detail_code or "rate_limit_exceeded",
         )
     if code >= 500:
         return code, openai_error_body(

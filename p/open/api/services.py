@@ -1,5 +1,6 @@
 import uuid
 import time
+import logging
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from sqlalchemy.orm import Session
@@ -9,6 +10,8 @@ from models import User, ChatRequest, UserType
 from schemas import ChatRequest as ChatRequestSchema, ChatResponse
 from config import settings
 from security_util import attribution_block
+
+logger = logging.getLogger(__name__)
 
 
 def _usd_cents_for_tokens(token_count: int) -> int:
@@ -22,6 +25,28 @@ def _usd_cents_for_tokens(token_count: int) -> int:
     if ref <= 0:
         ref = 0.35
     return max(0, int(round(max(0, int(token_count)) / 1_000_000.0 * ref * 100)))
+
+
+def _stamp_chat_route(
+    chat_request: ChatRequest,
+    *,
+    auth_user_id: Optional[int] = None,
+    public_model: Optional[str] = None,
+    provider: Optional[str] = None,
+    upstream_model: Optional[str] = None,
+) -> None:
+    """写入运维用通道×用户字段（不 commit）。"""
+    if auth_user_id is not None:
+        try:
+            chat_request.auth_user_id = int(auth_user_id)
+        except Exception:
+            pass
+    if public_model is not None:
+        chat_request.public_model = str(public_model or "")[:64] or None
+    if provider is not None:
+        chat_request.provider = str(provider or "")[:64] or None
+    if upstream_model is not None:
+        chat_request.model = str(upstream_model or "")[:100] or None
 
 
 def estimate_need_tokens(*, model: Optional[str], max_tokens: int, prompt: str = "") -> int:
@@ -80,35 +105,58 @@ class UserService:
         return user
     
     @staticmethod
-    def check_rate_limit(db: Session, user: User) -> tuple[bool, Optional[str]]:
-        """检查用户是否超出速率限制"""
+    def check_rate_limit(db: Session, user: User) -> tuple[bool, Optional[str | dict]]:
+        """检查用户是否超出日/月请求上限。
+
+        按 UTC 自然日 / 自然月重置（不再用 updated_at 滚动 24h，避免 Agent 重试永远不清零）。
+        """
         now = datetime.utcnow()
-        
-        # 检查每日限制
-        if user.current_daily_requests >= user.daily_request_limit:
-            # 检查是否是新的一天
-            if user.updated_at and (now - user.updated_at.replace(tzinfo=None)).days >= 1:
-                user.current_daily_requests = 0
-                db.commit()
-            else:
-                return False, "超出每日请求限制"
-        
-        # 检查每月限制
-        if user.current_monthly_requests >= user.monthly_request_limit:
-            # 检查是否是新的一月
-            if user.updated_at and (now - user.updated_at.replace(tzinfo=None)).days >= 30:
-                user.current_monthly_requests = 0
-                db.commit()
-            else:
-                return False, "超出每月请求限制"
-        
+        today = now.date()
+        last = user.updated_at
+        last_naive = None
+        if last is not None:
+            last_naive = last.replace(tzinfo=None) if getattr(last, "tzinfo", None) else last
+        last_day = last_naive.date() if last_naive is not None else None
+
+        dirty = False
+        if last_day is not None and last_day < today and int(user.current_daily_requests or 0) != 0:
+            user.current_daily_requests = 0
+            dirty = True
+        if last_day is not None and (
+            (last_day.year, last_day.month) != (today.year, today.month)
+        ) and int(user.current_monthly_requests or 0) != 0:
+            user.current_monthly_requests = 0
+            dirty = True
+        if dirty:
+            # 仅推进重置水位；不把「无请求」算进当日用量
+            user.updated_at = now
+            db.commit()
+
+        daily_lim = max(0, int(user.daily_request_limit or 0))
+        monthly_lim = max(0, int(user.monthly_request_limit or 0))
+        if daily_lim > 0 and int(user.current_daily_requests or 0) >= daily_lim:
+            return False, {
+                "message_zh": "今日请求次数已用完，请明天再试，或开通会员 / 提高额度。",
+                "message_en": "Daily request limit reached. Try again tomorrow, or upgrade for a higher limit.",
+                "message": "今日请求次数已用完，请明天再试，或开通会员 / 提高额度。",
+                "code": "daily_request_limit",
+            }
+        if monthly_lim > 0 and int(user.current_monthly_requests or 0) >= monthly_lim:
+            return False, {
+                "message_zh": "本月请求次数已用完，请下月再试或开通会员。",
+                "message_en": "Monthly request limit reached. Try again next month, or upgrade.",
+                "message": "本月请求次数已用完，请下月再试或开通会员。",
+                "code": "monthly_request_limit",
+            }
         return True, None
-    
+
     @staticmethod
     def increment_request_count(db: Session, user: User):
         """增加用户请求计数"""
-        user.current_daily_requests += 1
-        user.current_monthly_requests += 1
+        # 跨日先归零再累加，避免「昨日打满、今日首包仍被挡」
+        UserService.check_rate_limit(db, user)
+        user.current_daily_requests = int(user.current_daily_requests or 0) + 1
+        user.current_monthly_requests = int(user.current_monthly_requests or 0) + 1
         user.updated_at = datetime.utcnow()
         db.commit()
 
@@ -124,7 +172,7 @@ class ChatService:
         auth_user_id: Optional[int] = None,
         region_hint: Optional[str] = None,
         auth_api_key_id: Optional[int] = None,  # 2026-08-15: 按 API Key 统计
-        byok_project: Optional[str] = None,  # 2026-08-18: BYOK 用量归因（x-byok-project）
+        byok_project: Optional[str] = None,
     ) -> ChatResponse:
         """处理聊天请求；若提供 auth_user_id 则走 Token 钱包扣减。"""
         request_id = f"req_{uuid.uuid4().hex[:16]}"
@@ -144,7 +192,6 @@ class ChatService:
             )
             billing_mode = str(billing.get("mode") or "paid")
 
-        # 创建请求记录
         chat_request = ChatRequest(
             request_id=request_id,
             user_id=user.user_id,
@@ -157,14 +204,20 @@ class ChatService:
             user_agent=user_agent,
             status="processing",
         )
+        _stamp_chat_route(
+            chat_request,
+            auth_user_id=auth_user_id,
+            public_model=request.model,
+            provider=None,
+        )
         db.add(chat_request)
         db.commit()
 
-        # BYOK：用户自有 key 优先（不扣平台钱包；用量/成本已由 byok 模块落库）
+        # BYOK（One API）：Hub key @ api.ai24x.com → open 内部路由
         byok_result = None
         if auth_user_id is not None:
             try:
-                from byok import ByokEntitlementError, route_byok_chat
+                from byok_bridge import ByokEntitlementError, route_byok_chat
 
                 byok_result = route_byok_chat(
                     db,
@@ -180,7 +233,7 @@ class ChatService:
                 ) from e
             except Exception:
                 byok_result = None
-                logger.exception("byok route failed, fallback platform")
+                logger.exception("byok bridge failed, fallback platform")
 
         try:
             from token_mvp_service import get_balance_snapshot
@@ -315,8 +368,8 @@ class ChatService:
                     raise HTTPException(
                         status_code=status.HTTP_502_BAD_GATEWAY,
                         detail={
-                            "message_zh": "你的所有上游 Key 均调用失败，且平台回退已关闭。请到控制台检查 Key 状态或更换 Key。",
-                            "message_en": "All your upstream keys failed and platform fallback is disabled. Check your keys in the console.",
+                            "message_zh": "你的所有上游 Key 均调用失败，且平台回退已关闭。请到 Gateway 工作区检查 Key 状态或更换 Key。",
+                            "message_en": "All your upstream keys failed and platform fallback is disabled. Check your keys in the Gateway workspace.",
                             "message": "All BYOK upstream keys failed.",
                             "code": "byok_all_failed",
                         },
@@ -330,6 +383,10 @@ class ChatService:
             used_model = routed.model
             routed_tool_calls = getattr(routed, "tool_calls", None)
             routed_finish = getattr(routed, "finish_reason", None)
+            if not bool(getattr(request, "include_reasoning", False)):
+                from reasoning_filter import scrub_think_tags
+
+                response_text = scrub_think_tags(str(response_text or ""))
             from model_router import public_tier_name
 
             public_model = getattr(routed, "public_model", None) or public_tier_name(
@@ -349,13 +406,19 @@ class ChatService:
 
             # 更新请求记录（库内仍记上游型号便于运维）
             chat_request.response = response_text
-            chat_request.model = used_model
             chat_request.response_time = datetime.utcnow()
             chat_request.processing_duration = processing_time
             chat_request.status = "completed"
             chat_request.is_success = True
             chat_request.token_count = int(token_count)
             chat_request.cost = token_count * (0.000002 if user.user_type == UserType.FREE else 0.000001)
+            _stamp_chat_route(
+                chat_request,
+                auth_user_id=auth_user_id,
+                public_model=public_model,
+                provider=getattr(routed, "provider", None) or ("byok" if byok_result else None),
+                upstream_model=used_model,
+            )
             db.commit()
 
             # 增加用户请求计数
@@ -382,7 +445,6 @@ class ChatService:
                 else:
                     byok_used = getattr(routed, "byok_key_id", None) is not None
                     if byok_used:
-                        # BYOK：用户用自己的 key 走上游，平台不扣钱包（用量已在 byok 模块落库）
                         pass
                     elif billable and token_count > 0:
                         consume_tokens(
@@ -452,18 +514,10 @@ class ChatService:
                         attr["shared_remain_req"] = shared_info.get("remain_req")
             else:
                 attr["billing_mode"] = "paid"
-            # BYOK 归因：告诉调用方本次走用户自有 key（含缓存命中 / 服务费口径）
-            if byok_key_id is not None:
-                attr["billing_mode"] = "byok"
-                attr["byok"] = {
-                    "key_id": byok_key_id,
-                    "cached": bool(getattr(routed, "cached", False)),
-                    "provider": str(getattr(routed, "provider", "byok") or "byok"),
-                    "upstream_model": str(getattr(routed, "upstream_model", "") or ""),
-                    "project": getattr(routed, "project", None),
-                    "fee_note_zh": "本请求使用用户自有上游 key，平台仅收网关服务费，不赚 token 差价。",
-                    "fee_note_en": "This request used your own upstream key. We charge a gateway service fee only, no token markup.",
-                }
+                if byok_key_id is not None:
+                    attr["billing_mode"] = "byok"
+                    attr["fee_note_zh"] = "本次走你自有的上游 Key，平台不扣托管余额，仅计网关服务。"
+                    attr["fee_note_en"] = "This request used your own upstream key. We charge a gateway service fee only, no token markup."
 
             return ChatResponse(
                 request_id=request_id,
@@ -514,7 +568,7 @@ class ChatService:
         auth_user_id: Optional[int] = None,
         region_hint: Optional[str] = None,
         auth_api_key_id: Optional[int] = None,  # 2026-08-15: 按 API Key 统计
-        byok_project: Optional[str] = None,  # 2026-08-18: BYOK 用量归因
+        byok_project: Optional[str] = None,
     ):
         """真流式：yield meta/delta/done；记账与生成器解耦（finally 兜底）。
 
@@ -549,14 +603,19 @@ class ChatService:
             user_agent=user_agent,
             status="processing",
         )
+        _stamp_chat_route(
+            chat_request,
+            auth_user_id=auth_user_id,
+            public_model=request.model,
+            provider=None,
+        )
         db.add(chat_request)
         db.commit()
 
-        # BYOK：用户自有 key 优先（流式多 key 故障转移；不扣平台钱包）
         byok_stream = None
         if auth_user_id is not None:
             try:
-                from byok import ByokEntitlementError, stream_byok_chat
+                from byok_bridge import ByokEntitlementError, stream_byok_chat
 
                 byok_stream = stream_byok_chat(
                     db,
@@ -572,7 +631,7 @@ class ChatService:
                 ) from e
             except Exception:
                 byok_stream = None
-                logger.exception("byok stream setup failed, fallback platform")
+                logger.exception("byok bridge stream setup failed, fallback platform")
 
         msgs = getattr(request, "messages", None)
         public_model = request.model or "flash"
@@ -602,10 +661,16 @@ class ChatService:
                 chat_request.processing_duration = time.time() - start_time
                 if status == "completed":
                     chat_request.response = (full_text or "")[:200000]
-                    chat_request.model = used_model
                     chat_request.status = "completed"
                     chat_request.is_success = True
                     chat_request.token_count = int(token_count) if billable else 0
+                    _stamp_chat_route(
+                        chat_request,
+                        auth_user_id=auth_user_id,
+                        public_model=public_model,
+                        provider=provider,
+                        upstream_model=used_model,
+                    )
                     db.commit()
                     UserService.increment_request_count(db, user)
                     if auth_user_id is not None and billable and token_count > 0 and not byok_used:
@@ -786,8 +851,17 @@ class ChatService:
                         messages=msgs if isinstance(msgs, list) else None,
                         tools=getattr(request, "tools", None),
                         tool_choice=getattr(request, "tool_choice", None),
-                        include_reasoning=bool(getattr(request, "include_reasoning", False)),
+                        include_reasoning=bool(
+                            getattr(request, "include_reasoning", False)
+                        ),
                     )
+                from reasoning_filter import ThinkTagStreamScrubber, scrub_think_tags
+
+                _reason_scrub = ThinkTagStreamScrubber(
+                    include_reasoning=bool(
+                        getattr(request, "include_reasoning", False)
+                    )
+                )
                 for ev in stream_iter:
                     et = ev.get("type")
                     if et == "meta":
@@ -809,13 +883,26 @@ class ChatService:
                             "layer": ev.get("layer"),
                         }
                     elif et == "delta":
-                        full_text += str(ev.get("text") or "")
+                        raw_piece = str(ev.get("text") or "")
+                        if not bool(getattr(request, "include_reasoning", False)):
+                            raw_piece = _reason_scrub.feed(raw_piece)
+                        if not raw_piece:
+                            continue
+                        full_text += raw_piece
+                        ev = {**ev, "text": raw_piece}
                         yield ev
                     elif et == "tool_calls_delta":
                         yield ev
                     elif et == "done":
+                        if not bool(getattr(request, "include_reasoning", False)):
+                            _tail = _reason_scrub.flush()
+                            if _tail:
+                                full_text += _tail
+                                yield {"type": "delta", "text": _tail}
                         saw_done = True
                         full_text = str(ev.get("text") or full_text)
+                        if not bool(getattr(request, "include_reasoning", False)):
+                            full_text = scrub_think_tags(full_text)
                         token_count = max(1, int(ev.get("tokens") or 1))
                         try:
                             if ev.get("prompt_tokens") is not None:
@@ -885,9 +972,8 @@ class ChatService:
         """
         if auth_user_id is None:
             return
-        # BYOK：用户自有 key 覆盖该模型 → 无需平台余额预检（平台只收服务费）
         try:
-            from byok import has_byok_coverage
+            from byok_bridge import has_byok_coverage
 
             if has_byok_coverage(db, int(auth_user_id), request.model):
                 return
