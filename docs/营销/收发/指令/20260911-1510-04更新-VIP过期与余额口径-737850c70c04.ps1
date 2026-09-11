@@ -39,3 +39,5 @@ if ($www.Content -notlike "*console.js?v=20260911a*") { throw "www console cache
 if ($www.Content -notlike "*locales.js?v=20260911a*") { throw "www locales cache bust missing" }
 Write-Host ("DONE EXP=$EXP HEAD=$HEAD health=$($ph.commit)") -ForegroundColor Green
 # 鉁?04鏇存柊瀹屾垚锝淰IP杩囨湡涓庝綑棰濆彛寰勶綔EXP=737850c70c04 HEAD=<HEAD> health=<commit>锝滃叕缃戦獙鏀堕€氳繃
+
+# ✅ 04更新完成｜VIP过期与余额口径｜EXP=737850c70c04 HEAD=<HEAD> health=<commit>｜公网验收通过
