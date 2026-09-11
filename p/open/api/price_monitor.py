@@ -1274,6 +1274,60 @@ def build_hero_picks(rows: list[dict[str, Any]], health: Optional[dict[str, Any]
     }
 
 
+def _layer_active_upstream(layer: str) -> str:
+    """现行默认档实际上游 model id（如 L1=xiaomi/mimo-v2.5）；失败返回空。
+
+    只取 model 字符串，绝不触碰 key / base（防告警文案泄密）。
+    """
+    layer = str(layer or "").upper().strip()
+    if not layer:
+        return ""
+    try:
+        import os
+        from model_router import _OR_DEFAULT_MODELS
+
+        env_map = {
+            "L0": "OPENROUTER_MODEL_L0",
+            "L1": "OPENROUTER_MODEL_L1",
+            "L2": "OPENROUTER_MODEL_L2",
+            "L3": "OPENROUTER_MODEL_L3",
+            "QI": "OPENROUTER_MODEL_EU",
+        }
+        env_name = env_map.get(layer)
+        if env_name:
+            ov = (os.getenv(env_name) or "").strip()
+            if ov:
+                return ov
+        return str((_OR_DEFAULT_MODELS or {}).get(layer) or "").strip()
+    except Exception:
+        return ""
+
+
+def _is_stale_default_catalog(c: dict[str, Any]) -> tuple[bool, str]:
+    """目录里 default_* 行若 openrouter_id 已不是现行层上游，则属遗留行（勿当红线）。
+
+    例：ds-v4-flash 仍写 DeepSeek 官方成本，但 L1 已切 MiMo → 用层倍率×DS 成本会假倒挂。
+    """
+    role = str(c.get("role") or "")
+    if not role.startswith("default_"):
+        return False, ""
+    layer = str(c.get("layer") or "").upper()
+    active = _layer_active_upstream(layer)
+    row_or = str(c.get("openrouter_id") or "").strip()
+    if not active or not row_or:
+        return False, ""
+    a = active.lower()
+    r = row_or.lower()
+    if a == r:
+        return False, ""
+    a_tail = a.split("/")[-1]
+    r_tail = r.split("/")[-1]
+    if a_tail and (a_tail == r_tail or a_tail in r or r_tail in a):
+        return False, ""
+    # 仅返回公开 model id，供 flags 展示
+    return True, active
+
+
 # —— 快照 ——
 def snapshot() -> dict[str, Any]:
     pp = _load()
@@ -1446,6 +1500,13 @@ def snapshot() -> dict[str, Any]:
                         flags.append(f"成本高于市场最低 {mc / mp:.0%}")
         if level == "ok" and flags:
             level = "info"  # 仅有降本机会（成本高于市场最低），不算风险，面板灰显、不推预警
+        stale_default, active_up = _is_stale_default_catalog(c)
+        if stale_default:
+            # 不把遗留 default 行当 P0/P1（避免 DS 目录行在 L1=MiMo 时假倒挂）
+            flags = [
+                f"目录遗留·现行{str(c.get('layer') or '').upper()}为 {active_up}（本行不计入红线）"
+            ] + [f for f in flags if "倒挂" not in f and "毛利低于" not in f and "成本高于" not in f]
+            level = "info"
         rows.append({
             "id": cid,
             "title": str(c.get("title") or cid),
@@ -1472,6 +1533,7 @@ def snapshot() -> dict[str, Any]:
             "hike": hike_meta,
             "level": level,
             "flags": flags,
+            "stale_default": bool(stale_default),
         })
     rows.sort(key=lambda r: ({"alarm": 0, "warn": 1, "info": 2, "ok": 3}[r["level"]], r["id"]))
     alarm_rows = [r for r in rows if r["level"] == "alarm"]

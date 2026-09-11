@@ -233,6 +233,41 @@
       margin: 16px 0 8px; letter-spacing: 0.02em;
     }
     .section-label:first-child { margin-top: 0; }
+    .ops-block {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel2);
+    }
+    .ops-block > .section-label { margin-top: 0; }
+    .ops-tip {
+      margin: 0 0 10px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+    .alert-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .alert-list-item {
+      display: grid;
+      grid-template-columns: 52px 1fr;
+      gap: 8px;
+      align-items: start;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .alert-list-item.error { border-color: rgba(251,113,133,0.35); }
+    .alert-list-item.warn { border-color: rgba(251,191,36,0.35); }
+    .alert-list-item .al-msg { word-break: break-word; color: var(--text); }
+    .alert-list-item .al-code { color: var(--muted); font-size: 11px; margin-top: 2px; }
     .glance-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
@@ -1060,7 +1095,7 @@
               <div class="section-label">今日摘要</div>
               <div class="grid" id="opsHomeSummary"></div>
               <div class="section-label">当前告警</div>
-              <div id="opsHomeAlerts" style="font-size:13px;margin-bottom:8px;">—</div>
+              <div id="opsHomeAlerts" class="alert-list" style="margin-bottom:8px;">—</div>
               <div class="row" style="gap:8px;margin:0 0 12px;flex-wrap:wrap;">
                 <button type="button" class="ops-goto" data-goto="p-alert">打开预警中心</button>
                 <button type="button" class="ops-goto" data-goto="p-usage">用量与异常</button>
@@ -1320,7 +1355,7 @@
               <div class="row" style="justify-content:space-between;align-items:flex-start;">
                 <div>
                   <h2 style="margin:0;">预警中心</h2>
-                  <p class="muted small" style="margin:6px 0 0;">定时巡检（生产每 15 分钟）自动发现 P0/P1 并推送；飞书私信走副脑04 值班出口（24h 在线），群 Webhook / 邮箱 / 短信兜底。恢复自动发「已恢复」。</p>
+                  <p class="muted small" style="margin:6px 0 0;">定时巡检（生产每小时）写状态；飞书私信由副脑04 早晚摘要推送（有告警才发，同内容 6h 合并）。群 Webhook / 邮箱 / 短信为兜底。</p>
                 </div>
                 <div class="row">
                   <button type="button" id="btnAlertRun">立即巡检并推送</button>
@@ -1329,11 +1364,12 @@
               </div>
 
               <div class="section-label">① 预警概览</div>
-              <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
-                <div class="field"><span class="lbl">当前告警（实时）</span><div id="alertOverview" style="font-size:13px;min-height:20px;">—</div></div>
+              <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:10px;">
                 <div class="field"><span class="lbl">最近巡检（快照）</span><div id="alertLastCheck" style="font-size:13px;min-height:20px;">—</div></div>
                 <div class="field"><span class="lbl">最近推送</span><div id="alertLastPush" style="font-size:13px;min-height:20px;">—</div></div>
               </div>
+              <div class="section-label" style="margin-top:4px;">当前告警（实时）</div>
+              <div id="alertOverview" class="alert-list" style="min-height:20px;">—</div>
               <details class="sys-detail" style="margin-top:8px;">
                 <summary>最近推送原文（默认收起）</summary>
                 <pre class="mono small" id="alertLastPushText" style="white-space:pre-wrap;">—</pre>
@@ -1341,16 +1377,16 @@
 
               <div class="row" style="gap:8px;margin:10px 0 6px;align-items:center;">
                 <button type="button" id="btnAlertReset" style="background:#b7791f;border-color:#b7791f;color:#fff;">重置预警状态</button>
-                <span class="muted small">仅清空当前告警显示；若测试订单未清理，下次巡检可能再次出现（清理见 api/scripts_clean_test_orders.py）</span>
+                <span class="muted small">仅清空显示状态；根因未消则下次巡检会再现</span>
               </div>
-              <div class="section-label">预警明细（实时 · 含具体说明）</div>
+              <div class="section-label">预警明细（实时）</div>
               <div id="alertDetailList" style="font-size:13px;">—</div>
 
               <div class="section-label">② 推送通道</div>
               <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;">
                 <div class="field" style="grid-column:1/-1;border:1px dashed rgba(128,128,128,.4);padding:8px;border-radius:6px;">
-                  <span class="lbl">飞书私信（值班出口 · 推荐）</span>
-                  <p class="muted small" style="margin:4px 0 0;">由副脑04 云主机运行轮询（每 5 分钟），凭证运行时读 openclaw.json（04 应用视角 open_id），绝不硬编码。内置：同预警 6h 合并、深夜 23:30-08:30 非 P0 静默、值班重提醒 30min。运行状态以副脑04 值班回执为准。</p>
+                  <span class="lbl">飞书私信（副脑04 · 推荐）</span>
+                  <p class="muted small" style="margin:4px 0 0;">04 计划任务早晚各一次摘要；有 P0/P1 才发，同内容 6h 不重复。凭证读 openclaw.json，不硬编码。</p>
                   <div class="row" style="gap:8px;margin-top:8px;">
                     <button type="button" id="btnCopyPmCmd">复制私信测试命令</button>
                   </div>
@@ -1393,79 +1429,89 @@
             <div class="card">
               <div class="row" style="justify-content:space-between;align-items:flex-start;">
                 <div>
-                  <h2 style="margin:0;">供应链 · 价格 / 毛利 / 供货商比价</h2>
-                  <p class="muted small" style="margin:6px 0 0;">逐模型监控双口径毛利（输入端 / 输出端 / 1:1 混合 / 1:4 加权）；倒挂（GM&lt;0）标红、混合毛利&lt;20% 标黄；与 OR/TL/Requesty 实拉价对比，成本高于市场最低 1.2 倍提示可切通道。预警已接入巡检：倒挂=P0，低毛利=P1。</p>
+                  <h2 style="margin:0;">供应链</h2>
+                  <p class="ops-tip" style="margin:6px 0 0;">看毛利 → 切更省/更稳通道 → 同步成本。红=倒挂，黄=低毛利，灰=可降本（非亏损）。</p>
                 </div>
                 <div class="row">
                   <button type="button" id="btnPmLoad">刷新监控</button>
                   <button type="button" class="ok" id="btnPmRefresh">刷新价目（实拉）</button>
                 </div>
               </div>
-              <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:10px;">
+              <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:10px;">
                 <div class="field"><span class="lbl">快照时间</span><div id="pmTime" style="font-size:13px;">—</div></div>
-                <div class="field"><span class="lbl">价目基准时间</span><div id="pmPpTime" style="font-size:13px;">—</div></div>
+                <div class="field"><span class="lbl">价目基准</span><div id="pmPpTime" style="font-size:13px;">—</div></div>
                 <div class="field"><span class="lbl">倒挂 / 红线</span><div id="pmAlarm" style="font-size:13px;">—</div></div>
-                <div class="field"><span class="lbl">风险提示</span><div id="pmWarn" style="font-size:13px;">—</div></div>
+                <div class="field"><span class="lbl">风险</span><div id="pmWarn" style="font-size:13px;">—</div></div>
                 <div class="field"><span class="lbl">降本机会</span><div id="pmInfo" style="font-size:13px;">—</div></div>
               </div>
-              <div class="section-label">Flash / Auto 通道价表 · 成本从低到高</div>
-              <!-- flash-lanes-v20260904d -->
-              <p class="muted small" id="pmFlashNote" style="margin:0 0 8px;">对外仍是 flash / auto；此处按上游成本（1 入+4 出）排序，可一键切当前主通道。登录 API 须为 https://api.ai24x.com。</p>
-              <div class="muted small" id="pmFlashActive" style="margin:0 0 8px;"></div>
-              <div style="overflow-x:auto;margin-bottom:12px;">
-                <table id="pmFlashLanes">
-                  <thead>
-                    <tr>
-                      <th>#</th><th>通道</th><th>模型</th><th>成本入/出</th><th>1:4成本</th><th>GM1:4</th><th>稳定</th><th>状态</th><th>操作</th>
-                    </tr>
-                  </thead>
-                  <tbody><tr><td colspan="9" class="muted">加载中…</td></tr></tbody>
-                </table>
+
+              <div class="ops-block">
+                <div class="section-label">① Flash / Auto 主通道</div>
+                <p class="ops-tip" id="pmFlashNote">对外仍是 flash / auto。按 1入+4出成本排序，点「切为主」立即生效。</p>
+                <div class="muted small" id="pmFlashActive" style="margin:0 0 8px;"></div>
+                <div style="overflow-x:auto;">
+                  <table id="pmFlashLanes">
+                    <thead>
+                      <tr>
+                        <th>#</th><th>通道</th><th>模型</th><th>成本入/出</th><th>1:4成本</th><th>GM1:4</th><th>稳定</th><th>状态</th><th>操作</th>
+                      </tr>
+                    </thead>
+                    <tbody><tr><td colspan="9" class="muted">加载中…</td></tr></tbody>
+                  </table>
+                </div>
               </div>
-              <div class="section-label">VIP 主通道看板 · OR / TL / RQ 一目了然</div>
-              <!-- vip-board-v20260910a -->
-              <p class="muted small" id="pmVipNote" style="margin:0 0 8px;">点名 VIP：当前主通道高亮；可一键切到 OR / TokenLab / Requesty（写回 channels 并同步账本成本）。</p>
-              <div style="overflow-x:auto;margin-bottom:12px;">
-                <table id="pmVipBoard">
-                  <thead>
-                    <tr>
-                      <th>模型</th><th>当前主通道</th><th>OR</th><th>TL</th><th>RQ</th><th>链</th><th>GM1:4</th><th>操作</th>
-                    </tr>
-                  </thead>
-                  <tbody><tr><td colspan="8" class="muted">加载中…</td></tr></tbody>
-                </table>
+
+              <div class="ops-block">
+                <div class="section-label">② VIP 点名主通道</div>
+                <p class="ops-tip" id="pmVipNote">一键切 OR / TokenLab / Requesty，并写回成本。当前主通道高亮。</p>
+                <div style="overflow-x:auto;">
+                  <table id="pmVipBoard">
+                    <thead>
+                      <tr>
+                        <th>模型</th><th>当前主通道</th><th>OR</th><th>TL</th><th>RQ</th><th>链</th><th>GM1:4</th><th>操作</th>
+                      </tr>
+                    </thead>
+                    <tbody><tr><td colspan="8" class="muted">加载中…</td></tr></tbody>
+                  </table>
+                </div>
               </div>
-              <div class="section-label">主打建议 · 最省钱 × 最稳 × 毛利（对内）</div>
-              <p class="muted small" id="pmHeroNote" style="margin:0 0 8px;">对外仍主推 flash / pro / auto；一键应用会写回通道/上游并立即生效（通道名仅作战台可见）。</p>
-              <div id="pmHeroCircuits" class="muted small" style="margin:0 0 8px;"></div>
-              <div id="pmHeroPending" class="muted small" style="margin:0 0 8px;"></div>
-              <div id="pmHeroRisks" class="muted small" style="margin:0 0 8px;"></div>
-              <div class="glance-grid" id="pmHeroTiers" style="margin-bottom:10px;"></div>
-              <div class="muted small" id="pmHeroRecent" style="margin:0 0 10px;"></div>
-              <div class="section-label">VIP 关注（告警优先，最多 6）</div>
-              <div style="overflow-x:auto;margin-bottom:12px;">
-                <table id="pmHeroVip">
-                  <thead>
-                    <tr>
-                      <th>点名</th><th>动作</th><th>建议</th><th>最省</th><th>最稳</th><th>GM1:4</th><th>操作</th>
-                    </tr>
-                  </thead>
-                  <tbody><tr><td colspan="7" class="muted">加载中…</td></tr></tbody>
-                </table>
+
+              <div class="ops-block">
+                <div class="section-label">③ 主打建议（待确认才告警）</div>
+                <p class="ops-tip" id="pmHeroNote">更省/更稳持续一段时间后进预警；需在此「一键应用」，不会静默自动切。</p>
+                <div id="pmHeroCircuits" class="muted small" style="margin:0 0 8px;"></div>
+                <div id="pmHeroPending" class="muted small" style="margin:0 0 8px;"></div>
+                <div id="pmHeroRisks" class="muted small" style="margin:0 0 8px;"></div>
+                <div class="glance-grid" id="pmHeroTiers" style="margin-bottom:10px;"></div>
+                <div class="muted small" id="pmHeroRecent" style="margin:0 0 10px;"></div>
+                <div class="section-label" style="margin-top:8px;">VIP 关注（告警优先）</div>
+                <div style="overflow-x:auto;">
+                  <table id="pmHeroVip">
+                    <thead>
+                      <tr>
+                        <th>点名</th><th>动作</th><th>建议</th><th>最省</th><th>最稳</th><th>GM1:4</th><th>操作</th>
+                      </tr>
+                    </thead>
+                    <tbody><tr><td colspan="7" class="muted">加载中…</td></tr></tbody>
+                  </table>
+                </div>
               </div>
-              <div class="section-label">逐模型监控</div>
-              <div style="overflow-x:auto;">
-                <table id="pmTable">
-                  <thead>
-                    <tr>
-                      <th>模型</th><th>主通道</th><th>售价 入/出</th><th>成本 入/出</th><th>GM入</th><th>GM出</th><th>GM混合</th><th>GM1:4</th>
-                      <th>OR 入/出</th><th>TL 入/出</th><th>RQ 入/出</th><th>市场最低</th><th>状态</th><th>切换</th>
-                    </tr>
-                  </thead>
-                  <tbody><tr><td colspan="14" class="muted">加载中…</td></tr></tbody>
-                </table>
+
+              <div class="ops-block">
+                <div class="section-label">④ 逐模型监控</div>
+                <p class="ops-tip">GM1:4 贴近真实流量。目录遗留行（非现行默认上游）只灰显，不进红线告警。</p>
+                <div style="overflow-x:auto;">
+                  <table id="pmTable">
+                    <thead>
+                      <tr>
+                        <th>模型</th><th>主通道</th><th>售价 入/出</th><th>成本 入/出</th><th>GM入</th><th>GM出</th><th>GM混合</th><th>GM1:4</th>
+                        <th>OR 入/出</th><th>TL 入/出</th><th>RQ 入/出</th><th>市场最低</th><th>状态</th><th>切换</th>
+                      </tr>
+                    </thead>
+                    <tbody><tr><td colspan="14" class="muted">加载中…</td></tr></tbody>
+                  </table>
+                </div>
               </div>
-              <p class="muted small" style="margin:8px 0 0;">GM入/GM出 = 单端毛利；GM混合 = 1:1 综合；GM1:4 = 输入1输出4 加权（贴近实际流量）。红色=倒挂/破红线，黄色=低毛利。灰色「成本高于市场最低」= 降本提示（非亏损）；若已切聚合通道并同步成本，不应再出现该提示。售价= flash基准×入/出倍率。</p>
             </div>
           </div>
           <div class="panel-page" id="p-shared">
@@ -2575,23 +2621,7 @@
       var show = alerts.filter(function (a) {
         return a.level === "error" || a.level === "warn";
       });
-      $("opsHomeAlerts").innerHTML = show.length
-        ? show
-            .slice(0, 12)
-            .map(function (al) {
-              var cls = al.level === "error" ? "bad" : "warn";
-              return (
-                '<div style="margin:4px 0;"><span class="pill ' +
-                cls +
-                '">' +
-                esc(al.level || "") +
-                "</span> " +
-                esc(al.msg || al.code || "") +
-                "</div>"
-              );
-            })
-            .join("")
-        : '<span class="pill ok">暂无 error/warn 告警</span>';
+      $("opsHomeAlerts").innerHTML = formatAlertListHtml(show, { max: 12, showCode: true });
     }
 
     if ($("opsHomeUsers")) {
@@ -5365,25 +5395,49 @@
     return ALERT_LABELS[c] || c;
   }
 
-  function renderAlertLive(live) {
-    var box = $("alertOverview");
-    if (!box) return;
-    // 「当前告警」只展示真正的告警（error/warn）；info 级属正常业务信息，看「毛利粗算 / 供应链」
-    var alerts = ((live && live.alerts) || []).filter(function (a) {
+  function formatAlertListHtml(alerts, opts) {
+    opts = opts || {};
+    var max = opts.max || 50;
+    var showCode = opts.showCode !== false;
+    var list = (alerts || []).filter(function (a) {
       var lv = String(a.level || "info");
       return lv === "error" || lv === "warn";
     });
-    if (!alerts.length) {
-      box.innerHTML = '<span style="color:#27ae60;">无告警</span>';
-      return;
+    if (!list.length) {
+      return '<span class="pill ok">无告警</span>';
     }
-    box.innerHTML = alerts.map(function (a) {
-      var lv = String(a.level || "info");
-      var bg = lv === "error" ? "#fde9e7" : lv === "warn" ? "#fdf3e0" : "#eaf4fd";
-      var fg = lv === "error" ? "#c0392b" : lv === "warn" ? "#b7791f" : "#2b6cb0";
-      var label = alertLabel(a.code);
-      return '<span title="' + esc((a.code || '') + ' - ' + (a.msg || '')) + '" style="display:inline-block;background:' + bg + ';color:' + fg + ';border-radius:4px;padding:1px 8px;margin:2px 4px 0 0;font-size:12px;">' + esc(label) + '</span>';
-    }).join("");
+    return list
+      .slice(0, max)
+      .map(function (a) {
+        var lv = String(a.level || "warn");
+        var tag = lv === "error" ? "P0" : "P1";
+        var pill = lv === "error" ? "bad" : "warn";
+        var code = String(a.code || "");
+        var label = alertLabel(code);
+        var msg = String(a.msg || label || code);
+        return (
+          '<div class="alert-list-item ' +
+          esc(lv) +
+          '"><div><span class="pill ' +
+          pill +
+          '">' +
+          tag +
+          '</span></div><div><div class="al-msg">' +
+          esc(msg) +
+          "</div>" +
+          (showCode
+            ? '<div class="al-code">' + esc(label) + (code ? " · " + esc(code) : "") + "</div>"
+            : "") +
+          "</div></div>"
+        );
+      })
+      .join("");
+  }
+
+  function renderAlertLive(live) {
+    var box = $("alertOverview");
+    if (!box) return;
+    box.innerHTML = formatAlertListHtml((live && live.alerts) || [], { max: 40, showCode: true });
   }
 
   function renderAlertDetail(live) {
@@ -5393,33 +5447,30 @@
       var rk = { error: 3, warn: 2, info: 1 };
       return (rk[String(b.level)] || 0) - (rk[String(a.level)] || 0);
     });
-    if (!list.length) {
-      box.innerHTML = '<span style="color:#27ae60;">无预警</span>';
+    var actionable = list.filter(function (a) {
+      var lv = String(a.level || "info");
+      return lv === "error" || lv === "warn";
+    });
+    if (!actionable.length) {
+      box.innerHTML = '<span class="pill ok">无 P0/P1 预警</span>';
       return;
     }
-    box.innerHTML =
-      '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
-      '<tr style="text-align:left;color:#888;"><th style="padding:5px 8px;">级别</th><th style="padding:5px 8px;">告警项</th><th style="padding:5px 8px;">说明</th></tr>' +
-      list.map(function (a) {
-        var lv = String(a.level || "info");
-        var tag = lv === "error" ? '<span class="pill bad">P0</span>' : lv === "warn" ? '<span class="pill warn">P1</span>' : '<span class="pill ok">INFO</span>';
-        var code = String(a.code || "");
-        return (
-          '<tr style="border-top:1px solid #eee;"><td style="padding:5px 8px;">' + tag + '</td>' +
-          '<td style="padding:5px 8px;" title="' + esc(code) + '">' + esc(alertLabel(code)) + '</td>' +
-          '<td style="padding:5px 8px;">' + esc(a.msg || "") + '</td></tr>'
-        );
-      }).join("") +
-      "</table>";
+    box.innerHTML = formatAlertListHtml(actionable, { max: 80, showCode: true });
   }
 
   function renderAlertOverview(r) {
     var codes = r.active_codes || [];
     var box = $("alertOverview");
-    if (box) {
-      box.innerHTML = codes.length
-        ? codes.map(function (c) { var l = alertLabel(c); return '<span title="' + esc(c) + '" style="display:inline-block;background:#fde9e7;color:#c0392b;border-radius:4px;padding:1px 8px;margin:2px 4px 0 0;font-size:12px;">' + esc(l) + '</span>'; }).join("")
-        : '<span style="color:#27ae60;">无告警</span>';
+    if (box && codes.length && !(box.querySelector && box.querySelector(".alert-list-item"))) {
+      // 仅在尚未被 live 列表覆盖时，用快照 codes 占位
+      box.innerHTML = formatAlertListHtml(
+        codes.map(function (c) {
+          return { level: "warn", code: c, msg: alertLabel(c) };
+        }),
+        { max: 40, showCode: true }
+      );
+    } else if (box && !codes.length && !box.querySelector(".alert-list-item")) {
+      box.innerHTML = '<span class="pill ok">无告警</span>';
     }
     var lc = $("alertLastCheck");
     if (lc) lc.textContent = r.last_check ? String(r.last_check).replace("T", " ").slice(0, 19) : "—";
@@ -5497,7 +5548,13 @@
   }
 
   function copyPmCmd() {
-    var cmd = 'python api\\feishu_notify.py --pm "【测试·预警私信】可忽略" --force';
+    var cmd = 'cd /d C:\\ai24x01\\api && run_feishu_alert_poll.cmd --digest';
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(cmd).then(function () { setMsg("已复制：04 早晚摘要命令", "ok"); });
+    } else {
+      setMsg(cmd, "ok");
+    }
+  }
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(cmd)
         .then(function () { setMsg("已复制私信测试命令，到副脑04 云主机执行", "ok"); })
