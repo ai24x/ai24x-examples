@@ -5496,6 +5496,7 @@
     try {
       var live = await api("/v1/admin/token/alerts/live");
       renderAlertLive(live);
+      renderAlertDetail(live);
     } catch (e) { /* 快照兜底：保留 active_codes */ }
   }
 
