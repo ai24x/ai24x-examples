@@ -1,4 +1,5 @@
 # www.ai24x.com sitemap manifest — indexable pages with www canonical only
+# Do NOT list open-canonical guides/models, auth, console, or shell redirect pages.
 https://www.ai24x.com/
 https://www.ai24x.com/pricing.html
 https://www.ai24x.com/product.html
@@ -7,6 +8,7 @@ https://www.ai24x.com/refer.html
 https://www.ai24x.com/partner.html
 https://www.ai24x.com/about.html
 https://www.ai24x.com/status.html
+https://www.ai24x.com/tools.html
 https://www.ai24x.com/privacy.html
 https://www.ai24x.com/terms.html
 https://www.ai24x.com/blog/index.html
@@ -15,5 +17,8 @@ https://www.ai24x.com/blog/openai-compatible-api.html
 https://www.ai24x.com/blog/one-api-multiple-models.html
 https://www.ai24x.com/blog/byok-ai-gateway.html
 https://www.ai24x.com/blog/ai-api-cost-basics.html
+https://www.ai24x.com/blog/deepseek-api-pricing-2026.html
+https://www.ai24x.com/blog/deepseek-vs-qwen-vs-glm-2026.html
+https://www.ai24x.com/blog/kimi-api-paypal-guide.html
 https://www.ai24x.com/guides/openrouter-migration.html
 https://www.ai24x.com/guides/openrouter-vs-ai24x.html

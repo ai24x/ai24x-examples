@@ -5,23 +5,28 @@ Allow: /guides/
 Allow: /docs.html
 Allow: /pricing.html
 Allow: /product.html
-Allow: /help.html
-Allow: /refer.html
-Allow: /register.html
-Allow: /login.html
-Allow: /about.html
-Allow: /privacy.html
-Allow: /terms.html
 Allow: /img/
 
-Disallow: /token-admin.html
+# www-canonical / auth / account — do not burn crawl budget on open host
+Disallow: /help.html
+Disallow: /about.html
+Disallow: /refer.html
+Disallow: /privacy.html
+Disallow: /terms.html
+Disallow: /login.html
+Disallow: /register.html
+Disallow: /forgot.html
 Disallow: /console.html
 Disallow: /account.html
+Disallow: /token-admin.html
 Disallow: /ai24x.html
 Disallow: /command-center.html
 Disallow: /demo.html
 Disallow: /paypal.html
 Disallow: /dashboard.html
 Disallow: /ops/
+Disallow: /v1/
+Disallow: /api/
+Disallow: /r/
 
 Sitemap: https://open.ai24x.com/sitemap.xml

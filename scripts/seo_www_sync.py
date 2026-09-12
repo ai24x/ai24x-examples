@@ -81,7 +81,7 @@ def build_sitemap() -> None:
         for p in MANIFEST.read_text(encoding="utf-8").splitlines()
         if p.strip() and not p.strip().startswith("#")
     ]
-    lastmod = "2026-08-28"
+    lastmod = "2026-09-13"
     parts = [
         '<?xml version="1.0" encoding="UTF-8"?>',
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
