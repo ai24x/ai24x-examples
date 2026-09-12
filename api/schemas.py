@@ -634,6 +634,17 @@ class TokenAdminApplyHeroBody(BaseModel):
     update_cost: bool = True
 
 
+class TokenAdminOptimizeItem(BaseModel):
+    model_id: str = Field(..., min_length=1, max_length=64)
+    prefer: str = Field(..., min_length=1, max_length=32)
+
+
+class TokenAdminOptimizeApplyBody(BaseModel):
+    """预警中心：审核后批量一键优化主通道待确认项。"""
+    items: list[TokenAdminOptimizeItem] = Field(..., min_length=1, max_length=32)
+    update_cost: bool = True
+
+
 class TokenAdminApplyFlashLaneBody(BaseModel):
     """供应链监控：一键切 flash/auto（L1）主通道。"""
     lane: str = Field(..., min_length=1, max_length=32)

@@ -268,6 +268,21 @@
     .alert-list-item.warn { border-color: rgba(251,191,36,0.35); }
     .alert-list-item .al-msg { word-break: break-word; color: var(--text); }
     .alert-list-item .al-code { color: var(--muted); font-size: 11px; margin-top: 2px; }
+    .opt-row {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 8px;
+      align-items: start;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .opt-row.disabled { opacity: 0.55; }
+    .opt-row .opt-title { font-weight: 600; }
+    .opt-row .opt-sub { color: var(--muted); font-size: 11px; margin-top: 2px; }
     .glance-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
@@ -1096,6 +1111,7 @@
               <div class="grid" id="opsHomeSummary"></div>
               <div class="section-label">当前告警</div>
               <div id="opsHomeAlerts" class="alert-list" style="margin-bottom:8px;">—</div>
+              <div id="opsHomeOptimizeHint" class="ops-tip" style="display:none;margin:0 0 8px;"></div>
               <div class="row" style="gap:8px;margin:0 0 12px;flex-wrap:wrap;">
                 <button type="button" class="ops-goto" data-goto="p-alert">打开预警中心</button>
                 <button type="button" class="ops-goto" data-goto="p-usage">用量与异常</button>
@@ -1381,6 +1397,17 @@
               </div>
               <div class="section-label">预警明细（实时）</div>
               <div id="alertDetailList" style="font-size:13px;">—</div>
+
+              <div class="ops-block" id="alertOptimizeBlock">
+                <div class="section-label">可优化（审核后一键）</div>
+                <p class="ops-tip">仅「主通道待确认」。勾选审核后批量切通道并同步成本；价格红线 / 毛利变差不在此列。永不静默自动切。</p>
+                <div id="alertOptimizeList" class="alert-list" style="margin-bottom:8px;">—</div>
+                <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center;">
+                  <button type="button" class="ok" id="btnAlertOptimize">一键优化已选</button>
+                  <button type="button" id="btnAlertOptimizeRefresh">刷新可优化</button>
+                  <span class="muted small" id="alertOptimizeMeta">—</span>
+                </div>
+              </div>
 
               <div class="section-label">② 推送通道</div>
               <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;">
@@ -2622,6 +2649,19 @@
         return a.level === "error" || a.level === "warn";
       });
       $("opsHomeAlerts").innerHTML = formatAlertListHtml(show, { max: 12, showCode: true });
+    }
+    if ($("opsHomeOptimizeHint")) {
+      var oc = Number(live && live.optimize_count) || 0;
+      if (oc > 0) {
+        $("opsHomeOptimizeHint").style.display = "";
+        $("opsHomeOptimizeHint").innerHTML =
+          "有 <strong>" +
+          oc +
+          '</strong> 项主通道可优化 → <button type="button" class="ops-goto" data-goto="p-alert">去预警中心审核一键</button>';
+      } else {
+        $("opsHomeOptimizeHint").style.display = "none";
+        $("opsHomeOptimizeHint").innerHTML = "";
+      }
     }
 
     if ($("opsHomeUsers")) {
@@ -5498,6 +5538,120 @@
       renderAlertLive(live);
       renderAlertDetail(live);
     } catch (e) { /* 快照兜底：保留 active_codes */ }
+    try {
+      await loadAlertOptimize();
+    } catch (eOpt) { /* ignore */ }
+  }
+
+  function renderAlertOptimize(r) {
+    var box = $("alertOptimizeList");
+    var meta = $("alertOptimizeMeta");
+    var btn = $("btnAlertOptimize");
+    if (!box) return;
+    var items = (r && r.items) || [];
+    var applyable = items.filter(function (x) { return !!x.applyable; });
+    if (meta) {
+      meta.textContent =
+        "可点 " +
+        applyable.length +
+        " / 共 " +
+        items.length +
+        "（仅主通道待确认）";
+    }
+    if (!items.length) {
+      box.innerHTML = '<span class="pill ok">暂无可优化项</span>';
+      if (btn) btn.disabled = true;
+      return;
+    }
+    box.innerHTML = items
+      .map(function (it, idx) {
+        var ok = !!it.applyable;
+        var id = "opt-cb-" + idx;
+        return (
+          '<label class="opt-row' +
+          (ok ? "" : " disabled") +
+          '" for="' +
+          id +
+          '">' +
+          '<input type="checkbox" class="opt-cb" id="' +
+          id +
+          '" data-model="' +
+          esc(it.model_id || "") +
+          '" data-prefer="' +
+          esc(it.prefer || "") +
+          '" ' +
+          (ok ? "checked" : "disabled") +
+          " />" +
+          "<div>" +
+          '<div class="opt-title">' +
+          esc(it.title || it.model_id || "") +
+          " → " +
+          esc(it.prefer_label || it.prefer || "") +
+          "</div>" +
+          '<div class="opt-sub">' +
+          esc(it.reason || "") +
+          (it.hours != null ? " · 已持续 " + esc(it.hours) + "h" : "") +
+          "</div></div></label>"
+        );
+      })
+      .join("");
+    if (btn) btn.disabled = applyable.length === 0;
+  }
+
+  async function loadAlertOptimize() {
+    var r = await api("/v1/admin/token/alerts/optimize");
+    renderAlertOptimize(r);
+    return r;
+  }
+
+  async function runAlertOptimize() {
+    var cbs = document.querySelectorAll("#alertOptimizeList .opt-cb:checked:not(:disabled)");
+    var items = [];
+    cbs.forEach(function (cb) {
+      var mid = cb.getAttribute("data-model") || "";
+      var pref = cb.getAttribute("data-prefer") || "";
+      if (mid && pref) items.push({ model_id: mid, prefer: pref });
+    });
+    if (!items.length) {
+      setMsg("请先勾选可优化项", "warn");
+      return;
+    }
+    var lines = items.slice(0, 10).map(function (it) {
+      return "· " + it.model_id + " → " + it.prefer;
+    });
+    if (items.length > 10) lines.push("…另有 " + (items.length - 10) + " 条");
+    var tip =
+      "确认优化已选 " +
+      items.length +
+      " 项主通道？\n立即写回并生效，并同步账本成本。\n\n" +
+      lines.join("\n") +
+      "\n\n切后若毛利变差会标风险并进入巡检。";
+    if (!window.confirm(tip)) return;
+    setMsg("正在批量优化…", "ok");
+    var out = await api("/v1/admin/token/alerts/optimize", {
+      method: "POST",
+      body: { items: items, update_cost: true },
+    });
+    var msg =
+      "已应用 " +
+      (out.applied_count || 0) +
+      " · 跳过 " +
+      (out.skipped_count || 0) +
+      " · 失败 " +
+      (out.error_count || 0);
+    setMsg(msg, out.error_count ? "warn" : "ok");
+    if (out.remaining) renderAlertOptimize({ items: out.remaining, total: (out.remaining || []).length });
+    else await loadAlertOptimize();
+    try {
+      var live = await api("/v1/admin/token/alerts/live");
+      renderAlertLive(live);
+      renderAlertDetail(live);
+    } catch (e2) {}
+    try {
+      if ($("p-supply") && $("p-supply").classList.contains("active")) {
+        await loadSupplyMonitor();
+      }
+    } catch (e3) {}
   }
 
   async function saveAlertConfig() {
@@ -5569,6 +5723,12 @@
   if ($("btnAlertSave")) $("btnAlertSave").onclick = saveAlertConfig;
   if ($("btnAlertReset")) $("btnAlertReset").onclick = resetAlertState;
   if ($("btnAlertRun")) $("btnAlertRun").onclick = runAlertCheck;
+  if ($("btnAlertOptimize")) $("btnAlertOptimize").onclick = runAlertOptimize;
+  if ($("btnAlertOptimizeRefresh")) $("btnAlertOptimizeRefresh").onclick = function () {
+    loadAlertOptimize().then(function () { setMsg("可优化列表已刷新", "ok"); }).catch(function (e) {
+      setMsg(String(e.message || e), "err");
+    });
+  };
   function fmtPr(p) {
     if (!p) return "—";
     return (p[0] == null ? "-" : p[0]) + "/" + (p[1] == null ? "-" : p[1]);

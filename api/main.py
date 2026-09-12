@@ -57,6 +57,7 @@ from schemas import (
     TokenAdminSystemUpdateBody,
     TokenAdminApplyHeroBody,
     TokenAdminApplyFlashLaneBody,
+    TokenAdminOptimizeApplyBody,
     TokenAdminWarehouseUpdateBody,
     TokenAdminFreeSharedUpdateBody,
     TokenAdminLlmKeysUpdateBody,
@@ -4291,8 +4292,46 @@ async def admin_alerts_live(request: Request, db: Session = Depends(get_db)):
     "实时聚合预警（不推送、不改状态）：预警中心「当前告警」实时展示用。"
     _require_internal_key(request)
     from ops_alert import collect_alerts
+    from price_monitor import list_optimize_actions
 
-    return collect_alerts(db)
+    out = collect_alerts(db)
+    try:
+        opt = list_optimize_actions()
+        out["optimize_count"] = sum(1 for x in opt if x.get("applyable"))
+        out["optimize_total"] = len(opt)
+    except Exception:
+        out["optimize_count"] = 0
+        out["optimize_total"] = 0
+    return out
+
+
+@app.get("/v1/admin/token/alerts/optimize")
+async def admin_alerts_optimize_preview(request: Request):
+    """预警审核后一键优化：可执行的主通道待确认列表（只读预览）。"""
+    _require_internal_key(request)
+    from price_monitor import list_optimize_actions
+
+    items = list_optimize_actions()
+    return {
+        "ok": True,
+        "items": items,
+        "applyable_count": sum(1 for x in items if x.get("applyable")),
+        "total": len(items),
+    }
+
+
+@app.post("/v1/admin/token/alerts/optimize")
+async def admin_alerts_optimize_apply(request: Request, body: TokenAdminOptimizeApplyBody):
+    """预警审核后一键优化：批量切主通道（须管理台确认；不静默自动切）。"""
+    _require_internal_key(request)
+    from price_monitor import apply_optimize_batch
+
+    items = [x.model_dump() for x in (body.items or [])]
+    return apply_optimize_batch(
+        items,
+        actor="token-admin",
+        update_cost=bool(body.update_cost),
+    )
 
 
 @app.get("/v1/admin/token/alerts/latest")

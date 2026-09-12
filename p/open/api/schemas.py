@@ -31,7 +31,10 @@ class ChatRequest(BaseModel):
     # OpenAI tools / tool_choice（OpenClaw function calling）
     tools: Optional[List[Dict[str, Any]]] = Field(default=None, description="OpenAI tools")
     tool_choice: Optional[Any] = Field(default=None, description="OpenAI tool_choice")
-    include_reasoning: Optional[bool] = Field(default=False, description="是否向客户端返回推理内容（默认否）")
+    # 请求级：显式 True 才向客户端展示推理；默认隐藏
+    include_reasoning: Optional[bool] = Field(
+        default=False, description="是否向客户端返回推理内容（默认否）"
+    )
 
     class Config:
         json_schema_extra = {
@@ -183,6 +186,74 @@ class InternalSmsVerifyConsumeIn(BaseModel):
     mobile: str = Field(..., min_length=10, max_length=20)
     purpose: str = Field(default="login", max_length=32)
     code: str = Field(..., min_length=4, max_length=16)
+
+
+class AdminSmsLoginBody(BaseModel):
+    """管理员手机验证码登录（手机号必须命中 ADMIN_PHONE 白名单，单号）。"""
+
+    mobile: str = Field(..., min_length=10, max_length=20)
+    code: str = Field(..., min_length=4, max_length=16)
+
+
+class AdminSmsSendBody(BaseModel):
+    """管理员发码（双因素模式）；生产环境可要求图形验证码。"""
+
+    mobile: str = Field(..., min_length=10, max_length=32)
+    captcha_token: Optional[str] = Field(default=None, max_length=64)
+    captcha_answer: Optional[str] = Field(default=None, max_length=16)
+
+
+class AdminSmsConfigBody(BaseModel):
+    """管理后台短信多通道配置保存（热生效，写入 api/data/admin_sms_config.json）。
+    password 留空表示保持原值；enabled 仍走 system_flags.sms_106_enabled（国内短信总开关）。"""
+
+    enabled: Optional[bool] = None
+    active_provider: Optional[str] = Field(default=None, max_length=16, description="106/tencent/juhe")
+    endpoint: Optional[str] = Field(default=None, max_length=512)
+    account: Optional[str] = Field(default=None, max_length=128)
+    password: Optional[str] = Field(default=None, max_length=128)
+    sign_name: Optional[str] = Field(default=None, max_length=64)
+    template: Optional[str] = Field(default=None, max_length=600)
+    # 腾讯短信
+    sms_tencent_secret_id: Optional[str] = Field(default=None, max_length=128)
+    sms_tencent_secret_key: Optional[str] = Field(default=None, max_length=128)
+    sms_tencent_sdk_app_id: Optional[str] = Field(default=None, max_length=64)
+    sms_tencent_sign: Optional[str] = Field(default=None, max_length=64)
+    sms_tencent_template_id: Optional[str] = Field(default=None, max_length=64)
+    sms_tencent_region: Optional[str] = Field(default=None, max_length=32)
+    # 聚合数据
+    sms_juhe_key: Optional[str] = Field(default=None, max_length=128)
+    sms_juhe_tpl_id: Optional[str] = Field(default=None, max_length=64)
+    sms_juhe_sign: Optional[str] = Field(default=None, max_length=64)
+    sms_juhe_template: Optional[str] = Field(default=None, max_length=600)
+
+
+class AdminEmailConfigBody(BaseModel):
+    """管理后台邮件服务配置保存（主 SMTP + 备用 SMTP，热生效）。
+    密码留空表示保持原值；模板支持 {code} / {purpose} 变量。"""
+
+    smtp_host: Optional[str] = Field(default=None, max_length=256)
+    smtp_port: Optional[int] = None
+    smtp_user: Optional[str] = Field(default=None, max_length=256)
+    smtp_password: Optional[str] = Field(default=None, max_length=256)
+    smtp_from: Optional[str] = Field(default=None, max_length=256)
+    smtp_use_tls: Optional[bool] = None
+    smtp_use_ssl: Optional[bool] = None
+    smtp_backup_host: Optional[str] = Field(default=None, max_length=256)
+    smtp_backup_port: Optional[int] = None
+    smtp_backup_user: Optional[str] = Field(default=None, max_length=256)
+    smtp_backup_password: Optional[str] = Field(default=None, max_length=256)
+    smtp_backup_from: Optional[str] = Field(default=None, max_length=256)
+    smtp_backup_use_tls: Optional[bool] = None
+    smtp_backup_use_ssl: Optional[bool] = None
+    email_otp_subject: Optional[str] = Field(default=None, max_length=200)
+    email_otp_body_template: Optional[str] = Field(default=None, max_length=2000)
+
+
+class AdminEmailTestBody(BaseModel):
+    """管理后台邮件测试发送。"""
+
+    email: str = Field(..., max_length=256)
 
 
 class AuthRegisterBody(BaseModel):
@@ -493,7 +564,7 @@ class BillingTopupBody(BaseModel):
 
 class TokenPayCreateBody(BaseModel):
     plan: str = Field(..., min_length=4, max_length=64)
-    product: str = Field(default="token", max_length=16, description="token / byok")
+    product: str = Field("token", max_length=16)
 
 
 class TokenMockFulfillBody(BaseModel):
@@ -504,14 +575,18 @@ class TokenQueryFulfillBody(BaseModel):
     out_trade_no: str = Field(..., min_length=4, max_length=32)
 
 
-class AdminByokFulfillBody(BaseModel):
-    """core 支付中台履约回调：激活/续期 BYOK 订阅（幂等，source_order 去重）。"""
+class AdminBillingDodoOrderBody(BaseModel):
+    """子服务代理下单（服务密钥鉴权，如 open BYOK）。email/phone 至少一项定位 core 用户。"""
 
-    email: str = Field(..., max_length=255)
-    plan: str = Field("byok_pro_month", max_length=64)
-    source_order: str = Field("", max_length=32)
-    channel_tag: str = Field("", max_length=64)
-    amount_fen: int = Field(0)
+    email: str = Field("", max_length=255)
+    phone: str = Field("", max_length=20)
+    plan: str = Field(..., min_length=4, max_length=64)
+    product: str = Field("byok", max_length=16)
+    origin: Optional[str] = Field(None, max_length=255)
+
+
+class AdminBillingDodoQueryBody(BaseModel):
+    out_trade_no: str = Field(..., min_length=4, max_length=32)
 
 
 class TokenCryptoSubmitBody(BaseModel):
@@ -524,6 +599,7 @@ class TokenAdminSystemUpdateBody(BaseModel):
     token_pay_mock_enabled: Optional[bool] = None
     sms_106_enabled: Optional[bool] = None
     token_llm_upstream: Optional[str] = Field(default=None, max_length=32)
+    token_llm_l1_lane: Optional[str] = Field(default=None, max_length=32)
     clear: Optional[list[str]] = Field(default=None, max_length=16)
 
 
@@ -539,6 +615,7 @@ class TokenAdminVipRatePatch(BaseModel):
     cost_in: Optional[float] = Field(default=None, ge=0, le=1000)
     cost_out: Optional[float] = Field(default=None, ge=0, le=1000)
     enabled: Optional[bool] = None
+    channels: Optional[list[str]] = Field(default=None, max_length=8)
 
 
 class TokenAdminWarehouseUpdateBody(BaseModel):
@@ -548,6 +625,29 @@ class TokenAdminWarehouseUpdateBody(BaseModel):
     note: Optional[str] = Field(default=None, max_length=200)
     vip_rates: Optional[list[TokenAdminVipRatePatch]] = Field(default=None, max_length=64)
     layer_mult: Optional[dict[str, int]] = None
+
+
+class TokenAdminApplyHeroBody(BaseModel):
+    """供应链监控：一键切主通道（VIP=channels 重排；档位=上游模式）。"""
+    model_id: str = Field(..., min_length=1, max_length=64)
+    prefer: str = Field(..., min_length=1, max_length=32)
+    update_cost: bool = True
+
+
+class TokenAdminOptimizeItem(BaseModel):
+    model_id: str = Field(..., min_length=1, max_length=64)
+    prefer: str = Field(..., min_length=1, max_length=32)
+
+
+class TokenAdminOptimizeApplyBody(BaseModel):
+    """预警中心：审核后批量一键优化主通道待确认项。"""
+    items: list[TokenAdminOptimizeItem] = Field(..., min_length=1, max_length=32)
+    update_cost: bool = True
+
+
+class TokenAdminApplyFlashLaneBody(BaseModel):
+    """供应链监控：一键切 flash/auto（L1）主通道。"""
+    lane: str = Field(..., min_length=1, max_length=32)
 
 
 class TokenAdminFreeSharedUpdateBody(BaseModel):

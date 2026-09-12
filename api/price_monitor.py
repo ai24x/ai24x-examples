@@ -802,6 +802,172 @@ def list_hero_ops_alerts() -> list[dict[str, Any]]:
     return out
 
 
+def list_optimize_actions() -> list[dict[str, Any]]:
+    """预警「审核后一键优化」预览：仅主通道待确认（hero_pending），不含价格红线/毛利变差。"""
+    st = _load_hero_state()
+    now = time.time()
+    hours = _hero_pending_hours()
+    try:
+        from upstream_health import snapshot as _uh_snapshot
+
+        uh = _uh_snapshot() or {}
+    except Exception:
+        uh = {}
+
+    cat_by_id = {
+        str(c.get("id") or ""): c
+        for c in mw.catalog_merged()
+        if str(c.get("id") or "").strip()
+    }
+    out: list[dict[str, Any]] = []
+    models = st.get("models") if isinstance(st.get("models"), dict) else {}
+    for cid, row in models.items():
+        if not isinstance(row, dict):
+            continue
+        first = float(row.get("first_ts") or 0)
+        if first <= 0:
+            continue
+        dur_h = (now - first) / 3600.0
+        if dur_h + 1e-9 < hours:
+            continue
+        prefer = str(row.get("prefer") or "").strip().lower()
+        rid = "".join(c if c.isalnum() else "_" for c in str(cid))[:40]
+        title = str(row.get("title") or cid)
+        item: dict[str, Any] = {
+            "model_id": cid,
+            "title": title,
+            "prefer": prefer,
+            "prefer_label": _PROVIDER_LABEL.get(prefer, prefer),
+            "hours": round(dur_h, 1),
+            "code": f"hero_pending_{rid}",
+            "action": str(row.get("action") or ""),
+            "applyable": False,
+            "reason": "",
+        }
+        if prefer not in _AGG_PROVIDERS:
+            item["reason"] = "目标通道无效"
+            out.append(item)
+            continue
+        if (_provider_health(uh, prefer) or {}).get("circuit_open"):
+            item["reason"] = (
+                f"{_PROVIDER_LABEL.get(prefer, prefer)} 熔断中，禁止一键切至该通道"
+            )
+            out.append(item)
+            continue
+        cat = cat_by_id.get(cid)
+        if not cat:
+            item["reason"] = "未知模型"
+            out.append(item)
+            continue
+        role = str(cat.get("role") or "")
+        # 已在目标主通道 → 无需再切
+        chs = cat.get("channels") or []
+        ch0 = ""
+        if isinstance(chs, list) and chs:
+            ch0 = str(chs[0] or "").strip().lower()
+        if role == "vip_pick" and ch0 == prefer:
+            item["reason"] = "已在目标主通道，无需再切"
+            out.append(item)
+            continue
+        if role == "vip_pick":
+            item["applyable"] = True
+            item["reason"] = (
+                f"将 VIP 聚合链首切至 {_PROVIDER_LABEL.get(prefer, prefer)}，并同步成本"
+            )
+        elif role in ("default_flash", "default_pro", "default_ultra"):
+            if prefer != "openrouter":
+                item["reason"] = (
+                    "档位主通道仅支持切 OpenRouter；TokenLab/Requesty 请对 VIP 点名使用一键"
+                )
+            else:
+                already_or = False
+                try:
+                    from model_router import _upstream_mode
+
+                    already_or = _upstream_mode() == "openrouter"
+                except Exception:
+                    already_or = False
+                if already_or:
+                    item["reason"] = "档位已是 OpenRouter 上游模式，无需再切"
+                else:
+                    item["applyable"] = True
+                    item["reason"] = "将档位上游模式切为 OpenRouter（立即生效）"
+        else:
+            item["reason"] = "该模型不支持一键切通道"
+        out.append(item)
+
+    out.sort(key=lambda x: (-1 if x.get("applyable") else 0, -float(x.get("hours") or 0)))
+    return out
+
+
+def apply_optimize_batch(
+    items: list[dict[str, Any]],
+    *,
+    actor: str = "admin",
+    update_cost: bool = True,
+) -> dict[str, Any]:
+    """批量应用审核后的主通道优化；单条失败不阻断其余。"""
+    applied: list[dict[str, Any]] = []
+    skipped: list[dict[str, Any]] = []
+    errors: list[dict[str, Any]] = []
+
+    preview = {
+        str(x.get("model_id") or ""): x for x in list_optimize_actions() if x.get("model_id")
+    }
+
+    for raw in items or []:
+        if not isinstance(raw, dict):
+            continue
+        mid = str(raw.get("model_id") or "").strip()
+        prefer = str(raw.get("prefer") or "").strip().lower()
+        if not mid or not prefer:
+            skipped.append({"model_id": mid, "prefer": prefer, "reason": "缺少 model_id/prefer"})
+            continue
+        pre = preview.get(mid) or {}
+        # 预览里不可点（熔断等）→ 跳过；允许 prefer 与预览不一致时仍尝试，由 apply_hero_pick 护栏拦截
+        if pre and not pre.get("applyable") and str(pre.get("prefer") or "").lower() == prefer:
+            skipped.append(
+                {
+                    "model_id": mid,
+                    "prefer": prefer,
+                    "title": pre.get("title") or mid,
+                    "reason": pre.get("reason") or "不可应用",
+                }
+            )
+            continue
+        try:
+            res = apply_hero_pick(
+                model_id=mid,
+                prefer=prefer,
+                update_cost=bool(update_cost),
+                actor=str(actor or "admin")[:64],
+            )
+            applied.append(
+                {
+                    "model_id": mid,
+                    "prefer": prefer,
+                    "prefer_label": res.get("prefer_label") or _PROVIDER_LABEL.get(prefer, prefer),
+                    "message": res.get("message") or "ok",
+                    "risk_warning": res.get("risk_warning"),
+                }
+            )
+        except ValueError as e:
+            errors.append({"model_id": mid, "prefer": prefer, "reason": str(e) or "失败"})
+        except Exception as e:
+            errors.append({"model_id": mid, "prefer": prefer, "reason": str(e)[:200]})
+
+    return {
+        "ok": True,
+        "applied": applied,
+        "skipped": skipped,
+        "errors": errors,
+        "applied_count": len(applied),
+        "skipped_count": len(skipped),
+        "error_count": len(errors),
+        "remaining": list_optimize_actions(),
+    }
+
+
 def _prefer_not_circuit(
     cheap: Optional[dict[str, Any]],
     stable: Optional[dict[str, Any]],
