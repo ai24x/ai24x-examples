@@ -306,6 +306,9 @@
       pre +
       'status.html" data-i18n="footer.link.status"></a>' +
       '<a href="' +
+      wwwBase() +
+      '/tools.html" target="_blank" rel="noopener" data-i18n="footer.link.tools"></a>' +
+      '<a href="' +
       pre +
       'refer.html" data-i18n="footer.link.refer"></a>' +
       '<a href="' +
