@@ -46,6 +46,7 @@ _DEFAULT_CONFIG: dict[str, Any] = {
     "enabled": True,
     "webhook_url": "",
     "cooldown_minutes": 60,
+    "daily_push_limit": 2,
     "push_info": False,
     "base_url": "http://127.0.0.1:8000",
     "sms_enabled": False,
@@ -77,8 +78,10 @@ _ALERT_LABELS = {
     "upstream_balance": "上游通道余额预警",
     "upstream_balance_collect_fail": "余额采集异常",
     "price_monitor_fail": "价格监控采集异常",
-    "price_alarm": "价格红线（倒挂）",
-    "price_warn": "价格预警（低毛利）",
+    "price_alarm": "售价盖不住成本",
+    "price_warn": "毛利偏低",
+    "hero_pending": "建议换主通道",
+    "hero_gm_risk": "切通道后请复查毛利",
     "pay_pending_backlog": "待履约订单积压",
     "pay_pending": "待履约订单",
     "llm_l1_no_key": "L1 主档未配置密钥",
@@ -95,8 +98,10 @@ _ALERT_LABELS = {
 def _alert_label(code: str) -> str:
     c = str(code or "")
     for prefix, label in (
-        ("price_warn_", "价格预警（低毛利）"),
-        ("price_alarm_", "价格红线（倒挂）"),
+        ("price_warn_", "毛利偏低"),
+        ("price_alarm_", "售价盖不住成本"),
+        ("hero_pending_", "建议换主通道"),
+        ("hero_gm_risk_", "切通道后请复查毛利"),
         ("upstream_fail_", "上游通道故障"),
         ("upstream_circuit_", "上游熔断触发"),
         ("upstream_balance_", "上游通道余额预警"),
@@ -104,6 +109,51 @@ def _alert_label(code: str) -> str:
         if c.startswith(prefix):
             return label
     return _ALERT_LABELS.get(c, c)
+
+
+def _human_price_msg(row: dict[str, Any]) -> str:
+    """管理台可读：说清问题 + 下一步，不堆 GM_in / 内部 code。"""
+    title = str(row.get("title") or row.get("id") or "模型")
+    rid = str(row.get("id") or "")
+    flags = [str(x) for x in (row.get("flags") or [])]
+    flag_txt = "；".join(flags)
+    try:
+        gm_b = float(row["gm_blend"]) if row.get("gm_blend") is not None else None
+    except (TypeError, ValueError):
+        gm_b = None
+    try:
+        gm_o = float(row["gm_out"]) if row.get("gm_out") is not None else None
+    except (TypeError, ValueError):
+        gm_o = None
+
+    lane = ""
+    try:
+        from system_flags import effective_l1_lane
+
+        lane = str(effective_l1_lane() or "")
+    except Exception:
+        lane = ""
+
+    action = "请到「供应链」核对成本与售价。"
+    if rid.startswith("ds-v4") or "deepseek" in title.lower():
+        if lane in ("or_deepseek", "deepseek_official"):
+            action = "当前 Flash 主通道是 DeepSeek（偏贵）。请到「供应链 → Flash 通道」切回「MiMo 官方」。"
+        else:
+            action = "若 Flash 已用 MiMo 仍报警，多半是目录旧行；以供应链 Flash 通道为准。"
+    elif "成本高于" in flag_txt:
+        action = "账面成本偏高，可到「供应链」换更便宜主通道并同步成本。"
+
+    if row.get("level") == "alarm":
+        if gm_b is not None and gm_b < 0:
+            core = f"{title}：卖价盖不住成本（综合毛利约 {gm_b}%）"
+        elif gm_o is not None and gm_o < 0:
+            core = f"{title}：输出端在亏钱（输出毛利约 {gm_o}%）"
+        else:
+            core = f"{title}：毛利触及红线"
+        return f"{core}。{action}"
+    if gm_b is not None:
+        return f"{title}：毛利偏低（综合约 {gm_b}%）。{action}"
+    return f"{title}：毛利需关注。{action}"
 
 _LEVEL_RANK = {"info": 0, "warn": 1, "error": 2}
 
@@ -150,6 +200,12 @@ def load_config() -> dict[str, Any]:
     except ValueError:
         cfg["cooldown_minutes"] = 60
     try:
+        cfg["daily_push_limit"] = max(
+            1, int(os.getenv("OPS_ALERT_DAILY_LIMIT", str(cfg.get("daily_push_limit") or 2)))
+        )
+    except ValueError:
+        cfg["daily_push_limit"] = 2
+    try:
         cfg["push_info"] = bool(int(os.getenv("OPS_ALERT_PUSH_INFO", "0")))
     except ValueError:
         cfg["push_info"] = False
@@ -175,6 +231,7 @@ def save_config(updates: dict[str, Any]) -> dict[str, Any]:
         "enabled",
         "webhook_url",
         "cooldown_minutes",
+        "daily_push_limit",
         "push_info",
         "base_url",
         "sms_enabled",
@@ -207,6 +264,10 @@ def save_config(updates: dict[str, Any]) -> dict[str, Any]:
         cur["cooldown_minutes"] = max(1, int(cur.get("cooldown_minutes") or 60))
     except (TypeError, ValueError):
         cur["cooldown_minutes"] = 60
+    try:
+        cur["daily_push_limit"] = max(1, int(cur.get("daily_push_limit") or 2))
+    except (TypeError, ValueError):
+        cur["daily_push_limit"] = 2
     cur["webhook_url"] = str(cur.get("webhook_url") or "").strip()
     cur["base_url"] = str(cur.get("base_url") or "").strip() or "http://127.0.0.1:8000"
     cur["sms_channel"] = str(cur.get("sms_channel") or "").strip()
@@ -438,21 +499,26 @@ def collect_alerts(db) -> dict[str, Any]:
 
         pm = _pm_snapshot()
         for r in (pm.get("rows") or []):
+            # 目录遗留/信息级不进 P0/P1（避免假倒挂刷屏）
+            if r.get("stale_default") or r.get("level") == "info":
+                continue
             rid = "".join(c if c.isalnum() else "_" for c in str(r.get("id") or ""))[:40]
             if r.get("level") == "alarm":
-                add(
-                    "error",
-                    f"price_alarm_{rid}",
-                    f"价格红线: {r.get('title')} GM_in={r.get('gm_in')}% GM_out={r.get('gm_out')}% "
-                    f"混合={r.get('gm_blend')}% ({'; '.join(r.get('flags') or [])})",
-                )
+                add("error", f"price_alarm_{rid}", _human_price_msg(r))
             elif r.get("level") == "warn":
+                add("warn", f"price_warn_{rid}", _human_price_msg(r))
+        # 主通道：持续建议待确认 + 一键后毛利变差（只告警，不自动切）
+        try:
+            from price_monitor import list_hero_ops_alerts
+
+            for ha in list_hero_ops_alerts() or []:
                 add(
-                    "warn",
-                    f"price_warn_{rid}",
-                    f"价格预警: {r.get('title')} 混合毛利={r.get('gm_blend')}% "
-                    f"({'; '.join(r.get('flags') or [])})",
+                    str(ha.get("level") or "warn"),
+                    str(ha.get("code") or "hero_pending"),
+                    str(ha.get("message") or "主通道建议待确认"),
                 )
+        except Exception as e_hero:
+            add("warn", "hero_ops_alert_fail", f"主通道待办采集异常: {e_hero}")
     except Exception as e:
         add("warn", "price_monitor_fail", f"价格监控采集异常: {e}")
 
@@ -719,12 +785,41 @@ def run_check(db, *, push: bool = True, dry_run: bool = False) -> dict[str, Any]
         lines.append("（无变化，冷却中静默）")
     text = "\n".join(lines)
 
+    # 2026-08-28 Boss order: no change -> silent (no feishu/email/sms), state only
+    if not new_push and not recovered:
+        save_state = {"codes": codes_state, "last_check": _cst_now().isoformat(),
+                      "last_push_at": state.get("last_push_at") or "",
+                      "last_push_text": state.get("last_push_text") or "",
+                      "last_silent_at": _cst_now().isoformat(),
+                      "push_daily": state.get("push_daily") or {}}
+        _save_json(_STATE_PATH, save_state)
+        return {"ok": True, "pushed": False, "silent": True, "health": health,
+                "alerts": alerts, "new_push": [], "recovered": [], "text": text}
+
+    # 2026-08-30 Boss order: 非正常预警每日限频（默认 2 条/天），达限额静默落盘
+    daily_limit = max(1, int(cfg.get("daily_push_limit") or 2))
+    push_daily = state.get("push_daily") or {}
+    today = _cst_now().strftime("%Y-%m-%d")
+    if push_daily.get("date") != today:
+        push_daily = {"date": today, "count": 0}
+    if int(push_daily.get("count") or 0) >= daily_limit:
+        save_state = {"codes": codes_state, "last_check": _cst_now().isoformat(),
+                      "last_push_at": state.get("last_push_at") or "",
+                      "last_push_text": state.get("last_push_text") or "",
+                      "last_silent_at": _cst_now().isoformat(),
+                      "push_daily": push_daily}
+        _save_json(_STATE_PATH, save_state)
+        return {"ok": True, "pushed": False, "rate_limited": True, "health": health,
+                "alerts": alerts, "new_push": new_push, "recovered": recovered, "text": text}
+
     pushed_feishu = _push_feishu(cfg, text)
     pushed_email = _push_email(cfg, text) if cfg.get("email_enabled") else False
     pushed_sms = _push_sms(cfg, text) if (cfg.get("sms_enabled") and n_err > 0) else False
     pushed = pushed_feishu or pushed_email or pushed_sms
 
-    save_state = {"codes": codes_state, "last_check": _cst_now().isoformat()}
+    push_daily["count"] = int(push_daily.get("count") or 0) + 1
+    save_state = {"codes": codes_state, "last_check": _cst_now().isoformat(),
+                  "push_daily": push_daily}
     if new_push or recovered:
         save_state["last_push_at"] = _cst_now().isoformat()
         save_state["last_push_text"] = text

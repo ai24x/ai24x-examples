@@ -78,10 +78,10 @@ _ALERT_LABELS = {
     "upstream_balance": "上游通道余额预警",
     "upstream_balance_collect_fail": "余额采集异常",
     "price_monitor_fail": "价格监控采集异常",
-    "price_alarm": "价格红线（倒挂）",
-    "price_warn": "价格预警（低毛利）",
-    "hero_pending": "主通道待确认（持续建议）",
-    "hero_gm_risk": "一键切通道后毛利变差",
+    "price_alarm": "售价盖不住成本",
+    "price_warn": "毛利偏低",
+    "hero_pending": "建议换主通道",
+    "hero_gm_risk": "切通道后请复查毛利",
     "pay_pending_backlog": "待履约订单积压",
     "pay_pending": "待履约订单",
     "llm_l1_no_key": "L1 主档未配置密钥",
@@ -98,10 +98,10 @@ _ALERT_LABELS = {
 def _alert_label(code: str) -> str:
     c = str(code or "")
     for prefix, label in (
-        ("price_warn_", "价格预警（低毛利）"),
-        ("price_alarm_", "价格红线（倒挂）"),
-        ("hero_pending_", "主通道待确认（持续建议）"),
-        ("hero_gm_risk_", "一键切通道后毛利变差"),
+        ("price_warn_", "毛利偏低"),
+        ("price_alarm_", "售价盖不住成本"),
+        ("hero_pending_", "建议换主通道"),
+        ("hero_gm_risk_", "切通道后请复查毛利"),
         ("upstream_fail_", "上游通道故障"),
         ("upstream_circuit_", "上游熔断触发"),
         ("upstream_balance_", "上游通道余额预警"),
@@ -109,6 +109,51 @@ def _alert_label(code: str) -> str:
         if c.startswith(prefix):
             return label
     return _ALERT_LABELS.get(c, c)
+
+
+def _human_price_msg(row: dict[str, Any]) -> str:
+    """管理台可读：说清问题 + 下一步，不堆 GM_in / 内部 code。"""
+    title = str(row.get("title") or row.get("id") or "模型")
+    rid = str(row.get("id") or "")
+    flags = [str(x) for x in (row.get("flags") or [])]
+    flag_txt = "；".join(flags)
+    try:
+        gm_b = float(row["gm_blend"]) if row.get("gm_blend") is not None else None
+    except (TypeError, ValueError):
+        gm_b = None
+    try:
+        gm_o = float(row["gm_out"]) if row.get("gm_out") is not None else None
+    except (TypeError, ValueError):
+        gm_o = None
+
+    lane = ""
+    try:
+        from system_flags import effective_l1_lane
+
+        lane = str(effective_l1_lane() or "")
+    except Exception:
+        lane = ""
+
+    action = "请到「供应链」核对成本与售价。"
+    if rid.startswith("ds-v4") or "deepseek" in title.lower():
+        if lane in ("or_deepseek", "deepseek_official"):
+            action = "当前 Flash 主通道是 DeepSeek（偏贵）。请到「供应链 → Flash 通道」切回「MiMo 官方」。"
+        else:
+            action = "若 Flash 已用 MiMo 仍报警，多半是目录旧行；以供应链 Flash 通道为准。"
+    elif "成本高于" in flag_txt:
+        action = "账面成本偏高，可到「供应链」换更便宜主通道并同步成本。"
+
+    if row.get("level") == "alarm":
+        if gm_b is not None and gm_b < 0:
+            core = f"{title}：卖价盖不住成本（综合毛利约 {gm_b}%）"
+        elif gm_o is not None and gm_o < 0:
+            core = f"{title}：输出端在亏钱（输出毛利约 {gm_o}%）"
+        else:
+            core = f"{title}：毛利触及红线"
+        return f"{core}。{action}"
+    if gm_b is not None:
+        return f"{title}：毛利偏低（综合约 {gm_b}%）。{action}"
+    return f"{title}：毛利需关注。{action}"
 
 _LEVEL_RANK = {"info": 0, "warn": 1, "error": 2}
 
@@ -454,21 +499,14 @@ def collect_alerts(db) -> dict[str, Any]:
 
         pm = _pm_snapshot()
         for r in (pm.get("rows") or []):
+            # 目录遗留/信息级不进 P0/P1（避免假倒挂刷屏）
+            if r.get("stale_default") or r.get("level") == "info":
+                continue
             rid = "".join(c if c.isalnum() else "_" for c in str(r.get("id") or ""))[:40]
             if r.get("level") == "alarm":
-                add(
-                    "error",
-                    f"price_alarm_{rid}",
-                    f"价格红线: {r.get('title')} GM_in={r.get('gm_in')}% GM_out={r.get('gm_out')}% "
-                    f"混合={r.get('gm_blend')}% ({'; '.join(r.get('flags') or [])})",
-                )
+                add("error", f"price_alarm_{rid}", _human_price_msg(r))
             elif r.get("level") == "warn":
-                add(
-                    "warn",
-                    f"price_warn_{rid}",
-                    f"价格预警: {r.get('title')} 混合毛利={r.get('gm_blend')}% "
-                    f"({'; '.join(r.get('flags') or [])})",
-                )
+                add("warn", f"price_warn_{rid}", _human_price_msg(r))
         # 主通道：持续建议待确认 + 一键后毛利变差（只告警，不自动切）
         try:
             from price_monitor import list_hero_ops_alerts

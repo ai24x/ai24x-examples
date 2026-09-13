@@ -266,8 +266,9 @@
     }
     .alert-list-item.error { border-color: rgba(251,113,133,0.35); }
     .alert-list-item.warn { border-color: rgba(251,191,36,0.35); }
-    .alert-list-item .al-msg { word-break: break-word; color: var(--text); }
+    .alert-list-item .al-msg { word-break: break-word; color: var(--text); font-weight: 600; }
     .alert-list-item .al-code { color: var(--muted); font-size: 11px; margin-top: 2px; }
+    .alert-list-item .al-tip { color: var(--muted); font-size: 12px; margin-top: 4px; line-height: 1.4; }
     .opt-row {
       display: grid;
       grid-template-columns: 28px 1fr;
@@ -1371,7 +1372,7 @@
               <div class="row" style="justify-content:space-between;align-items:flex-start;">
                 <div>
                   <h2 style="margin:0;">预警中心</h2>
-                  <p class="muted small" style="margin:6px 0 0;">定时巡检（生产每小时）写状态；飞书私信由副脑04 早晚摘要推送（有告警才发，同内容 6h 合并）。群 Webhook / 邮箱 / 短信为兜底。</p>
+                  <p class="muted small" style="margin:6px 0 0;">只看「要不要动手」：P0 优先处理，P1 可排期。飞书早晚摘要有告警才发。</p>
                 </div>
                 <div class="row">
                   <button type="button" id="btnAlertRun">立即巡检并推送</button>
@@ -1384,7 +1385,8 @@
                 <div class="field"><span class="lbl">最近巡检（快照）</span><div id="alertLastCheck" style="font-size:13px;min-height:20px;">—</div></div>
                 <div class="field"><span class="lbl">最近推送</span><div id="alertLastPush" style="font-size:13px;min-height:20px;">—</div></div>
               </div>
-              <div class="section-label" style="margin-top:4px;">当前告警（实时）</div>
+              <div class="section-label" style="margin-top:4px;">当前告警</div>
+              <p class="ops-tip" style="margin:0 0 8px;">每条含「问题 + 建议动作」。DeepSeek 倒挂多半是 Flash 误切到贵通道 → 去供应链切回 MiMo。</p>
               <div id="alertOverview" class="alert-list" style="min-height:20px;">—</div>
               <details class="sys-detail" style="margin-top:8px;">
                 <summary>最近推送原文（默认收起）</summary>
@@ -1395,8 +1397,6 @@
                 <button type="button" id="btnAlertReset" style="background:#b7791f;border-color:#b7791f;color:#fff;">重置预警状态</button>
                 <span class="muted small">仅清空显示状态；根因未消则下次巡检会再现</span>
               </div>
-              <div class="section-label">预警明细（实时）</div>
-              <div id="alertDetailList" style="font-size:13px;">—</div>
 
               <div class="ops-block" id="alertOptimizeBlock">
                 <div class="section-label">可优化（审核后一键）</div>
@@ -2648,7 +2648,7 @@
       var show = alerts.filter(function (a) {
         return a.level === "error" || a.level === "warn";
       });
-      $("opsHomeAlerts").innerHTML = formatAlertListHtml(show, { max: 12, showCode: true });
+      $("opsHomeAlerts").innerHTML = formatAlertListHtml(show, { max: 8, showCode: false });
     }
     if ($("opsHomeOptimizeHint")) {
       var oc = Number(live && live.optimize_count) || 0;
@@ -5409,10 +5409,10 @@
     "upstream_fail": "上游通道故障",
     "upstream_circuit": "上游熔断触发",
     "price_monitor_fail": "价格监控采集异常",
-    "price_alarm": "价格红线（倒挂）",
-    "price_warn": "价格预警（低毛利）",
-    "hero_pending": "主通道待确认（持续建议）",
-    "hero_gm_risk": "一键切通道后毛利变差",
+    "price_alarm": "售价盖不住成本",
+    "price_warn": "毛利偏低",
+    "hero_pending": "建议换主通道",
+    "hero_gm_risk": "切通道后请复查毛利",
     "pay_pending_backlog": "待履约订单积压",
     "pay_pending": "待履约订单",
     "llm_l1_no_key": "L1 主档未配置密钥",
@@ -5426,10 +5426,10 @@
   };
   function alertLabel(code) {
     var c = String(code || "");
-    if (c.indexOf("price_warn_") === 0) return "价格预警（低毛利）";
-    if (c.indexOf("price_alarm_") === 0) return "价格红线（倒挂）";
-    if (c.indexOf("hero_pending_") === 0) return "主通道待确认（持续建议）";
-    if (c.indexOf("hero_gm_risk_") === 0) return "一键切通道后毛利变差";
+    if (c.indexOf("price_warn_") === 0) return "毛利偏低";
+    if (c.indexOf("price_alarm_") === 0) return "售价盖不住成本";
+    if (c.indexOf("hero_pending_") === 0) return "建议换主通道";
+    if (c.indexOf("hero_gm_risk_") === 0) return "切通道后请复查毛利";
     if (c.indexOf("upstream_fail_") === 0) return "上游通道故障";
     if (c.indexOf("upstream_circuit_") === 0) return "上游熔断触发";
     return ALERT_LABELS[c] || c;
@@ -5438,7 +5438,7 @@
   function formatAlertListHtml(alerts, opts) {
     opts = opts || {};
     var max = opts.max || 50;
-    var showCode = opts.showCode !== false;
+    var showCode = !!opts.showCode;
     var list = (alerts || []).filter(function (a) {
       var lv = String(a.level || "info");
       return lv === "error" || lv === "warn";
@@ -5454,7 +5454,24 @@
         var pill = lv === "error" ? "bad" : "warn";
         var code = String(a.code || "");
         var label = alertLabel(code);
-        var msg = String(a.msg || label || code);
+        var msg = String(a.msg || a.message || label || code);
+        // 文案里若已含建议动作，拆成主句 + 提示行，方便扫读
+        var tip = "";
+        var parts = msg.split("。");
+        if (parts.length > 1) {
+          var last = parts[parts.length - 1].trim();
+          if (
+            last &&
+            (last.indexOf("请到") === 0 ||
+              last.indexOf("建议") === 0 ||
+              last.indexOf("打开") === 0 ||
+              last.indexOf("当前 Flash") === 0 ||
+              last.indexOf("若 Flash") === 0)
+          ) {
+            tip = last;
+            msg = parts.slice(0, -1).join("。") + "。";
+          }
+        }
         return (
           '<div class="alert-list-item ' +
           esc(lv) +
@@ -5465,10 +5482,11 @@
           '</span></div><div><div class="al-msg">' +
           esc(msg) +
           "</div>" +
-          (showCode
-            ? '<div class="al-code">' + esc(label) + (code ? " · " + esc(code) : "") + "</div>"
-            : "") +
-          "</div></div>"
+          (tip ? '<div class="al-tip">' + esc(tip) + "</div>" : "") +
+          '<div class="al-code">' +
+          esc(label) +
+          (showCode && code ? " · " + esc(code) : "") +
+          "</div></div></div>"
         );
       })
       .join("");
@@ -5477,25 +5495,12 @@
   function renderAlertLive(live) {
     var box = $("alertOverview");
     if (!box) return;
-    box.innerHTML = formatAlertListHtml((live && live.alerts) || [], { max: 40, showCode: true });
+    box.innerHTML = formatAlertListHtml((live && live.alerts) || [], { max: 40, showCode: false });
   }
 
   function renderAlertDetail(live) {
-    var box = $("alertDetailList");
-    if (!box) return;
-    var list = ((live && live.alerts) || []).slice().sort(function (a, b) {
-      var rk = { error: 3, warn: 2, info: 1 };
-      return (rk[String(b.level)] || 0) - (rk[String(a.level)] || 0);
-    });
-    var actionable = list.filter(function (a) {
-      var lv = String(a.level || "info");
-      return lv === "error" || lv === "warn";
-    });
-    if (!actionable.length) {
-      box.innerHTML = '<span class="pill ok">无 P0/P1 预警</span>';
-      return;
-    }
-    box.innerHTML = formatAlertListHtml(actionable, { max: 80, showCode: true });
+    // 已与「当前告警」合并，保留空函数以免旧绑定报错
+    return;
   }
 
   function renderAlertOverview(r) {

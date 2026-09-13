@@ -774,13 +774,15 @@ def list_hero_ops_alerts() -> list[dict[str, Any]]:
             continue
         prefer = str(row.get("prefer") or "")
         rid = "".join(c if c.isalnum() else "_" for c in str(cid))[:40]
+        title = str(row.get("title") or cid)
+        prefer_l = _PROVIDER_LABEL.get(prefer, prefer)
         out.append(
             {
                 "level": "warn",
                 "code": f"hero_pending_{rid}",
                 "message": (
-                    f"主通道待确认: {row.get('title') or cid} 已持续 {round(dur_h, 1)}h 建议切至 "
-                    f"{_PROVIDER_LABEL.get(prefer, prefer)}（请管理台一键，勿静默自动切）"
+                    f"{title}：建议主通道切到 {prefer_l}（已提示约 {round(dur_h, 1)} 小时）。"
+                    f"打开预警中心「可优化」勾选确认即可，不会自动切换。"
                 ),
             }
         )
@@ -790,13 +792,30 @@ def list_hero_ops_alerts() -> list[dict[str, Any]]:
             continue
         if now - float(row.get("ts") or 0) > 86400:
             continue
+        # 切后仍健康（级别 ok 且高于黄线）→ 不进 P0/P1，避免「毛利变差但仍安全」刷屏
+        try:
+            gm_after = float(row["gm_after"]) if row.get("gm_after") is not None else None
+        except (TypeError, ValueError):
+            gm_after = None
+        if str(row.get("level") or "") not in ("alarm", "warn") and (
+            gm_after is None or gm_after >= warn_gm()
+        ):
+            continue
         rid = "".join(c if c.isalnum() else "_" for c in str(cid))[:40]
         lvl = "error" if str(row.get("level") or "") == "alarm" else "warn"
+        title = str(row.get("title") or cid)
+        gb = row.get("gm_before")
+        ga = row.get("gm_after")
+        msg = (
+            f"{title}：切通道后毛利从 {gb}% 降到 {ga}%，请到「供应链」核对售价/倍率。"
+            if gb is not None and ga is not None
+            else str(row.get("message") or f"{title}：切通道后请复查毛利。")
+        )
         out.append(
             {
                 "level": lvl,
                 "code": f"hero_gm_risk_{rid}",
-                "message": str(row.get("message") or f"一键切通道后毛利变差: {cid}"),
+                "message": msg,
             }
         )
     return out
@@ -1165,21 +1184,25 @@ def apply_hero_pick(
             and gm_after is not None
             and float(gm_after) + drop < float(gm_before)
         )
-        if worse_level or gm_drop:
+        still_healthy = str(level_after or "") == "ok" and (
+            gm_after is None or float(gm_after) >= warn_gm()
+        )
+        if (worse_level or gm_drop) and not still_healthy:
             risk_level = "alarm" if str(level_after) == "alarm" else "warn"
             risk_warning = (
-                f"切后毛利需复查：GM1:4 {gm_before}% → {gm_after}%"
-                f"（级别 {level_before} → {level_after}）。通道已生效，请核对倍率/售价。"
+                f"切后毛利需复查：{gm_before}% → {gm_after}%"
+                f"（{level_before} → {level_after}）。通道已生效，请核对倍率/售价。"
             )
             _set_gm_risk(
                 cid,
                 {
                     "ts": time.time(),
                     "level": risk_level,
+                    "title": str((before_row or {}).get("title") or cid),
                     "gm_before": gm_before,
                     "gm_after": gm_after,
                     "prefer": prefer_n,
-                    "message": f"一键切通道后毛利变差: {cid} — {risk_warning}",
+                    "message": f"{cid}：{risk_warning}",
                 },
             )
         else:
