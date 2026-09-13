@@ -1462,6 +1462,24 @@ def build_hero_picks(rows: list[dict[str, Any]], health: Optional[dict[str, Any]
     }
 
 
+def _active_flash_lane_id() -> str:
+    """管理台覆盖优先，否则探测实际 Flash 通道。"""
+    try:
+        from system_flags import effective_l1_lane
+
+        lane = effective_l1_lane()
+        if lane:
+            return str(lane)
+    except Exception:
+        pass
+    try:
+        from model_router import detect_active_flash_lane
+
+        return str(detect_active_flash_lane() or "")
+    except Exception:
+        return ""
+
+
 def _layer_active_upstream(layer: str) -> str:
     """现行默认档实际上游 model id（如 L1=xiaomi/mimo-v2.5）；失败返回空。
 
@@ -1563,6 +1581,7 @@ def snapshot() -> dict[str, Any]:
         period = current_period()
         cost_in = float(c.get("cost_in") or 0)
         cost_out = float(c.get("cost_out") or 0)
+        flash_lane = ""
         # 管理台已写入实采成本时，勿被官方涨价日程盖回（假「高于市场最低」）
         admin_ov = mw._vip_rates_map().get(cid) or {}
         cost_from_admin = ("cost_in" in admin_ov) or ("cost_out" in admin_ov)
@@ -1604,6 +1623,21 @@ def snapshot() -> dict[str, Any]:
                 if _pin is not None or _pout is not None:
                     in_mult = max(1, int(_pin if _pin is not None else in_mult))
                     out_mult = max(1, int(_pout if _pout is not None else out_mult))
+        # Flash/Auto 默认档：成本必须跟「当前 Flash 通道实采」走，禁止用官网标价假倒挂
+        flash_lane = ""
+        if role == "default_flash" and not cost_from_admin:
+            try:
+                from flash_lanes import _flash_lane_cost
+
+                flash_lane = _active_flash_lane_id()
+                if flash_lane:
+                    cin_l, cout_l, src_l = _flash_lane_cost(flash_lane, pp)
+                    if float(cin_l or 0) > 0 or float(cout_l or 0) > 0:
+                        cost_in = float(cin_l or 0)
+                        cost_out = float(cout_l or 0)
+                        cost_source = f"flash_lane:{flash_lane}:{src_l}"
+            except Exception:
+                flash_lane = ""
         sell_in = round(ref * in_mult, 4)
         sell_out = round(ref * out_mult, 4)
         gm_in = _gm(sell_in, cost_in)
@@ -1730,6 +1764,7 @@ def snapshot() -> dict[str, Any]:
             "cost_in": round(cost_in, 4),
             "cost_out": round(cost_out, 4),
             "cost_source": cost_source,
+            "flash_lane": flash_lane or None,
             "gm_in": gm_in,
             "gm_out": gm_out,
             "gm_blend": gm_blend,

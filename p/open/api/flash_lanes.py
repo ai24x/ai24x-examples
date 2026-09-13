@@ -45,7 +45,7 @@ _FLASH_LANE_META: dict[str, dict[str, Any]] = {
         "or_id": "deepseek/deepseek-v4-flash",
         "model": "deepseek/deepseek-v4-flash",
         "warehouse_model": "deepseek/deepseek-v4-flash",
-        "quality_note": "能力向备选；看实拉价是否低于 MiMo",
+        "quality_note": "OR 实价常低于官网；适合作 Flash 成本主力（盯实价漂移）",
     },
     "deepseek_official": {
         "label": "DeepSeek 官方",
@@ -55,7 +55,7 @@ _FLASH_LANE_META: dict[str, dict[str, Any]] = {
         "or_id": "deepseek/deepseek-v4-flash",
         "model": "deepseek-v4-flash",
         "warehouse_model": "deepseek/deepseek-v4-flash",
-        "quality_note": "官方涨价后通常更贵；稳但是成本压力大",
+        "quality_note": "官网输出价易打穿 Flash 售价；勿作默认主力，点名走 VIP",
     },
 }
 

@@ -117,6 +117,7 @@ def _human_price_msg(row: dict[str, Any]) -> str:
     rid = str(row.get("id") or "")
     flags = [str(x) for x in (row.get("flags") or [])]
     flag_txt = "；".join(flags)
+    cs = str(row.get("cost_source") or "")
     try:
         gm_b = float(row["gm_blend"]) if row.get("gm_blend") is not None else None
     except (TypeError, ValueError):
@@ -133,13 +134,29 @@ def _human_price_msg(row: dict[str, Any]) -> str:
         lane = str(effective_l1_lane() or "")
     except Exception:
         lane = ""
+    if not lane and cs.startswith("flash_lane:"):
+        lane = cs.split(":")[1] if ":" in cs else ""
 
     action = "请到「供应链」核对成本与售价。"
-    if rid.startswith("ds-v4") or "deepseek" in title.lower():
-        if lane in ("or_deepseek", "deepseek_official"):
-            action = "当前 Flash 主通道是 DeepSeek（偏贵）。请到「供应链 → Flash 通道」切回「MiMo 官方」。"
-        else:
-            action = "若 Flash 已用 MiMo 仍报警，多半是目录旧行；以供应链 Flash 通道为准。"
+    if (
+        rid.startswith("ds-v4")
+        or str(row.get("role") or "") == "default_flash"
+        or "deepseek" in title.lower()
+    ):
+        if lane == "deepseek_official" or "official" in cs:
+            action = (
+                "Flash 正走 DeepSeek 官方价，输出端易打穿现价。建议改「DeepSeek · OpenRouter」"
+                "（看实价），或提高 Flash 售价；点名 DeepSeek 请用 VIP 档。"
+            )
+        elif lane == "or_deepseek" or "or_deepseek" in cs:
+            action = (
+                "已按 OpenRouter DeepSeek 实采计价仍亏：可换 MiMo，或提高 Flash 售价。"
+                "勿与官网标价混淆。"
+            )
+        elif lane in ("mimo_official", "or_mimo"):
+            action = "Flash 已是 MiMo；若仍报警请核对 flash 售价倍率或刷新价目。"
+        elif "flash_lane" not in cs:
+            action = "目录可能仍按官网成本估算；以供应链 Flash 通道实价为准。"
     elif "成本高于" in flag_txt:
         action = "账面成本偏高，可到「供应链」换更便宜主通道并同步成本。"
 
@@ -154,6 +171,7 @@ def _human_price_msg(row: dict[str, Any]) -> str:
     if gm_b is not None:
         return f"{title}：毛利偏低（综合约 {gm_b}%）。{action}"
     return f"{title}：毛利需关注。{action}"
+
 
 _LEVEL_RANK = {"info": 0, "warn": 1, "error": 2}
 
