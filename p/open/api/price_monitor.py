@@ -1471,6 +1471,17 @@ def _layer_active_upstream(layer: str) -> str:
     layer = str(layer or "").upper().strip()
     if not layer:
         return ""
+    # Flash/Auto（L1）以管理台一键通道为准，避免与 _OR_DEFAULT_MODELS 漂移时假静默/假倒挂
+    if layer == "L1":
+        try:
+            from system_flags import effective_l1_lane
+            from flash_lanes import _FLASH_LANE_META
+
+            lane = effective_l1_lane()
+            if lane and lane in _FLASH_LANE_META:
+                return str(_FLASH_LANE_META[lane].get("or_id") or _FLASH_LANE_META[lane].get("warehouse_model") or "").strip()
+        except Exception:
+            pass
     try:
         import os
         from model_router import _OR_DEFAULT_MODELS
@@ -1495,7 +1506,8 @@ def _layer_active_upstream(layer: str) -> str:
 def _is_stale_default_catalog(c: dict[str, Any]) -> tuple[bool, str]:
     """目录里 default_* 行若 openrouter_id 已不是现行层上游，则属遗留行（勿当红线）。
 
-    例：ds-v4-flash 仍写 DeepSeek 官方成本，但 L1 已切 MiMo → 用层倍率×DS 成本会假倒挂。
+    例：ds-v4-flash 仍写 DeepSeek 官方成本，但 L1 Flash 通道已切 MiMo → 用层倍率×DS 成本会假倒挂。
+    若 Flash 通道仍是 DeepSeek，则 ds-v4-flash 行必须继续报警（真倒挂）。
     """
     role = str(c.get("role") or "")
     if not role.startswith("default_"):
@@ -1512,6 +1524,16 @@ def _is_stale_default_catalog(c: dict[str, Any]) -> tuple[bool, str]:
     a_tail = a.split("/")[-1]
     r_tail = r.split("/")[-1]
     if a_tail and (a_tail == r_tail or a_tail in r or r_tail in a):
+        return False, ""
+    # 同家族（mimo↔mimo / deepseek↔deepseek）不算遗留
+    def _fam(s: str) -> str:
+        if "mimo" in s or "xiaomi" in s:
+            return "mimo"
+        if "deepseek" in s:
+            return "deepseek"
+        return s.split("/")[0] if "/" in s else s
+
+    if _fam(a) and _fam(a) == _fam(r):
         return False, ""
     # 仅返回公开 model id，供 flags 展示
     return True, active
