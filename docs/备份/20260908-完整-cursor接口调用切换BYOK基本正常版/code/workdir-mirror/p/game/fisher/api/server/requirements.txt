@@ -1,0 +1,7 @@
+# 不单独锁 pydantic 小版本，避免 Python 3.14 下 pydantic-core 无 wheel 时从源码编译失败。
+fastapi>=0.115.0,<0.116
+uvicorn[standard]>=0.30.0,<0.31
+python-dotenv>=1.0.1,<2
+sqlalchemy>=2.0.30,<3
+psycopg2-binary>=2.9.0,<3
+python-jose[cryptography]>=3.3.0,<4

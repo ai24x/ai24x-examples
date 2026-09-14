@@ -1510,6 +1510,47 @@ def archive_summary(market: str = "bj") -> list[dict[str, Any]]:
     return out
 
 
+def _refill_kc_empty_board_leaders(payload: dict[str, Any]) -> dict[str, Any]:
+    """科创栏目历史结果：主线/观察板块代表被滤空时，从同日沪深榜回填（优先 30/688）。"""
+    try:
+        if str(payload.get("market_code") or "") != "kc":
+            return payload
+        rank = payload.get("board_rank")
+        if not isinstance(rank, list) or not rank:
+            return payload
+        need = [
+            b for b in rank
+            if isinstance(b, dict)
+            and not (b.get("leaders") or [])
+            and (b.get("mainline") or b.get("observe") or b.get("tier") in ("king", "key", "obs"))
+        ]
+        if not need:
+            return payload
+        day = str(payload.get("asof") or payload.get("date") or "").strip()[:10]
+        hs = None
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}", day):
+            hs = load_archive("hs", day)
+        if not isinstance(hs, dict) or not (hs.get("board_rank") or []):
+            hs = _latest_history("hs")
+        if not isinstance(hs, dict):
+            return payload
+        _norm = lambda s: re.sub(r"\s+", "", str(s or ""))
+        hs_map = {
+            _norm(b.get("name")): list(b.get("leaders") or [])
+            for b in (hs.get("board_rank") or [])
+            if isinstance(b, dict) and b.get("name")
+        }
+        for b in need:
+            src = hs_map.get(_norm(b.get("name"))) or []
+            if not src:
+                continue
+            kc = [x for x in src if isinstance(x, dict) and str(x.get("code") or "").startswith(("30", "688"))]
+            b["leaders"] = (kc or src)[:3]
+    except Exception:
+        pass
+    return payload
+
+
 def _reattach_ths(payload: dict[str, Any]) -> dict[str, Any]:
     """归档/stale 回退读取时补挂板块 ths（旧归档无 ths 字段，无需重扫即可显示同花顺代码）。"""
     try:
@@ -1577,7 +1618,7 @@ def _reattach_ths(payload: dict[str, Any]) -> dict[str, Any]:
                         _b["observe"] = True
     except Exception:
         pass
-    return payload
+    return _refill_kc_empty_board_leaders(payload)
 
 
 def _rank_missing_mainlines(board_rank, mainline_names):
@@ -5432,12 +5473,17 @@ def _board_rank_funds(
         if _bn not in _ml and _bn in _ml_aliases:
             continue
         _lds = list(b.get("leaders") or [])
-        # P1-5：科创榜代表股按市场过滤（kc 只留 30/688），避免与栏目错位（如科创榜显示沪主板煤炭龙头）
+        # 科创榜代表：优先 30/688；主线/观察若滤空则回退板块真实龙头，避免「元件」等跨市场主线整栏无代表
         if market == "kc" and _lds:
             _kc_lds = [x for x in _lds if str((x or {}).get("code") or "").startswith(("30", "688"))]
             if _kc_lds:
                 _lds = _kc_lds
-            else:
+            elif not (
+                _bn in _ml
+                or _bn in _obs
+                or bool(b.get("mainline"))
+                or bool(b.get("observe"))
+            ):
                 _lds = []
         _is_obs = (not _ml) and (_bn in _obs or bool(b.get("observe")))
         rank.append({

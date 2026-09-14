@@ -1,0 +1,176 @@
+# 依赖目录
+node_modules/
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+.eggs/
+
+# 日志文件
+*.log
+logs/
+pm2-*.log
+
+# 备份文件
+backups/
+_backups/
+*.backup*
+*-backup*
+*.bak
+*.bak-*
+*.bak.*
+**/*.bak*
+
+# 临时文件
+*.tmp
+*.temp
+temp/
+**/temp/
+.DS_Store
+Thumbs.db
+*.db
+api/_smoke_last.json
+api/_tmp_*
+scripts/_organize_docs.py
+scripts/_verify_docs.py
+*.sqlite
+*.sqlite3
+*.zip
+
+# 配置文件（包含敏感信息）
+.env
+*.env
+.env.*
+!.env.example
+!api/.env.example
+**/.env.bak*
+api/certs/
+api/data/token_plans_override.json
+api/data/byok_plans_override.json
+p/markets/api/server/data/markets_plans_override.json
+p/open/api/data/byok_plans_override.json
+p/open/api/data/token_plans_override.json
+api/data/system_flags_override.json
+api/data/model_warehouse_override.json
+api/data/free_shared_override.json
+api/data/llm_keys_override.json
+api/data/admin_sms_config.json
+api/data/admin_email_config.json
+**/token-pay-bundle*/
+config.local.*
+deploy-token.txt
+
+# 私钥/证书（禁止入库）
+*.pem
+*.key
+*.p12
+*.pfx
+
+# 测试文件
+test-*
+*-test.*
+
+# 特定排除
+website-manager.bat
+ai24x-website-permanent.bat
+start-website-no-conflict.bat
+pm2.config.js
+server-3000-fixed.js
+server-3000.js
+server-clean-fixed-new.js
+server-no-conflict.js
+tools-index.html
+
+# 同步相关临时文件
+SYNC_LOG.txt
+MIGRATION_*.md
+PAUSE_REPORT_*.md
+START_REPORT_*.md
+# RANKINGS_TEST_REPORT.md  # 注释掉，允许推送测试报告
+api/data/feishu_notify_state.json
+api/data/feishu_poll_last.txt
+
+# ---- local tool state & scratch (added 2026-08-05) ----
+.codebuddy/
+.workbuddy/
+**/.workbuddy/
+/_*.py
+/_*.js
+/_*.txt
+/_*.json
+api/_*.py
+api/_*.json
+api/data/ops_alert_state.json
+api/data/upstream_health.json
+api/data/provider_prices.json
+api/data/pricing_audit.jsonl
+api/data/hero_channel_state.json
+api/data/hero_apply_audit.jsonl
+scripts/_*.py
+scripts/_*.js
+p/a1/api/server/_tmp_*.json
+p/a1/api/server/app/_check_*.js
+p/a1/web/_check_*.js
+**/工具/token.txt
+**/token.txt
+p/game/fisher/web/js/demo2.js.old
+p/game/fisher/web/js/demo2_tmp.js
+p/game/fisher/web/js/build.sh
+p/game/fisher/web/js/min/
+p/a1/web_bak_0519_1636/
+p/game/fisher/api/server/backup_v1/
+p/game/fisher/web/archive/
+/日期：2026-05-11
+/版本：v1.0
+/目标：零预算冷启动，3
+
+p/a1/api/server/*.log.*
+
+# ---- local scratch / runtime noise (tidy 2026-08-27) ----
+# agent/ops 临时探测脚本与派发产物（勿入库）
+ops/_*
+ops/diag-*
+ops/fix-*
+ops/check_*
+ops/ds-vs-*
+ops/approve-*
+ops/cleanup_*.py
+ops/eval_*.json
+ops/*.log
+ops/*.log.*
+ops/*.png
+ops/vp-*.png
+ops/mimo-research-pull-*/
+ops/v0*_*.md
+ops/update-04-*.md
+ops/verify_*.py
+ops/*202608*.md
+ops/*202608*.json
+ops/*202608*.ps1
+scripts/_*
+scripts/_*.txt
+scripts/_*.md
+# open 运行态
+p/open/api/data/feishu_notify_state.json
+# a1 浏览器临时档与盘中归档 dump（运行时生成）
+p/a1/.chrome_tmp*/
+p/a1/_*
+p/a1/api/server/_*.ps1
+p/a1/api/server/data/bj_archive/
+p/a1/daily_report/cache/
+p/a1/ops/
+p/a1/scripts/_*
+# markets 本机截图/一次性 QA 脚本
+p/markets/docs/_shot*
+p/markets/docs/_tmp*
+p/markets/docs/_p0*
+p/markets/docs/shot_*.png
+p/markets/scripts/_*.ps1
+p/markets/scripts/_*.js
+p/markets/scripts/_*.py

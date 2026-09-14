@@ -1,0 +1,1033 @@
+{
+ "bj872808": {
+  "name": "曙光数创",
+  "secid": "1.872808",
+  "source": "sina:index",
+  "meta": {
+   "source": "sina:index",
+   "ts": 1786666729,
+   "priority": "tencent,eastmoney,sina,paid"
+  },
+  "n_candles": 250,
+  "score": 43.2,
+  "factors": {
+   "macd": 0.0,
+   "ma": 8.0,
+   "vol": 3.0,
+   "surge": 0.0,
+   "pos": 5.0,
+   "trend": 10.0,
+   "rsi": 5.0,
+   "vp": 3.2,
+   "volc": 4.0
+  },
+  "tags": [
+   "MA20上翘",
+   "均线金叉",
+   "位置61%",
+   "MA57上方",
+   "低位修复",
+   "波动收敛"
+  ],
+  "risks": [],
+  "tech": {
+   "last_date": "2025-09-30",
+   "close": 90.39,
+   "ma5": 95.48,
+   "ma10": 96.118,
+   "ma20": 94.075,
+   "ma60": 78.183,
+   "pos60_pct": 61,
+   "ret5_pct": -9.52,
+   "ret10_pct": -11.38,
+   "ret20_pct": 8.79,
+   "vol_ratio": 0.57,
+   "macd_dif": 3.302,
+   "macd_dea": 4.689,
+   "macd_bar": -2.774,
+   "macd_red_days": 11,
+   "close_gt_ma20": false
+  },
+  "last_markers": [
+   {
+    "time": "2025-09-23",
+    "position": "aboveBar",
+    "color": "#ffb300",
+    "shape": "circle",
+    "text": "​",
+    "id": "ls-ar-244-0",
+    "size": 0.72,
+    "weight": 2
+   },
+   {
+    "time": "2025-09-23",
+    "position": "aboveBar",
+    "color": "#ffb300",
+    "shape": "arrowDown",
+    "text": "险1·破",
+    "id": "ls-ar-244-1",
+    "weight": 2,
+    "size": 1.12
+   },
+   {
+    "time": "2025-09-30",
+    "position": "aboveBar",
+    "color": "#ffb300",
+    "shape": "circle",
+    "text": "​",
+    "id": "ls-ar-249-0",
+    "size": 0.72,
+    "weight": 2
+   },
+   {
+    "time": "2025-09-30",
+    "position": "aboveBar",
+    "color": "#ffb300",
+    "shape": "arrowDown",
+    "text": "险2",
+    "id": "ls-ar-249-1",
+    "weight": 2,
+    "size": 1.06
+   }
+  ],
+  "last_bar_labels": [
+   "险1·破",
+   null,
+   null,
+   null,
+   null,
+   "险2"
+  ]
+ },
+ "bj920932": {
+  "name": "科达自控",
+  "secid": "1.920932",
+  "source": "sina:index",
+  "meta": {
+   "source": "sina:index",
+   "ts": 1786666730,
+   "priority": "tencent,eastmoney,sina,paid"
+  },
+  "n_candles": 250,
+  "score": 63.6,
+  "factors": {
+   "macd": 10.0,
+   "ma": 20.0,
+   "vol": 3.0,
+   "surge": 7.0,
+   "pos": 10.0,
+   "trend": 5.0,
+   "rsi": 4.0,
+   "vp": -0.4,
+   "volc": 0.0
+  },
+  "tags": [
+   "MACD翻红·第13天",
+   "均线多头",
+   "MA20上翘",
+   "均线金叉×2",
+   "站上MA20",
+   "异动回踩支撑",
+   "位置22%",
+   "动能偏热"
+  ],
+  "risks": [
+   "量价背离"
+  ],
+  "tech": {
+   "last_date": "2026-08-13",
+   "close": 12.33,
+   "ma5": 12.626,
+   "ma10": 12.469,
+   "ma20": 11.681,
+   "ma60": 13.528,
+   "pos60_pct": 23,
+   "ret5_pct": -5.59,
+   "ret10_pct": 11.48,
+   "ret20_pct": 6.75,
+   "vol_ratio": 0.88,
+   "macd_dif": 0.03,
+   "macd_dea": -0.19,
+   "macd_bar": 0.441,
+   "macd_red_days": 13,
+   "close_gt_ma20": true
+  },
+  "last_markers": [
+   {
+    "time": "2026-08-04",
+    "position": "belowBar",
+    "color": "#38bdf8",
+    "shape": "arrowUp",
+    "text": "底1",
+    "id": "ls-break-242-1",
+    "weight": 5,
+    "size": 1.02
+   },
+   {
+    "time": "2026-08-05",
+    "position": "belowBar",
+    "color": "#00e5ff",
+    "shape": "arrowUp",
+    "text": "↗",
+    "id": "ls-turn-243-up",
+    "weight": 3,
+    "size": 1.35
+   },
+   {
+    "time": "2026-08-12",
+    "position": "belowBar",
+    "color": "#ff3d5c",
+    "shape": "circle",
+    "text": "​",
+    "id": "ls-b-248-0",
+    "size": 0.72,
+    "weight": 4
+   },
+   {
+    "time": "2026-08-12",
+    "position": "belowBar",
+    "color": "#ff3d5c",
+    "shape": "arrowUp",
+    "text": "金3",
+    "id": "ls-b-248-1",
+    "weight": 4,
+    "size": 1.08
+   }
+  ],
+  "last_bar_labels": [
+   null,
+   null,
+   null,
+   null,
+   "金3",
+   null
+  ]
+ },
+ "sh603019": {
+  "name": "中科曙光",
+  "secid": "1.603019",
+  "source": "tencent:fqkline",
+  "meta": {
+   "source": "tencent:fqkline",
+   "ts": 1786666731,
+   "priority": "tencent,eastmoney,sina,paid"
+  },
+  "n_candles": 250,
+  "score": 38.4,
+  "factors": {
+   "macd": 0.0,
+   "ma": 3.0,
+   "vol": 14.0,
+   "surge": 0.0,
+   "pos": 8.0,
+   "trend": 0.0,
+   "rsi": 5.0,
+   "vp": -0.6,
+   "volc": 4.0
+  },
+  "tags": [
+   "均线金叉",
+   "温和放量",
+   "价升量增",
+   "位置33%",
+   "低位修复",
+   "波动收敛"
+  ],
+  "risks": [
+   "量价背离",
+   "破位下行",
+   "跌破双均线"
+  ],
+  "tech": {
+   "last_date": "2026-08-13",
+   "close": 89.63,
+   "ma5": 87.482,
+   "ma10": 86.656,
+   "ma20": 89.866,
+   "ma60": 91.247,
+   "pos60_pct": 34,
+   "ret5_pct": 2.08,
+   "ret10_pct": 10.65,
+   "ret20_pct": -8.22,
+   "vol_ratio": 1.25,
+   "macd_dif": -2.008,
+   "macd_dea": -1.947,
+   "macd_bar": -0.121,
+   "macd_red_days": 9,
+   "close_gt_ma20": false
+  },
+  "last_markers": [
+   {
+    "time": "2026-08-10",
+    "position": "belowBar",
+    "color": "#22c55e",
+    "shape": "circle",
+    "text": "​",
+    "id": "ls-x-246-0",
+    "size": 0.72,
+    "weight": 3
+   },
+   {
+    "time": "2026-08-10",
+    "position": "belowBar",
+    "color": "#22c55e",
+    "shape": "arrowUp",
+    "text": "小底",
+    "id": "ls-x-246-1",
+    "weight": 3,
+    "size": 0.98
+   },
+   {
+    "time": "2026-08-13",
+    "position": "belowBar",
+    "color": "#ff3d5c",
+    "shape": "circle",
+    "text": "​",
+    "id": "ls-b-249-0",
+    "size": 0.72,
+    "weight": 4
+   },
+   {
+    "time": "2026-08-13",
+    "position": "belowBar",
+    "color": "#ff3d5c",
+    "shape": "arrowUp",
+    "text": "金1",
+    "id": "ls-b-249-1",
+    "weight": 4,
+    "size": 1.08
+   }
+  ],
+  "last_bar_labels": [
+   null,
+   null,
+   "小底",
+   null,
+   null,
+   "金1"
+  ]
+ },
+ "sz002837": {
+  "name": "英维克",
+  "secid": "0.002837",
+  "source": "tencent:fqkline",
+  "meta": {
+   "source": "tencent:fqkline",
+   "ts": 1786666732,
+   "priority": "tencent,eastmoney,sina,paid"
+  },
+  "n_candles": 250,
+  "score": 53.2,
+  "factors": {
+   "macd": 17.0,
+   "ma": 6.0,
+   "vol": 3.0,
+   "surge": 0.0,
+   "pos": 10.0,
+   "trend": 0.0,
+   "rsi": 5.0,
+   "vp": 3.2,
+   "volc": 4.0
+  },
+  "tags": [
+   "MACD翻红·第5天",
+   "红柱放大",
+   "均线金叉",
+   "站上MA20",
+   "位置21%",
+   "低位修复",
+   "波动收敛"
+  ],
+  "risks": [
+   "多次跌停"
+  ],
+  "tech": {
+   "last_date": "2026-08-13",
+   "close": 55.45,
+   "ma5": 55.456,
+   "ma10": 52.587,
+   "ma20": 54.957,
+   "ma60": 67.023,
+   "pos60_pct": 22,
+   "ret5_pct": 4.76,
+   "ret10_pct": 17.6,
+   "ret20_pct": -18.29,
+   "vol_ratio": 0.97,
+   "macd_dif": -3.507,
+   "macd_dea": -4.532,
+   "macd_bar": 2.05,
+   "macd_red_days": 5,
+   "close_gt_ma20": true
+  },
+  "last_markers": [
+   {
+    "time": "2026-08-11",
+    "position": "belowBar",
+    "color": "#ff3d5c",
+    "shape": "circle",
+    "text": "​",
+    "id": "ls-b-247-0",
+    "size": 0.72,
+    "weight": 4
+   },
+   {
+    "time": "2026-08-11",
+    "position": "belowBar",
+    "color": "#ff3d5c",
+    "shape": "arrowUp",
+    "text": "金1",
+    "id": "ls-b-247-1",
+    "weight": 4,
+    "size": 1.08
+   },
+   {
+    "time": "2026-08-13",
+    "position": "belowBar",
+    "color": "#ff3d5c",
+    "shape": "circle",
+    "text": "​",
+    "id": "ls-b-249-0",
+    "size": 0.72,
+    "weight": 4
+   },
+   {
+    "time": "2026-08-13",
+    "position": "belowBar",
+    "color": "#ff3d5c",
+    "shape": "arrowUp",
+    "text": "金2",
+    "id": "ls-b-249-1",
+    "weight": 4,
+    "size": 1.08
+   }
+  ],
+  "last_bar_labels": [
+   null,
+   null,
+   "底1",
+   "金1",
+   null,
+   "金2"
+  ]
+ },
+ "sz301018": {
+  "name": "申菱环境",
+  "secid": "0.301018",
+  "source": "tencent:fqkline",
+  "meta": {
+   "source": "tencent:fqkline",
+   "ts": 1786666733,
+   "priority": "tencent,eastmoney,sina,paid"
+  },
+  "n_candles": 250,
+  "score": 56.2,
+  "factors": {
+   "macd": 17.0,
+   "ma": 6.0,
+   "vol": 6.0,
+   "surge": 0.0,
+   "pos": 8.0,
+   "trend": 0.0,
+   "rsi": 7.0,
+   "vp": 3.2,
+   "volc": 4.0
+  },
+  "tags": [
+   "MACD翻红·第5天",
+   "红柱放大",
+   "均线金叉",
+   "站上MA20",
+   "位置34%",
+   "动能健康",
+   "波动收敛"
+  ],
+  "risks": [],
+  "tech": {
+   "last_date": "2026-08-13",
+   "close": 90.0,
+   "ma5": 89.89,
+   "ma10": 83.412,
+   "ma20": 83.673,
+   "ma60": 100.577,
+   "pos60_pct": 35,
+   "ret5_pct": 7.98,
+   "ret10_pct": 32.84,
+   "ret20_pct": -12.54,
+   "vol_ratio": 1.08,
+   "macd_dif": -3.255,
+   "macd_dea": -5.494,
+   "macd_bar": 4.478,
+   "macd_red_days": 11,
+   "close_gt_ma20": true
+  },
+  "last_markers": [
+   {
+    "time": "2026-08-10",
+    "position": "belowBar",
+    "color": "#ff3d5c",
+    "shape": "arrowUp",
+    "text": "金1",
+    "id": "ls-b-246-1",
+    "weight": 4,
+    "size": 1.08
+   },
+   {
+    "time": "2026-08-11",
+    "position": "belowBar",
+    "color": "#ff3d5c",
+    "shape": "circle",
+    "text": "​",
+    "id": "ls-b-247-0",
+    "size": 0.72,
+    "weight": 4
+   },
+   {
+    "time": "2026-08-11",
+    "position": "belowBar",
+    "color": "#ff3d5c",
+    "shape": "arrowUp",
+    "text": "金2",
+    "id": "ls-b-247-1",
+    "weight": 4,
+    "size": 1.08
+   },
+   {
+    "time": "2026-08-12",
+    "position": "belowBar",
+    "color": "#00e5ff",
+    "shape": "arrowUp",
+    "text": "↗",
+    "id": "ls-turn-248-up",
+    "weight": 3,
+    "size": 1.35
+   }
+  ],
+  "last_bar_labels": [
+   null,
+   "底1",
+   "金1",
+   "金2",
+   null,
+   null
+  ]
+ },
+ "sz300499": {
+  "name": "高澜股份",
+  "secid": "0.300499",
+  "source": "tencent:fqkline",
+  "meta": {
+   "source": "tencent:fqkline",
+   "ts": 1786666734,
+   "priority": "tencent,eastmoney,sina,paid"
+  },
+  "n_candles": 250,
+  "score": 58.0,
+  "factors": {
+   "macd": 10.0,
+   "ma": 15.0,
+   "vol": 3.0,
+   "surge": 0.0,
+   "pos": 10.0,
+   "trend": 0.0,
+   "rsi": 7.0,
+   "vp": 4.0,
+   "volc": 4.0
+  },
+  "tags": [
+   "MACD翻红·第7天",
+   "均线多头",
+   "均线金叉×2",
+   "站上MA20",
+   "位置21%",
+   "动能健康",
+   "量价配合",
+   "波动收敛"
+  ],
+  "risks": [],
+  "tech": {
+   "last_date": "2026-08-13",
+   "close": 28.31,
+   "ma5": 28.556,
+   "ma10": 27.598,
+   "ma20": 27.249,
+   "ma60": 34.644,
+   "pos60_pct": 21,
+   "ret5_pct": 1.07,
+   "ret10_pct": 18.95,
+   "ret20_pct": -14.42,
+   "vol_ratio": 0.9,
+   "macd_dif": -1.537,
+   "macd_dea": -2.185,
+   "macd_bar": 1.295,
+   "macd_red_days": 12,
+   "close_gt_ma20": true
+  },
+  "last_markers": [
+   {
+    "time": "2026-08-07",
+    "position": "belowBar",
+    "color": "#ff3d5c",
+    "shape": "arrowUp",
+    "text": "金1",
+    "id": "ls-b-245-1",
+    "weight": 4,
+    "size": 1.08
+   },
+   {
+    "time": "2026-08-10",
+    "position": "belowBar",
+    "color": "#ff3d5c",
+    "shape": "circle",
+    "text": "​",
+    "id": "ls-b-246-0",
+    "size": 0.72,
+    "weight": 4
+   },
+   {
+    "time": "2026-08-10",
+    "position": "belowBar",
+    "color": "#ff3d5c",
+    "shape": "arrowUp",
+    "text": "金2",
+    "id": "ls-b-246-1",
+    "weight": 4,
+    "size": 1.08
+   },
+   {
+    "time": "2026-08-12",
+    "position": "belowBar",
+    "color": "#00e5ff",
+    "shape": "arrowUp",
+    "text": "↗",
+    "id": "ls-turn-248-up",
+    "weight": 3,
+    "size": 1.35
+   }
+  ],
+  "last_bar_labels": [
+   "底1",
+   "金1",
+   "金2",
+   null,
+   null,
+   null
+  ]
+ },
+ "sz300990": {
+  "name": "同飞股份",
+  "secid": "0.300990",
+  "source": "tencent:fqkline",
+  "meta": {
+   "source": "tencent:fqkline",
+   "ts": 1786666735,
+   "priority": "tencent,eastmoney,sina,paid"
+  },
+  "n_candles": 250,
+  "score": 55.4,
+  "factors": {
+   "macd": 24.0,
+   "ma": 3.0,
+   "vol": 3.0,
+   "surge": 0.0,
+   "pos": 10.0,
+   "trend": 0.0,
+   "rsi": 5.0,
+   "vp": 1.4,
+   "volc": 4.0
+  },
+  "tags": [
+   "MACD翻红·第2天",
+   "红柱放大",
+   "均线金叉",
+   "位置20%",
+   "低位修复",
+   "波动收敛"
+  ],
+  "risks": [
+   "量价背离",
+   "破位下行",
+   "跌破双均线"
+  ],
+  "tech": {
+   "last_date": "2026-08-13",
+   "close": 73.15,
+   "ma5": 73.178,
+   "ma10": 69.851,
+   "ma20": 77.204,
+   "ma60": 89.141,
+   "pos60_pct": 20,
+   "ret5_pct": 4.26,
+   "ret10_pct": 13.94,
+   "ret20_pct": -33.38,
+   "vol_ratio": 0.75,
+   "macd_dif": -6.231,
+   "macd_dea": -6.602,
+   "macd_bar": 0.742,
+   "macd_red_days": 10,
+   "close_gt_ma20": false
+  },
+  "last_markers": [
+   {
+    "time": "2026-08-10",
+    "position": "belowBar",
+    "color": "#22c55e",
+    "shape": "circle",
+    "text": "​",
+    "id": "ls-x-246-0",
+    "size": 0.72,
+    "weight": 3
+   },
+   {
+    "time": "2026-08-10",
+    "position": "belowBar",
+    "color": "#22c55e",
+    "shape": "arrowUp",
+    "text": "小底",
+    "id": "ls-x-246-1",
+    "weight": 3,
+    "size": 0.98
+   },
+   {
+    "time": "2026-08-13",
+    "position": "belowBar",
+    "color": "#ff3d5c",
+    "shape": "circle",
+    "text": "​",
+    "id": "ls-b-249-0",
+    "size": 0.72,
+    "weight": 4
+   },
+   {
+    "time": "2026-08-13",
+    "position": "belowBar",
+    "color": "#ff3d5c",
+    "shape": "arrowUp",
+    "text": "金1",
+    "id": "ls-b-249-1",
+    "weight": 4,
+    "size": 1.08
+   }
+  ],
+  "last_bar_labels": [
+   null,
+   null,
+   "小底",
+   null,
+   null,
+   "金1"
+  ]
+ },
+ "sz300249": {
+  "name": "依米康",
+  "secid": "0.300249",
+  "source": "tencent:fqkline",
+  "meta": {
+   "source": "tencent:fqkline",
+   "ts": 1786666736,
+   "priority": "tencent,eastmoney,sina,paid"
+  },
+  "n_candles": 250,
+  "score": 65.0,
+  "factors": {
+   "macd": 13.0,
+   "ma": 15.0,
+   "vol": 14.0,
+   "surge": 0.0,
+   "pos": 10.0,
+   "trend": 0.0,
+   "rsi": 7.0,
+   "vp": 1.0,
+   "volc": 0.0
+  },
+  "tags": [
+   "MACD翻红·第7天",
+   "红柱放大",
+   "均线多头",
+   "均线金叉×2",
+   "站上MA20",
+   "温和放量",
+   "价升量增",
+   "位置22%",
+   "动能健康"
+  ],
+  "risks": [
+   "量价背离",
+   "长上影滞涨"
+  ],
+  "tech": {
+   "last_date": "2026-08-13",
+   "close": 12.88,
+   "ma5": 12.722,
+   "ma10": 12.566,
+   "ma20": 12.46,
+   "ma60": 14.714,
+   "pos60_pct": 22,
+   "ret5_pct": 1.02,
+   "ret10_pct": 16.25,
+   "ret20_pct": -16.47,
+   "vol_ratio": 1.56,
+   "macd_dif": -0.524,
+   "macd_dea": -0.718,
+   "macd_bar": 0.388,
+   "macd_red_days": 13,
+   "close_gt_ma20": true
+  },
+  "last_markers": [
+   {
+    "time": "2026-08-11",
+    "position": "belowBar",
+    "color": "#ff3d5c",
+    "shape": "arrowUp",
+    "text": "金2",
+    "id": "ls-b-247-1",
+    "weight": 4,
+    "size": 1.08
+   },
+   {
+    "time": "2026-08-13",
+    "position": "belowBar",
+    "color": "#38bdf8",
+    "shape": "circle",
+    "text": "​",
+    "id": "ls-d-249-0",
+    "size": 0.72,
+    "weight": 5
+   },
+   {
+    "time": "2026-08-13",
+    "position": "belowBar",
+    "color": "#38bdf8",
+    "shape": "arrowUp",
+    "text": "底2",
+    "id": "ls-d-249-1",
+    "weight": 5,
+    "size": 1.02
+   },
+   {
+    "time": "2026-08-13",
+    "position": "belowBar",
+    "color": "#00e5ff",
+    "shape": "arrowUp",
+    "text": "↗",
+    "id": "ls-turn-249-up",
+    "weight": 3,
+    "size": 1.35
+   }
+  ],
+  "last_bar_labels": [
+   "金1",
+   null,
+   null,
+   "金2",
+   null,
+   "底2"
+  ]
+ },
+ "sh601138": {
+  "name": "工业富联",
+  "secid": "1.601138",
+  "source": "tencent:fqkline",
+  "meta": {
+   "source": "tencent:fqkline",
+   "ts": 1786666737,
+   "priority": "tencent,eastmoney,sina,paid"
+  },
+  "n_candles": 250,
+  "score": 78.6,
+  "factors": {
+   "macd": 10.0,
+   "ma": 20.0,
+   "vol": 3.0,
+   "surge": 15.0,
+   "pos": 8.0,
+   "trend": 5.0,
+   "rsi": 7.0,
+   "vp": 1.6,
+   "volc": 4.0
+  },
+  "tags": [
+   "MACD翻红·第8天",
+   "均线多头",
+   "MA20上翘",
+   "均线金叉×2",
+   "站上MA20",
+   "首板",
+   "异动回踩支撑",
+   "位置39%",
+   "动能健康",
+   "波动收敛"
+  ],
+  "risks": [],
+  "tech": {
+   "last_date": "2026-08-13",
+   "close": 65.23,
+   "ma5": 66.84,
+   "ma10": 64.027,
+   "ma20": 61.193,
+   "ma60": 67.195,
+   "pos60_pct": 40,
+   "ret5_pct": -4.45,
+   "ret10_pct": 22.73,
+   "ret20_pct": 4.59,
+   "vol_ratio": 0.97,
+   "macd_dif": 0.498,
+   "macd_dea": -0.616,
+   "macd_bar": 2.23,
+   "macd_red_days": 8,
+   "close_gt_ma20": true
+  },
+  "last_markers": [
+   {
+    "time": "2026-08-05",
+    "position": "belowBar",
+    "color": "#38bdf8",
+    "shape": "arrowUp",
+    "text": "底1",
+    "id": "ls-break-243-1",
+    "weight": 5,
+    "size": 1.02
+   },
+   {
+    "time": "2026-08-06",
+    "position": "belowBar",
+    "color": "#38bdf8",
+    "shape": "circle",
+    "text": "​",
+    "id": "ls-d-244-0",
+    "size": 0.72,
+    "weight": 5
+   },
+   {
+    "time": "2026-08-06",
+    "position": "belowBar",
+    "color": "#38bdf8",
+    "shape": "arrowUp",
+    "text": "底1",
+    "id": "ls-d-244-1",
+    "weight": 5,
+    "size": 1.02
+   },
+   {
+    "time": "2026-08-07",
+    "position": "belowBar",
+    "color": "#00e5ff",
+    "shape": "arrowUp",
+    "text": "↗",
+    "id": "ls-turn-245-up",
+    "weight": 3,
+    "size": 1.35
+   }
+  ],
+  "last_bar_labels": [
+   "底1",
+   null,
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "sz000977": {
+  "name": "浪潮信息",
+  "secid": "0.000977",
+  "source": "tencent:fqkline",
+  "meta": {
+   "source": "tencent:fqkline",
+   "ts": 1786666737,
+   "priority": "tencent,eastmoney,sina,paid"
+  },
+  "n_candles": 250,
+  "score": 48.0,
+  "factors": {
+   "macd": 0.0,
+   "ma": 6.0,
+   "vol": 14.0,
+   "surge": 0.0,
+   "pos": 5.0,
+   "trend": 5.0,
+   "rsi": 5.0,
+   "vp": 4.0,
+   "volc": 4.0
+  },
+  "tags": [
+   "均线金叉",
+   "站上MA20",
+   "温和放量",
+   "价升量增",
+   "位置56%",
+   "MA57上方",
+   "低位修复",
+   "量价配合",
+   "波动收敛"
+  ],
+  "risks": [],
+  "tech": {
+   "last_date": "2026-08-13",
+   "close": 79.46,
+   "ma5": 76.856,
+   "ma10": 75.588,
+   "ma20": 78.792,
+   "ma60": 71.743,
+   "pos60_pct": 57,
+   "ret5_pct": 3.48,
+   "ret10_pct": 15.03,
+   "ret20_pct": -6.52,
+   "vol_ratio": 1.37,
+   "macd_dif": 0.17,
+   "macd_dea": 0.623,
+   "macd_bar": -0.906,
+   "macd_red_days": 17,
+   "close_gt_ma20": true
+  },
+  "last_markers": [
+   {
+    "time": "2026-07-21",
+    "position": "aboveBar",
+    "color": "#ffb300",
+    "shape": "arrowDown",
+    "text": "险1·破",
+    "id": "ls-ar-232-1",
+    "weight": 2,
+    "size": 1.12
+   },
+   {
+    "time": "2026-07-29",
+    "position": "aboveBar",
+    "color": "#ffb300",
+    "shape": "circle",
+    "text": "​",
+    "id": "ls-ar-238-0",
+    "size": 0.72,
+    "weight": 2
+   },
+   {
+    "time": "2026-07-29",
+    "position": "aboveBar",
+    "color": "#ffb300",
+    "shape": "arrowDown",
+    "text": "险2",
+    "id": "ls-ar-238-1",
+    "weight": 2,
+    "size": 1.06
+   },
+   {
+    "time": "2026-07-31",
+    "position": "aboveBar",
+    "color": "#00e5ff",
+    "shape": "arrowDown",
+    "text": "↘",
+    "id": "ls-turn-240-dn",
+    "weight": 3,
+    "size": 1.35
+   }
+  ],
+  "last_bar_labels": [
+   null,
+   null,
+   null,
+   null,
+   null,
+   null
+  ]
+ }
+}

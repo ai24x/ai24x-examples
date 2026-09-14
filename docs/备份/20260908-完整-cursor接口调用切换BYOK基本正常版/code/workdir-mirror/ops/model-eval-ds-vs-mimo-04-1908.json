@@ -1,0 +1,638 @@
+{
+  "ts": "2026-08-17 19:01:47",
+  "base": "http://127.0.0.1:8002",
+  "results": {
+    "DeepSeek V4 Flash": {
+      "speed": {
+        "ttft_short_s": 1.019,
+        "total_short_s": 1.129,
+        "tok_per_s_short": 0.0,
+        "ttft_long_s": 0.761,
+        "total_long_s": 4.198,
+        "long_text_len": 1573
+      },
+      "code": {
+        "passed": 6,
+        "total": 6,
+        "items": [
+          {
+            "id": "fibonacci",
+            "ok": true,
+            "detail": "got=[0, 1, 1, 2, 3, 5, 8, 13, 21, 34]",
+            "judge": 7.0
+          },
+          {
+            "id": "is_palindrome",
+            "ok": true,
+            "detail": "got=[True, False, True]",
+            "judge": 10.0
+          },
+          {
+            "id": "two_sum",
+            "ok": true,
+            "detail": "got=[0, 1]",
+            "judge": 9.0
+          },
+          {
+            "id": "lcp",
+            "ok": true,
+            "detail": "got=fl",
+            "judge": 8.0
+          },
+          {
+            "id": "quicksort",
+            "ok": true,
+            "detail": "got=[1, 2, 3, 5, 7, 9]",
+            "judge": 7.0
+          },
+          {
+            "id": "valid_parens",
+            "ok": true,
+            "detail": "got=[True, False, True, False]",
+            "judge": 9.0
+          }
+        ]
+      },
+      "logic": {
+        "passed": 6,
+        "total": 6,
+        "items": [
+          {
+            "q": "If all Zorks are blue, and some blue thi",
+            "expect": "C",
+            "got": "C",
+            "ok": true
+          },
+          {
+            "q": "A is taller than B. B is taller than C. ",
+            "expect": "A",
+            "got": "A",
+            "ok": true
+          },
+          {
+            "q": "If today is Tuesday, what day will it be",
+            "expect": "C",
+            "got": "C",
+            "ok": true
+          },
+          {
+            "q": "Ann sits immediately left of Bob, and Bo",
+            "expect": "B",
+            "got": "B",
+            "ok": true
+          },
+          {
+            "q": "All apples are fruits. Some fruits are r",
+            "expect": "C",
+            "got": "C",
+            "ok": true
+          },
+          {
+            "q": "If the day before yesterday was Friday, ",
+            "expect": "B",
+            "got": "B",
+            "ok": true
+          }
+        ]
+      },
+      "math": {
+        "passed": 5,
+        "total": 6,
+        "items": [
+          {
+            "q": "What is 17 × 23?",
+            "expect": "391",
+            "got": "391",
+            "ok": true
+          },
+          {
+            "q": "If x + 3 = 10, what is 2x?",
+            "expect": "14",
+            "got": "14",
+            "ok": true
+          },
+          {
+            "q": "A train travels 300 km in 2.5 hours. Wha",
+            "expect": "120",
+            "got": "120",
+            "ok": true
+          },
+          {
+            "q": "What is 15% of 240?",
+            "expect": "36",
+            "got": "36",
+            "ok": true
+          },
+          {
+            "q": "Simplify: (2^3 × 2^4) / 2^5",
+            "expect": "4",
+            "got": "16",
+            "ok": false
+          },
+          {
+            "q": "The sum of three consecutive integers is",
+            "expect": "23",
+            "got": "23",
+            "ok": true
+          }
+        ]
+      },
+      "compreh": [
+        {
+          "q": "Summarize in ONE sentence: 'Photosynthes",
+          "judge": 9.0,
+          "len": 179
+        },
+        {
+          "q": "Translate to English: '这个系统支持高并发请求，平均响应时",
+          "judge": 9.0,
+          "len": 104
+        },
+        {
+          "q": "Explain the difference between TCP and U",
+          "judge": 8.0,
+          "len": 942
+        },
+        {
+          "q": "Write a short Python one-liner to count ",
+          "judge": 8.0,
+          "len": 410
+        }
+      ]
+    },
+    "MiMo v2.5": {
+      "speed": {
+        "ttft_short_s": 4.281,
+        "total_short_s": 4.453,
+        "tok_per_s_short": 0.0,
+        "ttft_long_s": 2.17,
+        "total_long_s": 5.623,
+        "long_text_len": 1511
+      },
+      "code": {
+        "passed": 6,
+        "total": 6,
+        "items": [
+          {
+            "id": "fibonacci",
+            "ok": true,
+            "detail": "got=[0, 1, 1, 2, 3, 5, 8, 13, 21, 34]",
+            "judge": 10.0
+          },
+          {
+            "id": "is_palindrome",
+            "ok": true,
+            "detail": "got=[True, False, True]",
+            "judge": 9.0
+          },
+          {
+            "id": "two_sum",
+            "ok": true,
+            "detail": "got=[0, 1]",
+            "judge": 9.0
+          },
+          {
+            "id": "lcp",
+            "ok": true,
+            "detail": "got=fl",
+            "judge": 9.0
+          },
+          {
+            "id": "quicksort",
+            "ok": true,
+            "detail": "got=[1, 2, 3, 5, 7, 9]",
+            "judge": 9.0
+          },
+          {
+            "id": "valid_parens",
+            "ok": true,
+            "detail": "got=[True, False, True, False]",
+            "judge": 8.0
+          }
+        ]
+      },
+      "logic": {
+        "passed": 0,
+        "total": 6,
+        "items": [
+          {
+            "q": "If all Zorks are blue, and some blue thi",
+            "expect": "C",
+            "got": "",
+            "ok": false
+          },
+          {
+            "q": "A is taller than B. B is taller than C. ",
+            "expect": "A",
+            "got": "",
+            "ok": false
+          },
+          {
+            "q": "If today is Tuesday, what day will it be",
+            "expect": "C",
+            "got": "",
+            "ok": false
+          },
+          {
+            "q": "Ann sits immediately left of Bob, and Bo",
+            "expect": "B",
+            "got": "",
+            "ok": false
+          },
+          {
+            "q": "All apples are fruits. Some fruits are r",
+            "expect": "C",
+            "got": "1",
+            "ok": false
+          },
+          {
+            "q": "If the day before yesterday was Friday, ",
+            "expect": "B",
+            "got": "",
+            "ok": false
+          }
+        ]
+      },
+      "math": {
+        "passed": 0,
+        "total": 6,
+        "items": [
+          {
+            "q": "What is 17 × 23?",
+            "expect": "391",
+            "got": "17",
+            "ok": false
+          },
+          {
+            "q": "If x + 3 = 10, what is 2x?",
+            "expect": "14",
+            "got": "1",
+            "ok": false
+          },
+          {
+            "q": "A train travels 300 km in 2.5 hours. Wha",
+            "expect": "120",
+            "got": "300",
+            "ok": false
+          },
+          {
+            "q": "What is 15% of 240?",
+            "expect": "36",
+            "got": "15",
+            "ok": false
+          },
+          {
+            "q": "Simplify: (2^3 × 2^4) / 2^5",
+            "expect": "4",
+            "got": "2",
+            "ok": false
+          },
+          {
+            "q": "The sum of three consecutive integers is",
+            "expect": "23",
+            "got": "",
+            "ok": false
+          }
+        ]
+      },
+      "compreh": [
+        {
+          "q": "Summarize in ONE sentence: 'Photosynthes",
+          "judge": 9.0,
+          "len": 175
+        },
+        {
+          "q": "Translate to English: '这个系统支持高并发请求，平均响应时",
+          "judge": 10.0,
+          "len": 108
+        },
+        {
+          "q": "Explain the difference between TCP and U",
+          "judge": 8.0,
+          "len": 945
+        },
+        {
+          "q": "Write a short Python one-liner to count ",
+          "judge": 5.0,
+          "len": 1761
+        }
+      ]
+    },
+    "DeepSeek V4 Pro": {
+      "speed": {
+        "ttft_short_s": 1.406,
+        "total_short_s": 1.563,
+        "tok_per_s_short": 0.0,
+        "ttft_long_s": 1.057,
+        "total_long_s": 6.526,
+        "long_text_len": 1616
+      },
+      "code": {
+        "passed": 6,
+        "total": 6,
+        "items": [
+          {
+            "id": "fibonacci",
+            "ok": true,
+            "detail": "got=[0, 1, 1, 2, 3, 5, 8, 13, 21, 34]",
+            "judge": 10.0
+          },
+          {
+            "id": "is_palindrome",
+            "ok": true,
+            "detail": "got=[True, False, True]",
+            "judge": 10.0
+          },
+          {
+            "id": "two_sum",
+            "ok": true,
+            "detail": "got=[0, 1]",
+            "judge": 9.0
+          },
+          {
+            "id": "lcp",
+            "ok": true,
+            "detail": "got=fl",
+            "judge": 9.0
+          },
+          {
+            "id": "quicksort",
+            "ok": true,
+            "detail": "got=[1, 2, 3, 5, 7, 9]",
+            "judge": 8.0
+          },
+          {
+            "id": "valid_parens",
+            "ok": true,
+            "detail": "got=[True, False, True, False]",
+            "judge": 10.0
+          }
+        ]
+      },
+      "logic": {
+        "passed": 6,
+        "total": 6,
+        "items": [
+          {
+            "q": "If all Zorks are blue, and some blue thi",
+            "expect": "C",
+            "got": "C",
+            "ok": true
+          },
+          {
+            "q": "A is taller than B. B is taller than C. ",
+            "expect": "A",
+            "got": "A",
+            "ok": true
+          },
+          {
+            "q": "If today is Tuesday, what day will it be",
+            "expect": "C",
+            "got": "C",
+            "ok": true
+          },
+          {
+            "q": "Ann sits immediately left of Bob, and Bo",
+            "expect": "B",
+            "got": "B",
+            "ok": true
+          },
+          {
+            "q": "All apples are fruits. Some fruits are r",
+            "expect": "C",
+            "got": "C",
+            "ok": true
+          },
+          {
+            "q": "If the day before yesterday was Friday, ",
+            "expect": "B",
+            "got": "B",
+            "ok": true
+          }
+        ]
+      },
+      "math": {
+        "passed": 6,
+        "total": 6,
+        "items": [
+          {
+            "q": "What is 17 × 23?",
+            "expect": "391",
+            "got": "391",
+            "ok": true
+          },
+          {
+            "q": "If x + 3 = 10, what is 2x?",
+            "expect": "14",
+            "got": "14",
+            "ok": true
+          },
+          {
+            "q": "A train travels 300 km in 2.5 hours. Wha",
+            "expect": "120",
+            "got": "120",
+            "ok": true
+          },
+          {
+            "q": "What is 15% of 240?",
+            "expect": "36",
+            "got": "36",
+            "ok": true
+          },
+          {
+            "q": "Simplify: (2^3 × 2^4) / 2^5",
+            "expect": "4",
+            "got": "4",
+            "ok": true
+          },
+          {
+            "q": "The sum of three consecutive integers is",
+            "expect": "23",
+            "got": "23",
+            "ok": true
+          }
+        ]
+      },
+      "compreh": [
+        {
+          "q": "Summarize in ONE sentence: 'Photosynthes",
+          "judge": 7.0,
+          "len": 190
+        },
+        {
+          "q": "Translate to English: '这个系统支持高并发请求，平均响应时",
+          "judge": 10.0,
+          "len": 104
+        },
+        {
+          "q": "Explain the difference between TCP and U",
+          "judge": 8.0,
+          "len": 505
+        },
+        {
+          "q": "Write a short Python one-liner to count ",
+          "judge": 7.0,
+          "len": 90
+        }
+      ]
+    },
+    "MiMo Pro": {
+      "speed": {
+        "ttft_short_s": 3.766,
+        "total_short_s": 3.828,
+        "tok_per_s_short": 0.0,
+        "ttft_long_s": 7.348,
+        "total_long_s": 13.432,
+        "long_text_len": 1289
+      },
+      "code": {
+        "passed": 5,
+        "total": 6,
+        "items": [
+          {
+            "id": "fibonacci",
+            "ok": true,
+            "detail": "got=[0, 1, 1, 2, 3, 5, 8, 13, 21, 34]",
+            "judge": 9.0
+          },
+          {
+            "id": "is_palindrome",
+            "ok": true,
+            "detail": "got=[True, False, True]",
+            "judge": 8.0
+          },
+          {
+            "id": "two_sum",
+            "ok": true,
+            "detail": "got=[0, 1]",
+            "judge": 8.0
+          },
+          {
+            "id": "lcp",
+            "ok": true,
+            "detail": "got=fl",
+            "judge": 9.0
+          },
+          {
+            "id": "quicksort",
+            "ok": false,
+            "detail": "no_code",
+            "judge": 0.0
+          },
+          {
+            "id": "valid_parens",
+            "ok": true,
+            "detail": "got=[True, False, True, False]",
+            "judge": 8.0
+          }
+        ]
+      },
+      "logic": {
+        "passed": 1,
+        "total": 6,
+        "items": [
+          {
+            "q": "If all Zorks are blue, and some blue thi",
+            "expect": "C",
+            "got": "",
+            "ok": false
+          },
+          {
+            "q": "A is taller than B. B is taller than C. ",
+            "expect": "A",
+            "got": "A",
+            "ok": true
+          },
+          {
+            "q": "If today is Tuesday, what day will it be",
+            "expect": "C",
+            "got": "10",
+            "ok": false
+          },
+          {
+            "q": "Ann sits immediately left of Bob, and Bo",
+            "expect": "B",
+            "got": "",
+            "ok": false
+          },
+          {
+            "q": "All apples are fruits. Some fruits are r",
+            "expect": "C",
+            "got": "",
+            "ok": false
+          },
+          {
+            "q": "If the day before yesterday was Friday, ",
+            "expect": "B",
+            "got": "",
+            "ok": false
+          }
+        ]
+      },
+      "math": {
+        "passed": 4,
+        "total": 6,
+        "items": [
+          {
+            "q": "What is 17 × 23?",
+            "expect": "391",
+            "got": "17",
+            "ok": false
+          },
+          {
+            "q": "If x + 3 = 10, what is 2x?",
+            "expect": "14",
+            "got": "10",
+            "ok": false
+          },
+          {
+            "q": "A train travels 300 km in 2.5 hours. Wha",
+            "expect": "120",
+            "got": "120",
+            "ok": true
+          },
+          {
+            "q": "What is 15% of 240?",
+            "expect": "36",
+            "got": "36",
+            "ok": true
+          },
+          {
+            "q": "Simplify: (2^3 × 2^4) / 2^5",
+            "expect": "4",
+            "got": "4",
+            "ok": true
+          },
+          {
+            "q": "The sum of three consecutive integers is",
+            "expect": "23",
+            "got": "23",
+            "ok": true
+          }
+        ]
+      },
+      "compreh": [
+        {
+          "q": "Summarize in ONE sentence: 'Photosynthes",
+          "judge": 8.0,
+          "len": 141
+        },
+        {
+          "q": "Translate to English: '这个系统支持高并发请求，平均响应时",
+          "judge": 10.0,
+          "len": 108
+        },
+        {
+          "q": "Explain the difference between TCP and U",
+          "judge": 8.0,
+          "len": 1213
+        },
+        {
+          "q": "Write a short Python one-liner to count ",
+          "judge": 8.0,
+          "len": 825
+        }
+      ]
+    }
+  }
+}

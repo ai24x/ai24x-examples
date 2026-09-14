@@ -1,0 +1,21 @@
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const { chromium } = require('E:/AI24X/_tmp/pwtest/node_modules/playwright-core');
+const ROOT = 'E:/AI24X/ai24x-website/ai24x01/p/game/_gameweb-local';
+const PORT = 18790;
+const server = http.createServer((req,res)=>{const p=path.join(ROOT,decodeURIComponent(req.url.split('?')[0])); if(!fs.existsSync(p)||fs.statSync(p).isDirectory()){res.writeHead(404);res.end();return;} res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'}); fs.createReadStream(p).pipe(res);});
+(async()=>{
+  await new Promise(r=>server.listen(PORT,r));
+  const browser = await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
+  const page = await browser.newPage({viewport:{width:390,height:844}});
+  page.on('pageerror', e=>console.log('PAGEERROR:', e.message, '@', (e.stack||'').split('\n').slice(1,3).join(' | ')));
+  page.on('console', m=>{if(m.type()==='error') console.log('CONSOLE:', m.text());});
+  const resp = await page.goto(`http://127.0.0.1:${PORT}/arrow-maze.html`,{waitUntil:'load',timeout:15000});
+  console.log('status:', resp && resp.status());
+  await page.waitForTimeout(1000);
+  const boardCount = await page.evaluate(() => document.querySelectorAll('#board').length);
+  const cellCount = await page.evaluate(() => document.querySelectorAll('.cell').length);
+  console.log('board:', boardCount, 'cells:', cellCount);
+  await browser.close(); server.close();
+})();

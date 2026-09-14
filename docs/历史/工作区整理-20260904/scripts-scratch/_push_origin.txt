@@ -1,0 +1,10 @@
+﻿git : remote: Powered by [01;33mGITEE.COM [0m[1.1.23]        
+所在位置 C:\Users\Admin\AppData\Local\Temp\ps-script-57715b42-3057-497d-a09b-5571d9e5dede.ps1:116 字符: 1
++ git push origin master 2>&1 | Out-File scripts\_push_origin.txt -Enco ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (remote: Powered...1.1.23]        :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+remote: Set trace flag 5a4b8b87        
+To https://gitee.com/ai24x/ai24x-website.git
+   fb1a976..b6f0b02  master -> master

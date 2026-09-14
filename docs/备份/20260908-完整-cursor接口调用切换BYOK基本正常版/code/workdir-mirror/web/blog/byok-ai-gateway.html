@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <script>
+(function () {
+  var KEY = "ai24x_lang";
+  try {
+    var raw = String(localStorage.getItem(KEY) || "").trim().toLowerCase().replace(/_/g, "-");
+    var lang = raw.split("-")[0] || "";
+    if (!lang) { lang = "en"; localStorage.setItem(KEY, lang); }
+    document.documentElement.setAttribute("data-ai24x-lang", lang);
+    document.documentElement.classList.add("i18n-pending");
+    if (!document.getElementById("ai24x-i18n-pending")) {
+      var st = document.createElement("style");
+      st.id = "ai24x-i18n-pending";
+      st.textContent = "html.i18n-pending body{visibility:hidden!important}";
+      (document.head || document.documentElement).appendChild(st);
+    }
+    setTimeout(function () { document.documentElement.classList.remove("i18n-pending"); }, 4000);
+  } catch (e) {}
+})();
+</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BYOK AI Gateway — bring your own keys · AI24X</title>
+  <meta name="description" content="BYOK AI Gateway: bring your own API keys, keep OpenAI-compatible calls, add routing, failover, and a cost dashboard. AI24X BYOK Pro from $9.9/mo." />
+  <link rel="canonical" href="https://www.ai24x.com/blog/byok-ai-gateway.html" />
+    <link rel="alternate" hreflang="en" href="https://www.ai24x.com/blog/byok-ai-gateway.html" />
+  <link rel="alternate" hreflang="x-default" href="https://www.ai24x.com/blog/byok-ai-gateway.html" />
+<meta property="og:type" content="article" />
+  <meta property="og:title" content="BYOK AI Gateway — bring your own keys" />
+  <meta property="og:description" content="Manage multiple AI API keys behind one gateway — routing, failover, and usage visibility." />
+  <meta property="og:url" content="https://www.ai24x.com/blog/byok-ai-gateway.html" />
+  <meta property="og:image" content="https://www.ai24x.com/img/og-share.png" />
+  <link rel="stylesheet" href="../css/base.css?v=20260829c" />
+  <link id="theme-css" rel="stylesheet" href="../css/themes/theme-blue.css?v=20260812e" data-base="../css/themes/" />
+  <style>
+    .blog-wrap { max-width: 820px; }
+    .blog-wrap h2 { margin-top: 34px; }
+    .blog-wrap p, .blog-wrap li { line-height: 1.75; }
+    .cta-box { margin: 30px 0 8px; padding: 22px 24px; border: 1px solid var(--border, #d8e4ef); border-radius: 12px; background: color-mix(in srgb, var(--accent,#2563eb) 5%, transparent); }
+  </style>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "BYOK AI Gateway — bring your own keys",
+    "description": "Bring your own API keys behind one OpenAI-compatible gateway — routing, failover, and cost visibility.",
+    "datePublished": "2026-08-26",
+    "author": { "@type": "Organization", "name": "AI24X" },
+    "publisher": { "@type": "Organization", "name": "AI24X", "url": "https://www.ai24x.com/" },
+    "mainEntityOfPage": "https://www.ai24x.com/blog/byok-ai-gateway.html"
+  }
+  </script>
+</head>
+<body data-page="blog" class="theme-blue">
+  <header class="site-header" id="site-header"></header>
+  <main class="page-main">
+    <section class="hero hero-surface section-tight">
+      <div class="container">
+        <p class="sub"><a href="index.html">Blog</a> · BYOK</p>
+        <h1>BYOK AI Gateway</h1>
+        <p class="lead">Bring your own keys. Keep one OpenAI-compatible surface. Let the gateway handle routing, failover, and cost visibility.</p>
+      </div>
+    </section>
+    <section class="section">
+      <div class="container blog-wrap">
+        <p><strong>BYOK</strong> (bring your own key) means the gateway forwards requests with <em>your</em> provider credentials. You pay providers for model usage; the gateway charges a service fee for routing, cache, and dashboard — not a hidden markup on every token.</p>
+        <h2>Why people search “manage multiple AI API keys”</h2>
+        <p>Five keys across three providers is fragile: rotation, rate limits, and “which key failed at 2am?” A BYOK LLM gateway turns that into tagged keys, health-aware selection, and one place to inspect spend.</p>
+        <h2>BYOK vs managed</h2>
+        <ul>
+          <li><strong>BYOK</strong> — you already have provider accounts; you want control and transparent gateway fees.</li>
+          <li><strong>Managed</strong> — you want to top up once and call models without juggling every vendor signup.</li>
+        </ul>
+        <p>AI24X supports both on the same Gateway account.</p>
+
+        <h2>How BYOK routing works in practice</h2>
+        <p>With a BYOK AI gateway, your application still sends a normal OpenAI-compatible request. The gateway picks which stored key and upstream path to use based on rules you configure — model name, priority tags, or a default pool. If the first path returns a rate limit or hard error, a healthy backup can take over without your user seeing a broken feature.</p>
+        <h3>Key pools and labels</h3>
+        <p>Most teams start with one key per provider, then split pools by environment (staging vs production) or by workload (chat vs batch). Labels make it obvious in the dashboard which pool burned through quota overnight. That is the difference between “we have five keys somewhere” and “we manage multiple AI API keys on purpose.”</p>
+        <h3>What you still pay for</h3>
+        <p>Provider usage bills go to your existing accounts. The gateway charges a predictable service fee for the control plane — routing, optional cache, observability, and account features — instead of hiding markup inside every token. Compare current BYOK plans on the <a href="../pricing.html#byokSection">pricing page</a> before you assume managed billing is cheaper for your volume.</p>
+
+        <h2>Security and key rotation</h2>
+        <p>Keys live in the gateway vault, not in every microservice repo. Rotate a compromised key in one place, update the gateway record, and your apps keep the same base URL and gateway API key. For agents and CI jobs, issue separate gateway keys with spend limits rather than pasting provider secrets into twelve repositories.</p>
+        <ul>
+          <li><strong>Least privilege</strong> — scope provider keys to the models you actually route.</li>
+          <li><strong>Audit trail</strong> — see which path and model drove a spike before you blame the wrong team.</li>
+          <li><strong>Fail closed</strong> — when every path in a pool is unhealthy, return a clear error instead of silently falling back to a surprise bill.</li>
+        </ul>
+
+        <h2>When BYOK beats managed billing</h2>
+        <p>BYOK fits when you already negotiated enterprise rates, need invoices split by legal entity, or must keep certain workloads on a specific provider contract. Managed access fits when you want one top-up and no vendor signup friction. Many teams use BYOK for production agents and managed credits for experiments — same gateway surface either way.</p>
+
+        <h2>FAQ</h2>
+        <h3>Is BYOK the same as self-hosting an LLM proxy?</h3>
+        <p>Similar idea, different ops burden. A hosted BYOK gateway gives you routing, dashboards, and support without maintaining your own proxy fleet, TLS, and failover scripts.</p>
+        <h3>Can I mix BYOK and platform credits?</h3>
+        <p>Yes. AI24X accounts can hold gateway keys for your providers and separate balances for managed model access when you want both.</p>
+        <h3>Do I need to change my client code?</h3>
+        <p>No — point your OpenAI-compatible client at the gateway endpoint and use your gateway API key. See <a href="openai-compatible-api.html">OpenAI Compatible API</a> for a minimal example.</p>
+
+        <h2>Try it</h2>
+        <ol>
+          <li><a href="../register.html">Create an account</a></li>
+          <li>Open <a href="https://open.ai24x.com/" data-open target="_blank" rel="noopener">open.ai24x.com</a> and add keys in Console</li>
+          <li>See <a href="../pricing.html#byokSection">BYOK plans</a> (Pro from $9.9/month)</li>
+        </ol>
+        <div class="cta-box">
+          <a class="btn btn-primary" href="../register.html">Start Building Free</a>
+          <a class="btn" href="../pricing.html#byokSection">BYOK pricing</a>
+          <a class="btn" href="https://open.ai24x.com/" data-open target="_blank" rel="noopener">Open Gateway</a>
+        </div>
+        <p class="sub" style="margin-top:24px">Related: <a href="what-is-ai-gateway.html">What is an AI Gateway?</a> · <a href="one-api-multiple-models.html">One API for multiple AI models</a> · <a href="ai-api-cost-basics.html">AI API cost basics</a></p>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer" id="site-footer"></footer>
+  <script src="../config/locales.js?v=20260831b"></script>
+  <script src="../js/api.js?v=20260829n"></script>
+  <script src="../js/utm.js?v=20260802a"></script>
+  <script src="../js/i18n.js?v=20260826m"></script>
+  <script src="../js/ai24x-chrome.js?v=20260829n"></script>
+  <script src="../js/shell.js?v=20260829n"></script>
+  <script src="../js/app.js?v=20260818b"></script>
+  <script src="../js/support-widget.js?v=20260817b"></script>
+</body>
+</html>

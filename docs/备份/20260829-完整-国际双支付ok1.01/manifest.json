@@ -1,0 +1,33 @@
+{
+  "label": "完整-国际双支付ok1.01",
+  "created_at": "2026-08-29 22:08:14",
+  "repo_root": "E:\\AI24X\\ai24x-website\\ai24x01",
+  "code": {
+    "git_head": "71f174fbfa65560ec134523f41e80e10dd673fd1",
+    "git_short": "71f174fbfa65",
+    "branch": "master",
+    "repo_bundle": "code/repo.bundle",
+    "repo_archive_zip": "code/repo-HEAD.zip"
+  },
+  "databases": [
+    {
+      "ok": true,
+      "database": "ai24x_a_pre",
+      "host": "127.0.0.1",
+      "source_env": "api/.env",
+      "source_key": "DATABASE_URL",
+      "dump": "db/ai24x_a_pre.dump",
+      "bytes": 28796381
+    },
+    {
+      "ok": true,
+      "database": "ai24x_open_pre",
+      "host": "127.0.0.1",
+      "source_env": "p/open/api/.env",
+      "source_key": "DATABASE_URL",
+      "dump": "db/ai24x_open_pre.dump",
+      "bytes": 24068122
+    }
+  ],
+  "note": "仅最新 git 代码 + 数据库 dump；不含日志、workdir 镜像、markets 静态站、.env"
+}

@@ -1,0 +1,29 @@
+<view class="page">
+  <view class="main-card">
+    <view class="rank-icon">{{rankEmoji}}</view>
+    <view class="title {{isNewBest ? 'newbest' : ''}}">{{title}}</view>
+    <view class="tier">段位 {{rankName}}{{isNewBest ? ' · 新纪录！' : ''}}</view>
+    <view class="bigscore">{{score}}</view>
+    <view class="stats">
+      <view class="stat">
+        <text class="stat-num">{{right}}</text>
+        <text class="stat-label">答对 / {{total}}</text>
+      </view>
+      <view class="stat">
+        <text class="stat-num">{{maxCombo}}</text>
+        <text class="stat-label">最大连击</text>
+      </view>
+      <view class="stat">
+        <text class="stat-num">{{beatPct}}%</text>
+        <text class="stat-label">击败好友</text>
+      </view>
+    </view>
+    <view class="sharebox">🎯 我击败了 <text class="hl">{{beatPct}}%</text> 的好友，敢来一局吗？</view>
+    <view class="actions">
+      <button class="btn btn-primary" open-type="share">分享挑战卡</button>
+      <button class="btn btn-ghost" bindtap="again">再来一局</button>
+      <button class="btn btn-gold" bindtap="home">回首页</button>
+    </view>
+  </view>
+  <view class="tip">挑战卡分享后，好友可从卡片进入同种子 45 秒局（v2 联调中台回传比分）</view>
+</view>

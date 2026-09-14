@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>别听它的 · 反口令反应战（P0-1 原型 v0.2 体验优化版）</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'PingFang SC','Microsoft YaHei',system-ui,sans-serif;background:linear-gradient(160deg,#0f172a 0%,#1e1b4b 55%,#312e81 100%);color:#fff;min-height:100vh;display:flex;justify-content:center;align-items:center;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+#app{width:100%;max-width:420px;min-height:100vh;display:flex;flex-direction:column;padding:18px 16px calc(26px + env(safe-area-inset-bottom))}
+.hidden{display:none!important}
+/* 顶栏 */
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:6px 2px 12px}
+.badge{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:5px 14px;font-size:13px;letter-spacing:.5px}
+.badge b{color:#fbbf24}
+#score{font-size:34px;font-weight:800;background:linear-gradient(90deg,#fbbf24,#fb7185);-webkit-background-clip:text;background-clip:text;color:transparent}
+#combo{font-size:15px;color:#a5b4fc;text-align:right}
+.timebar{height:8px;background:rgba(255,255,255,.12);border-radius:99px;overflow:hidden;margin-bottom:14px}
+#timefill{height:100%;width:100%;background:linear-gradient(90deg,#34d399,#22d3ee);border-radius:99px;transition:width .1s linear}
+#timefill.warn{background:linear-gradient(90deg,#f87171,#fb923c)}
+/* 指令区 */
+.stage{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:18px;min-height:240px}
+.prompt{font-size:56px;font-weight:900;letter-spacing:2px;text-align:center;line-height:1.2;animation:pop .18s ease-out}
+.prompt .sub{display:block;font-size:15px;font-weight:500;color:#a5b4fc;margin-top:8px;letter-spacing:4px}
+@keyframes pop{0%{transform:scale(.7);opacity:0}100%{transform:scale(1);opacity:1}}
+.hint{font-size:13px;color:#64748b;letter-spacing:1px;min-height:18px}
+/* 按钮区 */
+.pad{display:grid;gap:12px;margin-top:8px}
+.pad.colors{grid-template-columns:repeat(3,1fr)}
+.pad.dirs{grid-template-columns:repeat(3,1fr)}
+.pad.nums{grid-template-columns:repeat(4,1fr)}
+.btn{border:none;border-radius:18px;padding:22px 0;min-height:64px;font-size:26px;font-weight:800;color:#fff;cursor:pointer;transition:transform .08s,filter .12s;box-shadow:0 6px 18px rgba(0,0,0,.35);touch-action:manipulation}
+.btn:active{transform:scale(.92);filter:brightness(1.2)}
+.btn.red{background:linear-gradient(160deg,#ef4444,#b91c1c)}
+.btn.green{background:linear-gradient(160deg,#22c55e,#15803d)}
+.btn.blue{background:linear-gradient(160deg,#3b82f6,#1d4ed8)}
+.btn.yellow{background:linear-gradient(160deg,#eab308,#a16207)}
+.btn.gray{background:linear-gradient(160deg,#64748b,#334155)}
+.btn.arrow{background:linear-gradient(160deg,#8b5cf6,#6d28d9)}
+.pad.shake{animation:shake .4s}
+@keyframes shake{0%,100%{transform:none}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
+/* 反馈特效 */
+.fx{position:fixed;inset:0;pointer-events:none;display:flex;justify-content:center;align-items:center;font-size:72px;font-weight:900;z-index:9;animation:fx .5s ease-out forwards}
+.fx.ok{color:#34d399}
+.fx.err{color:#f87171;animation:fxerr .6s ease-out forwards}
+@keyframes fx{0%{transform:scale(1.4);opacity:0}20%{opacity:1}100%{transform:scale(1);opacity:0}}
+@keyframes fxerr{0%{opacity:0}15%{opacity:1}100%{opacity:0}}
+#redflash{position:fixed;inset:0;background:rgba(239,68,68,.28);pointer-events:none;z-index:8;opacity:0}
+#redflash.on{animation:flash .45s ease-out}
+@keyframes flash{0%{opacity:1}100%{opacity:0}}
+/* 倒计时 */
+#countdown{position:fixed;inset:0;background:rgba(2,6,23,.85);z-index:30;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px}
+#countdown .num{font-size:96px;font-weight:900;animation:cdpop .6s ease-out}
+#countdown .sub{font-size:15px;color:#a5b4fc;letter-spacing:6px}
+@keyframes cdpop{0%{transform:scale(2.2);opacity:0}30%{transform:scale(1);opacity:1}100%{opacity:.4}}
+/* 连击彩蛋 */
+#milestone{position:fixed;top:26%;left:0;right:0;display:flex;justify-content:center;pointer-events:none;z-index:12;opacity:0;transform:translateY(-20px)}
+#milestone.on{animation:ms .9s ease-out}
+#milestone .box{background:linear-gradient(90deg,#fbbf24,#fb7185);-webkit-background-clip:text;background-clip:text;color:transparent;font-size:38px;font-weight:900;letter-spacing:2px;white-space:nowrap}
+@keyframes ms{0%{opacity:0;transform:translateY(-20px) scale(.8)}25%{opacity:1;transform:none}75%{opacity:1}100%{opacity:0}}
+/* 首页 */
+#home .logo{font-size:30px;font-weight:900;letter-spacing:3px;text-align:center;background:linear-gradient(90deg,#fbbf24,#fb7185,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent;margin-top:24vh}
+#home .tag{text-align:center;color:#94a3b8;font-size:14px;margin:10px 0 24px}
+#home .rule{background:rgba(255,255,255,.06);border-radius:16px;padding:16px;font-size:14px;color:#cbd5e1;line-height:1.9;margin-bottom:18px}
+#home .rule b{color:#fbbf24}
+#start{width:100%;padding:16px;min-height:56px;font-size:19px;font-weight:800;border:none;border-radius:18px;background:linear-gradient(90deg,#2563eb,#7c3aed);color:#fff;cursor:pointer;box-shadow:0 10px 30px rgba(99,102,241,.4);touch-action:manipulation}
+#start:active{transform:scale(.96)}
+.double-row{display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px 16px;margin-bottom:12px;font-size:14px}
+.double-row .dsub{font-size:11px;color:#94a3b8;margin-top:2px}
+.switch{position:relative;width:52px;height:30px;flex:none}
+.switch input{opacity:0;width:100%;height:100%;position:absolute;margin:0;cursor:pointer}
+.switch i{position:absolute;inset:0;background:rgba(255,255,255,.16);border-radius:99px;transition:.2s}
+.switch i::after{content:'';position:absolute;left:3px;top:3px;width:24px;height:24px;border-radius:50%;background:#94a3b8;transition:.2s}
+.switch input:checked + i{background:rgba(251,191,36,.4)}
+.switch input:checked + i::after{left:25px;background:#fbbf24}
+.tiny{text-align:center;color:#475569;font-size:11px;margin-top:14px;line-height:1.6}
+/* 结算 */
+#overlay{position:fixed;inset:0;background:rgba(2,6,23,.78);backdrop-filter:blur(6px);display:flex;justify-content:center;align-items:center;z-index:20;padding:20px}
+.card{background:linear-gradient(170deg,#1e293b,#0f172a);border:1px solid rgba(255,255,255,.12);border-radius:24px;padding:28px 26px;width:100%;max-width:340px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5);animation:slideup .3s ease-out}
+@keyframes slideup{0%{transform:translateY(30px);opacity:0}100%{transform:none;opacity:1}}
+.card h2{font-size:24px;margin-bottom:6px}
+.rank{font-size:16px;color:#fbbf24;margin-bottom:10px}
+.bigscore{font-size:52px;font-weight:900;background:linear-gradient(90deg,#fbbf24,#fb7185);-webkit-background-clip:text;background-clip:text;color:transparent}
+.stats{display:flex;justify-content:space-around;margin:16px 0;font-size:13px;color:#94a3b8}
+.stats b{display:block;font-size:20px;color:#fff;margin-top:4px}
+.beatbar{height:10px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;margin:0 0 14px}
+#beatFill{height:100%;width:0;background:linear-gradient(90deg,#fbbf24,#fb7185);border-radius:99px;transition:width .8s ease-out}
+.sharebox{background:rgba(255,255,255,.06);border-radius:14px;padding:12px;font-size:14px;color:#c7d2fe;margin-bottom:14px}
+.actions{display:flex;flex-direction:column;gap:10px}
+.primary{background:linear-gradient(90deg,#2563eb,#7c3aed);border:none;border-radius:14px;padding:14px;min-height:48px;font-size:17px;font-weight:700;color:#fff;cursor:pointer;touch-action:manipulation}
+.ghost{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:12px;min-height:44px;font-size:14px;color:#e2e8f0;cursor:pointer;touch-action:manipulation}
+.mini{background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.4);border-radius:14px;padding:12px;min-height:44px;font-size:14px;color:#fbbf24;cursor:pointer;touch-action:manipulation}
+/* 广告模拟遮罩 */
+#admask{position:fixed;inset:0;background:rgba(2,6,23,.92);z-index:40;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px}
+#admask .adlogo{font-size:22px;font-weight:800;letter-spacing:4px;color:#fbbf24}
+#admask .adtext{font-size:13px;color:#94a3b8}
+#toast{position:fixed;left:50%;bottom:12%;transform:translateX(-50%);background:rgba(15,23,42,.95);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:14px;padding:10px 18px;border-radius:99px;z-index:50;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- 首页 -->
+  <div id="home">
+    <div class="logo">别听它的</div>
+    <div class="tag">反口令反应战 · P0-1 体验优化版</div>
+    <div class="rule">
+      <b>规则：</b>做「相反」的事！<br>
+      · 说「点红」→ 你要点<b>绿</b><br>
+      · 显示「←」→ 你要按<b>→</b><br>
+      · 显示「3」→ 你要按<b>4</b><br>
+      45 秒，连击越高倍率越高，错一次连击清零。
+    </div>
+    <div class="double-row">
+      <div>📺 看视频双倍积分
+        <div class="dsub">开局模拟广告，本局得分 ×2（占位）</div>
+      </div>
+      <label class="switch"><input type="checkbox" id="doubleSwitch"><i></i></label>
+    </div>
+    <button id="start">开始挑战</button>
+    <div class="tiny">原型演示：广告/分享/排行榜为占位<br>联调中台 API 后接入真实数据</div>
+  </div>
+
+  <!-- 游戏页 -->
+  <div id="game" class="hidden">
+    <div class="topbar">
+      <div class="badge">段位 <b id="rankName">青铜</b></div>
+      <div id="score">0</div>
+      <div id="combo">连击 0</div>
+    </div>
+    <div class="timebar"><div id="timefill"></div></div>
+    <div class="stage">
+      <div class="prompt" id="prompt"></div>
+      <div class="hint" id="hint"></div>
+    </div>
+    <div class="pad" id="pad"></div>
+  </div>
+</div>
+
+<!-- 倒计时 -->
+<div id="countdown" class="hidden">
+  <div class="num" id="cdNum">3</div>
+  <div class="sub">做「相反」的事</div>
+</div>
+<!-- 连击彩蛋 -->
+<div id="milestone"><div class="box"></div></div>
+<!-- 红闪 -->
+<div id="redflash"></div>
+<!-- 结算 -->
+<div id="overlay" class="hidden">
+  <div class="card">
+    <h2 id="endTitle">时间到！</h2>
+    <div class="rank" id="endRank"></div>
+    <div class="bigscore" id="endScore">0</div>
+    <div class="stats">
+      <div>最高连击<b id="endCombo">0</b></div>
+      <div>答对<b id="endRight">0</b></div>
+      <div>击败<b id="endBeat">--</b></div>
+    </div>
+    <div class="beatbar"><div id="beatFill"></div></div>
+    <div class="sharebox" id="shareBox">🎯 我击败了 <b id="beatPct">--%</b> 的好友，敢来一局吗？</div>
+    <div class="actions">
+      <button class="mini" id="btnLife">⏱ 看广告续 15 秒（模拟）</button>
+      <button class="primary" id="btnCopy">📋 复制挑战文案</button>
+      <button class="primary" id="btnAgain">再来一局</button>
+      <button class="ghost" id="btnShare">分享挑战卡（占位）</button>
+    </div>
+  </div>
+</div>
+<!-- 广告模拟遮罩 -->
+<div id="admask" class="hidden">
+  <div class="adlogo">📺 模拟广告</div>
+  <div class="adtext" id="adtext">奖励发放中…</div>
+</div>
+<div id="toast"></div>
+
+<script src="tracker.js"></script>
+<script>
+(function () {
+  'use strict';
+  var DURATION = 45;
+  var RANKS = [
+    { name: '青铜', min: 0 }, { name: '白银', min: 1500 }, { name: '黄金', min: 4000 },
+    { name: '铂金', min: 8000 }, { name: '钻石', min: 14000 }, { name: '星耀', min: 22000 },
+    { name: '王者', min: 32000 }
+  ];
+  var COLORS = [
+    { key: 'red', label: '红', cls: 'red' },
+    { key: 'green', label: '绿', cls: 'green' },
+    { key: 'blue', label: '蓝', cls: 'blue' }
+  ];
+  var MILESTONES = { 10: '🔥 10 连击！', 20: '⚡ 20 连击！', 50: '👑 50 连击！' };
+  var TEACH_NUM = 3; // 前 N 题显示教学提示
+  var state = { running: false, timeLeft: DURATION, score: 0, combo: 0, maxCombo: 0, right: 0, wrong: 0, timer: null, intervalMs: 1500, total: 0, lifeUsed: false, doubled: false, locked: false, teachLeft: TEACH_NUM, endAt: 0 };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    home: $('home'), game: $('game'), overlay: $('overlay'), prompt: $('prompt'), hint: $('hint'),
+    pad: $('pad'), score: $('score'), combo: $('combo'), timefill: $('timefill'), rankName: $('rankName'),
+    endTitle: $('endTitle'), endRank: $('endRank'), endScore: $('endScore'), endCombo: $('endCombo'),
+    endRight: $('endRight'), endBeat: $('endBeat'), beatPct: $('beatPct'), shareBox: $('shareBox'),
+    beatFill: $('beatFill'), countdown: $('countdown'), cdNum: $('cdNum'), milestone: $('milestone'),
+    redflash: $('redflash'), admask: $('admask'), adtext: $('adtext'), toast: $('toast'),
+    btnLife: $('btnLife'), btnCopy: $('btnCopy'), btnAgain: $('btnAgain'), btnShare: $('btnShare'),
+    doubleSwitch: $('doubleSwitch'), start: $('start')
+  };
+
+  /* ---------- 音频（WebAudio 合成，无外部素材） ---------- */
+  var actx = null;
+  function audio() {
+    if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+    if (actx && actx.state === 'suspended') { try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+  function tone(freq, dur, type, vol, delay) {
+    var ctx = audio();
+    if (!ctx) return;
+    var t0 = ctx.currentTime + (delay || 0);
+    var osc = ctx.createOscillator();
+    var g = ctx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol || 0.16, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + (dur || 0.12));
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(t0); osc.stop(t0 + (dur || 0.12) + 0.05);
+  }
+  function sCorrect() { tone(880, 0.09, 'sine', 0.16); tone(1320, 0.12, 'sine', 0.12, 0.07); }
+  function sWrong() { tone(110, 0.22, 'sawtooth', 0.14); tone(82, 0.24, 'sawtooth', 0.1, 0.05); }
+  function sTick() { tone(440, 0.07, 'square', 0.08); }
+  function sGo() { tone(880, 0.18, 'square', 0.12); }
+  function sMilestone() { tone(523, 0.12, 'triangle', 0.16); tone(659, 0.12, 'triangle', 0.16, 0.1); tone(784, 0.2, 'triangle', 0.16, 0.2); }
+  function sEnd() { tone(440, 0.2, 'sine', 0.14); tone(220, 0.35, 'sine', 0.12, 0.18); }
+  function vibrate(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
+
+  /* ---------- 工具 ---------- */
+  function rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function rankOf(score) { var r = RANKS[0]; for (var i = 0; i < RANKS.length; i++) if (score >= RANKS[i].min) r = RANKS[i]; return r; }
+  function beatPct() { return Math.min(99, Math.round(40 + state.score / 60)); }
+  function track(ev, params) { if (window.__gcTrack) window.__gcTrack(ev, params); }
+  function toast(msg) {
+    els.toast.textContent = msg;
+    els.toast.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { els.toast.classList.remove('show'); }, 1600);
+  }
+
+  /* ---------- 指令生成（核心规则不变） ---------- */
+  function buildPrompt() {
+    var t = Math.floor(Math.random() * 3);
+    if (t === 0) return colorTask();
+    if (t === 1) return dirTask();
+    return numTask();
+  }
+  function colorTask() {
+    var target = rand(COLORS);
+    var wrong = rand(COLORS.filter(function (c) { return c.key !== target.key; }));
+    return {
+      render: function () {
+        els.prompt.innerHTML = '点【' + wrong.label + '】<span class="sub" style="color:' + wrong.cls + '">按字义做相反</span>';
+      },
+      pad: 'colors',
+      buttons: COLORS,
+      correct: target.key,
+      hintText: '说点' + wrong.label + '，就点' + target.label
+    };
+  }
+  function dirTask() {
+    var dirs = [{ k: 'left', label: '←' }, { k: 'right', label: '→' }, { k: 'up', label: '↑' }, { k: 'down', label: '↓' }];
+    var shown = rand(dirs);
+    var correct = rand(dirs.filter(function (d) { return d.k !== shown.k; }));
+    return {
+      render: function () {
+        els.prompt.innerHTML = shown.label + '<span class="sub">按相反方向</span>';
+      },
+      pad: 'dirs',
+      buttons: dirs,
+      correct: correct.k,
+      hintText: '显示' + shown.label + '，按' + correct.label
+    };
+  }
+  function numTask() {
+    var n = Math.floor(Math.random() * 4) + 2; // 2..5
+    var correct = n + 1;
+    return {
+      render: function () {
+        els.prompt.innerHTML = String(n) + '<span class="sub">按 N+1</span>';
+      },
+      pad: 'nums',
+      buttons: [1, 2, 3, 4, 5, 6].map(function (x) { return { k: String(x), label: String(x) }; }),
+      correct: String(correct),
+      hintText: '显示' + n + '，按' + correct
+    };
+  }
+  function renderPad(task) {
+    els.pad.className = 'pad ' + task.pad;
+    els.pad.innerHTML = '';
+    task.buttons.forEach(function (b) {
+      var btn = document.createElement('button');
+      btn.className = 'btn' + (b.cls ? ' ' + b.cls : (task.pad === 'dirs' ? ' arrow' : ' gray'));
+      btn.textContent = b.label;
+      btn.dataset.key = b.k;
+      btn.addEventListener('click', function () { answer(b.k); });
+      els.pad.appendChild(btn);
+    });
+  }
+  function spawn() {
+    if (!state.running) return;
+    var task = buildPrompt();
+    task.render();
+    renderPad(task);
+    // 教学提示：前 TEACH_NUM 题显示答案提示，之后只给规则提醒
+    if (state.teachLeft > 0) {
+      els.hint.textContent = task.hintText;
+      state.teachLeft -= 1;
+    } else {
+      els.hint.textContent = '做「相反」的事';
+    }
+    state.current = task;
+    state.locked = false; // 新题渲染完成，解锁输入
+  }
+
+  /* ---------- 作答 ---------- */
+  function answer(key) {
+    if (!state.running || !state.current || state.locked) return;
+    state.locked = true; // 防止空窗期重复点按刷连击
+    if (key === state.current.correct) {
+      state.combo += 1;
+      state.right += 1;
+      state.maxCombo = Math.max(state.maxCombo, state.combo);
+      var mult = Math.min(5, 1 + Math.floor(state.combo / 10));
+      var gain = 10 * mult;
+      if (state.doubled) gain *= 2;
+      state.score += gain;
+      showFx('+' + gain, 'ok');
+      sCorrect();
+      vibrate(12);
+      if (MILESTONES[state.combo]) showMilestone(state.combo);
+    } else {
+      state.combo = 0;
+      state.wrong += 1;
+      showFx('错!', 'err');
+      sWrong();
+      vibrate([40, 30, 60]);
+      els.redflash.classList.remove('on');
+      void els.redflash.offsetWidth; // 重启动画
+      els.redflash.classList.add('on');
+      els.pad.classList.remove('shake');
+      void els.pad.offsetWidth;
+      els.pad.classList.add('shake');
+    }
+    els.score.textContent = state.score;
+    els.combo.textContent = '连击 ' + state.combo;
+    state.total += 1;
+    state.intervalMs = Math.max(700, 1500 - Math.floor(state.combo / 5) * 40);
+    clearTimeout(state.nextTimer);
+    state.nextTimer = setTimeout(spawn, state.intervalMs);
+  }
+  function showMilestone(combo) {
+    els.milestone.querySelector('.box').textContent = MILESTONES[combo];
+    els.milestone.classList.remove('on');
+    void els.milestone.offsetWidth;
+    els.milestone.classList.add('on');
+    sMilestone();
+    vibrate([30, 40, 30, 40, 60]);
+    track('combo_milestone', { combo: combo });
+  }
+  function showFx(text, cls) {
+    var fx = document.createElement('div');
+    fx.className = 'fx ' + cls;
+    fx.textContent = text;
+    document.body.appendChild(fx);
+    setTimeout(function () { if (fx.parentNode) fx.parentNode.removeChild(fx); }, 520);
+  }
+
+  /* ---------- 计时（绝对时间戳，防后台节流漂移） ---------- */
+  function tick() {
+    if (!state.running) return;
+    var remain = Math.max(0, (state.endAt - Date.now()) / 1000);
+    state.timeLeft = remain; // 回写剩余时间（续命依赖）
+    els.timefill.style.width = (remain / DURATION * 100) + '%';
+    els.timefill.className = remain <= 10 ? 'warn' : '';
+    if (remain <= 0) { endGame(); return; }
+    state.timer = setTimeout(tick, 100);
+  }
+
+  /* ---------- 开局：3-2-1 预热 ---------- */
+  function runCountdown(cb) {
+    els.countdown.classList.remove('hidden');
+    var seq = [3, 2, 1, 'GO'];
+    var i = 0;
+    (function step() {
+      var v = seq[i];
+      els.cdNum.textContent = v;
+      if (v === 'GO') { sGo(); } else { sTick(); }
+      i += 1;
+      if (i < seq.length) {
+        setTimeout(step, 700);
+      } else {
+        setTimeout(function () {
+          els.countdown.classList.add('hidden');
+          if (cb) cb();
+        }, 350);
+      }
+    })();
+  }
+
+  function start() {
+    state.running = false; state.timeLeft = DURATION; state.score = 0; state.combo = 0;
+    state.maxCombo = 0; state.right = 0; state.wrong = 0; state.intervalMs = 1500; state.total = 0;
+    state.lifeUsed = false; state.teachLeft = TEACH_NUM; state.locked = false;
+    state.doubled = els.doubleSwitch.checked;
+    els.home.classList.add('hidden');
+    els.overlay.classList.add('hidden');
+    els.game.classList.remove('hidden');
+    els.score.textContent = '0'; els.combo.textContent = '连击 0';
+    track('game_start', { doubled: state.doubled ? 1 : 0, mode: 'normal' });
+    runCountdown(function () {
+      state.running = true;
+      state.endAt = Date.now() + DURATION * 1000;
+      tick();
+      spawn();
+    });
+  }
+
+  /* ---------- 结算 ---------- */
+  function endGame() {
+    state.running = false;
+    clearTimeout(state.timer); clearTimeout(state.nextTimer);
+    var r = rankOf(state.score);
+    var pct = beatPct();
+    els.endTitle.textContent = state.score >= 4000 ? '太强了！' : '时间到！';
+    els.endRank.textContent = '段位：' + r.name;
+    els.endScore.textContent = state.score;
+    els.endCombo.textContent = state.maxCombo;
+    els.endRight.textContent = state.right + '/' + state.total;
+    els.endBeat.textContent = pct + '%';
+    els.shareBox.innerHTML = '🎯 我击败了 <b>' + pct + '%</b> 的好友，敢来一局吗？';
+    els.btnLife.style.display = state.lifeUsed ? 'none' : '';
+    els.beatFill.style.width = '0';
+    els.overlay.classList.remove('hidden');
+    setTimeout(function () { els.beatFill.style.width = pct + '%'; }, 60);
+    sEnd();
+    track('game_end', { score: state.score, maxCombo: state.maxCombo, right: state.right, wrong: state.wrong, total: state.total, doubled: state.doubled ? 1 : 0 });
+  }
+
+  /* ---------- 广告模拟 ---------- */
+  function playAd(text, ms, onDone) {
+    els.adtext.textContent = text;
+    els.admask.classList.remove('hidden');
+    setTimeout(function () {
+      els.admask.classList.add('hidden');
+      if (onDone) onDone();
+    }, ms);
+  }
+
+  /* ---------- 事件绑定 ---------- */
+  els.start.addEventListener('click', function () {
+    if (els.doubleSwitch.checked) {
+      playAd('正在播放激励视频，看完本局得分 ×2', 1400, start);
+    } else {
+      start();
+    }
+  });
+  els.btnAgain.addEventListener('click', function () {
+    if (els.doubleSwitch.checked) {
+      playAd('正在播放激励视频，看完本局得分 ×2', 1400, start);
+    } else {
+      start();
+    }
+  });
+  els.btnLife.addEventListener('click', function () {
+    state.lifeUsed = true;
+    playAd('正在播放激励视频，看完续命 +15 秒', 1500, function () {
+      state.timeLeft = Math.min(DURATION, state.timeLeft + 15);
+      els.overlay.classList.add('hidden');
+      state.running = true;
+      state.endAt = Date.now() + state.timeLeft * 1000;
+      tick();
+      spawn(); // 恢复后立即出新题，避免停留在旧题+锁定态
+      track('life_used', { bonus: 15 });
+      toast('续命 +15s');
+    });
+  });
+  els.btnCopy.addEventListener('click', function () {
+    var pct = beatPct();
+    var text = '🎯 我击败了 ' + pct + '% 的好友，敢来一局吗？｜别听它的·反口令反应战';
+    var done = function () { toast('挑战文案已复制，发给好友吧'); track('share_click', { type: 'copy', pct: pct }); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text, done); });
+    } else {
+      fallbackCopy(text, done);
+    }
+  });
+  els.btnShare.addEventListener('click', function () {
+    track('share_click', { type: 'challenge' });
+    toast('分享功能占位：联调中台后接入');
+  });
+  function fallbackCopy(text, done) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { toast('复制失败，请手动复制'); }
+    document.body.removeChild(ta);
+  }
+})();
+</script>
+</body>
+</html>

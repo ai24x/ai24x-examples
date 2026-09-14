@@ -1,0 +1,211 @@
+{
+  "ok": true,
+  "date": "2026-08-24",
+  "source": "ths:fuyao",
+  "limit_up": {
+    "count": 46,
+    "max_lianban": 4,
+    "max_name": "汉森制药",
+    "seal_money_top": [
+      {
+        "name": "华阳集团",
+        "ticker": "002906",
+        "seal": 325742050.0,
+        "reason": "国资拟入主+人形机器人+精密压铸+AI BOX"
+      },
+      {
+        "name": "白银有色",
+        "ticker": "601212",
+        "seal": 303296110.0,
+        "reason": "白银+黄金+多金属综合+锂电材料"
+      },
+      {
+        "name": "汉森制药",
+        "ticker": "002412",
+        "seal": 249630540.0,
+        "reason": "创新药+中药+中报预增"
+      },
+      {
+        "name": "中南文化",
+        "ticker": "002445",
+        "seal": 198607600.0,
+        "reason": "重组+拟并购热电+火电热力+金属管件"
+      },
+      {
+        "name": "圣阳股份",
+        "ticker": "002580",
+        "seal": 188619370.0,
+        "reason": "液冷储能+算力+固态电池+山东国资"
+      }
+    ]
+  },
+  "ladder": {
+    "date": "2026-08-24",
+    "rows": [
+      {
+        "board": "two_board",
+        "count": 6,
+        "names": [
+          "东信和平",
+          "天洋新材",
+          "新华百货",
+          "楚天龙"
+        ]
+      },
+      {
+        "board": "three_board",
+        "count": 3,
+        "names": [
+          "中 关 村",
+          "哈森股份",
+          "深中华A"
+        ]
+      },
+      {
+        "board": "four_board",
+        "count": 1,
+        "names": [
+          "汉森制药"
+        ]
+      },
+      {
+        "board": "five_board",
+        "count": 0,
+        "names": []
+      },
+      {
+        "board": "six_board",
+        "count": 0,
+        "names": []
+      },
+      {
+        "board": "seven_over",
+        "count": 0,
+        "names": []
+      }
+    ]
+  },
+  "hot": [
+    {
+      "name": "宇树科技",
+      "ticker": "688836",
+      "rank": 1,
+      "heat": "10751283",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "中际旭创",
+      "ticker": "300308",
+      "rank": 2,
+      "heat": "4926893",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "士兰微",
+      "ticker": "600460",
+      "rank": 3,
+      "heat": "4040528",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "长鑫科技",
+      "ticker": "688825",
+      "rank": 4,
+      "heat": "4038105",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "哈药股份",
+      "ticker": "600664",
+      "rank": 5,
+      "heat": "3690950",
+      "rank_trend": "up"
+    }
+  ],
+  "skyrocket": [
+    {
+      "name": "百花医药",
+      "ticker": "600721",
+      "rank": 1,
+      "heat": "371165.1",
+      "rank_trend": "up"
+    },
+    {
+      "name": "哈药股份",
+      "ticker": "600664",
+      "rank": 2,
+      "heat": "339044.5",
+      "rank_trend": "up"
+    },
+    {
+      "name": "中际旭创",
+      "ticker": "300308",
+      "rank": 3,
+      "heat": "333189.7",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "宇树科技",
+      "ticker": "688836",
+      "rank": 4,
+      "heat": "262772.7",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "红宝丽",
+      "ticker": "002165",
+      "rank": 5,
+      "heat": "260701.4",
+      "rank_trend": "up"
+    }
+  ],
+  "hot_money": [],
+  "anomaly": {
+    "count": 406,
+    "tags": {
+      "跌停": 14,
+      "涨停": 48,
+      "大跌": 250,
+      "大涨": 94
+    },
+    "top": [
+      {
+        "name": "速达股份",
+        "thscode": "001277.SZ",
+        "tag": "跌停",
+        "reason": "1、据同花顺iFinD数据，公司此前5个交易日累计上涨21.42%；据2026年8月21日股票交易异常波动公告，公司8月"
+      },
+      {
+        "name": "百合花",
+        "thscode": "603823.SH",
+        "tag": "跌停",
+        "reason": "1、据同花顺iFinD数据，公司此前5个交易日累计上涨9.52%，今年以来累计上涨369.03%。\n2、据2026年8月"
+      },
+      {
+        "name": "星帅尔",
+        "thscode": "002860.SZ",
+        "tag": "跌停",
+        "reason": "1、据2026年8月20日半年报公告，公司2026年上半年营业收入10.94亿元，同比下降3.39%；归母净利润1.00"
+      },
+      {
+        "name": "养元饮品",
+        "thscode": "603156.SH",
+        "tag": "跌停",
+        "reason": "1、据同花顺iFinD截至2026年8月24日9时35分59秒数据，公司主力资金今日净流出4734.62万元。\n2、据同"
+      },
+      {
+        "name": "*ST未名",
+        "thscode": "002581.SZ",
+        "tag": "跌停",
+        "reason": "1、据同花顺iFinD数据，*ST未名此前5个交易日累计上涨31.89%，此前20个交易日累计上涨79.81%。\n2、据"
+      },
+      {
+        "name": "共进股份",
+        "thscode": "603118.SH",
+        "tag": "跌停",
+        "reason": "1、据同花顺iFinD数据，截至2026年8月24日9时37分57秒，PCB概念板块下跌1.09%；截至9时37分56秒"
+      }
+    ]
+  },
+  "errors": []
+}

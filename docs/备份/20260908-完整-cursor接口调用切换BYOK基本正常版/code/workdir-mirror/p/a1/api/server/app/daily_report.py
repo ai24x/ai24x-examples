@@ -1,0 +1,2262 @@
+# -*- coding: utf-8 -*-
+"""每日板块主攻研判（已并入 AI行情官 18011 产品后端，VIP 分层）。
+
+- 大盘信号 + 资金面：公开（未登录/免费用户可看）
+- 板块技术体检 + 主线锁定：VIP 专属
+- 评分/指数信号：内部直算（fetch_tx_kline + score_candles/build_signals_v3），
+  不扣 150 次/日查询配额、不 HTTP 自调、不走游客通道
+- 鉴权：登录会话（Authorization: Bearer <localStorage.ai24x_a_token>），不再依赖静态 token
+- 上游防封：按日缓存 + 每日预算 + 慢速退避 + keep-alive（沿用原独立服务参数，
+  K线走腾讯主源，避开东财 push2his 节流通道）
+"""
+from __future__ import annotations
+
+import asyncio
+import json
+import os
+import re
+import threading
+import time
+import urllib.parse
+import urllib.request
+from datetime import datetime, timedelta
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+
+from . import db
+from .auth import get_current_user_id, get_optional_user_id
+from .providers import fetch_tx_kline, market_data_status
+from .big_cycle import ma_tier_from_closes, sector_ma_gate, TIER_LABEL
+from .scoring import score_candles, _ma, _slope_ratio, _red_days
+from .signals import build_signals_v3, candles_from_tencent_like_pack, _compute_macd_arrays
+from .ths_fuyao import build_sentiment as _ths_build_sentiment
+
+router = APIRouter()
+
+# 仓库相对路径（本地/副脑03 通用，03 仅 C 盘无 E 盘）：__file__ = .../p/a1/api/server/app/daily_report.py
+_A1_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+BASE_DIR = os.path.join(_A1_ROOT, "daily_report")
+CFG_PATH = os.path.join(BASE_DIR, "config.json")
+CACHE_ROOT = os.path.join(BASE_DIR, "cache")          # 按日上游数据缓存（沿用原独立服务目录）
+ARCHIVE_ROOT = os.path.join(_A1_ROOT, "调研报告", "04-每日跟踪", "板块主攻研判")
+
+UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+
+# 每日上游预算（防封，沿用原独立服务参数）
+EM_DAILY_BUDGET = 16        # 东财 push2delay 请求/日
+THS_DAILY_BUDGET = 2        # 同花顺页面请求/日
+KLINE_INTERVAL = 1.6
+
+INDEXES = {
+    "上证指数": "1.000001", "深证成指": "0.399001", "创业板指": "0.399006",
+    "科创50": "1.000688", "北证50": "0.899050", "沪深300": "1.000300",
+    "中证500": "1.000905", "中证1000": "1.000852",
+}
+
+SECTORS = {
+    "PCB": [("002463","沪电股份"),("002916","深南电路"),("600183","生益科技"),("300476","胜宏科技"),("603228","景旺电子"),("002938","鹏鼎控股")],
+    "煤炭": [("601088","中国神华"),("601225","陕西煤业"),("600188","兖矿能源"),("601898","中煤能源"),("601699","潞安环能"),("600546","山煤国际")],
+    "有色": [("600111","北方稀土"),("601899","紫金矿业"),("601600","中国铝业"),("000807","云铝股份"),("000933","神火股份"),("603993","洛阳钼业")],
+    "通信光模块CPO": [("300308","中际旭创"),("300502","新易盛"),("300394","天孚通信"),("002281","光迅科技"),("600487","亨通光电"),("600522","中天科技")],
+    "创新药CXO": [("603259","药明康德"),("300347","泰格医药"),("002821","凯莱英"),("300759","康龙化成"),("300363","博腾股份"),("300558","贝达药业")],
+    "半导体": [("688981","中芯国际"),("002371","北方华创"),("603501","韦尔股份"),("603986","兆易创新"),("688008","澜起科技"),("688256","寒武纪")],
+    "AI服务器算力": [("000977","浪潮信息"),("603019","中科曙光"),("601138","工业富联"),("000938","紫光股份"),("688158","优刻得"),("603629","利通电子")],
+    "证券": [("600030","中信证券"),("300059","东方财富"),("300033","同花顺"),("300803","指南针"),("601688","华泰证券"),("601377","兴业证券")],
+    "军工": [("600760","中航沈飞"),("600893","航发动力"),("000768","中航西飞"),("600038","中直股份"),("000738","航发控制"),("300034","钢研高纳")],
+    "机器人": [("002747","埃斯顿"),("300124","汇川技术"),("688017","绿的谐波"),("002472","双环传动"),("603728","鸣志电器"),("300024","机器人")],
+    "光伏设备": [("300724","捷佳伟创"),("300751","迈为股份"),("300316","晶盛机电"),("688516","奥特维"),("300776","帝尔激光"),("603185","上机数控")],
+    "锂电池": [("300750","宁德时代"),("300014","亿纬锂能"),("002074","国轩高科"),("300207","欣旺达"),("002709","天赐材料"),("300769","德方纳米")],
+    "汽车整车": [("002594","比亚迪"),("601633","长城汽车"),("000625","长安汽车"),("601127","赛力斯"),("600418","江淮汽车"),("600733","北汽蓝谷")],
+    "白酒消费": [("600519","贵州茅台"),("000858","五粮液"),("600809","山西汾酒"),("000568","泸州老窖"),("000596","古井贡酒"),("600702","舍得酒业")],
+    "电力": [("600900","长江电力"),("601985","中国核电"),("600886","国投电力"),("600674","川投能源"),("600027","华电国际"),("600011","华能国际")],
+    "机械设备": [("600031","三一重工"),("000157","中联重科"),("000425","徐工机械"),("601100","恒立液压"),("000338","潍柴动力"),("002008","大族激光")],
+}
+
+# 板块 -> 东财资金榜板块名别名（主线资金确认用；not_in 排除同名歧义，如"电力设备"是光伏/风电设备而非电力运营）
+SECTOR_BOARD_ALIASES = {
+    "PCB": ["印制电路板", "PCB"],
+    "煤炭": ["煤炭开采", "焦煤", "动力煤", "煤化工", "煤化工概念", "煤炭"],
+    "有色": ["工业金属", "小金属", "有色金属", "能源金属", "贵金属", "稀土"],
+    "通信光模块CPO": ["通信设备", "通信网络设备", "光通信", "光模块", "CPO", "通信技术"],
+    "创新药CXO": ["创新药", "化学制药", "医疗服务", "生物制品", "CXO", "医药生物"],
+    "半导体": ["半导体", "芯片", "集成电路", "数字芯片", "存储芯片", "电子化学品"],
+    "AI服务器算力": ["算力", "AI服务器", "数据中心", "东数西算", "云计算", "液冷", "IDC"],
+    "证券": ["证券", "券商"],
+    "军工": ["航天航空", "船舶制造", "军工", "大飞机", "航母"],
+    "机器人": ["机器人", "减速器", "工业母机", "人形机器人"],
+    "光伏设备": ["光伏设备", "光伏", "钙钛矿", "HJT电池"],
+    "锂电池": ["锂电池", "锂电", "固态电池", "动力电池", "电池"],
+    "汽车整车": ["汽车整车", "乘用车", "新能源车", "智能汽车"],
+    "白酒消费": ["白酒", "酿酒", "食品饮料", "啤酒", "乳业"],
+    "电力": ["电力行业", "绿色电力", "绿电", "核电", "火电", "水电", "风电"],
+    "机械设备": ["机械设备", "工程机械", "通用设备", "专用设备", "其他专用设备"],
+    # 同花顺行业「种植业与林业」(881101) → 东财概念/行业资金榜近义
+    "种植业与林业": ["种植业", "农林牧渔", "林业", "农业"],
+}
+SECTOR_BOARD_NOTIN = {
+    "电力": ["设备"],            # 排除"电力设备"（光伏/风电设备属新能源，非电力运营）
+    "汽车整车": ["零部件", "芯片"],  # 排除"汽车零部件""汽车芯片"（属电子/机械）
+}
+
+# 资金榜动态候选（同花顺优先、东财兜底）：不占固定桶，普适捕捉资金榜新面孔
+_DYNAMIC_MAX = 5          # 每日最多深评的动态板块数
+_DYNAMIC_TOP = 15         # 板块榜取前 N 做「连续 2 天在榜」判定
+_DYNAMIC_ALIASES: dict = {}  # {动态板块名: [别名]}，用于资金确认匹配
+# 与固定桶高度重叠的近义板块名（避免重复评估；贵金属/医疗服务等刻意不在此列，属独立评估）
+_DUP_COVER = {
+    "通信设备": "通信光模块CPO", "光模块": "通信光模块CPO", "光通信": "通信光模块CPO", "CPO": "通信光模块CPO",
+    "煤炭开采加工": "煤炭", "焦煤": "煤炭", "动力煤": "煤炭",
+    "印制电路板": "PCB",
+}
+
+_CFG = None
+def cfg():
+    global _CFG
+    if _CFG is None:
+        _CFG = {"auto_scan_time": "15:01", "auto_scan": True}
+        try:
+            if os.path.exists(CFG_PATH):
+                _CFG.update(json.load(open(CFG_PATH, encoding="utf-8")))
+        except Exception:
+            pass
+        _CFG.pop("token", None)
+    return _CFG
+
+def today8(): return datetime.now().strftime("%Y%m%d")
+def today(): return datetime.now().strftime("%Y-%m-%d")
+HOLIDAYS = set(str(x).strip() for x in [
+    "2026-01-01","2026-02-16","2026-02-17","2026-02-18","2026-02-19","2026-02-20",
+    "2026-04-06","2026-05-01","2026-06-19","2026-09-25","2026-10-01","2026-10-02",
+    "2026-10-05","2026-10-06","2026-10-07","2026-10-08",
+] if str(x).strip())
+def is_weekend():
+    return datetime.now().weekday() >= 5
+def now_hhmm():
+    return datetime.now().strftime("%H:%M")
+def _after_close():
+    return now_hhmm() >= str(cfg().get("auto_scan_time") or "15:01")
+
+def _today_close_epoch() -> float:
+    """今日收盘时刻（auto_scan_time）的 epoch；解析失败返回 0。"""
+    try:
+        t = str(cfg().get("auto_scan_time") or "15:01").strip()
+        hh, mm = t.split(":")
+        return datetime.now().replace(hour=int(hh), minute=int(mm), second=0, microsecond=0).timestamp()
+    except Exception:
+        return 0.0
+def report_stale(report):
+    """今日已生成但数据截至日早于今日，且已过收盘时间 → 陈旧，需重扫。"""
+    if not report or report.get("today8") != today8():
+        return False
+    if is_weekend():
+        return False
+    if _after_close():
+        if (report.get("asof") or "") != today():
+            return True
+        ga = str(report.get("generated_at") or "")
+        try:
+            gt = datetime.strptime(ga, "%Y-%m-%d %H:%M:%S").timestamp()
+        except Exception:
+            gt = 0.0
+        return gt < _today_close_epoch()
+    return False
+def data_cache_stale(idx):
+    """当日数据缓存是否已过期（收盘后要求上证 last_date == 今天）。"""
+    if not idx:
+        return True
+    last = ((idx.get("indexes") or {}).get("上证指数") or {}).get("last_date") or ""
+    if not last:
+        return True
+    if is_weekend():
+        return False
+    if _after_close():
+        if last != today():
+            return True
+        ts = float(idx.get("_ts") or 0)
+        return ts < _today_close_epoch()
+    return False
+def is_trading_day():
+    return (not is_weekend()) and (today() not in HOLIDAYS)
+
+# ---------------- 进度 ----------------
+_PROGRESS = {"phase": "idle", "pct": 0, "step": "", "done": 0, "total": 0, "started_at": 0, "finished": None, "ok": False}
+_LOCK = threading.Lock()
+def set_progress(**kw):
+    with _LOCK:
+        _PROGRESS.update(kw)
+def get_progress(): return dict(_PROGRESS)
+
+# ---------------- 扫描任务锁 ----------------
+_RUNNING = {"busy": False, "last_start": 0.0, "thread": None, "last_done": 0.0, "last_ok": None, "last_error": ""}
+
+def _start_scan(force: bool, is_vip: bool):
+    with _LOCK:
+        if _RUNNING["busy"]:
+            raise HTTPException(status_code=409, detail="已有扫描任务进行中")
+        _RUNNING["busy"] = True
+        _RUNNING["last_start"] = time.time()
+    def worker():
+        try:
+            run_daily(force=force, is_vip=is_vip)
+        except Exception as e:
+            set_progress(phase="error", pct=0, step="失败: %s" % str(e)[:120], ok=False)
+        finally:
+            with _LOCK:
+                _RUNNING["busy"] = False
+                _RUNNING["last_done"] = time.time()
+                _RUNNING["last_ok"] = bool(_PROGRESS.get("ok"))
+                _RUNNING["last_error"] = "" if _PROGRESS.get("ok") else str(_PROGRESS.get("step") or "")[:160]
+    t = threading.Thread(target=worker, daemon=True)
+    _RUNNING["thread"] = t
+    t.start()
+
+
+def _busy() -> bool:
+    """扫描忙判断；线程卡死超时（>30 分钟）自动复位，避免前端进度条永远转。"""
+    with _LOCK:
+        if _RUNNING["busy"] and time.time() - _RUNNING["last_start"] > 1800:
+            _RUNNING["busy"] = False
+            _RUNNING["last_error"] = "扫描超时（>30 分钟），已自动复位，请重试"
+        return _RUNNING["busy"]
+
+
+_AUTO_FAIL_COOLDOWN = 600  # 自动生成失败后冷却 10 分钟，避免无限重扫打上游
+def _auto_blocked() -> bool:
+    with _LOCK:
+        if _RUNNING.get("last_ok") is False and _RUNNING.get("last_done"):
+            if time.time() - _RUNNING["last_done"] < _AUTO_FAIL_COOLDOWN:
+                return True
+    return False
+
+
+# ---------------- 自动触发（对齐 bj_screener _auto_scan_loop：交易日收盘后自动 scan，防重复/带锁/周末跳过） ----------------
+_AUTO = {"started": False, "done_date": ""}
+
+def _today_archived_ok() -> bool:
+    """今日复盘归档是否已定型（防重复触发）。
+
+    注意：load_report_by_date() 只返回 html/md，不含 asof，不能用来判定。
+    以当日 mainlines.json 的 date + report.md/html 存在为准。
+    """
+    try:
+        d8 = today8()
+        mj = os.path.join(ARCHIVE_ROOT, d8, "mainlines.json")
+        if not os.path.exists(mj):
+            return False
+        obj = json.load(open(mj, encoding="utf-8"))
+        if str(obj.get("date") or "").replace("-", "") != d8:
+            return False
+        return (
+            os.path.exists(os.path.join(ARCHIVE_ROOT, d8, "report.md"))
+            or os.path.exists(os.path.join(ARCHIVE_ROOT, d8, "report.html"))
+        )
+    except Exception:
+        return False
+
+
+def _auto_loop():
+    """后台守护线程：交易日收盘（默认 15:01）后自动生成复盘。
+    2026-08-25 雷总定：15:01 收盘后即可重扫（15:03-15:07 曾抓到盘中未定型 bar 的历史事故，
+    由 K 线缓存「收盘后须含今日 K 线」校验兜底，未定型数据不落缓存）。"""
+    while True:
+        try:
+            if cfg().get("auto_scan", True) and is_trading_day() and _after_close():
+                if _AUTO["done_date"] != today8() and not _busy() and not _auto_blocked():
+                    if _today_archived_ok():
+                        _AUTO["done_date"] = today8()
+                    else:
+                        # 无用户上下文 → 按 VIP 全量跑（服务端自动生成，不依赖外部 token）
+                        _start_scan(force=False, is_vip=True)
+                        deadline = time.time() + 2400  # 等待本轮结束（最多 40 分钟）
+                        while time.time() < deadline:
+                            if not _busy():
+                                break
+                            time.sleep(5)
+                        if _RUNNING.get("last_ok") is True:
+                            _AUTO["done_date"] = today8()
+        except Exception:
+            pass
+        time.sleep(60)
+
+
+def _ensure_auto_loop():
+    if not _AUTO["started"]:
+        _AUTO["started"] = True
+        threading.Thread(target=_auto_loop, daemon=True, name="daily-report-auto").start()
+
+
+# ---------------- 慢速 HTTP（防封核心） ----------------
+_EM_COUNT = {"n": 0, "day": ""}
+_THS_COUNT = {"n": 0, "day": ""}
+
+def _check_budget(kind):
+    d = today8()
+    if kind == "em":
+        if _EM_COUNT["day"] != d:
+            _EM_COUNT["n"] = 0; _EM_COUNT["day"] = d
+        if _EM_COUNT["n"] >= EM_DAILY_BUDGET:
+            raise RuntimeError("东财上游今日预算已用尽(%d次)，自动停止抓取防封" % EM_DAILY_BUDGET)
+    elif kind == "ths":
+        if _THS_COUNT["day"] != d:
+            _THS_COUNT["n"] = 0; _THS_COUNT["day"] = d
+        if _THS_COUNT["n"] >= THS_DAILY_BUDGET:
+            raise RuntimeError("同花顺上游今日预算已用尽(%d次)" % THS_DAILY_BUDGET)
+
+def slow_get(url, referer="https://quote.eastmoney.com/", kind="em", tries=3, timeout=20, encoding="utf-8"):
+    _check_budget(kind)
+    last = None
+    for i in range(tries):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": UA, "Referer": referer})
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                raw = r.read()
+            if kind == "em": _EM_COUNT["n"] += 1
+            elif kind == "ths": _THS_COUNT["n"] += 1
+            return raw.decode(encoding, "ignore")
+        except Exception as e:
+            last = e
+            time.sleep(4 + i * 4)   # 慢速退避，不连发
+    raise RuntimeError("上游请求失败(%s): %s" % (kind, str(last)[:100]))
+
+# ---------------- 本地缓存（按日） ----------------
+_CACHE_D8 = ""  # 补跑时按目标日期分目录缓存；为空走 today8()
+def cache_path(name):
+    return os.path.join(CACHE_ROOT, _CACHE_D8 or today8(), name)
+def cache_save(name, obj):
+    p = cache_path(name); os.makedirs(os.path.dirname(p), exist_ok=True)
+    with open(p, "w", encoding="utf-8") as f:
+        json.dump(obj, f, ensure_ascii=False, indent=2)
+def cache_load(name):
+    p = cache_path(name)
+    if os.path.exists(p):
+        try:
+            return json.load(open(p, encoding="utf-8"))
+        except Exception:
+            return None
+    return None
+
+# ---------------- 东财板块资金流 ----------------
+EM_FIELDS = "f12,f14,f2,f3,f62,f164,f184,f104,f105"
+def em_clist(fs, fid, pz=30):
+    url = ("https://push2delay.eastmoney.com/api/qt/clist/get?pn=1&pz=%d&po=1&np=1&fltt=2&invt=2&fid=%s&fs=%s&fields=%s"
+           % (pz, fid, urllib.parse.quote(fs), EM_FIELDS))
+    t = slow_get(url, kind="em")
+    try:
+        diff = json.loads(t).get("data", {}).get("diff", []) or []
+    except Exception:
+        return []
+    return [{"name": d.get("f14"), "code": d.get("f12"), "pct": d.get("f3"), "main_today": d.get("f62"),
+             "main_5d": d.get("f164"), "main_ratio": d.get("f184"), "up": d.get("f104"), "down": d.get("f105")} for d in diff]
+
+def fetch_plates():
+    out = {}
+    # pz=100：覆盖全部东财行业板块（约 86 个）+ 概念前 100，
+    # 让「2 涨停但资金量小」的板块（如煤炭）也能进入资金榜匹配（P0-1 条件 b 可用），
+    # 请求次数不变（仍 4 次东财 + 1 次同花顺），报告展示仍取 top8 不受影响。
+    for key, fs, fid in [
+        ("em_em_industry_today", "m:90+t:2+f:!50", "f62"),
+        ("em_em_industry_5d", "m:90+t:2+f:!50", "f164"),
+        ("em_em_concept_today", "m:90+t:3+f:!50", "f62"),
+        ("em_em_concept_5d", "m:90+t:3+f:!50", "f164"),
+    ]:
+        out[key] = em_clist(fs, fid, pz=100)
+        time.sleep(1.2)
+    return out
+
+# ---------------- 同花顺行业涨幅 ----------------
+def parse_ths_table(html):
+    rows = []
+    body = html[html.find("<tbody"):] if "<tbody" in html else html
+    for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", body, re.S):
+        tds = re.findall(r"<td[^>]*>(.*?)</td>", tr, re.S)
+        if len(tds) < 10:
+            continue
+        m = re.search(r"/code/(\d+)/\"[^>]*>([^<]+)</a>", tds[1])
+        if not m:
+            continue
+        code, name = m.group(1), m.group(2).strip()
+        pct = re.sub(r"<[^>]+>", "", tds[2]).strip()
+        up = re.sub(r"<[^>]+>", "", tds[6]).strip()
+        down = re.sub(r"<[^>]+>", "", tds[7]).strip()
+        lm = re.search(r"stockpage\.10jqka\.com\.cn/\d+/\"[^>]*>([^<]+)</a>", tds[9])
+        leader = lm.group(1).strip() if lm else ""
+        try: pctf = float(pct)
+        except Exception: pctf = None
+        rows.append({"code": code, "name": name, "pct": pctf, "up": up, "down": down, "leader": leader})
+    return rows
+
+def fetch_ths_industry():
+    h = slow_get("http://q.10jqka.com.cn/thshy/", referer="http://q.10jqka.com.cn/", kind="ths", encoding="gbk")
+    return parse_ths_table(h)
+
+# ---------------- 指数信号（内部直算，不扣配额） ----------------
+def _provider_profile(is_vip):
+    md = market_data_status()
+    base_pri = str((md.get("paid") or {}).get("priority") or "").strip().lower()
+    if not base_pri:
+        base_pri = "tencent,eastmoney,sina,paid"
+    vip_only = bool((md.get("paid") or {}).get("vip_only"))
+    allow_paid = bool(is_vip or not vip_only)
+    priority_override = base_pri if allow_paid else ",".join(
+        [x for x in base_pri.split(",") if x.strip() and x.strip() != "paid"]
+    )
+    # 用独立 variant 命名空间，避免与用户实时查询的 in-flight/cache key 撞车
+    return "daily", priority_override, allow_paid
+
+async def _tx_kline(secid, count=120, variant="daily", priority_override=None, allow_paid=True, timeout=10.0):
+    payload = await fetch_tx_kline(
+        secid, "day", count=count, timeout=timeout,
+        variant=variant, priority_override=priority_override, allow_paid=allow_paid,
+    )
+    if not isinstance(payload, dict) or int(payload.get("code") or 0) != 0:
+        raise RuntimeError("kline failed(%s): %s" % (secid, str((payload or {}).get("msg") or "")[:80]))
+    data = payload.get("data")
+    if not isinstance(data, dict) or not data:
+        raise RuntimeError("kline empty(%s)" % secid)
+    pack = next(iter(data.values()))
+    candles = candles_from_tencent_like_pack(pack, period="day")
+    if len(candles) < 60:
+        raise RuntimeError("kline insufficient history(%s)" % secid)
+    return candles
+
+async def _fetch_index_signals(is_vip):
+    variant, priority_override, allow_paid = _provider_profile(is_vip)
+    sh_candles = await _tx_kline("1.000001", 120, variant, priority_override, allow_paid)
+    closes = [float(c.close) for c in sh_candles]
+    dif, dea, bar, golden, dead = _compute_macd_arrays(closes)
+    ma5 = _ma(closes, 5); ma10 = _ma(closes, 10); ma20 = _ma(closes, 20)
+    rd = _red_days(bar)
+    ma_bull = ma5[-1] > ma10[-1] > ma20[-1]
+    ma20_up = _slope_ratio(ma20, 5) > 0.001
+    above_ma20 = closes[-1] > ma20[-1]
+    weak = (not above_ma20) and (not ma20_up)
+    pts = 3.0 if rd >= 1 else 0.0
+    if ma_bull: pts += 3.0
+    if above_ma20 and ma20_up: pts += 2.0
+    if weak: pts -= 3.0
+    pts = round(max(-3.0, min(8.0, pts)), 1)
+    env_tags = ["大盘MACD翻红·第%d天" % rd if rd >= 1 else "大盘MACD绿柱"]
+    env_tags.append("大盘均线多头" if ma_bull else ("大盘站上MA20" if above_ma20 else "大盘跌破MA20"))
+    env = {"pts": pts, "red_days": rd, "above_ma20": above_ma20, "weak": weak, "tags": env_tags}
+    result = {}
+    for name, secid in INDEXES.items():
+        try:
+            candles = await _tx_kline(secid, 120, variant, priority_override, allow_paid)
+            sc = score_candles(candles, name=name)
+            base = float(sc.get("score") or 0.0)
+            _c0 = float(candles[-1].close)
+            _c1 = float(candles[-2].close) if len(candles) >= 2 else 0.0
+            _pct = round((_c0 / _c1 - 1.0) * 100.0, 2) if _c1 else None
+            rec = {"secid": secid, "score": round(max(0.0, min(100.0, base + pts)), 1), "pts": pts,
+                   "above_ma20": env["above_ma20"], "weak": env["weak"], "tags": env["tags"],
+                   "last_close": _c0, "pct": _pct, "last_date": candles[-1].time}
+            sig = build_signals_v3(candles, cache_key="%s_day" % secid)
+            mk = (sig or {}).get("markers") or []
+            by_day = {}
+            for m in mk:
+                txt = str(m.get("text") or "").strip().replace("\u200b", "").strip()
+                if not txt: continue
+                by_day.setdefault(str(m.get("time") or ""), []).append(txt)
+            days = sorted(by_day.keys())
+            ARR = "\u2197\u2198\u2192\u2190\u2191\u2193"
+            labs = []
+            for k in days[-6:]:
+                s2 = "".join(ch for ch in "\u3000".join(by_day[k]) if ch not in ARR).strip()
+                if s2: labs.append(s2)
+            rec["recent_labels"] = labs[-6:]
+            macd = (sig or {}).get("macd") or []
+            if macd: rec["macd_last"] = macd[-1]
+            result[name] = rec
+            await asyncio.sleep(0.5)
+        except Exception as e:
+            result[name] = {"secid": secid, "error": str(e)[:80]}
+    # 北证50：东财易断、新浪偶发缺最新一根 → last_date 落后上证时强制 sina 重拉
+    try:
+        _sh_name = next((n for n in INDEXES if "上证" in n), None)
+        _bj_name = next((n for n in INDEXES if "北证" in n), None)
+        if _sh_name and _bj_name:
+            _sh = result.get(_sh_name) or {}
+            _bj = result.get(_bj_name) or {}
+            _sh_d = str(_sh.get("last_date") or "")[:10]
+            _bj_d = str(_bj.get("last_date") or "")[:10]
+            _need = bool(_sh_d) and (
+                (not _bj_d) or _bj_d < _sh_d or _bj.get("error") or _bj.get("pct") is None
+            )
+            if _need:
+                _bj_sid = INDEXES[_bj_name]
+                candles = await _tx_kline(_bj_sid, 120, variant, "sina", allow_paid)
+                sc = score_candles(candles, name=_bj_name)
+                base = float(sc.get("score") or 0.0)
+                _c0 = float(candles[-1].close)
+                _c1 = float(candles[-2].close) if len(candles) >= 2 else 0.0
+                _pct = round((_c0 / _c1 - 1.0) * 100.0, 2) if _c1 else None
+                result[_bj_name] = {
+                    "secid": _bj_sid,
+                    "score": round(max(0.0, min(100.0, base + pts)), 1),
+                    "pts": pts,
+                    "above_ma20": env["above_ma20"],
+                    "weak": env["weak"],
+                    "tags": env["tags"],
+                    "last_close": _c0,
+                    "pct": _pct,
+                    "last_date": candles[-1].time,
+                    "src": "sina:lag-retry",
+                }
+    except Exception:
+        pass
+    return {"env": env, "indexes": result}
+
+# ---------------- 板块成分股评分（内部直算，不扣配额） ----------------
+def secid_of(code): return ("1." if code[0] in "56" else "0.") + code
+
+
+def _board_confirm_flags(candles, code):
+    """从日K轻量判定板块情绪：10日内涨停 / 15日内底部放量异动（供主线锁定确认，零额外上游成本）。"""
+    try:
+        closes = [float(c.close) for c in candles]
+        highs = [float(c.high) for c in candles]
+        lows = [float(c.low) for c in candles]
+        vols = [float(c.vol or 0.0) for c in candles]
+        n = len(closes)
+        if n < 25:
+            return False, False
+        c6 = str(code).zfill(6)
+        th = 19.5 if c6.startswith(("30", "68")) else (29.5 if c6.startswith(("8", "43", "92")) else 9.5)
+        zt = False
+        for i in range(max(1, n - 10), n):
+            if closes[i - 1] > 0 and (closes[i] / closes[i - 1] - 1) * 100 >= th - 0.5:
+                zt = True
+                break
+        lo60 = min(lows[max(0, n - 60):])
+        hi60 = max(highs[max(0, n - 60):])
+        surge = False
+        for i in range(max(1, n - 15), n):
+            _win = vols[max(0, i - 20):i]
+            v20 = sum(_win) / max(1, len(_win))
+            if v20 > 0 and vols[i] >= 1.8 * v20 and closes[i - 1] > 0:
+                _pct = (closes[i] / closes[i - 1] - 1) * 100
+                _pos = (closes[i] - lo60) / (hi60 - lo60) if hi60 > lo60 else 1.0
+                if _pct >= 4 and _pos <= 0.5:
+                    surge = True
+                    break
+        return zt, surge
+    except Exception:
+        return False, False
+
+
+def _sector_fund_flow(sec, plates):
+    """板块资金共振：从东财行业/概念资金榜（5日/今日主力净流入）匹配本板块。
+
+    返回 (5日主力净流入, 今日主力净流入)，单位元；无匹配返回 (None, None)。
+    仅用于主线资金确认，不新增任何上游请求。
+    """
+    if not plates:
+        return None, None
+    aliases = SECTOR_BOARD_ALIASES.get(sec) or _DYNAMIC_ALIASES.get(sec) or [sec]
+    not_in = SECTOR_BOARD_NOTIN.get(sec) or []
+    best5 = best_t = None
+    for r in (plates.get("em_em_industry_5d") or []) + (plates.get("em_em_concept_5d") or []):
+        nm = str(r.get("name") or "")
+        if any(a and a in nm for a in aliases) and not any(x and x in nm for x in not_in):
+            try:
+                v = float(r.get("main_5d") or 0)
+                if best5 is None or v > best5:
+                    best5 = v
+            except Exception:
+                pass
+    for r in (plates.get("em_em_industry_today") or []) + (plates.get("em_em_concept_today") or []):
+        nm = str(r.get("name") or "")
+        if any(a and a in nm for a in aliases) and not any(x and x in nm for x in not_in):
+            try:
+                v = float(r.get("main_today") or 0)
+                if best_t is None or v > best_t:
+                    best_t = v
+            except Exception:
+                pass
+    return best5, best_t
+
+
+def _bar_heat(candles) -> tuple[float | None, float | None]:
+    """零上游成本板块热度：成分股 5 日涨幅(%) 与 60 日位置(%)（防“涨一波后追高”）。"""
+    try:
+        closes = [float(c.close) for c in candles]
+        if len(closes) < 21:
+            return None, None
+        cur = closes[-1]
+        base5 = closes[-6]
+        chg5 = (cur / base5 - 1.0) * 100.0 if base5 > 0 else None
+        seg = closes[-60:]
+        lo, hi = min(seg), max(seg)
+        pos60 = (cur - lo) / (hi - lo) * 100.0 if hi > lo else None
+        return (round(chg5, 1) if chg5 is not None else None,
+                round(pos60, 1) if pos60 is not None else None)
+    except Exception:
+        return None, None
+
+
+# ---------------- 资金榜动态候选（同花顺优先、东财兜底，普适捕捉新主线） ----------------
+def _prev_plates_top(kind: str, n: int = _DYNAMIC_TOP) -> list:
+    """上一归档日板块榜 TOP（同花顺行业涨幅 / 东财行业+概念 5日资金），读归档零上游成本。"""
+    try:
+        archs = sorted([x for x in os.listdir(ARCHIVE_ROOT)
+                        if os.path.isdir(os.path.join(ARCHIVE_ROOT, x)) and re.fullmatch(r"\d{8}", x)],
+                       reverse=True)
+        for d in archs:
+            if d == (_CACHE_D8 or today8()):
+                continue
+            p = os.path.join(ARCHIVE_ROOT, d, "plate_data.json")
+            if not os.path.exists(p):
+                continue
+            pd = json.load(open(p, encoding="utf-8"))
+            if kind == "ths":
+                rows = pd.get("ths_industry") or []
+                return sorted(rows, key=lambda x: -(x.get("pct") or -99))[:n]
+            rows = (pd.get("em_em_industry_5d") or []) + (pd.get("em_em_concept_5d") or [])
+            return sorted(rows, key=lambda x: -(x.get("main_5d") or 0))[:n]
+    except Exception:
+        pass
+    return []
+
+
+def _board_covered_by_fixed(nm: str) -> bool:
+    """板块名是否已被固定桶直接覆盖（同名或近义重复），避免重复评估。"""
+    if nm in SECTORS:
+        return True
+    if nm in _DUP_COVER:
+        return True
+    return False
+
+
+def _dynamic_plates(plates) -> list[dict]:
+    """资金榜动态候选：同花顺行业涨幅榜优先（今日 TOP ∩ 昨日 TOP），
+    东财行业/概念资金榜兜底；剔除固定桶已覆盖板块；解析东财 BK 代码。
+    返回 [{name, code, pct, src}]，最多 _DYNAMIC_MAX 个。"""
+    ths_today = sorted((plates.get("ths_industry") or []), key=lambda x: -(x.get("pct") or -99))[:_DYNAMIC_TOP]
+    if ths_today:
+        prev_names = {r["name"] for r in _prev_plates_top("ths")}
+        cand = [r for r in ths_today if r["name"] in prev_names
+                and not _board_covered_by_fixed(r["name"]) and (r.get("pct") or 0) >= 2.0]
+        src = "ths"
+    else:
+        em_today = (plates.get("em_em_industry_5d") or []) + (plates.get("em_em_concept_5d") or [])
+        em_today = [r for r in em_today if not _board_covered_by_fixed(str(r.get("name") or ""))]
+        em_today.sort(key=lambda x: -(x.get("main_5d") or 0))
+        prev_names = {r["name"] for r in _prev_plates_top("em")}
+        cand = [r for r in em_today[:_DYNAMIC_TOP] if r["name"] in prev_names and (r.get("main_5d") or 0) >= 15e8]
+        src = "em"
+    em_map = {}
+    for k in ("em_em_industry_5d", "em_em_concept_5d"):
+        for r in plates.get(k) or []:
+            nm = str(r.get("name") or "")
+            if nm and nm not in em_map:
+                em_map[nm] = r.get("code")
+    out = []
+    for r in cand[:_DYNAMIC_MAX]:
+        nm = str(r.get("name") or "")
+        code = em_map.get(nm)
+        if not code:
+            for k, v in em_map.items():
+                if nm and len(nm) >= 2 and (k in nm or nm in k):
+                    code = v
+                    break
+        if code:
+            out.append({"name": nm, "code": code, "pct": r.get("pct"), "src": src})
+    return out
+
+
+async def _fetch_dynamic_scores(plates) -> dict[str, list]:
+    """资金榜动态候选成分评分：同花顺榜粗筛命中 → 东财成分（成交额 top6）→ 腾讯K线评分。"""
+    global _DYNAMIC_ALIASES
+    cands = _dynamic_plates(plates)
+    if not cands:
+        return {}
+    out = {}
+    last_ok = _breadth_date()
+    for c in cands:
+        try:
+            comps = em_clist("b:%s" % c["code"], "f6", pz=8)
+            time.sleep(1.2)
+        except Exception:
+            continue
+        rows = []
+        for comp in comps[:6]:
+            code = str(comp.get("code") or "").zfill(6)
+            name = str(comp.get("name") or "")
+            if not code or not name or name.startswith(("XD", "XR", "DR")):
+                continue
+            try:
+                candles = await _tx_kline(secid_of(code), 120, "daily", None, True, timeout=8.0)
+                bar_date = str(getattr(candles[-1], "time", ""))[:10].replace("-", "")
+                if bar_date < last_ok:  # 剔除 K线停更/滞后成分
+                    continue
+                res = score_candles(candles, name=name)
+                _zt, _surge = _board_confirm_flags(candles, code)
+                _chg5, _pos60 = _bar_heat(candles)
+                rows.append({"code": code, "name": name, "score": res.get("score"), "tags": res.get("tags") or [],
+                             "risks": res.get("risks") or [], "up_pct": res.get("up_pct"),
+                             "vol_ratio": res.get("vol_ratio"), "red_days": res.get("red_days"),
+                             "latest_time": res.get("latest_time"), "zt": _zt, "surge": _surge,
+                             "chg5": _chg5, "pos60": _pos60, "src": "dynamic"})
+            except Exception as e:
+                rows.append({"code": code, "name": name, "error": str(e)[:80], "src": "dynamic"})
+            await asyncio.sleep(0.6)
+        if len([r for r in rows if r.get("score") is not None]) >= 2:
+            out[c["name"]] = rows
+            _DYNAMIC_ALIASES[c["name"]] = [c["name"]]
+    return out
+
+
+def _median_of(arr: list[float]) -> float | None:
+    if not arr:
+        return None
+    a = sorted(arr)
+    return a[len(a) // 2]
+
+
+async def _fetch_sector_scores(is_vip):
+    variant, priority_override, allow_paid = _provider_profile(is_vip)
+    out = {}
+    n = 0
+    total = sum(len(v) for v in SECTORS.values())
+    for sec, items in SECTORS.items():
+        out[sec] = []
+        for code, name in items:
+            try:
+                candles = await _tx_kline(secid_of(code), 180, variant, priority_override, allow_paid, timeout=8.0)
+                res = score_candles(candles, name=name)
+                _closes = [float(x.close) for x in candles]
+                _ma_tier = ma_tier_from_closes(_closes)
+                _zt, _surge = _board_confirm_flags(candles, code)
+                _chg5, _pos60 = _bar_heat(candles)
+                out[sec].append({
+                    "code": code, "name": name, "score": res.get("score"), "tags": res.get("tags") or [],
+                    "risks": res.get("risks") or [], "up_pct": res.get("up_pct"), "vol_ratio": res.get("vol_ratio"),
+                    "red_days": res.get("red_days"), "latest_time": res.get("latest_time"),
+                    "zt": _zt, "surge": _surge, "chg5": _chg5, "pos60": _pos60,
+                    "ma_tier": _ma_tier,
+                })
+            except Exception as e:
+                out[sec].append({"code": code, "name": name, "error": str(e)[:80]})
+            n += 1
+            set_progress(pct=10 + int(n / total * 55), step="AI行情官体检 %d/%d（内部直算，不扣查次）" % (n, total))
+            await asyncio.sleep(0.6)
+    return out
+
+async def _fetch_internal(is_vip, idx_needed=True, sc_needed=True):
+    result = {}
+    if idx_needed:
+        try:
+            set_progress(step="内部直算：8 指数信号（腾讯K线，不扣查次）")
+            result["indexes"] = await _fetch_index_signals(is_vip)
+        except Exception:
+            result["indexes"] = None
+    if sc_needed:
+        try:
+            set_progress(step="内部直算：%d 只成分股评分（腾讯K线，不扣查次）" % sum(len(v) for v in SECTORS.values()))
+            result["sector_scores"] = await _fetch_sector_scores(is_vip)
+        except Exception:
+            result["sector_scores"] = None
+    return result
+
+# ---------------- breadth（涨跌家数 + 涨停/跌停池 + 两市主力净流入，共 4 次低频请求） ----------------
+def _breadth_date():
+    """最近一个交易日（YYYYMMDD），供涨跌分布/涨停池做日期参数。"""
+    if is_trading_day():
+        return today8()
+    d = datetime.now() - timedelta(days=1)
+    for _ in range(10):
+        ds = d.strftime("%Y%m%d")
+        if d.weekday() < 5 and ds not in HOLIDAYS:
+            return ds
+        d -= timedelta(days=1)
+    return today8()
+
+
+def fetch_breadth():
+    """沪深A股市场宽度：
+    - 涨跌家数/平盘：中证全指(000985) f104/f105/f106
+    - 主力净流入合计：上证指数 + 深证成指 f62 之和
+    - 涨停/跌停：东财涨停池/跌停池（全市场，含 10/20/30cm）
+    - 涨幅>=5% / 跌幅<=-5%：涨跌分布 fenbu 桶统计
+    全部低频（每日预算内），任一失败降级不影响整份报告。
+    """
+    up = down = flat = total = 0
+    main_net = 0.0
+    try:
+        secids = urllib.parse.quote("1.000985,1.000001,0.399001")
+        u1 = ("https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&invt=2"
+              "&fields=f12,f14,f104,f105,f106,f62&secids=%s" % secids)
+        rows = json.loads(slow_get(u1, kind="em", tries=2)).get("data", {}).get("diff", []) or []
+        by = {str(r.get("f12")): r for r in rows}
+        zz = by.get("000985") or {}
+        up = int(zz.get("f104") or 0)
+        down = int(zz.get("f105") or 0)
+        flat = int(zz.get("f106") or 0)
+        total = up + down + flat
+        main_net = float((by.get("000001") or {}).get("f62") or 0) + float((by.get("399001") or {}).get("f62") or 0)
+    except Exception:
+        pass
+    limit_up = limit_down = big_up = big_down = 0
+    bdate = _breadth_date()
+    ut = "7eea3edcaed734bea9cbfc24409ed989"
+    try:
+        tz = slow_get("https://push2ex.eastmoney.com/getTopicZTPool?ut=%s&dpt=wz.ztzt&Pageindex=0&pagesize=500&sort=fbt:asc&date=%s" % (ut, bdate), kind="em", tries=2)
+        limit_up = len(json.loads(tz).get("data", {}).get("pool", []) or [])
+    except Exception:
+        pass
+    try:
+        td = slow_get("https://push2ex.eastmoney.com/getTopicDTPool?ut=%s&dpt=wz.ztzt&Pageindex=0&pagesize=500&sort=fbt:asc&date=%s" % (ut, bdate), kind="em", tries=2)
+        limit_down = len(json.loads(td).get("data", {}).get("pool", []) or [])
+    except Exception:
+        pass
+    try:
+        t3 = slow_get("https://push2ex.eastmoney.com/getTopicZDFenBu?ut=%s&dpt=wz.ztzt&Pageindex=0&pagesize=500&sort=fbt:asc&date=%s" % (ut, bdate), kind="em", tries=2)
+        fenbu = json.loads(t3).get("data", {}).get("fenbu", []) or []
+        buckets = {}
+        for o in fenbu:
+            for k, v in o.items():
+                try:
+                    buckets[int(k)] = int(v or 0)
+                except Exception:
+                    pass
+        big_up = sum(v for k, v in buckets.items() if k > 0 and k >= 5)
+        big_down = sum(v for k, v in buckets.items() if k < 0 and k <= -5)
+        if not total:
+            total = sum(buckets.values())
+            up = sum(v for k, v in buckets.items() if k > 0)
+            down = sum(v for k, v in buckets.items() if k < 0)
+            flat = buckets.get(0, 0)
+    except Exception:
+        pass
+    return {"total": total, "up": up, "down": down, "flat": flat,
+            "limit_up": limit_up, "limit_down": limit_down,
+            "big_up": big_up, "big_down": big_down, "main_net": main_net}
+
+
+# ---------------- 报告生成 ----------------
+def yi(v):
+    if v is None: return "-"
+    return "%.1f" % (float(v) / 1e8)
+
+def _stock_link(code, name):
+    return "[%s](%s)" % (name, "/demo.html?secid=%s&code=%s&name=%s" % (secid_of(code), code, urllib.parse.quote(name)))
+
+def sector_stats(sc):
+    ok = [x for x in sc if x.get("score") is not None]
+    scores = sorted((float(x["score"]) for x in ok), reverse=True)
+    mean = round(sum(scores) / len(scores), 1) if scores else None
+    top = sorted(ok, key=lambda x: x["score"], reverse=True)[:3]
+    names = " / ".join("%s %.1f" % (_stock_link(x["code"], x["name"]), x["score"]) for x in top)
+    top5 = scores[:5]
+    top5_mean = round(sum(top5) / len(top5), 1) if top5 else None
+    median = scores[len(scores) // 2] if scores else None
+    return {"mean": mean, "top3": names, "top5_mean": top5_mean, "median": median, "ok": ok, "n": len(ok)}
+
+def mainline_judgment(sector_scores, plates=None):
+    """主线判定依据明细：逐板块计算 技术Top5均值/5日主力/今日主力/涨停/异动 等口径，
+    与 pick_main_lines 完全一致（供复盘/掘金页面展示“主线判定小字”，零上游请求）。
+    返回 {板块名: {"mean","top5","median","avg_up","fund5","fund_t","fund_ok",
+                 "confirmed","composite","n_zt","n_surge"}}。
+    """
+    info = {}
+    _ml_streak = _mainline_streak()
+
+    def _zt_th(code6: str) -> float:
+        c6 = str(code6 or "").zfill(6)
+        if c6.startswith(("8", "43", "92")):
+            return 29.5
+        if c6.startswith(("30", "68")):
+            return 19.5
+        return 9.5
+
+    for sec, sc in sector_scores.items():
+        st = sector_stats(sc)
+        mean = st["mean"]
+        if mean is None:
+            continue
+        ok = st["ok"]
+        ups = [float(x.get("up_pct") or 0) for x in ok]
+        avg_up = sum(ups) / len(ups) if ups else 0
+        # 情绪确认：板块内有涨停或≥2只放量异动成分 → 均值≥58 即可升主线（捕捉新主线启动）
+        n_zt = sum(1 for x in ok if x.get("zt"))
+        n_surge = sum(1 for x in ok if x.get("surge"))
+        # 增量动量（P0-1）：今日新增涨停/异动家数 + 今日涨幅 + 量能拐头，
+        # 替代“累计涨幅/累计资金”滞后确认，优先捕捉“刚右侧启动”的板块
+        n_zt_new = sum(1 for x in ok if x.get("up_pct") is not None
+                       and x.get("up_pct") >= _zt_th(x.get("code")) - 0.5)
+        n_surge_new = sum(1 for x in ok if x.get("up_pct") is not None and x.get("up_pct") >= 8)
+        vol_turn_med = _median_of([float(x["vol_ratio"]) for x in ok if x.get("vol_ratio") is not None])
+        mom = 0.0
+        mom += min(45.0, n_zt_new * 15)
+        mom += min(30.0, n_surge_new * 8)
+        if avg_up >= 3:
+            mom += 15
+        elif avg_up >= 1:
+            mom += 10
+        elif avg_up >= 0:
+            mom += 5
+        if vol_turn_med is not None:
+            if vol_turn_med >= 2:
+                mom += 10
+            elif vol_turn_med >= 1.3:
+                mom += 6
+            elif vol_turn_med >= 1.0:
+                mom += 3
+        mom = min(100.0, mom)
+        streak = int(_ml_streak.get(sec) or 0)
+        confirmed = n_zt >= 1 or n_surge >= 2
+        chg5_med = _median_of([float(x["chg5"]) for x in ok if x.get("chg5") is not None])
+        pos60_med = _median_of([float(x["pos60"]) for x in ok if x.get("pos60") is not None])
+        # 板块过热：60日位置≥85%（已到高位），或 位置≥60% 且 5日涨幅≥25%（中高位大涨）。
+        # 位置<60% 的大涨视为“底部刚启动”，不算过热，避免误伤低位异动。
+        overheat = bool(
+            (pos60_med is not None and pos60_med >= 85)
+            or (pos60_med is not None and pos60_med >= 60 and chg5_med is not None and chg5_med >= 25)
+        )
+        # P0-1 连续上榜 N 日 + 今日转弱 → 高位过热降级（防“涨了一波今天就大跌”追高）
+        if streak >= 3 and avg_up < 0 and pos60_med is not None and pos60_med >= 50:
+            overheat = True
+        fund5, fund_t = _sector_fund_flow(sec, plates)
+        fund_ok = bool((fund5 is not None and fund5 >= 15e8 and fund_t is not None and fund_t > 0)
+                       or (fund_t is not None and fund_t >= 50e8))
+        fund_std = min(1.0, (fund5 or 0) / 50e8)
+        emotion = min(1.0, (n_zt * 2 + n_surge * 0.5) / 4.0)
+        composite = round((st["top5_mean"] or mean) * 0.40 + fund_std * 25 + emotion * 20 + mom * 0.15, 1)
+        top5m = st["top5_mean"]
+        _top5_ok = sorted(ok, key=lambda x: -(float(x.get("score") or 0)))[:5]
+        _ma_tiers = [str(x.get("ma_tier") or "") for x in _top5_ok if x.get("ma_tier")]
+        _ma_gate = sector_ma_gate(_ma_tiers, for_main=True)
+        info[sec] = {"mean": mean, "top5": top5m, "median": st["median"], "avg_up": avg_up,
+                     "fund5": fund5, "fund_t": fund_t, "fund_ok": fund_ok,
+                     "confirmed": confirmed, "composite": composite, "n_zt": n_zt, "n_surge": n_surge,
+                     "n_zt_new": n_zt_new, "n_surge_new": n_surge_new,
+                     "vol_turn_med": vol_turn_med, "mom": round(mom, 1), "streak": streak,
+                     "chg5_med": chg5_med, "pos60_med": pos60_med, "overheat": overheat,
+                     "ma_tiers": _ma_tiers, "ma_gate": _ma_gate,
+                     "ma_best": _ma_gate.get("best") or "", "ma_label": _ma_gate.get("label") or ""}
+    return info
+
+
+_RECENT_TOP5_CACHE: dict[str, Any] = {"date": "", "data": {}}
+
+
+def _recent_plate_top5(days: int = 3) -> dict[str, list[float]]:
+    """最近 days 个归档日（不含今日）的板块 Top5 均值：{板块名: [top5均值,...]}（日期新→旧）。
+
+    用于主线「动量确认」：板块须先在观察位站稳（历史 Top5 达标），今日再达标才升主线，
+    防止电风扇行情下“单日异动直接当主线、第二天就换”。零上游成本，读本地归档。
+    注意：列表顺序为新→旧（先遍历到的归档日在前）。
+    """
+    global _RECENT_TOP5_CACHE
+    d8 = today8()
+    if _RECENT_TOP5_CACHE.get("date") == d8:
+        return _RECENT_TOP5_CACHE["data"]
+    out: dict[str, list[float]] = {}
+    try:
+        import re as _re
+        archs = sorted([x for x in os.listdir(ARCHIVE_ROOT)
+                        if os.path.isdir(os.path.join(ARCHIVE_ROOT, x)) and _re.fullmatch(r"\d{8}", x)],
+                       reverse=True)
+        cnt = 0
+        for d in archs:
+            if d == d8:
+                continue
+            p = os.path.join(ARCHIVE_ROOT, d, "sector_score.json")
+            if not os.path.exists(p):
+                continue
+            try:
+                sc = json.load(open(p, encoding="utf-8"))
+            except Exception:
+                continue
+            for sec, items in sc.items():
+                scores = sorted((float(x.get("score")) for x in items if x.get("score") is not None), reverse=True)[:5]
+                if scores:
+                    out.setdefault(sec, []).append(round(sum(scores) / len(scores), 1))
+            cnt += 1
+            if cnt >= days:
+                break
+    except Exception:
+        pass
+    _RECENT_TOP5_CACHE = {"date": d8, "data": out}
+    return out
+
+
+_ML_STREAK_CACHE: dict[str, Any] = {"date": "", "data": {}}
+
+
+def _mainline_streak(max_days: int = 5) -> dict[str, int]:
+    """板块连续上榜主线天数（不含今日）：{板块名: 连续 N 日}。零上游，读归档 mainlines.json。"""
+    global _ML_STREAK_CACHE
+    d8 = today8()
+    if _ML_STREAK_CACHE.get("date") == d8:
+        return _ML_STREAK_CACHE["data"]
+    days: list[set[str]] = []
+    try:
+        archs = sorted([x for x in os.listdir(ARCHIVE_ROOT)
+                        if os.path.isdir(os.path.join(ARCHIVE_ROOT, x)) and re.fullmatch(r"\d{8}", x)],
+                       reverse=True)
+        for d in archs:
+            if d == d8:
+                continue
+            p = os.path.join(ARCHIVE_ROOT, d, "mainlines.json")
+            if not os.path.exists(p):
+                continue
+            try:
+                ml = (json.load(open(p, encoding="utf-8")) or {}).get("mainlines") or []
+            except Exception:
+                ml = []
+            days.append({str(x) for x in ml})
+            if len(days) >= max_days:
+                break
+    except Exception:
+        pass
+    out: dict[str, int] = {}
+    if days:
+        for sec in days[0]:
+            cnt = 0
+            for s in days:
+                if sec in s:
+                    cnt += 1
+                else:
+                    break
+            out[sec] = cnt
+    _ML_STREAK_CACHE = {"date": d8, "data": out}
+    return out
+
+
+def pick_main_lines(sector_scores, prev_mainlines=None, plates=None):
+    """主线锁定（活跃档 · 2026-08-27 专业修订）：
+
+    三件套：
+    1) 资金缺失对称：fund5/fund_t 为 None 一律「未知」，不得当通过；可用涨停/异动或今日大额流入替代。
+    2) 新晋活跃档：近 2 归档日中至少 1 日 Top5≥55（不再要求连续 2 日），再加今日技术+资金/情绪确认。
+    3) 续任让位：昨日主线可惯性续任，但若连续 streak≥2 且被更强新晋（top5 不低于旧王且综合分反超）挑战，则让位为观察。
+
+    精简：取消「新晋≥2 只留旧王」的电风扇硬砍（与让位+cap=3 功能重叠，易造成旧王永久霸榜）。
+    """
+    prev = {str(x) for x in (prev_mainlines or [])}
+    main_lines, observes, avoids = [], [], []
+    info = mainline_judgment(sector_scores, plates)
+    _mom = _recent_plate_top5(3)
+
+    def _flow_ok(it: dict) -> bool:
+        """资金/情绪确认（缺失≠通过）。"""
+        _f5 = it.get("fund5")
+        _ft = it.get("fund_t")
+        n_zt = int(it.get("n_zt") or 0)
+        n_surge = int(it.get("n_surge") or 0)
+        avg_up = float(it.get("avg_up") or 0)
+        # a) 经典：今日净流入>0 且 5日≥10亿
+        if _ft is not None and _ft > 0 and _f5 is not None and _f5 >= 10e8:
+            return True
+        # b) 涨停≥2 且今日净流入>0
+        if n_zt >= 2 and _ft is not None and _ft > 0:
+            return True
+        # c) 资金字段缺失时的对称替代：情绪确认 + 今日不跌
+        if (_f5 is None or _ft is None) and (n_zt >= 1 or n_surge >= 2) and avg_up >= 0:
+            return True
+        # d) 今日大额净流入（≥30亿）可单边确认（5日缺失时）
+        if _ft is not None and _ft >= 30e8 and avg_up >= 0:
+            return True
+        # e) 完整 fund_ok（15亿五日+今日>0 或今日≥50亿）
+        return bool(it.get("fund_ok"))
+
+    def _mom_ok_active(sec: str) -> bool:
+        """活跃档动量：近 2 归档日中至少 1 日 Top5≥55。
+
+        _recent_plate_top5 实现为「新→旧」追加（与注释旧→新不一致），故取 vals[:2]。
+        """
+        vals = _mom.get(sec) or []
+        recent = vals[:2] if vals else []
+        return bool(recent) and any(float(v) >= 55 for v in recent)
+
+    for sec in sector_scores:
+        it = info.get(sec)
+        if not it:
+            continue
+        mean = it["mean"]
+        top5m = it["top5"]
+        avg_up = it["avg_up"]
+        n_zt = it["n_zt"]
+        confirmed = it["confirmed"]
+        fund_ok = it["fund_ok"]
+        composite = it["composite"]
+        if sec not in prev and (it.get("mom") or 0) >= 60:
+            composite = min(100.0, composite + 5)
+            it = dict(it)
+            it["composite"] = composite
+            info[sec] = it
+
+        # 过热抑制：
+        # - 过热且当日走弱 → 硬降级（旧规则）
+        # - 过热且为新晋 → 最多进观察，禁止当日直升主线（防高潮追高）
+        if it.get("overheat") and avg_up < 0:
+            if mean >= 50:
+                observes.append(sec)
+            else:
+                avoids.append(sec)
+            continue
+        if it.get("overheat") and sec not in prev:
+            if (top5m is not None and top5m >= 52) or mean >= 50:
+                observes.append(sec)
+            else:
+                avoids.append(sec)
+            continue
+
+        flow = _flow_ok(it)
+        _f5 = it.get("fund5")
+        # 续任：5日资金若可知且明显离场（<0）则不可走惯性；缺失≠通过资金门
+        _f5_not_out = (_f5 is None) or (_f5 >= 0)
+
+        if sec in prev:
+            # 昨日主线惯性：技术仍强 + 未破位；资金门与新晋对称（缺失不能当 fund 通过）
+            tech_hold = top5m is not None and top5m >= 55 and avg_up >= -2.5 and _f5_not_out
+            fund_hold = mean >= 55 and flow
+            emotion_hold = composite >= 55 and confirmed and _f5_not_out and avg_up >= -2.5
+            if tech_hold or fund_hold or emotion_hold:
+                main_lines.append(sec)
+            elif mean >= 52:
+                observes.append(sec)
+            else:
+                avoids.append(sec)
+        else:
+            _ft = it.get("fund_t")
+            _strong_new = bool(
+                n_zt >= 3 and (_f5 is not None and _f5 >= 15e8) and (_ft is not None and _ft > 0)
+            )
+            mom_ok = _mom_ok_active(sec)
+            if (_strong_new and top5m is not None and top5m >= 55 and avg_up >= 0) \
+                    or (mom_ok and top5m is not None and top5m >= 58 and avg_up >= 0 and flow) \
+                    or (mom_ok and confirmed and top5m is not None and top5m >= 55 and flow) \
+                    or (mom_ok and flow and top5m is not None and top5m >= 55 and avg_up >= -0.5):
+                main_lines.append(sec)
+            elif (top5m is not None and top5m >= 52) or (fund_ok and mean >= 50) or (flow and mean >= 50):
+                observes.append(sec)
+            else:
+                avoids.append(sec)
+
+    # 每日新晋最多 3 个
+    if prev and len(main_lines) > 0:
+        new_ones = [s for s in main_lines if s not in prev]
+        if len(new_ones) > 3:
+            new_sorted = sorted(new_ones, key=lambda s: -info[s]["composite"])
+            for s in new_sorted[3:]:
+                main_lines.remove(s)
+                if s not in observes:
+                    observes.append(s)
+
+    # 续任让位：streak≥2 的旧王，若被更强新晋挑战则让出主线
+    # 挑战条件：新晋 top5 ≥ 旧王 top5，且综合分 ≥ 旧王 + 3（或 top5 高出 ≥1）
+    _prev_set = {s for s in prev}
+    _cont = [s for s in main_lines if s in _prev_set]
+    _new = [s for s in main_lines if s not in _prev_set]
+    # 观察池里接近主线的也可挑战（避免「差一点没进主线」却永远让旧王霸榜）
+    _challengers = list(_new)
+    for s in observes:
+        if s in _prev_set or s in _challengers:
+            continue
+        it = info.get(s) or {}
+        if it.get("overheat"):
+            continue
+        if it.get("top5") is not None and it["top5"] >= 55 and _flow_ok(it) and float(it.get("avg_up") or 0) >= 0:
+            _challengers.append(s)
+    if _cont and _challengers:
+        for old in list(_cont):
+            oi = info.get(old) or {}
+            streak = int(oi.get("streak") or 0)
+            if streak < 2:
+                continue
+            o_top = float(oi.get("top5") or 0)
+            o_comp = float(oi.get("composite") or 0)
+            best = None
+            best_score = None
+            for ch in _challengers:
+                ci = info.get(ch) or {}
+                if ci.get("overheat"):
+                    continue
+                c_top = float(ci.get("top5") or 0)
+                c_comp = float(ci.get("composite") or 0)
+                if c_top < o_top:
+                    continue
+                if not (c_comp >= o_comp + 3 or c_top >= o_top + 1):
+                    continue
+                key = (c_comp, c_top)
+                if best is None or key > best_score:
+                    best, best_score = ch, key
+            if not best:
+                continue
+            if old in main_lines:
+                main_lines.remove(old)
+            if old not in observes:
+                observes.append(old)
+            if best not in main_lines:
+                main_lines.append(best)
+            if best in observes:
+                observes.remove(best)
+
+    # 大周期门：新晋主线须板块成分 A+ 达标；未达标降为观察（续任略松，无均线数据不误杀）
+    _ml2, _obs2 = [], list(observes)
+    for _sec in main_lines:
+        _it = info.get(_sec) or {}
+        _tiers = _it.get("ma_tiers") or []
+        _gate = _it.get("ma_gate") or sector_ma_gate(_tiers, for_main=True)
+        if not _tiers:
+            _ml2.append(_sec)
+            continue
+        if _sec in prev:
+            _gate_b = sector_ma_gate(_tiers, for_main=False)
+            if _gate.get("ok") or _gate_b.get("ok"):
+                _ml2.append(_sec)
+            elif _sec not in _obs2:
+                _obs2.append(_sec)
+        else:
+            if _gate.get("ok"):
+                _ml2.append(_sec)
+            elif _sec not in _obs2:
+                _obs2.append(_sec)
+    main_lines, observes = _ml2, _obs2
+
+    main_lines.sort(key=lambda s: (-info[s]["composite"], -(info[s]["fund5"] or 0)))
+    observes.sort(key=lambda s: -info[s]["composite"])
+    avoids.sort(key=lambda s: -info[s]["composite"])
+    if len(main_lines) > 3:
+        for s in main_lines[3:]:
+            if s not in observes:
+                observes.append(s)
+        main_lines = main_lines[:3]
+    # 观察去重（让位可能重复塞入）
+    _seen = set()
+    _obs2 = []
+    for s in observes:
+        if s in main_lines or s in _seen:
+            continue
+        _seen.add(s)
+        _obs2.append(s)
+    return main_lines, _obs2[:3], avoids[:3]
+
+def _prev_mainlines():
+    """上一归档日的主线（用于连续性对比）。优先读归档 mainlines.json（当日实际口径），旧归档回退按 sector_score 重算。"""
+    try:
+        arch = sorted([x for x in os.listdir(ARCHIVE_ROOT)
+                       if os.path.isdir(os.path.join(ARCHIVE_ROOT, x)) and re.fullmatch(r"\d{8}", x)],
+                      reverse=True)
+        for d in arch:
+            if d == today8():
+                continue
+            mj = os.path.join(ARCHIVE_ROOT, d, "mainlines.json")
+            if os.path.exists(mj):
+                obj = json.load(open(mj, encoding="utf-8"))
+                ml = obj.get("mainlines") or []
+                if ml:
+                    return {"date": d, "mainlines": ml}
+            p = os.path.join(ARCHIVE_ROOT, d, "sector_score.json")
+            if os.path.exists(p):
+                sc = json.load(open(p, encoding="utf-8"))
+                ml, obs, av = pick_main_lines(sc)
+                if ml:
+                    return {"date": d, "mainlines": ml}
+    except Exception:
+        pass
+    return None
+
+def build_md(data, vip=True):
+    env = data["indexes"]["env"]; idx = data["indexes"]["indexes"]
+    plates = data["plates"]; sc = data["sector_scores"]; asof = data.get("asof", today())
+    ind5 = plates.get("em_em_industry_5d", []) or []
+    ind_t = plates.get("em_em_industry_today", []) or []
+    con5 = plates.get("em_em_concept_5d", []) or []
+    con_t = plates.get("em_em_concept_today", []) or []
+    ths = plates.get("ths_industry", []) or []
+    L = []
+    A = L.append
+
+    def tier_note(i):
+        if i == 0:
+            return "⭐ 王者"
+        if i <= 2:
+            return "重点"
+        return "备选"
+
+    def _plate_cell(name, code, note):
+        nm = str(name or "").strip()
+        cd = str(code or "").strip()
+        if cd.startswith("BK") and nm:
+            return "[%s](/demo.html?secid=90.%s&name=%s) `%s` **%s**" % (nm, cd, urllib.parse.quote(nm), cd, note)
+        return "%s **%s**" % (nm, note)
+    A("# 大盘研判 —— 资金主攻与主线")
+    A("")
+    A("> 报告日期：%s · 数据截至 %s 收盘 · 算法自动生成，不构成投资建议" % (today(), asof))
+    A("")
+    A("---")
+    A("")
+    _prev_ml = (data.get("prev_mainlines") or {}).get("mainlines") or []
+    main_lines, observes, avoids = pick_main_lines(sc, _prev_ml, plates)
+    data["mainlines"] = main_lines
+    data["observes"] = observes
+    sh = idx.get("上证指数", {}) or {}
+    sh_lab = " ".join((sh.get("recent_labels") or [])[-2:]) or "-"
+    A("## ⭐ 〇、核心结论")
+    A("")
+    A("1. **大盘**：上证最新信号「%s」，MACD 红柱 %s，站上 MA20，pts=%s——%s；" % (
+        sh_lab, ("+%.1f" % ((sh.get("macd_last") or {}).get("bar") or 0)) if ((sh.get("macd_last") or {}).get("bar") or 0) >= 0 else "%.1f" % ((sh.get("macd_last") or {}).get("bar") or 0),
+        env.get("pts"), ("顺风（金叉确认）" if "金" in sh_lab else ("底部转多初段" if "底" in sh_lab else "信号不明"))))
+    if main_lines and vip:
+        A("2. **主攻主线**：**%s**；" % "、".join(main_lines))
+    elif not vip:
+        A("2. **主攻主线**：VIP · [开通后查看](/account.html#vip)")
+    if vip:
+        A("3. **观察**：%s；**回避/等修复**：%s。" % ("、".join(observes) if observes else "无", "、".join(avoids) if avoids else "无"))
+    else:
+        A("3. **观察/回避**：VIP · [开通后查看](/account.html#vip)")
+    A("4. 风险提示：控制仓位、避免盲目追高。")
+    weak_flag = bool(env.get("weak")) or float(env.get("pts") or 0) <= 0
+    mkt_lab = "顺风·金叉确认" if "金" in sh_lab else ("底部转多" if "底" in sh_lab else "信号不明")
+    A("")
+    A("> ⚡ **今日速览**：大盘【%s】｜主攻【%s】｜观察【%s】｜风险【%s】｜节奏【关注回踩企稳、防追高】" % (
+        mkt_lab,
+        "、".join("**%s**" % x for x in main_lines) if main_lines else "今日无达标板块",
+        "、".join(observes) if observes else "无",
+        "从严控制" if weak_flag else "注意控制"))
+    if weak_flag:
+        A("> ⚠️ **环境警示**：大盘环境转弱（跌破MA20 / MACD绿柱），主线多为超跌反弹，注意从严控制仓位，等重新站上 MA20 再观察。")
+    elif env.get("pts") is not None and float(env.get("pts")) >= 3:
+        _sh_pct = None
+        try:
+            _sh_pct = float((idx.get("上证指数") or {}).get("pct"))
+        except Exception:
+            _sh_pct = None
+        if _sh_pct is not None and _sh_pct < 0:
+            A("> ⚖️ **结构偏多·当日承压**：中期 MACD 仍偏多/站上 MA20，但上证今日收跌（%+.2f%%），板块走弱时先看承压，不按顺风加仓。" % _sh_pct)
+        else:
+            A("> ✅ **环境顺风**：大盘 MACD 翻红且站上 MA20，关注主线回踩企稳形态；注意不追高、破位风险。")
+    A("")
+    A("---")
+    A("")
+    A("## 一、大盘信号验证")
+    A("")
+    A("| 排名 | 指数 | 收盘 | 涨跌 | 最新信号 | 评分 | MACD红柱 | 状态 |")
+    A("|---|---|---|---|---|---|---|---|")
+    def status_of(r):
+        lab = (r.get("recent_labels") or [])
+        cur = lab[-1] if lab else ""
+        if "金" in cur: return "金叉确认，顺风"
+        if "底" in cur: return "底部信号，转多初段"
+        if "险" in cur or "卖" in cur: return "偏弱/风险"
+        return "中性"
+    def _num(v):
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return -1.0
+    # 展示序：主宽指固定（上证→深证→创业板→北证）→ 风格温度（中证500/1000）→ 其余按评分
+    _PRIMARY_IDX = ("上证指数", "深证成指", "创业板指", "北证50")
+    _STYLE_IDX = ("中证500", "中证1000")
+    _rest = [n for n in INDEXES if n not in _PRIMARY_IDX and n not in _STYLE_IDX]
+    _rest.sort(key=lambda n: _num((idx.get(n) or {}).get("score")), reverse=True)
+    _ordered = [n for n in _PRIMARY_IDX if n in INDEXES] + [n for n in _STYLE_IDX if n in INDEXES] + _rest
+    for i, name in enumerate(_ordered):
+        secid = INDEXES.get(name) or ""
+        r = idx.get(name) or {}
+        macd = r.get("macd_last") or {}
+        bar = macd.get("bar")
+        bar_s = ("+%.1f" % bar) if bar is not None and bar >= 0 else ("%.1f" % bar if bar is not None else "-")
+        close_s = ("%.2f" % _num(r.get("last_close"))) if r.get("last_close") is not None else "-"
+        pct_v = r.get("pct")
+        if pct_v is None:
+            pct_s = "-"
+        else:
+            pct_s = ("%+.2f%%" % float(pct_v))
+        A("| %d | [%s](/demo.html?secid=%s&name=%s) | %s | %s | %s | %s | %s | %s |" % (
+            i + 1, name, secid, urllib.parse.quote(name), close_s, pct_s,
+            " ".join((r.get("recent_labels") or [])[-2:]) or "-", r.get("score"), bar_s, status_of(r)))
+    A("")
+    A("> 大盘环境：%s（%s，pts=%s）；上证收盘 %s。" % (
+        env.get("tags")[0] if env.get("tags") else "-", env.get("tags")[1] if len(env.get("tags", [])) > 1 else "", env.get("pts"), idx.get("上证指数", {}).get("last_close")))
+    A("")
+    A("---")
+    A("")
+    A("## 二、资金面：谁在真正主攻")
+    A("")
+    A("### 2.1 行业板块 5 日主力净流入 TOP")
+    A("")
+    A("| 排名 | 板块 | 5日净流入 | 今日净流入 | 今日涨跌 |")
+    A("|---|---|---|---|---|")
+    for i, r in enumerate(ind5[:8]):
+        A("| %d | %s | +%s 亿 | %s%s 亿 | %s%% |" % (i + 1, _plate_cell(r.get("name"), r.get("code"), tier_note(i)), yi(r["main_5d"]), "+" if (r["main_today"] or 0) >= 0 else "", yi(r["main_today"]), r["pct"]))
+    A("")
+    A("### 2.2 行业板块今日主力净流入 TOP")
+    A("")
+    A("| 排名 | 板块 | 今日净流入 |")
+    A("|---|---|---|")
+    for i, r in enumerate(ind_t[:8]):
+        A("| %d | %s | %s%s 亿 |" % (i + 1, _plate_cell(r.get("name"), r.get("code"), tier_note(i)), "+" if (r["main_today"] or 0) >= 0 else "", yi(r["main_today"])))
+    A("")
+    A("### 2.3 概念板块资金流")
+    A("")
+    A("**今日净流入 TOP**")
+    A("")
+    A("| 排名 | 概念板块 | 今日净流入 | 今日涨跌 |")
+    A("|---|---|---|---|")
+    for i, r in enumerate(con_t[:8]):
+        A("| %d | %s | %s%s 亿 | %+.1f%% |" % (i + 1, _plate_cell(r.get("name"), r.get("code"), tier_note(i)), "+" if (r["main_today"] or 0) >= 0 else "", yi(r["main_today"]), r["pct"] or 0))
+    A("")
+    A("**5日净流入 TOP**")
+    A("")
+    A("| 排名 | 概念板块 | 5日净流入 |")
+    A("|---|---|---|")
+    for i, r in enumerate(con5[:8]):
+        A("| %d | %s | %s%s 亿 |" % (i + 1, _plate_cell(r.get("name"), r.get("code"), tier_note(i)), "+" if (r["main_5d"] or 0) >= 0 else "", yi(r["main_5d"])))
+    A("")
+    A("### 2.4 今日行业涨幅 TOP")
+    A("")
+    A("| 排名 | 行业 | 涨幅 | 上涨/下跌 | 领涨股 |")
+    A("|---|---|---|---|---|")
+    for i, r in enumerate(ths[:10]):
+        A("| %d | %s **%s** | %+.2f%% | %s/%s | %s |" % (i + 1, r["name"], tier_note(i), r["pct"] or 0, r["up"], r["down"], r["leader"]))
+    A("")
+    br = data.get("breadth") or {}
+    if br.get("total"):
+        A("### 2.5 市场宽度")
+        A("")
+        A("| 项目 | 数值 |")
+        A("|---|---|")
+        A("| 上涨 / 下跌 / 平盘 | %s / %s / %s |" % (br.get("up"), br.get("down"), br.get("flat")))
+        A("| 涨停 / 跌停 | %s / %s |" % (br.get("limit_up"), br.get("limit_down")))
+        A("| 涨幅≥5%% / ≤-5%% | %s / %s |" % (br.get("big_up"), br.get("big_down")))
+        A("| 主力净流入合计 | %s%s 亿 |" % ("+" if (br.get("main_net") or 0) >= 0 else "", yi(br.get("main_net"))))
+        A("")
+    ts = data.get("ths_sentiment") or {}
+    if ts.get("ok") and (ts.get("limit_up") or ts.get("hot") or ts.get("hot_money")):
+        A("### 2.6 市场情绪")
+        A("")
+        lu = ts.get("limit_up") or {}
+        if lu.get("count") is not None:
+            A("| 项目 | 数值 |")
+            A("|---|---|")
+            A("| 涨停家数 | %s 家 |" % lu.get("count"))
+            A("| 最高连板 | %s |" % ("%s 连板 · %s" % (lu.get("max_lianban"), lu.get("max_name")) if lu.get("max_lianban") else "-"))
+            A("")
+        ld = ts.get("ladder") or {}
+        if ld.get("rows"):
+            _board_lab = {"two_board": "2连板", "three_board": "3连板", "four_board": "4连板",
+                          "five_board": "5连板", "six_board": "6连板", "seven_over": "7板+"}
+            rows2 = [r for r in ld["rows"] if r.get("count")]
+            if rows2:
+                A("**连板梯队（%s）**" % (ld.get("date") or ""))
+                A("")
+                A("| 板位 | 家数 | 代表 |")
+                A("|---|---|---|")
+                for r in rows2:
+                    A("| %s | %s | %s |" % (_board_lab.get(r.get("board"), r.get("board")), r.get("count"), "、".join(r.get("names") or [])[:36]))
+                A("")
+        hm = ts.get("hot_money") or []
+        if hm:
+            A("**龙虎榜资金净买入 TOP**")
+            A("")
+            A("| 资金 | 净买入 | 主要标的 |")
+            A("|---|---|---|")
+            for i, r in enumerate(hm[:5]):
+                A("| %d. %s | %s%s 亿 | %s |" % (i + 1, r.get("name"), "+" if (r.get("buying") or 0) >= 0 else "", ("%.1f" % (abs(r.get("buying") or 0) / 1e8)), "、".join(r.get("stocks") or [])))
+            A("")
+        hot = ts.get("hot") or []
+        if hot:
+            A("**热股榜 TOP5**")
+            A("")
+            A("| 排名 | 股票 | 热度 |")
+            A("|---|---|---|")
+            for i, r in enumerate(hot[:5]):
+                A("| %d | %s（%s） | %s |" % (i + 1, r.get("name"), r.get("ticker"), r.get("heat")))
+            A("")
+    if not vip:
+        A("---")
+        A("")
+        A("## ⭐ 三、板块技术体检")
+        A("")
+        A("> VIP · [开通后查看](/account.html#vip)")
+        A("")
+        A("## ⭐ 四、主线锁定")
+        A("")
+        A("> VIP · [开通后查看](/account.html#vip)")
+        A("")
+    else:
+        A("---")
+        A("")
+        A("## ⭐ 三、板块技术体检")
+        A("")
+        A("| 板块 | 评分均值 | 代表股(前3) |")
+        A("|---|---|---|")
+        for sec, items in sc.items():
+            st = sector_stats(items)
+            A("| %s | %s | %s |" % (sec, ("%.1f" % st["mean"]) if st["mean"] else "-", st["top3"]))
+        A("")
+        main_lines, observes, avoids = pick_main_lines(sc, (data.get("prev_mainlines") or {}).get("mainlines") or [], plates)
+        A("---")
+        A("")
+        A("## ⭐ 四、主线锁定")
+        A("")
+        A("**主攻主线**：" + ("、".join("**%s**" % x for x in main_lines) if main_lines else "今日无达标板块"))
+        A("")
+        A("**观察**：" + ("、".join(observes) if observes else "无"))
+        A("")
+        A("**回避/等修复**：" + ("、".join(avoids) if avoids else "无"))
+        A("")
+        A("个股筛选请前往「复盘」页。")
+        prev = data.get("prev_mainlines") or {}
+        if prev.get("mainlines"):
+            pml = prev["mainlines"]
+            cont = [x for x in main_lines if x in pml]
+            newm = [x for x in main_lines if x not in pml]
+            gone = [x for x in pml if x not in main_lines]
+            gone_obs = [x for x in gone if x in observes]
+            gone_av = [x for x in gone if x not in observes]
+            A("")
+            _cont_parts = ["延续 %s" % ("、".join(cont) if cont else "无"),
+                           "新增 %s" % ("、".join(newm) if newm else "无")]
+            if gone_obs:
+                _cont_parts.append("回调观察 %s" % "、".join(gone_obs))
+            if gone_av:
+                _cont_parts.append("退潮 %s" % "、".join(gone_av))
+            A("**主线连续性**（对比 %s）：%s。" % (prev.get("date") or "-", "；".join(_cont_parts)))
+        A("")
+    A("---")
+    A("")
+    A("## ⭐ 五、组合与风控")
+    A("")
+    A("| 项目 | 建议 |")
+    A("|---|---|")
+    A("| 仓位提示 | 注意控制仓位、不满仓 |")
+    A("| 主线观察 | 关注代表股回踩企稳与资金延续 |")
+    A("| 观察板块 | 仅看评分最高代表股 |")
+    A("| 风险信号 | 跌破 MA20 → 注意整体风险 |")
+    A("| 跟踪 | 主线资金、代表股量价、大盘信号 |")
+    A("")
+    A("---")
+    A("")
+    A("## 六、风险提示")
+    A("")
+    A("1. 公开行情统计，可能有滞后；")
+    A("2. 单日大涨后追高风险大，优先等回踩；")
+    A("3. 评分为历史量价状态，不代表未来；")
+    A("4. **算法自动生成，不构成投资建议**。")
+    A("")
+    A("---")
+    A("")
+    A("*数据截至 %s 收盘*" % asof)
+    return "\n".join(L)
+
+def md_to_html(md):
+    import html as H
+    lines = md.split("\n")
+    blocks = []
+    cur = None
+    i = 0
+    FOLD_KW = ("资金面",)  # 复盘精简：资金面明细默认折叠，避免信息过载
+    while i < len(lines):
+        ln = lines[i]
+        s = ln.strip()
+        if s.startswith("# "):
+            if cur: blocks.append(cur); cur = None
+            blocks.append({"title": None, "fold": False, "html": ["<h1>%s</h1>" % H.escape(s[2:])]})
+        elif s.startswith("## "):
+            if cur: blocks.append(cur)
+            title = s[3:]
+            cur = {"title": title, "fold": any(kw in title for kw in FOLD_KW), "html": []}
+        else:
+            if cur is None:
+                cur = {"title": None, "fold": False, "html": []}
+            if s.startswith("### "):
+                cur["html"].append("<h3>%s</h3>" % H.escape(s[4:]))
+            elif s.startswith("> "):
+                c = s[2:].lstrip()
+                cls = "note"
+                if c.startswith("⚡"): cls = "note core"
+                elif c.startswith("✅"): cls = "note good"
+                elif c.startswith("⚠"): cls = "note bad"
+                cur["html"].append('<div class="%s">%s</div>' % (cls, md_inline(c)))
+            elif s.startswith("|"):
+                rows = []
+                while i < len(lines) and lines[i].strip().startswith("|"):
+                    cells = [c.strip() for c in lines[i].strip().strip("|").split("|")]
+                    if all(re.fullmatch(r":?-{2,}:?", c) for c in cells):
+                        i += 1; continue
+                    rows.append(cells)
+                    i += 1
+                if rows:
+                    is_rank = str(rows[0][0]).strip() in ("排名", "#")
+                    def _cell(tag, c, idx):
+                        cls = ""
+                        if is_rank and idx == 0: cls = ' class="col-rank"'
+                        elif is_rank and idx == 1: cls = ' class="col-name"'
+                        return "<%s%s>%s</%s>" % (tag, cls, md_inline(c), tag)
+                    t = ['<table><thead><tr>%s</tr></thead><tbody>' % "".join(_cell("th", c, i) for i, c in enumerate(rows[0]))]
+                    for r in rows[1:]:
+                        t.append("<tr>%s</tr>" % "".join(_cell("td", c, i) for i, c in enumerate(r)))
+                    t.append("</tbody></table>")
+                    cur["html"].append("".join(t))
+            elif s.startswith("- "):
+                items = []
+                while i < len(lines) and lines[i].strip().startswith("- "):
+                    items.append("<li>%s</li>" % md_inline(lines[i].strip()[2:]))
+                    i += 1
+                cur["html"].append("<ul>%s</ul>" % "".join(items))
+            elif s == "---":
+                cur["html"].append("<hr>")
+            elif s:
+                if "**主攻主线" in s:
+                    cur["html"].append('<div class="mainline">%s</div>' % md_inline(s))
+                else:
+                    cur["html"].append("<p>%s</p>" % md_inline(s))
+        i += 1
+    if cur: blocks.append(cur)
+
+    def _key(title):
+        if not title: return -1
+        if "核心结论" in title: return 0
+        if "主线锁定" in title: return 1
+        if "组合与风控" in title: return 2
+        return 3
+
+    pre = [b for b in blocks if b.get("title") is None]
+    core = [b for b in blocks if _key(b.get("title")) in (0, 1, 2)]
+    rest = [b for b in blocks if b.get("title") is not None and _key(b.get("title")) not in (0, 1, 2)]
+    blocks = pre + core + rest
+
+    # 重排后重新编号（〇保留，其余按 一~六 顺延）
+    CN = ["一", "二", "三", "四", "五", "六", "七"]
+    num = 0
+    for b in blocks:
+        t = b.get("title")
+        if not t or "核心结论" in t: continue
+        m = re.match(r"^([⭐\s]*)([一二三四五六七八九十]+)、(.*)$", t)
+        if m and num < len(CN):
+            t = m.group(1) + CN[num] + "、" + m.group(3)
+            num += 1
+        b["title"] = t
+
+    out = []
+    for b in blocks:
+        title = b.get("title")
+        if title is None:
+            # 标题区（报告标题+日期/声明）下的分隔线冗余，去掉，仅保留章节间分隔
+            for _h in b["html"]:
+                if _h == "<hr>":
+                    continue
+                out.append(_h)
+            continue
+        esc_title = H.escape(title)
+        if b.get("fold"):
+            out.append('<details class="fold"><summary>%s（点击展开明细）</summary>' % esc_title)
+            out.extend(b["html"])
+            out.append("</details>")
+            continue
+        cls = ""
+        if "主线锁定" in title:
+            cls = ' class="h2-core h2-main"'
+        elif "组合与风控" in title:
+            cls = ' class="h2-core h2-risk"'
+        out.append("<h2%s>%s</h2>" % (cls, esc_title))
+        out.extend(b["html"])
+    return "\n".join(out)
+
+def md_inline(s):
+    import html as H
+    s = H.escape(s)
+    s = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r'<a href="\2" target="_blank" rel="noopener">\1</a>', s)
+    s = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", s)
+    s = re.sub("\u0060(.+?)\u0060", r"<code>\1</code>", s)
+    return s
+
+# ---------------- 同花顺情绪面 ----------------
+def fetch_ths_sentiment(asof):
+    """情绪面：涨停/连板/热榜/飙升/异动/龙虎榜游资（同花顺，失败回退当日缓存）。"""
+    try:
+        return asyncio.run(_ths_build_sentiment(asof))
+    except Exception:
+        return cache_load("ths_sentiment") or {}
+
+
+def run_daily(force=False, is_vip=True, d8=None):
+    """生成复盘。d8 指定归档/缓存日期（默认今天），用于补跑历史日期。"""
+    global _CACHE_D8
+    d8 = d8 or today8()
+    _CACHE_D8 = d8
+    if not force:
+        hit = cache_load("report")
+        if hit and hit.get("today8") == d8 and not report_stale(hit):
+            _CACHE_D8 = ""
+            return hit
+    set_progress(phase="running", pct=1, step="开始（优先用当日缓存数据，防封限流）", started_at=time.time(), finished=None, ok=False)
+    t0 = time.time()
+    _plates = cache_load("plates"); _idx = cache_load("indexes"); _sc = cache_load("sector_scores")
+    if _plates and _idx and _sc and not data_cache_stale(_idx):
+        set_progress(step="当日数据缓存已存在，直接生成报告（不再抓上游）")
+        _breadth = cache_load("breadth") or {}
+        _asof = (_idx.get("indexes", {}).get("上证指数", {}) or {}).get("last_date") or today()
+        _ths = cache_load("ths_sentiment")
+        if not _ths or not (_ths.get("limit_up") or {}).get("count"):
+            # 情绪缓存缺失/为空：补一次（内部按日缓存，上游成本极低）
+            try:
+                _ths = fetch_ths_sentiment(_asof)
+                cache_save("ths_sentiment", _ths)
+            except Exception:
+                _ths = _ths or {}
+        _data = {"today8": d8, "asof": _asof, "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                 "indexes": _idx, "plates": _plates, "sector_scores": _sc, "breadth": _breadth,
+                 "ths_sentiment": _ths}
+        _data["prev_mainlines"] = _prev_mainlines()
+        _data["md"] = build_md(_data)
+        _data["html"] = md_to_html(_data["md"])
+        cache_save("report", _data)
+        archive(_data, d8)
+        set_progress(phase="done", pct=100, step="完成（缓存数据，耗时 %.1f 分钟）" % ((time.time() - t0) / 60), finished=datetime.now().strftime("%H:%M:%S"), ok=True)
+        _CACHE_D8 = ""
+        return _data
+    idx = cache_load("indexes")
+    sc = cache_load("sector_scores")
+    stale = data_cache_stale(idx)   # 收盘后昨日/盘中缓存 → 需重拉当日最终数据（修复主线错版）
+    scan_warn = ""
+    plates = cache_load("plates")
+    if not plates or force or stale:
+        set_progress(step="抓取板块资金流(东财 4 组 + 同花顺 1 次，低频)")
+        try:
+            plates = fetch_plates()
+            time.sleep(2)
+            ths = fetch_ths_industry()
+            plates["ths_industry"] = ths
+            cache_save("plates", plates)
+        except Exception as e:
+            plates = cache_load("plates") or {}
+            scan_warn = "板块资金流重拉失败(%s)，沿用旧缓存" % str(e)[:80]
+    if (not idx or force or stale) or (not sc or force or stale):
+        set_progress(step="内部直算：指数信号 + 成分股评分（腾讯K线，不扣查次）")
+        try:
+            got = asyncio.run(_fetch_internal(is_vip, idx_needed=(not idx or force or stale), sc_needed=(not sc or force or stale)))
+        except Exception as e:
+            got = {}
+            scan_warn = "指数/评分重拉失败(%s)，沿用旧缓存" % str(e)[:80]
+        if got.get("indexes"):
+            idx = got["indexes"]; idx["_ts"] = time.time(); cache_save("indexes", idx)
+        if got.get("sector_scores"):
+            sc = got["sector_scores"]; cache_save("sector_scores", sc)
+        # 资金榜动态候选（同花顺优先、东财兜底）：固定桶外的资金榜新面孔也纳入评分
+        _has_dyn = bool(sc) and any(any(r.get("src") == "dynamic" for r in items) for items in sc.values())
+        if sc and not _has_dyn:
+            try:
+                dyn = asyncio.run(_fetch_dynamic_scores(plates))
+                if dyn:
+                    for sec, rows in dyn.items():
+                        if sec not in sc:
+                            sc[sec] = rows
+                    cache_save("sector_scores", sc)
+            except Exception as e:
+                scan_warn = (scan_warn + " 资金榜动态候选失败(%s)" % str(e)[:60]).strip()
+    try:
+        breadth = fetch_breadth()
+        cache_save("breadth", breadth)
+    except Exception:
+        breadth = cache_load("breadth") or {}
+    set_progress(step="同花顺情绪面：涨停/连板/热榜/龙虎榜游资（限流低频）")
+    asof = (idx.get("indexes", {}).get("上证指数", {}) or {}).get("last_date") or today()
+    try:
+        ths_sentiment = fetch_ths_sentiment(asof)
+        cache_save("ths_sentiment", ths_sentiment)
+    except Exception:
+        ths_sentiment = cache_load("ths_sentiment") or {}
+    data = {"today8": d8, "asof": asof, "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "indexes": idx, "plates": plates, "sector_scores": sc, "breadth": breadth,
+            "ths_sentiment": ths_sentiment, "warn": scan_warn or ""}
+    data["prev_mainlines"] = _prev_mainlines()
+    data["md"] = build_md(data)
+    data["html"] = md_to_html(data["md"])
+    cache_save("report", data)
+    archive(data, d8)
+    set_progress(phase="done", pct=100, step="完成，耗时 %.1f 分钟" % ((time.time() - t0) / 60), finished=datetime.now().strftime("%H:%M:%S"), ok=True)
+    _CACHE_D8 = ""
+    return data
+
+def archive(data, d8):
+    d = os.path.join(ARCHIVE_ROOT, d8)
+    os.makedirs(d, exist_ok=True)
+    for fn, obj in [("index_signal.json", data["indexes"]), ("plate_data.json", data["plates"]),
+                    ("sector_score.json", data["sector_scores"]), ("breadth.json", data["breadth"]),
+                    ("ths_sentiment.json", data.get("ths_sentiment") or {})]:
+        with open(os.path.join(d, fn), "w", encoding="utf-8") as f:
+            json.dump(obj, f, ensure_ascii=False, indent=2)
+    with open(os.path.join(d, "report.md"), "w", encoding="utf-8") as f:
+        f.write(data["md"])
+    with open(os.path.join(d, "report.html"), "w", encoding="utf-8") as f:
+        f.write(data["html"])
+    with open(os.path.join(d, "mainlines.json"), "w", encoding="utf-8") as f:
+        json.dump({"date": d8, "mainlines": data.get("mainlines") or [], "observes": data.get("observes") or []},
+                  f, ensure_ascii=False, indent=2)
+    return d
+
+def list_archive():
+    out = []
+    if not os.path.isdir(ARCHIVE_ROOT):
+        return out
+    for d in sorted(os.listdir(ARCHIVE_ROOT), reverse=True):
+        p = os.path.join(ARCHIVE_ROOT, d)
+        if re.fullmatch(r"\d{8}", d) and os.path.isdir(p) and os.path.exists(os.path.join(p, "report.md")):
+            out.append({"date": d, "has_html": os.path.exists(os.path.join(p, "report.html"))})
+    return out
+
+def load_report_by_date(d8):
+    # 优先用 report.md 实时渲染（模板升级自动生效），缺失再回退已生成的 report.html
+    pm = os.path.join(ARCHIVE_ROOT, d8, "report.md")
+    if os.path.exists(pm):
+        md = open(pm, encoding="utf-8").read()
+        out = {"date": d8, "html": md_to_html(md), "md": md}
+    else:
+        p = os.path.join(ARCHIVE_ROOT, d8, "report.html")
+        if not os.path.exists(p):
+            return None
+        out = {"date": d8, "html": open(p, encoding="utf-8").read(), "md": ""}
+    ps = os.path.join(ARCHIVE_ROOT, d8, "ths_sentiment.json")
+    if os.path.exists(ps):
+        try:
+            out["ths_sentiment"] = json.load(open(ps, encoding="utf-8"))
+        except Exception:
+            pass
+    # 指数结构化数据（复盘「今日大盘」卡片用：收盘/涨跌/评分/MACD）
+    pi = os.path.join(ARCHIVE_ROOT, d8, "index_signal.json")
+    if os.path.exists(pi):
+        try:
+            _ix = json.load(open(pi, encoding="utf-8"))
+            if isinstance(_ix, dict):
+                out["indexes"] = _ix
+        except Exception:
+            pass
+    return out
+
+
+def _indexes_public_payload(idx_blob):
+    """对外可展示的指数快照（去掉内部 env 以外的无关字段亦可保留）。"""
+    if not isinstance(idx_blob, dict):
+        return None
+    # 归档/缓存两种形态：{"env":..., "indexes":{...}} 或直接 {名: rec}
+    if isinstance(idx_blob.get("indexes"), dict):
+        return {"env": idx_blob.get("env") or {}, "indexes": idx_blob.get("indexes") or {}}
+    # 已是扁平名→rec
+    if any(k in idx_blob for k in ("上证指数", "深证成指")):
+        return {"env": {}, "indexes": idx_blob}
+    return None
+
+def _sentiment_public_lines(sentiment, header="### 2.6 市场情绪"):
+    """公开版市场情绪小节（涨停池/连板梯队/热股TOP5），数据异常时返回空。"""
+    try:
+        lim = sentiment.get("limit_up") or {}
+        ladder = sentiment.get("ladder") or {}
+        hot = sentiment.get("hot") or []
+        cnt = int(lim.get("count") or 0)
+        if not cnt:
+            return []
+        out = ["", header, ""]
+        out.append("> 涨停池 **" + str(cnt) + "** 家 · 最高连板 **" + str(lim.get("max_lianban") or 0) + "** 板（" + str(lim.get("max_name") or "-") + "）")
+        seal = lim.get("seal_money_top") or []
+        if seal:
+            out.append("> 封单TOP5：" + "、".join(str(x.get("name") or "") for x in seal[:5]))
+        lrows = ladder.get("rows") or []
+        lab = {"two_board": "2连板", "three_board": "3连板", "four_board": "4连板",
+               "five_board": "5连板", "six_board": "6连板", "seven_over": "7板以上"}
+        parts = []
+        for r in lrows:
+            if not (r or {}).get("count"):
+                continue
+            nm = "、".join(str(x) for x in (r.get("names") or [])[:3])
+            parts.append(str(lab.get(r.get("board"), r.get("board"))) + " " + str(r.get("count")) + "家" + ("（" + nm + "）" if nm else ""))
+        if parts:
+            out.append("> 连板梯队：" + "；".join(parts))
+        if hot:
+            out.append("> 热股TOP5：" + "、".join(str(x.get("name") or "") for x in hot[:5]))
+        out.append("")
+        return out
+    except Exception:
+        return []
+
+
+def load_mainlines_archive(d8: str | None = None) -> dict | None:
+    """读取复盘定型主线（mainlines.json）。简报出站以此为准，避免 report.md 旧稿回退算法。"""
+    d8 = d8 or today8()
+    p = os.path.join(ARCHIVE_ROOT, d8, "mainlines.json")
+    if not os.path.exists(p):
+        return None
+    try:
+        obj = json.load(open(p, encoding="utf-8"))
+        if not isinstance(obj, dict):
+            return None
+        return {
+            "date": str(obj.get("date") or d8),
+            "mainlines": [str(x) for x in (obj.get("mainlines") or []) if str(x).strip()],
+            "observes": [str(x) for x in (obj.get("observes") or []) if str(x).strip()],
+        }
+    except Exception:
+        return None
+
+
+def overlay_md_mainlines(md: str, d8: str | None = None) -> str:
+    """把简报 MD 里的主攻/观察改写成与复盘 mainlines.json 一致（复盘=最新算法）。"""
+    if not md:
+        return md
+    arch = load_mainlines_archive(d8)
+    if not arch:
+        return md
+    ml = arch.get("mainlines") or []
+    obs = arch.get("observes") or []
+    ml_bold = "、".join("**%s**" % x for x in ml) if ml else "今日无达标板块"
+    obs_txt = "、".join(obs) if obs else "无"
+    ml_line = ("2. **主攻主线**：%s；" % ml_bold) if ml else "2. **主攻主线**：今日无达标板块；"
+    text = md
+    text = re.sub(r"^2\.\s*\*\*主攻主线\*\*[：:].*$", ml_line, text, count=1, flags=re.M)
+    text = re.sub(
+        r"^3\.\s*\*\*观察\*\*[：:][^；\n]*；",
+        "3. **观察**：%s；" % obs_txt,
+        text,
+        count=1,
+        flags=re.M,
+    )
+    text = re.sub(
+        r"(今日速览[^\n]*?主攻【)([^】]*)(】[^】]*观察【)([^】]*)(】)",
+        lambda m: m.group(1) + ml_bold + m.group(3) + obs_txt + m.group(5),
+        text,
+        count=1,
+    )
+    text = re.sub(
+        r"^\*\*主攻主线\*\*[：:].*$",
+        "**主攻主线**：" + (ml_bold if ml else "今日无达标板块"),
+        text,
+        count=1,
+        flags=re.M,
+    )
+    text = re.sub(
+        r"^\*\*观察\*\*[：:].*$",
+        "**观察**：%s" % obs_txt,
+        text,
+        count=1,
+        flags=re.M,
+    )
+    return text
+
+
+def slim_report_md(md: str) -> str:
+    """用户端瘦身：去掉数据源/厂商/算法说明书式长文，归档旧稿出站也生效。"""
+    if not md:
+        return md
+    out = []
+    for ln in md.split("\n"):
+        s = ln.strip()
+        # 去掉数据源/API/交叉验证说明书
+        if "数据源：" in s or "金融数据API" in s or "互相印证" in s or "两源口径" in s:
+            if "报告日期" in s or "数据截至" in s:
+                # 压成一行短头
+                m = re.search(r"报告日期[：:]\s*([^\s（(]+)", s)
+                m2 = re.search(r"数据截至\s*([^\s收盘]+)", s)
+                d1 = m.group(1) if m else ""
+                d2 = (m2.group(1).strip() if m2 else "")
+                if d1 or d2:
+                    out.append("> 报告日期：%s · 数据截至 %s 收盘 · 不构成投资建议" % (d1 or "-", d2 or "-"))
+            continue
+        if s.startswith("> 声明：") or "仅为研究与信息整理" in s and s.startswith(">"):
+            continue
+        if "同花顺交叉验证" in s or "方法：逻辑×数据双确认" in s:
+            if s.startswith("*报告生成") or "数据截至" in s:
+                m2 = re.search(r"数据截至\s*([^\s收盘|｜]+)", s)
+                if m2:
+                    out.append("*数据截至 %s 收盘*" % m2.group(1).strip())
+            continue
+        # VIP 闸：长说明 → 短句
+        if "VIP 专属" in s and ("开通" in s or "解锁" in s):
+            if s.startswith("## "):
+                title = re.sub(r"[（(]VIP[^）)]*[）)]", "", s).rstrip()
+                out.append(title)
+                continue
+            if s.startswith("2. ") or s.startswith("3. ") or s.startswith("4. "):
+                num = s[:3]
+                out.append("%s**%s**：VIP · [开通后查看](/account.html#vip)" % (
+                    num, "主攻主线" if "主攻" in s else ("观察/回避" if "观察" in s else "组合与风控")))
+                continue
+            if s.startswith(">"):
+                out.append("> VIP · [开通后查看](/account.html#vip)")
+                continue
+        # 标题去厂商名
+        s2 = s
+        for a, b in (
+            ("（东方财富）", ""),
+            ("（同花顺）", ""),
+            ("（同花顺 · 交叉验证）", ""),
+            ("（沪深A股口径 + 全市场涨跌停池）", ""),
+            ("（免费公开）", ""),
+            ("（算法双确认）", ""),
+            ("（AI行情官 成分股评分）", ""),
+            ("（VIP 专属）", ""),
+            ("同花顺热股榜", "热股榜"),
+            ("涨停家数（同花顺）", "涨停家数"),
+            ("龙头梯队(前3)", "代表股(前3)"),
+            ("资金与技术双确认（龙头梯队 Top5 评分 + 主力净流入 + 涨停/异动情绪加权）", ""),
+            ("——资金与技术双确认（龙头梯队 Top5 评分 + 主力净流入 + 涨停/异动情绪加权）", ""),
+        ):
+            s2 = s2.replace(a, b)
+        if "主线锁定算法" in s2 and s2.startswith(">"):
+            out.append("> VIP · [开通后查看](/account.html#vip)")
+            continue
+        if "板块资金流排行、市场情绪与个股信息" in s2 and s2.startswith(">"):
+            out.append("> 资金明细与主线为 VIP · [开通后查看](/account.html#vip)")
+            continue
+        if s2 != s:
+            # 保留原前缀空白
+            out.append(ln[: len(ln) - len(ln.lstrip())] + s2 if ln[:1].isspace() else s2)
+        else:
+            out.append(ln)
+    text = "\n".join(out)
+    # 清理「主线**煤炭**——；」这类删说明后残留的破折号
+    text = re.sub(r"(主攻主线[^*]*\*\*[^*]+\*\*)——+[^；\n]*", r"\1", text)
+    text = re.sub(r"——+；", "；", text)
+    text = re.sub(r"\*\*——\*\*", "", text)
+    return text
+
+
+def public_md(full_md, sentiment=None):
+    """非 VIP：把完整报告降级为“大盘+市场宽度”公开版（风控）。
+    隐藏板块资金流TOP、市场情绪与个股、今日速览/操作建议、板块体检、主线锁定；
+    免费版仅保留大盘信号与市场宽度纯统计，避免荐股导向内容。"""
+    out = []
+    skip = False
+    inserted = set()
+    in_s2 = False
+    for ln in (full_md or "").split("\n"):
+        s = ln.strip()
+
+        def _h2(kw):
+            return s.startswith("## ") and kw in s
+
+        if _h2("三、板块技术体检"):
+            skip = True
+            if "s3" not in inserted:
+                inserted.add("s3")
+                out.append("## 三、板块技术体检")
+                out.append("")
+                out.append("> VIP · [开通后查看](/account.html#vip)")
+                out.append("")
+            continue
+        if _h2("四、主线锁定"):
+            skip = True
+            if "s4" not in inserted:
+                inserted.add("s4")
+                out.append("## 四、主线锁定")
+                out.append("")
+                out.append("> VIP · [开通后查看](/account.html#vip)")
+                out.append("")
+            continue
+        if _h2("五、组合与风控"):
+            skip = True
+            if "s5" not in inserted:
+                inserted.add("s5")
+                out.append("## 五、组合与风控")
+                out.append("")
+                out.append("> VIP · [开通后查看](/account.html#vip)")
+                out.append("")
+            continue
+        # 二、资金面：仅保留 2.5 市场宽度（纯统计），隐藏 2.1~2.4 板块资金流TOP 与 2.6 市场情绪个股
+        if _h2("二、资金面"):
+            in_s2 = True
+            out.append("## 二、市场宽度")
+            out.append("")
+            out.append("> 资金明细与主线为 VIP · [开通后查看](/account.html#vip)")
+            out.append("")
+            continue
+        if in_s2:
+            if s.startswith("### 2.5 "):
+                in_s2 = False
+            elif s.startswith("### "):
+                continue  # 2.1~2.4 板块资金流TOP 跳过
+            else:
+                continue
+        if s.startswith("### 2.6 "):
+            _s6 = _sentiment_public_lines(sentiment)
+            if _s6:
+                out.extend(_s6)
+            skip = True
+            continue
+        if s.startswith("> ⚡ "):
+            continue
+        if s.startswith("> ⚠️ **环境警示**"):
+            out.append("> ⚠️ **大盘环境**：跌破 MA20 / MACD 绿柱（转弱），注意控制仓位。")
+            continue
+        if s.startswith("> ✅ **环境顺风**"):
+            out.append("> ✅ **大盘环境**：MACD 翻红且站上 MA20（顺风）。")
+            continue
+        if s.startswith("2. **主攻主线**"):
+            out.append("2. **主攻主线**：VIP · [开通后查看](/account.html#vip)")
+            continue
+        if s.startswith("3. **观察**"):
+            out.append("3. **观察/回避**：VIP · [开通后查看](/account.html#vip)")
+            continue
+        if s.startswith("4. 操作原则") or s.startswith("4. 风险提示"):
+            out.append("4. 算法自动生成，**不构成投资建议**。")
+            continue
+        if skip and s.startswith("## "):
+            skip = False
+        if not skip:
+            out.append(ln)
+    base = "\n".join(out)
+    if sentiment and "市场情绪" not in base:
+        _sx = _sentiment_public_lines(sentiment, header="## 附、市场情绪")
+        if _sx:
+            base = base + "\n" + "\n".join(_sx)
+    return slim_report_md(base)
+
+# ---------------- 鉴权/权限 ----------------
+def _vip_of(user_id):
+    """返回 (is_vip, plan)。未登录/免费/匿名均视为非 VIP。"""
+    if user_id is None:
+        return False, "anon"
+    try:
+        db.downgrade_expired_vip_plan(int(user_id))
+        quota = db.get_quota_status(int(user_id))
+        plan = str(quota.get("plan") or "anon").strip().lower()
+        return plan not in ("", "free", "anon"), plan
+    except Exception:
+        return False, "anon"
+
+# ---------------- 路由（并入 18011，前缀 /api/report） ----------------
+@router.get("/api/report/status")
+def status(user_id: Optional[int] = Depends(get_optional_user_id)):
+    is_vip, _plan = _vip_of(user_id)
+    report = cache_load("report")
+    has_today = bool(report and (report.get("today8") == today8() or str(report.get("generated_at") or "").startswith(today())))
+    needs_refresh = bool(report and report_stale(report))
+    return {
+        "ok": True,
+        "today": today(),
+        "today8": today8(),
+        "is_weekend": is_weekend(),
+        "is_trading_day": is_trading_day(),
+        "logged_in": user_id is not None,
+        "vip": is_vip,
+        "has_today": has_today,
+        "needs_refresh": needs_refresh,
+        "asof": (report or {}).get("asof"),
+        "generated_at": (report or {}).get("generated_at"),
+        "running": _busy(),
+        "progress": get_progress(),
+        "last_done": _RUNNING.get("last_done") or 0,
+        "last_error": _RUNNING.get("last_error") or "",
+        "auto_blocked": _auto_blocked(),
+        "auto_scan_time": cfg().get("auto_scan_time"),
+        "auto_scan": bool(cfg().get("auto_scan", True)),
+        "auto_loop": bool(_AUTO.get("started")),
+        "history": list_archive(),
+        "service_ok": True,
+    }
+
+@router.get("/api/report/progress")
+def progress():
+    return {"ok": True, "running": _busy(), "progress": get_progress()}
+
+@router.post("/api/report/scan")
+def scan(force: int = 0, user_id: int = Depends(get_current_user_id)):
+    is_vip, _plan = _vip_of(user_id)
+    if not is_vip:
+        raise HTTPException(status_code=403, detail="每日研判自动生成为 VIP 专属功能，开通 VIP 后即可使用")
+    if not force:
+        hit = cache_load("report")
+        if hit and hit.get("today8") == today8() and not report_stale(hit):
+            return {"ok": True, "msg": "今日报告已生成，无需重复扫描（如需重扫请用强制模式）", "cached": True}
+    if not force and _auto_blocked():
+        return {"ok": False, "msg": "上次自动生成失败（%s），为避免重复占用上游预算，请 %d 分钟后重试" % (_RUNNING.get("last_error") or "未知错误", _AUTO_FAIL_COOLDOWN // 60)}
+    if is_weekend() and not force:
+        return {"ok": False, "msg": "今天是周末，非交易日，不自动扫描（可 force=1 强制）"}
+    _start_scan(bool(force), is_vip)
+    return {"ok": True, "msg": "扫描已启动"}
+
+@router.get("/api/report/today")
+def today_report(user_id: Optional[int] = Depends(get_optional_user_id)):
+    is_vip, _plan = _vip_of(user_id)
+    report = cache_load("report")
+    if not report:
+        return {"ok": False, "msg": "今日报告尚未生成"}
+    _ix = _indexes_public_payload(report.get("indexes"))
+    # 优先用当日归档 index_signal（含补全后的涨跌等），避免内存缓存缺字段
+    try:
+        _d8 = report.get("today8") or today8()
+        _pi = os.path.join(ARCHIVE_ROOT, _d8, "index_signal.json")
+        if os.path.exists(_pi):
+            _arch_ix = _indexes_public_payload(json.load(open(_pi, encoding="utf-8")))
+            if _arch_ix:
+                _ix = _arch_ix
+    except Exception:
+        pass
+    if is_vip:
+        md = slim_report_md(overlay_md_mainlines(report.get("md", ""), report.get("today8") or today8()))
+        html = md_to_html(md) if md else report.get("html", "")
+    else:
+        md = public_md(overlay_md_mainlines(report.get("md", ""), report.get("today8") or today8()), report.get("ths_sentiment"))
+        html = md_to_html(md)
+    return {"ok": True, "asof": report.get("asof"), "generated_at": report.get("generated_at"),
+            "html": html, "md": md, "vip": is_vip, "indexes": _ix}
+
+@router.get("/api/report/history")
+def history(user_id: Optional[int] = Depends(get_optional_user_id)):
+    return {"ok": True, "items": list_archive()}
+
+class CfgIn(BaseModel):
+    auto_scan: bool = True
+    auto_scan_time: str = "15:01"
+
+@router.get("/api/report/config")
+def get_cfg(user_id: Optional[int] = Depends(get_optional_user_id)):
+    c = dict(cfg())
+    c.pop("token", None)
+    return {"ok": True, "config": c}
+
+@router.post("/api/report/config")
+def set_cfg(body: CfgIn, user_id: int = Depends(get_current_user_id)):
+    is_vip, _plan = _vip_of(user_id)
+    if not is_vip:
+        raise HTTPException(status_code=403, detail="该设置为 VIP 专属，开通 VIP 后即可使用")
+    c = dict(cfg())
+    c["auto_scan"] = bool(body.auto_scan)
+    if body.auto_scan_time:
+        c["auto_scan_time"] = body.auto_scan_time.strip()
+    c.pop("token", None)
+    with open(CFG_PATH, "w", encoding="utf-8") as f:
+        json.dump(c, f, ensure_ascii=False, indent=2)
+    global _CFG
+    _CFG = c
+    return {"ok": True}
+
+@router.get("/api/report/{date8}")
+def by_date(date8: str, user_id: Optional[int] = Depends(get_optional_user_id)):
+    if not re.fullmatch(r"\d{8}", date8 or ""):
+        raise HTTPException(status_code=404, detail="未找到该日期报告")
+    is_vip, _plan = _vip_of(user_id)
+    d = load_report_by_date(date8)
+    if not d:
+        raise HTTPException(status_code=404, detail="未找到该日期报告")
+    _ix = _indexes_public_payload(d.get("indexes"))
+    _d8 = d.get("date") or date8
+    if not is_vip:
+        md = public_md(overlay_md_mainlines(d.get("md", ""), _d8), d.get("ths_sentiment"))
+        d = {"date": _d8, "html": md_to_html(md), "md": md, "indexes": _ix}
+    else:
+        md = slim_report_md(overlay_md_mainlines(d.get("md", ""), _d8))
+        d = {**d, "md": md, "html": md_to_html(md) if md else d.get("html", ""), "indexes": _ix}
+    return {"ok": True, **d, "vip": is_vip}
+
+
+# 启动自动触发（随 18011 导入即启，daemon 线程，不依赖外部 token）
+_ensure_auto_loop()
+
+
+if __name__ == "__main__":
+    import argparse
+
+    ap = argparse.ArgumentParser(description="AI24X 复盘生成（补跑/手动）")
+    ap.add_argument("--backfill", help="补跑指定日期 YYYYMMDD")
+    ap.add_argument("--force", action="store_true", help="强制重拉上游数据")
+    _a = ap.parse_args()
+    _data = run_daily(force=_a.force, is_vip=True, d8=_a.backfill)
+    print("today8=%s asof=%s ok=%s generated_at=%s" % (
+        _data.get("today8"), _data.get("asof"), _PROGRESS.get("ok"), _data.get("generated_at")))

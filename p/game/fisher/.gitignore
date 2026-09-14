@@ -1,0 +1,15 @@
+# 微信开发者工具（本机私有配置勿入库）
+**/project.private.config.json
+
+# 依赖与系统垃圾
+node_modules/
+.DS_Store
+Thumbs.db
+
+# Fisher API（虚拟环境、遗留本地 SQLite 文件；真源为 PostgreSQL）
+**/api/server/.venv/
+**/api/server/**/__pycache__/
+**/api/server/data/*.db
+
+# 可选：云函数本地 node_modules（若 monorepo 安装）
+cloudfunctions/**/node_modules/

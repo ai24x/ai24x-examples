@@ -1,0 +1,95 @@
+{
+  "ts": 1786669262.7662258,
+  "rows": [
+    {
+      "name": "models_live",
+      "ok": true,
+      "detail": "{\"mode\": \"live\", \"openrouter_ready\": true, \"direct_ready\": false, \"l0_ready\": true, \"l1_ready\": true, \"qi_ready\": true, \"l1_model\": \"deepseek/deepseek-v4-flash\", \"l2_model\": \"deepseek/deepseek-v4-pro\", \"l3_model\": \"openai/gpt-5-mini\"}"
+    },
+    {
+      "name": "brand_flash",
+      "ok": true,
+      "detail": "{'auto': '自动档', 'flash': 'flash', 'pro': 'pro', 'ultra': 'ultra'}"
+    },
+    {
+      "name": "health_upstream",
+      "ok": true,
+      "detail": "mode=openrouter stamp=48876e080c3f"
+    },
+    {
+      "name": "email_status_api",
+      "ok": true,
+      "detail": "{'ok': True, 'smtp_configured': True, 'smtp_host': 'smtppro.zoho.com', 'smtp_backup_configured': True, 'smtp_primary': {'configured': True, 'host': 'smtppro.zoho.com', 'user_set': True, 'password_set': True, 'from': 'support@ai24x.com', 'use_tls': False, 'use_ssl': True}, 'smtp_backup': {'configured': True, 'host': 'smtp.qq.com', 'user_set': True, 'password_set': True, 'from': 'sohodiy@qq.com', 'use_tls': True, 'use_ssl': False}, 'app_env': 'dev'}"
+    },
+    {
+      "name": "email_smtp_configured",
+      "ok": true,
+      "detail": "smtppro.zoho.com"
+    },
+    {
+      "name": "pay_status_matches_env",
+      "ok": true,
+      "detail": "env enabled=True mock=True | api enabled=True mock=True"
+    },
+    {
+      "name": "register_a",
+      "ok": true,
+      "detail": "smoke-a-58d1f870@ai24x.local"
+    },
+    {
+      "name": "invite_code",
+      "ok": true,
+      "detail": "NJ9YIK2Q"
+    },
+    {
+      "name": "balance_a_initial",
+      "ok": true,
+      "detail": "balance=5000"
+    },
+    {
+      "name": "create_key",
+      "ok": true,
+      "detail": "sk-a693b7d"
+    },
+    {
+      "name": "chat_deepseek",
+      "ok": true,
+      "detail": "status=200 provider=ai24x model=flash tokens=158 resp=SMOKE_OK"
+    },
+    {
+      "name": "mock_pay_fulfill",
+      "ok": true,
+      "detail": "order=T13617866692612b1e47 bal 4842->1004842"
+    },
+    {
+      "name": "invite_register_bonus",
+      "ok": true,
+      "detail": "A 1004842->1009842; B=10000"
+    },
+    {
+      "name": "daily_report",
+      "ok": true,
+      "detail": "{\"date_utc\": \"2026-08-14\", \"chat_requests\": 0, \"chat_tokens_recorded\": 0, \"ledger_consume_tokens\": 0, \"ledger_expire_tokens\": 0, \"ledger_credit_tokens\": 0, \"paid_amount_fen\": 0, \"p"
+    },
+    {
+      "name": "free_daily_limit_100",
+      "ok": true,
+      "detail": "100"
+    },
+    {
+      "name": "invite_bonus_const_5000",
+      "ok": true,
+      "detail": "5000"
+    },
+    {
+      "name": "invite_abuse_ip_cap",
+      "ok": true,
+      "detail": "reason=ip_day_cap"
+    },
+    {
+      "name": "a1_web_alive",
+      "ok": true,
+      "detail": "status=200"
+    }
+  ]
+}

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Rhythm Tap · 节奏点按</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; }
+  body {
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background:#0f172a; color:#e2e8f0; overflow:hidden; user-select:none;
+    touch-action:manipulation; overscroll-behavior:none;
+  }
+  #wrap { height:100dvh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:8px; }
+  .hud { display:flex; gap:24px; font-size:15px; font-weight:700; color:#94a3b8; }
+  .hud b { color:#fbbf24; font-size:18px; }
+  .hud .cb { color:#4ade80; }
+  #stage { width:100%; max-width:390px; aspect-ratio:390/700; position:relative; border-radius:20px; overflow:hidden; background:#0b1220; border:2px solid #334155; touch-action:none; }
+  canvas { display:block; width:100%; height:100%; }
+  #tip { font-size:12px; color:#64748b; min-height:16px; }
+  #overlay { position:fixed; inset:0; background:rgba(2,6,23,.9); display:none; align-items:center; justify-content:center; z-index:10; }
+  #overlay.show { display:flex; }
+  .panel { text-align:center; padding:30px 26px; border-radius:20px; background:#1e293b; border:1px solid #334155; max-width:320px; width:90%; }
+  .panel h2 { font-size:22px; margin-bottom:6px; }
+  .score { font-size:44px; font-weight:800; color:#fbbf24; margin:6px 0; }
+  .grade { font-size:26px; font-weight:800; margin-bottom:4px; }
+  .best { color:#94a3b8; font-size:14px; margin-bottom:14px; }
+  .share { font-size:13px; color:#fbbf24; margin-bottom:16px; padding:8px 12px; background:#1e293b; border:1px dashed #475569; border-radius:10px; }
+  .play { background:linear-gradient(90deg,#fbbf24,#f472b6); border:none; color:#fff; font-size:18px; font-weight:800; padding:13px 38px; border-radius:999px; cursor:pointer; box-shadow:0 6px 0 rgba(0,0,0,.3); touch-action:manipulation; }
+  .play:active { transform: translateY(3px); box-shadow:0 3px 0 rgba(0,0,0,.3); }
+</style>
+</head>
+<body>
+<div id="topbar"><a href="index.html">← 列表</a><span class="tt">Rhythm Tap<span class="tg">节奏点按</span></span><button id="howBtn" aria-label="玩法说明">?</button></div>
+<div id="howto"><b>怎么玩</b><br>音符方块从顶部落向判定线，在方块到达判定线的瞬间点按对应轨道！PERFECT 得分更高，连击有加成，30 秒冲刺最高分。</div>
+<div id="wrap">
+  <div class="hud"><div>得分 <b id="score">0</b></div><div>连击 <b class="cb" id="combo">0</b></div><div>最佳 <b id="best">0</b></div></div>
+  <div id="stage"><canvas id="cv"></canvas></div>
+  <div id="tip">点击开始，跟着节奏点按</div>
+</div>
+
+<div id="overlay">
+  <div class="panel">
+    <h2>🎵 曲目结束！</h2>
+    <div class="score" id="ovScore">0 分</div>
+    <div class="grade" id="ovGrade">C 级</div>
+    <div class="best" id="bestLine">最大连击 0 · 最佳 0 分</div>
+    <div class="share" id="shareTxt">我在 Rhythm Tap 拿到 0 分（C 级），来挑战我！</div>
+    <button class="play" id="restart">再来一次</button>
+  </div>
+</div>
+
+<style id="xz-shell">
+#topbar{position:fixed;top:0;left:0;right:0;height:64px;z-index:50;display:flex;align-items:center;gap:10px;padding:0 14px;background:rgba(15,23,42,.94);backdrop-filter:blur(8px);border-bottom:1px solid #334155;color:#e2e8f0;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;-webkit-user-select:none;user-select:none;}
+#topbar a{color:#38bdf8;text-decoration:none;font-size:14px;font-weight:700;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+#topbar .tt{flex:1;text-align:center;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#topbar .tg{font-size:11px;color:#94a3b8;font-weight:400;margin-left:4px;}
+#howBtn{width:30px;height:30px;border-radius:50%;border:1px solid #334155;background:#1e293b;color:#94a3b8;font-weight:800;cursor:pointer;font-size:15px;line-height:1;flex:none;}
+#howto{display:none;position:fixed;top:72px;left:50%;transform:translateX(-50%);width:min(92vw,420px);z-index:70;background:#1e293b;border:1px solid #475569;border-radius:14px;padding:14px 16px;color:#cbd5e1;font-size:13px;line-height:1.7;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;box-shadow:0 12px 32px rgba(0,0,0,.55);}
+#howto.show{display:block;}
+#howto b{color:#38bdf8;}
+.xz-cr{position:fixed;bottom:4px;right:10px;font-size:10px;color:#475569;z-index:45;font-family:-apple-system,"Segoe UI",sans-serif;pointer-events:none;-webkit-user-select:none;user-select:none;}
+</style>
+
+<script>
+(function(){
+  'use strict';
+  var cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+  var scoreEl=document.getElementById('score'), comboEl=document.getElementById('combo'), bestEl=document.getElementById('best');
+  var tip=document.getElementById('tip'), overlay=document.getElementById('overlay');
+  var ovScore=document.getElementById('ovScore'), ovGrade=document.getElementById('ovGrade');
+  var bestLine=document.getElementById('bestLine'), shareTxt=document.getElementById('shareTxt'), restart=document.getElementById('restart');
+
+  var W=390, H=700, DPR=Math.min(2, devicePixelRatio||1);
+  cv.width=W*DPR; cv.height=H*DPR; ctx.scale(DPR,DPR);
+
+  var BEST=+localStorage.getItem('xz-rt-best')||0;
+  bestEl.textContent=BEST;
+
+  var LANES=4, LW=W/LANES, LINE=600, BEAT=0.5, DUR=30, SPD=400;
+  var COL=['#f87171','#38bdf8','#4ade80','#fbbf24'];
+  var notes=[], songT=0, state='ready', score=0, combo=0, maxCombo=0, perfect=0, good=0, miss=0;
+  var popups=[], endT=0, beatP=0;
+
+  function gen(){
+    notes=[]; var t=0;
+    while(t<DUR-1){
+      t+=BEAT;
+      if(Math.random()<0.72) notes.push({t:t, lane:Math.floor(Math.random()*LANES), hit:false});
+    }
+    while(notes.length<40){
+      notes.push({t:0.5+Math.random()*(DUR-2), lane:Math.floor(Math.random()*LANES), hit:false});
+    }
+    notes.sort(function(a,b){ return a.t-b.t; });
+  }
+
+  function reset(){
+    gen(); songT=0; score=0; combo=0; maxCombo=0; perfect=0; good=0; miss=0; popups=[]; endT=0; beatP=0;
+    scoreEl.textContent=0; comboEl.textContent=0; tip.textContent='点击开始，跟着节奏点按';
+    state='ready'; overlay.classList.remove('show');
+  }
+
+  function tap(x){
+    var lane=Math.floor(x/LW);
+    if(lane<0) lane=0; if(lane>LANES-1) lane=LANES-1;
+    var cand=null, cd=1e9;
+    for(var i=0;i<notes.length;i++){
+      var n=notes[i];
+      if(n.hit || n.lane!==lane) continue;
+      var y=LINE-(n.t-songT)*SPD, d=Math.abs(y-LINE);
+      if(d<=80 && d<cd){ cd=d; cand=n; }
+    }
+    if(!cand){ popups.push({x:lane*LW+LW/2, txt:'', c:'', t:0}); return; }
+    cand.hit=true;
+    if(cd<=30){ combo++; score+=100+combo*2; perfect++; popups.push({x:lane*LW+LW/2, txt:'PERFECT', c:'#fbbf24', t:40}); }
+    else{ combo++; score+=50+combo*2; good++; popups.push({x:lane*LW+LW/2, txt:'GOOD', c:'#4ade80', t:34}); }
+    if(combo>maxCombo) maxCombo=combo;
+    scoreEl.textContent=score; comboEl.textContent=combo;
+  }
+
+  function start(){
+    if(state==='ready'){ state='play'; tip.textContent=''; }
+  }
+
+  function update(){
+    if(state==='play'){
+      songT+=1/60;
+      beatP=(songT/BEAT)%1;
+      for(var i=0;i<notes.length;i++){
+        var n=notes[i];
+        if(n.hit) continue;
+        var y=LINE-(n.t-songT)*SPD;
+        if(y>LINE+80){ n.hit=true; miss++; combo=0; comboEl.textContent=0;
+          popups.push({x:n.lane*LW+LW/2, txt:'MISS', c:'#64748b', t:30}); }
+      }
+      if(songT>=DUR){ state='end'; endT=110; }
+    } else if(state==='end'){
+      if(endT>0 && --endT===0) showEnd();
+    }
+    for(var j=0;j<popups.length;j++){ if(popups[j].t>0) popups[j].t--; }
+  }
+
+  function showEnd(){
+    var total=perfect+good+miss;
+    var acc= total? (perfect+good*0.6)/total : 0;
+    var g = acc>=0.9?'S' : acc>=0.75?'A' : acc>=0.6?'B' : 'C';
+    var gc = g==='S'?'🌟': g==='A'?'🔥': g==='B'?'👍':'😅';
+    if(score>BEST){ BEST=score; localStorage.setItem('xz-rt-best',BEST); }
+    bestEl.textContent=BEST;
+    ovScore.textContent=score+' 分';
+    ovGrade.textContent=gc+' '+g+' 级';
+    bestLine.textContent='最大连击 '+maxCombo+' · 最佳 '+BEST+' 分';
+    shareTxt.textContent='我在 Rhythm Tap 拿到 '+score+' 分（'+g+' 级），来挑战我！';
+    overlay.classList.add('show');
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='#0b1220'; ctx.fillRect(0,0,W,H);
+    // 节拍器圆点（顶部，随节拍闪烁）
+    var pulse=1-Math.abs(beatP*2-1);
+    ctx.fillStyle='rgba(251,191,36,'+(0.35+pulse*0.6)+')';
+    ctx.beginPath(); ctx.arc(W/2,46,14+pulse*8,0,7); ctx.fill();
+    ctx.fillStyle='#fbbf24';
+    ctx.beginPath(); ctx.arc(W/2,46,7,0,7); ctx.fill();
+    // 轨道分隔
+    ctx.strokeStyle='rgba(148,163,184,.15)'; ctx.lineWidth=1;
+    for(var i=1;i<LANES;i++){ ctx.beginPath(); ctx.moveTo(i*LW,80); ctx.lineTo(i*LW,H); ctx.stroke(); }
+    // 判定线
+    var lc = state==='play' ? 'rgba(251,191,36,'+(0.75+pulse*0.25)+')' : 'rgba(251,191,36,.75)';
+    ctx.fillStyle=lc; ctx.fillRect(0,LINE-2,W,4);
+    ctx.fillStyle='rgba(251,191,36,.9)'; ctx.font='bold 12px sans-serif'; ctx.textAlign='right';
+    ctx.fillText('判定线',W-10,LINE-10); ctx.textAlign='left';
+    // 音符
+    for(var k=0;k<notes.length;k++){
+      var n=notes[k];
+      if(n.hit) continue;
+      var y=LINE-(n.t-songT)*SPD;
+      if(y<-50 || y>H+30) continue;
+      var s=20;
+      ctx.fillStyle=COL[n.lane];
+      ctx.shadowColor=COL[n.lane]; ctx.shadowBlur=10;
+      ctx.fillRect(n.lane*LW+LW/2-s/2, y-s/2, s, s);
+      ctx.shadowBlur=0;
+      ctx.fillStyle='rgba(255,255,255,.85)';
+      ctx.fillRect(n.lane*LW+LW/2-4, y-4, 8, 8);
+    }
+    // 判定弹出
+    ctx.font='bold 20px sans-serif'; ctx.textAlign='center';
+    for(var p=0;p<popups.length;p++){
+      var pp=popups[p];
+      if(pp.t<=0) continue;
+      var a=pp.t/40;
+      ctx.fillStyle=pp.c;
+      ctx.globalAlpha=a;
+      ctx.fillText(pp.txt, pp.x, LINE-50-(40-pp.t)*0.6);
+      ctx.globalAlpha=1;
+    }
+    ctx.textAlign='left';
+    // 进度条
+    var pw=W-24, ph=5, px=12, py=78;
+    ctx.fillStyle='rgba(148,163,184,.2)'; ctx.fillRect(px,py,pw,ph);
+    ctx.fillStyle='#fbbf24'; ctx.fillRect(px,py,pw*Math.min(1,songT/DUR),ph);
+  }
+
+  function loop(){ update(); draw(); requestAnimationFrame(loop); }
+
+  var stage=document.getElementById('stage');
+  stage.addEventListener('pointerdown', function(e){
+    e.preventDefault();
+    var r=stage.getBoundingClientRect();
+    if(state==='ready'){ start(); }
+    else if(state==='play'){ tap((e.clientX-r.left)/r.width*W); }
+  });
+  restart.addEventListener('click', reset);
+
+  reset(); loop();
+})();
+</script>
+<script>
+(function(){
+  'use strict';
+  var W=390,H=780,TOP=64;
+  var wrap=document.getElementById('wrap');
+  function fit(){
+    if(!wrap) return;
+    var s=Math.min(innerWidth/W,(innerHeight-TOP)/H);
+    if(s>1.4) s=1.4;
+    var w=W*s,h=H*s;
+    wrap.style.width=w+'px';
+    wrap.style.height=h+'px';
+    wrap.style.left=((innerWidth-w)/2)+'px';
+    wrap.style.top=(TOP+(innerHeight-TOP-h)/2)+'px';
+    wrap.style.position='fixed';
+    wrap.style.margin='0';
+    wrap.style.transform='scale('+s+')';
+    wrap.style.transformOrigin='top left';
+  }
+  fit();
+  addEventListener('resize',fit);
+  addEventListener('orientationchange',fit);
+  var ov=document.getElementById('overlay');
+  if(ov) ov.style.zIndex=60;
+  var hb=document.getElementById('howBtn'),ht=document.getElementById('howto');
+  if(hb&&ht){
+    hb.addEventListener('click',function(e){e.stopPropagation();ht.classList.toggle('show');});
+    document.addEventListener('pointerdown',function(e){if(ht.classList.contains('show')&&!ht.contains(e.target)&&e.target!==hb)ht.classList.remove('show');});
+  }
+  document.addEventListener('contextmenu',function(e){e.preventDefault();});
+  document.addEventListener('dragstart',function(e){e.preventDefault();});
+  document.addEventListener('keydown',function(e){
+    var k=e.key||'';
+    if(k==='F12'||(e.ctrlKey&&['s','u','p','S','U','P'].indexOf(k)>=0)||(e.ctrlKey&&e.shiftKey&&['i','j','c','I','J','C'].indexOf(k)>=0)){e.preventDefault();e.stopPropagation();return false;}
+  });
+})();
+</script>
+<div class="xz-cr">© 2026 AI24X Game Zone</div>
+</body>
+</html>

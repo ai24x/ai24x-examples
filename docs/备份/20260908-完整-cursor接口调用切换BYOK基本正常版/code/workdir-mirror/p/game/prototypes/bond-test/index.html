@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>默契大考验 · 原型</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'PingFang SC','Microsoft YaHei',system-ui,sans-serif;background:linear-gradient(160deg,#0f172a,#1e1b4b 60%,#312e81);color:#fff;min-height:100vh;display:flex;justify-content:center;align-items:center;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+#app{width:100%;max-width:420px;min-height:100vh;display:flex;flex-direction:column;padding:20px 20px calc(28px + env(safe-area-inset-bottom))}
+.hidden{display:none!important}
+/* 首页 */
+#home{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:18px;text-align:center}
+#home .logo{font-size:34px;font-weight:900;letter-spacing:3px;background:linear-gradient(90deg,#fbbf24,#fb7185,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent}
+#home .tag{color:#94a3b8;font-size:14px}
+.rulebox{background:rgba(255,255,255,.06);border-radius:16px;padding:16px;font-size:14px;color:#cbd5e1;line-height:1.9;text-align:left}
+.rulebox b{color:#fbbf24}
+#start{width:100%;padding:16px;min-height:56px;font-size:19px;font-weight:800;border:none;border-radius:18px;background:linear-gradient(90deg,#2563eb,#7c3aed);color:#fff}
+#start:active{transform:scale(.96)}
+.tiny{text-align:center;color:#475569;font-size:11px;margin-top:10px;line-height:1.6}
+/* 游戏页 */
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:4px 2px 16px}
+.badge{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:4px 12px;font-size:12px;color:#e2e8f0}
+.step-tag{text-align:center;font-size:13px;color:#a5b4fc;letter-spacing:2px;margin-bottom:10px}
+.qcard{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:26px 20px;text-align:center;min-height:120px;display:flex;flex-direction:column;justify-content:center;gap:10px;animation:qin .25s ease-out}
+@keyframes qin{0%{transform:translateX(24px);opacity:0}100%{transform:none;opacity:1}}
+.qtitle{font-size:22px;font-weight:800;line-height:1.5}
+.qsub{font-size:13px;color:#64748b}
+.opts{display:flex;flex-direction:column;gap:12px;margin-top:20px}
+.opt{background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.16);border-radius:16px;padding:18px 16px;min-height:64px;font-size:17px;font-weight:600;color:#fff;display:flex;align-items:center;justify-content:center;text-align:center}
+.opt:active{transform:scale(.97);border-color:#fbbf24}
+.opt.hit{border-color:#34d399;background:rgba(52,211,153,.15)}
+.friend-tip{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;font-size:13px;color:#94a3b8}
+.friend-ava{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#f472b6,#8b5cf6);display:flex;justify-content:center;align-items:center;font-size:17px}
+.progress{font-size:12px;color:#64748b;text-align:center;margin-top:14px}
+/* 结算 */
+#overlay{position:fixed;inset:0;background:rgba(2,6,23,.85);display:flex;justify-content:center;align-items:center;z-index:20;padding:20px}
+.card{background:linear-gradient(170deg,#1e293b,#0f172a);border:1px solid rgba(255,255,255,.12);border-radius:24px;padding:30px 26px;width:100%;max-width:340px;text-align:center;animation:up .35s ease-out}
+@keyframes up{0%{transform:translateY(30px);opacity:0}100%{transform:none;opacity:1}}
+.emoji{font-size:64px}
+.pct{font-size:88px;font-weight:900;background:linear-gradient(90deg,#fbbf24,#fb7185);-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1.1;margin:8px 0 2px}
+.verdict{font-size:20px;font-weight:800;margin-bottom:6px}
+.sub{font-size:13px;color:#94a3b8;margin-bottom:18px}
+.sharebox{background:rgba(255,255,255,.06);border-radius:14px;padding:12px;font-size:14px;color:#c7d2fe;margin-bottom:16px;line-height:1.7}
+.actions{display:flex;flex-direction:column;gap:10px}
+.primary{background:linear-gradient(90deg,#2563eb,#7c3aed);border:none;border-radius:14px;padding:14px;min-height:48px;font-size:16px;font-weight:700;color:#fff}
+.ghost{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:12px;font-size:14px;color:#e2e8f0}
+#toast{position:fixed;left:50%;bottom:12%;transform:translateX(-50%);background:rgba(15,23,42,.95);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:14px;padding:10px 18px;border-radius:99px;z-index:50;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;max-width:90%}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- 首页 -->
+  <div id="home">
+    <div class="logo">默契大考验</div>
+    <div class="tag">5 题测出你们的默契度</div>
+    <div class="rulebox">
+      <b>怎么玩：</b><br>
+      · 共 5 题，每题你先选自己的答案<br>
+      · 再猜好友会怎么选<br>
+      · 猜中越多，默契度越高<br>
+      · 原型阶段好友答案为随机假数据
+    </div>
+    <button id="start">开始考验</button>
+    <div class="tiny">H5 原型：好友数据用假数据占位，微信版接入真实好友</div>
+  </div>
+
+  <!-- 游戏页 -->
+  <div id="game" class="hidden">
+    <div class="topbar">
+      <div class="badge">默契考验</div>
+      <div class="badge" id="qNo">1/5</div>
+    </div>
+    <div class="step-tag" id="stepTag">你先选</div>
+    <div class="qcard">
+      <div class="qtitle" id="qTitle">--</div>
+    </div>
+    <div class="opts" id="opts"></div>
+    <div class="friend-tip hidden" id="friendTip">
+      <div class="friend-ava">🤖</div>
+      <span>模拟好友「阿明」的答案（假数据）</span>
+    </div>
+    <div class="progress" id="progress"></div>
+  </div>
+</div>
+
+<!-- 结算 -->
+<div id="overlay" class="hidden">
+  <div class="card">
+    <div class="emoji" id="endEmoji">💞</div>
+    <div class="pct" id="endPct">0%</div>
+    <div class="verdict" id="endVerdict">--</div>
+    <div class="sub" id="endSub">猜中 0 / 5</div>
+    <div class="sharebox" id="shareBox">💞 我和 TA 的默契度 0%，需要多聊天！</div>
+    <div class="actions">
+      <button class="primary" id="btnCopy">📋 复制默契卡</button>
+      <button class="primary" id="btnAgain">再测一组</button>
+      <button class="ghost" id="btnHome">回首页</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script src="tracker.js"></script>
+<script>
+(function () {
+  'use strict';
+  var TOTAL = 5;
+  var POOL = [
+    { q: '早餐你俩更可能吃？', a: '包子', b: '油条' },
+    { q: '生气的时候会？', a: '秒回消息讲道理', b: '冷战到消气' },
+    { q: '周末更想？', a: '宅家充电', b: '出门浪' },
+    { q: '火锅锅底选？', a: '鸳鸯锅', b: '全辣锅' },
+    { q: '手机没电了先？', a: '充电', b: '再刷一会儿' },
+    { q: '旅行方式？', a: '做攻略', b: '说走就走' },
+    { q: '奶茶甜度？', a: '三分糖', b: '全糖' },
+    { q: '追剧节奏？', a: '一口气刷完', b: '每天两集' },
+    { q: '起床习惯？', a: '到点必起', b: '睡到自然醒' },
+    { q: '看电影标配？', a: '爆米花', b: '可乐' },
+    { q: '空调温度？', a: '26 度', b: '24 度' },
+    { q: '微信聊天更爱？', a: '打字', b: '发语音' }
+  ];
+  var VERDICTS = [
+    { min: 5, emoji: '💞', name: '灵魂伴侣级默契', sub: '你们是彼此的读心术大师', share: '我和 TA 默契度 100%，灵魂伴侣实锤！' },
+    { min: 4, emoji: '💗', name: '心有灵犀', sub: '大部分时候 TA 在想什么你都懂', share: '我和 TA 默契度 80%，心有灵犀一点通！' },
+    { min: 3, emoji: '💛', name: '默契不错', sub: '再多聊聊天会更懂彼此', share: '我和 TA 默契度 60%，还不错哦！' },
+    { min: 2, emoji: '💙', name: '需要充电', sub: '你们需要更多沟通时间', share: '我和 TA 默契度 40%，是该多聊聊了…' },
+    { min: 0, emoji: '💔', name: '塑料友情实锤', sub: 'TA 在想什么？你完全猜不到', share: '我和 TA 默契度 20%，塑料友情实锤…' }
+  ];
+  var state = { running: false, qIdx: 0, phase: 'self', hit: 0, qs: [], friendPick: {} };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    home: $('home'), game: $('game'), qNo: $('qNo'), stepTag: $('stepTag'), qTitle: $('qTitle'),
+    opts: $('opts'), friendTip: $('friendTip'), progress: $('progress'),
+    overlay: $('overlay'), endEmoji: $('endEmoji'), endPct: $('endPct'), endVerdict: $('endVerdict'),
+    endSub: $('endSub'), shareBox: $('shareBox'),
+    btnCopy: $('btnCopy'), btnAgain: $('btnAgain'), btnHome: $('btnHome'), toast: $('toast')
+  };
+
+  function track(ev, params) { if (window.__gcTrack) window.__gcTrack(ev, params); }
+  function toast(msg) {
+    els.toast.textContent = msg; els.toast.classList.add('show');
+    clearTimeout(toast._t); toast._t = setTimeout(function () { els.toast.classList.remove('show'); }, 1600);
+  }
+  function vibrate(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
+  /* 音效 */
+  var actx = null;
+  function audio() {
+    if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+    if (actx && actx.state === 'suspended') { try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+  function tone(freq, dur, type, vol, delay) {
+    var ctx = audio(); if (!ctx) return;
+    var t0 = ctx.currentTime + (delay || 0);
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol || 0.15, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + (dur || 0.12));
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t0); o.stop(t0 + (dur || 0.12) + 0.05);
+  }
+  function sOk() { tone(660, 0.1, 'triangle', 0.14); tone(990, 0.14, 'triangle', 0.12, 0.08); }
+  function sNo() { tone(220, 0.16, 'sine', 0.12); }
+  function sEnd() { tone(523, 0.12, 'triangle', 0.15); tone(659, 0.12, 'triangle', 0.15, 0.1); tone(784, 0.22, 'triangle', 0.15, 0.2); }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function renderOpts(q, phase, picked) {
+    els.opts.innerHTML = '';
+    var opts = [q.a, q.b];
+    opts.forEach(function (label, idx) {
+      var key = idx === 0 ? 'a' : 'b';
+      var b = document.createElement('div');
+      b.className = 'opt';
+      b.textContent = label;
+      b.dataset.key = key;
+      b.addEventListener('click', function () { choose(key); });
+      els.opts.appendChild(b);
+    });
+  }
+
+  function showQ() {
+    var q = state.qs[state.qIdx];
+    els.qNo.textContent = (state.qIdx + 1) + '/' + TOTAL;
+    els.qTitle.textContent = q.q;
+    els.friendTip.classList.add('hidden');
+    if (state.phase === 'self') {
+      els.stepTag.textContent = '第 ' + (state.qIdx + 1) + ' 题 · 你先选';
+      renderOpts(q, 'self');
+      els.progress.textContent = '';
+    } else {
+      els.stepTag.textContent = 'TA 会怎么选？';
+      renderOpts(q, 'friend');
+      els.friendTip.classList.remove('hidden');
+      els.progress.textContent = '已猜中 ' + state.hit + ' / ' + state.qIdx;
+    }
+  }
+
+  function choose(key) {
+    if (!state.running) return;
+    var q = state.qs[state.qIdx];
+    if (state.phase === 'self') {
+      state.phase = 'friend';
+      showQ();
+    } else {
+      var right = state.friendPick[state.qIdx] === key;
+      if (right) { state.hit += 1; sOk(); vibrate(15); } else { sNo(); }
+      state.phase = 'self';
+      state.qIdx += 1;
+      if (state.qIdx >= TOTAL) { endGame(); return; }
+      showQ();
+    }
+  }
+
+  function start() {
+    state.running = true;
+    state.qIdx = 0; state.phase = 'self'; state.hit = 0;
+    state.qs = shuffle(POOL).slice(0, TOTAL);
+    state.friendPick = {};
+    // 为每道题生成随机好友答案（占位假数据）
+    state.qs.forEach(function (q, i) {
+      state.friendPick[i] = Math.random() < 0.5 ? 'a' : 'b';
+    });
+    els.home.classList.add('hidden');
+    els.overlay.classList.add('hidden');
+    els.game.classList.remove('hidden');
+    track('game_start', { total: TOTAL, friend: 'mock' });
+    showQ();
+  }
+
+  function endGame() {
+    state.running = false;
+    var pct = Math.round(state.hit / TOTAL * 100);
+    var v = VERDICTS[VERDICTS.length - 1];
+    for (var i = 0; i < VERDICTS.length; i++) { if (state.hit >= VERDICTS[i].min) { v = VERDICTS[i]; break; } }
+    els.endEmoji.textContent = v.emoji;
+    els.endPct.textContent = pct + '%';
+    els.endVerdict.textContent = v.name;
+    els.endSub.textContent = '猜中 ' + state.hit + ' / ' + TOTAL;
+    els.shareBox.textContent = v.share;
+    els.overlay.classList.remove('hidden');
+    sEnd();
+    track('game_end', { pct: pct, hit: state.hit, total: TOTAL });
+  }
+
+  $('start').addEventListener('click', start);
+  els.btnAgain.addEventListener('click', start);
+  els.btnHome.addEventListener('click', function () { els.overlay.classList.add('hidden'); els.game.classList.add('hidden'); els.home.classList.remove('hidden'); });
+  els.btnCopy.addEventListener('click', function () {
+    var text = els.shareBox.textContent;
+    var done = function () { toast('默契卡已复制，发给 TA 试试'); track('share_intent', { type: 'copy', pct: parseInt(els.endPct.textContent, 10) || 0 }); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text, done); });
+    else fallbackCopy(text, done);
+  });
+  function fallbackCopy(text, done) {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { toast('复制失败'); }
+    document.body.removeChild(ta);
+  }
+})();
+</script>
+</body>
+</html>

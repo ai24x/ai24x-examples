@@ -1,0 +1,30 @@
+# 任务书：04 排查 MiMo 上游流式响应不稳（Codex flash 档报错）
+
+> 发送：总司令 ♟️ → 04 国际生产店长 🔗
+> 时间：2026-09-02 23:50
+> 性质：生产网关排查（非紧急，明日 12:00 前回执即可）
+> 关联：task-20260902-04-core-fakehang.txt（core 假死排查，可合并处理）
+
+## 背景
+雷总 Codex 桌面版（走 AI24X 网关）测试发现：**AI24X Flash 档长对话/大上下文下报错**
+`stream disconnected before completion: Transport error: network error: error decoding response body`
+短请求正常。同日 VIP-ds-flash（DeepSeek 官方）与 VIP-gp-56-luna（Luna）均正常。
+
+## 已定位（04 侧日志+代码实锤）
+1. **ai24x-prod/flash 档在网关侧默认路由到 MiMo 上游（xiaomi/mimo-v2.5）**——8/14 成本优化把 L1/flash 切到小米 MiMo（DS 涨价后同价档），代码：model_router.py `"L1": "xiaomi/mimo-v2.5"` / `_LAYER_MIMO_MODEL`
+2. 日志 23:31-23:33 flash 请求全部转发 `provider=mimo model=xiaomi/mimo-v2.5`（msgs=12 tools=10，长上下文）
+3. MiMo 上游（api.xiaomimimo.com 直连）**长流式响应在带 tools 的大请求下不稳定/断流** → 网关透传断 → Codex 解码失败
+4. 本机复测：flash 短请求/无 tools 均 200 正常；问题集中在长对话+tools 场景
+
+## 排查任务
+1. 抓 MiMo 上游原始流式响应：长上下文+tools 请求，观察上游是否中途断流/超时/格式异常（SSE chunk 是否完整）
+2. 检查网关对 MiMo 的 thinking 关闭注入是否生效（reasoning_filter.py 对 mimo 分支；`_should_inject_thinking_disable` 对 family=mimo 返回 True → body["thinking"]={"type":"disabled"}——确认 MiMo API 是否接受该参数，若不接受需换 enable_thinking 或其它方式）
+3. 检查网关 httpx 流式超时配置（`_stream_timeout_s` 默认 90s）与 MiMo 上游 TTFB/首包延迟
+4. 结论给出：
+   - 若 MiMo 上游本身不稳 → 建议 flash 档对 Codex/Responses 长流式请求 failover 到 DeepSeek 官方（vip-ds-flash 同款上游），或调大超时/加断线重连
+   - 若 thinking 注入不生效 → 修复 MiMo thinking 关闭参数
+5. 只排查+方案，**改动前回报总司令审批**（涉及生产路由变更，勿直接改线上）
+
+## 回执要求
+- 排查结论 + 建议方案（✅/⚠️），明日 12:00 前
+- 落盘到 04 回复目录

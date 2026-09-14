@@ -1,0 +1,19 @@
+# 任务书：查修 lei@itxin.com 账户每日请求限制（2026-09-02 15:30 主脑派发）
+
+## 背景（一句话）
+雷总 Codex 用 AI24X Flash（lei@itxin.com 账户 key，key_id 92，auth_user 27）报 429「超出每日请求限制」；主脑实测 api.ai24x.com flash chat = 429，DeepSeek 官方 = 200。怀疑该账户/key 每日限额被打满（01/02 副脑 9/1 起共用同一 key 跑 ai24x/flash）。
+
+## 任务清单（04 执行）
+1. 查平台限流配置：api.ai24x.com 上 auth_user 27（lei@itxin.com）/ key_id 92 的每日请求限制值、当前用量、限流策略（在哪张表/哪个配置项：如 api_keys.rate_limit / user_daily_quota / redis 计数等）
+2. 判断是否因 01/02 + Codex 共用同一 key 导致超额 → 给出方案：
+   - 方案A：调高该账户/key 每日限额（如 flash 档日请求数）
+   - 方案B：01/02 副脑改用独立 key（避免与 Codex 抢额度）
+3. 执行调整（生产配置改动前先备份/确认），改完主脑复测 Codex 调用
+4. 回执：✅ 限额已调 + 复测结果 / ⚠️ 卡点
+
+## 验收标准
+- api.ai24x.com 用 lei key 调 flash 不再 429（主脑实测）
+- 01/02 副脑 AI24X flash 不受影响（若走独立 key 需同步两脑 openclaw.json + 重启网关验证）
+
+## 截止
+今日 18:00 前回执（紧急可先回中间结论）

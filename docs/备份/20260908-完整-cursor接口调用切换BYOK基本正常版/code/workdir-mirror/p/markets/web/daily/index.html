@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+  <meta name="theme-color" content="#0a0c10">
+  <meta name="description" content="AI24X Markets Daily Brief — a descriptive daily technical snapshot of major US indices and stocks. 15-minute delayed data, educational purposes only, not investment advice.">
+  <title>AI24X Markets · Daily Brief</title>
+  <style>
+    :root {
+      --bg: #0a0c10; --panel: #12161d; --panel2: #181d26; --border: #252b36;
+      --text: #d8dee9; --muted: #8b949e; --accent: #4f8cff; --gold: #fbbf24;
+      --up: #f03a52; --down: #00b578;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .mk-top { position: sticky; top: 0; z-index: 100; background: rgba(18,22,29,.94); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+    .mk-top-inner { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 8px 16px; min-height: 52px; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; font-size: 16px; color: var(--text); white-space: nowrap; }
+    .brand b { color: var(--accent); }
+    .brand:hover { text-decoration: none; }
+    .brand-mark { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; font-size: 0.72rem; font-weight: 900; background: var(--accent); color: #fff; }
+    .mk-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+    .mk-nav a { padding: 7px 11px; border-radius: 8px; font-size: 0.88rem; font-weight: 600; color: var(--muted); }
+    .mk-nav a:hover { color: var(--text); background: var(--panel2); text-decoration: none; }
+    .mk-nav a.is-active { color: var(--accent); background: var(--panel2); }
+    main { padding: 22px 16px 40px; max-width: 920px; margin: 0 auto; }
+    .dl-head { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: flex-end; margin-bottom: 8px; }
+    .dl-head h1 { font-size: 22px; margin: 0; }
+    .dl-head p { color: var(--muted); font-size: 12px; margin: 5px 0 0; }
+    .dl-meta { color: var(--muted); font-size: 12px; margin-bottom: 14px; }
+    .dl-dates { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+    .dl-date { padding: 5px 11px; border: 1px solid var(--border); border-radius: 999px; background: #0d1117; color: var(--muted); font-size: 12px; cursor: pointer; }
+    .dl-date:hover { color: var(--text); border-color: var(--accent); }
+    .dl-date.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .dl-body { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; overflow-x: auto; }
+    .dl-body h1 { color: var(--gold); font-size: 21px; line-height: 1.4; }
+    .dl-body h2 { color: var(--gold); font-size: 16px; margin-top: 26px; }
+    .dl-body table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 10px 0 14px; min-width: 520px; }
+    .dl-body th, .dl-body td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+    .dl-body th { color: var(--muted); font-size: 12px; }
+    .dl-body a { color: var(--accent); }
+    .dl-body .up { color: var(--up); font-weight: 600; }
+    .dl-body .down { color: var(--down); font-weight: 600; }
+    .dl-body .meta { color: var(--muted); font-size: 13px; }
+    .dl-body .disc { color: var(--muted); font-size: 12.5px; margin-top: 26px; border-top: 1px solid var(--border); padding-top: 12px; }
+    .dl-empty { color: var(--muted); text-align: center; padding: 60px 20px; }
+    .dl-err { color: #f87171; text-align: center; padding: 40px 20px; }
+    .mk-footer { border-top: 1px solid var(--border); padding: 30px 16px 22px; background: var(--panel); color: var(--muted); font-size: 12px; }
+    .mk-footer-inner { max-width: 920px; margin: 0 auto; }
+    @media (max-width: 720px) {
+      .mk-top-inner { grid-template-columns: 1fr; gap: 6px; padding: 8px 10px; }
+      .dl-body { padding: 14px 12px; }
+    }
+  
+    /* —— 全站产品切换条 —— */
+    .ai24x-product-bar { border-bottom: 1px solid var(--border); background: rgba(10,12,16,.95); }
+    .ai24x-product-bar-inner { max-width: 1200px; margin: 0 auto; padding: 6px 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .ai24x-product-bar-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
+    .product-switch { display: inline-flex; align-items: center; gap: 2px; }
+    .product-switch a { font-size: 0.8rem; font-weight: 600; padding: 5px 10px; border-radius: 999px; text-decoration: none; }
+    .product-switch a.is-on { color: #fff; background: var(--accent); }
+    .product-switch a:not(.is-on) { color: var(--muted); }
+    .product-switch a:not(.is-on):hover { color: var(--text); background: var(--panel2); }
+
+  </style>
+</head>
+<body>
+    <div id="mk-product-bar"></div>
+<header class="mk-top">
+    <div class="mk-top-inner">
+      <a class="brand" href="/"><span class="brand-mark">AI</span><span>AI24X <b>Markets</b></span></a>
+      <nav class="mk-nav" aria-label="Main">
+        <a href="/">Home</a>
+        <a href="/pricing.html">Pricing</a>
+        <a href="/help.html">Help</a>
+      </nav>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <a id="signin-link" href="https://www.ai24x.com/login.html" target="_blank" rel="noopener" style="padding:4px 10px; border:1px solid var(--border); border-radius:999px; color:var(--muted); font-size:12px; text-decoration:none;">Sign in</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="dl-head">
+      <div>
+        <h1>Daily US Market Brief</h1>
+        <p>Descriptive technical snapshot of major indices &amp; stocks — 15-minute delayed data, educational purposes only.</p>
+      </div>
+    </div>
+    <div class="dl-dates" id="dl-dates"></div>
+    <div id="dl-meta" class="dl-meta"></div>
+    <div id="dl-body" class="dl-body"><div class="dl-empty">Loading…</div></div>
+  </main>
+
+  <footer class="mk-footer">
+    <div class="mk-footer-inner">
+      AI24X Markets provides educational technical analysis tools. Market data is delayed at least 15 minutes.
+      Nothing here is investment advice. Past performance is not a prediction of future results.
+    </div>
+  </footer>
+
+    <script src="/js/ai24x-chrome.js?v=20260829o"></script>
+  <script src="/js/www-links.js?v=20260829o"></script>
+  <script src="/js/mk-chrome.js?v=20260829o"></script>
+<script>
+    (function () {
+      'use strict';
+      try {
+        var base = (typeof AI24X_WWW_BASE === 'function') ? AI24X_WWW_BASE() : 'https://www.ai24x.com';
+        var s = document.getElementById('signin-link');
+        if (s) s.href = base + '/login.html?next=' + encodeURIComponent(location.href);
+      } catch (e) {}
+      var $ = function (id) { return document.getElementById(id); };
+      var dates = [];
+      function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+      }
+      function stripScripts(html) {
+        return String(html || '').replace(/<script[\s\S]*?<\/script>/gi, '');
+      }
+      function fmtDate(d) {
+        if (!d) return '';
+        if (/^\d{8}$/.test(d)) return d.slice(0, 4) + '-' + d.slice(4, 6) + '-' + d.slice(6, 8);
+        return d;
+      }
+      function renderDates(active) {
+        var box = $('dl-dates');
+        if (!box) return;
+        box.innerHTML = dates.map(function (d) {
+          return '<button type="button" class="dl-date' + (d === active ? ' active' : '') + '" data-date="' + esc(d) + '">' + esc(fmtDate(d)) + '</button>';
+        }).join('');
+        box.querySelectorAll('.dl-date').forEach(function (b) {
+          b.addEventListener('click', function () { loadBrief(b.getAttribute('data-date')); });
+        });
+      }
+      function loadBrief(date) {
+        var body = $('dl-body'), meta = $('dl-meta');
+        if (!body) return;
+        body.className = 'dl-body';
+        body.innerHTML = '<div class="dl-empty">Loading…</div>';
+        var url = '/api/brief/latest' + (date ? '?date=' + encodeURIComponent(date) : '');
+        fetch(url).then(function (r) { return r.json(); }).then(function (j) {
+          if (j.code !== 0 || !j.data) { body.className = 'dl-body'; body.innerHTML = '<div class="dl-err">Brief unavailable. Please try again later.</div>'; return; }
+          var d = j.data;
+          if (!d.available) {
+            body.className = 'dl-body';
+            body.innerHTML = '<div class="dl-empty">No brief published yet. The daily brief is generated after the US market close.</div>';
+            return;
+          }
+          dates = d.dates || [];
+          renderDates(d.date);
+          if (meta) meta.textContent = 'Edition ' + fmtDate(d.date) + (d.asof ? ' · market data as of ' + d.asof : '');
+          body.innerHTML = stripScripts(d.html || '<div class="dl-empty">No content.</div>');
+          body.querySelectorAll('a[href^="https://markets.ai24x.com/"]').forEach(function (a) {
+            a.href = a.href.replace('https://markets.ai24x.com', location.origin);
+          });
+        }).catch(function () {
+          body.className = 'dl-body';
+          body.innerHTML = '<div class="dl-err">Brief unavailable. Please try again later.</div>';
+        });
+      }
+      loadBrief('');
+    })();
+  </script>
+</body>
+</html>

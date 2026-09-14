@@ -1,0 +1,35 @@
+﻿diff --git a/api/main.py b/api/main.py
+index fda164a..b56bfe5 100644
+--- a/api/main.py
++++ b/api/main.py
+@@ -2746,13 +2746,15 @@ async def billing_pay_status():
+             "landing_page": str(getattr(cfg, "paypal_landing_page", "") or "BILLING"),
+         },
+         "console_hint": (
+-            "鎺у埗鍙板彧鏄剧ず wechat_ready/alipay_ready/paypal_ready=true 鐨勯€氶亾锛?
++            "鎺у埗鍙板彧鏄剧ず wechat/alipay/paypal/dodo ready=true 鐨勯€氶亾锛圕reem 宸插仠鐢ㄥ睍绀猴級锛?
++            "鍕垮紑 TOKEN_PAY_MOCK锛沇ebhook 蹇呴』楠岀銆?
+             "鐪?/v1/billing/plans 鐨?pay 瀛楁锛屾垨鏈帴鍙?wechat.missing"
+         ),
+         "next_steps": [
+             "纭 TOKEN_*_NOTIFY_URL 涓?a1 鍥炶皟涓嶅悓锛屽苟鍦ㄥ晢鎴峰钩鍙扮櫥璁?Token 鍥炶皟",
+             "寰俊缂洪」瑙?wechat.missing锛堝父瑙侊細serial_no 绌猴紝鎴?api_v3_key 涓嶆槸姝ｅソ 32 浣嶏級",
+             "PayPal锛氶厤 PAYPAL_CLIENT_ID/SECRET锛孧ODE=sandbox 鑱旇皟锛汱ive 浠呭紑鍦ㄥ壇鑴?4",
++            "Dodo锛氶厤 DODO_* + webhook 楠岀锛涘惎鐢ㄥ椁愬悗绠＄悊鍙板悓姝?Dodo 浜у搧",
+             "鏀瑰畬 api/.env 鍚?pm2 restart core-api-8002 --update-env",
+             "瀹炰粯鍚庢牳瀵?token_pay_orders + 閽卞寘锛涘苟鍥炲綊 a1 鏀粯",
+         ],
+diff --git a/api/token_pay_service.py b/api/token_pay_service.py
+index a443ba2..6910579 100644
+--- a/api/token_pay_service.py
++++ b/api/token_pay_service.py
+@@ -770,7 +770,8 @@ def admin_token_summary(db: Session) -> dict:
+                 "wechat": _cnt("paid", "wechat"),
+                 "alipay": _cnt("paid", "alipay"),
+                 "paypal": _cnt("paid", "paypal"),
+-                "creem": _cnt("paid", "creem"),
++                "dodo": _cnt("paid", "dodo"),
++                "creem": _cnt("paid", "creem"),  # 鍘嗗彶閫氶亾锛涚鐞嗗彴 UI 宸蹭笉灞曠ず
+             },
+             "paid_amount_cny_fen": int(paid_fen or 0),
+             "paid_amount_usd_cents": int(paid_usd_cents or 0),

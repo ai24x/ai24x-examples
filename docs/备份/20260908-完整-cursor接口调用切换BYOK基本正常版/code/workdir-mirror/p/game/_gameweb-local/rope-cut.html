@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Rope Cut · 割绳解谜</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; }
+  body {
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background:#0f172a; color:#e2e8f0; overflow:hidden; user-select:none;
+    touch-action:manipulation; overscroll-behavior:none;
+  }
+  #wrap { height:100dvh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:8px; }
+  .hud { display:flex; gap:24px; font-size:15px; font-weight:700; color:#94a3b8; }
+  .hud b { color:#fbbf24; font-size:18px; }
+  .hud .cb { color:#4ade80; }
+  #stage { width:100%; max-width:390px; aspect-ratio:390/700; position:relative; border-radius:20px; overflow:hidden; background:linear-gradient(180deg,#312e81 0%,#1e1b4b 100%); border:2px solid #334155; touch-action:none; }
+  canvas { display:block; width:100%; height:100%; }
+  #tip { font-size:12px; color:#64748b; min-height:16px; }
+  #overlay { position:fixed; inset:0; background:rgba(2,6,23,.9); display:none; align-items:center; justify-content:center; z-index:10; }
+  #overlay.show { display:flex; }
+  .panel { text-align:center; padding:30px 26px; border-radius:20px; background:#1e293b; border:1px solid #334155; max-width:320px; width:90%; }
+  .panel h2 { font-size:22px; margin-bottom:6px; }
+  .clear { font-size:40px; font-weight:800; color:#4ade80; margin:6px 0; }
+  .grade { font-size:24px; font-weight:800; margin-bottom:4px; }
+  .best { color:#94a3b8; font-size:14px; margin-bottom:14px; }
+  .share { font-size:13px; color:#fbbf24; margin-bottom:16px; padding:8px 12px; background:#1e293b; border:1px dashed #475569; border-radius:10px; }
+  .play { background:linear-gradient(90deg,#4ade80,#38bdf8); border:none; color:#fff; font-size:18px; font-weight:800; padding:13px 38px; border-radius:999px; cursor:pointer; box-shadow:0 6px 0 rgba(0,0,0,.3); touch-action:manipulation; }
+  .play:active { transform: translateY(3px); box-shadow:0 3px 0 rgba(0,0,0,.3); }
+</style>
+</head>
+<body>
+<div id="topbar"><a href="index.html">← 列表</a><span class="tt">Rope Cut<span class="tg">割绳解谜</span></span><button id="howBtn" aria-label="玩法说明">?</button></div>
+<div id="howto"><b>怎么玩</b><br>点绳子把它割断，糖果受重力掉进杯子就过关！每关限割 3 次，割错方向或割完没进杯子就要重来。5 关越来越难。</div>
+<div id="wrap">
+  <div class="hud"><div>第 <b id="lvl">1</b> 关</div><div>通关 <b class="cb" id="clr">0</b>/5</div><div>✂️ 剩余 <b id="cuts">3</b></div></div>
+  <div id="stage"><canvas id="cv"></canvas></div>
+  <div id="tip">点击绳子中点附近，割断它</div>
+</div>
+
+<div id="overlay">
+  <div class="panel">
+    <h2 id="ovTitle">🎉 全部通关！</h2>
+    <div class="clear" id="ovClear">5/5 关</div>
+    <div class="grade" id="ovGrade">割绳大师</div>
+    <div class="best" id="bestLine">最佳 0/5</div>
+    <div class="share" id="shareTxt">我割绳通关了 5/5 关（割绳大师），你能做到吗？</div>
+    <button class="play" id="restart">再来一次</button>
+  </div>
+</div>
+
+<style id="xz-shell">
+#topbar{position:fixed;top:0;left:0;right:0;height:64px;z-index:50;display:flex;align-items:center;gap:10px;padding:0 14px;background:rgba(15,23,42,.94);backdrop-filter:blur(8px);border-bottom:1px solid #334155;color:#e2e8f0;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;-webkit-user-select:none;user-select:none;}
+#topbar a{color:#38bdf8;text-decoration:none;font-size:14px;font-weight:700;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+#topbar .tt{flex:1;text-align:center;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#topbar .tg{font-size:11px;color:#94a3b8;font-weight:400;margin-left:4px;}
+#howBtn{width:30px;height:30px;border-radius:50%;border:1px solid #334155;background:#1e293b;color:#94a3b8;font-weight:800;cursor:pointer;font-size:15px;line-height:1;flex:none;}
+#howto{display:none;position:fixed;top:72px;left:50%;transform:translateX(-50%);width:min(92vw,420px);z-index:70;background:#1e293b;border:1px solid #475569;border-radius:14px;padding:14px 16px;color:#cbd5e1;font-size:13px;line-height:1.7;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;box-shadow:0 12px 32px rgba(0,0,0,.55);}
+#howto.show{display:block;}
+#howto b{color:#38bdf8;}
+.xz-cr{position:fixed;bottom:4px;right:10px;font-size:10px;color:#475569;z-index:45;font-family:-apple-system,"Segoe UI",sans-serif;pointer-events:none;-webkit-user-select:none;user-select:none;}
+</style>
+
+<script>
+(function(){
+  'use strict';
+  var cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+  var lvlEl=document.getElementById('lvl'), clrEl=document.getElementById('clr'), cutsEl=document.getElementById('cuts');
+  var tip=document.getElementById('tip'), overlay=document.getElementById('overlay');
+  var ovTitle=document.getElementById('ovTitle'), ovClear=document.getElementById('ovClear'), ovGrade=document.getElementById('ovGrade');
+  var bestLine=document.getElementById('bestLine'), shareTxt=document.getElementById('shareTxt'), restart=document.getElementById('restart');
+
+  var W=390, H=700, DPR=Math.min(2, devicePixelRatio||1);
+  cv.width=W*DPR; cv.height=H*DPR; ctx.scale(DPR,DPR);
+
+  var BEST=+localStorage.getItem('xz-rc-best')||0;
+  var LV=[
+    {a:[[195,90]],   candy:[195,200], cup:195, planks:[],        pend:0, tip:'直接割断绳子，糖果掉进杯子！'},
+    {a:[[110,140]],  candy:[110,250], cup:320, planks:[[100,520,310,570]], pend:0, tip:'糖果会沿木板滑进杯子'},
+    {a:[[110,120],[280,120]], candy:[195,235], cup:110, planks:[], pend:0, tip:'割掉远离杯子的那根绳！'},
+    {a:[[195,100]],  candy:[195,230], cup:285, planks:[],        pend:90, tip:'等摆锤荡到杯子正上方再割！'},
+    {a:[[120,110],[270,110]], candy:[195,230], cup:330, planks:[[140,420,330,470]], pend:0, tip:'先割近的一根，让它滑上木板'}
+  ];
+  var lvl=0, cleared=0, cuts=0, candy=null, cutA=[], onPlank=null, slideDir=0, retryLvl=0;
+  var state='ready', endT=0, t=0, popupT=0;
+
+  function reset(n){
+    lvl=n; cleared=0; t=0;
+    loadLevel();
+    clrEl.textContent=0;
+    overlay.classList.remove('show');
+  }
+  function loadLevel(){
+    var L=LV[lvl];
+    cuts=3; cutA=L.a.map(function(){return false;});
+    candy={ x:L.candy[0], y:L.candy[1], vx:0, vy:0, r:12, prevY:L.candy[1] };
+    onPlank=null; slideDir=0; state='ready'; endT=0; popupT=0;
+    lvlEl.textContent=lvl+1; clrEl.textContent=cleared; cutsEl.textContent=cuts;
+    tip.textContent=L.tip;
+  }
+
+  function cutRope(x,y){
+    if(state!=='ready') return;
+    if(cuts<=0) return;
+    var L=LV[lvl], hit=-1;
+    for(var i=0;i<L.a.length;i++){
+      if(cutA[i]) continue;
+      var ax=L.a[i][0], ay=L.a[i][1];
+      var mx=(ax+candy.x)/2, my=(ay+candy.y)/2;
+      if(Math.hypot(x-mx,y-my)<=28){ hit=i; break; }
+    }
+    if(hit<0) return;
+    cutA[hit]=true; cuts--;
+    cutsEl.textContent=cuts;
+    // 只剩一根绳时糖果滑到该锚点正下方
+    var left=L.a.filter(function(_,i){ return !cutA[i]; });
+    if(left.length===1 && !L.pend){
+      var an=left[0];
+      var len=Math.hypot(candy.x-an[0], candy.y-an[1]);
+      candy.x=an[0]; candy.y=an[1]+len;
+    }
+    if(left.length===0){
+      candy.vy=0.5; state='fall';
+      tip.textContent='';
+    }
+    if(cuts<=0 && state==='ready'){ state='fail'; endT=45; tip.textContent='次数用完了！'; }
+  }
+
+  function update(){
+    t++;
+    var L=LV[lvl];
+    if(L.pend && state==='ready'){
+      var ax=L.a[0][0]+Math.sin(t*0.025)*L.pend;
+      candy.x=ax; candy.y=L.a[0][1]+130;
+    }
+    if(state==='fall'||state==='slide'){
+      candy.prevY=candy.y;
+      candy.vy+=0.5; candy.y+=candy.vy; candy.x+=candy.vx;
+      candy.vx=0;
+      // 木板顶面
+      for(var i=0;i<L.planks.length;i++){
+        var p=L.planks[i];
+        if(candy.x>p[0] && candy.x<p[2]){
+          var sy=p[1]+(p[3]-p[1])*(candy.x-p[0])/(p[2]-p[0]);
+          if(candy.vy>0 && candy.prevY+candy.r<=sy && candy.y+candy.r>=sy){
+            candy.y=sy-candy.r; candy.vy=0;
+            state='slide'; onPlank=p; slideDir=p[3]>p[1]?1:-1;
+            candy.vx=slideDir*2.2;
+          }
+        }
+      }
+      if(state==='slide'){
+        candy.x+=slideDir*2.2;
+        var sy2=p[1]+(p[3]-p[1])*(candy.x-p[0])/(p[2]-p[0]);
+        candy.y=sy2-candy.r;
+        if(candy.x<=p[0]+1 || candy.x>=p[2]-1){ onPlank=null; state='fall'; candy.vx=0; }
+      }
+      // 进杯
+      if(candy.y+candy.r>=640 && Math.abs(candy.x-L.cup)<=52 && candy.vy>0){
+        candy.y=628-candy.r; candy.vy=0; candy.vx=0;
+        state='win'; endT=60; popupT=50;
+        tip.textContent='🎉 过关！';
+      } else if(candy.y+candy.r>=696 || candy.x<-80 || candy.x>W+80){
+        candy.y=Math.min(candy.y,696-candy.r);
+        state='fail'; endT=60; popupT=50;
+        tip.textContent='没进杯子，再试一次';
+      }
+    }
+    if(state==='win' && endT>0 && --endT===0){
+      cleared++;
+      if(BEST<cleared){ BEST=cleared; localStorage.setItem('xz-rc-best',BEST); }
+      if(lvl<LV.length-1){ lvl++; loadLevel(); }
+      else{ showEnd(true); }
+    }
+    if(state==='fail' && endT>0 && --endT===0) showEnd(false);
+    if(popupT>0) popupT--;
+  }
+
+  function showEnd(winAll){
+    retryLvl = winAll?0:lvl;
+    if(winAll){
+      var g = cleared>=5?'🏆 割绳大师' : cleared===4?'🔥 高手' : '👍 好手';
+      ovTitle.textContent='🎉 全部通关！';
+      ovClear.textContent=cleared+'/5 关';
+      ovGrade.textContent=g;
+      bestLine.textContent='最佳 '+BEST+'/5';
+      shareTxt.textContent='我割绳通关了 '+cleared+'/5 关（'+g+'），你能做到吗？';
+    } else {
+      var g2 = cleared>=3?'👍 不错' : '😅 新手';
+      ovTitle.textContent='😵 没进杯子！';
+      ovClear.textContent='已通关 '+cleared+'/5 关';
+      ovGrade.textContent=g2;
+      bestLine.textContent='最佳 '+BEST+'/5';
+      shareTxt.textContent='我割绳通了 '+cleared+'/5 关（'+g2+'），你能全通吗？';
+    }
+    overlay.classList.add('show');
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    var bg=ctx.createLinearGradient(0,0,0,H);
+    bg.addColorStop(0,'#312e81'); bg.addColorStop(1,'#1e1b4b');
+    ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+    // 地面
+    ctx.fillStyle='#4c1d95'; ctx.fillRect(0,696,W,4);
+    // 杯子
+    var L=LV[lvl], cx=L.cup;
+    ctx.fillStyle='#fbbf24';
+    ctx.beginPath();
+    ctx.moveTo(cx-52,640); ctx.quadraticCurveTo(cx-52,690, cx,690);
+    ctx.quadraticCurveTo(cx+52,690, cx+52,640);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#f59e0b';
+    ctx.fillRect(cx-54,636,108,8);
+    // 木板
+    ctx.strokeStyle='#a16207'; ctx.lineWidth=16; ctx.lineCap='round';
+    for(var i=0;i<L.planks.length;i++){
+      var p=L.planks[i];
+      ctx.beginPath(); ctx.moveTo(p[0],p[1]); ctx.lineTo(p[2],p[3]); ctx.stroke();
+    }
+    ctx.strokeStyle='#78350f'; ctx.lineWidth=2;
+    for(var j=0;j<L.planks.length;j++){
+      var q=L.planks[j];
+      ctx.beginPath(); ctx.moveTo(q[0],q[1]); ctx.lineTo(q[2],q[3]); ctx.stroke();
+    }
+    // 绳子
+    ctx.strokeStyle='#d6d3d1'; ctx.lineWidth=4;
+    for(var k=0;k<L.a.length;k++){
+      if(cutA[k]) continue;
+      ctx.beginPath(); ctx.moveTo(L.a[k][0],L.a[k][1]); ctx.lineTo(candy.x,candy.y); ctx.stroke();
+      // 锚点
+      ctx.fillStyle='#94a3b8';
+      ctx.beginPath(); ctx.arc(L.a[k][0],L.a[k][1],6,0,7); ctx.fill();
+    }
+    // 糖果
+    ctx.fillStyle='#f87171';
+    ctx.beginPath(); ctx.arc(candy.x,candy.y,candy.r,0,7); ctx.fill();
+    ctx.fillStyle='#fff';
+    ctx.fillRect(candy.x-9,candy.y-3,18,2.5);
+    ctx.fillRect(candy.x-9,candy.y+1,18,2.5);
+    // 过关/失败提示
+    if(popupT>0){
+      ctx.font='bold 26px sans-serif'; ctx.textAlign='center';
+      ctx.fillStyle=state==='win'?'#4ade80':'#f87171';
+      ctx.fillText(state==='win'?'过关！':'失败',W/2,300);
+      ctx.textAlign='left';
+    }
+  }
+
+  function loop(){ update(); draw(); requestAnimationFrame(loop); }
+
+  var stage=document.getElementById('stage');
+  stage.addEventListener('pointerdown', function(e){
+    e.preventDefault();
+    var r=stage.getBoundingClientRect();
+    cutRope((e.clientX-r.left)/r.width*W, (e.clientY-r.top)/r.height*H);
+  });
+  restart.addEventListener('click', function(){ reset(retryLvl); });
+
+  reset(0); loop();
+})();
+</script>
+<script>
+(function(){
+  'use strict';
+  var W=390,H=780,TOP=64;
+  var wrap=document.getElementById('wrap');
+  function fit(){
+    if(!wrap) return;
+    var s=Math.min(innerWidth/W,(innerHeight-TOP)/H);
+    if(s>1.4) s=1.4;
+    var w=W*s,h=H*s;
+    wrap.style.width=w+'px';
+    wrap.style.height=h+'px';
+    wrap.style.left=((innerWidth-w)/2)+'px';
+    wrap.style.top=(TOP+(innerHeight-TOP-h)/2)+'px';
+    wrap.style.position='fixed';
+    wrap.style.margin='0';
+    wrap.style.transform='scale('+s+')';
+    wrap.style.transformOrigin='top left';
+  }
+  fit();
+  addEventListener('resize',fit);
+  addEventListener('orientationchange',fit);
+  var ov=document.getElementById('overlay');
+  if(ov) ov.style.zIndex=60;
+  var hb=document.getElementById('howBtn'),ht=document.getElementById('howto');
+  if(hb&&ht){
+    hb.addEventListener('click',function(e){e.stopPropagation();ht.classList.toggle('show');});
+    document.addEventListener('pointerdown',function(e){if(ht.classList.contains('show')&&!ht.contains(e.target)&&e.target!==hb)ht.classList.remove('show');});
+  }
+  document.addEventListener('contextmenu',function(e){e.preventDefault();});
+  document.addEventListener('dragstart',function(e){e.preventDefault();});
+  document.addEventListener('keydown',function(e){
+    var k=e.key||'';
+    if(k==='F12'||(e.ctrlKey&&['s','u','p','S','U','P'].indexOf(k)>=0)||(e.ctrlKey&&e.shiftKey&&['i','j','c','I','J','C'].indexOf(k)>=0)){e.preventDefault();e.stopPropagation();return false;}
+  });
+})();
+</script>
+<div class="xz-cr">© 2026 AI24X Game Zone</div>
+</body>
+</html>

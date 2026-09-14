@@ -1,0 +1,1586 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <!-- 华为等浏览器：限制缩放 + 早期视口校正，避免「页面偏宽、右侧裁切」 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="HandheldFriendly" content="true" />
+  <meta name="MobileOptimized" content="width" />
+  <meta name="format-detection" content="telephone=no" />
+  <script>
+    (function () {
+      // 华为/部分国产浏览器：layout 视口常大于可视宽度，右侧按钮被裁切
+      function fixVp() {
+        try {
+          var iw = window.innerWidth || 0;
+          var vv = (window.visualViewport && window.visualViewport.width) || 0;
+          var sw = (window.screen && screen.width) || 0;
+          var nums = [iw, vv, sw].filter(function (n) { return n > 0; });
+          if (!nums.length) return;
+          var use = Math.min.apply(null, nums);
+          var root = document.documentElement;
+          var cw = root.clientWidth || 0;
+          var coarse = false;
+          try {
+            coarse = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+          } catch (eC) {}
+          // 手机屏宽、粗指针，或 clientWidth 明显大于可视宽 → 强制收窄
+          var phoneLike = (sw > 0 && sw <= 520) || (coarse && use > 0 && use <= 980);
+          var tooWide = cw > use + 8;
+          if (!phoneLike && !tooWide) return;
+          var w = Math.floor(use);
+          if (w < 240) return;
+          root.style.width = w + "px";
+          root.style.maxWidth = w + "px";
+          root.style.overflowX = "hidden";
+          root.classList.add("vp-narrow-fix");
+          if (document.body) {
+            document.body.style.width = w + "px";
+            document.body.style.maxWidth = w + "px";
+            document.body.style.overflowX = "hidden";
+          }
+          var wraps = document.querySelectorAll(".wrap, .home-grid, .home-login, .home-login .card, main .container");
+          for (var i = 0; i < wraps.length; i++) {
+            var el = wraps[i];
+            try {
+              if (el.closest && (el.closest(".site-header") || el.closest(".site-footer") || el.closest("header") || el.closest("footer"))) {
+                continue;
+              }
+            } catch (eSkip) {}
+            el.style.maxWidth = "100%";
+            el.style.width = "100%";
+            el.style.minWidth = "0";
+            el.style.boxSizing = "border-box";
+          }
+        } catch (e0) {}
+      }
+      fixVp();
+      try {
+        window.addEventListener("resize", fixVp, { passive: true });
+        window.addEventListener("orientationchange", function () { setTimeout(fixVp, 50); });
+        if (window.visualViewport) {
+          window.visualViewport.addEventListener("resize", fixVp, { passive: true });
+        }
+        document.addEventListener("DOMContentLoaded", fixVp);
+        setTimeout(fixVp, 0);
+        setTimeout(fixVp, 300);
+      } catch (e1) {}
+    })();
+  </script>
+  <script>
+  /* 手机访问默认进手机主页 m/（保留邀请码等查询参数）；mode=register/login 的注册登录入口留在桌面页；
+     force=1 或会话强制桌面则不跳；爬虫/分享预览不跳（保护 SEO）。 */
+  (function () {
+    try {
+      var ua = String(navigator.userAgent || "").toLowerCase();
+      if (/bot|crawler|spider|slurp|bingpreview|yandex|baiduspider|duckduckbot|facebookexternalhit|whatsapp|preview/i.test(ua)) return;
+      var isPhone = /iphone|ipad|ipod|android|mobile/i.test(ua);
+      var narrow = window.matchMedia && window.matchMedia("(max-width: 640px)").matches;
+      if (!isPhone || !narrow) return;
+      var forced = /[?&]force=1/.test(location.search);
+      if (forced) { try { sessionStorage.setItem("ai24x_desktop_force", "1"); } catch (e) {} }
+      var skip = false;
+      try { skip = sessionStorage.getItem("ai24x_desktop_force") === "1"; } catch (e) {}
+      if (skip || location.pathname.indexOf("/m/") >= 0) return;
+      var sp = new URLSearchParams(String(location.search || "").replace(/^\?/, ""));
+      var mode = String(sp.get("mode") || "").trim().toLowerCase();
+      if (mode === "register" || mode === "login") return; // 注册/登录留在桌面 auth 卡
+      location.replace("m/" + location.search);
+    } catch (e) {}
+  })();
+  </script>
+  <meta name="robots" content="index,follow" />
+  <title>AI行情官｜灯塔版 — 股票K线信号分析工具，均线指标免费看</title>
+  <meta name="description" content="AI行情官灯塔版：免费股票K线信号分析工具。底1底2B信号、MA14/MA28/MA57双生命线、MACD副图指标、同花顺选股公式，上证/深证/北证50的K线结构要点与关键位信号一页看清。" />
+  <meta name="keywords" content="AI行情官,AI行情官灯塔版,股票K线信号,均线指标,同花顺指标,选股公式,免费K线分析" />
+  <link rel="canonical" href="https://a.ai24x.com/" />
+  <meta name="applicable-device" content="pc,mobile" />
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://a.ai24x.com/" />
+  <meta property="og:title" content="AI行情官｜灯塔版 — 股票K线信号分析工具" />
+  <meta property="og:description" content="免费股票K线信号分析工具：底/B信号、双生命线均线、MACD，一页看清结构要点。" />
+  <meta property="og:image" content="https://a.ai24x.com/img/share-preview.png" />
+  <!-- Schema.org -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "AI行情官｜灯塔版",
+    "url": "https://a.ai24x.com/",
+    "description": "免费股票K线信号分析工具，提供底/B信号、双生命线均线体系、MACD指标",
+    "applicationCategory": "FinanceApplication",
+    "operatingSystem": "Web"
+  }
+  </script>
+  <link rel="icon" href="data:," />
+  <script>
+    (function () {
+      try {
+        var k = "ai24x_a_theme";
+        var t = String(localStorage.getItem(k) || "").trim() || "calm";
+        document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
+  <script>
+    (function () {
+      // Invite short link: /i/{CODE} → /demo.html?i={CODE} (content-first)
+      // Keep this redirect in the static page to avoid Nginx/app rewrites drifting.
+      try {
+        var p = String(location.pathname || "");
+        var m = p.match(/^\/i\/([A-Za-z0-9_-]{4,32})\/?$/);
+        if (!m || !m[1]) return;
+        var code = String(m[1] || "").trim().toUpperCase();
+        if (!code) return;
+        var u = new URL(String(location.href));
+        u.pathname = "/demo.html";
+        u.searchParams.set("i", code);
+        // Remove mode=register if already set (doesn't apply to demo.html)
+        u.searchParams.delete("mode");
+        try { location.replace(u.toString()); } catch (e2) { location.href = u.toString(); }
+        } catch (e0) {}
+    })();
+
+    // Also save invite code from URL to localStorage (for cross-page journey)
+    (function tryReadInvite() {
+      try {
+        var raw = '';
+        var sp = new URLSearchParams(String(location.search || '').replace(/^\?/, ''));
+        raw = sp.get('i') || sp.get('invite') || sp.get('inv') || sp.get('ref') || '';
+        raw = String(raw || '').trim().toUpperCase();
+        if (!raw) return;
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('ai24x_invite_code', raw);
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="/css/base.css?v=56" />
+  <link rel="stylesheet" href="/css/tool.css?v=44" />
+  <style>
+    /* Home layout: left intro + right login panel (no JS changes) */
+    .home-grid{
+      display:grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+      gap: 16px;
+      align-items: stretch;
+    }
+    @media (max-width: 980px){
+      .home-grid{ grid-template-columns: 1fr; }
+    }
+    /* Huawei / UC often report a wide layout viewport while displaying a scaled page.
+       Force single-column auth-friendly layout for phone-sized screens. */
+    @media (max-width: 980px), (max-device-width: 980px), (pointer: coarse) {
+      .home-grid{ grid-template-columns: 1fr !important; width: 100% !important; max-width: 100% !important; min-width: 0 !important; }
+      .home-intro, .home-login, .home-login .card, .home-intro .card{
+        width: 100% !important; max-width: 100% !important; min-width: 0 !important;
+        box-sizing: border-box !important;
+      }
+      .hero-split{ flex-direction: column !important; max-width: 100% !important; }
+      .hero-copy{ min-width: 0 !important; flex: 1 1 auto !important; max-width: 100% !important; }
+      .hero-art{ width: 100% !important; max-width: 100% !important; }
+      .feature-list{ grid-template-columns: 1fr !important; }
+      .wrap, main .container, .home-grid, .home-login, .home-login .card{
+        width: 100% !important; max-width: 100% !important;
+        padding-left: 10px !important; padding-right: 10px !important;
+        box-sizing: border-box !important;
+      }
+      /* 顶栏/页脚保持与全站一致的居中容器，勿被首页窄屏规则撑满 */
+      .site-header .container.header-inner,
+      .site-footer .container{
+        max-width: 1140px !important;
+        width: 100% !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+      }
+      .btns{
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+      }
+      .btns .btn{
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        text-align: center;
+        justify-content: center;
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+      }
+      .auth-card-grid{ max-width: 100% !important; width: 100% !important; min-width: 0 !important; }
+      .auth-card{ min-width: 0 !important; }
+      .kv{ max-width: 100% !important; flex-wrap: wrap !important; }
+      .field-block input, .field-otp-row input{
+        min-width: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+      }
+    }
+    /* 极窄可视宽度：按钮改为单列，避免右列被裁 */
+    @media (max-width: 360px), (max-device-width: 360px) {
+      .btns{ grid-template-columns: 1fr !important; }
+      .auth-card-grid{ grid-template-columns: 1fr 1fr !important; }
+    }
+    html.vp-narrow-fix .wrap,
+    html.vp-narrow-fix .home-grid,
+    html.vp-narrow-fix .home-login,
+    html.vp-narrow-fix .home-login .card,
+    html.vp-narrow-fix .btns,
+    html.vp-narrow-fix .auth-card-grid {
+      max-width: 100% !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      box-sizing: border-box !important;
+    }
+    html.vp-narrow-fix .home-grid {
+      grid-template-columns: 1fr !important;
+    }
+    html.vp-narrow-fix .btns {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+    }
+
+    .home-intro .card{ margin-top: 0; height: 100%; }
+    .home-login .card{ margin-top: 0; height: auto; overflow: visible; }
+    .home-login .login-form{ overflow: visible; }
+
+    .hero-split{
+      display:flex;
+      gap: 14px;
+      align-items: stretch;
+      justify-content: space-between;
+    }
+    .hero-copy{ flex: 1 1 auto; min-width: 0; }
+    /* Protect copy column when art grows */
+    @media (min-width: 981px){
+      .hero-copy{ min-width: 340px; }
+    }
+    .hero-head{
+      display:flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 0 0 8px;
+    }
+    .hero-copy h1{ font-size: 18px; margin: 0; }
+    .gold-chip{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      color: rgba(24,18,6,.95);
+      background: linear-gradient(135deg, rgba(251,191,36,.95), rgba(250,204,21,.92));
+      border: 1px solid rgba(251,191,36,.45);
+      box-shadow: 0 8px 18px rgba(251,191,36,.18);
+      white-space: nowrap;
+      text-decoration: none;
+    }
+    .vip-cta{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      text-decoration: none;
+      color: rgba(24,18,6,.98);
+      background: linear-gradient(135deg, rgba(255,214,102,1), rgba(251,191,36,.95));
+      border: 1px solid rgba(251,191,36,.55);
+      box-shadow: 0 10px 20px rgba(251,191,36,.22);
+    }
+    .vip-cta:hover{ filter: brightness(1.03); transform: translateY(-1px); }
+    .vip-cta:active{ transform: translateY(0); filter: brightness(0.98); }
+    .vip-cta .dot{
+      width: 6px; height: 6px; border-radius: 999px;
+      background: rgba(255,255,255,.85);
+      box-shadow: 0 0 0 3px rgba(255,255,255,.22);
+    }
+    .hero-copy p{ margin: 0; }
+    .hero-art{
+      flex: 0 0 auto;
+      width: 1040px;
+      max-width: 100%;
+      height: clamp(260px, 36vw, 420px);
+      aspect-ratio: 1040 / 420;
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      border-radius: 14px;
+      overflow:hidden;
+      box-shadow: var(--shadow-md);
+    }
+    .hero-art svg{ display:block; width:100%; height:100%; }
+    /* subtle hover boost beam */
+    .hero-art .beam-boost{ opacity: 0; transition: opacity .25s ease; }
+    .hero-art:hover .beam-boost{ opacity: 1; }
+    @media (max-width: 980px){
+      .hero-art{ width: 100%; max-width: 100%; }
+      .hero-split{ flex-direction: column; }
+    }
+    @media (max-width: 520px){
+      .hero-art{ height: clamp(220px, 56vw, 340px); }
+    }
+
+    .feature-list{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+    @media (max-width: 980px){ .feature-list{ grid-template-columns: 1fr; } }
+    .feature{
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      border-radius: 14px;
+      padding: 12px 12px;
+    }
+    .feature .t{ font-weight: 800; font-size: 13px; margin-bottom: 4px; }
+    .feature .p{ color: var(--muted); font-size: 12px; line-height: 1.55; }
+
+    .login-title{
+      display:flex; align-items: baseline; justify-content: space-between; gap: 10px;
+      margin-bottom: 6px;
+    }
+    .login-title h1{ margin:0; font-size: 15px; font-weight: 900; }
+    .login-title .sub{ color: var(--muted); font-size: 11px; }
+
+    .auth-card-grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin: 8px 0 10px;
+    }
+    .auth-card{
+      position:relative;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      margin:0;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      cursor: pointer;
+      transition: border-color .15s ease, background .15s ease;
+    }
+    .auth-card input[type="radio"]{
+      flex:0 0 auto;
+      width:15px;
+      height:15px;
+      min-width:15px;
+      max-width:15px;
+      margin:0;
+      padding:0;
+      border:0;
+      box-sizing:border-box;
+      accent-color: #60a5fa;
+      cursor: pointer;
+    }
+    .auth-card.is-selected{
+      border-color: rgba(96,165,250,.55);
+      background: rgba(96,165,250,.12);
+    }
+    .auth-card .t{ font-weight: 900; font-size: 13px; }
+    .auth-card .d{ margin-top: 4px; font-size: 12px; color: var(--muted); line-height: 1.45; }
+    .auth-callout{
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+      margin: 0 0 8px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(96,165,250,.08);
+    }
+    @media (max-width: 420px), (max-device-width: 420px){
+      /* 登录/注册卡片保持一行两列，缩短纵向长度 */
+      .auth-card-grid{ grid-template-columns: 1fr 1fr; gap: 6px; max-width: 100%; }
+      .auth-card{ padding: 8px 12px; min-width: 0; }
+      .auth-card .t{ font-size: 12px; }
+      .wrap{ padding-left: 10px; padding-right: 10px; }
+      .btns{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .btns .btn{ width: 100%; text-align: center; justify-content: center; padding: 9px 6px; font-size: 13px; }
+    }
+    /* OTP / 忘记密码：窄屏仍保持「输入 + 按钮」一行两列，避免表单被拉得过长 */
+    @media (max-width: 640px), (max-device-width: 640px){
+      .field-block{ margin-top: 8px; }
+      .field-label{ margin-bottom: 4px; }
+      .auth-callout{ margin: 0 0 6px; padding: 6px 8px; font-size: 11px; }
+      .field-otp-row{
+        flex-direction: row !important;
+        align-items: stretch !important;
+        flex-wrap: nowrap;
+        gap: 8px;
+      }
+      .field-otp-row input{
+        flex: 1 1 0 !important;
+        min-width: 0 !important;
+        width: auto !important;
+        max-width: none !important;
+      }
+      .field-otp-row .btn,
+      .field-otp-row button,
+      .field-otp-row a.btn{
+        flex: 0 0 auto !important;
+        width: auto !important;
+        max-width: 42%;
+        min-width: 0 !important;
+        min-height: 40px;
+        padding: 8px 10px !important;
+        font-size: 12px !important;
+        white-space: nowrap;
+        box-sizing: border-box;
+      }
+      .login-title{ flex-wrap: wrap; }
+      .login-title .sub{ font-size: 12px; }
+    }
+    /* 重点操作：忘记密码略亮，次于主提交按钮 */
+    .btn-forgot{
+      border-color: rgba(96,165,250,.65) !important;
+      background: rgba(96,165,250,.22) !important;
+      color: #bfdbfe !important;
+      font-weight: 700;
+    }
+    .btn-forgot:hover{
+      border-color: #60a5fa !important;
+      background: rgba(96,165,250,.34) !important;
+      color: #eff6ff !important;
+    }
+    .field-block{ margin-top: 12px; }
+    .field-label{ display:block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
+    .field-block input{ width: 100%; box-sizing: border-box; min-width: 0 !important; max-width: none !important; flex: 1 1 auto !important; }
+    .field-otp-row{
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 10px;
+      margin-top: 6px;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    .field-otp-row input{
+      flex: 1 1 auto !important;
+      min-width: 0 !important;
+      max-width: none !important;
+      width: auto;
+    }
+    .field-otp-row .btn,
+    .field-otp-row button,
+    .field-otp-row a.btn{
+      flex: 0 0 auto;
+      white-space: nowrap;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    .link-btn{
+      background: none;
+      border: none;
+      padding: 0;
+      margin: 0;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      color: #60a5fa;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .link-btn:disabled{ opacity: .45; cursor: not-allowed; text-decoration: none; }
+    .logged-strip{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      margin-bottom: 12px;
+    }
+    .logged-strip .t{ font-size: 13px; font-weight: 800; }
+
+    .logged-hint{
+      margin-top: 12px;
+      padding: 12px 12px 10px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(96,165,250,.06);
+    }
+    .logged-account{
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+    .logged-hint-title{
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .logged-hint-list{
+      margin: 0;
+      padding-left: 1.15em;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+    .logged-hint-list li{ margin-bottom: 4px; }
+
+    /* Form alignment */
+    .login-form .row{ margin-top: 10px; }
+    .login-form input{ width: 100%; max-width: 100%; }
+    .login-form .row > input{ flex: 1 1 260px; }
+    .login-form .row > button{ flex: 0 0 auto; }
+    .login-form .status{
+      margin-top: 8px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: inherit;
+      background: transparent;
+      border: 1px solid transparent;
+    }
+    .login-form .status.is-error{
+      color: #fff;
+      background: linear-gradient(90deg, rgba(255,61,92,0.85), rgba(255,61,92,0.65));
+      border-color: #ff3d5c;
+    }
+    .login-form .status.is-success{
+      color: #fff;
+      background: linear-gradient(90deg, rgba(0,182,106,0.85), rgba(0,182,106,0.65));
+      border-color: #00e68a;
+    }
+    .login-form .status.is-warn{
+      color: #0b1220;
+      background: linear-gradient(90deg, rgba(251,191,36,0.40), rgba(251,191,36,0.16));
+      border-color: rgba(251,191,36,0.55);
+    }
+    .login-form .kv{ margin-top: 10px; }
+
+    .wechat-box{
+      border: 1px dashed rgba(96,165,250,.45);
+      background: rgba(96,165,250,.08);
+      border-radius: 14px;
+      padding: 12px;
+      margin-top: 10px;
+    }
+    .wechat-grid{
+      display:grid;
+      grid-template-columns: 104px 1fr;
+      gap: 12px;
+      align-items:center;
+    }
+    .qr{
+      width: 104px; height: 104px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: linear-gradient(135deg, rgba(96,165,250,.18), rgba(245,158,11,.12));
+      position: relative;
+      overflow:hidden;
+    }
+    .qr:before{
+      content:"";
+      position:absolute; inset:-40%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.10), transparent 55%);
+      transform: rotate(18deg);
+    }
+    .wechat-t{ font-weight: 900; margin-bottom: 4px; }
+    .wechat-p{ color: var(--muted); font-size: 12px; line-height: 1.55; }
+
+    .note { margin-top: 14px; font-size: 12px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <header class="site-header" id="site-header"></header>
+  <main class="page-main">
+  <div class="wrap">
+    <div class="home-grid">
+      <div class="home-intro">
+        <section class="card">
+          <div class="hero-split">
+            <div class="hero-copy">
+              <div class="hero-head">
+                <h1>AI 行情官｜灯塔版（1.03）</h1>
+                <div style="display:flex; gap:8px; align-items:center;">
+                  <a class="vip-cta" href="./demo.html?from=home"><span class="dot"></span>行情查询</a>
+                </div>
+              </div>
+              <p>AI24X 旗下智能行情分析工具，专注 K 线形态、均线系统与技术指标的信号参考与可视化展示。仅提供客观行情数据与技术分析参考，供学习研究使用，不构成任何建议。</p>
+            </div>
+            <div class="hero-art" id="hero-art" aria-hidden="true">
+              <svg viewBox="0 0 240 120" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="像素灯塔">
+            <!-- sky -->
+            <rect x="0" y="0" width="240" height="120" fill="var(--bg)"/>
+
+            <!-- distant fog layer -->
+            <g opacity="0.18">
+              <rect x="0" y="36" width="240" height="10" fill="var(--panel2)"/>
+              <rect x="0" y="40" width="240" height="6" fill="var(--panel2)"/>
+            </g>
+
+            <!-- stars (sparser, more lonely) -->
+            <g opacity="0.35">
+              <rect x="16" y="14" width="1" height="1" fill="#fff"/>
+              <rect x="42" y="22" width="1" height="1" fill="#fff"/>
+              <rect x="78" y="12" width="1" height="1" fill="#fff"/>
+              <rect x="112" y="20" width="1" height="1" fill="#fff"/>
+              <rect x="164" y="16" width="1" height="1" fill="#fff"/>
+              <rect x="206" y="24" width="1" height="1" fill="#fff"/>
+            </g>
+
+            <!-- ocean -->
+            <rect x="0" y="44" width="240" height="76" fill="var(--panel)"/>
+            <!-- wave bands -->
+            <g opacity="0.22">
+              <rect x="0" y="56" width="240" height="3" fill="var(--panel2)"/>
+              <rect x="0" y="70" width="240" height="3" fill="var(--panel2)"/>
+              <rect x="0" y="84" width="240" height="3" fill="var(--panel2)"/>
+              <rect x="0" y="98" width="240" height="3" fill="var(--panel2)"/>
+            </g>
+            <!-- pixel sparkles on sea (animated) -->
+            <g data-anim="1" opacity="0.0">
+              <rect x="132" y="74" width="2" height="2" fill="#ffd56a"/>
+              <rect x="146" y="78" width="2" height="2" fill="#ffd56a"/>
+              <rect x="168" y="82" width="2" height="2" fill="#ffd56a"/>
+              <rect x="190" y="86" width="2" height="2" fill="#ffd56a"/>
+              <rect x="210" y="90" width="2" height="2" fill="#ffd56a"/>
+              <animate attributeName="opacity" values="0;0.55;0" dur="2.2s" repeatCount="indefinite"/>
+            </g>
+
+            <!-- lighthouse island silhouette -->
+            <rect x="46" y="78" width="44" height="6" rx="1" fill="var(--border)"/>
+            <rect x="42" y="82" width="52" height="10" rx="2" fill="var(--panel2)"/>
+
+            <!-- lighthouse (smaller vs sea, more distant) -->
+            <g>
+              <rect x="64" y="46" width="12" height="40" fill="var(--panel2)" stroke="var(--border)" stroke-width="1"/>
+              <rect x="62" y="40" width="16" height="8" fill="var(--panel2)" stroke="var(--border)" stroke-width="1"/>
+              <rect x="66" y="34" width="8" height="6" fill="var(--panel2)" stroke="var(--border)" stroke-width="1"/>
+              <!-- lamp -->
+              <rect x="66" y="37" width="8" height="3" fill="#fbbf24" opacity="0.95"/>
+              <rect x="67" y="38" width="6" height="1" fill="#fff" opacity="0.55"/>
+              <!-- window -->
+              <rect x="68" y="58" width="4" height="7" fill="#ffd56a" opacity="0.9"/>
+              <rect x="68" y="58" width="4" height="1" fill="#fff" opacity="0.65"/>
+            </g>
+
+            <!-- main beacon beam (long and bright, with sea light-path) -->
+            <g data-anim="1">
+              <g>
+                <animateTransform attributeName="transform" type="rotate" values="-8 70 40;8 70 40;-8 70 40" dur="4.2s" repeatCount="indefinite"/>
+                <path d="M72 40 L240 24 L240 64 L72 52 Z" fill="#fbbf24" opacity="0.12"/>
+                <path d="M72 42 L240 34 L240 56 L72 50 Z" fill="#ffd56a" opacity="0.10"/>
+              </g>
+            </g>
+            <!-- hover boost beam -->
+            <g class="beam-boost">
+              <path d="M72 41 L240 30 L240 58 L72 50 Z" fill="#ffd56a" opacity="0.14"/>
+              <path d="M72 43 L240 38 L240 52 L72 49 Z" fill="#ffffff" opacity="0.06"/>
+            </g>
+            <!-- light-path on sea -->
+            <g data-anim="1" opacity="0.0">
+              <path d="M108 70 L240 58 L240 70 L108 82 Z" fill="#ffd56a" opacity="0.10"/>
+              <animate attributeName="opacity" values="0;1;0" dur="2.6s" repeatCount="indefinite"/>
+            </g>
+
+            <!-- scanline shimmer (subtle tech vibe) -->
+            <g data-anim="1" opacity="0.12">
+              <rect x="-60" y="0" width="30" height="120" fill="#60a5fa" opacity="0.10"/>
+              <animateTransform attributeName="transform" type="translate" values="-30 0;320 0" dur="5.8s" repeatCount="indefinite"/>
+            </g>
+              </svg>
+            </div>
+          </div>
+
+          <div class="feature-list" aria-label="产品要点">
+            <div class="feature">
+              <div class="t">AI灯塔信号</div>
+              <div class="p">把海量行情压缩成一张“要点卡片”：趋势结构、关键位、风险提示，一眼抓住盘面重点（学习交流）。</div>
+            </div>
+            <div class="feature">
+              <div class="t">AI辅助研判</div>
+              <div class="p">多周期对照 + 指标联动 + 信号解读，补齐观察盲区，让判断更有逻辑、更可复盘（不构成建议）。</div>
+            </div>
+            <div class="feature">
+              <div class="t">AI行情引擎</div>
+              <div class="p">自研算力调度与缓存加速，搭配稳定防护与高效部署，高峰时段依旧响应流畅、体验稳定。</div>
+            </div>
+          </div>
+
+        </section>
+      </div>
+
+      <div class="home-login" id="home-auth">
+        <section class="card login-form" aria-label="账号">
+            <div class="login-title">
+            <h1>账号</h1>
+            <div class="sub">手机号：验证码注册，密码登录</div>
+          </div>
+
+          <div id="logged-strip" class="logged-strip">
+            <span class="t" id="logged-strip-text">您还未登录</span>
+          </div>
+
+          <div id="logged-hint" class="logged-hint" hidden>
+            <div id="logged-account" class="logged-account"></div>
+            <div class="logged-hint-title">接下来可以</div>
+            <ul class="logged-hint-list">
+              <li>点「进入行情」查询标的、切换日 / 周 / 月 K 线与指标参考</li>
+              <li>点「我的」查看配额与账号；「邀请」「VIP」查看权益与说明</li>
+            </ul>
+          </div>
+
+          <div id="auth-panel">
+            <div class="auth-card-grid" id="auth-mode-cards" role="radiogroup" aria-label="登录或注册">
+              <label class="auth-card is-selected" data-card="authMode">
+                <input type="radio" name="authMode" value="login" checked />
+                <div class="t">登录</div>
+              </label>
+              <label class="auth-card" data-card="authMode">
+                <input type="radio" name="authMode" value="register" />
+                <div class="t">注册</div>
+              </label>
+            </div>
+
+            <p class="auth-callout" id="auth-tip-register" hidden>注册请先获取验证码，再填写并提交。</p>
+
+            <form id="auth-form" onsubmit="return false">
+            <div class="field-block">
+              <label class="field-label" for="identifier" id="label-identifier">手机</label>
+              <input id="identifier" type="tel" placeholder="11 位数字" autocomplete="tel" />
+            </div>
+            <div class="field-block" id="row-password">
+              <label class="field-label" for="password">密码</label>
+              <div class="field-otp-row">
+                <input id="password" type="password" placeholder="请输入密码" autocomplete="current-password" />
+                <a class="btn btn-forgot" href="./account.html#forgot" style="flex:0 0 auto;font-size:13px;padding:9px 14px;">忘记密码</a>
+              </div>
+            </div>
+            <div class="field-block" id="row-otp" hidden>
+              <label class="field-label" for="otp">验证码</label>
+              <div class="field-otp-row">
+                <input id="otp" type="text" placeholder="短信 6 位" inputmode="numeric" maxlength="8" autocomplete="one-time-code" />
+                <button type="button" class="btn primary" id="btn-otp" style="flex:0 0 auto;font-size:13px;padding:9px 14px;">获取验证码</button>
+              </div>
+              <div id="sms-captcha-wrap" style="margin-top:10px;" hidden>
+                <div class="muted small" style="margin-bottom:6px;">为防止短信被盗刷，请先完成图形码验证。</div>
+                <div id="sms-captcha-box"></div>
+              </div>
+            </div>
+            <div class="field-block" id="row-invite-ref" hidden>
+              <label class="field-label" for="register-invite">好友邀请码（选填）</label>
+              <input id="register-invite" type="text" placeholder="通过邀请链接打开会自动填入" autocomplete="off" maxlength="32" />
+            </div>
+            <div class="field-block" style="margin-top: 12px;">
+              <button type="button" class="btn primary" id="btn-submit" style="width:100%;">登录</button>
+            </div>
+            </form>
+          </div>
+
+          <div class="kv" id="quota-kv" hidden>
+            <span>今日剩余 <b id="q-day">-</b></span>
+            <span>本周剩余 <b id="q-week">-</b></span>
+            <span>套餐 <b id="q-plan">-</b></span>
+          </div>
+          <div class="status" id="status"></div>
+
+          <div class="btns">
+            <a class="btn primary" id="btn-enter" href="./demo.html?from=home">进入行情</a>
+            <a class="btn" href="./account.html">我的</a>
+            <a class="btn" href="./account.html#invite">邀请</a>
+            <a class="btn" href="./account.html#vip">VIP</a>
+          </div>
+          <div class="note">异常时可刷新重试。</div>
+        </section>
+      </div>
+    </div>
+  </div>
+  </main>
+  <footer class="site-footer" id="site-footer"></footer>
+
+  <script src="/js/shell.js?v=62"></script>
+  <script>
+    try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("index"); } catch (e) {}
+  </script>
+  <script>
+    (function () {
+      // Hover/pointer parallax for the lighthouse art (desktop only).
+      try {
+        var el = document.getElementById("hero-art");
+        if (!el) return;
+        var mq = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
+        if (mq && mq.matches) return;
+        var isFine = window.matchMedia && window.matchMedia("(pointer: fine)").matches;
+        if (!isFine) return;
+        function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
+        function onMove(ev) {
+          var r = el.getBoundingClientRect();
+          var cx = r.left + r.width / 2;
+          var cy = r.top + r.height / 2;
+          var dx = (ev.clientX - cx) / (r.width / 2);
+          var dy = (ev.clientY - cy) / (r.height / 2);
+          var ry = clamp(dx * 6, -6, 6); // rotateY
+          var rx = clamp(-dy * 4, -4, 4); // rotateX
+          el.style.setProperty("--ry", String(ry));
+          el.style.setProperty("--rx", String(rx));
+        }
+        function onLeave() {
+          el.style.setProperty("--ry", "0");
+          el.style.setProperty("--rx", "0");
+        }
+        el.addEventListener("mousemove", onMove);
+        el.addEventListener("mouseleave", onLeave);
+      } catch (e) {}
+    })();
+  </script>
+  <script>
+    (function () {
+      var TOKEN_KEY = "ai24x_a_token";
+
+      // Service Worker 注册已统一在 `js/shell.js` 处理（避免多处重复注册与连环刷新）。
+
+      function apiBase() {
+        try {
+          var host = String(location.hostname || "");
+          var port = String(location.port || "");
+          if ((host === "127.0.0.1" || host === "localhost") && port === "18001") return "http://127.0.0.1:18011";
+        } catch (e) {}
+        return "";
+      }
+
+      function $(id) { return document.getElementById(id); }
+
+      var base = apiBase();
+      var statusEl = $("status");
+      var quotaKv = $("quota-kv");
+      var qDay = $("q-day");
+      var qWeek = $("q-week");
+      var qPlan = $("q-plan");
+      var planTitleMap = null;
+      var lastQuotaPlanCode = "";
+      var identEl = $("identifier");
+      var passEl = $("password");
+      var otpEl = $("otp");
+      var rowOtp = $("row-otp");
+      var btnOtp = $("btn-otp");
+      var smsCaptchaWrap = $("sms-captcha-wrap");
+      var smsCaptchaBox = $("sms-captcha-box");
+      var btnSubmit = $("btn-submit");
+      var authPanel = $("auth-panel");
+      var loggedStrip = $("logged-strip");
+      var loggedStripText = $("logged-strip-text");
+      var loggedHint = $("logged-hint");
+      var loggedAccount = $("logged-account");
+      var labelIdent = $("label-identifier");
+      var tipRegister = $("auth-tip-register");
+      var rowInviteRef = $("row-invite-ref");
+      var registerInviteEl = $("register-invite");
+
+      var authMode = "login";
+
+      // Reserved: SMS captcha (anti-abuse), default disabled via backend config.
+      var smsCaptchaCfg = { enabled: false, provider: null, turnstile_site_key: null };
+      var smsCaptchaToken = "";
+      var smsCaptchaWidgetId = null;
+
+      function loadScriptOnce(src, cb) {
+        try {
+          if (document.querySelector('script[data-src="' + src + '"]')) { cb && cb(); return; }
+          var s = document.createElement("script");
+          s.src = src;
+          s.async = true;
+          s.defer = true;
+          s.setAttribute("data-src", src);
+          s.onload = function () { cb && cb(); };
+          s.onerror = function () { cb && cb(new Error("load fail")); };
+          document.head.appendChild(s);
+        } catch (e) { cb && cb(e); }
+      }
+
+      function smsCaptchaMaybeShow() {
+        if (!smsCaptchaWrap || !smsCaptchaBox) return;
+        var show = !!(smsCaptchaCfg && smsCaptchaCfg.enabled) && readAuthMode() === "register";
+        smsCaptchaWrap.hidden = !show;
+        if (!show) return;
+        if (smsCaptchaWidgetId !== null) return;
+        if (!smsCaptchaCfg.turnstile_site_key) return;
+        loadScriptOnce("https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit", function () {
+          if (!window.turnstile || !smsCaptchaBox) return;
+          try {
+            smsCaptchaWidgetId = window.turnstile.render(smsCaptchaBox, {
+              sitekey: smsCaptchaCfg.turnstile_site_key,
+              callback: function (t) { smsCaptchaToken = String(t || ""); },
+              "expired-callback": function () { smsCaptchaToken = ""; },
+              "error-callback": function () { smsCaptchaToken = ""; },
+            });
+          } catch (e) {}
+        });
+      }
+
+      function loadSmsCaptchaCfg() {
+        fetch((base || "") + "/api/public/sms_captcha", { method: "GET" })
+          .then(function (r) { return r.ok ? r.json() : { enabled: false }; })
+          .then(function (d) {
+            if (d && d.enabled && d.provider === "turnstile" && d.turnstile_site_key) {
+              smsCaptchaCfg = { enabled: true, provider: "turnstile", turnstile_site_key: String(d.turnstile_site_key) };
+            } else {
+              smsCaptchaCfg = { enabled: false, provider: null, turnstile_site_key: null };
+            }
+            smsCaptchaMaybeShow();
+          })
+          .catch(function () { smsCaptchaCfg = { enabled: false, provider: null, turnstile_site_key: null }; smsCaptchaMaybeShow(); });
+      }
+
+      // Defensive: never show "已登录" strip until verified by /api/me.
+      try {
+        if (loggedStrip) loggedStrip.hidden = true;
+        if (loggedHint) loggedHint.hidden = true;
+        // Avoid "login panel flash" for logged-in users: keep auth panel hidden
+        // until we confirm there is no valid token.
+        if (authPanel) authPanel.hidden = true;
+        if (quotaKv) quotaKv.hidden = true;
+      } catch (e0) {}
+
+      function readAuthMode() {
+        var el = document.querySelector('input[name="authMode"]:checked');
+        return el ? String(el.value) : "login";
+      }
+
+      function syncCardVisual(gridId) {
+        var g = document.getElementById(gridId);
+        if (!g) return;
+        g.querySelectorAll(".auth-card").forEach(function (lab) {
+          var inp = lab.querySelector("input[type=\"radio\"]");
+          lab.classList.toggle("is-selected", !!(inp && inp.checked));
+        });
+      }
+
+      function applyRadiosFromState() {
+        var rm = document.querySelector('input[name="authMode"][value="' + authMode + '"]');
+        if (rm) rm.checked = true;
+        syncCardVisual("auth-mode-cards");
+      }
+
+      (function applyAuthParams() {
+        try {
+          var sp = new URLSearchParams(String(location.search || "").replace(/^\?/, ""));
+          var m = String(sp.get("mode") || "").trim().toLowerCase();
+          var hasInv = String(sp.get("i") || sp.get("invite") || sp.get("inv") || sp.get("ref") || "").trim();
+          if (m === "login" || m === "register") authMode = m;
+          else if (hasInv) authMode = "register";
+        } catch (e0) {}
+        applyRadiosFromState();
+        // Mobile-friendly: when URL asks login/register (or has invite), scroll to auth panel.
+        try {
+          var sp2 = new URLSearchParams(String(location.search || "").replace(/^\?/, ""));
+          var m2 = String(sp2.get("mode") || "").trim().toLowerCase();
+          var hasInv2 = String(sp2.get("i") || sp2.get("invite") || sp2.get("inv") || sp2.get("ref") || "").trim();
+          if (m2 === "login" || m2 === "register" || !!hasInv2) {
+            var t = document.getElementById("home-auth") || authPanel;
+            if (t && t.scrollIntoView) t.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        } catch (e2) {}
+      })();
+
+      function wireCardGrid(gridId, onPick) {
+        var g = document.getElementById(gridId);
+        if (!g) return;
+        g.addEventListener("change", function () {
+          onPick();
+          syncCardVisual(gridId);
+          syncAuthUi();
+        });
+      }
+
+      function setStatus(s) {
+        if (!statusEl) return;
+        var t = (s || "").trim();
+        statusEl.textContent = t || "";
+        statusEl.className = "status" + (t ? "" : "");
+        if (!t) return;
+        var lower = t.toLowerCase();
+        if (lower.indexOf("错误")>=0||lower.indexOf("失败")>=0||lower.indexOf("已注册")>=0||lower.indexOf("不存在")>=0||lower.indexOf("无效")>=0) {
+          statusEl.classList.add("is-error");
+        } else if (lower.indexOf("成功")>=0||lower.indexOf("已发送")>=0||lower.indexOf("已退出")>=0||lower.indexOf("已绑定")>=0) {
+          statusEl.classList.add("is-success");
+        } else {
+          statusEl.classList.add("is-warn");
+        }
+      }
+
+      function normalizeCnMobile(raw) {
+        var s = String(raw || "").trim();
+        var d = s.replace(/\D/g, "");
+        if (d.indexOf("86") === 0 && d.length === 13) d = d.slice(2);
+        return d;
+      }
+
+      function normalizeErrMsg(err) {
+        var m = "";
+        try {
+          m = err && err.message ? String(err.message) : "";
+        } catch (e0) {
+          m = "";
+        }
+        m = (m || "").trim();
+        if (!m) return "";
+        // Browser-level network failure: keep it user-friendly.
+        if (m === "Failed to fetch" || /NetworkError/i.test(m) || /fetch/i.test(m) && /failed/i.test(m)) {
+          return "网络或服务暂时不可用，请稍后重试。";
+        }
+        if (m === "no token") return "登录失败，请稍后重试。";
+        // Pydantic English length errors → 中文
+        if (/at most 20 characters/i.test(m) || /max_length.*20/i.test(m)) {
+          return "请填写 11 位手机号（不要带空格或 +86）。";
+        }
+        if (/at most \d+ characters/i.test(m) && /phone|mobile/i.test(m)) {
+          return "请填写 11 位手机号。";
+        }
+        // Normalize common auth failure to user-friendly text.
+        if (m.indexOf("手机号/邮箱或密码错误") >= 0 || m.indexOf("手机号或密码错误") >= 0 || m.indexOf("邮箱或密码错误") >= 0) {
+          return "手机号或密码错误，请检查后重试。";
+        }
+        // FastAPI validation list: [{"msg":"Value error, ...", ...}]
+        try {
+          var arrMatch = m.match(/\[\s*\{[\s\S]*\}\s*\]/);
+          if (arrMatch) {
+            try {
+              var arr = JSON.parse(arrMatch[0].replace(/'/g, '"'));
+              if (arr && arr[0] && (arr[0].msg || arr[0].message)) {
+                m = String(arr[0].msg || arr[0].message);
+              }
+            } catch (eArr) {
+              var msgPy = m.match(/\b'msg'\s*:\s*'((?:[^'\\]|\\.)*)'/);
+              if (msgPy && msgPy[1]) m = msgPy[1];
+              else {
+                msgPy = m.match(/\b"msg"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+                if (msgPy && msgPy[1]) m = msgPy[1];
+              }
+            }
+          }
+        } catch (eA2) {}
+        m = m.replace(/^(?:Value error[,:\s]+)/i, "").trim();
+        // If backend returned JSON-ish content (including python str(dict)), try to extract detail / error / message.
+        // Some upstream responses may prepend extra text before the dict, so we also try regex extraction on full string.
+        {
+          var pe0 = m.match(/\b'error'\s*:\s*'((?:[^'\\]|\\.)*)'/);
+          if (pe0 && pe0[1]) m = pe0[1].trim();
+          pe0 = m.match(/\b"error"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+          if (pe0 && pe0[1]) m = pe0[1].trim();
+          pe0 = m.match(/\b'detail'\s*:\s*'((?:[^'\\]|\\.)*)'/);
+          if (pe0 && pe0[1]) m = pe0[1].trim();
+          pe0 = m.match(/\b"detail"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+          if (pe0 && pe0[1]) m = pe0[1].trim();
+          pe0 = m.match(/\b'msg'\s*:\s*'((?:[^'\\]|\\.)*)'/);
+          if (pe0 && pe0[1]) m = pe0[1].trim();
+          pe0 = m.match(/\b"msg"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+          if (pe0 && pe0[1]) m = pe0[1].trim();
+        }
+
+        if (m[0] === "{" || m[0] === "[") {
+          try {
+            var j = JSON.parse(m);
+            if (j && typeof j === "object") {
+              if (Array.isArray(j) && j[0]) {
+                var j0 = j[0];
+                if (j0 && (j0.msg || j0.message || j0.detail)) {
+                  m = String(j0.msg || j0.message || j0.detail).trim();
+                }
+              } else {
+                var d =
+                  j.detail != null
+                    ? j.detail
+                    : j.error != null
+                      ? j.error
+                      : j.message != null
+                        ? j.message
+                        : "";
+                if (Array.isArray(d) && d[0]) {
+                  var d0 = d[0];
+                  d = (d0 && (d0.msg || d0.message)) ? (d0.msg || d0.message) : d0;
+                }
+                if (d != null && String(d).trim() !== "") m = String(d).trim();
+              }
+            }
+          } catch (e1) {
+            // p/a 代理把 identity 的 JSON 用 Python str(dict) 放进 detail 时多为单引号，非合法 JSON
+            var pe = m.match(/\b'error'\s*:\s*'((?:[^'\\]|\\.)*)'/);
+            if (pe && pe[1]) return scrubUserMsg(pe[1].trim());
+            pe = m.match(/\b"error"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+            if (pe && pe[1]) return scrubUserMsg(pe[1].trim());
+            pe = m.match(/\berror'\s*:\s*'((?:[^'\\]|\\.)*)'/);
+            if (pe && pe[1]) return scrubUserMsg(pe[1].trim());
+          }
+        }
+        // Strip simple HTML (FastAPI debug, etc.)
+        try {
+          m = m.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+        } catch (e2) {}
+        m = m.replace(/^(?:Value error[,:\s]+)/i, "").trim();
+        if (m.indexOf("该手机号已注册") >= 0) return "该手机号已注册，请直接登录或找回密码。";
+        return scrubUserMsg(m);
+      }
+
+      function scrubUserMsg(s) {
+        var t = String(s || "").trim();
+        if (!t) return "";
+        if (/SMS_|AI24X_|ALIPAY_|TOKEN_|APP_ENV|identity_api|INTERNAL_KEY|NOTIFY_URL|环境变量|\.env\b|X-SMS-|admin_browser_otp|sms_internal_key|Identity\b|user_id=/i.test(t)) {
+          return "服务暂不可用，请稍后再试。";
+        }
+        if (/^HTTP\s*\d+/i.test(t) && t.length < 24) return "请求失败，请稍后重试。";
+        return t;
+      }
+
+      try {
+        window.addEventListener("error", function () {
+          setStatus("页面异常，请刷新后重试。");
+        });
+        window.addEventListener("unhandledrejection", function (ev) {
+          var reason = "";
+          var noise = false;
+          try {
+            var r = ev && ev.reason;
+            reason = String((r && (r.message || r.stack)) || r || "").slice(0, 100);
+            // 第三方/浏览器扩展噪音（如钱包扩展注入检查）：仅记录，不打扰用户
+            var low = (String(reason) + " " + String((r && r.stack) || "")).toLowerCase();
+            var kws = ["wallet", "ethereum", "eth_requestaccounts", "metamask", "tokenpocket", "okxwallet", "bitget", "rabby", "phantom", "coinbase", "trustwallet", "chrome-extension://", "moz-extension://", "edge-extension", "user rejected", "at least one account"];
+            for (var i = 0; i < kws.length; i++) {
+              if (low.indexOf(kws[i]) >= 0) { noise = true; break; }
+            }
+          } catch (eR) {}
+          try { if (window.console && console.warn) console.warn("[unhandledrejection]", ev && ev.reason); } catch (eW) {}
+          if (!noise) setStatus("页面加载异常" + (reason ? "（" + reason + "）" : "") + "，请刷新重试。");
+        });
+      } catch (e) {}
+
+      function tokenGet() {
+        try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (e) { return ""; }
+      }
+      function tokenSet(t) {
+        try { localStorage.setItem(TOKEN_KEY, t || ""); } catch (e) {}
+      }
+      function tokenClear() {
+        try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
+      }
+
+      function apiFetch(path, opt) {
+        opt = opt || {};
+        opt.headers = opt.headers || {};
+        var t = tokenGet();
+        if (t) opt.headers.Authorization = "Bearer " + t;
+        return fetch((base || "") + path, opt).then(function (r) {
+          if (!r.ok) {
+            var err = new Error("HTTP " + r.status);
+            try { err.status = r.status; } catch (e0) {}
+            throw err;
+          }
+          return r.json();
+        });
+      }
+
+      function planTitle(planCode) {
+        var p = String(planCode || "").trim();
+        if (!p) return "-";
+        try {
+          if (planTitleMap && planTitleMap[p]) return String(planTitleMap[p]);
+        } catch (e) {}
+        return p;
+      }
+
+      function loadBillingPlans() {
+        return fetch((base || "") + "/api/public/billing/plans", { method: "GET", cache: "no-store" })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (d) {
+            if (!d || !d.ok || !d.plans) return;
+            planTitleMap = {};
+            try {
+              Object.keys(d.plans).forEach(function (k) {
+                var it = d.plans[k] || {};
+                planTitleMap[k] = String(it.title || k);
+              });
+            } catch (e) {}
+            try { if (qPlan && lastQuotaPlanCode) qPlan.textContent = planTitle(lastQuotaPlanCode); } catch (e2) {}
+          })
+          .catch(function () {});
+      }
+
+      function maskAccountLine(u) {
+        u = u || {};
+        var p = String((u.phone != null ? u.phone : "") || "").trim();
+        if (p.length >= 11 && /^\d+$/.test(p)) {
+          return "当前账号：手机 " + p.slice(0, 3) + "****" + p.slice(-4);
+        }
+        return "当前账号：已登录";
+      }
+
+      function setLoggedUi(on) {
+        if (loggedStrip) loggedStrip.hidden = false;
+        if (loggedHint) loggedHint.hidden = !on;
+        if (authPanel) authPanel.hidden = !!on;
+        if (loggedStripText) loggedStripText.textContent = on ? "已登录" : "您还未登录";
+        if (!on && loggedAccount) loggedAccount.textContent = "";
+      }
+
+      function setCheckingUi() {
+        try {
+          if (loggedStrip) loggedStrip.hidden = false;
+          if (loggedHint) loggedHint.hidden = true;
+          if (authPanel) authPanel.hidden = true;
+          if (loggedStripText) loggedStripText.textContent = "正在验证登录…";
+          if (loggedAccount) loggedAccount.textContent = "";
+          if (quotaKv) quotaKv.hidden = true;
+        } catch (e0) {}
+      }
+
+      function syncHeaderAuth() {
+        try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.refreshAuth && window.AI24X_A_SHELL.refreshAuth(); } catch (e0) {}
+      }
+
+      function refreshMe() {
+        var t = tokenGet();
+        if (!t) {
+          setLoggedUi(false);
+          quotaKv.hidden = true;
+          setStatus("");
+          syncHeaderAuth();
+          return;
+        }
+        // 有 token：先进入“验证中”状态，避免未登录面板闪现
+        setCheckingUi();
+        quotaKv.hidden = true;
+        setStatus("");
+        apiFetch("/api/me", { cache: "no-store" })
+          .then(function (d) {
+            var q = d && d.quota ? d.quota : null;
+            if (!q) throw new Error("no quota");
+            var u = d && d.user ? d.user : null;
+            if (loggedAccount) loggedAccount.textContent = maskAccountLine(u || {});
+            quotaKv.hidden = false;
+            qDay.textContent = String(q.remaining_day);
+            qWeek.textContent = String(q.remaining_week != null ? q.remaining_week : q.remaining_month);
+            try { lastQuotaPlanCode = String(q.plan || "").trim(); } catch (e0) { lastQuotaPlanCode = ""; }
+            qPlan.textContent = planTitle(lastQuotaPlanCode || "-");
+            setStatus("");
+            setLoggedUi(true);
+            syncHeaderAuth();
+          })
+          .catch(function (e) {
+            var s = (e && (e.status != null)) ? Number(e.status) : null;
+            var msg = (e && e.message) ? String(e.message) : "";
+            var isAuthErr = (s === 401 || s === 403) || msg.indexOf("HTTP 401") >= 0 || msg.indexOf("HTTP 403") >= 0;
+            setLoggedUi(false);
+            quotaKv.hidden = true;
+            if (isAuthErr) {
+              tokenClear();
+              setStatus("登录已失效，请重新登录。");
+              syncHeaderAuth();
+              return;
+            }
+            setStatus("账户信息加载失败，请刷新重试。");
+          });
+      }
+
+      // Non-blocking: load plan titles for display.
+      loadBillingPlans();
+
+      function syncAuthUi() {
+        authMode = readAuthMode();
+        if (!identEl) return;
+        if (labelIdent) labelIdent.textContent = "手机";
+        identEl.placeholder = "11 位数字";
+        identEl.setAttribute("type", "tel");
+        identEl.setAttribute("autocomplete", "tel");
+        if (tipRegister) tipRegister.hidden = authMode !== "register";
+        if (rowOtp) rowOtp.hidden = authMode !== "register";
+        if (rowInviteRef) rowInviteRef.hidden = authMode !== "register";
+        if (authMode === "register") prefillRegisterInviteIfEmpty();
+        if (btnSubmit) btnSubmit.textContent = authMode === "register" ? "注册" : "登录";
+        smsCaptchaMaybeShow();
+      }
+
+      function sendOtp() {
+        authMode = readAuthMode();
+        var idv = normalizeCnMobile((identEl && identEl.value) ? String(identEl.value) : "");
+        if (!idv) {
+          setStatus("请输入手机号。");
+          return;
+        }
+        if (!/^\d{11}$/.test(idv)) {
+          setStatus("请填写 11 位手机号（不要带空格或 +86）。");
+          return;
+        }
+        if (identEl) identEl.value = idv;
+        if (btnOtp) btnOtp.disabled = true;
+        setStatus("发送验证码…");
+        var url = "/api/auth/sms/send";
+        if (smsCaptchaCfg && smsCaptchaCfg.enabled && !String(smsCaptchaToken || "").trim()) {
+          setStatus("请先完成图形码验证。");
+          if (btnOtp) btnOtp.disabled = false;
+          smsCaptchaMaybeShow();
+          return;
+        }
+        var body = JSON.stringify({ mobile: idv, purpose: "register", captcha_token: (smsCaptchaCfg && smsCaptchaCfg.enabled) ? String(smsCaptchaToken || "") : undefined });
+        fetch((base || "") + url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: body,
+        })
+          .then(function (r) {
+            if (!r.ok) return r.text().then(function (t) { throw new Error(t || ("HTTP " + r.status)); });
+            return r.json();
+          })
+          .then(function (d) {
+            setStatus((d && d.message) ? String(d.message) : "验证码已发送。");
+          })
+          .catch(function (e) {
+            var m = normalizeErrMsg(e);
+            setStatus(m || "验证码发送失败，请稍后重试。");
+          })
+          .finally(function () { if (btnOtp) btnOtp.disabled = false; }).catch(function () {});
+      }
+
+      function readInviteFromUrl() {
+        try {
+          var sp = new URLSearchParams(String(location.search || "").replace(/^\?/, ""));
+          var v = sp.get("i") || sp.get("invite") || sp.get("inv") || sp.get("ref") || "";
+          v = String(v || "").trim();
+          if (v) return v.toUpperCase();
+        } catch (e) {}
+        // Fallback: try localStorage (set by demo.html or other pages)
+        try {
+          var ls = String(localStorage.getItem("ai24x_invite_code") || "").trim().toUpperCase();
+          if (ls) return ls;
+        } catch (e2) {}
+        return "";
+      }
+
+      function readInviteForBind() {
+        var typed = registerInviteEl ? String(registerInviteEl.value || "").trim() : "";
+        if (typed) return typed.toUpperCase();
+        return readInviteFromUrl();
+      }
+
+      function prefillRegisterInviteIfEmpty() {
+        if (!registerInviteEl) return;
+        if (String(registerInviteEl.value || "").trim()) return;
+        var ic = readInviteFromUrl();
+        if (ic) registerInviteEl.value = ic;
+      }
+
+      function inviteBind(code) {
+        return apiFetch("/api/invite/bind", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: String(code || "") }),
+        });
+      }
+
+      /** 登录后勿用邀请码失败盖住「登录成功」（?i= / localStorage 残留会导致误报）。 */
+      function inviteCodeForPostAuth(isRegister) {
+        if (isRegister) return readInviteForBind();
+        try {
+          var typed = registerInviteEl ? String(registerInviteEl.value || "").trim() : "";
+          return typed ? typed.toUpperCase() : "";
+        } catch (e0) {
+          return "";
+        }
+      }
+
+      function clearStoredInviteCode() {
+        try { localStorage.removeItem("ai24x_invite_code"); } catch (e0) {}
+      }
+
+      function safePostLoginNextPath() {
+        try {
+          var sp = new URLSearchParams(String(location.search || "").replace(/^\?/, ""));
+          var raw = String(sp.get("next") || "").trim();
+          if (!raw) return "";
+          if (raw.indexOf("//") === 0 || raw.indexOf("\\") === 0) return "";
+          var u = new URL(raw, location.href);
+          if (u.origin !== location.origin) return "";
+          var path = String(u.pathname || "");
+          if (path.indexOf("..") >= 0) return "";
+          var leaf = path.split("/").pop() || "";
+          var allow = { "feedback.html": 1, "account.html": 1, "demo.html": 1, "partner.html": 1, "index.html": 1, "help.html": 1 };
+          if (!allow[leaf]) return "";
+          var qs = new URLSearchParams(u.search || "");
+          qs.delete("next");
+          var qstr = qs.toString();
+          return leaf + (qstr ? "?" + qstr : "") + String(u.hash || "");
+        } catch (eN) {
+          return "";
+        }
+      }
+
+      function submitAuth() {
+        authMode = readAuthMode();
+        var idv = normalizeCnMobile((identEl && identEl.value) ? String(identEl.value) : "");
+        var pw = (passEl && passEl.value) ? String(passEl.value) : "";
+        var otp = (otpEl && otpEl.value) ? String(otpEl.value).trim() : "";
+        if (!idv) { setStatus("请填写手机号。"); return; }
+        if (!/^\d{11}$/.test(idv)) { setStatus("请填写 11 位手机号（不要带空格或 +86）。"); return; }
+        if (identEl) identEl.value = idv;
+        if (!pw) { setStatus("请填写密码。"); return; }
+        if (authMode === "register") {
+          if (!otp) { setStatus("请填写验证码。"); return; }
+          if (!/^\d{6}$/.test(otp)) { setStatus("请填写短信里的 6 位数字验证码。"); return; }
+        }
+        if (btnSubmit) btnSubmit.disabled = true;
+        setStatus(authMode === "register" ? "注册中…" : "登录中…");
+        var path = authMode === "register" ? "/api/auth/register" : "/api/auth/login";
+        var payload = { password: pw };
+        if (authMode === "register") {
+          payload.phone = idv;
+          payload.sms_code = otp;
+        } else {
+          payload.phone = idv;
+        }
+        fetch((base || "") + path, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+          .then(function (r) {
+            if (!r.ok) return r.text().then(function (t) { throw new Error(t || ("HTTP " + r.status)); });
+            return r.json();
+          })
+          .then(function (d) {
+            if (!d || !d.token) throw new Error("no token");
+            tokenSet(d.token);
+            syncHeaderAuth();
+            var isRegister = authMode === "register";
+            var okMsg = isRegister ? "注册成功。" : "登录成功。";
+            setStatus(okMsg);
+            var nextPath = safePostLoginNextPath();
+            var goNext = function () {
+              if (!nextPath) return;
+              try { location.replace(nextPath); } catch (eG) { location.href = nextPath; }
+            };
+            var finishUi = function () {
+              if (nextPath) goNext();
+              else refreshMe();
+            };
+            var ic = inviteCodeForPostAuth(isRegister);
+            if (!ic) {
+              finishUi();
+              return;
+            }
+            inviteBind(ic)
+              .then(function () {
+                setStatus(okMsg + "邀请码已绑定。");
+                clearStoredInviteCode();
+              })
+              .catch(function () {
+                if (isRegister) setStatus(okMsg + "邀请码未绑定，可在用户中心再试。");
+                else setStatus(okMsg);
+              })
+              .finally(finishUi).catch(function () {});
+          })
+          .catch(function (e) {
+            var m = normalizeErrMsg(e);
+            if (m) {
+              setStatus(m);
+              return;
+            }
+            setStatus(authMode === "register" ? "注册失败，请检查验证码与密码。" : "登录失败，请检查账号与密码。");
+          })
+          .finally(function () { if (btnSubmit) btnSubmit.disabled = false; }).catch(function () {});
+      }
+
+
+      // Patch all register/login links to carry invite code automatically
+      function patchRegisterLinks() {
+        try {
+          var code = String(localStorage.getItem('ai24x_invite_code') || '').trim().toUpperCase();
+          if (!code) return;
+          var links = document.querySelectorAll('a[href]');
+          for (var i = 0; i < links.length; i++) {
+            var a = links[i];
+            var href = a.getAttribute('href') || '';
+            if (!href || href === '#') continue;
+            if (!/(?:\/|^)(index\.html|account\.html|register|login)/i.test(href)) continue;
+            if (/[?&]i=/.test(href) || /[?&]invite=/.test(href)) continue;
+            var sep = href.indexOf('?') >= 0 ? '&' : '?';
+            a.setAttribute('href', href + sep + 'i=' + encodeURIComponent(code));
+          }
+        } catch (e) {}
+      }
+
+      wireCardGrid("auth-mode-cards", function () {
+        authMode = readAuthMode();
+      });
+      try { loadSmsCaptchaCfg(); } catch (e0) {}
+      syncAuthUi();
+      if (btnOtp) btnOtp.addEventListener("click", sendOtp);
+      if (btnSubmit) btnSubmit.addEventListener("click", submitAuth);
+
+      // Handle BFCache restore (back/forward) and token changes from other tabs.
+      try { window.addEventListener("pageshow", function () { try { refreshMe(); } catch (e0) {} }); } catch (e1) {}
+      try { window.addEventListener("storage", function (ev) { if (ev && ev.key === TOKEN_KEY) { try { refreshMe(); } catch (e0) {} } }); } catch (e2) {}
+
+      refreshMe();
+      // Patch register/login links to carry invite code
+      try { patchRegisterLinks(); } catch (e) {}
+    })();
+  </script>
+  <script>
+    (function () {
+      // 手机端：行情查询/进入行情 → 手机版行情页 m/quote.html；桌面端不变
+      function mIsTouchMobile() {
+        try { if (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) return true; } catch (e) {}
+        return (window.innerWidth || 0) <= 768;
+      }
+      if (mIsTouchMobile()) {
+        document.addEventListener("click", function (e) {
+          var t = e.target;
+          var a = t && t.closest ? t.closest('a[href*="demo.html"]') : null;
+          if (!a) return;
+          e.preventDefault();
+          try {
+            var c = "";
+            try {
+              var sp2 = new URLSearchParams(location.search);
+              c = String(sp2.get("i") || sp2.get("invite") || "").trim();
+              if (!c) c = String(localStorage.getItem("ai24x_invite_code") || "").trim();
+            } catch (e3) {}
+            location.href = "m/quote.html" + (c ? "?i=" + encodeURIComponent(c) : "");
+          } catch (e2) {}
+        }, true);
+      }
+    })();
+  </script>
+<!-- 手机版互切入口 -->
+<a id="m-switch" href="m/" style="position:fixed;right:14px;bottom:14px;z-index:9999;background:#101a2c;border:1px solid #3b82f6;color:#e6edf7;font-size:13px;padding:8px 14px;border-radius:999px;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.45)">手机版</a>
+<script>
+  (function () {
+    try {
+      var a = document.getElementById("m-switch");
+      if (!a) return;
+      var c = "";
+      try {
+        var sp = new URLSearchParams(location.search);
+        c = String(sp.get("i") || sp.get("invite") || "").trim();
+        if (!c) c = String(localStorage.getItem("ai24x_invite_code") || "").trim();
+      } catch (e) {}
+      if (c) a.href = "m/?i=" + encodeURIComponent(c);
+    } catch (e) {}
+  })();
+</script>
+</body>
+</html>
+

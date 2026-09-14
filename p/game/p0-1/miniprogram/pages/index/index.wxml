@@ -1,0 +1,51 @@
+<view class="page">
+  <!-- 顶部：Logo + 段位 -->
+  <view class="hero">
+    <view class="logo">别听它的</view>
+    <view class="tag">反口令反应战 · P0-1 微信小程序原型</view>
+    <view class="tier-card">
+      <view class="tier-name">{{tier.name}}</view>
+      <view class="tier-meta">累计积分 {{cum}} · 最高分 {{best}} · 已玩 {{games}} 局</view>
+    </view>
+  </view>
+
+  <!-- 规则 -->
+  <view class="card rule">
+    <view class="rule-title">玩法规则</view>
+    <view class="rule-line">· 说「点红」→ 你要点<text class="hl">绿</text>（字义与颜色冲突，别上当）</view>
+    <view class="rule-line">· 显示「←」→ 你要按<text class="hl">→</text></view>
+    <view class="rule-line">· 显示「3」→ 你要按<text class="hl">4</text>（N+1）</view>
+    <view class="rule-line">· 45 秒一局，连击越高倍率越高（最高 ×5），错一次连击清零</view>
+  </view>
+
+  <!-- 操作 -->
+  <view class="actions">
+    <view class="double-row">
+      <view class="double-text">
+        <view class="double-title">看视频双倍积分</view>
+        <view class="double-sub">开局播放激励视频，本局得分 ×2</view>
+      </view>
+      <switch checked="{{doubleOn}}" color="#fbbf24" bindchange="onDoubleChange" />
+    </view>
+    <button class="btn btn-primary start" bindtap="tapStart">开始挑战</button>
+    <button class="btn btn-ghost start" bindtap="tapDaily">今日挑战 · 同种子序列</button>
+  </view>
+
+  <!-- 排行榜（原型：本地数据） -->
+  <view class="card rank">
+    <view class="rank-head">
+      <text class="rank-title">本周榜单</text>
+      <text class="rank-note">原型数据 · 待中台联调</text>
+    </view>
+    <view wx:if="{{friends.length}}" class="rank-list">
+      <view class="rank-row" wx:for="{{friends}}" wx:key="name">
+        <text class="rank-idx {{index < 3 ? 'top' : ''}}">{{index + 1}}</text>
+        <text class="rank-name">{{item.name}}</text>
+        <text class="rank-score">{{item.score}}</text>
+      </view>
+    </view>
+    <view wx:else class="rank-empty">暂无数据，快去玩一局吧</view>
+  </view>
+
+  <view class="footer">原型演示：激励视频/好友榜/挑战卡均为本地模拟，联调中台后接入真实数据</view>
+</view>

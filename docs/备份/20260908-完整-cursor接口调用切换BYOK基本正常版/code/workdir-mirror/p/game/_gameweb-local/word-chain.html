@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Word Chain · 单词接龙</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#0f172a;color:#e2e8f0;overflow:hidden;user-select:none;touch-action:manipulation;overscroll-behavior:none}
+#wrap{height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:8px}
+.hud{display:flex;gap:26px;font-size:14px;font-weight:700;color:#94a3b8}
+.hud b{color:#fbbf24;font-size:18px}
+.t b{color:#f87171}
+.wordBox{width:100%;max-width:390px;text-align:center;padding:14px 0 6px}
+.cur{font-size:52px;font-weight:900;letter-spacing:4px;color:#38bdf8;text-transform:uppercase;min-height:64px}
+.req{font-size:14px;color:#cbd5e1;margin-top:4px}
+.req b{color:#fbbf24;font-size:18px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:352px}
+.opt{background:#1e293b;border:2px solid #334155;border-radius:14px;padding:15px 4px;font-size:20px;font-weight:800;color:#e2e8f0;letter-spacing:1px;text-transform:uppercase;cursor:pointer;touch-action:manipulation}
+.opt:active{background:#334155}
+.opt.ok{background:#14532d;border-color:#22c55e;color:#86efac}
+.opt.no{background:#7f1d1d;border-color:#ef4444;color:#fecaca}
+.opt.off{opacity:.4}
+#fb{min-height:20px;font-size:14px;color:#94a3b8;text-align:center}
+.chains{font-size:12px;color:#64748b;min-height:16px;max-width:352px;text-align:center;word-break:break-all}
+#overlay{position:fixed;inset:0;background:rgba(2,6,23,.9);display:none;align-items:center;justify-content:center;z-index:10}
+#overlay.show{display:flex}
+.panel{text-align:center;padding:30px 26px;border-radius:20px;background:#1e293b;border:1px solid #334155;max-width:320px;width:90%}
+.panel h2{font-size:22px;margin-bottom:6px}
+.floors{font-size:46px;font-weight:800;color:#38bdf8;margin:6px 0}
+.best{color:#94a3b8;font-size:14px;margin-bottom:14px}
+.share{font-size:13px;color:#fbbf24;margin-bottom:16px;padding:8px 12px;background:#1e293b;border:1px dashed #475569;border-radius:10px}
+.play{background:linear-gradient(90deg,#38bdf8,#6366f1);border:none;color:#fff;font-size:18px;font-weight:800;padding:13px 38px;border-radius:999px;cursor:pointer;box-shadow:0 6px 0 rgba(0,0,0,.3);touch-action:manipulation}
+.play:active{transform:translateY(3px);box-shadow:0 3px 0 rgba(0,0,0,.3)}
+</style>
+</head>
+<body>
+<div id="topbar"><a href="index.html">← 列表</a><span class="tt">Word Chain<span class="tg">接龙</span></span><button id="howBtn" aria-label="玩法说明">?</button></div>
+<div id="howto"><b>怎么玩</b><br>给出当前单词，选出以它末字母开头的新词接龙。限时 60 秒，接得越多分越高！</div>
+<div id="wrap">
+  <div class="hud"><div>接龙 <b id="cnt">0</b></div><div class="t">时间 <b id="time">60</b></div><div>最佳 <b id="best">0</b></div></div>
+  <div class="wordBox">
+    <div class="cur" id="cur">CAT</div>
+    <div class="req" id="req">请选以 <b>T</b> 开头的单词</div>
+  </div>
+  <div class="opts" id="opts"></div>
+  <div id="fb">点击下方单词接龙，开始！</div>
+  <div class="chains" id="chains"></div>
+</div>
+<div id="overlay">
+  <div class="panel">
+    <h2 id="oTitle">⏰ 时间到！</h2>
+    <div class="floors" id="score">接了 0 个</div>
+    <div class="best" id="bestLine">最佳 0 个</div>
+    <div class="share" id="shareTxt">我 60 秒单词接龙接了 0 个，你能超过我吗？</div>
+    <button class="play" id="restart">再来一次</button>
+  </div>
+</div>
+<style id="xz-shell">
+#topbar{position:fixed;top:0;left:0;right:0;height:64px;z-index:50;display:flex;align-items:center;gap:10px;padding:0 14px;background:rgba(15,23,42,.94);backdrop-filter:blur(8px);border-bottom:1px solid #334155;color:#e2e8f0;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;-webkit-user-select:none;user-select:none;}
+#topbar a{color:#38bdf8;text-decoration:none;font-size:14px;font-weight:700;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+#topbar .tt{flex:1;text-align:center;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#topbar .tg{font-size:11px;color:#94a3b8;font-weight:400;margin-left:4px;}
+#howBtn{width:30px;height:30px;border-radius:50%;border:1px solid #334155;background:#1e293b;color:#94a3b8;font-weight:800;cursor:pointer;font-size:15px;line-height:1;flex:none;}
+#howto{display:none;position:fixed;top:72px;left:50%;transform:translateX(-50%);width:min(92vw,420px);z-index:70;background:#1e293b;border:1px solid #475569;border-radius:14px;padding:14px 16px;color:#cbd5e1;font-size:13px;line-height:1.7;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;box-shadow:0 12px 32px rgba(0,0,0,.55);}
+#howto.show{display:block;}
+#howto b{color:#38bdf8;}
+.xz-cr{position:fixed;bottom:4px;right:10px;font-size:10px;color:#475569;z-index:45;font-family:-apple-system,"Segoe UI",sans-serif;pointer-events:none;-webkit-user-select:none;user-select:none;}
+</style>
+<script>
+(function(){
+'use strict';
+var WORDS=('CAT TREE EGG GOAT TIGER RABBIT TURTLE ELEPHANT TOMATO ORANGE EAGLE EYE YAK KING GOOSE EEL LION NEST TENT TEAPOT TAXI ICE TULIP PEAR ROSE ELEVEN NIGHT TOWN WINDOW WOLF FROG GOLD DOG GUITAR RING GARDEN NOSE ECHO OWL LEMON NUT APPLE ANT OCEAN KANGAROO TOAST').split(' ');
+var byStart={};
+WORDS.forEach(function(w){var L=w.charAt(0);(byStart[L]=byStart[L]||[]).push(w);});
+var cntEl=document.getElementById('cnt'),timeEl=document.getElementById('time'),bestEl=document.getElementById('best');
+var curEl=document.getElementById('cur'),reqEl=document.getElementById('req'),optsEl=document.getElementById('opts');
+var fb=document.getElementById('fb'),chainsEl=document.getElementById('chains');
+var ov=document.getElementById('overlay'),oTitle=document.getElementById('oTitle');
+var scoreEl=document.getElementById('score'),bestLine=document.getElementById('bestLine');
+var shareTxt=document.getElementById('shareTxt'),restart=document.getElementById('restart');
+var BEST=+localStorage.getItem('xz-wc-best')||0;
+bestEl.textContent=BEST;
+var TOTAL=60,left=60,timer=null,chain=0,cur='',list=[],locked=false;
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=(Math.random()*(i+1))|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function genRound(){
+  var L=cur.charAt(cur.length-1),pool=byStart[L]||[];
+  var cands=pool.filter(function(w){return w!==cur;});
+  var correct=(cands.length?cands:pool)[(Math.random()*(cands.length||1))|0];
+  if(!correct)correct=pool[0];
+  var opts=[correct],others=shuffle(WORDS.slice());
+  for(var i=0;i<others.length&&opts.length<4;i++){
+    var w=others[i];
+    if(w.charAt(0)!==L&&opts.indexOf(w)<0)opts.push(w);
+  }
+  opts=shuffle(opts);
+  reqEl.innerHTML='请选以 <b>'+L+'</b> 开头的单词';
+  optsEl.innerHTML='';
+  opts.forEach(function(w){
+    var b=document.createElement('button');
+    b.className='opt';b.textContent=w;
+    b.addEventListener('pointerdown',function(e){e.preventDefault();answer(w,correct,b);});
+    optsEl.appendChild(b);
+  });
+}
+function answer(w,correct,b){
+  if(locked)return;
+  if(w===correct){
+    chain++;cntEl.textContent=chain;cur=w;curEl.textContent=w;
+    list.push(w);chainsEl.textContent='链：'+list.slice(-4).join(' → ');
+    fb.textContent='✅ '+w+' 接上了，继续！';
+    genRound();
+  }else{
+    locked=true;
+    clearInterval(timer);
+    b.classList.add('no');
+    var bs=optsEl.children;
+    for(var i=0;i<bs.length;i++){
+      if(bs[i].textContent===correct)bs[i].classList.add('ok');
+      else if(bs[i]!==b)bs[i].classList.add('off');
+    }
+    fb.textContent='❌ 正确答案是 '+correct;
+    setTimeout(function(){gameOver('❌ 接错啦！');},1100);
+  }
+}
+function tick(){
+  left--;timeEl.textContent=left;
+  if(left<=0){clearInterval(timer);locked=true;gameOver('⏰ 时间到！');}
+}
+function gameOver(title){
+  var grade=chain>=20?'🏆 单词大师':chain>=12?'🔥 词霸':chain>=6?'👍 不错':'😅 新手';
+  if(chain>BEST){BEST=chain;localStorage.setItem('xz-wc-best',BEST);bestEl.textContent=BEST;}
+  oTitle.textContent=title;
+  scoreEl.textContent='接了 '+chain+' 个';
+  bestLine.textContent='最佳 '+BEST+' 个';
+  shareTxt.textContent='我 60 秒单词接龙接了 '+chain+' 个（'+grade+'），你能超过我吗？';
+  ov.classList.add('show');
+}
+function reset(){
+  chain=0;left=TOTAL;locked=false;list=[];
+  cntEl.textContent=0;timeEl.textContent=TOTAL;
+  chainsEl.textContent='';fb.textContent='点击下方单词接龙，开始！';
+  ov.classList.remove('show');
+  cur=WORDS[(Math.random()*WORDS.length)|0];curEl.textContent=cur;
+  genRound();
+  if(timer)clearInterval(timer);
+  timer=setInterval(tick,1000);
+}
+restart.addEventListener('pointerdown',function(e){e.preventDefault();reset();});
+reset();
+})();
+</script>
+<script>
+(function(){
+  'use strict';
+  var W=390,H=780,TOP=64;
+  var wrap=document.getElementById('wrap');
+  function fit(){
+    if(!wrap) return;
+    var s=Math.min(innerWidth/W,(innerHeight-TOP)/H);
+    if(s>1.4) s=1.4;
+    var w=W*s,h=H*s;
+    wrap.style.width=w+'px';
+    wrap.style.height=h+'px';
+    wrap.style.left=((innerWidth-w)/2)+'px';
+    wrap.style.top=(TOP+(innerHeight-TOP-h)/2)+'px';
+    wrap.style.position='fixed';
+    wrap.style.margin='0';
+    wrap.style.transform='scale('+s+')';
+    wrap.style.transformOrigin='top left';
+  }
+  fit();
+  addEventListener('resize',fit);
+  addEventListener('orientationchange',fit);
+  var ov=document.getElementById('overlay');
+  if(ov) ov.style.zIndex=60;
+  var hb=document.getElementById('howBtn'),ht=document.getElementById('howto');
+  if(hb&&ht){
+    hb.addEventListener('click',function(e){e.stopPropagation();ht.classList.toggle('show');});
+    document.addEventListener('pointerdown',function(e){if(ht.classList.contains('show')&&!ht.contains(e.target)&&e.target!==hb)ht.classList.remove('show');});
+  }
+  document.addEventListener('contextmenu',function(e){e.preventDefault();});
+  document.addEventListener('dragstart',function(e){e.preventDefault();});
+  document.addEventListener('keydown',function(e){
+    var k=e.key||'';
+    if(k==='F12'||(e.ctrlKey&&['s','u','p','S','U','P'].indexOf(k)>=0)||(e.ctrlKey&&e.shiftKey&&['i','j','c','I','J','C'].indexOf(k)>=0)){e.preventDefault();e.stopPropagation();return false;}
+  });
+})();
+</script>
+<div class="xz-cr">© 2026 AI24X Game Zone</div>
+</body>
+</html>

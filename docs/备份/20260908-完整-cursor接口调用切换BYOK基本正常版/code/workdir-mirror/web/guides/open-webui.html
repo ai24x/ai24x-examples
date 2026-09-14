@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- [AI24X 2026-08-15] Google Ads 暂停 (国际支付无合规渠道，保留待恢复，勿删）：
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18385419220"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', {
+    'ad_storage': 'denied',
+    'ad_user_data': 'denied',
+    'ad_personalization': 'denied',
+    'analytics_storage': 'denied',
+    'personalization_storage': 'denied',
+    'functionality_storage': 'granted',
+    'security_storage': 'granted',
+    'wait_for_update': 500
+  });
+  gtag('js', new Date());
+
+  gtag('config', 'AW-18385419220');
+</script>
+<script src="../config/consent.js?v=20260814a"></script>
+-->
+
+  <meta charset="UTF-8" />
+  <script>
+/* i18n-boot inline v20260808c: language pre-read + FOUC guard (no network dependency) */
+(function () {
+  var KEY = "ai24x_lang";
+  try {
+    var raw = String(localStorage.getItem(KEY) || "").trim().toLowerCase().replace(/_/g, "-");
+    var lang = raw.split("-")[0] || "";
+    if (!lang) { lang = "en"; localStorage.setItem(KEY, lang); }
+    document.documentElement.setAttribute("data-ai24x-lang", lang);
+    document.documentElement.classList.add("i18n-pending");
+    if (!document.getElementById("ai24x-i18n-pending")) {
+      var st = document.createElement("style");
+      st.id = "ai24x-i18n-pending";
+      st.textContent = "html.i18n-pending body{visibility:hidden!important}";
+      (document.head || document.documentElement).appendChild(st);
+    }
+    setTimeout(function () { document.documentElement.classList.remove("i18n-pending"); }, 4000);
+  } catch (e) {}
+})();
+</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Open WebUI + AI24X · OpenAI-compatible connection</title>
+  <meta name="description" content="Connect Open WebUI to AI24X: API base https://api.ai24x.com/v1, API key from Console, model flash. Self-hosted chat over Global models." />
+  <link rel="canonical" href="https://open.ai24x.com/guides/open-webui.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Open WebUI + AI24X · OpenAI-compatible connection" />
+  <meta property="og:description" content="Connect Open WebUI to AI24X: base https://api.ai24x.com/v1, model flash, one API key." />
+  <meta property="og:url" content="https://open.ai24x.com/guides/open-webui.html" />
+  <meta property="og:image" content="https://www.ai24x.com/img/og-share.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://www.ai24x.com/img/og-share.png" />
+  <link rel="stylesheet" href="../css/base.css?v=20260829c" />
+  <link id="theme-css" rel="stylesheet" href="../css/themes/theme-dark.css?v=20260812e" data-base="../css/themes/" />
+</head>
+<body data-page="guides" class="theme-dark">
+  <header class="site-header" id="site-header"></header>
+  <main class="page-main">
+    <section class="hero hero-surface section-tight">
+      <div class="container">
+        <p class="sub"><a href="index.html" data-i18n="page.guides.title">Integrations</a></p>
+        <h1 data-i18n="page.guides.openwebui.h1">Open WebUI → AI24X</h1>
+        <p class="lead" data-i18n="page.guides.openwebui.lead">Open WebUI is a popular self-hosted chat UI. Add AI24X as an OpenAI-compatible connection—one key for flash/pro and VIP named models, PayPal USD top-up.</p>
+      </div>
+    </section>
+    <section class="section">
+      <div class="container" style="max-width:820px">
+        <h2 data-i18n="page.guides.openwebui.s1">1) Prerequisites</h2>
+        <p class="lead" data-i18n="page.guides.openwebui.s1p">Sign up → Console → create an API key → keep a small credit balance. Open WebUI running (Docker or local).</p>
+
+        <h2 class="mt-2" data-i18n="page.guides.openwebui.s2">2) Admin UI connection</h2>
+        <ol class="lead" style="padding-left:1.2em">
+          <li data-i18n="page.guides.openwebui.l1">Sign in as admin → Settings → Connections (or Admin → Settings → Connections).</li>
+          <li data-i18n="page.guides.openwebui.l2">OpenAI / OpenAI-compatible → add or edit connection.</li>
+          <li data-i18n-html="page.guides.openwebui.l3"><strong>API Base URL</strong>: <code>https://api.ai24x.com/v1</code> (stop at <code>/v1</code>).</li>
+          <li data-i18n-html="page.guides.openwebui.l4"><strong>API Key</strong>: your AI24X key from Console.</li>
+          <li data-i18n-html="page.guides.openwebui.l5">Save → refresh model list → enable <code>flash</code> (optional <code>pro</code> / <code>ultra</code>).</li>
+          <li data-i18n-html="page.guides.openwebui.l6">New chat → select flash → send <code>hello</code>.</li>
+        </ol>
+
+        <h2 class="mt-2" data-i18n="page.guides.openwebui.s3">3) Docker / env alternative</h2>
+        <p class="lead" data-i18n="page.guides.openwebui.s3p">Some installs prefer environment variables (names vary by Open WebUI version):</p>
+        <div class="code-block">OPENAI_API_BASE_URL=https://api.ai24x.com/v1
+OPENAI_API_KEY=YOUR_AI24X_API_KEY</div>
+        <p class="sub" data-i18n="page.guides.openwebui.s3n">If your image uses OPENAI_API_BASES / multi-connection JSON, keep the same base URL ending at /v1 and the same key.</p>
+
+        <h2 class="mt-2" data-i18n="page.guides.openwebui.s4">4) Pitfalls</h2>
+        <ul class="lead" style="padding-left:1.2em">
+          <li data-i18n-html="page.guides.openwebui.tip1">Base URL with <code>/chat/completions</code> appended → 405 (the UI adds the path).</li>
+          <li data-i18n="page.guides.openwebui.tip2">401 = bad, truncated, or rotated key—paste the full key and update the connection.</li>
+          <li data-i18n="page.guides.openwebui.tip3">Model list empty: confirm the connection is enabled and you can reach api.ai24x.com from the host running Open WebUI.</li>
+          <li data-i18n="page.guides.openwebui.tip4">VIP named models (e.g. vip-kimi) need an active membership and prepaid credits for those ids.</li>
+        </ul>
+
+        <p class="mt-2">
+          <a class="btn btn-primary" href="../register.html" data-i18n="page.index.hero.cta.register">Create account</a>
+          <a class="btn" href="cursor.html" data-i18n="page.guides.cursor.t">Cursor guide</a>
+          <a class="btn" href="lobechat.html" data-i18n="page.guides.lobechat.t">LobeChat guide</a>
+          <a class="btn" href="../console.html" data-i18n="nav.console">Console</a>
+        </p>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer" id="site-footer"></footer>
+  <script src="../config/locales.js?v=20260831b"></script>
+  <script src="../js/api.js?v=20260829n"></script>
+  <script src="../js/i18n.js?v=20260826m"></script>
+  <script src="../js/ai24x-chrome.js?v=20260829n"></script>
+  <script src="../js/shell.js?v=20260829n"></script>
+  <script src="../js/app.js?v=20260818b"></script>
+  <script src="../js/support-widget.js?v=20260817b"></script>
+</body>
+</html>

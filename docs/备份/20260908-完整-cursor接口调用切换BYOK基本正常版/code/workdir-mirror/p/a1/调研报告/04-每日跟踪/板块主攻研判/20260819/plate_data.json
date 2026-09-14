@@ -1,0 +1,4412 @@
+{
+  "em_em_industry_today": [
+    {
+      "name": "煤炭",
+      "code": "BK0437",
+      "pct": 1.66,
+      "main_today": 1179380208.0,
+      "main_5d": 1778395344.0,
+      "main_ratio": 6.93,
+      "up": 21,
+      "down": 13
+    },
+    {
+      "name": "焦炭Ⅲ",
+      "code": "BK1492",
+      "pct": 6.53,
+      "main_today": 681017011.0,
+      "main_5d": 687162041.0,
+      "main_ratio": 24.48,
+      "up": 7,
+      "down": 0
+    },
+    {
+      "name": "焦炭Ⅱ",
+      "code": "BK1249",
+      "pct": 6.53,
+      "main_today": 681017011.0,
+      "main_5d": 687162041.0,
+      "main_ratio": 24.48,
+      "up": 7,
+      "down": 0
+    },
+    {
+      "name": "炼油化工",
+      "code": "BK1569",
+      "pct": 3.04,
+      "main_today": 655540736.0,
+      "main_5d": 961772080.0,
+      "main_ratio": 5.93,
+      "up": 7,
+      "down": 3
+    },
+    {
+      "name": "航运港口",
+      "code": "BK0450",
+      "pct": 0.36,
+      "main_today": 574192016.0,
+      "main_5d": 677923872.0,
+      "main_ratio": 4.42,
+      "up": 17,
+      "down": 17
+    },
+    {
+      "name": "风电设备",
+      "code": "BK1032",
+      "pct": -4.1,
+      "main_today": 548203584.0,
+      "main_5d": 281531616.0,
+      "main_ratio": 3.21,
+      "up": 2,
+      "down": 29
+    },
+    {
+      "name": "炼化及贸易",
+      "code": "BK1274",
+      "pct": -1.11,
+      "main_today": 529722368.0,
+      "main_5d": 653436912.0,
+      "main_ratio": 3.94,
+      "up": 7,
+      "down": 23
+    },
+    {
+      "name": "煤炭开采",
+      "code": "BK1250",
+      "pct": 0.4,
+      "main_today": 498363200.0,
+      "main_5d": 1091233280.0,
+      "main_ratio": 3.5,
+      "up": 14,
+      "down": 13
+    },
+    {
+      "name": "航运",
+      "code": "BK1482",
+      "pct": 0.12,
+      "main_today": 483690912.0,
+      "main_5d": 942084304.0,
+      "main_ratio": 4.63,
+      "up": 9,
+      "down": 10
+    },
+    {
+      "name": "风电整机",
+      "code": "BK1314",
+      "pct": -3.64,
+      "main_today": 462335168.0,
+      "main_5d": 692596197.0,
+      "main_ratio": 4.39,
+      "up": 1,
+      "down": 4
+    },
+    {
+      "name": "黄金",
+      "code": "BK1617",
+      "pct": 0.47,
+      "main_today": 432398288.0,
+      "main_5d": -2305879200.0,
+      "main_ratio": 2.21,
+      "up": 4,
+      "down": 6
+    },
+    {
+      "name": "机器人",
+      "code": "BK1408",
+      "pct": -9.58,
+      "main_today": 430993920.0,
+      "main_5d": 1375312640.0,
+      "main_ratio": 1.15,
+      "up": 1,
+      "down": 21
+    },
+    {
+      "name": "石油石化",
+      "code": "BK0464",
+      "pct": -1.34,
+      "main_today": 392501808.0,
+      "main_5d": 369181968.0,
+      "main_ratio": 1.79,
+      "up": 11,
+      "down": 37
+    },
+    {
+      "name": "房地产服务",
+      "code": "BK1045",
+      "pct": 1.21,
+      "main_today": 371775824.0,
+      "main_5d": 289526995.0,
+      "main_ratio": 14.49,
+      "up": 7,
+      "down": 8
+    },
+    {
+      "name": "动力煤",
+      "code": "BK1493",
+      "pct": 0.01,
+      "main_today": 349894800.0,
+      "main_5d": 710660144.0,
+      "main_ratio": 3.36,
+      "up": 6,
+      "down": 11
+    },
+    {
+      "name": "房产租赁经纪",
+      "code": "BK1341",
+      "pct": 1.51,
+      "main_today": 250221294.0,
+      "main_5d": 235847054.0,
+      "main_ratio": 20.02,
+      "up": 1,
+      "down": 2
+    },
+    {
+      "name": "厨卫电器",
+      "code": "BK1240",
+      "pct": 4.57,
+      "main_today": 212134588.0,
+      "main_5d": 294753721.0,
+      "main_ratio": 9.81,
+      "up": 7,
+      "down": 2
+    },
+    {
+      "name": "粮油加工",
+      "code": "BK1504",
+      "pct": 1.78,
+      "main_today": 181258675.0,
+      "main_5d": 564137010.0,
+      "main_ratio": 9.34,
+      "up": 5,
+      "down": 4
+    },
+    {
+      "name": "其他化学原料",
+      "code": "BK1420",
+      "pct": 0.04,
+      "main_today": 165524000.0,
+      "main_5d": 358597487.0,
+      "main_ratio": 3.77,
+      "up": 6,
+      "down": 12
+    },
+    {
+      "name": "卫浴电器",
+      "code": "BK1452",
+      "pct": 7.19,
+      "main_today": 151594818.0,
+      "main_5d": 187391328.0,
+      "main_ratio": 24.68,
+      "up": 3,
+      "down": 0
+    },
+    {
+      "name": "焦煤",
+      "code": "BK1494",
+      "pct": 1.06,
+      "main_today": 148468401.0,
+      "main_5d": 380573160.0,
+      "main_ratio": 3.89,
+      "up": 8,
+      "down": 2
+    },
+    {
+      "name": "粮食种植",
+      "code": "BK1515",
+      "pct": -1.66,
+      "main_today": 142223121.0,
+      "main_5d": 409443181.0,
+      "main_ratio": 5.66,
+      "up": 1,
+      "down": 1
+    },
+    {
+      "name": "钾肥",
+      "code": "BK1434",
+      "pct": -1.56,
+      "main_today": 136723488.0,
+      "main_5d": -247668960.0,
+      "main_ratio": 2.84,
+      "up": 1,
+      "down": 3
+    },
+    {
+      "name": "航天装备Ⅲ",
+      "code": "BK1385",
+      "pct": -7.56,
+      "main_today": 131836640.0,
+      "main_5d": 254393548.0,
+      "main_ratio": 0.93,
+      "up": 0,
+      "down": 9
+    },
+    {
+      "name": "航天装备Ⅱ",
+      "code": "BK1232",
+      "pct": -7.56,
+      "main_today": 131836640.0,
+      "main_5d": 254393548.0,
+      "main_ratio": 0.93,
+      "up": 0,
+      "down": 9
+    },
+    {
+      "name": "空调",
+      "code": "BK1450",
+      "pct": 0.62,
+      "main_today": 128060240.0,
+      "main_5d": 231769440.0,
+      "main_ratio": 2.06,
+      "up": 2,
+      "down": 2
+    },
+    {
+      "name": "国有大型银行Ⅲ",
+      "code": "BK1611",
+      "pct": 1.54,
+      "main_today": 122845664.0,
+      "main_5d": 2353529104.0,
+      "main_ratio": 0.87,
+      "up": 6,
+      "down": 0
+    },
+    {
+      "name": "摩托车",
+      "code": "BK1521",
+      "pct": -1.83,
+      "main_today": 112493085.0,
+      "main_5d": 38121482.0,
+      "main_ratio": 4.79,
+      "up": 2,
+      "down": 7
+    },
+    {
+      "name": "物业管理",
+      "code": "BK1343",
+      "pct": 1.18,
+      "main_today": 111162507.0,
+      "main_5d": 47405853.0,
+      "main_ratio": 9.12,
+      "up": 5,
+      "down": 6
+    },
+    {
+      "name": "广告媒体",
+      "code": "BK1292",
+      "pct": -2.16,
+      "main_today": 107383840.0,
+      "main_5d": -65821739.0,
+      "main_ratio": 9.2,
+      "up": 1,
+      "down": 2
+    },
+    {
+      "name": "港口",
+      "code": "BK1481",
+      "pct": 0.65,
+      "main_today": 90501101.0,
+      "main_5d": -264160443.0,
+      "main_ratio": 3.55,
+      "up": 8,
+      "down": 7
+    },
+    {
+      "name": "风电零部件",
+      "code": "BK1313",
+      "pct": -4.18,
+      "main_today": 85868416.0,
+      "main_5d": -411064600.0,
+      "main_ratio": 1.31,
+      "up": 1,
+      "down": 25
+    },
+    {
+      "name": "白色家电",
+      "code": "BK1239",
+      "pct": -1.59,
+      "main_today": 81010448.0,
+      "main_5d": 364665360.0,
+      "main_ratio": 1.01,
+      "up": 3,
+      "down": 9
+    },
+    {
+      "name": "铁路运输",
+      "code": "BK1485",
+      "pct": -1.07,
+      "main_today": 74586311.0,
+      "main_5d": 265262945.0,
+      "main_ratio": 3.95,
+      "up": 3,
+      "down": 4
+    },
+    {
+      "name": "品牌消费电子",
+      "code": "BK1337",
+      "pct": -4.01,
+      "main_today": 74558256.0,
+      "main_5d": -66689149.0,
+      "main_ratio": 2.2,
+      "up": 1,
+      "down": 10
+    },
+    {
+      "name": "棉纺",
+      "code": "BK1349",
+      "pct": -1.87,
+      "main_today": 68455510.0,
+      "main_5d": -140647113.0,
+      "main_ratio": 5.15,
+      "up": 0,
+      "down": 8
+    },
+    {
+      "name": "保健品",
+      "code": "BK1579",
+      "pct": -0.54,
+      "main_today": 62529624.0,
+      "main_5d": 35581092.0,
+      "main_ratio": 6.64,
+      "up": 2,
+      "down": 7
+    },
+    {
+      "name": "交通运输",
+      "code": "BK1210",
+      "pct": -1.09,
+      "main_today": 60789456.0,
+      "main_5d": 129381904.0,
+      "main_ratio": 0.25,
+      "up": 33,
+      "down": 94
+    },
+    {
+      "name": "厨房电器",
+      "code": "BK1451",
+      "pct": 3.26,
+      "main_today": 60539773.0,
+      "main_5d": 107362389.0,
+      "main_ratio": 3.91,
+      "up": 4,
+      "down": 2
+    },
+    {
+      "name": "食用菌",
+      "code": "BK1517",
+      "pct": -4.02,
+      "main_today": 59392386.0,
+      "main_5d": 219898332.0,
+      "main_ratio": 3.33,
+      "up": 1,
+      "down": 3
+    },
+    {
+      "name": "农商行Ⅲ",
+      "code": "BK1612",
+      "pct": 1.04,
+      "main_today": 55670293.0,
+      "main_5d": 370754948.0,
+      "main_ratio": 2.57,
+      "up": 9,
+      "down": 0
+    },
+    {
+      "name": "橡胶助剂",
+      "code": "BK1443",
+      "pct": -3.8,
+      "main_today": 51063803.0,
+      "main_5d": 203884244.0,
+      "main_ratio": 2.27,
+      "up": 0,
+      "down": 2
+    },
+    {
+      "name": "氨纶",
+      "code": "BK1412",
+      "pct": 1.6,
+      "main_today": 46372520.0,
+      "main_5d": 63309557.0,
+      "main_ratio": 7.12,
+      "up": 1,
+      "down": 0
+    },
+    {
+      "name": "农产品加工",
+      "code": "BK1256",
+      "pct": -1.75,
+      "main_today": 38062384.0,
+      "main_5d": 1058839485.0,
+      "main_ratio": 0.56,
+      "up": 7,
+      "down": 21
+    },
+    {
+      "name": "摩托车及其他",
+      "code": "BK1263",
+      "pct": -2.05,
+      "main_today": 37420066.0,
+      "main_5d": -101945221.0,
+      "main_ratio": 1.01,
+      "up": 4,
+      "down": 16
+    },
+    {
+      "name": "商用载客车",
+      "code": "BK1531",
+      "pct": -2.78,
+      "main_today": 35195744.0,
+      "main_5d": 179968297.0,
+      "main_ratio": 3.47,
+      "up": 1,
+      "down": 4
+    },
+    {
+      "name": "个护小家电",
+      "code": "BK1458",
+      "pct": -3.27,
+      "main_today": 32194163.0,
+      "main_5d": -7293906.0,
+      "main_ratio": 7.59,
+      "up": 1,
+      "down": 3
+    },
+    {
+      "name": "成品家居",
+      "code": "BK1537",
+      "pct": -0.93,
+      "main_today": 30280885.0,
+      "main_5d": -49736524.0,
+      "main_ratio": 1.68,
+      "up": 4,
+      "down": 13
+    },
+    {
+      "name": "其他种植业",
+      "code": "BK1516",
+      "pct": -4.82,
+      "main_today": 27719869.0,
+      "main_5d": 282947284.0,
+      "main_ratio": 0.94,
+      "up": 0,
+      "down": 5
+    },
+    {
+      "name": "核力发电",
+      "code": "BK1376",
+      "pct": -0.42,
+      "main_today": 24516911.0,
+      "main_5d": 37187582.0,
+      "main_ratio": 2.19,
+      "up": 1,
+      "down": 2
+    },
+    {
+      "name": "汽车综合服务",
+      "code": "BK1524",
+      "pct": -3.43,
+      "main_today": 24328195.0,
+      "main_5d": 3957043.0,
+      "main_ratio": 7.36,
+      "up": 0,
+      "down": 3
+    },
+    {
+      "name": "保险Ⅲ",
+      "code": "BK1358",
+      "pct": 0.2,
+      "main_today": 20011232.0,
+      "main_5d": -689579280.0,
+      "main_ratio": 0.27,
+      "up": 2,
+      "down": 3
+    },
+    {
+      "name": "保险Ⅱ",
+      "code": "BK0474",
+      "pct": 0.2,
+      "main_today": 20011232.0,
+      "main_5d": -689579280.0,
+      "main_ratio": 0.27,
+      "up": 2,
+      "down": 3
+    },
+    {
+      "name": "电信运营商",
+      "code": "BK1587",
+      "pct": -0.1,
+      "main_today": 19740240.0,
+      "main_5d": 489865804.0,
+      "main_ratio": 0.62,
+      "up": 2,
+      "down": 1
+    },
+    {
+      "name": "铝",
+      "code": "BK1613",
+      "pct": -2.71,
+      "main_today": 19047248.0,
+      "main_5d": -1882307216.0,
+      "main_ratio": 0.15,
+      "up": 3,
+      "down": 27
+    },
+    {
+      "name": "汽车服务",
+      "code": "BK1016",
+      "pct": -2.45,
+      "main_today": 12688289.0,
+      "main_5d": -18570602.0,
+      "main_ratio": 2.74,
+      "up": 0,
+      "down": 9
+    },
+    {
+      "name": "乳品",
+      "code": "BK1585",
+      "pct": -4.11,
+      "main_today": 12522432.0,
+      "main_5d": -196755408.0,
+      "main_ratio": 0.31,
+      "up": 2,
+      "down": 17
+    },
+    {
+      "name": "娱乐用品",
+      "code": "BK1543",
+      "pct": -3.11,
+      "main_today": 12107072.0,
+      "main_5d": -97358261.0,
+      "main_ratio": 0.84,
+      "up": 1,
+      "down": 15
+    },
+    {
+      "name": "房地产综合服务",
+      "code": "BK1342",
+      "pct": 0.59,
+      "main_today": 10391997.0,
+      "main_5d": 6274067.0,
+      "main_ratio": 10.61,
+      "up": 1,
+      "down": 0
+    },
+    {
+      "name": "血液制品",
+      "code": "BK1597",
+      "pct": -1.15,
+      "main_today": 7112767.0,
+      "main_5d": 25120466.0,
+      "main_ratio": 1.24,
+      "up": 1,
+      "down": 4
+    },
+    {
+      "name": "培训教育",
+      "code": "BK1557",
+      "pct": -2.08,
+      "main_today": 7078253.0,
+      "main_5d": -236507506.0,
+      "main_ratio": 0.25,
+      "up": 2,
+      "down": 10
+    },
+    {
+      "name": "其他黑色家电",
+      "code": "BK1454",
+      "pct": -4.11,
+      "main_today": 4505940.0,
+      "main_5d": 788302.0,
+      "main_ratio": 0.71,
+      "up": 0,
+      "down": 5
+    },
+    {
+      "name": "防水材料",
+      "code": "BK1465",
+      "pct": -2.69,
+      "main_today": 4325348.0,
+      "main_5d": -94629749.0,
+      "main_ratio": 0.34,
+      "up": 1,
+      "down": 2
+    },
+    {
+      "name": "大气治理",
+      "code": "BK1388",
+      "pct": -4.23,
+      "main_today": 2012783.0,
+      "main_5d": 62937957.0,
+      "main_ratio": 0.48,
+      "up": 0,
+      "down": 7
+    },
+    {
+      "name": "家纺",
+      "code": "BK1353",
+      "pct": -2.15,
+      "main_today": 865927.0,
+      "main_5d": -44031601.0,
+      "main_ratio": 0.24,
+      "up": 1,
+      "down": 6
+    },
+    {
+      "name": "聚氨酯",
+      "code": "BK1426",
+      "pct": -1.86,
+      "main_today": -1914944.0,
+      "main_5d": -409668712.0,
+      "main_ratio": -0.05,
+      "up": 4,
+      "down": 6
+    },
+    {
+      "name": "燃料电池",
+      "code": "BK1305",
+      "pct": -5.43,
+      "main_today": -2032361.0,
+      "main_5d": -4878900.0,
+      "main_ratio": -3.84,
+      "up": 0,
+      "down": 1
+    },
+    {
+      "name": "钢结构",
+      "code": "BK1474",
+      "pct": -3.53,
+      "main_today": -3345254.0,
+      "main_5d": -14591208.0,
+      "main_ratio": -0.42,
+      "up": 1,
+      "down": 9
+    },
+    {
+      "name": "水产饲料",
+      "code": "BK1509",
+      "pct": -2.54,
+      "main_today": -3349117.0,
+      "main_5d": 9377968.0,
+      "main_ratio": -0.38,
+      "up": 0,
+      "down": 4
+    },
+    {
+      "name": "医美服务",
+      "code": "BK1499",
+      "pct": -2.39,
+      "main_today": -4231614.0,
+      "main_5d": -3878754.0,
+      "main_ratio": -16.56,
+      "up": 0,
+      "down": 1
+    },
+    {
+      "name": "肉鸡养殖",
+      "code": "BK1511",
+      "pct": -1.84,
+      "main_today": -4936921.0,
+      "main_5d": 35295602.0,
+      "main_ratio": -0.3,
+      "up": 1,
+      "down": 7
+    },
+    {
+      "name": "餐饮",
+      "code": "BK1559",
+      "pct": -2.94,
+      "main_today": -5464516.0,
+      "main_5d": -9223472.0,
+      "main_ratio": -3.0,
+      "up": 0,
+      "down": 4
+    },
+    {
+      "name": "金融信息服务",
+      "code": "BK1360",
+      "pct": -2.86,
+      "main_today": -5986864.0,
+      "main_5d": -58306492.0,
+      "main_ratio": -0.56,
+      "up": 1,
+      "down": 2
+    },
+    {
+      "name": "资产管理",
+      "code": "BK1364",
+      "pct": -3.57,
+      "main_today": -6082706.0,
+      "main_5d": 202314.0,
+      "main_ratio": -1.87,
+      "up": 0,
+      "down": 4
+    },
+    {
+      "name": "其他能源发电",
+      "code": "BK1378",
+      "pct": -2.49,
+      "main_today": -6118906.0,
+      "main_5d": -8648722.0,
+      "main_ratio": -7.07,
+      "up": 0,
+      "down": 2
+    },
+    {
+      "name": "印刷",
+      "code": "BK1534",
+      "pct": -2.8,
+      "main_today": -6198417.0,
+      "main_5d": -30574467.0,
+      "main_ratio": -5.21,
+      "up": 0,
+      "down": 4
+    },
+    {
+      "name": "其他家电Ⅲ",
+      "code": "BK1456",
+      "pct": -3.09,
+      "main_today": -7008549.0,
+      "main_5d": -30170797.0,
+      "main_ratio": -5.56,
+      "up": 0,
+      "down": 3
+    },
+    {
+      "name": "其他家电Ⅱ",
+      "code": "BK1243",
+      "pct": -3.09,
+      "main_today": -7008549.0,
+      "main_5d": -30170797.0,
+      "main_ratio": -5.56,
+      "up": 0,
+      "down": 3
+    },
+    {
+      "name": "烘焙食品",
+      "code": "BK1582",
+      "pct": -3.44,
+      "main_today": -7074068.0,
+      "main_5d": 128038819.0,
+      "main_ratio": -0.71,
+      "up": 2,
+      "down": 7
+    },
+    {
+      "name": "纺织鞋类制造",
+      "code": "BK1347",
+      "pct": 0.09,
+      "main_today": -7149841.0,
+      "main_5d": 20623342.0,
+      "main_ratio": -6.62,
+      "up": 1,
+      "down": 0
+    },
+    {
+      "name": "辅料",
+      "code": "BK1348",
+      "pct": -2.03,
+      "main_today": -7158379.0,
+      "main_5d": 42757730.0,
+      "main_ratio": -0.81,
+      "up": 2,
+      "down": 2
+    },
+    {
+      "name": "长材",
+      "code": "BK1369",
+      "pct": -2.22,
+      "main_today": -7520570.0,
+      "main_5d": 4846801.0,
+      "main_ratio": -6.43,
+      "up": 0,
+      "down": 3
+    },
+    {
+      "name": "涂料",
+      "code": "BK1469",
+      "pct": 1.88,
+      "main_today": -10204444.0,
+      "main_5d": -36950165.0,
+      "main_ratio": -1.84,
+      "up": 1,
+      "down": 1
+    },
+    {
+      "name": "文娱用品",
+      "code": "BK1266",
+      "pct": -3.0,
+      "main_today": -10528957.0,
+      "main_5d": -121437538.0,
+      "main_ratio": -0.6,
+      "up": 1,
+      "down": 20
+    },
+    {
+      "name": "酒店",
+      "code": "BK1560",
+      "pct": -2.54,
+      "main_today": -10784362.0,
+      "main_5d": -53605559.0,
+      "main_ratio": -1.83,
+      "up": 1,
+      "down": 5
+    },
+    {
+      "name": "学历教育",
+      "code": "BK1558",
+      "pct": -3.97,
+      "main_today": -10789046.0,
+      "main_5d": -31289896.0,
+      "main_ratio": -7.23,
+      "up": 0,
+      "down": 2
+    },
+    {
+      "name": "其他饰品",
+      "code": "BK1356",
+      "pct": -2.91,
+      "main_today": -10911327.0,
+      "main_5d": -43687860.0,
+      "main_ratio": -20.33,
+      "up": 0,
+      "down": 2
+    },
+    {
+      "name": "汽车经销商",
+      "code": "BK1523",
+      "pct": -1.96,
+      "main_today": -11639905.0,
+      "main_5d": -22527644.0,
+      "main_ratio": -8.78,
+      "up": 0,
+      "down": 6
+    },
+    {
+      "name": "煤化工",
+      "code": "BK1419",
+      "pct": -1.78,
+      "main_today": -12087824.0,
+      "main_5d": 121361740.0,
+      "main_ratio": -0.23,
+      "up": 1,
+      "down": 9
+    },
+    {
+      "name": "人力资源服务",
+      "code": "BK1568",
+      "pct": -0.85,
+      "main_today": -12493956.0,
+      "main_5d": -7753001.0,
+      "main_ratio": -7.11,
+      "up": 0,
+      "down": 3
+    },
+    {
+      "name": "纯碱",
+      "code": "BK1417",
+      "pct": -1.24,
+      "main_today": -12547500.0,
+      "main_5d": 24501558.0,
+      "main_ratio": -2.18,
+      "up": 1,
+      "down": 4
+    },
+    {
+      "name": "教育运营及其他",
+      "code": "BK1556",
+      "pct": -3.81,
+      "main_today": -12763072.0,
+      "main_5d": -26678173.0,
+      "main_ratio": -10.8,
+      "up": 0,
+      "down": 2
+    },
+    {
+      "name": "熟食",
+      "code": "BK1584",
+      "pct": -2.98,
+      "main_today": -13177078.0,
+      "main_5d": -30148160.0,
+      "main_ratio": -6.15,
+      "up": 0,
+      "down": 3
+    },
+    {
+      "name": "水泥制品",
+      "code": "BK1463",
+      "pct": -2.08,
+      "main_today": -13213099.0,
+      "main_5d": 7389435.0,
+      "main_ratio": -2.62,
+      "up": 0,
+      "down": 9
+    },
+    {
+      "name": "农业综合Ⅲ",
+      "code": "BK1506",
+      "pct": -4.44,
+      "main_today": -13412109.0,
+      "main_5d": -7421588.0,
+      "main_ratio": -4.68,
+      "up": 0,
+      "down": 3
+    },
+    {
+      "name": "农业综合Ⅱ",
+      "code": "BK1257",
+      "pct": -4.44,
+      "main_today": -13412109.0,
+      "main_5d": -7421588.0,
+      "main_ratio": -4.68,
+      "up": 0,
+      "down": 3
+    },
+    {
+      "name": "其他数字媒体",
+      "code": "BK1295",
+      "pct": -7.72,
+      "main_today": -13500557.0,
+      "main_5d": -163642669.0,
+      "main_ratio": -1.58,
+      "up": 0,
+      "down": 2
+    },
+    {
+      "name": "油田服务",
+      "code": "BK1573",
+      "pct": -1.62,
+      "main_today": -14293734.0,
+      "main_5d": -58310714.0,
+      "main_ratio": -0.59,
+      "up": 2,
+      "down": 5
+    },
+    {
+      "name": "其他专业服务",
+      "code": "BK1567",
+      "pct": -5.71,
+      "main_today": -14440594.0,
+      "main_5d": 779195.0,
+      "main_ratio": -4.9,
+      "up": 0,
+      "down": 4
+    },
+    {
+      "name": "综合包装",
+      "code": "BK1536",
+      "pct": -2.86,
+      "main_today": -14704194.0,
+      "main_5d": -50798685.0,
+      "main_ratio": -5.97,
+      "up": 1,
+      "down": 5
+    }
+  ],
+  "em_em_industry_5d": [
+    {
+      "name": "农林牧渔",
+      "code": "BK0433",
+      "pct": -2.61,
+      "main_today": -1186317456.0,
+      "main_5d": 2763634016.0,
+      "main_ratio": -2.99,
+      "up": 16,
+      "down": 98
+    },
+    {
+      "name": "银行",
+      "code": "BK1283",
+      "pct": 1.46,
+      "main_today": -389923072.0,
+      "main_5d": 2470635024.0,
+      "main_ratio": -1.02,
+      "up": 40,
+      "down": 0
+    },
+    {
+      "name": "银行Ⅱ",
+      "code": "BK0475",
+      "pct": 1.46,
+      "main_today": -389923072.0,
+      "main_5d": 2470635024.0,
+      "main_ratio": -1.02,
+      "up": 40,
+      "down": 0
+    },
+    {
+      "name": "国有大型银行Ⅲ",
+      "code": "BK1611",
+      "pct": 1.54,
+      "main_today": 122845664.0,
+      "main_5d": 2353529104.0,
+      "main_ratio": 0.87,
+      "up": 6,
+      "down": 0
+    },
+    {
+      "name": "种植业",
+      "code": "BK1261",
+      "pct": -2.4,
+      "main_today": -160741360.0,
+      "main_5d": 1787918182.0,
+      "main_ratio": -0.95,
+      "up": 7,
+      "down": 14
+    },
+    {
+      "name": "煤炭",
+      "code": "BK0437",
+      "pct": 1.66,
+      "main_today": 1179380208.0,
+      "main_5d": 1778395344.0,
+      "main_ratio": 6.93,
+      "up": 21,
+      "down": 13
+    },
+    {
+      "name": "机器人",
+      "code": "BK1408",
+      "pct": -9.58,
+      "main_today": 430993920.0,
+      "main_5d": 1375312640.0,
+      "main_ratio": 1.15,
+      "up": 1,
+      "down": 21
+    },
+    {
+      "name": "煤炭开采",
+      "code": "BK1250",
+      "pct": 0.4,
+      "main_today": 498363200.0,
+      "main_5d": 1091233280.0,
+      "main_ratio": 3.5,
+      "up": 14,
+      "down": 13
+    },
+    {
+      "name": "农产品加工",
+      "code": "BK1256",
+      "pct": -1.75,
+      "main_today": 38062384.0,
+      "main_5d": 1058839485.0,
+      "main_ratio": 0.56,
+      "up": 7,
+      "down": 21
+    },
+    {
+      "name": "炼油化工",
+      "code": "BK1569",
+      "pct": 3.04,
+      "main_today": 655540736.0,
+      "main_5d": 961772080.0,
+      "main_ratio": 5.93,
+      "up": 7,
+      "down": 3
+    },
+    {
+      "name": "航运",
+      "code": "BK1482",
+      "pct": 0.12,
+      "main_today": 483690912.0,
+      "main_5d": 942084304.0,
+      "main_ratio": 4.63,
+      "up": 9,
+      "down": 10
+    },
+    {
+      "name": "种子",
+      "code": "BK1518",
+      "pct": -0.68,
+      "main_today": -390076752.0,
+      "main_5d": 875629388.0,
+      "main_ratio": -4.05,
+      "up": 5,
+      "down": 5
+    },
+    {
+      "name": "分立器件",
+      "code": "BK1327",
+      "pct": -4.92,
+      "main_today": -116176128.0,
+      "main_5d": 817969824.0,
+      "main_ratio": -0.33,
+      "up": 2,
+      "down": 16
+    },
+    {
+      "name": "动力煤",
+      "code": "BK1493",
+      "pct": 0.01,
+      "main_today": 349894800.0,
+      "main_5d": 710660144.0,
+      "main_ratio": 3.36,
+      "up": 6,
+      "down": 11
+    },
+    {
+      "name": "风电整机",
+      "code": "BK1314",
+      "pct": -3.64,
+      "main_today": 462335168.0,
+      "main_5d": 692596197.0,
+      "main_ratio": 4.39,
+      "up": 1,
+      "down": 4
+    },
+    {
+      "name": "焦炭Ⅲ",
+      "code": "BK1492",
+      "pct": 6.53,
+      "main_today": 681017011.0,
+      "main_5d": 687162041.0,
+      "main_ratio": 24.48,
+      "up": 7,
+      "down": 0
+    },
+    {
+      "name": "焦炭Ⅱ",
+      "code": "BK1249",
+      "pct": 6.53,
+      "main_today": 681017011.0,
+      "main_5d": 687162041.0,
+      "main_ratio": 24.48,
+      "up": 7,
+      "down": 0
+    },
+    {
+      "name": "航运港口",
+      "code": "BK0450",
+      "pct": 0.36,
+      "main_today": 574192016.0,
+      "main_5d": 677923872.0,
+      "main_ratio": 4.42,
+      "up": 17,
+      "down": 17
+    },
+    {
+      "name": "炼化及贸易",
+      "code": "BK1274",
+      "pct": -1.11,
+      "main_today": 529722368.0,
+      "main_5d": 653436912.0,
+      "main_ratio": 3.94,
+      "up": 7,
+      "down": 23
+    },
+    {
+      "name": "医药流通",
+      "code": "BK1607",
+      "pct": -2.99,
+      "main_today": -362486564.0,
+      "main_5d": 585520524.0,
+      "main_ratio": -7.47,
+      "up": 2,
+      "down": 22
+    },
+    {
+      "name": "粮油加工",
+      "code": "BK1504",
+      "pct": 1.78,
+      "main_today": 181258675.0,
+      "main_5d": 564137010.0,
+      "main_ratio": 9.34,
+      "up": 5,
+      "down": 4
+    },
+    {
+      "name": "其他农产品加工",
+      "code": "BK1505",
+      "pct": -2.25,
+      "main_today": -78162544.0,
+      "main_5d": 499086353.0,
+      "main_ratio": -1.99,
+      "up": 2,
+      "down": 11
+    },
+    {
+      "name": "电信运营商",
+      "code": "BK1587",
+      "pct": -0.1,
+      "main_today": 19740240.0,
+      "main_5d": 489865804.0,
+      "main_ratio": 0.62,
+      "up": 2,
+      "down": 1
+    },
+    {
+      "name": "医药商业",
+      "code": "BK1042",
+      "pct": -2.85,
+      "main_today": -447537246.0,
+      "main_5d": 478336722.0,
+      "main_ratio": -7.49,
+      "up": 2,
+      "down": 29
+    },
+    {
+      "name": "无机盐",
+      "code": "BK1422",
+      "pct": -3.37,
+      "main_today": -106834464.0,
+      "main_5d": 471630624.0,
+      "main_ratio": -1.36,
+      "up": 1,
+      "down": 10
+    },
+    {
+      "name": "肉制品",
+      "code": "BK1580",
+      "pct": -2.67,
+      "main_today": -77450173.0,
+      "main_5d": 428783693.0,
+      "main_ratio": -3.47,
+      "up": 2,
+      "down": 5
+    },
+    {
+      "name": "粮食种植",
+      "code": "BK1515",
+      "pct": -1.66,
+      "main_today": 142223121.0,
+      "main_5d": 409443181.0,
+      "main_ratio": 5.66,
+      "up": 1,
+      "down": 1
+    },
+    {
+      "name": "水力发电",
+      "code": "BK1380",
+      "pct": -1.15,
+      "main_today": -67613232.0,
+      "main_5d": 391937008.0,
+      "main_ratio": -1.13,
+      "up": 4,
+      "down": 7
+    },
+    {
+      "name": "光伏加工设备",
+      "code": "BK1317",
+      "pct": -6.91,
+      "main_today": -396506800.0,
+      "main_5d": 381394932.0,
+      "main_ratio": -5.54,
+      "up": 0,
+      "down": 11
+    },
+    {
+      "name": "焦煤",
+      "code": "BK1494",
+      "pct": 1.06,
+      "main_today": 148468401.0,
+      "main_5d": 380573160.0,
+      "main_ratio": 3.89,
+      "up": 8,
+      "down": 2
+    },
+    {
+      "name": "农商行Ⅲ",
+      "code": "BK1612",
+      "pct": 1.04,
+      "main_today": 55670293.0,
+      "main_5d": 370754948.0,
+      "main_ratio": 2.57,
+      "up": 9,
+      "down": 0
+    },
+    {
+      "name": "石油石化",
+      "code": "BK0464",
+      "pct": -1.34,
+      "main_today": 392501808.0,
+      "main_5d": 369181968.0,
+      "main_ratio": 1.79,
+      "up": 11,
+      "down": 37
+    },
+    {
+      "name": "白色家电",
+      "code": "BK1239",
+      "pct": -1.59,
+      "main_today": 81010448.0,
+      "main_5d": 364665360.0,
+      "main_ratio": 1.01,
+      "up": 3,
+      "down": 9
+    },
+    {
+      "name": "其他化学原料",
+      "code": "BK1420",
+      "pct": 0.04,
+      "main_today": 165524000.0,
+      "main_5d": 358597487.0,
+      "main_ratio": 3.77,
+      "up": 6,
+      "down": 12
+    },
+    {
+      "name": "食品加工",
+      "code": "BK1280",
+      "pct": -2.1,
+      "main_today": -62885760.0,
+      "main_5d": 355885572.0,
+      "main_ratio": -1.52,
+      "up": 4,
+      "down": 23
+    },
+    {
+      "name": "化学原料",
+      "code": "BK1019",
+      "pct": -1.74,
+      "main_today": -158914576.0,
+      "main_5d": 339442464.0,
+      "main_ratio": -0.74,
+      "up": 9,
+      "down": 55
+    },
+    {
+      "name": "厨卫电器",
+      "code": "BK1240",
+      "pct": 4.57,
+      "main_today": 212134588.0,
+      "main_5d": 294753721.0,
+      "main_ratio": 9.81,
+      "up": 7,
+      "down": 2
+    },
+    {
+      "name": "房地产服务",
+      "code": "BK1045",
+      "pct": 1.21,
+      "main_today": 371775824.0,
+      "main_5d": 289526995.0,
+      "main_ratio": 14.49,
+      "up": 7,
+      "down": 8
+    },
+    {
+      "name": "其他种植业",
+      "code": "BK1516",
+      "pct": -4.82,
+      "main_today": 27719869.0,
+      "main_5d": 282947284.0,
+      "main_ratio": 0.94,
+      "up": 0,
+      "down": 5
+    },
+    {
+      "name": "风电设备",
+      "code": "BK1032",
+      "pct": -4.1,
+      "main_today": 548203584.0,
+      "main_5d": 281531616.0,
+      "main_ratio": 3.21,
+      "up": 2,
+      "down": 29
+    },
+    {
+      "name": "硅料硅片",
+      "code": "BK1319",
+      "pct": -5.15,
+      "main_today": -126050960.0,
+      "main_5d": 278221758.0,
+      "main_ratio": -4.09,
+      "up": 0,
+      "down": 5
+    },
+    {
+      "name": "铁路运输",
+      "code": "BK1485",
+      "pct": -1.07,
+      "main_today": 74586311.0,
+      "main_5d": 265262945.0,
+      "main_ratio": 3.95,
+      "up": 3,
+      "down": 4
+    },
+    {
+      "name": "氮肥",
+      "code": "BK1432",
+      "pct": -1.11,
+      "main_today": -109405217.0,
+      "main_5d": 255707045.0,
+      "main_ratio": -4.01,
+      "up": 0,
+      "down": 6
+    },
+    {
+      "name": "航天装备Ⅲ",
+      "code": "BK1385",
+      "pct": -7.56,
+      "main_today": 131836640.0,
+      "main_5d": 254393548.0,
+      "main_ratio": 0.93,
+      "up": 0,
+      "down": 9
+    },
+    {
+      "name": "航天装备Ⅱ",
+      "code": "BK1232",
+      "pct": -7.56,
+      "main_today": 131836640.0,
+      "main_5d": 254393548.0,
+      "main_ratio": 0.93,
+      "up": 0,
+      "down": 9
+    },
+    {
+      "name": "磨具磨料",
+      "code": "BK1397",
+      "pct": -4.78,
+      "main_today": -87006272.0,
+      "main_5d": 240639536.0,
+      "main_ratio": -0.81,
+      "up": 2,
+      "down": 12
+    },
+    {
+      "name": "房产租赁经纪",
+      "code": "BK1341",
+      "pct": 1.51,
+      "main_today": 250221294.0,
+      "main_5d": 235847054.0,
+      "main_ratio": 20.02,
+      "up": 1,
+      "down": 2
+    },
+    {
+      "name": "空调",
+      "code": "BK1450",
+      "pct": 0.62,
+      "main_today": 128060240.0,
+      "main_5d": 231769440.0,
+      "main_ratio": 2.06,
+      "up": 2,
+      "down": 2
+    },
+    {
+      "name": "食用菌",
+      "code": "BK1517",
+      "pct": -4.02,
+      "main_today": 59392386.0,
+      "main_5d": 219898332.0,
+      "main_ratio": 3.33,
+      "up": 1,
+      "down": 3
+    },
+    {
+      "name": "畜禽饲料",
+      "code": "BK1508",
+      "pct": -3.35,
+      "main_today": -120905635.0,
+      "main_5d": 217207471.0,
+      "main_ratio": -5.43,
+      "up": 0,
+      "down": 9
+    },
+    {
+      "name": "橡胶助剂",
+      "code": "BK1443",
+      "pct": -3.8,
+      "main_today": 51063803.0,
+      "main_5d": 203884244.0,
+      "main_ratio": 2.27,
+      "up": 0,
+      "down": 2
+    },
+    {
+      "name": "电工仪器仪表",
+      "code": "BK1308",
+      "pct": -3.86,
+      "main_today": -138473297.0,
+      "main_5d": 187415534.0,
+      "main_ratio": -5.05,
+      "up": 1,
+      "down": 13
+    },
+    {
+      "name": "卫浴电器",
+      "code": "BK1452",
+      "pct": 7.19,
+      "main_today": 151594818.0,
+      "main_5d": 187391328.0,
+      "main_ratio": 24.68,
+      "up": 3,
+      "down": 0
+    },
+    {
+      "name": "商用载客车",
+      "code": "BK1531",
+      "pct": -2.78,
+      "main_today": 35195744.0,
+      "main_5d": 179968297.0,
+      "main_ratio": 3.47,
+      "up": 1,
+      "down": 4
+    },
+    {
+      "name": "房屋建设Ⅲ",
+      "code": "BK1470",
+      "pct": -1.96,
+      "main_today": -25355902.0,
+      "main_5d": 162250890.0,
+      "main_ratio": -1.05,
+      "up": 2,
+      "down": 6
+    },
+    {
+      "name": "房屋建设Ⅱ",
+      "code": "BK1246",
+      "pct": -1.96,
+      "main_today": -25355902.0,
+      "main_5d": 162250890.0,
+      "main_ratio": -1.05,
+      "up": 2,
+      "down": 6
+    },
+    {
+      "name": "冰洗",
+      "code": "BK1449",
+      "pct": -2.57,
+      "main_today": -47049796.0,
+      "main_5d": 132895948.0,
+      "main_ratio": -2.62,
+      "up": 1,
+      "down": 7
+    },
+    {
+      "name": "交通运输",
+      "code": "BK1210",
+      "pct": -1.09,
+      "main_today": 60789456.0,
+      "main_5d": 129381904.0,
+      "main_ratio": 0.25,
+      "up": 33,
+      "down": 94
+    },
+    {
+      "name": "烘焙食品",
+      "code": "BK1582",
+      "pct": -3.44,
+      "main_today": -7074068.0,
+      "main_5d": 128038819.0,
+      "main_ratio": -0.71,
+      "up": 2,
+      "down": 7
+    },
+    {
+      "name": "商业物业经营",
+      "code": "BK1554",
+      "pct": -3.21,
+      "main_today": -81531308.0,
+      "main_5d": 128016613.0,
+      "main_ratio": -2.68,
+      "up": 1,
+      "down": 17
+    },
+    {
+      "name": "其他酒类",
+      "code": "BK1578",
+      "pct": -2.15,
+      "main_today": -21341898.0,
+      "main_5d": 123937343.0,
+      "main_ratio": -2.03,
+      "up": 0,
+      "down": 11
+    },
+    {
+      "name": "煤化工",
+      "code": "BK1419",
+      "pct": -1.78,
+      "main_today": -12087824.0,
+      "main_5d": 121361740.0,
+      "main_ratio": -0.23,
+      "up": 1,
+      "down": 9
+    },
+    {
+      "name": "休闲食品",
+      "code": "BK1281",
+      "pct": -3.74,
+      "main_today": -164570870.0,
+      "main_5d": 108619347.0,
+      "main_ratio": -5.07,
+      "up": 2,
+      "down": 21
+    },
+    {
+      "name": "厨房电器",
+      "code": "BK1451",
+      "pct": 3.26,
+      "main_today": 60539773.0,
+      "main_5d": 107362389.0,
+      "main_ratio": 3.91,
+      "up": 4,
+      "down": 2
+    },
+    {
+      "name": "公路货运",
+      "code": "BK1487",
+      "pct": -4.66,
+      "main_today": -30610031.0,
+      "main_5d": 103662039.0,
+      "main_ratio": -7.94,
+      "up": 0,
+      "down": 4
+    },
+    {
+      "name": "饲料",
+      "code": "BK1258",
+      "pct": -3.21,
+      "main_today": -179168566.0,
+      "main_5d": 99200035.0,
+      "main_ratio": -5.05,
+      "up": 0,
+      "down": 17
+    },
+    {
+      "name": "信托",
+      "code": "BK1363",
+      "pct": -1.46,
+      "main_today": -18304224.0,
+      "main_5d": 94588360.0,
+      "main_ratio": -5.07,
+      "up": 0,
+      "down": 3
+    },
+    {
+      "name": "渔业",
+      "code": "BK1260",
+      "pct": -3.31,
+      "main_today": -68353153.0,
+      "main_5d": 82470165.0,
+      "main_ratio": -7.48,
+      "up": 0,
+      "down": 7
+    },
+    {
+      "name": "瓷砖地板",
+      "code": "BK1538",
+      "pct": -5.07,
+      "main_today": -60478695.0,
+      "main_5d": 65952430.0,
+      "main_ratio": -4.44,
+      "up": 0,
+      "down": 12
+    },
+    {
+      "name": "氨纶",
+      "code": "BK1412",
+      "pct": 1.6,
+      "main_today": 46372520.0,
+      "main_5d": 63309557.0,
+      "main_ratio": 7.12,
+      "up": 1,
+      "down": 0
+    },
+    {
+      "name": "大气治理",
+      "code": "BK1388",
+      "pct": -4.23,
+      "main_today": 2012783.0,
+      "main_5d": 62937957.0,
+      "main_ratio": 0.48,
+      "up": 0,
+      "down": 7
+    },
+    {
+      "name": "纺织服装设备",
+      "code": "BK1401",
+      "pct": -4.75,
+      "main_today": -171942471.0,
+      "main_5d": 59559612.0,
+      "main_ratio": -6.91,
+      "up": 1,
+      "down": 12
+    },
+    {
+      "name": "楼宇设备",
+      "code": "BK1402",
+      "pct": -4.16,
+      "main_today": -22324495.0,
+      "main_5d": 51369882.0,
+      "main_ratio": -1.57,
+      "up": 0,
+      "down": 16
+    },
+    {
+      "name": "轨交设备Ⅲ",
+      "code": "BK1394",
+      "pct": -2.42,
+      "main_today": -214152368.0,
+      "main_5d": 50333248.0,
+      "main_ratio": -4.48,
+      "up": 4,
+      "down": 27
+    },
+    {
+      "name": "轨交设备Ⅱ",
+      "code": "BK1236",
+      "pct": -2.42,
+      "main_today": -214152368.0,
+      "main_5d": 50333248.0,
+      "main_ratio": -4.48,
+      "up": 4,
+      "down": 27
+    },
+    {
+      "name": "调味发酵品Ⅲ",
+      "code": "BK1576",
+      "pct": -3.27,
+      "main_today": -588231904.0,
+      "main_5d": 49140672.0,
+      "main_ratio": -11.36,
+      "up": 1,
+      "down": 14
+    },
+    {
+      "name": "调味发酵品Ⅱ",
+      "code": "BK1278",
+      "pct": -3.27,
+      "main_today": -588231904.0,
+      "main_5d": 49140672.0,
+      "main_ratio": -11.36,
+      "up": 1,
+      "down": 14
+    },
+    {
+      "name": "物业管理",
+      "code": "BK1343",
+      "pct": 1.18,
+      "main_today": 111162507.0,
+      "main_5d": 47405853.0,
+      "main_ratio": 9.12,
+      "up": 5,
+      "down": 6
+    },
+    {
+      "name": "快递",
+      "code": "BK1489",
+      "pct": -1.17,
+      "main_today": -50494150.0,
+      "main_5d": 47352248.0,
+      "main_ratio": -3.37,
+      "up": 1,
+      "down": 3
+    },
+    {
+      "name": "水产养殖",
+      "code": "BK1514",
+      "pct": -3.66,
+      "main_today": -38787590.0,
+      "main_5d": 43006992.0,
+      "main_ratio": -6.33,
+      "up": 0,
+      "down": 4
+    },
+    {
+      "name": "辅料",
+      "code": "BK1348",
+      "pct": -2.03,
+      "main_today": -7158379.0,
+      "main_5d": 42757730.0,
+      "main_ratio": -0.81,
+      "up": 2,
+      "down": 2
+    },
+    {
+      "name": "鞋帽及其他",
+      "code": "BK1354",
+      "pct": -5.19,
+      "main_today": -52104715.0,
+      "main_5d": 39476845.0,
+      "main_ratio": -3.39,
+      "up": 0,
+      "down": 11
+    },
+    {
+      "name": "海洋捕捞",
+      "code": "BK1513",
+      "pct": -2.83,
+      "main_today": -29565563.0,
+      "main_5d": 39463178.0,
+      "main_ratio": -9.83,
+      "up": 0,
+      "down": 3
+    },
+    {
+      "name": "摩托车",
+      "code": "BK1521",
+      "pct": -1.83,
+      "main_today": 112493085.0,
+      "main_5d": 38121482.0,
+      "main_ratio": 4.79,
+      "up": 2,
+      "down": 7
+    },
+    {
+      "name": "养殖业",
+      "code": "BK1259",
+      "pct": -2.47,
+      "main_today": -670739104.0,
+      "main_5d": 38026592.0,
+      "main_ratio": -7.86,
+      "up": 2,
+      "down": 20
+    },
+    {
+      "name": "核力发电",
+      "code": "BK1376",
+      "pct": -0.42,
+      "main_today": 24516911.0,
+      "main_5d": 37187582.0,
+      "main_ratio": 2.19,
+      "up": 1,
+      "down": 2
+    },
+    {
+      "name": "保健品",
+      "code": "BK1579",
+      "pct": -0.54,
+      "main_today": 62529624.0,
+      "main_5d": 35581092.0,
+      "main_ratio": 6.64,
+      "up": 2,
+      "down": 7
+    },
+    {
+      "name": "肉鸡养殖",
+      "code": "BK1511",
+      "pct": -1.84,
+      "main_today": -4936921.0,
+      "main_5d": 35295602.0,
+      "main_ratio": -0.3,
+      "up": 1,
+      "down": 7
+    },
+    {
+      "name": "有机硅",
+      "code": "BK1431",
+      "pct": -3.29,
+      "main_today": -33771500.0,
+      "main_5d": 26879331.0,
+      "main_ratio": -0.87,
+      "up": 1,
+      "down": 9
+    },
+    {
+      "name": "出版",
+      "code": "BK1218",
+      "pct": -2.09,
+      "main_today": -62983379.0,
+      "main_5d": 26576550.0,
+      "main_ratio": -2.35,
+      "up": 6,
+      "down": 22
+    },
+    {
+      "name": "锦纶",
+      "code": "BK1414",
+      "pct": -1.01,
+      "main_today": -21984322.0,
+      "main_5d": 25519795.0,
+      "main_ratio": -3.77,
+      "up": 1,
+      "down": 4
+    },
+    {
+      "name": "血液制品",
+      "code": "BK1597",
+      "pct": -1.15,
+      "main_today": 7112767.0,
+      "main_5d": 25120466.0,
+      "main_ratio": 1.24,
+      "up": 1,
+      "down": 4
+    },
+    {
+      "name": "纯碱",
+      "code": "BK1417",
+      "pct": -1.24,
+      "main_today": -12547500.0,
+      "main_5d": 24501558.0,
+      "main_ratio": -2.18,
+      "up": 1,
+      "down": 4
+    },
+    {
+      "name": "大众出版",
+      "code": "BK1289",
+      "pct": -2.77,
+      "main_today": -25659129.0,
+      "main_5d": 22856903.0,
+      "main_ratio": -1.57,
+      "up": 2,
+      "down": 16
+    },
+    {
+      "name": "纺织鞋类制造",
+      "code": "BK1347",
+      "pct": 0.09,
+      "main_today": -7149841.0,
+      "main_5d": 20623342.0,
+      "main_ratio": -6.62,
+      "up": 1,
+      "down": 0
+    },
+    {
+      "name": "中药Ⅲ",
+      "code": "BK1608",
+      "pct": -1.48,
+      "main_today": -308393472.0,
+      "main_5d": 18070512.0,
+      "main_ratio": -2.28,
+      "up": 12,
+      "down": 54
+    },
+    {
+      "name": "中药Ⅱ",
+      "code": "BK1040",
+      "pct": -1.48,
+      "main_today": -308393472.0,
+      "main_5d": 18070512.0,
+      "main_ratio": -2.28,
+      "up": 12,
+      "down": 54
+    },
+    {
+      "name": "会展服务",
+      "code": "BK1565",
+      "pct": -4.97,
+      "main_today": -26389466.0,
+      "main_5d": 17388431.0,
+      "main_ratio": -3.9,
+      "up": 0,
+      "down": 3
+    },
+    {
+      "name": "定制家居",
+      "code": "BK1539",
+      "pct": -2.49,
+      "main_today": -23080669.0,
+      "main_5d": 16958554.0,
+      "main_ratio": -1.43,
+      "up": 4,
+      "down": 12
+    },
+    {
+      "name": "零食",
+      "code": "BK1583",
+      "pct": -4.2,
+      "main_today": -144319724.0,
+      "main_5d": 10728703.0,
+      "main_ratio": -7.11,
+      "up": 0,
+      "down": 11
+    }
+  ],
+  "em_em_concept_today": [
+    {
+      "name": "煤化工概念",
+      "code": "BK0492",
+      "pct": -1.09,
+      "main_today": 298802000.0,
+      "main_5d": -285139696.0,
+      "main_ratio": 0.97,
+      "up": 16,
+      "down": 58
+    },
+    {
+      "name": "净水概念",
+      "code": "BK1068",
+      "pct": -2.0,
+      "main_today": 172787840.0,
+      "main_5d": 559244912.0,
+      "main_ratio": 1.99,
+      "up": 5,
+      "down": 16
+    },
+    {
+      "name": "宠物经济",
+      "code": "BK0993",
+      "pct": -2.84,
+      "main_today": 160308032.0,
+      "main_5d": -493269152.0,
+      "main_ratio": 1.48,
+      "up": 6,
+      "down": 64
+    },
+    {
+      "name": "租售同权",
+      "code": "BK0822",
+      "pct": -1.06,
+      "main_today": 99503936.0,
+      "main_5d": -227370564.0,
+      "main_ratio": 1.98,
+      "up": 3,
+      "down": 14
+    },
+    {
+      "name": "啤酒概念",
+      "code": "BK1073",
+      "pct": -1.47,
+      "main_today": 25837120.0,
+      "main_5d": -64674765.0,
+      "main_ratio": 0.57,
+      "up": 2,
+      "down": 16
+    },
+    {
+      "name": "代糖概念",
+      "code": "BK0938",
+      "pct": -2.62,
+      "main_today": -3332352.0,
+      "main_5d": 452861832.0,
+      "main_ratio": -0.07,
+      "up": 3,
+      "down": 12
+    },
+    {
+      "name": "B股",
+      "code": "BK0636",
+      "pct": -0.72,
+      "main_today": -11605430.0,
+      "main_5d": -24936637.0,
+      "main_ratio": -13.11,
+      "up": 8,
+      "down": 61
+    },
+    {
+      "name": "托育服务",
+      "code": "BK1074",
+      "pct": -2.58,
+      "main_today": -14508816.0,
+      "main_5d": -47998744.0,
+      "main_ratio": -2.64,
+      "up": 0,
+      "down": 6
+    },
+    {
+      "name": "空间站概念",
+      "code": "BK0994",
+      "pct": -5.53,
+      "main_today": -22018016.0,
+      "main_5d": -113558080.0,
+      "main_ratio": -0.15,
+      "up": 0,
+      "down": 20
+    },
+    {
+      "name": "微盘精选",
+      "code": "BK1644",
+      "pct": -2.15,
+      "main_today": -23714614.0,
+      "main_5d": -21293832.0,
+      "main_ratio": -0.93,
+      "up": 5,
+      "down": 49
+    },
+    {
+      "name": "社保重仓",
+      "code": "BK0520",
+      "pct": -5.54,
+      "main_today": -23780357.0,
+      "main_5d": 104704936.0,
+      "main_ratio": -0.59,
+      "up": 1,
+      "down": 13
+    },
+    {
+      "name": "轮毂电机",
+      "code": "BK1099",
+      "pct": -4.8,
+      "main_today": -32256706.0,
+      "main_5d": 46660244.0,
+      "main_ratio": -2.46,
+      "up": 0,
+      "down": 9
+    },
+    {
+      "name": "近期摘帽",
+      "code": "BK1693",
+      "pct": -3.62,
+      "main_today": -32441872.0,
+      "main_5d": -300927856.0,
+      "main_ratio": -0.2,
+      "up": 8,
+      "down": 59
+    },
+    {
+      "name": "2025三季报预减",
+      "code": "BK1199",
+      "pct": -5.53,
+      "main_today": -44179920.0,
+      "main_5d": -254320865.0,
+      "main_ratio": -1.0,
+      "up": 1,
+      "down": 7
+    },
+    {
+      "name": "乳业",
+      "code": "BK0892",
+      "pct": -3.33,
+      "main_today": -71015888.0,
+      "main_5d": 140696816.0,
+      "main_ratio": -0.98,
+      "up": 4,
+      "down": 28
+    },
+    {
+      "name": "滨海新区",
+      "code": "BK0566",
+      "pct": -2.2,
+      "main_today": -84340080.0,
+      "main_5d": 348056656.0,
+      "main_ratio": -1.76,
+      "up": 3,
+      "down": 18
+    },
+    {
+      "name": "红利股",
+      "code": "BK1641",
+      "pct": 0.11,
+      "main_today": -91042560.0,
+      "main_5d": 2966973184.0,
+      "main_ratio": -0.16,
+      "up": 57,
+      "down": 41
+    },
+    {
+      "name": "低碳冶金",
+      "code": "BK0979",
+      "pct": -1.1,
+      "main_today": -96990408.0,
+      "main_5d": -88992545.0,
+      "main_ratio": -8.35,
+      "up": 1,
+      "down": 6
+    },
+    {
+      "name": "页岩气",
+      "code": "BK0603",
+      "pct": -3.39,
+      "main_today": -98714752.0,
+      "main_5d": 425329904.0,
+      "main_ratio": -0.67,
+      "up": 4,
+      "down": 28
+    },
+    {
+      "name": "举牌",
+      "code": "BK0685",
+      "pct": -4.59,
+      "main_today": -110232445.0,
+      "main_5d": 44391313.0,
+      "main_ratio": -4.56,
+      "up": 2,
+      "down": 11
+    },
+    {
+      "name": "可燃冰",
+      "code": "BK0818",
+      "pct": -2.61,
+      "main_today": -122221785.0,
+      "main_5d": 45912752.0,
+      "main_ratio": -6.04,
+      "up": 1,
+      "down": 7
+    },
+    {
+      "name": "退税商店",
+      "code": "BK0933",
+      "pct": -2.91,
+      "main_today": -129488434.0,
+      "main_5d": 32973355.0,
+      "main_ratio": -7.81,
+      "up": 0,
+      "down": 12
+    },
+    {
+      "name": "环氧丙烷",
+      "code": "BK1011",
+      "pct": -1.85,
+      "main_today": -138178720.0,
+      "main_5d": -631319216.0,
+      "main_ratio": -1.32,
+      "up": 5,
+      "down": 18
+    },
+    {
+      "name": "供销社概念",
+      "code": "BK1109",
+      "pct": -1.8,
+      "main_today": -142753136.0,
+      "main_5d": 3872940.0,
+      "main_ratio": -3.02,
+      "up": 3,
+      "down": 11
+    },
+    {
+      "name": "智慧灯杆",
+      "code": "BK1069",
+      "pct": -4.34,
+      "main_today": -149212736.0,
+      "main_5d": -262152976.0,
+      "main_ratio": -2.7,
+      "up": 2,
+      "down": 25
+    },
+    {
+      "name": "红利破净股",
+      "code": "BK1636",
+      "pct": 0.84,
+      "main_today": -153195520.0,
+      "main_5d": 1867981840.0,
+      "main_ratio": -0.46,
+      "up": 30,
+      "down": 10
+    },
+    {
+      "name": "土壤修复",
+      "code": "BK1070",
+      "pct": -3.39,
+      "main_today": -153421191.0,
+      "main_5d": -468864449.0,
+      "main_ratio": -2.56,
+      "up": 3,
+      "down": 32
+    },
+    {
+      "name": "噪声防治",
+      "code": "BK1082",
+      "pct": -4.89,
+      "main_today": -159470633.0,
+      "main_5d": -392307181.0,
+      "main_ratio": -6.63,
+      "up": 0,
+      "down": 9
+    },
+    {
+      "name": "房屋检测",
+      "code": "BK1179",
+      "pct": -2.8,
+      "main_today": -161038800.0,
+      "main_5d": 176195152.0,
+      "main_ratio": -2.52,
+      "up": 5,
+      "down": 35
+    },
+    {
+      "name": "民爆概念",
+      "code": "BK1066",
+      "pct": -2.96,
+      "main_today": -163475136.0,
+      "main_5d": -1362396912.0,
+      "main_ratio": -2.4,
+      "up": 2,
+      "down": 20
+    },
+    {
+      "name": "首发经济",
+      "code": "BK1186",
+      "pct": -3.73,
+      "main_today": -169959888.0,
+      "main_5d": -888296832.0,
+      "main_ratio": -1.96,
+      "up": 1,
+      "down": 40
+    },
+    {
+      "name": "熔盐储能",
+      "code": "BK1103",
+      "pct": -3.48,
+      "main_today": -173232986.0,
+      "main_5d": -364339764.0,
+      "main_ratio": -6.68,
+      "up": 1,
+      "down": 10
+    },
+    {
+      "name": "交运设备",
+      "code": "BK0429",
+      "pct": -2.04,
+      "main_today": -180896160.0,
+      "main_5d": -137954064.0,
+      "main_ratio": -2.36,
+      "up": 9,
+      "down": 41
+    },
+    {
+      "name": "户外露营",
+      "code": "BK1079",
+      "pct": -3.6,
+      "main_today": -186225248.0,
+      "main_5d": -550496943.0,
+      "main_ratio": -7.58,
+      "up": 1,
+      "down": 26
+    },
+    {
+      "name": "长寿药",
+      "code": "BK0936",
+      "pct": -2.85,
+      "main_today": -194446550.0,
+      "main_5d": -309263853.0,
+      "main_ratio": -5.66,
+      "up": 2,
+      "down": 13
+    },
+    {
+      "name": "资源开采概念",
+      "code": "BK1017",
+      "pct": -2.66,
+      "main_today": -196133056.0,
+      "main_5d": -637256128.0,
+      "main_ratio": -2.41,
+      "up": 4,
+      "down": 17
+    },
+    {
+      "name": "MLOps概念",
+      "code": "BK1132",
+      "pct": -4.97,
+      "main_today": -199351643.0,
+      "main_5d": -162396641.0,
+      "main_ratio": -5.27,
+      "up": 1,
+      "down": 9
+    },
+    {
+      "name": "DRG/DIP",
+      "code": "BK1054",
+      "pct": -3.91,
+      "main_today": -200787299.0,
+      "main_5d": -843240396.0,
+      "main_ratio": -6.96,
+      "up": 1,
+      "down": 17
+    },
+    {
+      "name": "包装材料",
+      "code": "BK0733",
+      "pct": -3.82,
+      "main_today": -200829829.0,
+      "main_5d": -652218090.0,
+      "main_ratio": -6.09,
+      "up": 1,
+      "down": 27
+    },
+    {
+      "name": "SPD概念",
+      "code": "BK1147",
+      "pct": -3.33,
+      "main_today": -204557054.0,
+      "main_5d": 85694152.0,
+      "main_ratio": -6.28,
+      "up": 1,
+      "down": 13
+    },
+    {
+      "name": "毛发医疗",
+      "code": "BK0996",
+      "pct": -3.07,
+      "main_today": -204987436.0,
+      "main_5d": -326899232.0,
+      "main_ratio": -5.04,
+      "up": 1,
+      "down": 17
+    },
+    {
+      "name": "鸡肉概念",
+      "code": "BK0887",
+      "pct": -2.63,
+      "main_today": -216851018.0,
+      "main_5d": 48466457.0,
+      "main_ratio": -5.22,
+      "up": 2,
+      "down": 18
+    },
+    {
+      "name": "生态农业",
+      "code": "BK0669",
+      "pct": -3.28,
+      "main_today": -217045024.0,
+      "main_5d": 149642549.0,
+      "main_ratio": -2.7,
+      "up": 4,
+      "down": 36
+    },
+    {
+      "name": "REITs概念",
+      "code": "BK0992",
+      "pct": -1.5,
+      "main_today": -238067696.0,
+      "main_5d": -737674480.0,
+      "main_ratio": -4.4,
+      "up": 3,
+      "down": 21
+    },
+    {
+      "name": "发电机概念",
+      "code": "BK1014",
+      "pct": -4.31,
+      "main_today": -238639184.0,
+      "main_5d": -376434733.0,
+      "main_ratio": -6.14,
+      "up": 1,
+      "down": 22
+    },
+    {
+      "name": "钛白粉概念",
+      "code": "BK0805",
+      "pct": -3.25,
+      "main_today": -239159179.0,
+      "main_5d": -526955710.0,
+      "main_ratio": -8.22,
+      "up": 0,
+      "down": 12
+    },
+    {
+      "name": "汽车拆解",
+      "code": "BK0943",
+      "pct": -3.06,
+      "main_today": -250028832.0,
+      "main_5d": -610580196.0,
+      "main_ratio": -7.05,
+      "up": 2,
+      "down": 16
+    },
+    {
+      "name": "肝素概念",
+      "code": "BK0944",
+      "pct": -1.81,
+      "main_today": -259033904.0,
+      "main_5d": -266291125.0,
+      "main_ratio": -6.56,
+      "up": 2,
+      "down": 11
+    },
+    {
+      "name": "维生素",
+      "code": "BK0895",
+      "pct": -1.52,
+      "main_today": -259626224.0,
+      "main_5d": -875717264.0,
+      "main_ratio": -1.81,
+      "up": 7,
+      "down": 26
+    },
+    {
+      "name": "共享经济",
+      "code": "BK0807",
+      "pct": -3.02,
+      "main_today": -269854487.0,
+      "main_5d": -700524897.0,
+      "main_ratio": -7.92,
+      "up": 2,
+      "down": 17
+    },
+    {
+      "name": "盲盒经济",
+      "code": "BK0954",
+      "pct": -4.09,
+      "main_today": -273284404.0,
+      "main_5d": -868411738.0,
+      "main_ratio": -9.29,
+      "up": 0,
+      "down": 13
+    },
+    {
+      "name": "麒麟电池",
+      "code": "BK1092",
+      "pct": -6.08,
+      "main_today": -273286896.0,
+      "main_5d": 481944848.0,
+      "main_ratio": -2.32,
+      "up": 0,
+      "down": 8
+    },
+    {
+      "name": "股权转让",
+      "code": "BK0803",
+      "pct": -3.86,
+      "main_today": -279737790.0,
+      "main_5d": -522061697.0,
+      "main_ratio": -4.7,
+      "up": 2,
+      "down": 39
+    },
+    {
+      "name": "阿兹海默",
+      "code": "BK0894",
+      "pct": -2.17,
+      "main_today": -283794816.0,
+      "main_5d": -282847440.0,
+      "main_ratio": -5.09,
+      "up": 2,
+      "down": 19
+    },
+    {
+      "name": "粤港自贸",
+      "code": "BK0677",
+      "pct": -2.91,
+      "main_today": -285569520.0,
+      "main_5d": -435810704.0,
+      "main_ratio": -1.94,
+      "up": 10,
+      "down": 69
+    },
+    {
+      "name": "时空大数据",
+      "code": "BK1130",
+      "pct": -5.3,
+      "main_today": -294135776.0,
+      "main_5d": -932180928.0,
+      "main_ratio": -2.47,
+      "up": 0,
+      "down": 28
+    },
+    {
+      "name": "粮食概念",
+      "code": "BK1086",
+      "pct": -2.07,
+      "main_today": -300136272.0,
+      "main_5d": 2000518127.0,
+      "main_ratio": -1.78,
+      "up": 8,
+      "down": 24
+    },
+    {
+      "name": "地下管网",
+      "code": "BK1058",
+      "pct": -3.19,
+      "main_today": -300869765.0,
+      "main_5d": -500635985.0,
+      "main_ratio": -5.04,
+      "up": 6,
+      "down": 46
+    },
+    {
+      "name": "彩票概念",
+      "code": "BK0671",
+      "pct": -3.87,
+      "main_today": -304590555.0,
+      "main_5d": -678284574.0,
+      "main_ratio": -9.22,
+      "up": 0,
+      "down": 19
+    },
+    {
+      "name": "医废处理",
+      "code": "BK0914",
+      "pct": -3.08,
+      "main_today": -306905407.0,
+      "main_5d": -559421929.0,
+      "main_ratio": -8.35,
+      "up": 2,
+      "down": 30
+    },
+    {
+      "name": "青蒿素",
+      "code": "BK0872",
+      "pct": -2.4,
+      "main_today": -322535088.0,
+      "main_5d": -579236048.0,
+      "main_ratio": -4.76,
+      "up": 3,
+      "down": 8
+    },
+    {
+      "name": "化妆品概念",
+      "code": "BK0974",
+      "pct": -3.09,
+      "main_today": -322538192.0,
+      "main_5d": -1105693552.0,
+      "main_ratio": -3.1,
+      "up": 3,
+      "down": 61
+    },
+    {
+      "name": "第四代半导体",
+      "code": "BK1121",
+      "pct": -5.6,
+      "main_today": -329982720.0,
+      "main_5d": -536960240.0,
+      "main_ratio": -7.59,
+      "up": 0,
+      "down": 4
+    },
+    {
+      "name": "免税概念",
+      "code": "BK0927",
+      "pct": -1.49,
+      "main_today": -331239504.0,
+      "main_5d": -885594998.0,
+      "main_ratio": -8.51,
+      "up": 4,
+      "down": 14
+    },
+    {
+      "name": "造纸印刷",
+      "code": "BK0470",
+      "pct": -3.47,
+      "main_today": -338077582.0,
+      "main_5d": -615505422.0,
+      "main_ratio": -7.73,
+      "up": 1,
+      "down": 40
+    },
+    {
+      "name": "草甘膦",
+      "code": "BK0950",
+      "pct": -1.77,
+      "main_today": -338831118.0,
+      "main_5d": -222378101.0,
+      "main_ratio": -7.66,
+      "up": 3,
+      "down": 10
+    },
+    {
+      "name": "价值股",
+      "code": "BK1640",
+      "pct": -0.27,
+      "main_today": -340740608.0,
+      "main_5d": -579234992.0,
+      "main_ratio": -0.78,
+      "up": 42,
+      "down": 54
+    },
+    {
+      "name": "拼多多概念",
+      "code": "BK0957",
+      "pct": -4.99,
+      "main_today": -343601728.0,
+      "main_5d": -562094627.0,
+      "main_ratio": -7.75,
+      "up": 0,
+      "down": 28
+    },
+    {
+      "name": "农药兽药",
+      "code": "BK0730",
+      "pct": -2.21,
+      "main_today": -351773664.0,
+      "main_5d": -188499785.0,
+      "main_ratio": -5.2,
+      "up": 6,
+      "down": 43
+    },
+    {
+      "name": "数字阅读",
+      "code": "BK0959",
+      "pct": -3.28,
+      "main_today": -352877738.0,
+      "main_5d": -452695562.0,
+      "main_ratio": -8.55,
+      "up": 2,
+      "down": 17
+    },
+    {
+      "name": "旅游酒店",
+      "code": "BK0485",
+      "pct": -2.33,
+      "main_today": -354161415.0,
+      "main_5d": -958904386.0,
+      "main_ratio": -9.04,
+      "up": 2,
+      "down": 37
+    },
+    {
+      "name": "地热能",
+      "code": "BK0622",
+      "pct": -6.26,
+      "main_today": -358071544.0,
+      "main_5d": -539440952.0,
+      "main_ratio": -8.6,
+      "up": 0,
+      "down": 9
+    },
+    {
+      "name": "智能电视",
+      "code": "BK0656",
+      "pct": -4.06,
+      "main_today": -377885200.0,
+      "main_5d": -671763264.0,
+      "main_ratio": -9.11,
+      "up": 0,
+      "down": 13
+    },
+    {
+      "name": "建筑节能",
+      "code": "BK1076",
+      "pct": -3.71,
+      "main_today": -378884544.0,
+      "main_5d": -210677952.0,
+      "main_ratio": -3.47,
+      "up": 4,
+      "down": 45
+    },
+    {
+      "name": "生物质能发电",
+      "code": "BK1098",
+      "pct": -2.61,
+      "main_today": -379653627.0,
+      "main_5d": -568520241.0,
+      "main_ratio": -9.78,
+      "up": 1,
+      "down": 28
+    },
+    {
+      "name": "电子车牌",
+      "code": "BK0982",
+      "pct": -4.51,
+      "main_today": -382630063.0,
+      "main_5d": -259164800.0,
+      "main_ratio": -11.94,
+      "up": 1,
+      "down": 16
+    },
+    {
+      "name": "抗菌面料",
+      "code": "BK1116",
+      "pct": -3.96,
+      "main_today": -394713968.0,
+      "main_5d": -330746021.0,
+      "main_ratio": -9.03,
+      "up": 1,
+      "down": 14
+    },
+    {
+      "name": "海绵城市",
+      "code": "BK0724",
+      "pct": -2.89,
+      "main_today": -395817872.0,
+      "main_5d": -1470056032.0,
+      "main_ratio": -5.99,
+      "up": 6,
+      "down": 29
+    },
+    {
+      "name": "昨日首板",
+      "code": "BK1630",
+      "pct": -2.75,
+      "main_today": -396392448.0,
+      "main_5d": -8036978176.0,
+      "main_ratio": -0.81,
+      "up": 15,
+      "down": 44
+    },
+    {
+      "name": "碳基材料",
+      "code": "BK1006",
+      "pct": -4.4,
+      "main_today": -396722688.0,
+      "main_5d": -516968960.0,
+      "main_ratio": -5.23,
+      "up": 2,
+      "down": 19
+    },
+    {
+      "name": "社区团购",
+      "code": "BK0965",
+      "pct": -3.58,
+      "main_today": -397288240.0,
+      "main_5d": -28235920.0,
+      "main_ratio": -4.94,
+      "up": 4,
+      "down": 33
+    },
+    {
+      "name": "转基因",
+      "code": "BK0907",
+      "pct": -3.16,
+      "main_today": -403238752.0,
+      "main_5d": 582214395.0,
+      "main_ratio": -4.2,
+      "up": 4,
+      "down": 14
+    },
+    {
+      "name": "免疫治疗",
+      "code": "BK0698",
+      "pct": -2.62,
+      "main_today": -403782320.0,
+      "main_5d": -885164752.0,
+      "main_ratio": -3.57,
+      "up": 4,
+      "down": 39
+    },
+    {
+      "name": "2026一季报预减",
+      "code": "BK1681",
+      "pct": -5.63,
+      "main_today": -407892160.0,
+      "main_5d": -506642528.0,
+      "main_ratio": -7.13,
+      "up": 0,
+      "down": 12
+    },
+    {
+      "name": "同步磁阻电机",
+      "code": "BK1131",
+      "pct": -6.09,
+      "main_today": -410601520.0,
+      "main_5d": -690659747.0,
+      "main_ratio": -9.66,
+      "up": 0,
+      "down": 7
+    },
+    {
+      "name": "C2M概念",
+      "code": "BK0955",
+      "pct": -3.61,
+      "main_today": -420004896.0,
+      "main_5d": -1156918272.0,
+      "main_ratio": -6.98,
+      "up": 4,
+      "down": 32
+    },
+    {
+      "name": "微盘股",
+      "code": "BK1158",
+      "pct": -3.09,
+      "main_today": -424197584.0,
+      "main_5d": -490920240.0,
+      "main_ratio": -2.08,
+      "up": 14,
+      "down": 384
+    },
+    {
+      "name": "快递概念",
+      "code": "BK0990",
+      "pct": -3.6,
+      "main_today": -435363568.0,
+      "main_5d": -42810944.0,
+      "main_ratio": -5.49,
+      "up": 3,
+      "down": 37
+    },
+    {
+      "name": "核污染防治",
+      "code": "BK0983",
+      "pct": -4.91,
+      "main_today": -437204048.0,
+      "main_5d": -505061200.0,
+      "main_ratio": -6.24,
+      "up": 1,
+      "down": 30
+    },
+    {
+      "name": "汽车整车",
+      "code": "BK1029",
+      "pct": -1.92,
+      "main_today": -447457792.0,
+      "main_5d": -1807124592.0,
+      "main_ratio": -5.26,
+      "up": 4,
+      "down": 22
+    },
+    {
+      "name": "沪企改革",
+      "code": "BK0672",
+      "pct": -2.3,
+      "main_today": -449916464.0,
+      "main_5d": -1075758944.0,
+      "main_ratio": -5.94,
+      "up": 5,
+      "down": 34
+    },
+    {
+      "name": "数字水印",
+      "code": "BK1129",
+      "pct": -5.86,
+      "main_today": -455949043.0,
+      "main_5d": -993403922.0,
+      "main_ratio": -11.28,
+      "up": 0,
+      "down": 18
+    },
+    {
+      "name": "地摊经济",
+      "code": "BK0924",
+      "pct": -2.59,
+      "main_today": -457495200.0,
+      "main_5d": -881802384.0,
+      "main_ratio": -6.58,
+      "up": 3,
+      "down": 27
+    },
+    {
+      "name": "水产概念",
+      "code": "BK0967",
+      "pct": -3.71,
+      "main_today": -479250224.0,
+      "main_5d": 304308675.0,
+      "main_ratio": -7.34,
+      "up": 1,
+      "down": 15
+    },
+    {
+      "name": "胎压监测",
+      "code": "BK0898",
+      "pct": -4.3,
+      "main_today": -493287472.0,
+      "main_5d": -805794768.0,
+      "main_ratio": -7.73,
+      "up": 0,
+      "down": 27
+    },
+    {
+      "name": "历史新高",
+      "code": "BK1675",
+      "pct": -4.67,
+      "main_today": -498171232.0,
+      "main_5d": -1826808501.0,
+      "main_ratio": -3.63,
+      "up": 2,
+      "down": 10
+    },
+    {
+      "name": "特色药",
+      "code": "BK1656",
+      "pct": -1.64,
+      "main_today": -499551264.0,
+      "main_5d": -205242096.0,
+      "main_ratio": -5.71,
+      "up": 5,
+      "down": 35
+    },
+    {
+      "name": "冰雪经济",
+      "code": "BK1185",
+      "pct": -3.09,
+      "main_today": -521259632.0,
+      "main_5d": -1147303488.0,
+      "main_ratio": -7.2,
+      "up": 2,
+      "down": 40
+    },
+    {
+      "name": "东北振兴",
+      "code": "BK0838",
+      "pct": -2.46,
+      "main_today": -527183440.0,
+      "main_5d": -1195382320.0,
+      "main_ratio": -2.9,
+      "up": 5,
+      "down": 51
+    },
+    {
+      "name": "统一大市场",
+      "code": "BK1077",
+      "pct": -3.08,
+      "main_today": -539035904.0,
+      "main_5d": -792278192.0,
+      "main_ratio": -7.42,
+      "up": 2,
+      "down": 41
+    }
+  ],
+  "em_em_concept_5d": [
+    {
+      "name": "红利股",
+      "code": "BK1641",
+      "pct": 0.11,
+      "main_today": -91042560.0,
+      "main_5d": 2966973184.0,
+      "main_ratio": -0.16,
+      "up": 57,
+      "down": 41
+    },
+    {
+      "name": "农业种植",
+      "code": "BK0888",
+      "pct": -3.16,
+      "main_today": -859948736.0,
+      "main_5d": 2178658592.0,
+      "main_ratio": -2.76,
+      "up": 12,
+      "down": 75
+    },
+    {
+      "name": "粮食概念",
+      "code": "BK1086",
+      "pct": -2.07,
+      "main_today": -300136272.0,
+      "main_5d": 2000518127.0,
+      "main_ratio": -1.78,
+      "up": 8,
+      "down": 24
+    },
+    {
+      "name": "红利破净股",
+      "code": "BK1636",
+      "pct": 0.84,
+      "main_today": -153195520.0,
+      "main_5d": 1867981840.0,
+      "main_ratio": -0.46,
+      "up": 30,
+      "down": 10
+    },
+    {
+      "name": "土地流转",
+      "code": "BK0632",
+      "pct": -1.84,
+      "main_today": -583164224.0,
+      "main_5d": 1293174480.0,
+      "main_ratio": -3.18,
+      "up": 7,
+      "down": 37
+    },
+    {
+      "name": "预制菜概念",
+      "code": "BK1025",
+      "pct": -3.19,
+      "main_today": -559065872.0,
+      "main_5d": 817948000.0,
+      "main_ratio": -4.73,
+      "up": 6,
+      "down": 59
+    },
+    {
+      "name": "CAR-T细胞疗法",
+      "code": "BK0986",
+      "pct": -4.12,
+      "main_today": -1555657568.0,
+      "main_5d": 702881216.0,
+      "main_ratio": -8.79,
+      "up": 0,
+      "down": 25
+    },
+    {
+      "name": "转基因",
+      "code": "BK0907",
+      "pct": -3.16,
+      "main_today": -403238752.0,
+      "main_5d": 582214395.0,
+      "main_ratio": -4.2,
+      "up": 4,
+      "down": 14
+    },
+    {
+      "name": "净水概念",
+      "code": "BK1068",
+      "pct": -2.0,
+      "main_today": 172787840.0,
+      "main_5d": 559244912.0,
+      "main_ratio": 1.99,
+      "up": 5,
+      "down": 16
+    },
+    {
+      "name": "猪肉概念",
+      "code": "BK0882",
+      "pct": -3.3,
+      "main_today": -795801008.0,
+      "main_5d": 556710080.0,
+      "main_ratio": -6.65,
+      "up": 2,
+      "down": 34
+    },
+    {
+      "name": "调味品概念",
+      "code": "BK1026",
+      "pct": -2.29,
+      "main_today": -711724608.0,
+      "main_5d": 549824208.0,
+      "main_ratio": -7.0,
+      "up": 3,
+      "down": 30
+    },
+    {
+      "name": "麒麟电池",
+      "code": "BK1092",
+      "pct": -6.08,
+      "main_today": -273286896.0,
+      "main_5d": 481944848.0,
+      "main_ratio": -2.32,
+      "up": 0,
+      "down": 8
+    },
+    {
+      "name": "代糖概念",
+      "code": "BK0938",
+      "pct": -2.62,
+      "main_today": -3332352.0,
+      "main_5d": 452861832.0,
+      "main_ratio": -0.07,
+      "up": 3,
+      "down": 12
+    },
+    {
+      "name": "页岩气",
+      "code": "BK0603",
+      "pct": -3.39,
+      "main_today": -98714752.0,
+      "main_5d": 425329904.0,
+      "main_ratio": -0.67,
+      "up": 4,
+      "down": 28
+    },
+    {
+      "name": "滨海新区",
+      "code": "BK0566",
+      "pct": -2.2,
+      "main_today": -84340080.0,
+      "main_5d": 348056656.0,
+      "main_ratio": -1.76,
+      "up": 3,
+      "down": 18
+    },
+    {
+      "name": "水产概念",
+      "code": "BK0967",
+      "pct": -3.71,
+      "main_today": -479250224.0,
+      "main_5d": 304308675.0,
+      "main_ratio": -7.34,
+      "up": 1,
+      "down": 15
+    },
+    {
+      "name": "人造肉",
+      "code": "BK0866",
+      "pct": -4.17,
+      "main_today": -687815568.0,
+      "main_5d": 214408448.0,
+      "main_ratio": -9.25,
+      "up": 3,
+      "down": 14
+    },
+    {
+      "name": "低市净率",
+      "code": "BK1723",
+      "pct": -0.74,
+      "main_today": -985973248.0,
+      "main_5d": 193927536.0,
+      "main_ratio": -1.94,
+      "up": 60,
+      "down": 133
+    },
+    {
+      "name": "房屋检测",
+      "code": "BK1179",
+      "pct": -2.8,
+      "main_today": -161038800.0,
+      "main_5d": 176195152.0,
+      "main_ratio": -2.52,
+      "up": 5,
+      "down": 35
+    },
+    {
+      "name": "生态农业",
+      "code": "BK0669",
+      "pct": -3.28,
+      "main_today": -217045024.0,
+      "main_5d": 149642549.0,
+      "main_ratio": -2.7,
+      "up": 4,
+      "down": 36
+    },
+    {
+      "name": "乳业",
+      "code": "BK0892",
+      "pct": -3.33,
+      "main_today": -71015888.0,
+      "main_5d": 140696816.0,
+      "main_ratio": -0.98,
+      "up": 4,
+      "down": 28
+    },
+    {
+      "name": "社保重仓",
+      "code": "BK0520",
+      "pct": -5.54,
+      "main_today": -23780357.0,
+      "main_5d": 104704936.0,
+      "main_ratio": -0.59,
+      "up": 1,
+      "down": 13
+    },
+    {
+      "name": "SPD概念",
+      "code": "BK1147",
+      "pct": -3.33,
+      "main_today": -204557054.0,
+      "main_5d": 85694152.0,
+      "main_ratio": -6.28,
+      "up": 1,
+      "down": 13
+    },
+    {
+      "name": "鸡肉概念",
+      "code": "BK0887",
+      "pct": -2.63,
+      "main_today": -216851018.0,
+      "main_5d": 48466457.0,
+      "main_ratio": -5.22,
+      "up": 2,
+      "down": 18
+    },
+    {
+      "name": "轮毂电机",
+      "code": "BK1099",
+      "pct": -4.8,
+      "main_today": -32256706.0,
+      "main_5d": 46660244.0,
+      "main_ratio": -2.46,
+      "up": 0,
+      "down": 9
+    },
+    {
+      "name": "可燃冰",
+      "code": "BK0818",
+      "pct": -2.61,
+      "main_today": -122221785.0,
+      "main_5d": 45912752.0,
+      "main_ratio": -6.04,
+      "up": 1,
+      "down": 7
+    },
+    {
+      "name": "举牌",
+      "code": "BK0685",
+      "pct": -4.59,
+      "main_today": -110232445.0,
+      "main_5d": 44391313.0,
+      "main_ratio": -4.56,
+      "up": 2,
+      "down": 11
+    },
+    {
+      "name": "退税商店",
+      "code": "BK0933",
+      "pct": -2.91,
+      "main_today": -129488434.0,
+      "main_5d": 32973355.0,
+      "main_ratio": -7.81,
+      "up": 0,
+      "down": 12
+    },
+    {
+      "name": "供销社概念",
+      "code": "BK1109",
+      "pct": -1.8,
+      "main_today": -142753136.0,
+      "main_5d": 3872940.0,
+      "main_ratio": -3.02,
+      "up": 3,
+      "down": 11
+    },
+    {
+      "name": "微盘精选",
+      "code": "BK1644",
+      "pct": -2.15,
+      "main_today": -23714614.0,
+      "main_5d": -21293832.0,
+      "main_ratio": -0.93,
+      "up": 5,
+      "down": 49
+    },
+    {
+      "name": "B股",
+      "code": "BK0636",
+      "pct": -0.72,
+      "main_today": -11605430.0,
+      "main_5d": -24936637.0,
+      "main_ratio": -13.11,
+      "up": 8,
+      "down": 61
+    },
+    {
+      "name": "社区团购",
+      "code": "BK0965",
+      "pct": -3.58,
+      "main_today": -397288240.0,
+      "main_5d": -28235920.0,
+      "main_ratio": -4.94,
+      "up": 4,
+      "down": 33
+    },
+    {
+      "name": "快递概念",
+      "code": "BK0990",
+      "pct": -3.6,
+      "main_today": -435363568.0,
+      "main_5d": -42810944.0,
+      "main_ratio": -5.49,
+      "up": 3,
+      "down": 37
+    },
+    {
+      "name": "托育服务",
+      "code": "BK1074",
+      "pct": -2.58,
+      "main_today": -14508816.0,
+      "main_5d": -47998744.0,
+      "main_ratio": -2.64,
+      "up": 0,
+      "down": 6
+    },
+    {
+      "name": "啤酒概念",
+      "code": "BK1073",
+      "pct": -1.47,
+      "main_today": 25837120.0,
+      "main_5d": -64674765.0,
+      "main_ratio": 0.57,
+      "up": 2,
+      "down": 16
+    },
+    {
+      "name": "低碳冶金",
+      "code": "BK0979",
+      "pct": -1.1,
+      "main_today": -96990408.0,
+      "main_5d": -88992545.0,
+      "main_ratio": -8.35,
+      "up": 1,
+      "down": 6
+    },
+    {
+      "name": "空间站概念",
+      "code": "BK0994",
+      "pct": -5.53,
+      "main_today": -22018016.0,
+      "main_5d": -113558080.0,
+      "main_ratio": -0.15,
+      "up": 0,
+      "down": 20
+    },
+    {
+      "name": "交运设备",
+      "code": "BK0429",
+      "pct": -2.04,
+      "main_today": -180896160.0,
+      "main_5d": -137954064.0,
+      "main_ratio": -2.36,
+      "up": 9,
+      "down": 41
+    },
+    {
+      "name": "MLOps概念",
+      "code": "BK1132",
+      "pct": -4.97,
+      "main_today": -199351643.0,
+      "main_5d": -162396641.0,
+      "main_ratio": -5.27,
+      "up": 1,
+      "down": 9
+    },
+    {
+      "name": "农药兽药",
+      "code": "BK0730",
+      "pct": -2.21,
+      "main_today": -351773664.0,
+      "main_5d": -188499785.0,
+      "main_ratio": -5.2,
+      "up": 6,
+      "down": 43
+    },
+    {
+      "name": "特色药",
+      "code": "BK1656",
+      "pct": -1.64,
+      "main_today": -499551264.0,
+      "main_5d": -205242096.0,
+      "main_ratio": -5.71,
+      "up": 5,
+      "down": 35
+    },
+    {
+      "name": "建筑节能",
+      "code": "BK1076",
+      "pct": -3.71,
+      "main_today": -378884544.0,
+      "main_5d": -210677952.0,
+      "main_ratio": -3.47,
+      "up": 4,
+      "down": 45
+    },
+    {
+      "name": "草甘膦",
+      "code": "BK0950",
+      "pct": -1.77,
+      "main_today": -338831118.0,
+      "main_5d": -222378101.0,
+      "main_ratio": -7.66,
+      "up": 3,
+      "down": 10
+    },
+    {
+      "name": "租售同权",
+      "code": "BK0822",
+      "pct": -1.06,
+      "main_today": 99503936.0,
+      "main_5d": -227370564.0,
+      "main_ratio": 1.98,
+      "up": 3,
+      "down": 14
+    },
+    {
+      "name": "2025三季报预减",
+      "code": "BK1199",
+      "pct": -5.53,
+      "main_today": -44179920.0,
+      "main_5d": -254320865.0,
+      "main_ratio": -1.0,
+      "up": 1,
+      "down": 7
+    },
+    {
+      "name": "电子车牌",
+      "code": "BK0982",
+      "pct": -4.51,
+      "main_today": -382630063.0,
+      "main_5d": -259164800.0,
+      "main_ratio": -11.94,
+      "up": 1,
+      "down": 16
+    },
+    {
+      "name": "京津冀",
+      "code": "BK0684",
+      "pct": -3.18,
+      "main_today": -1245137520.0,
+      "main_5d": -259310896.0,
+      "main_ratio": -7.9,
+      "up": 5,
+      "down": 55
+    },
+    {
+      "name": "智慧灯杆",
+      "code": "BK1069",
+      "pct": -4.34,
+      "main_today": -149212736.0,
+      "main_5d": -262152976.0,
+      "main_ratio": -2.7,
+      "up": 2,
+      "down": 25
+    },
+    {
+      "name": "肝素概念",
+      "code": "BK0944",
+      "pct": -1.81,
+      "main_today": -259033904.0,
+      "main_5d": -266291125.0,
+      "main_ratio": -6.56,
+      "up": 2,
+      "down": 11
+    },
+    {
+      "name": "阿兹海默",
+      "code": "BK0894",
+      "pct": -2.17,
+      "main_today": -283794816.0,
+      "main_5d": -282847440.0,
+      "main_ratio": -5.09,
+      "up": 2,
+      "down": 19
+    },
+    {
+      "name": "煤化工概念",
+      "code": "BK0492",
+      "pct": -1.09,
+      "main_today": 298802000.0,
+      "main_5d": -285139696.0,
+      "main_ratio": 0.97,
+      "up": 16,
+      "down": 58
+    },
+    {
+      "name": "近期摘帽",
+      "code": "BK1693",
+      "pct": -3.62,
+      "main_today": -32441872.0,
+      "main_5d": -300927856.0,
+      "main_ratio": -0.2,
+      "up": 8,
+      "down": 59
+    },
+    {
+      "name": "长寿药",
+      "code": "BK0936",
+      "pct": -2.85,
+      "main_today": -194446550.0,
+      "main_5d": -309263853.0,
+      "main_ratio": -5.66,
+      "up": 2,
+      "down": 13
+    },
+    {
+      "name": "毛发医疗",
+      "code": "BK0996",
+      "pct": -3.07,
+      "main_today": -204987436.0,
+      "main_5d": -326899232.0,
+      "main_ratio": -5.04,
+      "up": 1,
+      "down": 17
+    },
+    {
+      "name": "抗菌面料",
+      "code": "BK1116",
+      "pct": -3.96,
+      "main_today": -394713968.0,
+      "main_5d": -330746021.0,
+      "main_ratio": -9.03,
+      "up": 1,
+      "down": 14
+    },
+    {
+      "name": "独家药品",
+      "code": "BK0676",
+      "pct": -1.21,
+      "main_today": -544684496.0,
+      "main_5d": -332657840.0,
+      "main_ratio": -5.34,
+      "up": 7,
+      "down": 36
+    },
+    {
+      "name": "长期破净",
+      "code": "BK1635",
+      "pct": -0.73,
+      "main_today": -1128699136.0,
+      "main_5d": -339260096.0,
+      "main_ratio": -2.4,
+      "up": 63,
+      "down": 116
+    },
+    {
+      "name": "中俄贸易概念",
+      "code": "BK1072",
+      "pct": -3.91,
+      "main_today": -752088784.0,
+      "main_5d": -340725072.0,
+      "main_ratio": -4.82,
+      "up": 4,
+      "down": 79
+    },
+    {
+      "name": "熔盐储能",
+      "code": "BK1103",
+      "pct": -3.48,
+      "main_today": -173232986.0,
+      "main_5d": -364339764.0,
+      "main_ratio": -6.68,
+      "up": 1,
+      "down": 10
+    },
+    {
+      "name": "华为欧拉",
+      "code": "BK1013",
+      "pct": -3.82,
+      "main_today": -848975696.0,
+      "main_5d": -369730871.0,
+      "main_ratio": -7.24,
+      "up": 3,
+      "down": 16
+    },
+    {
+      "name": "发电机概念",
+      "code": "BK1014",
+      "pct": -4.31,
+      "main_today": -238639184.0,
+      "main_5d": -376434733.0,
+      "main_ratio": -6.14,
+      "up": 1,
+      "down": 22
+    },
+    {
+      "name": "油气设服",
+      "code": "BK0606",
+      "pct": -3.62,
+      "main_today": -697932048.0,
+      "main_5d": -381549744.0,
+      "main_ratio": -3.87,
+      "up": 7,
+      "down": 44
+    },
+    {
+      "name": "噪声防治",
+      "code": "BK1082",
+      "pct": -4.89,
+      "main_today": -159470633.0,
+      "main_5d": -392307181.0,
+      "main_ratio": -6.63,
+      "up": 0,
+      "down": 9
+    },
+    {
+      "name": "粤港自贸",
+      "code": "BK0677",
+      "pct": -2.91,
+      "main_today": -285569520.0,
+      "main_5d": -435810704.0,
+      "main_ratio": -1.94,
+      "up": 10,
+      "down": 69
+    },
+    {
+      "name": "数字阅读",
+      "code": "BK0959",
+      "pct": -3.28,
+      "main_today": -352877738.0,
+      "main_5d": -452695562.0,
+      "main_ratio": -8.55,
+      "up": 2,
+      "down": 17
+    },
+    {
+      "name": "土壤修复",
+      "code": "BK1070",
+      "pct": -3.39,
+      "main_today": -153421191.0,
+      "main_5d": -468864449.0,
+      "main_ratio": -2.56,
+      "up": 3,
+      "down": 32
+    },
+    {
+      "name": "微盘股",
+      "code": "BK1158",
+      "pct": -3.09,
+      "main_today": -424197584.0,
+      "main_5d": -490920240.0,
+      "main_ratio": -2.08,
+      "up": 14,
+      "down": 384
+    },
+    {
+      "name": "培育钻石",
+      "code": "BK1023",
+      "pct": -4.99,
+      "main_today": -600954912.0,
+      "main_5d": -491879424.0,
+      "main_ratio": -4.09,
+      "up": 1,
+      "down": 18
+    },
+    {
+      "name": "3D玻璃",
+      "code": "BK0881",
+      "pct": -7.09,
+      "main_today": -2174941824.0,
+      "main_5d": -492672704.0,
+      "main_ratio": -9.75,
+      "up": 0,
+      "down": 15
+    },
+    {
+      "name": "宠物经济",
+      "code": "BK0993",
+      "pct": -2.84,
+      "main_today": 160308032.0,
+      "main_5d": -493269152.0,
+      "main_ratio": 1.48,
+      "up": 6,
+      "down": 64
+    },
+    {
+      "name": "地下管网",
+      "code": "BK1058",
+      "pct": -3.19,
+      "main_today": -300869765.0,
+      "main_5d": -500635985.0,
+      "main_ratio": -5.04,
+      "up": 6,
+      "down": 46
+    },
+    {
+      "name": "核污染防治",
+      "code": "BK0983",
+      "pct": -4.91,
+      "main_today": -437204048.0,
+      "main_5d": -505061200.0,
+      "main_ratio": -6.24,
+      "up": 1,
+      "down": 30
+    },
+    {
+      "name": "2026一季报预减",
+      "code": "BK1681",
+      "pct": -5.63,
+      "main_today": -407892160.0,
+      "main_5d": -506642528.0,
+      "main_ratio": -7.13,
+      "up": 0,
+      "down": 12
+    },
+    {
+      "name": "碳基材料",
+      "code": "BK1006",
+      "pct": -4.4,
+      "main_today": -396722688.0,
+      "main_5d": -516968960.0,
+      "main_ratio": -5.23,
+      "up": 2,
+      "down": 19
+    },
+    {
+      "name": "股权转让",
+      "code": "BK0803",
+      "pct": -3.86,
+      "main_today": -279737790.0,
+      "main_5d": -522061697.0,
+      "main_ratio": -4.7,
+      "up": 2,
+      "down": 39
+    },
+    {
+      "name": "钛白粉概念",
+      "code": "BK0805",
+      "pct": -3.25,
+      "main_today": -239159179.0,
+      "main_5d": -526955710.0,
+      "main_ratio": -8.22,
+      "up": 0,
+      "down": 12
+    },
+    {
+      "name": "第四代半导体",
+      "code": "BK1121",
+      "pct": -5.6,
+      "main_today": -329982720.0,
+      "main_5d": -536960240.0,
+      "main_ratio": -7.59,
+      "up": 0,
+      "down": 4
+    },
+    {
+      "name": "地热能",
+      "code": "BK0622",
+      "pct": -6.26,
+      "main_today": -358071544.0,
+      "main_5d": -539440952.0,
+      "main_ratio": -8.6,
+      "up": 0,
+      "down": 9
+    },
+    {
+      "name": "油气资源",
+      "code": "BK1649",
+      "pct": -2.73,
+      "main_today": -838446336.0,
+      "main_5d": -543577648.0,
+      "main_ratio": -1.87,
+      "up": 21,
+      "down": 133
+    },
+    {
+      "name": "户外露营",
+      "code": "BK1079",
+      "pct": -3.6,
+      "main_today": -186225248.0,
+      "main_5d": -550496943.0,
+      "main_ratio": -7.58,
+      "up": 1,
+      "down": 26
+    },
+    {
+      "name": "医废处理",
+      "code": "BK0914",
+      "pct": -3.08,
+      "main_today": -306905407.0,
+      "main_5d": -559421929.0,
+      "main_ratio": -8.35,
+      "up": 2,
+      "down": 30
+    },
+    {
+      "name": "拼多多概念",
+      "code": "BK0957",
+      "pct": -4.99,
+      "main_today": -343601728.0,
+      "main_5d": -562094627.0,
+      "main_ratio": -7.75,
+      "up": 0,
+      "down": 28
+    },
+    {
+      "name": "生物质能发电",
+      "code": "BK1098",
+      "pct": -2.61,
+      "main_today": -379653627.0,
+      "main_5d": -568520241.0,
+      "main_ratio": -9.78,
+      "up": 1,
+      "down": 28
+    },
+    {
+      "name": "价值股",
+      "code": "BK1640",
+      "pct": -0.27,
+      "main_today": -340740608.0,
+      "main_5d": -579234992.0,
+      "main_ratio": -0.78,
+      "up": 42,
+      "down": 54
+    },
+    {
+      "name": "青蒿素",
+      "code": "BK0872",
+      "pct": -2.4,
+      "main_today": -322535088.0,
+      "main_5d": -579236048.0,
+      "main_ratio": -4.76,
+      "up": 3,
+      "down": 8
+    },
+    {
+      "name": "汽车拆解",
+      "code": "BK0943",
+      "pct": -3.06,
+      "main_today": -250028832.0,
+      "main_5d": -610580196.0,
+      "main_ratio": -7.05,
+      "up": 2,
+      "down": 16
+    },
+    {
+      "name": "造纸印刷",
+      "code": "BK0470",
+      "pct": -3.47,
+      "main_today": -338077582.0,
+      "main_5d": -615505422.0,
+      "main_ratio": -7.73,
+      "up": 1,
+      "down": 40
+    },
+    {
+      "name": "环氧丙烷",
+      "code": "BK1011",
+      "pct": -1.85,
+      "main_today": -138178720.0,
+      "main_5d": -631319216.0,
+      "main_ratio": -1.32,
+      "up": 5,
+      "down": 18
+    },
+    {
+      "name": "乡村振兴",
+      "code": "BK0834",
+      "pct": -3.33,
+      "main_today": -1596916512.0,
+      "main_5d": -636977024.0,
+      "main_ratio": -3.41,
+      "up": 13,
+      "down": 136
+    },
+    {
+      "name": "资源开采概念",
+      "code": "BK1017",
+      "pct": -2.66,
+      "main_today": -196133056.0,
+      "main_5d": -637256128.0,
+      "main_ratio": -2.41,
+      "up": 4,
+      "down": 17
+    },
+    {
+      "name": "破净股",
+      "code": "BK1112",
+      "pct": -1.09,
+      "main_today": -2595958528.0,
+      "main_5d": -651186432.0,
+      "main_ratio": -2.77,
+      "up": 97,
+      "down": 305
+    },
+    {
+      "name": "包装材料",
+      "code": "BK0733",
+      "pct": -3.82,
+      "main_today": -200829829.0,
+      "main_5d": -652218090.0,
+      "main_ratio": -6.09,
+      "up": 1,
+      "down": 27
+    },
+    {
+      "name": "空间计算",
+      "code": "BK1143",
+      "pct": -5.58,
+      "main_today": -653208608.0,
+      "main_5d": -654454624.0,
+      "main_ratio": -8.71,
+      "up": 0,
+      "down": 24
+    },
+    {
+      "name": "重组蛋白",
+      "code": "BK1063",
+      "pct": -3.96,
+      "main_today": -1133678864.0,
+      "main_5d": -659954048.0,
+      "main_ratio": -10.55,
+      "up": 1,
+      "down": 27
+    },
+    {
+      "name": "汽车一体化压铸",
+      "code": "BK1093",
+      "pct": -5.5,
+      "main_today": -785802960.0,
+      "main_5d": -660930048.0,
+      "main_ratio": -9.01,
+      "up": 0,
+      "down": 27
+    },
+    {
+      "name": "智能电视",
+      "code": "BK0656",
+      "pct": -4.06,
+      "main_today": -377885200.0,
+      "main_5d": -671763264.0,
+      "main_ratio": -9.11,
+      "up": 0,
+      "down": 13
+    },
+    {
+      "name": "彩票概念",
+      "code": "BK0671",
+      "pct": -3.87,
+      "main_today": -304590555.0,
+      "main_5d": -678284574.0,
+      "main_ratio": -9.22,
+      "up": 0,
+      "down": 19
+    },
+    {
+      "name": "同步磁阻电机",
+      "code": "BK1131",
+      "pct": -6.09,
+      "main_today": -410601520.0,
+      "main_5d": -690659747.0,
+      "main_ratio": -9.66,
+      "up": 0,
+      "down": 7
+    },
+    {
+      "name": "装配建筑",
+      "code": "BK0945",
+      "pct": -2.6,
+      "main_today": -652453392.0,
+      "main_5d": -692066560.0,
+      "main_ratio": -4.05,
+      "up": 13,
+      "down": 74
+    },
+    {
+      "name": "共享经济",
+      "code": "BK0807",
+      "pct": -3.02,
+      "main_today": -269854487.0,
+      "main_5d": -700524897.0,
+      "main_ratio": -7.92,
+      "up": 2,
+      "down": 17
+    }
+  ],
+  "ths_industry": [
+    {
+      "code": "881174",
+      "name": "厨卫电器",
+      "pct": 4.57,
+      "up": "7",
+      "down": "2",
+      "leader": "亿田智能"
+    },
+    {
+      "code": "881105",
+      "name": "煤炭开采加工",
+      "pct": 1.52,
+      "up": "21",
+      "down": "13",
+      "leader": "宝泰隆"
+    },
+    {
+      "code": "881155",
+      "name": "银行",
+      "pct": 1.46,
+      "up": "40",
+      "down": "0",
+      "leader": "中信银行"
+    },
+    {
+      "code": "881148",
+      "name": "港口航运",
+      "pct": 0.37,
+      "up": "17",
+      "down": "16",
+      "leader": "南京港"
+    },
+    {
+      "code": "881156",
+      "name": "保险",
+      "pct": 0.2,
+      "up": "2",
+      "down": "3",
+      "leader": "中国平安"
+    },
+    {
+      "code": "881149",
+      "name": "公路铁路运输",
+      "pct": -0.87,
+      "up": "10",
+      "down": "20",
+      "leader": "四川成渝"
+    },
+    {
+      "code": "881151",
+      "name": "机场航运",
+      "pct": -0.98,
+      "up": "1",
+      "down": "12",
+      "leader": "白云机场"
+    },
+    {
+      "code": "881169",
+      "name": "贵金属",
+      "pct": -1.06,
+      "up": "4",
+      "down": "10",
+      "leader": "山东黄金"
+    },
+    {
+      "code": "881107",
+      "name": "油气开采及服务",
+      "pct": -1.44,
+      "up": "5",
+      "down": "13",
+      "leader": "科力股份"
+    },
+    {
+      "code": "881180",
+      "name": "石油加工贸易",
+      "pct": -1.46,
+      "up": "6",
+      "down": "21",
+      "leader": "华锦股份"
+    },
+    {
+      "code": "881141",
+      "name": "中药",
+      "pct": -1.5,
+      "up": "12",
+      "down": "56",
+      "leader": "汉森制药"
+    },
+    {
+      "code": "881157",
+      "name": "证券",
+      "pct": -1.61,
+      "up": "2",
+      "down": "48",
+      "leader": "国泰海通"
+    },
+    {
+      "code": "881108",
+      "name": "化学原料",
+      "pct": -1.82,
+      "up": "8",
+      "down": "50",
+      "leader": "金能科技"
+    },
+    {
+      "code": "881153",
+      "name": "房地产",
+      "pct": -1.82,
+      "up": "14",
+      "down": "74",
+      "leader": "我爱我家"
+    },
+    {
+      "code": "881263",
+      "name": "农化制品",
+      "pct": -1.9,
+      "up": "10",
+      "down": "51",
+      "leader": "红四方"
+    },
+    {
+      "code": "881125",
+      "name": "汽车整车",
+      "pct": -1.91,
+      "up": "4",
+      "down": "19",
+      "leader": "中集车辆"
+    },
+    {
+      "code": "881112",
+      "name": "钢铁",
+      "pct": -1.99,
+      "up": "4",
+      "down": "39",
+      "leader": "鄂尔多斯"
+    },
+    {
+      "code": "881283",
+      "name": "多元金融",
+      "pct": -2.08,
+      "up": "2",
+      "down": "24",
+      "leader": "鲁信创投"
+    },
+    {
+      "code": "881140",
+      "name": "化学制药",
+      "pct": -2.08,
+      "up": "24",
+      "down": "133",
+      "leader": "西点药业"
+    },
+    {
+      "code": "881269",
+      "name": "轨交设备",
+      "pct": -2.19,
+      "up": "5",
+      "down": "24",
+      "leader": "铁科轨道"
+    },
+    {
+      "code": "881146",
+      "name": "燃气",
+      "pct": -2.22,
+      "up": "5",
+      "down": "22",
+      "leader": "胜利股份"
+    },
+    {
+      "code": "881103",
+      "name": "农产品加工",
+      "pct": -2.25,
+      "up": "6",
+      "down": "37",
+      "leader": "永顺泰"
+    },
+    {
+      "code": "881264",
+      "name": "化学纤维",
+      "pct": -2.32,
+      "up": "6",
+      "down": "23",
+      "leader": "恒逸石化"
+    },
+    {
+      "code": "881160",
+      "name": "旅游及酒店",
+      "pct": -2.33,
+      "up": "2",
+      "down": "33",
+      "leader": "岭南控股"
+    },
+    {
+      "code": "881178",
+      "name": "教育",
+      "pct": -2.34,
+      "up": "2",
+      "down": "13",
+      "leader": "学大教育"
+    },
+    {
+      "code": "881273",
+      "name": "白酒",
+      "pct": -2.39,
+      "up": "1",
+      "down": "18",
+      "leader": "贵州茅台"
+    },
+    {
+      "code": "881128",
+      "name": "汽车服务及其他",
+      "pct": -2.43,
+      "up": "4",
+      "down": "22",
+      "leader": "春风动力"
+    },
+    {
+      "code": "881159",
+      "name": "贸易",
+      "pct": -2.49,
+      "up": "0",
+      "down": "14",
+      "leader": "江苏国泰"
+    },
+    {
+      "code": "881152",
+      "name": "物流",
+      "pct": -2.52,
+      "up": "4",
+      "down": "46",
+      "leader": "建发股份"
+    },
+    {
+      "code": "881145",
+      "name": "电力",
+      "pct": -2.67,
+      "up": "10",
+      "down": "99",
+      "leader": "绿发电力"
+    },
+    {
+      "code": "881139",
+      "name": "家居用品",
+      "pct": -2.67,
+      "up": "12",
+      "down": "85",
+      "leader": "志邦家居"
+    },
+    {
+      "code": "881102",
+      "name": "养殖业",
+      "pct": -2.74,
+      "up": "2",
+      "down": "34",
+      "leader": "天山生物"
+    },
+    {
+      "code": "881142",
+      "name": "生物制品",
+      "pct": -2.79,
+      "up": "4",
+      "down": "49",
+      "leader": "*ST未名"
+    },
+    {
+      "code": "881133",
+      "name": "饮料制造",
+      "pct": -2.93,
+      "up": "6",
+      "down": "40",
+      "leader": "红棉股份"
+    },
+    {
+      "code": "881101",
+      "name": "种植业与林业",
+      "pct": -2.96,
+      "up": "7",
+      "down": "23",
+      "leader": "万向德农"
+    },
+    {
+      "code": "881115",
+      "name": "建筑材料",
+      "pct": -2.98,
+      "up": "12",
+      "down": "61",
+      "leader": "罗普斯金"
+    },
+    {
+      "code": "881181",
+      "name": "环境治理",
+      "pct": -3.0,
+      "up": "10",
+      "down": "100",
+      "leader": "ST京蓝"
+    },
+    {
+      "code": "881165",
+      "name": "综合",
+      "pct": -3.04,
+      "up": "1",
+      "down": "16",
+      "leader": "特力A"
+    },
+    {
+      "code": "881134",
+      "name": "食品加工制造",
+      "pct": -3.04,
+      "up": "7",
+      "down": "59",
+      "leader": "百合股份"
+    },
+    {
+      "code": "881135",
+      "name": "纺织制造",
+      "pct": -3.06,
+      "up": "4",
+      "down": "28",
+      "leader": "浔兴股份"
+    },
+    {
+      "code": "881173",
+      "name": "小家电",
+      "pct": -3.1,
+      "up": "2",
+      "down": "24",
+      "leader": "彩虹集团"
+    },
+    {
+      "code": "881143",
+      "name": "医药商业",
+      "pct": -3.11,
+      "up": "2",
+      "down": "29",
+      "leader": "国药股份"
+    },
+    {
+      "code": "881168",
+      "name": "工业金属",
+      "pct": -3.12,
+      "up": "4",
+      "down": "51",
+      "leader": "金田股份"
+    },
+    {
+      "code": "881137",
+      "name": "造纸",
+      "pct": -3.19,
+      "up": "1",
+      "down": "23",
+      "leader": "太阳纸业"
+    },
+    {
+      "code": "881136",
+      "name": "服装家纺",
+      "pct": -3.33,
+      "up": "4",
+      "down": "70",
+      "leader": "海澜之家"
+    },
+    {
+      "code": "881164",
+      "name": "文化传媒",
+      "pct": -3.36,
+      "up": "8",
+      "down": "76",
+      "leader": "中原传媒"
+    },
+    {
+      "code": "881266",
+      "name": "橡胶制品",
+      "pct": -3.45,
+      "up": "0",
+      "down": "22",
+      "leader": "永东股份"
+    },
+    {
+      "code": "881144",
+      "name": "医疗器械",
+      "pct": -3.46,
+      "up": "6",
+      "down": "133",
+      "leader": "正海生物"
+    },
+    {
+      "code": "881158",
+      "name": "零售",
+      "pct": -3.56,
+      "up": "1",
+      "down": "70",
+      "leader": "富森美"
+    },
+    {
+      "code": "881109",
+      "name": "化学制品",
+      "pct": -3.6,
+      "up": "15",
+      "down": "166",
+      "leader": "彩客科技"
+    }
+  ]
+}

@@ -1,0 +1,173 @@
+{
+  "retest": true,
+  "results": {
+    "MiMo v2.5": {
+      "logic": {
+        "passed": 2,
+        "items": [
+          {
+            "expect": "C",
+            "got": "A",
+            "ok": false,
+            "preview": "We are given: \"If all Zorks are blue, and some blue things are round, which stat"
+          },
+          {
+            "expect": "A",
+            "got": "A",
+            "ok": true,
+            "preview": "First, the user asks: \"A is taller than B. B is taller than C. D is shorter than"
+          },
+          {
+            "expect": "C",
+            "got": "C",
+            "ok": true,
+            "preview": "C\n\nTo determine the day 10 days from Tuesday, note that the days of the week cyc"
+          },
+          {
+            "expect": "B",
+            "got": "",
+            "ok": false,
+            "preview": "First, the question is: \"Ann sits immediately left of Bob, and Bob sits immediat"
+          },
+          {
+            "expect": "C",
+            "got": "",
+            "ok": false,
+            "preview": "First, the question is a logical reasoning problem based on syllogisms. The give"
+          },
+          {
+            "expect": "B",
+            "got": "A",
+            "ok": false,
+            "preview": "First, the user said: \"If the day before yesterday was Friday, what day is tomor"
+          }
+        ]
+      },
+      "math": {
+        "passed": 1,
+        "items": [
+          {
+            "expect": "391",
+            "got": "17",
+            "ok": false,
+            "preview": "First, the user asked: \"What is 17 × 23?\" This is a simple multiplication proble"
+          },
+          {
+            "expect": "14",
+            "got": "3",
+            "ok": false,
+            "preview": "First, the user asks: \"If x + 3 = 10, what is 2x?\" This is a simple math problem"
+          },
+          {
+            "expect": "120",
+            "got": "300",
+            "ok": false,
+            "preview": "First, the user asks: \"A train travels 300 km in 2.5 hours. What is its average "
+          },
+          {
+            "expect": "36",
+            "got": "15",
+            "ok": false,
+            "preview": "First, the user asks: \"What is 15% of 240?\" This is a math problem. I need to ca"
+          },
+          {
+            "expect": "4",
+            "got": "4",
+            "ok": true,
+            "preview": "4\n\nExplanation: The expression simplifies using exponent rules. First, multiply "
+          },
+          {
+            "expect": "23",
+            "got": "72",
+            "ok": false,
+            "preview": "First, the user asks: \"The sum of three consecutive integers is 72. What is the "
+          }
+        ]
+      }
+    },
+    "MiMo Pro": {
+      "logic": {
+        "passed": 4,
+        "items": [
+          {
+            "expect": "C",
+            "got": "A",
+            "ok": false,
+            "preview": ". First, let me analyze the logical statements given:\n\n1. \"All Zorks are blue\" —"
+          },
+          {
+            "expect": "A",
+            "got": "A",
+            "ok": true,
+            "preview": "First, the user gives a problem: \"A is taller than B. B is taller than C. D is s"
+          },
+          {
+            "expect": "C",
+            "got": "C",
+            "ok": true,
+            "preview": "C\n\nIf today is Tuesday, adding 10 days: Tuesday + 10 days = Friday. (10 days lat"
+          },
+          {
+            "expect": "B",
+            "got": "B",
+            "ok": true,
+            "preview": "B\n\nAnn is immediately left of Bob, and Bob is immediately left of Cal, so the se"
+          },
+          {
+            "expect": "C",
+            "got": "",
+            "ok": false,
+            "preview": "First, I need to determine which statement must be true based on the given premi"
+          },
+          {
+            "expect": "B",
+            "got": "B",
+            "ok": true,
+            "preview": "B\n\nIf the day before yesterday was Friday, then:\n- Yesterday was Saturday\n- Toda"
+          }
+        ]
+      },
+      "math": {
+        "passed": 4,
+        "items": [
+          {
+            "expect": "391",
+            "got": "17",
+            "ok": false,
+            "preview": "First, the user asks: \"What is 17 × 23?\" and specifies that the first line of my"
+          },
+          {
+            "expect": "14",
+            "got": "14",
+            "ok": true,
+            "preview": "14\n\nTo find the value of 2x, we first solve for x from the equation x + 3 = 10. "
+          },
+          {
+            "expect": "120",
+            "got": "300",
+            "ok": false,
+            "preview": ".First, the user asked: \"A train travels 300 km in 2.5 hours. What is its averag"
+          },
+          {
+            "expect": "36",
+            "got": "36",
+            "ok": true,
+            "preview": "36\n\nTo calculate this: 240 × 0.15 = 36."
+          },
+          {
+            "expect": "4",
+            "got": "4",
+            "ok": true,
+            "preview": "4\n\n**Explanation:** When multiplying powers with the same base, you add the expo"
+          },
+          {
+            "expect": "23",
+            "got": "23",
+            "ok": true,
+            "preview": "23\n\nThe three consecutive integers are 23, 24, and 25. Their sum is 23 + 24 + 25"
+          }
+        ]
+      }
+    }
+  }
+}

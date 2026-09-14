@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Pop Zen · 解压泡泡</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; }
+  body {
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background:linear-gradient(170deg,#0f172a,#312e81); color:#e2e8f0; overflow:hidden; user-select:none;
+    touch-action:manipulation; overscroll-behavior:none;
+  }
+  #wrap { height:100dvh; display:flex; flex-direction:column; align-items:center; padding:20px 16px; }
+  .hud { display:flex; gap:24px; font-size:15px; font-weight:700; color:#94a3b8; margin-bottom:10px; }
+  .hud b { color:#fbbf24; }
+  #board { position:relative; width:100%; max-width:420px; flex:1; max-height:70vh; }
+  .bubble {
+    position:absolute; border-radius:50%; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(circle at 32% 30%, rgba(255,255,255,.85), rgba(255,255,255,.15) 45%, rgba(255,255,255,.02) 70%);
+    box-shadow: inset 0 -6px 12px rgba(0,0,0,.25), 0 4px 14px rgba(0,0,0,.35);
+    touch-action:manipulation; transition: transform .1s;
+  }
+  .bubble:active { transform: scale(.9); }
+  .bubble.pop { animation: burst .25s forwards; }
+  @keyframes burst {
+    0% { transform:scale(1); opacity:1; }
+    100% { transform:scale(1.6); opacity:0; }
+  }
+  #msg { min-height:22px; font-size:14px; color:#38bdf8; font-weight:700; margin-bottom:8px; }
+  #resetBtn {
+    background:linear-gradient(90deg,#38bdf8,#6366f1); border:none; color:#fff; font-size:15px; font-weight:800;
+    padding:10px 28px; border-radius:999px; cursor:pointer; margin-bottom:10px; box-shadow:0 4px 0 rgba(0,0,0,.3); touch-action:manipulation;
+  }
+  #resetBtn:active { transform: translateY(2px); box-shadow:0 2px 0 rgba(0,0,0,.3); }
+  .back { color:#64748b; font-size:12px; text-decoration:none; margin-top:4px; }
+</style>
+<style id="xz-shell">
+#topbar{position:fixed;top:0;left:0;right:0;height:64px;z-index:50;display:flex;align-items:center;gap:10px;padding:0 14px;background:rgba(15,23,42,.94);backdrop-filter:blur(8px);border-bottom:1px solid #334155;color:#e2e8f0;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;-webkit-user-select:none;user-select:none;}
+#topbar a{color:#38bdf8;text-decoration:none;font-size:14px;font-weight:700;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+#topbar .tt{flex:1;text-align:center;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#topbar .tg{font-size:11px;color:#94a3b8;font-weight:400;margin-left:4px;}
+#howBtn{width:30px;height:30px;border-radius:50%;border:1px solid #334155;background:#1e293b;color:#94a3b8;font-weight:800;cursor:pointer;font-size:15px;line-height:1;flex:none;}
+#howto{display:none;position:fixed;top:72px;left:50%;transform:translateX(-50%);width:min(92vw,420px);z-index:70;background:#1e293b;border:1px solid #475569;border-radius:14px;padding:14px 16px;color:#cbd5e1;font-size:13px;line-height:1.7;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;box-shadow:0 12px 32px rgba(0,0,0,.55);}
+#howto.show{display:block;}
+#howto b{color:#38bdf8;}
+.xz-cr{position:fixed;bottom:4px;right:10px;font-size:10px;color:#475569;z-index:45;font-family:-apple-system,"Segoe UI",sans-serif;pointer-events:none;-webkit-user-select:none;user-select:none;}
+</style>
+</head>
+<body>
+<div id="topbar"><a href="index.html">← 列表</a><span class="tt">Pop Zen<span class="tg">解压泡泡</span></span><button id="howBtn" aria-label="玩法说明">?</button></div>
+<div id="howto"><b>怎么玩</b><br>点击泡泡消除，连击加分，享受解压爽感，消完一整板有惊喜奖励。</div>
+
+<div id="wrap">
+  <div class="hud"><div>已戳 <b id="popped">0</b></div><div>剩余 <b id="left">24</b></div></div>
+  <div id="msg">戳泡泡，听声音，放空大脑 🫧</div>
+  <div id="board"></div>
+  <button id="resetBtn">再来一板</button>
+  <a class="back" href="index.html">← 返回列表</a>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var board=document.getElementById('board'), poppedEl=document.getElementById('popped');
+  var leftEl=document.getElementById('left'), msgEl=document.getElementById('msg');
+  var resetBtn=document.getElementById('resetBtn');
+
+  var TOTAL=24, popped=0;
+  var colors=['#f472b6','#fb923c','#facc15','#4ade80','#38bdf8','#a78bfa'];
+
+  // 轻量音效：WebAudio 弹响
+  var actx=null;
+  function blip(){
+    try{
+      if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)();
+      var o=actx.createOscillator(), g=actx.createGain();
+      o.type='triangle'; o.frequency.value=400+Math.random()*300;
+      g.gain.setValueAtTime(.25, actx.currentTime);
+      g.gain.exponentialRampToValueAtTime(.001, actx.currentTime+.15);
+      o.connect(g); g.connect(actx.destination);
+      o.start(); o.stop(actx.currentTime+.16);
+    }catch(e){}
+  }
+
+  function build(){
+    board.innerHTML=''; popped=0;
+    poppedEl.textContent='0'; leftEl.textContent=TOTAL;
+    var W=board.clientWidth||360, H=board.clientHeight||360;
+    var sizes=[38,46,54,64];
+    for(var i=0;i<TOTAL;i++){
+      var size=sizes[Math.floor(Math.random()*sizes.length)];
+      var b=document.createElement('div');
+      b.className='bubble';
+      b.style.width=size+'px'; b.style.height=size+'px';
+      b.style.left=(Math.random()*(W-size))+'px';
+      b.style.top=(Math.random()*(H-size))+'px';
+      b.style.background='radial-gradient(circle at 32% 30%, rgba(255,255,255,.85), '+colors[i%colors.length]+' 55%, rgba(0,0,0,.2) 95%)';
+      b.addEventListener('pointerdown', function(e){ e.preventDefault(); pop(this); });
+      board.appendChild(b);
+    }
+  }
+
+  function pop(el){
+    if(el.classList.contains('pop')) return;
+    el.classList.add('pop'); blip();
+    popped++; poppedEl.textContent=popped;
+    leftEl.textContent=TOTAL-popped;
+    var self=el;
+    setTimeout(function(){ if(self.parentNode) self.parentNode.removeChild(self); }, 260);
+    if(popped===TOTAL){ msgEl.textContent='🎉 全戳完了，爽！再来一板？'; }
+    else if(popped===TOTAL/2){ msgEl.textContent='过半了，继续放空…'; }
+  }
+
+  resetBtn.addEventListener('pointerdown', function(e){ e.preventDefault(); build(); });
+  window.addEventListener('resize', function(){ build(); });
+  build();
+})();
+</script>
+<script>
+(function(){
+  'use strict';
+  // --- 等比缩放：390x780 设计基准（上方 64px 顶部栏），其它屏幕自动等比 ---
+  var W=390,H=780,TOP=64;
+  var wrap=document.getElementById('wrap');
+  function fit(){
+    if(!wrap) return;
+    var s=Math.min(innerWidth/W,(innerHeight-TOP)/H);
+    if(s>1.4) s=1.4;
+    var w=W*s,h=H*s;
+    wrap.style.width=w+'px';
+    wrap.style.height=h+'px';
+    wrap.style.left=((innerWidth-w)/2)+'px';
+    wrap.style.top=(TOP+(innerHeight-TOP-h)/2)+'px';
+    wrap.style.position='fixed';
+    wrap.style.margin='0';
+    wrap.style.transform='scale('+s+')';
+    wrap.style.transformOrigin='top left';
+  }
+  fit();
+  addEventListener('resize',fit);
+  addEventListener('orientationchange',fit);
+  // 结算浮层提到顶部栏之上（面板里自带返回入口）
+  var ov=document.getElementById('overlay');
+  if(ov) ov.style.zIndex=60;
+  // --- 玩法说明折叠 ---
+  var hb=document.getElementById('howBtn'),ht=document.getElementById('howto');
+  if(hb&&ht){
+    hb.addEventListener('click',function(e){e.stopPropagation();ht.classList.toggle('show');});
+    document.addEventListener('pointerdown',function(e){if(ht.classList.contains('show')&&!ht.contains(e.target)&&e.target!==hb)ht.classList.remove('show');});
+  }
+  // --- L1 防拷贝：禁右键 / 禁 F12 / 禁 Ctrl+S,U,P / 禁 Ctrl+Shift+I,J,C ---
+  document.addEventListener('contextmenu',function(e){e.preventDefault();});
+  document.addEventListener('dragstart',function(e){e.preventDefault();});
+  document.addEventListener('keydown',function(e){
+    var k=e.key||'';
+    if(k==='F12'||(e.ctrlKey&&['s','u','p','S','U','P'].indexOf(k)>=0)||(e.ctrlKey&&e.shiftKey&&['i','j','c','I','J','C'].indexOf(k)>=0)){e.preventDefault();e.stopPropagation();return false;}
+  });
+  // 长按防存图
+  document.addEventListener('touchstart',function(){},false);
+})();
+</script>
+<div class="xz-cr">© 2026 AI24X Game Zone</div>
+</body>
+</html>

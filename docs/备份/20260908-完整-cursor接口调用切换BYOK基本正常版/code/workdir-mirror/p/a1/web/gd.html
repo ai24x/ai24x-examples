@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>AI复盘 · VIP专属 · AI行情官｜灯塔版</title>
+  <meta name="description" content="AI行情官 VIP 专属功能：每日收盘后扫描沪深京 / 北证全市场，板块先行反推主线，再筛选底部刚走多、异动回踩企稳、未大幅拉升的标的。本工具仅基于公开行情做技术形态统计与信息整理，不构成投资建议，不保证收益。" />
+  <link rel="icon" href="data:," />
+  <script>
+    (function () {
+      try {
+        var k = "ai24x_a_theme";
+        var t = String(localStorage.getItem(k) || "").trim() || "light";
+        document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="/css/base.css?v=56" />
+  <link rel="stylesheet" href="/css/tool.css" />
+  <link rel="stylesheet" href="/css/bjscreener.css?v=108" />
+<style>
+/* 复盘 · 大盘环境与策略区（大盘同步） */
+.bj-market{display:block;margin:0 0 12px;padding:0;background:transparent;border:none;border-radius:0}
+.bj-market .bj-section{margin-top:0;}
+#bj-strategy{margin:0 0 12px;}
+#bj-strategy .bj-mkt-gate{margin:0;}
+.bj-mkt-head{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin-bottom:8px;}
+.bj-mkt-badge{display:inline-block;padding:3px 12px;border-radius:999px;font-size:13px;font-weight:700;}
+.bj-mkt-badge.ok{background:linear-gradient(135deg,rgba(248,113,113,.20),rgba(251,191,36,.12));color:#dc2626;border:1px solid rgba(220,38,38,.45);}
+.bj-mkt-badge.warn{background:rgba(251,191,36,.14);color:#b45309;border:1px solid rgba(251,191,36,.55);}
+.bj-mkt-badge.risk{background:rgba(220,38,38,.18);color:#991b1b;border:1px solid rgba(220,38,38,.6);}
+.bj-mkt-pts{font-size:13px;color:var(--text);font-weight:700;}
+.bj-mkt-asof{margin-left:auto;font-size:13px;color:var(--muted);}
+.bj-mkt-idx{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;margin-bottom:8px;}
+.bj-mkt-idx-item{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--border);border-radius:999px;padding:3px 10px;font-size:13px;line-height:1.4;white-space:nowrap;overflow:hidden;}
+.bj-mkt-idx-item .nm{font-weight:700;color:var(--text);}
+.bj-mkt-idx-item .sc{font-weight:700;color:var(--bj-acc);margin-left:auto;}
+.bj-mkt-idx-item .stx{color:var(--muted);overflow:hidden;text-overflow:ellipsis;}
+.bj-mkt-strategy{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:6px 10px;font-size:13px;line-height:1.7;}
+.bj-mkt-strategy .row{margin:0;}
+.bj-mkt-strategy .row-sep{color:var(--muted);margin:0 4px;}
+.bj-mkt-strategy .lb{color:var(--muted);margin-right:6px;}
+.bj-mkt-strategy .ops{display:none;}
+.bj-mkt-gate{margin-top:10px;font-size:13px;color:var(--muted);line-height:1.7;}
+.bj-mkt-gate a{color:var(--accent);}
+.bj-flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 14px;}
+.bj-flow-step{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--border);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:600;color:var(--text);}
+.bj-flow-step .ic{font-size:15px;line-height:1;}
+.bj-flow-step.now{background:linear-gradient(135deg,rgba(248,113,113,.16),rgba(251,191,36,.10));border-color:rgba(220,38,38,.45);color:#dc2626;}
+.bj-flow-arrow{color:var(--muted);font-size:13px;}
+@media (max-width:560px){.bj-flow{gap:4px;}.bj-flow-step{padding:5px 10px;font-size:12px;}}
+@media (max-width:560px){.bj-mkt-idx{grid-template-columns:repeat(2,1fr);}}
+
+/* 复盘 · 攻守模式横幅 + 实测战绩 */
+.bj-regime{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin:0 0 12px;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.6;}
+.bj-regime b{font-size:14px;padding:2px 10px;border-radius:999px;color:#fff;}
+.bj-regime span{color:var(--text);}
+.bj-regime.attack{background:linear-gradient(135deg,rgba(248,113,113,.22),rgba(251,191,36,.10));border:1px solid rgba(220,38,38,.5);}
+.bj-regime.attack b{background:linear-gradient(135deg,#dc2626,#f59e0b);}
+.bj-regime.stable{background:linear-gradient(135deg,rgba(251,191,36,.16),rgba(245,158,11,.06));border:1px solid rgba(251,191,36,.55);}
+.bj-regime.stable b{background:linear-gradient(135deg,#d97706,#f59e0b);}
+.bj-regime.defensive{background:linear-gradient(135deg,rgba(153,27,27,.28),rgba(220,38,38,.12));border:1px solid rgba(153,27,27,.65);}
+.bj-regime.defensive b{background:linear-gradient(135deg,#7f1d1d,#b91c1c);}
+.bj-regime.bj-regime-inline{margin:6px 0 0;padding:6px 10px;font-size:13px;gap:6px 10px;}
+.bj-regime.bj-regime-inline b{font-size:13px;padding:1px 8px;}
+.winrate-strip{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:10px 14px;background:var(--panel2);border:1px solid var(--border);border-radius:12px;font-size:13px;font-weight:600;}
+.winrate-strip .up{color:var(--rise);}
+.winrate-strip .down{color:var(--fall);}
+.winrate-note{margin-top:6px;font-size:13px;color:var(--muted);line-height:1.7;}
+.wr-head{cursor:pointer;display:flex;align-items:center;gap:8px;flex-wrap:wrap;transition:opacity .15s;}
+.wr-head:hover{opacity:.85;}
+.wr-see{margin-left:auto;font-size:13px;font-weight:700;color:var(--bj-acc,#60a5fa);border:1px dashed var(--bj-acc-bd,rgba(96,165,250,.38));background:rgba(96,165,250,.08);padding:3px 10px;border-radius:999px;}
+.wr-head[aria-expanded="true"] .wr-see{background:rgba(96,165,250,.25);border-style:solid;}
+.wr-modal{position:fixed;inset:0;background:rgba(10,15,25,.55);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:4vh 16px 24px;}
+.wr-modal[hidden]{display:none;}
+.wr-modal-box{background:var(--panel,#fff);border:1px solid var(--border);border-radius:14px;width:min(980px,100%);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 18px 60px rgba(0,0,0,.35);}
+.wr-modal-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);font-size:15px;}
+.wr-close{border:1px solid var(--border);background:transparent;color:var(--muted);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:14px;line-height:1;}
+.wr-close:hover{color:var(--text);border-color:var(--bj-acc-bd);}
+.wr-modal-body{overflow:auto;padding:12px 16px;}
+.wr-table-scroll{overflow-x:auto;}
+.wr-table{width:100%;border-collapse:collapse;font-size:13px;}
+.wr-table th,.wr-table td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;}
+.wr-table thead th{position:sticky;top:0;background:var(--panel2);font-size:12px;color:var(--muted);font-weight:700;z-index:1;}
+.wr-table tbody tr:hover{background:rgba(96,165,250,.06);}
+.wr-table .win-name{min-width:150px;}
+.wr-link{color:var(--bj-acc,#60a5fa);font-weight:700;text-decoration:none;}
+.wr-link:hover{text-decoration:underline;}
+.win-st{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;}
+.win-hit{background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;}
+.win-stop{background:#fdecea;color:#b71c1c;border:1px solid #ef9a9a;}
+.win-trk{background:#e8f0fe;color:#1a3f8f;border:1px solid #b7cdf0;}
+.win-miss{background:rgba(128,138,160,.12);color:var(--muted);border:1px solid transparent;}
+.wr-modal-foot{padding:10px 16px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);line-height:1.7;}
+</style>
+</head>
+<body>
+  <header class="site-header" id="site-header"></header>
+  <main class="page-main">
+    <div class="wrap">
+      <section class="card">
+        <div class="bj-hero">
+          <div>
+            <h1>AI复盘 <span class="vip-badge">VIP</span></h1>
+            <p class="sub">收盘定型 · 主线一眼看清</p>
+          </div>
+          <a class="btn" href="/daily/?brief=1" style="white-space:nowrap;">今日简报</a>
+        </div>
+
+        <div id="auth-guest" hidden>
+          <div class="gate-hero">
+            <div class="gate-title">登录后查看</div>
+            <div class="gate-sub">大盘免费 · 主线与精选为 VIP</div>
+          </div>
+          <div class="auth-card-grid">
+            <a class="auth-card is-selected" href="./index.html?mode=login&amp;ch=phone">
+              <div class="t">去登录</div>
+              <div class="d">手机号或邮箱</div>
+            </a>
+            <a class="auth-card" href="./index.html?mode=register&amp;ch=phone">
+              <div class="t">去注册</div>
+              <div class="d">新用户</div>
+            </a>
+          </div>
+        </div>
+
+        <div id="auth-user" hidden>
+          <div class="bj-top">
+            <span class="bj-status" id="bj-status">正在加载…</span>
+            <span class="bj-actions">
+              <button class="btn-blue" id="btn-bj-refresh" type="button">开始扫描</button>
+              <button class="btn btn-ghost" id="btn-bj-scan-full" type="button" title="强制重新扫描今日全市场结果">完整重扫</button>
+              <span class="bj-auto-hint" id="bj-auto-hint">收盘后约 15:15 自动更新</span>
+              <span class="bj-refresh-note" id="bj-refresh-note" hidden></span>
+            </span>
+          </div>
+          <div class="bj-progress" id="bj-progress" hidden>
+            <div class="bj-progress-bar"><div class="bj-progress-fill" id="bj-progress-fill"></div></div>
+            <div class="bj-progress-text" id="bj-progress-text">正在扫描…</div>
+          </div>
+          <div class="bj-tabs" id="bj-tabs">
+            <button type="button" class="bj-tab active" data-market="hs">沪深主线</button>
+            <button type="button" class="bj-tab" data-market="kc">科创主线</button>
+            <button type="button" class="bj-tab" data-market="bj_all">北证全市场</button>
+            <button type="button" class="bj-tab" data-market="mlpb">主线回踩低吸</button>
+            <button type="button" class="bj-tab" data-market="low10">10元下</button>
+            <button type="button" class="bj-tab" data-market="tight">大波段</button>
+          </div>
+          <div id="bj-meta" class="bj-meta" hidden></div>
+
+          <div id="bj-vipgate" class="vip-card" hidden>
+            <div class="t">VIP 专属</div>
+            <div class="d">开通后查看主线、板块热度与精选标的。</div>
+            <a class="btn" href="./account.html#vip" style="display:inline-block;">开通 VIP</a>
+            <span style="display:inline-block;width:8px;"></span>
+            <a class="btn wl-back" href="./demo.html">返回行情</a>
+          </div>
+
+          <div id="bj-main" hidden>
+            <div id="bj-mainlines"></div>
+            <div id="bj-market" hidden></div>
+            <div id="bj-strategy" hidden></div>
+            <div id="bj-boardrank"></div>
+            <div id="bj-result"></div>
+            <div id="bj-raceboard" hidden></div>
+            <div id="bj-pb-ledger" hidden></div>
+            <details class="bj-fold" id="bj-more">
+              <summary>更多数据</summary>
+              <div id="bj-ths-sentiment"></div>
+              <div id="bj-winrate" hidden></div>
+              <div id="bj-history"></div>
+            </details>
+            <div id="bj-picksgate" class="vip-card" hidden>
+              <div class="t">精选标的 · VIP</div>
+              <div class="d">开通后查看筛选结果与技术参考。</div>
+              <a class="btn" href="./account.html#vip" style="display:inline-block;">开通 VIP</a>
+            </div>
+            <p class="sub" style="margin:14px 0 0;font-size:13px;line-height:1.7;color:var(--muted);">基于公开行情的技术统计，不构成投资建议。</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+  <div id="bj-confirm" class="bj-modal" hidden role="dialog" aria-modal="true" aria-labelledby="bj-confirm-title">
+    <div class="bj-modal-card">
+      <div class="bj-modal-head">
+        <h4 id="bj-confirm-title">请确认</h4>
+        <button type="button" class="bj-modal-close" id="bj-confirm-close" aria-label="关闭">×</button>
+      </div>
+      <div class="bj-modal-body">
+        <p id="bj-confirm-msg"></p>
+        <ul class="bj-modal-notes" id="bj-confirm-notes" hidden></ul>
+      </div>
+      <div class="bj-modal-foot">
+        <button type="button" class="btn btn-ghost" id="bj-confirm-cancel">取消</button>
+        <button type="button" class="btn-blue" id="bj-confirm-ok">确定</button>
+      </div>
+    </div>
+  </div>
+  <footer class="site-footer" id="site-footer"></footer>
+  <script src="/js/shell.js?v=62"></script>
+  <script>
+    try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("bjscreener"); } catch (e) {}
+  </script>
+  <script src="/js/bjscreener.js?v=161"></script>
+  <script>
+    (function () {
+      var w = window.AI24X_BJScreener;
+      if (!w) return;
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", function () { w.boot(); });
+      } else {
+        w.boot();
+      }
+    })();
+  </script>
+  <script>
+    // 邀请码透传：URL(i/invite/inv/ref) -> localStorage；登录/注册/升级链接自动带上
+    (function () {
+      try {
+        var sp = new URLSearchParams(String(location.search || '').replace(/^\?/, ''));
+        var raw = String(sp.get('i') || sp.get('invite') || sp.get('inv') || sp.get('ref') || '').trim().toUpperCase();
+        if (raw) { try { localStorage.setItem('ai24x_invite_code', raw); } catch (e) {} }
+      } catch (e) {}
+      try {
+        var code = String(localStorage.getItem('ai24x_invite_code') || '').trim().toUpperCase();
+        if (!code) return;
+        var links = document.querySelectorAll('a[href]');
+        for (var i = 0; i < links.length; i++) {
+          var a = links[i];
+          var href = a.getAttribute('href') || '';
+          if (!href || href === '#') continue;
+          if (!/(?:\/|^)(index\.html|account\.html|register|login)/i.test(href)) continue;
+          if (/[?&]i=/.test(href) || /[?&]invite=/.test(href)) continue;
+          var sep = href.indexOf('?') >= 0 ? '&' : '?';
+          a.setAttribute('href', href + sep + 'i=' + encodeURIComponent(code));
+        }
+      } catch (e) {}
+    })();
+  </script>
+</body>
+</html>
+

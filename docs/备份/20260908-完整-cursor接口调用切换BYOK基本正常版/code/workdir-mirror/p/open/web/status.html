@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- [AI24X 2026-08-15] Google Ads 暂停 (国际支付无合规渠道，保留待恢复，勿删）：
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18385419220"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', {
+    'ad_storage': 'denied',
+    'ad_user_data': 'denied',
+    'ad_personalization': 'denied',
+    'analytics_storage': 'denied',
+    'personalization_storage': 'denied',
+    'functionality_storage': 'granted',
+    'security_storage': 'granted',
+    'wait_for_update': 500
+  });
+  gtag('js', new Date());
+
+  gtag('config', 'AW-18385419220');
+</script>
+<script src="config/consent.js?v=20260814a"></script>
+-->
+
+  <meta charset="UTF-8" />
+  <script>
+/* i18n-boot inline v20260808c: language pre-read + FOUC guard (no network dependency) */
+(function () {
+  var KEY = "ai24x_lang";
+  try {
+    var raw = String(localStorage.getItem(KEY) || "").trim().toLowerCase().replace(/_/g, "-");
+    var lang = raw.split("-")[0] || "";
+    if (!lang) { lang = "en"; localStorage.setItem(KEY, lang); }
+    document.documentElement.setAttribute("data-ai24x-lang", lang);
+    document.documentElement.classList.add("i18n-pending");
+    if (!document.getElementById("ai24x-i18n-pending")) {
+      var st = document.createElement("style");
+      st.id = "ai24x-i18n-pending";
+      st.textContent = "html.i18n-pending body{visibility:hidden!important}";
+      (document.head || document.documentElement).appendChild(st);
+    }
+    setTimeout(function () { document.documentElement.classList.remove("i18n-pending"); }, 4000);
+  } catch (e) {}
+})();
+</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>System Status · AI24X</title>
+  <meta name="description" content="AI24X system status — API, Console, and payment uptime." />
+  <link rel="canonical" href="https://www.ai24x.com/status.html" />
+  <meta property="og:title" content="System Status · AI24X" />
+  <meta property="og:description" content="Real-time operational status for AI24X API, Console, and payments." />
+  <link rel="stylesheet" href="css/base.css?v=20260831a" />
+  <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260812e" data-base="css/themes/" />
+</head>
+<body data-page="status" class="theme-blue">
+  <header class="site-header" id="site-header"></header>
+  <main class="page-main">
+    <section class="hero hero-surface section-tight">
+      <div class="container">
+        <h1 data-i18n="page.status.title">System status</h1>
+        <p class="lead" data-i18n="page.status.lead">Current operational status for AI24X services. Updated automatically.</p>
+      </div>
+    </section>
+    <section class="section">
+      <div class="container" style="max-width:600px;margin:0 auto">
+        <div class="grid-col" style="gap:12px">
+          <div class="card" style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between">
+            <span style="font-weight:600">API (api.ai24x.com)</span>
+            <span style="display:flex;align-items:center;gap:6px;color:#16a34a">🟢 <span data-i18n="page.status.operational">Operational</span></span>
+          </div>
+          <div class="card" style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between">
+            <span style="font-weight:600">Console (www.ai24x.com)</span>
+            <span style="display:flex;align-items:center;gap:6px;color:#16a34a">🟢 <span data-i18n="page.status.operational">Operational</span></span>
+          </div>
+          <div class="card" style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between">
+            <span style="font-weight:600"><span data-i18n="page.status.payment">Payment</span> (PayPal / WeChat)</span>
+            <span style="display:flex;align-items:center;gap:6px;color:#16a34a">🟢 <span data-i18n="page.status.operational">Operational</span></span>
+          </div>
+        </div>
+        <p class="sub" style="margin-top:16px;text-align:center" data-i18n="page.status.note">
+          No known incidents. Last checked just now. For outage reports, contact support.
+        </p>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer" id="site-footer"></footer>
+  <script src="config/locales.js?v=20260906c"></script>
+  <script src="js/api.js?v=20260905a"></script>
+  <script src="js/i18n.js?v=20260812g"></script>
+  <script src="js/ai24x-chrome.js?v=20260829n"></script>
+  <script src="js/shell.js?v=20260906c"></script>
+  <script src="js/app.js?v=20260808b"></script>
+</body>
+</html>

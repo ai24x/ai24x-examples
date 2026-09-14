@@ -1,0 +1,14 @@
+{
+  "ok": true,
+  "host": "127.0.0.1",
+  "database": "ai24x_a_pre",
+  "full": "db/full.dump",
+  "payment_tables": "db/payment_tables.dump",
+  "tables": [
+    "token_pay_orders",
+    "token_wallets",
+    "billing_ledger",
+    "token_credit_lots"
+  ],
+  "backed_at": "2026-08-29 21:49:09"
+}

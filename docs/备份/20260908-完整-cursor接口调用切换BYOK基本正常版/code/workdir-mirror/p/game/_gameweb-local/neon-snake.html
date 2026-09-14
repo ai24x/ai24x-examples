@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Neon Snake · 霓虹贪吃蛇</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; }
+  body {
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background:#0f172a; color:#e2e8f0; overflow:hidden; user-select:none;
+    touch-action:manipulation; overscroll-behavior:none;
+  }
+  #wrap { height:100dvh; display:flex; flex-direction:column; align-items:center; padding:16px; }
+  .hud { display:flex; gap:20px; font-size:14px; font-weight:700; color:#94a3b8; margin-bottom:8px; }
+  .hud b { color:#fbbf24; }
+  #msg { min-height:24px; font-size:14px; font-weight:700; margin-bottom:8px; }
+  #stage { position:relative; width:100%; max-width:400px; aspect-ratio:1; background:#0b1220; border:2px solid #1e3a5f; border-radius:18px; overflow:hidden; }
+  canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none; }
+  #swipeHint { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:15px; color:#475569; font-weight:700; pointer-events:none; }
+  #overlay { position:fixed; inset:0; background:rgba(2,6,23,.9); display:none; align-items:center; justify-content:center; z-index:10; }
+  #overlay.show { display:flex; }
+  .panel { text-align:center; padding:30px 24px; border-radius:20px; background:#1e293b; border:1px solid #334155; max-width:330px; width:92%; }
+  .panel h2 { font-size:24px; margin-bottom:6px; }
+  .panel .score { font-size:44px; font-weight:800; color:#38bdf8; margin:8px 0; }
+  .panel p { color:#94a3b8; font-size:14px; margin-bottom:16px; }
+  .play { background:linear-gradient(90deg,#38bdf8,#a855f7); border:none; color:#fff; font-size:17px; font-weight:800; padding:13px 38px; border-radius:999px; cursor:pointer; box-shadow:0 5px 0 rgba(0,0,0,.3); touch-action:manipulation; }
+  .play:active { transform: translateY(3px); box-shadow:0 2px 0 rgba(0,0,0,.3); }
+  .back { display:block; margin-top:14px; color:#64748b; font-size:13px; text-decoration:none; }
+  .arrowRow { display:flex; gap:8px; justify-content:center; margin-top:10px; }
+  .arr { width:52px; height:44px; border:none; border-radius:10px; background:#1e293b; border:1px solid #334155; color:#94a3b8; font-size:18px; cursor:pointer; touch-action:manipulation; }
+  .arr:active { background:#334155; }
+</style>
+<style id="xz-shell">
+#topbar{position:fixed;top:0;left:0;right:0;height:64px;z-index:50;display:flex;align-items:center;gap:10px;padding:0 14px;background:rgba(15,23,42,.94);backdrop-filter:blur(8px);border-bottom:1px solid #334155;color:#e2e8f0;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;-webkit-user-select:none;user-select:none;}
+#topbar a{color:#38bdf8;text-decoration:none;font-size:14px;font-weight:700;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+#topbar .tt{flex:1;text-align:center;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#topbar .tg{font-size:11px;color:#94a3b8;font-weight:400;margin-left:4px;}
+#howBtn{width:30px;height:30px;border-radius:50%;border:1px solid #334155;background:#1e293b;color:#94a3b8;font-weight:800;cursor:pointer;font-size:15px;line-height:1;flex:none;}
+#howto{display:none;position:fixed;top:72px;left:50%;transform:translateX(-50%);width:min(92vw,420px);z-index:70;background:#1e293b;border:1px solid #475569;border-radius:14px;padding:14px 16px;color:#cbd5e1;font-size:13px;line-height:1.7;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;box-shadow:0 12px 32px rgba(0,0,0,.55);}
+#howto.show{display:block;}
+#howto b{color:#38bdf8;}
+.xz-cr{position:fixed;bottom:4px;right:10px;font-size:10px;color:#475569;z-index:45;font-family:-apple-system,"Segoe UI",sans-serif;pointer-events:none;-webkit-user-select:none;user-select:none;}
+</style>
+</head>
+<body>
+<div id="topbar"><a href="index.html">← 列表</a><span class="tt">Neon Snake<span class="tg">霓虹贪吃蛇</span></span><button id="howBtn" aria-label="玩法说明">?</button></div>
+<div id="howto"><b>怎么玩</b><br>控制蛇吃光点变长，别撞墙别咬到自己，经典玩法霓虹赛博风。</div>
+
+<div id="wrap">
+  <div class="hud"><div>分数 <b id="score">0</b></div><div>长度 <b id="len">3</b></div></div>
+  <div id="msg">滑动屏幕控制方向，吃光点别撞墙！</div>
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="swipeHint">👆 滑动 / 方向键</div>
+  </div>
+  <div class="arrowRow">
+    <button class="arr" id="aUp">▲</button>
+    <button class="arr" id="aLeft">◀</button>
+    <button class="arr" id="aDown">▼</button>
+    <button class="arr" id="aRight">▶</button>
+  </div>
+</div>
+
+<div id="overlay">
+  <div class="panel">
+    <h2>游戏结束</h2>
+    <div class="score" id="finalScore">0</div>
+    <p id="finalMsg">撞墙了…</p>
+    <button class="play" id="restart">再来一局</button>
+    <a class="back" href="index.html">← 返回列表</a>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+  var scoreEl=document.getElementById('score'), lenEl=document.getElementById('len');
+  var msgEl=document.getElementById('msg'), hintEl=document.getElementById('swipeHint');
+  var overlay=document.getElementById('overlay');
+  var finalScore=document.getElementById('finalScore'), finalMsg=document.getElementById('finalMsg');
+  var restart=document.getElementById('restart');
+
+  var GRID=17, W=0, CS=0;
+  var snake, dir, nextDir, food, score, running, loopTimer=null, speed;
+
+  function resize(){
+    var rect=document.getElementById('stage').getBoundingClientRect();
+    var dpr=window.devicePixelRatio||1;
+    W=Math.floor(Math.min(rect.width, rect.height));
+    CS=W/GRID;
+    cv.width=W*dpr; cv.height=W*dpr;
+    cv.style.width=W+'px'; cv.style.height=W+'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    draw();
+  }
+
+  function reset(){
+    snake=[{x:8,y:8},{x:7,y:8},{x:6,y:8}];
+    dir={x:1,y:0}; nextDir={x:1,y:0};
+    score=0; speed=140; running=true;
+    scoreEl.textContent='0'; lenEl.textContent='3';
+    hintEl.style.display='none';
+    food=spawnFood();
+    clearInterval(loopTimer);
+    loopTimer=setInterval(tick, speed);
+  }
+
+  function spawnFood(){
+    var f;
+    do{ f={x:Math.floor(Math.random()*GRID), y:Math.floor(Math.random()*GRID)}; }
+    while(snake.some(function(s){ return s.x===f.x && s.y===f.y; }));
+    return f;
+  }
+
+  function tick(){
+    if(!running) return;
+    dir=nextDir;
+    var head={x:snake[0].x+dir.x, y:snake[0].y+dir.y};
+    // 撞墙
+    if(head.x<0||head.y<0||head.x>=GRID||head.y>=GRID){ return gameOver('撞墙了'); }
+    // 撞自己
+    if(snake.some(function(s){ return s.x===head.x && s.y===head.y; })){ return gameOver('咬到自己了'); }
+    snake.unshift(head);
+    if(head.x===food.x && head.y===food.y){
+      score++; scoreEl.textContent=score;
+      lenEl.textContent=snake.length;
+      food=spawnFood();
+      if(speed>70){ speed-=3; clearInterval(loopTimer); loopTimer=setInterval(tick, speed); }
+    } else {
+      snake.pop();
+    }
+    draw();
+  }
+
+  function draw(){
+    if(!food) return;
+    ctx.fillStyle='#0b1220'; ctx.fillRect(0,0,W,W);
+    // 网格
+    ctx.strokeStyle='rgba(30,58,95,.35)'; ctx.lineWidth=1;
+    for(var i=1;i<GRID;i++){
+      ctx.beginPath(); ctx.moveTo(i*CS,0); ctx.lineTo(i*CS,W); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0,i*CS); ctx.lineTo(W,i*CS); ctx.stroke();
+    }
+    // 食物（霓虹发光点）
+    ctx.shadowColor='#fbbf24'; ctx.shadowBlur=12;
+    ctx.fillStyle='#fbbf24';
+    ctx.beginPath(); ctx.arc(food.x*CS+CS/2, food.y*CS+CS/2, CS*0.32, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0;
+    // 蛇（霓虹渐变）
+    for(var s=snake.length-1;s>=0;s--){
+      var p=snake[s];
+      var t=s/snake.length;
+      ctx.fillStyle='hsl('+Math.floor(180+t*120)+', 90%, '+(60-t*15)+'%)';
+      ctx.shadowColor=ctx.fillStyle; ctx.shadowBlur=8;
+      var r=CS*0.38;
+      ctx.beginPath(); ctx.arc(p.x*CS+CS/2, p.y*CS+CS/2, r, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.shadowBlur=0;
+  }
+
+  function gameOver(reason){
+    running=false; clearInterval(loopTimer);
+    finalScore.textContent=score;
+    finalMsg.textContent=reason+' · 吃到 '+score+' 个光点';
+    setTimeout(function(){ overlay.classList.add('show'); }, 250);
+  }
+
+  function setDir(x,y){
+    if(!running) return;
+    if(x===dir.x && y===dir.y) return;
+    if(x===-dir.x && y===-dir.y) return; // 禁止直接掉头
+    nextDir={x:x,y:y};
+  }
+
+  // 滑动控制
+  var sx=0, sy=0, tracking=false;
+  cv.addEventListener('pointerdown', function(e){
+    tracking=true; sx=e.clientX; sy=e.clientY;
+  });
+  cv.addEventListener('pointermove', function(e){
+    if(!tracking) return;
+    var dx=e.clientX-sx, dy=e.clientY-sy;
+    if(Math.abs(dx)<18 && Math.abs(dy)<18) return;
+    if(Math.abs(dx)>Math.abs(dy)) setDir(dx>0?1:-1, 0);
+    else setDir(0, dy>0?1:-1);
+    tracking=false;
+  });
+  cv.addEventListener('pointerup', function(){ tracking=false; });
+  cv.addEventListener('pointercancel', function(){ tracking=false; });
+
+  // 方向键
+  document.getElementById('aUp').addEventListener('pointerdown', function(e){ e.preventDefault(); setDir(0,-1); });
+  document.getElementById('aDown').addEventListener('pointerdown', function(e){ e.preventDefault(); setDir(0,1); });
+  document.getElementById('aLeft').addEventListener('pointerdown', function(e){ e.preventDefault(); setDir(-1,0); });
+  document.getElementById('aRight').addEventListener('pointerdown', function(e){ e.preventDefault(); setDir(1,0); });
+  // 键盘
+  document.addEventListener('keydown', function(e){
+    if(e.key==='ArrowUp'){ e.preventDefault(); setDir(0,-1); }
+    if(e.key==='ArrowDown'){ e.preventDefault(); setDir(0,1); }
+    if(e.key==='ArrowLeft'){ e.preventDefault(); setDir(-1,0); }
+    if(e.key==='ArrowRight'){ e.preventDefault(); setDir(1,0); }
+  });
+
+  restart.addEventListener('click', function(){ overlay.classList.remove('show'); reset(); });
+  window.addEventListener('resize', resize);
+
+  reset(); resize();
+})();
+</script>
+<script>
+(function(){
+  'use strict';
+  // --- 等比缩放：390x780 设计基准（上方 64px 顶部栏），其它屏幕自动等比 ---
+  var W=390,H=780,TOP=64;
+  var wrap=document.getElementById('wrap');
+  function fit(){
+    if(!wrap) return;
+    var s=Math.min(innerWidth/W,(innerHeight-TOP)/H);
+    if(s>1.4) s=1.4;
+    var w=W*s,h=H*s;
+    wrap.style.width=w+'px';
+    wrap.style.height=h+'px';
+    wrap.style.left=((innerWidth-w)/2)+'px';
+    wrap.style.top=(TOP+(innerHeight-TOP-h)/2)+'px';
+    wrap.style.position='fixed';
+    wrap.style.margin='0';
+    wrap.style.transform='scale('+s+')';
+    wrap.style.transformOrigin='top left';
+  }
+  fit();
+  addEventListener('resize',fit);
+  addEventListener('orientationchange',fit);
+  // 结算浮层提到顶部栏之上（面板里自带返回入口）
+  var ov=document.getElementById('overlay');
+  if(ov) ov.style.zIndex=60;
+  // --- 玩法说明折叠 ---
+  var hb=document.getElementById('howBtn'),ht=document.getElementById('howto');
+  if(hb&&ht){
+    hb.addEventListener('click',function(e){e.stopPropagation();ht.classList.toggle('show');});
+    document.addEventListener('pointerdown',function(e){if(ht.classList.contains('show')&&!ht.contains(e.target)&&e.target!==hb)ht.classList.remove('show');});
+  }
+  // --- L1 防拷贝：禁右键 / 禁 F12 / 禁 Ctrl+S,U,P / 禁 Ctrl+Shift+I,J,C ---
+  document.addEventListener('contextmenu',function(e){e.preventDefault();});
+  document.addEventListener('dragstart',function(e){e.preventDefault();});
+  document.addEventListener('keydown',function(e){
+    var k=e.key||'';
+    if(k==='F12'||(e.ctrlKey&&['s','u','p','S','U','P'].indexOf(k)>=0)||(e.ctrlKey&&e.shiftKey&&['i','j','c','I','J','C'].indexOf(k)>=0)){e.preventDefault();e.stopPropagation();return false;}
+  });
+  // 长按防存图
+  document.addEventListener('touchstart',function(){},false);
+})();
+</script>
+<div class="xz-cr">© 2026 AI24X Game Zone</div>
+</body>
+</html>

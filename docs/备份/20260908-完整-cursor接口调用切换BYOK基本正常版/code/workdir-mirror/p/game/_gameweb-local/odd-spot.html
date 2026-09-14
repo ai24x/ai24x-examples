@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Odd Spot · 你不对劲</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; }
+  body {
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background:#0f172a; color:#e2e8f0; overflow:hidden; user-select:none;
+    touch-action:manipulation; overscroll-behavior:none;
+  }
+  #wrap { height:100dvh; display:flex; flex-direction:column; align-items:center; padding:16px; }
+  .hud { display:flex; gap:20px; font-size:14px; font-weight:700; color:#94a3b8; margin-bottom:6px; }
+  .hud b { color:#fbbf24; }
+  #msg { min-height:24px; font-size:14px; font-weight:700; margin-bottom:8px; }
+  #scene {
+    position:relative; width:100%; max-width:440px; aspect-ratio:1; border-radius:18px;
+    background:#1e293b; border:2px solid #334155; overflow:hidden;
+  }
+  .thing {
+    position:absolute; display:flex; align-items:center; justify-content:center;
+    background:#0f172a; border-radius:12px; border:1px solid #334155;
+    cursor:pointer; touch-action:manipulation; transition: transform .1s;
+  }
+  .thing:active { transform: scale(.9); }
+  .thing.tagged { animation: tagPop .35s; border-color:#fbbf24; box-shadow:0 0 0 3px rgba(251,191,36,.5); }
+  @keyframes tagPop { 40% { transform: scale(1.2); } }
+  #overlay { position:fixed; inset:0; background:rgba(2,6,23,.9); display:none; align-items:center; justify-content:center; z-index:10; }
+  #overlay.show { display:flex; }
+  .panel { text-align:center; padding:30px 24px; border-radius:20px; background:#1e293b; border:1px solid #334155; max-width:330px; width:92%; }
+  .panel h2 { font-size:24px; margin-bottom:6px; }
+  .panel .score { font-size:44px; font-weight:800; color:#38bdf8; margin:8px 0; }
+  .panel p { color:#94a3b8; font-size:14px; margin-bottom:16px; }
+  .play { background:linear-gradient(90deg,#38bdf8,#f472b6); border:none; color:#fff; font-size:17px; font-weight:800; padding:13px 38px; border-radius:999px; cursor:pointer; box-shadow:0 5px 0 rgba(0,0,0,.3); touch-action:manipulation; }
+  .play:active { transform: translateY(3px); box-shadow:0 2px 0 rgba(0,0,0,.3); }
+  .back { display:block; margin-top:14px; color:#64748b; font-size:13px; text-decoration:none; }
+</style>
+<style id="xz-shell">
+#topbar{position:fixed;top:0;left:0;right:0;height:64px;z-index:50;display:flex;align-items:center;gap:10px;padding:0 14px;background:rgba(15,23,42,.94);backdrop-filter:blur(8px);border-bottom:1px solid #334155;color:#e2e8f0;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;-webkit-user-select:none;user-select:none;}
+#topbar a{color:#38bdf8;text-decoration:none;font-size:14px;font-weight:700;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+#topbar .tt{flex:1;text-align:center;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#topbar .tg{font-size:11px;color:#94a3b8;font-weight:400;margin-left:4px;}
+#howBtn{width:30px;height:30px;border-radius:50%;border:1px solid #334155;background:#1e293b;color:#94a3b8;font-weight:800;cursor:pointer;font-size:15px;line-height:1;flex:none;}
+#howto{display:none;position:fixed;top:72px;left:50%;transform:translateX(-50%);width:min(92vw,420px);z-index:70;background:#1e293b;border:1px solid #475569;border-radius:14px;padding:14px 16px;color:#cbd5e1;font-size:13px;line-height:1.7;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;box-shadow:0 12px 32px rgba(0,0,0,.55);}
+#howto.show{display:block;}
+#howto b{color:#38bdf8;}
+.xz-cr{position:fixed;bottom:4px;right:10px;font-size:10px;color:#475569;z-index:45;font-family:-apple-system,"Segoe UI",sans-serif;pointer-events:none;-webkit-user-select:none;user-select:none;}
+</style>
+</head>
+<body>
+<div id="topbar"><a href="index.html">← 列表</a><span class="tt">Odd Spot<span class="tg">你不对劲</span></span><button id="howBtn" aria-label="玩法说明">?</button></div>
+<div id="howto"><b>怎么玩</b><br>在画面里找出唯一<b>不对劲</b>的那个，找得越快得分越高，考验观察力。</div>
+
+<div id="wrap">
+  <div class="hud"><div>第 <b id="level">1</b>/5 关</div><div>找到 <b id="found">0</b></div></div>
+  <div id="msg">每幅图里有 <b>1 个不对劲</b>，点它！</div>
+  <div id="scene"></div>
+</div>
+
+<div id="overlay">
+  <div class="panel">
+    <h2>侦探通关！</h2>
+    <div class="score" id="finalScore">5</div>
+    <p id="finalMsg">火眼金睛 👁️</p>
+    <button class="play" id="restart">再来一轮</button>
+    <a class="back" href="index.html">← 返回列表</a>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var scene=document.getElementById('scene'), msgEl=document.getElementById('msg');
+  var lvlEl=document.getElementById('level'), foundEl=document.getElementById('found');
+  var overlay=document.getElementById('overlay');
+  var finalMsg=document.getElementById('finalMsg');
+  var restart=document.getElementById('restart');
+
+  var TOTAL=5, level=0, wrongs=0;
+
+  // 每关：正常物件列表 + 1 个"不对劲"物件（原创场景）
+  // 每个物件：emoji 内容 + 尺寸 + 位置（% 坐标）
+  var LEVELS=[
+    { name:'厨房', normal:[{e:'🍳',s:44},{e:'🍞',s:40},{e:'🥛',s:36},{e:'🍎',s:38},{e:'🥕',s:40},{e:'🍌',s:42},{e:'🧊',s:34},{e:'🥄',s:36}],
+      odd:{e:'🔨',s:44, hint:'厨房里混进了一把锤子'}, wrong:'再看看，厨房里不该有它…' },
+    { name:'卧室', normal:[{e:'🛏️',s:56},{e:'🪑',s:44},{e:'📚',s:40},{e:'💡',s:38},{e:'🧸',s:42},{e:'⏰',s:36},{e:'🪟',s:46},{e:'🧦',s:36}],
+      odd:{e:'🌵',s:44, hint:'卧室窗台上长了棵仙人掌'}, wrong:'再找找，卧室里有个不速之客…' },
+    { name:'海滩', normal:[{e:'🏖️',s:52},{e:'🌊',s:48},{e:'🐚',s:38},{e:'🦀',s:40},{e:'⛱️',s:44},{e:'🕶️',s:36},{e:'🧴',s:38},{e:'🐠',s:36}],
+      odd:{e:'❄️',s:42, hint:'沙滩上飘着雪花'}, wrong:'海边不该下雪…' },
+    { name:'办公室', normal:[{e:'💻',s:52},{e:'📄',s:40},{e:'☕',s:38},{e:'🖊️',s:36},{e:'🗄️',s:46},{e:'📎',s:34},{e:'🖨️',s:46},{e:'🗑️',s:38}],
+      odd:{e:'🎣',s:46, hint:'办公室墙上挂了根钓鱼竿'}, wrong:'办公室里不该有它…' },
+    { name:'森林', normal:[{e:'🌲',s:52},{e:'🍄',s:38},{e:'🦌',s:48},{e:'🦉',s:40},{e:'🌿',s:38},{e:'🐿️',s:40},{e:'🪨',s:40},{e:'🌸',s:36}],
+      odd:{e:'🚗',s:48, hint:'森林深处停了辆车'}, wrong:'森林里不该有车…' }
+  ];
+
+  function buildScene(){
+    var lv=LEVELS[level];
+    lvlEl.textContent=level+1; foundEl.textContent='0';
+    scene.innerHTML='';
+    // 收集全部物件并洗牌
+    var pool=lv.normal.map(function(n,i){ return {e:n.e, s:n.s, odd:false}; });
+    pool.push({e:lv.odd.e, s:lv.odd.s, odd:true});
+    for(var i=pool.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=pool[i];pool[i]=pool[j];pool[j]=t; }
+    var posUsed=[];
+    pool.forEach(function(o){
+      var el=document.createElement('div');
+      el.className='thing';
+      el.style.width=o.s+'px'; el.style.height=o.s+'px';
+      el.style.fontSize=(o.s*0.6)+'px';
+      // 随机不重叠坐标
+      var x=0,y=0,tries=0,ok=false;
+      while(!ok && tries<200){
+        x=4+Math.random()*(100-14); y=4+Math.random()*(100-14);
+        ok=true;
+        for(var k=0;k<posUsed.length;k++){
+          var dx=Math.abs(x-posUsed[k].x), dy=Math.abs(y-posUsed[k].y);
+          if(dx<16 && dy<16){ ok=false; break; }
+        }
+        tries++;
+      }
+      posUsed.push({x:x,y:y});
+      el.style.left=x+'%'; el.style.top=y+'%';
+      el.textContent=o.e;
+      el.addEventListener('pointerdown', function(e,self,odd){ e.preventDefault();
+        if(odd){
+          self.classList.add('tagged');
+          msgEl.innerHTML='✅ 找到了：'+lv.hint;
+          setTimeout(next, 900);
+        } else {
+          wrongs++;
+          msgEl.innerHTML='❌ '+lv.wrong;
+          self.style.opacity='0.45';
+        }
+      }.bind(null, el, o.odd));
+      scene.appendChild(el);
+    });
+  }
+
+  function next(){
+    level++;
+    if(level>=TOTAL){ win(); return; }
+    msgEl.innerHTML='每幅图里有 <b>1 个不对劲</b>，点它！';
+    buildScene();
+  }
+
+  function win(){
+    var msg = wrongs===0 ? '👁️ 火眼金睛，零失误！' : wrongs<=3 ? '🔍 观察力不错！' : '🧐 找茬小能手，继续练！';
+    finalMsg.textContent=msg+'（点错 '+wrongs+' 次）';
+    overlay.classList.add('show');
+  }
+
+  restart.addEventListener('click', function(){
+    overlay.classList.remove('show');
+    level=0; wrongs=0;
+    buildScene();
+  });
+
+  buildScene();
+})();
+</script>
+<script>
+(function(){
+  'use strict';
+  // --- 等比缩放：390x780 设计基准（上方 64px 顶部栏），其它屏幕自动等比 ---
+  var W=390,H=780,TOP=64;
+  var wrap=document.getElementById('wrap');
+  function fit(){
+    if(!wrap) return;
+    var s=Math.min(innerWidth/W,(innerHeight-TOP)/H);
+    if(s>1.4) s=1.4;
+    var w=W*s,h=H*s;
+    wrap.style.width=w+'px';
+    wrap.style.height=h+'px';
+    wrap.style.left=((innerWidth-w)/2)+'px';
+    wrap.style.top=(TOP+(innerHeight-TOP-h)/2)+'px';
+    wrap.style.position='fixed';
+    wrap.style.margin='0';
+    wrap.style.transform='scale('+s+')';
+    wrap.style.transformOrigin='top left';
+  }
+  fit();
+  addEventListener('resize',fit);
+  addEventListener('orientationchange',fit);
+  // 结算浮层提到顶部栏之上（面板里自带返回入口）
+  var ov=document.getElementById('overlay');
+  if(ov) ov.style.zIndex=60;
+  // --- 玩法说明折叠 ---
+  var hb=document.getElementById('howBtn'),ht=document.getElementById('howto');
+  if(hb&&ht){
+    hb.addEventListener('click',function(e){e.stopPropagation();ht.classList.toggle('show');});
+    document.addEventListener('pointerdown',function(e){if(ht.classList.contains('show')&&!ht.contains(e.target)&&e.target!==hb)ht.classList.remove('show');});
+  }
+  // --- L1 防拷贝：禁右键 / 禁 F12 / 禁 Ctrl+S,U,P / 禁 Ctrl+Shift+I,J,C ---
+  document.addEventListener('contextmenu',function(e){e.preventDefault();});
+  document.addEventListener('dragstart',function(e){e.preventDefault();});
+  document.addEventListener('keydown',function(e){
+    var k=e.key||'';
+    if(k==='F12'||(e.ctrlKey&&['s','u','p','S','U','P'].indexOf(k)>=0)||(e.ctrlKey&&e.shiftKey&&['i','j','c','I','J','C'].indexOf(k)>=0)){e.preventDefault();e.stopPropagation();return false;}
+  });
+  // 长按防存图
+  document.addEventListener('touchstart',function(){},false);
+})();
+</script>
+<div class="xz-cr">© 2026 AI24X Game Zone</div>
+</body>
+</html>

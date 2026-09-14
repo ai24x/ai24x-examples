@@ -1,0 +1,212 @@
+{
+  "ok": true,
+  "date": "2026-08-11",
+  "source": "ths:fuyao",
+  "limit_up": {
+    "count": 53,
+    "max_lianban": 6,
+    "max_name": "百花医药",
+    "seal_money_top": [
+      {
+        "name": "太极实业",
+        "ticker": "600667",
+        "seal": 1349961700.0,
+        "reason": "存储芯片+先进封装+SK海力士+无锡国资"
+      },
+      {
+        "name": "蓝盾光电",
+        "ticker": "300862",
+        "seal": 1234917980.0,
+        "reason": "拟重大资产重组+复牌+真空镀膜设备+环境监测"
+      },
+      {
+        "name": "巨轮智能",
+        "ticker": "002031",
+        "seal": 583259960.0,
+        "reason": "人形机器人+RV减速器+轮胎模具"
+      },
+      {
+        "name": "甘李药业",
+        "ticker": "603087",
+        "seal": 469018540.0,
+        "reason": "GLP-1出海+独家许可协议+创新药+胰岛素龙头"
+      },
+      {
+        "name": "杭钢股份",
+        "ticker": "600126",
+        "seal": 454833870.0,
+        "reason": "减持未实施+算力租赁+浙江国资"
+      }
+    ]
+  },
+  "ladder": {
+    "date": "2026-08-11",
+    "rows": [
+      {
+        "board": "two_board",
+        "count": 10,
+        "names": [
+          "亚邦股份",
+          "京投发展",
+          "北京文化",
+          "华东数控"
+        ]
+      },
+      {
+        "board": "three_board",
+        "count": 2,
+        "names": [
+          "哈药股份",
+          "秦安股份"
+        ]
+      },
+      {
+        "board": "four_board",
+        "count": 1,
+        "names": [
+          "开开实业"
+        ]
+      },
+      {
+        "board": "five_board",
+        "count": 0,
+        "names": []
+      },
+      {
+        "board": "six_board",
+        "count": 1,
+        "names": [
+          "百花医药"
+        ]
+      },
+      {
+        "board": "seven_over",
+        "count": 0,
+        "names": []
+      }
+    ]
+  },
+  "hot": [
+    {
+      "name": "风华高科",
+      "ticker": "000636",
+      "rank": 1,
+      "heat": "6831311",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "哈药股份",
+      "ticker": "600664",
+      "rank": 2,
+      "heat": "4578765",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "中际旭创",
+      "ticker": "300308",
+      "rank": 3,
+      "heat": "4092800",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "长鑫科技",
+      "ticker": "688825",
+      "rank": 4,
+      "heat": "3929763",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "江波龙",
+      "ticker": "301308",
+      "rank": 5,
+      "heat": "3341075",
+      "rank_trend": "flat"
+    }
+  ],
+  "skyrocket": [
+    {
+      "name": "风华高科",
+      "ticker": "000636",
+      "rank": 1,
+      "heat": "164126.7",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "太极实业",
+      "ticker": "600667",
+      "rank": 2,
+      "heat": "162013.1",
+      "rank_trend": "up"
+    },
+    {
+      "name": "超纯应材",
+      "ticker": "301717",
+      "rank": 3,
+      "heat": "150816.1",
+      "rank_trend": "up"
+    },
+    {
+      "name": "哈药股份",
+      "ticker": "600664",
+      "rank": 4,
+      "heat": "80171.0",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "儒意电影",
+      "ticker": "002739",
+      "rank": 5,
+      "heat": "72728.8",
+      "rank_trend": "up"
+    }
+  ],
+  "hot_money": [],
+  "anomaly": {
+    "count": 222,
+    "tags": {
+      "跌停": 2,
+      "涨停": 57,
+      "大跌": 43,
+      "大涨": 120
+    },
+    "top": [
+      {
+        "name": "北京科锐",
+        "thscode": "002350.SZ",
+        "tag": "跌停",
+        "reason": "1、据同花顺iFinD数据，北京科锐此前5个交易日累计上涨17.97%，存在技术性回调压力。\n2、据公司2026年7月1"
+      },
+      {
+        "name": "*ST高科",
+        "thscode": "600730.SH",
+        "tag": "跌停",
+        "reason": "1、据同花顺iFinD数据，*ST高科此前20个交易日累计上涨17.94%。\n2、据2026年8月5日公告，公司5000"
+      },
+      {
+        "name": "甘李药业",
+        "thscode": "603087.SH",
+        "tag": "涨停",
+        "reason": "行业原因：\n1、据开源证券8月9日研报，Wegovy口服片剂上市后处方量快速攀升，30周累计突破500万张，有效扩宽了G"
+      },
+      {
+        "name": "杭钢股份",
+        "thscode": "600126.SH",
+        "tag": "涨停",
+        "reason": "1、据2026年8月8日公告，持股5%以上股东诚通金控的减持计划时间区间届满，因市场因素未减持公司股份。\n2、据2025"
+      },
+      {
+        "name": "开开实业",
+        "thscode": "600272.SH",
+        "tag": "涨停",
+        "reason": "行业原因：\n1、国务院日前批复《扩大消费“十五五”规划》，其中提出，深入实施促进健康消费专项行动。持续强化零售药店专业服"
+      },
+      {
+        "name": "蓝盾光电",
+        "thscode": "300862.SZ",
+        "tag": "涨停",
+        "reason": "1、据2026年8月8日公告，公司拟通过发行股份及支付现金方式购买苏州岚创科技有限公司控股权，并募集配套资金，该交易预计"
+      }
+    ]
+  },
+  "errors": []
+}

@@ -1,0 +1,22 @@
+【副脑03 回执 · a1 更新 9ae93d6b7aff 部署 · 2026-08-11 22:53】
+状态：⚠️ 部署与核心验收全过；主线归属与指令预期描述有差异，按纪律先回传司令核对，未发群。
+
+✅ 已完成项：
+1. HEAD=9ae93d6b7aff（81b5a51→9ae93d6 fast-forward，后端 3 文件：daily_report.py / bj_screener.py / providers.py）
+2. 备份：C:\backup\ai24x_a\ai24x_a_9ae93d6b7aff-20260811_224900.dump（49.5MB，-Z 6）
+3. AI24X-a1-api 重启：新进程 22:49:19，health(8001)=True，公网 https://a.ai24x.com/health=200
+4. 代码特征 6 项全过：daily_stale(_today_close_epoch) / daily_warn("warn":scan_warn) / bj_gate(_EM_CLIST_GATE) / bj_parallel(_one_board) / bj_cache(_kline_entry_valid) / pr_shared(_get_tx_shared_client)
+5. 行为验收（run_daily force=False is_vip=True）：
+   - ACCEPT_OK asof=2026-08-11（✅ 收盘后 stale 重拉生效，未再用 08-10 旧数据）
+   - generated_at=2026-08-11 22:50:58
+   - mainlines=创新药CXO
+   - observes=PCB|煤炭|有色
+   - warn=（空，无告警）
+   - 修复目标验证：PCB 61.7 落观察 ✅（不再错上主线）
+
+⚠️ 需司令核对（非部署故障）：
+- 指令预期描述「主线与本地一致（煤炭/创新药CXO 主线，PCB/有色 观察）」；03 实测 mainlines=创新药CXO（单主线），煤炭落 observes
+- 疑为收盘后重拉当日最终数据后的真实结果（煤炭评分/位置变化所致），非 stale 缓存错版；请与主脑本地生成结果比对确认是否一致
+- 若确认 03 与主脑本地一致，则无问题项，我可补发群回执
+
+执行人：副脑03 · 2026-08-11 22:53

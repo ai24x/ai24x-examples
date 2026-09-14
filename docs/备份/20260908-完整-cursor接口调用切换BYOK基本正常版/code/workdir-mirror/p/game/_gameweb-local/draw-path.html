@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Draw Path · 一笔画</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#0f172a;color:#e2e8f0;overflow:hidden;user-select:none;touch-action:manipulation;overscroll-behavior:none}
+#wrap{height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:8px}
+.hud{display:flex;align-items:center;gap:22px;font-size:14px;font-weight:700;color:#94a3b8}
+.hud b{color:#38bdf8;font-size:18px}
+.hud .lv b{color:#fbbf24}
+.stage{width:100%;max-width:360px;aspect-ratio:360/400;position:relative;border-radius:20px;overflow:hidden;background:linear-gradient(180deg,#0b1220 0%,#1e293b 100%);border:2px solid #334155;touch-action:none}
+canvas{display:block;width:100%;height:100%}
+.btns{display:flex;gap:14px}
+.bt{background:#1e293b;border:2px solid #334155;border-radius:12px;color:#cbd5e1;font-size:14px;font-weight:700;padding:9px 22px;cursor:pointer;touch-action:manipulation}
+.bt:active{background:#334155}
+#fb{min-height:20px;font-size:14px;color:#94a3b8;text-align:center}
+#overlay{position:fixed;inset:0;background:rgba(2,6,23,.9);display:none;align-items:center;justify-content:center;z-index:10}
+#overlay.show{display:flex}
+.panel{text-align:center;padding:30px 26px;border-radius:20px;background:#1e293b;border:1px solid #334155;max-width:320px;width:90%}
+.panel h2{font-size:22px;margin-bottom:6px}
+.floors{font-size:40px;font-weight:800;color:#38bdf8;margin:6px 0}
+.best{color:#94a3b8;font-size:14px;margin-bottom:14px}
+.share{font-size:13px;color:#fbbf24;margin-bottom:16px;padding:8px 12px;background:#1e293b;border:1px dashed #475569;border-radius:10px}
+.play{background:linear-gradient(90deg,#38bdf8,#6366f1);border:none;color:#fff;font-size:18px;font-weight:800;padding:13px 38px;border-radius:999px;cursor:pointer;box-shadow:0 6px 0 rgba(0,0,0,.3);touch-action:manipulation}
+.play:active{transform:translateY(3px);box-shadow:0 3px 0 rgba(0,0,0,.3)}
+</style>
+</head>
+<body>
+<div id="topbar"><a href="index.html">← 列表</a><span class="tt">Draw Path<span class="tg">画线</span></span><button id="howBtn" aria-label="玩法说明">?</button></div>
+<div id="howto"><b>怎么玩</b><br>一笔连完所有点：先点一个点作起点，再依次点相邻的点连线，不重复不遗漏即过关！</div>
+<div id="wrap">
+  <div class="hud"><div class="lv">关卡 <b id="lv">1/5</b></div><div>连线 <b id="prog">0/9</b></div><div>最佳 <b id="best">0</b> 关</div></div>
+  <div class="stage"><canvas id="cv"></canvas></div>
+  <div class="btns"><button class="bt" id="undo">↩ 撤销</button><button class="bt" id="redo">🔄 重开</button></div>
+  <div id="fb">先点一个点设为起点</div>
+</div>
+<div id="overlay">
+  <div class="panel">
+    <h2 id="oTitle">🎉 过关！</h2>
+    <div class="floors" id="score2">完成 1 / 5 关</div>
+    <div class="best" id="bestLine">最佳 0 关</div>
+    <div class="share" id="shareTxt">我一笔画通关 0 关（新手），你能全部打通吗？</div>
+    <button class="play" id="nextBtn">下一关 ▶</button>
+  </div>
+</div>
+<style id="xz-shell">
+#topbar{position:fixed;top:0;left:0;right:0;height:64px;z-index:50;display:flex;align-items:center;gap:10px;padding:0 14px;background:rgba(15,23,42,.94);backdrop-filter:blur(8px);border-bottom:1px solid #334155;color:#e2e8f0;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;-webkit-user-select:none;user-select:none;}
+#topbar a{color:#38bdf8;text-decoration:none;font-size:14px;font-weight:700;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+#topbar .tt{flex:1;text-align:center;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#topbar .tg{font-size:11px;color:#94a3b8;font-weight:400;margin-left:4px;}
+#howBtn{width:30px;height:30px;border-radius:50%;border:1px solid #334155;background:#1e293b;color:#94a3b8;font-weight:800;cursor:pointer;font-size:15px;line-height:1;flex:none;}
+#howto{display:none;position:fixed;top:72px;left:50%;transform:translateX(-50%);width:min(92vw,420px);z-index:70;background:#1e293b;border:1px solid #475569;border-radius:14px;padding:14px 16px;color:#cbd5e1;font-size:13px;line-height:1.7;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;box-shadow:0 12px 32px rgba(0,0,0,.55);}
+#howto.show{display:block;}
+#howto b{color:#38bdf8;}
+.xz-cr{position:fixed;bottom:4px;right:10px;font-size:10px;color:#475569;z-index:45;font-family:-apple-system,"Segoe UI",sans-serif;pointer-events:none;-webkit-user-select:none;user-select:none;}
+</style>
+<script>
+(function(){
+'use strict';
+var LEVELS=[
+ {n:3,seq:[[0,0],[0,1],[0,2],[1,2],[1,1],[1,0],[2,0],[2,1],[2,2]]},
+ {n:4,seq:[[0,0],[0,1],[0,2],[0,3],[1,3],[1,2],[2,2],[2,3],[3,3],[3,2],[3,1],[3,0],[2,0],[1,0]]},
+ {n:5,seq:[[0,0],[0,1],[0,2],[0,3],[0,4],[1,4],[2,4],[3,4],[4,4],[4,3],[4,2],[4,1],[4,0],[3,0],[2,0],[1,0],[1,1],[1,2],[1,3],[2,3],[3,3],[3,2],[3,1],[2,1],[2,2]]},
+ {n:5,seq:[[0,0],[0,1],[0,2],[0,3],[0,4],[1,4],[2,4],[3,4],[4,4],[4,3],[4,2],[4,1],[4,0],[3,0],[2,0],[1,0],[1,1],[1,2],[1,3],[2,3],[3,3],[3,2],[3,1],[2,1]]},
+ {n:5,seq:[[0,0],[0,1],[0,2],[0,3],[0,4],[1,4],[2,4],[3,4],[4,4],[4,3],[4,2],[4,1],[4,0],[3,0],[2,0],[1,0],[1,1],[2,1],[3,1],[3,2],[3,3],[2,3],[1,3]]}
+];
+var W=360,H=400,DPR=Math.min(2,devicePixelRatio||1);
+var cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+cv.width=W*DPR;cv.height=H*DPR;ctx.scale(DPR,DPR);
+var lvEl=document.getElementById('lv'),progEl=document.getElementById('prog'),bestEl=document.getElementById('best');
+var fb=document.getElementById('fb');
+var ov=document.getElementById('overlay'),oTitle=document.getElementById('oTitle'),score2=document.getElementById('score2'),bestLine=document.getElementById('bestLine'),shareTxt=document.getElementById('shareTxt'),nextBtn=document.getElementById('nextBtn');
+var BEST=+localStorage.getItem('xz-dp-best')||0;
+bestEl.textContent=BEST;
+var lv=0,path=[],dots=[],map={};
+function load(){
+  var L=LEVELS[lv];
+  dots=L.seq.slice();
+  map={};
+  dots.forEach(function(d){map[d[0]+','+d[1]]=1;});
+  path=[];
+  lvEl.textContent=(lv+1)+'/'+LEVELS.length;
+  progEl.textContent='0/'+dots.length;
+  fb.textContent='先点一个点设为起点';
+  ov.classList.remove('show');
+  draw();
+}
+function geom(){var n=LEVELS[lv].n,s=Math.min(W,H)/(n+2),ox=(W-(n-1)*s)/2,oy=(H-(n-1)*s)/2;return [n,s,ox,oy];}
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  var g=geom(),n=g[0],s=g[1],ox=g[2],oy=g[3];
+  function pos(d){return [ox+d[1]*s,oy+d[0]*s];}
+  for(var r=0;r<n;r++)for(var c=0;c<n;c++){
+    var key=r+','+c,p=pos([r,c]);
+    ctx.beginPath();ctx.arc(p[0],p[1],5,0,7);
+    ctx.fillStyle=map[key]?'#475569':'rgba(71,85,105,.18)';
+    ctx.fill();
+  }
+  if(path.length>1){
+    ctx.strokeStyle='#38bdf8';ctx.lineWidth=5;ctx.lineCap='round';ctx.lineJoin='round';
+    ctx.beginPath();
+    var p0=pos(path[0]);ctx.moveTo(p0[0],p0[1]);
+    for(var i=1;i<path.length;i++){var p=pos(path[i]);ctx.lineTo(p[0],p[1]);}
+    ctx.stroke();
+  }
+  path.forEach(function(d){
+    var p=pos(d);
+    ctx.beginPath();ctx.arc(p[0],p[1],12,0,7);ctx.fillStyle='#38bdf8';ctx.fill();
+    ctx.beginPath();ctx.arc(p[0],p[1],5,0,7);ctx.fillStyle='#0f172a';ctx.fill();
+  });
+  if(path.length){
+    var ps=pos(path[0]);
+    ctx.beginPath();ctx.arc(ps[0],ps[1],16,0,7);ctx.strokeStyle='#fbbf24';ctx.lineWidth=3;ctx.stroke();
+  }
+}
+function hit(x,y){
+  var g=geom(),n=g[0],s=g[1],ox=g[2],oy=g[3];
+  var c=Math.round((x-ox)/s),r=Math.round((y-oy)/s);
+  var key=r+','+c;
+  if(!map[key])return null;
+  var p=[ox+c*s,oy+r*s];
+  var d=Math.sqrt((x-p[0])*(x-p[0])+(y-p[1])*(y-p[1]));
+  return d<=s*0.45?[r,c]:null;
+}
+function adj(a,b){return Math.abs(a[0]-b[0])+Math.abs(a[1]-b[1])===1;}
+function tap(d){
+  if(!path.length){
+    path=[d];fb.textContent='起点已定，依次点击相邻的点连线';
+  }else{
+    var last=path[path.length-1];
+    if(d[0]===last[0]&&d[1]===last[1])return;
+    var seen=path.some(function(p){return p[0]===d[0]&&p[1]===d[1];});
+    if(seen){fb.textContent='⚠️ 这个点已经连过了';return;}
+    if(!adj(last,d)){fb.textContent='⚠️ 只能连相邻的点';return;}
+    path.push(d);
+    fb.textContent='继续连，还剩 '+(dots.length-path.length)+' 个点';
+  }
+  progEl.textContent=path.length+'/'+dots.length;
+  draw();
+  if(path.length===dots.length){
+    fb.textContent='🎉 全部连完！';
+    setTimeout(win,350);
+  }
+}
+function win(){
+  var done=lv+1;
+  if(done>BEST){BEST=done;localStorage.setItem('xz-dp-best',BEST);bestEl.textContent=BEST;}
+  var last=lv===LEVELS.length-1;
+  var grade=done>=5?'🏆 一笔画大师':done>=4?'🔥 高手':done>=3?'👍 不错':'😅 新手';
+  oTitle.textContent=last?'🏆 通关！':'🎉 过关！';
+  score2.textContent='完成 '+(lv+1)+' / '+LEVELS.length+' 关';
+  bestLine.textContent='最佳 '+BEST+' 关';
+  shareTxt.textContent='我一笔画通关 '+done+' 关（'+grade+'），你能全部打通吗？';
+  nextBtn.textContent=last?'再玩一次':'下一关 ▶';
+  ov.classList.add('show');
+}
+nextBtn.addEventListener('pointerdown',function(e){
+  e.preventDefault();
+  lv=(lv===LEVELS.length-1)?0:lv+1;
+  load();
+});
+document.getElementById('undo').addEventListener('pointerdown',function(e){
+  e.preventDefault();
+  if(path.length>1)path.pop();
+  else if(path.length===1){path=[];fb.textContent='先点一个点设为起点';}
+  progEl.textContent=path.length+'/'+dots.length;
+  draw();
+});
+document.getElementById('redo').addEventListener('pointerdown',function(e){
+  e.preventDefault();
+  path=[];fb.textContent='先点一个点设为起点';
+  progEl.textContent='0/'+dots.length;
+  draw();
+});
+cv.addEventListener('pointerdown',function(e){
+  e.preventDefault();
+  var r=cv.getBoundingClientRect();
+  var x=(e.clientX-r.left)*W/r.width;
+  var y=(e.clientY-r.top)*H/r.height;
+  var d=hit(x,y);
+  if(d)tap(d);
+});
+load();
+})();
+</script>
+<script>
+(function(){
+  'use strict';
+  var W=390,H=780,TOP=64;
+  var wrap=document.getElementById('wrap');
+  function fit(){
+    if(!wrap) return;
+    var s=Math.min(innerWidth/W,(innerHeight-TOP)/H);
+    if(s>1.4) s=1.4;
+    var w=W*s,h=H*s;
+    wrap.style.width=w+'px';
+    wrap.style.height=h+'px';
+    wrap.style.left=((innerWidth-w)/2)+'px';
+    wrap.style.top=(TOP+(innerHeight-TOP-h)/2)+'px';
+    wrap.style.position='fixed';
+    wrap.style.margin='0';
+    wrap.style.transform='scale('+s+')';
+    wrap.style.transformOrigin='top left';
+  }
+  fit();
+  addEventListener('resize',fit);
+  addEventListener('orientationchange',fit);
+  var ov=document.getElementById('overlay');
+  if(ov) ov.style.zIndex=60;
+  var hb=document.getElementById('howBtn'),ht=document.getElementById('howto');
+  if(hb&&ht){
+    hb.addEventListener('click',function(e){e.stopPropagation();ht.classList.toggle('show');});
+    document.addEventListener('pointerdown',function(e){if(ht.classList.contains('show')&&!ht.contains(e.target)&&e.target!==hb)ht.classList.remove('show');});
+  }
+  document.addEventListener('contextmenu',function(e){e.preventDefault();});
+  document.addEventListener('dragstart',function(e){e.preventDefault();});
+  document.addEventListener('keydown',function(e){
+    var k=e.key||'';
+    if(k==='F12'||(e.ctrlKey&&['s','u','p','S','U','P'].indexOf(k)>=0)||(e.ctrlKey&&e.shiftKey&&['i','j','c','I','J','C'].indexOf(k)>=0)){e.preventDefault();e.stopPropagation();return false;}
+  });
+})();
+</script>
+<div class="xz-cr">© 2026 AI24X Game Zone</div>
+</body>
+</html>

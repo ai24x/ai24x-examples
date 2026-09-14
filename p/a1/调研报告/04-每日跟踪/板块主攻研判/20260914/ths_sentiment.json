@@ -1,0 +1,37 @@
+{
+  "ok": true,
+  "date": "2026-09-14",
+  "source": "ths:fuyao",
+  "limit_up": {},
+  "ladder": {},
+  "hot": [],
+  "skyrocket": [],
+  "hot_money": [],
+  "anomaly": {},
+  "errors": [
+    {
+      "k": "limit-up-pool",
+      "msg": "请求失败: PoolTimeout: "
+    },
+    {
+      "k": "limit-up-ladder",
+      "msg": "请求失败: PoolTimeout: "
+    },
+    {
+      "k": "hot-stock-list",
+      "msg": "请求失败: PoolTimeout: "
+    },
+    {
+      "k": "skyrocket-list",
+      "msg": "请求失败: PoolTimeout: "
+    },
+    {
+      "k": "anomaly-analysis-list",
+      "msg": "请求失败: PoolTimeout: "
+    },
+    {
+      "k": "dragon-tiger-list",
+      "msg": "请求失败: PoolTimeout: "
+    }
+  ]
+}

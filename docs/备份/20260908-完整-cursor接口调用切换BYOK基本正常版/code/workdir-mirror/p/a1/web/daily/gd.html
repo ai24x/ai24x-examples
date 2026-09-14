@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>跳转中…</title>
+<script>
+(function () {
+  try {
+    var u = new URL("/gd.html", location.origin);
+    var sp = new URLSearchParams(String(location.search || "").replace(/^\?/, ""));
+    ["i", "invite", "inv", "ref", "date", "market", "mode", "ch"].forEach(function (k) {
+      var v = sp.get(k);
+      if (v) u.searchParams.set(k, v);
+    });
+    location.replace(u.toString());
+  } catch (e) {
+    location.replace("/gd.html");
+  }
+})();
+</script>
+</head>
+<body>正在跳转到复盘页面…</body>
+</html>

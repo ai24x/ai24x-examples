@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Weird Merge · 离谱合成</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; }
+  body {
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background:linear-gradient(160deg,#0f172a 0%,#1e1b4b 60%,#312e81 100%); color:#e2e8f0; overflow:hidden; user-select:none;
+    touch-action:manipulation; overscroll-behavior:none;
+  }
+  #wrap { height:100dvh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:8px; }
+  .hud { display:flex; gap:18px; font-size:13px; font-weight:700; color:#94a3b8; align-items:center; }
+  .hud b { color:#fbbf24; font-size:17px; }
+  #timebar { width:100%; max-width:390px; height:8px; background:rgba(255,255,255,.1); border-radius:99px; overflow:hidden; }
+  #timefill { height:100%; width:100%; background:linear-gradient(90deg,#34d399,#22d3ee); transition:width .1s linear; }
+  #timefill.warn { background:linear-gradient(90deg,#f87171,#fb923c); }
+  #board { display:grid; grid-template-columns:repeat(6,1fr); gap:6px; width:100%; max-width:390px; aspect-ratio:1; padding:8px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); border-radius:18px; }
+  .cell { background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.09); border-radius:12px; display:flex; justify-content:center; align-items:center; font-size:28px; position:relative; transition:transform .08s, border-color .08s; }
+  .cell.sel { border-color:#fbbf24; box-shadow:0 0 0 3px rgba(251,191,36,.35); transform:scale(1.05); }
+  .cell.hint { border-color:#34d399; box-shadow:0 0 0 2px rgba(52,211,153,.3); }
+  .cell .pop { animation:pop .28s ease-out; }
+  @keyframes pop { 0%{transform:scale(.4)} 55%{transform:scale(1.35)} 100%{transform:scale(1)} }
+  #candy { font-size:12px; color:#a5b4fc; min-height:34px; text-align:center; line-height:1.5; padding:0 10px; }
+  #dex { width:100%; max-width:390px; }
+  .dex-line { display:flex; align-items:center; gap:5px; font-size:11px; color:#64748b; overflow-x:auto; padding:4px 0; }
+  .dex-slot { flex:none; width:26px; height:26px; border-radius:8px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); display:flex; justify-content:center; align-items:center; font-size:14px; }
+  .dex-slot.on { border-color:#fbbf24; background:rgba(251,191,36,.1); }
+  .dex-slot.new { animation:pop .3s ease-out; }
+  #overlay { position:fixed; inset:0; background:rgba(2,6,23,.9); display:none; align-items:center; justify-content:center; z-index:10; }
+  #overlay.show { display:flex; }
+  .panel { text-align:center; padding:26px 22px; border-radius:20px; background:#1e293b; border:1px solid #334155; max-width:330px; width:92%; max-height:90vh; overflow-y:auto; }
+  .panel h2 { font-size:22px; margin-bottom:4px; }
+  .big { font-size:44px; font-weight:800; color:#fbbf24; margin:4px 0; }
+  .sub { color:#94a3b8; font-size:13px; margin-bottom:8px; }
+  .topemoji { font-size:52px; margin:6px 0; }
+  .share { font-size:13px; color:#fbbf24; margin-bottom:14px; padding:8px 12px; background:#1e293b; border:1px dashed #475569; border-radius:10px; line-height:1.6; }
+  .play { background:linear-gradient(90deg,#38bdf8,#6366f1); border:none; color:#fff; font-size:17px; font-weight:800; padding:12px 34px; border-radius:999px; cursor:pointer; box-shadow:0 6px 0 rgba(0,0,0,.3); touch-action:manipulation; margin-top:4px; }
+  .play:active { transform: translateY(3px); box-shadow:0 3px 0 rgba(0,0,0,.3); }
+  .bestline { font-size:12px; color:#94a3b8; margin-top:10px; line-height:1.7; }
+  .opbar { display:flex; gap:8px; width:100%; max-width:390px; }
+  .opbtn { flex:1; background:rgba(251,191,36,.1); border:1px solid rgba(251,191,36,.3); color:#fbbf24; border-radius:12px; padding:9px 0; font-size:13px; text-align:center; cursor:pointer; }
+  .opbtn:active { transform:scale(.96); }
+  .opbtn.off { opacity:.35; pointer-events:none; }
+</style>
+</head>
+<body>
+<div id="topbar"><a href="index.html">← 列表</a><span class="tt">Weird Merge<span class="tg">离谱合成</span></span><button id="howBtn" aria-label="玩法说明">?</button></div>
+<div id="howto"><b>怎么玩</b><br>点一个物品选中，再点旁边同种的物品就能合成更离谱的东西！🥚+🥚=🐤，🐔+🐔=🦖…一路合成到黑洞炸掉宇宙。90 秒收集图鉴，合成越高分越高。</div>
+<div id="wrap">
+  <div class="hud"><div>分数 <b id="score">0</b></div><div>图鉴 <b id="dexN">0</b>/9</div><div>时间 <b id="t">90</b></div></div>
+  <div id="timebar"><div id="timefill"></div></div>
+  <div id="board"></div>
+  <div id="candy">点两个相邻的同种物品，看它们会变成什么离谱玩意儿</div>
+  <div class="opbar">
+    <div class="opbtn" id="shuffleBtn">🔀 洗牌（全变蛋）</div>
+    <div class="opbtn" id="clearBtn">🗑️ 清空一列</div>
+  </div>
+  <div id="dex"><div class="dex-line" id="dexLine"></div></div>
+</div>
+
+<div id="overlay">
+  <div class="panel">
+    <h2 id="ovT">⏰ 时间到！</h2>
+    <div class="topemoji" id="topEmoji">🥚</div>
+    <div class="big" id="score2">0 分</div>
+    <div class="sub" id="subLine">最高合成：🥚 · 图鉴 0/9</div>
+    <div class="share" id="shareTxt">我在离谱合成实验室 90 秒拿了 0 分，最高合成出🥚，你能合出黑洞吗？</div>
+    <button class="play" id="restart">再来一次</button>
+    <div class="bestline" id="bestLine"></div>
+  </div>
+</div>
+
+<style id="xz-shell">
+#topbar{position:fixed;top:0;left:0;right:0;height:64px;z-index:50;display:flex;align-items:center;gap:10px;padding:0 14px;background:rgba(15,23,42,.94);backdrop-filter:blur(8px);border-bottom:1px solid #334155;color:#e2e8f0;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;-webkit-user-select:none;user-select:none;}
+#topbar a{color:#38bdf8;text-decoration:none;font-size:14px;font-weight:700;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+#topbar .tt{flex:1;text-align:center;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#topbar .tg{font-size:11px;color:#94a3b8;font-weight:400;margin-left:4px;}
+#howBtn{width:30px;height:30px;border-radius:50%;border:1px solid #334155;background:#1e293b;color:#94a3b8;font-weight:800;cursor:pointer;font-size:15px;line-height:1;flex:none;}
+#howto{display:none;position:fixed;top:72px;left:50%;transform:translateX(-50%);width:min(92vw,420px);z-index:70;background:#1e293b;border:1px solid #475569;border-radius:14px;padding:14px 16px;color:#cbd5e1;font-size:13px;line-height:1.7;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;box-shadow:0 12px 32px rgba(0,0,0,.55);}
+#howto.show{display:block;}
+#howto b{color:#38bdf8;}
+.xz-cr{position:fixed;bottom:4px;right:10px;font-size:10px;color:#475569;z-index:45;font-family:-apple-system,"Segoe UI",sans-serif;pointer-events:none;-webkit-user-select:none;user-select:none;}
+</style>
+<div class="xz-cr">© AI24X Game Zone</div>
+<script>
+(function(){
+  'use strict';
+  var board=document.getElementById('board'), scoreEl=document.getElementById('score'), dexNEl=document.getElementById('dexN');
+  var tEl=document.getElementById('t'), timefill=document.getElementById('timefill'), candy=document.getElementById('candy');
+  var dexLine=document.getElementById('dexLine'), overlay=document.getElementById('overlay');
+  var ovT=document.getElementById('ovT'), topEmoji=document.getElementById('topEmoji'), score2=document.getElementById('score2');
+  var subLine=document.getElementById('subLine'), shareTxt=document.getElementById('shareTxt'), bestLine=document.getElementById('bestLine');
+  var restart=document.getElementById('restart');
+  var shuffleBtn=document.getElementById('shuffleBtn'), clearBtn=document.getElementById('clearBtn');
+
+  // 进化链：idx=0 是基础蛋，每组合并 +1 级
+  var CHAIN=[
+    {e:'🥚',n:'蛋',s:10},
+    {e:'🐤',n:'小鸡',s:20},
+    {e:'🐔',n:'公鸡',s:40},
+    {e:'🦖',n:'恐龙',s:80},
+    {e:'🐲',n:'神龙',s:160},
+    {e:'👾',n:'外星人',s:320},
+    {e:'🤖',n:'机甲',s:640},
+    {e:'🌋',n:'火山',s:1280},
+    {e:'🕳️',n:'黑洞',s:2560},
+    {e:'💥',n:'宇宙大爆炸',s:9999}
+  ];
+  var CANDY=[
+    '🥚+🥚=🐤 这孵化速度不科学！',
+    '🐤+🐤=🐔 哦，这很合理？',
+    '🐔+🐔=🦖 进化论被我们玩坏了',
+    '🦖+🦖=🐲 直接跳过 6500 万年',
+    '🐲+🐲=👾 跨物种跨界合作',
+    '👾+👾=🤖 赛博朋克提前到来',
+    '🤖+🤖=🌋 热力学第一定律：不存在的',
+    '🌋+🌋=🕳️ 物理学彻底崩了',
+    '🕳️+🕳️=💥 你毁灭了宇宙！'
+  ];
+  var SPAWN_MSGS=['新蛋孵化中…','又一颗蛋出现了','🥚 空降','蛋蛋不息'];
+  var ROWS=6, COLS=6, grid=[], sel=null, score=0, timeLeft=90, running=false;
+  var DUR=90, spawnTimer=null, tickTimer=null, best={}, newDex=[];
+  try{ best=JSON.parse(localStorage.getItem('xz-wm-best')||'{}'); }catch(e){}
+
+  function dexN(){ var c=0; for(var i=1;i<CHAIN.length;i++) if(best['d'+i]) c++; return c; }
+
+  function buildDex(){
+    dexLine.innerHTML='';
+    for(var i=1;i<CHAIN.length;i++){
+      var d=document.createElement('div');
+      d.className='dex-slot'+(best['d'+i]?' on':'')+(newDex.indexOf(i)!==-1?' new':'');
+      d.textContent=best['d'+i]?CHAIN[i].e:'?';
+      dexLine.appendChild(d);
+    }
+    dexNEl.textContent=dexN();
+  }
+
+  function emptyCells(){
+    var a=[];
+    for(var r=0;r<ROWS;r++) for(var c=0;c<COLS;c++) if(grid[r][c]===null) a.push([r,c]);
+    return a;
+  }
+
+  function spawn(){
+    var e=emptyCells();
+    if(!e.length) return false;
+    // 优先放在已有蛋旁边，保证棋盘始终有可合并对（70% 概率）
+    var adj=[];
+    for(var r=0;r<ROWS;r++) for(var c=0;c<COLS;c++){
+      if(grid[r][c]===0){
+        [[r-1,c],[r+1,c],[r,c-1],[r,c+1]].forEach(function(a){
+          if(a[0]>=0&&a[0]<ROWS&&a[1]>=0&&a[1]<COLS&&grid[a[0]][a[1]]===null) adj.push(a);
+        });
+      }
+    }
+    var p;
+    if(adj.length && Math.random()<0.7) p=adj[Math.floor(Math.random()*adj.length)];
+    else p=e[Math.floor(Math.random()*e.length)];
+    // 15% 概率直接生成小鸡（level 1），加速进化链；其余生成蛋
+    var lv= Math.random()<0.15? 1 : 0;
+    grid[p[0]][p[1]]=lv;
+    renderCell(p[0],p[1]);
+    var c=cellEl(p[0],p[1]);
+    c.style.animation='none'; c.offsetHeight; c.style.animation='pop .3s ease-out';
+    candy.textContent= lv===1? '🐤 直接孵出小鸡，运气不错！' : SPAWN_MSGS[Math.floor(Math.random()*SPAWN_MSGS.length)];
+    return true;
+  }
+
+  function cellEl(r,c){ return board.children[r*COLS+c]; }
+
+  function renderCell(r,c){
+    var v=grid[r][c];
+    cellEl(r,c).textContent= v===null? '' : CHAIN[v].e;
+  }
+
+  function makeBoard(){
+    board.innerHTML='';
+    for(var i=0;i<ROWS*COLS;i++){
+      var d=document.createElement('div');
+      d.className='cell'; d.dataset.i=i;
+      board.appendChild(d);
+    }
+  }
+
+  function reset(){
+    grid=[];
+    for(var r=0;r<ROWS;r++){ grid.push([]); for(var c=0;c<COLS;c++) grid[r][c]=null; }
+    makeBoard();
+    // 初始保证 2 对相邻蛋，开局即有可合成目标
+    grid[2][2]=0; grid[2][3]=0; grid[4][2]=0; grid[4][3]=0;
+    renderCell(2,2); renderCell(2,3); renderCell(4,2); renderCell(4,3);
+    for(var i=0;i<2;i++) spawn();
+    score=0; scoreEl.textContent='0';
+    timeLeft=DUR; tEl.textContent=DUR;
+    timefill.style.width='100%'; timefill.classList.remove('warn');
+    sel=null; newDex=[]; candy.textContent='点两个相邻的同种物品，看它们会变成什么离谱玩意儿';
+    shuffleBtn.classList.remove('off'); clearBtn.classList.remove('off');
+    buildDex();
+    overlay.classList.remove('show');
+    running=true;
+  }
+
+  function start(){
+    clearInterval(spawnTimer); clearInterval(tickTimer);
+    reset();
+    spawnTimer=setInterval(function(){ if(running) spawn(); }, 2600);
+    tickTimer=setInterval(function(){
+      if(!running) return;
+      timeLeft--;
+      tEl.textContent=Math.max(0,timeLeft);
+      timefill.style.width=(timeLeft/DUR*100)+'%';
+      if(timeLeft<=15) timefill.classList.add('warn');
+      if(timeLeft<=0){ running=false; clearInterval(spawnTimer); gameOver(); }
+    },1000);
+  }
+
+  function merge(a,b){
+    // a=来源, b=目标（两者 level 相同）
+    var lv=grid[a[0]][a[1]];
+    grid[a[0]][a[1]]=null;
+    renderCell(a[0],a[1]);
+    var cellA=cellEl(a[0],a[1]); cellA.classList.remove('sel');
+    var nl=lv+1;
+    grid[b[0]][b[1]]=nl;
+    renderCell(b[0],b[1]);
+    var cellB=cellEl(b[0],b[1]);
+    cellB.style.animation='none'; cellB.offsetHeight; cellB.style.animation='pop .35s ease-out';
+    score+=CHAIN[nl].s;
+    scoreEl.textContent=score;
+    candy.textContent=CANDY[nl-1];
+    if(nl>0 && !best['d'+nl]){ best['d'+nl]=1; newDex.push(nl); buildDex(); }
+    if(nl>=CHAIN.length-1){
+      running=false; clearInterval(spawnTimer); clearInterval(tickTimer);
+      gameOver(true);
+    }
+  }
+
+  function tap(r,c){
+    if(!running) return;
+    var v=grid[r][c];
+    // 清 hint
+    var cells=board.children;
+    for(var i=0;i<cells.length;i++) cells[i].classList.remove('hint');
+    if(sel){
+      var sr=sel[0], sc=sel[1];
+      if(sr===r && sc===c){ sel=null; cellEl(r,c).classList.remove('sel'); return; }
+      var adj=Math.abs(sr-r)+Math.abs(sc-c)===1;
+      if(adj && grid[sr][sc]!==null && v===grid[sr][sc]){
+        merge([sr,sc],[r,c]);
+        sel=null; cellEl(sr,sc).classList.remove('sel');
+        return;
+      }
+      if(v===grid[sr][sc]){
+        // 换选中
+        cellEl(sr,sc).classList.remove('sel');
+        sel=[r,c]; cellEl(r,c).classList.add('sel');
+        return;
+      }
+      sel=null; cellEl(sr,sc).classList.remove('sel');
+      candy.textContent='只能合并相邻的同种物品哦';
+      return;
+    }
+    if(v!==null){
+      sel=[r,c]; cellEl(r,c).classList.add('sel');
+      // 高亮可合并的相邻格
+      [[r-1,c],[r+1,c],[r,c-1],[r,c+1]].forEach(function(p){
+        if(p[0]>=0&&p[0]<ROWS&&p[1]>=0&&p[1]<COLS&&grid[p[0]][p[1]]===v) cellEl(p[0],p[1]).classList.add('hint');
+      });
+    }
+  }
+
+  function shuffle(){
+    if(!running) return;
+    for(var r=0;r<ROWS;r++) for(var c=0;c<COLS;c++) if(grid[r][c]!==null) grid[r][c]=0;
+    for(var i=0;i<36;i++) renderCell(Math.floor(i/COLS), i%COLS);
+    sel=null;
+    var cells=board.children;
+    for(var j=0;j<cells.length;j++) cells[j].classList.remove('sel','hint');
+    candy.textContent='🔀 全部打回原形，重新合成吧！';
+    shuffleBtn.classList.add('off');
+    setTimeout(function(){ if(running) shuffleBtn.classList.remove('off'); }, 5000);
+  }
+
+  function clearCol(){
+    if(!running) return;
+    var c=Math.floor(Math.random()*COLS);
+    for(var r=0;r<ROWS;r++){
+      grid[r][c]=null;
+      renderCell(r,c);
+    }
+    sel=null;
+    var cells=board.children;
+    for(var j=0;j<cells.length;j++) cells[j].classList.remove('sel','hint');
+    candy.textContent='🗑️ 清空了一列，腾出空间！';
+    clearBtn.classList.add('off');
+    setTimeout(function(){ if(running) clearBtn.classList.remove('off'); }, 8000);
+  }
+
+  function gameOver(boom){
+    var top=0;
+    for(var r=0;r<ROWS;r++) for(var c=0;c<COLS;c++) if(grid[r][c]!==null && grid[r][c]>top) top=grid[r][c];
+    var prev=best.score||0;
+    if(score>prev){ best.score=score; try{ localStorage.setItem('xz-wm-best',JSON.stringify(best)); }catch(e){} }
+    var d=dexN();
+    ovT.textContent= boom? '💥 宇宙大爆炸！' : '⏰ 时间到！';
+    topEmoji.textContent=CHAIN[top]?CHAIN[top].e:'🥚';
+    score2.textContent=score+' 分';
+    subLine.textContent='最高合成：'+CHAIN[top].n+' · 图鉴 '+d+'/9';
+    shareTxt.textContent='我在离谱合成实验室 '+score+' 分，最高合成出'+CHAIN[top].n+'，图鉴解锁 '+d+'/9！你能合出黑洞吗？';
+    bestLine.textContent='历史最佳 '+Math.max(prev,score)+' 分 · 图鉴 '+d+'/9'+(d>=9?' 🏆 图鉴全收集！':'');
+    overlay.classList.add('show');
+  }
+
+  board.addEventListener('pointerdown', function(e){
+    var cell=e.target.closest('.cell');
+    if(!cell) return;
+    var i=parseInt(cell.dataset.i,10);
+    tap(Math.floor(i/COLS), i%COLS);
+  });
+  shuffleBtn.addEventListener('pointerdown', shuffle);
+  clearBtn.addEventListener('pointerdown', clearCol);
+  restart.addEventListener('click', start);
+
+  buildDex(); start();
+})();
+</script>
+<script>
+(function(){
+  'use strict';
+  var W=390,H=780,TOP=64;
+  var wrap=document.getElementById('wrap');
+  function fit(){
+    if(!wrap) return;
+    var s=Math.min(innerWidth/W,(innerHeight-TOP)/H);
+    if(s>1.4) s=1.4;
+    wrap.style.transform='scale('+s+')';
+    wrap.style.transformOrigin='top center';
+    wrap.style.minHeight=(H*Math.max(s,1))+'px';
+  }
+  addEventListener('resize',fit); fit();
+  document.addEventListener('contextmenu',function(e){e.preventDefault();});
+  document.addEventListener('keydown',function(e){
+    if(e.key==='F12'||(e.ctrlKey&&['s','u','p'].indexOf(e.key)!==-1)||(e.ctrlKey&&e.shiftKey&&['i','j','c'].indexOf(e.key)!==-1)) e.preventDefault();
+  });
+})();
+</script>
+</body>
+</html>

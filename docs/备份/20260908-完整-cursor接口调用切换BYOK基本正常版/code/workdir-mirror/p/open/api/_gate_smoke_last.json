@@ -1,0 +1,31 @@
+{
+  "ts": 1785887406.9633737,
+  "base": "http://127.0.0.1:8002",
+  "rows": [
+    {
+      "name": "health",
+      "ok": true,
+      "detail": "{\"status\":\"healthy\",\"service\":\"AI24X API\",\"version\":\"1.0.0\",\"build_stamp\":null,\"upstream_mode\":\"openrouter\",\"layers\":{\"L0\":{\"key_set\":true,\"provider\":\"siliconflow\"},\"L1\":{\"key_set\":true,\"provider\":\"op"
+    },
+    {
+      "name": "plans_public",
+      "ok": true,
+      "detail": "{\"ids\": [\"token_pack_10k\", \"token_vip_month\", \"token_pack_100k\", \"token_pack_mid\", \"token_vip_month_50w\"], \"fen\": [1440, 10800, 14400, 35280, 71280], \"count\": 5}"
+    },
+    {
+      "name": "pay_status",
+      "ok": true,
+      "detail": "{\"pay\": true, \"mock\": true, \"paypal_webhook_id_set\": true}"
+    },
+    {
+      "name": "login_endpoint",
+      "ok": true,
+      "detail": "status=401 body={\"error\":\"手机号或密码错误，请检查后重试。\",\"code\":\"401\"}"
+    },
+    {
+      "name": "models_brand_flash",
+      "ok": true,
+      "detail": "{'auto': '自动档', 'flash': 'flash', 'pro': 'pro', 'ultra': 'ultra'}"
+    }
+  ]
+}

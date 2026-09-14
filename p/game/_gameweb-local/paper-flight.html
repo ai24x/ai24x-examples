@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Paper Flight · 纸飞机</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; }
+  body {
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background:#0f172a; color:#e2e8f0; overflow:hidden; user-select:none;
+    touch-action:manipulation; overscroll-behavior:none;
+  }
+  #wrap { height:100dvh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:8px; }
+  .hud { display:flex; gap:28px; font-size:15px; font-weight:700; color:#94a3b8; }
+  .hud b { color:#38bdf8; font-size:18px; }
+  #stage { width:100%; max-width:390px; aspect-ratio:390/700; position:relative; border-radius:20px; overflow:hidden; border:2px solid #334155; touch-action:none; }
+  canvas { display:block; width:100%; height:100%; }
+  #tip { font-size:12px; color:#64748b; min-height:16px; }
+  #overlay { position:fixed; inset:0; background:rgba(2,6,23,.9); display:none; align-items:center; justify-content:center; z-index:10; }
+  #overlay.show { display:flex; }
+  .panel { text-align:center; padding:30px 26px; border-radius:20px; background:#1e293b; border:1px solid #334155; max-width:320px; width:90%; }
+  .panel h2 { font-size:22px; margin-bottom:6px; }
+  .dist { font-size:44px; font-weight:800; color:#38bdf8; margin:6px 0; }
+  .best { color:#94a3b8; font-size:14px; margin-bottom:14px; }
+  .share { font-size:13px; color:#fbbf24; margin-bottom:16px; padding:8px 12px; background:#1e293b; border:1px dashed #475569; border-radius:10px; }
+  .play { background:linear-gradient(90deg,#38bdf8,#6366f1); border:none; color:#fff; font-size:18px; font-weight:800; padding:13px 38px; border-radius:999px; cursor:pointer; box-shadow:0 6px 0 rgba(0,0,0,.3); touch-action:manipulation; }
+  .play:active { transform: translateY(3px); box-shadow:0 3px 0 rgba(0,0,0,.3); }
+</style>
+</head>
+<body>
+<div id="topbar"><a href="index.html">← 列表</a><span class="tt">Paper Flight<span class="tg">纸飞机</span></span><button id="howBtn" aria-label="玩法说明">?</button></div>
+<div id="howto"><b>怎么玩</b><br>按住屏幕蓄力，松开发射纸飞机。飞得越远分越高，小心随机侧风！和朋友比比谁飞得远。</div>
+<div id="wrap">
+  <div class="hud"><div>距离 <b id="dist">0</b> 米</div><div>最佳 <b id="best">0</b> 米</div></div>
+  <div id="stage"><canvas id="cv"></canvas></div>
+  <div id="tip">按住蓄力，松开投掷</div>
+</div>
+
+<div id="overlay">
+  <div class="panel">
+    <h2 id="ovTitle">✈️ 落地！</h2>
+    <div class="dist" id="ovDist">0 米</div>
+    <div class="best" id="bestLine">最佳 0 米</div>
+    <div class="share" id="shareTxt">我让纸飞机飞了 0 米，你能更远吗？</div>
+    <button class="play" id="restart">再来一次</button>
+  </div>
+</div>
+
+<style id="xz-shell">
+#topbar{position:fixed;top:0;left:0;right:0;height:64px;z-index:50;display:flex;align-items:center;gap:10px;padding:0 14px;background:rgba(15,23,42,.94);backdrop-filter:blur(8px);border-bottom:1px solid #334155;color:#e2e8f0;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;-webkit-user-select:none;user-select:none;}
+#topbar a{color:#38bdf8;text-decoration:none;font-size:14px;font-weight:700;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+#topbar .tt{flex:1;text-align:center;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#topbar .tg{font-size:11px;color:#94a3b8;font-weight:400;margin-left:4px;}
+#howBtn{width:30px;height:30px;border-radius:50%;border:1px solid #334155;background:#1e293b;color:#94a3b8;font-weight:800;cursor:pointer;font-size:15px;line-height:1;flex:none;}
+#howto{display:none;position:fixed;top:72px;left:50%;transform:translateX(-50%);width:min(92vw,420px);z-index:70;background:#1e293b;border:1px solid #475569;border-radius:14px;padding:14px 16px;color:#cbd5e1;font-size:13px;line-height:1.7;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;box-shadow:0 12px 32px rgba(0,0,0,.55);}
+#howto.show{display:block;}
+#howto b{color:#38bdf8;}
+.xz-cr{position:fixed;bottom:4px;right:10px;font-size:10px;color:#475569;z-index:45;font-family:-apple-system,"Segoe UI",sans-serif;pointer-events:none;-webkit-user-select:none;user-select:none;}
+</style>
+
+<script>
+(function(){
+  'use strict';
+  var cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+  var distEl=document.getElementById('dist'), bestEl=document.getElementById('best'), tip=document.getElementById('tip');
+  var overlay=document.getElementById('overlay'), ovTitle=document.getElementById('ovTitle'), ovDist=document.getElementById('ovDist');
+  var bestLine=document.getElementById('bestLine'), shareTxt=document.getElementById('shareTxt'), restart=document.getElementById('restart');
+
+  var W=390, H=700, DPR=Math.min(2, devicePixelRatio||1);
+  cv.width=W*DPR; cv.height=H*DPR; ctx.scale(DPR,DPR);
+
+  var BEST=+localStorage.getItem('xz-pf-best')||0;
+  bestEl.textContent=BEST;
+
+  var GY=650, SCALE=14, state='ready', power=0, wind=0, plane=null, maxX=0, trail=[], endT=0;
+
+  function reset(){
+    state='ready'; power=0; maxX=0; trail=[]; endT=0; plane=null;
+    tip.textContent='按住蓄力，松开投掷';
+    overlay.classList.remove('show');
+  }
+
+  function startHold(){
+    if(state==='ready'){ state='hold'; power=0; }
+  }
+  function endHold(){
+    if(state!=='hold') return;
+    var sp = 3 + (power/120)*28;
+    plane={ x:70, y:GY-30, vx:sp*Math.cos(0.7), vy:-sp*Math.sin(0.7), r:0 };
+    wind=(Math.random()*2-1)*0.07;
+    state='fly'; maxX=70; trail=[]; endT=0;
+    tip.textContent='';
+  }
+
+  function update(){
+    if(state==='hold'){
+      power=Math.min(power+1,120);
+    } else if(state==='fly'){
+      var p=plane;
+      p.vy+=0.5; p.vx+=wind+(Math.random()-0.5)*0.02;
+      p.x+=p.vx; p.y+=p.vy;
+      p.r=Math.atan2(p.vy,p.vx);
+      if(p.x>maxX) maxX=p.x;
+      trail.push({x:p.x,y:p.y});
+      if(trail.length>26) trail.shift();
+      if(p.y>=GY || p.x<-80){ p.y=Math.min(p.y,GY); state='over'; endT=12; }
+    } else if(state==='over'){
+      if(endT>0 && --endT===0) showEnd();
+    }
+    distEl.textContent=Math.max(0,Math.round(maxX/SCALE));
+  }
+
+  function showEnd(){
+    var m=Math.round(maxX/SCALE);
+    var g = m>=60?'🏆 飞行大师' : m>=35?'🔥 好手' : '😅 新手';
+    ovTitle.textContent = (plane && plane.x<-80) ? '🌬️ 被风吹回！' : (m>=60?'🏆 完美飞行！':'✈️ 落地！');
+    if(m>BEST){ BEST=m; localStorage.setItem('xz-pf-best',BEST); }
+    bestEl.textContent=BEST;
+    ovDist.textContent=m+' 米';
+    bestLine.textContent='最佳 '+BEST+' 米';
+    shareTxt.textContent='我让纸飞机飞了 '+m+' 米（'+g+'），你能更远吗？';
+    overlay.classList.add('show');
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    var sky=ctx.createLinearGradient(0,0,0,GY);
+    sky.addColorStop(0,'#38bdf8'); sky.addColorStop(1,'#bae6fd');
+    ctx.fillStyle=sky; ctx.fillRect(0,0,W,GY);
+    // 云
+    ctx.fillStyle='rgba(255,255,255,.75)';
+    for(var i=0;i<4;i++){
+      var cx=(i*113+40)%(W+120)-60, cy=70+((i*61)%180), s=16+((i*37)%18);
+      ctx.beginPath();
+      ctx.arc(cx,cy,s,0,7); ctx.arc(cx+s*0.9,cy-s*0.15,s*0.7,0,7); ctx.arc(cx-s*0.9,cy-s*0.1,s*0.7,0,7);
+      ctx.fill();
+    }
+    // 地面
+    ctx.fillStyle='#4ade80'; ctx.fillRect(0,GY,W,H-GY);
+    ctx.fillStyle='#22c55e'; ctx.fillRect(0,GY,W,8);
+    // 距离标尺
+    if(state==='fly'||state==='over'){
+      ctx.fillStyle='rgba(15,23,42,.6)'; ctx.fillRect(8,GY-46,126,28);
+      ctx.fillStyle='#fff'; ctx.font='bold 16px sans-serif';
+      ctx.fillText(Math.round(maxX/SCALE)+' m',16,GY-27);
+    }
+    // 轨迹
+    ctx.strokeStyle='rgba(255,255,255,.55)'; ctx.lineWidth=2.5; ctx.lineCap='round';
+    ctx.beginPath();
+    for(var t=0;t<trail.length;t++){
+      var q=trail[t];
+      if(t===0) ctx.moveTo(q.x,q.y); else ctx.lineTo(q.x,q.y);
+    }
+    ctx.stroke();
+    // 纸飞机
+    if(plane){
+      var p=plane;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.r);
+      ctx.fillStyle='#f8fafc';
+      ctx.beginPath(); ctx.moveTo(16,0); ctx.lineTo(-10,-7); ctx.lineTo(-4,0); ctx.lineTo(-10,7); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle='#fbbf24'; ctx.lineWidth=1.2; ctx.stroke();
+      ctx.restore();
+    }
+    // 蓄力条
+    if(state==='hold'){
+      var bw=180,bh=16,bx=W/2-bw/2,by=GY-96;
+      ctx.fillStyle='rgba(15,23,42,.55)'; ctx.fillRect(bx-4,by-4,bw+8,bh+8);
+      ctx.fillStyle='#475569'; ctx.fillRect(bx,by,bw,bh);
+      var g=ctx.createLinearGradient(bx,0,bx+bw,0);
+      g.addColorStop(0,'#22d3ee'); g.addColorStop(1,'#fbbf24');
+      ctx.fillStyle=g; ctx.fillRect(bx,by,bw*power/120,bh);
+      ctx.fillStyle='#fff'; ctx.font='bold 13px sans-serif'; ctx.textAlign='center';
+      ctx.fillText('蓄力 '+Math.round(power/120*100)+'%',W/2,by-10);
+      ctx.textAlign='left';
+    }
+  }
+
+  function loop(){ update(); draw(); requestAnimationFrame(loop); }
+
+  var stage=document.getElementById('stage');
+  stage.addEventListener('pointerdown', function(e){ e.preventDefault(); startHold(); });
+  window.addEventListener('pointerup', function(e){ e.preventDefault(); endHold(); });
+  restart.addEventListener('click', reset);
+
+  reset(); loop();
+})();
+</script>
+<script>
+(function(){
+  'use strict';
+  var W=390,H=780,TOP=64;
+  var wrap=document.getElementById('wrap');
+  function fit(){
+    if(!wrap) return;
+    var s=Math.min(innerWidth/W,(innerHeight-TOP)/H);
+    if(s>1.4) s=1.4;
+    var w=W*s,h=H*s;
+    wrap.style.width=w+'px';
+    wrap.style.height=h+'px';
+    wrap.style.left=((innerWidth-w)/2)+'px';
+    wrap.style.top=(TOP+(innerHeight-TOP-h)/2)+'px';
+    wrap.style.position='fixed';
+    wrap.style.margin='0';
+    wrap.style.transform='scale('+s+')';
+    wrap.style.transformOrigin='top left';
+  }
+  fit();
+  addEventListener('resize',fit);
+  addEventListener('orientationchange',fit);
+  var ov=document.getElementById('overlay');
+  if(ov) ov.style.zIndex=60;
+  var hb=document.getElementById('howBtn'),ht=document.getElementById('howto');
+  if(hb&&ht){
+    hb.addEventListener('click',function(e){e.stopPropagation();ht.classList.toggle('show');});
+    document.addEventListener('pointerdown',function(e){if(ht.classList.contains('show')&&!ht.contains(e.target)&&e.target!==hb)ht.classList.remove('show');});
+  }
+  document.addEventListener('contextmenu',function(e){e.preventDefault();});
+  document.addEventListener('dragstart',function(e){e.preventDefault();});
+  document.addEventListener('keydown',function(e){
+    var k=e.key||'';
+    if(k==='F12'||(e.ctrlKey&&['s','u','p','S','U','P'].indexOf(k)>=0)||(e.ctrlKey&&e.shiftKey&&['i','j','c','I','J','C'].indexOf(k)>=0)){e.preventDefault();e.stopPropagation();return false;}
+  });
+})();
+</script>
+<div class="xz-cr">© 2026 AI24X Game Zone</div>
+</body>
+</html>

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="index,follow" />
+  <title>意见反馈 · AI行情官｜灯塔版</title>
+  <meta name="description" content="AI行情官意见反馈：提交问题与建议，查看处理进度与管理员回复。" />
+  <link rel="canonical" href="https://a.ai24x.com/feedback.html" />
+  <meta name="applicable-device" content="pc,mobile" />
+  <link rel="icon" href="data:," />
+  <script>
+    (function () {
+      try {
+        var k = "ai24x_a_theme";
+        var t = String(localStorage.getItem(k) || "").trim() || "light";
+        document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="/css/base.css?v=56" />
+  <link rel="stylesheet" href="/css/tool.css" />
+  <style>
+    .fb-form label { display: block; font-size: 12px; color: var(--muted); margin-top: 10px; }
+    .fb-form input, .fb-form select, .fb-form textarea {
+      display: block; width: 100%; max-width: 520px; box-sizing: border-box;
+      margin-top: 4px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--panel2); color: var(--text); font-size: 14px;
+    }
+    .fb-form textarea { min-height: 120px; resize: vertical; }
+    .fb-list { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .fb-item {
+      border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px;
+      background: var(--panel2); font-size: 13px; line-height: 1.55;
+    }
+    .fb-item .meta { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .fb-item .reply {
+      margin-top: 10px; padding: 10px; border-radius: 10px;
+      border: 1px solid rgba(96, 165, 250, 0.35); background: rgba(96, 165, 250, 0.08);
+    }
+    .pill-st { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .pill-open { background: rgba(251, 113, 133, 0.2); color: #fb7185; }
+    .pill-replied { background: rgba(52, 211, 153, 0.2); color: #34d399; }
+    .pill-closed { background: var(--border); color: var(--muted); }
+  </style>
+</head>
+<body>
+  <header class="site-header" id="site-header"></header>
+  <main class="page-main">
+    <div class="wrap">
+      <section class="card">
+        <h1>意见反馈</h1>
+        <p class="sub" style="margin:0 0 12px;">提交工单后会在「我的工单」留下记录，与后台客服处理联动；<strong>须登录</strong>后方可填写与提交。</p>
+        <div id="fb-loading" class="sub">加载中…</div>
+        <div id="fb-guest" class="sub" hidden>
+          <p style="margin:0 0 10px;">查看或提交反馈前请先登录（登录成功后将自动返回本页）。</p>
+          <p style="margin:0;"><a class="btn primary" href="./index.html?mode=login&amp;ch=phone&amp;next=feedback.html">去登录</a>
+          <span style="margin-left:10px; font-size:12px; color:var(--muted);">注册亦在首页完成</span></p>
+        </div>
+        <div id="fb-user" hidden>
+          <form class="fb-form" id="fb-form">
+            <label>反馈类型
+              <select id="fb-category" required></select>
+            </label>
+            <label>标题（选填）
+              <input id="fb-title" type="text" maxlength="200" placeholder="一句话概括，便于检索" />
+            </label>
+            <label>详细描述 <span style="color:#fb7185">*</span>
+              <textarea id="fb-body" required minlength="5" maxlength="8000" placeholder="请说明复现步骤、期望行为、截图链接等（至少 5 个字）"></textarea>
+            </label>
+            <label>备用联系方式（选填）
+              <input id="fb-contact" type="text" maxlength="200" placeholder="微信号 / 邮箱等，方便我们联系您" />
+            </label>
+            <div class="btns" style="margin-top:14px;">
+              <button class="btn primary" type="submit" id="fb-submit">提交反馈</button>
+              <button class="btn" type="button" id="fb-reload">刷新我的工单</button>
+            </div>
+          </form>
+        </div>
+        <div class="status" id="fb-status" style="margin-top:12px;"></div>
+      </section>
+      <section class="card" id="fb-history">
+        <h2 style="font-size:16px; margin:0 0 8px;">我的工单</h2>
+        <p id="fb-history-empty" class="sub" style="margin:0;">登录后将显示您提交的记录。</p>
+        <div id="fb-list" class="fb-list" hidden></div>
+      </section>
+    </div>
+  </main>
+  <footer class="site-footer" id="site-footer"></footer>
+  <script src="/js/shell.js?v=62"></script>
+  <script>
+    try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount("feedback"); } catch (e) {}
+  </script>
+  <script>
+    (function () {
+      var TOKEN_KEY = "ai24x_a_token";
+      function apiBase() {
+        try {
+          var host = String(location.hostname || "");
+          var port = String(location.port || "");
+          if ((host === "127.0.0.1" || host === "localhost") && port === "18001") return "http://127.0.0.1:18011";
+        } catch (e) {}
+        return "";
+      }
+      var base = apiBase();
+      function $(id) { return document.getElementById(id); }
+      function tokenGet() {
+        try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (e) { return ""; }
+      }
+      function setStatus(s) {
+        var el = $("fb-status");
+        if (el) el.textContent = s || "";
+      }
+      function apiFetch(path, opt) {
+        opt = opt || {};
+        opt.headers = opt.headers || {};
+        var t = tokenGet();
+        if (t) opt.headers.Authorization = "Bearer " + t;
+        return fetch((base || "") + path, opt).then(function (r) {
+          return r.text().then(function (txt) {
+            var j = null;
+            try { j = txt ? JSON.parse(txt) : null; } catch (e0) { j = null; }
+            if (!r.ok) {
+              var detail = "";
+              if (j && j.detail != null) {
+                detail = typeof j.detail === "string" ? j.detail : (function () {
+                  try { return JSON.stringify(j.detail); } catch (e1) { return ""; }
+                })();
+              }
+              var err = new Error(detail || txt || ("HTTP " + r.status));
+              try { err.status = r.status; } catch (e2) {}
+              throw err;
+            }
+            return j;
+          });
+        });
+      }
+      var catLabels = {};
+      function loadCategories() {
+        return fetch((base || "") + "/api/feedback/categories", { method: "GET" })
+          .then(function (r) { return r.ok ? r.json() : { items: [] }; })
+          .then(function (d) {
+            var sel = $("fb-category");
+            if (!sel) return;
+            sel.innerHTML = "";
+            (d.items || []).forEach(function (it) {
+              catLabels[it.id] = it.label;
+              var o = document.createElement("option");
+              o.value = it.id;
+              o.textContent = it.label;
+              sel.appendChild(o);
+            });
+            catLabels.data_signal = "行情与数据（旧）";
+          })
+          .catch(function () {});
+      }
+      function statusPill(st) {
+        st = String(st || "");
+        var cls = "pill-st pill-open";
+        if (st === "replied") cls = "pill-st pill-replied";
+        if (st === "closed") cls = "pill-st pill-closed";
+        var map = { open: "待处理", replied: "已回复", closed: "已关闭" };
+        return '<span class="' + cls + '">' + (map[st] || st) + "</span>";
+      }
+      function esc(s) {
+        return String(s == null ? "" : s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+      function fmtTs(ts) {
+        if (!ts) return "—";
+        try {
+          var d = new Date(ts * 1000);
+          function p(n) { return (n < 10 ? "0" : "") + n; }
+          return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+        } catch (e) { return String(ts); }
+      }
+      function renderList(items) {
+        var wrap = $("fb-list");
+        var empty = $("fb-history-empty");
+        if (!wrap) return;
+        if (!items || !items.length) {
+          wrap.hidden = true;
+          if (empty) { empty.hidden = false; empty.textContent = "暂无工单，提交后在此查看进度。"; }
+          return;
+        }
+        if (empty) empty.hidden = true;
+        wrap.hidden = false;
+        wrap.innerHTML = "";
+        items.forEach(function (it) {
+          var div = document.createElement("div");
+          div.className = "fb-item";
+          var lab = catLabels[it.category] || it.category;
+          var h =
+            '<div class="meta">' +
+            statusPill(it.status) +
+            " · #" + esc(it.id) +
+            " · " + esc(lab) +
+            " · " + esc(fmtTs(it.created_at)) +
+            "</div>";
+          if ((it.title || "").trim()) h += "<div><strong>" + esc(it.title) + "</strong></div>";
+          h += '<div style="margin-top:6px; white-space:pre-wrap;">' + esc(it.body || "") + "</div>";
+          if ((it.contact || "").trim()) {
+            h += '<div style="margin-top:8px; font-size:12px; color:var(--muted);">留联：' + esc(it.contact) + "</div>";
+          }
+          if ((it.admin_reply || "").trim()) {
+            h +=
+              '<div class="reply"><strong>官方回复</strong>（' +
+              esc(it.replied_by || "管理员") +
+              " · " +
+              esc(fmtTs(it.replied_at)) +
+              "）<br/><span style=\"white-space:pre-wrap;\">" +
+              esc(it.admin_reply) +
+              "</span></div>";
+          }
+          div.innerHTML = h;
+          wrap.appendChild(div);
+        });
+      }
+      function loadMine() {
+        if (!tokenGet()) return;
+        return apiFetch("/api/feedback/mine?limit=50&offset=0", { cache: "no-store" })
+          .then(function (d) {
+            renderList(d.items || []);
+          })
+          .catch(function (e) {
+            setStatus(e.message || "加载工单失败");
+          });
+      }
+      function applyAuth() {
+        var tok = tokenGet();
+        var l = $("fb-loading");
+        var g = $("fb-guest");
+        var u = $("fb-user");
+        if (l) l.hidden = true;
+        if (tok) {
+          if (g) g.hidden = true;
+          if (u) u.hidden = false;
+          loadMine();
+        } else {
+          if (g) g.hidden = false;
+          if (u) u.hidden = true;
+          renderList([]);
+          if ($("fb-history-empty")) {
+            $("fb-history-empty").hidden = false;
+            $("fb-history-empty").textContent = "登录后将显示您提交的记录。";
+          }
+          if ($("fb-list")) $("fb-list").hidden = true;
+        }
+      }
+      $("fb-form").addEventListener("submit", function (ev) {
+        ev.preventDefault();
+        if (!tokenGet()) {
+          setStatus("请先登录");
+          return;
+        }
+        var payload = {
+          category: ($("fb-category").value || "").trim(),
+          title: ($("fb-title").value || "").trim(),
+          body: ($("fb-body").value || "").trim(),
+          contact: ($("fb-contact").value || "").trim(),
+        };
+        setStatus("正在提交…");
+        apiFetch("/api/feedback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+          .then(function () {
+            setStatus("已提交，感谢您的反馈。");
+            $("fb-title").value = "";
+            $("fb-body").value = "";
+            $("fb-contact").value = "";
+            return loadMine();
+          })
+          .catch(function (e) {
+            setStatus(e.message || "提交失败");
+          });
+      });
+      $("fb-reload").addEventListener("click", function () {
+        setStatus("");
+        loadMine().catch(function () {});
+      });
+      loadCategories().then(applyAuth);
+    })();
+  </script>
+</body>
+</html>

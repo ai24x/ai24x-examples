@@ -1,0 +1,25 @@
+<view class="container fade-in">
+  <view class="top-bar">
+    <text>金币：{{coins}}</text>
+    <text>积分：{{score}}</text>
+  </view>
+  <view class="fish-box">
+    <view class="water-bg">
+      <view class="bobber-wrap">
+        <view class="float-slow bobber {{biteFlash ? 'bite-flash' : ''}}">🎣</view>
+      </view>
+      <view wx:if="{{wave}}" class="wave-ring wave-pos"></view>
+    </view>
+  </view>
+  <view class="hint">
+    <text class="hint-phase">状态：{{phaseText}}</text>
+    <text class="hint-mid" wx:if="{{hintText}}">{{hintText}}</text>
+  </view>
+  <view class="hint" wx:if="{{lastFish}}">上次：{{lastFish}}</view>
+  <view class="btn-group">
+    <button class="btn catch-btn" bindtap="onCast" loading="{{loading}}" disabled="{{castDisabled}}">抛竿</button>
+    <button class="btn pull-btn" bindtap="onPull" loading="{{loading}}" disabled="{{pullDisabled}}" wx:if="{{showPull}}">收竿</button>
+    <button class="btn sell-btn" bindtap="onSellAll" loading="{{loading}}">全部出售</button>
+  </view>
+  <view class="slogan">一竿山海，一渔人生</view>
+</view>

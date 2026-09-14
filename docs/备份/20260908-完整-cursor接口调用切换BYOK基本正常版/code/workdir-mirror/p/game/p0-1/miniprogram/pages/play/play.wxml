@@ -1,0 +1,54 @@
+<view class="page">
+  <!-- 顶栏 -->
+  <view class="topbar">
+    <view class="badge" wx:if="{{daily}}">每日挑战</view>
+    <view class="badge" wx:elif="{{doubled}}">双倍积分</view>
+    <view class="badge" wx:else>限时 45s</view>
+    <view class="score-wrap">
+      <text class="score">{{score}}</text>
+      <text class="combo">连击 {{combo}}</text>
+    </view>
+  </view>
+
+  <!-- 进度条 -->
+  <view class="timebar">
+    <view class="timefill {{timeLeft <= 10 ? 'warn' : ''}}" style="width: {{timePct}}%"></view>
+  </view>
+
+  <!-- 指令区 -->
+  <view class="stage">
+    <view class="prompt" style="color: {{promptColor}}" wx:if="{{promptMain}}">
+      {{promptMain}}
+      <view class="sub">{{promptSub}}</view>
+    </view>
+    <view class="hint">{{hint}}</view>
+  </view>
+
+  <!-- 按钮区 -->
+  <view class="pad {{padType}}">
+    <view
+      wx:for="{{buttons}}"
+      wx:key="k"
+      class="pad-btn {{item.cls}}"
+      bindtap="onTap"
+      data-key="{{item.k}}"
+    >{{item.label}}</view>
+  </view>
+
+  <!-- 反馈特效 -->
+  <view wx:if="{{fxTick > 0}}" class="fx {{fxCls}}">{{fxText}}</view>
+
+  <!-- 结算浮层 -->
+  <view class="overlay" wx:if="{{showEnd}}">
+    <view class="end-card">
+      <view class="end-title">{{endTitle}}</view>
+      <view class="end-score">{{score}}</view>
+      <view class="end-sub">段位 {{endRank}} · 最大连击 {{maxCombo}}</view>
+      <view class="end-actions">
+        <button wx:if="{{!lifeUsed}}" class="btn btn-gold" bindtap="tapLife">看视频续命 +15s</button>
+        <button class="btn btn-primary" bindtap="goResult">查看战绩</button>
+        <button class="btn btn-ghost" bindtap="restart">再来一局</button>
+      </view>
+    </view>
+  </view>
+</view>

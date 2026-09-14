@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Arrow Maze · 箭头迷宫</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; }
+  body {
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background:linear-gradient(160deg,#0f172a 0%,#0c2a3a 55%,#134e4a 100%); color:#e2e8f0; overflow:hidden; user-select:none;
+    touch-action:manipulation; overscroll-behavior:none;
+  }
+  #wrap { height:100dvh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:8px; }
+  .hud { display:flex; gap:20px; font-size:13px; font-weight:700; color:#94a3b8; align-items:center; }
+  .hud b { color:#fbbf24; font-size:16px; }
+  #stage { width:100%; max-width:390px; aspect-ratio:1; position:relative; border-radius:18px; overflow:hidden; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.12); }
+  #board { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; padding:6px; width:100%; height:100%; }
+  .cell { border-radius:9px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); display:flex; justify-content:center; align-items:center; font-size:19px; cursor:pointer; position:relative; }
+  .cell.start { background:rgba(52,211,153,.18); border-color:#34d399; }
+  .cell.end { background:rgba(251,191,36,.18); border-color:#fbbf24; }
+  .cell.onpath { background:rgba(56,189,248,.22); border-color:#38bdf8; box-shadow:0 0 8px rgba(56,189,248,.25); }
+  .cell.rot { animation:rotp .18s ease-out; }
+  @keyframes rotp { 0%{transform:rotate(0)} 100%{transform:rotate(90deg)} }
+  #tip { font-size:12px; color:#94a3b8; min-height:30px; text-align:center; line-height:1.5; padding:0 8px; }
+  .opbar { display:flex; gap:8px; width:100%; max-width:390px; }
+  .opbtn { flex:1; border:none; border-radius:12px; padding:11px 0; font-size:15px; font-weight:800; color:#fff; cursor:pointer; touch-action:manipulation; }
+  .opbtn:active { transform:scale(.97); }
+  #goBtn { background:linear-gradient(90deg,#34d399,#22d3ee); }
+  #resetBtn { background:linear-gradient(90deg,#64748b,#475569); }
+  #overlay { position:fixed; inset:0; background:rgba(2,6,23,.9); display:none; align-items:center; justify-content:center; z-index:10; }
+  #overlay.show { display:flex; }
+  .panel { text-align:center; padding:26px 22px; border-radius:20px; background:#1e293b; border:1px solid #334155; max-width:320px; width:90%; }
+  .panel h2 { font-size:22px; margin-bottom:4px; }
+  .stars { font-size:36px; letter-spacing:6px; margin:8px 0 2px; }
+  .rotline { color:#94a3b8; font-size:14px; margin-bottom:8px; }
+  .share { font-size:13px; color:#fbbf24; margin-bottom:14px; padding:8px 12px; background:#1e293b; border:1px dashed #475569; border-radius:10px; line-height:1.6; }
+  .play { background:linear-gradient(90deg,#38bdf8,#6366f1); border:none; color:#fff; font-size:17px; font-weight:800; padding:12px 36px; border-radius:999px; cursor:pointer; box-shadow:0 6px 0 rgba(0,0,0,.3); touch-action:manipulation; }
+  .play:active { transform: translateY(3px); box-shadow:0 3px 0 rgba(0,0,0,.3); }
+  .bestline { font-size:12px; color:#94a3b8; margin-top:10px; line-height:1.7; }
+</style>
+</head>
+<body>
+<div id="topbar"><a href="index.html">← 列表</a><span class="tt">Arrow Maze<span class="tg">箭头迷宫</span></span><button id="howBtn" aria-label="玩法说明">?</button></div>
+<div id="howto"><b>怎么玩</b><br>点击箭头把它旋转到正确方向，然后按「出发」从绿色起点沿箭头走。走通到金色终点就过关！旋转越少星越高。</div>
+<div id="wrap">
+  <div class="hud"><div>第 <b id="lv">1</b>/5 关</div><div>旋转 <b id="rot">0</b> 次</div><div>最佳 <b id="best">--</b></div></div>
+  <div id="stage"><div id="board"></div></div>
+  <div id="tip">点击箭头旋转方向，让绿色起点能一路走到金色终点</div>
+  <div class="opbar">
+    <button class="opbtn" id="goBtn">▶ 出发</button>
+    <button class="opbtn" id="resetBtn">↺ 重走</button>
+  </div>
+</div>
+
+<div id="overlay">
+  <div class="panel">
+    <h2 id="ovT">🎉 过关！</h2>
+    <div class="stars" id="stars">⭐⭐⭐</div>
+    <div class="rotline" id="rotLine">旋转 0 次</div>
+    <div class="share" id="shareTxt">我旋转 0 次就走通了箭头迷宫第 1 关，你试试？</div>
+    <button class="play" id="restart">再来一次</button>
+    <div class="bestline" id="bestLine"></div>
+  </div>
+</div>
+
+<style id="xz-shell">
+#topbar{position:fixed;top:0;left:0;right:0;height:64px;z-index:50;display:flex;align-items:center;gap:10px;padding:0 14px;background:rgba(15,23,42,.94);backdrop-filter:blur(8px);border-bottom:1px solid #334155;color:#e2e8f0;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;-webkit-user-select:none;user-select:none;}
+#topbar a{color:#38bdf8;text-decoration:none;font-size:14px;font-weight:700;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+#topbar .tt{flex:1;text-align:center;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#topbar .tg{font-size:11px;color:#94a3b8;font-weight:400;margin-left:4px;}
+#howBtn{width:30px;height:30px;border-radius:50%;border:1px solid #334155;background:#1e293b;color:#94a3b8;font-weight:800;cursor:pointer;font-size:15px;line-height:1;flex:none;}
+#howto{display:none;position:fixed;top:72px;left:50%;transform:translateX(-50%);width:min(92vw,420px);z-index:70;background:#1e293b;border:1px solid #475569;border-radius:14px;padding:14px 16px;color:#cbd5e1;font-size:13px;line-height:1.7;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;box-shadow:0 12px 32px rgba(0,0,0,.55);}
+#howto.show{display:block;}
+#howto b{color:#38bdf8;}
+.xz-cr{position:fixed;bottom:4px;right:10px;font-size:10px;color:#475569;z-index:45;font-family:-apple-system,"Segoe UI",sans-serif;pointer-events:none;-webkit-user-select:none;user-select:none;}
+</style>
+<div class="xz-cr">© AI24X Game Zone</div>
+<script>
+(function(){
+  'use strict';
+  var board=document.getElementById('board'), lvEl=document.getElementById('lv'), rotEl=document.getElementById('rot');
+  var bestEl=document.getElementById('best'), tip=document.getElementById('tip');
+  var overlay=document.getElementById('overlay'), ovT=document.getElementById('ovT'), stars=document.getElementById('stars');
+  var rotLine=document.getElementById('rotLine'), shareTxt=document.getElementById('shareTxt'), bestLine=document.getElementById('bestLine');
+  var restart=document.getElementById('restart'), goBtn=document.getElementById('goBtn'), resetBtn=document.getElementById('resetBtn');
+
+  var N=7, dirs=[], rotCount=0, lv=0, onPath=[], walking=false, best={};
+  var ARROWS=['↑','→','↓','←'], DR=[[-1,0],[0,1],[1,0],[0,-1]];
+  try{ best=JSON.parse(localStorage.getItem('xz-am-best')||'{}'); }catch(e){}
+
+  // 每关：起点→终点路径（格子序列），k=初始旋转错误的格子数
+  var LEVELS=[
+    { path:[[0,0],[0,1],[0,2],[0,3],[1,3],[2,3],[3,3],[3,4],[3,5],[3,6],[4,6],[5,6],[6,6]], k:1 },
+    { path:[[0,0],[1,0],[2,0],[2,1],[2,2],[2,3],[1,3],[0,3],[0,4],[0,5],[1,5],[2,5],[3,5],[3,6],[4,6],[5,6],[6,6]], k:2 },
+    { path:[[0,0],[0,1],[1,1],[2,1],[2,0],[3,0],[4,0],[4,1],[4,2],[3,2],[3,3],[3,4],[4,4],[5,4],[5,3],[5,2],[6,2],[6,3],[6,4],[6,5],[6,6]], k:3 },
+    { path:[[0,0],[1,0],[1,1],[1,2],[2,2],[3,2],[3,1],[3,0],[4,0],[5,0],[5,1],[5,2],[4,2],[4,3],[4,4],[5,4],[5,5],[6,5],[6,6]], k:4 },
+    { path:[[0,0],[0,1],[0,2],[1,2],[2,2],[2,1],[2,0],[3,0],[4,0],[4,1],[4,2],[4,3],[3,3],[3,4],[3,5],[4,5],[5,5],[5,4],[5,3],[6,3],[6,4],[6,5],[6,6]], k:5 }
+  ];
+
+  function dirOf(a,b){
+    var dr=b[0]-a[0], dc=b[1]-a[1];
+    if(dr===-1) return 0; if(dc===1) return 1; if(dr===1) return 2; return 3;
+  }
+
+  function build(){
+    board.innerHTML='';
+    var P=LEVELS[lv].path, k=LEVELS[lv].k;
+    dirs=[];
+    for(var r=0;r<N;r++){ dirs.push([]); for(var c=0;c<N;c++) dirs[r][c]=0; }
+    // 路径格子指向下一格
+    for(var i=0;i<P.length-1;i++) dirs[P[i][0]][P[i][1]]=dirOf(P[i],P[i+1]);
+    dirs[P[P.length-1][0]][P[P.length-1][1]]=dirOf(P[P.length-1],P[P.length-2]);
+    // 随机选 k 个路径格子转错方向
+    var idx=[];
+    for(var j=1;j<P.length-1;j++) idx.push(j);
+    for(var m=idx.length-1;m>0;m--){ var t=Math.floor(Math.random()*(m+1)); var tmp=idx[m]; idx[m]=idx[t]; idx[t]=tmp; }
+    for(var q=0;q<k;q++){
+      var pi=idx[q], pp=P[pi];
+      dirs[pp[0]][pp[1]]=(dirs[pp[0]][pp[1]]+1+(Math.floor(Math.random()*3)))%4;
+    }
+    // 非路径格子随机方向（迷惑项）
+    for(var a=0;a<N;a++) for(var b2=0;b2<N;b2++){
+      var onP=false;
+      for(var s=0;s<P.length;s++) if(P[s][0]===a&&P[s][1]===b2){ onP=true; break; }
+      if(!onP) dirs[a][b2]=Math.floor(Math.random()*4);
+    }
+    for(var x=0;x<N*N;x++){
+      var d=document.createElement('div');
+      var rr=Math.floor(x/N), cc=x%N;
+      d.className='cell';
+      d.dataset.i=x;
+      d.textContent=ARROWS[dirs[rr][cc]];
+      if(rr===0&&cc===0) d.classList.add('start');
+      if(rr===N-1&&cc===N-1) d.classList.add('end');
+      board.appendChild(d);
+    }
+    rotCount=0; rotEl.textContent='0';
+    lvEl.textContent=lv+1;
+    bestEl.textContent= best['l'+(lv+1)]!==undefined? best['l'+(lv+1)]+' 次' : '--';
+    onPath=[]; walking=false;
+    tip.textContent='点击箭头旋转方向，让绿色起点能一路走到金色终点';
+  }
+
+  function cellEl(r,c){ return board.children[r*N+c]; }
+
+  function rotate(r,c){
+    if(walking) return;
+    dirs[r][c]=(dirs[r][c]+1)%4;
+    var el=cellEl(r,c);
+    el.textContent=ARROWS[dirs[r][c]];
+    el.classList.remove('rot'); el.offsetHeight; el.classList.add('rot');
+    rotCount++; rotEl.textContent=rotCount;
+    clearPath();
+  }
+
+  function clearPath(){
+    onPath.forEach(function(p){ cellEl(p[0],p[1]).classList.remove('onpath'); });
+    onPath=[];
+  }
+
+  function go(){
+    if(walking) return;
+    clearPath();
+    var r=0,c=0, seen={}, steps=0;
+    var P=LEVELS[lv].path;
+    while(true){
+      var key=r+','+c;
+      if(seen[key]){ tip.textContent='🔁 走进死循环了，旋转箭头再试！'; return; }
+      seen[key]=1;
+      cellEl(r,c).classList.add('onpath');
+      onPath.push([r,c]);
+      if(r===N-1&&c===N-1){ win(); return; }
+      if(steps++>64){ tip.textContent='😵 走了太多步，死循环了！'; return; }
+      var d=dirs[r][c];
+      var nr=r+DR[d][0], nc=c+DR[d][1];
+      if(nr<0||nr>=N||nc<0||nc>=N){ tip.textContent='🚫 箭头指向界外，旋转箭头再试！'; return; }
+      r=nr; c=nc;
+    }
+  }
+
+  function win(){
+    walking=true;
+    var k=LEVELS[lv].k;
+    var st= rotCount<=k+2? 3 : rotCount<=k*3+2? 2 : 1;
+    var done=lv+1;
+    if(best['l'+done]===undefined||rotCount<best['l'+done]){ best['l'+done]=rotCount; try{ localStorage.setItem('xz-am-best',JSON.stringify(best)); }catch(e){} }
+    var all=done>=LEVELS.length;
+    ovT.textContent= all? '🏆 迷宫大师！' : '🎉 过关！';
+    stars.textContent='⭐'.repeat(st)+'☆'.repeat(3-st);
+    rotLine.textContent='旋转 '+rotCount+' 次';
+    shareTxt.textContent='第 '+done+' 关箭头迷宫我只转了 '+rotCount+' 次就走通了，你能更少吗？';
+    var bl=Object.keys(best).map(function(k){return '第'+k.slice(1)+'关 '+best[k]+'转';}).join(' · ');
+    bestLine.textContent= bl? bl : '';
+    overlay.classList.add('show');
+  }
+
+  board.addEventListener('pointerdown', function(e){
+    var cell=e.target.closest('.cell');
+    if(!cell) return;
+    var i=parseInt(cell.dataset.i,10);
+    rotate(Math.floor(i/N), i%N);
+  });
+  goBtn.addEventListener('pointerdown', go);
+  resetBtn.addEventListener('pointerdown', function(){ clearPath(); tip.textContent='点击箭头旋转方向，重新出发！'; });
+  restart.addEventListener('click', function(){
+    overlay.classList.remove('show');
+    lv=0; build();
+  });
+
+  build();
+})();
+</script>
+<script>
+(function(){
+  'use strict';
+  var W=390,H=780,TOP=64;
+  var wrap=document.getElementById('wrap');
+  function fit(){
+    if(!wrap) return;
+    var s=Math.min(innerWidth/W,(innerHeight-TOP)/H);
+    if(s>1.4) s=1.4;
+    wrap.style.transform='scale('+s+')';
+    wrap.style.transformOrigin='top center';
+    wrap.style.minHeight=(H*Math.max(s,1))+'px';
+  }
+  addEventListener('resize',fit); fit();
+  document.addEventListener('contextmenu',function(e){e.preventDefault();});
+  document.addEventListener('keydown',function(e){
+    if(e.key==='F12'||(e.ctrlKey&&['s','u','p'].indexOf(e.key)!==-1)||(e.ctrlKey&&e.shiftKey&&['i','j','c'].indexOf(e.key)!==-1)) e.preventDefault();
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+﻿{
+    "git_short":  "af84607317ad",
+    "label":  "鍥介檯鍙屾敮浠榦k1.0",
+    "repo_root":  "E:\\AI24X\\ai24x-website\\ai24x01",
+    "code_files":  [
+                       "api\\token_pay_service.py",
+                       "api\\pay_paypal.py",
+                       "api\\pay_dodo.py",
+                       "api\\pay_creem.py",
+                       "api\\billing_money.py",
+                       "api\\pay_products.py",
+                       "api\\main.py",
+                       "api\\schemas.py",
+                       "api\\models.py",
+                       "web\\js\\console.js",
+                       "web\\js\\api.js",
+                       "web\\console.html",
+                       "web\\pricing.html",
+                       "api\\data\\token_plans_override.json",
+                       "api\\data\\byok_plans_override.json",
+                       "p\\open\\api\\main.py"
+                   ],
+    "created_at":  "2026-08-29 21:19:06",
+    "database":  {
+                     "ok":  true,
+                     "host":  "127.0.0.1",
+                     "database":  "ai24x_a_pre",
+                     "full":  "db/full.dump",
+                     "payment_tables":  "db/payment_tables.dump",
+                     "tables":  [
+                                    "token_pay_orders",
+                                    "token_wallets",
+                                    "billing_ledger",
+                                    "token_credit_lots"
+                                ],
+                     "backed_at":  "2026-08-29 21:19:06"
+                 },
+    "git_head":  "af84607317ad34215f68d321571c20c132d902de"
+}

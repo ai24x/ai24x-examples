@@ -1,0 +1,2457 @@
+{
+  "PCB": [
+    {
+      "code": "002463",
+      "name": "沪电股份",
+      "score": 44.6,
+      "tags": [
+        "MACD翻红·第14天",
+        "MA20上翘",
+        "均线金叉",
+        "位置30%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "跌破双均线"
+      ],
+      "up_pct": -1.11,
+      "vol_ratio": 0.75,
+      "red_days": 14,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -7.5,
+      "pos60": 30.4
+    },
+    {
+      "code": "002916",
+      "name": "深南电路",
+      "score": 34.4,
+      "tags": [
+        "MA20上翘",
+        "均线金叉",
+        "位置28%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "跌破双均线"
+      ],
+      "up_pct": -0.77,
+      "vol_ratio": 0.71,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -10.7,
+      "pos60": 32.6
+    },
+    {
+      "code": "600183",
+      "name": "生益科技",
+      "score": 49.8,
+      "tags": [
+        "MACD翻红·第14天",
+        "MA20上翘",
+        "均线金叉",
+        "站上MA20",
+        "位置33%",
+        "动能健康"
+      ],
+      "risks": [],
+      "up_pct": 2.14,
+      "vol_ratio": 0.87,
+      "red_days": 14,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -7.5,
+      "pos60": 33.2
+    },
+    {
+      "code": "300476",
+      "name": "胜宏科技",
+      "score": 49.4,
+      "tags": [
+        "MACD翻红·第15天",
+        "MA20上翘",
+        "均线金叉",
+        "站上MA20",
+        "位置33%",
+        "动能健康"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "up_pct": -0.0,
+      "vol_ratio": 0.48,
+      "red_days": 15,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": true,
+      "chg5": -9.1,
+      "pos60": 34.3
+    },
+    {
+      "code": "603228",
+      "name": "景旺电子",
+      "score": 54.4,
+      "tags": [
+        "MA20上翘",
+        "站上MA20",
+        "首板",
+        "异动回踩支撑",
+        "位置66%",
+        "MA57上方",
+        "动能健康"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "up_pct": -0.67,
+      "vol_ratio": 0.49,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": true,
+      "surge": false,
+      "chg5": -7.0,
+      "pos60": 79.9
+    },
+    {
+      "code": "002938",
+      "name": "鹏鼎控股",
+      "score": 30.6,
+      "tags": [
+        "均线金叉",
+        "位置24%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": -0.58,
+      "vol_ratio": 0.59,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -7.7,
+      "pos60": 26.0
+    }
+  ],
+  "煤炭": [
+    {
+      "code": "601088",
+      "name": "中国神华",
+      "score": 66.4,
+      "tags": [
+        "MACD翻红·第6天",
+        "红柱放大",
+        "均线多头",
+        "MA20上翘",
+        "均线金叉×2",
+        "站上MA20",
+        "价升量增",
+        "位置67%",
+        "MA57上方"
+      ],
+      "risks": [
+        "RSI超买",
+        "量价背离"
+      ],
+      "up_pct": 0.6,
+      "vol_ratio": 0.84,
+      "red_days": 6,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": 3.2,
+      "pos60": 69.4
+    },
+    {
+      "code": "601225",
+      "name": "陕西煤业",
+      "score": 58.0,
+      "tags": [
+        "MACD翻红·第13天",
+        "红柱放大",
+        "均线多头",
+        "MA20上翘",
+        "均线金叉",
+        "站上MA20",
+        "位置79%",
+        "MA57上方",
+        "动能偏热"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "up_pct": 0.08,
+      "vol_ratio": 0.8,
+      "red_days": 13,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": 4.0,
+      "pos60": 82.8
+    },
+    {
+      "code": "600188",
+      "name": "兖矿能源",
+      "score": 41.6,
+      "tags": [
+        "MA20上翘",
+        "均线金叉",
+        "站上MA20",
+        "位置42%",
+        "MA57上方",
+        "动能偏热"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "up_pct": -0.55,
+      "vol_ratio": 0.88,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -3.2,
+      "pos60": 41.5
+    },
+    {
+      "code": "601898",
+      "name": "中煤能源",
+      "score": 73.0,
+      "tags": [
+        "MACD翻红·第37天",
+        "红柱放大",
+        "均线多头",
+        "MA20上翘",
+        "均线金叉",
+        "站上MA20",
+        "温和放量",
+        "价升量增",
+        "位置55%",
+        "MA57上方",
+        "动能偏热",
+        "量价配合"
+      ],
+      "risks": [
+        "长上影滞涨"
+      ],
+      "up_pct": 1.82,
+      "vol_ratio": 1.58,
+      "red_days": 37,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": 4.9,
+      "pos60": 57.8
+    },
+    {
+      "code": "601699",
+      "name": "潞安环能",
+      "score": 57.6,
+      "tags": [
+        "MACD翻红·第14天",
+        "均线多头",
+        "MA20上翘",
+        "站上MA20",
+        "位置47%",
+        "MA57上方",
+        "动能偏热"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "up_pct": -0.71,
+      "vol_ratio": 1.02,
+      "red_days": 14,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": true,
+      "chg5": 1.5,
+      "pos60": 48.8
+    },
+    {
+      "code": "600546",
+      "name": "山煤国际",
+      "score": 61.6,
+      "tags": [
+        "MACD翻红·第37天",
+        "均线多头",
+        "MA20上翘",
+        "均线金叉",
+        "站上MA20",
+        "位置50%",
+        "MA57上方",
+        "动能健康"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "up_pct": -2.56,
+      "vol_ratio": 1.1,
+      "red_days": 37,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": true,
+      "chg5": 0.6,
+      "pos60": 63.1
+    }
+  ],
+  "有色": [
+    {
+      "code": "600111",
+      "name": "北方稀土",
+      "score": 28.6,
+      "tags": [
+        "MA20上翘",
+        "位置18%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "跌破双均线"
+      ],
+      "up_pct": -1.41,
+      "vol_ratio": 0.58,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": true,
+      "chg5": -5.3,
+      "pos60": 14.4
+    },
+    {
+      "code": "601899",
+      "name": "紫金矿业",
+      "score": 44.2,
+      "tags": [
+        "均线多头",
+        "MA20上翘",
+        "均线金叉",
+        "站上MA20",
+        "位置81%",
+        "MA57上方",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "up_pct": -2.49,
+      "vol_ratio": 0.9,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": 0.4,
+      "pos60": 82.9
+    },
+    {
+      "code": "601600",
+      "name": "中国铝业",
+      "score": 26.6,
+      "tags": [
+        "位置36%",
+        "MA57上方",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行"
+      ],
+      "up_pct": -1.37,
+      "vol_ratio": 0.63,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -0.8,
+      "pos60": 32.5
+    },
+    {
+      "code": "000807",
+      "name": "云铝股份",
+      "score": 22.6,
+      "tags": [
+        "位置50%",
+        "MA57上方",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "up_pct": -0.61,
+      "vol_ratio": 0.53,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -1.7,
+      "pos60": 50.0
+    },
+    {
+      "code": "000933",
+      "name": "神火股份",
+      "score": 33.4,
+      "tags": [
+        "MA20上翘",
+        "位置50%",
+        "MA57上方",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "up_pct": -0.27,
+      "vol_ratio": 0.5,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -1.4,
+      "pos60": 50.2
+    },
+    {
+      "code": "603993",
+      "name": "洛阳钼业",
+      "score": 22.4,
+      "tags": [
+        "位置40%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": -3.0,
+      "vol_ratio": 0.77,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -2.1,
+      "pos60": 33.5
+    }
+  ],
+  "通信光模块CPO": [
+    {
+      "code": "300308",
+      "name": "中际旭创",
+      "score": 37.6,
+      "tags": [
+        "MACD翻红·第9天",
+        "均线金叉×2",
+        "位置8%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": -2.78,
+      "vol_ratio": 0.7,
+      "red_days": 9,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -14.4,
+      "pos60": 0.0
+    },
+    {
+      "code": "300502",
+      "name": "新易盛",
+      "score": 36.6,
+      "tags": [
+        "MACD翻红·第11天",
+        "均线金叉",
+        "位置11%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": -2.7,
+      "vol_ratio": 0.61,
+      "red_days": 11,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -11.4,
+      "pos60": 7.2
+    },
+    {
+      "code": "300394",
+      "name": "天孚通信",
+      "score": 45.8,
+      "tags": [
+        "MACD翻红·第16天",
+        "MA20上翘",
+        "均线金叉",
+        "站上MA20",
+        "位置27%",
+        "动能健康"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "up_pct": 3.05,
+      "vol_ratio": 0.79,
+      "red_days": 16,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -11.8,
+      "pos60": 28.8
+    },
+    {
+      "code": "002281",
+      "name": "光迅科技",
+      "score": 26.4,
+      "tags": [
+        "均线金叉",
+        "位置11%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": 0.56,
+      "vol_ratio": 0.58,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -15.3,
+      "pos60": 12.1
+    },
+    {
+      "code": "600487",
+      "name": "亨通光电",
+      "score": 78.4,
+      "tags": [
+        "MACD翻红·第15天",
+        "红柱放大",
+        "MA20上翘",
+        "均线金叉",
+        "站上MA20",
+        "价升量增",
+        "首板",
+        "异动回踩支撑",
+        "位置23%",
+        "动能健康"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "up_pct": 6.9,
+      "vol_ratio": 1.16,
+      "red_days": 15,
+      "latest_time": "2026-08-25",
+      "zt": true,
+      "surge": false,
+      "chg5": -1.2,
+      "pos60": 23.0
+    },
+    {
+      "code": "600522",
+      "name": "中天科技",
+      "score": 64.8,
+      "tags": [
+        "MACD翻红·第15天",
+        "MA20上翘",
+        "均线金叉",
+        "站上MA20",
+        "价升量增",
+        "异动回踩支撑",
+        "位置16%",
+        "动能健康"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "up_pct": 4.18,
+      "vol_ratio": 1.01,
+      "red_days": 15,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -4.0,
+      "pos60": 15.3
+    }
+  ],
+  "创新药CXO": [
+    {
+      "code": "603259",
+      "name": "药明康德",
+      "score": 33.2,
+      "tags": [
+        "MA20上翘",
+        "站上MA20",
+        "位置85%",
+        "MA57上方",
+        "动能健康"
+      ],
+      "risks": [],
+      "up_pct": 3.31,
+      "vol_ratio": 0.82,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -3.7,
+      "pos60": 90.7
+    },
+    {
+      "code": "300347",
+      "name": "泰格医药",
+      "score": 36.2,
+      "tags": [
+        "MA20上翘",
+        "位置74%",
+        "MA57上方",
+        "动能健康"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "up_pct": 6.33,
+      "vol_ratio": 0.94,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -3.1,
+      "pos60": 81.1
+    },
+    {
+      "code": "002821",
+      "name": "凯莱英",
+      "score": 62.0,
+      "tags": [
+        "MA20上翘",
+        "均线金叉",
+        "站上MA20",
+        "温和放量",
+        "价升量增",
+        "首板",
+        "位置70%",
+        "MA57上方",
+        "动能健康"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "up_pct": 10.0,
+      "vol_ratio": 1.29,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": true,
+      "surge": false,
+      "chg5": -2.8,
+      "pos60": 72.1
+    },
+    {
+      "code": "300759",
+      "name": "康龙化成",
+      "score": 41.6,
+      "tags": [
+        "MA20上翘",
+        "站上MA20",
+        "价升量增",
+        "位置78%",
+        "MA57上方",
+        "动能健康"
+      ],
+      "risks": [],
+      "up_pct": 3.48,
+      "vol_ratio": 0.94,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -9.2,
+      "pos60": 83.9
+    },
+    {
+      "code": "300363",
+      "name": "博腾股份",
+      "score": 49.2,
+      "tags": [
+        "MA20上翘",
+        "站上MA20",
+        "首板",
+        "异动回踩中",
+        "位置67%",
+        "MA57上方",
+        "动能健康"
+      ],
+      "risks": [
+        "量价背离",
+        "连续下杀"
+      ],
+      "up_pct": 2.05,
+      "vol_ratio": 1.01,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": true,
+      "surge": false,
+      "chg5": -3.2,
+      "pos60": 67.7
+    },
+    {
+      "code": "300558",
+      "name": "贝达药业",
+      "score": 22.2,
+      "tags": [
+        "位置8%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": 1.34,
+      "vol_ratio": 0.8,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": true,
+      "chg5": -11.7,
+      "pos60": 5.5
+    }
+  ],
+  "半导体": [
+    {
+      "code": "688981",
+      "name": "中芯国际",
+      "score": 29.2,
+      "tags": [
+        "均线金叉",
+        "位置7%",
+        "低位修复"
+      ],
+      "risks": [
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": -0.48,
+      "vol_ratio": 0.53,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -11.1,
+      "pos60": 6.2
+    },
+    {
+      "code": "002371",
+      "name": "北方华创",
+      "score": 25.4,
+      "tags": [
+        "均线金叉",
+        "位置33%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": -1.06,
+      "vol_ratio": 0.73,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -9.9,
+      "pos60": 32.8
+    },
+    {
+      "code": "603501",
+      "name": "韦尔股份",
+      "score": 34.2,
+      "tags": [
+        "价升量增",
+        "位置16%",
+        "低位修复"
+      ],
+      "risks": [
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": 3.7,
+      "vol_ratio": 1.1,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -5.5,
+      "pos60": 10.7
+    },
+    {
+      "code": "603986",
+      "name": "兆易创新",
+      "score": 37.6,
+      "tags": [
+        "MACD翻红·第12天",
+        "均线金叉",
+        "位置11%",
+        "动能健康"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": 3.63,
+      "vol_ratio": 0.66,
+      "red_days": 12,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -9.4,
+      "pos60": 11.0
+    },
+    {
+      "code": "688008",
+      "name": "澜起科技",
+      "score": 25.6,
+      "tags": [
+        "均线金叉",
+        "位置9%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": 1.35,
+      "vol_ratio": 0.51,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -10.8,
+      "pos60": 8.2
+    },
+    {
+      "code": "688256",
+      "name": "寒武纪",
+      "score": 23.0,
+      "tags": [
+        "位置9%",
+        "低位修复"
+      ],
+      "risks": [
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": 4.28,
+      "vol_ratio": 0.85,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -13.1,
+      "pos60": 6.6
+    }
+  ],
+  "AI服务器算力": [
+    {
+      "code": "000977",
+      "name": "浪潮信息",
+      "score": 26.8,
+      "tags": [
+        "均线金叉",
+        "位置43%",
+        "MA57上方",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行"
+      ],
+      "up_pct": 1.22,
+      "vol_ratio": 0.47,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -8.5,
+      "pos60": 49.9
+    },
+    {
+      "code": "603019",
+      "name": "中科曙光",
+      "score": 27.4,
+      "tags": [
+        "均线金叉",
+        "位置15%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": 1.23,
+      "vol_ratio": 0.43,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -7.4,
+      "pos60": 16.1
+    },
+    {
+      "code": "601138",
+      "name": "工业富联",
+      "score": 32.6,
+      "tags": [
+        "MA20上翘",
+        "位置21%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "跌破双均线"
+      ],
+      "up_pct": -0.41,
+      "vol_ratio": 0.53,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": true,
+      "chg5": -9.1,
+      "pos60": 23.3
+    },
+    {
+      "code": "000938",
+      "name": "紫光股份",
+      "score": 27.6,
+      "tags": [
+        "均线金叉",
+        "位置48%",
+        "MA57上方",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行"
+      ],
+      "up_pct": 1.77,
+      "vol_ratio": 0.37,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -10.6,
+      "pos60": 50.4
+    },
+    {
+      "code": "688158",
+      "name": "优刻得",
+      "score": 34.2,
+      "tags": [
+        "MA20上翘",
+        "位置24%",
+        "超跌区"
+      ],
+      "risks": [
+        "量价背离",
+        "跌破双均线"
+      ],
+      "up_pct": -0.83,
+      "vol_ratio": 0.47,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -15.0,
+      "pos60": 24.0
+    },
+    {
+      "code": "603629",
+      "name": "利通电子",
+      "score": 65.4,
+      "tags": [
+        "MACD翻红·第17天",
+        "MA20上翘",
+        "站上MA20",
+        "首板",
+        "异动回踩支撑",
+        "位置23%",
+        "动能健康"
+      ],
+      "risks": [],
+      "up_pct": -2.04,
+      "vol_ratio": 0.64,
+      "red_days": 17,
+      "latest_time": "2026-08-25",
+      "zt": true,
+      "surge": true,
+      "chg5": -12.6,
+      "pos60": 24.3
+    }
+  ],
+  "证券": [
+    {
+      "code": "600030",
+      "name": "中信证券",
+      "score": 20.6,
+      "tags": [
+        "位置44%",
+        "超跌区"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": -0.44,
+      "vol_ratio": 0.57,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -0.9,
+      "pos60": 42.6
+    },
+    {
+      "code": "300059",
+      "name": "东方财富",
+      "score": 17.0,
+      "tags": [
+        "位置36%",
+        "超跌区"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": 0.05,
+      "vol_ratio": 0.57,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -1.6,
+      "pos60": 38.4
+    },
+    {
+      "code": "300033",
+      "name": "同花顺",
+      "score": 22.2,
+      "tags": [
+        "位置31%",
+        "超跌区"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": -0.57,
+      "vol_ratio": 0.57,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -7.1,
+      "pos60": 34.0
+    },
+    {
+      "code": "300803",
+      "name": "指南针",
+      "score": 34.4,
+      "tags": [
+        "MA20上翘",
+        "位置20%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "跌破双均线"
+      ],
+      "up_pct": -0.5,
+      "vol_ratio": 0.54,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -3.8,
+      "pos60": 18.8
+    },
+    {
+      "code": "601688",
+      "name": "华泰证券",
+      "score": 23.4,
+      "tags": [
+        "位置9%",
+        "超跌区"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": -0.27,
+      "vol_ratio": 0.54,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -2.7,
+      "pos60": 0.0
+    },
+    {
+      "code": "601377",
+      "name": "兴业证券",
+      "score": 18.8,
+      "tags": [
+        "位置17%",
+        "超跌区"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": 0.34,
+      "vol_ratio": 0.51,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": 0.2,
+      "pos60": 13.7
+    }
+  ],
+  "军工": [
+    {
+      "code": "600760",
+      "name": "中航沈飞",
+      "score": 36.2,
+      "tags": [
+        "MA20上翘",
+        "均线金叉",
+        "站上MA20",
+        "位置83%",
+        "MA57上方",
+        "动能健康"
+      ],
+      "risks": [],
+      "up_pct": -1.64,
+      "vol_ratio": 0.71,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": 0.9,
+      "pos60": 87.5
+    },
+    {
+      "code": "600893",
+      "name": "航发动力",
+      "score": 44.8,
+      "tags": [
+        "MACD翻红·第25天",
+        "MA20上翘",
+        "站上MA20",
+        "位置38%",
+        "动能健康"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "up_pct": -0.87,
+      "vol_ratio": 0.81,
+      "red_days": 25,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -2.0,
+      "pos60": 37.9
+    },
+    {
+      "code": "000768",
+      "name": "中航西飞",
+      "score": 33.4,
+      "tags": [
+        "MA20上翘",
+        "均线金叉",
+        "温和放量",
+        "位置34%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "跌破双均线"
+      ],
+      "up_pct": -4.21,
+      "vol_ratio": 1.55,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -4.8,
+      "pos60": 27.9
+    },
+    {
+      "code": "600038",
+      "name": "中直股份",
+      "score": 68.2,
+      "tags": [
+        "MACD翻红·第1天",
+        "红柱放大",
+        "MA20上翘",
+        "均线金叉",
+        "站上MA20",
+        "位置66%",
+        "MA57上方",
+        "动能健康"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "up_pct": 0.93,
+      "vol_ratio": 0.94,
+      "red_days": 1,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": 3.6,
+      "pos60": 66.2
+    },
+    {
+      "code": "000738",
+      "name": "航发控制",
+      "score": 21.4,
+      "tags": [
+        "位置39%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": -0.28,
+      "vol_ratio": 0.6,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -3.4,
+      "pos60": 41.7
+    },
+    {
+      "code": "300034",
+      "name": "钢研高纳",
+      "score": 69.2,
+      "tags": [
+        "MACD翻红·第1天",
+        "红柱放大",
+        "MA20上翘",
+        "温和放量",
+        "价升量增",
+        "位置21%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "跌破双均线"
+      ],
+      "up_pct": 1.61,
+      "vol_ratio": 1.24,
+      "red_days": 1,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -2.4,
+      "pos60": 23.0
+    }
+  ],
+  "机器人": [
+    {
+      "code": "002747",
+      "name": "埃斯顿",
+      "score": 43.6,
+      "tags": [
+        "MA20上翘",
+        "均线金叉",
+        "首板",
+        "位置22%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "跌破双均线"
+      ],
+      "up_pct": 2.79,
+      "vol_ratio": 0.61,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": true,
+      "surge": false,
+      "chg5": -20.9,
+      "pos60": 21.4
+    },
+    {
+      "code": "300124",
+      "name": "汇川技术",
+      "score": 43.0,
+      "tags": [
+        "温和放量",
+        "价升量增",
+        "位置19%",
+        "低位修复",
+        "量价配合"
+      ],
+      "risks": [
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": 5.3,
+      "vol_ratio": 1.73,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -1.3,
+      "pos60": 17.0
+    },
+    {
+      "code": "688017",
+      "name": "绿的谐波",
+      "score": 29.4,
+      "tags": [
+        "MA20上翘",
+        "均线金叉",
+        "位置19%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "跌破双均线"
+      ],
+      "up_pct": 2.24,
+      "vol_ratio": 0.57,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -20.8,
+      "pos60": 18.0
+    },
+    {
+      "code": "002472",
+      "name": "双环传动",
+      "score": 21.4,
+      "tags": [
+        "位置6%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": 1.33,
+      "vol_ratio": 0.44,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -10.5,
+      "pos60": 4.0
+    },
+    {
+      "code": "603728",
+      "name": "鸣志电器",
+      "score": 19.4,
+      "tags": [
+        "位置8%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": 2.03,
+      "vol_ratio": 0.69,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -14.0,
+      "pos60": 6.9
+    },
+    {
+      "code": "300024",
+      "name": "机器人",
+      "score": 23.2,
+      "tags": [
+        "位置5%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": 1.33,
+      "vol_ratio": 0.49,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": true,
+      "chg5": -13.3,
+      "pos60": 3.7
+    }
+  ],
+  "光伏设备": [
+    {
+      "code": "300724",
+      "name": "捷佳伟创",
+      "score": 37.4,
+      "tags": [
+        "MACD翻红·第23天",
+        "MA20上翘",
+        "位置17%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "跌破双均线"
+      ],
+      "up_pct": 0.55,
+      "vol_ratio": 0.68,
+      "red_days": 23,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": true,
+      "chg5": -13.2,
+      "pos60": 12.4
+    },
+    {
+      "code": "300751",
+      "name": "迈为股份",
+      "score": 81.8,
+      "tags": [
+        "MACD翻红·第13天",
+        "红柱放大",
+        "均线多头",
+        "MA20上翘",
+        "均线金叉",
+        "站上MA20",
+        "温和放量",
+        "价升量增",
+        "异动回踩支撑",
+        "位置39%",
+        "MA57上方",
+        "动能偏热"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "up_pct": 4.85,
+      "vol_ratio": 1.49,
+      "red_days": 13,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": true,
+      "chg5": -0.5,
+      "pos60": 41.9
+    },
+    {
+      "code": "300316",
+      "name": "晶盛机电",
+      "score": 45.8,
+      "tags": [
+        "MACD翻红·第18天",
+        "MA20上翘",
+        "站上MA20",
+        "位置27%",
+        "动能健康"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "up_pct": 0.84,
+      "vol_ratio": 0.92,
+      "red_days": 18,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -6.1,
+      "pos60": 28.9
+    },
+    {
+      "code": "688516",
+      "name": "奥特维",
+      "score": 58.4,
+      "tags": [
+        "MACD翻红·第20天",
+        "红柱放大",
+        "MA20上翘",
+        "站上MA20",
+        "价升量增",
+        "位置27%",
+        "动能健康"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "up_pct": 2.94,
+      "vol_ratio": 1.86,
+      "red_days": 20,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -1.1,
+      "pos60": 27.2
+    },
+    {
+      "code": "300776",
+      "name": "帝尔激光",
+      "score": 44.2,
+      "tags": [
+        "MACD翻红·第14天",
+        "MA20上翘",
+        "均线金叉",
+        "位置13%",
+        "低位修复"
+      ],
+      "risks": [
+        "跌破双均线"
+      ],
+      "up_pct": -5.65,
+      "vol_ratio": 0.84,
+      "red_days": 14,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -14.5,
+      "pos60": 13.6
+    },
+    {
+      "code": "603185",
+      "name": "上机数控",
+      "score": 39.4,
+      "tags": [
+        "MA20上翘",
+        "位置64%",
+        "MA57上方",
+        "动能健康",
+        "波动收敛"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "up_pct": -0.67,
+      "vol_ratio": 0.45,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -5.0,
+      "pos60": 62.3
+    }
+  ],
+  "锂电池": [
+    {
+      "code": "300750",
+      "name": "宁德时代",
+      "score": 25.4,
+      "tags": [
+        "均线金叉",
+        "位置33%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": -2.88,
+      "vol_ratio": 1.0,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -4.9,
+      "pos60": 32.9
+    },
+    {
+      "code": "300014",
+      "name": "亿纬锂能",
+      "score": 39.6,
+      "tags": [
+        "MACD翻红·第24天",
+        "MA20上翘",
+        "位置24%",
+        "低位修复"
+      ],
+      "risks": [
+        "跌破双均线"
+      ],
+      "up_pct": -2.24,
+      "vol_ratio": 0.77,
+      "red_days": 24,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -3.7,
+      "pos60": 18.8
+    },
+    {
+      "code": "002074",
+      "name": "国轩高科",
+      "score": 19.8,
+      "tags": [
+        "位置31%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": -0.88,
+      "vol_ratio": 0.99,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -0.2,
+      "pos60": 30.4
+    },
+    {
+      "code": "300207",
+      "name": "欣旺达",
+      "score": 28.4,
+      "tags": [
+        "MA20上翘",
+        "位置25%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "跌破双均线"
+      ],
+      "up_pct": -0.67,
+      "vol_ratio": 0.53,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -2.4,
+      "pos60": 20.4
+    },
+    {
+      "code": "002709",
+      "name": "天赐材料",
+      "score": 41.2,
+      "tags": [
+        "MACD翻红·第21天",
+        "MA20上翘",
+        "位置15%",
+        "低位修复"
+      ],
+      "risks": [
+        "跌破双均线"
+      ],
+      "up_pct": -2.88,
+      "vol_ratio": 0.89,
+      "red_days": 21,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -7.1,
+      "pos60": 13.0
+    },
+    {
+      "code": "300769",
+      "name": "德方纳米",
+      "score": 44.6,
+      "tags": [
+        "MACD翻红·第19天",
+        "MA20上翘",
+        "位置19%",
+        "低位修复"
+      ],
+      "risks": [
+        "跌破双均线"
+      ],
+      "up_pct": -2.5,
+      "vol_ratio": 0.84,
+      "red_days": 19,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -5.0,
+      "pos60": 17.4
+    }
+  ],
+  "汽车整车": [
+    {
+      "code": "002594",
+      "name": "比亚迪",
+      "score": 35.6,
+      "tags": [
+        "均线金叉",
+        "站上MA20",
+        "价升量增",
+        "位置71%",
+        "MA57上方",
+        "动能健康"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "up_pct": 0.77,
+      "vol_ratio": 0.8,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": 2.0,
+      "pos60": 70.9
+    },
+    {
+      "code": "601633",
+      "name": "长城汽车",
+      "score": 23.6,
+      "tags": [
+        "位置20%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": 1.25,
+      "vol_ratio": 0.56,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": 0.5,
+      "pos60": 14.6
+    },
+    {
+      "code": "000625",
+      "name": "长安汽车",
+      "score": 31.4,
+      "tags": [
+        "价升量增",
+        "位置22%",
+        "超跌区",
+        "波动收敛"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": 0.71,
+      "vol_ratio": 0.38,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -0.4,
+      "pos60": 15.0
+    },
+    {
+      "code": "601127",
+      "name": "赛力斯",
+      "score": 26.4,
+      "tags": [
+        "位置4%",
+        "超跌区",
+        "波动收敛"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": 1.97,
+      "vol_ratio": 0.55,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -2.1,
+      "pos60": 3.0
+    },
+    {
+      "code": "600418",
+      "name": "江淮汽车",
+      "score": 36.4,
+      "tags": [
+        "MA20上翘",
+        "价升量增",
+        "位置9%",
+        "超跌区"
+      ],
+      "risks": [
+        "量价背离",
+        "跌破双均线"
+      ],
+      "up_pct": 5.47,
+      "vol_ratio": 1.03,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -4.2,
+      "pos60": 10.0
+    },
+    {
+      "code": "600733",
+      "name": "北汽蓝谷",
+      "score": 32.4,
+      "tags": [
+        "MA20上翘",
+        "价升量增",
+        "位置28%",
+        "超跌区"
+      ],
+      "risks": [
+        "量价背离",
+        "跌破双均线"
+      ],
+      "up_pct": 0.4,
+      "vol_ratio": 0.7,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -3.5,
+      "pos60": 29.6
+    }
+  ],
+  "白酒消费": [
+    {
+      "code": "600519",
+      "name": "贵州茅台",
+      "score": 30.0,
+      "tags": [
+        "均线金叉",
+        "位置72%",
+        "MA57上方",
+        "低位修复",
+        "量价配合"
+      ],
+      "risks": [
+        "破位下行"
+      ],
+      "up_pct": -0.05,
+      "vol_ratio": 0.49,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": 0.5,
+      "pos60": 70.1
+    },
+    {
+      "code": "000858",
+      "name": "五粮液",
+      "score": 24.6,
+      "tags": [
+        "位置7%",
+        "超跌区",
+        "波动收敛"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": 0.06,
+      "vol_ratio": 0.52,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -1.4,
+      "pos60": 5.2
+    },
+    {
+      "code": "600809",
+      "name": "山西汾酒",
+      "score": 30.2,
+      "tags": [
+        "均线金叉",
+        "位置40%",
+        "低位修复",
+        "波动收敛"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": -0.38,
+      "vol_ratio": 0.38,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -3.2,
+      "pos60": 37.5
+    },
+    {
+      "code": "000568",
+      "name": "泸州老窖",
+      "score": 27.4,
+      "tags": [
+        "均线金叉",
+        "位置58%",
+        "MA57上方",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "up_pct": -0.91,
+      "vol_ratio": 0.74,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -2.2,
+      "pos60": 58.2
+    },
+    {
+      "code": "000596",
+      "name": "古井贡酒",
+      "score": 38.4,
+      "tags": [
+        "MA20上翘",
+        "均线金叉",
+        "位置53%",
+        "MA57上方",
+        "动能健康",
+        "波动收敛"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "up_pct": 0.23,
+      "vol_ratio": 0.38,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -5.6,
+      "pos60": 60.9
+    },
+    {
+      "code": "600702",
+      "name": "舍得酒业",
+      "score": 35.6,
+      "tags": [
+        "MA20上翘",
+        "位置25%",
+        "低位修复",
+        "波动收敛"
+      ],
+      "risks": [
+        "量价背离",
+        "跌破双均线"
+      ],
+      "up_pct": 0.48,
+      "vol_ratio": 0.38,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -2.0,
+      "pos60": 27.2
+    }
+  ],
+  "电力": [
+    {
+      "code": "600900",
+      "name": "长江电力",
+      "score": 37.2,
+      "tags": [
+        "均线金叉×2",
+        "位置60%",
+        "MA57上方",
+        "动能健康",
+        "波动收敛"
+      ],
+      "risks": [
+        "破位下行"
+      ],
+      "up_pct": 0.21,
+      "vol_ratio": 0.8,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": 0.3,
+      "pos60": 60.9
+    },
+    {
+      "code": "601985",
+      "name": "中国核电",
+      "score": 35.4,
+      "tags": [
+        "价升量增",
+        "位置20%",
+        "动能健康",
+        "波动收敛"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": 0.8,
+      "vol_ratio": 0.88,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": 0.2,
+      "pos60": 22.0
+    },
+    {
+      "code": "600886",
+      "name": "国投电力",
+      "score": 27.0,
+      "tags": [
+        "均线金叉",
+        "位置40%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": -0.29,
+      "vol_ratio": 0.63,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": 1.2,
+      "pos60": 37.3
+    },
+    {
+      "code": "600674",
+      "name": "川投能源",
+      "score": 56.6,
+      "tags": [
+        "MACD翻红·第2天",
+        "红柱放大",
+        "均线金叉",
+        "站上MA20",
+        "位置64%",
+        "MA57上方",
+        "动能健康"
+      ],
+      "risks": [],
+      "up_pct": -0.32,
+      "vol_ratio": 0.69,
+      "red_days": 2,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": 1.4,
+      "pos60": 66.9
+    },
+    {
+      "code": "600027",
+      "name": "华电国际",
+      "score": 24.4,
+      "tags": [
+        "位置17%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": 1.1,
+      "vol_ratio": 0.93,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": 1.1,
+      "pos60": 14.5
+    },
+    {
+      "code": "600011",
+      "name": "华能国际",
+      "score": 20.4,
+      "tags": [
+        "位置4%",
+        "超跌区"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": 0.75,
+      "vol_ratio": 0.49,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -2.9,
+      "pos60": 3.6
+    }
+  ],
+  "机械设备": [
+    {
+      "code": "600031",
+      "name": "三一重工",
+      "score": 21.4,
+      "tags": [
+        "均线金叉",
+        "位置54%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": 1.83,
+      "vol_ratio": 0.54,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -0.1,
+      "pos60": 47.0
+    },
+    {
+      "code": "000157",
+      "name": "中联重科",
+      "score": 29.2,
+      "tags": [
+        "均线金叉",
+        "位置22%",
+        "低位修复"
+      ],
+      "risks": [
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": 0.0,
+      "vol_ratio": 0.58,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": 2.0,
+      "pos60": 23.0
+    },
+    {
+      "code": "000425",
+      "name": "徐工机械",
+      "score": 26.6,
+      "tags": [
+        "位置9%",
+        "低位修复",
+        "波动收敛"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": 1.01,
+      "vol_ratio": 0.45,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -0.2,
+      "pos60": 4.0
+    },
+    {
+      "code": "601100",
+      "name": "恒立液压",
+      "score": 30.0,
+      "tags": [
+        "均线金叉×3",
+        "位置13%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "长上影滞涨",
+        "跌破双均线"
+      ],
+      "up_pct": -4.16,
+      "vol_ratio": 2.17,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -6.7,
+      "pos60": 0.0
+    },
+    {
+      "code": "000338",
+      "name": "潍柴动力",
+      "score": 29.6,
+      "tags": [
+        "MA20上翘",
+        "位置30%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "跌破双均线"
+      ],
+      "up_pct": 0.11,
+      "vol_ratio": 0.92,
+      "red_days": 0,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -11.4,
+      "pos60": 28.9
+    },
+    {
+      "code": "002008",
+      "name": "大族激光",
+      "score": 36.4,
+      "tags": [
+        "MACD翻红·第14天",
+        "均线金叉",
+        "位置5%",
+        "低位修复"
+      ],
+      "risks": [
+        "量价背离",
+        "破位下行",
+        "跌破双均线"
+      ],
+      "up_pct": -1.22,
+      "vol_ratio": 0.66,
+      "red_days": 14,
+      "latest_time": "2026-08-25",
+      "zt": false,
+      "surge": false,
+      "chg5": -13.2,
+      "pos60": 5.4
+    }
+  ],
+  "种植业与林业": [
+    {
+      "code": "300189",
+      "name": "神农种业",
+      "score": 72.2,
+      "tags": [
+        "MACD翻红·第33天",
+        "红柱放大",
+        "均线多头",
+        "MA20上翘",
+        "站上MA20",
+        "价升量增",
+        "首板",
+        "异动回踩中",
+        "位置81%",
+        "MA57上方",
+        "动能偏热",
+        "量价配合"
+      ],
+      "risks": [],
+      "up_pct": 6.68,
+      "vol_ratio": 1.85,
+      "red_days": 33,
+      "latest_time": "2026-08-25",
+      "zt": true,
+      "surge": true,
+      "chg5": 0.0,
+      "pos60": 95.3,
+      "src": "dynamic"
+    },
+    {
+      "code": "600313",
+      "name": "农发种业",
+      "score": 69.4,
+      "tags": [
+        "MACD翻红·第39天",
+        "红柱放大",
+        "均线多头",
+        "MA20上翘",
+        "均线金叉",
+        "站上MA20",
+        "价升量增",
+        "异动回踩中",
+        "位置78%",
+        "MA57上方",
+        "动能偏热"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "up_pct": 5.41,
+      "vol_ratio": 2.54,
+      "red_days": 39,
+      "latest_time": "2026-08-25",
+      "zt": true,
+      "surge": true,
+      "chg5": 3.4,
+      "pos60": 94.1,
+      "src": "dynamic"
+    },
+    {
+      "code": "600598",
+      "name": "北大荒",
+      "score": 86.4,
+      "tags": [
+        "MACD翻红·第35天",
+        "红柱放大",
+        "均线多头",
+        "MA20上翘",
+        "均线金叉",
+        "站上MA20",
+        "价升量增",
+        "首板",
+        "异动回踩支撑",
+        "位置65%",
+        "MA57上方",
+        "动能健康"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "up_pct": 3.21,
+      "vol_ratio": 1.85,
+      "red_days": 35,
+      "latest_time": "2026-08-25",
+      "zt": true,
+      "surge": false,
+      "chg5": -2.1,
+      "pos60": 65.4,
+      "src": "dynamic"
+    },
+    {
+      "code": "601118",
+      "name": "海南橡胶",
+      "score": 72.6,
+      "tags": [
+        "MACD翻红·第35天",
+        "均线多头",
+        "MA20上翘",
+        "站上MA20",
+        "温和放量",
+        "首板",
+        "异动回踩支撑",
+        "位置56%",
+        "MA57上方",
+        "动能偏热"
+      ],
+      "risks": [
+        "量价背离",
+        "长上影滞涨"
+      ],
+      "up_pct": -2.71,
+      "vol_ratio": 1.74,
+      "red_days": 35,
+      "latest_time": "2026-08-25",
+      "zt": true,
+      "surge": true,
+      "chg5": 7.4,
+      "pos60": 61.6,
+      "src": "dynamic"
+    },
+    {
+      "code": "002041",
+      "name": "登海种业",
+      "score": 75.2,
+      "tags": [
+        "MACD翻红·第6天",
+        "红柱放大",
+        "均线多头",
+        "MA20上翘",
+        "均线金叉",
+        "站上MA20",
+        "价升量增",
+        "异动回踩中",
+        "位置100%",
+        "MA57上方",
+        "动能偏热",
+        "量价配合",
+        "放量突破"
+      ],
+      "risks": [],
+      "up_pct": 10.01,
+      "vol_ratio": 2.9,
+      "red_days": 6,
+      "latest_time": "2026-08-25",
+      "zt": true,
+      "surge": true,
+      "chg5": 14.4,
+      "pos60": 100.0,
+      "src": "dynamic"
+    },
+    {
+      "code": "600354",
+      "name": "敦煌种业",
+      "score": 81.6,
+      "tags": [
+        "MACD翻红·第6天",
+        "红柱放大",
+        "均线多头",
+        "MA20上翘",
+        "均线金叉",
+        "站上MA20",
+        "价升量增",
+        "首板",
+        "异动回踩支撑",
+        "位置80%",
+        "MA57上方",
+        "动能偏热"
+      ],
+      "risks": [
+        "量价背离"
+      ],
+      "up_pct": 6.94,
+      "vol_ratio": 1.94,
+      "red_days": 6,
+      "latest_time": "2026-08-25",
+      "zt": true,
+      "surge": false,
+      "chg5": 1.4,
+      "pos60": 100.0,
+      "src": "dynamic"
+    }
+  ]
+}

@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- [AI24X 2026-08-15] Google Ads 暂停 (国际支付无合规渠道，保留待恢复，勿删）：
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18385419220"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', {
+    'ad_storage': 'denied',
+    'ad_user_data': 'denied',
+    'ad_personalization': 'denied',
+    'analytics_storage': 'denied',
+    'personalization_storage': 'denied',
+    'functionality_storage': 'granted',
+    'security_storage': 'granted',
+    'wait_for_update': 500
+  });
+  gtag('js', new Date());
+
+  gtag('config', 'AW-18385419220');
+</script>
+<script src="config/consent.js?v=20260814a"></script>
+-->
+
+  <meta charset="UTF-8" />
+  <script>
+/* i18n-boot inline v20260808c: language pre-read + FOUC guard (no network dependency) */
+(function () {
+  var KEY = "ai24x_lang";
+  try {
+    var raw = String(localStorage.getItem(KEY) || "").trim().toLowerCase().replace(/_/g, "-");
+    var lang = raw.split("-")[0] || "";
+    if (!lang) { lang = "en"; localStorage.setItem(KEY, lang); }
+    document.documentElement.setAttribute("data-ai24x-lang", lang);
+    document.documentElement.classList.add("i18n-pending");
+    if (!document.getElementById("ai24x-i18n-pending")) {
+      var st = document.createElement("style");
+      st.id = "ai24x-i18n-pending";
+      st.textContent = "html.i18n-pending body{visibility:hidden!important}";
+      (document.head || document.documentElement).appendChild(st);
+    }
+    setTimeout(function () { document.documentElement.classList.remove("i18n-pending"); }, 4000);
+  } catch (e) {}
+})();
+</script>
+  <script>
+    /* 未登录立刻跳转，减少控制台骨架闪一下再进登录 */
+    (function () {
+      try {
+        if (!localStorage.getItem("ai24x_auth_token")) {
+          var m = document.cookie.match(/(?:^|; )ai24x_auth_token=([^;]*)/);
+          var tok = m ? decodeURIComponent(m[1]) : "";
+          if (tok) {
+            localStorage.setItem("ai24x_auth_token", tok);
+            var mu = document.cookie.match(/(?:^|; )ai24x_auth_user=([^;]*)/);
+            if (mu) {
+              try { localStorage.setItem("ai24x_auth_user", decodeURIComponent(mu[1])); } catch (e2) {}
+            }
+            return;
+          }
+          var next = "console.html";
+          var h = location.hash || "";
+          if (h && /^#[A-Za-z]/.test(h)) next += h;
+          location.replace("login.html?next=" + encodeURIComponent(next));
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="Manage your AI24X account — AI Gateway and AI Markets in one place." />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="canonical" href="https://www.ai24x.com/console.html" />
+  <link rel="alternate" hreflang="en" href="https://www.ai24x.com/console.html" />
+  <link rel="alternate" hreflang="zh-CN" href="https://www.ai24x.com/console.html" />
+  <link rel="alternate" hreflang="x-default" href="https://www.ai24x.com/console.html" />
+  <title>Account · AI24X</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="dns-prefetch" href="https://api.ai24x.com" />
+  <link rel="preconnect" href="https://api.ai24x.com" crossorigin />
+  <link rel="stylesheet" href="css/base.css?v=20260829c" />
+  <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260812e" data-base="css/themes/" />
+  <style>
+    /* console: 统一产品套餐列表（选项目 → 选套餐 → 选支付方式） */
+    .product-card { border: 1px solid var(--border, #d8e4ef); border-radius: var(--radius, 12px); padding: 14px 16px; margin-bottom: 14px; background: var(--card-bg, #fff); }
+    .product-card.is-markets { border-color: color-mix(in srgb, var(--accent, #2563eb) 35%, transparent); }
+    .product-card.is-token { border-color: color-mix(in srgb, var(--accent, #2563eb) 50%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent, #2563eb) 18%, transparent); }
+    .product-card.is-gateway { border-color: color-mix(in srgb, var(--accent, #2563eb) 55%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent, #2563eb) 14%, transparent); }
+    .product-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .product-card-head h4 { display: inline-flex; align-items: center; gap: 8px; margin: 0; }
+    .product-plan-info .plan-rec { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; color: var(--accent, #2563eb); border: 1px solid color-mix(in srgb, var(--accent, #2563eb) 40%, transparent); vertical-align: middle; }
+    .product-card-head .plan-rec-muted { color: var(--muted, #5a6b7b); border-color: var(--border, #d8e4ef); font-weight: 500; }
+.product-plans { display: flex; flex-direction: column; gap: 8px; }
+.product-card-head .open-product { display: inline-flex; align-items: center; gap: 5px; padding: 7px 15px; border-radius: 999px; font-size: .8rem; font-weight: 700; color: #fff; text-decoration: none; background: linear-gradient(180deg, color-mix(in srgb, var(--accent,#2563eb) 92%, #fff), var(--accent,#2563eb)); border: 1px solid color-mix(in srgb, var(--accent,#2563eb) 70%, #1e3a5f); box-shadow: 0 2px 10px color-mix(in srgb, var(--accent,#2563eb) 38%, transparent); transition: filter .15s ease, box-shadow .15s ease, transform .12s ease; white-space: nowrap; }
+.product-card-head .open-product:hover { filter: brightness(1.07); box-shadow: 0 4px 16px color-mix(in srgb, var(--accent,#2563eb) 48%, transparent); transform: translateY(-1px); text-decoration: none; color: #fff; }
+.console-panel-head .linkish { background: none; border: 0; padding: 0; font: inherit; color: var(--accent,#2563eb); font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.console-panel-head .linkish:hover { filter: brightness(1.1); }
+    .product-plan-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--border-soft, rgba(148, 163, 184, 0.25)); border-radius: 10px; }
+    .product-plan-row.is-recommended { background: color-mix(in srgb, var(--accent, #2563eb) 6%, transparent); }
+    .product-plan-info { min-width: 0; flex: 1; }
+    .product-plan-info strong { font-size: 0.95rem; }
+    .product-plan-act { flex-shrink: 0; }
+    .product-plan-act .btn { min-width: 84px; justify-content: center; }
+    .product-plan-row.vp-lit { background: linear-gradient(90deg, rgba(245, 158, 11, 0.10), rgba(245, 158, 11, 0.02)); box-shadow: inset 3px 0 0 rgba(245, 158, 11, 0.9); }
+    .product-plan-row .vp-lit-badge { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; color: #0f7b4e; border: 1px solid rgba(15, 123, 78, 0.55); background: rgba(15, 123, 78, 0.10); }
+    /* console overview: 母站产品双门 */
+    .console-hero .hero-eyebrow {
+      margin: 0 0 10px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .console-hero h1 {
+      font-size: clamp(1.55rem, 3.2vw, 2.05rem);
+      letter-spacing: -0.02em;
+      margin-bottom: 0.4rem;
+    }
+    .ov-section-label {
+      margin: 1.35rem 0 0.65rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .ov-stats-wrap { margin-top: 4px; }
+    .ov-stats-wrap .stats-grid { margin-top: 0; }
+    .hub-launch-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin: 0 0 1.25rem;
+    }
+    .hub-launch-card {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 14px 16px;
+      border: 1px solid var(--border, #d8e4ef);
+      border-radius: var(--radius, 12px);
+      background: var(--card-bg, #fff);
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    button.hub-launch-card {
+      cursor: pointer;
+      font: inherit;
+      text-align: left;
+      width: 100%;
+    }
+    .hub-launch-card:hover {
+      border-color: color-mix(in srgb, var(--accent, #2563eb) 45%, transparent);
+      box-shadow: 0 4px 14px color-mix(in srgb, var(--accent, #2563eb) 10%, transparent);
+      text-decoration: none;
+      color: inherit;
+    }
+    .hub-launch-card .hub-launch-kicker {
+      margin: 0;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .hub-launch-card strong { font-size: 0.98rem; }
+    .hub-launch-card .sub { margin: 0; font-size: 0.82rem; }
+    @media (max-width: 640px) {
+      .hub-launch-grid { grid-template-columns: 1fr; }
+    }
+    /* 手机端：单列轨道允许收缩，导航横向滚动（否则按钮 min-content 会把整页撑出横向滚动条） */
+    @media (max-width: 900px) {
+      .console-layout { grid-template-columns: minmax(0, 1fr); }
+      .console-sidebar { min-width: 0; }
+    }
+    #modal-pay-channels { flex-wrap: wrap; }
+    #modal-pay-channels .btn { min-width: 132px; justify-content: center; display: inline-flex; align-items: center; gap: 8px; }
+    #modal-pay-channels .pay-ico { width: 18px; height: 18px; flex-shrink: 0; }
+    #modal-pay-channels .pay-btn-block { width: 100%; margin-bottom: 8px; justify-content: flex-start; text-align: left; }
+    #modal-pay-channels .pay-btn-block .pay-btn-text { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+    #modal-pay-channels .pay-btn-block .pay-btn-title-row { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; line-height: 1.25; }
+    #modal-pay-channels .pay-btn-block .pay-sub { display: block; font-size: 11px; font-weight: 400; opacity: 0.72; margin-top: 3px; padding-left: 26px; line-height: 1.35; }
+    #modal-pay-channels .pay-more-label { width: 100%; margin: 2px 0 6px; font-size: 12px; color: var(--muted); text-align: center; }
+    #modal-pay-channels .pay-more-box { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+    #modal-pay-channels .pay-more-box .btn { width: 100%; min-width: 0; }
+    #modal-pay-channels .pay-note { width: 100%; margin-top: 8px; font-size: 11px; color: var(--muted); text-align: center; }
+    @media (max-width: 560px) {
+      .product-plan-row { flex-wrap: wrap; }
+      .product-plan-act { width: 100%; }
+      .product-plan-act .btn { width: 100%; }
+    }
+        /* console: 卡片等高 + 动作贴底 + 按钮统一 */
+    .console-panel .card { display: flex; flex-direction: column; }
+    .console-panel .card .card-actions { margin-top: auto; }
+    .console-panel .btn { min-height: 38px; line-height: 1.2; white-space: nowrap; }
+    /* console: usage 流水表 */
+    .usage-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 4px 0 10px; flex-wrap: wrap; }
+    .usage-toolbar .btn { font-size: 0.8rem; padding: 6px 12px; }
+    .usage-pager { display: flex; align-items: center; gap: 8px; }
+    .usage-page-info { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+    .usage-table-wrap { overflow-x: auto; }
+    .usage-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .usage-table th, .usage-table td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border, #d8e4ef); vertical-align: top; }
+    .usage-table thead th { color: var(--muted); font-weight: 600; white-space: nowrap; background: color-mix(in srgb, var(--accent, #2563eb) 4%, transparent); }
+    .usage-table td.col-time { white-space: nowrap; color: var(--muted); }
+    .usage-table td.col-amount { white-space: nowrap; font-weight: 600; }
+    .usage-table td.col-amount-pos { color: #16a34a; }
+    .usage-table td.col-amount-neg { color: #dc2626; }
+    .usage-table td.col-tokens { white-space: nowrap; text-align: right; }
+    .usage-table td.col-note { max-width: 260px; overflow-wrap: break-word; }
+    .usage-empty { padding: 14px 10px; color: var(--muted); }
+    .usage-rangebar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .usage-range-label { font-size: 0.85rem; color: var(--muted); }
+    .usage-range-group, .usage-metric-group { display: flex; gap: 6px; flex-wrap: wrap; }
+    .usage-range-btn, .usage-metric-btn { font-size: 0.8rem; padding: 5px 12px; }
+    .usage-range-btn.is-active, .usage-metric-btn.is-active { background: var(--accent, #2563eb); color: #fff; border-color: var(--accent, #2563eb); }
+    .tx-type-btn { font-size: 0.8rem; padding: 5px 12px; }
+    .tx-type-btn.is-active { background: var(--accent, #2563eb); color: #fff; border-color: var(--accent, #2563eb); }
+    .usage-stats-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .usage-chart { width: 100%; overflow-x: auto; }
+    .usage-chart svg { display: block; width: 100%; height: auto; min-width: 480px; }
+    .usage-models { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+    .usage-model-row { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; }
+    .usage-model-name { width: 190px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .usage-model-bar-wrap { flex: 1; background: color-mix(in srgb, var(--accent, #2563eb) 10%, transparent); border-radius: 999px; height: 10px; overflow: hidden; }
+    .usage-model-bar { height: 100%; background: var(--accent, #2563eb); border-radius: 999px; }
+    .usage-model-num { width: 190px; text-align: right; white-space: nowrap; color: var(--muted); }
+    .usage-model-pct { width: 56px; text-align: right; font-weight: 600; white-space: nowrap; }
+    .usage-tok-sub { display: block; font-size: 0.72rem; color: var(--muted); font-weight: 400; }
+    .stats-grid .stat-card { display: flex; flex-direction: column; }
+    .stats-grid .stat-card .stat-sub { margin-top: auto; }
+    /* 邀请回馈卡 */
+    .invite-reward-card { display: flex; flex-direction: column; gap: 14px; }
+    .invite-reward-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .invite-reward-stats { display: flex; gap: 28px; }
+    .invite-reward-stat .stat-value { font-size: 1.25rem; margin-top: 4px; }
+    .invite-reward-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .invite-reward-item { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .invite-reward-item .invite-label { font-weight: 700; color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
+    .invite-reward-code { font-weight: 800; letter-spacing: 0.05em; font-size: 1.05rem; color: var(--heading); }
+    .invite-reward-link { font-weight: 600; font-size: 0.9rem; word-break: break-all; color: var(--text); min-width: 0; }
+    .invite-reward-item .btn { flex-shrink: 0; }
+    .invite-reward-invitees { border-top: 1px solid var(--border); padding-top: 14px; }
+    .invite-reward-invitees-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+    .invite-reward-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .invite-reward-table th, .invite-reward-table td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .invite-reward-table th { color: var(--muted); font-weight: 600; font-size: 0.8rem; }
+      .invite-reward-empty { color: var(--muted); font-size: 0.9rem; padding: 6px 0; }
+      .badge-active, .badge-pending { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; white-space: nowrap; }
+      .badge-active { background: rgba(34,197,94,.14); color: #16a34a; }
+      .badge-pending { background: rgba(148,163,184,.16); color: #64748b; }
+      /* console: 工单对话 */
+      .support-layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; align-items: stretch; }
+      .support-side { gap: 10px; }
+      .support-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 58vh; padding-right: 4px; }
+      .support-ticket-item { padding: 10px 12px; border: 1px solid var(--border, #d8e4ef); border-radius: 10px; cursor: pointer; background: color-mix(in srgb, var(--accent, #2563eb) 2%, transparent); }
+      .support-ticket-item:hover { border-color: var(--accent, #2563eb); }
+      .support-ticket-item.is-active { border-color: var(--accent, #2563eb); background: color-mix(in srgb, var(--accent, #2563eb) 8%, transparent); }
+      .support-ticket-subj { font-weight: 600; font-size: 0.92rem; overflow-wrap: break-word; }
+      .support-ticket-last { font-size: 0.82rem; color: var(--muted, #64748b); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+      .support-ticket-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: 0.76rem; color: var(--muted, #64748b); }
+      .support-chat { gap: 10px; min-height: 420px; }
+      .support-empty { flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; padding: 40px 16px; }
+      .support-conv-head { border-bottom: 1px solid var(--border, #d8e4ef); padding-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+      .support-conv-head .support-status { margin-left: 8px; }
+      .support-msgs { flex: 1; overflow-y: auto; max-height: 52vh; display: flex; flex-direction: column; gap: 10px; padding: 4px 2px; }
+      .support-msg { display: flex; flex-direction: column; align-items: flex-start; max-width: 82%; }
+      .support-msg.is-user { align-self: flex-end; align-items: flex-end; }
+      .support-bubble { padding: 9px 13px; border-radius: 14px; font-size: 0.9rem; white-space: pre-wrap; overflow-wrap: break-word; line-height: 1.45; }
+      .support-bubble-user { background: var(--accent, #2563eb); color: #fff; border-bottom-right-radius: 4px; }
+      .support-bubble-system { background: color-mix(in srgb, var(--accent, #2563eb) 10%, transparent); border-bottom-left-radius: 4px; }
+      .support-bubble-admin { background: rgba(34,197,94,.14); border-bottom-left-radius: 4px; }
+      .support-msg-meta { font-size: 0.72rem; color: var(--muted, #64748b); margin-top: 3px; }
+      .support-compose { border-top: 1px solid var(--border, #d8e4ef); padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+      .support-status { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.76rem; font-weight: 600; white-space: nowrap; }
+      .support-status.open { background: rgba(34,197,94,.14); color: #16a34a; }
+      .support-status.replied { background: rgba(37,99,235,.14); color: #2563eb; }
+      .support-status.closed { background: rgba(148,163,184,.16); color: #64748b; }
+      @media (max-width: 820px) {
+        .support-layout { grid-template-columns: 1fr; }
+        .support-list { max-height: 220px; }
+        .support-msgs { max-height: 42vh; }
+      }
+      @media (max-width: 720px) {
+        .invite-reward-head, .invite-reward-row { flex-direction: column; align-items: stretch; }
+      .invite-reward-stats { justify-content: space-between; }
+      .invite-reward-item { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body data-page="console" data-console-mode="hub" class="theme-blue">
+  <header class="site-header" id="site-header"></header>
+  <main class="page-main">
+    <div id="back-bar" class="back-bar"></div>
+    <div class="ui-modal-root" id="modal-create-key" aria-hidden="true">
+      <div class="ui-modal-backdrop" data-close-modal="modal-create-key"></div>
+      <div class="ui-modal-card" role="dialog" aria-labelledby="modal-create-key-title">
+        <h3 id="modal-create-key-title" data-i18n="page.console.modal.createTitle">Create API key</h3>
+        <p class="ui-modal-sub" data-i18n="page.console.modal.createSub">Give this key a memorable name.</p>
+        <div class="form-group">
+          <label for="create-key-name" data-i18n="page.console.modal.keyName">Key name</label>
+          <input class="input" id="create-key-name" type="text" maxlength="64" value="Default key" autocomplete="off" data-i18n="page.console.modal.keyNameDefault" />
+        </div>
+        <div class="ui-modal-actions">
+          <button type="button" class="btn" data-close-modal="modal-create-key" data-i18n="page.console.modal.cancel">Cancel</button>
+          <button type="button" class="btn btn-primary" id="btn-create-key-confirm" data-i18n="page.console.modal.create">Create</button>
+        </div>
+      </div>
+    </div>
+    <div class="ui-modal-root" id="modal-show-key" aria-hidden="true">
+      <div class="ui-modal-backdrop" data-close-modal="modal-show-key"></div>
+      <div class="ui-modal-card" role="dialog" aria-labelledby="modal-show-key-title">
+        <h3 id="modal-show-key-title" data-i18n="page.console.modal.saveTitle">Save your key now</h3>
+        <p class="ui-modal-sub" data-i18n-html="page.console.modal.saveSub">The full key is shown <strong>only once</strong>. Copy it to a safe place.</p>
+        <div class="ui-modal-key" id="modal-show-key-value">--</div>
+        <div class="ui-modal-actions">
+          <button type="button" class="btn btn-primary" id="btn-modal-copy-key" data-i18n="page.console.modal.copyKey">Copy key</button>
+          <button type="button" class="btn" data-close-modal="modal-show-key" data-i18n="page.console.modal.saved">I saved it</button>
+        </div>
+      </div>
+    </div>
+    <div class="ui-modal-root" id="modal-pay" aria-hidden="true">
+      <div class="ui-modal-backdrop" data-close-modal="modal-pay"></div>
+      <div class="ui-modal-card" role="dialog" aria-labelledby="modal-pay-title" style="width:min(440px,100%)">
+        <h3 id="modal-pay-title" data-i18n="page.console.modal.payTitle">Choose payment</h3>
+        <p class="ui-modal-sub" id="modal-pay-sub" data-i18n="page.console.modal.paySub">Pay with WeChat or Alipay.</p>
+        <div id="modal-pay-channels" class="ui-modal-actions" style="justify-content:flex-start"></div>
+        <div id="modal-pay-result" style="display:none;margin-top:14px">
+          <p class="ui-modal-sub" id="modal-pay-result-hint"></p>
+          <div id="modal-pay-qr-wrap" style="text-align:center;margin:10px 0">
+            <img id="modal-pay-qr" alt="QR" width="220" height="220" style="display:none;border-radius:8px;border:1px solid var(--border)" />
+          </div>
+          <div class="ui-modal-key" id="modal-pay-url" style="display:none"></div>
+          <p style="margin-top:10px">
+            <a
+              id="modal-pay-open-link"
+              class="btn btn-primary"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+              style="display:none"
+              data-i18n="page.console.modal.openAlipay"
+              >Open Alipay in a new window</a
+            >
+          </p>
+        </div>
+        <div class="ui-modal-actions">
+          <button type="button" class="btn" data-close-modal="modal-pay" data-i18n="page.console.modal.closePay">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <section class="hero hero-surface section-tight console-hero">
+      <div class="container">
+        <p class="hero-eyebrow" data-i18n="page.console.hub.eyebrow">AI24X Hub</p>
+        <h1 data-i18n="page.console.title">Account Hub</h1>
+        <p class="lead" data-i18n="page.console.hub.sub">Billing and orders stay here — open a product below.</p>
+      </div>
+    </section>
+
+    <section class="section console-section">
+      <div class="container console-layout">
+        <aside class="console-sidebar" aria-label="Console navigation">
+          <nav class="console-nav" id="console-nav">
+            <button type="button" class="console-nav-item is-active" data-console-panel="overview" data-i18n="page.console.nav.overview">Overview</button>
+            <button type="button" class="console-nav-item" data-console-panel="billing" data-i18n="page.console.nav.billing">Billing</button>
+            <button type="button" class="console-nav-item" data-console-panel="orders" data-i18n="page.console.nav.orders">Orders</button>
+            <button type="button" class="console-nav-item" data-console-panel="account" data-i18n="page.console.nav.account">Account</button>
+            <button type="button" class="console-nav-item" data-console-panel="support" data-i18n="page.console.nav.tickets">Tickets</button>
+            <button type="button" class="console-nav-item" id="btn-logout" data-i18n="page.console.nav.logout" style="margin-top:auto;opacity:0.7">Logout</button>
+            </nav>
+        </aside>
+
+        <div class="console-main">
+          <div id="consoleMainMsg" class="console-panel-msg"></div>
+          <!-- Overview (default) -->
+          <div class="console-panel is-active" id="panel-overview" data-console-panel="overview" role="tabpanel">
+            <div class="console-panel-head">
+              <h2 class="mt-0" data-i18n="page.console.nav.overview">Overview</h2>
+              <p class="sub" data-i18n-html="page.console.overview.lead">Account snapshot below. See the <a href="product.html">product matrix</a>, or open <strong>Plans</strong> and use <strong>Open product ↗</strong> on each card.</p>
+            </div>
+            <div class="card console-identity" id="overview-identity">
+              <div class="console-identity-row">
+                <div class="console-identity-col">
+                  <div class="stat-label" data-i18n="page.console.account.user">Logged in as</div>
+                  <div class="console-identity-value" id="overview-user" style="font-size:1rem;font-weight:700">--</div>
+                </div>
+                <div class="console-identity-col">
+                  <div class="stat-label" data-i18n="page.console.account.plan">Plan tier</div>
+                  <div class="console-identity-value" id="overview-plan">--</div>
+                </div>
+                <div class="console-identity-actions">
+                  <button type="button" class="btn" data-console-panel="account" data-i18n="page.console.overview.accountLink">Account details</button>
+                  <button type="button" class="btn" id="btn-refresh" data-i18n="page.console.actions.refresh">Refresh data</button>
+                </div>
+              </div>
+            </div>
+
+            <p class="ov-section-label" data-i18n="page.console.hub.products">Open a product</p>
+            <div class="hub-launch-grid">
+              <a class="hub-launch-card is-gateway" href="https://open.ai24x.com/console.html?from=account" data-open data-hub-external target="_blank" rel="noopener noreferrer">
+                <span class="hub-launch-kicker">AI Gateway</span>
+                <strong data-i18n="page.console.dev.open">Open Gateway workspace</strong>
+                <span class="sub" data-i18n="page.console.hub.gatewayHint">Keys, BYOK and try-call</span>
+              </a>
+              <a class="hub-launch-card is-markets" href="https://markets.ai24x.com/?from=account" data-markets data-hub-external target="_blank" rel="noopener noreferrer">
+                <span class="hub-launch-kicker">AI Markets</span>
+                <strong data-i18n="page.console.markets.open">Open Markets home</strong>
+                <span class="sub" data-i18n="page.console.hub.marketsHint">Charts and AI briefs</span>
+              </a>
+              <button type="button" class="hub-launch-card" data-console-panel="billing">
+                <span class="hub-launch-kicker" data-i18n="page.console.nav.billing">Billing</span>
+                <strong data-i18n="page.console.hub.plansCta">Plans &amp; top up</strong>
+                <span class="sub" data-i18n="page.console.hub.plansHint">Credits and subscriptions</span>
+              </button>
+              <button type="button" class="hub-launch-card" data-console-panel="orders">
+                <span class="hub-launch-kicker" data-i18n="page.console.nav.orders">Orders</span>
+                <strong data-i18n="page.console.hub.ordersCta">Order history</strong>
+                <span class="sub" data-i18n="page.console.hub.ordersHint">Confirm payments</span>
+              </button>
+            </div>
+
+            <div id="howto-card" class="card console-alert mt-2" style="display:none;margin-bottom:1rem">
+              <h3 class="mt-0" id="howto-title">--</h3>
+              <p class="sub" id="howto-body" style="margin:0"></p>
+              <div class="card-actions" style="margin-top:10px">
+                <button type="button" class="btn btn-primary" id="howto-cta-try">Try call</button>
+                <button type="button" class="btn" id="btn-continue-shared" style="display:none">Continue free shared</button>
+                <button type="button" class="btn" id="howto-cta-billing" data-console-panel="billing">Top up</button>
+              </div>
+            </div>
+            <div id="balance-cta" style="display:none" hidden aria-hidden="true"></div>
+            <div id="free-welcome" style="display:none" hidden aria-hidden="true">
+              <span id="free-welcome-remain" hidden></span>
+            </div>
+
+            <p class="ov-section-label" data-i18n="page.console.overview.usage">Account snapshot</p>
+            <div class="ov-stats-wrap">
+              <div class="stats-grid">
+                <div class="stat-card">
+                  <div class="stat-label" data-i18n="page.console.stat.balance">Paid balance</div>
+                  <div class="stat-value" id="stat-balance">--</div>
+                  <div class="stat-sub" id="stat-balance-sub" data-i18n="page.console.stat.balance.sub">For flash / pro / named models</div>
+                  <div class="stat-sub" style="margin-top:6px" data-i18n="page.console.stat.balanceGatewayHint">Powers AI Gateway · open.ai24x.com</div>
+                  <div id="vp-active-line" style="display:none;margin-top:6px;font-weight:600;font-size:12px;color:#0f7b4e;" data-i18n="page.console.vpActive">Value pack active · listed models unlocked</div>
+                </div>
+                <div class="stat-card" id="stat-shared-card">
+                  <div class="stat-label" data-i18n="page.console.stat.shared">Free today (shared)</div>
+                  <div class="stat-value" id="stat-shared">--</div>
+                  <div class="stat-sub" id="stat-shared-sub" data-i18n="page.console.stat.shared.sub">Daily free pool · shared models</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label" data-i18n="page.console.stat.keys">API Key</div>
+                  <div class="stat-value" id="stat-keys">--</div>
+                  <div class="stat-sub" data-i18n="page.console.stat.keys.sub">Active keys</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label" data-i18n="page.console.stat.referrals">Direct invites</div>
+                  <div class="stat-value" id="stat-referrals">--</div>
+                  <div class="stat-sub" data-i18n="page.console.stat.referrals.hint">Successful invitees</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card invite-reward-card mt-2">
+              <div class="invite-reward-head">
+                <div class="invite-reward-title">
+                  <h3 class="mt-0" data-i18n="page.console.inviteReward.title">Invite &amp; earn</h3>
+                  <p class="sub" data-i18n="page.console.inviteReward.sub">Both sides get bonus tokens at signup; you earn a share after friends top up.</p>
+                </div>
+                <div class="invite-reward-stats">
+                  <div class="invite-reward-stat">
+                    <div class="stat-label" data-i18n="page.console.inviteReward.l1">Invited</div>
+                    <div class="stat-value" id="overview-invite-l1">--</div>
+                  </div>
+                  <div class="invite-reward-stat">
+                    <div class="stat-label" data-i18n="page.console.inviteReward.earned">Rewards earned</div>
+                    <div class="stat-value" id="overview-invite-earned">--</div>
+                  </div>
+                </div>
+              </div>
+              <div class="invite-reward-row">
+                <div class="invite-reward-item">
+                  <span class="invite-label" data-i18n="page.console.invite.codeTitle">Invite code</span>
+                  <span class="invite-reward-code" id="overview-invite-code">--</span>
+                  <button type="button" class="btn" id="btn-copy-invite-code-ov" data-i18n="page.console.copyCode">Copy code</button>
+                </div>
+                <div class="invite-reward-item">
+                  <span class="invite-label" data-i18n="page.console.invite.linkTitle">Short link</span>
+                  <span class="invite-reward-link" id="overview-invite-link">--</span>
+                  <button type="button" class="btn" id="btn-copy-invite-link-ov" data-i18n="page.console.copyInvite">Copy link</button>
+                </div>
+                <a class="btn btn-primary" href="refer.html" data-i18n="page.console.inviteReward.open">Referral details</a>
+              </div>
+              <div class="invite-reward-invitees">
+                <div class="invite-reward-invitees-head">
+                  <h4 class="mt-0 mb-0" data-i18n="page.console.inviteReward.invitees">Invited users</h4>
+                  <span class="sub" id="overview-invitees-count"></span>
+                </div>
+                <div id="overview-invitees-wrap"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- API keys -->
+          <div class="console-panel" id="panel-keys" data-console-panel="keys" role="tabpanel" hidden>
+            <div class="console-panel-head">
+              <h2 class="mt-0" data-i18n="page.console.nav.keys">API keys</h2>
+              <p class="sub" data-i18n="page.console.keys.sub">Full key is shown only once at creation; list shows prefixes. One account can have many keys sharing the same balance.</p>
+            </div>
+            <div class="card">
+              <div class="keys-toolbar">
+                <h3 class="mt-0 mb-0" data-i18n="page.console.keys.title">API Key</h3>
+                <button type="button" class="btn btn-primary" id="btn-create-key" data-action="create-key" data-i18n="page.console.keys.create">Create key</button>
+              </div>
+              <div class="keys-table-wrap mt-2">
+                <table class="keys-table" aria-label="API keys">
+                  <thead>
+                    <tr>
+                      <th data-i18n="page.console.keys.col.name">Name</th>
+                      <th data-i18n="page.console.keys.col.key">Key</th>
+                      <th data-i18n="page.console.keys.col.created">Created</th>
+                      <th data-i18n="page.console.keys.col.lastUsed">Last used</th>
+                      <th class="keys-col-actions" data-i18n="page.console.keys.col.actions">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="keysList"></tbody>
+                </table>
+              </div>
+              <p class="sub mt-2" data-i18n="page.console.keys.hint">Paste a saved full key into Playground call settings when testing. Top-ups do not require a new key.</p>
+            </div>
+          </div>
+
+          <!-- Billing -->
+          <div class="console-panel" id="panel-billing" data-console-panel="billing" role="tabpanel" hidden>
+            <div class="console-panel-head">
+              <h2 class="mt-0" data-i18n="page.console.nav.billing">Billing</h2>
+              <p class="sub" id="payHint" data-i18n="page.console.plans.loading">Loading…</p>
+              <div id="billingMsg" data-console-msg></div>
+            </div>
+            <!-- 统一产品套餐：选项目 → 选套餐 → 选支付方式 -->
+            <div class="card" style="margin-bottom:1rem">
+              <h3 class="mt-0" data-i18n="page.console.products.title">Products &amp; plans</h3>
+              <p class="sub" style="margin:0" data-i18n="page.console.products.sub">One account, three ways to use AI24X: AI Gateway credits · BYOK Pro · AI Markets Pro.</p>
+              <p class="sub" id="billSepHint" style="margin:8px 0 0" data-i18n="page.console.billSep.sub">Managed credits power API keys &amp; Playground. BYOK Pro is opened on open.ai24x.com. Markets Pro unlocks charts &amp; AI briefs.</p>
+              <div id="productsList" class="mt-2"></div>
+            </div>
+            <p class="sub">
+              <a href="#orders" id="linkBillingOrders" data-i18n="page.console.orders.viewAll">View order history &amp; confirm payments →</a>
+            </p>
+          </div>
+
+          <!-- Orders -->
+          <div class="console-panel" id="panel-orders" data-console-panel="orders" role="tabpanel" hidden>
+            <div class="console-panel-head">
+              <h2 class="mt-0" data-i18n="page.console.orders.title">My orders</h2>
+              <p class="sub" data-i18n="page.console.orders.sub">Pending orders: use Confirm after paying. Paid time and amount are shown for reconciliation.</p>
+              <div id="ordersMsg" data-console-msg></div>
+              <div id="ordersFilter" style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 12px">
+                <button type="button" class="btn orders-filter-btn is-active" data-orders-filter="all" data-i18n="page.console.orders.filterAll">All</button>
+                <button type="button" class="btn orders-filter-btn" data-orders-filter="gateway" data-i18n="page.console.orders.filterGateway">AI Gateway</button>
+                <button type="button" class="btn orders-filter-btn" data-orders-filter="byok" data-i18n="page.console.orders.filterByok">BYOK</button>
+                <button type="button" class="btn orders-filter-btn" data-orders-filter="markets" data-i18n="page.console.orders.filterMarkets">AI Markets</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="usage-table-wrap">
+                <table class="usage-table" id="ordersTable" aria-label="Orders">
+                  <thead>
+                    <tr>
+                      <th data-i18n="page.console.orders.col.time">Time</th>
+                      <th data-i18n="page.console.orders.col.plan">Plan</th>
+                      <th data-i18n="page.console.orders.col.amount">Amount</th>
+                      <th data-i18n="page.console.orders.col.channel">Channel</th>
+                      <th data-i18n="page.console.orders.col.status">Status</th>
+                      <th data-i18n="page.console.orders.col.id">Order ID</th>
+                      <th data-i18n="page.console.orders.col.actions">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ordersList"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Billing: transactions + usage stats -->
+          <div class="console-panel" id="panel-transactions" data-console-panel="transactions" role="tabpanel" hidden>
+            <div class="console-panel-head">
+              <h2 class="mt-0" data-i18n="page.console.nav.transactions">Transactions</h2>
+              <p class="sub" data-i18n="page.console.transactions.lead">All account transactions: top-ups, usage, bonuses, referrals, and expirations.</p>
+            </div>
+            <div class="stats-grid" id="txSummary" style="margin-bottom:1rem">
+              <div class="stat-card">
+                <div class="stat-label" data-i18n="page.console.transactions.totalIn">Total in</div>
+                <div class="stat-value" id="tx-total-in">--</div>
+                <div class="stat-sub" id="tx-total-in-sub"></div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label" data-i18n="page.console.transactions.totalOut">Total out</div>
+                <div class="stat-value" id="tx-total-out">--</div>
+                <div class="stat-sub" id="tx-total-out-sub"></div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label" data-i18n="page.console.transactions.balance">Balance</div>
+                <div class="stat-value" id="tx-balance">--</div>
+                <div class="stat-sub" data-i18n="page.console.transactions.balance.sub">Tokens</div>
+              </div>
+            </div>
+            <div class="card usage-rangebar">
+              <span class="usage-range-label" id="usage-range-label"></span>
+              <div class="usage-range-group" id="usage-range-group">
+                <button type="button" class="btn usage-range-btn is-active" data-range="month"></button>
+                <button type="button" class="btn usage-range-btn" data-range="7d"></button>
+                <button type="button" class="btn usage-range-btn" data-range="30d"></button>
+                <button type="button" class="btn usage-range-btn" data-range="all"></button>
+              </div>
+            </div>
+            <div class="card mt-2" id="usageStatsCard" style="display:none">
+              <div class="usage-stats-head">
+                <h3 class="mt-0" id="usage-chart-title"></h3>
+                <div class="usage-metric-group" id="usage-metric-group">
+                  <button type="button" class="btn usage-metric-btn is-active" data-metric="usd"></button>
+                  <button type="button" class="btn usage-metric-btn" data-metric="tokens"></button>
+                  <button type="button" class="btn usage-metric-btn" data-metric="calls"></button>
+                </div>
+              </div>
+              <div id="usageChart" class="usage-chart"></div>
+              <h3 class="mt-2" id="usage-models-title"></h3>
+              <div id="usageModels" class="usage-models"></div>
+              <h3 class="mt-2" id="usage-keys-title"></h3>
+              <div id="usageKeys" class="usage-models"></div>
+            </div>
+            <div class="card">
+              <div class="usage-toolbar" style="align-items:center">
+                <div class="usage-range-group" id="tx-type-group">
+                  <button type="button" class="btn tx-type-btn is-active" data-tx-type="">All</button>
+                  <button type="button" class="btn tx-type-btn" data-tx-type="topup">Top-up</button>
+                  <button type="button" class="btn tx-type-btn" data-tx-type="consume">Usage</button>
+                  <button type="button" class="btn tx-type-btn" data-tx-type="bonus">Bonus</button>
+                  <button type="button" class="btn tx-type-btn" data-tx-type="referral">Referral</button>
+                  <button type="button" class="btn tx-type-btn" data-tx-type="expire">Expired</button>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+                  <button id="usage-export-btn" class="btn" type="button"></button>
+                  <div class="usage-pager">
+                    <button id="tx-prev" class="btn" type="button">‹ Prev</button>
+                    <span id="tx-page-info" class="usage-page-info"></span>
+                    <button id="tx-next" class="btn" type="button">Next ›</button>
+                  </div>
+                </div>
+              </div>
+              <div class="usage-table-wrap">
+                <table class="usage-table" id="txTable">
+                  <thead>
+                    <tr>
+                      <th class="col-time" data-i18n="page.console.transactions.time">Time</th>
+                      <th class="col-type" data-i18n="page.console.transactions.type">Type</th>
+                      <th class="col-model" data-i18n="page.console.transactions.model">Model</th>
+                      <th class="col-amount" data-i18n="page.console.transactions.amount">Amount</th>
+                      <th class="col-tokens" data-i18n="page.console.transactions.tokens">Tokens</th>
+                      <th class="col-tokens" data-i18n="page.console.transactions.balance">Balance</th>
+                      <th class="col-note" data-i18n="page.console.transactions.note">Note</th>
+                    </tr>
+                  </thead>
+                  <tbody id="txList"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Playground -->
+          <div class="console-panel" id="panel-playground" data-console-panel="playground" role="tabpanel" hidden>
+            <div class="console-panel-head">
+              <h2 class="mt-0" data-i18n="page.console.nav.playground">Playground</h2>
+              <p class="sub" data-i18n="page.console.chat.sub">Login session by default. shared=connectivity / free pool; flash·auto=quality (needs balance). Product Q&A: Instant Help (bottom-right). Check Use API key only to send with the key below.</p>
+              <p class="sub"><a href="https://open.ai24x.com/models/vip-picks.html" data-open data-i18n="page.models.vip.cta">VIP model list</a></p>
+            </div>
+            <div class="card">
+              <h3 class="mt-0" data-i18n="page.console.apisettings.title">Call settings</h3>
+              <p class="sub" data-i18n="page.console.apisettings.sub">Optional. Try-call uses your login by default. Only paste a key if you check “Use API key” below.</p>
+              <div class="form-group mt-2" id="api-base-wrap">
+                <label data-i18n="page.console.apiurl">API Base</label>
+                <input type="url" class="input" id="api-base" placeholder="https://api.ai24x.com" />
+                <p class="sub" id="api-base-locked-hint" hidden data-i18n="page.console.apiurl.locked">Production uses the official API host (not editable).</p>
+              </div>
+              <div class="form-group">
+                <label data-i18n="page.console.apikey">API Key (full secret)</label>
+                <input type="password" class="input" id="api-key" placeholder="sk-..." autocomplete="off" />
+              </div>
+              <label class="sub" style="display:flex;align-items:center;gap:8px;margin:8px 0">
+                <input type="checkbox" id="chat-use-api-key" />
+                <span data-i18n="page.console.chat.useKey">Use API key to send (otherwise use login session)</span>
+              </label>
+              <div class="card-actions">
+                <button type="button" class="btn btn-primary" id="btn-save-api" data-i18n="page.console.save">Save</button>
+                <button type="button" class="btn" data-console-panel="keys" data-i18n="page.console.nav.keys">API keys</button>
+              </div>
+            </div>
+            <div class="card mt-2">
+              <h3 class="mt-0" data-i18n="page.console.chat.title">Try chat/run</h3>
+              <div class="form-group">
+                <label data-i18n="page.console.chat.prompt">Prompt</label>
+                <textarea class="input" id="chat-prompt" rows="3" placeholder="Hello" data-i18n-placeholder="page.console.chat.promptPh">Hello</textarea>
+              </div>
+              <div class="form-group">
+                <label data-i18n="page.console.chat.model">Tier / named</label>
+                <select class="input" id="chat-model">
+                  <option value="auto" selected>auto</option>
+                  <option value="flash">flash</option>
+                  <option value="pro">pro</option>
+                  <option value="ultra">ultra</option>
+                  <option value="shared">shared (free pool)</option>
+                </select>
+              </div>
+              <div id="playgroundMsg" class="console-panel-msg" data-console-msg></div>
+              <div class="card-actions">
+                <button type="button" class="btn btn-primary" id="btn-chat-run" data-i18n="page.console.chat.send">Send</button>
+              </div>
+              <pre id="chat-out" class="code-block mt-2" style="white-space:pre-wrap;min-height:80px;">--</pre>
+            </div>
+          </div>
+
+          <!-- Invite -->
+          <div class="console-panel" id="panel-invite" data-console-panel="invite" role="tabpanel" hidden>
+            <div class="console-panel-head">
+              <h2 class="mt-0" data-i18n="page.console.nav.invite">Invite</h2>
+              <p class="sub" data-i18n="page.console.invite.sub">Share with friends for signup rewards. Details and stats on the Referrals page.</p>
+            </div>
+            <div class="grid-3">
+              <div class="card">
+                <h3 class="mt-0" data-i18n="page.console.invite.codeTitle">Invite code</h3>
+                <p class="stat-value" id="inviteCode" style="font-size:1.5rem;letter-spacing:0.06em;">--</p>
+                <p class="sub" data-i18n="page.console.invite.codeHint">Friends enter this at signup</p>
+                <div class="card-actions">
+                  <button type="button" class="btn btn-primary" id="btn-copy-invite-code" data-i18n="page.console.copyCode">Copy invite code</button>
+                </div>
+              </div>
+              <div class="card">
+                <h3 class="mt-0" data-i18n="page.console.invite.linkTitle">Short invite link</h3>
+                <p class="sub" id="inviteShortLink" style="word-break:break-all;font-size:0.95rem;font-weight:600;">--</p>
+                <p class="sub" data-i18n="page.console.invite.linkHint">Opens signup with your code filled in</p>
+                <div class="card-actions">
+                  <button type="button" class="btn btn-primary" id="btn-copy-invite-link" data-i18n="page.console.copyInvite">Copy short link</button>
+                </div>
+              </div>
+              <div class="card">
+                <h3 class="mt-0" data-i18n="page.console.invite.detailTitle">Referral details</h3>
+                <p class="stat-value" id="inviteL1Card">--</p>
+                <p class="sub" data-i18n="page.console.invite.detailHint">Level-1 invite count; rules on the details page</p>
+                <div class="card-actions">
+                  <a class="btn btn-primary" href="refer.html" data-i18n="page.console.invite.open">Open referral details</a>
+                </div>
+              </div>
+            </div>
+            <div class="card mt-2">
+              <h3 class="mt-0" data-i18n="page.console.inviteReward.invitees">Invited users</h3>
+              <div id="panel-invitees-wrap"></div>
+            </div>
+          </div>
+
+          <!-- Account -->
+          <div class="console-panel" id="panel-account" data-console-panel="account" role="tabpanel" hidden>
+            <div class="console-panel-head">
+              <h2 class="mt-0" data-i18n="page.console.nav.account">Account</h2>
+              <p class="sub" data-i18n="page.console.account.lead">Profile and session.</p>
+            </div>
+            <div class="card" style="max-width:520px">
+              <h3 class="mt-0" data-i18n="page.console.account.title">Account</h3>
+              <ul class="list-clean">
+                <li class="list-item"><span data-i18n="page.console.account.user">User</span><span id="acct-user">--</span></li>
+                <li class="list-item"><span data-i18n="page.console.account.phone">Phone</span><span id="acct-phone">--</span></li>
+                <li class="list-item"><span data-i18n="page.console.account.plan">Plan tier</span><span id="acct-plan">--</span></li>
+              </ul>
+              <hr class="mt-2" style="border:0;border-top:1px solid var(--border)" />
+              <h3 class="mt-2" data-i18n="page.console.password.title">Change password</h3>
+              <div class="form-group">
+                <label for="acct-old-pass" data-i18n="page.console.password.old">Current password</label>
+                <input id="acct-old-pass" type="password" class="input" autocomplete="current-password" />
+              </div>
+              <div class="form-group">
+                <label for="acct-new-pass" data-i18n="page.console.password.new">New password</label>
+                <input id="acct-new-pass" type="password" class="input" autocomplete="new-password" />
+              </div>
+              <div class="form-group">
+                <label for="acct-new-pass2" data-i18n="page.console.password.confirm">Confirm new password</label>
+                <input id="acct-new-pass2" type="password" class="input" autocomplete="new-password" />
+              </div>
+              <div class="card-actions">
+                <button type="button" class="btn btn-primary" id="btn-change-password" data-i18n="page.console.password.change">Change password</button>
+              </div>
+              <div id="acct-pass-msg"></div>
+              <div class="card-actions">
+                <button type="button" class="btn" id="btn-logout-account" data-i18n="page.console.actions.logout">Log out</button>
+                <a class="btn btn-primary" href="pricing.html" data-i18n="page.console.actions.upgrade">Pricing</a>
+                <button type="button" class="btn" data-console-panel="invite" data-i18n="page.console.actions.refer">Invite &amp; earn</button>
+              </div>
+            </div>
+          </div>
+
+            <!-- Support tickets -->
+            <div class="console-panel" id="panel-support" data-console-panel="support" role="tabpanel" hidden>
+              <div class="console-panel-head">
+                <h2 class="mt-0" data-i18n="page.console.nav.tickets">Tickets</h2>
+                <p class="sub" data-i18n="page.console.support.lead">Chat directly with the system — AI replies instantly, every message is kept on record.</p>
+              </div>
+              <div class="support-layout">
+                <div class="card support-side">
+                  <button type="button" class="btn btn-primary" id="btn-support-new" data-i18n="page.console.support.new">New ticket</button>
+                  <div id="support-list" class="support-list"><p class="sub">--</p></div>
+                </div>
+                <div class="card support-chat">
+                  <div id="support-no-select" class="support-empty">
+                    <p class="sub" data-i18n="page.console.support.noSelect">Select a ticket on the left, or create a new one to start chatting.</p>
+                  </div>
+                  <div id="support-new-box" style="display:none">
+                    <h3 class="mt-0" data-i18n="page.console.support.newTitle">New ticket</h3>
+                    <div class="form-group">
+                      <label data-i18n="page.console.ticket.cat">Category</label>
+                      <select class="input" id="support-new-cat">
+                        <option value="api" data-i18n="page.console.ticket.catApi">API / Calls</option>
+                        <option value="billing" data-i18n="page.console.ticket.catBilling">Billing / Orders</option>
+                        <option value="account" data-i18n="page.console.ticket.catAccount">Account</option>
+                        <option value="suggestion" data-i18n="page.console.ticket.catSuggestion">Suggestion</option>
+                        <option value="complaint" data-i18n="page.console.ticket.catComplaint">Complaint</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label data-i18n="page.console.ticket.body">Description</label>
+                      <textarea class="input" id="support-new-body" rows="4" data-i18n-placeholder="page.console.ticket.bodyPh" placeholder="What happened, time, order id (optional)"></textarea>
+                    </div>
+                    <div id="support-new-msg"></div>
+                    <div class="card-actions">
+                      <button type="button" class="btn btn-primary" id="support-new-submit" data-i18n="page.console.ticket.submit">Submit ticket</button>
+                      <button type="button" class="btn" id="support-new-cancel" data-i18n="page.console.support.cancel">Cancel</button>
+                    </div>
+                  </div>
+                  <div id="support-conv-box" style="display:none">
+                    <div id="support-conv-head" class="support-conv-head"></div>
+                    <div id="support-conv-msgs" class="support-msgs"></div>
+                    <div class="support-compose">
+                      <textarea class="input" id="support-reply-input" rows="2" data-i18n-placeholder="page.console.support.placeholder" placeholder="Type a message — Ctrl/⌘+Enter to send…"></textarea>
+                      <div class="card-actions">
+                        <button type="button" class="btn btn-primary" id="support-reply-send" data-i18n="page.console.support.send">Send</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer" id="site-footer"></footer>
+  <script src="config/locales.js?v=20260829n"></script>
+  <script src="js/api.js?v=20260829n"></script>
+  <script src="js/invite.js?v=20260731a"></script>
+  <script src="js/utm.js?v=20260802a"></script>
+  <script src="js/i18n.js?v=20260826m"></script>
+  <script src="js/ai24x-chrome.js?v=20260829o"></script>
+  <script src="js/shell.js?v=20260829o"></script>
+  <script src="js/app.js?v=20260818b"></script>
+  <script src="js/console.js?v=20260829t"></script>
+  <script src="js/support-widget.js?v=20260828f"></script>
+</body>
+</html>

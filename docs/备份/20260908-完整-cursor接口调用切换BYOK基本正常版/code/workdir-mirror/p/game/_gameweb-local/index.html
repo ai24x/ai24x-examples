@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>AI24X Game Zone · 网页小游戏矩阵</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body {
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(160deg, #0f172a 0%, #1e293b 100%);
+    color: #e2e8f0; min-height: 100vh; padding: 24px 16px 48px;
+  }
+  header { text-align:center; margin-bottom: 24px; }
+  .logo { font-size: 13px; letter-spacing: 3px; color:#38bdf8; font-weight:700; margin-bottom:8px; }
+  h1 { font-size: 26px; font-weight: 800; background: linear-gradient(90deg,#38bdf8,#a78bfa,#f472b6); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .sub { font-size: 13px; color:#94a3b8; margin-top:8px; }
+  .group { max-width:720px; margin:22px auto 10px; font-size:14px; font-weight:800; color:#38bdf8; display:flex; align-items:center; gap:8px; }
+  .group::after { content:""; flex:1; height:1px; background:#334155; }
+  .group small { font-weight:400; color:#64748b; font-size:11px; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap:14px; max-width:720px; margin:0 auto; }
+  .card {
+    background:#1e293b; border:1px solid #334155; border-radius:16px; padding:18px 14px;
+    text-align:center; text-decoration:none; color:#e2e8f0; transition: transform .12s, border-color .12s;
+    display:flex; flex-direction:column; align-items:center; gap:8px; position:relative;
+  }
+  .card:active { transform: scale(.96); border-color:#38bdf8; }
+  .card.new { border-color:#f59e0b; box-shadow:0 0 0 1px #f59e0b33; }
+  .badge { position:absolute; top:-7px; right:-7px; background:linear-gradient(90deg,#f59e0b,#f97316); color:#0f172a; font-size:10px; font-weight:800; padding:3px 8px; border-radius:999px; }
+  .badge.hot { background:linear-gradient(90deg,#ef4444,#f97316); color:#fff; }
+  .icon { font-size: 40px; line-height:1; }
+  .name { font-weight:700; font-size:15px; }
+  .tag { font-size:11px; color:#94a3b8; }
+  footer { text-align:center; font-size:11px; color:#475569; margin-top:28px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">AI24X GAME ZONE</div>
+  <h1>网页小游戏矩阵</h1>
+  <div class="sub">即点即玩 · 原创玩法 · 手机优先 · 出一个上一个</div>
+</header>
+
+<div class="group">🔥 主推 <small>高热度 · 强社交裂变</small></div>
+<div class="grid">
+  <a class="card new hot" href="stair-climber.html">
+    <div class="badge hot">NEW</div>
+    <div class="icon">🪜</div>
+    <div class="name">Stair Climber</div>
+    <div class="tag">步步高 · 爬高挑战</div>
+  </a>
+  <a class="card new hot" href="screw-hero.html">
+    <div class="badge hot">NEW</div>
+    <div class="icon">🔩</div>
+    <div class="name">Screw Hero</div>
+    <div class="tag">螺丝大师 · 解压拆解</div>
+  </a>
+  <a class="card new" href="weird-merge.html">
+    <div class="badge">NEW</div>
+    <div class="icon">🧬</div>
+    <div class="name">Weird Merge</div>
+    <div class="tag">离谱合成 · 进化到黑洞</div>
+  </a>
+  <a class="card new" href="color-sort.html">
+    <div class="badge">NEW</div>
+    <div class="icon">🧪</div>
+    <div class="name">Color Sort</div>
+    <div class="tag">颜色排序 · 益智</div>
+  </a>
+  <a class="card new" href="trivia-duel.html">
+    <div class="badge">NEW</div>
+    <div class="icon">🎯</div>
+    <div class="name">Trivia Duel</div>
+    <div class="tag">答题对战 · 双人</div>
+  </a>
+  <a class="card" href="merge-barn.html">
+    <div class="icon">🐣</div>
+    <div class="name">Merge Barn</div>
+    <div class="tag">合成农场</div>
+  </a>
+  <a class="card" href="odd-spot.html">
+    <div class="icon">🔍</div>
+    <div class="name">Odd Spot</div>
+    <div class="tag">你不对劲 · 找茬</div>
+  </a>
+  <a class="card" href="power-merge.html">
+    <div class="icon">🔢</div>
+    <div class="name">Power Merge</div>
+    <div class="tag">数字合成 · 2048</div>
+  </a>
+  <a class="card" href="mind-match.html">
+    <div class="icon">💞</div>
+    <div class="name">Mind Match</div>
+    <div class="tag">默契考验 · 双人</div>
+  </a>
+</div>
+
+<div class="group">⚡ 反应挑战 <small>比拼分数 · 排行榜潜力</small></div>
+<div class="grid">
+  <a class="card" href="reflex-rush.html">
+    <div class="icon">⚡</div>
+    <div class="name">Reflex Rush</div>
+    <div class="tag">反应力测试</div>
+  </a>
+  <a class="card new" href="dodge-dash.html">
+    <div class="badge">NEW</div>
+    <div class="icon">🚀</div>
+    <div class="name">Dodge Dash</div>
+    <div class="tag">躲避冲刺</div>
+  </a>
+  <a class="card new" href="paper-flight.html">
+    <div class="badge">NEW</div>
+    <div class="icon">✈️</div>
+    <div class="name">Paper Flight</div>
+    <div class="tag">纸飞机 · 蓄力投掷</div>
+  </a>
+  <a class="card new" href="rhythm-tap.html">
+    <div class="badge">NEW</div>
+    <div class="icon">🎵</div>
+    <div class="name">Rhythm Tap</div>
+    <div class="tag">节奏点按</div>
+  </a>
+  <a class="card" href="flip-the-lie.html">
+    <div class="icon">🔄</div>
+    <div class="name">Flip the Lie</div>
+    <div class="tag">逆向反应</div>
+  </a>
+  <a class="card" href="tap-whack.html">
+    <div class="icon">⭐</div>
+    <div class="name">Tap Whack</div>
+    <div class="tag">打星星</div>
+  </a>
+</div>
+
+<div class="group">🧩 益智休闲 <small>经典 · 解压 · 怀旧</small></div>
+<div class="grid">
+  <a class="card" href="pop-zen.html">
+    <div class="icon">🫧</div>
+    <div class="name">Pop Zen</div>
+    <div class="tag">解压泡泡</div>
+  </a>
+  <a class="card" href="tile-match.html">
+    <div class="icon">🧠</div>
+    <div class="name">Tile Match</div>
+    <div class="tag">记忆翻牌</div>
+  </a>
+  <a class="card" href="neon-snake.html">
+    <div class="icon">🐍</div>
+    <div class="name">Neon Snake</div>
+    <div class="tag">霓虹贪吃蛇</div>
+  </a>
+  <a class="card new" href="rope-cut.html">
+    <div class="badge">NEW</div>
+    <div class="icon">🍬</div>
+    <div class="name">Rope Cut</div>
+    <div class="tag">割绳解谜</div>
+  </a>
+  <a class="card new" href="word-chain.html">
+    <div class="badge">NEW</div>
+    <div class="icon">🔤</div>
+    <div class="name">Word Chain</div>
+    <div class="tag">单词接龙</div>
+  </a>
+  <a class="card new" href="guess-it.html">
+    <div class="badge">NEW</div>
+    <div class="icon">💰</div>
+    <div class="name">Guess It</div>
+    <div class="tag">猜价格</div>
+  </a>
+  <a class="card new" href="draw-path.html">
+    <div class="badge">NEW</div>
+    <div class="icon">✏️</div>
+    <div class="name">Draw Path</div>
+    <div class="tag">一笔画</div>
+  </a>
+  <a class="card new" href="arrow-maze.html">
+    <div class="badge">NEW</div>
+    <div class="icon">🧭</div>
+    <div class="name">Arrow Maze</div>
+    <div class="tag">箭头迷宫 · 旋转解谜</div>
+  </a>
+</div>
+
+<footer>AI24X Game Zone · v2.1 · 23/23 全部上线 🎉</footer>
+</body>
+</html>

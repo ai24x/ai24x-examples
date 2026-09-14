@@ -1,0 +1,27 @@
+User-agent: *
+Allow: /
+Allow: /models/
+Allow: /guides/
+Allow: /docs.html
+Allow: /pricing.html
+Allow: /product.html
+Allow: /help.html
+Allow: /refer.html
+Allow: /register.html
+Allow: /login.html
+Allow: /about.html
+Allow: /privacy.html
+Allow: /terms.html
+Allow: /img/
+
+Disallow: /token-admin.html
+Disallow: /console.html
+Disallow: /account.html
+Disallow: /ai24x.html
+Disallow: /command-center.html
+Disallow: /demo.html
+Disallow: /paypal.html
+Disallow: /dashboard.html
+Disallow: /ops/
+
+Sitemap: https://open.ai24x.com/sitemap.xml

@@ -1,0 +1,13 @@
+{
+  "breadth": {
+    "total": 100,
+    "up": 100,
+    "down": 0,
+    "flat": 0,
+    "limit_up": 100,
+    "limit_up20": 18,
+    "big_up": 100,
+    "big_down": 0,
+    "main_net": 13955360043.0
+  }
+}

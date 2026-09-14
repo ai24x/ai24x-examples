@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'e:\\AI24X\\ai24x-website\\ai24x01\\.codex\\hooks\\session-init.cmd'",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'e:\\AI24X\\ai24x-website\\ai24x01\\.codex\\hooks\\subagent-stop.cmd'",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

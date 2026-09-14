@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Stair Climber · 步步高</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; }
+  body {
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background:#0f172a; color:#e2e8f0; overflow:hidden; user-select:none;
+    touch-action:manipulation; overscroll-behavior:none;
+  }
+  #wrap { height:100dvh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:8px; }
+  .hud { display:flex; gap:28px; font-size:15px; font-weight:700; color:#94a3b8; }
+  .hud b { color:#fbbf24; font-size:18px; }
+  #stage { width:100%; max-width:390px; aspect-ratio:390/700; position:relative; border-radius:20px; overflow:hidden; background:linear-gradient(180deg,#0b1220 0%,#1e293b 100%); border:2px solid #334155; touch-action:none; }
+  canvas { display:block; width:100%; height:100%; }
+  #tip { font-size:12px; color:#64748b; min-height:16px; }
+  #overlay { position:fixed; inset:0; background:rgba(2,6,23,.9); display:none; align-items:center; justify-content:center; z-index:10; }
+  #overlay.show { display:flex; }
+  .panel { text-align:center; padding:30px 26px; border-radius:20px; background:#1e293b; border:1px solid #334155; max-width:320px; width:90%; }
+  .panel h2 { font-size:22px; margin-bottom:6px; }
+  .floors { font-size:48px; font-weight:800; color:#38bdf8; margin:6px 0; }
+  .best { color:#94a3b8; font-size:14px; margin-bottom:14px; }
+  .share { font-size:13px; color:#fbbf24; margin-bottom:16px; padding:8px 12px; background:#1e293b; border:1px dashed #475569; border-radius:10px; }
+  .play { background:linear-gradient(90deg,#38bdf8,#6366f1); border:none; color:#fff; font-size:18px; font-weight:800; padding:13px 38px; border-radius:999px; cursor:pointer; box-shadow:0 6px 0 rgba(0,0,0,.3); touch-action:manipulation; }
+  .play:active { transform: translateY(3px); box-shadow:0 3px 0 rgba(0,0,0,.3); }
+</style>
+</head>
+<body>
+<div id="topbar"><a href="index.html">← 列表</a><span class="tt">Stair Climber<span class="tg">爬高</span></span><button id="howBtn" aria-label="玩法说明">?</button></div>
+<div id="howto"><b>怎么玩</b><br>按住蓄力、松开跳跃，跳上下一个台阶。跳得越高分越高，跳空就掉下去！和朋友比比谁爬得高。</div>
+<div id="wrap">
+  <div class="hud"><div>层数 <b id="floor">0</b></div><div>最佳 <b id="best">0</b></div></div>
+  <div id="stage"><canvas id="cv"></canvas></div>
+  <div id="tip">按住蓄力，松开起跳</div>
+</div>
+
+<div id="overlay">
+  <div class="panel">
+    <h2>🏔️ 掉落！</h2>
+    <div class="floors" id="floors">0 层</div>
+    <div class="best" id="bestLine">最佳 0 层</div>
+    <div class="share" id="shareTxt">我爬了 0 层，你能超过我吗？</div>
+    <button class="play" id="restart">再来一次</button>
+  </div>
+</div>
+
+<style id="xz-shell">
+#topbar{position:fixed;top:0;left:0;right:0;height:64px;z-index:50;display:flex;align-items:center;gap:10px;padding:0 14px;background:rgba(15,23,42,.94);backdrop-filter:blur(8px);border-bottom:1px solid #334155;color:#e2e8f0;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;-webkit-user-select:none;user-select:none;}
+#topbar a{color:#38bdf8;text-decoration:none;font-size:14px;font-weight:700;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+#topbar .tt{flex:1;text-align:center;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#topbar .tg{font-size:11px;color:#94a3b8;font-weight:400;margin-left:4px;}
+#howBtn{width:30px;height:30px;border-radius:50%;border:1px solid #334155;background:#1e293b;color:#94a3b8;font-weight:800;cursor:pointer;font-size:15px;line-height:1;flex:none;}
+#howto{display:none;position:fixed;top:72px;left:50%;transform:translateX(-50%);width:min(92vw,420px);z-index:70;background:#1e293b;border:1px solid #475569;border-radius:14px;padding:14px 16px;color:#cbd5e1;font-size:13px;line-height:1.7;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;box-shadow:0 12px 32px rgba(0,0,0,.55);}
+#howto.show{display:block;}
+#howto b{color:#38bdf8;}
+.xz-cr{position:fixed;bottom:4px;right:10px;font-size:10px;color:#475569;z-index:45;font-family:-apple-system,"Segoe UI",sans-serif;pointer-events:none;-webkit-user-select:none;user-select:none;}
+</style>
+
+<script>
+(function(){
+  'use strict';
+  var cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+  var floorEl=document.getElementById('floor'), bestEl=document.getElementById('best');
+  var tip=document.getElementById('tip'), overlay=document.getElementById('overlay');
+  var floorsEl=document.getElementById('floors'), bestLine=document.getElementById('bestLine');
+  var shareTxt=document.getElementById('shareTxt'), restart=document.getElementById('restart');
+
+  var W=390, H=700, DPR=Math.min(2, devicePixelRatio||1);
+  cv.width=W*DPR; cv.height=H*DPR; ctx.scale(DPR,DPR);
+
+  var BEST=+localStorage.getItem('xz-sc-best')||0;
+  bestEl.textContent=BEST;
+
+  var STEP=78, SW=112, SH=20;
+  var stairs=[], player={}, state='ready', floor=0, hold=0, holdT=0, jump=null, fallY=0;
+
+  function reset(){
+    stairs=[]; floor=0; floorEl.textContent=0; state='ready';
+    // 起始台阶 + 向上 20 级预生成
+    for(var i=0;i<24;i++){
+      stairs.push({ x: stairs.length? nextX(stairs[stairs.length-1]) : W/2-SW/2, y: H-90-i*STEP });
+    }
+    player={ x: stairs[0].x+SW/2, y: stairs[0].y-SH-46, w:26, h:46, vx:0, vy:0, on:stairs[0] };
+    tip.textContent='按住蓄力，松开起跳';
+    overlay.classList.remove('show');
+  }
+
+  function nextX(prev){
+    var dir = Math.random()<0.5?-1:1;
+    var nx = prev.x + dir*(90+Math.random()*120);
+    if(nx<10) nx=10; if(nx+SW>W-10) nx=W-10-SW;
+    return nx;
+  }
+
+  function ensureStairs(){
+    var top=stairs[stairs.length-1];
+    while(stairs[stairs.length-1].y>0){
+      stairs.push({ x:nextX(stairs[stairs.length-1]), y: stairs[stairs.length-1].y-STEP });
+    }
+  }
+
+  function startHold(){
+    if(state==='over') return;
+    if(state==='ready'||state==='idle'){ state='hold'; hold=0; player.y-=4; }
+  }
+  function endHold(){
+    if(state!=='hold') return;
+    state='jump';
+    var dist = Math.min(hold*0.55, 260) + 40;
+    player.vx = (dist/420)*100; player.vy = -8.2;
+    jump={ from: player.x, dist: dist, t:0 };
+    tip.textContent='';
+  }
+
+  function update(){
+    if(state==='hold'){
+      hold = Math.min(hold+1, 400);
+      ensureStairs();
+    }
+    if(state==='jump'&&player){
+      player.x+=player.vx; player.vy+=0.42; player.y+=player.vy;
+      // 撞到台阶顶部
+      for(var i=0;i<stairs.length;i++){
+        var s=stairs[i];
+        if(player.vy>0 && player.x+player.w/2>s.x-4 && player.x-player.w/2<s.x+SW+4 && player.y+player.h>=s.y && player.y+player.h<=s.y+SH+16){
+          land(s,i); break;
+        }
+      }
+      if(player.y>H+80){ gameOver(); }
+    }
+    if(state==='fall'){
+      player.y+=14; 
+      if(player.y>H+80) gameOver();
+    }
+  }
+
+  function land(s, idx){
+    player.y=s.y-SH-46; player.vy=0; player.vx=0;
+    player.on=s; state='idle';
+    var newFloor = Math.round((H-90-s.y)/STEP);
+    if(newFloor>floor){ floor=newFloor; floorEl.textContent=floor; }
+    tip.textContent='按住蓄力，松开起跳';
+    // 掉落在台阶边缘判定（台阶边缘会滑落）
+    var edge = Math.min(30, SW*0.28);
+    if(player.x+player.w/2 < s.x+edge || player.x-player.w/2 > s.x+SW-edge){
+      tip.textContent='⚠️ 站太边了！';
+      setTimeout(function(){ state='fall'; }, 350);
+    }
+  }
+
+  function gameOver(){
+    state='over';
+    if(floor>BEST){ BEST=floor; localStorage.setItem('xz-sc-best',BEST); }
+    bestEl.textContent=BEST;
+    floorsEl.textContent=floor+' 层';
+    bestLine.textContent='最佳 '+BEST+' 层';
+    var grade = floor>=50?'🏆 爬楼大神': floor>=30?'🔥 高手': floor>=12?'👍 不错':'😅 新手';
+    shareTxt.textContent='我爬了 '+floor+' 层（'+grade+'），你能超过我吗？';
+    overlay.classList.add('show');
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    // 背景星星
+    ctx.fillStyle='rgba(148,163,184,.25)';
+    for(var i=0;i<40;i++){
+      var sx=(i*97)%W, sy=(i*53)%H;
+      ctx.fillRect(sx,sy,2,2);
+    }
+    // 台阶
+    for(var j=0;j<stairs.length;j++){
+      var s=stairs[j];
+      ctx.fillStyle='#334155';
+      ctx.fillRect(s.x,s.y,SW,SH);
+      ctx.fillStyle='#475569';
+      ctx.fillRect(s.x,s.y,SW,6);
+    }
+    // 角色
+    if(player){
+      ctx.fillStyle='#38bdf8';
+      ctx.fillRect(player.x-player.w/2, player.y, player.w, player.h);
+      ctx.fillStyle='#0f172a';
+      ctx.fillRect(player.x-6, player.y+8, 5, 5);
+      ctx.fillRect(player.x+1, player.y+8, 5, 5);
+      // 蓄力条
+      if(state==='hold'&&hold>0){
+        var bw=Math.min(120, hold*0.5);
+        ctx.fillStyle='rgba(56,189,248,.25)';
+        ctx.fillRect(player.x-player.w/2, player.y-12, player.w, 4);
+        ctx.fillStyle='#fbbf24';
+        ctx.fillRect(player.x-player.w/2, player.y-12, bw*(player.w/120), 4);
+      }
+    }
+  }
+
+  function loop(){ update(); draw(); requestAnimationFrame(loop); }
+
+  var stage=document.getElementById('stage');
+  stage.addEventListener('pointerdown', function(e){ e.preventDefault(); startHold(); });
+  window.addEventListener('pointerup', function(e){ e.preventDefault(); endHold(); });
+  restart.addEventListener('click', reset);
+
+  reset(); loop();
+})();
+</script>
+<script>
+(function(){
+  'use strict';
+  var W=390,H=780,TOP=64;
+  var wrap=document.getElementById('wrap');
+  function fit(){
+    if(!wrap) return;
+    var s=Math.min(innerWidth/W,(innerHeight-TOP)/H);
+    if(s>1.4) s=1.4;
+    var w=W*s,h=H*s;
+    wrap.style.width=w+'px';
+    wrap.style.height=h+'px';
+    wrap.style.left=((innerWidth-w)/2)+'px';
+    wrap.style.top=(TOP+(innerHeight-TOP-h)/2)+'px';
+    wrap.style.position='fixed';
+    wrap.style.margin='0';
+    wrap.style.transform='scale('+s+')';
+    wrap.style.transformOrigin='top left';
+  }
+  fit();
+  addEventListener('resize',fit);
+  addEventListener('orientationchange',fit);
+  var ov=document.getElementById('overlay');
+  if(ov) ov.style.zIndex=60;
+  var hb=document.getElementById('howBtn'),ht=document.getElementById('howto');
+  if(hb&&ht){
+    hb.addEventListener('click',function(e){e.stopPropagation();ht.classList.toggle('show');});
+    document.addEventListener('pointerdown',function(e){if(ht.classList.contains('show')&&!ht.contains(e.target)&&e.target!==hb)ht.classList.remove('show');});
+  }
+  document.addEventListener('contextmenu',function(e){e.preventDefault();});
+  document.addEventListener('dragstart',function(e){e.preventDefault();});
+  document.addEventListener('keydown',function(e){
+    var k=e.key||'';
+    if(k==='F12'||(e.ctrlKey&&['s','u','p','S','U','P'].indexOf(k)>=0)||(e.ctrlKey&&e.shiftKey&&['i','j','c','I','J','C'].indexOf(k)>=0)){e.preventDefault();e.stopPropagation();return false;}
+  });
+})();
+</script>
+<div class="xz-cr">© 2026 AI24X Game Zone</div>
+</body>
+</html>

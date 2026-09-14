@@ -1,0 +1,207 @@
+{
+  "ok": true,
+  "date": "2026-09-04",
+  "source": "ths:fuyao",
+  "limit_up": {
+    "count": 38,
+    "max_lianban": 5,
+    "max_name": "龙版传媒",
+    "seal_money_top": [
+      {
+        "name": "龙版传媒",
+        "ticker": "605577",
+        "seal": 22608145.0,
+        "reason": "AI漫剧+出版发行+黑龙江国资"
+      },
+      {
+        "name": "楚天龙",
+        "ticker": "003040",
+        "seal": 17341632.0,
+        "reason": "数字人民币+AI政务+数字安全"
+      },
+      {
+        "name": "亚盛集团",
+        "ticker": "600108",
+        "seal": 16758968.0,
+        "reason": "玉米制种+现代农业+甘肃国资"
+      },
+      {
+        "name": "翠微股份",
+        "ticker": "603123",
+        "seal": 15212626.0,
+        "reason": "数字人民币+跨境支付+AI应用+北京国资"
+      },
+      {
+        "name": "新炬网络",
+        "ticker": "605398",
+        "seal": 11050570.0,
+        "reason": "AI智能运维+国产数据库+数据中心运维"
+      }
+    ]
+  },
+  "ladder": {
+    "date": "2026-09-04",
+    "rows": [
+      {
+        "board": "two_board",
+        "count": 6,
+        "names": [
+          "亚盛集团",
+          "恒盛能源",
+          "新炬网络",
+          "海通发展"
+        ]
+      },
+      {
+        "board": "three_board",
+        "count": 0,
+        "names": []
+      },
+      {
+        "board": "four_board",
+        "count": 0,
+        "names": []
+      },
+      {
+        "board": "five_board",
+        "count": 1,
+        "names": [
+          "龙版传媒"
+        ]
+      },
+      {
+        "board": "six_board",
+        "count": 0,
+        "names": []
+      },
+      {
+        "board": "seven_over",
+        "count": 0,
+        "names": []
+      }
+    ]
+  },
+  "hot": [
+    {
+      "name": "金健米业",
+      "ticker": "600127",
+      "rank": 1,
+      "heat": "3555599",
+      "rank_trend": "up"
+    },
+    {
+      "name": "楚天龙",
+      "ticker": "003040",
+      "rank": 2,
+      "heat": "3305940",
+      "rank_trend": "down"
+    },
+    {
+      "name": "远东股份",
+      "ticker": "600869",
+      "rank": 3,
+      "heat": "3241502",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "黄河旋风",
+      "ticker": "600172",
+      "rank": 4,
+      "heat": "3055618",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "国芳集团",
+      "ticker": "601086",
+      "rank": 5,
+      "heat": "2901968",
+      "rank_trend": "up"
+    }
+  ],
+  "skyrocket": [
+    {
+      "name": "中国船舶",
+      "ticker": "600150",
+      "rank": 1,
+      "heat": "281991.0",
+      "rank_trend": "up"
+    },
+    {
+      "name": "浪潮信息",
+      "ticker": "000977",
+      "rank": 2,
+      "heat": "267893.6",
+      "rank_trend": "up"
+    },
+    {
+      "name": "牧原股份",
+      "ticker": "002714",
+      "rank": 3,
+      "heat": "247393.6",
+      "rank_trend": "up"
+    },
+    {
+      "name": "新希望",
+      "ticker": "000876",
+      "rank": 4,
+      "heat": "219395.6",
+      "rank_trend": "up"
+    },
+    {
+      "name": "景旺电子",
+      "ticker": "603228",
+      "rank": 5,
+      "heat": "208880.5",
+      "rank_trend": "up"
+    }
+  ],
+  "hot_money": [],
+  "anomaly": {
+    "count": 283,
+    "tags": {
+      "跌停": 9,
+      "涨停": 44,
+      "大跌": 84,
+      "大涨": 146
+    },
+    "top": [
+      {
+        "name": "深中华A",
+        "thscode": "000017.SZ",
+        "tag": "跌停",
+        "reason": "1、据2026年9月3日公告，公司A股此前连续10个交易日涨幅偏离值累计达100%，截至9月2日静态、滚动市盈率分别为1"
+      },
+      {
+        "name": "竞业达",
+        "thscode": "003005.SZ",
+        "tag": "跌停",
+        "reason": "1、据2026年9月3日公告，公司独立销售的智能体相关业务收入不超过2026年上半年营业收入的1%，且主营业务不涉及具身"
+      },
+      {
+        "name": "大晟文化",
+        "thscode": "600892.SH",
+        "tag": "跌停",
+        "reason": "1、据同花顺iFinD数据，公司此前5个交易日累计上涨36.59%，短期涨幅较大，股价波动有所加剧。 \n2、据2026年"
+      },
+      {
+        "name": "郑州煤电",
+        "thscode": "600121.SH",
+        "tag": "跌停",
+        "reason": "1、据同花顺iFinD数据，郑州煤电此前5个交易日累计上涨33.26%、20个交易日累计上涨33.57%，9月3日公司股"
+      },
+      {
+        "name": "明新旭腾",
+        "thscode": "605068.SH",
+        "tag": "跌停",
+        "reason": "1、据2026年9月4日公告，公司股价截至9月3日收盘为23.50元/股，9月1日至9月3日连续三个交易日累计上涨24."
+      },
+      {
+        "name": "浪潮信息",
+        "thscode": "000977.SZ",
+        "tag": "跌停",
+        "reason": "1、据同花顺iFinD截至2026年9月4日9时38分数据，公司主力资金今日净流出2.54亿元，平均成本79.35元。 "
+      }
+    ]
+  },
+  "errors": []
+}

@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- [AI24X 2026-08-15] Google Ads 暂停 (国际支付无合规渠道，保留待恢复，勿删）：
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18385419220"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', {
+    'ad_storage': 'denied',
+    'ad_user_data': 'denied',
+    'ad_personalization': 'denied',
+    'analytics_storage': 'denied',
+    'personalization_storage': 'denied',
+    'functionality_storage': 'granted',
+    'security_storage': 'granted',
+    'wait_for_update': 500
+  });
+  gtag('js', new Date());
+
+  gtag('config', 'AW-18385419220');
+</script>
+<script src="config/consent.js?v=20260814a"></script>
+-->
+
+  <meta charset="UTF-8" />
+  <script>
+/* i18n-boot inline v20260808c: language pre-read + FOUC guard (no network dependency) */
+(function () {
+  var KEY = "ai24x_lang";
+  try {
+    var raw = String(localStorage.getItem(KEY) || "").trim().toLowerCase().replace(/_/g, "-");
+    var lang = raw.split("-")[0] || "";
+    if (!lang) { lang = "en"; localStorage.setItem(KEY, lang); }
+    document.documentElement.setAttribute("data-ai24x-lang", lang);
+    document.documentElement.classList.add("i18n-pending");
+    if (!document.getElementById("ai24x-i18n-pending")) {
+      var st = document.createElement("style");
+      st.id = "ai24x-i18n-pending";
+      st.textContent = "html.i18n-pending body{visibility:hidden!important}";
+      (document.head || document.documentElement).appendChild(st);
+    }
+    setTimeout(function () { document.documentElement.classList.remove("i18n-pending"); }, 4000);
+  } catch (e) {}
+})();
+</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Help Center · AI24X</title>
+  <meta name="description" content="AI24X help: get an API key, billing &amp; top-up, plus Markets how-to. Start free." />
+  <link rel="canonical" href="https://www.ai24x.com/help.html" />
+    <link rel="alternate" hreflang="en" href="https://www.ai24x.com/help.html" />
+  <link rel="alternate" hreflang="x-default" href="https://www.ai24x.com/help.html" />
+<meta property="og:type" content="website" />
+  <meta property="og:title" content="Help Center · AI24X" />
+  <meta property="og:description" content="Get an API key, manage billing, and Markets how-to — same AI24X account." />
+  <meta property="og:url" content="https://www.ai24x.com/help.html" />
+  <meta property="og:image" content="https://www.ai24x.com/img/og-share.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://www.ai24x.com/img/og-share.png" />
+  <link rel="stylesheet" href="css/base.css?v=20260829c" />
+  <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260812e" data-base="css/themes/" />
+  <style>
+    .help-toc {
+      display: flex; flex-wrap: wrap; gap: 8px 10px;
+      margin: 14px 0 0; padding: 0; list-style: none;
+    }
+    .help-toc a {
+      display: inline-block; padding: 6px 12px; border-radius: 999px;
+    border: 1px solid var(--border, #d8e4ef); background: var(--card-bg, #fff);
+      color: var(--text, #152c43); text-decoration: none; font-size: 13px;
+    }
+    .help-toc a:hover { border-color: var(--accent, #2563eb); }
+    .help-sec { scroll-margin-top: 84px; margin-top: 18px; }
+    .help-chips {
+      display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center;
+      margin: 10px 0 4px;
+    }
+    .chip-swatch {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 12px; border-radius: 10px;
+    border: 1px solid var(--border, #d8e4ef); background: var(--card-bg, #fff);
+      font-size: 13px; color: var(--text, #152c43);
+    }
+    .chip-swatch .muted { font-size: 12px; color: var(--muted, #64748b); }
+    .ma-swatch { width: 28px; height: 3px; border-radius: 2px; flex-shrink: 0; }
+    .ma-swatch.ma-orange { background: #ff8000; }
+    .ma-swatch.ma-blue { background: #0080ff; }
+    .ma-swatch.ma-green { background: #00c853; }
+    .ma-swatch.ma-dash {
+      background: transparent;
+      border-top: 2px dashed #94a3b8;
+      height: 0; width: 28px;
+    }
+    .help-note {
+      margin-top: 12px; padding: 12px 14px; border-radius: 12px;
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      background: rgba(251, 191, 36, 0.08);
+      font-size: 13px; line-height: 1.65; color: var(--text, #152c43);
+    }
+    .help-stack .card { margin-bottom: 10px; }
+    /* 卡片网格跟首页同宽；FAQ/风险说明保持适中阅读宽 */
+    .help-prose { max-width: 980px; }
+  </style>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {"@type":"Question","name":"How do I start with AI24X for free?","acceptedAnswer":{"@type":"Answer","text":"Create a free account at www.ai24x.com/register.html, then open AI Gateway to get an API key and try models. Top up from Account billing when you are ready."}},
+      {"@type":"Question","name":"Where do I get an API key?","acceptedAnswer":{"@type":"Answer","text":"Sign in and open AI Gateway (open.ai24x.com) or your Account. One OpenAI-compatible key can call multiple models."}},
+      {"@type":"Question","name":"How do I top up or buy a plan?","acceptedAnswer":{"@type":"Answer","text":"Managed credits: top up in Account Hub (www.ai24x.com) under Billing. BYOK plans: buy on AI Gateway (open.ai24x.com). Markets Pro is for US charts. Payment activates instantly."}},
+      {"@type":"Question","name":"Do I need a separate account for Markets?","acceptedAnswer":{"@type":"Answer","text":"No — the same AI24X account works for AI Gateway and AI Markets."}},
+      {"@type":"Question","name":"How do I search a stock on AI Markets?","acceptedAnswer":{"@type":"Answer","text":"Type a ticker such as AAPL, SPY or ^GSPC into the Markets search box. Content is educational, not investment advice."}},
+      {"@type":"Question","name":"Can I trade based on the AI commentary?","acceptedAnswer":{"@type":"Answer","text":"No. Commentary, indicators and charts are educational references only. Make your own decisions."}}
+    ]
+  }
+  </script>
+</head>
+<body data-page="help" class="theme-blue">
+  <header class="site-header" id="site-header"></header>
+  <main class="page-main">
+    <section class="hero hero-surface section-tight">
+      <div class="container">
+        <h1 data-i18n="page.help.title">Help center</h1>
+        <p class="lead" data-i18n="page.help.lead">Start free → get an API key → top up. Markets how-to is below if you need charts.</p>
+        <ul class="help-toc" aria-label="On this page">
+          <li><a href="#doors" data-i18n="page.help.toc.doors">Products</a></li>
+          <li><a href="#dev" data-i18n="page.help.toc.dev">AI Gateway</a></li>
+          <li><a href="#start" data-i18n="page.help.toc.start">Markets start</a></li>
+          <li><a href="#charts" data-i18n="page.help.toc.charts">Charts</a></li>
+          <li><a href="#ai" data-i18n="page.help.toc.ai">AI commentary</a></li>
+          <li><a href="#plan" data-i18n="page.help.toc.plan">Free vs Pro</a></li>
+          <li><a href="#faq" data-i18n="page.help.toc.faq">FAQ</a></li>
+          <li><a href="#safe" data-i18n="page.help.toc.safe">Risk notice</a></li>
+        </ul>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="register.html" data-i18n="page.help.cta.register">Start Building Free</a>
+          <a class="btn" href="https://open.ai24x.com/" data-open target="_blank" rel="noopener" data-i18n="page.help.dev.open">Get API Key</a>
+          <a class="btn" href="pricing.html" data-i18n="page.help.cta.pricing">View pricing</a>
+          <a class="btn" href="console.html#billing" data-i18n="page.help.cta.billing">Top up</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <section class="help-sec" id="doors" style="margin-top:0">
+          <h2 data-i18n="page.help.doors.title">Which product do you need?</h2>
+          <p class="sub" data-i18n="page.help.doors.sub">Same AI24X account — different doors.</p>
+          <div class="grid-3" style="margin-top:14px;grid-template-columns:repeat(2,minmax(0,1fr))">
+            <div class="card">
+              <h3 class="mt-0" data-i18n="page.help.doors.gateway.t">AI Gateway</h3>
+              <p class="sub" style="margin:0" data-i18n="page.help.doors.gateway.p">Multi-model API, BYOK or managed access, keys and usage. Best for developers and agents.</p>
+              <div class="hero-cta" style="margin-top:12px">
+                <a class="btn btn-primary" href="register.html" data-i18n="page.help.cta.register">Start Building Free</a>
+                <a class="btn" href="https://open.ai24x.com/" data-open target="_blank" rel="noopener" data-i18n="page.help.dev.open">Get API Key</a>
+                <a class="btn" href="#dev" data-i18n="page.help.doors.gateway.more">Gateway tips</a>
+              </div>
+            </div>
+            <div class="card">
+              <h3 class="mt-0" data-i18n="page.help.doors.markets.t">AI Markets</h3>
+              <p class="sub" style="margin:0" data-i18n="page.help.doors.markets.p">US charts, indicators and plain-language AI commentary. Educational use only — not investment advice.</p>
+              <div class="hero-cta" style="margin-top:12px">
+                <a class="btn" href="https://markets.ai24x.com/" data-markets data-hub-external target="_blank" rel="noopener" data-i18n="page.help.cta.app">Open Markets app</a>
+                <a class="btn" href="#start" data-i18n="page.help.doors.markets.more">Markets how-to</a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="card" id="support" style="margin-top:18px">
+          <h2 class="mt-0" data-i18n="page.help.support.title">Need help?</h2>
+          <p class="sub" data-i18n="page.help.support.lead">Tap the chat bubble Help at the bottom-right to ask or open a human ticket (sign-in required).</p>
+          <p class="sub" style="margin-top:6px" data-i18n="page.help.ticket.lead">Tickets are private chat with our system: submit, get an instant reply, and follow up anytime; human support takes over automatically when needed.</p>
+          <div class="hero-cta" style="margin-top:12px">
+            <button type="button" class="btn btn-primary" id="help-open-support" data-i18n="page.help.support.ai">Open Instant help</button>
+            <button type="button" class="btn" id="help-open-ticket" data-i18n="page.help.support.ticket">Human ticket</button>
+          </div>
+        </div>
+
+        <section class="help-sec" id="dev">
+          <h2 data-i18n="page.help.dev.title">AI Gateway</h2>
+          <div class="card">
+            <p class="sub" style="margin:0" data-i18n="page.help.dev.sub">API keys, models, docs and developer tools live on AI Gateway (open.ai24x.com) — OpenAI-compatible API with BYOK or managed access.</p>
+            <div class="hero-cta" style="margin-top:12px">
+              <a class="btn btn-primary" href="https://open.ai24x.com" data-open target="_blank" rel="noopener" data-i18n="page.help.dev.open">Open AI Gateway</a>
+              <a class="btn" href="pricing.html#byokSection" data-i18n="page.pricing.jumpGateway">AI Gateway plans</a>
+            </div>
+          </div>
+        </section>
+
+        <section class="help-sec" id="start">
+          <h2 data-i18n="page.help.start.title">Get started in three steps</h2>
+          <p class="sub" data-i18n="page.help.start.sub">Markets how-to — from search to reading the chart.</p>
+          <div class="grid-3" style="margin-top:14px">
+            <div class="card">
+              <h3 class="mt-0" data-i18n="page.help.start.s1t">Sign in or register</h3>
+              <p class="sub" style="margin:0" data-i18n="page.help.start.s1p">One AI24X account works for Markets and the developer API. Start free, no credit card.</p>
+            </div>
+            <div class="card">
+              <h3 class="mt-0" data-i18n="page.help.start.s2t">Search a symbol</h3>
+              <p class="sub" style="margin:0" data-i18n="page.help.start.s2p">Type a ticker like AAPL, SPY or ^GSPC and press Search. Quotes, K-lines and indicators load automatically.</p>
+            </div>
+            <div class="card">
+              <h3 class="mt-0" data-i18n="page.help.start.s3t">Read the charts</h3>
+              <p class="sub" style="margin:0" data-i18n="page.help.start.s3p">Switch daily / weekly / monthly and read the AI commentary under the chart. Every marker is explained on this page.</p>
+            </div>
+          </div>
+          <p class="sub" style="margin:12px 0 0;" data-i18n="page.help.start.tip">Tip: wait for charts to finish loading before searching again; rapid repeated searches can hit data-source rate limits.</p>
+        </section>
+
+        <section class="help-sec" id="charts">
+          <h2 data-i18n="page.help.charts.title">Reading the charts</h2>
+          <p class="sub" data-i18n="page.help.charts.sub">K-lines, moving averages and indicators — what you see and what it means.</p>
+          <div class="card" style="margin-top:14px">
+            <h3 class="mt-0" data-i18n="page.help.charts.klines">K-lines (daily / weekly / monthly)</h3>
+            <p class="sub" style="margin:0" data-i18n="page.help.charts.klines1">Each bar shows open, high, low and close for that period. Switch timeframes to see short-term rhythm or long-term structure.</p>
+          </div>
+          <div class="card">
+            <h3 class="mt-0" data-i18n="page.help.charts.ma">Moving averages (overlay)</h3>
+            <div class="help-chips">
+              <span class="chip-swatch"><span class="ma-swatch ma-orange" aria-hidden="true"></span><span>Orange line <span class="muted">· shorter-term rhythm</span></span></span>
+              <span class="chip-swatch"><span class="ma-swatch ma-blue" aria-hidden="true"></span><span>Blue line <span class="muted">· medium-term structure</span></span></span>
+              <span class="chip-swatch"><span class="ma-swatch ma-green" aria-hidden="true"></span><span>Green line <span class="muted">· long-term trend</span></span></span>
+              <span class="chip-swatch"><span class="ma-swatch ma-dash" aria-hidden="true"></span><span>Dashed short MA <span class="muted">· optional toggle for earlier crossovers</span></span></span>
+            </div>
+          </div>
+          <div class="card">
+            <h3 class="mt-0" data-i18n="page.help.charts.ind">MACD · RSI · Volume</h3>
+            <p class="sub" style="margin:0" data-i18n="page.help.charts.ind1">MACD and RSI in the subchart show momentum and overbought/oversold conditions; volume bars show activity.</p>
+          </div>
+          <p class="sub" style="margin:10px 0 0;" data-i18n="page.help.charts.tip">Indicators describe the current picture — they don't predict the future. Read them together with price action.</p>
+        </section>
+
+        <section class="help-sec" id="ai">
+          <h2 data-i18n="page.help.ai.title">AI commentary</h2>
+          <p class="sub" data-i18n="page.help.ai.sub">A plain-language technical snapshot for every symbol, generated daily.</p>
+          <div class="grid-3" style="margin-top:14px">
+            <div class="card">
+              <h3 class="mt-0" data-i18n="page.help.ai.f1t">Trend &amp; structure</h3>
+              <p class="sub" style="margin:0" data-i18n="page.help.ai.f1p">Where price sits relative to key moving averages and recent ranges.</p>
+            </div>
+            <div class="card">
+              <h3 class="mt-0" data-i18n="page.help.ai.f2t">Momentum &amp; volume</h3>
+              <p class="sub" style="margin:0" data-i18n="page.help.ai.f2p">What MACD, RSI and volume are saying right now.</p>
+            </div>
+            <div class="card">
+              <h3 class="mt-0" data-i18n="page.help.ai.f3t">Watch points</h3>
+              <p class="sub" style="margin:0" data-i18n="page.help.ai.f3p">Levels and patterns worth watching — educational, not advice.</p>
+            </div>
+          </div>
+          <p class="sub" style="margin:12px 0 0;" data-i18n="page.help.ai.tip">Free accounts get 10 AI commentaries per day; Pro is unlimited.</p>
+        </section>
+
+        <section class="help-sec" id="plan">
+          <h2 data-i18n="page.help.plan.title">Free vs Pro</h2>
+          <p class="sub" data-i18n="page.help.plan.sub">Start free, upgrade when you want more.</p>
+          <div class="grid-2" style="margin-top:14px">
+            <div class="card">
+              <h3 class="mt-0" data-i18n="page.help.plan.free">Free</h3>
+              <ul class="help-steps" style="margin:0;padding-left:1.2em;">
+                <li data-i18n="page.help.plan.free1">Charts and indicators for any US symbol</li>
+                <li data-i18n="page.help.plan.free2">10 AI commentaries per day</li>
+                <li data-i18n="page.help.plan.free3">Watchlist up to 10 symbols</li>
+              </ul>
+            </div>
+            <div class="card" style="border-color: var(--accent, #2563eb);">
+              <h3 class="mt-0" data-i18n="page.help.plan.pro">Pro</h3>
+              <ul class="help-steps" style="margin:0;padding-left:1.2em;">
+                <li data-i18n="page.help.plan.pro1">Unlimited AI commentary</li>
+                <li data-i18n="page.help.plan.pro2">Watchlist up to 50 symbols</li>
+                <li data-i18n="page.help.plan.pro3">Priority caching</li>
+                <li data-i18n="page.help.plan.pro4">$24.9/month or $199/year (33% off) · PayPal, cancel anytime</li>
+              </ul>
+              <p style="margin:12px 0 0;"><a class="btn btn-primary" href="pricing.html" data-i18n="page.help.plan.cta">See pricing</a></p>
+            </div>
+          </div>
+        </section>
+
+        <div class="help-prose">
+        <section class="help-sec" id="faq">
+          <h2 data-i18n="page.help.faq.title">FAQ</h2>
+          <div class="help-stack" style="margin-top:12px">
+            <div class="card">
+              <h3 class="mt-0" data-i18n="page.help.m1t">How do I search a stock, ETF or index?</h3>
+              <p class="sub" style="margin:0" data-i18n="page.help.m1p">Type a ticker such as AAPL, SPY or ^GSPC into the search box and press Search. Quotes, K-lines and indicators load automatically.</p>
+            </div>
+            <div class="card">
+              <h3 class="mt-0" data-i18n="page.help.m2t">What indicators are available?</h3>
+              <p class="sub" style="margin:0" data-i18n="page.help.m2p">Daily, weekly and monthly K-lines with MA, MACD, RSI and volume.</p>
+            </div>
+            <div class="card">
+              <h3 class="mt-0" data-i18n="page.help.m3t">What does the AI commentary tell me?</h3>
+              <p class="sub" style="margin:0" data-i18n="page.help.m3p">A plain-language technical snapshot of a symbol: trend, momentum, volume and watch points. It is educational, not investment advice.</p>
+            </div>
+            <div class="card">
+              <h3 class="mt-0" data-i18n="page.help.m4t">How do I subscribe to Markets Pro?</h3>
+              <p class="sub" style="margin:0" data-i18n="page.help.m4p">Pro is $9.9/week, $24.9/month or $199/year (33% off), paid with PayPal. Activate it inside Markets or from your Account.</p>
+            </div>
+            <div class="card">
+              <h3 class="mt-0" data-i18n="page.help.m5t">Why is the data delayed by 15 minutes?</h3>
+              <p class="sub" style="margin:0" data-i18n="page.help.m5p">We use free delayed market feeds. Sources are credited on every page; content is for educational purposes only.</p>
+            </div>
+            <div class="card">
+              <h3 class="mt-0" data-i18n="page.help.m6t">Do I need a separate account for Markets?</h3>
+              <p class="sub" style="margin:0" data-i18n="page.help.m6p">No — sign in with the same AI24X account. Log in from the Markets app and manage billing from your Account.</p>
+            </div>
+            <div class="card">
+              <h3 class="mt-0" data-i18n="page.help.f1t">Searching a symbol returns nothing?</h3>
+              <p class="sub" style="margin:0" data-i18n="page.help.f1p">Check the ticker spelling and use the exchange format (e.g. ^GSPC for the S&P 500). Some symbols on free feeds may be temporarily unavailable.</p>
+            </div>
+            <div class="card">
+              <h3 class="mt-0" data-i18n="page.help.f2t">Delisted or renamed symbols</h3>
+              <p class="sub" style="margin:0" data-i18n="page.help.f2p">Delisted companies may no longer be available. Try the new ticker after a rename.</p>
+            </div>
+            <div class="card">
+              <h3 class="mt-0" data-i18n="page.help.f3t">Why do daily, weekly and monthly look different?</h3>
+              <p class="sub" style="margin:0" data-i18n="page.help.f3p">Different timeframes show different scales, so markers and indicators naturally differ. Don't compare them directly.</p>
+            </div>
+            <div class="card">
+              <h3 class="mt-0" data-i18n="page.help.f4t">Why do numbers differ from other apps?</h3>
+              <p class="sub" style="margin:0" data-i18n="page.help.f4p">Different platforms use different feeds and compilation methods. Please rely on the data shown on this site.</p>
+            </div>
+            <div class="card">
+              <h3 class="mt-0" data-i18n="page.help.f5t">Can I trade based on the AI commentary?</h3>
+              <p class="sub" style="margin:0" data-i18n="page.help.f5p">No. Commentary, indicators and charts are educational references only. Markets involve risk; make your own decisions.</p>
+            </div>
+            <div class="card">
+              <h3 class="mt-0" data-i18n="page.help.f6t">How do I manage or cancel my subscription?</h3>
+              <p class="sub" style="margin:0" data-i18n="page.help.f6p">Sign in to your Account (same sign-in as Markets) to manage your subscription. Cancel anytime; access continues until the paid period ends.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="help-sec" id="safe">
+          <h2 data-i18n="page.help.safe.title">Risk notice</h2>
+          <div class="help-note" data-i18n="page.help.safe.p">All content on AI24X Markets is for educational purposes only and does not constitute investment advice. Market data may be delayed. Please make your own independent decisions; any losses are your own responsibility.</div>
+        </section>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer" id="site-footer"></footer>
+  <script src="config/locales.js?v=20260831b"></script>
+  <script src="js/api.js?v=20260829n"></script>
+  <script src="js/utm.js?v=20260802a"></script>
+  <script src="js/i18n.js?v=20260826m"></script>
+  <script src="js/ai24x-chrome.js?v=20260829o"></script>
+  <script src="js/shell.js?v=20260829o"></script>
+  <script src="js/app.js?v=20260818b"></script>
+  <script src="js/support-widget.js?v=20260828f"></script>
+  <script>
+    (function () {
+      function openW(mode) {
+        if (window.AI24X_SUPPORT_WIDGET && AI24X_SUPPORT_WIDGET.open) {
+          AI24X_SUPPORT_WIDGET.open(mode);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", function () {
+        var a = document.getElementById("help-open-support");
+        var b = document.getElementById("help-open-ticket");
+        if (a) a.addEventListener("click", function () { openW(); });
+        if (b) b.addEventListener("click", function () { openW("ticket"); });
+      });
+    })();
+  </script>
+</body>
+</html>

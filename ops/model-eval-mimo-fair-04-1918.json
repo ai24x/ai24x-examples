@@ -1,0 +1,173 @@
+{
+  "fair_retest_v2": true,
+  "results": {
+    "MiMo v2.5": {
+      "logic": {
+        "passed": 6,
+        "items": [
+          {
+            "expect": "C",
+            "got": "C",
+            "ok": true,
+            "tail": "d things are Zorks (R ⊆ Z). This is not necessarily true because there may be round things that are blue but not Zorks.\n\nThus, only statement C must be true.\n\nC"
+          },
+          {
+            "expect": "A",
+            "got": "A",
+            "ok": true,
+            "tail": "A"
+          },
+          {
+            "expect": "C",
+            "got": "C",
+            "ok": true,
+            "tail": " (3), Saturday (4), Sunday (5), Monday (6), Tuesday (7), Wednesday (8), Thursday (9), Friday (10). Thus, the answer is Friday, which corresponds to option C.\n\nC"
+          },
+          {
+            "expect": "B",
+            "got": "B",
+            "ok": true,
+            "tail": "B"
+          },
+          {
+            "expect": "C",
+            "got": "C",
+            "ok": true,
+            "tail": "ot necessarily true: A incorrectly assumes all red things are apples, B might not hold if no apples are red, and D incorrectly assumes all fruits are apples.\n\nC"
+          },
+          {
+            "expect": "B",
+            "got": "B",
+            "ok": true,
+            "tail": "riday, which means two days ago it was Friday. Therefore, yesterday was Saturday, today is Sunday, and tomorrow will be Monday. This corresponds to option B.\n\nB"
+          }
+        ]
+      },
+      "math": {
+        "passed": 6,
+        "items": [
+          {
+            "expect": "391",
+            "got": "391",
+            "ok": true,
+            "tail": "ly, using the standard multiplication method, 23 × 7 = 161 and 23 × 10 = 230, and adding those gives 161 + 230 = 391. Both methods confirm the same result.\n\n391"
+          },
+          {
+            "expect": "14",
+            "got": "14",
+            "ok": true,
+            "tail": "We start with the equation \\(x + 3 = 10\\). Subtracting 3 from both sides gives \\(x = 7\\). Then, substituting into \\(2x\\), we have \\(2 \\times 7 = 14\\).\n\n14"
+          },
+          {
+            "expect": "120",
+            "got": "120",
+            "ok": true,
+            "tail": "00 km in 2.5 hours, we compute:\n\nAverage speed = distance / time = 300 km / 2.5 hours.\n\n300 divided by 2.5 equals 120. Thus, the average speed is 120 km/h.\n\n120"
+          },
+          {
+            "expect": "36",
+            "got": "36",
+            "ok": true,
+            "tail": "tively, I can break it down: 10% of 240 is 24, and 5% is half of 10%, which is 12, so 15% is 24 plus 12, equaling 36. Both methods confirm the answer is 36.\n\n36"
+          },
+          {
+            "expect": "4",
+            "got": "4",
+            "ok": true,
+            "tail": "We simplify using exponent rules:  \n- Multiply: \\(2^3 \\times 2^4 = 2^{3+4} = 2^7\\).  \n- Divide: \\(2^7 / 2^5 = 2^{7-5} = 2^2 = 4\\).\n\n4"
+          },
+          {
+            "expect": "23",
+            "got": "23",
+            "ok": true,
+            "tail": " 3n + 3.\n\\]\nSet this equal to 72:\n\\[\n3n + 3 = 72.\n\\]\nSubtract 3 from both sides:\n\\[\n3n = 69.\n\\]\nDivide by 3:\n\\[\nn = 23.\n\\]\nThus, the smallest integer is 23.\n\n23"
+          }
+        ]
+      }
+    },
+    "MiMo Pro": {
+      "logic": {
+        "passed": 6,
+        "items": [
+          {
+            "expect": "C",
+            "got": "C",
+            "ok": true,
+            "tail": " This is just the converse of premise 2.\n\n- **D. All round things are Zorks:** Definitely not required. There could be round things that aren't Zorks at all.\n\nC"
+          },
+          {
+            "expect": "A",
+            "got": "A",
+            "ok": true,
+            "tail": "From the given information: A > B, B > C, and D < C. Therefore, the height order is A > B > C > D, making A the tallest.\n\nA"
+          },
+          {
+            "expect": "C",
+            "got": "C",
+            "ok": true,
+            "tail": " 3, it is equivalent to adding 3 days to Tuesday.  \nTuesday → Wednesday (1), Thursday (2), Friday (3).  \nSo in 10 days, it will be Friday, which is option C.\n\nC"
+          },
+          {
+            "expect": "B",
+            "got": "B",
+            "ok": true,
+            "tail": "The arrangement is Ann, Bob, Cal from left to right, so Bob is in the middle.\n\nB"
+          },
+          {
+            "expect": "C",
+            "got": "C",
+            "ok": true,
+            "tail": "tself, just rephrased.\n\n**D. All fruits are apples** — NOT necessarily true. \"All apples are fruits\" doesn't reverse; there can be fruits that aren't apples.\n\nC"
+          },
+          {
+            "expect": "B",
+            "got": "B",
+            "ok": true,
+            "tail": "y before yesterday** = Friday\n2. **Yesterday** = Friday + 1 day = Saturday\n3. **Today** = Saturday + 1 day = Sunday\n4. **Tomorrow** = Sunday + 1 day = Monday\n\nB"
+          }
+        ]
+      },
+      "math": {
+        "passed": 6,
+        "items": [
+          {
+            "expect": "391",
+            "got": "391",
+            "ok": true,
+            "tail": "**Step 1:** Break 23 into 20 + 3.\n\n**Step 2:** 17 × 20 = 340\n\n**Step 3:** 17 × 3 = 51\n\n**Step 4:** 340 + 51 = 391\n\n391"
+          },
+          {
+            "expect": "14",
+            "got": "14",
+            "ok": true,
+            "tail": "x + 3 = 10  \nSubtract 3 from both sides: x = 10 - 3 = 7  \nThen 2x = 2 × 7 = 14  \n\n14"
+          },
+          {
+            "expect": "120",
+            "got": "120",
+            "ok": true,
+            "tail": "y dividing the total distance traveled by the total time taken. Here, the train travels 300 km in 2.5 hours. So, average speed = 300 km / 2.5 h = 120 km/h.\n\n120"
+          },
+          {
+            "expect": "36",
+            "got": "36",
+            "ok": true,
+            "tail": "mal 0.15 or the fraction 15/100. To find 15% of 240, multiply 240 by 0.15:  \n0.15 × 240 = 36.  \nAlternatively, calculate (15 × 240) ÷ 100 = 3600 ÷ 100 = 36.\n\n36"
+          },
+          {
+            "expect": "4",
+            "got": "4",
+            "ok": true,
+            "tail": " using the laws of exponents. First, combine the numerator: \\(2^3 \\times 2^4 = 2^{3+4} = 2^7\\). Then divide by \\(2^5\\): \\(2^7 \\div 2^5 = 2^{7-5} = 2^2 = 4\\).\n\n4"
+          },
+          {
+            "expect": "23",
+            "got": "23",
+            "ok": true,
+            "tail": " (n+1) + (n+2) = 72$$\n\n**Solving:**\n\n$$3n + 3 = 72$$\n$$3n = 69$$\n$$n = 23$$\n\n**Verification:** $23 + 24 + 25 = 72$ ✓\n\nThe three integers are 23, 24, and 25.\n\n23"
+          }
+        ]
+      }
+    }
+  }
+}

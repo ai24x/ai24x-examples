@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Power Merge · 数字合成</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; }
+  body {
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background:#0f172a; color:#e2e8f0; overflow:hidden; user-select:none;
+    touch-action:manipulation; overscroll-behavior:none;
+  }
+  #wrap { height:100dvh; display:flex; flex-direction:column; align-items:center; padding:16px; }
+  .hud { display:flex; gap:20px; font-size:14px; font-weight:700; color:#94a3b8; margin-bottom:8px; }
+  .hud b { color:#fbbf24; }
+  #msg { min-height:24px; font-size:14px; font-weight:700; margin-bottom:8px; }
+  #board {
+    position:relative; width:100%; max-width:400px; aspect-ratio:1;
+    background:#1e293b; border:2px solid #334155; border-radius:18px; overflow:hidden;
+  }
+  .cell {
+    position:absolute; border-radius:12px; display:flex; align-items:center; justify-content:center;
+    font-weight:800; cursor:pointer; transition: transform .1s, left .15s, top .15s;
+    touch-action:manipulation;
+  }
+  .cell:active { transform: scale(.92); }
+  .cell.new { animation: appear .25s; }
+  @keyframes appear { from { transform: scale(.3); opacity:.3; } }
+  .cell.big { animation: bigPop .3s; }
+  @keyframes bigPop { 40% { transform: scale(1.25); } }
+  #actions { display:flex; gap:10px; margin-top:10px; width:100%; max-width:400px; }
+  .act { flex:1; border:none; font-size:14px; font-weight:800; padding:12px 6px; border-radius:12px; cursor:pointer; box-shadow:0 4px 0 rgba(0,0,0,.3); touch-action:manipulation; }
+  .act:active { transform: translateY(2px); box-shadow:0 2px 0 rgba(0,0,0,.3); }
+  #mergeBtn { background:linear-gradient(90deg,#38bdf8,#818cf8); color:#fff; }
+  #addBtn { background:linear-gradient(90deg,#fbbf24,#f59e0b); color:#1e293b; }
+  .back { color:#64748b; font-size:12px; text-decoration:none; margin-top:10px; }
+</style>
+<style id="xz-shell">
+#topbar{position:fixed;top:0;left:0;right:0;height:64px;z-index:50;display:flex;align-items:center;gap:10px;padding:0 14px;background:rgba(15,23,42,.94);backdrop-filter:blur(8px);border-bottom:1px solid #334155;color:#e2e8f0;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;-webkit-user-select:none;user-select:none;}
+#topbar a{color:#38bdf8;text-decoration:none;font-size:14px;font-weight:700;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+#topbar .tt{flex:1;text-align:center;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#topbar .tg{font-size:11px;color:#94a3b8;font-weight:400;margin-left:4px;}
+#howBtn{width:30px;height:30px;border-radius:50%;border:1px solid #334155;background:#1e293b;color:#94a3b8;font-weight:800;cursor:pointer;font-size:15px;line-height:1;flex:none;}
+#howto{display:none;position:fixed;top:72px;left:50%;transform:translateX(-50%);width:min(92vw,420px);z-index:70;background:#1e293b;border:1px solid #475569;border-radius:14px;padding:14px 16px;color:#cbd5e1;font-size:13px;line-height:1.7;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;box-shadow:0 12px 32px rgba(0,0,0,.55);}
+#howto.show{display:block;}
+#howto b{color:#38bdf8;}
+.xz-cr{position:fixed;bottom:4px;right:10px;font-size:10px;color:#475569;z-index:45;font-family:-apple-system,"Segoe UI",sans-serif;pointer-events:none;-webkit-user-select:none;user-select:none;}
+</style>
+<style id="xz-mz">
+#overlay{position:fixed;inset:0;background:rgba(2,6,23,.9);display:none;align-items:center;justify-content:center;z-index:10;}
+#overlay.show{display:flex;}
+#overlay .panel{text-align:center;padding:30px 26px;border-radius:20px;background:#1e293b;border:1px solid #334155;max-width:320px;width:90%;}
+#overlay .panel h2{font-size:22px;margin-bottom:6px;}
+#overlay .grade{font-size:44px;font-weight:800;color:#38bdf8;margin:6px 0 2px;}
+#overlay .avg{color:#94a3b8;font-size:14px;margin-bottom:12px;}
+#overlay .share{font-size:13px;color:#fbbf24;margin-bottom:16px;padding:8px 12px;background:#1e293b;border:1px dashed #475569;border-radius:10px;}
+#overlay .play{background:linear-gradient(90deg,#38bdf8,#6366f1);border:none;color:#fff;font-size:17px;font-weight:800;padding:12px 36px;border-radius:999px;cursor:pointer;box-shadow:0 6px 0 rgba(0,0,0,.3);touch-action:manipulation;}
+#overlay .play:active{transform:translateY(3px);box-shadow:0 3px 0 rgba(0,0,0,.3);}
+</style>
+</head>
+<body>
+<div id="topbar"><a href="index.html">← 列表</a><span class="tt">Power Merge<span class="tg">数字合成</span></span><button id="howBtn" aria-label="玩法说明">?</button></div>
+<div id="howto"><b>怎么玩</b><br>相同数字合并升级，策略规划格子，目标是合出 <b>2048</b>。</div>
+
+<div id="wrap">
+  <div class="hud"><div>最高 <b id="best">2</b></div><div>合并 <b id="merges">0</b></div></div>
+  <div id="msg">点两个相同数字，合并成更大的数！</div>
+  <div id="board"></div>
+  <div id="actions">
+    <button class="act" id="mergeBtn">⚡ 合并选中</button>
+    <button class="act" id="addBtn">➕ 添加数字</button>
+  </div>
+  <a class="back" href="index.html">← 返回列表</a>
+</div>
+
+<div id="overlay"><div class="panel"><h2>🏆 合出 2048！</h2><div class="grade">数字大师</div><div class="avg">最高 <b id="mBest">-</b> · 共合并 <b id="mCount">0</b> 次</div><div class="share">我合出了 2048！🧠 你能做到吗？</div><button class="play" id="mzAgain">继续挑战</button></div></div>
+<script>
+(function(){
+  'use strict';
+  var board=document.getElementById('board'), msgEl=document.getElementById('msg');
+  var bestEl=document.getElementById('best'), mergesEl=document.getElementById('merges');
+  var mergeBtn=document.getElementById('mergeBtn'), addBtn=document.getElementById('addBtn');
+
+  var GRID=4, SIZE=88, GAP=10, PAD=10;
+  var cells=[], selected=null, best=2, merges=0;
+  var W=0,H=0;
+
+  var actx=null;
+  function snd(f){
+    try{
+      if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)();
+      var o=actx.createOscillator(), g=actx.createGain();
+      o.type='sine'; o.frequency.value=f;
+      g.gain.setValueAtTime(.18, actx.currentTime);
+      g.gain.exponentialRampToValueAtTime(.001, actx.currentTime+.2);
+      o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime+.21);
+    }catch(e){}
+  }
+
+  function colorOf(v){
+    var map={2:'#64748b',4:'#0ea5e9',8:'#22c55e',16:'#f59e0b',32:'#f97316',64:'#ef4444',128:'#a855f7',256:'#ec4899',512:'#f43f5e',1024:'#eab308',2048:'#fbbf24'};
+    return map[v]||'#fbbf24';
+  }
+
+  function sizeOf(){ return Math.min(88, Math.floor((board.clientWidth-2*PAD-(GRID-1)*GAP)/GRID)); }
+
+  function cellPos(i){
+    var s=sizeOf();
+    var r=Math.floor(i/GRID), c=i%GRID;
+    return { x:PAD+c*(s+GAP), y:PAD+r*(s+GAP), s:s };
+  }
+
+  function renderCell(idx, val, anim){
+    var c=cells[idx];
+    if(!c){ c={el:null, val:0}; cells[idx]=c; }
+    c.val=val;
+    if(!c.el){
+      c.el=document.createElement('div');
+      c.el.className='cell';
+      c.el.addEventListener('pointerdown', function(e,self){ e.preventDefault(); tap(idx); }.bind(null, c.el));
+      board.appendChild(c.el);
+    }
+    var p=cellPos(idx);
+    c.el.style.left=p.x+'px'; c.el.style.top=p.y+'px';
+    c.el.style.width=p.s+'px'; c.el.style.height=p.s+'px';
+    c.el.style.fontSize=Math.floor(p.s*0.38)+'px';
+    c.el.style.background=colorOf(val);
+    c.el.textContent=val;
+    c.el.classList.remove('new');
+    if(anim){ c.el.classList.add(anim); void c.el.offsetWidth; c.el.classList.remove(anim); }
+    if(anim==='big'){ c.el.classList.add('big'); }
+  }
+
+  function tap(idx){
+    var c=cells[idx];
+    if(!c || c.val===0) return;
+    if(!selected){ selected=idx; c.el.style.boxShadow='0 0 0 3px #fbbf24'; msgEl.textContent='已选 '+c.val+'，再点一个相同的数'; return; }
+    if(selected===idx){ deselect(); msgEl.textContent='已取消'; return; }
+    var a=cells[selected], b=c;
+    if(a.val===b.val){
+      var nv=a.val*2;
+      renderCell(selected, 0);
+      renderCell(idx, nv, 'big');
+      deselect();
+      merges++; mergesEl.textContent=merges;
+      best=Math.max(best,nv); bestEl.textContent=best;
+      msgEl.textContent='✨ '+a.val+' ×2 = '+nv+'！';
+      snd(300+Math.log2(nv)*80);
+      if(nv>=2048){ msgEl.textContent='🏆 合出 2048！'; var mzOv=document.getElementById('overlay'); if(mzOv){ document.getElementById('mBest').textContent=nv; document.getElementById('mCount').textContent=merges; mzOv.classList.add('show'); } }
+      // 清理空 cell
+      var elA=a.el; setTimeout(function(){ if(elA.parentNode) elA.parentNode.removeChild(elA); }, 200);
+      cells[selected]=null;
+    } else {
+      deselect();
+      msgEl.textContent='数字不同，无法合并';
+    }
+  }
+
+  function deselect(){
+    if(selected!==null && cells[selected] && cells[selected].el){ cells[selected].el.style.boxShadow=''; }
+    selected=null;
+  }
+
+  function addNum(){
+    var empties=[];
+    for(var i=0;i<GRID*GRID;i++){ if(!cells[i]||cells[i].val===0) empties.push(i); }
+    if(empties.length===0){ msgEl.textContent='格子满了，先合并！'; return; }
+    var idx=empties[Math.floor(Math.random()*empties.length)];
+    var v=Math.random()<0.8?2:4;
+    renderCell(idx, v, 'new');
+    snd(200);
+    msgEl.textContent='+'+v+' 加入';
+  }
+
+  mergeBtn.addEventListener('pointerdown', function(e){ e.preventDefault(); });
+  addBtn.addEventListener('pointerdown', function(e){ e.preventDefault(); addNum(); });
+  window.addEventListener('resize', function(){ for(var i=0;i<GRID*GRID;i++){ if(cells[i]&&cells[i].val>0) renderCell(i,cells[i].val); } });
+
+  // 开局 2 个数字
+  function init(){
+    cells=[]; board.innerHTML=''; selected=null; best=2; merges=0;
+    bestEl.textContent='2'; mergesEl.textContent='0';
+    msgEl.textContent='点两个相同数字，合并成更大的数！';
+    addNum(); addNum();
+  }
+
+  init();
+})();
+</script>
+<script>
+(function(){
+  'use strict';
+  // --- 等比缩放：390x780 设计基准（上方 64px 顶部栏），其它屏幕自动等比 ---
+  var W=390,H=780,TOP=64;
+  var wrap=document.getElementById('wrap');
+  function fit(){
+    if(!wrap) return;
+    var s=Math.min(innerWidth/W,(innerHeight-TOP)/H);
+    if(s>1.4) s=1.4;
+    var w=W*s,h=H*s;
+    wrap.style.width=w+'px';
+    wrap.style.height=h+'px';
+    wrap.style.left=((innerWidth-w)/2)+'px';
+    wrap.style.top=(TOP+(innerHeight-TOP-h)/2)+'px';
+    wrap.style.position='fixed';
+    wrap.style.margin='0';
+    wrap.style.transform='scale('+s+')';
+    wrap.style.transformOrigin='top left';
+  }
+  fit();
+  addEventListener('resize',fit);
+  addEventListener('orientationchange',fit);
+  // 结算浮层提到顶部栏之上（面板里自带返回入口）
+  var ov=document.getElementById('overlay');
+  if(ov) ov.style.zIndex=60;
+  // --- 玩法说明折叠 ---
+  var hb=document.getElementById('howBtn'),ht=document.getElementById('howto');
+  if(hb&&ht){
+    hb.addEventListener('click',function(e){e.stopPropagation();ht.classList.toggle('show');});
+    document.addEventListener('pointerdown',function(e){if(ht.classList.contains('show')&&!ht.contains(e.target)&&e.target!==hb)ht.classList.remove('show');});
+  }
+  // --- L1 防拷贝：禁右键 / 禁 F12 / 禁 Ctrl+S,U,P / 禁 Ctrl+Shift+I,J,C ---
+  document.addEventListener('contextmenu',function(e){e.preventDefault();});
+  document.addEventListener('dragstart',function(e){e.preventDefault();});
+  document.addEventListener('keydown',function(e){
+    var k=e.key||'';
+    if(k==='F12'||(e.ctrlKey&&['s','u','p','S','U','P'].indexOf(k)>=0)||(e.ctrlKey&&e.shiftKey&&['i','j','c','I','J','C'].indexOf(k)>=0)){e.preventDefault();e.stopPropagation();return false;}
+  });
+  // 长按防存图
+  document.addEventListener('touchstart',function(){},false);
+})();
+
+  var mzBtn=document.getElementById('mzAgain'),mzOv=document.getElementById('overlay');
+  if(mzBtn&&mzOv){ mzBtn.addEventListener('pointerdown',function(e){e.preventDefault();mzOv.classList.remove('show');}); }
+</script>
+<div class="xz-cr">© 2026 AI24X Game Zone</div>
+</body>
+</html>

@@ -1,0 +1,23 @@
+# AI行情官（a.ai24x.com）— 对百度/谷歌等搜索引擎开放公开页索引
+# 仅屏蔽 API（非内容页）；CSS/JS/图片均可抓取，便于渲染与收录
+
+User-agent: Baiduspider
+Allow: /
+Disallow: /api/
+
+User-agent: Baiduspider-render
+Allow: /
+Disallow: /api/
+
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# 百度站长平台：主域声明（与 canonical 一致）
+Host: a.ai24x.com
+
+Sitemap: https://a.ai24x.com/sitemap.xml

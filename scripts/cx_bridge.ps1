@@ -2,7 +2,8 @@
 # 用法（主脑侧执行）：
 #   powershell -ExecutionPolicy Bypass -File cx_bridge.ps1 -TaskFile <指令文件> -ReplyFile <回复文件> [-ThreadId <线程ID>]
 # v4 改进（2026-08-07 23:40）：
-#   - 默认写入【持久值守线程】019fdcdd-e3e7-7122-90a0-8ac181c9b141：
+#   - 默认写入【持久值守线程】01a08c71-b13a-75a2-9a94-9133e11c18ff：
+#     （2026-09-11 重建：旧线程 019fdcdd-e3e7-7122-90a0-8ac181c9b141 被归档致 thread/resume -32600，cx 通道全挂）
 #     用 `codex exec resume <ThreadId>` 处理任务，所有任务与回复都追加到该线程 jsonl，
 #     形成老板要的"合格会话连续记录"（桌面侧边栏可打开该线程查看）。
 #   - 超时语义改为"进行中"：超过 TimeoutSec 未出回复时写 [CX-Bridge 进行中] 状态（exit 0），
@@ -18,7 +19,7 @@ param(
   [Parameter(Mandatory=$true)][string]$ReplyFile,
   [string]$WorkDir = "E:\AI24X\ai24x-website\ai24x01",
   [int]$TimeoutSec = 115,
-  [string]$ThreadId = "019fdcdd-e3e7-7122-90a0-8ac181c9b141"
+  [string]$ThreadId = "01a08c71-b13a-75a2-9a94-9133e11c18ff"
 )
 $replyDir = Split-Path -Parent $ReplyFile
 if (-not (Test-Path -LiteralPath $replyDir)) { New-Item -ItemType Directory -Path $replyDir -Force | Out-Null }

@@ -1,0 +1,26 @@
+2026-08-08 09:45 主脑 → 司令（Codex）
+
+【请示：price_warn_or_gpt5_mini 告警处置 · ultra 档倍率调整】
+
+一、背景
+生产价格监控告警 `price_warn_or_gpt5_mini`（P1 低毛利，持续告警中）：
+- or-gpt5-mini（GPT-5 mini，ultra 档，L3 层）输出毛利仅 4.8%（阈值 <10%）
+- 上游成本 in/out = $0.25/$2.0（OpenRouter/TokenLab/Requesty 同价）
+- 现售价 = flash_ref $0.35 × L3 倍率 6 = $2.10/M 输出 → gm_out 4.8%
+- 混合毛利 46.4%、1:4 加权 21.4%，无倒挂不亏钱，仅纯输出场景毛利薄
+
+二、拟定修改（待司令确认并执行）
+把 L3（ultra）扣费倍率 6 → 7（$2.45/M 输出，gm_out≈18.4%，告警消除）
+- 涉及文件：
+  1. api/model_warehouse.py:19 `_DEFAULT_LAYER_MULT` L3: 6 → 7
+  2. api/model_router.py:119 `LAYER_COST_MULT` L3: 6 → 7（同步）
+- 本地已有验证：L3=7 时 or-gpt5-mini level=ok、gm_out=18.4、gm_blend=54.1、gm_1to4=32.7
+- 注意：model_warehouse_override.json 的 `layers` 当前为空（{}），无 override 冲突；改默认值即生效
+- VIP 点名 vip-gpt5-mini（billing_mult=5）不在本次范围（其 gm 正常），不动
+
+三、请司令确认
+1. 方案是否 OK（倍率 6→7，还是司令有更优建议）
+2. 确认后请修改本地代码，跑 price_monitor 快照验证（level=ok），再走部署流程（Gitee → 04 生产）
+3. 改完回执落盘 回复\ 目录
+
+—— 主脑

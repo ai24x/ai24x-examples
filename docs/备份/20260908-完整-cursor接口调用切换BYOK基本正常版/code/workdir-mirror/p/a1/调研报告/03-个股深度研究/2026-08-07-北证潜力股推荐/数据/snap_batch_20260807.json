@@ -1,0 +1,3030 @@
+{
+ "920190": {
+  "secid": "1.920190",
+  "name": "雷神科技",
+  "mcap": 26.3,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920190",
+   "code": "",
+   "name": "",
+   "score": 69.0,
+   "factors": {
+    "macd": 24.0,
+    "ma": 11.0,
+    "vol": 8.0,
+    "surge": 0.0,
+    "pos": 10.0,
+    "trend": 5.0,
+    "rsi": 5.0,
+    "vp": -3.0,
+    "volc": 4.0
+   },
+   "tags": [
+    "MACD翻红·第2天",
+    "红柱放大",
+    "MA20上翘",
+    "均线金叉",
+    "站上MA20",
+    "价升量增",
+    "位置28%",
+    "MA57上方",
+    "低位修复",
+    "波动收敛"
+   ],
+   "risks": [
+    "量价背离"
+   ],
+   "red_days": 2,
+   "vol_ratio": 0.85,
+   "up_pct": 1.04,
+   "cpos": 0.285,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920021": {
+  "secid": "1.920021",
+  "name": "流金科技",
+  "mcap": 23.4,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920021",
+   "code": "",
+   "name": "",
+   "score": 74.8,
+   "factors": {
+    "macd": 13.0,
+    "ma": 20.0,
+    "vol": 9.0,
+    "surge": 7.0,
+    "pos": 8.0,
+    "trend": 5.0,
+    "rsi": 7.0,
+    "vp": 0.8,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第7天",
+    "红柱放大",
+    "均线多头",
+    "MA20上翘",
+    "均线金叉×2",
+    "站上MA20",
+    "温和放量",
+    "异动回踩支撑",
+    "位置30%",
+    "动能健康"
+   ],
+   "risks": [
+    "量价背离",
+    "长上影滞涨",
+    "涨停开板",
+    "5日涨幅过大"
+   ],
+   "red_days": 7,
+   "vol_ratio": 1.34,
+   "up_pct": -0.92,
+   "cpos": 0.305,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920971": {
+  "secid": "1.920971",
+  "name": "天马新材",
+  "mcap": 27.8,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920971",
+   "code": "",
+   "name": "",
+   "score": 64.6,
+   "factors": {
+    "macd": 17.0,
+    "ma": 6.0,
+    "vol": 14.0,
+    "surge": 0.0,
+    "pos": 10.0,
+    "trend": 0.0,
+    "rsi": 7.0,
+    "vp": 5.6,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第5天",
+    "红柱放大",
+    "均线金叉",
+    "站上MA20",
+    "温和放量",
+    "价升量增",
+    "位置14%",
+    "动能健康",
+    "量价配合"
+   ],
+   "risks": [
+    "长上影滞涨"
+   ],
+   "red_days": 5,
+   "vol_ratio": 1.63,
+   "up_pct": 1.44,
+   "cpos": 0.143,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920136": {
+  "secid": "1.920136",
+  "name": "永励精密",
+  "mcap": 18.0,
+  "snapshot": {
+   "ok": false,
+   "error": "insufficient history",
+   "secid": "1.920136",
+   "code": "",
+   "name": ""
+  }
+ },
+ "920981": {
+  "secid": "1.920981",
+  "name": "晶赛科技",
+  "mcap": 24.2,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920981",
+   "code": "",
+   "name": "",
+   "score": 68.2,
+   "factors": {
+    "macd": 24.0,
+    "ma": 6.0,
+    "vol": 14.0,
+    "surge": 0.0,
+    "pos": 10.0,
+    "trend": 0.0,
+    "rsi": 7.0,
+    "vp": 2.2,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第2天",
+    "红柱放大",
+    "均线金叉",
+    "站上MA20",
+    "温和放量",
+    "价升量增",
+    "位置20%",
+    "动能健康"
+   ],
+   "risks": [
+    "量价背离",
+    "5日涨幅过大"
+   ],
+   "red_days": 2,
+   "vol_ratio": 1.49,
+   "up_pct": 4.84,
+   "cpos": 0.202,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920821": {
+  "secid": "1.920821",
+  "name": "则成电子",
+  "mcap": 27.0,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920821",
+   "code": "",
+   "name": "",
+   "score": 62.2,
+   "factors": {
+    "macd": 24.0,
+    "ma": 6.0,
+    "vol": 9.0,
+    "surge": 0.0,
+    "pos": 8.0,
+    "trend": 5.0,
+    "rsi": 5.0,
+    "vp": 0.2,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第2天",
+    "红柱放大",
+    "均线金叉",
+    "站上MA20",
+    "温和放量",
+    "位置33%",
+    "低位修复"
+   ],
+   "risks": [
+    "量价背离",
+    "长上影滞涨"
+   ],
+   "red_days": 2,
+   "vol_ratio": 1.34,
+   "up_pct": 1.56,
+   "cpos": 0.336,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920790": {
+  "secid": "1.920790",
+  "name": "联迪信息",
+  "mcap": 19.6,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920790",
+   "code": "",
+   "name": "",
+   "score": 28.8,
+   "factors": {
+    "macd": 0.0,
+    "ma": 3.0,
+    "vol": 3.0,
+    "surge": 0.0,
+    "pos": 8.0,
+    "trend": 5.0,
+    "rsi": 5.0,
+    "vp": -0.2,
+    "volc": 0.0
+   },
+   "tags": [
+    "均线金叉",
+    "位置46%",
+    "MA57上方",
+    "低位修复"
+   ],
+   "risks": [
+    "量价背离",
+    "破位下行"
+   ],
+   "red_days": 0,
+   "vol_ratio": 0.9,
+   "up_pct": -0.2,
+   "cpos": 0.46,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920402": {
+  "secid": "1.920402",
+  "name": "硅烷科技",
+  "mcap": 39.8,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920402",
+   "code": "",
+   "name": "",
+   "score": 68.6,
+   "factors": {
+    "macd": 24.0,
+    "ma": 6.0,
+    "vol": 14.0,
+    "surge": 0.0,
+    "pos": 10.0,
+    "trend": 0.0,
+    "rsi": 7.0,
+    "vp": -1.4,
+    "volc": 4.0
+   },
+   "tags": [
+    "MACD翻红·第2天",
+    "红柱放大",
+    "均线金叉",
+    "站上MA20",
+    "温和放量",
+    "价升量增",
+    "位置15%",
+    "动能健康",
+    "波动收敛"
+   ],
+   "risks": [
+    "量价背离"
+   ],
+   "red_days": 2,
+   "vol_ratio": 1.47,
+   "up_pct": 3.63,
+   "cpos": 0.159,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920505": {
+  "secid": "1.920505",
+  "name": "九菱科技",
+  "mcap": 19.7,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920505",
+   "code": "",
+   "name": "",
+   "score": 54.2,
+   "factors": {
+    "macd": 13.0,
+    "ma": 6.0,
+    "vol": 11.0,
+    "surge": 0.0,
+    "pos": 8.0,
+    "trend": 5.0,
+    "rsi": 4.0,
+    "vp": 2.2,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第7天",
+    "红柱放大",
+    "均线金叉",
+    "站上MA20",
+    "价升量增",
+    "位置39%",
+    "动能偏热"
+   ],
+   "risks": [
+    "量价背离",
+    "涨停开板",
+    "5日涨幅过大",
+    "放量过热"
+   ],
+   "red_days": 7,
+   "vol_ratio": 5.19,
+   "up_pct": 5.41,
+   "cpos": 0.392,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920083": {
+  "secid": "1.920083",
+  "name": "金戈新材",
+  "mcap": 30.5,
+  "snapshot": {
+   "ok": false,
+   "error": "insufficient history",
+   "secid": "1.920083",
+   "code": "",
+   "name": ""
+  }
+ },
+ "920081": {
+  "secid": "1.920081",
+  "name": "欧伦电气",
+  "mcap": 30.3,
+  "snapshot": {
+   "ok": false,
+   "error": "insufficient history",
+   "secid": "1.920081",
+   "code": "",
+   "name": ""
+  }
+ },
+ "920199": {
+  "secid": "1.920199",
+  "name": "倍益康",
+  "mcap": 19.3,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920199",
+   "code": "",
+   "name": "",
+   "score": 85.4,
+   "factors": {
+    "macd": 13.0,
+    "ma": 18.0,
+    "vol": 11.0,
+    "surge": 7.0,
+    "pos": 8.0,
+    "trend": 10.0,
+    "rsi": 7.0,
+    "vp": 2.4,
+    "volc": 4.0
+   },
+   "tags": [
+    "MACD翻红·第36天",
+    "红柱放大",
+    "均线多头",
+    "MA20上翘",
+    "均线金叉",
+    "站上MA20",
+    "价升量增",
+    "异动回踩支撑",
+    "位置43%",
+    "MA57上方",
+    "动能健康",
+    "波动收敛"
+   ],
+   "risks": [],
+   "red_days": 36,
+   "vol_ratio": 1.03,
+   "up_pct": 0.6,
+   "cpos": 0.437,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920207": {
+  "secid": "1.920207",
+  "name": "众诚科技",
+  "mcap": 22.1,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920207",
+   "code": "",
+   "name": "",
+   "score": 60.0,
+   "factors": {
+    "macd": 17.0,
+    "ma": 11.0,
+    "vol": 3.0,
+    "surge": 0.0,
+    "pos": 8.0,
+    "trend": 5.0,
+    "rsi": 7.0,
+    "vp": 4.0,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第4天",
+    "红柱放大",
+    "MA20上翘",
+    "均线金叉",
+    "站上MA20",
+    "位置38%",
+    "MA57上方",
+    "动能健康",
+    "量价配合"
+   ],
+   "risks": [],
+   "red_days": 4,
+   "vol_ratio": 0.88,
+   "up_pct": 0.67,
+   "cpos": 0.385,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920526": {
+  "secid": "1.920526",
+  "name": "凯华材料",
+  "mcap": 16.9,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920526",
+   "code": "",
+   "name": "",
+   "score": 67.0,
+   "factors": {
+    "macd": 21.0,
+    "ma": 6.0,
+    "vol": 14.0,
+    "surge": 0.0,
+    "pos": 10.0,
+    "trend": 0.0,
+    "rsi": 7.0,
+    "vp": 4.0,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第3天",
+    "红柱放大",
+    "均线金叉",
+    "站上MA20",
+    "温和放量",
+    "价升量增",
+    "位置16%",
+    "动能健康",
+    "量价配合"
+   ],
+   "risks": [
+    "长上影滞涨"
+   ],
+   "red_days": 3,
+   "vol_ratio": 1.77,
+   "up_pct": 1.19,
+   "cpos": 0.166,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920489": {
+  "secid": "1.920489",
+  "name": "佳先股份",
+  "mcap": 19.0,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920489",
+   "code": "",
+   "name": "",
+   "score": 66.0,
+   "factors": {
+    "macd": 24.0,
+    "ma": 8.0,
+    "vol": 9.0,
+    "surge": 0.0,
+    "pos": 10.0,
+    "trend": 0.0,
+    "rsi": 7.0,
+    "vp": 3.0,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第2天",
+    "红柱放大",
+    "均线金叉×2",
+    "站上MA20",
+    "温和放量",
+    "位置17%",
+    "动能健康"
+   ],
+   "risks": [
+    "量价背离"
+   ],
+   "red_days": 2,
+   "vol_ratio": 1.36,
+   "up_pct": 3.64,
+   "cpos": 0.178,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920806": {
+  "secid": "1.920806",
+  "name": "云星宇",
+  "mcap": 32.4,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920806",
+   "code": "",
+   "name": "",
+   "score": 71.0,
+   "factors": {
+    "macd": 13.0,
+    "ma": 20.0,
+    "vol": 6.0,
+    "surge": 4.0,
+    "pos": 5.0,
+    "trend": 10.0,
+    "rsi": 7.0,
+    "vp": 1.0,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第11天",
+    "红柱放大",
+    "均线多头",
+    "MA20上翘",
+    "均线金叉×2",
+    "站上MA20",
+    "异动回踩中",
+    "位置57%",
+    "MA57上方",
+    "动能健康"
+   ],
+   "risks": [
+    "量价背离",
+    "长上影滞涨"
+   ],
+   "red_days": 11,
+   "vol_ratio": 2.36,
+   "up_pct": -0.55,
+   "cpos": 0.57,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920078": {
+  "secid": "1.920078",
+  "name": "族兴新材",
+  "mcap": 24.4,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920078",
+   "code": "",
+   "name": "",
+   "score": 65.8,
+   "factors": {
+    "macd": 21.0,
+    "ma": 3.0,
+    "vol": 14.0,
+    "surge": 0.0,
+    "pos": 10.0,
+    "trend": 0.0,
+    "rsi": 5.0,
+    "vp": 3.8,
+    "volc": 4.0
+   },
+   "tags": [
+    "MACD翻红·第3天",
+    "红柱放大",
+    "均线金叉",
+    "温和放量",
+    "价升量增",
+    "位置11%",
+    "低位修复",
+    "波动收敛"
+   ],
+   "risks": [
+    "量价背离",
+    "破位下行",
+    "长上影滞涨",
+    "跌破双均线"
+   ],
+   "red_days": 3,
+   "vol_ratio": 1.7,
+   "up_pct": 1.35,
+   "cpos": 0.118,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920701": {
+  "secid": "1.920701",
+  "name": "豪声电子",
+  "mcap": 19.2,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920701",
+   "code": "",
+   "name": "",
+   "score": 77.0,
+   "factors": {
+    "macd": 13.0,
+    "ma": 18.0,
+    "vol": 11.0,
+    "surge": 7.0,
+    "pos": 5.0,
+    "trend": 5.0,
+    "rsi": 7.0,
+    "vp": 2.0,
+    "volc": 4.0
+   },
+   "tags": [
+    "MACD翻红·第20天",
+    "红柱放大",
+    "均线多头",
+    "MA20上翘",
+    "均线金叉",
+    "站上MA20",
+    "价升量增",
+    "异动回踩支撑",
+    "位置68%",
+    "MA57上方",
+    "动能健康",
+    "波动收敛"
+   ],
+   "risks": [
+    "量价背离"
+   ],
+   "red_days": 20,
+   "vol_ratio": 1.18,
+   "up_pct": 4.78,
+   "cpos": 0.684,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920807": {
+  "secid": "1.920807",
+  "name": "奔朗新材",
+  "mcap": 17.6,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920807",
+   "code": "",
+   "name": "",
+   "score": 55.2,
+   "factors": {
+    "macd": 17.0,
+    "ma": 6.0,
+    "vol": 6.0,
+    "surge": 0.0,
+    "pos": 10.0,
+    "trend": 0.0,
+    "rsi": 7.0,
+    "vp": 0.2,
+    "volc": 4.0
+   },
+   "tags": [
+    "MACD翻红·第4天",
+    "红柱放大",
+    "均线金叉",
+    "站上MA20",
+    "位置23%",
+    "动能健康",
+    "波动收敛"
+   ],
+   "risks": [
+    "量价背离"
+   ],
+   "red_days": 4,
+   "vol_ratio": 2.08,
+   "up_pct": 2.86,
+   "cpos": 0.232,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920266": {
+  "secid": "1.920266",
+  "name": "生物谷",
+  "mcap": 9.5,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920266",
+   "code": "",
+   "name": "",
+   "score": 51.0,
+   "factors": {
+    "macd": 0.0,
+    "ma": 11.0,
+    "vol": 11.0,
+    "surge": 0.0,
+    "pos": 8.0,
+    "trend": 10.0,
+    "rsi": 5.0,
+    "vp": -3.0,
+    "volc": 4.0
+   },
+   "tags": [
+    "MA20上翘",
+    "均线金叉",
+    "站上MA20",
+    "价升量增",
+    "位置41%",
+    "MA57上方",
+    "低位修复",
+    "波动收敛"
+   ],
+   "risks": [
+    "量价背离"
+   ],
+   "red_days": 0,
+   "vol_ratio": 1.04,
+   "up_pct": 5.53,
+   "cpos": 0.416,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920634": {
+  "secid": "1.920634",
+  "name": "新威凌",
+  "mcap": 11.4,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920634",
+   "code": "",
+   "name": "",
+   "score": 74.2,
+   "factors": {
+    "macd": 13.0,
+    "ma": 18.0,
+    "vol": 6.0,
+    "surge": 7.0,
+    "pos": 8.0,
+    "trend": 10.0,
+    "rsi": 7.0,
+    "vp": 0.2,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第11天",
+    "红柱放大",
+    "均线多头",
+    "MA20上翘",
+    "均线金叉",
+    "站上MA20",
+    "异动回踩支撑",
+    "位置44%",
+    "MA57上方",
+    "动能健康"
+   ],
+   "risks": [
+    "量价背离",
+    "长上影滞涨"
+   ],
+   "red_days": 11,
+   "vol_ratio": 2.1,
+   "up_pct": -0.33,
+   "cpos": 0.448,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920478": {
+  "secid": "1.920478",
+  "name": "峆一药业",
+  "mcap": 12.0,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920478",
+   "code": "",
+   "name": "",
+   "score": 40.8,
+   "factors": {
+    "macd": 0.0,
+    "ma": 3.0,
+    "vol": 8.0,
+    "surge": 0.0,
+    "pos": 8.0,
+    "trend": 10.0,
+    "rsi": 5.0,
+    "vp": -2.2,
+    "volc": 4.0
+   },
+   "tags": [
+    "均线金叉",
+    "价升量增",
+    "位置49%",
+    "MA57上方",
+    "低位修复",
+    "波动收敛"
+   ],
+   "risks": [
+    "量价背离",
+    "破位下行"
+   ],
+   "red_days": 0,
+   "vol_ratio": 0.93,
+   "up_pct": 3.63,
+   "cpos": 0.491,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920218": {
+  "secid": "1.920218",
+  "name": "新天力",
+  "mcap": 17.0,
+  "snapshot": {
+   "ok": false,
+   "error": "insufficient history",
+   "secid": "1.920218",
+   "code": "",
+   "name": ""
+  }
+ },
+ "920284": {
+  "secid": "1.920284",
+  "name": "灵鸽科技",
+  "mcap": 20.0,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920284",
+   "code": "",
+   "name": "",
+   "score": 65.2,
+   "factors": {
+    "macd": 13.0,
+    "ma": 15.0,
+    "vol": 3.0,
+    "surge": 7.0,
+    "pos": 10.0,
+    "trend": 5.0,
+    "rsi": 4.0,
+    "vp": 3.2,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第12天",
+    "红柱放大",
+    "均线多头",
+    "均线金叉×2",
+    "站上MA20",
+    "异动回踩支撑",
+    "位置19%",
+    "动能偏热"
+   ],
+   "risks": [],
+   "red_days": 12,
+   "vol_ratio": 0.91,
+   "up_pct": -0.16,
+   "cpos": 0.198,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920651": {
+  "secid": "1.920651",
+  "name": "天罡股份",
+  "mcap": 14.2,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920651",
+   "code": "",
+   "name": "",
+   "score": 59.8,
+   "factors": {
+    "macd": 10.0,
+    "ma": 15.0,
+    "vol": 11.0,
+    "surge": 4.0,
+    "pos": 5.0,
+    "trend": 5.0,
+    "rsi": 4.0,
+    "vp": 0.8,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第20天",
+    "均线多头",
+    "MA20上翘",
+    "站上MA20",
+    "价升量增",
+    "异动回踩中",
+    "位置64%",
+    "MA57上方",
+    "动能偏热"
+   ],
+   "risks": [
+    "量价背离"
+   ],
+   "red_days": 20,
+   "vol_ratio": 2.5,
+   "up_pct": 3.69,
+   "cpos": 0.65,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920249": {
+  "secid": "1.920249",
+  "name": "利尔达",
+  "mcap": 39.0,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920249",
+   "code": "",
+   "name": "",
+   "score": 58.8,
+   "factors": {
+    "macd": 21.0,
+    "ma": 6.0,
+    "vol": 3.0,
+    "surge": 0.0,
+    "pos": 8.0,
+    "trend": 0.0,
+    "rsi": 7.0,
+    "vp": 4.8,
+    "volc": 4.0
+   },
+   "tags": [
+    "MACD翻红·第3天",
+    "红柱放大",
+    "均线金叉",
+    "站上MA20",
+    "位置30%",
+    "动能健康",
+    "量价配合",
+    "波动收敛"
+   ],
+   "risks": [],
+   "red_days": 3,
+   "vol_ratio": 0.85,
+   "up_pct": -0.75,
+   "cpos": 0.305,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920267": {
+  "secid": "1.920267",
+  "name": "鑫汇科",
+  "mcap": 9.0,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920267",
+   "code": "",
+   "name": "",
+   "score": 67.4,
+   "factors": {
+    "macd": 24.0,
+    "ma": 18.0,
+    "vol": 3.0,
+    "surge": 0.0,
+    "pos": 5.0,
+    "trend": 5.0,
+    "rsi": 7.0,
+    "vp": 0.4,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第2天",
+    "红柱放大",
+    "均线多头",
+    "MA20上翘",
+    "均线金叉",
+    "站上MA20",
+    "位置71%",
+    "MA57上方",
+    "动能健康"
+   ],
+   "risks": [
+    "量价背离"
+   ],
+   "red_days": 2,
+   "vol_ratio": 0.64,
+   "up_pct": -0.11,
+   "cpos": 0.714,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920019": {
+  "secid": "1.920019",
+  "name": "铜冠矿建",
+  "mcap": 31.1,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920019",
+   "code": "",
+   "name": "",
+   "score": 62.0,
+   "factors": {
+    "macd": 13.0,
+    "ma": 6.0,
+    "vol": 14.0,
+    "surge": 0.0,
+    "pos": 10.0,
+    "trend": 0.0,
+    "rsi": 7.0,
+    "vp": 3.0,
+    "volc": 4.0
+   },
+   "tags": [
+    "MACD翻红·第7天",
+    "红柱放大",
+    "均线金叉",
+    "站上MA20",
+    "温和放量",
+    "价升量增",
+    "位置23%",
+    "动能健康",
+    "波动收敛"
+   ],
+   "risks": [
+    "量价背离",
+    "长上影滞涨"
+   ],
+   "red_days": 7,
+   "vol_ratio": 1.77,
+   "up_pct": 0.82,
+   "cpos": 0.236,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920247": {
+  "secid": "1.920247",
+  "name": "华密新材",
+  "mcap": 29.3,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920247",
+   "code": "",
+   "name": "",
+   "score": 57.2,
+   "factors": {
+    "macd": 13.0,
+    "ma": 6.0,
+    "vol": 11.0,
+    "surge": 0.0,
+    "pos": 8.0,
+    "trend": 5.0,
+    "rsi": 7.0,
+    "vp": 2.2,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第7天",
+    "红柱放大",
+    "均线金叉",
+    "站上MA20",
+    "价升量增",
+    "位置32%",
+    "动能健康"
+   ],
+   "risks": [
+    "量价背离"
+   ],
+   "red_days": 7,
+   "vol_ratio": 2.02,
+   "up_pct": 4.23,
+   "cpos": 0.323,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920181": {
+  "secid": "1.920181",
+  "name": "赛英电子",
+  "mcap": 31.1,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920181",
+   "code": "",
+   "name": "",
+   "score": 50.2,
+   "factors": {
+    "macd": 21.0,
+    "ma": 3.0,
+    "vol": 3.0,
+    "surge": 0.0,
+    "pos": 10.0,
+    "trend": 0.0,
+    "rsi": 5.0,
+    "vp": 3.2,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第3天",
+    "红柱放大",
+    "均线金叉",
+    "位置12%",
+    "低位修复"
+   ],
+   "risks": [
+    "破位下行",
+    "跌破双均线"
+   ],
+   "red_days": 3,
+   "vol_ratio": 0.95,
+   "up_pct": -0.85,
+   "cpos": 0.128,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920273": {
+  "secid": "1.920273",
+  "name": "一致魔芋",
+  "mcap": 18.1,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920273",
+   "code": "",
+   "name": "",
+   "score": 74.0,
+   "factors": {
+    "macd": 13.0,
+    "ma": 6.0,
+    "vol": 14.0,
+    "surge": 7.0,
+    "pos": 10.0,
+    "trend": 5.0,
+    "rsi": 7.0,
+    "vp": 3.0,
+    "volc": 4.0
+   },
+   "tags": [
+    "MACD翻红·第7天",
+    "红柱放大",
+    "均线金叉",
+    "站上MA20",
+    "温和放量",
+    "价升量增",
+    "异动回踩支撑",
+    "位置26%",
+    "动能健康",
+    "波动收敛"
+   ],
+   "risks": [
+    "量价背离"
+   ],
+   "red_days": 7,
+   "vol_ratio": 1.33,
+   "up_pct": 2.68,
+   "cpos": 0.269,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920976": {
+  "secid": "1.920976",
+  "name": "视声智能",
+  "mcap": 13.6,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920976",
+   "code": "",
+   "name": "",
+   "score": 76.6,
+   "factors": {
+    "macd": 13.0,
+    "ma": 18.0,
+    "vol": 11.0,
+    "surge": 7.0,
+    "pos": 10.0,
+    "trend": 5.0,
+    "rsi": 4.0,
+    "vp": 3.6,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第27天",
+    "红柱放大",
+    "均线多头",
+    "MA20上翘",
+    "均线金叉",
+    "站上MA20",
+    "价升量增",
+    "异动回踩支撑",
+    "位置29%",
+    "动能偏热"
+   ],
+   "risks": [
+    "量价背离",
+    "涨停开板"
+   ],
+   "red_days": 27,
+   "vol_ratio": 1.97,
+   "up_pct": 4.92,
+   "cpos": 0.294,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920509": {
+  "secid": "1.920509",
+  "name": "同惠电子",
+  "mcap": 32.8,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920509",
+   "code": "",
+   "name": "",
+   "score": 52.0,
+   "factors": {
+    "macd": 13.0,
+    "ma": 6.0,
+    "vol": 3.0,
+    "surge": 0.0,
+    "pos": 10.0,
+    "trend": 0.0,
+    "rsi": 7.0,
+    "vp": 4.0,
+    "volc": 4.0
+   },
+   "tags": [
+    "MACD翻红·第7天",
+    "红柱放大",
+    "均线金叉",
+    "站上MA20",
+    "位置13%",
+    "动能健康",
+    "量价配合",
+    "波动收敛"
+   ],
+   "risks": [],
+   "red_days": 7,
+   "vol_ratio": 0.97,
+   "up_pct": 0.49,
+   "cpos": 0.138,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920580": {
+  "secid": "1.920580",
+  "name": "科创新材",
+  "mcap": 9.7,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920580",
+   "code": "",
+   "name": "",
+   "score": 69.0,
+   "factors": {
+    "macd": 13.0,
+    "ma": 20.0,
+    "vol": 11.0,
+    "surge": 0.0,
+    "pos": 10.0,
+    "trend": 5.0,
+    "rsi": 4.0,
+    "vp": 1.0,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第11天",
+    "红柱放大",
+    "均线多头",
+    "MA20上翘",
+    "均线金叉×2",
+    "站上MA20",
+    "价升量增",
+    "位置24%",
+    "动能偏热"
+   ],
+   "risks": [
+    "量价背离"
+   ],
+   "red_days": 11,
+   "vol_ratio": 2.14,
+   "up_pct": 3.0,
+   "cpos": 0.247,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920012": {
+  "secid": "1.920012",
+  "name": "创达新材",
+  "mcap": 23.5,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920012",
+   "code": "",
+   "name": "",
+   "score": 52.4,
+   "factors": {
+    "macd": 21.0,
+    "ma": 3.0,
+    "vol": 3.0,
+    "surge": 0.0,
+    "pos": 10.0,
+    "trend": 0.0,
+    "rsi": 5.0,
+    "vp": 1.4,
+    "volc": 4.0
+   },
+   "tags": [
+    "MACD翻红·第3天",
+    "红柱放大",
+    "均线金叉",
+    "位置9%",
+    "低位修复",
+    "波动收敛"
+   ],
+   "risks": [
+    "量价背离",
+    "破位下行",
+    "跌破双均线"
+   ],
+   "red_days": 3,
+   "vol_ratio": 0.95,
+   "up_pct": -0.19,
+   "cpos": 0.098,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920171": {
+  "secid": "1.920171",
+  "name": "志晟信息",
+  "mcap": 17.6,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920171",
+   "code": "",
+   "name": "",
+   "score": 57.0,
+   "factors": {
+    "macd": 21.0,
+    "ma": 6.0,
+    "vol": 6.0,
+    "surge": 0.0,
+    "pos": 10.0,
+    "trend": 0.0,
+    "rsi": 5.0,
+    "vp": 4.0,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第3天",
+    "红柱放大",
+    "均线金叉",
+    "站上MA20",
+    "位置27%",
+    "低位修复",
+    "量价配合"
+   ],
+   "risks": [],
+   "red_days": 3,
+   "vol_ratio": 1.19,
+   "up_pct": 0.0,
+   "cpos": 0.271,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920225": {
+  "secid": "1.920225",
+  "name": "利通科技",
+  "mcap": 19.3,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920225",
+   "code": "",
+   "name": "",
+   "score": 71.2,
+   "factors": {
+    "macd": 13.0,
+    "ma": 15.0,
+    "vol": 9.0,
+    "surge": 7.0,
+    "pos": 10.0,
+    "trend": 0.0,
+    "rsi": 7.0,
+    "vp": 1.2,
+    "volc": 4.0
+   },
+   "tags": [
+    "MACD翻红·第11天",
+    "红柱放大",
+    "均线多头",
+    "均线金叉×2",
+    "站上MA20",
+    "温和放量",
+    "异动回踩支撑",
+    "位置21%",
+    "动能健康",
+    "波动收敛"
+   ],
+   "risks": [
+    "量价背离"
+   ],
+   "red_days": 11,
+   "vol_ratio": 1.27,
+   "up_pct": -0.13,
+   "cpos": 0.213,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920932": {
+  "secid": "1.920932",
+  "name": "科达自控",
+  "mcap": 13.8,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920932",
+   "code": "",
+   "name": "",
+   "score": 73.2,
+   "factors": {
+    "macd": 13.0,
+    "ma": 15.0,
+    "vol": 11.0,
+    "surge": 7.0,
+    "pos": 8.0,
+    "trend": 5.0,
+    "rsi": 4.0,
+    "vp": 5.2,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第8天",
+    "红柱放大",
+    "均线多头",
+    "均线金叉×2",
+    "站上MA20",
+    "价升量增",
+    "异动回踩支撑",
+    "位置30%",
+    "动能偏热",
+    "量价配合"
+   ],
+   "risks": [],
+   "red_days": 8,
+   "vol_ratio": 1.95,
+   "up_pct": 3.16,
+   "cpos": 0.305,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920592": {
+  "secid": "1.920592",
+  "name": "华信永道",
+  "mcap": 18.1,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920592",
+   "code": "",
+   "name": "",
+   "score": 64.8,
+   "factors": {
+    "macd": 13.0,
+    "ma": 20.0,
+    "vol": 3.0,
+    "surge": 0.0,
+    "pos": 10.0,
+    "trend": 5.0,
+    "rsi": 4.0,
+    "vp": 4.8,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第13天",
+    "红柱放大",
+    "均线多头",
+    "MA20上翘",
+    "均线金叉×2",
+    "站上MA20",
+    "位置25%",
+    "动能偏热",
+    "量价配合"
+   ],
+   "risks": [],
+   "red_days": 13,
+   "vol_ratio": 0.95,
+   "up_pct": 0.9,
+   "cpos": 0.252,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920856": {
+  "secid": "1.920856",
+  "name": "浩淼科技",
+  "mcap": 10.7,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920856",
+   "code": "",
+   "name": "",
+   "score": 57.8,
+   "factors": {
+    "macd": 10.0,
+    "ma": 15.0,
+    "vol": 14.0,
+    "surge": 0.0,
+    "pos": 2.0,
+    "trend": 5.0,
+    "rsi": 4.0,
+    "vp": 2.8,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第25天",
+    "均线多头",
+    "MA20上翘",
+    "站上MA20",
+    "温和放量",
+    "价升量增",
+    "位置76%",
+    "MA57上方",
+    "动能偏热"
+   ],
+   "risks": [
+    "量价背离"
+   ],
+   "red_days": 25,
+   "vol_ratio": 1.78,
+   "up_pct": 2.84,
+   "cpos": 0.768,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920010": {
+  "secid": "1.920010",
+  "name": "凯添燃气",
+  "mcap": 20.4,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920010",
+   "code": "",
+   "name": "",
+   "score": 64.4,
+   "factors": {
+    "macd": 13.0,
+    "ma": 18.0,
+    "vol": 3.0,
+    "surge": 0.0,
+    "pos": 10.0,
+    "trend": 5.0,
+    "rsi": 7.0,
+    "vp": -0.6,
+    "volc": 4.0
+   },
+   "tags": [
+    "MACD翻红·第21天",
+    "红柱放大",
+    "均线多头",
+    "MA20上翘",
+    "均线金叉",
+    "站上MA20",
+    "位置18%",
+    "动能健康",
+    "波动收敛"
+   ],
+   "risks": [
+    "量价背离"
+   ],
+   "red_days": 21,
+   "vol_ratio": 0.5,
+   "up_pct": 0.23,
+   "cpos": 0.188,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920169": {
+  "secid": "1.920169",
+  "name": "七丰精工",
+  "mcap": 15.3,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920169",
+   "code": "",
+   "name": "",
+   "score": 65.0,
+   "factors": {
+    "macd": 13.0,
+    "ma": 8.0,
+    "vol": 8.0,
+    "surge": 7.0,
+    "pos": 10.0,
+    "trend": 5.0,
+    "rsi": 5.0,
+    "vp": 0.0,
+    "volc": 4.0
+   },
+   "tags": [
+    "MACD翻红·第10天",
+    "红柱放大",
+    "均线金叉×3",
+    "站上MA20",
+    "价升量增",
+    "异动回踩支撑",
+    "位置27%",
+    "低位修复",
+    "波动收敛"
+   ],
+   "risks": [],
+   "red_days": 10,
+   "vol_ratio": 0.92,
+   "up_pct": 0.53,
+   "cpos": 0.277,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920885": {
+  "secid": "1.920885",
+  "name": "星辰科技",
+  "mcap": 21.3,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920885",
+   "code": "",
+   "name": "",
+   "score": 56.0,
+   "factors": {
+    "macd": 13.0,
+    "ma": 6.0,
+    "vol": 11.0,
+    "surge": 0.0,
+    "pos": 10.0,
+    "trend": 5.0,
+    "rsi": 4.0,
+    "vp": -2.0,
+    "volc": 4.0
+   },
+   "tags": [
+    "MACD翻红·第9天",
+    "红柱放大",
+    "均线金叉",
+    "站上MA20",
+    "价升量增",
+    "位置25%",
+    "动能偏热",
+    "波动收敛"
+   ],
+   "risks": [
+    "量价背离"
+   ],
+   "red_days": 9,
+   "vol_ratio": 1.08,
+   "up_pct": 2.38,
+   "cpos": 0.26,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920206": {
+  "secid": "1.920206",
+  "name": "彩客科技",
+  "mcap": 25.5,
+  "snapshot": {
+   "ok": false,
+   "error": "insufficient history",
+   "secid": "1.920206",
+   "code": "",
+   "name": ""
+  }
+ },
+ "920491": {
+  "secid": "1.920491",
+  "name": "奥迪威",
+  "mcap": 33.0,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920491",
+   "code": "",
+   "name": "",
+   "score": 49.8,
+   "factors": {
+    "macd": 21.0,
+    "ma": 3.0,
+    "vol": 3.0,
+    "surge": 0.0,
+    "pos": 10.0,
+    "trend": 0.0,
+    "rsi": 5.0,
+    "vp": -1.2,
+    "volc": 4.0
+   },
+   "tags": [
+    "MACD翻红·第3天",
+    "红柱放大",
+    "均线金叉",
+    "位置17%",
+    "低位修复",
+    "波动收敛"
+   ],
+   "risks": [
+    "量价背离",
+    "破位下行",
+    "跌破双均线"
+   ],
+   "red_days": 3,
+   "vol_ratio": 0.59,
+   "up_pct": -0.47,
+   "cpos": 0.172,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920476": {
+  "secid": "1.920476",
+  "name": "海能技术",
+  "mcap": 19.6,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920476",
+   "code": "",
+   "name": "",
+   "score": 75.0,
+   "factors": {
+    "macd": 25.0,
+    "ma": 15.0,
+    "vol": 9.0,
+    "surge": 0.0,
+    "pos": 2.0,
+    "trend": 10.0,
+    "rsi": 7.0,
+    "vp": 2.0,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第1天",
+    "红柱放大",
+    "均线多头",
+    "均线金叉×2",
+    "站上MA20",
+    "温和放量",
+    "位置77%",
+    "MA57上方",
+    "动能健康"
+   ],
+   "risks": [
+    "量价背离"
+   ],
+   "red_days": 1,
+   "vol_ratio": 1.39,
+   "up_pct": 2.27,
+   "cpos": 0.778,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920262": {
+  "secid": "1.920262",
+  "name": "太湖雪",
+  "mcap": 11.8,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920262",
+   "code": "",
+   "name": "",
+   "score": 76.0,
+   "factors": {
+    "macd": 13.0,
+    "ma": 18.0,
+    "vol": 11.0,
+    "surge": 0.0,
+    "pos": 8.0,
+    "trend": 10.0,
+    "rsi": 7.0,
+    "vp": 4.0,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第21天",
+    "红柱放大",
+    "均线多头",
+    "MA20上翘",
+    "均线金叉",
+    "站上MA20",
+    "价升量增",
+    "位置47%",
+    "MA57上方",
+    "动能健康",
+    "量价配合"
+   ],
+   "risks": [
+    "长上影滞涨"
+   ],
+   "red_days": 21,
+   "vol_ratio": 1.87,
+   "up_pct": 1.5,
+   "cpos": 0.476,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920857": {
+  "secid": "1.920857",
+  "name": "泓禧科技",
+  "mcap": 14.1,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920857",
+   "code": "",
+   "name": "",
+   "score": 56.8,
+   "factors": {
+    "macd": 13.0,
+    "ma": 20.0,
+    "vol": 3.0,
+    "surge": 0.0,
+    "pos": 5.0,
+    "trend": 5.0,
+    "rsi": 4.0,
+    "vp": -2.2,
+    "volc": 4.0
+   },
+   "tags": [
+    "MACD翻红·第9天",
+    "红柱放大",
+    "均线多头",
+    "MA20上翘",
+    "均线金叉×2",
+    "站上MA20",
+    "位置66%",
+    "MA57上方",
+    "动能偏热",
+    "波动收敛"
+   ],
+   "risks": [
+    "量价背离"
+   ],
+   "red_days": 9,
+   "vol_ratio": 0.63,
+   "up_pct": 1.88,
+   "cpos": 0.661,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920126": {
+  "secid": "1.920126",
+  "name": "永大股份",
+  "mcap": 19.7,
+  "snapshot": {
+   "ok": false,
+   "error": "insufficient history",
+   "secid": "1.920126",
+   "code": "",
+   "name": ""
+  }
+ },
+ "920098": {
+  "secid": "1.920098",
+  "name": "科隆新材",
+  "mcap": 14.6,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920098",
+   "code": "",
+   "name": "",
+   "score": 65.4,
+   "factors": {
+    "macd": 13.0,
+    "ma": 15.0,
+    "vol": 11.0,
+    "surge": 0.0,
+    "pos": 10.0,
+    "trend": 5.0,
+    "rsi": 4.0,
+    "vp": 2.4,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第16天",
+    "红柱放大",
+    "均线多头",
+    "均线金叉×2",
+    "站上MA20",
+    "价升量增",
+    "位置28%",
+    "动能偏热"
+   ],
+   "risks": [],
+   "red_days": 16,
+   "vol_ratio": 2.97,
+   "up_pct": 4.18,
+   "cpos": 0.283,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920227": {
+  "secid": "1.920227",
+  "name": "美登科技",
+  "mcap": 20.0,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920227",
+   "code": "",
+   "name": "",
+   "score": 76.6,
+   "factors": {
+    "macd": 13.0,
+    "ma": 20.0,
+    "vol": 6.0,
+    "surge": 7.0,
+    "pos": 10.0,
+    "trend": 5.0,
+    "rsi": 7.0,
+    "vp": 3.6,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第8天",
+    "红柱放大",
+    "均线多头",
+    "MA20上翘",
+    "均线金叉×2",
+    "站上MA20",
+    "异动回踩支撑",
+    "位置29%",
+    "动能健康"
+   ],
+   "risks": [
+    "量价背离",
+    "涨停开板"
+   ],
+   "red_days": 8,
+   "vol_ratio": 1.0,
+   "up_pct": -0.79,
+   "cpos": 0.298,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920220": {
+  "secid": "1.920220",
+  "name": "朗信电气",
+  "mcap": 28.6,
+  "snapshot": {
+   "ok": false,
+   "error": "insufficient history",
+   "secid": "1.920220",
+   "code": "",
+   "name": ""
+  }
+ },
+ "920866": {
+  "secid": "1.920866",
+  "name": "绿亨科技",
+  "mcap": 11.0,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920866",
+   "code": "",
+   "name": "",
+   "score": 75.0,
+   "factors": {
+    "macd": 13.0,
+    "ma": 20.0,
+    "vol": 11.0,
+    "surge": 0.0,
+    "pos": 8.0,
+    "trend": 10.0,
+    "rsi": 4.0,
+    "vp": 4.0,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第20天",
+    "红柱放大",
+    "均线多头",
+    "MA20上翘",
+    "均线金叉×2",
+    "站上MA20",
+    "价升量增",
+    "位置40%",
+    "MA57上方",
+    "动能偏热",
+    "量价配合"
+   ],
+   "risks": [
+    "放量过热"
+   ],
+   "red_days": 20,
+   "vol_ratio": 3.37,
+   "up_pct": 4.61,
+   "cpos": 0.404,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920642": {
+  "secid": "1.920642",
+  "name": "通易航天",
+  "mcap": 11.1,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920642",
+   "code": "",
+   "name": "",
+   "score": 51.8,
+   "factors": {
+    "macd": 21.0,
+    "ma": 6.0,
+    "vol": 3.0,
+    "surge": 0.0,
+    "pos": 8.0,
+    "trend": 0.0,
+    "rsi": 5.0,
+    "vp": -0.2,
+    "volc": 4.0
+   },
+   "tags": [
+    "MACD翻红·第3天",
+    "红柱放大",
+    "均线金叉",
+    "站上MA20",
+    "位置33%",
+    "低位修复",
+    "波动收敛"
+   ],
+   "risks": [
+    "量价背离"
+   ],
+   "red_days": 3,
+   "vol_ratio": 0.84,
+   "up_pct": 1.32,
+   "cpos": 0.339,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920026": {
+  "secid": "1.920026",
+  "name": "卓兆点胶",
+  "mcap": 21.3,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920026",
+   "code": "",
+   "name": "",
+   "score": 63.0,
+   "factors": {
+    "macd": 13.0,
+    "ma": 6.0,
+    "vol": 14.0,
+    "surge": 0.0,
+    "pos": 10.0,
+    "trend": 0.0,
+    "rsi": 7.0,
+    "vp": 4.0,
+    "volc": 4.0
+   },
+   "tags": [
+    "MACD翻红·第7天",
+    "红柱放大",
+    "均线金叉",
+    "站上MA20",
+    "温和放量",
+    "价升量增",
+    "位置23%",
+    "动能健康",
+    "量价配合",
+    "波动收敛"
+   ],
+   "risks": [],
+   "red_days": 7,
+   "vol_ratio": 1.72,
+   "up_pct": 2.49,
+   "cpos": 0.236,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920000": {
+  "secid": "1.920000",
+  "name": "安徽凤凰",
+  "mcap": 13.4,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920000",
+   "code": "",
+   "name": "",
+   "score": 66.2,
+   "factors": {
+    "macd": 10.0,
+    "ma": 15.0,
+    "vol": 6.0,
+    "surge": 7.0,
+    "pos": 5.0,
+    "trend": 10.0,
+    "rsi": 4.0,
+    "vp": 0.2,
+    "volc": 4.0
+   },
+   "tags": [
+    "MACD翻红·第21天",
+    "均线多头",
+    "MA20上翘",
+    "站上MA20",
+    "异动回踩支撑",
+    "位置70%",
+    "MA57上方",
+    "动能偏热",
+    "波动收敛"
+   ],
+   "risks": [
+    "量价背离"
+   ],
+   "red_days": 21,
+   "vol_ratio": 1.02,
+   "up_pct": 1.11,
+   "cpos": 0.701,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920770": {
+  "secid": "1.920770",
+  "name": "艾能聚",
+  "mcap": 14.0,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920770",
+   "code": "",
+   "name": "",
+   "score": 61.4,
+   "factors": {
+    "macd": 13.0,
+    "ma": 13.0,
+    "vol": 3.0,
+    "surge": 0.0,
+    "pos": 10.0,
+    "trend": 5.0,
+    "rsi": 7.0,
+    "vp": 1.4,
+    "volc": 4.0
+   },
+   "tags": [
+    "MACD翻红·第17天",
+    "红柱放大",
+    "MA20上翘",
+    "均线金叉×2",
+    "站上MA20",
+    "位置21%",
+    "动能健康",
+    "波动收敛"
+   ],
+   "risks": [
+    "量价背离"
+   ],
+   "red_days": 17,
+   "vol_ratio": 0.72,
+   "up_pct": -0.19,
+   "cpos": 0.212,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920198": {
+  "secid": "1.920198",
+  "name": "微创光电",
+  "mcap": 13.0,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920198",
+   "code": "",
+   "name": "",
+   "score": 72.0,
+   "factors": {
+    "macd": 13.0,
+    "ma": 18.0,
+    "vol": 3.0,
+    "surge": 7.0,
+    "pos": 8.0,
+    "trend": 10.0,
+    "rsi": 4.0,
+    "vp": 4.0,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第24天",
+    "红柱放大",
+    "均线多头",
+    "MA20上翘",
+    "均线金叉",
+    "站上MA20",
+    "异动回踩支撑",
+    "位置44%",
+    "MA57上方",
+    "动能偏热",
+    "量价配合"
+   ],
+   "risks": [],
+   "red_days": 24,
+   "vol_ratio": 0.93,
+   "up_pct": 0.12,
+   "cpos": 0.448,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ },
+ "920106": {
+  "secid": "1.920106",
+  "name": "林泰新材",
+  "mcap": 21.2,
+  "snapshot": {
+   "ok": true,
+   "secid": "1.920106",
+   "code": "",
+   "name": "",
+   "score": 72.2,
+   "factors": {
+    "macd": 13.0,
+    "ma": 15.0,
+    "vol": 14.0,
+    "surge": 0.0,
+    "pos": 10.0,
+    "trend": 5.0,
+    "rsi": 7.0,
+    "vp": 3.2,
+    "volc": 0.0
+   },
+   "tags": [
+    "MACD翻红·第25天",
+    "红柱放大",
+    "均线多头",
+    "均线金叉×2",
+    "站上MA20",
+    "温和放量",
+    "价升量增",
+    "位置18%",
+    "动能健康"
+   ],
+   "risks": [
+    "长上影滞涨"
+   ],
+   "red_days": 25,
+   "vol_ratio": 1.35,
+   "up_pct": 1.87,
+   "cpos": 0.188,
+   "latest_time": "2026-08-06",
+   "market": {
+    "secid": "1.000001",
+    "name": "上证指数",
+    "pts": 3.0,
+    "red_days": 3,
+    "ma_bull": false,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+     "大盘MACD翻红·第3天",
+     "大盘站上MA20"
+    ],
+    "latest_time": "2026-08-06"
+   },
+   "is_vip": true
+  }
+ }
+}

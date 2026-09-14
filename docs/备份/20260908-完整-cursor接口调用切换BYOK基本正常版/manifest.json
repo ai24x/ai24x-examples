@@ -1,0 +1,42 @@
+{
+  "label": "完整-cursor接口调用切换BYOK基本正常版",
+  "created_at": "2026-09-08 11:01:18",
+  "repo_root": "E:\\AI24X\\ai24x-website\\ai24x01",
+  "code": {
+    "git_head": "b4728c7c6154cafe7f4a921bb1cf47efc0f0ee49",
+    "git_short": "b4728c7c6154",
+    "branch": "master",
+    "repo_bundle": "code/repo.bundle",
+    "repo_archive_zip": "code/repo-HEAD.zip",
+    "workdir_mirror_files": 11299,
+    "workdir_mirror": "code/workdir-mirror"
+  },
+  "secrets": [
+    "secrets/api__.env.bak",
+    "secrets/p__open__api__.env.bak",
+    "secrets/p__markets__api__server__.env.bak",
+    "secrets/p__a1__api__server__.env.bak",
+    "secrets/p__game__fisher__api__server__.env.bak"
+  ],
+  "databases": [
+    {
+      "ok": true,
+      "database": "ai24x_a_pre",
+      "host": "127.0.0.1",
+      "source_env": "api/.env",
+      "source_key": "DATABASE_URL",
+      "dump": "db/ai24x_a_pre.dump",
+      "bytes": 33577076
+    },
+    {
+      "ok": true,
+      "database": "ai24x_open_pre",
+      "host": "127.0.0.1",
+      "source_env": "p/open/api/.env",
+      "source_key": "DATABASE_URL",
+      "dump": "db/ai24x_open_pre.dump",
+      "bytes": 24068218
+    }
+  ],
+  "markets_site": null
+}

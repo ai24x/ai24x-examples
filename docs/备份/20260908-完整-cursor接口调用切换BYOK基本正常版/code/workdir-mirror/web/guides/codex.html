@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- [AI24X 2026-08-15] Google Ads 暂停 (国际支付无合规渠道，保留待恢复，勿删）：
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18385419220"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', {
+    'ad_storage': 'denied',
+    'ad_user_data': 'denied',
+    'ad_personalization': 'denied',
+    'analytics_storage': 'denied',
+    'personalization_storage': 'denied',
+    'functionality_storage': 'granted',
+    'security_storage': 'granted',
+    'wait_for_update': 500
+  });
+  gtag('js', new Date());
+
+  gtag('config', 'AW-18385419220');
+</script>
+<script src="../config/consent.js?v=20260814a"></script>
+-->
+
+  <meta charset="UTF-8" />
+  <script>
+/* i18n-boot inline v20260808d: language pre-read + FOUC guard (no network dependency) */
+(function () {
+  var KEY = "ai24x_lang";
+  try {
+    var raw = String(localStorage.getItem(KEY) || "").trim().toLowerCase().replace(/_/g, "-");
+    var lang = raw.split("-")[0] || "";
+    if (!lang) { lang = "en"; localStorage.setItem(KEY, lang); }
+    document.documentElement.setAttribute("data-ai24x-lang", lang);
+    document.documentElement.classList.add("i18n-pending");
+    if (!document.getElementById("ai24x-i18n-pending")) {
+      var st = document.createElement("style");
+      st.id = "ai24x-i18n-pending";
+      st.textContent = "html.i18n-pending body{visibility:hidden!important}";
+      (document.head || document.documentElement).appendChild(st);
+    }
+    setTimeout(function () { document.documentElement.classList.remove("i18n-pending"); }, 4000);
+  } catch (e) {}
+})();
+</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codex + AI24X · DeepSeek & VIP named models</title>
+  <meta name="description" content="Run Codex on AI24X: Responses API base URL https://api.ai24x.com/v1, DeepSeek V4 (vip-ds-flash/vip-ds-pro) and 20+ VIP named models, one key, PayPal." />
+  <link rel="canonical" href="https://open.ai24x.com/guides/codex.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Codex + AI24X · DeepSeek & VIP named models" />
+  <meta property="og:description" content="Point Codex at AI24X: base_url /v1, wire_api responses, DeepSeek V4 and VIP named models with one API key." />
+  <meta property="og:url" content="https://open.ai24x.com/guides/codex.html" />
+  <meta property="og:image" content="https://www.ai24x.com/img/og-share.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://www.ai24x.com/img/og-share.png" />
+  <link rel="stylesheet" href="../css/base.css?v=20260829c" />
+  <link id="theme-css" rel="stylesheet" href="../css/themes/theme-dark.css?v=20260812e" data-base="../css/themes/" />
+  <style>
+    .model-table-wrap { overflow: auto; margin: 10px 0 22px; border: 1px solid var(--border, #d8e4ef); border-radius: 10px; }
+    .model-table-wrap table { margin: 0; width: 100%; border-collapse: collapse; font-size: 13px; }
+    .model-table-wrap th { background: rgba(15, 23, 42, 0.04); font-weight: 600; color: var(--muted); white-space: nowrap; padding: 10px 12px; border-bottom: 1px solid var(--border, #d8e4ef); text-align: left; }
+    .model-table-wrap td { padding: 10px 12px; border-bottom: 1px solid rgba(148, 163, 184, 0.22); vertical-align: top; }
+    .model-table-wrap tr:last-child td { border-bottom: none; }
+    .model-table-wrap tr:hover td { background: rgba(37, 99, 235, 0.04); }
+    .pill-brand { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid rgba(37, 99, 235, 0.35); color: #1d4ed8; background: rgba(37, 99, 235, 0.08); white-space: nowrap; }
+    .pill-vip { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid rgba(148, 163, 184, 0.45); color: var(--muted); white-space: nowrap; }
+  </style>
+</head>
+<body data-page="guides" class="theme-dark">
+  <header class="site-header" id="site-header"></header>
+  <main class="page-main">
+    <section class="hero hero-surface section-tight">
+      <div class="container">
+        <p class="sub"><a href="index.html" data-i18n="page.guides.title">Integrations</a></p>
+        <h1 data-i18n="page.guides.codex.h1">Codex → AI24X</h1>
+        <p class="lead" data-i18n="page.guides.codex.lead">Codex is OpenAI's open-source terminal/desktop coding agent. Point it at AI24X to use the Responses API with DeepSeek V4 and 20+ VIP named models: one key, PayPal USD billing, global signup.</p>
+      </div>
+    </section>
+    <section class="section">
+      <div class="container" style="max-width:820px">
+        <h2 data-i18n="page.guides.codex.s1">1) Prerequisites</h2>
+        <p class="lead" data-i18n="page.guides.codex.s1p">Sign up → Console → create an API key → keep a small credit balance. Codex CLI ≥ 0.146 (Responses wire API) or desktop. Paste the key in full—never truncate with "…". VIP named models need an active membership.</p>
+
+        <h2 class="mt-2" data-i18n="page.guides.codex.s2">2) Provider config (~/.codex/config.toml)</h2>
+        <p class="lead" data-i18n-html="page.guides.codex.s2p">CLI and desktop share <code>~/.codex/config.toml</code>. Add the <code>ai24x</code> provider: <strong>base_url must end at <code>https://api.ai24x.com/v1</code></strong>, and <strong><code>wire_api</code> must be <code>"responses"</code></strong> (Codex 0.146 deprecated <code>chat</code>):</p>
+        <div class="code-block">model = "vip-ds-flash"        # or flash / pro / vip-kimi / vip-claude-sonnet ...
+model_provider = "ai24x"
+
+[model_providers.ai24x]
+name = "AI24X"
+base_url = "https://api.ai24x.com/v1"
+env_key = "AI24X_API_KEY"
+wire_api = "responses"</div>
+        <p class="sub" data-i18n="page.guides.codex.s2n">Restart the desktop app after saving; open a new terminal for CLI. Start with <code>flash</code> or <code>vip-ds-flash</code>—see the model table in section 5.</p>
+
+        <h2 class="mt-2" data-i18n="page.guides.codex.s3">3) Set the API key (env var)</h2>
+        <p class="sub" data-i18n-html="page.guides.codex.s3p">Keep the key in an environment variable only—<strong>never paste it into a Codex chat</strong> (it triggers a secret-leak warning and can stall the session):</p>
+        <div class="code-block">setx AI24X_API_KEY "sk-YOUR_AI24X_KEY"</div>
+        <p class="sub mt-2" data-i18n="page.guides.codex.s3n"><code>setx</code> does not affect already-open windows—open a new terminal, or set <code>$env:AI24X_API_KEY="…"</code> temporarily to verify in the current window.</p>
+
+        <h2 class="mt-2" data-i18n="page.guides.codex.s4">4) Smoke test</h2>
+        <p class="sub" data-i18n="page.guides.codex.s4p">Non-interactive check (expect <code>OK</code>, no errors):</p>
+        <div class="code-block">codex exec "Reply with exactly: OK"</div>
+        <p class="sub mt-2" data-i18n="page.guides.codex.s4c">Or verify <code>/v1/responses</code> outside the IDE with curl (live since 2026-08-05, text chat returns 200):</p>
+        <div class="code-block">curl -sS -X POST "https://api.ai24x.com/v1/responses" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AI24X_API_KEY" \
+  -d '{"model":"flash","input":"Reply with exactly: OK"}'</div>
+        <p class="sub mt-2" data-i18n="page.guides.codex.s4n">Expect HTTP 200, <code>object: "response"</code>, and text in <code>output[0].content</code>.</p>
+
+        <h2 class="mt-2" data-i18n="page.guides.codex.s5">5) DeepSeek & VIP named models</h2>
+        <p class="sub" data-i18n-html="page.guides.codex.s5p">Switch models by changing <code>model =</code> to an id below. VIP ids (<code>vip-*</code>) need an active membership and spend prepaid credits; higher multipliers drain balance faster. Prices are point-in-time estimates—<strong>billing follows the Console</strong>.</p>
+        <div class="model-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>ID</th>
+                <th>Mult</th>
+                <th>Est USD/1M</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>AI24X Flash</td><td><code>flash</code></td><td>1</td><td>~$0.35</td><td>Daily default</td></tr>
+              <tr><td>AI24X Pro</td><td><code>pro</code></td><td>3</td><td>~$1.05</td><td>Stronger reasoning</td></tr>
+              <tr><td><span class="pill-vip">VIP</span> DeepSeek V4 Flash</td><td><code>vip-ds-flash</code></td><td>1</td><td>~$0.35</td><td>Cheapest VIP—recommended start</td></tr>
+              <tr><td><span class="pill-vip">VIP</span> DeepSeek V4 Pro</td><td><code>vip-ds-pro</code></td><td>3</td><td>~$1.05</td><td>Stronger reasoning</td></tr>
+              <tr><td><span class="pill-vip">VIP</span> Kimi K2.7 Code</td><td><code>vip-kimi-code</code></td><td>10</td><td>~$3.50</td><td>Coding</td></tr>
+              <tr><td><span class="pill-vip">VIP</span> Kimi K3</td><td><code>vip-kimi</code></td><td>39</td><td>~$13.65</td><td>Flagship</td></tr>
+              <tr><td><span class="pill-vip">VIP</span> Claude Sonnet 5</td><td><code>vip-claude-sonnet</code></td><td>26</td><td>~$9.10</td><td>Writing / reasoning</td></tr>
+              <tr><td><span class="pill-vip">VIP</span> GPT-5</td><td><code>vip-gpt5</code></td><td>25</td><td>~$8.75</td><td>Flagship</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="sub" data-i18n-html="page.guides.codex.s5n">Full catalog of 20+ named models (Kimi / Qwen / GLM / MiniMax / GPT-5 / Claude / Gemini …): <a href="../models/vip-picks.html">VIP list</a>.</p>
+        <h2 class="mt-2">5.1) Full VIP alias catalog (24)</h2>
+        <p class="sub">All 24 <code>vip-*</code> aliases (live on the gateway since 2026-08-11). Use them with <code>-c "model=vip-xxx"</code> (section 6). New additions: <strong>GPT-5 / GPT-5.4 / GPT-5 mini</strong>.</p>
+        <div class="model-table-wrap">
+          <table>
+            <thead>
+              <tr><th>Line</th><th>Alias</th><th>Model</th></tr>
+            </thead>
+            <tbody>
+              <tr><td rowspan="11"><strong>China</strong></td><td><code>vip-ds-flash</code></td><td>DeepSeek V4 Flash</td></tr>
+              <tr><td><code>vip-ds-pro</code></td><td>DeepSeek V4 Pro</td></tr>
+              <tr><td><code>vip-kimi</code></td><td>Kimi K3</td></tr>
+              <tr><td><code>vip-kimi-code</code></td><td>Kimi K2.7 Code</td></tr>
+              <tr><td><code>vip-qwen-max</code></td><td>Qwen Max</td></tr>
+              <tr><td><code>vip-qwen122b</code></td><td>Qwen 122B</td></tr>
+              <tr><td><code>vip-glm</code></td><td>GLM</td></tr>
+              <tr><td><code>vip-minimax</code></td><td>MiniMax</td></tr>
+              <tr><td><code>vip-mimo</code></td><td>MiMo</td></tr>
+              <tr><td><code>vip-hy3</code></td><td>Hunyuan 3</td></tr>
+              <tr><td><code>vip-llama4</code></td><td>Llama 4</td></tr>
+              <tr><td rowspan="13"><strong>International</strong></td><td><code>vip-gpt5</code></td><td>GPT-5</td></tr>
+              <tr><td><code>vip-gpt54</code></td><td>GPT-5.4</td></tr>
+              <tr><td><code>vip-gpt5-mini</code></td><td>GPT-5 mini</td></tr>
+              <tr><td><code>vip-gpt4o</code></td><td>GPT-4o</td></tr>
+              <tr><td><code>vip-gpt4o-mini</code></td><td>GPT-4o mini</td></tr>
+              <tr><td><code>vip-gpt56-luna</code></td><td>GPT-5.6 Luna</td></tr>
+              <tr><td><code>vip-gpt56-terra</code></td><td>GPT-5.6 Terra</td></tr>
+              <tr><td><code>vip-claude-opus</code></td><td>Claude Opus</td></tr>
+              <tr><td><code>vip-claude-sonnet</code></td><td>Claude Sonnet</td></tr>
+              <tr><td><code>vip-claude-haiku</code></td><td>Claude Haiku</td></tr>
+              <tr><td><code>vip-gemini-pro</code></td><td>Gemini Pro</td></tr>
+              <tr><td><code>vip-gemini-flash</code></td><td>Gemini Flash</td></tr>
+              <tr><td><code>vip-grok</code></td><td>Grok</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h2 class="mt-2">6) Pick a model &amp; switch in-session (<code>/model</code>)</h2>
+        <p class="sub"><strong>CLI (recommended):</strong> pass the provider and model on every run so the alias always routes to AI24X:</p>
+        <div class="code-block">codex exec -C /path/to/your/project -c "model_provider=ai24x-prod" -c "model=vip-gpt5" "your task"</div>
+        <p class="sub mt-2">Inside an interactive session, type <code>/model</code> and pick any alias from the catalog above — switch anytime <strong>without starting a new session or losing context</strong>.</p>
+        <h3 class="mt-2">Pitfalls</h3>
+        <ul class="lead" style="padding-left:1.2em">
+          <li><strong><code>-m "provider/model"</code> combined form errors out</strong> — e.g. <code>-m "ai24x/vip-gpt5"</code> is invalid. Do not join provider and model with a slash.</li>
+          <li><strong><code>-m "vip-xxx"</code> alone may route to the wrong provider</strong> — always pair <code>-c "model_provider=…"</code> with <code>-c "model=…"</code>.</li>
+          <li><strong>Desktop model picker does not list AI24X models</strong> — upstream gating, not planned. Use <code>/model</code> or CLI flags; do not expect the picker to show them.</li>
+          <li>Replace <code>ai24x-prod</code> with the provider name defined in your <code>~/.codex/config.toml</code> (the snippet in section 2 names it <code>ai24x</code>).</li>
+        </ul>
+
+        <h2 class="mt-2" data-i18n="page.guides.codex.s7">7) Status & pitfalls</h2>
+        <ul class="lead" style="padding-left:1.2em">
+          <li data-i18n-html="page.guides.codex.tip1"><strong>Responses is live; agent tool loops are being completed</strong> — AI24X <code>/v1/responses</code> handles text chat (verified 200); full agent tool calling runs on <code>/v1/chat/completions</code> (OpenAI tools supported). Codex currently talks Responses: text and planning work; auto-editing tool loops unlock once the platform completes Responses tool support.</li>
+          <li data-i18n-html="page.guides.codex.tip2"><strong>base_url missing /v1</strong> — requests hit wrong paths like <code>/chat/completions</code>. Use <code>https://api.ai24x.com/v1</code>.</li>
+          <li data-i18n-html="page.guides.codex.tip3"><strong>401</strong> — bad, truncated, or revoked key. Paste the full key from Console; create a new one if unsure.</li>
+          <li data-i18n-html="page.guides.codex.tip4"><strong>402</strong> — insufficient balance / prepaid needed for the model. Top up in Console.</li>
+          <li data-i18n-html="page.guides.codex.tip5"><strong>403 named model needs active membership</strong> — <code>vip-*</code> requires membership + prepaid.</li>
+          <li data-i18n-html="page.guides.codex.tip6"><strong>"Model metadata not found" warning is harmless</strong> — custom providers fall back to default metadata; it does not affect usage.</li>
+          <li><strong>Don't combine <code>-m "provider/model"</code></strong> — errors out; use <code>-c "model_provider=…"</code> + <code>-c "model=…"</code> (section 6).</li>
+          <li><strong>Desktop picker won't show AI24X models</strong> — upstream gating; switch with <code>/model</code> or CLI flags.</li>
+        </ul>
+
+        <p class="mt-2">
+          <a class="btn btn-primary" href="../register.html" data-i18n="page.index.hero.cta.register">Create account</a>
+          <a class="btn" href="index.html" data-i18n="page.guides.title">All integrations</a>
+          <a class="btn" href="openclaw.html" data-i18n="page.guides.openclaw.t">OpenClaw guide</a>
+          <a class="btn" href="../models/vip-picks.html" data-i18n="page.models.vip.cta">VIP model list</a>
+          <a class="btn" href="../console.html" data-i18n="nav.console">Console</a>
+        </p>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer" id="site-footer"></footer>
+  <script src="../config/locales.js?v=20260831b"></script>
+  <script src="../js/api.js?v=20260829n"></script>
+  <script src="../js/i18n.js?v=20260826m"></script>
+  <script src="../js/ai24x-chrome.js?v=20260829n"></script>
+  <script src="../js/shell.js?v=20260829n"></script>
+  <script src="../js/app.js?v=20260818b"></script>
+  <script src="../js/support-widget.js?v=20260817b"></script>
+</body>
+</html>

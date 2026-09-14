@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Trivia Duel · 答题对战</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; }
+  body {
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background:#0f172a; color:#e2e8f0; overflow:hidden; user-select:none;
+    touch-action:manipulation; overscroll-behavior:none;
+  }
+  #wrap { height:100dvh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:8px; }
+  .hud { display:flex; gap:22px; font-size:14px; font-weight:700; color:#94a3b8; }
+  .hud b { color:#38bdf8; font-size:16px; }
+  .card { width:100%; max-width:390px; background:#1e293b; border:1px solid #334155; border-radius:20px; padding:20px 16px; }
+  .q { font-size:17px; line-height:1.65; font-weight:700; color:#f1f5f9; min-height:80px; margin-bottom:14px; }
+  .opts { display:flex; flex-direction:column; gap:10px; }
+  .opt { width:100%; text-align:left; background:#0f172a; border:1px solid #334155; color:#e2e8f0; font-size:14px; line-height:1.5; padding:13px 14px; border-radius:12px; font-weight:600; cursor:pointer; touch-action:manipulation; }
+  .opt:active { background:#1e293b; }
+  .opt.ok { background:#166534; border-color:#22c55e; color:#fff; }
+  .opt.no { background:#7f1d1d; border-color:#ef4444; color:#fff; }
+  .opt.dim { opacity:.45; }
+  .fb { min-height:22px; font-size:13px; font-weight:700; color:#fbbf24; text-align:center; margin-top:10px; }
+  #turn { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(2,6,23,.85); z-index:55; text-align:center; }
+  #turn.show { display:flex; }
+  #turn div { font-size:20px; font-weight:800; color:#fbbf24; padding:0 30px; line-height:1.6; }
+  #overlay { position:fixed; inset:0; background:rgba(2,6,23,.9); display:none; align-items:center; justify-content:center; z-index:10; }
+  #overlay.show { display:flex; }
+  .panel { text-align:center; padding:30px 26px; border-radius:20px; background:#1e293b; border:1px solid #334155; max-width:320px; width:90%; }
+  .panel h2 { font-size:22px; margin-bottom:6px; }
+  .floors { font-size:24px; font-weight:800; color:#38bdf8; margin:8px 0 6px; line-height:1.5; }
+  .best { color:#94a3b8; font-size:13px; margin-bottom:12px; line-height:1.6; }
+  .share { font-size:13px; color:#fbbf24; margin-bottom:16px; padding:8px 12px; background:#1e293b; border:1px dashed #475569; border-radius:10px; line-height:1.6; }
+  .play { background:linear-gradient(90deg,#38bdf8,#6366f1); border:none; color:#fff; font-size:18px; font-weight:800; padding:13px 38px; border-radius:999px; cursor:pointer; box-shadow:0 6px 0 rgba(0,0,0,.3); touch-action:manipulation; }
+  .play:active { transform: translateY(3px); box-shadow:0 3px 0 rgba(0,0,0,.3); }
+</style>
+</head>
+<body>
+<div id="topbar"><a href="index.html">← 列表</a><span class="tt">Trivia Duel<span class="tg">答题对战</span></span><button id="howBtn" aria-label="玩法说明">?</button></div>
+<div id="howto"><b>怎么玩</b><br>两名玩家轮流答题，各答 5 题，答对 +1 分。答题期间不显示对方分数，最后揭晓胜负！</div>
+<div id="wrap">
+  <div class="hud"><div id="who">🔵 玩家 A</div><div id="qIdx">第 1/5 题</div><div id="sc">得分 0</div></div>
+  <div class="card">
+    <div class="q" id="qTxt">准备中…</div>
+    <div class="opts" id="opts"></div>
+    <div class="fb" id="fb"></div>
+  </div>
+</div>
+<div id="turn"><div id="turnTxt"></div></div>
+
+<div id="overlay" class="show">
+  <div class="panel">
+    <h2 id="ovT">🎮 答题对战</h2>
+    <div class="floors" id="ovS">双人轮流答题 · 各 5 题</div>
+    <div class="best" id="bestLine">科技 / 历史 / 生活 / 脑筋急转弯</div>
+    <div class="share" id="shareTxt">先由玩家 A 作答，中间不显示对方分数，最后揭晓胜负！</div>
+    <button class="play" id="playBtn">开始游戏</button>
+  </div>
+</div>
+
+<style id="xz-shell">
+#topbar{position:fixed;top:0;left:0;right:0;height:64px;z-index:50;display:flex;align-items:center;gap:10px;padding:0 14px;background:rgba(15,23,42,.94);backdrop-filter:blur(8px);border-bottom:1px solid #334155;color:#e2e8f0;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;-webkit-user-select:none;user-select:none;}
+#topbar a{color:#38bdf8;text-decoration:none;font-size:14px;font-weight:700;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+#topbar .tt{flex:1;text-align:center;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#topbar .tg{font-size:11px;color:#94a3b8;font-weight:400;margin-left:4px;}
+#howBtn{width:30px;height:30px;border-radius:50%;border:1px solid #334155;background:#1e293b;color:#94a3b8;font-weight:800;cursor:pointer;font-size:15px;line-height:1;flex:none;}
+#howto{display:none;position:fixed;top:72px;left:50%;transform:translateX(-50%);width:min(92vw,420px);z-index:70;background:#1e293b;border:1px solid #475569;border-radius:14px;padding:14px 16px;color:#cbd5e1;font-size:13px;line-height:1.7;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;box-shadow:0 12px 32px rgba(0,0,0,.55);}
+#howto.show{display:block;}
+#howto b{color:#38bdf8;}
+.xz-cr{position:fixed;bottom:4px;right:10px;font-size:10px;color:#475569;z-index:45;font-family:-apple-system,"Segoe UI",sans-serif;pointer-events:none;-webkit-user-select:none;user-select:none;}
+</style>
+
+<script>
+(function(){
+'use strict';
+var Q=[
+{q:"太阳系中体积最大的行星是？",a:["土星","木星","天王星","海王星"],r:1},
+{q:"我国第一颗人造地球卫星的名字是？",a:["长征一号","神舟一号","东方红一号","风云一号"],r:2},
+{q:"人体最大的器官是？",a:["皮肤","肝脏","大脑","肺"],r:0},
+{q:"一年大约有多少个星期？",a:["48 个","54 个","50 个","52 个"],r:3},
+{q:"中国历史上第一位皇帝是？",a:["秦始皇","汉武帝","唐太宗","康熙帝"],r:0},
+{q:"改进造纸术的蔡伦生活在哪个朝代？",a:["西汉","东汉","唐朝","宋朝"],r:1},
+{q:"人体正常体温大约是多少摄氏度？",a:["36.5℃","40℃","45℃","32℃"],r:0},
+{q:"中国高铁的标准设计时速约为？",a:["200 km/h","500 km/h","350 km/h","800 km/h"],r:2},
+{q:"手机信号「5G」中的 G 代表什么？",a:["Go（快）","Giant（大）","GPS","Generation（世代）"],r:3},
+{q:"企鹅主要生活在哪个半球？",a:["南半球","北半球","赤道地区","北极"],r:0},
+{q:"蜜蜂靠什么告诉同伴花蜜的位置？",a:["大声叫","跳舞","发光","放气味"],r:1},
+{q:"章鱼有几颗心脏？",a:["1 颗","2 颗","3 颗","5 颗"],r:2},
+{q:"成年人平均每天大约眨眼多少次？",a:["约 1 万次","约 100 次","约 100 万次","约 10 次"],r:0},
+{q:"世界上最大的沙漠是？",a:["撒哈拉沙漠","南极洲","塔克拉玛干","戈壁沙漠"],r:1},
+{q:"世界上最高的山峰是？",a:["珠穆朗玛峰","乔戈里峰","干城章嘉峰","富士山"],r:0},
+{q:"脑筋急转弯：什么东西越洗越脏？",a:["肥皂","毛巾","水","衣服"],r:2},
+{q:"脑筋急转弯：什么车寸步难行？",a:["风车","火车","汽车","自行车"],r:0},
+{q:"脑筋急转弯：什么门永远关不上？",a:["铁门","木门","防盗门","球门"],r:3},
+{q:"脑筋急转弯：什么动物最没有方向感？",a:["麋鹿","蚂蚁","鸽子","蜜蜂"],r:0},
+{q:"脑筋急转弯：什么东西有头没有脚？",a:["桌子","砖头","汽车","大树"],r:1},
+{q:"脑筋急转弯：什么杯子不能喝水？",a:["奖杯","玻璃杯","保温杯","纸杯"],r:0},
+{q:"万里长城最初主要为了防御什么？",a:["海盗","地震","北方游牧民族","野兽"],r:2},
+{q:"「互联网」最早诞生于哪个国家？",a:["美国","英国","中国","法国"],r:0},
+{q:"喝牛奶主要是为了补充什么？",a:["铁","碘","钠","钙"],r:3},
+{q:"「功夫熊猫」的主角阿宝是什么动物？",a:["熊猫","老虎","猴子","兔子"],r:0},
+{q:"电子邮件「@」符号最早表示什么？",a:["价格","邮箱图标","「在某个地方」","日期"],r:2}
+];
+var qEl=document.getElementById('qTxt'), optsEl=document.getElementById('opts');
+var fbEl=document.getElementById('fb'), whoEl=document.getElementById('who');
+var idxEl=document.getElementById('qIdx'), scEl=document.getElementById('sc');
+var overlay=document.getElementById('overlay'), turnEl=document.getElementById('turn'), turnTxt=document.getElementById('turnTxt');
+var ovT=document.getElementById('ovT'), ovS=document.getElementById('ovS');
+var bestLine=document.getElementById('bestLine'), shareTxt=document.getElementById('shareTxt'), playBtn=document.getElementById('playBtn');
+var sets=[[],[]], who=0, qi=0, score=0, scoreA=0, scoreB=0, locked=false, feedT=null, turnT=null;
+
+function pickSets(){
+  var idx=[];
+  for(var i=0;i<Q.length;i++) idx.push(i);
+  for(i=Q.length-1;i>0;i--){
+    var j=(Math.random()*(i+1))|0, t=idx[i]; idx[i]=idx[j]; idx[j]=t;
+  }
+  sets[0]=idx.slice(0,5); sets[1]=idx.slice(5,10);
+}
+function feedback(t){ fbEl.textContent=t; }
+function showQ(){
+  locked=false; feedback('');
+  var i=sets[who][qi];
+  whoEl.textContent= who===0? '🔵 玩家 A' : '🔴 玩家 B';
+  idxEl.textContent='第 '+(qi+1)+'/5 题';
+  scEl.textContent='得分 '+score;
+  qEl.textContent=Q[i].q;
+  optsEl.innerHTML='';
+  for(var k=0;k<4;k++){
+    var b=document.createElement('button');
+    b.className='opt';
+    b.textContent='ABCD'[k]+'. '+Q[i].a[k];
+    b.dataset.i=k;
+    b.addEventListener('pointerdown',function(e){ e.preventDefault(); answer(+this.dataset.i); });
+    optsEl.appendChild(b);
+  }
+}
+function answer(k){
+  if(locked) return;
+  locked=true;
+  var i=sets[who][qi], bs=optsEl.children;
+  if(k===Q[i].r){
+    bs[k].classList.add('ok');
+    score++;
+    scEl.textContent='得分 '+score;
+    feedback('✅ 答对啦！+1 分');
+  } else {
+    bs[k].classList.add('no');
+    bs[Q[i].r].classList.add('ok');
+    feedback('❌ 正确答案：'+'ABCD'[Q[i].r]+'. '+Q[i].a[Q[i].r]);
+  }
+  for(var m=0;m<4;m++) if(m!==k) bs[m].classList.add('dim');
+  feedT=setTimeout(next,1100);
+}
+function next(){
+  qi++;
+  if(qi<5){ showQ(); return; }
+  var key= who===0? 'xz-td-a' : 'xz-td-b';
+  var b=+localStorage.getItem(key)||0;
+  if(score>b) localStorage.setItem(key,score);
+  if(who===0){
+    scoreA=score;
+    who=1; qi=0; score=0;
+    showTurn('🔵 玩家 A 完成<br>轮到 🔴 玩家 B');
+  } else {
+    scoreB=score;
+    showResult();
+  }
+}
+function showTurn(t){
+  optsEl.innerHTML=''; qEl.textContent='';
+  turnTxt.innerHTML=t;
+  turnEl.classList.add('show');
+  turnT=setTimeout(function(){ turnEl.classList.remove('show'); showQ(); },1200);
+}
+function showResult(){
+  clearTimeout(feedT);
+  var a=scoreA, b=scoreB, title, share;
+  if(a>b){ title='🏆 玩家 A 获胜！'; share='我在答题对战以 '+a+' : '+b+' 击败了对手！'; }
+  else if(b>a){ title='🏆 玩家 B 获胜！'; share='对手以 '+b+' : '+a+' 击败了我，不服再来！'; }
+  else { title='🤝 平分秋色！'; share='我们打成了 '+a+' : '+b+' 平手，再来一局！'; }
+  ovT.textContent=title;
+  ovS.textContent='玩家 A '+a+' 分　🆚　玩家 B '+b+' 分';
+  bestLine.textContent='历史最佳 · A '+(+localStorage.getItem('xz-td-a')||0)+' 分　B '+(+localStorage.getItem('xz-td-b')||0)+' 分';
+  shareTxt.textContent=share;
+  playBtn.textContent='再来一局';
+  overlay.classList.add('show');
+}
+function begin(){
+  clearTimeout(feedT); clearTimeout(turnT);
+  who=0; qi=0; score=0; scoreA=0; scoreB=0;
+  pickSets();
+  overlay.classList.remove('show');
+  turnEl.classList.remove('show');
+  showQ();
+}
+playBtn.addEventListener('pointerdown',function(e){ e.preventDefault(); begin(); });
+// 初始只备好题目，先展示入场说明
+pickSets();
+})();
+</script>
+<script>
+(function(){
+  'use strict';
+  var W=390,H=780,TOP=64;
+  var wrap=document.getElementById('wrap');
+  function fit(){
+    if(!wrap) return;
+    var s=Math.min(innerWidth/W,(innerHeight-TOP)/H);
+    if(s>1.4) s=1.4;
+    var w=W*s,h=H*s;
+    wrap.style.width=w+'px';
+    wrap.style.height=h+'px';
+    wrap.style.left=((innerWidth-w)/2)+'px';
+    wrap.style.top=(TOP+(innerHeight-TOP-h)/2)+'px';
+    wrap.style.position='fixed';
+    wrap.style.margin='0';
+    wrap.style.transform='scale('+s+')';
+    wrap.style.transformOrigin='top left';
+  }
+  fit();
+  addEventListener('resize',fit);
+  addEventListener('orientationchange',fit);
+  var ov=document.getElementById('overlay');
+  if(ov) ov.style.zIndex=60;
+  var hb=document.getElementById('howBtn'),ht=document.getElementById('howto');
+  if(hb&&ht){
+    hb.addEventListener('click',function(e){e.stopPropagation();ht.classList.toggle('show');});
+    document.addEventListener('pointerdown',function(e){if(ht.classList.contains('show')&&!ht.contains(e.target)&&e.target!==hb)ht.classList.remove('show');});
+  }
+  document.addEventListener('contextmenu',function(e){e.preventDefault();});
+  document.addEventListener('dragstart',function(e){e.preventDefault();});
+  document.addEventListener('keydown',function(e){
+    var k=e.key||'';
+    if(k==='F12'||(e.ctrlKey&&['s','u','p','S','U','P'].indexOf(k)>=0)||(e.ctrlKey&&e.shiftKey&&['i','j','c','I','J','C'].indexOf(k)>=0)){e.preventDefault();e.stopPropagation();return false;}
+  });
+})();
+</script>
+<div class="xz-cr">© 2026 AI24X Game Zone</div>
+</body>
+</html>

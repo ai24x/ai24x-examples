@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI24X · 指挥官手册 v3.5</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #080812; color: #c0c0c8; line-height: 1.7; }
+  .container { max-width: 1000px; margin: 0 auto; padding: 28px 20px 80px; }
+  .header { text-align: center; padding: 36px 0 16px; }
+  .header .badge { display: inline-block; background: rgba(102,126,234,.12); color: #8899ff; border:1px solid rgba(102,126,234,.2); padding: 4px 14px; border-radius: 20px; font-size: 0.7em; font-weight: 700; letter-spacing: 2px; margin-bottom: 10px; }
+  .header h1 { font-size: 1.8em; font-weight: 800; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .header .sub { color: #666; font-size: 0.75em; margin-top: 6px; }
+  .s-title { font-size: 1.05em; font-weight: 700; margin: 30px 0 10px; color: #ddd; border-left: 3px solid #667eea; padding-left: 14px; }
+  .one-liner { background: linear-gradient(135deg, #1a1a30, #16162e); border:1px solid #2a2a50; border-radius: 14px; padding: 20px; text-align: center; margin: 12px 0; }
+  .one-liner .big { font-size: 1.1em; font-weight: 700; color: #aabbff; letter-spacing: 2px; }
+  .one-liner .note { font-size: 0.65em; color: #555; margin-top: 6px; }
+  .arch { background: #10101e; border:1px solid #222; border-radius: 14px; padding: 20px; text-align: center; margin: 12px 0; }
+  .arch .root { display: inline-block; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; padding: 8px 20px; border-radius: 22px; font-weight: 700; font-size: 0.82em; margin-bottom: 8px; }
+  .arch .arrow { color: #333; font-size: 0.58em; margin: 3px 0; display: block; }
+  .arch .row { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin: 3px 0; }
+  .arch .box { background: #15152e; border:1px solid #2a2a4a; border-radius: 7px; padding: 7px 12px; font-size: 0.68em; }
+  .box .name { font-weight: 600; }
+  table { width: 100%; border-collapse: separate; border-spacing: 0 3px; font-size: 0.76em; margin: 8px 0; }
+  th { text-align: left; color: #555; font-size: 0.88em; padding: 4px 10px; }
+  td { padding: 7px 10px; background: #12122a; border:1px solid #2a2a44; }
+  td:first-child { border-radius: 6px 0 0 6px; font-weight: 600; }
+  td:last-child { border-radius: 0 6px 6px 0; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px 0; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 8px 0; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
+  .card { background: #12122a; border:1px solid #2a2a44; border-radius: 8px; padding: 10px; text-align: center; }
+  .card .val { font-size: 1.2em; font-weight: 700; }
+  .card .lbl { font-size: 0.68em; color: #888; margin-top: 2px; }
+  .c-green { color: #4caf50; } .c-orange { color: #ff9800; } .c-blue { color: #2196f3; } .c-pink { color: #f06292; } .c-yellow { color: #ffc107; }
+  .role-card { background: #12122a; border:1px solid #2a2a44; border-radius: 8px; padding: 12px; }
+  .role-card .r-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .role-card .r-name { font-size: 0.8em; font-weight: 600; }
+  .role-card .r-spec { font-size: 0.62em; color: #555; }
+  .role-card .r-duties { font-size: 0.68em; color: #888; line-height: 1.5; }
+  .r-tag { display: inline-block; font-size: 0.53em; padding: 1px 6px; border-radius: 6px; font-weight: 700; margin-bottom: 3px; }
+  .auto-box { background: #12122a; border:1px solid #2a2a44; border-radius: 8px; padding: 12px; margin: 8px 0; }
+  .auto-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
+  .auto-item { background: #1a1a38; border-radius: 5px; padding: 5px 7px; }
+  .auto-item .a-time { font-size: 0.58em; color: #667eea; font-weight: 600; }
+  .auto-item .a-desc { font-size: 0.65em; color: #999; }
+  .phase { background: #10101e; border:1px solid #222; border-radius: 10px; padding: 12px; margin-bottom: 6px; }
+  .phase .ph-title { font-weight: 600; font-size: 0.8em; margin-bottom: 6px; display: flex; justify-content: space-between; }
+  .phase .ph-items { display: flex; gap: 5px; flex-wrap: wrap; }
+  .phase .ph-item { background: #1a1a38; border-radius: 5px; padding: 3px 9px; font-size: 0.68em; color: #999; }
+  .highlight { background: rgba(102,126,234,.06); border:1px solid rgba(102,126,234,.1); border-radius: 8px; padding: 10px 14px; margin: 8px 0; font-size: 0.76em; color: #888; }
+  .footer { text-align: center; color: #444; font-size: 0.68em; padding: 30px 0 6px; border-top: 1px solid #1a1a2e; margin-top: 30px; }
+  @media (max-width: 700px) { .grid-3, .grid-4, .grid-2, .auto-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <div class="badge">🆕 v3.5 · 内网外网最终版</div>
+  <h1>AI24X · 指挥官手册</h1>
+  <div class="sub">一人AI公司 · Phase 1 国内验证 + 国际营销并行 · 2026-07-26</div>
+</div>
+
+<div class="one-liner">
+  <div class="big">01 出海 · 02 守国内 · 03 管生产 · 04 做灾备</div>
+  <div class="note">—— 内网外网切分 · 一人公司全栈蓝图</div>
+</div>
+
+<!-- 架构 -->
+<div class="s-title">Ⅰ · 系统总架构</div>
+<div class="arch">
+  <div class="root">🧠 主脑 · AI24X永生（本机 + Cursor）</div>
+  <div class="arrow">▼ 飞书全控 + 三路备份 ▼</div>
+  <div class="row">
+    <div class="box"><span class="name" style="color:#ff9800;">01 · 增长引擎</span><br><span style="color:#888;">4核8G · VPN出海</span></div>
+    <div class="box"><span class="name" style="color:#4caf50;">02 · 国内营销</span><br><span style="color:#888;">2核8G</span></div>
+    <div class="box"><span class="name" style="color:#2196f3;">03 · 运维+API</span><br><span style="color:#888;">2核8G · 公网</span></div>
+    <div class="box"><span class="name" style="color:#f06292;">04 · 海外节点</span><br><span style="color:#888;">2核8G · 新加坡</span></div>
+  </div>
+  <div class="arrow">▼ 30台机房 · 后期副脑02统调 ▼</div>
+</div>
+
+<!-- 副脑分工 -->
+<div class="s-title">Ⅱ · 副脑分工（v3.5）</div>
+<table>
+  <tr><th>副脑</th><th>配置</th><th>位置</th><th>角色</th><th>职责</th></tr>
+  <tr>
+    <td style="color:#ff9800;">01</td><td>4核8G</td><td>国内 + <strong>VPN</strong></td><td style="color:#ff9800;">国际增长引擎</td>
+    <td>Google SEO批量生成 · X/Reddit/HN发布 · 竞品监控 · 数据分析 · 邮件</td>
+  </tr>
+  <tr>
+    <td style="color:#4caf50;">02</td><td>2核8G</td><td>国内</td><td style="color:#4caf50;">国内营销执行</td>
+    <td>种子群 · 中文教程 · 社媒 · 30台机房统调</td>
+  </tr>
+  <tr>
+    <td style="color:#2196f3;">03</td><td>2核8G</td><td>国内（02同内网）</td><td style="color:#2196f3;">运维+API</td>
+    <td>公网服务 + PM2 + Nginx + 告警 + Phase 1 全包 API 服务</td>
+  </tr>
+  <tr>
+    <td style="color:#f06292;">04</td><td>2核8G</td><td>新加坡</td><td style="color:#f06292;">国际节点</td>
+    <td>01 VPN灾备出口 · PayPal/Stripe · 海外CDN · 英文文档</td>
+  </tr>
+</table>
+
+<div class="highlight">
+  <strong>为什么这样分：</strong>01 VPN 是全公司唯一能打 Google 的高配节点（¥1000/年 VPN 费 = 值）；04 新加坡原生外网 = 01 的天然灾备；03 全包 API（Phase 1 流量为 0，不拆层，流量来了升级扩容）
+</div>
+
+<!-- 内外网 -->
+<div class="s-title">Ⅲ · 内外网切分</div>
+<table>
+  <tr><th>位置</th><th>副脑</th><th>能访问</th><th>不能访问</th></tr>
+  <tr><td>国内云（内网）</td><td>02 · 03</td><td>国内全部</td><td>Google · X · Reddit</td></tr>
+  <tr><td>国内 + VPN</td><td>01</td><td>国内 + 国外</td><td>—</td></tr>
+  <tr><td>新加坡（原生外网）</td><td>04</td><td>国内外全部</td><td>—</td></tr>
+</table>
+
+<!-- 营销流程 -->
+<div class="s-title">Ⅳ · 营销流程（Phase 1 即启动）</div>
+<div class="arch" style="text-align:left;">
+  <span style="color:#ff9800;">01 (VPN)</span> → Google 关键词研究 + SEO内容批量生成
+  <br><span style="color:#888;">↓ 飞书同步</span>
+  <br><span style="color:#4caf50;">02</span> → 审校 + 补充中文素材
+  <br><span style="color:#888;">↓</span>
+  <br><span style="color:#ff9800;">01</span> 或 <span style="color:#f06292;">04</span> → 发布到 Google/X/Reddit/HN
+  <br><span style="color:#888;">↓</span>
+  <br>数据反馈 → 飞书回传 → <span style="color:#ff9800;">01</span> 优化策略
+</div>
+
+<!-- 双项目 -->
+<div class="s-title">Ⅴ · 双项目并行</div>
+<div class="grid-2">
+  <div class="role-card">
+    <div class="r-head"><span class="r-name">🚀 Token 聚合平台</span><span class="r-spec" style="color:#f5576c;">P0 · Phase 1</span></div>
+    <div class="r-duties">keys/billing/chat-run/referrals 已实现 ✅<br>待：DeepSeek Key · 日限100 · 别名 · 日报<br>01 VPN+SEO 同步启动</div>
+  </div>
+  <div class="role-card">
+    <div class="r-head"><span class="r-name">🐻 A1 行情官</span><span class="r-spec" style="color:#4caf50;">P2 · 维护</span></div>
+    <div class="r-duties">产品在线 · Bug修复 · 不推不投<br>20个种子群轻运营<br>等牛市自动升级</div>
+  </div>
+</div>
+
+<!-- 品牌 -->
+<div class="s-title">Ⅵ · 品牌与 SKU</div>
+<table>
+  <tr><th>对外档</th><th>路由</th><th>限制</th></tr>
+  <tr><td>AI24X Free</td><td>L1 DeepSeek → L0 硅基</td><td>月赠 1 万 token · 日限 100</td></tr>
+  <tr><td>AI24X Flash</td><td>L1 · 按量</td><td>加油包余额</td></tr>
+  <tr><td>AI24X Pro</td><td>L1 → L2 → L3</td><td>VIP 日赠额度</td></tr>
+</table>
+<p style="color:#555;font-size:0.7em;">品牌不暴露底层模型 · 免费体验真材实料 DeepSeek Flash · 用完硬断引导付费</p>
+
+<!-- 模型成本 -->
+<div class="s-title">Ⅶ · 模型成本 + 备份</div>
+<div class="grid-3">
+  <div class="card"><div class="val c-green">Flash ¥0.14/M</div><div class="lbl">日常 90%</div></div>
+  <div class="card"><div class="val c-orange">Pro ¥1.74/M</div><div class="lbl">战略 8%</div></div>
+  <div class="card"><div class="val c-blue">Kimi ¥2/M</div><div class="lbl">灾备 2%</div></div>
+</div>
+<div class="grid-3" style="margin-top:6px;">
+  <div class="card"><div class="val c-green">移动硬盘</div><div class="lbl">本机 · 每日凌晨</div></div>
+  <div class="card"><div class="val c-orange">副脑02 内网</div><div class="lbl">拉03数据备份</div></div>
+  <div class="card"><div class="val c-blue">Gitee</div><div class="lbl">代码版本</div></div>
+</div>
+
+<!-- 自动化 -->
+<div class="s-title">Ⅷ · 自动化引擎</div>
+<div class="auto-box">
+  <div class="auto-grid">
+    <div class="auto-item"><div class="a-time">每30分</div><div class="a-desc">Heartbeat巡检</div></div>
+    <div class="auto-item"><div class="a-time">每日09:00</div><div class="a-desc">成本日报→飞书</div></div>
+    <div class="auto-item"><div class="a-time">每日03:00</div><div class="a-desc">备份(本机+云)</div></div>
+    <div class="auto-item"><div class="a-time">实时</div><div class="a-desc">故障告警→飞书</div></div>
+    <div class="auto-item"><div class="a-time">每日</div><div class="a-desc">01 SEO内容批量产出</div></div>
+    <div class="auto-item"><div class="a-time">每月25日</div><div class="a-desc">记忆归档+清理</div></div>
+  </div>
+</div>
+
+<!-- 实施 -->
+<div class="s-title">Ⅸ · 当前执行</div>
+<div class="phase">
+  <div class="ph-title"><span>P0 · 本周</span><span style="color:#f5576c;">⚠ 紧迫</span></div>
+  <div class="ph-items">
+    <div class="ph-item">DeepSeek Key 联调</div>
+    <div class="ph-item">FREE 日限100 + 别名</div>
+    <div class="ph-item">01 VPN + Google测试</div>
+    <div class="ph-item">控制台验收</div>
+  </div>
+</div>
+<div class="phase">
+  <div class="ph-title"><span>P1 · 2周</span><span style="color:#ff9800;">重要</span></div>
+  <div class="ph-items">
+    <div class="ph-item">成本日报</div>
+    <div class="ph-item">01 SEO内容生产启动</div>
+    <div class="ph-item">02 国内营销启动</div>
+    <div class="ph-item">管理端+反作弊</div>
+  </div>
+</div>
+<div class="phase">
+  <div class="ph-title"><span>P2 · 1月</span><span style="color:#2196f3;">Phase 2</span></div>
+  <div class="ph-items">
+    <div class="ph-item">英文站+PayPal</div>
+    <div class="ph-item">04国际发布</div>
+    <div class="ph-item">OpenAI兼容</div>
+    <div class="ph-item">30台PC部署</div>
+  </div>
+</div>
+
+<!-- KPI -->
+<div class="s-title">Ⅹ · 一人公司 KPI</div>
+<div class="grid-3">
+  <div class="card"><div class="val c-green">&lt;30分钟</div><div class="lbl">雷总日均人工</div></div>
+  <div class="card"><div class="val c-orange">&lt;¥500/月</div><div class="lbl">运营成本</div></div>
+  <div class="card"><div class="val c-blue">99.9%</div><div class="lbl">在线率</div></div>
+  <div class="card"><div class="val c-green">4脑</div><div class="lbl">数字员工</div></div>
+  <div class="card"><div class="val c-orange">飞书一线</div><div class="lbl">通信枢纽</div></div>
+  <div class="card"><div class="val c-pink">0</div><div class="lbl">外包依赖</div></div>
+</div>
+
+<div class="footer">
+  <div style="font-size:1.4em;">🎇</div>
+  我命由我不由天，热爱每一天 · AI24X永生 · v3.5
+</div>
+</div>
+</body>
+</html>

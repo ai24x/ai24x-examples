@@ -1,0 +1,192 @@
+{
+  "recs": {
+    "deepseek": {
+      "total": 43,
+      "fail": 8,
+      "consec": 0,
+      "last_ts": 1786783337,
+      "models": {
+        "deepseek-v4-flash": {
+          "total": 43,
+          "fail": 8,
+          "consec": 0,
+          "last_ts": 1786783337
+        }
+      },
+      "window": {
+        "start": 1786783165,
+        "total": 4,
+        "fail": 0
+      }
+    },
+    "openrouter": {
+      "total": 30,
+      "fail": 15,
+      "consec": 7,
+      "last_ts": 1786782543,
+      "models": {
+        "deepseek/deepseek-v4-flash": {
+          "total": 8,
+          "fail": 0,
+          "consec": 0,
+          "last_ts": 1786291771
+        },
+        "openai/gpt-5": {
+          "total": 1,
+          "fail": 1,
+          "consec": 1,
+          "last_ts": 1786378515
+        },
+        "openai/gpt-5.6-luna": {
+          "total": 2,
+          "fail": 2,
+          "consec": 2,
+          "last_ts": 1786526781
+        },
+        "m": {
+          "total": 1,
+          "fail": 0,
+          "consec": 0,
+          "last_ts": 1786600569
+        },
+        "xiaomi/mimo-v2.5": {
+          "total": 11,
+          "fail": 5,
+          "consec": 2,
+          "last_ts": 1786782541
+        },
+        "xiaomi/mimo-v2.5-pro": {
+          "total": 6,
+          "fail": 6,
+          "consec": 6,
+          "last_ts": 1786770862
+        },
+        "openrouter/auto": {
+          "total": 1,
+          "fail": 1,
+          "consec": 1,
+          "last_ts": 1786782543
+        }
+      },
+      "window": {
+        "start": 1786782541,
+        "total": 2,
+        "fail": 2
+      }
+    },
+    "quickrouter": {
+      "total": 1,
+      "fail": 0,
+      "consec": 0,
+      "last_ts": 1786378534,
+      "models": {
+        "gpt-5": {
+          "total": 1,
+          "fail": 0,
+          "consec": 0,
+          "last_ts": 1786378534
+        }
+      },
+      "window": {
+        "start": 1786378534,
+        "total": 1,
+        "fail": 0
+      }
+    },
+    "tokenlab": {
+      "total": 4,
+      "fail": 3,
+      "consec": 3,
+      "last_ts": 1786770864,
+      "models": {
+        "gpt-5.6-luna": {
+          "total": 1,
+          "fail": 0,
+          "consec": 0,
+          "last_ts": 1786526825
+        },
+        "mimo-v2.5-pro": {
+          "total": 3,
+          "fail": 3,
+          "consec": 3,
+          "last_ts": 1786770864
+        }
+      },
+      "window": {
+        "start": 1786770864,
+        "total": 1,
+        "fail": 1
+      }
+    },
+    "mimo": {
+      "total": 11,
+      "fail": 0,
+      "consec": 0,
+      "last_ts": 1786782428,
+      "models": {
+        "mimo-v2.5": {
+          "total": 7,
+          "fail": 0,
+          "consec": 0,
+          "last_ts": 1786782428
+        },
+        "mimo-v2.5-pro": {
+          "total": 4,
+          "fail": 0,
+          "consec": 0,
+          "last_ts": 1786770867
+        }
+      },
+      "window": {
+        "start": 1786782418,
+        "total": 3,
+        "fail": 0
+      }
+    },
+    "requesty": {
+      "total": 2,
+      "fail": 2,
+      "consec": 2,
+      "last_ts": 1786770866,
+      "models": {
+        "xiaomi/mimo-v2.5-pro": {
+          "total": 2,
+          "fail": 2,
+          "consec": 2,
+          "last_ts": 1786770866
+        }
+      },
+      "window": {
+        "start": 1786770866,
+        "total": 1,
+        "fail": 1
+      }
+    },
+    "siliconflow": {
+      "total": 6,
+      "fail": 5,
+      "consec": 2,
+      "last_ts": 1786782539,
+      "models": {
+        "Qwen/Qwen3-30B-A3B-Instruct-2507": {
+          "total": 5,
+          "fail": 4,
+          "consec": 1,
+          "last_ts": 1786782537
+        },
+        "THUDM/glm-4-9b-chat": {
+          "total": 1,
+          "fail": 1,
+          "consec": 1,
+          "last_ts": 1786782539
+        }
+      },
+      "window": {
+        "start": 1786782415,
+        "total": 6,
+        "fail": 5
+      }
+    }
+  },
+  "circuit": {}
+}

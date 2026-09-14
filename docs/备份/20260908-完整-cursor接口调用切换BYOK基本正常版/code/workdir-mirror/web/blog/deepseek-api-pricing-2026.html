@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <script>
+(function () {
+  var KEY = "ai24x_lang";
+  try {
+    var raw = String(localStorage.getItem(KEY) || "").trim().toLowerCase().replace(/_/g, "-");
+    var lang = raw.split("-")[0] || "";
+    if (!lang) { lang = "en"; localStorage.setItem(KEY, lang); }
+    document.documentElement.setAttribute("data-ai24x-lang", lang);
+    document.documentElement.classList.add("i18n-pending");
+    if (!document.getElementById("ai24x-i18n-pending")) {
+      var st = document.createElement("style");
+      st.id = "ai24x-i18n-pending";
+      st.textContent = "html.i18n-pending body{visibility:hidden!important}";
+      (document.head || document.documentElement).appendChild(st);
+    }
+    setTimeout(function () { document.documentElement.classList.remove("i18n-pending"); }, 4000);
+  } catch (e) {}
+})();
+</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DeepSeek API Pricing (2026): Peak/Off-Peak Rates, Payment &amp; Setup · AI24X</title>
+  <meta name="description" content="DeepSeek API pricing explained: official peak/off-peak rates, how to pay with PayPal or card without a Chinese phone number, and how to access DeepSeek + Qwen + GLM + Kimi through one OpenAI-compatible key." />
+  <link rel="canonical" href="https://www.ai24x.com/blog/deepseek-api-pricing-2026.html" />
+    <link rel="alternate" hreflang="en" href="https://www.ai24x.com/blog/deepseek-api-pricing-2026.html" />
+  <link rel="alternate" hreflang="x-default" href="https://www.ai24x.com/blog/deepseek-api-pricing-2026.html" />
+<meta property="og:type" content="article" />
+  <meta property="og:title" content="DeepSeek API Pricing (2026): Peak/Off-Peak Rates, Payment &amp; Setup" />
+  <meta property="og:description" content="Official DeepSeek peak/off-peak rates, PayPal/card payment without a Chinese phone number, and one OpenAI-compatible key for DeepSeek + Qwen + GLM + Kimi." />
+  <meta property="og:url" content="https://www.ai24x.com/blog/deepseek-api-pricing-2026.html" />
+  <meta property="og:image" content="https://www.ai24x.com/img/og-share.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://www.ai24x.com/img/og-share.png" />
+  <link rel="stylesheet" href="../css/base.css?v=20260829c" />
+  <link id="theme-css" rel="stylesheet" href="../css/themes/theme-blue.css?v=20260812e" data-base="../css/themes/" />
+  <style>
+    .blog-wrap { max-width: 820px; }
+    .blog-wrap h2 { margin-top: 34px; }
+    .blog-wrap p, .blog-wrap li { line-height: 1.75; }
+    .blog-wrap table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+    .blog-wrap th, .blog-wrap td { border: 1px solid var(--border, #d8e4ef); padding: 8px 10px; text-align: left; vertical-align: top; }
+    .blog-wrap th { background: color-mix(in srgb, var(--accent,#2563eb) 8%, transparent); }
+    .blog-wrap pre { background: color-mix(in srgb, var(--text,#1a2b3c) 6%, transparent); border: 1px solid var(--border,#d8e4ef); border-radius: 8px; padding: 14px 16px; overflow-x: auto; font-size: 13px; line-height: 1.6; }
+    .blog-wrap code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .blog-wrap p code, .blog-wrap li code, .blog-wrap td code { background: color-mix(in srgb, var(--text,#1a2b3c) 7%, transparent); padding: 1px 5px; border-radius: 4px; font-size: .92em; }
+    .blog-note { border-left: 3px solid color-mix(in srgb, var(--accent,#2563eb) 50%, transparent); background: color-mix(in srgb, var(--accent,#2563eb) 6%, transparent); border-radius: 8px; padding: 12px 16px; margin: 18px 0; font-size: 14px; }
+    .cta-box { margin: 30px 0 8px; padding: 22px 24px; border: 1px solid var(--border, #d8e4ef); border-radius: 12px; background: color-mix(in srgb, var(--accent,#2563eb) 5%, transparent); }
+  </style>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "DeepSeek API Pricing (2026): Peak/Off-Peak Rates, Payment & Setup",
+    "description": "DeepSeek API pricing explained: official peak/off-peak rates, how to pay with PayPal or card without a Chinese phone number, and how to access DeepSeek + Qwen + GLM + Kimi through one OpenAI-compatible key.",
+    "datePublished": "2026-09-03",
+    "author": { "@type": "Organization", "name": "AI24X" },
+    "publisher": { "@type": "Organization", "name": "AI24X", "url": "https://www.ai24x.com/" },
+    "mainEntityOfPage": "https://www.ai24x.com/blog/deepseek-api-pricing-2026.html"
+  }
+  </script>
+</head>
+<body data-page="blog" class="theme-blue">
+  <header class="site-header" id="site-header"></header>
+  <main class="page-main">
+    <section class="hero hero-surface section-tight">
+      <div class="container">
+        <p class="sub"><a href="index.html">Blog</a> · DeepSeek</p>
+        <h1>DeepSeek API Pricing (2026): Peak/Off-Peak Rates, Payment &amp; Setup</h1>
+        <p class="lead">DeepSeek's peak/off-peak billing and China-only signup explained — with the real numbers, honest alternatives, and a one-key setup that needs no Chinese phone number.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container blog-wrap">
+        <p class="sub"><em>Last updated: 2026-08-31. All prices below are captured as of the dates noted — vendor pricing changes often, always verify on the official pricing page before buying.</em></p>
+        <p>DeepSeek's models (V4 Flash, V4 Pro) are among the most cost-effective LLMs you can call in 2026. But two things trip up international developers: DeepSeek's <strong>peak/off-peak billing</strong>, and the <strong>China-only signup friction</strong> (Chinese phone number, Chinese payment methods). This guide explains both, shows you what the numbers actually look like, and gives you a working setup that avoids the phone-number problem entirely.</p>
+
+        <h2 id="sec-pricing">1. How DeepSeek's official pricing works (peak vs off-peak)</h2>
+        <p>DeepSeek bills per 1M tokens with <strong>two rate tiers</strong>:</p>
+        <ul>
+          <li><strong>Peak hours</strong>: 01:00–04:00 and 06:00–10:00 <strong>UTC</strong>, Monday–Friday</li>
+          <li><strong>Off-peak hours</strong>: everything else (including all of Saturday and Sunday)</li>
+        </ul>
+        <p>Off-peak rates are <strong>half</strong> of peak rates. That means your bill depends on <em>when</em> you call, not just <em>what</em> you call.</p>
+        <p>Official rates (captured 2026-08-31 from https://api-docs.deepseek.com/quick_start/pricing; model versions DeepSeek-V4-Flash-0731 and DeepSeek-V4-Pro-0813):</p>
+        <table>
+          <thead>
+            <tr><th>Model</th><th>Input (cache miss) off-peak</th><th>Input (cache miss) peak</th><th>Output off-peak</th><th>Output peak</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>deepseek-v4-flash</code></td><td>$0.22 / 1M</td><td>$0.44 / 1M</td><td>$0.66 / 1M</td><td>$1.32 / 1M</td></tr>
+            <tr><td><code>deepseek-v4-pro</code></td><td>$0.66 / 1M</td><td>$1.32 / 1M</td><td>$1.98 / 1M</td><td>$3.96 / 1M</td></tr>
+          </tbody>
+        </table>
+        <p>Cache hits are dramatically cheaper (e.g., Flash input with cache hit: $0.007 off-peak / $0.014 peak per 1M), and both models support 1M-token context with tool calls, JSON output, and the Responses API.</p>
+        <p>Two honest notes:</p>
+        <ol>
+          <li><strong>DeepSeek adjusted pricing in mid-August 2026</strong> (official announcement around 8-13, per their docs/changelog). The table above reflects the current official page; if you read older blog posts with different numbers, trust the official page.</li>
+          <li><strong>The peak/off-peak split is a real planning factor.</strong> If you run batch or cron workloads, shifting them to off-peak UTC hours can roughly halve the input/output rate on the official platform.</li>
+        </ol>
+
+        <h2 id="sec-china-signup">2. The problem for international users: China-only signup</h2>
+        <p>DeepSeek's first-party platform requires:</p>
+        <ul>
+          <li>A <strong>Chinese mobile number</strong> for registration</li>
+          <li><strong>Chinese payment methods</strong> (Alipay/WeChat or China-issued cards) for top-up</li>
+        </ul>
+        <p>If you're outside China — or simply don't have a Chinese phone number — you can't directly use the first-party platform. That's the exact gap third-party access exists for: <strong>AI gateways / aggregators</strong> that resell or route DeepSeek capacity and accept <strong>PayPal or international cards</strong>.</p>
+
+        <div class="blog-note">
+          ⚠️ <strong>Clarification:</strong> This article is written by <strong>AI24X, an AI gateway / API aggregator</strong> — we are <strong>not the official DeepSeek service</strong> and we are not affiliated with DeepSeek. We explain the official pricing for context and offer our own access as one of several alternatives.
+        </div>
+
+        <h2 id="sec-comparison">3. The three-column price comparison</h2>
+        <p>"Which access is cheapest?" depends on when you call and what you run. Here's an honest three-way snapshot (all captured 2026-08-31):</p>
+        <table>
+          <thead>
+            <tr><th>Access</th><th>Input / 1M</th><th>Output / 1M</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>DeepSeek official — Flash off-peak</strong></td><td>$0.22 (miss)</td><td>$0.66</td><td>Requires Chinese phone + CNY payment. Peak = 2× (see <a href="#sec-pricing">§1</a>)</td></tr>
+            <tr><td><strong>DeepSeek official — Flash peak</strong></td><td>$0.44 (miss)</td><td>$1.32</td><td>Peak hours: 01:00–04:00 / 06:00–10:00 UTC, Mon–Fri</td></tr>
+            <tr><td><strong>DeepSeek official — Pro off-peak</strong></td><td>$0.66 (miss)</td><td>$1.98</td><td>Higher concurrency, stronger reasoning</td></tr>
+            <tr><td><strong>DeepSeek official — Pro peak</strong></td><td>$1.32 (miss)</td><td>$3.96</td><td>—</td></tr>
+            <tr><td><strong>OpenRouter — <code>deepseek/deepseek-v4-pro</code></strong></td><td>$1.04</td><td>$2.07</td><td>Blended flat rate; source: OpenRouter model API, 2026-08-31</td></tr>
+            <tr><td><strong>OpenRouter — <code>deepseek/deepseek-v4-flash</code></strong></td><td>$0.08</td><td>$0.17</td><td>Third-party hosted (varies by provider)</td></tr>
+            <tr><td><strong>DeepInfra — <code>DeepSeek-V4-Flash-0731</code></strong></td><td>$0.08</td><td>$0.18</td><td>Cached input $0.016; 1M context</td></tr>
+            <tr><td><strong>DeepInfra — <code>DeepSeek-V4-Pro</code></strong></td><td>$1.30</td><td>$2.60</td><td>Cached input $0.10</td></tr>
+            <tr><td><strong>AI24X — flash tier (one key, flat)</strong></td><td>from $0.35/M output</td><td>—</td><td>One flat price, smart routing, no peak/off-peak tracking; prices captured 2026-08-05, see <a href="../pricing.html">https://www.ai24x.com/pricing.html</a></td></tr>
+          </tbody>
+        </table>
+        <p><strong>How to read this table honestly:</strong></p>
+        <ul>
+          <li>If you have a Chinese phone and want to micro-manage call times, the <strong>official off-peak rate is the cheapest floor</strong> — but you pay peak rates when you call during UTC business hours, which is exactly when most developers work.</li>
+          <li><strong>OpenRouter / DeepInfra</strong> offer flat-rate DeepSeek access with international cards — their flash-tier prices are close to official off-peak, their pro-tier prices sit above official off-peak.</li>
+          <li><strong>AI24X's value isn't "cheapest per token ever"</strong> — it's that one key covers DeepSeek <strong>plus</strong> Qwen, GLM, Kimi and international flagships (GPT-5/Claude/Gemini), with smart routing picking the best channel so you don't hand-track five price lists. Flash starts from $0.35/M output.</li>
+        </ul>
+        <p class="sub">Prices verified 2026-08-31 against: official DeepSeek docs (https://api-docs.deepseek.com/quick_start/pricing), OpenRouter model API (https://openrouter.ai), DeepInfra (https://deepinfra.com), AI24X pricing (<a href="../pricing.html">https://www.ai24x.com/pricing.html</a>). If a number matters to your budget, click through and check the live page — prices move.</p>
+
+        <h2 id="sec-cost-example">4. A worked cost example (why "when" and "where" matter)</h2>
+        <p>Let's make the peak/off-peak math concrete. Say a developer sends <strong>100M input tokens (cache miss) and 20M output tokens per month</strong> to a Flash-class model:</p>
+        <table>
+          <thead>
+            <tr><th>Scenario</th><th>Input bill</th><th>Output bill</th><th>Total</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Official, all peak</td><td>100 × $0.44 = $44.00</td><td>20 × $1.32 = $26.40</td><td><strong>$70.40</strong></td></tr>
+            <tr><td>Official, all off-peak</td><td>100 × $0.22 = $22.00</td><td>20 × $0.66 = $13.20</td><td><strong>$35.20</strong></td></tr>
+            <tr><td>Aggregator flash tier (flat)</td><td>varies by routing</td><td>~20 × $0.35 = $7.00</td><td>often the <em>effective</em> bill lands between the two, minus the ops cost of scheduling</td></tr>
+          </tbody>
+        </table>
+        <p>The point isn't that any one row always wins — it's that <strong>your real cost depends on your call pattern</strong>, and most teams don't want to schedule their production traffic around UTC peak windows. A gateway's job is to absorb that complexity: smart routing keeps routine calls on cheap channels automatically, and you get one predictable bill instead of a spreadsheet.</p>
+
+        <h2 id="sec-one-key">5. One key for DeepSeek + Qwen + GLM + Kimi + flagships</h2>
+        <p>The reason developers use an aggregator instead of juggling five vendor accounts:</p>
+        <ul>
+          <li><strong>One OpenAI-compatible endpoint</strong>: <code>POST /v1/chat/completions</code> with <code>Authorization: Bearer &lt;key&gt;</code></li>
+          <li><strong>One payment rail</strong>: PayPal or card — <strong>no Chinese phone number required</strong></li>
+          <li><strong>All the Chinese model families on one key</strong>: DeepSeek, Qwen (Alibaba), GLM (Zhipu), Kimi (Moonshot) — plus GPT-5/Claude/Gemini when a task needs flagship power</li>
+          <li><strong>Smart routing</strong>: for each request, the gateway evaluates available upstream channels and picks the best one by <strong>price, speed, and stability</strong>, with automatic failover when a channel degrades. Ask for a specific model when you want it; let routing handle the rest.</li>
+        </ul>
+        <p>That's the "One API. Every AI. Pay Less." model — you stop being a pricing analyst and just call models.</p>
+
+        <h3>Which model should you actually use?</h3>
+        <p>A practical default ladder for DeepSeek-class workloads in 2026:</p>
+        <table>
+          <thead>
+            <tr><th>Workload</th><th>Default</th><th>Why</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Everyday chat, summarization, light coding</td><td><code>flash</code></td><td>Best reasoning per dollar; cheap enough to use liberally</td></tr>
+            <tr><td>Serious coding agents, math, long reasoning chains</td><td><code>pro</code></td><td>Stronger reasoning; costs ~3× flash output — escalate only when the task demands it</td></tr>
+            <tr><td>Long documents, big codebases, agent memory</td><td><code>vip-kimi</code> / 1M-context models</td><td>Context length is the deciding factor</td></tr>
+            <tr><td>Vision/audio, multimodal pipelines</td><td>Qwen multimodal / vision models</td><td>Breadth of modalities out of the box</td></tr>
+            <tr><td>Hardest reasoning, high-stakes writing</td><td>GPT-5.x / Claude / Gemini</td><td>Escalate to flagships only when needed</td></tr>
+          </tbody>
+        </table>
+        <p>Keep the default cheap and escalate deliberately — that single habit cuts API bills more than any rate negotiation.</p>
+
+        <h2 id="sec-free-tier">6. Free tier (what's actually available)</h2>
+        <p>For trying things out without paying first: AI24X provides a <strong>free shared channel of 100K tokens/day</strong> when your balance is empty. That's the current live offering — there is no "register and get 5,000 tokens" promotion, and no signup bonus. Check the console for the exact current policy.</p>
+
+        <h3>Common pitfalls to avoid</h3>
+        <ul>
+          <li><strong>Old pricing numbers in blog posts.</strong> Mid-August 2026 pricing changes mean older "$0.14/M output"-style figures are stale. Always cross-check against the official pricing page on the day you commit.</li>
+          <li><strong>Scheduling everything at peak.</strong> If you're on the official platform, off-peak (UTC evenings/weekends) literally halves input and output rates for cache-miss traffic. Batch jobs belong in off-peak.</li>
+          <li><strong>Ignoring cache hits.</strong> DeepSeek's cache-hit input pricing is orders of magnitude cheaper. Prefix caching rewards stable system prompts — keep your prompts stable where possible.</li>
+          <li><strong>Assuming "official" means "only option".</strong> Third-party gateways are legitimate access paths for international users, but check the transparency of each: does the pricing page show capture dates and sources? Opaque pricing is a red flag.</li>
+        </ul>
+
+        <h2 id="sec-setup">7. Copy-paste setup</h2>
+
+        <h3>Base URL (OpenAI-compatible)</h3>
+        <pre><code>https://api.ai24x.com/v1</code></pre>
+
+        <h3>Quick test with curl</h3>
+        <pre><code>curl -X POST "https://api.ai24x.com/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-..." \
+  -d '{"model":"flash","messages":[{"role":"user","content":"Hello! Explain DeepSeek off-peak pricing in one sentence."}]}'</code></pre>
+
+        <h3>Codex CLI</h3>
+        <pre><code># ~/.codex/config.toml
+model_provider = "ai24x"
+
+[model_providers.ai24x]
+name = "AI24X"
+base_url = "https://api.ai24x.com/v1"
+env_key = "AI24X_API_KEY"
+wire_api = "chat"</code></pre>
+
+        <h3>OpenClaw / OpenClaw-style agent config</h3>
+        <pre><code>{
+  "model": "flash",
+  "modelProvider": "ai24x",
+  "providers": {
+    "ai24x": {
+      "baseUrl": "https://api.ai24x.com/v1",
+      "apiKey": "sk-...",
+      "models": ["flash", "pro", "ultra", "vip-qwen", "vip-glm", "vip-kimi"]
+    }
+  }
+}</code></pre>
+        <p>Then set <code>AI24X_API_KEY=sk-...</code> in your environment. Existing OpenAI SDKs and tools (Open WebUI, LobeChat, Cursor, Dify, LiteLLM, n8n) connect the same way: change base URL + key, keep the rest of your code.</p>
+
+        <h2 id="sec-faq">8. FAQ</h2>
+        <h3>Are off-peak rates really half of peak?</h3>
+        <p>On DeepSeek's first-party platform, yes — off-peak is 50% of peak (peak = 01:00–04:00 and 06:00–10:00 UTC, Mon–Fri; weekends are off-peak). Verified on the official pricing page 2026-08-31. Aggregators like AI24X don't split billing by hour — one flat rate, routing decides.</p>
+        <h3>Can I pay for DeepSeek access with PayPal or an international card?</h3>
+        <p>Not on DeepSeek's first-party platform (it needs a Chinese phone number and CNY payment). Via third-party gateways — yes: AI24X accepts PayPal and card, no Chinese phone number needed. See the price table in <a href="#sec-comparison">§3</a> for alternatives.</p>
+        <h3>Is AI24X the official DeepSeek API?</h3>
+        <p>No. AI24X is an independent AI gateway / aggregator (not affiliated with DeepSeek) that routes to DeepSeek, Qwen, GLM, Kimi and international models through one OpenAI-compatible key.</p>
+        <h3>What free quota do I get?</h3>
+        <p>A shared free channel of 100K tokens/day when your balance is empty (subject to current console policy; no signup bonus, no "5,000 free tokens" promotion).</p>
+        <h3>What's the refund policy?</h3>
+        <p>Refund rules are set per platform. AI24X's billing is prepaid-credit based; check the console's billing/refund terms for the current policy, and top up only what you plan to use.</p>
+
+        <h2 id="sec-getting-started">9. Getting started</h2>
+        <ol>
+          <li><strong>Register</strong> at <a href="../register.html">https://www.ai24x.com</a> and create an API key in the console.</li>
+          <li><strong>Top up</strong> at console → billing (PayPal or card).</li>
+          <li>Use the <code>base_url</code> + key from the <a href="#sec-setup">Copy-paste setup</a> section in any OpenAI-compatible tool — done.</li>
+        </ol>
+        <p>Developer docs and integrations: <a href="https://open.ai24x.com/" data-open target="_blank" rel="noopener">https://open.ai24x.com</a> · Console: <a href="../console.html#billing">https://www.ai24x.com/console.html</a> · Pricing: <a href="../pricing.html">https://www.ai24x.com/pricing.html</a></p>
+
+        <p class="sub" style="margin-top:20px"><em>Educational/informational article. This page is not affiliated with DeepSeek and does not constitute investment advice of any kind. All prices are as captured on the dates noted and may change; always check official pricing pages.</em></p>
+
+        <div class="cta-box">
+          <p class="lead" style="margin:0 0 10px">One API. Every AI. Pay Less.</p>
+          <a class="btn btn-primary" href="../register.html">Start Building Free</a>
+          <a class="btn" href="https://open.ai24x.com/" data-open target="_blank" rel="noopener">Get API Key</a>
+          <a class="btn" href="../pricing.html">View pricing</a>
+        </div>
+
+        <p class="sub" style="margin-top:24px">Related: <a href="openai-compatible-api.html">OpenAI-compatible API</a> · <a href="one-api-multiple-models.html">One API for multiple AI models</a> · <a href="byok-ai-gateway.html">BYOK AI Gateway</a> · <a href="ai-api-cost-basics.html">AI API cost basics</a></p>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer" id="site-footer"></footer>
+  <script src="../config/locales.js?v=20260831b"></script>
+  <script src="../js/api.js?v=20260829n"></script>
+  <script src="../js/utm.js?v=20260802a"></script>
+  <script src="../js/i18n.js?v=20260826m"></script>
+  <script src="../js/ai24x-chrome.js?v=20260829n"></script>
+  <script src="../js/shell.js?v=20260829n"></script>
+  <script src="../js/app.js?v=20260818b"></script>
+  <script src="../js/support-widget.js?v=20260817b"></script>
+</body>
+</html>

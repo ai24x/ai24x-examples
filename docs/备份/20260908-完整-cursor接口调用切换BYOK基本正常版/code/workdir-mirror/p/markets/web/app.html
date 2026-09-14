@@ -1,0 +1,2236 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <meta name="theme-color" content="#0a0c10">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>AI24X Markets · Technical Indicators</title>
+  <style>
+    :root {
+      --bg: #0a0c10; --panel: #12161d; --panel2: #181d26; --border: #252b36;
+      --text: #d8dee9; --muted: #8b949e; --accent: #4f8cff;
+      --up: #f03a52; --down: #00b578;
+      --ma1: #ff8000; --ma2: #3399ff; --ma3: #00c853;
+      --macd-dif: #e2e8f0; --macd-dea: #f59e0b;
+      --gc: #ff1744; --dc: #00e676;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    /* —— 统一页眉（与 www/Markets 首页同套视觉） —— */
+    .mk-top { position: sticky; top: 0; z-index: 100; background: rgba(18,22,29,.94); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+    /* —— 全站产品切换条 —— */
+    .ai24x-product-bar { border-bottom: 1px solid var(--border); background: rgba(10,12,16,.95); }
+    .ai24x-product-bar-inner { max-width: 1200px; margin: 0 auto; padding: 6px 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .ai24x-product-bar-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
+    .product-switch { display: inline-flex; align-items: center; gap: 2px; }
+    .product-switch a { font-size: 0.8rem; font-weight: 600; padding: 5px 10px; border-radius: 999px; text-decoration: none; }
+    .product-switch a.is-on { color: #fff; background: var(--accent); }
+    .product-switch a:not(.is-on) { color: var(--muted); }
+    .product-switch a:not(.is-on):hover { color: var(--text); background: var(--panel2); }
+    .mk-top-inner { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 8px 24px; min-height: 60px; max-width: 1140px; margin: 0 auto; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; font-size: 16px; color: var(--text); white-space: nowrap; }
+    .brand b { color: var(--accent); }
+    .brand:hover { text-decoration: none; }
+    .brand-mark { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; font-size: 0.72rem; font-weight: 900; background: var(--accent); color: #fff; }
+    .mk-nav { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px; }
+    .mk-nav a { padding: 7px 11px; border-radius: 8px; font-size: 0.88rem; font-weight: 600; color: var(--muted); }
+    .mk-nav a:hover { color: var(--text); background: var(--panel2); text-decoration: none; }
+    .mk-actions { display: flex; align-items: center; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+    .mk-menu-btn { display: none; align-items: center; justify-content: center; width: 38px; height: 38px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel2); color: var(--text); cursor: pointer; font-size: 20px; line-height: 1; }
+    .mk-menu-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .mk-drawer { display: none; }
+    .mk-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--border); }
+    .panel-anchor { scroll-margin-top: 150px; }
+    .lang-switch { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-right: 4px; }
+    .lang-switch button { border: 0; background: #0d1117; color: var(--muted); padding: 6px 10px; cursor: pointer; font-size: 12px; }
+    .lang-switch button.active { background: var(--accent); color: #fff; }
+    .auth-area { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .auth-link { display: inline-block; padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 12px; white-space: nowrap; text-decoration: none; }
+    .auth-link:hover { color: var(--text); border-color: var(--accent); }
+    .auth-btn { padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; background: transparent; color: var(--muted); font-size: 12px; cursor: pointer; }
+    .auth-btn:hover { color: var(--text); border-color: var(--accent); }
+    .auth-user { color: var(--muted); font-size: 12px; white-space: nowrap; max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
+    #symbol { width: 130px; padding: 8px 10px; background: #0d1117; color: var(--text); border: 1px solid var(--border); border-radius: 6px; font-size: 14px; text-transform: uppercase; }
+    button { padding: 7px 11px; background: #0d1117; color: var(--text); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 13px; }
+    button:hover { border-color: var(--accent); }
+    button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    #go { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .sub-plans { display: flex; flex-wrap: wrap; gap: 10px; }
+    .sub-plan { position: relative; flex: 1 1 150px; padding: 13px 12px 12px; border-radius: 10px; background: var(--panel2); border: 1px solid var(--border); color: var(--text); font-size: 13px; font-weight: 700; cursor: pointer; text-align: center; transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease; }
+    .sub-plan:hover { transform: translateY(-1px); border-color: var(--accent); box-shadow: 0 6px 16px rgba(0,0,0,.28); }
+    .sub-plan .plan-price { display: block; font-size: 19px; font-weight: 800; color: #fff; margin-top: 5px; letter-spacing: -0.01em; }
+    .sub-plan .plan-unit { font-size: 12px; font-weight: 600; color: var(--muted); }
+    .sub-plan .plan-note { display: block; font-size: 11px; color: var(--muted); font-weight: 400; margin-top: 4px; }
+    .sub-plan.is-rec { border: 2px solid var(--gold, #fbbf24); background: linear-gradient(180deg, rgba(251,191,36,.13), rgba(251,191,36,.03) 65%, var(--panel2)); box-shadow: 0 0 0 1px rgba(251,191,36,.22), 0 8px 20px rgba(0,0,0,.3); }
+    .sub-plan.is-rec .plan-price { color: var(--gold, #fbbf24); }
+    .sub-plan .badge { position: absolute; top: -10px; right: 12px; background: var(--gold, #fbbf24); color: #221703; font-size: 10px; font-weight: 800; letter-spacing: .04em; padding: 2px 9px; border-radius: 999px; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+    .spacer { flex: 1; }
+    .err { color: var(--up); font-size: 13px; }
+    #quote { display: flex; flex-wrap: wrap; gap: 16px; align-items: baseline; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--border); font-size: 13px; }
+    #quote .name { font-weight: 600; font-size: 15px; }
+    #quote .price { font-size: 18px; font-weight: 700; }
+    #quote .up { color: var(--up); } #quote .down { color: var(--down); }
+    #quote .muted { color: var(--muted); }
+    main { padding: 12px 16px 30px; }
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+    .panel h3 { margin: 0; padding: 8px 14px; font-size: 12px; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.05em; }
+    .chart { height: 460px; position: relative; }
+    .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 8px 14px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); }
+    .legend .lg-item { display: inline-flex; align-items: center; gap: 4px; }
+    .legend .lg-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .legend .lg-arrow { font-size: 12px; }
+    /* —— 技术健康评分条 —— */
+    .score-strip { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--border); font-size: 12px; }
+    .score-num { font-size: 26px; font-weight: 800; line-height: 1; }
+    .score-bar { width: 130px; height: 6px; border-radius: 3px; background: var(--panel2); overflow: hidden; margin-top: 4px; }
+    .score-bar i { display: block; height: 100%; border-radius: 3px; }
+    .score-summary { font-weight: 600; }
+    .score-chip { display: inline-block; padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 11px; margin: 2px 4px 0 0; }
+    .score-risk { color: #f87171; border-color: rgba(248,113,113,.35); }
+    .short-ma { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); cursor: pointer; user-select: none; }
+    .short-ma input { accent-color: var(--accent); }
+    .tooltip { position: absolute; z-index: 10; pointer-events: none; background: rgba(10,12,16,0.94); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12px; line-height: 1.65; min-width: 200px; box-shadow: 0 4px 16px rgba(0,0,0,.45); }
+    .tooltip .tt-date { color: var(--accent); font-weight: 600; margin-bottom: 3px; }
+    .tooltip .tt-row { display: flex; justify-content: space-between; gap: 12px; }
+    .tooltip .tt-num { font-variant-numeric: tabular-nums; font-weight: 600; }
+    .tooltip .up { color: var(--up); } .tooltip .down { color: var(--down); }
+    .loading { padding: 40px; text-align: center; color: var(--muted); }
+    footer { padding: 14px 18px 26px; color: var(--muted); font-size: 12px; line-height: 1.7; border-top: 1px solid var(--border); }
+    /* —— 统一页脚 —— */
+    .mk-footer { border-top: 1px solid var(--border); margin-top: 24px; padding: 30px 16px 22px; background: var(--panel); color: var(--muted); font-size: 12px; }
+    .mk-footer-inner { max-width: 1140px; margin: 0 auto; }
+    /* —— 底部订阅引导区 —— */
+    .mk-sub-band { border-top: 1px solid var(--border); margin-top: 24px; padding: 24px 16px; background: linear-gradient(90deg, color-mix(in srgb, var(--accent, #2563eb) 10%, transparent), transparent); }
+    .mk-sub-band-inner { max-width: 1140px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .mk-sub-band h3 { margin: 0 0 4px; font-size: 17px; }
+    .mk-sub-band p { margin: 0; font-size: 13px; }
+    .band-cta { display: inline-block; padding: 10px 20px; border-radius: 8px; background: var(--accent, #2563eb); color: #fff; font-size: 14px; font-weight: 700; text-decoration: none; white-space: nowrap; }
+    .band-cta:hover { text-decoration: none; filter: brightness(1.1); }
+    .footer-grid { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 22px; }
+    .footer-title { font-weight: 800; color: var(--text); margin-bottom: 9px; }
+    .footer-col a { display: block; padding: 5px 0; color: var(--muted); }
+    .footer-col a:hover { color: var(--accent); }
+    .footer-bottom { margin-top: 24px; padding-top: 13px; border-top: 1px solid var(--border); font-size: 11px; }
+    .samples { display: flex; gap: 6px; align-items: center; padding: 8px 16px; background: var(--panel); border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+    .samples button { padding: 3px 9px; font-size: 12px; }
+    .samples-hint { color: var(--muted); font-size: 11px; }
+    .onboard-overlay { position: fixed; inset: 0; z-index: 999; background: rgba(6,10,18,.92); display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .onboard-overlay[hidden] { display: none; }
+    .onboard-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; max-width: 420px; width: 100%; padding: 22px; }
+    .onboard-card h2 { margin: 0 0 8px; font-size: 18px; }
+    .onboard-card .step { display: flex; gap: 10px; margin: 12px 0; font-size: 14px; color: var(--muted); }
+    .onboard-card .num { flex: 0 0 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .onboard-actions { display: flex; gap: 10px; margin-top: 16px; }
+    .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--panel2); border: 1px solid var(--border); color: var(--text); font-size: 13px; padding: 10px 16px; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,.35); z-index: 1000; max-width: 86vw; }
+    .free-banner { display: none; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 9px 16px; background: linear-gradient(90deg, rgba(251,191,36,.14), rgba(251,191,36,.05)); border-bottom: 1px solid rgba(251,191,36,.35); font-size: 13px; color: var(--text); }
+    .free-banner.show { display: flex; }
+    .free-banner .fb-up { border: 1px solid var(--gold); color: var(--gold); border-radius: 999px; padding: 5px 14px; font-weight: 700; font-size: 12px; text-decoration: none; white-space: nowrap; }
+    .free-banner .fb-up:hover { background: rgba(251,191,36,.12); }
+    .free-banner .fb-close { background: transparent; border: 0; color: var(--muted); font-size: 15px; cursor: pointer; line-height: 1; padding: 4px 6px; }
+    /* —— 统一支付中台弹窗（Markets Pro 订阅 · Card/PayPal + 更多） —— */
+    .payhub-overlay { position: fixed; inset: 0; z-index: 1001; background: rgba(6,10,18,.92); display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .payhub-overlay[hidden] { display: none; }
+    .payhub-modal { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; max-width: 430px; width: 100%; padding: 20px; max-height: 88vh; overflow-y: auto; }
+    .payhub-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .payhub-title { font-size: 16px; font-weight: 700; }
+    .payhub-sub { color: var(--muted); font-size: 12px; margin-top: 4px; line-height: 1.55; }
+    .payhub-close { background: transparent; border: 0; color: var(--muted); font-size: 22px; line-height: 1; cursor: pointer; padding: 2px 6px; }
+    .payhub-close:hover { color: var(--text); }
+    .payhub-channels { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .payhub-btn { display: flex; align-items: center; gap: 10px; padding: 12px; background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; }
+    .payhub-btn:hover { border-color: var(--accent); background: #1d2530; }
+    .payhub-btn:disabled { opacity: .45; cursor: not-allowed; }
+    .payhub-ico { width: 24px; height: 24px; flex: 0 0 24px; }
+    .payhub-result { margin-top: 14px; }
+    .payhub-hint { font-size: 12px; color: var(--muted); line-height: 1.65; margin-bottom: 12px; white-space: pre-wrap; }
+    .payhub-hint.err { color: var(--up); }
+    .payhub-qr { display: block; width: 220px; height: 220px; margin: 0 auto 12px; border-radius: 10px; background: #fff; padding: 8px; }
+    .payhub-open { display: block; text-align: center; margin-top: 6px; padding: 9px 0; background: var(--accent); color: #fff; border-radius: 8px; font-size: 13px; font-weight: 600; text-decoration: none; }
+    .payhub-open:hover { opacity: .9; }
+    .payhub-back { display: block; margin-top: 12px; text-align: center; background: transparent; border: 0; color: var(--muted); font-size: 12px; cursor: pointer; width: 100%; }
+    .payhub-note { grid-column: 1 / -1; margin-top: 10px; font-size: 11px; color: var(--muted); line-height: 1.5; }
+    .payhub-btn-block { grid-column: 1 / -1; align-items: flex-start; }
+    .payhub-btn-block .payhub-btn-text { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+    .payhub-btn-block .payhub-btn-title-row { display: inline-flex; align-items: center; gap: 10px; line-height: 1.25; }
+    .payhub-btn-sub { display: block; font-size: 11px; font-weight: 400; opacity: 0.72; margin-top: 3px; padding-left: 34px; line-height: 1.35; }
+    .payhub-more-label { grid-column: 1 / -1; margin: 2px 0 0; font-size: 12px; color: var(--muted); text-align: center; }
+    [hidden] { display: none !important; }
+    /* —— 手机端底部快捷操作条（桌面隐藏） —— */
+    .mb-bar { display: none; }
+    @media (max-width: 640px) {
+      .mk-top-inner { display: flex; align-items: center; gap: 8px; padding: 8px 10px; min-height: 0; }
+      .mk-top-inner .brand { margin-right: auto; }
+      .mk-nav { display: none; }
+      #auth-area { display: none; }
+      .mk-menu-btn { display: inline-flex; }
+      .mk-drawer { display: block; }
+      .mk-drawer-mask { position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,.55); }
+      .mk-drawer-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 80%; max-width: 320px; z-index: 501; background: var(--panel); border-left: 1px solid var(--border); padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); overflow-y: auto; box-shadow: -10px 0 32px rgba(0,0,0,.45); display: flex; flex-direction: column; gap: 4px; }
+      .mk-drawer-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-size: 14px; font-weight: 700; color: var(--text); }
+      .mk-drawer-close { background: transparent; border: 0; color: var(--muted); font-size: 24px; line-height: 1; cursor: pointer; padding: 2px 6px; }
+      .mk-drawer-close:hover { color: var(--text); }
+      .mk-drawer-nav { display: flex; flex-direction: column; gap: 2px; }
+      .mk-drawer-nav a { display: block; padding: 11px 12px; border-radius: 8px; font-size: 15px; font-weight: 600; color: var(--text); }
+      .mk-drawer-nav a:hover { background: var(--panel2); color: var(--accent); text-decoration: none; }
+      .mk-drawer-auth { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+      .mk-toolbar { padding: 8px 10px; gap: 6px; }
+      .brand { font-size: 14px; }
+      #symbol { flex: 1; min-width: 90px; }
+      #go { padding: 7px 8px; }
+      .samples { padding: 6px 10px; gap: 5px; }
+      main { padding: 8px 8px 20px; }
+      .panel { margin-bottom: 8px; }
+      .chart { height: 420px; }
+      #quote { padding: 8px 10px; }
+      footer { padding: 12px 12px 22px; font-size: 11px; }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+      .mk-sub-band-inner { flex-direction: column; align-items: flex-start; }
+      .payhub-channels { grid-template-columns: 1fr 1fr; }
+      .mb-bar { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 8px; position: fixed; left: 0; right: 0; bottom: 0; z-index: 300; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); background: rgba(10,12,16,.97); backdrop-filter: blur(10px); border-top: 1px solid var(--border); }
+      .mb-btn { display: flex; align-items: center; justify-content: center; border-radius: 10px; padding: 11px 0; font-size: 13px; font-weight: 700; text-align: center; }
+      .mb-btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+      .mb-btn-pro { background: transparent; border: 1px solid var(--gold); color: var(--gold); text-decoration: none; }
+      main { padding-bottom: 84px; }
+      .mk-sub-band { padding-bottom: 92px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="onboard" class="onboard-overlay" hidden>
+    <div class="onboard-card">
+      <h2 data-i18n-html="onboard.title">Welcome to AI24X Markets</h2>
+      <div class="step"><span class="num">1</span><div data-i18n-html="onboard.step1">Type a ticker above &mdash; try <b>AAPL</b> or <b>SPY</b> &mdash; and hit <b>Search</b>.</div></div>
+      <div class="onboard-actions">
+        <button id="onboard-start" type="button" data-i18n="onboard.start" style="flex:1; padding:9px 0; border:0; border-radius:8px; background:var(--accent); color:#fff; font-weight:600; cursor:pointer;">Get started</button>
+        <button id="onboard-skip" type="button" data-i18n="onboard.skip" style="padding:9px 14px; border:1px solid var(--border); border-radius:8px; background:transparent; color:var(--muted); cursor:pointer;">Skip</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="mk-product-bar"></div>
+  <header class="mk-top">
+    <div class="mk-top-inner">
+      <a class="brand" href="/"><span class="brand-mark">AI</span><span>AI24X <b>Markets</b></span></a>
+      <nav class="mk-nav" aria-label="Main">
+        <a href="/" data-i18n="nav.home">Home</a>
+        <a href="/pricing.html" data-i18n="nav.pricing">Pricing</a>
+        <a href="/help.html" data-i18n="nav.help">Help</a>
+      </nav>
+      <div class="mk-actions">
+        <div class="lang-switch" id="lang-switch">
+          <button type="button" data-lang="en" class="active">EN</button>
+          <button type="button" data-lang="zh">中文</button>
+        </div>
+        <span id="auth-area"></span>
+      </div>
+      <button type="button" id="mk-menu-btn" class="mk-menu-btn" aria-label="Menu" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+  <div id="mk-back-bar" class="mk-back-bar" hidden style="background:color-mix(in srgb, var(--accent,#3b82f6) 8%, transparent);border-bottom:1px solid var(--border,#d8e4ef);padding:0 max(14px, calc((100% - 1200px)/2))"></div>
+  <div id="mk-drawer" class="mk-drawer" hidden>
+    <div class="mk-drawer-mask" id="mk-drawer-mask"></div>
+    <div class="mk-drawer-panel" role="dialog" aria-modal="true" aria-label="Menu">
+      <div class="mk-drawer-head">
+        <span data-i18n="menu.title">Menu</span>
+        <button type="button" id="mk-drawer-close" class="mk-drawer-close" aria-label="Close">&times;</button>
+      </div>
+      <nav class="mk-drawer-nav" aria-label="Mobile">
+        <a href="/" data-i18n="nav.home">Home</a>
+        <a href="/pricing.html" data-i18n="nav.pricing">Pricing</a>
+        <a href="/help.html" data-i18n="nav.help">Help</a>
+      </nav>
+      <div class="mk-drawer-auth" id="auth-area-mob"></div>
+    </div>
+  </div>
+  <div class="mk-toolbar">
+    <input id="symbol" value="AAPL" maxlength="20" placeholder="AAPL / SPY / ^GSPC">
+    <button id="go" data-i18n="search">Search</button>
+    <div class="spacer"></div>
+    <button data-period="day" class="active" data-i18n="p.day">1D</button>
+    <button data-period="week" data-i18n="p.week">1W</button>
+    <button data-period="month" data-i18n="p.month">1M</button>
+    <button id="refresh" title="Refresh">⟳</button>
+    <button id="btn-watch" title="Add to watchlist" style="border:0; background:transparent; color:var(--muted); font-size:16px; cursor:pointer;">☆</button>
+    <button id="btn-alerts" title="Price alerts" style="border:0; background:transparent; color:var(--muted); font-size:16px; cursor:pointer;">🔔</button>
+    <span id="pro-badge" style="display:none; background:var(--accent); color:#fff; font-size:10px; font-weight:700; padding:2px 7px; border-radius:999px;">PRO</span>
+    <span id="err" class="err"></span>
+  </div>
+
+  <div id="free-banner" class="free-banner" role="region" aria-label="Free plan upgrade">
+    <span id="fb-text"></span>
+    <span style="display:inline-flex; gap:10px; align-items:center;">
+      <a class="fb-up" id="fb-upgrade" href="#sub" data-i18n="banner.upgrade">Upgrade to Pro</a>
+      <button type="button" class="fb-close" id="fb-close" aria-label="Dismiss">✕</button>
+    </span>
+  </div>
+
+  <div class="samples" id="samples">
+    <span class="samples-hint" data-i18n="popular">Popular — tap one to try</span>
+  </div>
+
+  <div id="watchbar" style="display:none; padding:6px 14px; gap:8px; align-items:center; flex-wrap:wrap;">
+    <span style="font-size:12px; color:var(--muted);" data-i18n="watch.title">Watchlist</span>
+    <div id="watch-chips" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+    <span id="watch-quota" style="font-size:11px; color:var(--muted);"></span>
+  </div>
+
+  <nav id="mb-bar" class="mb-bar" aria-label="Quick actions">
+    <button type="button" id="mb-discover" class="mb-btn" data-i18n="mb.discover">Discover</button>
+    <button type="button" id="mb-brief" class="mb-btn mb-btn-primary" data-i18n="mb.brief">AI Brief</button>
+    <a id="mb-pro" class="mb-btn mb-btn-pro" href="#sub" data-i18n="mb.pro">Pro</a>
+  </nav>
+
+  <div id="quote"></div>
+
+  <main>
+    <div class="panel">
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <h3 style="margin:0; padding:8px 14px; font-size:12px; font-weight:600; color:var(--muted); border-bottom:0; text-transform:uppercase; letter-spacing:0.05em;" data-i18n="panel.main">Price · MA14/28/57 · MACD</h3>
+        <button id="btn-brief-top" style="margin-right:10px; padding:5px 12px; border-radius:6px; background:var(--accent); border:0; color:#fff; font-size:12px; font-weight:600; cursor:pointer;">AI Brief</button>
+      </div>
+      <div class="chart" id="chart-main"></div>
+      <div class="tooltip" id="chart-tooltip" hidden></div>
+      <label class="short-ma"><input type="checkbox" id="chk-short-ma" checked><span data-i18n="shortma">Short MAs 5/10/20 (dashed)</span></label>
+      <div class="legend" id="signal-legend"></div>
+      <div id="score-strip" class="score-strip" hidden></div>
+    </div>
+    <div class="panel">
+      <h3 data-i18n="panel.brief">AI Technical Brief</h3>
+      <div style="padding: 12px 14px;">
+        <div class="brief-actions" style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:10px;">
+          <button id="btn-brief" data-i18n="brief.btn">Generate AI Brief</button>
+          <span id="brief-quota" class="muted" style="color:var(--muted); font-size:12px;"></span>
+          <a id="brief-pro-link" href="#sub" style="color:var(--accent); font-size:12px; display:none;" data-i18n="brief.upgrade">Upgrade to Pro</a>
+        </div>
+        <div id="brief-score"></div>
+        <div id="brief-out" style="color:var(--text); font-size:13px; line-height:1.7; white-space:pre-wrap; word-break:break-word;"></div>
+        <div id="brief-disclaimer" style="color:var(--muted); font-size:11px; margin-top:10px; line-height:1.6;" data-i18n="brief.disclaimer">For educational purposes only — not investment advice. Market data is delayed at least 15 minutes.</div>
+      </div>
+    </div>
+    <div class="panel" id="alerts-panel">
+      <h3 data-i18n="panel.alerts">Price Alerts</h3>
+      <div style="padding: 12px 14px;">
+        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px;">
+          <select id="alert-kind" style="padding:7px 10px; border-radius:8px; border:1px solid var(--border,#333); background:var(--card-bg,#151a20); color:var(--text,#e5e7eb); font-size:13px;">
+            <option value="price_above">Price above</option>
+            <option value="price_below">Price below</option>
+            <option value="breakout">Breakout above 20-bar high</option>
+            <option value="rsi_overbought">RSI-14 ≥ 70</option>
+            <option value="rsi_oversold">RSI-14 ≤ 30</option>
+            <option value="ma_cross">MA5 crosses above MA10</option>
+          </select>
+          <input id="alert-threshold" type="number" step="0.01" min="0" placeholder="Price (for price alerts)"
+                 style="width:150px; padding:7px 10px; border-radius:8px; border:1px solid var(--border,#333); background:var(--card-bg,#151a20); color:var(--text,#e5e7eb); font-size:13px;">
+          <button type="button" id="btn-alert-add">Add alert</button>
+        </div>
+        <div id="alert-quota" class="muted" style="color:var(--muted); font-size:12px; margin-bottom:10px;"></div>
+        <div id="alert-list" style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;"></div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+          <span style="font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em;" data-i18n="alert.events">Recent triggers</span>
+          <button type="button" id="btn-alert-check" style="font-size:12px; padding:5px 12px;" data-i18n="alert.check">Check my alerts now</button>
+        </div>
+        <div id="alert-events" style="display:flex; flex-direction:column; gap:6px;"></div>
+        <div id="alert-msg" style="color:var(--up); font-size:12px; margin-top:8px;"></div>
+      </div>
+    </div>
+    <div class="panel panel-anchor" id="sub">
+      <h3 data-i18n="panel.sub">Pro Subscription</h3>
+      <div style="padding: 12px 14px;">
+        <div id="sub-status" style="font-size:13px; margin-bottom:10px; color:var(--muted);"></div>
+        <div style="font-size:12px; color:var(--muted); margin-bottom:10px;" data-i18n="sub.steps">How it works: 1 · Pick a plan → 2 · Choose a payment method → 3 · Pro activates instantly.</div>
+        <div id="trial-box" style="display:none; margin-bottom:12px; padding:12px; border:1px solid rgba(251,191,36,.35); border-radius:12px; background:linear-gradient(90deg, rgba(251,191,36,.10), rgba(251,191,36,.03));">
+          <div style="font-weight:700; color:var(--gold);" data-i18n="sub.trialTitle">7-Day Free Pro Trial</div>
+          <div style="font-size:12px; color:var(--muted); margin:4px 0 10px;" data-i18n="sub.trialDesc">Full Pro access for 7 days. No payment method required. One per account.</div>
+          <button type="button" id="btn-trial" class="ok" style="width:100%;" data-i18n="sub.trialBtn">Start Free Trial</button>
+          <div id="trial-msg" style="font-size:12px; margin-top:8px; color:var(--muted);"></div>
+        </div>
+        <div class="sub-plans">
+          <button type="button" class="sub-plan" id="btn-sub-week">
+            <span data-i18n="sub.weekT">Weekly</span>
+            <span class="plan-price">$9.9<span class="plan-unit">/week</span></span>
+            <span class="plan-note" data-i18n="sub.weekNote">Flexible start</span>
+          </button>
+          <button type="button" class="sub-plan is-rec" id="btn-sub-month">
+            <span class="badge" data-i18n="sub.popular">POPULAR</span>
+            <span data-i18n="sub.monthT">Monthly</span>
+            <span class="plan-price">$24.9<span class="plan-unit">/month</span></span>
+            <span class="plan-note" data-i18n="sub.monthNote">Most popular choice</span>
+          </button>
+          <button type="button" class="sub-plan" id="btn-sub-year">
+            <span data-i18n="sub.yearT">Yearly</span>
+            <span class="plan-price">$199<span class="plan-unit">/year</span></span>
+            <span class="plan-note" data-i18n="sub.yearNote">Best value · save 33%</span>
+          </button>
+        </div>
+        <div id="sub-msg" style="color:var(--up); font-size:12px; margin-top:10px;"></div>
+        <div id="pro-next" style="display:none; gap:8px; flex-wrap:wrap; margin-top:10px;">
+          <button type="button" id="btn-next-brief">Generate AI Brief</button>
+          <button type="button" id="btn-next-watch">Star this symbol</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 底部订阅引导：未登录 → 注册开通；已登录 → 用户中心套餐页 -->
+  <section class="mk-sub-band" id="sub-band" role="region" aria-label="Pro subscription">
+    <div class="mk-sub-band-inner">
+      <div>
+        <h3 data-i18n="band.title">Unlock AI briefs &amp; a 50-symbol watchlist</h3>
+        <p data-i18n="band.sub">Pro from $9.9/week · $24.9/month · $199/year — PayPal, WeChat, Alipay &amp; more.</p>
+      </div>
+      <a class="band-cta" id="band-cta" href="https://www.ai24x.com/console.html?from=markets#billing" target="_blank" rel="noopener" data-i18n="band.ctaPro">Go to my plans</a>
+    </div>
+  </section>
+
+  <footer class="mk-footer">
+    <div class="mk-footer-inner">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <div class="footer-title">AI24X</div>
+          <div data-i18n="footer">15-minute delayed market data. For educational purposes only — not investment advice.</div>
+        </div>
+        <div class="footer-col">
+          <div class="footer-title">Product</div>
+          <a href="/">Markets</a>
+          <a href="/pricing.html">Pricing</a>
+          <a href="/daily/">Daily Brief</a>
+        </div>
+        <div class="footer-col">
+          <div class="footer-title">Account</div>
+          <a href="https://www.ai24x.com/console.html?from=markets" target="_blank" rel="noopener">Account</a>
+          <a href="https://www.ai24x.com/login.html" target="_blank" rel="noopener">Sign in</a>
+          <a href="https://www.ai24x.com/register.html" target="_blank" rel="noopener">Sign up</a>
+        </div>
+        <div class="footer-col">
+          <div class="footer-title">Company</div>
+          <a href="/tos.html">Terms of Service</a>
+          <a href="/privacy.html">Privacy Policy</a>
+          <a href="mailto:support@ai24x.com">support@ai24x.com</a>
+        </div>
+      </div>
+      <div class="footer-bottom">© 2026 AI24X · <a href="https://www.ai24x.com">www.ai24x.com</a></div>
+    </div>
+  </footer>
+
+  <!-- 统一支付中台：Markets Pro 订阅 · Card / PayPal / 微信 / 支付宝 -->
+  <div id="payhub" class="payhub-overlay" hidden role="dialog" aria-modal="true" aria-label="Checkout">
+    <div class="payhub-modal">
+      <div class="payhub-head">
+        <div>
+          <div id="payhub-title" class="payhub-title"></div>
+          <div id="payhub-sub" class="payhub-sub"></div>
+        </div>
+        <button type="button" id="payhub-close" class="payhub-close" aria-label="Close">&times;</button>
+      </div>
+      <div id="payhub-channels" class="payhub-channels"></div>
+      <div id="payhub-result" class="payhub-result" hidden>
+        <div id="payhub-hint" class="payhub-hint"></div>
+        <img id="payhub-qr" class="payhub-qr" alt="QR code" hidden>
+        <a id="payhub-open" class="payhub-open" href="#" target="_blank" rel="noopener" hidden></a>
+        <button type="button" id="payhub-back" class="payhub-back"></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/ai24x-chrome.js?v=20260830p"></script>
+  <script src="/js/www-links.js?v=20260830p"></script>
+  <script src="/js/mk-chrome.js?v=20260830p"></script>
+  <script src="vendor/lightweight-charts.standalone.production.js"></script>
+  <script src="/help-widget.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      var I18N = {
+        en: {
+          search: 'Search',
+          searchPh: 'AAPL / SPY / ^GSPC',
+          popular: 'Popular',
+          'p.day': '1D', 'p.week': '1W', 'p.month': '1M',
+          'panel.main': 'Price · MA14/28/57 · MACD',
+          'panel.brief': 'AI Technical Brief',
+          'brief.btn': 'Generate AI Brief',
+          'brief.upgrade': 'Upgrade to Pro',
+          'brief.disclaimer': 'For educational purposes only — not investment advice. Market data is delayed at least 15 minutes.',
+          'brief.loading': 'Analyzing…',
+          'brief.login': 'Sign in to generate AI briefs',
+          'brief.quota': '{n} of 10 free briefs left today',
+          'brief.pro': 'Pro — unlimited AI briefs',
+          'brief.err': 'Brief unavailable: ',
+          'brief.quotaExceeded': 'You have used all 10 free AI briefs today. Free briefs reset tomorrow — upgrade to Pro for unlimited commentary.',
+          'brief.offline': 'AI commentary is temporarily unavailable. Please try again later.',
+          'panel.sub': 'Pro Subscription',
+          'sub.weekT': 'Weekly',
+          'sub.weekNote': 'Flexible start',
+          'sub.monthT': 'Monthly',
+          'sub.monthNote': 'Most popular choice',
+          'sub.yearT': 'Yearly',
+          'sub.yearNote': 'Best value · save 33%',
+          'sub.popular': 'POPULAR',
+          'sub.free': 'Free plan — 10 AI briefs/day, watchlist up to 10 symbols.',
+          'sub.pro': 'Pro active — unlimited AI briefs, watchlist up to 50 symbols. Expires {date}.',
+          'sub.checkoutFail': 'Unable to start checkout: ',
+          'sub.captureFail': 'Payment confirmation pending. If you completed payment, your access will activate shortly.',
+          'sub.captureOk': 'Payment confirmed — Pro activated. Thank you!',
+          'sub.reload': 'Refreshing…',
+          'sub.trialTitle': '7-Day Free Pro Trial',
+          'sub.trialDesc': 'Full Pro access for 7 days. No payment method required. One per account.',
+          'sub.trialBtn': 'Start Free Trial',
+          'sub.trialActive': 'Free trial active — Pro until {date}.',
+          'sub.trialUsed': 'Free trial already used.',
+          'sub.trialOk': 'Trial activated — enjoy 7 days of Pro!',
+          'sub.trialFail': 'Trial unavailable: ',
+          'banner.free': 'Free plan · 10 AI briefs/day & 10-symbol watchlist — upgrade for more.',
+          'banner.upgrade': 'Upgrade to Pro',
+          'sub.steps': 'How it works: 1 · Pick a plan → 2 · Choose a payment method → 3 · Pro activates instantly.',
+          'pay.title': 'AI24X Markets Pro',
+          'pay.choose': 'Choose a payment method',
+          'pay.preparingCheckout': 'Opening checkout…',
+          'pay.wechat': 'WeChat Pay',
+          'pay.alipay': 'Alipay',
+          'pay.paypal': 'PayPal',
+          'pay.creem': 'Creem',
+          'pay.dodo': 'Card',
+          'pay.dodoSub': 'Cards · Apple Pay · Google Pay',
+          'pay.others': 'Other payment methods',
+          'pay.dodoNote': 'Card payments powered by Dodo Payments',
+          'pay.mock': 'Mock (test)',
+          'pay.unavailable': 'Not ready',
+          'pay.preparingWechat': 'Preparing WeChat QR…',
+          'pay.wechatHint': 'Scan with WeChat to pay. This page auto-confirms after payment. Order: ',
+          'pay.opened': 'Payment page opened in a new window — finish payment there.',
+          'pay.blocked': 'Popup blocked? Tap the button below to open the payment page.',
+          'pay.autoConfirm': ' This page auto-confirms after payment. Order: ',
+          'pay.openPaypal': 'Open PayPal',
+          'pay.openAlipay': 'Open Alipay',
+          'pay.openPay': 'Open payment page',
+          'pay.openCreem': 'Open Creem',
+          'pay.checkoutFail': 'Unable to start checkout: ',
+          'pay.verifyFail': 'Payment confirmation pending. If you completed payment, your access will activate shortly.',
+          'pay.ok': 'Payment confirmed — Pro activated. Thank you!',
+          'pay.back': '← Choose another method',
+          'pay.mockHint': 'Mock order created ({otn}). Tap Confirm below to activate in test mode.',
+          'pay.mockConfirm': 'Confirm mock payment',
+          'pay.polling': 'Waiting for payment… You can keep this tab open.',
+          'pay.unavailableHint': 'This payment method is not available yet. Please choose another one.',
+          'pay.needLogin': 'Sign in to subscribe to Pro.',
+          shortma: 'Short MAs 5/10/20 (dashed)',
+          footer: '15-minute delayed market data. For educational purposes only — not investment advice.',
+          loading: 'Loading…',
+          quoteFail: 'Quote unavailable: ',
+          loadFail: 'Error: ',
+          notFound: 'Symbol not found: {s}. Please check the ticker code.',
+          noData: 'No data for this symbol. Try a US ticker like AAPL or NVDA, or a name like Apple.',
+          didYouMean: 'Did you mean',
+          'onboard.title': 'Welcome to AI24X Markets',
+          'onboard.step1': 'Type a ticker or tap a popular symbol below to see its chart.',
+          'onboard.start': 'Get started',
+          'onboard.skip': 'Skip',
+          'menu.title': 'Menu',
+          open: 'Open', high: 'High', low: 'Low', close: 'Close', prev: 'Prev close',
+          chg: 'Chg', chgPct: 'Chg %', vol: 'Volume', vsPrev: 'vs prev close', vsOpen: 'vs open',
+          amplitude: 'Range %', signal: 'Signal', date: 'Date', macd: 'MACD', macdHist: 'Hist',
+          legendGc: 'MACD ↑ golden cross', legendDc: '↓ dead cross',
+          lgBase: 'Base · watch', lgBottom: 'Bottom · accumulate', lgStrong: 'Strong',
+          lgCaution: 'Caution', lgWeak: 'Weak', lgHigh: 'Warning',
+          'nav.charts': 'Charts',
+          'nav.pricing': 'Pricing',
+          'nav.help': 'Help',
+          'nav.home': 'Home',
+          'nav.gateway': 'AI Gateway',
+          'nav.console': 'Account',
+          backAccount: 'Back to Account',
+          'score.title': 'Technical Health Score',
+          'score.na': 'Score needs 60+ days of data',
+          'score.viewScreener': 'Explore today\'s screen →',
+          signIn: 'Sign in',
+          signUp: 'Sign up',
+          signedInAs: 'Signed in as',
+          console: 'Account',
+          upgrade: 'Upgrade',
+          signOut: 'Sign out',
+          authFail: 'Session check unavailable',
+          'band.title': 'Unlock AI briefs & a 50-symbol watchlist',
+          'band.sub': 'Pro from $9.9/week · $24.9/month · $199/year — PayPal, WeChat, Alipay & more.',
+          'band.ctaFree': 'Sign up & subscribe',
+          'band.ctaPro': 'Go to my plans',
+          'watch.title': 'Watchlist',
+          'mb.discover': 'Discover',
+          'mb.brief': 'AI Brief',
+          'mb.pro': 'Pro',
+          'panel.alerts': 'Price Alerts',
+          'alert.quota': 'Free plan — 1 active alert. Upgrade to Pro for unlimited.',
+          'alert.pro': 'Pro — unlimited alerts.',
+          'alert.login': 'Sign in to create price alerts.',
+          'alert.add': 'Add alert',
+          'alert.added': 'Alert added.',
+          'alert.addFail': 'Alert error: ',
+          'alert.limit': 'Free plan allows 1 active alert. Upgrade to Pro for unlimited.',
+          'alert.empty': 'No alerts yet — add one above.',
+          'alert.active': 'Active',
+          'alert.triggered': 'Triggered',
+          'alert.delete': 'Delete',
+          'alert.rearm': 'Re-arm',
+          'alert.check': 'Check my alerts now',
+          'alert.checking': 'Checking…',
+          'alert.noTriggers': 'No alerts triggered in this check.',
+          'alert.triggeredN': '{n} alert(s) triggered.',
+          'alert.checkFail': 'Check failed: ',
+          'alert.events': 'Recent triggers',
+          'alert.eventsEmpty': 'No triggers yet.',
+          'alert.needSymbol': 'Search a symbol first, then add an alert for it.',
+          'alert.needThreshold': 'Enter a threshold price for price alerts.',
+          'alert.on': 'for {s}',
+        },
+        zh: {
+          search: '查询',
+          searchPh: '输入代码，如 AAPL / ^GSPC',
+          popular: '常用',
+          'p.day': '日线', 'p.week': '周线', 'p.month': '月线',
+          'panel.main': 'K线 · MA14/28/57 生命线 · MACD',
+          'panel.brief': 'AI 技术体检点评',
+          'brief.btn': '生成 AI 点评',
+          'brief.upgrade': '升级 Pro',
+          'brief.disclaimer': '内容仅供学习交流，不构成投资建议。行情延迟至少 15 分钟。',
+          'brief.loading': '分析中…',
+          'brief.login': '登录后可生成 AI 点评',
+          'brief.quota': '今日免费点评剩余 {n} 次（共 10 次）',
+          'brief.pro': 'Pro — AI 点评不限次数',
+          'brief.err': '点评暂不可用：',
+          'brief.quotaExceeded': '今日 10 次免费 AI 点评已用完，明日重置。升级 Pro 可无限使用。',
+          'brief.offline': 'AI 点评服务暂时不可用，请稍后再试。',
+          'panel.sub': 'Pro 订阅',
+          'sub.weekT': '周套餐',
+          'sub.weekNote': '灵活体验',
+          'sub.monthT': '月套餐',
+          'sub.monthNote': '最多人选择',
+          'sub.yearT': '年套餐',
+          'sub.yearNote': '超值 · 立省 33%',
+          'sub.popular': '人气推荐',
+          'sub.free': '免费版 — 每天 10 次 AI 点评，自选最多 10 只。',
+          'sub.pro': 'Pro 生效中 — AI 点评不限次，自选最多 50 只。到期时间 {date}。',
+          'sub.checkoutFail': '无法发起支付：',
+          'sub.captureFail': '支付确认待处理。如已完成支付，稍后会自动生效。',
+          'sub.captureOk': '支付确认成功 — Pro 已激活，感谢支持！',
+          'sub.reload': '刷新中…',
+          'sub.trialTitle': '7 天免费 Pro 试用',
+          'sub.trialDesc': '7 天完整 Pro 权限，无需绑定支付方式，每个账号限一次。',
+          'sub.trialBtn': '开始免费试用',
+          'sub.trialActive': '免费试用中 — Pro 有效期至 {date}。',
+          'sub.trialUsed': '免费试用已使用过。',
+          'sub.trialOk': '试用已激活，7 天 Pro 体验开始！',
+          'sub.trialFail': '试用领取失败：',
+          'banner.free': '免费版 · 每天 10 次点评、10 只自选 — 升级解锁更多。',
+          'banner.upgrade': '升级 Pro',
+          'sub.steps': '开通流程：① 选择套餐 → ② 选择支付方式 → ③ 立即生效。',
+          'pay.title': 'AI24X Markets Pro 订阅',
+          'pay.choose': '请选择支付方式',
+          'pay.preparingCheckout': '正在打开支付页…',
+          'pay.wechat': '微信支付',
+          'pay.alipay': '支付宝',
+          'pay.paypal': 'PayPal',
+          'pay.creem': 'Creem',
+          'pay.dodo': '银行卡',
+          'pay.dodoSub': 'Visa · Mastercard · Apple Pay · Google Pay',
+          'pay.others': '其它支付方式',
+          'pay.dodoNote': '银行卡支付由 Dodo Payments 安全收单',
+          'pay.mock': '模拟支付（测试）',
+          'pay.unavailable': '暂未开放',
+          'pay.preparingWechat': '正在生成微信支付二维码…',
+          'pay.wechatHint': '请用微信扫码支付，付完本页自动确认到账。单号：',
+          'pay.opened': '已在新窗口打开支付页，请完成付款。',
+          'pay.blocked': '未弹出新窗口？点下方按钮打开支付页。',
+          'pay.autoConfirm': ' 付完返回本页会自动确认到账。单号：',
+          'pay.openPaypal': '打开 PayPal',
+          'pay.openAlipay': '打开支付宝',
+          'pay.openCreem': '打开 Creem',
+          'pay.openPay': '打开支付页',
+          'pay.checkoutFail': '无法发起支付：',
+          'pay.verifyFail': '支付确认待处理。如已完成支付，稍后会自动生效。',
+          'pay.ok': '支付确认成功 — Pro 已激活，感谢支持！',
+          'pay.back': '← 换一种支付方式',
+          'pay.mockHint': '已创建模拟订单（{otn}），点下方按钮模拟到账（测试模式）。',
+          'pay.mockConfirm': '确认模拟到账',
+          'pay.polling': '等待支付结果…本页可以保留打开。',
+          'pay.unavailableHint': '该支付方式暂未开放，请选择其它方式。',
+          'pay.needLogin': '登录后可开通 Pro 订阅。',
+          shortma: '主图叠加短周期均线（虚线）',
+          footer: '15 分钟延迟行情。内容仅供学习交流与自主决策参考，不构成投资建议。',
+          loading: '加载中…',
+          quoteFail: '行情暂不可用：',
+          loadFail: '加载失败：',
+          notFound: '未找到标的 {s}，请检查代码是否正确。',
+          noData: '该标的暂无数据。可试试 AAPL、NVDA、^GSPC 等美股代码，或直接搜 苹果 / 英伟达 等中文名称。',
+          didYouMean: '你是不是想查',
+          'onboard.title': '欢迎使用 AI24X 行情',
+          'onboard.step1': '输入美股代码，或点下方热门标的，即可查看行情。',
+          'onboard.start': '开始使用',
+          'onboard.skip': '跳过',
+          'menu.title': '菜单',
+          open: '开', high: '高', low: '低', close: '收', prev: '昨收',
+          chg: '涨跌额', chgPct: '涨跌幅', vol: '成交量', vsPrev: '较昨收', vsOpen: '较开盘',
+          amplitude: '振幅', signal: '信号', date: '日期', macd: 'MACD', macdHist: '柱',
+          legendGc: 'MACD ↑金叉', legendDc: '↓死叉',
+          lgBase: '小底 · 关注', lgBottom: '底部 · 低位关注', lgStrong: '金 · 偏强',
+          lgCaution: '险 · 谨慎', lgWeak: '等 · 偏弱', lgHigh: '顶 · 预警',
+          'nav.charts': '图表',
+          'nav.pricing': '价格',
+          'nav.help': '帮助',
+          'nav.home': '首页',
+          'nav.gateway': 'AI Gateway',
+          'nav.console': '账户',
+          backAccount: '返回账户中心',
+          'score.title': '技术健康评分',
+          'score.na': '评分需要 60 天以上数据',
+          'score.viewScreener': '查看今日扫描 →',
+          signIn: '登录',
+          signUp: '注册',
+          signedInAs: '已登录',
+          console: '账户',
+          upgrade: '升级',
+          signOut: '退出',
+          authFail: '会话校验暂不可用',
+          'band.title': '解锁 AI 点评不限次 · 自选 50 只',
+          'band.sub': 'Pro 低至 $9.9/周 · $24.9/月 · $199/年 — PayPal、微信、支付宝等',
+          'band.ctaFree': '注册开通',
+          'band.ctaPro': '去用户中心开通',
+          'watch.title': '自选',
+          'mb.discover': '扫描',
+          'mb.brief': 'AI 点评',
+          'mb.pro': 'Pro',
+          'panel.alerts': '价格提醒',
+          'alert.quota': '免费版 — 1 个生效提醒。升级 Pro 不限数量。',
+          'alert.pro': 'Pro — 提醒不限数量。',
+          'alert.login': '登录后可创建价格提醒。',
+          'alert.add': '添加提醒',
+          'alert.added': '提醒已添加。',
+          'alert.addFail': '提醒创建失败：',
+          'alert.limit': '免费版限 1 个生效提醒。升级 Pro 可无限添加。',
+          'alert.empty': '还没有提醒，先添加一个。',
+          'alert.active': '生效中',
+          'alert.triggered': '已触发',
+          'alert.delete': '删除',
+          'alert.rearm': '重新启用',
+          'alert.check': '立即检查提醒',
+          'alert.checking': '检查中…',
+          'alert.noTriggers': '本次检查无触发。',
+          'alert.triggeredN': '触发 {n} 个提醒。',
+          'alert.checkFail': '检查失败：',
+          'alert.events': '最近触发',
+          'alert.eventsEmpty': '暂无触发记录。',
+          'alert.needSymbol': '请先搜索一个标的，再为其添加提醒。',
+          'alert.needThreshold': '价格类提醒需要填写触发价格。',
+          'alert.on': '标的 {s}',
+        },
+      };
+
+      var MARKER_MAP = {
+        '小底': { en: 'Base', zh: '小底' },
+        '底1': { en: 'Bottom', zh: '底' },
+        '底2': { en: 'Deep', zh: '底2' },
+        '金1': { en: 'S1', zh: '金1' },
+        '金2': { en: 'S2', zh: '金2' },
+        '金3': { en: 'S3', zh: '金3' },
+        '买2': { en: 'Momentum', zh: '转强' },
+        '卖1': { en: 'Distribution', zh: '卖1' },
+        '卖2': { en: 'Fade', zh: '卖2' },
+        '险1·破': { en: 'Ca·brk', zh: '险破' },
+        '险2·破': { en: 'Ca·brk', zh: '险破' },
+        '险1': { en: 'Caution', zh: '谨慎' },
+        '险2': { en: 'Caution', zh: '谨慎' },
+        '破': { en: 'Brk', zh: '破' },
+        '↗': { en: '↗', zh: '↗' },
+        '↘': { en: '↘', zh: '↘' },
+      };
+
+      // 白名单（指数在前，名称跟随当前语言，点击即查）
+      var SAMPLES = [
+        { sym: '^DJI', en: 'Dow Jones', zh: '道琼斯' },
+        { sym: '^IXIC', en: 'Nasdaq Composite', zh: '纳斯达克' },
+        { sym: '^GSPC', en: 'S&P 500', zh: '标普500' },
+        { sym: '^VIX', en: 'VIX', zh: 'VIX' },
+        { sym: 'AAPL', en: 'Apple', zh: '苹果' },
+        { sym: 'NVDA', en: 'NVIDIA', zh: '英伟达' },
+        { sym: 'SPY', en: 'S&P 500 ETF', zh: '标普500 ETF' },
+        { sym: 'QQQ', en: 'Nasdaq 100 ETF', zh: '纳指100 ETF' },
+      ];
+
+      var state = {
+        lang: (function () { try { return localStorage.getItem('markets_lang') || 'en'; } catch (e) { return 'en'; } })(),
+        symbol: (function () { try { return localStorage.getItem('markets_last_symbol') || 'AAPL'; } catch (e) { return 'AAPL'; } })(),
+        period: 'day',
+        last: null,
+        lastQuote: null,
+        mainChart: null, mainSeries: null, maSeries: {}, maShort: {},
+        macdDif: null, macdDea: null, macdBar: null,
+        tooltipHandler: null,
+        maCache: null,
+      };
+
+      function t(k) { return (I18N[state.lang] && I18N[state.lang][k]) || I18N.en[k] || k; }
+      function $(id) { return document.getElementById(id); }
+      function escHtml(s) {
+        if (s == null) return '';
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+      function fmtNum(v, d) {
+        if (v === null || v === undefined || Number.isNaN(v)) return '—';
+        return Number(v).toFixed(d === undefined ? 2 : d);
+      }
+      function fmtVol(v) {
+        if (v === null || v === undefined || Number.isNaN(v)) return '—';
+        if (v >= 1e9) return (v / 1e9).toFixed(2) + 'B';
+        if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M';
+        if (v >= 1e3) return (v / 1e3).toFixed(1) + 'K';
+        return String(Math.round(v));
+      }
+      function sma(closes, n) {
+        var out = [];
+        var sum = 0;
+        for (var i = 0; i < closes.length; i++) {
+          sum += closes[i];
+          if (i >= n) sum -= closes[i - n];
+          out.push(i >= n - 1 ? sum / n : null);
+        }
+        return out;
+      }
+      function markerText(text) {
+        var key = String(text || '').replace(/\u200b/g, '').trim();
+        if (!key) return '';
+        // 组合标签（如 底1·底2 / 卖1·卖2 / 险1·破）逐段翻译，避免英文模式漏中文
+        var keys = Object.keys(MARKER_MAP).sort(function (a, b) { return b.length - a.length; });
+        var parts = key.split('·');
+        var out = [];
+        for (var i = 0; i < parts.length; i++) {
+          var p = parts[i].trim();
+          if (!p) continue;
+          var m = MARKER_MAP[p];
+          if (!m) {
+            for (var j = 0; j < keys.length; j++) {
+              if (p.indexOf(keys[j]) === 0) { m = MARKER_MAP[keys[j]]; break; }
+            }
+          }
+          // 国际版图表标记固定英文（技术标签跨语言通用，避免中文漏出）
+          out.push(m ? m.en : p);
+        }
+        return out.join('·');
+      }
+
+      function disposeCharts() {
+        [state.mainChart].forEach(function (c) { try { if (c) c.remove(); } catch (e) {} });
+        state.mainChart = null;
+        state.mainSeries = state.macdDif = state.macdDea = state.macdBar = null;
+        state.maSeries = {}; state.maShort = {};
+        state.tooltipHandler = null;
+      }
+
+      function createChart(el, height) {
+        installAttributionKiller(el);
+        var opts = {
+          height: height || el.clientHeight || 380,
+          layout: { background: { type: 'solid', color: '#12161d' }, textColor: '#8b949e' },
+          grid: { vertLines: { color: '#1b212c' }, horzLines: { color: '#1b212c' } },
+          timeScale: { borderColor: '#252b36', timeVisible: false },
+          rightPriceScale: { borderColor: '#252b36' },
+          crosshair: { mode: LightweightCharts.CrosshairMode.Normal, vertLine: { labelBackgroundColor: '#252b36' }, horzLine: { labelBackgroundColor: '#252b36' } },
+        };
+        try { opts.autoSize = true; } catch (e) {}
+        try { opts.attributionLogo = false; } catch (e) {}
+        var chart = LightweightCharts.createChart(el, opts);
+        return chart;
+      }
+
+      // 首屏只展示最近几个月（手机约 3 个月/68 根、宽屏约 6 个月/140 根），总量 2 年（500 根）可左右拖动查看
+      function isMobileView() { return (window.innerWidth || 375) <= 640; }
+      function recomputeVisible() {
+        var w = window.innerWidth || 375;
+        var div = isMobileView() ? 5.5 : 9;
+        var cap = isMobileView() ? 90 : 170;
+        return Math.max(isMobileView() ? 55 : 80, Math.min(cap, Math.floor(w / div)));
+      }
+      function mainChartHeight() { return isMobileView() ? 380 : 460; }
+      var VISIBLE_MAIN = recomputeVisible();
+      function showLastN(chart, n) {
+        try { chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, n - VISIBLE_MAIN), to: n + 1 }); }
+        catch (e) { try { chart.timeScale().fitContent(); } catch (e2) {} }
+      }
+
+      // 移除 lightweight-charts 左下角 TradingView 归因链接（站内化，不出现站外链接）
+      function installAttributionKiller(containerEl) {
+        if (!containerEl || containerEl.__tvAttrKillerInstalled) return;
+        containerEl.__tvAttrKillerInstalled = true;
+        function isAttrLink(a) {
+          if (!a || !a.getAttribute) return false;
+          var href = String(a.getAttribute('href') || '');
+          return href.indexOf('tradingview.com') >= 0;
+        }
+        function nukeOnce() {
+          try {
+            var links = containerEl.querySelectorAll('a[href]');
+            for (var i = 0; i < links.length; i++) {
+              var a = links[i];
+              if (!isAttrLink(a)) continue;
+              try {
+                if (a.parentNode) a.parentNode.removeChild(a);
+              } catch (e1) {
+                a.style.display = 'none';
+                a.style.pointerEvents = 'none';
+              }
+            }
+          } catch (e2) {}
+        }
+        nukeOnce();
+        setTimeout(nukeOnce, 0);
+        setTimeout(nukeOnce, 50);
+        setTimeout(nukeOnce, 200);
+        try {
+          var obs = new MutationObserver(function () { nukeOnce(); });
+          obs.observe(containerEl, { childList: true, subtree: true });
+        } catch (e3) {}
+      }
+
+      function buildMacdMarks(data) {
+        var marks = [];
+        (data.macd || []).forEach(function (m) {
+          if (m.golden_cross) marks.push({ time: m.time, position: 'inBar', color: '#ff1744', shape: 'arrowUp' });
+          if (m.dead_cross) marks.push({ time: m.time, position: 'inBar', color: '#00e676', shape: 'arrowDown' });
+        });
+        return marks;
+      }
+
+      function buildSignalMarks(data) {
+        var out = [];
+        (data.markers || []).forEach(function (m) {
+          var txt = markerText(m.text);
+          var item = { time: m.time, position: m.position || 'belowBar', color: m.color || '#38bdf8', shape: m.shape || 'arrowUp' };
+          if (txt) item.text = txt;
+          out.push(item);
+        });
+        return out;
+      }
+
+      function renderMain(data) {
+        var el = $('chart-main');
+        el.innerHTML = '';
+        var chart = createChart(el, mainChartHeight());
+        state.mainChart = chart;
+
+        var candles = data.candles.map(function (c) {
+          return { time: c[0], open: +c[1], close: +c[2], high: +c[3], low: +c[4], volume: +c[5] };
+        });
+        state.mainSeries = chart.addCandlestickSeries({
+          upColor: '#f03a52', downColor: '#00b578', borderVisible: false,
+          wickUpColor: '#f03a52', wickDownColor: '#00b578',
+        });
+        state.mainSeries.setData(candles);
+        try { chart.priceScale('right').applyOptions({ scaleMargins: { top: 0.08, bottom: 0.32 } }); } catch (e) {}
+
+        var closes = candles.map(function (c) { return c.close; });
+        var maDefs = [
+          { n: 14, color: '#ff8000' },
+          { n: 28, color: '#3399ff' },
+          { n: 57, color: '#00c853' },
+        ];
+        state.maCache = {};
+        maDefs.forEach(function (d) {
+          state.maCache[d.n] = sma(closes, d.n);
+          var line = chart.addLineSeries({ color: d.color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+          line.setData(state.maCache[d.n].map(function (v, i) { return { time: candles[i].time, value: v }; }).filter(function (p) { return p.value !== null; }));
+          state.maSeries[d.n] = line;
+        });
+
+        var shortDefs = [
+          { n: 5, color: 'rgba(230, 168, 77, 0.88)' },
+          { n: 10, color: 'rgba(94, 179, 224, 0.88)' },
+          { n: 20, color: 'rgba(125, 216, 122, 0.88)' },
+        ];
+        shortDefs.forEach(function (d) {
+          var line = chart.addLineSeries({ color: d.color, lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+          line.setData(sma(closes, d.n).map(function (v, i) { return { time: candles[i].time, value: v }; }).filter(function (p) { return p.value !== null; }));
+          state.maShort[d.n] = line;
+        });
+
+        var macdOpts = { priceLineVisible: false, lastValueVisible: false, priceScaleId: 'macd' };
+        state.macdDif = chart.addLineSeries(Object.assign({ color: '#e2e8f0', lineWidth: 1 }, macdOpts));
+        state.macdDea = chart.addLineSeries(Object.assign({ color: '#f59e0b', lineWidth: 1 }, macdOpts));
+        state.macdBar = chart.addHistogramSeries(Object.assign({ priceFormat: { type: 'price', precision: 4 } }, macdOpts));
+        try { chart.priceScale('macd').applyOptions({ scaleMargins: { top: 0.72, bottom: 0.03 } }); } catch (e) {}
+
+        var bars = [], difs = [], deas = [];
+        (data.macd || []).forEach(function (d) {
+          var bc = d.bar >= 0 ? '#ef444488' : '#22c55e88';
+          if (d.golden_cross) bc = '#ff1744';
+          if (d.dead_cross) bc = '#00e676';
+          bars.push({ time: d.time, value: d.bar, color: bc });
+          difs.push({ time: d.time, value: d.dif });
+          deas.push({ time: d.time, value: d.dea });
+        });
+        state.macdBar.setData(bars);
+        state.macdDif.setData(difs);
+        state.macdDea.setData(deas);
+        state.macdDif.setMarkers(buildMacdMarks(data));
+
+        state.mainSeries.setMarkers(buildSignalMarks(data));
+        showLastN(chart, candles.length);
+        setupTooltip(chart, state.mainSeries, candles, data);
+        wireShortMa(data);
+      }
+
+      function wireShortMa(data) {
+        var chk = $('chk-short-ma');
+        if (!chk) return;
+        chk.onchange = function () {
+          [5, 10, 20].forEach(function (n) {
+            if (state.maShort[n]) try { state.maShort[n].applyOptions({ visible: chk.checked }); } catch (e) {}
+          });
+        };
+        chk.onchange();
+      }
+
+      function setupTooltip(chart, series, candles, data) {
+        var tooltip = $('chart-tooltip');
+        var wrap = $('chart-main');
+        if (state.tooltipHandler) { try { chart.unsubscribeCrosshairMove(state.tooltipHandler); } catch (e) {} }
+        var byTime = {};
+        candles.forEach(function (c, i) { byTime[c.time] = i; });
+        var macdByTime = {};
+        (data.macd || []).forEach(function (m) { macdByTime[m.time] = m; });
+
+        state.tooltipHandler = function (param) {
+          if (!param.point || param.time === undefined || param.time === null) { tooltip.hidden = true; return; }
+          var bar = param.seriesData.get(series);
+          if (!bar || bar.open === undefined) { tooltip.hidden = true; return; }
+          var idx = byTime[param.time];
+          if (idx === undefined) { tooltip.hidden = true; return; }
+          var prev = idx > 0 ? candles[idx - 1].close : null;
+          var chg = prev != null ? bar.close - prev : null;
+          var vsPrev = prev != null && prev !== 0 ? (chg / prev) * 100 : null;
+          var vsOpen = bar.open !== 0 ? ((bar.close - bar.open) / bar.open) * 100 : null;
+          var amp = prev != null && prev !== 0 ? ((bar.high - bar.low) / prev) * 100 : (bar.open !== 0 ? ((bar.high - bar.low) / bar.open) * 100 : null);
+          var m = macdByTime[param.time] || null;
+          var cls = chg != null && chg >= 0 ? 'up' : 'down';
+          var sign = chg != null && chg >= 0 ? '+' : '';
+          var signP = vsPrev != null && vsPrev >= 0 ? '+' : '';
+          var sigTxt = '';
+          var allMarks = (data.markers || []);
+          for (var i = 0; i < allMarks.length; i++) {
+            if (allMarks[i].time === param.time) { sigTxt = markerText(allMarks[i].text); break; }
+          }
+          var html =
+            '<div class="tt-date">' + escHtml(param.time) + '</div>' +
+            '<div class="tt-row">' + t('open') + ' <span class="tt-num">' + fmtNum(bar.open) + '</span>　' + t('high') + ' <span class="tt-num">' + fmtNum(bar.high) + '</span></div>' +
+            '<div class="tt-row">' + t('low') + ' <span class="tt-num">' + fmtNum(bar.low) + '</span>　' + t('close') + ' <span class="tt-num">' + fmtNum(bar.close) + '</span></div>';
+          if (chg != null && vsPrev != null) {
+            html += '<div class="tt-row">' + t('chg') + ' <span class="tt-num ' + cls + '">' + sign + fmtNum(chg) + '</span>　' + t('chgPct') + ' <span class="tt-num ' + cls + '">' + signP + fmtNum(vsPrev) + '%</span></div>';
+          }
+          if (vsOpen != null) {
+            html += '<div class="tt-row">' + t('vsOpen') + ' <span class="tt-num ' + (vsOpen >= 0 ? 'up' : 'down') + '">' + (vsOpen >= 0 ? '+' : '') + fmtNum(vsOpen) + '%</span></div>';
+          }
+          if (amp != null) html += '<div class="tt-row">' + t('amplitude') + ' <span class="tt-num">' + fmtNum(amp) + '%</span></div>';
+          var volV = candles[idx] ? candles[idx].volume : null;
+          html += '<div class="tt-row">' + t('vol') + ' <span class="tt-num">' + fmtVol(volV) + '</span></div>';
+          [14, 28, 57].forEach(function (n) {
+            var v = state.maCache && state.maCache[n] && state.maCache[n][idx];
+            if (v != null) html += '<div class="tt-row">MA' + n + ' <span class="tt-num">' + fmtNum(v) + '</span></div>';
+          });
+          if (m) {
+            html += '<div class="tt-row">MACD DIF <span class="tt-num">' + fmtNum(m.dif, 3) + '</span>　DEA <span class="tt-num">' + fmtNum(m.dea, 3) + '</span></div>' +
+              '<div class="tt-row">MACD ' + t('macdHist') + ' <span class="tt-num ' + (m.bar >= 0 ? 'up' : 'down') + '">' + fmtNum(m.bar, 3) + '</span></div>';
+          }
+          if (sigTxt) html += '<div class="tt-row">' + t('signal') + ' <span class="tt-num">' + escHtml(sigTxt) + '</span></div>';
+          tooltip.innerHTML = html;
+          tooltip.hidden = false;
+          var cw = wrap.clientWidth, ch = wrap.clientHeight;
+          tooltip.style.visibility = 'hidden'; tooltip.style.left = '0'; tooltip.style.top = '0';
+          var tw = tooltip.offsetWidth, th = tooltip.offsetHeight;
+          tooltip.style.visibility = '';
+          var left = param.point.x + 14;
+          var top = param.point.y - th - 10;
+          if (left + tw > cw) left = param.point.x - tw - 14;
+          if (top < 4) top = param.point.y + 14;
+          tooltip.style.left = left + 'px';
+          tooltip.style.top = top + 'px';
+        };
+        chart.subscribeCrosshairMove(state.tooltipHandler);
+      }
+
+      function renderLegend() {
+        var el = $('signal-legend');
+        if (!el) return;
+        var items = [
+          { color: '#22c55e', label: t('lgBase') },
+          { color: '#38bdf8', label: t('lgBottom') },
+          { color: '#ff3d5c', label: t('lgStrong') },
+          { color: '#ffb300', label: t('lgCaution') },
+          { color: '#00e5ff', label: t('lgWeak') },
+          { color: '#ff1744', label: t('lgHigh') },
+        ];
+        var html = items.map(function (it) {
+          return '<span class="lg-item"><span class="lg-dot" style="background:' + it.color + '"></span>' + escHtml(it.label) + '</span>';
+        }).join('');
+        html += '<span class="lg-item"><span class="lg-arrow" style="color:#ff1744">▲</span>' + escHtml(t('legendGc')) + '</span>';
+        html += '<span class="lg-item"><span class="lg-arrow" style="color:#00e676">▼</span>' + escHtml(t('legendDc')) + '</span>';
+        el.innerHTML = html;
+      }
+
+      function renderQuote(q) {
+        var el = $('quote');
+        if (!q) { el.innerHTML = '<span class="err">' + escHtml(t('quoteFail')) + '</span>'; return; }
+        var cls = (q.pct >= 0) ? 'up' : 'down';
+        var arrow = (q.pct >= 0) ? '▲' : '▼';
+        el.innerHTML =
+          '<span class="name">' + escHtml(q.name || q.symbol) + ' <span class="muted">' + escHtml(q.symbol) + '</span></span>' +
+          '<span class="price ' + cls + '">' + fmtNum(q.price) + ' ' + escHtml(q.currency || '') + '</span>' +
+          '<span class="' + cls + '">' + arrow + ' ' + fmtNum(q.change) + ' (' + fmtNum(q.pct) + '%)</span>' +
+          '<span class="muted">' + t('open') + ' ' + fmtNum(q.open) + ' · ' + t('high') + ' ' + fmtNum(q.high) + ' · ' + t('low') + ' ' + fmtNum(q.low) + '</span>' +
+          '<span class="muted">' + t('prev') + ' ' + fmtNum(q.prev_close) + ' · ' + t('vol') + ' ' + fmtVol(q.volume) + '</span>' +
+          '<span class="muted">' + escHtml(q.time || '') + '</span>';
+      }
+
+      function scoreColor(v) {
+        return v >= 75 ? '#22c55e' : v >= 60 ? '#f59e0b' : v >= 45 ? '#38bdf8' : '#f87171';
+      }
+
+      function renderScore(s) {
+        var el = $('score-strip');
+        if (!el) return;
+        if (!s || !s.ok) { el.hidden = true; return; }
+        var v = Number(s.score) || 0;
+        var color = scoreColor(v);
+        var chips = (s.tags || []).map(function (x) { return '<span class="score-chip">' + escHtml(x) + '</span>'; }).join('');
+        var risks = (s.risks || []).map(function (x) { return '<span class="score-chip score-risk">' + escHtml(x) + '</span>'; }).join('');
+        el.innerHTML =
+          '<span class="score-num" style="color:' + color + '">' + Math.round(v) + '<span style="font-size:12px;color:var(--muted);font-weight:600;">/100</span></span>' +
+          '<div><div class="score-summary">' + escHtml(s.summary || '') + '</div>' +
+          '<div class="score-bar"><i style="width:' + Math.max(4, Math.min(100, Math.round(v))) + '%;background:' + color + '"></i></div></div>' +
+          '<div style="flex:1;min-width:180px;">' + (chips || '<span class="muted">' + escHtml(t('score.na')) + '</span>') + (risks ? '<br>' + risks : '') + '</div>' +
+          '<a href="/screener.html" style="color:var(--accent);font-size:12px;white-space:nowrap;">' + escHtml(t('score.viewScreener')) + '</a>';
+        el.hidden = false;
+      }
+
+      function applyLang() {
+        document.documentElement.lang = (state.lang === 'zh') ? 'zh-CN' : 'en';
+        document.title = (state.lang === 'zh') ? 'AI24X 行情 · 技术指标' : 'AI24X Markets · Technical Indicators';
+        document.querySelectorAll('[data-i18n]').forEach(function (el) { el.textContent = t(el.getAttribute('data-i18n')); });
+        document.querySelectorAll('[data-i18n-html]').forEach(function (el) { el.innerHTML = t(el.getAttribute('data-i18n-html')); });
+        document.querySelectorAll('#lang-switch button').forEach(function (b) {
+          b.classList.toggle('active', b.getAttribute('data-lang') === state.lang);
+        });
+        var si = $('symbol'); if (si) si.placeholder = t('searchPh');
+        renderSamples();
+        renderLegend();
+        if (state.lastQuote) renderQuote(state.lastQuote);
+        if (state.last) rerenderCharts();
+      }
+
+      function renderSamples() {
+        var wrap = $('samples');
+        if (!wrap) return;
+        var hint = wrap.querySelector('.samples-hint');
+        var html = hint ? hint.outerHTML : '';
+        SAMPLES.forEach(function (it) {
+          html += '<button type="button" data-symbol="' + it.sym + '" title="' + it.sym + '">' + escHtml(it[state.lang] || it.en) + '</button>';
+        });
+        wrap.innerHTML = html;
+      }
+
+      function rerenderCharts() {
+        if (!state.last) return;
+        var data = state.last;
+        disposeCharts();
+        $('chart-main').innerHTML = '<div class="loading">' + escHtml(t('loading')) + '</div>';
+        renderMain(data);
+      }
+
+      function load() {
+        $('err').textContent = '';
+        $('quote').innerHTML = '<div class="loading">' + escHtml(t('loading')) + '</div>';
+        var symbol = state.symbol;
+        var p = state.period;
+        renderLegend();
+        Promise.all([
+          fetch('/api/quote?symbol=' + encodeURIComponent(symbol)).then(function (r) { return r.json(); }),
+          fetch('/api/signals?symbol=' + encodeURIComponent(symbol) + '&period=' + p).then(function (r) { return r.json(); }),
+        ]).then(function (res) {
+          var qj = res[0], sj = res[1];
+          if (sj.code === 0 && sj.data && sj.data.candles && sj.data.candles.length) {
+            state.last = sj.data;
+            try { localStorage.setItem('markets_last_symbol', state.symbol); } catch (e) {}
+            disposeCharts();
+            renderMain(sj.data);
+            renderScore(sj.data.score);
+            flashPlan();
+          } else {
+            var _err = new Error((sj && sj.msg) || 'signals failed');
+            _err.suggested = (sj && sj.suggested) || '';
+            throw _err;
+          }
+          if (qj.code === 0 && qj.data) {
+            state.lastQuote = qj.data;
+            renderQuote(qj.data);
+          } else {
+            state.lastQuote = null;
+            renderQuote(null);
+          }
+        }).catch(function (e) {
+          // 搜索失败：清掉旧图与旧报价，避免残留上一标的的 K 线/MACD 造成误读
+          try { disposeCharts(); } catch (e2) {}
+          var cm = $('chart-main');
+          if (cm) cm.innerHTML = '<div class="loading">' + escHtml(t('noData')) + '</div>';
+          try { renderQuote(null); } catch (e3) {}
+          var msg = String(e.message || '');
+          if (/^symbol not found/i.test(msg)) {
+            var sugg = String(e.suggested || '').trim();
+            if (sugg) {
+              $('err').innerHTML = t('notFound').replace('{s}', escHtml(state.symbol)) +
+                ' <span style="color:var(--muted)">' + escHtml(t('didYouMean')) + '</span> ' +
+                '<button type="button" data-suggest="' + escHtml(sugg) + '" style="padding:2px 9px; font-size:12px; background:var(--accent); color:#fff; border:0; border-radius:6px; cursor:pointer;">' + escHtml(sugg) + '</button>';
+              var sb = $('err').querySelector('button[data-suggest]');
+              if (sb) sb.addEventListener('click', function () {
+                state.symbol = sugg;
+                $('symbol').value = sugg;
+                load();
+              });
+            } else {
+              $('err').textContent = t('notFound').replace('{s}', escHtml(state.symbol));
+            }
+          } else {
+            $('err').textContent = t('loadFail') + msg;
+          }
+        });
+      }
+
+      // events
+      $('go').addEventListener('click', function () {
+        var s = $('symbol').value.trim().toUpperCase();
+        if (s && s !== state.symbol) { state.symbol = s; load(); }
+      });
+      $('symbol').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('go').click(); });
+      $('refresh').addEventListener('click', load);
+      document.querySelectorAll('#lang-switch button').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var l = b.getAttribute('data-lang');
+          if (l === state.lang) return;
+          state.lang = l;
+          try { localStorage.setItem('markets_lang', l); } catch (e) {}
+          applyLang();
+        });
+      });
+      document.querySelectorAll('button[data-period]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          document.querySelectorAll('button[data-period]').forEach(function (x) { x.classList.remove('active'); });
+          b.classList.add('active');
+          state.period = b.getAttribute('data-period');
+          load();
+        });
+      });
+      $('samples').addEventListener('click', function (ev) {
+        var b = ev.target && ev.target.closest ? ev.target.closest('button[data-symbol]') : null;
+        if (!b) return;
+        state.symbol = b.getAttribute('data-symbol');
+        $('symbol').value = state.symbol;
+        load();
+      });
+
+      var params = new URLSearchParams(location.search);
+      if (params.get('symbol')) {
+        state.symbol = params.get('symbol').toUpperCase();
+      }
+      $('symbol').value = state.symbol;
+
+      // —— 跨子域登录态：复用核心层账号（www 登录后写 .ai24x.com cookie）——
+      function readCookie(name) {
+        var m = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)'));
+        return m ? decodeURIComponent(m[1]) : '';
+      }
+      function coreUrl() {
+        if (typeof AI24X_WWW_BASE === 'function') return AI24X_WWW_BASE();
+        try {
+          if (localStorage.getItem('ai24x_local_products') === '0') return 'https://www.ai24x.com';
+        } catch (e) {}
+        var h = (location.hostname || '').toLowerCase();
+        return (h === '127.0.0.1' || h === 'localhost') ? 'http://127.0.0.1:8000' : 'https://www.ai24x.com';
+      }
+      // 支付/计费 API 在 api.ai24x.com（www 静态站不反代 /v1/billing）
+      function apiUrl() {
+        if (window.AI24X_CHROME && typeof window.AI24X_CHROME.apiBase === 'function') {
+          return window.AI24X_CHROME.apiBase();
+        }
+        try {
+          if (localStorage.getItem('ai24x_local_products') === '0') return 'https://api.ai24x.com';
+        } catch (e) {}
+        var h = (location.hostname || '').toLowerCase();
+        if (h === '127.0.0.1' || h === 'localhost') return 'http://127.0.0.1:8000';
+        return 'https://api.ai24x.com';
+      }
+      function readUserCookie() {
+        try {
+          return JSON.parse(decodeURIComponent(readCookie('ai24x_auth_user')) || 'null');
+        } catch (e) {
+          return null;
+        }
+      }
+      function renderAuth() {
+        updateSubBand(!!readCookie('ai24x_auth_token'));
+        var areas = [$('auth-area'), $('auth-area-mob')];
+        for (var i = 0; i < areas.length; i++) { if (areas[i]) renderAuthInto(areas[i]); }
+      }
+
+      function renderAuthInto(el) {
+        var token = readCookie('ai24x_auth_token');
+        if (!token) {
+          var n = encodeURIComponent(location.href);
+          el.innerHTML =
+            '<a class="auth-link" href="' + coreUrl() + '/login.html?next=' + n + '">' + t('signIn') + '</a>' +
+            '<a class="auth-link" href="' + coreUrl() + '/register.html?next=' + n + '">' + t('signUp') + '</a>' +
+            '<span class="social-login" style="display:inline-flex; gap:6px; margin-left:6px;"></span>';
+          fetch(apiUrl() + '/v1/auth/providers')
+            .then(function (r) { return r.json(); })
+            .then(function (j) {
+              var sp = el.querySelector('.social-login'); if (!sp) return;
+              var gSvg = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="vertical-align:-2px;margin-right:4px;"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75z"/></svg>';
+              var aSvg = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="vertical-align:-2px;margin-right:4px;"><path fill="currentColor" d="M16.365 1.43c0 1.14-.42 2.2-1.25 3.17-.99 1.16-2.31 1.83-3.61 1.72-.08-1.1.42-2.26 1.19-3.17 1-.96 2.42-1.61 3.67-1.72zm2.35 16.04c-.59 1.35-.88 1.95-1.64 3.15-1.06 1.67-2.56 3.75-4.42 3.76-1.65.02-2.09-1.08-4.34-1.07-2.25.02-2.73 1.09-4.39 1.07-1.85-.02-3.28-1.91-4.34-3.58C-1.16 18.55-1.9 13.3.73 9.88c1.24-1.62 3.21-2.65 5.06-2.65 1.87 0 3.05 1.07 4.59 1.07 1.51 0 2.43-1.07 4.57-1.07 1.66 0 3.42.9 4.66 2.44-4.1 2.22-3.44 8.01.83 9.8z"/></svg>';
+              var h = '';
+              if (j && j.google) h += '<a class="auth-link" href="' + apiUrl() + '/v1/auth/google/login?next=' + n + '" title="Continue with Google" style="display:inline-flex;align-items:center;">' + gSvg + '<span>Google</span></a>';
+              if (j && j.apple) h += '<a class="auth-link" href="' + apiUrl() + '/v1/auth/apple/login?next=' + n + '" title="Continue with Apple" style="display:inline-flex;align-items:center;">' + aSvg + '<span>Apple</span></a>';
+              sp.innerHTML = h;
+            }).catch(function () {});
+          return;
+        }
+        var u0 = readUserCookie();
+        el.innerHTML =
+          '<span class="auth-user">' + t('signedInAs') + ' ' +
+          (u0 && (u0.email || u0.username) ? escHtml(u0.email || u0.username) : '…') + '</span>' +
+          '<a class="auth-link" href="' + coreUrl() + '/console.html">' + t('console') + '</a>' +
+          '<a class="auth-link auth-upgrade" href="#sub" style="display:none;color:var(--accent);font-weight:700;">' + t('upgrade') + '</a>' +
+          '<button type="button" class="auth-btn btn-signout">' + t('signOut') + '</button>';
+        fetch('/api/me', { headers: { Authorization: 'Bearer ' + token } })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            var users = el.querySelectorAll('.auth-user');
+            if (!users.length) return;
+            if (j.code === 0 && j.data && (j.data.email || j.data.username)) {
+              for (var i = 0; i < users.length; i++) users[i].textContent = t('signedInAs') + ' ' + escHtml(j.data.email || j.data.username || j.data.user_id);
+            } else if (!u0 || !(u0.email || u0.username)) {
+              for (var i = 0; i < users.length; i++) users[i].textContent = t('signedInAs') + ' ✓';
+            }
+          })
+          .catch(function () {});
+        var out = el.querySelector('.btn-signout');
+        if (out) out.addEventListener('click', function () {
+          if (window.AI24X_CHROME && typeof window.AI24X_CHROME.clearAuthSession === 'function') {
+            window.AI24X_CHROME.clearAuthSession();
+          } else {
+            var d = (location.hostname === 'ai24x.com' || /\.ai24x\.com$/i.test(location.hostname)) ? '; domain=.ai24x.com' : '';
+            var secure = location.protocol === 'https:' ? '; Secure' : '';
+            document.cookie = 'ai24x_auth_token=; path=/; max-age=0; SameSite=Lax' + d + secure;
+            document.cookie = 'ai24x_auth_user=; path=/; max-age=0; SameSite=Lax' + d + secure;
+          }
+          renderAuth();
+        });
+      }
+
+      /* 底部订阅引导：未登录 → 注册开通；已登录 → 用户中心套餐页 */
+      function updateSubBand(loggedIn) {
+        var cta = $('band-cta');
+        if (!cta) return;
+        if (loggedIn) {
+          cta.href = coreUrl() + '/console.html#billing';
+          cta.setAttribute('data-i18n', 'band.ctaPro');
+        } else {
+          cta.href = coreUrl() + '/register.html?next=' + encodeURIComponent(location.href);
+          cta.setAttribute('data-i18n', 'band.ctaFree');
+        }
+        cta.textContent = t(cta.getAttribute('data-i18n'));
+      }
+      renderAuth();
+      // 统一页眉：Console 指向 www 用户中心
+      try {
+        var mkc = $('mk-console');
+        if (mkc) mkc.href = coreUrl() + '/console.html?from=markets';
+      } catch (e) {}
+      try {
+        var mkcm = $('mk-console-mob');
+        if (mkcm) mkcm.href = coreUrl() + '/console.html?from=markets';
+      } catch (e) {}
+
+      // 跨站回跳条：从 www 账户中心跳过来时显示「返回账户」入口
+      function mountBackBar() {
+        var bar = $('mk-back-bar');
+        if (!bar) return;
+        var from = '';
+        try { from = String(new URLSearchParams(location.search).get('from') || '').toLowerCase(); } catch (e) {}
+        if (from !== 'account') return;
+        bar.hidden = false;
+        bar.innerHTML = '<a href="' + coreUrl() + '/console.html?from=markets" style="display:inline-flex;align-items:center;gap:6px;font-size:.85rem;font-weight:600;color:var(--accent,#3b82f6);text-decoration:none;">\u2190 ' + t('backAccount') + '</a>';
+      }
+      try { mountBackBar(); } catch (e) {}
+
+      // 手机端汉堡菜单
+      function initMobileMenu() {
+        var btn = $('mk-menu-btn'), drawer = $('mk-drawer'), mask = $('mk-drawer-mask'), close = $('mk-drawer-close');
+        if (!btn || !drawer) return;
+        function openMenu() { drawer.hidden = false; btn.setAttribute('aria-expanded', 'true'); document.body.style.overflow = 'hidden'; }
+        function closeMenu() { drawer.hidden = true; btn.setAttribute('aria-expanded', 'false'); document.body.style.overflow = ''; }
+        btn.addEventListener('click', openMenu);
+        if (close) close.addEventListener('click', closeMenu);
+        if (mask) mask.addEventListener('click', closeMenu);
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeMenu(); });
+        drawer.addEventListener('click', function (e) { if (e.target && e.target.closest && e.target.closest('a')) closeMenu(); });
+      }
+      initMobileMenu();
+      // —— AI 点评 + Pro 订阅（T6）——
+      function getToken() { return readCookie('ai24x_auth_token'); }
+      function loginNext() {
+        try { localStorage.setItem('markets_pending_login', '1'); } catch (e) {}
+        location.href = coreUrl() + '/login.html?next=' + encodeURIComponent(location.href);
+      }
+
+      var subState = { pro: false, expiresAt: null, briefRemaining: -1, trial: { granted: false, used: false, active: false } };
+
+      function fmtDate(s) {
+        if (!s) return '—';
+        var d = new Date(s);
+        if (isNaN(d.getTime())) return s;
+        try { return d.toLocaleDateString(); } catch (e) { return s; }
+      }
+
+      function renderSub() {
+        var el = $('sub-status'); if (!el) return;
+        var token = getToken();
+        if (!token) { el.textContent = t('sub.free'); } else if (subState.trial.active) {
+          el.textContent = t('sub.trialActive').replace('{date}', fmtDate(subState.expiresAt));
+        } else if (subState.pro) {
+          el.textContent = t('sub.pro').replace('{date}', fmtDate(subState.expiresAt));
+        } else { el.textContent = t('sub.free'); }
+        // 7 天试用卡：已登录 + 免费 显示；已用过则禁用提示
+        var tb = $('trial-box');
+        var bTrial = $('btn-trial');
+        var tm = $('trial-msg');
+        if (tb) {
+          if (token && !subState.pro) {
+            tb.style.display = 'block';
+            if (subState.trial.used) {
+              if (bTrial) { bTrial.disabled = true; }
+              if (tm) tm.textContent = t('sub.trialUsed');
+            } else {
+              if (bTrial) { bTrial.disabled = false; }
+              if (tm) tm.textContent = '';
+            }
+          } else {
+            tb.style.display = 'none';
+          }
+        }
+        var pb = $('pro-badge'); if (pb) pb.style.display = (token && subState.pro) ? 'inline-block' : 'none';
+        var pn = $('pro-next'); if (pn) pn.style.display = (token && subState.pro) ? 'flex' : 'none';
+        var pl = $('brief-pro-link'); if (pl) pl.style.display = (token && !subState.pro) ? 'inline' : 'none';
+        var aus = document.querySelectorAll('.auth-upgrade');
+        for (var ai = 0; ai < aus.length; ai++) aus[ai].style.display = (token && !subState.pro) ? 'inline' : 'none';
+        var mbPro = $('mb-pro'); if (mbPro) mbPro.style.display = (token && subState.pro) ? 'none' : '';
+        var q = $('brief-quota');
+        if (q) {
+          if (!token) q.textContent = t('brief.login');
+          else if (subState.pro) q.textContent = t('brief.pro');
+          else q.textContent = t('brief.quota').replace('{n}', String(subState.briefRemaining >= 0 ? subState.briefRemaining : '—'));
+        }
+        // 免费用户升级引导条：已登录 + 免费 + 本次会话未手动关闭
+        var fb = $('free-banner');
+        if (fb) {
+          var dismissed = false;
+          try { dismissed = sessionStorage.getItem('markets_free_banner_closed') === '1'; } catch (e) {}
+          var fbText = $('fb-text');
+          if (token && !subState.pro && !dismissed) {
+            if (fbText) fbText.textContent = t('banner.free');
+            fb.classList.add('show');
+          } else {
+            fb.classList.remove('show');
+          }
+        }
+      }
+
+      function checkSub() {
+        var token = getToken();
+        if (!token) { subState.pro = false; subState.expiresAt = null; subState.briefRemaining = -1; renderSub(); return; }
+        fetch('/api/subscribe/status', { headers: { Authorization: 'Bearer ' + token } })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            if (j.code === 0 && j.data) {
+              subState.pro = !!j.data.pro;
+              subState.expiresAt = j.data.expires_at || null;
+              subState.briefRemaining = (typeof j.data.brief_remaining === 'number') ? j.data.brief_remaining : -1;
+              subState.trial = j.data.trial || { granted: false, used: false, active: false };
+            }
+            renderSub();
+          })
+          .catch(function () { renderSub(); });
+      }
+
+      function showBriefMsg(html) { var o = $('brief-out'); if (o) o.innerHTML = html; }
+
+      function doBrief() {
+        var token = getToken();
+        if (!token) { loginNext(); return; }
+        var o = $('brief-out'); if (o) o.textContent = t('brief.loading');
+        fetch('/api/ai/brief', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ symbol: state.symbol, period: state.period })
+        })
+          .then(function (r) { return r.json().then(function (j) { return { status: r.status, j: j }; }); })
+          .then(function (res) {
+            var j = res.j || {};
+            if (res.status === 401) { loginNext(); return; }
+            if (res.status === 403 && j.msg === 'quota_exceeded') {
+              showBriefMsg('<span style="color:var(--up);">' + escHtml(t('brief.quotaExceeded')) + '</span>');
+              var pl = $('brief-pro-link'); if (pl) pl.style.display = 'inline';
+              toast(t('brief.quotaExceeded'));
+              return;
+            }
+            if (res.status !== 200 || j.code !== 0 || !j.data || !j.data.brief) {
+              showBriefMsg('<span style="color:var(--up);">' + escHtml(t('brief.err')) + escHtml((j.msg || res.status)) + '</span>');
+              return;
+            }
+            var bs = $('brief-score');
+            if (bs) {
+              var sc = j.data.score;
+              if (sc && sc.ok) {
+                var bc = scoreColor(Number(sc.score) || 0);
+                bs.innerHTML = '<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;">' +
+                  '<span style="font-size:22px;font-weight:800;color:' + bc + ';">' + Math.round(Number(sc.score) || 0) + '<span style="font-size:11px;color:var(--muted);">/100</span></span>' +
+                  '<div><div style="font-weight:600;">' + escHtml(sc.summary || '') + '</div>' +
+                  '<div style="color:var(--muted);font-size:11px;">' + escHtml(t('score.title')) + '</div></div></div>';
+              } else {
+                bs.innerHTML = '';
+              }
+            }
+            showBriefMsg(escHtml(j.data.brief));
+            if (typeof j.data.remaining_today === 'number' && j.data.remaining_today >= 0) {
+              subState.briefRemaining = j.data.remaining_today;
+              var q = $('brief-quota');
+              if (q && !subState.pro) q.textContent = t('brief.quota').replace('{n}', String(j.data.remaining_today));
+            }
+          })
+          .catch(function (e) { showBriefMsg('<span style="color:var(--up);">' + escHtml(t('brief.err')) + escHtml(String(e)) + '</span>'); });
+      }
+
+      function doCapture(orderId) {
+        var token = getToken();
+        if (!token) return;
+        var m = $('sub-msg'); if (m) m.textContent = t('sub.reload');
+        fetch('/api/subscribe/capture', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order_id: orderId })
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            var m2 = $('sub-msg');
+            if (j.code === 0 && j.data && j.data.status === 'activated') {
+              if (m2) m2.textContent = t('sub.captureOk');
+              checkSub();
+              toast('Pro activated! Generate an AI Brief or star this symbol to your watchlist.');
+              var pn2 = $('pro-next'); if (pn2) pn2.style.display = 'flex';
+            } else if (j.code === 0 && j.data && j.data.status === 'not_completed') {
+              if (m2) m2.textContent = t('sub.captureFail');
+            } else {
+              if (m2) m2.textContent = t('sub.captureFail') + ' ' + (j.msg || '');
+            }
+          })
+          .catch(function () { var m2 = $('sub-msg'); if (m2) m2.textContent = t('sub.captureFail'); });
+      }
+
+      // —— 统一支付中台（Markets Pro · Card / PayPal / 更多） ——
+      var payHub = { plan: null, session: 0, pollTimer: null, payStatus: null, checkoutWin: null };
+
+      function payHubIco(channel) {
+        if (channel === 'wechat') {
+          return '<svg class="payhub-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="#07C160" d="M9.5 4C5.9 4 3 6.5 3 9.6c0 1.8 1 3.3 2.6 4.4L5 16.2l2.4-1.2c.7.2 1.4.3 2.1.3.2 0 .4 0 .6 0-.2-.5-.3-1-.3-1.6 0-3.2 3.1-5.8 6.9-5.8.2 0 .4 0 .6.1C16.4 5.3 13.2 4 9.5 4zm-2.3 3.1c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zm4.6 0c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zM16.8 9c-3.1 0-5.6 2.1-5.6 4.7s2.5 4.7 5.6 4.7c.6 0 1.2-.1 1.8-.3l1.9.9-.5-1.7c1.2-.9 2-2.2 2-3.6C21.9 11.1 19.5 9 16.8 9zm-1.9 3.1c.3 0 .6.3.6.6s-.3.6-.6.6-.6-.3-.6-.6.3-.6.6-.6zm3.8 0c.3 0 .6.3.6.6s-.3.6-.6.6-.6-.3-.6-.6.3-.6.6-.6z"/></svg>';
+        }
+        if (channel === 'alipay') {
+          return '<svg class="payhub-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="#1677FF" d="M19.695 15.07c3.426 1.158 4.203 1.22 4.203 1.22V3.846c0-2.124-1.705-3.845-3.81-3.845H3.914C1.808.001.102 1.722.102 3.846v16.31c0 2.123 1.706 3.845 3.813 3.845h16.173c2.105 0 3.81-1.722 3.81-3.845v-.157s-6.19-2.602-9.315-4.119c-2.096 2.602-4.8 4.181-7.607 4.181-4.75 0-6.361-4.19-4.112-6.949.49-.602 1.324-1.175 2.617-1.497 2.025-.502 5.247.313 8.266 1.317a16.796 16.796 0 0 0 1.341-3.302H5.781v-.952h4.799V6.975H4.77v-.953h5.81V3.591s0-.409.411-.409h2.347v2.84h5.744v.951h-5.744v1.704h4.69a19.453 19.453 0 0 1-1.986 5.06c1.424.52 2.702 1.011 3.654 1.333m-13.81-2.032c-.596.06-1.71.325-2.321.869-1.83 1.608-.735 4.55 2.968 4.55 2.151 0 4.301-1.388 5.99-3.61-2.403-1.182-4.438-2.028-6.637-1.809"/></svg>';
+        }
+        if (channel === 'creem') {
+          return '<svg class="payhub-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="#7C3AED" d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm0 2v10h16V7H4zm2 2h4v2H6V9zm6 0h6v2h-6V9z"/></svg>';
+        }
+        if (channel === 'dodo') {
+          return '<svg class="payhub-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><line x1="2.5" y1="9.8" x2="21.5" y2="9.8" stroke="currentColor" stroke-width="1.8"/><line x1="6" y1="14.2" x2="10.2" y2="14.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="12.6" y1="14.2" x2="16.2" y2="14.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+        }
+        if (channel === 'paypal') {
+          return '<svg class="payhub-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="#003087" d="M7.2 20.5h1.7l.5-3.1h1.7c3.3 0 5.5-1.4 6.1-4.3.1-.5.1-.9.1-1.2 0-.2 0-.4-.1-.6H19l.1-.5c.4-2.5-.9-4.2-3.8-4.2H9.2L7.2 20.5zm4.2-11.5h1.7c1.3 0 2 .5 1.8 1.7-.2 1.4-1.2 1.7-2.5 1.7h-1.5l.5-3.4z"/><path fill="#009CDE" d="M9.5 21.5h1.7l.4-2.5H13c2.7 0 4.4-1.1 4.9-3.5.1-.4.1-.7.1-1 0-.1 0-.3 0-.4h1.5l.1-.4c.3-2-.7-3.4-3.1-3.4h-4.3l-1.9 11.2h1.7l.5 3.1h1.4c1.1 0 1.7.4 1.5 1.4-.2 1.1-1 1.4-2.1 1.4H10l.5 3.3z"/></svg>';
+        }
+        return '';
+      }
+
+      function hubFetch(path, body) {
+        var token = getToken();
+        var headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        return fetch(apiUrl() + path, { method: 'POST', headers: headers, body: JSON.stringify(body || {}) })
+          .then(function (r) {
+            return r.json().then(function (j) { return { status: r.status, j: j }; });
+          })
+          .then(function (res) {
+            if (res.status === 401) { loginNext(); throw new Error('unauthorized'); }
+            if (res.status >= 400) {
+              var d = (res.j && (res.j.detail || res.j.msg)) || res.status;
+              throw new Error(String(d));
+            }
+            return res.j;
+          });
+      }
+
+      function showSubMsg(html) { var m = $('sub-msg'); if (m) m.innerHTML = html; }
+
+      function closePayHub() {
+        payHub.session += 1;
+        if (payHub.pollTimer) { clearInterval(payHub.pollTimer); payHub.pollTimer = null; }
+        if (payHub.checkoutWin) { try { if (!payHub.checkoutWin.closed) payHub.checkoutWin.close(); } catch (e) {} payHub.checkoutWin = null; }
+        var el = $('payhub'); if (el) el.hidden = true;
+      }
+
+      function renderPayChannels(pay) {
+        var box = $('payhub-channels'); if (!box) return;
+        box.innerHTML = '';
+        var ready = {};
+        if (pay && pay.token_pay_enabled === true) {
+          ready.wechat = !!(pay.wechat && pay.wechat.ui_ready);
+          ready.alipay = !!(pay.alipay && pay.alipay.ui_ready);
+          ready.paypal = !!(pay.paypal && pay.paypal.ui_ready);
+          ready.dodo = !!(pay.dodo && pay.dodo.ui_ready);
+        } else {
+          // 状态探测失败时只给确定接入的通道（Creem 已下线，不提供入口）
+          ready.wechat = ready.alipay = ready.paypal = ready.dodo = true;
+        }
+        var mockAllowed = !!(pay && pay.token_pay_enabled === false && pay.token_pay_mock_enabled);
+        var primary = [];
+        if (ready.dodo) primary.push('dodo');
+        if (ready.paypal) primary.push('paypal');
+        var more = [];
+        if (ready.wechat) more.push('wechat');
+        if (ready.alipay) more.push('alipay');
+        if (mockAllowed) more.push('mock');
+        function makeBtn(ch, block) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'payhub-btn' + (block ? ' payhub-btn-block' : '');
+          var sub = ch === 'dodo' ? t('pay.dodoSub') : '';
+          if (sub) {
+            b.innerHTML =
+              '<span class="payhub-btn-text">' +
+              '<span class="payhub-btn-title-row">' + payHubIco(ch) + '<span>' + escHtml(t('pay.' + ch)) + '</span></span>' +
+              '<small class="payhub-btn-sub">' + escHtml(sub) + '</small></span>';
+          } else {
+            b.innerHTML = payHubIco(ch) + '<span>' + escHtml(t('pay.' + ch)) + '</span>';
+          }
+          b.setAttribute('data-pay-channel', ch);
+          b.addEventListener('click', function () { startPayCheckout(payHub.plan, ch); });
+          return b;
+        }
+        if (!primary.length && !more.length) {
+          box.innerHTML = '<div style="grid-column:1/-1;color:var(--muted);font-size:12px;">' + escHtml(t('pay.unavailableHint')) + '</div>';
+          return;
+        }
+        primary.forEach(function (ch) { box.appendChild(makeBtn(ch, true)); });
+        if (more.length) {
+          var label = document.createElement('div');
+          label.className = 'payhub-more-label';
+          label.textContent = t('pay.others');
+          box.appendChild(label);
+          more.forEach(function (ch) { box.appendChild(makeBtn(ch, false)); });
+        }
+        var note = document.createElement('div');
+        note.className = 'payhub-note';
+        note.textContent = t('pay.dodoNote');
+        box.appendChild(note);
+      }
+
+      function openPayHub(plan) {
+        var token = getToken();
+        if (!token) { loginNext(); return; }
+        payHub.session += 1;
+        payHub.plan = plan;
+        var el = $('payhub'); if (!el) return;
+        $('payhub-title').textContent = t('pay.title');
+        var planKey = plan === 'weekly' ? 'week' : plan === 'monthly' ? 'month' : 'year';
+        $('payhub-sub').textContent = t('sub.' + planKey + 'T');
+        var box = $('payhub-channels'); box.hidden = false;
+        var res = $('payhub-result'); res.hidden = true;
+        var backBtn = $('payhub-back'); if (backBtn) backBtn.hidden = true;
+        el.hidden = false;
+        if (payHub.payStatus) { renderPayChannels(payHub.payStatus); }
+        else {
+          box.innerHTML = '<div style="grid-column:1/-1;color:var(--muted);font-size:12px;">' + escHtml(t('loading')) + '</div>';
+          fetch(apiUrl() + '/v1/billing/pay/status')
+            .then(function (r) { return r.json(); })
+            .then(function (j) { payHub.payStatus = j || null; if (!el.hidden) renderPayChannels(j || null); })
+            .catch(function () { if (!el.hidden) renderPayChannels(null); });
+        }
+      }
+
+      // 2026-08-22：订阅面板价格/启用状态跟随管理台（/api/subscribe/plans），失败时保留静态兜底
+      function applySubPlans(plans) {
+        var map = {};
+        (plans || []).forEach(function (p) { if (p && p.plan) map[p.plan] = p; });
+        var ids = { weekly: 'btn-sub-week', monthly: 'btn-sub-month', yearly: 'btn-sub-year' };
+        Object.keys(ids).forEach(function (pid) {
+          var btn = $(ids[pid]);
+          if (!btn) return;
+          var meta = map[pid];
+          if (!meta || meta.enabled === false) { btn.style.display = 'none'; return; }
+          btn.style.display = '';
+          var priceEl = btn.querySelector('.plan-price');
+          if (priceEl && meta.usd != null) {
+            var unitEl = priceEl.querySelector('.plan-unit');
+            var unitHtml = unitEl ? unitEl.outerHTML : '';
+            priceEl.innerHTML = '$' + String(Number(meta.usd)) + unitHtml;
+          }
+        });
+      }
+      fetch('/api/subscribe/plans')
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j && j.code === 0 && j.data && j.data.plans) applySubPlans(j.data.plans);
+        })
+        .catch(function () {});
+
+      function startPayCheckout(plan, channel) {
+        var token = getToken();
+        if (!token) { loginNext(); return; }
+        var session = ++payHub.session;
+        var box = $('payhub-channels'); if (box) box.hidden = true;
+        var res = $('payhub-result'); if (res) res.hidden = false;
+        var hint = $('payhub-hint');
+        var qr = $('payhub-qr');
+        var openLink = $('payhub-open');
+        var backBtn = $('payhub-back');
+        if (hint) { hint.className = 'payhub-hint'; hint.textContent = channel === 'wechat' ? t('pay.preparingWechat') : t('pay.preparingCheckout'); }
+        if (qr) qr.hidden = true;
+        if (openLink) openLink.hidden = true;
+        if (backBtn) { backBtn.hidden = false; backBtn.textContent = t('pay.back'); backBtn.onclick = function () { openPayHub(plan); }; }
+
+        // 移动端（iOS Safari / 华为等 Android 浏览器）对「空白窗 + 异步导航」支持差，
+        // 会卡死在 preparingCheckout：改走本页跳转，支付完成由 ?pay=done&dodo=1 回跳自动确认。
+        var mobileCheckout = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '') ||
+          (window.matchMedia && window.matchMedia('(max-width: 820px)').matches &&
+            ('ontouchstart' in window || (navigator.maxTouchPoints || 0) > 0));
+        var checkoutWin = null;
+        if (!mobileCheckout && (channel === 'alipay' || channel === 'paypal' || channel === 'creem' || channel === 'dodo')) {
+          try {
+            checkoutWin = window.open('about:blank', '_blank');
+            if (checkoutWin) {
+              try { checkoutWin.document.write('<!doctype html><title>Checkout</title><p style="font:14px/1.5 system-ui,sans-serif;padding:24px;color:#334">' + t('pay.preparingCheckout') + '</p>'); } catch (e) {}
+            }
+          } catch (e) { checkoutWin = null; }
+        }
+        payHub.checkoutWin = checkoutWin;
+
+        var path = channel === 'wechat' ? '/v1/billing/wechat/native'
+          : channel === 'alipay' ? '/v1/billing/alipay/wap'
+          : channel === 'paypal' ? '/v1/billing/paypal/order'
+          : channel === 'creem' ? '/v1/billing/creem/order'
+          : channel === 'dodo' ? '/v1/billing/dodo/order'
+          : '/v1/billing/wechat/native';
+        hubFetch(path, { plan: plan, product: 'markets' })
+          .then(function (r) {
+            if (session !== payHub.session) { if (checkoutWin) { try { if (!checkoutWin.closed) checkoutWin.close(); } catch (e) {} } return; }
+            if (payHub.checkoutWin === checkoutWin) payHub.checkoutWin = null;
+            if (r && r.mock) {
+              if (checkoutWin) { try { if (!checkoutWin.closed) checkoutWin.close(); } catch (e) {} }
+              if (hint) { hint.className = 'payhub-hint'; hint.textContent = t('pay.mockHint').replace('{otn}', r.out_trade_no || ''); }
+              if (backBtn) { backBtn.textContent = t('pay.mockConfirm'); backBtn.onclick = function () { mockConfirmFulfill(r.out_trade_no); }; }
+              return;
+            }
+            if (channel === 'wechat' && r && r.code_url) {
+              if (hint) { hint.className = 'payhub-hint'; hint.textContent = t('pay.wechatHint') + (r.out_trade_no || ''); }
+              if (qr) { qr.src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(r.code_url); qr.hidden = false; }
+              startFulfillPoll(r.out_trade_no, 'wechat');
+              return;
+            }
+            if ((channel === 'alipay' || channel === 'paypal' || channel === 'creem' || channel === 'dodo') && r && r.pay_url) {
+              if (mobileCheckout) {
+                try { window.location.href = r.pay_url; } catch (e) {}
+                return;
+              }
+              var opened = false;
+              if (checkoutWin && !checkoutWin.closed) {
+                try { checkoutWin.location.href = r.pay_url; opened = true; } catch (e) {}
+              }
+              if (!opened) { try { var w = window.open(r.pay_url, '_blank'); opened = !!w; } catch (e) {} }
+              var label = channel === 'alipay' ? t('pay.openAlipay') : channel === 'paypal' ? t('pay.openPaypal') : channel === 'creem' ? t('pay.openCreem') : t('pay.openPay');
+              if (hint) { hint.className = 'payhub-hint'; hint.textContent = (opened ? t('pay.opened') : t('pay.blocked')) + t('pay.autoConfirm') + (r.out_trade_no || '') + (r.amount_usd ? ' · $' + r.amount_usd : ''); }
+              if (openLink) { openLink.href = r.pay_url; openLink.textContent = label; openLink.hidden = false; }
+              startFulfillPoll(r.out_trade_no, channel);
+              return;
+            }
+            if (hint) { hint.className = 'payhub-hint err'; hint.textContent = t('pay.checkoutFail') + ((r && (r.detail || r.msg)) || 'unknown'); }
+          })
+          .catch(function (e) {
+            if (session !== payHub.session) return;
+            if (checkoutWin) { try { if (!checkoutWin.closed) checkoutWin.close(); } catch (err) {} }
+            if (hint) { hint.className = 'payhub-hint err'; hint.textContent = t('pay.checkoutFail') + String((e && e.message) || e); }
+          });
+      }
+
+      function mockConfirmFulfill(outTradeNo) {
+        var hint = $('payhub-hint');
+        hubFetch('/v1/billing/orders/mock_fulfill', { out_trade_no: outTradeNo })
+          .then(function () {
+            closePayHub();
+            showSubMsg(t('pay.ok'));
+            checkSub();
+            toast(t('pay.ok'));
+          })
+          .catch(function (e) {
+            if (hint) { hint.className = 'payhub-hint err'; hint.textContent = String((e && e.message) || e); }
+          });
+      }
+
+      function startFulfillPoll(outTradeNo, channel) {
+        if (payHub.pollTimer) { clearInterval(payHub.pollTimer); payHub.pollTimer = null; }
+        var session = payHub.session;
+        var tries = 0, maxTries = 40; // ~2 分钟（每 3 秒）
+        payHub.pollTimer = setInterval(function () {
+          tries += 1;
+          if (tries > maxTries || session !== payHub.session) { clearInterval(payHub.pollTimer); payHub.pollTimer = null; return; }
+          var path = channel === 'alipay' ? '/v1/billing/alipay/query_and_fulfill'
+            : channel === 'paypal' ? '/v1/billing/paypal/query_and_fulfill'
+            : channel === 'creem' ? '/v1/billing/creem/query'
+            : channel === 'dodo' ? '/v1/billing/dodo/query'
+            : '/v1/billing/wechat/query_and_fulfill';
+          hubFetch(path, { out_trade_no: outTradeNo })
+            .then(function (j) {
+              if (session !== payHub.session) return;
+              if (j && j.ok) {
+                clearInterval(payHub.pollTimer); payHub.pollTimer = null;
+                closePayHub();
+                showSubMsg(t('pay.ok'));
+                checkSub();
+                toast(t('pay.ok'));
+              }
+            })
+            .catch(function () { /* 未支付成功时接口可能 4xx，继续轮询 */ });
+        }, 3000);
+      }
+
+      // —— 2026-08-16 周复盘自主迭代：toast / onboarding / watchlist / 登录回跳 / AI 首屏入口 ——
+      function toast(msg) {
+        var t = document.createElement('div');
+        t.className = 'toast'; t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(function () { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; }, 2600);
+        setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 3000);
+      }
+      function maybeOnboard() {
+        var el = $('onboard'); if (!el) return;
+        var done = false; try { done = !!localStorage.getItem('markets_onboard_v1'); } catch (e) {}
+        if (done) return;
+        // 深链直达订阅面板时跳过引导浮层，避免遮挡升级入口
+        try { if (location.hash === '#sub') { localStorage.setItem('markets_onboard_v1', '1'); return; } } catch (e) {}
+        el.hidden = false;
+        function finish() { el.hidden = true; try { localStorage.setItem('markets_onboard_v1', '1'); } catch (e) {} }
+        var b1 = $('onboard-start'); if (b1) b1.addEventListener('click', finish);
+        var b2 = $('onboard-skip'); if (b2) b2.addEventListener('click', finish);
+      }
+      var FREE_WATCH_LIMIT = 10;
+      var watchState = { list: [], limit: FREE_WATCH_LIMIT };
+      function renderWatchList() {
+        var c = $('watch-chips'); if (!c) return; c.innerHTML = '';
+        watchState.list.forEach(function (s) {
+          var b = document.createElement('button');
+          b.type = 'button'; b.textContent = s;
+          b.style.cssText = 'padding:3px 10px; font-size:12px; border-radius:999px; border:1px solid var(--border); background:var(--panel2); color:var(--text); cursor:pointer;';
+          b.addEventListener('click', function () { state.symbol = s; $('symbol').value = s; load(); });
+          c.appendChild(b);
+        });
+        var q = $('watch-quota'); if (q) q.textContent = watchState.list.length + ' / ' + watchState.limit + (watchState.limit > FREE_WATCH_LIMIT ? ' (Pro)' : ' (Free)');
+      }
+      function renderWatchStar() {
+        var b = $('btn-watch'); if (!b) return;
+        var on = watchState.list.indexOf(state.symbol) >= 0;
+        b.textContent = on ? '★' : '☆';
+        b.style.color = on ? '#fbbf24' : '';
+      }
+      function loadWatch() {
+        var bar = $('watchbar'); if (!bar) return;
+        var token = getToken();
+        if (!token) { bar.style.display = 'none'; renderWatchStar(); return; }
+        fetch('/api/watchlist', { headers: { Authorization: 'Bearer ' + token } })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            if (j.code === 0 && j.data) {
+              watchState.list = j.data.symbols || [];
+              watchState.limit = j.data.limit || FREE_WATCH_LIMIT;
+              renderWatchList(); renderWatchStar();
+              bar.style.display = 'flex';
+            }
+          }).catch(function () {});
+      }
+      function toggleWatch() {
+        var token = getToken();
+        if (!token) { try { localStorage.setItem('markets_pending_login', '1'); } catch (e) {} loginNext(); return; }
+        var s = state.symbol;
+        var on = watchState.list.indexOf(s) >= 0;
+        fetch('/api/watchlist', {
+          method: on ? 'DELETE' : 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: on ? null : JSON.stringify({ symbol: s })
+        })
+          .then(function (r) { return r.json().then(function (j) { return { status: r.status, j: j }; }); })
+          .then(function (res) {
+            var j = res.j || {};
+            if (res.status === 401) { loginNext(); return; }
+            if (res.status === 403) { toast('Free plan: ' + watchState.limit + ' symbols max. Upgrade to Pro for 50.'); return; }
+            if (res.status !== 200 || j.code !== 0) { toast(j.msg || 'Watchlist error'); return; }
+            loadWatch();
+          }).catch(function () {});
+      }
+      /* —— 价格提醒（Alert，Phase 1：免费 1 个 / Pro 无限，纯规则触发）—— */
+      var alertState = { alerts: [], events: [], limit: null, kinds: {} };
+      var ALERT_LABELS = {
+        price_above: 'Price above',
+        price_below: 'Price below',
+        breakout: 'Breakout above 20-bar high',
+        rsi_overbought: 'RSI-14 ≥ 70',
+        rsi_oversold: 'RSI-14 ≤ 30',
+        ma_cross: 'MA5 crosses above MA10'
+      };
+      function alertParamText(a) {
+        var p = a.params || {};
+        var k = a.kind || '';
+        if ((k === 'price_above' || k === 'price_below') && p.threshold) {
+          return ' · $' + Number(p.threshold).toFixed(2);
+        }
+        return '';
+      }
+      function renderAlerts() {
+        var list = $('alert-list'), q = $('alert-quota'), ev = $('alert-events');
+        if (!list) return;
+        var token = getToken();
+        if (!token) {
+          if (q) q.textContent = t('alert.login');
+          list.innerHTML = '';
+          if (ev) ev.innerHTML = '';
+          return;
+        }
+        if (q) q.textContent = alertState.limit === null ? t('alert.pro') : t('alert.quota');
+        if (!alertState.alerts || !alertState.alerts.length) {
+          list.innerHTML = '<div class="muted" style="color:var(--muted); font-size:12px;">' + escHtml(t('alert.empty')) + '</div>';
+        } else {
+          list.innerHTML = alertState.alerts.map(function (a) {
+            var label = (alertState.kinds && alertState.kinds[a.kind]) || ALERT_LABELS[a.kind] || a.kind;
+            var st = a.status === 'triggered'
+              ? '<span style="color:var(--up); font-weight:600;">' + escHtml(t('alert.triggered')) + '</span>'
+              : '<span style="color:var(--ok,#22c55e);">' + escHtml(t('alert.active')) + '</span>';
+            var actions = a.status === 'triggered'
+              ? '<button type="button" class="alert-rearm" data-id="' + a.id + '" style="font-size:11px; padding:2px 8px;">' + escHtml(t('alert.rearm')) + '</button>'
+              : '';
+            return '<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border:1px solid var(--border,#333); border-radius:8px; background:var(--card-bg,#151a20);">' +
+              '<div style="min-width:0;">' +
+                '<div style="font-weight:600; font-size:13px;">' + escHtml(a.symbol) + ' · ' + escHtml(label) + escHtml(alertParamText(a)) + '</div>' +
+                '<div style="font-size:11px; color:var(--muted); margin-top:2px;">' + st + '</div>' +
+              '</div>' +
+              '<div style="display:flex; gap:6px; flex-shrink:0;">' + actions +
+                '<button type="button" class="alert-del" data-id="' + a.id + '" style="font-size:11px; padding:2px 8px;">' + escHtml(t('alert.delete')) + '</button>' +
+              '</div>' +
+            '</div>';
+          }).join('');
+        }
+        if (!alertState.events || !alertState.events.length) {
+          if (ev) ev.innerHTML = '<div class="muted" style="color:var(--muted); font-size:12px;">' + escHtml(t('alert.eventsEmpty')) + '</div>';
+        } else {
+          if (ev) ev.innerHTML = alertState.events.map(function (e) {
+            var label = (alertState.kinds && alertState.kinds[e.kind]) || ALERT_LABELS[e.kind] || e.kind;
+            var ts = e.created_at || '';
+            try { ts = new Date(String(ts).replace(' ', 'T') + 'Z').toLocaleString(); } catch (err) {}
+            return '<div style="padding:7px 10px; border:1px solid var(--border,#333); border-radius:8px; background:var(--card-bg,#151a20); font-size:12px;">' +
+              '<div style="font-weight:600;">' + escHtml(e.symbol) + ' · ' + escHtml(label) + '</div>' +
+              '<div style="color:var(--muted); margin-top:2px;">' + escHtml(e.detail || '') + '</div>' +
+              '<div style="color:var(--muted); font-size:11px; margin-top:2px;">' + escHtml(ts) + '</div>' +
+            '</div>';
+          }).join('');
+        }
+      }
+      function loadAlerts() {
+        var token = getToken();
+        if (!token) { alertState.alerts = []; alertState.events = []; renderAlerts(); return; }
+        fetch('/api/alerts', { headers: { Authorization: 'Bearer ' + token } })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            if (j.code === 0 && j.data) {
+              alertState.alerts = j.data.alerts || [];
+              alertState.events = j.data.events || [];
+              alertState.limit = (typeof j.data.limit === 'number') ? j.data.limit : null;
+              alertState.kinds = j.data.kind_labels || {};
+            }
+            renderAlerts();
+          }).catch(function () { renderAlerts(); });
+      }
+      function addAlert() {
+        var token = getToken();
+        if (!token) { loginNext(); return; }
+        var kind = ($('alert-kind') || {}).value || 'price_above';
+        var thr = parseFloat(($('alert-threshold') || {}).value || '');
+        var params = {};
+        if (kind === 'price_above' || kind === 'price_below') {
+          if (!(thr > 0)) { toast(t('alert.needThreshold')); return; }
+          params.threshold = thr;
+        }
+        if (!state.symbol) { toast(t('alert.needSymbol')); return; }
+        fetch('/api/alerts', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ symbol: state.symbol, kind: kind, params: params })
+        })
+          .then(function (r) { return r.json().then(function (j) { return { status: r.status, j: j }; }); })
+          .then(function (res) {
+            var j = res.j || {};
+            if (res.status === 401) { loginNext(); return; }
+            if (res.status === 403) { toast(t('alert.limit')); return; }
+            if (res.status !== 200 || j.code !== 0) { toast(t('alert.addFail') + (j.msg || res.status)); return; }
+            toast(t('alert.added'));
+            loadAlerts();
+          }).catch(function () {});
+      }
+      function deleteAlert(id) {
+        var token = getToken(); if (!token) return;
+        fetch('/api/alerts?alert_id=' + encodeURIComponent(id), { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } })
+          .then(function (r) { return r.json(); })
+          .then(function (j) { if (j.code === 0) loadAlerts(); }).catch(function () {});
+      }
+      function rearmAlert(id) {
+        var token = getToken(); if (!token) return;
+        fetch('/api/alerts/rearm', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ alert_id: id })
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (j) { if (j.code === 0) { toast(t('alert.added')); loadAlerts(); } }).catch(function () {});
+      }
+      function checkAlerts() {
+        var token = getToken(); if (!token) { loginNext(); return; }
+        var btn = $('btn-alert-check'), msg = $('alert-msg');
+        if (btn) { btn.disabled = true; btn.textContent = t('alert.checking'); }
+        fetch('/api/alerts/evaluate', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } })
+          .then(function (r) { return r.json().then(function (j) { return { status: r.status, j: j }; }); })
+          .then(function (res) {
+            var j = res.j || {};
+            if (res.status === 401) { loginNext(); return; }
+            var n = (j.data && j.data.triggered) ? j.data.triggered.length : 0;
+            if (msg) {
+              if (res.status !== 200 || j.code !== 0) msg.textContent = t('alert.checkFail') + (j.msg || res.status);
+              else if (n > 0) msg.textContent = t('alert.triggeredN').replace('{n}', String(n));
+              else msg.textContent = t('alert.noTriggers');
+            }
+            loadAlerts();
+          }).catch(function () {
+            if (msg) msg.textContent = t('alert.checkFail') + 'network';
+          }).finally(function () {
+            if (btn) { btn.disabled = false; btn.textContent = t('alert.check'); }
+          });
+      }
+      var bAlertsBell = $('btn-alerts');
+      if (bAlertsBell) bAlertsBell.addEventListener('click', function () {
+        var token = getToken();
+        if (!token) { loginNext(); return; }
+        var ap = $('alerts-panel');
+        if (ap) { try { ap.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }
+        loadAlerts();
+      });
+      var bAlertAdd = $('btn-alert-add');
+      if (bAlertAdd) bAlertAdd.addEventListener('click', addAlert);
+      var bAlertCheck = $('btn-alert-check');
+      if (bAlertCheck) bAlertCheck.addEventListener('click', checkAlerts);
+      document.addEventListener('click', function (e) {
+        var del = e.target && e.target.closest ? e.target.closest('.alert-del') : null;
+        if (del) { deleteAlert(parseInt(del.getAttribute('data-id'), 10)); return; }
+        var re = e.target && e.target.closest ? e.target.closest('.alert-rearm') : null;
+        if (re) { rearmAlert(parseInt(re.getAttribute('data-id'), 10)); }
+      });
+      function maybeWelcome() {
+        var token = getToken(); if (!token) return;
+        var pending = false; try { pending = !!localStorage.getItem('markets_pending_login'); } catch (e) {}
+        if (!pending) return;
+        try { localStorage.removeItem('markets_pending_login'); } catch (e) {}
+        toast('Welcome back! Try AI Brief on a ticker, or star it to your watchlist.');
+      }
+      var bW = $('btn-watch'); if (bW) bW.addEventListener('click', toggleWatch);
+      var bTop = $('btn-brief-top');
+      if (bTop) bTop.addEventListener('click', function () {
+        var token = getToken();
+        if (!token) { try { localStorage.setItem('markets_pending_login', '1'); } catch (e) {} loginNext(); return; }
+        var out = $('brief-out');
+        if (out) { var bp = out.closest('.panel'); if (bp) { try { bp.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} } }
+        doBrief();
+      });
+      var bNextBrief = $('btn-next-brief');
+      if (bNextBrief) bNextBrief.addEventListener('click', function () {
+        var out = $('brief-out'); if (out) { try { out.closest('.panel').scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }
+        doBrief();
+      });
+      var bNextWatch = $('btn-next-watch');
+      if (bNextWatch) bNextWatch.addEventListener('click', function () {
+        if (!getToken()) { loginNext(); return; }
+        toggleWatch();
+      });
+      var bBrief = $('btn-brief'); if (bBrief) bBrief.addEventListener('click', doBrief);
+      /* 手机端底部快捷操作条 */
+      var mbBrief = $('mb-brief');
+      if (mbBrief) mbBrief.addEventListener('click', function () {
+        var token = getToken();
+        if (!token) { try { localStorage.setItem('markets_pending_login', '1'); } catch (e) {} loginNext(); return; }
+        doBrief();
+      });
+      var mbDiscover = $('mb-discover');
+      if (mbDiscover) mbDiscover.addEventListener('click', function () { location.href = '/screener.html'; });
+      var mbPro = $('mb-pro');
+      if (mbPro) mbPro.addEventListener('click', function (e) {
+        if (!getToken()) { e.preventDefault(); loginNext(); return; }
+      });
+      var bWeek = $('btn-sub-week'); if (bWeek) bWeek.addEventListener('click', function () { openPayHub('weekly'); });
+      var bMonth = $('btn-sub-month'); if (bMonth) bMonth.addEventListener('click', function () { openPayHub('monthly'); });
+      var bYear = $('btn-sub-year'); if (bYear) bYear.addEventListener('click', function () { openPayHub('yearly'); });
+      var bTrial = $('btn-trial');
+      if (bTrial) bTrial.addEventListener('click', function () {
+        var token = getToken();
+        if (!token) { var tm0 = $('trial-msg'); if (tm0) tm0.textContent = t('sub.trialFail') + 'login'; return; }
+        bTrial.disabled = true;
+        fetch('/api/subscribe/trial', { method: 'POST', headers: { Authorization: 'Bearer ' + token } })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            if (j.code === 0 && j.data) {
+              subState.pro = true;
+              subState.expiresAt = j.data.expires_at || null;
+              subState.trial = j.data.trial || { granted: true, used: true, active: true };
+              var tm = $('trial-msg'); if (tm) tm.textContent = t('sub.trialOk');
+              renderSub();
+            } else {
+              bTrial.disabled = false;
+              var tm2 = $('trial-msg'); if (tm2) tm2.textContent = t('sub.trialFail') + (j.msg || '');
+            }
+          })
+          .catch(function () {
+            bTrial.disabled = false;
+            var tm3 = $('trial-msg'); if (tm3) tm3.textContent = t('sub.trialFail') + 'network';
+          });
+      });
+      var phClose = $('payhub-close');
+      if (phClose) phClose.addEventListener('click', closePayHub);
+      var phOverlay = $('payhub');
+      if (phOverlay) phOverlay.addEventListener('click', function (e) { if (e.target === phOverlay) closePayHub(); });
+      var fbUp = $('fb-upgrade');
+      if (fbUp) fbUp.addEventListener('click', function () {
+        var sub = $('sub');
+        if (sub) { try { sub.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }
+      });
+      var fbClose = $('fb-close');
+      if (fbClose) fbClose.addEventListener('click', function () {
+        var fb = $('free-banner'); if (fb) fb.classList.remove('show');
+        try { sessionStorage.setItem('markets_free_banner_closed', '1'); } catch (e) {}
+      });
+
+      // 深链：?plan=weekly|monthly|yearly#sub → 平滑滚动到订阅面板并高亮对应档位
+      function flashPlan() {
+        var p = new URLSearchParams(location.search);
+        var plan = p.get('plan');
+        if (plan !== 'weekly' && plan !== 'monthly' && plan !== 'yearly') return;
+        var map = { weekly: 'week', monthly: 'month', yearly: 'year' };
+        var btn = $('btn-sub-' + (map[plan] || plan));
+        if (!btn) return;
+        btn.style.boxShadow = '0 0 0 2px var(--accent)';
+        clearTimeout(flashPlan._t);
+        flashPlan._t = setTimeout(function () { btn.style.boxShadow = ''; }, 8000);
+      }
+      (function handlePlanDeepLink() {
+        var plan = new URLSearchParams(location.search).get('plan');
+        if (location.hash !== '#sub' && !plan) return;
+        var sub = $('sub');
+        if (sub) { try { sub.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }
+        flashPlan();
+      })();
+
+      // 支付回跳：核心中台 return_url 带 ?pay=done&paypal=1&out_trade_no=… / creem=1 / alipay=1
+      // 兼容旧 markets PayPal 直连：?pay=done&token=<orderId> → capture（幂等）
+      (function handlePayReturn() {
+        var p = new URLSearchParams(location.search);
+        var payDone = p.get('pay') === 'done';
+        var otn = p.get('out_trade_no') || '';
+        if (payDone && (p.get('paypal') === '1' || p.get('creem') === '1' || p.get('dodo') === '1' || p.get('alipay') === '1') && otn) {
+          var ch = p.get('paypal') === '1' ? 'paypal' : p.get('creem') === '1' ? 'creem' : p.get('dodo') === '1' ? 'dodo' : 'alipay';
+          var token = getToken();
+          if (token) {
+            showSubMsg(t('sub.reload'));
+            var path = ch === 'paypal' ? '/v1/billing/paypal/query_and_fulfill'
+              : ch === 'creem' ? '/v1/billing/creem/query'
+              : ch === 'dodo' ? '/v1/billing/dodo/query'
+              : '/v1/billing/alipay/query_and_fulfill';
+            hubFetch(path, { out_trade_no: otn })
+              .then(function (j) {
+                if (j && j.ok) { showSubMsg(t('pay.ok')); checkSub(); toast(t('pay.ok')); }
+                else { showSubMsg(t('pay.verifyFail')); }
+              })
+              .catch(function () { showSubMsg(t('pay.verifyFail')); });
+          }
+          try { history.replaceState({}, '', location.pathname + location.hash); } catch (e) {}
+        } else if (payDone && p.get('token')) {
+          doCapture(p.get('token'));
+          try { history.replaceState({}, '', location.pathname + location.hash); } catch (e) {}
+        }
+      })();
+
+      checkSub();
+      // 旋转/窗口尺寸变化：重新计算首屏K线数量并同步各图可见范围
+      var lastMobileView = isMobileView();
+      window.addEventListener('resize', function () {
+        var next = recomputeVisible();
+        var changed = next !== VISIBLE_MAIN;
+        VISIBLE_MAIN = next;
+        var mv = isMobileView();
+        if (mv !== lastMobileView) {
+          lastMobileView = mv;
+          if (state.last) { rerenderCharts(); return; }
+        }
+        if (!changed) return;
+        [state.mainChart].forEach(function (c) {
+          if (!c) return;
+          try {
+            var r = c.timeScale().getVisibleLogicalRange();
+            if (r && r.to && r.to > 0) showLastN(c, Math.round(r.to));
+          } catch (e) {}
+        });
+      });
+
+      // 调试辅助：window.__mkChart() 返回各图可见范围与总K线数（QA 用）
+      window.__mkChart = function () {
+        function vr(c) { try { return c ? c.timeScale().getVisibleLogicalRange() : null; } catch (e) { return null; } }
+        return {
+          visibleMain: VISIBLE_MAIN,
+          mainVr: vr(state.mainChart),
+          mainBars: state.mainSeries ? state.mainSeries.data().length : 0,
+        };
+      };
+      if (location.hash && location.hash.indexOf('oauth=1') !== -1) {
+        try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+      }
+      applyLang();
+      load();
+      maybeOnboard();
+      loadWatch();
+      loadAlerts();
+      maybeWelcome();
+      // PWA 离线壳：注册后静态页可离线打开，API 永远走网络
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(function () {});
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+﻿gitee	https://gitee.com/ai24x/ai24x01.git (fetch)
+gitee	https://gitee.com/ai24x/ai24x01.git (push)
+origin	https://gitee.com/ai24x/ai24x-website.git (fetch)
+origin	https://gitee.com/ai24x/ai24x-website.git (push)

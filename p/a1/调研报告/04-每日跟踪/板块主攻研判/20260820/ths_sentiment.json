@@ -1,0 +1,206 @@
+{
+  "ok": true,
+  "date": "2026-08-20",
+  "source": "ths:fuyao",
+  "limit_up": {
+    "count": 78,
+    "max_lianban": 4,
+    "max_name": "金健米业",
+    "seal_money_top": [
+      {
+        "name": "沃森生物",
+        "ticker": "300142",
+        "seal": 67209912.0,
+        "reason": "mRNA疫苗+创新药+海外出口"
+      },
+      {
+        "name": "石药创新",
+        "ticker": "300765",
+        "seal": 22099704.0,
+        "reason": "创新药+半年报扭亏+阿斯利康合作"
+      },
+      {
+        "name": "键凯科技",
+        "ticker": "688356",
+        "seal": 21950851.0,
+        "reason": "mRNA癌症疫苗+创新药+聚乙二醇"
+      },
+      {
+        "name": "康希诺",
+        "ticker": "688185",
+        "seal": 20012151.0,
+        "reason": "mRNA技术+百白破疫苗+创新疫苗"
+      },
+      {
+        "name": "神奇制药",
+        "ticker": "600613",
+        "seal": 16365008.0,
+        "reason": "创新药+抗肿瘤+品牌OTC"
+      }
+    ]
+  },
+  "ladder": {
+    "date": "2026-08-20",
+    "rows": [
+      {
+        "board": "two_board",
+        "count": 3,
+        "names": [
+          "志邦家居",
+          "汉森制药",
+          "速达股份"
+        ]
+      },
+      {
+        "board": "three_board",
+        "count": 0,
+        "names": []
+      },
+      {
+        "board": "four_board",
+        "count": 1,
+        "names": [
+          "金健米业"
+        ]
+      },
+      {
+        "board": "five_board",
+        "count": 0,
+        "names": []
+      },
+      {
+        "board": "six_board",
+        "count": 0,
+        "names": []
+      },
+      {
+        "board": "seven_over",
+        "count": 0,
+        "names": []
+      }
+    ]
+  },
+  "hot": [
+    {
+      "name": "宇树科技",
+      "ticker": "688836",
+      "rank": 1,
+      "heat": "14708996",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "长鑫科技",
+      "ticker": "688825",
+      "rank": 2,
+      "heat": "4616415",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "哈药股份",
+      "ticker": "600664",
+      "rank": 3,
+      "heat": "3114785",
+      "rank_trend": "up"
+    },
+    {
+      "name": "有研新材",
+      "ticker": "600206",
+      "rank": 4,
+      "heat": "3045977",
+      "rank_trend": "down"
+    },
+    {
+      "name": "药明康德",
+      "ticker": "603259",
+      "rank": 5,
+      "heat": "2845139",
+      "rank_trend": "up"
+    }
+  ],
+  "skyrocket": [
+    {
+      "name": "太辰光",
+      "ticker": "300570",
+      "rank": 1,
+      "heat": "256224.9",
+      "rank_trend": "up"
+    },
+    {
+      "name": "药明康德",
+      "ticker": "603259",
+      "rank": 2,
+      "heat": "211369.8",
+      "rank_trend": "up"
+    },
+    {
+      "name": "数据港",
+      "ticker": "603881",
+      "rank": 3,
+      "heat": "200768.2",
+      "rank_trend": "up"
+    },
+    {
+      "name": "哈药股份",
+      "ticker": "600664",
+      "rank": 4,
+      "heat": "180600.5",
+      "rank_trend": "up"
+    },
+    {
+      "name": "红四方",
+      "ticker": "603395",
+      "rank": 5,
+      "heat": "161826.5",
+      "rank_trend": "up"
+    }
+  ],
+  "hot_money": [],
+  "anomaly": {
+    "count": 428,
+    "tags": {
+      "跌停": 13,
+      "涨停": 87,
+      "大跌": 90,
+      "大涨": 238
+    },
+    "top": [
+      {
+        "name": "传智教育",
+        "thscode": "003032.SZ",
+        "tag": "跌停",
+        "reason": "1、据2026年8月13日公告，公司股票近期已被深交所重点监控，如股价进一步异常上涨，公司可能申请停牌核查。\n2、据20"
+      },
+      {
+        "name": "*ST萃华",
+        "thscode": "002731.SZ",
+        "tag": "跌停",
+        "reason": "1、据2026年8月19日公告，公司预计无法在法定期限内2026年8月31日披露2026年半年度报告，股票预计于2026"
+      },
+      {
+        "name": "桂发祥",
+        "thscode": "002820.SZ",
+        "tag": "跌停",
+        "reason": "1、据2026年8月19日公告，公司股票此前连续3个交易日收盘价格涨幅偏离值累计超过20%，属于股票交易异常波动，公司核"
+      },
+      {
+        "name": "深华发A",
+        "thscode": "000020.SZ",
+        "tag": "跌停",
+        "reason": "1、据2026年8月20日公告，公司股票此前连续2个交易日8月18日、8月19日收盘价格涨幅偏离值累计超20%，触发异常"
+      },
+      {
+        "name": "双英集团",
+        "thscode": "920059.BJ",
+        "tag": "跌停",
+        "reason": "1、据上证报2026年8月19日报道，双英集团于2026年8月19日在北京证券交易所正式挂牌上市，首日收盘报24.75元"
+      },
+      {
+        "name": "华东数控",
+        "thscode": "002248.SZ",
+        "tag": "跌停",
+        "reason": "1、据同花顺iFinD数据，华东数控此前20个交易日累计上涨44.89%，存在短期超涨回调压力。\n2、据同花顺iFinD"
+      }
+    ]
+  },
+  "errors": []
+}

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- [AI24X 2026-08-15] Google Ads 暂停 (国际支付无合规渠道，保留待恢复，勿删）：
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18385419220"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', {
+    'ad_storage': 'denied',
+    'ad_user_data': 'denied',
+    'ad_personalization': 'denied',
+    'analytics_storage': 'denied',
+    'personalization_storage': 'denied',
+    'functionality_storage': 'granted',
+    'security_storage': 'granted',
+    'wait_for_update': 500
+  });
+  gtag('js', new Date());
+
+  gtag('config', 'AW-18385419220');
+</script>
+<script src="config/consent.js?v=20260814a"></script>
+-->
+
+  <meta charset="UTF-8" />
+  <script>
+/* i18n-boot inline v20260808c: language pre-read + FOUC guard (no network dependency) */
+(function () {
+  var KEY = "ai24x_lang";
+  try {
+    var raw = String(localStorage.getItem(KEY) || "").trim().toLowerCase().replace(/_/g, "-");
+    var lang = raw.split("-")[0] || "";
+    if (!lang) { lang = "en"; localStorage.setItem(KEY, lang); }
+    document.documentElement.setAttribute("data-ai24x-lang", lang);
+    document.documentElement.classList.add("i18n-pending");
+    if (!document.getElementById("ai24x-i18n-pending")) {
+      var st = document.createElement("style");
+      st.id = "ai24x-i18n-pending";
+      st.textContent = "html.i18n-pending body{visibility:hidden!important}";
+      (document.head || document.documentElement).appendChild(st);
+    }
+    setTimeout(function () { document.documentElement.classList.remove("i18n-pending"); }, 4000);
+  } catch (e) {}
+})();
+</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Sign up · AI24X</title>
+  <link rel="canonical" href="https://www.ai24x.com/register.html" />
+    <link rel="alternate" hreflang="en" href="https://www.ai24x.com/register.html" />
+  <link rel="alternate" hreflang="x-default" href="https://www.ai24x.com/register.html" />
+<meta property="og:type" content="website" />
+  <meta property="og:title" content="Sign up · AI24X" />
+  <meta property="og:description" content="Sign up free for AI24X — get an API key, try models, top up when ready." />
+  <meta property="og:url" content="https://www.ai24x.com/register.html" />
+  <meta property="og:image" content="https://www.ai24x.com/img/og-share.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://www.ai24x.com/img/og-share.png" />
+  <meta name="description" content="Sign up free for AI24X — one API for leading models. BYOK or managed. No credit card required." />
+<link rel="stylesheet" href="css/base.css?v=20260829c" />
+  <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260812e" data-base="css/themes/" />
+  <style>
+    .auth-fieldset-preview {
+      border: 0;
+      margin: 0;
+      padding: 0;
+      min-width: 0;
+      opacity: 0.93;
+    }
+    .otp-local-box {
+      display: none;
+      margin-top: 10px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, var(--accent) 8%, var(--surface, #fff));
+    }
+    .otp-local-box.is-on { display: block; }
+    .otp-local-label { font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; }
+    .otp-local-code {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: 0.28em;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+    }
+    .otp-local-hint { margin-top: 6px; font-size: 0.8rem; color: var(--muted); }
+    #reg-captcha-group .form-otp-row {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 10px;
+      margin-top: 6px;
+    }
+    #reg-captcha-group .form-otp-row .input {
+      flex: 1;
+      min-width: 0;
+      max-width: none;
+    }
+    #reg-captcha-group .form-otp-row img {
+      flex: 0 0 auto;
+      height: 42px;
+      width: 120px;
+      object-fit: cover;
+    }
+  </style>
+</head>
+<body data-page="register" class="theme-blue">
+  <header class="site-header" id="site-header"></header>
+  <main class="page-main">
+    <section class="section">
+      <div class="container" style="max-width:480px">
+        <h1 data-i18n="auth.register.title">Sign up</h1>
+        <p class="lead" data-i18n="auth.register.lead">Free sign-up — get an API key and try models.</p>
+        <div class="callout mt-2" id="auth-closed-banner" role="status" data-i18n-html="auth.closed.banner">
+          <strong>Notice</strong>: Sign-up / sign-in are temporarily unavailable.
+        </div>
+        <div id="oauth-panel" class="mt-2" style="display:none">
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <a class="btn" id="btn-oauth-google" href="#" style="justify-content:center;gap:8px;">
+              <svg class="oauth-ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75z"/></svg>
+              <span data-i18n="auth.register.google">Sign up with Google</span>
+            </a>
+            <a class="btn" id="btn-oauth-apple" href="#" style="justify-content:center;gap:8px;">
+              <svg class="oauth-ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M16.365 1.43c0 1.14-.42 2.2-1.25 3.17-.99 1.16-2.31 1.83-3.61 1.72-.08-1.1.42-2.26 1.19-3.17 1-.96 2.42-1.61 3.67-1.72zm2.35 16.04c-.59 1.35-.88 1.95-1.64 3.15-1.06 1.67-2.56 3.75-4.42 3.76-1.65.02-2.09-1.08-4.34-1.07-2.25.02-2.73 1.09-4.39 1.07-1.85-.02-3.28-1.91-4.34-3.58C-1.16 18.55-1.9 13.3.73 9.88c1.24-1.62 3.21-2.65 5.06-2.65 1.87 0 3.05 1.07 4.59 1.07 1.51 0 2.43-1.07 4.57-1.07 1.66 0 3.42.9 4.66 2.44-4.1 2.22-3.44 8.01.83 9.8z"/></svg>
+              <span data-i18n="auth.register.apple">Sign up with Apple</span>
+            </a>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; margin:14px 0 4px; color:var(--muted); font-size:12px;">
+            <span style="flex:1; height:1px; background:var(--border);"></span>
+            <span data-i18n="auth.login.divider">or</span>
+            <span style="flex:1; height:1px; background:var(--border);"></span>
+          </div>
+        </div>
+        <form class="card mt-2" id="form-register" novalidate>
+          <div style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden" aria-hidden="true">
+            <label>Leave this field empty</label>
+            <input name="website" type="text" tabindex="-1" autocomplete="off" />
+          </div>
+          <fieldset class="auth-fieldset-preview" id="reg-fieldset" disabled>
+          <div class="form-group">
+            <label data-i18n="auth.register.email">Email</label>
+            <input id="reg-email" name="email" type="email" class="input" autocomplete="email" />
+          </div>
+          <div class="form-group" id="reg-captcha-group">
+            <label data-i18n="auth.register.captcha">Captcha</label>
+            <div class="form-otp-row">
+              <input id="reg-captcha-answer" name="captcha_answer" type="text" maxlength="8" class="input" autocomplete="off" data-i18n-placeholder="auth.register.captchaPh" placeholder="Type the code" />
+              <img id="reg-captcha-img" src="" alt="" title="Click to refresh" style="height:42px;width:120px;object-fit:cover;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:#f6f8fc;opacity:0;transition:opacity .15s" />
+            </div>
+            <p class="sub" style="margin:4px 0 0" data-i18n="auth.register.captchaRefresh">Click image to refresh</p>
+          </div>
+          <div class="form-group form-group-otp-inline">
+            <label data-i18n="auth.register.emailCode">Email code</label>
+            <div class="form-otp-row">
+              <input id="reg-email-code" name="email_code" type="text" inputmode="numeric" maxlength="6" class="input" autocomplete="one-time-code" />
+              <button type="button" class="btn btn-otp-send" id="reg-btn-send-email" data-i18n="auth.register.sendCode">Send code</button>
+            </div>
+            <div class="otp-local-box" id="reg-otp-local" aria-live="polite">
+              <div class="otp-local-label" data-i18n="auth.register.otpLocal">Verification code</div>
+              <div class="otp-local-code" id="reg-otp-code">------</div>
+              <div class="otp-local-hint" data-i18n="auth.register.otpHint">Filled above — set a password to finish.</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label data-i18n="auth.register.password">Password (min 8 chars)</label>
+            <input name="password" type="password" class="input" autocomplete="new-password" />
+          </div>
+          <div class="form-group">
+            <label data-i18n="auth.register.invite">Invite code (optional)</label>
+            <input id="reg-invite" name="invite_code" type="text" class="input" maxlength="32" data-i18n-placeholder="auth.register.invitePh" placeholder="Optional" />
+          </div>
+          <button type="submit" class="btn btn-primary" data-i18n="auth.register.submit">Create account</button>
+          <div id="reg-msg"></div>
+          </fieldset>
+        </form>
+        <p class="mt-2 sub" style="text-align:center" data-i18n-html="auth.register.footer"><a href="login.html">Log in</a></p>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer" id="site-footer"></footer>
+  <script src="config/locales.js?v=20260831b"></script>
+  <script src="js/api.js?v=20260829n"></script>
+  <script src="js/invite.js?v=20260731a"></script>
+  <script src="js/utm.js?v=20260802a"></script>
+  <script src="js/i18n.js?v=20260826m"></script>
+  <script src="js/ai24x-chrome.js?v=20260829n"></script>
+  <script src="js/shell.js?v=20260829n"></script>
+  <script src="js/app.js?v=20260818b"></script>
+  <script>
+    function t(key, fallback) {
+      if (window.AI24X_I18N && AI24X_I18N.t) {
+        var v = AI24X_I18N.t(key);
+        if (v && v !== key) return v;
+      }
+      return fallback || key;
+    }
+
+    function zhUi() {
+      return !!(window.AI24X_I18N && typeof AI24X_I18N.isZh === "function" && AI24X_I18N.isZh());
+    }
+
+    function safeNext() {
+      try {
+        var n = new URL(location.href).searchParams.get("next");
+        return AI24X_API.safeNextUrl(n, "console.html");
+      } catch (e) {}
+      return "console.html";
+    }
+
+    function oauthLoginUrl(provider) {
+      return "/v1/auth/" + provider + "/login?next=" + encodeURIComponent(safeNext());
+    }
+    function applyOAuth() {
+      var panel = document.getElementById("oauth-panel");
+      if (!panel) return;
+      fetch("/v1/auth/providers", { method: "GET" })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          var g = !!(j && j.google), a = !!(j && j.apple);
+          var gb = document.getElementById("btn-oauth-google");
+          var ab = document.getElementById("btn-oauth-apple");
+          if (gb) { gb.style.display = g ? "" : "none"; gb.href = oauthLoginUrl("google"); }
+          if (ab) { ab.style.display = a ? "" : "none"; ab.href = oauthLoginUrl("apple"); }
+          panel.style.display = (g || a) ? "" : "none";
+        })
+        .catch(function () { panel.style.display = "none"; });
+    }
+    function handleOAuthReturn() {
+      if (!location.hash || location.hash.indexOf("oauth=1") === -1) return;
+      var token = "", user = "";
+      try {
+        var mt = document.cookie.match(/(?:^|; )ai24x_auth_token=([^;]*)/);
+        if (mt) token = decodeURIComponent(mt[1]);
+        var mu = document.cookie.match(/(?:^|; )ai24x_auth_user=([^;]*)/);
+        if (mu) user = decodeURIComponent(mu[1]);
+      } catch (e) {}
+      try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+      if (token) {
+        try {
+          localStorage.setItem("ai24x_auth_token", token);
+          if (user) localStorage.setItem("ai24x_auth_user", user);
+        } catch (e) {}
+        location.href = safeNext();
+        return;
+      }
+      var err = "";
+      try { err = new URLSearchParams(location.search).get("oauth_error") || ""; } catch (e) {}
+      if (err) {
+        var box = document.getElementById("reg-msg");
+        if (box) AI24X_API.setAlertMessage(box, t("auth.login.oauthFail", "Social sign-in failed: ") + err, false);
+      }
+    }
+
+    var _regCaptchaToken = "";
+    function loadRegisterCaptcha() {
+      var img = document.getElementById("reg-captcha-img");
+      if (!img) return;
+      img.style.opacity = "0";
+      AI24X_API.authCaptchaGet()
+        .then(function (r) {
+          if (r && r.ok && r.token && r.image) {
+            _regCaptchaToken = r.token;
+            img.src = r.image;
+            img.style.opacity = "1";
+          }
+        })
+        .catch(function () { img.style.opacity = "1"; });
+    }
+
+    document.getElementById("reg-btn-send-email").addEventListener("click", function () {
+      var box = document.getElementById("reg-msg");
+      var otpBox = document.getElementById("reg-otp-local");
+      var otpCode = document.getElementById("reg-otp-code");
+      var inpCode = document.getElementById("reg-email-code");
+      otpBox.classList.remove("is-on");
+      if (!AI24X_API.isLocalAuthOpen()) {
+        box.innerHTML = '<div class="alert alert-error">' + t("auth.closed.registerBlocked", "Not open yet.") + "</div>";
+        return;
+      }
+      var email = (document.getElementById("reg-email").value || "").trim();
+      if (!email) {
+        box.innerHTML = '<div class="alert alert-error">' + t("auth.register.needEmail", "Enter your email first") + "</div>";
+        return;
+      }
+      var capAnswer = (document.getElementById("reg-captcha-answer") || { value: "" }).value || "";
+      if (!_regCaptchaToken || !capAnswer.trim()) {
+        box.innerHTML = '<div class="alert alert-error">' + t("auth.register.captchaNeed", "Enter the captcha code first") + "</div>";
+        return;
+      }
+      AI24X_API.authEmailSend({ email: email, purpose: "register", captcha_token: _regCaptchaToken, captcha_answer: capAnswer.trim() })
+        .then(function (r) {
+          var channel = (r && r.channel) || "";
+          var code = (r && (r.local_code || r.dev_code)) || "";
+          if (r && r.ok && channel === "local" && code) {
+            otpCode.textContent = String(code);
+            otpBox.classList.add("is-on");
+            if (inpCode) inpCode.value = String(code);
+            box.innerHTML = '<div class="alert alert-success">' + t("auth.register.codeReady", "Code ready — continue with your password.") + "</div>";
+            return;
+          }
+          otpBox.classList.remove("is-on");
+          var msg =
+            (zhUi() && r && r.message) ||
+            (r && r.ok
+              ? channel === "smtp"
+                ? t("auth.register.codeSentSmtp", "Code sent to your email (check spam).")
+                : t("auth.register.codeSent", "Code sent. Check your email.")
+              : t("auth.register.sendFail", "Failed to send"));
+          box.innerHTML =
+            '<div class="alert ' +
+            (r && r.ok ? "alert-success" : "alert-error") +
+            '">' +
+            msg +
+            "</div>";
+        })
+        .catch(function (e) {
+          box.innerHTML = '<div class="alert alert-error">' + (zhUi() && e.message ? e.message : t("auth.register.sendFail", "Failed to send")) + "</div>";
+        });
+    });
+
+    document.getElementById("form-register").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var box = document.getElementById("reg-msg");
+      if (!AI24X_API.isLocalAuthOpen()) {
+        box.innerHTML = '<div class="alert alert-error">' + t("auth.closed.registerBlocked", "Not open yet.") + "</div>";
+        return;
+      }
+      var password = (document.querySelector('#form-register input[name="password"]').value || "").trim();
+      var email = (document.getElementById("reg-email").value || "").trim();
+      var emailCode = (document.getElementById("reg-email-code").value || "").trim();
+      if (!email) {
+        box.innerHTML = '<div class="alert alert-error">' + t("auth.register.needEmail", "Enter your email first") + "</div>";
+        return;
+      }
+      if (!emailCode) {
+        box.innerHTML = '<div class="alert alert-error">' + t("auth.register.needCode", "Enter the email verification code") + "</div>";
+        return;
+      }
+      if (password.length < 8) {
+        box.innerHTML = '<div class="alert alert-error">' + t("auth.register.pwShort8", "Password must be at least 8 characters") + "</div>";
+        return;
+      }
+      var invite = (document.getElementById("reg-invite").value || "").trim();
+      if (window.AI24X_INVITE && invite) AI24X_INVITE.save(invite);
+      var payload = {
+        password: password,
+        email: email,
+        email_code: emailCode,
+        website: ((document.querySelector('#form-register input[name="website"]') || {}).value || ""),
+      };
+      if (invite) payload.invite_code = invite;
+      try {
+        if (window.AI24X_UTM && AI24X_UTM.forRegisterPayload) {
+          var utm = AI24X_UTM.forRegisterPayload();
+          if (utm) {
+            Object.keys(utm).forEach(function (k) {
+              if (utm[k]) payload[k] = utm[k];
+            });
+          }
+        }
+      } catch (eUtm) {}
+      AI24X_API.authRegister(payload)
+        .then(function () {
+          location.href = safeNext();
+        })
+        .catch(function (err) {
+          AI24X_API.setAlertMessage(box, err.message || t("auth.register.fail", "Sign-up failed"), false);
+        });
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+      function applyAuthUi() {
+        var open = AI24X_API.isLocalAuthOpen();
+        var fs = document.getElementById("reg-fieldset");
+        if (fs) fs.disabled = !open;
+        var ban = document.getElementById("auth-closed-banner");
+        if (!ban) return;
+        if (!open) {
+          ban.style.display = "";
+          ban.innerHTML = t("auth.closed.banner");
+          return;
+        }
+        if (AI24X_API.isLocalHost && AI24X_API.isLocalHost()) {
+          ban.style.display = "";
+          ban.innerHTML = t("auth.register.localBanner");
+        } else {
+          ban.style.display = "none";
+        }
+      }
+      // 邀请跟踪：短链 /r/CODE → ?invite=；也支持 ?ref= / ?i=；并写入 localStorage
+      try {
+        var inp = document.getElementById("reg-invite");
+        if (window.AI24X_INVITE && inp) {
+          AI24X_INVITE.applyToInput(inp);
+        } else {
+          var qs = new URLSearchParams(window.location.search || "");
+          var inv = (qs.get("invite") || qs.get("ref") || qs.get("i") || qs.get("invite_code") || "").trim();
+          if (inv && inp && !inp.value) inp.value = inv;
+        }
+      } catch (e) {}
+      applyAuthUi();
+      applyOAuth();
+      handleOAuthReturn();
+      var capImg = document.getElementById("reg-captcha-img");
+      if (capImg) capImg.addEventListener("click", loadRegisterCaptcha);
+      loadRegisterCaptcha();
+      var langSel = document.getElementById("lang-select");
+      if (langSel) langSel.addEventListener("change", applyAuthUi);
+    });
+  </script>
+</body>
+</html>

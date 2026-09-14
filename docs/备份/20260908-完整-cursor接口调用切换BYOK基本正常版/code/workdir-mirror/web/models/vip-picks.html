@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- [AI24X 2026-08-15] Google Ads 暂停 (国际支付无合规渠道，保留待恢复，勿删）：
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18385419220"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', {
+    'ad_storage': 'denied',
+    'ad_user_data': 'denied',
+    'ad_personalization': 'denied',
+    'analytics_storage': 'denied',
+    'personalization_storage': 'denied',
+    'functionality_storage': 'granted',
+    'security_storage': 'granted',
+    'wait_for_update': 500
+  });
+  gtag('js', new Date());
+
+  gtag('config', 'AW-18385419220');
+</script>
+<script src="../config/consent.js?v=20260814a"></script>
+-->
+
+  <meta charset="UTF-8" />
+  <script>
+/* i18n-boot inline v20260808c: language pre-read + FOUC guard (no network dependency) */
+(function () {
+  var KEY = "ai24x_lang";
+  try {
+    var raw = String(localStorage.getItem(KEY) || "").trim().toLowerCase().replace(/_/g, "-");
+    var lang = raw.split("-")[0] || "";
+    if (!lang) { lang = "en"; localStorage.setItem(KEY, lang); }
+    document.documentElement.setAttribute("data-ai24x-lang", lang);
+    document.documentElement.classList.add("i18n-pending");
+    if (!document.getElementById("ai24x-i18n-pending")) {
+      var st = document.createElement("style");
+      st.id = "ai24x-i18n-pending";
+      st.textContent = "html.i18n-pending body{visibility:hidden!important}";
+      (document.head || document.documentElement).appendChild(st);
+    }
+    setTimeout(function () { document.documentElement.classList.remove("i18n-pending"); }, 4000);
+  } catch (e) {}
+})();
+</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>VIP Named Models · DeepSeek · Claude · GPT-5 · AI24X</title>
+  <meta name="description" content="AI24X VIP named models: DeepSeek, Claude, GPT-5, Kimi, Qwen, GLM & Gemini on one OpenAI-compatible key, from about $0.35/M." />
+  <link rel="canonical" href="https://open.ai24x.com/models/vip-picks.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="VIP Named Models · DeepSeek · Claude · GPT-5 · AI24X" />
+  <meta property="og:description" content="AI24X VIP model list: recommended tiers first, plus named China & international models. From about $0.35/M." />
+  <meta property="og:url" content="https://open.ai24x.com/models/vip-picks.html" />
+  <meta property="og:image" content="https://www.ai24x.com/img/og-share.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://www.ai24x.com/img/og-share.png" />
+  <link rel="stylesheet" href="../css/base.css?v=20260829c" />
+  <link id="theme-css" rel="stylesheet" href="../css/themes/theme-dark.css?v=20260812e" data-base="../css/themes/" />
+  <style>
+    .model-table-wrap { overflow: auto; margin: 10px 0 22px; border: 1px solid var(--border, #d8e4ef); border-radius: 10px; }
+    .model-table-wrap table { margin: 0; width: 100%; border-collapse: collapse; font-size: 13px; }
+    .model-table-wrap th {
+      background: rgba(15, 23, 42, 0.04);
+      font-weight: 600;
+      color: var(--muted);
+      white-space: nowrap;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border, #d8e4ef);
+      text-align: left;
+    }
+    .model-table-wrap td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+      vertical-align: top;
+    }
+    .model-table-wrap tr:last-child td { border-bottom: none; }
+    .model-table-wrap tr:hover td { background: rgba(37, 99, 235, 0.04); }
+    .model-table-wrap tr.vp-lit td { background: linear-gradient(90deg, rgba(245, 158, 11, 0.10), rgba(245, 158, 11, 0.02)); }
+    .model-table-wrap tr.vp-lit td:first-child { box-shadow: inset 3px 0 0 rgba(245, 158, 11, 0.9); }
+    .vp-lit-badge { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; color: #0f7b4e; border: 1px solid rgba(15, 123, 78, 0.55); background: rgba(15, 123, 78, 0.10); white-space: nowrap; }
+    .pill-brand {
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(37, 99, 235, 0.35);
+      color: #1d4ed8;
+      background: rgba(37, 99, 235, 0.08);
+      white-space: nowrap;
+    }
+    .model-table-wrap td.est-cell { white-space: nowrap; min-width: 190px; }
+    .model-table-wrap th.col-est { white-space: nowrap; min-width: 190px; }
+    .pill-vip {
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .pill-cn {
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(220, 38, 38, 0.45);
+      color: #b91c1c;
+      background: rgba(220, 38, 38, 0.07);
+      white-space: nowrap;
+    }
+    .tool-ok { color: #0f7b4e; font-weight: 700; }
+    .tool-warn { color: #b45309; font-weight: 700; }
+  </style>
+</head>
+<body data-page="models" class="theme-dark">
+  <header class="site-header" id="site-header"></header>
+  <main class="page-main">
+    <section class="hero hero-surface section-tight">
+      <div class="container">
+        <h1 data-i18n="page.models.vip.h1">点名模</h1>
+        <p class="lead" data-i18n="page.models.vip.lead">下方中国名模适合点名调用；国际旗舰为附属。倍率越高，余额消耗越快。优先用 flash（$0.35/百万起）；flash / pro 精选 DeepSeek V4 Flash、V4 Pro、小米 MiMo 等高性价比模型。</p>
+        <p class="sub" style="margin-top:10px;" data-i18n="page.models.vip.dualRate">点名模按输入/输出双费率计费（表格列出 in/out 每百万单价）；品牌档 flash/pro/auto 仍单费率。输出重负载（coding / agent / 长文）请先核算输出价。</p>
+        <div id="peakStrip" style="display:none;margin-top:12px;padding:10px 14px;border-radius:10px;border:1px solid rgba(37,99,235,.35);background:rgba(37,99,235,.06);font-size:13px;line-height:1.6;">
+          <span data-i18n="page.models.vip.peakTip">DeepSeek 点名价 8/17 起随官方峰谷动态：高峰时段（北京 9:00-12:00 / 14:00-18:00）输出费率上浮，夜间谷时更省。当前时段：</span><strong id="peakNow">—</strong>
+        </div>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="../console.html" data-i18n="nav.console">控制台</a>
+        </div>
+      </div>
+    </section>
+    <section class="section section-tight" id="valuePackBanner" style="display:none;">
+      <div class="container" style="max-width:960px">
+        <div style="border:1px solid rgba(245,158,11,.55);border-radius:12px;background:linear-gradient(135deg,rgba(245,158,11,.10),rgba(37,99,235,.06));padding:16px 18px;">
+          <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;">
+            <div style="min-width:240px;flex:1;">
+              <div style="font-weight:700;font-size:16px;margin-bottom:6px;"><span data-i18n="page.models.vip.vpTitle">⚡ 限时特惠 · 极致性价比超值包（Value Pack）</span><span style="margin-left:6px;font-size:11px;padding:1px 8px;border-radius:999px;border:1px solid rgba(245,158,11,.6);color:#b45309;background:rgba(245,158,11,.12);" data-i18n="page.models.vip.vpBadge">限时特惠</span></div>
+              <div id="vpActive" style="display:none;margin-top:8px;font-weight:600;font-size:13px;color:#0f7b4e;"><span data-i18n="page.models.vip.vpActive">✅ 超值包已激活 · 白名单名模已点亮</span></div>
+              <div class="sub" id="vpDesc" style="margin-top:6px;">…</div>
+              <div class="sub" id="vpModels" style="margin-top:6px;">…</div>
+            </div>
+            <a class="btn btn-primary" href="../pricing.html" data-i18n="page.models.vip.vpCta">查看套餐</a>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="section">
+      <div class="container" style="max-width:960px">
+        <h2 data-i18n="page.models.vip.how">怎么用</h2>
+        <ol>
+          <li data-i18n="page.models.vip.s1">注册并创建 API Key</li>
+          <li data-i18n="page.models.vip.s2">在价格页或控制台购买套餐（点名模需套餐含 VIP）</li>
+          <li data-i18n="page.models.vip.s3">请求里填写模型名：优先用推荐档；也可填下方名模名称</li>
+        </ol>
+
+        <h2 class="mt-2" data-i18n="page.models.vip.brandTitle">推荐档（优先）</h2>
+        <p class="sub" data-i18n="page.models.vip.brandHint">日常先填 flash（约 $0.35/百万）或 pro；点名模/高倍率模型会更快消耗预充额度。预估仅供参考。</p>
+        <div class="model-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th data-i18n="page.models.vip.col.group">分组</th>
+                <th data-i18n="page.models.vip.col.name">名称</th>
+                <th data-i18n="page.models.vip.col.id">模型名</th>
+                <th data-i18n="page.models.vip.col.mult">倍率</th>
+                <th data-i18n="page.models.vip.col.est">预估消耗</th>
+                <th data-i18n="page.models.vip.col.tools">工具</th>
+                <th data-i18n="page.models.vip.col.vision">视觉</th>
+                <th data-i18n="page.models.vip.col.blurb">说明</th>
+              </tr>
+            </thead>
+            <tbody id="brandTierBody">
+              <tr><td colspan="8" class="muted">…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 class="mt-2" data-i18n="page.models.vip.list">名模点名</h2>
+        <p class="sub" data-i18n="page.models.vip.listHint">认准某一款时再点名（需套餐含 VIP）。倍率通常更高；预估消耗仅供参考，会随服务更新。</p>
+        <div id="vipPriceNote" class="sub" style="margin:8px 0 12px;padding:8px 10px;border:1px dashed rgba(128,128,128,.5);border-radius:6px;background:rgba(128,128,128,.05);"></div>
+        <div id="vipValueBar" class="sub" style="margin:8px 0 12px;padding:10px 12px;border:1px solid rgba(245,158,11,.5);border-radius:8px;background:linear-gradient(135deg,rgba(245,158,11,.09),rgba(37,99,235,.05));"></div>
+        <div class="model-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th data-i18n="page.models.vip.col.group">分组</th>
+                <th data-i18n="page.models.vip.col.name">名称</th>
+                <th data-i18n="page.models.vip.col.id">模型名</th>
+                <th data-i18n="page.models.vip.col.mult">倍率</th>
+                <th class="col-est" data-i18n="page.models.vip.col.est">预估消耗</th>
+                <th data-i18n="page.models.vip.col.tools">工具</th>
+                <th data-i18n="page.models.vip.col.blurb">说明</th>
+                <th data-i18n="page.models.vip.col.vision">🖼️</th>
+              </tr>
+            </thead>
+            <tbody id="vipPickAll">
+              <tr><td colspan="8" class="muted">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 class="mt-2" data-i18n="page.models.vip.curl">调用示例</h2>
+        <div class="code-block">POST /v1/chat/run
+Header: X-API-Key: YOUR_API_KEY
+
+{
+  "prompt": "Hello",
+  "model": "flash",
+  "max_tokens": 200
+}</div>
+        <p class="sub mt-2" data-i18n="page.models.vip.note">名模点名需 VIP。高峰时可能自动改用推荐档，以保证可用。</p>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer" id="site-footer"></footer>
+  <script src="../config/locales.js?v=20260831b"></script>
+  <script src="../js/api.js?v=20260829n"></script>
+  <script src="../js/utm.js?v=20260802a"></script>
+<script src="../js/i18n.js?v=20260826m"></script>
+  <script src="../js/ai24x-chrome.js?v=20260829n"></script>
+  <script src="../js/shell.js?v=20260829n"></script>
+  <script src="../js/app.js?v=20260818b"></script>
+  <script src="../js/support-widget.js?v=20260817b"></script>
+  <script>
+    (function () {
+      function esc(s) {
+        return String(s || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/"/g, "&quot;");
+      }
+      function isZh() {
+        try {
+          if (window.AI24X_I18N && typeof AI24X_I18N.isZh === "function") return !!AI24X_I18N.isZh();
+          if (window.AI24X_I18N && typeof AI24X_I18N.getLang === "function") {
+            return String(AI24X_I18N.getLang()).toLowerCase().indexOf("zh") === 0;
+          }
+          return String(localStorage.getItem("ai24x_lang") || "").toLowerCase().indexOf("zh") === 0;
+        } catch (e) {
+          return true;
+        }
+      }
+      function pickTitle(p) {
+        if (isZh()) return p.title || p.id;
+        return p.title_en || p.title || p.id;
+      }
+      function pickBlurb(p) {
+        if (isZh()) return p.blurb || p.quality || "";
+        return p.blurb_en || p.blurb || p.quality || "";
+      }
+      function hasImage(p) {
+        var m = p.modalities || ["text"];
+        return m.indexOf("image") >= 0;
+      }
+      // 工具调用支持：2026-08-13 副脑04 实测（走生产通道链首可用通道，tool_choice=auto）
+      // auto(L0) 200 但未返回 tool_calls → 疑似上游问题，标 ⚠️；其余 28/29 正常 ✅
+      var TOOLS_SUPPORT = {
+        "auto": "warn",
+        "flash": "ok", "pro": "ok", "ultra": "ok", "shared": "ok",
+        "vip-hy3": "ok", "vip-ds-flash": "ok", "vip-ds-pro": "ok", "vip-kimi": "ok",
+        "vip-kimi-code": "ok", "vip-mimo": "ok", "vip-minimax": "ok", "vip-qwen-max": "ok",
+        "vip-qwen122b": "ok", "vip-glm": "ok", "vip-gpt5": "ok", "vip-gpt5-mini": "ok",
+        "vip-gpt54": "ok", "vip-gpt4o": "ok", "vip-gpt4o-mini": "ok", "vip-claude-sonnet": "ok",
+        "vip-claude-haiku": "ok", "vip-claude-opus": "ok", "vip-gemini-pro": "ok",
+        "vip-gemini-flash": "ok", "vip-gpt56-terra": "ok", "vip-gpt56-luna": "ok",
+        "vip-grok": "ok", "vip-llama4": "ok"
+      };
+      function toolsCell(id, isZhNow) {
+        var s = TOOLS_SUPPORT[id] || "n/a";
+        if (s === "ok") return "<td class='mono tool-ok' title='" + (isZhNow ? "2026-08-13 实测：工具调用正常" : "2026-08-13 probe: tool calling OK") + "'>✅</td>";
+        if (s === "warn") return "<td class='mono tool-warn' title='" + (isZhNow ? "实测 200 但未返回 tool_calls，疑似上游问题" : "200 but no tool_calls; likely upstream issue") + "'>⚠️</td>";
+        return "<td class='mono'>—</td>";
+      }
+      function cnBadge(p, isZhNow) {
+        if (p.group === "intl") return "";
+        return " <span class='pill-cn' title='" + (isZhNow ? "中国名模 · 原厂/硅基国际端点 · 全球可用" : "China models · direct/SiliconFlow international endpoint · global-ready") + "'>" + (isZhNow ? "中国名模 · 全球可用" : "China · Global-ready") + "</span>";
+      }
+      // flash 售价锚：优先用 API flash_ref_usd_per_m / 各 pick 字段（与后台同源）
+      var REF_USD_PER_M = 0.35;
+      function estByMult(mult) {
+        var m = Number(mult || 1) || 1;
+        return "~$" + Math.round(REF_USD_PER_M * m * 100) / 100 + "/1M";
+      }
+      function pickEst(p) {
+        var ref =
+          p.flash_ref_usd_per_m != null ? Number(p.flash_ref_usd_per_m) : REF_USD_PER_M;
+        if (!(ref > 0)) ref = REF_USD_PER_M;
+        var inMult = Number(p.in_mult || p.billing_mult || 1) || 1;
+        var outMult = Number(p.out_mult || p.billing_mult || 1) || 1;
+        var inUsd =
+          p.est_in_usd_per_m != null
+            ? p.est_in_usd_per_m
+            : Math.round(ref * inMult * 100) / 100;
+        var outUsd =
+          p.est_out_usd_per_m != null
+            ? p.est_out_usd_per_m
+            : Math.round(ref * outMult * 100) / 100;
+        var base = "in $" + inUsd + " · out $" + outUsd + "/1M";
+        // 2026-08-15 峰谷：DeepSeek 点名展示峰时费率（8/17 起生效）
+        var pk = pickPeakEst(p);
+        return pk ? base + (isZh() ? "（" + pk + "）" : " (" + pk + ")") : base;
+      }
+      function pickPeakEst(p) {
+        var ref =
+          p.flash_ref_usd_per_m != null ? Number(p.flash_ref_usd_per_m) : REF_USD_PER_M;
+        if (!(ref > 0)) ref = REF_USD_PER_M;
+        var inMult = Number(p.in_mult || p.billing_mult || 1) || 1;
+        var outMult = Number(p.out_mult || p.billing_mult || 1) || 1;
+        var pin = Number(p.peak_in_mult);
+        var pout = Number(p.peak_out_mult);
+        if (!(pin > 0 || pout > 0)) return "";
+        if ((pin === inMult || !(pin > 0)) && (pout === outMult || !(pout > 0))) return "";
+        var pInUsd =
+          p.peak_est_in_usd_per_m != null
+            ? Number(p.peak_est_in_usd_per_m)
+            : Math.round(ref * (pin > 0 ? pin : inMult) * 100) / 100;
+        var pOutUsd =
+          p.peak_est_out_usd_per_m != null
+            ? Number(p.peak_est_out_usd_per_m)
+            : Math.round(ref * (pout > 0 ? pout : outMult) * 100) / 100;
+        return "peak in $" + pInUsd + " · out $" + pOutUsd + "/1M";
+      }
+      function peakBadge(p) {
+        var pin = Number(p.peak_in_mult);
+        var pout = Number(p.peak_out_mult);
+        if (!(pin > 0 || pout > 0)) return "";
+        var inM = Number(p.in_mult || p.billing_mult || 1) || 1;
+        var outM = Number(p.out_mult || p.billing_mult || 1) || 1;
+        if (pin === inM && pout === outM) return "";
+        var zh = isZh();
+        var t = zh
+          ? "高峰时段（北京 9:00-12:00 / 14:00-18:00）输出费率；8/17 起随官方峰谷生效"
+          : "Peak hours (Beijing 9-12 / 14-18) output rate; effective with official peak/off-peak from Aug 17";
+        return (
+          ' <span title="' + esc(t) + '" style="display:inline-block;background:#eef2ff;color:#3730a3;' +
+          "border-radius:3px;padding:0 5px;font-size:11px;margin-left:4px;white-space:nowrap;\">" +
+          (zh ? "峰时 out ×" + pout : "peak out ×" + pout) +
+          "</span>"
+        );
+      }
+      function fillPeakStrip() {
+        var el = document.getElementById("peakStrip");
+        var nowEl = document.getElementById("peakNow");
+        if (!el || !nowEl) return;
+        var zh = isZh();
+        var period = (window.__AI24X_PERIOD || "").toLowerCase();
+        if (period !== "peak" && period !== "offpeak") {
+          var d = new Date();
+          var h = d.getUTCHours() + 8; // Asia/Shanghai
+          if (h >= 24) h -= 24;
+          period = (h >= 9 && h < 12) || (h >= 14 && h < 18) ? "peak" : "offpeak";
+        }
+        el.style.display = "";
+        nowEl.textContent =
+          period === "peak"
+            ? zh
+              ? "⚡ 高峰（费率上浮）"
+              : "⚡ Peak (higher rate)"
+            : zh
+              ? "🌙 低谷（费率更省）"
+              : "🌙 Off-peak (lower rate)";
+      }
+      // 官方直连价对照（$ / 1M tokens，in/out；OpenAI 官网价；2026-08-06 校验）
+      var OFFICIAL_PRICE = {
+        "vip-gpt54": [2.5, 15.0],
+        "vip-gpt5": [1.25, 10.0],
+        "vip-gpt56-terra": [2.0, 12.0],
+        "vip-gpt56-luna": [0.2, 1.2],
+        "vip-gpt5-mini": [0.25, 2.0],
+        "vip-gpt4o": [2.5, 10.0],
+        "vip-gpt4o-mini": [0.15, 0.6]
+      };
+      function officialBadge(p) {
+        var off = OFFICIAL_PRICE[p.id];
+        if (!off) return "";
+        var ref = p.flash_ref_usd_per_m != null ? Number(p.flash_ref_usd_per_m) : REF_USD_PER_M;
+        if (!(ref > 0)) ref = REF_USD_PER_M;
+        var inUsd = Number(p.est_in_usd_per_m != null ? p.est_in_usd_per_m : Math.round(ref * (p.in_mult || 1) * 100) / 100);
+        var outUsd = Number(p.est_out_usd_per_m != null ? p.est_out_usd_per_m : Math.round(ref * (p.out_mult || 1) * 100) / 100);
+        var dIn = off[0] > 0 ? Math.round(((inUsd - off[0]) / off[0]) * 100) : 0;
+        var dOut = off[1] > 0 ? Math.round(((outUsd - off[1]) / off[1]) * 100) : 0;
+        // 只展示「我们有优惠」：输出比官方直连便宜才显示绿色徽章；持平或更贵不显示对照，避免无实惠反而劝退
+        if (dOut > -1) return "";
+        var zh = isZh();
+        var text = zh ? "输出省 " + (-dOut) + "%" : "out -" + (-dOut) + "%";
+        var title =
+          "OpenAI official $" + off[0] + "/$" + off[1] + " per 1M · AI24X $" + inUsd + "/$" + outUsd +
+          " (in " + (dIn >= 0 ? "+" : "") + dIn + "%, out " + (dOut >= 0 ? "+" : "") + dOut + "%)";
+        return (
+          ' <span title="' + esc(title) + '" style="display:inline-block;background:#e6f4ea;color:#1e7e34' +
+          ';border-radius:3px;padding:0 5px;font-size:11px;margin-left:4px;">' + esc(text) + "</span>"
+        );
+      }
+      function fillPriceNote() {
+        var el = document.getElementById("vipPriceNote");
+        if (!el) return;
+        var zh = isZh();
+        el.textContent = zh
+          ? "为什么点名模价格看似高于官方直连？官方价不含渠道与支付合规成本，且需外币卡 + 海外账号。AI24X 聚合免外币卡、一个 key 全模型，输出端还有优惠（GPT-5.6 Terra 输出比官方省 39%）。最终扣费以 console 账单为准。"
+          : "Why do named picks cost more than official? Official pricing excludes channel & payment compliance, and needs a foreign card + overseas account. AI24X bundles every model under one key with no foreign card needed - and our output side can beat OpenAI (GPT-5.6 Terra output -39%). Final billing: see console.";
+      }
+
+      function officialBest(picks) {
+        var best = null;
+        (picks || []).forEach(function (p) {
+          var off = OFFICIAL_PRICE[p.id];
+          if (!off || !(off[1] > 0)) return;
+          var ref = p.flash_ref_usd_per_m != null ? Number(p.flash_ref_usd_per_m) : REF_USD_PER_M;
+          if (!(ref > 0)) ref = REF_USD_PER_M;
+          var outUsd = Number(p.est_out_usd_per_m != null ? p.est_out_usd_per_m : Math.round(ref * (p.out_mult || 1) * 100) / 100);
+          var dOut = off[1] > 0 ? Math.round(((outUsd - off[1]) / off[1]) * 100) : 0;
+          if (dOut <= 0 && (!best || dOut < best.dOut)) best = { title: pickTitle(p), dOut: dOut };
+        });
+        return best;
+      }
+      function fillValueBar(picks) {
+        var el = document.getElementById("vipValueBar");
+        if (!el) return;
+        var zh = isZh();
+        var best = officialBest(picks);
+        var parts = [];
+        if (best) {
+          parts.push(
+            zh
+              ? "点名 " + best.title + "：输出比官方直连省 " + -best.dOut + "%"
+              : best.title + " named: output " + -best.dOut + "% below official"
+          );
+        }
+        parts.push(
+          zh
+            ? "限时特惠超值包 ≈ 官方 1/2 价、一个 key 聚合全模型、免外币卡"
+            : "Limited-time Value Pack ≈ half of official, all models under one key, no foreign card"
+        );
+        el.textContent = "⚡ " + parts.join(" ｜ ");
+      }
+      function brandRows() {
+        var zh = isZh();
+        var rows = [
+          {
+            group: zh ? "推荐" : "Rec",
+            name: "AI24X Auto",
+            id: "auto",
+            mult: 1,
+            est: estByMult(1),
+            blurb: zh ? "自动选档，省心起步" : "Auto pick — easiest start",
+          },
+          {
+            group: zh ? "推荐" : "Rec",
+            name: "AI24X Flash",
+            id: "flash",
+            mult: 1,
+            est: estByMult(1),
+            blurb: zh ? "日常主力，同用量通常最省" : "Daily default — usually lowest cost",
+          },
+          {
+            group: zh ? "推荐" : "Rec",
+            name: "AI24X Pro",
+            id: "pro",
+            mult: 3,
+            est: estByMult(3),
+            blurb: zh ? "更高质量，仍比多数名模点名更省" : "Higher quality, still below most named picks",
+          },
+          {
+            group: zh ? "推荐" : "Rec",
+            name: "AI24X Ultra",
+            id: "ultra",
+            mult: 6,
+            est: estByMult(6),
+            blurb: zh ? "旗舰体验，按需升级" : "Flagship when you need it",
+          },
+          {
+            group: zh ? "推荐" : "Rec",
+            name: "AI24X Shared",
+            id: "shared",
+            mult: 1,
+            est: zh ? "免费（日上限）" : "Free (daily cap)",
+            blurb: zh ? "先体验流程，不占付费额度" : "Try the flow without paid credits",
+          },
+        ];
+        return rows
+          .map(function (r) {
+            return (
+              "<tr><td><span class='pill-brand'>" +
+              esc(r.group) +
+              "</span></td><td><strong>" +
+              esc(r.name) +
+              "</strong></td><td class='mono'>" +
+              esc(r.id) +
+              "</td><td>×" +
+              esc(r.mult) +
+              "</td><td class='mono small est-cell'>" +
+              esc(r.est) +
+              "</td>" +
+              toolsCell(r.id, zh) +
+              "<td class='mono'>—</td>" +
+              "<td class='sub'>" +
+              esc(r.blurb) +
+              "</td></tr>"
+            );
+          })
+          .join("");
+      }
+      function vipRows(list) {
+        if (!list.length) return "<tr><td colspan='8' class='muted'>—</td></tr>";
+        var zh = isZh();
+        return list
+          .map(function (p) {
+            var flagCN = '<svg width="16" height="12" viewBox="0 0 16 12" style="vertical-align:-1px"><rect fill="#DE2910" width="16" height="12"/><polygon fill="#FFDE00" points="3.5,2 5,4.5 5,1.5 5,4.5 5,4.5 3,2 5,3 5,2.5"/><polygon fill="#FFDE00" points="8,3.5 6,6 7.5,6.5 6.5,4.5 8.5,4.5"/><polygon fill="#FFDE00" points="5,7 3,9.5 4.5,8 4.5,8.5 3,8"/><polygon fill="#FFDE00" points="9,6 7.5,8.5 8.5,9 7,7.5 9,7"/></svg>';
+            var globeSVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="1.5" style="vertical-align:-2px"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 000 20"/></svg>';
+            var g =
+              p.group === "intl"
+                ? zh
+                  ? globeSVG + ' 国际'
+                  : globeSVG + ' Frontier'
+                : zh
+                  ? flagCN + ' 中国'
+                  : globeSVG + ' China';
+            var lit = !p.locked && p.value_pack_ok;
+            return (
+              "<tr" + (lit ? " class='vp-lit'" : "") + "><td><span class='pill-vip'>" +
+              g +
+              "</span></td><td>" +
+              esc(pickTitle(p)) +
+              cnBadge(p, zh) +
+              (lit
+                ? " <span class='vp-lit-badge'>" + (zh ? "✓ 已点亮" : "✓ Lit") + "</span>"
+                : p.value_pack_ok
+                  ? " <span style='display:inline-block;font-size:10px;padding:0 6px;border-radius:999px;border:1px solid rgba(245,158,11,.6);color:#b45309;background:rgba(245,158,11,.12);white-space:nowrap;'>" +
+                    (zh ? "超值包" : "Value") +
+                    "</span>"
+                  : "") + officialBadge(p) +
+              "</td><td class='mono'>" +
+              esc(p.id) +
+              "</td><td class='mono small'>in ×" +
+              esc(p.in_mult || p.billing_mult || 1) +
+              " · out ×" +
+              esc(p.out_mult || p.billing_mult || 1) +
+              peakBadge(p) +
+              "</td><td class='mono small est-cell'>" +
+              esc(pickEst(p)) +
+              "</td>" +
+              toolsCell(p.id, zh) +
+              "<td class='sub'>" +
+              esc(pickBlurb(p)) +
+              "</td><td class='mono'>" +
+              (hasImage(p) ? "🖼️" : "—") +
+              "</td></tr>"
+            );
+          })
+          .join("");
+      }
+      function renderValuePackBanner(plans, picks) {
+        var el = document.getElementById("valuePackBanner");
+        if (!el) return;
+        var vp = null;
+        (plans || []).forEach(function (p) {
+          if (p && p.value_pack) vp = p;
+        });
+        if (!vp) {
+          el.style.display = "none";
+          return;
+        }
+        var zh = isZh();
+        var whitelist = vp.value_pack_models || [];
+        var modelNames = [];
+        (picks || []).forEach(function (p) {
+          if (whitelist.indexOf(p.id) >= 0) modelNames.push(pickTitle(p));
+        });
+        var price =
+          window.AI24X_API && AI24X_API.planPriceLabel
+            ? AI24X_API.planPriceLabel(vp)
+            : "$9.9";
+        var credits =
+          window.AI24X_API && AI24X_API.planCreditsShort
+            ? AI24X_API.planCreditsShort(vp)
+            : zh
+              ? "3000 万"
+              : "30M";
+        var desc = zh
+          ? price + " 得 " + credits + " credits + 30 天白名单点名资格（≈官方 1/2 价、输出端更多折扣）。额度 12 个月有效，到期剩余自动核销。本包可直接点名："
+          : price + " for " + credits + " credits + 30-day whitelist named-model access (≈ half of official pricing, with extra output savings). Credits valid 12 months; unused balance expires after. Included: ";
+        var dEl = document.getElementById("vpDesc");
+        var mEl = document.getElementById("vpModels");
+        if (dEl) dEl.textContent = desc;
+        if (mEl)
+          mEl.textContent = modelNames.length
+            ? modelNames.join(" · ")
+            : zh
+              ? "（加载中…）"
+              : "(loading…)";
+        el.style.display = "";
+        try {
+          if (window.AI24X_API && AI24X_API.billingBalance) {
+            AI24X_API.billingBalance().then(function (bal) {
+              var aEl = document.getElementById("vpActive");
+              if (aEl) aEl.style.display = bal && bal.is_value_pack_active ? "" : "none";
+            }).catch(function () {});
+          }
+        } catch (eB) {}
+      }
+      function refreshBanner() {
+        renderValuePackBanner(cachedPlans && cachedPlans.plans, cachedPicks);
+      }
+      var cachedPicks = null;
+      var cachedPlans = null;
+      function render(picks) {
+        fillPriceNote();
+        fillValueBar(picks);
+        fillPeakStrip();
+        var brandEl = document.getElementById("brandTierBody");
+        var vipEl = document.getElementById("vipPickAll");
+        if (brandEl) brandEl.innerHTML = brandRows();
+        if (!vipEl) return;
+        var sorted = (picks || []).slice().sort(function (a, b) {
+          var ga = a.group === "intl" ? 1 : 0;
+          var gb = b.group === "intl" ? 1 : 0;
+          if (ga !== gb) return ga - gb;
+          return String(a.id || "").localeCompare(String(b.id || ""));
+        });
+        vipEl.innerHTML = vipRows(sorted);
+      }
+      document.addEventListener("DOMContentLoaded", function () {
+        var vipEl = document.getElementById("vipPickAll");
+        render([]);
+        if (!vipEl || !window.AI24X_API || !AI24X_API.listModels) return;
+        AI24X_API.listModels()
+          .then(function (m) {
+            window.__AI24X_PERIOD = (m && m.period) || "";
+            if (m && m.flash_ref_usd_per_m != null && Number(m.flash_ref_usd_per_m) > 0) {
+              REF_USD_PER_M = Number(m.flash_ref_usd_per_m);
+            } else if (m && m.vip_picks && m.vip_picks[0] && m.vip_picks[0].flash_ref_usd_per_m) {
+              REF_USD_PER_M = Number(m.vip_picks[0].flash_ref_usd_per_m) || REF_USD_PER_M;
+            }
+            cachedPicks = (m && m.vip_picks) || [];
+            render(cachedPicks);
+            if (window.AI24X_API && AI24X_API.billingPlans) {
+              AI24X_API.billingPlans()
+                .then(function (plans) {
+                  cachedPlans = plans;
+                  refreshBanner();
+                })
+                .catch(function () {
+                  /* 套餐接口异常时隐藏横幅，不影响列表 */
+                });
+            }
+          })
+          .catch(function () {
+            vipEl.innerHTML = "<tr><td colspan='8' class='muted'>—</td></tr>";
+          });
+        document.addEventListener("ai24x:lang", function () {
+          render(cachedPicks || []);
+          refreshBanner();
+        });
+        var langSel =
+          document.getElementById("lang-select") ||
+          document.querySelector("[data-lang-select], #site-lang, select.lang");
+        if (langSel) {
+          langSel.addEventListener("change", function () {
+            setTimeout(function () {
+              render(cachedPicks || []);
+              refreshBanner();
+            }, 0);
+          });
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,212 @@
+{
+  "ok": true,
+  "date": "2026-08-17",
+  "source": "ths:fuyao",
+  "limit_up": {
+    "count": 106,
+    "max_lianban": 4,
+    "max_name": "天洋新材",
+    "seal_money_top": [
+      {
+        "name": "中石科技",
+        "ticker": "300684",
+        "seal": 35128718.0,
+        "reason": "中际旭创入股+CPO散热+液冷服务器"
+      },
+      {
+        "name": "通富微电",
+        "ticker": "002156",
+        "seal": 34304478.0,
+        "reason": "先进封装+AMD产业链+半年报预增"
+      },
+      {
+        "name": "有研新材",
+        "ticker": "600206",
+        "seal": 31600002.0,
+        "reason": "半导体靶材+存储芯片+稀土+半年报增长"
+      },
+      {
+        "name": "共进股份",
+        "ticker": "603118",
+        "seal": 22847832.0,
+        "reason": "数据中心交换机+光通信+机器人+唐山国资"
+      },
+      {
+        "name": "华正新材",
+        "ticker": "603186",
+        "seal": 19223533.0,
+        "reason": "覆铜板+AI算力+定增受理+半年报预增"
+      }
+    ]
+  },
+  "ladder": {
+    "date": "2026-08-17",
+    "rows": [
+      {
+        "board": "two_board",
+        "count": 10,
+        "names": [
+          "中瓷电子",
+          "中石科技",
+          "利君股份",
+          "华森制药"
+        ]
+      },
+      {
+        "board": "three_board",
+        "count": 2,
+        "names": [
+          "共进股份",
+          "神奇制药"
+        ]
+      },
+      {
+        "board": "four_board",
+        "count": 3,
+        "names": [
+          "天洋新材",
+          "澳洋健康",
+          "金 螳 螂"
+        ]
+      },
+      {
+        "board": "five_board",
+        "count": 0,
+        "names": []
+      },
+      {
+        "board": "six_board",
+        "count": 0,
+        "names": []
+      },
+      {
+        "board": "seven_over",
+        "count": 0,
+        "names": []
+      }
+    ]
+  },
+  "hot": [
+    {
+      "name": "亨通光电",
+      "ticker": "600487",
+      "rank": 1,
+      "heat": "5159829",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "莲花控股",
+      "ticker": "600186",
+      "rank": 2,
+      "heat": "3564863",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "金螳螂",
+      "ticker": "002081",
+      "rank": 3,
+      "heat": "3340614",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "利通电子",
+      "ticker": "603629",
+      "rank": 4,
+      "heat": "3066698",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "中天科技",
+      "ticker": "600522",
+      "rank": 5,
+      "heat": "2649276",
+      "rank_trend": "flat"
+    }
+  ],
+  "skyrocket": [
+    {
+      "name": "莲花控股",
+      "ticker": "600186",
+      "rank": 1,
+      "heat": "109122.0",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "盛科通信",
+      "ticker": "688702",
+      "rank": 2,
+      "heat": "107829.6",
+      "rank_trend": "up"
+    },
+    {
+      "name": "中国巨石",
+      "ticker": "600176",
+      "rank": 3,
+      "heat": "53540.7",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "数据港",
+      "ticker": "603881",
+      "rank": 4,
+      "heat": "47892.2",
+      "rank_trend": "up"
+    },
+    {
+      "name": "华正新材",
+      "ticker": "603186",
+      "rank": 5,
+      "heat": "46962.2",
+      "rank_trend": "up"
+    }
+  ],
+  "hot_money": [],
+  "anomaly": {
+    "count": 316,
+    "tags": {
+      "跌停": 1,
+      "涨停": 111,
+      "大跌": 38,
+      "大涨": 166
+    },
+    "top": [
+      {
+        "name": "北京文化",
+        "thscode": "000802.SZ",
+        "tag": "跌停",
+        "reason": "1、据同花顺iFinD数据，北京文化此前5个交易日累计上涨38.64%，此前20个交易日累计上涨64.44%，短期连续涨"
+      },
+      {
+        "name": "桂发祥",
+        "thscode": "002820.SZ",
+        "tag": "涨停",
+        "reason": "1、据2026年8月12日半年报，公司是商务部首批认定的“中华老字号”企业，主打产品“桂发祥十八街”系列麻花，其制作技艺"
+      },
+      {
+        "name": "ST宁科",
+        "thscode": "600165.SH",
+        "tag": "涨停",
+        "reason": "1、据2026年8月15日公告，公司已向上交所申请撤销其他风险警示，信永中和对公司2024年度财务报表出具的带持续经营重"
+      },
+      {
+        "name": "华正新材",
+        "thscode": "603186.SH",
+        "tag": "涨停",
+        "reason": "行业原因：\n1、据中国基金报8月17日报道，南亚塑料电子材料事业部向客户发出涨价通知，宣布铜箔基板及半固化片价格自202"
+      },
+      {
+        "name": "中石科技",
+        "thscode": "300684.SZ",
+        "tag": "涨停",
+        "reason": "行业原因：\n1、8月14日，英伟达正式宣布全球首款200G/lane CPO以太网交换机进入量产，硅光CPO技术从实验室"
+      },
+      {
+        "name": "天洋新材",
+        "thscode": "603330.SH",
+        "tag": "涨停",
+        "reason": "行业原因：\n1、8月14日，英伟达正式宣布全球首款200G/lane CPO以太网交换机进入量产，硅光CPO技术从实验室"
+      }
+    ]
+  },
+  "errors": []
+}

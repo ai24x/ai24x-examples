@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
+  <meta name="robots" content="index,follow" />
+  <title>自选评分榜 · AI行情官｜灯塔版</title>
+  <meta name="description" content="AI行情官｜灯塔版 自选评分榜：对自选股做技术面量化评分（MACD、均线、量能、异动、位置、趋势），仅供选股参考，不构成投资建议。" />
+  <link rel="icon" href="data:," />
+  <script>
+    (function () {
+      try {
+        var k = "ai24x_a_theme";
+        var t = String(localStorage.getItem(k) || "").trim() || "light";
+        document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="/css/base.css?v=56" />
+  <link rel="stylesheet" href="/css/tool.css" />
+  <link rel="stylesheet" href="/css/watchscore.css?v=7" />
+</head>
+<body>
+  <header class="site-header" id="site-header"></header>
+  <main class="page-main">
+    <div class="wrap">
+      <section class="card">
+        <h1><svg viewBox="0 0 16 16" width="18" height="18" fill="currentColor" aria-hidden="true" style="vertical-align:-3px;margin-right:5px;"><path d="M2 13.5h2.4V8.6H2v4.9zm4.6 0h2.4V4.2H6.6v9.3zm4.6 0h2.4V6.4h-2.4v7.1z"/></svg>自选评分榜</h1>
+        <p id="wl-desc" class="sub" style="margin:0 0 12px;">仅对您自选的标的做<strong>公开技术指标统计</strong>（MACD、均线、量能、RSI、波动等常规指标，0-100 综合分），仅供自主决策参考，<strong>不构成证券投资咨询，不构成任何买卖建议</strong>。</p>
+
+        <div id="auth-guest" hidden>
+          <p class="sub" style="margin:0 0 4px;">登录后同步服务端自选并自动生成评分榜。</p>
+          <div class="auth-card-grid">
+            <a class="auth-card is-selected" href="./index.html?mode=login&amp;ch=phone">
+              <div class="t">去登录</div>
+              <div class="d">手机号或邮箱登录</div>
+            </a>
+            <a class="auth-card" href="./index.html?mode=register&amp;ch=phone">
+              <div class="t">去注册</div>
+              <div class="d">新用户注册</div>
+            </a>
+          </div>
+          <p class="sub" style="margin:12px 0 0;">
+            <a class="btn wl-back" href="./demo.html">← 返回行情页</a>
+          </p>
+        </div>
+
+        <div id="auth-user" hidden>
+          <div class="score-top">
+            <span class="muted small" id="wl-account">加载账号…</span>
+            <span style="display:flex; gap:8px; align-items:center;">
+              <a class="btn wl-back" href="./demo.html">← 返回行情</a>
+              <button class="btn" id="btn-wl-scores" type="button">刷新评分</button>
+            </span>
+          </div>
+          <div class="status" id="wl-status" style="margin:0 0 4px;"></div>
+          <div id="wl-market" style="margin:0 0 10px; display:none;"></div>
+          <div id="wl-tier" style="display:none;"></div>
+          <div class="hint" id="wl-score-hint" style="margin-top:10px; display:none;"></div>
+          <div id="wl-score-wrap" style="margin-top:10px;"></div>
+          <p class="sub" style="margin:14px 0 0; font-size:12px; line-height:1.7;">本页仅对您自选的标的做公开技术指标统计，不构成证券投资咨询与任何买卖建议；技术指标存在滞后与失效风险，历史表现不代表未来，股市有风险，入市需谨慎，据此操作风险自负。</p>
+        </div>
+      </section>
+    </div>
+  </main>
+  <footer class="site-footer" id="site-footer"></footer>
+  <script src="/js/shell.js?v=62"></script>
+  <script>
+    try { window.AI24X_A_SHELL && window.AI24X_A_SHELL.mount(""); } catch (e) {}
+  </script>
+  <script src="/js/watchscore.js?v=7"></script>
+  <script>
+    (function () {
+      var w = window.AI24X_WatchScore;
+      if (!w) return;
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", function () { w.boot(); });
+      } else {
+        w.boot();
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+# —— 安全：密钥/凭据一律不进 git ——
+api/.env
+api/.env.bak*
+api/data/llm_keys_override.json
+api/data/llm_keys_override.json.bak*
+
+# —— 运行/日志/缓存 ——
+api/logs/
+**/__pycache__/
+*.pyc
+logs/
+*.log
+
+# —— 备份与历史补丁（保留本地，不入库） ——
+**/*.bak
+**/*.bak.*
+*.dump
+db/*.sqlite
+db/*.db
+
+# —— 其它 ——
+.DS_Store
+Thumbs.db

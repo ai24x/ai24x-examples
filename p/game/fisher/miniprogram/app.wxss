@@ -1,0 +1,79 @@
+page {
+  background: #f0f7f4;
+  font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.btn {
+  transition: all 0.15s ease;
+}
+.btn:active {
+  transform: scale(0.95);
+  opacity: 0.92;
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.float-slow {
+  animation: floatSlow 2s ease-in-out infinite;
+}
+@keyframes floatSlow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6rpx);
+  }
+}
+
+.bite-flash {
+  animation: flash 0.5s infinite;
+}
+@keyframes flash {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.wave-ring {
+  animation: waveRing 1s ease-out forwards;
+}
+@keyframes waveRing {
+  0% {
+    opacity: 1;
+    transform: scale(0.2);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+.coin-up {
+  animation: coinUp 1s ease-out forwards;
+  color: #b89442;
+}
+@keyframes coinUp {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-40rpx);
+  }
+}

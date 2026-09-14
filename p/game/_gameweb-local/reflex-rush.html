@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Reflex Rush · 反应力</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; }
+  body {
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background:#0f172a; color:#e2e8f0; overflow:hidden; user-select:none;
+    touch-action:manipulation; overscroll-behavior:none;
+  }
+  #wrap { height:100dvh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:20px; }
+  .hud { display:flex; gap:24px; font-size:15px; font-weight:700; color:#94a3b8; }
+  .hud b { color:#38bdf8; }
+  #stage {
+    width:100%; max-width:400px; aspect-ratio:1; border-radius:28px;
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    background:#1e293b; border:2px solid #334155; cursor:pointer;
+    transition: background .05s, border-color .05s; touch-action:manipulation;
+  }
+  #stage .txt { font-size: clamp(22px,6vw,32px); font-weight:800; padding:20px; line-height:1.4; }
+  #stage.ready  { background:#dc2626; border-color:#ef4444; }
+  #stage.go     { background:#16a34a; border-color:#4ade80; }
+  #stage.early  { background:#7c3aed; border-color:#a78bfa; }
+  #stage.done   { background:#1e293b; border-color:#334155; }
+  #stage.ready .txt, #stage.go .txt { color:#fff; }
+  #result { min-height:26px; font-size:16px; font-weight:700; color:#fbbf24; }
+  #list { font-size:13px; color:#64748b; text-align:center; min-height:20px; }
+  #overlay { position:fixed; inset:0; background:rgba(2,6,23,.88); display:none; align-items:center; justify-content:center; z-index:10; }
+  #overlay.show { display:flex; }
+  .panel { text-align:center; padding:32px; border-radius:20px; background:#1e293b; border:1px solid #334155; max-width:320px; width:90%; }
+  .panel h2 { font-size:24px; margin-bottom:6px; }
+  .grade { font-size:52px; font-weight:800; color:#38bdf8; margin:8px 0 2px; }
+  .avg { color:#94a3b8; font-size:15px; margin-bottom:16px; }
+  .play { background:linear-gradient(90deg,#38bdf8,#6366f1); border:none; color:#fff; font-size:18px; font-weight:800; padding:14px 40px; border-radius:999px; cursor:pointer; box-shadow:0 6px 0 rgba(0,0,0,.3); touch-action:manipulation; }
+  .play:active { transform: translateY(3px); box-shadow:0 3px 0 rgba(0,0,0,.3); }
+  .back { display:block; margin-top:14px; color:#64748b; font-size:13px; text-decoration:none; }
+</style>
+<style id="xz-shell">
+#topbar{position:fixed;top:0;left:0;right:0;height:64px;z-index:50;display:flex;align-items:center;gap:10px;padding:0 14px;background:rgba(15,23,42,.94);backdrop-filter:blur(8px);border-bottom:1px solid #334155;color:#e2e8f0;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;-webkit-user-select:none;user-select:none;}
+#topbar a{color:#38bdf8;text-decoration:none;font-size:14px;font-weight:700;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+#topbar .tt{flex:1;text-align:center;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#topbar .tg{font-size:11px;color:#94a3b8;font-weight:400;margin-left:4px;}
+#howBtn{width:30px;height:30px;border-radius:50%;border:1px solid #334155;background:#1e293b;color:#94a3b8;font-weight:800;cursor:pointer;font-size:15px;line-height:1;flex:none;}
+#howto{display:none;position:fixed;top:72px;left:50%;transform:translateX(-50%);width:min(92vw,420px);z-index:70;background:#1e293b;border:1px solid #475569;border-radius:14px;padding:14px 16px;color:#cbd5e1;font-size:13px;line-height:1.7;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;box-shadow:0 12px 32px rgba(0,0,0,.55);}
+#howto.show{display:block;}
+#howto b{color:#38bdf8;}
+.xz-cr{position:fixed;bottom:4px;right:10px;font-size:10px;color:#475569;z-index:45;font-family:-apple-system,"Segoe UI",sans-serif;pointer-events:none;-webkit-user-select:none;user-select:none;}
+</style>
+</head>
+<body>
+<div id="topbar"><a href="index.html">← 列表</a><span class="tt">Reflex Rush<span class="tg">反应力测试</span></span><button id="howBtn" aria-label="玩法说明">?</button></div>
+<div id="howto"><b>怎么玩</b><br>等方块变绿立刻点击，共 5 轮取平均反应时间，越短越强，可以和朋友比拼谁的手更快。</div>
+
+<div id="wrap">
+  <div class="hud"><div>第 <b id="round">1</b> / 5 轮</div></div>
+  <div id="stage"><div class="txt" id="stageTxt">点击开始</div></div>
+  <div id="result"></div>
+  <div id="list">5 轮平均反应时间</div>
+</div>
+
+<div id="overlay">
+  <div class="panel">
+    <h2>测试完成</h2>
+    <div class="grade" id="grade">-</div>
+    <div class="avg" id="avg">平均 0 ms</div>
+    <button class="play" id="restart">再测一次</button>
+    <a class="back" href="index.html">← 返回列表</a>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var stage=document.getElementById('stage'), stageTxt=document.getElementById('stageTxt');
+  var roundEl=document.getElementById('round'), resultEl=document.getElementById('result');
+  var listEl=document.getElementById('list'), overlay=document.getElementById('overlay');
+  var gradeEl=document.getElementById('grade'), avgEl=document.getElementById('avg');
+  var restart=document.getElementById('restart');
+
+  var TOTAL=5, round=0, times=[], state='idle', goTime=0, timer=null;
+
+  function gradeText(avg){
+    if(avg<180) return { g:'⚡ 闪电手', c:'#38bdf8' };
+    if(avg<230) return { g:'🔥 很敏锐', c:'#4ade80' };
+    if(avg<300) return { g:'👍 正常水平', c:'#fbbf24' };
+    if(avg<400) return { g:'😴 有点慢', c:'#fb923c' };
+    return { g:'🐢 该练练了', c:'#f87171' };
+  }
+
+  function setState(s){
+    state=s;
+    stage.className=''; void stage.offsetWidth;
+    stage.classList.add(s);
+  }
+
+  function beginRound(){
+    round++;
+    roundEl.textContent=round;
+    resultEl.textContent='';
+    setState('ready');
+    stageTxt.textContent='等它变绿…';
+    var delay = 1000 + Math.random()*2500;
+    timer=setTimeout(function(){
+      if(state!=='ready') return;
+      goTime=performance.now();
+      setState('go');
+      stageTxt.textContent='快按！';
+    }, delay);
+  }
+
+  function finish(){
+    var sum=0; times.forEach(function(t){sum+=t;});
+    var avg=Math.round(sum/times.length);
+    var g=gradeText(avg);
+    gradeEl.textContent=g.g; gradeEl.style.color=g.c;
+    avgEl.textContent='平均 '+avg+' ms（单轮: '+times.join(' / ')+' ms）';
+    overlay.classList.add('show');
+  }
+
+  function onTap(){
+    if(state==='idle'){
+      times=[]; round=0; overlay.classList.remove('show');
+      beginRound(); return;
+    }
+    if(state==='ready'){
+      clearTimeout(timer);
+      setState('early');
+      stageTxt.textContent='太早了！点一下重来';
+      return;
+    }
+    if(state==='early'){
+      beginRound(); return;
+    }
+    if(state==='go'){
+      var ms=Math.round(performance.now()-goTime);
+      times.push(ms);
+      setState('done');
+      stageTxt.textContent=ms+' ms';
+      resultEl.textContent=ms+' ms';
+      if(round>=TOTAL){ finish(); }
+      else {
+        listEl.textContent='已测 '+times.length+' 轮，点击继续';
+        stageTxt.textContent='点一下继续';
+      }
+      return;
+    }
+    if(state==='done'){
+      beginRound(); return;
+    }
+  }
+
+  stage.addEventListener('pointerdown', function(e){ e.preventDefault(); onTap(); });
+  restart.addEventListener('click', function(){ times=[]; round=0; overlay.classList.remove('show'); beginRound(); });
+})();
+</script>
+<script>
+(function(){
+  'use strict';
+  // --- 等比缩放：390x780 设计基准（上方 64px 顶部栏），其它屏幕自动等比 ---
+  var W=390,H=780,TOP=64;
+  var wrap=document.getElementById('wrap');
+  function fit(){
+    if(!wrap) return;
+    var s=Math.min(innerWidth/W,(innerHeight-TOP)/H);
+    if(s>1.4) s=1.4;
+    var w=W*s,h=H*s;
+    wrap.style.width=w+'px';
+    wrap.style.height=h+'px';
+    wrap.style.left=((innerWidth-w)/2)+'px';
+    wrap.style.top=(TOP+(innerHeight-TOP-h)/2)+'px';
+    wrap.style.position='fixed';
+    wrap.style.margin='0';
+    wrap.style.transform='scale('+s+')';
+    wrap.style.transformOrigin='top left';
+  }
+  fit();
+  addEventListener('resize',fit);
+  addEventListener('orientationchange',fit);
+  // 结算浮层提到顶部栏之上（面板里自带返回入口）
+  var ov=document.getElementById('overlay');
+  if(ov) ov.style.zIndex=60;
+  // --- 玩法说明折叠 ---
+  var hb=document.getElementById('howBtn'),ht=document.getElementById('howto');
+  if(hb&&ht){
+    hb.addEventListener('click',function(e){e.stopPropagation();ht.classList.toggle('show');});
+    document.addEventListener('pointerdown',function(e){if(ht.classList.contains('show')&&!ht.contains(e.target)&&e.target!==hb)ht.classList.remove('show');});
+  }
+  // --- L1 防拷贝：禁右键 / 禁 F12 / 禁 Ctrl+S,U,P / 禁 Ctrl+Shift+I,J,C ---
+  document.addEventListener('contextmenu',function(e){e.preventDefault();});
+  document.addEventListener('dragstart',function(e){e.preventDefault();});
+  document.addEventListener('keydown',function(e){
+    var k=e.key||'';
+    if(k==='F12'||(e.ctrlKey&&['s','u','p','S','U','P'].indexOf(k)>=0)||(e.ctrlKey&&e.shiftKey&&['i','j','c','I','J','C'].indexOf(k)>=0)){e.preventDefault();e.stopPropagation();return false;}
+  });
+  // 长按防存图
+  document.addEventListener('touchstart',function(){},false);
+})();
+</script>
+<div class="xz-cr">© 2026 AI24X Game Zone</div>
+</body>
+</html>

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Tap Whack · 打星星</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; }
+  body {
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background:linear-gradient(170deg,#0f172a,#581c87); color:#e2e8f0; overflow:hidden; user-select:none;
+    touch-action:manipulation; overscroll-behavior:none;
+  }
+  #wrap { height:100dvh; display:flex; flex-direction:column; align-items:center; padding:16px; }
+  .hud { display:flex; gap:20px; font-size:14px; font-weight:700; color:#94a3b8; margin-bottom:6px; }
+  .hud b { color:#fbbf24; }
+  #msg { min-height:24px; font-size:14px; font-weight:700; margin-bottom:8px; }
+  #field { position:relative; width:100%; max-width:400px; aspect-ratio:1; background:#1e293b; border:2px solid #334155; border-radius:18px; overflow:hidden; }
+  .target {
+    position:absolute; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; font-size:clamp(26px,7vw,38px); touch-action:manipulation;
+    transition: transform .08s; box-shadow: 0 6px 16px rgba(0,0,0,.4);
+  }
+  .target:active { transform: scale(.85); }
+  .target.pop { animation: tpop .22s forwards; }
+  @keyframes tpop { to { transform: scale(1.6); opacity:0; } }
+  #overlay { position:fixed; inset:0; background:rgba(2,6,23,.9); display:none; align-items:center; justify-content:center; z-index:10; }
+  #overlay.show { display:flex; }
+  .panel { text-align:center; padding:30px 24px; border-radius:20px; background:#1e293b; border:1px solid #334155; max-width:330px; width:92%; }
+  .panel h2 { font-size:24px; margin-bottom:6px; }
+  .panel .score { font-size:44px; font-weight:800; color:#38bdf8; margin:8px 0; }
+  .panel p { color:#94a3b8; font-size:14px; margin-bottom:16px; }
+  .play { background:linear-gradient(90deg,#a855f7,#ec4899); border:none; color:#fff; font-size:17px; font-weight:800; padding:13px 38px; border-radius:999px; cursor:pointer; box-shadow:0 5px 0 rgba(0,0,0,.3); touch-action:manipulation; }
+  .play:active { transform: translateY(3px); box-shadow:0 2px 0 rgba(0,0,0,.3); }
+  .back { display:block; margin-top:14px; color:#64748b; font-size:13px; text-decoration:none; }
+</style>
+<style id="xz-shell">
+#topbar{position:fixed;top:0;left:0;right:0;height:64px;z-index:50;display:flex;align-items:center;gap:10px;padding:0 14px;background:rgba(15,23,42,.94);backdrop-filter:blur(8px);border-bottom:1px solid #334155;color:#e2e8f0;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;-webkit-user-select:none;user-select:none;}
+#topbar a{color:#38bdf8;text-decoration:none;font-size:14px;font-weight:700;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+#topbar .tt{flex:1;text-align:center;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#topbar .tg{font-size:11px;color:#94a3b8;font-weight:400;margin-left:4px;}
+#howBtn{width:30px;height:30px;border-radius:50%;border:1px solid #334155;background:#1e293b;color:#94a3b8;font-weight:800;cursor:pointer;font-size:15px;line-height:1;flex:none;}
+#howto{display:none;position:fixed;top:72px;left:50%;transform:translateX(-50%);width:min(92vw,420px);z-index:70;background:#1e293b;border:1px solid #475569;border-radius:14px;padding:14px 16px;color:#cbd5e1;font-size:13px;line-height:1.7;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;box-shadow:0 12px 32px rgba(0,0,0,.55);}
+#howto.show{display:block;}
+#howto b{color:#38bdf8;}
+.xz-cr{position:fixed;bottom:4px;right:10px;font-size:10px;color:#475569;z-index:45;font-family:-apple-system,"Segoe UI",sans-serif;pointer-events:none;-webkit-user-select:none;user-select:none;}
+</style>
+</head>
+<body>
+<div id="topbar"><a href="index.html">← 列表</a><span class="tt">Tap Whack<span class="tg">打星星</span></span><button id="howBtn" aria-label="玩法说明">?</button></div>
+<div id="howto"><b>怎么玩</b><br>星星冒出来就点它加分，点中炸弹扣分，限时内得分越高越好。</div>
+
+<div id="wrap">
+  <div class="hud"><div>分数 <b id="score">0</b></div><div>连击 <b id="combo">0</b></div><div>时间 <b id="time">30</b>s</div></div>
+  <div id="msg">点星星得分，别碰炸弹！</div>
+  <div id="field"></div>
+</div>
+
+<div id="overlay">
+  <div class="panel">
+    <h2>时间到！</h2>
+    <div class="score" id="finalScore">0</div>
+    <p id="finalMsg">最高连击 x0</p>
+    <button class="play" id="restart">再来一局</button>
+    <a class="back" href="index.html">← 返回列表</a>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var field=document.getElementById('field'), msgEl=document.getElementById('msg');
+  var scoreEl=document.getElementById('score'), comboEl=document.getElementById('combo');
+  var timeEl=document.getElementById('time'), overlay=document.getElementById('overlay');
+  var finalScore=document.getElementById('finalScore'), finalMsg=document.getElementById('finalMsg');
+  var restart=document.getElementById('restart');
+
+  var DURATION=30, score=0, combo=0, bestCombo=0, timeLeft=DURATION;
+  var running=false, spawnTimer=null, countdown=null;
+
+  var actx=null;
+  function snd(f, type){
+    try{
+      if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)();
+      var o=actx.createOscillator(), g=actx.createGain();
+      o.type=type||'square'; o.frequency.value=f;
+      g.gain.setValueAtTime(.15, actx.currentTime);
+      g.gain.exponentialRampToValueAtTime(.001, actx.currentTime+.12);
+      o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime+.13);
+    }catch(e){}
+  }
+
+  function spawn(){
+    if(!running) return;
+    var size=48+Math.random()*16;
+    var x=4+Math.random()*(100-14), y=6+Math.random()*(100-18);
+    var isBomb=Math.random()<0.18;
+    var t=document.createElement('div');
+    t.className='target';
+    t.style.width=size+'px'; t.style.height=size+'px';
+    t.style.left=x+'%'; t.style.top=y+'%';
+    t.textContent=isBomb?'💣':'⭐';
+    t.style.background=isBomb?'radial-gradient(circle,#7f1d1d,#450a0a)':'radial-gradient(circle,#fbbf24,#d97706)';
+    t.addEventListener('pointerdown', function(e,self,bomb){
+      e.preventDefault();
+      if(!running) return;
+      if(bomb){
+        self.classList.add('pop');
+        snd(120,'sawtooth');
+        running=false; endGame('💥 碰到炸弹！');
+        return;
+      }
+      self.classList.add('pop'); snd(600+Math.random()*300,'square');
+      score+=1+(combo>=5?2:combo>=3?1:0);
+      combo++; bestCombo=Math.max(bestCombo,combo);
+      scoreEl.textContent=score; comboEl.textContent=combo;
+      setTimeout(function(){ if(self.parentNode) self.parentNode.removeChild(self); }, 220);
+    }.bind(null, t, isBomb));
+    field.appendChild(t);
+    // 星星 2.2s 内没点就消失
+    if(!isBomb){
+      setTimeout(function(){
+        if(t.parentNode){ t.parentNode.removeChild(t); combo=0; comboEl.textContent='0'; }
+      }, 2200);
+    } else {
+      setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); }, 1600);
+    }
+  }
+
+  function tick(){
+    timeLeft--;
+    timeEl.textContent=timeLeft;
+    if(timeLeft<=0){ running=false; endGame('⏰ 时间到！'); }
+  }
+
+  function endGame(reason){
+    clearInterval(spawnTimer); clearInterval(countdown);
+    finalScore.textContent=score;
+    finalMsg.textContent=reason+' 最高连击 x'+bestCombo;
+    setTimeout(function(){ overlay.classList.add('show'); }, 300);
+  }
+
+  function start(){
+    score=0; combo=0; bestCombo=0; timeLeft=DURATION;
+    scoreEl.textContent='0'; comboEl.textContent='0'; timeEl.textContent=DURATION;
+    overlay.classList.remove('show');
+    field.innerHTML='';
+    running=true;
+    msgEl.textContent='点星星得分，别碰炸弹！';
+    spawn();
+    spawnTimer=setInterval(spawn, 700);
+    countdown=setInterval(tick, 1000);
+  }
+
+  restart.addEventListener('click', start);
+  start();
+})();
+</script>
+<script>
+(function(){
+  'use strict';
+  // --- 等比缩放：390x780 设计基准（上方 64px 顶部栏），其它屏幕自动等比 ---
+  var W=390,H=780,TOP=64;
+  var wrap=document.getElementById('wrap');
+  function fit(){
+    if(!wrap) return;
+    var s=Math.min(innerWidth/W,(innerHeight-TOP)/H);
+    if(s>1.4) s=1.4;
+    var w=W*s,h=H*s;
+    wrap.style.width=w+'px';
+    wrap.style.height=h+'px';
+    wrap.style.left=((innerWidth-w)/2)+'px';
+    wrap.style.top=(TOP+(innerHeight-TOP-h)/2)+'px';
+    wrap.style.position='fixed';
+    wrap.style.margin='0';
+    wrap.style.transform='scale('+s+')';
+    wrap.style.transformOrigin='top left';
+  }
+  fit();
+  addEventListener('resize',fit);
+  addEventListener('orientationchange',fit);
+  // 结算浮层提到顶部栏之上（面板里自带返回入口）
+  var ov=document.getElementById('overlay');
+  if(ov) ov.style.zIndex=60;
+  // --- 玩法说明折叠 ---
+  var hb=document.getElementById('howBtn'),ht=document.getElementById('howto');
+  if(hb&&ht){
+    hb.addEventListener('click',function(e){e.stopPropagation();ht.classList.toggle('show');});
+    document.addEventListener('pointerdown',function(e){if(ht.classList.contains('show')&&!ht.contains(e.target)&&e.target!==hb)ht.classList.remove('show');});
+  }
+  // --- L1 防拷贝：禁右键 / 禁 F12 / 禁 Ctrl+S,U,P / 禁 Ctrl+Shift+I,J,C ---
+  document.addEventListener('contextmenu',function(e){e.preventDefault();});
+  document.addEventListener('dragstart',function(e){e.preventDefault();});
+  document.addEventListener('keydown',function(e){
+    var k=e.key||'';
+    if(k==='F12'||(e.ctrlKey&&['s','u','p','S','U','P'].indexOf(k)>=0)||(e.ctrlKey&&e.shiftKey&&['i','j','c','I','J','C'].indexOf(k)>=0)){e.preventDefault();e.stopPropagation();return false;}
+  });
+  // 长按防存图
+  document.addEventListener('touchstart',function(){},false);
+})();
+</script>
+<div class="xz-cr">© 2026 AI24X Game Zone</div>
+</body>
+</html>

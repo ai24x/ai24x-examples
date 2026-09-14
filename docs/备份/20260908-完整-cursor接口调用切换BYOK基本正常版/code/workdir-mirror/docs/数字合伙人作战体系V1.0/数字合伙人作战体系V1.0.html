@@ -1,0 +1,2471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 数字合伙人作战体系 V1.0 · 多智能体协同办公实战手册</title>
+<style>
+  :root { --bg:#f6f8fa; --card:#fff; --ink:#1f2937; --muted:#6b7280; --accent:#2563eb; --border:#e5e7eb; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--ink); line-height:1.7; }
+  .layout { display:flex; min-height:100vh; }
+  /* 侧边目录 */
+  .sidebar { width:280px; flex-shrink:0; background:var(--card); border-right:1px solid var(--border); position:sticky; top:0; height:100vh; overflow-y:auto; padding:20px 16px; }
+  .sidebar h2 { font-size:15px; color:var(--muted); margin-bottom:12px; padding-left:8px; }
+  .sidebar ul { list-style:none; }
+  .sidebar li a { display:block; padding:8px 10px; color:var(--ink); text-decoration:none; font-size:14px; border-radius:6px; }
+  .sidebar li a:hover { background:#eff6ff; color:var(--accent); }
+  /* 主内容 */
+  .main { flex:1; padding:32px 40px; max-width:1000px; }
+  .doc-section { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:28px 36px; margin-bottom:24px; }
+  .doc-section h1 { font-size:26px; margin-bottom:8px; border-bottom:2px solid var(--accent); padding-bottom:10px; }
+  .doc-section h2 { font-size:20px; margin:22px 0 10px; color:#111827; }
+  .doc-section h3 { font-size:17px; margin:18px 0 8px; }
+  .doc-section p { margin:8px 0; }
+  .doc-section ul, .doc-section ol { margin:8px 0 8px 24px; }
+  .doc-section li { margin:4px 0; }
+  .doc-section blockquote { border-left:4px solid var(--accent); background:#f0f6ff; padding:10px 16px; margin:12px 0; border-radius:0 6px 6px 0; color:#374151; }
+  .doc-section code { background:#f3f4f6; padding:2px 6px; border-radius:4px; font-size:13px; font-family:Consolas,Monaco,monospace; }
+  .doc-section pre { background:#1e293b; color:#e2e8f0; padding:16px; border-radius:8px; overflow-x:auto; margin:12px 0; }
+  .doc-section pre code { background:transparent; color:inherit; padding:0; }
+  .doc-section table { border-collapse:collapse; width:100%; margin:12px 0; font-size:14px; }
+  .doc-section th, .doc-section td { border:1px solid var(--border); padding:8px 12px; text-align:left; }
+  .doc-section th { background:#f1f5f9; font-weight:600; }
+  .doc-section tr:nth-child(even) { background:#fafbfc; }
+  .doc-section hr { border:none; border-top:1px solid var(--border); margin:24px 0; }
+  a { color:var(--accent); }
+  .topbar { display:none; }
+  /* 移动端 */
+  @media (max-width:800px) {
+    .layout { flex-direction:column; }
+    .sidebar { width:100%; height:auto; position:static; border-right:none; border-bottom:1px solid var(--border); max-height:220px; }
+    .main { padding:16px; }
+    .doc-section { padding:18px; }
+  }
+  .badge { display:inline-block; background:var(--accent); color:#fff; font-size:12px; padding:2px 10px; border-radius:12px; margin-left:8px; vertical-align:middle; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <h2>📚 目录导航</h2>
+    <ul><li><a href="#sec-0">AI 数字合伙人作战体系 V1.0</a></li>
+<li><a href="#sec-1">01 · 组织架构与角色分工</a></li>
+<li><a href="#sec-2">02 · 协同沟通与汇报机制</a></li>
+<li><a href="#sec-3">03 · 自主运转与目标驱动</a></li>
+<li><a href="#sec-4">04 · 任务派发与验收铁律</a></li>
+<li><a href="#sec-5">05 · 心跳与失联降级协议</a></li>
+<li><a href="#sec-6">06 · 夜间时间差利用与定时工作规划</a></li>
+<li><a href="#sec-7">07 · 运维 SOP 与安全基线</a></li>
+<li><a href="#sec-8">08 · 避坑手册（踩坑实录）</a></li>
+<li><a href="#sec-9">09 · 平台接入实战（OpenClaw 接入自家 AI 平台）</a></li>
+<li><a href="#sec-10">10 · 业务增长双线打法（SEO / 社区 / 内容获客）</a></li>
+<li><a href="#sec-11">11 · AI 编程工具选型与配置（Codex + DeepSeek 实测）</a></li>
+<li><a href="#sec-12">12 · 老板 → 司令/指挥 → 副脑 顶级模式</a></li></ul>
+  </nav>
+  <main class="main">
+    <section id="sec-0" class="doc-section"><h1 id="ai-v10">AI 数字合伙人作战体系 V1.0</h1>
+<blockquote>
+<p><strong>多智能体协同办公实战手册</strong>
+OpenClaw × 飞书 × 多云主机 · 一人公司到十人公司的 AI 指挥中心落地指南
+版本：V1.0 · 2026-08-03 · AI24X 指挥中心沉淀</p>
+</blockquote>
+<hr />
+<h2 id="_1">这套文档是什么</h2>
+<p>本系列是 AI24X（一家「雷总 + 5 个 AI 数字员工」组成的微型公司）在实战中沉淀出的<strong>多智能体协同办公体系</strong>。我们踩过坑、走过弯路、迭代出这套机制——现在整理成一份可以直接复用的手册，供任何想用 AI 组建「数字合伙人团队」的创业公司参考、学习、落地。</p>
+<p><strong>核心思想一句话：</strong></p>
+<blockquote>
+<p>把 AI 从「聊天机器人」升级为「数字合伙人」——有岗位、有边界、有汇报机制、有失联预案、7×24 小时自主运转。</p>
+</blockquote>
+<hr />
+<h2 id="_2">体系全景图</h2>
+<pre><code>                    ┌─────────────────────┐
+                    │   雷总（老板/拍板）   │
+                    │   审批窗口 08:30-23:30│
+                    └──────────┬──────────┘
+                               │ 简报/战报/审批
+                    ┌──────────▼──────────┐
+                    │ 主脑（AI24X 指挥）    │
+                    │ 战略/调度/验收/出口   │
+                    └──────────┬──────────┘
+       ┌──────────┬───────────┼───────────┬──────────┐
+       ▼          ▼           ▼           ▼          ▼
+   ┌──────┐  ┌──────┐   ┌──────┐    ┌──────┐   ┌──────────┐
+   │副脑01│  │副脑02│   │副脑03│    │副脑04│   │ 科设      │
+   │国际  │  │中国  │   │运维CN│    │运维SG│   │(Cursor)   │
+   │获客  │  │运营  │   │生产  │    │生产+ │   │代码开发   │
+   └──────┘  └──────┘   └──────┘    └──────┘   └──────────┘
+   每台副脑 = 独立云主机 + 独立 OpenClaw 实例 + 独立飞书机器人
+</code></pre>
+<p><strong>关键设计：</strong>
+- <strong>一台副脑 = 一台云主机 + 一个 OpenClaw 实例 + 一个飞书机器人应用</strong>（物理隔离，互不拖累）
+- <strong>主脑是唯一消息出口</strong>：副脑不直接刷屏老板，统一汇总到主脑，老板只看简报
+- <strong>双线业务流水</strong>：国际流（Token 平台：01获客 + 04收银）≠ 国内流（AI行情官：02运营 + 03生产）
+- <strong>7×24 不空转</strong>：人睡觉 ≠ 项目停滞，夜间是生产力窗口（详见 06 篇）
+- <strong>V1.0+4 顶级模式</strong>：Codex（司令）升级为与主脑（指挥）平级的战略层，老板→司令/指挥→副脑；派发单线、飞书单一出口、失联降级（详见 12 篇）</p>
+<hr />
+<h2 id="_3">分册目录</h2>
+<table>
+<thead>
+<tr>
+<th>分册</th>
+<th>主题</th>
+<th>解决什么问题</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#sec-1">01</a></td>
+<td>组织架构与角色分工</td>
+<td>谁做什么、权限边界、指挥链路</td>
+</tr>
+<tr>
+<td><a href="#sec-2">02</a></td>
+<td>协同沟通与汇报机制</td>
+<td>怎么沟通不刷屏、不信息黑洞</td>
+</tr>
+<tr>
+<td><a href="#sec-3">03</a></td>
+<td>自主运转与目标驱动</td>
+<td>让 AI 从等指令变成自驱合伙人</td>
+</tr>
+<tr>
+<td><a href="#sec-4">04</a></td>
+<td>任务派发与验收铁律</td>
+<td>派活怎么派才不白派</td>
+</tr>
+<tr>
+<td><a href="#sec-5">05</a></td>
+<td>心跳与失联降级协议</td>
+<td>主脑挂了怎么办（容灾）</td>
+</tr>
+<tr>
+<td><a href="#sec-6">06</a></td>
+<td>夜间时间差与定时工作规划</td>
+<td>7×24 作战时间表</td>
+</tr>
+<tr>
+<td><a href="#sec-7">07</a></td>
+<td>运维 SOP 与安全基线</td>
+<td>生产环境怎么管才不出事</td>
+</tr>
+<tr>
+<td><a href="#sec-8">08</a></td>
+<td>避坑手册</td>
+<td>我们踩过的 20+ 个坑，你别再踩</td>
+</tr>
+<tr>
+<td><a href="#sec-9">09</a></td>
+<td>平台接入实战</td>
+<td>OpenClaw 接入自家 AI 平台全流程</td>
+</tr>
+<tr>
+<td><a href="#sec-10">10</a></td>
+<td>业务增长双线打法</td>
+<td>SEO/社区/内容获客方法论</td>
+</tr>
+<tr>
+<td><a href="#sec-11">11</a></td>
+<td>AI 编程工具选型与配置</td>
+<td>Codex+DeepSeek 效率第一，完整安装/避坑/平台转售通道（2026-08-05 增补；完整版见《Codex-DeepSeek配置指南-20260804.md》）</td>
+</tr>
+<tr>
+<td><a href="#sec-12">12</a></td>
+<td>老板→司令/指挥→副脑顶级模式</td>
+<td>司令(Codex)/指挥(主脑)双层顶配：单向派发、双向类SSH通信、飞书单一出口、指挥失联降级（2026-08-08 增补）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_4">快速阅读指南</h2>
+<ul>
+<li><strong>老板/决策者</strong>：读 README + 02 + 05 + 06（10 分钟了解体系）</li>
+<li><strong>技术负责人</strong>：读 01 + 04 + 07 + 09 + 11（落地架构与工具链）</li>
+<li><strong>运营负责人</strong>：读 03 + 06 + 10（运转机制）</li>
+<li><strong>全员</strong>：必读 08 避坑手册（前人的血泪）</li>
+</ul>
+<hr />
+<h2 id="_5">核心理念（贯穿全系列）</h2>
+<ol>
+<li><strong>数字合伙人，不是工具</strong>：目标驱动 &gt; 指令驱动，AI 主动发现问题、提案、执行</li>
+<li><strong>能自主就不打扰</strong>：分级汇报，小事发群留痕，大事才找老板</li>
+<li><strong>能落盘就不靠记忆</strong>：一切规则、决策、教训写进文档，AI 重启也不失忆</li>
+<li><strong>能自动就不手动</strong>：心跳、巡检、盯梢、备份全 cron 化，7×24 不停摆</li>
+<li><strong>能回滚就不硬改</strong>：改前必备份，无回滚路径不改</li>
+<li><strong>宁慢勿封</strong>：外网操作（社交账号/爬虫）严守风控，账号是稀缺资产</li>
+<li><strong>一机一脑 = 超级数字员工</strong>：每台电脑 + OpenClaw = 一名有岗位、有记忆、会学习、能自主提案的数字员工；低峰/夜间空闲资源优先用于学习、巡检与补产出（详见 03/05/06 分册）</li>
+</ol>
+<hr />
+<h2 id="_6">版本记录</h2>
+<table>
+<thead>
+<tr>
+<th>版本</th>
+<th>日期</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V1.0</td>
+<td>2026-08-03</td>
+<td>首次成体系整理（整合 15+ 份实战文档 + 全部铁律）</td>
+</tr>
+<tr>
+<td>V1.0+1</td>
+<td>2026-08-05</td>
+<td>增补分册 11：AI 编程工具选型（Codex+DeepSeek＞Cursor＞WorkBuddy＞OpenClaw）+ 完整配置</td>
+</tr>
+<tr>
+<td>V1.0+2</td>
+<td>2026-08-05</td>
+<td>交叉引用一致性优化：01→11、09→OpenClaw 接入指南、11→Codex-DeepSeek 完整指南；README 目录/版本同步；HTML 版再生成</td>
+</tr>
+<tr>
+<td>V1.0+3</td>
+<td>2026-08-05</td>
+<td>雷总拍板：Cursor 主要任务移交 Codex（科设=Codex 主力），01/11/README 同步更新</td>
+</tr>
+<tr>
+<td>V1.0+4</td>
+<td>2026-08-08</td>
+<td>增补分册 12：老板→司令/指挥→副脑顶级模式（通信协议/踩坑10条/失联降级/纪律）；司令=Codex 战略层，指挥=主脑调度层</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><em>🎇 我命由我不由天，热爱每一天！</em>
+<em>—— AI24X 指挥中心 · 2026-08-03</em></p></section>
+    <section id="sec-1" class="doc-section"><h1 id="01">01 · 组织架构与角色分工</h1>
+<blockquote>
+<p>版本：V1.0 · 2026-08-03 · AI24X 实战沉淀
+解决的问题：谁做什么、权限边界在哪、指令怎么流动</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、席位总览</h2>
+<p>AI24X 的组织 = <strong>1 个老板 + 1 个主脑 + 4 个副脑 + 1 个代码开发</strong>（科设）。</p>
+<table>
+<thead>
+<tr>
+<th>席位</th>
+<th>别名</th>
+<th>角色</th>
+<th>负责</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>👤 雷总</td>
+<td>老板</td>
+<td>拍板/审批/提供凭证</td>
+<td>战略决策、预算、上线批准</td>
+</tr>
+<tr>
+<td>♟️ 主脑</td>
+<td>AI24X 指挥</td>
+<td>指挥与产品·开发拍板</td>
+<td>战略、仓库、验收、发指令、唯一消息出口</td>
+</tr>
+<tr>
+<td>🚀 副脑01</td>
+<td>AI24X 国际</td>
+<td>国际市场·获客</td>
+<td>SEO、X/Reddit/HN、竞品、邮件营销</td>
+</tr>
+<tr>
+<td>💬 副脑02</td>
+<td>AI24X 中国</td>
+<td>中国市场·行情官运营</td>
+<td>种子群、社媒、中文教程、国际审校</td>
+</tr>
+<tr>
+<td>🛡️ 副脑03</td>
+<td>AI24X 运维CN</td>
+<td>国内生产店长</td>
+<td>a.your-domain.com、Nginx/备份、国内支付</td>
+</tr>
+<tr>
+<td>🔗 副脑04</td>
+<td>AI24X 运维SG</td>
+<td>国际生产店长</td>
+<td>www/api.your-domain.com、国际库、PayPal Live</td>
+</tr>
+<tr>
+<td>💻 科设</td>
+<td>Cursor</td>
+<td>代码开发</td>
+<td>所有核心项目代码（AI24X 主项目/AI行情官）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>物理部署（一台副脑 = 一台云主机 + 一个 OpenClaw 实例 + 一个飞书机器人）：</strong></p>
+<table>
+<thead>
+<tr>
+<th>副脑</th>
+<th>云主机 IP</th>
+<th>SSH 用户</th>
+<th>配置</th>
+<th>飞书角色</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>主脑</td>
+<td>&lt;主脑IP&gt;</td>
+<td>Admin</td>
+<td>高配</td>
+<td>AI24X指挥</td>
+</tr>
+<tr>
+<td>01</td>
+<td>&lt;01IP&gt;</td>
+<td>Administrator</td>
+<td>4C8G</td>
+<td>AI24X国际</td>
+</tr>
+<tr>
+<td>02</td>
+<td>&lt;02IP&gt;</td>
+<td>Administrator</td>
+<td>2C8G</td>
+<td>AI24X中国</td>
+</tr>
+<tr>
+<td>03</td>
+<td>&lt;03IP&gt;</td>
+<td>Administrator</td>
+<td>2C8G</td>
+<td>AI24X运维CN</td>
+</tr>
+<tr>
+<td>04</td>
+<td>&lt;04IP&gt;</td>
+<td>Administrator</td>
+<td>2C8G</td>
+<td>AI24X运维SG</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠️ <strong>铁律</strong>：SSH 用户名统一 <code>Administrator</code>（大写 A）！曾经因为记成 <code>ai24x@</code> 导致四台全连不上（详见 <a href="#sec-8">08 避坑手册</a>）。
+一台电脑 + OpenClaw = 一名超级数字员工：有岗位、有记忆（MEMORY.md）、有心跳与失联预案、会自主学习与主动提案；空闲/低峰资源优先用于学习、巡检与补产出（详见 03/05/06 分册）。</p>
+</blockquote>
+<hr />
+<h2 id="_2">二、双线业务流水（战略优先级）</h2>
+<pre><code>P0 国际 Token 流水：PayPal → 04 收银 → 01 获客
+P1 A1 行情官：03 生产 → 02 运营
+暂缓：国内 Token 推广、Fisher、独立预发环境、美欧额外主机
+</code></pre>
+<p><strong>一句话：</strong> 主脑定事写代码；03/04 看店收银；01/02 拉人续费</p>
+<p><strong>两条流水勿混：</strong></p>
+<table>
+<thead>
+<tr>
+<th>流水</th>
+<th>参与</th>
+<th>目标客户</th>
+<th>站</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🌍 国际流（Token 平台）</td>
+<td>主脑 + 01 + 04</td>
+<td>国外开发者</td>
+<td>www/api.your-domain.com</td>
+</tr>
+<tr>
+<td>📈 A1 流（AI 行情官）</td>
+<td>主脑 + 02 + 03</td>
+<td>股民/量化爱好者</td>
+<td>a.your-domain.com</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_3">三、指挥链路（消息怎么流动）</h2>
+<pre><code>雷总（需求/拍板）
+  ↓ 飞书私信
+主脑（我）—— 唯一消息出口
+  ↓ SSH 驱动（可靠）或飞书群通知
+各副脑各自本地执行
+  ↓ 回传 ops/ 文件 + 群记录
+主脑汇总 → 雷总只看简报（晨报/战报）
+</code></pre>
+<p><strong>关键规则：</strong>
+1. <strong>主脑是唯一消息出口</strong>：副脑不直接刷屏老板；私信老板仅限 🔴 生产/密钥/支付/P0
+2. <strong>日常沟通直连飞书</strong>：副脑间直接群@或SSH，形成纪要文档
+3. <strong>审批链路</strong>：副脑 → 主脑 → 雷总（主脑把关质量，不只是转发）</p>
+<hr />
+<h2 id="_4">四、权限边界（红线）</h2>
+<table>
+<thead>
+<tr>
+<th>席位</th>
+<th>能做</th>
+<th>不能做</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>主脑</td>
+<td>战略拍板、仓库验收、发指令、汇总简报</td>
+<td>改生产密钥、当日常客服、天天亲自部署、直接改项目代码</td>
+</tr>
+<tr>
+<td>副脑</td>
+<td>岗位职责内自主执行（🟢级）</td>
+<td>碰生产/密钥/支付（🔴必须审批）</td>
+</tr>
+<tr>
+<td>科设</td>
+<td>所有核心代码开发</td>
+<td>—（代码唯一负责人）</td>
+</tr>
+<tr>
+<td>雷总</td>
+<td>一切最终拍板</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>代码开发分工铁律（2026-07-29 确立）：</strong>
+- 代码相关（主项目/行情官子项目）→ 全部交给科设（Cursor 主力，偶尔 WorkBuddy）
+- 副脑只负责自己电脑范围内的项目/运营/运维，不碰核心项目代码
+- 主脑不直接改代码（未经允许不修改项目文件）
+- 这条同样适用生产服务器：配置可以动，源码不动</p>
+<p><strong>AI 编程工具效率实测排名（2026-08-05 雷总拍板）：</strong></p>
+<blockquote>
+<p><strong>Codex + DeepSeek ＞ Cursor ＞ WorkBuddy ＞ OpenClaw</strong>
+- 🥇 <strong>Codex + DeepSeek V4 Flash</strong> → 主脑级 AI 编程 / 核心大脑（2026-08-04 启用，效率最高）
+- 🥈 Cursor → 科设主力 IDE 编码（稳定可靠）
+- 🥉 WorkBuddy → 备用开发工具
+- 4️⃣ OpenClaw → 指挥/飞书中枢（定位是指挥链路与自动化，非编码主力）
+- 详细配置与避坑 → 见分册 <a href="#sec-11">11-AI编程工具选型与配置</a>（完整版另见《Codex-DeepSeek配置指南-20260804.md》）</p>
+</blockquote>
+<hr />
+<h2 id="2026-08-01-1402">五、硬件分工（雷总 2026-08-01 14:02 确认）</h2>
+<table>
+<thead>
+<tr>
+<th>席位</th>
+<th>配置</th>
+<th>定位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01 国际</td>
+<td>4核8G</td>
+<td>策略 + 内容工厂（批量SEO/多语言文案/数据分析）</td>
+</tr>
+<tr>
+<td>02 中国</td>
+<td>2核8G</td>
+<td>轻量运营（不碰重计算）</td>
+</tr>
+<tr>
+<td>03 运维CN</td>
+<td>2核8G</td>
+<td>生产（A1 流量起量再升）</td>
+</tr>
+<tr>
+<td>04 运维SG</td>
+<td>2核8G</td>
+<td>生产（执行层变重优先升 4核16G）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>升级信号（命中任一 → 报雷总申请）：</strong> 内存持续&gt;80% / CPU持续&gt;70% / C盘&lt;20% / 04执行层变重 / A1流量起量</p>
+<hr />
+<h2 id="_5">六、关键基础设施链接</h2>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>地址</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>官网</td>
+<td>https://www.your-domain.com/</td>
+</tr>
+<tr>
+<td>运维/心跳</td>
+<td>https://api.your-domain.com/health</td>
+</tr>
+<tr>
+<td>控制台</td>
+<td>https://www.your-domain.com/console.html</td>
+</tr>
+<tr>
+<td>A1 国内站</td>
+<td>https://a.your-domain.com/</td>
+</tr>
+<tr>
+<td>指挥UI</td>
+<td>/ai24x.html</td>
+</tr>
+<tr>
+<td>指挥数据</td>
+<td>/ops/ai24x-command.json</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><em>🎇 我命由我不由天，热爱每一天！</em>
+<em>—— AI24X 指挥中心 · 组织架构与角色分工 V1.0</em></p></section>
+    <section id="sec-2" class="doc-section"><h1 id="02">02 · 协同沟通与汇报机制</h1>
+<blockquote>
+<p>版本：V1.0 · 2026-08-03 · AI24X 实战沉淀
+解决的问题：怎么沟通才不刷屏打扰、又不信息黑洞</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心理念</h2>
+<p><strong>消灭两个极端：</strong>
+- ❌ 什么都报 → 刷屏打扰（老板一天看几百条）
+- ❌ 什么都不报 → 信息黑洞（出事了没人知道）</p>
+<p><strong>解法 = 汇报分级路由</strong>：按风险等级决定渠道和是否审批。</p>
+<hr />
+<h2 id="_2">二、汇报分级路由总表（全公司日常沟通唯一依据）</h2>
+<table>
+<thead>
+<tr>
+<th>级别</th>
+<th>场景</th>
+<th>渠道</th>
+<th>是否需审批</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟢</td>
+<td>岗位职责内日常执行、无风险、无争议</td>
+<td><strong>发指挥部群记录</strong>（≤5行）</td>
+<td>❌ 不需要</td>
+</tr>
+<tr>
+<td>🟡</td>
+<td>需协同 / 需主脑知情 / 拿不准</td>
+<td><strong>SSH 主脑交流</strong></td>
+<td>主脑判断是否升级</td>
+</tr>
+<tr>
+<td>🟠</td>
+<td>跨多副脑协同 / 策略调整</td>
+<td>SSH 主脑 → 主脑拍板或转雷总</td>
+<td>主脑把关</td>
+</tr>
+<tr>
+<td>🔴</td>
+<td>生产变更 / 密钥 / 支付 / 支出 / 上线 / 重大事故</td>
+<td><strong>私信雷总</strong>（在线走主脑→雷总）</td>
+<td>✅ 必须审批</td>
+</tr>
+</tbody>
+</table>
+<p><strong>判定口诀：</strong>
+1. <strong>能做且无风险</strong> → 直接做，群里发一条记录，完事
+2. <strong>能自我验证</strong> → 做了并验证，群里汇报结果
+3. <strong>拿不准 / 要协同</strong> → SSH 问主脑
+4. <strong>碰钱 / 碰生产 / 碰密钥</strong> → 停手，私信雷总（或经主脑），等批
+5. <strong>卡点 30 分钟</strong> → 按级别上报，不静默</p>
+<p><strong>失联叠加（主脑挂了）：</strong> 🟢照干发群 / 🟡🟠暂停 / 🔴暂停私信雷总（详见 05 篇）</p>
+<hr />
+<h2 id="_3">三、防刷屏纪律</h2>
+<ol>
+<li>🟢 记录 ≤5 行，合并发（晨间打卡 08:00 / 当日汇总）</li>
+<li>不重复汇报同一事项（先看群里有没有人报过）</li>
+<li>私信雷总仅限 🔴 与 P0，绝不闲聊</li>
+<li><strong>心跳不刷屏</strong>：副脑心跳改为落盘日志（ops/sub-brain-heartbeat-0X.log），主脑统一巡检汇总，不再每小时发群（2026-08-03 雷总拍板）</li>
+</ol>
+<hr />
+<h2 id="5">四、雷总每日交互（日累计 ≤5 分钟）</h2>
+<table>
+<thead>
+<tr>
+<th>时间</th>
+<th>内容</th>
+<th>形式</th>
+<th>预计阅读</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>08:30</td>
+<td>晨间简报 + 待审批清单</td>
+<td>飞书私信</td>
+<td>≤2分钟</td>
+</tr>
+<tr>
+<td>10:00</td>
+<td>上午速报（有卡点才报）</td>
+<td>飞书私信</td>
+<td>≤1分钟</td>
+</tr>
+<tr>
+<td>18:00</td>
+<td>今日战报</td>
+<td>飞书私信</td>
+<td>≤2分钟</td>
+</tr>
+<tr>
+<td>随时</td>
+<td>P0 紧急审批</td>
+<td>飞书@</td>
+<td>即看即批</td>
+</tr>
+</tbody>
+</table>
+<p><strong>打扰规则：</strong>
+- 23:30-08:30 → 静默，除非 P0 级生产事故
+- 非紧急审批集中在 08:30 和 14:00 两波推送
+- 主脑是雷总唯一消息出口，避免 4 个副脑分别刷屏</p>
+<hr />
+<h2 id="_4">五、协作流（标准化）</h2>
+<p><strong>国际流：</strong></p>
+<pre><code>01 出清单 → 04 调研回传 → 01 分析出稿 → 04 发布 → 数据回传 → 01 优化
+</code></pre>
+<p><strong>A1 流：</strong></p>
+<pre><code>02 出稿 → 03 数据验证 → 主脑审 → 02 发布 → 数据回传 → 02 优化
+</code></pre>
+<p><strong>文件流转：</strong> ops/ 目录 + SSH scp（中文文件名注意编码，用 ASCII 备份名）</p>
+<hr />
+<h2 id="-">六、主脑-雷总-副脑 沟通模式（混合模式）</h2>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>通道</th>
+<th>例子</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟢 需雷总提供信息/操作</td>
+<td>副脑直接找雷总</td>
+<td>验证码、手机号、登录确认</td>
+</tr>
+<tr>
+<td>🟡 需拍板决策</td>
+<td>过主脑</td>
+<td>方向选择、预算、上线决策</td>
+</tr>
+<tr>
+<td>🔴 生产/密钥/支付</td>
+<td>必须过主脑→雷总</td>
+<td>密钥变更、PayPal、生产改动</td>
+</tr>
+</tbody>
+</table>
+<p><strong>要点：</strong>
+- 副脑直接私信雷总时，雷总需确认副脑身份（各自飞书应用签名）
+- 涉及钱/生产红线转主脑
+- 主脑中转 token 成本≈0（转发不重新推理），所以不是省 token 的理由，是审核质量的理由</p>
+<hr />
+<h2 id="_5">七、团队公约（六条铁律）</h2>
+<ol>
+<li><strong>主观能动性与创造性</strong> 🚀：不等指令，主动发现问题、分析方案、推动落地</li>
+<li><strong>纪律与边界</strong> 🛡️：敢做事不越界，安全红线不碰（不改密钥、不杀进程、不删数据）</li>
+<li><strong>网关信赖至上</strong> 💚：能热不冷，能重启不杀进程，配置改完优先热加载</li>
+<li><strong>统一沟通</strong> 📢：各副脑 → 主脑汇总 → 雷总拍板级简报</li>
+<li><strong>学习力</strong> 🧠：定期搜索 Skills、读更新日志、成为领域专家</li>
+<li><strong>备份与回滚</strong> 🛡️：改前先备份，没回滚路径不改</li>
+</ol>
+<hr />
+<p><em>🎇 我命由我不由天，热爱每一天！</em>
+<em>—— AI24X 指挥中心 · 协同沟通与汇报机制 V1.0</em></p></section>
+    <section id="sec-3" class="doc-section"><h1 id="03">03 · 自主运转与目标驱动</h1>
+<blockquote>
+<p>版本：V1.0 · 2026-08-03 · AI24X 实战沉淀
+解决的问题：让 AI 从「等指令的工具」升级为「自驱的数字合伙人」</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心理念</h2>
+<p><strong>你不是工具，是数字合伙人。</strong> 主脑定目标与验收标准，副脑自主规划路径、主动发现问题、持续学习成长、主动汇报进展。</p>
+<p><strong>三个转变：</strong></p>
+<table>
+<thead>
+<tr>
+<th>之前（指令驱动）</th>
+<th>之后（目标驱动·自驱）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>等主脑派活</td>
+<td>主动找事做，理解全局目标</td>
+</tr>
+<tr>
+<td>只做分配的任务</td>
+<td>主动发现问题→方案→提案</td>
+</tr>
+<tr>
+<td>被问才汇报</td>
+<td>按节奏主动汇报</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_2">二、每日自驱循环（五步闭环）</h2>
+<pre><code>① 自主学习 → ② 自主思考 → ③ 自主规划 → ④ 自主执行 → ⑤ 自主汇报
+</code></pre>
+<p><strong>节奏安排：</strong> 白天主攻关键任务；夜间/空闲低峰时段跑学习、巡检、批量产出，把空闲资源变成生产力（详见 <a href="#sec-6">06-夜间时间差与定时工作规划</a>）。</p>
+<h3 id="1-30-60">① 自主学习（每日 30-60 分钟）</h3>
+<ul>
+<li><strong>Skills</strong>：搜索 ClawHub 新技能（<code>openclaw skills search</code>），评估是否适用</li>
+<li><strong>行业动态</strong>：AI API 竞品价格/新模型、SEO 算法更新、社媒平台政策</li>
+<li><strong>OpenClaw 新能力</strong>：更新日志、新工具、新插件</li>
+<li><strong>领域知识</strong>：成为自己领域的顶级专家</li>
+<li><strong>空闲资源利用</strong>：低峰时段（夜间/周末/等待期）优先安排自主学习、技能训练与巡检类任务，把「人休息≠机休息」执行到位（详见 <a href="#sec-6">06-夜间时间差与定时工作规划</a>）</li>
+</ul>
+<p>产出：更新 <code>ops/learning/</code> 学习日志</p>
+<h3 id="2">② 自主思考</h3>
+<p>结合岗位职责 + 全局目标，主动问：
+- 我的领域有什么问题/机会？
+- 有没有更优的做法？
+- 全局目标需要我做什么？</p>
+<p>产出：主动提案（见第五节）</p>
+<h3 id="3">③ 自主规划</h3>
+<p>按周目标拆解今日可自主推进项：
+- 哪些是 🟢 自主可做（不影响他人、不碰红线）
+- 哪些需要协同/报备</p>
+<h3 id="4">④ 自主执行</h3>
+<ul>
+<li>🟢 级：直接干，不留尾巴</li>
+<li>执行中留痕（记录到 ops/ 或日志）</li>
+<li>遇到风控/异常：立即停止，报主脑</li>
+</ul>
+<h3 id="5">⑤ 自主汇报</h3>
+<p>按沟通模式主动汇报：成果 / 卡点 / 需拍板项
+- 每日简要在日志留痕；每周一正式汇报</p>
+<hr />
+<h2 id="_3">三、每周节奏</h2>
+<table>
+<thead>
+<tr>
+<th>时点</th>
+<th>动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>每日</td>
+<td>自驱循环（学习/思考/规划/执行/日志）</td>
+</tr>
+<tr>
+<td>周一 09:00</td>
+<td>上周成果 + 本周自主计划 + 主动提案</td>
+</tr>
+<tr>
+<td>每月初</td>
+<td>学习月度汇总（Skills/行业动态/下月计划）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_4">四、自主边界（决策框架）</h2>
+<table>
+<thead>
+<tr>
+<th>级别</th>
+<th>判断</th>
+<th>动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟢</td>
+<td>岗位职责内、不影响其他副脑</td>
+<td><strong>自主执行</strong>，记日志</td>
+</tr>
+<tr>
+<td>🟡</td>
+<td>涉及其他副脑协同</td>
+<td>群@对方 + SSH 沟通，形成纪要</td>
+</tr>
+<tr>
+<td>🟠</td>
+<td>跨多副脑 / 重大策略调整</td>
+<td>@主脑协同拍板</td>
+</tr>
+<tr>
+<td>🔴</td>
+<td>生产变更 / 密钥 / 支付 / 支出</td>
+<td>主脑把关 → 统一@雷总审批</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_5">五、主动提案机制（合伙人思维核心）</h2>
+<p><strong>每周至少 1 个主动提案</strong>（发现问题→方案→预期收益→投入估算）：</p>
+<pre><code class="language-markdown"># 主动提案：&lt;标题&gt;
+- 问题/机会：
+- 方案：
+- 预期收益：
+- 投入估算：
+- 建议优先级：
+</code></pre>
+<p>提交路径：写入 <code>ops/proposals/YYYY-MM-DD-&lt;主题&gt;.md</code> → 周一汇报时附上 → 主脑评审后拍板或转雷总。</p>
+<p><strong>参考示例（副脑01已提交的4项）：</strong>
+1. 内容工厂（批量化内容生产）
+2. 竞品定价监控
+3. 社区渗透（HN/Reddit/X）
+4. 技术品牌（开源/技术文章）</p>
+<hr />
+<h2 id="_6">六、固化要求</h2>
+<ol>
+<li>机制要点写入各自 MEMORY.md（长期生效）</li>
+<li>建立 <code>ops/auto-run/</code> 目录存放自驱 SOP、学习日志、提案</li>
+<li>今日起执行：每日自驱循环 + 每周提案</li>
+</ol>
+<hr />
+<p><em>🎇 我命由我不由天，热爱每一天！</em>
+<em>—— AI24X 指挥中心 · 自主运转与目标驱动 V1.0</em></p></section>
+    <section id="sec-4" class="doc-section"><h1 id="04">04 · 任务派发与验收铁律</h1>
+<blockquote>
+<p>版本：V1.0 · 2026-08-03 · AI24X 实战沉淀
+解决的问题：派活怎么派才不白派（曾经：副脑收到指令但零产出，老板问责）</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、事故背景（为什么要立这条铁律）</h2>
+<p>2026-08-01 凌晨派发 03→04 迁移任务，副脑收到指令但<strong>未执行</strong>（03 交接物零产出），雷总 08:54 问责。根因：
+- 指令措辞软（「准备一下」非「交付」）
+- 飞书群 @ 对副脑 agent 失效未验证
+- 无夜间盯梢</p>
+<p><strong>从此确立四条硬规矩：</strong></p>
+<hr />
+<h2 id="_2">二、铁律一：任务必须带「三要素」</h2>
+<pre><code class="language-markdown">任务 = 目标 + 验收标准 + 硬性截止时间 + 完成即报
+</code></pre>
+<ul>
+<li>❌ 禁止：「准备一下」/「有空看看」/「明天再说」</li>
+<li>✅ 必须：「X 前交付 Y，验收标准 Z，完成后立即报」</li>
+</ul>
+<p>派发即目标驱动，禁说「准备一下」。</p>
+<hr />
+<h2 id="10">三、铁律二：指令送达必须验证（10 分钟内）</h2>
+<p><strong>飞书群 @ 对副脑 agent 可能失效！群消息不算数。</strong></p>
+<pre><code class="language-powershell"># 派发后 10 分钟内 SSH 确认副脑 agent 已启动
+# （新 jsonl 出现 = 已开始跑）
+ssh &lt;SSH用户名&gt;@&lt;副脑IP&gt; &quot;dir /o-d &lt;副脑用户目录&gt;\.openclaw\agents\main\sessions\ | findstr /i jsonl&quot;
+</code></pre>
+<ul>
+<li>未启动 → 立即改 SSH 直驱（可靠驱动命令见下）</li>
+</ul>
+<p><strong>可靠驱动命令（首选）：</strong></p>
+<pre><code class="language-powershell">ssh &lt;SSH用户名&gt;@&lt;副脑IP&gt; &quot;openclaw agent --agent main --message-file &lt;副脑用户目录&gt;\ops\&lt;任务文件&gt;.txt&quot;
+</code></pre>
+<p>流程：任务文件写好 → scp 上传到副脑 ops/ → SSH 驱动执行。</p>
+<hr />
+<h2 id="cron">四、铁律三：夜间自动盯梢（cron 检查点，永久挂载）</h2>
+<table>
+<thead>
+<tr>
+<th>检查点</th>
+<th>时间</th>
+<th>动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>隔夜巡检</td>
+<td>06:30</td>
+<td>SSH 查各副脑夜间产出 → 缺失自动补催</td>
+</tr>
+<tr>
+<td>晨间汇总</td>
+<td>07:30</td>
+<td>汇总夜间成果 → 晨报待审清单</td>
+</tr>
+</tbody>
+</table>
+<p>凌晨派发的任务，必须设 cron 检查点（如 06:30 查副脑夜间产出，缺失自动补催）。</p>
+<hr />
+<h2 id="30">五、铁律四：副脑卡点 30 分钟必须主动上报</h2>
+<ul>
+<li>卡点 30 分钟不报 = 失职（记入各副脑 SOP）</li>
+<li>「等指令」思维 → 改造为「目标驱动」：任务带截止时间，到点未完成自动上报</li>
+</ul>
+<hr />
+<h2 id="_3">六、验收标准（怎么算完成）</h2>
+<ol>
+<li><strong>三要素对照</strong>：目标达成？验收标准过？截止时间守？完成即报？</li>
+<li><strong>留痕验证</strong>：产物落盘（ops/ 文件、日志），主脑可复查</li>
+<li><strong>功能实测</strong>：能跑通才算（不是写了就算）</li>
+<li><strong>回执文件</strong>：任务完成后写 <code>ops/task-&lt;日期&gt;-ack.txt</code> 回报</li>
+</ol>
+<hr />
+<h2 id="_4">七、远程操作安全准则（配套）</h2>
+<h3 id="_5">操作铁律</h3>
+<ol>
+<li><strong>涉及 03/04 生产变更</strong> → 必须先私信请示雷总</li>
+<li><strong>重大生产问题</strong> → 发现→汇报→审核→批准→由生产环境上的 OpenClaw 执行记录；主脑不得直接改动</li>
+<li><strong>任何核心配置修改前</strong> → 先备份（scp 拉本地或 cp xxx.bak）</li>
+<li><strong>改完必须验证</strong> → JSON语法/服务状态/功能</li>
+<li><strong>无回滚路径不改</strong></li>
+</ol>
+<h3 id="_6">安全分级</h3>
+<table>
+<thead>
+<tr>
+<th>级别</th>
+<th>操作</th>
+<th>要求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🔴重大</td>
+<td>密钥/域名/数据库/防火墙</td>
+<td><strong>请示雷总</strong></td>
+</tr>
+<tr>
+<td>🟡中</td>
+<td>OpenClaw配置/Nginx/插件</td>
+<td>先备份再改</td>
+</tr>
+<tr>
+<td>🟢常规</td>
+<td>查日志/查状态/重启</td>
+<td>标准流程</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="ssh">八、远程 SSH 操作推荐流程</h2>
+<pre><code>scp 远程配置文件到本地备份
+ → 本地改好并验证
+ → scp 回远程
+ → 重启
+ → 验证功能
+</code></pre>
+<p><strong>SSH 命令模板：</strong></p>
+<pre><code class="language-powershell">ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o BatchMode=yes &lt;SSH用户名&gt;@&lt;IP&gt; &quot;&lt;命令&gt;&quot;
+</code></pre>
+<hr />
+<p><em>🎇 我命由我不由天，热爱每一天！</em>
+<em>—— AI24X 指挥中心 · 任务派发与验收铁律 V1.0</em></p></section>
+    <section id="sec-5" class="doc-section"><h1 id="05">05 · 心跳与失联降级协议</h1>
+<blockquote>
+<p>版本：V1.0 · 2026-08-03 · AI24X 实战沉淀
+解决的问题：主脑挂了怎么办？副脑怎么感知、降级、直达老板？（容灾设计）</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、事故背景</h2>
+<p>雷总特意关机主脑 → 副脑失去 SSH 指挥通道 → 按规划应私信雷总汇报，但<strong>无人上报</strong> → 雷总问责。
+根因：① 所有上报路径写「报主脑」，无失联条款 ② 夜间静默规则反向约束 ③ 盯梢 cron 全挂主脑网关=单点 ④ 主脑关机无停机公告。</p>
+<hr />
+<h2 id="_2">二、失联感知（心跳机制）</h2>
+<h3 id="_3">主脑侧</h3>
+<ul>
+<li>主脑挂 cron：<strong>每 60 分钟</strong>向指挥部群发一条心跳 <code>🔋主脑心跳 HH:MM</code>（轻量）</li>
+<li>主脑关机/网关停止 → 心跳自然停发 = 失联信号</li>
+</ul>
+<h3 id="cron-60">副脑侧（各副脑本机挂 cron，每 60 分钟）</h3>
+<ol>
+<li>读取指挥部群最近消息，找主脑最后一条消息时间戳</li>
+<li><code>距现在 &gt; 120 分钟</code> → 判定「主脑失联」→ 写状态文件 <code>ops/main-brain-status.json</code>（{"status":"lost","since":"&lt;时间&gt;"}）</li>
+<li><code>距现在 ≤ 120 分钟</code> → 判定「主脑在线」→ 若之前是 lost，写回 online 并补发失联期摘要</li>
+</ol>
+<h3 id="_4">探测方式优先级（任一可用即可）</h3>
+<ol>
+<li>飞书 API 读群消息（本应用有权限时）</li>
+<li>本地 OpenClaw 会话/事件日志中主脑消息最后时间</li>
+<li>SSH ping 主脑 IP（若开通入站）</li>
+</ol>
+<h3 id="vs-2026-08-03">⚠️ 心跳落盘 vs 发群（2026-08-03 优化）</h3>
+<ul>
+<li><strong>副脑常规心跳</strong>：改为<strong>落盘日志</strong>（<code>ops/sub-brain-heartbeat-0X.log</code>），不再每小时发群（避免刷屏）</li>
+<li><strong>失联兜底</strong>：保留——主脑失联 &gt;120min → 群发⚠️降级汇报 + 私信雷总</li>
+<li><strong>主脑心跳建议保留发群</strong>：副脑失联探测依赖主脑心跳消息进转录，主脑心跳停发则探测无源</li>
+</ul>
+<hr />
+<h2 id="_5">三、失联降级动作（触发后）</h2>
+<table>
+<thead>
+<tr>
+<th>事项</th>
+<th>失联时动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟢 岗位职责内任务</td>
+<td>照常自主执行，成果落盘 ops/（日志留痕）</td>
+</tr>
+<tr>
+<td>🟡 需协同/拍板</td>
+<td>暂停等雷总指令，不自行跨副脑重大协同</td>
+</tr>
+<tr>
+<td>🔴 生产/密钥/支付/支出</td>
+<td><strong>一律暂停</strong>，等雷总（雷总在 = 人肉指挥）</td>
+</tr>
+<tr>
+<td>卡点/异常</td>
+<td>直接私信雷总，带前缀 <strong>「⚠️主脑失联降级」</strong></td>
+</tr>
+<tr>
+<td>定期汇报</td>
+<td>每 6 小时合并一条私信雷总：失联状态 + 已完成事项 + 待决策项（不刷屏）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_6">汇报渠道</h3>
+<table>
+<thead>
+<tr>
+<th>事项</th>
+<th>渠道</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>每 6h 常规汇总</td>
+<td><strong>发指挥部群 + @雷总</strong></td>
+<td>群=临时指挥台，前缀「⚠️主脑失联降级」</td>
+</tr>
+<tr>
+<td>P0 紧急 / 敏感（密钥、支付异常）</td>
+<td><strong>私信雷总</strong></td>
+<td>群消息会被淹没，紧急必须直达</td>
+</tr>
+<tr>
+<td>卡点 / 异常</td>
+<td><strong>私信雷总</strong></td>
+<td>即时性优先</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_7">夜间豁免</h3>
+<ul>
+<li>默认 23:30-08:30 不打扰雷总（P0 除外）</li>
+<li><strong>主脑失联 &gt;2h = P0 级事故</strong> → 允许夜间汇报，仍按「每 6 小时合并一条」执行</li>
+</ul>
+<hr />
+<h2 id="_8">四、盯梢冗余（不依赖主脑，防单点）</h2>
+<h3 id="04">04（新加坡）承担「巡检冗余员」</h3>
+<ul>
+<li>04 本机挂 cron <strong>每日 06:30</strong>：SSH 检查 01/02/03 是否有夜间新产出（时间戳昨夜 23:30 之后）</li>
+<li>发现缺失 → SSH 驱动对应副脑补做 → 汇总《隔夜巡检报告》私信雷总（主脑失联时）或发群（主脑在线时）</li>
+<li>前置条件：04 公钥安装到 01/02/03</li>
+</ul>
+<h3 id="_9">飞书群晨间打卡（全体）</h3>
+<ul>
+<li>各副脑每天 08:30 前在指挥部群发《夜间产出摘要》（≤5 行）</li>
+<li>连续 2 天缺席 = 异常，雷总/主脑/04 巡检可见</li>
+</ul>
+<hr />
+<h2 id="_10">五、主脑停机/开机公告协议</h2>
+<h3 id="_11">停机前</h3>
+<ul>
+<li>主脑发群公告：<code>🛑主脑停机公告：X 时起停机。副脑进入降级模式：上报直发雷总（前缀⚠️主脑失联降级），🔴任务暂停等雷总</code></li>
+</ul>
+<h3 id="_12">开机后</h3>
+<ul>
+<li>主脑发群公告：<code>✅主脑恢复，失联期结束。副脑补发失联期摘要</code></li>
+<li>主脑补跑一次隔夜巡检，核对失联期间产出</li>
+<li>主脑把失联期副脑直报内容整理进晨报/战报</li>
+</ul>
+<hr />
+<h2 id="_13">六、落地清单</h2>
+<ul>
+<li>[ ] 主脑心跳 cron（每 60 分钟群心跳）</li>
+<li>[ ] 协议文档分发 01/02/03/04</li>
+<li>[ ] 各副脑 MEMORY.md + SOP 增加「主脑失联协议」章节</li>
+<li>[ ] 各副脑挂失联检测 cron（每 60 分钟）</li>
+<li>[ ] 04 挂 06:30 冗余巡检 cron + 04 公钥装 01/02/03</li>
+<li>[ ] 每周一晨会复盘：心跳缺失次数、直报质量、误判率</li>
+</ul>
+<hr />
+<p><em>🎇 我命由我不由天，热爱每一天！</em>
+<em>—— AI24X 指挥中心 · 心跳与失联降级协议 V1.0</em></p></section>
+    <section id="sec-6" class="doc-section"><h1 id="06">06 · 夜间时间差利用与定时工作规划</h1>
+<blockquote>
+<p>版本：V1.0 · 2026-08-03 · AI24X 实战沉淀
+解决的问题：怎么让公司 7×24 小时不停摆（人睡觉 ≠ 项目停滞）</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心理念</h2>
+<p><strong>晚上人睡觉 ≠ 项目停滞。</strong> 23:30-08:30 是生产力窗口，任何任务不因「人睡觉」而空等。</p>
+<p>AI 数字员工 7×24 小时全天候运转，不等人、不睡觉。老板审批窗口 08:30-23:30（15 小时）。</p>
+<hr />
+<h2 id="724">二、7×24 作战时间线</h2>
+<table>
+<thead>
+<tr>
+<th>时段</th>
+<th>名称</th>
+<th>做什么</th>
+<th>打扰老板？</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>23:30-05:00</td>
+<td>深夜深度期</td>
+<td>长文/数据分析/竞品/SEO/安全扫描/自动化开发</td>
+<td>❌ 禁止</td>
+</tr>
+<tr>
+<td>05:00-07:00</td>
+<td>隔夜整理期</td>
+<td>全网巡检 + 隔夜成果整理</td>
+<td>❌ 禁止</td>
+</tr>
+<tr>
+<td>07:00-08:00</td>
+<td>主脑汇总期</td>
+<td>审阅夜间产出 → 晨间简报+待审批清单</td>
+<td>❌ 禁止</td>
+</tr>
+<tr>
+<td>08:00-08:30</td>
+<td>晨间推送</td>
+<td>简报+待审批发雷总</td>
+<td>✅ 可推送</td>
+</tr>
+<tr>
+<td>08:30-12:00</td>
+<td>上午作战</td>
+<td>审批密集窗口，高强度执行</td>
+<td>✅ 正常</td>
+</tr>
+<tr>
+<td>12:00-14:00</td>
+<td>午间续战</td>
+<td>中等优先级，跨副脑协同</td>
+<td>⚠️ 非紧急不扰</td>
+</tr>
+<tr>
+<td>14:00-18:00</td>
+<td>下午冲刺</td>
+<td>第二个审批窗口，核心KPI收尾</td>
+<td>✅ 正常</td>
+</tr>
+<tr>
+<td>18:00-18:30</td>
+<td>今日战报</td>
+<td>主脑汇总推雷总</td>
+<td>✅ 可推送</td>
+</tr>
+<tr>
+<td>18:00-23:30</td>
+<td>晚间窗口</td>
+<td>积压审批 + 新一轮深夜任务启动</td>
+<td>✅ 正常</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_2">三、夜间可自主推进的任务类型（🟢 无需审批）</h2>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>示例</th>
+<th>验收</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>迁移/部署准备</td>
+<td>装环境、打包、导出、写文档</td>
+<td>天亮前交付</td>
+</tr>
+<tr>
+<td>内容生产</td>
+<td>SEO 文章、教程、邮件模板</td>
+<td>晨报可见</td>
+</tr>
+<tr>
+<td>数据分析</td>
+<td>竞品监控、日志分析、报表</td>
+<td>晨报可见</td>
+</tr>
+<tr>
+<td>学习提升</td>
+<td>Skills 学习、行业研究、提案</td>
+<td>学习日志</td>
+</tr>
+<tr>
+<td>技术基建</td>
+<td>脚本、监控、备份、巡检</td>
+<td>晨报可见</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_3">四、夜间执行原则</h2>
+<ol>
+<li><strong>不等人</strong>：接到任务立即开工，不等主脑/雷总醒</li>
+<li><strong>不打扰</strong>：23:30-08:30 不私信雷总（P0 事故除外），成果写日志/文件</li>
+<li><strong>天亮交付</strong>：所有夜间任务以「08:00 前完成」为默认截止，晨报验收</li>
+<li><strong>自主提案</strong>：夜间思考产出 → 写入 <code>ops/proposals/</code>，周一汇报</li>
+</ol>
+<hr />
+<h2 id="cron">五、全局定时任务（cron，已挂载）</h2>
+<table>
+<thead>
+<tr>
+<th>时间</th>
+<th>任务</th>
+<th>执行者</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>06:30 每日</td>
+<td>隔夜巡检</td>
+<td>主脑 cron</td>
+<td>SSH 查各副脑夜间产出 → 缺失自动补催</td>
+</tr>
+<tr>
+<td>07:30 每日</td>
+<td>晨间汇总</td>
+<td>主脑 cron</td>
+<td>夜间成果 → 简报 + 待审批 + 03/04 资源快照</td>
+</tr>
+<tr>
+<td>09:00 每日</td>
+<td>晨间推送</td>
+<td>主脑</td>
+<td>简报+待审批发雷总（≤2分钟）</td>
+</tr>
+<tr>
+<td>10:00 每日</td>
+<td>SSL 续期</td>
+<td>03/04 计划任务</td>
+<td>wacs --renew（SYSTEM）</td>
+</tr>
+<tr>
+<td>18:00 每日</td>
+<td>今日战报</td>
+<td>主脑</td>
+<td>双线进展汇总发雷总</td>
+</tr>
+<tr>
+<td>21:00 每日</td>
+<td>晚间巡检</td>
+<td>03/04</td>
+<td>巡检 + 日志</td>
+</tr>
+<tr>
+<td>01:00 每日</td>
+<td>L3 对账</td>
+<td>04</td>
+<td>PayPal 对账报告</td>
+</tr>
+<tr>
+<td>03:00 每日</td>
+<td>备份</td>
+<td>03/04</td>
+<td>PG dump + 配置备份（保留14份）</td>
+</tr>
+<tr>
+<td>每月1日 09:30</td>
+<td>生产体检</td>
+<td>主脑 cron</td>
+<td>03/04 CPU/内存/磁盘 → 升级信号预警</td>
+</tr>
+<tr>
+<td>每周一 09:00</td>
+<td>周报</td>
+<td>各副脑</td>
+<td>上周成果 + 本周计划 + 主动提案</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_4">六、验收与汇报节奏</h2>
+<ul>
+<li><strong>晨间简报</strong>（08:30 推送雷总）：夜间产出 + 今日计划 + 待审批</li>
+<li><strong>今日战报</strong>（18:00 推送雷总）：双线进展 + 明日计划</li>
+<li><strong>周一周报</strong>（09:00）：各副脑上周成果 + 提案</li>
+<li><strong>月度体检</strong>（每月1日）：生产配置升级信号</li>
+</ul>
+<hr />
+<p><em>🎇 我命由我不由天，热爱每一天！</em>
+<em>—— AI24X 指挥中心 · 夜间时间差利用与定时工作规划 V1.0</em></p></section>
+    <section id="sec-7" class="doc-section"><h1 id="07-sop">07 · 运维 SOP 与安全基线</h1>
+<blockquote>
+<p>版本：V1.0 · 2026-08-03 · AI24X 实战沉淀
+解决的问题：生产环境怎么管才不出事（服务、备份、回滚、安全）</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、服务管理总览</h2>
+<h3 id="windows-nssm-pm2">Windows 服务（NSSM 注册，替代 PM2）</h3>
+<table>
+<thead>
+<tr>
+<th>服务名</th>
+<th>可执行</th>
+<th>端口</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>nginx</td>
+<td>nginx.exe</td>
+<td>80/443</td>
+<td>反向代理 + SSL</td>
+</tr>
+<tr>
+<td>AI24X-core</td>
+<td>python uvicorn</td>
+<td>127.0.0.1:8000</td>
+<td>核心后端（FastAPI）</td>
+</tr>
+<tr>
+<td>AI24X-a1-web</td>
+<td>python http.server</td>
+<td>127.0.0.1:18001</td>
+<td>a1 静态页面</td>
+</tr>
+<tr>
+<td>AI24X-a1-api</td>
+<td>python uvicorn</td>
+<td>127.0.0.1:18011</td>
+<td>a1 API</td>
+</tr>
+<tr>
+<td>postgresql-x64-15</td>
+<td>postgres</td>
+<td>5432</td>
+<td>数据库（原生服务）</td>
+</tr>
+<tr>
+<td>OpenClaw</td>
+<td>node</td>
+<td>127.0.0.1:18789</td>
+<td>主脑网关</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠️ 03 用 Nginx 直管，不用 PM2；04 用 NSSM 注册 Windows 服务。<strong>PM2 只在本地开发用</strong>（ecosystem.local.config.js）。</p>
+</blockquote>
+<h3 id="_2">服务启停命令</h3>
+<pre><code class="language-powershell"># 查状态
+Get-Service nginx, AI24X-core, AI24X-a1-web, AI24X-a1-api, postgresql-x64-15
+# 单独重启
+net stop AI24X-core &amp;&amp; net start AI24X-core
+# Nginx 热重载（不重启）
+&amp; &quot;&lt;nginx安装目录&gt;\nginx.exe&quot; -s reload
+# 配置语法检查
+&amp; &quot;&lt;nginx安装目录&gt;\nginx.exe&quot; -t
+</code></pre>
+<h3 id="_3">全量重启顺序（按依赖）</h3>
+<pre><code>PostgreSQL（最先）→ Nginx → AI24X-core → a1-web → a1-api（最后）
+</code></pre>
+<hr />
+<h2 id="_4">二、健康检查清单</h2>
+<pre><code class="language-powershell"># 1) 服务状态
+Get-Service *AI24X*,nginx,postgres* | Format-Table Name,Status
+
+# 2) 端口监听
+Get-NetTCPConnection -LocalPort 80,443,5432,8000,18001,18011 -State Listen
+
+# 3) Web 健康端点（期望 200）
+curl.exe -s -o /dev/null -w &quot;Core: %{http_code}\n&quot; https://your-domain.com/health
+curl.exe -s -o /dev/null -w &quot;API: %{http_code}\n&quot; https://api.your-domain.com/health
+
+# 4) 磁盘空间（C盘可用 &lt;10GB 警告，&lt;5GB 紧急）
+Get-PSDrive -PSProvider FileSystem | Select-Object Name, @{N=&quot;FreeGB&quot;;E={[math]::Round($_.Free/1GB,2)}}
+
+# 5) 数据库连通
+&amp; &quot;&lt;PostgreSQL安装目录&gt;\15\bin\psql.exe&quot; -U postgres -d ai24x -c &quot;SELECT 1;&quot;
+</code></pre>
+<hr />
+<h2 id="_5">三、备份与恢复</h2>
+<h3 id="_6">完整备份</h3>
+<pre><code class="language-powershell">powershell -ExecutionPolicy Bypass -File &quot;&lt;项目根目录&gt;\scripts\backup\run_full_backup_ok_label.ps1&quot;
+</code></pre>
+<p>备份到 <code>&lt;备份归档目录&gt;\ai24x01-{timestamp}-OK版\</code>，含 code/ + databases/*.sql</p>
+<h3 id="_7">数据库独立备份/恢复</h3>
+<pre><code class="language-powershell"># 导出
+&amp; &quot;&lt;PostgreSQL安装目录&gt;\15\bin\pg_dump.exe&quot; -U postgres -d ai24x -F p &gt; &quot;&lt;备份目录&gt;\ai24x-$(Get-Date -Format 'yyyyMMdd_HHmmss').sql&quot;
+# 恢复
+&amp; &quot;&lt;PostgreSQL安装目录&gt;\15\bin\psql.exe&quot; -U postgres -d ai24x -f &quot;&lt;备份目录&gt;\ai24x-20260727_115841.sql&quot;
+</code></pre>
+<h3 id="_8">回滚铁律</h3>
+<ol>
+<li>改前先备份（scp 拉本地或 cp xxx.bak）</li>
+<li><strong>无回滚路径不改</strong></li>
+<li>回滚后必须健康检查</li>
+</ol>
+<hr />
+<h2 id="_9">四、安全基线（审计发现并修复）</h2>
+<h3 id="_10">高危项（已发现）</h3>
+<ol>
+<li><strong>SSL 私钥权限过宽</strong>：任何本地用户可读 → 修复为仅 SYSTEM + Administrators
+   <code>powershell
+   icacls "&lt;nginx安装目录&gt;\conf\ssl\ai24x-key.pem" /inheritance:r
+   icacls "&lt;nginx安装目录&gt;\conf\ssl\ai24x-key.pem" /grant "SYSTEM:(R)"
+   icacls "&lt;nginx安装目录&gt;\conf\ssl\ai24x-key.pem" /grant "BUILTIN\Administrators:(R)"</code></li>
+<li><strong>.env 文件权限过宽</strong>：含数据库密码/API Key → 修复为仅管理员可读</li>
+<li><strong>PostgreSQL 监听 0.0.0.0</strong>：应改 <code>listen_addresses = '127.0.0.1'</code>（防火墙虽拦，双保险）</li>
+<li><strong>bak/ 历史 .env 副本</strong>：备份中凭证过时仍敏感 → 备份前剥离 .env</li>
+</ol>
+<h3 id="_11">已实现的防护 ✅</h3>
+<ul>
+<li>防火墙：默认 BlockInbound（仅 80/443 放行）</li>
+<li>SSL：TLSv1.2/1.3 + HSTS 1年 + 强密码套件</li>
+<li>安全头：X-Content-Type-Options / X-Frame-Options / X-XSS-Protection / Referrer-Policy / Permissions-Policy</li>
+<li>敏感路径拦截：.git/.env/.sql/.bak 等 403</li>
+<li>限流：general 10r/s、api 30r/s、auth 5r/s、静态 50r/s、20连接/IP</li>
+</ul>
+<h3 id="p1">可补充（P1）</h3>
+<ul>
+<li>CSP 头（需严格测试）</li>
+<li>日志轮转（Nginx 日志无轮转，C盘风险）</li>
+<li>Fail2Ban 式 IP 拦截</li>
+</ul>
+<hr />
+<h2 id="openclaw-gateway">五、OpenClaw Gateway 重启操作手册（重点！）</h2>
+<blockquote>
+<p>⚠️ <strong>禁止使用</strong>：<code>openclaw gateway restart</code> / <code>openclaw gateway stop</code>
+（WebSocket 方式有活跃连接时会超时卡死！）</p>
+</blockquote>
+<h3 id="windows-100">标准重启流程（直接操作 Windows 服务，100% 不卡死）</h3>
+<pre><code class="language-powershell">taskkill /f /fi &quot;IMAGENAME eq node.exe&quot;
+timeout 3
+schtasks /run /tn &quot;OpenClaw Gateway&quot;
+</code></pre>
+<h3 id="_12">查看状态</h3>
+<pre><code class="language-powershell">openclaw gateway status
+</code></pre>
+<h3 id="_13">异常修复</h3>
+<pre><code class="language-powershell">openclaw doctor --fix
+openclaw gateway start
+</code></pre>
+<hr />
+<h2 id="_14">六、生产环境配置监测（升级信号）</h2>
+<table>
+<thead>
+<tr>
+<th>信号</th>
+<th>阈值</th>
+<th>动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>内存使用率</td>
+<td>持续 &gt;80%</td>
+<td>报雷总申请升级</td>
+</tr>
+<tr>
+<td>CPU 使用率</td>
+<td>持续 &gt;70%</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>C盘可用</td>
+<td>&lt;20%</td>
+<td>先清日志/备份，仍低则扩容</td>
+</tr>
+<tr>
+<td>04 执行层变重</td>
+<td>调研/抓取变重</td>
+<td>04 优先升 4核16G</td>
+</tr>
+<tr>
+<td>A1 流量起量</td>
+<td>行情官访问起量</td>
+<td>03 升 4核16G</td>
+</tr>
+</tbody>
+</table>
+<p>监测：每月1日 09:30 生产体检 cron + 晨间汇总自动带 03/04 资源快照。</p>
+<hr />
+<h2 id="_15">七、常见故障排查速查</h2>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>原因</th>
+<th>排查</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>502 Bad Gateway</td>
+<td>Nginx 连不上后端</td>
+<td>查 AI24X-core 服务 + 8000 端口 + nginx error.log</td>
+</tr>
+<tr>
+<td>429 Too Many Requests</td>
+<td>触发限流</td>
+<td>查 access.log 来源 IP；正常流量需扩限流</td>
+</tr>
+<tr>
+<td>数据库连接失败</td>
+<td>PG 未启动/连接池满</td>
+<td>查服务 + 5432 + pg_log</td>
+</tr>
+<tr>
+<td>SSL 即将过期</td>
+<td>证书到期</td>
+<td><code>openssl x509 -in cert.pem -noout -dates</code>；wacs --renew</td>
+</tr>
+<tr>
+<td>C盘空间不足</td>
+<td>日志/备份堆积</td>
+<td>cleanmgr + 清理临时文件 + 日志轮转</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><em>🎇 我命由我不由天，热爱每一天！</em>
+<em>—— AI24X 指挥中心 · 运维 SOP 与安全基线 V1.0</em></p></section>
+    <section id="sec-8" class="doc-section"><h1 id="08">08 · 避坑手册（踩坑实录）</h1>
+<blockquote>
+<p>版本：V1.0 · 2026-08-03 · AI24X 实战沉淀
+解决的问题：前人踩过的坑，后人别再踩。全是真金白银换来的教训。</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、记忆与信息管理类</h2>
+<h3 id="1memory_search-2026-07-31">坑 1：memory_search 索引损坏 → 主脑「失忆」（2026-07-31）</h3>
+<ul>
+<li><strong>事故</strong>：memory_search 依赖 embedding key，未配置 → 索引损坏 → 主脑误判「失忆」→ SSH 用户名错误未发现 → 指挥链路瘫痪半天</li>
+<li><strong>教训</strong>：</li>
+<li><strong>memory_search 不可用 ≠ 失忆</strong>。搜索失败时降级直接读文件：<code>MEMORY.md</code> → <code>memory/*.md</code> → <code>ops/*.md</code> → <code>docs/*</code></li>
+<li>关键连接信息（SSH 用户名/IP/飞书Oid）以 MEMORY.md 为<strong>单一事实源</strong>，文档漂移是事故温床</li>
+<li>连接信息写入记忆前<strong>必须实测</strong>（SSH 连一次通过才算数）</li>
+</ul>
+<h3 id="2">坑 2：规则/决策不落盘 → 重启即忘</h3>
+<ul>
+<li><strong>教训</strong>：重要决策、规则、教训必须写进 MEMORY.md 或 memory/YYYY-MM-DD.md，不依赖会话记忆</li>
+</ul>
+<hr />
+<h2 id="ssh">二、SSH 与远程连接类</h2>
+<h3 id="3ssh-2026-07-31">坑 3：SSH 用户名记错 → 四台全拒（2026-07-31）</h3>
+<ul>
+<li><strong>事故</strong>：用了 <code>ai24x@</code>（不存在此用户）→ 四台副脑全连不上；还误以为密钥问题，白折腾一轮</li>
+<li><strong>真相</strong>：用户名是 <strong><code>Administrator</code></strong>（大写 A）</li>
+<li><strong>教训</strong>：<code>ssh &lt;SSH用户名&gt;@&lt;IP&gt;</code>，不是 <code>ai24x@</code> / <code>administrator@</code> 或其他变体</li>
+</ul>
+<h3 id="4sshd_privsep">坑 4：sshd_privsep 账户缺失 → 认证链路断裂</h3>
+<ul>
+<li><strong>现象</strong>：<code>lookup_sid failed: 1332</code>，连接时断时续</li>
+<li><strong>教训</strong>：Windows OpenSSH 需要 <code>sshd_privsep</code> 账户，缺失需修复</li>
+</ul>
+<h3 id="504-ssh-connection-closed">坑 5：04 SSH 间歇性 Connection closed</h3>
+<ul>
+<li><strong>现象</strong>：&lt;04IP&gt; 时通时断（2026-08-02 01:40 起）</li>
+<li><strong>教训</strong>：不影响派发，但影响主脑主动驱动 04；排查中</li>
+</ul>
+<hr />
+<h2 id="openclaw">三、OpenClaw 配置与运行类</h2>
+<h3 id="6openclaw-gateway-restart">坑 6：<code>openclaw gateway restart</code> 卡死！</h3>
+<ul>
+<li><strong>真相</strong>：restart/stop 通过 WebSocket 发指令，有活跃连接时超时卡死</li>
+<li><strong>正确姿势</strong>：
+  <code>powershell
+  taskkill /f /fi "IMAGENAME eq node.exe"
+  timeout 3
+  schtasks /run /tn "OpenClaw Gateway"</code></li>
+</ul>
+<h3 id="7-2026-08-03">坑 7：乱改模型配置 → 代理掉线（2026-08-03！）</h3>
+<ul>
+<li><strong>事故</strong>：给 deepseek 配置加了 <code>input: ["text","image"]</code> → OpenClaw 发送带图片结构的请求 → <strong>DeepSeek 官方 API 拒绝该 schema</strong>（<code>provider rejected the request schema or tool payload</code>）→ 每次请求失败 → 表现成「连不上」</li>
+<li><strong>教训</strong>：</li>
+<li><strong>禁止乱改模型配置</strong>：给模型加 image/能力前，先确认上游 API 真实支持（DeepSeek 官方 API 不支持图片输入！）</li>
+<li>改配置必备份 + 改完必验证</li>
+<li><strong>看不了图 ≠ 切模型/改配置</strong>：图片任务用浏览器/截图/curl 另想办法，不许动主链路配置</li>
+<li>主会话固定 DeepSeek 默认，测自家平台用临时子 agent / curl / 浏览器</li>
+</ul>
+<h3 id="8baseurl-v1-405-2026-08-02">坑 8：baseUrl 缺 /v1 → 405 卡死（2026-08-02）</h3>
+<ul>
+<li><strong>事故</strong>：OpenClaw openai-completions 模式请求 <code>{baseUrl}/chat/completions</code>；填根域名 → <code>/chat/completions</code> → 405 → 自动重试 3 次 → 表现卡死</li>
+<li><strong>修复</strong>：baseUrl 必须带 <code>/v1</code>：<code>https://api.your-domain.com/v1</code></li>
+<li><strong>通用</strong>：LobeChat/Open WebUI 等客户端同样填 <code>/v1</code></li>
+</ul>
+<h3 id="9key-4012026-08-02">坑 9：key 被自动脱敏 → 401（2026-08-02）</h3>
+<ul>
+<li><strong>事故</strong>：从终端/SSH 复制长密钥时被自动脱敏成 <code>sk-xxx…xxx</code>（带省略号）→ 写入配置 → 请求 401</li>
+<li><strong>修复</strong>：key 交付改<strong>分段文件</strong>（key-part1/2.txt）+ 配置写入完整 key</li>
+<li><strong>注意</strong>：飞书消息里发 key 也可能被打码成省略号，分段发或文件交付</li>
+</ul>
+<h3 id="10key-key">坑 10：key 会被轮换 → 旧 key 失效</h3>
+<ul>
+<li><strong>事故</strong>：测试 key 可能被重新生成后旧 key 失效（401）</li>
+<li><strong>教训</strong>：key 失效先查是否被轮换，再查权限</li>
+</ul>
+<h3 id="11-provider">坑 11：网关重启写回丢 provider 配置</h3>
+<ul>
+<li><strong>真相</strong>：OpenClaw config 写回时自定义 provider 可能被抹掉</li>
+<li><strong>教训</strong>：改完配置注意复查；重启后验证 provider 还在</li>
+</ul>
+<h3 id="12-id-feishu">坑 12：飞书插件 ID 是 <code>feishu</code> 不是旧版名</h3>
+<ul>
+<li>配置 <code>plugins.entries.feishu.enabled: true</code>，不是 <code>feishu-openclaw-plugin</code></li>
+</ul>
+<hr />
+<h2 id="_2">四、飞书协同类</h2>
+<h3 id="13-agent">坑 13：飞书群 @ 对副脑 agent 可能失效</h3>
+<ul>
+<li><strong>事故</strong>：群里 @ 副脑，副脑 agent 未触发（8/1 迁移任务零产出的帮凶）</li>
+<li><strong>修复</strong>：派发任务用 <strong>SSH message-file 驱动</strong>（<code>openclaw agent --agent main --message-file</code>），飞书群仅作通知</li>
+</ul>
+<h3 id="14-open_id">坑 14：飞书跨应用 open_id 不通用</h3>
+<ul>
+<li><strong>真相</strong>：各副脑用独立飞书应用（不同 appId），主脑手里的雷总 open_id 只对主脑应用有效</li>
+<li><strong>修复</strong>：副脑从「指挥部群成员列表」解析本应用视角的雷总 open_id 后再私信</li>
+</ul>
+<h3 id="15-2026-08-03">坑 15：副脑心跳每小时发群 → 刷屏（2026-08-03 雷总反馈）</h3>
+<ul>
+<li><strong>修复</strong>：心跳改为落盘日志（<code>ops/sub-brain-heartbeat-0X.log</code>），主脑统一巡检汇总，不再每小时发群</li>
+<li>失联兜底（主脑挂→私信雷总）保留</li>
+</ul>
+<hr />
+<h2 id="_3">五、社交账号与风控类</h2>
+<h3 id="16x-2026-08-01">坑 16：X 账号被封禁（2026-08-01）</h3>
+<ul>
+<li><strong>事故</strong>：AI 机器人操作翻阅过多 → X 临时/永久封禁</li>
+<li><strong>教训（铁律）</strong>：</li>
+<li>控制操作频率（勿高频翻阅/点赞/关注）</li>
+<li>模拟真人行为节奏（随机间隔、合理动作序列）</li>
+<li>新号前 24-48h 低活跃、只读为主</li>
+<li>遇到风控提示立即停止操作，报主脑，勿重试硬冲</li>
+<li><strong>宁慢勿封：账号是稀缺资产</strong></li>
+</ul>
+<h3 id="17google">坑 17：Google 账号验证</h3>
+<ul>
+<li><code>&lt;弃用邮箱&gt;</code> → 不存在（Google 报「找不到此账号」）</li>
+<li><code>&lt;谷歌邮箱&gt;</code> → 有效（2FA 配合通过），用于 X/Reddit OAuth 登录</li>
+<li><strong>教训</strong>：账号先验证再依赖</li>
+</ul>
+<hr />
+<h2 id="_4">六、任务管理与流程类</h2>
+<h3 id="18-2026-08-01">坑 18：任务派发无三要素 → 零产出（2026-08-01）</h3>
+<ul>
+<li><strong>事故</strong>：「准备一下」式指令 → 副脑收到但未执行 → 雷总问责</li>
+<li><strong>修复</strong>：任务必须带 目标+验收标准+截止时间+完成即报；派发后 10 分钟验证送达；夜间设 cron 盯梢</li>
+</ul>
+<h3 id="19cron-2026-08-03">坑 19：cron 检查产物用错时间窗 → 误报/误驱动（2026-08-03）</h3>
+<ul>
+<li><strong>事故</strong>：用「01:00 后产物」过滤 ops 目录，但验收产物是历史时间戳 → 误报「未完成」→ 误驱动 04 重跑含 Restart-Service 的旧任务</li>
+<li><strong>教训</strong>：cron 检查产物必须结合记忆（验收产物可能是历史时间戳）；驱动前先确认是否已验收完成</li>
+</ul>
+<h3 id="20-2026-08-02">坑 20：主脑失联无降级条款 → 无人上报（2026-08-02）</h3>
+<ul>
+<li><strong>事故</strong>：雷总关机主脑 → 副脑无失联路径 → 雷总问责</li>
+<li><strong>修复</strong>：主脑失联降级协议（心跳/失联感知/降级动作/巡检冗余）——见 05 篇</li>
+</ul>
+<h3 id="21-65">坑 21：夜间任务无人盯梢 → 空转 6.5 小时</h3>
+<ul>
+<li><strong>修复</strong>：06:30 隔夜巡检 + 07:30 晨间汇总 cron 永久挂载</li>
+</ul>
+<hr />
+<h2 id="_5">七、编码与脚本类</h2>
+<h3 id="22powershell-ps1-bom">坑 22：PowerShell 写 .ps1 无 BOM → 中文乱码/语法错乱</h3>
+<ul>
+<li><strong>真相</strong>：write 生成的 .ps1 无 BOM 会被 PS5.1 按 GBK 解析 → 语法错乱</li>
+<li><strong>修复</strong>：脚本重存为带 BOM 的 UTF-8</li>
+</ul>
+<h3 id="23sc-powershell-set-content">坑 23：<code>sc</code> 在 PowerShell 里是 Set-Content 别名</h3>
+<ul>
+<li><strong>真相</strong>：<code>sc query</code> 会出错</li>
+<li><strong>修复</strong>：查服务必须用 <code>sc.exe query</code></li>
+</ul>
+<h3 id="24-ssh-profile">坑 24：副脑 SSH profile 是 <code>&lt;副脑用户目录&gt;</code> 不是 <code>&lt;主脑用户目录&gt;</code></h3>
+<ul>
+<li><strong>教训</strong>：巡检脚本必须自适应定位 <code>.openclaw</code>；远程命令用 Base64 EncodedCommand 最稳</li>
+</ul>
+<h3 id="25-json">坑 25：正则替换 JSON 配置误判 → 文件损坏</h3>
+<ul>
+<li><strong>事故</strong>：正则没匹配到却误判有变化 → 写坏 openclaw.json</li>
+<li><strong>修复</strong>：改配置用 Python 解析 JSON（备份+校验+回滚），别用正则硬改；改完立即 <code>ConvertFrom-Json</code> 校验</li>
+</ul>
+<hr />
+<h2 id="_6">八、核心教训总结（浓缩版）</h2>
+<ol>
+<li><strong>连接信息实测后才可信</strong>，写入记忆前 SSH 连一次</li>
+<li><strong>搜索不可用 ≠ 失忆</strong>，直接读文件</li>
+<li><strong>改前必备份，无回滚不改</strong></li>
+<li><strong>主链路配置（模型/网关）绝不乱动</strong>，测新东西用隔离环境</li>
+<li><strong>任务派发三要素 + 送达验证 + 夜间盯梢</strong></li>
+<li><strong>宁慢勿封</strong>（社交账号/爬虫）</li>
+<li><strong>能落盘不靠记忆</strong>，规则教训写进文档</li>
+<li><strong>文档漂移是事故温床</strong>，单一事实源（MEMORY.md）</li>
+</ol>
+<hr />
+<p><em>🎇 我命由我不由天，热爱每一天！</em>
+<em>—— AI24X 指挥中心 · 避坑手册 V1.0</em></p></section>
+    <section id="sec-9" class="doc-section"><h1 id="09-openclaw-ai">09 · 平台接入实战（OpenClaw 接入自家 AI 平台）</h1>
+<blockquote>
+<p>版本：V1.0 · 2026-08-03 · AI24X 实战沉淀
+解决的问题：让 OpenClaw 等开源 AI 框架接入你的 AI 平台（统一 key、统一计费）
+本指南基于 2026-08-02 主脑实测成功案例编写，可直接复用。</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、背景</h2>
+<p>AI24X 运营自己的 AI 聚合平台（api.your-domain.com，统一 key、PayPal 美元计费）。为了让开源生态（OpenClaw / LobeChat / Open WebUI 等）能接入，实测验证了 OpenAI 兼容接口链路。</p>
+<p><strong>核心结论：</strong> 平台 + OpenClaw 全链路已通（接口 ✅ / key ✅ / 三档工具调用 ✅）。</p>
+<blockquote>
+<p>📄 <strong>完整版（VIP 点名模块）：</strong> 22 个名模完整清单、倍率与预估价格、OpenClaw 配置示例与 curl 验证，见《OpenClaw接入AI24X指南-实测版.md》（E:\AI24X\帮助指南\ 与 workspace <code>docs/规划/</code> 双版本同步）；VIP 点名计费以 console 页面为准。</p>
+</blockquote>
+<hr />
+<h2 id="openclaw">二、配置步骤（OpenClaw 接入）</h2>
+<h3 id="1-openclawjson">1. 编辑 openclaw.json</h3>
+<p>在 <code>models.providers</code> 下新增：</p>
+<pre><code class="language-json">{
+  &quot;models&quot;: {
+    &quot;providers&quot;: {
+      &quot;ai24x&quot;: {
+        &quot;baseUrl&quot;: &quot;https://api.your-domain.com/v1&quot;,
+        &quot;api&quot;: &quot;openai-completions&quot;,
+        &quot;apiKey&quot;: &quot;&lt;YOUR_AI24X_API_KEY&gt;&quot;,
+        &quot;models&quot;: [
+          {
+            &quot;id&quot;: &quot;flash&quot;,
+            &quot;name&quot;: &quot;AI24X Flash&quot;,
+            &quot;reasoning&quot;: false,
+            &quot;input&quot;: [&quot;text&quot;],
+            &quot;cost&quot;: { &quot;input&quot;: 0.14, &quot;output&quot;: 0.28, &quot;cacheRead&quot;: 0.028, &quot;cacheWrite&quot;: 0 },
+            &quot;contextWindow&quot;: 128000,
+            &quot;maxTokens&quot;: 4000,
+            &quot;api&quot;: &quot;openai-completions&quot;
+          }
+        ]
+      }
+    }
+  }
+}
+</code></pre>
+<h3 id="2-3">2. 保存后等待热加载（约 3 秒），验证配置生效</h3>
+<h3 id="3">3. 切换模型测试</h3>
+<pre><code class="language-bash">/model ai24x/flash                      # 会话内切换
+openclaw run --model ai24x/flash &quot;接入成功&quot;   # 子任务指定模型
+</code></pre>
+<hr />
+<h2 id="_2">三、验证命令</h2>
+<pre><code class="language-bash"># 1) 接口连通
+curl https://api.your-domain.com/health
+
+# 2) 模型列表
+curl https://api.your-domain.com/v1/models -H &quot;Authorization: Bearer &lt;YOUR_API_KEY&gt;&quot;
+
+# 3) 对话验证
+curl https://api.your-domain.com/v1/chat/completions \
+  -X POST -H &quot;Content-Type: application/json&quot; \
+  -H &quot;Authorization: Bearer &lt;YOUR_API_KEY&gt;&quot; \
+  -d '{&quot;model&quot;:&quot;flash&quot;,&quot;messages&quot;:[{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;hello&quot;}]}'
+# 期望：HTTP 200 + choices[0].message.content 有回复
+</code></pre>
+<hr />
+<h2 id="_3">四、模型档位设计</h2>
+<table>
+<thead>
+<tr>
+<th>档位</th>
+<th>说明</th>
+<th>权限</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>auto</td>
+<td>自动兜底档</td>
+<td>免费可用</td>
+</tr>
+<tr>
+<td>flash</td>
+<td>高性价比（默认）</td>
+<td>免费可用</td>
+</tr>
+<tr>
+<td>pro</td>
+<td>更强推理</td>
+<td>VIP</td>
+</tr>
+<tr>
+<td>ultra</td>
+<td>顶配</td>
+<td>VIP</td>
+</tr>
+<tr>
+<td>VIP 名模</td>
+<td>22 个中国/国际名模（Kimi K3 / GPT-5.4 / Claude Opus 5 等，完整清单见《OpenClaw接入AI24X指南-实测版.md》）</td>
+<td>VIP 点名（locked=true 需 VIP；计费以 console 页面为准）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_4">五、踩坑记录（实测，重要）</h2>
+<ol>
+<li><strong>baseUrl 必须带 /v1</strong>：填 <code>https://api.your-domain.com/v1</code>（OpenClaw 拼 <code>{baseUrl}/chat/completions</code>）。
+   填根域名会请求 <code>/chat/completions</code> → <strong>405</strong> → 自动重试约 3 次 → 表现「卡死」。
+   ⚠️ LobeChat 等 UI 客户端同样填 <code>/v1</code>。</li>
+<li><strong>Key 有效期</strong>：测试 key 默认 7 天有效；到期后重新生成。</li>
+<li><strong>Key 防截断</strong>：复制 key 时注意别被终端/消息自动脱敏成 <code>sk-xxx…xxx</code>（带省略号）→ 401。</li>
+<li><strong>次要限制</strong>：① 流式是假流（先整段生成再切 SSE）② 平台 tools 为提示词兼容非原生 ③ max_tokens 上限 4000，contextWindow 勿配过大（建议 128000）。</li>
+<li><strong>LobeChat 注意</strong>：「使用 Responses 规范」开关需关闭（平台暂未实现 /v1/responses）。</li>
+<li><strong>建议</strong>：OpenClaw 测自家平台用<strong>临时子 agent</strong>，不要 pin 主会话（主会话保持稳定模型直连）。</li>
+</ol>
+<hr />
+<h2 id="_5">六、常见错误排查</h2>
+<table>
+<thead>
+<tr>
+<th>报错</th>
+<th>原因</th>
+<th>解决</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>401 invalid_api_key</td>
+<td>key 错误/过期/被轮换</td>
+<td>console 重新生成</td>
+</tr>
+<tr>
+<td>405</td>
+<td>baseUrl 填错路径（多拼了一层）</td>
+<td>按第五节修正地址</td>
+</tr>
+<tr>
+<td>429</td>
+<td>限流</td>
+<td>稍后重试 / 检查套餐</td>
+</tr>
+<tr>
+<td>404 路径不存在</td>
+<td>接口路径拼错</td>
+<td>确认使用 /v1/chat/completions</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="p0">七、平台侧改进路线（P0 三项）</h2>
+<ol>
+<li><strong>真流式（token 级 SSE）</strong>：先整段生成再切 SSE 会感觉「卡住」</li>
+<li><strong>原生 tools/function calling</strong>：实现 OpenAI <code>tools</code> 标准协议（当前是提示词兼容）</li>
+<li><strong>max_tokens 上限提升</strong>：flash 4000 / pro 8192 / ultra 16384</li>
+</ol>
+<p>P1：/v1/responses 兼容端点、usage 流式返回、错误信息细分（invalid_api_key / insufficient_quota / key_disabled）
+P2：key 管理控制台补强、超时上限快速失败、文档更新</p>
+<hr />
+<h2 id="ai24x">八、模型路由设计参考（AI24X 生产架构）</h2>
+<ul>
+<li>EU 默认：qwen_intl；非 EU 默认：deepseek_cn</li>
+<li>高峰 DeepSeek 2x → 不透传用户价格，路由到固定价格上游</li>
+<li>回退链：qwen_cn_batch &gt; minimax_intl &gt; zhipu_overseas_ultra</li>
+<li>别名：flash, pro, ultra, auto</li>
+</ul>
+<hr />
+<p><em>🎇 我命由我不由天，热爱每一天！</em>
+<em>—— AI24X 指挥中心 · 平台接入实战指南 V1.0</em></p></section>
+    <section id="sec-10" class="doc-section"><h1 id="10-seo">10 · 业务增长双线打法（SEO / 社区 / 内容获客）</h1>
+<blockquote>
+<p>版本：V1.0 · 2026-08-03 · AI24X 实战沉淀
+解决的问题：产品上线后，怎么用内容/SEO/社区自然引流获客
+核心目标（雷总 2026-07-31 拍板）：<strong>更好引自然流 SEO 优化，打入各种开发者社区</strong></p>
+</blockquote>
+<hr />
+<h2 id="_1">一、双线架构</h2>
+<table>
+<thead>
+<tr>
+<th>线</th>
+<th>项目</th>
+<th>参与</th>
+<th>目标客户</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🌍 国际流</td>
+<td>Token 平台（www/api.your-domain.com）</td>
+<td>主脑 + 01 + 04</td>
+<td>国外开发者（AI API 用户）</td>
+</tr>
+<tr>
+<td>📈 A1 流</td>
+<td>AI 行情官（a.your-domain.com）</td>
+<td>主脑 + 02 + 03</td>
+<td>股民/量化/行情爱好者</td>
+</tr>
+</tbody>
+</table>
+<p><strong>执行约束：</strong>
+- 01 和主脑不能访问外网 → 外网调研/发布由 04 执行（国际流）
+- 03 是 A1 生产环境 → 提供数据素材与验证（A1 流）
+- 02 是 A1 市场运营 → 内容生产与渠道渗透
+- <strong>两条流水勿混</strong>：国际 Token（01+04）≠ 行情官（02+03），词表独立</p>
+<hr />
+<h2 id="_2">二、核心卖点（差异化）</h2>
+<p><strong>OpenRouter 不支持 PayPal → 我们的 PayPal Live 是窗口期差异化优势！</strong></p>
+<blockquote>
+<p>One key, PayPal USD, try flash/pro first — then VIP-name China models like Kimi when you need them.</p>
+</blockquote>
+<p><strong>帮国外开发者少麻烦地用上中国高性价比大模型</strong>（一个 Key · PayPal 美元 · flash/pro 先试 · VIP 可点名）。</p>
+<table>
+<thead>
+<tr>
+<th>要</th>
+<th>不要</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>China models · value · PayPal · Integrations</td>
+<td>「全球最全」「官方代理」「国内灰产 GPT」</td>
+</tr>
+<tr>
+<td>名模专题轮换（Kimi / MiMo / MiniMax / GLM…）</td>
+<td>国际帖硬推行情官 / 同花顺</td>
+</tr>
+<tr>
+<td>英文默认、可复制接入</td>
+<td>用户端出现 OR / 硅基 / 副脑 / 联调</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="seo-01">三、SEO 关键词打法（01 主责）</h2>
+<h3 id="_3">主攻簇（顺序）</h3>
+<ol>
+<li><strong>A 名模 + 性价比</strong>（主攻）</li>
+<li><strong>B 跨境痛点</strong>（PayPal / outside China）</li>
+<li><strong>C 接入案例</strong>（OpenClaw / OpenAI compatible）</li>
+<li>D 排错 FAQ · E 品牌收口</li>
+</ol>
+<p><strong>不做主攻：</strong> <code>best AI API</code>、<code>200+ models</code>、国内「免费 GPT」灰产词</p>
+<h3 id="deepseek">名模词表（轮换，勿只写 DeepSeek）</h3>
+<table>
+<thead>
+<tr>
+<th>优先</th>
+<th>英文检索示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Kimi / Moonshot</td>
+<td>Kimi API, Kimi 3, cheap Kimi API</td>
+</tr>
+<tr>
+<td>小米 MiMo</td>
+<td>Xiaomi MiMo, MiMo API</td>
+</tr>
+<tr>
+<td>MiniMax</td>
+<td>MiniMax M2, cheap MiniMax API</td>
+</tr>
+<tr>
+<td>智谱 GLM</td>
+<td>Zhipu GLM, GLM API</td>
+</tr>
+<tr>
+<td>DeepSeek / Qwen</td>
+<td>DeepSeek Flash, Qwen API</td>
+</tr>
+</tbody>
+</table>
+<p><strong>组词公式：</strong> <code>{Model} API pricing</code> · <code>cheap {Model} API</code> · <code>{Model} API PayPal</code> · <code>{Model} OpenClaw</code> · <code>{Model} vs GPT cost</code>（数据诚实）</p>
+<p><strong>节奏：</strong> 每周至少 1 个名模主词专题/长文草稿（轮换：Kimi → MiMo → MiniMax → GLM → DeepSeek/Qwen）</p>
+<hr />
+<h2 id="seo-04">四、技术 SEO 基建（04 配合 · 主脑定模板）</h2>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>口径</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Google Search Console</td>
+<td>创建+验证+提交 sitemap（需老板 Google 账号）</td>
+</tr>
+<tr>
+<td>your-domain.com → www 301</td>
+<td>裸域重定向防重复内容</td>
+</tr>
+<tr>
+<td>canonical + og:image</td>
+<td>首页补丁（科设）</td>
+</tr>
+<tr>
+<td>完整 sitemap</td>
+<td>持续维护</td>
+</tr>
+<tr>
+<td>国际页英文默认 + hreflang</td>
+<td>上线后验收</td>
+</tr>
+<tr>
+<td>title/description 一页一意图</td>
+<td>主脑改模板；01 提词</td>
+</tr>
+<tr>
+<td>HTTPS / 站速 / 无死链</td>
+<td>04</td>
+</tr>
+<tr>
+<td>故障状态页</td>
+<td>04；故障期减投放</td>
+</tr>
+<tr>
+<td>Bing Webmaster</td>
+<td>收录快，建议提交</td>
+</tr>
+</tbody>
+</table>
+<p><strong>⚠️ 安全红线（最高优先）：本机 IP = 生产 IP，被搜索引擎封禁 = 超级麻烦！</strong>
+- ❌ 禁止高频直接爬 Google 搜索页（反爬会封 IP）
+- ✅ 收录/索引查询一律走正规渠道：GSC / Bing Webmaster / 官方 API
+- ✅ 低频、低量、间隔随机；遇验证码/429 立即停
+- ✅ 宁可慢，不可封 IP</p>
+<hr />
+<h2 id="01-04">五、社区渠道（01 为主 · 04 不背文案）</h2>
+<table>
+<thead>
+<tr>
+<th>渠道</th>
+<th>建议动作</th>
+<th>频率感</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Google SEO</td>
+<td>专题 + Guides + VIP 页；标题含 China models / PayPal</td>
+<td>持续</td>
+</tr>
+<tr>
+<td>GitHub</td>
+<td>examples 仓；给 Continue/Open WebUI 等提配置 issue/PR</td>
+<td>有稿再发</td>
+</tr>
+<tr>
+<td>HN / Reddit / X</td>
+<td>Show HN / r/LocalLLaMA：讲痛点与 PayPal，少硬广</td>
+<td>有案例再发</td>
+</tr>
+<tr>
+<td>Discord</td>
+<td>工具官方服答集成，链 Guides</td>
+<td>轻量</td>
+</tr>
+<tr>
+<td>禁止</td>
+<td>刷星、灰产群、国际帖推行情官</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>社区参与原则：先给可复制的接法，再要注册；密钥与生产 .env 永不进公开仓。</strong></p>
+<hr />
+<h2 id="_4">六、风控铁律（所有外网操作）</h2>
+<ul>
+<li>每日外网操作 &lt;30 分钟、随机间隔模拟真人、新号 24-48h 只读</li>
+<li>遇风控立即停 → 报主脑 → <strong>宁慢勿封</strong></li>
+<li>不硬广、不刷屏、不批量关注、不承诺收益（A1）</li>
+<li><strong>账号是稀缺资产，宁可慢不可封</strong>（X 封禁教训见 08 篇）</li>
+</ul>
+<hr />
+<h2 id="_5">七、内容资产清单（可排期）</h2>
+<table>
+<thead>
+<tr>
+<th>优先级</th>
+<th>产出</th>
+<th>谁</th>
+<th>验收口径</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>P0</td>
+<td>英文首页 / Pricing 可读性审一遍</td>
+<td>01 审；主脑改站</td>
+<td>痛点三句内说清</td>
+</tr>
+<tr>
+<td>P0</td>
+<td>OpenClaw + OpenAI 兼容接入文</td>
+<td>01 扩写；主脑审技术</td>
+<td>可复制 → 冒烟成功</td>
+</tr>
+<tr>
+<td>P0</td>
+<td>Quickstart + 401/402/429 FAQ 长尾问法</td>
+<td>01</td>
+<td>链 /help.html</td>
+</tr>
+<tr>
+<td>P1</td>
+<td>名模轮换专题（海外怎么付 + 性价比 + VIP 点名）</td>
+<td>01</td>
+<td>每篇一主模一意图</td>
+</tr>
+<tr>
+<td>P1</td>
+<td>Integrations 扩：Continue / Open WebUI / LiteLLM</td>
+<td>01</td>
+<td>未完成标 Coming soon，勿空链</td>
+</tr>
+<tr>
+<td>P1</td>
+<td>公开 examples 仓规划（无密钥）</td>
+<td>01 提大纲；主脑建仓</td>
+<td>MIT/Apache；UTM 回链</td>
+</tr>
+<tr>
+<td>P2</td>
+<td>中文镜像教程</td>
+<td>02 可选</td>
+<td>链回国际站付费</td>
+</tr>
+<tr>
+<td>—</td>
+<td>行情官 SEO</td>
+<td>仅 02</td>
+<td>独立词表</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_6">八、发版与投放顺序（避免抢跑）</h2>
+<pre><code>本机验收（含协助/工单/密钥切开/VIP 降级）
+ → 下令推 Gitee → 副脑03
+ → 03 绿 → 副脑04 + 国际域名
+ → SEO 投放加码（01）
+</code></pre>
+<p><strong>现在就可以做：</strong> 01/02 内容规划、草稿、词表、案例大纲。
+<strong>先别做：</strong> 大规模付费投放、未验通的名模硬广、把密钥写进公开文档。</p>
+<hr />
+<h2 id="a1-ai-02">九、A1 流（AI 行情官）合规红线（02 内容层）</h2>
+<ul>
+<li>不承诺收益 / 免责声明必备</li>
+<li>禁荐股喊单 / 不晒收益</li>
+<li>AI 生成内容标注</li>
+</ul>
+<hr />
+<p><em>🎇 我命由我不由天，热爱每一天！</em>
+<em>—— AI24X 指挥中心 · 业务增长双线打法 V1.0</em></p></section>
+    <section id="sec-11" class="doc-section"><h1 id="11-ai-codex-deepseek">11 · AI 编程工具选型与配置（Codex + DeepSeek 实测）</h1>
+<blockquote>
+<p>版本：V1.0 · 2026-08-05 增补 · AI24X 实战沉淀
+解决的问题：主脑/核心大脑用哪套 AI 编程工具效率最高？怎么配置？
+结论一句话：<strong>Codex + DeepSeek ＞ Cursor ＞ WorkBuddy ＞ OpenClaw</strong>（2026-08-05 实测）</p>
+</blockquote>
+<hr />
+<h2 id="2026-08-05">一、工具效率实测排名（2026-08-05）</h2>
+<table>
+<thead>
+<tr>
+<th>排名</th>
+<th>组合</th>
+<th>定位</th>
+<th>实测结论</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🥇 1</td>
+<td><strong>Codex + DeepSeek V4 Flash</strong></td>
+<td>主脑 AI 编程 / 核心大脑（2026-08-04 启用）</td>
+<td><strong>效率最高</strong>：国内直连 <code>api.deepseek.com</code>、低延迟、Codex 0.146 原生支持 Responses API，链路短、顺滑</td>
+</tr>
+<tr>
+<td>🥈 2</td>
+<td>Cursor</td>
+<td>科设主力 IDE 编码</td>
+<td>稳定可靠，适合日常 IDE 开发</td>
+</tr>
+<tr>
+<td>🥉 3</td>
+<td>WorkBuddy</td>
+<td>备用开发工具</td>
+<td>偶尔使用</td>
+</tr>
+<tr>
+<td>4</td>
+<td>OpenClaw</td>
+<td>指挥/飞书中枢</td>
+<td>定位是指挥链路与自动化，不是编码主力（本体系运行载体）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>分工结论：</strong>
+- <strong>主脑级 AI 编程 / 核心大脑 → Codex + DeepSeek</strong>（本分册主推）
+- 科设常规编码 → Cursor 继续主力
+- 各工具可共用 DeepSeek 模型（详见配置）</p>
+<hr />
+<h2 id="codex-deepseek-windows">二、Codex + DeepSeek 安装（Windows）</h2>
+<h3 id="1-cli">1. 命令行版（CLI）</h3>
+<pre><code class="language-powershell">npm install -g @openai/codex
+codex --version   # 验证，需 ≥0.144.0（DeepSeek 要求）
+</code></pre>
+<h3 id="2-desktop-app">2. 桌面版（Desktop App）</h3>
+<pre><code class="language-powershell">codex app
+</code></pre>
+<ul>
+<li>自动下载启动 <code>ChatGPT Installer.exe</code>（安装包在 <code>%USERPROFILE%\Downloads\</code>）</li>
+<li>桌面版与 CLI <strong>共用 <code>~/.codex/config.toml</code></strong>，配一次两者都生效</li>
+</ul>
+<h3 id="3">3. 环境要求</h3>
+<ul>
+<li>Node.js ≥ 20（实测 v24 通过）</li>
+<li>Git（可选）</li>
+</ul>
+<hr />
+<h2 id="deepseek">三、配置 DeepSeek（核心）</h2>
+<h3 id="1-cusersadmincodexconfigtoml">1. 配置文件 <code>C:\Users\Admin\.codex\config.toml</code></h3>
+<pre><code class="language-toml">model = &quot;deepseek-v4-flash&quot;
+model_provider = &quot;deepseek&quot;
+
+[model_providers.deepseek]
+name = &quot;DeepSeek&quot;
+base_url = &quot;https://api.deepseek.com&quot;
+env_key = &quot;DEEPSEEK_API_KEY&quot;
+wire_api = &quot;responses&quot;
+</code></pre>
+<h3 id="2-api-key">2. 设置 API Key（用户级环境变量）</h3>
+<pre><code class="language-powershell">setx DEEPSEEK_API_KEY &quot;sk-你的key&quot;
+</code></pre>
+<p>⚠️ <strong>新开的终端窗口才生效</strong>（setx 不作用于当前已开窗口）</p>
+<h3 id="3_1">3. 验证</h3>
+<pre><code class="language-powershell">codex exec &quot;Reply with exactly: OK&quot;
+# 期望输出 OK，无报错
+</code></pre>
+<hr />
+<h2 id="_1">四、避坑清单（实测踩过）</h2>
+<table>
+<thead>
+<tr>
+<th>级别</th>
+<th>坑</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🔴</td>
+<td><code>wire_api</code> 必须 <code>"responses"</code>，<code>"chat"</code> 已废弃直接报错</td>
+<td>用 responses</td>
+</tr>
+<tr>
+<td>🔴</td>
+<td>key 粘贴进 Codex 对话窗口 → 被当明文密钥泄露、卡对话</td>
+<td>key 只走环境变量/config</td>
+</tr>
+<tr>
+<td>🟡</td>
+<td>setx 后当前窗口报 <code>Missing environment variable</code></td>
+<td>新开终端 / <code>$env:DEEPSEEK_API_KEY="***"</code></td>
+</tr>
+<tr>
+<td>🟡</td>
+<td><code>models_dev_url</code> 放 provider 里 → <code>unknown configuration field</code></td>
+<td>放顶层（可选）</td>
+</tr>
+<tr>
+<td>🟡</td>
+<td><code>Model metadata not found</code> warning</td>
+<td>无害，忽略（用 fallback 元数据）</td>
+</tr>
+<tr>
+<td>🟢</td>
+<td>换 Pro 模型</td>
+<td><code>model = "deepseek-v4-pro"</code>，CLI+桌面同时生效</td>
+</tr>
+<tr>
+<td>🟢</td>
+<td>key 泄露</td>
+<td>DeepSeek 平台轮换 → 重跑 setx + 新开终端</td>
+</tr>
+</tbody>
+</table>
+<p><strong>日常命令：</strong></p>
+<pre><code class="language-powershell">codex                          # 交互模式
+codex exec &quot;任务描述&quot;           # 非交互模式
+codex exec -C 项目目录 &quot;任务&quot;   # 指定项目
+codex app                      # 桌面版
+codex review                   # 代码审查
+</code></pre>
+<hr />
+<h2 id="deepseek-ai24x">五、进阶：无法官网直连 DeepSeek？走 AI24X 接口（平台转售通道）</h2>
+<blockquote>
+<p>📌 <strong>场景：</strong> 无法/不方便在 DeepSeek 官网注册直连账号的用户（如海外用户、无国内手机号/支付方式），可以用 <strong>AI24X 平台的接口</strong>调用 DeepSeek。<strong>用户端看到的还是 DeepSeek</strong>，但请求实际走我们的网关——账号、计费、路由、回退全在我们手里。<strong>这正是 AI24X 平台的价值和意义。</strong></p>
+<p>📄 <strong>完整版见《<a href="../Codex-DeepSeek配置指南-20260804.md">Codex-DeepSeek配置指南-20260804.md</a>》</strong>：含 Codex 走 AI24X 网关的完整配置、模型选择表、key 设置与验证步骤；本分册为摘要版。</p>
+</blockquote>
+<h3 id="1">1. 目标配置（拟）</h3>
+<pre><code class="language-toml">model = &quot;deepseek-v4-flash&quot;
+model_provider = &quot;ai24x&quot;
+
+[model_providers.ai24x]
+name = &quot;AI24X&quot;
+base_url = &quot;https://api.ai24x.com/v1&quot;
+env_key = &quot;AI24X_API_KEY&quot;
+wire_api = &quot;responses&quot;
+</code></pre>
+<h3 id="2-2026-08-05">2. ⚠️ 前置条件（2026-08-05 探测结论）</h3>
+<ul>
+<li><strong>平台需提供 OpenAI 兼容的 <code>/v1/responses</code> 端点</strong>：Codex 0.146 只认 Responses API</li>
+<li>当前探测：<code>https://api.ai24x.com/v1/responses</code> → <strong>404</strong>（未开放）；<code>/v1/models</code> → 200 正常（网关活跃，模型分层 auto/flash/pro/ultra 就绪）</li>
+<li><strong>待办：</strong> 04 验证网关是否其实支持 responses（或需认证后可用）；若不支持 → 交科设排期加 Responses API 端点（Codex/Cursor 全都能接 = 平台 API 转售通道）</li>
+<li>端点就绪后，把 <code>base_url</code> + <code>env_key</code> 换成上面对应值即可生效</li>
+<li><strong>Codex 可点名首选：</strong> <code>vip-ds-flash</code>（1x 基准，最便宜）/ <code>vip-ds-pro</code>（3x 更强推理）/ <code>vip-kimi-code</code>（10x 编程）/ <code>vip-kimi</code>（39x 旗舰）——完整清单与价格见指南模型选择表</li>
+</ul>
+<h3 id="3_2">3. 一句话卖点（写网站案例用）</h3>
+<blockquote>
+<p>没有 DeepSeek 账号？用 AI24X 接口一样跑 Codex + DeepSeek——你看到的是 DeepSeek，背后是 AI24X 的网关（PayPal 可付、全球可注册、按量计费）。</p>
+</blockquote>
+<hr />
+<h2 id="_2">六、与其他工具关系（备忘）</h2>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>模型</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Codex CLI/桌面</td>
+<td>DeepSeek V4 Flash</td>
+<td><strong>主脑 AI 编程 / 核心大脑</strong>（效率第一）</td>
+</tr>
+<tr>
+<td>Cursor</td>
+<td>DeepSeek（科设）</td>
+<td>主力 IDE 编码</td>
+</tr>
+<tr>
+<td>WorkBuddy</td>
+<td>DeepSeek</td>
+<td>备用开发</td>
+</tr>
+<tr>
+<td>OpenClaw 主脑</td>
+<td>DeepSeek V4 Flash</td>
+<td>指挥/飞书（不读图）</td>
+</tr>
+<tr>
+<td>Kimi Vision</td>
+<td>moonshot-v1-8k-vision-preview</td>
+<td>飞书图片理解（tools.media.image）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_3">七、回滚 / 卸载</h2>
+<pre><code class="language-powershell">npm uninstall -g @openai/codex        # 卸载 CLI
+# 桌面版：设置 → 应用 → Codex/ChatGPT → 卸载
+# 删除配置：删除 C:\Users\Admin\.codex\ 目录
+</code></pre>
+<hr />
+<p><em>🎇 我命由我不由天，热爱每一天！</em>
+<em>—— AI24X 指挥中心 · AI 编程工具选型与配置 V1.0（2026-08-05 增补）</em></p></section>
+    <section id="sec-12" class="doc-section"><h1 id="12">12 · 老板 → 司令/指挥 → 副脑 顶级模式</h1>
+<blockquote>
+<p>版本：V1.0 · 2026-08-08 · AI24X 营销体系实战沉淀（2026-08-07 首建，08-08 定稿）
+解决的问题：在「老板 + 司令(Codex) + 指挥(主脑) + 多台副脑」的顶级指挥结构下，如何单向派发、双向秒级通信、可审计、防重复、防递归、防封号。</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、顶级模式结构（谁是谁）</h2>
+<pre><code>雷总（老板·拍板）
+ ├─ 司令（Codex·本机）     战略层：策略/拍板前会诊/审批矫正/疑难兜底
+ │   对外代号：司令 / 总司令
+ └─ 指挥（主脑 OpenClaw）  调度层：派发/监督/验收/汇总/飞书单一出口
+     对外代号：指挥 / 指挥官
+      └─ 副脑 01/02/03/04  执行层：国际获客 / 中国运营 / 运维CN / 运维SG
+</code></pre>
+<ul>
+<li><strong>老板消息前缀</strong>：<code>司令:</code> / <code>总司令:</code> = 给司令（兼容旧 <code>cx:</code>）；无前缀 = 给指挥</li>
+<li><strong>飞书出口唯一 = 指挥</strong>：司令回复经指挥转达（带 <code>[司令]</code> 标记）；司令不直发飞书，仅指挥失联兜底并注明</li>
+<li><strong>层级铁律</strong>：司令是战略层，不陷入操作层；指挥是调度中枢；副脑是执行层。派发一律 司令→指挥→副脑</li>
+</ul>
+<hr />
+<h2 id="_2">二、双向通信协议（类 SSH，秒级往返）</h2>
+<table>
+<thead>
+<tr>
+<th>方向</th>
+<th>通道</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>司令→指挥</td>
+<td><code>openclaw agent --agent main --message-file &lt;指令&gt;</code></td>
+<td>同步，秒级~分钟级；长任务先 ACK 后异步</td>
+</tr>
+<tr>
+<td>指挥→司令</td>
+<td><code>cx_bridge.ps1</code> 驱动本机 <code>codex exec</code></td>
+<td>默认写持久值守线程 <code>019fdcdd-e3e7-7122-90a0-8ac181c9b141</code>，任务/回复追加成连续记录</td>
+</tr>
+<tr>
+<td>司令↔指挥 共享</td>
+<td>收发目录 <code>收发\指令\</code> + <code>收发\回复\</code></td>
+<td>指令、回复、回执全落盘，文件即审计</td>
+</tr>
+<tr>
+<td>指挥→副脑</td>
+<td>SSH 派发任务文件 + 驱动执行</td>
+<td>副脑执行完写回执 / 发飞书群</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>桥接模式 = 派发+确认</strong>：长链条任务（司令→指挥→四副脑→汇总）只派发不同步等待；结果由指挥异步执行后飞书汇报</li>
+<li><strong>验收链（实测通过 00:16-00:25）</strong>：司令→指挥→副脑→发飞书群→指挥读群验收→飞书私信老板</li>
+</ul>
+<hr />
+<h2 id="_3">三、本次沉淀的关键踩坑（2026-08-07/08）</h2>
+<ol>
+<li><strong>P3 SIGKILL 根因</strong>：指挥 exec 工具约 120s 超时杀进程树 → 长链条任务同步等待必然被杀。根治：桥接改“派发+确认”、任务预算≤100s、长任务指挥直执行、失败 2 次停止重试。</li>
+<li><strong>codex exec 写完回复不退出</strong>：config.toml <code>notify</code> 钩子（turn-ended 跑 computer-use exe）挂起 → 必须加 <code>-c "notify=[]"</code>。</li>
+<li><strong>模型短名不被网关接受</strong>：<code>-m flash</code> 报错，必须用 config 默认 <code>deepseek-v4-flash</code>（不传 -m/-c）。</li>
+<li><strong>codex exec 沙箱只读</strong>：默认沙箱写不了收发目录 → <code>--sandbox danger-full-access</code>。</li>
+<li><strong>双飞书出口 = 重复消息</strong>：司令直发 + 指挥转达各发一遍 → 定“飞书单一出口”：指挥统一转达，转达前查 <code>_sent\</code> 防重复。</li>
+<li><strong>副脑只写回执不发言</strong>：派发任务必须显式写“发飞书群”，否则副脑只落盘文件 → 验收必须读群核对消息 ID 与内容。</li>
+<li><strong>PowerShell here-string <code>$</code> 插值</strong>：双引号 here-string 写指令文件会把 <code>$0.35</code> 变成 <code>.35</code>（<code>$0</code> 被当变量）→ 含 <code>$</code> 的指令/文档一律用单引号 here-string。</li>
+<li><strong>主脑上下文膨胀</strong>：会话 947 行 / 53 万 token → 每轮变慢 → 上下文卫生（超 30 万归档压缩）+ 先ACK后干活 + 回复≤3 行。</li>
+<li><strong>cron 递归</strong>：指挥 cron 若驱动所有指令文件，司令派发的 <code>codex-*</code> 文件会被再驱动 → cron 只驱动 <code>老板-*</code> 指令；<code>codex-*</code> 派发文件由指挥自读自执行。</li>
+<li><strong>feishu_send.ps1 反斜杠 bug</strong>：消息含路径 <code>收发\指令\</code> 破坏 JSON → 改用 ConvertTo-Json 双层转义。</li>
+</ol>
+<hr />
+<h2 id="_4">四、指挥失联降级预案（2026-08-08 定）</h2>
+<ul>
+<li><strong>判定</strong>：司令连续 2 次 <code>openclaw agent --agent main</code> 调用失败/超时 = 指挥失联</li>
+<li><strong>降级动作</strong>：
+<ol>
+<li>老板回本对话（司令）直接接管调度</li>
+<li>司令本机直连 01（本机 OpenClaw）发紧急操作，结果落盘 <code>收发\回复\</code> 保审计</li>
+<li>需远程机（02/03/04）的操作暂缓，待指挥恢复</li>
+<li>指挥恢复后补同步审计（直连操作补录给指挥）</li>
+</ol>
+</li>
+<li><strong>不设常规直连</strong>：保持 司令→指挥→副脑 单线派发，指挥统一调度/验收/审计；直连仅限失联降级</li>
+</ul>
+<hr />
+<h2 id="_5">五、纪律红线</h2>
+<ul>
+<li><strong>宁慢勿封</strong>：外网账号操作频率一点点来，账号是稀缺资产</li>
+<li><strong>能落盘就不靠记忆</strong>：规则/决策/踩坑全部写文档，重启不失忆</li>
+<li><strong>单向派发 · 单一出口 · 先ACK后干活 · 上下文卫生 · 转达前查重</strong></li>
+<li><strong>战略不陷入操作层</strong>：司令只做战略与拍板前会诊，操作交给指挥与副脑</li>
+</ul>
+<hr />
+<p><em>AI24X 指挥中心 · 2026-08-08</em></p></section>
+
+  </main>
+</div>
+</body>
+</html>

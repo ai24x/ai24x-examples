@@ -1,0 +1,230 @@
+{
+  "env": {
+    "pts": 5.0,
+    "red_days": 19,
+    "above_ma20": true,
+    "weak": false,
+    "tags": [
+      "大盘MACD翻红·第19天",
+      "大盘站上MA20"
+    ]
+  },
+  "indexes": {
+    "上证指数": {
+      "secid": "1.000001",
+      "score": 52.0,
+      "pts": 5.0,
+      "above_ma20": true,
+      "weak": false,
+      "tags": [
+        "大盘MACD翻红·第19天",
+        "大盘站上MA20"
+      ],
+      "last_close": 3952.18,
+      "pct": -0.11,
+      "last_date": "2026-08-28",
+      "recent_labels": [
+        "险1",
+        "底1　金1",
+        "金2",
+        "险2",
+        "金2"
+      ],
+      "macd_last": {
+        "time": "2026-08-28",
+        "dif": 2.9719,
+        "dea": -2.3535,
+        "bar": 10.6507
+      }
+    },
+    "深证成指": {
+      "secid": "0.399001",
+      "score": 59.6,
+      "pts": 5.0,
+      "above_ma20": true,
+      "weak": false,
+      "tags": [
+        "大盘MACD翻红·第19天",
+        "大盘站上MA20"
+      ],
+      "last_close": 13953.066,
+      "pct": -0.68,
+      "last_date": "2026-08-28",
+      "recent_labels": [
+        "险1",
+        "底1　金1",
+        "金2",
+        "金3",
+        "险1"
+      ],
+      "macd_last": {
+        "time": "2026-08-28",
+        "dif": -128.3215,
+        "dea": -129.647,
+        "bar": 2.6511,
+        "golden_cross": true
+      }
+    },
+    "创业板指": {
+      "secid": "0.399006",
+      "score": 34.6,
+      "pts": 5.0,
+      "above_ma20": true,
+      "weak": false,
+      "tags": [
+        "大盘MACD翻红·第19天",
+        "大盘站上MA20"
+      ],
+      "last_close": 3424.401,
+      "pct": -1.41,
+      "last_date": "2026-08-28",
+      "recent_labels": [
+        "金2",
+        "金3",
+        "小底",
+        "险1"
+      ],
+      "macd_last": {
+        "time": "2026-08-28",
+        "dif": -54.5923,
+        "dea": -51.5011,
+        "bar": -6.1823
+      }
+    },
+    "科创50": {
+      "secid": "1.000688",
+      "score": 54.6,
+      "pts": 5.0,
+      "above_ma20": true,
+      "weak": false,
+      "tags": [
+        "大盘MACD翻红·第19天",
+        "大盘站上MA20"
+      ],
+      "last_close": 1662.15,
+      "pct": -1.85,
+      "last_date": "2026-08-28",
+      "recent_labels": [
+        "险2",
+        "金1",
+        "金2",
+        "险1"
+      ],
+      "macd_last": {
+        "time": "2026-08-28",
+        "dif": -36.896,
+        "dea": -38.8892,
+        "bar": 3.9864
+      }
+    },
+    "北证50": {
+      "secid": "0.899050",
+      "score": 63.6,
+      "pts": 5.0,
+      "above_ma20": true,
+      "weak": false,
+      "tags": [
+        "大盘MACD翻红·第19天",
+        "大盘站上MA20"
+      ],
+      "last_close": 1063.8,
+      "pct": -1.04,
+      "last_date": "2026-08-28",
+      "recent_labels": [
+        "金1",
+        "金2",
+        "底1",
+        "险1",
+        "金3"
+      ],
+      "macd_last": {
+        "time": "2026-08-28",
+        "dif": -17.32,
+        "dea": -17.4331,
+        "bar": 0.2262,
+        "golden_cross": true
+      }
+    },
+    "沪深300": {
+      "secid": "1.000300",
+      "score": 54.6,
+      "pts": 5.0,
+      "above_ma20": true,
+      "weak": false,
+      "tags": [
+        "大盘MACD翻红·第19天",
+        "大盘站上MA20"
+      ],
+      "last_close": 4609.18,
+      "pct": -0.46,
+      "last_date": "2026-08-28",
+      "recent_labels": [
+        "险1",
+        "底1",
+        "金1·金2",
+        "险2",
+        "金3"
+      ],
+      "macd_last": {
+        "time": "2026-08-28",
+        "dif": -28.468,
+        "dea": -28.555,
+        "bar": 0.1739,
+        "golden_cross": true
+      }
+    },
+    "中证500": {
+      "secid": "1.000905",
+      "score": 64.6,
+      "pts": 5.0,
+      "above_ma20": true,
+      "weak": false,
+      "tags": [
+        "大盘MACD翻红·第19天",
+        "大盘站上MA20"
+      ],
+      "last_close": 7895.45,
+      "pct": -0.64,
+      "last_date": "2026-08-28",
+      "recent_labels": [
+        "底1　金1",
+        "金2",
+        "金3",
+        "险1"
+      ],
+      "macd_last": {
+        "time": "2026-08-28",
+        "dif": -30.1158,
+        "dea": -39.8192,
+        "bar": 19.4068
+      }
+    },
+    "中证1000": {
+      "secid": "1.000852",
+      "score": 52.0,
+      "pts": 5.0,
+      "above_ma20": true,
+      "weak": false,
+      "tags": [
+        "大盘MACD翻红·第19天",
+        "大盘站上MA20"
+      ],
+      "last_close": 7705.03,
+      "pct": -0.36,
+      "last_date": "2026-08-28",
+      "recent_labels": [
+        "底1　金1",
+        "金2",
+        "金3",
+        "险1"
+      ],
+      "macd_last": {
+        "time": "2026-08-28",
+        "dif": -3.2247,
+        "dea": -23.2004,
+        "bar": 39.9513
+      }
+    }
+  },
+  "_ts": 1787901190.5144718
+}

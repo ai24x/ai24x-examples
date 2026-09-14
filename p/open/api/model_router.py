@@ -2185,7 +2185,7 @@ def _silicon_vip_upstream(model_id: str) -> Optional[dict[str, str]]:
 # —— 国际聚合备用（#2 TokenLab / #3 Requesty）：仅 OR 失败后进入，优先级在厂直连之前 ——
 _TOKENLAB_MODEL_MAP: dict[str, str] = {
     "vip-hy3": "hy3",
-    "vip-ds-flash": "deepseek-flash",
+    "vip-ds-flash": "deepseek-v4-flash",  # TokenLab catalog 无 deepseek-flash
     "vip-ds-pro": "deepseek-v4-pro",
     "vip-kimi": "kimi-k3",
     "vip-kimi-code": "kimi-k2.7-code",

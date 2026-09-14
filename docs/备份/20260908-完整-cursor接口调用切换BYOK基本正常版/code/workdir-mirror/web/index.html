@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- [AI24X 2026-08-15] Google Ads 暂停 (国际支付无合规渠道，保留待恢复，勿删)：
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18385419220"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', {
+    'ad_storage': 'denied',
+    'ad_user_data': 'denied',
+    'ad_personalization': 'denied',
+    'analytics_storage': 'denied',
+    'personalization_storage': 'denied',
+    'functionality_storage': 'granted',
+    'security_storage': 'granted',
+    'wait_for_update': 500
+  });
+  gtag('js', new Date());
+
+  gtag('config', 'AW-18385419220');
+</script>
+<script src="config/consent.js?v=20260814a"></script>
+-->
+
+  <meta charset="UTF-8" />
+  <script>
+/* i18n-boot inline v20260808c: language pre-read + FOUC guard (no network dependency) */
+(function () {
+  var KEY = "ai24x_lang";
+  try {
+    var raw = String(localStorage.getItem(KEY) || "").trim().toLowerCase().replace(/_/g, "-");
+    var lang = raw.split("-")[0] || "";
+    if (!lang) { lang = "en"; localStorage.setItem(KEY, lang); }
+    document.documentElement.setAttribute("data-ai24x-lang", lang);
+    document.documentElement.classList.add("i18n-pending");
+    if (!document.getElementById("ai24x-i18n-pending")) {
+      var st = document.createElement("style");
+      st.id = "ai24x-i18n-pending";
+      st.textContent = "html.i18n-pending body{visibility:hidden!important}";
+      (document.head || document.documentElement).appendChild(st);
+    }
+    setTimeout(function () { document.documentElement.classList.remove("i18n-pending"); }, 4000);
+  } catch (e) {}
+})();
+</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>AI24X — AI Gateway · One API. Every AI. Spend Smarter.</title>
+  <meta name="description" content="Access DeepSeek, Qwen, GLM, Kimi and more through one OpenAI-compatible API. BYOK or managed billing, multi-model routing, usage control — start free." />
+  <link rel="canonical" href="https://www.ai24x.com/" />
+    <link rel="alternate" hreflang="en" href="https://www.ai24x.com" />
+  <link rel="alternate" hreflang="x-default" href="https://www.ai24x.com" />
+<meta property="og:type" content="website" />
+  <meta property="og:site_name" content="AI24X" />
+  <meta property="og:title" content="AI24X — AI Gateway · One API. Every AI. Spend Smarter." />
+  <meta property="og:description" content="One API for DeepSeek, Qwen, GLM, Kimi + frontier models. BYOK or managed billing, smart routing, usage control. Start building free." />
+  <meta property="og:url" content="https://www.ai24x.com/" />
+  <meta property="og:image" content="https://www.ai24x.com/img/og-share.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="AI24X — AI Gateway · One API. Every AI. Spend Smarter." />
+  <meta name="twitter:description" content="One API for DeepSeek, Qwen, GLM, Kimi + frontier models. BYOK or managed billing. Start free." />
+  <meta name="twitter:image" content="https://www.ai24x.com/img/og-share.png" />
+  <link rel="stylesheet" href="css/base.css?v=20260829c" />
+  <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260812e" data-base="css/themes/" />
+  <style>
+    .hero-eyebrow {
+      margin: 0 0 12px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: var(--accent);
+    }
+    .hero-slogan {
+      margin: 0 0 12px;
+      font-size: clamp(1.85rem, 4.6vw, 2.85rem);
+      font-weight: 800;
+      line-height: 1.12;
+      letter-spacing: -0.025em;
+      color: var(--hero-title, var(--heading));
+      max-width: none;
+      white-space: nowrap;
+    }
+    @media (max-width: 720px) {
+      .hero-slogan {
+        white-space: normal;
+        /* 窄屏允许断行；尽量在第二拍后断开 */
+        max-width: 14em;
+      }
+    }
+    .hero .lead { max-width: 48rem; margin-bottom: 1.1rem; }
+    .hero-proof {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 10px;
+      margin: 1rem 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    .hero-proof li {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--text);
+      padding: 5px 11px;
+      border-radius: 999px;
+      border: 1px solid var(--border, #d8e4ef);
+      background: color-mix(in srgb, var(--accent, #2563eb) 5%, transparent);
+    }
+    .hero-proof li::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+    }
+    .hero-price-line {
+      margin: 14px 0 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--heading);
+    }
+    .hero-price-line a { color: var(--accent); }
+    .flow-board {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.1fr) auto minmax(0, 1.4fr);
+      gap: 10px 12px;
+      align-items: center;
+      margin-top: 22px;
+      padding: 22px 18px;
+      border: 1px solid var(--border, #d8e4ef);
+      border-radius: var(--radius, 14px);
+      background: var(--card-bg, var(--surface));
+    }
+    .flow-node {
+      margin: 0;
+      padding: 14px 12px;
+      text-align: center;
+      border-radius: 12px;
+      border: 1px solid var(--border, #d8e4ef);
+      background: color-mix(in srgb, var(--accent, #2563eb) 4%, transparent);
+      font-weight: 700;
+    }
+    .flow-node.is-hub {
+      border-color: color-mix(in srgb, var(--accent, #2563eb) 45%, transparent);
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent, #2563eb) 12%, transparent);
+      background: color-mix(in srgb, var(--accent, #2563eb) 10%, transparent);
+      color: var(--accent);
+    }
+    .flow-arrow {
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 1.15rem;
+      text-align: center;
+    }
+    .flow-models {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+    }
+    .flow-models span {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border, #d8e4ef);
+      background: var(--surface, #fff);
+      font-size: 0.82rem;
+      font-weight: 650;
+    }
+    .flow-models a {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border, #d8e4ef);
+      background: var(--surface, #fff);
+      font-size: 0.82rem;
+      font-weight: 650;
+      color: var(--accent, #2563eb);
+      text-decoration: none;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .flow-models a:hover {
+      border-color: var(--accent, #2563eb);
+      background: color-mix(in srgb, var(--accent, #2563eb) 7%, transparent);
+    }
+    .flow-models .flow-ellipsis {
+      border: none;
+      background: transparent;
+      padding: 5px 6px;
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+    }
+    .cost-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+    .cost-card h3 { margin: 0 0 6px; font-size: 1.05rem; }
+    .cost-card .sub { margin: 0; }
+    .save-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+    a.save-chip {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 16px 16px 14px;
+      border-radius: var(--radius, 14px);
+      border: 1px solid color-mix(in srgb, var(--accent, #2563eb) 35%, var(--border, #d8e4ef));
+      background: color-mix(in srgb, var(--accent, #2563eb) 7%, var(--card-bg, var(--surface)));
+      color: inherit;
+      text-decoration: none;
+      transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+    }
+    a.save-chip:hover {
+      border-color: var(--accent);
+      color: inherit;
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    .save-chip .save-pct {
+      font-size: clamp(1.55rem, 3.2vw, 1.85rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      color: var(--accent);
+    }
+    .save-chip .save-label {
+      margin: 0;
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--heading);
+    }
+    .save-chip .save-note {
+      margin: 0;
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .save-foot {
+      margin: 12px 0 0;
+      font-size: 0.84rem;
+      color: var(--muted);
+    }
+    .save-foot a { color: var(--accent); font-weight: 700; }
+    .audience-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+    .audience-card h3 { margin: 0 0 6px; font-size: 1.05rem; }
+    .audience-card .sub { margin: 0; }
+    .platform-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .platform-tags span {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border, #d8e4ef);
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--grid-gap, 18px);
+      margin-top: 18px;
+    }
+    a.product-tile {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 22px 20px;
+      border: 1px solid var(--card-border, var(--border));
+      border-radius: var(--radius, 14px);
+      background: var(--card-bg, var(--surface));
+      box-shadow: var(--card-shadow, none);
+      color: inherit;
+      text-decoration: none;
+      transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+    }
+    a.product-tile:hover {
+      border-color: var(--accent);
+      color: inherit;
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    a.product-tile.is-primary {
+      border-color: color-mix(in srgb, var(--accent, #2563eb) 45%, transparent);
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent, #2563eb) 10%, transparent);
+    }
+    .product-tile h3 { margin: 0; font-size: 1.15rem; }
+    .product-tile .host {
+      margin: 0;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    .product-tile .sub { margin: 0; flex: 1; }
+    .product-tile .go {
+      margin-top: 6px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .guide-section {
+      border-top: 1px solid var(--border);
+    }
+    .guide-section .container {
+      max-width: 980px;
+      margin: 0 auto;
+    }
+    .guide-section-head {
+      text-align: center;
+      margin-bottom: 22px;
+    }
+    .guide-section-head h2 {
+      font-size: 1.35rem;
+      margin: 0 0 8px;
+    }
+    .guide-section-head .sub {
+      margin: 0 auto;
+      max-width: 36rem;
+    }
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    a.guide-card {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 148px;
+      padding: 18px 18px 16px;
+      border: 1px solid var(--card-border, var(--border));
+      border-radius: var(--radius, 14px);
+      background: var(--card-bg, var(--surface));
+      box-shadow: var(--card-shadow, none);
+      color: inherit;
+      text-decoration: none;
+      transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+    }
+    a.guide-card:hover {
+      border-color: var(--accent);
+      color: inherit;
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    .guide-card .guide-idx {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.55rem;
+      height: 1.55rem;
+      border-radius: 8px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent, #2563eb) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent, #2563eb) 28%, transparent);
+    }
+    .guide-card h3 {
+      margin: 0;
+      font-size: 1.02rem;
+      line-height: 1.35;
+      letter-spacing: -0.01em;
+    }
+    .guide-card .sub {
+      margin: 0;
+      flex: 1;
+      font-size: 0.86rem;
+      line-height: 1.45;
+    }
+    .guide-card .go {
+      margin-top: 4px;
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .guide-more {
+      text-align: center;
+      margin: 18px 0 0;
+    }
+    .guide-more a {
+      font-weight: 700;
+      color: var(--accent);
+    }
+    @media (max-width: 900px) {
+      .flow-board {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+      .flow-arrow { transform: rotate(90deg); }
+      .cost-grid { grid-template-columns: 1fr; }
+      .save-strip { grid-template-columns: 1fr; }
+      .audience-grid { grid-template-columns: 1fr 1fr; }
+      .product-grid { grid-template-columns: 1fr; }
+      .guide-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 560px) {
+      .audience-grid { grid-template-columns: 1fr; }
+      .guide-grid { grid-template-columns: 1fr; }
+      a.guide-card { min-height: 0; }
+    }
+  </style>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "AI24X",
+    "url": "https://www.ai24x.com/",
+    "logo": "https://www.ai24x.com/img/og-share.png",
+    "description": "One API for DeepSeek, Qwen, GLM, Kimi and frontier models — BYOK or managed billing, multi-model access, and usage control.",
+    "sameAs": [
+      "https://open.ai24x.com/",
+      "https://markets.ai24x.com/",
+      "https://a.ai24x.com/"
+    ]
+  }
+  </script>
+</head>
+<body data-page="index" class="theme-blue">
+  <header class="site-header" id="site-header"></header>
+
+  <main class="page-main">
+    <!-- 1) Hero: conversion first -->
+    <section class="hero hero-surface">
+      <div class="container">
+        <p class="hero-eyebrow" data-i18n="page.index.brand">AI24X</p>
+        <h1 class="hero-slogan" data-i18n="page.index.hero.title">One API. Every AI. Spend Smarter.</h1>
+        <p class="lead" data-i18n-html="page.index.hero.lead">One integration for many models — BYOK or managed. Match the model to the job and spend smarter.</p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="register.html" data-i18n="page.index.hero.cta.free">Start Building Free</a>
+          <a class="btn" href="console.html" data-i18n="page.index.hero.cta.key">Get API Key</a>
+        </div>
+        <p class="hero-price-line" data-i18n-html="page.index.hero.priceLine">Compare models and pick better price / performance — <a href="pricing.html">see plans</a>.</p>
+        <ul class="hero-proof" aria-label="Key capabilities">
+          <li data-i18n="page.index.proof.compat">OpenAI Compatible</li>
+          <li data-i18n="page.index.proof.byok">BYOK</li>
+          <li data-i18n="page.index.proof.managed">Managed Billing</li>
+          <li data-i18n="page.index.proof.multi">Multi-Model</li>
+          <li data-i18n="page.index.proof.usage">Usage Control</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 2) Why now: one integration -->
+    <section class="section" id="why">
+      <div class="container">
+        <h2 data-i18n="page.index.unify.title">Stop Managing Multiple AI APIs.</h2>
+        <p class="sub" data-i18n="page.index.unify.sub">One integration. Multiple models. One dashboard.</p>
+        <div class="flow-board" aria-hidden="false">
+          <p class="flow-node" data-i18n="page.index.unify.app">Your App</p>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <p class="flow-node is-hub">AI24X</p>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <div class="flow-models">
+            <span>GPT</span>
+            <span>Claude</span>
+            <span>Gemini</span>
+            <span>Grok</span>
+            <a href="models/index.html">DeepSeek</a>
+            <a href="models/index.html">Qwen</a>
+            <a href="blog/kimi-api-paypal-guide.html">Kimi</a>
+            <span>MiMo</span>
+            <span class="flow-ellipsis" aria-hidden="true">…</span>
+            <span data-i18n="page.index.unify.more">More</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3) Cost: light savings hooks + why -->
+    <section class="section section-alt" id="cost">
+      <div class="container">
+        <h2 data-i18n="page.index.cost.title">Why Pay More for AI?</h2>
+        <p class="sub" data-i18n="page.index.cost.sub">Managed flash / pro often cost far less on output than GPT list rates. Match the model to the job — top up credits here, or use BYOK when you already have keys.</p>
+        <div class="save-strip" aria-label="Managed access savings">
+          <a class="save-chip" href="pricing.html#saveSection">
+            <span class="save-pct">~71%</span>
+            <p class="save-label" data-i18n="page.index.cost.s1t">flash vs GPT Luna</p>
+            <p class="save-note" data-i18n="page.index.cost.s1p">$0.35 / M output · everyday tier</p>
+          </a>
+          <a class="save-chip" href="pricing.html#saveSection">
+            <span class="save-pct">~91%</span>
+            <p class="save-label" data-i18n="page.index.cost.s2t">pro vs GPT Terra</p>
+            <p class="save-note" data-i18n="page.index.cost.s2p">$1.05 / M output · quality tier</p>
+          </a>
+          <a class="save-chip" href="pricing.html#saveSection">
+            <span class="save-pct">~96%</span>
+            <p class="save-label" data-i18n="page.index.cost.s3t">pro vs GPT Sol</p>
+            <p class="save-note" data-i18n="page.index.cost.s3p">Same pro rate · vs top list price</p>
+          </a>
+        </div>
+        <p class="save-foot" data-i18n-html="page.index.cost.saveFoot">Output-token reference vs GPT list prices (captured 2026-08-15). Final rates on Console. <a href="pricing.html#saveSection">Full comparison →</a></p>
+        <div class="cost-grid">
+          <div class="card cost-card">
+            <h3 data-i18n="page.index.cost.c1t">Lower cost options</h3>
+            <p class="sub" data-i18n="page.index.cost.c1p">Use efficient models for everyday work; keep flagships for hard tasks — match the job, not the highest price.</p>
+          </div>
+          <div class="card cost-card">
+            <h3 data-i18n="page.index.cost.c2t">Better routing</h3>
+            <p class="sub" data-i18n="page.index.cost.c2p">One API surface; BYOK Pro adds smart routing and automatic failover so you can switch models without rewriting your app.</p>
+          </div>
+          <div class="card cost-card">
+            <h3 data-i18n="page.index.cost.c3t">One clear bill</h3>
+            <p class="sub" data-i18n="page.index.cost.c3p">Managed billing when you want simplicity; BYOK when you already have provider keys.</p>
+          </div>
+        </div>
+        <div class="hero-cta" style="margin-top:18px">
+          <a class="btn btn-primary" href="pricing.html" data-i18n="page.index.cost.cta">View pricing</a>
+          <a class="btn" href="console.html" data-i18n="page.index.hero.cta.gateway">Open AI Gateway</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4) Who it's for -->
+    <section class="section" id="who">
+      <div class="container">
+        <h2 data-i18n="page.index.who.title">Built for how you ship AI</h2>
+        <p class="sub" data-i18n="page.index.who.sub">Pick your path — same account, same gateway.</p>
+        <div class="audience-grid">
+          <div class="card audience-card">
+            <h3 data-i18n="page.index.who.d.t">Developers</h3>
+            <p class="sub" data-i18n="page.index.who.d.p">Build once. Switch models anytime.</p>
+          </div>
+          <div class="card audience-card">
+            <h3 data-i18n="page.index.who.a.t">AI Agents</h3>
+            <p class="sub" data-i18n="page.index.who.a.p">Connect agents to multiple AI providers through one API.</p>
+          </div>
+          <div class="card audience-card">
+            <h3 data-i18n="page.index.who.b.t">Businesses</h3>
+            <p class="sub" data-i18n="page.index.who.b.p">Control AI usage, cost and API keys in one place.</p>
+          </div>
+          <div class="card audience-card">
+            <h3 data-i18n="page.index.who.p.t">Power users</h3>
+            <p class="sub" data-i18n="page.index.who.p.p">Use BYOK or managed AI access — your choice.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5) Platform vision (demoted) + live products -->
+    <section class="section section-alt" id="platform">
+      <div class="container">
+        <h2 data-i18n="page.index.platform.title">More Than an AI API</h2>
+        <p class="sub" data-i18n="page.index.platform.sub">AI24X is building the layer for AI-powered applications — connect models, run products, optimize cost and reliability.</p>
+        <p class="sub" style="margin-top:8px;font-weight:700;color:var(--heading)" data-i18n="page.index.platform.tagline">Connect. Run. Optimize AI.</p>
+        <div class="platform-tags">
+          <span data-i18n="page.index.platform.t1">AI Gateway</span>
+          <span data-i18n="page.index.platform.t2">AI Routing</span>
+          <span data-i18n="page.index.platform.t3">Cost Control</span>
+          <span data-i18n="page.index.platform.t5">AI Applications</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="products">
+      <div class="container">
+        <h2 data-i18n="page.index.products.title">Live products</h2>
+        <p class="sub" data-i18n="page.index.products.sub">Start with the gateway. Markets is our vertical app on the same account.</p>
+        <div class="product-grid">
+          <a class="product-tile is-primary" href="console.html">
+            <p class="host">open.ai24x.com</p>
+            <h3 data-i18n="page.index.products.gateway.t">AI Gateway</h3>
+            <p class="sub" data-i18n="page.index.products.gateway.p">Multi-model API with BYOK or managed access. Drop into Cursor, Codex, n8n and more.</p>
+            <span class="go" data-i18n="page.index.products.gateway.go">Open gateway →</span>
+          </a>
+          <a class="product-tile" href="https://markets.ai24x.com/" data-markets data-hub-external target="_blank" rel="noopener">
+            <p class="host">markets.ai24x.com</p>
+            <h3 data-i18n="page.index.products.markets.t">AI Markets</h3>
+            <p class="sub" data-i18n="page.index.products.markets.p">US charts, indicators and plain-language AI commentary. Educational use only — not investment advice.</p>
+            <span class="go" data-i18n="page.index.products.markets.go">Open Markets →</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-tight guide-section">
+      <div class="container">
+        <div class="guide-section-head">
+          <h2>AI Gateway guides</h2>
+          <p class="sub">Practical reads on multi-model APIs, BYOK, and cost routing — written for developers shipping to production.</p>
+        </div>
+        <div class="guide-grid">
+          <a class="guide-card" href="blog/what-is-ai-gateway.html">
+            <span class="guide-idx">01</span>
+            <h3>What is an AI Gateway?</h3>
+            <p class="sub">One API in front of many models — routing, automatic failover, and billing.</p>
+            <span class="go">Read →</span>
+          </a>
+          <a class="guide-card" href="blog/openai-compatible-api.html">
+            <span class="guide-idx">02</span>
+            <h3>OpenAI-compatible API</h3>
+            <p class="sub">Keep your SDK. Change base URL and switch models.</p>
+            <span class="go">Read →</span>
+          </a>
+          <a class="guide-card" href="blog/one-api-multiple-models.html">
+            <span class="guide-idx">03</span>
+            <h3>One API, multiple models</h3>
+            <p class="sub">Stop juggling separate provider integrations.</p>
+            <span class="go">Read →</span>
+          </a>
+          <a class="guide-card" href="blog/byok-ai-gateway.html">
+            <span class="guide-idx">04</span>
+            <h3>BYOK AI Gateway</h3>
+            <p class="sub">Bring your own keys with routing and cost visibility.</p>
+            <span class="go">Read →</span>
+          </a>
+          <a class="guide-card" href="blog/ai-api-cost-basics.html">
+            <span class="guide-idx">05</span>
+            <h3>AI API cost basics</h3>
+            <p class="sub">Task routing beats using the strongest model everywhere.</p>
+            <span class="go">Read →</span>
+          </a>
+          <a class="guide-card" href="blog/kimi-api-paypal-guide.html">
+            <span class="guide-idx">06</span>
+            <h3>Kimi API + PayPal</h3>
+            <p class="sub">Call Kimi through AI24X with PayPal billing worldwide.</p>
+            <span class="go">Read →</span>
+          </a>
+        </div>
+        <p class="guide-more"><a href="blog/index.html">All Gateway guides →</a></p>
+      </div>
+    </section>
+
+    <section class="section-tight" style="border-top:1px solid var(--border);">
+      <div class="container" style="text-align:center;max-width:640px;margin:0 auto">
+        <h2 style="font-size:1.35rem;margin:0 0 8px" data-i18n="page.index.next.title">Start in minutes</h2>
+        <p class="sub" data-i18n="page.index.next.sub">Create an account, get a key, call flash — top up when you are ready.</p>
+        <div class="hero-cta" style="justify-content:center;margin-top:14px">
+          <a class="btn btn-primary" href="register.html" data-i18n="page.index.hero.cta.free">Start Building Free</a>
+          <a class="btn" href="console.html" data-i18n="page.index.hero.cta.key">Get API Key</a>
+          <a class="btn" href="pricing.html" data-i18n="page.index.cost.cta">View pricing</a>
+          <a class="btn" href="blog/index.html">Gateway guides</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer" id="site-footer"></footer>
+
+  <script src="config/locales.js?v=20260831b"></script>
+  <script src="js/api.js?v=20260829n"></script>
+  <script src="js/utm.js?v=20260802a"></script>
+  <script src="js/i18n.js?v=20260826m"></script>
+  <script src="js/ai24x-chrome.js?v=20260829o"></script>
+  <script src="js/shell.js?v=20260829o"></script>
+  <script src="js/app.js?v=20260818b"></script>
+  <script src="js/support-widget.js?v=20260828f"></script>
+</body>
+</html>

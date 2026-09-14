@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<link rel="icon" href="data:," />
+<meta name="robots" content="noindex,nofollow" />
+<title>AI行情官·灯塔版｜手机版首页</title>
+<style>
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; padding:0; background:#0b1220; color:#e6edf7; font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif; }
+  body{ padding-bottom:calc(24px + env(safe-area-inset-bottom)); }
+  .top{ display:flex; align-items:center; justify-content:space-between; padding:16px 16px 6px; }
+  .brand{ font-size:19px; font-weight:800; letter-spacing:.5px; }
+  .brand b{ color:#fbbf24; font-weight:800; }
+  .brand .v{ font-size:11px; font-weight:600; color:#8aa0bf; border:1px solid #2a3a55; border-radius:999px; padding:1px 7px; margin-left:6px; vertical-align:2px; }
+  .my{ font-size:13px; color:#8aa0bf; text-decoration:none; border:1px solid #2a3a55; border-radius:999px; padding:5px 12px; }
+  .my:active{ background:#16233a; }
+  .top-links{ display:flex; gap:8px; align-items:center; }
+  .hero{ padding:18px 16px 8px; }
+  .hero h1{ margin:0 0 6px; font-size:22px; font-weight:800; }
+  .hero p{ margin:0 0 16px; font-size:12.5px; line-height:1.7; color:#8aa0bf; }
+  .search{ display:flex; gap:8px; }
+  .search input{ flex:1; min-width:0; height:44px; border-radius:12px; border:1px solid #2a3a55; background:#101a2e; color:#e6edf7; font-size:15px; padding:0 14px; outline:none; }
+  .search input:focus{ border-color:#fbbf24; }
+  .search button{ height:44px; border:0; border-radius:12px; background:linear-gradient(135deg,#f59e0b,#fbbf24); color:#0b1220; font-size:15px; font-weight:700; padding:0 18px; }
+  .search button:active{ filter:brightness(.94); }
+  .cta{ display:block; margin-top:12px; text-align:center; height:52px; line-height:52px; border-radius:14px; text-decoration:none; font-size:16px; font-weight:800;
+        background:linear-gradient(135deg,#e63946,#f03a52); color:#fff; box-shadow:0 8px 24px rgba(240,58,82,.28); }
+  .cta:active{ filter:brightness(.94); }
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:14px 16px 4px; }
+  .card{ display:block; background:#101a2e; border:1px solid #22314d; border-radius:14px; padding:14px; text-decoration:none; }
+  .card:active{ background:#16233a; }
+  .card .ic{ font-size:20px; }
+  .card .nm{ margin-top:8px; font-size:15px; font-weight:700; color:#e6edf7; }
+  .card .ds{ margin-top:3px; font-size:11.5px; color:#8aa0bf; line-height:1.5; }
+  .card.quote{ grid-column:1 / -1; display:flex; align-items:center; gap:12px; background:linear-gradient(135deg,#17233f,#101a2e); border-color:#fbbf24; }
+  .card.quote .nm{ margin:0; font-size:16px; color:#fbbf24; }
+  .card.quote .ds{ margin:2px 0 0; }
+  .card.reg{ background:linear-gradient(135deg,rgba(59,130,246,.20),rgba(59,130,246,.06)); border-color:#3b82f6; }
+  .card.reg .nm{ color:#8ab8ff; }
+  .foot{ margin:18px 16px 0; padding-top:14px; border-top:1px solid #1c2a44; font-size:11px; line-height:1.7; color:#5d7290; text-align:center; }
+</style>
+</head>
+<body>
+  <div class="top">
+    <span class="brand">AI行情官<b>｜灯塔版</b><span class="v">1.03</span></span>
+    <span class="top-links">
+      <a class="my" href="../index.html" id="link-desktop">桌面版</a>
+      <a class="my" href="account.html">我的</a>
+    </span>
+  </div>
+
+  <div class="hero">
+    <h1>一屏看行情</h1>
+    <p>MACD / 均线 / 量能 / RSI 综合评分 · 自选股评分榜 · 信号分享卡<br/>公开技术指标统计，仅供自主决策参考，不构成投资建议</p>
+    <div class="search">
+      <input id="q" placeholder="输入代码，如 000977" enterkeyhint="search" autocomplete="off" />
+      <button id="go">查行情</button>
+    </div>
+    <a class="cta" href="quote.html">进入行情查询</a>
+  </div>
+
+  <div class="grid">
+    <a class="card quote" href="quote.html">
+      <span class="ic">📈</span>
+      <span><span class="nm">行情查询</span><span class="ds">K线 · 信号 · 评分 · 一键分享</span></span>
+    </a>
+    <a class="card" href="gd.html"><span class="ic">⛏️</span><span class="nm">AI复盘</span><span class="ds">板块热点 · 每日扫描</span></a>
+    <a class="card" href="../account.html"><span class="ic">👤</span><span class="nm">我的</span><span class="ds">会员 · 自选 · 套餐</span></a>
+    <a class="card" href="help.html"><span class="ic">❓</span><span class="nm">帮助</span><span class="ds">使用说明 · 常见问题</span></a>
+    <a class="card reg" id="reg-link" href="../index.html?i=BWPX3Z8B&amp;mode=register"><span class="ic">🎁</span><span class="nm">免费注册</span><span class="ds">手机号验证码注册 · 注册即送免费额度</span></a>
+    <a class="card" href="feedback.html"><span class="ic">💬</span><span class="nm">反馈</span><span class="ds">意见与建议</span></a>
+  </div>
+
+  <div class="foot">
+    AI行情官 · 灯塔版 1.03　·　公开技术指标统计（MACD、均线、量能、RSI、波动等常规指标，0-100 综合分）<br/>
+    仅供自主决策参考，不构成证券投资咨询，不构成任何买卖建议
+  </div>
+
+<script>
+(function(){
+  function codeToSecid(code){
+    code = String(code).trim();
+    if (/^\d{6}$/.test(code)){
+      if (code.startsWith("6") || code.startsWith("9") || code.startsWith("4") || code.startsWith("8")) return "1." + code;
+      return "0." + code;
+    }
+    return null;
+  }
+  function go(){
+    var v = document.getElementById("q").value.trim();
+    if (!v) return;
+    var sid = codeToSecid(v);
+    if (sid) location.href = "quote.html?secid=" + encodeURIComponent(sid) + "&name=" + encodeURIComponent(v);
+    else location.href = "quote.html";
+  }
+  document.getElementById("go").addEventListener("click", go);
+  document.getElementById("q").addEventListener("keydown", function(e){ if (e.key === "Enter") go(); });
+})();
+</script>
+<script>
+(function(){
+  // 邀请码：URL 参数 → localStorage → 默认 BWPX3Z8B；免费注册按钮跟随；桌面版入口设强制桌面标记
+  try {
+    var sp = new URLSearchParams(location.search);
+    var raw = sp.get('i') || sp.get('invite') || sp.get('inv') || sp.get('ref') || '';
+    if (raw) localStorage.setItem('ai24x_invite_code', String(raw).trim().toUpperCase());
+    var code = String(localStorage.getItem('ai24x_invite_code') || '').trim().toUpperCase() || 'BWPX3Z8B';
+    var reg = document.getElementById('reg-link');
+    if (reg) reg.href = '../index.html?i=' + encodeURIComponent(code) + '&mode=register';
+    var desk = document.getElementById('link-desktop');
+    if (desk) {
+      desk.href = '../index.html?i=' + encodeURIComponent(code);
+      desk.addEventListener('click', function(){ try { sessionStorage.setItem('ai24x_desktop_force','1'); } catch (e) {} });
+    }
+  } catch (e) {}
+})();
+</script>
+<div class="bottombar" style="position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;background:#101a2c;border-top:1px solid #22314d;padding:6px 4px calc(6px + env(safe-area-inset-bottom))">
+  <a href="index.html" style="flex:1;text-align:center;font-size:11px;color:#fbbf24;padding:4px 2px;text-decoration:none"><span style="display:block;font-size:17px;margin-bottom:1px">🏠</span>首页</a>
+  <a href="quote.html" style="flex:1;text-align:center;font-size:11px;color:#8aa0bf;padding:4px 2px;text-decoration:none"><span style="display:block;font-size:17px;margin-bottom:1px">📈</span>行情</a>
+  <a href="gd.html" style="flex:1;text-align:center;font-size:11px;color:#8aa0bf;padding:4px 2px;text-decoration:none"><span style="display:block;font-size:17px;margin-bottom:1px">⛏️</span>AI复盘</a>
+  <a href="account.html" style="flex:1;text-align:center;font-size:11px;color:#8aa0bf;padding:4px 2px;text-decoration:none"><span style="display:block;font-size:17px;margin-bottom:1px">👤</span>我的</a>
+</div>
+</body>
+</html>

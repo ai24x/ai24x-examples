@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Mind Match · 默契考验</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; }
+  body {
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background:linear-gradient(170deg,#0f172a,#4c1d95); color:#e2e8f0; overflow:hidden; user-select:none;
+    touch-action:manipulation; overscroll-behavior:none;
+  }
+  #wrap { height:100dvh; display:flex; flex-direction:column; align-items:center; padding:20px 16px; }
+  .hud { font-size:14px; font-weight:700; color:#94a3b8; margin-bottom:8px; }
+  .hud b { color:#fbbf24; }
+  #q {
+    font-size: clamp(20px,5.5vw,30px); font-weight:800; text-align:center; line-height:1.45;
+    min-height:90px; display:flex; align-items:center; justify-content:center;
+    background:#1e293b; border:1px solid #334155; border-radius:18px; padding:16px; width:100%; max-width:440px;
+  }
+  #turn { margin:12px 0 4px; font-size:16px; font-weight:800; color:#38bdf8; min-height:24px; }
+  .opts { display:grid; grid-template-columns:1fr 1fr; gap:12px; width:100%; max-width:440px; margin-top:10px; }
+  .opt {
+    background:linear-gradient(160deg,#334155,#1e293b); border:2px solid #475569; border-radius:16px;
+    padding:18px 12px; font-size:clamp(15px,4.5vw,18px); font-weight:700; color:#e2e8f0; cursor:pointer;
+    touch-action:manipulation; transition: transform .1s;
+  }
+  .opt:active { transform: scale(.95); border-color:#38bdf8; }
+  #msg { min-height:48px; font-size:15px; text-align:center; margin-top:14px; font-weight:700; line-height:1.5; }
+  .match-msg { color:#4ade80; }
+  .miss-msg { color:#f87171; }
+  #overlay { position:fixed; inset:0; background:rgba(2,6,23,.9); display:none; align-items:center; justify-content:center; z-index:10; }
+  #overlay.show { display:flex; }
+  .panel { text-align:center; padding:30px 24px; border-radius:20px; background:#1e293b; border:1px solid #334155; max-width:330px; width:92%; }
+  .panel h2 { font-size:24px; margin-bottom:8px; }
+  .panel .score { font-size:44px; font-weight:800; color:#38bdf8; margin:8px 0; }
+  .panel p { color:#94a3b8; font-size:14px; margin-bottom:16px; }
+  .play { background:linear-gradient(90deg,#38bdf8,#8b5cf6); border:none; color:#fff; font-size:17px; font-weight:800; padding:13px 38px; border-radius:999px; cursor:pointer; box-shadow:0 5px 0 rgba(0,0,0,.3); touch-action:manipulation; }
+  .play:active { transform: translateY(3px); box-shadow:0 2px 0 rgba(0,0,0,.3); }
+  .back { display:block; margin-top:14px; color:#64748b; font-size:13px; text-decoration:none; }
+</style>
+<style id="xz-shell">
+#topbar{position:fixed;top:0;left:0;right:0;height:64px;z-index:50;display:flex;align-items:center;gap:10px;padding:0 14px;background:rgba(15,23,42,.94);backdrop-filter:blur(8px);border-bottom:1px solid #334155;color:#e2e8f0;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;-webkit-user-select:none;user-select:none;}
+#topbar a{color:#38bdf8;text-decoration:none;font-size:14px;font-weight:700;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+#topbar .tt{flex:1;text-align:center;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#topbar .tg{font-size:11px;color:#94a3b8;font-weight:400;margin-left:4px;}
+#howBtn{width:30px;height:30px;border-radius:50%;border:1px solid #334155;background:#1e293b;color:#94a3b8;font-weight:800;cursor:pointer;font-size:15px;line-height:1;flex:none;}
+#howto{display:none;position:fixed;top:72px;left:50%;transform:translateX(-50%);width:min(92vw,420px);z-index:70;background:#1e293b;border:1px solid #475569;border-radius:14px;padding:14px 16px;color:#cbd5e1;font-size:13px;line-height:1.7;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;box-shadow:0 12px 32px rgba(0,0,0,.55);}
+#howto.show{display:block;}
+#howto b{color:#38bdf8;}
+.xz-cr{position:fixed;bottom:4px;right:10px;font-size:10px;color:#475569;z-index:45;font-family:-apple-system,"Segoe UI",sans-serif;pointer-events:none;-webkit-user-select:none;user-select:none;}
+</style>
+</head>
+<body>
+<div id="topbar"><a href="index.html">← 列表</a><span class="tt">Mind Match<span class="tg">默契考验</span></span><button id="howBtn" aria-label="玩法说明">?</button></div>
+<div id="howto"><b>怎么玩</b><br>和朋友各自回答同样的问题，答案越一致默契分越高，测测你们有多懂彼此。</div>
+
+<div id="wrap">
+  <div class="hud">默契分 <b id="score">0</b> · 第 <b id="qnum">1</b>/8 题</div>
+  <div id="q">题目加载中…</div>
+  <div id="turn">👤 玩家 A：先选你的答案</div>
+  <div class="opts" id="opts"></div>
+  <div id="msg"></div>
+</div>
+
+<div id="overlay">
+  <div class="panel">
+    <h2>测试完成</h2>
+    <div class="score" id="finalScore">0</div>
+    <p id="finalMsg">默契等级：…</p>
+    <button class="play" id="restart">再来一轮</button>
+    <a class="back" href="index.html">← 返回列表</a>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var qEl=document.getElementById('q'), optsEl=document.getElementById('opts');
+  var turnEl=document.getElementById('turn'), msgEl=document.getElementById('msg');
+  var scoreEl=document.getElementById('score'), qnumEl=document.getElementById('qnum');
+  var overlay=document.getElementById('overlay');
+  var finalScore=document.getElementById('finalScore'), finalMsg=document.getElementById('finalMsg');
+  var restart=document.getElementById('restart');
+
+  // 原创默契题库：选项为"最可能的选择"
+  var QUESTIONS=[
+    { q:'两个人一起点奶茶，默认会点什么？', opts:['珍珠奶茶','柠檬茶','咖啡','果汁'] },
+    { q:'周末早上 9 点，对方大概率在？', opts:['还在睡','吃早餐','刷手机','出门运动'] },
+    { q:'旅行箱里最先放进去的东西？', opts:['充电器','衣服','零食','洗漱包'] },
+    { q:'看到蟑螂，第一反应是？', opts:['尖叫逃跑','找拖鞋拍','冷静观察','喊别人来'] },
+    { q:'手机电量剩 20% 会？', opts:['马上找充电','无所谓继续用','开省电模式','借充电宝'] },
+    { q:'火锅必点的一个菜？', opts:['肥牛','毛肚','虾滑','青菜'] },
+    { q:'加班到很晚，第一件事想做什么？', opts:['洗澡','躺着刷手机','吃点好的','直接睡'] },
+    { q:'如果中奖 100 万，第一件事？', opts:['存起来','买房','旅游','辞职'] },
+    { q:'对方生气的信号是？', opts:['不说话','说"没事"','摔东西','阴阳怪气'] },
+    { q:'夏天开空调，会开到多少度？', opts:['22 度','24 度','26 度','28 度'] }
+  ];
+  var TOTAL=8, idx=0, score=0, ansA=null, expectB=null;
+
+  function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; } return a; }
+  var deck=shuffle(QUESTIONS.slice()).slice(0,TOTAL);
+
+  function render(){
+    qEl.textContent=deck[idx].q;
+    qnumEl.textContent=idx+1;
+    optsEl.innerHTML='';
+    deck[idx].opts.forEach(function(o){
+      var b=document.createElement('button');
+      b.className='opt'; b.textContent=o;
+      b.addEventListener('pointerdown', function(e){ e.preventDefault(); choose(o); });
+      optsEl.appendChild(b);
+    });
+  }
+
+  function choose(opt){
+    if(ansA===null){
+      // A 已答 → 请 B 猜 A 会选什么
+      ansA=opt;
+      turnEl.textContent='👤 玩家 B：猜猜 A 选了什么？';
+      msgEl.textContent='';
+      return;
+    }
+    // B 的猜测
+    var match = (opt===ansA);
+    if(match){ score++; msgEl.className='match-msg'; msgEl.textContent='✅ 默契 +1！两人都选了「'+opt+'」'; }
+    else { msgEl.className='miss-msg'; msgEl.textContent='❌ 没对上。A 选了「'+ansA+'」，B 猜了「'+opt+'」'; }
+    scoreEl.textContent=score;
+    ansA=null;
+    if(idx>=TOTAL-1){ setTimeout(win,900); return; }
+    idx++;
+    setTimeout(function(){
+      turnEl.textContent='👤 玩家 A：先选你的答案';
+      render();
+    }, 900);
+  }
+
+  function win(){
+    finalScore.textContent=score+' / '+TOTAL;
+    var pct=score/TOTAL;
+    var lv = pct===1 ? '💯 灵魂伴侣！' : pct>=0.75 ? '💞 相当默契' : pct>=0.5 ? '🙂 还得多相处' : '🤔 你们真的熟吗';
+    finalMsg.textContent='默契等级：'+lv;
+    overlay.classList.add('show');
+  }
+
+  restart.addEventListener('click', function(){
+    overlay.classList.remove('show');
+    deck=shuffle(QUESTIONS.slice()).slice(0,TOTAL);
+    idx=0; score=0; ansA=null;
+    scoreEl.textContent='0';
+    msgEl.textContent=''; msgEl.className='';
+    turnEl.textContent='👤 玩家 A：先选你的答案';
+    render();
+  });
+
+  render();
+})();
+</script>
+<script>
+(function(){
+  'use strict';
+  // --- 等比缩放：390x780 设计基准（上方 64px 顶部栏），其它屏幕自动等比 ---
+  var W=390,H=780,TOP=64;
+  var wrap=document.getElementById('wrap');
+  function fit(){
+    if(!wrap) return;
+    var s=Math.min(innerWidth/W,(innerHeight-TOP)/H);
+    if(s>1.4) s=1.4;
+    var w=W*s,h=H*s;
+    wrap.style.width=w+'px';
+    wrap.style.height=h+'px';
+    wrap.style.left=((innerWidth-w)/2)+'px';
+    wrap.style.top=(TOP+(innerHeight-TOP-h)/2)+'px';
+    wrap.style.position='fixed';
+    wrap.style.margin='0';
+    wrap.style.transform='scale('+s+')';
+    wrap.style.transformOrigin='top left';
+  }
+  fit();
+  addEventListener('resize',fit);
+  addEventListener('orientationchange',fit);
+  // 结算浮层提到顶部栏之上（面板里自带返回入口）
+  var ov=document.getElementById('overlay');
+  if(ov) ov.style.zIndex=60;
+  // --- 玩法说明折叠 ---
+  var hb=document.getElementById('howBtn'),ht=document.getElementById('howto');
+  if(hb&&ht){
+    hb.addEventListener('click',function(e){e.stopPropagation();ht.classList.toggle('show');});
+    document.addEventListener('pointerdown',function(e){if(ht.classList.contains('show')&&!ht.contains(e.target)&&e.target!==hb)ht.classList.remove('show');});
+  }
+  // --- L1 防拷贝：禁右键 / 禁 F12 / 禁 Ctrl+S,U,P / 禁 Ctrl+Shift+I,J,C ---
+  document.addEventListener('contextmenu',function(e){e.preventDefault();});
+  document.addEventListener('dragstart',function(e){e.preventDefault();});
+  document.addEventListener('keydown',function(e){
+    var k=e.key||'';
+    if(k==='F12'||(e.ctrlKey&&['s','u','p','S','U','P'].indexOf(k)>=0)||(e.ctrlKey&&e.shiftKey&&['i','j','c','I','J','C'].indexOf(k)>=0)){e.preventDefault();e.stopPropagation();return false;}
+  });
+  // 长按防存图
+  document.addEventListener('touchstart',function(){},false);
+})();
+</script>
+<div class="xz-cr">© 2026 AI24X Game Zone</div>
+</body>
+</html>

@@ -1,0 +1,1092 @@
+"""
+免费共享通道（独立运营域）。
+
+漏斗（自动化）：
+  注册礼包/充值 → 付费档（flash/pro…）
+  → 余额用尽或该档不可花日赠时 → 自动降级 shared（日帽内继续聊）
+  → 响应/余额接口提示充值；充值后自动回付费档
+
+配置写入 api/data/free_shared_override.json；可用 TOKEN_SHARED_* 环境变量覆盖默认帽。
+"""
+from __future__ import annotations
+
+import json
+import logging
+import os
+import re
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Optional
+
+from fastapi import HTTPException, status
+from sqlalchemy.orm import Session
+
+_OVERRIDE_PATH = Path(__file__).resolve().parent / "data" / "free_shared_override.json"
+
+# 共享池目录（仓库式；用户对外仍只见 shared）
+SHARED_CATALOG: list[dict[str, Any]] = [
+    {
+        "id": "silicon-qwen",
+        "title": "硅基 Qwen2.5-7B",
+        "provider": "siliconflow",
+        "model_id": "Qwen/Qwen2.5-7B-Instruct",
+        "cost": "付费Key · 平台兜底",
+        "quality": "快速可靠 · 推荐主力",
+        "access": "live",
+        "scale_note": "用付费Key保障永久免费承诺；人多时收日帽或加第二Key",
+    },
+    {
+        "id": "or-auto",
+        "title": "OpenRouter Auto",
+        "provider": "openrouter",
+        "model_id": "openrouter/auto",
+        "cost": "低价",
+        "quality": "自动选便宜端点",
+        "access": "live",
+        "scale_note": "需付费 OR Key；自动选最便宜端点",
+    },
+    {
+        "id": "or-free-router",
+        "title": "OpenRouter Free Router",
+        "provider": "openrouter",
+        "model_id": "openrouter/free",
+        "cost": "OR 真免费池",
+        "quality": "质量浮动 · 不花钱备用",
+        "access": "live",
+        "scale_note": "OpenRouter 原生免费模型路由；零成本但质量不可控",
+    },
+    {
+        "id": "or-mimo",
+        "title": "小米 MiMo-V2.5（OR）",
+        "provider": "openrouter",
+        "model_id": "xiaomi/mimo-v2.5",
+        "cost": "$0.168/M",
+        "quality": "极低价 · 1M 上下文 · 高质量",
+        "access": "live",
+        "scale_note": "需付费 OR Key；日活破 200 启用",
+    },
+    {
+        "id": "sf-glm-flash",
+        "title": "硅基 GLM-4-Flash",
+        "provider": "siliconflow",
+        "model_id": "THUDM/glm-4-9b-chat",
+        "cost": "低价/活动",
+        "quality": "中文备选",
+        "access": "live",
+        "scale_note": "以硅基控制台实际免费列表为准再启用",
+    },
+    {
+        "id": "byok-user",
+        "title": "用户自带 Key（BYOK）",
+        "provider": "byok",
+        "model_id": "user-provided",
+        "cost": "用户侧承担",
+        "quality": "用户自己的Key · 不限模型",
+        "access": "planned",
+        "scale_note": "贡献Key换每日额度加成 → 众筹免成本通道",
+        "scale_note": "后期：用户填 OR/硅基 Key，走其额度；平台只收薄网关费",
+    },
+]
+
+def _env_int(name: str, default: int) -> int:
+    raw = (os.getenv(name) or "").strip()
+    if not raw:
+        return int(default)
+    try:
+        return int(raw)
+    except ValueError:
+        return int(default)
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    raw = (os.getenv(name) or "").strip().lower()
+    if not raw:
+        return bool(default)
+    return raw not in ("0", "false", "no", "off")
+
+
+# 亮点默认：每日约 10 万 token / 50 次（可用 override / env 调）
+_DEFAULTS: dict[str, Any] = {
+    "enabled": True,
+    "daily_req_cap": _env_int("TOKEN_SHARED_DAILY_REQ_CAP", 50),
+    "daily_token_cap": _env_int("TOKEN_SHARED_DAILY_TOKEN_CAP", 100_000),
+    "prefer": "silicon-qwen",
+    # 质量优先：硅基付费 Key 打小模 → GLM → OR 廉价高质量 → OR auto
+    # 不默认启用 or-free-router（openrouter/free 极易复读串音，伤新用户）
+    "pool_enabled": [
+        "silicon-qwen",
+        "sf-glm-flash",
+        "or-mimo",
+        "or-auto",
+    ],
+    "dispatch_mode": "failover",  # failover=挂了自动顶上；rotate=多条轮询
+    "brand_model": "shared",
+    # False=余额用尽自动 shared；True=仅显式 model=shared 才进共享（不推荐）
+    "upgrade_first": _env_bool("TOKEN_SHARED_UPGRADE_FIRST", False),
+    # 付费档余额不足时自动降级 shared（flash/auto/pro 等；vip-* 除外）
+    "auto_degrade": _env_bool("TOKEN_SHARED_AUTO_DEGRADE", True),
+    # T13 共享池上游用量聚合告警 + 熔断（保护付费上游成本；次日 UTC 自动复位）
+    "pool_alert_tokens": _env_int("TOKEN_SHARED_POOL_ALERT_TOKENS", 2_000_000),
+    "pool_break_tokens": _env_int("TOKEN_SHARED_POOL_BREAK_TOKENS", 5_000_000),
+    "pool_break_reqs": _env_int("TOKEN_SHARED_POOL_BREAK_REQS", 5_000),
+    "pool_break_action": (
+        (os.getenv("TOKEN_SHARED_POOL_BREAK_ACTION") or "free-router").strip().lower()
+    ),
+    "ops_title": "免费共享通道",
+}
+
+_PREFER_ALIASES = {
+    "siliconflow": "silicon-qwen",
+    "openrouter_auto": "or-auto",
+    "or-auto": "or-auto",
+    "silicon-qwen": "silicon-qwen",
+}
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+def _load() -> dict[str, Any]:
+    try:
+        if not _OVERRIDE_PATH.is_file():
+            return {}
+        raw = json.loads(_OVERRIDE_PATH.read_text(encoding="utf-8"))
+        return raw if isinstance(raw, dict) else {}
+    except Exception:
+        return {}
+
+
+def _save(data: dict[str, Any]) -> None:
+    _OVERRIDE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _OVERRIDE_PATH.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
+# ---------- T13 共享池上游用量聚合 / 告警 / 熔断 ----------
+_USAGE_PATH = Path(__file__).resolve().parent / "data" / "shared_pool_usage.json"
+_usage_cache: dict[str, Any] = {}
+_usage_cache_ts = 0.0
+_USAGE_CACHE_TTL = 30.0
+
+
+def _usage_date() -> str:
+    return _utcnow().strftime("%Y-%m-%d")
+
+
+def _load_usage() -> dict[str, Any]:
+    global _usage_cache, _usage_cache_ts
+    now = time.time()
+    if _usage_cache and (now - _usage_cache_ts) < _USAGE_CACHE_TTL:
+        return _usage_cache
+    data: dict[str, Any] = {}
+    try:
+        if _USAGE_PATH.is_file():
+            raw = json.loads(_USAGE_PATH.read_text(encoding="utf-8"))
+            if isinstance(raw, dict):
+                data = raw
+    except Exception:
+        data = {}
+    _usage_cache = data
+    _usage_cache_ts = now
+    return data
+
+
+def _save_usage(data: dict[str, Any]) -> None:
+    global _usage_cache, _usage_cache_ts
+    _USAGE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    tmp = _USAGE_PATH.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    os.replace(str(tmp), str(_USAGE_PATH))
+    _usage_cache = data
+    _usage_cache_ts = time.time()
+
+
+def _usage_state() -> dict[str, Any]:
+    data = _load_usage()
+    if str(data.get("date") or "") != _usage_date():
+        return {
+            "date": _usage_date(),
+            "upstreams": {},
+            "total_tokens": 0,
+            "total_reqs": 0,
+            "alerted": False,
+            "breaker": False,
+        }
+    data.setdefault("upstreams", {})
+    data.setdefault("total_tokens", 0)
+    data.setdefault("total_reqs", 0)
+    return data
+
+
+def pool_breaker_state() -> dict[str, Any]:
+    """T13 熔断状态：今日共享池聚合用量是否越过阈值，动作 free-router/disable。"""
+    data = _usage_state()
+    return {
+        "active": bool(data.get("breaker")),
+        "date": str(data.get("date") or ""),
+        "action": str(data.get("breaker_action") or "free-router"),
+        "reason": str(data.get("breaker_reason") or ""),
+        "total_tokens": int(data.get("total_tokens") or 0),
+        "total_reqs": int(data.get("total_reqs") or 0),
+        "alerted": bool(data.get("alerted")),
+        "upstreams": data.get("upstreams") or {},
+    }
+
+
+def record_pool_upstream_usage(*, catalog_id: str, tokens: int) -> None:
+    """T13：按上游目录聚合今日共享池用量；跨告警阈值写日志，跨熔断阈值自动动作。"""
+    logger = logging.getLogger(__name__)
+    data = _usage_state()
+    day = _usage_date()
+    if str(data.get("date") or "") != day:
+        data = {
+            "date": day,
+            "upstreams": {},
+            "total_tokens": 0,
+            "total_reqs": 0,
+            "alerted": False,
+            "breaker": False,
+        }
+    up = data.setdefault("upstreams", {}).setdefault(str(catalog_id), {"tokens": 0, "reqs": 0})
+    up["tokens"] = int(up.get("tokens") or 0) + max(0, int(tokens))
+    up["reqs"] = int(up.get("reqs") or 0) + 1
+    data["total_tokens"] = int(data.get("total_tokens") or 0) + max(0, int(tokens))
+    data["total_reqs"] = int(data.get("total_reqs") or 0) + 1
+    cfg = effective_config()
+    alert_tok = int(cfg.get("pool_alert_tokens") or 0)
+    break_tok = int(cfg.get("pool_break_tokens") or 0)
+    break_req = int(cfg.get("pool_break_reqs") or 0)
+    if not data.get("alerted") and alert_tok > 0 and int(data["total_tokens"]) >= alert_tok:
+        data["alerted"] = True
+        logger.warning(
+            "shared pool usage alert: total_tokens=%s threshold=%s",
+            data["total_tokens"],
+            alert_tok,
+        )
+    if not data.get("breaker") and break_tok > 0 and int(data["total_tokens"]) >= break_tok:
+        data["breaker"] = True
+        data["breaker_action"] = str(cfg.get("pool_break_action") or "free-router")
+        data["breaker_reason"] = "token_cap"
+        logger.warning(
+            "shared pool breaker triggered: action=%s total_tokens=%s cap=%s",
+            data["breaker_action"],
+            data["total_tokens"],
+            break_tok,
+        )
+    if not data.get("breaker") and break_req > 0 and int(data["total_reqs"]) >= break_req:
+        data["breaker"] = True
+        data["breaker_action"] = str(cfg.get("pool_break_action") or "free-router")
+        data["breaker_reason"] = "req_cap"
+        logger.warning(
+            "shared pool breaker triggered: action=%s total_reqs=%s cap=%s",
+            data["breaker_action"],
+            data["total_reqs"],
+            break_req,
+        )
+    _save_usage(data)
+
+
+def effective_config() -> dict[str, Any]:
+    ov = _load()
+    out = dict(_DEFAULTS)
+    for k in _DEFAULTS:
+        if k in ov and ov[k] is not None:
+            out[k] = ov[k]
+    out["enabled"] = bool(out["enabled"])
+    out["upgrade_first"] = bool(out.get("upgrade_first", False))
+    out["auto_degrade"] = bool(out.get("auto_degrade", True))
+    try:
+        out["daily_req_cap"] = max(1, min(500, int(out["daily_req_cap"])))
+    except (TypeError, ValueError):
+        out["daily_req_cap"] = _DEFAULTS["daily_req_cap"]
+    try:
+        out["daily_token_cap"] = max(1000, min(2_000_000, int(out["daily_token_cap"])))
+    except (TypeError, ValueError):
+        out["daily_token_cap"] = _DEFAULTS["daily_token_cap"]
+
+    prefer = str(out.get("prefer") or "silicon-qwen").strip().lower()
+    prefer = _PREFER_ALIASES.get(prefer, prefer)
+    valid_ids = {c["id"] for c in SHARED_CATALOG}
+    if prefer not in valid_ids:
+        prefer = "silicon-qwen"
+    out["prefer"] = prefer
+
+    pe = out.get("pool_enabled")
+    if not isinstance(pe, list) or not pe:
+        pe = list(_DEFAULTS["pool_enabled"])
+    pe2 = []
+    for x in pe:
+        xid = _PREFER_ALIASES.get(str(x).strip().lower(), str(x).strip())
+        if xid in valid_ids and xid not in pe2:
+            pe2.append(xid)
+    if prefer not in pe2:
+        pe2.insert(0, prefer)
+    out["pool_enabled"] = pe2
+    dm = str(out.get("dispatch_mode") or "failover").strip().lower()
+    if dm not in ("failover", "rotate"):
+        dm = "failover"
+    out["dispatch_mode"] = dm
+    out["brand_model"] = str(out.get("brand_model") or "shared")[:32]
+
+    # T13 熔断：越过阈值后按动作收窄/关闭共享池（次日 UTC 自动复位）
+    try:
+        out["pool_alert_tokens"] = max(0, int(out.get("pool_alert_tokens") or 0))
+        out["pool_break_tokens"] = max(0, int(out.get("pool_break_tokens") or 0))
+        out["pool_break_reqs"] = max(0, int(out.get("pool_break_reqs") or 0))
+        _action = str(out.get("pool_break_action") or "free-router").strip().lower()
+        out["pool_break_action"] = _action if _action in ("free-router", "disable") else "free-router"
+    except (TypeError, ValueError):
+        pass
+    brk = pool_breaker_state()
+    out["pool_breaker"] = brk
+    if brk.get("active"):
+        action = str(brk.get("action") or "free-router")
+        if action == "disable":
+            out["enabled"] = False
+        else:
+            out["prefer"] = "or-free-router"
+            out["pool_enabled"] = ["or-free-router"]
+    return out
+
+
+_rotate_seq = 0
+
+
+def ordered_pool_ids(cfg: Optional[dict[str, Any]] = None) -> list[str]:
+    """返回本次尝试顺序：failover=主力优先；rotate=轮转起点后接其余。"""
+    global _rotate_seq
+    cfg = cfg or effective_config()
+    ids = list(cfg.get("pool_enabled") or [])
+    prefer = str(cfg.get("prefer") or "")
+    if prefer in ids:
+        ids = [prefer] + [x for x in ids if x != prefer]
+    if not ids:
+        return ["silicon-qwen", "or-auto"]
+    if cfg.get("dispatch_mode") == "rotate" and len(ids) > 1:
+        _rotate_seq = (_rotate_seq + 1) % len(ids)
+        start = _rotate_seq
+        return ids[start:] + ids[:start]
+    return ids
+
+
+def resolve_catalog_upstream(cid: str) -> Optional[dict[str, Any]]:
+    """把目录 id 解析成可调用的上游（base/key/model/provider）。不可用返回 None。"""
+    from model_router import _env, _normalize_openai_base, _upstream_mode
+
+    row = next((c for c in SHARED_CATALOG if c["id"] == cid), None)
+    if not row or row.get("access") == "planned" or row.get("provider") == "byok":
+        return None
+    prov = str(row.get("provider") or "")
+    model_id = str(row.get("model_id") or "")
+
+    if prov == "siliconflow":
+        key = ""
+        try:
+            from llm_keys import silicon_free_key, silicon_main_key
+            from model_router import _layer_upstream
+
+            # 共享池优先廉价付费主 Key（质量稳）；免费 Key 仅作备选
+            key = (
+                silicon_main_key()
+                or str((_layer_upstream("L0") or {}).get("key") or "")
+                or silicon_free_key()
+            )
+        except Exception:
+            key = ""
+        if not key:
+            key = (
+                _env("SILICONFLOW_COM_API_KEY")
+                or _env("SILICONFLOW_API_KEY")
+                or _env("TOKEN_LLM_L0_KEY")
+                or _env("SILICONFLOW_API_KEY_FREE")
+            )
+        if not key:
+            return None
+        base = (
+            _env("SILICONFLOW_BASE_URL")
+            or _env("TOKEN_LLM_L0_BASE")
+            or "https://api.siliconflow.com/v1"
+        )
+        # 各目录行用自己的 model_id；仅 silicon-qwen 允许 env 覆盖主力型号
+        if cid == "silicon-qwen":
+            model = (
+                _env("SILICONFLOW_MODEL")
+                or _env("TOKEN_LLM_L0_MODEL")
+                or model_id
+            )
+        else:
+            model = model_id
+        return {
+            "catalog_id": cid,
+            "base": _normalize_openai_base(base),
+            "key": key,
+            "model": model,
+            "provider": "siliconflow",
+            "title": row.get("title"),
+        }
+
+    if prov == "openrouter":
+        if _upstream_mode() != "openrouter":
+            pass
+        key = ""
+        try:
+            from llm_keys import openrouter_free_key, openrouter_main_key
+
+            # or-free-router 才优先 FREE Key；其余共享档优先付费主 Key（控成本用小模/auto）
+            if cid == "or-free-router":
+                key = openrouter_free_key() or openrouter_main_key()
+            else:
+                key = openrouter_main_key() or openrouter_free_key()
+        except Exception:
+            key = _env("OPENROUTER_API_KEY") or _env("TOKEN_LLM_KEY")
+        if not key:
+            return None
+        base = _env("OPENROUTER_BASE_URL") or "https://openrouter.ai/api/v1"
+        return {
+            "catalog_id": cid,
+            "base": _normalize_openai_base(base),
+            "key": key,
+            "model": model_id or "openrouter/auto",
+            "provider": "openrouter",
+            "title": row.get("title"),
+        }
+    return None
+
+
+def build_shared_attempt_chain() -> list[dict[str, Any]]:
+    """启用池按策略排序，过滤不可用项 → 实际调用链。"""
+    cfg = effective_config()
+    out: list[dict[str, Any]] = []
+    for cid in ordered_pool_ids(cfg):
+        up = resolve_catalog_upstream(cid)
+        if up:
+            out.append(up)
+    return out
+
+
+def _is_shared_junk(text: str) -> bool:
+    """检测复读/串音垃圾回复（ononon、品牌拆字、假档位等）。"""
+    t = str(text or "").strip()
+    if not t:
+        return True
+    low = t.lower()
+    if re.search(
+        r"ononon|ai\s*on\s*4x|aion4x|ai\s+on\s+the\s+ai|"
+        r"on\s+the\s+24x|the\s+24x\b|ai\s+on\s+the\s+24|"
+        r"on\s+on\s+on\s+on|platformassistant|"
+        r"\bultra\s+tier\b|\bflash\s+tier\b|\bpro\s+tier\b|"
+        r"variety\s+variety|tôr|anyy\b",
+        low,
+    ):
+        return True
+    if low.count(" on") > 6 or low.count("onon") >= 1:
+        return True
+    words = re.findall(r"[a-z0-9\u4e00-\u9fff]+", low)
+    if len(words) >= 8:
+        dup = sum(1 for i in range(1, len(words)) if words[i] == words[i - 1])
+        if dup >= 2:
+            return True
+        uniq = len(set(words))
+        if len(words) >= 20 and uniq <= max(10, len(words) // 5):
+            return True
+    if re.search(
+        r"(DeepSeek|SiliconFlow|OpenRouter|upstream providers|internal operator)",
+        t,
+        re.I,
+    ):
+        return True
+    return False
+
+
+def _is_pure_greeting(prompt: str) -> bool:
+    """仅纯打招呼（可带标点），不含实质问题。"""
+    raw = (prompt or "").strip()
+    if not raw:
+        return True
+    # 去掉首尾标点/空白后再判
+    core = re.sub(r"^[\s\W]+|[\s\W]+$", "", raw, flags=re.UNICODE)
+    core = re.sub(r"[!！?？.。,…〜~]+$", "", core).strip()
+    if not core:
+        return True
+    if len(core) > 16:
+        return False
+    return bool(
+        re.fullmatch(
+            r"(hi|hello|hey|你好|您好|哈喽|嗨)([\s,，]*|$)",
+            core,
+            flags=re.I,
+        )
+    )
+
+
+def _shared_safe_fallback(prompt: str) -> str:
+    """全通道失败或全是垃圾时的干净短答；有实质问题时勿再回「有什么可以帮你」。"""
+    if _is_pure_greeting(prompt):
+        if re.search(r"[\u4e00-\u9fff]", prompt or ""):
+            return "你好！我是 AI24X 助手，有什么可以帮你的？"
+        return "Hello! I'm the AI24X assistant. How can I help you today?"
+    if re.search(r"[\u4e00-\u9fff]", prompt or ""):
+        return (
+            "免费共享通道暂时繁忙。请稍后再试；"
+            "产品用法可点右下角即时帮助，或改用 flash / auto（需余额）测质量。"
+        )
+    return (
+        "The free shared channel is busy. Try again shortly; "
+        "for product Q&A use Instant Help (bottom-right), "
+        "or try flash/auto when you have balance."
+    )
+
+
+def _clamp_shared_reply(text: str) -> str:
+    """共享池：先判垃圾再轻微纠错；垃圾直接清空以便 failover。"""
+    t = str(text or "")
+    if not t.strip():
+        return t
+    # 必须先对原文判垃圾：若先替换 on4X→AI24X 会掩盖信号、误放行
+    if _is_shared_junk(t):
+        return ""
+    for bad, good in (
+        ("AIon4X", "AI24X"),
+        ("AI on4X", "AI24X"),
+        ("AI on 4X", "AI24X"),
+        ("platformassistant", "platform assistant"),
+    ):
+        t = re.sub(re.escape(bad), good, t, flags=re.I)
+    words = t.split()
+    if len(words) < 12:
+        return t.strip()
+    out: list[str] = []
+    run = 1
+    for i, w in enumerate(words):
+        if i and w.lower() == words[i - 1].lower():
+            run += 1
+            if run > 2:
+                continue
+        else:
+            run = 1
+        out.append(w)
+    cleaned = " ".join(out).strip()
+    if _is_shared_junk(cleaned) or len(cleaned) > 500:
+        return ""
+    return cleaned
+
+
+def run_shared_pool_chat(
+    *,
+    prompt: str,
+    temperature: float = 0.7,
+    max_tokens: int = 1000,
+) -> Any:
+    """共享池专用路由：按 failover/rotate 依次尝试启用成员。"""
+    import time
+
+    from model_router import RouteResult, _call_openai_compatible, _timeout_s
+
+    chain = build_shared_attempt_chain()
+    attempts: list[dict[str, Any]] = []
+    timeout_s = min(_timeout_s(), 25.0)
+    # 更短、更冷，减少小模型复读
+    max_tokens = max(48, min(int(max_tokens or 128), 128))
+    temperature = min(float(temperature or 0.3), 0.3)
+    shared_system = (
+        "You are the AI24X assistant on the free shared channel. "
+        "Write the brand only as AI24X (no spaces). "
+        "You may explain product tiers: auto, flash, pro, ultra, shared. "
+        "auto picks a suitable paid tier; flash is fast everyday; "
+        "pro/ultra are stronger; shared is the free daily pool (lighter quality). "
+        "Reply in 1-3 short sentences in the user's language. "
+        "Do not repeat words. Do not invent fake tier names. "
+        "Do not mention upstream vendors or internal ops."
+    )
+    if not chain:
+        return RouteResult(
+            ok=True,
+            text=_shared_safe_fallback(prompt),
+            model="shared-fallback",
+            layer="L0",
+            provider="shared",
+            token_count=1,
+            attempts=[{"ok": False, "error": "shared_pool_empty"}],
+        )
+
+    for up in chain:
+        t0 = time.time()
+        try:
+            out = _call_openai_compatible(
+                base=up["base"],
+                key=up["key"],
+                model=up["model"],
+                prompt=prompt,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                timeout_s=timeout_s,
+                provider=str(up.get("provider") or ""),
+                messages=None,
+                system_prompt=shared_system,
+            )
+            elapsed = time.time() - t0
+            used = str(out.get("raw_model") or up["model"])
+            raw_text = str(out.get("text") or "")
+            # 原文 junk → 直接换通道，不要先「修」再放行
+            if _is_shared_junk(raw_text):
+                attempts.append(
+                    {
+                        "catalog_id": up.get("catalog_id"),
+                        "layer": "L0",
+                        "model": used,
+                        "provider": up.get("provider"),
+                        "ok": False,
+                        "error": "junk_raw_reply",
+                        "ms": int(elapsed * 1000),
+                    }
+                )
+                continue
+            text = _clamp_shared_reply(raw_text)
+            if not text.strip():
+                attempts.append(
+                    {
+                        "catalog_id": up.get("catalog_id"),
+                        "layer": "L0",
+                        "model": used,
+                        "provider": up.get("provider"),
+                        "ok": False,
+                        "error": "junk_or_empty_reply",
+                        "ms": int(elapsed * 1000),
+                    }
+                )
+                continue
+            attempts.append(
+                {
+                    "catalog_id": up.get("catalog_id"),
+                    "layer": "L0",
+                    "model": used,
+                    "provider": up.get("provider"),
+                    "ok": True,
+                    "ms": int(elapsed * 1000),
+                }
+            )
+            return RouteResult(
+                ok=True,
+                text=text,
+                model=used,
+                layer="L0",
+                provider=str(up.get("provider") or "shared"),
+                token_count=max(1, int(out["tokens"])),
+                attempts=attempts,
+            )
+        except Exception as e:
+            elapsed = time.time() - t0
+            attempts.append(
+                {
+                    "catalog_id": up.get("catalog_id"),
+                    "layer": "L0",
+                    "model": up.get("model"),
+                    "provider": up.get("provider"),
+                    "ok": False,
+                    "error": str(e)[:200],
+                    "ms": int(elapsed * 1000),
+                }
+            )
+            continue
+
+    # 全挂或全垃圾：仍回干净短句，别把复读甩给新用户
+    return RouteResult(
+        ok=True,
+        text=_shared_safe_fallback(prompt),
+        model="shared-fallback",
+        layer="L0",
+        provider="shared",
+        token_count=1,
+        attempts=attempts,
+    )
+
+
+def is_enabled() -> bool:
+    return bool(effective_config()["enabled"])
+
+def _catalog_runtime(cid: str, *, l0: dict, mode: str, or_key: bool) -> dict[str, Any]:
+    row = next((c for c in SHARED_CATALOG if c["id"] == cid), None)
+    if not row:
+        return {"id": cid, "ready": False, "runtime": "unknown"}
+    access = str(row.get("access") or "planned")
+    ready = False
+    runtime = "planned"
+    if access == "planned":
+        runtime = "planned"
+    elif row["provider"] == "siliconflow":
+        ready = bool(l0.get("key")) and (
+            str(l0.get("provider") or "") == "siliconflow" or bool(l0.get("key"))
+        )
+        runtime = "active" if ready else "need_key"
+    elif row["provider"] == "openrouter":
+        ready = bool(or_key)
+        runtime = "active" if ready else "need_key"
+    elif row["provider"] == "byok":
+        runtime = "planned"
+        ready = False
+    return {
+        **row,
+        "ready": ready,
+        "runtime": runtime,
+    }
+
+
+def admin_snapshot(db: Optional[Session] = None) -> dict[str, Any]:
+    from model_router import _env, _layer_upstream, _upstream_mode
+
+    cfg = effective_config()
+    l0 = _layer_upstream("L0")
+    mode = _upstream_mode()
+    or_key = False
+    try:
+        from llm_keys import openrouter_main_key, openrouter_free_key
+
+        or_key = bool(openrouter_main_key() or openrouter_free_key())
+    except Exception:
+        or_key = bool(_env("OPENROUTER_API_KEY") or _env("TOKEN_LLM_KEY"))
+
+    catalog_out = []
+    for c in SHARED_CATALOG:
+        rt = _catalog_runtime(c["id"], l0=l0, mode=mode, or_key=or_key)
+        enabled = c["id"] in cfg["pool_enabled"]
+        is_primary = c["id"] == cfg["prefer"]
+        role = "primary" if is_primary else ("enabled" if enabled else "standby")
+        if not enabled:
+            role = "off"
+        catalog_out.append({**rt, "enabled": enabled, "role": role})
+
+    # 兼容旧 UI：当前启用链（按 prefer 优先）
+    pool = []
+    ordered = [cfg["prefer"]] + [x for x in cfg["pool_enabled"] if x != cfg["prefer"]]
+    for i, cid in enumerate(ordered):
+        rt = _catalog_runtime(cid, l0=l0, mode=mode, or_key=or_key)
+        pool.append(
+            {
+                **rt,
+                "role": "primary" if i == 0 else "backup",
+                "enabled": True,
+            }
+        )
+
+    today_users = 0
+    today_reqs = 0
+    if db is not None:
+        try:
+            from models import BillingLedger
+            from sqlalchemy import func
+
+            day = _utcnow().strftime("%Y-%m-%d")
+            q = (
+                db.query(
+                    func.count(BillingLedger.id),
+                    func.count(func.distinct(BillingLedger.auth_user_id)),
+                )
+                .filter(
+                    BillingLedger.entry_type == "shared",
+                    BillingLedger.note.like(f"free_shared {day}%"),
+                )
+                .first()
+            )
+            if q:
+                today_reqs = int(q[0] or 0)
+                today_users = int(q[1] or 0)
+        except Exception:
+            pass
+
+    live_n = sum(1 for x in catalog_out if x.get("runtime") == "active" and x.get("enabled"))
+    return {
+        "ok": True,
+        "config": cfg,
+        "pool": pool,
+        "catalog": catalog_out,
+        "l0": {
+            "provider": l0.get("provider"),
+            "model": l0.get("model"),
+            "key_set": bool(l0.get("key")),
+            "upstream_mode": mode,
+        },
+        "connectivity": {
+            "primary_ready": bool(pool and pool[0].get("ready")),
+            "backup_ready": bool(len(pool) > 1 and pool[1].get("ready")),
+            "live_enabled_count": live_n,
+            "dispatch_mode": cfg["dispatch_mode"],
+            "attempt_order": [x.get("catalog_id") for x in build_shared_attempt_chain()],
+            "note": (
+                "当前 L0 实际命中："
+                + str(l0.get("provider") or "-")
+                + " / "
+                + str(l0.get("model") or "-")
+                + ("（Key 已配）" if l0.get("key") else "（无 Key）")
+            ),
+        },
+        "scale_tips": [
+            "主力=单选：failover 先打谁；rotate 轮询起点",
+            "启用=多选：挂了自动顶上，或参与轮询分摊风控",
+            "人多：多启用 live + 选轮询",
+            "质量敏感：主力保持硅基 Qwen",
+            "规模期再上 BYOK；勿把 Flash/Pro 塞进共享池",
+        ],
+        "today": {"requests": today_reqs, "users": today_users},
+        "pool_breaker": pool_breaker_state(),
+        "pool_limits": {
+            "alert_tokens": int(cfg.get("pool_alert_tokens") or 0),
+            "break_tokens": int(cfg.get("pool_break_tokens") or 0),
+            "break_reqs": int(cfg.get("pool_break_reqs") or 0),
+            "break_action": str(cfg.get("pool_break_action") or "free-router"),
+        },
+        "funnel": {
+            "steps": [
+                "注册小礼包 → 付费档 flash 试用",
+                "余额用尽 / 日赠不够花 pro → 自动降级 shared（日帽）",
+                "引导充值 → 自动回付费档；VIP 点名仍须会员",
+            ],
+            "upgrade_first": cfg["upgrade_first"],
+            "auto_degrade": cfg.get("auto_degrade", True),
+            "daily_token_cap": cfg["daily_token_cap"],
+            "daily_req_cap": cfg["daily_req_cap"],
+        },
+        "ops_note": (
+            "启用可多选；主力单选。"
+            "调度：挂了自动顶上=主力→其余依次试；多条轮询=每次换起点。"
+            "用户对外只见 shared。auto_degrade=余额不足自动进共享。"
+        ),
+    }
+
+
+def update_config(patch: dict[str, Any]) -> dict[str, Any]:
+    cur = _load()
+    if "enabled" in patch and patch["enabled"] is not None:
+        cur["enabled"] = bool(patch["enabled"])
+    if "daily_req_cap" in patch and patch["daily_req_cap"] is not None:
+        cur["daily_req_cap"] = int(patch["daily_req_cap"])
+    if "daily_token_cap" in patch and patch["daily_token_cap"] is not None:
+        cur["daily_token_cap"] = int(patch["daily_token_cap"])
+    if "prefer" in patch and patch["prefer"] is not None:
+        cur["prefer"] = str(patch["prefer"]).strip().lower()
+    if "upgrade_first" in patch and patch["upgrade_first"] is not None:
+        cur["upgrade_first"] = bool(patch["upgrade_first"])
+    if "auto_degrade" in patch and patch["auto_degrade"] is not None:
+        cur["auto_degrade"] = bool(patch["auto_degrade"])
+    if "brand_model" in patch and patch["brand_model"] is not None:
+        cur["brand_model"] = str(patch["brand_model"]).strip()[:32] or "shared"
+    if "dispatch_mode" in patch and patch["dispatch_mode"] is not None:
+        cur["dispatch_mode"] = str(patch["dispatch_mode"]).strip().lower()
+    if "pool_enabled" in patch and patch["pool_enabled"] is not None:
+        if isinstance(patch["pool_enabled"], list):
+            cur["pool_enabled"] = [str(x).strip() for x in patch["pool_enabled"] if str(x).strip()]
+    _save(cur)
+    return admin_snapshot()
+
+
+def _shared_counts_today(db: Session, auth_user_id: int) -> tuple[int, int]:
+    from models import BillingLedger
+
+    day = _utcnow().strftime("%Y-%m-%d")
+    rows = (
+        db.query(BillingLedger)
+        .filter(
+            BillingLedger.auth_user_id == int(auth_user_id),
+            BillingLedger.entry_type == "shared",
+            BillingLedger.note.like(f"free_shared {day}%"),
+        )
+        .all()
+    )
+    reqs = len(rows)
+    toks = sum(int(r.tokens or 0) for r in rows)
+    return reqs, toks
+
+
+def user_shared_quota_snapshot(db: Session, auth_user_id: int) -> dict[str, Any]:
+    """控制台/余额接口：今日免费共享剩余（用户可见，无运维字段）。"""
+    cfg = effective_config()
+    reqs, toks = _shared_counts_today(db, int(auth_user_id))
+    req_cap = int(cfg["daily_req_cap"])
+    tok_cap = int(cfg["daily_token_cap"])
+    return {
+        "shared_enabled": bool(cfg["enabled"]),
+        "shared_auto_degrade": bool(cfg.get("auto_degrade", True))
+        and (not bool(cfg.get("upgrade_first"))),
+        "shared_daily_req_cap": req_cap,
+        "shared_daily_token_cap": tok_cap,
+        "shared_used_req": int(reqs),
+        "shared_used_tokens": int(toks),
+        "shared_remain_req": max(0, req_cap - int(reqs)),
+        "shared_remain_tokens": max(0, tok_cap - int(toks)),
+    }
+
+
+def assert_shared_allowed(db: Session, auth_user_id: int) -> dict[str, Any]:
+    """余额用尽后走共享：校验开关与日帽。"""
+    cfg = effective_config()
+    if not cfg["enabled"]:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail={
+                "message_zh": "余额不足，请充值后再试",
+                "message_en": "Insufficient balance. Please top up and try again.",
+                "message": "余额不足，请充值后再试",
+                "code": "insufficient_balance",
+            },
+        )
+    reqs, toks = _shared_counts_today(db, int(auth_user_id))
+    _quota_detail = {
+        "message_zh": "今日免费额度已用完，请充值继续使用，或明日再试。",
+        "message_en": "Today’s free quota is used up. Top up to continue, or try again tomorrow.",
+        "message": "今日免费额度已用完，请充值继续使用，或明日再试。",
+        "code": "free_quota_exhausted",
+    }
+    if reqs >= int(cfg["daily_req_cap"]):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=_quota_detail,
+        )
+    if toks >= int(cfg["daily_token_cap"]):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=_quota_detail,
+        )
+    return {
+        "mode": "shared",
+        "remain_req": int(cfg["daily_req_cap"]) - reqs,
+        "remain_tokens": int(cfg["daily_token_cap"]) - toks,
+        "brand_model": cfg["brand_model"],
+        "prefer": cfg["prefer"],
+    }
+
+
+def record_shared_usage(
+    db: Session,
+    *,
+    auth_user_id: int,
+    tokens: int,
+    model: Optional[str],
+    request_id: Optional[str],
+    catalog_id: Optional[str] = None,
+) -> None:
+    from models import BillingLedger
+
+    day = _utcnow().strftime("%Y-%m-%d")
+    db.add(
+        BillingLedger(
+            auth_user_id=int(auth_user_id),
+            entry_type="shared",
+            amount=0,
+            model=(catalog_id or model or "")[:64] or None,
+            tokens=max(0, int(tokens)),
+            request_id=request_id,
+            note=f"free_shared {day}",
+        )
+    )
+    db.commit()
+    # T13 聚合上游用量（熔断依据）
+    if catalog_id:
+        record_pool_upstream_usage(catalog_id=catalog_id, tokens=max(0, int(tokens)))
+
+
+def model_allows_auto_shared(model: Optional[str]) -> bool:
+    """vip 点名不自动降级；其余日常档（含 pro）可降到 shared 保活。"""
+    m = (model or "flash").strip().lower() or "flash"
+    if m.startswith("vip-"):
+        return False
+    return True
+
+
+def resolve_chat_billing_mode(
+    db: Session,
+    *,
+    auth_user_id: int,
+    requested_model: Optional[str],
+    force_shared: bool = False,
+) -> dict[str, Any]:
+    """
+    返回 {mode: paid|shared, wallet?, shared?, auto_degraded?, reason?}。
+    - 该模型有可花额度 → paid
+    - 显式 shared / 余额用尽 / 日赠不够花 pro → 自动 shared（可关）
+    - vip-* 无权益或共享关闭 → 402/交由上层 403
+    """
+    from token_mvp_service import (
+        ensure_period_bonus,
+        get_or_create_wallet,
+        model_allows_vip_daily,
+        spendable_tokens,
+    )
+    from auth_user_service import raise_if_frozen
+    from models import AuthUser
+
+    u = db.query(AuthUser).filter(AuthUser.id == int(auth_user_id)).first()
+    raise_if_frozen(u)
+    w = ensure_period_bonus(db, get_or_create_wallet(db, int(auth_user_id)))
+    bal = int(w.balance_tokens or 0)
+    req = (requested_model or "").strip().lower() or "flash"
+    cfg = effective_config()
+    want_shared = force_shared or req in ("shared", "free-shared", "free_shared")
+    allow_vip = model_allows_vip_daily(req)
+    spendable = spendable_tokens(
+        db, int(auth_user_id), allow_vip_daily=allow_vip
+    )
+
+    if want_shared:
+        shared = assert_shared_allowed(db, int(auth_user_id))
+        return {
+            "mode": "shared",
+            "wallet": w,
+            "balance": bal,
+            "spendable": spendable,
+            "shared": shared,
+            "auto_degraded": False,
+            "reason": "explicit_shared",
+        }
+
+    if spendable > 0:
+        return {
+            "mode": "paid",
+            "wallet": w,
+            "balance": bal,
+            "spendable": spendable,
+            "auto_degraded": False,
+            "reason": "wallet",
+        }
+
+    # 无可用付费额度 → 自动 shared（默认开）；upgrade_first=True 则强制先充值
+    auto_ok = (
+        bool(cfg.get("enabled"))
+        and bool(cfg.get("auto_degrade", True))
+        and (not bool(cfg.get("upgrade_first")))
+        and model_allows_auto_shared(req)
+    )
+    if auto_ok:
+        shared = assert_shared_allowed(db, int(auth_user_id))
+        reason = "balance_empty" if bal <= 0 else "prepaid_required_fallback"
+        return {
+            "mode": "shared",
+            "wallet": w,
+            "balance": bal,
+            "spendable": 0,
+            "shared": shared,
+            "auto_degraded": True,
+            "reason": reason,
+        }
+
+    extra = ""
+    if cfg.get("enabled"):
+        extra = "也可将 model 设为 shared 继续免费体验（每日有上限）。"
+    raise HTTPException(
+        status_code=status.HTTP_402_PAYMENT_REQUIRED,
+        detail={
+            "message_zh": ("余额不足，请充值后再试。" + extra).strip(),
+            "message_en": (
+                "Insufficient balance. Please top up."
+                + (
+                    " Or set model=shared for the free daily pool."
+                    if cfg.get("enabled")
+                    else ""
+                )
+            ).strip(),
+            "message": ("余额不足，请充值后再试。" + extra).strip(),
+            "code": "insufficient_balance",
+        },
+    )

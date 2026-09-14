@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- [AI24X 2026-08-15] Google Ads 暂停 (国际支付无合规渠道，保留待恢复，勿删）：
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18385419220"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', {
+    'ad_storage': 'denied',
+    'ad_user_data': 'denied',
+    'ad_personalization': 'denied',
+    'analytics_storage': 'denied',
+    'personalization_storage': 'denied',
+    'functionality_storage': 'granted',
+    'security_storage': 'granted',
+    'wait_for_update': 500
+  });
+  gtag('js', new Date());
+
+  gtag('config', 'AW-18385419220');
+</script>
+<script src="config/consent.js?v=20260814a"></script>
+-->
+
+  <meta charset="UTF-8" />
+  <script>
+/* i18n-boot inline v20260808c: language pre-read + FOUC guard (no network dependency) */
+(function () {
+  var KEY = "ai24x_lang";
+  try {
+    var raw = String(localStorage.getItem(KEY) || "").trim().toLowerCase().replace(/_/g, "-");
+    var lang = raw.split("-")[0] || "";
+    if (!lang) { lang = "en"; localStorage.setItem(KEY, lang); }
+    document.documentElement.setAttribute("data-ai24x-lang", lang);
+    document.documentElement.classList.add("i18n-pending");
+    if (!document.getElementById("ai24x-i18n-pending")) {
+      var st = document.createElement("style");
+      st.id = "ai24x-i18n-pending";
+      st.textContent = "html.i18n-pending body{visibility:hidden!important}";
+      (document.head || document.documentElement).appendChild(st);
+    }
+    setTimeout(function () { document.documentElement.classList.remove("i18n-pending"); }, 4000);
+  } catch (e) {}
+})();
+</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PayPal Checkout · AI24X</title>
+  <meta name="robots" content="noindex,nofollow,noarchive" />
+  <meta name="description" content="Pay for AI24X plans with PayPal (USD)—BYOK subscriptions or managed token plans. Service fee only, flash from about $0.35/M." />
+  <link rel="stylesheet" href="css/base.css?v=20260831a" />
+  <link id="theme-css" rel="stylesheet" href="css/themes/theme-blue.css?v=20260812e" data-base="css/themes/" />
+</head>
+<body data-page="paypal" class="theme-blue">
+  <header class="site-header" id="site-header"></header>
+  <main class="page-main">
+    <section class="hero hero-surface section-tight">
+      <div class="container" style="max-width:720px;">
+        <h1>PayPal checkout (USD)</h1>
+        <p class="lead">
+          AI24X offers <strong>BYOK gateway plans and managed token plans</strong> for our multi-model AI API.
+          International buyers pay with <strong>PayPal</strong>; subscriptions or credits activate after capture.
+        </p>
+        <p class="callout mt-2">
+          Digital goods only — no physical shipping. China (CNY) uses WeChat / Alipay in Console.
+        </p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container" style="max-width:720px;">
+        <h2 style="margin:0 0 12px;">How to pay with PayPal</h2>
+        <ol class="sub" style="line-height:1.8;padding-left:1.2em;">
+          <li>Open <a href="pricing.html">Pricing</a> and choose a BYOK or managed plan.</li>
+          <li>Sign in (or register) — Checkout credits the logged-in wallet.</li>
+          <li>In <a href="console.html">Console</a>, open Plans and click <strong>PayPal</strong>.</li>
+          <li>On PayPal.com, sign in to your PayPal account (guest card checkout may be limited) and complete payment; you return to Console and your plan or credits are activated automatically.</li>
+        </ol>
+        <div class="hero-cta" style="margin-top:16px;">
+          <a class="btn btn-primary" href="login.html?next=console.html%3Fpay%3Dpaypal">Sign in → PayPal in Console</a>
+          <a class="btn" href="pricing.html">View plans</a>
+          <a class="btn" href="console.html?pay=paypal">Open Console</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container" style="max-width:720px;">
+        <h2 style="margin:0 0 10px;">Merchant verification notes</h2>
+        <p class="sub" style="margin:0 0 8px;">
+          Store / product pages for reviewers:
+        </p>
+        <ul class="sub" style="line-height:1.7;">
+          <li><a href="https://www.ai24x.com/">https://www.ai24x.com/</a> — brand</li>
+          <li><a href="https://www.ai24x.com/pricing.html">https://www.ai24x.com/pricing.html</a> — plans &amp; PayPal CTA</li>
+          <li><a href="https://www.ai24x.com/console.html">https://www.ai24x.com/console.html</a> — PayPal button after login</li>
+          <li><a href="https://www.ai24x.com/privacy.html">Privacy</a> · <a href="https://www.ai24x.com/terms.html">Terms</a></li>
+        </ul>
+        <p class="sub" style="margin:12px 0 0;">
+          Demo login for PayPal application reviewers is provided only in the PayPal “Other information” field (not published on this page).
+        </p>
+        <p class="sub" style="margin:10px 0 0;" lang="zh-CN">
+          中文摘要：买家在价格页选套餐（BYOK 或托管）→ 登录控制台 → 点击 PayPal → 在 PayPal 完成美元付款 → 订阅或额度自动到账。无物流。
+        </p>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer" id="site-footer"></footer>
+  <script src="config/locales.js?v=20260906c"></script>
+  <script src="js/i18n.js?v=20260812g"></script>
+  <script src="js/ai24x-chrome.js?v=20260829n"></script>
+  <script src="js/shell.js?v=20260906c"></script>
+  <script src="js/app.js?v=20260808b"></script>
+</body>
+</html>

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Guess It · 猜价格</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#0f172a;color:#e2e8f0;overflow:hidden;user-select:none;touch-action:manipulation;overscroll-behavior:none}
+#wrap{height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:8px}
+.hud{display:flex;gap:26px;font-size:14px;font-weight:700;color:#94a3b8}
+.hud b{color:#fbbf24;font-size:18px}
+.prod{width:100%;max-width:390px;text-align:center;padding:14px 0 8px}
+.pic{font-size:66px;line-height:1.15}
+.nm{font-size:20px;font-weight:800;margin-top:8px;color:#e2e8f0}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:352px}
+.opt{background:#1e293b;border:2px solid #334155;border-radius:14px;padding:15px 4px;font-size:20px;font-weight:800;color:#e2e8f0;cursor:pointer;touch-action:manipulation}
+.opt:active{background:#334155}
+.opt.ok{background:#14532d;border-color:#22c55e;color:#86efac}
+.opt.no{background:#7f1d1d;border-color:#ef4444;color:#fecaca}
+.opt.off{opacity:.4}
+#fb{min-height:20px;font-size:14px;color:#94a3b8;text-align:center}
+#overlay{position:fixed;inset:0;background:rgba(2,6,23,.9);display:none;align-items:center;justify-content:center;z-index:10}
+#overlay.show{display:flex}
+.panel{text-align:center;padding:30px 26px;border-radius:20px;background:#1e293b;border:1px solid #334155;max-width:320px;width:90%}
+.panel h2{font-size:22px;margin-bottom:6px}
+.floors{font-size:46px;font-weight:800;color:#38bdf8;margin:6px 0}
+.best{color:#94a3b8;font-size:14px;margin-bottom:14px}
+.share{font-size:13px;color:#fbbf24;margin-bottom:16px;padding:8px 12px;background:#1e293b;border:1px dashed #475569;border-radius:10px}
+.play{background:linear-gradient(90deg,#38bdf8,#6366f1);border:none;color:#fff;font-size:18px;font-weight:800;padding:13px 38px;border-radius:999px;cursor:pointer;box-shadow:0 6px 0 rgba(0,0,0,.3);touch-action:manipulation}
+.play:active{transform:translateY(3px);box-shadow:0 3px 0 rgba(0,0,0,.3)}
+</style>
+</head>
+<body>
+<div id="topbar"><a href="index.html">← 列表</a><span class="tt">Guess It<span class="tg">猜价</span></span><button id="howBtn" aria-label="玩法说明">?</button></div>
+<div id="howto"><b>怎么玩</b><br>看商品猜价格，4 选 1。答对 +100 分，共 5 题，测测你的价格敏感度！</div>
+<div id="wrap">
+  <div class="hud"><div>得分 <b id="score">0</b></div><div>题目 <b id="q">1/5</b></div><div>最佳 <b id="best">0</b></div></div>
+  <div class="prod"><div class="pic" id="pic">🎧</div><div class="nm" id="nm">无线耳机</div></div>
+  <div class="opts" id="opts"></div>
+  <div id="fb">猜猜它多少钱？</div>
+</div>
+<div id="overlay">
+  <div class="panel">
+    <h2>🧾 结算！</h2>
+    <div class="floors" id="score2">0 / 500 分</div>
+    <div class="best" id="bestLine">最佳 0 分</div>
+    <div class="share" id="shareTxt">我猜价 5 题拿了 0 分（新手），你敢来挑战吗？</div>
+    <button class="play" id="restart">再来一次</button>
+  </div>
+</div>
+<style id="xz-shell">
+#topbar{position:fixed;top:0;left:0;right:0;height:64px;z-index:50;display:flex;align-items:center;gap:10px;padding:0 14px;background:rgba(15,23,42,.94);backdrop-filter:blur(8px);border-bottom:1px solid #334155;color:#e2e8f0;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;-webkit-user-select:none;user-select:none;}
+#topbar a{color:#38bdf8;text-decoration:none;font-size:14px;font-weight:700;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+#topbar .tt{flex:1;text-align:center;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#topbar .tg{font-size:11px;color:#94a3b8;font-weight:400;margin-left:4px;}
+#howBtn{width:30px;height:30px;border-radius:50%;border:1px solid #334155;background:#1e293b;color:#94a3b8;font-weight:800;cursor:pointer;font-size:15px;line-height:1;flex:none;}
+#howto{display:none;position:fixed;top:72px;left:50%;transform:translateX(-50%);width:min(92vw,420px);z-index:70;background:#1e293b;border:1px solid #475569;border-radius:14px;padding:14px 16px;color:#cbd5e1;font-size:13px;line-height:1.7;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;box-shadow:0 12px 32px rgba(0,0,0,.55);}
+#howto.show{display:block;}
+#howto b{color:#38bdf8;}
+.xz-cr{position:fixed;bottom:4px;right:10px;font-size:10px;color:#475569;z-index:45;font-family:-apple-system,"Segoe UI",sans-serif;pointer-events:none;-webkit-user-select:none;user-select:none;}
+</style>
+<script>
+(function(){
+'use strict';
+var GOODS=[['🎧','无线耳机',89],['☕','美式咖啡',4.5],['📱','智能手机',999],['🍔','汉堡套餐',9.9],['👟','运动跑鞋',120],['🎮','游戏主机',499],['⌚','智能手表',329],['💻','笔记本电脑',1299],['🎬','电影票',15],['🍕','大号披萨',18],['🌹','一束玫瑰花',55],['🍰','生日蛋糕',35],['👕','纯棉T恤',25],['🖱️','无线鼠标',45],['🧸','毛绒玩具',22],['⚽','足球',65],['🎸','民谣吉他',350],['📷','拍立得相机',199],['🛋️','布艺沙发',899],['🧴','防晒霜',28]];
+var Q=5;
+var scoreEl=document.getElementById('score'),qEl=document.getElementById('q'),bestEl=document.getElementById('best');
+var pic=document.getElementById('pic'),nm=document.getElementById('nm'),optsEl=document.getElementById('opts'),fb=document.getElementById('fb');
+var ov=document.getElementById('overlay'),score2=document.getElementById('score2'),bestLine=document.getElementById('bestLine'),shareTxt=document.getElementById('shareTxt'),restart=document.getElementById('restart');
+var BEST=+localStorage.getItem('xz-gi-best')||0;
+bestEl.textContent=BEST;
+var quiz=[],idx=0,score=0,locked=false;
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=(Math.random()*(i+1))|0,t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function rnd(x,p){x=Math.max(1,x);return p%1===0?Math.round(x):Math.round(x*10)/10;}
+function fmt(p){return '$'+p;}
+function genOpts(p){
+  var o=[p];
+  var ds=[p*(0.45+Math.random()*0.35),p*(1.35+Math.random()*0.65),p*(0.75+Math.random()*0.5)];
+  ds.forEach(function(d){
+    d=rnd(d,p);
+    while(o.indexOf(d)>=0){d=rnd(d+(p%1===0?5:2),p);}
+    o.push(d);
+  });
+  return shuffle(o);
+}
+function startRound(){
+  var g=quiz[idx];
+  pic.textContent=g[0];nm.textContent=g[1];qEl.textContent=(idx+1)+'/'+Q;
+  var o=genOpts(g[2]);
+  optsEl.innerHTML='';
+  o.forEach(function(v){
+    var b=document.createElement('button');
+    b.className='opt';b.textContent=fmt(v);
+    b.addEventListener('pointerdown',function(e){e.preventDefault();pick(v,g[2],b);});
+    optsEl.appendChild(b);
+  });
+}
+function pick(v,p,b){
+  if(locked)return;
+  locked=true;
+  if(v===p){
+    score+=100;scoreEl.textContent=score;
+    b.classList.add('ok');
+    fb.textContent='✅ +100！实际就是 '+fmt(p);
+    setTimeout(nextQ,700);
+  }else{
+    b.classList.add('no');
+    var bs=optsEl.children;
+    for(var i=0;i<bs.length;i++){if(bs[i].textContent===fmt(p))bs[i].classList.add('ok');else if(bs[i]!==b)bs[i].classList.add('off');}
+    var h=v>p?'太贵了':'太便宜了';
+    fb.textContent='❌ 实际 '+fmt(p)+'（你猜 '+fmt(v)+'，'+h+'！）';
+    setTimeout(nextQ,1300);
+  }
+}
+function nextQ(){
+  idx++;
+  if(idx>=Q){finish();return;}
+  locked=false;startRound();
+}
+function finish(){
+  var title=score>=400?'🏆 价格达人':score>=200?'🛒 生活家':'🌱 新手';
+  if(score>BEST){BEST=score;localStorage.setItem('xz-gi-best',BEST);bestEl.textContent=BEST;}
+  score2.textContent=score+' / '+Q*100+' 分';
+  bestLine.textContent='最佳 '+BEST+' 分';
+  shareTxt.textContent='我猜价 5 题拿了 '+score+' 分（'+title+'），你敢来挑战吗？';
+  ov.classList.add('show');
+}
+function reset(){
+  quiz=shuffle(GOODS.slice()).slice(0,Q);
+  idx=0;score=0;locked=false;
+  scoreEl.textContent=0;fb.textContent='猜猜它多少钱？';
+  ov.classList.remove('show');
+  startRound();
+}
+restart.addEventListener('pointerdown',function(e){e.preventDefault();reset();});
+reset();
+})();
+</script>
+<script>
+(function(){
+  'use strict';
+  var W=390,H=780,TOP=64;
+  var wrap=document.getElementById('wrap');
+  function fit(){
+    if(!wrap) return;
+    var s=Math.min(innerWidth/W,(innerHeight-TOP)/H);
+    if(s>1.4) s=1.4;
+    var w=W*s,h=H*s;
+    wrap.style.width=w+'px';
+    wrap.style.height=h+'px';
+    wrap.style.left=((innerWidth-w)/2)+'px';
+    wrap.style.top=(TOP+(innerHeight-TOP-h)/2)+'px';
+    wrap.style.position='fixed';
+    wrap.style.margin='0';
+    wrap.style.transform='scale('+s+')';
+    wrap.style.transformOrigin='top left';
+  }
+  fit();
+  addEventListener('resize',fit);
+  addEventListener('orientationchange',fit);
+  var ov=document.getElementById('overlay');
+  if(ov) ov.style.zIndex=60;
+  var hb=document.getElementById('howBtn'),ht=document.getElementById('howto');
+  if(hb&&ht){
+    hb.addEventListener('click',function(e){e.stopPropagation();ht.classList.toggle('show');});
+    document.addEventListener('pointerdown',function(e){if(ht.classList.contains('show')&&!ht.contains(e.target)&&e.target!==hb)ht.classList.remove('show');});
+  }
+  document.addEventListener('contextmenu',function(e){e.preventDefault();});
+  document.addEventListener('dragstart',function(e){e.preventDefault();});
+  document.addEventListener('keydown',function(e){
+    var k=e.key||'';
+    if(k==='F12'||(e.ctrlKey&&['s','u','p','S','U','P'].indexOf(k)>=0)||(e.ctrlKey&&e.shiftKey&&['i','j','c','I','J','C'].indexOf(k)>=0)){e.preventDefault();e.stopPropagation();return false;}
+  });
+})();
+</script>
+<div class="xz-cr">© 2026 AI24X Game Zone</div>
+</body>
+</html>

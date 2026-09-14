@@ -1,0 +1,207 @@
+{
+  "ok": true,
+  "date": "2026-08-21",
+  "source": "ths:fuyao",
+  "limit_up": {
+    "count": 54,
+    "max_lianban": 3,
+    "max_name": "汉森制药",
+    "seal_money_top": [
+      {
+        "name": "键凯科技",
+        "ticker": "688356",
+        "seal": 120127951.0,
+        "reason": "mRNA疫苗+LNP递送+聚乙二醇+创新药"
+      },
+      {
+        "name": "士兰微",
+        "ticker": "600460",
+        "seal": 28654576.0,
+        "reason": "SiC+功率半导体+IDM模式"
+      },
+      {
+        "name": "汉森制药",
+        "ticker": "002412",
+        "seal": 26963759.0,
+        "reason": "创新药+中药+中报预增"
+      },
+      {
+        "name": "白银有色",
+        "ticker": "601212",
+        "seal": 15148266.0,
+        "reason": "白银+黄金+多金属综合+锂电材料"
+      },
+      {
+        "name": "飞龙股份",
+        "ticker": "002536",
+        "seal": 12794628.0,
+        "reason": "液冷服务器+汽车热管理+机器人"
+      }
+    ]
+  },
+  "ladder": {
+    "date": "2026-08-21",
+    "rows": [
+      {
+        "board": "two_board",
+        "count": 10,
+        "names": [
+          "中 关 村",
+          "双鹭药业",
+          "哈森股份",
+          "宇环数控"
+        ]
+      },
+      {
+        "board": "three_board",
+        "count": 1,
+        "names": [
+          "汉森制药"
+        ]
+      },
+      {
+        "board": "four_board",
+        "count": 0,
+        "names": []
+      },
+      {
+        "board": "five_board",
+        "count": 0,
+        "names": []
+      },
+      {
+        "board": "six_board",
+        "count": 0,
+        "names": []
+      },
+      {
+        "board": "seven_over",
+        "count": 0,
+        "names": []
+      }
+    ]
+  },
+  "hot": [
+    {
+      "name": "宇树科技",
+      "ticker": "688836",
+      "rank": 1,
+      "heat": "12064442",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "哈药股份",
+      "ticker": "600664",
+      "rank": 2,
+      "heat": "5886057",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "长鑫科技",
+      "ticker": "688825",
+      "rank": 3,
+      "heat": "4340660",
+      "rank_trend": "flat"
+    },
+    {
+      "name": "通鼎互联",
+      "ticker": "002491",
+      "rank": 4,
+      "heat": "2941604",
+      "rank_trend": "up"
+    },
+    {
+      "name": "神奇制药",
+      "ticker": "600613",
+      "rank": 5,
+      "heat": "2935509",
+      "rank_trend": "flat"
+    }
+  ],
+  "skyrocket": [
+    {
+      "name": "通鼎互联",
+      "ticker": "002491",
+      "rank": 1,
+      "heat": "323244.2",
+      "rank_trend": "up"
+    },
+    {
+      "name": "诺德股份",
+      "ticker": "600110",
+      "rank": 2,
+      "heat": "308969.4",
+      "rank_trend": "up"
+    },
+    {
+      "name": "国瓷材料",
+      "ticker": "300285",
+      "rank": 3,
+      "heat": "302954.7",
+      "rank_trend": "up"
+    },
+    {
+      "name": "新易盛",
+      "ticker": "300502",
+      "rank": 4,
+      "heat": "269978.2",
+      "rank_trend": "up"
+    },
+    {
+      "name": "京东方A",
+      "ticker": "000725",
+      "rank": 5,
+      "heat": "225552.3",
+      "rank_trend": "up"
+    }
+  ],
+  "hot_money": [],
+  "anomaly": {
+    "count": 296,
+    "tags": {
+      "跌停": 14,
+      "涨停": 59,
+      "大跌": 116,
+      "大涨": 107
+    },
+    "top": [
+      {
+        "name": "宝泰隆",
+        "thscode": "601011.SH",
+        "tag": "跌停",
+        "reason": "1、据宝泰隆2026年8月21日公告，公司股票于8月18日、19日、20日连续三个交易日收盘价格涨幅偏离值累计超20%，"
+      },
+      {
+        "name": "*ST萃华",
+        "thscode": "002731.SZ",
+        "tag": "跌停",
+        "reason": "1、据2026年8月21日公告，公司股票收盘总市值已连续十一个交易日低于5亿元，存在因触及市值指标相关规定而被终止上市的"
+      },
+      {
+        "name": "哈三联",
+        "thscode": "002900.SZ",
+        "tag": "跌停",
+        "reason": "1、据同花顺iFinD数据，截至8月21日9时25分56秒，创新药板块涨跌幅为-2.25%，哈三联下跌10.00%；据2"
+      },
+      {
+        "name": "一鸣食品",
+        "thscode": "605179.SH",
+        "tag": "跌停",
+        "reason": "1、据2026年8月19日公告，公司股票自2026年7月10日至8月18日连续28个交易日收盘价格涨幅偏离值累计超过20"
+      },
+      {
+        "name": "开开实业",
+        "thscode": "600272.SH",
+        "tag": "跌停",
+        "reason": "1、据同花顺iFinD数据，截至8月21日9时31分，医药流通板块跌幅为-2.35%，开开实业下跌9.77%，哈药股份、"
+      },
+      {
+        "name": "京粮控股",
+        "thscode": "000505.SZ",
+        "tag": "跌停",
+        "reason": "1、据同花顺iFinD数据，京粮控股此前5个交易日累计上涨32.57%，此前20个交易日累计上涨38.45%；据2026"
+      }
+    ]
+  },
+  "errors": []
+}

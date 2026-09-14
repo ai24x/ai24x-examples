@@ -1,0 +1,140 @@
+{
+  "schema": "ai24x.command.v1",
+  "updated": "2026-08-04",
+  "title": "AI24X 指挥中心 · 副脑协同数据",
+  "human_ui": "/ai24x.html",
+  "canon": "docs/规划/主脑副脑岗位与国际Token供给-1.0.md",
+  "note": "供 OpenClaw / 副脑拉取角色与链接；页面无门禁；不含密码与密钥。勿把本页设为 www 默认首页。",
+  "strategy": {
+    "priority": "intl_first",
+    "one_liner": "主脑定事写代码；04 国际 Token 收银；03 行情官+Token冷备；01/02 拉人续费",
+    "p0": "OR 默认 L1=DS Flash / L2=V4-Pro / L3=GPT-5-mini；名模对齐 OR 现行；付费闭环（04）",
+    "p1": "MiMo 能力向 A/B；PayPal Webhook；入门包国际价；A1 由 03/02",
+    "parked": ["国内 Token 推广", "Fisher", "独立预发环境", "美欧额外主机（暂缓）"]
+  },
+  "infra": {
+    "intl_gateway": "singapore_x1",
+    "token_prod": "brain_04",
+    "token_backup": "brain_03",
+    "no_us_eu_host_until": "stable_paid_traffic_or_compliance_need",
+    "deploy_flow": "local_ok → gitee → brain_04_prod_gates",
+    "staging": false
+  },
+  "routing": {
+    "aliases": ["flash", "pro", "ultra", "auto", "shared"],
+    "upstream_default": "openrouter",
+    "upstream_fallback": ["direct_deepseek", "siliconflow_L0"],
+    "flash": "deepseek/deepseek-v4-flash",
+    "flash_alt_capability": "xiaomi/mimo-v2.5",
+    "pro": "deepseek/deepseek-v4-pro",
+    "ultra": "openai/gpt-5-mini",
+    "eu": "qwen/qwen3.7-plus",
+    "docs": "docs/联调/OpenRouter聚合接入.md"
+  },
+  "brains": [
+    {
+      "id": "main",
+      "alias": "主脑",
+      "feishu": "AI24X 指挥",
+      "emoji": "♟️",
+      "name": "主脑",
+      "host": "local",
+      "role": "指挥与产品 · 开发拍板",
+      "owns": ["战略", "仓库", "验收", "发指令"],
+      "forbids": ["生产改密钥", "日常客服"],
+      "tools": ["Cursor", "OpenClaw", "飞书"]
+    },
+    {
+      "id": "01",
+      "alias": "副脑01",
+      "feishu": "AI24X游戏",
+      "emoji": "🚀",
+      "name": "国际获客",
+      "host": "vpn",
+      "role": "国际市场 · 获客",
+      "owns": ["英文内容", "出海获客"],
+      "forbids": ["生产写权限", "Token 收银", "整套预发"],
+      "duties": ["SEO", "X/Reddit/HN", "竞品", "邮件营销"]
+    },
+    {
+      "id": "02",
+      "alias": "副脑02",
+      "feishu": "AI24X运营",
+      "emoji": "💬",
+      "name": "国内获客",
+      "host": "cn",
+      "role": "中国市场 · 行情官运营",
+      "owns": ["种子群", "社媒", "中文教程"],
+      "forbids": ["生产部署", "改计费支付"],
+      "duties": ["种子群", "社媒", "教程", "协助国际侧审校"]
+    },
+    {
+      "id": "03",
+      "alias": "副脑03",
+      "feishu": "AI24X行情官",
+      "emoji": "🛡️",
+      "name": "国内生产店长",
+      "host": "public_cn",
+      "role": "国内站点生产 · Token 冷备",
+      "owns": ["a.ai24x.com", "PM2/Nginx/备份", "国内支付", "Token冷备份机"],
+      "forbids": ["PayPal Live", "国际获客 KPI", "默认承接 www/api 正式流量"],
+      "duties": ["行情官部署门禁", "告警", "git pull", "备份", "主脑明示时同步 Token 冷备"],
+      "note": "2026-08-04：www/api 正式流量已切 04；03 上 Token 仅备份"
+    },
+    {
+      "id": "04",
+      "alias": "副脑04",
+      "feishu": "AI24X国际token",
+      "emoji": "🔗",
+      "name": "国际生产店长",
+      "host": "sg",
+      "role": "国际站点正式生产",
+      "owns": ["www.ai24x.com", "api.ai24x.com", "国际库", "PayPal Live", "Token聚合正式"],
+      "forbids": ["行情官", "国内支付商户"],
+      "status": "live_prod",
+      "note": "2026-08-04：www+api 正式生产在此；Token 发版默认捅 04"
+    }
+  ],
+  "feishu_aliases": {
+    "main": {"feishu": "AI24X 指挥", "aka": ["主脑"], "emoji": "♟️"},
+    "01": {"feishu": "AI24X游戏", "aka": ["副脑01", "01"], "emoji": "🚀"},
+    "02": {"feishu": "AI24X运营", "aka": ["副脑02", "02"], "emoji": "💬"},
+    "03": {"feishu": "AI24X行情官", "aka": ["副脑03", "03"], "emoji": "🛡️"},
+    "04": {"feishu": "AI24X国际token", "aka": ["副脑04", "04"], "emoji": "🔗"}
+  },
+  "naming": {
+    "rule": "飞书显示名 + 席位别称双轨；文档/指令里「副脑01～04」「主脑」永久有效",
+    "feishu_display": ["AI24X 指挥", "AI24X游戏", "AI24X运营", "AI24X行情官", "AI24X国际token"],
+    "seat_alias": ["主脑", "副脑01", "副脑02", "副脑03", "副脑04"],
+    "emoji": {"main": "♟️", "01": "🚀", "02": "💬", "03": "🛡️", "04": "🔗"},
+    "emoji_note": "B组指挥台：♟️战略拍板 · 🚀出海增长 · 💬种子社媒 · 🛡️国内门禁 · 🔗国际网关"
+  },
+  "links": {
+    "www": "https://www.ai24x.com/",
+    "api_health": "https://api.ai24x.com/health",
+    "api_pay_status": "https://api.ai24x.com/v1/billing/pay/status",
+    "console": "https://www.ai24x.com/console.html",
+    "docs": "https://www.ai24x.com/docs.html",
+    "a1": "https://a.ai24x.com/",
+    "token_admin": "/token-admin.html",
+    "command_ui": "/ai24x.html",
+    "command_data": "/ops/ai24x-command.json",
+    "canon_doc": "docs/规划/主脑副脑岗位与国际Token供给-1.0.md",
+    "runbook_token": "docs/联调/Token发版-Gitee与副脑04.md",
+    "runbook_token_backup_03": "docs/联调/Token发版-Gitee与副脑03.md",
+    "paypal_note": "docs/规划/国际站PayPal与副脑04过渡备注.md",
+    "openclaw_upgrade": "docs/OpenClaw升级经验-副脑通用.md",
+    "jwt_trycall_fix": "docs/联调/副脑04-更新指令-试调用JWT鉴权.md"
+  },
+  "processes": {
+    "core_api_local": "AI24X-core / :8000",
+    "core_api_prod": "AI24X-core (brain-04) / upstream often :8002",
+    "a1_api": "a-api-8001",
+    "do_not_touch": ["a1 notify URLs", "p/a1 pay fulfill", "whole-file Write .env"]
+  },
+  "collab": {
+    "hub": "飞书",
+    "intl_flow": ["AI24X 指挥（主脑）做通", "AI24X国际token（副脑04）收银", "AI24X游戏（副脑01）拉人", "数据回传"],
+    "a1_flow": ["AI24X 指挥（主脑）开发", "AI24X行情官（副脑03）部署", "AI24X运营（副脑02）运营", "反馈回指挥"]
+  }
+}

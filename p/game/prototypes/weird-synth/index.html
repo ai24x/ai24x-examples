@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>离谱合成实验室 · 原型</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'PingFang SC','Microsoft YaHei',system-ui,sans-serif;background:linear-gradient(160deg,#0f172a,#1e1b4b 60%,#312e81);color:#fff;min-height:100vh;display:flex;justify-content:center;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+#app{width:100%;max-width:420px;min-height:100vh;display:flex;flex-direction:column;padding:14px 14px calc(20px + env(safe-area-inset-bottom))}
+.hidden{display:none!important}
+/* 顶栏 */
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:4px 2px 10px}
+.badge{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:4px 12px;font-size:12px;color:#e2e8f0}
+#score{font-size:30px;font-weight:900;background:linear-gradient(90deg,#fbbf24,#fb7185);-webkit-background-clip:text;background-clip:text;color:transparent}
+.bar{height:8px;background:rgba(255,255,255,.12);border-radius:99px;overflow:hidden;margin-bottom:8px}
+#timefill{height:100%;width:100%;background:linear-gradient(90deg,#34d399,#22d3ee);transition:width .1s linear}
+#timefill.warn{background:linear-gradient(90deg,#f87171,#fb923c)}
+/* 盘面 */
+#board{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:6px 0 10px}
+.cell{aspect-ratio:1;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:14px;display:flex;justify-content:center;align-items:center;font-size:34px;position:relative;transition:transform .1s}
+.cell.sel{border-color:#fbbf24;box-shadow:0 0 0 3px rgba(251,191,36,.35);transform:scale(1.04)}
+.cell .item{animation:dropin .25s ease-out}
+.cell .item.pop{animation:pop .3s ease-out}
+@keyframes dropin{0%{transform:scale(0)}100%{transform:scale(1)}}
+@keyframes pop{0%{transform:scale(.4)}55%{transform:scale(1.35)}100%{transform:scale(1)}}
+.cell.bad{animation:badshake .3s}
+@keyframes badshake{0%,100%{transform:none}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+/* 图鉴 */
+#dexWrap{margin-bottom:10px}
+.dex-head{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#a5b4fc;margin-bottom:6px}
+.dex-head button{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:#e2e8f0;border-radius:10px;padding:4px 12px;font-size:12px}
+#dexGrid{display:grid;grid-template-columns:repeat(9,1fr);gap:5px}
+.dex-slot{aspect-ratio:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px;display:flex;justify-content:center;align-items:center;font-size:18px}
+.dex-slot.locked{color:#475569;font-size:14px}
+.dex-slot.new{animation:pop .3s ease-out;border-color:#fbbf24}
+/* 操作条 */
+.opbar{display:flex;gap:8px;margin-bottom:4px}
+.opbtn{flex:1;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.35);color:#fbbf24;border-radius:12px;padding:10px 0;font-size:13px;text-align:center}
+.opbtn:active{transform:scale(.96)}
+.opbtn.off{opacity:.45}
+.hint{font-size:12px;color:#64748b;text-align:center;min-height:16px;margin-top:2px}
+/* 首页 */
+#home{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:18px;text-align:center}
+#home .logo{font-size:34px;font-weight:900;letter-spacing:3px;background:linear-gradient(90deg,#fbbf24,#fb7185,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent}
+#home .tag{color:#94a3b8;font-size:14px}
+.rulebox{background:rgba(255,255,255,.06);border-radius:16px;padding:16px;font-size:14px;color:#cbd5e1;line-height:1.9;text-align:left}
+.rulebox b{color:#fbbf24}
+#start{width:100%;padding:16px;min-height:56px;font-size:19px;font-weight:800;border:none;border-radius:18px;background:linear-gradient(90deg,#2563eb,#7c3aed);color:#fff}
+#start:active{transform:scale(.96)}
+/* 结算 */
+#overlay{position:fixed;inset:0;background:rgba(2,6,23,.82);display:flex;justify-content:center;align-items:center;z-index:20;padding:20px}
+.card{background:linear-gradient(170deg,#1e293b,#0f172a);border:1px solid rgba(255,255,255,.12);border-radius:24px;padding:26px 24px;width:100%;max-width:340px;text-align:center;animation:up .3s ease-out}
+@keyframes up{0%{transform:translateY(30px);opacity:0}100%{transform:none;opacity:1}}
+.card h2{font-size:24px;margin-bottom:6px}
+.bigscore{font-size:52px;font-weight:900;background:linear-gradient(90deg,#fbbf24,#fb7185);-webkit-background-clip:text;background-clip:text;color:transparent}
+.stats{display:flex;justify-content:space-around;margin:16px 0;font-size:13px;color:#94a3b8}
+.stats b{display:block;font-size:20px;color:#fff;margin-top:4px}
+.sharebox{background:rgba(255,255,255,.06);border-radius:14px;padding:12px;font-size:14px;color:#c7d2fe;margin-bottom:14px}
+.actions{display:flex;flex-direction:column;gap:10px}
+.primary{background:linear-gradient(90deg,#2563eb,#7c3aed);border:none;border-radius:14px;padding:14px;font-size:16px;font-weight:700;color:#fff}
+.ghost{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:12px;font-size:14px;color:#e2e8f0}
+.mini{background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.4);border-radius:14px;padding:12px;font-size:14px;color:#fbbf24}
+/* 广告模拟 */
+#admask{position:fixed;inset:0;background:rgba(2,6,23,.92);z-index:40;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px}
+.adlogo{font-size:22px;font-weight:800;letter-spacing:4px;color:#fbbf24}
+.adtext{font-size:13px;color:#94a3b8}
+#toast{position:fixed;left:50%;bottom:12%;transform:translateX(-50%);background:rgba(15,23,42,.95);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:14px;padding:10px 18px;border-radius:99px;z-index:50;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;max-width:90%}
+#toast.show{opacity:1}
+.tiny{text-align:center;color:#475569;font-size:11px;margin-top:10px;line-height:1.6}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- 首页 -->
+  <div id="home">
+    <div class="logo">离谱合成实验室</div>
+    <div class="tag">两个同类合成高级物 · 90 秒收集图鉴</div>
+    <div class="rulebox">
+      <b>怎么玩：</b><br>
+      · 点一个物品选中，再点<b>同类</b>物品合成升级<br>
+      · 点错物品会取消选中<br>
+      · 合成路线暗藏离谱彩蛋：蛋+蛋=鸡、鸡+鸡=恐龙…<br>
+      · 90 秒内点亮图鉴拿高分
+    </div>
+    <button id="start">开始合成</button>
+    <div class="tiny">原型演示：激励视频/分享为占位<br>双倍掉落与加速按钮可试玩体验</div>
+  </div>
+
+  <!-- 游戏页 -->
+  <div id="game" class="hidden">
+    <div class="topbar">
+      <div class="badge">图鉴 <b id="dexCount">0/18</b></div>
+      <div id="score">0</div>
+      <div class="badge" id="timeLeft">90s</div>
+    </div>
+    <div class="bar"><div id="timefill"></div></div>
+    <div id="board"></div>
+    <div id="dexWrap">
+      <div class="dex-head"><span>合成图鉴</span><button id="toggleDex">展开 / 收起</button></div>
+      <div id="dexGrid"></div>
+    </div>
+    <div class="opbar">
+      <div class="opbtn" id="btnDouble">⚡ 双倍掉落(15s)</div>
+      <div class="opbtn" id="btnFast">🚀 加速合成(15s)</div>
+    </div>
+    <div class="hint" id="hint">选中物品后点击同类完成合成</div>
+  </div>
+</div>
+
+<!-- 结算 -->
+<div id="overlay" class="hidden">
+  <div class="card">
+    <h2 id="endTitle">时间到！</h2>
+    <div class="bigscore" id="endScore">0</div>
+    <div class="stats">
+      <div>合成<b id="endSynth">0</b></div>
+      <div>图鉴<b id="endDex">0</b></div>
+      <div>最高阶<b id="endTop">--</b></div>
+    </div>
+    <div class="sharebox" id="shareBox">🧪 我 90 秒合成了 <b id="beatPct">0</b> 次、点亮 <b id="beatDex">0</b> 个图鉴，离谱吗？</div>
+    <div class="actions">
+      <button class="primary" id="btnCopy">📋 复制分享文案</button>
+      <button class="primary" id="btnAgain">再来一局</button>
+      <button class="ghost" id="btnHome">回首页</button>
+    </div>
+  </div>
+</div>
+<!-- 广告模拟 -->
+<div id="admask" class="hidden">
+  <div class="adlogo">📺 模拟广告</div>
+  <div class="adtext" id="adtext">奖励发放中…</div>
+</div>
+<div id="toast"></div>
+
+<script src="tracker.js"></script>
+<script>
+(function () {
+  'use strict';
+  /* ---------- 合成路线（6 层 × 3 系，含离谱彩蛋） ---------- */
+  var CHAINS = [
+    { name: '动物', items: [
+      { e: '🥚', n: '蛋' }, { e: '🐣', n: '小鸡' }, { e: '🐔', n: '母鸡' },
+      { e: '🦖', n: '恐龙' }, { e: '🐉', n: '飞龙' }, { e: '👾', n: '哥斯拉' } ] },
+    { name: '自然', items: [
+      { e: '💧', n: '水滴' }, { e: '☁️', n: '云朵' }, { e: '⛈️', n: '雷雨' },
+      { e: '❄️', n: '暴雪' }, { e: '🧊', n: '冰川' }, { e: '🦣', n: '猛犸象' } ] },
+    { name: '料理', items: [
+      { e: '🍞', n: '面包' }, { e: '🥪', n: '三明治' }, { e: '🍔', n: '汉堡' },
+      { e: '🍕', n: '披萨' }, { e: '🍰', n: '蛋糕' }, { e: '🗼', n: '埃菲尔铁塔' } ] }
+  ];
+  var ROUND_SEC = 90;
+  var BOARD = 16;
+  var DROP_MS = 900;
+
+  var state = { running: false, score: 0, board: [], sel: -1, synth: 0, dex: {}, topTier: 0, endAt: 0, dropTimer: null, tickTimer: null, buffFast: 0, buffDouble: 0 };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    home: $('home'), game: $('game'), board: $('board'), score: $('score'), timefill: $('timefill'),
+    timeLeft: $('timeLeft'), dexCount: $('dexCount'), dexGrid: $('dexGrid'), hint: $('hint'),
+    overlay: $('overlay'), endTitle: $('endTitle'), endScore: $('endScore'), endSynth: $('endSynth'),
+    endDex: $('endDex'), endTop: $('endTop'), shareBox: $('shareBox'), beatPct: $('beatPct'), beatDex: $('beatDex'),
+    btnCopy: $('btnCopy'), btnAgain: $('btnAgain'), btnHome: $('btnHome'),
+    btnDouble: $('btnDouble'), btnFast: $('btnFast'), admask: $('admask'), adtext: $('adtext'), toast: $('toast')
+  };
+
+  /* ---------- 音频 ---------- */
+  var actx = null;
+  function audio() {
+    if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+    if (actx && actx.state === 'suspended') { try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+  function tone(freq, dur, type, vol, delay) {
+    var ctx = audio(); if (!ctx) return;
+    var t0 = ctx.currentTime + (delay || 0);
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol || 0.15, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + (dur || 0.12));
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t0); o.stop(t0 + (dur || 0.12) + 0.05);
+  }
+  function sMerge(tier) { var f = 440 + tier * 80; tone(f, 0.1, 'triangle', 0.16); tone(f * 1.5, 0.14, 'triangle', 0.12, 0.08); }
+  function sNew() { tone(523, 0.12, 'triangle', 0.16); tone(659, 0.12, 'triangle', 0.16, 0.1); tone(784, 0.2, 'triangle', 0.16, 0.2); }
+  function sBad() { tone(140, 0.15, 'sawtooth', 0.12); }
+  function sDrop() { tone(600, 0.05, 'sine', 0.06); }
+  function sEnd() { tone(440, 0.2, 'sine', 0.14); tone(220, 0.35, 'sine', 0.12, 0.18); }
+  function vibrate(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
+  function track(ev, params) { if (window.__gcTrack) window.__gcTrack(ev, params); }
+  function toast(msg) {
+    els.toast.textContent = msg; els.toast.classList.add('show');
+    clearTimeout(toast._t); toast._t = setTimeout(function () { els.toast.classList.remove('show'); }, 1600);
+  }
+
+  /* ---------- 初始化 ---------- */
+  function buildDex() {
+    els.dexGrid.innerHTML = '';
+    CHAINS.forEach(function (chain) {
+      chain.items.forEach(function (it) {
+        var d = document.createElement('div');
+        d.className = 'dex-slot locked';
+        d.textContent = state.dex[chain.name + ':' + it.n] ? it.e : '?';
+        els.dexGrid.appendChild(d);
+      });
+    });
+    els.dexCount.textContent = Object.keys(state.dex).length + '/18';
+  }
+  function reset() {
+    state.board = [];
+    for (var i = 0; i < BOARD; i++) state.board.push(null);
+    state.sel = -1; state.score = 0; state.synth = 0; state.dex = {}; state.topTier = 0;
+    state.buffFast = 0; state.buffDouble = 0;
+    els.btnDouble.classList.remove('off'); els.btnFast.classList.remove('off');
+    renderBoard();
+    buildDex();
+    els.score.textContent = '0';
+  }
+  function randomItem() {
+    var r = Math.random();
+    var chain = CHAINS[Math.floor(Math.random() * CHAINS.length)];
+    var tier = r < 0.7 ? 0 : (r < 0.9 ? 1 : 2);
+    return { chain: chain, tier: tier };
+  }
+  function emptyCells() {
+    var out = [];
+    for (var i = 0; i < BOARD; i++) if (!state.board[i]) out.push(i);
+    return out;
+  }
+  function dropOne() {
+    if (!state.running) return;
+    var cells = emptyCells();
+    if (!cells.length) { endGame('full'); return; }
+    var idx = cells[Math.floor(Math.random() * cells.length)];
+    state.board[idx] = randomItem();
+    renderCell(idx, true);
+    sDrop();
+  }
+
+  /* ---------- 渲染 ---------- */
+  function cellEl(i) {
+    var cells = els.board.children;
+    return cells[i];
+  }
+  function renderBoard() {
+    els.board.innerHTML = '';
+    for (var i = 0; i < BOARD; i++) {
+      var c = document.createElement('div');
+      c.className = 'cell';
+      c.dataset.i = i;
+      c.addEventListener('click', function () { tapCell(parseInt(this.dataset.i, 10)); });
+      els.board.appendChild(c);
+    }
+    for (var j = 0; j < BOARD; j++) renderCell(j, false);
+  }
+  function renderCell(i, animate) {
+    var el = cellEl(i);
+    if (!el) return;
+    el.className = 'cell' + (state.sel === i ? ' sel' : '');
+    el.innerHTML = '';
+    var it = state.board[i];
+    if (it) {
+      var span = document.createElement('div');
+      span.className = 'item' + (animate ? ' pop' : '');
+      span.textContent = it.chain.items[it.tier].e;
+      el.appendChild(span);
+    }
+  }
+
+  /* ---------- 交互 ---------- */
+  function tapCell(i) {
+    if (!state.running) return;
+    var it = state.board[i];
+    if (!it) {
+      if (state.sel >= 0) { state.sel = -1; renderBoard(); els.hint.textContent = '选中物品后点击同类完成合成'; }
+      return;
+    }
+    if (state.sel < 0) {
+      state.sel = i; renderBoard();
+      els.hint.textContent = '再点一个同类 ' + it.chain.items[it.tier].n + ' 完成合成';
+      vibrate(10);
+      return;
+    }
+    if (state.sel === i) { state.sel = -1; renderBoard(); return; }
+    var a = state.board[state.sel], b = it;
+    if (a.chain === b.chain && a.tier === b.tier && a.tier < 5) {
+      // 合成成功
+      var nt = a.tier + 1;
+      state.board[i] = { chain: a.chain, tier: nt };
+      state.board[state.sel] = null;
+      state.sel = -1;
+      state.synth += 1;
+      var gain = (nt + 1) * 10;
+      state.score += gain;
+      state.topTier = Math.max(state.topTier, nt);
+      var key = a.chain.name + ':' + a.chain.items[nt].n;
+      var isNew = !state.dex[key];
+      if (isNew) { state.dex[key] = true; buildDex(); sNew(); vibrate([20, 30, 20, 40]); toast('✨ 新图鉴：' + a.chain.items[nt].e + ' ' + a.chain.items[nt].n + '！'); }
+      else { sMerge(nt); vibrate(12); }
+      renderBoard();
+      if (isNew) {
+        var slots = els.dexGrid.children;
+        var order = [];
+        CHAINS.forEach(function (ch) { ch.items.forEach(function (it2) { order.push(ch.name + ':' + it2.n); }); });
+        var idx = order.indexOf(key);
+        if (slots[idx]) { slots[idx].classList.add('new'); }
+      }
+      els.score.textContent = state.score;
+      els.hint.textContent = '合成成功！' + a.chain.items[nt].e + ' ' + a.chain.items[nt].n + '（+' + gain + '）';
+      if (!emptyCells().length) endGame('full');
+    } else {
+      // 点错：取消选中 + 抖动
+      state.sel = -1; renderBoard();
+      var el = cellEl(i);
+      if (el) { el.classList.add('bad'); setTimeout(function () { el.classList.remove('bad'); }, 350); }
+      sBad(); vibrate(40);
+      els.hint.textContent = '需要两个同类才能合成';
+    }
+  }
+
+  /* ---------- 计时 / 掉落 ---------- */
+  function tick() {
+    if (!state.running) return;
+    var remain = Math.max(0, (state.endAt - Date.now()) / 1000);
+    var pct = remain / ROUND_SEC * 100;
+    els.timefill.style.width = pct + '%';
+    els.timefill.className = remain <= 10 ? 'warn' : '';
+    els.timeLeft.textContent = Math.ceil(remain) + 's';
+    if (remain <= 0) { endGame('time'); return; }
+    // buff 倒计时
+    if (state.buffDouble > 0) { state.buffDouble -= 0.1; if (state.buffDouble <= 0) { state.buffDouble = 0; els.btnDouble.classList.remove('off'); } }
+    if (state.buffFast > 0) { state.buffFast -= 0.1; if (state.buffFast <= 0) { state.buffFast = 0; els.btnFast.classList.remove('off'); } }
+    state.tickTimer = setTimeout(tick, 100);
+  }
+  function dropLoop() {
+    if (!state.running) return;
+    dropOne();
+    if (state.buffDouble > 0) dropOne();
+    var ms = state.buffFast > 0 ? DROP_MS / 2 : DROP_MS;
+    state.dropTimer = setTimeout(dropLoop, ms);
+  }
+
+  /* ---------- 开局 / 结束 ---------- */
+  function start() {
+    reset();
+    state.running = true;
+    state.endAt = Date.now() + ROUND_SEC * 1000;
+    els.home.classList.add('hidden');
+    els.overlay.classList.add('hidden');
+    els.game.classList.remove('hidden');
+    track('game_start', { round_sec: ROUND_SEC });
+    // 预铺 4 个基础物品，避免空盘等待
+    for (var i = 0; i < 4; i++) {
+      var cells = emptyCells();
+      if (!cells.length) break;
+      state.board[cells[Math.floor(Math.random() * cells.length)]] = randomItem();
+    }
+    renderBoard();
+    tick();
+    dropLoop();
+  }
+  function endGame(reason) {
+    state.running = false;
+    clearTimeout(state.tickTimer); clearTimeout(state.dropTimer);
+    var dexCount = Object.keys(state.dex).length;
+    els.endTitle.textContent = reason === 'full' ? '盘面满了！' : '时间到！';
+    els.endScore.textContent = state.score;
+    els.endSynth.textContent = state.synth;
+    els.endDex.textContent = dexCount + '/18';
+    els.endTop.textContent = state.topTier > 0 ? '第' + (state.topTier + 1) + '阶' : '--';
+    els.beatPct.textContent = state.synth;
+    els.beatDex.textContent = dexCount;
+    els.shareBox.innerHTML = '🧪 我 90 秒合成了 <b>' + state.synth + '</b> 次、点亮 <b>' + dexCount + '</b> 个图鉴，离谱吗？';
+    els.overlay.classList.remove('hidden');
+    sEnd();
+    track('game_end', { score: state.score, synth: state.synth, dex: dexCount, top_tier: state.topTier, reason: reason });
+  }
+
+  /* ---------- 激励视频占位 ---------- */
+  function playAd(text, ms, onDone) {
+    els.adtext.textContent = text;
+    els.admask.classList.remove('hidden');
+    setTimeout(function () { els.admask.classList.add('hidden'); if (onDone) onDone(); }, ms);
+  }
+  function applyBuff(which) {
+    playAd('正在播放激励视频…', 1300, function () {
+      if (which === 'double') {
+        state.buffDouble = 15; els.btnDouble.classList.add('off');
+        toast('⚡ 双倍掉落 15s！');
+      } else {
+        state.buffFast = 15; els.btnFast.classList.add('off');
+        toast('🚀 加速合成 15s！');
+      }
+    });
+  }
+
+  /* ---------- 事件 ---------- */
+  $('start').addEventListener('click', start);
+  els.btnAgain.addEventListener('click', start);
+  els.btnHome.addEventListener('click', function () { state.running = false; els.overlay.classList.add('hidden'); els.game.classList.add('hidden'); els.home.classList.remove('hidden'); });
+  els.btnDouble.addEventListener('click', function () { if (state.running && !state.buffDouble) applyBuff('double'); });
+  els.btnFast.addEventListener('click', function () { if (state.running && !state.buffFast) applyBuff('fast'); });
+  $('toggleDex').addEventListener('click', function () { els.dexGrid.classList.toggle('hidden'); });
+  els.btnCopy.addEventListener('click', function () {
+    var dexCount = Object.keys(state.dex).length;
+    var text = '🧪 离谱合成实验室：我 90 秒合成了 ' + state.synth + ' 次、点亮 ' + dexCount + '/18 图鉴，最高第' + (state.topTier + 1) + '阶，敢来比吗？';
+    var done = function () { toast('文案已复制，发给好友吧'); track('share_intent', { type: 'copy', score: state.score, dex: dexCount }); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text, done); });
+    else fallbackCopy(text, done);
+  });
+  function fallbackCopy(text, done) {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { toast('复制失败'); }
+    document.body.removeChild(ta);
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.env
+.venv/
+**/data/cache/
+**/data/*.db-shm
+**/data/*.db-wal
+*.log
+docs/shot_app*.png
+docs/shot_mobile*.png

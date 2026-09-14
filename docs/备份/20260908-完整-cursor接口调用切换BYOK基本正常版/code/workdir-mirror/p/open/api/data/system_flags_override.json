@@ -1,0 +1,9 @@
+{
+  "flags": {
+    "token_llm_upstream": "openrouter",
+    "token_pay_enabled": true,
+    "token_pay_mock_enabled": true,
+    "sms_106_enabled": false
+  },
+  "updated_note": "admin_ui"
+}

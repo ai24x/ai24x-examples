@@ -1,0 +1,28 @@
+【任务书 · 平台官（Codex）】AI24X 网关 Flash 通道稳定性 · 代码层优化
+编号：FLASH-OPT-A-20260911
+发起：雷总（2026-09-10/11） ｜ 汇总/根因：主脑
+
+■ 背景（实测根因摘要）
+- 现象：调用 ai24x flash 首字节 TTFB 1.5~7s（含 40 字小请求），~8% 返回 522/524（EdgeOne 回源超时）；04 飞书因连续 524 报错。
+- 链路：客户端 → EdgeOne(CDN) → 04 nginx(443) → 127.0.0.1:8002 (AI24X-core, uvicorn) → 上游 deepseek-v4-flash。
+- 主因：上游慢/抖 + 同步并发模型 + CDN 回源超时（放大）。
+
+■ 范围（按优先级，改代码层）
+C1 (P0) 核实 flash 上游路由：flash_lanes.py 字段 `or_id` 疑似走中转 → 核实并优先直连稳定上游（减一跳）。
+C2 (P0) 上游调用加韧性：model_router.py 加 重试+退避+熔断；连接池按上游隔离（现 `_SHARED_CLIENT` 同步共享池），防慢上游拖全局。
+C3 (P1) 并发模型评估：`/v1/chat/completions` 现为**同步 def + 同步 httpx.Client** → 评估改 `async` + `httpx.AsyncClient`（提并发上限、降线程占用）。
+C4 (P1) 真流式首字节即刷（上游 SSE 到达即 flush）。
+C5 (P1) 限流参数复核：`chat_rate_per_minute=60`、`chat_rate_per_ip_per_minute=120`、日/月请求上限是否过紧；计数写库同用户行串行 → 优化（异步/Redis）。
+C6 (P1) 账号策略建议：04 与 Codex 分用**不同 AI24X key**（现状共享 ityuizu 账号，共享 60/min 额度与日/月计数器）。
+
+■ 纪律（硬性）
+- 改代码一律走：本地测试跑通 → 交付代码+测试结果 → **报雷总确认** → 派 04 部署。
+- **禁止直投生产**；不得改生产 .env / 密钥 / price_usd / dodo_product_id。
+
+■ 交付物
+- 代码补丁（按 C1..C6 分组）
+- 本地测试证据：压测前后对比（TTFB 分布 + 5xx 率）
+- 影响面说明 + 回滚点
+
+■ 验收
+- 本地压测：flash 首字节显著下降、5xx 率 < 1%；流式首字节明显提前。

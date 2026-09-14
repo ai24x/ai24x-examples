@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pricing — AI24X Markets</title>
+  <meta name="description" content="AI24X Markets pricing: free charts with 10 AI briefs a day, or Pro with unlimited AI commentary and a 50-symbol watchlist. From $24.9/month, paid via PayPal.">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="https://markets.ai24x.com/pricing.html">
+  <link rel="stylesheet" href="/css/mk-site.css?v=20260829s" />
+  <style>
+    * { box-sizing: border-box; }
+    .page-body h1 { font-size: 28px; margin: 0 0 6px; }
+    .page-body > .sub { color: var(--muted); margin: 0 0 28px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .card { display: flex; flex-direction: column; }
+    .card.hot { border-color: var(--accent); }
+    .card h2 { font-size: 18px; margin: 0 0 6px; }
+    .price { font-size: 24px; font-weight: 700; margin: 8px 0 2px; }
+    .price small { font-size: 13px; color: var(--muted); font-weight: 400; }
+    .card ul { margin: 14px 0 18px; padding-left: 18px; font-size: 13px; color: var(--muted); }
+    .card .btn { margin-top: auto; text-align: center; padding: 9px 14px; font-size: 13px; }
+    .note { margin-top: 24px; font-size: 12px; color: var(--muted); }
+    .site-footer { border-top: 1px solid var(--border); margin-top: 40px; padding: 28px 0 22px; background: var(--panel); color: var(--muted); font-size: 13px; text-align: center; }
+    .site-footer a { color: var(--muted); }
+    .site-footer a:hover { color: var(--accent); }
+    @media (max-width: 980px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 640px) { .grid-4 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div id="mk-product-bar"></div>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <div class="brand-group" data-hub-split="1">
+        <a class="brand brand-hub" href="https://www.ai24x.com/" data-www title="Back to AI24X Home"><span class="brand-mark">AI</span><span>AI24X</span></a>
+        <span class="brand-sep" aria-hidden="true">·</span>
+        <a class="brand brand-local" href="/"><b>Markets</b></a>
+      </div>
+      <nav class="nav-main" aria-label="Main">
+        <a href="/">Home</a>
+        <a href="/pricing.html" class="is-active">Pricing</a>
+        <a href="/help.html">Help</a>
+      </nav>
+      <div class="header-actions">
+        <a class="upgrade-pill" href="/app.html#sub">Upgrade to Pro</a>
+        <a class="auth-link signin" id="signin-link" href="#">Sign in</a>
+        <a class="auth-link signup" id="signup-link" href="#">Sign up</a>
+      </div>
+    </div>
+  </header>
+  <main class="page-body">
+    <h1>Simple, transparent pricing</h1>
+    <p class="sub">Browse any US symbol free. Upgrade for unlimited AI commentary and a bigger watchlist. Prices in USD, paid via PayPal.</p>
+    <div class="grid-4">
+      <div class="card">
+        <h2>Free</h2>
+        <div class="price">$0 <small>forever</small></div>
+        <ul>
+          <li>Charts, indicators &amp; AI commentary for any US symbol</li>
+          <li>AI technical briefs up to 10 times a day</li>
+          <li>Watchlist up to 10 symbols</li>
+        </ul>
+        <a class="btn" href="/app.html">Open chart app</a>
+      </div>
+      <div class="card" id="card-weekly">
+        <h2>Pro &middot; Weekly</h2>
+        <div class="price" id="price-weekly">$9.9 <small>/week</small></div>
+        <ul>
+          <li>Unlimited AI commentary</li>
+          <li>Watchlist up to 50 symbols</li>
+          <li>Priority caching</li>
+          <li>Try before committing to a month</li>
+        </ul>
+        <a class="btn btn-primary" href="/app.html#sub" id="btn-weekly">Subscribe &mdash; $9.9/week</a>
+      </div>
+      <div class="card hot" id="card-monthly">
+        <h2>Pro &middot; Monthly</h2>
+        <div class="price" id="price-monthly">$24.9 <small>/month</small></div>
+        <ul>
+          <li>Unlimited AI commentary</li>
+          <li>Watchlist up to 50 symbols</li>
+          <li>Priority caching</li>
+          <li>Cancel anytime</li>
+        </ul>
+        <a class="btn btn-primary" href="/app.html#sub" id="btn-monthly">Subscribe &mdash; $24.9/month</a>
+      </div>
+      <div class="card" id="card-yearly">
+        <h2>Pro &middot; Yearly</h2>
+        <div class="price" id="price-yearly">$199 <small>/year</small></div>
+        <ul>
+          <li>Everything in Pro monthly</li>
+          <li>33% off the monthly price</li>
+          <li>One payment, one year of clarity</li>
+        </ul>
+        <a class="btn btn-primary" href="/app.html#sub" id="btn-yearly">Subscribe &mdash; $199/year</a>
+      </div>
+    </div>
+    <p class="note">Prices shown may change; the current price at checkout is final. Unused subscription refunds are available within 14 days of purchase. For educational purposes only &mdash; not investment advice.</p>
+  </main>
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>&copy; 2026 AI24X &middot; <a href="https://www.ai24x.com">www.ai24x.com</a></div>
+      <div style="margin-top:6px;"><a href="/app.html">Chart app</a> &middot; <a href="/help.html">Help</a> &middot; <a href="/tos.html">Terms</a> &middot; <a href="/privacy.html">Privacy</a></div>
+    </div>
+  </footer>
+  <script src="/js/ai24x-chrome.js?v=20260829r"></script>
+  <script src="/js/www-links.js?v=20260829r"></script>
+  <script src="/js/mk-chrome.js?v=20260829r"></script>
+  <script>
+    (function () {
+      var ids = {
+        weekly: { card: 'card-weekly', price: 'price-weekly', btn: 'btn-weekly', unit: '/week' },
+        monthly: { card: 'card-monthly', price: 'price-monthly', btn: 'btn-monthly', unit: '/month' },
+        yearly: { card: 'card-yearly', price: 'price-yearly', btn: 'btn-yearly', unit: '/year' }
+      };
+      fetch('/api/subscribe/plans')
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          var plans = (j && j.data && j.data.plans) || (j && j.plans) || [];
+          if (!Array.isArray(plans)) return;
+          plans.forEach(function (p) {
+            var key = String((p && p.plan) || (p && p.id) || '').toLowerCase();
+            var m = ids[key];
+            if (!m) return;
+            var priceEl = document.getElementById(m.price);
+            var btn = document.getElementById(m.btn);
+            var card = document.getElementById(m.card);
+            if (p.enabled === false) {
+              if (card) card.style.display = 'none';
+              return;
+            }
+            var usd = p.usd != null ? p.usd : p.price_usd != null ? p.price_usd : p.price;
+            if (priceEl && usd != null) priceEl.innerHTML = '$' + usd + ' <small>' + m.unit + '</small>';
+            if (btn && usd != null) btn.textContent = 'Subscribe — $' + usd + m.unit;
+          });
+        })
+        .catch(function () {});
+    })();
+  </script>
+</body>
+</html>

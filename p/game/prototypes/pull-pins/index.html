@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>解压拔钉 · 原型</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'PingFang SC','Microsoft YaHei',system-ui,sans-serif;background:linear-gradient(160deg,#0f172a,#1e1b4b 60%,#312e81);color:#fff;min-height:100vh;display:flex;justify-content:center;align-items:center;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+#app{width:100%;max-width:420px;min-height:100vh;display:flex;flex-direction:column;padding:18px 16px calc(24px + env(safe-area-inset-bottom))}
+.hidden{display:none!important}
+/* 首页 */
+#home{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:18px;text-align:center}
+#home .logo{font-size:34px;font-weight:900;letter-spacing:3px;background:linear-gradient(90deg,#fbbf24,#fb7185,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent}
+#home .tag{color:#94a3b8;font-size:14px}
+.rulebox{background:rgba(255,255,255,.06);border-radius:16px;padding:16px;font-size:14px;color:#cbd5e1;line-height:1.9;text-align:left}
+.rulebox b{color:#fbbf24}
+#start{width:100%;padding:16px;min-height:56px;font-size:19px;font-weight:800;border:none;border-radius:18px;background:linear-gradient(90deg,#2563eb,#7c3aed);color:#fff}
+#start:active{transform:scale(.96)}
+.tiny{text-align:center;color:#475569;font-size:11px;margin-top:10px;line-height:1.6}
+/* 游戏页 */
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:4px 2px 14px}
+.badge{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:4px 12px;font-size:12px;color:#e2e8f0}
+.badge b{color:#fbbf24}
+#timer{font-size:26px;font-weight:800;color:#34d399}
+/* 木板 */
+#boardWrap{flex:1;display:flex;align-items:center;justify-content:center;min-height:380px}
+#board{position:relative;width:100%;max-width:340px;aspect-ratio:10/13;background:linear-gradient(170deg,#a16207,#78350f);border:8px solid #451a03;border-radius:18px;box-shadow:0 16px 40px rgba(0,0,0,.45), inset 0 0 0 2px rgba(255,255,255,.06);transition:transform .9s ease-in}
+#board.done{transform:translateY(120vh) rotate(8deg)}
+.pin{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;cursor:pointer;background:radial-gradient(circle at 32% 30%,#f1f5f9,#94a3b8 55%,#475569);box-shadow:0 4px 8px rgba(0,0,0,.45), inset 0 -4px 6px rgba(0,0,0,.3);transition:transform .22s ease-out, opacity .22s ease-out;display:flex;align-items:center;justify-content:center}
+.pin::after{content:'';position:absolute;top:6px;width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.9)}
+.pin:active{transform:scale(1.12)}
+.pin.pulled{transform:translate(46px,-70px) rotate(50deg) scale(.3);opacity:0;pointer-events:none}
+.pin.bad{animation:pinbad .3s}
+@keyframes pinbad{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.pin.locked{opacity:.55}
+.pin.locked::before{content:'⬇';position:absolute;top:-14px;font-size:12px;color:#fbbf24}
+.hint{font-size:13px;color:#a5b4fc;text-align:center;margin-top:12px;min-height:18px}
+/* 结算 */
+#overlay{position:fixed;inset:0;background:rgba(2,6,23,.85);display:flex;justify-content:center;align-items:center;z-index:20;padding:20px}
+.card{background:linear-gradient(170deg,#1e293b,#0f172a);border:1px solid rgba(255,255,255,.12);border-radius:24px;padding:30px 26px;width:100%;max-width:340px;text-align:center;animation:up .35s ease-out}
+@keyframes up{0%{transform:translateY(30px);opacity:0}100%{transform:none;opacity:1}}
+.emoji{font-size:60px}
+.bigtime{font-size:52px;font-weight:900;background:linear-gradient(90deg,#fbbf24,#fb7185);-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1.2;margin:6px 0 2px}
+.verdict{font-size:18px;font-weight:800;margin-bottom:4px}
+.sub{font-size:13px;color:#94a3b8;margin-bottom:16px}
+.sharebox{background:rgba(255,255,255,.06);border-radius:14px;padding:12px;font-size:14px;color:#c7d2fe;margin-bottom:16px;line-height:1.7}
+.actions{display:flex;flex-direction:column;gap:10px}
+.primary{background:linear-gradient(90deg,#2563eb,#7c3aed);border:none;border-radius:14px;padding:14px;min-height:48px;font-size:16px;font-weight:700;color:#fff}
+.ghost{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:12px;font-size:14px;color:#e2e8f0}
+.mini{background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.4);border-radius:14px;padding:12px;font-size:14px;color:#fbbf24}
+/* 广告模拟 */
+#admask{position:fixed;inset:0;background:rgba(2,6,23,.92);z-index:40;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px}
+.adlogo{font-size:22px;font-weight:800;letter-spacing:4px;color:#fbbf24}
+.adtext{font-size:13px;color:#94a3b8}
+#toast{position:fixed;left:50%;bottom:12%;transform:translateX(-50%);background:rgba(15,23,42,.95);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:14px;padding:10px 18px;border-radius:99px;z-index:50;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;max-width:90%}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- 首页 -->
+  <div id="home">
+    <div class="logo">解压拔钉</div>
+    <div class="tag">一根一根拔掉钉子，把压力也拔掉</div>
+    <div class="rulebox">
+      <b>怎么玩：</b><br>
+      · 钉子被<b>上面</b>的钉子压住时不能拔（有 ⬇ 标记）<br>
+      · 从上往下、从压不住的地方开始拔<br>
+      · 连续拔钉子有连击，点错连击清零<br>
+      · 拔完全部钉子木板掉落，看你的用时
+    </div>
+    <button id="start">开始拔钉</button>
+    <div class="tiny">原型演示：激励视频/分享为占位</div>
+  </div>
+
+  <!-- 游戏页 -->
+  <div id="game" class="hidden">
+    <div class="topbar">
+      <div class="badge">第 <b id="levelNo">1</b> 关</div>
+      <div id="timer">0.0s</div>
+      <div class="badge">连击 <b id="combo">0</b></div>
+    </div>
+    <div id="boardWrap">
+      <div id="board"></div>
+    </div>
+    <div class="hint" id="hint">拔掉所有钉子（被压住的钉子会晃动提示）</div>
+  </div>
+</div>
+
+<!-- 结算 -->
+<div id="overlay" class="hidden">
+  <div class="card">
+    <div class="emoji" id="endEmoji">🎉</div>
+    <div class="bigtime" id="endTime">0.0s</div>
+    <div class="verdict" id="endVerdict">木板清空！</div>
+    <div class="sub" id="endSub">最高连击 0 · 第 1 关</div>
+    <div class="sharebox" id="shareBox">🪵 解压拔钉：我 0.0 秒清空木板、最高 0 连击，解压！</div>
+    <div class="actions">
+      <button class="primary" id="btnAgain">再来一关</button>
+      <button class="mini" id="btnAd">📺 看视频双倍连击分（占位）</button>
+      <button class="primary" id="btnCopy">📋 复制解压战绩</button>
+      <button class="ghost" id="btnHome">回首页</button>
+    </div>
+  </div>
+</div>
+<!-- 广告模拟 -->
+<div id="admask" class="hidden">
+  <div class="adlogo">📺 模拟广告</div>
+  <div class="adtext" id="adtext">奖励发放中…</div>
+</div>
+<div id="toast"></div>
+
+<script src="tracker.js"></script>
+<script>
+(function () {
+  'use strict';
+  var LAYERS = 4;
+  var COLS = 5;
+  var LEVELS = [ { layers: 3, minPer: 2, maxPer: 3 }, { layers: 4, minPer: 2, maxPer: 3 }, { layers: 4, minPer: 3, maxPer: 4 } ];
+  var state = { running: false, level: 0, pins: [], combo: 0, maxCombo: 0, startTs: 0, timer: null, over: false };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    home: $('home'), game: $('game'), board: $('board'), hint: $('hint'), levelNo: $('levelNo'),
+    timer: $('timer'), combo: $('combo'),
+    overlay: $('overlay'), endEmoji: $('endEmoji'), endTime: $('endTime'), endVerdict: $('endVerdict'),
+    endSub: $('endSub'), shareBox: $('shareBox'),
+    btnAgain: $('btnAgain'), btnAd: $('btnAd'), btnCopy: $('btnCopy'), btnHome: $('btnHome'),
+    admask: $('admask'), adtext: $('adtext'), toast: $('toast')
+  };
+
+  function track(ev, params) { if (window.__gcTrack) window.__gcTrack(ev, params); }
+  function toast(msg) {
+    els.toast.textContent = msg; els.toast.classList.add('show');
+    clearTimeout(toast._t); toast._t = setTimeout(function () { els.toast.classList.remove('show'); }, 1600);
+  }
+  function vibrate(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
+  /* 音频 */
+  var actx = null;
+  function audio() {
+    if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+    if (actx && actx.state === 'suspended') { try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+  function tone(freq, dur, type, vol, delay) {
+    var ctx = audio(); if (!ctx) return;
+    var t0 = ctx.currentTime + (delay || 0);
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol || 0.15, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + (dur || 0.12));
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t0); o.stop(t0 + (dur || 0.12) + 0.05);
+  }
+  function sPop() { tone(520, 0.08, 'triangle', 0.18); tone(880, 0.1, 'triangle', 0.12, 0.05); }
+  function sBad() { tone(140, 0.16, 'sawtooth', 0.12); }
+  function sDone() { tone(523, 0.14, 'triangle', 0.16); tone(659, 0.14, 'triangle', 0.16, 0.1); tone(784, 0.14, 'triangle', 0.16, 0.2); tone(1046, 0.3, 'triangle', 0.16, 0.3); }
+
+  /* ---------- 关卡生成 ---------- */
+  function genLevel(level) {
+    var cfg = LEVELS[Math.min(level, LEVELS.length - 1)];
+    var pins = [];
+    for (var l = 0; l < cfg.layers; l++) {
+      var n = cfg.minPer + Math.floor(Math.random() * (cfg.maxPer - cfg.minPer + 1));
+      var cols = [];
+      while (cols.length < n) {
+        var c = Math.floor(Math.random() * COLS);
+        if (cols.indexOf(c) < 0) cols.push(c);
+      }
+      cols.sort(function (a, b) { return a - b; });
+      cols.forEach(function (c) {
+        pins.push({ id: pins.length, layer: l, col: c, pulled: false });
+      });
+    }
+    return pins;
+  }
+  function isBlocked(pin) {
+    for (var i = 0; i < state.pins.length; i++) {
+      var p = state.pins[i];
+      if (!p.pulled && p.layer < pin.layer && Math.abs(p.col - pin.col) <= 1) return true;
+    }
+    return false;
+  }
+  function renderBoard() {
+    els.board.innerHTML = '';
+    els.board.classList.remove('done');
+    var totalLayers = 0;
+    state.pins.forEach(function (p) { totalLayers = Math.max(totalLayers, p.layer); });
+    var span = totalLayers > 0 ? 100 / (totalLayers + 1) : 25;
+    state.pins.forEach(function (p) {
+      var el = document.createElement('div');
+      el.className = 'pin' + (isBlocked(p) ? ' locked' : '');
+      el.style.left = (10 + p.col * 18) + '%';
+      el.style.top = (12 + p.layer * span) + '%';
+      el.dataset.id = p.id;
+      el.addEventListener('click', function () { tapPin(parseInt(this.dataset.id, 10)); });
+      els.board.appendChild(el);
+    });
+  }
+
+  /* ---------- 交互 ---------- */
+  function tapPin(id) {
+    if (!state.running || state.over) return;
+    var pin = null;
+    for (var i = 0; i < state.pins.length; i++) if (state.pins[i].id === id) { pin = state.pins[i]; break; }
+    if (!pin || pin.pulled) return;
+    if (isBlocked(pin)) {
+      var el = els.board.children[id];
+      if (el) { el.classList.remove('bad'); void el.offsetWidth; el.classList.add('bad'); }
+      state.combo = 0;
+      els.combo.textContent = '0';
+      sBad(); vibrate([30, 30, 50]);
+      els.hint.textContent = '被上面的钉子压住了，先拔上面的';
+      return;
+    }
+    pin.pulled = true;
+    state.combo += 1;
+    state.maxCombo = Math.max(state.maxCombo, state.combo);
+    var el2 = els.board.children[id];
+    if (el2) el2.classList.add('pulled');
+    els.combo.textContent = state.combo;
+    sPop(); vibrate(10);
+    els.hint.textContent = '连击 ' + state.combo + '！';
+    // 更新其它钉子锁定状态
+    var all = els.board.children;
+    state.pins.forEach(function (p) {
+      var e = all[p.id];
+      if (e && !p.pulled) e.classList.toggle('locked', isBlocked(p));
+    });
+    // 检查通关
+    var left = state.pins.filter(function (p) { return !p.pulled; });
+    if (!left.length) finishLevel();
+  }
+
+  /* ---------- 计时 / 通关 ---------- */
+  function tick() {
+    if (!state.running) return;
+    els.timer.textContent = ((Date.now() - state.startTs) / 1000).toFixed(1) + 's';
+    state.timer = setTimeout(tick, 100);
+  }
+  function finishLevel() {
+    state.running = false;
+    state.over = true;
+    clearTimeout(state.timer);
+    var secs = ((Date.now() - state.startTs) / 1000);
+    els.board.classList.add('done');
+    sDone(); vibrate([30, 40, 60]);
+    setTimeout(function () { showEnd(secs); }, 950);
+  }
+  function showEnd(secs) {
+    var t = secs.toFixed(1);
+    els.endTime.textContent = t + 's';
+    els.endVerdict.textContent = '木板清空！';
+    els.endSub.textContent = '最高连击 ' + state.maxCombo + ' · 第 ' + (state.level + 1) + ' 关';
+    els.shareBox.textContent = '🪵 解压拔钉：我 ' + t + ' 秒清空木板、最高 ' + state.maxCombo + ' 连击，解压！';
+    els.overlay.classList.remove('hidden');
+    track('game_end', { level: state.level + 1, secs: Math.round(secs * 10) / 10, max_combo: state.maxCombo, pulls: state.pins.length });
+  }
+
+  /* ---------- 开局 ---------- */
+  function start() {
+    state.running = true;
+    state.over = false;
+    state.combo = 0; state.maxCombo = 0;
+    state.pins = genLevel(state.level);
+    state.startTs = Date.now();
+    els.home.classList.add('hidden');
+    els.overlay.classList.add('hidden');
+    els.game.classList.remove('hidden');
+    els.levelNo.textContent = state.level + 1;
+    els.combo.textContent = '0';
+    els.timer.textContent = '0.0s';
+    renderBoard();
+    track('game_start', { level: state.level + 1, pins: state.pins.length });
+    tick();
+  }
+  function nextLevel() {
+    state.level += 1;
+    start();
+  }
+
+  /* ---------- 广告模拟 ---------- */
+  function playAd(text, ms, onDone) {
+    els.adtext.textContent = text;
+    els.admask.classList.remove('hidden');
+    setTimeout(function () { els.admask.classList.add('hidden'); if (onDone) onDone(); }, ms);
+  }
+
+  /* ---------- 事件 ---------- */
+  $('start').addEventListener('click', start);
+  els.btnAgain.addEventListener('click', nextLevel);
+  els.btnHome.addEventListener('click', function () { els.overlay.classList.add('hidden'); els.game.classList.add('hidden'); els.home.classList.remove('hidden'); });
+  els.btnAd.addEventListener('click', function () {
+    playAd('正在播放激励视频，本关连击分 ×2', 1400, function () {
+      toast('占位：真实版本将翻倍本关连击分');
+      track('share_intent', { type: 'ad_double', level: state.level + 1 });
+    });
+  });
+  els.btnCopy.addEventListener('click', function () {
+    var text = els.shareBox.textContent;
+    var done = function () { toast('解压战绩已复制'); track('share_intent', { type: 'copy', level: state.level + 1, max_combo: state.maxCombo }); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text, done); });
+    else fallbackCopy(text, done);
+  });
+  function fallbackCopy(text, done) {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { toast('复制失败'); }
+    document.body.removeChild(ta);
+  }
+})();
+</script>
+</body>
+</html>

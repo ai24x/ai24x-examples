@@ -1,0 +1,51 @@
+## OS / Editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+## Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+## Virtualenv
+.venv/
+venv/
+ENV/
+env/
+
+## Local data / secrets
+**/.env
+**/.env.*
+!**/.env.example
+api/server/data/*
+# bj_archive 日更 dump 不入库（本地运行时生成）
+api/server/data/bj_archive/
+*.db
+*.sqlite
+*.sqlite3
+
+## Build / artifacts
+dist/
+build/
+artifacts/
+
+## Vendor download state
+scripts/.vendor_download_state.json
+
+## 本地调试/测试残留（不入库）
+_admin_html.html
+_q.py
+_scr.py
+_scr_out.txt
+_v_url.png
+_chrome_profile5/
+_ocr*.py

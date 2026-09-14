@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>你不对劲 · 原型</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'PingFang SC','Microsoft YaHei',system-ui,sans-serif;background:linear-gradient(160deg,#0f172a,#1e1b4b 60%,#312e81);color:#fff;min-height:100vh;display:flex;justify-content:center;align-items:center;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+#app{width:100%;max-width:420px;min-height:100vh;display:flex;flex-direction:column;padding:20px 20px calc(28px + env(safe-area-inset-bottom))}
+.hidden{display:none!important}
+/* 首页 */
+#home{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:18px;text-align:center}
+#home .logo{font-size:34px;font-weight:900;letter-spacing:3px;background:linear-gradient(90deg,#fbbf24,#fb7185,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent}
+#home .tag{color:#94a3b8;font-size:14px}
+.rulebox{background:rgba(255,255,255,.06);border-radius:16px;padding:16px;font-size:14px;color:#cbd5e1;line-height:1.9;text-align:left}
+.rulebox b{color:#fbbf24}
+#start{width:100%;padding:16px;min-height:56px;font-size:19px;font-weight:800;border:none;border-radius:18px;background:linear-gradient(90deg,#2563eb,#7c3aed);color:#fff}
+#start:active{transform:scale(.96)}
+.tiny{text-align:center;color:#475569;font-size:11px;margin-top:10px;line-height:1.6}
+/* 游戏页 */
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:4px 2px 16px}
+.badge{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:4px 12px;font-size:12px;color:#e2e8f0}
+.bar{height:8px;background:rgba(255,255,255,.12);border-radius:99px;overflow:hidden;margin-bottom:18px}
+#fill{height:100%;width:0;background:linear-gradient(90deg,#f87171,#fb7185);transition:width .3s}
+.qcard{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:30px 20px;text-align:center;min-height:150px;display:flex;flex-direction:column;justify-content:center;gap:10px;animation:qin .25s ease-out}
+@keyframes qin{0%{transform:translateX(24px);opacity:0}100%{transform:none;opacity:1}}
+.qtitle{font-size:22px;font-weight:800;line-height:1.5}
+.qsub{font-size:13px;color:#64748b}
+.opts{display:flex;flex-direction:column;gap:12px;margin-top:20px}
+.opt{background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.16);border-radius:16px;padding:18px 16px;min-height:64px;font-size:17px;font-weight:600;color:#fff;display:flex;align-items:center;justify-content:center;text-align:center}
+.opt:active{transform:scale(.97);border-color:#fb7185}
+.progress{font-size:12px;color:#64748b;text-align:center;margin-top:14px}
+/* 结算 */
+#overlay{position:fixed;inset:0;background:rgba(2,6,23,.85);display:flex;justify-content:center;align-items:center;z-index:20;padding:20px}
+.card{background:linear-gradient(170deg,#1e293b,#0f172a);border:1px solid rgba(255,255,255,.12);border-radius:24px;padding:30px 26px;width:100%;max-width:340px;text-align:center;animation:up .35s ease-out}
+@keyframes up{0%{transform:translateY(30px);opacity:0}100%{transform:none;opacity:1}}
+.emoji{font-size:64px}
+.pct{font-size:88px;font-weight:900;background:linear-gradient(90deg,#f87171,#fb7185);-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1.1;margin:8px 0 2px}
+.verdict{font-size:20px;font-weight:800;margin-bottom:6px}
+.sub{font-size:13px;color:#94a3b8;margin-bottom:18px}
+.sharebox{background:rgba(255,255,255,.06);border-radius:14px;padding:12px;font-size:14px;color:#c7d2fe;margin-bottom:16px;line-height:1.7}
+.actions{display:flex;flex-direction:column;gap:10px}
+.primary{background:linear-gradient(90deg,#2563eb,#7c3aed);border:none;border-radius:14px;padding:14px;min-height:48px;font-size:16px;font-weight:700;color:#fff}
+.ghost{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:12px;font-size:14px;color:#e2e8f0}
+#toast{position:fixed;left:50%;bottom:12%;transform:translateX(-50%);background:rgba(15,23,42,.95);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:14px;padding:10px 18px;border-radius:99px;z-index:50;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;max-width:90%}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- 首页 -->
+  <div id="home">
+    <div class="logo">你不对劲</div>
+    <div class="tag">10 道脑洞题，测出你的不对劲指数</div>
+    <div class="rulebox">
+      <b>怎么玩：</b><br>
+      · 10 道脑洞/三观题，凭直觉二选一<br>
+      · 答完自动算出「不对劲指数」<br>
+      · 结果越怪越想发群里（别问我为什么）
+    </div>
+    <button id="start">开始测试</button>
+    <div class="tiny">原型演示：结果卡可复制分享</div>
+  </div>
+
+  <!-- 游戏页 -->
+  <div id="game" class="hidden">
+    <div class="topbar">
+      <div class="badge">你不对劲</div>
+      <div class="badge" id="qNo">1/10</div>
+    </div>
+    <div class="bar"><div id="fill"></div></div>
+    <div class="qcard">
+      <div class="qtitle" id="qTitle">--</div>
+    </div>
+    <div class="opts" id="opts"></div>
+    <div class="progress" id="progress"></div>
+  </div>
+</div>
+
+<!-- 结算 -->
+<div id="overlay" class="hidden">
+  <div class="card">
+    <div class="emoji" id="endEmoji">🤨</div>
+    <div class="pct" id="endPct">0%</div>
+    <div class="verdict" id="endVerdict">--</div>
+    <div class="sub" id="endSub">你选了 0 个奇怪选项</div>
+    <div class="sharebox" id="shareBox">🤨 我不对劲指数 0%，乖得不像话…</div>
+    <div class="actions">
+      <button class="primary" id="btnCopy">📋 复制不对劲卡</button>
+      <button class="primary" id="btnAgain">再测一次</button>
+      <button class="ghost" id="btnHome">回首页</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script src="tracker.js"></script>
+<script>
+(function () {
+  'use strict';
+  var TOTAL = 10;
+  var POOL = [
+    { q: '如果必须选一个：', a: '永远不能说话', b: '永远不能吃辣', sus: 'a' },
+    { q: '如果能隐身 24 小时，你会？', a: '偷听八卦', b: '恶作剧朋友', sus: 'b' },
+    { q: '中了 500 万，第一件事？', a: '先辞职', b: '先买房', sus: 'a' },
+    { q: '宠物突然会说话，你会让它？', a: '帮你写作业', b: '天天告你的状', sus: 'a' },
+    { q: '手机只能留一个 APP，你留？', a: '短视频', b: '社交软件', sus: 'a' },
+    { q: '电梯里只有你一个人，你会？', a: '大声唱歌', b: '假装打电话', sus: 'a' },
+    { q: '冰箱里出现一块陌生蛋糕，你？', a: '吃掉', b: '当没看见', sus: 'a' },
+    { q: '领导在会上画大饼，你？', a: '假装很香', b: '当场拆穿', sus: 'b' },
+    { q: '周末被拉去爬山，你会？', a: '装病不去', b: '硬着头皮去', sus: 'a' },
+    { q: '穿越回古代，你只能带一样：', a: '手机', b: '充电宝', sus: 'b' },
+    { q: '朋友发来 59 秒语音，你？', a: '完整听完', b: '直接转文字', sus: 'a' },
+    { q: '外卖迟到 1 小时，你会？', a: '五星差评', b: '多给两颗糖', sus: 'b' }
+  ];
+  var VERDICTS = [
+    { min: 9, emoji: '🚨', name: '不对劲指数爆表', sub: '建议离你远点，真的', share: '🚨 我不对劲指数 9x%，建议离我远点！' },
+    { min: 7, emoji: '😈', name: '危险分子', sub: '朋友聚会请自觉坐角落', share: '😈 我不对劲指数 8x%，危险分子认证！' },
+    { min: 5, emoji: '🤨', name: '有点邪门', sub: '正常人不会这么选', share: '🤨 我不对劲指数 6x%，有点邪门！' },
+    { min: 3, emoji: '🙂', name: '正常人（大概）', sub: '勉强还算正常', share: '🙂 我不对劲指数 4x%，勉强正常！' },
+    { min: 0, emoji: '😇', name: '乖得不像话', sub: '你是不是被驯化过？', share: '😇 我不对劲指数 2x%，乖得不像话！' }
+  ];
+  var state = { running: false, idx: 0, susCount: 0, qs: [] };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    home: $('home'), game: $('game'), qNo: $('qNo'), qTitle: $('qTitle'), opts: $('opts'),
+    fill: $('fill'), progress: $('progress'),
+    overlay: $('overlay'), endEmoji: $('endEmoji'), endPct: $('endPct'), endVerdict: $('endVerdict'),
+    endSub: $('endSub'), shareBox: $('shareBox'),
+    btnCopy: $('btnCopy'), btnAgain: $('btnAgain'), btnHome: $('btnHome'), toast: $('toast')
+  };
+
+  function track(ev, params) { if (window.__gcTrack) window.__gcTrack(ev, params); }
+  function toast(msg) {
+    els.toast.textContent = msg; els.toast.classList.add('show');
+    clearTimeout(toast._t); toast._t = setTimeout(function () { els.toast.classList.remove('show'); }, 1600);
+  }
+  function vibrate(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
+  var actx = null;
+  function audio() {
+    if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+    if (actx && actx.state === 'suspended') { try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+  function tone(freq, dur, type, vol, delay) {
+    var ctx = audio(); if (!ctx) return;
+    var t0 = ctx.currentTime + (delay || 0);
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol || 0.15, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + (dur || 0.12));
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t0); o.stop(t0 + (dur || 0.12) + 0.05);
+  }
+  function sPick(sus) { if (sus) { tone(300, 0.12, 'square', 0.1); } else { tone(520, 0.1, 'triangle', 0.12); } }
+  function sEnd() { tone(392, 0.16, 'triangle', 0.15); tone(494, 0.16, 'triangle', 0.15, 0.12); tone(587, 0.26, 'triangle', 0.15, 0.24); }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function renderQ() {
+    var q = state.qs[state.idx];
+    els.qNo.textContent = (state.idx + 1) + '/' + TOTAL;
+    els.qTitle.textContent = q.q;
+    els.fill.style.width = (state.idx / TOTAL * 100) + '%';
+    els.progress.textContent = '已完成 ' + state.idx + ' / ' + TOTAL;
+    els.opts.innerHTML = '';
+    [q.a, q.b].forEach(function (label, i) {
+      var key = i === 0 ? 'a' : 'b';
+      var b = document.createElement('div');
+      b.className = 'opt';
+      b.textContent = label;
+      b.addEventListener('click', function () { pick(key); });
+      els.opts.appendChild(b);
+    });
+  }
+
+  function pick(key) {
+    if (!state.running) return;
+    var q = state.qs[state.idx];
+    if (key === q.sus) { state.susCount += 1; sPick(true); vibrate(15); } else { sPick(false); }
+    state.idx += 1;
+    if (state.idx >= TOTAL) { endGame(); return; }
+    renderQ();
+  }
+
+  function start() {
+    state.running = true;
+    state.idx = 0; state.susCount = 0;
+    state.qs = shuffle(POOL).slice(0, TOTAL);
+    els.home.classList.add('hidden');
+    els.overlay.classList.add('hidden');
+    els.game.classList.remove('hidden');
+    track('game_start', { total: TOTAL });
+    renderQ();
+  }
+
+  function endGame() {
+    state.running = false;
+    var pct = Math.round(state.susCount / TOTAL * 100);
+    var v = VERDICTS[VERDICTS.length - 1];
+    for (var i = 0; i < VERDICTS.length; i++) { if (state.susCount >= VERDICTS[i].min) { v = VERDICTS[i]; break; } }
+    var share = v.share.replace('9x', String(pct)).replace('8x', String(pct)).replace('6x', String(pct)).replace('4x', String(pct)).replace('2x', String(pct));
+    els.endEmoji.textContent = v.emoji;
+    els.endPct.textContent = pct + '%';
+    els.endVerdict.textContent = v.name;
+    els.endSub.textContent = '你选了 ' + state.susCount + ' 个奇怪选项';
+    els.shareBox.textContent = share;
+    els.overlay.classList.remove('hidden');
+    sEnd();
+    track('game_end', { pct: pct, sus: state.susCount, label: v.name });
+  }
+
+  $('start').addEventListener('click', start);
+  els.btnAgain.addEventListener('click', start);
+  els.btnHome.addEventListener('click', function () { els.overlay.classList.add('hidden'); els.game.classList.add('hidden'); els.home.classList.remove('hidden'); });
+  els.btnCopy.addEventListener('click', function () {
+    var text = els.shareBox.textContent;
+    var done = function () { toast('不对劲卡已复制，去群里发吧'); track('share_intent', { type: 'copy', pct: parseInt(els.endPct.textContent, 10) || 0 }); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text, done); });
+    else fallbackCopy(text, done);
+  });
+  function fallbackCopy(text, done) {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { toast('复制失败'); }
+    document.body.removeChild(ta);
+  }
+})();
+</script>
+</body>
+</html>

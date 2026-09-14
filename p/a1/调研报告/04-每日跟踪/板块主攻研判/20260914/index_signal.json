@@ -1,0 +1,231 @@
+{
+  "env": {
+    "pts": -3.0,
+    "red_days": 0,
+    "above_ma20": false,
+    "weak": true,
+    "tags": [
+      "大盘MACD绿柱",
+      "大盘跌破MA20"
+    ]
+  },
+  "indexes": {
+    "上证指数": {
+      "secid": "1.000001",
+      "score": 21.8,
+      "pts": -3.0,
+      "above_ma20": false,
+      "weak": true,
+      "tags": [
+        "大盘MACD绿柱",
+        "大盘跌破MA20"
+      ],
+      "last_close": 3885.33,
+      "pct": -0.07,
+      "last_date": "2026-09-14",
+      "recent_labels": [
+        "险2",
+        "金2",
+        "底1",
+        "买2",
+        "险2"
+      ],
+      "macd_last": {
+        "time": "2026-09-14",
+        "dif": -2.0007,
+        "dea": 3.9531,
+        "bar": -11.9077
+      }
+    },
+    "深证成指": {
+      "secid": "0.399001",
+      "score": 23.8,
+      "pts": -3.0,
+      "above_ma20": false,
+      "weak": true,
+      "tags": [
+        "大盘MACD绿柱",
+        "大盘跌破MA20"
+      ],
+      "last_close": 13384.568,
+      "pct": -0.64,
+      "last_date": "2026-09-14",
+      "recent_labels": [
+        "金2",
+        "金3",
+        "险1",
+        "小底",
+        "险2"
+      ],
+      "macd_last": {
+        "time": "2026-09-14",
+        "dif": -187.972,
+        "dea": -165.1152,
+        "bar": -45.7136
+      }
+    },
+    "创业板指": {
+      "secid": "0.399006",
+      "score": 24.6,
+      "pts": -3.0,
+      "above_ma20": false,
+      "weak": true,
+      "tags": [
+        "大盘MACD绿柱",
+        "大盘跌破MA20"
+      ],
+      "last_close": 3285.583,
+      "pct": -1.1,
+      "last_date": "2026-09-14",
+      "recent_labels": [
+        "金3",
+        "小底",
+        "险1",
+        "小底",
+        "险2"
+      ],
+      "macd_last": {
+        "time": "2026-09-14",
+        "dif": -68.1278,
+        "dea": -66.243,
+        "bar": -3.7698
+      }
+    },
+    "科创50": {
+      "secid": "1.000688",
+      "score": 29.0,
+      "pts": -3.0,
+      "above_ma20": false,
+      "weak": true,
+      "tags": [
+        "大盘MACD绿柱",
+        "大盘跌破MA20"
+      ],
+      "last_close": 1528.27,
+      "pct": -1.62,
+      "last_date": "2026-09-14",
+      "recent_labels": [
+        "金2",
+        "险1",
+        "小底",
+        "险2"
+      ],
+      "macd_last": {
+        "time": "2026-09-14",
+        "dif": -46.6498,
+        "dea": -41.3072,
+        "bar": -10.6853
+      }
+    },
+    "北证50": {
+      "secid": "0.899050",
+      "score": 24.6,
+      "pts": -3.0,
+      "above_ma20": false,
+      "weak": true,
+      "tags": [
+        "大盘MACD绿柱",
+        "大盘跌破MA20"
+      ],
+      "last_close": 1021.9,
+      "pct": -0.15,
+      "last_date": "2026-09-14",
+      "recent_labels": [
+        "金3",
+        "底1",
+        "金1",
+        "金2",
+        "险1"
+      ],
+      "macd_last": {
+        "time": "2026-09-14",
+        "dif": -16.0694,
+        "dea": -12.0156,
+        "bar": -8.1076
+      }
+    },
+    "沪深300": {
+      "secid": "1.000300",
+      "score": 24.6,
+      "pts": -3.0,
+      "above_ma20": false,
+      "weak": true,
+      "tags": [
+        "大盘MACD绿柱",
+        "大盘跌破MA20"
+      ],
+      "last_close": 4480.08,
+      "pct": -0.67,
+      "last_date": "2026-09-14",
+      "recent_labels": [
+        "金1·金2",
+        "险2",
+        "金3",
+        "小底",
+        "险2"
+      ],
+      "macd_last": {
+        "time": "2026-09-14",
+        "dif": -38.035,
+        "dea": -32.2001,
+        "bar": -11.6699
+      }
+    },
+    "中证500": {
+      "secid": "1.000905",
+      "score": 24.6,
+      "pts": -3.0,
+      "above_ma20": false,
+      "weak": true,
+      "tags": [
+        "大盘MACD绿柱",
+        "大盘跌破MA20"
+      ],
+      "last_close": 7571.2,
+      "pct": -0.12,
+      "last_date": "2026-09-14",
+      "recent_labels": [
+        "底1　金1",
+        "金2",
+        "金3",
+        "险1",
+        "险2"
+      ],
+      "macd_last": {
+        "time": "2026-09-14",
+        "dif": -71.0682,
+        "dea": -51.6848,
+        "bar": -38.7668
+      }
+    },
+    "中证1000": {
+      "secid": "1.000852",
+      "score": 18.0,
+      "pts": -3.0,
+      "above_ma20": false,
+      "weak": true,
+      "tags": [
+        "大盘MACD绿柱",
+        "大盘跌破MA20"
+      ],
+      "last_close": 7468.3,
+      "pct": 0.55,
+      "last_date": "2026-09-14",
+      "recent_labels": [
+        "金3",
+        "险1",
+        "底1　金2",
+        "金1",
+        "小底",
+        "险2"
+      ],
+      "macd_last": {
+        "time": "2026-09-14",
+        "dif": -29.5803,
+        "dea": -13.1002,
+        "bar": -32.9602
+      }
+    }
+  },
+  "_ts": 1789369983.262774
+}

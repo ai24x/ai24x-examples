@@ -1,0 +1,38 @@
+{
+  "002463": {
+    "name": "沪电股份",
+    "secid": "0.002463",
+    "kline": [],
+    "signals_keys": []
+  },
+  "002916": {
+    "name": "深南电路",
+    "secid": "0.002916",
+    "kline": [],
+    "signals_keys": []
+  },
+  "300476": {
+    "name": "胜宏科技",
+    "secid": "0.300476",
+    "kline": [],
+    "signals_keys": []
+  },
+  "600183": {
+    "name": "生益科技",
+    "secid": "1.600183",
+    "kline": [],
+    "signals_keys": []
+  },
+  "603228": {
+    "name": "景旺电子",
+    "secid": "1.603228",
+    "kline": [],
+    "signals_keys": []
+  },
+  "002938": {
+    "name": "鹏鼎控股",
+    "secid": "0.002938",
+    "kline": [],
+    "signals_keys": []
+  }
+}

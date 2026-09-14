@@ -1,0 +1,10 @@
+{
+  "layers": {},
+  "vip_rates": {
+    "vip-gpt5-mini": {
+      "billing_mult": 5,
+      "cost_in": 0.125,
+      "cost_out": 1
+    }
+  }
+}

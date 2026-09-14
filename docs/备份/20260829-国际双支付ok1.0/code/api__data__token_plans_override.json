@@ -1,0 +1,55 @@
+{
+  "plans": {
+    "token_pack_10k": {
+      "price_usd": 2.0,
+      "price_fen": 1440,
+      "enabled": false,
+      "dodo_product_id": "pdt_0Nm0IItKt9s8bgWNsV1wy",
+      "note_en": "Starter:  for 1M credits (~thousands of flash calls). Credits only—no named-model access; choose Scale to name models. Valid 12 months.",
+      "note_zh": "小额体验包： 试水 100 万 token（约数千次 flash 调用）。仅预充额度，不含名模资格；要点名请选 Scale。额度 12 个月有效。",
+      "credit_tokens": 1000000
+    },
+    "token_pack_100k": {
+      "price_usd": 20.0,
+      "price_fen": 14400,
+      "enabled": true,
+      "dodo_product_id": "pdt_0Nm0IJ66bTV8BkUD58YCi",
+      "credit_tokens": 60000000
+    },
+    "token_pack_mid": {
+      "price_usd": 49.0,
+      "price_fen": 35280,
+      "enabled": true,
+      "dodo_product_id": "pdt_0Nm0IJYxZdCgwoRISBOcN",
+      "credit_tokens": 150000000
+    },
+    "token_vip_month": {
+      "price_usd": 15.0,
+      "price_fen": 10800,
+      "enabled": true,
+      "dodo_product_id": "pdt_0Nm0IJmVfKxe7f1k4my1F",
+      "credit_tokens": 0
+    },
+    "token_vip_month_50w": {
+      "price_usd": 99.0,
+      "price_fen": 71280,
+      "enabled": true,
+      "dodo_product_id": "pdt_0Nm0IK2RndgmQYtRGdBfQ",
+      "credit_tokens": 250000000
+    },
+    "token_value_pack": {
+      "price_usd": 9.9,
+      "price_fen": 7128,
+      "enabled": true,
+      "dodo_product_id": "pdt_0Nm0IKEFrGIX4J39Gd7IK",
+      "credit_tokens": 30000000
+    },
+    "token_test_01": {
+      "price_fen": 432,
+      "price_usd": 0.6,
+      "credit_tokens": 1000000,
+      "enabled": false
+    }
+  },
+  "updated_note": "admin_ui"
+}
