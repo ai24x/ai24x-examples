@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -22,8 +22,8 @@
 })();
 </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OpenAI Compatible API — one client, multiple models · AI24X</title>
-  <meta name="description" content="Use an OpenAI-compatible API to call multiple models with one client. Change base_url and key — keep your SDK. Start free on AI24X Gateway." />
+  <title>OpenAI Compatible API: Endpoint, Base URL, SDK Guide · AI24X</title>
+  <meta name="description" content="OpenAI compatible API gateway, endpoint, base URL, and providers list. Use one SDK for DeepSeek, Qwen, MiMo and more. Self-host or use AI24X. Start free." />
   <link rel="canonical" href="https://www.ai24x.com/blog/openai-compatible-api.html" />
     <link rel="alternate" hreflang="en" href="https://www.ai24x.com/blog/openai-compatible-api.html" />
   <link rel="alternate" hreflang="x-default" href="https://www.ai24x.com/blog/openai-compatible-api.html" />
@@ -87,7 +87,23 @@
         <h2>Why pair it with a gateway</h2>
         <p>Compatibility alone is not enough in production. You still need somewhere to put <strong>multiple keys</strong>, <strong>failover</strong>, and <strong>cost visibility</strong>. That is the gateway layer: one OpenAI-compatible multi-model API, with BYOK or managed billing.</p>
 
-        <h2>Python OpenAI SDK example</h2>
+        
+        <h2>OpenAI compatible base URL and endpoints</h2>
+        <p>Every OpenAI-compatible API shares the same <strong>base URL</strong> pattern. You only need to change one string to switch providers:</p>
+        <pre>https://api.ai24x.com/v1          # AI24X Gateway
+https://api.openai.com/v1        # OpenAI
+https://api.deepseek.com/v1      # DeepSeek
+https://dashscope.aliyuncs.com/compatible-mode/v1  # Qwen (DashScope)
+https://api.xiaomimimo.com/v1    # MiMo</pre>
+        <p>The <strong>endpoint</strong> paths are also identical across providers:</p>
+        <ul>
+          <li><code>/v1/chat/completions</code> — chat and streaming</li>
+          <li><code>/v1/models</code> — list available models</li>
+          <li><code>/v1/embeddings</code> — text embeddings</li>
+          <li><code>/v1/audio/transcriptions</code> — speech-to-text (where supported)</li>
+        </ul>
+        <p>Set <code>base_url</code> once in your client and you never touch it again. Most agent frameworks, IDE extensions, and automation tools let you configure this in a settings page rather than code.</p>
+<h2>Python OpenAI SDK example</h2>
         <pre>from openai import OpenAI
 
 client = OpenAI(
@@ -102,7 +118,21 @@ resp = client.chat.completions.create(
 print(resp.choices[0].message.content)</pre>
         <p>Swap <code>model</code> when you need a different capability tier. Your application code stays the same; only configuration changes.</p>
 
-        <h2>Streaming and advanced features</h2>
+        
+        <h2>OpenAI SDK compatible clients</h2>
+        <p>The OpenAI SDK is the most widely supported format. If a tool or library lets you set a custom <code>base_url</code>, it is almost certainly OpenAI-compatible. Here is what works today:</p>
+        <table style="width:100%; border-collapse: collapse; margin:12px 0">
+          <tr style="border-bottom:1px solid var(--border,#d8e4ef)"><th style="text-align:left;padding:8px">SDK / Framework</th><th style="text-align:left;padding:8px">Compatible</th><th style="text-align:left;padding:8px">Notes</th></tr>
+          <tr style="border-bottom:1px solid var(--border,#d8e4ef)"><td style="padding:8px">OpenAI Python SDK</td><td style="padding:88px">Yes</td><td style="padding:8px">Set <code>base_url</code> and <code>api_key</code></td></tr>
+          <tr style="border-bottom:1px solid var(--border,#d8e4ef)"><td style="padding:8px">OpenAI Node.js SDK</td><td style="padding:8px">Yes</td><td style="padding:8px">Same pattern as Python</td></tr>
+          <tr style="border-bottom:1px solid var(--border,#d8e4ef)"><td style="padding:8px">curl / HTTP clients</td><td style="padding:8px">Yes</td><td style="padding:8px">POST to <code>/v1/chat/completions</code></td></tr>
+          <tr style="border-bottom:1px solid var(--border,#d8e4ef)"><td style="padding:8px">LangChain / LlamaIndex</td><td style="padding:8px">Yes</td><td style="padding:8px">OpenAI Chat Model wrapper</td></tr>
+          <tr style="border-bottom:1px solid var(--border,#d8e4ef)"><td style="padding:8px">Cursor / Continue / Codex</td><td style="padding:8px">Yes</td><td style="padding:8px">Custom endpoint in settings</td></tr>
+          <tr style="border-bottom:1px solid var(--border,#d8e4ef)"><td style="padding:8px">Open WebUI / LobeChat</td><td style="padding:8px">Yes</td><td style="padding:8px">OpenAI-compatible provider toggle</td></tr>
+          <tr style="border-bottom:1px solid var(--border,#d8e4ef)"><td style="padding:8px">n8n / Make / Zapier</td><td style="padding:8px">Partial</td><td style="padding:8px">HTTP nodes work; native app may need custom credential</td></tr>
+        </table>
+        <p>If your SDK is not listed, test it with a single <code>curl</code> call first. The chat completions format is widely adopted beyond the official OpenAI ecosystem.</p>
+<h2>Streaming and advanced features</h2>
         <p>Streaming uses the same endpoint with <code>stream=true</code>. Tool calling and vision depend on the upstream model — test the exact path you ship. If an agent framework lets you set a custom base URL, it is usually compatible with the chat completions path even when vendor-specific SDKs are not.</p>
         <h3>Clients that work well with a custom base URL</h3>
         <ul>
@@ -112,7 +142,26 @@ print(resp.choices[0].message.content)</pre>
         </ul>
         <p>For step-by-step IDE setup, see integration guides on <a href="https://open.ai24x.com/guides/" data-open target="_blank" rel="noopener">open.ai24x.com/guides</a>.</p>
 
-        <h2>Errors you will see in production</h2>
+        
+        
+        <h2>OpenAI compatible providers and gateways</h2>
+        <p>Many model providers now offer an OpenAI compatible API endpoint. You can switch between them by changing just the <strong>base URL</strong> and <strong>API key</strong>:</p>
+        <ul>
+          <li><strong>AI24X Gateway</strong> — <code>https://api.ai24x.com/v1</code> — 29+ models, one compatible endpoint</li>
+          <li><strong>OpenAI</strong> — <code>https://api.openai.com/v1</code> — GPT-5, GPT-4o</li>
+          <li><strong>DeepSeek</strong> — <code>https://api.deepseek.com/v1</code> — V4 Flash, V4 Pro</li>
+          <li><strong>Qwen (DashScope)</strong> — <code>https://dashscope.aliyuncs.com/compatible-mode/v1</code> — Qwen Max, Qwen Turbo</li>
+          <li><strong>MiMo</strong> — <code>https://api.xiaomimimo.com/v1</code> — MiMo V2.5</li>
+          <li><strong>Together AI</strong> — <code>https://api.together.xyz/v1</code> — open-source models</li>
+          <li><strong>Fireworks AI</strong> — <code>https://api.fireworks.ai/inference/v1</code> — fast inference</li>
+        </ul>
+        <p>An <strong>OpenAI compatible API gateway</strong> like AI24X aggregates multiple providers behind a single compatible endpoint. You get failover, cost tracking, and one billing relationship without managing seven separate API keys.</p>
+        <p>If you already use any OpenAI-compatible SDK, your code works with zero changes — just update the <code>base_url</code> and you are connected to a different provider or a multi-model gateway.</p>
+<h2>Self-hosted OpenAI compatible server</h2>
+        <p>You can run an OpenAI-compatible server on your own infrastructure. Popular open-source options include <strong>vLLM</strong>, <strong>LocalAI</strong>, <strong>llama.cpp</strong> with its server mode, and <strong>Text Generation Inference (TGI)</strong>. All expose a <code>/v1/chat/completions</code> endpoint that works with any OpenAI SDK client.</p>
+        <p>When you self-host, you keep full control over data and latency, but you also take on GPU cost, scaling, and maintenance. A common pattern is to use a gateway like AI24X for production traffic and fall back to a local server for development or sensitive data. The same <code>base_url</code> switch moves traffic between them.</p>
+        <p>For teams that need on-premise compliance, AI24X offers a <strong>BYOK (Bring Your Own Key)</strong> mode — your provider keys stay in your gateway vault, and the routing layer handles failover and caching without sending data to a third-party upstream.</p>
+<h2>Errors you will see in production</h2>
         <p>OpenAI-compatible gateways surface familiar HTTP codes. <strong>401</strong> means fix the gateway API key. <strong>429</strong> often means rate limits on an upstream path — retry with backoff or let failover pick another pool. <strong>502/503</strong> usually means an upstream outage; check status pages before you blame your app. Logging the model name and request id in your app makes these incidents much shorter.</p>
 
         <h2>Security habits</h2>
@@ -133,7 +182,7 @@ print(resp.choices[0].message.content)</pre>
           <a class="btn" href="https://open.ai24x.com/" data-open target="_blank" rel="noopener">Get API Key</a>
         </div>
 
-        <p class="sub" style="margin-top:24px">Related: <a href="what-is-ai-gateway.html">What is an AI Gateway?</a> · <a href="one-api-multiple-models.html">One API for multiple AI models</a> · <a href="byok-ai-gateway.html">BYOK AI Gateway</a></p>
+        <p class="sub" style="margin-top:24px">Related: <a href="openai-compatible-api-gateway.html">OpenAI Compatible API Gateway</a> · <a href="what-is-ai-gateway.html">What is an AI Gateway?</a> · <a href="one-api-multiple-models.html">One API for Multiple Models</a> · <a href="byok-ai-gateway.html">BYOK AI Gateway</a></p>
       </div>
     </section>
   </main>

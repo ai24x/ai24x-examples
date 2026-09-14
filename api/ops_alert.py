@@ -55,10 +55,22 @@ _DEFAULT_CONFIG: dict[str, Any] = {
     "alert_email": "",
     "sms_mobiles": "",
     "balance_alert_enabled": True,
-    "balance_threshold_usd": 5,
-    "balance_threshold_cny": 20,
-    "balance_thresholds": {},
+    # 全局兜底阈值；热通道优先用 balance_thresholds
+    "balance_threshold_usd": 15,
+    "balance_threshold_cny": 40,
+    "balance_thresholds": {
+        "deepseek": 40,
+        "tokenlab": 15,
+        "openrouter": 20,
+        "requesty": 15,
+        "siliconflow_com": 15,
+    },
 }
+
+# 未设月上限但仍需人工盯控的热通道（免费档 openrouter_free 不算）
+_BALANCE_UNMETERED_WATCH = frozenset({"openrouter", "requesty"})
+# 无官方余额 API、需人工台账的通道
+_BALANCE_MANUAL_WATCH = frozenset({"mimo", "mimo_free", "quickrouter"})
 
 _LEVEL_ICON = {"error": "P0", "warn": "P1", "info": "INFO"}
 
@@ -77,6 +89,9 @@ _ALERT_LABELS = {
     "upstream_circuit": "上游熔断触发",
     "upstream_balance": "上游通道余额预警",
     "upstream_balance_collect_fail": "余额采集异常",
+    "upstream_balance_unmetered": "上游未设额度上限",
+    "upstream_balance_manual": "上游需人工盯余额",
+    "upstream_balance_fetch": "上游余额接口失败",
     "price_monitor_fail": "价格监控采集异常",
     "price_alarm": "售价盖不住成本",
     "price_warn": "毛利偏低",
@@ -104,11 +119,20 @@ def _alert_label(code: str) -> str:
         ("hero_gm_risk_", "切通道后请复查毛利"),
         ("upstream_fail_", "上游通道故障"),
         ("upstream_circuit_", "上游熔断触发"),
+        ("upstream_balance_unmetered_", "上游未设额度上限"),
+        ("upstream_balance_manual_", "上游需人工盯余额"),
+        ("upstream_balance_fetch_", "上游余额接口失败"),
         ("upstream_balance_", "上游通道余额预警"),
     ):
         if c.startswith(prefix):
             return label
     return _ALERT_LABELS.get(c, c)
+
+
+def _is_balance_priority_code(code: str) -> bool:
+    """余额相关告警：P0 必达，不受每日推送限额挤掉。"""
+    c = str(code or "")
+    return c == "upstream_balance_collect_fail" or c.startswith("upstream_balance_")
 
 
 def _human_price_msg(row: dict[str, Any]) -> str:
@@ -232,13 +256,15 @@ def load_config() -> dict[str, Any]:
     except ValueError:
         cfg["balance_alert_enabled"] = True
     try:
-        cfg["balance_threshold_usd"] = float(os.getenv("OPS_ALERT_BALANCE_USD", str(cfg.get("balance_threshold_usd") or 5)))
+        cfg["balance_threshold_usd"] = float(os.getenv("OPS_ALERT_BALANCE_USD", str(cfg.get("balance_threshold_usd") or 15)))
     except ValueError:
-        cfg["balance_threshold_usd"] = 5.0
+        cfg["balance_threshold_usd"] = 15.0
     try:
-        cfg["balance_threshold_cny"] = float(os.getenv("OPS_ALERT_BALANCE_CNY", str(cfg.get("balance_threshold_cny") or 20)))
+        cfg["balance_threshold_cny"] = float(os.getenv("OPS_ALERT_BALANCE_CNY", str(cfg.get("balance_threshold_cny") or 40)))
     except ValueError:
-        cfg["balance_threshold_cny"] = 20.0
+        cfg["balance_threshold_cny"] = 40.0
+    if not isinstance(cfg.get("balance_thresholds"), dict) or not cfg.get("balance_thresholds"):
+        cfg["balance_thresholds"] = dict(_DEFAULT_CONFIG["balance_thresholds"])
     return cfg
 
 
@@ -268,15 +294,26 @@ def save_config(updates: dict[str, Any]) -> dict[str, Any]:
     cur["push_info"] = bool(cur.get("push_info"))
     cur["balance_alert_enabled"] = bool(cur.get("balance_alert_enabled", True))
     try:
-        cur["balance_threshold_usd"] = float(cur.get("balance_threshold_usd") or 5)
+        cur["balance_threshold_usd"] = float(cur.get("balance_threshold_usd") or 15)
     except (TypeError, ValueError):
-        cur["balance_threshold_usd"] = 5.0
+        cur["balance_threshold_usd"] = 15.0
     try:
-        cur["balance_threshold_cny"] = float(cur.get("balance_threshold_cny") or 20)
+        cur["balance_threshold_cny"] = float(cur.get("balance_threshold_cny") or 40)
     except (TypeError, ValueError):
-        cur["balance_threshold_cny"] = 20.0
+        cur["balance_threshold_cny"] = 40.0
     if not isinstance(cur.get("balance_thresholds"), dict):
-        cur["balance_thresholds"] = {}
+        cur["balance_thresholds"] = dict(_DEFAULT_CONFIG["balance_thresholds"])
+    # 清洗分通道阈值为 float
+    cleaned_th: dict[str, float] = {}
+    for k, v in (cur.get("balance_thresholds") or {}).items():
+        kid = str(k or "").strip()
+        if not kid:
+            continue
+        try:
+            cleaned_th[kid] = float(v)
+        except (TypeError, ValueError):
+            continue
+    cur["balance_thresholds"] = cleaned_th
     cur["sms_enabled"] = bool(cur.get("sms_enabled"))
     try:
         cur["cooldown_minutes"] = max(1, int(cur.get("cooldown_minutes") or 60))
@@ -321,9 +358,11 @@ def public_config() -> dict[str, Any]:
         "alert_email": cfg.get("alert_email") or "",
         "sms_mobiles": cfg.get("sms_mobiles") or "",
         "balance_alert_enabled": bool(cfg.get("balance_alert_enabled", True)),
-        "balance_threshold_usd": float(cfg.get("balance_threshold_usd") or 5),
-        "balance_threshold_cny": float(cfg.get("balance_threshold_cny") or 20),
+        "balance_threshold_usd": float(cfg.get("balance_threshold_usd") or 15),
+        "balance_threshold_cny": float(cfg.get("balance_threshold_cny") or 40),
         "balance_thresholds": cfg.get("balance_thresholds") or {},
+        "daily_push_limit": int(cfg.get("daily_push_limit") or 2),
+        "note_balance": "余额跌破阈值为 P0，飞书必达且不受每日推送限额挤掉；未设上限/无接口通道为 P1 提醒。",
         "active_codes": active,
         "last_check": st.get("last_check") or "",
         "last_push_at": st.get("last_push_at") or "",
@@ -540,26 +579,72 @@ def collect_alerts(db) -> dict[str, Any]:
     except Exception as e:
         add("warn", "price_monitor_fail", f"价格监控采集异常: {e}")
 
-    # 7) 上游通道余额预警（低于阈值才报；无接口/未配 key/未设上限的通道静默跳过，不误报）
+    # 7) 上游通道余额预警
+    # - 余额低于阈值 → P0（飞书必达，run_check 不受日限额挤掉）
+    # - 未设上限 / 无接口 / 采集失败 → P1 可观测提醒（冷却去抖，避免静默漏盯）
     if bool(cfg.get("balance_alert_enabled", True)):
         try:
             from balance_monitor import snapshot as _bal_snapshot
 
             bal = _bal_snapshot()
             thresholds = cfg.get("balance_thresholds") or {}
-            usd_th = float(cfg.get("balance_threshold_usd") or 5)
-            cny_th = float(cfg.get("balance_threshold_cny") or 20)
+            if not isinstance(thresholds, dict):
+                thresholds = {}
+            usd_th = float(cfg.get("balance_threshold_usd") or 15)
+            cny_th = float(cfg.get("balance_threshold_cny") or 40)
             for row in bal.get("rows") or []:
-                if row.get("skip_alert") or row.get("deprecated") or row.get("unmetered") or row.get("unavailable"):
+                if not isinstance(row, dict):
                     continue
+                if row.get("skip_alert") or row.get("deprecated"):
+                    continue
+                cid = str(row.get("id") or "").strip()
+                if not cid:
+                    continue
+                title = str(row.get("title") or cid)
+                cur = str(row.get("currency") or "").upper()
+
+                # 未设月上限：热通道提醒去控制台设上限，否则永远采不到可预警余额
+                if row.get("unmetered") and cid in _BALANCE_UNMETERED_WATCH:
+                    add(
+                        "warn",
+                        f"upstream_balance_unmetered_{cid}",
+                        f"{title} 未设月额度上限，无法自动预警余额，请到控制台设上限或人工盯余额",
+                    )
+                    continue
+
+                # 无官方余额 API：有 key 仍需人工盯
+                if row.get("unavailable") and cid in _BALANCE_MANUAL_WATCH:
+                    add(
+                        "warn",
+                        f"upstream_balance_manual_{cid}",
+                        f"{title} 无余额接口，请人工盯控制台余额并及时充值",
+                    )
+                    continue
+
+                # 其它 unavailable（如 TokenLab 缺 mt- key）单独提示
+                if row.get("unavailable"):
+                    err = str(row.get("error") or "不可查余额")[:80]
+                    add(
+                        "warn",
+                        f"upstream_balance_manual_{cid}",
+                        f"{title} 余额不可自动查询：{err}",
+                    )
+                    continue
+
+                # 采集失败（接口挂了）：可观测，避免当「没余额问题」
                 if not row.get("ok"):
+                    err = str(row.get("error") or "unknown")[:100]
+                    add(
+                        "warn",
+                        f"upstream_balance_fetch_{cid}",
+                        f"{title} 余额接口失败：{err}",
+                    )
                     continue
+
                 balv = row.get("balance")
                 if balv is None:
                     continue
-                cid = str(row.get("id") or "")
-                cur = str(row.get("currency") or "").upper()
-                th = thresholds.get(cid) if isinstance(thresholds, dict) else None
+                th = thresholds.get(cid)
                 if th is None:
                     th = usd_th if cur == "USD" else (cny_th if cur == "CNY" else None)
                 if th is None:
@@ -571,12 +656,12 @@ def collect_alerts(db) -> dict[str, Any]:
                     continue
                 if balv < th:
                     add(
-                        "warn",
+                        "error",
                         f"upstream_balance_{cid}",
-                        f"{row.get('title') or cid} 余额 {balv:g} {cur} < 阈值 {th:g} {cur}，请充值",
+                        f"{title} 余额 {balv:g} {cur} < 阈值 {th:g} {cur}，请尽快充值",
                     )
         except Exception as e:
-            add("warn", "upstream_balance_collect_fail", f"余额采集异常: {e}")
+            add("error", "upstream_balance_collect_fail", f"余额采集异常: {e}")
 
     return {"ok": True, "alerts": alerts, "health": health}
 
@@ -815,27 +900,53 @@ def run_check(db, *, push: bool = True, dry_run: bool = False) -> dict[str, Any]
                 "alerts": alerts, "new_push": [], "recovered": [], "text": text}
 
     # 2026-08-30 Boss order: 非正常预警每日限频（默认 2 条/天），达限额静默落盘
+    # 2026-09-14: 余额相关（upstream_balance_*）不受日限额挤掉，保证充值提醒必达
     daily_limit = max(1, int(cfg.get("daily_push_limit") or 2))
     push_daily = state.get("push_daily") or {}
     today = _cst_now().strftime("%Y-%m-%d")
     if push_daily.get("date") != today:
         push_daily = {"date": today, "count": 0}
-    if int(push_daily.get("count") or 0) >= daily_limit:
-        save_state = {"codes": codes_state, "last_check": _cst_now().isoformat(),
-                      "last_push_at": state.get("last_push_at") or "",
-                      "last_push_text": state.get("last_push_text") or "",
-                      "last_silent_at": _cst_now().isoformat(),
-                      "push_daily": push_daily}
-        _save_json(_STATE_PATH, save_state)
-        return {"ok": True, "pushed": False, "rate_limited": True, "health": health,
-                "alerts": alerts, "new_push": new_push, "recovered": recovered, "text": text}
+    rate_limited = int(push_daily.get("count") or 0) >= daily_limit
+    balance_only_bypass = False
+    if rate_limited:
+        bal_push = [a for a in new_push if _is_balance_priority_code(str(a.get("code") or ""))]
+        bal_rec = [c for c in recovered if _is_balance_priority_code(c)]
+        if not bal_push and not bal_rec:
+            save_state = {"codes": codes_state, "last_check": _cst_now().isoformat(),
+                          "last_push_at": state.get("last_push_at") or "",
+                          "last_push_text": state.get("last_push_text") or "",
+                          "last_silent_at": _cst_now().isoformat(),
+                          "push_daily": push_daily}
+            _save_json(_STATE_PATH, save_state)
+            return {"ok": True, "pushed": False, "rate_limited": True, "health": health,
+                    "alerts": alerts, "new_push": new_push, "recovered": recovered, "text": text}
+        # 日限额已满：仍推余额相关，并收窄正文避免刷其它噪声
+        new_push = bal_push
+        recovered = bal_rec
+        balance_only_bypass = True
+        lines = [f"[AI24X 运维预警] {_cst_now().strftime('%m-%d %H:%M')} (CST) · 余额优先（日限额已满仍推）"]
+        lines.append(f"当前：P0×{sum(1 for a in alerts if a.get('level')=='error')} "
+                     f"P1×{sum(1 for a in alerts if a.get('level')=='warn')} · 健康 {health.get('status')}")
+        if new_push:
+            lines.append("— 新预警 —")
+            for a in new_push:
+                lines.append(_fmt_alert(a))
+        if recovered:
+            lines.append("— 已恢复 —")
+            for c in recovered:
+                lines.append(f"OK {c}")
+        text = "\n".join(lines)
 
     pushed_feishu = _push_feishu(cfg, text)
     pushed_email = _push_email(cfg, text) if cfg.get("email_enabled") else False
-    pushed_sms = _push_sms(cfg, text) if (cfg.get("sms_enabled") and n_err > 0) else False
+    # 短信仅 P0；余额优先旁路时按本轮 new_push 是否含 error
+    n_err_push = sum(1 for a in new_push if a.get("level") == "error") if balance_only_bypass else n_err
+    pushed_sms = _push_sms(cfg, text) if (cfg.get("sms_enabled") and n_err_push > 0) else False
     pushed = pushed_feishu or pushed_email or pushed_sms
 
-    push_daily["count"] = int(push_daily.get("count") or 0) + 1
+    # 余额旁路推送不占用每日普通配额（普通告警仍受限额）
+    if not balance_only_bypass:
+        push_daily["count"] = int(push_daily.get("count") or 0) + 1
     save_state = {"codes": codes_state, "last_check": _cst_now().isoformat(),
                   "push_daily": push_daily}
     if new_push or recovered:
@@ -852,6 +963,7 @@ def run_check(db, *, push: bool = True, dry_run: bool = False) -> dict[str, Any]
         "pushed_feishu": pushed_feishu,
         "pushed_email": pushed_email,
         "pushed_sms": pushed_sms,
+        "balance_bypass": balance_only_bypass,
         "health": health,
         "alerts": alerts,
         "new_push": new_push,

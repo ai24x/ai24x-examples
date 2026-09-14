@@ -1448,6 +1448,23 @@
                 </div>
               </div>
 
+              <div class="section-label">③b 上游余额阈值</div>
+              <p class="ops-tip" id="alertBalanceNote">余额跌破阈值为 P0（飞书必达，不受每日限额挤掉）。未设上限 / 无接口通道为 P1 提醒。</p>
+              <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+                <div class="field"><span class="lbl">启用余额预警</span>
+                  <input type="checkbox" id="alertBalEnabled" checked />
+                </div>
+                <div class="field"><span class="lbl">全局 USD 阈值</span>
+                  <input type="number" id="alertBalUsd" min="0" step="0.1" value="15" style="width:100px;" />
+                </div>
+                <div class="field"><span class="lbl">全局 CNY 阈值</span>
+                  <input type="number" id="alertBalCny" min="0" step="1" value="40" style="width:100px;" />
+                </div>
+                <div class="field" style="grid-column:1/-1;"><span class="lbl">分通道阈值（JSON，如 {"tokenlab":15,"deepseek":40}）</span>
+                  <textarea id="alertBalThresholds" rows="2" class="mono" style="width:100%;resize:vertical;" placeholder='{"deepseek":40,"tokenlab":15}'></textarea>
+                </div>
+              </div>
+
               <div class="section-label">④ 巡检输出</div>
               <pre class="mono small" id="alertRunResult" style="white-space:pre-wrap;">尚未巡检。点右上「立即巡检并推送」可测试链路。</pre>
             </div>
@@ -5537,6 +5554,19 @@
     $("alertSms").checked = !!r.sms_enabled;
     $("alertEmail").value = r.alert_email || "";
     $("alertSmsMobiles").value = r.sms_mobiles || "";
+    if ($("alertBalEnabled")) $("alertBalEnabled").checked = r.balance_alert_enabled !== false;
+    if ($("alertBalUsd")) $("alertBalUsd").value = r.balance_threshold_usd != null ? r.balance_threshold_usd : 15;
+    if ($("alertBalCny")) $("alertBalCny").value = r.balance_threshold_cny != null ? r.balance_threshold_cny : 40;
+    if ($("alertBalThresholds")) {
+      try {
+        $("alertBalThresholds").value = JSON.stringify(r.balance_thresholds || {}, null, 0);
+      } catch (eTh) {
+        $("alertBalThresholds").value = "{}";
+      }
+    }
+    if ($("alertBalanceNote") && r.note_balance) {
+      $("alertBalanceNote").textContent = r.note_balance;
+    }
     renderAlertOverview(r);
     try {
       var live = await api("/v1/admin/token/alerts/live");
@@ -5669,6 +5699,18 @@
       alert_email: ($("alertEmail").value || "").trim(),
       sms_mobiles: ($("alertSmsMobiles").value || "").trim(),
     };
+    if ($("alertBalEnabled")) body.balance_alert_enabled = $("alertBalEnabled").checked;
+    if ($("alertBalUsd")) body.balance_threshold_usd = parseFloat($("alertBalUsd").value) || 15;
+    if ($("alertBalCny")) body.balance_threshold_cny = parseFloat($("alertBalCny").value) || 40;
+    if ($("alertBalThresholds")) {
+      try {
+        var thRaw = ($("alertBalThresholds").value || "").trim() || "{}";
+        body.balance_thresholds = JSON.parse(thRaw);
+      } catch (eTh) {
+        setMsg("分通道阈值 JSON 无效，请检查后重试", "err");
+        return;
+      }
+    }
     var w = ($("alertWebhook").value || "").trim();
     if (w && w.indexOf("(") !== 0) body.webhook_url = w;
     await api("/v1/admin/token/alert_config", { method: "POST", body: body });
