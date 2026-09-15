@@ -58,7 +58,7 @@ if st.button("Send Request") and api_key:
 st.markdown("---")
 col1, col2, col3 = st.columns(3)
 with col1:
-    st.markdown("[Get API Key](https://open.ai24x.com)")
+    st.markdown("[Get API Key](https://www.ai24x.com)")
 with col2:
     st.markdown("[Pricing](https://www.ai24x.com/pricing.html)")
 with col3:
