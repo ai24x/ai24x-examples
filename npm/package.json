@@ -1,0 +1,12 @@
+{
+  "name": "ai24x",
+  "version": "1.0.0",
+  "description": "AI24X Gateway — one API key for 31+ models (DeepSeek, GPT-6, Claude, Gemini, Grok). OpenAI-compatible.",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "keywords": ["ai24x", "ai-gateway", "llm", "deepseek", "gpt", "claude", "gemini", "openai-compatible", "multi-model"],
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/ai24x/ai24x-examples" },
+  "homepage": "https://open.ai24x.com",
+  "peerDependencies": { "openai": "^4.0.0" }
+}
