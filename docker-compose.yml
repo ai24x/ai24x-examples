@@ -1,0 +1,8 @@
+version: '3.8'
+services:
+  ai24x-demo:
+    image: python:3.11-slim
+    container_name: ai24x-gateway-demo
+    environment:
+      - AI24X_API_KEY=${AI24X_API_KEY:-sk-your-key}
+    command: sh -c "pip install openai && python -c 'from openai import OpenAI; client=OpenAI(base_url=\"https://api.ai24x.com/v1\", api_key=\"$AI24X_API_KEY\"); resp=client.chat.completions.create(model=\"flash\", messages=[{\"role\":\"user\",\"content\":\"Hello!\"}]); print(resp.choices[0].message.content)'"
