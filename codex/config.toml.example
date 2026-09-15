@@ -1,0 +1,15 @@
+# Codex configuration with AI24X as backend
+[model]
+provider = "ai24x"
+model = "auto"
+
+[model.ai24x]
+base_url = "https://api.ai24x.com/v1"
+api_key = "sk-your-key-here"
+
+# Available model tiers:
+# auto   - automatic model selection
+# flash  - fast everyday tier ($0.35/M tokens)
+# pro    - high-value tier ($1.05/M tokens)
+# ultra  - premium reasoning tier
+# shared - cost-shared tier (best value)
