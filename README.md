@@ -2,7 +2,7 @@
 
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://ai24x-examples-bj26ncdeqstapzeta63ozr.streamlit.app/)
 
-Example code for using [AI24X Gateway](https://open.ai24x.com) — one OpenAI-compatible key for **31+ models**: DeepSeek, Qwen, GLM, Kimi, MiMo, GPT-6, GPT-5, Claude, Gemini, Grok, Llama and more.
+Example code for using [AI24X Gateway](https://www.ai24x.com) — one OpenAI-compatible key for **31+ models**: DeepSeek, Qwen, GLM, Kimi, MiMo, GPT-6, GPT-5, Claude, Gemini, Grok, Llama and more.
 
 ## Live Demo
 
