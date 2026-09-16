@@ -2,7 +2,7 @@
 
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://ai24x-examples-bj26ncdeqstapzeta63ozr.streamlit.app/)
 
-Example code for using [AI24X Gateway](https://www.ai24x.com) — one OpenAI-compatible key for **31+ models**: DeepSeek, Qwen, GLM, Kimi, MiMo, GPT-6, GPT-5, Claude, Gemini, Grok, Llama and more.
+Example code for using [AI24X Gateway](https://www.ai24x.com) — one OpenAI-compatible key for **35+ models**: DeepSeek, Qwen, GLM, Kimi, MiMo, GPT-6, GPT-5, Claude Opus, Gemini, Grok, Llama and more.
 
 ## Live Demo
 
@@ -36,18 +36,20 @@ curl -X POST "https://api.ai24x.com/v1/chat/completions"   -H "Content-Type: app
 
 | Group | Models |
 |-------|--------|
+| Group | Models |
+|-------|--------|
 | **Managed Tiers** | flash, auto, pro, ultra, shared |
-| **DeepSeek** | vip-ds-flash, vip-ds-pro |
-| **Qwen** | vip-qwen-max, vip-qwen122b |
+| **DeepSeek** | vip-ds-flash, vip-ds-pro, vip-ds-v3 |
+| **Qwen** | vip-qwen-max, vip-qwen122b, vip-qwen3 |
 | **GPT-6 Series** | vip-gpt6-astra, vip-gpt56-terra, vip-gpt56-sol, vip-gpt56-luna |
 | **GPT-5 & GPT-4** | vip-gpt5, vip-gpt5-mini, vip-gpt54, vip-gpt4o, vip-gpt4o-mini |
-| **Claude** | vip-claude-opus, vip-claude-sonnet, vip-claude-haiku |
-| **Gemini** | vip-gemini-pro, vip-gemini-flash |
-| **Others** | vip-kimi, vip-kimi-code, vip-mimo, vip-minimax, vip-glm, vip-hy3, vip-grok, vip-llama4 |
+| **Claude** | vip-claude-opus, vip-claude-opus-4, vip-claude-sonnet, vip-claude-haiku |
+| **Gemini** | vip-gemini-2.5-pro, vip-gemini-2.5-flash, vip-gemini-pro, vip-gemini-flash |
+| **Others** | vip-kimi, vip-kimi-code, vip-mimo, vip-mimo-pro, vip-minimax, vip-glm, vip-hy3, vip-grok, vip-llama4, vip-mistral |
 
 ## Features
 
-- **One API key** for 31+ models
+- **One API key** for 35+ models
 - **OpenAI-compatible** — use existing SDKs, just change base_url
 - **BYOK** — bring your own provider keys via open.ai24x.com
 - **PayPal / Card** — no Chinese phone number needed

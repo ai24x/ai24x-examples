@@ -8,8 +8,8 @@ client = OpenAI(
     api_key="sk-your-key-here"  # Replace with your key
 )
 
-# Try different models
-models = ["flash", "pro", "vip-gpt5", "vip-claude-opus", "vip-ds-pro"]
+# Try different models (flash = best value for general tasks)
+models = ["flash", "auto", "pro", "vip-gpt5", "vip-claude-opus-4"]
 
 for model in models:
     response = client.chat.completions.create(

@@ -12,13 +12,13 @@ curl -s https://api.ai24x.com/v1/chat/completions \
   }' | jq .
 
 # 2. Try different models
-for model in flash pro vip-gpt5 vip-claude-sonnet vip-ds-flash; do
-  echo "===  ==="
+for model in flash auto pro vip-gpt5 vip-claude-sonnet vip-ds-flash; do
+  echo "=== $model ==="
   curl -s https://api.ai24x.com/v1/chat/completions \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer sk-your-key-here" \
     -d "{
-      \"model\": \"\",
+      \"model\": \"$model\",
       \"messages\": [{\"role\": \"user\", \"content\": \"What is the capital of Japan?\"}],
       \"max_tokens\": 50
     }" | jq '.choices[0].message.content'

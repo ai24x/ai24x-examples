@@ -12,7 +12,7 @@ client = OpenAI(
 
 # The gateway routes to your provider key automatically
 response = client.chat.completions.create(
-    model="vip-claude-opus",  # Your own Claude key will be used
+    model="vip-claude-opus-4",  # Your own Claude key will be used
     messages=[{"role": "user", "content": "What models can I access with BYOK?"}],
     max_tokens=200
 )
